@@ -6,7 +6,7 @@ Use this checklist before trusting the project `.codex` layer.
 
 Manual check:
 
-1. Start Codex from the project root: `codex -C C:\Elpro`
+1. Start Codex from the project root: `codex -C C:\ElproSaas`
 2. Ask: `What is the current project phase and what scope is deferred?`
 3. Expected answer: Phase A / Internal Pilot MVP; product implementation requires an approved Phase A story; Fortnox, field-worker UX, supplier APIs, AI jobs, HR, rentals, assets, DoU, tender/FKU RAG, and full RBAC are deferred.
 
@@ -17,7 +17,7 @@ Do not treat this as verified until the answer cites the repo instructions or ma
 Run:
 
 ```powershell
-codex --strict-config -C C:\Elpro --help
+codex --strict-config -C C:\ElproSaas --help
 ```
 
 Expected:
@@ -29,7 +29,7 @@ Expected:
 
 Manual check:
 
-1. Start Codex from the project root: `codex -C C:\Elpro`
+1. Start Codex from the project root: `codex -C C:\ElproSaas`
 2. Open the agent list if available, for example `/agents`.
 3. Confirm these agents appear:
    - `phase-scope-reviewer`
@@ -44,10 +44,10 @@ If Codex does not load `.codex/agents/*.toml`, treat the files as advisory promp
 
 ## 4. Verify Execpolicy Rules Parse And Decide Correctly
 
-Run from `C:\Elpro`:
+Run from `C:\ElproSaas`:
 
 ```powershell
-Set-Location C:\Elpro
+Set-Location C:\ElproSaas
 codex execpolicy check --pretty --rules .\.codex\rules\default.rules -- git status --short
 codex execpolicy check --pretty --rules .\.codex\rules\default.rules -- rg --files docs
 codex execpolicy check --pretty --rules .\.codex\rules\default.rules -- npm install
@@ -63,7 +63,7 @@ codex execpolicy check --pretty --rules .\.codex\rules\default.rules -- supabase
 codex execpolicy check --pretty --rules .\.codex\rules\default.rules -- __codex_rule_smoke_test__
 ```
 
-If not running from `C:\Elpro`, use an absolute rules path instead of `.\.codex\rules\default.rules`.
+If not running from `C:\ElproSaas`, use an absolute rules path instead of `.\.codex\rules\default.rules`.
 
 The `--` separator before the tested command is required. Without it, command flags can be parsed as `codex execpolicy check` flags instead of command tokens.
 
@@ -114,7 +114,7 @@ Do not assume hooks are enforceable until `/hooks` shows them and dry-run prompt
 
 Manual check:
 
-1. Start Codex from `C:\Elpro`.
+1. Start Codex from `C:\ElproSaas`.
 2. If Codex shows a project trust prompt, approve only after reviewing `.codex/config.toml`, `.codex/hooks.json`, `.codex/rules/default.rules`, and `.codex/agents/*.toml`.
 3. Do not use `--dangerously-bypass-hook-trust` for normal work.
 

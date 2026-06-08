@@ -1,7 +1,7 @@
 # ElPro Initial System Audit
 
 Date: 2026-06-01  
-Repository: `C:\Elpro`  
+Repository: `C:\ElproSaas`  
 Method: static code/schema review plus best-effort local install, test, lint, build, and dependency audit. This is not yet a full live UX review, penetration test, or production-readiness assessment.
 
 ## Executive Summary
