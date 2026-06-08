@@ -1,0 +1,59 @@
+# Codex execpolicy rules for ElPro Phase A.
+# Verified locally with: codex execpolicy check --rules .codex/rules/default.rules <command>
+#
+# Decisions used by Codex 0.137.0 on this machine:
+# - allow
+# - prompt
+# - forbidden
+
+# Read-only commands that are safe during docs/process work.
+prefix_rule(["git", "status"], "allow", match=["git status --short"], not_match=["git push"])
+prefix_rule(["git", "diff"], "allow", match=["git diff -- AGENTS.md"], not_match=["git reset --hard"])
+prefix_rule(["git", "log"], "allow", match=["git log --oneline -5"], not_match=["git push"])
+prefix_rule(["rg"], "allow", match=["rg --files docs"])
+
+# Dependency, package, remote, and destructive git operations require explicit approval.
+prefix_rule(["npm", "install"], "prompt", match=["npm install"], not_match=["npm test"])
+prefix_rule(["npm", "update"], "prompt", match=["npm update"])
+prefix_rule(["bun", "install"], "prompt", match=["bun install"])
+prefix_rule(["npx"], "prompt", match=["npx supabase --version"])
+prefix_rule(["supabase", "db", "push"], "prompt", match=["supabase db push"], not_match=["supabase migration list"])
+prefix_rule(["supabase", "db", "reset"], "prompt", match=["supabase db reset"])
+prefix_rule(["supabase", "migration", "new"], "prompt", match=["supabase migration new add_table"])
+prefix_rule(["git", "reset"], "prompt", match=["git reset --soft HEAD~1"])
+prefix_rule(["git", "checkout", "--"], "prompt", match=["git checkout -- src/App.tsx"], not_match=["git checkout feature/docs"])
+prefix_rule(["git", "push"], "prompt", match=["git push origin docs/guardrails"])
+prefix_rule(["gh", "pr", "merge"], "prompt", match=["gh pr merge 123"])
+prefix_rule(["powershell"], "prompt", match=["powershell -NoProfile -Command \"cat .env\""])
+prefix_rule(["pwsh"], "prompt", match=["pwsh -NoProfile -Command \"cat .env\""])
+prefix_rule(["cmd"], "prompt", match=["cmd /c type .env"])
+
+# Secret-reading commands are forbidden.
+prefix_rule(["cat", ".env"], "forbidden", match=["cat .env"], not_match=["cat README.md"])
+prefix_rule(["type", ".env"], "forbidden", match=["type .env"], not_match=["type README.md"])
+prefix_rule(["Get-Content", ".env"], "forbidden", match=["Get-Content .env"], not_match=["Get-Content README.md"])
+prefix_rule(["gc", ".env"], "forbidden", match=["gc .env"], not_match=["gc README.md"])
+prefix_rule(["printenv"], "forbidden", match=["printenv"])
+prefix_rule(["env"], "forbidden", match=["env"])
+prefix_rule(["Get-ChildItem", "Env:"], "forbidden", match=["Get-ChildItem Env:"])
+prefix_rule(["gci", "Env:"], "forbidden", match=["gci Env:"])
+prefix_rule(["rg", ".", ".env"], "forbidden", match=["rg . .env"])
+
+# Obvious destructive commands are forbidden.
+prefix_rule(["rm", "-rf", "/"], "forbidden", match=["rm -rf /"])
+prefix_rule(["rm", "-fr", "/"], "forbidden", match=["rm -fr /"])
+
+# Production-like Supabase targeting and secrets operations are forbidden until a release process exists.
+prefix_rule(["supabase", "db", "push", "--linked"], "forbidden", match=["supabase db push --linked"])
+prefix_rule(["supabase", "db", "push", "--project-ref"], "forbidden", match=["supabase db push --project-ref prod_ref"])
+prefix_rule(["supabase", "functions", "deploy"], "forbidden", match=["supabase functions deploy fn --project-ref prod_ref"])
+prefix_rule(["supabase", "secrets"], "forbidden", match=["supabase secrets list"])
+prefix_rule(["supabase", "projects", "delete"], "forbidden", match=["supabase projects delete prod_ref"])
+
+# Smoke test: verifies that this rules file is loaded.
+prefix_rule(
+    pattern = ["__codex_rule_smoke_test__"],
+    decision = "forbidden",
+    justification = "Verifies that this rules file is loaded.",
+    match = ["__codex_rule_smoke_test__"],
+)
