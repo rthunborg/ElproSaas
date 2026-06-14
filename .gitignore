@@ -41,3 +41,7 @@ next-env.d.ts
 *.pem
 .pnp
 .pnp.*
+
+# Installed agent/skill tooling (generated from _bmad/, regenerable via BMad install)
+.agents/
+.claude/
