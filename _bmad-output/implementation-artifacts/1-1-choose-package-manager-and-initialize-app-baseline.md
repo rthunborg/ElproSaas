@@ -1,6 +1,6 @@
 # Story 1.1: Choose Package Manager And Initialize App Baseline
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -137,3 +137,37 @@ Story tracking (not app code):
 | Date | Change |
 | --- | --- |
 | 2026-06-13 | Story 1.1 implemented: pnpm + Next.js 16 App Router baseline scaffolded into repo root, exact versions pinned, lockfile guard added, verification gates (install/typecheck/lint/build + frozen reproducibility) green. Status → review. |
+| 2026-06-14 | Code review Round 1: 2 decisions resolved (`.nvmrc`=22 added; layout metadata → "Elpro"), 3 LOW-severity patches applied (lockfile guard hardened against false-green + `deno.lock`; `.mjs` typecheck coverage), 2 items deferred to Stories 1.3/1.4, 12 dismissed (incl. 9 from a hallucinated Blind Hunter layer). Post-fix gates (guard/typecheck/lint) green. Status → done. |
+
+## Review Findings
+
+**Round 1 of 3** — 2026-06-14 (adversarial code review: Blind Hunter + Edge Case Hunter + Acceptance Auditor + completeness critic; every finding adversarially verified against the actual repo).
+
+**Outcome:** All three ACs are satisfied; **no confirmed HIGH/MEDIUM code defect**. Every confirmed finding is LOW-severity hardening or cosmetic and is either a decision for you or owned by a later story. Independent offline gates re-run during review: `verify:lockfiles` passes, no foreign lockfiles, no service-role names in code, no deferred-module references, `.gitignore` covers `.env*`/`node_modules`/`.next`, `src/app/` is scaffold-default only.
+
+> ⚠️ The **Blind Hunter** layer was contaminated — it reviewed a hallucinated CV/portfolio codebase and produced 9 findings about files that do not exist in this diff (`src/app/api/contact/route.ts`, `public/cv/*.pdf`, `src/lib/case-study-registry.ts`, nodemailer, etc.). All 9 were verified false against ground truth and dismissed. They must NOT drive remediation.
+
+### Decision needed — RESOLVED (Round 1, 2026-06-14)
+
+- [x] [Review][Decision] `engines.node` floor `>=20.9.0` doesn't encode Task 2.2's LTS preference and isn't hard-enforced — **Resolved:** added `.nvmrc` = `22` to steer contributors and Story 1.2 CI toward the architecture-preferred LTS line; left `engines.node: ">=20.9.0"` unchanged (it satisfies Task 2.2's hard minimum and avoids rejecting Node 25 / future LTS lines). Deliberately no `engine-strict` (keeps install UX unchanged); a cross-Node gate matrix stays Story 1.2 (CI) scope. [package.json:6-8] · [.nvmrc]
+- [x] [Review][Decision] Root layout metadata still ships create-next-app placeholder branding — **Resolved:** set `title: "Elpro"`, `description: "Elpro internal platform"`. [src/app/layout.tsx:15-18]
+
+### Patch (unambiguous, LOW-severity hardening) — APPLIED (Round 1, 2026-06-14)
+
+- [x] [Review][Patch] Lockfile guard treated a present-but-empty/corrupt `pnpm-lock.yaml` as a pass (false green) — **Applied:** guard now reads the lockfile and fails unless it is non-empty and declares `lockfileVersion:`. Sandbox-verified (empty → exit 1, valid → exit 0). [scripts/verify/check-lockfiles.mjs]
+- [x] [Review][Patch] `deno.lock` missing from the forbidden-lockfile denylist — **Applied:** `deno.lock` added; sandbox-verified it now trips the guard. [scripts/verify/check-lockfiles.mjs]
+- [x] [Review][Patch] `.mjs` helper scripts excluded from `tsc --noEmit` — **Applied:** added `scripts/**/*.mjs` to tsconfig `include`; `pnpm typecheck` re-run green. [tsconfig.json]
+
+**Post-fix gates (offline):** `verify:lockfiles` ✅ · `pnpm typecheck` ✅ (now covers the `.mjs` guard script) · `pnpm lint` ✅. `pnpm build` not re-run: the changes (metadata strings, a verify script, a tsconfig `include` glob, `.nvmrc`) cannot affect the Next.js build output, and `build` depends on a network font fetch (`next/font/google`) that was already green in dev.
+
+### Deferred (real, but owned by a later story / no functional impact)
+
+- [x] [Review][Defer] README is the verbatim create-next-app placeholder — instructs `npm/yarn/bun dev` (contradicts the pnpm-only AC1/Stop Condition) and points at `app/page.tsx` (actual path `src/app/page.tsx`). Explicitly owned by Story 1.4 (setup/README docs) per the Dev Agent Record. [README.md:7-19] — deferred to Story 1.4
+- [x] [Review][Defer] `globals.css` hardcodes `body { font-family: Arial… }`, overriding the Geist font wired in `layout.tsx` — inherited create-next-app (Tailwind v4) artifact; no functional impact (page.tsx uses the `font-sans` utility → Geist). [src/app/globals.css:22-26] — deferred, scaffold cleanup / Story 1.3
+
+### Dismissed as noise (12)
+
+- **Blind Hunter (9):** hallucinated codebase — CV-PDF deliverable, contact-route `FAKE_OK` response reuse, anti-bot timestamp gate, README `.env.example` dead link, `case-study-registry` dead code, nodemailer version skew, `babel-plugin-react-compiler` dead dep, `.gitignore` scripts/docs blanket-ignore, email header injection. None of the referenced files/deps exist in the diff.
+- Guard "monorepo subdirectory lockfile" gap — false premise: `pnpm-workspace.yaml` has no `packages:` key (single-package repo).
+- `pnpm-workspace.yaml` "structural deviation" — tool-standard pnpm-10 scaffold output carrying `ignoredBuiltDependencies`; correctly disclosed.
+- "No `.npmrc` enforcement / guard not wired to CI" — out of scope; CI is explicitly Story 1.2.
