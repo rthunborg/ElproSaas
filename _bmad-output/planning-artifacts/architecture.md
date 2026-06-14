@@ -121,6 +121,14 @@ Exact package patch versions must be pinned by the first approved implementation
 
 **Scope status:** SEAM only.
 
+### ADR-A009: Narrow Postgres RPC For Transaction-Sensitive Commands
+
+**Decision:** Transaction-sensitive multi-record commands use narrow Postgres RPC functions. This applies at least to `createQuoteVersionFromCalculation`, `markQuoteVersionSent`, and `acceptQuoteAndCreateJob`, and to atomic file metadata-plus-link creation where Story 8.1 requires it. The Next.js server command handles authentication, session resolution, tenant membership, and input validation, then calls the RPC. The RPC owns row locks, uniqueness constraints, multi-row persistence, lifecycle/event/audit writes, and rollback. RPCs default to `SECURITY INVOKER`. Any `SECURITY DEFINER` function requires separate approval, fixed `search_path`, explicit membership checks, and dedicated negative tests.
+
+**Rationale:** Resolves the AR21 open choice (test-design blocker B3). A single database-side transaction boundary makes atomicity, idempotency, and rollback directly testable below the UI and command layers, and keeps the locking/uniqueness logic next to the constraints that enforce it.
+
+**Scope status:** IN. Single-table mutations without cross-record consistency requirements may continue to use RLS-protected queries from server commands.
+
 ## 3. Repo And App Structure
 
 The target clean rebuild repo should be initialized by the first approved platform story. Until then, this architecture is the source of truth.
@@ -255,10 +263,12 @@ Each command follows this shape:
 3. Reject unauthenticated users and users without active `tenant_admin` membership.
 4. Validate input with a typed schema. Client-supplied `tenant_id` is ignored or verified against membership.
 5. Load target records by tenant and lifecycle state.
-6. Execute mutation through RLS-protected queries or a narrow Postgres RPC where a transaction is required.
+6. Execute mutation through RLS-protected queries, or through a narrow Postgres RPC where a transaction is required (ADR-A009).
 7. Enforce idempotency for commands that can be retried.
 8. Write an append-only audit event for critical lifecycle changes.
 9. Return typed result data plus user-safe error codes.
+
+**Time discipline:** Each command resolves a single command timestamp (injectable clock or DB `now()` captured once per command) and uses it for lifecycle fields, events, and audit records. Transactional RPCs accept explicit timestamp parameters where lifecycle determinism matters (sent, accepted, lock timestamps). Automated tests must assert on these deterministic timestamps rather than relying on sleeps.
 
 Critical Phase A commands:
 
@@ -304,7 +314,7 @@ Errors use stable codes such as `UNAUTHENTICATED`, `TENANT_MEMBERSHIP_REQUIRED`,
 - Buckets are private by default.
 - Storage object paths are server-derived.
 - File metadata is tenant-owned in Postgres.
-- Signed URLs are short-lived and created only after tenant authorization.
+- Signed URLs are short-lived and created only after tenant authorization. The TTL is environment-configurable; test environments may use a low TTL so expiry behavior is testable without waiting.
 - Uploads validate MIME, size, owning entity, purpose, and lifecycle state server-side.
 - Cross-tenant storage path spoofing is a required negative test.
 
@@ -658,6 +668,16 @@ Golden tests should compare money totals, tax blocks, quote-visible lines, PDF t
 | Docs/config-only | Lightweight file review and explicit skipped product gates. |
 
 Product implementation PRs must not skip relevant gates silently.
+
+### Test Infrastructure Decisions
+
+Resolved from the system-level test design (blockers B1/B2, recommendations H4/H5):
+
+- **Test data:** Test-only factories create tenants, auth users, `tenant_admin` memberships, CRM records, calculations, quotes, and later files. `seed.sql` holds only a minimal deterministic baseline, not broad business fixtures.
+- **Parallel safety:** Each test worker provisions its own tenant pair; shared mutable tenant fixtures are not used for parallel tests.
+- **Test environment:** Automated tests run against local Supabase only (CLI stack with migration reset), never against shared dev/staging/prod projects.
+- **Test-user auth:** Password-based test users or local test-env admin-created users. Magic-link-only auth is not used for automated command tests. Any admin/service key used for test setup is test-only and is never imported into app/client code.
+- **RLS coverage gate:** Every tenant-owned table must be enrolled in the parameterized cross-tenant negative suite before merge; CI fails when a tenant-owned table is not covered.
 
 ## 19. CI And Quality Gates
 

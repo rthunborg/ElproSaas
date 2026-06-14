@@ -162,9 +162,9 @@ Deferred modules are not implemented, not represented by placeholder UI/routes, 
 - AR18: Quote PDFs must be generated from `quote_versions`, `quote_version_lines`, `quote_version_attachments`, and file metadata snapshots, not mutable calculation/customer/settings rows.
 - AR19: The exact PDF rendering library must be selected and pinned by the approved quote/PDF implementation story.
 - AR20: `acceptQuoteAndCreateJob` is the highest-risk command and must use a single transaction, idempotency, tenant scoping, row locking, uniqueness constraints, and audit events.
-- AR21: Transaction-sensitive commands must use an explicit transaction mechanism: a narrow Postgres RPC, a direct server DB transaction adapter, or an approved ADR.
+- AR21: Transaction-sensitive multi-record commands use narrow Postgres RPC functions per ADR-A009: the server command handles auth/session/membership/input validation and calls the RPC; the RPC owns row locks, uniqueness constraints, multi-row persistence, event/audit writes, and rollback. Applies at least to `createQuoteVersionFromCalculation`, `markQuoteVersionSent`, and `acceptQuoteAndCreateJob`.
 - AR22: Postgres RPC functions default to security invoker; any security-definer function requires separate approval, fixed `search_path`, explicit membership checks, and negative tests.
-- AR23: Files must use private buckets, server-derived paths, tenant-owned metadata, short-lived signed URLs, MIME/size validation, lifecycle locks, and generic cross-tenant access-denied messages.
+- AR23: Files must use private buckets, server-derived paths, tenant-owned metadata, short-lived signed URLs with environment-configurable TTL (low TTL allowed in test environments for expiry tests), MIME/size validation, lifecycle locks, and generic cross-tenant access-denied messages.
 - AR24: Audit logging is append-only operational/security traceability, not broad admin analytics.
 - AR25: Migration/coexistence assets should primarily live in `tests/fixtures/golden/lovable/**`, `tests/golden/**`, `docs/migration/**`, and approved `scripts/migration/**`, not production tables unless story-approved.
 - AR26: Lovable is a behavioral oracle and fixture source only; no code is copied by default.
@@ -326,7 +326,7 @@ Tenant admins can build Phase A calculations with sections, rows, pricing source
 
 **Primary NFR/AR coverage:** NFR1, NFR2, NFR3, NFR6, NFR7, NFR9, NFR14, NFR24, NFR30, NFR31, NFR37, NFR38, UX-DR11 through UX-DR16
 
-**Natural dependencies:** Epics 1-4. File attachment behavior is completed by Epic 8 but calculation work remains functional without broad file-center behavior.
+**Natural dependencies:** Epics 1-4 plus Story 8.1 (file foundation) for attachment metadata. Upload UX and entity file panels are completed by Story 8.2; calculation work remains functional without broad file-center behavior.
 
 ### Epic 6: Quote Versions, PDF, And Lifecycle
 
@@ -336,7 +336,7 @@ Tenant admins can create quote versions from calculation snapshots, generate PDF
 
 **Primary NFR/AR coverage:** NFR10, NFR11, NFR14, NFR15, NFR23, NFR25, NFR37, NFR38, AR17, AR18, AR19, UX-DR17 through UX-DR21
 
-**Natural dependencies:** Epics 1-5. Story 6.3 introduces only the minimal quote-PDF private storage slice needed for generated PDFs; Epic 8 later expands reusable file handling.
+**Natural dependencies:** Epics 1-5 plus Story 8.1 (file foundation). Story 6.3 stores generated PDFs through the shared `files`/`file_links` foundation from Story 8.1; Stories 8.2-8.5 later expand file workflows.
 
 ### Epic 7: Acceptance-To-Job Transaction
 
@@ -346,7 +346,7 @@ Tenant admins can record off-system acceptance for a sent quote and create or re
 
 **Primary NFR/AR coverage:** NFR12, NFR13, NFR20, NFR23, NFR37, NFR38, AR20, AR21, UX-DR22 through UX-DR26
 
-**Natural dependencies:** Epics 1-6 and the Phase A subset of Epic 8 for acceptance evidence files.
+**Natural dependencies:** Epics 1-6 plus Story 8.1 (file foundation). File-upload evidence UX is completed by Story 8.2; acceptance can use external evidence references until then.
 
 ### Epic 8: Required Files And Private Storage
 
@@ -356,7 +356,7 @@ Tenant admins can manage only the files needed by Phase A entities through priva
 
 **Primary NFR/AR coverage:** NFR1, NFR2, NFR3, NFR8, NFR18, NFR19, NFR39, AR23, UX-DR27 through UX-DR29, UX-DR37
 
-**Natural dependencies:** Epics 1-3 for tenant/CRM context; integrates with Epics 5-7 as those workflows need attachments, PDFs, and evidence.
+**Natural dependencies:** Split sequencing. Story 8.1 (file foundation) depends only on Epics 1-2 and must run before Epics 5-6. Stories 8.2-8.5 depend on Story 8.1 and integrate with Epics 5-7 as those workflows need uploads, attachment panels, locks, and evidence.
 
 ### Epic 9: Migration, Coexistence, Golden Masters, And Pilot Readiness
 
@@ -434,9 +434,9 @@ So that every product story has a consistent definition of done.
 **Then** migration reset, integration, RLS, storage, and golden-master jobs are documented as required once the relevant stories introduce those surfaces
 **And** skipped product gates must be explicitly stated for docs/config-only work.
 
-**Technical Notes:** Keep CI small but expandable. Do not add production observability or external service integrations in this story.
+**Technical Notes:** Keep CI small but expandable. Do not add production observability or external service integrations in this story. Test-environment ground rules established here: automated tests run against local Supabase only (never shared dev/staging/prod projects), and `seed.sql` is reserved for a minimal deterministic baseline — business test data comes from test-only factories defined in Story 2.2.
 
-**Test Requirements:** CI workflow syntax validates and the baseline local commands pass.
+**Test Requirements:** CI workflow syntax validates and the baseline local commands pass. CI documentation states the local-Supabase-only rule and the seed.sql-minimal rule for later test jobs.
 
 **Security/RLS Impact:** Establishes future security gate enforcement but does not create policies.
 
@@ -555,9 +555,9 @@ So that all Phase A work is clearly scoped to the correct company.
 **Then** the user is redirected or rejected
 **And** no privileged function or route is callable anonymously.
 
-**Technical Notes:** Implement `resolveTenantContext` server-side. Client-supplied tenant IDs are ignored or verified against resolved membership.
+**Technical Notes:** Implement `resolveTenantContext` server-side. Client-supplied tenant IDs are ignored or verified against resolved membership. Test-user auth method (test-design blocker B2): automated command tests use password-based test users or local test-env admin-created users; magic-link-only auth is not used for automated tests. Any admin/service key used for test setup is test-only and is never imported into app/client code.
 
-**Test Requirements:** Auth integration tests cover active membership, missing membership, disabled membership, and anonymous access.
+**Test Requirements:** Auth integration tests cover active membership, missing membership, disabled membership, and anonymous access. Test authentication uses the B2 method (password or admin-created test users); a containment check confirms test-setup keys do not appear in app/client code paths.
 
 **Security/RLS Impact:** Establishes tenant context authority. Include negative tests for mismatched client-supplied tenant IDs.
 
@@ -591,9 +591,9 @@ So that later CRM, quote, file, and job data cannot leak across tenants.
 **When** that story is implemented
 **Then** it must reuse the tenant helper pattern and add table-specific RLS negative tests.
 
-**Technical Notes:** Use `is_active_tenant_member(target_tenant_id uuid)` and `is_tenant_admin(target_tenant_id uuid)` helpers or documented equivalents. Any security-definer helper requires fixed `search_path`, explicit review, and negative tests.
+**Technical Notes:** Use `is_active_tenant_member(target_tenant_id uuid)` and `is_tenant_admin(target_tenant_id uuid)` helpers or documented equivalents. Any security-definer helper requires fixed `search_path`, explicit review, and negative tests. Test-data factory contract (test-design blocker B1): this story establishes test-only factories for tenants, auth users, and `tenant_admin` memberships, extensible to CRM records, calculations, quotes, and later files as those stories land. `seed.sql` stays a minimal deterministic baseline; factories own business test data. Parallel safety (H5): each test worker provisions its own tenant pair; shared mutable tenant fixtures are not used for parallel tests.
 
-**Test Requirements:** Supabase migration reset, RLS select/insert/update/delete negatives, and role constraint tests.
+**Test Requirements:** Supabase migration reset, RLS select/insert/update/delete negatives, and role constraint tests. Factories create the two-tenant fixture per worker; the RLS negative suite runs against factory-created tenant pairs, against local Supabase only.
 
 **Security/RLS Impact:** High. This is the baseline RLS foundation for all tenant-owned data.
 
@@ -627,9 +627,9 @@ So that later lifecycle changes are authenticated, tenant-scoped, validated, and
 **Then** only minimal relevant lifecycle/audit events are surfaced
 **And** no broad audit analytics module is created.
 
-**Technical Notes:** Create the command envelope and `audit_events` only. Audit metadata must not include secrets, `.env`, raw file contents, or broad free-text PII.
+**Technical Notes:** Create the command envelope and `audit_events` only. Audit metadata must not include secrets, `.env`, raw file contents, or broad free-text PII. Time discipline (H1): the envelope resolves a single command timestamp (injectable clock or DB `now()` captured once per command) used for lifecycle fields, events, and audit records; transactional RPCs accept explicit timestamp parameters where lifecycle determinism matters.
 
-**Test Requirements:** Command unit/integration tests cover auth failure, membership failure, validation failure, successful audit write, append-only behavior, and cross-tenant audit denial.
+**Test Requirements:** Command unit/integration tests cover auth failure, membership failure, validation failure, successful audit write, append-only behavior, and cross-tenant audit denial. Timestamp assertions use the deterministic command timestamp; tests must not rely on sleeps for time-dependent behavior.
 
 **Security/RLS Impact:** High. RLS negative tests must prove tenant A cannot read or write tenant B audit events.
 
@@ -661,9 +661,14 @@ So that later stories cannot silently weaken Phase A security.
 **When** a product PR touches them
 **Then** the PR must add or update cross-tenant negative tests before merge.
 
-**Technical Notes:** Keep checks local/CI-friendly. Do not require external security services in Phase A.
+**Given** the RLS table-inventory gate (H4)
+**When** CI runs the security harness
+**Then** the harness compares the set of tenant-owned tables in the schema against the tables enrolled in the parameterized RLS negative suite
+**And** CI fails if any tenant-owned table is not covered.
 
-**Test Requirements:** Harness must fail on an intentionally mismatched tenant access attempt. Include anonymous privileged endpoint checks.
+**Technical Notes:** Keep checks local/CI-friendly. Do not require external security services in Phase A. The parameterized RLS negative suite iterates a tenant-table inventory so enrollment of new tables is data-driven, not copy-paste.
+
+**Test Requirements:** Harness must fail on an intentionally mismatched tenant access attempt. Include anonymous privileged endpoint checks. Inventory-gate verification: deliberately exclude a table from the suite on a scratch branch and confirm CI fails.
 
 **Security/RLS Impact:** High. This story enforces the recurring security acceptance criteria for tenant data stories.
 
@@ -1024,7 +1029,7 @@ So that calculation and quote behavior can be compared against known old/new exp
 
 **Explicit non-scope:** Full project planning, field-worker scheduling, time/material reporting, ÄTA/deviation workflows, supplier APIs/imports, AI estimation, and broad analytics.
 
-**Dependencies:** Epics 1-4. Calculation attachments depend on Epic 8 for full file behavior.
+**Dependencies:** Epics 1-4. Calculation attachment metadata uses the Story 8.1 file foundation; upload UX and entity file panels are completed by Story 8.2.
 
 **Risks:** Letting editable calculations become the source of truth for sent quotes, under-testing hidden row/tillval behavior, and making tax warnings look legally final.
 
@@ -1246,7 +1251,7 @@ So that customer-visible quote content is preserved independently from mutable c
 
 **Migration/Coexistence Impact:** Supports Lovable quote snapshot comparisons.
 
-**Dependencies:** Epics 2-5 and Story 8.1 if attachment metadata is persisted.
+**Dependencies:** Epics 2-5 and Story 8.1 (file foundation) for persisted attachment metadata.
 
 **Stop Conditions Requiring Human Approval:** Stop if quote number display format becomes a data model blocker or if transaction mechanism changes without ADR approval.
 
@@ -1306,9 +1311,9 @@ So that the customer-facing document matches the immutable version data.
 **When** it is stored
 **Then** it is stored as a private file tied to the quote version with file metadata, event, and audit record.
 
-**Technical Notes:** The exact PDF renderer must be selected and pinned in this story implementation. This story introduces only the minimal private file metadata/storage behavior needed for generated quote PDFs if the generic file model does not exist yet; Epic 8 must reuse and expand that model rather than duplicate it. Retry may regenerate the file from the same immutable snapshot without changing customer-visible data.
+**Technical Notes:** The exact PDF renderer must be selected and pinned in this story implementation. PDF determinism requirements (H3): pinned renderer/library version, embedded/pinned fonts where applicable, stable locale formatting for dates/numbers/currency, and an injected render timestamp from the command timestamp (no wall-clock reads during render) — repeated renders of the same snapshot must produce comparable output. Generated PDFs are stored through the Story 8.1 file foundation (`files`/`file_links`, private bucket, server-derived paths, signed access); this story must not introduce its own file metadata or storage model. Retry may regenerate the file from the same immutable snapshot without changing customer-visible data.
 
-**Test Requirements:** Unit tests for `QuotePdfViewModel`, integration tests for PDF metadata/event/audit writes, golden text extraction and stable visual snapshot for representative quotes, accessibility fallback test for preview/download controls.
+**Test Requirements:** Unit tests for `QuotePdfViewModel`, integration tests for PDF metadata/event/audit writes, golden comparison with text extraction as the primary check and visual snapshot as secondary, repeated-render stability test for the same snapshot, accessibility fallback test for preview/download controls.
 
 **Security/RLS Impact:** High. PDF file access is tenant-owned and private; include RLS/storage negative tests.
 
@@ -1316,7 +1321,7 @@ So that the customer-facing document matches the immutable version data.
 
 **Migration/Coexistence Impact:** Supports Lovable PDF text/visual golden comparison.
 
-**Dependencies:** Stories 6.1 and 6.2.
+**Dependencies:** Stories 6.1, 6.2, and 8.1 (file foundation).
 
 **Stop Conditions Requiring Human Approval:** Stop if renderer choice adds a major dependency without approval or if final customer-facing tax/legal wording lacks sign-off for real pilot use.
 
@@ -1342,7 +1347,7 @@ So that customer commitments cannot be overwritten by accident.
 **When** cross-tenant send/mutation attempts occur
 **Then** RLS and command validation reject them.
 
-**Technical Notes:** Transaction mechanism: use a narrow Postgres RPC or explicit approved transaction adapter for lock/event/audit updates. Locking must be enforced below the UI layer.
+**Technical Notes:** Transaction mechanism: use a narrow Postgres RPC for lock/event/audit updates per ADR-A009, called from the authenticated server command after membership/input validation; the RPC accepts an explicit sent timestamp parameter. Locking must be enforced below the UI layer.
 
 **Test Requirements:** Integration tests for sent transition, immutability rejection, RLS negative tests, audit/event tests, and golden lifecycle fixture tests.
 
@@ -1377,7 +1382,7 @@ So that previous sent commitments stay available for audit and comparison.
 **When** the lifecycle changes
 **Then** the event is tenant-scoped, audited, and does not mutate prior sent content.
 
-**Technical Notes:** New version creation must reuse the same narrow Postgres RPC or approved direct server DB transaction adapter pattern as Story 6.1 with an explicit parent quote/version relationship and event.
+**Technical Notes:** New version creation must reuse the same narrow Postgres RPC pattern as Story 6.1 (ADR-A009) with an explicit parent quote/version relationship and event.
 
 **Test Requirements:** Integration tests for new version creation, prior version immutability, lifecycle events, RLS negatives, and golden tests for v1/v2 comparison.
 
@@ -1399,7 +1404,7 @@ So that previous sent commitments stay available for audit and comparison.
 
 **Explicit non-scope:** Customer portal/public acceptance, field-worker workflow, schedule depth, time/material/deviation reporting, invoice/Fortnox workflows, full project analytics, and normal post-acceptance correction editing.
 
-**Dependencies:** Epics 1-6. Acceptance can record an external evidence reference in this epic; file-upload evidence integration is completed by Epic 8.
+**Dependencies:** Epics 1-6 plus Story 8.1 (file foundation). Acceptance can record an external evidence reference in this epic; file-upload evidence UX is completed by Story 8.2.
 
 **Risks:** Partial acceptance/job state, duplicate jobs on retry, mutable acceptance evidence, adjusted price ambiguity, and unapproved correction policy.
 
@@ -1460,7 +1465,7 @@ So that the system never leaves a half-accepted quote or duplicate job.
 **When** the command returns an error
 **Then** no partial acceptance, lifecycle update, job/order, or event remains committed.
 
-**Technical Notes:** Transaction mechanism: implement a narrow Postgres RPC `accept_quote_and_create_job` or equivalent approved name, invoked only from an authenticated server command after membership/input pre-validation. The RPC must lock the quote version and parent quote row, verify sent state and tenant ownership, insert acceptance/job/events/audit in one transaction, and rely on uniqueness constraints for one acceptance per quote version and one job per acceptance. Prefer security invoker; any security-definer variant requires fixed `search_path`, explicit membership checks, and separate approval.
+**Technical Notes:** Transaction mechanism (ADR-A009): implement a narrow Postgres RPC `accept_quote_and_create_job` or equivalent approved name, invoked only from an authenticated server command after membership/input pre-validation. The RPC must lock the quote version and parent quote row, verify sent state and tenant ownership, insert acceptance/job/events/audit in one transaction, and rely on uniqueness constraints for one acceptance per quote version and one job per acceptance. The RPC accepts explicit timestamp parameters (`accepted_at`, command timestamp) for lifecycle determinism (H1). Default to security invoker; any security-definer variant requires fixed `search_path`, explicit membership checks, and separate approval.
 
 **Test Requirements:** Integration tests for success, retry idempotency, duplicate prevention, rollback on injected failure, cross-tenant rejection, anonymous rejection, adjusted price reason requirement, and audit/event writes.
 
@@ -1550,15 +1555,15 @@ So that mistakes require an explicit audited correction path instead of silent e
 
 **Epic goal:** Manage only Phase A-required files through private, tenant-owned, validated, lifecycle-aware storage.
 
-**Scope:** Private storage buckets, `files`, `file_links`, entity-scoped file panels, validated upload, signed access, quote PDF/attachment/evidence locks, archive/delete audit, and cross-tenant storage negative tests.
+**Scope:** Two waves. Wave 1 (Story 8.1, runs before Epics 5-6): private storage bucket configuration, `files` base metadata, minimal `file_links`, tenant ownership, server-derived paths, signed-access command foundation, and RLS/storage negative tests. Wave 2 (Stories 8.2-8.5, run after Epics 5-7 owner workflows): validated uploads, entity-scoped file panels, quote PDF/attachment/evidence lifecycle locks, archive/delete audit, and the optional limited file index.
 
 **Explicit non-scope:** Broad document center, deferred module file indexing, public buckets, client-entered storage paths, virus scanning unless separately approved, and external document integrations.
 
-**Dependencies:** Epics 1-3. Integrates with Epics 5-7 as those workflows need attachments, PDFs, and evidence.
+**Dependencies:** Story 8.1: Epics 1-2 only. Stories 8.2-8.5: Story 8.1 plus the owner-entity workflows from Epics 3, 5, 6, and 7.
 
 **Risks:** Storage path spoofing, public file exposure, MIME/size bypass, locked evidence replacement, and broad file-index scope creep.
 
-### Story 8.1: Private Storage Metadata, Links, And RLS
+### Story 8.1: File Storage Foundation - Private Bucket, Metadata, Links, RLS, And Signed-Access Command
 
 As a tenant admin,
 I want files represented by tenant-owned metadata and entity links,
@@ -1579,9 +1584,19 @@ So that documents can be managed safely in CRM, calculation, quote, acceptance, 
 **When** the link is created
 **Then** the command verifies tenant ownership of both file and owner record.
 
-**Technical Notes:** Owner types are limited to Phase A entities: customer, facility, contact, calculation, quote_version, quote_acceptance, and job. If Story 6.3 already introduced minimal quote-PDF file metadata, this story must reuse and extend it rather than create a competing model. For metadata plus link creation that must be atomic, use a narrow Postgres RPC or approved direct server DB transaction adapter.
+**Given** private storage configuration
+**When** the file foundation is provisioned
+**Then** Phase A buckets are private by default with server-derived object paths
+**And** no public bucket or client-controlled storage path exists.
 
-**Test Requirements:** Migration reset, RLS negative tests for `files` and `file_links`, owner spoof tests, lifecycle state validation tests.
+**Given** a tenant-owned file with metadata
+**When** a server command requests access on behalf of a tenant admin
+**Then** `createSignedFileAccess` verifies tenant membership, file metadata ownership, and lifecycle state before issuing a short-lived signed URL
+**And** anonymous and cross-tenant signing attempts are rejected with generic user-safe errors.
+
+**Technical Notes:** Owner types are limited to Phase A entities: customer, facility, contact, calculation, quote_version, quote_acceptance, and job. This story is the single Phase A file model; later stories (6.3, 8.2-8.5) must reuse and extend it and must not create a competing model. `file_links` uses polymorphic owner type/id with command-level ownership validation; link creation for an owner type activates only once that owner table exists. No upload UI, entity file panels, lifecycle locks, or file index in this story. For metadata plus link creation that must be atomic, use a narrow Postgres RPC per ADR-A009. Signed-URL TTL (H2): the TTL is environment-configurable; test environments may use a low TTL so expiry cases are testable without waiting.
+
+**Test Requirements:** Migration reset, RLS negative tests for `files` and `file_links`, owner spoof tests, lifecycle state validation tests, and signed-access authorization tests (anonymous rejection, cross-tenant rejection, storage path spoof rejection, expired-URL rejection using a low test TTL).
 
 **Security/RLS Impact:** Critical. Files are tenant-owned and private by default.
 
@@ -1589,7 +1604,7 @@ So that documents can be managed safely in CRM, calculation, quote, acceptance, 
 
 **Migration/Coexistence Impact:** Supports anonymized file metadata fixtures without raw customer files unless approved.
 
-**Dependencies:** Epic 2 and relevant owner tables from Epics 3, 5, 6, or 7.
+**Dependencies:** Epic 2 only. Must complete before Story 6.3 (quote PDF storage). Owner-entity link validation activates per entity as Epics 3, 5, 6, and 7 introduce owner tables.
 
 **Stop Conditions Requiring Human Approval:** Stop if broad document-center indexing or deferred module owner types are requested.
 
@@ -1649,7 +1664,7 @@ So that files remain private while still usable in the pilot workflow.
 **When** storage negative tests run
 **Then** access is denied with generic user-safe errors.
 
-**Technical Notes:** File access always resolves metadata first, storage second. Do not expose raw bucket/path details unnecessarily in UI.
+**Technical Notes:** Builds on the `createSignedFileAccess` command foundation from Story 8.1; this story delivers the tenant-admin preview/download UX, expiry/refresh behavior, and the full storage negative matrix. File access always resolves metadata first, storage second. Do not expose raw bucket/path details unnecessarily in UI.
 
 **Test Requirements:** Signed URL integration tests, expiry/refresh tests, storage path spoof tests, cross-tenant read/list/sign negatives, anonymous access tests.
 
