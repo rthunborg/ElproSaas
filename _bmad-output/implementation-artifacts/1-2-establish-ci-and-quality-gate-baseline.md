@@ -1,6 +1,6 @@
 # Story 1.2: Establish CI And Quality Gate Baseline
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -210,3 +210,35 @@ Scope guardrail sweep (Task 5.3): `ci.yml` contains no `secrets.*`, no `env:` bl
 | Date | Change |
 | --- | --- |
 | 2026-06-15 | Implemented Story 1.2: added `.github/workflows/ci.yml` (5 active Phase A gates), `test` placeholder script, `docs/quality/ci.md`, Gate 2 → ci.md pointer, and PR-template checks alignment. All active gates verified green locally. Status → review. |
+
+## Review Findings
+
+**Round 1 of 3**
+
+_Reviewed 2026-06-15 · diff `main...feature/1.2` · layers: Blind Hunter, Edge Case Hunter, Acceptance Auditor (all three passed)._
+
+**Acceptance:** AC1 and AC2 both satisfied. All Critical Constraints verified intact — no new dependencies (AR28), the Story 1.1 lockfile guard and the PR template were reused (not recreated), and the unit-test gate is the spec's recommended documented placeholder (not a real runner). No spec violations found. Findings below are CI hardening, not correctness defects.
+
+### Decision needed (1)
+
+- [x] [Review][Decision] SHA-pin GitHub Actions vs. keep floating major tags — **RESOLVED 2026-06-15: keep `@vN` tags** (owner decision — Phase A simplicity, matches the spec's reference workflow, low blast radius with no secrets/deploy; re-evaluate at external-beta hardening alongside the deferred secret scan). Original finding: `actions/checkout@v4`, `pnpm/action-setup@v4`, `actions/setup-node@v4` float on major tags [.github/workflows/ci.yml:28,34,37]. Floating tags re-point at the maintainer's discretion (supply-chain exposure if a tag is re-published). The spec's reference workflow deliberately used `@vN` tags, so pinning to SHAs is a project-policy choice, not an unambiguous fix. Blast radius here is low (no secrets, no deploy). Options: (a) keep `@vN` for Phase A simplicity; (b) pin all three to full commit SHAs (optionally add Dependabot for `github-actions`); (c) defer to a later CI-hardening story. [Source: blind+edge]
+
+### Patch (3)
+
+- [x] [Review][Patch] ✅ Applied 2026-06-15 — Add least-privilege `permissions: contents: read` [.github/workflows/ci.yml:23] — no top-level or job `permissions:` block, so the job inherits the repo/org default `GITHUB_TOKEN` scope (read-write on older repos). A verify-only pipeline needs only `contents: read`. Raised independently by two layers. [Source: blind+edge]
+- [x] [Review][Patch] ✅ Applied 2026-06-15 — Add `timeout-minutes` to the `verify` job [.github/workflows/ci.yml:24] — no timeout anywhere; a hung step (networked `pnpm install`, or the `next build` Google-font fetch) can run to the default 360-minute job ceiling. Add e.g. `timeout-minutes: 15`. [Source: blind+edge]
+- [x] [Review][Patch] ✅ Applied 2026-06-15 — Scope `cancel-in-progress` to PR events so the documented post-merge safety net survives [.github/workflows/ci.yml:21] — `ci.md` promises the `push`→`main` run is a "post-merge safety net," but `concurrency.cancel-in-progress: true` keyed on `github.ref` lets rapid sequential merges cancel an in-flight `main` run, leaving an intermediate merged commit with no completed CI. Set `cancel-in-progress: ${{ github.event_name == 'pull_request' }}` (or carve out `push`/`main`). Aligns config with the doc's own promise. [Source: edge (refines blind)]
+
+### Deferred (1)
+
+- [x] [Review][Defer] `pnpm build` gate is non-hermetic — fetches a Google font over the network [.github/workflows/ci.yml:58] — deferred, pre-existing. The font dependency originates in the app scaffold (`next/font/google`, Story 1.1), not in this CI plumbing, and the story explicitly documents it as "expected to pass on networked CI." Tracked in deferred-work.md for the scaffold/font owners; revisit if CI must run network-restricted. [Source: blind+edge]
+
+### Dismissed as noise (7)
+
+- **`test` placeholder always exits 0 / gate is "cosmetic"** — by design (spec Decision Note, recommended path); the script is honest about its own emptiness and was explicitly approved.
+- **`pnpm install --frozen-lockfile` ordered before `verify:lockfiles`** — marginal; the guard still rejects foreign lockfiles after install, and a `--frozen-lockfile` failure is a legitimate hard stop. Defensible ordering.
+- **Docs imply an automated "lighter checks" path for docs/config-only PRs** — by design; AC2's convention is a manual PR-description statement, not a workflow path. CI intentionally runs all gates on every PR.
+- **`.nvmrc` / `cache: pnpm` "assume files not in the diff"** — verified present and valid (`.nvmrc` = `22`; `pnpm-lock.yaml` present). Blind-only artifact.
+- **`pnpm/action-setup` "relies on `packageManager` not in the diff"** — verified present (`package.json` → `packageManager: pnpm@10.24.0`). Blind-only artifact.
+- **ci.md active-gates table "omits typecheck/lint"** — false positive; the Blind Hunter saw an elided excerpt. The real table includes both gates.
+- **Lockfile guard shown as table row "—" instead of a numbered stage** — cosmetic and defensible; preserves the architecture §19 five-stage numbering by treating the guard as an install sub-step.

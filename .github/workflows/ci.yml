@@ -15,14 +15,23 @@ on:
   push:
     branches: [main]
 
-# Cancel superseded runs on the same ref so CI stays small and cheap.
+# Least privilege: this verify-only pipeline only needs to read the repo.
+permissions:
+  contents: read
+
+# Cancel superseded PR runs on the same ref so CI stays small and cheap.
+# Only cancel for pull_request events — a push→main run is never cancelled, so
+# the post-merge safety-net run always completes for every merged commit.
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   verify:
     runs-on: ubuntu-latest
+    # Bound the job so a hung step (networked install, or the `next build`
+    # Google-font fetch) fails fast instead of running to the 360-minute default.
+    timeout-minutes: 15
     steps:
       - name: Checkout
         uses: actions/checkout@v4
