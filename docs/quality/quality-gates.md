@@ -33,6 +33,8 @@ Required for Phase A product PRs:
 
 For docs/config-only PRs, run lightweight file review and syntax checks where supported.
 
+These gates are enforced in CI. See [ci.md](ci.md) for the gate-to-command mapping and the deferred gates activated by later stories.
+
 ## Gate 3: Domain Correctness
 
 Required when money, tax, calculations, quotes, or acceptance is touched:

@@ -16,6 +16,8 @@
 
 ## Tests / Checks Run
 
+<!-- CI gates (see docs/quality/ci.md): install, verify:lockfiles, typecheck, lint, test, build. For docs/config-only PRs, state which product gates were skipped. -->
+
 -
 
 ## Security / RLS Impact

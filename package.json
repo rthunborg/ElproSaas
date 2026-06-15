@@ -12,6 +12,7 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
+    "test": "node -e \"console.log('No unit test suite yet. The test harness is initialized by the first product story that needs it (TEA testarch-framework; first real suites land in Epic 2 / money-tax units in Epic 4). This placeholder keeps the CI unit-test gate wired. See docs/quality/ci.md.')\"",
     "verify:lockfiles": "node scripts/verify/check-lockfiles.mjs"
   },
   "dependencies": {

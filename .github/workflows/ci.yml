@@ -1,0 +1,67 @@
+name: CI
+
+# Phase A verification gates (architecture §19, stages 1-5).
+# Active now: install, lockfile guard, typecheck, lint, unit tests, build.
+# Deferred gates (migration reset, integration, RLS/storage negative,
+# golden-master, secret scan) are activated by later stories — see
+# docs/quality/ci.md for the gate-to-story mapping.
+#
+# Stop conditions honored: no secrets, no environment variables, no external
+# or paid services, no Supabase service container, no deploy step.
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+# Least privilege: this verify-only pipeline only needs to read the repo.
+permissions:
+  contents: read
+
+# Cancel superseded PR runs on the same ref so CI stays small and cheap.
+# Only cancel for pull_request events — a push→main run is never cancelled, so
+# the post-merge safety-net run always completes for every merged commit.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    # Bound the job so a hung step (networked install, or the `next build`
+    # Google-font fetch) fails fast instead of running to the 360-minute default.
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # pnpm BEFORE setup-node: setup-node's `cache: pnpm` needs pnpm on PATH.
+      # action-setup reads the version from package.json "packageManager"
+      # (pnpm@10.24.0); do NOT also pass `version:` or it errors on conflict.
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Verify lockfiles (single package manager)
+        run: pnpm run verify:lockfiles
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Unit tests
+        run: pnpm test
+
+      - name: Build
+        run: pnpm build
