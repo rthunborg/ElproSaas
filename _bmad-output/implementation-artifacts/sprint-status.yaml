@@ -41,7 +41,7 @@
 # Entries below remain grouped by epic for tracking; pick stories in the order above.
 
 generated: 2026-06-12
-last_updated: 2026-06-14  # story 1.1 → done (code review Round 1 complete)
+last_updated: 2026-06-15  # story 1.2 → review (dev-story)
 project: ElproSaas
 project_key: NOKEY
 tracking_system: file-system
@@ -50,7 +50,7 @@ story_location: C:/ElproSaas/_bmad-output/implementation-artifacts
 development_status:
   epic-1: in-progress
   1-1-choose-package-manager-and-initialize-app-baseline: done
-  1-2-establish-ci-and-quality-gate-baseline: backlog
+  1-2-establish-ci-and-quality-gate-baseline: review
   1-3-build-phase-a-app-shell-and-deferred-scope-navigation-guardrails: backlog
   1-4-document-local-setup-environment-contract-and-repo-hygiene: backlog
   epic-1-retrospective: optional
