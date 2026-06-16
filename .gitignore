@@ -42,11 +42,10 @@ next-env.d.ts
 .pnp
 .pnp.*
 
-# BMad install + generated agent/skill tooling (regenerable via BMad install)
-_bmad/
-.agents/
-.claude/
-
-# Per-tool agent harness config kept local — the shared contract lives in
-# AGENTS.md / CLAUDE.md / docs (see docs/process/claude-code-coexistence.md).
-.codex/
+# BMad install + per-tool agent harness config (.codex / .claude / .agents) and
+# the BMAD module install (_bmad) are COMMITTED for this project so the Codex +
+# Claude Code + BMAD setup is reproducible and shared across clones. See
+# docs/process/claude-code-coexistence.md. Only personal, machine-local
+# overrides stay ignored:
+.claude/settings.local.json
+.codex/config.local.toml

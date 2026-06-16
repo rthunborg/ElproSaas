@@ -13,9 +13,12 @@ Code–specific bindings (permission gates, hooks, subagents).
   rules there, not here, so Codex and Claude Code never drift.
 - Deeper governance lives in `docs/process`, `docs/quality`, `docs/security`,
   `docs/decisions`, and `_bmad-output/project-context.md`.
-- Per-tool mechanical config is local and git-ignored: `.codex/` (Codex) and
-  `.claude/` (Claude Code). The **durable, shared contract is the committed
-  Markdown** (`AGENTS.md` + `CLAUDE.md` + `docs/`), not the tool folders.
+- Per-tool mechanical config (`.codex/`, `.claude/`, `.agents/`) and the `_bmad/`
+  install are **committed** for this project so the Codex + Claude Code + BMAD
+  setup is reproducible and identical across clones; only personal overrides
+  (`.claude/settings.local.json`) stay git-ignored. The **authoritative shared
+  contract remains the committed Markdown** (`AGENTS.md` + `CLAUDE.md` + `docs/`):
+  the tool folders are regenerable, the Markdown is the source of truth.
 - Full mapping of Codex guardrails to their Claude Code homes:
   [docs/process/claude-code-coexistence.md](docs/process/claude-code-coexistence.md).
 
@@ -41,10 +44,11 @@ The Codex execpolicy (`.codex/rules/default.rules`) and the hard gates in
 - **PreToolUse hook** (`.claude/hooks/guard.ps1`) — defense-in-depth that blocks
   secret-reading and destructive commands hidden inside compound shell strings.
 
-Because `.claude/` is git-ignored, this enforcement is **local to each machine**.
-The exact settings are documented in
+`.claude/` is committed, so this enforcement applies **identically to every
+clone**. The settings are also documented in
 [docs/process/claude-code-coexistence.md](docs/process/claude-code-coexistence.md)
-so any clone can regenerate them.
+so they can be regenerated if needed; personal tweaks go in the git-ignored
+`.claude/settings.local.json`.
 
 ## Quality Gates Are Enforced in CI
 
@@ -70,5 +74,6 @@ follows. Use the `Agent` tool (or the project's `code-review` /
 | `docs-writer` | Agent task: docs-only authoring, keep `AGENTS.md` concise. |
 | `pr-reviewer` | `code-review` skill, or Agent task: final merge-readiness review. |
 
-These can optionally be materialized as `.claude/agents/*.md` subagents (local,
-git-ignored) — see the coexistence doc.
+All seven are materialized as committed `.claude/agents/*.md` subagents (invoke
+them with the `Agent` tool); the `.codex/agents/*.toml` files remain the source
+of truth — see the coexistence doc.

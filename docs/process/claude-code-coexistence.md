@@ -84,12 +84,14 @@ locally. Re-implementing it as a local hook would (a) be machine-specific and
 unit-test step is an honest placeholder until the TEA `testarch-framework`
 harness lands (~Epic 2).
 
-## 4. Claude Code Enforcement Layer (regenerable)
+## 4. Claude Code Enforcement Layer (committed)
 
-`.claude/` is git-ignored, so the live `.claude/settings.json` and
-`.claude/hooks/guard.ps1` are **local to each machine** (symmetric with how
-`.codex/` is treated). The exact content is recorded here so any clone can
-recreate it.
+`.claude/` is **committed** for this project (along with `.codex/`, `.agents/`,
+and the `_bmad/` install), so `.claude/settings.json` and
+`.claude/hooks/guard.ps1` are enforced **identically for every clone**. Only
+personal machine-local overrides (`.claude/settings.local.json`) stay
+git-ignored. The content is also recorded here so it can be regenerated if ever
+needed.
 
 `.claude/settings.json`:
 
@@ -152,25 +154,20 @@ secret-reading and destructive commands embedded in compound shell strings
 (things prefix-based `permissions` patterns can miss). Blocks by exiting 2. See
 the live file for the exact regex set.
 
-### Optional: sharing the gates
+### Local-only overrides
 
-If you want the gates enforced for every clone (not just locally), un-ignore the
-declarative settings only:
-
-```gitignore
-.claude/
-!.claude/settings.json
-```
-
-The hook script can stay local or be shared the same way.
+The shared gates live in the committed `.claude/settings.json`. For a personal,
+machine-specific tweak that should NOT be shared, put it in
+`.claude/settings.local.json` (git-ignored) — Claude Code merges it over
+`settings.json`. To make the whole `.claude/` local again, re-add `.claude/` to
+`.gitignore`.
 
 ### Materialized review subagents (`.claude/agents/`)
 
 All seven Codex reviewers are also materialized as Claude Code subagents so they
 can be invoked with the `Agent` tool during a Claude Code session. The
 `.codex/agents/*.toml` files remain the source of truth; these `.md` copies are
-local and git-ignored (same treatment as `settings.json`) and regenerated from
-them:
+committed alongside `settings.json` (and regenerable from the TOMLs):
 
 | `.claude/agents/*.md` | Source TOML | Access | Use |
 | --- | --- | --- | --- |
