@@ -42,6 +42,11 @@ next-env.d.ts
 .pnp
 .pnp.*
 
-# Installed agent/skill tooling (generated from _bmad/, regenerable via BMad install)
+# BMad install + generated agent/skill tooling (regenerable via BMad install)
+_bmad/
 .agents/
 .claude/
+
+# Per-tool agent harness config kept local — the shared contract lives in
+# AGENTS.md / CLAUDE.md / docs (see docs/process/claude-code-coexistence.md).
+.codex/
