@@ -54,7 +54,7 @@ cleanly with nothing to rewrite. The Codex-specific surface is isolated to
 | `rules/default.rules` `"forbidden"` | Hard block | `permissions.deny` + `PreToolUse` hook (exit 2). |
 | `rules/default.rules` `"prompt"` | Require approval | `permissions.ask`. |
 | `rules/default.rules` `"allow"` | Auto-allow read-only | `permissions.allow` (or just leave un-gated). |
-| `agents/*.toml` | Custom reviewer agents | `Agent` tool tasks / `code-review` + `bmad-code-review` skills; optionally `.claude/agents/*.md`. |
+| `agents/*.toml` | Custom reviewer agents | `Agent` tool tasks / `code-review` + `bmad-code-review` skills; materialized as `.claude/agents/*.md` (all 7 — see §4). |
 
 ## 3. Guardrail → New Home Mapping
 
@@ -69,7 +69,7 @@ cleanly with nothing to rewrite. The Codex-specific surface is isolated to
 
 | Guardrail (origin) | Claude Code binding |
 | --- | --- |
-| No `.env`/secret reads or edits (`security-guardrails.md`; execpolicy `forbidden`) | `permissions.deny` on `Read/Edit/Write(.env*)` + `guard.ps1` blocks `cat/type/gc/Get-Content .env`, `printenv`, `Get-ChildItem Env:`. |
+| No `.env`/secret reads or edits (`security-guardrails.md`; execpolicy `forbidden`) | `permissions.deny` on `Read/Edit/Write` of every standard env file — `.env`, `.env.local`, `.env.*.local`, `.env.development`, `.env.production`, `.env.test` — plus nested `**/.env`; `guard.ps1` also blocks `cat/type/gc/Get-Content .env`, `printenv`, `Get-ChildItem Env:`. The safe placeholder templates `.env.example` / `.env.sample` / `.env.template` are carved out via `permissions.allow` so docs/setup stories (e.g. Story 1.4) can author them. Deny outranks allow and the glob dialect has no negation syntax, so the deny **enumerates the secret files** instead of a broad `.env.*` block that would also catch the templates. |
 | No irreversible/prod commands (execpolicy `forbidden`) | `permissions.deny` on `rm -rf /`, `supabase db push --linked`, `supabase functions deploy`, `supabase secrets`, `supabase projects delete`; `guard.ps1` also blocks `git reset --hard`, force-push. |
 | Approval before installs/migrations/push/network (execpolicy `prompt`; `agent-workflow.md` hard gates) | `permissions.ask`. |
 | Protected paths — no product code/migrations without approved story (`AGENTS.md`; `definition-of-done.md`) | `permissions.ask` on `Edit/Write` of `app/**`, `src/**`, `components/**`, `supabase/migrations/**`, `package.json`, `pnpm-lock.yaml`. |
@@ -97,14 +97,23 @@ recreate it.
 {
   "permissions": {
     "deny": [
-      "Read(./.env)", "Read(./.env.*)", "Read(./**/.env)",
-      "Edit(./.env)", "Edit(./.env.*)", "Write(./.env)", "Write(./.env.*)",
+      "Read(./.env)", "Read(./.env.local)", "Read(./.env.*.local)",
+      "Read(./.env.development)", "Read(./.env.production)", "Read(./.env.test)", "Read(./**/.env)",
+      "Edit(./.env)", "Edit(./.env.local)", "Edit(./.env.*.local)",
+      "Edit(./.env.development)", "Edit(./.env.production)", "Edit(./.env.test)",
+      "Write(./.env)", "Write(./.env.local)", "Write(./.env.*.local)",
+      "Write(./.env.development)", "Write(./.env.production)", "Write(./.env.test)",
       "Bash(printenv:*)",
       "Bash(rm -rf /:*)", "Bash(rm -fr /:*)",
       "Bash(supabase db push --linked:*)",
       "Bash(supabase functions deploy:*)",
       "Bash(supabase secrets:*)",
       "Bash(supabase projects delete:*)"
+    ],
+    "allow": [
+      "Read(./.env.example)", "Read(./.env.sample)", "Read(./.env.template)",
+      "Edit(./.env.example)", "Edit(./.env.sample)", "Edit(./.env.template)",
+      "Write(./.env.example)", "Write(./.env.sample)", "Write(./.env.template)"
     ],
     "ask": [
       "Bash(pnpm install:*)", "Bash(pnpm add:*)", "Bash(pnpm update:*)",
@@ -155,9 +164,40 @@ declarative settings only:
 
 The hook script can stay local or be shared the same way.
 
+### Materialized review subagents (`.claude/agents/`)
+
+All seven Codex reviewers are also materialized as Claude Code subagents so they
+can be invoked with the `Agent` tool during a Claude Code session. The
+`.codex/agents/*.toml` files remain the source of truth; these `.md` copies are
+local and git-ignored (same treatment as `settings.json`) and regenerated from
+them:
+
+| `.claude/agents/*.md` | Source TOML | Access | Use |
+| --- | --- | --- | --- |
+| `phase-scope-reviewer.md` | `phase-scope-reviewer.toml` | read-only | Phase A scope + deferral check on a diff/plan. |
+| `security-rls-reviewer.md` | `security-rls-reviewer.toml` | read-only | Tenant-isolation / RLS / service-role / secrets review. |
+| `money-tax-reviewer.md` | `money-tax-reviewer.toml` | read-only | SEK öre, VAT/ROT/grön teknik, snapshot/immutability review. |
+| `test-gap-reviewer.md` | `test-gap-reviewer.toml` | read-only | Missing unit/integration/RLS/golden-master coverage. |
+| `pr-reviewer.md` | `pr-reviewer.toml` | read-only | Final merge-readiness review of a branch/PR. |
+| `legacy-oracle-explorer.md` | `legacy-oracle-explorer.toml` | read-only | Lovable-oracle exploration (no code copy). |
+| `docs-writer.md` | `docs-writer.toml` | docs-write | Docs-only authoring; keeps `AGENTS.md` concise. |
+
+All are read-only (`tools: Read, Grep, Glob, Bash`) except `docs-writer`, which
+also has `Edit`/`Write` for documentation files. Each inherits the `permissions`
++ `guard.ps1` gates above.
+
+**auto-bmad does not invoke these automatically** — its review roster is fixed
+(blind / edge / auditor / security / triage + TEA). Three overlap with that
+built-in coverage (`test-gap-reviewer` ≈ the TEA trace/test-review gates,
+`pr-reviewer` ≈ the auto-bmad triage + final report, `docs-writer` ≈ the BMAD
+doc skills); the other four fill gaps the fan-out does not (project scope, tenant
+RLS, money/tax, and the legacy oracle). Run any of them as a manual pass —
+directly via the `Agent` tool or alongside the `code-review` skill — on a branch
+or PR.
+
 ## 5. Verification Checklist (Claude Code)
 
-1. `permissions.deny` blocks a `.env` read (try `Read` on `.env` → denied).
+1. `permissions.deny` blocks a `.env` / `.env.local` read (try `Read` on `.env` → denied); `permissions.allow` permits a template (try `Write` on `.env.example` → allowed, as Story 1.4 needs).
 2. `permissions.ask` prompts on `git push` and on editing `app/**`.
 3. `guard.ps1` blocks `pwsh -Command "Get-Content .env"` (PreToolUse exit 2).
 4. CI still runs the full Static-Quality gate on every PR to `main`.
