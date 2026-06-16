@@ -1,6 +1,6 @@
 # Story 1.3: Build Phase A App Shell And Deferred-Scope Navigation Guardrails
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -204,3 +204,33 @@ Implemented the Phase A app shell and deferred-scope navigation guardrails (pres
 | Date       | Version | Description                                                                 | Author |
 | ---------- | ------- | --------------------------------------------------------------------------- | ------ |
 | 2026-06-15 | 0.1     | Implemented Phase A app shell + deferred-scope nav guardrails; status → review | Amelia (Dev) |
+
+## Review Findings
+
+**Round 1 of 3** — 2026-06-16. Layers: Blind Hunter (adversarial), Edge Case Hunter (path tracer), Acceptance Auditor (full spec). Scope: story-1.3 commit `1c6b232`. Result: 1 decision-needed (resolved → deferred), 6 patch, 4 defer, 11 dismissed.
+
+### Decision needed
+
+- [x] [Review][Decision] (RESOLVED 2026-06-16, owner: Rasmus → **defer to Epic 2**) Slim top bar has no tenant/user region — only hamburger + page title + empty primary-action slot — UX §2 and this story's Dev Notes call for neutral tenant/user placeholders, but `AppShell.tsx:204-211` renders none. Not a hard AC2 failure (AC2 only requires the page-title + primary-action slot to stay reachable, which they are) and Task 1.1 only mandated those two regions. Decision: leave the top bar as-is; tenant/user context is owned by Epic 2 (auth/tenant resolution). See Deferred. [src/components/app-shell/AppShell.tsx:204-211]
+
+### Patches
+
+_All six applied and verified 2026-06-16 (Round 1). Gates green: `pnpm typecheck`, `pnpm lint`, `pnpm build` (all routes prerendered). P1 & P6 confirmed in-browser at md (nav `overflow-x` now `visible`, tooltip box has no clipping ancestor, `role="tooltip"` removed + `aria-hidden`); P3 `lang="sv"` confirmed in the DOM. **Changes are in the working tree — not yet committed.**_
+
+- [x] [Review][Patch] **HIGH** — Icon-rail tooltip is clipped at `md`, so AC3's "visible tooltip" fails. The `<nav>` is `overflow-y-auto`; CSS coerces `overflow-x` to `auto`, making it a scroll container. The tooltip is `absolute left-full` (right of the 64px rail). Verified in-browser at 800px: rail clips at x=63, the "Dashboard" tooltip box is at x=[67,144] — entirely outside the clip box, so it is never painted even when hover/focus sets `opacity:1`. (The dev's verification measured `opacity`, not paint — a false-green.) Fix: stop the rail from clipping the tooltip, e.g. scope scroll to `lg` only (`lg:overflow-y-auto`; tooltips are `lg:hidden`) or render the tooltip outside the scroll container. [src/components/app-shell/AppShell.tsx:173] [src/components/app-shell/AppShell.tsx:70-72]
+- [x] [Review][Patch] **MEDIUM** — Drawer left open across a resize to `md+` leaks state: the scroll-lock effect keys only on `drawerOpen`, so `document.body.style.overflow="hidden"` is never released, `aria-expanded` stays stale, and the hamburger (`md:hidden`) disappears so the drawer can't be closed. Fix: add a `matchMedia('(min-width:768px)')` listener that calls `setDrawerOpen(false)` when it matches (use bare `setDrawerOpen(false)`, not `closeDrawer`, to avoid focusing the now-hidden hamburger). [src/components/app-shell/AppShell.tsx:105-115] [src/components/app-shell/AppShell.tsx:226]
+- [x] [Review][Patch] **MEDIUM** — `<html lang="en">` but the entire UI is Swedish (nav labels, "Hoppa till innehåll", "Öppna/Stäng meny", placeholder copy) → WCAG 3.1.1 (Language of Page): screen readers pronounce Swedish with English phonetics. Pre-existing (set in Story 1.1) but this story fills the shell with Swedish UI and modifies this file; one-character, high-value fix. Fix: `lang="sv"`. [src/app/layout.tsx:27]
+- [x] [Review][Patch] **LOW-MED** — Drawer focus trap escapes if focus is not on the first/last focusable (e.g. user clicks dead space inside the panel → `activeElement` becomes `body`): the Tab handler only acts on the exact boundaries, so Tab then moves focus out of the modal. Fix: at the top of the Tab branch, `if (!panel.contains(document.activeElement)) { event.preventDefault(); first.focus(); return; }`. [src/components/app-shell/AppShell.tsx:118-143]
+- [x] [Review][Patch] **LOW-MED** — Skip-to-content link reveals only via React `onFocus`/`onBlur` state (no CSS `:focus` fallback), so during the pre-hydration window a keyboard user who Tabs gets an invisible, parked skip link (WCAG 2.4.1). The event-driven reveal was a deliberate harness-verifiability choice; add a CSS fallback alongside it (additive, not a regression): include a `focus:top-4` variant so the link reveals without JS. [src/components/app-shell/AppShell.tsx:151-160]
+- [x] [Review][Patch] **LOW** — Icon-rail tooltip `<span role="tooltip">` is orphaned: no `aria-describedby` references it, and the link's accessible name already comes from `aria-label`, so the span is purely visual yet sits in the a11y tree (not `aria-hidden`), exposing a redundant "tooltip" node. Fix (pairs with the HIGH tooltip patch): add `aria-hidden="true"` and drop `role="tooltip"`. [src/components/app-shell/AppShell.tsx:70-72]
+
+### Deferred
+
+- [x] [Review][Defer] Whole shell is a single client island — `(app)/layout.tsx` delegates all chrome to a `"use client"` `AppShell`, shipping the sidebar/top-bar/icons as client JS and forfeiting App-Router server-layout streaming. Defensible for a small Phase A shell; revisit (server layout + small client nav island) if the shell grows or when auth/tenant context lands. [src/app/(app)/layout.tsx:9-16] [src/components/app-shell/AppShell.tsx:85] — deferred, not a bug
+- [x] [Review][Defer] create-next-app dark-mode leftover in `globals.css` (`@media (prefers-color-scheme: dark)` + `--background`/`--foreground`) is inconsistent with the hardcoded-light shell (`bg-zinc-50`/`bg-white`). Same class of scaffold cruft as the just-removed Arial override, but out of this story's explicit scope (only the Arial item was assigned). Candidate for Story 1.4 repo hygiene or a theming story. [src/app/globals.css:15-20] — deferred, pre-existing
+- [x] [Review][Defer] Focus after a drawer link is not guaranteed — `handleDrawerNavigate` just closes the drawer and relies on client navigation moving focus, which `next/link` does not reliably do; focus can fall to `<body>`. This is an app-wide client-nav focus concern best handled holistically (focus `#main-content` on route change) when route transitions/auth land, not patched per-control here. [src/components/app-shell/AppShell.tsx:102-103] — deferred, broader concern
+- [x] [Review][Defer] (from resolved DN1) Top-bar tenant/user region deferred to Epic 2 — owner decision 2026-06-16. The slim top bar keeps only the page-title region + empty primary-action slot (Task 1.1 scope); neutral tenant/user placeholders are owned by Epic 2 (auth/tenant context resolution), so deferring avoids placeholder churn now. [src/components/app-shell/AppShell.tsx:204-211] — deferred, owner decision
+
+### Dismissed (11 — noise / false-positive / already-handled)
+
+`isActive` prefix match (guarded by trailing slash); `pageTitle` "ElproSaas" fallback flash (no real route triggers it; documented); aria-label "divergence" at `lg` (false positive — visible label and aria-label both derive from the single `item.label`); `min-h-screen` vs body `min-h-full` "double scroll" (standard app-shell pattern; no defect observed); "naive" focusable selector (no hidden focusables in the drawer today); `closeButtonRef` "not mounted on open" (false positive — effects run after the mount commit); background not `inert` under the drawer (`aria-modal="true"` is the accepted mechanism; `inert` is gold-plating for this shell); overlay backdrop `<button tabIndex={-1}>` semantics (acceptable pattern; `aria-modal` scopes AT); `pl-3 pr-3` vs `px-3` (pure style nit); z-index magic numbers (no actual collision); deleted `public/*.svg` "unverified" (verified unreferenced in `src/` — safe).

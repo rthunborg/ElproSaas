@@ -68,7 +68,10 @@ function NavLinks({
                 // "receives focus" holds regardless of the browser's focus-visible heuristic.
                 // Redundant once the text label shows at lg, so it is hidden there.
                 <span
-                  role="tooltip"
+                  // Decorative: the link's accessible name comes from `aria-label`, so
+                  // hide this purely-visual tooltip from the a11y tree (avoids an
+                  // orphaned `role="tooltip"` node).
+                  aria-hidden="true"
                   className="pointer-events-none absolute left-full top-1/2 z-50 ml-3 -translate-y-1/2 whitespace-nowrap rounded bg-zinc-900 px-2 py-1 text-xs font-medium text-white opacity-0 shadow-lg transition-opacity group-hover/navlink:opacity-100 group-focus/navlink:opacity-100 group-focus-within/navlink:opacity-100 lg:hidden"
                 >
                   {item.label}
@@ -114,6 +117,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     };
   }, [drawerOpen]);
 
+  // Close the drawer if the viewport grows to md+, where the toggling hamburger is
+  // hidden (`md:hidden`). Bare state reset — not `closeDrawer` — so we don't try to
+  // focus the now-hidden hamburger; the scroll-lock effect cleanup releases overflow.
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 768px)");
+    const handleChange = (event: MediaQueryListEvent) => {
+      if (event.matches) setDrawerOpen(false);
+    };
+    mq.addEventListener("change", handleChange);
+    return () => mq.removeEventListener("change", handleChange);
+  }, []);
+
   // Escape closes; Tab is trapped within the drawer panel.
   const onDrawerKeyDown = useCallback(
     (event: React.KeyboardEvent<HTMLDivElement>) => {
@@ -131,6 +146,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       if (focusables.length === 0) return;
       const first = focusables[0];
       const last = focusables[focusables.length - 1];
+      // If focus has drifted outside the panel (e.g. a click on dead space moved it to
+      // <body>), pull it back in rather than letting Tab escape the modal drawer.
+      if (!panel.contains(document.activeElement)) {
+        event.preventDefault();
+        first.focus();
+        return;
+      }
       if (event.shiftKey && document.activeElement === first) {
         event.preventDefault();
         last.focus();
@@ -152,7 +174,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         href="#main-content"
         onFocus={() => setSkipFocused(true)}
         onBlur={() => setSkipFocused(false)}
-        className={`fixed left-4 z-[100] rounded bg-blue-700 px-4 py-2 text-sm font-medium text-white shadow-lg ${
+        // `focus:top-4` is a CSS fallback so the link still reveals for keyboard users
+        // during the pre-hydration window (before the onFocus/onBlur handlers attach).
+        className={`fixed left-4 z-[100] rounded bg-blue-700 px-4 py-2 text-sm font-medium text-white shadow-lg focus:top-4 ${
           skipFocused ? "top-4" : "-top-24"
         }`}
       >
@@ -170,7 +194,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <span className="hidden lg:inline">ElproSaas</span>
             </span>
           </div>
-          <nav aria-label="Huvudnavigation" className="flex-1 overflow-y-auto p-2">
+          {/* No `overflow-y-auto` below lg: the md icon-rail tooltip is positioned
+              `left-full` (outside the 64px rail), and a scroll container would clip it
+              (CSS coerces overflow-x to auto). Scroll is only needed at lg (labels). */}
+          <nav aria-label="Huvudnavigation" className="flex-1 p-2 lg:overflow-y-auto">
             <NavLinks variant="sidebar" pathname={pathname} />
           </nav>
         </aside>
