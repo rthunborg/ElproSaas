@@ -4,6 +4,12 @@ Date: 2026-06-08
 
 Use these questions with the electrician friend before Phase A PRD approval. Keep answers concrete enough to drive acceptance criteria and golden-master fixtures.
 
+Swedish email versions and traceability:
+
+- [e0-owner-questions-sv.md](e0-owner-questions-sv.md) — owner/electrician sheet.
+- [e0-accounting-tax-questions-sv.md](e0-accounting-tax-questions-sv.md) — accounting/legal sheet.
+- [e0-question-mapping.md](e0-question-mapping.md) — maps each question below to its exact Swedish question + coverage notes.
+
 ## Workflow Priority
 
 - Which Phase A workflow must work first: CRM, calculation, quote PDF, acceptance, basic job, or files?

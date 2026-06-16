@@ -2,99 +2,172 @@
 created: 2026-06-14
 project: ElproSaas
 phase: Phase A - Internal Pilot MVP
-status: awaiting-owner-answers
+status: sent-awaiting-remaining-answers
 purpose: >
-  Living tracker for the owner / accounting / legal sign-off decisions that gate
-  Phase A. Resolves the open items in the PRD Owner Questions list and the
-  Assumption Register (A10-A23). Answers recorded here feed story creation for
-  Epics 3-7 and the Story 9.4 sign-off register.
+  Living tracker for the owner / accounting decisions that gate Phase A. Question
+  IDs are kept identical to the Swedish email so answers map 1:1. Resolves the open
+  items in the PRD Owner Questions list and the Assumption Register (A6-A29).
 source_documents:
   - _bmad-output/planning-artifacts/prd.md  # Owner Questions, Assumption Register
-sent_to_owner: 2026-06-14  # Swedish email (see appendix), recipient = co-owner
+  - docs/discovery/e0-owner-questions-sv.md  # the outgoing email (IDs match this)
+  - docs/discovery/e0-accounting-tax-questions-sv.md  # tax sheet (Blocks A-D)
+sent_to_owner: 2026-06-16  # revised, simplified Swedish email sent this date (the 2026-06-14 draft was never sent)
+answers_received: 2026-06-16  # informal answers from co-owner, recorded below
 ---
 
 # Owner Sign-Off Questions And Answers
 
-This document tracks the business decisions that only the owner (and, for tax/legal
-items, an accountant/lawyer) can make. None of these block foundation development
-(Epics 1-2); the **Tier 1** items block **real pilot use against customers**, and
-several **Tier 2** items block the **first demo/prototype** UX choices.
+This tracks the business decisions that gate Phase A. **Question IDs match the
+Swedish email exactly** (`docs/discovery/e0-owner-questions-sv.md` + the tax sheet),
+so an answer maps straight to a row: "Block 3, fråga 2" → `3.2`; the tax sheet uses
+`A`–`D`; the roadmap uses `Roadmap N`.
 
-A Swedish-language version of every question was emailed to the co-owner on
-**2026-06-14** (reproduced in the appendix). Record answers inline as they arrive,
-then update the matching assumption status in the PRD Assumption Register.
+Conventions:
 
-## How To Use
+- **IDs are stable.** When a question is answered it keeps its ID and moves to the
+  *Answered* section; the email simply drops it (a number gap is fine — IDs are not
+  reused or shifted). This is what keeps future answer-mapping unambiguous.
+- None of these block the foundation (Epics 1-2). **All Prio 1-3 questions are
+  required for the pilot** (cutover = full Lovable parity); the **Roadmap** section
+  is deferred.
+- The Swedish email was **drafted 2026-06-14 (never sent)**, then revised and
+  **sent 2026-06-16** (`docs/discovery/`). Some answers arrived informally before the
+  send and are recorded below.
+- Pilot is **internal test only** — legal/GDPR/customer-facing sign-off items are
+  deferred to full-release scoping (see *Parked*).
 
-- Fill the **Answer** column when the owner responds; set **Status** to `answered`.
-- For Tier 1 tax/legal rows, `answered` still requires accounting/legal confirmation
-  before `signed-off`.
-- When a row reaches `signed-off`, update the corresponding assumption (A10-A23) in
-  `prd.md` and reference it in the relevant story's Stop Conditions.
+Status values: `open` → `answered` → `signed-off` (or `parked`/`deferred`).
+The **Epic** column is the build wave whose story Stop Condition needs the answer
+(precise story gates live in `docs/discovery/e0-question-mapping.md`).
 
-Status values: `open` → `answered` → `signed-off` (or `deferred`).
+## Open questions
 
-## Tier 1 — Blocking Before Real Pilot Use (12)
+### Prio 1 — Block 1: Kunder & kontakter — Epic 3
 
-| # | Question | Assumption | Sign-off needed | Answer | Status |
+| ID | Question | Assumption | Sign-off | Answer | Status |
 | --- | --- | --- | --- | --- | --- |
-| 1 | Quote number display format; does numbering reset yearly? | A13 | Owner | | open |
-| 2 | What exact event marks a quote "sent", and who may mark it? (send locks the content) | Quote lifecycle / sent semantics | Owner | | open |
-| 3 | Which acceptance evidence channels are sufficient (email, signed PDF, phone note, meeting note, other)? | A14 | Owner | | open |
-| 4 | May accepted price differ from the sent quote total? If so, what reason/evidence is required? | A15 | Owner | | open |
-| 5 | Repeated "accepted" on the same quote — block, show existing, or treat as correction? | A15 / lifecycle | Owner | | open |
-| 6 | Rounding rule: per line, on VAT, on totals, and PDF display (whole kronor vs exact öre)? | A19 | Accounting | | open |
-| 7 | Confirm VAT, ROT, grön teknik rates/caps, eligible bases, customer eligibility, BRF handling, schablon handling, disclaimer text. | A19, A20, A21 | Accounting/Legal | | open |
-| 8 | Do customer-hidden quote rows still count toward totals and tax deductions (ROT/grön teknik)? | Calc/tax semantics (A19-A21) | Owner + Accounting | | open |
-| 9 | Which quote terms are customer-visible, and who approves the wording? | A22 | Owner + Legal | | open |
-| 10 | Which files are required before quote send, and before quote acceptance? | A17 | Owner | | open |
-| 11 | Which legacy (Lovable) records are live / archive-only / excluded / deferred for the pilot? | A18 | Owner | | open |
-| 12 | Which Lovable examples are the comparison "golden masters" for cutover verification? | A18 / migration | Owner | | open |
+| 1.1 | Kundtyper (privat/företag/BRF/offentlig – exakt vilka?) | A10 | Owner | | open |
+| 1.2 | Obligatoriska kundfält för offert-PDF | A10 | Owner | | open |
+| 1.3 | Anläggning obligatorisk? Flera per kund? | A11 | Owner | | open |
+| 1.4 | Kontakt: kund / anläggning / båda | A11 | Owner | | open |
+| 1.5 | Huvudkontakt tvingande (kund/anläggning/inte alls)? | A12 | Owner | | open |
 
-## Tier 2 — Needed Before First Demo/Prototype (14)
+### Prio 2 — Block 2: Pengar – visning & dolda rader — Epic 4-6
 
-Rows tied to A10-A12 are also *blocking before real pilot use*, but the answer is
-needed early because it shapes the demo UX.
+| ID | Question | Assumption | Sign-off | Answer | Status |
+| --- | --- | --- | --- | --- | --- |
+| 2.1 | PDF: pris exkl / inkl / båda moms | A19 | Owner | | open |
+| 2.2 | Dolda rader med i total + skatteavdrag? | A19-A21 | Owner + Accounting | | open |
 
-| # | Question | Assumption | Answer | Status |
+### Prio 2 — Block 3: Kalkyl & offert — Epic 5-6
+
+| ID | Question | Assumption | Sign-off | Answer | Status |
+| --- | --- | --- | --- | --- | --- |
+| 3.1 | Visningslägen: detaljerat / sammanfattat / text | — | Owner | | open |
+| 3.2 | Tillval: separat accept eller bara visas? | — | Owner | | open |
+| 3.3 | Vilka marginalvarningar | — | Owner | | open |
+| 3.4 | PDF-only vs förbered mejl senare | A9 | Owner | | open |
+
+### Prio 2 — Block 4: Offerter & numrering — Epic 6
+
+| ID | Question | Assumption | Sign-off | Answer | Status |
+| --- | --- | --- | --- | --- | --- |
+| 4.1 | Offertnummerformat + årlig återställning | A13 | Owner | | open |
+| 4.2 | Vad räknas som "skickad" + vem får | lifecycle | Owner | | open |
+| 4.3 | Vilka statusar | lifecycle | Owner | | open |
+
+### Prio 2 — Block 5: Bilagor & filer — Epic 6, 8
+
+| ID | Question | Assumption | Sign-off | Answer | Status |
+| --- | --- | --- | --- | --- | --- |
+| 5.1 | Bilaga inne i offerten vs sist | — | Owner | | open |
+| 5.2 | Filer krävda innan skicka | A17 | Owner | | open |
+| 5.3 | Filer krävda innan accept | A17 | Owner | | open |
+| 5.4 | Frysa filer permanent (facit) eller ändringsbara? | A17 | Owner | | open |
+
+### Prio 3 — Block 6: Pris & att kunden tackar ja — Epic 7
+
+| ID | Question | Assumption | Sign-off | Answer | Status |
+| --- | --- | --- | --- | --- | --- |
+| 6.1 | Accepterat pris ≠ offertpris? Motiveringsfält? | A15 | Owner | | open |
+| 6.2 | Dubbel-ja: blockera / visa befintligt / rättelse | A15 | Owner | | open |
+
+### Prio 3 — Block 7: Jobb/order & filer — Epic 7-8
+
+| ID | Question | Assumption | Sign-off | Answer | Status |
+| --- | --- | --- | --- | --- | --- |
+| 7.1 | Vad jobbet ska kallas | A16 | Owner | | open |
+| 7.2 | Auto-skapa jobb vid varje accept? | — | Owner | | open |
+| 7.3 | Obligatoriska fält första jobbkortet | — | Owner | | open |
+| 7.4 | Planerat start/slut vid accept? | — | Owner | | open |
+| 7.5 | Dokumentbibliotek vs kopplade filer | — | Owner | | open |
+
+### Prio 3 — Block 8: Övergång från gamla appen — Epic 9
+
+| ID | Question | Assumption | Sign-off | Answer | Status |
+| --- | --- | --- | --- | --- | --- |
+| 8.1 | Aktiv / arkiv / uteslut / vänta-klassning | A18 | Owner | | open |
+| 8.2 | Facit-exempel för jämförelse | A18 | Owner | | open |
+
+### Tax sheet (Blad 2) — Blocks A-D — Epic 4
+
+| ID | Question | Assumption | Sign-off | Answer | Status |
+| --- | --- | --- | --- | --- | --- |
+| A.1 | Avrundning (rad/moms/total) + PDF-visning | A19 | Accounting | | open |
+| A.2 | Moms-sats idag + avvikande fall | A19 | Accounting | | open |
+| B.1-B.4 | ROT: sats / tak / underlag / momshantering | A20 | Accounting | | open |
+| C.1-C.3 | Grön teknik: satser / tak / schablon | A21 | Accounting | | open |
+| D.1-D.3 | Berättigande / BRF / ROT+grön kombination | A20-A21 | Accounting | | open |
+
+### Roadmap (deferred — no Phase A story)
+
+| ID | Question | Assumption | Answer | Status |
 | --- | --- | --- | --- | --- |
-| 13 | Which exact customer types appear in the UI (private, company, BRF, public, …)? | A10 | | open |
-| 14 | Is an anläggning required for every quote/job, or optional for small jobs? | A11 | | open |
-| 15 | Are contacts customer-wide, facility-specific, or both? | A11 | | open |
-| 16 | Enforce one primary contact per customer, per facility, or not at all? | A12 | | open |
-| 17 | Reusable article/material register, or are manual rows enough for the pilot? | A8 | | open |
-| 18 | Which row types are essential first (labor, material, subcontractor, machinery, other)? | — | | open |
-| 19 | Should sections support detailed / summary / text-only display from the first prototype? | — | | open |
-| 20 | Options/tillval accepted separately, or only shown as optional additions? | — | | open |
-| 21 | Which margin warnings are useful enough for the prototype? | — | | open |
-| 22 | Manual PDF + status tracking only, or plan for in-app email sending later? | A9 | | open |
-| 23 | What is the created job called in the UI (jobb, order, projekt, arbetsorder, …)? | A16 | | open |
-| 24 | Are planned start/end dates needed at acceptance time for the prototype? | — | | open |
-| 25 | Standalone document center, or are entity-scoped files enough? | — | | open |
-| 26 | Which file types and size limits are acceptable for the prototype? | — | | open |
+| Roadmap 1 | Roller utöver administratör | A29 | | open |
+| Roadmap 2 | Mobilt fältarbetarflöde | A25 | | open |
+| Roadmap 3 | Fältrapportering (tid/material/ÄTA/foto) | A28 | | open |
+| Roadmap 4 | Leverantörsintegrationer | A26 | | open |
+| Roadmap 5 | Extra moduler (AI/DoU/FKU/HR/…) | A27, A28 | | open |
+| Roadmap 6 | Kundportal / online-accept | A6 | | open |
+| Roadmap 7 | Affärsmodell (abonnemang/SLA/…) | — | | open |
+| Roadmap 8 | Långsiktig UX-riktning | — | | open |
 
-## Tier 3 — Deferred / Strategic (9)
+## Answered (resolved 2026-06-16 — removed from the email)
 
-Roadmap decisions for after the pilot. Capturing answers informs future phases; none
-affect Phase A scope (all map to deferred assumptions A24-A29).
+| Relates to | Question | Answer | Assumption |
+| --- | --- | --- | --- |
+| Block 1 | Utelämna personnummer? | **Nej – personnummer krävs** (ändrar AR16/NFR16) | AR16/NFR16 |
+| Block 3 | Återanvändbart artikel-/materialregister? | Ja | A8 |
+| Block 3 | Arbete via arbetsroller eller fritt? | **Båda** | A8 |
+| Block 3 | Vilka radtyper viktigast | Alla lika viktiga | — |
+| Block 5/7 | Vem får radera/återställa filer | Alla med admin-roll | — |
+| Block 6 | Acceptbevis-kanaler | Alla giltiga + valfri filuppladdning (mejl/PDF/txt/docx) | A14 |
+| Block 4/inställningar | Villkorstext + vem godkänner | Platshållartext räcker för piloten | A22 |
+| Block 7 | Filtyper / maxstorlek | Alla vanliga filtyper; rimlig gräns i större spannet | — |
+| Block 8 | Hur länge gamla appen parallellt | Tills allt är helt överflyttat | A18 |
+| Block 8 | Cutover-kriterium | Minst all funktionalitet som Lovable-appen har | A18 |
+| Roadmap | Faktureringsunderlag före Fortnox | Ja, behövs | A24 |
+| (Block 0, utgår) | En eller flera administratörer | En i piloten; bygg membership-modellen för fler i full produkt | — |
 
-| # | Question | Assumption | Answer | Status |
-| --- | --- | --- | --- | --- |
-| 27 | Which non-admin roles should exist beyond `tenant_admin`? | A29 | | open |
-| 28 | What mobile/field-worker installer workflow is needed later? | A25 | | open |
-| 29 | What time/material/deviation/photo reporting is required? | A28 | | open |
-| 30 | Manual faktureringsunderlag review/export before a Fortnox link? | A24 | | open |
-| 31 | When should a Fortnox integration become active scope? | A24 | | open |
-| 32 | Which supplier integrations are commercially necessary? | A26 | | open |
-| 33 | Which extra modules are justified (AI, DoU, tender/FKU, HR, rentals, assets/QR, service plans, warranties, analytics)? | A27, A28 | | open |
-| 34 | Is a customer portal / public online acceptance flow needed? | A6 | | open |
-| 35 | What commercial model (tiers, onboarding, support, backup/restore, SLA)? | — | | open |
+## Parked for full-release scoping (out of the internal pilot)
 
-## Appendix — Swedish Email As Sent (2026-06-14)
+- Estimate-vs-promised-reduction wording for tax deductions (was tax Block E) — A20/A21
+- Customer-facing disclaimer text (was tax Block E) — A22
+- Authoritative accounting/legal source / who owns the tax numbers (was tax Block F) — NFR15
+- GDPR / retention treatment for personnummer and free-text notes
 
-The questions above were sent to the co-owner in Swedish, grouped as Del 1 (Tier 1,
-questions 1-12), Del 2 (Tier 2, questions 13-26), and Del 3 (Tier 3, questions
-27-35). Tier 1 questions 6, 7, and the wording in 9 were flagged as needing
-accounting/legal confirmation. The full Swedish text lives in the sent email; this
-appendix is a pointer so the canonical English questions above stay the system of
-record for assumption sign-off.
+## Assumption change — personnummer
+
+The owner confirmed the system **must support personal numbers (personnummer)**. This
+**reverses** the conservative architecture assumption (AR16 / NFR16: omit personnummer
+by default — note this is AR16/NFR16, not PRD assumption A16, which is job terminology).
+For the internal pilot this is in scope; when implemented (Story 3.1) it still needs the
+private, tenant-owned, access-controlled handling already described in the security
+guardrails. Full GDPR/retention treatment is deferred to full-release scoping.
+
+## Appendix — Swedish email status
+
+Drafted 2026-06-14 (never sent), revised, and **sent 2026-06-16**. The Swedish email
+lives in `docs/discovery/e0-owner-questions-sv.md` (owner) and
+`docs/discovery/e0-accounting-tax-questions-sv.md` (tax values). Those sheets are the
+outgoing artifact; this list stays the system of record for assumption sign-off.
