@@ -1,0 +1,130 @@
+version: 1
+profiles_source_version: "0.24.0"  # abm version whose assets/agents/profiles.yaml seeded the profiles +
+                                  # phase_profiles blocks below; re-stamped by the Phase 0 heal (ADDITIVE-only —
+                                  # never overwrites user values) or `reprovision`.
+delegation:                # spawn mechanism — host/mode auto-detected each run
+  host: auto               # auto (detect each run) | claude-code | codex | opencode | other
+  mode: auto               # auto (derive from host) | custom-subagents | general-subagents | inline
+  target_tools:            # tools to provision agents for; confirmed at first run
+    - claude-code
+  cli_phases: {}           # OPT-IN per-phase external-CLI routing; empty => every phase uses its tier
+tea:
+  enabled: true            # TEA phases on (bmad-testarch-* skills present)
+  framework_ci: skip       # prompt | done | skip — deferred at first run (no app code yet; revisit /bmad-testarch-framework later)
+  gate_max_iterations: 2   # Phase 8 trace-gate remediation cap before only waive/stop are offered
+  story_trace_advisory:    # per-story, non-blocking trace pass — shifts coverage-gap visibility left on LONG epics
+    enabled: true          # self-activating: dormant on short epics, fires only on long high-risk stories
+    min_epic_stories: 6    # only runs in epics with >= this many stories
+    skip_last_stories: 3   # also skip the epic's last N stories (their gap surfaces at the epic-end trace gate)
+git:
+  mode: auto               # auto -> detect; or force "remote" / "local" (detected this run: remote)
+  branch_prefix: "story/"
+  epic_branch_prefix: "epic/"  # epic mode: the one branch a whole epic run commits to (epic/{e}-{slug})
+  base_branch: main        # auto-detected
+  offer_merge: true        # Phase 9: ask the user whether to merge a clean-completion PR
+  ci_wait_minutes: 30      # max wait for in-progress CI before deciding (used only when offer_merge is on)
+code_review:
+  max_iterations: 2
+  security_review: true    # run the dedicated per-story security review inside the Phase 7 loop (ab-security delegate)
+  epic_review: true        # epic mode: run the Tier-B epic integration review
+  tier_a_lenses: [auditor, security]  # epic mode: the per-story thin-review lens set
+  epic_diff_chunk_threshold_lines: 6000  # epic mode: chunk the Tier-B review when the epic diff exceeds this many lines
+
+# --- profiles + phase_profiles: copied verbatim from {skill-root}/assets/agents/profiles.yaml ---
+# To retune delegate model/effort: edit the blocks below and run `/auto-bmad reprovision`
+# to regenerate the tool-native agent files. To discard edits and re-seed the shipped
+# defaults: `/auto-bmad reset-defaults`.
+profiles:
+  ab-deep:
+    description: "auto-bmad delegate for the highest-stakes, deep-reasoning steps: implementing story code (`dev-story`), building the story context file (`create-story`), primary adversarial code review, and the epic-level test design + release gates (trace/NFR/test-review). Invoked by the auto-bmad orchestrator; not meant for direct use."
+    role_blurb: "the highest-stakes, deep-reasoning work: implementing story code (`dev-story`), building the comprehensive story context file (`create-story`), running adversarial primary code review, and the epic-level test design + release gates (trace / NFR / test-review). Be exhaustive and skeptical — correctness matters more than speed: reason hard about edge cases, regressions, and acceptance criteria, because these steps determine whether everything downstream succeeds and the gates decide whether the epic ships."
+    status_example: "for dev-story — any status/state the skill set (e.g. story moved to `review`) and test results; for create-story — the story key, path, and final status; for reviews — the verdict (Approve / Changes Requested / Blocked) and Critical/High/Med/Low finding counts; for gate skills — the gate decision (PASS / CONCERNS / FAIL / WAIVED) and rationale"
+    claude:
+      model: opus
+      effort: xhigh
+    codex:
+      model: gpt-5.5
+      reasoning_effort: xhigh
+    opencode:
+      model: ""        # provider/model, e.g. anthropic/claude-opus-4-5. BLANK => inherit your opencode
+                       # default model. Agent files are model-only — opencode has no portable per-agent
+                       # effort knob; set reasoning per-agent-name in opencode.json if you want it tuned.
+      variant: ""      # OPTIONAL, cli_phases route ONLY: --variant high|max|minimal. BLANK => model default.
+
+  ab-standard:
+    description: "auto-bmad delegate for substantive, well-scoped steps: applying the primary code-review fixes (`code-review` fix pass) plus test- and context-infrastructure work — per-story test authoring (`testarch-atdd` scaffolds, `testarch-automate` coverage), one-time test-framework/CI setup, and building/refreshing `project-context.md`. Invoked by the auto-bmad orchestrator; not meant for direct use."
+    role_blurb: "substantive, well-scoped work: applying the fixes from the primary adversarial code review (the findings are already identified — implement them faithfully and re-verify), plus test- and context-infrastructure work — per-story test authoring (ATDD red-phase acceptance scaffolds and expanding automated coverage), the one-time test-framework + CI-pipeline setup, and building or refreshing `project-context.md`, the durable AI-rules doc every later story inherits. These are judgment-heavy — answer every interactive prompt yourself using the provided context and sensible judgment, and produce the complete output document."
+    status_example: "for code-review fixes — which findings were resolved; for test authoring/setup — tests or framework/CI scaffolded, whether they pass, coverage expanded; for project-context — the file written/refreshed and the key facts captured"
+    claude:
+      model: opus
+      effort: high
+    codex:
+      model: gpt-5.5
+      reasoning_effort: high
+    opencode:
+      model: ""        # provider/model, e.g. anthropic/claude-opus-4-5. BLANK => inherit your opencode
+                       # default model. Agent files are model-only (no portable per-agent effort knob).
+      variant: ""      # OPTIONAL, cli_phases route ONLY: --variant high|max|minimal. BLANK => model default.
+
+  ab-alt-deep:
+    description: "auto-bmad delegate for the parallel second-opinion code review (for model diversity): a second, independent adversarial reviewer running its own review lenses on the same diff alongside the primary, at full reasoning depth. Invoked by the auto-bmad orchestrator; not meant for direct use."
+    role_blurb: "the diversity-oriented adversarial work: running the second-opinion review lenses in parallel with the primary reviewer to give the review loop model diversity. Be exhaustive and skeptical — you are a second, independent pair of eyes on the same diff, run at full reasoning depth precisely to catch what the primary reviewer's model missed."
+    status_example: "the verdict (Approve / Changes Requested / Blocked) and Critical/High/Med/Low finding counts"
+    claude:
+      model: sonnet
+      effort: xhigh
+    codex:
+      model: gpt-5.4
+      reasoning_effort: xhigh
+    opencode:
+      model: ""        # provider/model. BLANK => inherit your opencode default. For the alt profiles,
+                       # point this at a DIFFERENT vendor than ab-deep (e.g. a DeepSeek/Qwen/Gemini
+                       # model) to get a genuine cross-model second opinion no single-vendor host can.
+      variant: ""      # OPTIONAL, cli_phases route ONLY: --variant high|max|minimal. BLANK => model default.
+
+  ab-alt-standard:
+    description: "auto-bmad delegate for lighter-weight steps on a faster model: per-story risk triage and the epic retrospective. Invoked by the auto-bmad orchestrator; not meant for direct use."
+    role_blurb: "the lighter-weight work: classifying per-story test risk (triage) and synthesizing the epic retrospective from accumulated notes."
+    status_example: "for triage — the risk level (low/med/high) and selected TEA set; for the retrospective — key action items and any next-epic prep flagged"
+    claude:
+      model: sonnet
+      effort: high     # rubric-driven classification + note synthesis
+    codex:
+      model: gpt-5.4
+      reasoning_effort: high
+    opencode:
+      model: ""        # provider/model. BLANK => inherit your opencode default. For the alt profiles,
+                       # point this at a DIFFERENT vendor than ab-deep for cross-model diversity.
+      variant: ""      # OPTIONAL, cli_phases route ONLY: --variant high|max|minimal. BLANK => model default.
+
+  ab-security:
+    description: "auto-bmad delegate for the dedicated per-story security review: an adversarial security reviewer that hunts exploitable vulnerabilities in the story's diff (injection, auth/authz, crypto & secrets, insecure deserialization, sensitive-data exposure), applying a high-signal exclusion list so non-exploitable noise is suppressed. Invoked by the auto-bmad orchestrator; not meant for direct use."
+    role_blurb: "the dedicated per-story security review: hunting exploitable security vulnerabilities introduced or exposed by the story's diff — injection (SQL/command/template/SSRF/path traversal), authentication & authorization flaws, crypto & secret mishandling, insecure deserialization, and sensitive-data exposure. Be concrete and adversarial, but high-signal: report ONLY findings with a real, reachable exploit path; assign each a severity (HIGH directly exploitable / MEDIUM exploitable under conditions / LOW defense-in-depth); and suppress the standard non-exploitable noise (DoS, rate-limiting, resource/CPU exhaustion, validation of non-security-critical fields with no proven problem)."
+    status_example: "the output-file path you wrote and the count of findings by severity (HIGH / MEDIUM / LOW) — never the findings text (the triage delegate reads the file)"
+    claude:
+      model: opus
+      effort: xhigh
+    codex:
+      model: gpt-5.5
+      reasoning_effort: xhigh
+    opencode:
+      model: ""        # provider/model, e.g. anthropic/claude-opus-4-5. BLANK => inherit your opencode
+                       # default model. Agent files are model-only (no portable per-agent effort knob).
+      variant: ""      # OPTIONAL, cli_phases route ONLY: --variant high|max|minimal. BLANK => model default.
+
+phase_profiles:
+  create_story: ab-deep
+  dev_story: ab-deep                        # highest-stakes coding step
+  code_review_review: ab-deep               # primary reviewer — always runs; its 3 lenses + the single triage delegate
+  code_review_review_secondary: ab-alt-deep # OPTIONAL second parallel reviewer (3 more lenses per pass); blank "" => disabled
+  code_review_review_tertiary: ""           # OPTIONAL third parallel reviewer; blank "" => disabled (name a profile to enable)
+  code_review_security: ab-security         # dedicated per-story security review (gated by code_review.security_review); blank "" => falls back to the code_review_review (primary) profile
+  code_review_fix: ab-standard              # apply already-identified findings (mechanical vs the hunt)
+  tea_triage: ab-alt-standard               # Phase 0 story-risk classification (cheap)
+  tea_per_story: ab-standard                # Phase 4 ATDD, Phase 6 automate
+  tea_epic: ab-deep                         # Phase 2 epic test design, Phase 8 blocking trace gate (+ its remediation)
+  tea_epic_audit: ab-standard               # Phase 8 advisory gates (nfr + test-review) — one effort tier below the blocking trace gate
+  retrospective: ab-alt-standard
+  project_context: ab-standard              # Phase 2 bootstrap + Phase 8 refresh
+  deferred_reconcile: ab-standard           # Phase 8 (epic-end, pre-archive): verify-against-code which unmarked/partial deferred items are now fully resolved and mark them
+  uat: ab-standard                          # Phase 9 head (per story) + epic E5 per story + the E_final single-session consolidation: read-only manual UAT checklist for the report
