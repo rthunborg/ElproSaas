@@ -76,6 +76,12 @@ PROFILE_NAMES = ("ab-deep", "ab-standard", "ab-alt-deep", "ab-alt-standard", "ab
 PROFILE_PREFIX = "ab-"
 
 # tool -> (one shared body template, output dir + suffix, tool-specific placeholders)
+# `desc_style` says how @@DESCRIPTION@@ must be emitted: "yaml" => a quoted YAML
+# frontmatter scalar (the template line is `description: @@DESCRIPTION@@`, UNquoted,
+# so the substitution supplies the quotes); "toml" => the escaped INNER content of a
+# TOML basic string (the template already supplies the surrounding quotes). This is
+# load-bearing: descriptions contain `: ` (colon-space), which makes an UNQUOTED YAML
+# scalar invalid — the host's frontmatter parser then silently skips the agent file.
 TOOLS = {
     "claude-code": {
         "tmpl_dir": "claude",
@@ -85,6 +91,7 @@ TOOLS = {
         # placeholder -> per-tool profile key
         "subs": {"@@MODEL@@": "model", "@@EFFORT@@": "effort"},
         "cfg_key": "claude",
+        "desc_style": "yaml",
     },
     "codex": {
         "tmpl_dir": "codex",
@@ -93,6 +100,7 @@ TOOLS = {
         "out_suffix": ".toml",
         "subs": {"@@MODEL@@": "model", "@@REASONING_EFFORT@@": "reasoning_effort"},
         "cfg_key": "codex",
+        "desc_style": "toml",
     },
     # opencode markdown agents live in `.opencode/agent/` (singular — verified against
     # opencode 1.16.2 `agent list`). They are MODEL-ONLY: no per-agent effort knob exists,
@@ -107,16 +115,34 @@ TOOLS = {
         "out_suffix": ".md",
         "subs": {},
         "cfg_key": "opencode",
+        "desc_style": "yaml",
     },
 }
 
 # Tool-neutral per-profile metadata, filled into the shared body template.
 # Same values flow into BOTH the Claude and Codex output, so wording cannot drift.
+# `description` is handled separately (per-tool quoting/escaping — see `desc_style`);
+# role_blurb / status_example land in the prose BODY, where colons are harmless.
 SHARED_SUBS = {
-    "@@DESCRIPTION@@": "description",
     "@@ROLE_BLURB@@": "role_blurb",
     "@@STATUS_EXAMPLE@@": "status_example",
 }
+
+
+def _yaml_double_quote(s: str) -> str:
+    """Return a YAML double-quoted scalar (WITH surrounding quotes) for a frontmatter
+    value that may contain ``: `` (colon-space), ``#``, quotes, or backslashes — any
+    of which makes an unquoted plain scalar invalid (the agent then silently fails to
+    load). Double-quoted YAML supports C-style escapes, so this round-trips safely."""
+    esc = s.replace("\\", "\\\\").replace('"', '\\"').replace("\n", "\\n").replace("\t", "\\t")
+    return f'"{esc}"'
+
+
+def _toml_basic_escape(s: str) -> str:
+    """Escape the INNER content of a TOML basic string (the template supplies the
+    surrounding quotes). Colons are fine inside a TOML string; quotes/backslashes
+    are not."""
+    return s.replace("\\", "\\\\").replace('"', '\\"').replace("\n", "\\n").replace("\t", "\\t")
 
 _INLINE_MAP_RE = re.compile(r"^([\w-]+):\s*\{(.*)\}\s*$")
 
@@ -270,6 +296,15 @@ def _plan(
 
             content = tmpl_content
             content = content.replace("@@NAME@@", name)
+            # Description -> a quoted/escaped scalar for the tool's metadata format.
+            # It contains `: ` (colon-space); emitting it raw into a YAML frontmatter
+            # value makes the file unparseable and the agent is silently dropped.
+            if "description" not in prof:
+                warnings.append(f"profile '{name}' missing 'description'")
+            elif spec["desc_style"] == "toml":
+                content = content.replace("@@DESCRIPTION@@", _toml_basic_escape(str(prof["description"])))
+            else:  # yaml frontmatter (claude-code, opencode)
+                content = content.replace("@@DESCRIPTION@@", _yaml_double_quote(str(prof["description"])))
             for placeholder, key in SHARED_SUBS.items():
                 if key not in prof:
                     warnings.append(f"profile '{name}' missing '{key}'")
@@ -311,7 +346,10 @@ def render(
     for out_path, content in outputs:
         if not dry_run:
             out_path.parent.mkdir(parents=True, exist_ok=True)
-            out_path.write_text(content, encoding="utf-8")
+            # Force LF: a frontmatter parser keys off a literal `---` delimiter line,
+            # and CRLF (`---\r`) makes the host skip the agent. Default text-mode writes
+            # emit CRLF on Windows, so pin newline explicitly.
+            out_path.write_text(content, encoding="utf-8", newline="\n")
         files_written.append(str(out_path))
 
     return {
@@ -478,6 +516,28 @@ def _run_self_test() -> int:
         assert "highest-stakes" in claude_deep, "description not substituted into Claude body"
         assert "implementing story code" in claude_deep, "role_blurb not substituted"
         assert "story moved to `review`" in claude_deep, "status_example not substituted"
+
+        # Frontmatter MUST be valid YAML. Descriptions carry `: ` (colon-space), so an
+        # unquoted scalar is invalid and the host silently skips the agent. Guard the
+        # quoting unconditionally; fully parse with PyYAML when it is available.
+        assert 'description: "' in claude_deep, "claude description must be a quoted YAML scalar"
+        assert "\r" not in claude_deep, "claude output must use LF newlines, not CRLF"
+        try:
+            import yaml as _yaml  # PyYAML — optional, like tomllib below
+
+            for _n in PROFILE_NAMES:
+                _c = (root / f".claude/agents/{_n}.md").read_text(encoding="utf-8")
+                _fm = _c.split("---\n", 2)[1]
+                _meta = _yaml.safe_load(_fm)
+                assert _meta["name"] == _n, f"{_n}: frontmatter name mismatch ({_meta!r})"
+                assert isinstance(_meta["description"], str) and _meta["description"], _n
+                assert _meta["model"] and _meta["effort"], f"{_n}: model/effort missing"
+                _oc = (root / f".opencode/agent/{_n}.md").read_text(encoding="utf-8")
+                _ometa = _yaml.safe_load(_oc.split("---\n", 2)[1])
+                assert _ometa["mode"] == "subagent", f"{_n}: opencode mode"
+                assert isinstance(_ometa["description"], str) and _ometa["description"], _n
+        except ModuleNotFoundError:
+            pass
 
         codex_deep = (root / ".codex/agents/ab-deep.toml").read_text(encoding="utf-8")
         assert 'model = "gpt-5.5"' in codex_deep, codex_deep[:200]

@@ -1,6 +1,6 @@
 ---
 name: ab-alt-deep
-description: auto-bmad delegate for the parallel second-opinion code review (for model diversity): a second, independent adversarial reviewer running its own review lenses on the same diff alongside the primary, at full reasoning depth. Invoked by the auto-bmad orchestrator; not meant for direct use.
+description: "auto-bmad delegate for the parallel second-opinion code review (for model diversity): a second, independent adversarial reviewer running its own review lenses on the same diff alongside the primary, at full reasoning depth. Invoked by the auto-bmad orchestrator; not meant for direct use."
 tools: Read, Write, Edit, Bash, Grep, Glob, Skill, WebFetch, WebSearch
 model: sonnet
 effort: xhigh
