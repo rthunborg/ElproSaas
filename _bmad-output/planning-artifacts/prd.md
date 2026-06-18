@@ -687,22 +687,22 @@ External reference points for sign-off:
 | A5 | The old app remains fallback during coexistence. | accepted for PRD |
 | A6 | Customer portal and public acceptance endpoints are out of Phase A. | accepted for PRD |
 | A7 | Customers can have multiple facilities and contacts. | accepted for PRD |
-| A8 | Articles are optional/minimal unless pilot calculations prove they are required. | accepted for PRD |
-| A9 | Quote sending is manual PDF/status tracking unless owner promotes email sending. | accepted for PRD |
-| A10 | The exact Phase A customer-type list needs owner confirmation. | needs owner confirmation before real pilot use |
-| A11 | Facility/contact requiredness for quotes and jobs needs owner confirmation. | needs owner confirmation before real pilot use |
-| A12 | Primary contact rule needs owner confirmation. | needs owner confirmation before real pilot use |
-| A13 | Quote numbering display format needs owner confirmation. | needs owner confirmation before real pilot use |
-| A14 | Acceptance channel/evidence semantics need owner confirmation. | needs owner confirmation before real pilot use |
-| A15 | Accepted price adjustment policy needs owner confirmation. | needs owner confirmation before real pilot use |
-| A16 | Job/order/projekt terminology needs owner confirmation. | needs owner confirmation before real pilot use |
-| A17 | Required file rules before send/acceptance need owner confirmation. | needs owner confirmation before real pilot use |
-| A18 | Live/archive/excluded legacy migration scope needs owner confirmation. | needs owner confirmation before real pilot use |
-| A19 | VAT rate, VAT display, and rounding policy need accounting/legal confirmation. | needs accounting/legal confirmation before real pilot use |
-| A20 | ROT rates, caps, eligible basis, persons/count, and customer eligibility need accounting/legal confirmation. | needs accounting/legal confirmation before real pilot use |
-| A21 | Grön teknik rates, caps, categories, schablon handling, and BRF handling need accounting/legal confirmation. | needs accounting/legal confirmation before real pilot use |
-| A22 | Customer-facing tax disclaimer text and quote terms need accounting/legal confirmation. | needs accounting/legal confirmation before real pilot use |
-| A23 | Personnummer capture is excluded unless a later approved workflow proves it is necessary. | needs accounting/legal confirmation before real pilot use |
+| A8 | Reusable article/material register is in scope for the pilot; labor priceable both via work roles and free entry. | answered (owner 2026-06-18) |
+| A9 | Owner wants email sending from the app; Phase A scoped it as non-scope — scope decision pending (recommend: build seam, defer sending). | answered (owner 2026-06-18); scope decision pending |
+| A10 | Phase A customer types = privatperson, företag, BRF, kommun/offentlig (4). | answered (owner 2026-06-18) |
+| A11 | Anläggning optional on a customer but first-class and multiple; contacts at customer and facility level, flexible; facility + specific contact required at jobb/offert level, not in CRM. | answered (owner 2026-06-18) |
+| A12 | No enforced primary contact at customer/facility; jobb/offert (and tools like egenkontroll) must bind a facility + specific contact. | answered (owner 2026-06-18) |
+| A13 | Quote number format open — any unique scheme (system chooses); yearly reset not required. | answered (owner 2026-06-18) |
+| A14 | All evidence channels valid + optional file upload (mejl/PDF/txt/docx); manual accept dialog captures method + date. | answered (owner 2026-06-18) |
+| A15 | Accepted price may differ (prut/avgår/tillkommer) with a reason field; repeated accept handled as audited correction with logs. | answered (owner 2026-06-18) |
+| A16 | Job is called "Jobb"; jobb-contains-order/arbetsorder-and-may-be-project structure + first-job fields pending working session. | partially answered (owner 2026-06-18); structure pending |
+| A17 | No files required before send or accept; sent files duplicated + locked to the quote version as "facit" (Stories 6.3/8.4). | answered (owner 2026-06-18) |
+| A18 | Cutover criterion = pilot reaches full Lovable feature parity; record classification + golden-master examples pending working session. | partially answered (owner 2026-06-18); classification pending |
+| A19 | VAT display: private always shows VAT rate+amount+incl-VAT total, company togglable; VAT rate value + rounding pending working session. | partially answered (owner 2026-06-18); rate/rounding pending |
+| A20 | ROT eligibility = private individuals only; ROT and grön teknik cannot be mixed; rates/caps/basis pending working session. | partially answered (owner 2026-06-18); rates pending |
+| A21 | Grön teknik: private only, BRF not eligible, cannot mix with ROT; rates/caps/schablon pending working session. | partially answered (owner 2026-06-18); rates pending |
+| A22 | Quote terms: placeholder text acceptable for the pilot; customer-facing disclaimer wording parked for full release. | answered for pilot (owner 2026-06-18); disclaimer parked |
+| A23 | Personnummer IS required (private ROT); store with secure tenant-owned/access-controlled handling. Reverses prior exclusion; full GDPR/retention deferred to full release. | answered (owner 2026-06-18) — reversed |
 | A24 | Fortnox implementation is deferred. | deferred |
 | A25 | Field-worker/mobile installer UX is deferred. | deferred |
 | A26 | Supplier APIs are deferred. | deferred |

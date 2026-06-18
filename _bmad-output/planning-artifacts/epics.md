@@ -30,6 +30,8 @@ Phase A is strictly limited to the internal tenant-admin pilot: clean platform f
 
 Deferred modules are not implemented, not represented by placeholder UI/routes, and not represented by production tables.
 
+> **Owner decisions applied (2026-06-18):** the owner reply resolved most Prio 1-2 questions. Story-level decisions (especially Epic 3 CRM) and downstream epic impacts are captured in [owner-decisions-applied-2026-06-18.md](owner-decisions-applied-2026-06-18.md) — apply them when creating the affected stories. Open items (tax rates, job structure, migration scope) and two scope decisions (email-from-app, unified document library) remain flagged there.
+
 ## Requirements Inventory
 
 ### Functional Requirements
