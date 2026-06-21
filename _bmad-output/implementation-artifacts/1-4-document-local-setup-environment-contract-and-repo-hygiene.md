@@ -1,6 +1,6 @@
 # Story 1.4: Document Local Setup, Environment Contract, And Repo Hygiene
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 

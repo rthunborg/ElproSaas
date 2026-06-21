@@ -4,11 +4,11 @@ story_key: 1-4-document-local-setup-environment-contract-and-repo-hygiene
 epic_num: 1
 story_num: 4
 branch: story/1-4-document-local-setup-environment-contract-and-repo-hygiene
-status: in-progress
-updated_at: "2026-06-21T17:04:23Z"
+status: done
+updated_at: "2026-06-21T17:10:37Z"
 started_at: "2026-06-21T15:46:49Z"
-completed_at: null
-active_seconds: 3721
+completed_at: "2026-06-21T17:10:37Z"
+active_seconds: 3846
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: true
@@ -27,7 +27,7 @@ hitl_halt: "skipped (clean convergence)"
 external_review_iterations: 0
 convergence_unverified: false
 story_trace: null
-commits: [8ab8a40, 7e4ad7e, 84563fb, 8f47057, 7a1c934]
+commits: [8ab8a40, 7e4ad7e, 84563fb, 8f47057, 7a1c934, 8cd63ce, 632f925]
 phase8_steps:
   trace_gate: done
   nfr: done
@@ -39,9 +39,9 @@ phase8_steps:
 gate_decision: PASS
 gate_iterations: 0
 deferred_work_archived: 3
-pr_url: null
-ci_run_url: null
-ci_status: unknown
+pr_url: "https://github.com/rthunborg/ElproSaas/pull/5"
+ci_run_url: "https://github.com/rthunborg/ElproSaas/actions/runs/27911539074"
+ci_status: passed
 pr_merged: false
 merge_method: null
 merge_commit: null
