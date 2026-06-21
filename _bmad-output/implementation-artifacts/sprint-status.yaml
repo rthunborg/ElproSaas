@@ -41,7 +41,7 @@
 # Entries below remain grouped by epic for tracking; pick stories in the order above.
 
 generated: 2026-06-12
-last_updated: 2026-06-16  # story 1.3 → done (Round 1 code review)
+last_updated: 2026-06-21  # epic-1 retrospective → done
 project: ElproSaas
 project_key: NOKEY
 tracking_system: file-system
@@ -52,8 +52,8 @@ development_status:
   1-1-choose-package-manager-and-initialize-app-baseline: done
   1-2-establish-ci-and-quality-gate-baseline: done
   1-3-build-phase-a-app-shell-and-deferred-scope-navigation-guardrails: done
-  1-4-document-local-setup-environment-contract-and-repo-hygiene: backlog
-  epic-1-retrospective: optional
+  1-4-document-local-setup-environment-contract-and-repo-hygiene: done
+  epic-1-retrospective: done
 
   epic-2: backlog
   2-1-tenant-admin-login-and-tenant-context-resolution: backlog

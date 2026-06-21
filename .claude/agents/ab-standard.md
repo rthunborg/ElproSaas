@@ -1,6 +1,6 @@
 ---
 name: ab-standard
-description: auto-bmad delegate for substantive, well-scoped steps: applying the primary code-review fixes (`code-review` fix pass) plus test- and context-infrastructure work — per-story test authoring (`testarch-atdd` scaffolds, `testarch-automate` coverage), one-time test-framework/CI setup, and building/refreshing `project-context.md`. Invoked by the auto-bmad orchestrator; not meant for direct use.
+description: "auto-bmad delegate for substantive, well-scoped steps: applying the primary code-review fixes (`code-review` fix pass) plus test- and context-infrastructure work — per-story test authoring (`testarch-atdd` scaffolds, `testarch-automate` coverage), one-time test-framework/CI setup, and building/refreshing `project-context.md`. Invoked by the auto-bmad orchestrator; not meant for direct use."
 tools: Read, Write, Edit, Bash, Grep, Glob, Skill, WebFetch, WebSearch
 model: opus
 effort: high

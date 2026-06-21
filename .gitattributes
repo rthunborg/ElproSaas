@@ -1,0 +1,7 @@
+# auto-bmad delegate agent files MUST stay LF on every platform.
+# A host's frontmatter parser keys off a literal `---` delimiter line; under
+# core.autocrlf=true a checkout would rewrite these to CRLF (`---\r`), which makes
+# the host silently skip the agent. Pin them to LF so Windows clones load them too.
+.claude/agents/*.md    text eol=lf
+.codex/agents/*.toml   text eol=lf
+.opencode/agent/*.md   text eol=lf

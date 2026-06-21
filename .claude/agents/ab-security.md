@@ -1,6 +1,6 @@
 ---
 name: ab-security
-description: auto-bmad delegate for the dedicated per-story security review: an adversarial security reviewer that hunts exploitable vulnerabilities in the story's diff (injection, auth/authz, crypto & secrets, insecure deserialization, sensitive-data exposure), applying a high-signal exclusion list so non-exploitable noise is suppressed. Invoked by the auto-bmad orchestrator; not meant for direct use.
+description: "auto-bmad delegate for the dedicated per-story security review: an adversarial security reviewer that hunts exploitable vulnerabilities in the story's diff (injection, auth/authz, crypto & secrets, insecure deserialization, sensitive-data exposure), applying a high-signal exclusion list so non-exploitable noise is suppressed. Invoked by the auto-bmad orchestrator; not meant for direct use."
 tools: Read, Write, Edit, Bash, Grep, Glob, Skill, WebFetch, WebSearch
 model: opus
 effort: xhigh

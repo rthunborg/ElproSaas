@@ -1,0 +1,13 @@
+# Deferred Work — Resolved
+
+## Deferred from: code review of story-1.1 (2026-06-14)
+
+- **README is the verbatim create-next-app placeholder** — instructs `npm/yarn/bun dev` (contradicts the pnpm-only AC1 / Stop Condition) and references `app/page.tsx` while the scaffold uses `src/app/page.tsx`. Owner: **Story 1.4** (local-setup / README docs), which rewrites the README wholesale. [README.md:7-19]
+  - **RESOLVED (2026-06-21, Story 1.4):** README rewritten wholesale — pnpm-only quickstart, exact `package.json` scripts in CI gate order, Node/.nvmrc + Corepack prerequisites, forthcoming local-Supabase section, env-var pointer, and the Lovable oracle one-liner. The full contract lives in the new `docs/process/local-setup.md`. No `npm/yarn/bun` and no `app/page.tsx` references remain.
+- **`globals.css` hardcodes `body { font-family: Arial, Helvetica, sans-serif }`**, overriding the Geist font that `layout.tsx` loads via `next/font/google` and that `globals.css @theme` maps to `--font-sans`. Inherited create-next-app (Tailwind v4) artifact; no functional impact today because `page.tsx` applies the `font-sans` utility. Owner: scaffold cleanup / **Story 1.3** (app shell). [src/app/globals.css:22-26]
+  - **RESOLVED (2026-06-15, Story 1.3):** removed the Arial `font-family` override from `body` in `globals.css` and applied the `font-sans` utility on `<body>` in `layout.tsx`, so Geist (loaded via `next/font/google`, mapped to `--font-sans`) now applies app-wide. The old marketing `page.tsx` that masked the bug was also replaced with a `/dashboard` redirect.
+
+## Deferred from: code review of story-1.3 (2026-06-16)
+
+- **create-next-app dark-mode leftover in `globals.css`.** The `@media (prefers-color-scheme: dark)` block plus `--background`/`--foreground` light/dark vars are inconsistent with the hardcoded-light shell (`bg-zinc-50`/`bg-white`/`text-zinc-900`). Same class of scaffold cruft as the Arial override removed in this story, but out of Story 1.3's explicit scope (only the Arial item was assigned). Owner: Story 1.4 repo hygiene or a future theming story. [src/app/globals.css:15-20, 22-25]
+  - **RESOLVED (2026-06-21, Story 1.4 repo hygiene):** removed the `@media (prefers-color-scheme: dark)` block and the `--background`/`--foreground` light/dark vars (and the unused `--color-background`/`--color-foreground`/`--font-mono` `@theme` mappings — none referenced anywhere in `src/`). `body` now hardcodes the light values directly (`#ffffff` / `#171717`), internally consistent with the hardcoded-light shell. The `--font-sans → --font-geist-sans` mapping is kept (load-bearing for Geist via the `font-sans` utility on `<body>`).

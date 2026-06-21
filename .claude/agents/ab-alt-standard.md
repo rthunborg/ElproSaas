@@ -1,6 +1,6 @@
 ---
 name: ab-alt-standard
-description: auto-bmad delegate for lighter-weight steps on a faster model: per-story risk triage and the epic retrospective. Invoked by the auto-bmad orchestrator; not meant for direct use.
+description: "auto-bmad delegate for lighter-weight steps on a faster model: per-story risk triage and the epic retrospective. Invoked by the auto-bmad orchestrator; not meant for direct use."
 tools: Read, Write, Edit, Bash, Grep, Glob, Skill, WebFetch, WebSearch
 model: sonnet
 effort: high

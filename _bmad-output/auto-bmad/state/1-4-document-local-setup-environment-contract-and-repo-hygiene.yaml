@@ -1,0 +1,56 @@
+# auto-bmad per-story state — written by scripts/state_update.py (full stable schema;
+# see references/state-and-resume.md). Prose belongs in reports/{key}.md, not here.
+story_key: 1-4-document-local-setup-environment-contract-and-repo-hygiene
+epic_num: 1
+story_num: 4
+branch: story/1-4-document-local-setup-environment-contract-and-repo-hygiene
+status: done
+updated_at: "2026-06-21T17:10:37Z"
+started_at: "2026-06-21T15:46:49Z"
+completed_at: "2026-06-21T17:10:37Z"
+active_seconds: 3846
+timing_anchor: null
+is_first_in_epic: false
+is_last_in_epic: true
+needs_project_context_bootstrap: false
+git_mode: remote
+base_branch: main
+tea_risk: low
+tea_selected: []
+tea_rationale: "Pure documentation + config hygiene (README, .env.example placeholders, Lovable oracle note) plus a repo check that .env is gitignored; no business logic, auth, schema, or endpoints."
+epic_story_count: 4
+stories_after_in_epic: 0
+completed_phases: [0, 1, 2, 3, 4, 5, 6, 7, 8]
+code_review_iterations: 2
+code_review_loop_done: true
+hitl_halt: "skipped (clean convergence)"
+external_review_iterations: 0
+convergence_unverified: false
+story_trace: null
+commits: [8ab8a40, 7e4ad7e, 84563fb, 8f47057, 7a1c934, 8cd63ce, 632f925]
+phase8_steps:
+  trace_gate: done
+  nfr: done
+  test_review: done
+  project_context: done
+  reconcile: done
+  archive: done
+  retro: done
+gate_decision: PASS
+gate_iterations: 0
+deferred_work_archived: 3
+pr_url: "https://github.com/rthunborg/ElproSaas/pull/5"
+ci_run_url: "https://github.com/rthunborg/ElproSaas/actions/runs/27911539074"
+ci_status: passed
+pr_merged: false
+merge_method: null
+merge_commit: null
+branch_deleted: false
+open_questions:
+  - "Exact Supabase env-var names in .env.example are documented with conventional names (NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY); Epic 2's chosen client lib (@supabase/ssr) may adjust them and would update .env.example then. Not a blocker."
+deferred_work:
+  - "Non-hermetic next/font/google build fetch â€” left deferred to a future CI-hardening/font story (already tracked in deferred-work.md from an earlier story; documented in README so fresh devs expect the network fetch during build)."
+blockers: []
+overrides: {}
+constraints: []
+planning_drift: "none â€” build matched the plan; the .env.example sequencing gap (architecture Â§3 listed it from day 1, but it landed only in story 1.4) was detail-level and self-corrected within epic 1; no re-sync needed."

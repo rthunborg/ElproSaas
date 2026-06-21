@@ -1,6 +1,6 @@
 ---
 name: ab-deep
-description: auto-bmad delegate for the highest-stakes, deep-reasoning steps: implementing story code (`dev-story`), building the story context file (`create-story`), primary adversarial code review, and the epic-level test design + release gates (trace/NFR/test-review). Invoked by the auto-bmad orchestrator; not meant for direct use.
+description: "auto-bmad delegate for the highest-stakes, deep-reasoning steps: implementing story code (`dev-story`), building the story context file (`create-story`), primary adversarial code review, and the epic-level test design + release gates (trace/NFR/test-review). Invoked by the auto-bmad orchestrator; not meant for direct use."
 tools: Read, Write, Edit, Bash, Grep, Glob, Skill, WebFetch, WebSearch
 model: opus
 effort: xhigh

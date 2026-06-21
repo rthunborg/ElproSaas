@@ -1,0 +1,5 @@
+## Story 1-4-document-local-setup-environment-contract-and-repo-hygiene
+- [Phase 3 â€” create-story] .env.example is in the architecture target tree (Â§3) but was never created by stories 1.1â€“1.3 despite .gitignore already whitelisting it; 1.4 is the first to land it.
+- [Phase 7 â€” code review] Hardcoding exact epic/story numbers (e.g. "Epic 8", "Story 2.2") into evergreen developer docs is a staleness risk â€” prefer referencing architecture sections, not plan positions, in committed docs.
+- [Phase 7 â€” code review] The secondary reviewer model (sonnet) repeatedly produced stale-knowledge false positives ("Next.js 16 / TS 5.9 don't exist") against the repo's genuinely-pinned toolchain; adversarial doc review can confidently mis-flag forward-dated-but-real version pins.
+- [Phase 8 â€” gates] Epic-1 gates all green: trace PASS (11/11 ACs), NFR PASS (advisory), test-review 98/100. The verify:lockfiles guard is the only bespoke verification logic in Epic 1 and is itself untested â€” highest-value first unit test to write once the Epic 2 test harness (testarch-framework) lands.
