@@ -36,12 +36,18 @@ unchanged on macOS/Linux shells.
 ## Getting started
 
 ```bash
-# Reproducible install (fails if the lockfile is stale — same as CI)
-pnpm install --frozen-lockfile
+# Install dependencies (use this day to day — also when adding/updating a dep)
+pnpm install
 
 # Start the dev server
 pnpm dev
 ```
+
+For a clean, reproducible install (a fresh clone, or to verify the lockfile is
+in sync the way CI does), use `pnpm install --frozen-lockfile` — this is exactly
+what CI runs, and it fails if the lockfile is stale. Plain `pnpm install` is the
+right default for day-to-day work because it updates the lockfile when you add or
+change a dependency; `--frozen-lockfile` would error in that case.
 
 Open [http://localhost:3000](http://localhost:3000). The app redirects to
 `/dashboard`. Edit pages under `src/app/` (e.g. `src/app/(app)/dashboard/page.tsx`)
@@ -49,13 +55,16 @@ and the page hot-reloads.
 
 ## Scripts and quality gates
 
-These are the **only** scripts defined in [`package.json`](package.json). They are
-listed in the same order CI runs them, so local checks and CI never drift
-(architecture §19; see [`docs/quality/ci.md`](docs/quality/ci.md)):
+These are the commands CI runs, in order, so local checks and CI never drift
+(architecture §19; see [`docs/quality/ci.md`](docs/quality/ci.md)). The first row
+is a pnpm CLI command (the reproducible install variant — see "Getting started"
+above); the rest are the **only** scripts defined in
+[`package.json`](package.json) (`verify:lockfiles`, `typecheck`, `lint`, `test`,
+`build`, plus `dev`/`start`):
 
 | Step | Command | What it does |
 | --- | --- | --- |
-| Install | `pnpm install --frozen-lockfile` | Reproducible install; fails on a stale lockfile. |
+| Install | `pnpm install --frozen-lockfile` | pnpm CLI command (not a `package.json` script). Reproducible install; fails on a stale lockfile. Day to day, use plain `pnpm install`. |
 | Lockfile guard | `pnpm run verify:lockfiles` | Enforces pnpm-only; rejects stray/empty lockfiles. |
 | Typecheck | `pnpm typecheck` | `tsc --noEmit`. |
 | Lint | `pnpm lint` | `eslint`. |
@@ -86,7 +95,13 @@ Copy [`.env.example`](.env.example) to `.env.local` (or `.env`) and fill it from
 **your own** dev Supabase project:
 
 ```bash
+# macOS / Linux (bash, zsh)
 cp .env.example .env.local
+```
+
+```powershell
+# Windows (PowerShell — the dev host of record)
+Copy-Item .env.example .env.local
 ```
 
 `.env` / `.env.*` are gitignored (only `.env.example` is committed). The

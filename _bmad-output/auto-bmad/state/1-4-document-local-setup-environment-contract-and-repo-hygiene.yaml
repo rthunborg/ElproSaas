@@ -5,11 +5,11 @@ epic_num: 1
 story_num: 4
 branch: story/1-4-document-local-setup-environment-contract-and-repo-hygiene
 status: in-progress
-updated_at: "2026-06-21T16:17:40Z"
+updated_at: "2026-06-21T16:41:53Z"
 started_at: "2026-06-21T15:46:49Z"
 completed_at: null
-active_seconds: 942
-timing_anchor: 1782057965
+active_seconds: 2395
+timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: true
 needs_project_context_bootstrap: false
@@ -20,14 +20,14 @@ tea_selected: []
 tea_rationale: "Pure documentation + config hygiene (README, .env.example placeholders, Lovable oracle note) plus a repo check that .env is gitignored; no business logic, auth, schema, or endpoints."
 epic_story_count: 4
 stories_after_in_epic: 0
-completed_phases: [0, 1, 2, 3, 4, 5, 6]
-code_review_iterations: 1
-code_review_loop_done: false
-hitl_halt: null
+completed_phases: [0, 1, 2, 3, 4, 5, 6, 7]
+code_review_iterations: 2
+code_review_loop_done: true
+hitl_halt: "skipped (clean convergence)"
 external_review_iterations: 0
 convergence_unverified: false
 story_trace: null
-commits: [8ab8a40, 7e4ad7e, 84563fb]
+commits: [8ab8a40, 7e4ad7e, 84563fb, 8f47057]
 phase8_steps:
   trace_gate: null
   nfr: null

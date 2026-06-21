@@ -23,17 +23,23 @@ Corepack ships with Node, derives the pnpm version from `packageManager`, and
 keeps everyone on the pinned version. Installing pnpm globally is discouraged
 because it drifts from the pin and can produce a different lockfile.
 
-The dev host of record is **Windows 11 + PowerShell**. The commands here are
-shell-agnostic and run unchanged on macOS/Linux.
+The dev host of record is **Windows 11 + PowerShell**. The pnpm commands here run
+unchanged across PowerShell, bash, and zsh; where a step uses a native shell
+command (e.g. copying a file), both the PowerShell and the macOS/Linux form are
+given.
 
 ## Scripts and the gate sequence
 
-These are the only scripts in [`package.json`](../../package.json), listed in the
-order CI runs them so local checks and CI never drift (architecture §19). The
-canonical gate definitions live in [`docs/quality/ci.md`](../quality/ci.md) — this
-table mirrors the command order only.
+These are the commands CI runs, in order, so local checks and CI never drift
+(architecture §19). The canonical gate definitions live in
+[`docs/quality/ci.md`](../quality/ci.md) — this list mirrors the command order
+only. Note the first entry is a pnpm CLI command, not a `package.json` script;
+the actual scripts in [`package.json`](../../package.json) are `verify:lockfiles`,
+`typecheck`, `lint`, `test`, `build` (plus `dev`/`start`).
 
-1. `pnpm install --frozen-lockfile` — reproducible install; fails on a stale lockfile.
+1. `pnpm install --frozen-lockfile` — reproducible install; fails on a stale
+   lockfile. This is the CI / fresh-clone variant. For day-to-day work (including
+   adding or updating a dependency), use plain `pnpm install`.
 2. `pnpm run verify:lockfiles` — enforces pnpm-only; rejects stray/empty lockfiles.
 3. `pnpm typecheck` — `tsc --noEmit`.
 4. `pnpm lint` — `eslint`.
@@ -54,7 +60,13 @@ Copy [`.env.example`](../../.env.example) to `.env.local` (Next.js loads it
 automatically) or `.env`, then fill each value from **your own** dev Supabase
 project:
 
+```powershell
+# Windows (PowerShell — the dev host of record)
+Copy-Item .env.example .env.local
+```
+
 ```bash
+# macOS / Linux (bash, zsh)
 cp .env.example .env.local
 ```
 
