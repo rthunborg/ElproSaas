@@ -1,0 +1,3 @@
+## Story 2-1-tenant-admin-login-and-tenant-context-resolution
+- [Phase 2 - epic test design] Test infra (real pnpm test runner, local Supabase stack, two-tenant factories) does not exist yet and lands INSIDE epic 2; Story 2.4 security harness is hard-blocked on it (risk R-007) - needs an explicit owner before 2.4 or the harness ships hollow.
+- [Phase 2 - epic test design] RLS table-inventory gate (architecture H4, Story 2.4) is the single standing regression mechanism protecting every later tenant-owned table (epics 3-9); treat its absence/weakness as an epic release blocker, not a story-level nicety.
