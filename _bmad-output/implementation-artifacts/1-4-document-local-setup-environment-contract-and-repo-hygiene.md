@@ -176,6 +176,15 @@ Secret/scope checks:
 - `.env.example` (new)
 - `docs/process/local-setup.md` (new)
 - `src/app/globals.css` (modified — removed dark-mode scaffold cruft + unused theme vars)
+- `src/app/layout.tsx` (modified — review fix: dropped the unused `Geist_Mono` import / `geistMono` / `--font-geist-mono` wiring so no unreachable mono font is fetched)
 - `_bmad-output/implementation-artifacts/deferred-work.md` (modified — README + globals.css items marked resolved, dated)
 - `_bmad-output/implementation-artifacts/sprint-status.yaml` (modified — story 1.4 → review)
 - `_bmad-output/implementation-artifacts/1-4-document-local-setup-environment-contract-and-repo-hygiene.md` (modified — tasks checked, Dev Agent Record, status)
+
+### Review Findings
+
+Triage of the round-1 code review (2 primary reviewer models × 3 lenses + auto-bmad-local security). Heavy overlap across reviewers was deduplicated; intentional/approved-scope items (the Task 4.1 dark-mode removal, the documented `pnpm test` placeholder, the deferred non-hermetic font fetch) and stale-knowledge false positives (e.g. "Next.js 16 / TS 5.9 don't exist" — they are the pinned versions from Story 1.1) were dismissed. Security review found no exploitable vulnerabilities.
+
+**Round-1 resolution (2026-06-21, Story 1.4):** Took the repo-hygiene direction — dropped the unused `Geist_Mono` import and its `geistMono` / `--font-geist-mono` wiring from `src/app/layout.tsx` so the unreachable mono font is no longer fetched over the network. Verified `Geist_Mono` / `font-mono` / `--font-geist-mono` were referenced nowhere except `layout.tsx` itself (grep of `src/`), so removal — not re-adding the `--font-mono` `@theme` mapping — is correct and keeps the cleanup's intent. `--font-sans → --font-geist-sans` (Geist sans) left intact. Active gates re-run green: `verify:lockfiles`, `pnpm typecheck`, `pnpm lint`, `pnpm build` (11 routes prerendered, no font-fetch error).
+
+- [x] [Review][Patch][High] `--font-mono` `@theme` mapping removed while `layout.tsx` still loads `Geist_Mono` — the `@theme inline` block dropped `--font-mono: var(--font-geist-mono)`, but `src/app/layout.tsx` still imports `Geist_Mono`, sets `variable: "--font-geist-mono"`, and injects `geistMono.variable` onto `<html>`. The mono font is therefore fetched over the network but is no longer reachable via Tailwind's `font-mono` utility (any future `font-mono` use silently falls back to the system mono stack). Pre-existing scaffold residue that this cleanup exposed; build is green and there is no current functional regression, but the asymmetry is a real defect. Unambiguous fix: either drop the unused `Geist_Mono` import from `layout.tsx`, OR re-add `--font-mono: var(--font-geist-mono)` to the `@theme inline` block (mirroring the kept `--font-sans` mapping). [src/app/globals.css:hunk @theme inline; src/app/layout.tsx:10-13,28] (merged: blind@primary+auditor@primary+blind@secondary+edge@secondary+auditor@secondary)
