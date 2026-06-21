@@ -1,3 +1,5 @@
 ## Story 2-1-tenant-admin-login-and-tenant-context-resolution
 - [Phase 2 - epic test design] Test infra (real pnpm test runner, local Supabase stack, two-tenant factories) does not exist yet and lands INSIDE epic 2; Story 2.4 security harness is hard-blocked on it (risk R-007) - needs an explicit owner before 2.4 or the harness ships hollow.
 - [Phase 2 - epic test design] RLS table-inventory gate (architecture H4, Story 2.4) is the single standing regression mechanism protecting every later tenant-owned table (epics 3-9); treat its absence/weakness as an epic release blocker, not a story-level nicety.
+- [Phase 3 - create-story] Story 2.1 is the auth/UI/server-action layer only; its authoritative integration/RLS tests are hard-gated on Story 2.2's local Supabase stack + two-tenant factories - keep that dependency visible so 2.1 isn't falsely judged 'untested' at its own gate.
+- [Phase 3 - create-story] Story 2.1 Task 1 adds @supabase/ssr + @supabase/supabase-js (gated dependency install) and owns the first service-role client-path lint/CI guard for epic 2.

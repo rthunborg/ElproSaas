@@ -5,10 +5,10 @@ epic_num: 2
 story_num: 1
 branch: story/2-1-tenant-admin-login-and-tenant-context-resolution
 status: in-progress
-updated_at: "2026-06-21T18:45:55Z"
+updated_at: "2026-06-21T18:54:30Z"
 started_at: "2026-06-21T18:37:29Z"
 completed_at: null
-active_seconds: 460
+active_seconds: 912
 timing_anchor: null
 is_first_in_epic: true
 is_last_in_epic: false
@@ -20,14 +20,14 @@ tea_selected: [atdd, automate]
 tea_rationale: "Story implements Supabase Auth sign-in, server-side tenant context resolution from active tenant_memberships (not client-supplied), and authorization gating (deny without active membership, reject anonymous) - High-tier auth/session/permissions signals."
 epic_story_count: 4
 stories_after_in_epic: 3
-completed_phases: [0, 1, 2]
+completed_phases: [0, 1, 2, 3]
 code_review_iterations: 0
 code_review_loop_done: false
 hitl_halt: null
 external_review_iterations: 0
 convergence_unverified: false
 story_trace: null
-commits: [0c78a51]
+commits: [0c78a51, ff55fe8]
 phase8_steps:
   trace_gate: null
   nfr: null
