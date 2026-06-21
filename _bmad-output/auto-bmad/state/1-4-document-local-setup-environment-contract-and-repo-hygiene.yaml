@@ -5,10 +5,10 @@ epic_num: 1
 story_num: 4
 branch: story/1-4-document-local-setup-environment-contract-and-repo-hygiene
 status: in-progress
-updated_at: "2026-06-21T16:41:53Z"
+updated_at: "2026-06-21T17:04:23Z"
 started_at: "2026-06-21T15:46:49Z"
 completed_at: null
-active_seconds: 2395
+active_seconds: 3721
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: true
@@ -20,25 +20,25 @@ tea_selected: []
 tea_rationale: "Pure documentation + config hygiene (README, .env.example placeholders, Lovable oracle note) plus a repo check that .env is gitignored; no business logic, auth, schema, or endpoints."
 epic_story_count: 4
 stories_after_in_epic: 0
-completed_phases: [0, 1, 2, 3, 4, 5, 6, 7]
+completed_phases: [0, 1, 2, 3, 4, 5, 6, 7, 8]
 code_review_iterations: 2
 code_review_loop_done: true
 hitl_halt: "skipped (clean convergence)"
 external_review_iterations: 0
 convergence_unverified: false
 story_trace: null
-commits: [8ab8a40, 7e4ad7e, 84563fb, 8f47057]
+commits: [8ab8a40, 7e4ad7e, 84563fb, 8f47057, 7a1c934]
 phase8_steps:
-  trace_gate: null
-  nfr: null
-  test_review: null
-  project_context: null
-  reconcile: null
-  archive: null
-  retro: null
-gate_decision: null
+  trace_gate: done
+  nfr: done
+  test_review: done
+  project_context: done
+  reconcile: done
+  archive: done
+  retro: done
+gate_decision: PASS
 gate_iterations: 0
-deferred_work_archived: 0
+deferred_work_archived: 3
 pr_url: null
 ci_run_url: null
 ci_status: unknown
@@ -53,3 +53,4 @@ deferred_work:
 blockers: []
 overrides: {}
 constraints: []
+planning_drift: "none â€” build matched the plan; the .env.example sequencing gap (architecture Â§3 listed it from day 1, but it landed only in story 1.4) was detail-level and self-corrected within epic 1; no re-sync needed."
