@@ -5,10 +5,10 @@ epic_num: 2
 story_num: 1
 branch: story/2-1-tenant-admin-login-and-tenant-context-resolution
 status: in-progress
-updated_at: "2026-06-21T18:54:30Z"
+updated_at: "2026-06-21T19:01:31Z"
 started_at: "2026-06-21T18:37:29Z"
 completed_at: null
-active_seconds: 912
+active_seconds: 1305
 timing_anchor: null
 is_first_in_epic: true
 is_last_in_epic: false
@@ -20,14 +20,14 @@ tea_selected: [atdd, automate]
 tea_rationale: "Story implements Supabase Auth sign-in, server-side tenant context resolution from active tenant_memberships (not client-supplied), and authorization gating (deny without active membership, reject anonymous) - High-tier auth/session/permissions signals."
 epic_story_count: 4
 stories_after_in_epic: 3
-completed_phases: [0, 1, 2, 3]
+completed_phases: [0, 1, 2, 3, 4]
 code_review_iterations: 0
 code_review_loop_done: false
 hitl_halt: null
 external_review_iterations: 0
 convergence_unverified: false
 story_trace: null
-commits: [0c78a51, ff55fe8]
+commits: [0c78a51, ff55fe8, 35b8c56]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -46,7 +46,8 @@ pr_merged: false
 merge_method: null
 merge_commit: null
 branch_deleted: false
-open_questions: []
+open_questions:
+  - "Test runner (Vitest assumed per epic test-design) and E2E tool (Playwright) are not yet decided; ATDD scaffolds were written against those likely choices and must be confirmed/ported when the deferred testarch-framework step runs. Not a blocker."
 deferred_work: []
 blockers: []
 overrides: {}
