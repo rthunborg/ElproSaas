@@ -4,10 +4,10 @@ story_key: 2-1-tenant-admin-login-and-tenant-context-resolution
 epic_num: 2
 story_num: 1
 branch: story/2-1-tenant-admin-login-and-tenant-context-resolution
-status: in-progress
-updated_at: "2026-06-22T13:24:29Z"
+status: done
+updated_at: "2026-06-22T13:29:07Z"
 started_at: "2026-06-21T18:37:29Z"
-completed_at: null
+completed_at: "2026-06-22T13:29:07Z"
 active_seconds: 10846
 timing_anchor: null
 is_first_in_epic: true
@@ -27,7 +27,7 @@ hitl_halt: "skipped (clean convergence)"
 external_review_iterations: 0
 convergence_unverified: false
 story_trace: null
-commits: [0c78a51, ff55fe8, 35b8c56, ecbe77d, b404344, 66d03c4, 3b3696f, b068aa6]
+commits: [0c78a51, ff55fe8, 35b8c56, ecbe77d, b404344, 66d03c4, 3b3696f, b068aa6, 269a282]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -39,9 +39,9 @@ phase8_steps:
 gate_decision: null
 gate_iterations: 0
 deferred_work_archived: 0
-pr_url: null
-ci_run_url: null
-ci_status: unknown
+pr_url: "https://github.com/rthunborg/ElproSaas/pull/6"
+ci_run_url: "https://github.com/rthunborg/ElproSaas/actions/runs/27956224416"
+ci_status: passed
 pr_merged: false
 merge_method: null
 merge_commit: null
