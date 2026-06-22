@@ -19,6 +19,20 @@ import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { navItems } from "./nav-items";
 import { NavIcon } from "./NavIcon";
+import { SignOutButton } from "./SignOutButton";
+
+/**
+ * Server-resolved tenant/user context passed DOWN from the `(app)` server layout
+ * (Story 2.1, Task 4). These are PRESENTATIONAL display values only — the authority
+ * stays server-side (`resolveTenantContext`). The shell never re-resolves or trusts
+ * client state for authorization.
+ */
+export type AppShellContext = {
+  /** Active tenant/company display name, or null when unavailable. */
+  readonly tenantName: string | null;
+  /** Current user's email (display only), or null when unavailable. */
+  readonly userEmail: string | null;
+};
 
 function isActive(pathname: string | null, href: string): boolean {
   if (!pathname) return false;
@@ -85,7 +99,18 @@ function NavLinks({
   );
 }
 
-export function AppShell({ children }: { children: React.ReactNode }) {
+export function AppShell({
+  children,
+  context,
+}: {
+  children: React.ReactNode;
+  /**
+   * Server-resolved tenant/user context (Task 4). Optional so the shell still renders if
+   * a caller omits it, but the `(app)` layout always supplies it after a successful
+   * `resolveTenantContext`.
+   */
+  context?: AppShellContext;
+}) {
   const pathname = usePathname();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [skipFocused, setSkipFocused] = useState(false);
@@ -233,9 +258,34 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <p className="truncate text-base font-semibold text-zinc-900">{pageTitle}</p>
             </div>
 
-            {/* Primary-action slot — intentionally EMPTY in Story 1.3. The owning module's
-                story fills this; do not fabricate actions here (shell scope only). */}
-            <div data-slot="primary-action" className="flex items-center gap-2" />
+            {/* Tenant/user region (Story 2.1, Task 4 — resolves the deferred top-bar item).
+                Filled from the SERVER-resolved context (presentational only; authority is
+                server-side). Stable `data-testid` anchors back the gated E2E acceptance
+                (login-and-tenant-context.e2e.spec.ts). The `data-slot="primary-action"`
+                attribute is preserved as the owning-module action mount point. */}
+            <div data-slot="primary-action" className="flex items-center gap-3">
+              {context && (context.tenantName || context.userEmail) && (
+                <div className="hidden min-w-0 flex-col items-end leading-tight sm:flex">
+                  {context.tenantName && (
+                    <span
+                      data-testid="tenant-context"
+                      className="max-w-[16rem] truncate text-sm font-medium text-zinc-900"
+                    >
+                      {context.tenantName}
+                    </span>
+                  )}
+                  {context.userEmail && (
+                    <span
+                      data-testid="current-user"
+                      className="max-w-[16rem] truncate text-xs text-zinc-600"
+                    >
+                      {context.userEmail}
+                    </span>
+                  )}
+                </div>
+              )}
+              {context && <SignOutButton />}
+            </div>
           </header>
 
           <main

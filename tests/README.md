@@ -1,31 +1,36 @@
 # Tests
 
-This directory holds the first acceptance-test scaffolds for the project. They were
-authored ATDD-style (red phase) during **Story 2.1 — Tenant Admin Login And Tenant
-Context Resolution** and pin Story 2.1's acceptance criteria *before* implementation.
+This directory holds the first acceptance tests for the project. They were authored
+ATDD-style (red phase) during **Story 2.1 — Tenant Admin Login And Tenant Context
+Resolution** and pin Story 2.1's acceptance criteria.
 
-## Important: there is no test runner yet
+## Runner: dependency-free `node --test` for unit suites; INT/E2E gated on Story 2.2
 
-`pnpm test` is still the documented placeholder (`package.json`). The real test runner
-is chosen and wired by the TEA `testarch-framework` step (lands in **Epic 2** — Story 2.2
-or a dedicated pre-2.4 task), **not** by these scaffolds. Vitest is the documented
-likely choice (`test-design-epic-2.md` → Resource Estimates / Prerequisites). Browser
-E2E uses Playwright, which is **not configured yet** either.
+`pnpm test` now runs the platform unit suites via **`node --test`** with
+`--experimental-strip-types` (Node's built-in test runner + native TS type-stripping —
+**no test-framework dependency added**, consistent with the project's bare-Node
+`scripts/verify/*.mjs` pattern). The `@/*` alias and extensionless TS imports are resolved
+by `tests/support/alias-hook.mjs` (registered via `tests/support/register.mjs`). Only
+`tests/unit/**/*.test.ts` is collected.
 
-These files are therefore **specs to run, not yet runnable**. They are written against a
-Vitest-style global API (`describe`/`it`/`expect`) and Playwright-style `page` calls.
-When the framework decision lands, the assertions are the contract to satisfy; the
-harness call shape adapts to whatever runner is selected. **Do not add a test framework
-or dependency as a side effect of touching these files** — that is a separate, gated step.
+The **authoritative DB-backed INT tests and the browser E2E** are **GATED on Story 2.2's
+local Supabase stack + two-tenant factories** (and, for E2E, a browser runner such as
+Playwright). Those scaffolds (`tests/integration/**`, `tests/e2e/**`) are written against
+a `describe`/`it`/`page` API and are **excluded from `tsconfig`** until that runner +
+types land — they are the red-phase spec carried forward (Story 2.1 Task 6.2 hand-off).
+**Do not add a heavier test framework or a browser runner as a side effect of touching
+these files** — that is a separate, gated step owned by the TEA `testarch-framework`
+decision / Story 2.2.
 
 ## Layout
 
 | Path | Level | Status | Runs when |
 | --- | --- | --- | --- |
-| `unit/server/auth/resolve-tenant-context.test.ts` | Unit (pure logic, mocked Supabase) | RED scaffold | As soon as the runner lands + Story 2.1 resolver is implemented |
-| `unit/scripts/verify/service-role-containment.test.ts` | Unit (R-002 guard proof) | RED scaffold | After Story 2.1 Task 5 guard is implemented |
-| `integration/server/auth/resolve-tenant-context.int.test.ts` | Integration (DB-backed) | **GATED on Story 2.2** | Story 2.2 local Supabase stack + two-tenant factories |
-| `e2e/auth/login-and-tenant-context.e2e.spec.ts` | E2E (browser) | **GATED on framework + Story 2.2** | Playwright configured + 2.2 seeded users |
+| `unit/resolve-tenant-context-core.test.ts` | Unit (pure decision core, no I/O) | **GREEN — runs in `pnpm test`** | Now (`node --test`) |
+| `unit/server/auth/resolve-tenant-context.test.ts` | Unit (resolver, faked Supabase client injected) | **GREEN — runs in `pnpm test`** | Now (`node --test`) |
+| `unit/scripts/verify/service-role-containment.test.ts` | Unit (R-002 guard bite proof) | **GREEN — runs in `pnpm test`** | Now (`node --test`) |
+| `integration/server/auth/resolve-tenant-context.int.test.ts` | Integration (DB-backed) | **GATED on Story 2.2** (`.skip`, excluded from tsconfig) | Story 2.2 local Supabase stack + two-tenant factories |
+| `e2e/auth/login-and-tenant-context.e2e.spec.ts` | E2E (browser) | **GATED on framework + Story 2.2** (`.skip`, excluded from tsconfig) | Playwright configured + 2.2 seeded users |
 
 ## Red-phase convention
 

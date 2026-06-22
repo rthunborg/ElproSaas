@@ -12,10 +12,13 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "test": "node -e \"console.log('No unit test suite yet. The test harness is initialized by the first product story that needs it (TEA testarch-framework; first real suites land in Epic 2 / money-tax units in Epic 4). This placeholder keeps the CI unit-test gate wired. See docs/quality/ci.md.')\"",
-    "verify:lockfiles": "node scripts/verify/check-lockfiles.mjs"
+    "test": "node --experimental-strip-types --import ./tests/support/register.mjs --test \"tests/unit/**/*.test.ts\"",
+    "verify:lockfiles": "node scripts/verify/check-lockfiles.mjs",
+    "verify:service-role-containment": "node scripts/verify/check-service-role-containment.mjs"
   },
   "dependencies": {
+    "@supabase/ssr": "0.12.0",
+    "@supabase/supabase-js": "2.108.2",
     "next": "16.2.9",
     "react": "19.2.4",
     "react-dom": "19.2.4"

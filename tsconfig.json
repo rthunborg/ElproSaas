@@ -31,5 +31,9 @@
     "**/*.mts",
     "scripts/**/*.mjs"
   ],
-  "exclude": ["node_modules"]
+  "exclude": [
+    "node_modules",
+    "tests/integration/**",
+    "tests/e2e/**"
+  ]
 }
