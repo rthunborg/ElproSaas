@@ -10,8 +10,10 @@
  *   (b) Load the user's `tenant_admin` membership from `tenant_memberships`.
  *   (c) Delegate the active/role/spoof decision to the pure core.
  *
- * Tenant authority is membership-derived; a client-supplied `tenant_id` is ignored or
- * (when supplied and mismatched) denied — never trusted as the authority (AC4 / R-004).
+ * Tenant authority is membership-derived; a client-supplied `tenant_id` is IGNORED — never
+ * trusted as the authority. It is read from `membership.tenant_id` regardless of any client
+ * value (matching, mismatched, or absent), so a stale/spoofed id can never widen access nor
+ * deny a rightful admin (AC4 / R-004).
  *
  * NOTE (test-infra sequencing): `tenant_memberships` and its RLS land in Story 2.2's
  * local Supabase stack. This code reads that documented shape; the authoritative
@@ -40,8 +42,10 @@ type SupabaseAuthClient = Awaited<
 export type ResolveTenantContextOptions = {
   /**
    * Optional client-supplied tenant id (e.g. from a request param/header). It is NOT the
-   * authority — passing it only lets the resolver DENY a mismatch (AC4 / R-004). Omit it
-   * for the normal "resolve my tenant" path.
+   * authority and has NO effect on the resolved tenant: it is IGNORED entirely (the tenant
+   * always comes from the membership row). The parameter is retained only so callers may
+   * detect/log a spoof attempt out-of-band — passing a mismatched value never denies, never
+   * widens access (AC4 / R-004). Omit it for the normal "resolve my tenant" path.
    */
   readonly clientTenantId?: string | null;
   /**

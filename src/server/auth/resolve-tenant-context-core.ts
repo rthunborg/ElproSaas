@@ -61,8 +61,10 @@ export type ResolveTenantContextCoreInput = {
   /** Null when no active `tenant_admin` membership row was found for the user. */
   readonly membership: MembershipRow | null;
   /**
-   * Optional client-supplied tenant id (query/body/header/cookie). NEVER the authority.
-   * Only used to deny a mismatch; can never widen access (AC4 / R-004).
+   * Optional client-supplied tenant id (query/body/header/cookie). NEVER the authority and
+   * NEVER an input to the decision: it is IGNORED (the tenant is always
+   * `membership.tenant_id`). Retained only so callers may detect/log a spoof attempt
+   * out-of-band — it can never widen access nor deny a rightful admin (AC4 / R-004).
    */
   readonly clientTenantId?: string | null;
 };

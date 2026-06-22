@@ -8,7 +8,7 @@
  *     NEVER leaks the resolved/spoofed tenant id, the user id, the email, or which case it
  *     was (UX §11 "no cross-tenant leakage"; architecture §5 stable codes + user-safe msgs);
  *   - `clientTenantId` boundary forms (whitespace-only, the membership's own id) that the
- *     "mismatch only ever denies" rule must classify correctly (AC4 / R-004);
+ *     "client value is always ignored" rule must classify correctly (AC4 / R-004);
  *   - presentational fields (`userEmail`, `tenantName`) passing through verbatim / defaulting
  *     without ever influencing the authority decision.
  *

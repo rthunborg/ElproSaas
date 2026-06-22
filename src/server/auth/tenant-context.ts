@@ -3,8 +3,9 @@
  *
  * The tenant context is the load-bearing authority of Epic 2: it is derived from the
  * authenticated user's ACTIVE `tenant_admin` membership, never from client input
- * (query/body/header/cookie). A client-supplied `tenant_id` is ignored or verified
- * against this resolved value; a mismatch never widens access (test-design R-004).
+ * (query/body/header/cookie). A client-supplied `tenant_id` is IGNORED — the resolved
+ * tenant always comes from the membership row, so a mismatch never widens access (and never
+ * denies a rightful admin) (test-design R-004).
  */
 
 /** Phase A is `tenant_admin` only (architecture §6, §8). */
