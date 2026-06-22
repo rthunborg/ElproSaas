@@ -1,0 +1,56 @@
+# auto-bmad per-story state — written by scripts/state_update.py (full stable schema;
+# see references/state-and-resume.md). Prose belongs in reports/{key}.md, not here.
+story_key: 2-1-tenant-admin-login-and-tenant-context-resolution
+epic_num: 2
+story_num: 1
+branch: story/2-1-tenant-admin-login-and-tenant-context-resolution
+status: done
+updated_at: "2026-06-22T13:29:07Z"
+started_at: "2026-06-21T18:37:29Z"
+completed_at: "2026-06-22T13:29:07Z"
+active_seconds: 10846
+timing_anchor: null
+is_first_in_epic: true
+is_last_in_epic: false
+needs_project_context_bootstrap: false
+git_mode: remote
+base_branch: main
+tea_risk: high
+tea_selected: [atdd, automate]
+tea_rationale: "Story implements Supabase Auth sign-in, server-side tenant context resolution from active tenant_memberships (not client-supplied), and authorization gating (deny without active membership, reject anonymous) - High-tier auth/session/permissions signals."
+epic_story_count: 4
+stories_after_in_epic: 3
+completed_phases: [0, 1, 2, 3, 4, 5, 6, 7, 8]
+code_review_iterations: 2
+code_review_loop_done: true
+hitl_halt: "skipped (clean convergence)"
+external_review_iterations: 0
+convergence_unverified: false
+story_trace: null
+commits: [0c78a51, ff55fe8, 35b8c56, ecbe77d, b404344, 66d03c4, 3b3696f, b068aa6, 269a282]
+phase8_steps:
+  trace_gate: null
+  nfr: null
+  test_review: null
+  project_context: null
+  reconcile: null
+  archive: null
+  retro: null
+gate_decision: null
+gate_iterations: 0
+deferred_work_archived: 0
+pr_url: "https://github.com/rthunborg/ElproSaas/pull/6"
+ci_run_url: "https://github.com/rthunborg/ElproSaas/actions/runs/27956224416"
+ci_status: passed
+pr_merged: false
+merge_method: null
+merge_commit: null
+branch_deleted: false
+open_questions:
+  - "Test runner (Vitest assumed per epic test-design) and E2E tool (Playwright) are not yet decided; ATDD scaffolds were written against those likely choices and must be confirmed/ported when the deferred testarch-framework step runs. Not a blocker."
+deferred_work:
+  - "Story 2.2 must re-enroll the gated INT/E2E test scaffolds (tests/integration/**, tests/e2e/**) into typecheck when it installs the runner + types (currently tsconfig-excluded)."
+  - "Reconcile the dependency-free `node --test` runner introduced here with the eventual TEA testarch-framework (Vitest) decision owed in Epic 2."
+blockers: []
+overrides: {}
+constraints: []
