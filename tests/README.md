@@ -27,7 +27,12 @@ decision / Story 2.2.
 | Path | Level | Status | Runs when |
 | --- | --- | --- | --- |
 | `unit/resolve-tenant-context-core.test.ts` | Unit (pure decision core, no I/O) | **GREEN — runs in `pnpm test`** | Now (`node --test`) |
+| `unit/server/auth/resolve-tenant-context-core-edges.test.ts` | Unit (core edge cases: user-safe message contract / no-leakage, clientTenantId boundaries, presentational pass-through) | **GREEN — runs in `pnpm test`** | Now (`node --test`) |
 | `unit/server/auth/resolve-tenant-context.test.ts` | Unit (resolver, faked Supabase client injected) | **GREEN — runs in `pnpm test`** | Now (`node --test`) |
+| `unit/server/auth/resolve-tenant-context-claims.test.ts` | Unit (resolver `getClaims()` extraction branches: malformed/partial claims, unauthenticated DB short-circuit) | **GREEN — runs in `pnpm test`** | Now (`node --test`) |
+| `unit/server/auth/resolve-tenant-context-tenant-name.test.ts` | Unit (`tenants(name)` normalization: object/array/malformed/absent → presentational `tenantName`) | **GREEN — runs in `pnpm test`** | Now (`node --test`) |
+| `unit/server/db/supabase-env.test.ts` | Unit (`getSupabasePublicEnv` contract: required-var throws name-only, no secret-value leak, no service-role dependency) | **GREEN — runs in `pnpm test`** | Now (`node --test`) |
+| `unit/lib/result/result.test.ts` | Unit (`Result` `ok`/`err` helpers: discriminant + no `data` on failure) | **GREEN — runs in `pnpm test`** | Now (`node --test`) |
 | `unit/scripts/verify/service-role-containment.test.ts` | Unit (R-002 guard bite proof) | **GREEN — runs in `pnpm test`** | Now (`node --test`) |
 | `integration/server/auth/resolve-tenant-context.int.test.ts` | Integration (DB-backed) | **GATED on Story 2.2** (`.skip`, excluded from tsconfig) | Story 2.2 local Supabase stack + two-tenant factories |
 | `e2e/auth/login-and-tenant-context.e2e.spec.ts` | E2E (browser) | **GATED on framework + Story 2.2** (`.skip`, excluded from tsconfig) | Playwright configured + 2.2 seeded users |
