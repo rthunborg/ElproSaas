@@ -14,7 +14,7 @@
  *   - status invited/disabled         -> TENANT_MEMBERSHIP_REQUIRED   (AC2 / R-004, distinct case)
  *   - role not tenant_admin           -> TENANT_MEMBERSHIP_REQUIRED   (AC2 / R-005-adjacent)
  *   - active tenant_admin             -> Ok(context), membership-derived tenant (AC1 / R-004)
- *   - client tenant_id mismatch       -> denied; never widens access  (AC4 / R-004)
+ *   - client tenant_id mismatch       -> IGNORED; resolves membership tenant (AC4 / R-004)
  *   - client tenant_id match/absent   -> ignored; resolution unchanged (AC4 / R-004)
  */
 import { test } from "node:test";
@@ -72,14 +72,12 @@ test("AC2: disabled membership -> TENANT_MEMBERSHIP_REQUIRED (distinct no-access
   if (!result.ok) assert.equal(result.code, "TENANT_MEMBERSHIP_REQUIRED");
 });
 
-test("AC2: unknown status value -> TENANT_MEMBERSHIP_REQUIRED (only 'active' grants access)", () => {
-  const result = resolveTenantContextCore({
-    user: USER,
-    membership: { ...ACTIVE_ADMIN, status: "suspended" },
-  });
-  assert.equal(result.ok, false);
-  if (!result.ok) assert.equal(result.code, "TENANT_MEMBERSHIP_REQUIRED");
-});
+// NOTE: `MembershipRow.status` is now the narrowed `MembershipStatus` union — the core can
+// no longer be handed an arbitrary string like "suspended" (it would not type-check). An
+// UNKNOWN raw DB status is coerced to a denying value at the DB edge
+// (`normalizeMembershipStatus` in resolve-tenant-context.ts) and is asserted in the
+// resolver test ("unknown DB status -> denied"). Here we cover the two non-active union
+// members (invited/disabled above), which is the full set the pure core can ever see.
 
 test("AC2: non-tenant_admin role is rejected even when active", () => {
   const result = resolveTenantContextCore({
@@ -134,22 +132,30 @@ test("AC4: empty-string client tenant_id is treated as absent (ignored)", () => 
   if (result.ok) assert.equal(result.data.tenantId, "tenant-A");
 });
 
-test("AC4: mismatched/spoofed client tenant_id is DENIED — never widens access", () => {
+test("AC4: mismatched/spoofed client tenant_id is IGNORED — resolves the membership tenant, never denied", () => {
+  // A stale/spoofed client value must never lock a rightful admin out of their own tenant.
+  // The resolver ignores it and resolves from the server-side membership row (AC4 "ignored").
   const result = resolveTenantContextCore({
     user: USER,
     membership: ACTIVE_ADMIN,
     clientTenantId: "tenant-B",
   });
-  assert.equal(result.ok, false);
-  if (!result.ok) assert.equal(result.code, "TENANT_MEMBERSHIP_REQUIRED");
+  assert.equal(result.ok, true);
+  if (result.ok) assert.equal(result.data.tenantId, "tenant-A");
 });
 
 test("AC4: a spoofed client tenant_id can never select a different tenant", () => {
-  // Even if the client claims tenant-B, the resolver must NOT return tenant-B; it denies.
+  // Even if the client claims tenant-B, the resolved tenant MUST be the membership tenant
+  // (tenant-A), never the client-supplied tenant-B — the client value can never widen or
+  // redirect access.
   const result = resolveTenantContextCore({
     user: USER,
     membership: ACTIVE_ADMIN,
     clientTenantId: "tenant-B",
   });
-  assert.equal(result.ok, false, "spoofed tenant id must not produce an Ok context");
+  assert.equal(result.ok, true, "spoofed tenant id must not deny a rightful admin");
+  if (result.ok) {
+    assert.equal(result.data.tenantId, "tenant-A");
+    assert.notEqual(result.data.tenantId, "tenant-B");
+  }
 });

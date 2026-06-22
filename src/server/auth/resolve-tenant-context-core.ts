@@ -13,18 +13,20 @@
  *   2. No membership row               -> TENANT_MEMBERSHIP_REQUIRED
  *   3. status !== 'active'             -> TENANT_MEMBERSHIP_REQUIRED  (distinct case)
  *   4. role  !== 'tenant_admin'        -> TENANT_MEMBERSHIP_REQUIRED
- *   5. (client tenant_id mismatch)     -> ignored; resolution stays membership-derived
+ *   5. (client tenant_id, matching OR mismatched) -> IGNORED; tenant stays membership-derived
  *   otherwise                          -> Ok(TenantContext)
  *
  * AC4 / R-004: a client-supplied `tenant_id` is NEVER an input to the authority decision.
  * The optional `clientTenantId` is accepted only so the caller can detect/log a spoof
- * attempt; it is compared AFTER the membership tenant is resolved and can only ever
- * deny — it can never widen access or select a different tenant.
+ * attempt out-of-band; the resolved tenant is ALWAYS `membership.tenant_id`. A
+ * stale/spoofed client value is ignored, never trusted — it can never widen access,
+ * redirect to another tenant, OR deny a rightful admin out of their own tenant.
  */
 import { err, ok, type Result } from "@/lib/result/result";
 import {
   TENANT_ADMIN_ROLE,
   TENANT_CONTEXT_MESSAGES,
+  type MembershipStatus,
   type TenantContext,
   type TenantContextErrorCode,
 } from "./tenant-context";
@@ -35,11 +37,20 @@ export type ResolvedUser = {
   readonly email: string | null;
 };
 
-/** The minimal shape of a `tenant_memberships` row needed for the decision. */
+/**
+ * The minimal shape of a `tenant_memberships` row needed for the decision.
+ *
+ * `status` is narrowed to the `MembershipStatus` union (NOT a bare `string`) so the
+ * precise three-value lifecycle in `tenant-context.ts` actually GOVERNS this boundary and
+ * the type cannot drift from the runtime check (review fix). The DB edge in
+ * `resolve-tenant-context.ts` is responsible for coercing any unrecognized DB value to a
+ * DENYING status (`disabled`) before constructing this row — so an unknown status can
+ * never sneak through as `active`, and the union here is authoritative.
+ */
 export type MembershipRow = {
   readonly tenant_id: string;
   readonly role: string;
-  readonly status: string;
+  readonly status: MembershipStatus;
   /** Optional joined tenant display name (presentational only). */
   readonly tenant_name?: string | null;
 };
@@ -96,19 +107,17 @@ export function resolveTenantContextCore(
     );
   }
 
-  // 5. AC4 / R-004: tenant authority is membership-derived. A client-supplied tenant id
-  //    is ignored when absent; when present and MISMATCHED it can only DENY — it never
-  //    selects a different tenant or widens access. (A matching value is redundant.)
-  if (
-    clientTenantId != null &&
-    clientTenantId !== "" &&
-    clientTenantId !== membership.tenant_id
-  ) {
-    return err(
-      "TENANT_MEMBERSHIP_REQUIRED",
-      TENANT_CONTEXT_MESSAGES.TENANT_MEMBERSHIP_REQUIRED,
-    );
-  }
+  // 5. AC4 / R-004: tenant authority is membership-derived. A client-supplied tenant id is
+  //    NEVER an input to the decision — it is IGNORED entirely (AC4's "ignored" branch).
+  //    Whether it is absent, matching, or a stale/spoofed mismatch, the resolved tenant
+  //    always comes from the server-side membership row, never from the client value. The
+  //    client value can only ever be ignored — it can never widen, redirect, or DENY
+  //    access. (Ignoring a stale bookmarked/spoofed id means a rightful admin is never
+  //    self-DoSed out of their own tenant; the load-bearing "never widens access" property
+  //    still holds because the tenant is read from `membership.tenant_id` below, not from
+  //    `clientTenantId`.) The parameter is retained only so callers may detect/log a spoof
+  //    attempt out-of-band; it has no effect on the authority decision here.
+  void clientTenantId;
 
   return ok({
     userId: user.id,

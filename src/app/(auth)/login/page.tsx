@@ -43,10 +43,12 @@ export default function LoginPage() {
         return;
       }
 
-      // Server layout re-resolves tenant context on the next request. `refresh()` ensures
-      // the server components re-run with the freshly-set auth cookie before navigation.
-      router.replace("/dashboard");
+      // Canonical @supabase/ssr order: refresh() FIRST so the freshly-set auth cookie is
+      // server-visible, THEN navigate. Reversing these races the protected layout, which
+      // could re-resolve UNAUTHENTICATED and bounce the just-signed-in user back to /login
+      // on a slow connection (review fix: redirect race).
       router.refresh();
+      router.replace("/dashboard");
     } catch {
       setError("Inloggningen kunde inte slutföras. Försök igen senare.");
       setSubmitting(false);

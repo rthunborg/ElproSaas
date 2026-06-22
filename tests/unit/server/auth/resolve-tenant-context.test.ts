@@ -142,6 +142,21 @@ test("AC2 (distinct case): an 'invited' membership is treated as no-access", asy
   if (!result.ok) assert.equal(result.code, "TENANT_MEMBERSHIP_REQUIRED");
 });
 
+test("AC2 (edge): an UNKNOWN DB status string is coerced to a denying status -> TENANT_MEMBERSHIP_REQUIRED", async () => {
+  // The DB can return a status outside the known union (a future value, a typo). The DB-edge
+  // normalizer (`normalizeMembershipStatus`) must fail closed and map it to a denying value,
+  // so it can never be treated as `active`.
+  const client = makeFakeSupabase({
+    user: { id: USER_ID },
+    membership: { ...ACTIVE_ADMIN, status: "suspended" },
+  });
+
+  const result = await resolveTenantContext({ client });
+
+  assert.equal(result.ok, false);
+  if (!result.ok) assert.equal(result.code, "TENANT_MEMBERSHIP_REQUIRED");
+});
+
 test("AC2 (role guard): a non-tenant_admin role is rejected even when status is active", async () => {
   const client = makeFakeSupabase({
     user: { id: USER_ID },
@@ -176,7 +191,7 @@ test("AC3: a token that fails re-validation (authError) -> UNAUTHENTICATED, not 
   if (!result.ok) assert.equal(result.code, "UNAUTHENTICATED");
 });
 
-test("AC4: a mismatched client tenant_id NEVER widens access — resolution stays membership-derived", async () => {
+test("AC4: a mismatched client tenant_id NEVER widens access — it is IGNORED, resolution stays membership-derived", async () => {
   const client = makeFakeSupabase({
     user: { id: USER_ID },
     membership: ACTIVE_ADMIN, // membership says Tenant A
@@ -185,10 +200,14 @@ test("AC4: a mismatched client tenant_id NEVER widens access — resolution stay
   // The caller forges a client tenant_id pointing at Tenant B.
   const result = await resolveTenantContext({ client, clientTenantId: TENANT_B });
 
-  // This resolver implements the "verify-and-reject mismatch" path (architecture §5 step
-  // 4); access is NEVER widened to Tenant B.
-  assert.equal(result.ok, false);
-  if (!result.ok) assert.equal(result.code, "TENANT_MEMBERSHIP_REQUIRED");
+  // This resolver implements the AC4 "ignored" path (architecture §5 step 4): the spoofed
+  // value is ignored and the tenant is resolved from the membership row. Access is NEVER
+  // widened to Tenant B, and a rightful admin is never locked out of Tenant A.
+  assert.equal(result.ok, true);
+  if (result.ok) {
+    assert.equal(result.data.tenantId, TENANT_A);
+    assert.notEqual(result.data.tenantId, TENANT_B);
+  }
 });
 
 test("AC4: a matching client tenant_id is accepted and still resolves to the membership tenant", async () => {

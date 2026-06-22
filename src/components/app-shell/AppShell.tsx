@@ -105,11 +105,13 @@ export function AppShell({
 }: {
   children: React.ReactNode;
   /**
-   * Server-resolved tenant/user context (Task 4). Optional so the shell still renders if
-   * a caller omits it, but the `(app)` layout always supplies it after a successful
-   * `resolveTenantContext`.
+   * Server-resolved tenant/user context (Task 4). REQUIRED — the shell is mounted ONLY
+   * after a successful `resolveTenantContext` in the `(app)` server layout. Making this
+   * required fails LOUD at the type level: a caller cannot mount authenticated-looking
+   * chrome with no tenant label and no sign-out (a silent half-broken shell) by omitting
+   * it (review fix: AppShell context was optional and failed open).
    */
-  context?: AppShellContext;
+  context: AppShellContext;
 }) {
   const pathname = usePathname();
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -264,12 +266,16 @@ export function AppShell({
                 (login-and-tenant-context.e2e.spec.ts). The `data-slot="primary-action"`
                 attribute is preserved as the owning-module action mount point. */}
             <div data-slot="primary-action" className="flex items-center gap-3">
-              {context && (context.tenantName || context.userEmail) && (
-                <div className="hidden min-w-0 flex-col items-end leading-tight sm:flex">
+              {(context.tenantName || context.userEmail) && (
+                <div className="flex min-w-0 flex-col items-end leading-tight">
+                  {/* AC1: the active tenant/company indicator is UNCONDITIONAL — it must be
+                      visible on every viewport, so the tenant name has NO `sm:` floor. The
+                      secondary user-email line is hidden on the narrowest screens (where the
+                      slim top bar is space-constrained) but the tenant identity always shows. */}
                   {context.tenantName && (
                     <span
                       data-testid="tenant-context"
-                      className="max-w-[16rem] truncate text-sm font-medium text-zinc-900"
+                      className="max-w-[10rem] truncate text-sm font-medium text-zinc-900 sm:max-w-[16rem]"
                     >
                       {context.tenantName}
                     </span>
@@ -277,14 +283,14 @@ export function AppShell({
                   {context.userEmail && (
                     <span
                       data-testid="current-user"
-                      className="max-w-[16rem] truncate text-xs text-zinc-600"
+                      className="hidden max-w-[16rem] truncate text-xs text-zinc-600 sm:block"
                     >
                       {context.userEmail}
                     </span>
                   )}
                 </div>
               )}
-              {context && <SignOutButton />}
+              <SignOutButton />
             </div>
           </header>
 

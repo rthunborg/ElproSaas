@@ -19,13 +19,18 @@
  * branch logic is unit-tested NOW via `resolve-tenant-context-core.ts`.
  */
 import type { createSupabaseServerClient } from "@/server/db/supabase-server-client";
+import { err } from "@/lib/result/result";
 import {
   resolveTenantContextCore,
   type MembershipRow,
   type ResolveTenantContextResult,
   type ResolvedUser,
 } from "./resolve-tenant-context-core";
-import { TENANT_ADMIN_ROLE } from "./tenant-context";
+import {
+  TENANT_ADMIN_ROLE,
+  TENANT_CONTEXT_MESSAGES,
+  type MembershipStatus,
+} from "./tenant-context";
 
 /** The minimal slice of the Supabase server client the resolver depends on. */
 type SupabaseAuthClient = Awaited<
@@ -50,6 +55,28 @@ export type ResolveTenantContextOptions = {
 
 export async function resolveTenantContext(
   options: ResolveTenantContextOptions = {},
+): Promise<ResolveTenantContextResult> {
+  // Wrap ALL I/O (client creation, missing-env throw, SDK/network rejections in
+  // `getClaims()` / the membership query) so a thrown error NEVER escapes the typed
+  // `Result` boundary as an unhandled Next.js 500 (which could leak a stack trace and
+  // bypass the documented user-safe boundary state). Any throw maps to the generic
+  // no-access result — fail closed, never fail open. (Review fix: edge/blind layers.)
+  try {
+    return await resolveTenantContextInner(options);
+  } catch {
+    // Generic, user-safe denial. We deliberately reuse TENANT_MEMBERSHIP_REQUIRED's
+    // generic message (no internal detail, no stack trace, no tenant/user existence
+    // signal). A distinct transient/SERVER_ERROR code is deferred to Story 2.2's broader
+    // error-code taxonomy (see Review Findings → Defer).
+    return err(
+      "TENANT_MEMBERSHIP_REQUIRED",
+      TENANT_CONTEXT_MESSAGES.TENANT_MEMBERSHIP_REQUIRED,
+    );
+  }
+}
+
+async function resolveTenantContextInner(
+  options: ResolveTenantContextOptions,
 ): Promise<ResolveTenantContextResult> {
   // The default client factory imports `next/headers` (Next-bundler-only). Load it LAZILY
   // and only when no client is injected, so importing this resolver in a plain Node test
@@ -87,32 +114,57 @@ export async function resolveTenantContext(
   // (b) Load this user's `tenant_admin` membership row. RLS (Story 2.2) restricts the row
   //     to the caller; we still re-derive authority from the row, not from any client id.
   //     We do NOT filter on `status` so the pure core can treat a disabled/invited row as
-  //     a DISTINCT no-access case from "no row at all" (test requirement).
+  //     a DISTINCT no-access case from "no row at all" (test requirement). Prefer an
+  //     `active` row first (then oldest) so a disabled-then-reactivated admin (older
+  //     `disabled` + newer `active` row) is NOT denied by a stale row sorting first.
   const { data: membershipData, error: membershipError } = await supabase
     .from("tenant_memberships")
     .select("tenant_id, role, status, tenants(name)")
     .eq("user_id", user.id)
     .eq("role", TENANT_ADMIN_ROLE)
+    .order("status", { ascending: true }) // 'active' < 'disabled' < 'invited' lexically; prefer active.
     .order("created_at", { ascending: true })
     .limit(1)
     .maybeSingle();
 
   const membership: MembershipRow | null =
-    !membershipError && membershipData
+    !membershipError &&
+    membershipData &&
+    // Guard against a null/empty tenant_id (orphaned FK / partial insert): an empty tenant
+    // would silently mis-scope every later tenant query. Treat it as no-access.
+    typeof membershipData.tenant_id === "string" &&
+    membershipData.tenant_id !== ""
       ? {
           tenant_id: membershipData.tenant_id,
           role: membershipData.role,
-          status: membershipData.status,
+          // Coerce the raw DB string to the `MembershipStatus` union at the edge. Only the
+          // three known lifecycle values pass through; ANYTHING else (NULL, a future/unknown
+          // status, a typo) coerces to the DENYING `disabled` so it can never widen access —
+          // fail closed. The pure core then governs the decision via the narrowed union.
+          status: normalizeMembershipStatus(membershipData.status),
           tenant_name: extractTenantName(membershipData.tenants),
         }
       : null;
 
-  // (c) Pure decision (active + role + client-tenant-id spoof check).
+  // (c) Pure decision (active + role; client-tenant-id is ignored, never the authority).
   return resolveTenantContextCore({
     user,
     membership,
     clientTenantId: options.clientTenantId ?? null,
   });
+}
+
+/**
+ * Coerce a raw DB `status` string to the `MembershipStatus` union. Only the three known
+ * lifecycle values are accepted; any other value (NULL, empty, a future/unknown status)
+ * maps to `disabled` — a DENYING status — so an unrecognized status can never be treated
+ * as `active`. Fail closed (architecture §8; review fix: enforce the union).
+ */
+function normalizeMembershipStatus(status: unknown): MembershipStatus {
+  if (status === "active" || status === "invited" || status === "disabled") {
+    return status;
+  }
+  return "disabled";
 }
 
 /**

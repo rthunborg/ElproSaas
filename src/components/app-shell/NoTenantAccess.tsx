@@ -8,20 +8,32 @@
  *   - shows a GENERIC message that never reveals whether a specific tenant/user exists
  *     (UX §11; architecture §20 "client tenant spoofing" / generic access failures).
  *
- * `role="alert"` so assistive tech announces the access denial. A sign-out affordance is
- * offered so a wrong-account user can switch (the login/logout loop stays testable —
- * Task 3.3). This is presentation only; authorization was already decided server-side.
+ * `role="alert"` is on the WRAPPER so assistive tech announces BOTH the heading ("Ingen
+ * åtkomst") and the message as one access-denial announcement (not just the message
+ * paragraph). A sign-out affordance is offered so a wrong-account user can switch (the
+ * login/logout loop stays testable — Task 3.3). This is presentation only; authorization
+ * was already decided server-side.
  */
 import { SignOutButton } from "./SignOutButton";
 
+/**
+ * Hardcoded generic fallback so an empty/blank `message` prop never renders a silent or
+ * empty alert (review fix). The security guarantee must not rest on the message map always
+ * being populated — a blank message still announces a meaningful, non-leaking denial.
+ */
+const FALLBACK_MESSAGE =
+  "Ditt konto har ingen aktiv behörighet. Kontakta din administratör.";
+
 export function NoTenantAccess({ message }: { message: string }) {
+  const safeMessage = message.trim() === "" ? FALLBACK_MESSAGE : message;
   return (
     <main className="flex min-h-screen items-center justify-center bg-zinc-50 px-4 text-zinc-900">
-      <div className="w-full max-w-md rounded-lg border border-zinc-200 bg-white p-6 text-center shadow-sm">
+      <div
+        role="alert"
+        className="w-full max-w-md rounded-lg border border-zinc-200 bg-white p-6 text-center shadow-sm"
+      >
         <h1 className="text-lg font-semibold text-zinc-900">Ingen åtkomst</h1>
-        <p role="alert" className="mt-2 text-sm text-zinc-600">
-          {message}
-        </p>
+        <p className="mt-2 text-sm text-zinc-600">{safeMessage}</p>
         <div className="mt-6 flex justify-center">
           <SignOutButton />
         </div>

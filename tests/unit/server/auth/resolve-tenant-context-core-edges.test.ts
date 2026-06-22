@@ -52,27 +52,27 @@ test("TENANT_MEMBERSHIP_REQUIRED failure carries the exact generic message", () 
   }
 });
 
-test("a denied spoof NEVER leaks the spoofed tenant id, the real tenant id, or the user id in the message", () => {
+test("AC4: a spoofed client tenant_id is IGNORED — resolution stays membership-derived, never denied", () => {
+  // Per the resolved AC4 direction (architecture §5 step 4 "ignored" branch): a forged
+  // client tenant id is ignored entirely, so a rightful admin is never self-DoSed out of
+  // their own tenant by a stale/spoofed value. The resolved tenant is always the
+  // membership's tenant; the spoofed value can never widen, redirect, OR deny access.
   const result = resolveTenantContextCore({
     user: USER,
     membership: ACTIVE_ADMIN, // real tenant: tenant-A
-    clientTenantId: "tenant-B-spoof", // forged
+    clientTenantId: "tenant-B-spoof", // forged — ignored
   });
-  assert.equal(result.ok, false);
-  if (!result.ok) {
-    assert.doesNotMatch(result.message, /tenant-A/);
-    assert.doesNotMatch(result.message, /tenant-B-spoof/);
-    assert.doesNotMatch(result.message, /user-1/);
-    // The message is identical to every other no-access case — the failure mode itself
-    // must not be distinguishable to the client (no membership vs disabled vs spoof).
-    assert.equal(
-      result.message,
-      TENANT_CONTEXT_MESSAGES.TENANT_MEMBERSHIP_REQUIRED,
-    );
+  assert.equal(result.ok, true);
+  if (result.ok) {
+    assert.equal(result.data.tenantId, "tenant-A");
+    assert.notEqual(result.data.tenantId, "tenant-B-spoof");
   }
 });
 
-test("the no-access message is IDENTICAL across no-row / disabled / non-admin / spoof (indistinguishable)", () => {
+test("the no-access message is IDENTICAL across no-row / disabled / non-admin (indistinguishable)", () => {
+  // The genuine no-access cases (no row / disabled / non-admin role) must all carry the
+  // SAME generic message so the failure mode is indistinguishable to the client. A spoofed
+  // client tenant id is NOT a no-access case (it is ignored) so it is not part of this set.
   const messages = [
     resolveTenantContextCore({ user: USER, membership: null }),
     resolveTenantContextCore({
@@ -83,26 +83,21 @@ test("the no-access message is IDENTICAL across no-row / disabled / non-admin / 
       user: USER,
       membership: { ...ACTIVE_ADMIN, role: "member" },
     }),
-    resolveTenantContextCore({
-      user: USER,
-      membership: ACTIVE_ADMIN,
-      clientTenantId: "tenant-Z",
-    }),
   ].map((r) => (r.ok ? "OK" : r.message));
 
   assert.deepEqual(new Set(messages).size, 1, "all no-access messages must be identical");
 });
 
-test("AC4: a whitespace-only client tenant_id is a real value and (mismatching) DENIES", () => {
-  // "   " is non-empty and never equals the membership tenant id, so it is a mismatch and
-  // must deny — it must NOT be coerced to "absent" and silently pass.
+test("AC4: a whitespace-only client tenant_id is IGNORED like any other client value and resolves", () => {
+  // Per the resolved AC4 "ignored" direction, NO client-supplied tenant id (whitespace or
+  // otherwise) ever influences the decision — the membership tenant always resolves.
   const result = resolveTenantContextCore({
     user: USER,
     membership: ACTIVE_ADMIN,
     clientTenantId: "   ",
   });
-  assert.equal(result.ok, false);
-  if (!result.ok) assert.equal(result.code, "TENANT_MEMBERSHIP_REQUIRED");
+  assert.equal(result.ok, true);
+  if (result.ok) assert.equal(result.data.tenantId, "tenant-A");
 });
 
 test("AC4: an explicit null client tenant_id is treated as absent (ignored) and resolves", () => {

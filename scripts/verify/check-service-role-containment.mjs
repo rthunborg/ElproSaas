@@ -47,8 +47,10 @@ const SCANNED_BASENAMES = new Set([".env.example"]);
 // Roots that can reach the browser bundle / define the env contract. Documentation roots
 // (`_bmad-output/`, `docs/`) and config-only trees are intentionally NOT walked.
 const SCANNED_ROOTS = ["src", "scripts", "tests"];
-// Top-level files (relative to rootDir) scanned in addition to the roots above.
-const SCANNED_ROOT_FILES = [".env.example"];
+// Top-level files (relative to rootDir) scanned in addition to the roots above. The root
+// `middleware.ts` runs on the edge in front of every request and CAN reach the env/bundle
+// surface, so the guard must cover it (Story 2.1 review fix — session-refresh middleware).
+const SCANNED_ROOT_FILES = [".env.example", "middleware.ts"];
 
 const IGNORED_DIRS = new Set([
   "node_modules",

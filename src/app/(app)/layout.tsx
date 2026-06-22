@@ -23,6 +23,10 @@ import { redirect } from "next/navigation";
 import { AppShell } from "@/components/app-shell/AppShell";
 import { NoTenantAccess } from "@/components/app-shell/NoTenantAccess";
 import { resolveTenantContext } from "@/server/auth/resolve-tenant-context";
+import { TENANT_CONTEXT_MESSAGES } from "@/server/auth/tenant-context";
+
+/** Generic, user-safe fallback for an unexpected throw (no internal detail leaked). */
+const GENERIC_NO_ACCESS_MESSAGE = TENANT_CONTEXT_MESSAGES.TENANT_MEMBERSHIP_REQUIRED;
 
 /**
  * Protected routes are inherently per-request (they read auth cookies and re-resolve
@@ -38,7 +42,17 @@ export default async function AppGroupLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const result = await resolveTenantContext();
+  // `resolveTenantContext` already maps thrown I/O to a typed `Result` (it never throws for
+  // logical failures). This try/catch is defense-in-depth: a genuinely-unexpected throw
+  // falls back to the user-safe no-access render instead of an unhandled Next.js 500 that
+  // could leak a stack trace. The `redirect()` below is OUTSIDE this try block, so its
+  // Next.js control-flow sentinel is never swallowed here.
+  let result;
+  try {
+    result = await resolveTenantContext();
+  } catch {
+    return <NoTenantAccess message={GENERIC_NO_ACCESS_MESSAGE} />;
+  }
 
   if (!result.ok) {
     if (result.code === "UNAUTHENTICATED") {
