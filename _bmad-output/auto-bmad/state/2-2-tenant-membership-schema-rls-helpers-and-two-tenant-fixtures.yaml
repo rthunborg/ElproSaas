@@ -5,10 +5,10 @@ epic_num: 2
 story_num: 2
 branch: story/2-2-tenant-membership-schema-rls-helpers-and-two-tenant-fixtures
 status: in-progress
-updated_at: "2026-06-22T15:14:57Z"
+updated_at: "2026-06-23T15:10:18Z"
 started_at: "2026-06-22T15:04:11Z"
 completed_at: null
-active_seconds: 511
+active_seconds: 1074
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -20,14 +20,14 @@ tea_selected: [atdd, automate]
 tea_rationale: "Story establishes the baseline RLS authorization layer (is_active_tenant_member / is_tenant_admin helpers) and database schema migrations (tenants, tenant_memberships) - both independent High signals (auth/permissions and schema/DB migrations)."
 epic_story_count: 4
 stories_after_in_epic: 2
-completed_phases: [0, 1, 2, 3]
+completed_phases: [0, 1, 2, 3, 4]
 code_review_iterations: 0
 code_review_loop_done: false
 hitl_halt: null
 external_review_iterations: 0
 convergence_unverified: false
 story_trace: null
-commits: [ae4539b]
+commits: [ae4539b, 2ac5a6d]
 phase8_steps:
   trace_gate: null
   nfr: null

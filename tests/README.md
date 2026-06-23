@@ -35,6 +35,12 @@ decision / Story 2.2.
 | `unit/lib/result/result.test.ts` | Unit (`Result` `ok`/`err` helpers: discriminant + no `data` on failure) | **GREEN — runs in `pnpm test`** | Now (`node --test`) |
 | `unit/scripts/verify/service-role-containment.test.ts` | Unit (R-002 guard bite proof) | **GREEN — runs in `pnpm test`** | Now (`node --test`) |
 | `integration/server/auth/resolve-tenant-context.int.test.ts` | Integration (DB-backed) | **GATED on Story 2.2** (`.skip`, excluded from tsconfig) | Story 2.2 local Supabase stack + two-tenant factories |
+| `integration/rls/cross-tenant-isolation.rls.test.ts` | RLS negative (SELECT/INSERT/UPDATE/DELETE × `tenants`/`tenant_memberships`) | **GATED on Story 2.2 dev stack** (`.skip`, excluded from tsconfig) | Story 2.2 local Supabase stack + migration + factories |
+| `integration/rls/membership-self-grant.rls.test.ts` | RLS (self-grant/escalation denied + role/status CHECK) | **GATED on Story 2.2 dev stack** (`.skip`, excluded) | Story 2.2 dev stack |
+| `integration/rls/security-definer-search-path.rls.test.ts` | INT (SECURITY DEFINER search-path hijack negative, AC4/R-006) | **GATED on Story 2.2 dev stack** (`.skip`, excluded) | Story 2.2 dev stack + helpers |
+| `integration/rls/migration-reset.int.test.ts` | INT (`supabase db reset` green + objects present, AC1/R-007) | **GATED on Story 2.2 dev stack** (`.skip`, excluded) | Story 2.2 dev stack |
+| `integration/rls/factory-isolation.int.test.ts` | INT (per-worker fixture isolation R-012 + 2.1 un-gate marker AC5) | **GATED on Story 2.2 dev stack** (`.skip`, excluded) | Story 2.2 dev stack + factories |
+| `factories/tenants.ts` | Test-only factory CONTRACT (B1) | **RED-PHASE STUB** (exports throw until dev phase) | Story 2.2 dev phase fills the body |
 | `e2e/auth/login-and-tenant-context.e2e.spec.ts` | E2E (browser) | **GATED on framework + Story 2.2** (`.skip`, excluded from tsconfig) | Playwright configured + 2.2 seeded users |
 
 ## Red-phase convention
