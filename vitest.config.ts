@@ -28,7 +28,10 @@ export default defineConfig({
     tsconfigPaths: true,
   },
   test: {
-    include: ["tests/integration/**/*.{test,spec,int.test,rls.test}.ts"],
+    // `*.int.test.ts` / `*.rls.test.ts` already end in `.test.ts`, so `*.test.ts`
+    // matches them — no need for redundant `int.test`/`rls.test` alternatives
+    // (review fix 2026-06-26).
+    include: ["tests/integration/**/*.{test,spec}.ts"],
     // The DB-backed suites talk to one shared local Postgres. Each test provisions
     // its OWN unique two-tenant pair (H5 / R-012), so cross-file parallelism is
     // data-safe — per-worker isolation is by unique ids, not by separate DBs.

@@ -13,12 +13,16 @@
  * global teardown via `closeAdminPool()`.
  */
 import { Pool, type QueryResultRow } from "pg";
-import { LOCAL_SUPABASE_DB_URL } from "../support/test-env";
+import { assertLocalStack, LOCAL_SUPABASE_DB_URL } from "../support/test-env";
 
 let pool: Pool | null = null;
 
 function getPool(): Pool {
   if (!pool) {
+    // Hard local-only fail-safe BEFORE any superuser connection is opened — the
+    // admin SQL helper runs raw DDL/DML as `postgres` and must never touch a
+    // non-local database.
+    assertLocalStack();
     pool = new Pool({
       connectionString: LOCAL_SUPABASE_DB_URL,
       // Small pool: the suites are not write-heavy and share one local DB.
@@ -72,7 +76,18 @@ export async function adminSession<T>(
       },
     });
   } finally {
-    client.release();
+    // Reset ALL session-local state before returning the connection to the pool.
+    // The R-006 hijack negative sets `search_path` and `request.jwt.claim.sub` on
+    // this session; without a reset the pooled connection (max: 4) would hand that
+    // tampered state to a later `adminQuery`/`adminExec`/`adminSession` caller,
+    // causing non-deterministic cross-test contamination under parallelism
+    // (review fix 2026-06-26). `discard all` also drops temp tables/prepared
+    // statements planted by the adversarial-object setup.
+    try {
+      await client.query("discard all");
+    } finally {
+      client.release();
+    }
   }
 }
 

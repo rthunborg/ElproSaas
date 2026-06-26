@@ -9,22 +9,26 @@
 import { spawnSync } from "node:child_process";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { existsSync } from "node:fs";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
-const vitestBin = join(
-  repoRoot,
-  "node_modules",
-  "vitest",
-  "vitest.mjs",
-);
+
+// Resolve the Vitest CLI via the pnpm-managed `.bin` shim rather than reaching
+// into Vitest's internal entry file (`node_modules/vitest/vitest.mjs`), which is
+// undocumented and could be relocated by a future Vitest release. The `.bin` shim
+// is the stable, package-manager-managed contract (review fix 2026-06-26). On
+// Windows the shim is `vitest.CMD` and must be launched through a shell.
+const isWindows = process.platform === "win32";
+const binDir = join(repoRoot, "node_modules", ".bin");
+const vitestBin = join(binDir, isWindows ? "vitest.CMD" : "vitest");
 
 /** Run a command, inheriting stdio; return its exit code (non-zero on failure). */
-function run(cmd, args) {
+function run(cmd, args, opts = {}) {
   const result = spawnSync(cmd, args, {
     cwd: repoRoot,
     stdio: "inherit",
-    // `shell: false` — pass argv directly so quoting is consistent cross-platform.
     shell: false,
+    ...opts,
   });
   if (result.error) {
     console.error(`Failed to launch: ${cmd} ${args.join(" ")}`);
@@ -45,6 +49,11 @@ const unitCode = run(process.execPath, [
 if (unitCode !== 0) process.exit(unitCode);
 
 // 2) Integration suite (Vitest) — DB-backed; skips itself if the local stack is
-//    unreachable (unless SUPABASE_TEST_REQUIRED=1).
-const intCode = run(process.execPath, [vitestBin, "run"]);
+//    unreachable (unless SUPABASE_TEST_REQUIRED=1). Launch the `.bin` shim
+//    directly; on Windows the `.CMD` shim requires `shell: true`.
+if (!existsSync(vitestBin)) {
+  console.error(`Vitest CLI shim not found at ${vitestBin} — run \`pnpm install\`.`);
+  process.exit(1);
+}
+const intCode = run(vitestBin, ["run"], { shell: isWindows });
 process.exit(intCode);

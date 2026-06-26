@@ -25,6 +25,7 @@
  */
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import {
+  assertLocalStack,
   LOCAL_SUPABASE_ANON_KEY,
   LOCAL_SUPABASE_SERVICE_ROLE_KEY,
   LOCAL_SUPABASE_URL,
@@ -102,6 +103,9 @@ function uniqueSuffix(): string {
 let adminClient: SupabaseClient | null = null;
 function admin(): SupabaseClient {
   if (!adminClient) {
+    // Hard local-only fail-safe BEFORE any BYPASSRLS client is constructed — never
+    // create/delete auth users or run service-role DML against a non-local project.
+    assertLocalStack();
     adminClient = createClient(
       LOCAL_SUPABASE_URL,
       LOCAL_SUPABASE_SERVICE_ROLE_KEY,
@@ -156,7 +160,13 @@ export async function adminInsertMembership(seed: MembershipSeed): Promise<void>
   const { error } = await admin().from("tenant_memberships").insert(seed);
   if (error) {
     // Re-throw as an Error so the CHECK-constraint negatives can assert on it.
-    throw new Error(error.message);
+    // Preserve the PostgREST/Postgres error `code` (e.g. `23514` check_violation)
+    // so the CHECK-negatives can assert on the SPECIFIC constraint that bit rather
+    // than a loose message regex that an unrelated FK/unique error would also match
+    // (review fix 2026-06-26).
+    const wrapped = new Error(error.message) as Error & { code?: string };
+    if (error.code) wrapped.code = error.code;
+    throw wrapped;
   }
 }
 
@@ -204,6 +214,7 @@ export async function createTwoTenantFixture(): Promise<TwoTenantFixture> {
 export async function makeAuthedServerClient(
   user: FixtureUser,
 ): Promise<TestServerClient> {
+  assertLocalStack();
   const client = createClient(LOCAL_SUPABASE_URL, LOCAL_SUPABASE_ANON_KEY, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
@@ -221,6 +232,7 @@ export async function makeAuthedServerClient(
 
 /** Build an UNAUTHENTICATED (anonymous) anon-key client (no session). */
 export async function makeAnonServerClient(): Promise<TestServerClient> {
+  assertLocalStack();
   return createClient(LOCAL_SUPABASE_URL, LOCAL_SUPABASE_ANON_KEY, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
@@ -237,8 +249,14 @@ export async function cleanupFixture(fixture: TwoTenantFixture): Promise<void> {
   for (const id of userIds) {
     try {
       await admin().auth.admin.deleteUser(id);
-    } catch {
-      // best-effort
+    } catch (e) {
+      // Best-effort, but SURFACE the failure: a swallowed delete leaks fixtures
+      // into the long-lived local DB with no diagnostic (review fix 2026-06-26).
+      console.warn(
+        `factory cleanup: failed to delete auth user ${id}: ${
+          e instanceof Error ? e.message : String(e)
+        }`,
+      );
     }
   }
   // Remove the tenant rows (memberships already cascaded with the users).
@@ -246,7 +264,11 @@ export async function cleanupFixture(fixture: TwoTenantFixture): Promise<void> {
     await adminExec(`delete from public.tenants where id = any($1::uuid[])`, [
       [fixture.tenantA.id, fixture.tenantB.id],
     ]);
-  } catch {
-    // best-effort
+  } catch (e) {
+    console.warn(
+      `factory cleanup: failed to delete tenants ${fixture.tenantA.id}/${
+        fixture.tenantB.id
+      }: ${e instanceof Error ? e.message : String(e)}`,
+    );
   }
 }

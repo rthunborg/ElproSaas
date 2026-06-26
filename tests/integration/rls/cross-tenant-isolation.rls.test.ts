@@ -90,12 +90,14 @@ describe("Cross-tenant RLS isolation — tenants + tenant_memberships (AC2 / R-0
           .update(mutation)
           .eq(column, value)
           .select();
-        // Defense in DEPTH: `authenticated` has NO update GRANT on these tables
-        // (the table-privilege layer denies with 42501), and even if it did,
-        // there is no UPDATE policy so the USING clause matches zero of B's rows.
-        // Either way the write does not succeed — never a populated result set.
-        expect(error !== null || (affected ?? []).length === 0).toBe(true);
-        expect(affected ?? []).toEqual([]);
+        // Assert the MECHANISM, not just "no rows": `authenticated` has NO update
+        // GRANT on these tables, so the write is denied at the table-privilege
+        // layer (42501) — a future regression that GRANTed UPDATE against a
+        // zero-matching USING clause would still produce an empty set and must NOT
+        // pass here. `error` is non-null and `data` is null on a denied write
+        // (review fix 2026-06-26).
+        expect(error).not.toBeNull();
+        expect(affected).toBeNull();
       });
 
       it(`[P0] DELETE: Tenant A admin cannot DELETE Tenant B's ${table} rows`, async () => {
@@ -106,9 +108,11 @@ describe("Cross-tenant RLS isolation — tenants + tenant_memberships (AC2 / R-0
           .delete()
           .eq(column, value)
           .select();
-        // No DELETE grant/policy for the app path → zero of B's rows deletable.
-        expect(error !== null || (deleted ?? []).length === 0).toBe(true);
-        expect(deleted ?? []).toEqual([]);
+        // No DELETE grant for the app path → denied at the privilege layer (42501).
+        // Assert the mechanism (non-null error, null data), not a vacuous empty set
+        // (review fix 2026-06-26).
+        expect(error).not.toBeNull();
+        expect(deleted).toBeNull();
       });
     });
   }

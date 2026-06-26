@@ -17,30 +17,65 @@
  * users and seed memberships (B2) — it is never imported into `src/`/`app/`.
  */
 
-/** The local stack's default API URL (CLI `API_URL`). */
+/**
+ * The local stack's default API URL (CLI `API_URL`).
+ *
+ * Override ONLY via the dedicated `SUPABASE_TEST_*` names — NOT the conventional
+ * `NEXT_PUBLIC_SUPABASE_URL`. A dev/CI shell may legitimately carry a REAL project
+ * URL under the conventional name; honoring it here would silently point the
+ * BYPASSRLS factories at a non-local project (review fix 2026-06-26). The
+ * `assertLocalStack()` guard below is the hard fail-safe regardless of source.
+ */
 export const LOCAL_SUPABASE_URL =
-  process.env.SUPABASE_TEST_URL ??
-  process.env.NEXT_PUBLIC_SUPABASE_URL ??
-  "http://127.0.0.1:54321";
+  process.env.SUPABASE_TEST_URL ?? "http://127.0.0.1:54321";
 
 /**
  * The local stack's default legacy anon JWT (CLI `ANON_KEY`). supabase-js /
  * @supabase/ssr accept this JWT-format key. This is the universal local-demo anon
- * key, not a real secret.
+ * key, not a real secret. Override only via `SUPABASE_TEST_ANON_KEY`.
  */
 export const LOCAL_SUPABASE_ANON_KEY =
   process.env.SUPABASE_TEST_ANON_KEY ??
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ??
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0";
 
 /**
  * The local stack's default legacy service-role JWT (CLI `SERVICE_ROLE_KEY`).
- * TEST-ONLY — bypasses RLS for fixture setup. Universal local-demo key.
+ * TEST-ONLY — bypasses RLS for fixture setup. Universal local-demo key. Override
+ * only via `SUPABASE_TEST_SERVICE_ROLE_KEY` — NEVER the conventional
+ * `SUPABASE_SERVICE_ROLE_KEY`, which may hold a real project's key (review fix
+ * 2026-06-26). `assertLocalStack()` is the hard backstop.
  */
 export const LOCAL_SUPABASE_SERVICE_ROLE_KEY =
   process.env.SUPABASE_TEST_SERVICE_ROLE_KEY ??
-  process.env.SUPABASE_SERVICE_ROLE_KEY ??
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU";
+
+/**
+ * Hard local-only guard (review fix 2026-06-26). The factories use a BYPASSRLS
+ * service-role key and create/delete auth users; pointing them at anything but the
+ * local stack would mutate a real project. This throws unless the resolved API URL
+ * AND the direct Postgres connection both target loopback (`127.0.0.1`/`localhost`).
+ * Called at the factory/admin-SQL entry boundary so no DB-backed path can run
+ * against a non-local target — defense beyond convention. Idempotent / cheap.
+ */
+const LOOPBACK = /(?:127\.0\.0\.1|localhost|\[::1\]|(?<![\w.])::1(?![\w.]))/i;
+
+export function assertLocalStack(): void {
+  if (!LOOPBACK.test(LOCAL_SUPABASE_URL)) {
+    throw new Error(
+      `Refusing to run DB-backed tests/factories against a non-local Supabase URL: ` +
+        `"${LOCAL_SUPABASE_URL}". The factories use a BYPASSRLS service-role key and ` +
+        `create/delete auth users — they MUST target the local stack only. Set ` +
+        `SUPABASE_TEST_URL to a 127.0.0.1/localhost address (or unset it for the default).`,
+    );
+  }
+  if (!LOOPBACK.test(LOCAL_SUPABASE_DB_URL)) {
+    throw new Error(
+      `Refusing to run the admin SQL helper against a non-local Postgres URL. ` +
+        `Set SUPABASE_TEST_DB_URL to a 127.0.0.1/localhost connection string ` +
+        `(or unset it for the local-stack default).`,
+    );
+  }
+}
 
 /**
  * Probe whether the local Supabase stack is reachable. The DB-backed suites call

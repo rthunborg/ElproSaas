@@ -82,6 +82,10 @@ jobs:
   db:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    # Gate the expensive ~20-min Supabase boot behind the fast `verify` job: if a
+    # type/lint/unit error would fail `verify`, do NOT waste CI minutes spinning up
+    # the local stack (review fix 2026-06-26).
+    needs: [verify]
     env:
       SUPABASE_TEST_REQUIRED: "1"
     steps:
@@ -103,7 +107,10 @@ jobs:
       - name: Install Supabase CLI
         uses: supabase/setup-cli@v1
         with:
-          version: latest
+          # Pin an EXPLICIT CLI version — `latest` lets a Supabase release silently
+          # change `db reset` behavior and break the gate non-deterministically
+          # (review fix 2026-06-26). Matches the version used to author the stack.
+          version: 2.106.0
 
       # Stage 6: empty DB → migrate → seed. `supabase start` boots the local stack
       # (Docker is available on ubuntu-latest); `db reset` then applies the

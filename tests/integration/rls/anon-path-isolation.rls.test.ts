@@ -62,13 +62,13 @@ describe("Anonymous (no-session) anon-key path is fully isolated (G1 / R-001)", 
       it(`[P0] SELECT: an anonymous caller reads ZERO ${table} rows`, async () => {
         if (!stackUp) return;
         const { data, error } = await anon.from(table).select("*");
-        // STRONGER than RLS-empty-set: `anon` has NO SELECT grant on these tables
-        // (the migration grants SELECT only to `authenticated`), so the read is
-        // denied at the privilege layer (42501 permission denied) — it never even
-        // reaches RLS. Either way the anon caller obtains NO rows: assert denied
-        // OR an empty set, never a populated/leaking result.
-        expect(error !== null || (data ?? []).length === 0).toBe(true);
-        expect(data ?? []).toEqual([]);
+        // `anon` has NO SELECT grant on these tables (the migration grants SELECT
+        // only to `authenticated`), so the read is denied at the privilege layer
+        // (42501 permission denied) — it never reaches RLS. Assert the MECHANISM
+        // (non-null error, null data), not a vacuous empty set that a future
+        // GRANT-regression would still satisfy (review fix 2026-06-26).
+        expect(error).not.toBeNull();
+        expect(data).toBeNull();
       });
 
       it(`[P0] INSERT: an anonymous caller CANNOT write a ${table} row`, async () => {
@@ -77,9 +77,10 @@ describe("Anonymous (no-session) anon-key path is fully isolated (G1 / R-001)", 
           .from(table)
           .insert(rowFor(table))
           .select();
-        // No insert grant/policy for anon → the write never lands.
-        expect(error !== null || (data ?? []).length === 0).toBe(true);
-        expect(data ?? []).toEqual([]);
+        // No insert grant for anon → denied at the privilege layer. Assert the
+        // mechanism (review fix 2026-06-26).
+        expect(error).not.toBeNull();
+        expect(data).toBeNull();
       });
 
       it(`[P0] UPDATE: an anonymous caller CANNOT update existing ${table} rows`, async () => {
@@ -95,8 +96,10 @@ describe("Anonymous (no-session) anon-key path is fully isolated (G1 / R-001)", 
           .update(mutation)
           .eq(filter.column, filter.value)
           .select();
-        expect(error !== null || (data ?? []).length === 0).toBe(true);
-        expect(data ?? []).toEqual([]);
+        // No update grant for anon → denied (42501). Assert the mechanism (review
+        // fix 2026-06-26).
+        expect(error).not.toBeNull();
+        expect(data).toBeNull();
       });
 
       it(`[P0] DELETE: an anonymous caller CANNOT delete ${table} rows`, async () => {
@@ -110,8 +113,10 @@ describe("Anonymous (no-session) anon-key path is fully isolated (G1 / R-001)", 
           .delete()
           .eq(filter.column, filter.value)
           .select();
-        expect(error !== null || (data ?? []).length === 0).toBe(true);
-        expect(data ?? []).toEqual([]);
+        // No delete grant for anon → denied (42501). Assert the mechanism (review
+        // fix 2026-06-26).
+        expect(error).not.toBeNull();
+        expect(data).toBeNull();
       });
     });
   }

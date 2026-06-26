@@ -129,7 +129,14 @@ async function resolveTenantContextInner(
     .select("tenant_id, role, status, created_at, tenants(name)")
     .eq("user_id", user.id)
     .eq("role", TENANT_ADMIN_ROLE)
-    .order("created_at", { ascending: true });
+    .order("created_at", { ascending: true })
+    // Bound the candidate set. `UNIQUE(tenant_id, user_id)` already caps it to one
+    // row per tenant, but nothing caps tenant count; a user seeded into many tenants
+    // would otherwise return up to PostgREST's max_rows (1000) for in-memory
+    // selection. A small explicit cap restores the blast-radius guard the prior
+    // `.limit(1)` provided, without re-introducing the fragile "first row wins"
+    // dependency (the active-first selection runs over the capped set).
+    .limit(10);
 
   // A real query error is a TRANSIENT infrastructure failure (DB down, RLS misconfig, pool
   // exhaustion) — NOT "you have no membership". Map it to the distinct SERVER_ERROR code so
@@ -180,9 +187,15 @@ function selectPreferredMembership(
   const normalized: MembershipRow[] = [];
   for (const raw of rows) {
     if (typeof raw.tenant_id !== "string" || raw.tenant_id === "") continue;
+    // Fail CLOSED on a missing/empty role, mirroring the `tenant_id` guard above:
+    // DROP the row rather than coercing to "" (which would push an empty-role row
+    // into the candidate set). Defensive only — the query filters `.eq("role",
+    // TENANT_ADMIN_ROLE)` and the DB CHECK bounds it — but it removes a fail-open
+    // smell so an unexpected role can never be silently carried forward.
+    if (typeof raw.role !== "string" || raw.role === "") continue;
     normalized.push({
       tenant_id: raw.tenant_id,
-      role: typeof raw.role === "string" ? raw.role : "",
+      role: raw.role,
       // Coerce the raw DB string to the union at the edge — unknown values fail closed to
       // the DENYING `disabled` so they can never be treated as `active`.
       status: normalizeMembershipStatus(raw.status),
