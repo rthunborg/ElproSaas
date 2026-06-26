@@ -34,15 +34,26 @@ export type TenantContext = {
  * - `UNAUTHENTICATED`           — no/invalid session (no re-validated user).
  * - `TENANT_MEMBERSHIP_REQUIRED`— authenticated, but no ACTIVE `tenant_admin` membership
  *   (covers: no membership row, non-`active` status such as `invited`/`disabled`, and a
- *   non-`tenant_admin` role).
+ *   non-`tenant_admin` role). This is a genuine AUTHORIZATION outcome — the account is
+ *   simply not entitled.
+ * - `SERVER_ERROR`              — a TRANSIENT infrastructure failure (DB timeout, RLS
+ *   misconfig, pool exhaustion, network/SDK throw) while reading membership. Story 2.2
+ *   (Task 7.1) split this OUT of `TENANT_MEMBERSHIP_REQUIRED`: an outage must NOT be
+ *   presented as a permanent "you have no access" screen, which would mask the outage and
+ *   mislead a rightful admin. The user-facing message is generic (no internal detail, no
+ *   stack trace, no tenant/user existence signal) and invites a retry. Fail closed.
  */
 export type TenantContextErrorCode =
   | "UNAUTHENTICATED"
-  | "TENANT_MEMBERSHIP_REQUIRED";
+  | "TENANT_MEMBERSHIP_REQUIRED"
+  | "SERVER_ERROR";
 
 /** User-safe messages. Deliberately generic — no cross-tenant leakage (UX §11). */
 export const TENANT_CONTEXT_MESSAGES: Record<TenantContextErrorCode, string> = {
   UNAUTHENTICATED: "Du måste vara inloggad för att fortsätta.",
   TENANT_MEMBERSHIP_REQUIRED:
     "Ditt konto har ingen aktiv behörighet till ett företag. Kontakta din administratör.",
+  // Transient/infra failure — generic, retryable, leaks nothing internal.
+  SERVER_ERROR:
+    "Ett tillfälligt fel uppstod. Försök igen om en stund.",
 };

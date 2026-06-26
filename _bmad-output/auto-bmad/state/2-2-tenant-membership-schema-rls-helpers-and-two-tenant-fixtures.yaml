@@ -5,10 +5,10 @@ epic_num: 2
 story_num: 2
 branch: story/2-2-tenant-membership-schema-rls-helpers-and-two-tenant-fixtures
 status: in-progress
-updated_at: "2026-06-23T15:10:18Z"
+updated_at: "2026-06-26T12:19:58Z"
 started_at: "2026-06-22T15:04:11Z"
 completed_at: null
-active_seconds: 1074
+active_seconds: 87776
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -20,14 +20,14 @@ tea_selected: [atdd, automate]
 tea_rationale: "Story establishes the baseline RLS authorization layer (is_active_tenant_member / is_tenant_admin helpers) and database schema migrations (tenants, tenant_memberships) - both independent High signals (auth/permissions and schema/DB migrations)."
 epic_story_count: 4
 stories_after_in_epic: 2
-completed_phases: [0, 1, 2, 3, 4]
+completed_phases: [0, 1, 2, 3, 4, 5]
 code_review_iterations: 0
 code_review_loop_done: false
 hitl_halt: null
 external_review_iterations: 0
 convergence_unverified: false
 story_trace: null
-commits: [ae4539b, 2ac5a6d]
+commits: [ae4539b, 2ac5a6d, c6420f3]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -48,7 +48,10 @@ merge_commit: null
 branch_deleted: false
 open_questions:
   - "create-story flagged two follow-up deferrals for the dev agent to formally assign owners before closing: tests/e2e/** browser-runner enrollment (if Playwright stays out of scope), and a parameterized inventory-gated RLS suite (-> Story 2.4)."
-deferred_work: []
+deferred_work:
+  - "Browser E2E (Playwright) enablement + the (app) layout-redirect E2E assertion -> later E2E task / Story 2.4; tests/e2e/** stays .skip-ed and tsconfig-excluded (recorded in deferred-work.md)."
+  - "Parameterized inventory-gated RLS suite + the H4 table-inventory gate -> Story 2.4 (this story built the reusable data-driven pattern + first negatives, not the standing gate)."
+  - "AppShell both-null tenant indicator display fallback -> a follow-up shell pass (tenants.name NOT NULL landed here, removing the null source)."
 blockers: []
 overrides: {}
 constraints: []

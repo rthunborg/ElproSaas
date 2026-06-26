@@ -29,13 +29,17 @@ type FakeMembership = {
   tenant_id: string;
   role: string;
   status: string;
+  created_at?: string;
   tenants?: { name: string } | null;
 } | null;
 
 type FakeScript = {
   user: FakeUser;
   authError?: boolean;
+  /** A single membership row (sugar for `memberships: [row]`). */
   membership: FakeMembership;
+  /** The full candidate set when a test needs to exercise multi-row selection. */
+  memberships?: NonNullable<FakeMembership>[];
   membershipError?: boolean;
 };
 
@@ -51,19 +55,23 @@ function makeFakeSupabase(script: FakeScript) {
     ? { sub: script.user.id, email: script.user.email ?? null }
     : null;
 
+  // The resolver now fetches the candidate SET (no `.maybeSingle()`) and selects the
+  // preferred row itself (Task 7.2). The query is awaited directly after `.order(...)`, so
+  // the builder is a thenable resolving to `{ data: rows[], error }`.
+  const rows = script.memberships ?? (script.membership ? [script.membership] : []);
   const queryResult = {
-    data: script.membership,
+    data: script.membershipError ? null : rows,
     error: script.membershipError ? { message: "db error" } : null,
   };
 
-  // Chainable query builder; every link returns `this`, and the chain is awaited at
-  // `.maybeSingle()`.
+  // Chainable, awaitable query builder; every link returns `this`, and awaiting the chain
+  // (after `.order(...)`) yields `queryResult` via `.then`.
   const builder = {
     select: () => builder,
     eq: () => builder,
     order: () => builder,
     limit: () => builder,
-    maybeSingle: async () => queryResult,
+    then: (resolve: (value: typeof queryResult) => unknown) => resolve(queryResult),
   };
 
   return {
@@ -222,11 +230,80 @@ test("AC4: a matching client tenant_id is accepted and still resolves to the mem
   if (result.ok) assert.equal(result.data.tenantId, TENANT_A);
 });
 
-test("AC2: a membership query error degrades to TENANT_MEMBERSHIP_REQUIRED (no raw error thrown)", async () => {
+test("Task 7.1: a TRANSIENT membership query error maps to SERVER_ERROR, NOT TENANT_MEMBERSHIP_REQUIRED (no raw error thrown)", async () => {
+  // An infrastructure failure (DB timeout / RLS misconfig / pool exhaustion) must NOT be
+  // mislabeled as a permanent "no access" denial — that would mask an outage and mislead a
+  // rightful admin. It maps to the distinct, generic, retryable SERVER_ERROR code.
   const client = makeFakeSupabase({
     user: { id: USER_ID },
     membership: null,
     membershipError: true,
+  });
+
+  const result = await resolveTenantContext({ client });
+
+  assert.equal(result.ok, false);
+  if (!result.ok) {
+    assert.equal(result.code, "SERVER_ERROR");
+    // The message is generic and leaks nothing internal (no stack, no tenant/user signal).
+    assert.equal("data" in result, false);
+    assert.match(result.message, /tillfälligt fel|försök igen/i);
+  }
+});
+
+test("Task 7.2: with both a disabled and an active admin row (across tenants), the ACTIVE one is selected (no lexicographic-sort dependence)", async () => {
+  // Build a candidate set where the disabled row sorts FIRST lexicographically by status
+  // ('disabled' < 'invited' but > 'active'), to prove selection is active-FIRST, not sort-
+  // order-first. The active row is for TENANT_B.
+  const client = makeFakeSupabase({
+    user: { id: USER_ID },
+    membership: null,
+    memberships: [
+      {
+        tenant_id: TENANT_A,
+        role: "tenant_admin",
+        status: "disabled",
+        created_at: "2026-01-01T00:00:00Z",
+        tenants: { name: "Old Disabled Tenant" },
+      },
+      {
+        tenant_id: TENANT_B,
+        role: "tenant_admin",
+        status: "active",
+        created_at: "2026-02-01T00:00:00Z",
+        tenants: { name: "Active Tenant" },
+      },
+    ],
+  });
+
+  const result = await resolveTenantContext({ client });
+
+  assert.equal(result.ok, true);
+  if (result.ok) {
+    assert.equal(result.data.tenantId, TENANT_B); // the ACTIVE membership, not the first row
+    assert.equal(result.data.status, "active");
+    assert.equal(result.data.tenantName, "Active Tenant");
+  }
+});
+
+test("Task 7.2: when NO row is active, the resolver denies (TENANT_MEMBERSHIP_REQUIRED) rather than granting a disabled row", async () => {
+  const client = makeFakeSupabase({
+    user: { id: USER_ID },
+    membership: null,
+    memberships: [
+      {
+        tenant_id: TENANT_A,
+        role: "tenant_admin",
+        status: "disabled",
+        created_at: "2026-01-01T00:00:00Z",
+      },
+      {
+        tenant_id: TENANT_B,
+        role: "tenant_admin",
+        status: "invited",
+        created_at: "2026-02-01T00:00:00Z",
+      },
+    ],
   });
 
   const result = await resolveTenantContext({ client });

@@ -1,99 +1,131 @@
 /**
- * ATDD RED-PHASE SCAFFOLD — Story 2.2, membership self-grant / privilege-escalation
- * negatives + role/status CHECK-constraint enforcement.
+ * Story 2.2 — membership self-grant / privilege-escalation negatives (AC3 / R-005)
+ * + role/status CHECK-constraint enforcement (AC1 / R-005). P0.
  *
- * ╔══════════════════════════════════════════════════════════════════════════╗
- * ║  GATED ON THE STORY 2.2 DEV PHASE — DOES NOT RUN YET.                     ║
- * ║  Needs: real runner (Vitest), local Supabase stack + tenant_foundation    ║
- * ║  migration (RLS + role/status CHECK constraints), two-tenant factories.   ║
- * ╚══════════════════════════════════════════════════════════════════════════╝
+ *   - Self-grant/escalation cases drive the AUTHENTICATED ANON-KEY client (the app
+ *     path) and assert the write is denied — there is NO INSERT/UPDATE policy on
+ *     tenant_memberships for the app path, so escalation is impossible.
+ *   - The CHECK-constraint cases drive the admin/service-role path (which bypasses
+ *     RLS) so the failure is provably the column CHECK constraint, not a policy.
  *
- * COVERAGE (test-design-epic-2.md P0):
- *   AC3 / R-005 → a user cannot self-grant or self-escalate membership through
- *                 the app (anon-key) path: cannot INSERT their own
- *                 `tenant_memberships` row, cannot UPDATE their own role/status/
- *                 tenant_id. Privilege escalation is impossible through normal paths.
- *   AC1 / R-005 → the `role` CHECK constraint admits ONLY `tenant_admin` (Phase A);
- *                 the `status` CHECK constraint admits ONLY ('active','invited','disabled').
- *                 Any other value is rejected by the DB — proven at the admin/
- *                 service-role path (which bypasses RLS) so it is the *constraint*
- *                 that bites, not RLS.
- *
- * GREEN-PHASE (Story 2.2 dev phase):
- *   1. `import { describe, it, expect } from "vitest";` + factories.
- *   2. Self-grant/escalation cases drive the AUTHENTICATED ANON-KEY client
- *      (`makeAuthedServerClient`) — the app path — and assert the write is denied.
- *   3. The CHECK-constraint cases use the test-only ADMIN/service-role path (the
- *      same path the factories use) so RLS is out of the picture and the failure
- *      is provably the column CHECK constraint.
- *   4. Remove `.skip`, run after `supabase db reset`, make GREEN.
+ * Runs against the LOCAL Supabase stack only; skips when unreachable.
  */
+import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import {
+  createTwoTenantFixture,
+  makeAuthedServerClient,
+  adminInsertMembership,
+  cleanupFixture,
+  type TwoTenantFixture,
+  type TestServerClient,
+} from "../../factories/tenants";
+import { isLocalStackReachable } from "../../support/test-env";
 
-// Green-phase imports:
-// import { describe, it, expect } from "vitest";
-// import { createTwoTenantFixture, makeAuthedServerClient } from "../../factories/tenants";
-// (admin/service-role insert helper for the CHECK-constraint cases is provided by the factory module)
+let stackUp = false;
+let fixture: TwoTenantFixture;
 
-function gatedSelfGrant(): never {
-  throw new Error(
-    "GATED: membership self-grant negatives + role/status CHECK enforcement run only " +
-      "inside the Story 2.2 dev phase. Intentionally skipped in the ATDD red phase.",
-  );
-}
+beforeAll(async () => {
+  stackUp = await isLocalStackReachable();
+  if (!stackUp) return;
+  fixture = await createTwoTenantFixture();
+});
 
-describe.skip("tenant_memberships self-grant / escalation denied + role/status CHECK enforced (GATED on Story 2.2 dev stack)", () => {
-  it("[P0] self-INSERT: an authenticated user CANNOT insert their OWN tenant_memberships row via the app path", async () => {
-    gatedSelfGrant();
-    // const { tenantA, orphanUser } = await createTwoTenantFixture();
-    // const c = await makeAuthedServerClient(orphanUser);
-    // const { error } = await c.from("tenant_memberships").insert({
-    //   tenant_id: tenantA.id, user_id: orphanUser.id, role: "tenant_admin", status: "active",
-    // });
-    // expect(error).not.toBeNull(); // No INSERT policy exposes self-grant to the anon-key path.
+afterAll(async () => {
+  if (stackUp && fixture) await cleanupFixture(fixture);
+});
+
+describe("tenant_memberships self-grant / escalation denied (AC3 / R-005)", () => {
+  it("[P0] self-INSERT: an authenticated user CANNOT insert their OWN membership row via the app path", async () => {
+    if (!stackUp) return;
+    const c: TestServerClient = await makeAuthedServerClient(fixture.orphanUser);
+    const { error } = await c.from("tenant_memberships").insert({
+      tenant_id: fixture.tenantA.id,
+      user_id: fixture.orphanUser.id,
+      role: "tenant_admin",
+      status: "active",
+    });
+    // No INSERT policy exposes self-grant to the anon-key path.
+    expect(error).not.toBeNull();
+
+    // And the orphan still resolves to NO readable membership.
+    const { data } = await c
+      .from("tenant_memberships")
+      .select("tenant_id")
+      .eq("user_id", fixture.orphanUser.id);
+    expect(data ?? []).toEqual([]);
   });
 
   it("[P0] self-UPDATE role: a user CANNOT change their own role through the app path", async () => {
-    gatedSelfGrant();
-    // const { adminA } = await createTwoTenantFixture();
-    // const a = await makeAuthedServerClient(adminA);
-    // const { data: affected } = await a.from("tenant_memberships")
-    //   .update({ role: "tenant_admin" }) // even a no-op/escalation attempt must not be writable
-    //   .eq("user_id", adminA.id).select();
-    // expect(affected ?? []).toEqual([]); // self-mutation of role is not exposed to the app path.
+    if (!stackUp) return;
+    const a: TestServerClient = await makeAuthedServerClient(fixture.adminA);
+    const { data: affected, error } = await a
+      .from("tenant_memberships")
+      .update({ role: "tenant_admin" }) // even a no-op write must not be exposed
+      .eq("user_id", fixture.adminA.id)
+      .select();
+    // Denied at the table-privilege layer (no UPDATE grant for `authenticated`)
+    // and there is no UPDATE policy — the write never lands.
+    expect(error !== null || (affected ?? []).length === 0).toBe(true);
+    expect(affected ?? []).toEqual([]);
   });
 
-  it("[P0] self-UPDATE status: a user CANNOT flip their own status to 'active' through the app path", async () => {
-    gatedSelfGrant();
-    // const { adminA } = await createTwoTenantFixture(); // seed adminA as status='disabled' for this case
-    // const a = await makeAuthedServerClient(adminA);
-    // const { data: affected } = await a.from("tenant_memberships")
-    //   .update({ status: "active" }).eq("user_id", adminA.id).select();
-    // expect(affected ?? []).toEqual([]);
+  it("[P0] self-UPDATE status: a user CANNOT flip their own status through the app path", async () => {
+    if (!stackUp) return;
+    const a: TestServerClient = await makeAuthedServerClient(fixture.adminA);
+    const { data: affected, error } = await a
+      .from("tenant_memberships")
+      .update({ status: "active" })
+      .eq("user_id", fixture.adminA.id)
+      .select();
+    expect(error !== null || (affected ?? []).length === 0).toBe(true);
+    expect(affected ?? []).toEqual([]);
   });
 
-  it("[P0] self-UPDATE tenant_id: a user CANNOT move their own membership to another tenant_id through the app path", async () => {
-    gatedSelfGrant();
-    // const { tenantB, adminA } = await createTwoTenantFixture();
-    // const a = await makeAuthedServerClient(adminA);
-    // const { data: affected } = await a.from("tenant_memberships")
-    //   .update({ tenant_id: tenantB.id }).eq("user_id", adminA.id).select();
-    // expect(affected ?? []).toEqual([]);
+  it("[P0] self-UPDATE tenant_id: a user CANNOT move their membership to another tenant_id through the app path", async () => {
+    if (!stackUp) return;
+    const a: TestServerClient = await makeAuthedServerClient(fixture.adminA);
+    const { data: affected, error } = await a
+      .from("tenant_memberships")
+      .update({ tenant_id: fixture.tenantB.id })
+      .eq("user_id", fixture.adminA.id)
+      .select();
+    expect(error !== null || (affected ?? []).length === 0).toBe(true);
+    expect(affected ?? []).toEqual([]);
+
+    // adminA still belongs to tenantA only (verified via the admin's own read).
+    const { data } = await a
+      .from("tenant_memberships")
+      .select("tenant_id")
+      .eq("user_id", fixture.adminA.id);
+    expect(data?.length).toBe(1);
+    expect(data?.[0]?.tenant_id).toBe(fixture.tenantA.id);
+  });
+});
+
+describe("tenant_memberships role/status CHECK constraints bite (AC1 / R-005)", () => {
+  it("[P0] role CHECK: a role other than 'tenant_admin' is REJECTED by the DB (admin/service-role path)", async () => {
+    if (!stackUp) return;
+    // The admin path bypasses RLS, so a failure here is provably the CHECK
+    // constraint (not a policy).
+    await expect(
+      adminInsertMembership({
+        tenant_id: fixture.tenantA.id,
+        user_id: fixture.orphanUser.id,
+        role: "owner",
+        status: "active",
+      }),
+    ).rejects.toThrow(/check|constraint|role|violat/i);
   });
 
-  it("[P0] role CHECK: inserting a tenant_memberships row with a role other than 'tenant_admin' is REJECTED by the DB (admin/service-role path)", async () => {
-    gatedSelfGrant();
-    // const { tenantA, orphanUser } = await createTwoTenantFixture();
-    // // adminInsertMembership bypasses RLS (service-role) so the FAILURE is the CHECK constraint, not a policy.
-    // await expect(adminInsertMembership({
-    //   tenant_id: tenantA.id, user_id: orphanUser.id, role: "owner", status: "active",
-    // })).rejects.toThrow(/check|constraint|role/i);
-  });
-
-  it("[P0] status CHECK: inserting a tenant_memberships row with a status outside ('active','invited','disabled') is REJECTED by the DB (admin/service-role path)", async () => {
-    gatedSelfGrant();
-    // const { tenantA, orphanUser } = await createTwoTenantFixture();
-    // await expect(adminInsertMembership({
-    //   tenant_id: tenantA.id, user_id: orphanUser.id, role: "tenant_admin", status: "pending",
-    // })).rejects.toThrow(/check|constraint|status/i);
+  it("[P0] status CHECK: a status outside (active,invited,disabled) is REJECTED by the DB (admin/service-role path)", async () => {
+    if (!stackUp) return;
+    await expect(
+      adminInsertMembership({
+        tenant_id: fixture.tenantA.id,
+        user_id: fixture.orphanUser.id,
+        role: "tenant_admin",
+        status: "pending",
+      }),
+    ).rejects.toThrow(/check|constraint|status|violat/i);
   });
 });

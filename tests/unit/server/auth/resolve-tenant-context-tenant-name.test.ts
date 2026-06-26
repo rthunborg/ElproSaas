@@ -27,20 +27,26 @@ const USER_ID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
  * driven through the public resolver.
  */
 function makeFakeSupabaseWithTenantsRelation(tenants: unknown) {
+  // The resolver fetches the candidate SET and awaits the chain after `.order(...)` (no
+  // `.maybeSingle()` — Task 7.2). The builder is thenable and returns a one-row array.
   const builder = {
     select: () => builder,
     eq: () => builder,
     order: () => builder,
     limit: () => builder,
-    maybeSingle: async () => ({
-      data: {
-        tenant_id: TENANT_A,
-        role: "tenant_admin",
-        status: "active",
-        tenants,
-      },
-      error: null,
-    }),
+    then: (resolve: (value: { data: unknown; error: unknown }) => unknown) =>
+      resolve({
+        data: [
+          {
+            tenant_id: TENANT_A,
+            role: "tenant_admin",
+            status: "active",
+            created_at: "2026-01-01T00:00:00Z",
+            tenants,
+          },
+        ],
+        error: null,
+      }),
   };
 
   return {

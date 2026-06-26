@@ -1,13 +1,15 @@
 name: CI
 
-# Phase A verification gates (architecture §19, stages 1-5).
-# Active now: install, lockfile guard, typecheck, lint, unit tests, build.
-# Deferred gates (migration reset, integration, RLS/storage negative,
-# golden-master, secret scan) are activated by later stories — see
-# docs/quality/ci.md for the gate-to-story mapping.
+# Phase A verification gates (architecture §19).
+# `verify` job — stages 1-5: install, lockfile guard, service-role containment,
+#   typecheck, lint, unit tests, build.
+# `db` job — stages 6 + 8 (ACTIVATED by Story 2.2): Supabase migration reset from
+#   an EMPTY db, then the DB-backed integration + RLS-negative suites against the
+#   LOCAL stack only. See docs/quality/ci.md for the gate-to-story mapping.
 #
-# Stop conditions honored: no secrets, no environment variables, no external
-# or paid services, no Supabase service container, no deploy step.
+# Stop conditions honored: no secrets, no shared dev/staging/prod project, no
+# deploy step. The `db` job uses the LOCAL Supabase CLI stack only (its keys are
+# the universal local-demo defaults, not real secrets).
 
 on:
   pull_request:
@@ -54,14 +56,68 @@ jobs:
       - name: Verify lockfiles (single package manager)
         run: pnpm run verify:lockfiles
 
+      - name: Verify service-role containment (no client-path leakage)
+        run: pnpm run verify:service-role-containment
+
       - name: Typecheck
         run: pnpm typecheck
 
       - name: Lint
         run: pnpm lint
 
-      - name: Unit tests
-        run: pnpm test
+      - name: Unit tests (pure logic, node --test)
+        run: pnpm run test:unit
 
       - name: Build
         run: pnpm build
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # Story 2.2 activates architecture §19 stage 6 (migration reset) + stage 8
+  # (RLS-negative tests). Runs against the LOCAL Supabase CLI stack ONLY — never
+  # a shared dev/staging/prod project. The local stack's keys are the universal
+  # local-demo defaults (not real secrets), provided by `tests/support/test-env.ts`.
+  # `SUPABASE_TEST_REQUIRED=1` makes a missing stack a HARD failure so this gate
+  # can never silently false-green.
+  # ──────────────────────────────────────────────────────────────────────────
+  db:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      SUPABASE_TEST_REQUIRED: "1"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      # Stage 6: empty DB → migrate → seed. `supabase start` boots the local stack
+      # (Docker is available on ubuntu-latest); `db reset` then applies the
+      # tenant_foundation migration from empty and runs seed.sql.
+      - name: Start local Supabase stack
+        run: supabase start
+
+      - name: Migration reset (empty DB → migrate → seed)
+        run: supabase db reset
+
+      # Stage 8: DB-backed integration + cross-tenant RLS-negative suites.
+      - name: Integration + RLS negative tests (local stack)
+        run: pnpm run test:int
+
+      - name: Stop local Supabase stack
+        if: always()
+        run: supabase stop

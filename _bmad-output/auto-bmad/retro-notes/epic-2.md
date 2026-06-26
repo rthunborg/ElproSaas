@@ -5,3 +5,7 @@
 - [Phase 3 - create-story] Story 2.1 Task 1 adds @supabase/ssr + @supabase/supabase-js (gated dependency install) and owns the first service-role client-path lint/CI guard for epic 2.
 - [Phase 5 - dev-story] A delegate can inherit a RED working tree from a prior partial dev-story run (typecheck failing, tasks undone) - finishing the story required diagnosing/repairing that breakage before new work, not just adding code.
 - [Phase 5 - dev-story] Adding a server auth boundary silently converts previously-static (app) pages to needing per-request env/cookies; `export const dynamic = 'force-dynamic'` is mandatory and ONLY the build gate (not typecheck/lint/test) catches its absence - epic-2+ protected routes must set it.
+
+## Story 2-2-tenant-membership-schema-rls-helpers-and-two-tenant-fixtures
+- [Phase 5 â€” dev-story] Every new tenant-owned table needs explicit GRANTs (authenticated->SELECT, service_role->DML, anon->none) ALONGSIDE its RLS â€” this stack does not auto-expose new public tables to Data API roles, and RLS only narrows an already-granted role. Add a per-table GRANT+RLS checklist item so a later table isn't silently unreadable (the app-path write denial then surfaces as 42501 permission denied, a stronger guarantee than RLS zero-rows).
+- [Phase 5 â€” dev-story] Chained `pnpm run X && pnpm run Y` package.json scripts fail on Windows (script shell can't resolve pnpm on PATH); the project now uses a bare-Node orchestrator (scripts/run-tests.mjs) for multi-step scripts â€” reuse that pattern for any future multi-step script.

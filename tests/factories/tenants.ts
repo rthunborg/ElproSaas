@@ -1,45 +1,35 @@
 /**
- * ATDD RED-PHASE FACTORY CONTRACT — Story 2.2 (Tenant Membership Schema, RLS Helpers,
- * And Two-Tenant Fixtures). Blocker B1.
+ * TWO-TENANT TEST FACTORIES (Story 2.2, blocker B1) — REAL implementation.
  *
- * ╔══════════════════════════════════════════════════════════════════════════╗
- * ║  RED-PHASE STUB — NOT YET IMPLEMENTED.                                    ║
- * ║                                                                          ║
- * ║  This module PINS the EXACT factory API that the Story 2.1 gated INT     ║
- * ║  scaffold already imports (`../../../factories/tenants` from             ║
- * ║  tests/integration/server/auth/) and that this story's new RLS negative  ║
- * ║  suites reference. It is a CONTRACT, not an implementation.              ║
- * ║                                                                          ║
- * ║  The REAL implementation lands in the Story 2.2 DEV phase, which:        ║
- * ║    - stands up the local Supabase stack (`supabase start` /              ║
- * ║      `supabase db reset`),                                                ║
- * ║    - creates the `tenants` / `tenant_memberships` migration + RLS,       ║
- * ║    - wires a real per-worker, auto-cleaning two-tenant fixture using the  ║
- * ║      Supabase admin (service-role) API — TEST-ONLY, confined to          ║
- * ║      `tests/factories/**`, NEVER imported into `src/`/`app/`/client       ║
- * ║      paths (the `check-service-role-containment.mjs` guard scans          ║
- * ║      `tests/` and would catch a `"use client"` leak).                     ║
- * ║                                                                          ║
- * ║  DO NOT install a runner, add the Supabase CLI to package.json, or       ║
- * ║  create any `supabase/migrations/**` file as a side effect of this       ║
- * ║  scaffold — those are the DEV phase's gated actions (story Task 1.1).     ║
- * ╚══════════════════════════════════════════════════════════════════════════╝
+ * Provisions a fresh, per-call two-tenant pair against the LOCAL Supabase stack
+ * and hands back the exact handle shape the Story 2.1 gated INT scaffold and this
+ * story's RLS negative suites import:
+ *   { tenantA, tenantB, adminA, adminB, orphanUser }
+ * plus `makeAuthedServerClient(user)` / `makeAnonServerClient()`.
  *
- * PARALLEL SAFETY (H5 / R-012 — required of the green-phase implementation):
- *   `createTwoTenantFixture()` MUST provision its OWN tenant pair per worker
- *   (unique names/ids, e.g. worker-id- or faker-suffixed) — NO shared mutable
- *   fixture across workers — and auto-clean (or rely on per-run `supabase db
- *   reset`) so runs are deterministic and parallel-safe.
- *
- * EXTENSIBILITY (B1 — required): the contract must extend cleanly to
- *   CRM/calculation/quote/file records in Epic 3+ WITHOUT rework. Keep the
- *   handle shape additive.
- *
- * AUTH-USER CREATION (B2): auth users are created via the Supabase admin API
- *   (service-role) with password-based / admin-created credentials — magic-link
- *   is NOT used for automated tests. The local stack must allow these without
- *   email confirmation (`config.toml` `[auth] enable_confirmations = false`).
+ * ─ Auth-user creation (B2): users are created via the Supabase ADMIN API
+ *   (service-role) with a password, email pre-confirmed — magic-link is not used
+ *   for automated tests, and the local stack has `enable_confirmations = false`.
+ * ─ Service-role containment: the admin/service-role key is TEST-ONLY and lives
+ *   ONLY in `tests/**` (the `check-service-role-containment.mjs` guard scans
+ *   `tests/` and would catch a leak into a `"use client"` path). It is NEVER
+ *   imported into `src/`/`app/`.
+ * ─ Parallel safety (H5 / R-012): every call to `createTwoTenantFixture()`
+ *   provisions its OWN tenants/users with globally-unique ids + names (uuid +
+ *   monotonic suffix), so concurrent workers never share mutable fixture state.
+ *   No `supabase db reset` between tests is required for isolation — the unique
+ *   ids guarantee it — but CI resets once up-front for a clean baseline.
+ * ─ Extensibility (B1): the handle is additive. Epic 3+ adds `customerA` /
+ *   `quoteA` handles ALONGSIDE these without renaming or reshaping the existing
+ *   five — the forward-compat smoke in factory-isolation.int.test.ts pins that.
  */
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import {
+  LOCAL_SUPABASE_ANON_KEY,
+  LOCAL_SUPABASE_SERVICE_ROLE_KEY,
+  LOCAL_SUPABASE_URL,
+} from "../support/test-env";
+import { adminExec } from "./admin-sql";
 
 /**
  * A provisioned tenant row (subset of `tenants` the tests assert against).
@@ -80,45 +70,183 @@ export interface TwoTenantFixture {
 }
 
 /**
- * A minimal structural type for the per-request SSR/anon Supabase client the
- * tests drive. The green phase returns a real `@supabase/ssr` server client
- * (anon key only) bound to the given user's authenticated session. Kept loose
- * here so the red-phase contract type-checks without the runtime client.
+ * The per-request anon-key Supabase client the tests drive. A real
+ * `@supabase/supabase-js` client (anon key only, RLS-bound) — structurally
+ * compatible with the `@supabase/ssr` server client the resolver expects
+ * (`.auth.getClaims()` + `.from(...)`).
  */
-export type TestServerClient = unknown;
+export type TestServerClient = SupabaseClient;
 
-function notYetImplemented(api: string): never {
-  throw new Error(
-    `RED-PHASE: ${api} is a Story 2.2 factory contract stub. The real two-tenant ` +
-      "fixture (local Supabase stack + admin/service-role user creation + per-worker " +
-      "isolation) is built in the Story 2.2 dev phase. Suites that call it are " +
-      "`describe.skip`-ed until then.",
-  );
+/** Options for seeding a membership (used by the role/status CHECK negatives). */
+export interface MembershipSeed {
+  readonly tenant_id: string;
+  readonly user_id: string;
+  readonly role: string;
+  readonly status: string;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Internals
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Monotonic per-process suffix so names are unique even within one worker. */
+let seq = 0;
+function uniqueSuffix(): string {
+  seq += 1;
+  // crypto.randomUUID() guarantees cross-worker uniqueness; seq disambiguates
+  // multiple fixtures created back-to-back in the same worker.
+  return `${Date.now().toString(36)}-${seq}-${crypto.randomUUID().slice(0, 8)}`;
+}
+
+/** The shared TEST-ONLY service-role admin client (bypasses RLS for setup). */
+let adminClient: SupabaseClient | null = null;
+function admin(): SupabaseClient {
+  if (!adminClient) {
+    adminClient = createClient(
+      LOCAL_SUPABASE_URL,
+      LOCAL_SUPABASE_SERVICE_ROLE_KEY,
+      { auth: { autoRefreshToken: false, persistSession: false } },
+    );
+  }
+  return adminClient;
+}
+
+/** Create a password-based, email-confirmed auth user via the admin API (B2). */
+async function createAuthUser(label: string): Promise<FixtureUser> {
+  const suffix = uniqueSuffix();
+  const email = `${label}-${suffix}@example.test`;
+  const password = `Pw-${suffix}-Aa1!`;
+
+  const { data, error } = await admin().auth.admin.createUser({
+    email,
+    password,
+    email_confirm: true,
+  });
+  if (error || !data.user) {
+    throw new Error(
+      `factory: failed to create auth user (${label}): ${error?.message ?? "no user returned"}`,
+    );
+  }
+  return { id: data.user.id, email, password };
+}
+
+/** Insert a `tenants` row via the service-role client (bypasses RLS). */
+async function createTenant(label: string): Promise<FixtureTenant> {
+  const name = `${label} ${uniqueSuffix()}`;
+  const { data, error } = await admin()
+    .from("tenants")
+    .insert({ name })
+    .select("id, name")
+    .single();
+  if (error || !data) {
+    throw new Error(
+      `factory: failed to create tenant (${label}): ${error?.message ?? "no row returned"}`,
+    );
+  }
+  return { id: data.id as string, name: data.name as string };
 }
 
 /**
- * Provision a fresh, per-worker two-tenant pair: two `tenants`, two active
+ * Seed a membership via the service-role client (bypasses RLS). Exposed so the
+ * role/status CHECK-constraint negatives can drive the admin path directly and
+ * prove the CHECK bites (not RLS). Returns the inserted row; THROWS on DB error
+ * (e.g. a CHECK violation) so `await expect(...).rejects` works.
+ */
+export async function adminInsertMembership(seed: MembershipSeed): Promise<void> {
+  const { error } = await admin().from("tenant_memberships").insert(seed);
+  if (error) {
+    // Re-throw as an Error so the CHECK-constraint negatives can assert on it.
+    throw new Error(error.message);
+  }
+}
+
+/**
+ * Provision a fresh, per-call two-tenant pair: two `tenants`, two ACTIVE
  * `tenant_admin` users (one per tenant), and one authenticated-but-membership-less
- * "orphan" user. RED-PHASE STUB — see header.
+ * "orphan" user.
  */
 export async function createTwoTenantFixture(): Promise<TwoTenantFixture> {
-  return notYetImplemented("createTwoTenantFixture()");
+  const [tenantA, tenantB] = await Promise.all([
+    createTenant("Tenant A"),
+    createTenant("Tenant B"),
+  ]);
+
+  const [adminA, adminB, orphanUser] = await Promise.all([
+    createAuthUser("admin-a"),
+    createAuthUser("admin-b"),
+    createAuthUser("orphan"),
+  ]);
+
+  await Promise.all([
+    adminInsertMembership({
+      tenant_id: tenantA.id,
+      user_id: adminA.id,
+      role: "tenant_admin",
+      status: "active",
+    }),
+    adminInsertMembership({
+      tenant_id: tenantB.id,
+      user_id: adminB.id,
+      role: "tenant_admin",
+      status: "active",
+    }),
+  ]);
+  // orphanUser intentionally gets NO membership row.
+
+  return { tenantA, tenantB, adminA, adminB, orphanUser };
 }
 
 /**
- * Build a real per-request SSR/anon server client bound to `user`'s authenticated
- * session (anon key + RLS — the same path the app runtime uses). RED-PHASE STUB.
+ * Build a real per-request anon-key Supabase client bound to `user`'s
+ * authenticated session (the same anon key + RLS path the app runtime uses).
+ * Signs in with the user's password so `getClaims()` re-validates a real JWT.
  */
 export async function makeAuthedServerClient(
   user: FixtureUser,
 ): Promise<TestServerClient> {
-  void user;
-  return notYetImplemented("makeAuthedServerClient(user)");
+  const client = createClient(LOCAL_SUPABASE_URL, LOCAL_SUPABASE_ANON_KEY, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+  const { error } = await client.auth.signInWithPassword({
+    email: user.email,
+    password: user.password,
+  });
+  if (error) {
+    throw new Error(
+      `factory: failed to sign in fixture user ${user.email}: ${error.message}`,
+    );
+  }
+  return client;
+}
+
+/** Build an UNAUTHENTICATED (anonymous) anon-key client (no session). */
+export async function makeAnonServerClient(): Promise<TestServerClient> {
+  return createClient(LOCAL_SUPABASE_URL, LOCAL_SUPABASE_ANON_KEY, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
 }
 
 /**
- * Build an UNAUTHENTICATED (anonymous) anon-key server client. RED-PHASE STUB.
+ * Best-effort cleanup of a fixture's auth users (memberships/tenants cascade on
+ * user delete via the FK, and tenants are removed explicitly). Optional — runs
+ * rely primarily on unique ids + the CI `db reset` for isolation, but cleaning up
+ * keeps a long-lived local DB from accumulating fixtures.
  */
-export async function makeAnonServerClient(): Promise<TestServerClient> {
-  return notYetImplemented("makeAnonServerClient()");
+export async function cleanupFixture(fixture: TwoTenantFixture): Promise<void> {
+  const userIds = [fixture.adminA.id, fixture.adminB.id, fixture.orphanUser.id];
+  for (const id of userIds) {
+    try {
+      await admin().auth.admin.deleteUser(id);
+    } catch {
+      // best-effort
+    }
+  }
+  // Remove the tenant rows (memberships already cascaded with the users).
+  try {
+    await adminExec(`delete from public.tenants where id = any($1::uuid[])`, [
+      [fixture.tenantA.id, fixture.tenantB.id],
+    ]);
+  } catch {
+    // best-effort
+  }
 }

@@ -1,57 +1,61 @@
 # Tests
 
-This directory holds the first acceptance tests for the project. They were authored
-ATDD-style (red phase) during **Story 2.1 — Tenant Admin Login And Tenant Context
-Resolution** and pin Story 2.1's acceptance criteria.
+This directory holds the project's automated tests. Two deliberately-separated
+runners are used (the TEA `testarch-framework` decision landed in **Story 2.2**;
+architecture §18):
 
-## Runner: dependency-free `node --test` for unit suites; INT/E2E gated on Story 2.2
+- **`node --test`** (dependency-free) — pure-logic unit suites under `tests/unit/**`.
+  Run with `pnpm run test:unit`. Uses Node's built-in test runner +
+  `--experimental-strip-types`; the `@/*` alias and extensionless TS imports are
+  resolved by `tests/support/alias-hook.mjs` (via `tests/support/register.mjs`).
+- **Vitest** — DB-backed integration + RLS-negative suites under `tests/integration/**`.
+  Run with `pnpm run test:int`. The `@/*` alias is resolved natively by Vite 8
+  (`resolve.tsconfigPaths`). These need a live **local Supabase stack**.
 
-`pnpm test` now runs the platform unit suites via **`node --test`** with
-`--experimental-strip-types` (Node's built-in test runner + native TS type-stripping —
-**no test-framework dependency added**, consistent with the project's bare-Node
-`scripts/verify/*.mjs` pattern). The `@/*` alias and extensionless TS imports are resolved
-by `tests/support/alias-hook.mjs` (registered via `tests/support/register.mjs`). Only
-`tests/unit/**/*.test.ts` is collected.
+`pnpm test` runs both, in order.
 
-The **authoritative DB-backed INT tests and the browser E2E** are **GATED on Story 2.2's
-local Supabase stack + two-tenant factories** (and, for E2E, a browser runner such as
-Playwright). Those scaffolds (`tests/integration/**`, `tests/e2e/**`) are written against
-a `describe`/`it`/`page` API and are **excluded from `tsconfig`** until that runner +
-types land — they are the red-phase spec carried forward (Story 2.1 Task 6.2 hand-off).
-**Do not add a heavier test framework or a browser runner as a side effect of touching
-these files** — that is a separate, gated step owned by the TEA `testarch-framework`
-decision / Story 2.2.
+## Running the DB-backed suites
+
+```bash
+supabase start && supabase db reset   # local stack only — never shared dev/staging/prod
+pnpm run test:int
+```
+
+The integration suites talk to the **local Supabase stack only** (architecture §18).
+When the stack is unreachable they **skip** (so contributors without Docker still get
+a green `test:unit`); CI sets `SUPABASE_TEST_REQUIRED=1` so a missing stack is a hard
+failure there. Connection/keys come from `tests/support/test-env.ts` (the universal
+local-demo defaults; overridable via `SUPABASE_TEST_*` — not real secrets).
+
+## Test-only service-role usage
+
+The two-tenant factories (`tests/factories/`) create auth users and seed
+tenants/memberships via the Supabase admin (service-role) path and a direct `pg`
+superuser connection (`admin-sql.ts`). This is **TEST-ONLY** and confined to
+`tests/factories/**` — the `check-service-role-containment.mjs` guard scans `tests/`
+and would flag any leak into a `src/`/`app/` client path. The app runtime never uses
+a service-role or raw-superuser path.
 
 ## Layout
 
-| Path | Level | Status | Runs when |
-| --- | --- | --- | --- |
-| `unit/resolve-tenant-context-core.test.ts` | Unit (pure decision core, no I/O) | **GREEN — runs in `pnpm test`** | Now (`node --test`) |
-| `unit/server/auth/resolve-tenant-context-core-edges.test.ts` | Unit (core edge cases: user-safe message contract / no-leakage, clientTenantId boundaries, presentational pass-through) | **GREEN — runs in `pnpm test`** | Now (`node --test`) |
-| `unit/server/auth/resolve-tenant-context.test.ts` | Unit (resolver, faked Supabase client injected) | **GREEN — runs in `pnpm test`** | Now (`node --test`) |
-| `unit/server/auth/resolve-tenant-context-claims.test.ts` | Unit (resolver `getClaims()` extraction branches: malformed/partial claims, unauthenticated DB short-circuit) | **GREEN — runs in `pnpm test`** | Now (`node --test`) |
-| `unit/server/auth/resolve-tenant-context-tenant-name.test.ts` | Unit (`tenants(name)` normalization: object/array/malformed/absent → presentational `tenantName`) | **GREEN — runs in `pnpm test`** | Now (`node --test`) |
-| `unit/server/db/supabase-env.test.ts` | Unit (`getSupabasePublicEnv` contract: required-var throws name-only, no secret-value leak, no service-role dependency) | **GREEN — runs in `pnpm test`** | Now (`node --test`) |
-| `unit/lib/result/result.test.ts` | Unit (`Result` `ok`/`err` helpers: discriminant + no `data` on failure) | **GREEN — runs in `pnpm test`** | Now (`node --test`) |
-| `unit/scripts/verify/service-role-containment.test.ts` | Unit (R-002 guard bite proof) | **GREEN — runs in `pnpm test`** | Now (`node --test`) |
-| `integration/server/auth/resolve-tenant-context.int.test.ts` | Integration (DB-backed) | **GATED on Story 2.2** (`.skip`, excluded from tsconfig) | Story 2.2 local Supabase stack + two-tenant factories |
-| `integration/rls/cross-tenant-isolation.rls.test.ts` | RLS negative (SELECT/INSERT/UPDATE/DELETE × `tenants`/`tenant_memberships`) | **GATED on Story 2.2 dev stack** (`.skip`, excluded from tsconfig) | Story 2.2 local Supabase stack + migration + factories |
-| `integration/rls/membership-self-grant.rls.test.ts` | RLS (self-grant/escalation denied + role/status CHECK) | **GATED on Story 2.2 dev stack** (`.skip`, excluded) | Story 2.2 dev stack |
-| `integration/rls/security-definer-search-path.rls.test.ts` | INT (SECURITY DEFINER search-path hijack negative, AC4/R-006) | **GATED on Story 2.2 dev stack** (`.skip`, excluded) | Story 2.2 dev stack + helpers |
-| `integration/rls/migration-reset.int.test.ts` | INT (`supabase db reset` green + objects present, AC1/R-007) | **GATED on Story 2.2 dev stack** (`.skip`, excluded) | Story 2.2 dev stack |
-| `integration/rls/factory-isolation.int.test.ts` | INT (per-worker fixture isolation R-012 + 2.1 un-gate marker AC5) | **GATED on Story 2.2 dev stack** (`.skip`, excluded) | Story 2.2 dev stack + factories |
-| `factories/tenants.ts` | Test-only factory CONTRACT (B1) | **RED-PHASE STUB** (exports throw until dev phase) | Story 2.2 dev phase fills the body |
-| `e2e/auth/login-and-tenant-context.e2e.spec.ts` | E2E (browser) | **GATED on framework + Story 2.2** (`.skip`, excluded from tsconfig) | Playwright configured + 2.2 seeded users |
+| Path | Level | Status |
+| --- | --- | --- |
+| `unit/**` | Pure-logic units (resolver core/edges, claims, tenant-name, env, Result, the service-role + lockfile guard bite proofs) | **GREEN** (`pnpm run test:unit`, `node --test`) |
+| `integration/server/auth/resolve-tenant-context.int.test.ts` | Integration (DB-backed) — Story 2.1 AC1-AC4, un-gated in 2.2 | **GREEN** (`pnpm run test:int`, local stack) |
+| `integration/rls/cross-tenant-isolation.rls.test.ts` | RLS negative (SELECT/INSERT/UPDATE/DELETE × `tenants`/`tenant_memberships`) | **GREEN** (local stack) |
+| `integration/rls/membership-self-grant.rls.test.ts` | RLS (self-grant/escalation denied + role/status CHECK bite) | **GREEN** (local stack) |
+| `integration/rls/security-definer-search-path.rls.test.ts` | INT (SECURITY DEFINER search-path hijack negative, AC4/R-006) | **GREEN** (local stack) |
+| `integration/rls/migration-reset.int.test.ts` | INT (`supabase db reset` green + objects present, AC1/R-007) | **GREEN** (local stack) |
+| `integration/rls/factory-isolation.int.test.ts` | INT (per-worker fixture isolation R-012 + 2.1 un-gate marker AC5) | **GREEN** (local stack) |
+| `factories/tenants.ts` | Two-tenant factory (B1) — `createTwoTenantFixture` / `makeAuthedServerClient` / `makeAnonServerClient` | **IMPLEMENTED** (real, local stack) |
+| `factories/admin-sql.ts` | Test-only admin SQL helper (`pg` superuser) for introspection + the R-006 hijack proof | **IMPLEMENTED** |
+| `e2e/auth/login-and-tenant-context.e2e.spec.ts` | E2E (browser) | **DEFERRED** (`.skip`, tsconfig-excluded) — Playwright is out of Story 2.2 scope (owner: a later E2E/Story-2.4 task) |
 
-## Red-phase convention
+## Notes
 
-- Every suite is `describe.skip(...)` so it cannot fail CI before its dependencies
-  exist. The implementer removes `.skip` when wiring the real code (green phase).
-- Assertions encode **expected behavior** — no placeholder `expect(true).toBe(true)`.
-- Authoritative DB-backed isolation/RLS tests are **owned by Story 2.2's stack**
-  (`test-design-epic-2.md` "Critical Prerequisite"); the gated files here are the
-  red-phase spec carried forward so Story 2.2/2.4 can confirm nothing fell through
-  (Story 2.1 Task 6.2 hand-off).
-
-See `_bmad-output/test-artifacts/atdd-checklist-2-1-tenant-admin-login-and-tenant-context-resolution.md`
-for the full acceptance-criteria → test mapping and green-phase steps.
+- The browser E2E scaffold stays `.skip`-ed and excluded from `tsconfig` until a
+  browser runner (Playwright) lands — that is a separate, gated step (deferred-work
+  ledger). The DB-backed INT scaffold, by contrast, now RUNS for real.
+- Per-worker isolation: every `createTwoTenantFixture()` call provisions its own
+  tenants/users with globally-unique ids + names (H5 / R-012) — no shared mutable
+  fixture. CI also `supabase db reset`s once up-front for a clean baseline.

@@ -92,27 +92,59 @@ Rules (see [`docs/security/security-guardrails.md`](../security/security-guardra
   exposed to the client. Any service-role use must be documented with file path,
   purpose, and test coverage.
 
-## Local Supabase (forthcoming — not yet wired)
+## Local Supabase (wired)
 
-Supabase is the Phase A backend (Auth + Postgres + Storage, architecture §6), but
-it is **not set up in this repo yet**. There is intentionally:
+Supabase is the Phase A backend (Auth + Postgres + Storage, architecture §6). The
+local CLI stack is now wired: `supabase/config.toml`, the first migration
+(`supabase/migrations/*_tenant_foundation.sql`), and a minimal `supabase/seed.sql`
+live in the repo (architecture §3, §7, §8, §9).
 
-- **No `supabase/` directory, no `config.toml`, no migrations, no `seed.sql`** —
-  these are introduced by **Epic 2** (Story 2.2 brings the first migrations +
-  local reset). Creating any of them is an approval-gated migration story, not
-  this setup work.
+### Prerequisites
 
-So Supabase-local commands (`supabase start`, `supabase db reset`, `supabase
-stop`, …) are **forthcoming**, not steps to run today. When that work lands:
+- **Docker** must be running locally (Docker Desktop on Windows/macOS). The
+  Supabase CLI starts its stack as Docker containers.
+- **The Supabase CLI** is a DEV tool, not a runtime dependency — it is **not** in
+  `package.json`. Install it once via your platform package manager (e.g.
+  `scoop install supabase`, `brew install supabase/tap/supabase`) or use the
+  pinned CI action. Pin the version you use; do not add it as an npm dependency.
 
-- Automated tests run against a **local Supabase stack only — never a shared
-  dev/staging/prod project.** See [`ci.md` — Test Environment Ground Rules](../quality/ci.md#test-environment-ground-rules).
-- `seed.sql` stays a minimal deterministic baseline; business fixtures come from
-  test-only factories (Story 2.2).
+### Commands
+
+```bash
+supabase start        # boot the local stack (Auth + Postgres + Storage) in Docker
+supabase db reset     # recreate the DB from EMPTY: apply migrations, then seed.sql
+supabase stop         # stop the local stack
+```
+
+- `supabase db reset` is the authoritative "empty DB → migrate → seed" check
+  (architecture §19 stage 6). Run it after pulling new migrations.
+- The local stack prints its `API_URL`, `anon`/`service_role` keys, and `DB_URL`
+  on `supabase start` / `supabase status`. These are **fixed local-demo defaults**
+  (issuer `supabase-demo`), the same on every machine — they are **not secrets**.
+  The test factories read them via `tests/support/test-env.ts` (overridable with
+  `SUPABASE_TEST_*` env vars). Real project keys never go in git.
+
+### Running the DB-backed tests
+
+```bash
+pnpm run test:unit    # pure-logic units (node --test) — no Docker needed
+pnpm run test:int     # DB-backed integration + RLS negatives (needs the local stack)
+pnpm test             # both, in order
+```
+
+`pnpm run test:int` (Vitest) runs the integration + cross-tenant RLS-negative
+suites against the **local Supabase stack only — never a shared dev/staging/prod
+project** (architecture §18). If the stack is not reachable it **skips** those
+suites locally; CI sets `SUPABASE_TEST_REQUIRED=1` so a missing stack is a hard
+failure there. Always `supabase db reset` first for a clean baseline.
+
+- `seed.sql` stays a minimal deterministic baseline; business/tenant fixtures come
+  from the per-worker test-only factories (`tests/factories/`), not the seed.
+- See [`ci.md` — Test Environment Ground Rules](../quality/ci.md#test-environment-ground-rules).
 
 ## Windows / WSL / Docker conventions
 
-These are the standing rules for when Supabase-local / Docker work lands
+These are the standing rules for this repo's Supabase-local / Docker stack
 (architecture §3). They apply to **this repo's** local stack; do not generalize
 them into global machine changes.
 
@@ -124,12 +156,14 @@ them into global machine changes.
   parallel checkouts don't collide.
 - **No DB data bind mounts to Windows paths** — use named volumes; Windows-path
   bind mounts for Postgres data are slow and fragile.
-- **Configurable localhost ports** — ports must be overridable so multiple
-  projects/instances can coexist.
+- **Configurable localhost ports** — ports are overridable in `config.toml` so
+  multiple projects/instances can coexist (the defaults are `54321`-`54327`).
 - **`.env` kept out of git** — see the environment-variable contract above.
 
-Docker/Supabase are documented here as **forthcoming (Epic 2)**; nothing is
-installed or scaffolded by this story.
+The Supabase CLI honors these conventions automatically: it namespaces its Docker
+containers by `project_id` (no fixed `container_name`), uses named volumes for the
+Postgres data (no Windows-path bind mounts), and requires no global Docker/WSL
+changes beyond having Docker running.
 
 ## Lovable oracle policy
 

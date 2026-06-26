@@ -1,0 +1,13 @@
+-- ============================================================================
+-- seed.sql — minimal deterministic baseline ONLY (architecture §18; test-design B1).
+--
+-- Loaded by `supabase db reset` AFTER migrations. Intentionally EMPTY of
+-- business/tenant data: tenants, auth users, and tenant_admin memberships are
+-- provisioned PER WORKER by the test-only factories (tests/factories/tenants.ts),
+-- never here — so parallel test workers get isolated, disposable fixtures and no
+-- shared mutable state (H5 / R-012).
+--
+-- Add only rows that EVERY environment must have deterministically (e.g. global
+-- enum/reference data) if such tables are introduced by a later story. For Story
+-- 2.2 there is no such baseline data, so this file is deliberately a no-op.
+-- ============================================================================
