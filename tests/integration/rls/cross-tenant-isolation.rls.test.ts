@@ -40,10 +40,18 @@ afterAll(async () => {
 /** A row that, if it slipped past RLS, would forge Tenant B ownership. */
 function spoofedRowFor(table: TableName): Record<string, unknown> {
   if (table === "tenants") {
-    // Inserting a tenants row carrying Tenant B's id == claiming Tenant B's root.
-    return { id: fixture.tenantB.id, name: "spoofed-by-tenant-a" };
+    // Insert a NEW tenant root with a FRESH id (review fix 2026-06-26). Reusing
+    // Tenant B's existing PK would let the INSERT fail with `23505` (unique_violation)
+    // BEFORE the privilege/RLS layer is reached — a green that proves nothing about
+    // isolation (it would stay green even if the privilege layer were removed). With a
+    // fresh uuid the only thing that can reject the write is the missing INSERT GRANT
+    // / RLS, so the test exercises the ACTUAL denial. Tenant A still has no business
+    // creating tenant roots through the app path.
+    return { id: crypto.randomUUID(), name: "spoofed-by-tenant-a" };
   }
-  // A membership row carrying Tenant B's tenant_id == self-grant into Tenant B.
+  // A membership row carrying Tenant B's tenant_id == self-grant into Tenant B. Uses
+  // adminA's own user_id against Tenant B (a NON-conflicting row), so the denial is
+  // the missing INSERT GRANT / RLS, not a unique collision.
   return {
     tenant_id: fixture.tenantB.id,
     user_id: fixture.adminA.id,
@@ -74,8 +82,13 @@ describe("Cross-tenant RLS isolation — tenants + tenant_memberships (AC2 / R-0
       it(`[P0] INSERT: Tenant A admin cannot INSERT a ${table} row carrying Tenant B ownership (no spoof)`, async () => {
         if (!stackUp) return;
         const { error } = await a.from(table).insert(spoofedRowFor(table));
-        // No INSERT policy on the app path → RLS rejects the write.
+        // Assert the DENIAL MECHANISM, not a bare non-null error. `authenticated` has
+        // NO INSERT GRANT on these tables, so the write is denied at the privilege
+        // layer with `42501` (permission denied) — NOT a `23505` PK collision (the
+        // spoof row uses a fresh id / non-conflicting key, review fix 2026-06-26).
+        // This proves the privilege/RLS layer is doing the work, not a unique key.
         expect(error).not.toBeNull();
+        expect(error?.code).toBe("42501");
       });
 
       it(`[P0] UPDATE: Tenant A admin cannot UPDATE Tenant B's ${table} rows`, async () => {

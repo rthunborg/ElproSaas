@@ -124,28 +124,51 @@ async function resolveTenantContextInner(
   //     candidate set and select the preferred row EXPLICITLY below (active-first, then
   //     oldest). The `(tenant_id, user_id)` UNIQUE constraint means a single user has at
   //     most one row per tenant, so this set is only non-trivial ACROSS tenants.
-  const { data: membershipRows, error: membershipError } = await supabase
-    .from("tenant_memberships")
-    .select("tenant_id, role, status, created_at, tenants(name)")
-    .eq("user_id", user.id)
-    .eq("role", TENANT_ADMIN_ROLE)
+  //
+  //     Cap correctness (review fix 2026-06-26): the candidate set is bounded by an explicit
+  //     `.limit(10)` blast-radius guard, but the preferred row is the `active` one — which
+  //     `created_at` ordering alone does NOT guarantee survives the cap (a >10-tenant admin
+  //     whose only active row is the 11th-oldest would have it truncated, silently locking
+  //     out a rightful admin). So we fetch ACTIVE rows FIRST in a bounded query: filtering
+  //     `status='active'` at the SQL layer means the active row can never be truncated by the
+  //     cap, regardless of tenant count. Only when NO active row exists do we fall back to a
+  //     capped fetch of the remaining rows — needed solely so the pure core can distinguish a
+  //     disabled/invited membership (TENANT_MEMBERSHIP_REQUIRED, a deliberate case) from "no
+  //     row at all". The pure-core active-first selection stays the authority over both sets.
+  const baseQuery = () =>
+    supabase
+      .from("tenant_memberships")
+      .select("tenant_id, role, status, created_at, tenants(name)")
+      .eq("user_id", user.id)
+      .eq("role", TENANT_ADMIN_ROLE);
+
+  // (b1) Active rows first — filtered, so the user's active membership is NEVER capped out.
+  const { data: activeRows, error: activeError } = await baseQuery()
+    .eq("status", "active")
     .order("created_at", { ascending: true })
-    // Bound the candidate set. `UNIQUE(tenant_id, user_id)` already caps it to one
-    // row per tenant, but nothing caps tenant count; a user seeded into many tenants
-    // would otherwise return up to PostgREST's max_rows (1000) for in-memory
-    // selection. A small explicit cap restores the blast-radius guard the prior
-    // `.limit(1)` provided, without re-introducing the fragile "first row wins"
-    // dependency (the active-first selection runs over the capped set).
     .limit(10);
 
   // A real query error is a TRANSIENT infrastructure failure (DB down, RLS misconfig, pool
   // exhaustion) — NOT "you have no membership". Map it to the distinct SERVER_ERROR code so
   // an outage is never mislabeled as a permanent no-access denial (Task 7.1). Fail closed.
-  if (membershipError) {
+  if (activeError) {
     return err("SERVER_ERROR", TENANT_CONTEXT_MESSAGES.SERVER_ERROR);
   }
 
-  const membership = selectPreferredMembership(membershipRows ?? []);
+  // (b2) Fall back to the full capped set ONLY when there is no active row, so the pure core
+  //      can still treat a disabled/invited row as a DISTINCT no-access case from "no row".
+  let membershipRows = activeRows ?? [];
+  if (membershipRows.length === 0) {
+    const { data: anyRows, error: anyError } = await baseQuery()
+      .order("created_at", { ascending: true })
+      .limit(10);
+    if (anyError) {
+      return err("SERVER_ERROR", TENANT_CONTEXT_MESSAGES.SERVER_ERROR);
+    }
+    membershipRows = anyRows ?? [];
+  }
+
+  const membership = selectPreferredMembership(membershipRows);
 
   // (c) Pure decision (active + role; client-tenant-id is ignored, never the authority).
   return resolveTenantContextCore({

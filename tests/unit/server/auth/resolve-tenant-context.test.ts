@@ -56,23 +56,37 @@ function makeFakeSupabase(script: FakeScript) {
     : null;
 
   // The resolver now fetches the candidate SET (no `.maybeSingle()`) and selects the
-  // preferred row itself (Task 7.2). The query is awaited directly after `.order(...)`, so
-  // the builder is a thenable resolving to `{ data: rows[], error }`.
+  // preferred row itself (Task 7.2). It issues an ACTIVE-FIRST query (`.eq("status",
+  // "active")` — so the active row can never be capped out, review fix 2026-06-26) and ONLY
+  // when that returns zero rows falls back to a second, unfiltered capped query. The fake
+  // builder below tracks whether the `status='active'` filter was applied per query chain
+  // and returns the matching subset, so both the active-first path and the disabled/invited
+  // fallback are exercised faithfully.
   const rows = script.memberships ?? (script.membership ? [script.membership] : []);
-  const queryResult = {
-    data: script.membershipError ? null : rows,
-    error: script.membershipError ? { message: "db error" } : null,
-  };
 
-  // Chainable, awaitable query builder; every link returns `this`, and awaiting the chain
-  // (after `.order(...)`) yields `queryResult` via `.then`.
-  const builder = {
-    select: () => builder,
-    eq: () => builder,
-    order: () => builder,
-    limit: () => builder,
-    then: (resolve: (value: typeof queryResult) => unknown) => resolve(queryResult),
-  };
+  // `from()` returns a FRESH builder per call, since the resolver may run two queries.
+  function makeBuilder() {
+    let activeOnly = false;
+    const builder = {
+      select: () => builder,
+      eq: (column?: string, value?: unknown) => {
+        if (column === "status" && value === "active") activeOnly = true;
+        return builder;
+      },
+      order: () => builder,
+      limit: () => builder,
+      then: (resolve: (value: { data: unknown; error: unknown }) => unknown) => {
+        if (script.membershipError) {
+          return resolve({ data: null, error: { message: "db error" } });
+        }
+        const selected = activeOnly
+          ? rows.filter((r) => r.status === "active")
+          : rows;
+        return resolve({ data: selected, error: null });
+      },
+    };
+    return builder;
+  }
 
   return {
     auth: {
@@ -81,7 +95,7 @@ function makeFakeSupabase(script: FakeScript) {
         error: script.authError ? { message: "invalid jwt" } : null,
       }),
     },
-    from: () => builder,
+    from: () => makeBuilder(),
   } as unknown as NonNullable<
     Parameters<typeof resolveTenantContext>[0]
   >["client"];
@@ -283,6 +297,49 @@ test("Task 7.2: with both a disabled and an active admin row (across tenants), t
     assert.equal(result.data.tenantId, TENANT_B); // the ACTIVE membership, not the first row
     assert.equal(result.data.status, "active");
     assert.equal(result.data.tenantName, "Active Tenant");
+  }
+});
+
+test("Review fix: a >10-tenant admin whose ONLY active row would be the 11th-oldest still resolves it (active-first SQL query, never capped out)", async () => {
+  // Regression for the `.limit(10)` truncation finding (2026-06-26): the resolver fetches
+  // `status='active'` rows FIRST at the SQL layer, so the active membership can never be
+  // truncated by the blast-radius cap — even for an admin who belongs to many tenants and
+  // whose active row sorts LAST by `created_at`. Build 12 disabled rows (older) + 1 active
+  // row (newest); the active-first query returns only the active row, so it resolves.
+  const ACTIVE_TENANT = "33333333-3333-3333-3333-333333333333";
+  const manyMemberships: NonNullable<FakeMembership>[] = [];
+  for (let i = 0; i < 12; i++) {
+    manyMemberships.push({
+      tenant_id: `00000000-0000-0000-0000-0000000000${(i + 10).toString()}`,
+      role: "tenant_admin",
+      status: "disabled",
+      // Disabled rows are OLDER; the active row (below) is the newest, so a naive
+      // `created_at`-ascending `.limit(10)` over the FULL set would truncate it.
+      created_at: `2026-01-${(i + 1).toString().padStart(2, "0")}T00:00:00Z`,
+      tenants: { name: `Disabled Tenant ${i}` },
+    });
+  }
+  manyMemberships.push({
+    tenant_id: ACTIVE_TENANT,
+    role: "tenant_admin",
+    status: "active",
+    created_at: "2026-12-31T00:00:00Z", // newest → would be capped out without active-first
+    tenants: { name: "The One Active Tenant" },
+  });
+
+  const client = makeFakeSupabase({
+    user: { id: USER_ID },
+    membership: null,
+    memberships: manyMemberships,
+  });
+
+  const result = await resolveTenantContext({ client });
+
+  assert.equal(result.ok, true);
+  if (result.ok) {
+    assert.equal(result.data.tenantId, ACTIVE_TENANT);
+    assert.equal(result.data.status, "active");
+    assert.equal(result.data.tenantName, "The One Active Tenant");
   }
 });
 

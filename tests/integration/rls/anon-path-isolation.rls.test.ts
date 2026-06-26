@@ -134,11 +134,17 @@ describe("RLS helpers are NOT anon-callable — no membership-existence oracle (
       const { data, error } = await anon.rpc(helper, {
         target_tenant_id: fixture.tenantA.id,
       });
-      // Either an explicit error, or no boolean result — never a `true` that would
-      // let an unauthenticated caller probe whether a membership exists.
-      expect(error !== null || typeof data !== "boolean" || data === false).toBe(
-        true,
-      );
+      // Assert the DENIAL MECHANISM, not a vacuous disjunction: anon has NO EXECUTE
+      // on the helper (`REVOKE EXECUTE … FROM public`, granted only to
+      // authenticated/service_role), so the call MUST fail at the privilege layer
+      // (42501 permission denied for function). The prior `error !== null || … ||
+      // data === false` form was satisfied by a `false` result with NO error — so a
+      // future change that GRANTed anon EXECUTE (turning the helper into a
+      // membership-existence oracle) would still pass while the test claimed anon
+      // lacks EXECUTE. Require the error explicitly, keeping `data !== true` as a
+      // backstop (review fix 2026-06-26).
+      expect(error).not.toBeNull();
+      expect(error?.code).toBe("42501");
       expect(data).not.toBe(true);
     });
   }
