@@ -53,6 +53,38 @@ Required when auth, tenant data, storage, server commands, or database policies 
 - No unauthenticated privileged endpoint.
 - Storage access tested for tenant isolation.
 
+### Standing PR contract — tenant-owned tables must be enrolled (RLS coverage gate)
+
+The cross-tenant negative tests are not a manual reviewer checklist — they are an
+**automated standing gate** (architecture §18; the §9 RLS test matrix). A product PR
+that **adds or touches a tenant-owned table MUST enroll it** in the parameterized
+cross-tenant negative suite **before merge**, or CI fails:
+
+- The single enrollment point is the tenant-table inventory module
+  (`tests/integration/rls/tenant-table-inventory.ts`, `TENANT_TABLES`). The
+  cross-tenant suite, the anonymous-path suite, **and** the H4 RLS table-inventory
+  gate all read that one list, so a new table enlists by **data** (one edit), not by
+  a copy-pasted parallel suite.
+- The **H4 inventory gate** (`tests/integration/rls/rls-inventory-gate.int.test.ts`,
+  run by the `db` job's `test:int`) introspects the live schema for tenant-owned
+  `public` base tables and fails CI with a named **"table not covered"** message when
+  any is unenrolled. A missing enrollment is **red CI, not reviewer diligence**
+  (architecture §18 RLS coverage gate). "Tenant-owned" is defined precisely in the
+  inventory module header (a `public` base table with a direct `tenant_id` column, or
+  the `tenants` root); the gate handles the `tenants` edge case explicitly.
+- **Service-role containment** is enforced at two layers: a fast source-level
+  pre-build guard (`verify:service-role-containment`) and the **authoritative
+  built-bundle grep** (`verify:bundle-containment`, run **after** `pnpm build`) that
+  scans the produced `.next` payload for any service-role key name, the
+  `LOCAL_SUPABASE_SERVICE_ROLE_KEY` re-export symbol, a `NEXT_PUBLIC_*SERVICE_ROLE*`
+  name, or a `service_role` JWT value (architecture §9, §20). This app uses no
+  service-role key (anon + RLS), so a clean build yields zero hits; a planted token
+  turns the check red.
+- The **command-isolation** dimension (a client-supplied `tenant_id`/parent id is
+  rejected even when submitted) is enforced by the server command envelope and proven
+  by `tests/integration/commands/envelope-failure-modes.int.test.ts`
+  (`TENANT_ACCESS_DENIED`) — the §9 "Command isolation" matrix row.
+
 ## Gate 5: Migration And Coexistence
 
 Required when importing or replacing current Lovable behavior:

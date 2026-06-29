@@ -1,11 +1,15 @@
 name: CI
 
 # Phase A verification gates (architecture §19).
-# `verify` job — stages 1-5: install, lockfile guard, service-role containment,
-#   typecheck, lint, unit tests, build.
+# `verify` job — stages 1-5 + 10: install, lockfile guard, service-role containment
+#   (source-level), typecheck, lint, unit tests, build, then the Story 2.4
+#   AUTHORITATIVE built-bundle service-role containment grep over `.next` (runs
+#   AFTER build — order is load-bearing).
 # `db` job — stages 6 + 8 (ACTIVATED by Story 2.2): Supabase migration reset from
 #   an EMPTY db, then the DB-backed integration + RLS-negative suites against the
-#   LOCAL stack only. See docs/quality/ci.md for the gate-to-story mapping.
+#   LOCAL stack only — now including the Story 2.4 H4 RLS table-inventory gate that
+#   fails CI when a tenant-owned table is not enrolled. See docs/quality/ci.md for
+#   the gate-to-story mapping.
 #
 # Stop conditions honored: no secrets, no shared dev/staging/prod project, no
 # deploy step. The `db` job uses the LOCAL Supabase CLI stack only (its keys are
@@ -70,6 +74,14 @@ jobs:
 
       - name: Build
         run: pnpm build
+
+      # Stage 10 (lightweight containment): the AUTHORITATIVE R-002 built-bundle
+      # service-role grep (Story 2.4). MUST run AFTER `pnpm build` — it scans the
+      # produced `.next/` payload and FAILS LOUD if `.next` is absent, so the order
+      # is load-bearing (architecture §19; never reorder before build). This app
+      # uses NO service-role key (anon + RLS), so a clean build yields zero hits.
+      - name: Verify built-bundle service-role containment (no leakage in .next)
+        run: pnpm run verify:bundle-containment
 
   # ──────────────────────────────────────────────────────────────────────────
   # Story 2.2 activates architecture §19 stage 6 (migration reset) + stage 8

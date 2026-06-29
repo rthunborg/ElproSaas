@@ -1,0 +1,315 @@
+/**
+ * Story 2.4 — the SINGLE SOURCE OF TRUTH tenant-table inventory (Task 1.2).
+ *
+ * This module is the one place a tenant-owned table enrolls into the security
+ * harness. The parameterized cross-tenant negative suite
+ * (`cross-tenant-isolation.rls.test.ts`), the anonymous-path negative suite
+ * (`anon-path-isolation.rls.test.ts`), AND the H4 RLS table-inventory gate
+ * (`rls-inventory-gate.int.test.ts`) all import `TENANT_TABLES` and the per-table
+ * metadata from HERE — so adding a future tenant-owned table is a ONE-PLACE edit
+ * (data-driven, not a copy-pasted parallel suite). [architecture §18]
+ *
+ * ┌─────────────────────────────────────────────────────────────────────────────┐
+ * │ "TENANT-OWNED" — the gate's precise, stable definition (architecture §6/§7).  │
+ * │                                                                              │
+ * │ A `public` BASE table that EITHER                                            │
+ * │   (a) carries a direct `tenant_id` column, OR                                │
+ * │   (b) IS the literal `tenants` ROOT table — its PK `id` IS the tenant id, it  │
+ * │       has NO `tenant_id` column, yet it IS tenant-owned and IS RLS-protected, │
+ * │ and is NOT a global enum/reference table nor an auth-owned table.            │
+ * │                                                                              │
+ * │ CRITICAL EDGE CASE: a naive `WHERE column_name = 'tenant_id'` inventory query │
+ * │ DROPS `tenants` (no tenant_id column) and the gate would go SILENTLY          │
+ * │ incomplete. `introspectTenantOwnedTables` therefore UNIONS the tenant_id-     │
+ * │ carrying tables with the literal `tenants` (a documented seed anchored on the │
+ * │ architecture §7 root). Always schema-qualify to `public` — an internal        │
+ * │ `_realtime.tenants` exists too (see migration-reset.int.test.ts) and MUST NOT │
+ * │ be counted.                                                                   │
+ * │                                                                              │
+ * │ STANDING CONTRACT (Epics 3-9): a product PR that ADDS or TOUCHES a            │
+ * │ tenant-owned table MUST enroll it in `TENANT_TABLES` below (with its          │
+ * │ spoof/filter/mutation metadata) BEFORE merge. The H4 gate fails CI with a     │
+ * │ named "table not covered" message when it does not — automated enforcement,   │
+ * │ not reviewer diligence. See docs/quality/quality-gates.md (Gate 4).          │
+ * └─────────────────────────────────────────────────────────────────────────────┘
+ *
+ * EXPECTED current tenant-owned set: EXACTLY {tenants, tenant_memberships,
+ * audit_events} (architecture §7 v0). `tenant_counters` and the rest are later
+ * stories — the gate will demand THEIR enrollment when they land.
+ *
+ * TEST-ONLY: imported only by suites under `tests/integration/rls/**`. The
+ * introspection runs the loopback-gated `pg` superuser pool (admin-sql.ts).
+ */
+import type { TwoTenantFixture } from "../../factories/tenants";
+
+/**
+ * The `tenants` ROOT table — tenant-owned despite carrying NO `tenant_id` column
+ * (its PK `id` IS the tenant id). It MUST be unioned into the introspected set and
+ * MUST be enrolled. Named here so the gate's edge-case handling is a single,
+ * documented constant rather than a magic string scattered across queries.
+ */
+export const TENANT_ROOT_TABLE = "tenants" as const;
+
+/** The enrolled tenant-owned tables — the single source of truth (Task 1.2). */
+export const TENANT_TABLES = [
+  "tenants",
+  "tenant_memberships",
+  "audit_events",
+] as const;
+
+export type TenantTableName = (typeof TENANT_TABLES)[number];
+
+/** The path to this module, surfaced in the gate's developer-facing failure (DX). */
+export const INVENTORY_MODULE_PATH =
+  "tests/integration/rls/tenant-table-inventory.ts";
+
+/**
+ * Per-table cross-tenant metadata, extracted verbatim (behaviour-preserving) from
+ * `cross-tenant-isolation.rls.test.ts`. Each entry depends on the live two-tenant
+ * fixture + (for audit_events) a seeded Tenant B audit row id, so the helpers take
+ * a context object rather than closing over suite-local variables.
+ */
+export interface InventoryContext {
+  readonly fixture: TwoTenantFixture;
+  /** A REAL Tenant B audit row id (cross-tenant target for the audit_events row). */
+  readonly tenantBAuditId: string;
+}
+
+/**
+ * A row that, if it slipped past RLS, would forge Tenant B ownership for `table`.
+ *
+ * Each uses a FRESH `crypto.randomUUID()` id (or a non-conflicting key) so the
+ * denial is the PRIVILEGE layer (`42501` — missing INSERT GRANT / RLS), NOT a PK
+ * collision (`23505`) — a green that would prove nothing about isolation. Behaviour
+ * is unchanged from the original cross-tenant suite (Story 2.2/2.3 review fixes).
+ */
+export function spoofedRowFor(
+  table: TenantTableName,
+  ctx: InventoryContext,
+): Record<string, unknown> {
+  const { fixture } = ctx;
+  if (table === "tenants") {
+    // A NEW tenant root with a FRESH id (review fix 2026-06-26). Reusing Tenant B's
+    // existing PK would fail with `23505` BEFORE the privilege/RLS layer is reached.
+    // With a fresh uuid only the missing INSERT GRANT / RLS can reject the write, so
+    // the test exercises the ACTUAL denial.
+    return { id: crypto.randomUUID(), name: "spoofed-by-tenant-a" };
+  }
+  if (table === "audit_events") {
+    // An audit row carrying Tenant B's tenant_id == a forged cross-tenant audit
+    // write. FRESH id so the denial is the missing INSERT GRANT (42501), not a PK
+    // collision (the app path has NO direct INSERT grant on audit_events — writes go
+    // via the record_audit_event DEFINER).
+    return {
+      id: crypto.randomUUID(),
+      tenant_id: fixture.tenantB.id,
+      actor_user_id: fixture.adminA.id,
+      command: "spoof.by.a",
+      event_type: "spoof.by.a",
+      target_type: "tenant",
+      target_id: fixture.tenantB.id,
+      correlation_id: crypto.randomUUID(),
+      metadata: {},
+    };
+  }
+  // A membership row carrying Tenant B's tenant_id == self-grant into Tenant B. Uses
+  // adminA's own user_id against Tenant B (a NON-conflicting row), so the denial is
+  // the missing INSERT GRANT / RLS, not a unique collision.
+  return {
+    tenant_id: fixture.tenantB.id,
+    user_id: fixture.adminA.id,
+    role: "tenant_admin",
+    status: "active",
+  };
+}
+
+/** The id column + value to filter Tenant B's existing rows by, per table. */
+export function tenantBFilter(
+  table: TenantTableName,
+  ctx: InventoryContext,
+): { column: string; value: string } {
+  if (table === "tenants") {
+    return { column: "id", value: ctx.fixture.tenantB.id };
+  }
+  if (table === "audit_events") {
+    return { column: "id", value: ctx.tenantBAuditId };
+  }
+  return { column: "tenant_id", value: ctx.fixture.tenantB.id };
+}
+
+/**
+ * The UPDATE mutation payload that, if it landed, would hijack Tenant B's row.
+ * `audit_events` is append-only (no update grant), so its payload still triggers
+ * the same 42501 privilege denial the suite asserts.
+ */
+export function hijackMutationFor(
+  table: TenantTableName,
+): Record<string, unknown> {
+  if (table === "tenants") return { name: "hijacked-by-tenant-a" };
+  if (table === "audit_events") return { metadata: { hijacked: true } };
+  return { status: "disabled" };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Anonymous-path metadata (anon-path-isolation.rls.test.ts) — every enrolled
+// table covered for anon SELECT/INSERT/UPDATE/DELETE (AC5).
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * A row an ANONYMOUS caller might try to write into `table` (a forged tenant root
+ * / self-grant / cross-tenant audit write). Anon has NO grant on any of these, so
+ * the write is denied at the privilege layer regardless of the row's shape.
+ */
+export function anonRowFor(
+  table: TenantTableName,
+  ctx: InventoryContext,
+): Record<string, unknown> {
+  const { fixture } = ctx;
+  if (table === "tenants") {
+    return { id: crypto.randomUUID(), name: "anon-spoof" };
+  }
+  if (table === "audit_events") {
+    return {
+      id: crypto.randomUUID(),
+      tenant_id: fixture.tenantA.id,
+      actor_user_id: fixture.adminA.id,
+      command: "anon.spoof",
+      event_type: "anon.spoof",
+      target_type: "tenant",
+      target_id: fixture.tenantA.id,
+      correlation_id: crypto.randomUUID(),
+      metadata: {},
+    };
+  }
+  return {
+    tenant_id: fixture.tenantA.id,
+    user_id: fixture.adminA.id,
+    role: "tenant_admin",
+    status: "active",
+  };
+}
+
+/**
+ * The id column + value an anonymous UPDATE/DELETE would target on `table`. Anon is
+ * denied at the privilege layer before any row matches, so the value need only be a
+ * valid existing Tenant A row.
+ */
+export function anonFilterFor(
+  table: TenantTableName,
+  ctx: InventoryContext,
+): { column: string; value: string } {
+  if (table === "tenants") {
+    return { column: "id", value: ctx.fixture.tenantA.id };
+  }
+  if (table === "audit_events") {
+    return { column: "tenant_id", value: ctx.fixture.tenantA.id };
+  }
+  return { column: "tenant_id", value: ctx.fixture.tenantA.id };
+}
+
+/** The anon UPDATE mutation payload per table (denied at the privilege layer). */
+export function anonMutationFor(
+  table: TenantTableName,
+): Record<string, unknown> {
+  if (table === "tenants") return { name: "anon-hijack" };
+  if (table === "audit_events") return { metadata: { hijacked: true } };
+  return { status: "disabled" };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// The H4 gate core (Task 1.1 / 1.4).
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** A minimal admin-query signature so the gate can be exercised with fakes too. */
+export type AdminQueryFn = <T extends Record<string, unknown>>(
+  sql: string,
+  params?: readonly unknown[],
+) => Promise<T[]>;
+
+/**
+ * Introspect the LIVE schema and return the set of TENANT-OWNED `public` base
+ * tables (see the module header for the precise definition). It UNIONS the
+ * `tenant_id`-carrying base tables with the literal `tenants` root — handling the
+ * load-bearing `tenants` edge case explicitly so a naive column heuristic cannot
+ * drop it. Schema-qualified to `public` (never `_realtime.tenants`).
+ *
+ * `auth`-owned and other non-`public` tables are excluded by the `public`
+ * namespace filter; partitions/views are excluded by `relkind = 'r'`.
+ */
+export async function introspectTenantOwnedTables(
+  adminQuery: AdminQueryFn,
+): Promise<Set<string>> {
+  // (a) Every `public` BASE table carrying a direct `tenant_id` column.
+  const carriers = await adminQuery<{ table_name: string }>(
+    `select c.relname as table_name
+       from pg_class c
+       join pg_namespace n on n.oid = c.relnamespace
+       join pg_attribute a
+         on a.attrelid = c.oid
+        and a.attname = 'tenant_id'
+        and a.attnum > 0
+        and not a.attisdropped
+      where n.nspname = 'public'
+        and c.relkind = 'r'`,
+  );
+
+  const owned = new Set(carriers.map((r) => r.table_name));
+
+  // (b) The literal `tenants` ROOT — tenant-owned but carries NO tenant_id column,
+  // so the carrier query above never returns it. Union it in EXPLICITLY, but only
+  // if it actually exists as a `public` base table (so the gate reflects the real
+  // schema, never a phantom). This is the documented edge-case handling.
+  const rootRows = await adminQuery<{ exists: boolean }>(
+    `select exists(
+       select 1 from pg_class c
+       join pg_namespace n on n.oid = c.relnamespace
+       where n.nspname = 'public'
+         and c.relname = $1
+         and c.relkind = 'r'
+     ) as exists`,
+    [TENANT_ROOT_TABLE],
+  );
+  if (rootRows[0]?.exists) owned.add(TENANT_ROOT_TABLE);
+
+  return owned;
+}
+
+/**
+ * PURE comparison core (Task 1.4) — mirrors the resolve-tenant-context-core
+ * pure-core pattern so the gate's bite is unit-testable with fakes (no DB, no
+ * scratch branch). Returns the SORTED, de-duped list of tables that are
+ * tenant-owned IN SCHEMA but NOT enrolled (the H4 violation set).
+ *
+ * Guards ONLY the `owned ⊆ enrolled` direction: an enrolled-but-not-yet-in-schema
+ * table is harmless here (coverage that landed early), so it is NOT reported.
+ *
+ * @param owned    the tenant-owned tables present in the live schema.
+ * @param enrolled the tables enrolled in the parameterized negative suite.
+ */
+export function findUnenrolledTenantTables(
+  owned: Iterable<string>,
+  enrolled: Iterable<string>,
+): string[] {
+  const enrolledSet = new Set(enrolled);
+  const missing = new Set<string>();
+  for (const table of owned) {
+    if (!enrolledSet.has(table)) missing.add(table);
+  }
+  return [...missing].sort();
+}
+
+/**
+ * Build the developer-facing failure message for an unenrolled tenant-owned table
+ * (Task 1.3 / P3 DX). Names the offending table(s) AND points at the inventory
+ * module to update — so a future contributor knows EXACTLY what enrollment
+ * requires, not just that "something" is uncovered.
+ */
+export function unenrolledTablesMessage(unenrolled: readonly string[]): string {
+  return (
+    `H4 RLS coverage gate (architecture §18): ${unenrolled.length} tenant-owned ` +
+    `table(s) NOT enrolled in the parameterized cross-tenant negative suite: ` +
+    `${unenrolled.join(", ")}. Every tenant-owned table MUST be enrolled before ` +
+    `merge — add it to TENANT_TABLES (with its spoofedRowFor/tenantBFilter/` +
+    `mutation metadata) in ${INVENTORY_MODULE_PATH}, then re-run the harness.`
+  );
+}

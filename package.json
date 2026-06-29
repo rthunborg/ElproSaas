@@ -17,7 +17,8 @@
     "test:int": "vitest run",
     "test:int:watch": "vitest",
     "verify:lockfiles": "node scripts/verify/check-lockfiles.mjs",
-    "verify:service-role-containment": "node scripts/verify/check-service-role-containment.mjs"
+    "verify:service-role-containment": "node scripts/verify/check-service-role-containment.mjs",
+    "verify:bundle-containment": "node scripts/verify/check-bundle-containment.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "0.12.0",
