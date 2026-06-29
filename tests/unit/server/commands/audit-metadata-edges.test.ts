@@ -1,0 +1,102 @@
+/**
+ * Story 2.3 — PURE-LOGIC BOUNDARY/EDGE tests for the audit METADATA SANITIZER
+ * (`@/server/commands/audit-metadata`), supplementing the primary allow-list proofs
+ * in `audit-metadata.test.ts` (AC5 / R-010). These exercise the per-field validators
+ * at their exact boundaries and the non-object input handling — the branches a
+ * generic "drops a planted secret" test does not pin down.
+ *
+ * Coverage gap closed by this file (test-automation expansion): the MAX_SHORT_STRING
+ * length boundary (128 keep / 129 drop), control-char rejection INSIDE an
+ * allow-listed field (a leaked multi-line blob smuggled under a safe key name),
+ * `targetVersion` numeric validation (float / NaN / Infinity / unsafe-int / non-number
+ * all dropped, 0 and negative safe-integers kept), non-object inputs (null / array /
+ * string / number -> `{}`), and prototype-pollution-style keys being ignored because
+ * they are not on the allow-list.
+ *
+ * NOTE: control characters in the source below are written as ESCAPE SEQUENCES
+ * (`\u0000`, `\t`, `\r`, `\n`) so this file stays plain UTF-8 text and is fully
+ * reviewable — never embed a raw control byte in a `.test.ts`. [Review][Patch][Med]
+ *
+ * COVERAGE (test-design-epic-2.md P1, R-010; story AC5).
+ */
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { sanitizeAuditMetadata } from "@/server/commands/audit-metadata";
+
+const MAX = 128; // mirrors MAX_SHORT_STRING in the sanitizer
+
+test("R-010 boundary: a safe string of EXACTLY 128 chars survives; 129 is dropped (bounded by construction)", () => {
+  const at = "a".repeat(MAX);
+  const over = "a".repeat(MAX + 1);
+  assert.equal(sanitizeAuditMetadata({ reason: at }).reason, at);
+  assert.equal("reason" in sanitizeAuditMetadata({ reason: over }), false);
+});
+
+test("R-010 boundary: an empty-string allow-listed field is dropped (no zero-length safe field persisted)", () => {
+  assert.equal("reason" in sanitizeAuditMetadata({ reason: "" }), false);
+});
+
+test("R-010: an allow-listed KEY carrying a control-char/multi-line blob is DROPPED (a leaked .env hidden under `reason` cannot ride through)", () => {
+  const leaked = "ok\nSUPABASE_SERVICE_ROLE_KEY=eyJ...\nDATABASE_URL=postgres://u:p@h/db";
+  const out = sanitizeAuditMetadata({ reason: leaked });
+  assert.equal("reason" in out, false);
+  assert.equal(/SERVICE_ROLE_KEY|DATABASE_URL/.test(JSON.stringify(out)), false);
+});
+
+test("R-010: a tab or carriage-return inside an allow-listed string also drops it (any control char fails the single-line bound)", () => {
+  assert.equal("beforeHash" in sanitizeAuditMetadata({ beforeHash: "a\tb" }), false);
+  assert.equal("afterHash" in sanitizeAuditMetadata({ afterHash: "a\rb" }), false);
+  // A raw NUL embedded in an allow-listed string is a control char and must drop the
+  // field. Written as the `\u0000` escape so the source is plain reviewable text.
+  assert.equal("reason" in sanitizeAuditMetadata({ reason: "a\u0000b" }), false);
+});
+
+test("R-010: a non-string value on a string allow-list field is dropped (no coercion of numbers/objects/booleans)", () => {
+  assert.equal("reason" in sanitizeAuditMetadata({ reason: 42 }), false);
+  assert.equal("reason" in sanitizeAuditMetadata({ reason: { nested: "x" } }), false);
+  assert.equal("reason" in sanitizeAuditMetadata({ reason: true }), false);
+  assert.equal("reason" in sanitizeAuditMetadata({ reason: null }), false);
+});
+
+test("R-010: targetVersion accepts safe integers (incl. 0 and negatives) and DROPS float/NaN/Infinity/unsafe-int/non-number", () => {
+  assert.equal(sanitizeAuditMetadata({ targetVersion: 0 }).targetVersion, 0);
+  assert.equal(sanitizeAuditMetadata({ targetVersion: -5 }).targetVersion, -5);
+  assert.equal(sanitizeAuditMetadata({ targetVersion: 7 }).targetVersion, 7);
+
+  assert.equal("targetVersion" in sanitizeAuditMetadata({ targetVersion: 1.5 }), false);
+  assert.equal("targetVersion" in sanitizeAuditMetadata({ targetVersion: NaN }), false);
+  assert.equal("targetVersion" in sanitizeAuditMetadata({ targetVersion: Infinity }), false);
+  assert.equal(
+    "targetVersion" in sanitizeAuditMetadata({ targetVersion: Number.MAX_SAFE_INTEGER + 1 }),
+    false,
+  );
+  assert.equal("targetVersion" in sanitizeAuditMetadata({ targetVersion: "3" }), false);
+});
+
+test("R-010: a mixed payload keeps ONLY the valid allow-listed fields and drops the rest in one pass", () => {
+  const out = sanitizeAuditMetadata({
+    reason: "membership_disabled", // keep
+    targetVersion: 2, // keep
+    beforeHash: "x".repeat(MAX + 1), // drop (too long)
+    afterHash: 99, // drop (not a string)
+    apiKey: "sk_live_xxx", // drop (unknown key)
+  });
+  assert.deepEqual(out, { reason: "membership_disabled", targetVersion: 2 });
+});
+
+test("R-010: non-object inputs (null / array / string / number / undefined) all yield a safe EMPTY object", () => {
+  assert.deepEqual(sanitizeAuditMetadata(null), {});
+  assert.deepEqual(sanitizeAuditMetadata(undefined), {});
+  assert.deepEqual(sanitizeAuditMetadata("reason=evil"), {});
+  assert.deepEqual(sanitizeAuditMetadata(123), {});
+  assert.deepEqual(sanitizeAuditMetadata(["reason", "evil"]), {});
+});
+
+test("R-010: prototype-pollution-style keys are ignored — they are not on the allow-list and never reach the row", () => {
+  const out = sanitizeAuditMetadata(
+    JSON.parse('{"__proto__": {"polluted": true}, "constructor": "x", "reason": "ok"}'),
+  );
+  assert.deepEqual(out, { reason: "ok" });
+  // The sanitizer output's prototype was not polluted.
+  assert.equal(({} as Record<string, unknown>).polluted, undefined);
+});

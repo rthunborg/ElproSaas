@@ -40,5 +40,9 @@
     // scaffold uses bare describe/it globals with no runner types and would not
     // type-check until that runner lands.
     "tests/e2e/**"
+    // Story 2.3 RE-ENROLLED its command suites into typecheck (dev-story landed
+    // `@/server/commands/*` + `tests/factories/audit-events` + the migration, and
+    // the suites flipped GREEN): the previous `tests/unit/server/commands/**` and
+    // `tests/integration/commands/**` excludes are removed.
   ]
 }

@@ -1,0 +1,57 @@
+# auto-bmad per-story state — written by scripts/state_update.py (full stable schema;
+# see references/state-and-resume.md). Prose belongs in reports/{key}.md, not here.
+story_key: 2-3-server-command-envelope-and-minimal-audit-events
+epic_num: 2
+story_num: 3
+branch: story/2-3-server-command-envelope-and-minimal-audit-events
+status: done
+updated_at: "2026-06-29T14:00:19Z"
+started_at: "2026-06-29T11:39:26Z"
+completed_at: "2026-06-29T14:00:19Z"
+active_seconds: 6686
+timing_anchor: null
+is_first_in_epic: false
+is_last_in_epic: false
+needs_project_context_bootstrap: false
+git_mode: remote
+base_branch: main
+tea_risk: high
+tea_selected: [atdd, automate]
+tea_rationale: "Auth/authz command envelope (auth + permissions) plus new audit_events schema/migration with RLS and append-only invariant (data integrity + security) — three independent High triggers."
+epic_story_count: 4
+stories_after_in_epic: 1
+completed_phases: [0, 1, 2, 3, 4, 5, 6, 7, 8]
+code_review_iterations: 2
+code_review_loop_done: true
+hitl_halt: "skipped (clean convergence)"
+external_review_iterations: 0
+convergence_unverified: false
+story_trace: null
+commits: [f571f65, 669d61d, 6ea3d12, 8e0ddd0, 42f67b8, 7aea071, "1149180"]
+phase8_steps:
+  trace_gate: null
+  nfr: null
+  test_review: null
+  project_context: null
+  reconcile: null
+  archive: null
+  retro: null
+gate_decision: null
+gate_iterations: 0
+deferred_work_archived: 0
+pr_url: "https://github.com/rthunborg/ElproSaas/pull/8"
+ci_run_url: "https://github.com/rthunborg/ElproSaas/actions/runs/28377251755"
+ci_status: passed
+pr_merged: false
+merge_method: null
+merge_commit: null
+branch_deleted: false
+open_questions:
+  - "Audit-write privilege path: dev-story to confirm the SECURITY DEFINER record_audit_event RPC (preferred) vs a GRANT/policy-only approach — if the latter, the DEFINER search-path-hijack suite and the anon-EXECUTE 42501 assertion become N/A and should be removed with the decision recorded."
+deferred_work:
+  - "Business-table audit wiring (recording domain mutations through the envelope) -> Epic 3-8 command stories."
+  - "Audit-history consumer UI (AC7 is substrate-only — no read surface yet) -> record-context UI stories."
+  - "audit_events_select_own co-member audit-read least-privilege tightening -> Story 2.4 / RBAC seam."
+blockers: []
+overrides: {}
+constraints: []

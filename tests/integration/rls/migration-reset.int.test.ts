@@ -106,14 +106,21 @@ describe("Migration reset green — tenant_foundation objects present (AC1 / R-0
     expect(rows[0]?.is_nullable).toBe("NO");
   });
 
-  it("[P0] only the two expected SELECT policies exist (no write policy on the app path)", async () => {
+  it("[P0] only SELECT policies exist (no write policy on the app path)", async () => {
     if (!stackUp) return;
     const rows = await adminQuery<{ tablename: string; cmd: string }>(
       `select tablename, cmd from pg_policies where schemaname = 'public'`,
     );
-    // Exactly two policies, both SELECT — confirming INSERT/UPDATE/DELETE are
-    // deny-by-default for the authenticated app path (AC3 foundation).
-    expect(rows).toHaveLength(2);
+    // Every public policy is SELECT — confirming INSERT/UPDATE/DELETE are
+    // deny-by-default for the authenticated app path (AC3 foundation). Story 2.3
+    // adds a third SELECT-only policy (`audit_events_select_own`) alongside the two
+    // tenant_foundation ones (`tenants_select_own`, `tenant_memberships_select_own`);
+    // no write policy is introduced on the app path.
+    expect(rows.map((r) => `${r.tablename}.${r.cmd}`).sort()).toEqual([
+      "audit_events.SELECT",
+      "tenant_memberships.SELECT",
+      "tenants.SELECT",
+    ]);
     for (const r of rows) {
       expect(r.cmd).toBe("SELECT");
     }

@@ -1,17 +1,64 @@
 ---
 stepsCompleted: ['step-01-preflight-and-context', 'step-02-identify-targets', 'step-03-generate-tests']
 lastStep: 'step-03-generate-tests'
-lastSaved: '2026-06-26'
+lastSaved: '2026-06-29'
 inputDocuments:
-  - _bmad-output/implementation-artifacts/2-2-tenant-membership-schema-rls-helpers-and-two-tenant-fixtures.md
+  - _bmad-output/implementation-artifacts/2-3-server-command-envelope-and-minimal-audit-events.md
   - _bmad-output/test-artifacts/test-design-epic-2.md
-  - supabase/migrations/20260625122433_tenant_foundation.sql
-  - src/server/auth/resolve-tenant-context.ts
-  - tests/factories/tenants.ts
-  - tests/factories/admin-sql.ts
+  - supabase/migrations/20260629121136_audit_events.sql
+  - src/server/commands/envelope-core.ts
+  - src/server/commands/audit-metadata.ts
+  - src/server/commands/correlation.ts
+  - tests/factories/audit-events.ts
 ---
 
-# Test Automation Expansion — Story 2.2 (Tenant Membership Schema, RLS Helpers, Two-Tenant Fixtures)
+# Test Automation Expansion — Story 2.3 (Server Command Envelope & Minimal Audit Events)
+
+## Mode & Stack
+
+- **Mode:** BMad-Integrated (story 2.3 + test-design-epic-2 loaded).
+- **Detected stack:** backend/fullstack — pure TS command-envelope layer (`node --test`) over a DB-backed audit substrate (Vitest + local Supabase).
+- **Framework:** present — dual runner (`pnpm run test:unit` = `node --test`; `pnpm run test:int` = Vitest). No framework HALT.
+- **Baseline:** 88 unit + 80 DB-backed integration tests, all green (verified after a clean `supabase db reset`).
+
+## Existing coverage (do NOT duplicate)
+
+- Envelope gate ordering + stable codes (unit `envelope-core.test.ts`); DB-backed failure modes per gate incl. R-004 client-tenant-id spoof.
+- Happy-path field-by-field audit-row assertion (AC1/AC3/AC6); append-only app-path + privileged-path denial (R-009); cross-tenant enrollment in the data-driven `TABLES` array.
+- Anon SELECT/INSERT denial + anon NO-EXECUTE on `record_audit_event` (R-003); DEFINER search-path hijack negative + control (R-006).
+- Metadata sanitizer primary allow-list proofs (R-010); clock determinism (R-011).
+
+## Genuine coverage GAPS targeted (new tests — pure-logic, no DB)
+
+| # | Gap | Level | Priority | Rationale |
+|---|-----|-------|----------|-----------|
+| G1 | `resolveCorrelationId` had ZERO unit coverage | Unit | P1 | Authority-surface primitive every command uses (one id per invocation → `audit_events.correlation_id`). Branches untested: inbound passthrough, empty/null/undefined → fresh UUID, per-call uniqueness. |
+| G2 | Metadata sanitizer per-field validator BOUNDARIES | Unit | P1 (R-010) | Primary suite proved "drops a planted secret" but not the exact bounds: 128-char keep / 129 drop, control-char rejection INSIDE an allow-listed key (a leaked `.env` smuggled under `reason`), `targetVersion` float/NaN/Infinity/unsafe-int/non-number rejection, non-object inputs → `{}`, prototype-pollution keys ignored. |
+| G3 | Envelope-core AUDIT-ROW composition branches | Unit | P1 (AC3/AC6) | Audit write was only observed as count (1 / 0). The default `buildAuditFields` fallback (`targetType ?? ''`, null id, `{}`), the builder-override path, the per-field stamping (tenant/actor/command/event_type/correlation/created_at), and the recordAudit-throws → SERVER_ERROR fail-closed path were unasserted. |
+
+## Justification for scope
+
+Selective. Story 2.3 already carries a thorough AC-level matrix (failure modes, audit fields, append-only, cross-tenant, anon, DEFINER hijack, determinism). The expansion closes three **pure-logic** gaps — a fully-untested primitive (G1), sanitizer boundary branches (G2), and audit-row composition branches (G3) — each a distinct guarantee with no current proof, without re-asserting any covered property. All new tests are pure (`node --test`, no DB), fast, and deterministic.
+
+## New test files (23 tests added)
+
+- `tests/unit/server/commands/correlation.test.ts` (6) — G1: inbound passthrough (incl. UUID-shaped), empty/null/undefined → fresh UUID, per-call uniqueness.
+- `tests/unit/server/commands/audit-metadata-edges.test.ts` (9) — G2: 128/129 length boundary, empty-string drop, control-char-in-safe-key drop, non-string drop, `targetVersion` numeric validation, mixed-payload single-pass, non-object → `{}`, prototype-pollution ignored.
+- `tests/unit/server/commands/envelope-core-edges.test.ts` (8) — G3: default + override audit-row fields, tenant/actor/command/event_type/correlation/created_at stamping, audit-write-throws → SERVER_ERROR, non-auditable execute-still-runs, short-circuit before body.
+
+## Verification
+
+- `pnpm run test:unit`: **111 pass** (was 88; +23). No regression.
+- `pnpm typecheck`: clean (test files enrolled). `pnpm lint`: clean. `pnpm run verify:service-role-containment`: green (new files confined to `tests/**`).
+- `pnpm run test:int` after a clean `supabase db reset`: **80 pass** (unchanged — no integration tests added).
+
+## Finding surfaced (pre-existing latent defect, NOT introduced here)
+
+The `audit_events_append_only` `BEFORE UPDATE OR DELETE` trigger also fires on the `tenant_id` `on delete cascade` path. `cleanupFixture` deletes tenant rows expecting the FK cascade to remove their audit rows, but the trigger raises `restrict_violation` and BLOCKS the cascade — so fixture teardown silently fails (logged as a warning, not a hard error) and audit rows accumulate across runs. Because some DB-backed audit tests use HARD-CODED correlation ids, a non-reset DB eventually shows >1 row for a "unique" id and `envelope-audit-write.int.test.ts` fails on a stale-row collision. A clean `supabase db reset` is green; CI (which resets) is unaffected. Recommended fix (owner: a follow-up): let the append-only trigger permit cascade deletes (e.g. skip the raise when `tg_op = 'DELETE'` under a cascading tenant delete) OR have `cleanupFixture` privileged-delete `audit_events` before the tenant. Not in this story's automation scope; surfaced for triage.
+
+---
+
+## (Historical) Test Automation Expansion — Story 2.2 (Tenant Membership Schema, RLS Helpers, Two-Tenant Fixtures)
 
 ## Mode & Stack
 
