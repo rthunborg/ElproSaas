@@ -177,3 +177,74 @@ test("AC2: a SERVER_ERROR from the tenant-context resolver is surfaced verbatim 
   }
   assert.equal(auditWrites.length, 0);
 });
+
+// ── [Review][Patch][Med]: the core's "no raw throw, correct stable code" contract
+//    must hold at the CORE boundary — a throwing validate/ownership/buildAuditFields
+//    or an Invalid-Date clock must NOT escape runCommandCore unmapped. ────────────
+
+test("[Review][Patch] a THROWING validator maps to VALIDATION_FAILED at the core boundary (not an escaped throw), no audit row", async () => {
+  const { input, auditWrites } = makeScenario({
+    validate: () => {
+      throw new Error("validator blew up");
+    },
+  });
+  const result = await runCommandCore(input);
+
+  assert.equal(result.ok, false);
+  if (!result.ok) assert.equal(result.code, "VALIDATION_FAILED");
+  assert.equal(auditWrites.length, 0);
+});
+
+test("[Review][Patch] a THROWING ownership checker fails closed to SERVER_ERROR (no execute, no audit)", async () => {
+  let executed = false;
+  const { input, auditWrites } = makeScenario({
+    verifyOwnership: async () => {
+      throw new Error("ownership SELECT rejected");
+    },
+    execute: async () => {
+      executed = true;
+      return { id: TARGET_ID };
+    },
+  });
+  const result = await runCommandCore(input);
+
+  assert.equal(result.ok, false);
+  if (!result.ok) assert.equal(result.code, "SERVER_ERROR");
+  assert.equal(executed, false);
+  assert.equal(auditWrites.length, 0);
+});
+
+test("[Review][Decision] an ownership checker returning SERVER_ERROR (transient DB error) is surfaced as SERVER_ERROR, NOT masked as TENANT_ACCESS_DENIED", async () => {
+  const { input, auditWrites } = makeScenario({
+    verifyOwnership: async () => ({ ok: false, code: "SERVER_ERROR" }),
+  });
+  const result = await runCommandCore(input);
+
+  assert.equal(result.ok, false);
+  if (!result.ok) assert.equal(result.code, "SERVER_ERROR");
+  assert.equal(auditWrites.length, 0);
+});
+
+test("[Review][Patch] an Invalid-Date command clock maps to SERVER_ERROR before any toISOString() can throw, no audit row", async () => {
+  const { input, auditWrites } = makeScenario({
+    clock: { now: () => new Date("not-a-date") },
+  });
+  const result = await runCommandCore(input);
+
+  assert.equal(result.ok, false);
+  if (!result.ok) assert.equal(result.code, "SERVER_ERROR");
+  assert.equal(auditWrites.length, 0);
+});
+
+test("[Review][Patch] a THROWING buildAuditFields maps to SERVER_ERROR (the audit-row build is inside the core try), no audit row", async () => {
+  const { input, auditWrites } = makeScenario({
+    buildAuditFields: () => {
+      throw new Error("metadata derivation blew up");
+    },
+  });
+  const result = await runCommandCore(input);
+
+  assert.equal(result.ok, false);
+  if (!result.ok) assert.equal(result.code, "SERVER_ERROR");
+  assert.equal(auditWrites.length, 0);
+});

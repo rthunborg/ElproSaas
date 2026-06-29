@@ -5,11 +5,11 @@ epic_num: 2
 story_num: 3
 branch: story/2-3-server-command-envelope-and-minimal-audit-events
 status: in-progress
-updated_at: "2026-06-29T12:46:28Z"
+updated_at: "2026-06-29T13:30:46Z"
 started_at: "2026-06-29T11:39:26Z"
 completed_at: null
-active_seconds: 3760
-timing_anchor: null
+active_seconds: 4584
+timing_anchor: 1782738986
 is_first_in_epic: false
 is_last_in_epic: false
 needs_project_context_bootstrap: false
@@ -21,7 +21,7 @@ tea_rationale: "Auth/authz command envelope (auth + permissions) plus new audit_
 epic_story_count: 4
 stories_after_in_epic: 1
 completed_phases: [0, 1, 2, 3, 4, 5, 6]
-code_review_iterations: 0
+code_review_iterations: 1
 code_review_loop_done: false
 hitl_halt: null
 external_review_iterations: 0

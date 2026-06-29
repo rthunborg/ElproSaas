@@ -63,10 +63,12 @@ describe("audit_events is append-only through the app path (AC4 / R-009)", () =>
       .select();
 
     // Assert the MECHANISM, not a vacuous empty set: `authenticated` has NO UPDATE
-    // grant (and/or a BEFORE UPDATE trigger raises). A future regression GRANTing
-    // UPDATE against a zero-matching USING clause would still produce an empty set
-    // and must NOT pass here.
+    // grant, so the write is denied at the privilege layer (42501) BEFORE the
+    // BEFORE UPDATE trigger can even bite. A future regression GRANTing UPDATE
+    // against a zero-matching USING clause would still produce an empty set and must
+    // NOT pass here. [Review][Patch][Med]
     expect(error).not.toBeNull();
+    expect(error?.code).toBe("42501");
     expect(affected).toBeNull();
   });
 
@@ -78,7 +80,10 @@ describe("audit_events is append-only through the app path (AC4 / R-009)", () =>
       .eq("id", seededAuditId)
       .select();
 
+    // No DELETE grant for the app path → denied at the privilege layer (42501),
+    // before the append-only trigger. Assert the MECHANISM. [Review][Patch][Med]
     expect(error).not.toBeNull();
+    expect(error?.code).toBe("42501");
     expect(deleted).toBeNull();
   });
 

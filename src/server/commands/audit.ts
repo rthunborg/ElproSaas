@@ -19,6 +19,7 @@
  */
 import type { CommandExecuteContext } from "./envelope-core";
 import { sanitizeAuditMetadata } from "./audit-metadata";
+import { isUuid } from "./correlation";
 
 /** The minimal DB surface the audit write needs: a PostgREST `.rpc(...)` caller. */
 export type AuditDbClient = {
@@ -51,13 +52,23 @@ export async function writeAuditEvent<I>(
   const { tenantContext, clock, correlationId, db } = ctx;
   const safeMetadata = sanitizeAuditMetadata(args.metadata);
 
+  // `p_target_id` is `uuid` (nullable). A non-UUID-shaped target id (a client-derived
+  // value) would make the DB cast throw `22P02` and collapse into an opaque
+  // SERVER_ERROR. Apply the same UUID-shape guard as the correlation id: a non-UUID
+  // target id is reduced to null (no single-row target) rather than forwarded raw.
+  // [Review][Patch][High]
+  const safeTargetId =
+    typeof args.targetId === "string" && isUuid(args.targetId)
+      ? args.targetId
+      : null;
+
   const { error } = await db.rpc("record_audit_event", {
     p_tenant_id: tenantContext.tenantId,
     p_actor_user_id: tenantContext.userId,
     p_command: command,
     p_event_type: args.eventType,
     p_target_type: args.targetType,
-    p_target_id: args.targetId,
+    p_target_id: safeTargetId,
     p_correlation_id: correlationId,
     p_metadata: safeMetadata,
     // H1: the ONE command instant — never the DB's now().

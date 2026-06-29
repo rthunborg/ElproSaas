@@ -40,8 +40,10 @@ describe("Anonymous path cannot touch audit_events or record_audit_event (AC2 / 
     if (!stackUp) return;
     const { data, error } = await anon.from("audit_events").select("*");
     // `anon` has NO SELECT grant (migration grants SELECT only to authenticated),
-    // so the read is denied at the privilege layer (42501) — assert the MECHANISM.
+    // so the read is denied at the privilege layer (42501) — assert the MECHANISM,
+    // not a vacuous non-null/empty disjunction (Story 2.2 hardening). [Review][Patch][Med]
     expect(error).not.toBeNull();
+    expect(error?.code).toBe("42501");
     expect(data).toBeNull();
   });
 
@@ -60,7 +62,10 @@ describe("Anonymous path cannot touch audit_events or record_audit_event (AC2 / 
         metadata: {},
       })
       .select();
+    // `anon` has NO INSERT grant — denied at the privilege layer (42501). Assert the
+    // MECHANISM, not a vacuous disjunction (Story 2.2 hardening). [Review][Patch][Med]
     expect(error).not.toBeNull();
+    expect(error?.code).toBe("42501");
     expect(data).toBeNull();
   });
 

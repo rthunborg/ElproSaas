@@ -145,12 +145,14 @@ describe("Cross-tenant RLS isolation — tenants + tenant_memberships + audit_ev
           .eq(column, value)
           .select();
         // Assert the MECHANISM, not just "no rows": `authenticated` has NO update
-        // GRANT on these tables, so the write is denied at the table-privilege
-        // layer (42501) — a future regression that GRANTed UPDATE against a
-        // zero-matching USING clause would still produce an empty set and must NOT
-        // pass here. `error` is non-null and `data` is null on a denied write
-        // (review fix 2026-06-26).
+        // GRANT on these tables (audit_events included — append-only), so the write
+        // is denied at the table-privilege layer (42501) — a future regression that
+        // GRANTed UPDATE against a zero-matching USING clause would still produce an
+        // empty set and must NOT pass here. `error` is non-null and `data` is null on
+        // a denied write. The 42501 assertion was missing for audit_events
+        // specifically (review fix 2026-06-26; [Review][Patch][Med] 2026-06-29).
         expect(error).not.toBeNull();
+        expect(error?.code).toBe("42501");
         expect(affected).toBeNull();
       });
 

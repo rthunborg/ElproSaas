@@ -174,30 +174,18 @@ export async function runCommand<I, R>(
           metadata: (metadata ?? {}) as Record<string, unknown>,
         };
       },
-      recordAudit: async (row) => {
-        await writeAuditEvent(
-          {
-            tenantContext: {
-              tenantId: row.tenant_id,
-              userId: row.actor_user_id,
-              role: "tenant_admin",
-              status: "active",
-              userEmail: null,
-              tenantName: null,
-            },
-            input: input as I,
-            clock: { now: () => new Date(row.created_at) },
-            correlationId: row.correlation_id,
-            db: client,
-          },
-          row.command,
-          {
-            eventType: row.event_type,
-            targetType: row.target_type,
-            targetId: row.target_id,
-            metadata: row.metadata,
-          },
-        );
+      // Thread the ALREADY-RESOLVED execute context (real tenantContext + validated
+      // input + single-instant clock + correlation id) straight into the write —
+      // never reconstruct synthetic authority fields from the serialized AuditRow.
+      // The `row` still carries the derived audit fields (event/target/metadata).
+      // [Review][Patch][Med]
+      recordAudit: async (row, execCtx) => {
+        await writeAuditEvent(execCtx, row.command, {
+          eventType: row.event_type,
+          targetType: row.target_type,
+          targetId: row.target_id,
+          metadata: row.metadata,
+        });
       },
     });
   } catch {
@@ -216,8 +204,14 @@ function defaultTargetId(result: unknown): string | null {
 
 /**
  * Step 5: verify the command's ownership target belongs to the resolved tenant.
- * A tenant-scoped SELECT under RLS — zero rows (or an error) ⇒ TENANT_ACCESS_DENIED.
- * Commands with no ownership target pass through.
+ * A tenant-scoped SELECT under RLS. Commands with no ownership target pass through.
+ *
+ * Fail-closed on BOTH branches, but with the CORRECT semantics ([Review][Decision]):
+ *   - a transient DB/query ERROR (timeout, connection reset) → SERVER_ERROR
+ *     (retryable; correct observability) — NOT masked as a permanent access denial;
+ *   - a genuine zero-rows result (target in another tenant, or no such row under the
+ *     caller's RLS scope) → TENANT_ACCESS_DENIED (R-004).
+ * Neither branch executes the command or writes an audit row.
  */
 async function verifyOwnership<I, R>(
   config: CommandConfig<I, R>,
@@ -232,10 +226,17 @@ async function verifyOwnership<I, R>(
     .eq("id", target.id)
     .limit(1);
 
+  // A DB/query error is a transient infra fault, NOT an authorization decision —
+  // surface it as SERVER_ERROR so a legitimately-owned target is not reported as
+  // "no access" during an outage (and the caller can retry). Fail closed: still no
+  // execute, no audit.
+  if (error) {
+    return { ok: false, code: "SERVER_ERROR" };
+  }
   // RLS narrows the visible rows to the caller's tenant: a target in ANOTHER tenant
-  // returns zero rows. A permission/query error also denies (fail closed). Either
-  // way the target is not provably owned by the resolved tenant → DENIED (R-004).
-  if (error || !data || data.length === 0) {
+  // (or no such row) returns zero rows → the target is not provably owned by the
+  // resolved tenant → DENIED (R-004).
+  if (!data || data.length === 0) {
     return { ok: false, code: "TENANT_ACCESS_DENIED" };
   }
   return { ok: true };

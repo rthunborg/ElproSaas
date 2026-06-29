@@ -39,10 +39,18 @@ export type ValidationResult<I> =
   | { readonly ok: true; readonly data: I }
   | { readonly ok: false; readonly code: "VALIDATION_FAILED" };
 
-/** Outcome of the tenant-ownership check (step 5). */
+/**
+ * Outcome of the tenant-ownership check (step 5). A genuine zero-rows result is
+ * `TENANT_ACCESS_DENIED`; a transient DB/query ERROR is `SERVER_ERROR` (retryable) —
+ * never masked as an authorization denial. Both are fail-closed (no execute, no
+ * audit). [Review][Decision][Med]
+ */
 export type OwnershipResult =
   | { readonly ok: true }
-  | { readonly ok: false; readonly code: "TENANT_ACCESS_DENIED" };
+  | {
+      readonly ok: false;
+      readonly code: "TENANT_ACCESS_DENIED" | "SERVER_ERROR";
+    };
 
 /**
  * The context handed to `execute` (steps 6-7). Carries the resolved tenant
@@ -102,8 +110,17 @@ export type RunCommandCoreInput<I, R, DB = unknown> = {
     readonly targetId: string | null;
     readonly metadata: Record<string, unknown>;
   };
-  /** Step 8: the audit sink (writes ONE row). Called only on success + auditable. */
-  readonly recordAudit: (row: AuditRow) => Promise<void> | void;
+  /**
+   * Step 8: the audit sink (writes ONE row). Called only on success + auditable.
+   * Receives BOTH the serialized `AuditRow` AND the live execute context, so the
+   * orchestrator can thread the ALREADY-RESOLVED `tenantContext` + validated input +
+   * single-instant clock directly into the write — never reconstruct authority fields
+   * from the serialized row. [Review][Patch][Med]
+   */
+  readonly recordAudit: (
+    row: AuditRow,
+    ctx: CommandExecuteContext<I, DB>,
+  ) => Promise<void> | void;
   /** Whether this command writes an audit row on success. */
   readonly auditable: boolean;
   /** The command name (audit `command`). */
@@ -154,13 +171,29 @@ export async function runCommandCore<I, R, DB = unknown>(
   const tenantContext = tenantContextResult.data;
 
   // ── Gate 4: typed input validation. Generic message — NEVER echo the raw value. ─
-  const validated = validate(rawInput);
+  // A THROWING validator is still a validation failure at the core boundary (the
+  // "no raw throw, correct stable code" contract must hold here, not only at the
+  // orchestrator). [Review][Patch][Med]
+  let validated: ValidationResult<I>;
+  try {
+    validated = validate(rawInput);
+  } catch {
+    return err("VALIDATION_FAILED", COMMAND_MESSAGES.VALIDATION_FAILED);
+  }
   if (!validated.ok) {
     return err("VALIDATION_FAILED", COMMAND_MESSAGES.VALIDATION_FAILED);
   }
 
   // Capture the SINGLE command timestamp ONCE (H1). Threaded into execute + audit.
+  // Guard against an Invalid-Date clock so a later `toISOString()` cannot throw a
+  // RangeError that escapes the core unmapped. [Review][Patch][Med]
   const commandInstant = clock.now();
+  if (
+    !(commandInstant instanceof Date) ||
+    Number.isNaN(commandInstant.getTime())
+  ) {
+    return err("SERVER_ERROR", COMMAND_MESSAGES.SERVER_ERROR);
+  }
   const fixedClock: CommandClock = { now: () => commandInstant };
   const execCtx: CommandExecuteContext<I, DB> = {
     tenantContext,
@@ -170,10 +203,19 @@ export async function runCommandCore<I, R, DB = unknown>(
     db: db as DB,
   };
 
-  // ── Gate 5: tenant-ownership of any target ids. ──────────────────────────────
-  const ownership = await verifyOwnership(execCtx);
+  // ── Gate 5: tenant-ownership of any target ids. Fail closed: a genuine zero-rows
+  //    result is TENANT_ACCESS_DENIED; a transient DB ERROR (surfaced by the checker)
+  //    or an unexpected THROW is SERVER_ERROR (retryable) — never masked as a denial.
+  //    [Review][Decision][Med] / [Review][Patch][Med] ───────────────────────────
+  let ownership: OwnershipResult;
+  try {
+    ownership = await verifyOwnership(execCtx);
+  } catch {
+    // Fail closed on an unexpected throw — do NOT execute or audit.
+    return err("SERVER_ERROR", COMMAND_MESSAGES.SERVER_ERROR);
+  }
   if (!ownership.ok) {
-    return err("TENANT_ACCESS_DENIED", COMMAND_MESSAGES.TENANT_ACCESS_DENIED);
+    return err(ownership.code, COMMAND_MESSAGES[ownership.code]);
   }
 
   // ── Step 6-7: execute. A throw is a TRANSIENT infra fault → SERVER_ERROR. No
@@ -187,26 +229,35 @@ export async function runCommandCore<I, R, DB = unknown>(
 
   // ── Step 8: append-only audit (only on success AND auditable; exactly once). ──
   if (auditable) {
-    const fields = buildAuditFields?.(execCtx, result) ?? {
-      targetType: targetType ?? "",
-      targetId: null,
-      metadata: {},
-    };
-    const row: AuditRow = {
-      tenant_id: tenantContext.tenantId,
-      actor_user_id: tenantContext.userId,
-      command,
-      event_type: eventType,
-      target_type: fields.targetType,
-      target_id: fields.targetId,
-      correlation_id: correlationId,
-      metadata: fields.metadata,
-      created_at: commandInstant.toISOString(),
-    };
+    // Deriving the audit fields + building the row must not escape the core unmapped:
+    // a throwing `buildAuditFields` (or the `created_at` derivation) is a SERVER_ERROR,
+    // not a leaked stack. `commandInstant` is already validated above, so toISOString()
+    // cannot RangeError here. [Review][Patch][Med]
+    let row: AuditRow;
+    try {
+      const fields = buildAuditFields?.(execCtx, result) ?? {
+        targetType: targetType ?? "",
+        targetId: null,
+        metadata: {},
+      };
+      row = {
+        tenant_id: tenantContext.tenantId,
+        actor_user_id: tenantContext.userId,
+        command,
+        event_type: eventType,
+        target_type: fields.targetType,
+        target_id: fields.targetId,
+        correlation_id: correlationId,
+        metadata: fields.metadata,
+        created_at: commandInstant.toISOString(),
+      };
+    } catch {
+      return err("SERVER_ERROR", COMMAND_MESSAGES.SERVER_ERROR);
+    }
     // The audit write itself failing is a transient infra fault → SERVER_ERROR
     // (fail closed; do NOT return ok while the audit row was not persisted).
     try {
-      await recordAudit(row);
+      await recordAudit(row, execCtx);
     } catch {
       return err("SERVER_ERROR", COMMAND_MESSAGES.SERVER_ERROR);
     }
