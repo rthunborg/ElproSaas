@@ -58,7 +58,7 @@ development_status:
   epic-2: in-progress
   2-1-tenant-admin-login-and-tenant-context-resolution: done
   2-2-tenant-membership-schema-rls-helpers-and-two-tenant-fixtures: done
-  2-3-server-command-envelope-and-minimal-audit-events: review
+  2-3-server-command-envelope-and-minimal-audit-events: done
   2-4-security-regression-harness-for-tenant-and-service-role-boundaries: backlog
   epic-2-retrospective: optional
 

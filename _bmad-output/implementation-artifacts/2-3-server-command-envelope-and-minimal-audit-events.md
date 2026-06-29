@@ -1,6 +1,6 @@
 # Story 2.3: Server Command Envelope And Minimal Audit Events
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
