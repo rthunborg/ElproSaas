@@ -3,17 +3,21 @@
  *
  * Proves Tenant A's authenticated tenant_admin cannot READ, INSERT (spoof),
  * UPDATE, or DELETE Tenant B rows through the anon-key app path. Data-driven over
- * the table inventory so Story 2.4 can generalize it into the inventory-gated
- * parameterized suite (the inventory GATE itself is 2.4's scope).
+ * the SHARED tenant-table inventory (`tenant-table-inventory.ts`) — the single
+ * source of truth the H4 inventory gate also reads (Story 2.4, Task 3.1). A new
+ * tenant-owned table enlists by enrolling in `TENANT_TABLES` there, NOT by a
+ * copy-pasted parallel suite.
  *
- * Story 2.3 ENROLLS `audit_events` in the same data-driven `TABLES` array (Task
- * 5.3b) — a new tenant-owned table enlists here WITHOUT a parallel suite. A real
+ * Story 2.3 enrolled `audit_events` (now part of the shared inventory). A real
  * Tenant B audit row is seeded so the cross-tenant SELECT has a concrete row to be
  * denied. NOTE: `audit_events` differs from tenants/memberships in two ways the
  * spoof/insert path accounts for: (a) `authenticated` HAS a SELECT grant on it
  * (RLS narrows to own-tenant → empty set, no 42501 on read), and (b) the app path
  * has NO INSERT grant (writes go via the record_audit_event DEFINER), so the
  * spoof-INSERT is denied at the privilege layer (42501) exactly like the others.
+ *
+ * The denial-MECHANISM assertions (42501 + independent re-read) are UNCHANGED from
+ * the original suite — Story 2.4 only points the iteration at the shared inventory.
  *
  * Runs against the LOCAL Supabase stack only; skips when unreachable.
  */
@@ -27,14 +31,19 @@ import {
 } from "../../factories/tenants";
 import { adminInsertAuditEvent } from "../../factories/audit-events";
 import { isLocalStackReachable } from "../../support/test-env";
-
-const TABLES = ["tenants", "tenant_memberships", "audit_events"] as const;
-type TableName = (typeof TABLES)[number];
+import {
+  TENANT_TABLES,
+  spoofedRowFor,
+  tenantBFilter,
+  hijackMutationFor,
+  type InventoryContext,
+} from "./tenant-table-inventory";
 
 let stackUp = false;
 let fixture: TwoTenantFixture;
 let a: TestServerClient; // adminA's authenticated anon-key client
 let tenantBAuditId: string; // a seeded Tenant B audit row (cross-tenant target)
+let ctx: InventoryContext; // shared-inventory context (fixture + the seeded audit id)
 
 beforeAll(async () => {
   stackUp = await isLocalStackReachable();
@@ -53,65 +62,19 @@ beforeAll(async () => {
     correlation_id: crypto.randomUUID(),
     metadata: { reason: "tenant-b-seed" },
   });
+  ctx = { fixture, tenantBAuditId };
 });
 
 afterAll(async () => {
   if (stackUp && fixture) await cleanupFixture(fixture);
 });
 
-/** A row that, if it slipped past RLS, would forge Tenant B ownership. */
-function spoofedRowFor(table: TableName): Record<string, unknown> {
-  if (table === "tenants") {
-    // Insert a NEW tenant root with a FRESH id (review fix 2026-06-26). Reusing
-    // Tenant B's existing PK would let the INSERT fail with `23505` (unique_violation)
-    // BEFORE the privilege/RLS layer is reached — a green that proves nothing about
-    // isolation (it would stay green even if the privilege layer were removed). With a
-    // fresh uuid the only thing that can reject the write is the missing INSERT GRANT
-    // / RLS, so the test exercises the ACTUAL denial. Tenant A still has no business
-    // creating tenant roots through the app path.
-    return { id: crypto.randomUUID(), name: "spoofed-by-tenant-a" };
-  }
-  if (table === "audit_events") {
-    // An audit row carrying Tenant B's tenant_id == a forged cross-tenant audit
-    // write. FRESH id so the denial is the missing INSERT GRANT (42501), not a PK
-    // collision (23505) — the app path has NO direct INSERT grant on audit_events
-    // (writes go via the record_audit_event DEFINER).
-    return {
-      id: crypto.randomUUID(),
-      tenant_id: fixture.tenantB.id,
-      actor_user_id: fixture.adminA.id,
-      command: "spoof.by.a",
-      event_type: "spoof.by.a",
-      target_type: "tenant",
-      target_id: fixture.tenantB.id,
-      correlation_id: crypto.randomUUID(),
-      metadata: {},
-    };
-  }
-  // A membership row carrying Tenant B's tenant_id == self-grant into Tenant B. Uses
-  // adminA's own user_id against Tenant B (a NON-conflicting row), so the denial is
-  // the missing INSERT GRANT / RLS, not a unique collision.
-  return {
-    tenant_id: fixture.tenantB.id,
-    user_id: fixture.adminA.id,
-    role: "tenant_admin",
-    status: "active",
-  };
-}
-
-/** The id column to filter Tenant B's existing rows by, per table. */
-function tenantBFilter(table: TableName): { column: string; value: string } {
-  if (table === "tenants") return { column: "id", value: fixture.tenantB.id };
-  if (table === "audit_events") return { column: "id", value: tenantBAuditId };
-  return { column: "tenant_id", value: fixture.tenantB.id };
-}
-
-describe("Cross-tenant RLS isolation — tenants + tenant_memberships + audit_events (AC2 / R-001)", () => {
-  for (const table of TABLES) {
+describe("Cross-tenant RLS isolation — data-driven over the shared inventory (AC2 / R-001)", () => {
+  for (const table of TENANT_TABLES) {
     describe(`table: ${table}`, () => {
       it(`[P0] SELECT: Tenant A admin reads ZERO ${table} rows belonging to Tenant B (no error leak)`, async () => {
         if (!stackUp) return;
-        const { column, value } = tenantBFilter(table);
+        const { column, value } = tenantBFilter(table, ctx);
         const { data, error } = await a.from(table).select("*").eq(column, value);
         // RLS yields an empty set, NOT an error that confirms existence.
         expect(error).toBeNull();
@@ -120,7 +83,7 @@ describe("Cross-tenant RLS isolation — tenants + tenant_memberships + audit_ev
 
       it(`[P0] INSERT: Tenant A admin cannot INSERT a ${table} row carrying Tenant B ownership (no spoof)`, async () => {
         if (!stackUp) return;
-        const { error } = await a.from(table).insert(spoofedRowFor(table));
+        const { error } = await a.from(table).insert(spoofedRowFor(table, ctx));
         // Assert the DENIAL MECHANISM, not a bare non-null error. `authenticated` has
         // NO INSERT GRANT on these tables, so the write is denied at the privilege
         // layer with `42501` (permission denied) — NOT a `23505` PK collision (the
@@ -132,16 +95,10 @@ describe("Cross-tenant RLS isolation — tenants + tenant_memberships + audit_ev
 
       it(`[P0] UPDATE: Tenant A admin cannot UPDATE Tenant B's ${table} rows`, async () => {
         if (!stackUp) return;
-        const { column, value } = tenantBFilter(table);
-        const mutation =
-          table === "tenants"
-            ? { name: "hijacked-by-tenant-a" }
-            : table === "audit_events"
-              ? { metadata: { hijacked: true } }
-              : { status: "disabled" };
+        const { column, value } = tenantBFilter(table, ctx);
         const { data: affected, error } = await a
           .from(table)
-          .update(mutation)
+          .update(hijackMutationFor(table))
           .eq(column, value)
           .select();
         // Assert the MECHANISM, not just "no rows": `authenticated` has NO update
@@ -158,7 +115,7 @@ describe("Cross-tenant RLS isolation — tenants + tenant_memberships + audit_ev
 
       it(`[P0] DELETE: Tenant A admin cannot DELETE Tenant B's ${table} rows`, async () => {
         if (!stackUp) return;
-        const { column, value } = tenantBFilter(table);
+        const { column, value } = tenantBFilter(table, ctx);
         const { data: deleted, error } = await a
           .from(table)
           .delete()

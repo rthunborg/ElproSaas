@@ -23,6 +23,13 @@ import { dirname, extname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const SERVICE_ROLE_VAR = "SUPABASE_SERVICE_ROLE_KEY";
+// The TEST-ONLY re-export symbol (tests/support/test-env.ts) under which the local
+// service-role key is aliased. A `"use client"` module that transitively imported
+// the test-env/factories would reference THIS symbol, not the literal env-var name,
+// and slip past the bare-name check above (2-2 Round-2 LOW). Story 2.4 closes that
+// gap here; the built-bundle grep (check-bundle-containment.mjs) is the authoritative
+// catch for the JWT VALUE regardless of symbol.
+const SERVICE_ROLE_REEXPORT_SYMBOL = "LOCAL_SUPABASE_SERVICE_ROLE_KEY";
 // Any NEXT_PUBLIC_-prefixed variable whose name contains SERVICE_ROLE is forbidden
 // outright: NEXT_PUBLIC_ exposure ships the value to the browser bundle.
 const NEXT_PUBLIC_SERVICE_ROLE_RE = /NEXT_PUBLIC_[A-Z0-9_]*SERVICE_ROLE[A-Z0-9_]*/g;
@@ -45,12 +52,24 @@ const SCANNED_EXTENSIONS = new Set([
 const SCANNED_BASENAMES = new Set([".env.example"]);
 
 // Roots that can reach the browser bundle / define the env contract. Documentation roots
-// (`_bmad-output/`, `docs/`) and config-only trees are intentionally NOT walked.
-const SCANNED_ROOTS = ["src", "scripts", "tests"];
+// (`_bmad-output/`, `docs/`) and config-only trees are intentionally NOT walked. `app` is
+// included so an App-Router `app/**` tree OUTSIDE `src/` (a valid Next.js layout) is
+// covered too — this repo keeps `app` under `src/`, but the guard must not depend on that
+// (2-1 deferred-work: scanned-roots scope). `walk` no-ops on a non-existent root.
+const SCANNED_ROOTS = ["src", "app", "scripts", "tests"];
 // Top-level files (relative to rootDir) scanned in addition to the roots above. The root
 // `middleware.ts` runs on the edge in front of every request and CAN reach the env/bundle
 // surface, so the guard must cover it (Story 2.1 review fix — session-refresh middleware).
-const SCANNED_ROOT_FILES = [".env.example", "middleware.ts"];
+// `next.config.*` is build-time config that can inline `env`/`NEXT_PUBLIC_` values into the
+// client bundle, so it is covered too (2-1 deferred-work: root config scope).
+const SCANNED_ROOT_FILES = [
+  ".env.example",
+  "middleware.ts",
+  "next.config.ts",
+  "next.config.mjs",
+  "next.config.js",
+  "next.config.cjs",
+];
 
 const IGNORED_DIRS = new Set([
   "node_modules",
@@ -61,11 +80,16 @@ const IGNORED_DIRS = new Set([
   "coverage",
 ]);
 
-// The guard itself and its test deliberately mention the forbidden patterns as string
-// literals; scanning them would be a guaranteed false positive.
+// The guard itself and its tests deliberately mention the forbidden patterns as string
+// literals; scanning them would be a guaranteed false positive. The Story 2.4 built-bundle
+// containment check + its bite-proof unit do the same (they carry the demo JWT VALUE and a
+// `NEXT_PUBLIC_*SERVICE_ROLE*` literal as DETECTION patterns / planted fixtures), so they
+// self-exclude here for the identical reason.
 const SELF_FILES = new Set([
   "scripts/verify/check-service-role-containment.mjs",
+  "scripts/verify/check-bundle-containment.mjs",
   "tests/unit/scripts/verify/service-role-containment.test.ts",
+  "tests/unit/scripts/verify/bundle-containment.test.ts",
 ]);
 
 function shouldScanFile(absPath) {
@@ -93,9 +117,11 @@ function* walk(dir) {
 }
 
 /**
- * Scan a project tree for service-role client-path / NEXT_PUBLIC_ leakage. Only the
- * bundle-reachable / env-contract roots (`src`, `scripts`, `tests`) and the root
- * `.env.example` are scanned — documentation is intentionally out of scope.
+ * Scan a project tree for service-role client-path / NEXT_PUBLIC_ leakage. The
+ * bundle-reachable / env-contract roots are scanned: the `SCANNED_ROOTS` trees
+ * (`src`, `app`, `scripts`, `tests`) plus the `SCANNED_ROOT_FILES` top-level files
+ * (`.env.example`, `middleware.ts`, and every `next.config.*` form). Documentation
+ * roots (`_bmad-output/`, `docs/`) are intentionally out of scope.
  * @returns {{ violations: string[] }} human-readable violation messages (empty = clean).
  */
 export function scanForServiceRoleLeak(rootDir) {
@@ -132,12 +158,26 @@ export function scanForServiceRoleLeak(rootDir) {
       }
     }
 
-    // 2. Service-role key referenced from a "use client" (browser-reachable) module.
-    if (USE_CLIENT_RE.test(contents) && contents.includes(SERVICE_ROLE_VAR)) {
-      violations.push(
-        `${rel}: \`${SERVICE_ROLE_VAR}\` referenced from a "use client" module ` +
-          `— the service-role key must never be reachable from a client path.`,
-      );
+    // 2. Service-role key referenced from a "use client" (browser-reachable) module —
+    //    either the literal env-var name OR the TEST-ONLY re-export symbol
+    //    `LOCAL_SUPABASE_SERVICE_ROLE_KEY` (2-2 Round-2 LOW — the symbol the bare-name
+    //    check missed). A legitimate SERVER-ONLY reference (no "use client") is allowed;
+    //    the test-env module that DECLARES the symbol is not a client module, so it does
+    //    not trip this.
+    if (USE_CLIENT_RE.test(contents)) {
+      if (contents.includes(SERVICE_ROLE_VAR)) {
+        violations.push(
+          `${rel}: \`${SERVICE_ROLE_VAR}\` referenced from a "use client" module ` +
+            `— the service-role key must never be reachable from a client path.`,
+        );
+      }
+      if (contents.includes(SERVICE_ROLE_REEXPORT_SYMBOL)) {
+        violations.push(
+          `${rel}: the test-only re-export symbol \`${SERVICE_ROLE_REEXPORT_SYMBOL}\` ` +
+            `referenced from a "use client" module — the local service-role key must ` +
+            `never be reachable from a client path, even via its alias.`,
+        );
+      }
     }
   }
 

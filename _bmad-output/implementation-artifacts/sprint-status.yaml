@@ -41,7 +41,7 @@
 # Entries below remain grouped by epic for tracking; pick stories in the order above.
 
 generated: 2026-06-12
-last_updated: 2026-06-29  # story 2-3 review (dev-story complete)
+last_updated: 2026-06-29  # epic-2 retrospective done
 project: ElproSaas
 project_key: NOKEY
 tracking_system: file-system
@@ -59,8 +59,8 @@ development_status:
   2-1-tenant-admin-login-and-tenant-context-resolution: done
   2-2-tenant-membership-schema-rls-helpers-and-two-tenant-fixtures: done
   2-3-server-command-envelope-and-minimal-audit-events: done
-  2-4-security-regression-harness-for-tenant-and-service-role-boundaries: backlog
-  epic-2-retrospective: optional
+  2-4-security-regression-harness-for-tenant-and-service-role-boundaries: done
+  epic-2-retrospective: done
 
   epic-3: backlog
   3-1-tenant-owned-crm-data-model-and-commands: backlog

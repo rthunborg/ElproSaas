@@ -39,13 +39,14 @@ their own local Supabase service and so cannot share the `verify` install.
 | 3 | Lint | `pnpm lint` | `eslint` — lint clean. |
 | 4 | Unit tests | `pnpm run test:unit` | Pure-logic suites on the dependency-free `node --test` runner. |
 | 5 | Build | `pnpm build` | `next build` succeeds (fetches a Google font over the network — expected to pass on networked CI). |
+| 10 | Built-bundle containment | `pnpm run verify:bundle-containment` | The AUTHORITATIVE R-002 grep — scans the produced `.next` payload (architecture §9/§20). Authoritative catches: any service-role key name, the `LOCAL_SUPABASE_SERVICE_ROLE_KEY` symbol, a `NEXT_PUBLIC_*SERVICE_ROLE*` name, and the literal local-demo service-role JWT value; plus a **best-effort** `service_role`-shape JWT heuristic (a differently-ordered JWT payload can evade this last one — the token-name and literal-value catches are load-bearing). Runs **after** build (needs `.next`; fails loud if absent). |
 
 The `db` job (separate, with the local Supabase stack):
 
 | # | Gate | Command | Purpose |
 | --- | --- | --- | --- |
 | 6 | Migration reset | `supabase db reset` | Empty DB → apply migrations → seed; fails on a bad migration (architecture §19 stage 6). |
-| 8 | Integration + RLS negatives | `pnpm run test:int` | DB-backed integration + cross-tenant RLS-negative suites (Vitest) against the LOCAL stack only. `SUPABASE_TEST_REQUIRED=1` makes a missing stack a hard failure. |
+| 8 | Integration + RLS negatives + H4 inventory gate | `pnpm run test:int` | DB-backed integration + cross-tenant/anonymous RLS-negative suites (Vitest) against the LOCAL stack only, **including the H4 RLS table-inventory gate** that fails CI when a tenant-owned table is not enrolled in the parameterized suite (architecture §18). `SUPABASE_TEST_REQUIRED=1` makes a missing stack a hard failure. |
 
 ### Test runners (TEA framework decision, Story 2.2)
 
@@ -72,15 +73,19 @@ activates it (architecture §19 stages 6–10).
 | --- | --- | --- |
 | Supabase migration reset (empty DB → reset → seed) | 6 | **ACTIVE** (Story 2.2 — `db` job, `supabase db reset`). |
 | Integration command tests | 7 | Partly active: the DB-backed integration suite runs in the `db` job (Story 2.2). Command-envelope integration tests land with Story 2.3. |
-| RLS negative tests (cross-tenant) | 8 | **ACTIVE** for `tenants`/`tenant_memberships` (Story 2.2). Hardened into the inventory-gated parameterized suite by Story 2.4 (RLS coverage gate). |
-| Storage negative tests (path spoofing, expired URLs, MIME/size) | 8 | Deferred — Epic 8, Story 8.1 (file-storage foundation). |
+| RLS negative tests (cross-tenant + anonymous) | 8 | **ACTIVE** for `tenants`/`tenant_memberships`/`audit_events`, hardened into the inventory-gated parameterized suite + the H4 table-inventory gate (Story 2.4 RLS coverage gate). |
+| Storage negative tests (path spoofing, expired URLs, MIME/size) | 8 | Deferred — Epic 8, Story 8.1 (file-storage foundation). It inherits the SAME inventory-gate mechanism: a storage table enrolls in `tenant-table-inventory.ts` when it lands. |
 | Golden-master comparison | 9 | Deferred — Epic 4, Story 4.4; Story 5.5; Story 9.3. |
-| Secret scan (or equivalent) | 10 | Deferred — external-beta hardening (post Phase A). |
+| Built-bundle service-role containment | 10 | **ACTIVE** (Story 2.4 — `verify:bundle-containment`, after build). The authoritative R-002 payload grep. A broader generic secret scan stays deferred to external-beta hardening (post Phase A). |
 
-**RLS coverage gate (future).** Story 2.2 established the reusable cross-tenant
-negative pattern for the first two tenant-owned tables. The STANDING gate that
-fails CI when a future tenant-owned table is not enrolled in the parameterized
-suite (architecture §18 / H4) is **Story 2.4's** scope, not this story's.
+**RLS coverage gate (active).** Story 2.2 established the reusable cross-tenant
+negative pattern; Story 2.4 generalized it onto one shared tenant-table inventory
+(`tests/integration/rls/tenant-table-inventory.ts`) and added the **H4 table-
+inventory gate** (`tests/integration/rls/rls-inventory-gate.int.test.ts`) — the
+STANDING gate (architecture §18) that fails CI when a tenant-owned table is not
+enrolled. A product PR adding/touching a tenant-owned table MUST enroll it before
+merge (see [quality-gates.md Gate 4](quality-gates.md)). This is the regression
+mechanism every later tenant-owned table (Epics 3-9) plugs into.
 
 ## Test Environment Ground Rules
 
