@@ -17,3 +17,4 @@
 
 ## Story 2-4-security-regression-harness-for-tenant-and-service-role-boundaries
 - [Phase 3 â€” create-story] R-007 hard-block (2-4 security harness blocked on test infra) confirmed SATISFIED â€” Story 2.2 delivered the Vitest runner + local Supabase db-reset CI job + two-tenant factories; surfaced in 2-4 Critical Constraints so dev builds on real infra rather than stubbing.
+- [Phase 4 â€” ATDD] Generic ATDD orchestrator assumes a Playwright API+E2E test.skip() split; backend-only stories have no browser surface, so scaffolds use the repo-native Vitest/node:test describe.skip red-phase convention instead. Future TEA runs on backend stories will hit the same mismatch.
