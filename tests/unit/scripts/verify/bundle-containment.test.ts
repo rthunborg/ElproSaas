@@ -111,13 +111,17 @@ test("[P0] RED: a service_role-minting JWT in a route payload (.rsc/.json) is fl
 });
 
 test("[P0/Review] STANDING: the project's REAL built `.next` bundle scans CLEAN (in-repo bite signal)", () => {
-  // [Review][Patch][Med] M1/M-3: the clean-`.next` guarantee must be a committed
+  // [Review][Patch][Med] M1/M-3: the clean-`.next` guarantee should be a committed
   // assertion, not a one-time manual Debug-Log run — so a future dependency bump that
   // ships a `SERVICE_ROLE` token into a vendored chunk surfaces here in-repo, not as a
-  // mystery red gate with no signal. Runs ONLY when `.next` exists (after `pnpm build`,
-  // exactly the CI order: build → this); skips cleanly on an un-built tree so
-  // `pnpm run test:unit` alone never requires a build. The app uses NO service-role key
-  // (anon + RLS), so the real scan MUST be clean (zero violations / empty allowlist).
+  // mystery red gate with no signal. Runs ONLY when `.next` exists, i.e. on a LOCALLY
+  // BUILT tree (after `pnpm build`); skips cleanly on an un-built tree so
+  // `pnpm run test:unit` alone never requires a build. NOTE: in `.github/workflows/ci.yml`
+  // the `test:unit` stage runs BEFORE `build`, so `.next` does NOT exist at unit time and
+  // this test is a clean no-op IN CI — it provides the in-repo bite signal only on a
+  // locally-built tree. The AUTHORITATIVE post-build CI catch is the
+  // `verify:bundle-containment` CLI, which runs after `build` in the `verify` job. The app
+  // uses NO service-role key (anon + RLS), so the real scan MUST be clean (zero violations).
   if (!existsSync(join(REPO_ROOT, ".next"))) return;
   const { violations } = scanBuiltBundle(REPO_ROOT);
   assert.deepEqual(

@@ -39,7 +39,7 @@ their own local Supabase service and so cannot share the `verify` install.
 | 3 | Lint | `pnpm lint` | `eslint` — lint clean. |
 | 4 | Unit tests | `pnpm run test:unit` | Pure-logic suites on the dependency-free `node --test` runner. |
 | 5 | Build | `pnpm build` | `next build` succeeds (fetches a Google font over the network — expected to pass on networked CI). |
-| 10 | Built-bundle containment | `pnpm run verify:bundle-containment` | The AUTHORITATIVE R-002 grep — scans the produced `.next` payload for any service-role key name, the `LOCAL_SUPABASE_SERVICE_ROLE_KEY` symbol, a `NEXT_PUBLIC_*SERVICE_ROLE*` name, or a `service_role` JWT value (architecture §9/§20). Runs **after** build (needs `.next`; fails loud if absent). |
+| 10 | Built-bundle containment | `pnpm run verify:bundle-containment` | The AUTHORITATIVE R-002 grep — scans the produced `.next` payload (architecture §9/§20). Authoritative catches: any service-role key name, the `LOCAL_SUPABASE_SERVICE_ROLE_KEY` symbol, a `NEXT_PUBLIC_*SERVICE_ROLE*` name, and the literal local-demo service-role JWT value; plus a **best-effort** `service_role`-shape JWT heuristic (a differently-ordered JWT payload can evade this last one — the token-name and literal-value catches are load-bearing). Runs **after** build (needs `.next`; fails loud if absent). |
 
 The `db` job (separate, with the local Supabase stack):
 

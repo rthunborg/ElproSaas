@@ -68,6 +68,7 @@ const SCANNED_ROOT_FILES = [
   "next.config.ts",
   "next.config.mjs",
   "next.config.js",
+  "next.config.cjs",
 ];
 
 const IGNORED_DIRS = new Set([
@@ -116,9 +117,11 @@ function* walk(dir) {
 }
 
 /**
- * Scan a project tree for service-role client-path / NEXT_PUBLIC_ leakage. Only the
- * bundle-reachable / env-contract roots (`src`, `scripts`, `tests`) and the root
- * `.env.example` are scanned — documentation is intentionally out of scope.
+ * Scan a project tree for service-role client-path / NEXT_PUBLIC_ leakage. The
+ * bundle-reachable / env-contract roots are scanned: the `SCANNED_ROOTS` trees
+ * (`src`, `app`, `scripts`, `tests`) plus the `SCANNED_ROOT_FILES` top-level files
+ * (`.env.example`, `middleware.ts`, and every `next.config.*` form). Documentation
+ * roots (`_bmad-output/`, `docs/`) are intentionally out of scope.
  * @returns {{ violations: string[] }} human-readable violation messages (empty = clean).
  */
 export function scanForServiceRoleLeak(rootDir) {

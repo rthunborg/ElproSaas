@@ -75,11 +75,14 @@ cross-tenant negative suite **before merge**, or CI fails:
 - **Service-role containment** is enforced at two layers: a fast source-level
   pre-build guard (`verify:service-role-containment`) and the **authoritative
   built-bundle grep** (`verify:bundle-containment`, run **after** `pnpm build`) that
-  scans the produced `.next` payload for any service-role key name, the
-  `LOCAL_SUPABASE_SERVICE_ROLE_KEY` re-export symbol, a `NEXT_PUBLIC_*SERVICE_ROLE*`
-  name, or a `service_role` JWT value (architecture §9, §20). This app uses no
-  service-role key (anon + RLS), so a clean build yields zero hits; a planted token
-  turns the check red.
+  scans the produced `.next` payload (architecture §9, §20). Its **authoritative**
+  catches are any service-role key name (incl. the `LOCAL_SUPABASE_SERVICE_ROLE_KEY`
+  re-export symbol and any `NEXT_PUBLIC_*SERVICE_ROLE*` name) and the literal
+  local-demo service-role JWT value; it additionally applies a **best-effort**
+  `service_role`-shape JWT heuristic (a differently-ordered JWT payload can evade
+  this last check by base64url framing — the token-name and literal-value catches are
+  the load-bearing ones). This app uses no service-role key (anon + RLS), so a clean
+  build yields zero hits; a planted token turns the check red.
 - The **command-isolation** dimension (a client-supplied `tenant_id`/parent id is
   rejected even when submitted) is enforced by the server command envelope and proven
   by `tests/integration/commands/envelope-failure-modes.int.test.ts`

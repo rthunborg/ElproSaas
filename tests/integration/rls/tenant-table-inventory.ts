@@ -93,6 +93,29 @@ export interface InventoryContext {
 }
 
 /**
+ * Exhaustiveness guard. Called from the `default:` arm of every per-table metadata
+ * `switch (table)` below: because `table` is narrowed to `never` once all
+ * `TenantTableName` members are handled, a FUTURE table added to `TENANT_TABLES`
+ * WITHOUT a matching metadata branch makes this call a TypeScript COMPILE error
+ * (`Argument of type '"new_table"' is not assignable to parameter of type 'never'`)
+ * — not a silently membership-shaped (wrong) cross-tenant negative row.
+ *
+ * This is the compile-safe backstop for the "enrolls by data, one edit" standing-gate
+ * contract (AC4 "the gate bites"): the H4 inventory gate auto-demands enrollment of a
+ * new tenant-owned table; this guard ensures that enrolling it WITHOUT its metadata
+ * fails the typecheck rather than submitting a `{tenant_id,user_id,role,status}` row
+ * against a table that may not carry those columns (which would red/false-green for the
+ * wrong reason). [iter-2 review Decision — human-chosen direction: FIX]
+ */
+function assertNever(table: never): never {
+  throw new Error(
+    `tenant-table-inventory: no metadata branch for enrolled table ` +
+      `${JSON.stringify(table)} — add its spoof/filter/mutation/anon metadata in ` +
+      `${INVENTORY_MODULE_PATH}.`,
+  );
+}
+
+/**
  * A row that, if it slipped past RLS, would forge Tenant B ownership for `table`.
  *
  * Each uses a FRESH `crypto.randomUUID()` id (or a non-conflicting key) so the
@@ -105,39 +128,42 @@ export function spoofedRowFor(
   ctx: InventoryContext,
 ): Record<string, unknown> {
   const { fixture } = ctx;
-  if (table === "tenants") {
-    // A NEW tenant root with a FRESH id (review fix 2026-06-26). Reusing Tenant B's
-    // existing PK would fail with `23505` BEFORE the privilege/RLS layer is reached.
-    // With a fresh uuid only the missing INSERT GRANT / RLS can reject the write, so
-    // the test exercises the ACTUAL denial.
-    return { id: crypto.randomUUID(), name: "spoofed-by-tenant-a" };
+  switch (table) {
+    case "tenants":
+      // A NEW tenant root with a FRESH id (review fix 2026-06-26). Reusing Tenant B's
+      // existing PK would fail with `23505` BEFORE the privilege/RLS layer is reached.
+      // With a fresh uuid only the missing INSERT GRANT / RLS can reject the write, so
+      // the test exercises the ACTUAL denial.
+      return { id: crypto.randomUUID(), name: "spoofed-by-tenant-a" };
+    case "audit_events":
+      // An audit row carrying Tenant B's tenant_id == a forged cross-tenant audit
+      // write. FRESH id so the denial is the missing INSERT GRANT (42501), not a PK
+      // collision (the app path has NO direct INSERT grant on audit_events — writes go
+      // via the record_audit_event DEFINER).
+      return {
+        id: crypto.randomUUID(),
+        tenant_id: fixture.tenantB.id,
+        actor_user_id: fixture.adminA.id,
+        command: "spoof.by.a",
+        event_type: "spoof.by.a",
+        target_type: "tenant",
+        target_id: fixture.tenantB.id,
+        correlation_id: crypto.randomUUID(),
+        metadata: {},
+      };
+    case "tenant_memberships":
+      // A membership row carrying Tenant B's tenant_id == self-grant into Tenant B. Uses
+      // adminA's own user_id against Tenant B (a NON-conflicting row), so the denial is
+      // the missing INSERT GRANT / RLS, not a unique collision.
+      return {
+        tenant_id: fixture.tenantB.id,
+        user_id: fixture.adminA.id,
+        role: "tenant_admin",
+        status: "active",
+      };
+    default:
+      return assertNever(table);
   }
-  if (table === "audit_events") {
-    // An audit row carrying Tenant B's tenant_id == a forged cross-tenant audit
-    // write. FRESH id so the denial is the missing INSERT GRANT (42501), not a PK
-    // collision (the app path has NO direct INSERT grant on audit_events — writes go
-    // via the record_audit_event DEFINER).
-    return {
-      id: crypto.randomUUID(),
-      tenant_id: fixture.tenantB.id,
-      actor_user_id: fixture.adminA.id,
-      command: "spoof.by.a",
-      event_type: "spoof.by.a",
-      target_type: "tenant",
-      target_id: fixture.tenantB.id,
-      correlation_id: crypto.randomUUID(),
-      metadata: {},
-    };
-  }
-  // A membership row carrying Tenant B's tenant_id == self-grant into Tenant B. Uses
-  // adminA's own user_id against Tenant B (a NON-conflicting row), so the denial is
-  // the missing INSERT GRANT / RLS, not a unique collision.
-  return {
-    tenant_id: fixture.tenantB.id,
-    user_id: fixture.adminA.id,
-    role: "tenant_admin",
-    status: "active",
-  };
 }
 
 /** The id column + value to filter Tenant B's existing rows by, per table. */
@@ -145,13 +171,16 @@ export function tenantBFilter(
   table: TenantTableName,
   ctx: InventoryContext,
 ): { column: string; value: string } {
-  if (table === "tenants") {
-    return { column: "id", value: ctx.fixture.tenantB.id };
+  switch (table) {
+    case "tenants":
+      return { column: "id", value: ctx.fixture.tenantB.id };
+    case "audit_events":
+      return { column: "id", value: ctx.tenantBAuditId };
+    case "tenant_memberships":
+      return { column: "tenant_id", value: ctx.fixture.tenantB.id };
+    default:
+      return assertNever(table);
   }
-  if (table === "audit_events") {
-    return { column: "id", value: ctx.tenantBAuditId };
-  }
-  return { column: "tenant_id", value: ctx.fixture.tenantB.id };
 }
 
 /**
@@ -162,9 +191,16 @@ export function tenantBFilter(
 export function hijackMutationFor(
   table: TenantTableName,
 ): Record<string, unknown> {
-  if (table === "tenants") return { name: "hijacked-by-tenant-a" };
-  if (table === "audit_events") return { metadata: { hijacked: true } };
-  return { status: "disabled" };
+  switch (table) {
+    case "tenants":
+      return { name: "hijacked-by-tenant-a" };
+    case "audit_events":
+      return { metadata: { hijacked: true } };
+    case "tenant_memberships":
+      return { status: "disabled" };
+    default:
+      return assertNever(table);
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -182,28 +218,31 @@ export function anonRowFor(
   ctx: InventoryContext,
 ): Record<string, unknown> {
   const { fixture } = ctx;
-  if (table === "tenants") {
-    return { id: crypto.randomUUID(), name: "anon-spoof" };
+  switch (table) {
+    case "tenants":
+      return { id: crypto.randomUUID(), name: "anon-spoof" };
+    case "audit_events":
+      return {
+        id: crypto.randomUUID(),
+        tenant_id: fixture.tenantA.id,
+        actor_user_id: fixture.adminA.id,
+        command: "anon.spoof",
+        event_type: "anon.spoof",
+        target_type: "tenant",
+        target_id: fixture.tenantA.id,
+        correlation_id: crypto.randomUUID(),
+        metadata: {},
+      };
+    case "tenant_memberships":
+      return {
+        tenant_id: fixture.tenantA.id,
+        user_id: fixture.adminA.id,
+        role: "tenant_admin",
+        status: "active",
+      };
+    default:
+      return assertNever(table);
   }
-  if (table === "audit_events") {
-    return {
-      id: crypto.randomUUID(),
-      tenant_id: fixture.tenantA.id,
-      actor_user_id: fixture.adminA.id,
-      command: "anon.spoof",
-      event_type: "anon.spoof",
-      target_type: "tenant",
-      target_id: fixture.tenantA.id,
-      correlation_id: crypto.randomUUID(),
-      metadata: {},
-    };
-  }
-  return {
-    tenant_id: fixture.tenantA.id,
-    user_id: fixture.adminA.id,
-    role: "tenant_admin",
-    status: "active",
-  };
 }
 
 /**
@@ -215,26 +254,39 @@ export function anonFilterFor(
   table: TenantTableName,
   ctx: InventoryContext,
 ): { column: string; value: string } {
-  if (table === "tenants") {
-    return { column: "id", value: ctx.fixture.tenantA.id };
+  switch (table) {
+    case "tenants":
+      return { column: "id", value: ctx.fixture.tenantA.id };
+    // `audit_events` and `tenant_memberships` SHARE one branch (deliberate fall-through)
+    // and both filter by `tenant_id` here — and that is intentional: anon is denied at
+    // the PRIVILEGE layer (42501) before any row is matched, so the filter only needs to
+    // name a real, valid column for the table. This DIFFERS on purpose from
+    // `tenantBFilter`, which targets `audit_events` by `id` (the cross-tenant suite needs
+    // to hit a SPECIFIC seeded Tenant B row to prove the row stayed unchanged on
+    // independent re-read); the anon path has no such re-read, so `tenant_id` suffices.
+    // Hence one shared branch for both, not a per-table copy.
+    case "audit_events":
+    case "tenant_memberships":
+      return { column: "tenant_id", value: ctx.fixture.tenantA.id };
+    default:
+      return assertNever(table);
   }
-  // `audit_events` and the membership default both filter by `tenant_id` here — and
-  // that is intentional: anon is denied at the PRIVILEGE layer (42501) before any row
-  // is matched, so the filter only needs to name a real, valid column for the table.
-  // This DIFFERS on purpose from `tenantBFilter`, which targets `audit_events` by `id`
-  // (the cross-tenant suite needs to hit a SPECIFIC seeded Tenant B row to prove the
-  // row stayed unchanged on independent re-read); the anon path has no such re-read,
-  // so `tenant_id` suffices. Hence one shared branch for both, not a per-table copy.
-  return { column: "tenant_id", value: ctx.fixture.tenantA.id };
 }
 
 /** The anon UPDATE mutation payload per table (denied at the privilege layer). */
 export function anonMutationFor(
   table: TenantTableName,
 ): Record<string, unknown> {
-  if (table === "tenants") return { name: "anon-hijack" };
-  if (table === "audit_events") return { metadata: { hijacked: true } };
-  return { status: "disabled" };
+  switch (table) {
+    case "tenants":
+      return { name: "anon-hijack" };
+    case "audit_events":
+      return { metadata: { hijacked: true } };
+    case "tenant_memberships":
+      return { status: "disabled" };
+    default:
+      return assertNever(table);
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
