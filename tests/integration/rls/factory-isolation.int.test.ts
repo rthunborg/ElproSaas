@@ -11,6 +11,7 @@ import {
   type TwoTenantFixture,
 } from "../../factories/tenants";
 import { isLocalStackReachable } from "../../support/test-env";
+import { skipUnlessStack } from "../../support/stack-gate";
 
 let stackUp = false;
 const created: TwoTenantFixture[] = [];
@@ -26,8 +27,8 @@ afterAll(async () => {
 });
 
 describe("Two-tenant factory isolation + 2.1 INT un-gate", () => {
-  it("[P1] per-worker isolation: two fixtures in one worker have DISJOINT ids and names", async () => {
-    if (!stackUp) return;
+  it("[P1] per-worker isolation: two fixtures in one worker have DISJOINT ids and names", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
     const f1 = await createTwoTenantFixture();
     const f2 = await createTwoTenantFixture();
     created.push(f1, f2);
@@ -54,8 +55,8 @@ describe("Two-tenant factory isolation + 2.1 INT un-gate", () => {
     expect(new Set(userIds).size).toBe(userIds.length);
   });
 
-  it("[P1] determinism: a fresh fixture exposes exactly two tenants, two admins, and one orphan", async () => {
-    if (!stackUp) return;
+  it("[P1] determinism: a fresh fixture exposes exactly two tenants, two admins, and one orphan", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
     const f = await createTwoTenantFixture();
     created.push(f);
     expect(f.tenantA.id).not.toBe(f.tenantB.id);
@@ -65,8 +66,8 @@ describe("Two-tenant factory isolation + 2.1 INT un-gate", () => {
     expect(f.orphanUser.id).not.toBe(f.adminB.id);
   });
 
-  it("[P2] forward-compat: the fixture handle shape is additive (Epic 3+ extends, no rework)", async () => {
-    if (!stackUp) return;
+  it("[P2] forward-compat: the fixture handle shape is additive (Epic 3+ extends, no rework)", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
     const f = await createTwoTenantFixture();
     created.push(f);
     // The five-handle contract must stay stable while Epic 3+ adds e.g.

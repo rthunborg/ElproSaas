@@ -37,6 +37,7 @@ import {
   type TestServerClient,
 } from "../../factories/tenants";
 import { isLocalStackReachable } from "../../support/test-env";
+import { skipUnlessStack } from "../../support/stack-gate";
 import {
   TENANT_TABLES,
   anonRowFor,
@@ -68,8 +69,8 @@ afterAll(async () => {
 describe("Anonymous (no-session) anon-key path is fully isolated — data-driven over the inventory (G1 / R-001)", () => {
   for (const table of TENANT_TABLES) {
     describe(`table: ${table}`, () => {
-      it(`[P0] SELECT: an anonymous caller reads ZERO ${table} rows`, async () => {
-        if (!stackUp) return;
+      it(`[P0] SELECT: an anonymous caller reads ZERO ${table} rows`, async (testCtx) => {
+        if (skipUnlessStack(testCtx, stackUp)) return;
         const { data, error } = await anon.from(table).select("*");
         // `anon` has NO SELECT grant on these tables (the migrations grant SELECT
         // only to `authenticated`), so the read is denied at the privilege layer
@@ -81,8 +82,8 @@ describe("Anonymous (no-session) anon-key path is fully isolated — data-driven
         expect(data).toBeNull();
       });
 
-      it(`[P0] INSERT: an anonymous caller CANNOT write a ${table} row`, async () => {
-        if (!stackUp) return;
+      it(`[P0] INSERT: an anonymous caller CANNOT write a ${table} row`, async (testCtx) => {
+        if (skipUnlessStack(testCtx, stackUp)) return;
         const { data, error } = await anon
           .from(table)
           .insert(anonRowFor(table, ctx))
@@ -94,8 +95,8 @@ describe("Anonymous (no-session) anon-key path is fully isolated — data-driven
         expect(data).toBeNull();
       });
 
-      it(`[P0] UPDATE: an anonymous caller CANNOT update existing ${table} rows`, async () => {
-        if (!stackUp) return;
+      it(`[P0] UPDATE: an anonymous caller CANNOT update existing ${table} rows`, async (testCtx) => {
+        if (skipUnlessStack(testCtx, stackUp)) return;
         const { column, value } = anonFilterFor(table, ctx);
         const { data, error } = await anon
           .from(table)
@@ -109,8 +110,8 @@ describe("Anonymous (no-session) anon-key path is fully isolated — data-driven
         expect(data).toBeNull();
       });
 
-      it(`[P0] DELETE: an anonymous caller CANNOT delete ${table} rows`, async () => {
-        if (!stackUp) return;
+      it(`[P0] DELETE: an anonymous caller CANNOT delete ${table} rows`, async (testCtx) => {
+        if (skipUnlessStack(testCtx, stackUp)) return;
         const { column, value } = anonFilterFor(table, ctx);
         const { data, error } = await anon
           .from(table)
@@ -128,24 +129,24 @@ describe("Anonymous (no-session) anon-key path is fully isolated — data-driven
 });
 
 describe("Privileged functions are NOT anon-callable — no oracle / no audit-write (G2 / R-006 / AC5)", () => {
-  it("[P0] is_active_tenant_member: an anonymous caller CANNOT EXECUTE the helper (REVOKE … FROM public)", async () => {
-    if (!stackUp) return;
+  it("[P0] is_active_tenant_member: an anonymous caller CANNOT EXECUTE the helper (REVOKE … FROM public)", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
     const { data, error } = await anon.rpc("is_active_tenant_member", {
       target_tenant_id: fixture.tenantA.id,
     });
     assertAnonExecuteDenied(data, error);
   });
 
-  it("[P0] is_tenant_admin: an anonymous caller CANNOT EXECUTE the helper (REVOKE … FROM public)", async () => {
-    if (!stackUp) return;
+  it("[P0] is_tenant_admin: an anonymous caller CANNOT EXECUTE the helper (REVOKE … FROM public)", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
     const { data, error } = await anon.rpc("is_tenant_admin", {
       target_tenant_id: fixture.tenantA.id,
     });
     assertAnonExecuteDenied(data, error);
   });
 
-  it("[P0/AC5] record_audit_event: an anonymous caller has NO EXECUTE on the privileged write fn (42501, not vacuous data===false)", async () => {
-    if (!stackUp) return;
+  it("[P0/AC5] record_audit_event: an anonymous caller has NO EXECUTE on the privileged write fn (42501, not vacuous data===false)", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
     // The SECURITY DEFINER write fn `REVOKE EXECUTE … FROM public`, granted only to
     // authenticated/service_role (migration 20260629121136_audit_events.sql). An anon
     // attempt must be denied at the privilege layer (42501), NOT a `false`/null result

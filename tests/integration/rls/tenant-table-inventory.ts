@@ -44,8 +44,10 @@
  * │    exclusion keeps them out (never `_realtime.tenants`).                        │
  * │                                                                              │
  * │ STANDING CONTRACT (Epics 3-9): a product PR that ADDS or TOUCHES a            │
- * │ tenant-owned table MUST enroll it in `TENANT_TABLES` below (with its          │
- * │ spoof/filter/mutation metadata) BEFORE merge. The H4 gate fails CI with a     │
+ * │ tenant-owned table MUST enroll it in `TENANT_TABLES` below with BOTH metadata │
+ * │ seams — the cross-tenant helpers (spoofedRowFor/tenantBFilter/                │
+ * │ hijackMutationFor) AND the anon-path helpers (anonRowFor/anonFilterFor/       │
+ * │ anonMutationFor) — BEFORE merge. The H4 gate fails CI with a                  │
  * │ named "table not covered" message when it does not — automated enforcement,   │
  * │ not reviewer diligence. See docs/quality/quality-gates.md (Gate 4).          │
  * └─────────────────────────────────────────────────────────────────────────────┘
@@ -175,6 +177,19 @@ export function tenantBFilter(
     case "tenants":
       return { column: "id", value: ctx.fixture.tenantB.id };
     case "audit_events":
+      // VACUITY GUARD (DX#4, epic-2 hardening): the audit_events cross-tenant negative
+      // filters by this SPECIFIC seeded Tenant B row id. A null/empty id would make
+      // `.eq("id", …)` match nothing, so the denial would pass VACUOUSLY (a missing row
+      // trivially denies). Fail loudly here so a broken seed cannot green-by-vacuity.
+      // This travels with the metadata so any future consumer of the inventory inherits
+      // the guard; the cross-tenant suite's beforeAll also asserts it at seed time.
+      if (!ctx.tenantBAuditId) {
+        throw new Error(
+          "tenant-table-inventory: tenantBFilter('audit_events') requires a real " +
+            "seeded tenantBAuditId, but it is null/undefined — the cross-tenant " +
+            "audit negative would pass vacuously against a non-existent row.",
+        );
+      }
       return { column: "id", value: ctx.tenantBAuditId };
     case "tenant_memberships":
       return { column: "tenant_id", value: ctx.fixture.tenantB.id };
@@ -361,6 +376,20 @@ function isSystemSchema(nspname: string): boolean {
  * Returns BARE table names (the enrolled inventory keys on bare names; today every
  * tenant-owned table is in `public`). A future non-`public` application table would
  * be reported here too, surfacing in the gate until enrolled.
+ *
+ * CURRENT SCOPE + EXTENSION TRIGGER (G-8b, deliberate non-action — epic-2 hardening):
+ * the three signals above (direct `tenant_id`, FK to `public.tenants`, the `tenants`
+ * root) fully cover EVERY Phase-A tenant-owned table — all three are `public` BASE
+ * tables with a direct `tenant_id` (or the root). Deeper introspection (VIEWS /
+ * materialized views, TRANSITIVE FK chains to a non-`tenants` tenant-owned parent,
+ * non-`public` application schemas, schema-qualified name collisions) is INTENTIONALLY
+ * NOT built: it is forward-looking gate-DX with nothing in the current schema to test
+ * against, and adding it now would be untestable over-engineering. EXTEND THIS
+ * INTROSPECTION ONLY WHEN the first view-shaped, transitively-scoped, partitioned, or
+ * non-`public` tenant table is actually proposed — the H4 gate fails closed on any
+ * UNKNOWN schema today, so a genuinely novel table cannot silently slip the net before
+ * then. (Ledger: deferred-work.md, "H4 introspection still has coverage gaps beyond
+ * direct-`tenant_id` public base tables".)
  */
 export async function introspectTenantOwnedTables(
   adminQuery: AdminQueryFn,
@@ -456,13 +485,25 @@ export function findUnenrolledTenantTables(
  * (Task 1.3 / P3 DX). Names the offending table(s) AND points at the inventory
  * module to update — so a future contributor knows EXACTLY what enrollment
  * requires, not just that "something" is uncovered.
+ *
+ * The message names BOTH metadata seams an enrollee must wire: the cross-tenant
+ * helpers (`spoofedRowFor`/`tenantBFilter`/`hijackMutationFor`) AND the anon-path
+ * helpers (`anonRowFor`/`anonFilterFor`/`anonMutationFor`). Omitting the anon
+ * helpers would let a freshly-enrolled table fall through to a membership-shaped
+ * default in the anonymous-path negatives (`anon-path-isolation.rls.test.ts`),
+ * silently weakening that suite. [DX#3, epic-2 hardening; supersedes the iter-2
+ * "enrollment guidance omits the anon-path metadata helpers" deferral]
  */
 export function unenrolledTablesMessage(unenrolled: readonly string[]): string {
   return (
     `H4 RLS coverage gate (architecture §18): ${unenrolled.length} tenant-owned ` +
     `table(s) NOT enrolled in the parameterized cross-tenant negative suite: ` +
     `${unenrolled.join(", ")}. Every tenant-owned table MUST be enrolled before ` +
-    `merge — add it to TENANT_TABLES (with its spoofedRowFor/tenantBFilter/` +
-    `mutation metadata) in ${INVENTORY_MODULE_PATH}, then re-run the harness.`
+    `merge — add it to TENANT_TABLES in ${INVENTORY_MODULE_PATH} AND supply BOTH ` +
+    `metadata seams: (1) the cross-tenant helpers spoofedRowFor/tenantBFilter/` +
+    `hijackMutationFor, AND (2) the anon-path helpers anonRowFor/anonFilterFor/` +
+    `anonMutationFor (so the anonymous-path negatives in ` +
+    `anon-path-isolation.rls.test.ts cover the new table instead of falling ` +
+    `through to a membership-shaped default). Then re-run the harness.`
   );
 }

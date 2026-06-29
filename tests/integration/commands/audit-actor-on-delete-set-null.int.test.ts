@@ -31,6 +31,7 @@ import {
   type TwoTenantFixture,
 } from "../../factories/tenants";
 import { isLocalStackReachable } from "../../support/test-env";
+import { skipUnlessStack } from "../../support/stack-gate";
 import {
   adminInsertAuditEvent,
   adminSelectAuditEvents,
@@ -51,8 +52,8 @@ afterAll(async () => {
 });
 
 describe("audit_events actor_user_id ON DELETE SET NULL persistence (Gap G-6)", () => {
-  it("[P2] deleting the actor nulls actor_user_id and preserves the append-only audit row (all other columns intact)", async () => {
-    if (!stackUp) return;
+  it("[P2] deleting the actor nulls actor_user_id and preserves the append-only audit row (all other columns intact)", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
     const correlationId = crypto.randomUUID();
     const auditId = await adminInsertAuditEvent({
       tenant_id: fixture.tenantA.id,
@@ -87,8 +88,8 @@ describe("audit_events actor_user_id ON DELETE SET NULL persistence (Gap G-6)", 
     );
   });
 
-  it("[P2] the exemption is SURGICAL: a privileged UPDATE that nulls actor_user_id AND changes another column is STILL blocked (SQLSTATE 23001)", async () => {
-    if (!stackUp) return;
+  it("[P2] the exemption is SURGICAL: a privileged UPDATE that nulls actor_user_id AND changes another column is STILL blocked (SQLSTATE 23001)", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
     // The narrowing permits ONLY actor_user_id non-null → NULL with nothing else
     // changed. An UPDATE that also rewrites content must still hit the append-only
     // guard — otherwise nulling the actor would be a tampering escape hatch.

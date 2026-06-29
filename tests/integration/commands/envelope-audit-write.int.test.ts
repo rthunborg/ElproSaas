@@ -20,6 +20,7 @@ import {
   type TestServerClient,
 } from "../../factories/tenants";
 import { isLocalStackReachable } from "../../support/test-env";
+import { skipUnlessStack } from "../../support/stack-gate";
 import { defineCommand, runCommand } from "@/server/commands/envelope";
 import { adminSelectAuditEvents } from "../../factories/audit-events";
 import type { CommandClock } from "@/server/commands/clock";
@@ -67,8 +68,8 @@ function makeNoopCommand() {
 }
 
 describe("Command envelope happy path + audit fields (AC1/AC3/AC6)", () => {
-  it("[P1] resolves user→membership→validation→ownership→audit and returns typed ok (AC1)", async () => {
-    if (!stackUp) return;
+  it("[P1] resolves user→membership→validation→ownership→audit and returns typed ok (AC1)", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
     const command = makeNoopCommand();
     const correlationId = crypto.randomUUID();
 
@@ -86,8 +87,8 @@ describe("Command envelope happy path + audit fields (AC1/AC3/AC6)", () => {
     }
   });
 
-  it("[P1] writes EXACTLY ONE audit_events row with every snake_case column correct (AC3)", async () => {
-    if (!stackUp) return;
+  it("[P1] writes EXACTLY ONE audit_events row with every snake_case column correct (AC3)", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
     const command = makeNoopCommand();
     // Per-run unique id: audit_events is append-only (no fixture cleanup), so a
     // hardcoded correlation_id accumulates rows across repeated non-reset runs and
@@ -120,8 +121,8 @@ describe("Command envelope happy path + audit fields (AC1/AC3/AC6)", () => {
     expect(typeof row.metadata).toBe("object");
   });
 
-  it("[P1] the audit metadata stored on the happy path contains NO forbidden content (AC5/R-010 end-to-end)", async () => {
-    if (!stackUp) return;
+  it("[P1] the audit metadata stored on the happy path contains NO forbidden content (AC5/R-010 end-to-end)", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
     const command = makeNoopCommand();
     const correlationId = crypto.randomUUID();
 

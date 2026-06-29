@@ -18,7 +18,14 @@
  */
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync, existsSync } from "node:fs";
+import {
+  mkdtempSync,
+  mkdirSync,
+  writeFileSync,
+  readFileSync,
+  rmSync,
+  existsSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
@@ -138,6 +145,73 @@ test("[P0] FAILS LOUDLY: scanning a root with NO `.next` dir throws (never a vac
     // An absent build must be a hard error, not an empty (passing) scan that
     // false-greens R-002.
     assert.throws(() => scanBuiltBundle(root), /\.next/);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// [DX#2, epic-2 hardening] A present-but-UNREADABLE artifact must NOT yield a
+// vacuous clean. The scanner previously swallowed read errors (`} catch { continue }`),
+// so a permission-denied artifact under `.next` was silently skipped — the
+// AUTHORITATIVE R-002 scan would certify clean without ever reading it. These tests
+// prove a non-ENOENT read error becomes a VIOLATION (fail-loud), while a genuinely
+// vanished (ENOENT) file is treated as legitimately-absent. Uses the injected
+// `readFile` seam for a deterministic, cross-platform proof (no chmod required).
+// ─────────────────────────────────────────────────────────────────────────────
+
+test("[P0] an UNREADABLE (EACCES) artifact yields a VIOLATION, not a vacuous clean", () => {
+  withTempRoot((root) => {
+    // A real, scannable artifact exists (so walk() enumerates it) but the read
+    // fails with a permission error — the scan must FAIL LOUD, never silently skip.
+    makeNextTree(root, "export const x = 1; // unreadable in this run\n");
+    const eacces = Object.assign(new Error("permission denied"), { code: "EACCES" });
+    const { violations } = scanBuiltBundle(root, {
+      readFile: () => {
+        throw eacces;
+      },
+    });
+    assert.ok(violations.length > 0, "an unreadable artifact must produce a violation");
+    assert.match(violations.join("\n"), /UNREADABLE|EACCES/);
+    // CRITICAL: the result is NOT an empty (vacuous-clean) violations array.
+    assert.notDeepEqual(violations, []);
+  });
+});
+
+test("[P0] a VANISHED (ENOENT) artifact is treated as legitimately-absent (clean, no false violation)", () => {
+  withTempRoot((root) => {
+    // A file enumerated by walk() but gone by read time (ENOENT) is legitimately
+    // absent — it must NOT be reported as a violation (only present-but-unreadable is).
+    makeNextTree(root, "export const x = 1;\n");
+    const enoent = Object.assign(new Error("no such file"), { code: "ENOENT" });
+    const { violations } = scanBuiltBundle(root, {
+      readFile: () => {
+        throw enoent;
+      },
+    });
+    assert.deepEqual(violations, []);
+  });
+});
+
+test("[P1] an UNREADABLE artifact does NOT mask a real leak in a readable sibling (fail-loud is additive)", () => {
+  withTempRoot((root) => {
+    // Two artifacts: one unreadable, one carrying a real SERVICE_ROLE leak. The scan
+    // must surface BOTH — the unreadable-entry violation must not short-circuit the
+    // leak detection, and neither may be silently dropped.
+    mkdirSync(join(root, ".next", "static", "chunks"), { recursive: true });
+    writeFileSync(join(root, ".next", "static", "chunks", "ok.js"), "export const x=1;\n");
+    writeFileSync(
+      join(root, ".next", "static", "chunks", "leak.js"),
+      'const k="SUPABASE_SERVICE_ROLE_KEY";\n',
+    );
+    const eacces = Object.assign(new Error("permission denied"), { code: "EACCES" });
+    const { violations } = scanBuiltBundle(root, {
+      readFile: (p) => {
+        if (String(p).replace(/\\/g, "/").endsWith("ok.js")) throw eacces;
+        return readFileSync(p, "utf8");
+      },
+    });
+    const joined = violations.join("\n");
+    assert.match(joined, /UNREADABLE|EACCES/);
+    assert.match(joined, /SUPABASE_SERVICE_ROLE_KEY/);
   });
 });
 

@@ -21,6 +21,7 @@ import {
 } from "../../factories/tenants";
 import { adminQuery } from "../../factories/admin-sql";
 import { isLocalStackReachable } from "../../support/test-env";
+import { skipUnlessStack } from "../../support/stack-gate";
 
 /** Read adminA's membership row via the BYPASSRLS admin path (independent backstop). */
 async function readAdminAMembership(fixture: TwoTenantFixture) {
@@ -45,8 +46,8 @@ afterAll(async () => {
 });
 
 describe("tenant_memberships self-grant / escalation denied (AC3 / R-005)", () => {
-  it("[P0] self-INSERT: an authenticated user CANNOT insert their OWN membership row via the app path", async () => {
-    if (!stackUp) return;
+  it("[P0] self-INSERT: an authenticated user CANNOT insert their OWN membership row via the app path", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
     const c: TestServerClient = await makeAuthedServerClient(fixture.orphanUser);
     const { error } = await c.from("tenant_memberships").insert({
       tenant_id: fixture.tenantA.id,
@@ -65,8 +66,8 @@ describe("tenant_memberships self-grant / escalation denied (AC3 / R-005)", () =
     expect(data ?? []).toEqual([]);
   });
 
-  it("[P0] self-UPDATE role: a user CANNOT change their own role through the app path", async () => {
-    if (!stackUp) return;
+  it("[P0] self-UPDATE role: a user CANNOT change their own role through the app path", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
     const a: TestServerClient = await makeAuthedServerClient(fixture.adminA);
     const { data: affected, error } = await a
       .from("tenant_memberships")
@@ -86,8 +87,8 @@ describe("tenant_memberships self-grant / escalation denied (AC3 / R-005)", () =
     expect(rows[0]?.tenant_id).toBe(fixture.tenantA.id);
   });
 
-  it("[P0] self-UPDATE status: a user CANNOT flip their own status through the app path", async () => {
-    if (!stackUp) return;
+  it("[P0] self-UPDATE status: a user CANNOT flip their own status through the app path", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
     const a: TestServerClient = await makeAuthedServerClient(fixture.adminA);
     const { data: affected, error } = await a
       .from("tenant_memberships")
@@ -105,8 +106,8 @@ describe("tenant_memberships self-grant / escalation denied (AC3 / R-005)", () =
     expect(rows[0]?.status).toBe("active");
   });
 
-  it("[P0] self-UPDATE tenant_id: a user CANNOT move their membership to another tenant_id through the app path", async () => {
-    if (!stackUp) return;
+  it("[P0] self-UPDATE tenant_id: a user CANNOT move their membership to another tenant_id through the app path", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
     const a: TestServerClient = await makeAuthedServerClient(fixture.adminA);
     const { data: affected, error } = await a
       .from("tenant_memberships")
@@ -129,8 +130,8 @@ describe("tenant_memberships self-grant / escalation denied (AC3 / R-005)", () =
 });
 
 describe("tenant_memberships role/status CHECK constraints bite (AC1 / R-005)", () => {
-  it("[P0] role CHECK: a role other than 'tenant_admin' is REJECTED by the DB (admin/service-role path)", async () => {
-    if (!stackUp) return;
+  it("[P0] role CHECK: a role other than 'tenant_admin' is REJECTED by the DB (admin/service-role path)", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
     // The admin path bypasses RLS, so a failure here is provably the CHECK
     // constraint (not a policy). Assert the SPECIFIC check_violation (Postgres
     // 23514) so an unrelated FK/unique error cannot green this test (review fix
@@ -149,8 +150,8 @@ describe("tenant_memberships role/status CHECK constraints bite (AC1 / R-005)", 
     expect(thrown?.message).toMatch(/violates check constraint/i);
   });
 
-  it("[P0] status CHECK: a status outside (active,invited,disabled) is REJECTED by the DB (admin/service-role path)", async () => {
-    if (!stackUp) return;
+  it("[P0] status CHECK: a status outside (active,invited,disabled) is REJECTED by the DB (admin/service-role path)", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
     const thrown = await adminInsertMembership({
       tenant_id: fixture.tenantA.id,
       user_id: fixture.orphanUser.id,

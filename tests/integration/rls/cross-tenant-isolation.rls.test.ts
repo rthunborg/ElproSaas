@@ -31,6 +31,7 @@ import {
 } from "../../factories/tenants";
 import { adminInsertAuditEvent } from "../../factories/audit-events";
 import { isLocalStackReachable } from "../../support/test-env";
+import { skipUnlessStack } from "../../support/stack-gate";
 import {
   TENANT_TABLES,
   spoofedRowFor,
@@ -62,6 +63,20 @@ beforeAll(async () => {
     correlation_id: crypto.randomUUID(),
     metadata: { reason: "tenant-b-seed" },
   });
+  // VACUITY GUARD (DX#4, epic-2 hardening): the audit_events cross-tenant negatives
+  // filter Tenant B's row by `id = tenantBAuditId`. If the seed ever returned without
+  // a real id, `.eq("id", undefined/null)` would match NOTHING and the SELECT/UPDATE/
+  // DELETE denials would pass VACUOUSLY (a non-existent row trivially denies/empties).
+  // Assert the seed produced a real id BEFORE any denial assertion runs, so a broken
+  // seed fails loudly here instead of green-by-vacuity. This does NOT weaken the
+  // denial mechanism — the per-table tests still assert the 42501 SQLSTATE.
+  if (!tenantBAuditId) {
+    throw new Error(
+      "cross-tenant audit seed produced no id (tenantBAuditId is null/undefined) — " +
+        "the audit_events cross-tenant negatives would pass VACUOUSLY against a " +
+        "non-existent row. Failing loudly so the seed is fixed, not silently green.",
+    );
+  }
   ctx = { fixture, tenantBAuditId };
 });
 
@@ -72,8 +87,8 @@ afterAll(async () => {
 describe("Cross-tenant RLS isolation — data-driven over the shared inventory (AC2 / R-001)", () => {
   for (const table of TENANT_TABLES) {
     describe(`table: ${table}`, () => {
-      it(`[P0] SELECT: Tenant A admin reads ZERO ${table} rows belonging to Tenant B (no error leak)`, async () => {
-        if (!stackUp) return;
+      it(`[P0] SELECT: Tenant A admin reads ZERO ${table} rows belonging to Tenant B (no error leak)`, async (testCtx) => {
+        if (skipUnlessStack(testCtx, stackUp)) return;
         const { column, value } = tenantBFilter(table, ctx);
         const { data, error } = await a.from(table).select("*").eq(column, value);
         // RLS yields an empty set, NOT an error that confirms existence.
@@ -81,8 +96,8 @@ describe("Cross-tenant RLS isolation — data-driven over the shared inventory (
         expect(data).toEqual([]);
       });
 
-      it(`[P0] INSERT: Tenant A admin cannot INSERT a ${table} row carrying Tenant B ownership (no spoof)`, async () => {
-        if (!stackUp) return;
+      it(`[P0] INSERT: Tenant A admin cannot INSERT a ${table} row carrying Tenant B ownership (no spoof)`, async (testCtx) => {
+        if (skipUnlessStack(testCtx, stackUp)) return;
         const { error } = await a.from(table).insert(spoofedRowFor(table, ctx));
         // Assert the DENIAL MECHANISM, not a bare non-null error. `authenticated` has
         // NO INSERT GRANT on these tables, so the write is denied at the privilege
@@ -93,8 +108,8 @@ describe("Cross-tenant RLS isolation — data-driven over the shared inventory (
         expect(error?.code).toBe("42501");
       });
 
-      it(`[P0] UPDATE: Tenant A admin cannot UPDATE Tenant B's ${table} rows`, async () => {
-        if (!stackUp) return;
+      it(`[P0] UPDATE: Tenant A admin cannot UPDATE Tenant B's ${table} rows`, async (testCtx) => {
+        if (skipUnlessStack(testCtx, stackUp)) return;
         const { column, value } = tenantBFilter(table, ctx);
         const { data: affected, error } = await a
           .from(table)
@@ -113,8 +128,8 @@ describe("Cross-tenant RLS isolation — data-driven over the shared inventory (
         expect(affected).toBeNull();
       });
 
-      it(`[P0] DELETE: Tenant A admin cannot DELETE Tenant B's ${table} rows`, async () => {
-        if (!stackUp) return;
+      it(`[P0] DELETE: Tenant A admin cannot DELETE Tenant B's ${table} rows`, async (testCtx) => {
+        if (skipUnlessStack(testCtx, stackUp)) return;
         const { column, value } = tenantBFilter(table, ctx);
         const { data: deleted, error } = await a
           .from(table)
@@ -133,8 +148,8 @@ describe("Cross-tenant RLS isolation — data-driven over the shared inventory (
     });
   }
 
-  it("[P0] Tenant B's rows are UNCHANGED after Tenant A's attempts (verified as Tenant B)", async () => {
-    if (!stackUp) return;
+  it("[P0] Tenant B's rows are UNCHANGED after Tenant A's attempts (verified as Tenant B)", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
     const b = await makeAuthedServerClient(fixture.adminB);
     // Tenant B still sees its own tenant + its own active membership intact.
     const { data: tenantRows } = await b

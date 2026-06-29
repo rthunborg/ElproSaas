@@ -26,6 +26,7 @@ import {
 } from "../../factories/tenants";
 import { adminSession, closeAdminPool } from "../../factories/admin-sql";
 import { isLocalStackReachable } from "../../support/test-env";
+import { skipUnlessStack } from "../../support/stack-gate";
 
 let stackUp = false;
 let fixture: TwoTenantFixture;
@@ -65,30 +66,30 @@ async function callHelper(
 }
 
 describe("RLS helper semantics across the membership status axis (G3)", () => {
-  it("[P0] is_active_tenant_member: an ACTIVE member of their own tenant → TRUE", async () => {
-    if (!stackUp) return;
+  it("[P0] is_active_tenant_member: an ACTIVE member of their own tenant → TRUE", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
     expect(
       await callHelper("is_active_tenant_member", fixture.adminA.id, fixture.tenantA.id),
     ).toBe(true);
   });
 
-  it("[P0] is_active_tenant_member: a member of a DIFFERENT tenant → FALSE (tenant_id scope holds)", async () => {
-    if (!stackUp) return;
+  it("[P0] is_active_tenant_member: a member of a DIFFERENT tenant → FALSE (tenant_id scope holds)", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
     // adminA is active in tenantA but NOT in tenantB.
     expect(
       await callHelper("is_active_tenant_member", fixture.adminA.id, fixture.tenantB.id),
     ).toBe(false);
   });
 
-  it("[P0] is_active_tenant_member: a user with NO membership → FALSE", async () => {
-    if (!stackUp) return;
+  it("[P0] is_active_tenant_member: a user with NO membership → FALSE", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
     expect(
       await callHelper("is_active_tenant_member", fixture.orphanUser.id, fixture.tenantA.id),
     ).toBe(false);
   });
 
-  it("[P0] is_active_tenant_member: a DISABLED member → FALSE (only active grants access)", async () => {
-    if (!stackUp) return;
+  it("[P0] is_active_tenant_member: a DISABLED member → FALSE (only active grants access)", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
     const f = await createTwoTenantFixture();
     try {
       await adminInsertMembership({
@@ -105,8 +106,8 @@ describe("RLS helper semantics across the membership status axis (G3)", () => {
     }
   });
 
-  it("[P0] is_active_tenant_member: an INVITED (not-yet-active) member → FALSE", async () => {
-    if (!stackUp) return;
+  it("[P0] is_active_tenant_member: an INVITED (not-yet-active) member → FALSE", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
     const f = await createTwoTenantFixture();
     try {
       await adminInsertMembership({
@@ -125,22 +126,22 @@ describe("RLS helper semantics across the membership status axis (G3)", () => {
 });
 
 describe("is_tenant_admin tracks is_active_tenant_member in Phase A but stays a distinct predicate (G3)", () => {
-  it("[P0] is_tenant_admin: an ACTIVE tenant_admin of their tenant → TRUE", async () => {
-    if (!stackUp) return;
+  it("[P0] is_tenant_admin: an ACTIVE tenant_admin of their tenant → TRUE", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
     expect(
       await callHelper("is_tenant_admin", fixture.adminA.id, fixture.tenantA.id),
     ).toBe(true);
   });
 
-  it("[P0] is_tenant_admin: cross-tenant → FALSE (scope holds, no admin leakage)", async () => {
-    if (!stackUp) return;
+  it("[P0] is_tenant_admin: cross-tenant → FALSE (scope holds, no admin leakage)", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
     expect(
       await callHelper("is_tenant_admin", fixture.adminA.id, fixture.tenantB.id),
     ).toBe(false);
   });
 
-  it("[P0] is_tenant_admin: a DISABLED tenant_admin → FALSE (status gate also applies to the admin predicate)", async () => {
-    if (!stackUp) return;
+  it("[P0] is_tenant_admin: a DISABLED tenant_admin → FALSE (status gate also applies to the admin predicate)", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
     const f = await createTwoTenantFixture();
     try {
       await adminInsertMembership({
@@ -157,8 +158,8 @@ describe("is_tenant_admin tracks is_active_tenant_member in Phase A but stays a 
     }
   });
 
-  it("[P0] both predicates agree for the SAME active admin (Phase A: role is always tenant_admin)", async () => {
-    if (!stackUp) return;
+  it("[P0] both predicates agree for the SAME active admin (Phase A: role is always tenant_admin)", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
     const active = await callHelper(
       "is_active_tenant_member",
       fixture.adminB.id,

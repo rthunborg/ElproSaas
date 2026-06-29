@@ -18,8 +18,15 @@ import {
   cleanupFixture,
   type TwoTenantFixture,
 } from "../../factories/tenants";
-import { adminExec, adminSession, closeAdminPool } from "../../factories/admin-sql";
+import {
+  adminExec,
+  adminQuery,
+  adminSession,
+  closeAdminPool,
+} from "../../factories/admin-sql";
 import { isLocalStackReachable } from "../../support/test-env";
+import { skipUnlessStack } from "../../support/stack-gate";
+import { assertSearchPathExactlyEmpty } from "../../support/search-path";
 
 let stackUp = false;
 let fixture: TwoTenantFixture;
@@ -39,8 +46,23 @@ afterAll(async () => {
 });
 
 describe("record_audit_event resists search_path hijack (R-006)", () => {
-  it("[P1] a hostile is_active_tenant_member shadow on a tampered search_path CANNOT make an orphan's audit write succeed", async () => {
-    if (!stackUp) return;
+  it("[P0] record_audit_event is SECURITY DEFINER with an EXACTLY-EMPTY search_path (G-8a introspection)", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
+    // Introspection complement to the behavioral hijack negative below: parse the
+    // ACTUAL proconfig and assert the pinned search_path is EXACTLY empty. A
+    // regression to a non-empty path (e.g. `pg_catalog`) would still pass the
+    // behavioral test in many shapes but defeats the schema-qualification contract;
+    // this asserts the pin itself. [G-8a, epic-2 hardening]
+    const rows = await adminQuery<{ prosecdef: boolean; proconfig: string[] | null }>(
+      `select prosecdef, proconfig from pg_proc where proname = 'record_audit_event'`,
+    );
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.prosecdef).toBe(true);
+    assertSearchPathExactlyEmpty("record_audit_event", rows[0]?.proconfig ?? null);
+  });
+
+  it("[P1] a hostile is_active_tenant_member shadow on a tampered search_path CANNOT make an orphan's audit write succeed", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
 
     const result = await adminSession(async ({ query }) => {
       // (1) auth.uid() := orphanUser (no real membership in Tenant B).
@@ -79,8 +101,8 @@ describe("record_audit_event resists search_path hijack (R-006)", () => {
     expect(result).toBe(true); // the membership check fired despite the hostile shadow
   });
 
-  it("[CONTROL] a REAL active admin writing under their OWN tenant succeeds through the function", async () => {
-    if (!stackUp) return;
+  it("[CONTROL] a REAL active admin writing under their OWN tenant succeeds through the function", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
     const ok = await adminSession(async ({ query }) => {
       await query(`select set_config('request.jwt.claim.sub', $1, false)`, [
         fixture.adminA.id,
