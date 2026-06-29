@@ -1,34 +1,22 @@
 /**
  * GAP G-6 (P2) — `audit_events.actor_user_id ON DELETE SET NULL` persistence.
  *
- * The consolidated foundation test design (`test-design-epic-2-foundation-
- * consolidated.md`, Gap G-6) flags that the most-documented audit design decision —
- * the audit row SURVIVES a deleted actor by NULLING the `actor_user_id` FK (migration
- * 20260629121136_audit_events.sql: `actor_user_id uuid references auth.users(id) on
- * delete set null`) — has ZERO test coverage.
+ * The audit row must SURVIVE a deleted actor by NULLING the `actor_user_id` FK
+ * (migration 20260629121136_audit_events.sql: `actor_user_id uuid references
+ * auth.users(id) on delete set null`; architecture §15).
  *
  * ─────────────────────────────────────────────────────────────────────────────────
- *  FINDING (surfaced by scaffolding this gap — see the RED-PHASE describe.skip below):
- *  The `ON DELETE SET NULL` action is DEFEATED by the append-only `BEFORE UPDATE OR
- *  DELETE` trigger (`audit_events_append_only` →
- *  `public.audit_events_block_mutation()`). The FK SET NULL is implemented as an
- *  internal UPDATE of the referencing row to null `actor_user_id`; the trigger raises
- *  on ANY update, so deleting an actor whose id appears in `audit_events` FAILS with
- *  SQLSTATE 23001 (`restrict_violation`) instead of nulling the column. The documented
- *  "audit row survives a deleted actor by nulling the FK" behavior therefore does NOT
- *  currently hold — actor deletion is blocked entirely whenever the actor has authored
- *  an audit row.
- *
- *  Two tests below:
- *   1. (RUNNABLE-GREEN) `pins the CURRENT actual behavior` — documents that actor
- *      deletion is presently blocked by the append-only trigger (SQLSTATE 23001). This
- *      executes today so the discrepancy is captured by a real, non-vacuous test.
- *   2. (GATED-SKIP, red phase) `nulls actor_user_id and preserves the row` — the
- *      INTENDED behavior. It is `describe.skip`-ed with a TODO; un-skip it once the
- *      append-only trigger is amended to PERMIT the FK-driven SET NULL of
- *      `actor_user_id` (e.g. allow an UPDATE that changes ONLY `actor_user_id` to NULL,
- *      while still blocking every other mutation). At that point test (1) flips and
- *      should be deleted/inverted.
+ *  HISTORY: scaffolding this gap surfaced a defect — the FK `on delete set null` is
+ *  implemented as an internal UPDATE of the referencing row, and the append-only
+ *  `BEFORE UPDATE OR DELETE` trigger (`audit_events_append_only` →
+ *  `public.audit_events_block_mutation()`) raised on ANY update, so deleting an actor
+ *  who authored an audit row failed with SQLSTATE 23001 instead of nulling the column.
+ *  FIXED in migration 20260629140000_audit_events_actor_null_exemption.sql, which
+ *  narrows the guard to PERMIT exactly the FK action — an UPDATE whose SOLE change is
+ *  `actor_user_id` non-null → NULL — while still blocking every other UPDATE and every
+ *  DELETE (so the append-only / content-immutability invariant, architecture §9 /
+ *  R-009, is intact; proven by `audit-append-only.int.test.ts` + the surgical-boundary
+ *  test below).
  * ─────────────────────────────────────────────────────────────────────────────────
  *
  * Runs against the LOCAL stack only; skips when unreachable.
@@ -62,55 +50,7 @@ afterAll(async () => {
   if (stackUp && fixture) await cleanupFixture(fixture);
 });
 
-describe("audit_events actor delete — CURRENT behavior (Gap G-6, finding)", () => {
-  it("[P2] deleting an actor that authored an audit row is BLOCKED by the append-only trigger (SQLSTATE 23001) — the ON DELETE SET NULL is currently defeated", async () => {
-    if (!stackUp) return;
-
-    // Seed a Tenant A audit row attributed to adminA as actor.
-    const correlationId = crypto.randomUUID();
-    const auditId = await adminInsertAuditEvent({
-      tenant_id: fixture.tenantA.id,
-      actor_user_id: fixture.adminA.id,
-      command: "actor.delete.probe",
-      event_type: "actor.delete.probe",
-      target_type: "tenant",
-      target_id: fixture.tenantA.id,
-      correlation_id: correlationId,
-      metadata: { reason: "g6-seed" },
-    });
-
-    // Attempt the actor delete DIRECTLY (the GoTrue admin API masks the DB error as
-    // an opaque {}; the raw delete surfaces the real SQLSTATE). The FK SET NULL action
-    // tries to UPDATE the audit row → the append-only trigger raises 23001.
-    let raised: { code?: string; message?: string } | null = null;
-    try {
-      await adminExec(`delete from auth.users where id = $1`, [
-        fixture.adminA.id,
-      ]);
-    } catch (e) {
-      raised = e as { code?: string; message?: string };
-    }
-
-    // CURRENT behavior: the delete is blocked by the append-only trigger.
-    expect(raised).not.toBeNull();
-    expect(raised?.code).toBe("23001"); // restrict_violation from the append-only guard
-
-    // The audit row is therefore unchanged and the actor still attributed.
-    const after = await adminSelectAuditEvents({ id: auditId });
-    expect(after.length).toBe(1);
-    expect(after[0].actor_user_id).toBe(fixture.adminA.id);
-  });
-});
-
-// RED PHASE (gated). The INTENDED behavior per migration/architecture docs: deleting
-// the actor should NULL `actor_user_id` and PRESERVE the append-only row. Currently
-// impossible because the append-only BEFORE UPDATE trigger blocks the FK SET NULL
-// (see the finding above + the runnable test that pins the current 23001 block).
-//
-// TODO(G-6): un-skip once the append-only enforcement is amended to allow the
-// FK-driven SET NULL of ONLY `actor_user_id` (while still blocking all other
-// UPDATE/DELETE). When that lands, the test above (23001 block) should be inverted.
-describe.skip("audit_events actor_user_id ON DELETE SET NULL persistence — INTENDED (Gap G-6)", () => {
+describe("audit_events actor_user_id ON DELETE SET NULL persistence (Gap G-6)", () => {
   it("[P2] deleting the actor nulls actor_user_id and preserves the append-only audit row (all other columns intact)", async () => {
     if (!stackUp) return;
     const correlationId = crypto.randomUUID();
@@ -127,12 +67,15 @@ describe.skip("audit_events actor_user_id ON DELETE SET NULL persistence — INT
     const before = await adminSelectAuditEvents({ id: auditId });
     expect(before[0].actor_user_id).toBe(fixture.adminB.id);
 
+    // Deleting the actor triggers the FK `on delete set null`; the narrowed
+    // append-only guard now PERMITS that single referential action.
     await deleteAuthUser(fixture.adminB.id);
 
     const after = await adminSelectAuditEvents({ id: auditId });
-    expect(after.length).toBe(1); // NOT cascade-deleted
+    expect(after.length).toBe(1); // NOT cascade-deleted — the row survives
     const row = after[0];
-    expect(row.actor_user_id).toBeNull(); // FK action is SET NULL
+    expect(row.actor_user_id).toBeNull(); // FK action is SET NULL — "actor since removed"
+    // Every other column is unchanged: the row's content is immutable.
     expect(row.command).toBe("actor.delete.intended");
     expect(row.event_type).toBe("actor.delete.intended");
     expect(row.target_type).toBe("tenant");
@@ -142,5 +85,44 @@ describe.skip("audit_events actor_user_id ON DELETE SET NULL persistence — INT
     expect(new Date(row.created_at).toISOString()).toBe(
       new Date(before[0].created_at).toISOString(),
     );
+  });
+
+  it("[P2] the exemption is SURGICAL: a privileged UPDATE that nulls actor_user_id AND changes another column is STILL blocked (SQLSTATE 23001)", async () => {
+    if (!stackUp) return;
+    // The narrowing permits ONLY actor_user_id non-null → NULL with nothing else
+    // changed. An UPDATE that also rewrites content must still hit the append-only
+    // guard — otherwise nulling the actor would be a tampering escape hatch.
+    const auditId = await adminInsertAuditEvent({
+      tenant_id: fixture.tenantA.id,
+      actor_user_id: fixture.adminA.id,
+      command: "actor.null.tamper.probe",
+      event_type: "actor.null.tamper.probe",
+      target_type: "tenant",
+      target_id: fixture.tenantA.id,
+      correlation_id: crypto.randomUUID(),
+      metadata: { reason: "g6-surgical" },
+    });
+
+    let raised: { code?: string } | null = null;
+    try {
+      // Null the actor AND tamper with metadata in one statement (privileged pool).
+      await adminExec(
+        `update public.audit_events
+            set actor_user_id = null, metadata = '{"tampered":true}'::jsonb
+          where id = $1`,
+        [auditId],
+      );
+    } catch (e) {
+      raised = e as { code?: string };
+    }
+
+    expect(raised).not.toBeNull();
+    expect(raised?.code).toBe("23001"); // restrict_violation — append-only guard held
+
+    // Independent privileged re-read: the row is untouched (actor still set, metadata intact).
+    const rows = await adminSelectAuditEvents({ id: auditId });
+    expect(rows.length).toBe(1);
+    expect(rows[0].actor_user_id).toBe(fixture.adminA.id);
+    expect(rows[0].metadata).toEqual({ reason: "g6-surgical" });
   });
 });
