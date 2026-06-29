@@ -70,12 +70,13 @@ describe("Command envelope happy path + audit fields (AC1/AC3/AC6)", () => {
   it("[P1] resolves user→membership→validation→ownership→audit and returns typed ok (AC1)", async () => {
     if (!stackUp) return;
     const command = makeNoopCommand();
+    const correlationId = crypto.randomUUID();
 
     const result = await runCommand(command, {
       client: a as never,
       input: { note: "ok" },
       clock: fixedClock,
-      correlationId: "cccccccc-cccc-cccc-cccc-cccccccccccc",
+      correlationId,
     });
 
     expect(result.ok).toBe(true);
@@ -88,7 +89,10 @@ describe("Command envelope happy path + audit fields (AC1/AC3/AC6)", () => {
   it("[P1] writes EXACTLY ONE audit_events row with every snake_case column correct (AC3)", async () => {
     if (!stackUp) return;
     const command = makeNoopCommand();
-    const correlationId = "dddddddd-cccc-cccc-cccc-cccccccccccc";
+    // Per-run unique id: audit_events is append-only (no fixture cleanup), so a
+    // hardcoded correlation_id accumulates rows across repeated non-reset runs and
+    // breaks the exact `toBe(1)` count below. A fresh UUID scopes the query to THIS run.
+    const correlationId = crypto.randomUUID();
 
     await runCommand(command, {
       client: a as never,
@@ -119,7 +123,7 @@ describe("Command envelope happy path + audit fields (AC1/AC3/AC6)", () => {
   it("[P1] the audit metadata stored on the happy path contains NO forbidden content (AC5/R-010 end-to-end)", async () => {
     if (!stackUp) return;
     const command = makeNoopCommand();
-    const correlationId = "11111111-2222-3333-4444-555555555555";
+    const correlationId = crypto.randomUUID();
 
     await runCommand(command, {
       client: a as never,

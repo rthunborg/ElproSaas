@@ -597,6 +597,8 @@ Audit critical events:
 
 Do not store real secrets, `.env` values, raw file contents, broad free-text PII, or service-role details in audit metadata.
 
+Referential integrity of `actor_user_id` (established by Story 2.3): the column is **nullable** with **`ON DELETE SET NULL`**. Deleting the acting user must never delete or block an audit record — the trail outlives the actor — so a null `actor_user_id` denotes "actor since removed". The table is otherwise append-only (no UPDATE/DELETE of audit rows), enforced at the privilege layer plus a backstop trigger.
+
 ## 16. Migration And Coexistence Architecture
 
 The old Lovable app remains:
@@ -673,6 +675,7 @@ Product implementation PRs must not skip relevant gates silently.
 
 Resolved from the system-level test design (blockers B1/B2, recommendations H4/H5):
 
+- **Test runners (two, deliberately separated — established by Story 2.2; supersedes the earlier single-runner assumption):** pure-logic unit tests run on Node's built-in `node --test` (dependency-free; `pnpm run test:unit`); DB-backed integration/RLS suites run on Vitest against the local Supabase stack (`pnpm run test:int`). `pnpm test` runs both via `scripts/run-tests.mjs`, a bare-Node orchestrator that avoids the Windows nested-`pnpm` PATH issue. Pure units stay off Vitest so the dependency-free unit tier is not coupled to the Vitest install.
 - **Test data:** Test-only factories create tenants, auth users, `tenant_admin` memberships, CRM records, calculations, quotes, and later files. `seed.sql` holds only a minimal deterministic baseline, not broad business fixtures.
 - **Parallel safety:** Each test worker provisions its own tenant pair; shared mutable tenant fixtures are not used for parallel tests.
 - **Test environment:** Automated tests run against local Supabase only (CLI stack with migration reset), never against shared dev/staging/prod projects.
