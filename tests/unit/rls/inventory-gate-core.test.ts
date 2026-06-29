@@ -71,22 +71,35 @@ test("[P1] multiple unenrolled tables are returned SORTED and de-duped", () => {
 // proven WITHOUT the live stack. The DB-backed gate
 // (rls-inventory-gate.int.test.ts) exercises the SAME function against the real
 // schema, but skips when Docker is absent — these units cover the logic
-// unconditionally. [Story 2.4 Task 1.1, AC3; gap: tenants-union branch untested off-DB]
+// unconditionally (the `fakeAdminQuery` cases below DO exercise the tenants-union
+// branch off-DB). [Story 2.4 Task 1.1, AC3]
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * A fake adminQuery that dispatches on the SQL text: the carrier query (the one
- * mentioning the `tenant_id` attribute) returns `carriers`; the `tenants`-exists
- * probe returns whether the root table is present.
+ * A fake adminQuery that dispatches on the SQL text across the THREE introspection
+ * queries:
+ *   - the `tenant_id`-carrier query (mentions `a.attname = 'tenant_id'`) → `carriers`;
+ *   - the FK-to-`tenants` query (mentions `con.contype = 'f'`) → `fkRefs`;
+ *   - the `tenants`-root exists probe (`exists(...)`) → `rootExists`.
+ * Each carrier/FK row carries an `nspname` so the system-schema exclusion + the
+ * non-`tenant_id`-FK (differently-named-FK) detection can be exercised off-DB.
  */
 function fakeAdminQuery(
-  carriers: readonly string[],
+  carriers: readonly (string | { schema: string; table: string })[],
   rootExists: boolean,
+  fkRefs: readonly (string | { schema: string; table: string })[] = [],
 ): AdminQueryFn {
+  const rows = (
+    items: readonly (string | { schema: string; table: string })[],
+  ) =>
+    items.map((it) =>
+      typeof it === "string"
+        ? { nspname: "public", table_name: it }
+        : { nspname: it.schema, table_name: it.table },
+    );
   return (async (sql: string) => {
-    if (/a\.attname = 'tenant_id'/.test(sql)) {
-      return carriers.map((table_name) => ({ table_name }));
-    }
+    if (/a\.attname = 'tenant_id'/.test(sql)) return rows(carriers);
+    if (/con\.contype = 'f'/.test(sql)) return rows(fkRefs);
     // The `tenants`-root exists probe (selects `exists(...)`).
     return [{ exists: rootExists }];
   }) as AdminQueryFn;
@@ -130,6 +143,75 @@ test("[P1] a future tenant_id-carrier (e.g. tenant_counters) is picked up by the
   // End-to-end with the comparison: a carrier absent from the enrolled set surfaces.
   const missing = findUnenrolledTenantTables(owned, new Set(FULLY_ENROLLED));
   assert.deepEqual(missing, ["tenant_counters"]);
+});
+
+test("[P1/Review] a tenant table scoped by a DIFFERENTLY-NAMED FK (not `tenant_id`) is caught via the FK-to-tenants signal", async () => {
+  // The broadened, NOT-naming-bound detection: a future `org_id`/`company_id`-scoped
+  // table has no `tenant_id` column (absent from `carriers`) but DOES have a FK to
+  // `public.tenants` — it must still be reported, or it would silently escape the gate.
+  const owned = await introspectTenantOwnedTables(
+    fakeAdminQuery(
+      ["tenant_memberships", "audit_events"],
+      true,
+      [{ schema: "public", table: "org_scoped_widgets" }],
+    ),
+  );
+  assert.ok(
+    owned.has("org_scoped_widgets"),
+    "a differently-named-FK tenant table must be detected",
+  );
+  // And it surfaces as unenrolled until added to TENANT_TABLES.
+  const missing = findUnenrolledTenantTables(owned, new Set(FULLY_ENROLLED));
+  assert.deepEqual(missing, ["org_scoped_widgets"]);
+});
+
+test("[P1/Review] a tenant table in a NON-public application schema is caught (not waved through)", async () => {
+  const owned = await introspectTenantOwnedTables(
+    fakeAdminQuery(
+      [
+        "tenant_memberships",
+        "audit_events",
+        { schema: "billing", table: "invoices" },
+      ],
+      true,
+    ),
+  );
+  assert.ok(owned.has("invoices"), "a non-public app-schema tenant table must enroll");
+});
+
+test("[P1/Review] SYSTEM-schema tables (auth/_realtime/storage) are EXCLUDED even when tenant_id-shaped", async () => {
+  // `_realtime.tenants` and an `auth`-owned tenant_id table must NEVER count — the
+  // system-schema exclusion keeps the gate's set to the real application surface.
+  const owned = await introspectTenantOwnedTables(
+    fakeAdminQuery(
+      [
+        "tenant_memberships",
+        "audit_events",
+        { schema: "_realtime", table: "tenants" },
+        { schema: "auth", table: "sessions" },
+        { schema: "storage", table: "objects" },
+      ],
+      true,
+    ),
+  );
+  assert.deepEqual([...owned].sort(), [
+    "audit_events",
+    "tenant_memberships",
+    "tenants",
+  ]);
+});
+
+test("[P1/Review] an UNKNOWN schema is fail-closed: treated as application-owned and enrolled-demanded", async () => {
+  const owned = await introspectTenantOwnedTables(
+    fakeAdminQuery(
+      ["audit_events", { schema: "tenant_app", table: "future_thing" }],
+      true,
+    ),
+  );
+  assert.ok(
+    owned.has("future_thing"),
+    "an unknown (non-system) schema must be treated as application-owned",
+  );
 });
 
 test("[P3] the unenrolled-table message names every offending table AND the inventory module", () => {

@@ -12,19 +12,36 @@
  * ┌─────────────────────────────────────────────────────────────────────────────┐
  * │ "TENANT-OWNED" — the gate's precise, stable definition (architecture §6/§7).  │
  * │                                                                              │
- * │ A `public` BASE table that EITHER                                            │
- * │   (a) carries a direct `tenant_id` column, OR                                │
- * │   (b) IS the literal `tenants` ROOT table — its PK `id` IS the tenant id, it  │
- * │       has NO `tenant_id` column, yet it IS tenant-owned and IS RLS-protected, │
- * │ and is NOT a global enum/reference table nor an auth-owned table.            │
+ * │ An APPLICATION base/partitioned table (any non-system schema) that is         │
+ * │ tenant-scoped by ANY of these signals:                                        │
+ * │   (a) carries a direct `tenant_id` column (the §6 Phase A convention), OR      │
+ * │   (b) has a FOREIGN KEY whose target is `public.tenants` — REGARDLESS of the   │
+ * │       FK column's NAME (so a future `org_id`/`company_id`-scoped table is      │
+ * │       still caught, not silently invisible), OR                               │
+ * │   (c) IS the literal `tenants` ROOT table — its PK `id` IS the tenant id, it  │
+ * │       has NO `tenant_id` column, yet it IS tenant-owned and IS RLS-protected.  │
+ * │ It is NOT a global enum/reference table nor an auth-/system-owned table.       │
  * │                                                                              │
- * │ CRITICAL EDGE CASE: a naive `WHERE column_name = 'tenant_id'` inventory query │
- * │ DROPS `tenants` (no tenant_id column) and the gate would go SILENTLY          │
- * │ incomplete. `introspectTenantOwnedTables` therefore UNIONS the tenant_id-     │
- * │ carrying tables with the literal `tenants` (a documented seed anchored on the │
- * │ architecture §7 root). Always schema-qualify to `public` — an internal        │
- * │ `_realtime.tenants` exists too (see migration-reset.int.test.ts) and MUST NOT │
- * │ be counted.                                                                   │
+ * │ FAIL-CLOSED detection (NOT naming-bound): the introspection introspects ACTUAL │
+ * │ tenancy signals — the `tenant_id` column AND FK targets to `tenants` AND       │
+ * │ partitioned parents AND non-`public` application schemas — so a future         │
+ * │ tenant-owned table scoped by a differently-named FK, living in another         │
+ * │ application schema, or implemented as a partitioned parent is STILL demanded   │
+ * │ for enrollment. Only well-known SYSTEM schemas (pg_*, information_schema, auth, │
+ * │ storage, realtime/_realtime, supabase_*, extensions, graphql*, vault, etc.)    │
+ * │ are excluded; any OTHER schema is treated as application-owned (unknown =>      │
+ * │ enroll). This is the exact silent-incompleteness the `tenants` edge case was   │
+ * │ added to prevent, now generalised beyond the naming convention.                │
+ * │                                                                              │
+ * │ CRITICAL EDGE CASES:                                                          │
+ * │  - a naive `WHERE column_name = 'tenant_id'` query DROPS `tenants` (no          │
+ * │    tenant_id column); the introspection UNIONS the literal `tenants` root in.   │
+ * │  - a PARTITIONED parent's children carry `tenant_id` while the parent may not;  │
+ * │    the introspection enrolls the PARENT (relkind 'p') and EXCLUDES child        │
+ * │    partitions (relispartition) so children never surface as spurious            │
+ * │    "unenrolled".                                                              │
+ * │  - an internal `_realtime.tenants` / `auth.*` exists too — the SYSTEM-schema    │
+ * │    exclusion keeps them out (never `_realtime.tenants`).                        │
  * │                                                                              │
  * │ STANDING CONTRACT (Epics 3-9): a product PR that ADDS or TOUCHES a            │
  * │ tenant-owned table MUST enroll it in `TENANT_TABLES` below (with its          │
@@ -201,9 +218,13 @@ export function anonFilterFor(
   if (table === "tenants") {
     return { column: "id", value: ctx.fixture.tenantA.id };
   }
-  if (table === "audit_events") {
-    return { column: "tenant_id", value: ctx.fixture.tenantA.id };
-  }
+  // `audit_events` and the membership default both filter by `tenant_id` here — and
+  // that is intentional: anon is denied at the PRIVILEGE layer (42501) before any row
+  // is matched, so the filter only needs to name a real, valid column for the table.
+  // This DIFFERS on purpose from `tenantBFilter`, which targets `audit_events` by `id`
+  // (the cross-tenant suite needs to hit a SPECIFIC seeded Tenant B row to prove the
+  // row stayed unchanged on independent re-read); the anon path has no such re-read,
+  // so `tenant_id` suffices. Hence one shared branch for both, not a per-table copy.
   return { column: "tenant_id", value: ctx.fixture.tenantA.id };
 }
 
@@ -227,21 +248,76 @@ export type AdminQueryFn = <T extends Record<string, unknown>>(
 ) => Promise<T[]>;
 
 /**
- * Introspect the LIVE schema and return the set of TENANT-OWNED `public` base
- * tables (see the module header for the precise definition). It UNIONS the
- * `tenant_id`-carrying base tables with the literal `tenants` root — handling the
- * load-bearing `tenants` edge case explicitly so a naive column heuristic cannot
- * drop it. Schema-qualified to `public` (never `_realtime.tenants`).
+ * Well-known SYSTEM / platform schemas the gate NEVER treats as tenant-owned
+ * application surface. Everything NOT in this set (and not matching a system
+ * prefix) is treated as an application schema and IS subject to the tenant-owned
+ * detection — fail-closed: an unknown schema is assumed application-owned, not
+ * waved through. Keep `_realtime`/`realtime`/`auth`/`storage` here so their
+ * `tenants`-named or tenant-scoped internal tables never count.
+ */
+const SYSTEM_SCHEMAS = new Set([
+  "pg_catalog",
+  "pg_toast",
+  "information_schema",
+  "auth",
+  "storage",
+  "realtime",
+  "_realtime",
+  "_analytics",
+  "extensions",
+  "vault",
+  "graphql",
+  "graphql_public",
+  "net",
+  "cron",
+  "supabase_functions",
+  "supabase_migrations",
+  "pgsodium",
+  "pgsodium_masks",
+  "pgbouncer",
+]);
+
+/** A schema prefix that is always system/platform (e.g. `pg_temp_3`, `pg_toast_temp`). */
+function isSystemSchema(nspname: string): boolean {
+  return (
+    SYSTEM_SCHEMAS.has(nspname) ||
+    nspname.startsWith("pg_") ||
+    nspname.startsWith("supabase_") ||
+    nspname.startsWith("pgsodium")
+  );
+}
+
+/**
+ * Introspect the LIVE schema and return the set of TENANT-OWNED application tables
+ * (see the module header for the precise, fail-closed definition). It is NOT bound
+ * to the `tenant_id` NAMING convention: it unions THREE tenancy signals —
  *
- * `auth`-owned and other non-`public` tables are excluded by the `public`
- * namespace filter; partitions/views are excluded by `relkind = 'r'`.
+ *   (a) any APPLICATION table carrying a direct `tenant_id` column;
+ *   (b) any APPLICATION table with a FOREIGN KEY targeting `public.tenants`
+ *       REGARDLESS of the FK column's name (catches `org_id`/`company_id`/etc.);
+ *   (c) the literal `tenants` ROOT (no `tenant_id` column — the load-bearing edge
+ *       case a naive heuristic drops).
+ *
+ * "Application table" = a base table (relkind 'r') OR a PARTITIONED PARENT
+ * (relkind 'p') in a non-SYSTEM schema, EXCLUDING child partitions (relispartition)
+ * — so a partitioned tenant table enrolls as its parent, and its child partitions
+ * do NOT surface as spurious "unenrolled" tables. System/platform schemas (auth,
+ * storage, realtime, `_realtime`, pg_*, supabase_*, etc.) are excluded so an
+ * internal `_realtime.tenants` never counts (fail-closed: an UNKNOWN schema is
+ * treated as application-owned, not waved through).
+ *
+ * Returns BARE table names (the enrolled inventory keys on bare names; today every
+ * tenant-owned table is in `public`). A future non-`public` application table would
+ * be reported here too, surfacing in the gate until enrolled.
  */
 export async function introspectTenantOwnedTables(
   adminQuery: AdminQueryFn,
 ): Promise<Set<string>> {
-  // (a) Every `public` BASE table carrying a direct `tenant_id` column.
-  const carriers = await adminQuery<{ table_name: string }>(
-    `select c.relname as table_name
+  // (a) Every APPLICATION table (base table or partitioned parent, non-system
+  // schema, NOT a child partition) carrying a direct `tenant_id` column — the §6
+  // Phase A convention.
+  const carriers = await adminQuery<{ nspname: string; table_name: string }>(
+    `select n.nspname as nspname, c.relname as table_name
        from pg_class c
        join pg_namespace n on n.oid = c.relnamespace
        join pg_attribute a
@@ -249,23 +325,48 @@ export async function introspectTenantOwnedTables(
         and a.attname = 'tenant_id'
         and a.attnum > 0
         and not a.attisdropped
-      where n.nspname = 'public'
-        and c.relkind = 'r'`,
+      where c.relkind in ('r', 'p')
+        and not c.relispartition`,
   );
 
-  const owned = new Set(carriers.map((r) => r.table_name));
+  // (b) Every APPLICATION table with a FOREIGN KEY whose target relation is
+  // `public.tenants`, REGARDLESS of the local FK column's name — so a tenant table
+  // scoped via a differently-named FK (`org_id`, `company_id`, …) is still caught.
+  // `confrelid` is the referenced relation; we resolve it to the `tenants` root.
+  const fkRefs = await adminQuery<{ nspname: string; table_name: string }>(
+    `select n.nspname as nspname, c.relname as table_name
+       from pg_constraint con
+       join pg_class c on c.oid = con.conrelid
+       join pg_namespace n on n.oid = c.relnamespace
+       join pg_class fc on fc.oid = con.confrelid
+       join pg_namespace fn on fn.oid = fc.relnamespace
+      where con.contype = 'f'
+        and fn.nspname = 'public'
+        and fc.relname = $1
+        and c.relkind in ('r', 'p')
+        and not c.relispartition`,
+    [TENANT_ROOT_TABLE],
+  );
 
-  // (b) The literal `tenants` ROOT — tenant-owned but carries NO tenant_id column,
-  // so the carrier query above never returns it. Union it in EXPLICITLY, but only
-  // if it actually exists as a `public` base table (so the gate reflects the real
-  // schema, never a phantom). This is the documented edge-case handling.
+  const owned = new Set<string>();
+  for (const r of [...carriers, ...fkRefs]) {
+    if (isSystemSchema(r.nspname)) continue; // fail-closed: unknown schema = app-owned
+    if (r.table_name === TENANT_ROOT_TABLE && r.nspname !== "public") continue;
+    owned.add(r.table_name);
+  }
+
+  // (c) The literal `tenants` ROOT — tenant-owned but carries NO tenant_id column
+  // and has no FK to itself, so (a)/(b) never return it. Union it in EXPLICITLY,
+  // but only if it actually exists as a `public` base/partitioned table (so the gate
+  // reflects the real schema, never a phantom). The documented edge-case handling.
   const rootRows = await adminQuery<{ exists: boolean }>(
     `select exists(
        select 1 from pg_class c
        join pg_namespace n on n.oid = c.relnamespace
        where n.nspname = 'public'
          and c.relname = $1
-         and c.relkind = 'r'
+         and c.relkind in ('r', 'p')
+         and not c.relispartition
      ) as exists`,
     [TENANT_ROOT_TABLE],
   );

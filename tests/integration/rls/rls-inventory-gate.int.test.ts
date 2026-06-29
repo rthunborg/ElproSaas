@@ -36,11 +36,11 @@ import {
   unenrolledTablesMessage,
 } from "./tenant-table-inventory";
 
-const EXPECTED_TENANT_OWNED = [
-  "audit_events",
-  "tenant_memberships",
-  "tenants",
-] as const;
+// Derived from the single-source-of-truth inventory, NOT a second hardcoded copy:
+// when the inventory grows to a fourth table this stays in sync automatically, so
+// the "exact-set" assertion fails for a REAL coverage reason (an unenrolled table),
+// never a stale-test reason. [Review][Patch][Low] EXPECTED_TENANT_OWNED divergence.
+const EXPECTED_TENANT_OWNED = [...TENANT_TABLES].sort();
 
 let stackUp = false;
 beforeAll(async () => {

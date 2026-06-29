@@ -37,6 +37,21 @@ const BUILD_DIR = ".next";
 //    no `SERVICE_ROLE` token should survive into the bundle.
 const SERVICE_ROLE_TOKEN_RE = /[A-Z0-9_]*SERVICE_ROLE[A-Z0-9_]*/g;
 
+// Known-BENIGN vendor `*SERVICE_ROLE*` substrings — a tight, EXPLICITLY DOCUMENTED
+// allowlist. Rule 1 fires fail-closed on ANY `*SERVICE_ROLE*` token, so a future
+// dependency bump that legitimately ships a `SERVICE_ROLE` enum/role-name constant
+// in a vendored chunk would flip this authoritative R-002 gate red. When that
+// happens, an operator must (1) CONFIRM the hit is a benign vendor string and NOT a
+// real key leak, then (2) add the EXACT token here WITH a dated justification —
+// rather than weakening the regex. This keeps the in-repo signal: the allowlist is a
+// reviewed, greppable record of every accepted vendor `SERVICE_ROLE` string, so a
+// real leak can never hide behind a blanket relaxation. EMPTY today — the real
+// `.next` build ships no `SERVICE_ROLE` token (asserted by the standing
+// `real-bundle-clean` test in bundle-containment.test.ts). [Review][Patch][Med] M1/M-3
+const ALLOWLISTED_VENDOR_TOKENS = new Set([
+  // e.g. "SUPABASE_SERVICE_ROLE" — add with: // <date> <reason> <pkg@version>
+]);
+
 // 2. The literal local-demo service-role JWT VALUE (issuer `supabase-demo`,
 //    role `service_role`). This is the AUTHORITATIVE catch: it fires regardless of
 //    which symbol re-exported the value, which is exactly the gap the symbol-keyed
@@ -45,11 +60,16 @@ const SERVICE_ROLE_TOKEN_RE = /[A-Z0-9_]*SERVICE_ROLE[A-Z0-9_]*/g;
 const LOCAL_DEMO_SERVICE_ROLE_JWT =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU";
 
-// 3. A generic service_role JWT shape: a JWT whose payload encodes
-//    `"role":"service_role"`. The middle (payload) segment of ANY HS256 JWT minting
-//    the service_role is `eyJ...InNlcnZpY2Vfcm9sZSI...` — base64url of a JSON object
-//    containing `"role":"service_role"`. Catches a non-demo service-role JWT too.
-//    `eyJ` is the base64url of `{"`, the universal JWT-header/payload prefix.
+// 3. A generic service_role JWT shape — a BEST-EFFORT shape heuristic, not a
+//    guarantee. It looks for the contiguous base64url substring
+//    `InNlcnZpY2Vfcm9sZSI` (= `"service_role"`) inside a `eyJ...` JWT-shaped token.
+//    Because base64url framing shifts with byte alignment, a real service-role JWT
+//    whose payload serializes OTHER claims before `role` encodes `"service_role"` to a
+//    DIFFERENT fragment and can slip past this rule. It catches the common ordering
+//    (and the demo token), but it is NOT authoritative. The AUTHORITATIVE catches are
+//    rule 1 (any `*SERVICE_ROLE*` token, incl. the env-var NAME Next never minifies)
+//    and rule 2 (the literal demo-JWT VALUE). No behavioural change is required: this
+//    app uses NO service-role key (anon + RLS), so there is no service-role surface.
 const SERVICE_ROLE_JWT_RE =
   /eyJ[A-Za-z0-9_-]*InNlcnZpY2Vfcm9sZSI[A-Za-z0-9_-]*/g;
 
@@ -131,13 +151,17 @@ export function scanBuiltBundle(rootDir) {
 
     const rel = relative(rootDir, file).replace(/\\/g, "/");
 
-    // 1. Any `*SERVICE_ROLE*` token (key name / NEXT_PUBLIC_ name / re-export symbol).
+    // 1. Any `*SERVICE_ROLE*` token (key name / NEXT_PUBLIC_ name / re-export symbol),
+    //    EXCEPT a documented known-benign vendor string in ALLOWLISTED_VENDOR_TOKENS.
     const tokenMatches = contents.match(SERVICE_ROLE_TOKEN_RE);
     if (tokenMatches) {
       for (const match of new Set(tokenMatches)) {
+        if (ALLOWLISTED_VENDOR_TOKENS.has(match)) continue;
         violations.push(
           `${rel}: service-role token \`${match}\` present in a built artifact ` +
-            `— the service-role key/name must never ship to the browser or a route payload.`,
+            `— the service-role key/name must never ship to the browser or a route payload. ` +
+            `If this is a confirmed-benign vendor string, add it (dated, justified) to ` +
+            `ALLOWLISTED_VENDOR_TOKENS in scripts/verify/check-bundle-containment.mjs.`,
         );
       }
     }

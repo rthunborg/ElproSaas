@@ -18,10 +18,14 @@
  */
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { fileURLToPath } from "node:url";
+import { dirname, join } from "node:path";
 import { scanBuiltBundle } from "../../../../scripts/verify/check-bundle-containment.mjs";
+
+// The repo root (this file is tests/unit/scripts/verify/…): four levels up.
+const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "..");
 
 // The universal local-demo service-role JWT (NOT a real secret — see
 // tests/support/test-env.ts). The built-bundle grep must catch its literal VALUE
@@ -104,6 +108,25 @@ test("[P0] RED: a service_role-minting JWT in a route payload (.rsc/.json) is fl
     const { violations } = scanBuiltBundle(root);
     assert.ok(violations.length > 0, "expected at least one violation");
   });
+});
+
+test("[P0/Review] STANDING: the project's REAL built `.next` bundle scans CLEAN (in-repo bite signal)", () => {
+  // [Review][Patch][Med] M1/M-3: the clean-`.next` guarantee must be a committed
+  // assertion, not a one-time manual Debug-Log run — so a future dependency bump that
+  // ships a `SERVICE_ROLE` token into a vendored chunk surfaces here in-repo, not as a
+  // mystery red gate with no signal. Runs ONLY when `.next` exists (after `pnpm build`,
+  // exactly the CI order: build → this); skips cleanly on an un-built tree so
+  // `pnpm run test:unit` alone never requires a build. The app uses NO service-role key
+  // (anon + RLS), so the real scan MUST be clean (zero violations / empty allowlist).
+  if (!existsSync(join(REPO_ROOT, ".next"))) return;
+  const { violations } = scanBuiltBundle(REPO_ROOT);
+  assert.deepEqual(
+    violations,
+    [],
+    `the real .next bundle must scan clean; if a benign vendor SERVICE_ROLE string ` +
+      `appeared, confirm it is not a leak then allowlist it (dated) in ` +
+      `scripts/verify/check-bundle-containment.mjs:\n${violations.join("\n")}`,
+  );
 });
 
 test("[P0] FAILS LOUDLY: scanning a root with NO `.next` dir throws (never a vacuous green)", () => {
