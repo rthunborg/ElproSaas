@@ -1,91 +1,137 @@
 /**
- * ATDD RED-PHASE SCAFFOLD — Story 2.1, AUTHORITATIVE integration tests.
+ * Story 2.1 AUTHORITATIVE DB-backed integration tests — UN-GATED and GREEN in
+ * Story 2.2 (Task 6.6 hand-off).
  *
- * ╔══════════════════════════════════════════════════════════════════════════╗
- * ║  GATED ON STORY 2.2 — DOES NOT RUN IN STORY 2.1.                          ║
- * ║                                                                          ║
- * ║  These are the AUTHORITATIVE, DB-backed acceptance tests for Story 2.1's  ║
- * ║  security properties. They CANNOT execute until Story 2.2 lands:          ║
- * ║    - the local Supabase stack (`supabase start` / `supabase db reset`),   ║
- * ║    - the `tenants` / `tenant_memberships` tables + RLS helpers,           ║
- * ║    - the two-tenant factories (tenants, auth users, tenant_admin          ║
- * ║      memberships) — blocker B1.                                           ║
- * ║  And the real test runner (TEA `testarch-framework`).                     ║
- * ║                                                                          ║
- * ║  Per test-design-epic-2.md ("Critical Prerequisite" + Dependencies #2/#3) ║
- * ║  and Story 2.1 Task 6.1/6.2, these scenarios are OWNED/ENROLLED in Story  ║
- * ║  2.2's stack. This file is the red-phase SPEC carried forward so 2.2/2.4  ║
- * ║  can verify nothing fell through — it is intentionally `.skip`-ed and     ║
- * ║  must STAY skipped while running under Story 2.1.                         ║
- * ╚══════════════════════════════════════════════════════════════════════════╝
+ * These cover Story 2.1's security properties (AC1-AC4) against the REAL local
+ * Supabase stack + the two-tenant factories this story landed. They were carried
+ * forward `.skip`-ed from Story 2.1 (whose stack/factories did not yet exist);
+ * Story 2.2 un-skips them, wires them to `tests/factories/tenants`, and proves
+ * them green.
  *
- * COVERAGE (test-design-epic-2.md P0/P1 rows citing Story 2.1 ACs):
- *   AC1 → "Active membership resolves correct tenant context server-side" (P1 INT, R-004)
- *   AC2 → "Authenticated user without active membership is denied; no tenant data loaded" (P0 INT, R-004)
- *       + "Disabled/inactive membership treated as no-access" (P1 INT, R-004)
- *   AC3 → "Anonymous user cannot reach protected command" (P0 INT, R-003)
- *   AC4 → "Command rejects client-supplied tenant_id mismatch" (P0 INT, R-004)
+ *   AC1 → active membership resolves the correct tenant context (server-side)
+ *   AC2 → no active membership → TENANT_MEMBERSHIP_REQUIRED + zero tenant rows
+ *         (+ a 'disabled' membership treated as no-access, distinct from no-row)
+ *   AC3 → anonymous caller → UNAUTHENTICATED
+ *   AC4 → a forged client tenant_id never reads/widens to Tenant B
  *
- * GREEN-PHASE INSTRUCTIONS (for whoever lands this inside Story 2.2):
- *   1. Replace the factory/stack placeholders with the real two-tenant factories
- *      and the local-Supabase test client (per-worker tenant pair, B1/H5).
- *   2. Wire the resolver against a real per-request SSR server client bound to a
- *      real authenticated session (password-based / admin-created users — B2).
- *   3. Remove `.skip`, run against `supabase db reset`, make GREEN.
- *   4. Record in the Story 2.2 Dev Agent Record that these 2.1-AC scenarios are now
- *      covered (Task 6.2 hand-off).
+ * Runs against the LOCAL Supabase stack only; skips when unreachable.
  */
+import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { resolveTenantContext } from "@/server/auth/resolve-tenant-context";
+import {
+  createTwoTenantFixture,
+  makeAuthedServerClient,
+  makeAnonServerClient,
+  adminInsertMembership,
+  cleanupFixture,
+  type TwoTenantFixture,
+} from "../../../factories/tenants";
+import { isLocalStackReachable } from "../../../support/test-env";
 
-// Placeholders — the real imports land with Story 2.2's stack:
-// import { resolveTenantContext } from "@/server/auth/resolve-tenant-context";
-// import { createTwoTenantFixture, makeAuthedServerClient } from "../../../factories/tenants";
+// The factory returns a `@supabase/supabase-js` client; the resolver expects the
+// structurally-compatible `@supabase/ssr` server client (it only uses
+// `.auth.getClaims()` and `.from(...)`). Adapt the type at the call boundary.
+type ResolverClient = Parameters<typeof resolveTenantContext>[0] extends infer O
+  ? O extends { client?: infer C }
+    ? C
+    : never
+  : never;
 
-function gatedOn2dot2(): never {
-  throw new Error(
-    "GATED: this DB-backed test runs only inside Story 2.2's local Supabase stack " +
-      "+ two-tenant factories. It is intentionally skipped under Story 2.1.",
-  );
-}
+let stackUp = false;
+let fixture: TwoTenantFixture;
 
-describe.skip("resolveTenantContext — DB-backed (GATED on Story 2.2 stack/factories)", () => {
-  it("AC1: an authenticated tenant_admin of Tenant A resolves to Tenant A's context (membership-derived, server-side)", async () => {
-    gatedOn2dot2();
-    // const { tenantA, adminA } = await createTwoTenantFixture();
-    // const supabase = await makeAuthedServerClient(adminA);
-    // const result = await resolveTenantContext(supabase);
-    // expect(result.ok).toBe(true);
-    // expect(result.data?.tenantId).toBe(tenantA.id);
+beforeAll(async () => {
+  stackUp = await isLocalStackReachable();
+  if (!stackUp) return;
+  fixture = await createTwoTenantFixture();
+});
+
+afterAll(async () => {
+  if (stackUp && fixture) await cleanupFixture(fixture);
+});
+
+describe("resolveTenantContext — DB-backed (Story 2.1 AC1-AC4, un-gated in 2.2)", () => {
+  it("AC1: an active tenant_admin of Tenant A resolves to Tenant A's context", async () => {
+    if (!stackUp) return;
+    const client = (await makeAuthedServerClient(
+      fixture.adminA,
+    )) as unknown as ResolverClient;
+    const result = await resolveTenantContext({ client });
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.data.tenantId).toBe(fixture.tenantA.id);
+      expect(result.data.userId).toBe(fixture.adminA.id);
+      expect(result.data.role).toBe("tenant_admin");
+      expect(result.data.status).toBe("active");
+      // The joined tenant name resolves (NOT NULL constraint guarantees it).
+      expect(result.data.tenantName).toBe(fixture.tenantA.name);
+    }
   });
 
-  it("AC2: an authenticated user with no active membership is denied (TENANT_MEMBERSHIP_REQUIRED) and reads ZERO tenant rows", async () => {
-    gatedOn2dot2();
-    // const { orphanUser } = await createTwoTenantFixture();
-    // const supabase = await makeAuthedServerClient(orphanUser);
-    // const result = await resolveTenantContext(supabase);
-    // expect(result.ok).toBe(false);
-    // expect(result.code).toBe("TENANT_MEMBERSHIP_REQUIRED");
-    // // And no tenant-owned rows are returned to this user under RLS.
+  it("AC2: an authenticated user with no membership is denied and reads ZERO tenant rows", async () => {
+    if (!stackUp) return;
+    const client = (await makeAuthedServerClient(
+      fixture.orphanUser,
+    )) as unknown as ResolverClient;
+    const result = await resolveTenantContext({ client });
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.code).toBe("TENANT_MEMBERSHIP_REQUIRED");
+
+    // And no tenant-owned rows are readable by this user under RLS.
+    const authed = await makeAuthedServerClient(fixture.orphanUser);
+    const { data: tenants } = await authed.from("tenants").select("id");
+    expect(tenants ?? []).toEqual([]);
+    const { data: memberships } = await authed
+      .from("tenant_memberships")
+      .select("tenant_id");
+    expect(memberships ?? []).toEqual([]);
   });
 
-  it("AC2 (distinct): a 'disabled' membership row is treated as no-access, distinct from no-row", async () => {
-    gatedOn2dot2();
-    // ... seed adminA with status='disabled', expect TENANT_MEMBERSHIP_REQUIRED.
+  it("AC2 (distinct): a 'disabled' membership is treated as no-access, distinct from no-row", async () => {
+    if (!stackUp) return;
+    // Build a dedicated fixture so the disabled state does not perturb others.
+    const f = await createTwoTenantFixture();
+    try {
+      // Seed the orphan as a DISABLED tenant_admin of tenant A (admin path).
+      await adminInsertMembership({
+        tenant_id: f.tenantA.id,
+        user_id: f.orphanUser.id,
+        role: "tenant_admin",
+        status: "disabled",
+      });
+      const client = (await makeAuthedServerClient(
+        f.orphanUser,
+      )) as unknown as ResolverClient;
+      const result = await resolveTenantContext({ client });
+      expect(result.ok).toBe(false);
+      if (!result.ok) expect(result.code).toBe("TENANT_MEMBERSHIP_REQUIRED");
+    } finally {
+      await cleanupFixture(f);
+    }
   });
 
-  it("AC3: an anonymous (unauthenticated) caller cannot resolve a context (UNAUTHENTICATED) — no privileged anon path", async () => {
-    gatedOn2dot2();
-    // const supabase = await makeAnonServerClient();
-    // const result = await resolveTenantContext(supabase);
-    // expect(result.ok).toBe(false);
-    // expect(result.code).toBe("UNAUTHENTICATED");
+  it("AC3: an anonymous caller cannot resolve a context (UNAUTHENTICATED)", async () => {
+    if (!stackUp) return;
+    const client = (await makeAnonServerClient()) as unknown as ResolverClient;
+    const result = await resolveTenantContext({ client });
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.code).toBe("UNAUTHENTICATED");
   });
 
-  it("AC4: Tenant A admin supplying a forged client tenant_id of Tenant B never reads/widens to Tenant B (membership stays authority)", async () => {
-    gatedOn2dot2();
-    // const { tenantA, tenantB, adminA } = await createTwoTenantFixture();
-    // const supabase = await makeAuthedServerClient(adminA);
-    // const result = await resolveTenantContext(supabase, { clientTenantId: tenantB.id });
-    // // Ignored-or-rejected; resolved tenant is never tenantB, and no Tenant B row is readable.
-    // expect(result.data?.tenantId).not.toBe(tenantB.id);
+  it("AC4: Tenant A admin supplying a forged Tenant B tenant_id never reads/widens to Tenant B", async () => {
+    if (!stackUp) return;
+    const client = (await makeAuthedServerClient(
+      fixture.adminA,
+    )) as unknown as ResolverClient;
+    const result = await resolveTenantContext({
+      client,
+      clientTenantId: fixture.tenantB.id, // forged — must be ignored
+    });
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      // Authority stays membership-derived: tenant is A, never the forged B.
+      expect(result.data.tenantId).toBe(fixture.tenantA.id);
+      expect(result.data.tenantId).not.toBe(fixture.tenantB.id);
+    }
   });
 });

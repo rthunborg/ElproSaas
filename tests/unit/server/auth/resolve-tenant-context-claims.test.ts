@@ -30,22 +30,27 @@ function makeFakeSupabase(opts: {
 }) {
   const state = { membershipQueried: false };
 
+  // The resolver fetches the candidate SET and awaits the chain directly after `.order(...)`
+  // (no `.maybeSingle()` — Task 7.2). The builder is thenable and returns an array.
   const builder = {
     select: () => builder,
     eq: () => builder,
     order: () => builder,
     limit: () => builder,
-    maybeSingle: async () => {
+    then: (resolve: (value: { data: unknown; error: unknown }) => unknown) => {
       state.membershipQueried = true;
-      return {
-        data: {
-          tenant_id: TENANT_A,
-          role: "tenant_admin",
-          status: "active",
-          tenants: { name: "Acme Elektro AB" },
-        },
+      return resolve({
+        data: [
+          {
+            tenant_id: TENANT_A,
+            role: "tenant_admin",
+            status: "active",
+            created_at: "2026-01-01T00:00:00Z",
+            tenants: { name: "Acme Elektro AB" },
+          },
+        ],
         error: null,
-      };
+      });
     },
   };
 

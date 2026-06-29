@@ -33,7 +33,12 @@
   ],
   "exclude": [
     "node_modules",
-    "tests/integration/**",
+    // tests/integration/** is re-enrolled in typecheck by Story 2.2 (Task 6.6):
+    // the Vitest runner + DB-backed suites now exist, so they are type-checked.
+    // tests/e2e/** stays excluded — its browser runner (Playwright) is out of
+    // THIS story's scope (deferred; owner: a later E2E/Story-2.4 task). The e2e
+    // scaffold uses bare describe/it globals with no runner types and would not
+    // type-check until that runner lands.
     "tests/e2e/**"
   ]
 }

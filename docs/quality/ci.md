@@ -25,33 +25,42 @@ The workflow lives at [`.github/workflows/ci.yml`](../../.github/workflows/ci.ym
 ## Active Gates
 
 These run on every pull request targeting `main` (and on `push` to `main` as a
-post-merge safety net). They execute as ordered steps in a single `verify` job —
-one install, then the gates in sequence. A single job avoids re-installing
-dependencies once per gate; later stories that need their own service container
-(e.g. RLS, golden-master) will add separate jobs.
+post-merge safety net). The `verify` job runs stages 1-5 as ordered steps (one
+install, then the gates in sequence). Story 2.2 added a SEPARATE `db` job for the
+stack-dependent gates (migration reset + RLS negatives, stages 6 + 8), which need
+their own local Supabase service and so cannot share the `verify` install.
 
 | # | Gate | Command | Purpose |
 | --- | --- | --- | --- |
 | 1 | Install | `pnpm install --frozen-lockfile` | Reproducible install; fails if `pnpm-lock.yaml` is stale. |
 | — | Lockfile guard | `pnpm run verify:lockfiles` | Enforces pnpm as the only package manager (AR2); rejects an empty/invalid lockfile. |
-| 2 | Typecheck | `pnpm typecheck` | `tsc --noEmit` — no type errors. |
+| — | Service-role containment | `pnpm run verify:service-role-containment` | Fails if the service-role key is `NEXT_PUBLIC_` or reachable from a `"use client"` path (architecture §6). |
+| 2 | Typecheck | `pnpm typecheck` | `tsc --noEmit` — no type errors (now includes the re-enrolled `tests/integration/**`). |
 | 3 | Lint | `pnpm lint` | `eslint` — lint clean. |
-| 4 | Unit tests | `pnpm test` | Placeholder today (see below); becomes the real unit suite from Epic 2. |
+| 4 | Unit tests | `pnpm run test:unit` | Pure-logic suites on the dependency-free `node --test` runner. |
 | 5 | Build | `pnpm build` | `next build` succeeds (fetches a Google font over the network — expected to pass on networked CI). |
 
-### Unit-test gate (placeholder, by decision)
+The `db` job (separate, with the local Supabase stack):
 
-No test framework or testable product code exists yet. Story 1.1 deferred the
-test-framework choice to "the first story that needs it," and the TEA
-`testarch-framework` workflow initializes the real harness around Epic 2.
+| # | Gate | Command | Purpose |
+| --- | --- | --- | --- |
+| 6 | Migration reset | `supabase db reset` | Empty DB → apply migrations → seed; fails on a bad migration (architecture §19 stage 6). |
+| 8 | Integration + RLS negatives | `pnpm run test:int` | DB-backed integration + cross-tenant RLS-negative suites (Vitest) against the LOCAL stack only. `SUPABASE_TEST_REQUIRED=1` makes a missing stack a hard failure. |
 
-To keep the unit-test gate wired without pre-empting that decision (and without
-adding a dependency, per AR28), the `test` script is an honest placeholder: it
-prints why no suite exists yet and exits 0. It is **not** a silent false-green —
-the script announces its own emptiness, and the real suites land with Epic 2
-(command/lifecycle units) and Epic 4 (money/tax units). When the harness is
-introduced, replace the placeholder `test` script with the real runner; no CI
-workflow change is required because CI already calls `pnpm test`.
+### Test runners (TEA framework decision, Story 2.2)
+
+The project runs TWO deliberately-separated runners (architecture §18):
+
+- **`node --test`** (dependency-free, Story 2.1) runs the pure-logic unit suites
+  under `tests/unit/**` via `pnpm run test:unit` — fast, zero runtime deps.
+- **Vitest** (Story 2.2) runs the DB-backed integration + RLS-negative suites
+  under `tests/integration/**` via `pnpm run test:int` — they need a real runner,
+  async lifecycle, and a live local Supabase stack.
+
+`pnpm test` runs both in order. The `verify` CI job runs only `test:unit` (no DB);
+the `db` CI job runs `test:int` after `supabase db reset`. The two runners exist
+because subsuming the established `node --test` units into Vitest would mean
+rewriting every `node:test`/`node:assert` import for no behavioral gain.
 
 ## Deferred Gates
 
@@ -59,19 +68,19 @@ These are required **once the surface they guard is introduced**. They are not r
 today because there is nothing for them to check yet. Each maps to the story that
 activates it (architecture §19 stages 6–10).
 
-| Gate | Architecture §19 stage | Activated by |
+| Gate | Architecture §19 stage | Status |
 | --- | --- | --- |
-| Supabase migration reset (empty DB → reset → seed) | 6 | First migration story — Story 2.2 (membership schema, RLS helpers, two-tenant fixtures). |
-| Integration command tests | 7 | Story 2.3 (server command envelope) and downstream command stories. |
-| RLS negative tests (cross-tenant) | 8 | Story 2.2 (helpers/fixtures), hardened by Story 2.4 (security regression harness; RLS coverage gate). |
-| Storage negative tests (path spoofing, expired URLs, MIME/size) | 8 | Epic 8, Story 8.1 (file-storage foundation). |
-| Golden-master comparison | 9 | Epic 4, Story 4.4 (money/tax golden fixtures); Story 5.5; Story 9.3. |
-| Secret scan (or equivalent) | 10 | External-beta hardening (post Phase A). |
+| Supabase migration reset (empty DB → reset → seed) | 6 | **ACTIVE** (Story 2.2 — `db` job, `supabase db reset`). |
+| Integration command tests | 7 | Partly active: the DB-backed integration suite runs in the `db` job (Story 2.2). Command-envelope integration tests land with Story 2.3. |
+| RLS negative tests (cross-tenant) | 8 | **ACTIVE** for `tenants`/`tenant_memberships` (Story 2.2). Hardened into the inventory-gated parameterized suite by Story 2.4 (RLS coverage gate). |
+| Storage negative tests (path spoofing, expired URLs, MIME/size) | 8 | Deferred — Epic 8, Story 8.1 (file-storage foundation). |
+| Golden-master comparison | 9 | Deferred — Epic 4, Story 4.4; Story 5.5; Story 9.3. |
+| Secret scan (or equivalent) | 10 | Deferred — external-beta hardening (post Phase A). |
 
-**RLS coverage gate (future).** Once tenant-owned tables exist, every such table
-must be enrolled in the parameterized cross-tenant negative suite before merge; CI
-fails when a tenant-owned table is not covered (architecture §18). This is
-introduced with Story 2.2 / 2.4.
+**RLS coverage gate (future).** Story 2.2 established the reusable cross-tenant
+negative pattern for the first two tenant-owned tables. The STANDING gate that
+fails CI when a future tenant-owned table is not enrolled in the parameterized
+suite (architecture §18 / H4) is **Story 2.4's** scope, not this story's.
 
 ## Test Environment Ground Rules
 
