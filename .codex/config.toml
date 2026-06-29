@@ -2,7 +2,10 @@ approval_policy = "on-request"
 sandbox_mode = "workspace-write"
 
 [sandbox_workspace_write]
-network_access = false
+# Relaxed to true for parity with Claude Code (which no longer gates network
+# commands) so the agentic dev process runs without friction. Removes a sandbox
+# safety layer; prod Supabase / secrets ops remain hard-blocked by execpolicy.
+network_access = true
 
 [agents]
 max_threads = 4

@@ -12,21 +12,33 @@ prefix_rule(["git", "diff"], "allow", match=["git diff -- AGENTS.md"], not_match
 prefix_rule(["git", "log"], "allow", match=["git log --oneline -5"], not_match=["git push"])
 prefix_rule(["rg"], "allow", match=["rg --files docs"])
 
-# Dependency, package, remote, and destructive git operations require explicit approval.
-prefix_rule(["npm", "install"], "prompt", match=["npm install"], not_match=["npm test"])
-prefix_rule(["npm", "update"], "prompt", match=["npm update"])
-prefix_rule(["bun", "install"], "prompt", match=["bun install"])
-prefix_rule(["npx"], "prompt", match=["npx supabase --version"])
-prefix_rule(["supabase", "db", "push"], "prompt", match=["supabase db push"], not_match=["supabase migration list"])
-prefix_rule(["supabase", "db", "reset"], "prompt", match=["supabase db reset"])
-prefix_rule(["supabase", "migration", "new"], "prompt", match=["supabase migration new add_table"])
-prefix_rule(["git", "reset"], "prompt", match=["git reset --soft HEAD~1"])
-prefix_rule(["git", "checkout", "--"], "prompt", match=["git checkout -- src/App.tsx"], not_match=["git checkout feature/docs"])
-prefix_rule(["git", "push"], "prompt", match=["git push origin docs/guardrails"])
+# Parity with Claude Code (.claude/settings.json): these previously prompted but
+# now auto-allow so autonomous runs proceed hands-off. The destructive subset is
+# still hard-blocked by the `forbidden` rules below (force-push, hard reset, prod
+# Supabase, secrets). Codex uses most-specific-prefix-wins, so a longer forbidden
+# prefix (e.g. `git push --force`) overrides the broader allow here — same pattern
+# the existing `supabase db push` vs `--linked` pair already relies on.
+prefix_rule(["npm", "install"], "allow", match=["npm install"], not_match=["npm test"])
+prefix_rule(["npm", "update"], "allow", match=["npm update"])
+prefix_rule(["bun", "install"], "allow", match=["bun install"])
+prefix_rule(["npx"], "allow", match=["npx supabase --version"])
+prefix_rule(["supabase", "db", "push"], "allow", match=["supabase db push"], not_match=["supabase migration list"])
+prefix_rule(["supabase", "db", "reset"], "allow", match=["supabase db reset"])
+prefix_rule(["supabase", "migration", "new"], "allow", match=["supabase migration new add_table"])
+prefix_rule(["git", "reset"], "allow", match=["git reset --soft HEAD~1"])
+prefix_rule(["git", "checkout", "--"], "allow", match=["git checkout -- src/App.tsx"], not_match=["git checkout feature/docs"])
+prefix_rule(["git", "push"], "allow", match=["git push origin docs/guardrails"])
+# NOTE: prefix rules cannot inspect the *wrapped* string inside a shell invocation,
+# so allowing these means a shell-wrapped secret read (e.g. `pwsh -Command "cat .env"`)
+# is NOT caught here. Claude Code catches it via the guard.ps1 regex hook; Codex has
+# no active equivalent (hooks.json is proposal-only). Port guard.ps1 into a Codex
+# PreToolUse hook if this gap matters — see codex-hooks-proposal.md.
+prefix_rule(["powershell"], "allow", match=["powershell -NoProfile -Command \"echo hi\""])
+prefix_rule(["pwsh"], "allow", match=["pwsh -NoProfile -Command \"echo hi\""])
+prefix_rule(["cmd"], "allow", match=["cmd /c echo hi"])
+
+# Still requires explicit approval (parity with Claude Code's lone `ask` gate).
 prefix_rule(["gh", "pr", "merge"], "prompt", match=["gh pr merge 123"])
-prefix_rule(["powershell"], "prompt", match=["powershell -NoProfile -Command \"cat .env\""])
-prefix_rule(["pwsh"], "prompt", match=["pwsh -NoProfile -Command \"cat .env\""])
-prefix_rule(["cmd"], "prompt", match=["cmd /c type .env"])
 
 # Secret-reading commands are forbidden.
 prefix_rule(["cat", ".env"], "forbidden", match=["cat .env"], not_match=["cat README.md"])
@@ -42,6 +54,13 @@ prefix_rule(["rg", ".", ".env"], "forbidden", match=["rg . .env"])
 # Obvious destructive commands are forbidden.
 prefix_rule(["rm", "-rf", "/"], "forbidden", match=["rm -rf /"])
 prefix_rule(["rm", "-fr", "/"], "forbidden", match=["rm -fr /"])
+
+# Destructive git operations forbidden (parity with Claude Code's guard.ps1).
+# More specific than the `git reset`/`git push` allows above, so these win.
+prefix_rule(["git", "reset", "--hard"], "forbidden", match=["git reset --hard"])
+prefix_rule(["git", "push", "--force"], "forbidden", match=["git push --force"])
+prefix_rule(["git", "push", "--force-with-lease"], "forbidden", match=["git push --force-with-lease"])
+prefix_rule(["git", "push", "-f"], "forbidden", match=["git push -f"])
 
 # Production-like Supabase targeting and secrets operations are forbidden until a release process exists.
 prefix_rule(["supabase", "db", "push", "--linked"], "forbidden", match=["supabase db push --linked"])

@@ -37,12 +37,24 @@ The Codex execpolicy (`.codex/rules/default.rules`) and the hard gates in
 - **`permissions.deny`** — secret reads/edits (`.env*`), and irreversible/prod
   commands (`rm -rf /`, `supabase db push --linked`, `supabase functions
   deploy`, `supabase secrets`, `supabase projects delete`).
-- **`permissions.ask`** — manual approval before: dependency installs/updates,
-  network commands, `git push`/`reset`/`checkout --`, `gh pr merge`, Supabase
-  migrations/db push, and edits to product code (`app/**`, `src/**`,
-  `components/**`, `supabase/migrations/**`, `package.json`, `pnpm-lock.yaml`).
+- **`permissions.ask`** — manual approval before `gh pr merge` only. The broader
+  product-code / migration-file / dependency-install / network / `git push`
+  gates were intentionally relaxed so autonomous runs (e.g. auto-bmad) proceed
+  hands-off; enforcement for those paths now rests on `permissions.deny` + the
+  PreToolUse hook below, plus CI. **Note:** `ask` (and `deny`) rules fire even
+  under `bypassPermissions` mode — bypass only auto-approves the *default* prompt
+  flow, it does not override explicit `ask`/`deny`/hooks. That is why the real
+  backstops are `deny` + the hook, not `ask`. Codex's execpolicy
+  (`.codex/rules/default.rules`) has been relaxed **symmetrically** — its `prompt`
+  rules were flipped to `allow` except `gh pr merge`, while its `forbidden` set was
+  extended (force-push, `git reset --hard`) to match this hook — so both tools
+  behave the same. Caveat: Codex prefix rules can't inspect shell-wrapped strings,
+  so a Codex-side `pwsh -Command "cat .env"` is not blocked the way this hook
+  blocks it; port `guard.ps1` to a Codex hook if that gap matters.
 - **PreToolUse hook** (`.claude/hooks/guard.ps1`) — defense-in-depth that blocks
-  secret-reading and destructive commands hidden inside compound shell strings.
+  secret-reading and destructive commands (force-push, `git reset --hard`, prod
+  Supabase, env dumps) hidden inside compound shell strings; runs in all
+  permission modes including `bypassPermissions`.
 
 `.claude/` is committed, so this enforcement applies **identically to every
 clone**. The settings are also documented in

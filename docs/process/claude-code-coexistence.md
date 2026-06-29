@@ -44,15 +44,15 @@ cleanly with nothing to rewrite. The Codex-specific surface is isolated to
 
 | Codex construct | Codex mechanism | Claude Code equivalent |
 | --- | --- | --- |
-| `config.toml` `approval_policy = "on-request"` | Ask before sensitive ops | Default permission mode + `permissions.ask` in `.claude/settings.json`. |
+| `config.toml` `approval_policy = "on-request"` | Ask before sensitive ops | Permission mode + `permissions.ask` in `.claude/settings.json`. **Both tools relaxed symmetrically:** `ask` (Claude) and execpolicy `prompt` (Codex) now gate `gh pr merge` only; the rest rely on `permissions.deny`/`guard.ps1` (Claude) and execpolicy `forbidden` (Codex). |
 | `config.toml` `sandbox_mode = "workspace-write"` | Workspace-write sandbox | Claude Code default workspace write + Bash sandbox; gated by `permissions`. |
-| `config.toml` `network_access = false` | No network in sandbox | `permissions.ask` on `curl`/`wget`/`Invoke-WebRequest`/`Invoke-RestMethod`. |
+| `config.toml` `network_access = true` | Network allowed in sandbox | No longer an `ask` gate on the Claude Code side (`curl`/`wget`/`Invoke-WebRequest`/`Invoke-RestMethod` run without a prompt); Codex `network_access` relaxed to `true` to match. Sandbox network egress is no longer blocked on either side. |
 | `config.toml` `[agents] max_threads/max_depth` | Subagent concurrency caps | No settings knob; advisory. Controlled per-invocation via the `Agent` tool. |
-| `hooks.json` `UserPromptSubmit` | Prompt scope check | Claude Code `UserPromptSubmit` hook (optional; scope is also enforced by `ask` rules). |
+| `hooks.json` `UserPromptSubmit` | Prompt scope check | Claude Code `UserPromptSubmit` hook (optional). Scope discipline is now advisory (operating modes + review + CI), not an `ask` prompt. |
 | `hooks.json` `PreToolUse` | Pre-tool path/secret check | Claude Code `PreToolUse` hook (`guard.ps1`) + `permissions.deny`/`ask`. |
 | `hooks.json` `Stop` | Final-summary validation | Claude Code `Stop`/`PostToolUse` hook (optional; advisory). |
 | `rules/default.rules` `"forbidden"` | Hard block | `permissions.deny` + `PreToolUse` hook (exit 2). |
-| `rules/default.rules` `"prompt"` | Require approval | `permissions.ask`. |
+| `rules/default.rules` `"prompt"` | Require approval | `permissions.ask` (Claude Code side narrowed to `gh pr merge`; the destructive subset moved to `permissions.deny` + `guard.ps1`). |
 | `rules/default.rules` `"allow"` | Auto-allow read-only | `permissions.allow` (or just leave un-gated). |
 | `agents/*.toml` | Custom reviewer agents | `Agent` tool tasks / `code-review` + `bmad-code-review` skills; materialized as `.claude/agents/*.md` (all 7 — see §4). |
 
@@ -71,8 +71,8 @@ cleanly with nothing to rewrite. The Codex-specific surface is isolated to
 | --- | --- |
 | No `.env`/secret reads or edits (`security-guardrails.md`; execpolicy `forbidden`) | `permissions.deny` on `Read/Edit/Write` of every standard env file — `.env`, `.env.local`, `.env.*.local`, `.env.development`, `.env.production`, `.env.test` — plus nested `**/.env`; `guard.ps1` also blocks `cat/type/gc/Get-Content .env`, `printenv`, `Get-ChildItem Env:`. The safe placeholder templates `.env.example` / `.env.sample` / `.env.template` are carved out via `permissions.allow` so docs/setup stories (e.g. Story 1.4) can author them. Deny outranks allow and the glob dialect has no negation syntax, so the deny **enumerates the secret files** instead of a broad `.env.*` block that would also catch the templates. |
 | No irreversible/prod commands (execpolicy `forbidden`) | `permissions.deny` on `rm -rf /`, `supabase db push --linked`, `supabase functions deploy`, `supabase secrets`, `supabase projects delete`; `guard.ps1` also blocks `git reset --hard`, force-push. |
-| Approval before installs/migrations/push/network (execpolicy `prompt`; `agent-workflow.md` hard gates) | `permissions.ask`. |
-| Protected paths — no product code/migrations without approved story (`AGENTS.md`; `definition-of-done.md`) | `permissions.ask` on `Edit/Write` of `app/**`, `src/**`, `components/**`, `supabase/migrations/**`, `package.json`, `pnpm-lock.yaml`. |
+| Approval before installs/migrations/push/network (execpolicy `prompt`; `agent-workflow.md` hard gates) | **Relaxed on the Claude Code side** — `permissions.ask` now gates `gh pr merge` only, so autonomous runs (auto-bmad) proceed hands-off. The destructive subset stays hard-blocked by `permissions.deny` + `guard.ps1` (prod Supabase, force-push, `git reset --hard`, env dumps); CI is the merge-blocking gate. Codex's execpolicy was relaxed symmetrically — `prompt` rules flipped to `allow` (except `gh pr merge`), `forbidden` set extended to force-push + `git reset --hard`. |
+| Protected paths — no product code/migrations without approved story (`AGENTS.md`; `definition-of-done.md`) | **No longer an `ask` gate.** Product-code/migration writes proceed without a prompt; the approved-story discipline is enforced by the operating-modes convention (`agent-workflow.md`), code review, and CI — not by a Claude Code permission prompt. |
 | Test / Static-Quality gate (`quality-gates.md` Gate 2; `ci.md`) | **CI-owned**, not a local hook: `.github/workflows/ci.yml`. Local hooks do not duplicate it. |
 | Visual validation | **No existing Codex guardrail to migrate.** Not defined for Phase A (no product UI test gate yet). Attach when product UI work begins, e.g. via the Claude Preview MCP, per the activating story. |
 
@@ -118,22 +118,7 @@ needed.
       "Write(./.env.example)", "Write(./.env.sample)", "Write(./.env.template)"
     ],
     "ask": [
-      "Bash(pnpm install:*)", "Bash(pnpm add:*)", "Bash(pnpm update:*)",
-      "Bash(npm install:*)", "Bash(npm i:*)", "Bash(npm update:*)",
-      "Bash(bun install:*)", "Bash(npx supabase:*)",
-      "Bash(git push:*)", "Bash(git reset:*)", "Bash(git checkout --:*)",
-      "Bash(git rebase:*)", "Bash(gh pr merge:*)",
-      "Bash(supabase db push:*)", "Bash(supabase db reset:*)",
-      "Bash(supabase migration new:*)",
-      "Bash(powershell:*)", "Bash(pwsh:*)", "Bash(cmd:*)",
-      "Bash(curl:*)", "Bash(wget:*)",
-      "Bash(Invoke-WebRequest:*)", "Bash(Invoke-RestMethod:*)",
-      "Edit(app/**)", "Write(app/**)",
-      "Edit(src/**)", "Write(src/**)",
-      "Edit(components/**)", "Write(components/**)",
-      "Edit(supabase/migrations/**)", "Write(supabase/migrations/**)",
-      "Edit(package.json)", "Write(package.json)",
-      "Edit(pnpm-lock.yaml)", "Write(pnpm-lock.yaml)"
+      "Bash(gh pr merge:*)"
     ]
   },
   "hooks": {
@@ -195,8 +180,12 @@ or PR.
 ## 5. Verification Checklist (Claude Code)
 
 1. `permissions.deny` blocks a `.env` / `.env.local` read (try `Read` on `.env` → denied); `permissions.allow` permits a template (try `Write` on `.env.example` → allowed, as Story 1.4 needs).
-2. `permissions.ask` prompts on `git push` and on editing `app/**`.
+2. `permissions.ask` prompts on `gh pr merge` (the only remaining `ask` gate); editing `app/**`/`src/**` and `git push` now proceed without a prompt by design. Note `ask`/`deny`/hooks fire even under `bypassPermissions` — bypass only auto-approves the default prompt flow.
 3. `guard.ps1` blocks `pwsh -Command "Get-Content .env"` (PreToolUse exit 2).
 4. CI still runs the full Static-Quality gate on every PR to `main`.
-5. Codex side unchanged: `.codex` execpolicy still verified per
-   `codex-config-verification.md`.
+5. Codex side relaxed symmetrically: `.codex/rules/default.rules` `prompt` rules
+   flipped to `allow` (except `gh pr merge`), `forbidden` extended to force-push +
+   `git reset --hard`, and `.codex/config.toml` `network_access = true`. Verify with
+   `codex execpolicy check --rules .codex/rules/default.rules <command>` per
+   `codex-config-verification.md` (e.g. `npm install` → allow, `git push --force` →
+   forbidden, `gh pr merge 123` → prompt, `supabase db push --linked` → forbidden).
