@@ -5,10 +5,10 @@ epic_num: 2
 story_num: 4
 branch: story/2-4-security-regression-harness-for-tenant-and-service-role-boundaries
 status: in-progress
-updated_at: "2026-06-29T18:34:18Z"
+updated_at: "2026-06-29T19:01:14Z"
 started_at: "2026-06-29T14:28:50Z"
 completed_at: null
-active_seconds: 5026
+active_seconds: 6593
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: true
@@ -20,25 +20,25 @@ tea_selected: [atdd, automate]
 tea_rationale: "Story builds the tenant/service-role security regression harness (parameterized RLS negative suite + service-role/browser-bundle containment + CI table-inventory gate); its entire purpose is enforcing authorization/access-control boundaries — a direct High trigger (auth/authz/permissions)."
 epic_story_count: 4
 stories_after_in_epic: 0
-completed_phases: [0, 1, 2, 3, 4, 5, 6, 7]
+completed_phases: [0, 1, 2, 3, 4, 5, 6, 7, 8]
 code_review_iterations: 3
 code_review_loop_done: true
 hitl_halt: "skipped (clean convergence)"
 external_review_iterations: 0
 convergence_unverified: false
 story_trace: null
-commits: [fe0315e, d2ea00f, 1cb62d3, 1a77711, c07fc07, e36ad72, c0a4b91]
+commits: [fe0315e, d2ea00f, 1cb62d3, 1a77711, c07fc07, e36ad72, c0a4b91, 5bd85df]
 phase8_steps:
-  trace_gate: null
-  nfr: null
-  test_review: null
-  project_context: null
-  reconcile: null
-  archive: null
-  retro: null
-gate_decision: null
+  trace_gate: done
+  nfr: done
+  test_review: done
+  project_context: done
+  reconcile: done
+  archive: done
+  retro: done
+gate_decision: CONCERNS
 gate_iterations: 0
-deferred_work_archived: 0
+deferred_work_archived: 9
 pr_url: null
 ci_run_url: null
 ci_status: unknown
@@ -49,6 +49,8 @@ branch_deleted: false
 open_questions: []
 deferred_work:
   - "Story 2.3 test-isolation flake: envelope-audit-write.int.test.ts uses a hardcoded correlationId and accumulates rows across repeated non-reset local test:int runs; CI unaffected (resets once). Owner: test-hardening pass -> per-run crypto.randomUUID(). Logged in deferred-work.md."
+  - "Retro-surfaced: the audit_events append-only trigger blocks tenant ON DELETE CASCADE in cleanupFixture — a non-obvious factory-teardown interaction not in any story file; resolve before Epic 3 factory teardown (captured in epic-2-retro-2026-06-29.md)."
 blockers: []
 overrides: {}
 constraints: []
+planning_drift: "Detail-level only (no structural drift, no PRD/epic re-sync needed): architecture.md §15 left actor_user_id FK-on-actor-delete unspecified (2-3 chose ON DELETE SET NULL + nullable so the audit trail survives a deleted actor); architecture.md §18 implies a single test runner, but the standing convention is now a deliberate dual runner (node:test for pure units + Vitest for DB-backed). Recommend folding both into architecture.md at the next docs refresh."
