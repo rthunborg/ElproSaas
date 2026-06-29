@@ -5,10 +5,10 @@ epic_num: 2
 story_num: 4
 branch: story/2-4-security-regression-harness-for-tenant-and-service-role-boundaries
 status: in-progress
-updated_at: "2026-06-29T19:01:14Z"
+updated_at: "2026-06-29T19:06:57Z"
 started_at: "2026-06-29T14:28:50Z"
 completed_at: null
-active_seconds: 6593
+active_seconds: 6751
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: true
@@ -27,7 +27,7 @@ hitl_halt: "skipped (clean convergence)"
 external_review_iterations: 0
 convergence_unverified: false
 story_trace: null
-commits: [fe0315e, d2ea00f, 1cb62d3, 1a77711, c07fc07, e36ad72, c0a4b91, 5bd85df]
+commits: [fe0315e, d2ea00f, 1cb62d3, 1a77711, c07fc07, e36ad72, c0a4b91, 5bd85df, a2c1bd6]
 phase8_steps:
   trace_gate: done
   nfr: done
