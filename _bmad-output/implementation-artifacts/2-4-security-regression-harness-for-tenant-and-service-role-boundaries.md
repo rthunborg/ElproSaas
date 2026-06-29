@@ -1,6 +1,6 @@
 # Story 2.4: Security Regression Harness For Tenant And Service-Role Boundaries
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 

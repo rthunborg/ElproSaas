@@ -59,7 +59,7 @@ development_status:
   2-1-tenant-admin-login-and-tenant-context-resolution: done
   2-2-tenant-membership-schema-rls-helpers-and-two-tenant-fixtures: done
   2-3-server-command-envelope-and-minimal-audit-events: done
-  2-4-security-regression-harness-for-tenant-and-service-role-boundaries: review
+  2-4-security-regression-harness-for-tenant-and-service-role-boundaries: done
   epic-2-retrospective: done
 
   epic-3: backlog
