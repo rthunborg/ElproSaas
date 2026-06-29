@@ -1,6 +1,6 @@
 # Story 2.2: Tenant Membership Schema, RLS Helpers, And Two-Tenant Fixtures
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 

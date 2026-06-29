@@ -4,12 +4,12 @@ story_key: 2-2-tenant-membership-schema-rls-helpers-and-two-tenant-fixtures
 epic_num: 2
 story_num: 2
 branch: story/2-2-tenant-membership-schema-rls-helpers-and-two-tenant-fixtures
-status: in-progress
-updated_at: "2026-06-29T10:52:57Z"
+status: done
+updated_at: "2026-06-29T11:03:51Z"
 started_at: "2026-06-22T15:04:11Z"
-completed_at: null
-active_seconds: 103552
-timing_anchor: 1782730377
+completed_at: "2026-06-29T11:03:51Z"
+active_seconds: 104158
+timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
 needs_project_context_bootstrap: false
@@ -27,7 +27,7 @@ hitl_halt: "skipped (clean convergence)"
 external_review_iterations: 0
 convergence_unverified: false
 story_trace: null
-commits: [ae4539b, 2ac5a6d, c6420f3, b75d0e9, d580533, 31fc7fc]
+commits: [ae4539b, 2ac5a6d, c6420f3, b75d0e9, d580533, 31fc7fc, 1cbe1f8, ca4c552, 6a43c7f]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -39,9 +39,9 @@ phase8_steps:
 gate_decision: null
 gate_iterations: 0
 deferred_work_archived: 0
-pr_url: null
-ci_run_url: null
-ci_status: unknown
+pr_url: "https://github.com/rthunborg/ElproSaas/pull/7"
+ci_run_url: "https://github.com/rthunborg/ElproSaas/actions/runs/28367073074"
+ci_status: passed
 pr_merged: false
 merge_method: null
 merge_commit: null
