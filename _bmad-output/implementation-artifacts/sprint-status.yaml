@@ -41,7 +41,7 @@
 # Entries below remain grouped by epic for tracking; pick stories in the order above.
 
 generated: 2026-06-12
-last_updated: 2026-06-29  # story 2-3 context created (ready-for-dev)
+last_updated: 2026-06-29  # story 2-3 review (dev-story complete)
 project: ElproSaas
 project_key: NOKEY
 tracking_system: file-system
@@ -58,7 +58,7 @@ development_status:
   epic-2: in-progress
   2-1-tenant-admin-login-and-tenant-context-resolution: done
   2-2-tenant-membership-schema-rls-helpers-and-two-tenant-fixtures: done
-  2-3-server-command-envelope-and-minimal-audit-events: ready-for-dev
+  2-3-server-command-envelope-and-minimal-audit-events: review
   2-4-security-regression-harness-for-tenant-and-service-role-boundaries: backlog
   epic-2-retrospective: optional
 

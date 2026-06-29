@@ -39,14 +39,10 @@
     // THIS story's scope (deferred; owner: a later E2E/Story-2.4 task). The e2e
     // scaffold uses bare describe/it globals with no runner types and would not
     // type-check until that runner lands.
-    "tests/e2e/**",
-    // Story 2.3 RED-PHASE ATDD scaffolds (TEA testarch-atdd): these failing
-    // acceptance tests deliberately import `@/server/commands/*` modules + the
-    // `tests/factories/audit-events` helper that do NOT exist until Story 2.3
-    // dev-story implements them, so they cannot type-check yet (same rationale as
-    // the e2e exclusion above). dev-story REMOVES these two globs when it lands the
-    // modules + migration, re-enrolling the suites into typecheck as they flip GREEN.
-    "tests/unit/server/commands/**",
-    "tests/integration/commands/**"
+    "tests/e2e/**"
+    // Story 2.3 RE-ENROLLED its command suites into typecheck (dev-story landed
+    // `@/server/commands/*` + `tests/factories/audit-events` + the migration, and
+    // the suites flipped GREEN): the previous `tests/unit/server/commands/**` and
+    // `tests/integration/commands/**` excludes are removed.
   ]
 }

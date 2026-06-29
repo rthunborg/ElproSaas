@@ -1,19 +1,14 @@
-// @ts-nocheck
 /**
- * Story 2.3 — RED-PHASE ATDD scaffold (TEA testarch-atdd, 2026-06-29).
+ * Story 2.3 — DB-BACKED SECURITY DEFINER search-path-hijack negative for the audit
+ * write RPC `record_audit_event` (R-006). Story 2.3 chose the DEFINER write path
+ * (Task 4.1 option (i), the architecture-blessed pattern). Proves a malicious object
+ * on a tampered `search_path` cannot alter the function's behaviour because it pins
+ * `set search_path = ''` and schema-qualifies every reference; includes the CONTROL
+ * case (a real session through the function returns the expected result). Mirrors
+ * `security-definer-search-path.rls.test.ts` and reuses the `adminSession` helper
+ * (which `discard all`s before release — Story 2.2 fix). LOCAL stack only.
  *
- * DB-BACKED SECURITY DEFINER search-path-hijack negative for the audit write RPC
- * `record_audit_event` (R-006) — CONDITIONAL on Story 2.3 choosing the DEFINER write
- * path (Task 4.1 option (i), the architecture-blessed pattern). Proves a malicious
- * object on a tampered `search_path` cannot alter the function's behaviour because it
- * pins `set search_path = ''` and schema-qualifies every reference; includes the
- * CONTROL case (a real session through the function returns the expected result).
- * Mirrors `security-definer-search-path.rls.test.ts` and reuses the `adminSession`
- * helper (which now `discard all`s before release — Story 2.2 fix). LOCAL stack only.
- *
- * RED PHASE: `describe.skip(...)`. If Story 2.3 documents that the GRANT/policy combo
- * alone is the enforcement (no DEFINER fn), this whole suite is N/A — delete it and
- * record that decision. Otherwise un-skip + drop `@ts-nocheck` once the fn exists.
+ * GREEN as of Story 2.3 dev-story (record_audit_event DEFINER fn landed).
  *
  * COVERAGE (test-design-epic-2.md R-006; story Task 4.2 / 5.5).
  */
@@ -43,7 +38,7 @@ afterAll(async () => {
   }
 });
 
-describe.skip("record_audit_event resists search_path hijack (R-006) — RED until Story 2.3 (DEFINER path)", () => {
+describe("record_audit_event resists search_path hijack (R-006)", () => {
   it("[P1] a hostile is_active_tenant_member shadow on a tampered search_path CANNOT make an orphan's audit write succeed", async () => {
     if (!stackUp) return;
 

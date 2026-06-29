@@ -1,20 +1,13 @@
-// @ts-nocheck
 /**
- * Story 2.3 — RED-PHASE ATDD scaffold (TEA testarch-atdd, 2026-06-29).
- *
- * PURE-LOGIC acceptance tests for the server command-envelope DECISION CORE
- * (`@/server/commands/envelope-core`), exercising AC1/AC2 gate ORDERING and the
+ * Story 2.3 — PURE-LOGIC acceptance tests for the server command-envelope DECISION
+ * CORE (`@/server/commands/envelope-core`), exercising AC1/AC2 gate ORDERING and the
  * stable typed error codes WITHOUT a live database. Mirrors the established
  * pure-core pattern in `tests/unit/server/auth/resolve-tenant-context.test.ts`
  * (node:test + node:assert, fakes injected — no I/O).
  *
- * RED PHASE: every `test(...)` is marked `{ skip: "RED: ..." }`. The bodies encode
- * the EXPECTED behaviour and import `@/server/commands/*` modules that do NOT exist
- * yet, so the suite is intentionally pending until Story 2.3 implements:
+ * GREEN as of Story 2.3 dev-story (modules implemented):
  *   - src/server/commands/envelope-core.ts  (pure gate ordering → stable code)
  *   - src/server/commands/command-errors.ts (stable code union + user-safe messages)
- * When dev-story lands those modules, REMOVE the `{ skip }` option (and the
- * `@ts-nocheck` header) to flip the suite GREEN.
  *
  * COVERAGE (test-design-epic-2.md P1, R-003/R-004; story AC1/AC2; Task 5.1):
  *   AC2 gate: unauthenticated                 → UNAUTHENTICATED      + NO audit row
@@ -28,22 +21,18 @@
  */
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import {
+  runCommandCore,
+  type RunCommandCoreInput,
+} from "@/server/commands/envelope-core";
+import { COMMAND_MESSAGES } from "@/server/commands/command-errors";
 
-const RED = { skip: "RED: pending Story 2.3 envelope-core + command-errors" } as const;
-
-// RED: these modules are authored by Story 2.3 dev-story; importing them statically
-// would crash module load BEFORE the per-test `{ skip }` applies (node:test treats a
-// load-time throw as a file failure, not a skip). They are imported DYNAMICALLY inside
-// each test body instead — a skipped test never runs the body, so the missing-module
-// throw never fires while RED. When dev-story lands the modules, drop the `{ skip }`
-// options (and `@ts-nocheck`) and these dynamic imports resolve normally.
 async function load() {
-  const [{ runCommandCore }, { COMMAND_MESSAGES }] = await Promise.all([
-    import("@/server/commands/envelope-core"),
-    import("@/server/commands/command-errors"),
-  ]);
   return { runCommandCore, COMMAND_MESSAGES };
 }
+
+/** The input shape these tests build (a result carrying `{ id }` or a lifecycle field). */
+type TestInput = RunCommandCoreInput<unknown, Record<string, unknown>, unknown>;
 
 const TENANT_A = "11111111-1111-1111-1111-111111111111";
 const TENANT_B = "22222222-2222-2222-2222-222222222222";
@@ -69,20 +58,20 @@ const ACTIVE_CTX = {
  * `auditWrites` records every audit row the core would emit so each test can assert
  * "NO audit row on failure" / "exactly ONE on success" without touching a DB.
  */
-function makeScenario(overrides = {}) {
+function makeScenario(overrides: Partial<TestInput> = {}) {
   const auditWrites: unknown[] = [];
-  const base = {
+  const base: TestInput = {
     // step 1-3: pre-resolved tenant context Result (ok = authed active admin).
     tenantContextResult: { ok: true, data: ACTIVE_CTX },
     // step 4: typed input validator → ok(value) | err("VALIDATION_FAILED").
-    validate: (raw: unknown) => ({ ok: true, data: raw }),
+    validate: (raw: unknown) => ({ ok: true, data: raw as Record<string, unknown> }),
     rawInput: { foo: "bar" },
     // step 5: ownership checker → ok | err("TENANT_ACCESS_DENIED").
     verifyOwnership: async () => ({ ok: true }),
     // step 6-7: the command body. Throwing here simulates a transient infra fault.
     execute: async () => ({ id: TARGET_ID }),
     // step 8: audit sink the core calls on success.
-    recordAudit: async (row: unknown) => {
+    recordAudit: async (row) => {
       auditWrites.push(row);
     },
     auditable: true,
@@ -92,7 +81,7 @@ function makeScenario(overrides = {}) {
   return { input: { ...base, ...overrides }, auditWrites };
 }
 
-test("AC2 gate (1): an unauthenticated caller short-circuits with UNAUTHENTICATED and writes NO audit row", RED, async () => {
+test("AC2 gate (1): an unauthenticated caller short-circuits with UNAUTHENTICATED and writes NO audit row", async () => {
   const { input, auditWrites } = makeScenario({
     tenantContextResult: { ok: false, code: "UNAUTHENTICATED", message: "x" },
   });
@@ -109,7 +98,7 @@ test("AC2 gate (1): an unauthenticated caller short-circuits with UNAUTHENTICATE
   assert.equal(auditWrites.length, 0); // NO audit row on a failed gate
 });
 
-test("AC2 gate (2): authenticated but no active tenant_admin → TENANT_MEMBERSHIP_REQUIRED, no audit row", RED, async () => {
+test("AC2 gate (2): authenticated but no active tenant_admin → TENANT_MEMBERSHIP_REQUIRED, no audit row", async () => {
   const { input, auditWrites } = makeScenario({
     tenantContextResult: {
       ok: false,
@@ -126,7 +115,7 @@ test("AC2 gate (2): authenticated but no active tenant_admin → TENANT_MEMBERSH
   assert.equal(auditWrites.length, 0);
 });
 
-test("AC2 gate (3): input failing the typed schema → VALIDATION_FAILED with a generic message, no raw value echoed, no audit row", RED, async () => {
+test("AC2 gate (3): input failing the typed schema → VALIDATION_FAILED with a generic message, no raw value echoed, no audit row", async () => {
   const { input, auditWrites } = makeScenario({
     validate: () => ({ ok: false, code: "VALIDATION_FAILED" }),
     rawInput: { secret: "p@ssw0rd-should-never-be-echoed" },
@@ -145,7 +134,7 @@ test("AC2 gate (3): input failing the typed schema → VALIDATION_FAILED with a 
   assert.equal(auditWrites.length, 0);
 });
 
-test("AC2 gate (4): a target id resolving to a DIFFERENT tenant → TENANT_ACCESS_DENIED, no audit row", RED, async () => {
+test("AC2 gate (4): a target id resolving to a DIFFERENT tenant → TENANT_ACCESS_DENIED, no audit row", async () => {
   const { input, auditWrites } = makeScenario({
     verifyOwnership: async () => ({ ok: false, code: "TENANT_ACCESS_DENIED" }),
   });
@@ -158,7 +147,7 @@ test("AC2 gate (4): a target id resolving to a DIFFERENT tenant → TENANT_ACCES
   assert.equal(auditWrites.length, 0);
 });
 
-test("AC2 gate (5): a TRANSIENT throw inside execute maps to SERVER_ERROR (not a raw throw), no audit row", RED, async () => {
+test("AC2 gate (5): a TRANSIENT throw inside execute maps to SERVER_ERROR (not a raw throw), no audit row", async () => {
   const { input, auditWrites } = makeScenario({
     execute: async () => {
       throw new Error("connection reset by peer at db.ts:42"); // infra fault w/ stack
@@ -179,7 +168,7 @@ test("AC2 gate (5): a TRANSIENT throw inside execute maps to SERVER_ERROR (not a
   assert.equal(auditWrites.length, 0);
 });
 
-test("AC1 happy path: all gates pass → ok(execute result) AND exactly ONE audit row is written", RED, async () => {
+test("AC1 happy path: all gates pass → ok(execute result) AND exactly ONE audit row is written", async () => {
   const { input, auditWrites } = makeScenario();
 
   const { runCommandCore, COMMAND_MESSAGES } = await load();
@@ -190,7 +179,7 @@ test("AC1 happy path: all gates pass → ok(execute result) AND exactly ONE audi
   assert.equal(auditWrites.length, 1); // step 8 fires exactly once on success
 });
 
-test("AC1 ordering: gates short-circuit in §5 order — a validation failure is reported even when ownership would ALSO fail (validate runs first)", RED, async () => {
+test("AC1 ordering: gates short-circuit in §5 order — a validation failure is reported even when ownership would ALSO fail (validate runs first)", async () => {
   // Both validate and verifyOwnership would fail; the envelope must report the
   // EARLIER gate (VALIDATION_FAILED), proving deterministic §5 step ordering
   // (auth → membership → validate → own), not last-writer-wins.
@@ -206,7 +195,7 @@ test("AC1 ordering: gates short-circuit in §5 order — a validation failure is
   if (!result.ok) assert.equal(result.code, "VALIDATION_FAILED");
 });
 
-test("AC1: a non-auditable command does NOT write an audit row even on success (auditable flag respected)", RED, async () => {
+test("AC1: a non-auditable command does NOT write an audit row even on success (auditable flag respected)", async () => {
   const { input, auditWrites } = makeScenario({ auditable: false });
 
   const { runCommandCore, COMMAND_MESSAGES } = await load();

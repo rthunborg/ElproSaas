@@ -5,10 +5,10 @@ epic_num: 2
 story_num: 3
 branch: story/2-3-server-command-envelope-and-minimal-audit-events
 status: in-progress
-updated_at: "2026-06-29T12:06:40Z"
+updated_at: "2026-06-29T12:37:38Z"
 started_at: "2026-06-29T11:39:26Z"
 completed_at: null
-active_seconds: 1505
+active_seconds: 3325
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -20,14 +20,14 @@ tea_selected: [atdd, automate]
 tea_rationale: "Auth/authz command envelope (auth + permissions) plus new audit_events schema/migration with RLS and append-only invariant (data integrity + security) — three independent High triggers."
 epic_story_count: 4
 stories_after_in_epic: 1
-completed_phases: [0, 1, 2, 3, 4]
+completed_phases: [0, 1, 2, 3, 4, 5]
 code_review_iterations: 0
 code_review_loop_done: false
 hitl_halt: null
 external_review_iterations: 0
 convergence_unverified: false
 story_trace: null
-commits: [f571f65, 669d61d]
+commits: [f571f65, 669d61d, 6ea3d12]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -48,7 +48,10 @@ merge_commit: null
 branch_deleted: false
 open_questions:
   - "Audit-write privilege path: dev-story to confirm the SECURITY DEFINER record_audit_event RPC (preferred) vs a GRANT/policy-only approach — if the latter, the DEFINER search-path-hijack suite and the anon-EXECUTE 42501 assertion become N/A and should be removed with the decision recorded."
-deferred_work: []
+deferred_work:
+  - "Business-table audit wiring (recording domain mutations through the envelope) -> Epic 3-8 command stories."
+  - "Audit-history consumer UI (AC7 is substrate-only — no read surface yet) -> record-context UI stories."
+  - "audit_events_select_own co-member audit-read least-privilege tightening -> Story 2.4 / RBAC seam."
 blockers: []
 overrides: {}
 constraints: []

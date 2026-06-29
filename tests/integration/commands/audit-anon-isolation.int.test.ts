@@ -1,16 +1,12 @@
-// @ts-nocheck
 /**
- * Story 2.3 — RED-PHASE ATDD scaffold (TEA testarch-atdd, 2026-06-29).
+ * Story 2.3 — DB-BACKED anonymous-path isolation for `audit_events` + the
+ * `record_audit_event` DEFINER RPC (AC2 / R-003). An anonymous (no-session) anon-key
+ * caller cannot SELECT/INSERT audit rows, and `anon` has NO EXECUTE on the SECURITY
+ * DEFINER `record_audit_event` write fn. Mirrors `anon-path-isolation.rls.test.ts`
+ * and applies the Story 2.2 G2 fix: assert `error.code === "42501"`, NOT a vacuous
+ * `data === false`. LOCAL stack only.
  *
- * DB-BACKED anonymous-path isolation for `audit_events` + the `record_audit_event`
- * DEFINER RPC (AC2 / R-003). An anonymous (no-session) anon-key caller cannot
- * SELECT/INSERT audit rows, and (if Story 2.3 chooses the SECURITY DEFINER
- * `record_audit_event` write path) `anon` has NO EXECUTE on it. Mirrors
- * `anon-path-isolation.rls.test.ts` and applies the Story 2.2 G2 fix: assert
- * `error.code === "42501"`, NOT a vacuous `data === false`. LOCAL stack only.
- *
- * RED PHASE: `describe.skip(...)`. Un-skip + drop `@ts-nocheck` once Story 2.3 ships
- * the `audit_events` migration (+ the `record_audit_event` DEFINER fn, if chosen).
+ * GREEN as of Story 2.3 dev-story (migration + record_audit_event DEFINER landed).
  *
  * COVERAGE (test-design-epic-2.md P1, R-003; story AC2; Task 5.4).
  */
@@ -39,7 +35,7 @@ afterAll(async () => {
   if (stackUp && fixture) await cleanupFixture(fixture);
 });
 
-describe.skip("Anonymous path cannot touch audit_events or record_audit_event (AC2 / R-003) — RED until Story 2.3", () => {
+describe("Anonymous path cannot touch audit_events or record_audit_event (AC2 / R-003)", () => {
   it("[P1] SELECT: an anonymous caller reads ZERO audit_events rows — denied at the privilege layer (no anon GRANT)", async () => {
     if (!stackUp) return;
     const { data, error } = await anon.from("audit_events").select("*");

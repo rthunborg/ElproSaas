@@ -12,3 +12,4 @@
 
 ## Story 2-3-server-command-envelope-and-minimal-audit-events
 - [Phase 4 — ATDD] Red-phase scaffolds that import not-yet-built modules must use dynamic-import-inside-skipped-body + a tolerant beforeAll + a tsconfig/eslint exclude: node:test fails the whole file on a load-time import throw BEFORE per-test {skip} applies, and Vitest top-level beforeAll runs even under describe.skip. Otherwise the baseline goes RED instead of pending.
+- [Phase 5 — dev-story] A dev-story run can inherit a prior partial run's committed RED-phase ATDD scaffolds (tests present, source absent) — it looks like a broken RED tree but is intentional. Establish a clean green baseline first, then flip each scaffold green file-by-file.

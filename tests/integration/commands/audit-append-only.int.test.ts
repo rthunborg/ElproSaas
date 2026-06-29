@@ -1,17 +1,12 @@
-// @ts-nocheck
 /**
- * Story 2.3 — RED-PHASE ATDD scaffold (TEA testarch-atdd, 2026-06-29).
+ * Story 2.3 — DB-BACKED append-only acceptance for `audit_events` (AC4 / R-009): the
+ * app path (authenticated anon-key) CANNOT UPDATE or DELETE an audit row, and an
+ * independent privileged re-read proves the row is unchanged. Follows the Story 2.2
+ * review hardening: assert the DENIAL MECHANISM (non-null error + the 42501 permission
+ * code where the missing GRANT bites, and/or the append-only trigger exception), NEVER
+ * a vacuous `error !== null || zero-rows` disjunction. Runs LOCAL stack only.
  *
- * DB-BACKED append-only acceptance for `audit_events` (AC4 / R-009): the app path
- * (authenticated anon-key) CANNOT UPDATE or DELETE an audit row, and an independent
- * privileged re-read proves the row is unchanged. Follows the Story 2.2 review
- * hardening: assert the DENIAL MECHANISM (non-null error + the 42501 permission code
- * where the missing GRANT bites, and/or the append-only trigger exception), NEVER a
- * vacuous `error !== null || zero-rows` disjunction. Runs LOCAL stack only.
- *
- * RED PHASE: `describe.skip(...)`, importing a future TEST-ONLY audit factory helper
- * (`adminInsertAuditEvent` / `adminSelectAuditEvents`) added ALONGSIDE the existing
- * factories. Un-skip + drop `@ts-nocheck` when Story 2.3 ships the migration + table.
+ * GREEN as of Story 2.3 dev-story (migration + table + audit-events factory landed).
  *
  * COVERAGE (test-design-epic-2.md P1, "audit_events append-only" + R-009;
  * story AC4; Task 1.4 / 5.3a).
@@ -25,20 +20,12 @@ import {
   type TestServerClient,
 } from "../../factories/tenants";
 import { isLocalStackReachable } from "../../support/test-env";
-
-// RED: TEST-ONLY audit seeding/read helpers are authored by Story 2.3 dev-story.
-// Imported DYNAMICALLY (and tolerantly) because the top-level `beforeAll` runs even
-// for a `describe.skip` suite — a static import of the not-yet-built
-// `tests/factories/audit-events` would crash collection / the hook and turn the int
-// gate RED at load time. While RED the module is absent, so the seed is skipped and
-// `redReady` stays false; the skipped `it` bodies never run. dev-story converts this
-// to a static import + un-skips the describe once the helper + migration exist.
-async function loadAuditFactory() {
-  return import("../../factories/audit-events");
-}
+import {
+  adminInsertAuditEvent,
+  adminSelectAuditEvents,
+} from "../../factories/audit-events";
 
 let stackUp = false;
-let redReady = false; // true only once the Story 2.3 audit factory + table exist
 let fixture: TwoTenantFixture;
 let a: TestServerClient; // adminA's authenticated anon-key client
 let seededAuditId: string;
@@ -48,15 +35,6 @@ beforeAll(async () => {
   if (!stackUp) return;
   fixture = await createTwoTenantFixture();
   a = await makeAuthedServerClient(fixture.adminA);
-  // While RED the audit factory does not exist yet — tolerate its absence so the
-  // skipped suite's hook cannot fail the gate. Seeding only runs post-implementation.
-  let adminInsertAuditEvent: typeof import("../../factories/audit-events")["adminInsertAuditEvent"];
-  try {
-    ({ adminInsertAuditEvent } = await loadAuditFactory());
-  } catch {
-    return; // RED: factory not implemented yet
-  }
-  redReady = true;
   // Seed a real Tenant A audit row via the privileged path so the app-path
   // UPDATE/DELETE has a concrete target to be denied against.
   seededAuditId = await adminInsertAuditEvent({
@@ -75,7 +53,7 @@ afterAll(async () => {
   if (stackUp && fixture) await cleanupFixture(fixture);
 });
 
-describe.skip("audit_events is append-only through the app path (AC4 / R-009) — RED until Story 2.3", () => {
+describe("audit_events is append-only through the app path (AC4 / R-009)", () => {
   it("[P1] UPDATE: Tenant A's own admin CANNOT update an existing audit row (no UPDATE grant / append-only trigger)", async () => {
     if (!stackUp) return;
     const { data: affected, error } = await a

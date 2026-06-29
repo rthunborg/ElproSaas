@@ -1,43 +1,29 @@
-// @ts-nocheck
 /**
- * Story 2.3 — RED-PHASE ATDD scaffold (TEA testarch-atdd, 2026-06-29).
- *
- * PURE-LOGIC determinism tests for the injectable COMMAND CLOCK
+ * Story 2.3 — PURE-LOGIC determinism tests for the injectable COMMAND CLOCK
  * (`@/server/commands/clock`) and the single-timestamp discipline (H1 / R-011 /
  * AC6): ONE `clock.now()` captured per command threads into every lifecycle field,
  * event-type derivation, and the audit `created_at`. Time-dependent assertions use
  * a fixed injected clock and NEVER sleep.
  *
- * RED PHASE: `{ skip: "RED: ..." }`, importing `@/server/commands/clock` (and the
- * core's timestamp seam) which do NOT exist yet. Remove the skip + `@ts-nocheck`
- * once Story 2.3 implements the clock + threads it through the envelope.
+ * GREEN as of Story 2.3 dev-story (clock implemented + threaded through the core).
  *
  * COVERAGE (test-design-epic-2.md P1, R-011; story AC6; Task 2.1 / 5.1).
  */
 import { test } from "node:test";
 import assert from "node:assert/strict";
-
-const RED = { skip: "RED: pending Story 2.3 command clock + single-timestamp threading" } as const;
+import { systemClock, type CommandClock } from "@/server/commands/clock";
+import { runCommandCore } from "@/server/commands/envelope-core";
 
 const FIXED_ISO = "2026-06-29T12:00:00.000Z";
 
-// `CommandClock` is a type-only contract; while RED it is locally aliased so the
-// scaffold parses without the not-yet-existing module. dev-story replaces this with
-// `import { systemClock, type CommandClock } from "@/server/commands/clock"` and the
-// runtime symbols are loaded DYNAMICALLY below (skipped bodies never run the import).
-type CommandClock = { now(): Date };
 function fixedClock(): CommandClock {
   return { now: () => new Date(FIXED_ISO) };
 }
 async function load() {
-  const [{ systemClock }, { runCommandCore }] = await Promise.all([
-    import("@/server/commands/clock"),
-    import("@/server/commands/envelope-core"),
-  ]);
   return { systemClock, runCommandCore };
 }
 
-test("AC6/R-011: systemClock exposes a now() returning a Date (default real clock)", RED, async () => {
+test("AC6/R-011: systemClock exposes a now() returning a Date (default real clock)", async () => {
   const { systemClock } = await load();
   const before = Date.now();
   const t = systemClock.now();
@@ -46,7 +32,7 @@ test("AC6/R-011: systemClock exposes a now() returning a Date (default real cloc
   assert.ok(t.getTime() >= before && t.getTime() <= after);
 });
 
-test("AC6/R-011: a fixed injected clock yields IDENTICAL created_at across the audit row and any lifecycle field — captured ONCE, no Date.now() drift", RED, async () => {
+test("AC6/R-011: a fixed injected clock yields IDENTICAL created_at across the audit row and any lifecycle field — captured ONCE, no Date.now() drift", async () => {
   // The core captures clock.now() ONE time at the start and threads that single
   // value everywhere. Capture the audit row the core emits and assert its
   // created_at equals the injected timestamp exactly (no per-field re-read).
@@ -89,7 +75,7 @@ test("AC6/R-011: a fixed injected clock yields IDENTICAL created_at across the a
   }
 });
 
-test("AC6/R-011: two reads of the SAME command clock within one command return the same instant (no wall-clock advance mid-command)", RED, () => {
+test("AC6/R-011: two reads of the SAME command clock within one command return the same instant (no wall-clock advance mid-command)", () => {
   const clock = fixedClock();
   const a = clock.now().toISOString();
   const b = clock.now().toISOString();
