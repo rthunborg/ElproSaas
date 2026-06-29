@@ -5,11 +5,11 @@ epic_num: 2
 story_num: 2
 branch: story/2-2-tenant-membership-schema-rls-helpers-and-two-tenant-fixtures
 status: in-progress
-updated_at: "2026-06-26T17:06:42Z"
+updated_at: "2026-06-29T10:52:57Z"
 started_at: "2026-06-22T15:04:11Z"
 completed_at: null
 active_seconds: 103552
-timing_anchor: null
+timing_anchor: 1782730377
 is_first_in_epic: false
 is_last_in_epic: false
 needs_project_context_bootstrap: false
