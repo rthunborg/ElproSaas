@@ -28,6 +28,7 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { adminQuery, closeAdminPool } from "../../factories/admin-sql";
 import { isLocalStackReachable } from "../../support/test-env";
+import { skipUnlessStack } from "../../support/stack-gate";
 import {
   TENANT_TABLES,
   INVENTORY_MODULE_PATH,
@@ -52,8 +53,8 @@ afterAll(async () => {
 });
 
 describe("H4 RLS table-inventory gate (Story 2.4 / AC3 / AC4 / R-008)", () => {
-  it("[P0] live-schema tenant-owned set is EXACTLY {tenants, tenant_memberships, audit_events}", async () => {
-    if (!stackUp) return;
+  it("[P0] live-schema tenant-owned set is EXACTLY {tenants, tenant_memberships, audit_events}", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
     // The gate's schema introspection, public-qualified, including the literal
     // `tenants` despite its missing tenant_id column AND excluding `_realtime.tenants`.
     const owned = await introspectTenantOwnedTables(adminQuery);
@@ -63,8 +64,8 @@ describe("H4 RLS table-inventory gate (Story 2.4 / AC3 / AC4 / R-008)", () => {
     expect(owned.has("tenants")).toBe(true);
   });
 
-  it("[P0] every live tenant-owned table is ENROLLED in the parameterized negative suite (set difference is empty)", async () => {
-    if (!stackUp) return;
+  it("[P0] every live tenant-owned table is ENROLLED in the parameterized negative suite (set difference is empty)", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
     // The H4 gate proper. An explicit set-difference (NOT a bare length check) so a
     // failure NAMES the offending table(s) and points at the inventory module.
     const owned = await introspectTenantOwnedTables(adminQuery);
@@ -75,8 +76,8 @@ describe("H4 RLS table-inventory gate (Story 2.4 / AC3 / AC4 / R-008)", () => {
     ).toEqual([]);
   });
 
-  it("[P0/AC4] the gate BITES: a deliberately-shrunk enrolled set surfaces the omitted REAL table by name (not inert/vacuous)", async () => {
-    if (!stackUp) return;
+  it("[P0/AC4] the gate BITES: a deliberately-shrunk enrolled set surfaces the omitted REAL table by name (not inert/vacuous)", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
     // Prove the comparison is not inert WITHOUT a scratch branch: feed the gate the
     // real schema but an enrolled set with `audit_events` removed — the gate must
     // report the now-unenrolled REAL table. If the comparison were vacuously green,
@@ -87,8 +88,8 @@ describe("H4 RLS table-inventory gate (Story 2.4 / AC3 / AC4 / R-008)", () => {
     expect(unenrolled).toContain("audit_events");
   });
 
-  it("[P0] the unenrolled-table failure message names the table AND points at the inventory module (P3 DX)", async () => {
-    if (!stackUp) return;
+  it("[P0] the unenrolled-table failure message names the table AND points at the inventory module (P3 DX)", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
     // A future tenant-owned table absent from enrollment must produce an actionable
     // message: the offending table name + the inventory module to update.
     const owned = new Set([...EXPECTED_TENANT_OWNED, "future_widgets"]);

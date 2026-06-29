@@ -15,6 +15,7 @@
 import { describe, it, expect, beforeAll } from "vitest";
 import { createTwoTenantFixture, cleanupFixture } from "../../factories/tenants";
 import { isLocalStackReachable } from "../../support/test-env";
+import { skipUnlessStack } from "../../support/stack-gate";
 import { adminInsertAuditEvent } from "../../factories/audit-events";
 import { adminQuery } from "../../factories/admin-sql";
 
@@ -25,8 +26,8 @@ beforeAll(async () => {
 });
 
 describe("cleanupFixture tears down a tenant that accrued audit rows (no leak)", () => {
-  it("[infra] purges audit_events + tenant rows despite the append-only ON DELETE CASCADE block", async () => {
-    if (!stackUp) return;
+  it("[infra] purges audit_events + tenant rows despite the append-only ON DELETE CASCADE block", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
     const fixture = await createTwoTenantFixture();
 
     // Seed a Tenant A audit row so the tenant `on delete cascade` would hit the

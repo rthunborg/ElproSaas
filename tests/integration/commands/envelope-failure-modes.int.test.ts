@@ -20,6 +20,7 @@ import {
   type TwoTenantFixture,
 } from "../../factories/tenants";
 import { isLocalStackReachable } from "../../support/test-env";
+import { skipUnlessStack } from "../../support/stack-gate";
 import { defineCommand, runCommand } from "@/server/commands/envelope";
 import { adminCountAuditEvents } from "../../factories/audit-events";
 import type { CommandClock } from "@/server/commands/clock";
@@ -59,8 +60,8 @@ function makeOwnershipCommand() {
 }
 
 describe("Command envelope failure modes — DB-backed (AC2/R-003/R-004)", () => {
-  it("[P1] UNAUTHENTICATED: an anonymous (no-session) caller is rejected first and writes NO audit row (R-003)", async () => {
-    if (!stackUp) return;
+  it("[P1] UNAUTHENTICATED: an anonymous (no-session) caller is rejected first and writes NO audit row (R-003)", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
     const before = await adminCountAuditEvents({ tenantId: fixture.tenantA.id });
     const anon = await makeAnonServerClient();
 
@@ -77,8 +78,8 @@ describe("Command envelope failure modes — DB-backed (AC2/R-003/R-004)", () =>
     expect(after).toBe(before); // NO audit row on the failed gate
   });
 
-  it("[P1] TENANT_MEMBERSHIP_REQUIRED: an authenticated orphan (no active admin) is denied, no audit row", async () => {
-    if (!stackUp) return;
+  it("[P1] TENANT_MEMBERSHIP_REQUIRED: an authenticated orphan (no active admin) is denied, no audit row", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
     const orphan = await makeAuthedServerClient(fixture.orphanUser);
     const before = await adminCountAuditEvents({ tenantId: fixture.tenantA.id });
 
@@ -95,8 +96,8 @@ describe("Command envelope failure modes — DB-backed (AC2/R-003/R-004)", () =>
     expect(after).toBe(before);
   });
 
-  it("[P1] VALIDATION_FAILED: malformed input is rejected with a generic message (no raw value echoed), no audit row", async () => {
-    if (!stackUp) return;
+  it("[P1] VALIDATION_FAILED: malformed input is rejected with a generic message (no raw value echoed), no audit row", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
     const a = await makeAuthedServerClient(fixture.adminA);
     const before = await adminCountAuditEvents({ tenantId: fixture.tenantA.id });
 
@@ -116,8 +117,8 @@ describe("Command envelope failure modes — DB-backed (AC2/R-003/R-004)", () =>
     expect(after).toBe(before);
   });
 
-  it("[P1] TENANT_ACCESS_DENIED: a target id owned by Tenant B is denied for Tenant A's admin (R-004), no audit row", async () => {
-    if (!stackUp) return;
+  it("[P1] TENANT_ACCESS_DENIED: a target id owned by Tenant B is denied for Tenant A's admin (R-004), no audit row", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
     const a = await makeAuthedServerClient(fixture.adminA);
     const before = await adminCountAuditEvents({ tenantId: fixture.tenantA.id });
 
@@ -136,8 +137,8 @@ describe("Command envelope failure modes — DB-backed (AC2/R-003/R-004)", () =>
     expect(after).toBe(before); // ownership gate fails BEFORE the audit write
   });
 
-  it("[P1] R-004: a client-supplied tenant_id in the input NEVER widens authority — the resolved tenant wins", async () => {
-    if (!stackUp) return;
+  it("[P1] R-004: a client-supplied tenant_id in the input NEVER widens authority — the resolved tenant wins", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
     const a = await makeAuthedServerClient(fixture.adminA);
 
     // The command targets its OWN tenant but the caller smuggles Tenant B's id as a

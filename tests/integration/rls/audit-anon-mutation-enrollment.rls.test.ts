@@ -35,6 +35,7 @@ import {
   type TestServerClient,
 } from "../../factories/tenants";
 import { isLocalStackReachable } from "../../support/test-env";
+import { skipUnlessStack } from "../../support/stack-gate";
 import {
   TENANT_TABLES,
   anonFilterFor,
@@ -83,8 +84,8 @@ describe("audit_events anon UPDATE/DELETE enrollment completeness (Gap G-5)", ()
   });
 
   for (const verb of ANON_MUTATION_VERBS) {
-    it(`[P2] live: an anonymous caller is denied ${verb} on audit_events via the privilege layer (42501), driven by the shared inventory helpers`, async () => {
-      if (!stackUp) return;
+    it(`[P2] live: an anonymous caller is denied ${verb} on audit_events via the privilege layer (42501), driven by the shared inventory helpers`, async (testCtx) => {
+      if (skipUnlessStack(testCtx, stackUp)) return;
       const { column, value } = anonFilterFor(AUDIT_TABLE, ctx);
       const builder = anon.from(AUDIT_TABLE);
       const { data, error } =

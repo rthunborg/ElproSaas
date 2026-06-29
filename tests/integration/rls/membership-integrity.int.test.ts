@@ -27,6 +27,7 @@ import {
 } from "../../factories/tenants";
 import { adminQuery, adminExec, closeAdminPool } from "../../factories/admin-sql";
 import { isLocalStackReachable } from "../../support/test-env";
+import { skipUnlessStack } from "../../support/stack-gate";
 
 // The factory returns a supabase-js client; the resolver expects the
 // structurally-compatible @supabase/ssr server client (only .auth.getClaims() +
@@ -59,8 +60,8 @@ async function membershipCount(filter: {
 }
 
 describe("FK on delete cascade — no dangling authorization rows (G4)", () => {
-  it("[P1] deleting a tenant cascades its membership rows away", async () => {
-    if (!stackUp) return;
+  it("[P1] deleting a tenant cascades its membership rows away", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
     const f = await createTwoTenantFixture();
     try {
       // Pre-condition: tenantA has adminA's membership.
@@ -77,8 +78,8 @@ describe("FK on delete cascade — no dangling authorization rows (G4)", () => {
     }
   });
 
-  it("[P1] deleting an auth user cascades their membership rows away", async () => {
-    if (!stackUp) return;
+  it("[P1] deleting an auth user cascades their membership rows away", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
     const f = await createTwoTenantFixture();
     try {
       expect(await membershipCount({ column: "user_id", value: f.adminA.id })).toBe(1);
@@ -94,8 +95,8 @@ describe("FK on delete cascade — no dangling authorization rows (G4)", () => {
 });
 
 describe("tenant_memberships_select_own scope: own-tenant breadth, no cross-tenant leak (G5)", () => {
-  it("[P1] an active admin reads a SECOND membership in their OWN tenant, but ZERO of another tenant's", async () => {
-    if (!stackUp) return;
+  it("[P1] an active admin reads a SECOND membership in their OWN tenant, but ZERO of another tenant's", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
     const f = await createTwoTenantFixture();
     try {
       // Add a second member (the orphan) to tenantA as an active tenant_admin.
@@ -133,8 +134,8 @@ describe("tenant_memberships_select_own scope: own-tenant breadth, no cross-tena
 });
 
 describe("selectPreferredMembership active-first across tenants — DB-backed (G6 / Task 7.2)", () => {
-  it("[P1] a user DISABLED in one tenant and ACTIVE in another resolves to the ACTIVE tenant", async () => {
-    if (!stackUp) return;
+  it("[P1] a user DISABLED in one tenant and ACTIVE in another resolves to the ACTIVE tenant", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
     const f = await createTwoTenantFixture();
     try {
       // orphanUser: disabled tenant_admin in tenantA, active tenant_admin in tenantB.
@@ -170,8 +171,8 @@ describe("selectPreferredMembership active-first across tenants — DB-backed (G
     }
   });
 
-  it("[P1] a user DISABLED in BOTH tenants resolves to NO context (TENANT_MEMBERSHIP_REQUIRED)", async () => {
-    if (!stackUp) return;
+  it("[P1] a user DISABLED in BOTH tenants resolves to NO context (TENANT_MEMBERSHIP_REQUIRED)", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
     const f = await createTwoTenantFixture();
     try {
       await adminInsertMembership({

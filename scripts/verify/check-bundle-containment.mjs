@@ -101,11 +101,22 @@ function shouldScanFile(absPath) {
   return SCANNED_EXTENSIONS.has(extname(absPath));
 }
 
+// A walk yields EITHER a file path to scan, or a READ-ERROR marker for an entry
+// that is present-but-unreadable (so the scan can fail-loud instead of silently
+// skipping it — a swallowed read makes the AUTHORITATIVE R-002 scan false-clean).
+// A genuinely ENOENT (vanished mid-walk) is treated as legitimately-absent and not
+// surfaced; any OTHER error (EACCES/EPERM/EISDIR/etc.) is a present-but-unreadable
+// signal. [DX#2, epic-2 hardening; supersedes the iter-2 swallow-error deferral]
 function* walk(dir) {
   let entries;
   try {
     entries = readdirSync(dir, { withFileTypes: true });
-  } catch {
+  } catch (err) {
+    // ENOENT: the directory vanished between enumeration and this descent — treat
+    // as legitimately absent. Any OTHER error means the dir exists but could not be
+    // read (e.g. permission denied) — surface it so the scan is not a vacuous clean.
+    if (err && err.code === "ENOENT") return;
+    yield { readError: dir, code: err?.code ?? "EUNKNOWN", message: err?.message ?? String(err) };
     return;
   }
   for (const entry of entries) {
@@ -122,12 +133,22 @@ function* walk(dir) {
  * Scan a PRODUCED build tree (a directory CONTAINING a `.next/` dir) for
  * service-role leakage into any browser/route/build artifact.
  *
+ * A present-but-UNREADABLE artifact or subtree (e.g. EACCES) is recorded as a
+ * VIOLATION (not silently skipped): the authoritative R-002 scan must never certify
+ * a subtree it could not actually read. A legitimately-absent (ENOENT) entry is
+ * fine. [DX#2, epic-2 hardening]
+ *
  * @param {string} rootDir a project root that must contain a `.next/` build dir.
+ * @param {{ readFile?: (path: string) => string }} [opts] test-only seam: an
+ *        injected `readFile` lets a unit prove a present-but-unreadable artifact
+ *        becomes a VIOLATION (deterministic, cross-platform — no chmod needed).
+ *        Defaults to `readFileSync(path, "utf8")`.
  * @returns {{ violations: string[] }} human-readable violation messages (empty = clean).
  * @throws if `rootDir/.next` does not exist — an un-built tree is a hard error,
  *         never a vacuous (passing) empty scan that would false-green R-002.
  */
-export function scanBuiltBundle(rootDir) {
+export function scanBuiltBundle(rootDir, opts = {}) {
+  const readFile = opts.readFile ?? ((p) => readFileSync(p, "utf8"));
   const buildDir = join(rootDir, BUILD_DIR);
   if (!existsSync(buildDir) || !statSync(buildDir).isDirectory()) {
     throw new Error(
@@ -140,16 +161,43 @@ export function scanBuiltBundle(rootDir) {
   const violations = [];
 
   for (const file of walk(buildDir)) {
-    if (!shouldScanFile(file)) continue;
-
-    let contents;
-    try {
-      contents = readFileSync(file, "utf8");
-    } catch {
+    // A present-but-unreadable directory surfaced by walk(): fail-loud rather than
+    // silently skipping a subtree the R-002 scan was supposed to cover.
+    if (typeof file === "object" && file !== null && file.readError) {
+      const rel = relative(rootDir, file.readError).replace(/\\/g, "/");
+      violations.push(
+        `${rel}: build subtree could NOT be read (${file.code}: ${file.message}) ` +
+          `— the R-002 containment scan cannot certify an unreadable subtree clean. ` +
+          `An unreadable \`${BUILD_DIR}\` entry must FAIL, not be silently skipped.`,
+      );
       continue;
     }
 
+    if (!shouldScanFile(file)) continue;
+
     const rel = relative(rootDir, file).replace(/\\/g, "/");
+
+    let contents;
+    try {
+      contents = readFile(file);
+    } catch (err) {
+      // The file was enumerated by walk() (so it EXISTS) but could not be read. An
+      // ENOENT here means it vanished between enumeration and read (legitimately
+      // gone → skip); any OTHER error (EACCES/EPERM/…) is a present-but-unreadable
+      // file the scan must NOT silently treat as clean. Surface it (warn) and record
+      // a violation so the scan fails-loud (non-zero) instead of a false-clean pass.
+      if (err && err.code === "ENOENT") continue;
+      const code = err?.code ?? "EUNKNOWN";
+      console.error(
+        `⚠️  Built-bundle containment: could not read ${rel} (${code}: ${err?.message ?? err}).`,
+      );
+      violations.push(
+        `${rel}: build artifact present but UNREADABLE (${code}: ${err?.message ?? err}) ` +
+          `— a service-role leak in an unreadable artifact would go undetected, so an ` +
+          `unreadable file must FAIL the R-002 scan rather than be silently skipped.`,
+      );
+      continue;
+    }
 
     // 1. Any `*SERVICE_ROLE*` token (key name / NEXT_PUBLIC_ name / re-export symbol),
     //    EXCEPT a documented known-benign vendor string in ALLOWLISTED_VENDOR_TOKENS.

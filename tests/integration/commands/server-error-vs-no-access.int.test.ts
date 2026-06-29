@@ -40,6 +40,7 @@ import {
   type TestServerClient,
 } from "../../factories/tenants";
 import { isLocalStackReachable } from "../../support/test-env";
+import { skipUnlessStack } from "../../support/stack-gate";
 import { defineCommand, runCommand } from "@/server/commands/envelope";
 import { adminCountAuditEvents } from "../../factories/audit-events";
 import type { CommandClock } from "@/server/commands/clock";
@@ -130,8 +131,8 @@ function makeNoopCommand() {
 }
 
 describe("SERVER_ERROR vs no-access at the integration level (Gap G-4 / R-014)", () => {
-  it("[P2] resolveTenantContext maps a transient membership-read I/O error to SERVER_ERROR (NOT TENANT_MEMBERSHIP_REQUIRED)", async () => {
-    if (!stackUp) return;
+  it("[P2] resolveTenantContext maps a transient membership-read I/O error to SERVER_ERROR (NOT TENANT_MEMBERSHIP_REQUIRED)", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
     const client = withFailingMembershipRead(realAuthed);
     const result = await resolveTenantContext({ client });
 
@@ -146,8 +147,8 @@ describe("SERVER_ERROR vs no-access at the integration level (Gap G-4 / R-014)",
     }
   });
 
-  it("[P2] the command envelope surfaces SERVER_ERROR (not a no-access code) on a transient membership-read fault and writes NO audit row", async () => {
-    if (!stackUp) return;
+  it("[P2] the command envelope surfaces SERVER_ERROR (not a no-access code) on a transient membership-read fault and writes NO audit row", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
     const client = withFailingMembershipRead(realAuthed);
     const before = await adminCountAuditEvents({ tenantId: fixture.tenantA.id });
 

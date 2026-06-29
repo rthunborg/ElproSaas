@@ -37,6 +37,7 @@ import {
   type TestServerClient,
 } from "../../factories/tenants";
 import { isLocalStackReachable } from "../../support/test-env";
+import { skipUnlessStack } from "../../support/stack-gate";
 import { defineCommand, runCommand } from "@/server/commands/envelope";
 import { adminSelectAuditEvents } from "../../factories/audit-events";
 import type { CommandClock } from "@/server/commands/clock";
@@ -105,8 +106,8 @@ function makeMetadataRoutingCommand() {
 }
 
 describe("End-to-end audit metadata hygiene through a metadata-routing command (Gap G-7 / R-010)", () => {
-  it("[P2] forbidden caller metadata is DROPPED in the persisted row while the allow-listed field survives (proves the sanitizer is on the path)", async () => {
-    if (!stackUp) return;
+  it("[P2] forbidden caller metadata is DROPPED in the persisted row while the allow-listed field survives (proves the sanitizer is on the path)", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
     const command = makeMetadataRoutingCommand();
     const correlationId = crypto.randomUUID();
 

@@ -19,6 +19,7 @@ import {
   type TestServerClient,
 } from "../../factories/tenants";
 import { isLocalStackReachable } from "../../support/test-env";
+import { skipUnlessStack } from "../../support/stack-gate";
 
 let stackUp = false;
 let fixture: TwoTenantFixture;
@@ -36,8 +37,8 @@ afterAll(async () => {
 });
 
 describe("Anonymous path cannot touch audit_events or record_audit_event (AC2 / R-003)", () => {
-  it("[P1] SELECT: an anonymous caller reads ZERO audit_events rows — denied at the privilege layer (no anon GRANT)", async () => {
-    if (!stackUp) return;
+  it("[P1] SELECT: an anonymous caller reads ZERO audit_events rows — denied at the privilege layer (no anon GRANT)", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
     const { data, error } = await anon.from("audit_events").select("*");
     // `anon` has NO SELECT grant (migration grants SELECT only to authenticated),
     // so the read is denied at the privilege layer (42501) — assert the MECHANISM,
@@ -47,8 +48,8 @@ describe("Anonymous path cannot touch audit_events or record_audit_event (AC2 / 
     expect(data).toBeNull();
   });
 
-  it("[P1] INSERT: an anonymous caller CANNOT write an audit_events row (42501)", async () => {
-    if (!stackUp) return;
+  it("[P1] INSERT: an anonymous caller CANNOT write an audit_events row (42501)", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
     const { data, error } = await anon
       .from("audit_events")
       .insert({
@@ -69,8 +70,8 @@ describe("Anonymous path cannot touch audit_events or record_audit_event (AC2 / 
     expect(data).toBeNull();
   });
 
-  it("[P1] EXECUTE: an anonymous caller has NO EXECUTE on record_audit_event (assert 42501, not vacuous data===false)", async () => {
-    if (!stackUp) return;
+  it("[P1] EXECUTE: an anonymous caller has NO EXECUTE on record_audit_event (assert 42501, not vacuous data===false)", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
     // If Story 2.3 implements the SECURITY DEFINER `record_audit_event` RPC, it must
     // `REVOKE EXECUTE … FROM public` and grant only to `authenticated`. A failed
     // attempt to call it as anon must be denied at the privilege layer (42501) — NOT

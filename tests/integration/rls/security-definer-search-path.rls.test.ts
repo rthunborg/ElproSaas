@@ -32,6 +32,7 @@ import {
 } from "../../factories/tenants";
 import { adminExec, adminSession, closeAdminPool } from "../../factories/admin-sql";
 import { isLocalStackReachable } from "../../support/test-env";
+import { skipUnlessStack } from "../../support/stack-gate";
 
 const HELPERS = ["is_active_tenant_member", "is_tenant_admin"] as const;
 
@@ -54,8 +55,8 @@ afterAll(async () => {
 
 describe("SECURITY DEFINER helpers resist search_path hijack (AC4 / R-006)", () => {
   for (const helper of HELPERS) {
-    it(`[P0] ${helper}: a malicious object on a tampered search_path CANNOT forge a positive result`, async () => {
-      if (!stackUp) return;
+    it(`[P0] ${helper}: a malicious object on a tampered search_path CANNOT forge a positive result`, async (testCtx) => {
+      if (skipUnlessStack(testCtx, stackUp)) return;
 
       const result = await adminSession(async ({ query }) => {
         // (1) auth.uid() := orphanUser (no real membership).
@@ -94,8 +95,8 @@ describe("SECURITY DEFINER helpers resist search_path hijack (AC4 / R-006)", () 
     });
   }
 
-  it("[CONTROL] the helper is not trivially always-false: a REAL member resolves TRUE", async () => {
-    if (!stackUp) return;
+  it("[CONTROL] the helper is not trivially always-false: a REAL member resolves TRUE", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
     const result = await adminSession(async ({ query }) => {
       await query(`select set_config('request.jwt.claim.sub', $1, false)`, [
         fixture.adminA.id,

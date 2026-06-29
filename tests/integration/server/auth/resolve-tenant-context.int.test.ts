@@ -27,6 +27,7 @@ import {
   type TwoTenantFixture,
 } from "../../../factories/tenants";
 import { isLocalStackReachable } from "../../../support/test-env";
+import { skipUnlessStack } from "../../../support/stack-gate";
 
 // The factory returns a `@supabase/supabase-js` client; the resolver expects the
 // structurally-compatible `@supabase/ssr` server client (it only uses
@@ -51,8 +52,8 @@ afterAll(async () => {
 });
 
 describe("resolveTenantContext — DB-backed (Story 2.1 AC1-AC4, un-gated in 2.2)", () => {
-  it("AC1: an active tenant_admin of Tenant A resolves to Tenant A's context", async () => {
-    if (!stackUp) return;
+  it("AC1: an active tenant_admin of Tenant A resolves to Tenant A's context", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
     const client = (await makeAuthedServerClient(
       fixture.adminA,
     )) as unknown as ResolverClient;
@@ -68,8 +69,8 @@ describe("resolveTenantContext — DB-backed (Story 2.1 AC1-AC4, un-gated in 2.2
     }
   });
 
-  it("AC2: an authenticated user with no membership is denied and reads ZERO tenant rows", async () => {
-    if (!stackUp) return;
+  it("AC2: an authenticated user with no membership is denied and reads ZERO tenant rows", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
     const client = (await makeAuthedServerClient(
       fixture.orphanUser,
     )) as unknown as ResolverClient;
@@ -87,8 +88,8 @@ describe("resolveTenantContext — DB-backed (Story 2.1 AC1-AC4, un-gated in 2.2
     expect(memberships ?? []).toEqual([]);
   });
 
-  it("AC2 (distinct): a 'disabled' membership is treated as no-access, distinct from no-row", async () => {
-    if (!stackUp) return;
+  it("AC2 (distinct): a 'disabled' membership is treated as no-access, distinct from no-row", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
     // Build a dedicated fixture so the disabled state does not perturb others.
     const f = await createTwoTenantFixture();
     try {
@@ -110,16 +111,16 @@ describe("resolveTenantContext — DB-backed (Story 2.1 AC1-AC4, un-gated in 2.2
     }
   });
 
-  it("AC3: an anonymous caller cannot resolve a context (UNAUTHENTICATED)", async () => {
-    if (!stackUp) return;
+  it("AC3: an anonymous caller cannot resolve a context (UNAUTHENTICATED)", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
     const client = (await makeAnonServerClient()) as unknown as ResolverClient;
     const result = await resolveTenantContext({ client });
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.code).toBe("UNAUTHENTICATED");
   });
 
-  it("AC4: Tenant A admin supplying a forged Tenant B tenant_id never reads/widens to Tenant B", async () => {
-    if (!stackUp) return;
+  it("AC4: Tenant A admin supplying a forged Tenant B tenant_id never reads/widens to Tenant B", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
     const client = (await makeAuthedServerClient(
       fixture.adminA,
     )) as unknown as ResolverClient;

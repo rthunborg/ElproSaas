@@ -39,6 +39,7 @@ import {
   type TwoTenantFixture,
 } from "../../factories/tenants";
 import { isLocalStackReachable } from "../../support/test-env";
+import { skipUnlessStack } from "../../support/stack-gate";
 import { defineCommand, runCommand } from "@/server/commands/envelope";
 import { adminCountAuditEvents } from "../../factories/audit-events";
 import type { CommandClock } from "@/server/commands/clock";
@@ -107,8 +108,8 @@ describe("Disabled/inactive membership → no-access (Gap G-1 / P1-2 / R-004)", 
         if (stackUp && fixture) await cleanupFixture(fixture);
       });
 
-      it(`[P1] resolveTenantContext treats a live '${status}' membership as no-access (TENANT_MEMBERSHIP_REQUIRED, distinct from no-row)`, async () => {
-        if (!stackUp) return;
+      it(`[P1] resolveTenantContext treats a live '${status}' membership as no-access (TENANT_MEMBERSHIP_REQUIRED, distinct from no-row)`, async (testCtx) => {
+        if (skipUnlessStack(testCtx, stackUp)) return;
         const client = (await makeAuthedServerClient(
           fixture.orphanUser,
         )) as unknown as ResolverClient;
@@ -121,8 +122,8 @@ describe("Disabled/inactive membership → no-access (Gap G-1 / P1-2 / R-004)", 
         }
       });
 
-      it(`[P1] a '${status}' member reads ZERO tenant rows under RLS (active-only USING clause)`, async () => {
-        if (!stackUp) return;
+      it(`[P1] a '${status}' member reads ZERO tenant rows under RLS (active-only USING clause)`, async (testCtx) => {
+        if (skipUnlessStack(testCtx, stackUp)) return;
         // The active-only membership predicate also gates RLS row visibility: an
         // inactive member must not be able to read the tenant it is inactively
         // attached to. Asserts no-access by MECHANISM (zero rows under the caller's
@@ -136,8 +137,8 @@ describe("Disabled/inactive membership → no-access (Gap G-1 / P1-2 / R-004)", 
         expect(memberships ?? []).toEqual([]);
       });
 
-      it(`[P1] the command envelope rejects a '${status}' member at the membership gate and writes NO audit row`, async () => {
-        if (!stackUp) return;
+      it(`[P1] the command envelope rejects a '${status}' member at the membership gate and writes NO audit row`, async (testCtx) => {
+        if (skipUnlessStack(testCtx, stackUp)) return;
         const client = await makeAuthedServerClient(fixture.orphanUser);
         const before = await adminCountAuditEvents({
           tenantId: fixture.tenantA.id,

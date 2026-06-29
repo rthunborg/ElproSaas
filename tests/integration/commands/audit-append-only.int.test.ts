@@ -20,6 +20,7 @@ import {
   type TestServerClient,
 } from "../../factories/tenants";
 import { isLocalStackReachable } from "../../support/test-env";
+import { skipUnlessStack } from "../../support/stack-gate";
 import {
   adminInsertAuditEvent,
   adminSelectAuditEvents,
@@ -54,8 +55,8 @@ afterAll(async () => {
 });
 
 describe("audit_events is append-only through the app path (AC4 / R-009)", () => {
-  it("[P1] UPDATE: Tenant A's own admin CANNOT update an existing audit row (no UPDATE grant / append-only trigger)", async () => {
-    if (!stackUp) return;
+  it("[P1] UPDATE: Tenant A's own admin CANNOT update an existing audit row (no UPDATE grant / append-only trigger)", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
     const { data: affected, error } = await a
       .from("audit_events")
       .update({ metadata: { tampered: true } })
@@ -72,8 +73,8 @@ describe("audit_events is append-only through the app path (AC4 / R-009)", () =>
     expect(affected).toBeNull();
   });
 
-  it("[P1] DELETE: Tenant A's own admin CANNOT delete an existing audit row", async () => {
-    if (!stackUp) return;
+  it("[P1] DELETE: Tenant A's own admin CANNOT delete an existing audit row", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
     const { data: deleted, error } = await a
       .from("audit_events")
       .delete()
@@ -87,8 +88,8 @@ describe("audit_events is append-only through the app path (AC4 / R-009)", () =>
     expect(deleted).toBeNull();
   });
 
-  it("[P1] the seeded audit row is UNCHANGED after the denied UPDATE/DELETE (independent privileged re-read)", async () => {
-    if (!stackUp) return;
+  it("[P1] the seeded audit row is UNCHANGED after the denied UPDATE/DELETE (independent privileged re-read)", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
     // Re-read via the BYPASSRLS privileged path (independent of the app path) to
     // prove no mutation slipped through — never trust the denied call's own result.
     const rows = await adminSelectAuditEvents({ id: seededAuditId });
@@ -97,8 +98,8 @@ describe("audit_events is append-only through the app path (AC4 / R-009)", () =>
     expect(rows[0].command).toBe("seed.command");
   });
 
-  it("[P1] even the privileged service-role path has NO UPDATE/DELETE on audit_events (append-only at the privilege layer)", async () => {
-    if (!stackUp) return;
+  it("[P1] even the privileged service-role path has NO UPDATE/DELETE on audit_events (append-only at the privilege layer)", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
     // Story 1.3 grants service_role SELECT,INSERT ONLY (no UPDATE/DELETE), and the
     // BEFORE UPDATE OR DELETE trigger raises for defense-in-depth. The TEST-ONLY
     // helper attempts a privileged UPDATE and must throw.
