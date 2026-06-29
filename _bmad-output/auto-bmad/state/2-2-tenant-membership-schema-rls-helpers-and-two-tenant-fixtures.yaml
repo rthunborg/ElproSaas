@@ -5,7 +5,7 @@ epic_num: 2
 story_num: 2
 branch: story/2-2-tenant-membership-schema-rls-helpers-and-two-tenant-fixtures
 status: done
-updated_at: "2026-06-29T11:03:51Z"
+updated_at: "2026-06-29T11:20:27Z"
 started_at: "2026-06-22T15:04:11Z"
 completed_at: "2026-06-29T11:03:51Z"
 active_seconds: 104158
@@ -42,10 +42,10 @@ deferred_work_archived: 0
 pr_url: "https://github.com/rthunborg/ElproSaas/pull/7"
 ci_run_url: "https://github.com/rthunborg/ElproSaas/actions/runs/28367073074"
 ci_status: passed
-pr_merged: false
-merge_method: null
-merge_commit: null
-branch_deleted: false
+pr_merged: true
+merge_method: merge
+merge_commit: 2caada8
+branch_deleted: true
 open_questions:
   - "create-story flagged two follow-up deferrals for the dev agent to formally assign owners before closing: tests/e2e/** browser-runner enrollment (if Playwright stays out of scope), and a parameterized inventory-gated RLS suite (-> Story 2.4)."
 deferred_work:
