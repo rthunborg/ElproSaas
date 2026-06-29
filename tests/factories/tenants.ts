@@ -171,6 +171,47 @@ export async function adminInsertMembership(seed: MembershipSeed): Promise<void>
 }
 
 /**
+ * The set of `tenant_memberships.status` values the schema CHECK permits
+ * (migration 20260625122433_tenant_foundation.sql: `status in ('active',
+ * 'invited', 'disabled')`). Only `active` grants access; `invited`/`disabled` MUST
+ * resolve to no-access (TENANT_MEMBERSHIP_REQUIRED). Exported so the disabled/
+ * invited → no-access negatives (Gap G-1) enumerate the non-active statuses by
+ * data rather than a hand-copied literal.
+ */
+export const NON_ACTIVE_MEMBERSHIP_STATUSES = ["invited", "disabled"] as const;
+export type NonActiveMembershipStatus =
+  (typeof NON_ACTIVE_MEMBERSHIP_STATUSES)[number];
+
+/**
+ * Seed a `tenant_admin` membership of `user` in `tenant` with an explicit
+ * `status`, via the admin/service-role path (B2 — never the self-grant app path,
+ * which RLS denies). This is the minimal, well-scoped fixture capability the
+ * disabled/inactive-membership → no-access negatives (Gap G-1) need: a LIVE
+ * `disabled`/`invited` membership row that a real DB-backed resolve/envelope run
+ * can then prove resolves to TENANT_MEMBERSHIP_REQUIRED — distinct from the
+ * no-membership orphan case. THROWS (with the Postgres `code` preserved) on a DB
+ * error, mirroring `adminInsertMembership`.
+ *
+ * Additive (B1): provided ALONGSIDE the existing handles; the two-tenant fixture
+ * shape is unchanged. Reuse the fixture's `orphanUser` (which otherwise has NO
+ * membership) as the subject so a single fixture exercises both the no-row and the
+ * disabled/invited-row cases without perturbing the active admins.
+ */
+export async function seedMembership(opts: {
+  readonly tenant: FixtureTenant;
+  readonly user: FixtureUser;
+  readonly status: NonActiveMembershipStatus | "active";
+  readonly role?: string;
+}): Promise<void> {
+  await adminInsertMembership({
+    tenant_id: opts.tenant.id,
+    user_id: opts.user.id,
+    role: opts.role ?? "tenant_admin",
+    status: opts.status,
+  });
+}
+
+/**
  * Provision a fresh, per-call two-tenant pair: two `tenants`, two ACTIVE
  * `tenant_admin` users (one per tenant), and one authenticated-but-membership-less
  * "orphan" user.
@@ -228,6 +269,24 @@ export async function makeAuthedServerClient(
     );
   }
   return client;
+}
+
+/**
+ * Delete a single `auth.users` row via the admin/service-role path. The minimal,
+ * well-scoped capability the `actor_user_id ON DELETE SET NULL` persistence negative
+ * (Gap G-6) needs: it removes the actor so the FK action can be observed. THROWS on a
+ * real delete error (so the test fails loudly), unlike `cleanupFixture`'s best-effort
+ * teardown which only warns. Idempotent enough for tests — a subsequent best-effort
+ * cleanup delete of the same id simply no-ops/warns.
+ */
+export async function deleteAuthUser(userId: string): Promise<void> {
+  assertLocalStack();
+  const { error } = await admin().auth.admin.deleteUser(userId);
+  if (error) {
+    throw new Error(
+      `factory: failed to delete auth user ${userId}: ${error.message}`,
+    );
+  }
 }
 
 /** Build an UNAUTHENTICATED (anonymous) anon-key client (no session). */
