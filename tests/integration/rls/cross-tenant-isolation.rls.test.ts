@@ -165,9 +165,12 @@ describe("Cross-tenant RLS isolation — tenants + tenant_memberships + audit_ev
           .eq(column, value)
           .select();
         // No DELETE grant for the app path → denied at the privilege layer (42501).
-        // Assert the mechanism (non-null error, null data), not a vacuous empty set
-        // (review fix 2026-06-26).
+        // Assert the mechanism (non-null error, the 42501 SQLSTATE, null data), not a
+        // vacuous empty set — matching the adjacent UPDATE/INSERT branches so a
+        // regression flipping the denial to an empty result set does not pass
+        // (review fix 2026-06-26; [Review][Patch][Med] 2026-06-29).
         expect(error).not.toBeNull();
+        expect(error?.code).toBe("42501");
         expect(deleted).toBeNull();
       });
     });

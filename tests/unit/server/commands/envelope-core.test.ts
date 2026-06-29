@@ -35,7 +35,6 @@ async function load() {
 type TestInput = RunCommandCoreInput<unknown, Record<string, unknown>, unknown>;
 
 const TENANT_A = "11111111-1111-1111-1111-111111111111";
-const TENANT_B = "22222222-2222-2222-2222-222222222222";
 const USER_ID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
 const TARGET_ID = "dddddddd-dddd-dddd-dddd-dddddddddddd";
 
@@ -107,7 +106,7 @@ test("AC2 gate (2): authenticated but no active tenant_admin → TENANT_MEMBERSH
     },
   });
 
-  const { runCommandCore, COMMAND_MESSAGES } = await load();
+  const { runCommandCore } = await load();
   const result = await runCommandCore(input);
 
   assert.equal(result.ok, false);
@@ -139,7 +138,7 @@ test("AC2 gate (4): a target id resolving to a DIFFERENT tenant → TENANT_ACCES
     verifyOwnership: async () => ({ ok: false, code: "TENANT_ACCESS_DENIED" }),
   });
 
-  const { runCommandCore, COMMAND_MESSAGES } = await load();
+  const { runCommandCore } = await load();
   const result = await runCommandCore(input);
 
   assert.equal(result.ok, false);
@@ -171,7 +170,7 @@ test("AC2 gate (5): a TRANSIENT throw inside execute maps to SERVER_ERROR (not a
 test("AC1 happy path: all gates pass → ok(execute result) AND exactly ONE audit row is written", async () => {
   const { input, auditWrites } = makeScenario();
 
-  const { runCommandCore, COMMAND_MESSAGES } = await load();
+  const { runCommandCore } = await load();
   const result = await runCommandCore(input);
 
   assert.equal(result.ok, true);
@@ -188,7 +187,7 @@ test("AC1 ordering: gates short-circuit in §5 order — a validation failure is
     verifyOwnership: async () => ({ ok: false, code: "TENANT_ACCESS_DENIED" }),
   });
 
-  const { runCommandCore, COMMAND_MESSAGES } = await load();
+  const { runCommandCore } = await load();
   const result = await runCommandCore(input);
 
   assert.equal(result.ok, false);
@@ -198,7 +197,7 @@ test("AC1 ordering: gates short-circuit in §5 order — a validation failure is
 test("AC1: a non-auditable command does NOT write an audit row even on success (auditable flag respected)", async () => {
   const { input, auditWrites } = makeScenario({ auditable: false });
 
-  const { runCommandCore, COMMAND_MESSAGES } = await load();
+  const { runCommandCore } = await load();
   const result = await runCommandCore(input);
 
   assert.equal(result.ok, true);
