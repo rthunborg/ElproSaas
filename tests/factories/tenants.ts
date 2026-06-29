@@ -30,7 +30,7 @@ import {
   LOCAL_SUPABASE_SERVICE_ROLE_KEY,
   LOCAL_SUPABASE_URL,
 } from "../support/test-env";
-import { adminExec } from "./admin-sql";
+import { adminSession } from "./admin-sql";
 
 /**
  * A provisioned tenant row (subset of `tenants` the tests assert against).
@@ -319,10 +319,36 @@ export async function cleanupFixture(fixture: TwoTenantFixture): Promise<void> {
     }
   }
   // Remove the tenant rows (memberships already cascaded with the users).
+  //
+  // `audit_events.tenant_id` is `ON DELETE CASCADE`, but the append-only guard
+  // (`audit_events_block_mutation`) blocks the cascade DELETE — by design: in
+  // production audit history is immutable, so a tenant that has audit rows cannot
+  // be hard-deleted (prod soft-deletes tenants). For TEST teardown that means a
+  // plain `delete from public.tenants` LEAKS any tenant that accrued audit rows.
+  // So purge audit + tenants on a single session with `session_replication_role =
+  // replica`, which disables the user trigger (and FK triggers) for THIS superuser
+  // session ONLY. Loopback-gated via the admin pool (`assertLocalStack`); never a
+  // production path. `set local` inside the txn auto-resets on commit, and
+  // `adminSession`'s `discard all` is a belt-and-braces reset.
+  const tenantIds = [fixture.tenantA.id, fixture.tenantB.id];
   try {
-    await adminExec(`delete from public.tenants where id = any($1::uuid[])`, [
-      [fixture.tenantA.id, fixture.tenantB.id],
-    ]);
+    await adminSession(async ({ query }) => {
+      await query("begin");
+      try {
+        await query("set local session_replication_role = replica");
+        await query(
+          `delete from public.audit_events where tenant_id = any($1::uuid[])`,
+          [tenantIds],
+        );
+        await query(`delete from public.tenants where id = any($1::uuid[])`, [
+          tenantIds,
+        ]);
+        await query("commit");
+      } catch (e) {
+        await query("rollback");
+        throw e;
+      }
+    });
   } catch (e) {
     console.warn(
       `factory cleanup: failed to delete tenants ${fixture.tenantA.id}/${

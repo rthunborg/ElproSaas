@@ -597,7 +597,9 @@ Audit critical events:
 
 Do not store real secrets, `.env` values, raw file contents, broad free-text PII, or service-role details in audit metadata.
 
-Referential integrity of `actor_user_id` (established by Story 2.3): the column is **nullable** with **`ON DELETE SET NULL`**. Deleting the acting user must never delete or block an audit record — the trail outlives the actor — so a null `actor_user_id` denotes "actor since removed". The table is otherwise append-only (no UPDATE/DELETE of audit rows), enforced at the privilege layer plus a backstop trigger.
+Referential integrity of `actor_user_id` (established by Story 2.3): the column is **nullable** with **`ON DELETE SET NULL`**. Deleting the acting user must never delete or block an audit record — the trail outlives the actor — so a null `actor_user_id` denotes "actor since removed". The table is otherwise append-only (no UPDATE/DELETE of audit rows), enforced at the privilege layer plus a backstop trigger (which permits **only** the single `actor_user_id → NULL` referential action and nothing else; migration `20260629140000`).
+
+`tenant_id` is `ON DELETE CASCADE`, but **audit immutability takes precedence over the cascade**: the append-only trigger blocks the cascade `DELETE`, so a tenant that has audit rows cannot be hard-deleted (production retires tenants by soft-delete/retention, never a hard delete that would erase tamper-evidence). Test fixture teardown — which must remove ephemeral tenants — uses a TEST-ONLY, loopback-gated privileged purge (`session_replication_role = replica`), never a production path.
 
 ## 16. Migration And Coexistence Architecture
 
