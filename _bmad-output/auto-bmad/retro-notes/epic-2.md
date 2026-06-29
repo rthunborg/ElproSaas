@@ -9,3 +9,6 @@
 ## Story 2-2-tenant-membership-schema-rls-helpers-and-two-tenant-fixtures
 - [Phase 5 â€” dev-story] Every new tenant-owned table needs explicit GRANTs (authenticated->SELECT, service_role->DML, anon->none) ALONGSIDE its RLS â€” this stack does not auto-expose new public tables to Data API roles, and RLS only narrows an already-granted role. Add a per-table GRANT+RLS checklist item so a later table isn't silently unreadable (the app-path write denial then surfaces as 42501 permission denied, a stronger guarantee than RLS zero-rows).
 - [Phase 5 â€” dev-story] Chained `pnpm run X && pnpm run Y` package.json scripts fail on Windows (script shell can't resolve pnpm on PATH); the project now uses a bare-Node orchestrator (scripts/run-tests.mjs) for multi-step scripts â€” reuse that pattern for any future multi-step script.
+
+## Story 2-3-server-command-envelope-and-minimal-audit-events
+- [Phase 4 — ATDD] Red-phase scaffolds that import not-yet-built modules must use dynamic-import-inside-skipped-body + a tolerant beforeAll + a tsconfig/eslint exclude: node:test fails the whole file on a load-time import throw BEFORE per-test {skip} applies, and Vitest top-level beforeAll runs even under describe.skip. Otherwise the baseline goes RED instead of pending.
