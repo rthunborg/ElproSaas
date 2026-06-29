@@ -5,7 +5,7 @@ epic_num: 2
 story_num: 3
 branch: story/2-3-server-command-envelope-and-minimal-audit-events
 status: done
-updated_at: "2026-06-29T14:00:19Z"
+updated_at: "2026-06-29T14:18:16Z"
 started_at: "2026-06-29T11:39:26Z"
 completed_at: "2026-06-29T14:00:19Z"
 active_seconds: 6686
@@ -42,10 +42,10 @@ deferred_work_archived: 0
 pr_url: "https://github.com/rthunborg/ElproSaas/pull/8"
 ci_run_url: "https://github.com/rthunborg/ElproSaas/actions/runs/28377251755"
 ci_status: passed
-pr_merged: false
-merge_method: null
-merge_commit: null
-branch_deleted: false
+pr_merged: true
+merge_method: merge
+merge_commit: 401d9fef40346a49eaff8d9f0b556655b5a41b6a
+branch_deleted: true
 open_questions:
   - "Audit-write privilege path: dev-story to confirm the SECURITY DEFINER record_audit_event RPC (preferred) vs a GRANT/policy-only approach — if the latter, the DEFINER search-path-hijack suite and the anon-EXECUTE 42501 assertion become N/A and should be removed with the decision recorded."
 deferred_work:
