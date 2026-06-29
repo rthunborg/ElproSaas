@@ -5,10 +5,10 @@ epic_num: 2
 story_num: 3
 branch: story/2-3-server-command-envelope-and-minimal-audit-events
 status: in-progress
-updated_at: "2026-06-29T11:39:26Z"
+updated_at: "2026-06-29T11:48:50Z"
 started_at: "2026-06-29T11:39:26Z"
 completed_at: null
-active_seconds: 0
+active_seconds: 460
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -20,14 +20,14 @@ tea_selected: [atdd, automate]
 tea_rationale: "Auth/authz command envelope (auth + permissions) plus new audit_events schema/migration with RLS and append-only invariant (data integrity + security) — three independent High triggers."
 epic_story_count: 4
 stories_after_in_epic: 1
-completed_phases: [0, 1]
+completed_phases: [0, 1, 2, 3]
 code_review_iterations: 0
 code_review_loop_done: false
 hitl_halt: null
 external_review_iterations: 0
 convergence_unverified: false
 story_trace: null
-commits: []
+commits: [f571f65]
 phase8_steps:
   trace_gate: null
   nfr: null
