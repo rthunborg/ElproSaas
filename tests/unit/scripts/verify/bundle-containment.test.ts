@@ -113,3 +113,67 @@ test("[P0] FAILS LOUDLY: scanning a root with NO `.next` dir throws (never a vac
     assert.throws(() => scanBuiltBundle(root), /\.next/);
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// File-selection branch coverage (shouldScanFile / SCANNED_EXTENSIONS /
+// SCANNED_BASENAMES). The scanner deliberately SKIPS binaries (fonts/images) and
+// only scans known extensions + a few extensionless manifest/build basenames. None
+// of that selection logic was asserted — a future regression that narrowed the
+// scanned extensions, or one that scanned binaries (and false-positived on a token
+// that merely happens to appear in a font blob), would pass silently.
+// [Story 2.4 Task 2.1; gap: file-selection branches untested]
+// ─────────────────────────────────────────────────────────────────────────────
+
+test("[P1] SKIPS binary/non-source extensions: a SERVICE_ROLE token in a `.woff`/`.png` is NOT flagged", () => {
+  withTempRoot((root) => {
+    mkdirSync(join(root, ".next", "static", "media"), { recursive: true });
+    // A font/image is never a browser-readable JS/JSON payload; a byte sequence that
+    // happens to read as `SERVICE_ROLE` must NOT trip the scanner (avoids noise).
+    writeFileSync(
+      join(root, ".next", "static", "media", "font.woff"),
+      "garbage SUPABASE_SERVICE_ROLE_KEY garbage\n",
+    );
+    writeFileSync(
+      join(root, ".next", "static", "media", "logo.png"),
+      "SUPABASE_SERVICE_ROLE_KEY\n",
+    );
+    const { violations } = scanBuiltBundle(root);
+    assert.deepEqual(violations, []);
+  });
+});
+
+test("[P1] SCANS extensionless build manifests by basename: a token in `BUILD_ID` IS flagged", () => {
+  withTempRoot((root) => {
+    // `BUILD_ID` / `trace` have no extension but ARE build artifacts the harness must
+    // inspect — covered via SCANNED_BASENAMES, not SCANNED_EXTENSIONS.
+    mkdirSync(join(root, ".next"), { recursive: true });
+    writeFileSync(
+      join(root, ".next", "BUILD_ID"),
+      "SUPABASE_SERVICE_ROLE_KEY\n",
+    );
+    const { violations } = scanBuiltBundle(root);
+    assert.ok(violations.length > 0, "a token in BUILD_ID must be flagged");
+    assert.match(violations.join("\n"), /BUILD_ID/);
+  });
+});
+
+test("[P1] recurses into nested build dirs and AGGREGATES violations across multiple files", () => {
+  withTempRoot((root) => {
+    // Proves walk() descends into nested .next/server/... and that the result
+    // accumulates one entry per offending file (not just the first).
+    mkdirSync(join(root, ".next", "static", "chunks"), { recursive: true });
+    mkdirSync(join(root, ".next", "server", "app"), { recursive: true });
+    writeFileSync(
+      join(root, ".next", "static", "chunks", "a.js"),
+      'const x="SUPABASE_SERVICE_ROLE_KEY";\n',
+    );
+    writeFileSync(
+      join(root, ".next", "server", "app", "b.js"),
+      'const y="NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY";\n',
+    );
+    const { violations } = scanBuiltBundle(root);
+    const joined = violations.join("\n");
+    assert.match(joined, /static\/chunks\/a\.js/);
+    assert.match(joined, /server\/app\/b\.js/);
+  });
+});
