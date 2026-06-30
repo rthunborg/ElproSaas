@@ -5,10 +5,10 @@ epic_num: 3
 story_num: 5
 branch: epic/3-crm-company-settings-and-pricing-foundation
 status: in-progress
-updated_at: "2026-06-30T20:25:19Z"
+updated_at: "2026-06-30T20:34:52Z"
 started_at: "2026-06-30T20:25:19Z"
 completed_at: null
-active_seconds: 0
+active_seconds: 560
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: true
@@ -20,14 +20,14 @@ tea_selected: [atdd, automate]
 tea_rationale: "Three HIGH signals: money integrity (öre values captured in the snapshot contract), snapshot immutability (R-008 score-6, silent-recompute prevention = irreversible data-integrity concern), and cross-tenant authorization (source-ID rejection required by both command validation AND RLS)"
 epic_story_count: 5
 stories_after_in_epic: 0
-completed_phases: [0, 1, 2]
+completed_phases: [0, 1, 2, 3]
 code_review_iterations: 0
 code_review_loop_done: false
 hitl_halt: null
 external_review_iterations: 0
 convergence_unverified: false
 story_trace: null
-commits: []
+commits: [2c9537e]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -46,7 +46,11 @@ pr_merged: false
 merge_method: null
 merge_commit: null
 branch_deleted: false
-open_questions: []
+open_questions:
+  - "Exact small contract field set: whether company_settings carries more identity, and whether work_role/article snapshots capture is_active (owner/PR confirmation)."
+  - "Terms/VAT wording sign-off: the contract captures approved_at STATE only and approves nothing (owner/legal-gated; honors never-auto-approve-tax-text)."
+  - "Using source updated_at as the 'source version' (no explicit version column on the source tables) — confirm acceptable."
+  - "No-new-table Stop-Condition confirmation: contract layer only, concrete quote-snapshot persistence is Epic 6."
 deferred_work: []
 blockers: []
 overrides: {}
