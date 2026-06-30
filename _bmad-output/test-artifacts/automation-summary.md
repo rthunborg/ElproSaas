@@ -1,17 +1,71 @@
 ---
 stepsCompleted: ['step-01-preflight-and-context', 'step-02-identify-targets', 'step-03-generate-tests']
 lastStep: 'step-03-generate-tests'
-lastSaved: '2026-06-29'
+lastSaved: '2026-06-30'
 inputDocuments:
-  - _bmad-output/implementation-artifacts/2-4-security-regression-harness-for-tenant-and-service-role-boundaries.md
-  - _bmad-output/test-artifacts/test-design-epic-2.md
-  - tests/integration/rls/tenant-table-inventory.ts
-  - tests/integration/rls/rls-inventory-gate.int.test.ts
-  - scripts/verify/check-bundle-containment.mjs
-  - scripts/verify/check-service-role-containment.mjs
-  - tests/unit/rls/inventory-gate-core.test.ts
-  - tests/unit/scripts/verify/bundle-containment.test.ts
-  - tests/unit/scripts/verify/service-role-containment.test.ts
+  - _bmad-output/implementation-artifacts/3-1-tenant-owned-crm-data-model-and-commands.md
+  - src/server/commands/crm/validation.ts
+  - src/server/commands/crm/customers.ts
+  - src/server/commands/crm/facilities.ts
+  - src/server/commands/crm/contacts.ts
+  - src/server/commands/crm/crm-db.ts
+  - supabase/migrations/20260630120000_crm_data_model.sql
+  - tests/factories/tenants.ts
+  - tests/factories/audit-events.ts
+  - tests/integration/commands/crm-customer-commands.int.test.ts
+  - tests/integration/commands/crm-parent-ownership.int.test.ts
+---
+
+# Test Automation Expansion — Story 3.1 (Tenant-Owned CRM Data Model And Commands)
+
+## Mode & Stack
+
+- **Mode:** BMad-Integrated (story 3.1 loaded). Create mode (expand after impl).
+- **Detected stack:** backend — Next 16 server commands + Postgres/RLS, no browser.
+  Browser exploration skipped; source + DB analysis. Two-runner split honored
+  (pure validators -> `node --test`; DB-backed command/RLS -> Vitest).
+- **Baseline (before this run):** unit 149 green; integration 25 files / 155 green.
+
+## Scope
+
+Expand coverage for THIS story's code (CRM migration, the 9 envelope commands,
+validation, RLS/inventory enrollment), focusing on gaps the ATDD scaffolds
+(`crm-customer-commands`, `crm-parent-ownership`) did NOT already cover. Keep the
+suite green; do not weaken existing tests.
+
+## Coverage gaps closed
+
+| Gap | Level | Pri | Where |
+| --- | --- | --- | --- |
+| customer_type CHECK surface + all 4 types accepted | unit | P1 | crm-validation.test.ts |
+| identifier-by-type requiredness + mutual exclusion (every type) | unit | P0 | crm-validation.test.ts |
+| email format boundaries (multi-@, spaces, no-tld, newline) | unit | P1 | crm-validation.test.ts |
+| phone format boundaries (too short/long, letters, symbols) | unit | P1 | crm-validation.test.ts |
+| name/display_name whitespace + length bounds + trim | unit | P1 | crm-validation.test.ts |
+| UUID-shape guards, optional facility_id, is_primary boolean | unit | P1 | crm-validation.test.ts |
+| update partial-edit semantics + non-record inputs | unit | P1 | crm-validation.test.ts |
+| client tenant_id stripped from validated value | unit | P0 | crm-validation.test.ts |
+| facility & contact full lifecycle (create+audit, update, archive) | int | P1 | crm-command-coverage.int.test.ts |
+| brf / public customer happy paths | int | P1 | crm-command-coverage.int.test.ts |
+| cross-tenant UPDATE/ARCHIVE denial — facilities & contacts | int | P0 | crm-command-coverage.int.test.ts |
+| positive own-tenant facility link on a contact | int | P0 | crm-command-coverage.int.test.ts |
+| updated_at trigger advances on real UPDATE | int | P1 | crm-command-coverage.int.test.ts |
+| DB-level identifier-by-type + type CHECK (23514 backstop) | int | P1 | crm-command-coverage.int.test.ts |
+
+## Generated Test Files
+
+- `tests/unit/server/commands/crm-validation.test.ts` — 39 pure tests (`node --test`).
+- `tests/integration/commands/crm-command-coverage.int.test.ts` — 15 DB-backed
+  (Vitest). Cross-tenant negatives assert the mechanism (TENANT_ACCESS_DENIED +
+  independent BYPASSRLS unchanged re-read), never a vacuous disjunction.
+
+## Result (gates, this run)
+
+- `pnpm typecheck` green; `pnpm lint` green.
+- `pnpm run test:unit` → **188 pass** (was 149; +39).
+- `pnpm run test:int` → **26 files / 170 pass** (was 25 / 155; +1 file / +15).
+- No existing test weakened or skipped. Not committed (per instruction).
+
 ---
 
 # Test Automation Expansion — Story 2.4 (Security Regression Harness)
