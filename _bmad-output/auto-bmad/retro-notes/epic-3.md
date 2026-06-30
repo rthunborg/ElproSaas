@@ -1,0 +1,5 @@
+## Story epic-3
+- [Phase 2 — epic test design] Epic 3 is the first money (öre) + first snapshot touch, but NO money/VAT/snapshot primitives exist in the repo yet (Epic 4 owns them). Fence Epic 3 to integer-öre storage/validation + a SMALL Phase-A snapshot contract — do NOT build the Epic 4 money/VAT/ROT engine here.
+- [Phase 2 — epic test design] STANDING CONTRACT (Epics 3-9): every new tenant-owned table MUST be enrolled in the H4 RLS inventory gate (cross-tenant + anon seams). Highest-leverage, easiest-to-forget Epic 3 obligation; non-negotiable exit criterion — esp. the anon seam.
+- [Phase 2 — epic test design] Non-negotiables: NO personnummer field; NO supplier-scope fields on articles; integer-öre money; snapshot values frozen (no silent recompute); customer-facing tax/legal text never auto-approved.
+- [Phase 2 — epic test design] Pending owner/legal sign-off (assumptions, not blockers in epic mode): is optional 'articles' in scope for 3-4 (gates R-007)? customer-type/requiredness (3-1/3-2); tax/legal quote-terms + VAT wording (3-3/3-5). Treat as assumptions-pending-sign-off; surface in report.
