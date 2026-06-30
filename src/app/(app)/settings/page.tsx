@@ -1,10 +1,11 @@
 /**
  * `/settings` (Inställningar) — the settings hub (Story 3.3, Task 4.1).
  *
- * Links to the IN-scope settings sub-pages this story builds: Företagsinställningar
- * (`/settings/company`) and Offertvillkor (`/settings/quote-terms`). It does NOT build
- * or link `/settings/pricing` (Prissättning — Story 3.4) and adds NO new nav item
- * (`nav-items.ts` stays EXACTLY the seven IN-scope modules).
+ * Links to the IN-scope settings sub-pages: Företagsinställningar (`/settings/company`)
+ * and Offertvillkor (`/settings/quote-terms`) from Story 3.3, plus Prissättning
+ * (`/settings/pricing`) added by Story 3.4 (the 3.3 hub deliberately omitted it). Adds
+ * NO new nav item (`nav-items.ts` stays EXACTLY the seven IN-scope modules) — pricing
+ * lives under the existing Inställningar tree.
  */
 import Link from "next/link";
 
@@ -22,6 +23,12 @@ const SETTINGS_LINKS = [
     title: "Offertvillkor",
     description:
       "Återanvändbara offertvillkor med godkännandestatus (ägare/juridik).",
+  },
+  {
+    href: "/settings/pricing",
+    title: "Prissättning",
+    description:
+      "Arbetsroller och ett minimalt manuellt artikelregister med återanvändbara priser (i öre).",
   },
 ] as const;
 

@@ -31,8 +31,11 @@ import {
   adminInsertContact,
   adminInsertCompanySettings,
   adminInsertQuoteTerms,
+  adminInsertWorkRole,
+  adminInsertArticle,
   adminSelectCrmRowById,
   adminSelectSettingsLabel,
+  adminSelectPricingRow,
   type TwoTenantFixture,
   type TestServerClient,
 } from "../../factories/tenants";
@@ -58,6 +61,8 @@ let tenantBFacilityId: string; // a seeded Tenant B facility (cross-tenant CRM t
 let tenantBContactId: string; // a seeded Tenant B contact (cross-tenant CRM target)
 let tenantBCompanySettingsId: string; // a seeded Tenant B company_settings (3.3 target)
 let tenantBQuoteTermsId: string; // a seeded Tenant B quote_terms (3.3 target)
+let tenantBWorkRoleId: string; // a seeded Tenant B work_role (3.4 pricing target)
+let tenantBArticleId: string; // a seeded Tenant B article (3.4 pricing target)
 let ctx: InventoryContext; // shared-inventory context (fixture + the seeded ids)
 
 beforeAll(async () => {
@@ -110,6 +115,18 @@ beforeAll(async () => {
     tenant_id: fixture.tenantB.id,
     terms_text: "tenant-b-terms-seed (platshållartext)",
   });
+  // Seed REAL Tenant B pricing rows (Story 3.4) so the work_roles/articles cross-tenant
+  // negatives target a CONCRETE Tenant B row. The unchanged re-read asserts these seed
+  // labels were NOT overwritten by Tenant A's denied UPDATE. The article seed carries
+  // ONLY the minimal manual columns (HARD no-supplier-scope).
+  tenantBWorkRoleId = await adminInsertWorkRole({
+    tenant_id: fixture.tenantB.id,
+    display_name: "tenant-b-role-seed",
+  });
+  tenantBArticleId = await adminInsertArticle({
+    tenant_id: fixture.tenantB.id,
+    name: "tenant-b-article-seed",
+  });
   // VACUITY GUARD (DX#4, epic-2 hardening): the audit_events cross-tenant negatives
   // filter Tenant B's row by `id = tenantBAuditId`. If the seed ever returned without
   // a real id, `.eq("id", undefined/null)` would match NOTHING and the SELECT/UPDATE/
@@ -138,6 +155,12 @@ beforeAll(async () => {
         "settings cross-tenant negatives would pass VACUOUSLY against a non-existent row.",
     );
   }
+  if (!tenantBWorkRoleId || !tenantBArticleId) {
+    throw new Error(
+      "cross-tenant pricing seed produced no id (work_roles/articles) — the pricing " +
+        "cross-tenant negatives would pass VACUOUSLY against a non-existent row.",
+    );
+  }
   ctx = {
     fixture,
     tenantBAuditId,
@@ -146,6 +169,8 @@ beforeAll(async () => {
     tenantBContactId,
     tenantBCompanySettingsId,
     tenantBQuoteTermsId,
+    tenantBWorkRoleId,
+    tenantBArticleId,
   };
 });
 
@@ -212,6 +237,11 @@ describe("Cross-tenant RLS isolation — data-driven over the shared inventory (
           if (table === "company_settings" || table === "quote_terms") {
             const labelColumn = rlsInvisibleLabelColumn(table);
             const row = await adminSelectSettingsLabel(table, labelColumn, value);
+            expect(row).not.toBeNull();
+            expect(row?.label).not.toBe("hijacked-by-tenant-a");
+          } else if (table === "work_roles" || table === "articles") {
+            const labelColumn = rlsInvisibleLabelColumn(table);
+            const row = await adminSelectPricingRow(table, labelColumn, value);
             expect(row).not.toBeNull();
             expect(row?.label).not.toBe("hijacked-by-tenant-a");
           } else {

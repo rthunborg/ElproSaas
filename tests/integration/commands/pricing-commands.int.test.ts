@@ -48,6 +48,8 @@ import {
   createTwoTenantFixture,
   makeAuthedServerClient,
   cleanupFixture,
+  adminInsertWorkRole,
+  adminInsertArticle,
   type TwoTenantFixture,
   type TestServerClient,
 } from "../../factories/tenants";
@@ -56,20 +58,17 @@ import { adminSelectAuditEvents } from "../../factories/audit-events";
 import { isLocalStackReachable } from "../../support/test-env";
 import { skipUnlessStack } from "../../support/stack-gate";
 import { runCommand } from "@/server/commands/envelope";
+import {
+  upsertWorkRole,
+  archiveWorkRole,
+} from "@/server/commands/pricing/work-roles";
+import {
+  upsertArticle,
+  archiveArticle,
+} from "@/server/commands/pricing/articles";
 import type { CommandClock } from "@/server/commands/clock";
 
-// ── Red-phase command placeholders (replace with real imports in the GREEN phase) ──
-// These keep the file type-checking WITHOUT importing the not-yet-authored pricing
-// command modules. The suite is `describe.skip`, so they are never invoked.
-type Command = unknown;
-/** RED-PHASE stub: a not-yet-authored command. The suite is describe.skip, so it is never invoked. */
-function notYetImplemented(): Command {
-  return {} as Command;
-}
-const upsertWorkRole = notYetImplemented(); // GREEN: import from @/server/commands/pricing/work-roles
-const archiveWorkRole = notYetImplemented(); // GREEN: import from @/server/commands/pricing/work-roles
-const upsertArticle = notYetImplemented(); // GREEN: import from @/server/commands/pricing/articles
-const archiveArticle = notYetImplemented(); // GREEN: import from @/server/commands/pricing/articles
+// ── GREEN PHASE (Story 3.4 dev): the commands + migration have landed (Tasks 1-2). ──
 
 const FIXED_ISO = "2026-06-30T12:00:00.000Z";
 const fixedClock: CommandClock = { now: () => new Date(FIXED_ISO) };
@@ -77,12 +76,19 @@ const fixedClock: CommandClock = { now: () => new Date(FIXED_ISO) };
 let stackUp = false;
 let fixture: TwoTenantFixture;
 let a: TestServerClient; // adminA's authenticated anon-key (RLS) client
+let tenantBWorkRoleId: string; // a seeded Tenant B work_role (cross-tenant target)
+let tenantBArticleId: string; // a seeded Tenant B article (cross-tenant target)
 
 beforeAll(async () => {
   stackUp = await isLocalStackReachable();
   if (!stackUp) return;
   fixture = await createTwoTenantFixture();
   a = await makeAuthedServerClient(fixture.adminA);
+  // Seed REAL Tenant B pricing rows so the cross-tenant UPDATE negatives target a
+  // CONCRETE foreign row (never a non-existent id that would deny vacuously). The
+  // cleanupFixture tenant-delete cascades them (on delete cascade).
+  tenantBWorkRoleId = await adminInsertWorkRole({ tenant_id: fixture.tenantB.id });
+  tenantBArticleId = await adminInsertArticle({ tenant_id: fixture.tenantB.id });
 });
 
 afterAll(async () => {
@@ -90,9 +96,8 @@ afterAll(async () => {
 });
 
 /**
- * RED-PHASE local readback. In the GREEN phase, replace with the real
- * `adminSelectWorkRole`/`adminSelectArticle` (or a shared `adminSelectPricingRow`)
- * from `tests/factories/tenants.ts`. Reads a pricing row independently (BYPASSRLS).
+ * Local readback (BYPASSRLS) — reads a pricing row's lifecycle/tenant independent of the
+ * app/RLS path so a "soft-delete, not hard-delete" negative can prove the row EXISTS.
  */
 async function adminSelectPricingRow(
   table: "work_roles" | "articles",
@@ -118,7 +123,7 @@ async function countPricingRows(table: "work_roles" | "articles", tenantId: stri
 // work_roles — collection create/update/archive + öre money + audit.
 // ─────────────────────────────────────────────────────────────────────────────
 
-describe.skip("upsertWorkRole — create/update/archive collection + öre rates + audit (Story 3.4 AC2)", () => {
+describe("upsertWorkRole — create/update/archive collection + öre rates + audit (Story 3.4 AC2)", () => {
   it("[P0] CREATE (no id) INSERTs a new role with integer-öre rates + writes ONE audit row with NO rate/name in metadata", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     const correlationId = crypto.randomUUID();
@@ -133,23 +138,27 @@ describe.skip("upsertWorkRole — create/update/archive collection + öre rates 
     if (!result.ok) return;
 
     // The persisted row carries the tenant + integer-öre rates (asserted via BYPASSRLS).
-    const created = result as { ok: true; data: { id: string } };
+    const created = result as { ok: true; data: { targetId: string } };
     const row = await adminQuery<{
       id: string;
       tenant_id: string;
-      cost_rate_ore: number;
-      sell_rate_ore: number;
+      // bigint (int8) is returned by the `pg` driver as a STRING (precision-safe); the
+      // assertions coerce + compare the integer öre value (never a float).
+      cost_rate_ore: string;
+      sell_rate_ore: string;
       is_active: boolean;
     }>(
       `select id, tenant_id, cost_rate_ore, sell_rate_ore, is_active
          from public.work_roles where id = $1`,
-      [created.data.id],
+      [created.data.targetId],
     );
     expect(row).toHaveLength(1);
     expect(row[0].tenant_id).toBe(fixture.tenantA.id);
-    expect(row[0].cost_rate_ore).toBe(45000);
-    expect(row[0].sell_rate_ore).toBe(85000);
-    expect(Number.isInteger(row[0].cost_rate_ore)).toBe(true); // INTEGER öre, not a float
+    expect(Number(row[0].cost_rate_ore)).toBe(45000);
+    expect(Number(row[0].sell_rate_ore)).toBe(85000);
+    // INTEGER öre, never a float — the stored bigint string parses to a whole integer.
+    expect(Number.isInteger(Number(row[0].cost_rate_ore))).toBe(true);
+    expect(/^\d+$/.test(row[0].cost_rate_ore)).toBe(true); // a whole-integer öre string, no decimal point
     expect(row[0].is_active).toBe(true);
 
     const audits = await adminSelectAuditEvents({ correlationId });
@@ -189,7 +198,7 @@ describe.skip("upsertWorkRole — create/update/archive collection + öre rates 
     });
     expect(created.ok).toBe(true);
     if (!created.ok) return;
-    const id = (created as { ok: true; data: { id: string } }).data.id;
+    const id = (created as { ok: true; data: { targetId: string } }).data.targetId;
 
     const updated = await runCommand(upsertWorkRole as never, {
       client: a as never,
@@ -199,12 +208,12 @@ describe.skip("upsertWorkRole — create/update/archive collection + öre rates 
     });
     expect(updated.ok).toBe(true);
 
-    const row = await adminQuery<{ id: string; sell_rate_ore: number }>(
+    const row = await adminQuery<{ id: string; sell_rate_ore: string }>(
       `select id, sell_rate_ore from public.work_roles where id = $1`,
       [id],
     );
     expect(row).toHaveLength(1);
-    expect(row[0].sell_rate_ore).toBe(82000);
+    expect(Number(row[0].sell_rate_ore)).toBe(82000); // bigint returns as a string
   });
 
   it("[P0] archiveWorkRole flips is_active=false — the row STILL EXISTS (soft, never a hard DELETE)", async (testCtx) => {
@@ -217,7 +226,7 @@ describe.skip("upsertWorkRole — create/update/archive collection + öre rates 
     });
     expect(created.ok).toBe(true);
     if (!created.ok) return;
-    const id = (created as { ok: true; data: { id: string } }).data.id;
+    const id = (created as { ok: true; data: { targetId: string } }).data.targetId;
 
     const archived = await runCommand(archiveWorkRole as never, {
       client: a as never,
@@ -262,10 +271,9 @@ describe.skip("upsertWorkRole — create/update/archive collection + öre rates 
 
   it("[P0/AC4] an upsert UPDATE supplying a TENANT-B work_role id → TENANT_ACCESS_DENIED", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
-    // GREEN-PHASE: seed a real Tenant B work_role id here (adminInsertWorkRole) and
-    // target it. The envelope `ownership` pre-check resolves the row's tenant and
-    // rejects a foreign-tenant id with TENANT_ACCESS_DENIED before any write.
-    const tenantBWorkRoleId = crypto.randomUUID(); // placeholder — replace with a real Tenant B seed
+    // Target the REAL seeded Tenant B work_role (beforeAll). The envelope `ownership`
+    // pre-check resolves the row's tenant via Tenant A's RLS — a foreign-tenant id is
+    // invisible (zero rows) and rejected with TENANT_ACCESS_DENIED before any write.
     const result = await runCommand(upsertWorkRole as never, {
       client: a as never,
       input: { id: tenantBWorkRoleId, display_name: "hijack", cost_rate_ore: 1, sell_rate_ore: 1 },
@@ -281,7 +289,7 @@ describe.skip("upsertWorkRole — create/update/archive collection + öre rates 
 // articles — same collection create/update/archive shape + öre + audit + NO supplier.
 // ─────────────────────────────────────────────────────────────────────────────
 
-describe.skip("upsertArticle — create/update/archive collection + öre unit price + audit (Story 3.4 AC3)", () => {
+describe("upsertArticle — create/update/archive collection + öre unit price + audit (Story 3.4 AC3)", () => {
   it("[P0] CREATE (no id) INSERTs a minimal manual article with an integer-öre unit price + ONE audit row", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     const correlationId = crypto.randomUUID();
@@ -294,16 +302,17 @@ describe.skip("upsertArticle — create/update/archive collection + öre unit pr
     });
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    const id = (result as { ok: true; data: { id: string } }).data.id;
+    const id = (result as { ok: true; data: { targetId: string } }).data.targetId;
 
-    const row = await adminQuery<{ tenant_id: string; unit_price_ore: number; is_active: boolean }>(
+    const row = await adminQuery<{ tenant_id: string; unit_price_ore: string; is_active: boolean }>(
       `select tenant_id, unit_price_ore, is_active from public.articles where id = $1`,
       [id],
     );
     expect(row).toHaveLength(1);
     expect(row[0].tenant_id).toBe(fixture.tenantA.id);
-    expect(row[0].unit_price_ore).toBe(1250);
-    expect(Number.isInteger(row[0].unit_price_ore)).toBe(true);
+    // bigint (int8) returns as a STRING; coerce + assert the integer öre value (no float).
+    expect(Number(row[0].unit_price_ore)).toBe(1250);
+    expect(/^\d+$/.test(row[0].unit_price_ore)).toBe(true);
 
     const audits = await adminSelectAuditEvents({ correlationId });
     expect(audits).toHaveLength(1);
@@ -338,7 +347,7 @@ describe.skip("upsertArticle — create/update/archive collection + öre unit pr
     });
     expect(created.ok).toBe(true);
     if (!created.ok) return;
-    const id = (created as { ok: true; data: { id: string } }).data.id;
+    const id = (created as { ok: true; data: { targetId: string } }).data.targetId;
 
     const archived = await runCommand(archiveArticle as never, {
       client: a as never,
@@ -388,14 +397,15 @@ describe.skip("upsertArticle — create/update/archive collection + öre unit pr
     // (the schema guard test proves the column does not exist).
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    const id = (result as { ok: true; data: { id: string } }).data.id;
+    const id = (result as { ok: true; data: { targetId: string } }).data.targetId;
     const row = await adminSelectPricingRow("articles", id);
     expect(row).not.toBeNull();
   });
 
   it("[P0/AC4] an upsert UPDATE supplying a TENANT-B article id → TENANT_ACCESS_DENIED", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
-    const tenantBArticleId = crypto.randomUUID(); // placeholder — replace with a real Tenant B seed
+    // Target the REAL seeded Tenant B article (beforeAll) — invisible under Tenant A's
+    // RLS, so the envelope ownership pre-check rejects it with TENANT_ACCESS_DENIED.
     const result = await runCommand(upsertArticle as never, {
       client: a as never,
       input: { id: tenantBArticleId, name: "hijack", unit_price_ore: 1 },

@@ -31,13 +31,11 @@
  */
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import * as validation from "@/server/commands/pricing/validation";
 
-// ── Red-phase module gate ────────────────────────────────────────────────────────
-// The pricing validation module is authored in the DEV phase. Until it exists we
-// cannot statically `import` it (node --test would crash on an unresolved module), so
-// load it dynamically and register the suite ONLY when present. In the GREEN phase,
-// delete this gate and switch to a top-level `import { ... } from
-// "@/server/commands/pricing/validation"` + plain `test(...)` registrations.
+// ── GREEN PHASE (Story 3.4 dev) ──────────────────────────────────────────────────
+// The pricing validation module now exists, so it is imported at the top level and
+// the suite runs unconditionally (the red-phase dynamic-require gate is removed).
 type PricingValidation = {
   isOreAmount: (v: unknown) => boolean;
   validateUpsertWorkRole: (input: unknown) => ValidationResult;
@@ -48,22 +46,11 @@ type ValidationResult =
   | { ok: true; data: Record<string, unknown> }
   | { ok: false; code: string };
 
-let mod: PricingValidation | null = null;
-try {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  mod = require("@/server/commands/pricing/validation") as PricingValidation;
-} catch {
-  mod = null;
-}
+const mod = validation as unknown as PricingValidation;
 
-/** Register `body` only when the pricing module exists; otherwise skip (red phase). */
+/** Register `body` with the (now real) pricing validation module. */
 function pending(name: string, body: (m: PricingValidation) => void): void {
-  if (!mod) {
-    test(name, { skip: "RED PHASE: pricing validation module not implemented yet" }, () => {});
-    return;
-  }
-  const m = mod;
-  test(name, () => body(m));
+  test(name, () => body(mod));
 }
 
 function assertRejected(result: ValidationResult, label: string): void {

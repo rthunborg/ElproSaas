@@ -90,6 +90,15 @@ export const TENANT_TABLES = [
   // (a unique (tenant_id)).
   "company_settings",
   "quote_terms",
+  // Story 3.4 pricing tables (the first tenant-owned PRICING tables). Like the CRM /
+  // settings tables, `authenticated` HAS an INSERT/UPDATE grant (the tenant admin
+  // manages pricing via the app path) — so their cross-tenant UPDATE denial mechanism
+  // is RLS-USING invisibility (zero rows + unchanged re-read), NOT a missing-grant
+  // 42501. UNLIKE the settings tables these are MANY-rows-per-tenant collections (NO
+  // unique (tenant_id)). The articles spoof/anon rows carry ONLY the minimal manual
+  // columns — there is NO supplier-ish column to populate (HARD no-supplier-scope).
+  "work_roles",
+  "articles",
 ] as const;
 
 export type TenantTableName = (typeof TENANT_TABLES)[number];
@@ -128,6 +137,15 @@ export interface InventoryContext {
    */
   readonly tenantBCompanySettingsId?: string;
   readonly tenantBQuoteTermsId?: string;
+  /**
+   * REAL Tenant B PRICING row ids (Story 3.4) — concrete cross-tenant targets the
+   * work_roles/articles negatives point Tenant A at, so the denial is never vacuous
+   * against a non-existent row. Optional so the anon suite (which never reads a seeded
+   * row) can omit them; the cross-tenant suite seeds and asserts them. A consumer that
+   * needs one but finds it missing fails LOUDLY (vacuity guard via requireCrmId).
+   */
+  readonly tenantBWorkRoleId?: string;
+  readonly tenantBArticleId?: string;
 }
 
 /**
@@ -161,6 +179,8 @@ export function updateDenialKind(table: TenantTableName): MutationDenialKind {
     case "contacts":
     case "company_settings":
     case "quote_terms":
+    case "work_roles":
+    case "articles":
       return "rls-invisible"; // UPDATE granted; RLS USING hides foreign rows
     default:
       return assertNever(table);
@@ -290,6 +310,30 @@ export function spoofedRowFor(
         tenant_id: fixture.tenantB.id,
         terms_text: "spoofed-terms-by-a (platshållartext)",
       };
+    case "work_roles":
+      // A work_roles row forging Tenant B ownership. `authenticated` HAS an INSERT
+      // grant, so the denial is the RLS INSERT WITH CHECK (is_tenant_admin(tenant_id=B)
+      // is false for a Tenant A admin) → `42501`. FRESH id + the NOT-NULL columns
+      // (display_name + the two integer-öre rates) populated so the denial is the
+      // policy, never a `23505` PK collision or a NOT-NULL violation.
+      return {
+        id: crypto.randomUUID(),
+        tenant_id: fixture.tenantB.id,
+        display_name: "spoofed-by-tenant-a",
+        cost_rate_ore: 1,
+        sell_rate_ore: 1,
+      };
+    case "articles":
+      // An articles row forging Tenant B ownership. RLS INSERT WITH CHECK on
+      // tenant_id=B → `42501` (fresh id; the NOT-NULL name + unit_price_ore populated).
+      // CRITICAL no-supplier-scope: ONLY the minimal manual columns appear here — there
+      // is NO supplier-ish column to populate (one would not even exist in the schema).
+      return {
+        id: crypto.randomUUID(),
+        tenant_id: fixture.tenantB.id,
+        name: "spoofed-by-tenant-a",
+        unit_price_ore: 1,
+      };
     default:
       return assertNever(table);
   }
@@ -382,6 +426,19 @@ export function tenantBFilter(
           table,
         ),
       };
+    case "work_roles":
+      // Target the SPECIFIC seeded Tenant B work_role by id — the cross-tenant
+      // SELECT/UPDATE must read/affect ZERO rows under A's RLS, and the "unchanged"
+      // re-read proves THIS row stayed intact. Vacuity-guarded.
+      return {
+        column: "id",
+        value: requireCrmId(ctx.tenantBWorkRoleId, "tenantBWorkRoleId", table),
+      };
+    case "articles":
+      return {
+        column: "id",
+        value: requireCrmId(ctx.tenantBArticleId, "tenantBArticleId", table),
+      };
     default:
       return assertNever(table);
   }
@@ -414,6 +471,10 @@ export function hijackMutationFor(
       return { company_name: "hijacked-by-tenant-a" };
     case "quote_terms":
       return { terms_text: "hijacked-by-tenant-a" };
+    case "work_roles":
+      return { display_name: "hijacked-by-tenant-a" };
+    case "articles":
+      return { name: "hijacked-by-tenant-a" };
     default:
       return assertNever(table);
   }
@@ -436,6 +497,10 @@ export function rlsInvisibleLabelColumn(table: TenantTableName): string {
       return "company_name";
     case "quote_terms":
       return "terms_text";
+    case "work_roles":
+      return "display_name";
+    case "articles":
+      return "name";
     // The "privilege"-denial tables never reach the unchanged-re-read branch, so a
     // label column is not meaningful for them — but the exhaustive switch keeps the
     // enrollment compile-safe (assertNever on a future unenrolled table).
@@ -529,6 +594,26 @@ export function anonRowFor(
         tenant_id: fixture.tenantA.id,
         terms_text: "anon-spoof terms (platshållartext)",
       };
+    case "work_roles":
+      // Anon has NO grant on work_roles, so the INSERT is denied at the privilege
+      // layer (42501) regardless of the row shape. NOT-NULL columns populated so the
+      // grant denial — not a NOT-NULL violation — is what fires.
+      return {
+        id: crypto.randomUUID(),
+        tenant_id: fixture.tenantA.id,
+        display_name: "anon-spoof",
+        cost_rate_ore: 1,
+        sell_rate_ore: 1,
+      };
+    case "articles":
+      // Anon has NO grant on articles → 42501. ONLY the minimal manual columns appear
+      // (no supplier-ish column — HARD no-supplier-scope).
+      return {
+        id: crypto.randomUUID(),
+        tenant_id: fixture.tenantA.id,
+        name: "anon-spoof",
+        unit_price_ore: 1,
+      };
     default:
       return assertNever(table);
   }
@@ -561,6 +646,8 @@ export function anonFilterFor(
     case "contacts":
     case "company_settings":
     case "quote_terms":
+    case "work_roles":
+    case "articles":
       return { column: "tenant_id", value: ctx.fixture.tenantA.id };
     default:
       return assertNever(table);
@@ -587,6 +674,10 @@ export function anonMutationFor(
       return { company_name: "anon-hijack" };
     case "quote_terms":
       return { terms_text: "anon-hijack" };
+    case "work_roles":
+      return { display_name: "anon-hijack" };
+    case "articles":
+      return { name: "anon-hijack" };
     default:
       return assertNever(table);
   }

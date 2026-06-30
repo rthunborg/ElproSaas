@@ -132,7 +132,14 @@ describe("Migration reset green — tenant_foundation objects present (AC1 / R-0
     // quote_terms.{SELECT,INSERT,UPDATE} — SELECT/INSERT/UPDATE per table, NO DELETE
     // (upsert over hard delete). Placed alphabetically. The "no DELETE policy anywhere"
     // assertion below still holds.
+    // Story 3.4 EXTENDS it again (NOT loosened) by the 6 new PRICING policies:
+    // articles.{SELECT,INSERT,UPDATE} (sorts FIRST alphabetically) +
+    // work_roles.{SELECT,INSERT,UPDATE} — SELECT/INSERT/UPDATE per table, NO DELETE
+    // (archive over hard delete). Both tables are MANY-rows-per-tenant collections.
     expect(rows.map((r) => `${r.tablename}.${r.cmd}`).sort()).toEqual([
+      "articles.INSERT",
+      "articles.SELECT",
+      "articles.UPDATE",
       "audit_events.SELECT",
       "company_settings.INSERT",
       "company_settings.SELECT",
@@ -151,6 +158,9 @@ describe("Migration reset green — tenant_foundation objects present (AC1 / R-0
       "quote_terms.UPDATE",
       "tenant_memberships.SELECT",
       "tenants.SELECT",
+      "work_roles.INSERT",
+      "work_roles.SELECT",
+      "work_roles.UPDATE",
     ]);
     // Per-table command expectation (replaces the blanket "every policy is SELECT"):
     // the three foundation tables are SELECT-only; the three CRM tables are
@@ -163,16 +173,19 @@ describe("Migration reset green — tenant_foundation objects present (AC1 / R-0
     for (const t of selectOnly) {
       expect((cmdsByTable.get(t) ?? []).sort()).toEqual(["SELECT"]);
     }
-    // The CRM tables (Story 3.1) and the settings tables (Story 3.3) are all
-    // SELECT/INSERT/UPDATE with NO DELETE policy (archive/upsert over hard delete).
-    const crmAndSettingsTables = [
+    // The CRM tables (Story 3.1), the settings tables (Story 3.3), and the pricing
+    // tables (Story 3.4) are all SELECT/INSERT/UPDATE with NO DELETE policy
+    // (archive/upsert over hard delete).
+    const crmSettingsAndPricingTables = [
       "customers",
       "facilities",
       "contacts",
       "company_settings",
       "quote_terms",
+      "work_roles",
+      "articles",
     ];
-    for (const t of crmAndSettingsTables) {
+    for (const t of crmSettingsAndPricingTables) {
       expect((cmdsByTable.get(t) ?? []).sort()).toEqual([
         "INSERT",
         "SELECT",

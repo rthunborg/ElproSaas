@@ -49,7 +49,7 @@ afterAll(async () => {
   await closeAdminPool();
 });
 
-describe.skip("Pricing migration reset green — work_roles/articles (AC1/AC2/AC3)", () => {
+describe("Pricing migration reset green — work_roles/articles (AC1/AC2/AC3)", () => {
   it("[P0] the two pricing tables exist after reset", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     const rows = await adminQuery<{ table_name: string }>(

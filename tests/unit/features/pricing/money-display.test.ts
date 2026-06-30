@@ -22,27 +22,20 @@
  */
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import * as moneyDisplay from "@/features/pricing/money-display";
 
+// ── GREEN PHASE (Story 3.4 dev) ──────────────────────────────────────────────────
+// The pricing money-display helper now exists, so it is imported at the top level and
+// the suite runs unconditionally (the red-phase dynamic-require gate is removed).
 type MoneyDisplay = {
   kronorStringToOre: (input: string) => { ok: true; ore: number } | { ok: false };
   oreToKronorString: (ore: number) => string;
 };
 
-let mod: MoneyDisplay | null = null;
-try {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  mod = require("@/features/pricing/money-display") as MoneyDisplay;
-} catch {
-  mod = null;
-}
+const mod = moneyDisplay as unknown as MoneyDisplay;
 
 function pending(name: string, body: (m: MoneyDisplay) => void): void {
-  if (!mod) {
-    test(name, { skip: "RED PHASE: pricing money-display helper not implemented yet" }, () => {});
-    return;
-  }
-  const m = mod;
-  test(name, () => body(m));
+  test(name, () => body(mod));
 }
 
 // ── kronorStringToOre — the parse-at-the-boundary direction ──────────────────────

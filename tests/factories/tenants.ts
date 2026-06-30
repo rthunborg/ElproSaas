@@ -598,3 +598,101 @@ export async function adminSelectSettingsLabel(
   );
   return rows[0] ?? null;
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Pricing seed/read helpers (Story 3.4, Task 3.3) — ADDITIVE. Seed REAL
+// `work_roles`/`articles` rows via the loopback-gated superuser `pg` pool (BYPASSRLS)
+// so the cross-tenant negatives target a CONCRETE Tenant B pricing row, never a
+// non-existent id that would deny vacuously. Mirror `adminInsertCompanySettings`:
+// THROW on a DB error with the Postgres `code` preserved. Pricing tables are
+// `tenant_id … on delete cascade`, so the EXISTING `cleanupFixture` tenant-delete
+// cascades the seeded rows away — no new teardown path is needed.
+// CRITICAL no-supplier-scope: the article seed carries ONLY the minimal manual columns.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Seed ONE `work_roles` row via the privileged superuser pg path (BYPASSRLS). Returns
+ * the inserted id. THROWS (Postgres `code` preserved) on a DB error. The NOT-NULL
+ * `display_name` + integer-öre `cost_rate_ore`/`sell_rate_ore` are populated;
+ * `display_name` carries a recognizable seed token so the cross-tenant unchanged re-read
+ * can assert it was not overwritten.
+ */
+export async function adminInsertWorkRole(seed: {
+  readonly tenant_id: string;
+  readonly display_name?: string;
+  readonly cost_rate_ore?: number;
+  readonly sell_rate_ore?: number;
+}): Promise<string> {
+  try {
+    const rows = await adminQuery<{ id: string }>(
+      `insert into public.work_roles
+         (tenant_id, display_name, cost_rate_ore, sell_rate_ore)
+       values ($1, $2, $3, $4)
+       returning id`,
+      [
+        seed.tenant_id,
+        seed.display_name ?? "tenant-b-role-seed",
+        seed.cost_rate_ore ?? 30000,
+        seed.sell_rate_ore ?? 60000,
+      ],
+    );
+    const id = rows[0]?.id;
+    if (!id) throw new Error("adminInsertWorkRole: no id returned");
+    return id;
+  } catch (error) {
+    rethrowWithCode(error);
+  }
+}
+
+/**
+ * Seed ONE `articles` row via the privileged superuser pg path (BYPASSRLS). Returns the
+ * inserted id. THROWS (Postgres `code` preserved) on a DB error. ONLY the minimal manual
+ * columns (`name`, `unit_price_ore`) are written — NO supplier scope of any kind.
+ */
+export async function adminInsertArticle(seed: {
+  readonly tenant_id: string;
+  readonly name?: string;
+  readonly unit_price_ore?: number;
+}): Promise<string> {
+  try {
+    const rows = await adminQuery<{ id: string }>(
+      `insert into public.articles (tenant_id, name, unit_price_ore)
+       values ($1, $2, $3)
+       returning id`,
+      [
+        seed.tenant_id,
+        seed.name ?? "tenant-b-article-seed",
+        seed.unit_price_ore ?? 500,
+      ],
+    );
+    const id = rows[0]?.id;
+    if (!id) throw new Error("adminInsertArticle: no id returned");
+    return id;
+  } catch (error) {
+    rethrowWithCode(error);
+  }
+}
+
+/**
+ * Read ONE pricing row's label column back via the privileged superuser pg path
+ * (BYPASSRLS), independent of the app/RLS path. Used by the cross-tenant UPDATE negative
+ * to prove the foreign pricing row is UNCHANGED, and by the archive negative to prove the
+ * row STILL EXISTS (is_active flipped, not hard-deleted). `table`/`labelColumn` are a
+ * closed/inventory-supplied set (work_roles.display_name / articles.name), never client
+ * input. Returns `null` if the row does not exist.
+ */
+export async function adminSelectPricingRow(
+  table: "work_roles" | "articles",
+  labelColumn: string,
+  id: string,
+): Promise<{ id: string; label: string | null; is_active: boolean } | null> {
+  const rows = await adminQuery<{
+    id: string;
+    label: string | null;
+    is_active: boolean;
+  }>(
+    `select id, ${labelColumn} as label, is_active from public.${table} where id = $1`,
+    [id],
+  );
+  return rows[0] ?? null;
+}

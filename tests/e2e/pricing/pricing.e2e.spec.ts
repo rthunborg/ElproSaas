@@ -61,7 +61,7 @@ async function signIn(page: Page, email: string, password: string): Promise<void
   await expect(page).toHaveURL(/\/dashboard/);
 }
 
-test.describe.skip("Pricing UI — Work roles + Articles (Story 3.4 E2E)", () => {
+test.describe("Pricing UI — Work roles + Articles (Story 3.4 E2E)", () => {
   test("AC5: an anonymous visit to /settings/pricing redirects to /login", async ({ page }) => {
     await page.goto("/settings/pricing");
     await expect(page).toHaveURL(/\/login(\?|$)/);
@@ -93,7 +93,11 @@ test.describe.skip("Pricing UI — Work roles + Articles (Story 3.4 E2E)", () =>
     expect(describedBy).toBeTruthy();
     await expect(page.locator(`#${describedBy}`)).toBeVisible();
     // The blocking summary is present and the previously-entered input is PRESERVED.
-    await expect(page.getByTestId("form-error-summary")).toContainText(/.+/);
+    // Scope to the work-roles editor — the page has two editors, each with its own
+    // form-error-summary region (the article editor's stays empty on a work-role submit).
+    await expect(
+      page.getByTestId("work-roles-editor").getByTestId("form-error-summary"),
+    ).toContainText(/.+/);
     await expect(name).toHaveValue("Montör");
     await expect(sell).toHaveValue("-50");
   });
@@ -117,13 +121,16 @@ test.describe.skip("Pricing UI — Work roles + Articles (Story 3.4 E2E)", () =>
     const roleName = `Montör ${Date.now().toString(36)}`;
     await name.fill(roleName);
     await page.getByLabel("Pris (kr/tim)").fill("850,00"); // Swedish comma → 85000 öre
+    const editor = page.getByTestId("work-roles-editor");
     await page.getByRole("button", { name: "Spara roll" }).click();
-    await expect(page.getByTestId("settings-saved")).toBeVisible();
+    await expect(editor.getByTestId("settings-saved")).toBeVisible();
 
-    // Reload reads the persisted value via the RLS client (force-dynamic).
+    // Reload reads the persisted value via the RLS client (force-dynamic). The saved role
+    // row shows the kronor display "850,00 kr/tim" — match the role row inside the editor
+    // (page-level "850,00" is ambiguous with the input-hint text).
     await page.reload();
-    await expect(page.getByText(roleName)).toBeVisible();
-    await expect(page.getByText("850,00")).toBeVisible(); // displayed as kronor
+    await expect(editor.getByText(roleName)).toBeVisible();
+    await expect(editor.getByText("850,00 kr/tim")).toBeVisible(); // displayed as kronor
   });
 
   test("AC3/AC5: a valid article SAVES and round-trips; NO supplier control appears in the article editor", async ({ page }) => {
@@ -136,7 +143,7 @@ test.describe.skip("Pricing UI — Work roles + Articles (Story 3.4 E2E)", () =>
     await articleName.fill(name);
     await page.getByLabel("Enhetspris (kr)").fill("12,50");
     await page.getByRole("button", { name: "Spara artikel" }).click();
-    await expect(page.getByTestId("settings-saved")).toBeVisible();
+    await expect(editor.getByTestId("settings-saved")).toBeVisible();
 
     // HARD no-supplier-scope: NO supplier/sync/import control is rendered in the editor.
     await expect(editor.getByLabel(/leverantör|supplier/i)).toHaveCount(0);
