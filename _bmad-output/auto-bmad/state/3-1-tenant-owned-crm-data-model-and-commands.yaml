@@ -5,10 +5,10 @@ epic_num: 3
 story_num: 1
 branch: epic/3-crm-company-settings-and-pricing-foundation
 status: in-progress
-updated_at: "2026-06-30T12:16:03Z"
+updated_at: "2026-06-30T12:38:20Z"
 started_at: "2026-06-30T11:03:05Z"
 completed_at: null
-active_seconds: 2962
+active_seconds: 3184
 timing_anchor: null
 is_first_in_epic: true
 is_last_in_epic: false

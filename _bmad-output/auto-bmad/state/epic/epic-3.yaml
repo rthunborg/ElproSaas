@@ -5,10 +5,10 @@ epic_num: 3
 story_num: null
 branch: epic/3-crm-company-settings-and-pricing-foundation
 status: in-progress
-updated_at: "2026-06-30T11:03:05Z"
+updated_at: "2026-06-30T12:40:19Z"
 started_at: "2026-06-30T10:50:17Z"
 completed_at: null
-active_seconds: 547
+active_seconds: 632
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -51,8 +51,33 @@ deferred_work: []
 blockers: []
 overrides: {}
 constraints: []
-active_story: 3-1-tenant-owned-crm-data-model-and-commands
-stories_landed: []
+active_story: 3-2-crm-tenant-admin-ux-and-lifecycle-context
+stories_landed:
+  - 3-1-tenant-owned-crm-data-model-and-commands
 epic_slug: crm-company-settings-and-pricing-foundation
 auto_decisions: []
-uat_items: []
+uat_items:
+  - "[3-1-tenant-owned-crm-data-model-and-commands] Start the local stack and apply the migration from empty: `supabase start` then `supabase db reset` -> completes with no error, applies 20260630120000_crm_data_model.sql."
+  - "[3-1-tenant-owned-crm-data-model-and-commands] Verify the three tables exist: psql -c \"select table_name from information_schema.tables where table_schema='public' and table_name in ('customers','facilities','contacts') order by 1\" -> exactly contacts, customers, facilities."
+  - "[3-1-tenant-owned-crm-data-model-and-commands] Verify direct tenant ownership + cascade on customers: pg_get_constraintdef -> FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE."
+  - "[3-1-tenant-owned-crm-data-model-and-commands] Verify composite same-tenant parent FK on facilities -> FOREIGN KEY (customer_id, tenant_id) REFERENCES customers(id, tenant_id) ON DELETE CASCADE."
+  - "[3-1-tenant-owned-crm-data-model-and-commands] Verify contacts' two composite same-tenant FKs -> (customer_id,tenant_id)->customers ON DELETE CASCADE AND (facility_id,tenant_id)->facilities ON DELETE SET NULL."
+  - "[3-1-tenant-owned-crm-data-model-and-commands] Verify customer_type CHECK: insert customer_type='charity' -> rejected 23514 on customers_customer_type_check (only private/company/brf/public)."
+  - "[3-1-tenant-owned-crm-data-model-and-commands] Verify identifier-by-type CHECK: insert a private customer carrying both personnummer and org_nr -> rejected 23514 on customers_identifier_by_type."
+  - "[3-1-tenant-owned-crm-data-model-and-commands] Verify personnummer lives ONLY on customers: information_schema.columns where column_name='personnummer' -> returns only customers."
+  - "[3-1-tenant-owned-crm-data-model-and-commands] Verify no supplier/credential/sync columns leaked (AC7): no CRM column name matches supplier|credential|api_key|sync|import|external|fortnox|mapping."
+  - "[3-1-tenant-owned-crm-data-model-and-commands] Verify RLS enabled AND forced: pg_class relrowsecurity/relforcerowsecurity for the 3 tables -> all t/t."
+  - "[3-1-tenant-owned-crm-data-model-and-commands] Verify own-tenant policies + NO DELETE policy (archive-only) via pg_policies -> each table has SELECT/INSERT/UPDATE, no DELETE."
+  - "[3-1-tenant-owned-crm-data-model-and-commands] Verify GRANTs: authenticated has SELECT/INSERT/UPDATE (no DELETE), service_role full DML, anon holds none of SELECT/INSERT/UPDATE/DELETE."
+  - "[3-1-tenant-owned-crm-data-model-and-commands] Run `pnpm run test:int -- crm-tables-migration-reset` -> all P0 schema/RLS/GRANT assertions green (runnable form of the SQL checks above)."
+  - "[3-1-tenant-owned-crm-data-model-and-commands] Run `pnpm run test:int -- migration-reset.int` -> green (the extended 12-policy per-table enumeration with CRM added still holds)."
+  - "[3-1-tenant-owned-crm-data-model-and-commands] createCustomer happy path + audit: `pnpm run test:int -- crm-customer-commands` -> exactly one customer.created audit row under the resolved tenant at the fixed-clock instant."
+  - "[3-1-tenant-owned-crm-data-model-and-commands] No PII in audit metadata: same run asserts audit metadata contains none of the personnummer/name/email (SAFE_FIELDS allow-list drops PII)."
+  - "[3-1-tenant-owned-crm-data-model-and-commands] Input validation rejections: bad customer_type, private-missing-personnummer, private-with-org_nr, malformed-email, empty-display_name each return VALIDATION_FAILED."
+  - "[3-1-tenant-owned-crm-data-model-and-commands] Archive-over-delete: archiveCustomer sets archived_at and an independent BYPASSRLS read confirms the row still EXISTS (soft delete)."
+  - "[3-1-tenant-owned-crm-data-model-and-commands] updateCustomer on a foreign/random id -> TENANT_ACCESS_DENIED (RLS-invisible -> ownership-verify sees zero rows)."
+  - "[3-1-tenant-owned-crm-data-model-and-commands] Cross-tenant parent-link spoof: `pnpm run test:int -- crm-parent-ownership` -> Tenant-A createFacility/createContact with a real Tenant-B parent -> TENANT_ACCESS_DENIED; client-smuggled tenant_id ignored."
+  - "[3-1-tenant-owned-crm-data-model-and-commands] Cross-tenant RLS negatives: `pnpm run test:int -- cross-tenant-isolation` -> A SELECT/INSERT/UPDATE/DELETE of B rows denied (42501 / RLS-invisible) + BYPASSRLS re-read unchanged."
+  - "[3-1-tenant-owned-crm-data-model-and-commands] Anon-path negatives: `pnpm run test:int -- anon-path-isolation` -> anon SELECT/INSERT/UPDATE/DELETE on the 3 tables denied with 42501."
+  - "[3-1-tenant-owned-crm-data-model-and-commands] H4 inventory gate green with all three CRM tables enrolled: `pnpm run test:int -- rls-inventory-gate` (an unenrolled tenant-owned table fails loud here)."
+  - "[3-1-tenant-owned-crm-data-model-and-commands] Umbrella: `supabase db reset` then `pnpm run test:int` -> all integration suites green (CRM command, parent-ownership, migration-reset, cross-tenant, anon, H4-gate)."
