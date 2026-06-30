@@ -67,3 +67,71 @@ test("VAT_DISPLAY label map + options cover exactly the allowed enum modes", () 
     );
   }
 });
+
+test("VAT_DISPLAY: the option order is STABLE and mirrors VAT_DISPLAY_MODES exactly", () => {
+  // The control's option order is a presentation contract — pin it 1:1 to the enum so
+  // a reorder/insert is a deliberate, test-visible change.
+  assert.deepEqual(
+    VAT_DISPLAY_OPTIONS.map((o) => o.value),
+    [...VAT_DISPLAY_MODES],
+  );
+  for (const opt of VAT_DISPLAY_OPTIONS) {
+    assert.equal(opt.label, VAT_DISPLAY_LABELS[opt.value]);
+  }
+});
+
+test("VAT_DISPLAY: every mode's label encodes the OWNER display-assumption rule", () => {
+  // The owner rule (decision 2026-06-18): private customers ALWAYS show incl-VAT (not
+  // togglable); only COMPANY-customer display is configurable. Every label must state
+  // the private-always-incl-VAT invariant so the admin cannot misread the setting as
+  // affecting private customers. This is the display-assumption contract, in copy.
+  for (const mode of VAT_DISPLAY_MODES) {
+    const label = VAT_DISPLAY_LABELS[mode];
+    assert.match(
+      label,
+      /privatkunder.*alltid.*inkl\. moms/i,
+      `${mode} label must state private-always-incl-VAT`,
+    );
+    assert.match(label, /företagskunder/i, `${mode} label must address company customers`);
+  }
+});
+
+test("VAT_DISPLAY: the two modes differ in their COMPANY-customer assumption (togglable vs excl)", () => {
+  // company_togglable = incl-VAT display can be toggled; company_excl = default excl-VAT.
+  // The two labels must be distinct and each carry its company-side semantics.
+  assert.notEqual(
+    VAT_DISPLAY_LABELS.company_togglable,
+    VAT_DISPLAY_LABELS.company_excl,
+  );
+  assert.match(VAT_DISPLAY_LABELS.company_togglable, /visas\/döljas/i);
+  assert.match(VAT_DISPLAY_LABELS.company_excl, /exkl\. moms/i);
+});
+
+test("bpToPercentString: a non-finite bp (NaN / Infinity) yields an empty string (no NaN leaks to the UI)", () => {
+  assert.equal(bpToPercentString(Number.NaN), "");
+  assert.equal(bpToPercentString(Number.POSITIVE_INFINITY), "");
+  assert.equal(bpToPercentString(Number.NEGATIVE_INFINITY), "");
+});
+
+test("percentStringToBp: the [0,10000] bp boundaries are inclusive at the percent boundary", () => {
+  // 0 % → 0 bp (min) and 100 % → 10000 bp (max) are accepted; just past each is rejected.
+  assert.deepEqual(percentStringToBp("0"), { ok: true, bp: 0 });
+  assert.deepEqual(percentStringToBp("100"), { ok: true, bp: 10000 });
+  assert.deepEqual(percentStringToBp("100.01"), { ok: false });
+});
+
+test("percentStringToBp: a sub-basis-point value rounds-free — exactly two decimals map cleanly", () => {
+  // Two decimals = whole basis points (no rounding). 6.25 % → 625 bp; 0.01 % → 1 bp.
+  assert.deepEqual(percentStringToBp("6.25"), { ok: true, bp: 625 });
+  assert.deepEqual(percentStringToBp("0.01"), { ok: true, bp: 1 });
+});
+
+test("percentStringToBp: leading/trailing whitespace is tolerated around a valid percent", () => {
+  assert.deepEqual(percentStringToBp("  25  "), { ok: true, bp: 2500 });
+});
+
+test("percentStringToBp: a sign or thousands separator is rejected (strict numeric shape)", () => {
+  assert.deepEqual(percentStringToBp("+25"), { ok: false });
+  assert.deepEqual(percentStringToBp("1,000"), { ok: false });
+  assert.deepEqual(percentStringToBp("25%"), { ok: false });
+});

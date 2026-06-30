@@ -50,3 +50,40 @@ export const SETTINGS_ACTION_INITIAL: SettingsActionState = {
 export function isRetryableSettingsError(state: SettingsActionState): boolean {
   return state.status === "error" && state.code === "SERVER_ERROR";
 }
+
+/**
+ * The inputs to the quote-terms SIGN-OFF precedence resolution. The three signals are
+ * the server-read approval state and the two in-session action outcomes (a terms TEXT
+ * save and a deliberate APPROVE). This is the load-bearing state machine for the HARD
+ * STOP-CONDITION (AC2), pulled out of the React component so it can be exhaustively
+ * unit-tested WITHOUT a browser.
+ */
+export interface SignoffInputs {
+  /** The server-read approval instant (null = not approved when the page loaded). */
+  readonly serverApprovedAt: string | null;
+  /** True iff a terms TEXT save succeeded this session (it RESETS approval). */
+  readonly justSavedText: boolean;
+  /** True iff the deliberate APPROVE action succeeded this session. */
+  readonly justApproved: boolean;
+}
+
+/**
+ * Resolve whether the quote-terms editor should render the APPROVED status (true) or
+ * the not-approved WARNING (false), from the three sign-off signals.
+ *
+ * The precedence is LOAD-BEARING (a fixed regression — pin it so it can't drift):
+ *   1. A successful deliberate APPROVE ALWAYS wins — it is the ONLY path to approved,
+ *      so it takes precedence over EVERYTHING, including a prior in-session text save.
+ *   2. Otherwise a terms TEXT save this session resets approval to not-approved (the
+ *      command resets `approved_at`), so it SUPPRESSES a stale server-approved state.
+ *   3. Otherwise fall back to the server-read approval state.
+ *
+ * The regression this guards: server-approved → edit (text save) → approve must render
+ * APPROVED. A naive `justSavedText` guard that ran AFTER the approve check would let a
+ * lingering text-save success suppress the freshly-approved view — that is forbidden.
+ */
+export function resolveTermsApproved(inputs: SignoffInputs): boolean {
+  if (inputs.justApproved) return true;
+  if (inputs.justSavedText) return false;
+  return inputs.serverApprovedAt !== null;
+}

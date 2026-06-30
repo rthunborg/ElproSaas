@@ -24,7 +24,10 @@ import {
   approveTermsAction,
   saveQuoteTermsAction,
 } from "@/features/settings/actions";
-import { SETTINGS_ACTION_INITIAL } from "@/features/settings/action-state";
+import {
+  SETTINGS_ACTION_INITIAL,
+  resolveTermsApproved,
+} from "@/features/settings/action-state";
 
 /** The current terms the editor hydrates from (null = no row yet → not approved). */
 export interface QuoteTermsDefaults {
@@ -76,8 +79,11 @@ export function QuoteTermsEditor({
   // and a bare text save NEVER yields an approved status.
   const justSavedText = saveState.status === "success";
   const justApproved = approveState.status === "success";
-  const isApproved =
-    justApproved || (!justSavedText && defaults.approved_at !== null);
+  const isApproved = resolveTermsApproved({
+    serverApprovedAt: defaults.approved_at,
+    justSavedText,
+    justApproved,
+  });
 
   const termsTextValue =
     saveState.values.terms_text ?? defaults.terms_text ?? "";
