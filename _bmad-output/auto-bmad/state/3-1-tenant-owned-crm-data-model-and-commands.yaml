@@ -1,25 +1,25 @@
 # auto-bmad per-story state — written by scripts/state_update.py (full stable schema;
 # see references/state-and-resume.md). Prose belongs in reports/{key}.md, not here.
-story_key: epic-3
+story_key: 3-1-tenant-owned-crm-data-model-and-commands
 epic_num: 3
-story_num: null
+story_num: 1
 branch: epic/3-crm-company-settings-and-pricing-foundation
 status: in-progress
 updated_at: "2026-06-30T11:03:05Z"
-started_at: "2026-06-30T10:50:17Z"
+started_at: "2026-06-30T11:03:05Z"
 completed_at: null
-active_seconds: 547
+active_seconds: 0
 timing_anchor: null
-is_first_in_epic: false
+is_first_in_epic: true
 is_last_in_epic: false
 needs_project_context_bootstrap: false
 git_mode: remote
 base_branch: main
-tea_risk: null
-tea_selected: []
-tea_rationale: null
+tea_risk: high
+tea_selected: [atdd, automate]
+tea_rationale: "3 DB migrations (customers/facilities/contacts) + server authz commands with tenant-membership enforcement + load-bearing cross-tenant RLS; epic test design R-001/R-002 score-6 SEC/MITIGATE owned here"
 epic_story_count: 5
-stories_after_in_epic: null
+stories_after_in_epic: 4
 completed_phases: [0, 1, 2]
 code_review_iterations: 0
 code_review_loop_done: false
@@ -27,7 +27,7 @@ hitl_halt: null
 external_review_iterations: 0
 convergence_unverified: false
 story_trace: null
-commits: [fc07813, 2c4767c]
+commits: []
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -51,8 +51,4 @@ deferred_work: []
 blockers: []
 overrides: {}
 constraints: []
-active_story: 3-1-tenant-owned-crm-data-model-and-commands
-stories_landed: []
-epic_slug: crm-company-settings-and-pricing-foundation
-auto_decisions: []
-uat_items: []
+tier_a_base_sha: 2c4767c7b68cac62249539dfc7e79ffa0b86ca2c
