@@ -20,7 +20,9 @@ import {
   parseCreateContactForm,
   parseCreateCustomerForm,
   parseCreateFacilityForm,
+  parseUpdateContactForm,
   parseUpdateCustomerForm,
+  parseUpdateFacilityForm,
 } from "@/features/crm/form-parsing";
 
 function fd(entries: Record<string, string>): FormData {
@@ -140,4 +142,167 @@ test("values are echoed back so the form preserves input on a failed submit", ()
 test("parseArchiveForm requires an id", () => {
   assert.equal(parseArchiveForm(fd({})).fieldErrors.id, "Fältet är obligatoriskt.");
   assert.deepEqual(parseArchiveForm(fd({ id: "x" })).fieldErrors, {});
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Edge-case / branch coverage the happy-path tests above skip.
+// ─────────────────────────────────────────────────────────────────────────────
+
+test("createCustomer: brf and public types BOTH require org_nr (not just company)", () => {
+  for (const type of ["brf", "public"]) {
+    const missing = parseCreateCustomerForm(
+      fd({ customer_type: type, display_name: "X" }),
+    );
+    assert.equal(
+      missing.fieldErrors.org_nr,
+      "Fältet är obligatoriskt.",
+      `${type} without org_nr must flag org_nr`,
+    );
+    const ok = parseCreateCustomerForm(
+      fd({ customer_type: type, display_name: "X", org_nr: "556677-8899" }),
+    );
+    assert.deepEqual(ok.fieldErrors, {}, `${type} with org_nr is well-formed`);
+    assert.equal(ok.input.org_nr, "556677-8899");
+    assert.equal("personnummer" in ok.input, false);
+  }
+});
+
+test("createCustomer: a private customer's stray org_nr is dropped (identifier driven by type)", () => {
+  const parsed = parseCreateCustomerForm(
+    fd({
+      customer_type: "private",
+      display_name: "Anna",
+      personnummer: "199001011234",
+      org_nr: "556677-8899", // wrong identifier for a private type → must be dropped
+    }),
+  );
+  assert.deepEqual(parsed.fieldErrors, {});
+  assert.equal(parsed.input.personnummer, "199001011234");
+  assert.equal("org_nr" in parsed.input, false);
+});
+
+test("createCustomer: a whitespace-only display_name is treated as missing (trimmed)", () => {
+  const parsed = parseCreateCustomerForm(
+    fd({ customer_type: "private", display_name: "   ", personnummer: "199001011234" }),
+  );
+  assert.equal(parsed.fieldErrors.display_name, "Fältet är obligatoriskt.");
+  // But the raw (untrimmed) value is still echoed back for preservation.
+  assert.equal(parsed.values.display_name, "   ");
+});
+
+test("createCustomer: optional contact/address fields are trimmed; blank ones are omitted", () => {
+  const parsed = parseCreateCustomerForm(
+    fd({
+      customer_type: "company",
+      display_name: "Acme AB",
+      org_nr: "556677-8899",
+      contact_name: "  Erik  ",
+      city: "  Stockholm  ",
+      email: "", // blank optional → omitted from input
+    }),
+  );
+  assert.equal(parsed.input.contact_name, "Erik");
+  assert.equal(parsed.input.city, "Stockholm");
+  assert.equal(parsed.input.email, undefined);
+});
+
+test("updateCustomer: an entirely absent display_name field is NOT an error (only present-but-blank is)", () => {
+  const parsed = parseUpdateCustomerForm(
+    fd({ id: "11111111-1111-1111-1111-111111111111", city: "Malmö" }),
+  );
+  assert.deepEqual(parsed.fieldErrors, {});
+  assert.equal(parsed.input.city, "Malmö");
+});
+
+test("updateCustomer: BOTH identifier fields are forwarded as-is (no type-driven filtering on update)", () => {
+  // Update never reads customer_type, so it cannot filter by type; whichever
+  // identifier the (type-consistent) UI submits is forwarded for the DB CHECK.
+  const parsed = parseUpdateCustomerForm(
+    fd({
+      id: "11111111-1111-1111-1111-111111111111",
+      personnummer: "199001011234",
+      org_nr: "556677-8899",
+    }),
+  );
+  assert.equal(parsed.input.personnummer, "199001011234");
+  assert.equal(parsed.input.org_nr, "556677-8899");
+});
+
+test("updateCustomer: a missing id is a field-associated error", () => {
+  const parsed = parseUpdateCustomerForm(fd({ display_name: "Name" }));
+  assert.equal(parsed.fieldErrors.id, "Fältet är obligatoriskt.");
+});
+
+test("updateFacility: requires id; a present-but-blank name is flagged; absent name is fine", () => {
+  assert.equal(
+    parseUpdateFacilityForm(fd({ name: "X" })).fieldErrors.id,
+    "Fältet är obligatoriskt.",
+  );
+  assert.equal(
+    parseUpdateFacilityForm(fd({ id: "f1", name: "   " })).fieldErrors.name,
+    "Fältet är obligatoriskt.",
+  );
+  const ok = parseUpdateFacilityForm(fd({ id: "f1", city: "Lund" }));
+  assert.deepEqual(ok.fieldErrors, {});
+  assert.equal(ok.input.id, "f1");
+  assert.equal(ok.input.city, "Lund");
+});
+
+test("updateContact: requires id; forwards optional facility_id + is_primary; blank name flagged", () => {
+  assert.equal(
+    parseUpdateContactForm(fd({ name: "X" })).fieldErrors.id,
+    "Fältet är obligatoriskt.",
+  );
+  assert.equal(
+    parseUpdateContactForm(fd({ id: "k1", name: "  " })).fieldErrors.name,
+    "Fältet är obligatoriskt.",
+  );
+  const ok = parseUpdateContactForm(
+    fd({ id: "k1", facility_id: "f1", is_primary: "true", role_label: "VD" }),
+  );
+  assert.deepEqual(ok.fieldErrors, {});
+  assert.equal(ok.input.facility_id, "f1");
+  assert.equal(ok.input.is_primary, true);
+  assert.equal(ok.input.role_label, "VD");
+});
+
+test("createContact: is_primary boolean parsing — on/true/1 → true; other strings → false", () => {
+  for (const truthy of ["on", "true", "1"]) {
+    const p = parseCreateContactForm(fd({ customer_id: "c1", name: "E", is_primary: truthy }));
+    assert.equal(p.input.is_primary, true, `${truthy} → true`);
+  }
+  for (const falsy of ["off", "false", "0", "no"]) {
+    const p = parseCreateContactForm(fd({ customer_id: "c1", name: "E", is_primary: falsy }));
+    assert.equal(p.input.is_primary, false, `${falsy} → false`);
+  }
+});
+
+test("createContact: is_primary absent → the key is omitted entirely (no forced default)", () => {
+  const p = parseCreateContactForm(fd({ customer_id: "c1", name: "E" }));
+  assert.equal("is_primary" in p.input, false);
+});
+
+test("createContact: a blank optional facility_id/email is omitted from input", () => {
+  const p = parseCreateContactForm(
+    fd({ customer_id: "c1", name: "E", facility_id: "", email: "" }),
+  );
+  assert.equal(p.input.facility_id, undefined);
+  assert.equal(p.input.email, undefined);
+});
+
+test("createCustomer: a missing customer_type AND missing display_name flag both fields", () => {
+  const parsed = parseCreateCustomerForm(fd({}));
+  assert.equal(parsed.fieldErrors.customer_type, "Välj en giltig kundtyp.");
+  assert.equal(parsed.fieldErrors.display_name, "Fältet är obligatoriskt.");
+  // With no valid type, the identifier requiredness is NOT asserted (cannot know which).
+  assert.equal("personnummer" in parsed.fieldErrors, false);
+  assert.equal("org_nr" in parsed.fieldErrors, false);
+});
+
+test("values echo: only string form entries are collected (no stray keys)", () => {
+  const parsed = parseCreateFacilityForm(fd({ customer_id: "c1", name: "HK" }));
+  assert.equal(parsed.values.customer_id, "c1");
+  assert.equal(parsed.values.name, "HK");
+  // A field the form did not submit is simply absent from values.
+  assert.equal("city" in parsed.values, false);
 });

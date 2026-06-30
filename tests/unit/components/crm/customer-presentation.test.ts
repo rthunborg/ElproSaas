@@ -145,3 +145,107 @@ test("findDuplicateLikeNames: case-insensitive exact display_name match over ACT
   assert.deepEqual(findDuplicateLikeNames("nobody", existing), []);
   assert.deepEqual(findDuplicateLikeNames("", existing), []);
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Edge-case / branch coverage the happy-path tests above skip.
+// ─────────────────────────────────────────────────────────────────────────────
+
+test("toCustomerListItem: undefined optional columns collapse to null (no undefined leaks into the view-model)", () => {
+  // A projection row whose optional columns are absent (undefined) rather than null —
+  // the view-model must normalize to null so the UI renders a stable empty cell.
+  const row = {
+    id: "33333333-3333-3333-3333-333333333333",
+    customer_type: "public",
+    display_name: "Kommun",
+    org_nr: "212000-0000",
+    email: undefined,
+    phone: undefined,
+    city: undefined,
+    archived_at: null,
+    created_at: "2026-06-01T00:00:00.000Z",
+  } as unknown as CustomerListRow;
+  const it = toCustomerListItem(row);
+  assert.equal(it.email, null);
+  assert.equal(it.phone, null);
+  assert.equal(it.city, null);
+  assert.equal(it.identifier, "212000-0000");
+  assert.equal(it.typeLabel, "Offentlig");
+  assert.equal(it.type, "public");
+});
+
+test("toCustomerListItem: an unknown customer_type still renders (raw-string label fallback, never throws)", () => {
+  const row: CustomerListRow = {
+    id: "44444444-4444-4444-4444-444444444444",
+    customer_type: "legacy_unknown",
+    display_name: "Mystery",
+    org_nr: null,
+    email: null,
+    phone: null,
+    city: null,
+    archived_at: null,
+    created_at: "2026-06-01T00:00:00.000Z",
+  };
+  const it = toCustomerListItem(row);
+  assert.equal(it.typeLabel, "legacy_unknown");
+  assert.equal(it.type, "legacy_unknown");
+  assert.equal(it.identifier, null);
+});
+
+test("matchesQuery: a query that ONLY matches the identifier still matches (org_nr is searchable)", () => {
+  const it = item({ displayName: "Acme AB", identifier: "556677-8899" });
+  assert.equal(matchesQuery(it, "556677"), true);
+});
+
+test("matchesQuery: null fields are skipped, never coerced to the string 'null'", () => {
+  const it = item({ displayName: "Acme AB", identifier: null, email: null });
+  assert.equal(matchesQuery(it, "null"), false);
+  assert.equal(matchesQuery(it, "acme"), true);
+});
+
+test("matchesQuery: the query itself is trimmed before matching", () => {
+  const it = item({ city: "Stockholm" });
+  assert.equal(matchesQuery(it, "  stockholm  "), true);
+});
+
+test("matchesQuery: a partial substring within a field matches", () => {
+  const it = item({ email: "info@acme.test" });
+  assert.equal(matchesQuery(it, "acme.te"), true);
+});
+
+test("maskPersonnummer: an exactly-4-char value is fully masked (boundary: <= 4 → all bullets)", () => {
+  // The last-4 reveal would expose the WHOLE value at length 4, so the helper masks
+  // everything at/under 4 chars instead of revealing it.
+  assert.equal(maskPersonnummer("1234"), "••••");
+});
+
+test("maskPersonnummer: surrounding whitespace is trimmed before the last-4 reveal", () => {
+  assert.equal(maskPersonnummer("  199001011234  "), "••••••••1234");
+});
+
+test("maskPersonnummer: a whitespace-only value masks to a single bullet — never the raw spaces (no leak)", () => {
+  // A non-empty whitespace string is truthy (skips the "—" guard); trimmed to empty it
+  // falls in the <=4 branch and yields at least one bullet. The contract that matters:
+  // it NEVER returns the original whitespace and NEVER throws.
+  const masked = maskPersonnummer("   ");
+  assert.equal(masked, "•");
+  assert.equal(/[•—]/.test(masked), true);
+  assert.equal(masked.includes(" "), false);
+});
+
+test("findDuplicateLikeNames: returns ALL active matches, and a substring near-miss does NOT match (exact only)", () => {
+  const existing = [
+    item({ displayName: "Acme AB" }),
+    item({ displayName: "ACME ab" }), // case-variant duplicate → matches
+    item({ displayName: "Acme AB Sweden" }), // superset → NOT a match (exact only)
+  ];
+  assert.deepEqual(findDuplicateLikeNames("Acme AB", existing), ["Acme AB", "ACME ab"]);
+});
+
+test("findDuplicateLikeNames: a whitespace-only candidate matches nothing", () => {
+  const existing = [item({ displayName: "Acme AB" })];
+  assert.deepEqual(findDuplicateLikeNames("   ", existing), []);
+});
+
+test("findDuplicateLikeNames: an empty existing list yields no matches", () => {
+  assert.deepEqual(findDuplicateLikeNames("Acme AB", []), []);
+});
