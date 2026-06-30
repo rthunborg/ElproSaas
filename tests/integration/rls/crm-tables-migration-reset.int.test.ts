@@ -46,8 +46,8 @@ afterAll(async () => {
   await closeAdminPool();
 });
 
-// SKIPPED until the crm_data_model migration lands (Story 3.1 dev Task 1).
-describe.skip("CRM migration reset green — customers/facilities/contacts (AC1/AC5)", () => {
+// Un-gated (Story 3.1 dev): the crm_data_model migration has landed (Task 1).
+describe("CRM migration reset green — customers/facilities/contacts (AC1/AC5)", () => {
   it("[P0] the three CRM tables exist after reset", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     const rows = await adminQuery<{ table_name: string }>(
@@ -220,8 +220,18 @@ describe.skip("CRM migration reset green — customers/facilities/contacts (AC1/
     expect(authed).toContain("INSERT");
     expect(authed).toContain("UPDATE");
     expect(authed).not.toContain("DELETE");
-    // anon has NO grant of any kind on the CRM tables.
-    expect(rows.some((r) => r.grantee === "anon")).toBe(false);
+    // anon has NO DML grant (SELECT/INSERT/UPDATE/DELETE) on the CRM tables — the
+    // load-bearing isolation contract. NOTE: Supabase's default privileges grant
+    // every role (anon included) the non-DML REFERENCES/TRIGGER/TRUNCATE on new
+    // `public` tables (the foundation tables tenants/tenant_memberships/audit_events
+    // carry the same anon REFERENCES/TRIGGER/TRUNCATE), so assert specifically that
+    // anon holds NONE of the four data-access privileges, not that it has zero rows.
+    const DML = ["SELECT", "INSERT", "UPDATE", "DELETE"];
+    const anonDml = rows
+      .filter((r) => r.grantee === "anon")
+      .map((r) => r.privilege_type)
+      .filter((p) => DML.includes(p));
+    expect(anonDml).toEqual([]);
   });
 
   it("[P0/AC7] no supplier/credential/sync/import/external-mapping column appears on any CRM table", async (testCtx) => {

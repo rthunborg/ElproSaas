@@ -33,65 +33,70 @@ import {
   createTwoTenantFixture,
   makeAuthedServerClient,
   cleanupFixture,
+  adminInsertCustomer,
+  adminInsertFacility,
   type TwoTenantFixture,
   type TestServerClient,
 } from "../../factories/tenants";
 import { isLocalStackReachable } from "../../support/test-env";
 import { skipUnlessStack } from "../../support/stack-gate";
 import { runCommand } from "@/server/commands/envelope";
+import { createFacility } from "@/server/commands/crm/facilities";
+import { createContact } from "@/server/commands/crm/contacts";
 import type { CommandClock } from "@/server/commands/clock";
 
 const FIXED_ISO = "2026-06-30T12:00:00.000Z";
 const fixedClock: CommandClock = { now: () => new Date(FIXED_ISO) };
-
-/** RED-PHASE placeholder for the not-yet-built CRM commands (see file header). */
-function notYetImplemented(): never {
-  throw new Error(
-    "Story 3.1 RED PHASE: the CRM commands are not implemented yet. " +
-      "Replace this with the real import from @/server/commands/crm/* in the dev phase.",
-  );
-}
-
-/**
- * RED-PHASE placeholders for the Task-3.1 service-role seed helpers. The dev phase
- * replaces them with the real `adminInsertCustomer`/`adminInsertFacility` added to
- * `tests/factories/tenants.ts` (mirroring `adminInsertMembership`, preserving the
- * Postgres `code` on throw). They seed a REAL Tenant B parent the negative targets.
- */
-function seedTenantBCustomer(): never {
-  throw new Error("Story 3.1 RED PHASE: adminInsertCustomer not implemented yet.");
-}
-function seedTenantBFacility(): never {
-  throw new Error("Story 3.1 RED PHASE: adminInsertFacility not implemented yet.");
-}
 
 let stackUp = false;
 let fixture: TwoTenantFixture;
 let a: TestServerClient; // adminA's authenticated anon-key client
 let tenantBCustomerId: string; // a REAL Tenant B customer (cross-tenant parent target)
 let tenantBFacilityId: string; // a REAL Tenant B facility (cross-tenant parent target)
+let tenantACustomerId: string; // a REAL Tenant A customer (own-tenant, for the facility link test)
 
 beforeAll(async () => {
   stackUp = await isLocalStackReachable();
   if (!stackUp) return;
   fixture = await createTwoTenantFixture();
   a = await makeAuthedServerClient(fixture.adminA);
-  // GREEN PHASE: seed REAL Tenant B parents so the cross-tenant link has a concrete,
+  // Seed REAL Tenant B parents (BYPASSRLS) so the cross-tenant link has a concrete,
   // existing (but A-invisible) target — never a non-existent id that would deny
-  // vacuously. The seed returns the ids the negatives below point Tenant A at.
-  tenantBCustomerId = seedTenantBCustomer();
-  tenantBFacilityId = seedTenantBFacility();
+  // vacuously. Also seed an own-tenant (Tenant A) customer for the cross-tenant
+  // facility-link negative, where the customer must be valid/visible but the facility
+  // is foreign.
+  tenantBCustomerId = await adminInsertCustomer({
+    tenant_id: fixture.tenantB.id,
+    customer_type: "company",
+    display_name: "tenant-b-parent",
+    org_nr: "556000-7777",
+  });
+  tenantBFacilityId = await adminInsertFacility({
+    tenant_id: fixture.tenantB.id,
+    customer_id: tenantBCustomerId,
+    name: "tenant-b-facility-parent",
+  });
+  tenantACustomerId = await adminInsertCustomer({
+    tenant_id: fixture.tenantA.id,
+    customer_type: "company",
+    display_name: "tenant-a-own-customer",
+    org_nr: "556000-8888",
+  });
+  if (!tenantBCustomerId || !tenantBFacilityId || !tenantACustomerId) {
+    throw new Error(
+      "CRM parent-ownership seed produced no id — the negatives would pass vacuously.",
+    );
+  }
 });
 
 afterAll(async () => {
   if (stackUp && fixture) await cleanupFixture(fixture);
 });
 
-// SKIPPED until the CRM commands + migration + factory seeds land (Story 3.1 dev).
-describe.skip("CRM parent-ownership cross-tenant negatives (AC4 / R-002)", () => {
+// Un-gated (Story 3.1 dev): the CRM commands + migration + factory seeds have landed.
+describe("CRM parent-ownership cross-tenant negatives (AC4 / R-002)", () => {
   it("[P0] createFacility with a Tenant B customer_id → TENANT_ACCESS_DENIED", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
-    const createFacility = notYetImplemented();
     const result = await runCommand(createFacility, {
       client: a as never,
       input: { customer_id: tenantBCustomerId, name: "A-forged facility" },
@@ -104,7 +109,6 @@ describe.skip("CRM parent-ownership cross-tenant negatives (AC4 / R-002)", () =>
 
   it("[P0] createContact with a Tenant B customer_id → TENANT_ACCESS_DENIED", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
-    const createContact = notYetImplemented();
     const result = await runCommand(createContact, {
       client: a as never,
       input: { customer_id: tenantBCustomerId, name: "A-forged contact" },
@@ -117,17 +121,16 @@ describe.skip("CRM parent-ownership cross-tenant negatives (AC4 / R-002)", () =>
 
   it("[P0] createContact linking a Tenant B facility_id is rejected (not a cross-tenant link)", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
-    const createContact = notYetImplemented();
     // The optional facility_id points at a Tenant B facility. Even with a valid
     // (own-tenant) customer, the cross-tenant facility link must be rejected — the
     // composite same-tenant FK on facilities(id, tenant_id) re-using the resolved
-    // tenant_id makes it a DB-level reject mapped to VALIDATION_FAILED/
-    // TENANT_ACCESS_DENIED, never a raw throw.
+    // tenant_id makes it a DB-level reject (23503) mapped to TENANT_ACCESS_DENIED,
+    // never a raw throw.
     const result = await runCommand(createContact, {
       client: a as never,
       input: {
-        // Own-tenant customer would be seeded in green phase; the facility is foreign.
-        customer_id: "REPLACE_WITH_OWN_TENANT_CUSTOMER_IN_GREEN_PHASE",
+        // A valid own-tenant (Tenant A) customer; the facility is foreign (Tenant B).
+        customer_id: tenantACustomerId,
         facility_id: tenantBFacilityId,
         name: "A-forged contact via facility",
       },
@@ -145,7 +148,6 @@ describe.skip("CRM parent-ownership cross-tenant negatives (AC4 / R-002)", () =>
 
   it("[P0] a client-supplied tenant_id is IGNORED — the resolved tenant is authority", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
-    const createFacility = notYetImplemented();
     // Even if the caller smuggles Tenant B's tenant_id alongside a Tenant B parent,
     // the command re-derives tenant from membership (Tenant A) → the parent is still
     // invisible → DENIED. Never trust a client tenant id.

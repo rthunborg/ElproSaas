@@ -5,10 +5,10 @@ epic_num: 3
 story_num: 1
 branch: epic/3-crm-company-settings-and-pricing-foundation
 status: in-progress
-updated_at: "2026-06-30T11:20:07Z"
+updated_at: "2026-06-30T11:56:10Z"
 started_at: "2026-06-30T11:03:05Z"
 completed_at: null
-active_seconds: 963
+active_seconds: 1822
 timing_anchor: null
 is_first_in_epic: true
 is_last_in_epic: false
@@ -20,14 +20,14 @@ tea_selected: [atdd, automate]
 tea_rationale: "3 DB migrations (customers/facilities/contacts) + server authz commands with tenant-membership enforcement + load-bearing cross-tenant RLS; epic test design R-001/R-002 score-6 SEC/MITIGATE owned here"
 epic_story_count: 5
 stories_after_in_epic: 4
-completed_phases: [0, 1, 2, 3, 4]
+completed_phases: [0, 1, 2, 3, 4, 5]
 code_review_iterations: 0
 code_review_loop_done: false
 hitl_halt: null
 external_review_iterations: 0
 convergence_unverified: false
 story_trace: null
-commits: [7b85183, 31d45c0]
+commits: [7b85183, 31d45c0, db47e93]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -50,7 +50,8 @@ open_questions:
   - "Personnummer for 'private' customers: epics.md AC + architecture say no personnummer by default; a 2026-06-18 owner sign-off reverses this for ROT (private). Story 3-1 implements it access-controlled. Confirm the 2026-06-18 sign-off is authoritative at PR review."
   - "Customer-type list (4 types) + facility/contact requiredness + no-enforced-primary-contact: from 2026-06-18 owner reply, treated as assumptions-pending-final-sign-off."
   - "Exact mandatory customer fields for a quote PDF: to be confirmed in a later working session (not a data-model blocker)."
-deferred_work: []
+deferred_work:
+  - "Full GDPR/retention treatment of personnummer deferred to full release (internal-pilot scope — owner decision; story 3-1 implements encrypted-at-rest storage + access control only)."
 blockers: []
 overrides: {}
 constraints: []

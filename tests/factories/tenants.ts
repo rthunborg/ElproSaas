@@ -30,7 +30,7 @@ import {
   LOCAL_SUPABASE_SERVICE_ROLE_KEY,
   LOCAL_SUPABASE_URL,
 } from "../support/test-env";
-import { adminSession } from "./admin-sql";
+import { adminQuery, adminSession } from "./admin-sql";
 
 /**
  * A provisioned tenant row (subset of `tenants` the tests assert against).
@@ -356,4 +356,157 @@ export async function cleanupFixture(fixture: TwoTenantFixture): Promise<void> {
       }: ${e instanceof Error ? e.message : String(e)}`,
     );
   }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CRM seed/read helpers (Story 3.1, Task 3.1) — ADDITIVE (B1: add ALONGSIDE the
+// existing handles; the two-tenant fixture shape is unchanged, so the
+// factory-isolation forward-compat smoke still pins it).
+//
+// These seed REAL `customers`/`facilities`/`contacts` rows via the loopback-gated
+// superuser `pg` pool (BYPASSRLS) so the cross-tenant + parent-ownership negatives
+// can target a CONCRETE Tenant B CRM row — never a non-existent id that would deny
+// vacuously. They mirror `adminInsertMembership`: THROW on a DB error with the
+// Postgres `code` preserved (e.g. `23514` check-violation / `23503` FK-violation)
+// so a negative can assert on the SPECIFIC constraint that bit.
+//
+// CRM tables are `tenant_id … on delete cascade`, so the EXISTING `cleanupFixture`
+// tenant-delete cascades the seeded rows away — no new teardown path is needed.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** A seed for a `customers` row (the snake_case columns the negatives target). */
+export interface CustomerSeed {
+  readonly tenant_id: string;
+  readonly customer_type: "private" | "company" | "brf" | "public";
+  readonly display_name: string;
+  readonly personnummer?: string | null;
+  readonly org_nr?: string | null;
+}
+
+/** A seed for a `facilities` row (parent customer must already exist, same tenant). */
+export interface FacilitySeed {
+  readonly tenant_id: string;
+  readonly customer_id: string;
+  readonly name: string;
+}
+
+/** A seed for a `contacts` row (parent customer required; facility optional). */
+export interface ContactSeed {
+  readonly tenant_id: string;
+  readonly customer_id: string;
+  readonly facility_id?: string | null;
+  readonly name: string;
+}
+
+/** Re-throw a Postgres error preserving its `code` (mirrors adminInsertMembership). */
+function rethrowWithCode(error: unknown): never {
+  const e = error as { message?: string; code?: string };
+  const wrapped = new Error(e?.message ?? "factory CRM seed failed") as Error & {
+    code?: string;
+  };
+  if (e?.code) wrapped.code = e.code;
+  throw wrapped;
+}
+
+/**
+ * Seed ONE `customers` row via the privileged superuser pg path (BYPASSRLS).
+ * Returns the inserted id. THROWS (Postgres `code` preserved) on a DB error.
+ */
+export async function adminInsertCustomer(seed: CustomerSeed): Promise<string> {
+  try {
+    const rows = await adminQuery<{ id: string }>(
+      `insert into public.customers
+         (tenant_id, customer_type, display_name, personnummer, org_nr)
+       values ($1, $2, $3, $4, $5)
+       returning id`,
+      [
+        seed.tenant_id,
+        seed.customer_type,
+        seed.display_name,
+        seed.personnummer ?? null,
+        seed.org_nr ?? null,
+      ],
+    );
+    const id = rows[0]?.id;
+    if (!id) throw new Error("adminInsertCustomer: no id returned");
+    return id;
+  } catch (error) {
+    rethrowWithCode(error);
+  }
+}
+
+/**
+ * Seed ONE `facilities` row via the privileged superuser pg path (BYPASSRLS).
+ * Returns the inserted id. THROWS (Postgres `code` preserved) on a DB error —
+ * including the composite same-tenant FK `23503` if `customer_id`'s tenant differs.
+ */
+export async function adminInsertFacility(seed: FacilitySeed): Promise<string> {
+  try {
+    const rows = await adminQuery<{ id: string }>(
+      `insert into public.facilities (tenant_id, customer_id, name)
+       values ($1, $2, $3)
+       returning id`,
+      [seed.tenant_id, seed.customer_id, seed.name],
+    );
+    const id = rows[0]?.id;
+    if (!id) throw new Error("adminInsertFacility: no id returned");
+    return id;
+  } catch (error) {
+    rethrowWithCode(error);
+  }
+}
+
+/**
+ * Seed ONE `contacts` row via the privileged superuser pg path (BYPASSRLS).
+ * Returns the inserted id. THROWS (Postgres `code` preserved) on a DB error.
+ */
+export async function adminInsertContact(seed: ContactSeed): Promise<string> {
+  try {
+    const rows = await adminQuery<{ id: string }>(
+      `insert into public.contacts (tenant_id, customer_id, facility_id, name)
+       values ($1, $2, $3, $4)
+       returning id`,
+      [seed.tenant_id, seed.customer_id, seed.facility_id ?? null, seed.name],
+    );
+    const id = rows[0]?.id;
+    if (!id) throw new Error("adminInsertContact: no id returned");
+    return id;
+  } catch (error) {
+    rethrowWithCode(error);
+  }
+}
+
+/** A CRM row as read back independently (BYPASSRLS) — proves persisted state. */
+export interface CrmRowReadback {
+  readonly id: string;
+  readonly tenant_id: string;
+  readonly display_name?: string | null;
+  readonly name?: string | null;
+  readonly archived_at: string | null;
+}
+
+/**
+ * Read ONE CRM row back via the privileged superuser pg path (BYPASSRLS),
+ * independent of the app/RLS path. Returns `null` if the row does not exist (so a
+ * "soft-delete, not hard-delete" negative can prove the row STILL EXISTS). Used by
+ * the cross-tenant UPDATE negative (prove the foreign row is UNCHANGED) and the
+ * archive negative (prove `archived_at` was set without a hard DELETE).
+ *
+ * `table` is one of the three CRM tables; `customers`/`facilities`/`contacts` use
+ * `display_name`/`name`/`name` respectively for the human label — both are selected
+ * so a single readback shape serves all three.
+ */
+export async function adminSelectCrmRowById(
+  table: "customers" | "facilities" | "contacts",
+  id: string,
+): Promise<CrmRowReadback | null> {
+  // `table` is a closed union (never client input), so the interpolation is safe.
+  const labelCol = table === "customers" ? "display_name" : "name";
+  const rows = await adminQuery<CrmRowReadback>(
+    `select id, tenant_id, ${labelCol} as ${labelCol}, archived_at
+       from public.${table}
+      where id = $1`,
+    [id],
+  );
+  return rows[0] ?? null;
 }

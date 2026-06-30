@@ -42,6 +42,7 @@ import {
   createTwoTenantFixture,
   makeAuthedServerClient,
   cleanupFixture,
+  adminSelectCrmRowById,
   type TwoTenantFixture,
   type TestServerClient,
 } from "../../factories/tenants";
@@ -49,22 +50,15 @@ import { adminSelectAuditEvents } from "../../factories/audit-events";
 import { isLocalStackReachable } from "../../support/test-env";
 import { skipUnlessStack } from "../../support/stack-gate";
 import { runCommand } from "@/server/commands/envelope";
+import {
+  createCustomer,
+  updateCustomer,
+  archiveCustomer,
+} from "@/server/commands/crm/customers";
 import type { CommandClock } from "@/server/commands/clock";
 
 const FIXED_ISO = "2026-06-30T12:00:00.000Z";
 const fixedClock: CommandClock = { now: () => new Date(FIXED_ISO) };
-
-/**
- * RED-PHASE placeholder for the not-yet-built CRM commands. The dev phase DELETES
- * this and imports the real `@/server/commands/crm/*` handles (see file header). It
- * throws so a mistakenly un-skipped run fails LOUD rather than green-by-accident.
- */
-function notYetImplemented(): never {
-  throw new Error(
-    "Story 3.1 RED PHASE: the CRM commands are not implemented yet. " +
-      "Replace this with the real import from @/server/commands/crm/* in the dev phase.",
-  );
-}
 
 let stackUp = false;
 let fixture: TwoTenantFixture;
@@ -81,11 +75,10 @@ afterAll(async () => {
   if (stackUp && fixture) await cleanupFixture(fixture);
 });
 
-// SKIPPED until the CRM commands + migration land (Story 3.1 dev Tasks 1-2).
-describe.skip("CRM customer commands via the envelope (AC3 / R-001,R-010)", () => {
+// Un-gated (Story 3.1 dev): the CRM commands + migration have landed (Tasks 1-2).
+describe("CRM customer commands via the envelope (AC3 / R-001,R-010)", () => {
   it("[P1] createCustomer (private) persists the row and writes EXACTLY ONE audit_events row", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
-    const createCustomer = notYetImplemented();
     const correlationId = crypto.randomUUID(); // append-only audit → unique per run
 
     const result = await runCommand(createCustomer, {
@@ -128,7 +121,6 @@ describe.skip("CRM customer commands via the envelope (AC3 / R-001,R-010)", () =
 
   it("[P1] createCustomer (company) requires org_nr and rejects personnummer", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
-    const createCustomer = notYetImplemented();
     const result = await runCommand(createCustomer, {
       client: a as never,
       input: {
@@ -144,7 +136,6 @@ describe.skip("CRM customer commands via the envelope (AC3 / R-001,R-010)", () =
 
   it("[P0] VALIDATION_FAILED for a customer_type outside the 4 approved values", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
-    const createCustomer = notYetImplemented();
     const result = await runCommand(createCustomer, {
       client: a as never,
       input: { customer_type: "charity", display_name: "X" },
@@ -157,7 +148,6 @@ describe.skip("CRM customer commands via the envelope (AC3 / R-001,R-010)", () =
 
   it("[P0] VALIDATION_FAILED when a private customer omits personnummer", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
-    const createCustomer = notYetImplemented();
     const result = await runCommand(createCustomer, {
       client: a as never,
       input: { customer_type: "private", display_name: "No Personnummer" },
@@ -170,7 +160,6 @@ describe.skip("CRM customer commands via the envelope (AC3 / R-001,R-010)", () =
 
   it("[P0] VALIDATION_FAILED when a private customer carries org_nr (identifier-by-type)", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
-    const createCustomer = notYetImplemented();
     const result = await runCommand(createCustomer, {
       client: a as never,
       input: {
@@ -188,7 +177,6 @@ describe.skip("CRM customer commands via the envelope (AC3 / R-001,R-010)", () =
 
   it("[P1] VALIDATION_FAILED for a malformed email where email is captured", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
-    const createCustomer = notYetImplemented();
     const result = await runCommand(createCustomer, {
       client: a as never,
       input: {
@@ -206,7 +194,6 @@ describe.skip("CRM customer commands via the envelope (AC3 / R-001,R-010)", () =
 
   it("[P1] VALIDATION_FAILED for an empty display_name", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
-    const createCustomer = notYetImplemented();
     const result = await runCommand(createCustomer, {
       client: a as never,
       input: {
@@ -223,9 +210,6 @@ describe.skip("CRM customer commands via the envelope (AC3 / R-001,R-010)", () =
 
   it("[P1] archiveCustomer sets archived_at (soft-delete) and the row is NOT hard-deleted", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
-    const createCustomer = notYetImplemented();
-    const archiveCustomer = notYetImplemented();
-
     const created = await runCommand(createCustomer, {
       client: a as never,
       input: {
@@ -249,15 +233,15 @@ describe.skip("CRM customer commands via the envelope (AC3 / R-001,R-010)", () =
     expect(archived.ok).toBe(true);
 
     // Independent BYPASSRLS read proves the row still EXISTS with archived_at set —
-    // a soft-delete, never a hard DELETE (Task 3.1 adds adminSelectCustomerById).
-    // const row = await adminSelectCustomerById(customerId);
-    // expect(row).not.toBeNull();
-    // expect(row.archived_at).not.toBeNull();
+    // a soft-delete, never a hard DELETE. archived_at == the single injected instant.
+    const row = await adminSelectCrmRowById("customers", customerId);
+    expect(row).not.toBeNull();
+    expect(row?.archived_at).not.toBeNull();
+    expect(new Date(row?.archived_at as string).toISOString()).toBe(FIXED_ISO);
   });
 
   it("[P1] updateCustomer on a foreign-tenant id returns TENANT_ACCESS_DENIED (RLS invisible)", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
-    const updateCustomer = notYetImplemented();
     // A random id (or a Tenant B id) is invisible under A's RLS → ownership-verify
     // sees zero rows → TENANT_ACCESS_DENIED (envelope verifyOwnership, R-004).
     const result = await runCommand(updateCustomer, {

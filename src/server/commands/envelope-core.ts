@@ -29,6 +29,7 @@
 import { err, ok, type Result } from "@/lib/result/result";
 import {
   COMMAND_MESSAGES,
+  isCommandError,
   type CommandErrorCode,
 } from "./command-errors";
 import { systemClock, type CommandClock } from "./clock";
@@ -218,12 +219,19 @@ export async function runCommandCore<I, R, DB = unknown>(
     return err(ownership.code, COMMAND_MESSAGES[ownership.code]);
   }
 
-  // ── Step 6-7: execute. A throw is a TRANSIENT infra fault → SERVER_ERROR. No
-  //    raw throw/stack/SQL crosses the boundary; no audit row on this failure. ──
+  // ── Step 6-7: execute. A plain throw is a TRANSIENT infra fault → SERVER_ERROR
+  //    (no raw throw/stack/SQL crosses the boundary; no audit row on this failure).
+  //    A deliberately-thrown `CommandError` surfaces its STABLE code instead — e.g.
+  //    a composite same-tenant FK rejecting a cross-tenant parent link is a genuine
+  //    TENANT_ACCESS_DENIED authorization outcome, NOT a transient fault. Either way
+  //    NO audit row is written (the command did not succeed). ──
   let result: R;
   try {
     result = await execute(execCtx);
-  } catch {
+  } catch (e) {
+    if (isCommandError(e)) {
+      return err(e.code, COMMAND_MESSAGES[e.code]);
+    }
     return err("SERVER_ERROR", COMMAND_MESSAGES.SERVER_ERROR);
   }
 
