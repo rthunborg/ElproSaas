@@ -1,0 +1,81 @@
+/**
+ * `/customers/[customerId]` (Kund hub) — the customer detail (Story 3.2, Task 2).
+ *
+ * A SERVER component: it server-fetches the single customer (+ active facilities and
+ * contacts) by id via the per-request RLS client (anon key — NEVER service-role). A
+ * foreign/other-tenant id is invisible under RLS → zero rows → a GENERIC "not found / no
+ * access" state that NEVER reveals whether the row exists in another tenant (no
+ * cross-tenant leakage). A read error renders the generic failed state.
+ *
+ * `force-dynamic` because the route reads per-request auth/data; the `(app)` layout is
+ * the auth boundary (this page adds no auth mechanism).
+ */
+import Link from "next/link";
+import { CustomerDetail } from "@/components/crm/CustomerDetail";
+import { readCustomerDetail } from "@/features/crm/read";
+
+export const dynamic = "force-dynamic";
+
+export default async function CustomerDetailPage({
+  params,
+}: {
+  params: Promise<{ customerId: string }>;
+}) {
+  const { customerId } = await params;
+  const { customer, facilities, contacts, error } =
+    await readCustomerDetail(customerId);
+
+  if (error) {
+    return (
+      <section className="mx-auto max-w-3xl">
+        <div
+          role="alert"
+          data-testid="customer-detail-failed"
+          className="rounded-lg border border-red-300 bg-red-50 p-6"
+        >
+          <p className="text-sm font-medium text-red-800">
+            Kunden kunde inte läsas in.
+          </p>
+          <p className="mt-1 text-sm text-red-700">{error}</p>
+          <Link
+            href="/customers"
+            className="mt-4 inline-flex rounded-md border border-red-300 bg-white px-3 py-1.5 text-sm font-medium text-red-800 hover:bg-red-100"
+          >
+            Tillbaka till kunder
+          </Link>
+        </div>
+      </section>
+    );
+  }
+
+  if (!customer) {
+    // Invisible under RLS (or genuinely absent) → GENERIC not-found, no leakage.
+    return (
+      <section className="mx-auto max-w-3xl">
+        <div
+          data-testid="customer-not-found"
+          className="rounded-lg border border-dashed border-zinc-300 bg-white p-8 text-center"
+        >
+          <p className="text-sm font-medium text-zinc-900">Kunden hittades inte</p>
+          <p className="mt-1 text-sm text-zinc-600">
+            Kunden finns inte eller så har du inte åtkomst till den.
+          </p>
+          <Link
+            href="/customers"
+            className="mt-4 inline-flex rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-100"
+          >
+            Tillbaka till kunder
+          </Link>
+        </div>
+      </section>
+    );
+  }
+
+  return (
+    <CustomerDetail
+      customer={customer}
+      facilities={facilities}
+      contacts={contacts}
+    />
+  );
+}
