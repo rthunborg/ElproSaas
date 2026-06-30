@@ -5,10 +5,10 @@ epic_num: 3
 story_num: null
 branch: epic/3-crm-company-settings-and-pricing-foundation
 status: in-progress
-updated_at: "2026-06-30T14:31:56Z"
+updated_at: "2026-06-30T14:37:22Z"
 started_at: "2026-06-30T10:50:17Z"
 completed_at: null
-active_seconds: 632
+active_seconds: 704
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -51,9 +51,10 @@ deferred_work: []
 blockers: []
 overrides: {}
 constraints: []
-active_story: 3-2-crm-tenant-admin-ux-and-lifecycle-context
+active_story: 3-3-company-identity-quote-terms-and-vat-defaults
 stories_landed:
   - 3-1-tenant-owned-crm-data-model-and-commands
+  - 3-2-crm-tenant-admin-ux-and-lifecycle-context
 epic_slug: crm-company-settings-and-pricing-foundation
 auto_decisions:
   - "AC1 duplicate-like surfaced only in create dialog, not a list state [Med] -> dismiss: Task 1.4 create-dialog placement is the sanctioned intent; AC1 met in spirit (non-blocking advisory present) (Tier A, 3-2-crm-tenant-admin-ux-and-lifecycle-context)"
@@ -83,3 +84,30 @@ uat_items:
   - "[3-1-tenant-owned-crm-data-model-and-commands] Anon-path negatives: `pnpm run test:int -- anon-path-isolation` -> anon SELECT/INSERT/UPDATE/DELETE on the 3 tables denied with 42501."
   - "[3-1-tenant-owned-crm-data-model-and-commands] H4 inventory gate green with all three CRM tables enrolled: `pnpm run test:int -- rls-inventory-gate` (an unenrolled tenant-owned table fails loud here)."
   - "[3-1-tenant-owned-crm-data-model-and-commands] Umbrella: `supabase db reset` then `pnpm run test:int` -> all integration suites green (CRM command, parent-ownership, migration-reset, cross-tenant, anon, H4-gate)."
+  - "[3-2-crm-tenant-admin-ux-and-lifecycle-context] Sign in as the seeded tenant_admin (adminA) at /login and open /customers -> h1 'Kunder', a 'Ny kund' button, and a table listing both seeded customers (company + private)."
+  - "[3-2-crm-tenant-admin-ux-and-lifecycle-context] On /customers, columns are Kund/Typ/Org.nr/Ort/Status with a Swedish type badge and an 'Aktiv' status with a check icon (not color-only); NO personnummer column or value anywhere in the list."
+  - "[3-2-crm-tenant-admin-ux-and-lifecycle-context] On /customers, type the company's display name into 'Sok kund' -> list narrows to just the company row."
+  - "[3-2-crm-tenant-admin-ux-and-lifecycle-context] On /customers, type the company's org number (556677-8899) into 'Sok kund' -> the company row stays (search matches org.nr, not just name)."
+  - "[3-2-crm-tenant-admin-ux-and-lifecycle-context] On /customers, type a nonsense string -> a distinct 'Inga traffar' no-results panel appears (different from the empty state)."
+  - "[3-2-crm-tenant-admin-ux-and-lifecycle-context] On /customers, use 'Filtrera typ' -> 'Privatperson' shows only the private customer; reset to 'Alla kundtyper' returns both."
+  - "[3-2-crm-tenant-admin-ux-and-lifecycle-context] On /customers, click a customer's name -> navigate to /customers/[id] with that customer's name as h1 and its type badge."
+  - "[3-2-crm-tenant-admin-ux-and-lifecycle-context] On the company detail, the summary shows 'Organisationsnummer' (its org.nr) and NO personnummer field for a non-private type."
+  - "[3-2-crm-tenant-admin-ux-and-lifecycle-context] On the PRIVATE customer detail, the 'Personnummer' field shows a masked value (only last 4 digits) with a 'Visa' button."
+  - "[3-2-crm-tenant-admin-ux-and-lifecycle-context] On the private detail, click 'Visa' -> full personnummer revealed, button flips to 'Dolj'; click 'Dolj' -> masks again."
+  - "[3-2-crm-tenant-admin-ux-and-lifecycle-context] On the company detail, an 'Anlaggningar' section lists the seeded facility and a 'Kontakter' section lists the seeded contact, each with 'Redigera' + archive."
+  - "[3-2-crm-tenant-admin-ux-and-lifecycle-context] On the company detail 'Relaterat' section -> honest 'byggs i Epic N' placeholders (Kalkyler/Offerter/Jobb/Filer/Handelsehistorik) and NO deferred-module section."
+  - "[3-2-crm-tenant-admin-ux-and-lifecycle-context] On /customers, click 'Ny kund' -> a 'Ny kund' dialog opens and focus lands inside on the first field (Kundtyp select), not the close (X) button."
+  - "[3-2-crm-tenant-admin-ux-and-lifecycle-context] With the 'Ny kund' dialog open, press Escape -> dialog closes and focus returns to the 'Ny kund' trigger button."
+  - "[3-2-crm-tenant-admin-ux-and-lifecycle-context] With the dialog open, Tab to the last control then Tab once more -> focus wraps to the first control (focus trapped, never escapes to the page behind)."
+  - "[3-2-crm-tenant-admin-ux-and-lifecycle-context] In 'Ny kund', select Kundtyp 'Foretag' -> identifier field is 'Organisationsnummer'; switch to 'Privatperson' -> it becomes 'Personnummer'."
+  - "[3-2-crm-tenant-admin-ux-and-lifecycle-context] In 'Ny kund' (Foretag), fill only 'Visningsnamn' (leave org.nr blank), click 'Spara' -> dialog stays open, org.nr field marked invalid with inline error + top-of-form error summary, and your typed Visningsnamn is preserved."
+  - "[3-2-crm-tenant-admin-ux-and-lifecycle-context] In 'Ny kund' (Foretag), fill a unique Visningsnamn + valid org number, click 'Spara' -> dialog closes and the new customer appears in the /customers list."
+  - "[3-2-crm-tenant-admin-ux-and-lifecycle-context] In 'Ny kund', type a display name that exactly matches an existing active customer -> a non-blocking amber duplicate-like advisory appears (separate from blocking errors) and you can still Spara."
+  - "[3-2-crm-tenant-admin-ux-and-lifecycle-context] Open a customer detail, click 'Redigera' -> the edit dialog shows the customer type as read-only '(kundtyp kan inte andras)' (no type switch) and fields pre-filled."
+  - "[3-2-crm-tenant-admin-ux-and-lifecycle-context] On a customer detail, click 'Arkivera kund' and confirm -> returned to /customers and the archived customer no longer appears in the default active list."
+  - "[3-2-crm-tenant-admin-ux-and-lifecycle-context] On the company detail, click 'Ny anlaggning' -> facility dialog opens with focus inside; Escape returns focus to the trigger."
+  - "[3-2-crm-tenant-admin-ux-and-lifecycle-context] On the company detail, click 'Ny kontakt' -> contact dialog opens (optional 'Ingen anlaggning' facility option + optional primary marker); Escape returns focus to the trigger."
+  - "[3-2-crm-tenant-admin-ux-and-lifecycle-context] Signed in, inspect the main nav -> EXACTLY seven labels (Dashboard, Kunder, Kalkyler, Offerter, Jobb/Order, Filer, Installningar) and NONE of Pilotstod/Migrering/Fortnox/Leverantor/Uthyrning/Tillgangar."
+  - "[3-2-crm-tenant-admin-ux-and-lifecycle-context] Open a not-signed-in browser window and visit /customers -> redirected to /login."
+  - "[3-2-crm-tenant-admin-ux-and-lifecycle-context] Not signed in, visit /customers/<any-id> directly -> redirected to /login (no data leaks pre-auth)."
+  - "[3-2-crm-tenant-admin-ux-and-lifecycle-context] Signed in, visit /customers/00000000-0000-0000-0000-000000000000 (non-existent / other-tenant id) -> a GENERIC 'Kunden hittades inte' not-found with a 'Tillbaka till kunder' link, revealing nothing about whether the id exists in another tenant."
