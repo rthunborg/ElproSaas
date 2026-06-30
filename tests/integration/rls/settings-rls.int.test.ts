@@ -65,12 +65,21 @@ let fixture: TwoTenantFixture;
 let a: TestServerClient; // adminA's authenticated anon-key (RLS) client
 let anon: TestServerClient; // unauthenticated anon-key client
 
-/** Seed ONE Tenant B settings row of each kind via the privileged BYPASSRLS path. */
+/**
+ * Seed ONE Tenant B settings row of each kind via the privileged BYPASSRLS path.
+ * IDEMPOTENT (`on conflict (tenant_id) do update`) because both tables are
+ * ONE-row-per-tenant (a `unique (tenant_id)`) — multiple tests in this block seed
+ * the SAME Tenant B, so a plain INSERT would violate the unique constraint. The
+ * upsert returns the existing/created row id and RESTORES the seed label (so the
+ * cross-tenant "unchanged" re-read still has a known baseline value to compare).
+ */
 async function adminInsertCompanySettings(tenantId: string): Promise<string> {
   const rows = await adminQuery<{ id: string }>(
     `insert into public.company_settings
        (tenant_id, company_name, default_vat_display, vat_rate_bp)
      values ($1, $2, $3, $4)
+     on conflict (tenant_id) do update
+       set company_name = excluded.company_name
      returning id`,
     [tenantId, "tenant-b-company-seed", "company_togglable", 2500],
   );
@@ -80,6 +89,8 @@ async function adminInsertQuoteTerms(tenantId: string): Promise<string> {
   const rows = await adminQuery<{ id: string }>(
     `insert into public.quote_terms (tenant_id, terms_text)
      values ($1, $2)
+     on conflict (tenant_id) do update
+       set terms_text = excluded.terms_text
      returning id`,
     [tenantId, "tenant-b-terms-seed (platshållartext)"],
   );
@@ -104,7 +115,7 @@ afterAll(async () => {
 // the live H4 gate covers them. (Auto-extends cross-tenant + anon-path suites.)
 // ─────────────────────────────────────────────────────────────────────────────
 
-describe.skip("Story 3.3 — H4 enrollment of company_settings + quote_terms (AC3)", () => {
+describe("Story 3.3 — H4 enrollment of company_settings + quote_terms (AC3)", () => {
   it("[P0] both new settings tables are enrolled in TENANT_TABLES (the single source of truth)", () => {
     for (const t of NEW_SETTINGS_TABLES) {
       expect(TENANT_TABLES as readonly string[]).toContain(t);
@@ -138,7 +149,7 @@ describe.skip("Story 3.3 — H4 enrollment of company_settings + quote_terms (AC
 // scaffold pins the delta dev must add there so the RED phase is explicit.
 // ─────────────────────────────────────────────────────────────────────────────
 
-describe.skip("Story 3.3 — migration-reset exact-policy enumeration extension (AC3)", () => {
+describe("Story 3.3 — migration-reset exact-policy enumeration extension (AC3)", () => {
   it("[P0] the public policy set includes the 6 NEW settings policies and STILL no DELETE", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     const rows = await adminQuery<{ tablename: string; cmd: string }>(
@@ -223,7 +234,7 @@ describe.skip("Story 3.3 — migration-reset exact-policy enumeration extension 
 // this block makes the per-table mechanism explicit for the new tables.
 // ─────────────────────────────────────────────────────────────────────────────
 
-describe.skip("Story 3.3 — cross-tenant denial for company_settings + quote_terms (AC3)", () => {
+describe("Story 3.3 — cross-tenant denial for company_settings + quote_terms (AC3)", () => {
   it("[P0] SELECT: Tenant A reads ZERO of Tenant B's company_settings / quote_terms (no error leak)", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     await adminInsertCompanySettings(fixture.tenantB.id);
@@ -294,7 +305,7 @@ describe.skip("Story 3.3 — cross-tenant denial for company_settings + quote_te
 // which would wrongly assert the non-DML REFERENCES/TRIGGER grants Supabase issues).
 // ─────────────────────────────────────────────────────────────────────────────
 
-describe.skip("Story 3.3 — anon-DML-empty for company_settings + quote_terms (AC3)", () => {
+describe("Story 3.3 — anon-DML-empty for company_settings + quote_terms (AC3)", () => {
   it("[P0] anon SELECT reads ZERO rows (RLS + no grant)", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     for (const table of NEW_SETTINGS_TABLES) {

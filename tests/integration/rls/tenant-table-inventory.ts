@@ -82,6 +82,14 @@ export const TENANT_TABLES = [
   "customers",
   "facilities",
   "contacts",
+  // Story 3.3 settings tables (the first tenant-owned SETTINGS tables). Like the CRM
+  // tables, `authenticated` HAS an INSERT/UPDATE grant (the tenant admin manages
+  // settings via the app path) — so their cross-tenant UPDATE denial mechanism is
+  // RLS-USING invisibility (zero rows + unchanged on independent re-read), NOT a
+  // missing-grant 42501. See `updateDenialKind` below. Both are ONE-row-per-tenant
+  // (a unique (tenant_id)).
+  "company_settings",
+  "quote_terms",
 ] as const;
 
 export type TenantTableName = (typeof TENANT_TABLES)[number];
@@ -111,6 +119,15 @@ export interface InventoryContext {
   readonly tenantBCustomerId?: string;
   readonly tenantBFacilityId?: string;
   readonly tenantBContactId?: string;
+  /**
+   * REAL Tenant B SETTINGS row ids (Story 3.3) — concrete cross-tenant targets the
+   * company_settings/quote_terms negatives point Tenant A at, so the denial is never
+   * vacuous against a non-existent row. Optional so the anon suite (which never reads
+   * a seeded row) can omit them; the cross-tenant suite seeds and asserts them. A
+   * consumer that needs one but finds it missing fails LOUDLY (vacuity guard).
+   */
+  readonly tenantBCompanySettingsId?: string;
+  readonly tenantBQuoteTermsId?: string;
 }
 
 /**
@@ -142,6 +159,8 @@ export function updateDenialKind(table: TenantTableName): MutationDenialKind {
     case "customers":
     case "facilities":
     case "contacts":
+    case "company_settings":
+    case "quote_terms":
       return "rls-invisible"; // UPDATE granted; RLS USING hides foreign rows
     default:
       return assertNever(table);
@@ -249,6 +268,28 @@ export function spoofedRowFor(
         customer_id: requireCrmId(ctx.tenantBCustomerId, "tenantBCustomerId", table),
         name: "spoofed-contact-by-a",
       };
+    case "company_settings":
+      // A company_settings row forging Tenant B ownership. `authenticated` HAS an
+      // INSERT grant, so the denial is the RLS INSERT WITH CHECK
+      // (is_tenant_admin(tenant_id=B) is false for a Tenant A admin) → `42501`. FRESH
+      // id + the NOT-NULL columns (default_vat_display, vat_rate_bp) populated so the
+      // denial is the policy, never a `23505` PK collision or a NOT-NULL violation.
+      return {
+        id: crypto.randomUUID(),
+        tenant_id: fixture.tenantB.id,
+        company_name: "spoofed-by-tenant-a",
+        default_vat_display: "company_togglable",
+        vat_rate_bp: 2500,
+      };
+    case "quote_terms":
+      // A quote_terms row forging Tenant B ownership. RLS INSERT WITH CHECK on
+      // tenant_id=B → `42501` (fresh id; the NOT-NULL terms_text populated). NO
+      // approval field is set — approval is never part of a write payload.
+      return {
+        id: crypto.randomUUID(),
+        tenant_id: fixture.tenantB.id,
+        terms_text: "spoofed-terms-by-a (platshållartext)",
+      };
     default:
       return assertNever(table);
   }
@@ -320,6 +361,27 @@ export function tenantBFilter(
         column: "id",
         value: requireCrmId(ctx.tenantBContactId, "tenantBContactId", table),
       };
+    case "company_settings":
+      // Target the SPECIFIC seeded Tenant B company_settings row by id — the
+      // cross-tenant SELECT/UPDATE must read/affect ZERO rows under A's RLS, and the
+      // "unchanged" re-read proves THIS row stayed intact. Vacuity-guarded.
+      return {
+        column: "id",
+        value: requireCrmId(
+          ctx.tenantBCompanySettingsId,
+          "tenantBCompanySettingsId",
+          table,
+        ),
+      };
+    case "quote_terms":
+      return {
+        column: "id",
+        value: requireCrmId(
+          ctx.tenantBQuoteTermsId,
+          "tenantBQuoteTermsId",
+          table,
+        ),
+      };
     default:
       return assertNever(table);
   }
@@ -348,6 +410,41 @@ export function hijackMutationFor(
     case "facilities":
     case "contacts":
       return { name: "hijacked-by-tenant-a" };
+    case "company_settings":
+      return { company_name: "hijacked-by-tenant-a" };
+    case "quote_terms":
+      return { terms_text: "hijacked-by-tenant-a" };
+    default:
+      return assertNever(table);
+  }
+}
+
+/**
+ * The label column whose value the cross-tenant UPDATE negative reads back
+ * (independently, BYPASSRLS) to prove the hijack value never landed, for an
+ * "rls-invisible" table. Matches the column `hijackMutationFor` would have set.
+ * Settings tables added in Story 3.3; CRM tables in Story 3.1.
+ */
+export function rlsInvisibleLabelColumn(table: TenantTableName): string {
+  switch (table) {
+    case "customers":
+      return "display_name";
+    case "facilities":
+    case "contacts":
+      return "name";
+    case "company_settings":
+      return "company_name";
+    case "quote_terms":
+      return "terms_text";
+    // The "privilege"-denial tables never reach the unchanged-re-read branch, so a
+    // label column is not meaningful for them — but the exhaustive switch keeps the
+    // enrollment compile-safe (assertNever on a future unenrolled table).
+    case "tenants":
+      return "name";
+    case "audit_events":
+      return "command";
+    case "tenant_memberships":
+      return "status";
     default:
       return assertNever(table);
   }
@@ -415,6 +512,23 @@ export function anonRowFor(
         customer_id: crypto.randomUUID(),
         name: "anon-spoof-contact",
       };
+    case "company_settings":
+      // Anon has NO grant on company_settings, so the INSERT is denied at the
+      // privilege layer (42501) regardless of the row shape. The NOT-NULL columns are
+      // populated so the grant denial — not a NOT-NULL violation — is what fires.
+      return {
+        id: crypto.randomUUID(),
+        tenant_id: fixture.tenantA.id,
+        company_name: "anon-spoof",
+        default_vat_display: "company_togglable",
+        vat_rate_bp: 2500,
+      };
+    case "quote_terms":
+      return {
+        id: crypto.randomUUID(),
+        tenant_id: fixture.tenantA.id,
+        terms_text: "anon-spoof terms (platshållartext)",
+      };
     default:
       return assertNever(table);
   }
@@ -445,6 +559,8 @@ export function anonFilterFor(
     case "customers":
     case "facilities":
     case "contacts":
+    case "company_settings":
+    case "quote_terms":
       return { column: "tenant_id", value: ctx.fixture.tenantA.id };
     default:
       return assertNever(table);
@@ -467,6 +583,10 @@ export function anonMutationFor(
     case "facilities":
     case "contacts":
       return { name: "anon-hijack" };
+    case "company_settings":
+      return { company_name: "anon-hijack" };
+    case "quote_terms":
+      return { terms_text: "anon-hijack" };
     default:
       return assertNever(table);
   }

@@ -44,15 +44,11 @@ import { isLocalStackReachable } from "../../support/test-env";
 import { skipUnlessStack } from "../../support/stack-gate";
 import { runCommand } from "@/server/commands/envelope";
 import type { CommandClock } from "@/server/commands/clock";
-// 🔴 RED: these modules do not exist yet — dev creates them in the GREEN phase.
-// Un-comment alongside removing `.skip` from the describe blocks below.
-// import {
-//   updateCompanySettings,
-// } from "@/server/commands/settings/company-settings";
-// import {
-//   updateQuoteTerms,
-//   approveQuoteTerms,
-// } from "@/server/commands/settings/quote-terms";
+import { updateCompanySettings } from "@/server/commands/settings/company-settings";
+import {
+  updateQuoteTerms,
+  approveQuoteTerms,
+} from "@/server/commands/settings/quote-terms";
 
 const FIXED_ISO = "2026-06-30T12:00:00.000Z";
 const fixedClock: CommandClock = { now: () => new Date(FIXED_ISO) };
@@ -71,12 +67,6 @@ beforeAll(async () => {
 afterAll(async () => {
   if (stackUp && fixture) await cleanupFixture(fixture);
 });
-
-// Placeholder command refs so the file TYPECHECKS while the real modules are absent.
-// In GREEN phase, delete these and import the real commands above.
-const updateCompanySettings = undefined as never;
-const updateQuoteTerms = undefined as never;
-const approveQuoteTerms = undefined as never;
 
 /** Independent BYPASSRLS read of the tenant's single company_settings row. */
 async function readCompanySettings(tenantId: string) {
@@ -114,7 +104,7 @@ async function readQuoteTerms(tenantId: string) {
 // company_settings — UPSERT-one-per-tenant + VAT (basis points) validation + audit.
 // ─────────────────────────────────────────────────────────────────────────────
 
-describe.skip("updateCompanySettings — upsert, VAT bp validation, audit (Story 3.3 AC1/AC5)", () => {
+describe("updateCompanySettings — upsert, VAT bp validation, audit (Story 3.3 AC1/AC5)", () => {
   it("[P0] first call INSERTS the tenant's single settings row + writes ONE audit row with NO PII", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     const correlationId = crypto.randomUUID();
@@ -240,7 +230,7 @@ describe.skip("updateCompanySettings — upsert, VAT bp validation, audit (Story
 // quote_terms — UPSERT terms text. The SIGN-OFF mechanics are the next block (P0).
 // ─────────────────────────────────────────────────────────────────────────────
 
-describe.skip("updateQuoteTerms — upsert terms text (Story 3.3 AC1)", () => {
+describe("updateQuoteTerms — upsert terms text (Story 3.3 AC1)", () => {
   it("[P0] first call INSERTS the tenant's terms row + ONE audit row with NO terms text in metadata", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     const correlationId = crypto.randomUUID();
@@ -274,7 +264,7 @@ describe.skip("updateQuoteTerms — upsert terms text (Story 3.3 AC1)", () => {
 // set by the deliberate `approveQuoteTerms` command.
 // ─────────────────────────────────────────────────────────────────────────────
 
-describe.skip("quote_terms SIGN-OFF — never silently approved (Story 3.3 AC2, HARD STOP-CONDITION)", () => {
+describe("quote_terms SIGN-OFF — never silently approved (Story 3.3 AC2, HARD STOP-CONDITION)", () => {
   it("[P0] a FRESH terms row defaults to NOT-approved (approved_at IS NULL) — asserted on the DB row", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     const created = await runCommand(updateQuoteTerms, {

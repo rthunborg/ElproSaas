@@ -29,7 +29,10 @@ import {
   adminInsertCustomer,
   adminInsertFacility,
   adminInsertContact,
+  adminInsertCompanySettings,
+  adminInsertQuoteTerms,
   adminSelectCrmRowById,
+  adminSelectSettingsLabel,
   type TwoTenantFixture,
   type TestServerClient,
 } from "../../factories/tenants";
@@ -42,6 +45,7 @@ import {
   tenantBFilter,
   hijackMutationFor,
   updateDenialKind,
+  rlsInvisibleLabelColumn,
   type InventoryContext,
 } from "./tenant-table-inventory";
 
@@ -52,6 +56,8 @@ let tenantBAuditId: string; // a seeded Tenant B audit row (cross-tenant target)
 let tenantBCustomerId: string; // a seeded Tenant B customer (cross-tenant CRM target)
 let tenantBFacilityId: string; // a seeded Tenant B facility (cross-tenant CRM target)
 let tenantBContactId: string; // a seeded Tenant B contact (cross-tenant CRM target)
+let tenantBCompanySettingsId: string; // a seeded Tenant B company_settings (3.3 target)
+let tenantBQuoteTermsId: string; // a seeded Tenant B quote_terms (3.3 target)
 let ctx: InventoryContext; // shared-inventory context (fixture + the seeded ids)
 
 beforeAll(async () => {
@@ -93,6 +99,17 @@ beforeAll(async () => {
     facility_id: tenantBFacilityId,
     name: "tenant-b-contact-seed",
   });
+  // Seed REAL Tenant B settings rows (Story 3.3) so the company_settings/quote_terms
+  // cross-tenant negatives target a CONCRETE Tenant B row. The unchanged re-read
+  // asserts these seed labels were NOT overwritten by Tenant A's denied UPDATE.
+  tenantBCompanySettingsId = await adminInsertCompanySettings({
+    tenant_id: fixture.tenantB.id,
+    company_name: "tenant-b-company-seed",
+  });
+  tenantBQuoteTermsId = await adminInsertQuoteTerms({
+    tenant_id: fixture.tenantB.id,
+    terms_text: "tenant-b-terms-seed (platshållartext)",
+  });
   // VACUITY GUARD (DX#4, epic-2 hardening): the audit_events cross-tenant negatives
   // filter Tenant B's row by `id = tenantBAuditId`. If the seed ever returned without
   // a real id, `.eq("id", undefined/null)` would match NOTHING and the SELECT/UPDATE/
@@ -107,12 +124,18 @@ beforeAll(async () => {
         "non-existent row. Failing loudly so the seed is fixed, not silently green.",
     );
   }
-  // Same vacuity guard for the seeded CRM rows: a missing id would make the CRM
+  // Same vacuity guard for the seeded CRM + settings rows: a missing id would make the
   // cross-tenant negatives target a non-existent row and pass vacuously.
   if (!tenantBCustomerId || !tenantBFacilityId || !tenantBContactId) {
     throw new Error(
       "cross-tenant CRM seed produced no id (customer/facility/contact) — the CRM " +
         "cross-tenant negatives would pass VACUOUSLY against a non-existent row.",
+    );
+  }
+  if (!tenantBCompanySettingsId || !tenantBQuoteTermsId) {
+    throw new Error(
+      "cross-tenant settings seed produced no id (company_settings/quote_terms) — the " +
+        "settings cross-tenant negatives would pass VACUOUSLY against a non-existent row.",
     );
   }
   ctx = {
@@ -121,6 +144,8 @@ beforeAll(async () => {
     tenantBCustomerId,
     tenantBFacilityId,
     tenantBContactId,
+    tenantBCompanySettingsId,
+    tenantBQuoteTermsId,
   };
 });
 
@@ -178,16 +203,24 @@ describe("Cross-tenant RLS isolation — data-driven over the shared inventory (
           expect(error?.code).toBe("42501");
           expect(affected).toBeNull();
         } else {
-          // rls-invisible (customers/facilities/contacts).
+          // rls-invisible (customers/facilities/contacts/company_settings/quote_terms).
           expect(error).toBeNull();
           expect(affected).toEqual([]); // zero rows affected — the foreign row is hidden
           // Independent re-read proves the row exists and its label is UNCHANGED (the
-          // hijack value "hijacked-by-tenant-a" never landed).
-          const crmTable = table as "customers" | "facilities" | "contacts";
-          const row = await adminSelectCrmRowById(crmTable, value);
-          expect(row).not.toBeNull();
-          const label = crmTable === "customers" ? row?.display_name : row?.name;
-          expect(label).not.toBe("hijacked-by-tenant-a");
+          // hijack value "hijacked-by-tenant-a" never landed). CRM and settings tables
+          // use different readback helpers; the inventory names the label column.
+          if (table === "company_settings" || table === "quote_terms") {
+            const labelColumn = rlsInvisibleLabelColumn(table);
+            const row = await adminSelectSettingsLabel(table, labelColumn, value);
+            expect(row).not.toBeNull();
+            expect(row?.label).not.toBe("hijacked-by-tenant-a");
+          } else {
+            const crmTable = table as "customers" | "facilities" | "contacts";
+            const row = await adminSelectCrmRowById(crmTable, value);
+            expect(row).not.toBeNull();
+            const label = crmTable === "customers" ? row?.display_name : row?.name;
+            expect(label).not.toBe("hijacked-by-tenant-a");
+          }
         }
       });
 

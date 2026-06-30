@@ -63,7 +63,7 @@ async function signIn(page: Page, email: string, password: string): Promise<void
   await expect(page).toHaveURL(/\/dashboard/);
 }
 
-test.describe.skip("Settings UI — Company + Quote terms (Story 3.3 E2E)", () => {
+test.describe("Settings UI — Company + Quote terms (Story 3.3 E2E)", () => {
   test("AC4: anonymous visits to /settings/company and /settings/quote-terms redirect to /login", async ({
     page,
   }) => {

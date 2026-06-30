@@ -510,3 +510,91 @@ export async function adminSelectCrmRowById(
   );
   return rows[0] ?? null;
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Settings seed/read helpers (Story 3.3, Task 3.3) — ADDITIVE (B1). Seed REAL
+// `company_settings`/`quote_terms` rows via the loopback-gated superuser `pg` pool
+// (BYPASSRLS) so the cross-tenant negatives target a CONCRETE Tenant B settings row,
+// never a non-existent id that would deny vacuously. Mirror `adminInsertCustomer`:
+// THROW on a DB error with the Postgres `code` preserved. Settings tables are
+// `tenant_id … on delete cascade`, so the EXISTING `cleanupFixture` tenant-delete
+// cascades the seeded rows away — no new teardown path is needed.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Seed ONE `company_settings` row via the privileged superuser pg path (BYPASSRLS).
+ * Returns the inserted id. THROWS (Postgres `code` preserved) on a DB error. The
+ * NOT-NULL `default_vat_display`/`vat_rate_bp` are populated with the legacy default;
+ * `company_name` carries a recognizable seed token so the cross-tenant unchanged
+ * re-read can assert it was not overwritten.
+ */
+export async function adminInsertCompanySettings(seed: {
+  readonly tenant_id: string;
+  readonly company_name?: string;
+  readonly default_vat_display?: string;
+  readonly vat_rate_bp?: number;
+}): Promise<string> {
+  try {
+    const rows = await adminQuery<{ id: string }>(
+      `insert into public.company_settings
+         (tenant_id, company_name, default_vat_display, vat_rate_bp)
+       values ($1, $2, $3, $4)
+       returning id`,
+      [
+        seed.tenant_id,
+        seed.company_name ?? "tenant-b-company-seed",
+        seed.default_vat_display ?? "company_togglable",
+        seed.vat_rate_bp ?? 2500,
+      ],
+    );
+    const id = rows[0]?.id;
+    if (!id) throw new Error("adminInsertCompanySettings: no id returned");
+    return id;
+  } catch (error) {
+    rethrowWithCode(error);
+  }
+}
+
+/**
+ * Seed ONE `quote_terms` row via the privileged superuser pg path (BYPASSRLS).
+ * Returns the inserted id. THROWS (Postgres `code` preserved) on a DB error. NO
+ * approval is set — a seeded row is not-approved by construction (approved_at NULL).
+ */
+export async function adminInsertQuoteTerms(seed: {
+  readonly tenant_id: string;
+  readonly terms_text?: string;
+}): Promise<string> {
+  try {
+    const rows = await adminQuery<{ id: string }>(
+      `insert into public.quote_terms (tenant_id, terms_text)
+       values ($1, $2)
+       returning id`,
+      [seed.tenant_id, seed.terms_text ?? "tenant-b-terms-seed (platshållartext)"],
+    );
+    const id = rows[0]?.id;
+    if (!id) throw new Error("adminInsertQuoteTerms: no id returned");
+    return id;
+  } catch (error) {
+    rethrowWithCode(error);
+  }
+}
+
+/**
+ * Read ONE settings row's label column back via the privileged superuser pg path
+ * (BYPASSRLS), independent of the app/RLS path. Used by the cross-tenant UPDATE
+ * negative to prove the foreign settings row is UNCHANGED. `labelColumn` is a closed
+ * set (company_name / terms_text) supplied by the inventory, never client input.
+ * Returns `null` if the row does not exist.
+ */
+export async function adminSelectSettingsLabel(
+  table: "company_settings" | "quote_terms",
+  labelColumn: string,
+  id: string,
+): Promise<{ id: string; label: string | null } | null> {
+  // `table` + `labelColumn` are closed/inventory-supplied (never client input).
+  const rows = await adminQuery<{ id: string; label: string | null }>(
+    `select id, ${labelColumn} as label from public.${table} where id = $1`,
+    [id],
+  );
+  return rows[0] ?? null;
+}

@@ -127,8 +127,16 @@ describe("Migration reset green — tenant_foundation objects present (AC1 / R-0
     // (archive over hard delete). This is the documented, expected break of the prior
     // "every policy is SELECT" invariant (Task 5.2): the invariant is REPLACED by this
     // exact per-table expectation rather than weakened to a superset match.
+    // Story 3.3 EXTENDS this exact enumeration (NOT loosened to a superset) by the 6
+    // new settings policies: company_settings.{SELECT,INSERT,UPDATE} +
+    // quote_terms.{SELECT,INSERT,UPDATE} — SELECT/INSERT/UPDATE per table, NO DELETE
+    // (upsert over hard delete). Placed alphabetically. The "no DELETE policy anywhere"
+    // assertion below still holds.
     expect(rows.map((r) => `${r.tablename}.${r.cmd}`).sort()).toEqual([
       "audit_events.SELECT",
+      "company_settings.INSERT",
+      "company_settings.SELECT",
+      "company_settings.UPDATE",
       "contacts.INSERT",
       "contacts.SELECT",
       "contacts.UPDATE",
@@ -138,6 +146,9 @@ describe("Migration reset green — tenant_foundation objects present (AC1 / R-0
       "facilities.INSERT",
       "facilities.SELECT",
       "facilities.UPDATE",
+      "quote_terms.INSERT",
+      "quote_terms.SELECT",
+      "quote_terms.UPDATE",
       "tenant_memberships.SELECT",
       "tenants.SELECT",
     ]);
@@ -152,15 +163,23 @@ describe("Migration reset green — tenant_foundation objects present (AC1 / R-0
     for (const t of selectOnly) {
       expect((cmdsByTable.get(t) ?? []).sort()).toEqual(["SELECT"]);
     }
-    const crmTables = ["customers", "facilities", "contacts"];
-    for (const t of crmTables) {
+    // The CRM tables (Story 3.1) and the settings tables (Story 3.3) are all
+    // SELECT/INSERT/UPDATE with NO DELETE policy (archive/upsert over hard delete).
+    const crmAndSettingsTables = [
+      "customers",
+      "facilities",
+      "contacts",
+      "company_settings",
+      "quote_terms",
+    ];
+    for (const t of crmAndSettingsTables) {
       expect((cmdsByTable.get(t) ?? []).sort()).toEqual([
         "INSERT",
         "SELECT",
         "UPDATE",
       ]);
     }
-    // No DELETE policy exists anywhere on the app path (archive over hard delete).
+    // No DELETE policy exists anywhere on the app path (archive/upsert over hard delete).
     expect(rows.some((r) => r.cmd === "DELETE")).toBe(false);
   });
 });
