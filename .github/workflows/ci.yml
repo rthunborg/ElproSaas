@@ -140,3 +140,59 @@ jobs:
       - name: Stop local Supabase stack
         if: always()
         run: supabase stop
+
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    # Same gate as `db`: only spin up the stack + browser after the fast `verify` job
+    # is green. Runs in parallel with `db` (each boots its own local stack).
+    needs: [verify]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright browser (chromium + OS deps)
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Install Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          # Pin the same explicit version as the `db` job (see its note).
+          version: 2.106.0
+
+      - name: Start local Supabase stack
+        run: supabase start
+
+      - name: Migration reset (empty DB → migrate → seed)
+        run: supabase db reset
+
+      # The Playwright webServer builds + starts the app against the local stack
+      # (NEXT_PUBLIC_* are inlined from playwright.config.ts), globalSetup seeds the
+      # two-tenant fixture, and the specs drive the real browser journeys (G-2/G-3).
+      - name: E2E tests (Playwright)
+        run: pnpm run test:e2e
+
+      - name: Upload Playwright report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
+          if-no-files-found: ignore
+
+      - name: Stop local Supabase stack
+        if: always()
+        run: supabase stop
