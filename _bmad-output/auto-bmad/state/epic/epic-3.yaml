@@ -5,7 +5,7 @@ epic_num: 3
 story_num: null
 branch: epic/3-crm-company-settings-and-pricing-foundation
 status: in-progress
-updated_at: "2026-06-30T12:40:19Z"
+updated_at: "2026-06-30T14:31:56Z"
 started_at: "2026-06-30T10:50:17Z"
 completed_at: null
 active_seconds: 632
@@ -55,7 +55,9 @@ active_story: 3-2-crm-tenant-admin-ux-and-lifecycle-context
 stories_landed:
   - 3-1-tenant-owned-crm-data-model-and-commands
 epic_slug: crm-company-settings-and-pricing-foundation
-auto_decisions: []
+auto_decisions:
+  - "AC1 duplicate-like surfaced only in create dialog, not a list state [Med] -> dismiss: Task 1.4 create-dialog placement is the sanctioned intent; AC1 met in spirit (non-blocking advisory present) (Tier A, 3-2-crm-tenant-admin-ux-and-lifecycle-context)"
+  - "AC1 loading not a distinct rendered state [Med] -> dismiss: architecturally inapplicable given the server-read + client-filter design (no client fetch to await); 4/5 states explicit (Tier A, 3-2-crm-tenant-admin-ux-and-lifecycle-context)"
 uat_items:
   - "[3-1-tenant-owned-crm-data-model-and-commands] Start the local stack and apply the migration from empty: `supabase start` then `supabase db reset` -> completes with no error, applies 20260630120000_crm_data_model.sql."
   - "[3-1-tenant-owned-crm-data-model-and-commands] Verify the three tables exist: psql -c \"select table_name from information_schema.tables where table_schema='public' and table_name in ('customers','facilities','contacts') order by 1\" -> exactly contacts, customers, facilities."

@@ -5,10 +5,10 @@ epic_num: 3
 story_num: 2
 branch: epic/3-crm-company-settings-and-pricing-foundation
 status: in-progress
-updated_at: "2026-06-30T14:22:44Z"
+updated_at: "2026-06-30T14:31:57Z"
 started_at: "2026-06-30T12:40:19Z"
 completed_at: null
-active_seconds: 2787
+active_seconds: 3316
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -20,14 +20,14 @@ tea_selected: [automate]
 tea_rationale: "Pure CRM UI (stateful search/filter, multi-dialog state, route-authz smoke); no new auth/RLS boundary (server-side built in 3-1), no schema/migration, no money; sole epic risk R-012 score-4 MEDIUM (UX states, a11y, focus)"
 epic_story_count: 5
 stories_after_in_epic: 3
-completed_phases: [0, 1, 2, 3, 4, 5, 6]
+completed_phases: [0, 1, 2, 3, 4, 5, 6, 7]
 code_review_iterations: 0
 code_review_loop_done: false
 hitl_halt: null
 external_review_iterations: 0
 convergence_unverified: false
 story_trace: null
-commits: [96c162b, bdd3576, e0fae17]
+commits: [96c162b, bdd3576, e0fae17, cb132a3]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -56,3 +56,4 @@ blockers: []
 overrides: {}
 constraints: []
 tier_a_base_sha: d030f9bb3b918053838a8d3598490b75dad2f7b6
+tier_a_review: "Changes Requested; 0 Patch fixed, 2 Med decisions AUTO-DISMISSED (triage rec; duplicate-like dialog-placement + loading inapplicable), 2 Low deferred (contact edit is_primary/facility clear), security 0/0/0; converged (0 open crit/high, 0 open non-deferred)"
