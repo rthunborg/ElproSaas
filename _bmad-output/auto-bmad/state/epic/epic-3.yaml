@@ -5,10 +5,10 @@ epic_num: 3
 story_num: null
 branch: epic/3-crm-company-settings-and-pricing-foundation
 status: in-progress
-updated_at: "2026-06-30T20:21:00Z"
+updated_at: "2026-06-30T20:25:18Z"
 started_at: "2026-06-30T10:50:17Z"
 completed_at: null
-active_seconds: 790
+active_seconds: 877
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -51,11 +51,12 @@ deferred_work: []
 blockers: []
 overrides: {}
 constraints: []
-active_story: 3-4-work-roles-and-optional-manual-articles
+active_story: 3-5-snapshot-source-contract-for-settings-and-pricing-inputs
 stories_landed:
   - 3-1-tenant-owned-crm-data-model-and-commands
   - 3-2-crm-tenant-admin-ux-and-lifecycle-context
   - 3-3-company-identity-quote-terms-and-vat-defaults
+  - 3-4-work-roles-and-optional-manual-articles
 epic_slug: crm-company-settings-and-pricing-foundation
 auto_decisions:
   - "AC1 duplicate-like surfaced only in create dialog, not a list state [Med] -> dismiss: Task 1.4 create-dialog placement is the sanctioned intent; AC1 met in spirit (non-blocking advisory present) (Tier A, 3-2-crm-tenant-admin-ux-and-lifecycle-context)"
@@ -145,3 +146,25 @@ uat_items:
   - "[3-3-company-identity-quote-terms-and-vat-defaults] Re-approve the edited terms via 'Markera som godkand' -> transitions back to the green approved status."
   - "[3-3-company-identity-quote-terms-and-vat-defaults] /settings/company VAT-display options both state 'privatkunder visas alltid inkl. moms'; only company togglability differs; NO per-customer VAT toggle or any VAT/total calculation anywhere."
   - "[3-3-company-identity-quote-terms-and-vat-defaults] Sign in as the other tenant's admin -> /settings/company and /settings/quote-terms do NOT show tenant A's 'Elpro Pilot AB'/approved terms (own tenant's defaults only) — settings are tenant-scoped."
+  - "[3-4-work-roles-and-optional-manual-articles] /settings hub shows a 'Prissattning' card/link alongside Foretagsinstallningar + Offertvillkor."
+  - "[3-4-work-roles-and-optional-manual-articles] Click 'Prissattning' -> /settings/pricing, heading 'Prissattning', with 'Arbetsroller' + 'Artiklar / material' sections."
+  - "[3-4-work-roles-and-optional-manual-articles] Fresh tenant (no pricing rows) -> 'Inga arbetsroller annu...' + 'Inga artiklar annu...' empty states, no error."
+  - "[3-4-work-roles-and-optional-manual-articles] Save a work role: Benamning 'Elektriker', Pris '850,00', Kostnad '600,00', 'Spara roll' -> success + row shows '850,00 kr/tim' (kronor->öre round-trip)."
+  - "[3-4-work-roles-and-optional-manual-articles] Reload after saving '850,00' -> still '850,00 kr/tim' (persisted as öre, redisplayed as kronor, no drift)."
+  - "[3-4-work-roles-and-optional-manual-articles] Save Pris '12,5' -> redisplays '12,50 kr/tim' (öre padding). Save '0,01' -> '0,01 kr/tim' (1 öre handled)."
+  - "[3-4-work-roles-and-optional-manual-articles] Save a role with Kostnad BLANK + Pris filled -> saves OK (blank cost defaults to 0, not an error)."
+  - "[3-4-work-roles-and-optional-manual-articles] Save a role with Kostnad 'abc' (garbage) + valid Pris -> BLOCKED with a field error on Kostnad (malformed cost is an error, distinct from blank-defaults-to-0); sell rate unaffected."
+  - "[3-4-work-roles-and-optional-manual-articles] Save Pris '-5' -> blocked, field-associated error under Pris, typed values preserved."
+  - "[3-4-work-roles-and-optional-manual-articles] Save Pris '850.00' (dot decimal) -> blocked (only Swedish comma accepted). '850,005' (3 decimals) -> blocked (sub-öre). '850 kr'/'1.000,00' -> blocked."
+  - "[3-4-work-roles-and-optional-manual-articles] Submit work-role form with Benamning blank -> required-field error on Benamning. Pris blank -> required-field error on Pris (sell rate mandatory)."
+  - "[3-4-work-roles-and-optional-manual-articles] After a rejected work-role submit, the error is conveyed by text/markup (message + top-of-form summary), not color alone."
+  - "[3-4-work-roles-and-optional-manual-articles] Save an article: Artikelnamn 'Kabel', Enhet 'm', Enhetspris '12,50' -> success, row 'Kabel (m)' with '12,50 kr'."
+  - "[3-4-work-roles-and-optional-manual-articles] Save an article with sku + Enhet blank -> saves (both optional). Enhetspris '-1'/'abc' -> blocked with a field error, input preserved."
+  - "[3-4-work-roles-and-optional-manual-articles] Submit article form with Artikelnamn blank -> required-field error on Artikelnamn."
+  - "[3-4-work-roles-and-optional-manual-articles] Click 'Arkivera' on an active role -> it disappears from the Arbetsroller list (soft archive). Same for an article."
+  - "[3-4-work-roles-and-optional-manual-articles] Reload after archiving -> the archived role/article stays absent (archived rows not shown)."
+  - "[3-4-work-roles-and-optional-manual-articles] Inspect the whole /settings/pricing page -> NO supplier/leverantor/sync/import/Fortnox/API/EDI/vendor/external-mapping field anywhere (manual rows only)."
+  - "[3-4-work-roles-and-optional-manual-articles] Inspect /settings/pricing -> NO VAT/moms field, NO total/margin, NO computed amount — only entered cost/sell/unit prices (source data, computes nothing)."
+  - "[3-4-work-roles-and-optional-manual-articles] Main nav -> exactly seven items (Dashboard, Kunder, Kalkyler, Offerter, Jobb/Order, Filer, Installningar); NO standalone 'Prissattning' nav entry."
+  - "[3-4-work-roles-and-optional-manual-articles] Incognito (not signed in), visit /settings/pricing -> redirected to /login (no pricing data exposed)."
+  - "[3-4-work-roles-and-optional-manual-articles] Sign in as the OTHER tenant's admin (adminB) -> /settings/pricing shows only tenant B's roles/articles, NOT tenant A's (tenant-scoped via RLS)."
