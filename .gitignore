@@ -49,3 +49,11 @@ next-env.d.ts
 # overrides stay ignored:
 .claude/settings.local.json
 .codex/config.local.toml
+
+# Playwright E2E (TEA testarch-framework): browser report + traces + the seeded
+# fixture credentials written by globalSetup are all ephemeral, never committed.
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+tests/e2e/.auth/

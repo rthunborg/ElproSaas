@@ -32,17 +32,13 @@
     "scripts/**/*.mjs"
   ],
   "exclude": [
-    "node_modules",
+    "node_modules"
     // tests/integration/** is re-enrolled in typecheck by Story 2.2 (Task 6.6):
     // the Vitest runner + DB-backed suites now exist, so they are type-checked.
-    // tests/e2e/** stays excluded — its browser runner (Playwright) is out of
-    // THIS story's scope (deferred; owner: a later E2E/Story-2.4 task). The e2e
-    // scaffold uses bare describe/it globals with no runner types and would not
-    // type-check until that runner lands.
-    "tests/e2e/**"
-    // Story 2.3 RE-ENROLLED its command suites into typecheck (dev-story landed
-    // `@/server/commands/*` + `tests/factories/audit-events` + the migration, and
-    // the suites flipped GREEN): the previous `tests/unit/server/commands/**` and
-    // `tests/integration/commands/**` excludes are removed.
+    // tests/e2e/** is RE-ENROLLED now that the Playwright runner landed (TEA
+    // testarch-framework): the specs use `@playwright/test` types + a real
+    // `playwright.config.ts`, so they type-check. Story 2.3 likewise re-enrolled
+    // its command suites (the previous `tests/unit/server/commands/**` and
+    // `tests/integration/commands/**` excludes are gone).
   ]
 }

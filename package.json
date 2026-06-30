@@ -16,6 +16,7 @@
     "test:unit": "node --experimental-strip-types --import ./tests/support/register.mjs --test \"tests/unit/**/*.test.ts\"",
     "test:int": "vitest run",
     "test:int:watch": "vitest",
+    "test:e2e": "playwright test",
     "verify:lockfiles": "node scripts/verify/check-lockfiles.mjs",
     "verify:service-role-containment": "node scripts/verify/check-service-role-containment.mjs",
     "verify:bundle-containment": "node scripts/verify/check-bundle-containment.mjs"
@@ -28,6 +29,7 @@
     "react-dom": "19.2.4"
   },
   "devDependencies": {
+    "@playwright/test": "^1.61.1",
     "@tailwindcss/postcss": "4.3.1",
     "@types/node": "20.19.43",
     "@types/pg": "8.20.0",
