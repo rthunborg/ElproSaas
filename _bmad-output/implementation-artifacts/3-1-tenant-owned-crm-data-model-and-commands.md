@@ -225,3 +225,12 @@ MODIFIED:
 - tests/integration/commands/crm-parent-ownership.int.test.ts (un-gated, real imports/seeds)
 - tests/integration/rls/crm-tables-migration-reset.int.test.ts (un-gated; anon-grant assert
   scoped to DML)
+
+### Review Findings
+
+Tier-A (epic mode) thin review — Acceptance Auditor lens (1 reviewer model) + dedicated
+security review. Blind Hunter and Edge Case Hunter lenses are DELIBERATELY deferred to the
+epic-level Tier-B integration review. Security review reported 0 findings.
+
+- [x] [Review][Patch][Med] Cross-tenant facility-link negative accepts `VALIDATION_FAILED` but spec mandates exactly `TENANT_ACCESS_DENIED` [tests/integration/commands/crm-parent-ownership.int.test.ts] — the "createContact linking a Tenant B facility_id is rejected" case asserts `expect(["TENANT_ACCESS_DENIED","VALIDATION_FAILED"]).toContain(result.code)`. Production mapping is deterministic: a valid-UUID foreign facility raises `23503` on the composite FK, which `throwMappedWriteError` (crm-db.ts case "23503") maps to `TENANT_ACCESS_DENIED` — no code path yields `VALIDATION_FAILED` for a valid-UUID foreign facility. The disjunction permits an outcome AC4 / Task 2.3 / Testing-requirements forbid and would let a re-map regression pass green. Fix: pin the assertion to `expect(result.code).toBe("TENANT_ACCESS_DENIED")`.
+- [x] [Review][Defer][Low] `validateUpdateCustomer` does not enforce identifier-by-type mutual exclusion (deferred to DB CHECK) [src/server/commands/crm/validation.ts] — deferred, follow-up hardening. `validateCreateCustomer` enforces requiredness + mutual exclusion; `validateUpdateCustomer` bounds `personnummer`/`org_nr` as optional text and defers type-consistency to the `customers_identifier_by_type` DB CHECK (`23514` → `VALIDATION_FAILED`). The update command cannot know the row's existing `customer_type` without a read, and a violating update is correctly rejected by the DB backstop with the right code — so no incorrect outcome is reachable. Minor: command-layer validator is only partial for updates; could be hardened (read-then-validate) as later work. Not pre-existing — introduced by this story's design — but correctly backstopped, so logged rather than patched now.

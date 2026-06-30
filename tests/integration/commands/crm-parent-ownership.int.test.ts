@@ -138,11 +138,12 @@ describe("CRM parent-ownership cross-tenant negatives (AC4 / R-002)", () => {
       correlationId: crypto.randomUUID(),
     });
     expect(result.ok).toBe(false);
+    // Deterministic mapping (AC4 / Task 2.3): a valid-UUID foreign facility raises
+    // 23503 on the composite same-tenant FK, which throwMappedWriteError maps to
+    // TENANT_ACCESS_DENIED. No path yields VALIDATION_FAILED here, so the assertion
+    // is pinned exactly — a re-map regression must not pass green.
     if (!result.ok) {
-      expect([
-        "TENANT_ACCESS_DENIED",
-        "VALIDATION_FAILED",
-      ]).toContain(result.code);
+      expect(result.code).toBe("TENANT_ACCESS_DENIED");
     }
   });
 
