@@ -208,6 +208,39 @@ describe("updateCompanySettings — upsert, VAT bp validation, audit (Story 3.3 
     if (!result.ok) expect(result.code).toBe("VALIDATION_FAILED");
   });
 
+  it("[P0] a blank / missing company_name is rejected at the COMMAND layer → VALIDATION_FAILED, no row persisted (AC1)", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
+    // A direct/bypassed-client invocation that omits company_name must be rejected by
+    // `validateInput` (the designated authority) — the UX `required` attribute is NOT
+    // the boundary. company_name is the only required identity field at the command
+    // layer (the migration's stated contract); a blank/whitespace name cannot persist.
+    const missing = await runCommand(updateCompanySettings, {
+      client: a as never,
+      input: {
+        // no company_name
+        default_vat_display: "company_togglable",
+        vat_rate_bp: 2500,
+      } as never,
+      clock: fixedClock,
+      correlationId: crypto.randomUUID(),
+    });
+    expect(missing.ok).toBe(false);
+    if (!missing.ok) expect(missing.code).toBe("VALIDATION_FAILED");
+
+    const blank = await runCommand(updateCompanySettings, {
+      client: a as never,
+      input: {
+        company_name: "   ", // whitespace-only — rejected after trim
+        default_vat_display: "company_togglable",
+        vat_rate_bp: 2500,
+      },
+      clock: fixedClock,
+      correlationId: crypto.randomUUID(),
+    });
+    expect(blank.ok).toBe(false);
+    if (!blank.ok) expect(blank.code).toBe("VALIDATION_FAILED");
+  });
+
   it("[P0] an unknown default_vat_display value is rejected → VALIDATION_FAILED", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     const result = await runCommand(updateCompanySettings, {

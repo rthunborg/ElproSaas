@@ -5,10 +5,10 @@ epic_num: 3
 story_num: 3
 branch: epic/3-crm-company-settings-and-pricing-foundation
 status: in-progress
-updated_at: "2026-06-30T15:35:40Z"
+updated_at: "2026-06-30T15:51:05Z"
 started_at: "2026-06-30T14:37:23Z"
 completed_at: null
-active_seconds: 3395
+active_seconds: 4297
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -20,14 +20,14 @@ tea_selected: [atdd, automate]
 tea_rationale: "All 3 HIGH triggers: new tenant-owned settings/terms migrations (data integrity), RLS rated High (R-003/R-005 score-6), and VAT defaults + quote terms feed quote snapshots with a hard Stop Condition (tax/legal wording must never be auto-approved without owner/accounting/legal sign-off, R-011)"
 epic_story_count: 5
 stories_after_in_epic: 2
-completed_phases: [0, 1, 2, 3, 4, 5, 6]
+completed_phases: [0, 1, 2, 3, 4, 5, 6, 7]
 code_review_iterations: 0
 code_review_loop_done: false
 hitl_halt: null
 external_review_iterations: 0
 convergence_unverified: false
 story_trace: null
-commits: [02cab81, 5aaf7bf, 7bf2d67, 9689b41]
+commits: [02cab81, 5aaf7bf, 7bf2d67, 9689b41, 44aa947]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -57,3 +57,4 @@ blockers: []
 overrides: {}
 constraints: []
 tier_a_base_sha: bdaa8b12b610bf3b745ccd0297403942235a7667
+tier_a_review: "Changes Requested; 1 Med Patch fixed (server-side company_name requiredness in validateUpdateCompanySettings), 2 Decisions auto-deferred (M2 approved_by display, M3 vat_display enum owner-gated), 3 Low deferred, security 0/0/1 (Low dismissed); converged (0 open crit/high, 0 open non-deferred)"

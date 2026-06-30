@@ -105,11 +105,13 @@ const fail = { ok: false as const, code: "VALIDATION_FAILED" as const };
 
 /**
  * Validated `updateCompanySettings` input (tenant_id is NEVER part of it —
- * derived). All identity fields are optional; `default_vat_display` must be an
- * allowed enum value; `vat_rate_bp` must be an INTEGER in [0, 10000].
+ * derived). `company_name` is REQUIRED (non-empty after trim — the migration's
+ * stated command-layer contract / AC1); the other identity fields are optional;
+ * `default_vat_display` must be an allowed enum value; `vat_rate_bp` must be an
+ * INTEGER in [0, 10000].
  */
 export interface UpdateCompanySettingsInput {
-  readonly company_name?: string;
+  readonly company_name: string;
   readonly org_nr?: string;
   readonly address_line1?: string;
   readonly address_line2?: string;
@@ -153,8 +155,15 @@ export function validateUpdateCompanySettings(
   // vat_rate_bp must be an INTEGER in [0, 10000] (basis points, never a float).
   if (!isVatRateBp(raw.vat_rate_bp)) return fail;
 
+  // company_name is the ONLY REQUIRED identity field at the command layer (AC1;
+  // the migration header states this contract). Reject an absent / blank /
+  // whitespace-only company name so a direct/bypassed-client command invocation
+  // cannot persist a settings row with no company name (the DB column is nullable
+  // and the UX `required` attribute is not the authority — `validateInput` is).
+  // Trim before the empty check, mirroring `isNonEmptyText`.
+  if (!isNonEmptyText(raw.company_name)) return fail;
+
   // Optional identity fields — validated only when present.
-  if (!optionalTextOk(raw.company_name)) return fail;
   if (!optionalTextOk(raw.org_nr)) return fail;
   if (!optionalTextOk(raw.address_line1, MAX_LONG_TEXT)) return fail;
   if (!optionalTextOk(raw.address_line2, MAX_LONG_TEXT)) return fail;
@@ -167,7 +176,7 @@ export function validateUpdateCompanySettings(
   const value: UpdateCompanySettingsInput = {
     default_vat_display: display as VatDisplayMode,
     vat_rate_bp: raw.vat_rate_bp as number,
-    company_name: str(raw, "company_name"),
+    company_name: (raw.company_name as string).trim(),
     org_nr: str(raw, "org_nr"),
     address_line1: str(raw, "address_line1"),
     address_line2: str(raw, "address_line2"),

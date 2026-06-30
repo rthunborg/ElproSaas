@@ -44,9 +44,58 @@ test("company: a valid minimal input (display + integer bp) is accepted", () => 
   }
 });
 
+test("company: a missing / blank / whitespace-only company_name is rejected at the command layer (AC1 — the only required identity field)", () => {
+  // Absent → rejected (the command layer is the authority, not the UX `required`).
+  assertRejected(
+    validateUpdateCompanySettings({
+      default_vat_display: "company_togglable",
+      vat_rate_bp: 2500,
+    }),
+    "missing company_name",
+  );
+  // Empty string → rejected.
+  assertRejected(
+    validateUpdateCompanySettings({
+      company_name: "",
+      default_vat_display: "company_togglable",
+      vat_rate_bp: 2500,
+    }),
+    "empty company_name",
+  );
+  // Whitespace-only → rejected (trim before the empty check).
+  assertRejected(
+    validateUpdateCompanySettings({
+      company_name: "   ",
+      default_vat_display: "company_togglable",
+      vat_rate_bp: 2500,
+    }),
+    "whitespace-only company_name",
+  );
+  // null → rejected.
+  assertRejected(
+    validateUpdateCompanySettings({
+      company_name: null as unknown as string,
+      default_vat_display: "company_togglable",
+      vat_rate_bp: 2500,
+    }),
+    "null company_name",
+  );
+});
+
+test("company: a company_name with surrounding whitespace is trimmed onto the validated value", () => {
+  const r = validateUpdateCompanySettings({
+    company_name: "  Elpro Pilot AB  ",
+    default_vat_display: "company_togglable",
+    vat_rate_bp: 2500,
+  });
+  assert.equal(r.ok, true);
+  if (r.ok) assert.equal(r.data.company_name, "Elpro Pilot AB");
+});
+
 test("company: both enum display modes are accepted", () => {
   for (const mode of VAT_DISPLAY_MODES) {
     const r = validateUpdateCompanySettings({
+      company_name: "Elpro Pilot AB",
       default_vat_display: mode,
       vat_rate_bp: 0,
     });
@@ -101,6 +150,7 @@ test("company: a float / non-integer vat_rate_bp is rejected (basis points are i
 test("company: the [0,10000] boundaries are inclusive", () => {
   for (const bp of [0, 10000]) {
     const r = validateUpdateCompanySettings({
+      company_name: "Elpro Pilot AB",
       default_vat_display: "company_togglable",
       vat_rate_bp: bp,
     });
@@ -118,6 +168,7 @@ test("company: a present-but-malformed email is rejected; absent is fine", () =>
     "bad email",
   );
   const r = validateUpdateCompanySettings({
+    company_name: "Elpro Pilot AB",
     default_vat_display: "company_togglable",
     vat_rate_bp: 2500,
   });
@@ -127,6 +178,7 @@ test("company: a present-but-malformed email is rejected; absent is fine", () =>
 test("company: a client-supplied tenant_id is NEVER part of the validated value", () => {
   const r = validateUpdateCompanySettings({
     tenant_id: "99999999-9999-4999-8999-999999999999",
+    company_name: "Elpro Pilot AB",
     default_vat_display: "company_togglable",
     vat_rate_bp: 2500,
   });
@@ -159,6 +211,7 @@ test("company: a present-but-malformed phone is rejected; a well-formed one is a
     "too-short phone",
   );
   const ok = validateUpdateCompanySettings({
+    company_name: "Elpro Pilot AB",
     default_vat_display: "company_togglable",
     vat_rate_bp: 2500,
     phone: "+46 70 123 45 67",
@@ -180,6 +233,7 @@ test("company: an over-length identity field is rejected (defensive bound)", () 
   // A long-text field (address) tolerates up to 512.
   const addr512 = "x".repeat(512);
   const ok = validateUpdateCompanySettings({
+    company_name: "Elpro Pilot AB",
     default_vat_display: "company_togglable",
     vat_rate_bp: 2500,
     address_line1: addr512,
