@@ -167,6 +167,22 @@ The project ledger (`_bmad-output/implementation-artifacts/deferred-work.md`) is
 4. **Exact article field set.** The minimal manual article carries `name`, optional `sku`/`unit`, and `unit_price_ore`. **Confirm whether the pilot needs additional minimal fields** (e.g. a description, a category) — kept out by default to honor "minimal" and the no-supplier-scope discipline. [epics.md#Story 3.4 AC2 (manual, minimal); architecture.md#7]
 5. **Free-entry labor (Epic 5 boundary).** Owner decision: labor must be priceable BOTH via reusable work roles AND via free entry. This story builds only the reusable work-role SOURCE; the free-entry calculation row is Epic 5's calculation-editor concern. **Confirm this split** — no free-entry UI is built here. [owner-decisions-applied-2026-06-18.md#Story 3.4; epics.md#Epic 5]
 
+## Review Findings
+
+Triaged from the THIN Tier-A review (Acceptance Auditor lens, 1 reviewer model; auditor verdict Approve — 1 Med, 4 Low, all minor/observational) + the dedicated security review (0 HIGH / 0 MEDIUM / 0 LOW — clean). Blind Hunter + Edge Case Hunter lenses are DELIBERATELY not run in Tier A (they run later in the epic-level Tier-B integration review — not failed/empty here). 3 findings dismissed as noise/observational (Med cost-defaults-to-0 UI affordance, Low is_active archive-shape difference, Low unbounded-but-bounded unit/sku free-text); 1 actionable Decision + 1 Defer survive.
+
+### Decision (needs human intent)
+
+- [x] [Review][Defer][Low] Articles-IN-scope is an owner-assumption surfaced as Open Question 1, not an independently re-confirmed decision — The diff builds the full `articles` table/command/UI; the story documents this as resolved by `owner-decisions-applied-2026-06-18.md#Story 3.4` ("reusable article/material register IS IN scope — owner: yes") and flags it as Open Question 1 for PR confirmation. Story 3.5's snapshot contract + the epic test design's R-007 both depend on articles, so deferring would dangle those references. The implementation correctly followed the deliverable-completing default and kept articles a clean, additive (cleanly removable) slice. No deviation from the story as written; logged so the owner-confirmation gate is not lost at PR review. Recommended: defer: owner-gated — confirm the articles-IN decision still stands at PR review; the `articles` slice is cleanly removable if the owner reverses, so the conservative deliverable-completing default stands until then.
+
+### Patch (unambiguous fix)
+
+- (none)
+
+### Defer (real but minor / not now)
+
+- [x] [Review][Defer][Low] No UI reactivate control for an archived work_role/article — the read layer hides archived rows but the upsert UPDATE path cannot reactivate from the UI. `readWorkRoles`/`readArticles` filter `.eq("is_active", true)`, so archived rows never appear in the editor lists, and neither editor (`WorkRolesEditor`/`ArticlesEditor`) renders a reactivate control — only an "Arkivera" button. The command/data model CAN reactivate (archive is reversible via UPDATE flipping `is_active`), but no UI surfaces an archived row to reactivate it. AC2's "reactivate" verb is a capability of the data model, not a UI this story ships; the Tasks treat the `is_active` toggle as sufficient and the e2e does not test reactivation — within the documented MINIMAL scope. Owner UX call. [src/features/pricing/read.ts] — deferred
+
 ## Dev Agent Record
 
 ### Agent Model Used
