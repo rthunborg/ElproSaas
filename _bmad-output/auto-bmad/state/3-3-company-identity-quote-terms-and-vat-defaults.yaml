@@ -5,10 +5,10 @@ epic_num: 3
 story_num: 3
 branch: epic/3-crm-company-settings-and-pricing-foundation
 status: in-progress
-updated_at: "2026-06-30T14:37:23Z"
+updated_at: "2026-06-30T14:48:51Z"
 started_at: "2026-06-30T14:37:23Z"
 completed_at: null
-active_seconds: 0
+active_seconds: 635
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -20,14 +20,14 @@ tea_selected: [atdd, automate]
 tea_rationale: "All 3 HIGH triggers: new tenant-owned settings/terms migrations (data integrity), RLS rated High (R-003/R-005 score-6), and VAT defaults + quote terms feed quote snapshots with a hard Stop Condition (tax/legal wording must never be auto-approved without owner/accounting/legal sign-off, R-011)"
 epic_story_count: 5
 stories_after_in_epic: 2
-completed_phases: [0, 1, 2]
+completed_phases: [0, 1, 2, 3]
 code_review_iterations: 0
 code_review_loop_done: false
 hitl_halt: null
 external_review_iterations: 0
 convergence_unverified: false
 story_trace: null
-commits: []
+commits: [02cab81]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -46,7 +46,12 @@ pr_merged: false
 merge_method: null
 merge_commit: null
 branch_deleted: false
-open_questions: []
+open_questions:
+  - "VAT rate value (basis points): pending Epic-4 working session (default 2500 bp, configurable, never a code literal)."
+  - "Quote-terms customer-facing wording: owner/legal sign-off REQUIRED (placeholder text for pilot; must never be marked approved in code or fixtures)."
+  - "VAT display defaults precision (private forced incl-VAT vs company togglable): exact enum encoding to confirm with owner."
+  - "Exact mandatory company-identity fields for a PDF-ready quote: owner-pending."
+  - "Quote-terms shape: modeled as single-active-row; confirm whether versioned terms are wanted."
 deferred_work: []
 blockers: []
 overrides: {}
