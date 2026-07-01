@@ -5,10 +5,10 @@ epic_num: 3
 story_num: 5
 branch: epic/3-crm-company-settings-and-pricing-foundation
 status: in-progress
-updated_at: "2026-07-01T08:49:39Z"
+updated_at: "2026-07-01T08:54:03Z"
 started_at: "2026-06-30T20:25:19Z"
 completed_at: null
-active_seconds: 1916
+active_seconds: 2164
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: true
@@ -20,14 +20,14 @@ tea_selected: [atdd, automate]
 tea_rationale: "Three HIGH signals: money integrity (öre values captured in the snapshot contract), snapshot immutability (R-008 score-6, silent-recompute prevention = irreversible data-integrity concern), and cross-tenant authorization (source-ID rejection required by both command validation AND RLS)"
 epic_story_count: 5
 stories_after_in_epic: 0
-completed_phases: [0, 1, 2, 3, 4, 5, 6]
+completed_phases: [0, 1, 2, 3, 4, 5, 6, 7]
 code_review_iterations: 0
 code_review_loop_done: false
 hitl_halt: null
 external_review_iterations: 0
 convergence_unverified: false
 story_trace: null
-commits: [2c9537e, 2f25cff, 8e609ec, 01d691c]
+commits: [2c9537e, 2f25cff, 8e609ec, 01d691c, 48a3bfb]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -56,3 +56,4 @@ blockers: []
 overrides: {}
 constraints: []
 tier_a_base_sha: 0852434b01c970c45397f5f938768940d45573e8
+tier_a_review: "APPROVE; auditor Approve + security 0/0/0; 0 Patch, 0 Decision, 0 Defer, 3 informational Low dismissed as noise; converged (0 open non-deferred, 0 crit/high)"

@@ -169,3 +169,14 @@ claude-opus-4-8 (auto-bmad dev-story delegate)
 - `tests/fixtures/golden/snapshots/article-source.json` (new, from scaffold) — optional-article golden fixture (input → expected).
 - `_bmad-output/implementation-artifacts/sprint-status.yaml` (modified) — story status ready-for-dev → in-progress → review.
 - `_bmad-output/implementation-artifacts/3-5-snapshot-source-contract-for-settings-and-pricing-inputs.md` (modified) — task checkboxes, Dev Agent Record, Status.
+
+### Review Findings
+
+Thin Tier-A review (epic mode): only the Acceptance Auditor lens ran under one reviewer model; the Blind Hunter and Edge Case Hunter lenses are DELIBERATELY not run in Tier A (they run in the epic-level Tier-B integration review later) — their absence is not a failed layer.
+
+Thin Tier-A review: auditor APPROVE, security clean; 3 informational Low findings dismissed as noise, 0 actionable.
+
+Triage detail (all 3 dismissed — none names a concrete defect with a realistic trigger in this diff):
+- [Dismiss][Low] Golden anonymization guard scans fixture DATA (`sourceRow`+`expectedSnapshot`), not the `_doc` prose — deliberate + disclosed retarget (the `_doc` string legitimately contains the word "secrets"); the load-bearing `deepEqual` golden assertion is unchanged/unweakened and the fixtures carry no PII regardless. Test-design preference on a belt-and-braces guard, not a defect. [tests/unit/lib/snapshots/golden.test.ts]
+- [Dismiss][Low] `company_settings`/`quote_terms` are one-row-per-tenant (`unique (tenant_id)`) — the suite seeds exactly one row per tenant so the constraint is never hit; the note is a latent gotcha for a hypothetical FUTURE test, not a defect in the code/tests under review. [tests/integration/snapshots/source-ownership.int.test.ts]
+- [Dismiss][Low] Resolver table/column interpolation dispatched off the closed `SnapshotKind` union — the auditor confirms this is NOT a SQL-injection surface (`sourceId` is the only client value, passed to a parameterized `.eq(...)`); a positive confirmation noted for completeness, not a defect. [src/server/snapshots/resolve-source.ts]
