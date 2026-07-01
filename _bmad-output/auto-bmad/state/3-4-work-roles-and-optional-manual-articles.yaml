@@ -1,0 +1,60 @@
+# auto-bmad per-story state — written by scripts/state_update.py (full stable schema;
+# see references/state-and-resume.md). Prose belongs in reports/{key}.md, not here.
+story_key: 3-4-work-roles-and-optional-manual-articles
+epic_num: 3
+story_num: 4
+branch: epic/3-crm-company-settings-and-pricing-foundation
+status: in-progress
+updated_at: "2026-06-30T20:23:30Z"
+started_at: "2026-06-30T15:55:30Z"
+completed_at: null
+active_seconds: 2753
+timing_anchor: null
+is_first_in_epic: false
+is_last_in_epic: false
+needs_project_context_bootstrap: false
+git_mode: remote
+base_branch: main
+tea_risk: high
+tea_selected: [atdd, automate]
+tea_rationale: "Three+ HIGH triggers: new tenant-owned work_roles/optional articles migrations (data integrity + FORCE RLS, cross-tenant negatives), cost/sell hourly rates in integer öre that are customer-visible quote-snapshot inputs (R-006 score-6), and the supplier-scope guardrail (R-007 score-6: articles carry NO supplier credentials/sync/imports/APIs/mappings)"
+epic_story_count: 5
+stories_after_in_epic: 1
+completed_phases: [0, 1, 2, 3, 4, 5, 6, 7]
+code_review_iterations: 0
+code_review_loop_done: false
+hitl_halt: null
+external_review_iterations: 0
+convergence_unverified: false
+story_trace: null
+commits: [c447285, 8a05784, d15a4aa, 3e2ce8f, 9f74acc]
+phase8_steps:
+  trace_gate: null
+  nfr: null
+  test_review: null
+  project_context: null
+  reconcile: null
+  archive: null
+  retro: null
+gate_decision: null
+gate_iterations: 0
+deferred_work_archived: 0
+pr_url: null
+ci_run_url: null
+ci_status: unknown
+pr_merged: false
+merge_method: null
+merge_commit: null
+branch_deleted: false
+open_questions:
+  - "Articles-IN re-confirmation: owner-decisions-applied-2026-06-18.md says yes; confirm at pilot that the minimal manual article register is wanted."
+  - "öre overflow bound + kronor-input locale handling ('850,00' -> 85000 öre): confirm max amount + decimal/comma parsing rules."
+  - "Work-role lifecycle: is_active boolean vs archived_at timestamp — confirm the intended lifecycle model."
+  - "Exact minimal article field set (owner-pending)."
+  - "Free-entry labor lines are Epic 5 scope, not this story (clarification, not a blocker)."
+deferred_work: []
+blockers: []
+overrides: {}
+constraints: []
+tier_a_base_sha: de3f7929ff6ba2a7a099d7db968ae9c6069fbce5
+tier_a_review: "Approve (auditor) + security 0/0/0; 0 Patch, 1 Low Decision auto-deferred (articles-IN-scope owner re-confirm at PR), 1 Low deferred (no UI reactivate), 3 dismissed (cost-defaults-to-0 UI affordance, is_active archive shape permitted, free-text unit cap); converged (0 open crit/high, 0 open non-deferred)"

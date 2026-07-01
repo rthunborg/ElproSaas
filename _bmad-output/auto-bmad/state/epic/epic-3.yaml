@@ -1,0 +1,184 @@
+# auto-bmad per-story state — written by scripts/state_update.py (full stable schema;
+# see references/state-and-resume.md). Prose belongs in reports/{key}.md, not here.
+story_key: epic-3
+epic_num: 3
+story_num: null
+branch: epic/3-crm-company-settings-and-pricing-foundation
+status: done
+updated_at: "2026-07-01T13:13:29Z"
+started_at: "2026-06-30T10:50:17Z"
+completed_at: "2026-07-01T13:13:29Z"
+active_seconds: 3931
+timing_anchor: null
+is_first_in_epic: false
+is_last_in_epic: false
+needs_project_context_bootstrap: false
+git_mode: remote
+base_branch: main
+tea_risk: null
+tea_selected: []
+tea_rationale: null
+epic_story_count: 5
+stories_after_in_epic: null
+completed_phases: [0, 1, 2, 5, 7, 9, 81, 82]
+code_review_iterations: 2
+code_review_loop_done: true
+hitl_halt: "auto-continued (epic — no halt)"
+external_review_iterations: 0
+convergence_unverified: false
+story_trace: null
+commits: [fc07813, 2c4767c, 1fef441]
+phase8_steps:
+  trace_gate: done
+  nfr: done
+  test_review: done
+  project_context: done
+  reconcile: done
+  archive: done
+  retro: done
+gate_decision: PASS
+gate_iterations: 0
+deferred_work_archived: 2
+pr_url: "https://github.com/rthunborg/ElproSaas/pull/17"
+ci_run_url: "https://github.com/rthunborg/ElproSaas/actions/runs/28519610886"
+ci_status: passed
+pr_merged: false
+merge_method: null
+merge_commit: null
+branch_deleted: false
+open_questions: []
+deferred_work: []
+blockers: []
+overrides: {}
+constraints: []
+active_story: null
+stories_landed:
+  - 3-1-tenant-owned-crm-data-model-and-commands
+  - 3-2-crm-tenant-admin-ux-and-lifecycle-context
+  - 3-3-company-identity-quote-terms-and-vat-defaults
+  - 3-4-work-roles-and-optional-manual-articles
+  - 3-5-snapshot-source-contract-for-settings-and-pricing-inputs
+epic_slug: crm-company-settings-and-pricing-foundation
+auto_decisions:
+  - "AC1 duplicate-like surfaced only in create dialog, not a list state [Med] -> dismiss: Task 1.4 create-dialog placement is the sanctioned intent; AC1 met in spirit (non-blocking advisory present) (Tier A, 3-2-crm-tenant-admin-ux-and-lifecycle-context)"
+  - "AC1 loading not a distinct rendered state [Med] -> dismiss: architecturally inapplicable given the server-read + client-filter design (no client fetch to await); 4/5 states explicit (Tier A, 3-2-crm-tenant-admin-ux-and-lifecycle-context)"
+  - "Approved-status UI shows static 'agare/juridik' not real approved_by [Med] -> defer: attribution-by-name needs a user-display read surface out of scope; wire when a user-read lands (Tier A, 3-3-company-identity-quote-terms-and-vat-defaults)"
+  - "default_vat_display enum drops 'private always incl-VAT' to a code invariant [Low] -> defer: precise enum owner-gated (Open Question 3), confirm at Epic-4 working session (Tier A, 3-3-company-identity-quote-terms-and-vat-defaults)"
+  - "Articles-IN-scope is an owner assumption (Open Question 1), not independently re-confirmed [Low] -> defer: owner-gated, re-confirm at PR review; the articles slice is cleanly removable if reversed (Tier A, 3-4-work-roles-and-optional-manual-articles)"
+  - "Personnummer clear-text in client-component payload (mask cosmetic) [Low] -> defer: admin-only own-tenant, security-cleared; server-gated reveal is an Epic 6 privacy-hardening item (deferred not dismissed for PII stewardship) (E_review, epic-3)"
+  - "Epic-3 test-design 'no personnummer' exit-criteria vs shipped owner-approved schema [Low] -> defer: reconcile test-design/R-009 text to the 2026-06-18 owner decision, no code change (E_review, epic-3)"
+  - "Archived-read failure gates the ENTIRE pricing page (introduced by the reactivate fix) [Low] -> defer: scope the archived-read error to the archived section, not page-level; future pricing-UI polish (E_review iter 2, epic-3)"
+uat_items:
+  - "[3-1-tenant-owned-crm-data-model-and-commands] Start the local stack and apply the migration from empty: `supabase start` then `supabase db reset` -> completes with no error, applies 20260630120000_crm_data_model.sql."
+  - "[3-1-tenant-owned-crm-data-model-and-commands] Verify the three tables exist: psql -c \"select table_name from information_schema.tables where table_schema='public' and table_name in ('customers','facilities','contacts') order by 1\" -> exactly contacts, customers, facilities."
+  - "[3-1-tenant-owned-crm-data-model-and-commands] Verify direct tenant ownership + cascade on customers: pg_get_constraintdef -> FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE."
+  - "[3-1-tenant-owned-crm-data-model-and-commands] Verify composite same-tenant parent FK on facilities -> FOREIGN KEY (customer_id, tenant_id) REFERENCES customers(id, tenant_id) ON DELETE CASCADE."
+  - "[3-1-tenant-owned-crm-data-model-and-commands] Verify contacts' two composite same-tenant FKs -> (customer_id,tenant_id)->customers ON DELETE CASCADE AND (facility_id,tenant_id)->facilities ON DELETE SET NULL."
+  - "[3-1-tenant-owned-crm-data-model-and-commands] Verify customer_type CHECK: insert customer_type='charity' -> rejected 23514 on customers_customer_type_check (only private/company/brf/public)."
+  - "[3-1-tenant-owned-crm-data-model-and-commands] Verify identifier-by-type CHECK: insert a private customer carrying both personnummer and org_nr -> rejected 23514 on customers_identifier_by_type."
+  - "[3-1-tenant-owned-crm-data-model-and-commands] Verify personnummer lives ONLY on customers: information_schema.columns where column_name='personnummer' -> returns only customers."
+  - "[3-1-tenant-owned-crm-data-model-and-commands] Verify no supplier/credential/sync columns leaked (AC7): no CRM column name matches supplier|credential|api_key|sync|import|external|fortnox|mapping."
+  - "[3-1-tenant-owned-crm-data-model-and-commands] Verify RLS enabled AND forced: pg_class relrowsecurity/relforcerowsecurity for the 3 tables -> all t/t."
+  - "[3-1-tenant-owned-crm-data-model-and-commands] Verify own-tenant policies + NO DELETE policy (archive-only) via pg_policies -> each table has SELECT/INSERT/UPDATE, no DELETE."
+  - "[3-1-tenant-owned-crm-data-model-and-commands] Verify GRANTs: authenticated has SELECT/INSERT/UPDATE (no DELETE), service_role full DML, anon holds none of SELECT/INSERT/UPDATE/DELETE."
+  - "[3-1-tenant-owned-crm-data-model-and-commands] Run `pnpm run test:int -- crm-tables-migration-reset` -> all P0 schema/RLS/GRANT assertions green (runnable form of the SQL checks above)."
+  - "[3-1-tenant-owned-crm-data-model-and-commands] Run `pnpm run test:int -- migration-reset.int` -> green (the extended 12-policy per-table enumeration with CRM added still holds)."
+  - "[3-1-tenant-owned-crm-data-model-and-commands] createCustomer happy path + audit: `pnpm run test:int -- crm-customer-commands` -> exactly one customer.created audit row under the resolved tenant at the fixed-clock instant."
+  - "[3-1-tenant-owned-crm-data-model-and-commands] No PII in audit metadata: same run asserts audit metadata contains none of the personnummer/name/email (SAFE_FIELDS allow-list drops PII)."
+  - "[3-1-tenant-owned-crm-data-model-and-commands] Input validation rejections: bad customer_type, private-missing-personnummer, private-with-org_nr, malformed-email, empty-display_name each return VALIDATION_FAILED."
+  - "[3-1-tenant-owned-crm-data-model-and-commands] Archive-over-delete: archiveCustomer sets archived_at and an independent BYPASSRLS read confirms the row still EXISTS (soft delete)."
+  - "[3-1-tenant-owned-crm-data-model-and-commands] updateCustomer on a foreign/random id -> TENANT_ACCESS_DENIED (RLS-invisible -> ownership-verify sees zero rows)."
+  - "[3-1-tenant-owned-crm-data-model-and-commands] Cross-tenant parent-link spoof: `pnpm run test:int -- crm-parent-ownership` -> Tenant-A createFacility/createContact with a real Tenant-B parent -> TENANT_ACCESS_DENIED; client-smuggled tenant_id ignored."
+  - "[3-1-tenant-owned-crm-data-model-and-commands] Cross-tenant RLS negatives: `pnpm run test:int -- cross-tenant-isolation` -> A SELECT/INSERT/UPDATE/DELETE of B rows denied (42501 / RLS-invisible) + BYPASSRLS re-read unchanged."
+  - "[3-1-tenant-owned-crm-data-model-and-commands] Anon-path negatives: `pnpm run test:int -- anon-path-isolation` -> anon SELECT/INSERT/UPDATE/DELETE on the 3 tables denied with 42501."
+  - "[3-1-tenant-owned-crm-data-model-and-commands] H4 inventory gate green with all three CRM tables enrolled: `pnpm run test:int -- rls-inventory-gate` (an unenrolled tenant-owned table fails loud here)."
+  - "[3-1-tenant-owned-crm-data-model-and-commands] Umbrella: `supabase db reset` then `pnpm run test:int` -> all integration suites green (CRM command, parent-ownership, migration-reset, cross-tenant, anon, H4-gate)."
+  - "[3-2-crm-tenant-admin-ux-and-lifecycle-context] Sign in as the seeded tenant_admin (adminA) at /login and open /customers -> h1 'Kunder', a 'Ny kund' button, and a table listing both seeded customers (company + private)."
+  - "[3-2-crm-tenant-admin-ux-and-lifecycle-context] On /customers, columns are Kund/Typ/Org.nr/Ort/Status with a Swedish type badge and an 'Aktiv' status with a check icon (not color-only); NO personnummer column or value anywhere in the list."
+  - "[3-2-crm-tenant-admin-ux-and-lifecycle-context] On /customers, type the company's display name into 'Sok kund' -> list narrows to just the company row."
+  - "[3-2-crm-tenant-admin-ux-and-lifecycle-context] On /customers, type the company's org number (556677-8899) into 'Sok kund' -> the company row stays (search matches org.nr, not just name)."
+  - "[3-2-crm-tenant-admin-ux-and-lifecycle-context] On /customers, type a nonsense string -> a distinct 'Inga traffar' no-results panel appears (different from the empty state)."
+  - "[3-2-crm-tenant-admin-ux-and-lifecycle-context] On /customers, use 'Filtrera typ' -> 'Privatperson' shows only the private customer; reset to 'Alla kundtyper' returns both."
+  - "[3-2-crm-tenant-admin-ux-and-lifecycle-context] On /customers, click a customer's name -> navigate to /customers/[id] with that customer's name as h1 and its type badge."
+  - "[3-2-crm-tenant-admin-ux-and-lifecycle-context] On the company detail, the summary shows 'Organisationsnummer' (its org.nr) and NO personnummer field for a non-private type."
+  - "[3-2-crm-tenant-admin-ux-and-lifecycle-context] On the PRIVATE customer detail, the 'Personnummer' field shows a masked value (only last 4 digits) with a 'Visa' button."
+  - "[3-2-crm-tenant-admin-ux-and-lifecycle-context] On the private detail, click 'Visa' -> full personnummer revealed, button flips to 'Dolj'; click 'Dolj' -> masks again."
+  - "[3-2-crm-tenant-admin-ux-and-lifecycle-context] On the company detail, an 'Anlaggningar' section lists the seeded facility and a 'Kontakter' section lists the seeded contact, each with 'Redigera' + archive."
+  - "[3-2-crm-tenant-admin-ux-and-lifecycle-context] On the company detail 'Relaterat' section -> honest 'byggs i Epic N' placeholders (Kalkyler/Offerter/Jobb/Filer/Handelsehistorik) and NO deferred-module section."
+  - "[3-2-crm-tenant-admin-ux-and-lifecycle-context] On /customers, click 'Ny kund' -> a 'Ny kund' dialog opens and focus lands inside on the first field (Kundtyp select), not the close (X) button."
+  - "[3-2-crm-tenant-admin-ux-and-lifecycle-context] With the 'Ny kund' dialog open, press Escape -> dialog closes and focus returns to the 'Ny kund' trigger button."
+  - "[3-2-crm-tenant-admin-ux-and-lifecycle-context] With the dialog open, Tab to the last control then Tab once more -> focus wraps to the first control (focus trapped, never escapes to the page behind)."
+  - "[3-2-crm-tenant-admin-ux-and-lifecycle-context] In 'Ny kund', select Kundtyp 'Foretag' -> identifier field is 'Organisationsnummer'; switch to 'Privatperson' -> it becomes 'Personnummer'."
+  - "[3-2-crm-tenant-admin-ux-and-lifecycle-context] In 'Ny kund' (Foretag), fill only 'Visningsnamn' (leave org.nr blank), click 'Spara' -> dialog stays open, org.nr field marked invalid with inline error + top-of-form error summary, and your typed Visningsnamn is preserved."
+  - "[3-2-crm-tenant-admin-ux-and-lifecycle-context] In 'Ny kund' (Foretag), fill a unique Visningsnamn + valid org number, click 'Spara' -> dialog closes and the new customer appears in the /customers list."
+  - "[3-2-crm-tenant-admin-ux-and-lifecycle-context] In 'Ny kund', type a display name that exactly matches an existing active customer -> a non-blocking amber duplicate-like advisory appears (separate from blocking errors) and you can still Spara."
+  - "[3-2-crm-tenant-admin-ux-and-lifecycle-context] Open a customer detail, click 'Redigera' -> the edit dialog shows the customer type as read-only '(kundtyp kan inte andras)' (no type switch) and fields pre-filled."
+  - "[3-2-crm-tenant-admin-ux-and-lifecycle-context] On a customer detail, click 'Arkivera kund' and confirm -> returned to /customers and the archived customer no longer appears in the default active list."
+  - "[3-2-crm-tenant-admin-ux-and-lifecycle-context] On the company detail, click 'Ny anlaggning' -> facility dialog opens with focus inside; Escape returns focus to the trigger."
+  - "[3-2-crm-tenant-admin-ux-and-lifecycle-context] On the company detail, click 'Ny kontakt' -> contact dialog opens (optional 'Ingen anlaggning' facility option + optional primary marker); Escape returns focus to the trigger."
+  - "[3-2-crm-tenant-admin-ux-and-lifecycle-context] Signed in, inspect the main nav -> EXACTLY seven labels (Dashboard, Kunder, Kalkyler, Offerter, Jobb/Order, Filer, Installningar) and NONE of Pilotstod/Migrering/Fortnox/Leverantor/Uthyrning/Tillgangar."
+  - "[3-2-crm-tenant-admin-ux-and-lifecycle-context] Open a not-signed-in browser window and visit /customers -> redirected to /login."
+  - "[3-2-crm-tenant-admin-ux-and-lifecycle-context] Not signed in, visit /customers/<any-id> directly -> redirected to /login (no data leaks pre-auth)."
+  - "[3-2-crm-tenant-admin-ux-and-lifecycle-context] Signed in, visit /customers/00000000-0000-0000-0000-000000000000 (non-existent / other-tenant id) -> a GENERIC 'Kunden hittades inte' not-found with a 'Tillbaka till kunder' link, revealing nothing about whether the id exists in another tenant."
+  - "[3-3-company-identity-quote-terms-and-vat-defaults] Nav shows exactly seven items (Dashboard, Kunder, Kalkyler, Offerter, Jobb/Order, Filer, Installningar) — no 'Prissattning'."
+  - "[3-3-company-identity-quote-terms-and-vat-defaults] Click 'Installningar' -> /settings hub with 'Foretagsinstallningar' + 'Offertvillkor' cards and NO pricing card."
+  - "[3-3-company-identity-quote-terms-and-vat-defaults] Browse to /settings/pricing in the address bar -> NOT a built screen (404/not-found; 3.4 not built)."
+  - "[3-3-company-identity-quote-terms-and-vat-defaults] From /settings hub, the two cards link to /settings/company and /settings/quote-terms; each sub-page has a back link."
+  - "[3-3-company-identity-quote-terms-and-vat-defaults] Signed out, visit /settings/company -> redirected to /login."
+  - "[3-3-company-identity-quote-terms-and-vat-defaults] Signed out, visit /settings/quote-terms -> redirected to /login."
+  - "[3-3-company-identity-quote-terms-and-vat-defaults] Signed out, visit /settings -> redirected to /login."
+  - "[3-3-company-identity-quote-terms-and-vat-defaults] /settings/company shows Foretagsnamn (required), Org.nr, Adress, Postnummer, Ort, E-post, Telefon, a 'Standardvisning av moms' select, and a Momssats percent input (helper text: stored as basis points, no VAT calc here)."
+  - "[3-3-company-identity-quote-terms-and-vat-defaults] Fresh tenant: Momssats pre-fills '25' and the VAT-display select defaults to 'foretagskunder togglable, privatkunder alltid inkl. moms'."
+  - "[3-3-company-identity-quote-terms-and-vat-defaults] Fill Foretagsnamn='Elpro Pilot AB', Momssats='25', Spara -> green 'Foretagsinstallningarna har sparats.'"
+  - "[3-3-company-identity-quote-terms-and-vat-defaults] Reload after save -> Foretagsnamn + Momssats round-trip from DB via the RLS read."
+  - "[3-3-company-identity-quote-terms-and-vat-defaults] Momssats='25.5', Spara, reload -> '25.5' preserved (basis-points conversion keeps the fractional rate)."
+  - "[3-3-company-identity-quote-terms-and-vat-defaults] Change VAT-display select to 'visa exkl. moms', Spara, reload -> the chosen option persists."
+  - "[3-3-company-identity-quote-terms-and-vat-defaults] Momssats='250' (out of 0-100%), valid name, Spara -> rejected with a field-associated Momssats error + error summary; inputs preserved."
+  - "[3-3-company-identity-quote-terms-and-vat-defaults] Momssats='abc', Spara -> rejected with the field-associated Momssats error; input preserved."
+  - "[3-3-company-identity-quote-terms-and-vat-defaults] Momssats='25.555' (sub-basis-point), Spara -> rejected (only <=2 decimals)."
+  - "[3-3-company-identity-quote-terms-and-vat-defaults] Clear Foretagsnamn (blank), otherwise valid, Spara -> rejected with a field-associated 'obligatoriskt' error (blank company name refused at SAVE now); other input preserved."
+  - "[3-3-company-identity-quote-terms-and-vat-defaults] Foretagsnamn = spaces only, Spara -> still rejected as required (whitespace-only not valid)."
+  - "[3-3-company-identity-quote-terms-and-vat-defaults] E-post malformed (e.g. 'notanemail'), Spara -> rejected with a field-associated E-post error."
+  - "[3-3-company-identity-quote-terms-and-vat-defaults] /settings/quote-terms with no terms saved -> prominent amber WARNING 'Ej godkant: ... kraver godkannande av agare/juridik' (wording, not color alone)."
+  - "[3-3-company-identity-quote-terms-and-vat-defaults] In the not-approved state, NO green 'Godkand av...' status is shown."
+  - "[3-3-company-identity-quote-terms-and-vat-defaults] Type placeholder terms + 'Spara villkor' -> 'Offertvillkoren har sparats. (Sparande godkanner inte villkoren.)' AND the not-approved WARNING persists (saving text did NOT approve)."
+  - "[3-3-company-identity-quote-terms-and-vat-defaults] Reload after saving text -> terms text round-trips and the not-approved WARNING persists."
+  - "[3-3-company-identity-quote-terms-and-vat-defaults] Submit empty terms textarea ('Spara villkor') -> rejected with a field-associated 'obligatoriskt' error (terms text required)."
+  - "[3-3-company-identity-quote-terms-and-vat-defaults] With saved not-approved terms, click 'Markera som godkand' -> green 'Godkand av agare/juridik (<date> UTC)' status (who+when); WARNING disappears."
+  - "[3-3-company-identity-quote-terms-and-vat-defaults] In the approved state, note 'om du redigerar texten maste villkoren godkannas pa nytt' is shown and 'Markera som godkand' is gone."
+  - "[3-3-company-identity-quote-terms-and-vat-defaults] From approved, edit the terms text + 'Spara villkor' -> approval RE-INVALIDATED: green status replaced by the not-approved WARNING, 'Markera som godkand' reappears (edit resets sign-off)."
+  - "[3-3-company-identity-quote-terms-and-vat-defaults] Re-approve the edited terms via 'Markera som godkand' -> transitions back to the green approved status."
+  - "[3-3-company-identity-quote-terms-and-vat-defaults] /settings/company VAT-display options both state 'privatkunder visas alltid inkl. moms'; only company togglability differs; NO per-customer VAT toggle or any VAT/total calculation anywhere."
+  - "[3-3-company-identity-quote-terms-and-vat-defaults] Sign in as the other tenant's admin -> /settings/company and /settings/quote-terms do NOT show tenant A's 'Elpro Pilot AB'/approved terms (own tenant's defaults only) — settings are tenant-scoped."
+  - "[3-4-work-roles-and-optional-manual-articles] /settings hub shows a 'Prissattning' card/link alongside Foretagsinstallningar + Offertvillkor."
+  - "[3-4-work-roles-and-optional-manual-articles] Click 'Prissattning' -> /settings/pricing, heading 'Prissattning', with 'Arbetsroller' + 'Artiklar / material' sections."
+  - "[3-4-work-roles-and-optional-manual-articles] Fresh tenant (no pricing rows) -> 'Inga arbetsroller annu...' + 'Inga artiklar annu...' empty states, no error."
+  - "[3-4-work-roles-and-optional-manual-articles] Save a work role: Benamning 'Elektriker', Pris '850,00', Kostnad '600,00', 'Spara roll' -> success + row shows '850,00 kr/tim' (kronor->öre round-trip)."
+  - "[3-4-work-roles-and-optional-manual-articles] Reload after saving '850,00' -> still '850,00 kr/tim' (persisted as öre, redisplayed as kronor, no drift)."
+  - "[3-4-work-roles-and-optional-manual-articles] Save Pris '12,5' -> redisplays '12,50 kr/tim' (öre padding). Save '0,01' -> '0,01 kr/tim' (1 öre handled)."
+  - "[3-4-work-roles-and-optional-manual-articles] Save a role with Kostnad BLANK + Pris filled -> saves OK (blank cost defaults to 0, not an error)."
+  - "[3-4-work-roles-and-optional-manual-articles] Save a role with Kostnad 'abc' (garbage) + valid Pris -> BLOCKED with a field error on Kostnad (malformed cost is an error, distinct from blank-defaults-to-0); sell rate unaffected."
+  - "[3-4-work-roles-and-optional-manual-articles] Save Pris '-5' -> blocked, field-associated error under Pris, typed values preserved."
+  - "[3-4-work-roles-and-optional-manual-articles] Save Pris '850.00' (dot decimal) -> blocked (only Swedish comma accepted). '850,005' (3 decimals) -> blocked (sub-öre). '850 kr'/'1.000,00' -> blocked."
+  - "[3-4-work-roles-and-optional-manual-articles] Submit work-role form with Benamning blank -> required-field error on Benamning. Pris blank -> required-field error on Pris (sell rate mandatory)."
+  - "[3-4-work-roles-and-optional-manual-articles] After a rejected work-role submit, the error is conveyed by text/markup (message + top-of-form summary), not color alone."
+  - "[3-4-work-roles-and-optional-manual-articles] Save an article: Artikelnamn 'Kabel', Enhet 'm', Enhetspris '12,50' -> success, row 'Kabel (m)' with '12,50 kr'."
+  - "[3-4-work-roles-and-optional-manual-articles] Save an article with sku + Enhet blank -> saves (both optional). Enhetspris '-1'/'abc' -> blocked with a field error, input preserved."
+  - "[3-4-work-roles-and-optional-manual-articles] Submit article form with Artikelnamn blank -> required-field error on Artikelnamn."
+  - "[3-4-work-roles-and-optional-manual-articles] Click 'Arkivera' on an active role -> it disappears from the Arbetsroller list (soft archive). Same for an article."
+  - "[3-4-work-roles-and-optional-manual-articles] Reload after archiving -> the archived role/article stays absent (archived rows not shown)."
+  - "[3-4-work-roles-and-optional-manual-articles] Inspect the whole /settings/pricing page -> NO supplier/leverantor/sync/import/Fortnox/API/EDI/vendor/external-mapping field anywhere (manual rows only)."
+  - "[3-4-work-roles-and-optional-manual-articles] Inspect /settings/pricing -> NO VAT/moms field, NO total/margin, NO computed amount — only entered cost/sell/unit prices (source data, computes nothing)."
+  - "[3-4-work-roles-and-optional-manual-articles] Main nav -> exactly seven items (Dashboard, Kunder, Kalkyler, Offerter, Jobb/Order, Filer, Installningar); NO standalone 'Prissattning' nav entry."
+  - "[3-4-work-roles-and-optional-manual-articles] Incognito (not signed in), visit /settings/pricing -> redirected to /login (no pricing data exposed)."
+  - "[3-4-work-roles-and-optional-manual-articles] Sign in as the OTHER tenant's admin (adminB) -> /settings/pricing shows only tenant B's roles/articles, NOT tenant A's (tenant-scoped via RLS)."
+  - "[3-5-snapshot-source-contract-for-settings-and-pricing-inputs] Run `pnpm test:unit` (snapshots units under tests/unit/lib/snapshots/** + tests/unit/server/snapshots/**) -> builder copy-fidelity passes: all four kinds copy every real 3-3/3-4 column by value; öre stay integers; vat_rate_bp stays basis points; null sku/unit/approved_at/company_name stay null."
+  - "[3-5-snapshot-source-contract-for-settings-and-pricing-inputs] Confirm the R-008 immutability units pass -> mutating a source row AFTER building its snapshot leaves the prior snapshot unchanged (no silent recompute); the snapshot is Object.isFrozen; a direct write to it does not take effect — proven for all four kinds."
+  - "[3-5-snapshot-source-contract-for-settings-and-pricing-inputs] Confirm the golden-master units pass (tests/unit/lib/snapshots/golden.test.ts) -> each pinned fixture sourceRow + fixed capturedAt builds EXACTLY the pinned expectedSnapshot; a shape change fails loud."
+  - "[3-5-snapshot-source-contract-for-settings-and-pricing-inputs] Inspect tests/fixtures/golden/snapshots/work-role-source.json + article-source.json by eye -> stable shape (integer öre e.g. cost_rate_ore 38500 -> costRateOre 38500, kind discriminator, sourceUpdatedAt version, capturedAt); ONLY anonymized placeholder data (no real names/orgnr/personnummer/emails); article fixture has NO supplier/vendor/import/api/fortnox key."
+  - "[3-5-snapshot-source-contract-for-settings-and-pricing-inputs] With the local Supabase stack up (`supabase start` then `supabase db reset`), run `pnpm test:int` -> source-ownership suite passes: as Tenant A, resolveSnapshotSource for a Tenant-A id succeeds; for a Tenant-B id returns typed TENANT_ACCESS_DENIED (zero rows, no leaked existence) across all four sources; an independent RLS-client SELECT of the Tenant-B id returns zero rows (both-layers AC3)."
+  - "[3-5-snapshot-source-contract-for-settings-and-pricing-inputs] Run `pnpm typecheck` -> clean: SnapshotSource is a readonly discriminated union and the assertNever dispatcher makes any unhandled future source-kind a compile error."
+  - "[3-5-snapshot-source-contract-for-settings-and-pricing-inputs] Run `pnpm run verify:service-role-containment` -> passes: the server-only resolver imports no service-role/secret symbol; the pure src/lib/snapshots/** builders are safe to import anywhere."
+integration_review_done: true
+planning_drift: "DETAIL-LEVEL: test-design-epic-3.md R-009 + exit criteria 'no personnummer field by default' is superseded by the 2026-06-18 owner decision requiring personnummer for private/ROT customers (shipped correctly: access-controlled, masked, list/audit-excluded). One-line doc reconciliation so a future automated trace does not spuriously FAIL on the obsolete assertion. No structural impact — non-blocking, do NOT auto-run."
+batch_flip_done: true

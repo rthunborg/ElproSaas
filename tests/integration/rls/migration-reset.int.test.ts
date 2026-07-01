@@ -109,24 +109,91 @@ describe("Migration reset green — tenant_foundation objects present (AC1 / R-0
     expect(rows[0]?.is_nullable).toBe("NO");
   });
 
-  it("[P0] only SELECT policies exist (no write policy on the app path)", async (testCtx) => {
+  it("[P0] the public policy set is EXACTLY the expected per-table enumeration", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     const rows = await adminQuery<{ tablename: string; cmd: string }>(
       `select tablename, cmd from pg_policies where schemaname = 'public'`,
     );
-    // Every public policy is SELECT — confirming INSERT/UPDATE/DELETE are
-    // deny-by-default for the authenticated app path (AC3 foundation). Story 2.3
-    // adds a third SELECT-only policy (`audit_events_select_own`) alongside the two
-    // tenant_foundation ones (`tenants_select_own`, `tenant_memberships_select_own`);
-    // no write policy is introduced on the app path.
+    // EXACT enumeration (NOT a loose superset) so a future STRAY policy on any table —
+    // a write policy on the foundation tables, or a DELETE policy on a CRM table — is
+    // still caught by this assertion failing.
+    //
+    // The foundation tables (tenants / tenant_memberships / audit_events) are
+    // SELECT-only on the app path — INSERT/UPDATE/DELETE are deny-by-default there
+    // (audit writes go via the record_audit_event DEFINER). Story 3.1 ADDS the first
+    // app-path WRITE policies: the CRM tables grant `authenticated` SELECT/INSERT/UPDATE
+    // (the tenant admin manages CRM via the app path), so customers/facilities/contacts
+    // each carry own-tenant SELECT + INSERT + UPDATE policies — and NO DELETE policy
+    // (archive over hard delete). This is the documented, expected break of the prior
+    // "every policy is SELECT" invariant (Task 5.2): the invariant is REPLACED by this
+    // exact per-table expectation rather than weakened to a superset match.
+    // Story 3.3 EXTENDS this exact enumeration (NOT loosened to a superset) by the 6
+    // new settings policies: company_settings.{SELECT,INSERT,UPDATE} +
+    // quote_terms.{SELECT,INSERT,UPDATE} — SELECT/INSERT/UPDATE per table, NO DELETE
+    // (upsert over hard delete). Placed alphabetically. The "no DELETE policy anywhere"
+    // assertion below still holds.
+    // Story 3.4 EXTENDS it again (NOT loosened) by the 6 new PRICING policies:
+    // articles.{SELECT,INSERT,UPDATE} (sorts FIRST alphabetically) +
+    // work_roles.{SELECT,INSERT,UPDATE} — SELECT/INSERT/UPDATE per table, NO DELETE
+    // (archive over hard delete). Both tables are MANY-rows-per-tenant collections.
     expect(rows.map((r) => `${r.tablename}.${r.cmd}`).sort()).toEqual([
+      "articles.INSERT",
+      "articles.SELECT",
+      "articles.UPDATE",
       "audit_events.SELECT",
+      "company_settings.INSERT",
+      "company_settings.SELECT",
+      "company_settings.UPDATE",
+      "contacts.INSERT",
+      "contacts.SELECT",
+      "contacts.UPDATE",
+      "customers.INSERT",
+      "customers.SELECT",
+      "customers.UPDATE",
+      "facilities.INSERT",
+      "facilities.SELECT",
+      "facilities.UPDATE",
+      "quote_terms.INSERT",
+      "quote_terms.SELECT",
+      "quote_terms.UPDATE",
       "tenant_memberships.SELECT",
       "tenants.SELECT",
+      "work_roles.INSERT",
+      "work_roles.SELECT",
+      "work_roles.UPDATE",
     ]);
+    // Per-table command expectation (replaces the blanket "every policy is SELECT"):
+    // the three foundation tables are SELECT-only; the three CRM tables are
+    // SELECT/INSERT/UPDATE with NO DELETE policy on any table.
+    const cmdsByTable = new Map<string, string[]>();
     for (const r of rows) {
-      expect(r.cmd).toBe("SELECT");
+      cmdsByTable.set(r.tablename, [...(cmdsByTable.get(r.tablename) ?? []), r.cmd]);
     }
+    const selectOnly = ["tenants", "tenant_memberships", "audit_events"];
+    for (const t of selectOnly) {
+      expect((cmdsByTable.get(t) ?? []).sort()).toEqual(["SELECT"]);
+    }
+    // The CRM tables (Story 3.1), the settings tables (Story 3.3), and the pricing
+    // tables (Story 3.4) are all SELECT/INSERT/UPDATE with NO DELETE policy
+    // (archive/upsert over hard delete).
+    const crmSettingsAndPricingTables = [
+      "customers",
+      "facilities",
+      "contacts",
+      "company_settings",
+      "quote_terms",
+      "work_roles",
+      "articles",
+    ];
+    for (const t of crmSettingsAndPricingTables) {
+      expect((cmdsByTable.get(t) ?? []).sort()).toEqual([
+        "INSERT",
+        "SELECT",
+        "UPDATE",
+      ]);
+    }
+    // No DELETE policy exists anywhere on the app path (archive/upsert over hard delete).
+    expect(rows.some((r) => r.cmd === "DELETE")).toBe(false);
   });
 });
 

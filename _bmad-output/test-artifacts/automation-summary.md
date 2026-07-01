@@ -1,53 +1,79 @@
 ---
 stepsCompleted: ['step-01-preflight-and-context', 'step-02-identify-targets', 'step-03-generate-tests']
 lastStep: 'step-03-generate-tests'
-lastSaved: '2026-06-29'
+lastSaved: '2026-07-01'
 inputDocuments:
-  - _bmad-output/implementation-artifacts/2-4-security-regression-harness-for-tenant-and-service-role-boundaries.md
-  - _bmad-output/test-artifacts/test-design-epic-2.md
-  - tests/integration/rls/tenant-table-inventory.ts
-  - tests/integration/rls/rls-inventory-gate.int.test.ts
-  - scripts/verify/check-bundle-containment.mjs
-  - scripts/verify/check-service-role-containment.mjs
-  - tests/unit/rls/inventory-gate-core.test.ts
-  - tests/unit/scripts/verify/bundle-containment.test.ts
-  - tests/unit/scripts/verify/service-role-containment.test.ts
+  - _bmad-output/implementation-artifacts/3-5-snapshot-source-contract-for-settings-and-pricing-inputs.md
+  - src/lib/snapshots/types.ts
+  - src/lib/snapshots/build.ts
+  - src/server/snapshots/resolve-source.ts
+  - tests/unit/lib/snapshots/build.test.ts
+  - tests/unit/lib/snapshots/golden.test.ts
+  - tests/integration/snapshots/source-ownership.int.test.ts
+  - tests/fixtures/golden/snapshots/work-role-source.json
+  - tests/fixtures/golden/snapshots/article-source.json
+  - src/server/commands/command-errors.ts
+  - src/lib/result/result.ts
 ---
 
-# Test Automation Expansion — Story 2.4 (Security Regression Harness)
+# Test Automation Expansion — Story 3.5 (Snapshot Source Contract)
 
 ## Mode & Stack
 
-- **Mode:** BMad-Integrated (story 2.4 + test-design-epic-2 loaded).
-- **Detected stack:** backend/fullstack — bare-Node verify scripts + a pure inventory-gate core (`node --test`) over a DB-backed RLS harness (Vitest + local Supabase).
-- **Framework:** present — dual runner (`pnpm run test:unit` = `node --test`; `pnpm run test:int` = Vitest). No framework HALT.
-- **Baseline:** 131 unit + 89 DB-backed integration tests, all green.
+- **Mode:** BMad-Integrated (story 3.5 loaded). Create mode (expand after implementation).
+- **Detected stack:** backend for THIS module — pure TS builders/types + a server-only
+  RLS resolver. Prefer fast `node --test` units over more Vitest integration where a pure
+  function (builder, dispatcher, resolver error-mapping) can be tested directly.
+- **Framework verified:** present (`pnpm test:unit` node --test + `pnpm test:int` Vitest).
 
-## Scope of this run
+## Existing coverage (baseline — not weakened)
 
-Expand coverage for genuine gaps in THIS story's new/changed code only — the inventory-gate core, the bundle-containment scanner, and the broadened source guard. Do NOT duplicate the existing live INT coverage (cross-tenant/anon negatives, the DB-backed inventory gate, the bite proofs).
+- `tests/unit/lib/snapshots/build.test.ts` — per-kind copy-fidelity; `work_role`
+  source-mutation immutability; frozen (all 4); terms state-only + no source mutation.
+- `tests/unit/lib/snapshots/golden.test.ts` — work-role + article golden masters +
+  anonymization guard.
+- `tests/integration/snapshots/source-ownership.int.test.ts` — both-layers cross-tenant
+  rejection across all four sources (DB-touching — stays at integration).
 
-## Existing coverage (do NOT duplicate)
+## Gaps filled this run (fast pure units)
 
-- `findUnenrolledTenantTables` pure comparison: shrunk-set bite, fully-enrolled→0, new-schema-table, over-enrollment, sorted/de-dup (`inventory-gate-core.test.ts`).
-- DB-backed H4 gate: live tenant-owned set == {tenants, tenant_memberships, audit_events}, set-difference empty, live BITES, DX message (`rls-inventory-gate.int.test.ts`).
-- Bundle scanner: clean→0, key-name / re-export-symbol / NEXT_PUBLIC_ / demo-JWT / non-demo-JWT → ≥1, absent-`.next`→throws (`bundle-containment.test.ts`).
-- Source guard: NEXT_PUBLIC_ name, `"use client"` key ref, re-export-symbol client ref (RED); declaring module + server-only ref (GREEN) (`service-role-containment.test.ts`).
-- Generalized cross-tenant + anon negatives (all four verbs + privileged EXECUTE, `42501` mechanism) — live INT, unchanged.
+1. **Immutability depth per EACH kind** — for `work_role`, `article`, `company_settings`,
+   `quote_terms`: mutate the ORIGINAL source object (every captured field, incl. flipping
+   `is_active`, editing öre/bp/text/timestamps) AFTER build → the prior snapshot is
+   byte-for-byte unchanged (copy-by-value, no live reference); `Object.isFrozen(snap)` at
+   the intended-immutable level; a direct write to the snapshot does not take effect; the
+   builder never mutates its input row.
+2. **Field-capture edges** — integer-öre boundaries (`0`, large `Number.MAX_SAFE_INTEGER`)
+   copied verbatim & still integer; `vat_rate_bp` boundaries (`0`, `2500`, `10000`);
+   `approved_at` NULL (not-approved) vs a timestamp (approved) captured faithfully — the
+   builder NEVER approves; `capturedAt` always the injected value; source `updated_at`
+   flows to `sourceUpdatedAt` (the version) and is distinct from `capturedAt`.
+3. **Dispatcher `buildSnapshotSource`** — each `kind` routes to the matching per-kind
+   builder (output deep-equals the direct builder call, frozen); an unknown `kind` hits
+   `assertNever` and throws at runtime (fail-loud) — the compile-time guard is exercised
+   behaviorally.
+4. **`resolve-source.ts` pure error-mapping** — with an in-memory fake client (no DB):
+   zero rows (`[]` / `null`) → `TENANT_ACCESS_DENIED`; a returned DB `error` → `SERVER_ERROR`;
+   a thrown/rejecting client → `SERVER_ERROR`; a present row → `ok(row)`; the denial message
+   never echoes the source id; the resolver selects the right table per kind.
 
-## Coverage gaps closed (this run — 10 new unit tests, P1/P3)
+## Deliberately kept at integration (not unitized)
 
-1. **`introspectTenantOwnedTables` off-DB branch coverage (4 tests, P1/P3, AC3).** The function takes an `AdminQueryFn` so its branches are unit-testable with a fake — but no unit fed it one (only the live INT case, which skips without Docker). Added: the carrier∪`tenants` union (load-bearing edge case — `tenants` has no `tenant_id` column and must survive); `tenants` absent → NOT added (no phantom); a future `tenant_counters` carrier picked up end-to-end through the comparison; the DX message names every table + the module path + cites architecture §18.
-2. **Bundle scanner file-selection branches (3 tests, P1, Task 2.1).** `shouldScanFile`/`SCANNED_EXTENSIONS`/`SCANNED_BASENAMES` had no assertions: a SERVICE_ROLE byte-sequence in a binary `.woff`/`.png` must NOT fire (noise-avoidance); an extensionless `BUILD_ID` build manifest MUST be scanned by basename; `walk()` recurses into nested `.next/server/...` and AGGREGATES one violation per offending file.
-3. **Source-guard broadened roots (3 tests, Task 2.2).** The Task 2.2 broadening added the `app/**` tree outside `src/` and `next.config.*` to the scanned roots — untested. Added: a `"use client"` leak under root `app/**` (RED), a `NEXT_PUBLIC_*SERVICE_ROLE*` inlined via `next.config.ts` (RED), and a benign `next.config.ts` (GREEN, no over-fire).
+- Real RLS enforcement, cross-tenant zero-rows under the actual `is_tenant_admin` policies,
+  and the seeded two-tenant proof remain in `source-ownership.int.test.ts` (correct level —
+  they require the live Supabase stack).
 
-## Test levels & priorities
+## New / modified test files
 
-- **Unit (`node --test`):** all 10 additions — pure-logic / file-selection / fake-injected introspection. P1 for the security-bearing branches, P3 for the DX-message contract.
-- **Integration (Vitest):** no additions — the live RLS/anon/gate coverage already exists; adding more would duplicate.
+- `tests/unit/lib/snapshots/build.test.ts` — expanded (immutability per kind + field edges).
+- `tests/unit/lib/snapshots/dispatch.test.ts` — new (dispatcher routing + assertNever).
+- `tests/unit/server/snapshots/resolve-source.test.ts` — new (pure error-mapping).
 
 ## Result
 
-- `pnpm run test:unit` → **141 pass, 0 fail, 0 skip** (was 131).
-- `pnpm typecheck` clean; `pnpm lint` clean.
-- Integration suite unchanged (89 pass) — no INT tests added, no behavior touched.
+- **Unit suite:** 424 pass / 0 fail (was ~407 baseline; +17 new snapshot units this run).
+- **typecheck:** clean. **lint:** clean.
+- No existing test weakened; no golden fixture changed; no implementation code changed.
+- Integration suite (`test:int`, DB-touching cross-tenant) left untouched — it requires the
+  live local Supabase stack and its coverage is the correct level for the RLS half of AC3.
+

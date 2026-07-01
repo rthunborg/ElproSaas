@@ -74,6 +74,31 @@ export const TENANT_TABLES = [
   "tenants",
   "tenant_memberships",
   "audit_events",
+  // Story 3.1 CRM tables (the first tenant-owned BUSINESS tables). UNLIKE the
+  // three above, `authenticated` HAS an INSERT/UPDATE grant on these (the tenant
+  // admin manages CRM via the app path) — so their cross-tenant UPDATE denial
+  // mechanism is RLS-USING invisibility (zero rows + unchanged on independent
+  // re-read), NOT a missing-grant 42501. See `mutationDenialKind` below.
+  "customers",
+  "facilities",
+  "contacts",
+  // Story 3.3 settings tables (the first tenant-owned SETTINGS tables). Like the CRM
+  // tables, `authenticated` HAS an INSERT/UPDATE grant (the tenant admin manages
+  // settings via the app path) — so their cross-tenant UPDATE denial mechanism is
+  // RLS-USING invisibility (zero rows + unchanged on independent re-read), NOT a
+  // missing-grant 42501. See `updateDenialKind` below. Both are ONE-row-per-tenant
+  // (a unique (tenant_id)).
+  "company_settings",
+  "quote_terms",
+  // Story 3.4 pricing tables (the first tenant-owned PRICING tables). Like the CRM /
+  // settings tables, `authenticated` HAS an INSERT/UPDATE grant (the tenant admin
+  // manages pricing via the app path) — so their cross-tenant UPDATE denial mechanism
+  // is RLS-USING invisibility (zero rows + unchanged re-read), NOT a missing-grant
+  // 42501. UNLIKE the settings tables these are MANY-rows-per-tenant collections (NO
+  // unique (tenant_id)). The articles spoof/anon rows carry ONLY the minimal manual
+  // columns — there is NO supplier-ish column to populate (HARD no-supplier-scope).
+  "work_roles",
+  "articles",
 ] as const;
 
 export type TenantTableName = (typeof TENANT_TABLES)[number];
@@ -92,6 +117,74 @@ export interface InventoryContext {
   readonly fixture: TwoTenantFixture;
   /** A REAL Tenant B audit row id (cross-tenant target for the audit_events row). */
   readonly tenantBAuditId: string;
+  /**
+   * REAL Tenant B CRM row ids (Story 3.1) — concrete cross-tenant targets the
+   * customers/facilities/contacts negatives point Tenant A at, so the denial is
+   * never vacuous against a non-existent row. Optional so the anon suite (which
+   * never reads a seeded row — anon is denied before any row matches) can omit
+   * them; the cross-tenant suite seeds and asserts them. A consumer that needs one
+   * but finds it missing fails LOUDLY in the helper (vacuity guard), never silently.
+   */
+  readonly tenantBCustomerId?: string;
+  readonly tenantBFacilityId?: string;
+  readonly tenantBContactId?: string;
+  /**
+   * REAL Tenant B SETTINGS row ids (Story 3.3) — concrete cross-tenant targets the
+   * company_settings/quote_terms negatives point Tenant A at, so the denial is never
+   * vacuous against a non-existent row. Optional so the anon suite (which never reads
+   * a seeded row) can omit them; the cross-tenant suite seeds and asserts them. A
+   * consumer that needs one but finds it missing fails LOUDLY (vacuity guard).
+   */
+  readonly tenantBCompanySettingsId?: string;
+  readonly tenantBQuoteTermsId?: string;
+  /**
+   * REAL Tenant B PRICING row ids (Story 3.4) — concrete cross-tenant targets the
+   * work_roles/articles negatives point Tenant A at, so the denial is never vacuous
+   * against a non-existent row. Optional so the anon suite (which never reads a seeded
+   * row) can omit them; the cross-tenant suite seeds and asserts them. A consumer that
+   * needs one but finds it missing fails LOUDLY (vacuity guard via requireCrmId).
+   */
+  readonly tenantBWorkRoleId?: string;
+  readonly tenantBArticleId?: string;
+}
+
+/**
+ * The cross-tenant mutation-denial MECHANISM for a table, by grant profile:
+ *   - "privilege"    — `authenticated` has NO write grant, so the write is denied at
+ *     the PRIVILEGE layer (`42501`). True for tenants/tenant_memberships/audit_events
+ *     (and for DELETE on every table — no app-path DELETE grant anywhere).
+ *   - "rls-invisible" — `authenticated` HAS the write grant (the CRM tables), so a
+ *     cross-tenant UPDATE matches ZERO rows under RLS USING (the foreign row is
+ *     invisible) and returns an empty set with NO error. The negative asserts the
+ *     mechanism via zero-rows-affected PLUS an independent BYPASSRLS re-read proving
+ *     the target row is UNCHANGED — never a bare/vacuous empty set.
+ * This keeps the data-driven suite STRONG per table (each asserts its real
+ * mechanism), not loosened to a lowest-common-denominator.
+ */
+export type MutationDenialKind = "privilege" | "rls-invisible";
+
+/**
+ * The cross-tenant UPDATE denial mechanism for `table`. DELETE is "privilege" for
+ * ALL tables (no app-path DELETE grant), so this descriptor governs only the UPDATE
+ * branch of the cross-tenant suite.
+ */
+export function updateDenialKind(table: TenantTableName): MutationDenialKind {
+  switch (table) {
+    case "tenants":
+    case "tenant_memberships":
+    case "audit_events":
+      return "privilege"; // no UPDATE grant to authenticated → 42501
+    case "customers":
+    case "facilities":
+    case "contacts":
+    case "company_settings":
+    case "quote_terms":
+    case "work_roles":
+    case "articles":
+      return "rls-invisible"; // UPDATE granted; RLS USING hides foreign rows
+    default:
+      return assertNever(table);
+  }
 }
 
 /**
@@ -163,9 +256,110 @@ export function spoofedRowFor(
         role: "tenant_admin",
         status: "active",
       };
+    case "customers":
+      // A customer row forging Tenant B ownership. `authenticated` HAS an INSERT
+      // grant on customers, so the denial is the RLS INSERT WITH CHECK
+      // (is_tenant_admin(tenant_id=B) is false for a Tenant A admin) → `42501` "new
+      // row violates row-level security policy". FRESH id so the denial is the
+      // policy, never a `23505` PK collision.
+      return {
+        id: crypto.randomUUID(),
+        tenant_id: fixture.tenantB.id,
+        customer_type: "company",
+        display_name: "spoofed-by-tenant-a",
+        org_nr: "556000-0000",
+      };
+    case "facilities":
+      // A facility forging Tenant B ownership, pointing at a REAL Tenant B customer
+      // parent. The RLS INSERT WITH CHECK on tenant_id=B fires `42501` before the
+      // row lands (fresh id; the parent is a concrete Tenant B customer).
+      return {
+        id: crypto.randomUUID(),
+        tenant_id: fixture.tenantB.id,
+        customer_id: requireCrmId(ctx.tenantBCustomerId, "tenantBCustomerId", table),
+        name: "spoofed-facility-by-a",
+      };
+    case "contacts":
+      // A contact forging Tenant B ownership, pointing at a REAL Tenant B customer
+      // parent. RLS INSERT WITH CHECK on tenant_id=B → `42501` (fresh id).
+      return {
+        id: crypto.randomUUID(),
+        tenant_id: fixture.tenantB.id,
+        customer_id: requireCrmId(ctx.tenantBCustomerId, "tenantBCustomerId", table),
+        name: "spoofed-contact-by-a",
+      };
+    case "company_settings":
+      // A company_settings row forging Tenant B ownership. `authenticated` HAS an
+      // INSERT grant, so the denial is the RLS INSERT WITH CHECK
+      // (is_tenant_admin(tenant_id=B) is false for a Tenant A admin) → `42501`. FRESH
+      // id + the NOT-NULL columns (default_vat_display, vat_rate_bp) populated so the
+      // denial is the policy, never a `23505` PK collision or a NOT-NULL violation.
+      return {
+        id: crypto.randomUUID(),
+        tenant_id: fixture.tenantB.id,
+        company_name: "spoofed-by-tenant-a",
+        default_vat_display: "company_togglable",
+        vat_rate_bp: 2500,
+      };
+    case "quote_terms":
+      // A quote_terms row forging Tenant B ownership. RLS INSERT WITH CHECK on
+      // tenant_id=B → `42501` (fresh id; the NOT-NULL terms_text populated). NO
+      // approval field is set — approval is never part of a write payload.
+      return {
+        id: crypto.randomUUID(),
+        tenant_id: fixture.tenantB.id,
+        terms_text: "spoofed-terms-by-a (platshållartext)",
+      };
+    case "work_roles":
+      // A work_roles row forging Tenant B ownership. `authenticated` HAS an INSERT
+      // grant, so the denial is the RLS INSERT WITH CHECK (is_tenant_admin(tenant_id=B)
+      // is false for a Tenant A admin) → `42501`. FRESH id + the NOT-NULL columns
+      // (display_name + the two integer-öre rates) populated so the denial is the
+      // policy, never a `23505` PK collision or a NOT-NULL violation.
+      return {
+        id: crypto.randomUUID(),
+        tenant_id: fixture.tenantB.id,
+        display_name: "spoofed-by-tenant-a",
+        cost_rate_ore: 1,
+        sell_rate_ore: 1,
+      };
+    case "articles":
+      // An articles row forging Tenant B ownership. RLS INSERT WITH CHECK on
+      // tenant_id=B → `42501` (fresh id; the NOT-NULL name + unit_price_ore populated).
+      // CRITICAL no-supplier-scope: ONLY the minimal manual columns appear here — there
+      // is NO supplier-ish column to populate (one would not even exist in the schema).
+      return {
+        id: crypto.randomUUID(),
+        tenant_id: fixture.tenantB.id,
+        name: "spoofed-by-tenant-a",
+        unit_price_ore: 1,
+      };
     default:
       return assertNever(table);
   }
+}
+
+/**
+ * Vacuity guard for the CRM cross-tenant targets: the customers/facilities/contacts
+ * negatives target a CONCRETE seeded Tenant B row. A missing id would make the
+ * `.eq(...)` / spoof parent match nothing → a vacuous green. Fail LOUDLY so a broken
+ * seed is fixed, not silently passed. Mirrors the `tenantBFilter('audit_events')`
+ * vacuity guard.
+ */
+function requireCrmId(
+  id: string | undefined,
+  name: string,
+  table: TenantTableName,
+): string {
+  if (!id) {
+    throw new Error(
+      `tenant-table-inventory: the ${table} cross-tenant negative requires a real ` +
+        `seeded ${name}, but it is null/undefined — the negative would pass ` +
+        `vacuously against a non-existent row. Seed it in the cross-tenant suite ` +
+        `beforeAll and pass it on the InventoryContext.`,
+    );
+  }
+  return id;
 }
 
 /** The id column + value to filter Tenant B's existing rows by, per table. */
@@ -193,6 +387,58 @@ export function tenantBFilter(
       return { column: "id", value: ctx.tenantBAuditId };
     case "tenant_memberships":
       return { column: "tenant_id", value: ctx.fixture.tenantB.id };
+    case "customers":
+      // Target the SPECIFIC seeded Tenant B customer by id — the cross-tenant
+      // SELECT/UPDATE must read/affect ZERO rows under A's RLS, and the "unchanged"
+      // re-read proves THIS row stayed intact. Vacuity-guarded (requireCrmId).
+      return {
+        column: "id",
+        value: requireCrmId(ctx.tenantBCustomerId, "tenantBCustomerId", table),
+      };
+    case "facilities":
+      return {
+        column: "id",
+        value: requireCrmId(ctx.tenantBFacilityId, "tenantBFacilityId", table),
+      };
+    case "contacts":
+      return {
+        column: "id",
+        value: requireCrmId(ctx.tenantBContactId, "tenantBContactId", table),
+      };
+    case "company_settings":
+      // Target the SPECIFIC seeded Tenant B company_settings row by id — the
+      // cross-tenant SELECT/UPDATE must read/affect ZERO rows under A's RLS, and the
+      // "unchanged" re-read proves THIS row stayed intact. Vacuity-guarded.
+      return {
+        column: "id",
+        value: requireCrmId(
+          ctx.tenantBCompanySettingsId,
+          "tenantBCompanySettingsId",
+          table,
+        ),
+      };
+    case "quote_terms":
+      return {
+        column: "id",
+        value: requireCrmId(
+          ctx.tenantBQuoteTermsId,
+          "tenantBQuoteTermsId",
+          table,
+        ),
+      };
+    case "work_roles":
+      // Target the SPECIFIC seeded Tenant B work_role by id — the cross-tenant
+      // SELECT/UPDATE must read/affect ZERO rows under A's RLS, and the "unchanged"
+      // re-read proves THIS row stayed intact. Vacuity-guarded.
+      return {
+        column: "id",
+        value: requireCrmId(ctx.tenantBWorkRoleId, "tenantBWorkRoleId", table),
+      };
+    case "articles":
+      return {
+        column: "id",
+        value: requireCrmId(ctx.tenantBArticleId, "tenantBArticleId", table),
+      };
     default:
       return assertNever(table);
   }
@@ -201,7 +447,10 @@ export function tenantBFilter(
 /**
  * The UPDATE mutation payload that, if it landed, would hijack Tenant B's row.
  * `audit_events` is append-only (no update grant), so its payload still triggers
- * the same 42501 privilege denial the suite asserts.
+ * the same 42501 privilege denial the suite asserts. For the CRM tables
+ * `authenticated` HAS an UPDATE grant, so the same payload instead matches ZERO
+ * rows under RLS USING (the foreign row is invisible) — the "rls-invisible" denial
+ * the cross-tenant suite asserts via zero-rows-affected + an unchanged re-read.
  */
 export function hijackMutationFor(
   table: TenantTableName,
@@ -213,6 +462,54 @@ export function hijackMutationFor(
       return { metadata: { hijacked: true } };
     case "tenant_memberships":
       return { status: "disabled" };
+    case "customers":
+      return { display_name: "hijacked-by-tenant-a" };
+    case "facilities":
+    case "contacts":
+      return { name: "hijacked-by-tenant-a" };
+    case "company_settings":
+      return { company_name: "hijacked-by-tenant-a" };
+    case "quote_terms":
+      return { terms_text: "hijacked-by-tenant-a" };
+    case "work_roles":
+      return { display_name: "hijacked-by-tenant-a" };
+    case "articles":
+      return { name: "hijacked-by-tenant-a" };
+    default:
+      return assertNever(table);
+  }
+}
+
+/**
+ * The label column whose value the cross-tenant UPDATE negative reads back
+ * (independently, BYPASSRLS) to prove the hijack value never landed, for an
+ * "rls-invisible" table. Matches the column `hijackMutationFor` would have set.
+ * Settings tables added in Story 3.3; CRM tables in Story 3.1.
+ */
+export function rlsInvisibleLabelColumn(table: TenantTableName): string {
+  switch (table) {
+    case "customers":
+      return "display_name";
+    case "facilities":
+    case "contacts":
+      return "name";
+    case "company_settings":
+      return "company_name";
+    case "quote_terms":
+      return "terms_text";
+    case "work_roles":
+      return "display_name";
+    case "articles":
+      return "name";
+    // The "privilege"-denial tables never reach the unchanged-re-read branch, so a
+    // label column is not meaningful for them — but the exhaustive switch keeps the
+    // enrollment compile-safe (assertNever on a future unenrolled table).
+    case "tenants":
+      return "name";
+    case "audit_events":
+      return "command";
+    case "tenant_memberships":
+      return "status";
     default:
       return assertNever(table);
   }
@@ -255,6 +552,68 @@ export function anonRowFor(
         role: "tenant_admin",
         status: "active",
       };
+    case "customers":
+      // Anon has NO grant on customers, so the INSERT is denied at the privilege
+      // layer (42501) regardless of the row shape. A valid-enough row (the CHECK
+      // constraints are never reached — the grant denial fires first).
+      return {
+        id: crypto.randomUUID(),
+        tenant_id: fixture.tenantA.id,
+        customer_type: "company",
+        display_name: "anon-spoof",
+        org_nr: "556000-0001",
+      };
+    case "facilities":
+      return {
+        id: crypto.randomUUID(),
+        tenant_id: fixture.tenantA.id,
+        customer_id: crypto.randomUUID(),
+        name: "anon-spoof-facility",
+      };
+    case "contacts":
+      return {
+        id: crypto.randomUUID(),
+        tenant_id: fixture.tenantA.id,
+        customer_id: crypto.randomUUID(),
+        name: "anon-spoof-contact",
+      };
+    case "company_settings":
+      // Anon has NO grant on company_settings, so the INSERT is denied at the
+      // privilege layer (42501) regardless of the row shape. The NOT-NULL columns are
+      // populated so the grant denial — not a NOT-NULL violation — is what fires.
+      return {
+        id: crypto.randomUUID(),
+        tenant_id: fixture.tenantA.id,
+        company_name: "anon-spoof",
+        default_vat_display: "company_togglable",
+        vat_rate_bp: 2500,
+      };
+    case "quote_terms":
+      return {
+        id: crypto.randomUUID(),
+        tenant_id: fixture.tenantA.id,
+        terms_text: "anon-spoof terms (platshållartext)",
+      };
+    case "work_roles":
+      // Anon has NO grant on work_roles, so the INSERT is denied at the privilege
+      // layer (42501) regardless of the row shape. NOT-NULL columns populated so the
+      // grant denial — not a NOT-NULL violation — is what fires.
+      return {
+        id: crypto.randomUUID(),
+        tenant_id: fixture.tenantA.id,
+        display_name: "anon-spoof",
+        cost_rate_ore: 1,
+        sell_rate_ore: 1,
+      };
+    case "articles":
+      // Anon has NO grant on articles → 42501. ONLY the minimal manual columns appear
+      // (no supplier-ish column — HARD no-supplier-scope).
+      return {
+        id: crypto.randomUUID(),
+        tenant_id: fixture.tenantA.id,
+        name: "anon-spoof",
+        unit_price_ore: 1,
+      };
     default:
       return assertNever(table);
   }
@@ -272,16 +631,23 @@ export function anonFilterFor(
   switch (table) {
     case "tenants":
       return { column: "id", value: ctx.fixture.tenantA.id };
-    // `audit_events` and `tenant_memberships` SHARE one branch (deliberate fall-through)
-    // and both filter by `tenant_id` here — and that is intentional: anon is denied at
-    // the PRIVILEGE layer (42501) before any row is matched, so the filter only needs to
-    // name a real, valid column for the table. This DIFFERS on purpose from
-    // `tenantBFilter`, which targets `audit_events` by `id` (the cross-tenant suite needs
-    // to hit a SPECIFIC seeded Tenant B row to prove the row stayed unchanged on
-    // independent re-read); the anon path has no such re-read, so `tenant_id` suffices.
-    // Hence one shared branch for both, not a per-table copy.
+    // `audit_events`, `tenant_memberships`, and the CRM tables SHARE one branch
+    // (deliberate fall-through) and all filter by `tenant_id` here — and that is
+    // intentional: anon is denied at the PRIVILEGE layer (42501) before any row is
+    // matched, so the filter only needs to name a real, valid column for the table.
+    // This DIFFERS on purpose from `tenantBFilter`, which targets the CRM/audit rows
+    // by `id` (the cross-tenant suite needs a SPECIFIC seeded Tenant B row to prove
+    // it stayed unchanged on independent re-read); the anon path has no such re-read,
+    // so `tenant_id` suffices. Hence one shared branch, not a per-table copy.
     case "audit_events":
     case "tenant_memberships":
+    case "customers":
+    case "facilities":
+    case "contacts":
+    case "company_settings":
+    case "quote_terms":
+    case "work_roles":
+    case "articles":
       return { column: "tenant_id", value: ctx.fixture.tenantA.id };
     default:
       return assertNever(table);
@@ -299,6 +665,19 @@ export function anonMutationFor(
       return { metadata: { hijacked: true } };
     case "tenant_memberships":
       return { status: "disabled" };
+    case "customers":
+      return { display_name: "anon-hijack" };
+    case "facilities":
+    case "contacts":
+      return { name: "anon-hijack" };
+    case "company_settings":
+      return { company_name: "anon-hijack" };
+    case "quote_terms":
+      return { terms_text: "anon-hijack" };
+    case "work_roles":
+      return { display_name: "anon-hijack" };
+    case "articles":
+      return { name: "anon-hijack" };
     default:
       return assertNever(table);
   }

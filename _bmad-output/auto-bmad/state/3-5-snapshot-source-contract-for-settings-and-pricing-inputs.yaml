@@ -1,0 +1,59 @@
+# auto-bmad per-story state — written by scripts/state_update.py (full stable schema;
+# see references/state-and-resume.md). Prose belongs in reports/{key}.md, not here.
+story_key: 3-5-snapshot-source-contract-for-settings-and-pricing-inputs
+epic_num: 3
+story_num: 5
+branch: epic/3-crm-company-settings-and-pricing-foundation
+status: in-progress
+updated_at: "2026-07-01T08:56:16Z"
+started_at: "2026-06-30T20:25:19Z"
+completed_at: null
+active_seconds: 2286
+timing_anchor: null
+is_first_in_epic: false
+is_last_in_epic: true
+needs_project_context_bootstrap: false
+git_mode: remote
+base_branch: main
+tea_risk: high
+tea_selected: [atdd, automate]
+tea_rationale: "Three HIGH signals: money integrity (öre values captured in the snapshot contract), snapshot immutability (R-008 score-6, silent-recompute prevention = irreversible data-integrity concern), and cross-tenant authorization (source-ID rejection required by both command validation AND RLS)"
+epic_story_count: 5
+stories_after_in_epic: 0
+completed_phases: [0, 1, 2, 3, 4, 5, 6, 7]
+code_review_iterations: 0
+code_review_loop_done: false
+hitl_halt: null
+external_review_iterations: 0
+convergence_unverified: false
+story_trace: null
+commits: [2c9537e, 2f25cff, 8e609ec, 01d691c, 48a3bfb]
+phase8_steps:
+  trace_gate: null
+  nfr: null
+  test_review: null
+  project_context: null
+  reconcile: null
+  archive: null
+  retro: null
+gate_decision: null
+gate_iterations: 0
+deferred_work_archived: 0
+pr_url: null
+ci_run_url: null
+ci_status: unknown
+pr_merged: false
+merge_method: null
+merge_commit: null
+branch_deleted: false
+open_questions:
+  - "Exact small contract field set: whether company_settings carries more identity, and whether work_role/article snapshots capture is_active (owner/PR confirmation)."
+  - "Terms/VAT wording sign-off: the contract captures approved_at STATE only and approves nothing (owner/legal-gated; honors never-auto-approve-tax-text)."
+  - "Using source updated_at as the 'source version' (no explicit version column on the source tables) — confirm acceptable."
+  - "No-new-table Stop-Condition confirmation: contract layer only, concrete quote-snapshot persistence is Epic 6."
+deferred_work: []
+blockers: []
+overrides: {}
+constraints: []
+tier_a_base_sha: 0852434b01c970c45397f5f938768940d45573e8
+tier_a_review: "APPROVE; auditor Approve + security 0/0/0; 0 Patch, 0 Decision, 0 Defer, 3 informational Low dismissed as noise; converged (0 open non-deferred, 0 crit/high)"
