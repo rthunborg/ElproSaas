@@ -1,6 +1,6 @@
 # Story 3.3: Company Identity, Quote Terms, And VAT Defaults
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 

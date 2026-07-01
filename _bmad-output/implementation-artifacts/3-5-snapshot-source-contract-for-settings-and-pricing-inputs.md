@@ -1,6 +1,6 @@
 # Story 3.5: Snapshot Source Contract For Settings And Pricing Inputs
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 

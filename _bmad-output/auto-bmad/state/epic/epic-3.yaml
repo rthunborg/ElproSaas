@@ -4,11 +4,11 @@ story_key: epic-3
 epic_num: 3
 story_num: null
 branch: epic/3-crm-company-settings-and-pricing-foundation
-status: in-progress
-updated_at: "2026-07-01T12:39:39Z"
+status: done
+updated_at: "2026-07-01T13:13:29Z"
 started_at: "2026-06-30T10:50:17Z"
-completed_at: null
-active_seconds: 3325
+completed_at: "2026-07-01T13:13:29Z"
+active_seconds: 3931
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -20,7 +20,7 @@ tea_selected: []
 tea_rationale: null
 epic_story_count: 5
 stories_after_in_epic: null
-completed_phases: [0, 1, 2, 5, 7, 81, 82]
+completed_phases: [0, 1, 2, 5, 7, 9, 81, 82]
 code_review_iterations: 2
 code_review_loop_done: true
 hitl_halt: "auto-continued (epic — no halt)"
@@ -39,9 +39,9 @@ phase8_steps:
 gate_decision: PASS
 gate_iterations: 0
 deferred_work_archived: 2
-pr_url: null
-ci_run_url: null
-ci_status: unknown
+pr_url: "https://github.com/rthunborg/ElproSaas/pull/17"
+ci_run_url: "https://github.com/rthunborg/ElproSaas/actions/runs/28519610886"
+ci_status: passed
 pr_merged: false
 merge_method: null
 merge_commit: null
@@ -181,3 +181,4 @@ uat_items:
   - "[3-5-snapshot-source-contract-for-settings-and-pricing-inputs] Run `pnpm run verify:service-role-containment` -> passes: the server-only resolver imports no service-role/secret symbol; the pure src/lib/snapshots/** builders are safe to import anywhere."
 integration_review_done: true
 planning_drift: "DETAIL-LEVEL: test-design-epic-3.md R-009 + exit criteria 'no personnummer field by default' is superseded by the 2026-06-18 owner decision requiring personnummer for private/ROT customers (shipped correctly: access-controlled, masked, list/audit-excluded). One-line doc reconciliation so a future automated trace does not spuriously FAIL on the obsolete assertion. No structural impact — non-blocking, do NOT auto-run."
+batch_flip_done: true
