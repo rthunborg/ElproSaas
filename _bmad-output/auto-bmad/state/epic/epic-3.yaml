@@ -5,11 +5,11 @@ epic_num: 3
 story_num: null
 branch: epic/3-crm-company-settings-and-pricing-foundation
 status: in-progress
-updated_at: "2026-07-01T12:08:55Z"
+updated_at: "2026-07-01T12:24:56Z"
 started_at: "2026-06-30T10:50:17Z"
 completed_at: null
-active_seconds: 1543
-timing_anchor: 1782907735
+active_seconds: 2504
+timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
 needs_project_context_bootstrap: false
@@ -20,10 +20,10 @@ tea_selected: []
 tea_rationale: null
 epic_story_count: 5
 stories_after_in_epic: null
-completed_phases: [0, 1, 2, 5, 81]
-code_review_iterations: 0
-code_review_loop_done: false
-hitl_halt: null
+completed_phases: [0, 1, 2, 5, 7, 81]
+code_review_iterations: 2
+code_review_loop_done: true
+hitl_halt: "auto-continued (epic — no halt)"
 external_review_iterations: 0
 convergence_unverified: false
 story_trace: null
@@ -67,6 +67,7 @@ auto_decisions:
   - "Articles-IN-scope is an owner assumption (Open Question 1), not independently re-confirmed [Low] -> defer: owner-gated, re-confirm at PR review; the articles slice is cleanly removable if reversed (Tier A, 3-4-work-roles-and-optional-manual-articles)"
   - "Personnummer clear-text in client-component payload (mask cosmetic) [Low] -> defer: admin-only own-tenant, security-cleared; server-gated reveal is an Epic 6 privacy-hardening item (deferred not dismissed for PII stewardship) (E_review, epic-3)"
   - "Epic-3 test-design 'no personnummer' exit-criteria vs shipped owner-approved schema [Low] -> defer: reconcile test-design/R-009 text to the 2026-06-18 owner decision, no code change (E_review, epic-3)"
+  - "Archived-read failure gates the ENTIRE pricing page (introduced by the reactivate fix) [Low] -> defer: scope the archived-read error to the archived section, not page-level; future pricing-UI polish (E_review iter 2, epic-3)"
 uat_items:
   - "[3-1-tenant-owned-crm-data-model-and-commands] Start the local stack and apply the migration from empty: `supabase start` then `supabase db reset` -> completes with no error, applies 20260630120000_crm_data_model.sql."
   - "[3-1-tenant-owned-crm-data-model-and-commands] Verify the three tables exist: psql -c \"select table_name from information_schema.tables where table_schema='public' and table_name in ('customers','facilities','contacts') order by 1\" -> exactly contacts, customers, facilities."
@@ -178,3 +179,4 @@ uat_items:
   - "[3-5-snapshot-source-contract-for-settings-and-pricing-inputs] With the local Supabase stack up (`supabase start` then `supabase db reset`), run `pnpm test:int` -> source-ownership suite passes: as Tenant A, resolveSnapshotSource for a Tenant-A id succeeds; for a Tenant-B id returns typed TENANT_ACCESS_DENIED (zero rows, no leaked existence) across all four sources; an independent RLS-client SELECT of the Tenant-B id returns zero rows (both-layers AC3)."
   - "[3-5-snapshot-source-contract-for-settings-and-pricing-inputs] Run `pnpm typecheck` -> clean: SnapshotSource is a readonly discriminated union and the assertNever dispatcher makes any unhandled future source-kind a compile error."
   - "[3-5-snapshot-source-contract-for-settings-and-pricing-inputs] Run `pnpm run verify:service-role-containment` -> passes: the server-only resolver imports no service-role/secret symbol; the pure src/lib/snapshots/** builders are safe to import anywhere."
+integration_review_done: true
