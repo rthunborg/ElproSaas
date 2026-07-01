@@ -1,0 +1,24 @@
+{
+  "_doc": "Story 3.5 GOLDEN FIXTURE — work-role snapshot source (anonymized; AC5). Pairs a representative work_roles SOURCE ROW with the EXPECTED built SnapshotSource. A future change to the builder/contract that alters the captured shape FAILS the golden test loud. NO real names/orgnr/personnummer/emails/secrets — anonymized placeholder material only (NFR17).",
+  "capturedAt": "2026-06-30T12:00:00.000Z",
+  "sourceRow": {
+    "id": "00000000-0000-0000-0000-0000000000a1",
+    "tenant_id": "00000000-0000-0000-0000-00000000000a",
+    "display_name": "Installationselektriker",
+    "cost_rate_ore": 38500,
+    "sell_rate_ore": 79000,
+    "is_active": true,
+    "updated_at": "2026-06-29T08:30:00.000Z"
+  },
+  "expectedSnapshot": {
+    "kind": "work_role",
+    "sourceId": "00000000-0000-0000-0000-0000000000a1",
+    "tenantId": "00000000-0000-0000-0000-00000000000a",
+    "sourceUpdatedAt": "2026-06-29T08:30:00.000Z",
+    "capturedAt": "2026-06-30T12:00:00.000Z",
+    "displayName": "Installationselektriker",
+    "costRateOre": 38500,
+    "sellRateOre": 79000,
+    "isActive": true
+  }
+}

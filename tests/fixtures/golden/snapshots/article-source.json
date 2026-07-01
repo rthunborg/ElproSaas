@@ -1,0 +1,26 @@
+{
+  "_doc": "Story 3.5 GOLDEN FIXTURE — optional-article snapshot source (anonymized; AC5). Pairs a representative articles SOURCE ROW with the EXPECTED built SnapshotSource. The expected shape carries ONLY the minimal manual columns (name, sku, unit, unitPriceOre, isActive) — HARD no-supplier-scope: NO supplier/vendor/sync/import/external/api/fortnox/edi/mapping field. NO real PII/secrets (NFR17).",
+  "capturedAt": "2026-06-30T12:00:00.000Z",
+  "sourceRow": {
+    "id": "00000000-0000-0000-0000-0000000000b1",
+    "tenant_id": "00000000-0000-0000-0000-00000000000a",
+    "name": "Installationskabel EKK 3x1,5",
+    "sku": "EKK-3X15",
+    "unit": "m",
+    "unit_price_ore": 1995,
+    "is_active": true,
+    "updated_at": "2026-06-29T08:30:00.000Z"
+  },
+  "expectedSnapshot": {
+    "kind": "article",
+    "sourceId": "00000000-0000-0000-0000-0000000000b1",
+    "tenantId": "00000000-0000-0000-0000-00000000000a",
+    "sourceUpdatedAt": "2026-06-29T08:30:00.000Z",
+    "capturedAt": "2026-06-30T12:00:00.000Z",
+    "name": "Installationskabel EKK 3x1,5",
+    "sku": "EKK-3X15",
+    "unit": "m",
+    "unitPriceOre": 1995,
+    "isActive": true
+  }
+}
