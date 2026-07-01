@@ -5,7 +5,7 @@ epic_num: 3
 story_num: null
 branch: epic/3-crm-company-settings-and-pricing-foundation
 status: in-progress
-updated_at: "2026-06-30T20:25:18Z"
+updated_at: "2026-07-01T08:56:16Z"
 started_at: "2026-06-30T10:50:17Z"
 completed_at: null
 active_seconds: 877
@@ -20,7 +20,7 @@ tea_selected: []
 tea_rationale: null
 epic_story_count: 5
 stories_after_in_epic: null
-completed_phases: [0, 1, 2]
+completed_phases: [0, 1, 2, 5]
 code_review_iterations: 0
 code_review_loop_done: false
 hitl_halt: null
@@ -51,12 +51,13 @@ deferred_work: []
 blockers: []
 overrides: {}
 constraints: []
-active_story: 3-5-snapshot-source-contract-for-settings-and-pricing-inputs
+active_story: null
 stories_landed:
   - 3-1-tenant-owned-crm-data-model-and-commands
   - 3-2-crm-tenant-admin-ux-and-lifecycle-context
   - 3-3-company-identity-quote-terms-and-vat-defaults
   - 3-4-work-roles-and-optional-manual-articles
+  - 3-5-snapshot-source-contract-for-settings-and-pricing-inputs
 epic_slug: crm-company-settings-and-pricing-foundation
 auto_decisions:
   - "AC1 duplicate-like surfaced only in create dialog, not a list state [Med] -> dismiss: Task 1.4 create-dialog placement is the sanctioned intent; AC1 met in spirit (non-blocking advisory present) (Tier A, 3-2-crm-tenant-admin-ux-and-lifecycle-context)"
@@ -168,3 +169,10 @@ uat_items:
   - "[3-4-work-roles-and-optional-manual-articles] Main nav -> exactly seven items (Dashboard, Kunder, Kalkyler, Offerter, Jobb/Order, Filer, Installningar); NO standalone 'Prissattning' nav entry."
   - "[3-4-work-roles-and-optional-manual-articles] Incognito (not signed in), visit /settings/pricing -> redirected to /login (no pricing data exposed)."
   - "[3-4-work-roles-and-optional-manual-articles] Sign in as the OTHER tenant's admin (adminB) -> /settings/pricing shows only tenant B's roles/articles, NOT tenant A's (tenant-scoped via RLS)."
+  - "[3-5-snapshot-source-contract-for-settings-and-pricing-inputs] Run `pnpm test:unit` (snapshots units under tests/unit/lib/snapshots/** + tests/unit/server/snapshots/**) -> builder copy-fidelity passes: all four kinds copy every real 3-3/3-4 column by value; öre stay integers; vat_rate_bp stays basis points; null sku/unit/approved_at/company_name stay null."
+  - "[3-5-snapshot-source-contract-for-settings-and-pricing-inputs] Confirm the R-008 immutability units pass -> mutating a source row AFTER building its snapshot leaves the prior snapshot unchanged (no silent recompute); the snapshot is Object.isFrozen; a direct write to it does not take effect — proven for all four kinds."
+  - "[3-5-snapshot-source-contract-for-settings-and-pricing-inputs] Confirm the golden-master units pass (tests/unit/lib/snapshots/golden.test.ts) -> each pinned fixture sourceRow + fixed capturedAt builds EXACTLY the pinned expectedSnapshot; a shape change fails loud."
+  - "[3-5-snapshot-source-contract-for-settings-and-pricing-inputs] Inspect tests/fixtures/golden/snapshots/work-role-source.json + article-source.json by eye -> stable shape (integer öre e.g. cost_rate_ore 38500 -> costRateOre 38500, kind discriminator, sourceUpdatedAt version, capturedAt); ONLY anonymized placeholder data (no real names/orgnr/personnummer/emails); article fixture has NO supplier/vendor/import/api/fortnox key."
+  - "[3-5-snapshot-source-contract-for-settings-and-pricing-inputs] With the local Supabase stack up (`supabase start` then `supabase db reset`), run `pnpm test:int` -> source-ownership suite passes: as Tenant A, resolveSnapshotSource for a Tenant-A id succeeds; for a Tenant-B id returns typed TENANT_ACCESS_DENIED (zero rows, no leaked existence) across all four sources; an independent RLS-client SELECT of the Tenant-B id returns zero rows (both-layers AC3)."
+  - "[3-5-snapshot-source-contract-for-settings-and-pricing-inputs] Run `pnpm typecheck` -> clean: SnapshotSource is a readonly discriminated union and the assertNever dispatcher makes any unhandled future source-kind a compile error."
+  - "[3-5-snapshot-source-contract-for-settings-and-pricing-inputs] Run `pnpm run verify:service-role-containment` -> passes: the server-only resolver imports no service-role/secret symbol; the pure src/lib/snapshots/** builders are safe to import anywhere."
