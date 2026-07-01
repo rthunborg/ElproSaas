@@ -41,7 +41,7 @@
 # Entries below remain grouped by epic for tracking; pick stories in the order above.
 
 generated: 2026-06-12
-last_updated: 2026-06-30  # story 3-5 context created → ready-for-dev; epic-3 in-progress
+last_updated: 2026-07-01  # epic-3 all 5 stories landed; epic-3 retrospective done
 project: ElproSaas
 project_key: NOKEY
 tracking_system: file-system
@@ -62,13 +62,13 @@ development_status:
   2-4-security-regression-harness-for-tenant-and-service-role-boundaries: done
   epic-2-retrospective: done
 
-  epic-3: in-progress
-  3-1-tenant-owned-crm-data-model-and-commands: ready-for-dev
-  3-2-crm-tenant-admin-ux-and-lifecycle-context: review
-  3-3-company-identity-quote-terms-and-vat-defaults: review
-  3-4-work-roles-and-optional-manual-articles: review
-  3-5-snapshot-source-contract-for-settings-and-pricing-inputs: review
-  epic-3-retrospective: optional
+  epic-3: done
+  3-1-tenant-owned-crm-data-model-and-commands: done
+  3-2-crm-tenant-admin-ux-and-lifecycle-context: done
+  3-3-company-identity-quote-terms-and-vat-defaults: done
+  3-4-work-roles-and-optional-manual-articles: done
+  3-5-snapshot-source-contract-for-settings-and-pricing-inputs: done
+  epic-3-retrospective: done
 
   epic-4: backlog
   4-1-integer-ore-money-and-rounding-primitives: backlog
