@@ -1,69 +1,79 @@
 ---
 stepsCompleted: ['step-01-preflight-and-context', 'step-02-identify-targets', 'step-03-generate-tests']
 lastStep: 'step-03-generate-tests'
-lastSaved: '2026-06-30'
+lastSaved: '2026-07-01'
 inputDocuments:
-  - _bmad-output/implementation-artifacts/3-2-crm-tenant-admin-ux-and-lifecycle-context.md
-  - src/components/crm/customer-presentation.ts
-  - src/features/crm/form-parsing.ts
-  - src/features/crm/action-state.ts
-  - src/features/crm/read.ts
-  - src/features/crm/actions.ts
-  - src/server/commands/crm/validation.ts
+  - _bmad-output/implementation-artifacts/3-5-snapshot-source-contract-for-settings-and-pricing-inputs.md
+  - src/lib/snapshots/types.ts
+  - src/lib/snapshots/build.ts
+  - src/server/snapshots/resolve-source.ts
+  - tests/unit/lib/snapshots/build.test.ts
+  - tests/unit/lib/snapshots/golden.test.ts
+  - tests/integration/snapshots/source-ownership.int.test.ts
+  - tests/fixtures/golden/snapshots/work-role-source.json
+  - tests/fixtures/golden/snapshots/article-source.json
   - src/server/commands/command-errors.ts
-  - tests/unit/components/crm/customer-presentation.test.ts
-  - tests/unit/features/crm/form-parsing.test.ts
-  - tests/support/register.mjs
+  - src/lib/result/result.ts
 ---
 
-# Test Automation Expansion — Story 3.2 (CRM Tenant-Admin UX And Lifecycle Context)
+# Test Automation Expansion — Story 3.5 (Snapshot Source Contract)
 
 ## Mode & Stack
 
-- **Mode:** BMad-Integrated (story 3.2 loaded). Create mode (expand after implementation).
-- **Detected stack:** frontend/fullstack — Next 16 App Router UI over the Story 3.1
-  server commands. This story already ships 12 Playwright e2e specs (the browser surface)
-  plus node --test units for the pure presentation/parsing helpers. This run targets the
-  PURE-FUNCTION gaps the e2e happy paths skip, preferring fast `node --test` units over
-  more e2e (per the task brief and the project two-runner split).
-- **Baseline (before this run):** unit 208 green.
+- **Mode:** BMad-Integrated (story 3.5 loaded). Create mode (expand after implementation).
+- **Detected stack:** backend for THIS module — pure TS builders/types + a server-only
+  RLS resolver. Prefer fast `node --test` units over more Vitest integration where a pure
+  function (builder, dispatcher, resolver error-mapping) can be tested directly.
+- **Framework verified:** present (`pnpm test:unit` node --test + `pnpm test:int` Vitest).
 
-## Scope
+## Existing coverage (baseline — not weakened)
 
-Expanded fast `node --test` unit coverage for the pure modules implemented in 3.2,
-focusing on branches/edge-cases NOT exercised by the existing happy-path units or the
-e2e specs:
+- `tests/unit/lib/snapshots/build.test.ts` — per-kind copy-fidelity; `work_role`
+  source-mutation immutability; frozen (all 4); terms state-only + no source mutation.
+- `tests/unit/lib/snapshots/golden.test.ts` — work-role + article golden masters +
+  anonymization guard.
+- `tests/integration/snapshots/source-ownership.int.test.ts` — both-layers cross-tenant
+  rejection across all four sources (DB-touching — stays at integration).
 
-- `src/features/crm/action-state.ts` — was UNTESTED. New file
-  `tests/unit/features/crm/action-state.test.ts`: the pristine `CRM_ACTION_INITIAL`
-  contract, and `isRetryableError` (true ONLY for an error-status `SERVER_ERROR`; false
-  for denial/validation/auth/idle/success and for a stale `SERVER_ERROR` code on a
-  non-error status — the AC4 "transient ≠ permanent denial" rule).
-- `src/features/crm/form-parsing.ts` — expanded `form-parsing.test.ts`: the previously
-  untested `parseUpdateFacilityForm` / `parseUpdateContactForm`; brf+public org_nr
-  requiredness; private stray-org_nr drop; whitespace-only display_name trim;
-  optional-field trim+omit; update forwards BOTH identifiers (no type-driven filtering
-  on update); is_primary boolean parsing (on/true/1 → true; off/false/0/no → false;
-  absent → key omitted); values-echo only collects string entries.
-- `src/components/crm/customer-presentation.ts` — expanded
-  `customer-presentation.test.ts`: undefined-optional-column normalization to null;
-  unknown customer_type raw-string fallback; matchesQuery identifier-only match, null
-  fields not coerced to 'null', query trim, partial substring; maskPersonnummer
-  exactly-4-char boundary (fully masked), surrounding-whitespace trim, whitespace-only
-  no-leak; findDuplicateLikeNames all-matches + substring-superset-is-not-a-match +
-  whitespace candidate + empty list.
+## Gaps filled this run (fast pure units)
 
-## Deliberately NOT unit-tested here
+1. **Immutability depth per EACH kind** — for `work_role`, `article`, `company_settings`,
+   `quote_terms`: mutate the ORIGINAL source object (every captured field, incl. flipping
+   `is_active`, editing öre/bp/text/timestamps) AFTER build → the prior snapshot is
+   byte-for-byte unchanged (copy-by-value, no live reference); `Object.isFrozen(snap)` at
+   the intended-immutable level; a direct write to the snapshot does not take effect; the
+   builder never mutates its input row.
+2. **Field-capture edges** — integer-öre boundaries (`0`, large `Number.MAX_SAFE_INTEGER`)
+   copied verbatim & still integer; `vat_rate_bp` boundaries (`0`, `2500`, `10000`);
+   `approved_at` NULL (not-approved) vs a timestamp (approved) captured faithfully — the
+   builder NEVER approves; `capturedAt` always the injected value; source `updated_at`
+   flows to `sourceUpdatedAt` (the version) and is distinct from `capturedAt`.
+3. **Dispatcher `buildSnapshotSource`** — each `kind` routes to the matching per-kind
+   builder (output deep-equals the direct builder call, frozen); an unknown `kind` hits
+   `assertNever` and throws at runtime (fail-loud) — the compile-time guard is exercised
+   behaviorally.
+4. **`resolve-source.ts` pure error-mapping** — with an in-memory fake client (no DB):
+   zero rows (`[]` / `null`) → `TENANT_ACCESS_DENIED`; a returned DB `error` → `SERVER_ERROR`;
+   a thrown/rejecting client → `SERVER_ERROR`; a present row → `ok(row)`; the denial message
+   never echoes the source id; the resolver selects the right table per kind.
 
-- `src/features/crm/read.ts` and `src/features/crm/actions.ts` are I/O-bound
-  (cookie-bound RLS Supabase client / envelope round-trip) — not pure functions. Their
-  contracts (personnummer-excluded list projection, generic not-found with no
-  cross-tenant leakage, Result→UI mapping, envelope-only writes) are exercised at the
-  e2e/integration level where the real RLS client runs, which is the correct level.
+## Deliberately kept at integration (not unitized)
+
+- Real RLS enforcement, cross-tenant zero-rows under the actual `is_tenant_admin` policies,
+  and the seeded two-tenant proof remain in `source-ownership.int.test.ts` (correct level —
+  they require the live Supabase stack).
+
+## New / modified test files
+
+- `tests/unit/lib/snapshots/build.test.ts` — expanded (immutability per kind + field edges).
+- `tests/unit/lib/snapshots/dispatch.test.ts` — new (dispatcher routing + assertNever).
+- `tests/unit/server/snapshots/resolve-source.test.ts` — new (pure error-mapping).
 
 ## Result
 
-- **Unit suite:** 208 → 239 green (+31 tests). typecheck + lint clean.
-- No existing test weakened; no implementation changed. One authored assertion was
-  corrected to match the real (safe) `maskPersonnummer` behavior for a whitespace-only
-  input (returns a bullet, never the raw spaces) rather than weakening it.
+- **Unit suite:** 424 pass / 0 fail (was ~407 baseline; +17 new snapshot units this run).
+- **typecheck:** clean. **lint:** clean.
+- No existing test weakened; no golden fixture changed; no implementation code changed.
+- Integration suite (`test:int`, DB-touching cross-tenant) left untouched — it requires the
+  live local Supabase stack and its coverage is the correct level for the RLS half of AC3.
+

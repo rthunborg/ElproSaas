@@ -365,4 +365,231 @@ describe("Story 3.5 — SNAPSHOT IMMUTABILITY (R-008, score-6, P0 headline; AC2)
     assert.equal(snap.approvedAt, null);
     assert.equal(snap.approvedBy, null);
   });
+
+  // ── R-008 DEPTH: prove copy-by-value (not by-reference) for EVERY kind ──────────
+  // The work_role source-mutation proof above covers one kind; the load-bearing
+  // invariant must hold identically for article / company_settings / quote_terms.
+  // For each: build, snapshot the serialized form, MUTATE every captured field on the
+  // ORIGINAL source object, then assert the prior snapshot is byte-for-byte unchanged
+  // AND frozen AND the source was never mutated by the builder.
+
+  test("[P0] article: mutating the source AFTER build does NOT change the prior snapshot (copy-by-value)", () => {
+    const source = {
+      id: "art-1",
+      tenant_id: "tenant-A",
+      name: "Kabel 3x1.5",
+      sku: "EKK-3X15" as string | null,
+      unit: "m" as string | null,
+      unit_price_ore: 1995,
+      is_active: true,
+      updated_at: SOURCE_UPDATED_AT,
+    };
+    const snap = buildArticleSnapshot(source, { capturedAt: CAPTURED_AT });
+    const before = JSON.stringify(snap);
+
+    // Mutate EVERY captured field on the original source (simulating a later edit/archive).
+    source.name = "EDITED";
+    source.sku = "CHANGED";
+    source.unit = "st";
+    source.unit_price_ore = 99999999;
+    source.is_active = false;
+    source.updated_at = "2099-01-01T00:00:00.000Z";
+
+    assert.equal(JSON.stringify(snap), before); // no silent recompute
+    assert.equal(snap.name, "Kabel 3x1.5");
+    assert.equal(snap.sku, "EKK-3X15");
+    assert.equal(snap.unit, "m");
+    assert.equal(snap.unitPriceOre, 1995);
+    assert.equal(snap.isActive, true);
+    assert.equal(snap.sourceUpdatedAt, SOURCE_UPDATED_AT);
+    assert.equal(Object.isFrozen(snap), true);
+  });
+
+  test("[P0] article: a captured NULL sku/unit does not later re-populate from the mutated source", () => {
+    const source = {
+      id: "art-2",
+      tenant_id: "t",
+      name: "n",
+      sku: null as string | null,
+      unit: null as string | null,
+      unit_price_ore: 0,
+      is_active: true,
+      updated_at: SOURCE_UPDATED_AT,
+    };
+    const snap = buildArticleSnapshot(source, { capturedAt: CAPTURED_AT });
+    // Later the source gets an sku/unit — the prior snapshot's captured NULLs stay NULL.
+    source.sku = "LATER-SKU";
+    source.unit = "st";
+    assert.equal(snap.sku, null);
+    assert.equal(snap.unit, null);
+  });
+
+  test("[P0] company_settings: mutating the source AFTER build does NOT change the prior snapshot (copy-by-value)", () => {
+    const source = {
+      id: "cs-1",
+      tenant_id: "tenant-A",
+      company_name: "Acme El AB" as string | null,
+      vat_rate_bp: 2500,
+      default_vat_display: "company_togglable",
+      updated_at: SOURCE_UPDATED_AT,
+    };
+    const snap = buildCompanySettingsSnapshot(source, { capturedAt: CAPTURED_AT });
+    const before = JSON.stringify(snap);
+
+    // Mutate every captured field (a later VAT-rate / display-mode / identity edit).
+    source.company_name = "EDITED AB";
+    source.vat_rate_bp = 1200;
+    source.default_vat_display = "company_excl";
+    source.updated_at = "2099-01-01T00:00:00.000Z";
+
+    assert.equal(JSON.stringify(snap), before); // VAT assumptions frozen, no recompute
+    assert.equal(snap.companyName, "Acme El AB");
+    assert.equal(snap.vatRateBp, 2500);
+    assert.equal(snap.defaultVatDisplay, "company_togglable");
+    assert.equal(snap.sourceUpdatedAt, SOURCE_UPDATED_AT);
+    assert.equal(Object.isFrozen(snap), true);
+  });
+
+  test("[P0] quote_terms: mutating the source AFTER build does NOT change the prior snapshot (copy-by-value)", () => {
+    const source = {
+      id: "qt-1",
+      tenant_id: "tenant-A",
+      terms_text: "Betalningsvillkor 30 dagar (platshållartext).",
+      approved_at: "2026-06-28T09:00:00.000Z" as string | null,
+      approved_by: "user-admin-a" as string | null,
+      updated_at: SOURCE_UPDATED_AT,
+    };
+    const snap = buildQuoteTermsSnapshot(source, { capturedAt: CAPTURED_AT });
+    const before = JSON.stringify(snap);
+
+    // Mutate every captured field (a later wording edit RESETS approved_at to null).
+    source.terms_text = "EDITED WORDING";
+    source.approved_at = null;
+    source.approved_by = null;
+    source.updated_at = "2099-01-01T00:00:00.000Z";
+
+    assert.equal(JSON.stringify(snap), before); // sign-off STATE at capture is preserved
+    assert.equal(snap.termsText, "Betalningsvillkor 30 dagar (platshållartext).");
+    assert.equal(snap.approvedAt, "2026-06-28T09:00:00.000Z");
+    assert.equal(snap.approvedBy, "user-admin-a");
+    assert.equal(snap.sourceUpdatedAt, SOURCE_UPDATED_AT);
+    assert.equal(Object.isFrozen(snap), true);
+  });
+
+  test("[P0] a direct write to a frozen snapshot of EVERY kind does not take effect", () => {
+    const snaps: Array<Record<string, unknown>> = [
+      buildWorkRoleSnapshot(
+        { id: "w", tenant_id: "t", display_name: "x", cost_rate_ore: 1, sell_rate_ore: 2, is_active: true, updated_at: SOURCE_UPDATED_AT },
+        { capturedAt: CAPTURED_AT },
+      ) as unknown as Record<string, unknown>,
+      buildArticleSnapshot(
+        { id: "a", tenant_id: "t", name: "n", sku: null, unit: null, unit_price_ore: 5, is_active: true, updated_at: SOURCE_UPDATED_AT },
+        { capturedAt: CAPTURED_AT },
+      ) as unknown as Record<string, unknown>,
+      buildCompanySettingsSnapshot(
+        { id: "c", tenant_id: "t", company_name: null, vat_rate_bp: 2500, default_vat_display: "company_excl", updated_at: SOURCE_UPDATED_AT },
+        { capturedAt: CAPTURED_AT },
+      ) as unknown as Record<string, unknown>,
+      buildQuoteTermsSnapshot(
+        { id: "q", tenant_id: "t", terms_text: "x", approved_at: null, approved_by: null, updated_at: SOURCE_UPDATED_AT },
+        { capturedAt: CAPTURED_AT },
+      ) as unknown as Record<string, unknown>,
+    ];
+    for (const snap of snaps) {
+      assert.equal(Object.isFrozen(snap), true);
+      const originalKind = snap.kind;
+      try {
+        snap.kind = "HACKED";
+        snap.tenantId = "other-tenant";
+      } catch {
+        /* strict-mode throw is acceptable */
+      }
+      assert.equal(snap.kind, originalKind); // the write did not take effect
+    }
+  });
+});
+
+describe("Story 3.5 — field-capture EDGES (AC1: öre boundaries, VAT bp, terms state, version)", () => {
+  test("[P0] integer-öre boundary values (0 and a large integer) are copied verbatim and stay integers", () => {
+    const zero = buildWorkRoleSnapshot(
+      { id: "w0", tenant_id: "t", display_name: "z", cost_rate_ore: 0, sell_rate_ore: 0, is_active: true, updated_at: SOURCE_UPDATED_AT },
+      { capturedAt: CAPTURED_AT },
+    );
+    assert.equal(zero.costRateOre, 0);
+    assert.equal(zero.sellRateOre, 0);
+    assert.equal(Number.isInteger(zero.costRateOre), true);
+
+    const big = Number.MAX_SAFE_INTEGER; // large öre value (still a safe integer)
+    const large = buildWorkRoleSnapshot(
+      { id: "wB", tenant_id: "t", display_name: "b", cost_rate_ore: big, sell_rate_ore: big, is_active: true, updated_at: SOURCE_UPDATED_AT },
+      { capturedAt: CAPTURED_AT },
+    );
+    assert.equal(large.costRateOre, big); // verbatim — no float, no recompute
+    assert.equal(large.sellRateOre, big);
+    assert.equal(Number.isInteger(large.costRateOre), true);
+
+    const artLarge = buildArticleSnapshot(
+      { id: "aB", tenant_id: "t", name: "n", sku: null, unit: null, unit_price_ore: big, is_active: true, updated_at: SOURCE_UPDATED_AT },
+      { capturedAt: CAPTURED_AT },
+    );
+    assert.equal(artLarge.unitPriceOre, big);
+    assert.equal(Number.isInteger(artLarge.unitPriceOre), true);
+  });
+
+  test("[P0] vat_rate_bp boundary values (0, 2500, 10000) are captured verbatim as basis points", () => {
+    for (const bp of [0, 2500, 10000]) {
+      const snap = buildCompanySettingsSnapshot(
+        { id: `cs-${bp}`, tenant_id: "t", company_name: null, vat_rate_bp: bp, default_vat_display: "company_excl", updated_at: SOURCE_UPDATED_AT },
+        { capturedAt: CAPTURED_AT },
+      );
+      assert.equal(snap.vatRateBp, bp); // bp stays bp — NOT converted to a percent
+      assert.equal(Number.isInteger(snap.vatRateBp), true);
+    }
+  });
+
+  test("[P0] terms approved_at: NULL (not-approved) and a timestamp (approved) are BOTH captured faithfully — the builder never approves", () => {
+    const notApproved = buildQuoteTermsSnapshot(
+      { id: "qt-n", tenant_id: "t", terms_text: "v", approved_at: null, approved_by: null, updated_at: SOURCE_UPDATED_AT },
+      { capturedAt: CAPTURED_AT },
+    );
+    // Not-approved state captured as-is: NULL never becomes a timestamp or a truthy flag.
+    assert.equal(notApproved.approvedAt, null);
+    assert.equal(notApproved.approvedBy, null);
+    assert.equal("isApproved" in notApproved, false);
+
+    const approvedAt = "2026-06-28T09:00:00.000Z";
+    const approved = buildQuoteTermsSnapshot(
+      { id: "qt-y", tenant_id: "t", terms_text: "v", approved_at: approvedAt, approved_by: "user-x", updated_at: SOURCE_UPDATED_AT },
+      { capturedAt: CAPTURED_AT },
+    );
+    assert.equal(approved.approvedAt, approvedAt); // captured verbatim
+    assert.equal(approved.approvedBy, "user-x");
+  });
+
+  test("[P0] capturedAt is ALWAYS the injected value and is distinct from the source version (sourceUpdatedAt)", () => {
+    // Cover every kind: capturedAt comes from opts, sourceUpdatedAt is the row updated_at.
+    const capturedAt = "2027-03-15T10:00:00.000Z";
+    const updatedAt = "2025-01-02T03:04:05.000Z";
+    const wr = buildWorkRoleSnapshot(
+      { id: "w", tenant_id: "t", display_name: "x", cost_rate_ore: 1, sell_rate_ore: 2, is_active: true, updated_at: updatedAt },
+      { capturedAt },
+    );
+    const art = buildArticleSnapshot(
+      { id: "a", tenant_id: "t", name: "n", sku: null, unit: null, unit_price_ore: 3, is_active: true, updated_at: updatedAt },
+      { capturedAt },
+    );
+    const cs = buildCompanySettingsSnapshot(
+      { id: "c", tenant_id: "t", company_name: null, vat_rate_bp: 2500, default_vat_display: "company_excl", updated_at: updatedAt },
+      { capturedAt },
+    );
+    const qt = buildQuoteTermsSnapshot(
+      { id: "q", tenant_id: "t", terms_text: "x", approved_at: null, approved_by: null, updated_at: updatedAt },
+      { capturedAt },
+    );
+    for (const snap of [wr, art, cs, qt]) {
+      assert.equal(snap.capturedAt, capturedAt); // always set, from opts
+      assert.equal(snap.sourceUpdatedAt, updatedAt); // the source "version"
+      assert.notEqual(snap.capturedAt, snap.sourceUpdatedAt); // distinct concerns
+    }
+  });
 });
