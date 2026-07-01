@@ -67,7 +67,7 @@ development_status:
   3-2-crm-tenant-admin-ux-and-lifecycle-context: review
   3-3-company-identity-quote-terms-and-vat-defaults: review
   3-4-work-roles-and-optional-manual-articles: review
-  3-5-snapshot-source-contract-for-settings-and-pricing-inputs: ready-for-dev
+  3-5-snapshot-source-contract-for-settings-and-pricing-inputs: review
   epic-3-retrospective: optional
 
   epic-4: backlog

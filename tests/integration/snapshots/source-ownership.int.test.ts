@@ -8,27 +8,16 @@
  * seed helpers; NO new auth/error mechanism, NO new H4 enrollment (the four tables
  * are already enrolled by 3-3/3-4 — VERIFIED in tenant-table-inventory.ts).
  *
- * ── WHY `describe.skip` (RED PHASE) ──────────────────────────────────────────────
- * The resolver (`src/server/snapshots/resolve-source.ts`) does NOT exist yet — Task 3
- * is the Story 3.5 DEV phase. Until it lands, importing `@/server/snapshots/*` would
- * not resolve, so this scaffold (mirroring the Story 3.4 red-phase idiom):
- *   - keeps the suite `describe.skip` so it cannot fail CI before the feature exists,
- *     and
- *   - declares the resolver surface via a LOCAL `notYetImplemented()` placeholder so
- *     the file TYPE-CHECKS today WITHOUT importing a non-existent module.
+ * ── GREEN PHASE (Story 3.5 dev) ─────────────────────────────────────────────────
+ * The resolver (`src/server/snapshots/resolve-source.ts`) now exists (Task 3), so this
+ * suite imports it directly and the `.skip` gate is removed. The resolver signature:
+ *   resolveSnapshotSource({ client, kind, sourceId }) =>
+ *     Promise<Result<SourceRow, CommandErrorCode>>   // err code TENANT_ACCESS_DENIED on a foreign/absent id
+ * The assertions are the CONTRACT — they are not weakened.
  *
- * ── GREEN-PHASE HAND-OFF (Story 3.5 dev) ────────────────────────────────────────
- * After Task 3 lands:
- *   1. Replace the `notYetImplemented` stub + local types with the real import:
- *        import { resolveSnapshotSource } from "@/server/snapshots/resolve-source";
- *      The resolver signature this scaffold assumes:
- *        resolveSnapshotSource({ client, kind, sourceId }) =>
- *          Promise<Result<SourceRow, CommandErrorCode>>   // err code TENANT_ACCESS_DENIED on a foreign/absent id
- *   2. Remove `.skip`. The assertions are the CONTRACT — do not weaken them.
- *
- * Every assertion encodes EXPECTED behavior; the suite is designed to FAIL until the
- * resolver exists. Runs against the LOCAL Supabase stack only; skips visibly when
- * unreachable. Per-run unique ids (the factory) + deterministic — never `sleep`.
+ * Every assertion encodes EXPECTED behavior. Runs against the LOCAL Supabase stack only;
+ * skips visibly when unreachable. Per-run unique ids (the factory) + deterministic —
+ * never `sleep`.
  *
  * The LOAD-BEARING contract (AC3, BOTH layers):
  *   - own-tenant id  → resolver SUCCEEDS, yields a buildable row whose tenant_id is
@@ -52,27 +41,18 @@ import {
 } from "../../factories/tenants";
 import { isLocalStackReachable } from "../../support/test-env";
 import { skipUnlessStack } from "../../support/stack-gate";
+import {
+  resolveSnapshotSource,
+  type SnapshotSourceDbClient,
+} from "@/server/snapshots/resolve-source";
+import type { SnapshotKind } from "@/lib/snapshots/types";
 
-// ── LOCAL red-phase placeholder for the not-yet-built resolver ───────────────────
-// Lets this file TYPE-CHECK today without importing `@/server/snapshots/resolve-source`
-// (which does not exist yet). The dev REPLACES this with the real import in the green
-// phase (see the hand-off note above). The shape mirrors the project's typed Result.
-type SnapshotKind = "work_role" | "article" | "company_settings" | "quote_terms";
-type ResolveResult =
-  | { readonly ok: true; readonly data: { readonly id: string; readonly tenant_id: string } }
-  | { readonly ok: false; readonly code: "TENANT_ACCESS_DENIED" | "SERVER_ERROR"; readonly message: string };
-function notYetImplemented(_args: {
-  readonly client: TestServerClient;
-  readonly kind: SnapshotKind;
-  readonly sourceId: string;
-}): Promise<ResolveResult> {
-  throw new Error(
-    "resolveSnapshotSource not implemented yet — Story 3.5 Task 3. Replace this " +
-      "placeholder with `import { resolveSnapshotSource } from '@/server/snapshots/resolve-source'` " +
-      "and remove the suite's `.skip` in the green phase.",
-  );
+// The RLS-scoped test anon-key client (a full SupabaseClient) satisfies the resolver's
+// minimal `.from(...).select(...).eq(...).limit(...)` surface structurally. Assert once
+// here so the call sites read cleanly without a per-call cast.
+function asResolverClient(client: TestServerClient): SnapshotSourceDbClient {
+  return client as unknown as SnapshotSourceDbClient;
 }
-const resolveSnapshotSource = notYetImplemented;
 
 // The RLS-client read column-by-table for the INDEPENDENT RLS-half assertion. `kind`
 // is a closed union (never client input), so the table name is safe.
@@ -122,12 +102,16 @@ afterAll(async () => {
   if (stackUp && fixture) await cleanupFixture(fixture);
 });
 
-describe.skip("Story 3.5 — snapshot-source ownership: BOTH layers reject a foreign id (RED until resolver lands; AC3)", () => {
+describe("Story 3.5 — snapshot-source ownership: BOTH layers reject a foreign id (AC3)", () => {
   for (const kind of Object.keys(TABLE_FOR) as SnapshotKind[]) {
     describe(`source kind: ${kind}`, () => {
       it(`[P0] own-tenant id RESOLVES and yields a row owned by the RESOLVED tenant`, async (testCtx) => {
         if (skipUnlessStack(testCtx, stackUp)) return;
-        const result = await resolveSnapshotSource({ client: a, kind, sourceId: aId[kind]! });
+        const result = await resolveSnapshotSource({
+          client: asResolverClient(a),
+          kind,
+          sourceId: aId[kind]!,
+        });
         expect(result.ok).toBe(true);
         if (result.ok) {
           expect(result.data.id).toBe(aId[kind]);
@@ -139,7 +123,11 @@ describe.skip("Story 3.5 — snapshot-source ownership: BOTH layers reject a for
 
       it(`[P0] command layer: a Tenant-B id → TENANT_ACCESS_DENIED (no row, no leak)`, async (testCtx) => {
         if (skipUnlessStack(testCtx, stackUp)) return;
-        const result = await resolveSnapshotSource({ client: a, kind, sourceId: bId[kind]! });
+        const result = await resolveSnapshotSource({
+          client: asResolverClient(a),
+          kind,
+          sourceId: bId[kind]!,
+        });
         expect(result.ok).toBe(false);
         if (!result.ok) {
           expect(result.code).toBe("TENANT_ACCESS_DENIED");
@@ -160,7 +148,11 @@ describe.skip("Story 3.5 — snapshot-source ownership: BOTH layers reject a for
       it(`[P0] a non-existent id is denied the SAME way (no existence signal differs from a foreign id)`, async (testCtx) => {
         if (skipUnlessStack(testCtx, stackUp)) return;
         const ghostId = "00000000-0000-0000-0000-0000deadbeef";
-        const result = await resolveSnapshotSource({ client: a, kind, sourceId: ghostId });
+        const result = await resolveSnapshotSource({
+          client: asResolverClient(a),
+          kind,
+          sourceId: ghostId,
+        });
         expect(result.ok).toBe(false);
         if (!result.ok) expect(result.code).toBe("TENANT_ACCESS_DENIED");
       });

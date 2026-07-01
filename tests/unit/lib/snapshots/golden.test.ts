@@ -1,16 +1,13 @@
 /**
- * Story 3.5 — ATDD RED-PHASE SCAFFOLD (gated `describe.skip`).
+ * Story 3.5 — GOLDEN-MASTER assertions (AC5): the work-role and optional-article
+ * golden fixtures pin a STABLE serialized SnapshotSource shape. Feeding each fixture's
+ * `sourceRow` + the FIXED `capturedAt` through the matching pure builder must produce
+ * EXACTLY the fixture's `expectedSnapshot`. A future change to the builder/contract that
+ * alters the captured shape FAILS this test loud (a visible diff), which is the whole
+ * point of a golden — Epics 5-6 freeze this contract.
  *
- * GOLDEN-MASTER assertions (AC5): the work-role and optional-article golden
- * fixtures pin a STABLE serialized SnapshotSource shape. Feeding each fixture's
- * `sourceRow` + the FIXED `capturedAt` through the matching pure builder must
- * produce EXACTLY the fixture's `expectedSnapshot`. A future change to the
- * builder/contract that alters the captured shape FAILS this test loud (a visible
- * diff), which is the whole point of a golden — Epics 5-6 freeze this contract.
- *
- * RED PHASE: the builders do not exist yet, so this file is `describe.skip`-gated to
- * keep the green `node --test` baseline unperturbed until dev lands
- * `src/lib/snapshots/build.ts`.
+ * GREEN PHASE: `src/lib/snapshots/build.ts` now exists, so the gate is removed and the
+ * builders run against the pinned fixtures for real.
  *
  * Runner: `node --test` with TS strip-types (`pnpm test:unit`) — pure, NO DB. The
  * fixtures live under `tests/fixtures/golden/snapshots/**` (architecture §25; AR25).
@@ -22,8 +19,12 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 
-// RED-PHASE imports — created by the dev in this story.
-// import { buildWorkRoleSnapshot, buildArticleSnapshot } from "@/lib/snapshots/build";
+import {
+  buildWorkRoleSnapshot,
+  buildArticleSnapshot,
+  type WorkRoleSourceRow,
+  type ArticleSourceRow,
+} from "@/lib/snapshots/build";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const GOLDEN_DIR = resolve(HERE, "../../../fixtures/golden/snapshots");
@@ -35,35 +36,53 @@ interface GoldenFixture {
 }
 
 function loadFixture(file: string): GoldenFixture {
-  return JSON.parse(readFileSync(resolve(GOLDEN_DIR, file), "utf8")) as GoldenFixture;
+  return JSON.parse(
+    readFileSync(resolve(GOLDEN_DIR, file), "utf8"),
+  ) as GoldenFixture;
 }
 
-describe.skip("Story 3.5 — golden snapshot fixtures (RED until src/lib/snapshots lands; AC5)", () => {
+describe("Story 3.5 — golden snapshot fixtures (AC5)", () => {
   test("[P0] work-role-source.json: builder output EXACTLY matches the pinned expectedSnapshot", () => {
     const fx = loadFixture("work-role-source.json");
-    // const built = buildWorkRoleSnapshot(fx.sourceRow as never, { capturedAt: fx.capturedAt });
-    // assert.deepEqual(built, fx.expectedSnapshot);
-    void fx;
-    assert.fail("RED: buildWorkRoleSnapshot not implemented yet (golden work-role)");
+    const built = buildWorkRoleSnapshot(fx.sourceRow as unknown as WorkRoleSourceRow, {
+      capturedAt: fx.capturedAt,
+    });
+    // A frozen instance deep-equals a plain object with the same enumerable keys.
+    assert.deepEqual({ ...built }, fx.expectedSnapshot);
   });
 
   test("[P0] article-source.json: builder output EXACTLY matches the pinned expectedSnapshot", () => {
     const fx = loadFixture("article-source.json");
-    // const built = buildArticleSnapshot(fx.sourceRow as never, { capturedAt: fx.capturedAt });
-    // assert.deepEqual(built, fx.expectedSnapshot);
-    void fx;
-    assert.fail("RED: buildArticleSnapshot not implemented yet (golden article)");
+    const built = buildArticleSnapshot(fx.sourceRow as unknown as ArticleSourceRow, {
+      capturedAt: fx.capturedAt,
+    });
+    assert.deepEqual({ ...built }, fx.expectedSnapshot);
   });
 
   test("[P0] golden fixtures are anonymized — no obvious real PII/secret tokens", () => {
-    // Belt-and-braces NFR17 guard: the golden inputs/outputs must not smuggle a real
-    // orgnr/personnummer/email/secret. Anonymized placeholder material only.
+    // Belt-and-braces NFR17 guard: the golden DATA (sourceRow + expectedSnapshot) must
+    // not smuggle a real orgnr/personnummer/email/secret. Anonymized placeholder material
+    // only. Scans the data payload — NOT the human-facing `_doc` prose, which legitimately
+    // mentions the word "secrets" while DESCRIBING the anonymization rule (scanning the
+    // prose would false-positive on its own documentation, not on real PII).
     const files = ["work-role-source.json", "article-source.json"];
-    const pii = [/\b\d{6}-\d{4}\b/, /@(?!example\.test\b)[a-z0-9.-]+\.[a-z]{2,}/i, /secret|password|api[_-]?key/i];
+    const pii = [
+      /\b\d{6}-\d{4}\b/,
+      /@(?!example\.test\b)[a-z0-9.-]+\.[a-z]{2,}/i,
+      /secret|password|api[_-]?key/i,
+    ];
     for (const file of files) {
-      const raw = readFileSync(resolve(GOLDEN_DIR, file), "utf8");
+      const fx = loadFixture(file);
+      const dataOnly = JSON.stringify({
+        capturedAt: fx.capturedAt,
+        sourceRow: fx.sourceRow,
+        expectedSnapshot: fx.expectedSnapshot,
+      });
       for (const re of pii) {
-        assert.ok(!re.test(raw), `golden fixture ${file} must be anonymized (matched ${re})`);
+        assert.ok(
+          !re.test(dataOnly),
+          `golden fixture ${file} data must be anonymized (matched ${re})`,
+        );
       }
     }
   });
