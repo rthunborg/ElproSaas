@@ -60,6 +60,28 @@ export async function readWorkRoles(): Promise<WorkRolesReadResult> {
   }
 }
 
+/**
+ * Read the tenant's ARCHIVED work roles (is_active = false) — the rows hidden from the active
+ * list, surfaced behind the "Visa arkiverade" affordance so an admin can REACTIVATE them
+ * (Story 3.4 AC2). Same RLS-scoped read as `readWorkRoles`, only the lifecycle filter differs;
+ * archive is therefore a reversible door, not a one-way trap.
+ */
+export async function readArchivedWorkRoles(): Promise<WorkRolesReadResult> {
+  try {
+    const client = await createSupabaseServerClient();
+    const { data, error } = await client
+      .from("work_roles")
+      .select(WORK_ROLE_COLUMNS)
+      .eq("is_active", false)
+      .order("display_name", { ascending: true });
+    if (error) return { workRoles: [], error: GENERIC_READ_ERROR };
+    const workRoles = (data ?? []) as WorkRoleRow[];
+    return { workRoles, error: null };
+  } catch {
+    return { workRoles: [], error: GENERIC_READ_ERROR };
+  }
+}
+
 /** An articles row as the UI needs it (money in INTEGER ÖRE). */
 export interface ArticleRow {
   readonly id: string;
@@ -89,6 +111,27 @@ export async function readArticles(): Promise<ArticlesReadResult> {
       .from("articles")
       .select(ARTICLE_COLUMNS)
       .eq("is_active", true)
+      .order("name", { ascending: true });
+    if (error) return { articles: [], error: GENERIC_READ_ERROR };
+    const articles = (data ?? []) as ArticleRow[];
+    return { articles, error: null };
+  } catch {
+    return { articles: [], error: GENERIC_READ_ERROR };
+  }
+}
+
+/**
+ * Read the tenant's ARCHIVED articles (is_active = false) — the rows hidden from the active
+ * list, surfaced behind the "Visa arkiverade" affordance so an admin can REACTIVATE them
+ * (Story 3.4 AC3). Same RLS-scoped read as `readArticles`, only the lifecycle filter differs.
+ */
+export async function readArchivedArticles(): Promise<ArticlesReadResult> {
+  try {
+    const client = await createSupabaseServerClient();
+    const { data, error } = await client
+      .from("articles")
+      .select(ARTICLE_COLUMNS)
+      .eq("is_active", false)
       .order("name", { ascending: true });
     if (error) return { articles: [], error: GENERIC_READ_ERROR };
     const articles = (data ?? []) as ArticleRow[];

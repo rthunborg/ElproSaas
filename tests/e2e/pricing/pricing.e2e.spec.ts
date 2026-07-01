@@ -153,6 +153,39 @@ test.describe("Pricing UI — Work roles + Articles (Story 3.4 E2E)", () => {
     await expect(page.getByText(name)).toBeVisible();
   });
 
+  test("AC2/AC5: a work role can be ARCHIVED then REACTIVATED (archive is a reversible door, not one-way)", async ({ page }) => {
+    await signIn(page, fixture.adminA.email, fixture.adminA.password);
+    await page.goto("/settings/pricing");
+    const editor = page.getByTestId("work-roles-editor");
+    const activeList = editor.getByRole("list").first();
+    const name = page.getByLabel("Benämning");
+    await waitForHydrated(name);
+
+    // Create a fresh role so this test owns a row it can archive/reactivate deterministically.
+    const roleName = `Reaktivera ${Date.now().toString(36)}`;
+    await name.fill(roleName);
+    await page.getByLabel("Pris (kr/tim)").fill("500,00");
+    await page.getByRole("button", { name: "Spara roll" }).click();
+    await expect(editor.getByTestId("settings-saved")).toBeVisible();
+    // The saved role appears in the active list (revalidatePath re-renders the server page).
+    const activeRow = activeList.locator("li", { hasText: roleName });
+    await expect(activeRow).toHaveCount(1);
+
+    // ARCHIVE it — the row leaves the active list once the server action + revalidate settle.
+    await activeRow.getByRole("button", { name: "Arkivera" }).click();
+    await expect(activeList.getByText(roleName)).toHaveCount(0);
+
+    // The archived row is reachable behind the "Visa arkiverade" toggle.
+    await editor.getByRole("button", { name: /Visa arkiverade/ }).click();
+    const archived = editor.getByTestId("work-roles-archived");
+    const archivedRow = archived.locator("li", { hasText: roleName });
+    await expect(archivedRow).toHaveCount(1);
+
+    // REACTIVATE it — the SAME row returns to the active list (un-archived, not re-created).
+    await archivedRow.getByRole("button", { name: "Återaktivera" }).click();
+    await expect(activeList.getByText(roleName)).toBeVisible();
+  });
+
   test("AC5: the nav stays EXACTLY the seven IN-scope modules — pricing adds NO new top-nav item", async ({ page }) => {
     await signIn(page, fixture.adminA.email, fixture.adminA.password);
     await page.goto("/settings/pricing");

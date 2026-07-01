@@ -34,11 +34,13 @@ import {
 } from "@/server/commands/command-errors";
 import {
   archiveWorkRole,
+  reactivateWorkRole,
   upsertWorkRole,
   type PricingCommandResult,
 } from "@/server/commands/pricing/work-roles";
 import {
   archiveArticle,
+  reactivateArticle,
   upsertArticle,
 } from "@/server/commands/pricing/articles";
 import {
@@ -136,6 +138,17 @@ export async function archiveWorkRoleAction(
   );
 }
 
+export async function reactivateWorkRoleAction(
+  _prev: PricingActionState,
+  form: FormData,
+): Promise<PricingActionState> {
+  return runPricing(
+    reactivateWorkRole as unknown as Command<never, PricingCommandResult>,
+    parseArchiveForm(form),
+    "work_role",
+  );
+}
+
 export async function saveArticleAction(
   _prev: PricingActionState,
   form: FormData,
@@ -153,6 +166,17 @@ export async function archiveArticleAction(
 ): Promise<PricingActionState> {
   return runPricing(
     archiveArticle as unknown as Command<never, PricingCommandResult>,
+    parseArchiveForm(form),
+    "article",
+  );
+}
+
+export async function reactivateArticleAction(
+  _prev: PricingActionState,
+  form: FormData,
+): Promise<PricingActionState> {
+  return runPricing(
+    reactivateArticle as unknown as Command<never, PricingCommandResult>,
     parseArchiveForm(form),
     "article",
   );

@@ -31,7 +31,17 @@ export interface SettingsCommandResult {
   readonly targetId: string;
 }
 
-/** Build the UPSERT payload for company_settings, scoped to the resolved tenant. */
+/**
+ * Build the UPSERT payload for company_settings, scoped to the resolved tenant.
+ *
+ * `logo_url` is OMITTED-vs-CLEARED aware (data-loss guard): the form currently renders no
+ * `logo_url` control, so an omitted `input.logo_url` MUST NOT wipe a previously-saved logo
+ * (the "PDF-ready branding" field). We therefore leave `logo_url` OUT of the payload when it
+ * is absent — on an UPSERT that means the ON-CONFLICT UPDATE preserves the stored value
+ * (untouched column), while a first INSERT falls back to the column default (NULL). When a
+ * value IS provided it is written verbatim. The other identity fields ARE rendered by the
+ * form and submitted on every save, so their `?? null` (explicit clear) is intentional.
+ */
 function companySettingsUpsertValues(
   tenantId: string,
   input: UpdateCompanySettingsInput,
@@ -46,7 +56,9 @@ function companySettingsUpsertValues(
     city: input.city ?? null,
     email: input.email ?? null,
     phone: input.phone ?? null,
-    logo_url: input.logo_url ?? null,
+    // Omitted (undefined) → not in the payload → UPDATE preserves the existing logo,
+    // INSERT uses the column default. Provided → written verbatim.
+    ...(input.logo_url !== undefined ? { logo_url: input.logo_url } : {}),
     default_vat_display: input.default_vat_display,
     vat_rate_bp: input.vat_rate_bp, // integer basis points — never a float
   };

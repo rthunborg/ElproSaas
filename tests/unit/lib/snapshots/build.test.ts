@@ -156,7 +156,7 @@ describe("Story 3.5 — snapshot builder copy-fidelity (AC1/AC4)", () => {
       tenant_id: "tenant-A",
       company_name: "Acme El AB",
       vat_rate_bp: 2500, // basis points (25.00%) — NOT a percent float
-      default_vat_display: "company_togglable",
+      default_vat_display: "company_togglable" as const,
       updated_at: SOURCE_UPDATED_AT,
     };
     const snap = buildCompanySettingsSnapshot(row, { capturedAt: CAPTURED_AT });
@@ -430,7 +430,9 @@ describe("Story 3.5 — SNAPSHOT IMMUTABILITY (R-008, score-6, P0 headline; AC2)
       tenant_id: "tenant-A",
       company_name: "Acme El AB" as string | null,
       vat_rate_bp: 2500,
-      default_vat_display: "company_togglable",
+      // Typed as the closed union so the later `company_excl` mutation stays in-type
+      // (matches the `VatDisplayMode` field on CompanySettingsSourceRow).
+      default_vat_display: "company_togglable" as "company_togglable" | "company_excl",
       updated_at: SOURCE_UPDATED_AT,
     };
     const snap = buildCompanySettingsSnapshot(source, { capturedAt: CAPTURED_AT });

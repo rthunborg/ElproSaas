@@ -18,11 +18,12 @@
  * aria-live blocking summary); input is preserved on a failed submit; no color-only
  * signalling.
  */
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { FormErrorSummary, TextField } from "@/components/crm/FormField";
 import {
   saveArticleAction,
   archiveArticleAction,
+  reactivateArticleAction,
 } from "@/features/pricing/actions";
 import { PRICING_ACTION_INITIAL } from "@/features/pricing/action-state";
 import { oreToKronorString } from "@/features/pricing/money-display";
@@ -30,19 +31,42 @@ import type { ArticleRow } from "@/features/pricing/read";
 
 export function ArticlesEditor({
   articles,
+  archivedArticles = [],
 }: {
   readonly articles: readonly ArticleRow[];
+  readonly archivedArticles?: readonly ArticleRow[];
 }) {
   const [state, formAction, pending] = useActionState(
     saveArticleAction,
     PRICING_ACTION_INITIAL,
   );
-  const [, archiveAction] = useActionState(
+  // Bind the archive action state so an archive failure (TENANT_ACCESS_DENIED / SERVER_ERROR)
+  // SURFACES to the admin instead of being silently swallowed. Mirrors the save-form error.
+  const [archiveState, archiveAction] = useActionState(
     archiveArticleAction,
     PRICING_ACTION_INITIAL,
   );
+  // Reactivate action (the inverse of archive) — its failure is surfaced too.
+  const [reactivateState, reactivateAction] = useActionState(
+    reactivateArticleAction,
+    PRICING_ACTION_INITIAL,
+  );
+  const [showArchived, setShowArchived] = useState(false);
 
   const mine = state.form === "article";
+  const lifecycleError =
+    archiveState.status === "error" && archiveState.form === "article"
+      ? archiveState.formError
+      : reactivateState.status === "error" && reactivateState.form === "article"
+        ? reactivateState.formError
+        : null;
+  const lifecycleRetryable =
+    (archiveState.status === "error" &&
+      archiveState.form === "article" &&
+      archiveState.code === "SERVER_ERROR") ||
+    (reactivateState.status === "error" &&
+      reactivateState.form === "article" &&
+      reactivateState.code === "SERVER_ERROR");
   const v = (field: string, fallback: string): string =>
     (mine && state.values[field]) || fallback;
   const err = (field: string): string | undefined =>
@@ -57,6 +81,17 @@ export function ArticlesEditor({
       <h2 id="articles-heading" className="text-lg font-semibold text-zinc-900">
         Artiklar / material
       </h2>
+
+      {lifecycleError && (
+        <p
+          data-testid="article-archive-error"
+          role="alert"
+          className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800"
+        >
+          {lifecycleError}
+          {lifecycleRetryable ? " Försök igen." : ""}
+        </p>
+      )}
 
       {articles.length === 0 ? (
         <p className="text-sm text-zinc-600">
@@ -146,6 +181,60 @@ export function ArticlesEditor({
           </button>
         </div>
       </form>
+
+      {/* Archived articles — hidden behind a toggle so archive is a REVERSIBLE door: an
+          admin can VIEW archived rows and REACTIVATE them (Story 3.4 AC3). */}
+      {archivedArticles.length > 0 && (
+        <div className="flex flex-col gap-2">
+          <button
+            type="button"
+            aria-expanded={showArchived}
+            onClick={() => setShowArchived((s) => !s)}
+            className="self-start text-sm text-blue-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+          >
+            {showArchived
+              ? "Dölj arkiverade"
+              : `Visa arkiverade (${archivedArticles.length})`}
+          </button>
+
+          {showArchived && (
+            <section
+              data-testid="articles-archived"
+              aria-label="Arkiverade artiklar"
+              className="flex flex-col gap-2"
+            >
+              <h3 className="text-sm font-medium text-zinc-700">Arkiverade</h3>
+              <ul className="flex flex-col gap-2">
+                {archivedArticles.map((article) => (
+                  <li
+                    key={article.id}
+                    className="flex items-center justify-between gap-4 rounded-md border border-dashed border-zinc-300 bg-zinc-50 px-3 py-2"
+                  >
+                    <div className="flex flex-col">
+                      <span className="text-sm font-medium text-zinc-700">
+                        {article.name}
+                        {article.unit ? ` (${article.unit})` : ""}
+                      </span>
+                      <span className="text-xs text-zinc-500">
+                        {oreToKronorString(article.unit_price_ore)} kr
+                      </span>
+                    </div>
+                    <form action={reactivateAction}>
+                      <input type="hidden" name="id" value={article.id} />
+                      <button
+                        type="submit"
+                        className="rounded-md border border-zinc-300 px-2 py-1 text-xs text-zinc-700 hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+                      >
+                        Återaktivera
+                      </button>
+                    </form>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+        </div>
+      )}
     </section>
   );
 }

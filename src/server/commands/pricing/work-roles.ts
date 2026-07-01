@@ -126,3 +126,36 @@ export const archiveWorkRole = defineCommand<ArchiveInput, PricingCommandResult>
   },
   auditFields: (ctx) => ({ targetId: ctx.input.id }),
 });
+
+/**
+ * REACTIVATE — the inverse of archive: flip `is_active` back to `true` so an archived role
+ * returns to the active list (Story 3.4 AC2 "creates / updates / archives / REACTIVATES a
+ * role"). Same shape as `archiveWorkRole` (id-only input, ownership pre-check, ONE audit row
+ * with allow-listed `{ targetId }`), so archive is a REVERSIBLE door — never a one-way delete.
+ */
+export const reactivateWorkRole = defineCommand<
+  ArchiveInput,
+  PricingCommandResult
+>({
+  command: "work_role.reactivate",
+  auditable: true,
+  eventType: "work_role.reactivated",
+  targetType: "work_role",
+  validateInput: validateArchive,
+  ownership: (input) => ({ table: "work_roles", id: input.id }),
+  execute: async (ctx) => {
+    const db = asCrmWriteClient(ctx.db);
+    // Un-archive: flip is_active=true (the row is the SAME row — this reverses archive).
+    const { data, error } = await db
+      .from("work_roles")
+      .update({ is_active: true })
+      .eq("id", ctx.input.id)
+      .select("id");
+    if (error) throwMappedWriteError(error);
+    if (!data || data.length === 0) {
+      throw new CommandError("TENANT_ACCESS_DENIED");
+    }
+    return { targetId: ctx.input.id };
+  },
+  auditFields: (ctx) => ({ targetId: ctx.input.id }),
+});

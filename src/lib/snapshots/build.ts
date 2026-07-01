@@ -31,6 +31,7 @@ import type {
   SnapshotBuildOptions,
   SnapshotKind,
   SnapshotSource,
+  VatDisplayMode,
   WorkRoleSnapshot,
 } from "./types";
 
@@ -107,7 +108,12 @@ export interface CompanySettingsSourceRow {
   readonly tenant_id: string;
   readonly company_name: string | null;
   readonly vat_rate_bp: number;
-  readonly default_vat_display: string;
+  /**
+   * The DB-constrained display mode (CHECK `company_settings_default_vat_display_valid`),
+   * typed as the closed `VatDisplayMode` union so it copies into the snapshot's
+   * `defaultVatDisplay` (also `VatDisplayMode`) without widening back to bare `string`.
+   */
+  readonly default_vat_display: VatDisplayMode;
   readonly updated_at: string;
 }
 

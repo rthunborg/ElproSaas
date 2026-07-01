@@ -15,15 +15,33 @@
 import Link from "next/link";
 import { WorkRolesEditor } from "@/components/pricing/WorkRolesEditor";
 import { ArticlesEditor } from "@/components/pricing/ArticlesEditor";
-import { readArticles, readWorkRoles } from "@/features/pricing/read";
+import {
+  readArchivedArticles,
+  readArchivedWorkRoles,
+  readArticles,
+  readWorkRoles,
+} from "@/features/pricing/read";
 
 export const dynamic = "force-dynamic";
 
 export default async function PricingSettingsPage() {
-  const [{ workRoles, error: workRolesError }, { articles, error: articlesError }] =
-    await Promise.all([readWorkRoles(), readArticles()]);
+  const [
+    { workRoles, error: workRolesError },
+    { articles, error: articlesError },
+    { workRoles: archivedWorkRoles, error: archivedWorkRolesError },
+    { articles: archivedArticles, error: archivedArticlesError },
+  ] = await Promise.all([
+    readWorkRoles(),
+    readArticles(),
+    readArchivedWorkRoles(),
+    readArchivedArticles(),
+  ]);
 
-  const error = workRolesError ?? articlesError;
+  const error =
+    workRolesError ??
+    articlesError ??
+    archivedWorkRolesError ??
+    archivedArticlesError;
 
   return (
     <div className="flex flex-col gap-8 p-6">
@@ -51,8 +69,14 @@ export default async function PricingSettingsPage() {
         </p>
       )}
 
-      <WorkRolesEditor workRoles={workRoles} />
-      <ArticlesEditor articles={articles} />
+      <WorkRolesEditor
+        workRoles={workRoles}
+        archivedWorkRoles={archivedWorkRoles}
+      />
+      <ArticlesEditor
+        articles={articles}
+        archivedArticles={archivedArticles}
+      />
     </div>
   );
 }

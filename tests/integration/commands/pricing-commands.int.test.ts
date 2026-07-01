@@ -61,10 +61,12 @@ import { runCommand } from "@/server/commands/envelope";
 import {
   upsertWorkRole,
   archiveWorkRole,
+  reactivateWorkRole,
 } from "@/server/commands/pricing/work-roles";
 import {
   upsertArticle,
   archiveArticle,
+  reactivateArticle,
 } from "@/server/commands/pricing/articles";
 import type { CommandClock } from "@/server/commands/clock";
 
@@ -241,6 +243,62 @@ describe("upsertWorkRole — create/update/archive collection + öre rates + aud
     expect(row?.is_active).toBe(false);
   });
 
+  it("[P0/AC2] reactivateWorkRole flips is_active back to TRUE (archive is reversible) + writes ONE audit row", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
+    // Create → archive → reactivate the SAME row.
+    const created = await runCommand(upsertWorkRole as never, {
+      client: a as never,
+      input: { display_name: `ToReactivate ${crypto.randomUUID()}`, cost_rate_ore: 40000, sell_rate_ore: 80000 },
+      clock: fixedClock,
+      correlationId: crypto.randomUUID(),
+    });
+    expect(created.ok).toBe(true);
+    if (!created.ok) return;
+    const id = (created as { ok: true; data: { targetId: string } }).data.targetId;
+
+    const archived = await runCommand(archiveWorkRole as never, {
+      client: a as never,
+      input: { id },
+      clock: fixedClock,
+      correlationId: crypto.randomUUID(),
+    });
+    expect(archived.ok).toBe(true);
+    expect((await adminSelectPricingRow("work_roles", id))?.is_active).toBe(false);
+
+    const reactivateCorrelation = crypto.randomUUID();
+    const reactivated = await runCommand(reactivateWorkRole as never, {
+      client: a as never,
+      input: { id },
+      clock: fixedClock,
+      correlationId: reactivateCorrelation,
+    });
+    expect(reactivated.ok).toBe(true);
+
+    // The SAME row is active again — never a new row.
+    const row = await adminSelectPricingRow("work_roles", id);
+    expect(row).not.toBeNull();
+    expect(row?.is_active).toBe(true);
+
+    // EXACTLY one append-only audit row for the reactivate, allow-listed metadata only.
+    const audits = await adminSelectAuditEvents({ correlationId: reactivateCorrelation });
+    expect(audits).toHaveLength(1);
+    expect(audits[0].event_type).toBe("work_role.reactivated");
+    expect(audits[0].target_type).toBe("work_role");
+    expect(audits[0].tenant_id).toBe(fixture.tenantA.id);
+  });
+
+  it("[P0/AC4] a reactivate supplying a TENANT-B work_role id → TENANT_ACCESS_DENIED (no cross-tenant un-archive)", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
+    const result = await runCommand(reactivateWorkRole as never, {
+      client: a as never,
+      input: { id: tenantBWorkRoleId },
+      clock: fixedClock,
+      correlationId: crypto.randomUUID(),
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.code).toBe("TENANT_ACCESS_DENIED");
+  });
+
   it("[P0] a FLOAT cost_rate_ore is rejected at the command layer → VALIDATION_FAILED, NO row persisted (AC2)", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     const before = await countPricingRows("work_roles", fixture.tenantA.id);
@@ -359,6 +417,59 @@ describe("upsertArticle — create/update/archive collection + öre unit price +
     const row = await adminSelectPricingRow("articles", id);
     expect(row).not.toBeNull();
     expect(row?.is_active).toBe(false);
+  });
+
+  it("[P0/AC3] reactivateArticle flips is_active back to TRUE (archive is reversible) + writes ONE audit row", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
+    const created = await runCommand(upsertArticle as never, {
+      client: a as never,
+      input: { name: `ToReactivate ${crypto.randomUUID()}`, unit_price_ore: 500 },
+      clock: fixedClock,
+      correlationId: crypto.randomUUID(),
+    });
+    expect(created.ok).toBe(true);
+    if (!created.ok) return;
+    const id = (created as { ok: true; data: { targetId: string } }).data.targetId;
+
+    const archived = await runCommand(archiveArticle as never, {
+      client: a as never,
+      input: { id },
+      clock: fixedClock,
+      correlationId: crypto.randomUUID(),
+    });
+    expect(archived.ok).toBe(true);
+    expect((await adminSelectPricingRow("articles", id))?.is_active).toBe(false);
+
+    const reactivateCorrelation = crypto.randomUUID();
+    const reactivated = await runCommand(reactivateArticle as never, {
+      client: a as never,
+      input: { id },
+      clock: fixedClock,
+      correlationId: reactivateCorrelation,
+    });
+    expect(reactivated.ok).toBe(true);
+
+    const row = await adminSelectPricingRow("articles", id);
+    expect(row).not.toBeNull();
+    expect(row?.is_active).toBe(true);
+
+    const audits = await adminSelectAuditEvents({ correlationId: reactivateCorrelation });
+    expect(audits).toHaveLength(1);
+    expect(audits[0].event_type).toBe("article.reactivated");
+    expect(audits[0].target_type).toBe("article");
+    expect(audits[0].tenant_id).toBe(fixture.tenantA.id);
+  });
+
+  it("[P0/AC4] a reactivate supplying a TENANT-B article id → TENANT_ACCESS_DENIED (no cross-tenant un-archive)", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
+    const result = await runCommand(reactivateArticle as never, {
+      client: a as never,
+      input: { id: tenantBArticleId },
+      clock: fixedClock,
+      correlationId: crypto.randomUUID(),
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.code).toBe("TENANT_ACCESS_DENIED");
   });
 
   it("[P0] a FLOAT / NEGATIVE / locale-comma unit_price_ore is rejected → VALIDATION_FAILED, no row persisted", async (testCtx) => {

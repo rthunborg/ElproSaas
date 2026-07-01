@@ -75,10 +75,11 @@ async function readCompanySettings(tenantId: string) {
     tenant_id: string;
     company_name: string | null;
     org_nr: string | null;
+    logo_url: string | null;
     default_vat_display: string;
     vat_rate_bp: number;
   }>(
-    `select id, tenant_id, company_name, org_nr, default_vat_display, vat_rate_bp
+    `select id, tenant_id, company_name, org_nr, logo_url, default_vat_display, vat_rate_bp
        from public.company_settings where tenant_id = $1`,
     [tenantId],
   );
@@ -172,6 +173,45 @@ describe("updateCompanySettings — upsert, VAT bp validation, audit (Story 3.3 
     expect(rows).toHaveLength(1); // STILL one row — upsert keyed on tenant_id
     expect(rows[0].company_name).toBe("Twice AB");
     expect(rows[0].vat_rate_bp).toBe(1200);
+  });
+
+  it("[P0] a save WITHOUT a logo_url field PRESERVES a previously-stored logo (omitted != cleared, data-loss guard)", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
+    // First save PROVIDES a logo_url (the PDF-branding field).
+    const withLogo = await runCommand(updateCompanySettings, {
+      client: a as never,
+      input: {
+        company_name: "Logo AB",
+        default_vat_display: "company_togglable",
+        vat_rate_bp: 2500,
+        logo_url: "https://cdn.example.test/logo.png",
+      },
+      clock: fixedClock,
+      correlationId: crypto.randomUUID(),
+    });
+    expect(withLogo.ok).toBe(true);
+    let rows = await readCompanySettings(fixture.tenantA.id);
+    expect(rows).toHaveLength(1);
+    expect(rows[0].logo_url).toBe("https://cdn.example.test/logo.png");
+
+    // A SUBSEQUENT save OMITS logo_url entirely (the form renders no logo control) — the
+    // stored logo MUST survive, not be wiped to NULL.
+    const withoutLogo = await runCommand(updateCompanySettings, {
+      client: a as never,
+      input: {
+        company_name: "Logo AB Uppdaterad",
+        default_vat_display: "company_togglable",
+        vat_rate_bp: 2500,
+        // no logo_url — omitted, not cleared
+      },
+      clock: fixedClock,
+      correlationId: crypto.randomUUID(),
+    });
+    expect(withoutLogo.ok).toBe(true);
+    rows = await readCompanySettings(fixture.tenantA.id);
+    expect(rows).toHaveLength(1); // still the one upserted row
+    expect(rows[0].company_name).toBe("Logo AB Uppdaterad"); // the save did land
+    expect(rows[0].logo_url).toBe("https://cdn.example.test/logo.png"); // logo PRESERVED
   });
 
   it("[P0] an out-of-range vat_rate_bp (> 10000) is rejected → VALIDATION_FAILED, no row mutated", async (testCtx) => {

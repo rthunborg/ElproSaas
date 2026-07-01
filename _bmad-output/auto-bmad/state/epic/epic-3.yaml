@@ -5,11 +5,11 @@ epic_num: 3
 story_num: null
 branch: epic/3-crm-company-settings-and-pricing-foundation
 status: in-progress
-updated_at: "2026-07-01T08:56:16Z"
+updated_at: "2026-07-01T12:08:55Z"
 started_at: "2026-06-30T10:50:17Z"
 completed_at: null
-active_seconds: 877
-timing_anchor: null
+active_seconds: 1543
+timing_anchor: 1782907735
 is_first_in_epic: false
 is_last_in_epic: false
 needs_project_context_bootstrap: false
@@ -20,7 +20,7 @@ tea_selected: []
 tea_rationale: null
 epic_story_count: 5
 stories_after_in_epic: null
-completed_phases: [0, 1, 2, 5]
+completed_phases: [0, 1, 2, 5, 81]
 code_review_iterations: 0
 code_review_loop_done: false
 hitl_halt: null
@@ -29,14 +29,14 @@ convergence_unverified: false
 story_trace: null
 commits: [fc07813, 2c4767c]
 phase8_steps:
-  trace_gate: null
-  nfr: null
-  test_review: null
+  trace_gate: done
+  nfr: done
+  test_review: done
   project_context: null
   reconcile: null
   archive: null
   retro: null
-gate_decision: null
+gate_decision: PASS
 gate_iterations: 0
 deferred_work_archived: 0
 pr_url: null
@@ -65,6 +65,8 @@ auto_decisions:
   - "Approved-status UI shows static 'agare/juridik' not real approved_by [Med] -> defer: attribution-by-name needs a user-display read surface out of scope; wire when a user-read lands (Tier A, 3-3-company-identity-quote-terms-and-vat-defaults)"
   - "default_vat_display enum drops 'private always incl-VAT' to a code invariant [Low] -> defer: precise enum owner-gated (Open Question 3), confirm at Epic-4 working session (Tier A, 3-3-company-identity-quote-terms-and-vat-defaults)"
   - "Articles-IN-scope is an owner assumption (Open Question 1), not independently re-confirmed [Low] -> defer: owner-gated, re-confirm at PR review; the articles slice is cleanly removable if reversed (Tier A, 3-4-work-roles-and-optional-manual-articles)"
+  - "Personnummer clear-text in client-component payload (mask cosmetic) [Low] -> defer: admin-only own-tenant, security-cleared; server-gated reveal is an Epic 6 privacy-hardening item (deferred not dismissed for PII stewardship) (E_review, epic-3)"
+  - "Epic-3 test-design 'no personnummer' exit-criteria vs shipped owner-approved schema [Low] -> defer: reconcile test-design/R-009 text to the 2026-06-18 owner decision, no code change (E_review, epic-3)"
 uat_items:
   - "[3-1-tenant-owned-crm-data-model-and-commands] Start the local stack and apply the migration from empty: `supabase start` then `supabase db reset` -> completes with no error, applies 20260630120000_crm_data_model.sql."
   - "[3-1-tenant-owned-crm-data-model-and-commands] Verify the three tables exist: psql -c \"select table_name from information_schema.tables where table_schema='public' and table_name in ('customers','facilities','contacts') order by 1\" -> exactly contacts, customers, facilities."

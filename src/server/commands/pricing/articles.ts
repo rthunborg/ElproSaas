@@ -109,3 +109,35 @@ export const archiveArticle = defineCommand<ArchiveInput, PricingCommandResult>(
   },
   auditFields: (ctx) => ({ targetId: ctx.input.id }),
 });
+
+/**
+ * REACTIVATE — the inverse of archive: flip `is_active` back to `true` so an archived
+ * article returns to the active list (Story 3.4 AC3, mirroring the work-role reactivate
+ * path). Same shape as `archiveArticle` (id-only input, ownership pre-check, ONE audit row
+ * with allow-listed `{ targetId }`), so archive stays a REVERSIBLE door — never a hard delete.
+ */
+export const reactivateArticle = defineCommand<
+  ArchiveInput,
+  PricingCommandResult
+>({
+  command: "article.reactivate",
+  auditable: true,
+  eventType: "article.reactivated",
+  targetType: "article",
+  validateInput: validateArchive,
+  ownership: (input) => ({ table: "articles", id: input.id }),
+  execute: async (ctx) => {
+    const db = asCrmWriteClient(ctx.db);
+    const { data, error } = await db
+      .from("articles")
+      .update({ is_active: true })
+      .eq("id", ctx.input.id)
+      .select("id");
+    if (error) throwMappedWriteError(error);
+    if (!data || data.length === 0) {
+      throw new CommandError("TENANT_ACCESS_DENIED");
+    }
+    return { targetId: ctx.input.id };
+  },
+  auditFields: (ctx) => ({ targetId: ctx.input.id }),
+});

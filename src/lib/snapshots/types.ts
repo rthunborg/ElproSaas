@@ -46,6 +46,17 @@ export type SnapshotKind =
   | "quote_terms";
 
 /**
+ * The closed set of owner-approved DEFAULT VAT DISPLAY modes (owner decision 2026-06-18)
+ * a `company_settings` snapshot can carry — MIRRORS the settings layer's `VAT_DISPLAY_MODES`
+ * (`src/server/commands/settings/validation.ts`) and the DB CHECK
+ * `company_settings_default_vat_display_valid`. Duplicated here (not imported) to keep this
+ * `src/lib` contract free of any server-command dependency: the value is DB-constrained at
+ * the source, so a cross-boundary consumer of a frozen snapshot narrows on this closed union
+ * at COMPILE time instead of receiving a bare `string`. Keep in sync with the settings enum.
+ */
+export type VatDisplayMode = "company_togglable" | "company_excl";
+
+/**
  * The COMMON fields every snapshot variant carries.
  *
  * - `sourceId`        — the source row's `id` (the thing a later quote points at).
@@ -111,8 +122,12 @@ export interface CompanySettingsSnapshot
   readonly companyName: string | null;
   /** From `vat_rate_bp` — BASIS POINTS (2500 = 25.00%), copied verbatim (NOT a percent). */
   readonly vatRateBp: number;
-  /** From `default_vat_display` — the owner display-mode enum, captured AS-IS. */
-  readonly defaultVatDisplay: string;
+  /**
+   * From `default_vat_display` — the owner display-mode enum, captured AS-IS. Typed as the
+   * closed `VatDisplayMode` union (not a bare `string`) so a downstream Epic 4/6 consumer
+   * reading this off a frozen snapshot gets compile-time narrowing on a cross-boundary value.
+   */
+  readonly defaultVatDisplay: VatDisplayMode;
 }
 
 /**
