@@ -4,6 +4,9 @@
 - [Phase 2 — epic test design] Design carries 8 owner/accounting sign-off questions (rounding mode, VAT display, ROT cap, gron-teknik rates/caps/mix, eligibility disclaimer, personnummer scope, approval posture, accepted-price delta) — human decisions, not plan gaps.
 - [Phase 8 — gates] Trace gate PASS (100% P0/P1 coverage, 188/188 money units green); NFR PASS-advisory with pnpm-audit CONCERNS now carried un-actioned across epics 2-4 — needs explicit schedule-or-accept at retro; test-review 93/100 (A) with P2/P3 polish backlog (split >300-line test files, extract shared helpers).
 - [Phase 8 — gates] Trace noted sprint-status.yaml 4-1 entry stale at ready-for-dev while story file is review — self-heals at E_final batch flip; dev-story's sprint sync missed it (worth a retro line).
+- [Phase 8 — retro] pnpm audit CI gate now 3-epic-carried; retro assigned owner (Charlie) + hard deadline (before Epic 5 closes) — confirm it actually lands.
+- [Phase 8 — retro] New silent-failure review pattern added to checklist: fallback logic that fabricates/mislabels state instead of erroring (selectVatDisplay posture relabel).
+- [Phase 8 — retro] Recurring stale story-artifact prose failure mode (2nd occurrence): re-verify against disk rather than trust prior-phase claims.
 
 ## Story 4-1-integer-ore-money-and-rounding-primitives
 - [Phase 3 — create-story] Chose 'round half away from zero' as conservative pilot half-rounding default, golden-pinned; sits inside the owner's still-open rounding sign-off question — sign-off must confirm or override.

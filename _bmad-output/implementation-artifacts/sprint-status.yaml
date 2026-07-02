@@ -41,7 +41,7 @@
 # Entries below remain grouped by epic for tracking; pick stories in the order above.
 
 generated: 2026-06-12
-last_updated: 2026-07-02  # story 4-4 dev-complete → review; epic-4 in-progress
+last_updated: 2026-07-02  # epic-4 retrospective completed
 project: ElproSaas
 project_key: NOKEY
 tracking_system: file-system
@@ -75,7 +75,7 @@ development_status:
   4-2-vat-and-quote-total-calculation-primitives: review
   4-3-rot-and-gron-teknik-estimate-engine-with-warnings: review
   4-4-money-and-tax-golden-master-fixture-pack: review
-  epic-4-retrospective: optional
+  epic-4-retrospective: done
 
   epic-5: backlog
   5-1-tenant-owned-calculation-schema-and-server-commands: backlog
