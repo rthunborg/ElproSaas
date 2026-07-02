@@ -1,0 +1,57 @@
+# auto-bmad per-story state — written by scripts/state_update.py (full stable schema;
+# see references/state-and-resume.md). Prose belongs in reports/{key}.md, not here.
+story_key: 4-3-rot-and-gron-teknik-estimate-engine-with-warnings
+epic_num: 4
+story_num: 3
+branch: epic/4-money-tax-snapshot-primitives-and-golden-fixtures
+status: done
+updated_at: "2026-07-02T13:52:17Z"
+started_at: "2026-07-02T13:13:41Z"
+completed_at: "2026-07-02T13:52:17Z"
+active_seconds: 2306
+timing_anchor: null
+is_first_in_epic: false
+is_last_in_epic: false
+needs_project_context_bootstrap: false
+git_mode: remote
+base_branch: main
+tea_risk: high
+tea_selected: [atdd, automate]
+tea_rationale: "ROT/gron teknik tax-deduction engine feeding customer-facing quotes; blocking invalid mixes; owner sign-off gated (R-405/R-406/R-407 score 6)"
+epic_story_count: 4
+stories_after_in_epic: 1
+completed_phases: [0, 1, 3, 4, 5, 6, 7]
+code_review_iterations: 0
+code_review_loop_done: true
+hitl_halt: "auto-continued (epic — no halt)"
+external_review_iterations: 0
+convergence_unverified: false
+story_trace: null
+commits: [1c577de, "0776832", d481f10, 1f1733e, a1e8bde, 7c4b5a5]
+phase8_steps:
+  trace_gate: null
+  nfr: null
+  test_review: null
+  project_context: null
+  reconcile: null
+  archive: null
+  retro: null
+gate_decision: null
+gate_iterations: 0
+deferred_work_archived: 0
+pr_url: null
+ci_run_url: null
+ci_status: unknown
+pr_merged: false
+merge_method: null
+merge_commit: null
+branch_deleted: false
+open_questions: []
+deferred_work:
+  - "Schablon on/off for gron teknik not modelled in placeholder profile — deferred to owner Sign-Off Q4"
+  - "persons per-person ROT cap unmodelled — deferred to owner Sign-Off Q3 (auto-resolved Tier-A decision, logged to deferred-work.md)"
+blockers: []
+overrides: {}
+constraints: []
+tier_a_base_sha: b1e0a64
+tier_a_review: "approve — 2 Decisions auto-resolved (Med persons-cap -> defer to Sign-Off Q3; Low snapshot guard -> dismiss); 3 noise dismissed; security clean 0/0/0; 0 open non-deferred"

@@ -1,0 +1,123 @@
+{
+  "_doc": "Story 4.2 GOLDEN FIXTURE — the VAT + quote-total policy pin (4.2-GOLDEN-01, R-403/R-404/R-410/R-411). Pins representative per-line VAT cases across the pilot Swedish VAT rates expressed as BASIS POINTS (0 / 600 / 1200 / 2500 bp = 0% / 6% / 12% / 25%). The VAT rate ALWAYS flows in from the fixture as a basis-point INPUT — the engine invents NO rate and holds NO percent constant, so there is NO hidden 0.25/25/1.25 literal in the VAT path (R-404, epic blocker). Per-line VAT = roundToOre(lineNetOre * vatRateBp / 10000) under the SINGLE Story 4.1 half-away-from-zero rounding mode (round PER LINE); section/quote VAT totals SUM the already-rounded per-line VAT values via sumOre (sum-of-rounded, NEVER round-of-sum, R-403). The `sumOfRoundedVsRoundOfSum` case is LOAD-BEARING: it pins the divergence where sum-of-rounded (3) != round-of-summed-VAT (2) so an accidental round-at-end fails loud. Each case carries an `origin` label — `new-expected` (the pilot's explicit VAT assumption) or `documented-delta` (an intentional divergence from Lovable's hardcoded-25% behaviour). Money/rate numbers ONLY — NO PII (personnummer/orgnr/name/email/address), NO clock (NFR17/R-411). This per-line VAT rounding policy + the excl/incl/both display policy + the 'private customer -> always incl-VAT' presentation invariant are CONSERVATIVE PILOT ASSUMPTIONS pending owner/accounting sign-off (Sign-Off Q1/Q2, test-design-epic-4); they are recorded as assumptions, NOT accounting/legally-final. STOP (needs-human) if accounting requires DOCUMENT-LEVEL VAT rounding or a different VAT display / customer-facing VAT wording.",
+  "policy": {
+    "vatRateUnit": "basis-points",
+    "vatRounding": "per-line (round each line's VAT, then SUM the rounded line VAT values)",
+    "totals": "sum-of-rounded (never round-of-sum)",
+    "grossDerivation": "grossOre = netOre + vatOre (derived; net + VAT are the immutable source of truth)",
+    "displayModes": "excl / incl / both are presentation-only views over the same net + VAT ore; a mode round-trip returns identical stored ore",
+    "privateCustomerInvariant": "private customer -> always incl-VAT (gross), not togglable — CONSERVATIVE ASSUMPTION, Sign-Off Q2",
+    "signOff": "pending-owner-accounting-legal"
+  },
+  "lineVatCases": [
+    {
+      "id": "vat-25pct-standard",
+      "origin": "new-expected",
+      "note": "Standard Swedish VAT 25% expressed as 2500 bp. net 85000 ore (850,00 kr) -> VAT round(85000*2500/10000)=round(21250)=21250 ore; gross 106250. Exact, no rounding residue.",
+      "lineNetOre": 85000,
+      "vatRateBp": 2500,
+      "expectedLineVatOre": 21250,
+      "expectedGrossOre": 106250
+    },
+    {
+      "id": "vat-12pct-food-etc",
+      "origin": "new-expected",
+      "note": "Reduced Swedish VAT 12% = 1200 bp. net 33300 ore -> VAT round(33300*1200/10000)=round(3996)=3996 ore; gross 37296.",
+      "lineNetOre": 33300,
+      "vatRateBp": 1200,
+      "expectedLineVatOre": 3996,
+      "expectedGrossOre": 37296
+    },
+    {
+      "id": "vat-6pct-reduced",
+      "origin": "new-expected",
+      "note": "Reduced Swedish VAT 6% = 600 bp. net 50000 ore -> VAT round(50000*600/10000)=round(3000)=3000 ore; gross 53000.",
+      "lineNetOre": 50000,
+      "vatRateBp": 600,
+      "expectedLineVatOre": 3000,
+      "expectedGrossOre": 53000
+    },
+    {
+      "id": "vat-0pct-exempt",
+      "origin": "new-expected",
+      "note": "VAT-exempt / 0% = 0 bp. net 85000 ore -> VAT 0 ore; gross 85000. Zero-rate is NOT a special-case bug: the same formula yields 0 cleanly.",
+      "lineNetOre": 85000,
+      "vatRateBp": 0,
+      "expectedLineVatOre": 0,
+      "expectedGrossOre": 85000
+    },
+    {
+      "id": "vat-25pct-zero-net",
+      "origin": "new-expected",
+      "note": "Zero-net line at 25% -> VAT 0, gross 0. A zero net row is valid and yields all-zero, not a rejection.",
+      "lineNetOre": 0,
+      "vatRateBp": 2500,
+      "expectedLineVatOre": 0,
+      "expectedGrossOre": 0
+    },
+    {
+      "id": "vat-25pct-half-boundary",
+      "origin": "new-expected",
+      "note": "net 2 ore @ 2500 bp -> 2*2500/10000 = 0.5 ore exactly -> round-half-away-from-zero -> 1 (banker's/half-to-even would give 0). Pins the SAME half-mode Story 4.1 golden-pinned into the VAT path; a mode flip here fails loud. gross 3.",
+      "lineNetOre": 2,
+      "vatRateBp": 2500,
+      "expectedLineVatOre": 1,
+      "expectedGrossOre": 3,
+      "bankersWouldGive": 0
+    },
+    {
+      "id": "vat-25pct-sub-half-rounds-down",
+      "origin": "new-expected",
+      "note": "net 1 ore @ 2500 bp -> 0.25 ore -> rounds DOWN to 0 (below the .5 boundary) under either mode. Guards the general round-to-nearest path on the VAT computation. gross 1.",
+      "lineNetOre": 1,
+      "vatRateBp": 2500,
+      "expectedLineVatOre": 0,
+      "expectedGrossOre": 1
+    },
+    {
+      "id": "vat-25pct-residue-truncates",
+      "origin": "new-expected",
+      "note": "net 12345 ore @ 2500 bp -> 3086.25 ore -> rounds to 3086 (residue < .5). Confirms per-line VAT rounding on a non-round net. gross 15431.",
+      "lineNetOre": 12345,
+      "vatRateBp": 2500,
+      "expectedLineVatOre": 3086,
+      "expectedGrossOre": 15431
+    }
+  ],
+  "fractionalQuantityChainCase": {
+    "id": "fractional-qty-net-then-vat",
+    "origin": "new-expected",
+    "note": "Full chain: quantity 2.5 x unitPriceOre 333 -> lineNetOre = roundToOre(832.5) = 833 (Story 4.1 lineNetOre, half-away-from-zero); then VAT @ 2500 bp = roundToOre(833*2500/10000)=roundToOre(208.25)=208; gross 1041. Exercises the fractional-qty -> line-net -> VAT chain end-to-end so a wrong stage fails loud.",
+    "quantity": 2.5,
+    "unitPriceOre": 333,
+    "vatRateBp": 2500,
+    "expectedLineNetOre": 833,
+    "expectedLineVatOre": 208,
+    "expectedGrossOre": 1041
+  },
+  "sectionTotalCase": {
+    "id": "section-vat-sum-of-rounded-mixed-rates",
+    "origin": "new-expected",
+    "note": "A section of three lines at DIFFERENT rates: (net 85000 @2500 -> VAT 21250), (net 33300 @1200 -> VAT 3996), (net 50000 @600 -> VAT 3000). Section VAT total = SUM of the already-rounded per-line VAT = 21250+3996+3000 = 28246 (sumOre, sum-of-rounded). Section net = 168300; section gross = sum of per-line gross = 196546.",
+    "lines": [
+      { "lineNetOre": 85000, "vatRateBp": 2500 },
+      { "lineNetOre": 33300, "vatRateBp": 1200 },
+      { "lineNetOre": 50000, "vatRateBp": 600 }
+    ],
+    "expectedSectionNetOre": 168300,
+    "expectedSectionVatOre": 28246,
+    "expectedSectionGrossOre": 196546
+  },
+  "sumOfRoundedVsRoundOfSumCase": {
+    "id": "vat-sum-of-rounded-not-round-of-sum",
+    "origin": "documented-delta",
+    "note": "LOAD-BEARING divergence pin (R-403). Three identical lines of net 2 ore @ 2500 bp. Per-line VAT = round(0.5) = 1 each -> sum-of-rounded VAT = 1*3 = 3. Round-of-summed-VAT would be round((2+2+2)*2500/10000) = round(1.5) = 2. The engine MUST yield 3 (sum-of-rounded). This diverges from any naive round-at-end implementation (and from Lovable's implicit behaviour) exactly where the conservative pilot policy says it should — hence origin `documented-delta`.",
+    "lines": [
+      { "lineNetOre": 2, "vatRateBp": 2500 },
+      { "lineNetOre": 2, "vatRateBp": 2500 },
+      { "lineNetOre": 2, "vatRateBp": 2500 }
+    ],
+    "expectedSumOfRoundedVatOre": 3,
+    "roundOfSummedVatWouldGive": 2
+  }
+}

@@ -41,7 +41,7 @@
 # Entries below remain grouped by epic for tracking; pick stories in the order above.
 
 generated: 2026-06-12
-last_updated: 2026-07-01  # epic-3 all 5 stories landed; epic-3 retrospective done
+last_updated: 2026-07-02  # epic-4 retrospective completed
 project: ElproSaas
 project_key: NOKEY
 tracking_system: file-system
@@ -70,12 +70,12 @@ development_status:
   3-5-snapshot-source-contract-for-settings-and-pricing-inputs: done
   epic-3-retrospective: done
 
-  epic-4: backlog
-  4-1-integer-ore-money-and-rounding-primitives: backlog
-  4-2-vat-and-quote-total-calculation-primitives: backlog
-  4-3-rot-and-gron-teknik-estimate-engine-with-warnings: backlog
-  4-4-money-and-tax-golden-master-fixture-pack: backlog
-  epic-4-retrospective: optional
+  epic-4: done
+  4-1-integer-ore-money-and-rounding-primitives: done
+  4-2-vat-and-quote-total-calculation-primitives: done
+  4-3-rot-and-gron-teknik-estimate-engine-with-warnings: done
+  4-4-money-and-tax-golden-master-fixture-pack: done
+  epic-4-retrospective: done
 
   epic-5: backlog
   5-1-tenant-owned-calculation-schema-and-server-commands: backlog

@@ -13,7 +13,16 @@
  * non-numeric / blank, and always yields a non-negative INTEGER number of öre.
  *
  * NO calculation is done here (Epic 4 owns the money engine) — presentation/encoding only.
+ *
+ * FORMATTER CONSOLIDATION (Story 4.1): the öre→kronor DISPLAY direction is now a single
+ * authority — `formatOreAsKronor` in `@/lib/money` (the calculation-engine's presentation
+ * boundary). `oreToKronorString` below DELEGATES to it so there is ONE formatting
+ * implementation in the codebase (byte-identical output). This module remains the pricing-UI
+ * input parse/format seam (`kronorStringToOre` is the UI-input parse; `oreToKronorString`
+ * keeps its name for the existing UI consumers); `@/lib/money` is the calculation-engine's
+ * formatter. Both emit the identical Swedish comma-decimal string.
  */
+import { formatOreAsKronor } from "@/lib/money";
 
 /** The outcome of parsing a kronor input string into integer öre. */
 export type KronorParseResult =
@@ -51,14 +60,13 @@ export function kronorStringToOre(input: string): KronorParseResult {
 /**
  * Format integer öre as a Swedish kronor string with exactly two decimals (a comma
  * decimal): 85000 → "850,00", 0 → "0,00", 1 → "0,01", 1250 → "12,50". A non-finite öre
- * (NaN / ±Infinity) yields "" so no NaN ever leaks into the UI.
+ * (NaN / ±Infinity) yields "" so no NaN ever leaks into the UI. A negative öre keeps its
+ * sign and a non-integer öre is truncated toward zero (defensive) — see `formatOreAsKronor`.
+ *
+ * DELEGATES to the canonical `@/lib/money` formatter so there is ONE öre→kronor formatting
+ * authority in the codebase (Story 4.1 consolidation). Kept under this name for the existing
+ * pricing-UI consumers (`WorkRolesEditor` / `ArticlesEditor`).
  */
 export function oreToKronorString(ore: number): string {
-  if (!Number.isFinite(ore)) return "";
-  const sign = ore < 0 ? "-" : "";
-  const abs = Math.abs(Math.trunc(ore));
-  const kronor = Math.floor(abs / 100);
-  const remainder = abs % 100;
-  const fractional = String(remainder).padStart(2, "0");
-  return `${sign}${kronor},${fractional}`;
+  return formatOreAsKronor(ore);
 }

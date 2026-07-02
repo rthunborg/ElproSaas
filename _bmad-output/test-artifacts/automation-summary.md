@@ -1,79 +1,87 @@
 ---
-stepsCompleted: ['step-01-preflight-and-context', 'step-02-identify-targets', 'step-03-generate-tests']
-lastStep: 'step-03-generate-tests'
-lastSaved: '2026-07-01'
+stepsCompleted:
+  - 'step-01-preflight-and-context'
+  - 'step-02-identify-targets'
+  - 'step-03-generate-tests'
+  - 'step-03c-aggregate'
+  - 'step-04-validate-and-summarize'
+lastStep: 'step-04-validate-and-summarize'
+lastSaved: '2026-07-02'
+workflowType: testarch-automate
+story: 4.2 VAT And Quote Total Calculation Primitives
+detectedStack: backend
+executionMode: sequential (pure-library adaptation)
 inputDocuments:
-  - _bmad-output/implementation-artifacts/3-5-snapshot-source-contract-for-settings-and-pricing-inputs.md
-  - src/lib/snapshots/types.ts
-  - src/lib/snapshots/build.ts
-  - src/server/snapshots/resolve-source.ts
-  - tests/unit/lib/snapshots/build.test.ts
-  - tests/unit/lib/snapshots/golden.test.ts
-  - tests/integration/snapshots/source-ownership.int.test.ts
-  - tests/fixtures/golden/snapshots/work-role-source.json
-  - tests/fixtures/golden/snapshots/article-source.json
-  - src/server/commands/command-errors.ts
-  - src/lib/result/result.ts
+  - _bmad-output/implementation-artifacts/4-2-vat-and-quote-total-calculation-primitives.md
+  - _bmad-output/test-artifacts/test-design-epic-4.md
+  - src/lib/money/vat.ts
+  - src/lib/money/ore.ts
+  - src/lib/money/index.ts
+  - src/server/commands/settings/validation.ts
+  - tests/unit/lib/money/vat.test.ts
+  - tests/unit/lib/money/vat.golden.test.ts
+  - tests/fixtures/golden/money/vat-rates.json
 ---
 
-# Test Automation Expansion — Story 3.5 (Snapshot Source Contract)
+# Test Automation Expansion — Story 4.2 (VAT + Quote-Total Primitives)
 
 ## Mode & Stack
 
-- **Mode:** BMad-Integrated (story 3.5 loaded). Create mode (expand after implementation).
-- **Detected stack:** backend for THIS module — pure TS builders/types + a server-only
-  RLS resolver. Prefer fast `node --test` units over more Vitest integration where a pure
-  function (builder, dispatcher, resolver error-mapping) can be tested directly.
-- **Framework verified:** present (`pnpm test:unit` node --test + `pnpm test:int` Vitest).
+- **Mode:** BMad-Integrated (story 4.2 + binding epic-4 test design present). Create mode
+  (expand coverage after implementation).
+- **Detected stack:** `backend` / pure-library. The story surface (`src/lib/money/vat.ts`) is a
+  PURE integer-öre + basis-point VAT engine — NO DB, NO HTTP route, NO browser, NO clock. Test
+  framework: `node --test` via `pnpm run test:unit` (`--experimental-strip-types` +
+  `tests/support/register.mjs` alias hook). Vitest/Playwright exist for DB/e2e but are N/A here
+  (test-design-epic-4: Epic 4 adds ZERO Vitest/Playwright tests).
+- **Execution:** sequential, inline `node --test` authoring. The generic automate API/E2E subagent
+  dispatch matrix does not fit a pure-logic module (epic-4 retro: pure-library stories route to
+  inline UNIT + GOLDEN, not an HTTP/browser scaffold).
 
-## Existing coverage (baseline — not weakened)
+## Coverage baseline (already present before this run)
 
-- `tests/unit/lib/snapshots/build.test.ts` — per-kind copy-fidelity; `work_role`
-  source-mutation immutability; frozen (all 4); terms state-only + no source mutation.
-- `tests/unit/lib/snapshots/golden.test.ts` — work-role + article golden masters +
-  anonymization guard.
-- `tests/integration/snapshots/source-ownership.int.test.ts` — both-layers cross-tenant
-  rejection across all four sources (DB-touching — stays at integration).
+The frozen ATDD contract scaffolds pin the AC happy paths + load-bearing policy:
+`vat.test.ts` (4.2-UNIT-01..06) + `vat.golden.test.ts` (4.2-GOLDEN-01) — 26 assertions covering
+per-line round, sum-of-rounded ≠ round-of-sum, frozen snapshot, presentation-only display,
+zero-rate, and the no-hidden-literal source grep. Full unit baseline: 516 pass.
 
-## Gaps filled this run (fast pure units)
+## Gaps identified (Step 2) → tests generated (Step 3)
 
-1. **Immutability depth per EACH kind** — for `work_role`, `article`, `company_settings`,
-   `quote_terms`: mutate the ORIGINAL source object (every captured field, incl. flipping
-   `is_active`, editing öre/bp/text/timestamps) AFTER build → the prior snapshot is
-   byte-for-byte unchanged (copy-by-value, no live reference); `Object.isFrozen(snap)` at
-   the intended-immutable level; a direct write to the snapshot does not take effect; the
-   builder never mutates its input row.
-2. **Field-capture edges** — integer-öre boundaries (`0`, large `Number.MAX_SAFE_INTEGER`)
-   copied verbatim & still integer; `vat_rate_bp` boundaries (`0`, `2500`, `10000`);
-   `approved_at` NULL (not-approved) vs a timestamp (approved) captured faithfully — the
-   builder NEVER approves; `capturedAt` always the injected value; source `updated_at`
-   flows to `sourceUpdatedAt` (the version) and is distinct from `capturedAt`.
-3. **Dispatcher `buildSnapshotSource`** — each `kind` routes to the matching per-kind
-   builder (output deep-equals the direct builder call, frozen); an unknown `kind` hits
-   `assertNever` and throws at runtime (fail-loud) — the compile-time guard is exercised
-   behaviorally.
-4. **`resolve-source.ts` pure error-mapping** — with an in-memory fake client (no DB):
-   zero rows (`[]` / `null`) → `TENANT_ACCESS_DENIED`; a returned DB `error` → `SERVER_ERROR`;
-   a thrown/rejecting client → `SERVER_ERROR`; a present row → `ok(row)`; the denial message
-   never echoes the source id; the resolver selects the right table per kind.
+New file: **`tests/unit/lib/money/vat.coverage.test.ts`** (28 tests). Targets the branches,
+negative paths, boundaries, and exact contracts the frozen scaffolds leave open — no duplication:
 
-## Deliberately kept at integration (not unitized)
+| Target (in `vat.ts`) | Priority | Coverage added |
+| --- | --- | --- |
+| `lineVatOre` | P1 | `INVALID_ORE_AMOUNT` vs `INVALID_VAT_RATE_BP` discriminant; validation ORDER (net first); defensive output-overflow guard at the öre ceiling; VAT monotonic in rate & ≤ net (5 tests) |
+| `sumVatOre` | P1 | DIRECT contract: empty → 0; single element; order-independence; non-öre element → `INVALID_ORE_AMOUNT`; running total past ceiling → `ORE_OVERFLOW` (6 tests) |
+| `vatBreakdown` | P1 | invalid net/rate → typed failure with NO partial breakdown; the DERIVED-gross `ORE_OVERFLOW` guard fires (net+VAT > ceiling — a branch unreachable in `lineVatOre` alone); gross = net+VAT, not re-rounded (4 tests) |
+| `selectVatDisplay` | P1 | FULL `VatDisplayView` shape per posture (primaryOre/togglable/net/vat/gross); unknown-posture → conservative private/gross fallback; returned view is a fresh object (no input mutation) (5 tests) |
+| `buildVatAssumptionSnapshot` | P1 | optional `sourceId`/`sourceUpdatedAt` copied when present, OMITTED (not `undefined`) when absent; sourceId-only case; frozen; no live ref to the DISPLAY field (4 tests) |
+| `isVatRateBp` + `VAT_RATE_BP_MIN`/`MAX` | P1 | boundary accept/reject (0, 10000 / -1, 10001); float rejection; non-number rejection; the settings validator re-exports the SAME bounds (ONE authority, no fork) (4 tests) |
 
-- Real RLS enforcement, cross-tenant zero-rows under the actual `is_tenant_admin` policies,
-  and the seeded two-tenant proof remain in `source-ownership.int.test.ts` (correct level —
-  they require the live Supabase stack).
+**Rationale (scope):** selective/targeted expansion of the pure engine's branch surface. No new
+test level; no DB/browser/E2E (out of scope per epic-4 test design). No duplicate coverage — every
+added test exercises a branch or contract the frozen scaffolds do not.
 
-## New / modified test files
+## Validation (Step 4)
 
-- `tests/unit/lib/snapshots/build.test.ts` — expanded (immutability per kind + field edges).
-- `tests/unit/lib/snapshots/dispatch.test.ts` — new (dispatcher routing + assertNever).
-- `tests/unit/server/snapshots/resolve-source.test.ts` — new (pure error-mapping).
+- `tests/unit/lib/money/vat.coverage.test.ts` — **28 pass / 0 fail**.
+- Full unit suite (`pnpm run test:unit`) — **544 pass / 0 fail / 0 skipped** (516 → +28, exactly
+  the new file; no regressions).
+- `pnpm typecheck` — clean. `pnpm lint` — 0 errors (1 pre-existing unused-var WARNING in the frozen
+  ATDD scaffold `vat.test.ts`, not editable per ATDD contract; the new file is warning-free).
+- DB/int/e2e gates unchanged: this expansion adds NO migration, dependency, DB or UI surface (pure
+  unit only), consistent with the story's inherited-regression posture.
 
-## Result
+## Notes carried forward
 
-- **Unit suite:** 424 pass / 0 fail (was ~407 baseline; +17 new snapshot units this run).
-- **typecheck:** clean. **lint:** clean.
-- No existing test weakened; no golden fixture changed; no implementation code changed.
-- Integration suite (`test:int`, DB-touching cross-tenant) left untouched — it requires the
-  live local Supabase stack and its coverage is the correct level for the RLS half of AC3.
-
+- The `lineVatOre` output-overflow branch is unreachable from valid inputs alone (VAT ≤ net ≤ max
+  for bp ≤ 10000), so its test asserts the ceiling case stays a valid öre amount (the guard is a
+  defensive belt on the float product). The genuinely reachable overflow path — the DERIVED-gross
+  guard in `vatBreakdown` (net at ceiling + non-zero VAT) — is now explicitly pinned.
+- The per-line VAT rounding policy, the excl/incl/both display views, and the
+  `private → always incl-VAT` invariant remain CONSERVATIVE PILOT ASSUMPTIONS pending
+  owner/accounting/legal sign-off (Sign-Off Q1/Q2). Not re-opened — coverage pins the CURRENT
+  policy so a regression fails loud.
+- Two standing NFR concerns (no `pnpm audit` CI gate; no coverage reporter) remain owner-pending at
+  the epic level — not introduced or fixed by this coverage expansion.

@@ -1,0 +1,127 @@
+# auto-bmad per-story state — written by scripts/state_update.py (full stable schema;
+# see references/state-and-resume.md). Prose belongs in reports/{key}.md, not here.
+story_key: epic-4
+epic_num: 4
+story_num: null
+branch: epic/4-money-tax-snapshot-primitives-and-golden-fixtures
+status: done
+updated_at: "2026-07-02T15:35:27Z"
+started_at: "2026-07-02T11:42:30Z"
+completed_at: "2026-07-02T15:35:27Z"
+active_seconds: 13000
+timing_anchor: null
+is_first_in_epic: false
+is_last_in_epic: false
+needs_project_context_bootstrap: false
+git_mode: remote
+base_branch: main
+tea_risk: null
+tea_selected: []
+tea_rationale: null
+epic_story_count: 4
+stories_after_in_epic: null
+completed_phases: [0, 1, 2, 5, 7, 9, 81, 82]
+code_review_iterations: 2
+code_review_loop_done: true
+hitl_halt: "auto-continued (epic — no halt)"
+external_review_iterations: 0
+convergence_unverified: false
+story_trace: null
+commits: []
+phase8_steps:
+  trace_gate: done
+  nfr: done
+  test_review: done
+  project_context: done
+  reconcile: done
+  archive: done
+  retro: done
+gate_decision: PASS
+gate_iterations: 0
+deferred_work_archived: 6
+pr_url: "https://github.com/rthunborg/ElproSaas/pull/18"
+ci_run_url: "https://github.com/rthunborg/ElproSaas/actions/runs/28601747973"
+ci_status: passed
+pr_merged: false
+merge_method: null
+merge_commit: null
+branch_deleted: false
+open_questions: []
+deferred_work: []
+blockers: []
+overrides: {}
+constraints: []
+active_story: null
+stories_landed:
+  - 4-1-integer-ore-money-and-rounding-primitives
+  - 4-2-vat-and-quote-total-calculation-primitives
+  - 4-3-rot-and-gron-teknik-estimate-engine-with-warnings
+  - 4-4-money-and-tax-golden-master-fixture-pack
+auto_decisions:
+  - "defaultVatDisplay typed as bare string, widening the VatDisplayMode enum [Med] -> fix: define+export a VatDisplayMode union type in @/lib/money and type both defaultVatDisplay fields with it (Tier A, 4-2-vat-and-quote-total-calculation-primitives)"
+  - "buildVatAssumptionSnapshot performs no input validation on vatRateBp [Med] -> fix: add an isVatRateBp guard at the builder entry (typed failure or narrowed source type) so an invalid/float rate cannot be frozen (Tier A, 4-2-vat-and-quote-total-calculation-primitives)"
+  - "persons input not applied to per-person ROT cap [Med] -> defer: owner-gated under Sign-Off Q3; flat conservative placeholder sanctioned; logged to deferred-work.md (Tier A, 4-3-rot-and-gron-teknik-estimate-engine-with-warnings)"
+  - "buildTaxAssumptionSnapshot lacks isVatRateBp guard [Low] -> dismiss: intentional per Task 3.2 state-capture-only builder contract; engine guards rate pre-computation (Tier A, 4-3-rot-and-gron-teknik-estimate-engine-with-warnings)"
+  - "Deduction rate leaks VAT-named error code INVALID_VAT_RATE_BP [Med] -> fix: widen MoneyErrorCode additively with INVALID_DEDUCTION_RATE_BP, keep reused isVatRateBp predicate (E_review, epic-4)"
+  - "selectVatDisplay falsifies posture to 'private' on unknown input [Med] -> fix: keep conservative gross fallback but return the original posture (or typed failure), never relabel (E_review, epic-4)"
+  - "company_togglable default primary = gross for company customer [Med] -> defer: conservative unapproved build stands; confirm at Sign-Off Q2 VAT-display session; logged to deferred-work.md (E_review, epic-4)"
+  - "capturedAt never validated before freezing into assumption snapshot [Low] -> fix: non-empty-string guard in both snapshot builders with typed failure (E_review, epic-4)"
+uat_items:
+  - "[4-1-integer-ore-money-and-rounding-primitives] Run the full money unit + golden suite: node --experimental-strip-types --import ./tests/support/register.mjs --test \"tests/unit/lib/money/**/*.test.ts\" -> all pass, 0 fail, 0 skipped"
+  - "[4-1-integer-ore-money-and-rounding-primitives] Run pnpm run test:unit -> green (money units alongside pre-existing pricing-validation and money-display suites; isOreAmount move + formatter delegation kept old suites green)"
+  - "[4-1-integer-ore-money-and-rounding-primitives] Node one-liner import('@/lib/money'): lineNetOre(3,79000) -> {ok:true,value:237000} (3 x 790,00 kr = 2 370,00 kr exact ore)"
+  - "[4-1-integer-ore-money-and-rounding-primitives] lineNetOre(0.5,45) -> {ok:true,value:23} (22.5 ore rounds UP, half-away-from-zero; banker's would give 22)"
+  - "[4-1-integer-ore-money-and-rounding-primitives] sumOre([23,23,23]) -> {ok:true,value:69} (sum-of-rounded, not round-of-sum 68)"
+  - "[4-1-integer-ore-money-and-rounding-primitives] lineNetOre(0.333,100000) -> {ok:true,value:33300} (fractional quantity, no float residue)"
+  - "[4-1-integer-ore-money-and-rounding-primitives] lineNetOre(1,850.5) -> {ok:false,code:INVALID_ORE_AMOUNT} (float ore rejected, stable code, no NaN)"
+  - "[4-1-integer-ore-money-and-rounding-primitives] lineNetOre(-1,100) -> {ok:false,code:INVALID_QUANTITY}"
+  - "[4-1-integer-ore-money-and-rounding-primitives] lineNetOre(1,'850,00') / '850.00' / NaN / Infinity / null -> all {ok:false,code:INVALID_ORE_AMOUNT}"
+  - "[4-1-integer-ore-money-and-rounding-primitives] lineNetOre(2, Number.MAX_SAFE_INTEGER) -> {ok:false,code:ORE_OVERFLOW}"
+  - "[4-1-integer-ore-money-and-rounding-primitives] lineNetOre(0,5000) and lineNetOre(2,0) -> {ok:true,value:0} (zero is valid)"
+  - "[4-1-integer-ore-money-and-rounding-primitives] formatOreAsKronor(85000) -> '850,00'; (1) -> '0,01'; (0) -> '0,00' (Swedish comma, two decimals)"
+  - "[4-1-integer-ore-money-and-rounding-primitives] formatOreAsKronor(NaN) -> '' and (Infinity) -> '' (never leaks NaN)"
+  - "[4-1-integer-ore-money-and-rounding-primitives] Open tests/fixtures/golden/money/rounding-mode.json -> lineNetCases show expectedLineNetOre vs bankersWouldGive; sumOfRoundedCase 69 vs 68"
+  - "[4-1-integer-ore-money-and-rounding-primitives] formatOreAsKronor(1250) === oreToKronorString(1250) -> true (single formatter authority, byte-identical)"
+  - "[4-2-vat-and-quote-total-calculation-primitives] Run pnpm run test:unit -> ~545 pass, 0 fail, incl. vat.test.ts / vat.golden.test.ts / vat.coverage.test.ts"
+  - "[4-2-vat-and-quote-total-calculation-primitives] Run the two VAT suites directly with the node --test runner -> they RUN (not skipped) and pass (VAT_SURFACE_PRESENT gate flipped true)"
+  - "[4-2-vat-and-quote-total-calculation-primitives] Select-String src/lib/money/vat.ts for 0.25|1.25|25 -> rate literals only in comments; only computational literal is / 10000 (R-404 no-hidden-VAT-constant)"
+  - "[4-2-vat-and-quote-total-calculation-primitives] REPL via @/lib/money: lineVatOre(85000, 2500) -> {ok:true,value:21250} (850,00 kr net -> 212,50 kr VAT)"
+  - "[4-2-vat-and-quote-total-calculation-primitives] lineVatOre(33300, 1200) -> 3996; lineVatOre(50000, 600) -> 3000 (rate flows as basis points)"
+  - "[4-2-vat-and-quote-total-calculation-primitives] lineVatOre(85000, 0) -> 0 and lineVatOre(0, 2500) -> 0 (zero/exempt not special-cased)"
+  - "[4-2-vat-and-quote-total-calculation-primitives] lineVatOre(2, 2500) -> {ok:true,value:1} (0.5 ore rounds UP, half-away-from-zero reused from 4.1)"
+  - "[4-2-vat-and-quote-total-calculation-primitives] lineVatOre(850.5, 2500) -> INVALID_ORE_AMOUNT; lineVatOre(85000, 2500.5) and (85000, 10001) -> INVALID_VAT_RATE_BP (typed failures, no throw/NaN)"
+  - "[4-2-vat-and-quote-total-calculation-primitives] sumVatOre([1,1,1]) -> {ok:true,value:3} NOT round-of-sum 2 (R-403 sum-of-rounded)"
+  - "[4-2-vat-and-quote-total-calculation-primitives] vatBreakdown(85000, 2500) -> {netOre:85000, vatOre:21250, grossOre:106250}"
+  - "[4-2-vat-and-quote-total-calculation-primitives] selectVatDisplay: company_excl -> primary 85000/togglable false; company_togglable -> 106250/true; private -> 106250 gross/false; source breakdown unmutated after all three"
+  - "[4-2-vat-and-quote-total-calculation-primitives] buildVatAssumptionSnapshot({vatRateBp:2500, defaultVatDisplay:'company_togglable'}, {capturedAt:...}) -> frozen snapshot; Object.isFrozen true; mutation attempt leaves vatRateBp 2500"
+  - "[4-2-vat-and-quote-total-calculation-primitives] buildVatAssumptionSnapshot with vatRateBp 2500.5 -> {ok:false,code:INVALID_VAT_RATE_BP} (invalid rate never frozen)"
+  - "[4-2-vat-and-quote-total-calculation-primitives] Chain lineNetOre(2.5,333) -> 833; lineVatOre(833,2500) -> 208; vatBreakdown gross -> 1041 (qty->net->VAT composes)"
+  - "[4-3-rot-and-gron-teknik-estimate-engine-with-warnings] Run tax.test.ts via node --test runner -> 18/18 pass (ATDD gate flipped green)"
+  - "[4-3-rot-and-gron-teknik-estimate-engine-with-warnings] Run tax.golden.test.ts -> golden cases pass pinning placeholder numbers (ROT 3000 bp, gron 2000 bp, caps 5 000 000 ore)"
+  - "[4-3-rot-and-gron-teknik-estimate-engine-with-warnings] estimateDeduction rot, basis 100000, posture private -> deductionOre 30000, requiresSignOff true, warnings include UNAPPROVED_PROFILE"
+  - "[4-3-rot-and-gron-teknik-estimate-engine-with-warnings] estimateDeduction gron_teknik, basis 200000 -> deductionOre 40000 (own 20% rate, not ROT's)"
+  - "[4-3-rot-and-gron-teknik-estimate-engine-with-warnings] estimateDeduction rot, basis 30000000 -> deductionOre 5000000 clamped + DEDUCTION_CLAMPED_TO_CAP warning"
+  - "[4-3-rot-and-gron-teknik-estimate-engine-with-warnings] estimateDeduction rot, basis 0 -> ok:true, deductionOre 0 (valid, not rejected)"
+  - "[4-3-rot-and-gron-teknik-estimate-engine-with-warnings] Multi-line basis [60000, 40000] (2nd hidden) -> eligibleBasisOre 100000, deduction 30000; [60000] alone -> 60000 (hidden rows count toward basis)"
+  - "[4-3-rot-and-gron-teknik-estimate-engine-with-warnings] ROT x gron mix -> ok:false, code ROT_GRON_MIX_NOT_ALLOWED, no deductionOre (blocked, never summed)"
+  - "[4-3-rot-and-gron-teknik-estimate-engine-with-warnings] posture company/brf/public -> POSTURE_NOT_ELIGIBLE warning; posture private -> no such warning"
+  - "[4-3-rot-and-gron-teknik-estimate-engine-with-warnings] Unknown deductionType -> ok:false UNKNOWN_DEDUCTION_TYPE, raw string not echoed"
+  - "[4-3-rot-and-gron-teknik-estimate-engine-with-warnings] Bad basis (850.5 / -1 / '100000' / Infinity / null) -> typed money codes, no NaN/Infinity/raw echo in JSON"
+  - "[4-3-rot-and-gron-teknik-estimate-engine-with-warnings] JSON.stringify any success -> contains requiresSignOff:true and NEVER approved:true / isApproved:true (incl. assumptionSnapshot)"
+  - "[4-3-rot-and-gron-teknik-estimate-engine-with-warnings] ROT/GRON profiles -> approved:false, signOffStatus pending-owner-accounting-legal, Object.isFrozen true"
+  - "[4-3-rot-and-gron-teknik-estimate-engine-with-warnings] buildTaxAssumptionSnapshot then mutate source -> snapshot frozen, keeps captured bp, capturedAt = injected instant"
+  - "[4-3-rot-and-gron-teknik-estimate-engine-with-warnings] Pass personnummer field into estimateDeduction -> result JSON contains no personnummer digits (engine never consumes/echoes PII)"
+  - "[4-4-money-and-tax-golden-master-fixture-pack] Run pnpm run test:unit -> all pass, 4.4 golden-pack tests included via tests/unit/** glob"
+  - "[4-4-money-and-tax-golden-master-fixture-pack] Run golden-pack.test.ts + golden-pack-coverage.test.ts directly -> 16/16 pass"
+  - "[4-4-money-and-tax-golden-master-fixture-pack] Open options-tillval.json and accepted-price-deltas.json -> valid JSON with _doc, policy block, cases array"
+  - "[4-4-money-and-tax-golden-master-fixture-pack] Read CATEGORY_MANIFEST in golden-pack.test.ts -> all 10 AC1 categories map to existing fixture files; P0 coverage test passes"
+  - "[4-4-money-and-tax-golden-master-fixture-pack] Eyeball fixtures -> every case has origin old-lovable/new-expected/documented-delta + non-empty note; deltaCases exercise all three origins"
+  - "[4-4-money-and-tax-golden-master-fixture-pack] Mutate one origin to 'foo' (temp) -> labelling test FAILS naming the case; revert (guard non-vacuous)"
+  - "[4-4-money-and-tax-golden-master-fixture-pack] Delete expectedDeltaOre or _doc (temp) -> schema-shape guard FAILS loud; revert"
+  - "[4-4-money-and-tax-golden-master-fixture-pack] Inject personnummer/orgnr/email/secret/phone into fixture data (temp) -> privacy scan FAILS naming the file; revert"
+  - "[4-4-money-and-tax-golden-master-fixture-pack] Hand-check options oracle: base [50000,30000] + selected 20000 -> included 100000; unselected 15000 NOT summed; hidden basis 90000 -> ROT 27000"
+  - "[4-4-money-and-tax-golden-master-fixture-pack] Hand-check delta arithmetic: recalculated - accepted === expectedDeltaOre for every case (112500-100000=+12500; 69-68=+1)"
+  - "[4-4-money-and-tax-golden-master-fixture-pack] Check policy.signOff = pending-owner-accounting-legal in both new fixtures -> nothing marked production-approved (Sign-Off Q8 open)"
+  - "[4-4-money-and-tax-golden-master-fixture-pack] git shows only fixtures + tests (+ tracking docs); package.json/pnpm-lock untouched; no src/ change, no migration, no route/UI"
+epic_slug: money-tax-snapshot-primitives-and-golden-fixtures
+batch_flip_done: true

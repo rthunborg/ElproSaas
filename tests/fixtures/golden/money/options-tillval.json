@@ -1,0 +1,56 @@
+{
+  "_doc": "Story 4.4 GOLDEN FIXTURE — the OPTIONS / TILLVAL + hidden-row INCLUSION pin (4.4-GOLDEN-01, R-408). Pins the pure BASIS/inclusion rule the later calc surface must obey: an option (tillval) that is SELECTED (accepted with the base) COUNTS toward the eligible basis / section net / VAT totals; an option that is NOT selected does NOT count and is NEVER summed; a HIDDEN row DOES count toward the basis and totals (owner decision 2026-06-18, Epic 5.4/5.5). Epic 4 pins ONLY this pure INCLUSION rule — the UI visibility / selection semantics (how a row is toggled, how an option is presented) are Epic 5's (cross-ref R-408). The fixture is a LIVE oracle: the golden-pack test drives the frozen 4.1/4.2/4.3 `@/lib/money` primitives (`sumOre` for the included-basis sum, `lineVatOre` for the per-line VAT, `estimateDeduction` for the hidden-row deduction basis) against these pinned öre — a wrong inclusion decision fails LOUD. This REUSES the `rot-gron-deductions.json` hidden-row inclusion shape (`eligibleBasisLines`) as the model. Money/öre/rate numbers ONLY — NO PII (personnummer/orgnr/name/email/phone/address), NO clock (NFR17/R-411). The inclusion policy below is the CONSERVATIVE PILOT ASSUMPTION owner-decided 2026-06-18 (hidden rows + selected options count; unselected options excluded); it is recorded as a pilot assumption, NOT accounting/legally-final, and the underlying rates/caps stay the pending 4.3 UNAPPROVED placeholders. STOP (needs-human) if a DIFFERENT inclusion rule (e.g. options excluded from the deduction basis) must be treated as production-approved.",
+  "policy": {
+    "inclusionUnit": "integer-öre line values",
+    "selectedOption": "an option/tillval ACCEPTED WITH THE BASE (selected) COUNTS toward the eligible basis / section net / VAT totals",
+    "unselectedOption": "an option/tillval NOT selected does NOT count and is NEVER summed into the basis/totals",
+    "hiddenRow": "a hidden row DOES count toward the basis and totals (owner decision 2026-06-18, Epic 5.4/5.5) — Epic 4 pins the pure BASIS rule, UI visibility is Epic 5",
+    "basisSum": "included lines sum via the Story 4.1 sumOre (sum-of-rounded); the deduction basis reuses the 4.3 estimateDeduction multi-line eligibleBasisLines path (hidden rows included)",
+    "vatRounding": "per-line VAT via the Story 4.2 lineVatOre (round each included line's VAT, then SUM the rounded values) — an excluded line contributes NO VAT",
+    "scopeNote": "Epic 4 pins the pure INCLUSION rule ONLY; the options/hidden-row VISIBILITY + selection UI is Epic 5 (R-408 cross-ref) — this fixture builds NO calc rows and NO UI",
+    "signOff": "pending-owner-accounting-legal"
+  },
+  "inclusionCases": [
+    {
+      "id": "selected-option-counts-toward-net",
+      "origin": "new-expected",
+      "note": "A SELECTED option (accepted with the base) COUNTS toward the section net. Base lines [50000, 30000] öre + a SELECTED option 20000 öre -> included section net = sumOre([50000, 30000, 20000]) = 100000 öre. Owner decision 2026-06-18: an option accepted with base counts. The included set is the source of truth for the basis.",
+      "baseLinesOre": [50000, 30000],
+      "selectedOptionOre": 20000,
+      "includedLinesOre": [50000, 30000, 20000],
+      "expectedIncludedNetOre": 100000
+    },
+    {
+      "id": "unselected-option-excluded-from-net",
+      "origin": "new-expected",
+      "note": "An UNSELECTED option does NOT count. Same base [50000, 30000] öre but the option 15000 öre is NOT selected -> included section net = sumOre([50000, 30000]) = 80000 öre; the unselected 15000 öre is NEVER summed. If the engine ever summed the unselected option, the net would be 95000 (the excludedWouldGive value) and this pin fails loud.",
+      "baseLinesOre": [50000, 30000],
+      "unselectedOptionOre": 15000,
+      "includedLinesOre": [50000, 30000],
+      "expectedIncludedNetOre": 80000,
+      "excludedWouldGive": 95000
+    },
+    {
+      "id": "selected-option-counts-toward-vat",
+      "origin": "new-expected",
+      "note": "A SELECTED option counts toward the per-line-then-summed VAT total too. Included lines [50000, 30000, 20000] öre @ 2500 bp -> per-line VAT round(12500)=12500, round(7500)=7500, round(5000)=5000 -> section VAT = sumVatOre = 25000 öre (sum-of-rounded). The excluded 15000-öre option would have added round(3750)=3750 (NOT added).",
+      "includedLinesOre": [50000, 30000, 20000],
+      "vatRateBp": 2500,
+      "expectedPerLineVatOre": [12500, 7500, 5000],
+      "expectedSectionVatOre": 25000,
+      "unselectedOptionVatWouldAdd": 3750
+    },
+    {
+      "id": "hidden-row-counts-toward-deduction-basis",
+      "origin": "new-expected",
+      "note": "A HIDDEN row DOES count toward the ROT eligible basis (owner decision 2026-06-18, hidden rows count). Multi-line basis [50000, 30000, 10000] where the 3rd line is HIDDEN -> eligibleBasis = sumOre = 90000 öre (hidden row INCLUDED); ROT deduction via estimateDeduction (ROT_PROFILE_UNAPPROVED, 3000 bp, private) = round(90000*3000/10000) = 27000 öre, well under the cap. Reuses the 4.3 estimateDeduction multi-line hidden-row path; UI visibility is Epic 5. requiresSignOff stays true (UNAPPROVED profile).",
+      "deductionType": "rot",
+      "eligibleBasisLines": [50000, 30000, 10000],
+      "posture": "private",
+      "persons": 1,
+      "expectedEligibleBasisOre": 90000,
+      "expectedDeductionOre": 27000,
+      "expectRequiresSignOff": true
+    }
+  ]
+}
