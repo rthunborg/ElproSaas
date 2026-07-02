@@ -5,10 +5,10 @@ epic_num: 4
 story_num: 3
 branch: epic/4-money-tax-snapshot-primitives-and-golden-fixtures
 status: in-progress
-updated_at: "2026-07-02T13:43:18Z"
+updated_at: "2026-07-02T13:50:23Z"
 started_at: "2026-07-02T13:13:41Z"
 completed_at: null
-active_seconds: 1770
+active_seconds: 2194
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -49,7 +49,9 @@ branch_deleted: false
 open_questions: []
 deferred_work:
   - "Schablon on/off for gron teknik not modelled in placeholder profile — deferred to owner Sign-Off Q4"
+  - "persons per-person ROT cap unmodelled — deferred to owner Sign-Off Q3 (auto-resolved Tier-A decision, logged to deferred-work.md)"
 blockers: []
 overrides: {}
 constraints: []
 tier_a_base_sha: b1e0a64
+tier_a_review: "approve — 2 Decisions auto-resolved (Med persons-cap -> defer to Sign-Off Q3; Low snapshot guard -> dismiss); 3 noise dismissed; security clean 0/0/0; 0 open non-deferred"
