@@ -21,6 +21,7 @@
  * Client-supplied `tenant_id` is NEVER read here — the resolved tenant from
  * membership is the only authority (the validators strip/ignore any `tenant_id`).
  */
+import { isVatRateBp, VAT_RATE_BP_MAX, VAT_RATE_BP_MIN } from "@/lib/money";
 import type { ValidationResult } from "../envelope-core";
 
 /**
@@ -36,9 +37,13 @@ export type VatDisplayMode = (typeof VAT_DISPLAY_MODES)[number];
 
 /** The legacy default VAT rate in basis points (25.00%). Owner 2026-06-18. */
 export const DEFAULT_VAT_RATE_BP = 2500;
-/** Inclusive bounds for a VAT rate in basis points (0%..100.00%). */
-export const VAT_RATE_BP_MIN = 0;
-export const VAT_RATE_BP_MAX = 10000;
+/**
+ * Inclusive bounds for a VAT rate in basis points (0%..100.00%). RE-EXPORTED from the canonical
+ * `@/lib/money` VAT engine (Story 4.2 moved them there, mirroring the Story 4.1 `isOreAmount`
+ * consolidation) so there is exactly ONE basis-point range in the codebase. Existing consumers
+ * (`src/features/settings/vat-display.ts`) import these from here unchanged.
+ */
+export { VAT_RATE_BP_MIN, VAT_RATE_BP_MAX };
 
 /** Max length for a short free-text settings field (defensive bound). */
 const MAX_TEXT = 256;
@@ -124,19 +129,10 @@ export interface UpdateCompanySettingsInput {
   readonly vat_rate_bp: number;
 }
 
-/**
- * True iff `v` is an integer VAT rate in basis points within [0, 10000]. A float /
- * non-finite / out-of-range value is rejected — basis points are integers, never a
- * float (the HARD money discipline). Accepts an integer-valued number only.
- */
-function isVatRateBp(v: unknown): v is number {
-  return (
-    typeof v === "number" &&
-    Number.isInteger(v) &&
-    v >= VAT_RATE_BP_MIN &&
-    v <= VAT_RATE_BP_MAX
-  );
-}
+// The basis-point-validity rule `isVatRateBp` is the CANONICAL `@/lib/money` VAT authority
+// (imported above; Story 4.2 moved it there mirroring the 4.1 `isOreAmount` move). There is
+// exactly ONE `isVatRateBp` implementation — the settings command layer and the VAT engine
+// share it; a forked bp check here would be a review-caught anti-pattern.
 
 export function validateUpdateCompanySettings(
   raw: unknown,

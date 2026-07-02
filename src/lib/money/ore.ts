@@ -56,6 +56,8 @@ export type MoneyErrorCode =
   | "INVALID_ORE_AMOUNT"
   /** A quantity was not a finite non-negative decimal number. */
   | "INVALID_QUANTITY"
+  /** A VAT rate was not a valid basis-point value (integer, [0, 10000]) — Story 4.2 VAT path. */
+  | "INVALID_VAT_RATE_BP"
   /** A computed line net / total exceeded the safe öre ceiling (`ORE_AMOUNT_MAX`). */
   | "ORE_OVERFLOW";
 
