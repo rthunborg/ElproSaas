@@ -1,0 +1,211 @@
+{
+  "_doc": "Story 4.3 GOLDEN FIXTURE — the ROT / grön-teknik DEDUCTION policy pin (4.3-GOLDEN-01 + 4.3-GOLDEN-02, R-405/R-406/R-407/R-408/R-410/R-411/R-412). Pins representative deduction cases: ROT at/above/below the per-person cap, grön-teknik per-category rates/caps, the eligible-basis boundaries (zero basis, hidden-row inclusion), the INVALID ROT×grön mix (asserts the BLOCKING error, never a silent combined sum), and BRF/private/company-like eligibility cases. The deduction rate ALWAYS flows in from the profile as a BASIS-POINT input (deductionPercentBp) — the engine invents NO rate and holds NO percent constant, so there is NO hidden 0.30/30/0.50/50/1.3 literal in the deduction path (R-404 generalized to tax rates, epic blocker). deductionOre = min( roundToOre(eligibleBasisOre * deductionPercentBp / 10000), capOre ) under the SINGLE Story 4.1 half-away-from-zero rounding mode; multi-line basis sums via sumOre (sum-of-rounded). The rates/caps below are CONSERVATIVE UNAPPROVED PLACEHOLDER PROFILES (ROT 30.00% = 3000 bp, per-person cap 5 000 000 öre = 50 000 kr; grön-teknik 20.00% = 2000 bp, per-category cap 5 000 000 öre) pending owner/accounting/legal sign-off (Sign-Off Q3/Q4/Q5/Q7, test-design-epic-4; owner-decisions 2026-06-18 'rates/caps/schablon still pending the working session'). They are recorded as ASSUMPTIONS, NOT accounting/legally-final; the engine warns and NEVER marks a tax output approved (R-405). If the dev pins DIFFERENT conservative numbers, update THIS fixture's expected values to match — the fixture is the numeric source of truth; a later sign-off swaps the numbers with NO code-shape change. Each case carries an `origin` label — `new-expected` (the pilot's explicit conservative assumption) or `documented-delta` (an intentional divergence from Lovable). Money/rate/cap numbers ONLY — NO PII (personnummer/orgnr/name/email/address), NO clock (NFR17/R-411/R-412). The engine takes a resolved eligibility POSTURE, NEVER a personnummer. STOP (needs-human) if the numeric rates/caps/eligibility/disclaimer MUST be treated as production-approved (the story stop condition).",
+  "policy": {
+    "deductionRateUnit": "basis-points",
+    "deductionFormula": "deductionOre = min( roundToOre(eligibleBasisOre * deductionPercentBp / 10000), capOre )",
+    "rounding": "single Story 4.1 roundToOre (half-away-from-zero); multi-line basis via sumOre (sum-of-rounded)",
+    "capBehavior": "at cap -> deduction = cap; above cap -> CLAMPED to cap (a warning may note the clamp); below cap -> rate-applied amount",
+    "mixRule": "ROT and grön teknik CANNOT be mixed on one calculation -> BLOCKING ROT_GRON_MIX_NOT_ALLOWED failure (R-406), never a silent combined sum",
+    "eligibility": "ONLY a `private` posture is eligible (owner decision 2026-06-18); a non-private posture (company/brf/public) yields an eligibility warning or a blocking result",
+    "personnummer": "NOT captured or required by the pure engine — eligibility is a resolved POSTURE, never a personnummer (R-412)",
+    "hiddenRowBasis": "hidden rows DO count toward the eligible basis (owner decision 2026-06-18, Epic 5.4/5.5); Epic 4 pins the pure BASIS rule, UI visibility is Epic 5",
+    "approval": "NEVER approved by default — requiresSignOff:true is the structural default (R-405); constants are UNAPPROVED profiles pending owner/accounting/legal sign-off",
+    "signOff": "pending-owner-accounting-legal"
+  },
+  "profiles": {
+    "ROT_PROFILE_UNAPPROVED": {
+      "deductionType": "rot",
+      "deductionPercentBp": 3000,
+      "capOre": 5000000,
+      "profileId": "ROT_PROFILE_UNAPPROVED",
+      "approved": false,
+      "signOffStatus": "pending-owner-accounting-legal",
+      "_note": "CONSERVATIVE PLACEHOLDER — ROT 30.00% (3000 bp), per-person cap 50 000 kr (5 000 000 öre). Pending Sign-Off Q3 (per-person cap / % / labour-only basis / multi-owner). NOT production-approved."
+    },
+    "GRON_TEKNIK_PROFILE_UNAPPROVED": {
+      "deductionType": "gron_teknik",
+      "deductionPercentBp": 2000,
+      "capOre": 5000000,
+      "profileId": "GRON_TEKNIK_PROFILE_UNAPPROVED",
+      "approved": false,
+      "signOffStatus": "pending-owner-accounting-legal",
+      "_note": "CONSERVATIVE PLACEHOLDER — grön-teknik 20.00% (2000 bp), per-category cap 50 000 kr (5 000 000 öre), schablon NOT modelled in the placeholder. Pending Sign-Off Q4 (category rates/caps/schablon/mix). NOT production-approved."
+    }
+  },
+  "deductionCases": [
+    {
+      "id": "rot-below-cap-private",
+      "origin": "new-expected",
+      "note": "ROT below the per-person cap. eligibleBasis 100 000 öre (1 000,00 kr) @ 3000 bp = round(30000) = 30 000 öre; well under the 5 000 000 öre cap. Private posture -> eligible, no not-eligible warning. requiresSignOff true.",
+      "deductionType": "rot",
+      "eligibleBasisOre": 100000,
+      "vatRateBpUnused": null,
+      "posture": "private",
+      "persons": 1,
+      "expectedDeductionOre": 30000,
+      "expectedEligibleBasisOre": 100000,
+      "capHit": "below",
+      "expectRequiresSignOff": true,
+      "expectEligibilityWarning": false
+    },
+    {
+      "id": "rot-at-cap-private",
+      "origin": "new-expected",
+      "note": "ROT exactly AT the per-person cap. eligibleBasis 16 666 667 öre @ 3000 bp = round(5000000.1) = 5 000 000 öre = the cap exactly -> deduction = cap. (16 666 667 * 3000 / 10000 = 5 000 000.1 -> rounds to 5 000 000.) At-cap -> deduction equals cap.",
+      "deductionType": "rot",
+      "eligibleBasisOre": 16666667,
+      "posture": "private",
+      "persons": 1,
+      "expectedDeductionOre": 5000000,
+      "expectedEligibleBasisOre": 16666667,
+      "capHit": "at",
+      "expectRequiresSignOff": true,
+      "expectEligibilityWarning": false
+    },
+    {
+      "id": "rot-above-cap-clamped-private",
+      "origin": "new-expected",
+      "note": "ROT ABOVE the per-person cap -> deduction CLAMPED to the cap; a warning may note the clamp. eligibleBasis 30 000 000 öre @ 3000 bp = 9 000 000 öre raw, exceeds the 5 000 000 öre cap -> clamped to 5 000 000. deduction never exceeds the cap.",
+      "deductionType": "rot",
+      "eligibleBasisOre": 30000000,
+      "posture": "private",
+      "persons": 1,
+      "expectedDeductionOre": 5000000,
+      "expectedEligibleBasisOre": 30000000,
+      "capHit": "above",
+      "expectClampWarning": true,
+      "expectRequiresSignOff": true,
+      "expectEligibilityWarning": false
+    },
+    {
+      "id": "rot-zero-basis-private",
+      "origin": "new-expected",
+      "note": "Zero eligible basis -> deduction 0 (valid, NOT a rejection). eligibleBasis 0 @ 3000 bp = 0. Private posture eligible.",
+      "deductionType": "rot",
+      "eligibleBasisOre": 0,
+      "posture": "private",
+      "persons": 1,
+      "expectedDeductionOre": 0,
+      "expectedEligibleBasisOre": 0,
+      "capHit": "below",
+      "expectRequiresSignOff": true,
+      "expectEligibilityWarning": false
+    },
+    {
+      "id": "rot-half-boundary-clamp-check",
+      "origin": "new-expected",
+      "note": "Half-away-from-zero rounding pin on the deduction path (mirrors the Story 4.1/4.2 golden). eligibleBasis 5 öre @ 3000 bp = 1.5 öre exactly -> round-half-away-from-zero -> 2 (banker's/half-to-even would give 2 as well here; the distinguishing .5 case is 15 öre @ 3000 = 4.5 -> 5, banker's would give 4). Uses 15 öre to distinguish the mode.",
+      "deductionType": "rot",
+      "eligibleBasisOre": 15,
+      "posture": "private",
+      "persons": 1,
+      "expectedDeductionOre": 5,
+      "expectedEligibleBasisOre": 15,
+      "capHit": "below",
+      "bankersWouldGive": 4,
+      "expectRequiresSignOff": true,
+      "expectEligibilityWarning": false
+    },
+    {
+      "id": "gron-teknik-below-cap-private",
+      "origin": "new-expected",
+      "note": "Grön teknik per-category, below cap. eligibleBasis 200 000 öre @ 2000 bp = round(40000) = 40 000 öre; under the 5 000 000 öre category cap. Private posture eligible. Own profile (not ROT's).",
+      "deductionType": "gron_teknik",
+      "eligibleBasisOre": 200000,
+      "posture": "private",
+      "expectedDeductionOre": 40000,
+      "expectedEligibleBasisOre": 200000,
+      "capHit": "below",
+      "expectRequiresSignOff": true,
+      "expectEligibilityWarning": false
+    },
+    {
+      "id": "gron-teknik-above-cap-clamped-private",
+      "origin": "new-expected",
+      "note": "Grön teknik ABOVE the per-category cap -> clamped. eligibleBasis 30 000 000 öre @ 2000 bp = 6 000 000 öre raw, exceeds the 5 000 000 öre cap -> clamped to 5 000 000. A separate golden case from ROT so the grön category cap is pinned independently.",
+      "deductionType": "gron_teknik",
+      "eligibleBasisOre": 30000000,
+      "posture": "private",
+      "expectedDeductionOre": 5000000,
+      "expectedEligibleBasisOre": 30000000,
+      "capHit": "above",
+      "expectClampWarning": true,
+      "expectRequiresSignOff": true,
+      "expectEligibilityWarning": false
+    },
+    {
+      "id": "rot-hidden-row-inclusion-private",
+      "origin": "new-expected",
+      "note": "Hidden-row inclusion (R-408, owner decision 2026-06-18: hidden rows DO count in totals + deductions). Multi-line basis [60 000, 40 000] where the 2nd line is a 'hidden' row -> eligibleBasis = sumOre = 100 000 öre (hidden row INCLUDED). deduction 100 000 @ 3000 bp = 30 000. Epic 4 pins the pure BASIS rule; UI visibility is Epic 5.",
+      "deductionType": "rot",
+      "eligibleBasisLines": [60000, 40000],
+      "posture": "private",
+      "persons": 1,
+      "expectedEligibleBasisOre": 100000,
+      "expectedDeductionOre": 30000,
+      "capHit": "below",
+      "expectRequiresSignOff": true,
+      "expectEligibilityWarning": false
+    }
+  ],
+  "eligibilityCases": [
+    {
+      "id": "eligibility-private-eligible",
+      "origin": "new-expected",
+      "note": "PRIVATE posture -> eligible (owner decision 2026-06-18: only `private` is eligible for ROT/grön teknik). No not-eligible warning; the deduction computes normally. requiresSignOff still true.",
+      "deductionType": "rot",
+      "eligibleBasisOre": 100000,
+      "posture": "private",
+      "persons": 1,
+      "expectEligible": true,
+      "expectEligibilityWarning": false,
+      "expectRequiresSignOff": true
+    },
+    {
+      "id": "eligibility-company-not-eligible",
+      "origin": "new-expected",
+      "note": "COMPANY posture -> NOT eligible under the conservative Phase-A policy: an eligibility WARNING (or a blocking result). The customer-facing disclaimer wording is NOT shipped as legally-approved.",
+      "deductionType": "rot",
+      "eligibleBasisOre": 100000,
+      "posture": "company",
+      "persons": 1,
+      "expectEligible": false,
+      "expectEligibilityWarning": true,
+      "expectRequiresSignOff": true
+    },
+    {
+      "id": "eligibility-brf-not-eligible",
+      "origin": "new-expected",
+      "note": "BRF (bostadsrättsförening) posture -> NOT eligible under the conservative Phase-A policy: an eligibility WARNING (or a blocking result). BRF handling is a Sign-Off Q5 assumption, not legally-final.",
+      "deductionType": "rot",
+      "eligibleBasisOre": 100000,
+      "posture": "brf",
+      "persons": 1,
+      "expectEligible": false,
+      "expectEligibilityWarning": true,
+      "expectRequiresSignOff": true
+    },
+    {
+      "id": "eligibility-public-not-eligible",
+      "origin": "new-expected",
+      "note": "PUBLIC-sector posture -> NOT eligible under the conservative Phase-A policy: an eligibility WARNING (or a blocking result).",
+      "deductionType": "gron_teknik",
+      "eligibleBasisOre": 200000,
+      "posture": "public",
+      "expectEligible": false,
+      "expectEligibilityWarning": true,
+      "expectRequiresSignOff": true
+    }
+  ],
+  "invalidMixCase": {
+    "id": "rot-gron-mix-blocked",
+    "origin": "new-expected",
+    "note": "LOAD-BEARING mix block (R-406, epic blocker). A request combining ROT AND grön teknik on one calculation returns the BLOCKING ROT_GRON_MIX_NOT_ALLOWED typed failure — NEVER a silently-combined deduction sum. Owner decision 2026-06-18: 'ROT and grön teknik cannot be mixed'. There is NO combined-sum code path. The expected result is a typed FAILURE, not a deductionOre.",
+    "deductionTypes": ["rot", "gron_teknik"],
+    "eligibleBasisOre": 100000,
+    "posture": "private",
+    "persons": 1,
+    "expectedErrorCode": "ROT_GRON_MIX_NOT_ALLOWED",
+    "expectBlocked": true
+  }
+}
