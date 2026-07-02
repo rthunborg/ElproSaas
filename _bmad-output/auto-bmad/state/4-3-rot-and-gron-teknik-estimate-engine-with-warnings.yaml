@@ -1,14 +1,14 @@
 # auto-bmad per-story state — written by scripts/state_update.py (full stable schema;
 # see references/state-and-resume.md). Prose belongs in reports/{key}.md, not here.
-story_key: 4-2-vat-and-quote-total-calculation-primitives
+story_key: 4-3-rot-and-gron-teknik-estimate-engine-with-warnings
 epic_num: 4
-story_num: 2
+story_num: 3
 branch: epic/4-money-tax-snapshot-primitives-and-golden-fixtures
-status: done
-updated_at: "2026-07-02T13:12:08Z"
-started_at: "2026-07-02T12:27:54Z"
-completed_at: "2026-07-02T13:12:08Z"
-active_seconds: 2633
+status: in-progress
+updated_at: "2026-07-02T13:13:41Z"
+started_at: "2026-07-02T13:13:41Z"
+completed_at: null
+active_seconds: 0
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -17,17 +17,17 @@ git_mode: remote
 base_branch: main
 tea_risk: high
 tea_selected: [atdd, automate]
-tea_rationale: "Money/Tax/Quote Impact High; per-line VAT rounding order, no hidden 25% constant, frozen assumption-snapshot correctness (R-403/R-404/R-409 score 6)"
+tea_rationale: "ROT/gron teknik tax-deduction engine feeding customer-facing quotes; blocking invalid mixes; owner sign-off gated (R-405/R-406/R-407 score 6)"
 epic_story_count: 4
-stories_after_in_epic: 2
-completed_phases: [0, 1, 3, 4, 5, 6, 7]
+stories_after_in_epic: 1
+completed_phases: [0, 1]
 code_review_iterations: 0
-code_review_loop_done: true
-hitl_halt: "auto-continued (epic — no halt)"
+code_review_loop_done: false
+hitl_halt: null
 external_review_iterations: 0
 convergence_unverified: false
 story_trace: null
-commits: [5eb418a, c5eb496, 6efecf6, dd2b189, 46e02bd, b1e0a64]
+commits: []
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -51,5 +51,4 @@ deferred_work: []
 blockers: []
 overrides: {}
 constraints: []
-tier_a_base_sha: 06755f6
-tier_a_review: "changes-requested -> fixed: 3 persisted (2 Decision Med auto-resolved fix + 1 Patch Low); post-fix verified 0 open; security clean 0/0/0; 2 noise dismissed"
+tier_a_base_sha: b1e0a64

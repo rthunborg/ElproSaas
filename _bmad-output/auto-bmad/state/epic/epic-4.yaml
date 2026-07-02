@@ -5,10 +5,10 @@ epic_num: 4
 story_num: null
 branch: epic/4-money-tax-snapshot-primitives-and-golden-fixtures
 status: in-progress
-updated_at: "2026-07-02T13:10:24Z"
+updated_at: "2026-07-02T13:13:40Z"
 started_at: "2026-07-02T11:42:30Z"
 completed_at: null
-active_seconds: 5070
+active_seconds: 5229
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -51,9 +51,10 @@ deferred_work: []
 blockers: []
 overrides: {}
 constraints: []
-active_story: 4-2-vat-and-quote-total-calculation-primitives
+active_story: 4-3-rot-and-gron-teknik-estimate-engine-with-warnings
 stories_landed:
   - 4-1-integer-ore-money-and-rounding-primitives
+  - 4-2-vat-and-quote-total-calculation-primitives
 auto_decisions:
   - "defaultVatDisplay typed as bare string, widening the VatDisplayMode enum [Med] -> fix: define+export a VatDisplayMode union type in @/lib/money and type both defaultVatDisplay fields with it (Tier A, 4-2-vat-and-quote-total-calculation-primitives)"
   - "buildVatAssumptionSnapshot performs no input validation on vatRateBp [Med] -> fix: add an isVatRateBp guard at the builder entry (typed failure or narrowed source type) so an invalid/float rate cannot be frozen (Tier A, 4-2-vat-and-quote-total-calculation-primitives)"
@@ -73,4 +74,18 @@ uat_items:
   - "[4-1-integer-ore-money-and-rounding-primitives] formatOreAsKronor(NaN) -> '' and (Infinity) -> '' (never leaks NaN)"
   - "[4-1-integer-ore-money-and-rounding-primitives] Open tests/fixtures/golden/money/rounding-mode.json -> lineNetCases show expectedLineNetOre vs bankersWouldGive; sumOfRoundedCase 69 vs 68"
   - "[4-1-integer-ore-money-and-rounding-primitives] formatOreAsKronor(1250) === oreToKronorString(1250) -> true (single formatter authority, byte-identical)"
+  - "[4-2-vat-and-quote-total-calculation-primitives] Run pnpm run test:unit -> ~545 pass, 0 fail, incl. vat.test.ts / vat.golden.test.ts / vat.coverage.test.ts"
+  - "[4-2-vat-and-quote-total-calculation-primitives] Run the two VAT suites directly with the node --test runner -> they RUN (not skipped) and pass (VAT_SURFACE_PRESENT gate flipped true)"
+  - "[4-2-vat-and-quote-total-calculation-primitives] Select-String src/lib/money/vat.ts for 0.25|1.25|25 -> rate literals only in comments; only computational literal is / 10000 (R-404 no-hidden-VAT-constant)"
+  - "[4-2-vat-and-quote-total-calculation-primitives] REPL via @/lib/money: lineVatOre(85000, 2500) -> {ok:true,value:21250} (850,00 kr net -> 212,50 kr VAT)"
+  - "[4-2-vat-and-quote-total-calculation-primitives] lineVatOre(33300, 1200) -> 3996; lineVatOre(50000, 600) -> 3000 (rate flows as basis points)"
+  - "[4-2-vat-and-quote-total-calculation-primitives] lineVatOre(85000, 0) -> 0 and lineVatOre(0, 2500) -> 0 (zero/exempt not special-cased)"
+  - "[4-2-vat-and-quote-total-calculation-primitives] lineVatOre(2, 2500) -> {ok:true,value:1} (0.5 ore rounds UP, half-away-from-zero reused from 4.1)"
+  - "[4-2-vat-and-quote-total-calculation-primitives] lineVatOre(850.5, 2500) -> INVALID_ORE_AMOUNT; lineVatOre(85000, 2500.5) and (85000, 10001) -> INVALID_VAT_RATE_BP (typed failures, no throw/NaN)"
+  - "[4-2-vat-and-quote-total-calculation-primitives] sumVatOre([1,1,1]) -> {ok:true,value:3} NOT round-of-sum 2 (R-403 sum-of-rounded)"
+  - "[4-2-vat-and-quote-total-calculation-primitives] vatBreakdown(85000, 2500) -> {netOre:85000, vatOre:21250, grossOre:106250}"
+  - "[4-2-vat-and-quote-total-calculation-primitives] selectVatDisplay: company_excl -> primary 85000/togglable false; company_togglable -> 106250/true; private -> 106250 gross/false; source breakdown unmutated after all three"
+  - "[4-2-vat-and-quote-total-calculation-primitives] buildVatAssumptionSnapshot({vatRateBp:2500, defaultVatDisplay:'company_togglable'}, {capturedAt:...}) -> frozen snapshot; Object.isFrozen true; mutation attempt leaves vatRateBp 2500"
+  - "[4-2-vat-and-quote-total-calculation-primitives] buildVatAssumptionSnapshot with vatRateBp 2500.5 -> {ok:false,code:INVALID_VAT_RATE_BP} (invalid rate never frozen)"
+  - "[4-2-vat-and-quote-total-calculation-primitives] Chain lineNetOre(2.5,333) -> 833; lineVatOre(833,2500) -> 208; vatBreakdown gross -> 1041 (qty->net->VAT composes)"
 epic_slug: money-tax-snapshot-primitives-and-golden-fixtures
