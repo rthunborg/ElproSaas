@@ -409,7 +409,7 @@ describe("Story 4.4 — money & tax golden-master PACK (4.4-GOLDEN-01/02, R-410/
       assert.equal(typeof _doc, "string", `${file}: must carry a _doc note (scanned SEPARATELY from the data)`);
       const data = JSON.stringify(dataOnly);
       assert.ok(!PERSONNUMMER.test(data), `${file}: DATA must contain no personnummer shape (\\d{6}-\\d{4})`);
-      assert.ok(!ORGNR.test(data), `${file}: DATA must contain no organization-number shape (orgnr, \\d{6}-\\d{4})`);
+      assert.ok(!ORGNR.test(data), `${file}: DATA must contain no organization-number shape (orgnr, 10-digit no-dash \\d{10})`);
       assert.ok(!NON_EXAMPLE_EMAIL.test(data), `${file}: DATA must contain no non-example.test email`);
       assert.ok(!SECRET.test(data), `${file}: DATA must contain no secret/password/api_key`);
       assert.ok(!PHONE.test(data), `${file}: DATA must contain no phone number`);

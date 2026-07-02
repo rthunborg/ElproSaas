@@ -460,13 +460,20 @@ suite("Story 4.3 — @/lib/money ROT / grön-teknik estimate engine (RED → GRE
       const source = makeSource();
       const snap = build(source, { capturedAt: CAPTURED_AT });
       const capturedBp = snap.deductionPercentBp;
-      // A later rate change on the source must NOT retroactively alter the frozen assumption.
+      const capturedCapOre = snap.capOre;
+      // A later rate change on the source must NOT retroactively alter the frozen assumption:
+      // mutate the source AFTER capture, then assert the PRIOR snapshot is unchanged.
       source.deductionPercentBp = 9999;
       source.capOre = 1;
       assert.equal(
-        (build(source, { capturedAt: CAPTURED_AT }) as Record<string, unknown>) && snap.deductionPercentBp,
+        snap.deductionPercentBp,
         capturedBp,
         "the prior snapshot's rate is unchanged after the source rate mutated",
+      );
+      assert.equal(
+        snap.capOre,
+        capturedCapOre,
+        "the prior snapshot's cap is unchanged after the source cap mutated",
       );
     });
 
