@@ -13,3 +13,4 @@
 - [Phase 3 — create-story] isVatRateBp in settings validator is module-private though its VAT_RATE_BP_MIN/MAX bounds are exported — story spells out export/move/reconstruct options so dev keeps ONE bp-validity rule.
 - [Phase 5 — dev-story] isVatRateBp + VAT_RATE_BP_MIN/MAX moved canonical into @/lib/money (settings validator re-exports) — mirrors 4.1 isOreAmount move; MoneyErrorCode widened additively with INVALID_VAT_RATE_BP.
 - [Phase 5 — dev-story] private -> always incl-VAT built as documented conservative assumption (Sign-Off Q2), not legally final; VAT views are pure ore-selection, no second kronor formatter added.
+- [Phase 6 — automate] lineVatOre output-overflow branch unreachable from valid inputs (VAT <= net <= max for bp <= 10000); the reachable overflow is vatBreakdown's derived-gross guard — the two guards differ in reachability.
