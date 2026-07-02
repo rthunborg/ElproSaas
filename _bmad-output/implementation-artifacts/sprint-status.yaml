@@ -41,7 +41,7 @@
 # Entries below remain grouped by epic for tracking; pick stories in the order above.
 
 generated: 2026-06-12
-last_updated: 2026-07-02  # epic-4 retrospective completed
+last_updated: 2026-07-02  # story 5-1 context created (epic-5 → in-progress)
 project: ElproSaas
 project_key: NOKEY
 tracking_system: file-system
@@ -77,8 +77,8 @@ development_status:
   4-4-money-and-tax-golden-master-fixture-pack: done
   epic-4-retrospective: done
 
-  epic-5: backlog
-  5-1-tenant-owned-calculation-schema-and-server-commands: backlog
+  epic-5: in-progress
+  5-1-tenant-owned-calculation-schema-and-server-commands: ready-for-dev
   5-2-calculation-editor-ux-for-sections-and-rows: backlog
   5-3-pricing-source-selection-and-row-snapshots: backlog
   5-4-calculation-readiness-review-and-snapshot-preview: backlog
