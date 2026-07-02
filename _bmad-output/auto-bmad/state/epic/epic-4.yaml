@@ -5,10 +5,10 @@ epic_num: 4
 story_num: null
 branch: epic/4-money-tax-snapshot-primitives-and-golden-fixtures
 status: in-progress
-updated_at: "2026-07-02T14:21:45Z"
+updated_at: "2026-07-02T14:33:56Z"
 started_at: "2026-07-02T11:42:30Z"
 completed_at: null
-active_seconds: 9299
+active_seconds: 10028
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -20,7 +20,7 @@ tea_selected: []
 tea_rationale: null
 epic_story_count: 4
 stories_after_in_epic: null
-completed_phases: [0, 1, 2]
+completed_phases: [0, 1, 2, 5, 81]
 code_review_iterations: 0
 code_review_loop_done: false
 hitl_halt: null
@@ -29,14 +29,14 @@ convergence_unverified: false
 story_trace: null
 commits: []
 phase8_steps:
-  trace_gate: null
-  nfr: null
-  test_review: null
+  trace_gate: done
+  nfr: done
+  test_review: done
   project_context: null
   reconcile: null
   archive: null
   retro: null
-gate_decision: null
+gate_decision: PASS
 gate_iterations: 0
 deferred_work_archived: 0
 pr_url: null
@@ -51,11 +51,12 @@ deferred_work: []
 blockers: []
 overrides: {}
 constraints: []
-active_story: 4-4-money-and-tax-golden-master-fixture-pack
+active_story: null
 stories_landed:
   - 4-1-integer-ore-money-and-rounding-primitives
   - 4-2-vat-and-quote-total-calculation-primitives
   - 4-3-rot-and-gron-teknik-estimate-engine-with-warnings
+  - 4-4-money-and-tax-golden-master-fixture-pack
 auto_decisions:
   - "defaultVatDisplay typed as bare string, widening the VatDisplayMode enum [Med] -> fix: define+export a VatDisplayMode union type in @/lib/money and type both defaultVatDisplay fields with it (Tier A, 4-2-vat-and-quote-total-calculation-primitives)"
   - "buildVatAssumptionSnapshot performs no input validation on vatRateBp [Med] -> fix: add an isVatRateBp guard at the builder entry (typed failure or narrowed source type) so an invalid/float rate cannot be frozen (Tier A, 4-2-vat-and-quote-total-calculation-primitives)"
@@ -106,4 +107,16 @@ uat_items:
   - "[4-3-rot-and-gron-teknik-estimate-engine-with-warnings] ROT/GRON profiles -> approved:false, signOffStatus pending-owner-accounting-legal, Object.isFrozen true"
   - "[4-3-rot-and-gron-teknik-estimate-engine-with-warnings] buildTaxAssumptionSnapshot then mutate source -> snapshot frozen, keeps captured bp, capturedAt = injected instant"
   - "[4-3-rot-and-gron-teknik-estimate-engine-with-warnings] Pass personnummer field into estimateDeduction -> result JSON contains no personnummer digits (engine never consumes/echoes PII)"
+  - "[4-4-money-and-tax-golden-master-fixture-pack] Run pnpm run test:unit -> all pass, 4.4 golden-pack tests included via tests/unit/** glob"
+  - "[4-4-money-and-tax-golden-master-fixture-pack] Run golden-pack.test.ts + golden-pack-coverage.test.ts directly -> 16/16 pass"
+  - "[4-4-money-and-tax-golden-master-fixture-pack] Open options-tillval.json and accepted-price-deltas.json -> valid JSON with _doc, policy block, cases array"
+  - "[4-4-money-and-tax-golden-master-fixture-pack] Read CATEGORY_MANIFEST in golden-pack.test.ts -> all 10 AC1 categories map to existing fixture files; P0 coverage test passes"
+  - "[4-4-money-and-tax-golden-master-fixture-pack] Eyeball fixtures -> every case has origin old-lovable/new-expected/documented-delta + non-empty note; deltaCases exercise all three origins"
+  - "[4-4-money-and-tax-golden-master-fixture-pack] Mutate one origin to 'foo' (temp) -> labelling test FAILS naming the case; revert (guard non-vacuous)"
+  - "[4-4-money-and-tax-golden-master-fixture-pack] Delete expectedDeltaOre or _doc (temp) -> schema-shape guard FAILS loud; revert"
+  - "[4-4-money-and-tax-golden-master-fixture-pack] Inject personnummer/orgnr/email/secret/phone into fixture data (temp) -> privacy scan FAILS naming the file; revert"
+  - "[4-4-money-and-tax-golden-master-fixture-pack] Hand-check options oracle: base [50000,30000] + selected 20000 -> included 100000; unselected 15000 NOT summed; hidden basis 90000 -> ROT 27000"
+  - "[4-4-money-and-tax-golden-master-fixture-pack] Hand-check delta arithmetic: recalculated - accepted === expectedDeltaOre for every case (112500-100000=+12500; 69-68=+1)"
+  - "[4-4-money-and-tax-golden-master-fixture-pack] Check policy.signOff = pending-owner-accounting-legal in both new fixtures -> nothing marked production-approved (Sign-Off Q8 open)"
+  - "[4-4-money-and-tax-golden-master-fixture-pack] git shows only fixtures + tests (+ tracking docs); package.json/pnpm-lock untouched; no src/ change, no migration, no route/UI"
 epic_slug: money-tax-snapshot-primitives-and-golden-fixtures
