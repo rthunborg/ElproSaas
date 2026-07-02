@@ -5,10 +5,10 @@ epic_num: 4
 story_num: 3
 branch: epic/4-money-tax-snapshot-primitives-and-golden-fixtures
 status: in-progress
-updated_at: "2026-07-02T13:38:43Z"
+updated_at: "2026-07-02T13:43:18Z"
 started_at: "2026-07-02T13:13:41Z"
 completed_at: null
-active_seconds: 1497
+active_seconds: 1770
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -20,14 +20,14 @@ tea_selected: [atdd, automate]
 tea_rationale: "ROT/gron teknik tax-deduction engine feeding customer-facing quotes; blocking invalid mixes; owner sign-off gated (R-405/R-406/R-407 score 6)"
 epic_story_count: 4
 stories_after_in_epic: 1
-completed_phases: [0, 1, 3, 4, 5]
+completed_phases: [0, 1, 3, 4, 5, 6]
 code_review_iterations: 0
 code_review_loop_done: false
 hitl_halt: null
 external_review_iterations: 0
 convergence_unverified: false
 story_trace: null
-commits: [1c577de, "0776832", d481f10]
+commits: [1c577de, "0776832", d481f10, 1f1733e]
 phase8_steps:
   trace_gate: null
   nfr: null
