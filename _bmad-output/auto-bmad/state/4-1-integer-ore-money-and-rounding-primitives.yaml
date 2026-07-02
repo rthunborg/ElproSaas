@@ -1,26 +1,26 @@
 # auto-bmad per-story state — written by scripts/state_update.py (full stable schema;
 # see references/state-and-resume.md). Prose belongs in reports/{key}.md, not here.
-story_key: epic-4
+story_key: 4-1-integer-ore-money-and-rounding-primitives
 epic_num: 4
-story_num: null
+story_num: 1
 branch: epic/4-money-tax-snapshot-primitives-and-golden-fixtures
 status: in-progress
-updated_at: "2026-07-02T11:47:15Z"
-started_at: "2026-07-02T11:42:30Z"
+updated_at: "2026-07-02T11:47:16Z"
+started_at: "2026-07-02T11:47:15Z"
 completed_at: null
-active_seconds: 227
+active_seconds: 0
 timing_anchor: null
-is_first_in_epic: false
+is_first_in_epic: true
 is_last_in_epic: false
 needs_project_context_bootstrap: false
 git_mode: remote
 base_branch: main
-tea_risk: null
-tea_selected: []
-tea_rationale: null
+tea_risk: high
+tea_selected: [atdd, automate]
+tea_rationale: "Money/rounding primitives every later calc depends on - epics.md rates Money/Tax/Quote Impact High; R-401/R-402 score 6"
 epic_story_count: 4
-stories_after_in_epic: null
-completed_phases: [0, 1, 2]
+stories_after_in_epic: 3
+completed_phases: [0, 1]
 code_review_iterations: 0
 code_review_loop_done: false
 hitl_halt: null
@@ -51,8 +51,4 @@ deferred_work: []
 blockers: []
 overrides: {}
 constraints: []
-active_story: 4-1-integer-ore-money-and-rounding-primitives
-stories_landed: []
-auto_decisions: []
-uat_items: []
-epic_slug: money-tax-snapshot-primitives-and-golden-fixtures
+tier_a_base_sha: 2775acd
