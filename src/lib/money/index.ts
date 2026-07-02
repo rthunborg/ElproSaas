@@ -53,3 +53,34 @@ export type {
   VatAssumptionSnapshot,
   VatAssumptionResult,
 } from "./vat";
+
+/**
+ * Story 4.3 — the ROT / grön-teknik ESTIMATE ENGINE (the named UNAPPROVED deduction profiles, the
+ * pure `estimateDeduction` engine — deduction + eligible basis + warnings + `requiresSignOff` +
+ * ROT×grön mix-block + cap-clamp — and the frozen `buildTaxAssumptionSnapshot` builder). The
+ * deduction rate flows in as BASIS POINTS from a named profile (no hidden percent literal); the
+ * output is NEVER approvable without an explicit human sign-off (`requiresSignOff: true` is the
+ * structural default); ROT and grön teknik CANNOT be mixed (a blocking typed failure); the engine
+ * takes a resolved eligibility POSTURE, never a personnummer / PII. See `./tax.ts` for the full
+ * module documentation.
+ */
+export {
+  ROT_PROFILE_UNAPPROVED,
+  GRON_TEKNIK_PROFILE_UNAPPROVED,
+  buildTaxAssumptionSnapshot,
+  estimateDeduction,
+} from "./tax";
+
+export type {
+  DeductionType,
+  EligibilityPosture,
+  DeductionWarning,
+  DeductionWarningCode,
+  DeductionProfile,
+  TaxAssumptionSnapshot,
+  TaxAssumptionSource,
+  TaxAssumptionBuildOptions,
+  DeductionInput,
+  DeductionEstimate,
+  DeductionResult,
+} from "./tax";

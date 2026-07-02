@@ -59,7 +59,19 @@ export type MoneyErrorCode =
   /** A VAT rate was not a valid basis-point value (integer, [0, 10000]) — Story 4.2 VAT path. */
   | "INVALID_VAT_RATE_BP"
   /** A computed line net / total exceeded the safe öre ceiling (`ORE_AMOUNT_MAX`). */
-  | "ORE_OVERFLOW";
+  | "ORE_OVERFLOW"
+  /**
+   * A single calculation attempted to combine ROT AND grön teknik — Story 4.3 tax path.
+   * ROT and grön teknik CANNOT be mixed on one calculation (owner decision 2026-06-18): the
+   * engine returns this BLOCKING failure, NEVER a silently-combined deduction sum (R-406).
+   */
+  | "ROT_GRON_MIX_NOT_ALLOWED"
+  /**
+   * A deduction type outside the closed `{ "rot", "gron_teknik" }` set was requested — Story 4.3
+   * tax path. A clear typed error (never a silent fall-through to a wrong profile) so an unknown /
+   * misspelt / future deduction category fails loud rather than computing on a wrong rate (4.3-UNIT-07).
+   */
+  | "UNKNOWN_DEDUCTION_TYPE";
 
 /**
  * A pure money result: an OK carrying a validated integer-öre `value`, or a typed failure

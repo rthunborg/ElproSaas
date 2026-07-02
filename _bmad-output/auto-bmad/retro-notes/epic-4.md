@@ -14,3 +14,7 @@
 - [Phase 5 — dev-story] isVatRateBp + VAT_RATE_BP_MIN/MAX moved canonical into @/lib/money (settings validator re-exports) — mirrors 4.1 isOreAmount move; MoneyErrorCode widened additively with INVALID_VAT_RATE_BP.
 - [Phase 5 — dev-story] private -> always incl-VAT built as documented conservative assumption (Sign-Off Q2), not legally final; VAT views are pure ore-selection, no second kronor formatter added.
 - [Phase 6 — automate] lineVatOre output-overflow branch unreachable from valid inputs (VAT <= net <= max for bp <= 10000); the reachable overflow is vatBreakdown's derived-gross guard — the two guards differ in reachability.
+
+## Story 4-3-rot-and-gron-teknik-estimate-engine-with-warnings
+- [Phase 5 — dev-story] Story Dev Notes claimed 'no ATDD scaffold exists for 4.3' but the scaffold was already committed (Phase 4 ran between create-story and dev) — create-story's claim was stale by dev time; epic retro should note the sequencing so future story contexts don't assert scaffold absence.
+- [Phase 5 — dev-story] Schablon on/off for gron teknik NOT modelled in placeholder profile — deferred to Sign-Off Q4 as conservative placeholder + unapproved warning.
