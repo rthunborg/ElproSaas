@@ -5,3 +5,4 @@
 
 ## Story 4-1-integer-ore-money-and-rounding-primitives
 - [Phase 3 — create-story] Chose 'round half away from zero' as conservative pilot half-rounding default, golden-pinned; sits inside the owner's still-open rounding sign-off question — sign-off must confirm or override.
+- [Phase 4 — atdd] Generic ATDD workers (API HTTP + E2E browser) don't fit pure-library stories; adapted to inline node --test UNIT+GOLDEN — other epic-4 primitive stories routed through ATDD need the same adaptation.

@@ -1,0 +1,68 @@
+{
+  "_doc": "Story 4.1 GOLDEN FIXTURE — the LOAD-BEARING rounding-mode pin (4.1-GOLDEN-01, R-402). Pins representative (quantity, unitPriceOre) -> expected lineNetOre cases under the CONSERVATIVE PILOT policy: LINE-LEVEL rounding with a single half-rounding mode = ROUND-HALF-AWAY-FROM-ZERO (Math.round semantics on non-negative inputs; x.5 -> x+1). The `.5`-boundary cases DISTINGUISH half-away-from-zero from half-to-even/banker's rounding: `expectedLineNetOre` is the pinned (half-up) value and `bankersWouldGive` records the DIFFERENT value banker's rounding would produce — so an accidental flip to half-to-even FAILS LOUD against this fixture. Each case carries an `origin` label. Money numbers only — NO PII (NFR17/R-411). This rounding policy is a CONSERVATIVE PILOT ASSUMPTION pending owner/accounting sign-off; it is NOT accounting-final (architecture.md#10 Rounding; test-design-epic-4 Sign-Off Q1).",
+  "policy": {
+    "level": "line-level",
+    "halfRoundingMode": "half-away-from-zero",
+    "totals": "sum-of-rounded (never round-of-sum)",
+    "signOff": "pending-owner-accounting"
+  },
+  "lineNetCases": [
+    {
+      "id": "half-boundary-A",
+      "origin": "new-expected",
+      "note": "0.5 * 5 = 2.5 oere exactly. half-away-from-zero -> 3; banker's (round-half-to-even) -> 2 (2 is even). The load-bearing distinguisher: a mode flip here fails loud.",
+      "quantity": 0.5,
+      "unitPriceOre": 5,
+      "expectedLineNetOre": 3,
+      "bankersWouldGive": 2
+    },
+    {
+      "id": "half-boundary-B",
+      "origin": "new-expected",
+      "note": "0.5 * 45 = 22.5 oere exactly. half-away-from-zero -> 23; banker's -> 22 (22 is even). Second independent .5-boundary distinguisher.",
+      "quantity": 0.5,
+      "unitPriceOre": 45,
+      "expectedLineNetOre": 23,
+      "bankersWouldGive": 22
+    },
+    {
+      "id": "fractional-quantity",
+      "origin": "new-expected",
+      "note": "0.333 * 100000 = 33300 oere (no rounding residue). A fractional quantity produces a deterministic exact oere result.",
+      "quantity": 0.333,
+      "unitPriceOre": 100000,
+      "expectedLineNetOre": 33300,
+      "bankersWouldGive": 33300
+    },
+    {
+      "id": "fractional-with-residue",
+      "origin": "new-expected",
+      "note": "2.25 * 333 = 749.25 oere -> rounds down to 749 under either mode (not a .5 boundary); guards the general round-to-nearest path.",
+      "quantity": 2.25,
+      "unitPriceOre": 333,
+      "expectedLineNetOre": 749,
+      "bankersWouldGive": 749
+    },
+    {
+      "id": "large-value",
+      "origin": "new-expected",
+      "note": "3 * 79000 = 237000 oere exact (2 370,00 kr). Large-value guard; integer oere stays exact (well under ORE_AMOUNT_MAX).",
+      "quantity": 3,
+      "unitPriceOre": 79000,
+      "expectedLineNetOre": 237000,
+      "bankersWouldGive": 237000
+    }
+  ],
+  "sumOfRoundedCase": {
+    "id": "sum-of-rounded-not-round-of-sum",
+    "origin": "new-expected",
+    "note": "Three identical lines of (0.5 * 45 = 22.5 -> 23). Totals must SUM the already-rounded line values (sum-of-rounded), NOT round the raw sum. sum-of-rounded = 23*3 = 69; round-of-sum would be Math.round(67.5) = 68. The engine must yield 69.",
+    "lines": [
+      { "quantity": 0.5, "unitPriceOre": 45 },
+      { "quantity": 0.5, "unitPriceOre": 45 },
+      { "quantity": 0.5, "unitPriceOre": 45 }
+    ],
+    "expectedSumOfRoundedOre": 69,
+    "roundOfSumWouldGive": 68
+  }
+}
