@@ -162,3 +162,11 @@ Claude Opus 4.8 (auto-bmad dev-story delegate).
 - `tests/unit/lib/money/rounding.golden.test.ts` (modified — RED→GREEN: top-level import, gate removed)
 - `tests/unit/lib/money/roundtrip.test.ts` (new — P3 exploratory round-trip + formatter-agreement)
 - `tests/fixtures/golden/money/rounding-mode.json` (pre-existing ATDD fixture — consumed unchanged)
+
+### Review Findings
+
+Triage of the code review (2026-07-02). Layers: Acceptance Auditor (primary, Tier-A thin — auditor lens only; blind/edge deliberately not run) + dedicated security review. The auditor's headline: no AC violation, no spec-intent deviation, no missing specified behavior, no constraint contradiction — all 6 of its findings were self-classified `[LOW]` observations, none blocking acceptance. The security review reported HIGH/MEDIUM/LOW: none. After triage, no findings survive: all 6 auditor Lows are dismissed as noise under Low-selectivity (each is by-design behavior, a spec-sanctioned skip, a vacuously-met obligation, or a hypothetical with no realistic trigger — no concrete defect + realistic trigger). No Decision, Patch, or Defer items.
+
+- No open Decision items.
+- No Patch items.
+- No Defer items.
