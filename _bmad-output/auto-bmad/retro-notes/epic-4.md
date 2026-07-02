@@ -21,3 +21,6 @@
 
 ## Story 4-4-money-and-tax-golden-master-fixture-pack
 - [Phase 3 — create-story] Runner-glob trap: epics.md says fixtures may live under tests/golden/** but test:unit glob is tests/unit/**/*.test.ts — a test under tests/golden/** would be vacuous green; 4.4 context pins the golden-pack test to tests/unit/lib/money/.
+- [Phase 5 — dev-story] Pack references existing fixtures as single numeric authority per category (no re-pinning); only genuinely-new categories (options/tillval, accepted-price delta) authored fresh.
+- [Phase 5 — dev-story] Accepted-price delta encoded shape-only (deltaOre = recalculated - accepted), pilot assumption pending Sign-Off Q8; old-Lovable numbers captured only where genuinely known — no fabricated deltas.
+- [Phase 5 — dev-story] Surfaced for gate: document-level rounding deferred (R-402 stop-condition), calc-at-scale perf untested (R-414), pnpm audit + coverage reporter still owner-pending.

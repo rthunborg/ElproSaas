@@ -1,0 +1,59 @@
+{
+  "_doc": "Story 4.4 GOLDEN FIXTURE — the ACCEPTED-PRICE DELTA SHAPE pin (4.4-GOLDEN-01, R-410; feeds Epic 7). Pins the fixture SHAPE ONLY for an accepted (frozen) price vs a later recalculated price: each case carries the accepted total öre, a later recalculated total öre, and the delta öre = recalculated - accepted, plus an `origin` label + a `note` documenting the delta semantics. This is a FIXTURE-SHAPE deliverable ONLY — Epic 4 supplies the golden 'accepted price vs later recalculated price' delta SHAPE; enforcement of accepted-state IMMUTABILITY / new-version-on-change lives in Epic 6/7 (this fixture builds NO acceptance/immutability code, NO table, NO persistence). The EXACT accepted-price-delta representation is an OPEN owner/design question (Sign-Off Q8) — the shapes below are DEFENSIBLE pilot assumptions labelled as such, NOT Epic-7-final. The delta arithmetic is a LIVE oracle: the golden-pack test recomputes delta = recalculatedTotalOre - acceptedTotalOre via plain integer arithmetic / `sumOre` on the fixture öre (no new engine surface), so a mis-stated delta fails LOUD. Where a genuine OLD-LOVABLE number is known from the anonymized behavioral oracle (Lovable's round-at-end / hardcoded-25% gross shortcut), it is captured as an `old-lovable`-labelled accepted total OR a `documented-delta` carrying BOTH the Lovable value (`oldLovableWouldGive`) and the new-expected value + why they diverge — NEVER Lovable code or real Lovable data (behavioral-oracle-only rule). Money/öre numbers ONLY — NO PII (personnummer/orgnr/name/email/phone/address), NO clock (NFR17/R-411). STOP (needs-human) if the accepted-price-delta representation must be treated as production-approved (Sign-Off Q8) or if real customer quote data is needed to produce a fixture.",
+  "policy": {
+    "deltaUnit": "integer öre",
+    "deltaFormula": "deltaOre = recalculatedTotalOre - acceptedTotalOre (a POSITIVE delta = the recalculated price is HIGHER than the accepted/frozen one; NEGATIVE = lower; zero = unchanged)",
+    "acceptedTotal": "the FROZEN accepted total öre — Epic 6/7 owns the immutability of this value; Epic 4 pins the delta SHAPE only, it does NOT freeze or persist anything",
+    "recalculatedTotal": "a LATER recalculated total öre (e.g. after a settings/rate/price change) — computed by the SAME 4.1/4.2/4.3 engine; the delta is the customer-visible price movement Epic 7 will gate",
+    "epic7Boundary": "new-version-on-change / accepted-state immutability enforcement is EPIC 7 — this fixture supplies ONLY the golden delta SHAPE (no acceptance table, no immutability code)",
+    "signOffQ8": "the exact accepted-price-delta representation is OPEN (Sign-Off Q8) — the shapes here are pilot assumptions, not Epic-7-final",
+    "signOff": "pending-owner-accounting-legal"
+  },
+  "deltaCases": [
+    {
+      "id": "no-change-zero-delta",
+      "origin": "new-expected",
+      "note": "The baseline: a recalculation with NO input change reproduces the accepted total EXACTLY -> delta 0 öre. The accepted total 100000 öre and the recalculated total 100000 öre are identical (the engine is deterministic; re-running the same inputs yields the same öre). A non-zero delta here would signal a non-deterministic engine and fail loud.",
+      "acceptedTotalOre": 100000,
+      "recalculatedTotalOre": 100000,
+      "expectedDeltaOre": 0
+    },
+    {
+      "id": "price-increase-positive-delta",
+      "origin": "new-expected",
+      "note": "A later recalculation AFTER a customer-visible change yields a HIGHER total -> positive delta. Accepted (frozen) total 100000 öre; after a change the recalculated total is 112500 öre -> delta = 112500 - 100000 = +12500 öre. Epic 7 will require a NEW quote version for this customer-visible movement; Epic 4 pins ONLY the delta shape (no enforcement).",
+      "acceptedTotalOre": 100000,
+      "recalculatedTotalOre": 112500,
+      "expectedDeltaOre": 12500
+    },
+    {
+      "id": "price-decrease-negative-delta",
+      "origin": "new-expected",
+      "note": "A later recalculation yields a LOWER total -> negative delta. Accepted 112500 öre; recalculated 100000 öre -> delta = 100000 - 112500 = -12500 öre. A negative delta is a valid signed shape (the accepted price was higher than the later recalculation); Epic 7 owns whether this needs a new version.",
+      "acceptedTotalOre": 112500,
+      "recalculatedTotalOre": 100000,
+      "expectedDeltaOre": -12500
+    },
+    {
+      "id": "round-at-end-vs-sum-of-rounded-delta",
+      "origin": "documented-delta",
+      "note": "DOCUMENTED divergence from Lovable's round-at-end behaviour (R-403 / R-410). Three lines of (0.5 x 45 = 22.5 -> 23 öre each). The NEW engine freezes the accepted total via sum-of-rounded = 23*3 = 69 öre. Lovable's implicit round-at-end would have frozen Math.round(67.5) = 68 öre (captured as an anonymized behavioral-oracle number, NOT copied code/data). So an accepted total frozen under the OLD Lovable rule (68) vs a total recalculated under the NEW sum-of-rounded engine (69) shows delta = 69 - 68 = +1 öre — the intentional, documented migration delta. This is why the labelling matters: the 1-öre movement is EXPLAINABLE (round-at-end -> sum-of-rounded), not an unexplained diff.",
+      "acceptedTotalOre": 68,
+      "recalculatedTotalOre": 69,
+      "expectedDeltaOre": 1,
+      "oldLovableWouldGive": 68,
+      "newExpectedOre": 69
+    },
+    {
+      "id": "old-lovable-hardcoded-25pct-gross",
+      "origin": "old-lovable",
+      "note": "DOCUMENTED OLD-LOVABLE behaviour captured as an anonymized number (behavioral-oracle-only; NO Lovable code/data). Lovable computed a customer-facing gross via a hardcoded 25% VAT shortcut (net x 1.25, round-at-end). For an accepted net of 85000 öre Lovable's frozen gross was round(85000 x 1.25) = 106250 öre. The NEW basis-point engine recomputes the SAME accepted line via vatBreakdown(85000, 2500) -> gross 106250 öre (net 85000 + per-line VAT round(85000*2500/10000)=21250). Here the two AGREE (delta 0) because the net is exact under 25%; the `old-lovable` label records that this frozen value ORIGINATES from Lovable's hardcoded-25% behaviour, so a future rate change (e.g. the customer was actually at 12%) would surface an EXPLAINABLE delta pointing at the hardcoded-25% assumption rather than an unexplained diff.",
+      "acceptedTotalOre": 106250,
+      "recalculatedTotalOre": 106250,
+      "expectedDeltaOre": 0,
+      "oldLovableWouldGive": 106250,
+      "recalcNetOre": 85000,
+      "recalcVatRateBp": 2500
+    }
+  ]
+}
