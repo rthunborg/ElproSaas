@@ -4,11 +4,11 @@ story_key: epic-4
 epic_num: 4
 story_num: null
 branch: epic/4-money-tax-snapshot-primitives-and-golden-fixtures
-status: in-progress
-updated_at: "2026-07-02T15:21:30Z"
+status: done
+updated_at: "2026-07-02T15:35:27Z"
 started_at: "2026-07-02T11:42:30Z"
-completed_at: null
-active_seconds: 12864
+completed_at: "2026-07-02T15:35:27Z"
+active_seconds: 13000
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -20,7 +20,7 @@ tea_selected: []
 tea_rationale: null
 epic_story_count: 4
 stories_after_in_epic: null
-completed_phases: [0, 1, 2, 5, 7, 81, 82]
+completed_phases: [0, 1, 2, 5, 7, 9, 81, 82]
 code_review_iterations: 2
 code_review_loop_done: true
 hitl_halt: "auto-continued (epic — no halt)"
@@ -39,9 +39,9 @@ phase8_steps:
 gate_decision: PASS
 gate_iterations: 0
 deferred_work_archived: 6
-pr_url: null
-ci_run_url: null
-ci_status: unknown
+pr_url: "https://github.com/rthunborg/ElproSaas/pull/18"
+ci_run_url: "https://github.com/rthunborg/ElproSaas/actions/runs/28601747973"
+ci_status: passed
 pr_merged: false
 merge_method: null
 merge_commit: null
@@ -124,3 +124,4 @@ uat_items:
   - "[4-4-money-and-tax-golden-master-fixture-pack] Check policy.signOff = pending-owner-accounting-legal in both new fixtures -> nothing marked production-approved (Sign-Off Q8 open)"
   - "[4-4-money-and-tax-golden-master-fixture-pack] git shows only fixtures + tests (+ tracking docs); package.json/pnpm-lock untouched; no src/ change, no migration, no route/UI"
 epic_slug: money-tax-snapshot-primitives-and-golden-fixtures
+batch_flip_done: true

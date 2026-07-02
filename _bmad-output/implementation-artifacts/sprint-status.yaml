@@ -70,11 +70,11 @@ development_status:
   3-5-snapshot-source-contract-for-settings-and-pricing-inputs: done
   epic-3-retrospective: done
 
-  epic-4: in-progress
-  4-1-integer-ore-money-and-rounding-primitives: ready-for-dev
-  4-2-vat-and-quote-total-calculation-primitives: review
-  4-3-rot-and-gron-teknik-estimate-engine-with-warnings: review
-  4-4-money-and-tax-golden-master-fixture-pack: review
+  epic-4: done
+  4-1-integer-ore-money-and-rounding-primitives: done
+  4-2-vat-and-quote-total-calculation-primitives: done
+  4-3-rot-and-gron-teknik-estimate-engine-with-warnings: done
+  4-4-money-and-tax-golden-master-fixture-pack: done
   epic-4-retrospective: done
 
   epic-5: backlog
