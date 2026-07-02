@@ -41,7 +41,7 @@
 # Entries below remain grouped by epic for tracking; pick stories in the order above.
 
 generated: 2026-06-12
-last_updated: 2026-07-01  # epic-3 all 5 stories landed; epic-3 retrospective done
+last_updated: 2026-07-02  # story 4-1 contexted (ready-for-dev); epic-4 -> in-progress
 project: ElproSaas
 project_key: NOKEY
 tracking_system: file-system
@@ -70,8 +70,8 @@ development_status:
   3-5-snapshot-source-contract-for-settings-and-pricing-inputs: done
   epic-3-retrospective: done
 
-  epic-4: backlog
-  4-1-integer-ore-money-and-rounding-primitives: backlog
+  epic-4: in-progress
+  4-1-integer-ore-money-and-rounding-primitives: ready-for-dev
   4-2-vat-and-quote-total-calculation-primitives: backlog
   4-3-rot-and-gron-teknik-estimate-engine-with-warnings: backlog
   4-4-money-and-tax-golden-master-fixture-pack: backlog
