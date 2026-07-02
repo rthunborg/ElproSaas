@@ -12,13 +12,23 @@
  * INT/RLS suites. Story 2.1's pure-logic branch tests run here today (test-design
  * "Critical Prerequisite": the authoritative DB-backed tests are owned by 2.2).
  */
-import { existsSync } from "node:fs";
+import { existsSync, statSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 const srcRoot = join(process.cwd(), "src");
 
 function withResolvedExtension(absPath) {
+  // A bare DIRECTORY (e.g. `@/lib/money` → `src/lib/money`) is not an ESM importable — Node
+  // rejects a directory import. Resolve it to its `index.ts` barrel so an extensionless
+  // package-style import of a directory works, matching how tsc/Next resolve `index.ts`.
+  if (existsSync(absPath) && statSync(absPath).isDirectory()) {
+    const indexTs = join(absPath, "index.ts");
+    if (existsSync(indexTs)) return indexTs;
+    const indexTsx = join(absPath, "index.tsx");
+    if (existsSync(indexTsx)) return indexTsx;
+    return absPath;
+  }
   if (existsSync(absPath)) return absPath;
   for (const candidate of [
     `${absPath}.ts`,

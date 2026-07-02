@@ -26,6 +26,13 @@
  * is the only authority (the validators strip/ignore any `tenant_id`).
  */
 import type { ValidationResult } from "../envelope-core";
+// The öre-validity authority lives in `@/lib/money` (Story 4.1 moved the canonical
+// implementation there so the money engine and the pricing validators share ONE rule — no
+// fork). It is re-exported below so this module remains the pricing validators' import site.
+import {
+  isOreAmount as isOreAmountCanonical,
+  ORE_AMOUNT_MAX as ORE_AMOUNT_MAX_CANONICAL,
+} from "@/lib/money";
 
 /** Max length for a short free-text pricing field (defensive bound). */
 const MAX_TEXT = 256;
@@ -66,38 +73,24 @@ function isRecord(raw: unknown): raw is Record<string, unknown> {
 const fail = { ok: false as const, code: "VALIDATION_FAILED" as const };
 
 /**
- * The safe upper bound for an integer-öre money amount. `Number.MAX_SAFE_INTEGER`
- * (9_007_199_254_740_991 öre ≈ 90 trillion kr) is the inclusive ceiling: beyond it JS
- * integer arithmetic is unreliable, and it fits a Postgres `bigint` comfortably. A
- * legitimate hourly rate / unit price is many orders of magnitude below this, so it is
- * a generous-but-real guard against overflow/typo/attack values. The DB CHECK (>= 0)
- * does belt-and-braces on the lower bound. [Open Question 2 — conservative default.]
+ * The safe upper bound for an integer-öre money amount (`Number.MAX_SAFE_INTEGER`, the
+ * inclusive ceiling — beyond it JS integer arithmetic is unreliable and it fits a Postgres
+ * `bigint` comfortably). CANONICAL definition now lives in `@/lib/money` (Story 4.1); this
+ * is a RE-EXPORT so the pricing validators and the money engine share ONE ceiling. The DB
+ * CHECK (>= 0) does belt-and-braces on the lower bound.
  */
-export const ORE_AMOUNT_MAX = Number.MAX_SAFE_INTEGER;
+export const ORE_AMOUNT_MAX = ORE_AMOUNT_MAX_CANONICAL;
 
 /**
- * True iff `v` is a valid INTEGER-ÖRE money amount: a non-negative SAFE integer NUMBER.
+ * True iff `v` is a valid INTEGER-ÖRE money amount: a non-negative SAFE integer NUMBER
+ * (accepts 0, 1, 85000, … up to `ORE_AMOUNT_MAX`; rejects floats, negatives, NaN/±Infinity,
+ * overflow, locale-comma / decimal / numeric strings, null/undefined/object).
  *
- * Accepts: 0, 1, 85000, … up to `ORE_AMOUNT_MAX` (inclusive). REJECTS — by design and
- * pinned by the unit tests:
- *   - a FLOAT öre (850.5, 0.5) — öre are whole integers, never fractional;
- *   - a NEGATIVE öre (-1) — prices are non-negative;
- *   - NaN / +Infinity / -Infinity — non-finite is never a price;
- *   - overflow (> MAX_SAFE_INTEGER, 2**63) — unreliable / absurd;
- *   - a LOCALE-COMMA string ("850,00") — the comma-decimal trap (the boundary helper
- *     converts kronor→öre; a raw comma string reaching the command is a BUG);
- *   - a DECIMAL/numeric/non-numeric string ("850.00", "85000", "abc") — the authority
- *     takes a NUMBER, never a coerced string;
- *   - null / undefined / object.
+ * CANONICAL implementation now lives in `@/lib/money` (Story 4.1 moved it there so the money
+ * engine and these pricing validators share ONE rule — no fork). This is a RE-EXPORT; the
+ * pricing-validation units and the `money-display` boundary continue to consume it here.
  */
-export function isOreAmount(v: unknown): v is number {
-  return (
-    typeof v === "number" &&
-    Number.isInteger(v) &&
-    v >= 0 &&
-    v <= ORE_AMOUNT_MAX
-  );
-}
+export const isOreAmount = isOreAmountCanonical;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // work_roles — display_name + cost/sell öre rates (collection upsert: id optional).

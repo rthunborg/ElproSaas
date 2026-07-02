@@ -21,17 +21,17 @@
  */
 import { test, describe } from "node:test";
 import assert from "node:assert/strict";
-import { existsSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
+import * as money from "@/lib/money";
+
+// ── GREEN PHASE (Story 4.1 dev) ──────────────────────────────────────────────────
+// `@/lib/money` now exists, so the engine is imported at the top level and the golden suite
+// runs unconditionally. The red-phase existence gate was removed; the pinned expected values
+// (the load-bearing rounding-mode policy) are UNCHANGED.
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-const MONEY_DIR = resolve(HERE, "../../../../src/lib/money");
-const MONEY_ENGINE_PRESENT =
-  existsSync(resolve(MONEY_DIR, "index.ts")) ||
-  existsSync(resolve(MONEY_DIR, "ore.ts")) ||
-  existsSync(resolve(MONEY_DIR, "money.ts"));
-
 const GOLDEN_DIR = resolve(HERE, "../../../fixtures/golden/money");
 
 interface LineNetCase {
@@ -80,14 +80,13 @@ type MoneyEngine = {
   sumOre: (values: readonly number[]) => OkLike | { ok: false };
 };
 
-// GREEN PHASE: replace with a top-level `import * as money from "@/lib/money";`.
+// The engine is imported at the top level; `loadEngine()` stays a trivial async accessor so
+// the assertions below (which `await loadEngine()`) remain UNCHANGED from the red scaffold.
 async function loadEngine(): Promise<MoneyEngine> {
-  return (await import("@/lib/money")) as unknown as MoneyEngine;
+  return money as unknown as MoneyEngine;
 }
 
-const suite = MONEY_ENGINE_PRESENT ? describe : describe.skip;
-
-suite("Story 4.1 — GOLDEN rounding-mode pin (4.1-GOLDEN-01, R-402)", () => {
+describe("Story 4.1 — GOLDEN rounding-mode pin (4.1-GOLDEN-01, R-402)", () => {
   test("the fixture pins the conservative pilot policy (line-level, half-away-from-zero, sum-of-rounded)", () => {
     const fx = loadFixture();
     assert.equal(fx.policy.level, "line-level");

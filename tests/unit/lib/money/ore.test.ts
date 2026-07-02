@@ -46,21 +46,12 @@
  */
 import { test, describe } from "node:test";
 import assert from "node:assert/strict";
-import { existsSync } from "node:fs";
-import { fileURLToPath } from "node:url";
-import { dirname, resolve } from "node:path";
+import * as money from "@/lib/money";
 
-// ── RED-PHASE EXISTENCE GATE (delete in the GREEN phase) ─────────────────────────
-// `@/lib/money` maps to `src/lib/money/*` (tsconfig alias). While the engine is absent a
-// top-level `import` would throw and fail the whole runner; instead we detect its absence
-// and `test.skip` the suite so the green baseline is unperturbed. The dev DELETES this
-// block and imports the engine at the top level.
-const HERE = dirname(fileURLToPath(import.meta.url));
-const MONEY_DIR = resolve(HERE, "../../../../src/lib/money");
-const MONEY_ENGINE_PRESENT =
-  existsSync(resolve(MONEY_DIR, "index.ts")) ||
-  existsSync(resolve(MONEY_DIR, "ore.ts")) ||
-  existsSync(resolve(MONEY_DIR, "money.ts"));
+// ── GREEN PHASE (Story 4.1 dev) ──────────────────────────────────────────────────
+// `@/lib/money` now exists (`src/lib/money/{index,ore}.ts`), so the engine is imported at
+// the top level and the suite runs unconditionally. The red-phase existence gate + lazy
+// `loadEngine()` IIFE were removed; the assertions below are UNCHANGED (they ARE the contract).
 
 // The engine's typed-failure surface is dev's choice (KronorParseResult-style OR
 // Result<T,C>). These helpers accept EITHER so the assertions do not pin the shape.
@@ -104,23 +95,16 @@ type MoneyEngine = {
   ORE_AMOUNT_MAX?: number;
 };
 
-// GREEN PHASE: replace this whole IIFE with a top-level
-//   import * as money from "@/lib/money";
-// and set `const engine = money as unknown as MoneyEngine;`.
-let engine: MoneyEngine | null = null;
+// The engine is imported at the top level; `loadEngine()` is kept as a trivial async accessor
+// so the assertions below (which `await loadEngine()`) remain UNCHANGED from the red scaffold.
+const engine = money as unknown as MoneyEngine;
 async function loadEngine(): Promise<MoneyEngine> {
-  if (engine) return engine;
-  // @/lib/money resolves via the register.mjs alias hook.
-  const mod = (await import("@/lib/money")) as unknown as MoneyEngine;
-  engine = mod;
-  return mod;
+  return engine;
 }
 
-const ORE_AMOUNT_MAX = Number.MAX_SAFE_INTEGER; // mirrors src/server/commands/pricing/validation.ts
+const ORE_AMOUNT_MAX = Number.MAX_SAFE_INTEGER; // mirrors @/lib/money ORE_AMOUNT_MAX
 
-const suite = MONEY_ENGINE_PRESENT ? describe : describe.skip;
-
-suite("Story 4.1 — @/lib/money öre-arithmetic + rounding primitives (RED → GREEN)", () => {
+describe("Story 4.1 — @/lib/money öre-arithmetic + rounding primitives (RED → GREEN)", () => {
   // ── 4.1-UNIT-01: integer öre in → integer öre out; kr only at the boundary (AC1) ──
   describe("4.1-UNIT-01 — integer öre end-to-end (R-401)", () => {
     test("lineNetOre returns an integer öre for integer öre inputs", async () => {
