@@ -5,10 +5,10 @@ epic_num: 4
 story_num: 4
 branch: epic/4-money-tax-snapshot-primitives-and-golden-fixtures
 status: in-progress
-updated_at: "2026-07-02T14:15:33Z"
+updated_at: "2026-07-02T14:21:45Z"
 started_at: "2026-07-02T13:53:30Z"
 completed_at: null
-active_seconds: 1320
+active_seconds: 1690
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: true
@@ -53,3 +53,4 @@ blockers: []
 overrides: {}
 constraints: []
 tier_a_base_sha: 7c4b5a5
+tier_a_review: "changes-requested -> fixed: 1 Med Patch (doc accuracy — automate-phase test file missing from File List) fixed and verified; 0 Decisions; 3 noise dismissed; security clean 0/0/0"
