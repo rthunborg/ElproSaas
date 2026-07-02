@@ -98,6 +98,20 @@ export function isVatRateBp(v: unknown): v is number {
 }
 
 /**
+ * The closed VAT-display-mode enum a tenant `default_vat_display` setting can carry:
+ * `"company_togglable"` (incl-VAT display togglable, the default) | `"company_excl"` (default to
+ * excl-VAT display). Defined here so `@/lib/money` VAT-assumption values type their captured
+ * display mode as this CLOSED union rather than a bare `string` — an arbitrary/invalid display
+ * cannot be frozen into a customer-facing assumption (AC2 "consumed AS-IS").
+ *
+ * This mirrors the settings layer's `VAT_DISPLAY_MODES` / `VatDisplayMode` (and the snapshots
+ * layer's `VatDisplayMode`) one-for-one; the money engine keeps its OWN copy of the union rather
+ * than importing from `src/server` so the `src/lib` → `src/server` layer direction is never
+ * inverted. All three definitions carry the identical member set.
+ */
+export type VatDisplayMode = "company_togglable" | "company_excl";
+
+/**
  * Compute the PER-LINE VAT in integer öre from a rounded line net (integer öre) and a VAT rate
  * in BASIS POINTS: `roundToOre(lineNetOre * vatRateBp / 10000)`.
  *
@@ -245,8 +259,12 @@ export function selectVatDisplay(
 export interface VatAssumptionSource {
   /** The VAT rate in BASIS POINTS (2500 = 25.00%), copied verbatim (NOT a percent, no math). */
   readonly vatRateBp: number;
-  /** The tenant `default_vat_display` enum, captured AS-IS as a presentation input. */
-  readonly defaultVatDisplay: string;
+  /**
+   * The tenant `default_vat_display` enum, captured AS-IS as a presentation input. Typed as the
+   * CLOSED `VatDisplayMode` union (not a bare `string`) so an invalid display cannot flow into a
+   * frozen customer-facing assumption.
+   */
+  readonly defaultVatDisplay: VatDisplayMode;
   /** OPTIONAL: the source row's id (when built from a settings row/snapshot). */
   readonly sourceId?: string;
   /** OPTIONAL: the source row's `updated_at` used as the source "version". */
@@ -271,8 +289,11 @@ export interface VatAssumptionBuildOptions {
 export interface VatAssumptionSnapshot {
   /** From `vat_rate_bp` — BASIS POINTS (2500 = 25.00%), copied verbatim (NOT a percent). */
   readonly vatRateBp: number;
-  /** From `default_vat_display` — the display-mode enum, captured AS-IS. */
-  readonly defaultVatDisplay: string;
+  /**
+   * From `default_vat_display` — the display-mode enum, captured AS-IS. Typed as the CLOSED
+   * `VatDisplayMode` union so an invalid display can never be frozen into the assumption.
+   */
+  readonly defaultVatDisplay: VatDisplayMode;
   /** OPTIONAL source id (when built from a settings row/snapshot). */
   readonly sourceId?: string;
   /** OPTIONAL source `updated_at` version (when built from a settings row/snapshot). */
@@ -282,16 +303,35 @@ export interface VatAssumptionSnapshot {
 }
 
 /**
+ * The result of `buildVatAssumptionSnapshot`: the frozen assumption on success, or a typed
+ * failure (`INVALID_VAT_RATE_BP`) when the source rate is not a valid basis-point value. The OK
+ * arm is the bare frozen `VatAssumptionSnapshot` (NOT a wrapper) so a consumer that reads the
+ * captured fields off the returned value keeps working; branch on the `ok === false` failure arm
+ * (a discriminated union — the failure arm carries `ok: false` + a stable `code`, never the raw
+ * invalid rate).
+ */
+export type VatAssumptionResult =
+  | VatAssumptionSnapshot
+  | { readonly ok: false; readonly code: MoneyErrorCode };
+
+/**
  * Build the FROZEN VAT-assumption snapshot — REUSES the Story 3.5 `src/lib/snapshots` freeze
  * discipline (copy-by-value + `Object.freeze` + INJECTED `capturedAt`, never `Date.now()`).
  *
- * COPIES BY VALUE the exact `vatRateBp` + `defaultVatDisplay` (+ the optional `sourceId` /
- * `sourceUpdatedAt` when a row is passed) into a fresh object and returns `Object.freeze(...)`.
- * The result holds NO live reference to the input — so mutating the source row AFTER capture
- * CANNOT reach a prior snapshot (a later tenant-rate change never retroactively alters a captured
- * assumption). Captures STATE only: it computes NO VAT amount into itself (the amount is computed
- * by `lineVatOre` at calc time, reproducible from the frozen rate) and derives NO `isApproved`
- * flag; `vatRateBp` stays basis points (no arithmetic on it here).
+ * GUARDS the source rate FIRST — `isVatRateBp(source.vatRateBp)` (the ONE reused bp-validity
+ * rule). An invalid/float/out-of-range rate (`2500.5`, `-1`, `10001`, a non-integer bp) returns a
+ * typed `INVALID_VAT_RATE_BP` failure rather than freezing an invalid rate into a customer-facing
+ * assumption — defense-in-depth so the frozen assumption and the later `lineVatOre` computation
+ * can never diverge on the rate. This is the ONLY validation; the builder otherwise computes
+ * nothing (R-409: capture STATE, compute nothing).
+ *
+ * On success it COPIES BY VALUE the exact `vatRateBp` + `defaultVatDisplay` (+ the optional
+ * `sourceId` / `sourceUpdatedAt` when a row is passed) into a fresh object and returns
+ * `Object.freeze(...)`. The result holds NO live reference to the input — so mutating the source
+ * row AFTER capture CANNOT reach a prior snapshot (a later tenant-rate change never retroactively
+ * alters a captured assumption). Captures STATE only: it computes NO VAT amount into itself (the
+ * amount is computed by `lineVatOre` at calc time, reproducible from the frozen rate) and derives
+ * NO `isApproved` flag; `vatRateBp` stays basis points (no arithmetic on it here).
  *
  * This story does NOT persist the snapshot to any table (Epic 6 owns quote-version freeze) — it
  * builds the FROZEN in-memory VAT-assumption value the later quote snapshot will carry.
@@ -299,7 +339,13 @@ export interface VatAssumptionSnapshot {
 export function buildVatAssumptionSnapshot(
   source: VatAssumptionSource,
   opts: VatAssumptionBuildOptions,
-): VatAssumptionSnapshot {
+): VatAssumptionResult {
+  // Defense-in-depth: an invalid/float/out-of-range bp must NOT be frozen into a customer-facing
+  // assumption (it would silently diverge from what `lineVatOre` would later accept). Guard FIRST,
+  // via the ONE canonical bp-validity rule — a typed failure, never a thrown exception.
+  if (!isVatRateBp(source.vatRateBp)) {
+    return { ok: false, code: "INVALID_VAT_RATE_BP" };
+  }
   // Build the base captured payload by value (primitives), then conditionally attach the optional
   // source identity so the frozen shape omits absent optional fields rather than carrying undefined.
   const base = {

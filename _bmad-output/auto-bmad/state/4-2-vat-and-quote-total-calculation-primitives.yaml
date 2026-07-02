@@ -5,10 +5,10 @@ epic_num: 4
 story_num: 2
 branch: epic/4-money-tax-snapshot-primitives-and-golden-fixtures
 status: in-progress
-updated_at: "2026-07-02T12:58:52Z"
+updated_at: "2026-07-02T13:10:24Z"
 started_at: "2026-07-02T12:27:54Z"
 completed_at: null
-active_seconds: 1840
+active_seconds: 2531
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -52,3 +52,4 @@ blockers: []
 overrides: {}
 constraints: []
 tier_a_base_sha: 06755f6
+tier_a_review: "changes-requested -> fixed: 3 persisted (2 Decision Med auto-resolved fix + 1 Patch Low); post-fix verified 0 open; security clean 0/0/0; 2 noise dismissed"

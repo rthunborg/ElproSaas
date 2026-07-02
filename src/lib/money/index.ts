@@ -43,6 +43,7 @@ export {
 } from "./vat";
 
 export type {
+  VatDisplayMode,
   VatBreakdown,
   VatBreakdownResult,
   VatDisplayPosture,
@@ -50,4 +51,5 @@ export type {
   VatAssumptionSource,
   VatAssumptionBuildOptions,
   VatAssumptionSnapshot,
+  VatAssumptionResult,
 } from "./vat";

@@ -211,11 +211,20 @@ describe("Story 4.2 coverage — selectVatDisplay full return-shape per posture 
 describe("Story 4.2 coverage — buildVatAssumptionSnapshot optional-field + freeze (R-409)", () => {
   const CAPTURED_AT = "2026-07-02T12:34:56.000Z";
 
+  // The builder returns a discriminated union (frozen snapshot | typed failure). These cases feed
+  // it valid rates, so narrow to the OK arm (the bare snapshot) before reading captured fields.
+  function okSnap(
+    result: ReturnType<typeof buildVatAssumptionSnapshot>,
+  ): Extract<typeof result, { vatRateBp: number }> {
+    assert.ok(!("ok" in result), "expected a frozen snapshot, not a typed failure");
+    return result as Extract<typeof result, { vatRateBp: number }>;
+  }
+
   test("with NO source identity, the frozen snapshot OMITS sourceId / sourceUpdatedAt", () => {
-    const snap = buildVatAssumptionSnapshot(
+    const snap = okSnap(buildVatAssumptionSnapshot(
       { vatRateBp: 1200, defaultVatDisplay: "company_excl" },
       { capturedAt: CAPTURED_AT },
-    );
+    ));
     assert.equal(snap.vatRateBp, 1200);
     assert.equal(snap.defaultVatDisplay, "company_excl");
     assert.equal(snap.capturedAt, CAPTURED_AT);
@@ -225,7 +234,7 @@ describe("Story 4.2 coverage — buildVatAssumptionSnapshot optional-field + fre
   });
 
   test("WITH source identity, both sourceId and sourceUpdatedAt are copied by value", () => {
-    const snap = buildVatAssumptionSnapshot(
+    const snap = okSnap(buildVatAssumptionSnapshot(
       {
         vatRateBp: 2500,
         defaultVatDisplay: "company_togglable",
@@ -233,26 +242,44 @@ describe("Story 4.2 coverage — buildVatAssumptionSnapshot optional-field + fre
         sourceUpdatedAt: "2026-06-30T00:00:00.000Z",
       },
       { capturedAt: CAPTURED_AT },
-    );
+    ));
     assert.equal(snap.sourceId, "settings-row-1");
     assert.equal(snap.sourceUpdatedAt, "2026-06-30T00:00:00.000Z");
     assert.equal(Object.isFrozen(snap), true);
   });
 
   test("with ONLY sourceId (no updated_at), sourceUpdatedAt stays omitted", () => {
-    const snap = buildVatAssumptionSnapshot(
+    const snap = okSnap(buildVatAssumptionSnapshot(
       { vatRateBp: 600, defaultVatDisplay: "company_excl", sourceId: "row-x" },
       { capturedAt: CAPTURED_AT },
-    );
+    ));
     assert.equal(snap.sourceId, "row-x");
     assert.ok(!("sourceUpdatedAt" in snap));
   });
 
   test("mutating the source DISPLAY field after capture does not change the frozen snapshot", () => {
-    const source = { vatRateBp: 2500, defaultVatDisplay: "company_togglable" };
-    const snap = buildVatAssumptionSnapshot(source, { capturedAt: CAPTURED_AT });
+    const source: { vatRateBp: number; defaultVatDisplay: "company_togglable" | "company_excl" } = {
+      vatRateBp: 2500,
+      defaultVatDisplay: "company_togglable",
+    };
+    const snap = okSnap(buildVatAssumptionSnapshot(source, { capturedAt: CAPTURED_AT }));
     source.defaultVatDisplay = "company_excl";
     assert.equal(snap.defaultVatDisplay, "company_togglable", "no live reference to the source");
+  });
+
+  test("an INVALID/float/out-of-range source vatRateBp returns a typed INVALID_VAT_RATE_BP failure (not a frozen snapshot)", () => {
+    for (const badBp of [2500.5, -1, 10001, Number.NaN]) {
+      const result = buildVatAssumptionSnapshot(
+        { vatRateBp: badBp, defaultVatDisplay: "company_excl" },
+        { capturedAt: CAPTURED_AT },
+      );
+      assert.ok("ok" in result && result.ok === false, `expected a typed failure for bp=${String(badBp)}`);
+      if ("ok" in result) {
+        assert.equal(result.code, "INVALID_VAT_RATE_BP");
+      }
+      // The invalid rate must never be echoed back into a frozen assumption.
+      assert.ok(!("vatRateBp" in result), "an invalid rate must not be frozen into a snapshot");
+    }
   });
 });
 

@@ -5,10 +5,10 @@ epic_num: 4
 story_num: null
 branch: epic/4-money-tax-snapshot-primitives-and-golden-fixtures
 status: in-progress
-updated_at: "2026-07-02T12:58:51Z"
+updated_at: "2026-07-02T13:10:24Z"
 started_at: "2026-07-02T11:42:30Z"
 completed_at: null
-active_seconds: 4379
+active_seconds: 5070
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -54,7 +54,9 @@ constraints: []
 active_story: 4-2-vat-and-quote-total-calculation-primitives
 stories_landed:
   - 4-1-integer-ore-money-and-rounding-primitives
-auto_decisions: []
+auto_decisions:
+  - "defaultVatDisplay typed as bare string, widening the VatDisplayMode enum [Med] -> fix: define+export a VatDisplayMode union type in @/lib/money and type both defaultVatDisplay fields with it (Tier A, 4-2-vat-and-quote-total-calculation-primitives)"
+  - "buildVatAssumptionSnapshot performs no input validation on vatRateBp [Med] -> fix: add an isVatRateBp guard at the builder entry (typed failure or narrowed source type) so an invalid/float rate cannot be frozen (Tier A, 4-2-vat-and-quote-total-calculation-primitives)"
 uat_items:
   - "[4-1-integer-ore-money-and-rounding-primitives] Run the full money unit + golden suite: node --experimental-strip-types --import ./tests/support/register.mjs --test \"tests/unit/lib/money/**/*.test.ts\" -> all pass, 0 fail, 0 skipped"
   - "[4-1-integer-ore-money-and-rounding-primitives] Run pnpm run test:unit -> green (money units alongside pre-existing pricing-validation and money-display suites; isOreAmount move + formatter delegation kept old suites green)"
