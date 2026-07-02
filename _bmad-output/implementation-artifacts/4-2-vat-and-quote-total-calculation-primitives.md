@@ -81,6 +81,28 @@ No other open ledger item is owned by the VAT/money/snapshot surface this story 
 - **Build (new):** `src/lib/money/vat.ts` (+ export from `src/lib/money/index.ts`) — the pure VAT primitives (`lineVatOre`, `sumVatOre`/reuse `sumOre`, `vatBreakdown`, the excl/incl/both display-mode selector, the frozen VAT-assumption snapshot builder); `tests/unit/lib/money/vat*.test.ts` — the unit + golden tests; `tests/fixtures/golden/money/vat-*.json` — the anonymized 0/6/12/25% VAT golden fixtures with `origin` labels.
 - **Directory / naming:** money/VAT pure logic lives in `src/lib/money` (architecture §22). Shared modules kebab-case (`vat.ts`); tests `*.test.ts` under `tests/unit/**`. Money in TS is integer öre `number`; VAT rate is integer basis points `number` (2500 = 25.00%). [Source: architecture.md#22 (`src/lib/money`); project-context.md#Code Quality Rules; `src/lib/money/ore.ts`]
 
+### ATDD red-phase scaffolds (pre-authored — treat the assertions as the contract)
+
+The ATDD red-phase scaffolds for this story ALREADY EXIST (generated 2026-07-02, adapted to inline
+`node --test` UNIT + GOLDEN per the epic-4 pure-library pattern — NOT an API/E2E scaffold). Do NOT
+regenerate them; the GREEN phase is to make them pass WITHOUT editing the assertions:
+
+- `tests/unit/lib/money/vat.test.ts` — UNIT scaffold (4.2-UNIT-01/02/03/04/05/06).
+- `tests/unit/lib/money/vat.golden.test.ts` — GOLDEN scaffold (4.2-GOLDEN-01), grepping the VAT
+  source for a no-hidden-literal (`0.25`/`1.25`) + `/ 10000` assertion (R-404).
+- `tests/fixtures/golden/money/vat-rates.json` — anonymized 0/600/1200/2500 bp fixture with `origin`
+  labels + the sum-of-rounded ≠ round-of-sum divergence case.
+- Checklist: `_bmad-output/test-artifacts/atdd-checklist-4-2-vat-and-quote-total-calculation-primitives.md`.
+
+RED mechanism: each suite is gated behind `describe.skip` on `VAT_SURFACE_PRESENT`
+(`typeof money.lineVatOre === "function" && typeof money.vatBreakdown === "function"`). The
+`@/lib/money` barrel already resolves (Story 4.1), so the gate flips true AUTOMATICALLY the moment the
+dev re-exports `lineVatOre`/`sumVatOre`/`vatBreakdown`/the display-mode selector/`buildVatAssumptionSnapshot`
+from `src/lib/money/index.ts` — no test edit needed. Verified: both suites SKIP cleanly (0 fail); the
+full unit baseline stays 490 pass / 0 fail. The engine names in the scaffold (`lineVatOre`, `sumVatOre`,
+`vatBreakdown`, `selectVatDisplay`, `buildVatAssumptionSnapshot`) are the expected surface; the display-
+mode selector's exact name/return-shape is dev's choice (the assertions probe common shapes tolerantly).
+
 ### Project Structure Notes
 
 - New files: `src/lib/money/vat.ts` — the pure VAT primitives + display views + VAT-assumption snapshot builder; `tests/unit/lib/money/vat.test.ts` + `tests/unit/lib/money/vat.golden.test.ts` — units + golden; `tests/fixtures/golden/money/vat-*.json` — anonymized 0/6/12/25% VAT fixtures with `origin` labels. Modified: `src/lib/money/index.ts` (add the new VAT exports). Possibly a small consolidation edit to `src/server/commands/settings/validation.ts` if `isVatRateBp` is moved/re-exported to keep ONE basis-point-validity rule (keep the existing settings unit suites green).
