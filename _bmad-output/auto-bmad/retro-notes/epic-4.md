@@ -18,3 +18,6 @@
 ## Story 4-3-rot-and-gron-teknik-estimate-engine-with-warnings
 - [Phase 5 — dev-story] Story Dev Notes claimed 'no ATDD scaffold exists for 4.3' but the scaffold was already committed (Phase 4 ran between create-story and dev) — create-story's claim was stale by dev time; epic retro should note the sequencing so future story contexts don't assert scaffold absence.
 - [Phase 5 — dev-story] Schablon on/off for gron teknik NOT modelled in placeholder profile — deferred to Sign-Off Q4 as conservative placeholder + unapproved warning.
+
+## Story 4-4-money-and-tax-golden-master-fixture-pack
+- [Phase 3 — create-story] Runner-glob trap: epics.md says fixtures may live under tests/golden/** but test:unit glob is tests/unit/**/*.test.ts — a test under tests/golden/** would be vacuous green; 4.4 context pins the golden-pack test to tests/unit/lib/money/.
