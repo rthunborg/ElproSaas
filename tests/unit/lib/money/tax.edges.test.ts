@@ -42,6 +42,8 @@ import {
   type DeductionResult,
   type DeductionEstimate,
   type TaxAssumptionSource,
+  type TaxAssumptionResult,
+  type TaxAssumptionSnapshot,
 } from "@/lib/money";
 
 const CAPTURED_AT = "2026-07-02T00:00:00.000Z";
@@ -208,21 +210,28 @@ describe("Story 4.3 — buildTaxAssumptionSnapshot standalone (freeze / copy-by-
     };
   }
 
+  // The builder returns a discriminated union (frozen snapshot | typed failure). These cases feed
+  // it a valid capturedAt, so narrow to the OK arm (the bare snapshot) before reading captured fields.
+  function okSnap(result: TaxAssumptionResult): TaxAssumptionSnapshot {
+    assert.ok(!("ok" in result), "expected a frozen snapshot, not a typed failure");
+    return result as TaxAssumptionSnapshot;
+  }
+
   test("label falls back to profileId when the source omits a label", () => {
-    const snap = buildTaxAssumptionSnapshot(makeSource(), { capturedAt: CAPTURED_AT });
+    const snap = okSnap(buildTaxAssumptionSnapshot(makeSource(), { capturedAt: CAPTURED_AT }));
     assert.equal(snap.label, "ROT_PROFILE_UNAPPROVED", "absent label defaults to the profileId");
   });
 
   test("an explicit label is preserved verbatim", () => {
-    const snap = buildTaxAssumptionSnapshot(
+    const snap = okSnap(buildTaxAssumptionSnapshot(
       makeSource({ label: "ROT (pilot)" }),
       { capturedAt: CAPTURED_AT },
-    );
+    ));
     assert.equal(snap.label, "ROT (pilot)", "an explicit label is carried through");
   });
 
   test("persons is OMITTED (not carried as undefined) when the source has no persons", () => {
-    const snap = buildTaxAssumptionSnapshot(makeSource(), { capturedAt: CAPTURED_AT });
+    const snap = okSnap(buildTaxAssumptionSnapshot(makeSource(), { capturedAt: CAPTURED_AT }));
     assert.equal(
       Object.prototype.hasOwnProperty.call(snap, "persons"),
       false,
@@ -232,10 +241,10 @@ describe("Story 4.3 — buildTaxAssumptionSnapshot standalone (freeze / copy-by-
 
   test("warnings are DEEP-frozen and copied by value — mutating the source array after capture cannot reach the snapshot", () => {
     const sourceWarnings = [{ code: "UNAPPROVED_PROFILE" as const, message: "m" }];
-    const snap = buildTaxAssumptionSnapshot(
+    const snap = okSnap(buildTaxAssumptionSnapshot(
       makeSource({ warnings: sourceWarnings }),
       { capturedAt: CAPTURED_AT },
-    );
+    ));
     assert.ok(Object.isFrozen(snap.warnings), "the warnings array is frozen");
     assert.ok(Object.isFrozen(snap.warnings[0]), "each warning entry is frozen");
     // Mutate the SOURCE array after capture — the snapshot must not see it.
@@ -245,7 +254,7 @@ describe("Story 4.3 — buildTaxAssumptionSnapshot standalone (freeze / copy-by-
 
   test("mutating a source rate/cap after capture does NOT change a prior snapshot (R-409)", () => {
     const source = makeSource();
-    const snap = buildTaxAssumptionSnapshot(source, { capturedAt: CAPTURED_AT });
+    const snap = okSnap(buildTaxAssumptionSnapshot(source, { capturedAt: CAPTURED_AT }));
     (source as { deductionPercentBp: number }).deductionPercentBp = 9999;
     (source as { capOre: number }).capOre = 1;
     assert.equal(snap.deductionPercentBp, 3000, "the prior snapshot's rate is unchanged");
@@ -253,16 +262,28 @@ describe("Story 4.3 — buildTaxAssumptionSnapshot standalone (freeze / copy-by-
   });
 
   test("the builder captures STATE only — no arithmetic on the öre/bp, no derived isApproved", () => {
-    const snap = buildTaxAssumptionSnapshot(
+    const snap = okSnap(buildTaxAssumptionSnapshot(
       makeSource({ eligibleBasisOre: 12_345 }),
       { capturedAt: CAPTURED_AT },
-    );
+    ));
     assert.equal(snap.eligibleBasisOre, 12_345, "basis copied verbatim (no arithmetic)");
     assert.equal(snap.capOre, 5_000_000, "cap copied verbatim");
     const serialized = JSON.stringify(snap);
     assert.ok(!/"isApproved"/.test(serialized), "no isApproved flag is derived");
     assert.ok(!/"approved"\s*:\s*true/.test(serialized), "never approved:true");
     assert.equal(snap.requiresSignOff, true, "requiresSignOff:true is the structural default");
+  });
+
+  test("a malformed capturedAt (empty string / non-string) is a typed INVALID_CAPTURED_AT failure", () => {
+    for (const badAt of ["", undefined, null, 0, 12345, {}]) {
+      const result = buildTaxAssumptionSnapshot(makeSource(), {
+        capturedAt: badAt as unknown as string,
+      });
+      assert.ok("ok" in result && result.ok === false, `expected a typed failure for capturedAt=${String(badAt)}`);
+      if ("ok" in result) {
+        assert.equal(result.code, "INVALID_CAPTURED_AT");
+      }
+    }
   });
 });
 

@@ -78,6 +78,7 @@ export type {
   DeductionWarningCode,
   DeductionProfile,
   TaxAssumptionSnapshot,
+  TaxAssumptionResult,
   TaxAssumptionSource,
   TaxAssumptionBuildOptions,
   DeductionInput,

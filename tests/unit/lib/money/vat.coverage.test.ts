@@ -191,11 +191,14 @@ describe("Story 4.2 coverage — selectVatDisplay full return-shape per posture 
     assert.equal(v.togglable, false);
   });
 
-  test("an UNKNOWN posture falls back to the conservative private/gross invariant (no leak)", () => {
-    // Guards the defensive default: an unexpected posture must not leak a partial/undefined amount.
+  test("an UNKNOWN posture falls back to the conservative gross view but ECHOES the original posture (no relabel, no leak)", () => {
+    // Guards the defensive default: an unexpected posture must not leak a partial/undefined amount —
+    // it falls back to the conservative gross (incl-VAT) primary. But the returned `posture` echoes
+    // the ORIGINAL input verbatim (NOT relabelled to "private"), so an invalid stored value cannot be
+    // laundered into a fabricated private label when the view is logged/persisted.
     const v = selectVatDisplay("something_else" as never, breakdown);
-    assert.equal(v.posture, "private");
-    assert.equal(v.primaryOre, breakdown.grossOre);
+    assert.equal(v.posture, "something_else", "the unknown posture is echoed back, never relabelled to private");
+    assert.equal(v.primaryOre, breakdown.grossOre, "the fallback primary stays the conservative gross (incl-VAT)");
     assert.equal(v.togglable, false);
   });
 

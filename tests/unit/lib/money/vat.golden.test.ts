@@ -203,14 +203,17 @@ suite("Story 4.2 — GOLDEN VAT + quote-total pin (4.2-GOLDEN-01, R-403/R-404)",
     );
   });
 
-  test("[P0] no hidden VAT literal — the VAT engine source contains no 0.25/25/1.25 constant (R-404)", () => {
-    // The rate MUST flow from the fixture/settings as basis points; a bare percent literal in the
+  test("[P0] no hidden VAT FRACTION literal — the VAT engine source contains no 0.25/1.25 constant + is bp-driven (R-404)", () => {
+    // The rate MUST flow from the fixture/settings as basis points; a percent-fraction literal in the
     // VAT computation path is a NON-NEGOTIABLE epic blocker. Once src/lib/money/vat.ts exists,
-    // assert the multiplier is basis-point-driven (`/ 10000`) and carries no percent constant.
+    // assert the multiplier is basis-point-driven (`/ 10000`) and carries no percent-fraction constant.
     assert.ok(existsSync(VAT_SOURCE), "src/lib/money/vat.ts must exist in the green phase");
     const src = readFileSync(VAT_SOURCE, "utf8");
     // Strip block/line comments so documentation that legitimately mentions "25%" is not scanned.
     const code = src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");
+    // Scans ONLY the percent-as-FRACTION forms (0.25, 1.25) — NOT the bare integer `25`, which is
+    // impractically noisy to grep (it matches line refs / öre values). A real hidden path is already
+    // structurally blocked by the `/ 10000` basis-point denominator asserted below.
     for (const literal of [/(^|[^.\d])0\.25([^\d]|$)/, /(^|[^.\d])1\.25([^\d]|$)/]) {
       assert.ok(!literal.test(code), `VAT engine must contain no hidden percent literal (matched ${literal})`);
     }

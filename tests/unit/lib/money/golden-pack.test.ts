@@ -386,7 +386,11 @@ describe("Story 4.4 — money & tax golden-master PACK (4.4-GOLDEN-01/02, R-410/
     ];
     // Reused + extended PII/secret classes. Each fixture's DATA is scanned WITHOUT its `_doc` prose.
     const PERSONNUMMER = /\b\d{6}-\d{4}\b/; // YYMMDD-NNNN
-    const ORGNR = /\b\d{6}-\d{4}\b/; // orgnr shares the personnummer shape — an EXPLICIT distinct guard (R-411)
+    // Swedish orgnr is a genuinely DISTINCT shape from the dashed personnummer: the 10-digit no-dash
+    // form (`5560000000`). Scanning it separately delivers real added detection coverage (a bare
+    // 10-digit orgnr is caught by neither the dashed personnummer nor the money öre fixtures, which
+    // carry no 10-digit runs) rather than a byte-identical duplicate of the personnummer guard.
+    const ORGNR = /\b\d{10}\b/; // orgnr 10-digit no-dash shape — a distinct guard, not a personnummer alias (R-411)
     const NON_EXAMPLE_EMAIL = /@(?!example\.test\b)[a-z0-9.-]+\.[a-z]{2,}/i;
     const SECRET = /secret|password|api_key/i;
     // Swedish mobile phone shapes (+46 7X … / 07X …) — a conservative guard; money öre integers do

@@ -58,6 +58,23 @@ export type MoneyErrorCode =
   | "INVALID_QUANTITY"
   /** A VAT rate was not a valid basis-point value (integer, [0, 10000]) — Story 4.2 VAT path. */
   | "INVALID_VAT_RATE_BP"
+  /**
+   * A DEDUCTION rate (ROT / grön teknik `deductionPercentBp`) was not a valid basis-point value —
+   * Story 4.3 tax path. Tax-scoped twin of `INVALID_VAT_RATE_BP`: the deduction-rate validity check
+   * REUSES the one `isVatRateBp` bp-validity predicate (a deduction % expressed as bp is the same
+   * 0..10000 integer-bp discipline — no forked rule), but a malformed *tax* profile rate surfaces as
+   * this tax-scoped discriminant so the error surface is self-describing across the story boundary
+   * (a VAT-named code must not leak out of the deduction path). Defense-in-depth — shipped profiles
+   * are frozen `const` and always valid, so this branch is effectively unreachable in production.
+   */
+  | "INVALID_DEDUCTION_RATE_BP"
+  /**
+   * A snapshot `capturedAt` instant was not a valid non-empty string — Story 4.2/4.3 snapshot
+   * builders. The injected capture instant anchors a FROZEN assumption a later quote-version freeze
+   * (Epic 6) consumes, so an empty/non-string capture instant is rejected with this typed failure
+   * rather than frozen verbatim, matching the engine's every-input-is-type-guarded discipline.
+   */
+  | "INVALID_CAPTURED_AT"
   /** A computed line net / total exceeded the safe öre ceiling (`ORE_AMOUNT_MAX`). */
   | "ORE_OVERFLOW"
   /**

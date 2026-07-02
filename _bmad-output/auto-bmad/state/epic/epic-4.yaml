@@ -5,11 +5,11 @@ epic_num: 4
 story_num: null
 branch: epic/4-money-tax-snapshot-primitives-and-golden-fixtures
 status: in-progress
-updated_at: "2026-07-02T14:33:56Z"
+updated_at: "2026-07-02T14:44:16Z"
 started_at: "2026-07-02T11:42:30Z"
 completed_at: null
 active_seconds: 10028
-timing_anchor: null
+timing_anchor: 1783002853
 is_first_in_epic: false
 is_last_in_epic: false
 needs_project_context_bootstrap: false
@@ -62,6 +62,10 @@ auto_decisions:
   - "buildVatAssumptionSnapshot performs no input validation on vatRateBp [Med] -> fix: add an isVatRateBp guard at the builder entry (typed failure or narrowed source type) so an invalid/float rate cannot be frozen (Tier A, 4-2-vat-and-quote-total-calculation-primitives)"
   - "persons input not applied to per-person ROT cap [Med] -> defer: owner-gated under Sign-Off Q3; flat conservative placeholder sanctioned; logged to deferred-work.md (Tier A, 4-3-rot-and-gron-teknik-estimate-engine-with-warnings)"
   - "buildTaxAssumptionSnapshot lacks isVatRateBp guard [Low] -> dismiss: intentional per Task 3.2 state-capture-only builder contract; engine guards rate pre-computation (Tier A, 4-3-rot-and-gron-teknik-estimate-engine-with-warnings)"
+  - "Deduction rate leaks VAT-named error code INVALID_VAT_RATE_BP [Med] -> fix: widen MoneyErrorCode additively with INVALID_DEDUCTION_RATE_BP, keep reused isVatRateBp predicate (E_review, epic-4)"
+  - "selectVatDisplay falsifies posture to 'private' on unknown input [Med] -> fix: keep conservative gross fallback but return the original posture (or typed failure), never relabel (E_review, epic-4)"
+  - "company_togglable default primary = gross for company customer [Med] -> defer: conservative unapproved build stands; confirm at Sign-Off Q2 VAT-display session; logged to deferred-work.md (E_review, epic-4)"
+  - "capturedAt never validated before freezing into assumption snapshot [Low] -> fix: non-empty-string guard in both snapshot builders with typed failure (E_review, epic-4)"
 uat_items:
   - "[4-1-integer-ore-money-and-rounding-primitives] Run the full money unit + golden suite: node --experimental-strip-types --import ./tests/support/register.mjs --test \"tests/unit/lib/money/**/*.test.ts\" -> all pass, 0 fail, 0 skipped"
   - "[4-1-integer-ore-money-and-rounding-primitives] Run pnpm run test:unit -> green (money units alongside pre-existing pricing-validation and money-display suites; isOreAmount move + formatter delegation kept old suites green)"

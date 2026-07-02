@@ -256,16 +256,19 @@ suite("Story 4.3 — GOLDEN ROT / grön-teknik deduction pin (4.3-GOLDEN-01/02, 
     }
   });
 
-  test("[P0] no hidden deduction-rate literal — the tax engine source contains no 0.30/30/0.50/50/1.3 constant (R-404)", () => {
-    // The rate MUST flow from the profile as basis points; a bare percent literal in the deduction
+  test("[P0] no hidden deduction-rate FRACTION literal — the tax engine source contains no 0.30/0.50/1.3 constant + is bp-driven (R-404)", () => {
+    // The rate MUST flow from the profile as basis points; a percent-fraction literal in the deduction
     // path is a NON-NEGOTIABLE epic blocker. Once src/lib/money/tax.ts exists, assert the multiplier
-    // is basis-point-driven (`/ 10000`) and carries no percent constant.
+    // is basis-point-driven (`/ 10000`) and carries no percent-fraction constant.
     assert.ok(existsSync(TAX_SOURCE), "src/lib/money/tax.ts must exist in the green phase");
     const src = readFileSync(TAX_SOURCE, "utf8");
     // Strip block/line comments so documentation that legitimately mentions "30%" is not scanned.
     const code = src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");
-    // Percent-as-fraction literals (0.30, 0.50, 1.3) and bare-percent literals (30, 50) used AS A RATE
-    // multiplier are forbidden in the deduction path; the rate is `deductionPercentBp` from a profile.
+    // Scans ONLY the percent-as-FRACTION literal forms (0.30, 0.50, 1.3) used as a rate multiplier —
+    // NOT bare-integer forms like `30`/`50`, which are impractically noisy to grep (they match line
+    // refs, array sizes, öre values). A real hidden-percent path (`basis * 30 / 100`) is already
+    // structurally prevented: the rate MUST flow in as `deductionPercentBp` from a profile via the
+    // `/ 10000` basis-point denominator asserted below.
     for (const literal of [/(^|[^.\d])0\.30([^\d]|$)/, /(^|[^.\d])0\.50([^\d]|$)/, /(^|[^.\d])1\.3([^\d]|$)/]) {
       assert.ok(!literal.test(code), `tax engine must contain no hidden percent literal (matched ${literal})`);
     }

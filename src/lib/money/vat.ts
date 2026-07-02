@@ -232,7 +232,10 @@ export interface VatDisplayView {
  * VAT are the immutable truth). No kronor string is produced here — the ONE öre→kronor formatter
  * (`formatOreAsKronor` in `@/lib/money`) is the sole presentation-boundary that formats, so this
  * transform stays a pure öre-selection with no second formatting seam. An UNKNOWN posture falls
- * back to the conservative incl-VAT (gross) view rather than leaking a partial/undefined amount.
+ * back to the conservative incl-VAT (gross) view rather than leaking a partial/undefined amount,
+ * but the returned `posture` echoes the ORIGINAL input verbatim — the fallback does NOT relabel an
+ * unrecognized posture to `"private"`, so an invalid stored value can never be laundered into a
+ * fabricated `private` label in anything that logs/persists the view.
  */
 export function selectVatDisplay(
   posture: VatDisplayPosture,
@@ -245,8 +248,13 @@ export function selectVatDisplay(
   if (posture === "company_togglable") {
     return { posture, primaryOre: grossOre, togglable: true, netOre, vatOre, grossOre };
   }
-  // `private` (and any unexpected posture) → the conservative always-incl-VAT invariant.
-  return { posture: "private", primaryOre: grossOre, togglable: false, netOre, vatOre, grossOre };
+  // `private` → the conservative always-incl-VAT invariant. Any UNEXPECTED / unrecognized posture
+  // ALSO falls back to the conservative gross (incl-VAT) view so no partial/undefined amount leaks —
+  // but the returned `posture` echoes the ORIGINAL input verbatim (NOT relabelled to `"private"`) so
+  // an invalid stored `default_vat_display` value cannot be silently laundered into a fabricated
+  // `private` label when the view is logged/persisted. The gross fallback stays conservative; only
+  // the label is honest about what was actually requested.
+  return { posture, primaryOre: grossOre, togglable: false, netOre, vatOre, grossOre };
 }
 
 /**
@@ -322,8 +330,10 @@ export type VatAssumptionResult =
  * rule). An invalid/float/out-of-range rate (`2500.5`, `-1`, `10001`, a non-integer bp) returns a
  * typed `INVALID_VAT_RATE_BP` failure rather than freezing an invalid rate into a customer-facing
  * assumption — defense-in-depth so the frozen assumption and the later `lineVatOre` computation
- * can never diverge on the rate. This is the ONLY validation; the builder otherwise computes
- * nothing (R-409: capture STATE, compute nothing).
+ * can never diverge on the rate. It ALSO guards the injected `capturedAt` (a malformed empty /
+ * non-string capture instant is an `INVALID_CAPTURED_AT` typed failure, never frozen verbatim).
+ * These are the ONLY validations; the builder otherwise computes nothing (R-409: capture STATE,
+ * compute nothing).
  *
  * On success it COPIES BY VALUE the exact `vatRateBp` + `defaultVatDisplay` (+ the optional
  * `sourceId` / `sourceUpdatedAt` when a row is passed) into a fresh object and returns
@@ -345,6 +355,11 @@ export function buildVatAssumptionSnapshot(
   // via the ONE canonical bp-validity rule — a typed failure, never a thrown exception.
   if (!isVatRateBp(source.vatRateBp)) {
     return { ok: false, code: "INVALID_VAT_RATE_BP" };
+  }
+  // Guard the injected capture instant too — a malformed (empty / non-string) capturedAt must not be
+  // frozen verbatim into the assumption the later quote-version freeze consumes.
+  if (typeof opts.capturedAt !== "string" || opts.capturedAt.length === 0) {
+    return { ok: false, code: "INVALID_CAPTURED_AT" };
   }
   // Build the base captured payload by value (primitives), then conditionally attach the optional
   // source identity so the frozen shape omits absent optional fields rather than carrying undefined.

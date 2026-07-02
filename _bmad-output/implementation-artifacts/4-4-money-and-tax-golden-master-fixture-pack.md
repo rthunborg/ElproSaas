@@ -139,7 +139,7 @@ Claude Opus 4.8 (claude-opus-4-8[1m]) — bmad-dev-story workflow
 New:
 - `tests/fixtures/golden/money/options-tillval.json` — anonymized options/tillval + hidden-row inclusion fixture (three-way `origin` labels; `_doc` + `policy` + `inclusionCases`).
 - `tests/fixtures/golden/money/accepted-price-deltas.json` — anonymized accepted-price-delta SHAPE fixture (three-way `origin` labels incl. `old-lovable`/`documented-delta`; `_doc` + `policy` + `deltaCases`).
-- `tests/unit/lib/money/golden-pack.test.ts` — the pack-level coverage-manifest + labelling + behavioral (drives the real `@/lib/money` engine) + schema-shape + extended pack-wide privacy-scan test (11 tests).
+- `tests/unit/lib/money/golden-pack.test.ts` — the pack-level coverage-manifest + labelling + behavioral (drives the real `@/lib/money` engine) + schema-shape + extended pack-wide privacy-scan test (11 tests). MODIFIED (epic-4 review fix): made the `ORGNR` privacy-scan pattern a genuinely distinct shape (10-digit no-dash orgnr `\b\d{10}\b`) instead of a byte-identical duplicate of the dashed `PERSONNUMMER` regex, so the "distinct guard (R-411)" comment now delivers real added detection coverage (`[Review][Patch][Low]`).
 - `tests/unit/lib/money/golden-pack-coverage.test.ts` — post-dev `bmad-testarch-automate` live-oracle expansion (5 P0 tests): engine-verified negative oracle for the unselected-option VAT, base+option net decomposition, hidden-row basis + eligibility-warning absence, real-engine reproduction of the documented-delta `newExpectedOre` (69), and the documented-delta old/new/delta internal-consistency invariant. Referenced in `_bmad-output/test-artifacts/automation-summary-4-4.md`.
 
 Modified (process/tracking only — no product code):
@@ -150,6 +150,7 @@ Modified (process/tracking only — no product code):
 
 - 2026-07-02: Story 4.4 implemented — added the money & tax golden-master fixture pack (`options-tillval.json` + `accepted-price-deltas.json`) + the `golden-pack.test.ts` (coverage/labelling/behavioral/schema-shape/extended-privacy guards, 11 tests). No engine/migration/dependency/UI change. Dev-story CI gate green (607/607 unit). Status → review.
 - 2026-07-02: Post-dev `bmad-testarch-automate` phase added `golden-pack-coverage.test.ts` (5 P0 live-oracle tests) expanding engine-driven coverage of the two new fixtures (unselected-option VAT negative oracle, base+option net decomposition, hidden-row basis + eligibility-warning absence, documented-delta engine reproduction + old/new/delta consistency). Still no engine/migration/dependency/UI change. Full CI gate re-run green (612/612 unit).
+- 2026-07-02: Epic-4 integration review-fix pass (epic-4-review-findings.md, `[Review][Patch][Low]`) — replaced the `ORGNR` privacy-scan regex (previously byte-identical to `PERSONNUMMER`) with the genuinely distinct 10-digit no-dash orgnr shape `\b\d{10}\b`, so the explicit distinct-guard assertion delivers real added coverage. Comment/test-only; no engine/fixture/product change. Full unit suite 613 pass / 0 fail.
 
 ### Review Findings
 

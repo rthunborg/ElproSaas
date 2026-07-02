@@ -153,8 +153,8 @@ Claude Opus 4.8 (auto-bmad dev-story delegate).
 
 ### File List
 
-- `src/lib/money/ore.ts` (new — the pure engine + canonical `isOreAmount`/`ORE_AMOUNT_MAX` + formatter)
-- `src/lib/money/index.ts` (new — barrel re-export)
+- `src/lib/money/ore.ts` (new — the pure engine + canonical `isOreAmount`/`ORE_AMOUNT_MAX` + formatter; MODIFIED epic-4 review fix: additively widened `MoneyErrorCode` with the tax-scoped `INVALID_DEDUCTION_RATE_BP` + the snapshot-scoped `INVALID_CAPTURED_AT` discriminants)
+- `src/lib/money/index.ts` (new — barrel re-export; MODIFIED epic-4 review fix: re-export the new `TaxAssumptionResult` type)
 - `src/server/commands/pricing/validation.ts` (modified — re-export `isOreAmount`/`ORE_AMOUNT_MAX` from `@/lib/money`)
 - `src/features/pricing/money-display.ts` (modified — `oreToKronorString` delegates to `formatOreAsKronor`)
 - `tests/support/alias-hook.mjs` (modified — resolve a bare directory alias to its `index.ts`)

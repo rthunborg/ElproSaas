@@ -225,6 +225,17 @@ export interface TaxAssumptionSnapshot {
 }
 
 /**
+ * The result of `buildTaxAssumptionSnapshot`: the frozen assumption on success, or a typed failure
+ * (`INVALID_CAPTURED_AT`) when the injected capture instant is not a valid non-empty string. The OK
+ * arm is the bare frozen `TaxAssumptionSnapshot` (NOT a wrapper — mirrors `VatAssumptionResult`) so a
+ * consumer that reads the captured fields off the returned value keeps working; branch on the
+ * `ok === false` failure arm (a discriminated union carrying `ok: false` + a stable `code`).
+ */
+export type TaxAssumptionResult =
+  | TaxAssumptionSnapshot
+  | { readonly ok: false; readonly code: MoneyErrorCode };
+
+/**
  * The source a `buildTaxAssumptionSnapshot` caller supplies — the deduction profile it used plus
  * the eligible-basis / warnings / persons context. Deliberately carries NO PII (no personnummer /
  * orgnr / name) — only the deduction profile numbers + basis + warnings.
@@ -263,11 +274,21 @@ export interface TaxAssumptionBuildOptions {
  * points; `capOre` / `eligibleBasisOre` stay verbatim öre) and derives NO `isApproved` flag —
  * `requiresSignOff: true` and `approved: false` are the STRUCTURAL default (R-405). This story does
  * NOT persist the snapshot to any table (Epic 6 owns quote-version freeze).
+ *
+ * GUARDS the injected `capturedAt` FIRST — an empty string / non-string is rejected with a typed
+ * `INVALID_CAPTURED_AT` failure rather than frozen verbatim into the assumption. The capture instant
+ * anchors a frozen assumption the Epic 6 quote-version freeze consumes, so a malformed capture
+ * instant must not silently pass while every other input in the engine is type-guarded.
  */
 export function buildTaxAssumptionSnapshot(
   source: TaxAssumptionSource,
   opts: TaxAssumptionBuildOptions,
-): TaxAssumptionSnapshot {
+): TaxAssumptionResult {
+  // Guard the injected capture instant FIRST — a malformed (empty / non-string) capturedAt must not
+  // be frozen verbatim into the assumption the later quote-version freeze consumes.
+  if (typeof opts.capturedAt !== "string" || opts.capturedAt.length === 0) {
+    return { ok: false, code: "INVALID_CAPTURED_AT" };
+  }
   // Copy the warnings BY VALUE into a fresh frozen array so a later mutation of the source array
   // cannot reach the captured assumption.
   const warnings: readonly DeductionWarning[] = Object.freeze(
@@ -413,9 +434,12 @@ export function estimateDeduction(input: DeductionInput): DeductionResult {
   const eligibleBasisOre = basis.value;
 
   // The rate flows in as BASIS POINTS from the profile — defense-in-depth via the ONE reused
-  // bp-validity rule so a malformed profile rate can never drive the computation.
+  // bp-validity rule so a malformed profile rate can never drive the computation. The PREDICATE is
+  // shared (a deduction % in bp is the same 0..10000 integer-bp discipline), but a malformed *tax*
+  // profile rate surfaces as the tax-scoped `INVALID_DEDUCTION_RATE_BP` — never the VAT-named code —
+  // so the error surface is self-describing across the story boundary.
   if (!isVatRateBp(profile.deductionPercentBp)) {
-    return { ok: false, code: "INVALID_VAT_RATE_BP" };
+    return { ok: false, code: "INVALID_DEDUCTION_RATE_BP" };
   }
 
   // Apply the rate on the eligible basis via the SINGLE Story 4.1 half-away-from-zero mode.
@@ -472,6 +496,13 @@ export function estimateDeduction(input: DeductionInput): DeductionResult {
     },
     { capturedAt: input.capturedAt },
   );
+  // Propagate a malformed-capturedAt typed failure rather than embedding a failed snapshot into the
+  // estimate — an invalid capture instant blocks the estimate at the same boundary as every other
+  // guarded input. The failure arm is the only one carrying an `ok` property, so `"ok" in …` narrows
+  // `assumptionSnapshot` to the bare frozen `TaxAssumptionSnapshot` below.
+  if ("ok" in assumptionSnapshot) {
+    return { ok: false, code: assumptionSnapshot.code };
+  }
 
   return {
     ok: true,
