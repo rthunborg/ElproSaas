@@ -5,10 +5,10 @@ epic_num: 4
 story_num: null
 branch: epic/4-money-tax-snapshot-primitives-and-golden-fixtures
 status: in-progress
-updated_at: "2026-07-02T12:23:41Z"
+updated_at: "2026-07-02T12:27:54Z"
 started_at: "2026-07-02T11:42:30Z"
 completed_at: null
-active_seconds: 2347
+active_seconds: 2539
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -51,8 +51,24 @@ deferred_work: []
 blockers: []
 overrides: {}
 constraints: []
-active_story: 4-1-integer-ore-money-and-rounding-primitives
-stories_landed: []
+active_story: 4-2-vat-and-quote-total-calculation-primitives
+stories_landed:
+  - 4-1-integer-ore-money-and-rounding-primitives
 auto_decisions: []
-uat_items: []
+uat_items:
+  - "[4-1-integer-ore-money-and-rounding-primitives] Run the full money unit + golden suite: node --experimental-strip-types --import ./tests/support/register.mjs --test \"tests/unit/lib/money/**/*.test.ts\" -> all pass, 0 fail, 0 skipped"
+  - "[4-1-integer-ore-money-and-rounding-primitives] Run pnpm run test:unit -> green (money units alongside pre-existing pricing-validation and money-display suites; isOreAmount move + formatter delegation kept old suites green)"
+  - "[4-1-integer-ore-money-and-rounding-primitives] Node one-liner import('@/lib/money'): lineNetOre(3,79000) -> {ok:true,value:237000} (3 x 790,00 kr = 2 370,00 kr exact ore)"
+  - "[4-1-integer-ore-money-and-rounding-primitives] lineNetOre(0.5,45) -> {ok:true,value:23} (22.5 ore rounds UP, half-away-from-zero; banker's would give 22)"
+  - "[4-1-integer-ore-money-and-rounding-primitives] sumOre([23,23,23]) -> {ok:true,value:69} (sum-of-rounded, not round-of-sum 68)"
+  - "[4-1-integer-ore-money-and-rounding-primitives] lineNetOre(0.333,100000) -> {ok:true,value:33300} (fractional quantity, no float residue)"
+  - "[4-1-integer-ore-money-and-rounding-primitives] lineNetOre(1,850.5) -> {ok:false,code:INVALID_ORE_AMOUNT} (float ore rejected, stable code, no NaN)"
+  - "[4-1-integer-ore-money-and-rounding-primitives] lineNetOre(-1,100) -> {ok:false,code:INVALID_QUANTITY}"
+  - "[4-1-integer-ore-money-and-rounding-primitives] lineNetOre(1,'850,00') / '850.00' / NaN / Infinity / null -> all {ok:false,code:INVALID_ORE_AMOUNT}"
+  - "[4-1-integer-ore-money-and-rounding-primitives] lineNetOre(2, Number.MAX_SAFE_INTEGER) -> {ok:false,code:ORE_OVERFLOW}"
+  - "[4-1-integer-ore-money-and-rounding-primitives] lineNetOre(0,5000) and lineNetOre(2,0) -> {ok:true,value:0} (zero is valid)"
+  - "[4-1-integer-ore-money-and-rounding-primitives] formatOreAsKronor(85000) -> '850,00'; (1) -> '0,01'; (0) -> '0,00' (Swedish comma, two decimals)"
+  - "[4-1-integer-ore-money-and-rounding-primitives] formatOreAsKronor(NaN) -> '' and (Infinity) -> '' (never leaks NaN)"
+  - "[4-1-integer-ore-money-and-rounding-primitives] Open tests/fixtures/golden/money/rounding-mode.json -> lineNetCases show expectedLineNetOre vs bankersWouldGive; sumOfRoundedCase 69 vs 68"
+  - "[4-1-integer-ore-money-and-rounding-primitives] formatOreAsKronor(1250) === oreToKronorString(1250) -> true (single formatter authority, byte-identical)"
 epic_slug: money-tax-snapshot-primitives-and-golden-fixtures
