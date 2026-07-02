@@ -8,3 +8,6 @@
 - [Phase 4 — atdd] Generic ATDD workers (API HTTP + E2E browser) don't fit pure-library stories; adapted to inline node --test UNIT+GOLDEN — other epic-4 primitive stories routed through ATDD need the same adaptation.
 - [Phase 5 — dev-story] Test alias-hook couldn't resolve bare directory imports (@/lib/money); fixed to resolve a directory to its index.ts barrel — future src/lib/<dir> barrel imports via @/* in node --test now work.
 - [Phase 5 — dev-story] isOreAmount/ORE_AMOUNT_MAX now canonical in @/lib/money, re-exported from server pricing validation; oreToKronorString delegates to formatOreAsKronor — one money authority, no signature changes.
+
+## Story 4-2-vat-and-quote-total-calculation-primitives
+- [Phase 3 — create-story] isVatRateBp in settings validator is module-private though its VAT_RATE_BP_MIN/MAX bounds are exported — story spells out export/move/reconstruct options so dev keeps ONE bp-validity rule.
