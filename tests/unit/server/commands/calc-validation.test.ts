@@ -32,12 +32,15 @@
  */
 import { test } from "node:test";
 import assert from "node:assert/strict";
-
-const SKIP = { skip: "Story 5.1 RED PHASE — calc validators not implemented yet" } as const;
+import {
+  ROW_TYPES as REAL_ROW_TYPES,
+  validateCreateRow as realValidateCreateRow,
+  validateUpdateCalculation as realValidateUpdateCalculation,
+} from "@/server/commands/calculations/validation";
 
 /**
- * The validator surface this scaffold asserts against. The dev phase (Task 3.2) supplies
- * the real implementations from `@/server/commands/calculations/validation`.
+ * The validator surface this suite asserts against. GREEN as of Story 5.1 dev (Task 3.2)
+ * — the real implementations live in `@/server/commands/calculations/validation`.
  */
 type ValidationResult = { ok: boolean; code?: string; data?: unknown };
 interface CalcValidators {
@@ -46,17 +49,13 @@ interface CalcValidators {
   validateUpdateCalculation(input: unknown): ValidationResult;
 }
 
-/**
- * RED-PHASE placeholder for the not-yet-built calc validators. It is TYPED as the real
- * surface (so destructured `validateCreateRow(...)`/`ROW_TYPES` type-check today) but
- * THROWS at call time — a mistakenly un-skipped run fails LOUD, never green-by-accident.
- * The dev phase DELETES this and imports the real handles (see file header).
- */
+/** Bind the real calc validators (the RED-phase `notYetImplemented()` placeholder). */
 function notYetImplemented(): CalcValidators {
-  throw new Error(
-    "Story 5.1 RED PHASE: calc validators not implemented yet. " +
-      "Replace with @/server/commands/calculations/validation in the dev phase.",
-  );
+  return {
+    ROW_TYPES: REAL_ROW_TYPES,
+    validateCreateRow: realValidateCreateRow,
+    validateUpdateCalculation: realValidateUpdateCalculation,
+  };
 }
 
 /** Assert a result is the VALIDATION_FAILED shape (and NEVER echoes the raw value). */
@@ -93,7 +92,7 @@ function baseRow(overrides: Record<string, unknown> = {}): Record<string, unknow
 // row_type closed union (5.1-UNIT-01)
 // ─────────────────────────────────────────────────────────────────────────────
 
-test("ROW_TYPES is exactly the five approved values", SKIP, () => {
+test("ROW_TYPES is exactly the five approved values", () => {
   const { ROW_TYPES } = notYetImplemented();
   assert.deepEqual(
     [...ROW_TYPES].sort(),
@@ -101,14 +100,14 @@ test("ROW_TYPES is exactly the five approved values", SKIP, () => {
   );
 });
 
-test("validateCreateRow accepts every approved row_type", SKIP, () => {
+test("validateCreateRow accepts every approved row_type", () => {
   const { validateCreateRow } = notYetImplemented();
   for (const t of ["labor", "material", "subcontractor", "machinery", "other"]) {
     assertAccepted(validateCreateRow(baseRow({ row_type: t })), `row_type ${t}`);
   }
 });
 
-test("validateCreateRow rejects a row_type outside the closed union", SKIP, () => {
+test("validateCreateRow rejects a row_type outside the closed union", () => {
   const { validateCreateRow } = notYetImplemented();
   assertRejected(validateCreateRow(baseRow({ row_type: "consulting" })), "bad row_type");
   assertRejected(validateCreateRow(baseRow({ row_type: 42 })), "non-string row_type");
@@ -118,18 +117,18 @@ test("validateCreateRow rejects a row_type outside the closed union", SKIP, () =
 // quantity > 0 + unit required (5.1-UNIT-01)
 // ─────────────────────────────────────────────────────────────────────────────
 
-test("validateCreateRow accepts a fractional positive quantity", SKIP, () => {
+test("validateCreateRow accepts a fractional positive quantity", () => {
   const { validateCreateRow } = notYetImplemented();
   assertAccepted(validateCreateRow(baseRow({ quantity: 0.333 })), "fractional qty");
 });
 
-test("validateCreateRow rejects a non-positive quantity", SKIP, () => {
+test("validateCreateRow rejects a non-positive quantity", () => {
   const { validateCreateRow } = notYetImplemented();
   assertRejected(validateCreateRow(baseRow({ quantity: 0 })), "qty 0");
   assertRejected(validateCreateRow(baseRow({ quantity: -1 })), "qty -1");
 });
 
-test("validateCreateRow rejects an empty or whitespace unit", SKIP, () => {
+test("validateCreateRow rejects an empty or whitespace unit", () => {
   const { validateCreateRow } = notYetImplemented();
   assertRejected(validateCreateRow(baseRow({ unit: "" })), "empty unit");
   assertRejected(validateCreateRow(baseRow({ unit: "   " })), "whitespace unit");
@@ -139,7 +138,7 @@ test("validateCreateRow rejects an empty or whitespace unit", SKIP, () => {
 // öre money via the CANONICAL isOreAmount/ORE_AMOUNT_MAX (5.1-UNIT-02)
 // ─────────────────────────────────────────────────────────────────────────────
 
-test("validateCreateRow accepts an integer-öre money value at 0 and up to ORE_AMOUNT_MAX", SKIP, () => {
+test("validateCreateRow accepts an integer-öre money value at 0 and up to ORE_AMOUNT_MAX", () => {
   const { validateCreateRow } = notYetImplemented();
   assertAccepted(validateCreateRow(baseRow({ unit_sell_ore: 0 })), "zero öre");
   assertAccepted(
@@ -148,17 +147,17 @@ test("validateCreateRow accepts an integer-öre money value at 0 and up to ORE_A
   );
 });
 
-test("validateCreateRow rejects a float öre (öre are whole integers)", SKIP, () => {
+test("validateCreateRow rejects a float öre (öre are whole integers)", () => {
   const { validateCreateRow } = notYetImplemented();
   assertRejected(validateCreateRow(baseRow({ unit_sell_ore: 100.5 })), "float öre");
 });
 
-test("validateCreateRow rejects a negative öre (no discount/negative money in Phase A)", SKIP, () => {
+test("validateCreateRow rejects a negative öre (no discount/negative money in Phase A)", () => {
   const { validateCreateRow } = notYetImplemented();
   assertRejected(validateCreateRow(baseRow({ unit_sell_ore: -1 })), "negative öre");
 });
 
-test("validateCreateRow rejects an overflow öre (> ORE_AMOUNT_MAX)", SKIP, () => {
+test("validateCreateRow rejects an overflow öre (> ORE_AMOUNT_MAX)", () => {
   const { validateCreateRow } = notYetImplemented();
   assertRejected(
     validateCreateRow(baseRow({ unit_sell_ore: Number.MAX_SAFE_INTEGER + 1 })),
@@ -166,7 +165,7 @@ test("validateCreateRow rejects an overflow öre (> ORE_AMOUNT_MAX)", SKIP, () =
   );
 });
 
-test("validateCreateRow rejects a locale-comma / decimal-string öre (comma-decimal trap)", SKIP, () => {
+test("validateCreateRow rejects a locale-comma / decimal-string öre (comma-decimal trap)", () => {
   const { validateCreateRow } = notYetImplemented();
   assertRejected(validateCreateRow(baseRow({ unit_sell_ore: "850,00" })), "comma-string öre");
   assertRejected(validateCreateRow(baseRow({ unit_sell_ore: "85000" })), "numeric-string öre");
@@ -176,12 +175,12 @@ test("validateCreateRow rejects a locale-comma / decimal-string öre (comma-deci
 // VAT assumption present + basis-points-shaped (5.1-UNIT-01)
 // ─────────────────────────────────────────────────────────────────────────────
 
-test("validateCreateRow accepts a well-formed integer basis-points VAT (e.g. 2500)", SKIP, () => {
+test("validateCreateRow accepts a well-formed integer basis-points VAT (e.g. 2500)", () => {
   const { validateCreateRow } = notYetImplemented();
   assertAccepted(validateCreateRow(baseRow({ vat_rate_bp: 2500 })), "vat 2500 bp");
 });
 
-test("validateCreateRow rejects a missing or non-integer VAT assumption", SKIP, () => {
+test("validateCreateRow rejects a missing or non-integer VAT assumption", () => {
   const { validateCreateRow } = notYetImplemented();
   assertRejected(validateCreateRow(baseRow({ vat_rate_bp: undefined })), "missing vat");
   assertRejected(validateCreateRow(baseRow({ vat_rate_bp: 25.5 })), "float vat");
@@ -192,7 +191,7 @@ test("validateCreateRow rejects a missing or non-integer VAT assumption", SKIP, 
 // lifecycle state machine — only legal status transitions (5.1-UNIT-01)
 // ─────────────────────────────────────────────────────────────────────────────
 
-test("validateUpdateCalculation accepts a legal lifecycle transition (draft → ready)", SKIP, () => {
+test("validateUpdateCalculation accepts a legal lifecycle transition (draft → ready)", () => {
   const { validateUpdateCalculation } = notYetImplemented();
   assertAccepted(
     validateUpdateCalculation({ id: SECTION_ID, status: "ready", currentStatus: "draft" }),
@@ -200,7 +199,7 @@ test("validateUpdateCalculation accepts a legal lifecycle transition (draft → 
   );
 });
 
-test("validateUpdateCalculation rejects an illegal lifecycle transition / unknown status", SKIP, () => {
+test("validateUpdateCalculation rejects an illegal lifecycle transition / unknown status", () => {
   const { validateUpdateCalculation } = notYetImplemented();
   assertRejected(
     validateUpdateCalculation({ id: SECTION_ID, status: "not_a_status" }),
@@ -216,7 +215,7 @@ test("validateUpdateCalculation rejects an illegal lifecycle transition / unknow
 // raw invalid value never echoed (R-506 discipline)
 // ─────────────────────────────────────────────────────────────────────────────
 
-test("a rejection NEVER carries the raw invalid value back (assertRejected enforces no data)", SKIP, () => {
+test("a rejection NEVER carries the raw invalid value back (assertRejected enforces no data)", () => {
   const { validateCreateRow } = notYetImplemented();
   // assertRejected already asserts `"data" in r === false`; this test documents that the
   // öre reject path in particular does not echo the offending value.

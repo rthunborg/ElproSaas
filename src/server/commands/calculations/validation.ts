@@ -1,0 +1,511 @@
+/**
+ * PURE calculation input validators (Story 5.1, Task 3.2; architecture §5 step 4).
+ *
+ * Each command's `validateInput` returns a `ValidationResult<I>` — the validated,
+ * narrowed value or `VALIDATION_FAILED`. The raw invalid value is NEVER echoed (the
+ * envelope maps the failure to a generic user-safe message). These are pure functions
+ * (no I/O) so the row-type / quantity / unit / öre / VAT / lifecycle rules are
+ * exhaustively unit-testable WITHOUT a database, mirroring `crm/validation.ts`.
+ *
+ * MONEY DISCIPLINE (architecture §10; test-design R-505/R-506): EVERY öre money field
+ * is re-validated via the CANONICAL `isOreAmount` / `ORE_AMOUNT_MAX` from `@/lib/money`
+ * (imported — NEVER a forked öre rule). VAT/markup rates are BASIS POINTS validated via
+ * the CANONICAL `isVatRateBp` (a rate expressed as bp is the same 0..10000 integer-bp
+ * discipline — no fork). Quantities are finite non-negative decimals via `isQuantity`,
+ * with an ADDITIONAL `> 0` gate (a calc row must have a positive quantity). This story
+ * STORES the row inputs; it does NOT compute any customer-visible total/VAT/deduction —
+ * those route through the frozen `@/lib/money` engine in Story 5.2/5.4.
+ *
+ * Client-supplied `tenant_id` is NEVER read here — the resolved tenant from membership
+ * is the only authority (the validators strip/ignore any `tenant_id`).
+ */
+import { isOreAmount, isQuantity, isVatRateBp } from "@/lib/money";
+import type { ValidationResult } from "../envelope-core";
+
+/**
+ * The closed row-type union (architecture §7). A row_type outside this set is
+ * rejected at the command layer (belt-and-braces with the DB CHECK). The single
+ * source of truth for the union; the DB CHECK enumerates the same five values.
+ */
+export const ROW_TYPES = [
+  "labor",
+  "material",
+  "subcontractor",
+  "machinery",
+  "other",
+] as const;
+export type RowType = (typeof ROW_TYPES)[number];
+
+/**
+ * The closed calculation lifecycle status set (Open Question 1 conservative default).
+ * The DB CHECK enumerates the same three values; the STATE MACHINE (legal transitions)
+ * is enforced here.
+ */
+export const CALC_STATUSES = ["draft", "ready", "archived"] as const;
+export type CalcStatus = (typeof CALC_STATUSES)[number];
+
+/**
+ * The legal lifecycle transitions (Open Question 1 conservative default): forward-only
+ * draft → ready, with `archived` reachable from any active state. A same-state no-op is
+ * allowed. An UNKNOWN target status, or a transition not in this map, is rejected.
+ * `archived → draft`/`ready` (reviving an archived calc) is NOT legal here.
+ */
+const LEGAL_TRANSITIONS: Readonly<Record<CalcStatus, readonly CalcStatus[]>> = {
+  draft: ["draft", "ready", "archived"],
+  ready: ["ready", "draft", "archived"],
+  archived: ["archived"],
+};
+
+/** The section display-mode set (Open Question 2 conservative default). */
+export const SECTION_DISPLAY_MODES = ["detailed", "summary", "text_only"] as const;
+export type SectionDisplayMode = (typeof SECTION_DISPLAY_MODES)[number];
+
+/** Max length for a short free-text calc field (defensive bound). */
+const MAX_TEXT = 256;
+/** Max length for the longer note/description fields. */
+const MAX_LONG_TEXT = 2000;
+
+const fail = { ok: false as const, code: "VALIDATION_FAILED" as const };
+
+function isRecord(raw: unknown): raw is Record<string, unknown> {
+  return raw !== null && typeof raw === "object";
+}
+
+/** A UUID-shape guard so an `id` the DB would reject (`22P02`) fails as VALIDATION. */
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+function isUuidLike(v: unknown): v is string {
+  return typeof v === "string" && v.length <= 36 && UUID_RE.test(v);
+}
+
+/** True iff `v` is a non-empty (trimmed), bounded, single-value string. */
+function isNonEmptyText(v: unknown, max = MAX_TEXT): v is string {
+  return typeof v === "string" && v.trim().length > 0 && v.length <= max;
+}
+
+/** True iff `v` is a present (non-undefined, non-null, non-empty-string) value. */
+function isPresent(v: unknown): boolean {
+  return v !== undefined && v !== null && !(typeof v === "string" && v === "");
+}
+
+/** Validate an OPTIONAL bounded text field. Returns false only if present-but-bad. */
+function optionalTextOk(v: unknown, max = MAX_TEXT): boolean {
+  if (!isPresent(v)) return true;
+  return typeof v === "string" && v.length > 0 && v.length <= max;
+}
+
+/** Read a record's key as a trimmed string, or undefined when absent/empty. */
+function str(rec: Record<string, unknown>, key: string): string | undefined {
+  const v = rec[key];
+  return typeof v === "string" && v.length > 0 ? v : undefined;
+}
+
+/**
+ * Validate an OPTIONAL öre money field via the CANONICAL `isOreAmount`. Returns false
+ * ONLY when the field is present but not a valid non-negative safe-integer öre
+ * (float / negative / overflow / locale-comma / decimal-string all rejected — no fork).
+ */
+function optionalOreOk(v: unknown): boolean {
+  if (v === undefined || v === null) return true;
+  return isOreAmount(v);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Calculation (header) commands
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Validated `createCalculation` input (tenant_id is NEVER part of it — derived). */
+export interface CreateCalculationInput {
+  readonly customer_id: string;
+  readonly facility_id?: string;
+  readonly contact_id?: string;
+  readonly title: string;
+}
+
+/**
+ * Validated `updateCalculation` input — `id` + the mutable fields. `status`, when
+ * supplied, must be a legal transition from `currentStatus` (the state machine).
+ * `currentStatus` is the caller-known current status; the DB CHECK + own-tenant RLS are
+ * the backstop for the actual row state.
+ */
+export interface UpdateCalculationInput {
+  readonly id: string;
+  readonly title?: string;
+  readonly status?: CalcStatus;
+}
+
+/** Validated `{ id }` input shared by the archive commands. */
+export interface ArchiveCalcInput {
+  readonly id: string;
+}
+
+export function validateCreateCalculation(
+  raw: unknown,
+): ValidationResult<CreateCalculationInput> {
+  if (!isRecord(raw)) return fail;
+  if (!isUuidLike(raw.customer_id)) return fail;
+  if (isPresent(raw.facility_id) && !isUuidLike(raw.facility_id)) return fail;
+  if (isPresent(raw.contact_id) && !isUuidLike(raw.contact_id)) return fail;
+  if (!isNonEmptyText(raw.title)) return fail;
+  return {
+    ok: true,
+    data: {
+      customer_id: raw.customer_id as string,
+      facility_id: isUuidLike(raw.facility_id)
+        ? (raw.facility_id as string)
+        : undefined,
+      contact_id: isUuidLike(raw.contact_id)
+        ? (raw.contact_id as string)
+        : undefined,
+      title: (raw.title as string).trim(),
+    },
+  };
+}
+
+export function validateUpdateCalculation(
+  raw: unknown,
+): ValidationResult<UpdateCalculationInput> {
+  if (!isRecord(raw)) return fail;
+  if (!isUuidLike(raw.id)) return fail;
+
+  // title, when supplied, must be non-empty bounded text.
+  if (isPresent(raw.title) && !isNonEmptyText(raw.title)) return fail;
+
+  // status, when supplied, must be a known status AND a legal transition from the
+  // caller-supplied currentStatus (the lifecycle STATE MACHINE). When no status is
+  // supplied this is a title-only edit (no transition to check).
+  let status: CalcStatus | undefined;
+  if (isPresent(raw.status)) {
+    if (
+      typeof raw.status !== "string" ||
+      !(CALC_STATUSES as readonly string[]).includes(raw.status)
+    ) {
+      return fail;
+    }
+    const target = raw.status as CalcStatus;
+    // currentStatus is optional context; when present it MUST be a known status and
+    // the transition target → status must be legal. When absent, a default of `draft`
+    // is assumed (a freshly-created calc), so a revive-from-archived without context
+    // still fails when target is not reachable from draft.
+    const currentRaw = raw.currentStatus;
+    let current: CalcStatus = "draft";
+    if (isPresent(currentRaw)) {
+      if (
+        typeof currentRaw !== "string" ||
+        !(CALC_STATUSES as readonly string[]).includes(currentRaw)
+      ) {
+        return fail;
+      }
+      current = currentRaw as CalcStatus;
+    }
+    if (!LEGAL_TRANSITIONS[current].includes(target)) return fail;
+    status = target;
+  }
+
+  return {
+    ok: true,
+    data: {
+      id: raw.id as string,
+      title: isPresent(raw.title) ? (raw.title as string).trim() : undefined,
+      status,
+    },
+  };
+}
+
+export function validateArchiveCalc(
+  raw: unknown,
+): ValidationResult<ArchiveCalcInput> {
+  if (!isRecord(raw)) return fail;
+  if (!isUuidLike(raw.id)) return fail;
+  return { ok: true, data: { id: raw.id as string } };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Section commands
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface CreateSectionInput {
+  readonly calculation_id: string;
+  readonly title?: string;
+  readonly display_mode?: SectionDisplayMode;
+}
+
+export interface UpdateSectionInput {
+  readonly id: string;
+  readonly title?: string;
+  readonly display_mode?: SectionDisplayMode;
+}
+
+function isDisplayMode(v: unknown): v is SectionDisplayMode {
+  return (
+    typeof v === "string" &&
+    (SECTION_DISPLAY_MODES as readonly string[]).includes(v)
+  );
+}
+
+export function validateCreateSection(
+  raw: unknown,
+): ValidationResult<CreateSectionInput> {
+  if (!isRecord(raw)) return fail;
+  if (!isUuidLike(raw.calculation_id)) return fail;
+  // title is OPTIONAL for a section (a section may be untitled). When present it must
+  // be bounded non-empty text.
+  if (isPresent(raw.title) && !isNonEmptyText(raw.title)) return fail;
+  if (isPresent(raw.display_mode) && !isDisplayMode(raw.display_mode)) return fail;
+  return {
+    ok: true,
+    data: {
+      calculation_id: raw.calculation_id as string,
+      title: isPresent(raw.title) ? (raw.title as string).trim() : undefined,
+      display_mode: isDisplayMode(raw.display_mode)
+        ? raw.display_mode
+        : undefined,
+    },
+  };
+}
+
+export function validateUpdateSection(
+  raw: unknown,
+): ValidationResult<UpdateSectionInput> {
+  if (!isRecord(raw)) return fail;
+  if (!isUuidLike(raw.id)) return fail;
+  if (isPresent(raw.title) && !isNonEmptyText(raw.title)) return fail;
+  if (isPresent(raw.display_mode) && !isDisplayMode(raw.display_mode)) return fail;
+  return {
+    ok: true,
+    data: {
+      id: raw.id as string,
+      title: isPresent(raw.title) ? (raw.title as string).trim() : undefined,
+      display_mode: isDisplayMode(raw.display_mode)
+        ? raw.display_mode
+        : undefined,
+    },
+  };
+}
+
+export function validateArchiveSection(
+  raw: unknown,
+): ValidationResult<ArchiveCalcInput> {
+  return validateArchiveCalc(raw);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Row commands
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface CreateRowInput {
+  readonly section_id: string;
+  readonly row_type: RowType;
+  readonly quantity: number;
+  readonly unit: string;
+  readonly unit_cost_ore?: number;
+  readonly unit_sell_ore?: number;
+  readonly markup_bp?: number;
+  readonly vat_rate_bp: number;
+  readonly is_hidden?: boolean;
+  readonly is_optional?: boolean;
+  readonly is_selected?: boolean;
+  readonly label?: string;
+  readonly description?: string;
+  readonly internal_note?: string;
+  readonly quote_note?: string;
+}
+
+export interface UpdateRowInput {
+  readonly id: string;
+  readonly row_type?: RowType;
+  readonly quantity?: number;
+  readonly unit?: string;
+  readonly unit_cost_ore?: number;
+  readonly unit_sell_ore?: number;
+  readonly markup_bp?: number;
+  readonly vat_rate_bp?: number;
+  readonly is_hidden?: boolean;
+  readonly is_optional?: boolean;
+  readonly is_selected?: boolean;
+  readonly label?: string;
+  readonly description?: string;
+  readonly internal_note?: string;
+  readonly quote_note?: string;
+}
+
+function isRowType(v: unknown): v is RowType {
+  return typeof v === "string" && (ROW_TYPES as readonly string[]).includes(v);
+}
+
+/** A positive finite decimal quantity (a calc row must have a positive quantity). */
+function isPositiveQuantity(v: unknown): v is number {
+  return isQuantity(v) && v > 0;
+}
+
+function optionalBoolOk(v: unknown): boolean {
+  if (v === undefined || v === null) return true;
+  return typeof v === "boolean";
+}
+
+/**
+ * Validate the SHARED row money/flag fields (used by both create and update). Returns
+ * `null` when all present fields are valid, or the `fail` result on the first bad field.
+ * `vatRequired` toggles whether `vat_rate_bp` MUST be present (create) or is optional
+ * (update patch).
+ */
+function validateRowCommonFields(
+  raw: Record<string, unknown>,
+  vatRequired: boolean,
+): typeof fail | null {
+  // Every öre money field re-validated via the CANONICAL isOreAmount (no fork).
+  if (!optionalOreOk(raw.unit_cost_ore)) return fail;
+  if (!optionalOreOk(raw.unit_sell_ore)) return fail;
+  // markup, when present, is integer basis points (reuse the canonical bp-validity).
+  if (isPresent(raw.markup_bp) && !isVatRateBp(raw.markup_bp)) return fail;
+  // VAT assumption: required + integer basis-points-shaped on create; optional on
+  // update but still bp-shaped when present.
+  if (vatRequired) {
+    if (!isVatRateBp(raw.vat_rate_bp)) return fail;
+  } else if (isPresent(raw.vat_rate_bp) && !isVatRateBp(raw.vat_rate_bp)) {
+    return fail;
+  }
+  if (!optionalBoolOk(raw.is_hidden)) return fail;
+  if (!optionalBoolOk(raw.is_optional)) return fail;
+  if (!optionalBoolOk(raw.is_selected)) return fail;
+  if (!optionalTextOk(raw.label)) return fail;
+  if (!optionalTextOk(raw.description, MAX_LONG_TEXT)) return fail;
+  if (!optionalTextOk(raw.internal_note, MAX_LONG_TEXT)) return fail;
+  if (!optionalTextOk(raw.quote_note, MAX_LONG_TEXT)) return fail;
+  return null;
+}
+
+/** Number-or-undefined reader for a validated optional numeric field. */
+function num(rec: Record<string, unknown>, key: string): number | undefined {
+  const v = rec[key];
+  return typeof v === "number" ? v : undefined;
+}
+
+function bool(rec: Record<string, unknown>, key: string): boolean | undefined {
+  const v = rec[key];
+  return typeof v === "boolean" ? v : undefined;
+}
+
+export function validateCreateRow(
+  raw: unknown,
+): ValidationResult<CreateRowInput> {
+  if (!isRecord(raw)) return fail;
+  if (!isUuidLike(raw.section_id)) return fail;
+  if (!isRowType(raw.row_type)) return fail;
+  if (!isPositiveQuantity(raw.quantity)) return fail;
+  if (!isNonEmptyText(raw.unit)) return fail;
+  const common = validateRowCommonFields(raw, /* vatRequired */ true);
+  if (common) return common;
+
+  return {
+    ok: true,
+    data: {
+      section_id: raw.section_id as string,
+      row_type: raw.row_type,
+      quantity: raw.quantity as number,
+      unit: (raw.unit as string).trim(),
+      unit_cost_ore: num(raw, "unit_cost_ore"),
+      unit_sell_ore: num(raw, "unit_sell_ore"),
+      markup_bp: num(raw, "markup_bp"),
+      vat_rate_bp: raw.vat_rate_bp as number,
+      is_hidden: bool(raw, "is_hidden"),
+      is_optional: bool(raw, "is_optional"),
+      is_selected: bool(raw, "is_selected"),
+      label: str(raw, "label"),
+      description: str(raw, "description"),
+      internal_note: str(raw, "internal_note"),
+      quote_note: str(raw, "quote_note"),
+    },
+  };
+}
+
+export function validateUpdateRow(raw: unknown): ValidationResult<UpdateRowInput> {
+  if (!isRecord(raw)) return fail;
+  if (!isUuidLike(raw.id)) return fail;
+  if (isPresent(raw.row_type) && !isRowType(raw.row_type)) return fail;
+  if (isPresent(raw.quantity) && !isPositiveQuantity(raw.quantity)) return fail;
+  if (isPresent(raw.unit) && !isNonEmptyText(raw.unit)) return fail;
+  const common = validateRowCommonFields(raw, /* vatRequired */ false);
+  if (common) return common;
+
+  return {
+    ok: true,
+    data: {
+      id: raw.id as string,
+      row_type: isRowType(raw.row_type) ? raw.row_type : undefined,
+      quantity: isPositiveQuantity(raw.quantity) ? raw.quantity : undefined,
+      unit: isPresent(raw.unit) ? (raw.unit as string).trim() : undefined,
+      unit_cost_ore: num(raw, "unit_cost_ore"),
+      unit_sell_ore: num(raw, "unit_sell_ore"),
+      markup_bp: num(raw, "markup_bp"),
+      vat_rate_bp: num(raw, "vat_rate_bp"),
+      is_hidden: bool(raw, "is_hidden"),
+      is_optional: bool(raw, "is_optional"),
+      is_selected: bool(raw, "is_selected"),
+      label: str(raw, "label"),
+      description: str(raw, "description"),
+      internal_note: str(raw, "internal_note"),
+      quote_note: str(raw, "quote_note"),
+    },
+  };
+}
+
+export function validateArchiveRow(
+  raw: unknown,
+): ValidationResult<ArchiveCalcInput> {
+  return validateArchiveCalc(raw);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Atomic reorder commands (ADR-A009 narrow RPC)
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface ReorderRowsInput {
+  readonly section_id: string;
+  readonly ordered_row_ids: readonly string[];
+}
+
+export interface ReorderSectionsInput {
+  readonly calculation_id: string;
+  readonly ordered_section_ids: readonly string[];
+}
+
+/** Validate a non-empty array of UUID-shaped ids (bounded). */
+function isUuidArray(v: unknown): v is string[] {
+  return (
+    Array.isArray(v) &&
+    v.length > 0 &&
+    v.length <= 1000 &&
+    v.every((x) => isUuidLike(x))
+  );
+}
+
+export function validateReorderRows(
+  raw: unknown,
+): ValidationResult<ReorderRowsInput> {
+  if (!isRecord(raw)) return fail;
+  if (!isUuidLike(raw.section_id)) return fail;
+  if (!isUuidArray(raw.ordered_row_ids)) return fail;
+  return {
+    ok: true,
+    data: {
+      section_id: raw.section_id as string,
+      ordered_row_ids: [...(raw.ordered_row_ids as string[])],
+    },
+  };
+}
+
+export function validateReorderSections(
+  raw: unknown,
+): ValidationResult<ReorderSectionsInput> {
+  if (!isRecord(raw)) return fail;
+  if (!isUuidLike(raw.calculation_id)) return fail;
+  if (!isUuidArray(raw.ordered_section_ids)) return fail;
+  return {
+    ok: true,
+    data: {
+      calculation_id: raw.calculation_id as string,
+      ordered_section_ids: [...(raw.ordered_section_ids as string[])],
+    },
+  };
+}

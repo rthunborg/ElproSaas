@@ -5,10 +5,10 @@ epic_num: 5
 story_num: null
 branch: epic/5-calculation-workspace-and-quote-readiness
 status: in-progress
-updated_at: "2026-07-02T18:25:20Z"
+updated_at: "2026-07-03T06:10:15Z"
 started_at: "2026-07-02T18:13:57Z"
 completed_at: null
-active_seconds: 645
+active_seconds: 3328
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -52,7 +52,7 @@ blockers: []
 overrides: {}
 constraints: []
 epic_slug: calculation-workspace-and-quote-readiness
-active_story: null
+active_story: 5-1-tenant-owned-calculation-schema-and-server-commands
 stories_landed: []
 auto_decisions: []
 uat_items: []
