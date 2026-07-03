@@ -35,8 +35,12 @@ The Codex execpolicy (`.codex/rules/default.rules`) and the hard gates in
 `.claude/settings.json`:
 
 - **`permissions.deny`** — secret reads/edits (`.env*`), and irreversible/prod
-  commands (`rm -rf /`, `supabase db push --linked`, `supabase functions
-  deploy`, `supabase secrets`, `supabase projects delete`).
+  commands (`rm -rf /`, `supabase functions deploy`, `supabase secrets`,
+  `supabase projects delete`). `supabase db push` (incl. `--linked`) was
+  REMOVED from the deny set on 2026-07-03 (owner decision, MVP): the demo
+  Supabase project is agent-provisioned, so applying committed migrations to
+  it is sanctioned; project deletion, secrets ops, and function deploys stay
+  denied.
 - **`permissions.ask`** — manual approval before `gh pr merge` only. The broader
   product-code / migration-file / dependency-install / network / `git push`
   gates were intentionally relaxed so autonomous runs (e.g. auto-bmad) proceed

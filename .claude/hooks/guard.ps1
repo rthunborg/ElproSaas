@@ -35,8 +35,9 @@ $blocked = @(
     @('\bprintenv\b',                          'Dumping environment variables is forbidden (may leak secrets).'),
     @('\b(Get-ChildItem|gci)\s+Env:',          'Dumping environment variables is forbidden (may leak secrets).'),
     @('\brm\s+-[a-zA-Z]*[rf][a-zA-Z]*\s+/',    'Recursive delete of root is forbidden.'),
-    @('supabase\s+db\s+push\s+--linked',       'Pushing to a linked/prod Supabase project is forbidden until a release process exists.'),
-    @('supabase\s+db\s+push\s+--project-ref',  'Targeting a specific Supabase project ref is forbidden until a release process exists.'),
+    # `supabase db push` (incl. --linked / --project-ref) is ALLOWED as of
+    # 2026-07-03 (owner decision): the MVP demo project is agent-provisioned.
+    # Deletion, secrets, and function deploys stay blocked below.
     @('supabase\s+functions\s+deploy',         'Deploying edge functions is forbidden until a release process exists.'),
     @('supabase\s+secrets\b',                  'Supabase secrets operations are forbidden.'),
     @('supabase\s+projects\s+delete',          'Deleting Supabase projects is forbidden.'),
