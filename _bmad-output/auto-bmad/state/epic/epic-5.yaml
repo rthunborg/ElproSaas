@@ -5,10 +5,10 @@ epic_num: 5
 story_num: null
 branch: epic/5-calculation-workspace-and-quote-readiness
 status: in-progress
-updated_at: "2026-07-03T09:11:35Z"
+updated_at: "2026-07-03T09:14:30Z"
 started_at: "2026-07-02T18:13:57Z"
 completed_at: null
-active_seconds: 13900
+active_seconds: 14055
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -52,10 +52,11 @@ blockers: []
 overrides: {}
 constraints: []
 epic_slug: calculation-workspace-and-quote-readiness
-active_story: 5-3-pricing-source-selection-and-row-snapshots
+active_story: 5-4-calculation-readiness-review-and-snapshot-preview
 stories_landed:
   - 5-1-tenant-owned-calculation-schema-and-server-commands
   - 5-2-calculation-editor-ux-for-sections-and-rows
+  - 5-3-pricing-source-selection-and-row-snapshots
 auto_decisions:
   - "Lifecycle state machine not authoritative (currentStatus never loaded from DB) [Med] â†’ fix: validate transition against the row's real DB status in updateCalculation (Tier A, 5-1)"
   - "status/archived_at can silently disagree [Med] â†’ fix: resolved with the state-machine fix â€” archivedâ†’active blocked; un-archive must clear archived_at (Tier A, 5-1)"
@@ -103,3 +104,16 @@ uat_items:
   - "[5-2] Wide window -> Summering right of workspace; narrow -> summary inline below editor, no overlapping controls"
   - "[5-2] No supplier/import/source-pricing/field-worker/ATA/AI/analytics control anywhere in the editor"
   - "[5-2] Arkivera kalkyl -> calc soft-archived, gone from the active /calculations list"
+  - "[5-3] Labor row 'Prislista (arbetsroll)' select -> offers 'Manuell rad (ingen kalla)' + seeded work role; NO supplier/import/Fortnox/sync/API option"
+  - "[5-3] Select seeded work role -> Pris (kr) prefills 845,00 and STAYS editable; provenance line 'Kalla: <role> · 845,00 kr' (no ore/bp jargon)"
+  - "[5-3] Overtype prefilled price with 900, Spara rad -> saves the typed price (prefill-not-lock; row price authoritative)"
+  - "[5-3] Radtyp Arbete -> Maskin/UE/Ovrigt -> source select disappears (labor/material only); back to Arbete -> returns"
+  - "[5-3] Material row -> 'Prislista (artikel)' offers seeded article; select -> prefill 12,50 + provenance line"
+  - "[5-3] Set source back to 'Manuell rad (ingen kalla)', Spara rad -> saves, provenance gone (source fully cleared, not half-cleared)"
+  - "[5-3] Fresh manual row (no source) saves with no provenance indicator (manual rows first-class)"
+  - "[5-3] Editor page scan -> no leverantor/supplier/fortnox/import/synk/API/credential/faltarbetare/ATA/AI label anywhere"
+  - "[5-3] SUPABASE_TEST_REQUIRED=1 pnpm test:int -- calculation-row-source -> capture-by-value, freeze proof, cross-tenant spoof, archived-source explainability all green"
+  - "[5-3] Freeze by hand: mutate+archive the source work role via psql, re-read row source_* -> UNCHANGED (copy-by-value never re-reads)"
+  - "[5-3] Tenant-A createRow/updateRow with a Tenant-B source_id -> TENANT_ACCESS_DENIED, no foreign source persisted"
+  - "[5-3] pnpm test:int -- calc-tables-migration-reset -> all %_ore columns (incl. source_price/cost_ore) bigint; no forbidden supplier/credential/sync/import/fortnox column token"
+  - "[5-3] pnpm test:unit calc-source-validation -> both-or-neither source pair enforced, closed kind union, UUID id, cleared source nulls all source_* together"
