@@ -413,6 +413,126 @@ describe("Pricing-source row snapshots (AC1-AC4 / 5.3-INT-01/02/03/04)", () => {
     expect(snap?.source_id).toBeNull();
   });
 
+  it("[P0/5.3-INT-07/AC1] SOURCE-ONLY update against a MISMATCHED persisted row_type is rejected (VALIDATION_FAILED), row unchanged", async (testCtx) => {
+    // Integration review iter-2 — closes the residual of iter-1 Finding #3 on the UPDATE
+    // path. A crafted TWO-STEP write: create a valid `{row_type:"material", article source}`
+    // row, then send `{ id, source_kind:"work_role", source_id:<valid own work role> }` with
+    // NO row_type. The pure validator ACCEPTS the source-only pair (it cannot know the
+    // persisted type), so `updateRow.execute` MUST load the row's REAL persisted row_type
+    // under RLS and reject the kind/row_type mismatch — otherwise a work-role snapshot would
+    // land on a material row (the exact Finding #3 attack via the update path).
+    if (skipUnlessStack(testCtx, stackUp)) return;
+    const sectionId = await seedSection(fixture.tenantA.id);
+    const articleId = await adminInsertArticle({
+      tenant_id: fixture.tenantA.id,
+      name: "Kabelskena",
+      unit_price_ore: 2100,
+    });
+    // Step 1: a legitimate MATERIAL row sourced from an article.
+    const created = await runCommand(createRow, {
+      client: a as never,
+      input: {
+        section_id: sectionId,
+        row_type: "material",
+        quantity: 2,
+        unit: "m",
+        unit_sell_ore: 2100,
+        vat_rate_bp: 2500,
+        source_kind: "article",
+        source_id: articleId,
+      },
+      clock: fixedClock,
+      correlationId: crypto.randomUUID(),
+    });
+    expect(created.ok).toBe(true);
+    if (!created.ok) return;
+    const rowId = (created.data as { targetId: string }).targetId;
+
+    const before = await selectRowSource(rowId);
+    expect(before?.source_kind).toBe("article");
+    expect(before?.source_id).toBe(articleId);
+
+    // A REAL own-tenant work role — a valid, resolvable source, so the ONLY thing that can
+    // reject the write is the row_type↔source_kind cross-check against the PERSISTED type.
+    const ownRoleId = await adminInsertWorkRole({
+      tenant_id: fixture.tenantA.id,
+      display_name: "Elektriker (crafted)",
+      cost_rate_ore: 45000,
+      sell_rate_ore: 85000,
+    });
+
+    // Step 2: the crafted source-only update — a work_role source, NO row_type, against a
+    // persisted MATERIAL row. Must be rejected server-side with VALIDATION_FAILED.
+    const result = await runCommand(updateRow, {
+      client: a as never,
+      input: { id: rowId, source_kind: "work_role", source_id: ownRoleId },
+      clock: fixedClock,
+      correlationId: crypto.randomUUID(),
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.code).toBe("VALIDATION_FAILED");
+
+    // The row's source is UNCHANGED — no work-role snapshot landed on the material row.
+    const after = await selectRowSource(rowId);
+    expect(after?.source_kind).toBe("article");
+    expect(after?.source_id).toBe(articleId);
+    expect(after?.source_name).toBe(before?.source_name);
+    expect(after?.source_price_ore).toBe(before?.source_price_ore);
+  });
+
+  it("[P1/5.3-INT-08/AC1] SOURCE-ONLY update against a MATCHING persisted row_type still succeeds (no false rejection)", async (testCtx) => {
+    // Guard the fix does not over-reject: a labor row re-sourced to a NEW work role via a
+    // source-only update (no row_type) must still succeed — the persisted labor→work_role
+    // cross-check passes, so the fix is a precise mismatch gate, not a blanket block.
+    if (skipUnlessStack(testCtx, stackUp)) return;
+    const sectionId = await seedSection(fixture.tenantA.id);
+    const firstRoleId = await adminInsertWorkRole({
+      tenant_id: fixture.tenantA.id,
+      display_name: "Montör A",
+      cost_rate_ore: 40000,
+      sell_rate_ore: 72000,
+    });
+    const secondRoleId = await adminInsertWorkRole({
+      tenant_id: fixture.tenantA.id,
+      display_name: "Montör B",
+      cost_rate_ore: 41000,
+      sell_rate_ore: 76000,
+    });
+    const created = await runCommand(createRow, {
+      client: a as never,
+      input: {
+        section_id: sectionId,
+        row_type: "labor",
+        quantity: 1,
+        unit: "h",
+        unit_sell_ore: 72000,
+        vat_rate_bp: 2500,
+        source_kind: "work_role",
+        source_id: firstRoleId,
+      },
+      clock: fixedClock,
+      correlationId: crypto.randomUUID(),
+    });
+    expect(created.ok).toBe(true);
+    if (!created.ok) return;
+    const rowId = (created.data as { targetId: string }).targetId;
+
+    // Source-only re-source (NO row_type) to a matching-kind work role → accepted.
+    const result = await runCommand(updateRow, {
+      client: a as never,
+      input: { id: rowId, source_kind: "work_role", source_id: secondRoleId },
+      clock: fixedClock,
+      correlationId: crypto.randomUUID(),
+    });
+    expect(result.ok).toBe(true);
+
+    const after = await selectRowSource(rowId);
+    expect(after?.source_kind).toBe("work_role");
+    expect(after?.source_id).toBe(secondRoleId);
+    expect(after?.source_name).toBe("Montör B");
+    expect(after?.source_price_ore).toBe(76000);
+  });
+
   it("[P1/5.3-INT-05/AC1] source CLEAR round-trip: setting then clearing a source nulls ALL source_* columns together", async (testCtx) => {
     // Task 2.4 headline (cleared-binding trap) proven at the DB layer, not just at the
     // parser/validator: an admin switches a sourced row BACK to manual (`source_clear`) →

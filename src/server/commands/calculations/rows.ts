@@ -17,7 +17,12 @@
  */
 import { defineCommand } from "../envelope";
 import { CommandError } from "../command-errors";
-import { asCalcWriteClient, throwMappedWriteError } from "./calc-db";
+import {
+  asCalcWriteClient,
+  loadRowType,
+  throwMappedWriteError,
+} from "./calc-db";
+import { kindForRowType } from "./validation";
 import { nextSortOrder } from "./sort-order";
 import { resolveSnapshotSource } from "@/server/snapshots/resolve-source";
 import {
@@ -271,6 +276,22 @@ export const updateRow = defineCommand<UpdateRowInput, CalcCommandResult>({
     // left untouched (undefined) so a source-less update stays empty-patch-safe.
     let source: RowSourceColumns | undefined;
     if (ctx.input.source_kind !== undefined && ctx.input.source_id !== undefined) {
+      // ROW-TYPE CROSS-CHECK on the UPDATE path (integration review, iter-2 — closes the
+      // residual of iter-1 Finding #3). `validateSourcePair` can only cross-check the
+      // `row_type ↔ source_kind` contract when `row_type` is in the SAME payload; a
+      // SOURCE-ONLY update omits it, so a crafted `{ id, source_kind:"work_role", source_id }`
+      // against a persisted material row would otherwise persist a work-role snapshot on a
+      // material row (or any source on a no-source subcontractor/machinery/other row). Load
+      // the row's REAL persisted `row_type` under the caller's RLS (ownership already proved
+      // the row is visible — mirrors how `updateCalculation` loads the real `status` via
+      // `loadCalcStatus`), preferring an in-payload `row_type` when the update also changes it,
+      // and re-run the cross-check against the AUTHORITATIVE type, rejecting a mismatch.
+      const effectiveRowType = ctx.input.row_type ?? (await loadRowType(ctx.db, ctx.input.id));
+      // Ownership passed but the row is now gone (race) → deny rather than 500.
+      if (effectiveRowType === null) throw new CommandError("TENANT_ACCESS_DENIED");
+      if (kindForRowType(effectiveRowType) !== ctx.input.source_kind) {
+        throw new CommandError("VALIDATION_FAILED");
+      }
       source = await resolveRowSource(
         ctx as CommandExecuteContext<
           { readonly source_kind: RowSourceKind; readonly source_id: string },

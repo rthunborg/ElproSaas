@@ -17,7 +17,7 @@
  */
 import type { CommandDbClient } from "../envelope";
 import { CommandError } from "../command-errors";
-import { isCalcStatus, type CalcStatus } from "./validation";
+import { isCalcStatus, isRowType, type CalcStatus, type RowType } from "./validation";
 
 /** A PostgREST result envelope for a write returning the inserted/updated rows. */
 export type WriteResult = {
@@ -111,6 +111,46 @@ export async function loadCalcStatus(
       : undefined;
   // The DB CHECK constrains status to the known set; guard defensively anyway.
   return isCalcStatus(status) ? status : null;
+}
+
+/**
+ * Load the target calculation ROW's REAL persisted `row_type` from the DB, under the
+ * caller's request-bound RLS client (integration review, iter-2). Returns the `RowType`
+ * when the row is visible, or `null` when the row is not visible under the caller's RLS
+ * (gone / cross-tenant — ownership already proved visibility, so `null` here is a race).
+ *
+ * Used by `updateRow` to re-run the `row_type ↔ source_kind` cross-check against the REAL
+ * persisted type on a SOURCE-ONLY update (one that omits `row_type` from the payload) — the
+ * pure `validateSourcePair` can only cross-check when `row_type` is in the SAME payload, so
+ * a source-only update needs the authoritative type loaded here to close the crafted-write
+ * gap (a work-role snapshot persisted on a material row, or vice-versa).
+ *
+ * A transient query ERROR is re-thrown as a plain Error so the envelope maps it to
+ * SERVER_ERROR (retryable) — never masked as an access decision. This is a READ on the
+ * envelope's own `.from().select().eq().limit()` surface (the same surface `verifyOwnership`
+ * and `loadCalcStatus` use) — no write-surface cast, no service-role client.
+ */
+export async function loadRowType(
+  db: CommandDbClient,
+  id: string,
+): Promise<RowType | null> {
+  const { data, error } = await db
+    .from("calculation_rows")
+    .select("row_type")
+    .eq("id", id)
+    .limit(1);
+  if (error) {
+    throw new Error(
+      `loadRowType failed: ${(error as { code?: string }).code ?? "?"}`,
+    );
+  }
+  if (!data || data.length === 0) return null;
+  const row = data[0];
+  const rowType =
+    row && typeof row === "object"
+      ? (row as { row_type?: unknown }).row_type
+      : undefined;
+  return isRowType(rowType) ? rowType : null;
 }
 
 /**

@@ -78,7 +78,7 @@ development_status:
   epic-4-retrospective: done
 
   epic-5: in-progress
-  5-1-tenant-owned-calculation-schema-and-server-commands: in-progress
+  5-1-tenant-owned-calculation-schema-and-server-commands: review
   5-2-calculation-editor-ux-for-sections-and-rows: review
   5-3-pricing-source-selection-and-row-snapshots: review
   5-4-calculation-readiness-review-and-snapshot-preview: review

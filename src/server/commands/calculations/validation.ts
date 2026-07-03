@@ -400,7 +400,7 @@ export interface UpdateRowInput {
   readonly source_clear?: boolean;
 }
 
-function isRowType(v: unknown): v is RowType {
+export function isRowType(v: unknown): v is RowType {
   return typeof v === "string" && (ROW_TYPES as readonly string[]).includes(v);
 }
 
@@ -456,7 +456,7 @@ function validateRowCommonFields(
  * UI-bypassing client cannot violate. Kept local + pure (no React/DOM import) so the
  * validator stays under the dependency-free `node --test` fast gate.
  */
-function kindForRowType(rowType: RowType): RowSourceKind | null {
+export function kindForRowType(rowType: RowType): RowSourceKind | null {
   if (rowType === "labor") return "work_role";
   if (rowType === "material") return "article";
   return null;

@@ -5,7 +5,7 @@ epic_num: 5
 story_num: null
 branch: epic/5-calculation-workspace-and-quote-readiness
 status: in-progress
-updated_at: "2026-07-03T11:24:04Z"
+updated_at: "2026-07-03T11:44:12Z"
 started_at: "2026-07-02T18:13:57Z"
 completed_at: null
 active_seconds: 20798
@@ -21,7 +21,7 @@ tea_rationale: null
 epic_story_count: 5
 stories_after_in_epic: null
 completed_phases: [0, 1, 2, 5, 81]
-code_review_iterations: 1
+code_review_iterations: 2
 code_review_loop_done: false
 hitl_halt: null
 external_review_iterations: 0
@@ -67,6 +67,7 @@ auto_decisions:
   - "Tenant default_vat_display ignored; posture hard-coded to company_togglable [Med] → defer: full posture resolution (incl. brf/public) is Story 5.4's VAT-display surface; only a view label can mismatch (Tier A, 5-2)"
   - "readCalculationDetail swallows customer/facility/contact read errors [Med] → fix: check .error on those reads and return the generic read-error state (E_review, epic-5)"
   - "rowMarginRatio null-cost = 100% margin + redundant *quantity overflow surface [Med] → fix: drop cancelling *quantity, guard unsafe integers, null cost → cost unknown (no false 100% margin) (E_review, epic-5)"
+  - "Source-kind cross-check incomplete on update path (iter-1 Finding #3 residual) [Med] → fix: load persisted row_type under caller RLS in updateRow.execute (mirror loadCalcStatus) and re-run kindForRowType vs source_kind (E_review iter 2, epic-5)"
 uat_items:
   - "[5-1] supabase db reset from empty -> completes, applies 20260702120000_calculation_data_model.sql (contacts_id_tenant_unique prerequisite resolves)"
   - "[5-1] psql describe public.calculations -> id, tenant_id, customer/facility/contact_id, title, status (default 'draft'), archived_at, timestamps"
