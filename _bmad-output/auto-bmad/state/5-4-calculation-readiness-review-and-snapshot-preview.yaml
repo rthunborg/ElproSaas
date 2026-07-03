@@ -5,10 +5,10 @@ epic_num: 5
 story_num: 4
 branch: epic/5-calculation-workspace-and-quote-readiness
 status: in-progress
-updated_at: "2026-07-03T09:14:30Z"
+updated_at: "2026-07-03T09:26:20Z"
 started_at: "2026-07-03T09:14:30Z"
 completed_at: null
-active_seconds: 0
+active_seconds: 699
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -20,14 +20,14 @@ tea_selected: [automate]
 tea_rationale: "read-only readiness classification (~9 blocker/warning conditions) + multi-module snapshot preview; no auth/schema/mutation signal"
 epic_story_count: 5
 stories_after_in_epic: 1
-completed_phases: [0, 1, 2]
+completed_phases: [0, 1, 2, 3, 4]
 code_review_iterations: 0
 code_review_loop_done: false
 hitl_halt: null
 external_review_iterations: 0
 convergence_unverified: false
 story_trace: null
-commits: []
+commits: [864f1ab]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -46,7 +46,12 @@ pr_merged: false
 merge_method: null
 merge_commit: null
 branch_deleted: false
-open_questions: []
+open_questions:
+  - "margin threshold source â€” no company_settings column; constant default, configurable setting deferred (gated migration)"
+  - "blocker-vs-warning split for ambiguous conditions (Sign-Off Q2) â€” conservative default applied"
+  - "required-file readiness check depends on Story 8.1 (backlog) â€” documented deferral R-513"
+  - "quote-terms display in preview (surface + approval warning, no enforcement)"
+  - "'new version after send' copy owner-pending (Sign-Off Q5) â€” placeholder Swedish copy"
 deferred_work: []
 blockers: []
 overrides: {}

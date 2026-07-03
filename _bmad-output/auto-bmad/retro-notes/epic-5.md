@@ -11,3 +11,7 @@
 - [Phase 5 â€” dev-story] Order-asserting E2E specs on the shared serial calc fixture must not assume a fixed section count (5.2-E2E-06 broke when a sibling spec added a section; fixed to loop move-up-to-front) â€” keep future order assertions fixture-count-robust.
 - [Phase 5 â€” dev-story] Raw pg pool returns bigint ore columns as strings and timestamptz as Date objects â€” INT readbacks must coerce (Number(...) / ISO string) or .toBe fails on representation despite byte-correct storage.
 - [Phase 6 â€” automate] Pure helpers embedded in a 'use client' .tsx escape the node:test fast gate (can't import JSX) â€” extract them to a sibling .ts module at DEV time (the source-options.ts split is the standing pattern).
+
+## Story 5-4-calculation-readiness-review-and-snapshot-preview
+- [Phase 3 â€” create-story] Owner decision 'margin warning = TB% vs global threshold in settings' has NO backing DB column â€” 5-4 ships a constant-threshold default; the configurable settings column is a gated migration needing one-line owner confirmation at the epic session.
+- [Phase 3 â€” create-story] Story 8.1 not landed â†’ 5-4's required-file readiness check is a sanctioned documented deferral (R-513), expected under the approved Epic-5-before-Epic-8 sequencing, not a gap.
