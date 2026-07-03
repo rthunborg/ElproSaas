@@ -45,11 +45,15 @@ import {
   oreToKronorString,
 } from "@/features/calculations/money-input";
 import { computeLineTotal } from "@/features/calculations/totals";
+import {
+  MANUAL_SOURCE_VALUE,
+  decodeSourceValue,
+  encodeSourceValue,
+  kindForRowType,
+  sourcesForRowType,
+} from "@/features/calculations/source-select";
 import type { CalculationRowRow } from "@/features/calculations/read";
-import type {
-  RowSourceLists,
-  SourceOption,
-} from "@/features/calculations/source-options";
+import type { RowSourceLists } from "@/features/calculations/source-options";
 
 const ROW_TYPE_OPTIONS = [
   { value: "labor", label: "Arbete" },
@@ -58,44 +62,6 @@ const ROW_TYPE_OPTIONS = [
   { value: "machinery", label: "Maskin" },
   { value: "other", label: "Övrigt" },
 ] as const;
-
-/** The empty (manual / no source) select value — an empty string (isPresent('')===false). */
-const MANUAL_SOURCE_VALUE = "";
-
-/** Encode a source pick as the `<select>` value `"<kind>:<id>"` (empty = manual). */
-function encodeSourceValue(kind: "work_role" | "article", id: string): string {
-  return `${kind}:${id}`;
-}
-
-/** Decode a `"<kind>:<id>"` select value into its pair (or null for the manual option). */
-function decodeSourceValue(
-  value: string,
-): { kind: "work_role" | "article"; id: string } | null {
-  if (value === MANUAL_SOURCE_VALUE) return null;
-  const idx = value.indexOf(":");
-  if (idx <= 0) return null;
-  const kind = value.slice(0, idx);
-  const id = value.slice(idx + 1);
-  if ((kind !== "work_role" && kind !== "article") || id.length === 0) return null;
-  return { kind, id };
-}
-
-/** The active source list offered for a given row_type (labor → work roles, material → articles). */
-function sourcesForRowType(
-  rowType: string,
-  sources: RowSourceLists,
-): readonly SourceOption[] {
-  if (rowType === "labor") return sources.workRoles;
-  if (rowType === "material") return sources.articles;
-  return []; // other row types stay manual (no source offered)
-}
-
-/** The source-kind a given row_type maps to (labor → work_role, material → article). */
-function kindForRowType(rowType: string): "work_role" | "article" | null {
-  if (rowType === "labor") return "work_role";
-  if (rowType === "material") return "article";
-  return null;
-}
 
 /** A hidden `false` companion + a checkbox for a row flag (turn-OFF safe). */
 function FlagField({

@@ -413,6 +413,133 @@ describe("Pricing-source row snapshots (AC1-AC4 / 5.3-INT-01/02/03/04)", () => {
     expect(snap?.source_id).toBeNull();
   });
 
+  it("[P1/5.3-INT-05/AC1] source CLEAR round-trip: setting then clearing a source nulls ALL source_* columns together", async (testCtx) => {
+    // Task 2.4 headline (cleared-binding trap) proven at the DB layer, not just at the
+    // parser/validator: an admin switches a sourced row BACK to manual (`source_clear`) →
+    // every source_* column returns to null TOGETHER — never a half-cleared source.
+    if (skipUnlessStack(testCtx, stackUp)) return;
+    const sectionId = await seedSection(fixture.tenantA.id);
+    const roleId = await adminInsertWorkRole({
+      tenant_id: fixture.tenantA.id,
+      display_name: "Servicetekniker",
+      cost_rate_ore: 42000,
+      sell_rate_ore: 78000,
+    });
+
+    // Create a row WITH the work-role source.
+    const created = await runCommand(createRow, {
+      client: a as never,
+      input: {
+        section_id: sectionId,
+        row_type: "labor",
+        quantity: 1,
+        unit: "h",
+        unit_sell_ore: 78000,
+        vat_rate_bp: 2500,
+        source_kind: "work_role",
+        source_id: roleId,
+      },
+      clock: fixedClock,
+      correlationId: crypto.randomUUID(),
+    });
+    expect(created.ok).toBe(true);
+    if (!created.ok) return;
+    const rowId = (created.data as { targetId: string }).targetId;
+
+    // Sanity: the source columns are populated (a full snapshot, not a half-set one).
+    const set = await selectRowSource(rowId);
+    expect(set?.source_kind).toBe("work_role");
+    expect(set?.source_id).toBe(roleId);
+    expect(set?.source_name).toBe("Servicetekniker");
+    expect(set?.source_price_ore).toBe(78000);
+    expect(set?.source_cost_ore).toBe(42000);
+    expect(set?.source_updated_at).not.toBeNull();
+    expect(set?.source_captured_at).not.toBeNull();
+
+    // Now CLEAR the source (switch back to manual) via the explicit clear.
+    const cleared = await runCommand(updateRow, {
+      client: a as never,
+      input: { id: rowId, source_clear: true },
+      clock: fixedClock,
+      correlationId: crypto.randomUUID(),
+    });
+    expect(cleared.ok).toBe(true);
+
+    // EVERY source_* column is null TOGETHER — no half-cleared source survives.
+    const snap = await selectRowSource(rowId);
+    expect(snap?.source_kind).toBeNull();
+    expect(snap?.source_id).toBeNull();
+    expect(snap?.source_name).toBeNull();
+    expect(snap?.source_price_ore).toBeNull();
+    expect(snap?.source_cost_ore).toBeNull();
+    expect(snap?.source_updated_at).toBeNull();
+    expect(snap?.source_captured_at).toBeNull();
+    expect(snap?.source_sku).toBeNull();
+    expect(snap?.source_unit).toBeNull();
+  });
+
+  it("[P1/5.3-INT-06/AC1] source REPLACE: switching to a different source REPLACES all captured columns together", async (testCtx) => {
+    // An update that supplies a NEW {source_kind, source_id} pair re-resolves + re-freezes:
+    // the row's captured columns move WHOLESALE to the new source (no stale field from the
+    // prior source lingers). Also proves an already-sourced row can be re-sourced (not only
+    // manual→sourced).
+    if (skipUnlessStack(testCtx, stackUp)) return;
+    const sectionId = await seedSection(fixture.tenantA.id);
+    const firstRoleId = await adminInsertWorkRole({
+      tenant_id: fixture.tenantA.id,
+      display_name: "Lärling",
+      cost_rate_ore: 20000,
+      sell_rate_ore: 40000,
+    });
+    const secondRoleId = await adminInsertWorkRole({
+      tenant_id: fixture.tenantA.id,
+      display_name: "Förman",
+      cost_rate_ore: 55000,
+      sell_rate_ore: 95000,
+    });
+
+    const created = await runCommand(createRow, {
+      client: a as never,
+      input: {
+        section_id: sectionId,
+        row_type: "labor",
+        quantity: 1,
+        unit: "h",
+        unit_sell_ore: 40000,
+        vat_rate_bp: 2500,
+        source_kind: "work_role",
+        source_id: firstRoleId,
+      },
+      clock: fixedClock,
+      correlationId: crypto.randomUUID(),
+    });
+    expect(created.ok).toBe(true);
+    if (!created.ok) return;
+    const rowId = (created.data as { targetId: string }).targetId;
+
+    const before = await selectRowSource(rowId);
+    expect(before?.source_id).toBe(firstRoleId);
+    expect(before?.source_name).toBe("Lärling");
+    expect(before?.source_price_ore).toBe(40000);
+
+    // Re-source the row to the SECOND work role.
+    const replaced = await runCommand(updateRow, {
+      client: a as never,
+      input: { id: rowId, source_kind: "work_role", source_id: secondRoleId },
+      clock: fixedClock,
+      correlationId: crypto.randomUUID(),
+    });
+    expect(replaced.ok).toBe(true);
+
+    // The captured columns are now WHOLLY the second source — nothing stale from the first.
+    const after = await selectRowSource(rowId);
+    expect(after?.source_kind).toBe("work_role");
+    expect(after?.source_id).toBe(secondRoleId);
+    expect(after?.source_name).toBe("Förman"); // NOT "Lärling"
+    expect(after?.source_price_ore).toBe(95000); // NOT 40000
+    expect(after?.source_cost_ore).toBe(55000); // NOT 20000
+  });
+
   it("[P1/5.3-INT-04/AC3] after the source is ARCHIVED, the row is still explainable from its own captured fields", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     const sectionId = await seedSection(fixture.tenantA.id);

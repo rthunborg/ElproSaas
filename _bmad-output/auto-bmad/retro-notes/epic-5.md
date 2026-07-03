@@ -10,3 +10,4 @@
 ## Story 5-3-pricing-source-selection-and-row-snapshots
 - [Phase 5 â€” dev-story] Order-asserting E2E specs on the shared serial calc fixture must not assume a fixed section count (5.2-E2E-06 broke when a sibling spec added a section; fixed to loop move-up-to-front) â€” keep future order assertions fixture-count-robust.
 - [Phase 5 â€” dev-story] Raw pg pool returns bigint ore columns as strings and timestamptz as Date objects â€” INT readbacks must coerce (Number(...) / ISO string) or .toBe fails on representation despite byte-correct storage.
+- [Phase 6 â€” automate] Pure helpers embedded in a 'use client' .tsx escape the node:test fast gate (can't import JSX) â€” extract them to a sibling .ts module at DEV time (the source-options.ts split is the standing pattern).
