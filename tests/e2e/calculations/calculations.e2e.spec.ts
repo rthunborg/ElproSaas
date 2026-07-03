@@ -207,6 +207,41 @@ test.describe("Calculation editor UX (Story 5.2 E2E)", () => {
     await expect(page.getByTestId("calculation-not-found")).toBeVisible();
   });
 
+  test("5.2-E2E-06 (AC2): sections can be REORDERED via move-up (server-owned reorder)", async ({
+    page,
+  }) => {
+    await signIn(page, fixture.adminA.email, fixture.adminA.password);
+    await page.goto(`/calculations/${fixture.calc.id}`);
+
+    // Add a second uniquely-named section so this test owns a two-section ordering it can
+    // reorder without disturbing the shared seed's single-section flows.
+    const secondTitle = `Sektion B ${crypto.randomUUID().slice(0, 8)}`;
+    await page.getByTestId("add-section").click();
+    const addForm = page.getByTestId("add-section-form");
+    await addForm.getByLabel(/Sektionstitel/).fill(secondTitle);
+    await addForm.getByRole("button", { name: /Skapa sektion/ }).click();
+
+    const secondSection = page
+      .getByTestId("section-editor")
+      .filter({ hasText: secondTitle });
+    await expect(secondSection).toBeVisible();
+
+    // The new section renders LAST → its move-up control is enabled; the first section's
+    // move-up is disabled (it is already first).
+    const moveUpButtons = page.getByTestId("section-move-up");
+    await expect(moveUpButtons.first()).toBeDisabled();
+    const lastMoveUp = moveUpButtons.last();
+    await expect(lastMoveUp).toBeEnabled();
+
+    // Moving the second section up routes through the atomic reorderSections command; after
+    // revalidate the second section is now FIRST (its move-up becomes disabled).
+    await lastMoveUp.click();
+    await expect(
+      page.getByTestId("section-editor").first(),
+    ).toContainText(secondTitle);
+    await expect(page.getByTestId("section-move-up").first()).toBeDisabled();
+  });
+
   test("AC2: a new section can be added and a row created (round-trips through the command)", async ({
     page,
   }) => {

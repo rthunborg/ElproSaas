@@ -5,10 +5,10 @@ epic_num: 5
 story_num: null
 branch: epic/5-calculation-workspace-and-quote-readiness
 status: in-progress
-updated_at: "2026-07-03T07:23:05Z"
+updated_at: "2026-07-03T07:43:50Z"
 started_at: "2026-07-02T18:13:57Z"
 completed_at: null
-active_seconds: 7533
+active_seconds: 8749
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -60,6 +60,7 @@ auto_decisions:
   - "status/archived_at can silently disagree [Med] â†’ fix: resolved with the state-machine fix â€” archivedâ†’active blocked; un-archive must clear archived_at (Tier A, 5-1)"
   - "markup_bp capped at 100% by reusing isVatRateBp [Med] â†’ fix: dedicated isMarkupBp (non-negative int bp, bound well above 10000) + update pinning test (Tier A, 5-1)"
   - "updateCalculation cannot re-point facility/contact [Low] â†’ dismiss: reasonable Phase-A narrowing; composite FK backstops INSERT; 5.2 can add re-pointing (Tier A, 5-1)"
+  - "Tenant default_vat_display ignored; posture hard-coded to company_togglable [Med] → defer: full posture resolution (incl. brf/public) is Story 5.4's VAT-display surface; only a view label can mismatch (Tier A, 5-2)"
 uat_items:
   - "[5-1] supabase db reset from empty -> completes, applies 20260702120000_calculation_data_model.sql (contacts_id_tenant_unique prerequisite resolves)"
   - "[5-1] psql describe public.calculations -> id, tenant_id, customer/facility/contact_id, title, status (default 'draft'), archived_at, timestamps"

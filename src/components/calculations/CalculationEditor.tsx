@@ -24,12 +24,14 @@ import { TotalsSummary } from "./TotalsSummary";
 import {
   archiveCalculationAction,
   createSectionAction,
+  reorderSectionsAction,
   updateCalculationAction,
 } from "@/features/calculations/actions";
 import {
   CALC_ACTION_INITIAL,
   isRetryableCalcError,
 } from "@/features/calculations/action-state";
+import { moveDown, moveUp, toOrderedIds } from "@/features/calculations/ordering";
 import {
   computeCalcTotal,
   resolveTotalDisplay,
@@ -62,6 +64,10 @@ export function CalculationEditor({
     archiveCalculationAction,
     CALC_ACTION_INITIAL,
   );
+  const [sectionReorderState, sectionReorderAction] = useActionState(
+    reorderSectionsAction,
+    CALC_ACTION_INITIAL,
+  );
   const [showAddSection, setShowAddSection] = useState(false);
 
   const titleMine = titleState.form === "calculation";
@@ -83,10 +89,22 @@ export function CalculationEditor({
       })),
     })),
   );
-  const total = calcTotal.ok
-    ? calcTotal.value
-    : { netOre: 0, vatOre: 0, grossOre: 0 };
-  const view = resolveTotalDisplay(total, posture);
+  // NEVER fabricate a plausible-looking zero when the engine fails (the AC4 money-display
+  // risk): surface a failed-total state instead. `TotalsSummary` renders only when the
+  // total resolved OK; otherwise a distinct error placeholder is shown.
+  const view = calcTotal.ok
+    ? resolveTotalDisplay(calcTotal.value, posture)
+    : null;
+
+  // Server-owned section ordering (R-503): move-up/down computes the new ordered-id array
+  // via the pure `ordering.ts` and hands it to the atomic `reorderSections` command — never
+  // a client loop of single UPDATEs. Mirrors the row-move pattern in `SectionEditor`.
+  const orderedSectionIds = toOrderedIds(sections);
+  const sectionReorderError =
+    sectionReorderState.status === "error"
+      ? sectionReorderState.formError
+      : null;
+  const sectionReorderRetryable = isRetryableCalcError(sectionReorderState);
 
   return (
     <div data-testid="calculation-editor" className="flex flex-col gap-6 p-6">
@@ -175,17 +193,70 @@ export function CalculationEditor({
       {/* Workspace: sections (left/center) + totals summary (right on desktop). */}
       <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
         <div className="flex flex-1 flex-col gap-4">
+          {sectionReorderError && (
+            <p
+              role="alert"
+              data-testid="section-reorder-error"
+              className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800"
+            >
+              {sectionReorderError}
+              {sectionReorderRetryable ? " Försök igen." : ""}
+            </p>
+          )}
+
           {sections.length === 0 ? (
             <p data-testid="sections-empty" className="text-sm text-zinc-600">
               Inga sektioner ännu. Lägg till din första sektion nedan.
             </p>
           ) : (
-            sections.map((section) => (
-              <SectionEditor
-                key={section.id}
-                section={section}
-                calculationId={header.id}
-              />
+            sections.map((section, index) => (
+              <div key={section.id} className="flex flex-col gap-2">
+                <div className="flex items-center gap-2">
+                  <form action={sectionReorderAction}>
+                    <input
+                      type="hidden"
+                      name="calculation_id"
+                      value={header.id}
+                    />
+                    <input
+                      type="hidden"
+                      name="ordered_section_ids"
+                      value={moveUp(orderedSectionIds, index).join(",")}
+                    />
+                    <button
+                      type="submit"
+                      aria-label="Flytta sektion upp"
+                      data-testid="section-move-up"
+                      disabled={index === 0}
+                      className="rounded border border-zinc-300 px-2 py-1 text-xs text-zinc-700 hover:bg-zinc-50 disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+                    >
+                      ↑
+                    </button>
+                  </form>
+                  <form action={sectionReorderAction}>
+                    <input
+                      type="hidden"
+                      name="calculation_id"
+                      value={header.id}
+                    />
+                    <input
+                      type="hidden"
+                      name="ordered_section_ids"
+                      value={moveDown(orderedSectionIds, index).join(",")}
+                    />
+                    <button
+                      type="submit"
+                      aria-label="Flytta sektion ned"
+                      data-testid="section-move-down"
+                      disabled={index === sections.length - 1}
+                      className="rounded border border-zinc-300 px-2 py-1 text-xs text-zinc-700 hover:bg-zinc-50 disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+                    >
+                      ↓
+                    </button>
+                  </form>
+                </div>
+                <SectionEditor section={section} calculationId={header.id} />
+              </div>
             ))
           )}
 
@@ -236,13 +307,21 @@ export function CalculationEditor({
 
         {/* Desktop: sticky right-hand summary panel. */}
         <div className="hidden w-80 shrink-0 lg:block">
-          <TotalsSummary total={total} view={view} />
+          {calcTotal.ok && view ? (
+            <TotalsSummary total={calcTotal.value} view={view} />
+          ) : (
+            <TotalsFailure />
+          )}
         </div>
       </div>
 
       {/* Narrow viewport: the summary becomes an inline block BELOW the editor. */}
       <div className="lg:hidden">
-        <TotalsSummary total={total} view={view} inline />
+        {calcTotal.ok && view ? (
+          <TotalsSummary total={calcTotal.value} view={view} inline />
+        ) : (
+          <TotalsFailure inline />
+        )}
       </div>
 
       {/* Archive the whole calculation (soft-archive via the command). */}
@@ -264,5 +343,32 @@ export function CalculationEditor({
         )}
       </div>
     </div>
+  );
+}
+
+/**
+ * Failed-total placeholder (AC4 money-display safety). When `computeCalcTotal` returns
+ * `{ ok: false }` (e.g. an `ORE_OVERFLOW`) the editor must NOT render a fabricated
+ * `0,00 kr` headline — it surfaces this distinct error state instead, so a wrong money
+ * figure never reaches the admin. Mirrors the `.ok`-gated render of `TotalsSummary` and
+ * `SectionEditor`'s section-total.
+ */
+function TotalsFailure({ inline = false }: { readonly inline?: boolean }) {
+  return (
+    <aside
+      role="alert"
+      data-testid="totals-summary-error"
+      data-inline={inline ? "true" : "false"}
+      aria-label="Summering kunde inte beräknas"
+      className={[
+        "flex flex-col gap-2 rounded-lg border border-red-300 bg-red-50 p-4",
+        inline ? "" : "lg:sticky lg:top-6",
+      ].join(" ")}
+    >
+      <h2 className="text-sm font-semibold text-red-800">Summering</h2>
+      <p className="text-sm text-red-800">
+        Totalsumman kunde inte beräknas. Kontrollera raderna och försök igen.
+      </p>
+    </aside>
   );
 }
