@@ -212,3 +212,9 @@ Claude Opus 4.8 (claude-opus-4-8[1m]) — BMAD dev-story workflow.
 | Date       | Version | Description                                                                 |
 | ---------- | ------- | --------------------------------------------------------------------------- |
 | 2026-07-03 | 0.1     | Story 5.3 implemented: additive pricing-source snapshot columns on `calculation_rows`; `createRow`/`updateRow` resolve+freeze+persist a chosen work-role/article source (copy-by-value, both-layers cross-tenant rejection); calc read + `RowEditor` source-selection affordance with price prefill + provenance; INT freeze/spoof/explainability + UNIT source validation/parse + editor E2E all green. Status → review. |
+
+### Review Findings
+
+Triage of the Tier-A thin-pass code review (Acceptance Auditor lens, reviewer `primary`) + the dedicated security review (auto-bmad-local), 2026-07-03. Auditor verdict PASS (AC1-AC6 all compliant; 4 LOW/observational findings). Security review: no exploitable vulnerabilities. After dedup + Low-selectivity triage, 1 surviving finding (Defer); 3 dismissed as noise.
+
+- [x] [Review][Defer][Low] Pricing-source read error degrades silently to an empty selection list [src/app/(app)/calculations/[calculationId]/page.tsx:37-38] — A transient failure of `readWorkRoles()`/`readArticles()` (which return `{ workRoles: [], error }` on a fault — `src/features/pricing/read.ts:55-60,115-120`) drops the `.error` and presents as "no sources to select" (manual-only) with no user-visible signal. Deliberate graceful-degradation choice; violates no AC (manual rows stay fully supported per AC1/AC6). Real minor UX/observability gap — deferred, pre-existing pattern (same disclose-don't-hard-fail posture as the 5.2 read).
