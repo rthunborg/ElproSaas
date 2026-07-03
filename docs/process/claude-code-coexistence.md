@@ -70,7 +70,7 @@ cleanly with nothing to rewrite. The Codex-specific surface is isolated to
 | Guardrail (origin) | Claude Code binding |
 | --- | --- |
 | No `.env`/secret reads or edits (`security-guardrails.md`; execpolicy `forbidden`) | `permissions.deny` on `Read/Edit/Write` of every standard env file — `.env`, `.env.local`, `.env.*.local`, `.env.development`, `.env.production`, `.env.test` — plus nested `**/.env`; `guard.ps1` also blocks `cat/type/gc/Get-Content .env`, `printenv`, `Get-ChildItem Env:`. The safe placeholder templates `.env.example` / `.env.sample` / `.env.template` are carved out via `permissions.allow` so docs/setup stories (e.g. Story 1.4) can author them. Deny outranks allow and the glob dialect has no negation syntax, so the deny **enumerates the secret files** instead of a broad `.env.*` block that would also catch the templates. |
-| No irreversible/prod commands (execpolicy `forbidden`) | `permissions.deny` on `rm -rf /`, `supabase db push --linked`, `supabase functions deploy`, `supabase secrets`, `supabase projects delete`; `guard.ps1` also blocks `git reset --hard`, force-push. |
+| No irreversible/prod commands (execpolicy `forbidden`) | `permissions.deny` on `rm -rf /`, `supabase functions deploy`, `supabase secrets`, `supabase projects delete`; `guard.ps1` also blocks `git reset --hard`, force-push. `supabase db push` (incl. `--linked`/`--project-ref`) was REMOVED from both layers on 2026-07-03 (owner decision, MVP): the demo Supabase project is agent-provisioned, so applying committed migrations is sanctioned; deletion/secrets/function-deploy stay blocked. |
 | Approval before installs/migrations/push/network (execpolicy `prompt`; `agent-workflow.md` hard gates) | **Relaxed on the Claude Code side** — `permissions.ask` now gates `gh pr merge` only, so autonomous runs (auto-bmad) proceed hands-off. The destructive subset stays hard-blocked by `permissions.deny` + `guard.ps1` (prod Supabase, force-push, `git reset --hard`, env dumps); CI is the merge-blocking gate. Codex's execpolicy was relaxed symmetrically — `prompt` rules flipped to `allow` (except `gh pr merge`), `forbidden` set extended to force-push + `git reset --hard`. |
 | Protected paths — no product code/migrations without approved story (`AGENTS.md`; `definition-of-done.md`) | **No longer an `ask` gate.** Product-code/migration writes proceed without a prompt; the approved-story discipline is enforced by the operating-modes convention (`agent-workflow.md`), code review, and CI — not by a Claude Code permission prompt. |
 | Test / Static-Quality gate (`quality-gates.md` Gate 2; `ci.md`) | **CI-owned**, not a local hook: `.github/workflows/ci.yml`. Local hooks do not duplicate it. |
@@ -107,7 +107,6 @@ needed.
       "Write(./.env.development)", "Write(./.env.production)", "Write(./.env.test)",
       "Bash(printenv:*)",
       "Bash(rm -rf /:*)", "Bash(rm -fr /:*)",
-      "Bash(supabase db push --linked:*)",
       "Bash(supabase functions deploy:*)",
       "Bash(supabase secrets:*)",
       "Bash(supabase projects delete:*)"
@@ -188,4 +187,7 @@ or PR.
    `git reset --hard`, and `.codex/config.toml` `network_access = true`. Verify with
    `codex execpolicy check --rules .codex/rules/default.rules <command>` per
    `codex-config-verification.md` (e.g. `npm install` → allow, `git push --force` →
-   forbidden, `gh pr merge 123` → prompt, `supabase db push --linked` → forbidden).
+   forbidden, `gh pr merge 123` → prompt, `supabase projects delete` → forbidden).
+   Note: the Codex execpolicy still lists `supabase db push --linked` as forbidden;
+   if Codex-side provisioning is ever wanted, relax `.codex/rules/default.rules`
+   the same way the Claude Code side was relaxed on 2026-07-03.

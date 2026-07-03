@@ -23,7 +23,6 @@
       "Bash(printenv:*)",
       "Bash(rm -rf /:*)",
       "Bash(rm -fr /:*)",
-      "Bash(supabase db push --linked:*)",
       "Bash(supabase functions deploy:*)",
       "Bash(supabase secrets:*)",
       "Bash(supabase projects delete:*)"
