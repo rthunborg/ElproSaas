@@ -1,5 +1,5 @@
 # generated: 2026-06-12
-# last_updated: 2026-06-12
+# last_updated: 2026-07-03  # post-epic-5 resequencing: Story 8.1 moved before Epic 6
 # project: ElproSaas
 # project_key: NOKEY
 # tracking_system: file-system
@@ -34,28 +34,41 @@
 # - SM typically creates next story after previous one is 'done' to incorporate learnings
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 #
-# EXECUTION ORDER NOTE (Phase A, per approved sprint-change-proposals 2026-06-11/2026-06-12):
-# Epic 1 → Epic 2 → Epic 3 → Epic 4 → Story 8.1 (file foundation, Wave 1) → Epic 5 → Epic 6
-# → Epic 7 → Stories 8.2-8.5 (Wave 2) → Epic 9.
-# Story 8.1 depends only on Epics 1-2 and must complete before Story 6.3 (quote PDF storage).
-# Entries below remain grouped by epic for tracking; pick stories in the order above.
+# EXECUTION ORDER NOTE (Phase A):
+# CURRENT PLAN (owner resequencing decision 2026-07-03 — confirms 8.1 before Epic 6):
+#   Epics 1-5 COMPLETE
+#   → NEXT: Story 8.1 (file storage foundation, Wave 1)
+#         — HARD DEPENDENCY for Epic 6 stories 6.1 (persisted attachment metadata)
+#           and 6.3 (quote PDF storage); see the entry criteria in
+#           _bmad-output/test-artifacts/test-design-epic-6.md.
+#   → Epic 6 (6.1-6.5)
+#   → Epic 7
+#   → Stories 8.2-8.5 (Wave 2)
+#   → Epic 9.
+# BACKGROUND: The originally approved order (sprint-change-proposals 2026-06-11/2026-06-12)
+# placed Story 8.1 in Wave 1 BEFORE Epic 5, but that sequencing slipped — Epic 5 completed
+# while 8.1 stayed in backlog. The 2026-07-03 owner decision reconfirms 8.1 runs next, now
+# ahead of Epic 6.
+# MACHINE-EFFECTIVE ORDERING: the auto-bmad story picker selects the first `backlog` entry in
+# FILE ORDER. Story 8.1 is therefore physically listed below BEFORE the epic-6 block (out of
+# epic-group order, on purpose) so it is picked next. All other entries remain grouped by epic.
 
 generated: 2026-06-12
-last_updated: 2026-07-03  # epic-5 retrospective (done)
+last_updated: 2026-07-03  # post-epic-5 resequencing: Story 8.1 before Epic 6 (owner decision 2026-07-03)
 project: ElproSaas
 project_key: NOKEY
 tracking_system: file-system
 story_location: C:/ElproSaas/_bmad-output/implementation-artifacts
 
 development_status:
-  epic-1: in-progress
+  epic-1: done
   1-1-choose-package-manager-and-initialize-app-baseline: done
   1-2-establish-ci-and-quality-gate-baseline: done
   1-3-build-phase-a-app-shell-and-deferred-scope-navigation-guardrails: done
   1-4-document-local-setup-environment-contract-and-repo-hygiene: done
   epic-1-retrospective: done
 
-  epic-2: in-progress
+  epic-2: done
   2-1-tenant-admin-login-and-tenant-context-resolution: done
   2-2-tenant-membership-schema-rls-helpers-and-two-tenant-fixtures: done
   2-3-server-command-envelope-and-minimal-audit-events: done
@@ -77,13 +90,19 @@ development_status:
   4-4-money-and-tax-golden-master-fixture-pack: done
   epic-4-retrospective: done
 
-  epic-5: in-progress
+  epic-5: done
   5-1-tenant-owned-calculation-schema-and-server-commands: done
   5-2-calculation-editor-ux-for-sections-and-rows: done
   5-3-pricing-source-selection-and-row-snapshots: done
   5-4-calculation-readiness-review-and-snapshot-preview: done
   5-5-calculation-golden-tests-for-options-hidden-rows-and-tax-warnings: done
   epic-5-retrospective: done
+
+  # WAVE 1 — picked NEXT. Story 8.1 is deliberately listed here, out of epic-group order,
+  # so the auto-bmad picker (first `backlog` in file order) selects it before Epic 6.
+  # It is a hard dependency for Epic 6 stories 6.1 and 6.3 (see execution-order note above).
+  # The rest of Epic 8 (8.2-8.5) stays in the epic-8 block below.
+  8-1-file-storage-foundation-private-bucket-metadata-links-rls-and-signed-access-command: backlog
 
   epic-6: backlog
   6-1-quote-snapshot-schema-and-server-side-version-creation: backlog
@@ -101,7 +120,8 @@ development_status:
   epic-7-retrospective: optional
 
   epic-8: backlog
-  8-1-file-storage-foundation-private-bucket-metadata-links-rls-and-signed-access-command: backlog
+  # 8-1 (file storage foundation) is listed ABOVE under WAVE 1, before the epic-6 block,
+  # so it is picked next. Not duplicated here. Wave 2 (8.2-8.5) follows Epics 6-7.
   8-2-validated-upload-and-entity-file-panels: backlog
   8-3-tenant-authorized-signed-file-access: backlog
   8-4-quote-pdf-attachment-and-acceptance-evidence-locks: backlog
