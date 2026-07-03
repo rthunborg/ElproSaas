@@ -5,10 +5,10 @@ epic_num: 5
 story_num: null
 branch: epic/5-calculation-workspace-and-quote-readiness
 status: in-progress
-updated_at: "2026-07-03T07:43:50Z"
+updated_at: "2026-07-03T07:47:45Z"
 started_at: "2026-07-02T18:13:57Z"
 completed_at: null
-active_seconds: 8749
+active_seconds: 8933
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -52,9 +52,10 @@ blockers: []
 overrides: {}
 constraints: []
 epic_slug: calculation-workspace-and-quote-readiness
-active_story: 5-2-calculation-editor-ux-for-sections-and-rows
+active_story: 5-3-pricing-source-selection-and-row-snapshots
 stories_landed:
   - 5-1-tenant-owned-calculation-schema-and-server-commands
+  - 5-2-calculation-editor-ux-for-sections-and-rows
 auto_decisions:
   - "Lifecycle state machine not authoritative (currentStatus never loaded from DB) [Med] â†’ fix: validate transition against the row's real DB status in updateCalculation (Tier A, 5-1)"
   - "status/archived_at can silently disagree [Med] â†’ fix: resolved with the state-machine fix â€” archivedâ†’active blocked; un-archive must clear archived_at (Tier A, 5-1)"
@@ -82,3 +83,23 @@ uat_items:
   - "[5-1] migration-reset.int.test.ts exact policy enumeration includes the 9 new calc policies; calc-tables-migration-reset passes"
   - "[5-1] pnpm run test:unit -> GREEN; calc validators pinned (closed union, qty>0, canonical isOreAmount, VAT bp, markup_bp accepts >100% (15000), lifecycle legality, raw invalid values never echoed)"
   - "[5-1] pnpm typecheck -> passes with all 3 calc tables enrolled in tenant-table-inventory (assertNever exhaustiveness)"
+  - "[5-2] Setup: supabase start; pnpm test:e2e once (seeds tenants + admin + calc into tests/e2e/.auth/fixture.json); pnpm dev; sign in with adminA creds from the fixture"
+  - "[5-2] Anon visits /calculations and /calculations/<id> (no session) -> redirected to /login, no data flash"
+  - "[5-2] Left nav shows exactly seven items incl. Kalkyler (no field-worker/project/ATA/supplier/AI entry); Kalkyler -> /calculations"
+  - "[5-2] /calculations list -> Kalkyler heading, Ny kalkyl button, seeded calc row (title, customer, status Utkast)"
+  - "[5-2] Ny kalkyl with unique Titel + customer -> lands on /calculations/<newId> showing the title; blank/spaces Titel -> error, form input preserved"
+  - "[5-2] Open seeded calc -> record header (title + Utkast pill), customer context (Kund + Anlaggning), one section, Summering totals panel"
+  - "[5-2] /calculations/00000000-0000-0000-0000-000000000000 while signed in -> generic 'hittades inte / ej atkomst' block, never reveals cross-tenant existence"
+  - "[5-2] Rename via Spara titel -> 'Kalkylen har sparats.' + header updates on refresh"
+  - "[5-2] Row form exposes Radtyp/Antal/Enhet/Kostnad (kr)/Pris (kr)/Paslag (%)/Moms (%)/3 flags/Etikett/Beskrivning/Intern notering/Notering i offert — no ore/bp jargon"
+  - "[5-2] Money at kronor boundary: seeded row Pris (kr) = 850,00 (Swedish comma), Radsumma in kr"
+  - "[5-2] Lagg till rad (Material, 3 st, 100,00 kr, 25% moms) -> 'Raden har sparats.' + Radsumma 375,00 kr"
+  - "[5-2] Row save with Pris (kr) = -50 -> field-associated validation error, typed fields NOT cleared"
+  - "[5-2] Check Dold rad, save, uncheck, save -> flag actually turns OFF after refresh (not stuck)"
+  - "[5-2] Edit a row's Antal/Pris -> Summering Netto/Moms/Totalt figures refresh; each section shows Sektionssumma reflecting its rows"
+  - "[5-2] Lagg till sektion -> new section card; sections reorder via up/down arrows (ends disabled), order survives refresh"
+  - "[5-2] Rows reorder via up/down within a section, order survives refresh"
+  - "[5-2] Ta bort rad -> removed without confirm; Ta bort sektion WITH rows -> confirm dialog (Avbryt keeps, Ta bort deletes); empty section deletes without confirm"
+  - "[5-2] Wide window -> Summering right of workspace; narrow -> summary inline below editor, no overlapping controls"
+  - "[5-2] No supplier/import/source-pricing/field-worker/ATA/AI/analytics control anywhere in the editor"
+  - "[5-2] Arkivera kalkyl -> calc soft-archived, gone from the active /calculations list"
