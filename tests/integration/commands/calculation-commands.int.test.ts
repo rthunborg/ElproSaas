@@ -359,6 +359,42 @@ describe("Calc commands via the envelope (AC2/AC6/AC7 / 5.1-INT-03/04/05)", () =
     expect(row[0].status).toBe("archived");
   });
 
+  it("[P0/AC2] updateCalculation cannot revive an ARCHIVED calc — the state machine is authoritative against the real DB row (findings 1 & 2)", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
+    const { calcId } = await seedTenantACalcWithSection(fixture.tenantA.id);
+
+    // Archive the calc first (status → 'archived', archived_at set).
+    const archived = await runCommand(archiveCalculation, {
+      client: a as never,
+      input: { id: calcId },
+      clock: fixedClock,
+      correlationId: crypto.randomUUID(),
+    });
+    expect(archived.ok).toBe(true);
+
+    // Attempt an illegal revive: { id, status: 'ready' } with NO honest currentStatus.
+    // Under the OLD (client-trusted) path this defaulted to draft→ready and was wrongly
+    // accepted; the DB-authoritative check loads the REAL 'archived' status and blocks it.
+    const revive = await runCommand(updateCalculation, {
+      client: a as never,
+      input: { id: calcId, status: "ready" },
+      clock: fixedClock,
+      correlationId: crypto.randomUUID(),
+    });
+    expect(revive.ok).toBe(false);
+    if (!revive.ok) expect(revive.code).toBe("VALIDATION_FAILED");
+
+    // BYPASSRLS re-read proves the row is UNCHANGED: still archived, archived_at intact
+    // (status and archived_at cannot silently disagree — finding 2).
+    const row = await adminQuery<{ archived_at: string | null; status: string }>(
+      `select archived_at, status from public.calculations where id = $1`,
+      [calcId],
+    );
+    expect(row.length).toBe(1);
+    expect(row[0].status).toBe("archived");
+    expect(row[0].archived_at).not.toBeNull();
+  });
+
   it("[P0/AC6] an atomic reorder that fails mid-transaction rolls back FULLY — no partial order", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     const { sectionId, rowIds } = await seedTenantACalcWithSection(fixture.tenantA.id);

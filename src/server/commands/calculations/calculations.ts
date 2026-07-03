@@ -26,8 +26,13 @@
  */
 import { defineCommand } from "../envelope";
 import { CommandError } from "../command-errors";
-import { asCalcWriteClient, throwMappedWriteError } from "./calc-db";
 import {
+  asCalcWriteClient,
+  loadCalcStatus,
+  throwMappedWriteError,
+} from "./calc-db";
+import {
+  isLegalTransition,
   validateArchiveCalc,
   validateCreateCalculation,
   validateUpdateCalculation,
@@ -101,6 +106,23 @@ export const updateCalculation = defineCommand<
   // foreign id → zero rows → TENANT_ACCESS_DENIED (envelope verify).
   ownership: (input) => ({ table: "calculations", id: input.id }),
   execute: async (ctx) => {
+    // Lifecycle state machine is AUTHORITATIVE against the REAL row (findings 1 & 2).
+    // When the update carries a `status`, load the target row's ACTUAL current status
+    // from the DB (under the caller's RLS — ownership already proved it is visible) and
+    // validate the transition against it. A client can no longer force an illegal
+    // `archived → ready` move by omitting/spoofing a `currentStatus`; and because
+    // `archived → active` is blocked, `status` and `archived_at` cannot silently
+    // disagree (an archived row's `archived_at` is never cleared by a revive here — no
+    // revive path exists; a future legitimate un-archive must clear `archived_at` in the
+    // same UPDATE).
+    if (ctx.input.status !== undefined) {
+      const current = await loadCalcStatus(ctx.db, ctx.input.id);
+      // Ownership passed but the row is now gone (race) → deny rather than 500.
+      if (current === null) throw new CommandError("TENANT_ACCESS_DENIED");
+      if (!isLegalTransition(current, ctx.input.status)) {
+        throw new CommandError("VALIDATION_FAILED");
+      }
+    }
     const patch = buildCalculationPatch(ctx.input);
     // Empty-patch guard (Task 3.5): an id-only update is a no-op — do NOT issue
     // `.update({})` (PostgREST can map it to zero rows → a false TENANT_ACCESS_DENIED

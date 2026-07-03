@@ -5,10 +5,10 @@ epic_num: 5
 story_num: null
 branch: epic/5-calculation-workspace-and-quote-readiness
 status: in-progress
-updated_at: "2026-07-03T06:10:15Z"
+updated_at: "2026-07-03T06:39:06Z"
 started_at: "2026-07-02T18:13:57Z"
 completed_at: null
-active_seconds: 3328
+active_seconds: 4988
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -54,5 +54,9 @@ constraints: []
 epic_slug: calculation-workspace-and-quote-readiness
 active_story: 5-1-tenant-owned-calculation-schema-and-server-commands
 stories_landed: []
-auto_decisions: []
+auto_decisions:
+  - "Lifecycle state machine not authoritative (currentStatus never loaded from DB) [Med] â†’ fix: validate transition against the row's real DB status in updateCalculation (Tier A, 5-1)"
+  - "status/archived_at can silently disagree [Med] â†’ fix: resolved with the state-machine fix â€” archivedâ†’active blocked; un-archive must clear archived_at (Tier A, 5-1)"
+  - "markup_bp capped at 100% by reusing isVatRateBp [Med] â†’ fix: dedicated isMarkupBp (non-negative int bp, bound well above 10000) + update pinning test (Tier A, 5-1)"
+  - "updateCalculation cannot re-point facility/contact [Low] â†’ dismiss: reasonable Phase-A narrowing; composite FK backstops INSERT; 5.2 can add re-pointing (Tier A, 5-1)"
 uat_items: []

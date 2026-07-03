@@ -9,9 +9,12 @@
  *
  * MONEY DISCIPLINE (architecture §10; test-design R-505/R-506): EVERY öre money field
  * is re-validated via the CANONICAL `isOreAmount` / `ORE_AMOUNT_MAX` from `@/lib/money`
- * (imported — NEVER a forked öre rule). VAT/markup rates are BASIS POINTS validated via
- * the CANONICAL `isVatRateBp` (a rate expressed as bp is the same 0..10000 integer-bp
- * discipline — no fork). Quantities are finite non-negative decimals via `isQuantity`,
+ * (imported — NEVER a forked öre rule). The VAT rate is BASIS POINTS validated via the
+ * CANONICAL `isVatRateBp` (a VAT rate is the same 0..10000 integer-bp discipline — no
+ * fork). The cost→sell MARKUP is ALSO basis points but is NOT a VAT rate — it can exceed
+ * 100%, so it uses the markup-specific `isMarkupBp` (integer bp, `[0, MARKUP_BP_MAX]`),
+ * NOT `isVatRateBp` (which stays VAT-only). Quantities are finite non-negative decimals
+ * via `isQuantity`,
  * with an ADDITIONAL `> 0` gate (a calc row must have a positive quantity). This story
  * STORES the row inputs; it does NOT compute any customer-visible total/VAT/deduction —
  * those route through the frozen `@/lib/money` engine in Story 5.2/5.4.
@@ -50,15 +53,63 @@ export type CalcStatus = (typeof CALC_STATUSES)[number];
  * allowed. An UNKNOWN target status, or a transition not in this map, is rejected.
  * `archived → draft`/`ready` (reviving an archived calc) is NOT legal here.
  */
-const LEGAL_TRANSITIONS: Readonly<Record<CalcStatus, readonly CalcStatus[]>> = {
+export const LEGAL_TRANSITIONS: Readonly<
+  Record<CalcStatus, readonly CalcStatus[]>
+> = {
   draft: ["draft", "ready", "archived"],
   ready: ["ready", "draft", "archived"],
   archived: ["archived"],
 };
 
+/** A runtime guard that a raw value is a known `CalcStatus`. */
+export function isCalcStatus(v: unknown): v is CalcStatus {
+  return (
+    typeof v === "string" && (CALC_STATUSES as readonly string[]).includes(v)
+  );
+}
+
+/**
+ * True iff moving from `current` to `target` is a legal lifecycle transition. This is
+ * the AUTHORITATIVE state-machine check — the caller (`updateCalculation.execute`) MUST
+ * pass the target row's REAL current status loaded from the DB, NOT a client-supplied
+ * value (a client cannot revive an `archived` calc by omitting/lying about its status).
+ */
+export function isLegalTransition(
+  current: CalcStatus,
+  target: CalcStatus,
+): boolean {
+  return LEGAL_TRANSITIONS[current].includes(target);
+}
+
 /** The section display-mode set (Open Question 2 conservative default). */
 export const SECTION_DISPLAY_MODES = ["detailed", "summary", "text_only"] as const;
 export type SectionDisplayMode = (typeof SECTION_DISPLAY_MODES)[number];
+
+/**
+ * Upper bound for a row cost→sell MARKUP expressed in basis points (Open Question 3).
+ * A markup is NOT a VAT rate: a VAT rate is genuinely capped at 100% (`isVatRateBp` → 10000),
+ * but a cost→sell markup routinely exceeds 100% (e.g. 150% = 15000 bp). The DB column
+ * `markup_bp integer` has no upper CHECK, so the validator must not be stricter than intent
+ * or schema. This is a generous-but-safe ceiling (10000% = 1,000,000 bp) that rejects only
+ * absurd/overflow values, NOT legitimate high markups. Kept in the calc domain (NOT a fork of
+ * the money-engine `isVatRateBp` bp-validity rule, which stays VAT-only).
+ */
+export const MARKUP_BP_MAX = 1_000_000;
+
+/**
+ * True iff `v` is a valid non-negative INTEGER markup in basis points within
+ * `[0, MARKUP_BP_MAX]`. Rejects float / non-finite / negative / over-range (mirrors the
+ * integer-bp discipline of `isVatRateBp` but with the markup-appropriate upper bound — a
+ * markup can exceed 100%, a VAT rate cannot).
+ */
+export function isMarkupBp(v: unknown): v is number {
+  return (
+    typeof v === "number" &&
+    Number.isInteger(v) &&
+    v >= 0 &&
+    v <= MARKUP_BP_MAX
+  );
+}
 
 /** Max length for a short free-text calc field (defensive bound). */
 const MAX_TEXT = 256;
@@ -124,9 +175,10 @@ export interface CreateCalculationInput {
 
 /**
  * Validated `updateCalculation` input — `id` + the mutable fields. `status`, when
- * supplied, must be a legal transition from `currentStatus` (the state machine).
- * `currentStatus` is the caller-known current status; the DB CHECK + own-tenant RLS are
- * the backstop for the actual row state.
+ * supplied, is validated here only for VALUE shape (a known `CalcStatus`); the lifecycle
+ * TRANSITION legality is enforced authoritatively in `updateCalculation.execute` against
+ * the target row's REAL current status loaded from the DB (findings 1 & 2) — never a
+ * client-supplied `currentStatus`.
  */
 export interface UpdateCalculationInput {
   readonly id: string;
@@ -171,35 +223,18 @@ export function validateUpdateCalculation(
   // title, when supplied, must be non-empty bounded text.
   if (isPresent(raw.title) && !isNonEmptyText(raw.title)) return fail;
 
-  // status, when supplied, must be a known status AND a legal transition from the
-  // caller-supplied currentStatus (the lifecycle STATE MACHINE). When no status is
-  // supplied this is a title-only edit (no transition to check).
+  // status, when supplied, must be a known status VALUE (shape check only). The
+  // TRANSITION LEGALITY is NOT decided here: the validator is pure and cannot read the
+  // row's real current status, and a client-supplied `currentStatus` must never be
+  // trusted (a caller could omit/spoof it to force an illegal archived → ready move).
+  // `updateCalculation.execute` loads the target row's REAL status from the DB and
+  // enforces the state machine (`isLegalTransition`) against it — that is the single
+  // authoritative check (findings 1 & 2). When no status is supplied this is a
+  // title-only edit (no transition at all).
   let status: CalcStatus | undefined;
   if (isPresent(raw.status)) {
-    if (
-      typeof raw.status !== "string" ||
-      !(CALC_STATUSES as readonly string[]).includes(raw.status)
-    ) {
-      return fail;
-    }
-    const target = raw.status as CalcStatus;
-    // currentStatus is optional context; when present it MUST be a known status and
-    // the transition target → status must be legal. When absent, a default of `draft`
-    // is assumed (a freshly-created calc), so a revive-from-archived without context
-    // still fails when target is not reachable from draft.
-    const currentRaw = raw.currentStatus;
-    let current: CalcStatus = "draft";
-    if (isPresent(currentRaw)) {
-      if (
-        typeof currentRaw !== "string" ||
-        !(CALC_STATUSES as readonly string[]).includes(currentRaw)
-      ) {
-        return fail;
-      }
-      current = currentRaw as CalcStatus;
-    }
-    if (!LEGAL_TRANSITIONS[current].includes(target)) return fail;
-    status = target;
+    if (!isCalcStatus(raw.status)) return fail;
+    status = raw.status;
   }
 
   return {
@@ -356,8 +391,10 @@ function validateRowCommonFields(
   // Every öre money field re-validated via the CANONICAL isOreAmount (no fork).
   if (!optionalOreOk(raw.unit_cost_ore)) return fail;
   if (!optionalOreOk(raw.unit_sell_ore)) return fail;
-  // markup, when present, is integer basis points (reuse the canonical bp-validity).
-  if (isPresent(raw.markup_bp) && !isVatRateBp(raw.markup_bp)) return fail;
+  // markup, when present, is a non-negative integer in basis points that CAN exceed 100%
+  // (a cost→sell markup is not a VAT rate) — validated by the markup-specific `isMarkupBp`,
+  // NOT the VAT-only `isVatRateBp` (which would wrongly cap it at 10000 bp).
+  if (isPresent(raw.markup_bp) && !isMarkupBp(raw.markup_bp)) return fail;
   // VAT assumption: required + integer basis-points-shaped on create; optional on
   // update but still bp-shaped when present.
   if (vatRequired) {

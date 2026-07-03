@@ -17,6 +17,7 @@
  */
 import type { CommandDbClient } from "../envelope";
 import { CommandError } from "../command-errors";
+import { isCalcStatus, type CalcStatus } from "./validation";
 
 /** A PostgREST result envelope for a write returning the inserted/updated rows. */
 export type WriteResult = {
@@ -73,6 +74,43 @@ export type CalcWriteClient = {
  */
 export function asCalcWriteClient(db: CommandDbClient): CalcWriteClient {
   return db as unknown as CalcWriteClient;
+}
+
+/**
+ * Load the target calculation's REAL current lifecycle `status` from the DB, under the
+ * caller's request-bound RLS client (findings 1 & 2). Returns the `CalcStatus` when the
+ * row is visible, or `null` when the row is not visible under the caller's RLS (gone /
+ * cross-tenant — ownership already proved visibility, so `null` here is a race).
+ *
+ * A transient query ERROR is re-thrown as a plain Error so the envelope maps it to
+ * SERVER_ERROR (retryable) — never masked as an access decision. This is a READ on the
+ * envelope's own `.from().select().eq().limit()` surface (the same surface `verifyOwnership`
+ * uses) — no write-surface cast, no service-role client.
+ */
+export async function loadCalcStatus(
+  db: CommandDbClient,
+  id: string,
+): Promise<CalcStatus | null> {
+  const { data, error } = await db
+    .from("calculations")
+    .select("status")
+    .eq("id", id)
+    .limit(1);
+  if (error) {
+    throw new Error(
+      `loadCalcStatus failed: ${
+        (error as { code?: string }).code ?? "?"
+      }`,
+    );
+  }
+  if (!data || data.length === 0) return null;
+  const row = data[0];
+  const status =
+    row && typeof row === "object"
+      ? (row as { status?: unknown }).status
+      : undefined;
+  // The DB CHECK constrains status to the known set; guard defensively anyway.
+  return isCalcStatus(status) ? status : null;
 }
 
 /**

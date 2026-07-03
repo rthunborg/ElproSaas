@@ -34,6 +34,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   ROW_TYPES as REAL_ROW_TYPES,
+  isLegalTransition as realIsLegalTransition,
   validateCreateRow as realValidateCreateRow,
   validateUpdateCalculation as realValidateUpdateCalculation,
 } from "@/server/commands/calculations/validation";
@@ -47,6 +48,10 @@ interface CalcValidators {
   readonly ROW_TYPES: readonly string[];
   validateCreateRow(input: unknown): ValidationResult;
   validateUpdateCalculation(input: unknown): ValidationResult;
+  isLegalTransition(
+    current: "draft" | "ready" | "archived",
+    target: "draft" | "ready" | "archived",
+  ): boolean;
 }
 
 /** Bind the real calc validators (the RED-phase `notYetImplemented()` placeholder). */
@@ -55,6 +60,7 @@ function notYetImplemented(): CalcValidators {
     ROW_TYPES: REAL_ROW_TYPES,
     validateCreateRow: realValidateCreateRow,
     validateUpdateCalculation: realValidateUpdateCalculation,
+    isLegalTransition: realIsLegalTransition,
   };
 }
 
@@ -191,24 +197,55 @@ test("validateCreateRow rejects a missing or non-integer VAT assumption", () => 
 // lifecycle state machine — only legal status transitions (5.1-UNIT-01)
 // ─────────────────────────────────────────────────────────────────────────────
 
-test("validateUpdateCalculation accepts a legal lifecycle transition (draft → ready)", () => {
+// The validator does a VALUE-SHAPE check only: a supplied `status` must be a known
+// CalcStatus. The TRANSITION legality is NOT decided by the pure validator — it is
+// enforced authoritatively in `updateCalculation.execute` against the target row's REAL
+// status loaded from the DB (findings 1 & 2), so a client-supplied `currentStatus` is
+// never trusted. The pure state machine itself is covered by `isLegalTransition` below;
+// the DB-authoritative transition is covered by the command integration test.
+test("validateUpdateCalculation accepts a well-formed status value (shape check)", () => {
   const { validateUpdateCalculation } = notYetImplemented();
   assertAccepted(
-    validateUpdateCalculation({ id: SECTION_ID, status: "ready", currentStatus: "draft" }),
-    "draft→ready",
+    validateUpdateCalculation({ id: SECTION_ID, status: "ready" }),
+    "known status value ready",
   );
 });
 
-test("validateUpdateCalculation rejects an illegal lifecycle transition / unknown status", () => {
+test("validateUpdateCalculation rejects an unknown status VALUE", () => {
   const { validateUpdateCalculation } = notYetImplemented();
   assertRejected(
     validateUpdateCalculation({ id: SECTION_ID, status: "not_a_status" }),
     "unknown status",
   );
-  assertRejected(
-    validateUpdateCalculation({ id: SECTION_ID, status: "draft", currentStatus: "archived" }),
-    "archived→draft (illegal)",
+});
+
+test("validateUpdateCalculation IGNORES a client-supplied currentStatus (never trusted)", () => {
+  const { validateUpdateCalculation } = notYetImplemented();
+  // A client claiming currentStatus "archived" cannot make the validator reject a
+  // shape-valid target — the transition is decided in execute against the real row, not
+  // here. The validator accepts the value shape regardless of any spoofed currentStatus.
+  assertAccepted(
+    validateUpdateCalculation({
+      id: SECTION_ID,
+      status: "draft",
+      currentStatus: "archived",
+    }),
+    "shape-valid despite spoofed currentStatus",
   );
+});
+
+test("isLegalTransition encodes the forward-only state machine (archived is terminal)", () => {
+  const { isLegalTransition } = notYetImplemented();
+  // Legal: draft ↔ ready, and archive from any active state; same-state no-op.
+  assert.equal(isLegalTransition("draft", "ready"), true);
+  assert.equal(isLegalTransition("ready", "draft"), true);
+  assert.equal(isLegalTransition("draft", "archived"), true);
+  assert.equal(isLegalTransition("ready", "archived"), true);
+  assert.equal(isLegalTransition("draft", "draft"), true);
+  // Illegal: reviving an archived calc (this is what finding 1's DB-authoritative check
+  // blocks in production — archived → draft/ready is never legal).
+  assert.equal(isLegalTransition("archived", "draft"), false);
+  assert.equal(isLegalTransition("archived", "ready"), false);
 });
 
 // ─────────────────────────────────────────────────────────────────────────────

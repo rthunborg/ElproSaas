@@ -24,6 +24,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   SECTION_DISPLAY_MODES,
+  isLegalTransition,
   validateCreateCalculation,
   validateCreateSection,
   validateUpdateSection,
@@ -50,6 +51,19 @@ function assertAccepted<T>(result: { ok: boolean }, label: string): T {
   assert.equal(result.ok, true, `expected accepted: ${label}`);
   const r = result as { ok: true; data: T };
   return r.data;
+}
+
+/** Assert the pure state-machine result for a `current → target` transition. */
+function assertTransition(
+  current: "draft" | "ready" | "archived",
+  target: "draft" | "ready" | "archived",
+  expected: boolean,
+): void {
+  assert.equal(
+    isLegalTransition(current, target),
+    expected,
+    `${current}→${target} should be ${expected ? "legal" : "illegal"}`,
+  );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -251,11 +265,34 @@ test("validateUpdateRow accepts a well-formed markup_bp (integer basis points)",
   assert.equal(data.markup_bp, 1500);
 });
 
-test("validateUpdateRow rejects a malformed markup_bp (float / out-of-range / string)", () => {
+test("validateUpdateRow accepts a markup_bp above 100% (a markup is not a VAT rate)", () => {
+  // A cost→sell markup routinely exceeds 100% — e.g. 150% = 15000 bp — which the
+  // VAT-only `isVatRateBp` [0, 10000] bound would wrongly reject (finding-3 regression).
+  const data = assertAccepted<{ markup_bp?: number }>(
+    validateUpdateRow({ id: UUID_A, markup_bp: 15_000 }),
+    "markup 15000 bp (150%)",
+  );
+  assert.equal(data.markup_bp, 15_000);
+});
+
+test("validateUpdateRow rejects a malformed markup_bp (float / negative / absurd / string)", () => {
   assertRejected(validateUpdateRow({ id: UUID_A, markup_bp: 12.5 }), "float markup");
   assertRejected(validateUpdateRow({ id: UUID_A, markup_bp: -1 }), "negative markup");
-  assertRejected(validateUpdateRow({ id: UUID_A, markup_bp: 10001 }), "over-range markup");
+  // 10001 bp (just over 100%) is now a LEGITIMATE markup and must be accepted — only a
+  // truly out-of-range value (beyond the markup-specific ceiling) is rejected.
+  assertRejected(
+    validateUpdateRow({ id: UUID_A, markup_bp: 1_000_001 }),
+    "absurd over-range markup",
+  );
   assertRejected(validateUpdateRow({ id: UUID_A, markup_bp: "1500" }), "string markup");
+});
+
+test("validateUpdateRow accepts a markup_bp of 10001 (just over 100%)", () => {
+  const data = assertAccepted<{ markup_bp?: number }>(
+    validateUpdateRow({ id: UUID_A, markup_bp: 10_001 }),
+    "markup 10001 bp",
+  );
+  assert.equal(data.markup_bp, 10_001);
 });
 
 test("validateUpdateRow rejects a non-boolean visibility/option flag", () => {
@@ -327,47 +364,46 @@ test("validateReorderSections rejects a bad calculation_id / empty array / non-U
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// validateUpdateCalculation — the remaining lifecycle state-machine transitions
+// validateUpdateCalculation — status VALUE-shape check (transition legality is
+// enforced authoritatively in execute against the real DB row, findings 1 & 2)
 // ─────────────────────────────────────────────────────────────────────────────
 
-test("validateUpdateCalculation accepts the other legal transitions", () => {
-  assertAccepted(
-    validateUpdateCalculation({ id: UUID_A, status: "archived", currentStatus: "ready" }),
-    "ready→archived",
-  );
-  assertAccepted(
-    validateUpdateCalculation({ id: UUID_A, status: "draft", currentStatus: "ready" }),
-    "ready→draft",
-  );
-  assertAccepted(
-    validateUpdateCalculation({ id: UUID_A, status: "draft", currentStatus: "draft" }),
-    "draft→draft (same-state no-op)",
-  );
-  assertAccepted(
-    validateUpdateCalculation({ id: UUID_A, status: "archived", currentStatus: "draft" }),
-    "draft→archived",
-  );
+test("validateUpdateCalculation accepts each known status VALUE (shape only)", () => {
+  for (const status of ["draft", "ready", "archived"] as const) {
+    const data = assertAccepted<{ status?: string }>(
+      validateUpdateCalculation({ id: UUID_A, status }),
+      `known status ${status}`,
+    );
+    assert.equal(data.status, status);
+  }
 });
 
-test("validateUpdateCalculation defaults an absent currentStatus to draft", () => {
-  // With no currentStatus context, the state machine assumes a freshly-created (draft)
-  // calc: draft→ready is legal; a target unreachable from draft (archived→ready has no
-  // effect here since default is draft) — ready is reachable, so this is accepted.
+test("validateUpdateCalculation IGNORES any client-supplied currentStatus", () => {
+  // The pure validator can NOT read the row's real status and must NEVER trust a
+  // client-supplied currentStatus (a caller could spoof it). It therefore accepts a
+  // shape-valid target regardless of currentStatus — the transition is decided in
+  // execute against the DB. (This is the finding-1/2 fix: no client-driven bypass.)
   assertAccepted(
-    validateUpdateCalculation({ id: UUID_A, status: "ready" }),
-    "absent currentStatus → draft default, draft→ready",
-  );
-});
-
-test("validateUpdateCalculation rejects reviving an archived calc / unknown currentStatus", () => {
-  assertRejected(
     validateUpdateCalculation({ id: UUID_A, status: "ready", currentStatus: "archived" }),
-    "archived→ready (illegal revive)",
+    "spoofed currentStatus is ignored, shape-valid target accepted",
   );
-  assertRejected(
+  assertAccepted(
     validateUpdateCalculation({ id: UUID_A, status: "ready", currentStatus: "bogus" }),
-    "unknown currentStatus",
+    "bogus currentStatus is ignored, shape-valid target accepted",
   );
+});
+
+test("isLegalTransition encodes the full forward-only state machine", () => {
+  // Legal transitions (archived is reachable from any active state; same-state no-op ok).
+  assertTransition("draft", "ready", true);
+  assertTransition("ready", "draft", true);
+  assertTransition("draft", "draft", true);
+  assertTransition("ready", "archived", true);
+  assertTransition("draft", "archived", true);
+  assertTransition("archived", "archived", true);
+  // Illegal: reviving an archived calc — the check finding 1 makes authoritative.
+  assertTransition("archived", "draft", false);
+  assertTransition("archived", "ready", false);
 });
 
 test("validateUpdateCalculation accepts a title-only patch (no status transition)", () => {
