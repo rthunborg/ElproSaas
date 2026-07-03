@@ -5,10 +5,10 @@ epic_num: 5
 story_num: null
 branch: epic/5-calculation-workspace-and-quote-readiness
 status: in-progress
-updated_at: "2026-07-03T10:06:42Z"
+updated_at: "2026-07-03T10:09:50Z"
 started_at: "2026-07-02T18:13:57Z"
 completed_at: null
-active_seconds: 17137
+active_seconds: 17302
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -52,11 +52,12 @@ blockers: []
 overrides: {}
 constraints: []
 epic_slug: calculation-workspace-and-quote-readiness
-active_story: 5-4-calculation-readiness-review-and-snapshot-preview
+active_story: 5-5-calculation-golden-tests-for-options-hidden-rows-and-tax-warnings
 stories_landed:
   - 5-1-tenant-owned-calculation-schema-and-server-commands
   - 5-2-calculation-editor-ux-for-sections-and-rows
   - 5-3-pricing-source-selection-and-row-snapshots
+  - 5-4-calculation-readiness-review-and-snapshot-preview
 auto_decisions:
   - "Lifecycle state machine not authoritative (currentStatus never loaded from DB) [Med] â†’ fix: validate transition against the row's real DB status in updateCalculation (Tier A, 5-1)"
   - "status/archived_at can silently disagree [Med] â†’ fix: resolved with the state-machine fix â€” archivedâ†’active blocked; un-archive must clear archived_at (Tier A, 5-1)"
@@ -117,3 +118,20 @@ uat_items:
   - "[5-3] Tenant-A createRow/updateRow with a Tenant-B source_id -> TENANT_ACCESS_DENIED, no foreign source persisted"
   - "[5-3] pnpm test:int -- calc-tables-migration-reset -> all %_ore columns (incl. source_price/cost_ore) bigint; no forbidden supplier/credential/sync/import/fortnox column token"
   - "[5-3] pnpm test:unit calc-source-validation -> both-or-neither source pair enforced, closed kind union, UUID id, cleared source nulls all source_* together"
+  - "[5-4] Open a calc with sections/rows -> 'Kontroll infor offert' readiness panel on the right (inline below on narrow)"
+  - "[5-4] Healthy calc -> no blocker group, 'Skapa offertversion' ENABLED; warnings still listed in amber 'Varningar' group"
+  - "[5-4] Seeded overflow/blocker calc -> red 'Blockerande problem' (total uncomputable) + button DISABLED with fix-first note; warnings still visible alongside"
+  - "[5-4] Click 'Skapa offertversion' -> preview expands, label flips to 'Dolj forhandsvisning'; click again -> collapses (toggle only, no quote created)"
+  - "[5-4] Preview Kund block -> customer name + Anlaggning/Kontakt (value or —)"
+  - "[5-4] Preview Sektioner -> text_only shows 'Endast text — rader visas inte i offerten.', summary shows note, detailed lists rows"
+  - "[5-4] Detailed preview section -> hidden row badge 'dold (raknas med)'; optional row 'tillval (vald)/(ej vald)' matching state"
+  - "[5-4] Preview Summering -> Netto/Moms/Totalt in kronor + 'Momsvisning:' caption; company_excl tenant -> Netto emphasized, else Totalt"
+  - "[5-4] Preview Skatteantaganden -> 'Inga ROT-/gron teknik-antaganden pa kalkylen.' (sign-off path unreachable until Epic 6)"
+  - "[5-4] Preview Offertvillkor -> terms text if configured; unapproved -> amber note; none -> 'Inga offertvillkor angivna annu…'"
+  - "[5-4] Preview Bifogade filer -> deferral note (files not available yet); Anmarkningar block repeats the readiness warning list"
+  - "[5-4] 'Skapa offert' panel always shows the AC3 new-version-after-send note regardless of state"
+  - "[5-4] Row with 0/blank price -> amber '…har inget pris…' warning; labor row without work-role source -> 'saknar en kopplad yrkesroll…' warning"
+  - "[5-4] Row with margin below 15% -> 'tackningsbidrag under 15%' warning; empty/uncounted section -> 'saknar rader som raknas med…' warning"
+  - "[5-4] Hidden counted row -> 'Dolda rader raknas med i summan…' disclosure; required-files-deferred warning always present (Story 8.1)"
+  - "[5-4] company_excl tenant -> per-row line-total reads '(exkl. moms)'; private/togglable -> '(inkl. moms)' (posture-aware label)"
+  - "[5-4] NOT hand-testable (unit-pinned only): MISSING_CUSTOMER blocker (FK-NOT-NULL) and ROT/gron TAX_SIGN_OFF warning (no persisted tax assumption until Epic 6)"
