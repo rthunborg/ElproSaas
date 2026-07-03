@@ -1,0 +1,70 @@
+# auto-bmad per-story state — written by scripts/state_update.py (full stable schema;
+# see references/state-and-resume.md). Prose belongs in reports/{key}.md, not here.
+story_key: 5-4-calculation-readiness-review-and-snapshot-preview
+epic_num: 5
+story_num: 4
+branch: epic/5-calculation-workspace-and-quote-readiness
+status: in-progress
+updated_at: "2026-07-03T10:08:41Z"
+started_at: "2026-07-03T09:14:30Z"
+completed_at: null
+active_seconds: 3187
+timing_anchor: null
+is_first_in_epic: false
+is_last_in_epic: false
+needs_project_context_bootstrap: false
+git_mode: remote
+base_branch: main
+tea_risk: med
+tea_selected: [automate]
+tea_rationale: "read-only readiness classification (~9 blocker/warning conditions) + multi-module snapshot preview; no auth/schema/mutation signal"
+epic_story_count: 5
+stories_after_in_epic: 1
+completed_phases: [0, 1, 2, 3, 4, 5, 6, 7]
+code_review_iterations: 0
+code_review_loop_done: false
+hitl_halt: "auto-continued (epic â€” no halt)"
+external_review_iterations: 0
+convergence_unverified: false
+story_trace: null
+commits: [864f1ab, 5b62989, e45b859, 106a199]
+phase8_steps:
+  trace_gate: null
+  nfr: null
+  test_review: null
+  project_context: null
+  reconcile: null
+  archive: null
+  retro: null
+gate_decision: null
+gate_iterations: 0
+deferred_work_archived: 0
+pr_url: null
+ci_run_url: null
+ci_status: unknown
+pr_merged: false
+merge_method: null
+merge_commit: null
+branch_deleted: false
+open_questions:
+  - "margin threshold source â€” no company_settings column; constant default, configurable setting deferred (gated migration)"
+  - "blocker-vs-warning split for ambiguous conditions (Sign-Off Q2) â€” conservative default applied"
+  - "required-file readiness check depends on Story 8.1 (backlog) â€” documented deferral R-513"
+  - "quote-terms display in preview (surface + approval warning, no enforcement)"
+  - "'new version after send' copy owner-pending (Sign-Off Q5) â€” placeholder Swedish copy"
+deferred_work:
+  - "required-file readiness check â†’ Story 8.1 (surfaced as REQUIRED_FILES_DEFERRED warning)"
+  - "configurable per-tenant margin-threshold setting â†’ follow-up (gated migration; PILOT_LOW_MARGIN_THRESHOLD=0.15 constant ships)"
+  - "calc tax-context forward-seam (hasDeductionAssumption:false today) â†’ Epic 6"
+blockers: []
+overrides: {}
+constraints: []
+tier_a_base_sha: d945317e4bf8aff306ef0f59da424f5f28ae96c4
+tier_a_review:
+  verdict: Changes Requested
+  counts: Critical 0 / High 0 / Med 0 / Low 2
+  fixed: 1
+  deferred: 1
+  dismissed: 3
+  open_crit_high: 0
+  security: "clean (0 findings)"

@@ -136,11 +136,26 @@ describe("Migration reset green — tenant_foundation objects present (AC1 / R-0
     // articles.{SELECT,INSERT,UPDATE} (sorts FIRST alphabetically) +
     // work_roles.{SELECT,INSERT,UPDATE} — SELECT/INSERT/UPDATE per table, NO DELETE
     // (archive over hard delete). Both tables are MANY-rows-per-tenant collections.
+    // Story 5.1 EXTENDS it again (NOT loosened) by the 9 new CALCULATION policies:
+    // calculations.{SELECT,INSERT,UPDATE} + calculation_rows.{SELECT,INSERT,UPDATE} +
+    // calculation_sections.{SELECT,INSERT,UPDATE} — SELECT/INSERT/UPDATE per table, NO
+    // DELETE (archive over hard delete via archived_at). All three are MANY-rows-per-
+    // tenant collections. Placed alphabetically; the "no DELETE policy anywhere"
+    // assertion below still holds.
     expect(rows.map((r) => `${r.tablename}.${r.cmd}`).sort()).toEqual([
       "articles.INSERT",
       "articles.SELECT",
       "articles.UPDATE",
       "audit_events.SELECT",
+      "calculation_rows.INSERT",
+      "calculation_rows.SELECT",
+      "calculation_rows.UPDATE",
+      "calculation_sections.INSERT",
+      "calculation_sections.SELECT",
+      "calculation_sections.UPDATE",
+      "calculations.INSERT",
+      "calculations.SELECT",
+      "calculations.UPDATE",
       "company_settings.INSERT",
       "company_settings.SELECT",
       "company_settings.UPDATE",
@@ -173,9 +188,9 @@ describe("Migration reset green — tenant_foundation objects present (AC1 / R-0
     for (const t of selectOnly) {
       expect((cmdsByTable.get(t) ?? []).sort()).toEqual(["SELECT"]);
     }
-    // The CRM tables (Story 3.1), the settings tables (Story 3.3), and the pricing
-    // tables (Story 3.4) are all SELECT/INSERT/UPDATE with NO DELETE policy
-    // (archive/upsert over hard delete).
+    // The CRM tables (Story 3.1), the settings tables (Story 3.3), the pricing tables
+    // (Story 3.4), and the calculation tables (Story 5.1) are all SELECT/INSERT/UPDATE
+    // with NO DELETE policy (archive/upsert over hard delete).
     const crmSettingsAndPricingTables = [
       "customers",
       "facilities",
@@ -184,6 +199,9 @@ describe("Migration reset green — tenant_foundation objects present (AC1 / R-0
       "quote_terms",
       "work_roles",
       "articles",
+      "calculations",
+      "calculation_sections",
+      "calculation_rows",
     ];
     for (const t of crmSettingsAndPricingTables) {
       expect((cmdsByTable.get(t) ?? []).sort()).toEqual([

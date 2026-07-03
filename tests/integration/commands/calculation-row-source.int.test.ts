@@ -1,0 +1,703 @@
+/**
+ * Story 5.3 — pricing-source ROW SNAPSHOTS (AC1-AC4, P0/P1 — 5.3-INT-01/02/03/04; risks
+ * R-507 freeze / R-502 both-layers cross-tenant). GREEN (the columns + write path exist).
+ *
+ * The HEADLINE behavioural contract of this story: `createRow`/`updateRow`, when given a
+ * `{ source_kind, source_id }` pair, RESOLVE the source under the caller's RLS (Story 3.5
+ * `resolveSnapshotSource`), BUILD the copy-by-value frozen snapshot (Story 3.5
+ * `buildWorkRoleSnapshot`/`buildArticleSnapshot`), and PERSIST the frozen `{source_id,
+ * source_name, source_price_ore, source_cost_ore, source_updated_at, source_captured_at,
+ * source_sku, source_unit}` columns on the row. Once captured, a LATER mutation/archive of
+ * the underlying `work_role`/`article` MUST NOT change the prior row's stored snapshot
+ * (R-008 copy-by-value + freeze — proven behaviourally, not by field-presence alone).
+ *
+ * COVERAGE (test-design-epic-5.md 5.3-INT-01/02/03/04; story AC1-AC4 / Task 2 / Task 4.1):
+ *   - 5.3-INT-01 (AC1/AC2, P0): a labor row with a `work_role` source stores the frozen
+ *     sell(=source_price_ore)/cost(=source_cost_ore)/name/updated_at/captured_at byte/öre-
+ *     equal to the source; a material row with an `article` source stores
+ *     name/unit_price(=source_price_ore)/sku/unit/updated_at — and NO supplier/import field.
+ *   - 5.3-INT-02 (AC3, P0 — the freeze proof): after capture, MUTATE + ARCHIVE the source
+ *     (change the rate, flip is_active false); re-read the row → its `source_*` fields are
+ *     UNCHANGED (the snapshot never recomputes).
+ *   - 5.3-INT-03 (AC4, P0 — both-layers cross-tenant spoof): a Tenant-A create/update
+ *     supplying a Tenant-B `source_id` → `TENANT_ACCESS_DENIED` (resolver RLS layer) AND no
+ *     row persists a foreign source id (resolved-tenant write layer).
+ *   - 5.3-INT-04 (AC3, P1 — archived-source explainability): after the source is archived,
+ *     re-reading the row STILL surfaces the captured name/rate (explainable from the row
+ *     alone — no live re-read of the now-archived source).
+ *
+ * Runs against the LOCAL Supabase stack only; skips visibly when unreachable (the
+ * `SUPABASE_TEST_REQUIRED=1` CI gate turns a skip into a hard failure).
+ */
+import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import {
+  createTwoTenantFixture,
+  makeAuthedServerClient,
+  cleanupFixture,
+  adminInsertCustomer,
+  adminInsertCalculation,
+  adminInsertSection,
+  adminInsertWorkRole,
+  adminInsertArticle,
+  type TwoTenantFixture,
+  type TestServerClient,
+} from "../../factories/tenants";
+import { adminQuery } from "../../factories/admin-sql";
+import { isLocalStackReachable } from "../../support/test-env";
+import { skipUnlessStack } from "../../support/stack-gate";
+import { runCommand } from "@/server/commands/envelope";
+import { createRow, updateRow } from "@/server/commands/calculations";
+import type { CommandClock } from "@/server/commands/clock";
+
+const FIXED_ISO = "2026-07-03T12:00:00.000Z";
+const fixedClock: CommandClock = { now: () => new Date(FIXED_ISO) };
+
+/** The persisted `source_*` snapshot columns this story adds to `calculation_rows`. */
+interface RowSourceReadback {
+  readonly source_kind: string | null;
+  readonly source_id: string | null;
+  readonly source_name: string | null;
+  readonly source_price_ore: number | null;
+  readonly source_cost_ore: number | null;
+  readonly source_updated_at: string | null;
+  readonly source_captured_at: string | null;
+  readonly source_sku: string | null;
+  readonly source_unit: string | null;
+}
+
+/** BYPASSRLS read of the frozen source columns off a row — the explainability surface. */
+async function selectRowSource(rowId: string): Promise<RowSourceReadback | null> {
+  const rows = await adminQuery<{
+    source_kind: string | null;
+    source_id: string | null;
+    source_name: string | null;
+    // pg returns `bigint`/`int8` columns as STRINGS — coerce the öre money columns to a
+    // number for the byte/öre-equal assertions (the established `Number(...)` convention;
+    // see pricing-commands.int.test.ts "bigint returns as a string").
+    source_price_ore: string | null;
+    source_cost_ore: string | null;
+    // pg returns timestamptz as a Date object — coerce to a stable ISO STRING so the freeze
+    // proof's `.toBe` (Object.is) compares by value, not by (distinct) Date reference.
+    source_updated_at: Date | string | null;
+    source_captured_at: Date | string | null;
+    source_sku: string | null;
+    source_unit: string | null;
+  }>(
+    `select source_kind, source_id, source_name, source_price_ore, source_cost_ore,
+            source_updated_at, source_captured_at, source_sku, source_unit
+       from public.calculation_rows where id = $1`,
+    [rowId],
+  );
+  const r = rows[0];
+  if (!r) return null;
+  const iso = (v: Date | string | null): string | null =>
+    v == null ? null : v instanceof Date ? v.toISOString() : v;
+  return {
+    source_kind: r.source_kind,
+    source_id: r.source_id,
+    source_name: r.source_name,
+    source_price_ore: r.source_price_ore == null ? null : Number(r.source_price_ore),
+    source_cost_ore: r.source_cost_ore == null ? null : Number(r.source_cost_ore),
+    source_updated_at: iso(r.source_updated_at),
+    source_captured_at: iso(r.source_captured_at),
+    source_sku: r.source_sku,
+    source_unit: r.source_unit,
+  };
+}
+
+/** BYPASSRLS read of a work_role's live rate + version (to prove capture equals source). */
+async function selectWorkRole(id: string): Promise<{
+  display_name: string;
+  cost_rate_ore: number;
+  sell_rate_ore: number;
+  is_active: boolean;
+  updated_at: string;
+} | null> {
+  const rows = await adminQuery<{
+    display_name: string;
+    // pg returns bigint öre columns as strings — coerce for the byte/öre-equal assertion.
+    cost_rate_ore: string;
+    sell_rate_ore: string;
+    is_active: boolean;
+    updated_at: string;
+  }>(
+    `select display_name, cost_rate_ore, sell_rate_ore, is_active, updated_at
+       from public.work_roles where id = $1`,
+    [id],
+  );
+  const r = rows[0];
+  if (!r) return null;
+  return {
+    display_name: r.display_name,
+    cost_rate_ore: Number(r.cost_rate_ore),
+    sell_rate_ore: Number(r.sell_rate_ore),
+    is_active: r.is_active,
+    updated_at: r.updated_at,
+  };
+}
+
+/** Seed an own-tenant customer → calc → section so a row has a concrete parent. */
+async function seedSection(tenantId: string): Promise<string> {
+  const customerId = await adminInsertCustomer({
+    tenant_id: tenantId,
+    customer_type: "company",
+    display_name: "src-snapshot-owner",
+    org_nr: "556000-7777",
+  });
+  const calcId = await adminInsertCalculation({
+    tenant_id: tenantId,
+    customer_id: customerId,
+    title: "src-snapshot-calc",
+  });
+  return adminInsertSection({
+    tenant_id: tenantId,
+    calculation_id: calcId,
+    title: "src-snapshot-section",
+  });
+}
+
+let stackUp = false;
+let fixture: TwoTenantFixture;
+let a: TestServerClient; // adminA's authenticated anon-key (RLS) client
+
+beforeAll(async () => {
+  stackUp = await isLocalStackReachable();
+  if (!stackUp) return;
+  fixture = await createTwoTenantFixture();
+  a = await makeAuthedServerClient(fixture.adminA);
+});
+
+afterAll(async () => {
+  if (stackUp && fixture) await cleanupFixture(fixture);
+});
+
+describe("Pricing-source row snapshots (AC1-AC4 / 5.3-INT-01/02/03/04)", () => {
+  it("[P0/5.3-INT-01/AC1] a work_role source stores the frozen sell/cost/name/version by value", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
+    const sectionId = await seedSection(fixture.tenantA.id);
+    const roleId = await adminInsertWorkRole({
+      tenant_id: fixture.tenantA.id,
+      display_name: "Elektriker",
+      cost_rate_ore: 45000,
+      sell_rate_ore: 85000,
+    });
+    const role = await selectWorkRole(roleId);
+    expect(role).not.toBeNull();
+
+    const result = await runCommand(createRow, {
+      client: a as never,
+      input: {
+        section_id: sectionId,
+        row_type: "labor",
+        quantity: 1,
+        unit: "h",
+        unit_sell_ore: 85000,
+        vat_rate_bp: 2500,
+        source_kind: "work_role",
+        source_id: roleId,
+      },
+      clock: fixedClock,
+      correlationId: crypto.randomUUID(),
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const rowId = (result.data as { targetId: string }).targetId;
+
+    // The persisted snapshot is BYTE/ÖRE-equal to the source row, captured by value.
+    const snap = await selectRowSource(rowId);
+    expect(snap).not.toBeNull();
+    expect(snap?.source_kind).toBe("work_role");
+    expect(snap?.source_id).toBe(roleId);
+    expect(snap?.source_name).toBe(role?.display_name); // "Elektriker"
+    expect(snap?.source_price_ore).toBe(role?.sell_rate_ore); // sell → price
+    expect(snap?.source_cost_ore).toBe(role?.cost_rate_ore); // cost → cost
+    expect(snap?.source_updated_at).not.toBeNull(); // the source "version"
+    // captured_at is the INJECTED clock instant, never Date.now().
+    expect(new Date(snap?.source_captured_at as string).toISOString()).toBe(FIXED_ISO);
+    // An article-only column stays null on a work-role row.
+    expect(snap?.source_sku).toBeNull();
+    expect(snap?.source_unit).toBeNull();
+  });
+
+  it("[P0/5.3-INT-01/AC2] an article source stores name/unit_price/sku/unit — NO supplier field", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
+    const sectionId = await seedSection(fixture.tenantA.id);
+    const articleId = await adminInsertArticle({
+      tenant_id: fixture.tenantA.id,
+      name: "Kabel 3G1.5",
+      unit_price_ore: 1250,
+    });
+    // The article seed writes only name + unit_price_ore; sku/unit stay null at source, so
+    // the captured sku/unit are null too (copied by value — null stays null).
+    const src = await adminQuery<{
+      name: string;
+      sku: string | null;
+      unit: string | null;
+      // pg returns bigint as a string — coerce below for the öre-equal assertion.
+      unit_price_ore: string;
+    }>(
+      `select name, sku, unit, unit_price_ore from public.articles where id = $1`,
+      [articleId],
+    );
+    expect(src.length).toBe(1);
+
+    const result = await runCommand(createRow, {
+      client: a as never,
+      input: {
+        section_id: sectionId,
+        row_type: "material",
+        quantity: 10,
+        unit: "m",
+        unit_sell_ore: 1250,
+        vat_rate_bp: 2500,
+        source_kind: "article",
+        source_id: articleId,
+      },
+      clock: fixedClock,
+      correlationId: crypto.randomUUID(),
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const rowId = (result.data as { targetId: string }).targetId;
+
+    const snap = await selectRowSource(rowId);
+    expect(snap?.source_kind).toBe("article");
+    expect(snap?.source_id).toBe(articleId);
+    expect(snap?.source_name).toBe(src[0].name); // "Kabel 3G1.5"
+    expect(snap?.source_price_ore).toBe(Number(src[0].unit_price_ore)); // unit_price → price
+    expect(snap?.source_cost_ore).toBeNull(); // an article has no cost rate
+    expect(snap?.source_sku).toBe(src[0].sku);
+    expect(snap?.source_unit).toBe(src[0].unit);
+    // HARD no-supplier-scope: the captured snapshot carries NO supplier/import signal (the
+    // frozen migration-reset guard asserts the COLUMN NAMES; this asserts the VALUES too).
+    expect(JSON.stringify(snap)).not.toMatch(
+      /supplier|credential|api_key|apikey|sync|import|external|fortnox|mapping/i,
+    );
+  });
+
+  it("[P0/5.3-INT-02/AC3] FREEZE PROOF: mutating + archiving the source after capture leaves the row snapshot UNCHANGED", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
+    const sectionId = await seedSection(fixture.tenantA.id);
+    const roleId = await adminInsertWorkRole({
+      tenant_id: fixture.tenantA.id,
+      display_name: "Montör",
+      cost_rate_ore: 40000,
+      sell_rate_ore: 70000,
+    });
+
+    const created = await runCommand(createRow, {
+      client: a as never,
+      input: {
+        section_id: sectionId,
+        row_type: "labor",
+        quantity: 1,
+        unit: "h",
+        unit_sell_ore: 70000,
+        vat_rate_bp: 2500,
+        source_kind: "work_role",
+        source_id: roleId,
+      },
+      clock: fixedClock,
+      correlationId: crypto.randomUUID(),
+    });
+    expect(created.ok).toBe(true);
+    if (!created.ok) return;
+    const rowId = (created.data as { targetId: string }).targetId;
+
+    const before = await selectRowSource(rowId);
+    expect(before?.source_name).toBe("Montör");
+    expect(before?.source_price_ore).toBe(70000);
+
+    // Now MUTATE the underlying work_role (change name + rate) AND ARCHIVE it (is_active
+    // false) via the BYPASSRLS admin path — simulating a later edit/archive of the source.
+    await adminQuery(
+      `update public.work_roles
+          set display_name = 'Montör (uppdaterad)',
+              cost_rate_ore = 99999,
+              sell_rate_ore = 99999,
+              is_active = false
+        where id = $1`,
+      [roleId],
+    );
+
+    // Re-read the ROW: its frozen source snapshot did NOT recompute — the copy-by-value
+    // freeze (R-008) means the prior capture is immune to the later source mutation.
+    const after = await selectRowSource(rowId);
+    expect(after?.source_id).toBe(roleId);
+    expect(after?.source_name).toBe("Montör"); // NOT "Montör (uppdaterad)"
+    expect(after?.source_price_ore).toBe(70000); // NOT 99999
+    expect(after?.source_cost_ore).toBe(before?.source_cost_ore);
+    expect(after?.source_updated_at).toBe(before?.source_updated_at);
+    expect(after?.source_captured_at).toBe(before?.source_captured_at);
+  });
+
+  it("[P0/5.3-INT-03/AC4] cross-tenant source spoof → TENANT_ACCESS_DENIED and no foreign source persisted (create)", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
+    const sectionId = await seedSection(fixture.tenantA.id);
+    // A REAL Tenant-B work role — invisible to Tenant A under RLS.
+    const foreignRoleId = await adminInsertWorkRole({
+      tenant_id: fixture.tenantB.id,
+      display_name: "tenant-b-role",
+      cost_rate_ore: 30000,
+      sell_rate_ore: 60000,
+    });
+
+    const result = await runCommand(createRow, {
+      client: a as never, // Tenant A's RLS client
+      input: {
+        section_id: sectionId,
+        row_type: "labor",
+        quantity: 1,
+        unit: "h",
+        unit_sell_ore: 60000,
+        vat_rate_bp: 2500,
+        source_kind: "work_role",
+        source_id: foreignRoleId, // Tenant B's id — layer-1 resolver RLS makes it invisible
+      },
+      clock: fixedClock,
+      correlationId: crypto.randomUUID(),
+    });
+
+    // Layer 1: the resolver's own-tenant RLS SELECT returns zero rows → typed denial.
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.code).toBe("TENANT_ACCESS_DENIED");
+
+    // Layer 2: NO row was persisted carrying the foreign source id — there is no path to
+    // write a cross-tenant source (the snapshot is copy-by-value of the RESOLVED, always
+    // own-tenant, row; the resolver never returned one).
+    const leaked = await adminQuery<{ id: string }>(
+      `select id from public.calculation_rows where source_id = $1`,
+      [foreignRoleId],
+    );
+    expect(leaked.length).toBe(0);
+  });
+
+  it("[P0/5.3-INT-03/AC4] cross-tenant source spoof on updateRow → TENANT_ACCESS_DENIED, row's source unchanged", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
+    const sectionId = await seedSection(fixture.tenantA.id);
+    // An own-tenant row with NO source yet (manual).
+    const created = await runCommand(createRow, {
+      client: a as never,
+      input: {
+        section_id: sectionId,
+        row_type: "labor",
+        quantity: 1,
+        unit: "h",
+        unit_sell_ore: 50000,
+        vat_rate_bp: 2500,
+      },
+      clock: fixedClock,
+      correlationId: crypto.randomUUID(),
+    });
+    expect(created.ok).toBe(true);
+    if (!created.ok) return;
+    const rowId = (created.data as { targetId: string }).targetId;
+
+    const foreignRoleId = await adminInsertWorkRole({
+      tenant_id: fixture.tenantB.id,
+      display_name: "tenant-b-role-2",
+    });
+
+    const result = await runCommand(updateRow, {
+      client: a as never,
+      input: { id: rowId, source_kind: "work_role", source_id: foreignRoleId },
+      clock: fixedClock,
+      correlationId: crypto.randomUUID(),
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.code).toBe("TENANT_ACCESS_DENIED");
+
+    // The row stays manual — no foreign source was written under a denied update.
+    const snap = await selectRowSource(rowId);
+    expect(snap?.source_kind).toBeNull();
+    expect(snap?.source_id).toBeNull();
+  });
+
+  it("[P0/5.3-INT-07/AC1] SOURCE-ONLY update against a MISMATCHED persisted row_type is rejected (VALIDATION_FAILED), row unchanged", async (testCtx) => {
+    // Integration review iter-2 — closes the residual of iter-1 Finding #3 on the UPDATE
+    // path. A crafted TWO-STEP write: create a valid `{row_type:"material", article source}`
+    // row, then send `{ id, source_kind:"work_role", source_id:<valid own work role> }` with
+    // NO row_type. The pure validator ACCEPTS the source-only pair (it cannot know the
+    // persisted type), so `updateRow.execute` MUST load the row's REAL persisted row_type
+    // under RLS and reject the kind/row_type mismatch — otherwise a work-role snapshot would
+    // land on a material row (the exact Finding #3 attack via the update path).
+    if (skipUnlessStack(testCtx, stackUp)) return;
+    const sectionId = await seedSection(fixture.tenantA.id);
+    const articleId = await adminInsertArticle({
+      tenant_id: fixture.tenantA.id,
+      name: "Kabelskena",
+      unit_price_ore: 2100,
+    });
+    // Step 1: a legitimate MATERIAL row sourced from an article.
+    const created = await runCommand(createRow, {
+      client: a as never,
+      input: {
+        section_id: sectionId,
+        row_type: "material",
+        quantity: 2,
+        unit: "m",
+        unit_sell_ore: 2100,
+        vat_rate_bp: 2500,
+        source_kind: "article",
+        source_id: articleId,
+      },
+      clock: fixedClock,
+      correlationId: crypto.randomUUID(),
+    });
+    expect(created.ok).toBe(true);
+    if (!created.ok) return;
+    const rowId = (created.data as { targetId: string }).targetId;
+
+    const before = await selectRowSource(rowId);
+    expect(before?.source_kind).toBe("article");
+    expect(before?.source_id).toBe(articleId);
+
+    // A REAL own-tenant work role — a valid, resolvable source, so the ONLY thing that can
+    // reject the write is the row_type↔source_kind cross-check against the PERSISTED type.
+    const ownRoleId = await adminInsertWorkRole({
+      tenant_id: fixture.tenantA.id,
+      display_name: "Elektriker (crafted)",
+      cost_rate_ore: 45000,
+      sell_rate_ore: 85000,
+    });
+
+    // Step 2: the crafted source-only update — a work_role source, NO row_type, against a
+    // persisted MATERIAL row. Must be rejected server-side with VALIDATION_FAILED.
+    const result = await runCommand(updateRow, {
+      client: a as never,
+      input: { id: rowId, source_kind: "work_role", source_id: ownRoleId },
+      clock: fixedClock,
+      correlationId: crypto.randomUUID(),
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.code).toBe("VALIDATION_FAILED");
+
+    // The row's source is UNCHANGED — no work-role snapshot landed on the material row.
+    const after = await selectRowSource(rowId);
+    expect(after?.source_kind).toBe("article");
+    expect(after?.source_id).toBe(articleId);
+    expect(after?.source_name).toBe(before?.source_name);
+    expect(after?.source_price_ore).toBe(before?.source_price_ore);
+  });
+
+  it("[P1/5.3-INT-08/AC1] SOURCE-ONLY update against a MATCHING persisted row_type still succeeds (no false rejection)", async (testCtx) => {
+    // Guard the fix does not over-reject: a labor row re-sourced to a NEW work role via a
+    // source-only update (no row_type) must still succeed — the persisted labor→work_role
+    // cross-check passes, so the fix is a precise mismatch gate, not a blanket block.
+    if (skipUnlessStack(testCtx, stackUp)) return;
+    const sectionId = await seedSection(fixture.tenantA.id);
+    const firstRoleId = await adminInsertWorkRole({
+      tenant_id: fixture.tenantA.id,
+      display_name: "Montör A",
+      cost_rate_ore: 40000,
+      sell_rate_ore: 72000,
+    });
+    const secondRoleId = await adminInsertWorkRole({
+      tenant_id: fixture.tenantA.id,
+      display_name: "Montör B",
+      cost_rate_ore: 41000,
+      sell_rate_ore: 76000,
+    });
+    const created = await runCommand(createRow, {
+      client: a as never,
+      input: {
+        section_id: sectionId,
+        row_type: "labor",
+        quantity: 1,
+        unit: "h",
+        unit_sell_ore: 72000,
+        vat_rate_bp: 2500,
+        source_kind: "work_role",
+        source_id: firstRoleId,
+      },
+      clock: fixedClock,
+      correlationId: crypto.randomUUID(),
+    });
+    expect(created.ok).toBe(true);
+    if (!created.ok) return;
+    const rowId = (created.data as { targetId: string }).targetId;
+
+    // Source-only re-source (NO row_type) to a matching-kind work role → accepted.
+    const result = await runCommand(updateRow, {
+      client: a as never,
+      input: { id: rowId, source_kind: "work_role", source_id: secondRoleId },
+      clock: fixedClock,
+      correlationId: crypto.randomUUID(),
+    });
+    expect(result.ok).toBe(true);
+
+    const after = await selectRowSource(rowId);
+    expect(after?.source_kind).toBe("work_role");
+    expect(after?.source_id).toBe(secondRoleId);
+    expect(after?.source_name).toBe("Montör B");
+    expect(after?.source_price_ore).toBe(76000);
+  });
+
+  it("[P1/5.3-INT-05/AC1] source CLEAR round-trip: setting then clearing a source nulls ALL source_* columns together", async (testCtx) => {
+    // Task 2.4 headline (cleared-binding trap) proven at the DB layer, not just at the
+    // parser/validator: an admin switches a sourced row BACK to manual (`source_clear`) →
+    // every source_* column returns to null TOGETHER — never a half-cleared source.
+    if (skipUnlessStack(testCtx, stackUp)) return;
+    const sectionId = await seedSection(fixture.tenantA.id);
+    const roleId = await adminInsertWorkRole({
+      tenant_id: fixture.tenantA.id,
+      display_name: "Servicetekniker",
+      cost_rate_ore: 42000,
+      sell_rate_ore: 78000,
+    });
+
+    // Create a row WITH the work-role source.
+    const created = await runCommand(createRow, {
+      client: a as never,
+      input: {
+        section_id: sectionId,
+        row_type: "labor",
+        quantity: 1,
+        unit: "h",
+        unit_sell_ore: 78000,
+        vat_rate_bp: 2500,
+        source_kind: "work_role",
+        source_id: roleId,
+      },
+      clock: fixedClock,
+      correlationId: crypto.randomUUID(),
+    });
+    expect(created.ok).toBe(true);
+    if (!created.ok) return;
+    const rowId = (created.data as { targetId: string }).targetId;
+
+    // Sanity: the source columns are populated (a full snapshot, not a half-set one).
+    const set = await selectRowSource(rowId);
+    expect(set?.source_kind).toBe("work_role");
+    expect(set?.source_id).toBe(roleId);
+    expect(set?.source_name).toBe("Servicetekniker");
+    expect(set?.source_price_ore).toBe(78000);
+    expect(set?.source_cost_ore).toBe(42000);
+    expect(set?.source_updated_at).not.toBeNull();
+    expect(set?.source_captured_at).not.toBeNull();
+
+    // Now CLEAR the source (switch back to manual) via the explicit clear.
+    const cleared = await runCommand(updateRow, {
+      client: a as never,
+      input: { id: rowId, source_clear: true },
+      clock: fixedClock,
+      correlationId: crypto.randomUUID(),
+    });
+    expect(cleared.ok).toBe(true);
+
+    // EVERY source_* column is null TOGETHER — no half-cleared source survives.
+    const snap = await selectRowSource(rowId);
+    expect(snap?.source_kind).toBeNull();
+    expect(snap?.source_id).toBeNull();
+    expect(snap?.source_name).toBeNull();
+    expect(snap?.source_price_ore).toBeNull();
+    expect(snap?.source_cost_ore).toBeNull();
+    expect(snap?.source_updated_at).toBeNull();
+    expect(snap?.source_captured_at).toBeNull();
+    expect(snap?.source_sku).toBeNull();
+    expect(snap?.source_unit).toBeNull();
+  });
+
+  it("[P1/5.3-INT-06/AC1] source REPLACE: switching to a different source REPLACES all captured columns together", async (testCtx) => {
+    // An update that supplies a NEW {source_kind, source_id} pair re-resolves + re-freezes:
+    // the row's captured columns move WHOLESALE to the new source (no stale field from the
+    // prior source lingers). Also proves an already-sourced row can be re-sourced (not only
+    // manual→sourced).
+    if (skipUnlessStack(testCtx, stackUp)) return;
+    const sectionId = await seedSection(fixture.tenantA.id);
+    const firstRoleId = await adminInsertWorkRole({
+      tenant_id: fixture.tenantA.id,
+      display_name: "Lärling",
+      cost_rate_ore: 20000,
+      sell_rate_ore: 40000,
+    });
+    const secondRoleId = await adminInsertWorkRole({
+      tenant_id: fixture.tenantA.id,
+      display_name: "Förman",
+      cost_rate_ore: 55000,
+      sell_rate_ore: 95000,
+    });
+
+    const created = await runCommand(createRow, {
+      client: a as never,
+      input: {
+        section_id: sectionId,
+        row_type: "labor",
+        quantity: 1,
+        unit: "h",
+        unit_sell_ore: 40000,
+        vat_rate_bp: 2500,
+        source_kind: "work_role",
+        source_id: firstRoleId,
+      },
+      clock: fixedClock,
+      correlationId: crypto.randomUUID(),
+    });
+    expect(created.ok).toBe(true);
+    if (!created.ok) return;
+    const rowId = (created.data as { targetId: string }).targetId;
+
+    const before = await selectRowSource(rowId);
+    expect(before?.source_id).toBe(firstRoleId);
+    expect(before?.source_name).toBe("Lärling");
+    expect(before?.source_price_ore).toBe(40000);
+
+    // Re-source the row to the SECOND work role.
+    const replaced = await runCommand(updateRow, {
+      client: a as never,
+      input: { id: rowId, source_kind: "work_role", source_id: secondRoleId },
+      clock: fixedClock,
+      correlationId: crypto.randomUUID(),
+    });
+    expect(replaced.ok).toBe(true);
+
+    // The captured columns are now WHOLLY the second source — nothing stale from the first.
+    const after = await selectRowSource(rowId);
+    expect(after?.source_kind).toBe("work_role");
+    expect(after?.source_id).toBe(secondRoleId);
+    expect(after?.source_name).toBe("Förman"); // NOT "Lärling"
+    expect(after?.source_price_ore).toBe(95000); // NOT 40000
+    expect(after?.source_cost_ore).toBe(55000); // NOT 20000
+  });
+
+  it("[P1/5.3-INT-04/AC3] after the source is ARCHIVED, the row is still explainable from its own captured fields", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
+    const sectionId = await seedSection(fixture.tenantA.id);
+    const articleId = await adminInsertArticle({
+      tenant_id: fixture.tenantA.id,
+      name: "Dosa infälld",
+      unit_price_ore: 3900,
+    });
+
+    const created = await runCommand(createRow, {
+      client: a as never,
+      input: {
+        section_id: sectionId,
+        row_type: "material",
+        quantity: 4,
+        unit: "st",
+        unit_sell_ore: 3900,
+        vat_rate_bp: 2500,
+        source_kind: "article",
+        source_id: articleId,
+      },
+      clock: fixedClock,
+      correlationId: crypto.randomUUID(),
+    });
+    expect(created.ok).toBe(true);
+    if (!created.ok) return;
+    const rowId = (created.data as { targetId: string }).targetId;
+
+    // Archive the article (is_active false) — it would no longer be OFFERED for a NEW
+    // selection, but the prior row must remain fully explainable from its OWN fields.
+    await adminQuery(
+      `update public.articles set is_active = false where id = $1`,
+      [articleId],
+    );
+
+    const snap = await selectRowSource(rowId);
+    expect(snap?.source_kind).toBe("article");
+    expect(snap?.source_name).toBe("Dosa infälld"); // captured name survives the archive
+    expect(snap?.source_price_ore).toBe(3900); // captured rate survives the archive
+  });
+});

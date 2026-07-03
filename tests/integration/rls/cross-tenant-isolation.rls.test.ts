@@ -33,9 +33,13 @@ import {
   adminInsertQuoteTerms,
   adminInsertWorkRole,
   adminInsertArticle,
+  adminInsertCalculation,
+  adminInsertSection,
+  adminInsertRow,
   adminSelectCrmRowById,
   adminSelectSettingsLabel,
   adminSelectPricingRow,
+  adminSelectCalcLabel,
   type TwoTenantFixture,
   type TestServerClient,
 } from "../../factories/tenants";
@@ -63,6 +67,9 @@ let tenantBCompanySettingsId: string; // a seeded Tenant B company_settings (3.3
 let tenantBQuoteTermsId: string; // a seeded Tenant B quote_terms (3.3 target)
 let tenantBWorkRoleId: string; // a seeded Tenant B work_role (3.4 pricing target)
 let tenantBArticleId: string; // a seeded Tenant B article (3.4 pricing target)
+let tenantBCalculationId: string; // a seeded Tenant B calc (5.1 calculation target)
+let tenantBCalcSectionId: string; // a seeded Tenant B section (5.1 calculation target)
+let tenantBCalcRowId: string; // a seeded Tenant B row (5.1 calculation target)
 let ctx: InventoryContext; // shared-inventory context (fixture + the seeded ids)
 
 beforeAll(async () => {
@@ -127,6 +134,32 @@ beforeAll(async () => {
     tenant_id: fixture.tenantB.id,
     name: "tenant-b-article-seed",
   });
+  // Seed a REAL Tenant B CALCULATION chain (calc → section → row, Story 5.1) so the
+  // calculations/calculation_sections/calculation_rows cross-tenant negatives target a
+  // CONCRETE Tenant B row (never a non-existent id that would deny vacuously), AND so
+  // the section/row spoof INSERTs have a real Tenant B parent to reference. The composite
+  // same-tenant FKs force the child rows into the SAME Tenant B, so the chain is
+  // consistent. cleanupFixture's tenant-delete cascades these. The unchanged re-read
+  // asserts these seed labels were NOT overwritten by Tenant A's denied UPDATE.
+  tenantBCalculationId = await adminInsertCalculation({
+    tenant_id: fixture.tenantB.id,
+    customer_id: tenantBCustomerId,
+    title: "tenant-b-calc-seed",
+  });
+  tenantBCalcSectionId = await adminInsertSection({
+    tenant_id: fixture.tenantB.id,
+    calculation_id: tenantBCalculationId,
+    title: "tenant-b-section-seed",
+  });
+  tenantBCalcRowId = await adminInsertRow({
+    tenant_id: fixture.tenantB.id,
+    section_id: tenantBCalcSectionId,
+    row_type: "labor",
+    unit_cost_ore: 45000,
+    unit_sell_ore: 85000,
+    // label is the rls-invisible re-read column for calculation_rows; a recognizable
+    // seed token so the unchanged re-read can assert it was not overwritten.
+  });
   // VACUITY GUARD (DX#4, epic-2 hardening): the audit_events cross-tenant negatives
   // filter Tenant B's row by `id = tenantBAuditId`. If the seed ever returned without
   // a real id, `.eq("id", undefined/null)` would match NOTHING and the SELECT/UPDATE/
@@ -161,6 +194,13 @@ beforeAll(async () => {
         "cross-tenant negatives would pass VACUOUSLY against a non-existent row.",
     );
   }
+  if (!tenantBCalculationId || !tenantBCalcSectionId || !tenantBCalcRowId) {
+    throw new Error(
+      "cross-tenant calculation seed produced no id (calculations/calculation_sections/" +
+        "calculation_rows) — the calc cross-tenant negatives would pass VACUOUSLY " +
+        "against a non-existent row.",
+    );
+  }
   ctx = {
     fixture,
     tenantBAuditId,
@@ -171,6 +211,9 @@ beforeAll(async () => {
     tenantBQuoteTermsId,
     tenantBWorkRoleId,
     tenantBArticleId,
+    tenantBCalculationId,
+    tenantBCalcSectionId,
+    tenantBCalcRowId,
   };
 });
 
@@ -242,6 +285,15 @@ describe("Cross-tenant RLS isolation — data-driven over the shared inventory (
           } else if (table === "work_roles" || table === "articles") {
             const labelColumn = rlsInvisibleLabelColumn(table);
             const row = await adminSelectPricingRow(table, labelColumn, value);
+            expect(row).not.toBeNull();
+            expect(row?.label).not.toBe("hijacked-by-tenant-a");
+          } else if (
+            table === "calculations" ||
+            table === "calculation_sections" ||
+            table === "calculation_rows"
+          ) {
+            const labelColumn = rlsInvisibleLabelColumn(table);
+            const row = await adminSelectCalcLabel(table, labelColumn, value);
             expect(row).not.toBeNull();
             expect(row?.label).not.toBe("hijacked-by-tenant-a");
           } else {

@@ -1,0 +1,242 @@
+{
+  "_doc": "Story 5.5 GOLDEN FIXTURE — the CALC-ROW pack of the AC1 categories NOT already owned by an existing money fixture (5.5-GOLDEN-01, R-505/R-508/R-509/R-512/R-516). Pins the calc-row-layer cases the full pack drives through the REAL calc oracle (src/features/calculations/totals.ts + readiness.ts + vat-posture.ts, which delegate every öre op to the frozen @/lib/money engine): the FIVE row types (labor/material/subcontractor/machinery/other), FRACTIONAL quantities at the calc-row level, MARGINS (TB% = (sell − cost)/sell below/at/above the pilot 0.15 threshold), and the SECTION DISPLAY MODES (detailed/summary/text_only). SINGLE NUMERIC AUTHORITY PER CATEGORY (R-508): this fixture does NOT re-pin a number another money fixture already owns — options/tillval + hidden rows live in options-tillval.json, ROT/grön/caps/mix/eligibility in rot-gron-deductions.json, regular VAT + the fractional-qty CHAIN in vat-rates.json (fractionalQuantityChainCase), rounding in rounding-mode.json. The pack REFERENCES those authorities and PROVES the calc-row surface reproduces their pinned öre; a calc-row total that DIVERGES from a frozen pin is a STOP (needs-human), never a re-pin. The öre numbers below are NEW-to-this-fixture calc-row compositions (they belong to the row-type / fractional-qty / margin / section-mode categories this fixture OWNS), computed by the SAME frozen engine (line net = roundToOre(qty*unit_sell_ore) half-away-from-zero; per-line VAT = roundToOre(net*vat_rate_bp/10000); section totals = sum-of-rounded via sumOre/sumVatOre) — a LIVE oracle, not static schema: the golden-pack test drives totals.ts/readiness.ts on these exact rows and asserts the OUTPUT equals the pinned öre/classification. INCLUSION is the FROZEN 2026-06-18 pin (hidden + selected COUNT; unselected does NOT) — this fixture does NOT re-decide it. TB% is computed by readiness.ts#rowMarginRatio (a pure ratio of already-öre values), NOT inline in the test (R-505). NOTHING is production-approved: policy.signOff stays pending-owner-accounting-legal; the underlying ROT/grön/VAT/rounding rates stay the Epic-4 UNAPPROVED placeholders; a ROT/grön warning is an ESTIMATE requiring sign-off (never legally-final); persons stays a FLAT cap (no per-person multiplier, R-512). Money/rate/qty numbers + policy prose ONLY — NO PII (personnummer/orgnr/name/email/phone/address), NO clock (NFR17/R-516); every öre value is UNDER 10 digits (the orgnr-scan false-positive trap, deferred-work.md#epic-4 Iter-2). The engine takes an eligibility POSTURE, never a personnummer. Each case carries an `origin` (new-expected / documented-delta / old-lovable) + a non-empty `note`; a documented-delta records the divergent old-Lovable value it diverges from. STOP (needs-human) if a DIFFERENT inclusion rule / a divergent pinned öre must be treated as production-approved, if a document-level-rounding / discount / negative-amount row model is needed, or if a real Lovable customer-data example is required to produce an expected value (Lovable is a behavioral oracle only — capture shapes, never copy code/data).",
+  "policy": {
+    "oreUnit": "integer öre (never a fractional öre)",
+    "lineNet": "line net = roundToOre(quantity * unit_sell_ore) under the SINGLE Story 4.1 half-away-from-zero mode (via totals.ts#computeLineTotal -> @/lib/money#lineNetOre)",
+    "lineVat": "per-line VAT = roundToOre(lineNet * vat_rate_bp / 10000) (via @/lib/money#vatBreakdown); the rate ALWAYS flows in as basis points — NO hidden 0.25/25 literal",
+    "sectionTotals": "section net/VAT = sum-of-rounded of the INCLUDED line nets/VATs (via totals.ts#computeSectionTotal -> @/lib/money#sumOre/sumVatOre); gross = net + VAT (derived)",
+    "inclusion": "the FROZEN 2026-06-18 pin (owner decision): a SELECTED option and a HIDDEN row COUNT toward totals; an UNSELECTED option does NOT. This fixture does NOT re-decide the rule — it lives in options-tillval.json + totals.ts#rowCountsTowardTotal",
+    "margin": "TB% = (unit_sell_ore − unit_cost_ore)/unit_sell_ore, computed by readiness.ts#rowMarginRatio (a pure ratio of already-öre values); a counted row TB% strictly BELOW PILOT_LOW_MARGIN_THRESHOLD (0.15) warns LOW_MARGIN; a 0-sell row has NO defined margin (ZERO_PRICE_ROW owns it), never a divide-by-zero",
+    "sectionModes": "detailed / summary / text_only are PRESENTATION metadata on a section; the display mode does NOT change the computeSectionTotal source öre (a section composes to the same net/VAT/gross under every mode)",
+    "vatDisplay": "excl/incl/both are presentation-only views over the same net + VAT öre (via vat-posture.ts#resolveVatDisplayPosture -> totals.ts#resolveTotalDisplay -> @/lib/money#selectVatDisplay); a posture round-trip returns the identical stored öre; the underlying breakdown öre are REFERENCED from vat-rates.json, not invented here",
+    "singleNumericAuthority": "R-508 — this fixture owns ONLY the row-type / fractional-qty / margin / section-mode calc-row compositions; options/tillval + hidden rows -> options-tillval.json, ROT/grön -> rot-gron-deductions.json, regular VAT + fractional-qty chain -> vat-rates.json, rounding -> rounding-mode.json",
+    "approval": "NOTHING production-approved — the underlying rates/caps/thresholds stay the Epic-4 UNAPPROVED placeholders (PILOT_LOW_MARGIN_THRESHOLD, *_UNAPPROVED profiles); a deduction is an ESTIMATE requiring sign-off, never legally-final; persons stays a FLAT cap (R-512)",
+    "signOff": "pending-owner-accounting-legal"
+  },
+  "cases": [
+    {
+      "id": "row-type-labor",
+      "category": "row-type-labor",
+      "origin": "new-expected",
+      "note": "LABOR row @ 2500 bp. quantity 1 * unit_sell_ore 12000 -> line net = roundToOre(12000) = 12000 öre; per-line VAT = roundToOre(12000*2500/10000) = roundToOre(3000) = 3000 öre; gross 15000. A labor row with NO source_kind='work_role' also exercises the MISSING_WORK_ROLE readiness warning. The row-type field is metadata — the money math is the SAME engine path for every row type (a row type never forks the öre computation).",
+      "row_type": "labor",
+      "quantity": 1,
+      "unit_cost_ore": 9000,
+      "unit_sell_ore": 12000,
+      "vat_rate_bp": 2500,
+      "source_kind": null,
+      "expectedLineNetOre": 12000,
+      "expectedLineVatOre": 3000,
+      "expectedLineGrossOre": 15000
+    },
+    {
+      "id": "row-type-material",
+      "category": "row-type-material",
+      "origin": "new-expected",
+      "note": "MATERIAL row @ 2500 bp. quantity 1 * unit_sell_ore 8000 -> line net 8000 öre; per-line VAT = roundToOre(8000*2500/10000) = 2000 öre; gross 10000. A material row carries source_kind='article' when a pricing source is attached (no MISSING_WORK_ROLE — that rule is labor-only).",
+      "row_type": "material",
+      "quantity": 1,
+      "unit_cost_ore": 6000,
+      "unit_sell_ore": 8000,
+      "vat_rate_bp": 2500,
+      "source_kind": "article",
+      "expectedLineNetOre": 8000,
+      "expectedLineVatOre": 2000,
+      "expectedLineGrossOre": 10000
+    },
+    {
+      "id": "row-type-subcontractor",
+      "category": "row-type-subcontractor",
+      "origin": "new-expected",
+      "note": "SUBCONTRACTOR row @ 2500 bp. quantity 1 * unit_sell_ore 25000 -> line net 25000 öre; per-line VAT = roundToOre(25000*2500/10000) = 6250 öre; gross 31250.",
+      "row_type": "subcontractor",
+      "quantity": 1,
+      "unit_cost_ore": 20000,
+      "unit_sell_ore": 25000,
+      "vat_rate_bp": 2500,
+      "source_kind": null,
+      "expectedLineNetOre": 25000,
+      "expectedLineVatOre": 6250,
+      "expectedLineGrossOre": 31250
+    },
+    {
+      "id": "row-type-machinery",
+      "category": "row-type-machinery",
+      "origin": "new-expected",
+      "note": "MACHINERY row @ 2500 bp. quantity 1 * unit_sell_ore 5000 -> line net 5000 öre; per-line VAT = roundToOre(5000*2500/10000) = 1250 öre; gross 6250.",
+      "row_type": "machinery",
+      "quantity": 1,
+      "unit_cost_ore": 4000,
+      "unit_sell_ore": 5000,
+      "vat_rate_bp": 2500,
+      "source_kind": null,
+      "expectedLineNetOre": 5000,
+      "expectedLineVatOre": 1250,
+      "expectedLineGrossOre": 6250
+    },
+    {
+      "id": "row-type-other",
+      "category": "row-type-other",
+      "origin": "new-expected",
+      "note": "OTHER row @ 2500 bp. quantity 1 * unit_sell_ore 3000 -> line net 3000 öre; per-line VAT = roundToOre(3000*2500/10000) = 750 öre; gross 3750.",
+      "row_type": "other",
+      "quantity": 1,
+      "unit_cost_ore": 2000,
+      "unit_sell_ore": 3000,
+      "vat_rate_bp": 2500,
+      "source_kind": null,
+      "expectedLineNetOre": 3000,
+      "expectedLineVatOre": 750,
+      "expectedLineGrossOre": 3750
+    },
+    {
+      "id": "row-types-section-composition",
+      "category": "row-type-section",
+      "origin": "new-expected",
+      "note": "A section holding ALL FIVE row types (labor 12000 / material 8000 / subcontractor 25000 / machinery 5000 / other 3000 öre, all @ 2500 bp). Section net = sum-of-rounded of the line nets = sumOre([12000,8000,25000,5000,3000]) = 53000 öre; section VAT = sum-of-rounded of the per-line VATs = sumVatOre([3000,2000,6250,1250,750]) = 13250 öre; section gross = 66250. Proves the FIVE row types compose through computeSectionTotal identically (a row type never contributes differently to the section sum).",
+      "sectionLines": [
+        { "row_type": "labor", "quantity": 1, "unit_sell_ore": 12000, "vat_rate_bp": 2500 },
+        { "row_type": "material", "quantity": 1, "unit_sell_ore": 8000, "vat_rate_bp": 2500 },
+        { "row_type": "subcontractor", "quantity": 1, "unit_sell_ore": 25000, "vat_rate_bp": 2500 },
+        { "row_type": "machinery", "quantity": 1, "unit_sell_ore": 5000, "vat_rate_bp": 2500 },
+        { "row_type": "other", "quantity": 1, "unit_sell_ore": 3000, "vat_rate_bp": 2500 }
+      ],
+      "expectedSectionNetOre": 53000,
+      "expectedSectionVatOre": 13250,
+      "expectedSectionGrossOre": 66250
+    },
+    {
+      "id": "fractional-quantity-calc-row",
+      "category": "fractional-quantities",
+      "origin": "new-expected",
+      "note": "FRACTIONAL quantity at the calc-row level — the SAME chain vat-rates.json#fractionalQuantityChainCase pins through the raw engine, driven here through totals.ts#computeLineTotal. quantity 2.5 * unit_sell_ore 333 -> line net = roundToOre(832.5) = 833 öre (half-away-from-zero); per-line VAT @ 2500 bp = roundToOre(833*2500/10000) = roundToOre(208.25) = 208 öre; gross 1041. R-508: vat-rates.json is the single numeric authority for this chain — this case REFERENCES its pinned öre (2.5 / 333 / 833 / 208 / 1041) and proves the calc-row surface reproduces them; a divergence is a STOP, not a re-pin.",
+      "row_type": "material",
+      "quantity": 2.5,
+      "unit_sell_ore": 333,
+      "vat_rate_bp": 2500,
+      "referenceFixture": "vat-rates.json",
+      "referenceCase": "fractionalQuantityChainCase",
+      "expectedLineNetOre": 833,
+      "expectedLineVatOre": 208,
+      "expectedLineGrossOre": 1041
+    },
+    {
+      "id": "margin-below-threshold-low-margin",
+      "category": "margins",
+      "origin": "new-expected",
+      "note": "MARGIN below the pilot threshold -> LOW_MARGIN warning. TB% = (unit_sell_ore − unit_cost_ore)/unit_sell_ore = (10000 − 9000)/10000 = 0.10, strictly BELOW PILOT_LOW_MARGIN_THRESHOLD (0.15) -> readiness.ts raises LOW_MARGIN. TB% is computed by readiness.ts#rowMarginRatio (a pure ratio of already-öre values) — NOT inline in the test (R-505). The threshold is an UNAPPROVED pilot constant (deferred-work.md#5-4); this case asserts the CLASSIFICATION, not an approved rate.",
+      "row_type": "material",
+      "quantity": 1,
+      "unit_cost_ore": 9000,
+      "unit_sell_ore": 10000,
+      "vat_rate_bp": 2500,
+      "expectedMarginRatio": 0.1,
+      "expectLowMarginWarning": true
+    },
+    {
+      "id": "margin-at-threshold-no-warning",
+      "category": "margins",
+      "origin": "new-expected",
+      "note": "MARGIN exactly AT the threshold -> NO LOW_MARGIN warning (the rule is strictly-below). TB% = (10000 − 8500)/10000 = 0.15 = PILOT_LOW_MARGIN_THRESHOLD exactly; 0.15 is NOT < 0.15, so no low-margin warning. The at-boundary case pins the strict-inequality edge.",
+      "row_type": "material",
+      "quantity": 1,
+      "unit_cost_ore": 8500,
+      "unit_sell_ore": 10000,
+      "vat_rate_bp": 2500,
+      "expectedMarginRatio": 0.15,
+      "expectLowMarginWarning": false
+    },
+    {
+      "id": "margin-above-threshold-no-warning",
+      "category": "margins",
+      "origin": "new-expected",
+      "note": "MARGIN comfortably ABOVE the threshold -> NO LOW_MARGIN warning. TB% = (10000 − 5000)/10000 = 0.50, well above 0.15.",
+      "row_type": "material",
+      "quantity": 1,
+      "unit_cost_ore": 5000,
+      "unit_sell_ore": 10000,
+      "vat_rate_bp": 2500,
+      "expectedMarginRatio": 0.5,
+      "expectLowMarginWarning": false
+    },
+    {
+      "id": "margin-zero-sell-no-margin-zero-price-row",
+      "category": "margins",
+      "origin": "new-expected",
+      "note": "A 0-sell row has NO defined margin — the ZERO_PRICE_ROW rule owns it, NOT a divide-by-zero -Infinity margin (readiness.ts#rowMarginRatio returns null for sell<=0). This case asserts NO LOW_MARGIN from a 0-sell row AND that ZERO_PRICE_ROW is raised instead — a 0-sell row must never also read as a low-margin defect.",
+      "row_type": "material",
+      "quantity": 1,
+      "unit_cost_ore": 0,
+      "unit_sell_ore": 0,
+      "vat_rate_bp": 2500,
+      "expectedMarginRatio": null,
+      "expectLowMarginWarning": false,
+      "expectZeroPriceRow": true
+    },
+    {
+      "id": "section-mode-detailed",
+      "category": "section-mode-detailed",
+      "origin": "new-expected",
+      "note": "SECTION display mode 'detailed'. Two rows (7000 + 11000 öre @ 2500 bp) compose to section net = sumOre([7000,11000]) = 18000 öre; section VAT = sumVatOre([1750,2750]) = 4500 öre; gross 22500. display_mode is PRESENTATION metadata — it does NOT enter computeSectionTotal, so the section total is IDENTICAL under detailed/summary/text_only (5.2-UNIT-04). Owner decision 2026-06-18: detailed + text_only first.",
+      "display_mode": "detailed",
+      "sectionLines": [
+        { "row_type": "labor", "quantity": 1, "unit_sell_ore": 7000, "vat_rate_bp": 2500 },
+        { "row_type": "material", "quantity": 1, "unit_sell_ore": 11000, "vat_rate_bp": 2500 }
+      ],
+      "expectedSectionNetOre": 18000,
+      "expectedSectionVatOre": 4500,
+      "expectedSectionGrossOre": 22500
+    },
+    {
+      "id": "section-mode-summary",
+      "category": "section-mode-summary",
+      "origin": "new-expected",
+      "note": "SECTION display mode 'summary' — the SAME two rows (7000 + 11000 öre @ 2500 bp) compose to the SAME section total (net 18000 / VAT 4500 / gross 22500). Proves the presentation mode does not change the source öre; a summary section still totals its underlying rows through the engine.",
+      "display_mode": "summary",
+      "sectionLines": [
+        { "row_type": "labor", "quantity": 1, "unit_sell_ore": 7000, "vat_rate_bp": 2500 },
+        { "row_type": "material", "quantity": 1, "unit_sell_ore": 11000, "vat_rate_bp": 2500 }
+      ],
+      "expectedSectionNetOre": 18000,
+      "expectedSectionVatOre": 4500,
+      "expectedSectionGrossOre": 22500
+    },
+    {
+      "id": "section-mode-text_only",
+      "category": "section-mode-text_only",
+      "origin": "new-expected",
+      "note": "SECTION display mode 'text_only' — the SAME two rows (7000 + 11000 öre @ 2500 bp) still compose to the SAME section total (net 18000 / VAT 4500 / gross 22500) at the engine layer. text_only affects only what is RENDERED to the customer, never the computed öre (the rows still count toward totals per the frozen inclusion pin). Owner decision 2026-06-18: text_only is one of the two first-supported modes.",
+      "display_mode": "text_only",
+      "sectionLines": [
+        { "row_type": "labor", "quantity": 1, "unit_sell_ore": 7000, "vat_rate_bp": 2500 },
+        { "row_type": "material", "quantity": 1, "unit_sell_ore": 11000, "vat_rate_bp": 2500 }
+      ],
+      "expectedSectionNetOre": 18000,
+      "expectedSectionVatOre": 4500,
+      "expectedSectionGrossOre": 22500
+    },
+    {
+      "id": "vat-display-posture-round-trip",
+      "category": "vat-display",
+      "origin": "new-expected",
+      "note": "VAT DISPLAY is presentation-only over a REFERENCED breakdown. The underlying öre are REFERENCED from vat-rates.json#vat-25pct-standard (net 85000 / VAT 21250 / gross 106250 @ 2500 bp) — NOT invented here (R-508). Driving vat-posture.ts#resolveVatDisplayPosture then totals.ts#resolveTotalDisplay: a 'private' customer -> incl (primary = gross 106250, not togglable); a 'company' customer with tenant default 'company_excl' -> primary = net 85000, not togglable; a 'company' customer with tenant default 'company_togglable' -> primary = gross 106250, togglable + both available. A posture round-trip returns the IDENTICAL stored net/VAT/gross öre (presentation never mutates the source — 5.2-UNIT-04).",
+      "referenceFixture": "vat-rates.json",
+      "referenceCase": "vat-25pct-standard",
+      "netOre": 85000,
+      "vatOre": 21250,
+      "grossOre": 106250,
+      "postures": [
+        { "customerType": "private", "tenantDefaultVatDisplay": "company_togglable", "expectedResolvedPosture": "private", "expectedPrimaryOre": 106250, "expectedTogglable": false },
+        { "customerType": "company", "tenantDefaultVatDisplay": "company_excl", "expectedResolvedPosture": "company_excl", "expectedPrimaryOre": 85000, "expectedTogglable": false },
+        { "customerType": "company", "tenantDefaultVatDisplay": "company_togglable", "expectedResolvedPosture": "company_togglable", "expectedPrimaryOre": 106250, "expectedTogglable": true }
+      ]
+    },
+    {
+      "id": "attachment-readiness-required-files-deferred",
+      "category": "attachment-readiness",
+      "origin": "new-expected",
+      "note": "ATTACHMENT-READINESS is the REQUIRED_FILES_DEFERRED disclosure (R-513): Story 8.1 (file-metadata foundation) has NOT landed, so classifyReadiness ALWAYS emits the REQUIRED_FILES_DEFERRED warning as a DOCUMENTED deferral (never silently omitted, never a real file check — Epic 8 owns that). This case drives classifyReadiness on a fabricated minimal calc shape and asserts REQUIRED_FILES_DEFERRED is present. A forward-seam pin, NOT a real attachment check.",
+      "expectRequiredFilesDeferred": true
+    }
+  ]
+}

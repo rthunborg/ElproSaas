@@ -99,6 +99,18 @@ export const TENANT_TABLES = [
   // columns — there is NO supplier-ish column to populate (HARD no-supplier-scope).
   "work_roles",
   "articles",
+  // Story 5.1 calculation tables (the first tenant-owned CALCULATION tables). Like the
+  // CRM / settings / pricing tables, `authenticated` HAS an INSERT/UPDATE grant (the
+  // tenant admin manages calculations via the app path) — so their cross-tenant UPDATE
+  // denial mechanism is RLS-USING invisibility (zero rows + unchanged re-read), NOT a
+  // missing-grant 42501. See `updateDenialKind` below. All three are MANY-rows-per-tenant
+  // collections (NO unique (tenant_id)). The spoof/anon rows carry ONLY the closed-union
+  // / integer-öre / bp columns — NO supplier-ish column (HARD no-supplier-scope). The
+  // cross-tenant spoof INSERT carries a parent id pointing at a Tenant B parent (customer
+  // for calculations; calc for calculation_sections; section for calculation_rows).
+  "calculations",
+  "calculation_sections",
+  "calculation_rows",
 ] as const;
 
 export type TenantTableName = (typeof TENANT_TABLES)[number];
@@ -146,6 +158,19 @@ export interface InventoryContext {
    */
   readonly tenantBWorkRoleId?: string;
   readonly tenantBArticleId?: string;
+  /**
+   * REAL Tenant B CALCULATION row ids (Story 5.1) — concrete cross-tenant targets the
+   * calculations/calculation_sections/calculation_rows negatives point Tenant A at, so
+   * the denial is never vacuous against a non-existent row. `tenantBCalculationId` also
+   * doubles as the Tenant B PARENT the calculation_sections spoof INSERT references, and
+   * `tenantBCalcSectionId` the parent the calculation_rows spoof references. Optional so
+   * the anon suite (which never reads a seeded row) can omit them; the cross-tenant suite
+   * seeds and asserts them. A consumer that needs one but finds it missing fails LOUDLY
+   * (vacuity guard via requireCrmId).
+   */
+  readonly tenantBCalculationId?: string;
+  readonly tenantBCalcSectionId?: string;
+  readonly tenantBCalcRowId?: string;
 }
 
 /**
@@ -181,6 +206,9 @@ export function updateDenialKind(table: TenantTableName): MutationDenialKind {
     case "quote_terms":
     case "work_roles":
     case "articles":
+    case "calculations":
+    case "calculation_sections":
+    case "calculation_rows":
       return "rls-invisible"; // UPDATE granted; RLS USING hides foreign rows
     default:
       return assertNever(table);
@@ -334,6 +362,52 @@ export function spoofedRowFor(
         name: "spoofed-by-tenant-a",
         unit_price_ore: 1,
       };
+    case "calculations":
+      // A calc row forging Tenant B ownership, pointing at a REAL Tenant B customer
+      // parent. `authenticated` HAS an INSERT grant, so the denial is the RLS INSERT
+      // WITH CHECK (is_tenant_admin(tenant_id=B) is false for a Tenant A admin) →
+      // `42501`. FRESH id + NOT-NULL title so the denial is the policy, never a `23505`
+      // PK collision (the WITH CHECK fires before the FK is checked).
+      return {
+        id: crypto.randomUUID(),
+        tenant_id: fixture.tenantB.id,
+        customer_id: requireCrmId(
+          ctx.tenantBCustomerId,
+          "tenantBCustomerId",
+          table,
+        ),
+        title: "spoofed-calc-by-a",
+      };
+    case "calculation_sections":
+      // A section forging Tenant B ownership, pointing at a REAL Tenant B calc parent.
+      // RLS INSERT WITH CHECK on tenant_id=B → `42501` (fresh id).
+      return {
+        id: crypto.randomUUID(),
+        tenant_id: fixture.tenantB.id,
+        calculation_id: requireCrmId(
+          ctx.tenantBCalculationId,
+          "tenantBCalculationId",
+          table,
+        ),
+        title: "spoofed-section-by-a",
+      };
+    case "calculation_rows":
+      // A row forging Tenant B ownership, pointing at a REAL Tenant B section parent.
+      // RLS INSERT WITH CHECK on tenant_id=B → `42501` (fresh id; the NOT-NULL row_type
+      // + quantity + unit populated so the denial is the policy, never a NOT-NULL/CHECK
+      // violation).
+      return {
+        id: crypto.randomUUID(),
+        tenant_id: fixture.tenantB.id,
+        section_id: requireCrmId(
+          ctx.tenantBCalcSectionId,
+          "tenantBCalcSectionId",
+          table,
+        ),
+        row_type: "labor",
+        quantity: 1,
+        unit: "h",
+      };
     default:
       return assertNever(table);
   }
@@ -439,6 +513,32 @@ export function tenantBFilter(
         column: "id",
         value: requireCrmId(ctx.tenantBArticleId, "tenantBArticleId", table),
       };
+    case "calculations":
+      // Target the SPECIFIC seeded Tenant B calc by id — the cross-tenant SELECT/UPDATE
+      // must read/affect ZERO rows under A's RLS, and the "unchanged" re-read proves THIS
+      // row stayed intact. Vacuity-guarded.
+      return {
+        column: "id",
+        value: requireCrmId(
+          ctx.tenantBCalculationId,
+          "tenantBCalculationId",
+          table,
+        ),
+      };
+    case "calculation_sections":
+      return {
+        column: "id",
+        value: requireCrmId(
+          ctx.tenantBCalcSectionId,
+          "tenantBCalcSectionId",
+          table,
+        ),
+      };
+    case "calculation_rows":
+      return {
+        column: "id",
+        value: requireCrmId(ctx.tenantBCalcRowId, "tenantBCalcRowId", table),
+      };
     default:
       return assertNever(table);
   }
@@ -475,6 +575,11 @@ export function hijackMutationFor(
       return { display_name: "hijacked-by-tenant-a" };
     case "articles":
       return { name: "hijacked-by-tenant-a" };
+    case "calculations":
+    case "calculation_sections":
+      return { title: "hijacked-by-tenant-a" };
+    case "calculation_rows":
+      return { label: "hijacked-by-tenant-a" };
     default:
       return assertNever(table);
   }
@@ -501,6 +606,11 @@ export function rlsInvisibleLabelColumn(table: TenantTableName): string {
       return "display_name";
     case "articles":
       return "name";
+    case "calculations":
+    case "calculation_sections":
+      return "title";
+    case "calculation_rows":
+      return "label";
     // The "privilege"-denial tables never reach the unchanged-re-read branch, so a
     // label column is not meaningful for them — but the exhaustive switch keeps the
     // enrollment compile-safe (assertNever on a future unenrolled table).
@@ -614,6 +724,34 @@ export function anonRowFor(
         name: "anon-spoof",
         unit_price_ore: 1,
       };
+    case "calculations":
+      // Anon has NO grant on the calc tables, so the INSERT is denied at the privilege
+      // layer (42501) regardless of the row shape (a random parent id never matters —
+      // the grant denial fires first). NOT-NULL title populated.
+      return {
+        id: crypto.randomUUID(),
+        tenant_id: fixture.tenantA.id,
+        customer_id: crypto.randomUUID(),
+        title: "anon-spoof-calc",
+      };
+    case "calculation_sections":
+      return {
+        id: crypto.randomUUID(),
+        tenant_id: fixture.tenantA.id,
+        calculation_id: crypto.randomUUID(),
+        title: "anon-spoof-section",
+      };
+    case "calculation_rows":
+      // NOT-NULL row_type/quantity/unit populated so the grant denial — not a NOT-NULL/
+      // CHECK violation — is what fires. NO supplier-ish column (HARD no-supplier-scope).
+      return {
+        id: crypto.randomUUID(),
+        tenant_id: fixture.tenantA.id,
+        section_id: crypto.randomUUID(),
+        row_type: "labor",
+        quantity: 1,
+        unit: "h",
+      };
     default:
       return assertNever(table);
   }
@@ -648,6 +786,9 @@ export function anonFilterFor(
     case "quote_terms":
     case "work_roles":
     case "articles":
+    case "calculations":
+    case "calculation_sections":
+    case "calculation_rows":
       return { column: "tenant_id", value: ctx.fixture.tenantA.id };
     default:
       return assertNever(table);
@@ -678,6 +819,11 @@ export function anonMutationFor(
       return { display_name: "anon-hijack" };
     case "articles":
       return { name: "anon-hijack" };
+    case "calculations":
+    case "calculation_sections":
+      return { title: "anon-hijack" };
+    case "calculation_rows":
+      return { label: "anon-hijack" };
     default:
       return assertNever(table);
   }
