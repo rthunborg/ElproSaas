@@ -19,12 +19,14 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import {
+  adminInsertArticle,
   adminInsertCalculation,
   adminInsertContact,
   adminInsertCustomer,
   adminInsertFacility,
   adminInsertRow,
   adminInsertSection,
+  adminInsertWorkRole,
   createTwoTenantFixture,
 } from "../factories/tenants";
 
@@ -117,6 +119,27 @@ export default async function globalSetup() {
     sort_order: 1,
   });
 
+  // Pricing-source seed (Story 5.3): ONE active work role (labor source) + ONE active
+  // article (material source) in tenantA, so the row-editor source-selection E2E can pick a
+  // deterministic source by its display name. Uniquely-named so parallel/repeated runs never
+  // collide. Their names are exposed on the fixture for the spec's `selectOption({ label })`.
+  // NOTE: use a DISTINCTIVE sell rate (845,00 kr) so the "850,00 kr/tim" the pricing E2E
+  // saves for its OWN role never collides with this seeded role in the shared pricing editor
+  // (a strict-mode getByText match must resolve to exactly one element).
+  const workRoleName = `Elektriker ${token()}`;
+  const workRoleId = await adminInsertWorkRole({
+    tenant_id: base.tenantA.id,
+    display_name: workRoleName,
+    cost_rate_ore: 45000,
+    sell_rate_ore: 84500,
+  });
+  const articleName = `Kabel 3G1.5 ${token()}`;
+  const articleId = await adminInsertArticle({
+    tenant_id: base.tenantA.id,
+    name: articleName,
+    unit_price_ore: 1250,
+  });
+
   const fixture = {
     ...base,
     crm: {
@@ -131,6 +154,8 @@ export default async function globalSetup() {
       sectionId,
       rowIds: [rowAId, rowBId],
     },
+    workRole: { id: workRoleId, displayName: workRoleName },
+    article: { id: articleId, name: articleName },
   };
 
   mkdirSync(path.dirname(FIXTURE_FILE), { recursive: true });

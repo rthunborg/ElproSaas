@@ -14,8 +14,10 @@
  * CRITICAL (private-data posture, inherited from epic-3): the customer-context block
  * selects ONLY display_name/type + facility/contact NAME fields — it NEVER selects
  * `personnummer` into this payload (owner decision 2026-06-18; the calc detail must not
- * repeat the epic-3 pnr-in-client-payload trap). Do NOT select any deferred/supplier/
- * source-snapshot column (source snapshot columns do not exist until Story 5.3).
+ * repeat the epic-3 pnr-in-client-payload trap). The Story 5.3 `source_*` snapshot columns
+ * ARE selected (the AC3 explainability surface — a role/article NAME + rate + version, no
+ * PII) but NO supplier/import/deferred column exists to select. The provenance is read from
+ * the FROZEN row columns, NEVER a live re-read of the mutable work_role/article source.
  */
 import { createSupabaseServerClient } from "@/server/db/supabase-server-client";
 
@@ -113,6 +115,19 @@ export interface CalculationRowRow {
   readonly internal_note: string | null;
   readonly quote_note: string | null;
   readonly sort_order: number;
+  // Story 5.3 — the FROZEN pricing-source snapshot columns (the AC3 explainability
+  // surface). The row is explainable from its OWN captured fields; the editor renders
+  // provenance from THESE, never a live re-read of the (possibly changed/archived)
+  // work_role/article. No PII — only a role/article name + rate + version.
+  readonly source_kind: "work_role" | "article" | null;
+  readonly source_id: string | null;
+  readonly source_name: string | null;
+  readonly source_price_ore: number | null;
+  readonly source_cost_ore: number | null;
+  readonly source_updated_at: string | null;
+  readonly source_captured_at: string | null;
+  readonly source_sku: string | null;
+  readonly source_unit: string | null;
 }
 
 /** A calc section for the editor, with its ordered active rows. */
@@ -156,7 +171,7 @@ const HEADER_COLUMNS =
 const SECTION_COLUMNS = "id, title, display_mode, sort_order";
 
 const ROW_COLUMNS =
-  "id, section_id, row_type, quantity, unit, unit_cost_ore, unit_sell_ore, markup_bp, vat_rate_bp, is_hidden, is_optional, is_selected, label, description, internal_note, quote_note, sort_order";
+  "id, section_id, row_type, quantity, unit, unit_cost_ore, unit_sell_ore, markup_bp, vat_rate_bp, is_hidden, is_optional, is_selected, label, description, internal_note, quote_note, sort_order, source_kind, source_id, source_name, source_price_ore, source_cost_ore, source_updated_at, source_captured_at, source_sku, source_unit";
 
 /**
  * Read one calculation by id with its ACTIVE sections (ordered by `sort_order`), each

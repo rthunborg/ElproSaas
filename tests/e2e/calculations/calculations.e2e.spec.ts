@@ -174,8 +174,11 @@ test.describe("Calculation editor UX (Story 5.2 E2E)", () => {
     await expect(
       editor.getByText(/fältarbetare|projektplan|ÄTA|leverantör|supplier|fortnox|import|synk|AI\b|analys/i),
     ).toHaveCount(0);
-    // NO pricing-SOURCE selection (that is Story 5.3 — rows are manual here).
-    await expect(editor.getByText(/prislista|priskälla|källa/i)).toHaveCount(0);
+    // NOTE: the pricing-SOURCE selection ("Prislista" / "Källa") is Story 5.3's IN-scope
+    // affordance — it is now PRESENT in the editor (see calculation-source-selection.e2e.spec.ts,
+    // which asserts the source-select provenance vocabulary while still forbidding the
+    // supplier/import/deferred labels above). The earlier 5.2 "no källa" assertion is
+    // superseded by 5.3; the deferred-label guard above continues to hold.
   });
 
   test("5.2-E2E-05 (AC6): the nav stays EXACTLY the seven IN-scope modules", async ({ page }) => {
@@ -226,19 +229,35 @@ test.describe("Calculation editor UX (Story 5.2 E2E)", () => {
       .filter({ hasText: secondTitle });
     await expect(secondSection).toBeVisible();
 
-    // The new section renders LAST → its move-up control is enabled; the first section's
-    // move-up is disabled (it is already first).
-    const moveUpButtons = page.getByTestId("section-move-up");
-    await expect(moveUpButtons.first()).toBeDisabled();
-    const lastMoveUp = moveUpButtons.last();
-    await expect(lastMoveUp).toBeEnabled();
+    // The first section's move-up is always disabled (it is already first).
+    await expect(page.getByTestId("section-move-up").first()).toBeDisabled();
 
-    // Moving the second section up routes through the atomic reorderSections command; after
-    // revalidate the second section is now FIRST (its move-up becomes disabled).
-    await lastMoveUp.click();
+    // Move the newly-added section (rendered LAST) up to the FRONT via the atomic
+    // reorderSections command. The shared baseline calc may already carry sections added by
+    // sibling specs (this serial fixture is shared), so repeat move-up until the new section
+    // is first — the reorder CONTRACT is that move-up steps a section toward the front; the
+    // number of steps depends on how many sections precede it. Move-up buttons and
+    // section-editors are in the SAME document order, so the button at the section's current
+    // index moves that section. Guard the loop with a bound.
+    for (let step = 0; step < 12; step += 1) {
+      const editors = page.getByTestId("section-editor");
+      const count = await editors.count();
+      let idx = -1;
+      for (let i = 0; i < count; i += 1) {
+        if (await editors.nth(i).getByText(secondTitle).count()) {
+          idx = i;
+          break;
+        }
+      }
+      if (idx <= 0) break; // already first (or not found) → done
+      await page.getByTestId("section-move-up").nth(idx).click();
+      // Wait for the revalidated re-render before recomputing the index.
+      await page.waitForTimeout(200);
+    }
     await expect(
       page.getByTestId("section-editor").first(),
     ).toContainText(secondTitle);
+    // Now first → the move-up at index 0 is disabled.
     await expect(page.getByTestId("section-move-up").first()).toBeDisabled();
   });
 

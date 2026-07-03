@@ -82,6 +82,7 @@ export function SelectField({
   error,
   onChange,
   selectRef,
+  testId,
 }: {
   readonly name: string;
   readonly label: string;
@@ -91,6 +92,8 @@ export function SelectField({
   readonly error?: string | null;
   readonly onChange?: (value: string) => void;
   readonly selectRef?: React.Ref<HTMLSelectElement>;
+  /** Optional stable test hook placed on the `<select>` element (e.g. E2E getByTestId). */
+  readonly testId?: string;
 }) {
   const id = useId();
   const errorId = `${id}-error`;
@@ -109,6 +112,7 @@ export function SelectField({
         ref={selectRef}
         id={id}
         name={name}
+        data-testid={testId}
         required={required}
         defaultValue={defaultValue}
         onChange={(e) => onChange?.(e.target.value)}

@@ -368,3 +368,75 @@ test("updateSection: a missing id is a field error", () => {
   const parsed = parseUpdateSectionForm(fd({ title: "X" }));
   assert.ok(parsed.fieldErrors.id);
 });
+
+// ── Story 5.3: pricing-source pair round-trip + the cleared-source case ────────────
+
+test("createRow: a source pair (source_kind+source_id) round-trips onto the input", () => {
+  const parsed = parseCreateRowForm(
+    fd({
+      section_id: SECT,
+      row_type: "labor",
+      quantity: "1",
+      unit: "h",
+      vat_percent: "25",
+      source_kind: "work_role",
+      source_id: ROW,
+    }),
+  );
+  assert.deepEqual(parsed.fieldErrors, {});
+  assert.equal(parsed.input.source_kind, "work_role");
+  assert.equal(parsed.input.source_id, ROW);
+});
+
+test("createRow: an EMPTY-STRING source pair is DROPPED (manual row — isPresent('')===false)", () => {
+  const parsed = parseCreateRowForm(
+    fd({
+      section_id: SECT,
+      row_type: "labor",
+      quantity: "1",
+      unit: "h",
+      vat_percent: "25",
+      source_kind: "",
+      source_id: "",
+    }),
+  );
+  // Empty-string source fields are dropped → a manual row (no source carried).
+  assert.equal("source_kind" in parsed.input, false);
+  assert.equal("source_id" in parsed.input, false);
+});
+
+test("updateRow: a source pair round-trips onto the update input", () => {
+  const parsed = parseUpdateRowForm(
+    fd({ id: ROW, source_kind: "article", source_id: SECT }),
+  );
+  assert.equal(parsed.input.source_kind, "article");
+  assert.equal(parsed.input.source_id, SECT);
+});
+
+test("updateRow: an EXPLICIT source_clear companion maps to source_clear=true (cleared-binding)", () => {
+  // The row editor renders a hidden `source_clear=true` when the admin switches a sourced row
+  // back to manual — the parser forwards it so ALL source_* columns clear together.
+  const form = fd({ id: ROW });
+  form.append("source_clear", "true");
+  const parsed = parseUpdateRowForm(form);
+  assert.equal(parsed.input.source_clear, true);
+  assert.equal("source_kind" in parsed.input, false);
+  assert.equal("source_id" in parsed.input, false);
+});
+
+test("updateRow: a source PAIR present suppresses the clear companion (pair wins)", () => {
+  const form = fd({ id: ROW, source_kind: "work_role", source_id: SECT });
+  form.append("source_clear", "true");
+  const parsed = parseUpdateRowForm(form);
+  // With a real pair present the parser does NOT also emit source_clear (the pair is the
+  // intent; the validator would reject a contradictory clear+pair anyway).
+  assert.equal(parsed.input.source_kind, "work_role");
+  assert.equal("source_clear" in parsed.input, false);
+});
+
+test("updateRow: no source fields at all leaves the input empty-patch safe (id only)", () => {
+  const parsed = parseUpdateRowForm(fd({ id: ROW }));
+  assert.equal("source_kind" in parsed.input, false);
+  assert.equal("source_id" in parsed.input, false);
+  assert.equal("source_clear" in parsed.input, false);
+});

@@ -222,6 +222,9 @@ const ROW_FIELDS = [
   "description",
   "internal_note",
   "quote_note",
+  "source_kind",
+  "source_id",
+  "source_clear",
 ] as const;
 
 /**
@@ -262,6 +265,7 @@ export function parseCreateRowForm(form: FormData): ParsedCalcForm {
   if (vat !== undefined) input.vat_rate_bp = vat;
   attachFlags(form, input);
   attachRowText(form, input);
+  attachSource(form, input);
 
   return { input, fieldErrors, values };
 }
@@ -307,6 +311,7 @@ export function parseUpdateRowForm(form: FormData): ParsedCalcForm {
   // Flags: explicit false when the companion is present so a flag can be turned OFF.
   attachFlags(form, input);
   attachRowText(form, input);
+  attachSource(form, input);
 
   return { input, fieldErrors, values };
 }
@@ -334,6 +339,27 @@ function attachRowText(form: FormData, input: Record<string, unknown>): void {
   if (internalNote !== undefined) input.internal_note = internalNote;
   const quoteNote = rawField(form, "quote_note");
   if (quoteNote !== undefined) input.quote_note = quoteNote;
+}
+
+/**
+ * Attach the OPTIONAL pricing-source pair (Story 5.3). Reads the trimmed `source_kind`/
+ * `source_id` (empty-string = absent, `isPresent('')===false` — a manual row). The server
+ * RE-RESOLVES the source from the id (the client never supplies the captured name/rate).
+ * When the row editor submits an EXPLICIT clear (`source_clear=true`), forward it so ALL
+ * `source_*` columns clear together on update (Task 2.4 — the cleared-binding trap). A clear
+ * is dropped when a source pair is ALSO present (the source pair wins; the validator would
+ * reject a contradictory clear+pair anyway).
+ */
+function attachSource(form: FormData, input: Record<string, unknown>): void {
+  const kind = trimmedField(form, "source_kind");
+  const id = trimmedField(form, "source_id");
+  if (kind !== undefined) input.source_kind = kind;
+  if (id !== undefined) input.source_id = id;
+  // The explicit clear companion — only meaningful when no source pair is present.
+  if (kind === undefined && id === undefined) {
+    const clear = parseFlag(form, "source_clear");
+    if (clear === true) input.source_clear = true;
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

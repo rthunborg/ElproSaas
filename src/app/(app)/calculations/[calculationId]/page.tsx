@@ -13,6 +13,8 @@
 import Link from "next/link";
 import { CalculationEditor } from "@/components/calculations/CalculationEditor";
 import { readCalculationDetail } from "@/features/calculations/read";
+import { readArticles, readWorkRoles } from "@/features/pricing/read";
+import { toSourceOptions } from "@/features/calculations/source-options";
 
 export const dynamic = "force-dynamic";
 
@@ -22,7 +24,16 @@ export default async function CalculationEditorPage({
   params: Promise<{ calculationId: string }>;
 }) {
   const { calculationId } = await params;
-  const { detail, error } = await readCalculationDetail(calculationId);
+  // Read the calc detail AND the ACTIVE pricing-source lists (Story 5.3) in parallel — all
+  // on the per-request RLS client. REUSE the existing pricing readers (they already return
+  // ACTIVE-only, RLS-scoped, name-ordered rows). The active lists are the SELECTION
+  // affordance offered for NEW source picks; an archived source is not offered but CAN still
+  // be captured on an existing row (explainability from the row's own frozen columns).
+  const [{ detail, error }, workRolesRes, articlesRes] = await Promise.all([
+    readCalculationDetail(calculationId),
+    readWorkRoles(),
+    readArticles(),
+  ]);
 
   if (error) {
     return (
@@ -70,5 +81,12 @@ export default async function CalculationEditorPage({
     );
   }
 
-  return <CalculationEditor detail={detail} />;
+  // The ACTIVE source lists offered for a NEW pick. A pricing read error degrades to an
+  // EMPTY list (the editor still works with manual rows) — never a hard failure of the calc.
+  const sources = toSourceOptions(
+    workRolesRes.workRoles,
+    articlesRes.articles,
+  );
+
+  return <CalculationEditor detail={detail} sources={sources} />;
 }

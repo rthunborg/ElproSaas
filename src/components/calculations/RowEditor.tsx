@@ -1,15 +1,25 @@
 "use client";
 
 /**
- * Row editor (Story 5.2, Task 4.4 / AC3) — the per-row form exposing the five row types and
- * the fields quantity, unit, unit cost (kr), unit sell (kr), markup (%), VAT (%), the
- * visibility/option flags (hidden/optional/selected), quote-visible label + description,
- * internal note, quote note — EACH mapping 1:1 to `CreateRowInput`/`UpdateRowInput`.
+ * Row editor (Story 5.2, Task 4.4 / AC3; Story 5.3, Task 3.3 / AC1/AC2/AC3/AC6) — the
+ * per-row form exposing the five row types and the fields quantity, unit, unit cost (kr),
+ * unit sell (kr), markup (%), VAT (%), the visibility/option flags, quote-visible label +
+ * description, internal note, quote note — EACH mapping 1:1 to `CreateRowInput`/
+ * `UpdateRowInput`.
+ *
+ * PRICING-SOURCE SELECTION (Story 5.3): a LABOR row offers a WORK-ROLE `<select>`; a MATERIAL
+ * row offers an ARTICLE `<select>` (from the tenant's ACTIVE sources). A "manual / no source"
+ * option is always available (the default). Selecting a source PREFILLS the row's kronor price
+ * from the source rate (still editable — the row price is authoritative; the snapshot only
+ * EXPLAINS provenance) and shows a small provenance line ("Källa: <name> · <rate> kr · v.
+ * <captured date>") read from the FROZEN `source_*` columns. Swedish labels; NO "öre"/supplier/
+ * import jargon (AC6). The `<select>` submits `source_kind`+`source_id` (via hidden fields the
+ * client state drives); the server RE-RESOLVES + freezes the source (the client name/rate are
+ * never trusted). Switching back to manual submits an explicit clear.
  *
  * Money at the input boundary is KRONOR/percent (Swedish comma), converted to öre/bp by the
  * form parser; the LINE TOTAL is rendered from the pure `totals.ts` (never inline math). NO
- * "öre"/"basis points" jargon in the row editor (AC6); NO supplier/source control (source-
- * based pricing is Story 5.3 — rows are MANUAL here).
+ * "öre"/"basis points" jargon in the row editor (AC6).
  *
  * FLAG-OFF FIX (epic-3 trap): each flag renders a hidden `false` companion BEFORE its
  * checkbox so an unchecked box submits an EXPLICIT `false` (a flag can always be turned OFF).
@@ -18,6 +28,7 @@
  * state), and are field-associated (aria-invalid/aria-describedby). Fields are keyboard-
  * editable and the form submits via its own action.
  */
+import { useMemo, useState } from "react";
 import { useActionState } from "react";
 import { FormErrorSummary, SelectField, TextField } from "@/components/crm/FormField";
 import {
@@ -35,6 +46,10 @@ import {
 } from "@/features/calculations/money-input";
 import { computeLineTotal } from "@/features/calculations/totals";
 import type { CalculationRowRow } from "@/features/calculations/read";
+import type {
+  RowSourceLists,
+  SourceOption,
+} from "@/features/calculations/source-options";
 
 const ROW_TYPE_OPTIONS = [
   { value: "labor", label: "Arbete" },
@@ -43,6 +58,44 @@ const ROW_TYPE_OPTIONS = [
   { value: "machinery", label: "Maskin" },
   { value: "other", label: "Övrigt" },
 ] as const;
+
+/** The empty (manual / no source) select value — an empty string (isPresent('')===false). */
+const MANUAL_SOURCE_VALUE = "";
+
+/** Encode a source pick as the `<select>` value `"<kind>:<id>"` (empty = manual). */
+function encodeSourceValue(kind: "work_role" | "article", id: string): string {
+  return `${kind}:${id}`;
+}
+
+/** Decode a `"<kind>:<id>"` select value into its pair (or null for the manual option). */
+function decodeSourceValue(
+  value: string,
+): { kind: "work_role" | "article"; id: string } | null {
+  if (value === MANUAL_SOURCE_VALUE) return null;
+  const idx = value.indexOf(":");
+  if (idx <= 0) return null;
+  const kind = value.slice(0, idx);
+  const id = value.slice(idx + 1);
+  if ((kind !== "work_role" && kind !== "article") || id.length === 0) return null;
+  return { kind, id };
+}
+
+/** The active source list offered for a given row_type (labor → work roles, material → articles). */
+function sourcesForRowType(
+  rowType: string,
+  sources: RowSourceLists,
+): readonly SourceOption[] {
+  if (rowType === "labor") return sources.workRoles;
+  if (rowType === "material") return sources.articles;
+  return []; // other row types stay manual (no source offered)
+}
+
+/** The source-kind a given row_type maps to (labor → work_role, material → article). */
+function kindForRowType(rowType: string): "work_role" | "article" | null {
+  if (rowType === "labor") return "work_role";
+  if (rowType === "material") return "article";
+  return null;
+}
 
 /** A hidden `false` companion + a checkbox for a row flag (turn-OFF safe). */
 function FlagField({
@@ -75,12 +128,15 @@ export function RowEditor({
   sectionId,
   calculationId,
   row,
+  sources,
   onArchive,
 }: {
   readonly sectionId: string;
   readonly calculationId: string;
   /** When provided the form is an UPDATE (id present); absent → a CREATE. */
   readonly row?: CalculationRowRow;
+  /** The ACTIVE pricing-source lists (labor → work roles, material → articles). */
+  readonly sources: RowSourceLists;
   /** Render the archive/delete control for an existing row (direct — a single row). */
   readonly onArchive?: (row: CalculationRowRow) => void;
 }) {
@@ -99,6 +155,100 @@ export function RowEditor({
   const err = (field: string): string | undefined =>
     mine ? state.fieldErrors[field] : undefined;
   const retryable = mine && isRetryableCalcError(state);
+
+  // Row type drives WHICH source list is offered (labor → work roles, material → articles).
+  const [rowType, setRowType] = useState<string>(row?.row_type ?? "labor");
+
+  // The currently-selected source `<select>` value ("<kind>:<id>", or "" for manual). Seed
+  // from the row's FROZEN captured source (if any) so an already-sourced row shows its pick.
+  const initialSourceValue =
+    row?.source_kind && row?.source_id
+      ? encodeSourceValue(row.source_kind, row.source_id)
+      : MANUAL_SOURCE_VALUE;
+  const [sourceValue, setSourceValue] = useState<string>(initialSourceValue);
+
+  // The price PREFILL value: the row's stored sell öre initially, overwritten when the admin
+  // picks a source. This is ONLY the prefill seed; the echoed submitted value (below) takes
+  // precedence so a validation failure PRESERVES the admin's typed input (the 5.2 contract).
+  const [prefillValue, setPrefillValue] = useState<string>(
+    row?.unit_sell_ore != null ? oreToKronorString(row.unit_sell_ore) : "",
+  );
+  // Bumped ONLY on a source pick so the uncontrolled price input remounts with the prefill
+  // (a source pick re-seeds the field without locking it — it stays user-editable).
+  const [priceKey, setPriceKey] = useState(0);
+  // The effective price field value: the ECHOED submitted value on a failed submit (input
+  // preservation) wins; otherwise the current prefill. Never inline math — just a string pick.
+  const priceFieldValue = v("unit_sell_kronor", prefillValue);
+
+  const offeredSources = useMemo(
+    () => sourcesForRowType(rowType, sources),
+    [rowType, sources],
+  );
+
+  // The decoded current source pair (null = manual).
+  const selectedPair = decodeSourceValue(sourceValue);
+  // The matching offered option (for the just-picked provenance) — falls back to the
+  // FROZEN captured columns on an existing sourced row whose source may now be archived
+  // (so it is not in the ACTIVE offered list).
+  const selectedOption = selectedPair
+    ? offeredSources.find((o) => o.id === selectedPair.id)
+    : undefined;
+
+  // The provenance to render: prefer the FROZEN captured columns on an existing row (AC3 —
+  // explainable from the row's OWN fields, never a live re-read), else the just-picked option.
+  const provenance =
+    row?.source_kind && row?.source_id && sourceValue === initialSourceValue
+      ? {
+          name: row.source_name ?? "",
+          priceOre: row.source_price_ore,
+          capturedAt: row.source_captured_at,
+        }
+      : selectedOption
+        ? { name: selectedOption.name, priceOre: selectedOption.priceOre, capturedAt: null }
+        : null;
+
+  // The source options for the current row type + a "manual / no source" default.
+  const sourceSelectOptions = [
+    { value: MANUAL_SOURCE_VALUE, label: "Manuell rad (ingen källa)" },
+    ...offeredSources.map((o) => ({
+      value: encodeSourceValue(kindForRowType(rowType) ?? "work_role", o.id),
+      label: o.name,
+    })),
+  ];
+
+  /** On a row-type change: switch the offered source list; a stale pick resets to manual. */
+  function onRowTypeChange(value: string): void {
+    setRowType(value);
+    // A source picked for the old type is not valid for the new type's list → back to manual.
+    if (value !== "labor" && value !== "material") {
+      setSourceValue(MANUAL_SOURCE_VALUE);
+    } else {
+      const pair = decodeSourceValue(sourceValue);
+      const stillOffered =
+        pair && sourcesForRowType(value, sources).some((o) => o.id === pair.id);
+      if (!stillOffered) setSourceValue(MANUAL_SOURCE_VALUE);
+    }
+  }
+
+  /** On a source pick: prefill the price from the source rate (via the öre→kronor boundary). */
+  function onSourceChange(value: string): void {
+    setSourceValue(value);
+    const pair = decodeSourceValue(value);
+    if (!pair) return; // manual → keep the current (editable) price
+    const opt = sourcesForRowType(rowType, sources).find((o) => o.id === pair.id);
+    if (opt) {
+      setPrefillValue(oreToKronorString(opt.priceOre));
+      setPriceKey((k) => k + 1); // remount the price input so it re-seeds with the prefill
+    }
+  }
+
+  // The hidden source fields the parser reads. A picked source submits the pair; the manual
+  // option on an already-sourced row submits an explicit clear (source_clear=true) so ALL
+  // source columns are cleared together (Task 2.4 — never a half-cleared source).
+  const clearingExistingSource =
+    isUpdate &&
+    Boolean(row?.source_kind) &&
+    sourceValue === MANUAL_SOURCE_VALUE;
 
   // The LINE TOTAL — computed by the PURE totals engine (never inline math here).
   const lineTotal = row
@@ -136,6 +286,20 @@ export function RowEditor({
         </p>
       )}
 
+      {/* Hidden source fields the form parser reads (Story 5.3). Driven by the client
+          source `<select>` state so the server RE-RESOLVES the pair (name/rate never
+          trusted from the client). A cleared source on an existing row submits an
+          explicit `source_clear` so ALL source columns clear together (Task 2.4). */}
+      {selectedPair && (
+        <>
+          <input type="hidden" name="source_kind" value={selectedPair.kind} />
+          <input type="hidden" name="source_id" value={selectedPair.id} />
+        </>
+      )}
+      {clearingExistingSource && (
+        <input type="hidden" name="source_clear" value="true" />
+      )}
+
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <SelectField
           name="row_type"
@@ -144,6 +308,7 @@ export function RowEditor({
           defaultValue={v("row_type", row?.row_type ?? "labor")}
           error={err("row_type")}
           options={[...ROW_TYPE_OPTIONS]}
+          onChange={onRowTypeChange}
         />
         <TextField
           name="quantity"
@@ -169,12 +334,10 @@ export function RowEditor({
           error={err("unit_cost_kronor")}
         />
         <TextField
+          key={`price-${priceKey}`}
           name="unit_sell_kronor"
           label="Pris (kr)"
-          defaultValue={v(
-            "unit_sell_kronor",
-            row?.unit_sell_ore != null ? oreToKronorString(row.unit_sell_ore) : "",
-          )}
+          defaultValue={priceFieldValue}
           error={err("unit_sell_kronor")}
         />
         <TextField
@@ -197,6 +360,39 @@ export function RowEditor({
           error={err("vat_percent")}
         />
       </div>
+
+      {/* Pricing-source selection (Story 5.3, AC1/AC2/AC6). Offered for labor (work roles)
+          and material (articles); "manual / no source" is always available + the default.
+          Picking a source prefills the price above; the provenance line explains where the
+          price came from (read from the row's FROZEN captured columns, never a live re-read).
+          Swedish labels only — NO öre/supplier/import jargon. */}
+      {(rowType === "labor" || rowType === "material") && (
+        <div className="flex flex-col gap-2">
+          <SelectField
+            key={`source-${rowType}`}
+            name="row_source_ref"
+            testId="row-source-select"
+            label={rowType === "labor" ? "Prislista (arbetsroll)" : "Prislista (artikel)"}
+            defaultValue={sourceValue}
+            options={sourceSelectOptions}
+            onChange={onSourceChange}
+          />
+          {provenance && provenance.name && (
+            <p
+              data-testid="row-source-provenance"
+              className="text-xs text-zinc-600"
+            >
+              Källa: <span className="font-medium">{provenance.name}</span>
+              {provenance.priceOre != null && (
+                <> · {oreToKronorString(provenance.priceOre)} kr</>
+              )}
+              {provenance.capturedAt && (
+                <> · v. {provenance.capturedAt.slice(0, 10)}</>
+              )}
+            </p>
+          )}
+        </div>
+      )}
 
       <fieldset className="flex flex-wrap gap-4">
         <legend className="sr-only">Synlighet och tillval</legend>

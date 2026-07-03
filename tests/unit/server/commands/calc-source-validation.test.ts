@@ -1,6 +1,6 @@
 /**
- * Story 5.3 — ATDD RED-PHASE scaffold: PURE source-PAIR validation (AC1/AC2/AC4, P1/P2
- * UNIT — R-504/R-502; test-design-epic-5.md 5.1-UNIT-01 style).
+ * Story 5.3 — PURE source-PAIR validation (AC1/AC2/AC4, P1/P2 UNIT — R-504/R-502;
+ * test-design-epic-5.md 5.1-UNIT-01 style). GREEN (the validators now know the pair).
  *
  * Pins the load-bearing source-selection VALIDATION contract WITHOUT a DB or a browser,
  * mirroring `tests/unit/server/commands/calc-validation.test.ts`. The caller supplies ONLY
@@ -14,26 +14,6 @@
  *   - `isPresent('')===false`: an EMPTY-STRING source_id/source_kind is treated as ABSENT
  *     (dropped — a manual row), NOT a validation error (epic-5 retro PINNED convention);
  *   - a rejection is the `VALIDATION_FAILED` shape and NEVER echoes the raw invalid value.
- *
- * ── WHY THE SOURCE-PAIR TESTS ARE `{ skip: true }` (RED PHASE) ────────────────────
- * `validateCreateRow`/`validateUpdateRow` EXIST and are green (Story 5.1), but they do NOT
- * yet know the `source_kind`/`source_id` pair (Story 5.3 dev Task 2.1). Today they neither
- * reject a lone `source_kind` (both-or-neither) nor carry the pair on the accepted data, so
- * these assertions FAIL until the dev phase extends the validators. `node --test` has no
- * `describe.skip`, so each NEW source-pair test is gated with the `{ skip: true }` option;
- * the dev phase removes those options in the SAME green run (the lingering-skip trap).
- *
- * The two GUARD tests at the top (real validators reachable; a manual row with no source
- * is accepted TODAY) run UNSKIPPED — they document the inherited baseline the source rules
- * extend and confirm this file imports the real surface.
- *
- * ── GREEN-PHASE HAND-OFF (Story 5.3 dev) ─────────────────────────────────────────
- *   1. Extend `CreateRowInput`/`UpdateRowInput` + `validateCreateRow`/`validateUpdateRow`
- *      with the optional `source_kind: 'work_role'|'article'` + `source_id` (UUID) pair,
- *      both-or-neither, `isPresent('')===false` respected (Task 2.1).
- *   2. Delete the `{ skip: true }` option on each source-pair test below.
- *   3. Keep the assertions — they are the CONTRACT (both-or-neither; closed kind; UUID id;
- *      manual stays first-class; raw value never echoed).
  *
  * Pure logic, no I/O — runs under the dependency-free `node --test` runner
  * (`pnpm run test:unit`), the fast gate protecting validation on every PR.
@@ -96,7 +76,6 @@ test("GUARD: the real calc validators are reachable and accept a manual (no-sour
 
 test(
   "validateCreateRow rejects a source_id with NO source_kind (both-or-neither)",
-  { skip: true },
   () => {
     assertRejected(
       validateCreateRow(baseRow({ source_id: SOURCE_ID })),
@@ -107,7 +86,6 @@ test(
 
 test(
   "validateCreateRow rejects a source_kind with NO source_id (both-or-neither)",
-  { skip: true },
   () => {
     assertRejected(
       validateCreateRow(baseRow({ source_kind: "work_role" })),
@@ -118,7 +96,6 @@ test(
 
 test(
   "validateCreateRow rejects an unknown source_kind (closed work_role|article subset)",
-  { skip: true },
   () => {
     // company_settings/quote_terms are valid SnapshotKinds but NOT calc-row sources.
     for (const kind of ["company_settings", "quote_terms", "supplier", "widget"]) {
@@ -132,7 +109,6 @@ test(
 
 test(
   "validateCreateRow rejects a non-UUID source_id",
-  { skip: true },
   () => {
     assertRejected(
       validateCreateRow(baseRow({ source_kind: "work_role", source_id: "not-a-uuid" })),
@@ -143,7 +119,6 @@ test(
 
 test(
   "validateCreateRow ACCEPTS a valid both-present work_role pair and carries it on data",
-  { skip: true },
   () => {
     const data = assertAccepted(
       validateCreateRow(baseRow({ source_kind: "work_role", source_id: SOURCE_ID })),
@@ -156,7 +131,6 @@ test(
 
 test(
   "validateCreateRow ACCEPTS a valid both-present article pair",
-  { skip: true },
   () => {
     const data = assertAccepted(
       validateCreateRow(
@@ -175,7 +149,6 @@ test(
 
 test(
   "validateCreateRow treats an EMPTY-STRING source pair as ABSENT (manual row, not an error)",
-  { skip: true },
   () => {
     // Per the epic-5 PINNED convention `isPresent('')===false`: empty-string source fields
     // are dropped → the row is manual/no-source → ACCEPTED, and no source is carried.
@@ -194,7 +167,6 @@ test(
 
 test(
   "validateUpdateRow rejects a lone source_kind on the update path (both-or-neither)",
-  { skip: true },
   () => {
     assertRejected(
       validateUpdateRow({ id: ROW_ID, source_kind: "article" }),
@@ -205,7 +177,6 @@ test(
 
 test(
   "validateUpdateRow ACCEPTS a valid both-present pair on the update path",
-  { skip: true },
   () => {
     const data = assertAccepted(
       validateUpdateRow({ id: ROW_ID, source_kind: "work_role", source_id: SOURCE_ID }),
@@ -213,5 +184,51 @@ test(
     );
     assert.equal(data.source_kind, "work_role");
     assert.equal(data.source_id, SOURCE_ID);
+  },
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Source CLEAR (Task 2.4) — switching a row back to manual is an explicit clear.
+// ─────────────────────────────────────────────────────────────────────────────
+
+test(
+  "validateUpdateRow ACCEPTS an explicit source_clear (switch back to manual) and carries it",
+  () => {
+    const data = assertAccepted(
+      validateUpdateRow({ id: ROW_ID, source_clear: true }),
+      "update: explicit source clear",
+    );
+    // The clear is carried so the execute maps ALL source_* columns to null TOGETHER.
+    assert.equal(data.source_clear, true);
+    assert.equal(data.source_kind ?? null, null);
+    assert.equal(data.source_id ?? null, null);
+  },
+);
+
+test(
+  "validateUpdateRow REJECTS a contradictory source_clear + source pair",
+  () => {
+    assertRejected(
+      validateUpdateRow({
+        id: ROW_ID,
+        source_clear: true,
+        source_kind: "work_role",
+        source_id: SOURCE_ID,
+      }),
+      "update: clear + pair is contradictory",
+    );
+  },
+);
+
+test(
+  "validateUpdateRow does NOT carry source_clear when it is absent (empty-patch-safe)",
+  () => {
+    const data = assertAccepted(
+      validateUpdateRow({ id: ROW_ID, unit_sell_ore: 90000 }),
+      "update: no source touch",
+    );
+    assert.equal("source_clear" in data && data.source_clear !== undefined, false);
+    assert.equal(data.source_kind ?? null, null);
+    assert.equal(data.source_id ?? null, null);
   },
 );

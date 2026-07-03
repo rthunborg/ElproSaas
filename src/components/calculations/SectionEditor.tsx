@@ -31,6 +31,7 @@ import type {
   CalculationRowRow,
   CalculationSectionRow,
 } from "@/features/calculations/read";
+import type { RowSourceLists } from "@/features/calculations/source-options";
 
 const DISPLAY_MODE_OPTIONS = [
   { value: "detailed", label: "Detaljerad" },
@@ -41,9 +42,12 @@ const DISPLAY_MODE_OPTIONS = [
 export function SectionEditor({
   section,
   calculationId,
+  sources,
 }: {
   readonly section: CalculationSectionRow;
   readonly calculationId: string;
+  /** The ACTIVE pricing-source lists for the row-editor selection affordance (Story 5.3). */
+  readonly sources: RowSourceLists;
 }) {
   const [renameState, renameAction, renamePending] = useActionState(
     updateSectionAction,
@@ -203,6 +207,7 @@ export function SectionEditor({
                   sectionId={section.id}
                   calculationId={calculationId}
                   row={row}
+                  sources={sources}
                   onArchive={(r) => {
                     const fd = new FormData();
                     fd.set("id", r.id);
@@ -225,7 +230,11 @@ export function SectionEditor({
         )}
 
         {showAddRow ? (
-          <RowEditor sectionId={section.id} calculationId={calculationId} />
+          <RowEditor
+            sectionId={section.id}
+            calculationId={calculationId}
+            sources={sources}
+          />
         ) : (
           <button
             type="button"

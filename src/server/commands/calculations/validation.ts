@@ -86,6 +86,23 @@ export const SECTION_DISPLAY_MODES = ["detailed", "summary", "text_only"] as con
 export type SectionDisplayMode = (typeof SECTION_DISPLAY_MODES)[number];
 
 /**
+ * The closed set of pricing-source kinds a CALC ROW can snapshot (Story 5.3). This is a
+ * SUBSET of the Story 3.5 `SnapshotKind` union — only `work_role` (labor) / `article`
+ * (material) apply to calc rows; `company_settings`/`quote_terms` are NOT row sources.
+ * The single source of truth for the row-source union; the DB CHECK enumerates the same
+ * two values. A kind outside this set is a `VALIDATION_FAILED` at the command layer.
+ */
+export const ROW_SOURCE_KINDS = ["work_role", "article"] as const;
+export type RowSourceKind = (typeof ROW_SOURCE_KINDS)[number];
+
+/** A runtime guard that a raw value is a known calc-row `RowSourceKind`. */
+function isRowSourceKind(v: unknown): v is RowSourceKind {
+  return (
+    typeof v === "string" && (ROW_SOURCE_KINDS as readonly string[]).includes(v)
+  );
+}
+
+/**
  * Upper bound for a row cost→sell MARKUP expressed in basis points (Open Question 3).
  * A markup is NOT a VAT rate: a VAT rate is genuinely capped at 100% (`isVatRateBp` → 10000),
  * but a cost→sell markup routinely exceeds 100% (e.g. 150% = 15000 bp). The DB column
@@ -344,6 +361,14 @@ export interface CreateRowInput {
   readonly description?: string;
   readonly internal_note?: string;
   readonly quote_note?: string;
+  /**
+   * OPTIONAL pricing SOURCE the caller selected (Story 5.3). The caller supplies ONLY the
+   * kind + id — NEVER the captured name/rate/version (those are RESOLVED server-side from
+   * the source row, never trusted from the client). Both-or-neither: a source_id with no
+   * kind (or a kind with no id) is `VALIDATION_FAILED`. Absent = a manual/free-text row.
+   */
+  readonly source_kind?: RowSourceKind;
+  readonly source_id?: string;
 }
 
 export interface UpdateRowInput {
@@ -362,6 +387,17 @@ export interface UpdateRowInput {
   readonly description?: string;
   readonly internal_note?: string;
   readonly quote_note?: string;
+  /** OPTIONAL pricing source (Story 5.3) — same both-or-neither rule as create. */
+  readonly source_kind?: RowSourceKind;
+  readonly source_id?: string;
+  /**
+   * An EXPLICIT clear of a previously-set source (Story 5.3, Task 2.4): the admin switched
+   * a row back to manual. When `true` (and no source pair is present), the execute maps ALL
+   * `source_*` columns to null TOGETHER — never a half-cleared source (kind null but name/
+   * rate stale). This companion flag is how an explicit clear survives the
+   * `isPresent('')===false` convention (an empty-string source_id alone is merely ABSENT).
+   */
+  readonly source_clear?: boolean;
 }
 
 function isRowType(v: unknown): v is RowType {
@@ -412,6 +448,35 @@ function validateRowCommonFields(
   return null;
 }
 
+/**
+ * Validate the OPTIONAL pricing-source PAIR (Story 5.3, Task 2.1). Both-or-neither:
+ *   - neither present → `{ ok: true, kind: undefined, id: undefined }` (a manual row);
+ *   - both present + valid (closed kind union + UUID-shaped id) → carries the pair;
+ *   - exactly one present, an unknown kind, or a non-UUID id → `fail`.
+ *
+ * `isPresent('')===false` (epic-5 PINNED convention): an EMPTY-STRING source_kind/source_id
+ * is treated as ABSENT (dropped — a manual/no-source row), NOT a validation error; a
+ * WHITESPACE-ONLY value is present-but-bad and rejected (not a valid kind / not a UUID).
+ * The caller supplies ONLY the pair — the captured name/rate/version are resolved
+ * server-side (never trusted from the client), so they are NEVER read here.
+ */
+function validateSourcePair(
+  raw: Record<string, unknown>,
+):
+  | typeof fail
+  | { readonly ok: true; readonly kind?: RowSourceKind; readonly id?: string } {
+  const kindPresent = isPresent(raw.source_kind);
+  const idPresent = isPresent(raw.source_id);
+  // Both absent (empty-string dropped) → a manual/no-source row.
+  if (!kindPresent && !idPresent) return { ok: true };
+  // Both-or-neither: exactly one present is a validation failure.
+  if (kindPresent !== idPresent) return fail;
+  // Both present — validate the closed kind union + the UUID-shaped id.
+  if (!isRowSourceKind(raw.source_kind)) return fail;
+  if (!isUuidLike(raw.source_id)) return fail;
+  return { ok: true, kind: raw.source_kind, id: raw.source_id as string };
+}
+
 /** Number-or-undefined reader for a validated optional numeric field. */
 function num(rec: Record<string, unknown>, key: string): number | undefined {
   const v = rec[key];
@@ -433,6 +498,8 @@ export function validateCreateRow(
   if (!isNonEmptyText(raw.unit)) return fail;
   const common = validateRowCommonFields(raw, /* vatRequired */ true);
   if (common) return common;
+  const source = validateSourcePair(raw);
+  if (!source.ok) return source;
 
   return {
     ok: true,
@@ -452,6 +519,8 @@ export function validateCreateRow(
       description: str(raw, "description"),
       internal_note: str(raw, "internal_note"),
       quote_note: str(raw, "quote_note"),
+      source_kind: source.kind,
+      source_id: source.id,
     },
   };
 }
@@ -464,6 +533,15 @@ export function validateUpdateRow(raw: unknown): ValidationResult<UpdateRowInput
   if (isPresent(raw.unit) && !isNonEmptyText(raw.unit)) return fail;
   const common = validateRowCommonFields(raw, /* vatRequired */ false);
   if (common) return common;
+  const source = validateSourcePair(raw);
+  if (!source.ok) return source;
+  // A present-but-non-boolean source_clear is a validation failure; an absent one is
+  // undefined (no clear). A clear + a source pair is contradictory → reject.
+  if (!optionalBoolOk(raw.source_clear)) return fail;
+  const sourceClear = bool(raw, "source_clear");
+  if (sourceClear === true && (source.kind !== undefined || source.id !== undefined)) {
+    return fail;
+  }
 
   return {
     ok: true,
@@ -483,6 +561,9 @@ export function validateUpdateRow(raw: unknown): ValidationResult<UpdateRowInput
       description: str(raw, "description"),
       internal_note: str(raw, "internal_note"),
       quote_note: str(raw, "quote_note"),
+      source_kind: source.kind,
+      source_id: source.id,
+      source_clear: sourceClear === true ? true : undefined,
     },
   };
 }

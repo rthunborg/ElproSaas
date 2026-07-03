@@ -1,6 +1,6 @@
 /**
- * Story 5.3 — ATDD RED-PHASE scaffold: pricing-SOURCE selection in the row editor (AC6,
- * P1/P2 E2E — test-design-epic-5.md 5.2-E2E-05 deferred-label absence continues to hold).
+ * Story 5.3 — pricing-SOURCE selection in the row editor (AC6, P1/P2 E2E —
+ * test-design-epic-5.md 5.2-E2E-05 deferred-label absence continues to hold). GREEN.
  *
  * MIRRORS `tests/e2e/calculations/calculations.e2e.spec.ts` (the Story 5.2 editor E2E) EXACTLY:
  * the same `signIn`/`waitForHydrated` helpers, the same seeded two-tenant fixture read from
@@ -10,23 +10,9 @@
  * a manual (no-source) row still saves; NO supplier/import/API/deferred-workflow label
  * appears; the nav stays EXACTLY seven.
  *
- * ── WHY THIS SUITE IS `test.describe.skip` (RED PHASE) ───────────────────────────
- * The Story 5.3 dev UI does NOT exist yet: `RowEditor.tsx` still DEFERS source selection
- * (its lines 11-12 seam), the `/calculations/[id]` page does not yet pass the active
- * work-role/article lists, and the seeded fixture does not yet carry an active work role +
- * article to select. Un-skipping before the UI lands fails for the wrong reason. The dev
- * phase removes the `describe.skip` in the SAME green run — a lingering skip here is the
- * epic-5 resumed-run trap (a vacuous pass on the AC6 affordance this story adds).
- *
- * ── GREEN-PHASE HAND-OFF (Story 5.3 dev) ─────────────────────────────────────────
- *   1. Wire the source `<select>` + prefill + provenance line into `RowEditor.tsx`
- *      (Task 3.3), passing the active `readWorkRoles()`/`readArticles()` lists from the
- *      `/calculations/[id]` server page (Task 3.2).
- *   2. Extend the E2E global-setup fixture to seed at least ONE active work role and ONE
- *      active article for `adminA`'s tenant, and expose their display names on the fixture
- *      (e.g. `fixture.workRole.displayName` / `fixture.article.name`) so the selection is
- *      deterministic. Until then this suite reads them defensively with sensible fallbacks.
- *   3. Delete the `test.describe.skip` → `test.describe` and make GREEN.
+ * The global-setup fixture seeds ONE active work role + ONE active article in adminA's tenant
+ * and exposes their names (`fixture.workRole.displayName` / `fixture.article.name`) so the
+ * source pick is deterministic.
  *
  * Runs against the REAL app + local Supabase stack + the two-tenant fixture (Playwright).
  */
@@ -75,7 +61,7 @@ async function signIn(page: Page, email: string, password: string): Promise<void
   await expect(page).toHaveURL(/\/dashboard/);
 }
 
-test.describe.skip("Calculation row pricing-source selection (Story 5.3 E2E / AC6)", () => {
+test.describe("Calculation row pricing-source selection (Story 5.3 E2E / AC6)", () => {
   test("5.3-E2E-01 (AC1/AC6): selecting a WORK ROLE on a labor row prefills the price + shows provenance", async ({
     page,
   }) => {
@@ -120,7 +106,9 @@ test.describe.skip("Calculation row pricing-source selection (Story 5.3 E2E / AC
     const section = page.getByTestId("section-editor").filter({ hasText: uniqueTitle });
     await expect(section).toBeVisible();
 
-    const rowForm = section.getByTestId("row-edit-form").first();
+    // Open the add-row form in the new (empty) section — it is the create-row RowEditor.
+    await section.getByTestId("add-row").click();
+    const rowForm = section.getByTestId("row-create-form").first();
     // Switch the row to a material type so the ARTICLE source list is offered.
     await rowForm.getByLabel(/Typ|Radtyp/).selectOption({ value: "material" });
     const sourceSelect = rowForm.getByTestId("row-source-select");

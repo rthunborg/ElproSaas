@@ -1,6 +1,6 @@
 /**
- * Story 5.3 — ATDD RED-PHASE scaffold: pricing-source ROW SNAPSHOTS (AC1-AC4, P0/P1 —
- * 5.3-INT-01/02/03/04; risks R-507 freeze / R-502 both-layers cross-tenant).
+ * Story 5.3 — pricing-source ROW SNAPSHOTS (AC1-AC4, P0/P1 — 5.3-INT-01/02/03/04; risks
+ * R-507 freeze / R-502 both-layers cross-tenant). GREEN (the columns + write path exist).
  *
  * The HEADLINE behavioural contract of this story: `createRow`/`updateRow`, when given a
  * `{ source_kind, source_id }` pair, RESOLVE the source under the caller's RLS (Story 3.5
@@ -25,28 +25,6 @@
  *   - 5.3-INT-04 (AC3, P1 — archived-source explainability): after the source is archived,
  *     re-reading the row STILL surfaces the captured name/rate (explainable from the row
  *     alone — no live re-read of the now-archived source).
- *
- * ── WHY THIS SUITE IS `describe.skip` (RED PHASE) ────────────────────────────────
- * The Story 5.3 dev work does NOT exist yet: the additive `source_*` columns on
- * `calculation_rows`, and the `createRow`/`updateRow` `resolveSnapshotSource` + `build*`
- * + persist extension (Task 1 + Task 2). Un-skipping this suite before then would fail
- * for the wrong reason (the columns / the write path are absent). The dev phase (green
- * hand-off below) removes the `describe.skip` in the SAME green run — a LINGERING skip on
- * the freeze/spoof suite is a vacuous pass on the exact R-507/R-502 behaviour this story
- * exists to prove (epic-5 retro resumed-run trap).
- *
- * ── GREEN-PHASE HAND-OFF (Story 5.3 dev) ─────────────────────────────────────────
- *   1. Land the additive migration (Task 1): the `source_*` columns on `calculation_rows`
- *      (`source_kind`/`source_id`/`source_name`/`source_price_ore`/`source_cost_ore`/
- *      `source_updated_at`/`source_captured_at`/`source_sku`/`source_unit`), then
- *      `supabase db reset` (+ poll `/auth/v1/health` to 200 — a false-green trap otherwise).
- *   2. Extend `createRow`/`updateRow` to accept `{source_kind, source_id}`, resolve+build+
- *      persist (Task 2); then DELETE the `describe.skip` on this suite and make it GREEN.
- *   3. The `adminQuery` source seed/mutate/readback below is self-contained (BYPASSRLS) so
- *      no factory extension is a prerequisite — but the dev phase MAY hoist these into
- *      `tests/factories/tenants.ts` (`adminInsertWorkRole` returning updated_at, an
- *      `adminUpdateWorkRole`/`adminUpdateArticle` mutate helper, an `adminSelectRowSource`
- *      readback) if a sibling suite reuses them.
  *
  * Runs against the LOCAL Supabase stack only; skips visibly when unreachable (the
  * `SUPABASE_TEST_REQUIRED=1` CI gate turns a skip into a hard failure).
@@ -89,13 +67,42 @@ interface RowSourceReadback {
 
 /** BYPASSRLS read of the frozen source columns off a row — the explainability surface. */
 async function selectRowSource(rowId: string): Promise<RowSourceReadback | null> {
-  const rows = await adminQuery<RowSourceReadback>(
+  const rows = await adminQuery<{
+    source_kind: string | null;
+    source_id: string | null;
+    source_name: string | null;
+    // pg returns `bigint`/`int8` columns as STRINGS — coerce the öre money columns to a
+    // number for the byte/öre-equal assertions (the established `Number(...)` convention;
+    // see pricing-commands.int.test.ts "bigint returns as a string").
+    source_price_ore: string | null;
+    source_cost_ore: string | null;
+    // pg returns timestamptz as a Date object — coerce to a stable ISO STRING so the freeze
+    // proof's `.toBe` (Object.is) compares by value, not by (distinct) Date reference.
+    source_updated_at: Date | string | null;
+    source_captured_at: Date | string | null;
+    source_sku: string | null;
+    source_unit: string | null;
+  }>(
     `select source_kind, source_id, source_name, source_price_ore, source_cost_ore,
             source_updated_at, source_captured_at, source_sku, source_unit
        from public.calculation_rows where id = $1`,
     [rowId],
   );
-  return rows[0] ?? null;
+  const r = rows[0];
+  if (!r) return null;
+  const iso = (v: Date | string | null): string | null =>
+    v == null ? null : v instanceof Date ? v.toISOString() : v;
+  return {
+    source_kind: r.source_kind,
+    source_id: r.source_id,
+    source_name: r.source_name,
+    source_price_ore: r.source_price_ore == null ? null : Number(r.source_price_ore),
+    source_cost_ore: r.source_cost_ore == null ? null : Number(r.source_cost_ore),
+    source_updated_at: iso(r.source_updated_at),
+    source_captured_at: iso(r.source_captured_at),
+    source_sku: r.source_sku,
+    source_unit: r.source_unit,
+  };
 }
 
 /** BYPASSRLS read of a work_role's live rate + version (to prove capture equals source). */
@@ -108,8 +115,9 @@ async function selectWorkRole(id: string): Promise<{
 } | null> {
   const rows = await adminQuery<{
     display_name: string;
-    cost_rate_ore: number;
-    sell_rate_ore: number;
+    // pg returns bigint öre columns as strings — coerce for the byte/öre-equal assertion.
+    cost_rate_ore: string;
+    sell_rate_ore: string;
     is_active: boolean;
     updated_at: string;
   }>(
@@ -117,7 +125,15 @@ async function selectWorkRole(id: string): Promise<{
        from public.work_roles where id = $1`,
     [id],
   );
-  return rows[0] ?? null;
+  const r = rows[0];
+  if (!r) return null;
+  return {
+    display_name: r.display_name,
+    cost_rate_ore: Number(r.cost_rate_ore),
+    sell_rate_ore: Number(r.sell_rate_ore),
+    is_active: r.is_active,
+    updated_at: r.updated_at,
+  };
 }
 
 /** Seed an own-tenant customer → calc → section so a row has a concrete parent. */
@@ -155,7 +171,7 @@ afterAll(async () => {
   if (stackUp && fixture) await cleanupFixture(fixture);
 });
 
-describe.skip("Pricing-source row snapshots (AC1-AC4 / 5.3-INT-01/02/03/04)", () => {
+describe("Pricing-source row snapshots (AC1-AC4 / 5.3-INT-01/02/03/04)", () => {
   it("[P0/5.3-INT-01/AC1] a work_role source stores the frozen sell/cost/name/version by value", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     const sectionId = await seedSection(fixture.tenantA.id);
@@ -217,7 +233,8 @@ describe.skip("Pricing-source row snapshots (AC1-AC4 / 5.3-INT-01/02/03/04)", ()
       name: string;
       sku: string | null;
       unit: string | null;
-      unit_price_ore: number;
+      // pg returns bigint as a string — coerce below for the öre-equal assertion.
+      unit_price_ore: string;
     }>(
       `select name, sku, unit, unit_price_ore from public.articles where id = $1`,
       [articleId],
@@ -247,7 +264,7 @@ describe.skip("Pricing-source row snapshots (AC1-AC4 / 5.3-INT-01/02/03/04)", ()
     expect(snap?.source_kind).toBe("article");
     expect(snap?.source_id).toBe(articleId);
     expect(snap?.source_name).toBe(src[0].name); // "Kabel 3G1.5"
-    expect(snap?.source_price_ore).toBe(src[0].unit_price_ore); // unit_price → price
+    expect(snap?.source_price_ore).toBe(Number(src[0].unit_price_ore)); // unit_price → price
     expect(snap?.source_cost_ore).toBeNull(); // an article has no cost rate
     expect(snap?.source_sku).toBe(src[0].sku);
     expect(snap?.source_unit).toBe(src[0].unit);

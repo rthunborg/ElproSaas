@@ -37,6 +37,7 @@ import {
   resolveTotalDisplay,
 } from "@/features/calculations/totals";
 import type { CalculationDetail } from "@/features/calculations/read";
+import type { RowSourceLists } from "@/features/calculations/source-options";
 import type { VatDisplayPosture } from "@/lib/money";
 
 const STATUS_LABELS: Record<string, string> = {
@@ -47,8 +48,11 @@ const STATUS_LABELS: Record<string, string> = {
 
 export function CalculationEditor({
   detail,
+  sources,
 }: {
   readonly detail: CalculationDetail;
+  /** The ACTIVE pricing-source lists for the row-editor selection affordance (Story 5.3). */
+  readonly sources: RowSourceLists;
 }) {
   const { header, sections, customer } = detail;
 
@@ -255,7 +259,11 @@ export function CalculationEditor({
                     </button>
                   </form>
                 </div>
-                <SectionEditor section={section} calculationId={header.id} />
+                <SectionEditor
+                  section={section}
+                  calculationId={header.id}
+                  sources={sources}
+                />
               </div>
             ))
           )}

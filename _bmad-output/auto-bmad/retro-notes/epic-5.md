@@ -6,3 +6,7 @@
 - [Phase 5 â€” dev-story] Resumed-run trap: ATDD command-int scaffolds were left describe.skip with throwing placeholders while everything else was green â€” check for lingering describe.skip/notYetImplemented before trusting a resumed run ('typecheck + partial green' is not done).
 - [Phase 5 â€” dev-story] Env gotcha: right after supabase db reset, Kongâ†’GoTrue 502s for ~10s, flipping isLocalStackReachable() false and silently SKIPPING all DB-backed tests locally (exit 0); poll /auth/v1/health to 200 first. CI (SUPABASE_TEST_REQUIRED=1) fails hard instead.
 - [Phase 6 â€” automate] Calc update validators: EMPTY-STRING title/unit = absent (dropped, empty-patch-friendly) but WHITESPACE-ONLY = present-but-blank (rejected) â€” intentional isPresent('')===false convention; 5-2 editor UI/tests must respect it (both branches now pinned).
+
+## Story 5-3-pricing-source-selection-and-row-snapshots
+- [Phase 5 â€” dev-story] Order-asserting E2E specs on the shared serial calc fixture must not assume a fixed section count (5.2-E2E-06 broke when a sibling spec added a section; fixed to loop move-up-to-front) â€” keep future order assertions fixture-count-robust.
+- [Phase 5 â€” dev-story] Raw pg pool returns bigint ore columns as strings and timestamptz as Date objects â€” INT readbacks must coerce (Number(...) / ISO string) or .toBe fails on representation despite byte-correct storage.

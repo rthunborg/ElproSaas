@@ -41,7 +41,7 @@
 # Entries below remain grouped by epic for tracking; pick stories in the order above.
 
 generated: 2026-06-12
-last_updated: 2026-07-03  # story 5-3 create-story (ready-for-dev)
+last_updated: 2026-07-03  # story 5-3 dev-story (review)
 project: ElproSaas
 project_key: NOKEY
 tracking_system: file-system
@@ -80,7 +80,7 @@ development_status:
   epic-5: in-progress
   5-1-tenant-owned-calculation-schema-and-server-commands: in-progress
   5-2-calculation-editor-ux-for-sections-and-rows: review
-  5-3-pricing-source-selection-and-row-snapshots: ready-for-dev
+  5-3-pricing-source-selection-and-row-snapshots: review
   5-4-calculation-readiness-review-and-snapshot-preview: backlog
   5-5-calculation-golden-tests-for-options-hidden-rows-and-tax-warnings: backlog
   epic-5-retrospective: optional
