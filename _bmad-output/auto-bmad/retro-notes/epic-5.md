@@ -3,6 +3,7 @@
 - [E8a â€” trace gate] sprint-status 5-1 was stale (in-progress vs the story file's review) â€” same class the epic-4 trace flagged; the resumed dev-story session likely missed the sprint-status sync. Aligned at gate time.
 - [E_review â€” fix] Null unit_cost_ore is now 'cost unknown â†’ no computable margin' (returns null), NOT silent zero-cost/100%-margin â€” future margin logic must not reintroduce the fail-open.
 - [E_review â€” fix] validateSourcePair's row_typeâ†”source_kind cross-check deliberately skips when row_type is absent on an update (source-only edit) â€” the DB composite-FK/CHECK is the only backstop for that narrow path; consider a stateful execute-layer re-check later.
+- [E8b â€” retrospective] pnpm-audit CI-gate CONCERN now carried across FOUR epics despite epic-4 naming an owner â€” naming without a hard mechanism has failed twice; force to resolution (land the gate or a dated accept) before Epic 6 closes.
 
 ## Story 5-1-tenant-owned-calculation-schema-and-server-commands
 - [Phase 3 â€” create-story] contacts has NO unique(id, tenant_id) (only customers/facilities got one in 3-1); 5-1's migration must additively add contacts_id_tenant_unique before any composite same-tenant FK to contacts â€” any later story adding such a FK hits the same wall.

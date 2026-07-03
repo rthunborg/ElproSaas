@@ -5,11 +5,11 @@ epic_num: 5
 story_num: null
 branch: epic/5-calculation-workspace-and-quote-readiness
 status: in-progress
-updated_at: "2026-07-03T11:44:12Z"
+updated_at: "2026-07-03T12:06:46Z"
 started_at: "2026-07-02T18:13:57Z"
 completed_at: null
-active_seconds: 20798
-timing_anchor: 1783076994
+active_seconds: 21808
+timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
 needs_project_context_bootstrap: false
@@ -20,10 +20,10 @@ tea_selected: []
 tea_rationale: null
 epic_story_count: 5
 stories_after_in_epic: null
-completed_phases: [0, 1, 2, 5, 81]
+completed_phases: [0, 1, 2, 5, 7, 81, 82]
 code_review_iterations: 2
-code_review_loop_done: false
-hitl_halt: null
+code_review_loop_done: true
+hitl_halt: "auto-continued (epic â€” no halt)"
 external_review_iterations: 0
 convergence_unverified: false
 story_trace: null
@@ -32,13 +32,13 @@ phase8_steps:
   trace_gate: done
   nfr: done
   test_review: done
-  project_context: null
-  reconcile: null
-  archive: null
-  retro: null
+  project_context: done
+  reconcile: done
+  archive: done
+  retro: done
 gate_decision: PASS
 gate_iterations: 0
-deferred_work_archived: 0
+deferred_work_archived: 3
 pr_url: null
 ci_run_url: null
 ci_status: unknown
@@ -148,3 +148,4 @@ uat_items:
   - "[5-5] ROT/gron guard: requiresSignOff true, ROT×gron mix blocks (ROT_GRON_MIX_NOT_ALLOWED), persons=4 gives identical flat-cap deduction (no per-person multiplier)"
   - "[5-5] Attachment-readiness guard: classifyReadiness always emits REQUIRED_FILES_DEFERRED (Story 8.1 seam never silently omitted)"
   - "[5-5] pnpm typecheck 0 errors; pnpm lint 0 errors (1 pre-existing unrelated warning)"
+integration_review_done: true
