@@ -5,10 +5,10 @@ epic_num: 5
 story_num: null
 branch: epic/5-calculation-workspace-and-quote-readiness
 status: in-progress
-updated_at: "2026-07-03T06:39:06Z"
+updated_at: "2026-07-03T06:43:41Z"
 started_at: "2026-07-02T18:13:57Z"
 completed_at: null
-active_seconds: 4988
+active_seconds: 5193
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -52,11 +52,32 @@ blockers: []
 overrides: {}
 constraints: []
 epic_slug: calculation-workspace-and-quote-readiness
-active_story: 5-1-tenant-owned-calculation-schema-and-server-commands
-stories_landed: []
+active_story: 5-2-calculation-editor-ux-for-sections-and-rows
+stories_landed:
+  - 5-1-tenant-owned-calculation-schema-and-server-commands
 auto_decisions:
   - "Lifecycle state machine not authoritative (currentStatus never loaded from DB) [Med] â†’ fix: validate transition against the row's real DB status in updateCalculation (Tier A, 5-1)"
   - "status/archived_at can silently disagree [Med] â†’ fix: resolved with the state-machine fix â€” archivedâ†’active blocked; un-archive must clear archived_at (Tier A, 5-1)"
   - "markup_bp capped at 100% by reusing isVatRateBp [Med] â†’ fix: dedicated isMarkupBp (non-negative int bp, bound well above 10000) + update pinning test (Tier A, 5-1)"
   - "updateCalculation cannot re-point facility/contact [Low] â†’ dismiss: reasonable Phase-A narrowing; composite FK backstops INSERT; 5.2 can add re-pointing (Tier A, 5-1)"
-uat_items: []
+uat_items:
+  - "[5-1] supabase db reset from empty -> completes, applies 20260702120000_calculation_data_model.sql (contacts_id_tenant_unique prerequisite resolves)"
+  - "[5-1] psql describe public.calculations -> id, tenant_id, customer/facility/contact_id, title, status (default 'draft'), archived_at, timestamps"
+  - "[5-1] psql describe calculation_sections (display_mode default 'detailed', sort_order) and calculation_rows (row_type, quantity, unit, unit_cost_ore/unit_sell_ore bigint, markup_bp, vat_rate_bp, is_hidden/is_optional/is_selected, notes, sort_order)"
+  - "[5-1] pg_constraint on calculation_rows -> quantity>0, *_ore >= 0 CHECKs, closed row_type union; money columns bigint only (no numeric/double/real)"
+  - "[5-1] pg_constraint contype='f' on all 3 calc tables -> composite same-tenant FKs to customers/facilities/contacts and parent calc/section (id, tenant_id)"
+  - "[5-1] information_schema -> no jobs/projects/field_* table; no supplier/credential/sync/import/external/api/fortnox column on calculation% tables"
+  - "[5-1] set_updated_at BEFORE UPDATE trigger on all 3 tables; no DELETE policy anywhere (archive-over-delete)"
+  - "[5-1] pg_class -> relrowsecurity AND relforcerowsecurity true for all 3 calc tables"
+  - "[5-1] pg_policies -> exactly 3 policies per calc table (SELECT/INSERT/UPDATE, to authenticated, on is_tenant_admin(tenant_id))"
+  - "[5-1] role_table_grants -> authenticated: SELECT/INSERT/UPDATE only; service_role: full DML; anon: none (all 3 tables)"
+  - "[5-1] pg_proc -> reorder_calculation_rows + reorder_calculation_sections exist, SECURITY INVOKER (prosecdef=false), empty search_path"
+  - "[5-1] seed tenant/customer/calc/section/3 rows via psql superuser, call reorder_calculation_rows(section, [B,A,C]) -> returns 3, sort_order = B1/A2/C3"
+  - "[5-1] reorder RPC with a foreign/unknown row id -> SQLSTATE 23514 and prior sort_order UNCHANGED (full rollback, no partial reorder)"
+  - "[5-1] reorder RPC with a duplicate row id in payload -> 23514, order unchanged"
+  - "[5-1] has_function_privilege('anon', reorder RPCs) -> false; authenticated + service_role -> true"
+  - "[5-1] pnpm run test:int (stack up) -> GREEN; calculation-commands + calculation-parent-ownership suites execute (not skipped): happy-path create/update/archive + exactly one audit_events row, VALIDATION_FAILED matrix, cross-tenant parent link -> TENANT_ACCESS_DENIED"
+  - "[5-1] same run: H4 rls-inventory-gate GREEN with 3 calc tables enrolled; cross-tenant + anon isolation suites pass (42501 + BYPASSRLS-unchanged re-read)"
+  - "[5-1] migration-reset.int.test.ts exact policy enumeration includes the 9 new calc policies; calc-tables-migration-reset passes"
+  - "[5-1] pnpm run test:unit -> GREEN; calc validators pinned (closed union, qty>0, canonical isOreAmount, VAT bp, markup_bp accepts >100% (15000), lifecycle legality, raw invalid values never echoed)"
+  - "[5-1] pnpm typecheck -> passes with all 3 calc tables enrolled in tenant-table-inventory (assertNever exhaustiveness)"
