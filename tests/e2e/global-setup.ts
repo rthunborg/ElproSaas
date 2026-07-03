@@ -19,9 +19,12 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import {
+  adminInsertCalculation,
   adminInsertContact,
   adminInsertCustomer,
   adminInsertFacility,
+  adminInsertRow,
+  adminInsertSection,
   createTwoTenantFixture,
 } from "../factories/tenants";
 
@@ -72,12 +75,61 @@ export default async function globalSetup() {
     name: `Erik Kontakt ${token()}`,
   });
 
+  // Calc seed (Story 5.2): a calculation under the company customer, with ONE section that
+  // has TWO rows, so the editor E2E can open a pre-existing calc (rather than clicking the
+  // whole create flow) and assert the totals summary + destructive-confirm behaviour. Each
+  // count-asserting spec seeds its OWN uniquely-named calc; this baseline calc is for the
+  // open/render/totals journeys. A distinct calc title token lets a spec find it.
+  const calcTitle = `Kalkyl E2E ${token()}`;
+  const calcId = await adminInsertCalculation({
+    tenant_id: base.tenantA.id,
+    customer_id: companyId,
+    facility_id: facilityId,
+    title: calcTitle,
+    status: "draft",
+  });
+  const sectionId = await adminInsertSection({
+    tenant_id: base.tenantA.id,
+    calculation_id: calcId,
+    title: `Sektion 1 ${token()}`,
+    display_mode: "detailed",
+    sort_order: 0,
+  });
+  // Row 1: 2 × 850,00 kr @ 25% VAT (a labor row). Row 2: 1 × 500,00 kr @ 25% (material).
+  const rowAId = await adminInsertRow({
+    tenant_id: base.tenantA.id,
+    section_id: sectionId,
+    row_type: "labor",
+    quantity: 2,
+    unit: "h",
+    unit_sell_ore: 85000,
+    vat_rate_bp: 2500,
+    sort_order: 0,
+  });
+  const rowBId = await adminInsertRow({
+    tenant_id: base.tenantA.id,
+    section_id: sectionId,
+    row_type: "material",
+    quantity: 1,
+    unit: "st",
+    unit_sell_ore: 50000,
+    vat_rate_bp: 2500,
+    sort_order: 1,
+  });
+
   const fixture = {
     ...base,
     crm: {
       company: { id: companyId, displayName: companyName, orgNr: companyOrgNr },
       private: { id: privateId, displayName: privateName, personnummer: privatePnr },
       facilityId,
+    },
+    calc: {
+      id: calcId,
+      title: calcTitle,
+      customerId: companyId,
+      sectionId,
+      rowIds: [rowAId, rowBId],
     },
   };
 

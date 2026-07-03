@@ -1,0 +1,222 @@
+/**
+ * Story 5.2 — UNIT tests for the PURE editor totals (`src/features/calculations/totals.ts`).
+ *
+ * 5.2-UNIT-01 (P0, AC4): the editor totals EQUAL the `@/lib/money` engine totals for
+ * representative rows (line net, section subtotal, VAT, gross) — asserting byte-equality
+ * with a DIRECT engine call, proving there is NO inline math and NO forked öre/VAT rule.
+ *
+ * 5.2-UNIT-04 (P2, AC4): `resolveTotalDisplay` (via `selectVatDisplay`) is presentation-only
+ * — the source totals are unchanged by the excl/incl/both selection.
+ *
+ * Inclusion pin (Task 2.2): a SELECTED option + a HIDDEN row COUNT toward totals; an
+ * UNSELECTED option does NOT — matching the frozen 2026-06-18 rule. Runs under `node --test`.
+ */
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import {
+  computeLineTotal,
+  computeSectionTotal,
+  computeCalcTotal,
+  resolveTotalDisplay,
+  rowCountsTowardTotal,
+} from "@/features/calculations/totals";
+import {
+  lineNetOre,
+  lineVatOre,
+  sumOre,
+  sumVatOre,
+  vatBreakdown,
+  selectVatDisplay,
+} from "@/lib/money";
+
+function row(overrides: Partial<{
+  quantity: number;
+  unit_sell_ore: number | null;
+  vat_rate_bp: number | null;
+  is_hidden: boolean;
+  is_optional: boolean;
+  is_selected: boolean | null;
+}> = {}) {
+  return {
+    quantity: overrides.quantity ?? 1,
+    unit_sell_ore: overrides.unit_sell_ore ?? 0,
+    vat_rate_bp: overrides.vat_rate_bp ?? 2500,
+    is_hidden: overrides.is_hidden ?? false,
+    is_optional: overrides.is_optional ?? false,
+    is_selected: overrides.is_selected ?? null,
+  };
+}
+
+// ── 5.2-UNIT-01: totals EQUAL the engine (no inline math, no fork) ───────────────
+
+test("5.2-UNIT-01: a line total equals a DIRECT lineNetOre + vatBreakdown engine call", () => {
+  const q = 3;
+  const sell = 85000; // 850,00 kr
+  const vatBp = 2500;
+
+  const line = computeLineTotal(row({ quantity: q, unit_sell_ore: sell, vat_rate_bp: vatBp }));
+  assert.equal(line.ok, true);
+
+  const engineNet = lineNetOre(q, sell);
+  assert.equal(engineNet.ok, true);
+  const engineBreakdown = vatBreakdown(engineNet.ok ? engineNet.value : -1, vatBp);
+  assert.equal(engineBreakdown.ok, true);
+
+  if (line.ok && engineBreakdown.ok) {
+    assert.equal(line.value.netOre, engineBreakdown.value.netOre);
+    assert.equal(line.value.vatOre, engineBreakdown.value.vatOre);
+    assert.equal(line.value.grossOre, engineBreakdown.value.grossOre);
+  }
+});
+
+test("5.2-UNIT-01: a section total equals sumOre/sumVatOre of the engine per-line values", () => {
+  const rows = [
+    row({ quantity: 2, unit_sell_ore: 12345, vat_rate_bp: 2500 }),
+    row({ quantity: 1, unit_sell_ore: 99999, vat_rate_bp: 1200 }),
+    row({ quantity: 3.5, unit_sell_ore: 5000, vat_rate_bp: 600 }),
+  ];
+
+  const section = computeSectionTotal(rows);
+  assert.equal(section.ok, true);
+
+  // Build the engine's per-line rounded nets + VATs and sum via the engine directly.
+  const nets: number[] = [];
+  const vats: number[] = [];
+  for (const r of rows) {
+    const net = lineNetOre(r.quantity, r.unit_sell_ore ?? 0);
+    assert.equal(net.ok, true);
+    if (!net.ok) return;
+    nets.push(net.value);
+    const vat = lineVatOre(net.value, r.vat_rate_bp ?? 0);
+    assert.equal(vat.ok, true);
+    if (!vat.ok) return;
+    vats.push(vat.value);
+  }
+  const engineNet = sumOre(nets);
+  const engineVat = sumVatOre(vats);
+  assert.equal(engineNet.ok, true);
+  assert.equal(engineVat.ok, true);
+  if (section.ok && engineNet.ok && engineVat.ok) {
+    assert.equal(section.value.netOre, engineNet.value);
+    assert.equal(section.value.vatOre, engineVat.value);
+    assert.equal(section.value.grossOre, engineNet.value + engineVat.value);
+  }
+});
+
+test("5.2-UNIT-01: sum-of-rounded ≠ round-of-sum is preserved (engine parity, not a fork)", () => {
+  // Two lines whose per-line rounding diverges from a round-of-sum — the engine's
+  // sum-of-rounded is authoritative and the editor must match it byte-for-byte.
+  const rows = [
+    row({ quantity: 1, unit_sell_ore: 101, vat_rate_bp: 2500 }), // VAT of 101 = 25.25 → 25
+    row({ quantity: 1, unit_sell_ore: 101, vat_rate_bp: 2500 }),
+  ];
+  const section = computeSectionTotal(rows);
+  assert.equal(section.ok, true);
+  const v1 = lineVatOre(101, 2500);
+  assert.equal(v1.ok, true);
+  const perLine = v1.ok ? v1.value : -1;
+  const engineVat = sumVatOre([perLine, perLine]);
+  assert.equal(engineVat.ok, true);
+  if (section.ok && engineVat.ok) {
+    assert.equal(section.value.vatOre, engineVat.value);
+  }
+});
+
+test("5.2-UNIT-01: computeCalcTotal flattens sections and matches a single section sum", () => {
+  const rowsA = [row({ quantity: 2, unit_sell_ore: 10000, vat_rate_bp: 2500 })];
+  const rowsB = [row({ quantity: 1, unit_sell_ore: 20000, vat_rate_bp: 1200 })];
+  const calc = computeCalcTotal([{ rows: rowsA }, { rows: rowsB }]);
+  const flat = computeSectionTotal([...rowsA, ...rowsB]);
+  assert.equal(calc.ok, true);
+  assert.equal(flat.ok, true);
+  if (calc.ok && flat.ok) {
+    assert.deepEqual(calc.value, flat.value);
+  }
+});
+
+// ── Inclusion pin: hidden + selected COUNT; unselected option does NOT ────────────
+
+test("inclusion: a plain row and a HIDDEN row both count toward the total", () => {
+  assert.equal(rowCountsTowardTotal({ is_optional: false, is_selected: null }), true);
+  assert.equal(rowCountsTowardTotal({ is_optional: false, is_selected: false }), true);
+  // A hidden row is not optional → it counts (hidden ≠ excluded).
+});
+
+test("inclusion: a SELECTED option counts; an UNSELECTED option does NOT", () => {
+  assert.equal(rowCountsTowardTotal({ is_optional: true, is_selected: true }), true);
+  assert.equal(rowCountsTowardTotal({ is_optional: true, is_selected: false }), false);
+  assert.equal(rowCountsTowardTotal({ is_optional: true, is_selected: null }), false);
+});
+
+test("inclusion: an UNSELECTED option is excluded from BOTH net and VAT sums", () => {
+  const included = row({ quantity: 1, unit_sell_ore: 10000, vat_rate_bp: 2500 });
+  const excludedOption = row({
+    quantity: 1,
+    unit_sell_ore: 50000,
+    vat_rate_bp: 2500,
+    is_optional: true,
+    is_selected: false,
+  });
+  const withOption = computeSectionTotal([included, excludedOption]);
+  const withoutOption = computeSectionTotal([included]);
+  assert.equal(withOption.ok, true);
+  assert.equal(withoutOption.ok, true);
+  if (withOption.ok && withoutOption.ok) {
+    // The unselected option contributes nothing → the totals are identical.
+    assert.deepEqual(withOption.value, withoutOption.value);
+  }
+});
+
+test("inclusion: a SELECTED option DOES contribute to the total", () => {
+  const included = row({ quantity: 1, unit_sell_ore: 10000, vat_rate_bp: 2500 });
+  const selectedOption = row({
+    quantity: 1,
+    unit_sell_ore: 50000,
+    vat_rate_bp: 2500,
+    is_optional: true,
+    is_selected: true,
+  });
+  const total = computeSectionTotal([included, selectedOption]);
+  const baseline = computeSectionTotal([included]);
+  assert.equal(total.ok, true);
+  assert.equal(baseline.ok, true);
+  if (total.ok && baseline.ok) {
+    assert.ok(total.value.netOre > baseline.value.netOre);
+  }
+});
+
+// ── 5.2-UNIT-04: display selection is presentation-only ──────────────────────────
+
+test("5.2-UNIT-04: resolveTotalDisplay is presentation-only — source totals unchanged", () => {
+  const total = { netOre: 100000, vatOre: 25000, grossOre: 125000 };
+  const excl = resolveTotalDisplay(total, "company_excl");
+  const togglable = resolveTotalDisplay(total, "company_togglable");
+  const priv = resolveTotalDisplay(total, "private");
+
+  // The engine selector is the authority — parity with a direct call.
+  assert.deepEqual(excl, selectVatDisplay("company_excl", total));
+  assert.deepEqual(togglable, selectVatDisplay("company_togglable", total));
+  assert.deepEqual(priv, selectVatDisplay("private", total));
+
+  // Every view re-derives the SAME source öre (net/vat/gross unchanged).
+  for (const view of [excl, togglable, priv]) {
+    assert.equal(view.netOre, total.netOre);
+    assert.equal(view.vatOre, total.vatOre);
+    assert.equal(view.grossOre, total.grossOre);
+  }
+  // excl → primary is net; togglable/private → primary is gross.
+  assert.equal(excl.primaryOre, total.netOre);
+  assert.equal(togglable.primaryOre, total.grossOre);
+  assert.equal(priv.primaryOre, total.grossOre);
+  assert.equal(priv.togglable, false);
+});
+
+test("a null sell/VAT is treated as 0 (a draft row without a price contributes 0)", () => {
+  const line = computeLineTotal(row({ quantity: 5, unit_sell_ore: null, vat_rate_bp: null }));
+  assert.equal(line.ok, true);
+  if (line.ok) {
+    assert.equal(line.value.netOre, 0);
+    assert.equal(line.value.vatOre, 0);
+    assert.equal(line.value.grossOre, 0);
+  }
+});

@@ -5,10 +5,10 @@ epic_num: 5
 story_num: 2
 branch: epic/5-calculation-workspace-and-quote-readiness
 status: in-progress
-updated_at: "2026-07-03T06:52:34Z"
+updated_at: "2026-07-03T07:23:06Z"
 started_at: "2026-07-03T06:43:41Z"
 completed_at: null
-active_seconds: 522
+active_seconds: 2341
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -20,14 +20,14 @@ tea_selected: [automate]
 tea_rationale: "stateful multi-module editor UX consuming hardened 5-1 commands + frozen Epic 4 money primitives; no new auth/schema/API surface"
 epic_story_count: 5
 stories_after_in_epic: 3
-completed_phases: [0, 1, 2, 3, 4]
+completed_phases: [0, 1, 2, 3, 4, 5]
 code_review_iterations: 0
 code_review_loop_done: false
 hitl_halt: null
 external_review_iterations: 0
 convergence_unverified: false
 story_trace: null
-commits: [dfb28b6]
+commits: [dfb28b6, 48a66d0]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -50,7 +50,9 @@ open_questions:
   - "duplicate-section/row support ('where supported') â€” conservative default chosen"
   - "markup-vs-sell-price interplay (sell-direct default, engine-derived if offered)"
   - "save cadence (explicit save default over autosave)"
-deferred_work: []
+deferred_work:
+  - "explicit section/row duplicate (optional 'where supported' verb) â†’ future editor-polish story"
+  - "markup-derived sell computation â†’ owner-confirmed UX (sell-direct default stands)"
 blockers: []
 overrides: {}
 constraints: []
