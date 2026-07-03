@@ -44,7 +44,7 @@ import {
   markupBpToPercentString,
   oreToKronorString,
 } from "@/features/calculations/money-input";
-import { computeLineTotal } from "@/features/calculations/totals";
+import { computeLineTotal, resolveTotalDisplay } from "@/features/calculations/totals";
 import {
   MANUAL_SOURCE_VALUE,
   decodeSourceValue,
@@ -54,6 +54,7 @@ import {
 } from "@/features/calculations/source-select";
 import type { CalculationRowRow } from "@/features/calculations/read";
 import type { RowSourceLists } from "@/features/calculations/source-options";
+import type { VatDisplayPosture } from "@/lib/money";
 
 const ROW_TYPE_OPTIONS = [
   { value: "labor", label: "Arbete" },
@@ -95,6 +96,7 @@ export function RowEditor({
   calculationId,
   row,
   sources,
+  posture,
   onArchive,
 }: {
   readonly sectionId: string;
@@ -103,6 +105,8 @@ export function RowEditor({
   readonly row?: CalculationRowRow;
   /** The ACTIVE pricing-source lists (labor → work roles, material → articles). */
   readonly sources: RowSourceLists;
+  /** The resolved VAT display posture (Story 5.4 — drives the posture-aware line-total label). */
+  readonly posture: VatDisplayPosture;
   /** Render the archive/delete control for an existing row (direct — a single row). */
   readonly onArchive?: (row: CalculationRowRow) => void;
 }) {
@@ -227,6 +231,14 @@ export function RowEditor({
         is_selected: row.is_selected,
       })
     : null;
+
+  // Story 5.4 (the paired 5.2 Low deferral) — the line-total qualifier is now POSTURE-AWARE.
+  // For a `company_excl` posture the PRIMARY figure is NET (exkl. moms), not gross; for every
+  // incl-primary posture (`private` / `company_togglable`) it stays gross (inkl. moms). Resolve
+  // the primary öre + the qualifier from the engine's `selectVatDisplay` (via `resolveTotalDisplay`)
+  // so the label never contradicts a resolved `company_excl` tenant. Cosmetic — corrupts no stored öre.
+  const lineDisplay =
+    lineTotal && lineTotal.ok ? resolveTotalDisplay(lineTotal.value, posture) : null;
 
   return (
     <form
@@ -400,13 +412,15 @@ export function RowEditor({
         error={err("quote_note")}
       />
 
-      {lineTotal && lineTotal.ok && (
+      {lineTotal && lineTotal.ok && lineDisplay && (
         <p className="text-sm text-zinc-700">
           Radsumma:{" "}
           <span data-testid="row-line-total" className="font-medium">
-            {oreToKronorString(lineTotal.value.grossOre)} kr
+            {oreToKronorString(lineDisplay.primaryOre)} kr
           </span>{" "}
-          <span className="text-xs text-zinc-500">(inkl. moms)</span>
+          <span data-testid="row-line-total-qualifier" className="text-xs text-zinc-500">
+            {posture === "company_excl" ? "(exkl. moms)" : "(inkl. moms)"}
+          </span>
         </p>
       )}
 

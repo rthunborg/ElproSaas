@@ -119,6 +119,41 @@ export default async function globalSetup() {
     sort_order: 1,
   });
 
+  // Readiness-blocker seed (Story 5.4): a SEPARATE calc under the company customer whose only
+  // row has an OVERFLOWING line total (unit_sell_ore at the öre ceiling × a large quantity), so
+  // `computeCalcTotal` returns {ok:false} → the readiness classifier raises the TOTAL_UNCOMPUTABLE
+  // BLOCKER → the create-quote affordance is GATED/disabled (5.4-E2E-01). The healthy baseline
+  // calc above (valid rows) shows the affordance ENABLED — the two calcs prove both gate states
+  // without an in-test mutation. Seeded via the BYPASSRLS raw path (no command validation) so the
+  // overflow value persists directly.
+  const blockerCalcTitle = `Kalkyl blockerad ${token()}`;
+  const blockerCalcId = await adminInsertCalculation({
+    tenant_id: base.tenantA.id,
+    customer_id: companyId,
+    facility_id: facilityId,
+    title: blockerCalcTitle,
+    status: "draft",
+  });
+  const blockerSectionId = await adminInsertSection({
+    tenant_id: base.tenantA.id,
+    calculation_id: blockerCalcId,
+    title: `Sektion blockerad ${token()}`,
+    display_mode: "detailed",
+    sort_order: 0,
+  });
+  // unit_sell_ore at Number.MAX_SAFE_INTEGER × quantity 1000 → the line net overflows the öre
+  // ceiling → an engine {ok:false} total → the TOTAL_UNCOMPUTABLE blocker.
+  const blockerRowId = await adminInsertRow({
+    tenant_id: base.tenantA.id,
+    section_id: blockerSectionId,
+    row_type: "material",
+    quantity: 1000,
+    unit: "st",
+    unit_sell_ore: Number.MAX_SAFE_INTEGER,
+    vat_rate_bp: 2500,
+    sort_order: 0,
+  });
+
   // Pricing-source seed (Story 5.3): ONE active work role (labor source) + ONE active
   // article (material source) in tenantA, so the row-editor source-selection E2E can pick a
   // deterministic source by its display name. Uniquely-named so parallel/repeated runs never
@@ -153,6 +188,12 @@ export default async function globalSetup() {
       customerId: companyId,
       sectionId,
       rowIds: [rowAId, rowBId],
+    },
+    blockerCalc: {
+      id: blockerCalcId,
+      title: blockerCalcTitle,
+      sectionId: blockerSectionId,
+      rowId: blockerRowId,
     },
     workRole: { id: workRoleId, displayName: workRoleName },
     article: { id: articleId, name: articleName },

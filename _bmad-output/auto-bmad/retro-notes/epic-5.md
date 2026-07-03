@@ -15,3 +15,5 @@
 ## Story 5-4-calculation-readiness-review-and-snapshot-preview
 - [Phase 3 â€” create-story] Owner decision 'margin warning = TB% vs global threshold in settings' has NO backing DB column â€” 5-4 ships a constant-threshold default; the configurable settings column is a gated migration needing one-line owner confirmation at the epic session.
 - [Phase 3 â€” create-story] Story 8.1 not landed â†’ 5-4's required-file readiness check is a sanctioned documented deferral (R-513), expected under the approved Epic-5-before-Epic-8 sequencing, not a gap.
+- [Phase 5 â€” dev-story] E2E 'missing customer' blocker unseedable (customer_id FK-NOT-NULL) â€” proved the blocker gate via an ore-overflow TOTAL_UNCOMPUTABLE row + a separate healthy calc instead of in-test mutation.
+- [Phase 5 â€” dev-story] ROT/gron readiness path unit-pinned but fed hasDeductionAssumption:false â€” no calc schema field carries a deduction assumption until Epic 6; documented forward-seam, not dead code.

@@ -11,16 +11,20 @@
  *
  * Every displayed total comes from the pure `totals.ts` (engine-backed) — NEVER inline math
  * in this island. Section/row create/edit/archive/reorder wire to the Task 3 server actions
- * via `useActionState` on the child forms. NO deferred-workflow label/control, NO pricing-
- * source selection UI (5.3), NO readiness classifier (5.4) — only the section/VAT/gross
- * totals summary. Kronor/percent at the input boundary; öre/rounding wording only in the
- * totals summary (AC6).
+ * via `useActionState` on the child forms. NO deferred-workflow label/control. The Story 5.4
+ * readiness classifier + the gated create-quote affordance + the pre-quote snapshot PREVIEW +
+ * the "new version after send" message are rendered here (from the PURE `classifyReadiness` /
+ * `resolveVatDisplayPosture` helpers — the classification lives in fast-gate-protected `.ts`,
+ * never inline). Kronor/percent at the input boundary; öre/rounding wording only in the totals
+ * summary (AC6).
  */
 import { useActionState, useState } from "react";
 import Link from "next/link";
 import { FormErrorSummary, TextField } from "@/components/crm/FormField";
 import { SectionEditor } from "./SectionEditor";
 import { TotalsSummary } from "./TotalsSummary";
+import { ReadinessSummary } from "./ReadinessSummary";
+import { PreQuotePreview, type PreQuoteTerms } from "./PreQuotePreview";
 import {
   archiveCalculationAction,
   createSectionAction,
@@ -36,9 +40,11 @@ import {
   computeCalcTotal,
   resolveTotalDisplay,
 } from "@/features/calculations/totals";
+import { classifyReadiness } from "@/features/calculations/readiness";
+import { resolveVatDisplayPosture } from "@/features/calculations/vat-posture";
 import type { CalculationDetail } from "@/features/calculations/read";
 import type { RowSourceLists } from "@/features/calculations/source-options";
-import type { VatDisplayPosture } from "@/lib/money";
+import type { VatDisplayMode, VatDisplayPosture } from "@/lib/money";
 
 const STATUS_LABELS: Record<string, string> = {
   draft: "Utkast",
@@ -49,10 +55,19 @@ const STATUS_LABELS: Record<string, string> = {
 export function CalculationEditor({
   detail,
   sources,
+  defaultVatDisplay,
+  vatPostureResolved,
+  quoteTerms,
 }: {
   readonly detail: CalculationDetail;
   /** The ACTIVE pricing-source lists for the row-editor selection affordance (Story 5.3). */
   readonly sources: RowSourceLists;
+  /** The tenant's configured `default_vat_display` (Story 5.4 — the resolved posture input). */
+  readonly defaultVatDisplay: VatDisplayMode;
+  /** False when the settings read faulted / no row → surfaces a "VAT posture unresolved" warning. */
+  readonly vatPostureResolved: boolean;
+  /** The tenant's quote-terms for the pre-quote preview (null when none/unread). */
+  readonly quoteTerms: PreQuoteTerms | null;
 }) {
   const { header, sections, customer } = detail;
 
@@ -76,11 +91,15 @@ export function CalculationEditor({
 
   const titleMine = titleState.form === "calculation";
 
-  // The whole-calc total, computed by the PURE totals engine (never inline math). The
-  // display posture defaults to the togglable company view; a private-customer posture
-  // forces incl-VAT. The customer type drives it (private → always incl).
-  const posture: VatDisplayPosture =
-    customer.customer_type === "private" ? "private" : "company_togglable";
+  // Story 5.4 — RESOLVE the VAT display posture from the tenant setting (the inherited 5.2
+  // Med deferral) via the PURE helper: a `private` customer → the always-incl invariant; a
+  // NON-private customer (company/brf/public) → the tenant's `default_vat_display` AS-IS
+  // (NOT hard-coded togglable). The öre were always correct; only the default VIEW label
+  // could contradict a `company_excl` tenant.
+  const posture: VatDisplayPosture = resolveVatDisplayPosture(
+    customer.customer_type,
+    defaultVatDisplay,
+  );
   const calcTotal = computeCalcTotal(
     sections.map((s) => ({
       rows: s.rows.map((r) => ({
@@ -99,6 +118,36 @@ export function CalculationEditor({
   const view = calcTotal.ok
     ? resolveTotalDisplay(calcTotal.value, posture)
     : null;
+
+  // Story 5.4 — the PURE readiness report (blockers vs warnings). The classification lives in
+  // fast-gate-protected `readiness.ts`; this island only DISPLAYS it and GATES the create-quote
+  // affordance on it. The tax context is a forward-seam: no ROT/grön assumption is persisted on a
+  // calc today (Epic 6 owns quote-version tax assumptions), so `hasDeductionAssumption` is false
+  // here — the classifier's tax path is unit-pinned so Epic 6 can feed it a real assumption.
+  const readinessReport = classifyReadiness({
+    customer: {
+      customer_id: customer.customer_id,
+      customer_display_name: customer.customer_display_name,
+      customer_type: customer.customer_type,
+      facility_name: customer.facility_name,
+      contact_name: customer.contact_name,
+    },
+    sections: sections.map((s) => ({
+      rows: s.rows.map((r) => ({
+        quantity: r.quantity,
+        unit_sell_ore: r.unit_sell_ore,
+        unit_cost_ore: r.unit_cost_ore,
+        vat_rate_bp: r.vat_rate_bp,
+        is_hidden: r.is_hidden,
+        is_optional: r.is_optional,
+        is_selected: r.is_selected,
+        row_type: r.row_type,
+        source_kind: r.source_kind,
+      })),
+    })),
+    vatPostureResolved,
+    tax: { hasDeductionAssumption: false },
+  });
 
   // Server-owned section ordering (R-503): move-up/down computes the new ordered-id array
   // via the pure `ordering.ts` and hands it to the atomic `reorderSections` command — never
@@ -263,6 +312,7 @@ export function CalculationEditor({
                   section={section}
                   calculationId={header.id}
                   sources={sources}
+                  posture={posture}
                 />
               </div>
             ))
@@ -313,23 +363,39 @@ export function CalculationEditor({
           )}
         </div>
 
-        {/* Desktop: sticky right-hand summary panel. */}
-        <div className="hidden w-80 shrink-0 lg:block">
+        {/* Desktop: sticky right-hand summary + readiness + pre-quote panel. */}
+        <div className="hidden w-80 shrink-0 flex-col gap-4 lg:flex lg:sticky lg:top-6">
           {calcTotal.ok && view ? (
             <TotalsSummary total={calcTotal.value} view={view} />
           ) : (
             <TotalsFailure />
           )}
+          <ReadinessSummary report={readinessReport} />
+          <PreQuotePreview
+            detail={detail}
+            report={readinessReport}
+            total={calcTotal.ok ? calcTotal.value : null}
+            view={view}
+            quoteTerms={quoteTerms}
+          />
         </div>
       </div>
 
-      {/* Narrow viewport: the summary becomes an inline block BELOW the editor. */}
-      <div className="lg:hidden">
+      {/* Narrow viewport: the summary + readiness + pre-quote stack inline BELOW the editor. */}
+      <div className="flex flex-col gap-4 lg:hidden">
         {calcTotal.ok && view ? (
           <TotalsSummary total={calcTotal.value} view={view} inline />
         ) : (
           <TotalsFailure inline />
         )}
+        <ReadinessSummary report={readinessReport} inline />
+        <PreQuotePreview
+          detail={detail}
+          report={readinessReport}
+          total={calcTotal.ok ? calcTotal.value : null}
+          view={view}
+          quoteTerms={quoteTerms}
+        />
       </div>
 
       {/* Archive the whole calculation (soft-archive via the command). */}

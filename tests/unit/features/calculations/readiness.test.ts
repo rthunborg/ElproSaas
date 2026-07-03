@@ -1,0 +1,339 @@
+/**
+ * Story 5.4 — UNIT tests for the PURE readiness classifier (`src/features/calculations/
+ * readiness.ts`) + the pure VAT-posture helper (`vat-posture.ts`). The headline coverage target:
+ * the classifier is the coverage-shape extraction R-509 requires (a pure function unit-pinned; the
+ * E2E only proves blockers GATE the affordance).
+ *
+ * Coverage (mapped to the epic test design):
+ *   - 5.4-UNIT-01 (P0, AC1): ONE case PER rule-table condition asserting its blocker-vs-warning
+ *     classification — the classifier separates blockers from warnings DETERMINISTICALLY.
+ *   - 5.4-UNIT-02 (P0, AC1): a ROT/grön assumption yields a warning carrying the sign-off /
+ *     non-final framing; NO code path renders a deduction approved/legally-final.
+ *   - 5.4-UNIT-04 (P1, AC1): the empty-section / zero-price edge classification (warning, at the
+ *     boundary — an all-excluded section, a 0-sell counted row).
+ *   - VAT posture UNIT (the 5.2 deferral): `resolveVatDisplayPosture` — private→private invariant;
+ *     non-private→tenant default AS-IS (company_togglable AND company_excl); brf/public→tenant
+ *     default (NOT hard-coded togglable).
+ *
+ * Driven with fabricated in-memory calc shapes — NO DB, NO PII (R-516). Runs under `node --test`.
+ */
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import {
+  classifyReadiness,
+  PILOT_LOW_MARGIN_THRESHOLD,
+  type ReadinessCode,
+  type ReadinessInput,
+  type ReadinessRowInput,
+} from "@/features/calculations/readiness";
+import {
+  resolveVatDisplayPosture,
+  DEFAULT_TENANT_VAT_DISPLAY,
+} from "@/features/calculations/vat-posture";
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Builders — a fully-valid calc (no issues except the always-present deferral) that
+// each case perturbs to trigger exactly one rule.
+// ─────────────────────────────────────────────────────────────────────────────
+
+function row(overrides: Partial<ReadinessRowInput> = {}): ReadinessRowInput {
+  // Use `in` checks so an EXPLICIT null override (e.g. unit_sell_ore/vat_rate_bp = null) is
+  // preserved rather than collapsed to the default by `??`.
+  return {
+    quantity: "quantity" in overrides ? (overrides.quantity as number) : 1,
+    unit_sell_ore: "unit_sell_ore" in overrides ? (overrides.unit_sell_ore as number | null) : 100000, // 1000,00 kr
+    unit_cost_ore: "unit_cost_ore" in overrides ? (overrides.unit_cost_ore as number | null) : 50000, // 500,00 kr → TB% 50%
+    vat_rate_bp: "vat_rate_bp" in overrides ? (overrides.vat_rate_bp as number | null) : 2500,
+    is_hidden: overrides.is_hidden ?? false,
+    is_optional: overrides.is_optional ?? false,
+    is_selected: "is_selected" in overrides ? (overrides.is_selected as boolean | null) : null,
+    row_type: overrides.row_type ?? "material",
+    source_kind: "source_kind" in overrides ? (overrides.source_kind as "work_role" | "article" | null) : null,
+  };
+}
+
+function baseInput(overrides: Partial<ReadinessInput> = {}): ReadinessInput {
+  return {
+    customer: overrides.customer ?? {
+      customer_id: "cust-1",
+      customer_display_name: "Acme AB",
+      customer_type: "company",
+      facility_name: "Huvudkontor",
+      contact_name: "Erik Kontakt",
+    },
+    sections: overrides.sections ?? [{ rows: [row()] }],
+    vatPostureResolved: overrides.vatPostureResolved ?? true,
+    tax: overrides.tax ?? { hasDeductionAssumption: false },
+  };
+}
+
+/** Collect the codes of all warnings. */
+function warningCodes(input: ReadinessInput): ReadinessCode[] {
+  return classifyReadiness(input).warnings.map((i) => i.code);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 5.4-UNIT-01 — one case PER rule-table condition; blocker vs warning.
+// ─────────────────────────────────────────────────────────────────────────────
+
+test("5.4-UNIT-01: a fully-valid company calc has NO blockers and can create a quote", () => {
+  const report = classifyReadiness(baseInput());
+  assert.equal(report.blockers.length, 0);
+  assert.equal(report.canCreateQuote, true);
+  // The always-present documented deferral is a WARNING, never a blocker.
+  assert.ok(report.warnings.some((w) => w.code === "REQUIRED_FILES_DEFERRED"));
+});
+
+test("5.4-UNIT-01: MISSING_CUSTOMER is a BLOCKER and gates quote creation", () => {
+  const input = baseInput({
+    customer: {
+      customer_id: null,
+      customer_display_name: null,
+      customer_type: null,
+      facility_name: null,
+      contact_name: null,
+    },
+  });
+  const report = classifyReadiness(input);
+  assert.ok(report.blockers.some((i) => i.code === "MISSING_CUSTOMER" && i.severity === "blocker"));
+  assert.equal(report.canCreateQuote, false);
+});
+
+test("5.4-UNIT-01: TOTAL_UNCOMPUTABLE is a BLOCKER (an engine {ok:false} total)", () => {
+  // An overflowing sell × quantity forces the engine to reject the total.
+  const huge = row({ unit_sell_ore: Number.MAX_SAFE_INTEGER, quantity: 1000, unit_cost_ore: 0 });
+  const input = baseInput({ sections: [{ rows: [huge] }] });
+  const report = classifyReadiness(input);
+  assert.ok(report.blockers.some((i) => i.code === "TOTAL_UNCOMPUTABLE" && i.severity === "blocker"));
+  assert.equal(report.canCreateQuote, false);
+});
+
+test("5.4-UNIT-01: MISSING_FACILITY is a WARNING (does not gate)", () => {
+  const input = baseInput({
+    customer: {
+      customer_id: "cust-1",
+      customer_display_name: "Acme AB",
+      customer_type: "company",
+      facility_name: null,
+      contact_name: "Erik",
+    },
+  });
+  assert.ok(warningCodes(input).includes("MISSING_FACILITY"));
+  assert.equal(classifyReadiness(input).canCreateQuote, true);
+});
+
+test("5.4-UNIT-01: MISSING_CONTACT is a WARNING (does not gate)", () => {
+  const input = baseInput({
+    customer: {
+      customer_id: "cust-1",
+      customer_display_name: "Acme AB",
+      customer_type: "company",
+      facility_name: "HK",
+      contact_name: null,
+    },
+  });
+  assert.ok(warningCodes(input).includes("MISSING_CONTACT"));
+  assert.equal(classifyReadiness(input).canCreateQuote, true);
+});
+
+test("5.4-UNIT-01: EMPTY_SECTION is a WARNING (a section with zero counted rows)", () => {
+  const input = baseInput({ sections: [{ rows: [] }, { rows: [row()] }] });
+  assert.ok(warningCodes(input).includes("EMPTY_SECTION"));
+  assert.equal(classifyReadiness(input).canCreateQuote, true);
+});
+
+test("5.4-UNIT-01: ZERO_PRICE_ROW is a WARNING (a counted null/0-sell row)", () => {
+  const input = baseInput({ sections: [{ rows: [row({ unit_sell_ore: 0 })] }] });
+  assert.ok(warningCodes(input).includes("ZERO_PRICE_ROW"));
+  const nullPrice = baseInput({ sections: [{ rows: [row({ unit_sell_ore: null })] }] });
+  assert.ok(warningCodes(nullPrice).includes("ZERO_PRICE_ROW"));
+});
+
+test("5.4-UNIT-01: MISSING_WORK_ROLE is a WARNING (a labor row with no work_role source)", () => {
+  const input = baseInput({
+    sections: [{ rows: [row({ row_type: "labor", source_kind: null })] }],
+  });
+  assert.ok(warningCodes(input).includes("MISSING_WORK_ROLE"));
+  // A labor row WITH a work_role source does NOT warn.
+  const withRole = baseInput({
+    sections: [{ rows: [row({ row_type: "labor", source_kind: "work_role" })] }],
+  });
+  assert.ok(!warningCodes(withRole).includes("MISSING_WORK_ROLE"));
+});
+
+test("5.4-UNIT-01: LOW_MARGIN is a WARNING (a counted row TB% below the pilot threshold)", () => {
+  // sell 100000, cost 95000 → TB% = 5% < 15% pilot threshold.
+  const input = baseInput({
+    sections: [{ rows: [row({ unit_sell_ore: 100000, unit_cost_ore: 95000 })] }],
+  });
+  assert.ok(warningCodes(input).includes("LOW_MARGIN"));
+  // A healthy margin (50%) does NOT warn.
+  assert.ok(!warningCodes(baseInput()).includes("LOW_MARGIN"));
+});
+
+test("5.4-UNIT-01: UNRESOLVED_VAT is a WARNING (unresolved tenant posture OR a missing row VAT bp)", () => {
+  assert.ok(warningCodes(baseInput({ vatPostureResolved: false })).includes("UNRESOLVED_VAT"));
+  const missingRowVat = baseInput({ sections: [{ rows: [row({ vat_rate_bp: null })] }] });
+  assert.ok(warningCodes(missingRowVat).includes("UNRESOLVED_VAT"));
+  // A resolved posture + present row VAT does NOT warn.
+  assert.ok(!warningCodes(baseInput()).includes("UNRESOLVED_VAT"));
+});
+
+test("5.4-UNIT-01: TAX_SIGN_OFF_REQUIRED is a WARNING (a ROT/grön assumption present)", () => {
+  const input = baseInput({
+    tax: { hasDeductionAssumption: true, deductionType: "rot", eligibilityPosture: "private" },
+  });
+  assert.ok(warningCodes(input).includes("TAX_SIGN_OFF_REQUIRED"));
+  assert.equal(classifyReadiness(input).canCreateQuote, true);
+});
+
+test("5.4-UNIT-01: HIDDEN_ROWS_INCLUDED is an INFORMATIONAL WARNING (a counted hidden row)", () => {
+  const input = baseInput({ sections: [{ rows: [row({ is_hidden: true })] }] });
+  assert.ok(warningCodes(input).includes("HIDDEN_ROWS_INCLUDED"));
+  // No hidden counted row → no disclosure.
+  assert.ok(!warningCodes(baseInput()).includes("HIDDEN_ROWS_INCLUDED"));
+});
+
+test("5.4-UNIT-01: REQUIRED_FILES_DEFERRED is ALWAYS a WARNING (documented Story 8.1 deferral)", () => {
+  assert.ok(warningCodes(baseInput()).includes("REQUIRED_FILES_DEFERRED"));
+  const report = classifyReadiness(baseInput());
+  assert.ok(
+    report.warnings.find((w) => w.code === "REQUIRED_FILES_DEFERRED")?.severity === "warning",
+  );
+});
+
+test("5.4-UNIT-01: canCreateQuote is derived SOLELY from blockers (warnings never gate)", () => {
+  // A calc with MANY warnings but no blocker can still create a quote.
+  const input = baseInput({
+    customer: {
+      customer_id: "cust-1",
+      customer_display_name: "Acme AB",
+      customer_type: "company",
+      facility_name: null, // MISSING_FACILITY
+      contact_name: null, // MISSING_CONTACT
+    },
+    sections: [{ rows: [row({ unit_sell_ore: 0 })] }], // ZERO_PRICE_ROW + LOW/HIDDEN etc.
+    vatPostureResolved: false, // UNRESOLVED_VAT
+  });
+  const report = classifyReadiness(input);
+  assert.ok(report.warnings.length >= 3);
+  assert.equal(report.blockers.length, 0);
+  assert.equal(report.canCreateQuote, true);
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 5.4-UNIT-02 — the tax warning carries sign-off / non-final framing; NO path
+// renders a deduction approved/legally-final.
+// ─────────────────────────────────────────────────────────────────────────────
+
+test("5.4-UNIT-02: a ROT assumption warning is framed as an ESTIMATE requiring sign-off (never final)", () => {
+  const input = baseInput({
+    tax: { hasDeductionAssumption: true, deductionType: "rot", eligibilityPosture: "private" },
+  });
+  const report = classifyReadiness(input);
+  const tax = report.warnings.find((w) => w.code === "TAX_SIGN_OFF_REQUIRED");
+  assert.ok(tax, "the tax warning must be present");
+  // NON-FINAL framing: an estimate requiring sign-off, not a legally-final/approved deduction.
+  assert.match(tax!.message, /uppskattning/i);
+  assert.match(tax!.message, /kräver godkännande/i);
+  assert.match(tax!.message, /inte ett slutgiltigt/i);
+});
+
+test("5.4-UNIT-02: NO readiness message renders a deduction as approved / legally-final", () => {
+  const input = baseInput({
+    tax: { hasDeductionAssumption: true, deductionType: "gron_teknik", eligibilityPosture: "private" },
+  });
+  const report = classifyReadiness(input);
+  const tax = report.warnings.find((w) => w.code === "TAX_SIGN_OFF_REQUIRED");
+  assert.ok(tax);
+  // Finality is only ever NEGATED — "inte ett slutgiltigt ... avdrag" — never asserted positively.
+  // A positive-finality claim would be the phrase WITHOUT the preceding negation ("inte ...").
+  assert.match(tax!.message, /inte ett slutgiltigt eller juridiskt fastställt avdrag/i);
+  // No message anywhere claims the deduction IS approved (a positive "är godkänt/godkänd").
+  const allMessages = [...report.blockers, ...report.warnings].map((i) => i.message).join(" ");
+  assert.doesNotMatch(allMessages, /avdraget är godkänt|godkänt och slutgiltigt/i);
+});
+
+test("5.4-UNIT-02: a NON-private eligibility posture surfaces an eligibility note (never PII)", () => {
+  const input = baseInput({
+    tax: { hasDeductionAssumption: true, deductionType: "rot", eligibilityPosture: "company" },
+  });
+  const tax = classifyReadiness(input).warnings.find((w) => w.code === "TAX_SIGN_OFF_REQUIRED");
+  assert.ok(tax);
+  assert.match(tax!.message, /privatkunder/i);
+  // The message NEVER implies a per-person-scaled cap (R-512) and carries no personnummer.
+  assert.doesNotMatch(tax!.message, /per person|\bpersonnummer\b|\d{6}-\d{4}/i);
+});
+
+test("5.4-UNIT-02: NO deduction assumption → NO tax warning", () => {
+  assert.ok(!warningCodes(baseInput()).includes("TAX_SIGN_OFF_REQUIRED"));
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 5.4-UNIT-04 — empty-section / zero-price edge classification at the boundary.
+// ─────────────────────────────────────────────────────────────────────────────
+
+test("5.4-UNIT-04: an all-EXCLUDED section (only unselected options) classifies as EMPTY_SECTION", () => {
+  // The only row is an unselected option → it does NOT count → the section is empty.
+  const unselected = row({ is_optional: true, is_selected: false });
+  const input = baseInput({ sections: [{ rows: [unselected] }] });
+  const codes = warningCodes(input);
+  assert.ok(codes.includes("EMPTY_SECTION"), "an all-unselected section is empty");
+  // The unselected option must NOT trigger a zero-price / low-margin / hidden warning (it is excluded).
+  assert.ok(!codes.includes("HIDDEN_ROWS_INCLUDED"));
+});
+
+test("5.4-UNIT-04: a SELECTED option in an otherwise-empty section is counted (NOT empty)", () => {
+  const selected = row({ is_optional: true, is_selected: true });
+  const input = baseInput({ sections: [{ rows: [selected] }] });
+  assert.ok(!warningCodes(input).includes("EMPTY_SECTION"), "a selected option counts");
+});
+
+test("5.4-UNIT-04: a 0-sell COUNTED row is ZERO_PRICE_ROW and NOT LOW_MARGIN (no divide-by-zero)", () => {
+  const input = baseInput({ sections: [{ rows: [row({ unit_sell_ore: 0, unit_cost_ore: 5000 })] }] });
+  const codes = warningCodes(input);
+  assert.ok(codes.includes("ZERO_PRICE_ROW"));
+  assert.ok(!codes.includes("LOW_MARGIN"), "a 0-sell row has no defined margin — ZERO_PRICE owns it");
+});
+
+test("5.4-UNIT-04: a margin EXACTLY at the threshold does NOT warn (strictly-below boundary)", () => {
+  // Choose sell/cost so TB% == threshold exactly. threshold 0.15 → sell 100000, cost 85000 → 0.15.
+  const atThreshold = row({ unit_sell_ore: 100000, unit_cost_ore: 85000 });
+  const input = baseInput({ sections: [{ rows: [atThreshold] }] });
+  assert.equal(
+    Math.round(((100000 - 85000) / 100000) * 100) / 100,
+    PILOT_LOW_MARGIN_THRESHOLD,
+    "sanity: the fixture margin equals the threshold",
+  );
+  assert.ok(!warningCodes(input).includes("LOW_MARGIN"), "exactly-at-threshold does not warn");
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// VAT posture helper (the 5.2 deferral) — private→private; non-private→tenant AS-IS.
+// ─────────────────────────────────────────────────────────────────────────────
+
+test("resolveVatDisplayPosture: a PRIVATE customer → the 'private' invariant regardless of tenant default", () => {
+  assert.equal(resolveVatDisplayPosture("private", "company_togglable"), "private");
+  assert.equal(resolveVatDisplayPosture("private", "company_excl"), "private");
+});
+
+test("resolveVatDisplayPosture: a COMPANY customer → the tenant default AS-IS (both modes)", () => {
+  assert.equal(resolveVatDisplayPosture("company", "company_togglable"), "company_togglable");
+  assert.equal(resolveVatDisplayPosture("company", "company_excl"), "company_excl");
+});
+
+test("resolveVatDisplayPosture: BRF / PUBLIC → the tenant default AS-IS (NOT hard-coded togglable)", () => {
+  assert.equal(resolveVatDisplayPosture("brf", "company_excl"), "company_excl");
+  assert.equal(resolveVatDisplayPosture("public", "company_excl"), "company_excl");
+  assert.equal(resolveVatDisplayPosture("brf", "company_togglable"), "company_togglable");
+});
+
+test("resolveVatDisplayPosture: an absent tenant default → the conservative togglable fallback", () => {
+  assert.equal(resolveVatDisplayPosture("company", null), DEFAULT_TENANT_VAT_DISPLAY);
+  assert.equal(resolveVatDisplayPosture("company", undefined), "company_togglable");
+});
+
+test("resolveVatDisplayPosture: an UNKNOWN/absent customer type is treated as non-private (tenant default)", () => {
+  assert.equal(resolveVatDisplayPosture(null, "company_excl"), "company_excl");
+  assert.equal(resolveVatDisplayPosture(undefined, "company_togglable"), "company_togglable");
+});

@@ -5,10 +5,10 @@ epic_num: 5
 story_num: 4
 branch: epic/5-calculation-workspace-and-quote-readiness
 status: in-progress
-updated_at: "2026-07-03T09:26:20Z"
+updated_at: "2026-07-03T09:52:26Z"
 started_at: "2026-07-03T09:14:30Z"
 completed_at: null
-active_seconds: 699
+active_seconds: 2253
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -20,14 +20,14 @@ tea_selected: [automate]
 tea_rationale: "read-only readiness classification (~9 blocker/warning conditions) + multi-module snapshot preview; no auth/schema/mutation signal"
 epic_story_count: 5
 stories_after_in_epic: 1
-completed_phases: [0, 1, 2, 3, 4]
+completed_phases: [0, 1, 2, 3, 4, 5]
 code_review_iterations: 0
 code_review_loop_done: false
 hitl_halt: null
 external_review_iterations: 0
 convergence_unverified: false
 story_trace: null
-commits: [864f1ab]
+commits: [864f1ab, 5b62989]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -52,7 +52,10 @@ open_questions:
   - "required-file readiness check depends on Story 8.1 (backlog) â€” documented deferral R-513"
   - "quote-terms display in preview (surface + approval warning, no enforcement)"
   - "'new version after send' copy owner-pending (Sign-Off Q5) â€” placeholder Swedish copy"
-deferred_work: []
+deferred_work:
+  - "required-file readiness check â†’ Story 8.1 (surfaced as REQUIRED_FILES_DEFERRED warning)"
+  - "configurable per-tenant margin-threshold setting â†’ follow-up (gated migration; PILOT_LOW_MARGIN_THRESHOLD=0.15 constant ships)"
+  - "calc tax-context forward-seam (hasDeductionAssumption:false today) â†’ Epic 6"
 blockers: []
 overrides: {}
 constraints: []

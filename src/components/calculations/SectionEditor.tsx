@@ -32,6 +32,7 @@ import type {
   CalculationSectionRow,
 } from "@/features/calculations/read";
 import type { RowSourceLists } from "@/features/calculations/source-options";
+import type { VatDisplayPosture } from "@/lib/money";
 
 const DISPLAY_MODE_OPTIONS = [
   { value: "detailed", label: "Detaljerad" },
@@ -43,11 +44,14 @@ export function SectionEditor({
   section,
   calculationId,
   sources,
+  posture,
 }: {
   readonly section: CalculationSectionRow;
   readonly calculationId: string;
   /** The ACTIVE pricing-source lists for the row-editor selection affordance (Story 5.3). */
   readonly sources: RowSourceLists;
+  /** The resolved VAT display posture (Story 5.4 — drives the posture-aware line-total label). */
+  readonly posture: VatDisplayPosture;
 }) {
   const [renameState, renameAction, renamePending] = useActionState(
     updateSectionAction,
@@ -208,6 +212,7 @@ export function SectionEditor({
                   calculationId={calculationId}
                   row={row}
                   sources={sources}
+                  posture={posture}
                   onArchive={(r) => {
                     const fd = new FormData();
                     fd.set("id", r.id);
@@ -234,6 +239,7 @@ export function SectionEditor({
             sectionId={section.id}
             calculationId={calculationId}
             sources={sources}
+            posture={posture}
           />
         ) : (
           <button
