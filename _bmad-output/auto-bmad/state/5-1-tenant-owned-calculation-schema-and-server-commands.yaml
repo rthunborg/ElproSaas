@@ -5,10 +5,10 @@ epic_num: 5
 story_num: 1
 branch: epic/5-calculation-workspace-and-quote-readiness
 status: in-progress
-updated_at: "2026-07-03T06:10:17Z"
+updated_at: "2026-07-03T06:21:55Z"
 started_at: "2026-07-02T18:26:43Z"
 completed_at: null
-active_seconds: 2623
+active_seconds: 3288
 timing_anchor: null
 is_first_in_epic: true
 is_last_in_epic: false
@@ -20,14 +20,14 @@ tea_selected: [atdd, automate]
 tea_rationale: "tenant-owned schema/migrations with RLS enforcement + integer ore money fields feeding quote snapshots (Security/RLS High, Money/Tax High)"
 epic_story_count: 5
 stories_after_in_epic: 4
-completed_phases: [0, 1, 2, 3, 4, 5]
+completed_phases: [0, 1, 2, 3, 4, 5, 6]
 code_review_iterations: 0
 code_review_loop_done: false
 hitl_halt: null
 external_review_iterations: 0
 convergence_unverified: false
 story_trace: null
-commits: [3b743b0, 57619fa, 86abe8f]
+commits: [3b743b0, 57619fa, 86abe8f, 037950f]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -50,7 +50,8 @@ open_questions:
   - "calc lifecycle status value set + legal transitions (conservative default specified)"
   - "section display-mode + row visibility/option flag column names (must map to 2026-06-18 inclusion pin)"
   - "margin/markup storage representation (conservative default specified)"
-deferred_work: []
+deferred_work:
+  - "P2: direct command-level happy-path INT tests for createSection/updateSection/archiveSection/updateRow/archiveRow (RLS seams already covered by H4 inventory; logic mirrors tested siblings) â€” candidate for a later INT pass if the 5-2 editor needs it"
 blockers: []
 overrides: {}
 constraints: []
