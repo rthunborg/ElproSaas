@@ -5,10 +5,10 @@ epic_num: 5
 story_num: 3
 branch: epic/5-calculation-workspace-and-quote-readiness
 status: in-progress
-updated_at: "2026-07-03T07:47:46Z"
+updated_at: "2026-07-03T07:56:58Z"
 started_at: "2026-07-03T07:47:46Z"
 completed_at: null
-active_seconds: 0
+active_seconds: 542
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -20,14 +20,14 @@ tea_selected: [atdd, automate]
 tea_rationale: "cross-tenant source-ID authorization (work-role/article spoof rejection) + ore pricing snapshots feeding immutable quote snapshots (Security High, Money High)"
 epic_story_count: 5
 stories_after_in_epic: 2
-completed_phases: [0, 1, 2]
+completed_phases: [0, 1, 2, 3]
 code_review_iterations: 0
 code_review_loop_done: false
 hitl_halt: null
 external_review_iterations: 0
 convergence_unverified: false
 story_trace: null
-commits: []
+commits: [595d292]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -46,7 +46,10 @@ pr_merged: false
 merge_method: null
 merge_commit: null
 branch_deleted: false
-open_questions: []
+open_questions:
+  - "capture sell+cost ore vs sell-only (conservative default given)"
+  - prefill-editable vs price-lock on source selection
+  - "which row types offer which source (laborâ†’work_role, materialâ†’article default)"
 deferred_work: []
 blockers: []
 overrides: {}
