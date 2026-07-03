@@ -337,3 +337,239 @@ test("resolveVatDisplayPosture: an UNKNOWN/absent customer type is treated as no
   assert.equal(resolveVatDisplayPosture(null, "company_excl"), "company_excl");
   assert.equal(resolveVatDisplayPosture(undefined, "company_togglable"), "company_togglable");
 });
+
+test("resolveVatDisplayPosture: an unrecognised NON-EMPTY type string still takes the tenant default (not private)", () => {
+  // A future/unknown customer-type value must NOT silently collapse to `private` (which would
+  // wrongly hide the incl/excl toggle for a company-shaped customer). It follows the non-private path.
+  assert.equal(resolveVatDisplayPosture("foretag", "company_excl"), "company_excl");
+  assert.equal(resolveVatDisplayPosture("PRIVATE", "company_excl"), "company_excl"); // case-sensitive: not the literal "private"
+  assert.equal(resolveVatDisplayPosture("", "company_togglable"), "company_togglable"); // empty string is non-private
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// EXPANDED COVERAGE (bmad-testarch-automate) — additional branches / contracts of the
+// implemented classifier that the headline UNIT cases did not yet pin. All pure, fast-gate.
+// ─────────────────────────────────────────────────────────────────────────────
+
+// ── Report-shape contract: blockers and warnings COEXIST; warnings never dropped ──
+
+test("EXPANDED: a blocker and warnings COEXIST — a blocker never suppresses the warning list", () => {
+  // A calc that has BOTH a blocker (missing customer) AND several warnings must surface both —
+  // the warnings do not silently disappear when a blocker is present (the E2E asserts this at the
+  // UI; this pins it at the pure-classifier contract level).
+  const input = baseInput({
+    customer: {
+      customer_id: null, // MISSING_CUSTOMER blocker
+      customer_display_name: null,
+      customer_type: null,
+      facility_name: null, // MISSING_FACILITY warning
+      contact_name: null, // MISSING_CONTACT warning
+    },
+  });
+  const report = classifyReadiness(input);
+  assert.ok(report.blockers.some((b) => b.code === "MISSING_CUSTOMER"));
+  assert.ok(report.warnings.some((w) => w.code === "MISSING_FACILITY"));
+  assert.ok(report.warnings.some((w) => w.code === "MISSING_CONTACT"));
+  assert.equal(report.canCreateQuote, false);
+});
+
+test("EXPANDED: every issue carries a non-empty message and its stated severity matches its group", () => {
+  const input = baseInput({
+    customer: {
+      customer_id: null,
+      customer_display_name: null,
+      customer_type: null,
+      facility_name: null,
+      contact_name: null,
+    },
+    sections: [{ rows: [row({ unit_sell_ore: 0 })] }],
+    vatPostureResolved: false,
+    tax: { hasDeductionAssumption: true, deductionType: "rot", eligibilityPosture: "private" },
+  });
+  const report = classifyReadiness(input);
+  for (const b of report.blockers) {
+    assert.equal(b.severity, "blocker", `blocker ${b.code} must carry severity "blocker"`);
+    assert.ok(b.message.trim().length > 0, `blocker ${b.code} must carry a non-empty message`);
+  }
+  for (const w of report.warnings) {
+    assert.equal(w.severity, "warning", `warning ${w.code} must carry severity "warning"`);
+    assert.ok(w.message.trim().length > 0, `warning ${w.code} must carry a non-empty message`);
+  }
+});
+
+test("EXPANDED: NO readiness message anywhere leaks öre / basis-point jargon (kronor/percent at the boundary)", () => {
+  // A calc that triggers as many rules as possible; assert no message exposes internal öre/bp units.
+  const input = baseInput({
+    customer: {
+      customer_id: "c1",
+      customer_display_name: "Acme",
+      customer_type: "company",
+      facility_name: null,
+      contact_name: null,
+    },
+    sections: [{ rows: [row({ unit_sell_ore: 100000, unit_cost_ore: 99000 })] }], // LOW_MARGIN
+    vatPostureResolved: false,
+    tax: { hasDeductionAssumption: true, deductionType: "gron_teknik" },
+  });
+  const report = classifyReadiness(input);
+  const allMessages = [...report.blockers, ...report.warnings].map((i) => i.message).join(" ");
+  assert.doesNotMatch(allMessages, /\böre\b/i, "no message may expose öre jargon");
+  assert.doesNotMatch(allMessages, /basispunkt|basis point|\bbp\b/i, "no message may expose basis-point jargon");
+});
+
+// ── MISSING_CUSTOMER: the OR branch (id present but display name null) ──
+
+test("EXPANDED: MISSING_CUSTOMER also fires when the id is present but the display name is null", () => {
+  const input = baseInput({
+    customer: {
+      customer_id: "cust-1",
+      customer_display_name: null, // the OR branch of the blocker predicate
+      customer_type: "company",
+      facility_name: "HK",
+      contact_name: "Erik",
+    },
+  });
+  const report = classifyReadiness(input);
+  assert.ok(report.blockers.some((b) => b.code === "MISSING_CUSTOMER"));
+  assert.equal(report.canCreateQuote, false);
+});
+
+// ── LOW_MARGIN: quantity-invariance + aggregation across sections + negative margin ──
+
+test("EXPANDED: LOW_MARGIN is quantity-invariant (the ratio depends on unit sell/cost, not quantity)", () => {
+  // Same unit sell/cost, quantity 7 → the TB% ratio is unchanged; a low-margin unit stays low-margin.
+  const lowQ7 = baseInput({
+    sections: [{ rows: [row({ unit_sell_ore: 100000, unit_cost_ore: 95000, quantity: 7 })] }],
+  });
+  assert.ok(warningCodes(lowQ7).includes("LOW_MARGIN"), "quantity does not rescue a low unit margin");
+  const healthyQ7 = baseInput({
+    sections: [{ rows: [row({ unit_sell_ore: 100000, unit_cost_ore: 20000, quantity: 7 })] }],
+  });
+  assert.ok(!warningCodes(healthyQ7).includes("LOW_MARGIN"), "quantity does not create a spurious low margin");
+});
+
+test("EXPANDED: a NEGATIVE margin (cost above sell) warns as LOW_MARGIN", () => {
+  const loss = baseInput({
+    sections: [{ rows: [row({ unit_sell_ore: 100000, unit_cost_ore: 150000 })] }],
+  });
+  assert.ok(warningCodes(loss).includes("LOW_MARGIN"), "a below-cost sell price is under threshold");
+});
+
+test("EXPANDED: LOW_MARGIN aggregates across sections and warns ONCE even with several low-margin rows", () => {
+  const input = baseInput({
+    sections: [
+      { rows: [row({ unit_sell_ore: 100000, unit_cost_ore: 20000 })] }, // healthy
+      { rows: [row({ unit_sell_ore: 100000, unit_cost_ore: 96000 })] }, // low margin
+      { rows: [row({ unit_sell_ore: 100000, unit_cost_ore: 97000 })] }, // low margin
+    ],
+  });
+  const lowMarginCount = classifyReadiness(input).warnings.filter((w) => w.code === "LOW_MARGIN").length;
+  assert.equal(lowMarginCount, 1, "the low-margin warning is aggregated to a single entry");
+});
+
+test("EXPANDED: a null unit_cost is treated as zero cost → full margin → NO low-margin warning", () => {
+  const input = baseInput({
+    sections: [{ rows: [row({ unit_sell_ore: 100000, unit_cost_ore: null })] }],
+  });
+  assert.ok(!warningCodes(input).includes("LOW_MARGIN"), "null cost → 100% margin → healthy");
+});
+
+// ── EMPTY_SECTION multiplicity: one warning per empty section ──
+
+test("EXPANDED: TWO empty sections yield TWO EMPTY_SECTION warnings (per-section, not deduped)", () => {
+  const input = baseInput({ sections: [{ rows: [] }, { rows: [] }, { rows: [row()] }] });
+  const emptyCount = classifyReadiness(input).warnings.filter((w) => w.code === "EMPTY_SECTION").length;
+  assert.equal(emptyCount, 2, "each empty section contributes its own EMPTY_SECTION warning");
+});
+
+// ── MISSING_WORK_ROLE: only labor, only counted ──
+
+test("EXPANDED: a non-labor row without a work_role source does NOT trigger MISSING_WORK_ROLE", () => {
+  const input = baseInput({
+    sections: [{ rows: [row({ row_type: "material", source_kind: null })] }],
+  });
+  assert.ok(!warningCodes(input).includes("MISSING_WORK_ROLE"));
+});
+
+test("EXPANDED: an UNSELECTED-option labor row without a work_role is excluded and does NOT warn", () => {
+  // The row is not counted (unselected option), so no work-role warning is raised for it.
+  const input = baseInput({
+    sections: [
+      {
+        rows: [
+          row({ row_type: "labor", source_kind: null, is_optional: true, is_selected: false }),
+          row(), // a counted material row keeps the section non-empty
+        ],
+      },
+    ],
+  });
+  assert.ok(!warningCodes(input).includes("MISSING_WORK_ROLE"), "an excluded row raises no work-role warning");
+});
+
+// ── HIDDEN_ROWS_INCLUDED: only counted hidden rows disclose ──
+
+test("EXPANDED: a HIDDEN but UNSELECTED-option row is excluded → NO hidden-rows-included disclosure", () => {
+  const input = baseInput({
+    sections: [
+      {
+        rows: [
+          row({ is_hidden: true, is_optional: true, is_selected: false }), // excluded → not counted
+          row(), // a counted, visible row
+        ],
+      },
+    ],
+  });
+  assert.ok(
+    !warningCodes(input).includes("HIDDEN_ROWS_INCLUDED"),
+    "an excluded hidden option is not counted, so it discloses nothing",
+  );
+});
+
+test("EXPANDED: a HIDDEN SELECTED option IS counted → the hidden-rows-included disclosure fires", () => {
+  const input = baseInput({
+    sections: [{ rows: [row({ is_hidden: true, is_optional: true, is_selected: true })] }],
+  });
+  assert.ok(warningCodes(input).includes("HIDDEN_ROWS_INCLUDED"));
+});
+
+// ── TAX_SIGN_OFF_REQUIRED: label variants + no spurious eligibility note for private ──
+
+test("EXPANDED: the grön-teknik tax warning uses the 'Grön teknik-avdraget' label", () => {
+  const input = baseInput({
+    tax: { hasDeductionAssumption: true, deductionType: "gron_teknik", eligibilityPosture: "private" },
+  });
+  const tax = classifyReadiness(input).warnings.find((w) => w.code === "TAX_SIGN_OFF_REQUIRED");
+  assert.ok(tax);
+  assert.match(tax!.message, /Grön teknik-avdraget/);
+});
+
+test("EXPANDED: a deduction assumption with NO deductionType uses the generic 'Skatteavdraget' label", () => {
+  const input = baseInput({ tax: { hasDeductionAssumption: true } });
+  const tax = classifyReadiness(input).warnings.find((w) => w.code === "TAX_SIGN_OFF_REQUIRED");
+  assert.ok(tax);
+  assert.match(tax!.message, /Skatteavdraget/);
+  // Still framed non-final.
+  assert.match(tax!.message, /uppskattning/i);
+});
+
+test("EXPANDED: a PRIVATE eligibility posture adds NO 'endast privatkunder' note (only non-private does)", () => {
+  const input = baseInput({
+    tax: { hasDeductionAssumption: true, deductionType: "rot", eligibilityPosture: "private" },
+  });
+  const tax = classifyReadiness(input).warnings.find((w) => w.code === "TAX_SIGN_OFF_REQUIRED");
+  assert.ok(tax);
+  assert.doesNotMatch(tax!.message, /privatkunder/i, "no eligibility caveat is added for an already-private posture");
+});
+
+// ── ROT × grön mix caution: the classifier never asserts a per-person cap regardless of type ──
+
+test("EXPANDED: no tax message implies a per-person-scaled cap for ANY deduction type (R-512)", () => {
+  for (const deductionType of ["rot", "gron_teknik"] as const) {
+    const input = baseInput({
+      tax: { hasDeductionAssumption: true, deductionType, eligibilityPosture: "private" },
+    });
+    const tax = classifyReadiness(input).warnings.find((w) => w.code === "TAX_SIGN_OFF_REQUIRED");
+    assert.ok(tax);
+    assert.doesNotMatch(tax!.message, /per person|per capita|antal personer/i);
+  }
+});
