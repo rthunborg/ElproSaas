@@ -205,21 +205,34 @@ export function PreQuotePreview({
             )}
           </div>
 
-          {/* Totals + VAT display (from totals.ts / the resolved posture). */}
+          {/* Totals + VAT display (from totals.ts / the resolved posture). Which figure is the
+              PRIMARY (emphasized) one mirrors the resolved posture — the same posture-aware
+              treatment shipped for the per-row line-total label (Task 2.3, RowEditor): a resolved
+              `company_excl` tenant foregrounds NET (exkl. moms); every other posture (private /
+              company_togglable) foregrounds GROSS (inkl. moms). All three engine-derived amounts
+              stay visible so the preview never drops a figure — only the emphasis follows posture,
+              so a `company_excl` preview stops contradicting the resolved posture. */}
+          {(() => {
+            const netPrimary = view?.posture === "company_excl";
+            const netEmphasis = netPrimary ? "flex justify-between font-semibold" : "flex justify-between";
+            const netDt = netPrimary ? "text-zinc-900" : "text-zinc-600";
+            const grossEmphasis = netPrimary ? "flex justify-between" : "flex justify-between font-semibold";
+            const grossDt = netPrimary ? "text-zinc-600" : "text-zinc-900";
+            return (
           <div data-testid="preview-totals" className="text-sm">
             <h3 className="font-semibold text-zinc-900">Summering</h3>
             {total ? (
               <dl className="flex flex-col gap-1">
-                <div className="flex justify-between">
-                  <dt className="text-zinc-600">Netto (exkl. moms)</dt>
+                <div className={netEmphasis}>
+                  <dt className={netDt}>Netto (exkl. moms)</dt>
                   <dd data-testid="preview-net">{oreToKronorString(total.netOre)} kr</dd>
                 </div>
                 <div className="flex justify-between">
                   <dt className="text-zinc-600">Moms</dt>
                   <dd data-testid="preview-vat">{oreToKronorString(total.vatOre)} kr</dd>
                 </div>
-                <div className="flex justify-between font-semibold">
-                  <dt className="text-zinc-900">Totalt (inkl. moms)</dt>
+                <div className={grossEmphasis}>
+                  <dt className={grossDt}>Totalt (inkl. moms)</dt>
                   <dd data-testid="preview-gross">{oreToKronorString(total.grossOre)} kr</dd>
                 </div>
               </dl>
@@ -230,6 +243,8 @@ export function PreQuotePreview({
               Momsvisning: {vatPostureLabel}.
             </p>
           </div>
+            );
+          })()}
 
           {/* Tax assumptions — surfaced from the warnings captured at snapshot time (unapproved +
               sign-off framing; never rendered final). */}
