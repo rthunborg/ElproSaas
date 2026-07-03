@@ -5,10 +5,10 @@ epic_num: 5
 story_num: null
 branch: epic/5-calculation-workspace-and-quote-readiness
 status: in-progress
-updated_at: "2026-07-03T10:25:03Z"
+updated_at: "2026-07-03T10:38:17Z"
 started_at: "2026-07-02T18:13:57Z"
 completed_at: null
-active_seconds: 18187
+active_seconds: 18970
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false

@@ -21,3 +21,4 @@
 ## Story 5-5-calculation-golden-tests-for-options-hidden-rows-and-tax-warnings
 - [Phase 3 â€” create-story] 5-4 already extended options-tillval.json to the calc-row surface â€” the 5-5 pack covers inclusion/hidden-rows BY REFERENCE, no duplicate pin.
 - [Phase 3 â€” create-story] Epic-4 orgnr 10-digit-boundary privacy-scan false-positive is a live authoring constraint: every ore value in new golden fixtures must stay under 10 digits (< 10,000,000 kr).
+- [Phase 5 â€” dev-story] No anonymized Lovable calc-oracle example available â€” every golden case is new-expected (no fabricated documented-delta); the LABELLING/schema guards keep the three-way origin discipline so a real Epic-9 delta lands without code-shape change.
