@@ -34,6 +34,7 @@ their own local Supabase service and so cannot share the `verify` install.
 | --- | --- | --- | --- |
 | 1 | Install | `pnpm install --frozen-lockfile` | Reproducible install; fails if `pnpm-lock.yaml` is stale. |
 | — | Lockfile guard | `pnpm run verify:lockfiles` | Enforces pnpm as the only package manager (AR2); rejects an empty/invalid lockfile. |
+| — | Dependency audit | `pnpm audit --audit-level=high` | **BLOCKING** dependency-vulnerability scan (owner decision 2026-07-03, closing the NFR CONCERN carried Epics 2-5): fails on HIGH/CRITICAL advisories; moderate/low are logged, not blocking. Findings track the npm advisory DB, not the diff — a red audit on an untouched branch means a NEW upstream advisory; fix by bumping the dependency (or a documented, dated exception), never by weakening the threshold. |
 | — | Service-role containment | `pnpm run verify:service-role-containment` | Fails if the service-role key is `NEXT_PUBLIC_` or reachable from a `"use client"` path (architecture §6). |
 | 2 | Typecheck | `pnpm typecheck` | `tsc --noEmit` — no type errors (now includes the re-enrolled `tests/integration/**`). |
 | 3 | Lint | `pnpm lint` | `eslint` — lint clean. |

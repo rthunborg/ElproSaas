@@ -60,6 +60,17 @@ jobs:
       - name: Verify lockfiles (single package manager)
         run: pnpm run verify:lockfiles
 
+      # Dependency vulnerability scan (BLOCKING) — closes the standing NFR
+      # CONCERN carried Epics 2-5 (owner decision 2026-07-03: blocking gate).
+      # Fails the build on HIGH/CRITICAL advisories against the installed tree;
+      # moderate/low are reported in the log but do not block. NOTE: findings
+      # arrive when the npm advisory DB updates, not when code changes — a red
+      # run here on an untouched branch means a new upstream advisory, and the
+      # fix is a dependency bump (or a documented, dated exception), never
+      # weakening the threshold.
+      - name: Audit dependencies (blocking, high severity)
+        run: pnpm audit --audit-level=high
+
       - name: Verify service-role containment (no client-path leakage)
         run: pnpm run verify:service-role-containment
 
