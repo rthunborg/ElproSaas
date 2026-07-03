@@ -14,6 +14,7 @@ import {
   percentStringToBp,
   percentStringToMarkupBp,
 } from "@/features/calculations/money-input";
+import { MARKUP_BP_MAX } from "@/server/commands/calculations/validation";
 
 // ── kronor↔öre (reused pricing seam) ─────────────────────────────────────────────
 
@@ -72,4 +73,22 @@ test("markup percent→bp REJECTS negatives / sub-bp / non-numeric / blank", () 
 test("markup bp→percent renders without a trailing .00", () => {
   assert.equal(markupBpToPercentString(15000), "150");
   assert.equal(markupBpToPercentString(1250), "12.5");
+});
+
+test("markup percent→bp ACCEPTS the exact MARKUP_BP_MAX ceiling and REJECTS above it", () => {
+  // The parser shares the 5.1 isMarkupBp ceiling (MARKUP_BP_MAX). The value AT the ceiling
+  // is accepted; one bp above is rejected — the boundary matches the server authority.
+  const ceilingPercent = String(MARKUP_BP_MAX / 100); // e.g. "10000"
+  assert.deepEqual(percentStringToMarkupBp(ceilingPercent), { ok: true, bp: MARKUP_BP_MAX });
+  const abovePercent = String(MARKUP_BP_MAX / 100 + 1);
+  assert.equal(percentStringToMarkupBp(abovePercent).ok, false);
+});
+
+test("markup bp→percent on a non-finite bp yields an empty string (never 'NaN')", () => {
+  assert.equal(markupBpToPercentString(Number.NaN), "");
+  assert.equal(markupBpToPercentString(Number.POSITIVE_INFINITY), "");
+});
+
+test("markup percent→bp tolerates surrounding whitespace around a valid value", () => {
+  assert.deepEqual(percentStringToMarkupBp("  25  "), { ok: true, bp: 2500 });
 });

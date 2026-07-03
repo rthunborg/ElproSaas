@@ -224,3 +224,147 @@ test("reorderSections: an empty id list is a field error", () => {
   const parsed = parseReorderSectionsForm(fd({ calculation_id: CUST, ordered_section_ids: "" }));
   assert.ok(parsed.fieldErrors.ordered_section_ids);
 });
+
+test("reorderSections: a valid id list parses to the ordered array", () => {
+  const parsed = parseReorderSectionsForm(
+    fd({ calculation_id: CUST, ordered_section_ids: `${SECT},${ROW}` }),
+  );
+  assert.deepEqual(parsed.fieldErrors, {});
+  assert.deepEqual(parsed.input.ordered_section_ids, [SECT, ROW]);
+  assert.equal(parsed.input.calculation_id, CUST);
+});
+
+test("reorderRows: trailing commas / blank entries are FILTERED out of the id array", () => {
+  const parsed = parseReorderRowsForm(
+    fd({ section_id: SECT, ordered_row_ids: `${ROW}, , ,${CUST},` }),
+  );
+  assert.deepEqual(parsed.input.ordered_row_ids, [ROW, CUST]);
+});
+
+test("reorderRows: a missing section_id is a field error", () => {
+  const parsed = parseReorderRowsForm(fd({ ordered_row_ids: ROW }));
+  assert.ok(parsed.fieldErrors.section_id);
+});
+
+// ── AC2: values echo-back — the form PRESERVES input on a validation failure ──────
+
+test("AC2: a failed createRow echoes back the submitted values verbatim (preserve input)", () => {
+  const parsed = parseCreateRowForm(
+    fd({
+      section_id: SECT,
+      row_type: "labor",
+      quantity: "2",
+      unit: "h",
+      unit_sell_kronor: "-50", // malformed → a field error
+      vat_percent: "25",
+      label: "Framdragning",
+    }),
+  );
+  // The parse failed (bad price)…
+  assert.ok(parsed.fieldErrors.unit_sell_kronor);
+  // …but every submitted value is echoed back so the form never clears the admin's input.
+  assert.equal(parsed.values.unit_sell_kronor, "-50");
+  assert.equal(parsed.values.quantity, "2");
+  assert.equal(parsed.values.unit, "h");
+  assert.equal(parsed.values.label, "Framdragning");
+});
+
+test("AC2: a failed createCalculation echoes back the title/customer values", () => {
+  const parsed = parseCreateCalculationForm(fd({ customer_id: "", title: "Villa Ek" }));
+  assert.ok(parsed.fieldErrors.customer_id);
+  assert.equal(parsed.values.title, "Villa Ek");
+  assert.equal(parsed.values.customer_id, "");
+});
+
+// ── updateRow: the money boundary + malformed rejection also apply on UPDATE ──────
+
+test("updateRow: kronor→öre / percent→bp conversions happen on UPDATE too", () => {
+  const parsed = parseUpdateRowForm(
+    fd({
+      id: ROW,
+      unit_cost_kronor: "300,00",
+      unit_sell_kronor: "600,00",
+      markup_percent: "50",
+      vat_percent: "12",
+      quantity: "4",
+    }),
+  );
+  assert.deepEqual(parsed.fieldErrors, {});
+  assert.equal(parsed.input.unit_cost_ore, 30000);
+  assert.equal(parsed.input.unit_sell_ore, 60000);
+  assert.equal(parsed.input.markup_bp, 5000);
+  assert.equal(parsed.input.vat_rate_bp, 1200);
+  assert.equal(parsed.input.quantity, 4);
+});
+
+test("updateRow: a malformed price is a FIELD error and is NOT included in the input", () => {
+  const parsed = parseUpdateRowForm(fd({ id: ROW, unit_sell_kronor: "12.34" })); // dot decimal
+  assert.ok(parsed.fieldErrors.unit_sell_kronor);
+  assert.equal("unit_sell_ore" in parsed.input, false);
+});
+
+test("updateRow: an OMITTED money field is not included (empty-patch friendly)", () => {
+  const parsed = parseUpdateRowForm(fd({ id: ROW }));
+  assert.equal("unit_sell_ore" in parsed.input, false);
+  assert.equal("vat_rate_bp" in parsed.input, false);
+  assert.equal("quantity" in parsed.input, false);
+  assert.deepEqual(parsed.input, { id: ROW });
+});
+
+// ── createRow: missing required fields surface as field errors ────────────────────
+
+test("createRow: a missing section_id and unit are both field errors", () => {
+  const parsed = parseCreateRowForm(fd({ row_type: "labor", quantity: "1", vat_percent: "25" }));
+  assert.ok(parsed.fieldErrors.section_id);
+  assert.ok(parsed.fieldErrors.unit);
+});
+
+// ── Row free-text fields: attach when present, drop an empty string ───────────────
+
+test("createRow: free-text fields (label/description/notes) attach when present", () => {
+  const parsed = parseCreateRowForm(
+    fd({
+      section_id: SECT,
+      row_type: "material",
+      quantity: "1",
+      unit: "st",
+      vat_percent: "25",
+      label: "Kabel",
+      description: "5x2,5",
+      internal_note: "lager B",
+      quote_note: "ingår",
+    }),
+  );
+  assert.equal(parsed.input.label, "Kabel");
+  assert.equal(parsed.input.description, "5x2,5");
+  assert.equal(parsed.input.internal_note, "lager B");
+  assert.equal(parsed.input.quote_note, "ingår");
+});
+
+test("createRow: an EMPTY free-text field is dropped (isPresent('')===false)", () => {
+  const parsed = parseCreateRowForm(
+    fd({
+      section_id: SECT,
+      row_type: "material",
+      quantity: "1",
+      unit: "st",
+      vat_percent: "25",
+      label: "",
+      quote_note: "",
+    }),
+  );
+  assert.equal("label" in parsed.input, false);
+  assert.equal("quote_note" in parsed.input, false);
+});
+
+// ── updateCalculation / updateSection: a missing id is a field error ──────────────
+
+test("updateCalculation: a missing id is a field error", () => {
+  const parsed = parseUpdateCalculationForm(fd({ title: "X" }));
+  assert.ok(parsed.fieldErrors.id);
+});
+
+test("updateSection: a missing id is a field error", () => {
+  const parsed = parseUpdateSectionForm(fd({ title: "X" }));
+  assert.ok(parsed.fieldErrors.id);
+});

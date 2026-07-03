@@ -73,3 +73,27 @@ test("5.2-UNIT-02: a delete-then-reorder round-trip keeps a stable, contiguous o
   const afterMove = moveUp(afterDelete, 2); // ["a","d","b"]
   assert.deepEqual(afterMove, ["a", "d", "b"]);
 });
+
+test("5.2-UNIT-02: moveDown with a NEGATIVE index is a no-op copy", () => {
+  assert.deepEqual(moveDown(ids, -1), ["a", "b", "c", "d"]);
+});
+
+test("5.2-UNIT-02: moveDown with an out-of-range index is a no-op copy", () => {
+  assert.deepEqual(moveDown(ids, 99), ["a", "b", "c", "d"]);
+});
+
+test("5.2-UNIT-02: appendId to an EMPTY order yields a single-id list", () => {
+  assert.deepEqual(appendId([], "a"), ["a"]);
+});
+
+test("5.2-UNIT-02: removeId on the ONLY element yields an empty order", () => {
+  assert.deepEqual(removeId(["only"], "only"), []);
+});
+
+test("5.2-UNIT-02: moveDown swaps a first-of-two toward the end", () => {
+  assert.deepEqual(moveDown(["x", "y"], 0), ["y", "x"]);
+});
+
+test("5.2-UNIT-02: reorderTo a same-position index is an identity copy (no reshuffle)", () => {
+  assert.deepEqual(reorderTo(ids, 2, 2), ["a", "b", "c", "d"]);
+});

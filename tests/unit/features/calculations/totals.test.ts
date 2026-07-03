@@ -15,6 +15,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   computeLineTotal,
+  computeLineVat,
   computeSectionTotal,
   computeCalcTotal,
   resolveTotalDisplay,
@@ -27,6 +28,7 @@ import {
   sumVatOre,
   vatBreakdown,
   selectVatDisplay,
+  ORE_AMOUNT_MAX,
 } from "@/lib/money";
 
 function row(overrides: Partial<{
@@ -219,4 +221,109 @@ test("a null sell/VAT is treated as 0 (a draft row without a price contributes 0
     assert.equal(line.value.vatOre, 0);
     assert.equal(line.value.grossOre, 0);
   }
+});
+
+// ── Engine-failure propagation: a rejected öre op is a typed failure, NEVER a NaN ──
+
+test("computeLineTotal PROPAGATES an engine overflow as a typed failure (never NaN)", () => {
+  // qty × sell overflows ORE_AMOUNT_MAX → the engine's lineNetOre rejects; the editor must
+  // surface a typed { ok:false, code } rather than coerce a NaN/Infinity into a total.
+  const line = computeLineTotal(
+    row({ quantity: 2, unit_sell_ore: ORE_AMOUNT_MAX, vat_rate_bp: 2500 }),
+  );
+  assert.equal(line.ok, false);
+  if (!line.ok) {
+    assert.equal(line.code, "ORE_OVERFLOW");
+  }
+});
+
+test("computeLineTotal PROPAGATES a malformed quantity as a typed failure", () => {
+  // A non-finite quantity is an engine INVALID_QUANTITY — never a silent 0 or NaN total.
+  const line = computeLineTotal(
+    row({ quantity: Number.POSITIVE_INFINITY, unit_sell_ore: 10000, vat_rate_bp: 2500 }),
+  );
+  assert.equal(line.ok, false);
+  if (!line.ok) {
+    assert.equal(typeof line.code, "string");
+    assert.ok(line.code.length > 0);
+  }
+});
+
+test("computeSectionTotal short-circuits to a typed failure when ANY included line fails", () => {
+  const good = row({ quantity: 1, unit_sell_ore: 10000, vat_rate_bp: 2500 });
+  const overflowing = row({ quantity: 2, unit_sell_ore: ORE_AMOUNT_MAX, vat_rate_bp: 2500 });
+  const section = computeSectionTotal([good, overflowing]);
+  assert.equal(section.ok, false);
+  if (!section.ok) {
+    assert.equal(section.code, "ORE_OVERFLOW");
+  }
+});
+
+test("computeSectionTotal SKIPS an unselected-option overflow (excluded rows never fail the sum)", () => {
+  // An UNSELECTED option is excluded BEFORE the line is computed — so an over-large
+  // (but excluded) option must NOT poison an otherwise-valid section total.
+  const good = row({ quantity: 1, unit_sell_ore: 10000, vat_rate_bp: 2500 });
+  const excludedOverflow = row({
+    quantity: 2,
+    unit_sell_ore: ORE_AMOUNT_MAX,
+    vat_rate_bp: 2500,
+    is_optional: true,
+    is_selected: false,
+  });
+  const section = computeSectionTotal([good, excludedOverflow]);
+  assert.equal(section.ok, true);
+});
+
+// ── Empty inputs: zero total, never a failure ────────────────────────────────────
+
+test("computeSectionTotal over an EMPTY row list is a zero total (not a failure)", () => {
+  const section = computeSectionTotal([]);
+  assert.equal(section.ok, true);
+  if (section.ok) {
+    assert.deepEqual(section.value, { netOre: 0, vatOre: 0, grossOre: 0 });
+  }
+});
+
+test("computeCalcTotal over sections with NO rows is a zero total", () => {
+  const calc = computeCalcTotal([{ rows: [] }, { rows: [] }]);
+  assert.equal(calc.ok, true);
+  if (calc.ok) {
+    assert.deepEqual(calc.value, { netOre: 0, vatOre: 0, grossOre: 0 });
+  }
+});
+
+// ── Inclusion pin, integrated into a SUM: a hidden row's öre actually lands ───────
+
+test("inclusion: a HIDDEN row's öre CONTRIBUTES to the section total (hidden ≠ excluded)", () => {
+  const visible = row({ quantity: 1, unit_sell_ore: 10000, vat_rate_bp: 2500 });
+  const hidden = row({
+    quantity: 1,
+    unit_sell_ore: 40000,
+    vat_rate_bp: 2500,
+    is_hidden: true,
+  });
+  const withHidden = computeSectionTotal([visible, hidden]);
+  const visibleOnly = computeSectionTotal([visible]);
+  assert.equal(withHidden.ok, true);
+  assert.equal(visibleOnly.ok, true);
+  if (withHidden.ok && visibleOnly.ok) {
+    // The hidden row's 40000 öre net is added — hidden counts toward the total.
+    assert.equal(withHidden.value.netOre, visibleOnly.value.netOre + 40000);
+    assert.ok(withHidden.value.vatOre > visibleOnly.value.vatOre);
+  }
+});
+
+// ── computeLineVat: the direct per-line VAT helper (byte-parity with the engine) ──
+
+test("computeLineVat equals a direct lineVatOre engine call and propagates its failure", () => {
+  const ok = computeLineVat(10000, 2500);
+  const engine = lineVatOre(10000, 2500);
+  assert.equal(ok.ok, true);
+  assert.equal(engine.ok, true);
+  if (ok.ok && engine.ok) {
+    assert.equal(ok.value, engine.value);
+  }
+  // A malformed VAT rate is a typed failure, not a NaN.
+  const bad = computeLineVat(10000, -1);
+  assert.equal(bad.ok, false);
 });
