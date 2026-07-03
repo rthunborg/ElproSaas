@@ -467,11 +467,13 @@ test("EXPANDED: LOW_MARGIN aggregates across sections and warns ONCE even with s
   assert.equal(lowMarginCount, 1, "the low-margin warning is aggregated to a single entry");
 });
 
-test("EXPANDED: a null unit_cost is treated as zero cost → full margin → NO low-margin warning", () => {
+test("EXPANDED: a null unit_cost is 'cost unknown' → no defined margin → NO low-margin warning (NOT a false 100%)", () => {
+  // A genuinely unset cost must NOT read as zero-cost / a false 100% margin (a fail-OPEN that
+  // would hide a pricing risk). It has no computable margin → the low-margin gate skips it.
   const input = baseInput({
     sections: [{ rows: [row({ unit_sell_ore: 100000, unit_cost_ore: null })] }],
   });
-  assert.ok(!warningCodes(input).includes("LOW_MARGIN"), "null cost → 100% margin → healthy");
+  assert.ok(!warningCodes(input).includes("LOW_MARGIN"), "unknown cost → no computable margin → gate skips it");
 });
 
 // ── EMPTY_SECTION multiplicity: one warning per empty section ──

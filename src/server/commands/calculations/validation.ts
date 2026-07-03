@@ -449,10 +449,33 @@ function validateRowCommonFields(
 }
 
 /**
+ * The source-kind a given row_type maps to at the TRUST BOUNDARY (labor → work_role,
+ * material → article; every other row type takes NO source). Mirrors the UI-side
+ * `sourcesForRowType`/`kindForRowType` (`src/features/calculations/source-select.ts`) so
+ * the server enforces the SAME AC1/AC2 "labor→work role, material→article" contract a
+ * UI-bypassing client cannot violate. Kept local + pure (no React/DOM import) so the
+ * validator stays under the dependency-free `node --test` fast gate.
+ */
+function kindForRowType(rowType: RowType): RowSourceKind | null {
+  if (rowType === "labor") return "work_role";
+  if (rowType === "material") return "article";
+  return null;
+}
+
+/**
  * Validate the OPTIONAL pricing-source PAIR (Story 5.3, Task 2.1). Both-or-neither:
  *   - neither present → `{ ok: true, kind: undefined, id: undefined }` (a manual row);
  *   - both present + valid (closed kind union + UUID-shaped id) → carries the pair;
  *   - exactly one present, an unknown kind, or a non-UUID id → `fail`.
+ *
+ * ROW-TYPE CROSS-CHECK (integration review): when a `row_type` is present alongside a
+ * source pair, the pair's `source_kind` MUST match the kind that row_type maps to
+ * (`kindForRowType`) — a labor row takes ONLY a `work_role` source, a material row ONLY an
+ * `article`, and any other row type takes NO source. A UI-bypassing client cannot persist a
+ * work-role snapshot on a material row (or vice-versa), which would violate the AC1/AC2
+ * contract and desync Story 5.4's readiness rule. When `row_type` is ABSENT (a source-only
+ * update against an existing row) the persisted type is unknown to this pure validator, so
+ * the cross-check is skipped — the both-or-neither + kind/UUID checks still apply.
  *
  * `isPresent('')===false` (epic-5 PINNED convention): an EMPTY-STRING source_kind/source_id
  * is treated as ABSENT (dropped — a manual/no-source row), NOT a validation error; a
@@ -474,6 +497,12 @@ function validateSourcePair(
   // Both present — validate the closed kind union + the UUID-shaped id.
   if (!isRowSourceKind(raw.source_kind)) return fail;
   if (!isUuidLike(raw.source_id)) return fail;
+  // Cross-check against the row_type when one is supplied: the source_kind must be the kind
+  // that row_type maps to. A row_type with no source kind (subcontractor/machinery/other) may
+  // NOT carry a source at all. This closes the crafted-write gap where the UI is bypassed.
+  if (isRowType(raw.row_type) && kindForRowType(raw.row_type) !== raw.source_kind) {
+    return fail;
+  }
   return { ok: true, kind: raw.source_kind, id: raw.source_id as string };
 }
 

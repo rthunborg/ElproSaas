@@ -5,11 +5,11 @@ epic_num: 5
 story_num: null
 branch: epic/5-calculation-workspace-and-quote-readiness
 status: in-progress
-updated_at: "2026-07-03T10:52:10Z"
+updated_at: "2026-07-03T11:24:04Z"
 started_at: "2026-07-02T18:13:57Z"
 completed_at: null
-active_seconds: 19774
-timing_anchor: null
+active_seconds: 20798
+timing_anchor: 1783076994
 is_first_in_epic: false
 is_last_in_epic: false
 needs_project_context_bootstrap: false
@@ -20,8 +20,8 @@ tea_selected: []
 tea_rationale: null
 epic_story_count: 5
 stories_after_in_epic: null
-completed_phases: [0, 1, 2]
-code_review_iterations: 0
+completed_phases: [0, 1, 2, 5, 81]
+code_review_iterations: 1
 code_review_loop_done: false
 hitl_halt: null
 external_review_iterations: 0
@@ -29,14 +29,14 @@ convergence_unverified: false
 story_trace: null
 commits: [155686f]
 phase8_steps:
-  trace_gate: null
-  nfr: null
-  test_review: null
+  trace_gate: done
+  nfr: done
+  test_review: done
   project_context: null
   reconcile: null
   archive: null
   retro: null
-gate_decision: null
+gate_decision: PASS
 gate_iterations: 0
 deferred_work_archived: 0
 pr_url: null
@@ -52,18 +52,21 @@ blockers: []
 overrides: {}
 constraints: []
 epic_slug: calculation-workspace-and-quote-readiness
-active_story: 5-5-calculation-golden-tests-for-options-hidden-rows-and-tax-warnings
+active_story: null
 stories_landed:
   - 5-1-tenant-owned-calculation-schema-and-server-commands
   - 5-2-calculation-editor-ux-for-sections-and-rows
   - 5-3-pricing-source-selection-and-row-snapshots
   - 5-4-calculation-readiness-review-and-snapshot-preview
+  - 5-5-calculation-golden-tests-for-options-hidden-rows-and-tax-warnings
 auto_decisions:
   - "Lifecycle state machine not authoritative (currentStatus never loaded from DB) [Med] â†’ fix: validate transition against the row's real DB status in updateCalculation (Tier A, 5-1)"
   - "status/archived_at can silently disagree [Med] â†’ fix: resolved with the state-machine fix â€” archivedâ†’active blocked; un-archive must clear archived_at (Tier A, 5-1)"
   - "markup_bp capped at 100% by reusing isVatRateBp [Med] â†’ fix: dedicated isMarkupBp (non-negative int bp, bound well above 10000) + update pinning test (Tier A, 5-1)"
   - "updateCalculation cannot re-point facility/contact [Low] â†’ dismiss: reasonable Phase-A narrowing; composite FK backstops INSERT; 5.2 can add re-pointing (Tier A, 5-1)"
   - "Tenant default_vat_display ignored; posture hard-coded to company_togglable [Med] → defer: full posture resolution (incl. brf/public) is Story 5.4's VAT-display surface; only a view label can mismatch (Tier A, 5-2)"
+  - "readCalculationDetail swallows customer/facility/contact read errors [Med] → fix: check .error on those reads and return the generic read-error state (E_review, epic-5)"
+  - "rowMarginRatio null-cost = 100% margin + redundant *quantity overflow surface [Med] → fix: drop cancelling *quantity, guard unsafe integers, null cost → cost unknown (no false 100% margin) (E_review, epic-5)"
 uat_items:
   - "[5-1] supabase db reset from empty -> completes, applies 20260702120000_calculation_data_model.sql (contacts_id_tenant_unique prerequisite resolves)"
   - "[5-1] psql describe public.calculations -> id, tenant_id, customer/facility/contact_id, title, status (default 'draft'), archived_at, timestamps"
@@ -135,3 +138,12 @@ uat_items:
   - "[5-4] Hidden counted row -> 'Dolda rader raknas med i summan…' disclosure; required-files-deferred warning always present (Story 8.1)"
   - "[5-4] company_excl tenant -> per-row line-total reads '(exkl. moms)'; private/togglable -> '(inkl. moms)' (posture-aware label)"
   - "[5-4] NOT hand-testable (unit-pinned only): MISSING_CUSTOMER blocker (FK-NOT-NULL) and ROT/gron TAX_SIGN_OFF warning (no persisted tax assumption until Epic 6)"
+  - "[5-5] Run the two calc-golden-pack suites via node --test -> pass 19 / fail 0 / skipped 0 / todo 0 (no vacuous skips)"
+  - "[5-5] pnpm run test:unit -> green with the two pack files among executed suites (not runner-glob-skipped); no calc golden under tests/golden/**"
+  - "[5-5] calc-rows.json: policy.signOff exactly 'pending-owner-accounting-legal' (nothing production-approved); every case origin in the three-way set with non-empty note (all new-expected)"
+  - "[5-5] calc-rows.json categories cover the five row types, fractional-quantities, margins, three section modes, vat-display, attachment-readiness"
+  - "[5-5] Hand PII scan of calc-rows.json -> no personnummer/orgnr/email/secret in data; all ore values < 10 digits (max 106250)"
+  - "[5-5] Negative check: temporarily bump one expected ore value -> pack FAILS loudly naming the case/category; revert -> green"
+  - "[5-5] ROT/gron guard: requiresSignOff true, ROT×gron mix blocks (ROT_GRON_MIX_NOT_ALLOWED), persons=4 gives identical flat-cap deduction (no per-person multiplier)"
+  - "[5-5] Attachment-readiness guard: classifyReadiness always emits REQUIRED_FILES_DEFERRED (Story 8.1 seam never silently omitted)"
+  - "[5-5] pnpm typecheck 0 errors; pnpm lint 0 errors (1 pre-existing unrelated warning)"

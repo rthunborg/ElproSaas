@@ -70,6 +70,12 @@ export function PreQuotePreview({
   const { customer, sections } = detail;
   const [open, setOpen] = useState(false);
   const gated = !report.canCreateQuote;
+  // Compute the tax sign-off warning ONCE and branch on truthiness (never a `.some(...)` +
+  // `.find(...)!` double-scan whose non-null assertion would crash the whole preview if the two
+  // predicate strings ever drifted).
+  const taxSignOffWarning = report.warnings.find(
+    (w) => w.code === "TAX_SIGN_OFF_REQUIRED",
+  );
 
   const vatPostureLabel =
     view === null
@@ -250,13 +256,8 @@ export function PreQuotePreview({
               sign-off framing; never rendered final). */}
           <div data-testid="preview-tax-assumptions" className="text-sm">
             <h3 className="font-semibold text-zinc-900">Skatteantaganden</h3>
-            {report.warnings.some((w) => w.code === "TAX_SIGN_OFF_REQUIRED") ? (
-              <p className="text-amber-900">
-                {
-                  report.warnings.find((w) => w.code === "TAX_SIGN_OFF_REQUIRED")!
-                    .message
-                }
-              </p>
+            {taxSignOffWarning ? (
+              <p className="text-amber-900">{taxSignOffWarning.message}</p>
             ) : (
               <p className="text-zinc-600">Inga ROT-/grön teknik-antaganden på kalkylen.</p>
             )}
@@ -301,8 +302,11 @@ export function PreQuotePreview({
               <p className="text-zinc-600">Inga anmärkningar.</p>
             ) : (
               <ul className="flex list-disc flex-col gap-1 pl-5 text-amber-900">
-                {report.warnings.map((w) => (
-                  <li key={w.code} data-testid={`preview-warning-${w.code}`}>
+                {report.warnings.map((w, i) => (
+                  <li
+                    key={`${w.code}-${i}`}
+                    data-testid={`preview-warning-${w.code}-${i}`}
+                  >
                     {w.message}
                   </li>
                 ))}

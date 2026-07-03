@@ -188,6 +188,84 @@ test(
 );
 
 // ─────────────────────────────────────────────────────────────────────────────
+// ROW-TYPE ↔ SOURCE-KIND cross-check (integration review) — a UI-bypassing client
+// cannot persist a work-role snapshot on a material row (or vice-versa). AC1/AC2.
+// ─────────────────────────────────────────────────────────────────────────────
+
+test(
+  "validateCreateRow REJECTS a work_role source on a MATERIAL row (kind/row_type mismatch)",
+  () => {
+    assertRejected(
+      validateCreateRow(
+        baseRow({ row_type: "material", source_kind: "work_role", source_id: SOURCE_ID }),
+      ),
+      "material row must not carry a work_role source",
+    );
+  },
+);
+
+test(
+  "validateCreateRow REJECTS an article source on a LABOR row (kind/row_type mismatch)",
+  () => {
+    assertRejected(
+      validateCreateRow(
+        baseRow({ row_type: "labor", source_kind: "article", source_id: SOURCE_ID }),
+      ),
+      "labor row must not carry an article source",
+    );
+  },
+);
+
+test(
+  "validateCreateRow REJECTS any source on a NO-SOURCE row type (subcontractor/machinery/other)",
+  () => {
+    for (const rowType of ["subcontractor", "machinery", "other"]) {
+      assertRejected(
+        validateCreateRow(
+          baseRow({ row_type: rowType, source_kind: "work_role", source_id: SOURCE_ID }),
+        ),
+        `${rowType} row must not carry any source`,
+      );
+      assertRejected(
+        validateCreateRow(
+          baseRow({ row_type: rowType, source_kind: "article", source_id: SOURCE_ID }),
+        ),
+        `${rowType} row must not carry any source`,
+      );
+    }
+  },
+);
+
+test(
+  "validateUpdateRow REJECTS a source pair whose kind mismatches the supplied row_type",
+  () => {
+    assertRejected(
+      validateUpdateRow({
+        id: ROW_ID,
+        row_type: "material",
+        source_kind: "work_role",
+        source_id: SOURCE_ID,
+      }),
+      "update: material row_type + work_role source is a mismatch",
+    );
+  },
+);
+
+test(
+  "validateUpdateRow ACCEPTS a source-only pair when NO row_type is supplied (persisted type unknown to the pure validator)",
+  () => {
+    // A source-only edit against an existing row carries no row_type — the pure validator
+    // cannot know the persisted type, so the cross-check is skipped (both-or-neither still holds).
+    const data = assertAccepted(
+      validateUpdateRow({ id: ROW_ID, source_kind: "work_role", source_id: SOURCE_ID }),
+      "update: source-only pair, no row_type",
+    );
+    assert.equal(data.source_kind, "work_role");
+    assert.equal(data.source_id, SOURCE_ID);
+  },
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Source CLEAR (Task 2.4) — switching a row back to manual is an explicit clear.
 // ─────────────────────────────────────────────────────────────────────────────
 

@@ -129,7 +129,7 @@ export interface ReadinessCustomerContext {
 /** The minimal row shape the classifier reads (a superset of `TotalsRowInput` with the classify fields). */
 export interface ReadinessRowInput extends TotalsRowInput {
   readonly row_type: "labor" | "material" | "subcontractor" | "machinery" | "other";
-  /** Unit COST öre (for the TB% ratio; null → treated as 0 cost). */
+  /** Unit COST öre (for the TB% ratio; null → cost UNKNOWN → no defined margin, never 0-cost). */
   readonly unit_cost_ore: number | null;
   /** The FROZEN pricing-source kind (a labor row with `work_role` has a work role attached). */
   readonly source_kind: "work_role" | "article" | null;
@@ -172,15 +172,29 @@ function counts(row: ReadinessRowInput): boolean {
 
 /**
  * The per-line TB% (contribution margin ratio) from integer öre: `(sell − cost) / sell`. A pure
- * ratio of already-öre values — integer öre in, a ratio out (no öre arithmetic invented, R-505). A
- * null sell/cost is treated as 0. A zero (or absent) sell price has NO defined margin → returns
- * `null` (the ZERO_PRICE_ROW rule owns that condition; a 0-sell row must not also read as a
- * divide-by-zero -Infinity margin).
+ * ratio of already-öre PER-UNIT values — integer öre in, a ratio out (no öre arithmetic invented,
+ * R-505). Computed PER-UNIT: `quantity` cancels out of the ratio entirely, so multiplying both
+ * terms by it is dead arithmetic that only pushes the operands toward `Number.MAX_SAFE_INTEGER`
+ * (the same overflow class 5.4-E2E-01 seeds) — it is deliberately dropped here.
+ *
+ * NULL-COST POLICY (integration review): a counted row with a genuinely unknown/unset cost
+ * (`unit_cost_ore = null`) has NO defined margin → returns `null` (the low-margin gate skips it),
+ * NOT a treat-as-zero-cost that reads as a false 100% margin and silently suppresses LOW_MARGIN —
+ * a fail-OPEN that hides a pricing risk. An unknown cost is "cost unknown", not "cost is 0".
+ *
+ * A zero (or absent) sell price also has NO defined margin → `null` (the ZERO_PRICE_ROW rule owns
+ * that condition; a 0-sell row must not read as a divide-by-zero -Infinity margin). Non-finite /
+ * unsafe-integer operands (a crafted overflow) → `null` rather than a corrupted ratio.
  */
 function rowMarginRatio(row: ReadinessRowInput): number | null {
-  const sell = (row.unit_sell_ore ?? 0) * row.quantity;
-  const cost = (row.unit_cost_ore ?? 0) * row.quantity;
+  // A null cost is UNKNOWN, not zero — no defined margin (do not fail open to 100%).
+  if (row.unit_cost_ore === null) return null;
+  const sell = row.unit_sell_ore ?? 0;
+  const cost = row.unit_cost_ore;
+  // A 0/absent sell price has no defined margin (ZERO_PRICE_ROW owns it).
   if (sell <= 0) return null;
+  // Guard against non-finite / out-of-safe-range operands corrupting the ratio.
+  if (!Number.isSafeInteger(sell) || !Number.isSafeInteger(cost)) return null;
   return (sell - cost) / sell;
 }
 

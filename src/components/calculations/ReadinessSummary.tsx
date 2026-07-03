@@ -48,8 +48,11 @@ export function ReadinessSummary({
             Blockerande problem — måste åtgärdas
           </h3>
           <ul className="flex list-disc flex-col gap-1 pl-5 text-sm text-red-800">
-            {blockers.map((issue) => (
-              <li key={issue.code} data-testid={`readiness-blocker-${issue.code}`}>
+            {blockers.map((issue, i) => (
+              <li
+                key={`${issue.code}-${i}`}
+                data-testid={`readiness-blocker-${issue.code}`}
+              >
                 {issue.message}
               </li>
             ))}
@@ -68,8 +71,11 @@ export function ReadinessSummary({
             Varningar — kontrollera innan du skapar en offert
           </h3>
           <ul className="flex list-disc flex-col gap-1 pl-5 text-sm text-amber-900">
-            {warnings.map((issue) => (
-              <li key={issue.code} data-testid={`readiness-warning-${issue.code}`}>
+            {warnings.map((issue, i) => (
+              <li
+                key={`${issue.code}-${i}`}
+                data-testid={`readiness-warning-${issue.code}-${i}`}
+              >
                 {issue.message}
               </li>
             ))}

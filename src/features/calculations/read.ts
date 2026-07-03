@@ -224,6 +224,10 @@ export async function readCalculationDetail(
     ]);
 
     if (sectionsRes.error) return { detail: null, error: GENERIC_READ_ERROR };
+    // A failed customer read must NOT silently resolve `customer_type` to null (which the VAT
+    // display posture would treat as a non-private customer → the less-safe company posture) —
+    // surface it as the generic read-error state instead (mirrors the header/sections reads).
+    if (customerRes.error) return { detail: null, error: GENERIC_READ_ERROR };
     void rowsRes;
 
     const sectionRows = (sectionsRes.data ?? []) as unknown as Array<{
@@ -273,20 +277,24 @@ export async function readCalculationDetail(
     // sequential lookups (they are at most one each) selecting only the display NAME.
     let facilityName: string | null = null;
     if (header.facility_id) {
-      const { data: fac } = await client
+      const { data: fac, error: facError } = await client
         .from("facilities")
         .select("name")
         .eq("id", header.facility_id)
         .limit(1);
+      // A read fault must surface as the generic error, not a silent blank name (which would
+      // be indistinguishable from a genuinely absent facility).
+      if (facError) return { detail: null, error: GENERIC_READ_ERROR };
       facilityName = (fac?.[0] as { name: string | null } | undefined)?.name ?? null;
     }
     let contactName: string | null = null;
     if (header.contact_id) {
-      const { data: con } = await client
+      const { data: con, error: conError } = await client
         .from("contacts")
         .select("name")
         .eq("id", header.contact_id)
         .limit(1);
+      if (conError) return { detail: null, error: GENERIC_READ_ERROR };
       contactName = (con?.[0] as { name: string | null } | undefined)?.name ?? null;
     }
 
