@@ -4,10 +4,10 @@ story_key: epic-5
 epic_num: 5
 story_num: null
 branch: epic/5-calculation-workspace-and-quote-readiness
-status: in-progress
-updated_at: "2026-07-03T12:09:58Z"
+status: done
+updated_at: "2026-07-03T12:21:13Z"
 started_at: "2026-07-02T18:13:57Z"
-completed_at: null
+completed_at: "2026-07-03T12:21:13Z"
 active_seconds: 21984
 timing_anchor: null
 is_first_in_epic: false
@@ -20,14 +20,14 @@ tea_selected: []
 tea_rationale: null
 epic_story_count: 5
 stories_after_in_epic: null
-completed_phases: [0, 1, 2, 5, 7, 81, 82]
+completed_phases: [0, 1, 2, 5, 7, 9, 81, 82]
 code_review_iterations: 2
 code_review_loop_done: true
 hitl_halt: "auto-continued (epic â€” no halt)"
 external_review_iterations: 0
 convergence_unverified: false
 story_trace: null
-commits: [155686f]
+commits: [155686f, 843a9b3, 3b743b0, 57619fa, 86abe8f, 037950f, "9483083", 7e569ca, dfb28b6, 48a66d0, 6548acc, a32b56b, 51ae928, 595d292, a1fd333, 098b924, 0d92027, ce6d938, d945317, 864f1ab, 5b62989, e45b859, 106a199, 48993fd, 46885aa, af8db0d, 5afe082, feb4c7d, 9c29930, 47ab144, b74c913, 06b2acf, 783869b, 2eb373c]
 phase8_steps:
   trace_gate: done
   nfr: done
@@ -39,9 +39,9 @@ phase8_steps:
 gate_decision: PASS
 gate_iterations: 0
 deferred_work_archived: 3
-pr_url: null
-ci_run_url: null
-ci_status: unknown
+pr_url: "https://github.com/rthunborg/ElproSaas/pull/19"
+ci_run_url: "https://github.com/rthunborg/ElproSaas/actions/runs/28659754865"
+ci_status: passed
 pr_merged: false
 merge_method: null
 merge_commit: null
@@ -149,3 +149,4 @@ uat_items:
   - "[5-5] Attachment-readiness guard: classifyReadiness always emits REQUIRED_FILES_DEFERRED (Story 8.1 seam never silently omitted)"
   - "[5-5] pnpm typecheck 0 errors; pnpm lint 0 errors (1 pre-existing unrelated warning)"
 integration_review_done: true
+batch_flip_done: true

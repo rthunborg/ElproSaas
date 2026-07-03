@@ -1,6 +1,6 @@
 # Story 5.5: Calculation Golden Tests For Options, Hidden Rows, And Tax Warnings
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 

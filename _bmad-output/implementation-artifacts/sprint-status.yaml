@@ -78,11 +78,11 @@ development_status:
   epic-4-retrospective: done
 
   epic-5: in-progress
-  5-1-tenant-owned-calculation-schema-and-server-commands: review
-  5-2-calculation-editor-ux-for-sections-and-rows: review
-  5-3-pricing-source-selection-and-row-snapshots: review
-  5-4-calculation-readiness-review-and-snapshot-preview: review
-  5-5-calculation-golden-tests-for-options-hidden-rows-and-tax-warnings: review
+  5-1-tenant-owned-calculation-schema-and-server-commands: done
+  5-2-calculation-editor-ux-for-sections-and-rows: done
+  5-3-pricing-source-selection-and-row-snapshots: done
+  5-4-calculation-readiness-review-and-snapshot-preview: done
+  5-5-calculation-golden-tests-for-options-hidden-rows-and-tax-warnings: done
   epic-5-retrospective: done
 
   epic-6: backlog

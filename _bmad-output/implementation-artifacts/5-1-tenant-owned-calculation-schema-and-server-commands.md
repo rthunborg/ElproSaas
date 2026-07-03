@@ -1,6 +1,6 @@
 # Story 5.1: Tenant-Owned Calculation Schema And Server Commands
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
