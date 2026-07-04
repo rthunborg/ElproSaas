@@ -39,6 +39,7 @@ import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import {
   createTwoTenantFixture,
   makeAuthedServerClient,
+  makeAnonServerClient,
   cleanupFixture,
   adminInsertCustomer,
   adminInsertFile,
@@ -56,9 +57,37 @@ import type { CommandClock } from "@/server/commands/clock";
 const FIXED_ISO = "2026-07-04T12:00:00.000Z";
 const fixedClock: CommandClock = { now: () => new Date(FIXED_ISO) };
 
+/** A supabase client's `.rpc` surface, narrowed for the direct-RPC negatives. */
+type RpcCapableClient = {
+  rpc: (
+    fn: string,
+    args: Record<string, unknown>,
+  ) => Promise<{ data: unknown; error: { code?: string } | null }>;
+};
+
+/** Args for the atomic RPC with a valid file-half + a valid active link-half. */
+function validRpcArgs(overrides: Record<string, unknown>): Record<string, unknown> {
+  return {
+    p_tenant_id: null,
+    p_bucket_id: "tenant-files",
+    p_object_path: null,
+    p_display_name: null,
+    p_mime_type: null,
+    p_size_bytes: null,
+    p_checksum: null,
+    p_uploaded_by: null,
+    p_lifecycle_state: "linked",
+    p_owner_type: "customer",
+    p_owner_id: null,
+    p_purpose: "crm_document",
+    ...overrides,
+  };
+}
+
 let stackUp = false;
 let fixture: TwoTenantFixture;
 let a: TestServerClient;
+let anon: TestServerClient; // unauthenticated client (no session)
 let ownFileId: string; // A's own file
 let ownCustomerId: string; // A's own owner record (customer)
 let tenantBFileId: string; // REAL Tenant B file (foreign file target)
@@ -69,6 +98,7 @@ beforeAll(async () => {
   if (!stackUp) return;
   fixture = await createTwoTenantFixture();
   a = await makeAuthedServerClient(fixture.adminA);
+  anon = await makeAnonServerClient();
   ownFileId = await adminInsertFile({
     tenant_id: fixture.tenantA.id,
     display_name: "own-file.pdf",
@@ -255,5 +285,74 @@ describe("createFileLink both-side ownership + atomic rollback (AC3/AC7)", () =>
       [markerPath],
     );
     expect(Number(orphanByPath[0]?.n)).toBe(0);
+  });
+
+  it("[P0/R-801/R-803] an ANONYMOUS caller has NO EXECUTE on create_file_with_link (42501, not vacuous)", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
+    // The atomic write RPC does `revoke execute … from public; grant … to
+    // authenticated, service_role` (migration Task 6.2) — an unauthenticated caller must
+    // be denied at the PRIVILEGE layer, mirroring the record_audit_event anon-EXECUTE
+    // guard. A future accidental `grant … to anon` would hand an anonymous caller the
+    // whole atomic files+file_links write path; this pins that the grant stays closed.
+    // Assert the 42501 SQLSTATE explicitly (not a bare `data == null`/`!error`
+    // disjunction — the Story 2.2 G2 lesson: a vacuous check would still pass after an
+    // anon grant regression).
+    const markerPath = `${fixture.tenantA.id}/${crypto.randomUUID()}/anon-rpc-probe.pdf`;
+    const marker = `anon-rpc-marker-${crypto.randomUUID()}`;
+    const { data, error } = await (anon as never as RpcCapableClient).rpc(
+      "create_file_with_link",
+      validRpcArgs({
+        p_tenant_id: fixture.tenantA.id,
+        p_object_path: markerPath,
+        p_display_name: marker,
+        p_owner_id: ownCustomerId,
+      }),
+    );
+    expect(error).not.toBeNull();
+    expect(error?.code).toBe("42501");
+    expect(data).not.toBe(true);
+    // Defense-in-depth: even if the privilege check ever regressed, nothing persisted.
+    const wrote = await adminQuery<{ n: string }>(
+      `select count(*)::text as n from public.files where display_name = $1`,
+      [marker],
+    );
+    expect(Number(wrote[0]?.n)).toBe(0);
+  });
+
+  it("[P0/R-802/R-807] an authed Tenant A caller CANNOT forge a Tenant B p_tenant_id through the RPC — denied + no B-side write", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
+    // The RPC is SECURITY INVOKER, so it runs under the CALLER's RLS: the files INSERT
+    // WITH CHECK (`is_tenant_admin(tenant_id)`) rejects a row carrying ANOTHER tenant's
+    // id with 42501, and the whole txn rolls back (R-802 write-path defense + R-807
+    // atomicity). Tenant A drives the RPC directly with `p_tenant_id = tenantB.id` — the
+    // migration comment claims this fails; assert the DENIAL MECHANISM, not just absence.
+    const markerPath = `${fixture.tenantB.id}/${crypto.randomUUID()}/forged-tenant-probe.pdf`;
+    const marker = `forged-tenant-marker-${crypto.randomUUID()}`;
+    const { error } = await (a as never as RpcCapableClient).rpc(
+      "create_file_with_link",
+      validRpcArgs({
+        p_tenant_id: fixture.tenantB.id, // forged — A is NOT admin of tenant B
+        p_object_path: markerPath,
+        p_display_name: marker,
+        // owner_id belongs to B too, but the files INSERT fails first (WITH CHECK) — the
+        // owner-record ownership is a COMMAND-layer check the RPC never reaches here.
+        p_owner_id: tenantBCustomerId,
+      }),
+    );
+    // The forged files INSERT WITH CHECK raised under A's RLS → the RPC errored.
+    expect(error).not.toBeNull();
+    // Independent BYPASSRLS re-read: NEITHER a Tenant-B `files` row NOR a `file_links`
+    // row for the forged path/marker survived — the txn rolled back fully.
+    const forgedFiles = await adminQuery<{ n: string }>(
+      `select count(*)::text as n from public.files where display_name = $1 or object_path = $2`,
+      [marker, markerPath],
+    );
+    expect(Number(forgedFiles[0]?.n)).toBe(0);
+    const forgedLinks = await adminQuery<{ n: string }>(
+      `select count(*)::text as n from public.file_links
+         where tenant_id = $1 and owner_id = $2 and created_at > now() - interval '1 minute'`,
+      [fixture.tenantB.id, tenantBCustomerId],
+    );
+    expect(Number(forgedLinks[0]?.n)).toBe(0);
   });
 });
