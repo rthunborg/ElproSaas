@@ -450,3 +450,63 @@ revoke execute on function public.create_file_with_link(
 grant execute on function public.create_file_with_link(
   uuid, text, text, text, text, bigint, text, uuid, text, text, uuid, text
 ) to authenticated, service_role;
+
+-- ----------------------------------------------------------------------------
+-- Narrow LINK-EXISTING-FILE RPC (Story 8.1, Task 5.3 — review fix). `createFileLink`
+-- must attach an ALREADY-VERIFIED, ALREADY-STORED file to an owner entity — it does
+-- NOT mint a new files row (the real upload+object-write path is Story 8.2). This RPC
+-- inserts EXACTLY ONE `file_links` row that references the EXISTING file directly
+-- (p_file_id), so the link points at the real file — no phantom `files` row, no
+-- `deriveObjectPath`-bypassing synthetic path.
+--
+-- The single INSERT is atomic by construction. The COMPOSITE same-tenant FK
+-- (file_id, tenant_id) -> files(id, tenant_id) still binds the link to a same-tenant
+-- file: a cross-tenant p_file_id (or a p_tenant_id the caller does not admin) fails
+-- the FK (23503) or the own-tenant WITH CHECK (42501), and nothing persists. The
+-- command layer performs the R-802 both-side ownership check (file AND owner record)
+-- BEFORE calling this; the RPC re-enforces the same-tenant file binding at the DB.
+--
+-- SECURITY INVOKER (ADR-A009 default): runs under the CALLER's RLS (own-tenant only,
+-- no service-role app path) with a fixed empty search_path + schema-qualified refs.
+-- ----------------------------------------------------------------------------
+create or replace function public.link_existing_file(
+  p_tenant_id uuid,
+  p_file_id uuid,
+  p_owner_type text,
+  p_owner_id uuid,
+  p_purpose text
+)
+returns table (file_id uuid, link_id uuid)
+language plpgsql
+security invoker
+set search_path = ''
+as $$
+declare
+  v_file_id uuid := p_file_id;
+  v_link_id uuid;
+begin
+  -- Insert the file_links row referencing the EXISTING, already-verified file. The
+  -- own-tenant WITH CHECK narrows tenant_id to the caller (a cross-tenant p_tenant_id
+  -- fails 42501); the composite same-tenant FK (file_id, tenant_id) rejects a file that
+  -- is not in the caller's tenant (23503). No new files row is written.
+  insert into public.file_links (
+    tenant_id, file_id, owner_type, owner_id, purpose
+  )
+  values (
+    p_tenant_id, p_file_id, p_owner_type, p_owner_id, p_purpose
+  )
+  returning id into v_link_id;
+
+  return query select v_file_id, v_link_id;
+end;
+$$;
+
+comment on function public.link_existing_file(uuid, uuid, text, uuid, text) is
+  'Narrow link-existing-file RPC (Story 8.1, Task 5.3). Inserts EXACTLY ONE file_links row referencing an ALREADY-VERIFIED, ALREADY-STORED file (p_file_id) — the link points at the REAL file, no phantom files row (the upload+object-write path is Story 8.2). Atomic by construction (single insert). The composite same-tenant FK (file_id, tenant_id) -> files(id, tenant_id) rejects a cross-tenant file (23503) and the own-tenant WITH CHECK rejects a forged tenant_id (42501). SECURITY INVOKER (caller RLS, own-tenant only, no service-role app path) with a fixed empty search_path + schema-qualified refs. The command layer does the R-802 both-side ownership check (file AND owner record) before calling this.';
+
+revoke execute on function public.link_existing_file(
+  uuid, uuid, text, uuid, text
+) from public;
+grant execute on function public.link_existing_file(
+  uuid, uuid, text, uuid, text
+) to authenticated, service_role;

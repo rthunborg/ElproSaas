@@ -43,6 +43,10 @@ const CONTROL_CHARS = new RegExp(
 export function sanitizeNameSegment(displayName: string): string {
   let name = String(displayName ?? "");
 
+  // Normalize to NFC FIRST so visually-identical names (composed vs decomposed
+  // Unicode) map to the SAME object-path segment, not two distinct storage keys.
+  name = name.normalize("NFC");
+
   // Drop ASCII control characters (NUL..0x1F and DEL 0x7F). The regex is built via
   // char codes (CONTROL_CHARS) so the source carries no literal control chars.
   name = name.replace(CONTROL_CHARS, "");
@@ -62,6 +66,10 @@ export function sanitizeNameSegment(displayName: string): string {
   // Bound the length (deterministic prefix bound).
   if (name.length > MAX_NAME_SEGMENT) {
     name = name.slice(0, MAX_NAME_SEGMENT);
+    // The slice can split a UTF-16 surrogate PAIR, leaving a lone (unpaired) high
+    // surrogate at the end — an invalid code unit that yields a broken/undefined
+    // storage key. Strip a trailing lone high surrogate so the segment stays valid.
+    name = name.replace(/[\uD800-\uDBFF]$/, "");
     // Re-strip a trailing dot the slice may have exposed.
     name = name.replace(/[\s.]+$/, "");
   }

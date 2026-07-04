@@ -62,6 +62,13 @@ import type { CommandClock } from "@/server/commands/clock";
 const FIXED_ISO = "2026-07-04T12:00:00.000Z";
 const fixedClock: CommandClock = { now: () => new Date(FIXED_ISO) };
 const BUCKET = "tenant-files";
+// The default signed-URL TTL (SUPABASE_SIGNED_URL_TTL_SECONDS is unset in the test env,
+// so the command resolves the safe 300s default). Under the fixed clock the expiry is a
+// FULLY DETERMINISTIC instant — assert it exactly (not just "is a string").
+const DEFAULT_TTL_SECONDS = 300;
+const EXPECTED_EXPIRES_AT = new Date(
+  new Date(FIXED_ISO).getTime() + DEFAULT_TTL_SECONDS * 1000,
+).toISOString();
 
 let stackUp = false;
 let storageUp = false;
@@ -149,7 +156,9 @@ describe("createSignedFileAccess authorization matrix (AC5/AC6/AC8)", () => {
       const data = result.data as { signedUrl: string; expiresAt: string };
       expect(typeof data.signedUrl).toBe("string");
       expect(data.signedUrl.length).toBeGreaterThan(0);
-      expect(typeof data.expiresAt).toBe("string");
+      // expiresAt is DETERMINISTIC under the fixed clock: now + the resolved TTL. Assert
+      // the exact instant (not just the type) so a wrong/absent TTL application fails loud.
+      expect(data.expiresAt).toBe(EXPECTED_EXPIRES_AT);
     }
   });
 
@@ -166,9 +175,15 @@ describe("createSignedFileAccess authorization matrix (AC5/AC6/AC8)", () => {
     const events = await adminSelectAuditEvents({ correlationId });
     expect(events).toHaveLength(1);
     expect(events[0]?.event_type).toBe("file.signed_access.created");
-    // Metadata carries NO bucket/object path, NO PII, NO file contents — only
-    // allow-listed target-shaped fields.
-    const meta = JSON.stringify(events[0]?.metadata ?? {});
+    // POSITIVE allow-list (not just a blocklist absence): the command passes no metadata
+    // beyond the target id (carried in the target_id COLUMN, not metadata), so the
+    // sanitized metadata object is EMPTY. Asserting the exact key set catches a stray
+    // leaked field (uploaded_by / object_path / signedUrl) that a blocklist regex might
+    // miss — no field can silently slip through.
+    const metadata = (events[0]?.metadata ?? {}) as Record<string, unknown>;
+    expect(Object.keys(metadata)).toEqual([]);
+    // Belt-and-braces blocklist: still assert no path/URL/PII substring leaked.
+    const meta = JSON.stringify(metadata);
     expect(meta).not.toMatch(/tenant-files|object_path|bucket|signedUrl|https?:\/\//i);
   });
 

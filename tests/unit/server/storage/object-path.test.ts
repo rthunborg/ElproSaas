@@ -24,7 +24,10 @@
  */
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { deriveObjectPath } from "@/server/storage/object-path";
+import {
+  deriveObjectPath,
+  sanitizeNameSegment,
+} from "@/server/storage/object-path";
 import { isAccessEligibleLifecycle } from "@/server/storage/lifecycle";
 
 const TENANT_ID = "11111111-1111-1111-1111-111111111111";
@@ -99,6 +102,35 @@ test("[P0/AC4] deriveObjectPath never yields an empty name segment (fully-saniti
   assert.equal(segments.length, 3);
   assert.ok(segments[2] && segments[2].length > 0, `empty name segment: ${path}`);
   assert.ok(!path.includes(".."), `traversal token leaked: ${path}`);
+});
+
+test("[P0/AC4] sanitizeNameSegment does not leave a lone surrogate when a >128-unit name is sliced mid-pair", () => {
+  // A display name longer than the 128-code-unit bound that ends in an emoji (a UTF-16
+  // surrogate PAIR) must not be sliced mid-pair, leaving a lone (unpaired) high surrogate
+  // — an invalid code unit that yields a broken storage key. Build a name whose 128th
+  // code unit is a high surrogate: 127 filler chars + one emoji (2 code units).
+  const emoji = "\u{1F600}"; // 😀 — one code point, two UTF-16 code units
+  const name = "a".repeat(127) + emoji + "tail";
+  const seg = sanitizeNameSegment(name);
+  // No lone high surrogate at the end.
+  const lastUnit = seg.charCodeAt(seg.length - 1);
+  assert.ok(
+    !(lastUnit >= 0xd800 && lastUnit <= 0xdbff),
+    `segment ends in a lone high surrogate: ${JSON.stringify(seg)}`,
+  );
+  // The segment is a well-formed string (no undefined/replacement artifacts from a split
+  // pair): re-encoding round-trips.
+  assert.equal(seg, seg.normalize("NFC"));
+});
+
+test("[P0/AC4] sanitizeNameSegment NFC-normalizes so composed/decomposed names map to ONE segment", () => {
+  // "é" composed (U+00E9) vs decomposed ("e" + U+0301 combining acute) are visually
+  // identical — NFC normalization maps both to the SAME object-path segment.
+  // Explicit escapes so the two literals are GENUINELY different code-unit sequences.
+  const composed = "café.pdf"; // e-acute precomposed U+00E9
+  const decomposed = "café.pdf"; // e + combining acute U+0301
+  assert.notEqual(composed, decomposed);
+  assert.equal(sanitizeNameSegment(composed), sanitizeNameSegment(decomposed));
 });
 
 test("[P0/AC5] isAccessEligibleLifecycle admits draft/linked/locked", () => {

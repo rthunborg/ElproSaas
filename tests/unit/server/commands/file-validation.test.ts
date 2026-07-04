@@ -20,7 +20,9 @@ import {
 } from "@/server/commands/files/validation";
 import {
   resolveSignedUrlTtlSeconds,
+  isPermanentStorageDenial,
   DEFAULT_SIGNED_URL_TTL_SECONDS,
+  MAX_SIGNED_URL_TTL_SECONDS,
 } from "@/server/storage/signed-access";
 
 const UUID_A = "11111111-1111-1111-1111-111111111111";
@@ -120,4 +122,37 @@ test("[R-806] resolveSignedUrlTtlSeconds: env-driven with a safe default (no har
   assert.equal(resolveSignedUrlTtlSeconds("-5"), DEFAULT_SIGNED_URL_TTL_SECONDS);
   assert.equal(resolveSignedUrlTtlSeconds("abc"), DEFAULT_SIGNED_URL_TTL_SECONDS);
   assert.equal(resolveSignedUrlTtlSeconds("1.5"), DEFAULT_SIGNED_URL_TTL_SECONDS);
+});
+
+test("[R-806] resolveSignedUrlTtlSeconds CLAMPS an over-large TTL to the safe default (no unbounded URL)", () => {
+  // The MAX ceiling itself is accepted; anything above falls back to the tighter default
+  // so a fat-fingered huge env value cannot mint a near-permanent signed URL.
+  assert.equal(
+    resolveSignedUrlTtlSeconds(String(MAX_SIGNED_URL_TTL_SECONDS)),
+    MAX_SIGNED_URL_TTL_SECONDS,
+  );
+  assert.equal(
+    resolveSignedUrlTtlSeconds(String(MAX_SIGNED_URL_TTL_SECONDS + 1)),
+    DEFAULT_SIGNED_URL_TTL_SECONDS,
+  );
+  assert.equal(
+    resolveSignedUrlTtlSeconds("999999999999"),
+    DEFAULT_SIGNED_URL_TTL_SECONDS,
+  );
+});
+
+test("[Decision] isPermanentStorageDenial: 4xx (403/404/NoSuchKey) permanent; 5xx / unknown transient", () => {
+  // PERMANENT (→ FILE_ACCESS_DENIED): a 4xx status or a known not-found/denied code.
+  assert.equal(isPermanentStorageDenial({ status: 404 }), true);
+  assert.equal(isPermanentStorageDenial({ status: 403 }), true);
+  assert.equal(isPermanentStorageDenial({ statusCode: "404" }), true);
+  assert.equal(isPermanentStorageDenial({ code: "NoSuchKey" }), true);
+  assert.equal(isPermanentStorageDenial({ code: "AccessDenied" }), true);
+  assert.equal(isPermanentStorageDenial({ error: "not_found" }), true);
+  // TRANSIENT (→ re-thrown → SERVER_ERROR): a 5xx or an ambiguous/missing status+code.
+  assert.equal(isPermanentStorageDenial({ status: 500 }), false);
+  assert.equal(isPermanentStorageDenial({ status: 503 }), false);
+  assert.equal(isPermanentStorageDenial({ code: "InternalError" }), false);
+  assert.equal(isPermanentStorageDenial({ message: "network reset" }), false);
+  assert.equal(isPermanentStorageDenial({}), false);
 });

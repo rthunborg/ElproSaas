@@ -148,12 +148,12 @@ async function assertOwnerVisibleOrThrow(
  * Envelope ownership verifies the FILE belongs to the resolved tenant (a foreign
  * file_id → zero rows → TENANT_ACCESS_DENIED, BEFORE execute). In `execute`, ALSO
  * verify the OWNER record belongs to the resolved tenant (the R-802 both-side check),
- * then create the link via the atomic `create_file_with_link` RPC. NOTE (Story 8.1):
- * because the real upload path (8.2) owns the storage-write, this story exercises the
- * atomic RPC against a PRE-SEEDED own-tenant file — the RPC writes a NEW files row +
- * its link atomically, proving rollback. The link is derived from the verified file's
- * metadata; the object_path/display_name come from the existing file row so no client
- * path is trusted.
+ * then insert a `file_links` row referencing the VERIFIED file directly via the narrow
+ * `link_existing_file` RPC — the link points at the REAL file. NO phantom `files` row
+ * is minted here (the real upload+object-write path is Story 8.2); Epic 6.1/6.3 can
+ * therefore `createFileLink(existing file, owner)` and get that exact file attached
+ * (R-814 reuse contract). The composite same-tenant FK re-enforces the same-tenant
+ * file binding at the DB, so no client path/tenant is trusted.
  */
 export const createFileLink = defineCommand<
   CreateFileLinkInput,
@@ -171,31 +171,15 @@ export const createFileLink = defineCommand<
     // tenant (deferred owner types are rejected as not-yet-available).
     await assertOwnerVisibleOrThrow(ctx.db, ctx.input);
 
-    // Load the verified file's storage identity to feed the atomic RPC (the RPC writes
-    // a new files row + its link atomically for THIS story's proof — the real
-    // storage-backed upload path is 8.2). Ownership proved the file is visible; a null
-    // here is a race → deny.
-    const file = await loadFileForAccess(ctx.db, ctx.input.file_id);
-    if (file === null) {
-      throw new CommandError("TENANT_ACCESS_DENIED");
-    }
-
-    // Call the narrow atomic metadata+link RPC (ADR-A009). Both rows persist or neither
-    // (R-807). The new files row reuses the verified file's storage identity with a
-    // fresh, unique object_path suffix so the unique (bucket_id, object_path) does not
-    // collide with the seed file — the atomicity proof does not depend on the collision.
+    // Insert the link referencing the VERIFIED file directly (ownership already proved
+    // the file is visible under the caller's RLS). The narrow `link_existing_file` RPC
+    // writes EXACTLY ONE file_links row pointing at the real file — no phantom files row,
+    // no synthetic object_path. The composite same-tenant FK re-enforces the same-tenant
+    // file binding at the DB (a cross-tenant file/tenant fails 23503/42501).
     const rpc = asFileRpcClient(ctx.db);
-    const linkObjectPath = `${file.object_path}#link-${crypto.randomUUID()}`;
-    const { data, error } = await rpc.rpc("create_file_with_link", {
+    const { data, error } = await rpc.rpc("link_existing_file", {
       p_tenant_id: ctx.tenantContext.tenantId,
-      p_bucket_id: file.bucket_id || TENANT_FILES_BUCKET,
-      p_object_path: linkObjectPath,
-      p_display_name: "linked-file",
-      p_mime_type: null,
-      p_size_bytes: null,
-      p_checksum: null,
-      p_uploaded_by: ctx.tenantContext.userId,
-      p_lifecycle_state: "linked",
+      p_file_id: ctx.input.file_id,
       p_owner_type: ctx.input.owner_type,
       p_owner_id: ctx.input.owner_id,
       p_purpose: ctx.input.purpose,
@@ -207,7 +191,9 @@ export const createFileLink = defineCommand<
     if (linkId === null) {
       throw new Error("createFileLink: RPC returned no link id");
     }
-    return { targetId: linkId, fileId: file.id };
+    // The link points at the VERIFIED, caller-supplied file id — result.fileId agrees
+    // with file_links.file_id (no phantom-file divergence).
+    return { targetId: linkId, fileId: ctx.input.file_id };
   },
   auditFields: (_ctx, result) => ({ targetId: result.targetId }),
 });

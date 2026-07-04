@@ -5,11 +5,11 @@ epic_num: 8
 story_num: 1
 branch: story/8-1-file-storage-foundation-private-bucket-metadata-links-rls-and-signed-access-command
 status: in-progress
-updated_at: "2026-07-04T15:32:22Z"
+updated_at: "2026-07-04T15:43:15Z"
 started_at: "2026-07-04T10:31:22Z"
 completed_at: null
-active_seconds: 17962
-timing_anchor: null
+active_seconds: 18404
+timing_anchor: 1783179795
 is_first_in_epic: true
 is_last_in_epic: false
 needs_project_context_bootstrap: false

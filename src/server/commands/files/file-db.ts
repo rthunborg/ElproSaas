@@ -89,7 +89,19 @@ export function ownerTableFor(ownerType: ActiveOwnerType): string {
       return "contacts";
     case "calculation":
       return "calculations";
+    default:
+      // Exhaustiveness guard (mirrors the codebase-standard assertNever discipline):
+      // adding a 5th ACTIVE_OWNER_TYPES member without a branch here is a COMPILE
+      // error, never a silent `db.from(undefined)` at runtime.
+      return assertNeverOwnerType(ownerType);
   }
+}
+
+/** Compile-time exhaustiveness guard for {@link ownerTableFor}'s owner-type switch. */
+function assertNeverOwnerType(ownerType: never): never {
+  throw new Error(
+    `ownerTableFor: no owner table for owner type ${JSON.stringify(ownerType)}.`,
+  );
 }
 
 /**
@@ -117,20 +129,13 @@ export async function ownerRecordVisible(
   return Array.isArray(data) && data.length > 0;
 }
 
-/** The minimal RPC surface for the atomic create_file_with_link call. */
+/** The minimal RPC surface for the narrow `link_existing_file` call. */
 export type FileRpcClient = {
   rpc(
-    fn: "create_file_with_link",
+    fn: "link_existing_file",
     args: {
       readonly p_tenant_id: string;
-      readonly p_bucket_id: string;
-      readonly p_object_path: string;
-      readonly p_display_name: string;
-      readonly p_mime_type: string | null;
-      readonly p_size_bytes: number | null;
-      readonly p_checksum: string | null;
-      readonly p_uploaded_by: string | null;
-      readonly p_lifecycle_state: string;
+      readonly p_file_id: string;
       readonly p_owner_type: string;
       readonly p_owner_id: string;
       readonly p_purpose: string;

@@ -50,8 +50,12 @@ import { skipUnlessStack } from "../../support/stack-gate";
 
 const FILE_TABLES = ["files", "file_links"] as const;
 
-// The broad deferred file-index / document-center tables AC1 forbids this story from creating.
-const FORBIDDEN_TABLES = ["document_center", "file_index", "documents"] as const;
+// AC1 guardrail as an ALLOWLIST (airtight, matching the policy-enumeration style): the
+// ONLY file/document/attachment/index/registry-shaped public base tables this story may
+// introduce are `files`/`file_links` — see the allowlist test below. A deferred-module
+// table under ANY other name (document_center, file_index, documents, file_registry,
+// attachments_index, …) is caught by the broad name regex there; a fixed three-literal
+// denylist would miss it.
 
 let stackUp = false;
 beforeAll(async () => {
@@ -72,14 +76,21 @@ describe("File migration reset — files/file_links (AC1/AC4/AC8)", () => {
     expect(rows.map((r) => r.table_name).sort()).toEqual([...FILE_TABLES].sort());
   });
 
-  it("[P0/AC1] NO broad deferred file-index / document-center table is created", async (testCtx) => {
+  it("[P0/AC1] the ONLY file/document/index-shaped public tables are files/file_links (allowlist)", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
+    // ALLOWLIST form: enumerate EVERY public base table whose name is file/document/
+    // attachment/index/registry-shaped and assert the set is EXACTLY {files, file_links}.
+    // A deferred-module table under ANY other name (file_registry, attachments_index,
+    // document_center, …) fails this — the previous three-literal denylist would not.
     const rows = await adminQuery<{ table_name: string }>(
       `select table_name from information_schema.tables
-         where table_schema = 'public' and table_name = any($1::text[])`,
-      [[...FORBIDDEN_TABLES]],
+         where table_schema = 'public' and table_type = 'BASE TABLE'
+           and (
+             table_name ~* '(file|document|attachment|registry)'
+             or table_name ~* 'index'
+           )`,
     );
-    expect(rows).toEqual([]);
+    expect(rows.map((r) => r.table_name).sort()).toEqual([...FILE_TABLES].sort());
   });
 
   it("[P0] each file table carries a NOT NULL tenant_id FK to public.tenants ON DELETE CASCADE", async (testCtx) => {

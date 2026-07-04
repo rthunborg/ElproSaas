@@ -148,19 +148,22 @@ describe("storage.objects tenant-path isolation (AC4/AC6, R-805/R-806)", () => {
 
   it("[P0/R-806] an EXPIRED signed URL no longer authorizes (low TTL)", async (testCtx) => {
     if (skipUnlessBoth(testCtx)) return;
-    // Seed A's OWN object, sign with a 1s TTL, wait past it, assert the URL 401s.
-    // (The 1s TTL is passed directly to createSignedUrl; the wait is kept ≤2s per R-806.
-    // The signed URL is a plain fetch — no auth header.)
+    // Seed A's OWN object, sign with a 1s TTL, wait comfortably past it, assert the URL
+    // 401s. The wait is `max(2000, ttlMs + 1000)` so the signing/fetch round-trip on a
+    // slow CI runner cannot eat the whole margin and cause an intermittent false PASS —
+    // still bounded relative to the low TTL (R-806).
+    const TTL_SECONDS = 1;
+    const WAIT_MS = Math.max(2000, TTL_SECONDS * 1000 + 1000);
     const ownPath = `${fixture.tenantA.id}/${crypto.randomUUID()}/own.pdf`;
     await adminUploadStorageObject({
       bucket: BUCKET,
       objectPath: ownPath,
       body: new TextEncoder().encode("a-bytes"),
     });
-    const { data } = await a.storage.from(BUCKET).createSignedUrl(ownPath, 1);
+    const { data } = await a.storage.from(BUCKET).createSignedUrl(ownPath, TTL_SECONDS);
     expect(data?.signedUrl).toBeTruthy();
     const url = data!.signedUrl;
-    await new Promise((r) => setTimeout(r, 1500));
+    await new Promise((r) => setTimeout(r, WAIT_MS));
     const res = await fetch(url);
     expect(res.ok).toBe(false); // expired → 400/401, no bytes
   });

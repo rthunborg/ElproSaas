@@ -42,6 +42,9 @@ import {
   makeAnonServerClient,
   cleanupFixture,
   adminInsertCustomer,
+  adminInsertFacility,
+  adminInsertContact,
+  adminInsertCalculation,
   adminInsertFile,
   type TwoTenantFixture,
   type TestServerClient,
@@ -93,6 +96,23 @@ let ownCustomerId: string; // A's own owner record (customer)
 let tenantBFileId: string; // REAL Tenant B file (foreign file target)
 let tenantBCustomerId: string; // REAL Tenant B customer (foreign owner target)
 
+// A's own owner records across ALL FOUR ACTIVE owner types (customer/facility/contact/
+// calculation) so the R-802 owner-side check is exercised for EVERY ownerTableFor branch,
+// not customer alone. Each has a matching Tenant-B foreign owner for the negative.
+let ownFacilityId: string;
+let ownContactId: string;
+let ownCalculationId: string;
+let tenantBFacilityId: string;
+let tenantBContactId: string;
+let tenantBCalculationId: string;
+
+/** The active owner types + how to resolve the seeded own / foreign owner id per type. */
+interface OwnerTypeCase {
+  readonly ownerType: "customer" | "facility" | "contact" | "calculation";
+  readonly ownId: () => string;
+  readonly foreignId: () => string;
+}
+
 beforeAll(async () => {
   stackUp = await isLocalStackReachable();
   if (!stackUp) return;
@@ -119,7 +139,50 @@ beforeAll(async () => {
     display_name: "tenant-b-owner",
     org_nr: "556000-5555",
   });
-  if (!ownFileId || !ownCustomerId || !tenantBFileId || !tenantBCustomerId) {
+
+  // Seed the OTHER three active owner types for BOTH tenants (facility/contact require a
+  // parent customer in the SAME tenant; calculation requires a same-tenant customer).
+  ownFacilityId = await adminInsertFacility({
+    tenant_id: fixture.tenantA.id,
+    customer_id: ownCustomerId,
+    name: "tenant-a-facility",
+  });
+  ownContactId = await adminInsertContact({
+    tenant_id: fixture.tenantA.id,
+    customer_id: ownCustomerId,
+    name: "tenant-a-contact",
+  });
+  ownCalculationId = await adminInsertCalculation({
+    tenant_id: fixture.tenantA.id,
+    customer_id: ownCustomerId,
+  });
+  tenantBFacilityId = await adminInsertFacility({
+    tenant_id: fixture.tenantB.id,
+    customer_id: tenantBCustomerId,
+    name: "tenant-b-facility",
+  });
+  tenantBContactId = await adminInsertContact({
+    tenant_id: fixture.tenantB.id,
+    customer_id: tenantBCustomerId,
+    name: "tenant-b-contact",
+  });
+  tenantBCalculationId = await adminInsertCalculation({
+    tenant_id: fixture.tenantB.id,
+    customer_id: tenantBCustomerId,
+  });
+
+  if (
+    !ownFileId ||
+    !ownCustomerId ||
+    !tenantBFileId ||
+    !tenantBCustomerId ||
+    !ownFacilityId ||
+    !ownContactId ||
+    !ownCalculationId ||
+    !tenantBFacilityId ||
+    !tenantBContactId ||
+    !tenantBCalculationId
+  ) {
     throw new Error(
       "file-link ownership seed produced no id — the both-side negatives would deny " +
         "VACUOUSLY.",
@@ -188,6 +251,59 @@ describe("createFileLink both-side ownership + atomic rollback (AC3/AC7)", () =>
     // No owner PII, no path — allow-listed target-shaped fields only.
     expect(meta).not.toMatch(/org_nr|556000|tenant-files|object_path|tenant-a-owner/i);
   });
+
+  // Parametrize the R-802 owner-side check across ALL FOUR active owner types so every
+  // `ownerTableFor` branch (customers/facilities/contacts/calculations) is exercised — a
+  // wrong table name or an unexpected owner-table RLS behavior for facility/contact/
+  // calculation would otherwise escape the P0 suite (only `customer` was covered).
+  const ownerTypeCases: OwnerTypeCase[] = [
+    { ownerType: "customer", ownId: () => ownCustomerId, foreignId: () => tenantBCustomerId },
+    { ownerType: "facility", ownId: () => ownFacilityId, foreignId: () => tenantBFacilityId },
+    { ownerType: "contact", ownId: () => ownContactId, foreignId: () => tenantBContactId },
+    {
+      ownerType: "calculation",
+      ownId: () => ownCalculationId,
+      foreignId: () => tenantBCalculationId,
+    },
+  ];
+
+  describe.each(ownerTypeCases)(
+    "R-802 owner-side check per active owner type: $ownerType",
+    ({ ownerType, ownId, foreignId }) => {
+      it(`[P0/R-802] own file + own ${ownerType} owner SUCCEEDS (owner-side SELECT resolves)`, async (testCtx) => {
+        if (skipUnlessStack(testCtx, stackUp)) return;
+        const result = await runCommand(createFileLink as never, {
+          client: a as never,
+          input: {
+            file_id: ownFileId,
+            owner_type: ownerType,
+            owner_id: ownId(),
+            purpose: "crm_document",
+          },
+          clock: fixedClock,
+          correlationId: crypto.randomUUID(),
+        });
+        expect(result.ok).toBe(true);
+      });
+
+      it(`[P0/R-802] a FOREIGN ${ownerType} owner id is rejected (TENANT_ACCESS_DENIED)`, async (testCtx) => {
+        if (skipUnlessStack(testCtx, stackUp)) return;
+        const result = await runCommand(createFileLink as never, {
+          client: a as never,
+          input: {
+            file_id: ownFileId,
+            owner_type: ownerType,
+            owner_id: foreignId(), // Tenant B's owner — the owner-side check denies
+            purpose: "crm_document",
+          },
+          clock: fixedClock,
+          correlationId: crypto.randomUUID(),
+        });
+        expect(result.ok).toBe(false);
+        if (!result.ok) expect(result.code).toBe("TENANT_ACCESS_DENIED");
+      });
+    },
+  );
 
   it("[P0] a DEFERRED owner_type (quote_version) is rejected as not-yet-available", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
