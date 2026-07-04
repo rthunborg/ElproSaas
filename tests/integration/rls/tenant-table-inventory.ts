@@ -111,6 +111,17 @@ export const TENANT_TABLES = [
   "calculations",
   "calculation_sections",
   "calculation_rows",
+  // Story 8.1 file tables (the first tenant-owned FILE tables — the single Phase A file
+  // model). Like the CRM / settings / pricing / calc tables, `authenticated` HAS an
+  // INSERT/UPDATE grant (the tenant admin manages files/links via the app path) — so
+  // their cross-tenant UPDATE denial mechanism is RLS-USING invisibility (zero rows +
+  // unchanged re-read), NOT a missing-grant 42501. See `updateDenialKind` below. Both
+  // are MANY-rows-per-tenant collections (NO unique (tenant_id)). The spoof/anon rows
+  // carry ONLY the file-metadata / link columns — NO supplier-ish column, NO raw file
+  // content, NO PII. The file_links cross-tenant spoof carries a Tenant B file_id parent
+  // + a valid owner_type/purpose (the composite same-tenant FK binds it to Tenant B).
+  "files",
+  "file_links",
 ] as const;
 
 export type TenantTableName = (typeof TENANT_TABLES)[number];
@@ -171,6 +182,17 @@ export interface InventoryContext {
   readonly tenantBCalculationId?: string;
   readonly tenantBCalcSectionId?: string;
   readonly tenantBCalcRowId?: string;
+  /**
+   * REAL Tenant B FILE row ids (Story 8.1) — concrete cross-tenant targets the
+   * files/file_links negatives point Tenant A at, so the denial is never vacuous
+   * against a non-existent row. `tenantBFileId` also doubles as the Tenant B PARENT the
+   * file_links spoof INSERT references (its composite same-tenant FK). Optional so the
+   * anon suite (which never reads a seeded row) can omit them; the cross-tenant suite
+   * seeds and asserts them. A consumer that needs one but finds it missing fails LOUDLY
+   * (vacuity guard via requireCrmId).
+   */
+  readonly tenantBFileId?: string;
+  readonly tenantBFileLinkId?: string;
 }
 
 /**
@@ -209,6 +231,8 @@ export function updateDenialKind(table: TenantTableName): MutationDenialKind {
     case "calculations":
     case "calculation_sections":
     case "calculation_rows":
+    case "files":
+    case "file_links":
       return "rls-invisible"; // UPDATE granted; RLS USING hides foreign rows
     default:
       return assertNever(table);
@@ -408,6 +432,31 @@ export function spoofedRowFor(
         quantity: 1,
         unit: "h",
       };
+    case "files":
+      // A files row forging Tenant B ownership. `authenticated` HAS an INSERT grant, so
+      // the denial is the RLS INSERT WITH CHECK (is_tenant_admin(tenant_id=B) is false
+      // for a Tenant A admin) → `42501`. FRESH id + a FRESH unique object_path (so no
+      // `23505` unique (bucket_id, object_path) collision fires before the policy) +
+      // NOT-NULL display_name so the denial is the policy. NO raw file content / PII.
+      return {
+        id: crypto.randomUUID(),
+        tenant_id: fixture.tenantB.id,
+        object_path: `${fixture.tenantB.id}/${crypto.randomUUID()}/spoof-by-a.pdf`,
+        display_name: "spoofed-file-by-a",
+      };
+    case "file_links":
+      // A file_links row forging Tenant B ownership, pointing at a REAL Tenant B file
+      // parent. The RLS INSERT WITH CHECK on tenant_id=B fires `42501` before the row
+      // lands (fresh id; the parent is a concrete Tenant B file; owner_type/owner_id/
+      // purpose populated so the denial is the policy, never a CHECK/NOT-NULL violation).
+      return {
+        id: crypto.randomUUID(),
+        tenant_id: fixture.tenantB.id,
+        file_id: requireCrmId(ctx.tenantBFileId, "tenantBFileId", table),
+        owner_type: "customer",
+        owner_id: requireCrmId(ctx.tenantBCustomerId, "tenantBCustomerId", table),
+        purpose: "crm_document",
+      };
     default:
       return assertNever(table);
   }
@@ -539,6 +588,19 @@ export function tenantBFilter(
         column: "id",
         value: requireCrmId(ctx.tenantBCalcRowId, "tenantBCalcRowId", table),
       };
+    case "files":
+      // Target the SPECIFIC seeded Tenant B file by id — the cross-tenant SELECT/UPDATE
+      // must read/affect ZERO rows under A's RLS, and the "unchanged" re-read proves THIS
+      // row's display_name stayed intact. Vacuity-guarded.
+      return {
+        column: "id",
+        value: requireCrmId(ctx.tenantBFileId, "tenantBFileId", table),
+      };
+    case "file_links":
+      return {
+        column: "id",
+        value: requireCrmId(ctx.tenantBFileLinkId, "tenantBFileLinkId", table),
+      };
     default:
       return assertNever(table);
   }
@@ -580,6 +642,12 @@ export function hijackMutationFor(
       return { title: "hijacked-by-tenant-a" };
     case "calculation_rows":
       return { label: "hijacked-by-tenant-a" };
+    case "files":
+      return { display_name: "hijacked-by-tenant-a" };
+    case "file_links":
+      // purpose is a mutable, non-id column with a closed CHECK — the hijack sets it to
+      // a DIFFERENT valid value than the seed's so the unchanged re-read is meaningful.
+      return { purpose: "job_evidence" };
     default:
       return assertNever(table);
   }
@@ -611,6 +679,12 @@ export function rlsInvisibleLabelColumn(table: TenantTableName): string {
       return "title";
     case "calculation_rows":
       return "label";
+    case "files":
+      return "display_name";
+    case "file_links":
+      // purpose is the mutable column the file_links hijack sets — re-read it to prove
+      // the seed value ('crm_document') was NOT overwritten with the hijack value.
+      return "purpose";
     // The "privilege"-denial tables never reach the unchanged-re-read branch, so a
     // label column is not meaningful for them — but the exhaustive switch keeps the
     // enrollment compile-safe (assertNever on a future unenrolled table).
@@ -752,6 +826,28 @@ export function anonRowFor(
         quantity: 1,
         unit: "h",
       };
+    case "files":
+      // Anon has NO grant on the file tables, so the INSERT is denied at the privilege
+      // layer (42501) regardless of the row shape. NOT-NULL object_path/display_name
+      // populated so the grant denial — not a NOT-NULL violation — is what fires. NO raw
+      // file content / PII.
+      return {
+        id: crypto.randomUUID(),
+        tenant_id: fixture.tenantA.id,
+        object_path: `${fixture.tenantA.id}/${crypto.randomUUID()}/anon-spoof.pdf`,
+        display_name: "anon-spoof-file",
+      };
+    case "file_links":
+      // Anon has NO grant → 42501. A random file_id/owner_id never matters — the grant
+      // denial fires first. owner_type/purpose populated so it is not a CHECK violation.
+      return {
+        id: crypto.randomUUID(),
+        tenant_id: fixture.tenantA.id,
+        file_id: crypto.randomUUID(),
+        owner_type: "customer",
+        owner_id: crypto.randomUUID(),
+        purpose: "crm_document",
+      };
     default:
       return assertNever(table);
   }
@@ -789,6 +885,8 @@ export function anonFilterFor(
     case "calculations":
     case "calculation_sections":
     case "calculation_rows":
+    case "files":
+    case "file_links":
       return { column: "tenant_id", value: ctx.fixture.tenantA.id };
     default:
       return assertNever(table);
@@ -824,6 +922,10 @@ export function anonMutationFor(
       return { title: "anon-hijack" };
     case "calculation_rows":
       return { label: "anon-hijack" };
+    case "files":
+      return { display_name: "anon-hijack" };
+    case "file_links":
+      return { purpose: "job_evidence" };
     default:
       return assertNever(table);
   }

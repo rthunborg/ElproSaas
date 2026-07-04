@@ -142,6 +142,13 @@ describe("Migration reset green — tenant_foundation objects present (AC1 / R-0
     // DELETE (archive over hard delete via archived_at). All three are MANY-rows-per-
     // tenant collections. Placed alphabetically; the "no DELETE policy anywhere"
     // assertion below still holds.
+    // Story 8.1 EXTENDS it again (NOT loosened) by the 6 new FILE policies:
+    // file_links.{SELECT,INSERT,UPDATE} + files.{SELECT,INSERT,UPDATE} —
+    // SELECT/INSERT/UPDATE per table, NO DELETE (archive over hard delete). Both are
+    // MANY-rows-per-tenant collections. Placed alphabetically. NOTE: this query is
+    // scoped to `schemaname = 'public'`, so the `storage.objects` RLS policies added by
+    // 8.1 (tenant_files_objects_{select,insert,update}_own) do NOT appear here — they
+    // live in the `storage` schema and are covered by storage-object-isolation.rls.test.ts.
     expect(rows.map((r) => `${r.tablename}.${r.cmd}`).sort()).toEqual([
       "articles.INSERT",
       "articles.SELECT",
@@ -168,6 +175,12 @@ describe("Migration reset green — tenant_foundation objects present (AC1 / R-0
       "facilities.INSERT",
       "facilities.SELECT",
       "facilities.UPDATE",
+      "file_links.INSERT",
+      "file_links.SELECT",
+      "file_links.UPDATE",
+      "files.INSERT",
+      "files.SELECT",
+      "files.UPDATE",
       "quote_terms.INSERT",
       "quote_terms.SELECT",
       "quote_terms.UPDATE",
@@ -202,6 +215,8 @@ describe("Migration reset green — tenant_foundation objects present (AC1 / R-0
       "calculations",
       "calculation_sections",
       "calculation_rows",
+      "files",
+      "file_links",
     ];
     for (const t of crmSettingsAndPricingTables) {
       expect((cmdsByTable.get(t) ?? []).sort()).toEqual([

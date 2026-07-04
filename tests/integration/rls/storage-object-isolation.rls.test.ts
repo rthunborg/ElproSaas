@@ -18,18 +18,15 @@
  * ── STORAGE-REACHABILITY PROBE (Task 8.6 — retro-note R-2 gap) ───────────────────
  * The existing `isLocalStackReachable()` probes ONLY `/auth/v1/health`; a storage
  * suite that relied on it would FALSE-GREEN (skip silently) when the DB is up but the
- * Storage service is down. This suite therefore gates on a DEDICATED
- * `isLocalStorageReachable()` (dev Task 8.6 adds it to `tests/support/test-env.ts`) via
- * a `skipUnlessStorage(...)` gate mirroring `skipUnlessStack`: a VISIBLE skip locally,
- * a HARD failure under `SUPABASE_TEST_REQUIRED=1`. Until Task 8.6 lands, the probe is a
- * LOCAL `notYetImplemented()` placeholder that THROWS.
+ * Storage service is down. This suite gates on the DEDICATED `isLocalStorageReachable()`
+ * probe (added to `tests/support/test-env.ts`) via a `skipUnlessStorage(...)` gate
+ * mirroring `skipUnlessStack`: a VISIBLE skip locally, a HARD failure under
+ * `SUPABASE_TEST_REQUIRED=1`.
  *
- * ── WHY `describe.skip` (RED PHASE) ─────────────────────────────────────────────
+ * ── GREEN as of Story 8.1 dev ───────────────────────────────────────────────────
  * The `tenant-files` bucket, the `storage.objects` RLS policies, the storage helper,
- * the storage-reachability probe, and the object-seed factory do NOT exist yet
- * (Story 8.1 dev Tasks 1/3/4/8.6). The placeholders THROW so a mistakenly un-skipped
- * run fails LOUD; the file type-checks standalone today. The dev phase swaps the
- * placeholders for real imports and removes `.skip`.
+ * the storage-reachability probe, and the object-seed factory have landed (Tasks
+ * 1/3/4/8.6). The real surfaces are imported and `.skip` is removed.
  *
  * Runs against the LOCAL Supabase stack + Storage service only; skips visibly when
  * either is unreachable.
@@ -40,37 +37,21 @@ import {
   makeAuthedServerClient,
   makeAnonServerClient,
   cleanupFixture,
+  adminUploadStorageObject,
   type TwoTenantFixture,
   type TestServerClient,
 } from "../../factories/tenants";
-import { isLocalStackReachable } from "../../support/test-env";
-import { skipUnlessStack, type SkippableTestContext } from "../../support/stack-gate";
+import {
+  isLocalStackReachable,
+  isLocalStorageReachable,
+} from "../../support/test-env";
+import {
+  skipUnlessStack,
+  skipUnlessStorage,
+  type SkippableTestContext,
+} from "../../support/stack-gate";
 
 const BUCKET = "tenant-files";
-
-/**
- * The not-yet-built storage helpers this suite drives. RED PHASE: these THROW at call
- * time. GREEN-PHASE HAND-OFF (dev Tasks 3/4/8.6):
- *   import { isLocalStorageReachable } from "../../support/test-env";
- *   import { skipUnlessStorage } from "../../support/stack-gate";
- *   import { adminUploadStorageObject } from "../../factories/tenants";
- * and drop these placeholders + the `.skip`.
- */
-function notYetImplemented(): {
-  isLocalStorageReachable(): Promise<boolean>;
-  skipUnlessStorage(ctx: SkippableTestContext, storageUp: boolean): boolean;
-  adminUploadStorageObject(seed: {
-    bucket: string;
-    objectPath: string;
-    body: Uint8Array;
-  }): Promise<void>;
-} {
-  throw new Error(
-    "Story 8.1 RED PHASE: isLocalStorageReachable / skipUnlessStorage / " +
-      "adminUploadStorageObject are not implemented yet (Task 8.6 / factory). Remove " +
-      "`.skip` and import the real surfaces in the dev phase.",
-  );
-}
 
 let stackUp = false;
 let storageUp = false;
@@ -82,7 +63,6 @@ let tenantBObjectPath: string; // {tenantB.id}/{fileId}/name — the cross-tenan
 beforeAll(async () => {
   stackUp = await isLocalStackReachable();
   if (!stackUp) return;
-  const { isLocalStorageReachable, adminUploadStorageObject } = notYetImplemented();
   storageUp = await isLocalStorageReachable();
   if (!storageUp) return;
   fixture = await createTwoTenantFixture();
@@ -111,11 +91,10 @@ afterAll(async () => {
 /** Combined gate: skip when the DB stack OR the Storage service is unreachable. */
 function skipUnlessBoth(ctx: SkippableTestContext): boolean {
   if (skipUnlessStack(ctx, stackUp)) return true;
-  const { skipUnlessStorage } = notYetImplemented();
   return skipUnlessStorage(ctx, storageUp);
 }
 
-describe.skip("storage.objects tenant-path isolation (AC4/AC6, R-805/R-806)", () => {
+describe("storage.objects tenant-path isolation (AC4/AC6, R-805/R-806)", () => {
   it("[P0] Tenant A CANNOT list a Tenant-B object under {tenantB.id}/…", async (testCtx) => {
     if (skipUnlessBoth(testCtx)) return;
     // A `list` scoped to B's tenant folder returns nothing for A (RLS invisibility).
@@ -170,9 +149,8 @@ describe.skip("storage.objects tenant-path isolation (AC4/AC6, R-805/R-806)", ()
   it("[P0/R-806] an EXPIRED signed URL no longer authorizes (low TTL)", async (testCtx) => {
     if (skipUnlessBoth(testCtx)) return;
     // Seed A's OWN object, sign with a 1s TTL, wait past it, assert the URL 401s.
-    // (The dev phase drives the TTL via SUPABASE_SIGNED_URL_TTL_SECONDS; the wait is
-    // kept ≤2s per R-806. The signed URL is a plain fetch — no auth header.)
-    const { adminUploadStorageObject } = notYetImplemented();
+    // (The 1s TTL is passed directly to createSignedUrl; the wait is kept ≤2s per R-806.
+    // The signed URL is a plain fetch — no auth header.)
     const ownPath = `${fixture.tenantA.id}/${crypto.randomUUID()}/own.pdf`;
     await adminUploadStorageObject({
       bucket: BUCKET,

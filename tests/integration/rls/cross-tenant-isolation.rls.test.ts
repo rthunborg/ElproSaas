@@ -36,10 +36,13 @@ import {
   adminInsertCalculation,
   adminInsertSection,
   adminInsertRow,
+  adminInsertFile,
+  adminInsertFileLink,
   adminSelectCrmRowById,
   adminSelectSettingsLabel,
   adminSelectPricingRow,
   adminSelectCalcLabel,
+  adminSelectFileLabel,
   type TwoTenantFixture,
   type TestServerClient,
 } from "../../factories/tenants";
@@ -70,6 +73,8 @@ let tenantBArticleId: string; // a seeded Tenant B article (3.4 pricing target)
 let tenantBCalculationId: string; // a seeded Tenant B calc (5.1 calculation target)
 let tenantBCalcSectionId: string; // a seeded Tenant B section (5.1 calculation target)
 let tenantBCalcRowId: string; // a seeded Tenant B row (5.1 calculation target)
+let tenantBFileId: string; // a seeded Tenant B file (8.1 file target + file_links parent)
+let tenantBFileLinkId: string; // a seeded Tenant B file_link (8.1 file target)
 let ctx: InventoryContext; // shared-inventory context (fixture + the seeded ids)
 
 beforeAll(async () => {
@@ -160,6 +165,24 @@ beforeAll(async () => {
     // label is the rls-invisible re-read column for calculation_rows; a recognizable
     // seed token so the unchanged re-read can assert it was not overwritten.
   });
+  // Seed a REAL Tenant B FILE + FILE_LINK (Story 8.1) so the files/file_links
+  // cross-tenant negatives target a CONCRETE Tenant B row, AND so the file_links spoof
+  // INSERT has a real Tenant B file parent (its composite same-tenant FK). The file
+  // fixture carries METADATA SHAPE only — an anonymized display name, NO raw content,
+  // NO PII (R-819). The link's purpose ('crm_document') is the rls-invisible re-read
+  // column; the hijack sets a different purpose so the unchanged re-read is meaningful.
+  tenantBFileId = await adminInsertFile({
+    tenant_id: fixture.tenantB.id,
+    display_name: "tenant-b-file-seed.pdf",
+    lifecycle_state: "linked",
+  });
+  tenantBFileLinkId = await adminInsertFileLink({
+    tenant_id: fixture.tenantB.id,
+    file_id: tenantBFileId,
+    owner_type: "customer",
+    owner_id: tenantBCustomerId,
+    purpose: "crm_document",
+  });
   // VACUITY GUARD (DX#4, epic-2 hardening): the audit_events cross-tenant negatives
   // filter Tenant B's row by `id = tenantBAuditId`. If the seed ever returned without
   // a real id, `.eq("id", undefined/null)` would match NOTHING and the SELECT/UPDATE/
@@ -201,6 +224,12 @@ beforeAll(async () => {
         "against a non-existent row.",
     );
   }
+  if (!tenantBFileId || !tenantBFileLinkId) {
+    throw new Error(
+      "cross-tenant file seed produced no id (files/file_links) — the file cross-tenant " +
+        "negatives would pass VACUOUSLY against a non-existent row.",
+    );
+  }
   ctx = {
     fixture,
     tenantBAuditId,
@@ -214,6 +243,8 @@ beforeAll(async () => {
     tenantBCalculationId,
     tenantBCalcSectionId,
     tenantBCalcRowId,
+    tenantBFileId,
+    tenantBFileLinkId,
   };
 });
 
@@ -296,6 +327,19 @@ describe("Cross-tenant RLS isolation — data-driven over the shared inventory (
             const row = await adminSelectCalcLabel(table, labelColumn, value);
             expect(row).not.toBeNull();
             expect(row?.label).not.toBe("hijacked-by-tenant-a");
+          } else if (table === "files" || table === "file_links") {
+            // files hijack sets display_name = "hijacked-by-tenant-a"; file_links hijack
+            // sets purpose = "job_evidence" (a DIFFERENT valid value than the seed's
+            // "crm_document"). Prove the seed value was NOT overwritten.
+            const labelColumn = rlsInvisibleLabelColumn(table);
+            const row = await adminSelectFileLabel(table, labelColumn, value);
+            expect(row).not.toBeNull();
+            if (table === "files") {
+              expect(row?.label).not.toBe("hijacked-by-tenant-a");
+            } else {
+              expect(row?.label).not.toBe("job_evidence");
+              expect(row?.label).toBe("crm_document");
+            }
           } else {
             const crmTable = table as "customers" | "facilities" | "contacts";
             const row = await adminSelectCrmRowById(crmTable, value);

@@ -26,11 +26,9 @@
  *     anon NONE);
  *   - NO broad deferred file-index / document-center table (AC1 guardrail).
  *
- * ── WHY `describe.skip` (RED PHASE) ─────────────────────────────────────────────
- * The migration does not exist yet (Story 8.1 dev Task 2). Until it lands, the
- * introspection queries below return nothing → these assertions FAIL by design. Kept
- * skipped (project red-phase idiom — Stories 3.1/5.1 used the same) so they do not
- * break the green tree before the migration is written; the dev phase removes `.skip`.
+ * ── GREEN as of Story 8.1 dev ───────────────────────────────────────────────────
+ * The `file_storage_foundation` migration has landed (Task 2), so `.skip` is removed
+ * and these assertions run for real against the reset schema.
  *
  * ── RELATIONSHIP TO THE EXISTING `migration-reset.int.test.ts` ───────────────────
  * This is the file-specific companion. The EXISTING `migration-reset.int.test.ts`
@@ -63,7 +61,7 @@ afterAll(async () => {
   await closeAdminPool();
 });
 
-describe.skip("File migration reset — files/file_links (AC1/AC4/AC8)", () => {
+describe("File migration reset — files/file_links (AC1/AC4/AC8)", () => {
   it("[P0] the two file tables exist after reset", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     const rows = await adminQuery<{ table_name: string }>(

@@ -99,6 +99,31 @@ export async function isLocalStackReachable(): Promise<boolean> {
 }
 
 /**
+ * Probe whether the local Supabase STORAGE service is reachable (Story 8.1, Task 8.6 —
+ * retro-note R-2 gap). The existing `isLocalStackReachable()` probes ONLY
+ * `/auth/v1/health`; a storage suite relying on it would FALSE-GREEN (skip silently)
+ * when the DB is up but the Storage service is down. This dedicated probe hits the
+ * storage bucket-list endpoint with the service-role key so a storage-down stack is a
+ * VISIBLE skip locally (and a HARD failure under `SUPABASE_TEST_REQUIRED=1` via
+ * `skipUnlessStorage`). Returns true only when the Storage service answers OK.
+ */
+export async function isLocalStorageReachable(): Promise<boolean> {
+  try {
+    const res = await fetch(`${LOCAL_SUPABASE_URL}/storage/v1/bucket`, {
+      method: "GET",
+      headers: {
+        apikey: LOCAL_SUPABASE_SERVICE_ROLE_KEY,
+        Authorization: `Bearer ${LOCAL_SUPABASE_SERVICE_ROLE_KEY}`,
+      },
+      signal: AbortSignal.timeout(2_000),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Direct Postgres connection string to the LOCAL stack's database (CLI `DB_URL`).
  * TEST-ONLY — used by the admin SQL helper to introspect the schema and to plant
  * the adversarial search_path object in the R-006 negative. `postgres` is the

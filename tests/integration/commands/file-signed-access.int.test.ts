@@ -20,15 +20,18 @@
  *   - an expired signed URL no longer authorizes (driven by a LOW
  *     SUPABASE_SIGNED_URL_TTL_SECONDS — R-806).
  *
- * ── WHY `describe.skip` (RED PHASE) ─────────────────────────────────────────────
+ * ── GREEN as of Story 8.1 dev ───────────────────────────────────────────────────
  * `@/server/commands/files` (createSignedFileAccess), `@/server/storage/*`, the
- * `FILE_ACCESS_DENIED` command code, the `files` migration, and the file factory
- * seeds do NOT exist yet (Story 8.1 dev Tasks 2/4/5/7). The `notYetImplemented()`
- * placeholders THROW so a mistakenly un-skipped run fails LOUD; the file type-checks
- * standalone today. The dev phase swaps the placeholders for real imports and removes
- * `.skip`.
+ * `FILE_ACCESS_DENIED` command code, the `files` migration, and the file factory seeds
+ * have landed (Tasks 2/4/5/7). The real surfaces are imported and `.skip` is removed.
  *
- * Runs against the LOCAL Supabase stack only; skips visibly when unreachable.
+ * The happy-path sign REQUIRES a real storage object under the file's object_path (a
+ * signed URL is issued only for an object the caller can reach under `storage.objects`
+ * RLS). The seed therefore uploads a real object at the file's server-derived path via
+ * the service-role path, then the command signs it under the caller's RLS client.
+ *
+ * Runs against the LOCAL Supabase stack + Storage service only; skips visibly when
+ * either is unreachable.
  */
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import {
@@ -36,42 +39,32 @@ import {
   makeAuthedServerClient,
   makeAnonServerClient,
   cleanupFixture,
+  adminInsertFile,
+  adminUploadStorageObject,
   type TwoTenantFixture,
   type TestServerClient,
 } from "../../factories/tenants";
 import { adminSelectAuditEvents } from "../../factories/audit-events";
-import { isLocalStackReachable } from "../../support/test-env";
-import { skipUnlessStack } from "../../support/stack-gate";
+import { adminQuery } from "../../factories/admin-sql";
+import {
+  isLocalStackReachable,
+  isLocalStorageReachable,
+} from "../../support/test-env";
+import {
+  skipUnlessStack,
+  skipUnlessStorage,
+  type SkippableTestContext,
+} from "../../support/stack-gate";
 import { runCommand } from "@/server/commands/envelope";
+import { createSignedFileAccess } from "@/server/commands/files";
 import type { CommandClock } from "@/server/commands/clock";
 
 const FIXED_ISO = "2026-07-04T12:00:00.000Z";
 const fixedClock: CommandClock = { now: () => new Date(FIXED_ISO) };
-
-/**
- * The not-yet-built surfaces this suite drives. RED PHASE: these THROW at call time.
- * GREEN-PHASE HAND-OFF (dev):
- *   import { createSignedFileAccess } from "@/server/commands/files";
- *   import { adminInsertFile } from "../../factories/tenants";
- * and drop these placeholders + the `.skip`.
- */
-type FileSeed = {
-  tenant_id: string;
-  display_name: string;
-  lifecycle_state?: "draft" | "linked" | "locked" | "archived" | "deleted";
-};
-function notYetImplemented(): {
-  createSignedFileAccess: unknown;
-  adminInsertFile: (seed: FileSeed) => Promise<string>;
-} {
-  throw new Error(
-    "Story 8.1 RED PHASE: createSignedFileAccess + adminInsertFile are not " +
-      "implemented yet. Remove `.skip` and import the real surfaces in the dev phase " +
-      "(Tasks 2/4/5/7).",
-  );
-}
+const BUCKET = "tenant-files";
 
 let stackUp = false;
+let storageUp = false;
 let fixture: TwoTenantFixture;
 let a: TestServerClient; // Tenant A admin's authenticated anon-key client
 let anon: TestServerClient; // unauthenticated client
@@ -79,13 +72,30 @@ let ownFileId: string; // A's own draft/linked file (access-eligible)
 let archivedFileId: string; // A's own archived file (lifecycle-ineligible)
 let tenantBFileId: string; // a REAL Tenant B file (cross-tenant target)
 
+/** Combined gate: skip when the DB stack OR the Storage service is unreachable. */
+function skipUnlessBoth(ctx: SkippableTestContext): boolean {
+  if (skipUnlessStack(ctx, stackUp)) return true;
+  return skipUnlessStorage(ctx, storageUp);
+}
+
+/** Read a seeded file's server-stored object_path (BYPASSRLS) to plant a real object. */
+async function objectPathOf(fileId: string): Promise<string> {
+  const rows = await adminQuery<{ object_path: string }>(
+    `select object_path from public.files where id = $1`,
+    [fileId],
+  );
+  const path = rows[0]?.object_path;
+  if (!path) throw new Error(`no object_path for seeded file ${fileId}`);
+  return path;
+}
+
 beforeAll(async () => {
   stackUp = await isLocalStackReachable();
   if (!stackUp) return;
+  storageUp = await isLocalStorageReachable();
   fixture = await createTwoTenantFixture();
   a = await makeAuthedServerClient(fixture.adminA);
   anon = await makeAnonServerClient();
-  const { adminInsertFile } = notYetImplemented();
   ownFileId = await adminInsertFile({
     tenant_id: fixture.tenantA.id,
     display_name: "own-eligible.pdf",
@@ -109,16 +119,25 @@ beforeAll(async () => {
         "authorization negatives would deny VACUOUSLY.",
     );
   }
+  // Plant a REAL storage object at the eligible file's server-derived object_path so the
+  // happy-path sign has an object to sign (a signed URL is issued for a reachable object).
+  // Only when the Storage service is up.
+  if (storageUp) {
+    await adminUploadStorageObject({
+      bucket: BUCKET,
+      objectPath: await objectPathOf(ownFileId),
+      body: new TextEncoder().encode("own-eligible-bytes"),
+    });
+  }
 });
 
 afterAll(async () => {
   if (stackUp && fixture) await cleanupFixture(fixture);
 });
 
-describe.skip("createSignedFileAccess authorization matrix (AC5/AC6/AC8)", () => {
+describe("createSignedFileAccess authorization matrix (AC5/AC6/AC8)", () => {
   it("[P0] happy own-tenant sign SUCCEEDS → signedUrl + expiresAt", async (testCtx) => {
-    if (skipUnlessStack(testCtx, stackUp)) return;
-    const { createSignedFileAccess } = notYetImplemented();
+    if (skipUnlessBoth(testCtx)) return;
     const result = await runCommand(createSignedFileAccess as never, {
       client: a as never,
       input: { file_id: ownFileId },
@@ -135,8 +154,7 @@ describe.skip("createSignedFileAccess authorization matrix (AC5/AC6/AC8)", () =>
   });
 
   it("[P0/AC8] the successful sign writes EXACTLY ONE audit row with clean allow-listed metadata", async (testCtx) => {
-    if (skipUnlessStack(testCtx, stackUp)) return;
-    const { createSignedFileAccess } = notYetImplemented();
+    if (skipUnlessBoth(testCtx)) return;
     const correlationId = crypto.randomUUID();
     const result = await runCommand(createSignedFileAccess as never, {
       client: a as never,
@@ -156,7 +174,6 @@ describe.skip("createSignedFileAccess authorization matrix (AC5/AC6/AC8)", () =>
 
   it("[P0] anonymous sign is REJECTED (UNAUTHENTICATED)", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
-    const { createSignedFileAccess } = notYetImplemented();
     const result = await runCommand(createSignedFileAccess as never, {
       client: anon as never,
       input: { file_id: ownFileId },
@@ -169,7 +186,6 @@ describe.skip("createSignedFileAccess authorization matrix (AC5/AC6/AC8)", () =>
 
   it("[P0] cross-tenant file id is REJECTED (TENANT_ACCESS_DENIED) — no existence disclosure", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
-    const { createSignedFileAccess } = notYetImplemented();
     const result = await runCommand(createSignedFileAccess as never, {
       client: a as never,
       input: { file_id: tenantBFileId },
@@ -187,7 +203,6 @@ describe.skip("createSignedFileAccess authorization matrix (AC5/AC6/AC8)", () =>
 
   it("[P0] a non-existent file id denies with the SAME shape as the cross-tenant case", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
-    const { createSignedFileAccess } = notYetImplemented();
     const result = await runCommand(createSignedFileAccess as never, {
       client: a as never,
       input: { file_id: crypto.randomUUID() }, // never seeded
@@ -200,7 +215,6 @@ describe.skip("createSignedFileAccess authorization matrix (AC5/AC6/AC8)", () =>
 
   it("[P0/AC5] an ARCHIVED own file is REJECTED by the lifecycle gate (FILE_ACCESS_DENIED)", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
-    const { createSignedFileAccess } = notYetImplemented();
     const result = await runCommand(createSignedFileAccess as never, {
       client: a as never,
       input: { file_id: archivedFileId },
@@ -209,14 +223,12 @@ describe.skip("createSignedFileAccess authorization matrix (AC5/AC6/AC8)", () =>
     });
     expect(result.ok).toBe(false);
     // The lifecycle gate runs on an OWNED file — a file-specific denial, before any
-    // createSignedUrl call. (FILE_ACCESS_DENIED is added to command-errors.ts in dev
-    // Task 5.4.)
+    // createSignedUrl call.
     if (!result.ok) expect(result.code).toBe("FILE_ACCESS_DENIED");
   });
 
   it("[P0/AC5] the archived-file rejection does NOT issue a signed URL", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
-    const { createSignedFileAccess } = notYetImplemented();
     const result = await runCommand(createSignedFileAccess as never, {
       client: a as never,
       input: { file_id: archivedFileId },

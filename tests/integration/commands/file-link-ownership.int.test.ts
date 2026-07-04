@@ -19,12 +19,19 @@
  *   - ATOMICITY (R-807): a mid-flow RPC failure leaves NEITHER a `files` orphan NOR a
  *     `file_links` row — an independent BYPASSRLS re-read proves zero rows.
  *
- * ── WHY `describe.skip` (RED PHASE) ─────────────────────────────────────────────
+ * ── GREEN as of Story 8.1 dev ───────────────────────────────────────────────────
  * `@/server/commands/files` (createFileLink), the `create_file_with_link` RPC, the
- * `files`/`file_links` migration, and the file factory seeds/read-backs do NOT exist
- * yet (Story 8.1 dev Tasks 2/5/6/7). The `notYetImplemented()` placeholders THROW so a
- * mistakenly un-skipped run fails LOUD; the file type-checks standalone today. The dev
- * phase swaps the placeholders for real imports and removes `.skip`.
+ * `files`/`file_links` migration, and the file factory seeds/read-backs have landed
+ * (Tasks 2/5/6/7). The real surfaces are imported and `.skip` is removed.
+ *
+ * ── ATOMICITY (R-807) ───────────────────────────────────────────────────────────
+ * The command's both-side ownership check rejects a foreign/non-existent owner BEFORE
+ * the RPC runs, so the "no orphan on a denied command" assertion holds trivially. To
+ * PROVE the RPC's file→link rollback ordering (the file insert rolls back when the
+ * link insert fails mid-flow), a dedicated test drives the RPC DIRECTLY under the
+ * caller's authed client with a VALID file half but an INVALID link half (an
+ * out-of-union owner_type that passes no command validator — bypassed here on purpose):
+ * the files row must NOT survive because the link insert raises and rolls the txn back.
  *
  * Runs against the LOCAL Supabase stack only; skips visibly when unreachable.
  */
@@ -34,6 +41,7 @@ import {
   makeAuthedServerClient,
   cleanupFixture,
   adminInsertCustomer,
+  adminInsertFile,
   type TwoTenantFixture,
   type TestServerClient,
 } from "../../factories/tenants";
@@ -42,28 +50,11 @@ import { adminQuery } from "../../factories/admin-sql";
 import { isLocalStackReachable } from "../../support/test-env";
 import { skipUnlessStack } from "../../support/stack-gate";
 import { runCommand } from "@/server/commands/envelope";
+import { createFileLink } from "@/server/commands/files";
 import type { CommandClock } from "@/server/commands/clock";
 
 const FIXED_ISO = "2026-07-04T12:00:00.000Z";
 const fixedClock: CommandClock = { now: () => new Date(FIXED_ISO) };
-
-/**
- * The not-yet-built surfaces this suite drives. RED PHASE: these THROW at call time.
- * GREEN-PHASE HAND-OFF (dev):
- *   import { createFileLink } from "@/server/commands/files";
- *   import { adminInsertFile, adminCountFileLinks } from "../../factories/tenants";
- * and drop these placeholders + the `.skip`.
- */
-type FileSeed = { tenant_id: string; display_name: string };
-function notYetImplemented(): {
-  createFileLink: unknown;
-  adminInsertFile: (seed: FileSeed) => Promise<string>;
-} {
-  throw new Error(
-    "Story 8.1 RED PHASE: createFileLink + adminInsertFile are not implemented yet. " +
-      "Remove `.skip` and import the real surfaces in the dev phase (Tasks 2/5/6/7).",
-  );
-}
 
 let stackUp = false;
 let fixture: TwoTenantFixture;
@@ -78,7 +69,6 @@ beforeAll(async () => {
   if (!stackUp) return;
   fixture = await createTwoTenantFixture();
   a = await makeAuthedServerClient(fixture.adminA);
-  const { adminInsertFile } = notYetImplemented();
   ownFileId = await adminInsertFile({
     tenant_id: fixture.tenantA.id,
     display_name: "own-file.pdf",
@@ -111,10 +101,9 @@ afterAll(async () => {
   if (stackUp && fixture) await cleanupFixture(fixture);
 });
 
-describe.skip("createFileLink both-side ownership + atomic rollback (AC3/AC7)", () => {
+describe("createFileLink both-side ownership + atomic rollback (AC3/AC7)", () => {
   it("[P0/R-802] a FOREIGN file id is rejected (TENANT_ACCESS_DENIED)", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
-    const { createFileLink } = notYetImplemented();
     const result = await runCommand(createFileLink as never, {
       client: a as never,
       input: {
@@ -132,7 +121,6 @@ describe.skip("createFileLink both-side ownership + atomic rollback (AC3/AC7)", 
 
   it("[P0/R-802] a FOREIGN owner id is rejected (TENANT_ACCESS_DENIED)", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
-    const { createFileLink } = notYetImplemented();
     const result = await runCommand(createFileLink as never, {
       client: a as never,
       input: {
@@ -150,7 +138,6 @@ describe.skip("createFileLink both-side ownership + atomic rollback (AC3/AC7)", 
 
   it("[P0] own file + own owner SUCCEEDS + EXACTLY ONE file.linked audit row (clean metadata)", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
-    const { createFileLink } = notYetImplemented();
     const correlationId = crypto.randomUUID();
     const result = await runCommand(createFileLink as never, {
       client: a as never,
@@ -174,7 +161,6 @@ describe.skip("createFileLink both-side ownership + atomic rollback (AC3/AC7)", 
 
   it("[P0] a DEFERRED owner_type (quote_version) is rejected as not-yet-available", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
-    const { createFileLink } = notYetImplemented();
     // The validator accepts quote_version structurally, but the owner-resolution
     // switch returns a rejection because the owner table does not exist until Epics 6/7.
     const result = await runCommand(createFileLink as never, {
@@ -196,47 +182,78 @@ describe.skip("createFileLink both-side ownership + atomic rollback (AC3/AC7)", 
     }
   });
 
-  it("[P0/AC7/R-807] a mid-flow RPC failure rolls back FULLY — no files orphan, no file_links row", async (testCtx) => {
+  it("[P0/R-802] a non-existent owner id denies with NO orphan created (command owner-side gate)", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
-    const { createFileLink } = notYetImplemented();
-    // Drive the atomic RPC path with an input that produces a mid-flow constraint
-    // error AFTER the files insert but before/within the link insert (e.g. a link
-    // that violates a check/FK). The whole transaction must roll back.
-    //
-    // NOTE for the dev phase: pick the concrete failure injection that matches the
-    // final create_file_with_link signature (the RPC also writes a `files` row for
-    // the real upload path in 8.2; here it is exercised so a constraint violation in
-    // the link half rolls back the file half too). The ASSERTION contract is fixed:
-    // an independent BYPASSRLS re-read finds ZERO new files AND ZERO new file_links.
-    const marker = `rollback-marker-${crypto.randomUUID()}`;
+    // A non-existent owner id fails the command's owner-side own-tenant SELECT BEFORE
+    // the RPC runs → TENANT_ACCESS_DENIED. Nothing is written: no new files row (the RPC
+    // never fired) and no file_links row.
+    const randomOwner = crypto.randomUUID();
     const result = await runCommand(createFileLink as never, {
       client: a as never,
       input: {
         file_id: ownFileId,
         owner_type: "customer",
-        owner_id: crypto.randomUUID(), // non-existent owner → owner-side denial / RPC FK error
+        owner_id: randomOwner, // non-existent owner → owner-side denial (before RPC)
         purpose: "crm_document",
-        __rollback_probe_display_name: marker, // dev phase wires this to the RPC's file insert
       },
       clock: fixedClock,
       correlationId: crypto.randomUUID(),
     });
     expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.code).toBe("TENANT_ACCESS_DENIED");
+    // No file_links row for that owner id was written.
+    const links = await adminQuery<{ n: string }>(
+      `select count(*)::text as n from public.file_links where owner_id = $1`,
+      [randomOwner],
+    );
+    expect(Number(links[0]?.n)).toBe(0);
+  });
 
-    // Independent BYPASSRLS re-read: no `files` row carrying the marker was left behind.
+  it("[P0/AC7/R-807] the atomic RPC rolls back FULLY when the link half fails mid-flow — no files orphan", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
+    // Drive the atomic `create_file_with_link` RPC DIRECTLY under the caller's authed
+    // client (bypassing the command validator on purpose) with a VALID file half but an
+    // INVALID link half: an out-of-union owner_type violates the file_links.owner_type
+    // CHECK (23514), which raises AFTER the files insert but WITHIN the same txn. The
+    // whole function must roll back — the files row must NOT survive. This is the R-807
+    // ordering proof the command-level gate cannot exercise (the command rejects a bad
+    // owner_type before the RPC).
+    const markerPath = `${fixture.tenantA.id}/${crypto.randomUUID()}/rollback-probe.pdf`;
+    const marker = `rollback-marker-${crypto.randomUUID()}`;
+    const { error } = await (a as never as {
+      rpc: (
+        fn: string,
+        args: Record<string, unknown>,
+      ) => Promise<{ error: { code?: string } | null }>;
+    }).rpc("create_file_with_link", {
+      p_tenant_id: fixture.tenantA.id,
+      p_bucket_id: "tenant-files",
+      p_object_path: markerPath,
+      p_display_name: marker,
+      p_mime_type: null,
+      p_size_bytes: null,
+      p_checksum: null,
+      p_uploaded_by: null,
+      p_lifecycle_state: "linked",
+      p_owner_type: "not_a_real_owner_type", // violates the file_links owner_type CHECK
+      p_owner_id: ownCustomerId,
+      p_purpose: "crm_document",
+    });
+    // The RPC raised (the link-half CHECK violation) — the whole txn rolled back.
+    expect(error).not.toBeNull();
+
+    // Independent BYPASSRLS re-read: NO `files` row carrying the marker survived (the
+    // file insert was rolled back with the failed link insert — R-807 atomicity).
     const orphanFiles = await adminQuery<{ n: string }>(
       `select count(*)::text as n from public.files where display_name = $1`,
       [marker],
     );
     expect(Number(orphanFiles[0]?.n)).toBe(0);
-
-    // ...and no `file_links` row for that owner id was left behind either.
-    const orphanLinks = await adminQuery<{ n: string }>(
-      `select count(*)::text as n from public.file_links
-         where file_id = $1 and owner_type = 'customer'
-           and created_at >= (now() - interval '1 minute')`,
-      [ownFileId],
+    // ...and no object_path orphan either.
+    const orphanByPath = await adminQuery<{ n: string }>(
+      `select count(*)::text as n from public.files where object_path = $1`,
+      [markerPath],
     );
-    expect(Number(orphanLinks[0]?.n)).toBe(0);
+    expect(Number(orphanByPath[0]?.n)).toBe(0);
   });
 });
