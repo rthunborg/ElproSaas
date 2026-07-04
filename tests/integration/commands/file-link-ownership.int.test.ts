@@ -247,8 +247,13 @@ describe("createFileLink both-side ownership + atomic rollback (AC3/AC7)", () =>
     const events = await adminSelectAuditEvents({ correlationId });
     expect(events).toHaveLength(1);
     expect(events[0]?.event_type).toBe("file.linked");
+    // POSITIVE allow-list (mirrors the createSignedFileAccess success test): the
+    // sanitized audit metadata is EXACTLY empty (targetId lives in the target_id column,
+    // not metadata) — a stray leaked field (uploaded_by/owner_id/object_path) fails HERE
+    // even if it would slip past the belt-and-braces blocklist below.
+    expect(Object.keys(events[0]?.metadata ?? {})).toEqual([]);
     const meta = JSON.stringify(events[0]?.metadata ?? {});
-    // No owner PII, no path — allow-listed target-shaped fields only.
+    // Belt-and-braces: no owner PII, no path — allow-listed target-shaped fields only.
     expect(meta).not.toMatch(/org_nr|556000|tenant-files|object_path|tenant-a-owner/i);
   });
 
@@ -321,10 +326,12 @@ describe("createFileLink both-side ownership + atomic rollback (AC3/AC7)", () =>
       correlationId: crypto.randomUUID(),
     });
     expect(result.ok).toBe(false);
-    // A generic, user-safe rejection — the not-yet-available owner type maps to a
-    // stable denial code (TENANT_ACCESS_DENIED or VALIDATION_FAILED; assert the set).
+    // The not-yet-available owner type is a DETERMINISTIC rejection: production
+    // (`assertOwnerVisibleOrThrow`) throws TENANT_ACCESS_DENIED and AC3 mandates that
+    // exact code. Pin it (not an alternatives set) so a future silent drift to the wrong
+    // code fails CI on this security-relevant rejection.
     if (!result.ok) {
-      expect(["TENANT_ACCESS_DENIED", "VALIDATION_FAILED"]).toContain(result.code);
+      expect(result.code).toBe("TENANT_ACCESS_DENIED");
     }
   });
 

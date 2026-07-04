@@ -159,6 +159,7 @@ export function asFileRpcClient(db: CommandDbClient): FileRpcClient {
  *   - `42501` insufficient_privilege / RLS WITH CHECK violation → TENANT_ACCESS_DENIED.
  *   - `23505` unique_violation (bucket_id, object_path collision) → VALIDATION_FAILED.
  *   - `23514` check_violation (owner_type / purpose / lifecycle CHECK) → VALIDATION_FAILED.
+ *   - `22P02` invalid_text_representation (malformed uuid) → VALIDATION_FAILED.
  * Any other error is a transient fault — re-thrown as a plain Error so the envelope maps
  * it to SERVER_ERROR (retryable).
  */

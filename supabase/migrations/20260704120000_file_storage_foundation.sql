@@ -316,9 +316,13 @@ create policy file_links_update_own
 -- public.is_tenant_admin so the storage-schema policy context resolves it.
 --
 -- The predicate is wrapped so a first segment that is not a valid uuid does not raise
--- (a raising USING/WITH CHECK still denies, but a clean boolean-false is tidier): the
--- `storage.foldername(name)[1]` is guarded by an array-length + uuid-shape check before
--- the cast. If array_length is null/0 (no folder) the row is denied.
+-- (a raising USING/WITH CHECK still denies, but a clean boolean-false is tidier): a
+-- uuid-shape regex match (`(storage.foldername(name))[1] ~ '<uuid-regex>'`) SHORT-CIRCUITS
+-- the `::uuid` cast — only a well-formed uuid segment reaches the cast + is_tenant_admin.
+-- An absent/NULL first subscript (no folder) `~ regex` yields NULL → the AND is NULL/false
+-- → the row is denied. There is NO explicit array_length() expression; the regex guard is
+-- the whole mechanism (a NULL subscript matches nothing, a malformed segment fails the
+-- shape check, both deny before the cast is ever attempted).
 -- ----------------------------------------------------------------------------
 create policy tenant_files_objects_select_own
   on storage.objects

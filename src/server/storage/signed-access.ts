@@ -83,18 +83,27 @@ export type StorageSigningClient = {
  * permanent access denial — the same discipline the envelope's `verifyOwnership` applies
  * to the DB case).
  *
- * A permanent denial is a 4xx status (403/404) OR a known not-found/denied error code.
- * Anything else — a 5xx, a missing/ambiguous status, a network reject — is treated as
- * TRANSIENT (fail toward observability/retry, not toward a silent permanent denial).
+ * A permanent denial is a NON-retryable 4xx status (e.g. 403/404) OR a known
+ * not-found/denied error code. Anything else — a 5xx, a RETRYABLE 4xx (408 Request
+ * Timeout / 425 Too Early / 429 Too Many Requests), a missing/ambiguous status, a
+ * network reject — is treated as TRANSIENT (fail toward observability/retry, not toward
+ * a silent permanent denial). A storage rate-limit spike (429) or gateway timeout (408)
+ * must surface as a retryable SERVER_ERROR, never a permanent "file cannot be accessed".
  */
+/**
+ * Retryable 4xx status codes — a transient rate-limit / timeout the caller may retry.
+ * These are EXCLUDED from the permanent-denial branch so they re-throw → SERVER_ERROR.
+ */
+const RETRYABLE_4XX = new Set<number>([408, 425, 429]);
+
 export function isPermanentStorageDenial(error: StorageSigningError): boolean {
   const rawStatus = error.status ?? error.statusCode;
   const status =
     typeof rawStatus === "string" ? Number(rawStatus) : rawStatus;
   if (typeof status === "number" && Number.isFinite(status)) {
-    // 403/404 (and any other 4xx) are permanent client/permission denials; 5xx are
-    // transient server faults.
-    return status >= 400 && status < 500;
+    // A 4xx is a permanent client/permission denial UNLESS it is a retryable transient
+    // (408/425/429); 5xx are transient server faults.
+    return status >= 400 && status < 500 && !RETRYABLE_4XX.has(status);
   }
   // No usable status — fall back to the structured code / legacy identifier.
   const code = (error.code ?? error.error ?? "").toLowerCase();

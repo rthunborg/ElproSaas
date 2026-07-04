@@ -155,4 +155,10 @@ test("[Decision] isPermanentStorageDenial: 4xx (403/404/NoSuchKey) permanent; 5x
   assert.equal(isPermanentStorageDenial({ code: "InternalError" }), false);
   assert.equal(isPermanentStorageDenial({ message: "network reset" }), false);
   assert.equal(isPermanentStorageDenial({}), false);
+  // TRANSIENT retryable 4xx: a rate-limit (429) / timeout (408) / too-early (425) must
+  // NOT collapse into a permanent FILE_ACCESS_DENIED — they re-throw → SERVER_ERROR.
+  assert.equal(isPermanentStorageDenial({ status: 429 }), false);
+  assert.equal(isPermanentStorageDenial({ status: 408 }), false);
+  assert.equal(isPermanentStorageDenial({ status: 425 }), false);
+  assert.equal(isPermanentStorageDenial({ statusCode: "429" }), false);
 });

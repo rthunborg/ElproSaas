@@ -5,7 +5,7 @@ epic_num: 8
 story_num: 1
 branch: story/8-1-file-storage-foundation-private-bucket-metadata-links-rls-and-signed-access-command
 status: in-progress
-updated_at: "2026-07-04T15:43:15Z"
+updated_at: "2026-07-04T16:06:47Z"
 started_at: "2026-07-04T10:31:22Z"
 completed_at: null
 active_seconds: 18404
@@ -21,7 +21,7 @@ tea_rationale: "security/authorization-critical: RLS on new files/file_links tab
 epic_story_count: 5
 stories_after_in_epic: 4
 completed_phases: [0, 1, 2, 3, 4, 5, 6]
-code_review_iterations: 0
+code_review_iterations: 1
 code_review_loop_done: false
 hitl_halt: null
 external_review_iterations: 0
