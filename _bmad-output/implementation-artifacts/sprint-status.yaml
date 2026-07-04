@@ -54,7 +54,7 @@
 # epic-group order, on purpose) so it is picked next. All other entries remain grouped by epic.
 
 generated: 2026-06-12
-last_updated: 2026-07-03  # post-epic-5 resequencing: Story 8.1 before Epic 6 (owner decision 2026-07-03)
+last_updated: 2026-07-04  # Story 8.1 contexted (ready-for-dev); epic-8 → in-progress
 project: ElproSaas
 project_key: NOKEY
 tracking_system: file-system
@@ -102,7 +102,7 @@ development_status:
   # so the auto-bmad picker (first `backlog` in file order) selects it before Epic 6.
   # It is a hard dependency for Epic 6 stories 6.1 and 6.3 (see execution-order note above).
   # The rest of Epic 8 (8.2-8.5) stays in the epic-8 block below.
-  8-1-file-storage-foundation-private-bucket-metadata-links-rls-and-signed-access-command: backlog
+  8-1-file-storage-foundation-private-bucket-metadata-links-rls-and-signed-access-command: ready-for-dev
 
   epic-6: backlog
   6-1-quote-snapshot-schema-and-server-side-version-creation: backlog
@@ -119,7 +119,7 @@ development_status:
   7-4-accepted-state-immutability-and-correction-boundary: backlog
   epic-7-retrospective: optional
 
-  epic-8: backlog
+  epic-8: in-progress
   # 8-1 (file storage foundation) is listed ABOVE under WAVE 1, before the epic-6 block,
   # so it is picked next. Not duplicated here. Wave 2 (8.2-8.5) follows Epics 6-7.
   8-2-validated-upload-and-entity-file-panels: backlog

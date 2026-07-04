@@ -1,0 +1,186 @@
+# Story 8.1: File Storage Foundation - Private Bucket, Metadata, Links, RLS, And Signed-Access Command
+
+Status: ready-for-dev
+
+<!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
+
+## Story
+
+As a tenant admin,
+I want files represented by tenant-owned metadata and entity links backed by a private storage bucket with server-derived paths,
+so that documents can later be managed safely in CRM, calculation, quote, acceptance, and job contexts through a single Phase A file model.
+
+## Context & Why This Story Is The Keystone
+
+This is **Wave 1 of Epic 8** and the **single Phase A file model**. It runs NEXT (before Epic 6) because it is a **hard dependency** for Epic 6 stories 6.1 (persisted attachment metadata) and 6.3 (quote PDF storage), which both consume `files`/`file_links` and MUST NOT invent a competing model (standing contract R-814; STOP condition). It is also the foundation every Wave-2 story (8.2-8.5) extends.
+
+This is the **first time Phase A crosses the object-storage boundary**. Every earlier epic kept sensitive state in Postgres under the proven RLS harness; this story adds a **second storage plane** (Supabase Storage) that RLS on `storage.objects` + server-derived paths must isolate as strictly as the database.
+
+**Scope of THIS story (Wave 1 foundation only):**
+- Private storage bucket configuration (private-by-default, server-derived object paths).
+- `files` base metadata table (tenant-owned).
+- `file_links` polymorphic entity-link table (tenant-owned, command-level ownership validation).
+- `storage.objects` RLS scoped by a server-derived tenant path prefix.
+- `createSignedFileAccess` server command (the signing authorization funnel).
+- A narrow atomic metadata+link RPC (ADR-A009).
+- The full DB + storage RLS negative matrix (foundation seed of the storage-negative class).
+
+**Explicitly NOT in this story:** upload UI, entity file panels, lifecycle locks, the file index, MIME/size upload validation UX (8.2), the preview/download UX and full storage matrix polish (8.3), quote PDF generation (6.3), attachment locks (8.4). `file_links` link creation for `quote_version`/`quote_acceptance`/`job` owner types is **inactive** until those owner tables exist (Epics 6/7) — the ownership-validation MECHANISM is proven now against `customer`/`facility`/`contact` (which exist by Epic 3) and a synthetic own-tenant record.
+
+## Acceptance Criteria
+
+1. **Migration reset — schema (AC1).** Given the file migration, when the database resets from empty, then `files` and `file_links` are created with tenant ownership (`tenant_id`), storage bucket/path metadata, display name, MIME type, size, uploader, lifecycle state, timestamps, owner type/id, purpose, and lock fields; AND no broad deferred-module file index table is created.
+
+2. **Cross-tenant DB isolation (AC2).** Given tenant A and tenant B files, when tenant A attempts to read, link, update, archive, or delete tenant B file metadata or links, then RLS and command validation reject access (generic denial; no existence disclosure).
+
+3. **Link ownership validation both-side (AC3).** Given a `file_link` targets an owner entity, when the link is created, then the command verifies tenant ownership of BOTH the file AND the owner record (a foreign file id OR a foreign owner id is rejected with `TENANT_ACCESS_DENIED`).
+
+4. **Private storage config (AC4).** Given private storage configuration, when the file foundation is provisioned, then Phase A buckets are private by default with server-derived object paths; AND no public bucket or client-controlled storage path exists.
+
+5. **Signed-access authorization funnel (AC5).** Given a tenant-owned file with metadata, when a server command requests access on behalf of a tenant admin, then `createSignedFileAccess` verifies tenant membership, file metadata ownership, and lifecycle state (metadata first) BEFORE issuing a short-lived signed URL; AND anonymous, cross-tenant, and storage-path-spoof signing attempts are rejected with generic user-safe errors.
+
+6. **Storage-plane negatives (AC6, derived from R-805).** Given tenant A attempts to list/read/sign or spoof a tenant-B `storage.objects` path directly, when the storage negative matrix runs, then access is denied (`storage.objects` RLS scoped by the tenant path prefix); AND an expired signed URL is rejected using a low test TTL.
+
+7. **Atomicity (AC7, derived from R-807).** Given the atomic metadata+link creation RPC (ADR-A009), when a mid-flow failure is injected, then the whole write rolls back — no half-written `files` row without its link, no orphaned/dangling metadata; the end state is consistent and non-usable.
+
+8. **Enrollment + audit + no-secrets (AC8, derived from R-801/§15).** Given the two new tenant tables, when the H4 inventory gate runs, then `files` and `file_links` are enrolled in `TENANT_TABLES` (gate green); AND signed-access-created / link-created events are written through the EXISTING `audit_events` with allow-listed metadata only (NO raw file contents, bucket/object path, or PII).
+
+## Tasks / Subtasks
+
+- [ ] **Task 1: Storage bucket configuration — private by default (AC4)**
+  - [ ] 1.1 Add a single private Phase A bucket to `supabase/config.toml` under `[storage.buckets.<name>]` with `public = false` (uncomment/replace the commented placeholder at lines 133-137). Suggested id: `tenant-files`. Do NOT set `objects_path` to any client-derivable value. Optionally set a conservative `file_size_limit`; a `allowed_mime_types` policy is deferred to 8.2 (conservative dev defaults).
+  - [ ] 1.2 Belt-and-braces: in the migration, `insert into storage.buckets (id, name, public) values ('tenant-files', 'tenant-files', false) on conflict (id) do nothing;` so the bucket exists + is private even on a fresh reset regardless of config-load order. Assert `public = false` in a construction test (AC4).
+  - [ ] 1.3 Document the server-derived path convention in the migration header and the storage helper: `{tenant_id}/{file_id}/{safe_display_name}` (or `{tenant_id}/{file_id}`). The FIRST path segment is ALWAYS the resolved `tenant_id`. The path is NEVER built from client input — see Task 4.
+
+- [ ] **Task 2: `files` + `file_links` migration (AC1, AC2)** — new migration `supabase/migrations/20260704120000_file_storage_foundation.sql` (verify the timestamp sorts AFTER `20260703120000_calculation_row_pricing_source.sql`).
+  - [ ] 2.1 `public.files`: `id uuid pk default gen_random_uuid()`, `tenant_id uuid not null references public.tenants(id) on delete cascade`, `bucket_id text not null` (default `'tenant-files'`), `object_path text not null`, `display_name text not null`, `mime_type text`, `size_bytes bigint check (size_bytes is null or size_bytes >= 0)`, `checksum text` (hash-when-available, §14), `uploaded_by uuid references auth.users(id) on delete set null` (mirror the `audit_events.actor_user_id` nullable/SET-NULL pattern — the file outlives the uploader), `lifecycle_state text not null default 'draft' check (lifecycle_state in ('draft','linked','locked','archived','deleted'))`, `archived_at timestamptz`, `created_at`/`updated_at timestamptz not null default now()`, plus `constraint files_id_tenant_unique unique (id, tenant_id)` (composite-FK target for `file_links`). Add a `unique (bucket_id, object_path)` so one object maps to one metadata row.
+  - [ ] 2.2 `public.file_links`: `id uuid pk`, `tenant_id uuid not null references public.tenants(id) on delete cascade`, `file_id uuid not null`, `owner_type text not null check (owner_type in ('customer','facility','contact','calculation','quote_version','quote_acceptance','job'))` — the Phase A closed owner-type union (tech note; NO deferred-module owner type), `owner_id uuid not null`, `purpose text not null check (purpose in ('calculation_attachment','quote_attachment_snapshot','quote_pdf','acceptance_evidence','job_evidence','crm_document'))` (§14), lock fields `is_locked boolean not null default false` + `locked_at timestamptz` (persisted here; the LOCK ENFORCEMENT trigger is Story 8.4, NOT here — persist the fields only), `archived_at timestamptz`, timestamps. **COMPOSITE same-tenant FK** `constraint file_links_file_same_tenant foreign key (file_id, tenant_id) references public.files (id, tenant_id) on delete cascade` — a bare `references files(id)` would let a link point at another tenant's file (R-802 hole). Do NOT add a DB FK on `(owner_id, tenant_id)` because `owner_type` is polymorphic; owner-record ownership is validated at the COMMAND layer (Task 5).
+  - [ ] 2.3 `set_updated_at` BEFORE UPDATE triggers on both tables (REUSE `public.set_updated_at()`; do NOT redefine).
+  - [ ] 2.4 Indexes: `files (tenant_id)`; `file_links (tenant_id, owner_type, owner_id)`; `file_links (tenant_id, file_id)`.
+  - [ ] 2.5 GRANTs (mirror the calc pattern EXACTLY — LOAD-BEARING): `authenticated → select, insert, update` on both tables (no DELETE — archive over hard delete); `service_role → full DML` (TEST-ONLY factory/cleanup); `anon → NOTHING`.
+  - [ ] 2.6 RLS `enable` + `force` on both tables; own-tenant `select_own`/`insert_own`/`update_own` policies via the EXISTING `public.is_tenant_admin(tenant_id)` helper, `to authenticated`. NO delete policy (archive over hard delete). This is the exact 5-epic-proven pattern.
+
+- [ ] **Task 3: `storage.objects` RLS — tenant path prefix (AC4, AC6)**
+  - [ ] 3.1 In the same migration, add own-tenant policies on `storage.objects` scoped to the bucket AND the first path segment cast to the tenant id: `bucket_id = 'tenant-files' and public.is_tenant_admin(((storage.foldername(name))[1])::uuid)`. Add SELECT + INSERT (`with check`) + UPDATE policies `to authenticated`; NO delete policy (archive over hard delete; a locked-file retention/delete workflow is 8.4). A malformed (non-uuid) first segment fails the cast → denied. This is the metadata-independent storage-plane isolation (R-805).
+  - [ ] 3.2 `anon` gets no storage policy → an anonymous storage list/read/sign is denied. Verify the Supabase local stack's default storage grants do not over-expose; if the platform's own bucket policies interfere, scope tightly to `bucket_id = 'tenant-files'`.
+  - [ ] 3.3 Because `is_tenant_admin` is `SECURITY DEFINER` with a fixed `search_path` (existing helper), it is safe to call from a `storage.objects` policy. Confirm the helper is reachable in the `storage` schema policy context (schema-qualify as `public.is_tenant_admin`).
+
+- [ ] **Task 4: Server storage helper + server-derived paths (AC4, R-810)** — new `src/server/storage/`.
+  - [ ] 4.1 `src/server/storage/object-path.ts` (pure): `deriveObjectPath({ tenantId, fileId, displayName })` → `{tenantId}/{fileId}/{sanitizedName}`. The tenant id comes ONLY from `ctx.tenantContext.tenantId` (never client input). Sanitize the display-name segment (strip `/`, `..`, control chars) so no path traversal is possible. Pure + unit-tested (node --test, `tests/unit/**`).
+  - [ ] 4.2 `src/server/storage/signed-access.ts`: a thin wrapper over `client.storage.from(bucket).createSignedUrl(objectPath, ttlSeconds)` using the REQUEST-BOUND anon-key RLS client (`ctx.db` shape) — signing runs under the caller's session + `storage.objects` RLS, NEVER a service-role key (containment guard). Read the TTL from `SUPABASE_SIGNED_URL_TTL_SECONDS` (documented in `.env.example:42`) with a safe default (e.g. 300s); a low value in test env makes expiry testable (R-806/R-815).
+  - [ ] 4.3 Never expose raw bucket/object path beyond what the signed URL requires (R-810); the command returns the signed URL + metadata, not the bucket internals.
+
+- [ ] **Task 5: Commands — `createSignedFileAccess` + link creation (AC3, AC5)** — new `src/server/commands/files/`.
+  - [ ] 5.1 `src/server/commands/files/validation.ts`: typed validators for the link-create input (`file_id`, `owner_type` ∈ closed union, `owner_id`, `purpose` ∈ closed union) and the signed-access input (`file_id`). Reject unknown owner types (deferred-module STOP). Never echo raw input values in errors.
+  - [ ] 5.2 `createSignedFileAccess = defineCommand(...)`: `command: "file.signedAccess.create"`, `auditable: true`, `eventType: "file.signed_access.created"`, `targetType: "file"`. Envelope resolves user → active `tenant_admin` membership → validate. `ownership: (input) => ({ table: "files", id: input.file_id })` so the envelope's `verifyOwnership` denies a cross-tenant/foreign file id with `TENANT_ACCESS_DENIED` (zero rows under RLS). In `execute`: load the file row (own-tenant RLS), check `lifecycle_state` is access-eligible (reject `archived`/`deleted` — a lifecycle gate), then call the storage helper to sign the derived `object_path`. Return `{ targetId: file.id, signedUrl, expiresAt }`. Every failure returns a stable generic code (`TENANT_ACCESS_DENIED`/`FILE_ACCESS_DENIED`/`VALIDATION_FAILED`) with NO existence disclosure.
+  - [ ] 5.3 `createFileLink = defineCommand(...)`: `command: "file.link.create"`, `auditable: true`, `eventType: "file.linked"`, `targetType: "file_link"`. Envelope `ownership` verifies the FILE (`{ table: "files", id: input.file_id }`). Then in `execute`, ALSO verify the OWNER record belongs to the resolved tenant via an own-tenant RLS SELECT on the owner table (map `owner_type` → table name via a closed switch; only the ACTIVE owner types — customer/facility/contact — resolve today; quote_version/quote_acceptance/job return a "not-yet-available owner type" rejection until Epics 6/7). Zero rows ⇒ `TENANT_ACCESS_DENIED` (R-802 both-side check). Call the atomic RPC (Task 6). Audit metadata carries ONLY `{ targetId }`-shaped allow-listed fields — NO owner PII, NO path, NO file contents (§15).
+  - [ ] 5.4 Use `FILE_ACCESS_DENIED` (already in the architecture §5 stable-code list) where a file-specific denial is clearer than the generic `TENANT_ACCESS_DENIED`; confirm/add it to `command-errors.ts` `CommandErrorCode` with a user-safe message, mirroring the existing codes. Cross-tenant failures must return the SAME shape as not-found (reuse the `server-error-vs-no-access` discipline; R-809).
+  - [ ] 5.5 `src/server/commands/files/index.ts` re-exports the commands (mirror `calculations/index.ts`).
+
+- [ ] **Task 6: Atomic metadata+link RPC (ADR-A009) (AC7)**
+  - [ ] 6.1 In the migration, `create or replace function public.create_file_with_link(...)` — a narrow `SECURITY INVOKER` RPC with `set search_path = ''` and schema-qualified refs (mirror `reorder_calculation_rows`). It inserts the `files` row AND the `file_links` row in ONE transaction (function body = implicit txn) so either both persist or neither. Parameters: file fields + link fields + explicit tenant id (the command passes the RESOLVED tenant id; RLS still narrows the INSERT WITH CHECK to the caller). It runs under the caller's RLS (own-tenant only; no service-role app path). Returns the new file id + link id.
+  - [ ] 6.2 `revoke execute ... from public; grant execute ... to authenticated, service_role;` (anon must NOT execute).
+  - [ ] 6.3 The command (Task 5.3) calls this RPC via `ctx.db.rpc(...)`. A DB error (FK/RLS violation) maps to a generic command code via a `throwMappedWriteError`-style mapper (mirror `calc-db.ts`): `23503`/`42501` → `TENANT_ACCESS_DENIED`/`VALIDATION_FAILED`, never a raw throw. NOTE: for THIS story, the metadata+link RPC is exercised via `createFileLink` against a synthetic/pre-seeded own-tenant file to prove atomicity + rollback; the real upload path that also writes the storage object is Story 8.2 (the RPC signature is designed to support it, but 8.2 owns the storage-write + compensation).
+
+- [ ] **Task 7: `TENANT_TABLES` enrollment + H4 gate (AC8, R-801)** — `tests/integration/rls/tenant-table-inventory.ts`.
+  - [ ] 7.1 Add `"files"` and `"file_links"` to the `TENANT_TABLES` array (this is a ONE-PLACE edit that the H4 gate demands; the compile-exhaustive `assertNever` switches FORCE you to add metadata for both — a missing branch is a TypeScript compile error).
+  - [ ] 7.2 Add the per-table metadata branches in EVERY `switch (table)`: `updateDenialKind` (both are `"rls-invisible"` — authenticated HAS insert/update grant), `spoofedRowFor` (a fresh-uuid row carrying `tenant_id = fixture.tenantB.id`; for `file_links` the spoof carries a Tenant B `file_id` parent + a valid owner_type/purpose), `tenantBFilter`/`hijackMutationFor`, and the anon-path helpers (`anonRowFor`/`anonFilterFor`/`anonMutationFor`). Follow the calc-tables branches as the template.
+  - [ ] 7.3 Add `tenantBFileId` / `tenantBFileLinkId` to `InventoryContext` (optional, seeded by the cross-tenant suite; the anon suite omits them). Add `adminInsertFile` / `adminInsertFileLink` seed helpers to `tests/factories/tenants.ts` (BYPASSRLS superuser path, mirror `adminInsertCalculation`), so the cross-tenant negatives target a CONCRETE Tenant B row (never a vacuous non-existent id).
+  - [ ] 7.4 The `rls-inventory-gate` `EXPECTED_TENANT_OWNED` derives from `TENANT_TABLES`, so it stays in sync automatically — confirm the gate goes green with the two new tables.
+
+- [ ] **Task 8: Migration-reset + RLS + signing + storage negatives (AC1-AC8)**
+  - [ ] 8.1 New `tests/integration/rls/file-tables-migration-reset.int.test.ts` (mirror `calc-tables-migration-reset.int.test.ts`): assert both tables exist post-reset with the schema contract (direct `tenant_id`, composite same-tenant FK on `file_links.file_id`, lifecycle CHECK, owner_type/purpose CHECKs, force RLS, GRANTs, NO delete policy); assert NO broad file-index / document-center table was created (AC1 guardrail — assert absence of e.g. `document_center`, `file_index` tables).
+  - [ ] 8.2 EXTEND `tests/integration/rls/migration-reset.int.test.ts` EXACT policy enumeration: add `files`/`file_links` × SELECT/INSERT/UPDATE to the expected exact set + the exists/RLS-forced checks. Keep the enumeration EXACT (never loosen to a superset) — a stray policy must still fail loud.
+  - [ ] 8.3 New `tests/integration/commands/file-signed-access.int.test.ts`: the authorization matrix — happy own-tenant sign succeeds; anon rejected; cross-tenant file id rejected; archived/deleted lifecycle rejected; every rejection returns the generic user-safe code with the SAME shape (no existence disclosure). Assert the audit row is written for the successful sign with clean allow-listed metadata.
+  - [ ] 8.4 New `tests/integration/commands/file-link-ownership.int.test.ts`: both-side ownership — foreign file id rejected AND foreign owner id rejected (`TENANT_ACCESS_DENIED`); own-tenant file + own-tenant owner succeeds; a deferred owner_type (quote_version) is rejected as not-yet-available. Assert atomicity: a mid-flow RPC failure (e.g. a deliberately invalid owner producing a constraint error) leaves NEITHER a `files` orphan NOR a `file_links` row (BYPASSRLS re-read proves zero rows — R-807).
+  - [ ] 8.5 New `tests/integration/rls/storage-object-isolation.rls.test.ts` (the NEW storage-negative class): seed a Tenant B object under `{tenantB.id}/...` via the service-role path; assert Tenant A (authed anon-key client) CANNOT list/read/sign it; assert a path-spoof (Tenant A signing `{tenantB.id}/...` directly) is denied by `storage.objects` RLS; assert anon cannot list/read/sign. Add a **storage-reachability probe** (see Task 8.6) and skip-clean locally / hard-fail in CI (`SUPABASE_TEST_REQUIRED=1`) mirroring `skipUnlessStack`.
+  - [ ] 8.6 **Storage-reachability probe (retro-note R-2 gap).** The existing `isLocalStackReachable()` probes ONLY `/auth/v1/health`; storage suites need their OWN reachability check so they do not false-green when the DB is up but the Storage service is down. Add `isLocalStorageReachable()` to `tests/support/test-env.ts` (probe the storage health/list endpoint, e.g. `GET {url}/storage/v1/bucket` with the anon/service key, or the storage health path) and a `skipUnlessStorage(ctx, storageUp)` in `tests/support/stack-gate.ts` (or reuse the pattern). Storage tests call it in `beforeAll`. Under `SUPABASE_TEST_REQUIRED=1` an unreachable storage service is a HARD failure; locally it is a VISIBLE skip.
+  - [ ] 8.7 Expired-URL test (R-806): set `SUPABASE_SIGNED_URL_TTL_SECONDS` low (e.g. 1) for the test, sign, wait past the TTL (or assert the URL's `exp`), and assert the signed URL no longer authorizes. Prefer driving expiry via the TTL config; if a real wait is unavoidable keep it ≤2s.
+  - [ ] 8.8 Pure unit tests (node --test, `tests/unit/**`) for `deriveObjectPath` (traversal/sanitization, tenant-first-segment invariant) and the lifecycle-access-eligibility helper (archived/deleted rejected) — pull these decisions OUT of any client component into pure `.ts` (coverage-shape lesson).
+
+- [ ] **Task 9: Fixture PII/secret scan extension (AC8, R-819)**
+  - [ ] 9.1 EXTEND the CI golden PII/secret + ORGNR scan to cover any new file-metadata fixtures/artifacts (no raw customer files, no real names/addresses/personnummer/orgnr/secrets, no bucket/object path leaking PII). File fixtures carry METADATA SHAPE only — anonymized. If a scan config lists scanned dirs, add the file-fixture path.
+
+- [ ] **Task 10: Full suite green + hygiene**
+  - [ ] 10.1 `pnpm typecheck && pnpm lint && pnpm test` (unit + int) green locally with the stack up (`supabase start && supabase db reset`). Confirm the H4 gate, migration-reset EXACT enumeration, and both new command suites pass.
+  - [ ] 10.2 Clear any red-phase header comments if you author scaffolds first (no stale `describe.skip`/`notYetImplemented` verbiage on green suites — recurring hygiene gap).
+  - [ ] 10.3 Update the PR Security/RLS impact statement: two new tenant tables (`files`/`file_links`) + `storage.objects` RLS + the signing funnel; disclose the inherited Phase-A own-tenant (not own-user) read posture on the new tables (same accepted single-admin design as the calc/CRM tables — Story 2.4 seam).
+
+## Dev Notes
+
+### Architecture patterns & constraints (MUST follow)
+
+- **Command envelope is the ONLY authority surface.** Every command uses `defineCommand`/`runCommand` from `src/server/commands/envelope.ts`: resolve user → resolve active `tenant_admin` membership → validate typed input → `verifyOwnership` (zero rows ⇒ `TENANT_ACCESS_DENIED`; a DB error ⇒ `SERVER_ERROR`, never masked as a denial) → execute on the request-bound RLS client → append-only audit → typed `Result<T, CommandErrorCode>`. NO bespoke auth/error/audit mechanism. [Source: src/server/commands/envelope.ts; architecture.md#5]
+- **Resolved-tenant authority.** The row's `tenant_id` and the object-path tenant segment are ALWAYS `ctx.tenantContext.tenantId` (from membership). A client-supplied `tenant_id` or path is NEVER read/trusted. [Source: project-context.md#Resolved-tenant authority]
+- **Tenant-table pattern (verbatim, 5-epic-proven).** Direct `tenant_id NOT NULL references public.tenants(id) on delete cascade`; composite same-tenant parent FK (`file_links.file_id → files(id, tenant_id)`); `enable` + **`force`** RLS; own-tenant SELECT/INSERT/UPDATE policies via `public.is_tenant_admin(tenant_id)`; `authenticated → select,insert,update` / `service_role → full DML` / `anon → NOTHING`; NO delete policy (archive over hard delete via `archived_at`); REUSE `public.set_updated_at()`. A bare/non-composite FK on `file_links.file_id` is a cross-tenant hole (R-802). [Source: supabase/migrations/20260702120000_calculation_data_model.sql]
+- **Storage: private buckets only, server-derived paths only, short-lived signed URLs, metadata-first/storage-second.** No public bucket, no client-controlled path (R-803, an 8.1/8.3 STOP). Access ALWAYS resolves `files` metadata ownership BEFORE touching Storage (R-810) — the ownership check precedes any `createSignedUrl` call. [Source: architecture.md#6, #14]
+- **Signing runs under the caller's anon-key RLS session — NEVER service-role.** `createSignedUrl` uses the request-bound `@supabase/ssr` client (anon key + the caller's JWT). The app uses NO service-role key on any path (source + built-bundle containment guards enforce it in CI). If a server-only privileged storage op is ever needed it must be documented + test-covered + never `NEXT_PUBLIC_` — but this story needs none. [Source: project-context.md#Service-role key is SERVER-ONLY; src/server/db/supabase-server-client.ts]
+- **ADR-A009 narrow RPC.** The atomic metadata+link creation uses a narrow Postgres RPC — `SECURITY INVOKER` (runs under the caller's RLS, own-tenant only) with a fixed empty `search_path` + schema-qualified refs (mirror `reorder_calculation_rows`). A `SECURITY DEFINER` design would need SEPARATE approval + membership checks + dedicated negative tests — do NOT reach for definer here. Mechanism change without ADR = STOP. [Source: architecture.md#ADR-A009; supabase/migrations/20260702120000_calculation_data_model.sql]
+- **Audit through the EXISTING `audit_events`.** File events (`file linked`, `signed access created`) write through the same append-only table via `writeAuditEvent`; metadata is allow-listed and sanitized — NO raw file contents, NO bucket/object path, NO service-role details, NO broad PII (§15 prohibition). File audit is NOT a new audit model. [Source: architecture.md#15]
+- **Stable error codes only, generic across tenants.** Use `TENANT_ACCESS_DENIED`, `FILE_ACCESS_DENIED`, `VALIDATION_FAILED`, `UNAUTHENTICATED`, `TENANT_MEMBERSHIP_REQUIRED`, `SERVER_ERROR`. A cross-tenant failure returns the SAME code/shape as not-found — no "file exists but not yours" disclosure (R-809; reuse the Epic 2 `server-error-vs-no-access` discipline). [Source: architecture.md#5; tests/integration/commands/server-error-vs-no-access.int.test.ts]
+- **Owner types are the closed Phase A union only** (customer, facility, contact, calculation, quote_version, quote_acceptance, job). A deferred-module owner type is a STOP condition. Link creation for quote_version/quote_acceptance/job is INACTIVE until Epics 6/7 add those tables — the validator accepts them structurally but the owner-ownership check returns "not-yet-available" until the table exists. [Source: epics.md#Story 8.1 Technical Notes]
+
+### Epic-8 retro-note constraints (from `_bmad-output/auto-bmad/retro-notes/epic-8.md`)
+
+- **8.1 IS the single Phase A file model** — 6.1 (attachment metadata) and 6.3 (PDF storage) CONSUME `files`/`file_links`; there is NO competing model. This is a standing contract + STOP condition (R-814). Design the tables and RPC so 6.3 can store a PDF and 6.1 can persist attachment metadata by REUSING them (do not over-fit to a single caller). [retro-notes/epic-8.md]
+- **Epic 8 adds a NEW test class: the storage-plane negative matrix** (`storage.objects` RLS, cross-tenant list/read/sign, path spoof, expired URL). **There is NO H4-style auto gate for it** — it must be authored deliberately (Task 8.5). The runner needs a **storage-service-reachability probe** or the storage suites will false-green (skip silently) locally when the DB is up but the Storage service is down. Task 8.6 adds `isLocalStorageReachable()` + a skip/hard-fail gate mirroring the existing `/auth/v1/health` probe. [retro-notes/epic-8.md]
+
+### Deferred-work items that overlap this story (from `_bmad-output/implementation-artifacts/deferred-work.md`)
+
+- **[Story 5.4 → 8.1] Required-file readiness is a placeholder pending 8.1.** `src/features/calculations/readiness.ts` surfaces a `REQUIRED_FILES_DEFERRED` WARNING saying required-file checking is not yet available (done manually until the file foundation lands). **This story lands the file FOUNDATION only — it does NOT wire the real required-file readiness check into `readiness.ts`.** Wiring the calc readiness classifier to real file-metadata reads needs the entity file panels/link reads (8.2+) and the calc↔file link surface. Do NOT change `readiness.ts` here; leave the documented `REQUIRED_FILES_DEFERRED` warning in place. It is called out so the dev agent knowingly works around it rather than assuming 8.1 must satisfy it. [deferred-work.md#5-4; src/features/calculations/readiness.ts]
+- **[Story 1.4 → file-storage owner] `.env.example` / `local-setup.md` signed-URL TTL attribution.** The `SUPABASE_SIGNED_URL_TTL_SECONDS` var is documented at `.env.example:42` (and `local-setup.md`) as "forthcoming, consumed by Epic 8 file storage." THIS story is the file-storage work — when you consume the var, you MAY tidy the "(Optional, forthcoming)" wording to "in use" and confirm the epic attribution, closing that low-priority doc-staleness deferral. Optional, not required for AC pass. [deferred-work.md#1-4; .env.example:39-42]
+- (No other deferred-work entry overlaps this story — CRM/settings/pricing/calc/money deferrals are out of scope and must NOT be reopened here.)
+
+### Signed-URL TTL contract
+
+- Env var: `SUPABASE_SIGNED_URL_TTL_SECONDS` (already documented `.env.example:42`). Read it in `src/server/storage/signed-access.ts` with a safe default (e.g. 300). Low in test env so the expiry test needs no long sleep (R-806/R-815). A hardcoded TTL is a review reject (blocks the expiry test). [Source: architecture.md#6; epics.md#Story 8.1 H2; .env.example:42]
+
+### Project structure notes
+
+- Migration: `supabase/migrations/20260704120000_file_storage_foundation.sql` (timestamp must sort after `20260703120000_*`). Timestamp-prefixed snake_case is the convention.
+- New server dirs: `src/server/storage/` (object-path, signed-access helpers) and `src/server/commands/files/` (validation, `createSignedFileAccess`, `createFileLink`, index) — matching the recommended structure in architecture §3 (`src/server/storage/`, `src/server/commands/<domain>/`).
+- Config: `supabase/config.toml` `[storage.buckets.tenant-files]` (private).
+- Tests: INT/RLS under `tests/integration/`; storage-neg under `tests/integration/rls/` (Vitest); pure unit under `tests/unit/` (node --test). Two-tenant fixtures + BYPASSRLS seeds under `tests/factories/tenants.ts`; probe/gate helpers under `tests/support/`.
+- No new nav item, no `/files` route, no UI component — this is a foundation story (the `/files` index is 8.5, optional). Keep `nav-items.ts` unchanged.
+
+### Testing standards summary
+
+- **Two runners:** `node --test` for pure unit (`tests/unit/**`), Vitest for DB-backed INT/RLS (`tests/integration/**`), Playwright for E2E (none in this story). Run via `pnpm test` (unit → int). [Source: scripts/run-tests.mjs; package.json]
+- **DB + storage suites target the LOCAL Supabase CLI stack ONLY** (`supabase start && supabase db reset`) — never demo/dev/prod. `assertLocalStack()` hard-guards the BYPASSRLS/superuser paths. `skipUnlessStack` = visible skip locally, hard-fail in CI (`SUPABASE_TEST_REQUIRED=1`). Storage suites additionally need the storage-reachability probe (Task 8.6). [Source: tests/support/test-env.ts, stack-gate.ts, global-setup.ts]
+- **Negatives before positives; enrollment is the completeness guarantee.** `files`/`file_links` enroll in `TENANT_TABLES` so the shared cross-tenant + anon-path suites + H4 gate cover the DB plane automatically — do NOT hand-write ad-hoc DB-isolation tests that bypass the inventory. The storage-plane negatives ADD to the harness (new class). [Source: tests/integration/rls/tenant-table-inventory.ts; test-design-epic-8.md §Testability]
+- **Vacuity guards:** cross-tenant negatives target a CONCRETE seeded Tenant B row (never a non-existent id). Row/object-count assertions seed `crypto.randomUUID()`. The raw `pg` superuser pool returns `bigint` as STRING and `timestamptz` as `Date` — coerce (`Number(...)`/`.toISOString()`) in assertions. [Source: project-context.md; tests/factories/tenants.ts]
+- **Coverage-shape lesson:** pull path-derivation, lifecycle-eligibility, and (later) error-state decisions into pure `.ts` modules so the fast `node --test` gate protects them; a pure helper buried in a `.tsx` escapes the fast gate. [Source: test-design-epic-8.md §Testability #7]
+- **P0 for this story (from test-design-epic-8.md):** migration-reset + `files`/`file_links` RLS negatives + `TENANT_TABLES` enrollment (R-801); link ownership both-side (R-802); private-bucket/server-derived-path construction (R-803); `createSignedFileAccess` authorization matrix incl. expired-URL/lifecycle (R-804/R-806); storage-plane cross-tenant list/read/sign + path spoof (R-805); atomic RPC rollback (R-807); fixture PII scan (R-819). [Source: test-design-epic-8.md §P0]
+
+### References
+
+- [Source: _bmad-output/planning-artifacts/epics.md#Story 8.1 (lines 1568-1611)] — story statement, ACs, tech notes, owner types, ADR-A009 atomic RPC, TTL H2, stop conditions.
+- [Source: _bmad-output/planning-artifacts/architecture.md#6 Storage] — private buckets, server-derived paths, short-lived env-configurable signed URLs, cross-tenant path-spoof negative required.
+- [Source: _bmad-output/planning-artifacts/architecture.md#14 File And Storage Model] — `files`/`file_links` field lists, lifecycle states, purposes, owner types, storage rules.
+- [Source: _bmad-output/planning-artifacts/architecture.md#ADR-A006, #ADR-A009] — entity-scoped private file model; narrow invoker RPC (explicitly names 8.1 atomic metadata+link creation).
+- [Source: _bmad-output/planning-artifacts/architecture.md#5] — command shape, `createSignedFileAccess`/`archiveFile` registry, stable error codes incl. `FILE_ACCESS_DENIED`.
+- [Source: _bmad-output/test-artifacts/test-design-epic-8.md] — risks R-801..R-819, P0/P1 coverage, entry/exit criteria, storage-reachability probe requirement, single-file-model contract.
+- [Source: supabase/migrations/20260702120000_calculation_data_model.sql] — the verbatim tenant-table + composite-FK + RLS + GRANT + invoker-RPC pattern to mirror.
+- [Source: src/server/commands/envelope.ts, command-errors.ts, calculations/calculations.ts, calculations/calc-db.ts] — command/ownership/error-mapping patterns to reuse.
+- [Source: tests/integration/rls/tenant-table-inventory.ts, rls-inventory-gate.int.test.ts, calc-tables-migration-reset.int.test.ts, migration-reset.int.test.ts] — enrollment + migration-reset test patterns.
+- [Source: tests/factories/tenants.ts, tests/support/test-env.ts, stack-gate.ts] — BYPASSRLS seed factories + reachability/skip helpers to extend.
+- [Source: _bmad-output/auto-bmad/retro-notes/epic-8.md] — single-file-model contract; storage-negative-matrix new class + storage-reachability probe gap.
+- [Source: _bmad-output/implementation-artifacts/deferred-work.md] — Story 5.4 `REQUIRED_FILES_DEFERRED` (leave in place); Story 1.4 signed-URL TTL doc attribution (optional tidy).
+
+## Open Questions (non-blocking — sensible defaults chosen)
+
+1. **Single shared private bucket (`tenant-files`) with a `{tenant_id}/...` path prefix vs per-tenant buckets.** Default chosen: a SINGLE private bucket with tenant-prefixed server-derived paths + `storage.objects` RLS keyed on the first path segment (the architecture-sketched approach; scales without a bucket-per-tenant explosion). Re-confirm at review if per-tenant buckets are preferred.
+2. **`FILE_ACCESS_DENIED` vs `TENANT_ACCESS_DENIED` granularity.** Both are user-safe/generic. Default: reuse `TENANT_ACCESS_DENIED` for cross-tenant/ownership failures (consistent with the envelope) and `FILE_ACCESS_DENIED` for a lifecycle-state (archived/deleted) rejection on an OWNED file. Keep the cross-tenant vs not-found shape IDENTICAL either way (no disclosure).
+3. **MIME/size upload policy** is explicitly out of scope here (8.2, conservative dev defaults, owner Sign-Off residual). `files.mime_type`/`size_bytes` are persisted metadata only; no upload validation gate in this story.
+
+## Dev Agent Record
+
+### Agent Model Used
+
+{{agent_model_name_version}}
+
+### Debug Log References
+
+### Completion Notes List
+
+### File List
