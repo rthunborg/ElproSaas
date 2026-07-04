@@ -5,11 +5,11 @@ epic_num: 8
 story_num: 1
 branch: story/8-1-file-storage-foundation-private-bucket-metadata-links-rls-and-signed-access-command
 status: in-progress
-updated_at: "2026-07-04T11:02:28Z"
+updated_at: "2026-07-04T15:27:36Z"
 started_at: "2026-07-04T10:31:22Z"
 completed_at: null
-active_seconds: 1783
-timing_anchor: 1783162948
+active_seconds: 17691
+timing_anchor: null
 is_first_in_epic: true
 is_last_in_epic: false
 needs_project_context_bootstrap: false
@@ -20,14 +20,14 @@ tea_selected: [atdd, automate]
 tea_rationale: "security/authorization-critical: RLS on new files/file_links tables, signed-URL command (createSignedFileAccess) with anon/cross-tenant/spoof rejection, new DB migrations (Security/RLS Impact: Critical per epics.md)"
 epic_story_count: 5
 stories_after_in_epic: 4
-completed_phases: [0, 1, 2, 3, 4]
+completed_phases: [0, 1, 2, 3, 4, 5]
 code_review_iterations: 0
 code_review_loop_done: false
 hitl_halt: null
 external_review_iterations: 0
 convergence_unverified: false
 story_trace: null
-commits: [38193f9, bb0fa05, 68749c5]
+commits: [096ac8a]
 phase8_steps:
   trace_gate: null
   nfr: null
