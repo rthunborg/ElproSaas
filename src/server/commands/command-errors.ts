@@ -29,6 +29,10 @@ import {
  *   is generic — the raw invalid value is NEVER echoed.
  * - `TENANT_ACCESS_DENIED`       — a target id resolves to a different tenant, OR a
  *   client-submitted tenant id mismatches the resolved tenant (NEW; R-004).
+ * - `FILE_ACCESS_DENIED`         — a file-specific denial on an OWNED, visible file:
+ *   the LIFECYCLE gate (archived/deleted) refused signing, or storage signing failed
+ *   (Story 8.1). Cross-tenant / not-found file failures still use TENANT_ACCESS_DENIED
+ *   with the SAME shape — no existence disclosure (R-809).
  * - `COMMAND_CONFLICT`           — RESERVED for idempotent/retry-able commands; not
  *   yet emitted by any command this story builds.
  * - `SERVER_ERROR`              — a TRANSIENT infra failure during the command
@@ -38,6 +42,7 @@ export type CommandErrorCode =
   | TenantContextErrorCode // UNAUTHENTICATED | TENANT_MEMBERSHIP_REQUIRED | SERVER_ERROR
   | "VALIDATION_FAILED"
   | "TENANT_ACCESS_DENIED"
+  | "FILE_ACCESS_DENIED"
   | "COMMAND_CONFLICT";
 
 /**
@@ -91,6 +96,10 @@ export const COMMAND_MESSAGES: Record<CommandErrorCode, string> = {
     "Begäran kunde inte behandlas eftersom indata var ogiltiga. Kontrollera och försök igen.",
   TENANT_ACCESS_DENIED:
     "Du har inte behörighet till den begärda resursen.",
+  // File-specific denial (lifecycle-ineligible / signing failed) on an OWNED file.
+  // Deliberately generic + user-safe — no "file exists but archived" style disclosure.
+  FILE_ACCESS_DENIED:
+    "Filen kan inte kommas åt just nu.",
   // Reserved for idempotent/retry-able commands (unused until one lands).
   COMMAND_CONFLICT:
     "Åtgärden kunde inte slutföras på grund av en konflikt. Försök igen.",

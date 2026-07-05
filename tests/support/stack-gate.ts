@@ -59,3 +59,36 @@ export function skipUnlessStack(
     "stack to run it; SUPABASE_TEST_REQUIRED=1 turns this into a hard failure)");
   return true;
 }
+
+/**
+ * Visibly SKIP the current STORAGE test when the local Storage SERVICE is unreachable;
+ * HARD-FAIL when the stack is required (CI). Story 8.1, Task 8.6 (retro-note R-2 gap):
+ * the storage-plane negative suite must NOT false-green when the DB is up but the
+ * Storage service is down, so it gates on the dedicated `isLocalStorageReachable()`
+ * probe in addition to the DB `skipUnlessStack`. Mirrors `skipUnlessStack` semantics.
+ *
+ * @param ctx       the Vitest test context (the `it`/`test` callback argument).
+ * @param storageUp whether `isLocalStorageReachable()` returned true in `beforeAll`.
+ */
+export function skipUnlessStorage(
+  ctx: SkippableTestContext,
+  storageUp: boolean,
+): boolean {
+  if (storageUp) return false;
+
+  if (STACK_REQUIRED) {
+    // CI contract: a missing Storage service must be a HARD failure, never a skip — so
+    // the storage-plane negative gate can never false-green.
+    throw new Error(
+      "SUPABASE_TEST_REQUIRED=1 but the local Supabase STORAGE service is unreachable: " +
+        "this storage-plane test MUST run, not skip. Start the full stack first: " +
+        "`supabase start && supabase db reset`.",
+    );
+  }
+
+  ctx.skip(
+    "local Supabase Storage service unreachable — storage-plane test skipped (set up " +
+      "the full stack to run it; SUPABASE_TEST_REQUIRED=1 turns this into a hard failure)",
+  );
+  return true;
+}

@@ -892,3 +892,177 @@ export async function adminSelectCalcLabel(
   );
   return rows[0] ?? null;
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// File seed/read/upload helpers (Story 8.1, Task 7.3) — ADDITIVE (B1: add ALONGSIDE
+// the existing handles; the two-tenant fixture shape is unchanged).
+//
+// Seed REAL `files`/`file_links` rows via the loopback-gated superuser `pg` pool
+// (BYPASSRLS) so the cross-tenant/anon negatives can target a CONCRETE Tenant B file
+// row (never a non-existent id that would deny vacuously), the command tests can seed
+// an own-tenant file to sign/link, and the atomicity re-read can prove zero orphans.
+// Also seed a REAL storage OBJECT (via the service-role storage API) so the
+// storage-plane isolation suite has a concrete Tenant-B object to be denied. Mirror
+// `adminInsertCustomer`: THROW on a DB error with the Postgres `code` preserved.
+//
+// File tables are `tenant_id … on delete cascade`, so the EXISTING `cleanupFixture`
+// tenant-delete cascades the seeded metadata rows away. Seeded storage OBJECTS are NOT
+// cascaded by the tenant delete (they live in `storage.objects`); tests seed under
+// unique per-fixture paths so they do not collide across runs, and the local stack is
+// reset between CI runs.
+//
+// File fixtures carry METADATA SHAPE only — anonymized display names, NO raw file
+// content, NO real names/addresses/personnummer/orgnr, NO PII (Task 9, R-819).
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** A seed for a `files` row (the snake_case columns the negatives/commands target). */
+export interface FileSeed {
+  readonly tenant_id: string;
+  readonly display_name?: string;
+  readonly bucket_id?: string;
+  readonly object_path?: string;
+  readonly mime_type?: string | null;
+  readonly size_bytes?: number | null;
+  readonly uploaded_by?: string | null;
+  readonly lifecycle_state?:
+    | "draft"
+    | "linked"
+    | "locked"
+    | "archived"
+    | "deleted";
+}
+
+/** A seed for a `file_links` row (parent file required, same tenant). */
+export interface FileLinkSeed {
+  readonly tenant_id: string;
+  readonly file_id: string;
+  readonly owner_type:
+    | "customer"
+    | "facility"
+    | "contact"
+    | "calculation"
+    | "quote_version"
+    | "quote_acceptance"
+    | "job";
+  readonly owner_id: string;
+  readonly purpose?:
+    | "calculation_attachment"
+    | "quote_attachment_snapshot"
+    | "quote_pdf"
+    | "acceptance_evidence"
+    | "job_evidence"
+    | "crm_document";
+}
+
+/**
+ * Seed ONE `files` row via the privileged superuser pg path (BYPASSRLS). Returns the
+ * inserted id. THROWS (Postgres `code` preserved) on a DB error. The object_path
+ * defaults to a SERVER-SHAPED `{tenant_id}/{uuid}/{name}` (tenant-first — the segment
+ * `storage.objects` RLS keys on); a fresh uuid keeps the unique (bucket_id,
+ * object_path) from colliding across seeds.
+ */
+export async function adminInsertFile(seed: FileSeed): Promise<string> {
+  const displayName = seed.display_name ?? "tenant-file-seed.pdf";
+  const objectPath =
+    seed.object_path ??
+    `${seed.tenant_id}/${crypto.randomUUID()}/${displayName}`;
+  try {
+    const rows = await adminQuery<{ id: string }>(
+      `insert into public.files
+         (tenant_id, bucket_id, object_path, display_name, mime_type,
+          size_bytes, uploaded_by, lifecycle_state)
+       values ($1, $2, $3, $4, $5, $6, $7, $8)
+       returning id`,
+      [
+        seed.tenant_id,
+        seed.bucket_id ?? "tenant-files",
+        objectPath,
+        displayName,
+        seed.mime_type ?? null,
+        seed.size_bytes ?? null,
+        seed.uploaded_by ?? null,
+        seed.lifecycle_state ?? "linked",
+      ],
+    );
+    const id = rows[0]?.id;
+    if (!id) throw new Error("adminInsertFile: no id returned");
+    return id;
+  } catch (error) {
+    rethrowWithCode(error);
+  }
+}
+
+/**
+ * Seed ONE `file_links` row via the privileged superuser pg path (BYPASSRLS). Returns
+ * the inserted id. THROWS (Postgres `code` preserved) on a DB error — including the
+ * composite same-tenant FK `23503` if `file_id`'s tenant differs.
+ */
+export async function adminInsertFileLink(seed: FileLinkSeed): Promise<string> {
+  try {
+    const rows = await adminQuery<{ id: string }>(
+      `insert into public.file_links
+         (tenant_id, file_id, owner_type, owner_id, purpose)
+       values ($1, $2, $3, $4, $5)
+       returning id`,
+      [
+        seed.tenant_id,
+        seed.file_id,
+        seed.owner_type,
+        seed.owner_id,
+        seed.purpose ?? "crm_document",
+      ],
+    );
+    const id = rows[0]?.id;
+    if (!id) throw new Error("adminInsertFileLink: no id returned");
+    return id;
+  } catch (error) {
+    rethrowWithCode(error);
+  }
+}
+
+/**
+ * Read ONE file/file_link row's label column back via the privileged superuser pg path
+ * (BYPASSRLS), independent of the app/RLS path. Used by the cross-tenant UPDATE negative
+ * to prove the foreign row is UNCHANGED (its label was NOT overwritten by Tenant A's
+ * denied UPDATE). `table`/`labelColumn` are a closed/inventory-supplied set
+ * (files.display_name / file_links.purpose), never client input. Returns `null` if the
+ * row does not exist.
+ */
+export async function adminSelectFileLabel(
+  table: "files" | "file_links",
+  labelColumn: string,
+  id: string,
+): Promise<{ id: string; label: string | null } | null> {
+  const rows = await adminQuery<{ id: string; label: string | null }>(
+    `select id, ${labelColumn} as label from public.${table} where id = $1`,
+    [id],
+  );
+  return rows[0] ?? null;
+}
+
+/**
+ * Seed ONE storage OBJECT under a server-shaped tenant path via the service-role
+ * storage API (BYPASSRLS on `storage.objects`). Used by the storage-plane isolation
+ * suite so the cross-tenant list/read/sign negatives target a CONCRETE Tenant-B object,
+ * never a missing key. `objectPath` is `{tenant_id}/{fileId}/{name}` (tenant-first —
+ * the segment `storage.objects` RLS keys on). THROWS on an upload error so a broken
+ * seed fails loudly.
+ */
+export async function adminUploadStorageObject(seed: {
+  readonly bucket: string;
+  readonly objectPath: string;
+  readonly body: Uint8Array;
+}): Promise<void> {
+  assertLocalStack();
+  const { error } = await admin()
+    .storage.from(seed.bucket)
+    .upload(seed.objectPath, seed.body, {
+      contentType: "application/octet-stream",
+      upsert: true,
+    });
+  if (error) {
+    throw new Error(
+      `factory: failed to upload storage object ${seed.objectPath}: ${error.message}`,
+    );
+  }
+}

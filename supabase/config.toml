@@ -129,12 +129,19 @@ enabled = true
 # The maximum file size allowed (e.g. "5MB", "500KB").
 file_size_limit = "50MiB"
 
-# Uncomment to configure local storage buckets
-# [storage.buckets.images]
-# public = false
-# file_size_limit = "50MiB"
-# allowed_mime_types = ["image/png", "image/jpeg"]
-# objects_path = "./images"
+# Phase A private file bucket (Story 8.1). PRIVATE by default — no public bucket, no
+# client-controlled storage path. Object paths are SERVER-DERIVED as
+# `{tenant_id}/{file_id}/{safe_display_name}` (the FIRST segment is ALWAYS the resolved
+# tenant id — see src/server/storage/object-path.ts); `storage.objects` RLS keys on that
+# first segment. The bucket is ALSO seeded private in the migration
+# (20260704120000_file_storage_foundation.sql) as belt-and-braces so it exists + is private
+# on a fresh reset regardless of config-load order (Task 1.2). No `objects_path` is set —
+# the path is never derived from any client-derivable value. `allowed_mime_types` is
+# DEFERRED to Story 8.2 (conservative dev defaults); a conservative per-bucket size limit is
+# set here (the global [storage] file_size_limit still applies as an outer bound).
+[storage.buckets.tenant-files]
+public = false
+file_size_limit = "50MiB"
 
 # Allow connections via S3 compatible clients
 [storage.s3_protocol]
