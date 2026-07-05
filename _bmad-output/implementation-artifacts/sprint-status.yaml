@@ -102,7 +102,7 @@ development_status:
   # so the auto-bmad picker (first `backlog` in file order) selects it before Epic 6.
   # It is a hard dependency for Epic 6 stories 6.1 and 6.3 (see execution-order note above).
   # The rest of Epic 8 (8.2-8.5) stays in the epic-8 block below.
-  8-1-file-storage-foundation-private-bucket-metadata-links-rls-and-signed-access-command: review
+  8-1-file-storage-foundation-private-bucket-metadata-links-rls-and-signed-access-command: done
 
   epic-6: backlog
   6-1-quote-snapshot-schema-and-server-side-version-creation: backlog

@@ -4,10 +4,10 @@ story_key: 8-1-file-storage-foundation-private-bucket-metadata-links-rls-and-sig
 epic_num: 8
 story_num: 1
 branch: story/8-1-file-storage-foundation-private-bucket-metadata-links-rls-and-signed-access-command
-status: in-progress
-updated_at: "2026-07-05T11:18:28Z"
+status: done
+updated_at: "2026-07-05T11:35:33Z"
 started_at: "2026-07-04T10:31:22Z"
-completed_at: null
+completed_at: "2026-07-05T11:35:33Z"
 active_seconds: 20627
 timing_anchor: 1783249522
 is_first_in_epic: true
@@ -39,9 +39,9 @@ phase8_steps:
 gate_decision: null
 gate_iterations: 0
 deferred_work_archived: 0
-pr_url: null
-ci_run_url: null
-ci_status: unknown
+pr_url: "https://github.com/rthunborg/ElproSaas/pull/24"
+ci_run_url: "https://github.com/rthunborg/ElproSaas/actions/runs/28739155363"
+ci_status: passed
 pr_merged: false
 merge_method: null
 merge_commit: null

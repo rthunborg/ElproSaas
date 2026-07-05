@@ -1,6 +1,6 @@
 # Story 8.1: File Storage Foundation - Private Bucket, Metadata, Links, RLS, And Signed-Access Command
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
