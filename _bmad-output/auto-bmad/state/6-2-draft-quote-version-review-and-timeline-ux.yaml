@@ -5,10 +5,10 @@ epic_num: 6
 story_num: 2
 branch: epic/6-quote-versions-pdf-and-lifecycle
 status: in-progress
-updated_at: "2026-07-05T20:28:42Z"
+updated_at: "2026-07-05T20:38:08Z"
 started_at: "2026-07-05T19:52:32Z"
 completed_at: null
-active_seconds: 2161
+active_seconds: 2717
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -20,14 +20,14 @@ tea_selected: [automate]
 tea_rationale: "Stateful multi-panel UI flow (timeline, draft-vs-sent editability, route authorization) with lifecycle-state branching across multiple modules, but no auth/secrets creation, no money mutation, no schema change, no external API surface change"
 epic_story_count: 5
 stories_after_in_epic: 3
-completed_phases: [0, 1, 2, 3, 4, 5]
+completed_phases: [0, 1, 2, 3, 4, 5, 6]
 code_review_iterations: 0
 code_review_loop_done: false
 hitl_halt: null
 external_review_iterations: 0
 convergence_unverified: false
 story_trace: null
-commits: [50af190, 796a6d2]
+commits: [50af190, 796a6d2, e0c1b02]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -47,7 +47,8 @@ merge_method: null
 merge_commit: null
 branch_deleted: false
 open_questions: []
-deferred_work: []
+deferred_work:
+  - "read-layer normalizers in src/features/quotes/read.ts exercised only via E2E; module-private, unit-pinning needs an export refactor (low priority)"
 blockers: []
 overrides: {}
 constraints: []
