@@ -5,10 +5,10 @@ epic_num: 6
 story_num: null
 branch: epic/6-quote-versions-pdf-and-lifecycle
 status: in-progress
-updated_at: "2026-07-05T20:46:02Z"
+updated_at: "2026-07-05T20:49:40Z"
 started_at: "2026-07-05T18:20:38Z"
 completed_at: null
-active_seconds: 8488
+active_seconds: 8687
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -52,11 +52,35 @@ blockers: []
 overrides: {}
 constraints: []
 epic_slug: quote-versions-pdf-and-lifecycle
-active_story: 6-2-draft-quote-version-review-and-timeline-ux
+active_story: 6-3-quote-pdf-generation-from-snapshot
 stories_landed:
   - 6-1-quote-snapshot-schema-and-server-side-version-creation
+  - 6-2-draft-quote-version-review-and-timeline-ux
 auto_decisions:
   - "Allocated quote number is never threaded into the frozen composite snapshot value [Med] -> defer: raw integer quote_number is persisted on the row (the persisted truth); Â§24 display format already an open logged owner question; threading into the frozen JSON is a later 6.x follow-up (Tier A, 6-1-quote-snapshot-schema-and-server-side-version-creation)"
   - "Lifecycle-header customer name prefers the LIVE customers join over the frozen snapshot [Low] -> fix: keep the live-first fallback (header legitimately shows current customer identity per ux Â§6) but correct the misleading read.ts comment to state the header name is the live own-tenant display while money/VAT/totals stay snapshot-verbatim (Tier A, 6-2-draft-quote-version-review-and-timeline-ux)"
 uat_items:
-  - "[6-1-quote-snapshot-schema-and-server-side-version-creation] No manual UAT applicable at this state â€” backend schema + server-command foundation slice (six tenant-owned tables, snapshot builder, create RPC/command); no server action/API/UI surface yet (wiring lands in 6.2/6.3/6.4); DB mechanics covered by automated integration/RLS suites"
+  - "[6-1-quote-snapshot-schema-and-server-side-version-creation] No manual UAT applicable at this state — backend schema + server-command foundation slice (six tenant-owned tables, snapshot builder, create RPC/command); no server action/API/UI surface yet (wiring lands in 6.2/6.3/6.4); DB mechanics covered by automated integration/RLS suites"
+  - "[6-2-draft-quote-version-review-and-timeline-ux] Setup (once): sign in to the running app (demo Vercel deploy as rasmus.thunborg@enhancior.se, or pnpm dev + local Supabase as seeded adminA); need a quote with a SENT and a DRAFT version — if none, open a ready calculation and use 'Skapa offert → Skapa offertversion' (6.1) to mint one; local E2E fixture seeds SENT v1 + DRAFT v2 under 'Acme El AB'"
+  - "[6-2-draft-quote-version-review-and-timeline-ux] Open /quotes (Offerter) → active quotes listed with customer name, 'Offert #<number>' (or 'Utan nummer'), 'N versioner', text status badge; empty tenant shows 'Inga offerter ännu…'"
+  - "[6-2-draft-quote-version-review-and-timeline-ux] Confirm left nav still has exactly the seven existing items — only the pre-existing 'Offerter' entry links here"
+  - "[6-2-draft-quote-version-review-and-timeline-ux] Click a quote row → /quotes/<quoteId> renders the quote detail (no 404/error)"
+  - "[6-2-draft-quote-version-review-and-timeline-ux] Detail header shows customer-name heading, 'Kund:', 'Senaste versionens status:' (Swedish word), 'Nuvarande åtagande: Version N (status)', and a 'Källkalkyl: Öppna kalkyl' link"
+  - "[6-2-draft-quote-version-review-and-timeline-ux] Click 'Öppna kalkyl' → navigates to /calculations/<id> (source calculation opens)"
+  - "[6-2-draft-quote-version-review-and-timeline-ux] 'Versioner' timeline lists every version as 'Version N' with status badge, ascending order, selected version visually highlighted"
+  - "[6-2-draft-quote-version-review-and-timeline-ux] Read badges color-blind (greyscale) → status legible via TEXT words (Utkast, Skickad, Accepterad, Avvisad, Utgången, Ersatt), never color alone"
+  - "[6-2-draft-quote-version-review-and-timeline-ux] Snapshot parties block shows 'Kund:', 'Anläggning:', 'Kontakt:', 'Offertnummer:', 'Giltig till:' from the frozen values"
+  - "[6-2-draft-quote-version-review-and-timeline-ux] Snapshot line table renders Rad / Antal / À-pris / Netto as 'X,XX kr' with NO cost, margin, or internal-note column anywhere"
+  - "[6-2-draft-quote-version-review-and-timeline-ux] Totals block shows Grundbelopp (netto) / Tillval (valda) / Moms / Att betala (inkl. moms) + note 'Belopp visas från den frysta offertversionen.' — values must NOT change if the source calculation's pricing is later edited"
+  - "[6-2-draft-quote-version-review-and-timeline-ux] When the version requires sign-off → amber note states tax/VAT assumptions are preliminära och kräver godkännande (framed non-final)"
+  - "[6-2-draft-quote-version-review-and-timeline-ux] Snapshot also shows: Villkor section ('Villkoren är inte godkända ännu.' when unapproved), 'Bifogade filer' ('Inga bifogade filer.' when none), PDF section 'Ingen PDF genererad ännu.', Acceptans section exactly 'Ej accepterad ännu. Acceptans hanteras i Epic 7.' with no accept button"
+  - "[6-2-draft-quote-version-review-and-timeline-ux] 'Händelser' list shows lifecycle events (e.g. 'Skapad') with dates or 'Inga händelser.' — read-only, no add/edit control"
+  - "[6-2-draft-quote-version-review-and-timeline-ux] Select a DRAFT version → 'Redigera utkast' form (Introtext, Kundnoteringar, Giltig till, Visningsläge) + persistent amber sent-lock warning"
+  - "[6-2-draft-quote-version-review-and-timeline-ux] Change Introtext and 'Spara utkast' → 'Utkastet sparades.' and the value persists on reload of that version"
+  - "[6-2-draft-quote-version-review-and-timeline-ux] After a draft save, re-open the SENT version → its snapshot unchanged (edit touched only the draft)"
+  - "[6-2-draft-quote-version-review-and-timeline-ux] Select a SENT/Accepted version → NO edit inputs; read-only notice 'Den här versionen är Skickad och kan inte redigeras…' + disabled 'Skapa ny version' button (flow itself is 6.5)"
+  - "[6-2-draft-quote-version-review-and-timeline-ux] Direct URL /quotes/<quoteId>/versions/<versionId> → same detail with that version selected (aria-current) and correct editable vs read-only state"
+  - "[6-2-draft-quote-version-review-and-timeline-ux] Keyboard-tab the timeline → items focusable with visible ring, Enter selects, selected item aria-current"
+  - "[6-2-draft-quote-version-review-and-timeline-ux] /quotes/<random-uuid> → generic 'Offerten hittades inte / …inte åtkomst…' not-found (no cross-tenant existence leak) + 'Tillbaka till offerter' link"
+  - "[6-2-draft-quote-version-review-and-timeline-ux] With another tenant's real quote id → identical generic not-found (no leak)"
+  - "[6-2-draft-quote-version-review-and-timeline-ux] Confirm no email-send, customer-portal, or public acceptance link/button anywhere — the only acceptance surface is the Epic-7 placeholder text"
