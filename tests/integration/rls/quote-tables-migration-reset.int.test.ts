@@ -33,12 +33,10 @@
  *     import/api column ANYWHERE (AC1 guardrail); NO `numeric`/`double precision`/`real`
  *     money field (öre is `bigint`).
  *
- * ── WHY `describe.skip` (RED PHASE) ─────────────────────────────────────────────
- * The migration does not exist yet (Story 6.1 dev Task 1). Until it lands, the
- * introspection queries below return nothing → these assertions FAIL by design. Kept
- * skipped (project red-phase idiom — Stories 3.1 / 5.1 used the same) so they do not
- * break the green tree before the migration is written; the DEV phase removes `.skip`
- * and re-labels the describe block "green".
+ * ── GREEN (dev phase) ────────────────────────────────────────────────────────────
+ * The 20260705120000_quote_version_model.sql migration has landed (Story 6.1 dev Task
+ * 1), so the introspection queries below resolve — the `.skip` is REMOVED and the
+ * describe block is re-labelled "green". This scaffold's assertions are now live.
  *
  * ── RELATIONSHIP TO THE EXISTING `migration-reset.int.test.ts` ───────────────────
  * This is the quote-specific companion. The EXISTING `migration-reset.int.test.ts`
@@ -57,6 +55,7 @@ import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { adminQuery, closeAdminPool } from "../../factories/admin-sql";
 import { isLocalStackReachable } from "../../support/test-env";
 import { skipUnlessStack } from "../../support/stack-gate";
+import { assertSearchPathExactlyEmpty } from "../../support/search-path";
 
 const QUOTE_TABLES = [
   "tenant_counters",
@@ -85,8 +84,8 @@ afterAll(async () => {
   await closeAdminPool();
 });
 
-// RED PHASE: remove `.skip` in dev once 20260705xxxxxx_quote_version_model.sql lands.
-describe.skip("Quote migration reset — six new tenant-owned tables (AC1)", () => {
+// GREEN as of Story 6.1 dev — the quote_version_model migration has landed (Task 1).
+describe("Quote migration reset green — six new tenant-owned tables (AC1)", () => {
   it("[P0] the six quote tables exist after reset", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     const rows = await adminQuery<{ table_name: string }>(
@@ -408,5 +407,51 @@ describe.skip("Quote migration reset — six new tenant-owned tables (AC1)", () 
       /(supplier|credential|api_key|apikey|sync|import|external|fortnox|edi|mapping)/i;
     const offenders = rows.filter((r) => forbidden.test(r.column_name));
     expect(offenders).toEqual([]);
+  });
+
+  it("[P0/R-607] quote_version_lines carries NO cost/margin/internal-note column (customer-visible only)", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
+    const rows = await adminQuery<{ column_name: string }>(
+      `select column_name from information_schema.columns
+         where table_schema = 'public' and table_name = 'quote_version_lines'`,
+    );
+    const cols = rows.map((r) => r.column_name);
+    // The customer-visible line snapshot must NOT carry any cost/margin/internal field
+    // (R-607 — the calc row carries unit_cost_ore/markup_bp/internal_note; the snapshot
+    // drops them by construction).
+    const forbidden = /(unit_cost_ore|cost_ore|markup|margin|internal)/i;
+    expect(cols.filter((c) => forbidden.test(c))).toEqual([]);
+    // It MUST carry the customer-visible sell + net öre + VAT bp.
+    expect(cols).toContain("unit_sell_ore");
+    expect(cols).toContain("line_net_ore");
+    expect(cols).toContain("vat_rate_bp");
+  });
+
+  it("[P0/AC2] create_quote_version_from_calculation RPC is SECURITY INVOKER, empty search_path, revoke-from-public", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
+    const rows = await adminQuery<{
+      prosecdef: boolean;
+      proconfig: string[] | null;
+    }>(
+      `select prosecdef, proconfig from pg_proc
+         where proname = 'create_quote_version_from_calculation'`,
+    );
+    expect(rows).toHaveLength(1);
+    // SECURITY INVOKER (ADR-A009 default) — runs under the caller's RLS, NOT definer.
+    expect(rows[0]?.prosecdef).toBe(false);
+    // Fixed EXACTLY-EMPTY search_path (defensive hardening).
+    assertSearchPathExactlyEmpty(
+      "create_quote_version_from_calculation",
+      rows[0]?.proconfig ?? null,
+    );
+    // anon has NO EXECUTE (revoke-from-public + grant-to-authenticated/service_role only).
+    const grants = await adminQuery<{ grantee: string }>(
+      `select grantee from information_schema.role_routine_grants
+         where routine_name = 'create_quote_version_from_calculation'`,
+    );
+    const grantees = grants.map((g) => g.grantee);
+    expect(grantees).toContain("authenticated");
+    expect(grantees).toContain("service_role");
+    expect(grantees).not.toContain("anon");
   });
 });

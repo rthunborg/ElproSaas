@@ -1040,6 +1040,268 @@ export async function adminSelectFileLabel(
   return rows[0] ?? null;
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Quote seed/read helpers (Story 6.1, Task 2/5) — ADDITIVE (B1: add ALONGSIDE the
+// existing handles; the two-tenant fixture shape is unchanged).
+//
+// Seed REAL tenant_counters/quotes/quote_versions/quote_version_lines/
+// quote_version_attachments/quote_events rows via the loopback-gated superuser `pg` pool
+// (BYPASSRLS) so the cross-tenant/anon negatives can target a CONCRETE Tenant B quote row
+// (never a non-existent id that would deny vacuously), and so the version/line/attachment/
+// event spoof INSERTs have a real Tenant B parent to reference. Mirror `adminInsertFile`:
+// THROW on a DB error with the Postgres `code` preserved.
+//
+// Quote tables are `tenant_id … on delete cascade`, so the EXISTING `cleanupFixture`
+// tenant-delete cascades the seeded rows away — no new teardown path is needed.
+//
+// Quote fixtures carry METADATA/DISPLAY SHAPE only — anonymized names, integer öre + bp,
+// NO PII (no real name/address/personnummer/orgnr/secret).
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** A seed for a `tenant_counters` row. */
+export interface TenantCounterSeed {
+  readonly tenant_id: string;
+  readonly counter_name?: string;
+  readonly current_value?: number;
+}
+
+/** A seed for a `quotes` row (parent customer must exist, same tenant). */
+export interface QuoteSeed {
+  readonly tenant_id: string;
+  readonly customer_id: string;
+  readonly facility_id?: string | null;
+  readonly contact_id?: string | null;
+}
+
+/** A seed for a `quote_versions` row (parent quote + source calc required, same tenant). */
+export interface QuoteVersionSeed {
+  readonly tenant_id: string;
+  readonly quote_id: string;
+  readonly calculation_id: string;
+  readonly version_number?: number;
+  readonly quote_number?: number;
+  readonly captured_at?: string;
+  readonly company_name?: string | null;
+}
+
+/** A seed for a `quote_version_lines` row (parent version required, same tenant). */
+export interface QuoteVersionLineSeed {
+  readonly tenant_id: string;
+  readonly quote_version_id: string;
+  readonly row_type?: string;
+  readonly label?: string | null;
+  readonly unit_sell_ore?: number | null;
+  readonly vat_rate_bp?: number | null;
+  readonly sort_order?: number;
+}
+
+/** A seed for a `quote_version_attachments` row (parent version + file required, same tenant). */
+export interface QuoteVersionAttachmentSeed {
+  readonly tenant_id: string;
+  readonly quote_version_id: string;
+  readonly file_id: string;
+  readonly display_name?: string | null;
+  readonly sort_order?: number;
+}
+
+/** A seed for a `quote_events` row (parent quote required, same tenant). */
+export interface QuoteEventSeed {
+  readonly tenant_id: string;
+  readonly quote_id: string;
+  readonly quote_version_id?: string | null;
+  readonly event_type?: string;
+}
+
+/** Seed ONE `tenant_counters` row via the privileged superuser pg path (BYPASSRLS). */
+export async function adminInsertTenantCounter(
+  seed: TenantCounterSeed,
+): Promise<string> {
+  try {
+    const rows = await adminQuery<{ id: string }>(
+      `insert into public.tenant_counters (tenant_id, counter_name, current_value)
+       values ($1, $2, $3)
+       returning id`,
+      [seed.tenant_id, seed.counter_name ?? "quote_number", seed.current_value ?? 0],
+    );
+    const id = rows[0]?.id;
+    if (!id) throw new Error("adminInsertTenantCounter: no id returned");
+    return id;
+  } catch (error) {
+    rethrowWithCode(error);
+  }
+}
+
+/** Seed ONE `quotes` row via the privileged superuser pg path (BYPASSRLS). */
+export async function adminInsertQuote(seed: QuoteSeed): Promise<string> {
+  try {
+    const rows = await adminQuery<{ id: string }>(
+      `insert into public.quotes (tenant_id, customer_id, facility_id, contact_id)
+       values ($1, $2, $3, $4)
+       returning id`,
+      [seed.tenant_id, seed.customer_id, seed.facility_id ?? null, seed.contact_id ?? null],
+    );
+    const id = rows[0]?.id;
+    if (!id) throw new Error("adminInsertQuote: no id returned");
+    return id;
+  } catch (error) {
+    rethrowWithCode(error);
+  }
+}
+
+/** Seed ONE `quote_versions` row via the privileged superuser pg path (BYPASSRLS). */
+export async function adminInsertQuoteVersion(
+  seed: QuoteVersionSeed,
+): Promise<string> {
+  try {
+    const rows = await adminQuery<{ id: string }>(
+      `insert into public.quote_versions
+         (tenant_id, quote_id, version_number, quote_number, calculation_id,
+          captured_at, company_name)
+       values ($1, $2, $3, $4, $5, $6, $7)
+       returning id`,
+      [
+        seed.tenant_id,
+        seed.quote_id,
+        seed.version_number ?? 1,
+        seed.quote_number ?? 1,
+        seed.calculation_id,
+        seed.captured_at ?? "2026-07-05T12:00:00.000Z",
+        seed.company_name ?? "tenant-b-company-seed",
+      ],
+    );
+    const id = rows[0]?.id;
+    if (!id) throw new Error("adminInsertQuoteVersion: no id returned");
+    return id;
+  } catch (error) {
+    rethrowWithCode(error);
+  }
+}
+
+/** Seed ONE `quote_version_lines` row via the privileged superuser pg path (BYPASSRLS). */
+export async function adminInsertQuoteVersionLine(
+  seed: QuoteVersionLineSeed,
+): Promise<string> {
+  try {
+    const rows = await adminQuery<{ id: string }>(
+      `insert into public.quote_version_lines
+         (tenant_id, quote_version_id, row_type, label, unit_sell_ore, vat_rate_bp, sort_order)
+       values ($1, $2, $3, $4, $5, $6, $7)
+       returning id`,
+      [
+        seed.tenant_id,
+        seed.quote_version_id,
+        seed.row_type ?? "line",
+        seed.label ?? "tenant-b-line-seed",
+        seed.unit_sell_ore ?? 85000,
+        seed.vat_rate_bp ?? 2500,
+        seed.sort_order ?? 0,
+      ],
+    );
+    const id = rows[0]?.id;
+    if (!id) throw new Error("adminInsertQuoteVersionLine: no id returned");
+    return id;
+  } catch (error) {
+    rethrowWithCode(error);
+  }
+}
+
+/** Seed ONE `quote_version_attachments` row via the privileged superuser pg path (BYPASSRLS). */
+export async function adminInsertQuoteVersionAttachment(
+  seed: QuoteVersionAttachmentSeed,
+): Promise<string> {
+  try {
+    const rows = await adminQuery<{ id: string }>(
+      `insert into public.quote_version_attachments
+         (tenant_id, quote_version_id, file_id, display_name, sort_order)
+       values ($1, $2, $3, $4, $5)
+       returning id`,
+      [
+        seed.tenant_id,
+        seed.quote_version_id,
+        seed.file_id,
+        seed.display_name ?? "tenant-b-attachment-seed.pdf",
+        seed.sort_order ?? 0,
+      ],
+    );
+    const id = rows[0]?.id;
+    if (!id) throw new Error("adminInsertQuoteVersionAttachment: no id returned");
+    return id;
+  } catch (error) {
+    rethrowWithCode(error);
+  }
+}
+
+/** Seed ONE `quote_events` row via the privileged superuser pg path (BYPASSRLS). */
+export async function adminInsertQuoteEvent(
+  seed: QuoteEventSeed,
+): Promise<string> {
+  try {
+    const rows = await adminQuery<{ id: string }>(
+      `insert into public.quote_events
+         (tenant_id, quote_id, quote_version_id, event_type)
+       values ($1, $2, $3, $4)
+       returning id`,
+      [
+        seed.tenant_id,
+        seed.quote_id,
+        seed.quote_version_id ?? null,
+        seed.event_type ?? "created",
+      ],
+    );
+    const id = rows[0]?.id;
+    if (!id) throw new Error("adminInsertQuoteEvent: no id returned");
+    return id;
+  } catch (error) {
+    rethrowWithCode(error);
+  }
+}
+
+/**
+ * Read ONE quote-table row's label column back via the privileged superuser pg path
+ * (BYPASSRLS), independent of the app/RLS path. Used by the cross-tenant UPDATE negative
+ * to prove the foreign row is UNCHANGED. `table`/`labelColumn` are a closed/inventory-
+ * supplied set (never client input). Returns `null` if the row does not exist.
+ */
+export async function adminSelectQuoteLabel(
+  table:
+    | "tenant_counters"
+    | "quotes"
+    | "quote_versions"
+    | "quote_version_lines"
+    | "quote_version_attachments"
+    | "quote_events",
+  labelColumn: string,
+  id: string,
+): Promise<{ id: string; label: string | null } | null> {
+  const rows = await adminQuery<{ id: string; label: string | null }>(
+    `select id, ${labelColumn}::text as label from public.${table} where id = $1`,
+    [id],
+  );
+  return rows[0] ?? null;
+}
+
+/** Read a quote_versions row's full snapshot columns back (BYPASSRLS) for freeze proofs. */
+export async function adminSelectQuoteVersionRow(
+  id: string,
+): Promise<Record<string, unknown> | null> {
+  const rows = await adminQuery<Record<string, unknown>>(
+    `select * from public.quote_versions where id = $1`,
+    [id],
+  );
+  return rows[0] ?? null;
+}
+
+/** Read a quote_versions' line rows back (BYPASSRLS, ordered) for freeze proofs. */
+export async function adminSelectQuoteVersionLines(
+  quoteVersionId: string,
+): Promise<Record<string, unknown>[]> {
+  return adminQuery<Record<string, unknown>>(
+    `select * from public.quote_version_lines
+       where quote_version_id = $1 order by sort_order asc`,
+    [quoteVersionId],
+  );
+}
+
 /**
  * Seed ONE storage OBJECT under a server-shaped tenant path via the service-role
  * storage API (BYPASSRLS on `storage.objects`). Used by the storage-plane isolation

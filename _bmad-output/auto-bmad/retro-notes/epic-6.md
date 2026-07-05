@@ -1,2 +1,4 @@
 ## Story 6-1-quote-snapshot-schema-and-server-side-version-creation
 - [Phase 3 â€” create-story] Epic-5 retro's pnpm-audit 'fifth-carry' action item is stale â€” project-context.md records it RESOLVED (blocking high-level CI gate, owner decision 2026-07-03); downstream gate/NFR work should trust project-context, not the retro's pre-resolution framing.
+- [Phase 5 â€” dev-story] 8.1's file-tables-migration-reset name-shape allowlist legitimately caught quote_version_attachments; resolved by excluding the sanctioned Epic-6 owner explicitly â€” attachment-named Epic-6 tables trip 8.1's guard, later stories should expect this.
+- [Phase 5 â€” dev-story] Pre-authored ATDD golden fixture's source shape differed from the final builder input; adapted via a fixture->builder-input adapter instead of rewriting the fixture â€” pattern to reuse when scaffolds pre-date the implementation.

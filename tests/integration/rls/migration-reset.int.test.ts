@@ -149,6 +149,13 @@ describe("Migration reset green — tenant_foundation objects present (AC1 / R-0
     // scoped to `schemaname = 'public'`, so the `storage.objects` RLS policies added by
     // 8.1 (tenant_files_objects_{select,insert,update}_own) do NOT appear here — they
     // live in the `storage` schema and are covered by storage-object-isolation.rls.test.ts.
+    // Story 6.1 EXTENDS it again (NOT loosened) by the 18 new QUOTE policies:
+    // quote_events.{S,I,U} + quote_version_attachments.{S,I,U} +
+    // quote_version_lines.{S,I,U} + quote_versions.{S,I,U} + quotes.{S,I,U} +
+    // tenant_counters.{S,I,U} — SELECT/INSERT/UPDATE per table, NO DELETE (archive over
+    // hard delete; a tenant_counters row is upserted/incremented, never deleted). All six
+    // are MANY-rows-per-tenant collections. Placed alphabetically. The "no DELETE policy
+    // anywhere" assertion below still holds.
     expect(rows.map((r) => `${r.tablename}.${r.cmd}`).sort()).toEqual([
       "articles.INSERT",
       "articles.SELECT",
@@ -181,9 +188,27 @@ describe("Migration reset green — tenant_foundation objects present (AC1 / R-0
       "files.INSERT",
       "files.SELECT",
       "files.UPDATE",
+      "quote_events.INSERT",
+      "quote_events.SELECT",
+      "quote_events.UPDATE",
       "quote_terms.INSERT",
       "quote_terms.SELECT",
       "quote_terms.UPDATE",
+      "quote_version_attachments.INSERT",
+      "quote_version_attachments.SELECT",
+      "quote_version_attachments.UPDATE",
+      "quote_version_lines.INSERT",
+      "quote_version_lines.SELECT",
+      "quote_version_lines.UPDATE",
+      "quote_versions.INSERT",
+      "quote_versions.SELECT",
+      "quote_versions.UPDATE",
+      "quotes.INSERT",
+      "quotes.SELECT",
+      "quotes.UPDATE",
+      "tenant_counters.INSERT",
+      "tenant_counters.SELECT",
+      "tenant_counters.UPDATE",
       "tenant_memberships.SELECT",
       "tenants.SELECT",
       "work_roles.INSERT",
@@ -217,6 +242,12 @@ describe("Migration reset green — tenant_foundation objects present (AC1 / R-0
       "calculation_rows",
       "files",
       "file_links",
+      "tenant_counters",
+      "quotes",
+      "quote_versions",
+      "quote_version_lines",
+      "quote_version_attachments",
+      "quote_events",
     ];
     for (const t of crmSettingsAndPricingTables) {
       expect((cmdsByTable.get(t) ?? []).sort()).toEqual([

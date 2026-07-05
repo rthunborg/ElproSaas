@@ -38,11 +38,18 @@ import {
   adminInsertRow,
   adminInsertFile,
   adminInsertFileLink,
+  adminInsertTenantCounter,
+  adminInsertQuote,
+  adminInsertQuoteVersion,
+  adminInsertQuoteVersionLine,
+  adminInsertQuoteVersionAttachment,
+  adminInsertQuoteEvent,
   adminSelectCrmRowById,
   adminSelectSettingsLabel,
   adminSelectPricingRow,
   adminSelectCalcLabel,
   adminSelectFileLabel,
+  adminSelectQuoteLabel,
   type TwoTenantFixture,
   type TestServerClient,
 } from "../../factories/tenants";
@@ -75,6 +82,13 @@ let tenantBCalcSectionId: string; // a seeded Tenant B section (5.1 calculation 
 let tenantBCalcRowId: string; // a seeded Tenant B row (5.1 calculation target)
 let tenantBFileId: string; // a seeded Tenant B file (8.1 file target + file_links parent)
 let tenantBFileLinkId: string; // a seeded Tenant B file_link (8.1 file target)
+let tenantBTenantCounterId: string; // a seeded Tenant B counter (6.1 quote target)
+let tenantBQuoteId: string; // a seeded Tenant B quote (6.1 target + version/event parent)
+let tenantBQuoteSourceCalcId: string; // a seeded Tenant B source calc (version composite FK)
+let tenantBQuoteVersionId: string; // a seeded Tenant B version (6.1 target + line/attach parent)
+let tenantBQuoteVersionLineId: string; // a seeded Tenant B line (6.1 target)
+let tenantBQuoteVersionAttachmentId: string; // a seeded Tenant B attachment (6.1 target)
+let tenantBQuoteEventId: string; // a seeded Tenant B event (6.1 target)
 let ctx: InventoryContext; // shared-inventory context (fixture + the seeded ids)
 
 beforeAll(async () => {
@@ -183,6 +197,47 @@ beforeAll(async () => {
     owner_id: tenantBCustomerId,
     purpose: "crm_document",
   });
+  // Seed a REAL Tenant B QUOTE chain (counter → quote → version → line → attachment →
+  // event, Story 6.1) so the six quote-table cross-tenant negatives target a CONCRETE
+  // Tenant B row (never a non-existent id that would deny vacuously), AND so the child
+  // spoof INSERTs have a real Tenant B parent to reference. The composite same-tenant FKs
+  // force the whole chain into the SAME Tenant B (quote → customers; version → quote +
+  // calculations; line/attachment → version; attachment → files; event → quote), so it is
+  // consistent. cleanupFixture's tenant-delete cascades these. The quote fixtures carry
+  // DISPLAY/METADATA SHAPE only — anonymized names + integer öre/bp, NO PII.
+  tenantBTenantCounterId = await adminInsertTenantCounter({
+    tenant_id: fixture.tenantB.id,
+    counter_name: "quote_number",
+    current_value: 1,
+  });
+  tenantBQuoteId = await adminInsertQuote({
+    tenant_id: fixture.tenantB.id,
+    customer_id: tenantBCustomerId,
+  });
+  tenantBQuoteSourceCalcId = tenantBCalculationId; // a REAL Tenant B calc (version FK)
+  tenantBQuoteVersionId = await adminInsertQuoteVersion({
+    tenant_id: fixture.tenantB.id,
+    quote_id: tenantBQuoteId,
+    calculation_id: tenantBQuoteSourceCalcId,
+    company_name: "tenant-b-version-seed",
+  });
+  tenantBQuoteVersionLineId = await adminInsertQuoteVersionLine({
+    tenant_id: fixture.tenantB.id,
+    quote_version_id: tenantBQuoteVersionId,
+    label: "tenant-b-line-seed",
+  });
+  tenantBQuoteVersionAttachmentId = await adminInsertQuoteVersionAttachment({
+    tenant_id: fixture.tenantB.id,
+    quote_version_id: tenantBQuoteVersionId,
+    file_id: tenantBFileId,
+    display_name: "tenant-b-attachment-seed.pdf",
+  });
+  tenantBQuoteEventId = await adminInsertQuoteEvent({
+    tenant_id: fixture.tenantB.id,
+    quote_id: tenantBQuoteId,
+    quote_version_id: tenantBQuoteVersionId,
+    event_type: "created",
+  });
   // VACUITY GUARD (DX#4, epic-2 hardening): the audit_events cross-tenant negatives
   // filter Tenant B's row by `id = tenantBAuditId`. If the seed ever returned without
   // a real id, `.eq("id", undefined/null)` would match NOTHING and the SELECT/UPDATE/
@@ -230,6 +285,20 @@ beforeAll(async () => {
         "negatives would pass VACUOUSLY against a non-existent row.",
     );
   }
+  if (
+    !tenantBTenantCounterId ||
+    !tenantBQuoteId ||
+    !tenantBQuoteVersionId ||
+    !tenantBQuoteVersionLineId ||
+    !tenantBQuoteVersionAttachmentId ||
+    !tenantBQuoteEventId
+  ) {
+    throw new Error(
+      "cross-tenant quote seed produced no id (tenant_counters/quotes/quote_versions/" +
+        "quote_version_lines/quote_version_attachments/quote_events) — the quote " +
+        "cross-tenant negatives would pass VACUOUSLY against a non-existent row.",
+    );
+  }
   ctx = {
     fixture,
     tenantBAuditId,
@@ -245,6 +314,13 @@ beforeAll(async () => {
     tenantBCalcRowId,
     tenantBFileId,
     tenantBFileLinkId,
+    tenantBTenantCounterId,
+    tenantBQuoteId,
+    tenantBQuoteSourceCalcId,
+    tenantBQuoteVersionId,
+    tenantBQuoteVersionLineId,
+    tenantBQuoteVersionAttachmentId,
+    tenantBQuoteEventId,
   };
 });
 
@@ -339,6 +415,29 @@ describe("Cross-tenant RLS isolation — data-driven over the shared inventory (
             } else {
               expect(row?.label).not.toBe("job_evidence");
               expect(row?.label).toBe("crm_document");
+            }
+          } else if (
+            table === "tenant_counters" ||
+            table === "quotes" ||
+            table === "quote_versions" ||
+            table === "quote_version_lines" ||
+            table === "quote_version_attachments" ||
+            table === "quote_events"
+          ) {
+            // The quote-table hijacks set a distinct value per table (current_value=999999
+            // / archived_at=2099 / company_name / label / display_name / channel). Prove
+            // the seed value was NOT overwritten by Tenant A's denied UPDATE.
+            const labelColumn = rlsInvisibleLabelColumn(table);
+            const row = await adminSelectQuoteLabel(table, labelColumn, value);
+            expect(row).not.toBeNull();
+            if (table === "tenant_counters") {
+              // The seed current_value is 1; the hijack is 999999 (as text: "999999").
+              expect(row?.label).not.toBe("999999");
+            } else if (table === "quotes" || table === "quote_events") {
+              // The seed archived_at/channel is NULL — the hijack never landed.
+              expect(row?.label).toBeNull();
+            } else {
+              expect(row?.label).not.toBe("hijacked-by-tenant-a");
             }
           } else {
             const crmTable = table as "customers" | "facilities" | "contacts";
