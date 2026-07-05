@@ -5,10 +5,10 @@ epic_num: 6
 story_num: 1
 branch: epic/6-quote-versions-pdf-and-lifecycle
 status: in-progress
-updated_at: "2026-07-05T19:32:37Z"
+updated_at: "2026-07-05T19:39:30Z"
 started_at: "2026-07-05T18:23:01Z"
 completed_at: null
-active_seconds: 4127
+active_seconds: 4508
 timing_anchor: null
 is_first_in_epic: true
 is_last_in_epic: false
@@ -20,14 +20,14 @@ tea_selected: [atdd, automate]
 tea_rationale: "New schema/migrations creating tenant-owned quote tables with RLS enforcement, plus a race-safe concurrent quote-numbering RPC and cross-tenant authorization checks"
 epic_story_count: 5
 stories_after_in_epic: 4
-completed_phases: [0, 1, 2, 3, 4, 5]
+completed_phases: [0, 1, 2, 3, 4, 5, 6]
 code_review_iterations: 0
 code_review_loop_done: false
 hitl_halt: null
 external_review_iterations: 0
 convergence_unverified: false
 story_trace: null
-commits: ["8727592", 71def8f, e4c247c]
+commits: ["8727592", 71def8f, e4c247c, 4242a98]
 phase8_steps:
   trace_gate: null
   nfr: null
