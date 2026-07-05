@@ -8,3 +8,7 @@
 - [Phase 3 â€” create-story] QUOTE_VERSION_LOCKED is NOT yet in CommandErrorCode â€” it is introduced by 6.4; 6.2's draft-only guard uses VALIDATION_FAILED or an additive QUOTE_VERSION_NOT_DRAFT, never borrows the 6.4 code. Later stories: don't reference 6.4 error codes before 6.4 lands.
 - [Phase 5 â€” dev-story] 6.2-E2E-03 authored as a fast-gate route/surface presence-scan (node --test) instead of Playwright â€” epic test-design trace should map E2E-03 to a unit-tier guardrail.
 - [Phase 5 â€” dev-story] adminInsertQuoteVersion extended additively with status/intro_text seed cols to build real multi-version fixtures â€” 6.3/6.4/6.5 can reuse these.
+
+## Story 6-3-quote-pdf-generation-from-snapshot
+- [Phase 3 â€” create-story] 6.3 is materially heavier than the sibling UI stories: additive pdf_status migration, gated renderer dependency, and the FIRST story to write real object bytes to storage (8.1 was metadata-first, 8.2 never landed) â€” the epic's '6.3 just reuses 8.1' assumption understated this.
+- [Phase 3 â€” create-story] Forward obligation for 6.4: the sent-immutability trigger MUST exempt pdf_status/pdf_file_id/pdf_generated_at (6.3 keeps them mutable for retry on sent versions).
