@@ -5,10 +5,10 @@ epic_num: 6
 story_num: null
 branch: epic/6-quote-versions-pdf-and-lifecycle
 status: in-progress
-updated_at: "2026-07-05T19:48:59Z"
+updated_at: "2026-07-05T19:52:32Z"
 started_at: "2026-07-05T18:20:38Z"
 completed_at: null
-active_seconds: 5124
+active_seconds: 5309
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -52,8 +52,10 @@ blockers: []
 overrides: {}
 constraints: []
 epic_slug: quote-versions-pdf-and-lifecycle
-active_story: 6-1-quote-snapshot-schema-and-server-side-version-creation
-stories_landed: []
+active_story: 6-2-draft-quote-version-review-and-timeline-ux
+stories_landed:
+  - 6-1-quote-snapshot-schema-and-server-side-version-creation
 auto_decisions:
   - "Allocated quote number is never threaded into the frozen composite snapshot value [Med] -> defer: raw integer quote_number is persisted on the row (the persisted truth); Â§24 display format already an open logged owner question; threading into the frozen JSON is a later 6.x follow-up (Tier A, 6-1-quote-snapshot-schema-and-server-side-version-creation)"
-uat_items: []
+uat_items:
+  - "[6-1-quote-snapshot-schema-and-server-side-version-creation] No manual UAT applicable at this state â€” backend schema + server-command foundation slice (six tenant-owned tables, snapshot builder, create RPC/command); no server action/API/UI surface yet (wiring lands in 6.2/6.3/6.4); DB mechanics covered by automated integration/RLS suites"
