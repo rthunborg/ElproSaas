@@ -3,3 +3,6 @@
 - [Phase 5 â€” dev-story] 8.1's file-tables-migration-reset name-shape allowlist legitimately caught quote_version_attachments; resolved by excluding the sanctioned Epic-6 owner explicitly â€” attachment-named Epic-6 tables trip 8.1's guard, later stories should expect this.
 - [Phase 5 â€” dev-story] Pre-authored ATDD golden fixture's source shape differed from the final builder input; adapted via a fixture->builder-input adapter instead of rewriting the fixture â€” pattern to reuse when scaffolds pre-date the implementation.
 - [Phase 7 â€” code review] Golden pack copies warning codes as free strings with no validation against the real ReadinessCode union, so it can pin fictional codes â€” representativeness trap for Epic-9 Lovable-delta reconciliation; standing golden-hardening item epic-wide.
+
+## Story 6-2-draft-quote-version-review-and-timeline-ux
+- [Phase 3 â€” create-story] QUOTE_VERSION_LOCKED is NOT yet in CommandErrorCode â€” it is introduced by 6.4; 6.2's draft-only guard uses VALIDATION_FAILED or an additive QUOTE_VERSION_NOT_DRAFT, never borrows the 6.4 code. Later stories: don't reference 6.4 error codes before 6.4 lands.
