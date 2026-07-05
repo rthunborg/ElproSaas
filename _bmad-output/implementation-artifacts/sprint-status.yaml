@@ -54,7 +54,7 @@
 # epic-group order, on purpose) so it is picked next. All other entries remain grouped by epic.
 
 generated: 2026-06-12
-last_updated: 2026-07-04  # Story 8.1 implemented → review; epic-8 in-progress
+last_updated: 2026-07-05  # Story 6.1 contexted (ready-for-dev); epic-6 in-progress
 project: ElproSaas
 project_key: NOKEY
 tracking_system: file-system
@@ -104,8 +104,8 @@ development_status:
   # The rest of Epic 8 (8.2-8.5) stays in the epic-8 block below.
   8-1-file-storage-foundation-private-bucket-metadata-links-rls-and-signed-access-command: done
 
-  epic-6: backlog
-  6-1-quote-snapshot-schema-and-server-side-version-creation: backlog
+  epic-6: in-progress
+  6-1-quote-snapshot-schema-and-server-side-version-creation: ready-for-dev
   6-2-draft-quote-version-review-and-timeline-ux: backlog
   6-3-quote-pdf-generation-from-snapshot: backlog
   6-4-mark-quote-version-sent-and-enforce-immutability: backlog
