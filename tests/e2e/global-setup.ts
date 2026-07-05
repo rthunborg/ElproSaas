@@ -24,6 +24,10 @@ import {
   adminInsertContact,
   adminInsertCustomer,
   adminInsertFacility,
+  adminInsertQuote,
+  adminInsertQuoteEvent,
+  adminInsertQuoteVersion,
+  adminInsertQuoteVersionLine,
   adminInsertRow,
   adminInsertSection,
   adminInsertWorkRole,
@@ -175,6 +179,62 @@ export default async function globalSetup() {
     unit_price_ore: 1250,
   });
 
+  // Quote seed (Story 6.2): a quote under the company customer with TWO versions — a SENT
+  // version 1 (read-only branch) + a DRAFT version 2 (editable branch) — so the detail E2E can
+  // prove the read-only-vs-editable split, the version timeline, and the draft-edit path against
+  // a REAL multi-version quote. The versions carry frozen presentational + total fields. Seeded
+  // via the BYPASSRLS raw path (no command validation), read back through the app's RLS path at
+  // runtime as adminA.
+  const quoteId = await adminInsertQuote({
+    tenant_id: base.tenantA.id,
+    customer_id: companyId,
+    facility_id: facilityId,
+  });
+  const sentVersionId = await adminInsertQuoteVersion({
+    tenant_id: base.tenantA.id,
+    quote_id: quoteId,
+    calculation_id: calcId,
+    version_number: 1,
+    quote_number: 1001,
+    status: "sent",
+    company_name: `Elpro Demo AB ${token()}`,
+    customer_display_name: companyName,
+    intro_text: "Skickad version – introtext",
+  });
+  await adminInsertQuoteVersionLine({
+    tenant_id: base.tenantA.id,
+    quote_version_id: sentVersionId,
+    label: `Elarbete ${token()}`,
+    unit_sell_ore: 85000,
+    vat_rate_bp: 2500,
+    sort_order: 0,
+  });
+  const draftVersionId = await adminInsertQuoteVersion({
+    tenant_id: base.tenantA.id,
+    quote_id: quoteId,
+    calculation_id: calcId,
+    version_number: 2,
+    quote_number: 1001,
+    status: "draft",
+    company_name: `Elpro Demo AB ${token()}`,
+    customer_display_name: companyName,
+    intro_text: "Utkast – introtext",
+  });
+  await adminInsertQuoteVersionLine({
+    tenant_id: base.tenantA.id,
+    quote_version_id: draftVersionId,
+    label: `Materialrad ${token()}`,
+    unit_sell_ore: 50000,
+    vat_rate_bp: 2500,
+    sort_order: 0,
+  });
+  await adminInsertQuoteEvent({
+    tenant_id: base.tenantA.id,
+    quote_id: quoteId,
+    quote_version_id: sentVersionId,
+    event_type: "created",
+  });
+
   const fixture = {
     ...base,
     crm: {
@@ -197,6 +257,11 @@ export default async function globalSetup() {
     },
     workRole: { id: workRoleId, displayName: workRoleName },
     article: { id: articleId, name: articleName },
+    quote: {
+      id: quoteId,
+      sentVersionId,
+      draftVersionId,
+    },
   };
 
   mkdirSync(path.dirname(FIXTURE_FILE), { recursive: true });

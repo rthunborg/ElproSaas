@@ -9,6 +9,12 @@ export {
   type CreateQuoteVersionResult,
 } from "./quotes";
 export {
+  updateDraftQuoteVersion,
+  type UpdateDraftQuoteVersionResult,
+} from "./update-draft";
+export {
   validateCreateQuoteVersionFromCalculation,
   type CreateQuoteVersionInput,
+  validateUpdateDraftQuoteVersion,
+  type UpdateDraftQuoteVersionInput,
 } from "./validation";

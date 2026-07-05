@@ -66,3 +66,80 @@ export function validateCreateQuoteVersionFromCalculation(
     },
   };
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Story 6.2 — the DRAFT-edit input validator.
+//
+// The allowed draft edits are scoped CONSERVATIVELY to genuinely customer-visible,
+// PRESENTATIONAL draft fields (intro text, customer-visible notes, validity date, display
+// mode) — NOT line/price/VAT/ROT re-derivation (that is a NEW version via Story 6.5's RPC,
+// never a draft edit). A draft edit does NOT re-read/re-freeze the source calc — it edits the
+// already-frozen draft row's presentational fields in place. The re-assert-draft ENFORCEMENT
+// lives in the command execute (a status load), not here — this validator only shapes input.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** The closed set of display modes a draft may present as (mirrors the calc section modes). */
+const DISPLAY_MODES = new Set(["detailed", "summary", "text_only"]);
+
+/** A max length for the free-text presentational fields (a coarse bound, not a business rule). */
+const TEXT_MAX = 5000;
+
+function isOptionalBoundedText(v: unknown): v is string | null | undefined {
+  if (v === undefined || v === null) return true;
+  return typeof v === "string" && v.length <= TEXT_MAX;
+}
+
+/** An optional ISO-8601 date/timestamp string (or null to clear it). */
+function isOptionalIsoDate(v: unknown): v is string | null | undefined {
+  if (v === undefined || v === null) return true;
+  if (typeof v !== "string") return false;
+  if (v.length === 0 || v.length > 40) return false;
+  const t = Date.parse(v);
+  return Number.isFinite(t);
+}
+
+function isOptionalDisplayMode(v: unknown): v is string | null | undefined {
+  if (v === undefined || v === null) return true;
+  return typeof v === "string" && DISPLAY_MODES.has(v);
+}
+
+/**
+ * Validated `updateDraftQuoteVersion` input. `quote_version_id` is required + UUID-shaped; the
+ * allowed presentational fields are OPTIONAL (an absent field is left unchanged; a `null`
+ * explicitly clears it). tenant_id / status / totals / lines are NEVER part of it — a draft
+ * edit can only touch these presentational fields (line/price/VAT changes are Story 6.5).
+ */
+export interface UpdateDraftQuoteVersionInput {
+  readonly quote_version_id: string;
+  readonly intro_text?: string | null;
+  readonly customer_notes?: string | null;
+  readonly valid_until?: string | null;
+  readonly display_mode?: string | null;
+}
+
+export function validateUpdateDraftQuoteVersion(
+  raw: unknown,
+): ValidationResult<UpdateDraftQuoteVersionInput> {
+  if (!isRecord(raw)) return fail;
+  if (!isUuidLike(raw.quote_version_id)) return fail;
+  if (!isOptionalBoundedText(raw.intro_text)) return fail;
+  if (!isOptionalBoundedText(raw.customer_notes)) return fail;
+  if (!isOptionalIsoDate(raw.valid_until)) return fail;
+  if (!isOptionalDisplayMode(raw.display_mode)) return fail;
+
+  const data: {
+    quote_version_id: string;
+    intro_text?: string | null;
+    customer_notes?: string | null;
+    valid_until?: string | null;
+    display_mode?: string | null;
+  } = { quote_version_id: raw.quote_version_id as string };
+  // Only carry a field when the caller actually supplied it (an absent field = unchanged; a
+  // present `null` = clear it). This preserves the empty-patch guard semantics downstream.
+  if ("intro_text" in raw) data.intro_text = (raw.intro_text as string | null) ?? null;
+  if ("customer_notes" in raw)
+    data.customer_notes = (raw.customer_notes as string | null) ?? null;
+  if ("valid_until" in raw) data.valid_until = (raw.valid_until as string | null) ?? null;
+  if ("display_mode" in raw) data.display_mode = (raw.display_mode as string | null) ?? null;
+  return { ok: true, data };
+}

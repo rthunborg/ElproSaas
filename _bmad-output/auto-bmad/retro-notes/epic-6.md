@@ -6,3 +6,5 @@
 
 ## Story 6-2-draft-quote-version-review-and-timeline-ux
 - [Phase 3 â€” create-story] QUOTE_VERSION_LOCKED is NOT yet in CommandErrorCode â€” it is introduced by 6.4; 6.2's draft-only guard uses VALIDATION_FAILED or an additive QUOTE_VERSION_NOT_DRAFT, never borrows the 6.4 code. Later stories: don't reference 6.4 error codes before 6.4 lands.
+- [Phase 5 â€” dev-story] 6.2-E2E-03 authored as a fast-gate route/surface presence-scan (node --test) instead of Playwright â€” epic test-design trace should map E2E-03 to a unit-tier guardrail.
+- [Phase 5 â€” dev-story] adminInsertQuoteVersion extended additively with status/intro_text seed cols to build real multi-version fixtures â€” 6.3/6.4/6.5 can reuse these.

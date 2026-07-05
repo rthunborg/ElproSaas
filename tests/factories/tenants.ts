@@ -1082,6 +1082,11 @@ export interface QuoteVersionSeed {
   readonly quote_number?: number;
   readonly captured_at?: string;
   readonly company_name?: string | null;
+  /** Lifecycle status (Story 6.2) — defaults to 'draft' at the DB. */
+  readonly status?: string;
+  /** A customer-visible presentational field (Story 6.2 draft-edit readback proof). */
+  readonly intro_text?: string | null;
+  readonly customer_display_name?: string | null;
 }
 
 /** A seed for a `quote_version_lines` row (parent version required, same tenant). */
@@ -1156,8 +1161,8 @@ export async function adminInsertQuoteVersion(
     const rows = await adminQuery<{ id: string }>(
       `insert into public.quote_versions
          (tenant_id, quote_id, version_number, quote_number, calculation_id,
-          captured_at, company_name)
-       values ($1, $2, $3, $4, $5, $6, $7)
+          captured_at, company_name, status, intro_text, customer_display_name)
+       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
        returning id`,
       [
         seed.tenant_id,
@@ -1167,6 +1172,9 @@ export async function adminInsertQuoteVersion(
         seed.calculation_id,
         seed.captured_at ?? "2026-07-05T12:00:00.000Z",
         seed.company_name ?? "tenant-b-company-seed",
+        seed.status ?? "draft",
+        seed.intro_text ?? null,
+        seed.customer_display_name ?? null,
       ],
     );
     const id = rows[0]?.id;

@@ -253,6 +253,48 @@ export async function loadNameById(
   return row?.name ?? null;
 }
 
+/**
+ * Load the target quote version's REAL current lifecycle `status` from the DB, under the
+ * caller's RLS (ownership already proved it is visible). The load-bearing re-assert-draft
+ * check for the Story 6.2 draft-edit command: a sent/accepted/… version is never mutable
+ * through the draft-edit path. Returns null when the row is not visible (a race).
+ */
+export async function loadQuoteVersionStatus(
+  db: CommandDbClient,
+  quoteVersionId: string,
+): Promise<string | null> {
+  const { data, error } = await asReadClient(db)
+    .from("quote_versions")
+    .select("status")
+    .eq("id", quoteVersionId)
+    .limit(1);
+  throwOnReadError("loadQuoteVersionStatus", error);
+  const row = (data?.[0] ?? null) as { status?: string } | null;
+  return row?.status ?? null;
+}
+
+/** The minimal quote_versions UPDATE surface of the request-bound RLS client. */
+export type QuoteWriteClient = {
+  from(table: "quote_versions"): {
+    update(values: Record<string, unknown>): {
+      eq(
+        column: string,
+        value: string,
+      ): {
+        select(columns: string): Promise<{
+          data: unknown[] | null;
+          error: { code?: string; message?: string } | null;
+        }>;
+      };
+    };
+  };
+};
+
+/** Narrow the envelope client to the quote-version write surface (single documented cast). */
+export function asQuoteWriteClient(db: CommandDbClient): QuoteWriteClient {
+  return db as unknown as QuoteWriteClient;
+}
+
 /** The display name of an attachment file (for the by-value metadata snapshot). */
 export interface AttachmentFileRow {
   readonly id: string;
