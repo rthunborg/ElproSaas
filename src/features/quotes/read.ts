@@ -391,9 +391,13 @@ export async function readQuoteDetail(
     }
     const selectedId = selected.id;
 
-    // The customer/facility/contact display for the HEADER come from the frozen version
-    // snapshot (never a live CRM re-read — the header describes the current commitment). Use
-    // the LATEST version's frozen display for the header context.
+    // The lifecycle-header customer name is the LIVE own-tenant CRM display (per ux §6 the
+    // header shows the current customer identity), preferring the quote root's own-tenant
+    // `customers` join and falling back to the frozen snapshot display only when the join is
+    // absent — see the header assembly below. This is intentional and is NOT a snapshot
+    // violation: AC1's read-verbatim rule is scoped to money/VAT/totals, which ALWAYS stay
+    // snapshot-verbatim (never recomputed). Facility/contact for the header context come from
+    // the LATEST version's frozen display.
     const latest = versions[versions.length - 1];
 
     // ── The selected version's frozen children + the quote events (parallel, own-tenant RLS). ──
@@ -448,8 +452,9 @@ export async function readQuoteDetail(
     const header: QuoteHeaderRow = {
       id: String(quoteRaw.id),
       customer_id: String(quoteRaw.customer_id),
-      // Prefer the live customer display_name (the quote root's own-tenant join) but fall back
-      // to the frozen snapshot display if the join is absent.
+      // The header name is the LIVE own-tenant customer display (the quote root's own-tenant
+      // join), falling back to the frozen snapshot display when the join is absent. Money/VAT/
+      // totals stay snapshot-verbatim elsewhere; only this identity label reflects current CRM.
       customer_display_name:
         customer?.display_name ?? latest.customer_display_name ?? null,
       facility_name: latest.facility_name,

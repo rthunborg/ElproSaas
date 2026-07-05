@@ -5,10 +5,10 @@ epic_num: 6
 story_num: 2
 branch: epic/6-quote-versions-pdf-and-lifecycle
 status: in-progress
-updated_at: "2026-07-05T20:38:08Z"
+updated_at: "2026-07-05T20:46:02Z"
 started_at: "2026-07-05T19:52:32Z"
 completed_at: null
-active_seconds: 2717
+active_seconds: 3178
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -20,14 +20,14 @@ tea_selected: [automate]
 tea_rationale: "Stateful multi-panel UI flow (timeline, draft-vs-sent editability, route authorization) with lifecycle-state branching across multiple modules, but no auth/secrets creation, no money mutation, no schema change, no external API surface change"
 epic_story_count: 5
 stories_after_in_epic: 3
-completed_phases: [0, 1, 2, 3, 4, 5, 6]
+completed_phases: [0, 1, 2, 3, 4, 5, 6, 7]
 code_review_iterations: 0
 code_review_loop_done: false
 hitl_halt: null
 external_review_iterations: 0
 convergence_unverified: false
 story_trace: null
-commits: [50af190, 796a6d2, e0c1b02]
+commits: [50af190, 796a6d2, e0c1b02, f3bc62a]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -53,3 +53,4 @@ blockers: []
 overrides: {}
 constraints: []
 tier_a_base_sha: 8cb9616ffac89e47fb0d89b6d5b5224491219f89
+tier_a_review: "done - auditor+security lenses, verdict Approve; 3 findings persisted (1 Patch [Low] fixed, 1 Decision [Low] auto-resolved to fix per recommendation, 1 Defer [Low]); post-fix open 0/0; security pass clean (0H/0M/0L)"

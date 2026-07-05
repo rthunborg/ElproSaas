@@ -81,6 +81,12 @@ export async function updateDraftQuoteVersionAction(
   if (result.ok) {
     if (typeof quoteId === "string" && quoteId.length > 0) {
       revalidatePath(`/quotes/${quoteId}`);
+      // The editor is also rendered from the version subroute; revalidate it too so a save
+      // made there refreshes the server-rendered snapshot fields (both pages are
+      // `force-dynamic`, but revalidating the parent path alone leaves the subroute stale).
+      if (typeof quoteVersionId === "string" && quoteVersionId.length > 0) {
+        revalidatePath(`/quotes/${quoteId}/versions/${quoteVersionId}`);
+      }
     }
     return {
       ...QUOTE_ACTION_INITIAL,
