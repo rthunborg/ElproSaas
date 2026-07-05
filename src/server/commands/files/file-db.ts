@@ -176,8 +176,12 @@ export function throwMappedFileWriteError(error: {
     case "22P02":
       throw new CommandError("VALIDATION_FAILED");
     default:
-      throw new Error(
-        `file write failed: ${error.code ?? "?"} ${error.message ?? ""}`,
-      );
+      // Throw the CODE only — never the raw Postgres `error.message`, which can
+      // embed the row's object_path / tenant_id (unique/exclusion/constraint detail
+      // or a connection diagnostic quoting the failed statement). The code alone is
+      // enough to classify/telemetry; the raw driver message must not cross the
+      // boundary (mirrors the "never a raw storage error across the boundary"
+      // discipline in signed-access.ts).
+      throw new Error(`file write failed: ${error.code ?? "?"}`);
   }
 }

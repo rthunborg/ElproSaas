@@ -478,4 +478,77 @@ describe("createFileLink both-side ownership + atomic rollback (AC3/AC7)", () =>
     );
     expect(Number(forgedLinks[0]?.n)).toBe(0);
   });
+
+  // ── link_existing_file direct-RPC privilege negatives ────────────────────────────
+  // `createFileLink` production now calls `link_existing_file` (the iteration-1 High
+  // rewired it away from `create_file_with_link`), so the privilege boundary of the LIVE
+  // RPC must have its OWN direct-RPC negatives — the `create_file_with_link` probes above
+  // now cover only the RPC 8.2's upload path still uses, not the shipped link path.
+  it("[P0/R-801/R-803] an ANONYMOUS caller has NO EXECUTE on link_existing_file (42501, not vacuous)", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
+    // The shipped link RPC does `revoke execute … from public; grant … to authenticated,
+    // service_role` (migration Task 6.2) — an unauthenticated caller must be denied at the
+    // PRIVILEGE layer. Assert the 42501 SQLSTATE explicitly (not a vacuous `!error`): a
+    // future accidental `grant … to anon` would otherwise hand an anon caller the live
+    // link-write path.
+    // Baseline the current link count for this file/owner (earlier happy-path tests in
+    // this suite legitimately link ownFileId→ownCustomerId), so the defense-in-depth
+    // re-read asserts the anon RPC added NOTHING rather than an absolute zero.
+    const before = await adminQuery<{ n: string }>(
+      `select count(*)::text as n from public.file_links
+         where tenant_id = $1 and file_id = $2 and owner_id = $3`,
+      [fixture.tenantA.id, ownFileId, ownCustomerId],
+    );
+    const { data, error } = await (anon as never as RpcCapableClient).rpc(
+      "link_existing_file",
+      {
+        p_tenant_id: fixture.tenantA.id,
+        p_file_id: ownFileId,
+        p_owner_type: "customer",
+        p_owner_id: ownCustomerId,
+        p_purpose: "crm_document",
+      },
+    );
+    expect(error).not.toBeNull();
+    expect(error?.code).toBe("42501");
+    expect(data).not.toBe(true);
+    // Defense-in-depth: even if the privilege check ever regressed, the anon call added
+    // no new row (count unchanged from the pre-call baseline).
+    const after = await adminQuery<{ n: string }>(
+      `select count(*)::text as n from public.file_links
+         where tenant_id = $1 and file_id = $2 and owner_id = $3`,
+      [fixture.tenantA.id, ownFileId, ownCustomerId],
+    );
+    expect(Number(after[0]?.n)).toBe(Number(before[0]?.n));
+  });
+
+  it("[P0/R-802/R-807] an authed Tenant A caller CANNOT forge a Tenant B p_tenant_id through link_existing_file — denied + no B-side link", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
+    // The RPC is SECURITY INVOKER, so it runs under the CALLER's RLS: the file_links INSERT
+    // WITH CHECK (own-tenant) rejects a row carrying ANOTHER tenant's id with 42501 (and the
+    // composite same-tenant FK would also reject a cross-tenant file). Tenant A drives the
+    // RPC directly with `p_tenant_id = tenantB.id` (+ a B-side file/owner) — assert the
+    // DENIAL and that NO B-side `file_links` row survives (independent BYPASSRLS re-read).
+    const { error } = await (a as never as RpcCapableClient).rpc(
+      "link_existing_file",
+      {
+        p_tenant_id: fixture.tenantB.id, // forged — A is NOT admin of tenant B
+        p_file_id: tenantBFileId,
+        p_owner_type: "customer",
+        p_owner_id: tenantBCustomerId,
+        p_purpose: "crm_document",
+      },
+    );
+    // The forged file_links INSERT WITH CHECK raised under A's RLS → the RPC errored.
+    expect(error).not.toBeNull();
+    // Independent BYPASSRLS re-read: NO Tenant-B `file_links` row for the forged
+    // file/owner survived — the write was denied, nothing persisted.
+    const forgedLinks = await adminQuery<{ n: string }>(
+      `select count(*)::text as n from public.file_links
+         where tenant_id = $1 and file_id = $2 and owner_id = $3
+           and created_at > now() - interval '1 minute'`,
+      [fixture.tenantB.id, tenantBFileId, tenantBCustomerId],
+    );
+    expect(Number(forgedLinks[0]?.n)).toBe(0);
+  });
 });
