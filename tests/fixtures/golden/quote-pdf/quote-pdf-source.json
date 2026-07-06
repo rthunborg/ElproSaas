@@ -105,7 +105,7 @@
         "attachments": ["Ritning.pdf", "Underlag.pdf"],
         "warnings": ["TAX_SIGN_OFF_REQUIRED", "HIDDEN_ROWS_INCLUDED"],
         "nonFinalCue": "Preliminär uppskattning",
-        "mustNotAppear": []
+        "mustNotAppear": ["Dold rad", "Ingar i totalen"]
       }
     },
     {

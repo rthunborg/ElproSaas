@@ -193,12 +193,18 @@ export async function renderQuotePdf(
     cursor.gap();
   }
 
-  // ── Line items (customer-visible display model — hidden rows still count; tillval marked). ──
+  // ── Line items (customer-visible display model — tillval marked). ──
+  // HIDDEN rows (`is_hidden=true`) are EXCLUDED from the rendered line list: they still count
+  // toward the frozen totals (which are read verbatim from the snapshot row — never recomputed
+  // here), but must NOT print as customer-visible line items. This matches the
+  // `HIDDEN_ROWS_INCLUDED` = "Dolda rader ingår i totalen" warning intent (AC1 / Task 2.2 —
+  // "HIDDEN rows excluded"). A hidden row's label/description/prices must never leak to the PDF.
+  const visibleLines = vm.lines.filter((line) => !line.isHidden);
   cursor.text("Rader", { size: SUBHEADING_SIZE, bold: true });
-  if (vm.lines.length === 0) {
+  if (visibleLines.length === 0) {
     cursor.text("Inga rader i denna version.");
   } else {
-    for (const line of vm.lines) {
+    for (const line of visibleLines) {
       const label = line.label ?? line.description ?? "—";
       const tillval = line.isOptional ? " (tillval)" : "";
       const qty = line.quantity !== null ? `${line.quantity} ${line.unit ?? ""}`.trim() : "";
