@@ -111,8 +111,15 @@ export const createNewQuoteVersion = defineCommand<
   auditFields: (_ctx, result) => ({ targetId: result.targetId }),
 });
 
-/** Extract the new-version RPC result (row array or single object) into a typed shape. */
-function extractNewVersionResult(
+/**
+ * Extract the new-version RPC result (row array or single object) into a typed shape.
+ *
+ * Exported for the fast-gate unit suite: the raw pg / PostgREST layer can return
+ * `version_number` (a bigint) as a STRING and the result as either a single object or a
+ * one-row array, so this coercion/normalization is pure branch logic worth pinning WITHOUT a
+ * database (the DB-backed INT suite skips when the local stack is unreachable).
+ */
+export function extractNewVersionResult(
   data: unknown,
 ): { quoteVersionId: string; versionNumber: number } | null {
   const row = Array.isArray(data) ? data[0] : data;
