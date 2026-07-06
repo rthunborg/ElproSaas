@@ -5,10 +5,10 @@ epic_num: 6
 story_num: 5
 branch: epic/6-quote-versions-pdf-and-lifecycle
 status: in-progress
-updated_at: "2026-07-06T14:31:21Z"
+updated_at: "2026-07-06T14:44:21Z"
 started_at: "2026-07-06T14:20:35Z"
 completed_at: null
-active_seconds: 646
+active_seconds: 1425
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: true
@@ -20,14 +20,14 @@ tea_selected: [atdd, automate]
 tea_rationale: "New-version creation is a tenant-scoped Postgres RPC (ADR-A009) writing money/VAT/ROT snapshot data and lifecycle/audit events; explicit High Security/RLS + High Money/Tax impact with required RLS negatives and golden v1/v2 comparison tests"
 epic_story_count: 5
 stories_after_in_epic: 0
-completed_phases: [0, 1, 2, 3]
+completed_phases: [0, 1, 2, 3, 4]
 code_review_iterations: 0
 code_review_loop_done: false
 hitl_halt: null
 external_review_iterations: 0
 convergence_unverified: false
 story_trace: null
-commits: [2dfa1af]
+commits: [2dfa1af, 705b49c]
 phase8_steps:
   trace_gate: null
   nfr: null
