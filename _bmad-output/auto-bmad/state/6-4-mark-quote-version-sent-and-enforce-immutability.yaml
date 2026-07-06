@@ -5,10 +5,10 @@ epic_num: 6
 story_num: 4
 branch: epic/6-quote-versions-pdf-and-lifecycle
 status: in-progress
-updated_at: "2026-07-06T10:34:31Z"
+updated_at: "2026-07-06T10:39:17Z"
 started_at: "2026-07-06T09:36:03Z"
 completed_at: null
-active_seconds: 3501
+active_seconds: 3778
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -20,14 +20,14 @@ tea_selected: [atdd, automate]
 tea_rationale: "DB-level immutability enforcement (triggers/constraints rejecting mutation of sent versions) plus tenant RLS/authorization on a lifecycle command locking an irreversible customer-facing money/quote commitment (R-605)"
 epic_story_count: 5
 stories_after_in_epic: 1
-completed_phases: [0, 1, 2, 3, 4, 5]
+completed_phases: [0, 1, 2, 3, 4, 5, 6]
 code_review_iterations: 0
 code_review_loop_done: false
 hitl_halt: null
 external_review_iterations: 0
 convergence_unverified: false
 story_trace: null
-commits: [28ee153, a73ecad, 36eebef]
+commits: [28ee153, a73ecad, 36eebef, 29b23a6]
 phase8_steps:
   trace_gate: null
   nfr: null
