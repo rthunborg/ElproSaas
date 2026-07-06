@@ -5,10 +5,10 @@ epic_num: 6
 story_num: null
 branch: epic/6-quote-versions-pdf-and-lifecycle
 status: in-progress
-updated_at: "2026-07-06T15:26:00Z"
+updated_at: "2026-07-06T16:06:35Z"
 started_at: "2026-07-05T18:20:38Z"
 completed_at: null
-active_seconds: 36537
+active_seconds: 38843
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -20,23 +20,23 @@ tea_selected: []
 tea_rationale: null
 epic_story_count: 5
 stories_after_in_epic: null
-completed_phases: [0, 1, 2]
-code_review_iterations: 0
-code_review_loop_done: false
-hitl_halt: null
+completed_phases: [0, 1, 2, 5, 7, 81]
+code_review_iterations: 1
+code_review_loop_done: true
+hitl_halt: "auto-continued (epic — no halt)"
 external_review_iterations: 0
 convergence_unverified: false
 story_trace: null
 commits: []
 phase8_steps:
-  trace_gate: null
-  nfr: null
-  test_review: null
+  trace_gate: done
+  nfr: done
+  test_review: done
   project_context: null
   reconcile: null
   archive: null
   retro: null
-gate_decision: null
+gate_decision: PASS
 gate_iterations: 0
 deferred_work_archived: 0
 pr_url: null
@@ -52,17 +52,20 @@ blockers: []
 overrides: {}
 constraints: []
 epic_slug: quote-versions-pdf-and-lifecycle
-active_story: 6-5-new-quote-version-after-customer-visible-changes
+active_story: null
 stories_landed:
   - 6-1-quote-snapshot-schema-and-server-side-version-creation
   - 6-2-draft-quote-version-review-and-timeline-ux
   - 6-3-quote-pdf-generation-from-snapshot
   - 6-4-mark-quote-version-sent-and-enforce-immutability
+  - 6-5-new-quote-version-after-customer-visible-changes
 auto_decisions:
   - "Allocated quote number is never threaded into the frozen composite snapshot value [Med] -> defer: raw integer quote_number is persisted on the row (the persisted truth); Â§24 display format already an open logged owner question; threading into the frozen JSON is a later 6.x follow-up (Tier A, 6-1-quote-snapshot-schema-and-server-side-version-creation)"
   - "Lifecycle-header customer name prefers the LIVE customers join over the frozen snapshot [Low] -> fix: keep the live-first fallback (header legitimately shows current customer identity per ux Â§6) but correct the misleading read.ts comment to state the header name is the live own-tenant display while money/VAT/totals stay snapshot-verbatim (Tier A, 6-2-draft-quote-version-review-and-timeline-ux)"
   - "Hidden rows rendered as normal PDF line items [Med] -> fix: exclude line.isHidden rows from the render loop in src/server/quote-pdf/render.ts (they still count toward the frozen totals, matching the HIDDEN_ROWS_INCLUDED warning intent); add the hidden row's label to the golden mustNotAppear for rot-with-tillval-hidden-and-attachments (Tier A, 6-3-quote-pdf-generation-from-snapshot)"
   - "Concurrent 'Skapa ny version' clicks can leave two live drafts (only the first supersedes the sent v1) [Low] -> dismiss: AC-compliant (single superseded sent commitment, deterministic currentCommitmentVersion resolution, disable-on-submit already guards the double-click); revisit only if the owner's quote-correction policy dictates single-active-draft (Tier A, 6-5-new-quote-version-after-customer-visible-changes)"
+  - "Correction + PDF affordances render on every non-draft version incl. terminal states [Med] -> defer: Epic-7 acceptance-boundary hardening — gate both affordances (command + UI) to draft/sent and never accepted when the acceptance flow lands; harmless in Phase A (immutable snapshots, exempt columns, accepted unreachable) (E_review, epic-6)"
+  - "evaluateSendGate threads signOff then voids it [Low] -> dismiss: keep the inert plumbing as the documented future-real-customer sign-off seam per the 2026-07-03 demo-data-only owner decision; no security consequence (E_review, epic-6)"
 uat_items:
   - "[6-1-quote-snapshot-schema-and-server-side-version-creation] No manual UAT applicable at this state — backend schema + server-command foundation slice (six tenant-owned tables, snapshot builder, create RPC/command); no server action/API/UI surface yet (wiring lands in 6.2/6.3/6.4); DB mechanics covered by automated integration/RLS suites"
   - "[6-2-draft-quote-version-review-and-timeline-ux] Setup (once): sign in to the running app (demo Vercel deploy as rasmus.thunborg@enhancior.se, or pnpm dev + local Supabase as seeded adminA); need a quote with a SENT and a DRAFT version — if none, open a ready calculation and use 'Skapa offert → Skapa offertversion' (6.1) to mint one; local E2E fixture seeds SENT v1 + DRAFT v2 under 'Acme El AB'"
@@ -121,3 +124,18 @@ uat_items:
   - "[6-4-mark-quote-version-sent-and-enforce-immutability] (SQL) UPDATE status = 'draft' on a sent version → rejected (QV409, no reversal); UPDATE status = 'accepted' → succeeds (sanctioned forward transition)"
   - "[6-4-mark-quote-version-sent-and-enforce-immutability] (SQL) UPDATE or DELETE a quote_events row → rejected by the append-only trigger"
   - "[6-4-mark-quote-version-sent-and-enforce-immutability] As tenant A's admin, open tenant B's /quotes/<quoteId> URL → quote not resolved (RLS, no existence leak), no mark-sent affordance reachable"
+  - "[6-5-new-quote-version-after-customer-visible-changes] On a SENT version's read-only view → 'Skapa ny version' is visible and ENABLED (no longer the greyed placeholder), keyboard-focusable with visible ring"
+  - "[6-5-new-quote-version-after-customer-visible-changes] Click 'Skapa ny version' on the sent version → new DRAFT created and you navigate to its /versions/<newId> page rendering the editable draft branch"
+  - "[6-5-new-quote-version-after-customer-visible-changes] New draft shows TEXT badge 'Utkast' and heading 'Version 2' (increments; not a new quote)"
+  - "[6-5-new-quote-version-after-customer-visible-changes] Compare Offertnummer on v1 vs the new draft → IDENTICAL (shared per-quote number); only version number differs"
+  - "[6-5-new-quote-version-after-customer-visible-changes] Re-open v1 after v2 exists → v1's full frozen snapshot renders unchanged and read-only"
+  - "[6-5-new-quote-version-after-customer-visible-changes] Edit the source calculation's pricing, create a new version from sent v1, open both → v1 shows OLD totals, new draft captures the NEW re-captured values"
+  - "[6-5-new-quote-version-after-customer-visible-changes] After v2 creation, v1's timeline badge reads 'Ersatt' (superseded) as TEXT"
+  - "[6-5-new-quote-version-after-customer-visible-changes] 'Nuvarande åtagande' header names the latest resolved version + status (e.g. 'Version 2 (Utkast)') — unambiguous with multiple versions"
+  - "[6-5-new-quote-version-after-customer-visible-changes] Timeline lists every version as keyboard-navigable 'Version N' entries with TEXT badges; clicking navigates"
+  - "[6-5-new-quote-version-after-customer-visible-changes] v1's 'Händelser' log lists lifecycle events as text (Skapad, Skickad, Ersatt), read-only — v2 creation APPENDED an Ersatt event, mutated nothing"
+  - "[6-5-new-quote-version-after-customer-visible-changes] v2's 'Händelser' log shows its own 'Skapad' event, distinct from v1's"
+  - "[6-5-new-quote-version-after-customer-visible-changes] A DRAFT version shows the editor and NO 'Skapa ny version' button — the affordance exists only on non-draft versions"
+  - "[6-5-new-quote-version-after-customer-visible-changes] Double-click the new-version button rapidly → disables while pending ('Skapar…'), lands on a single new draft; server errors show a generic role=alert banner"
+  - "[6-5-new-quote-version-after-customer-visible-changes] NOTE: the standalone rejected/expired lifecycle command has NO UI affordance at this state (command/INT-only) — excluded from manual UAT; Epic 7 acceptance flow correctly absent"
+integration_review_done: true

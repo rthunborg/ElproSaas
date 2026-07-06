@@ -28,3 +28,9 @@
 ## Story 6-5-new-quote-version-after-customer-visible-changes
 - [Phase 5 â€” dev-story] 6.1 execute-body snapshot sequence extracted into shared buildFreshQuoteSnapshot helper so 6.1 + 6.5 version-creation commands share one snapshot path (ADR-A009 anti-fork) â€” future quote commands must use it, never re-inline.
 - [Phase 5 â€” dev-story] Pre-authored ATDD E2E testids didn't match the shipped 6.2 UI conventions (quote-timeline-item / quote-current-commitment) â€” adapt scaffolds to real testids at green time rather than adding parallel testids.
+
+## Story epic-6-gates
+- [Phase 8 â€” trace gate] PASS (P0 100%, P1 ~92%, overall ~97%). R-610 demo-data-only tax/terms accept remains a live post-MVP trigger â€” re-score to blocker + reinstate the owner/accounting sign-off session immediately if real-customer use is proposed.
+- [Phase 8 â€” trace gate] sprint-status epic-6 shows in-progress while all five stories are review â€” align at epic close (E_final batch flip handles it).
+- [Phase 8 â€” NFR] The Epic-5 retro's R-617 hard mechanism worked: the blocking pnpm-audit CI gate landed and closed a CONCERNS carried since Epic 2 â€” retro escalation -> hard mechanism -> resolution is a repeatable process win. Sole remaining NFR CONCERNS: no line-coverage reporter (LOW).
+- [Phase 8 â€” test-review] Suite score 96/100 (A). Two Medium hygiene items for a later pass: quotes.e2e mutates a shared seeded draft without restore; 7 integration/RLS files exceed the 300-line cap.
