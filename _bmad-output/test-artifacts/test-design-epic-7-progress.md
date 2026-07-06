@@ -5,8 +5,9 @@ stepsCompleted:
   - step-03-risk-and-testability
   - step-04-coverage-plan
   - step-05-generate-output
-lastStep: step-05-generate-output
-lastSaved: '2026-07-05'
+  - edit-01-post-epic-6-reconcile
+lastStep: edit-01-post-epic-6-reconcile
+lastSaved: '2026-07-06'
 workflowType: testarch-test-design
 designLevel: epic
 epicNum: 7
@@ -41,3 +42,6 @@ P0/P1/P2/P3 coverage matrix across UNIT/INT/RLS/E2E/GOLDEN/DOCS, execution strat
 
 ## Step 5 — Generate Output
 Deliverable written to `_bmad-output/test-artifacts/test-design-epic-7.md` using the epic-level template + project house style (risk register with scored P×I risks, coverage plan by level with P0-P3 + risk links, execution strategy, quality gates, entry/exit criteria, interworking & regression), matched to the depth of test-design-epic-6.md and test-design-epic-8.md. Validated against the epic-level checklist. CLI sessions: none opened (nothing to clean up). Temp artifacts: none outside test_artifacts. NOT committed — orchestrator owns git.
+
+## Edit 1 (2026-07-06) — Post-Epic-6 Reconcile
+Edit mode (steps-e). Trigger: Epic 6 landed 2026-07-06 (PR #26; stories 6.1-6.5 done, retro done) — one day after this design was authored with Epic 6 treated as a pending dependency. Evidence gathered in-repo: frozen status CHECK `draft/sent/accepted/rejected/expired/superseded` (20260705120000_quote_version_model.sql); `quote_versions_sent_lock` trigger + irreversible non-draft status + `mark_quote_version_sent` SECURITY INVOKER RPC with explicit timestamp (20260707120000_quote_version_sent_lock.sql); `QUOTE_VERSION_LOCKED` + reserved `COMMAND_CONFLICT` live in command-errors.ts; `quote_versions`/`quote_events`/etc. enrolled in TENANT_TABLES; nfr-assessment-epic-6: `pnpm audit --audit-level=high` blocking CI gate RESOLVED (R-617), coverage reporter = single remaining standing CONCERNS. Edits applied to test-design-epic-7.md: (1) sent-eligibility scenarios promoted from planning depth to FULL depth — acceptance only on `status='sent'`, negatives enumerate draft/accepted/rejected/expired/superseded/cross-tenant (R-706 gate CLOSED; 7.1-INT-02 count 3-4 → 4-5); (2) `quote_events` hedge resolved — EXISTS from Epic 6, reused not recreated; Epic 7's new tables are exactly quote_acceptances/jobs/job_events (R-701, 7.1-INT-01, 7.1-RLS-02, exit criteria, mitigation, interworking updated); (3) R-719 updated to half-resolved (audit gate closed in Epic 6; coverage reporter remains, LOW); (4) entry criteria: Epic 6 + standing-NFR checkboxes checked with verification evidence; (5) dependency-posture table/narrative, testability note 6 (+ new drift-STOP: an Epic 7 story modifying the sent-lock trigger), fixtures note (drive real mark-sent RPC, no synthetic row), open assumption 1, approval comments all reconciled. NOT committed — orchestrator/user owns git.
