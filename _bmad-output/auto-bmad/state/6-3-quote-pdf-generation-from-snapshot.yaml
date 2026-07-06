@@ -5,10 +5,10 @@ epic_num: 6
 story_num: 3
 branch: epic/6-quote-versions-pdf-and-lifecycle
 status: in-progress
-updated_at: "2026-07-05T21:00:52Z"
+updated_at: "2026-07-06T07:59:26Z"
 started_at: "2026-07-05T20:49:41Z"
 completed_at: null
-active_seconds: 671
+active_seconds: 1237
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -20,14 +20,14 @@ tea_selected: [atdd, automate]
 tea_rationale: "Security-sensitive private PDF/file access (tenant-owned signed access, cross-tenant negatives, R-611) plus money/tax integrity: PDF sourced only from immutable snapshot totals/VAT/terms, no live-data leakage (R-606, R-607)"
 epic_story_count: 5
 stories_after_in_epic: 2
-completed_phases: [0, 1, 2, 3]
+completed_phases: [0, 1, 2, 3, 4]
 code_review_iterations: 0
 code_review_loop_done: false
 hitl_halt: null
 external_review_iterations: 0
 convergence_unverified: false
 story_trace: null
-commits: [1ed4542]
+commits: [1ed4542, 68d7676]
 phase8_steps:
   trace_gate: null
   nfr: null

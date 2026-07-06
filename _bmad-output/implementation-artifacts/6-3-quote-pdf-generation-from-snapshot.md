@@ -172,10 +172,32 @@ Claude Opus 4.8 (1M) — auto-bmad create-story delegate.
 
 ### Completion Notes List
 
+- 2026-07-06 — ATDD red-phase scaffolds authored (`bmad-testarch-atdd`). Seven acceptance
+  test files + an ATDD checklist cover AC1-3 mapped to the epic test-design ids
+  (6.3-UNIT-01, 6.3-GOLDEN-01, 6.3-INT-01/02/03/04, 6.3-E2E-01/02). All scaffolds are
+  RED-phase (visible SKIP): `node --test` unit/golden use `{ skip }` with `declare`
+  placeholders for the not-yet-existent `buildQuotePdfViewModel`/renderer; Vitest INT +
+  Playwright E2E use whole-suite `describe.skip`/`test.describe.skip` (the `generateQuotePdf`
+  command + six-state PDF panel do not exist yet). Verified: node:test fast gate = 8 tests /
+  8 skipped / 0 fail; `tsc --noEmit` = 0 errors on all seven files. Green-phase obligations
+  (renderer pin + text-extractor devDependency, `tests/support/pdf-text.ts`, the
+  `quote-pdf-source.json` fixture pack, additive `adminInsertQuoteVersion` pdf_status cols +
+  global-setup generated/failed seed) are enumerated in the checklist for dev-story.
+
 ### File List
+
+- `tests/unit/lib/quote-pdf/view-model.test.ts` (NEW — 6.3-UNIT-01 red-phase scaffold)
+- `tests/unit/lib/quote-pdf/pdf-text-golden.test.ts` (NEW — 6.3-GOLDEN-01 red-phase scaffold)
+- `tests/integration/commands/generate-quote-pdf-source-of-truth.int.test.ts` (NEW — 6.3-INT-01)
+- `tests/integration/commands/generate-quote-pdf-storage-privacy.int.test.ts` (NEW — 6.3-INT-02)
+- `tests/integration/commands/generate-quote-pdf-determinism.int.test.ts` (NEW — 6.3-INT-03)
+- `tests/integration/commands/generate-quote-pdf-retry-consistency.int.test.ts` (NEW — 6.3-INT-04)
+- `tests/e2e/quotes/quote-pdf-states.e2e.spec.ts` (NEW — 6.3-E2E-01/02 red-phase scaffold)
+- `_bmad-output/test-artifacts/atdd-checklist-6-3-quote-pdf-generation-from-snapshot.md` (NEW)
 
 ### Change Log
 
+- 2026-07-06 — ATDD red-phase acceptance scaffolds + checklist added (see Completion Notes).
 - 2026-07-05 — Story 6.3 context created: quote PDF generation from the immutable snapshot. Additive `pdf_status` schema column + a pure `QuotePdfViewModel` (snapshot-only, leakage-by-construction) + a pinned deterministic Node PDF renderer + a `generateQuotePdf` command that stores the PDF privately through the 8.1 file foundation (private bucket, server-derived path, files/file_links `quote_version`/`quote_pdf`, signed access) + the six-state PDF UX. Key surfaced constraints: PDF reads ONLY the snapshot (R-606 canonical negative); determinism H3 (pinned renderer/fonts/locale, injected timestamp — R-612); 8.1 was metadata-first so 6.3 breaks new ground writing object BYTES on the RLS client (real upload path is Story 8.2); a `pdf_status` column is required because file-presence alone cannot express generating/failed; renderer add is a GATED Stop Condition (avoid a headless-browser binary); demo-data-only non-final/requiresSignOff framing on the PDF. Status → ready-for-dev.
 
 ### Review Findings

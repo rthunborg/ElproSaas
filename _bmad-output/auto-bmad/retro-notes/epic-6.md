@@ -12,3 +12,4 @@
 ## Story 6-3-quote-pdf-generation-from-snapshot
 - [Phase 3 â€” create-story] 6.3 is materially heavier than the sibling UI stories: additive pdf_status migration, gated renderer dependency, and the FIRST story to write real object bytes to storage (8.1 was metadata-first, 8.2 never landed) â€” the epic's '6.3 just reuses 8.1' assumption understated this.
 - [Phase 3 â€” create-story] Forward obligation for 6.4: the sent-immutability trigger MUST exempt pdf_status/pdf_file_id/pdf_generated_at (6.3 keeps them mutable for retry on sent versions).
+- [Phase 4 â€” ATDD] Renderer selection is a live Stop Condition for dev-story: a headless-browser PDF engine (heavy binary) requires human approval â€” scaffolds assume a lightweight text-emitting Node lib (pdf-lib/pdfkit) so the text-extraction golden stays viable.
