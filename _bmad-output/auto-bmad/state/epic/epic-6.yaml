@@ -1,0 +1,143 @@
+# auto-bmad per-story state — written by scripts/state_update.py (full stable schema;
+# see references/state-and-resume.md). Prose belongs in reports/{key}.md, not here.
+story_key: epic-6
+epic_num: 6
+story_num: null
+branch: epic/6-quote-versions-pdf-and-lifecycle
+status: done
+updated_at: "2026-07-06T16:40:48Z"
+started_at: "2026-07-05T18:20:38Z"
+completed_at: "2026-07-06T16:40:48Z"
+active_seconds: 40073
+timing_anchor: null
+is_first_in_epic: false
+is_last_in_epic: false
+needs_project_context_bootstrap: false
+git_mode: remote
+base_branch: main
+tea_risk: null
+tea_selected: []
+tea_rationale: null
+epic_story_count: 5
+stories_after_in_epic: null
+completed_phases: [0, 1, 2, 5, 7, 81, 82]
+code_review_iterations: 1
+code_review_loop_done: true
+hitl_halt: "auto-continued (epic — no halt)"
+external_review_iterations: 0
+convergence_unverified: false
+story_trace: null
+commits: []
+phase8_steps:
+  trace_gate: done
+  nfr: done
+  test_review: done
+  project_context: done
+  reconcile: done
+  archive: done
+  retro: done
+gate_decision: PASS
+gate_iterations: 0
+deferred_work_archived: 4
+pr_url: "https://github.com/rthunborg/ElproSaas/pull/26"
+ci_run_url: "https://github.com/rthunborg/ElproSaas/actions/runs/28807043108"
+ci_status: passed
+pr_merged: false
+merge_method: null
+merge_commit: null
+branch_deleted: false
+open_questions: []
+deferred_work: []
+blockers: []
+overrides: {}
+constraints: []
+epic_slug: quote-versions-pdf-and-lifecycle
+active_story: null
+stories_landed:
+  - 6-1-quote-snapshot-schema-and-server-side-version-creation
+  - 6-2-draft-quote-version-review-and-timeline-ux
+  - 6-3-quote-pdf-generation-from-snapshot
+  - 6-4-mark-quote-version-sent-and-enforce-immutability
+  - 6-5-new-quote-version-after-customer-visible-changes
+auto_decisions:
+  - "Allocated quote number is never threaded into the frozen composite snapshot value [Med] -> defer: raw integer quote_number is persisted on the row (the persisted truth); Â§24 display format already an open logged owner question; threading into the frozen JSON is a later 6.x follow-up (Tier A, 6-1-quote-snapshot-schema-and-server-side-version-creation)"
+  - "Lifecycle-header customer name prefers the LIVE customers join over the frozen snapshot [Low] -> fix: keep the live-first fallback (header legitimately shows current customer identity per ux Â§6) but correct the misleading read.ts comment to state the header name is the live own-tenant display while money/VAT/totals stay snapshot-verbatim (Tier A, 6-2-draft-quote-version-review-and-timeline-ux)"
+  - "Hidden rows rendered as normal PDF line items [Med] -> fix: exclude line.isHidden rows from the render loop in src/server/quote-pdf/render.ts (they still count toward the frozen totals, matching the HIDDEN_ROWS_INCLUDED warning intent); add the hidden row's label to the golden mustNotAppear for rot-with-tillval-hidden-and-attachments (Tier A, 6-3-quote-pdf-generation-from-snapshot)"
+  - "Concurrent 'Skapa ny version' clicks can leave two live drafts (only the first supersedes the sent v1) [Low] -> dismiss: AC-compliant (single superseded sent commitment, deterministic currentCommitmentVersion resolution, disable-on-submit already guards the double-click); revisit only if the owner's quote-correction policy dictates single-active-draft (Tier A, 6-5-new-quote-version-after-customer-visible-changes)"
+  - "Correction + PDF affordances render on every non-draft version incl. terminal states [Med] -> defer: Epic-7 acceptance-boundary hardening — gate both affordances (command + UI) to draft/sent and never accepted when the acceptance flow lands; harmless in Phase A (immutable snapshots, exempt columns, accepted unreachable) (E_review, epic-6)"
+  - "evaluateSendGate threads signOff then voids it [Low] -> dismiss: keep the inert plumbing as the documented future-real-customer sign-off seam per the 2026-07-03 demo-data-only owner decision; no security consequence (E_review, epic-6)"
+uat_items:
+  - "[6-1-quote-snapshot-schema-and-server-side-version-creation] No manual UAT applicable at this state — backend schema + server-command foundation slice (six tenant-owned tables, snapshot builder, create RPC/command); no server action/API/UI surface yet (wiring lands in 6.2/6.3/6.4); DB mechanics covered by automated integration/RLS suites"
+  - "[6-2-draft-quote-version-review-and-timeline-ux] Setup (once): sign in to the running app (demo Vercel deploy as rasmus.thunborg@enhancior.se, or pnpm dev + local Supabase as seeded adminA); need a quote with a SENT and a DRAFT version — if none, open a ready calculation and use 'Skapa offert → Skapa offertversion' (6.1) to mint one; local E2E fixture seeds SENT v1 + DRAFT v2 under 'Acme El AB'"
+  - "[6-2-draft-quote-version-review-and-timeline-ux] Open /quotes (Offerter) → active quotes listed with customer name, 'Offert #<number>' (or 'Utan nummer'), 'N versioner', text status badge; empty tenant shows 'Inga offerter ännu…'"
+  - "[6-2-draft-quote-version-review-and-timeline-ux] Confirm left nav still has exactly the seven existing items — only the pre-existing 'Offerter' entry links here"
+  - "[6-2-draft-quote-version-review-and-timeline-ux] Click a quote row → /quotes/<quoteId> renders the quote detail (no 404/error)"
+  - "[6-2-draft-quote-version-review-and-timeline-ux] Detail header shows customer-name heading, 'Kund:', 'Senaste versionens status:' (Swedish word), 'Nuvarande åtagande: Version N (status)', and a 'Källkalkyl: Öppna kalkyl' link"
+  - "[6-2-draft-quote-version-review-and-timeline-ux] Click 'Öppna kalkyl' → navigates to /calculations/<id> (source calculation opens)"
+  - "[6-2-draft-quote-version-review-and-timeline-ux] 'Versioner' timeline lists every version as 'Version N' with status badge, ascending order, selected version visually highlighted"
+  - "[6-2-draft-quote-version-review-and-timeline-ux] Read badges color-blind (greyscale) → status legible via TEXT words (Utkast, Skickad, Accepterad, Avvisad, Utgången, Ersatt), never color alone"
+  - "[6-2-draft-quote-version-review-and-timeline-ux] Snapshot parties block shows 'Kund:', 'Anläggning:', 'Kontakt:', 'Offertnummer:', 'Giltig till:' from the frozen values"
+  - "[6-2-draft-quote-version-review-and-timeline-ux] Snapshot line table renders Rad / Antal / À-pris / Netto as 'X,XX kr' with NO cost, margin, or internal-note column anywhere"
+  - "[6-2-draft-quote-version-review-and-timeline-ux] Totals block shows Grundbelopp (netto) / Tillval (valda) / Moms / Att betala (inkl. moms) + note 'Belopp visas från den frysta offertversionen.' — values must NOT change if the source calculation's pricing is later edited"
+  - "[6-2-draft-quote-version-review-and-timeline-ux] When the version requires sign-off → amber note states tax/VAT assumptions are preliminära och kräver godkännande (framed non-final)"
+  - "[6-2-draft-quote-version-review-and-timeline-ux] Snapshot also shows: Villkor section ('Villkoren är inte godkända ännu.' when unapproved), 'Bifogade filer' ('Inga bifogade filer.' when none), PDF section 'Ingen PDF genererad ännu.', Acceptans section exactly 'Ej accepterad ännu. Acceptans hanteras i Epic 7.' with no accept button"
+  - "[6-2-draft-quote-version-review-and-timeline-ux] 'Händelser' list shows lifecycle events (e.g. 'Skapad') with dates or 'Inga händelser.' — read-only, no add/edit control"
+  - "[6-2-draft-quote-version-review-and-timeline-ux] Select a DRAFT version → 'Redigera utkast' form (Introtext, Kundnoteringar, Giltig till, Visningsläge) + persistent amber sent-lock warning"
+  - "[6-2-draft-quote-version-review-and-timeline-ux] Change Introtext and 'Spara utkast' → 'Utkastet sparades.' and the value persists on reload of that version"
+  - "[6-2-draft-quote-version-review-and-timeline-ux] After a draft save, re-open the SENT version → its snapshot unchanged (edit touched only the draft)"
+  - "[6-2-draft-quote-version-review-and-timeline-ux] Select a SENT/Accepted version → NO edit inputs; read-only notice 'Den här versionen är Skickad och kan inte redigeras…' + disabled 'Skapa ny version' button (flow itself is 6.5)"
+  - "[6-2-draft-quote-version-review-and-timeline-ux] Direct URL /quotes/<quoteId>/versions/<versionId> → same detail with that version selected (aria-current) and correct editable vs read-only state"
+  - "[6-2-draft-quote-version-review-and-timeline-ux] Keyboard-tab the timeline → items focusable with visible ring, Enter selects, selected item aria-current"
+  - "[6-2-draft-quote-version-review-and-timeline-ux] /quotes/<random-uuid> → generic 'Offerten hittades inte / …inte åtkomst…' not-found (no cross-tenant existence leak) + 'Tillbaka till offerter' link"
+  - "[6-2-draft-quote-version-review-and-timeline-ux] With another tenant's real quote id → identical generic not-found (no leak)"
+  - "[6-2-draft-quote-version-review-and-timeline-ux] Confirm no email-send, customer-portal, or public acceptance link/button anywhere — the only acceptance surface is the Epic-7 placeholder text"
+  - "[6-3-quote-pdf-generation-from-snapshot] On a version with no PDF → PDF panel shows text status 'Ingen PDF genererad ännu' + 'Generera PDF' button (text, not color alone)"
+  - "[6-3-quote-pdf-generation-from-snapshot] Click 'Generera PDF' → 'Genererar…'/'PDF genereras…' in-flight status, then 'PDF genererad (<date>)' with Förhandsgranska + Ladda ner affordances, no page error"
+  - "[6-3-quote-pdf-generation-from-snapshot] 'Förhandsgranska' → PDF opens via a short-lived SIGNED URL (token/expiry present; not a public/permanent object path)"
+  - "[6-3-quote-pdf-generation-from-snapshot] 'Ladda ner PDF' reachable and operable by keyboard alone (Tab + Enter) → PDF downloads"
+  - "[6-3-quote-pdf-generation-from-snapshot] Read the PDF → company identity, customer/facility/contact display names, quote number, validity, intro/notes/terms, lines, totals — and NO personnummer, NO unit cost, NO margin/markup, NO internal note anywhere"
+  - "[6-3-quote-pdf-generation-from-snapshot] PDF money/VAT/totals are the exact snapshot values in kronor and match the on-screen version totals (no recompute/disagreement)"
+  - "[6-3-quote-pdf-generation-from-snapshot] Version with a HIDDEN line row → generate PDF → hidden row's label/description/prices absent from the line list, totals still include it (unchanged)"
+  - "[6-3-quote-pdf-generation-from-snapshot] Version with an optional/tillval row → PDF renders it clearly marked '(tillval)'"
+  - "[6-3-quote-pdf-generation-from-snapshot] Version with requires_sign_off=true → PDF prominently carries the non-final 'estimate/requires sign-off' framing on ROT/grön/VAT assumptions — never presented as legally final"
+  - "[6-3-quote-pdf-generation-from-snapshot] SOURCE-OF-TRUTH: after generating, edit mutable data (CRM customer name, company_settings, a price) → regenerate/preview → PDF content UNCHANGED (frozen snapshot values, not the edits)"
+  - "[6-3-quote-pdf-generation-from-snapshot] DETERMINISM: regenerate from the same version → extracted customer-visible content identical run-to-run"
+  - "[6-3-quote-pdf-generation-from-snapshot] RETRY: on a 'PDF-generering misslyckades' (failed) version → 'Försök igen' re-runs from the same frozen snapshot; on success panel moves to 'PDF genererad'; no customer-visible value altered"
+  - "[6-3-quote-pdf-generation-from-snapshot] FAILED state shows text status + keyboard-operable 'Försök igen' (accessible name, not color-only)"
+  - "[6-3-quote-pdf-generation-from-snapshot] GENERATING state: in-flight 'PDF genereras…' announced via a status region; action button disabled against double-submit"
+  - "[6-3-quote-pdf-generation-from-snapshot] A11Y sweep of the PDF panel → every control reachable by Tab with visible focus ring + accessible name; render state exposed as text"
+  - "[6-3-quote-pdf-generation-from-snapshot] CROSS-TENANT/ANON: as another tenant's admin (or anon), attempt to preview/download tenant A's PDF → generic access-denied, no bytes/metadata, no public URL exists (needs two seeded tenants)"
+  - "[6-3-quote-pdf-generation-from-snapshot] SUBROUTE PARITY: generate/retry from /quotes/<id>/versions/<vid> then view /quotes/<id> → both routes show the updated PDF status (neither stale)"
+  - "[6-4-mark-quote-version-sent-and-enforce-immutability] Signed in as tenant_admin on /quotes/<quoteId> with a readiness-passing DRAFT selected → draft editor + 'Skicka offert' card with amber immutability note and enabled 'Markera som skickad' button"
+  - "[6-4-mark-quote-version-sent-and-enforce-immutability] Click 'Markera som skickad' → 'Skickar…' pending, then 'Offertversionen är markerad som skickad.' (role=status); after revalidation the read-only branch renders (editor + card gone)"
+  - "[6-4-mark-quote-version-sent-and-enforce-immutability] Read-only notice reads 'Den här versionen är Skickad och kan inte redigeras — kundens innehåll är låst. Skapa en ny version …' — rule explained as TEXT"
+  - "[6-4-mark-quote-version-sent-and-enforce-immutability] Status badge 'Skickad' (text, not color-only); 'Skapa ny version' present but DISABLED (6.5 not built)"
+  - "[6-4-mark-quote-version-sent-and-enforce-immutability] 'Händelser' now lists a Skickad/sent event with occurred-at timestamp"
+  - "[6-4-mark-quote-version-sent-and-enforce-immutability] Reload /quotes/<quoteId> after send → still read-only, no mark-sent button (server-side lock, not client state)"
+  - "[6-4-mark-quote-version-sent-and-enforce-immutability] Keyboard-tab the 'Skicka offert' card → button focusable with visible ring + accessible name"
+  - "[6-4-mark-quote-version-sent-and-enforce-immutability] On a readiness-BLOCKED draft, click 'Markera som skickad' → rejected with generic error banner (role=alert), version stays draft, no sent event (send gate blocks, no blocker detail leaked)"
+  - "[6-4-mark-quote-version-sent-and-enforce-immutability] On an already-sent/non-draft version → no 'Markera som skickad' button rendered at all (no re-send path)"
+  - "[6-4-mark-quote-version-sent-and-enforce-immutability] (SQL, local Supabase) UPDATE quote_versions SET base_total_ore = base_total_ore + 1 on a sent version → rejected with SQLSTATE QV409"
+  - "[6-4-mark-quote-version-sent-and-enforce-immutability] (SQL) UPDATE quote_versions SET intro_text = 'x' on a sent version → rejected (QV409); customer text frozen after send"
+  - "[6-4-mark-quote-version-sent-and-enforce-immutability] (SQL) UPDATE a sent version's quote_version_lines label AND INSERT a new line into it → both rejected by the child lock"
+  - "[6-4-mark-quote-version-sent-and-enforce-immutability] (SQL) UPDATE quote_versions SET pdf_status = 'pending' (or pdf_file_id/pdf_generated_at) on the SAME sent version → SUCCEEDS (exempt PDF render columns, 6.3 obligation)"
+  - "[6-4-mark-quote-version-sent-and-enforce-immutability] (SQL) UPDATE status = 'draft' on a sent version → rejected (QV409, no reversal); UPDATE status = 'accepted' → succeeds (sanctioned forward transition)"
+  - "[6-4-mark-quote-version-sent-and-enforce-immutability] (SQL) UPDATE or DELETE a quote_events row → rejected by the append-only trigger"
+  - "[6-4-mark-quote-version-sent-and-enforce-immutability] As tenant A's admin, open tenant B's /quotes/<quoteId> URL → quote not resolved (RLS, no existence leak), no mark-sent affordance reachable"
+  - "[6-5-new-quote-version-after-customer-visible-changes] On a SENT version's read-only view → 'Skapa ny version' is visible and ENABLED (no longer the greyed placeholder), keyboard-focusable with visible ring"
+  - "[6-5-new-quote-version-after-customer-visible-changes] Click 'Skapa ny version' on the sent version → new DRAFT created and you navigate to its /versions/<newId> page rendering the editable draft branch"
+  - "[6-5-new-quote-version-after-customer-visible-changes] New draft shows TEXT badge 'Utkast' and heading 'Version 2' (increments; not a new quote)"
+  - "[6-5-new-quote-version-after-customer-visible-changes] Compare Offertnummer on v1 vs the new draft → IDENTICAL (shared per-quote number); only version number differs"
+  - "[6-5-new-quote-version-after-customer-visible-changes] Re-open v1 after v2 exists → v1's full frozen snapshot renders unchanged and read-only"
+  - "[6-5-new-quote-version-after-customer-visible-changes] Edit the source calculation's pricing, create a new version from sent v1, open both → v1 shows OLD totals, new draft captures the NEW re-captured values"
+  - "[6-5-new-quote-version-after-customer-visible-changes] After v2 creation, v1's timeline badge reads 'Ersatt' (superseded) as TEXT"
+  - "[6-5-new-quote-version-after-customer-visible-changes] 'Nuvarande åtagande' header names the latest resolved version + status (e.g. 'Version 2 (Utkast)') — unambiguous with multiple versions"
+  - "[6-5-new-quote-version-after-customer-visible-changes] Timeline lists every version as keyboard-navigable 'Version N' entries with TEXT badges; clicking navigates"
+  - "[6-5-new-quote-version-after-customer-visible-changes] v1's 'Händelser' log lists lifecycle events as text (Skapad, Skickad, Ersatt), read-only — v2 creation APPENDED an Ersatt event, mutated nothing"
+  - "[6-5-new-quote-version-after-customer-visible-changes] v2's 'Händelser' log shows its own 'Skapad' event, distinct from v1's"
+  - "[6-5-new-quote-version-after-customer-visible-changes] A DRAFT version shows the editor and NO 'Skapa ny version' button — the affordance exists only on non-draft versions"
+  - "[6-5-new-quote-version-after-customer-visible-changes] Double-click the new-version button rapidly → disables while pending ('Skapar…'), lands on a single new draft; server errors show a generic role=alert banner"
+  - "[6-5-new-quote-version-after-customer-visible-changes] NOTE: the standalone rejected/expired lifecycle command has NO UI affordance at this state (command/INT-only) — excluded from manual UAT; Epic 7 acceptance flow correctly absent"
+integration_review_done: true
+planning_drift: "none (one detail-level estimation note absorbed in-epic: 6.3 was materially heavier than the '6.3 just reuses 8.1' scope note)"
+batch_flip_done: true

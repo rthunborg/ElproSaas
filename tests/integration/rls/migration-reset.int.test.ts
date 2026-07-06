@@ -149,6 +149,13 @@ describe("Migration reset green — tenant_foundation objects present (AC1 / R-0
     // scoped to `schemaname = 'public'`, so the `storage.objects` RLS policies added by
     // 8.1 (tenant_files_objects_{select,insert,update}_own) do NOT appear here — they
     // live in the `storage` schema and are covered by storage-object-isolation.rls.test.ts.
+    // Story 6.1 EXTENDS it again (NOT loosened) by the 18 new QUOTE policies:
+    // quote_events.{S,I,U} + quote_version_attachments.{S,I,U} +
+    // quote_version_lines.{S,I,U} + quote_versions.{S,I,U} + quotes.{S,I,U} +
+    // tenant_counters.{S,I,U} — SELECT/INSERT/UPDATE per table, NO DELETE (archive over
+    // hard delete; a tenant_counters row is upserted/incremented, never deleted). All six
+    // are MANY-rows-per-tenant collections. Placed alphabetically. The "no DELETE policy
+    // anywhere" assertion below still holds.
     expect(rows.map((r) => `${r.tablename}.${r.cmd}`).sort()).toEqual([
       "articles.INSERT",
       "articles.SELECT",
@@ -181,9 +188,27 @@ describe("Migration reset green — tenant_foundation objects present (AC1 / R-0
       "files.INSERT",
       "files.SELECT",
       "files.UPDATE",
+      "quote_events.INSERT",
+      "quote_events.SELECT",
+      "quote_events.UPDATE",
       "quote_terms.INSERT",
       "quote_terms.SELECT",
       "quote_terms.UPDATE",
+      "quote_version_attachments.INSERT",
+      "quote_version_attachments.SELECT",
+      "quote_version_attachments.UPDATE",
+      "quote_version_lines.INSERT",
+      "quote_version_lines.SELECT",
+      "quote_version_lines.UPDATE",
+      "quote_versions.INSERT",
+      "quote_versions.SELECT",
+      "quote_versions.UPDATE",
+      "quotes.INSERT",
+      "quotes.SELECT",
+      "quotes.UPDATE",
+      "tenant_counters.INSERT",
+      "tenant_counters.SELECT",
+      "tenant_counters.UPDATE",
       "tenant_memberships.SELECT",
       "tenants.SELECT",
       "work_roles.INSERT",
@@ -217,6 +242,12 @@ describe("Migration reset green — tenant_foundation objects present (AC1 / R-0
       "calculation_rows",
       "files",
       "file_links",
+      "tenant_counters",
+      "quotes",
+      "quote_versions",
+      "quote_version_lines",
+      "quote_version_attachments",
+      "quote_events",
     ];
     for (const t of crmSettingsAndPricingTables) {
       expect((cmdsByTable.get(t) ?? []).sort()).toEqual([
@@ -227,6 +258,92 @@ describe("Migration reset green — tenant_foundation objects present (AC1 / R-0
     }
     // No DELETE policy exists anywhere on the app path (archive/upsert over hard delete).
     expect(rows.some((r) => r.cmd === "DELETE")).toBe(false);
+  });
+
+  // Story 6.4 — the sent-immutability + append-only triggers + the mark-sent RPC land after
+  // reset. The exact POLICY enumeration above is UNCHANGED (6.4 adds no policy — the quote_events
+  // reconciliation is an append-only TRIGGER, not a policy/grant removal); this proves the new
+  // ENFORCEMENT objects exist so the below-UI immutability + the transaction boundary are present.
+  it("[P0] Story 6.4 sent-lock + append-only triggers + the mark_quote_version_sent RPC exist after reset", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
+    // The quote_versions sent-lock trigger + its child-lock triggers + the quote_events
+    // append-only trigger are present (BEFORE triggers on the frozen quote tables).
+    const trigRows = await adminQuery<{ tgname: string; relname: string }>(
+      `select t.tgname, c.relname
+         from pg_trigger t
+         join pg_class c on c.oid = t.tgrelid
+         join pg_namespace n on n.oid = c.relnamespace
+        where n.nspname = 'public'
+          and not t.tgisinternal
+          and t.tgname in (
+            'quote_versions_sent_lock',
+            'quote_version_lines_sent_lock',
+            'quote_version_attachments_sent_lock',
+            'quote_events_append_only'
+          )`,
+    );
+    expect(trigRows.map((r) => r.tgname).sort()).toEqual([
+      "quote_events_append_only",
+      "quote_version_attachments_sent_lock",
+      "quote_version_lines_sent_lock",
+      "quote_versions_sent_lock",
+    ]);
+
+    // The trigger functions + the narrow mark-sent RPC exist and are hardened (empty search_path).
+    const fnRows = await adminQuery<{
+      proname: string;
+      prosecdef: boolean;
+      proconfig: string[] | null;
+    }>(
+      `select proname, prosecdef, proconfig from pg_proc
+         where proname in (
+           'enforce_quote_version_sent_lock',
+           'enforce_quote_version_child_sent_lock',
+           'quote_events_block_mutation',
+           'mark_quote_version_sent'
+         )`,
+    );
+    expect(fnRows.map((r) => r.proname).sort()).toEqual([
+      "enforce_quote_version_child_sent_lock",
+      "enforce_quote_version_sent_lock",
+      "mark_quote_version_sent",
+      "quote_events_block_mutation",
+    ]);
+    for (const fn of fnRows) {
+      // All four are SECURITY INVOKER (ADR-A009 default — run under the caller's RLS, no
+      // service-role app path) with a fixed empty search_path (the DEFINER-fn hardening shape).
+      expect(fn.prosecdef).toBe(false);
+      assertSearchPathExactlyEmpty(fn.proname, fn.proconfig);
+    }
+  });
+
+  // Story 6.5 — the new-version + lifecycle-transition RPCs land after reset. This migration adds
+  // NO table (H4 untouched — the exact POLICY enumeration above is UNCHANGED, function-only); it
+  // proves the two new-version/lifecycle RPCs exist + are hardened so the below-command transaction
+  // boundary is present.
+  it("[P0] Story 6.5 create_new_quote_version + mark_quote_version_lifecycle RPCs exist after reset (hardened)", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
+    const fnRows = await adminQuery<{
+      proname: string;
+      prosecdef: boolean;
+      proconfig: string[] | null;
+    }>(
+      `select proname, prosecdef, proconfig from pg_proc
+         where proname in (
+           'create_new_quote_version',
+           'mark_quote_version_lifecycle'
+         )`,
+    );
+    expect(fnRows.map((r) => r.proname).sort()).toEqual([
+      "create_new_quote_version",
+      "mark_quote_version_lifecycle",
+    ]);
+    for (const fn of fnRows) {
+      // Both are SECURITY INVOKER (run under the caller's RLS — own-tenant only, no service-role
+      // app path) with a fixed empty search_path + schema-qualified refs (the 6.1/6.4 RPC shape).
+      expect(fn.prosecdef).toBe(false);
+      assertSearchPathExactlyEmpty(fn.proname, fn.proconfig);
+    }
   });
 });
 

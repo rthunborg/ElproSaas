@@ -1,0 +1,101 @@
+{
+  "_comment": "Story 6.1 GOLDEN fixture — anonymized SHAPE-ONLY quote-version snapshot pack. Every case is origin:new-expected (no anonymized Lovable quote oracle exists yet — NEVER fabricate an old-Lovable number). Keep the origin/note schema so an Epic-9 real Lovable delta lands without a code-shape change. NO real name/address/personnummer/orgnr/email/secret. Every öre value stays < 10 digits (< 1,000,000,000 öre) or it trips the pack-wide ORGNR/privacy scan. Reference the existing money fixtures as the single numeric authority per category — do NOT re-pin the same value.",
+  "capturedAt": "2026-07-05T12:00:00.000Z",
+  "cases": [
+    {
+      "id": "base-quote-with-options",
+      "origin": "new-expected",
+      "note": "Base quote with a tillval (option) section; totals REFERENCE tests/fixtures/golden/money/options-tillval (single numeric authority) — this case proves the quote-version snapshot SHAPE reproduces that öre, not a new pin.",
+      "documentedDeltaOldLovableValue": null,
+      "source": {
+        "customerDisplayName": "Example Customer AB",
+        "facilityDisplayName": "Example Facility 1",
+        "contactDisplayName": "Example Contact",
+        "company": {
+          "companyName": "Example Elföretag AB",
+          "orgNr": "556000-0000",
+          "addressLine1": "Exempelgatan 1",
+          "addressLine2": null,
+          "postalCode": "111 11",
+          "city": "Exempelstad",
+          "email": "info@example.test",
+          "phone": "+46 8 000 00 00",
+          "logoUrl": null
+        },
+        "terms": {
+          "termsText": "Non-final pilot terms — requires sign-off before customer use.",
+          "approvedAt": null,
+          "approvedBy": null
+        },
+        "quoteNumber": 1,
+        "validUntil": "2026-08-05",
+        "lines": [
+          { "rowType": "labor", "label": "Installation labour", "description": null, "quantity": 4, "unit": "h", "sellOre": 480000, "vatBp": 2500 },
+          { "rowType": "material", "label": "Cabling", "description": null, "quantity": 50, "unit": "m", "sellOre": 250000, "vatBp": 2500 }
+        ],
+        "totals": {
+          "baseOre": 730000,
+          "optionOre": 120000,
+          "vatOre": 182500,
+          "deductionOre": 0,
+          "acceptedPriceBasis": "base"
+        },
+        "taxAssumptions": {
+          "vatRateBp": 2500,
+          "deductionType": null,
+          "requiresSignOff": true
+        },
+        "warnings": ["REQUIRES_SIGN_OFF"],
+        "selectedAttachments": []
+      }
+    },
+    {
+      "id": "rot-deduction-with-warning",
+      "origin": "new-expected",
+      "note": "ROT deduction case with a hidden row + a sign-off warning; deduction öre REFERENCE tests/fixtures/golden/money/rot-gron-deductions (single numeric authority). Proves warnings-at-snapshot + requiresSignOff capture.",
+      "documentedDeltaOldLovableValue": null,
+      "source": {
+        "customerDisplayName": "Private Customer",
+        "facilityDisplayName": null,
+        "contactDisplayName": null,
+        "company": {
+          "companyName": "Example Elföretag AB",
+          "orgNr": "556000-0000",
+          "addressLine1": "Exempelgatan 1",
+          "addressLine2": null,
+          "postalCode": "111 11",
+          "city": "Exempelstad",
+          "email": "info@example.test",
+          "phone": "+46 8 000 00 00",
+          "logoUrl": null
+        },
+        "terms": {
+          "termsText": "Non-final pilot terms — requires sign-off before customer use.",
+          "approvedAt": null,
+          "approvedBy": null
+        },
+        "quoteNumber": 2,
+        "validUntil": "2026-08-05",
+        "lines": [
+          { "rowType": "labor", "label": "ROT-eligible labour", "description": null, "quantity": 8, "unit": "h", "sellOre": 960000, "vatBp": 2500 }
+        ],
+        "totals": {
+          "baseOre": 960000,
+          "optionOre": 0,
+          "vatOre": 240000,
+          "deductionOre": 480000,
+          "acceptedPriceBasis": "after-deduction"
+        },
+        "taxAssumptions": {
+          "vatRateBp": 2500,
+          "deductionType": "rot",
+          "requiresSignOff": true
+        },
+        "warnings": ["REQUIRES_SIGN_OFF", "DEDUCTION_ESTIMATE_UNAPPROVED"],
+        "selectedAttachments": [
+          { "fileId": "00000000-0000-0000-0000-000000000001", "purpose": "attachment", "displayName": "product-sheet.pdf" }
+        ]
+      }
+    }
+  ]
+}

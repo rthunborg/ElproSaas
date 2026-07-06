@@ -52,9 +52,14 @@
  * │ not reviewer diligence. See docs/quality/quality-gates.md (Gate 4).          │
  * └─────────────────────────────────────────────────────────────────────────────┘
  *
- * EXPECTED current tenant-owned set: EXACTLY {tenants, tenant_memberships,
- * audit_events} (architecture §7 v0). `tenant_counters` and the rest are later
- * stories — the gate will demand THEIR enrollment when they land.
+ * EXPECTED current tenant-owned set (as of Story 6.1): the foundation tables
+ * (tenants, tenant_memberships, audit_events) + CRM (customers/facilities/contacts) +
+ * settings (company_settings/quote_terms) + pricing (work_roles/articles) + calc
+ * (calculations/calculation_sections/calculation_rows) + files (files/file_links) +
+ * quotes (tenant_counters/quotes/quote_versions/quote_version_lines/
+ * quote_version_attachments/quote_events). `tenant_counters` enrolls like any other
+ * tenant-owned table (the easy-to-forget one). The gate demands enrollment of any
+ * FURTHER tenant-owned table when it lands.
  *
  * TEST-ONLY: imported only by suites under `tests/integration/rls/**`. The
  * introspection runs the loopback-gated `pg` superuser pool (admin-sql.ts).
@@ -122,6 +127,25 @@ export const TENANT_TABLES = [
   // + a valid owner_type/purpose (the composite same-tenant FK binds it to Tenant B).
   "files",
   "file_links",
+  // Story 6.1 quote tables (the first tenant-owned QUOTE tables — the composite immutable
+  // snapshot model). Like the CRM / settings / pricing / calc / file tables,
+  // `authenticated` HAS an INSERT/UPDATE grant (the tenant admin creates quote versions
+  // via the app path + the create_quote_version_from_calculation RPC) — so their
+  // cross-tenant UPDATE denial mechanism is RLS-USING invisibility (zero rows + unchanged
+  // re-read), NOT a missing-grant 42501. See `updateDenialKind` below. All six are
+  // MANY-rows-per-tenant collections (tenant_counters is many-per-tenant keyed by
+  // (tenant_id, counter_name); NO unique (tenant_id)). The spoof/anon rows carry ONLY the
+  // display/metadata / integer-öre / bp columns — NO supplier-ish column, NO PII. The
+  // child spoof INSERTs carry a Tenant B parent id (quote for quote_versions/quote_events;
+  // version for quote_version_lines/quote_version_attachments) + the source calc/file
+  // parents so the composite same-tenant FKs bind them to Tenant B. `tenant_counters` is
+  // the easy-to-forget one — it enrolls like any other tenant-owned table.
+  "tenant_counters",
+  "quotes",
+  "quote_versions",
+  "quote_version_lines",
+  "quote_version_attachments",
+  "quote_events",
 ] as const;
 
 export type TenantTableName = (typeof TENANT_TABLES)[number];
@@ -193,6 +217,25 @@ export interface InventoryContext {
    */
   readonly tenantBFileId?: string;
   readonly tenantBFileLinkId?: string;
+  /**
+   * REAL Tenant B QUOTE row ids (Story 6.1) — concrete cross-tenant targets the
+   * tenant_counters/quotes/quote_versions/quote_version_lines/quote_version_attachments/
+   * quote_events negatives point Tenant A at, so the denial is never vacuous against a
+   * non-existent row. `tenantBQuoteId` also doubles as the Tenant B PARENT the
+   * quote_versions/quote_events spoof INSERTs reference, and `tenantBQuoteVersionId` the
+   * parent the quote_version_lines/quote_version_attachments spoofs reference. Optional so
+   * the anon suite (which never reads a seeded row) can omit them; the cross-tenant suite
+   * seeds and asserts them. A consumer that needs one but finds it missing fails LOUDLY
+   * (vacuity guard via requireCrmId).
+   */
+  readonly tenantBTenantCounterId?: string;
+  readonly tenantBQuoteId?: string;
+  readonly tenantBQuoteVersionId?: string;
+  readonly tenantBQuoteVersionLineId?: string;
+  readonly tenantBQuoteVersionAttachmentId?: string;
+  readonly tenantBQuoteEventId?: string;
+  /** The Tenant B source calculation the quote_versions spoof references (composite FK). */
+  readonly tenantBQuoteSourceCalcId?: string;
 }
 
 /**
@@ -233,6 +276,12 @@ export function updateDenialKind(table: TenantTableName): MutationDenialKind {
     case "calculation_rows":
     case "files":
     case "file_links":
+    case "tenant_counters":
+    case "quotes":
+    case "quote_versions":
+    case "quote_version_lines":
+    case "quote_version_attachments":
+    case "quote_events":
       return "rls-invisible"; // UPDATE granted; RLS USING hides foreign rows
     default:
       return assertNever(table);
@@ -457,6 +506,82 @@ export function spoofedRowFor(
         owner_id: requireCrmId(ctx.tenantBCustomerId, "tenantBCustomerId", table),
         purpose: "crm_document",
       };
+    case "tenant_counters":
+      // A counter row forging Tenant B ownership. `authenticated` HAS an INSERT grant, so
+      // the denial is the RLS INSERT WITH CHECK (is_tenant_admin(tenant_id=B) is false for
+      // a Tenant A admin) → `42501`. A FRESH counter_name avoids a `23505` unique
+      // (tenant_id, counter_name) collision before the policy fires.
+      return {
+        id: crypto.randomUUID(),
+        tenant_id: fixture.tenantB.id,
+        counter_name: `spoof-${crypto.randomUUID().slice(0, 8)}`,
+        current_value: 1,
+      };
+    case "quotes":
+      // A quote forging Tenant B ownership, pointing at a REAL Tenant B customer parent.
+      // RLS INSERT WITH CHECK on tenant_id=B → `42501` (fresh id).
+      return {
+        id: crypto.randomUUID(),
+        tenant_id: fixture.tenantB.id,
+        customer_id: requireCrmId(ctx.tenantBCustomerId, "tenantBCustomerId", table),
+      };
+    case "quote_versions":
+      // A version forging Tenant B ownership, pointing at a REAL Tenant B quote + source
+      // calc parent. RLS INSERT WITH CHECK on tenant_id=B → `42501` (fresh id; the
+      // NOT-NULL version_number/quote_number/calculation_id/captured_at populated so the
+      // denial is the policy, never a NOT-NULL/CHECK violation).
+      return {
+        id: crypto.randomUUID(),
+        tenant_id: fixture.tenantB.id,
+        quote_id: requireCrmId(ctx.tenantBQuoteId, "tenantBQuoteId", table),
+        version_number: 1,
+        quote_number: 1,
+        calculation_id: requireCrmId(
+          ctx.tenantBQuoteSourceCalcId,
+          "tenantBQuoteSourceCalcId",
+          table,
+        ),
+        captured_at: "2026-07-05T12:00:00.000Z",
+        company_name: "spoofed-version-by-a",
+      };
+    case "quote_version_lines":
+      // A line forging Tenant B ownership, pointing at a REAL Tenant B version parent.
+      // RLS INSERT WITH CHECK on tenant_id=B → `42501` (fresh id; NOT-NULL row_type).
+      return {
+        id: crypto.randomUUID(),
+        tenant_id: fixture.tenantB.id,
+        quote_version_id: requireCrmId(
+          ctx.tenantBQuoteVersionId,
+          "tenantBQuoteVersionId",
+          table,
+        ),
+        row_type: "line",
+        label: "spoofed-line-by-a",
+      };
+    case "quote_version_attachments":
+      // An attachment forging Tenant B ownership, pointing at a REAL Tenant B version + a
+      // REAL Tenant B file parent. RLS INSERT WITH CHECK on tenant_id=B → `42501`.
+      return {
+        id: crypto.randomUUID(),
+        tenant_id: fixture.tenantB.id,
+        quote_version_id: requireCrmId(
+          ctx.tenantBQuoteVersionId,
+          "tenantBQuoteVersionId",
+          table,
+        ),
+        file_id: requireCrmId(ctx.tenantBFileId, "tenantBFileId", table),
+        display_name: "spoofed-attachment-by-a.pdf",
+      };
+    case "quote_events":
+      // An event forging Tenant B ownership, pointing at a REAL Tenant B quote parent.
+      // RLS INSERT WITH CHECK on tenant_id=B → `42501` (fresh id; event_type populated so
+      // the denial is the policy, never a CHECK violation).
+      return {
+        id: crypto.randomUUID(),
+        tenant_id: fixture.tenantB.id,
+        quote_id: requireCrmId(ctx.tenantBQuoteId, "tenantBQuoteId", table),
+        event_type: "created",
+      };
     default:
       return assertNever(table);
   }
@@ -601,6 +726,58 @@ export function tenantBFilter(
         column: "id",
         value: requireCrmId(ctx.tenantBFileLinkId, "tenantBFileLinkId", table),
       };
+    case "tenant_counters":
+      // Target the SPECIFIC seeded Tenant B counter by id — the cross-tenant SELECT/UPDATE
+      // must read/affect ZERO rows under A's RLS. Vacuity-guarded.
+      return {
+        column: "id",
+        value: requireCrmId(
+          ctx.tenantBTenantCounterId,
+          "tenantBTenantCounterId",
+          table,
+        ),
+      };
+    case "quotes":
+      return {
+        column: "id",
+        value: requireCrmId(ctx.tenantBQuoteId, "tenantBQuoteId", table),
+      };
+    case "quote_versions":
+      return {
+        column: "id",
+        value: requireCrmId(
+          ctx.tenantBQuoteVersionId,
+          "tenantBQuoteVersionId",
+          table,
+        ),
+      };
+    case "quote_version_lines":
+      return {
+        column: "id",
+        value: requireCrmId(
+          ctx.tenantBQuoteVersionLineId,
+          "tenantBQuoteVersionLineId",
+          table,
+        ),
+      };
+    case "quote_version_attachments":
+      return {
+        column: "id",
+        value: requireCrmId(
+          ctx.tenantBQuoteVersionAttachmentId,
+          "tenantBQuoteVersionAttachmentId",
+          table,
+        ),
+      };
+    case "quote_events":
+      return {
+        column: "id",
+        value: requireCrmId(
+          ctx.tenantBQuoteEventId,
+          "tenantBQuoteEventId",
+          table,
+        ),
+      };
     default:
       return assertNever(table);
   }
@@ -648,6 +825,24 @@ export function hijackMutationFor(
       // purpose is a mutable, non-id column with a closed CHECK — the hijack sets it to
       // a DIFFERENT valid value than the seed's so the unchanged re-read is meaningful.
       return { purpose: "job_evidence" };
+    case "tenant_counters":
+      // current_value is a mutable numeric — the hijack sets a DIFFERENT value than the
+      // seed's so the unchanged re-read (via current_value) is meaningful.
+      return { current_value: 999999 };
+    case "quotes":
+      // archived_at is a mutable timestamptz (seed is NULL) — the hijack sets a non-null
+      // value so the unchanged re-read (archived_at stays NULL) is meaningful.
+      return { archived_at: "2099-01-01T00:00:00.000Z" };
+    case "quote_versions":
+      return { company_name: "hijacked-by-tenant-a" };
+    case "quote_version_lines":
+      return { label: "hijacked-by-tenant-a" };
+    case "quote_version_attachments":
+      return { display_name: "hijacked-by-tenant-a" };
+    case "quote_events":
+      // channel is a mutable free-text column (seed is NULL) — the hijack sets a value so
+      // the unchanged re-read (channel stays NULL) is meaningful.
+      return { channel: "hijacked-by-tenant-a" };
     default:
       return assertNever(table);
   }
@@ -685,6 +880,24 @@ export function rlsInvisibleLabelColumn(table: TenantTableName): string {
       // purpose is the mutable column the file_links hijack sets — re-read it to prove
       // the seed value ('crm_document') was NOT overwritten with the hijack value.
       return "purpose";
+    case "tenant_counters":
+      // current_value is the column the tenant_counters hijack sets — re-read it to prove
+      // the seed value was NOT overwritten with the hijack value (999999).
+      return "current_value";
+    case "quotes":
+      // archived_at is the column the quotes hijack sets — re-read it (::text) to prove the
+      // seed value (NULL) was NOT overwritten with the hijack timestamp.
+      return "archived_at";
+    case "quote_versions":
+      return "company_name";
+    case "quote_version_lines":
+      return "label";
+    case "quote_version_attachments":
+      return "display_name";
+    case "quote_events":
+      // channel is the column the quote_events hijack sets — re-read it to prove the seed
+      // value (NULL) was NOT overwritten.
+      return "channel";
     // The "privilege"-denial tables never reach the unchanged-re-read branch, so a
     // label column is not meaningful for them — but the exhaustive switch keeps the
     // enrollment compile-safe (assertNever on a future unenrolled table).
@@ -848,6 +1061,56 @@ export function anonRowFor(
         owner_id: crypto.randomUUID(),
         purpose: "crm_document",
       };
+    case "tenant_counters":
+      // Anon has NO grant on the quote tables → the INSERT is denied at the privilege
+      // layer (42501) regardless of the row shape. NOT-NULL columns populated so the grant
+      // denial — not a NOT-NULL violation — is what fires.
+      return {
+        id: crypto.randomUUID(),
+        tenant_id: fixture.tenantA.id,
+        counter_name: `anon-${crypto.randomUUID().slice(0, 8)}`,
+        current_value: 1,
+      };
+    case "quotes":
+      return {
+        id: crypto.randomUUID(),
+        tenant_id: fixture.tenantA.id,
+        customer_id: crypto.randomUUID(),
+      };
+    case "quote_versions":
+      return {
+        id: crypto.randomUUID(),
+        tenant_id: fixture.tenantA.id,
+        quote_id: crypto.randomUUID(),
+        version_number: 1,
+        quote_number: 1,
+        calculation_id: crypto.randomUUID(),
+        captured_at: "2026-07-05T12:00:00.000Z",
+        company_name: "anon-spoof-version",
+      };
+    case "quote_version_lines":
+      return {
+        id: crypto.randomUUID(),
+        tenant_id: fixture.tenantA.id,
+        quote_version_id: crypto.randomUUID(),
+        row_type: "line",
+        label: "anon-spoof-line",
+      };
+    case "quote_version_attachments":
+      return {
+        id: crypto.randomUUID(),
+        tenant_id: fixture.tenantA.id,
+        quote_version_id: crypto.randomUUID(),
+        file_id: crypto.randomUUID(),
+        display_name: "anon-spoof-attachment.pdf",
+      };
+    case "quote_events":
+      return {
+        id: crypto.randomUUID(),
+        tenant_id: fixture.tenantA.id,
+        quote_id: crypto.randomUUID(),
+        event_type: "created",
+      };
     default:
       return assertNever(table);
   }
@@ -887,6 +1150,12 @@ export function anonFilterFor(
     case "calculation_rows":
     case "files":
     case "file_links":
+    case "tenant_counters":
+    case "quotes":
+    case "quote_versions":
+    case "quote_version_lines":
+    case "quote_version_attachments":
+    case "quote_events":
       return { column: "tenant_id", value: ctx.fixture.tenantA.id };
     default:
       return assertNever(table);
@@ -926,6 +1195,18 @@ export function anonMutationFor(
       return { display_name: "anon-hijack" };
     case "file_links":
       return { purpose: "job_evidence" };
+    case "tenant_counters":
+      return { current_value: 999999 };
+    case "quotes":
+      return { archived_at: "2099-01-01T00:00:00.000Z" };
+    case "quote_versions":
+      return { company_name: "anon-hijack" };
+    case "quote_version_lines":
+      return { label: "anon-hijack" };
+    case "quote_version_attachments":
+      return { display_name: "anon-hijack" };
+    case "quote_events":
+      return { channel: "anon-hijack" };
     default:
       return assertNever(table);
   }

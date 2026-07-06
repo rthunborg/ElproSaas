@@ -1,0 +1,59 @@
+# auto-bmad per-story state — written by scripts/state_update.py (full stable schema;
+# see references/state-and-resume.md). Prose belongs in reports/{key}.md, not here.
+story_key: 6-3-quote-pdf-generation-from-snapshot
+epic_num: 6
+story_num: 3
+branch: epic/6-quote-versions-pdf-and-lifecycle
+status: in-progress
+updated_at: "2026-07-06T09:33:02Z"
+started_at: "2026-07-05T20:49:41Z"
+completed_at: null
+active_seconds: 6823
+timing_anchor: null
+is_first_in_epic: false
+is_last_in_epic: false
+needs_project_context_bootstrap: false
+git_mode: remote
+base_branch: main
+tea_risk: high
+tea_selected: [atdd, automate]
+tea_rationale: "Security-sensitive private PDF/file access (tenant-owned signed access, cross-tenant negatives, R-611) plus money/tax integrity: PDF sourced only from immutable snapshot totals/VAT/terms, no live-data leakage (R-606, R-607)"
+epic_story_count: 5
+stories_after_in_epic: 2
+completed_phases: [0, 1, 2, 3, 4, 5, 6, 7]
+code_review_iterations: 0
+code_review_loop_done: false
+hitl_halt: null
+external_review_iterations: 0
+convergence_unverified: false
+story_trace: null
+commits: [1ed4542, 68d7676, 1dad594, 17112be, "4685819"]
+phase8_steps:
+  trace_gate: null
+  nfr: null
+  test_review: null
+  project_context: null
+  reconcile: null
+  archive: null
+  retro: null
+gate_decision: null
+gate_iterations: 0
+deferred_work_archived: 0
+pr_url: null
+ci_run_url: null
+ci_status: unknown
+pr_merged: false
+merge_method: null
+merge_commit: null
+branch_deleted: false
+open_questions: []
+deferred_work:
+  - "Story 6.4 forward obligation: sent-immutability trigger must exempt pdf_status/pdf_file_id/pdf_generated_at (mutable for PDF retry on sent versions)"
+  - "6.3-GOLDEN-02 visual snapshot not authored (P1 stability-only, never a gate); final PDF visual design + perf (R-618) deferred"
+  - "object reclamation of superseded PDFs -> 8.x storage-retention story"
+  - 8.2 shared-upload consolidation of the new object-byte-write capability
+blockers: []
+overrides: {}
+constraints: []
+tier_a_base_sha: 3b92ccdb7d68adc8b3eb29abece3bc34feb471fd
+tier_a_review: "done - auditor+security lenses, verdict Changes Requested resolved; 3 findings persisted (0 Patch, 1 Decision [Med] auto-resolved to fix per recommendation - hidden rows excluded from PDF render, 2 Defer [Low]); post-fix open 0/0; security pass clean (0H/0M/0L); 1 lockfile-locus finding dismissed"

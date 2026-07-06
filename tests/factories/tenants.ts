@@ -918,6 +918,8 @@ export async function adminSelectCalcLabel(
 /** A seed for a `files` row (the snake_case columns the negatives/commands target). */
 export interface FileSeed {
   readonly tenant_id: string;
+  /** An explicit file id (Story 6.3 — bind pdf_file_id to a known id); defaults to gen_random_uuid. */
+  readonly id?: string;
   readonly display_name?: string;
   readonly bucket_id?: string;
   readonly object_path?: string;
@@ -962,18 +964,19 @@ export interface FileLinkSeed {
  * object_path) from colliding across seeds.
  */
 export async function adminInsertFile(seed: FileSeed): Promise<string> {
+  const fileId = seed.id ?? crypto.randomUUID();
   const displayName = seed.display_name ?? "tenant-file-seed.pdf";
   const objectPath =
-    seed.object_path ??
-    `${seed.tenant_id}/${crypto.randomUUID()}/${displayName}`;
+    seed.object_path ?? `${seed.tenant_id}/${fileId}/${displayName}`;
   try {
     const rows = await adminQuery<{ id: string }>(
       `insert into public.files
-         (tenant_id, bucket_id, object_path, display_name, mime_type,
+         (id, tenant_id, bucket_id, object_path, display_name, mime_type,
           size_bytes, uploaded_by, lifecycle_state)
-       values ($1, $2, $3, $4, $5, $6, $7, $8)
+       values ($1, $2, $3, $4, $5, $6, $7, $8, $9)
        returning id`,
       [
+        fileId,
         seed.tenant_id,
         seed.bucket_id ?? "tenant-files",
         objectPath,
@@ -1040,6 +1043,334 @@ export async function adminSelectFileLabel(
   return rows[0] ?? null;
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Quote seed/read helpers (Story 6.1, Task 2/5) — ADDITIVE (B1: add ALONGSIDE the
+// existing handles; the two-tenant fixture shape is unchanged).
+//
+// Seed REAL tenant_counters/quotes/quote_versions/quote_version_lines/
+// quote_version_attachments/quote_events rows via the loopback-gated superuser `pg` pool
+// (BYPASSRLS) so the cross-tenant/anon negatives can target a CONCRETE Tenant B quote row
+// (never a non-existent id that would deny vacuously), and so the version/line/attachment/
+// event spoof INSERTs have a real Tenant B parent to reference. Mirror `adminInsertFile`:
+// THROW on a DB error with the Postgres `code` preserved.
+//
+// Quote tables are `tenant_id … on delete cascade`, so the EXISTING `cleanupFixture`
+// tenant-delete cascades the seeded rows away — no new teardown path is needed.
+//
+// Quote fixtures carry METADATA/DISPLAY SHAPE only — anonymized names, integer öre + bp,
+// NO PII (no real name/address/personnummer/orgnr/secret).
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** A seed for a `tenant_counters` row. */
+export interface TenantCounterSeed {
+  readonly tenant_id: string;
+  readonly counter_name?: string;
+  readonly current_value?: number;
+}
+
+/** A seed for a `quotes` row (parent customer must exist, same tenant). */
+export interface QuoteSeed {
+  readonly tenant_id: string;
+  readonly customer_id: string;
+  readonly facility_id?: string | null;
+  readonly contact_id?: string | null;
+}
+
+/** A seed for a `quote_versions` row (parent quote + source calc required, same tenant). */
+export interface QuoteVersionSeed {
+  readonly tenant_id: string;
+  readonly quote_id: string;
+  readonly calculation_id: string;
+  readonly version_number?: number;
+  readonly quote_number?: number;
+  readonly captured_at?: string;
+  readonly company_name?: string | null;
+  /** Lifecycle status (Story 6.2) — defaults to 'draft' at the DB. */
+  readonly status?: string;
+  /** A customer-visible presentational field (Story 6.2 draft-edit readback proof). */
+  readonly intro_text?: string | null;
+  readonly customer_display_name?: string | null;
+  /** PDF render state (Story 6.3) — defaults to 'not_generated' at the DB. */
+  readonly pdf_status?: string;
+  /** The generated-PDF file reference (Story 6.3) — for a `generated` fixture state. */
+  readonly pdf_file_id?: string | null;
+  /** The PDF generated-at instant (Story 6.3) — for a `generated` fixture state. */
+  readonly pdf_generated_at?: string | null;
+  /**
+   * The frozen readiness warnings snapshot (Story 6.4 send-gate proof) — a jsonb array of the
+   * 5.4 classifier codes+severities. Seed a `severity: "blocker"` entry to prove a blocked draft
+   * is UNSENDABLE. Defaults to `[]` at the DB.
+   */
+  readonly warnings_snapshot?: readonly {
+    readonly code: string;
+    readonly severity: string;
+    readonly message: string;
+  }[];
+}
+
+/** A seed for a `quote_version_lines` row (parent version required, same tenant). */
+export interface QuoteVersionLineSeed {
+  readonly tenant_id: string;
+  readonly quote_version_id: string;
+  readonly row_type?: string;
+  readonly label?: string | null;
+  readonly unit_sell_ore?: number | null;
+  readonly vat_rate_bp?: number | null;
+  readonly sort_order?: number;
+}
+
+/** A seed for a `quote_version_attachments` row (parent version + file required, same tenant). */
+export interface QuoteVersionAttachmentSeed {
+  readonly tenant_id: string;
+  readonly quote_version_id: string;
+  readonly file_id: string;
+  readonly display_name?: string | null;
+  readonly sort_order?: number;
+}
+
+/** A seed for a `quote_events` row (parent quote required, same tenant). */
+export interface QuoteEventSeed {
+  readonly tenant_id: string;
+  readonly quote_id: string;
+  readonly quote_version_id?: string | null;
+  readonly event_type?: string;
+}
+
+/** Seed ONE `tenant_counters` row via the privileged superuser pg path (BYPASSRLS). */
+export async function adminInsertTenantCounter(
+  seed: TenantCounterSeed,
+): Promise<string> {
+  try {
+    const rows = await adminQuery<{ id: string }>(
+      `insert into public.tenant_counters (tenant_id, counter_name, current_value)
+       values ($1, $2, $3)
+       returning id`,
+      [seed.tenant_id, seed.counter_name ?? "quote_number", seed.current_value ?? 0],
+    );
+    const id = rows[0]?.id;
+    if (!id) throw new Error("adminInsertTenantCounter: no id returned");
+    return id;
+  } catch (error) {
+    rethrowWithCode(error);
+  }
+}
+
+/** Seed ONE `quotes` row via the privileged superuser pg path (BYPASSRLS). */
+export async function adminInsertQuote(seed: QuoteSeed): Promise<string> {
+  try {
+    const rows = await adminQuery<{ id: string }>(
+      `insert into public.quotes (tenant_id, customer_id, facility_id, contact_id)
+       values ($1, $2, $3, $4)
+       returning id`,
+      [seed.tenant_id, seed.customer_id, seed.facility_id ?? null, seed.contact_id ?? null],
+    );
+    const id = rows[0]?.id;
+    if (!id) throw new Error("adminInsertQuote: no id returned");
+    return id;
+  } catch (error) {
+    rethrowWithCode(error);
+  }
+}
+
+/** Seed ONE `quote_versions` row via the privileged superuser pg path (BYPASSRLS). */
+export async function adminInsertQuoteVersion(
+  seed: QuoteVersionSeed,
+): Promise<string> {
+  try {
+    const rows = await adminQuery<{ id: string }>(
+      `insert into public.quote_versions
+         (tenant_id, quote_id, version_number, quote_number, calculation_id,
+          captured_at, company_name, status, intro_text, customer_display_name,
+          pdf_status, pdf_file_id, pdf_generated_at, warnings_snapshot)
+       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14::jsonb)
+       returning id`,
+      [
+        seed.tenant_id,
+        seed.quote_id,
+        seed.version_number ?? 1,
+        seed.quote_number ?? 1,
+        seed.calculation_id,
+        seed.captured_at ?? "2026-07-05T12:00:00.000Z",
+        seed.company_name ?? "tenant-b-company-seed",
+        seed.status ?? "draft",
+        seed.intro_text ?? null,
+        seed.customer_display_name ?? null,
+        seed.pdf_status ?? "not_generated",
+        seed.pdf_file_id ?? null,
+        seed.pdf_generated_at ?? null,
+        JSON.stringify(seed.warnings_snapshot ?? []),
+      ],
+    );
+    const id = rows[0]?.id;
+    if (!id) throw new Error("adminInsertQuoteVersion: no id returned");
+    return id;
+  } catch (error) {
+    rethrowWithCode(error);
+  }
+}
+
+/** Seed ONE `quote_version_lines` row via the privileged superuser pg path (BYPASSRLS). */
+export async function adminInsertQuoteVersionLine(
+  seed: QuoteVersionLineSeed,
+): Promise<string> {
+  try {
+    const rows = await adminQuery<{ id: string }>(
+      `insert into public.quote_version_lines
+         (tenant_id, quote_version_id, row_type, label, unit_sell_ore, vat_rate_bp, sort_order)
+       values ($1, $2, $3, $4, $5, $6, $7)
+       returning id`,
+      [
+        seed.tenant_id,
+        seed.quote_version_id,
+        seed.row_type ?? "line",
+        seed.label ?? "tenant-b-line-seed",
+        seed.unit_sell_ore ?? 85000,
+        seed.vat_rate_bp ?? 2500,
+        seed.sort_order ?? 0,
+      ],
+    );
+    const id = rows[0]?.id;
+    if (!id) throw new Error("adminInsertQuoteVersionLine: no id returned");
+    return id;
+  } catch (error) {
+    rethrowWithCode(error);
+  }
+}
+
+/** Seed ONE `quote_version_attachments` row via the privileged superuser pg path (BYPASSRLS). */
+export async function adminInsertQuoteVersionAttachment(
+  seed: QuoteVersionAttachmentSeed,
+): Promise<string> {
+  try {
+    const rows = await adminQuery<{ id: string }>(
+      `insert into public.quote_version_attachments
+         (tenant_id, quote_version_id, file_id, display_name, sort_order)
+       values ($1, $2, $3, $4, $5)
+       returning id`,
+      [
+        seed.tenant_id,
+        seed.quote_version_id,
+        seed.file_id,
+        seed.display_name ?? "tenant-b-attachment-seed.pdf",
+        seed.sort_order ?? 0,
+      ],
+    );
+    const id = rows[0]?.id;
+    if (!id) throw new Error("adminInsertQuoteVersionAttachment: no id returned");
+    return id;
+  } catch (error) {
+    rethrowWithCode(error);
+  }
+}
+
+/** Seed ONE `quote_events` row via the privileged superuser pg path (BYPASSRLS). */
+export async function adminInsertQuoteEvent(
+  seed: QuoteEventSeed,
+): Promise<string> {
+  try {
+    const rows = await adminQuery<{ id: string }>(
+      `insert into public.quote_events
+         (tenant_id, quote_id, quote_version_id, event_type)
+       values ($1, $2, $3, $4)
+       returning id`,
+      [
+        seed.tenant_id,
+        seed.quote_id,
+        seed.quote_version_id ?? null,
+        seed.event_type ?? "created",
+      ],
+    );
+    const id = rows[0]?.id;
+    if (!id) throw new Error("adminInsertQuoteEvent: no id returned");
+    return id;
+  } catch (error) {
+    rethrowWithCode(error);
+  }
+}
+
+/**
+ * Read ONE quote-table row's label column back via the privileged superuser pg path
+ * (BYPASSRLS), independent of the app/RLS path. Used by the cross-tenant UPDATE negative
+ * to prove the foreign row is UNCHANGED. `table`/`labelColumn` are a closed/inventory-
+ * supplied set (never client input). Returns `null` if the row does not exist.
+ */
+export async function adminSelectQuoteLabel(
+  table:
+    | "tenant_counters"
+    | "quotes"
+    | "quote_versions"
+    | "quote_version_lines"
+    | "quote_version_attachments"
+    | "quote_events",
+  labelColumn: string,
+  id: string,
+): Promise<{ id: string; label: string | null } | null> {
+  const rows = await adminQuery<{ id: string; label: string | null }>(
+    `select id, ${labelColumn}::text as label from public.${table} where id = $1`,
+    [id],
+  );
+  return rows[0] ?? null;
+}
+
+/** Read a quote_versions row's full snapshot columns back (BYPASSRLS) for freeze proofs. */
+export async function adminSelectQuoteVersionRow(
+  id: string,
+): Promise<Record<string, unknown> | null> {
+  const rows = await adminQuery<Record<string, unknown>>(
+    `select * from public.quote_versions where id = $1`,
+    [id],
+  );
+  return rows[0] ?? null;
+}
+
+/**
+ * Flip a quote_versions row's `status` via the privileged superuser pg path (BYPASSRLS). The 6.5
+ * fixtures seed a SENT version as draft → children → THEN flip to sent (the 6.4 child-lock blocks
+ * child INSERTs into an already-sent parent). BYPASSRLS bypasses the sent-lock trigger's app-path
+ * enforcement for seeding, so a draft→sent flip after the children exist is safe. Additive (B1).
+ */
+export async function adminUpdateQuoteVersionStatus(
+  id: string,
+  status: string,
+): Promise<void> {
+  await adminQuery(`update public.quote_versions set status = $2 where id = $1`, [
+    id,
+    status,
+  ]);
+}
+
+/** Read all quote_versions rows for a quote back (BYPASSRLS, ordered by version_number). */
+export async function adminSelectQuoteVersionsForQuote(
+  quoteId: string,
+): Promise<Record<string, unknown>[]> {
+  return adminQuery<Record<string, unknown>>(
+    `select * from public.quote_versions where quote_id = $1 order by version_number asc`,
+    [quoteId],
+  );
+}
+
+/** Read a quote_versions row's attachment rows back (BYPASSRLS, ordered) for freeze proofs. */
+export async function adminSelectQuoteVersionAttachments(
+  quoteVersionId: string,
+): Promise<Record<string, unknown>[]> {
+  return adminQuery<Record<string, unknown>>(
+    `select * from public.quote_version_attachments
+       where quote_version_id = $1 order by sort_order asc`,
+    [quoteVersionId],
+  );
+}
+
+/** Read a quote_versions' line rows back (BYPASSRLS, ordered) for freeze proofs. */
+export async function adminSelectQuoteVersionLines(
+  quoteVersionId: string,
+): Promise<Record<string, unknown>[]> {
+  return adminQuery<Record<string, unknown>>(
+    `select * from public.quote_version_lines
+       where quote_version_id = $1 order by sort_order asc`,
+    [quoteVersionId],
+  );
+}
+
 /**
  * Seed ONE storage OBJECT under a server-shaped tenant path via the service-role
  * storage API (BYPASSRLS on `storage.objects`). Used by the storage-plane isolation
@@ -1065,4 +1396,147 @@ export async function adminUploadStorageObject(seed: {
       `factory: failed to upload storage object ${seed.objectPath}: ${error.message}`,
     );
   }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Story 6.3 — quote-PDF storage/metadata readback helpers (BYPASSRLS via the
+// superuser pg pool + the service-role storage API). Used by the 6.3-INT proofs to
+// read the generated object bytes back (source-of-truth / determinism / retry) and to
+// assert the files/file_links/quote_events/pdf-render-column consistency.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Read a quote_versions row's PDF-render columns back (BYPASSRLS). */
+export async function adminSelectQuoteVersionPdfColumns(
+  quoteVersionId: string,
+): Promise<{
+  pdf_status: string | null;
+  pdf_file_id: string | null;
+  pdf_generated_at: string | null;
+} | null> {
+  const rows = await adminQuery<{
+    pdf_status: string | null;
+    pdf_file_id: string | null;
+    pdf_generated_at: Date | string | null;
+  }>(
+    `select pdf_status, pdf_file_id, pdf_generated_at
+       from public.quote_versions where id = $1`,
+    [quoteVersionId],
+  );
+  const row = rows[0];
+  if (!row) return null;
+  return {
+    pdf_status: row.pdf_status ?? null,
+    pdf_file_id: row.pdf_file_id ?? null,
+    pdf_generated_at:
+      row.pdf_generated_at === null || row.pdf_generated_at === undefined
+        ? null
+        : row.pdf_generated_at instanceof Date
+          ? row.pdf_generated_at.toISOString()
+          : String(row.pdf_generated_at),
+  };
+}
+
+/** Read the `files` rows for a stored PDF (via the version's pdf_file_id) (BYPASSRLS). */
+export async function adminSelectFileById(
+  fileId: string,
+): Promise<{
+  id: string;
+  tenant_id: string;
+  bucket_id: string;
+  object_path: string;
+  mime_type: string | null;
+  lifecycle_state: string;
+} | null> {
+  const rows = await adminQuery<{
+    id: string;
+    tenant_id: string;
+    bucket_id: string;
+    object_path: string;
+    mime_type: string | null;
+    lifecycle_state: string;
+  }>(
+    `select id, tenant_id, bucket_id, object_path, mime_type, lifecycle_state
+       from public.files where id = $1`,
+    [fileId],
+  );
+  return rows[0] ?? null;
+}
+
+/** Read the `file_links` rows for a quote-version PDF owner (BYPASSRLS). */
+export async function adminSelectPdfFileLinks(
+  quoteVersionId: string,
+): Promise<{ id: string; file_id: string; owner_type: string; purpose: string }[]> {
+  return adminQuery<{
+    id: string;
+    file_id: string;
+    owner_type: string;
+    purpose: string;
+  }>(
+    `select id, file_id, owner_type, purpose
+       from public.file_links
+      where owner_type = 'quote_version' and owner_id = $1 and purpose = 'quote_pdf'
+      order by id`,
+    [quoteVersionId],
+  );
+}
+
+/**
+ * Read the `quote_events` rows for a quote-version (BYPASSRLS, ordered). Coerces the
+ * `occurred_at` timestamptz (raw pg returns it as a `Date`) to an ISO string so a deterministic
+ * injected-clock assertion (`occurred_at === FIXED_ISO`) compares by representation.
+ */
+export async function adminSelectQuoteEventsForVersion(
+  quoteVersionId: string,
+): Promise<
+  {
+    id: string;
+    event_type: string;
+    occurred_at: string;
+    channel: string | null;
+    reference: string | null;
+  }[]
+> {
+  const rows = await adminQuery<{
+    id: string;
+    event_type: string;
+    occurred_at: Date | string;
+    channel: string | null;
+    reference: string | null;
+  }>(
+    `select id, event_type, occurred_at, channel, reference from public.quote_events
+      where quote_version_id = $1 order by occurred_at asc`,
+    [quoteVersionId],
+  );
+  return rows.map((r) => ({
+    id: r.id,
+    event_type: r.event_type,
+    occurred_at:
+      r.occurred_at instanceof Date
+        ? r.occurred_at.toISOString()
+        : String(r.occurred_at),
+    channel: r.channel ?? null,
+    reference: r.reference ?? null,
+  }));
+}
+
+/**
+ * Download the STORED PDF object bytes for a version via its pdf_file_id → files.object_path
+ * → the service-role storage API (BYPASSRLS on storage.objects). Returns the bytes, or null
+ * when no file/object is present. Used by the text-extraction source-of-truth/determinism
+ * proofs to read the ACTUAL uploaded object back.
+ */
+export async function adminSelectStoredPdfBytes(
+  quoteVersionId: string,
+): Promise<Uint8Array | null> {
+  assertLocalStack();
+  const cols = await adminSelectQuoteVersionPdfColumns(quoteVersionId);
+  if (!cols?.pdf_file_id) return null;
+  const file = await adminSelectFileById(cols.pdf_file_id);
+  if (!file) return null;
+  const { data, error } = await admin()
+    .storage.from(file.bucket_id)
+    .download(file.object_path);
+  if (error || !data) return null;
+  const arrayBuffer = await data.arrayBuffer();
+  return new Uint8Array(arrayBuffer);
 }

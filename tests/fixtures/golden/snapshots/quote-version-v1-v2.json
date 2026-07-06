@@ -1,0 +1,167 @@
+{
+  "_comment": "Story 6.5 GOLDEN v1/v2 comparison pack — anonymized SHAPE-ONLY. Each case pins a versioning cycle: v1 (the prior sent commitment, frozen) vs v2 (the NEW draft re-captured after a customer-visible change). It records WHAT CHANGED (the v2 fields that differ) vs WHAT PRESERVED (the v1 fields that must stay byte-unchanged when v2 is created). Every case is origin:new-expected (no anonymized Lovable quote oracle exists yet — NEVER fabricate an old-Lovable number). Keep the origin/note schema so an Epic-9 real Lovable delta lands without a code-shape change. Warning codes are REAL ReadinessCode union values (TAX_SIGN_OFF_REQUIRED/REQUIRED_FILES_DEFERRED/HIDDEN_ROWS_INCLUDED/MISSING_CUSTOMER/MISSING_FACILITY/TOTAL_UNCOMPUTABLE) — NEVER the fictional 6.1 codes (REQUIRES_SIGN_OFF/DEDUCTION_ESTIMATE_UNAPPROVED). NO real name/address/personnummer/orgnr/email/secret. Every öre value stays < 10 digits (< 1,000,000,000 öre) or it trips the pack-wide privacy scan.",
+  "capturedAtV1": "2026-07-05T12:00:00.000Z",
+  "capturedAtV2": "2026-07-06T09:00:00.000Z",
+  "cases": [
+    {
+      "id": "price-change",
+      "origin": "new-expected",
+      "note": "A price change: v2 re-captures a higher sell öre + VAT after the admin edited the source calc. WHAT CHANGED = the totals + line sell öre + capturedAt. WHAT PRESERVED = v1's frozen totals/lines are unchanged by v2 creation (the v1 source block is the byte-frozen prior commitment).",
+      "documentedDeltaOldLovableValue": null,
+      "changedFields": ["baseTotalOre", "vatTotalOre", "acceptedPriceOre", "capturedAt", "lines"],
+      "preservedFields": ["companyOrgNr", "customerDisplayName", "termsText", "quoteNumberDisplay"],
+      "v1": {
+        "company": { "companyName": "Example Elföretag AB", "orgNr": "556000-0000", "addressLine1": "Exempelgatan 1", "addressLine2": null, "postalCode": "111 11", "city": "Exempelstad", "email": "info@example.test", "phone": "+46 8 000 00 00", "logoUrl": null },
+        "customerDisplayName": "Example Customer AB",
+        "facilityDisplayName": "Example Facility 1",
+        "contactDisplayName": "Example Contact",
+        "terms": { "termsText": "Non-final pilot terms — requires sign-off before customer use.", "approvedAt": null, "approvedBy": null },
+        "validUntil": "2026-08-05",
+        "introText": "v1 introtext (original)",
+        "lines": [
+          { "rowType": "labor", "label": "Installation labour", "quantity": 4, "unit": "h", "sellOre": 480000, "vatBp": 2500 }
+        ],
+        "totals": { "baseOre": 480000, "optionOre": 0, "vatOre": 120000, "deductionOre": 0 },
+        "taxAssumptions": { "vatRateBp": 2500, "deductionType": null, "requiresSignOff": true },
+        "warnings": ["TAX_SIGN_OFF_REQUIRED"]
+      },
+      "v2": {
+        "company": { "companyName": "Example Elföretag AB", "orgNr": "556000-0000", "addressLine1": "Exempelgatan 1", "addressLine2": null, "postalCode": "111 11", "city": "Exempelstad", "email": "info@example.test", "phone": "+46 8 000 00 00", "logoUrl": null },
+        "customerDisplayName": "Example Customer AB",
+        "facilityDisplayName": "Example Facility 1",
+        "contactDisplayName": "Example Contact",
+        "terms": { "termsText": "Non-final pilot terms — requires sign-off before customer use.", "approvedAt": null, "approvedBy": null },
+        "validUntil": "2026-08-05",
+        "introText": "v2 introtext (edited price)",
+        "lines": [
+          { "rowType": "labor", "label": "Installation labour", "quantity": 5, "unit": "h", "sellOre": 600000, "vatBp": 2500 }
+        ],
+        "totals": { "baseOre": 600000, "optionOre": 0, "vatOre": 150000, "deductionOre": 0 },
+        "taxAssumptions": { "vatRateBp": 2500, "deductionType": null, "requiresSignOff": true },
+        "warnings": ["TAX_SIGN_OFF_REQUIRED"]
+      }
+    },
+    {
+      "id": "added-tillval",
+      "origin": "new-expected",
+      "note": "An added tillval (option): v2 re-captures a new selected option total. WHAT CHANGED = optionTotalOre + acceptedPriceOre + lines + capturedAt. WHAT PRESERVED = v1's base/company/customer/terms.",
+      "documentedDeltaOldLovableValue": null,
+      "changedFields": ["optionTotalOre", "acceptedPriceOre", "capturedAt", "lines"],
+      "preservedFields": ["companyName", "customerDisplayName", "baseTotalOre"],
+      "v1": {
+        "company": { "companyName": "Example Elföretag AB", "orgNr": "556000-0000", "addressLine1": "Exempelgatan 1", "addressLine2": null, "postalCode": "111 11", "city": "Exempelstad", "email": "info@example.test", "phone": "+46 8 000 00 00", "logoUrl": null },
+        "customerDisplayName": "Example Customer AB",
+        "facilityDisplayName": null,
+        "contactDisplayName": null,
+        "terms": { "termsText": "Non-final pilot terms.", "approvedAt": null, "approvedBy": null },
+        "validUntil": null,
+        "introText": "v1 utan tillval",
+        "lines": [
+          { "rowType": "material", "label": "Cabling", "quantity": 50, "unit": "m", "sellOre": 250000, "vatBp": 2500 }
+        ],
+        "totals": { "baseOre": 250000, "optionOre": 0, "vatOre": 62500, "deductionOre": 0 },
+        "taxAssumptions": { "vatRateBp": 2500, "deductionType": null, "requiresSignOff": true },
+        "warnings": ["MISSING_FACILITY"]
+      },
+      "v2": {
+        "company": { "companyName": "Example Elföretag AB", "orgNr": "556000-0000", "addressLine1": "Exempelgatan 1", "addressLine2": null, "postalCode": "111 11", "city": "Exempelstad", "email": "info@example.test", "phone": "+46 8 000 00 00", "logoUrl": null },
+        "customerDisplayName": "Example Customer AB",
+        "facilityDisplayName": null,
+        "contactDisplayName": null,
+        "terms": { "termsText": "Non-final pilot terms.", "approvedAt": null, "approvedBy": null },
+        "validUntil": null,
+        "introText": "v2 med tillval",
+        "lines": [
+          { "rowType": "material", "label": "Cabling", "quantity": 50, "unit": "m", "sellOre": 250000, "vatBp": 2500 },
+          { "rowType": "labor", "label": "Extra installation (tillval)", "quantity": 2, "unit": "h", "sellOre": 120000, "vatBp": 2500 }
+        ],
+        "totals": { "baseOre": 250000, "optionOre": 120000, "vatOre": 92500, "deductionOre": 0 },
+        "taxAssumptions": { "vatRateBp": 2500, "deductionType": null, "requiresSignOff": true },
+        "warnings": ["MISSING_FACILITY"]
+      }
+    },
+    {
+      "id": "terms-change",
+      "origin": "new-expected",
+      "note": "A terms text change: v2 re-captures new terms after the admin edited the settings. WHAT CHANGED = termsText + capturedAt. WHAT PRESERVED = v1's totals/lines/company are unchanged by v2.",
+      "documentedDeltaOldLovableValue": null,
+      "changedFields": ["termsText", "capturedAt"],
+      "preservedFields": ["baseTotalOre", "vatTotalOre", "companyOrgNr", "lines"],
+      "v1": {
+        "company": { "companyName": "Example Elföretag AB", "orgNr": "556000-0000", "addressLine1": "Exempelgatan 1", "addressLine2": null, "postalCode": "111 11", "city": "Exempelstad", "email": "info@example.test", "phone": "+46 8 000 00 00", "logoUrl": null },
+        "customerDisplayName": "Example Customer AB",
+        "facilityDisplayName": "Example Facility 1",
+        "contactDisplayName": null,
+        "terms": { "termsText": "Original pilot terms — v1.", "approvedAt": null, "approvedBy": null },
+        "validUntil": "2026-09-01",
+        "introText": "v1 introtext",
+        "lines": [
+          { "rowType": "labor", "label": "Service", "quantity": 3, "unit": "h", "sellOre": 300000, "vatBp": 2500 }
+        ],
+        "totals": { "baseOre": 300000, "optionOre": 0, "vatOre": 75000, "deductionOre": 0 },
+        "taxAssumptions": { "vatRateBp": 2500, "deductionType": null, "requiresSignOff": true },
+        "warnings": ["TAX_SIGN_OFF_REQUIRED", "REQUIRED_FILES_DEFERRED"]
+      },
+      "v2": {
+        "company": { "companyName": "Example Elföretag AB", "orgNr": "556000-0000", "addressLine1": "Exempelgatan 1", "addressLine2": null, "postalCode": "111 11", "city": "Exempelstad", "email": "info@example.test", "phone": "+46 8 000 00 00", "logoUrl": null },
+        "customerDisplayName": "Example Customer AB",
+        "facilityDisplayName": "Example Facility 1",
+        "contactDisplayName": null,
+        "terms": { "termsText": "Updated pilot terms — v2 (edited validity clause).", "approvedAt": null, "approvedBy": null },
+        "validUntil": "2026-09-01",
+        "introText": "v1 introtext",
+        "lines": [
+          { "rowType": "labor", "label": "Service", "quantity": 3, "unit": "h", "sellOre": 300000, "vatBp": 2500 }
+        ],
+        "totals": { "baseOre": 300000, "optionOre": 0, "vatOre": 75000, "deductionOre": 0 },
+        "taxAssumptions": { "vatRateBp": 2500, "deductionType": null, "requiresSignOff": true },
+        "warnings": ["TAX_SIGN_OFF_REQUIRED", "REQUIRED_FILES_DEFERRED"]
+      }
+    },
+    {
+      "id": "attachment-reselection",
+      "origin": "new-expected",
+      "note": "An attachment re-selection: v2 re-captures a different selected attachment set. WHAT CHANGED = attachments + capturedAt. WHAT PRESERVED = v1's totals/company/customer and its own frozen attachment set.",
+      "documentedDeltaOldLovableValue": null,
+      "changedFields": ["attachments", "capturedAt"],
+      "preservedFields": ["baseTotalOre", "customerDisplayName", "companyName"],
+      "v1": {
+        "company": { "companyName": "Example Elföretag AB", "orgNr": "556000-0000", "addressLine1": "Exempelgatan 1", "addressLine2": null, "postalCode": "111 11", "city": "Exempelstad", "email": "info@example.test", "phone": "+46 8 000 00 00", "logoUrl": null },
+        "customerDisplayName": "Example Customer AB",
+        "facilityDisplayName": "Example Facility 1",
+        "contactDisplayName": "Example Contact",
+        "terms": { "termsText": "Non-final pilot terms.", "approvedAt": null, "approvedBy": null },
+        "validUntil": null,
+        "introText": "v1 introtext",
+        "lines": [
+          { "rowType": "material", "label": "Panel", "quantity": 1, "unit": "st", "sellOre": 400000, "vatBp": 2500 }
+        ],
+        "totals": { "baseOre": 400000, "optionOre": 0, "vatOre": 100000, "deductionOre": 0 },
+        "taxAssumptions": { "vatRateBp": 2500, "deductionType": null, "requiresSignOff": true },
+        "warnings": ["TAX_SIGN_OFF_REQUIRED"],
+        "attachments": [
+          { "displayName": "v1-bilaga-a.pdf" }
+        ]
+      },
+      "v2": {
+        "company": { "companyName": "Example Elföretag AB", "orgNr": "556000-0000", "addressLine1": "Exempelgatan 1", "addressLine2": null, "postalCode": "111 11", "city": "Exempelstad", "email": "info@example.test", "phone": "+46 8 000 00 00", "logoUrl": null },
+        "customerDisplayName": "Example Customer AB",
+        "facilityDisplayName": "Example Facility 1",
+        "contactDisplayName": "Example Contact",
+        "terms": { "termsText": "Non-final pilot terms.", "approvedAt": null, "approvedBy": null },
+        "validUntil": null,
+        "introText": "v1 introtext",
+        "lines": [
+          { "rowType": "material", "label": "Panel", "quantity": 1, "unit": "st", "sellOre": 400000, "vatBp": 2500 }
+        ],
+        "totals": { "baseOre": 400000, "optionOre": 0, "vatOre": 100000, "deductionOre": 0 },
+        "taxAssumptions": { "vatRateBp": 2500, "deductionType": null, "requiresSignOff": true },
+        "warnings": ["TAX_SIGN_OFF_REQUIRED"],
+        "attachments": [
+          { "displayName": "v2-bilaga-b.pdf" },
+          { "displayName": "v2-bilaga-c.pdf" }
+        ]
+      }
+    }
+  ]
+}

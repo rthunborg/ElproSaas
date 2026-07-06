@@ -1,0 +1,56 @@
+# auto-bmad per-story state — written by scripts/state_update.py (full stable schema;
+# see references/state-and-resume.md). Prose belongs in reports/{key}.md, not here.
+story_key: 6-4-mark-quote-version-sent-and-enforce-immutability
+epic_num: 6
+story_num: 4
+branch: epic/6-quote-versions-pdf-and-lifecycle
+status: in-progress
+updated_at: "2026-07-06T14:19:27Z"
+started_at: "2026-07-06T09:36:03Z"
+completed_at: null
+active_seconds: 16962
+timing_anchor: null
+is_first_in_epic: false
+is_last_in_epic: false
+needs_project_context_bootstrap: false
+git_mode: remote
+base_branch: main
+tea_risk: high
+tea_selected: [atdd, automate]
+tea_rationale: "DB-level immutability enforcement (triggers/constraints rejecting mutation of sent versions) plus tenant RLS/authorization on a lifecycle command locking an irreversible customer-facing money/quote commitment (R-605)"
+epic_story_count: 5
+stories_after_in_epic: 1
+completed_phases: [0, 1, 2, 3, 4, 5, 6, 7]
+code_review_iterations: 0
+code_review_loop_done: false
+hitl_halt: null
+external_review_iterations: 0
+convergence_unverified: false
+story_trace: null
+commits: [28ee153, a73ecad, 36eebef, 29b23a6, ea572f8]
+phase8_steps:
+  trace_gate: null
+  nfr: null
+  test_review: null
+  project_context: null
+  reconcile: null
+  archive: null
+  retro: null
+gate_decision: null
+gate_iterations: 0
+deferred_work_archived: 0
+pr_url: null
+ci_run_url: null
+ci_status: unknown
+pr_merged: false
+merge_method: null
+merge_commit: null
+branch_deleted: false
+open_questions:
+  - "6.4 Task 4.2 design decision routed to dev: send-gate source â€” frozen warnings_snapshot (recommended) vs live re-classify"
+deferred_work: []
+blockers: []
+overrides: {}
+constraints: []
+tier_a_base_sha: 3271911568173a81fa927e39e6f945af8029daa6
+tier_a_review: "done - auditor+security lenses, verdict Changes Requested resolved; 3 findings persisted (2 Patch [Med] fixed - sent->draft reversal guard + identity/FK columns locked, 1 Defer [Low] quote_events INSERT forge); security 0H/1M/1L (MEDIUM merged into the reversal Patch); post-fix open 0/0; 4 dismissed (noise); first attempt of both lenses died on the weekly usage limit and was re-run after the 16:00 reset"

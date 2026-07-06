@@ -1,0 +1,56 @@
+# auto-bmad per-story state — written by scripts/state_update.py (full stable schema;
+# see references/state-and-resume.md). Prose belongs in reports/{key}.md, not here.
+story_key: 6-5-new-quote-version-after-customer-visible-changes
+epic_num: 6
+story_num: 5
+branch: epic/6-quote-versions-pdf-and-lifecycle
+status: in-progress
+updated_at: "2026-07-06T15:28:11Z"
+started_at: "2026-07-06T14:20:35Z"
+completed_at: null
+active_seconds: 4033
+timing_anchor: null
+is_first_in_epic: false
+is_last_in_epic: true
+needs_project_context_bootstrap: false
+git_mode: remote
+base_branch: main
+tea_risk: high
+tea_selected: [atdd, automate]
+tea_rationale: "New-version creation is a tenant-scoped Postgres RPC (ADR-A009) writing money/VAT/ROT snapshot data and lifecycle/audit events; explicit High Security/RLS + High Money/Tax impact with required RLS negatives and golden v1/v2 comparison tests"
+epic_story_count: 5
+stories_after_in_epic: 0
+completed_phases: [0, 1, 2, 3, 4, 5, 6, 7]
+code_review_iterations: 0
+code_review_loop_done: false
+hitl_halt: null
+external_review_iterations: 0
+convergence_unverified: false
+story_trace: null
+commits: [2dfa1af, 705b49c, e3d1dba, 720e088, 251e80a]
+phase8_steps:
+  trace_gate: null
+  nfr: null
+  test_review: null
+  project_context: null
+  reconcile: null
+  archive: null
+  retro: null
+gate_decision: null
+gate_iterations: 0
+deferred_work_archived: 0
+pr_url: null
+ci_run_url: null
+ci_status: unknown
+pr_merged: false
+merge_method: null
+merge_commit: null
+branch_deleted: false
+open_questions:
+  - "6.5 design decisions routed to dev with conservative defaults: (a) snapshot source for new version â€” re-capture fresh from current calc (recommended) vs clone-v1; (b) auto-supersede a prior SENT (never accepted) version on new-version creation â€” recommended yes"
+deferred_work: []
+blockers: []
+overrides: {}
+constraints: []
+tier_a_base_sha: e3bbb9ee0bf2f32e3c0bd2bb94a2a0a56c10f36f
+tier_a_review: "done - auditor+security lenses, verdict Approve; 3 findings persisted (0 Patch, 1 Decision [Low] auto-dismissed per recommendation - concurrent-drafts semantics AC-compliant, 2 Defer [Low] test-completeness gaps); post-resolution open 0/0; security pass clean (0H/0M/0L); 3 dismissed (noise)"

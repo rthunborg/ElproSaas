@@ -24,11 +24,19 @@ import {
   adminInsertContact,
   adminInsertCustomer,
   adminInsertFacility,
+  adminInsertFile,
+  adminInsertFileLink,
+  adminInsertQuote,
+  adminInsertQuoteEvent,
+  adminInsertQuoteVersion,
+  adminInsertQuoteVersionLine,
   adminInsertRow,
   adminInsertSection,
   adminInsertWorkRole,
+  adminUploadStorageObject,
   createTwoTenantFixture,
 } from "../factories/tenants";
+import { adminQuery } from "../factories/admin-sql";
 
 export const FIXTURE_FILE = path.join(
   process.cwd(),
@@ -175,6 +183,244 @@ export default async function globalSetup() {
     unit_price_ore: 1250,
   });
 
+  // Quote seed (Story 6.2): a quote under the company customer with TWO versions — a SENT
+  // version 1 (read-only branch) + a DRAFT version 2 (editable branch) — so the detail E2E can
+  // prove the read-only-vs-editable split, the version timeline, and the draft-edit path against
+  // a REAL multi-version quote. The versions carry frozen presentational + total fields. Seeded
+  // via the BYPASSRLS raw path (no command validation), read back through the app's RLS path at
+  // runtime as adminA.
+  const quoteId = await adminInsertQuote({
+    tenant_id: base.tenantA.id,
+    customer_id: companyId,
+    facility_id: facilityId,
+  });
+  // Seed the SENT version as a DRAFT first, add its frozen line (the Story 6.4 child-lock trigger
+  // only allows child writes while the parent is a draft), THEN flip it to `sent` — a status-only
+  // draft→sent UPDATE the sent-lock trigger allows. This produces the same read-only sent fixture
+  // without hitting the immutability trigger during the line seed.
+  const sentVersionId = await adminInsertQuoteVersion({
+    tenant_id: base.tenantA.id,
+    quote_id: quoteId,
+    calculation_id: calcId,
+    version_number: 1,
+    quote_number: 1001,
+    status: "draft",
+    company_name: `Elpro Demo AB ${token()}`,
+    customer_display_name: companyName,
+    intro_text: "Skickad version – introtext",
+  });
+  await adminInsertQuoteVersionLine({
+    tenant_id: base.tenantA.id,
+    quote_version_id: sentVersionId,
+    label: `Elarbete ${token()}`,
+    unit_sell_ore: 85000,
+    vat_rate_bp: 2500,
+    sort_order: 0,
+  });
+  await adminQuery(
+    `update public.quote_versions set status = 'sent' where id = $1`,
+    [sentVersionId],
+  );
+  const draftVersionId = await adminInsertQuoteVersion({
+    tenant_id: base.tenantA.id,
+    quote_id: quoteId,
+    calculation_id: calcId,
+    version_number: 2,
+    quote_number: 1001,
+    status: "draft",
+    company_name: `Elpro Demo AB ${token()}`,
+    customer_display_name: companyName,
+    intro_text: "Utkast – introtext",
+  });
+  await adminInsertQuoteVersionLine({
+    tenant_id: base.tenantA.id,
+    quote_version_id: draftVersionId,
+    label: `Materialrad ${token()}`,
+    unit_sell_ore: 50000,
+    vat_rate_bp: 2500,
+    sort_order: 0,
+  });
+  await adminInsertQuoteEvent({
+    tenant_id: base.tenantA.id,
+    quote_id: quoteId,
+    quote_version_id: sentVersionId,
+    event_type: "created",
+  });
+
+  // Story 6.4: a SEPARATE quote with a single mark-SENDABLE draft that the mark-sent FLIP E2E
+  // consumes on its own — clicking "Markera som skickad" PERMANENTLY sends it, so it lives on its
+  // OWN quote (never touching the 6.2 quote above, which stays EXACTLY two versions for the 6.2
+  // timeline-count spec). Its frozen warnings_snapshot carries NO blocker, so the send gate passes.
+  const markSendQuoteId = await adminInsertQuote({
+    tenant_id: base.tenantA.id,
+    customer_id: companyId,
+    facility_id: facilityId,
+  });
+  const markSendableVersionId = await adminInsertQuoteVersion({
+    tenant_id: base.tenantA.id,
+    quote_id: markSendQuoteId,
+    calculation_id: calcId,
+    version_number: 1,
+    quote_number: 1003,
+    status: "draft",
+    company_name: `Elpro Demo AB ${token()}`,
+    customer_display_name: companyName,
+    intro_text: "Utkast att skicka – introtext",
+  });
+  await adminInsertQuoteVersionLine({
+    tenant_id: base.tenantA.id,
+    quote_version_id: markSendableVersionId,
+    label: `Skickbar rad ${token()}`,
+    unit_sell_ore: 50000,
+    vat_rate_bp: 2500,
+    sort_order: 0,
+  });
+
+  // Story 6.5: a DEDICATED quote whose ONLY version is a SENT v1, consumed by the "create a new
+  // version" flow E2E (creating a v2 permanently) so it does NOT mutate the shared 6.2/6.4 quote
+  // the read-only-messaging + timeline tests rely on. Seeded draft → child → flip-to-sent per the
+  // 6.4 child-lock. Its source calc is the baseline calc (so the fresh re-capture succeeds).
+  const newVersionQuoteId = await adminInsertQuote({
+    tenant_id: base.tenantA.id,
+    customer_id: companyId,
+    facility_id: facilityId,
+  });
+  const newVersionSentVersionId = await adminInsertQuoteVersion({
+    tenant_id: base.tenantA.id,
+    quote_id: newVersionQuoteId,
+    calculation_id: calcId,
+    version_number: 1,
+    quote_number: 1004,
+    status: "draft",
+    company_name: `Elpro Demo AB ${token()}`,
+    customer_display_name: companyName,
+    intro_text: "Skickad version för ny-version-flödet",
+  });
+  await adminInsertQuoteVersionLine({
+    tenant_id: base.tenantA.id,
+    quote_version_id: newVersionSentVersionId,
+    label: `Ny-version-rad ${token()}`,
+    unit_sell_ore: 85000,
+    vat_rate_bp: 2500,
+    sort_order: 0,
+  });
+  await adminQuery(
+    `update public.quote_versions set status = 'sent' where id = $1`,
+    [newVersionSentVersionId],
+  );
+  await adminInsertQuoteEvent({
+    tenant_id: base.tenantA.id,
+    quote_id: newVersionQuoteId,
+    quote_version_id: newVersionSentVersionId,
+    event_type: "created",
+  });
+
+  // PDF render-state seed (Story 6.3): a SEPARATE quote (so the 6.2 quote above keeps EXACTLY
+  // two versions) with THREE versions exercising the render states DETERMINISTICALLY without a
+  // real generation:
+  //   - a `not_generated` version (v1, the default) → the Generate-PDF action;
+  //   - a `generated` version (v2) with a STUB PDF file + link + a stored storage object → the
+  //     preview/download (signed-access) affordances;
+  //   - a `failed` version (v3) → the retry affordance.
+  const pdfQuoteId = await adminInsertQuote({
+    tenant_id: base.tenantA.id,
+    customer_id: companyId,
+    facility_id: facilityId,
+  });
+  const notGeneratedVersionId = await adminInsertQuoteVersion({
+    tenant_id: base.tenantA.id,
+    quote_id: pdfQuoteId,
+    calculation_id: calcId,
+    version_number: 1,
+    quote_number: 1002,
+    status: "draft",
+    company_name: `Elpro Demo AB ${token()}`,
+    customer_display_name: companyName,
+    pdf_status: "not_generated",
+  });
+  await adminInsertQuoteVersionLine({
+    tenant_id: base.tenantA.id,
+    quote_version_id: notGeneratedVersionId,
+    label: `Ogenererad rad ${token()}`,
+    unit_sell_ore: 85000,
+    vat_rate_bp: 2500,
+    sort_order: 0,
+  });
+
+  const pdfFileId = crypto.randomUUID();
+  const pdfObjectPath = `${base.tenantA.id}/${pdfFileId}/offert-1002.pdf`;
+  // A tiny real PDF object so createSignedUrl can sign a reachable key (minimal %PDF header).
+  await adminUploadStorageObject({
+    bucket: "tenant-files",
+    objectPath: pdfObjectPath,
+    body: new TextEncoder().encode("%PDF-1.7\n%stub\n"),
+  });
+  // The stub `files` row with the KNOWN id so pdf_file_id can reference it (id-in-path parity).
+  await adminInsertFile({
+    tenant_id: base.tenantA.id,
+    id: pdfFileId,
+    display_name: "offert-1002.pdf",
+    bucket_id: "tenant-files",
+    object_path: pdfObjectPath,
+    mime_type: "application/pdf",
+    lifecycle_state: "linked",
+  });
+  const generatedVersionId = await adminInsertQuoteVersion({
+    tenant_id: base.tenantA.id,
+    quote_id: pdfQuoteId,
+    calculation_id: calcId,
+    version_number: 2,
+    quote_number: 1002,
+    status: "draft",
+    company_name: `Elpro Demo AB ${token()}`,
+    customer_display_name: companyName,
+    pdf_status: "generated",
+    pdf_file_id: pdfFileId,
+    pdf_generated_at: "2026-07-05T12:00:00.000Z",
+  });
+  // The `quote_pdf` file_link (owner = the generated version).
+  await adminInsertFileLink({
+    tenant_id: base.tenantA.id,
+    file_id: pdfFileId,
+    owner_type: "quote_version",
+    owner_id: generatedVersionId,
+    purpose: "quote_pdf",
+  });
+  await adminInsertQuoteVersionLine({
+    tenant_id: base.tenantA.id,
+    quote_version_id: generatedVersionId,
+    label: `Genererad rad ${token()}`,
+    unit_sell_ore: 85000,
+    vat_rate_bp: 2500,
+    sort_order: 0,
+  });
+  const failedVersionId = await adminInsertQuoteVersion({
+    tenant_id: base.tenantA.id,
+    quote_id: pdfQuoteId,
+    calculation_id: calcId,
+    version_number: 3,
+    quote_number: 1002,
+    status: "draft",
+    company_name: `Elpro Demo AB ${token()}`,
+    customer_display_name: companyName,
+    pdf_status: "failed",
+  });
+  await adminInsertQuoteVersionLine({
+    tenant_id: base.tenantA.id,
+    quote_version_id: failedVersionId,
+    label: `Misslyckad rad ${token()}`,
+    unit_sell_ore: 50000,
+    vat_rate_bp: 2500,
+    sort_order: 0,
+  });
+
+  // Keep the 6.2 quote the MOST-RECENTLY-UPDATED so the quote list (ordered updated_at desc)
+  // still surfaces it as the first row (the 6.2 list→detail spec clicks `.first()`), even though
+  // the 6.3 pdfQuote above was seeded later.
+  await adminQuery(`update public.quotes set updated_at = now() where id = $1`, [
+    quoteId,
+  ]);
+
   const fixture = {
     ...base,
     crm: {
@@ -197,6 +443,30 @@ export default async function globalSetup() {
     },
     workRole: { id: workRoleId, displayName: workRoleName },
     article: { id: articleId, name: articleName },
+    quote: {
+      id: quoteId,
+      sentVersionId,
+      draftVersionId,
+    },
+    // Story 6.4 — a dedicated single-draft quote the mark-sent FLIP E2E sends on its own (kept off
+    // the 6.2 quote so its timeline stays exactly two versions).
+    markSendQuote: {
+      id: markSendQuoteId,
+      draftVersionId: markSendableVersionId,
+    },
+    // Story 6.5 — a dedicated single-SENT-version quote the create-new-version FLOW E2E consumes
+    // (creating a v2 permanently), kept off the shared 6.2/6.4 quote.
+    newVersionQuote: {
+      id: newVersionQuoteId,
+      sentVersionId: newVersionSentVersionId,
+    },
+    // Story 6.3 — a SEPARATE quote whose versions exercise the PDF render states.
+    pdfQuote: {
+      id: pdfQuoteId,
+      notGeneratedVersionId,
+      generatedVersionId,
+      failedVersionId,
+    },
   };
 
   mkdirSync(path.dirname(FIXTURE_FILE), { recursive: true });

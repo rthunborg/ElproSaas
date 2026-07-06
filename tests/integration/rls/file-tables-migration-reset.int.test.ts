@@ -82,13 +82,21 @@ describe("File migration reset — files/file_links (AC1/AC4/AC8)", () => {
     // attachment/index/registry-shaped and assert the set is EXACTLY {files, file_links}.
     // A deferred-module table under ANY other name (file_registry, attachments_index,
     // document_center, …) fails this — the previous three-literal denylist would not.
+    //
+    // EPIC-6 EXCLUSION (Story 6.1): `quote_version_attachments` is an attachment-NAMED
+    // table but it is the SANCTIONED Epic-6 quote-attachment snapshot table (architecture
+    // §7/§11 — it REFERENCES the 8.1 files model, it is NOT a competing file/document-index
+    // model). It is enrolled + RLS-covered by its own quote-tables-migration-reset suite, so
+    // exclude it here so this 8.1 allowlist keeps catching a DEFERRED-module file-index
+    // table without false-flagging the legitimate Epic-6 owner.
     const rows = await adminQuery<{ table_name: string }>(
       `select table_name from information_schema.tables
          where table_schema = 'public' and table_type = 'BASE TABLE'
            and (
              table_name ~* '(file|document|attachment|registry)'
              or table_name ~* 'index'
-           )`,
+           )
+           and table_name <> 'quote_version_attachments'`,
     );
     expect(rows.map((r) => r.table_name).sort()).toEqual([...FILE_TABLES].sort());
   });

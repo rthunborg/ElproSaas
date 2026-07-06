@@ -35,6 +35,20 @@ import {
  *   with the SAME shape — no existence disclosure (R-809).
  * - `COMMAND_CONFLICT`           — RESERVED for idempotent/retry-able commands; not
  *   yet emitted by any command this story builds.
+ * - `QUOTE_VERSION_NOT_DRAFT`    — a draft-scoped edit (Story 6.2) targeted a quote
+ *   version whose status is NOT `draft` (sent/accepted/rejected/expired/superseded).
+ *   The load-bearing draft-only edit-scope guard: a sent/accepted version is never
+ *   mutable through the 6.2 draft-edit path even if a crafted request submits its id.
+ *   Distinct from Story 6.4's `QUOTE_VERSION_LOCKED` (the sent-immutability DB lock) —
+ *   6.2 does NOT introduce or borrow that code.
+ * - `QUOTE_VERSION_LOCKED`       — the Story 6.4 SENT-IMMUTABILITY lock: a customer-
+ *   visible / commitment mutation (or the mark-sent RPC's own not-draft assertion)
+ *   targeted a SENT (or any non-draft) quote version. Enforced at BOTH layers — the
+ *   mark-sent command re-asserts `status='draft'` (command guard) AND a DB trigger
+ *   RAISES (SQLSTATE `QV409`) on a direct own-tenant authenticated UPDATE of a locked
+ *   column below the command (architecture §9). DISTINCT from 6.2's
+ *   `QUOTE_VERSION_NOT_DRAFT`: that is the draft-only EDIT-scope rejection; this is the
+ *   post-send IMMUTABILITY lock. Both codes co-exist — never merge or rename them.
  * - `SERVER_ERROR`              — a TRANSIENT infra failure during the command
  *   (reused from Story 2.2). Generic + retryable; leaks nothing internal.
  */
@@ -43,7 +57,9 @@ export type CommandErrorCode =
   | "VALIDATION_FAILED"
   | "TENANT_ACCESS_DENIED"
   | "FILE_ACCESS_DENIED"
-  | "COMMAND_CONFLICT";
+  | "COMMAND_CONFLICT"
+  | "QUOTE_VERSION_NOT_DRAFT"
+  | "QUOTE_VERSION_LOCKED";
 
 /**
  * A SANCTIONED typed-error escape for a command `execute` body (Story 3.1).
@@ -103,4 +119,12 @@ export const COMMAND_MESSAGES: Record<CommandErrorCode, string> = {
   // Reserved for idempotent/retry-able commands (unused until one lands).
   COMMAND_CONFLICT:
     "Åtgärden kunde inte slutföras på grund av en konflikt. Försök igen.",
+  // A draft-scoped edit targeted a non-draft version (sent/accepted/…): once a version is
+  // sent its customer-visible content is immutable — changes require a new version.
+  QUOTE_VERSION_NOT_DRAFT:
+    "Den här versionen är inte ett utkast och kan inte redigeras. Skapa en ny version för att göra ändringar.",
+  // The Story 6.4 sent-immutability lock: a sent (or any non-draft) version's customer-visible
+  // content is locked — changes require a new version. Generic + user-safe (no row/status leak).
+  QUOTE_VERSION_LOCKED:
+    "Den här versionen är skickad och är låst. Skapa en ny version för att göra ändringar.",
 };
