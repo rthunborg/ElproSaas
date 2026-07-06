@@ -5,10 +5,10 @@ epic_num: 6
 story_num: null
 branch: epic/6-quote-versions-pdf-and-lifecycle
 status: in-progress
-updated_at: "2026-07-06T16:24:12Z"
+updated_at: "2026-07-06T16:27:42Z"
 started_at: "2026-07-05T18:20:38Z"
 completed_at: null
-active_seconds: 39883
+active_seconds: 40073
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
