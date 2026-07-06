@@ -79,7 +79,7 @@ afterAll(async () => {
   await closeAdminPool();
 });
 
-describe.skip("Acceptance/job migration reset — three new commitment tables (AC4/AC5) [ATDD red phase — Story 7.1 not implemented]", () => {
+describe("Acceptance/job migration reset — three new commitment tables (AC4/AC5)", () => {
   it("[P0] 7.1-INT-01: the three commitment tables exist after reset (quote_events NOT recreated)", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     const rows = await adminQuery<{ table_name: string }>(

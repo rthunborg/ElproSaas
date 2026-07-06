@@ -1085,6 +1085,11 @@ export interface QuoteVersionSeed {
   readonly quote_number?: number;
   readonly captured_at?: string;
   readonly company_name?: string | null;
+  /**
+   * The frozen customer-commitment gross (Story 6.1) — the SOURCE SENT TOTAL a Story 7.1
+   * acceptance measures its adjusted-price delta against. Integer öre; defaults to 0 at the DB.
+   */
+  readonly accepted_price_ore?: number;
   /** Lifecycle status (Story 6.2) — defaults to 'draft' at the DB. */
   readonly status?: string;
   /** A customer-visible presentational field (Story 6.2 draft-edit readback proof). */
@@ -1181,8 +1186,8 @@ export async function adminInsertQuoteVersion(
       `insert into public.quote_versions
          (tenant_id, quote_id, version_number, quote_number, calculation_id,
           captured_at, company_name, status, intro_text, customer_display_name,
-          pdf_status, pdf_file_id, pdf_generated_at, warnings_snapshot)
-       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14::jsonb)
+          pdf_status, pdf_file_id, pdf_generated_at, warnings_snapshot, accepted_price_ore)
+       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14::jsonb, $15)
        returning id`,
       [
         seed.tenant_id,
@@ -1199,6 +1204,7 @@ export async function adminInsertQuoteVersion(
         seed.pdf_file_id ?? null,
         seed.pdf_generated_at ?? null,
         JSON.stringify(seed.warnings_snapshot ?? []),
+        seed.accepted_price_ore ?? 0,
       ],
     );
     const id = rows[0]?.id;
@@ -1368,6 +1374,194 @@ export async function adminSelectQuoteVersionLines(
     `select * from public.quote_version_lines
        where quote_version_id = $1 order by sort_order asc`,
     [quoteVersionId],
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Acceptance/job seed/read helpers (Story 7.1) — ADDITIVE (B1: add ALONGSIDE the
+// existing handles; the two-tenant fixture shape is unchanged).
+//
+// Seed REAL quote_acceptances/jobs/job_events rows via the loopback-gated superuser
+// `pg` pool (BYPASSRLS) so the cross-tenant/anon negatives can target a CONCRETE
+// Tenant B commitment row (never a non-existent id that would deny vacuously), and so
+// the job/job_event spoof INSERTs have a real Tenant B parent to reference. Mirror
+// `adminInsertQuote`: THROW on a DB error with the Postgres `code` preserved.
+//
+// Acceptance/job tables are `tenant_id … on delete cascade`, so the EXISTING
+// `cleanupFixture` tenant-delete cascades the seeded rows away — no new teardown path.
+//
+// Acceptance/job fixtures carry METADATA/DISPLAY SHAPE only — anonymized names, integer
+// öre, NO PII (no real name/address/personnummer/orgnr/secret). Öre values are kept
+// under the 10-digit orgnr-scan boundary (R-717).
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** A seed for a `quote_acceptances` row (parent quote + accepted version required, same tenant). */
+export interface QuoteAcceptanceSeed {
+  readonly tenant_id: string;
+  readonly quote_id: string;
+  readonly quote_version_id: string;
+  readonly channel?: string | null;
+  readonly accepted_at?: string;
+  readonly accepted_price_ore?: number;
+  readonly source_sent_total_ore?: number;
+  readonly adjustment_reason?: string | null;
+  readonly evidence_file_id?: string | null;
+  readonly evidence_reference?: string | null;
+  readonly notes?: string | null;
+}
+
+/** A seed for a `jobs` row (source acceptance + version + customer required, same tenant). */
+export interface JobSeed {
+  readonly tenant_id: string;
+  readonly quote_acceptance_id: string;
+  readonly quote_version_id: string;
+  readonly customer_id: string;
+  readonly facility_id?: string | null;
+  readonly contact_id?: string | null;
+  readonly title?: string | null;
+  readonly status?: string;
+}
+
+/** A seed for a `job_events` row (parent job required, same tenant). */
+export interface JobEventSeed {
+  readonly tenant_id: string;
+  readonly job_id: string;
+  readonly event_type?: string;
+}
+
+/** Seed ONE `quote_acceptances` row via the privileged superuser pg path (BYPASSRLS). */
+export async function adminInsertQuoteAcceptance(
+  seed: QuoteAcceptanceSeed,
+): Promise<string> {
+  try {
+    const rows = await adminQuery<{ id: string }>(
+      `insert into public.quote_acceptances
+         (tenant_id, quote_id, quote_version_id, channel, accepted_at,
+          accepted_price_ore, source_sent_total_ore, adjustment_reason,
+          evidence_file_id, evidence_reference, notes)
+       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+       returning id`,
+      [
+        seed.tenant_id,
+        seed.quote_id,
+        seed.quote_version_id,
+        seed.channel ?? "email",
+        seed.accepted_at ?? "2026-07-09T09:00:00.000Z",
+        seed.accepted_price_ore ?? 125000,
+        seed.source_sent_total_ore ?? 125000,
+        seed.adjustment_reason ?? null,
+        seed.evidence_file_id ?? null,
+        seed.evidence_reference ?? null,
+        seed.notes ?? null,
+      ],
+    );
+    const id = rows[0]?.id;
+    if (!id) throw new Error("adminInsertQuoteAcceptance: no id returned");
+    return id;
+  } catch (error) {
+    rethrowWithCode(error);
+  }
+}
+
+/** Seed ONE `jobs` row via the privileged superuser pg path (BYPASSRLS). */
+export async function adminInsertJob(seed: JobSeed): Promise<string> {
+  try {
+    const rows = await adminQuery<{ id: string }>(
+      `insert into public.jobs
+         (tenant_id, quote_acceptance_id, quote_version_id, customer_id,
+          facility_id, contact_id, title, status)
+       values ($1, $2, $3, $4, $5, $6, $7, $8)
+       returning id`,
+      [
+        seed.tenant_id,
+        seed.quote_acceptance_id,
+        seed.quote_version_id,
+        seed.customer_id,
+        seed.facility_id ?? null,
+        seed.contact_id ?? null,
+        seed.title ?? "tenant-b-job-seed",
+        seed.status ?? "created",
+      ],
+    );
+    const id = rows[0]?.id;
+    if (!id) throw new Error("adminInsertJob: no id returned");
+    return id;
+  } catch (error) {
+    rethrowWithCode(error);
+  }
+}
+
+/** Seed ONE `job_events` row via the privileged superuser pg path (BYPASSRLS). */
+export async function adminInsertJobEvent(seed: JobEventSeed): Promise<string> {
+  try {
+    const rows = await adminQuery<{ id: string }>(
+      `insert into public.job_events (tenant_id, job_id, event_type)
+       values ($1, $2, $3)
+       returning id`,
+      [seed.tenant_id, seed.job_id, seed.event_type ?? "created"],
+    );
+    const id = rows[0]?.id;
+    if (!id) throw new Error("adminInsertJobEvent: no id returned");
+    return id;
+  } catch (error) {
+    rethrowWithCode(error);
+  }
+}
+
+/**
+ * Read ONE acceptance/job-table row's label column back via the privileged superuser pg
+ * path (BYPASSRLS), independent of the app/RLS path. Used by the cross-tenant UPDATE
+ * negative to prove the foreign row is UNCHANGED. `table`/`labelColumn` are a
+ * closed/inventory-supplied set (never client input). Returns `null` if the row does not exist.
+ */
+export async function adminSelectAcceptanceLabel(
+  table: "quote_acceptances" | "jobs" | "job_events",
+  labelColumn: string,
+  id: string,
+): Promise<{ id: string; label: string | null } | null> {
+  const rows = await adminQuery<{ id: string; label: string | null }>(
+    `select id, ${labelColumn}::text as label from public.${table} where id = $1`,
+    [id],
+  );
+  return rows[0] ?? null;
+}
+
+/** Read a full quote_acceptances row back (BYPASSRLS) for persistence proofs. */
+export async function adminSelectQuoteAcceptanceRow(
+  id: string,
+): Promise<Record<string, unknown> | null> {
+  const rows = await adminQuery<Record<string, unknown>>(
+    `select * from public.quote_acceptances where id = $1`,
+    [id],
+  );
+  return rows[0] ?? null;
+}
+
+/** Read all quote_acceptances rows for a version back (BYPASSRLS) — for duplicate/count proofs. */
+export async function adminSelectAcceptancesForVersion(
+  quoteVersionId: string,
+): Promise<Record<string, unknown>[]> {
+  return adminQuery<Record<string, unknown>>(
+    `select * from public.quote_acceptances where quote_version_id = $1`,
+    [quoteVersionId],
+  );
+}
+
+/** Read the `file_links` rows for a quote_acceptance evidence owner (BYPASSRLS). */
+export async function adminSelectAcceptanceEvidenceLinks(
+  acceptanceId: string,
+): Promise<{ id: string; file_id: string; owner_type: string; purpose: string }[]> {
+  return adminQuery<{
+    id: string;
+    file_id: string;
+    owner_type: string;
+    purpose: string;
+  }>(
+    `select id, file_id, owner_type, purpose
+       from public.file_links
+      where owner_type = 'quote_acceptance' and owner_id = $1
+      order by id`,
+    [acceptanceId],
   );
 }
 

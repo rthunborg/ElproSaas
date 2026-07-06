@@ -277,6 +277,68 @@ export async function loadQuoteVersionStatus(
   return row?.status ?? null;
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Story 7.1 — the acceptance-capture reads + the own-tenant quote_acceptances INSERT.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * The frozen fields the acceptance-capture command reads off the target version row (under the
+ * caller's RLS): the lifecycle `status` (the sent-state gate — acceptance is legal ONLY on
+ * `status = 'sent'`), the parent `quote_id` (the acceptance's parent-quote FK), and the frozen
+ * customer-commitment gross the version snapshot froze (`accepted_price_ore` — the SOURCE SENT
+ * TOTAL the adjusted-price delta is measured against; captured, never re-derived).
+ */
+export interface QuoteVersionAcceptanceSourceRow {
+  readonly status: string;
+  readonly quote_id: string;
+  readonly source_sent_total_ore: number;
+}
+
+/**
+ * Load the acceptance-capture source fields for the target version under the caller's RLS
+ * (ownership already proved it visible). Returns null when the row is not visible (a race → the
+ * command denies). The `source_sent_total_ore` reads the frozen `accepted_price_ore` (the
+ * customer-commitment gross the version froze) — bigint öre may arrive as a STRING, coerced here.
+ */
+export async function loadQuoteVersionAcceptanceSource(
+  db: CommandDbClient,
+  quoteVersionId: string,
+): Promise<QuoteVersionAcceptanceSourceRow | null> {
+  const { data, error } = await asReadClient(db)
+    .from("quote_versions")
+    .select("status, quote_id, accepted_price_ore")
+    .eq("id", quoteVersionId)
+    .limit(1);
+  throwOnReadError("loadQuoteVersionAcceptanceSource", error);
+  const raw = (data?.[0] ?? null) as Record<string, unknown> | null;
+  if (raw === null) return null;
+  const total = Number(raw.accepted_price_ore);
+  return {
+    status: String(raw.status),
+    quote_id: String(raw.quote_id),
+    source_sent_total_ore: Number.isFinite(total) ? total : 0,
+  };
+}
+
+/** The minimal quote_acceptances INSERT surface of the request-bound RLS client. */
+export type QuoteAcceptanceWriteClient = {
+  from(table: "quote_acceptances"): {
+    insert(values: Record<string, unknown>): {
+      select(columns: string): Promise<{
+        data: unknown[] | null;
+        error: { code?: string; message?: string } | null;
+      }>;
+    };
+  };
+};
+
+/** Narrow the envelope client to the quote-acceptance write surface (single documented cast). */
+export function asQuoteAcceptanceWriteClient(
+  db: CommandDbClient,
+): QuoteAcceptanceWriteClient {
+  return db as unknown as QuoteAcceptanceWriteClient;
+}
+
 /** The minimal quote_versions UPDATE surface of the request-bound RLS client. */
 export type QuoteWriteClient = {
   from(table: "quote_versions"): {

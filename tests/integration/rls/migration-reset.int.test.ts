@@ -156,6 +156,11 @@ describe("Migration reset green — tenant_foundation objects present (AC1 / R-0
     // hard delete; a tenant_counters row is upserted/incremented, never deleted). All six
     // are MANY-rows-per-tenant collections. Placed alphabetically. The "no DELETE policy
     // anywhere" assertion below still holds.
+    // Story 7.1 EXTENDS it again (NOT loosened) by the 9 new ACCEPTANCE/JOB policies:
+    // job_events.{S,I,U} + jobs.{S,I,U} + quote_acceptances.{S,I,U} — SELECT/INSERT/UPDATE
+    // per table, NO DELETE (archive over hard delete). All three are MANY-rows-per-tenant
+    // collections. Placed alphabetically. The "no DELETE policy anywhere" assertion below
+    // still holds; 7.1 adds NO immutability trigger/policy (Story 7.4 locks accepted state).
     expect(rows.map((r) => `${r.tablename}.${r.cmd}`).sort()).toEqual([
       "articles.INSERT",
       "articles.SELECT",
@@ -188,6 +193,15 @@ describe("Migration reset green — tenant_foundation objects present (AC1 / R-0
       "files.INSERT",
       "files.SELECT",
       "files.UPDATE",
+      "job_events.INSERT",
+      "job_events.SELECT",
+      "job_events.UPDATE",
+      "jobs.INSERT",
+      "jobs.SELECT",
+      "jobs.UPDATE",
+      "quote_acceptances.INSERT",
+      "quote_acceptances.SELECT",
+      "quote_acceptances.UPDATE",
       "quote_events.INSERT",
       "quote_events.SELECT",
       "quote_events.UPDATE",
@@ -248,6 +262,9 @@ describe("Migration reset green — tenant_foundation objects present (AC1 / R-0
       "quote_version_lines",
       "quote_version_attachments",
       "quote_events",
+      "quote_acceptances",
+      "jobs",
+      "job_events",
     ];
     for (const t of crmSettingsAndPricingTables) {
       expect((cmdsByTable.get(t) ?? []).sort()).toEqual([

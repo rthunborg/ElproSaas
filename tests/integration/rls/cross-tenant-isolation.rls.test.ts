@@ -44,12 +44,17 @@ import {
   adminInsertQuoteVersionLine,
   adminInsertQuoteVersionAttachment,
   adminInsertQuoteEvent,
+  adminInsertQuoteAcceptance,
+  adminInsertJob,
+  adminInsertJobEvent,
+  adminUpdateQuoteVersionStatus,
   adminSelectCrmRowById,
   adminSelectSettingsLabel,
   adminSelectPricingRow,
   adminSelectCalcLabel,
   adminSelectFileLabel,
   adminSelectQuoteLabel,
+  adminSelectAcceptanceLabel,
   type TwoTenantFixture,
   type TestServerClient,
 } from "../../factories/tenants";
@@ -89,6 +94,9 @@ let tenantBQuoteVersionId: string; // a seeded Tenant B version (6.1 target + li
 let tenantBQuoteVersionLineId: string; // a seeded Tenant B line (6.1 target)
 let tenantBQuoteVersionAttachmentId: string; // a seeded Tenant B attachment (6.1 target)
 let tenantBQuoteEventId: string; // a seeded Tenant B event (6.1 target)
+let tenantBQuoteAcceptanceId: string; // a seeded Tenant B acceptance (7.1 target + job parent)
+let tenantBJobId: string; // a seeded Tenant B job (7.1 target + job_event parent)
+let tenantBJobEventId: string; // a seeded Tenant B job event (7.1 target)
 let ctx: InventoryContext; // shared-inventory context (fixture + the seeded ids)
 
 beforeAll(async () => {
@@ -238,6 +246,34 @@ beforeAll(async () => {
     quote_version_id: tenantBQuoteVersionId,
     event_type: "created",
   });
+  // Seed a REAL Tenant B ACCEPTANCE → JOB → JOB_EVENT chain (Story 7.1) so the three new
+  // commitment-table cross-tenant negatives target a CONCRETE Tenant B row (never a
+  // non-existent id that would deny vacuously), AND so the job/job_event spoof INSERTs have a
+  // real Tenant B parent to reference. The DB has NO sent-state constraint on quote_acceptances
+  // (that gate is command-only), so a draft version is a valid FK target — but flip it to sent
+  // for realism (BYPASSRLS bypasses the sent-lock trigger). The composite same-tenant FKs force
+  // the whole chain into the SAME Tenant B. cleanupFixture's tenant-delete cascades these. The
+  // fixtures carry DISPLAY/METADATA SHAPE only — anonymized names + integer öre < 10 digits, NO PII.
+  await adminUpdateQuoteVersionStatus(tenantBQuoteVersionId, "sent");
+  tenantBQuoteAcceptanceId = await adminInsertQuoteAcceptance({
+    tenant_id: fixture.tenantB.id,
+    quote_id: tenantBQuoteId,
+    quote_version_id: tenantBQuoteVersionId,
+    accepted_price_ore: 125000,
+    source_sent_total_ore: 125000,
+  });
+  tenantBJobId = await adminInsertJob({
+    tenant_id: fixture.tenantB.id,
+    quote_acceptance_id: tenantBQuoteAcceptanceId,
+    quote_version_id: tenantBQuoteVersionId,
+    customer_id: tenantBCustomerId,
+    title: "tenant-b-job-seed",
+  });
+  tenantBJobEventId = await adminInsertJobEvent({
+    tenant_id: fixture.tenantB.id,
+    job_id: tenantBJobId,
+    event_type: "created",
+  });
   // VACUITY GUARD (DX#4, epic-2 hardening): the audit_events cross-tenant negatives
   // filter Tenant B's row by `id = tenantBAuditId`. If the seed ever returned without
   // a real id, `.eq("id", undefined/null)` would match NOTHING and the SELECT/UPDATE/
@@ -299,6 +335,12 @@ beforeAll(async () => {
         "cross-tenant negatives would pass VACUOUSLY against a non-existent row.",
     );
   }
+  if (!tenantBQuoteAcceptanceId || !tenantBJobId || !tenantBJobEventId) {
+    throw new Error(
+      "cross-tenant acceptance seed produced no id (quote_acceptances/jobs/job_events) — the " +
+        "acceptance cross-tenant negatives would pass VACUOUSLY against a non-existent row.",
+    );
+  }
   ctx = {
     fixture,
     tenantBAuditId,
@@ -321,6 +363,9 @@ beforeAll(async () => {
     tenantBQuoteVersionLineId,
     tenantBQuoteVersionAttachmentId,
     tenantBQuoteEventId,
+    tenantBQuoteAcceptanceId,
+    tenantBJobId,
+    tenantBJobEventId,
   };
 });
 
@@ -438,6 +483,24 @@ describe("Cross-tenant RLS isolation — data-driven over the shared inventory (
               expect(row?.label).toBeNull();
             } else {
               expect(row?.label).not.toBe("hijacked-by-tenant-a");
+            }
+          } else if (
+            table === "quote_acceptances" ||
+            table === "jobs" ||
+            table === "job_events"
+          ) {
+            // The acceptance/job hijacks set a distinct value per table (notes / title /
+            // channel). Prove the seed value was NOT overwritten by Tenant A's denied UPDATE.
+            const labelColumn = rlsInvisibleLabelColumn(table);
+            const row = await adminSelectAcceptanceLabel(table, labelColumn, value);
+            expect(row).not.toBeNull();
+            if (table === "quote_acceptances" || table === "job_events") {
+              // The seed notes/channel is NULL — the hijack ("hijacked-by-tenant-a") never landed.
+              expect(row?.label).toBeNull();
+            } else {
+              // jobs: the seed title is "tenant-b-job-seed" — the hijack never landed.
+              expect(row?.label).not.toBe("hijacked-by-tenant-a");
+              expect(row?.label).toBe("tenant-b-job-seed");
             }
           } else {
             const crmTable = table as "customers" | "facilities" | "contacts";

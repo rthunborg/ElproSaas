@@ -37,15 +37,21 @@ export const OWNER_TYPES = [
 export type OwnerType = (typeof OWNER_TYPES)[number];
 
 /**
- * The owner types that are ACTIVE today — their owner tables exist by Epic 3/5 so the
- * command's own-tenant RLS SELECT can resolve them. The rest (quote_version/
- * quote_acceptance/job) are "not-yet-available" until Epics 6/7.
+ * The owner types that are ACTIVE at the `createFileLink` COMMAND layer — their owner tables
+ * exist so the command's own-tenant RLS SELECT (the R-802 owner-side check) can resolve them.
+ * Story 7.1 ACTIVATES `quote_acceptance` (its `quote_acceptances` owner table lands in the 7.1
+ * migration; the `acceptance_evidence` purpose is already in `FILE_PURPOSES`) so an evidence file
+ * can be linked to an acceptance via `createFileLink`. `quote_version` links are materialized by
+ * the 6.1 `create_quote_version_from_calculation` RPC directly (never through this command path),
+ * so it stays out of this command-layer active set. `job` remains "not-yet-available" until
+ * Story 7.3 wires the job-evidence surface.
  */
 export const ACTIVE_OWNER_TYPES = [
   "customer",
   "facility",
   "contact",
   "calculation",
+  "quote_acceptance",
 ] as const;
 export type ActiveOwnerType = (typeof ACTIVE_OWNER_TYPES)[number];
 

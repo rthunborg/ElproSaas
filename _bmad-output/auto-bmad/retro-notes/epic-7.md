@@ -8,3 +8,5 @@
 - [Phase 3 - create-story] Scope boundary pinned: 7.1 owns quote_acceptances single-row persistence + form; 7.2 owns accept_quote_and_create_job RPC/transaction/idempotency; 7.4 owns DB immutability lock - epic doc bundles these.
 - [Phase 3 - create-story] ACCEPTANCE_ALREADY_RECORDED error code deliberately NOT built in 7.1 (sent-state gate covers it); reserved for 7.2 idempotent path - epic trace must not read its absence in 7.1 as a gap.
 - [Phase 4 - ATDD] The 6.2 non-scope guardrail (tests/unit/guardrails/quote-non-scope.test.ts) forbids acceptQuote tokens in src/server/commands/quotes - the exact dir where 7.1 must add the sanctioned command; dev MUST narrow the guardrail or 7.1 fails loud. Not a scope violation.
+- [Phase 5 - dev-story] Epic-5 calc-tables-migration-reset test forbade the jobs table (deferred then, sanctioned now) - removed jobs from its forbidden list; future epics landing a previously-forbidden table should expect and fix this schema-wide guard.
+- [Phase 5 - dev-story] Decision: non-sent + delta-without-reason both surface as generic VALIDATION_FAILED (no new error code in 7.1); idempotency codes reserved for 7.2.

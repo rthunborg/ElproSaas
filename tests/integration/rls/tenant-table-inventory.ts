@@ -146,6 +146,21 @@ export const TENANT_TABLES = [
   "quote_version_lines",
   "quote_version_attachments",
   "quote_events",
+  // Story 7.1 acceptance/job commitment tables (the acceptance-to-job model). Like every
+  // business table since 3.1, `authenticated` HAS an INSERT/UPDATE grant (the tenant admin
+  // captures acceptances via the app path / the captureQuoteAcceptance command; jobs are
+  // created but unpopulated by any live path in 7.1) — so their cross-tenant UPDATE denial
+  // mechanism is RLS-USING invisibility (zero rows + unchanged re-read), NOT a missing-grant
+  // 42501. See `updateDenialKind` below. All three are MANY-rows-per-tenant collections (NO
+  // unique (tenant_id)). The spoof/anon rows carry ONLY the display/metadata / integer-öre
+  // columns — NO supplier-ish column, NO PII; öre values kept < 10 digits (the orgnr-scan
+  // boundary, R-717). The child spoof INSERTs carry a Tenant B parent id (acceptance →
+  // version/quote; job → acceptance/version/customer; job_event → job) + the source parents so
+  // the composite same-tenant FKs bind them to Tenant B. `job_events` is the easy-to-forget
+  // event table — it enrolls like any other tenant-owned table (retro epic-8).
+  "quote_acceptances",
+  "jobs",
+  "job_events",
 ] as const;
 
 export type TenantTableName = (typeof TENANT_TABLES)[number];
@@ -236,6 +251,17 @@ export interface InventoryContext {
   readonly tenantBQuoteEventId?: string;
   /** The Tenant B source calculation the quote_versions spoof references (composite FK). */
   readonly tenantBQuoteSourceCalcId?: string;
+  /**
+   * REAL Tenant B ACCEPTANCE/JOB row ids (Story 7.1) — concrete cross-tenant targets the
+   * quote_acceptances/jobs/job_events negatives point Tenant A at, so the denial is never
+   * vacuous against a non-existent row. `tenantBQuoteAcceptanceId` also doubles as the Tenant B
+   * PARENT the jobs spoof references, and `tenantBJobId` the parent the job_events spoof
+   * references. Optional so the anon suite can omit them; the cross-tenant suite seeds and
+   * asserts them. A consumer that needs one but finds it missing fails LOUDLY (requireCrmId).
+   */
+  readonly tenantBQuoteAcceptanceId?: string;
+  readonly tenantBJobId?: string;
+  readonly tenantBJobEventId?: string;
 }
 
 /**
@@ -282,6 +308,9 @@ export function updateDenialKind(table: TenantTableName): MutationDenialKind {
     case "quote_version_lines":
     case "quote_version_attachments":
     case "quote_events":
+    case "quote_acceptances":
+    case "jobs":
+    case "job_events":
       return "rls-invisible"; // UPDATE granted; RLS USING hides foreign rows
     default:
       return assertNever(table);
@@ -582,6 +611,54 @@ export function spoofedRowFor(
         quote_id: requireCrmId(ctx.tenantBQuoteId, "tenantBQuoteId", table),
         event_type: "created",
       };
+    case "quote_acceptances":
+      // An acceptance forging Tenant B ownership, pointing at REAL Tenant B quote + version
+      // parents. RLS INSERT WITH CHECK on tenant_id=B → `42501` (fresh id; the NOT-NULL
+      // accepted_at/accepted_price_ore/source_sent_total_ore populated so the denial is the
+      // policy, never a NOT-NULL/CHECK violation). Öre < 10 digits (orgnr-scan boundary).
+      return {
+        id: crypto.randomUUID(),
+        tenant_id: fixture.tenantB.id,
+        quote_id: requireCrmId(ctx.tenantBQuoteId, "tenantBQuoteId", table),
+        quote_version_id: requireCrmId(
+          ctx.tenantBQuoteVersionId,
+          "tenantBQuoteVersionId",
+          table,
+        ),
+        channel: "spoofed-channel-by-a",
+        accepted_at: "2026-07-09T09:00:00.000Z",
+        accepted_price_ore: 125000,
+        source_sent_total_ore: 125000,
+      };
+    case "jobs":
+      // A job forging Tenant B ownership, pointing at REAL Tenant B acceptance + version +
+      // customer parents. RLS INSERT WITH CHECK on tenant_id=B → `42501` (fresh id).
+      return {
+        id: crypto.randomUUID(),
+        tenant_id: fixture.tenantB.id,
+        quote_acceptance_id: requireCrmId(
+          ctx.tenantBQuoteAcceptanceId,
+          "tenantBQuoteAcceptanceId",
+          table,
+        ),
+        quote_version_id: requireCrmId(
+          ctx.tenantBQuoteVersionId,
+          "tenantBQuoteVersionId",
+          table,
+        ),
+        customer_id: requireCrmId(ctx.tenantBCustomerId, "tenantBCustomerId", table),
+        title: "spoofed-job-by-a",
+        status: "created",
+      };
+    case "job_events":
+      // A job event forging Tenant B ownership, pointing at a REAL Tenant B job parent.
+      // RLS INSERT WITH CHECK on tenant_id=B → `42501` (fresh id; event_type populated).
+      return {
+        id: crypto.randomUUID(),
+        tenant_id: fixture.tenantB.id,
+        job_id: requireCrmId(ctx.tenantBJobId, "tenantBJobId", table),
+        event_type: "created",
+      };
     default:
       return assertNever(table);
   }
@@ -778,6 +855,25 @@ export function tenantBFilter(
           table,
         ),
       };
+    case "quote_acceptances":
+      return {
+        column: "id",
+        value: requireCrmId(
+          ctx.tenantBQuoteAcceptanceId,
+          "tenantBQuoteAcceptanceId",
+          table,
+        ),
+      };
+    case "jobs":
+      return {
+        column: "id",
+        value: requireCrmId(ctx.tenantBJobId, "tenantBJobId", table),
+      };
+    case "job_events":
+      return {
+        column: "id",
+        value: requireCrmId(ctx.tenantBJobEventId, "tenantBJobEventId", table),
+      };
     default:
       return assertNever(table);
   }
@@ -843,6 +939,18 @@ export function hijackMutationFor(
       // channel is a mutable free-text column (seed is NULL) — the hijack sets a value so
       // the unchanged re-read (channel stays NULL) is meaningful.
       return { channel: "hijacked-by-tenant-a" };
+    case "quote_acceptances":
+      // notes is a mutable free-text column (seed is NULL) — the hijack sets a value so the
+      // unchanged re-read (notes stays NULL) is meaningful.
+      return { notes: "hijacked-by-tenant-a" };
+    case "jobs":
+      // title is a mutable free-text column (seed is "tenant-b-job-seed") — the hijack sets a
+      // DIFFERENT value so the unchanged re-read is meaningful.
+      return { title: "hijacked-by-tenant-a" };
+    case "job_events":
+      // channel is a mutable free-text column (seed is NULL) — the hijack sets a value so the
+      // unchanged re-read (channel stays NULL) is meaningful.
+      return { channel: "hijacked-by-tenant-a" };
     default:
       return assertNever(table);
   }
@@ -897,6 +1005,18 @@ export function rlsInvisibleLabelColumn(table: TenantTableName): string {
     case "quote_events":
       // channel is the column the quote_events hijack sets — re-read it to prove the seed
       // value (NULL) was NOT overwritten.
+      return "channel";
+    case "quote_acceptances":
+      // notes is the column the quote_acceptances hijack sets — re-read it to prove the seed
+      // value (NULL) was NOT overwritten.
+      return "notes";
+    case "jobs":
+      // title is the column the jobs hijack sets — re-read it to prove the seed value
+      // ("tenant-b-job-seed") was NOT overwritten.
+      return "title";
+    case "job_events":
+      // channel is the column the job_events hijack sets — re-read it to prove the seed value
+      // (NULL) was NOT overwritten.
       return "channel";
     // The "privilege"-denial tables never reach the unchanged-re-read branch, so a
     // label column is not meaningful for them — but the exhaustive switch keeps the
@@ -1111,6 +1231,37 @@ export function anonRowFor(
         quote_id: crypto.randomUUID(),
         event_type: "created",
       };
+    case "quote_acceptances":
+      // Anon has NO grant on the acceptance tables → the INSERT is denied at the privilege
+      // layer (42501) regardless of the row shape (a random parent id never matters — the
+      // grant denial fires first). NOT-NULL columns populated so the grant denial — not a
+      // NOT-NULL violation — is what fires. Öre < 10 digits (orgnr-scan boundary).
+      return {
+        id: crypto.randomUUID(),
+        tenant_id: fixture.tenantA.id,
+        quote_id: crypto.randomUUID(),
+        quote_version_id: crypto.randomUUID(),
+        accepted_at: "2026-07-09T09:00:00.000Z",
+        accepted_price_ore: 125000,
+        source_sent_total_ore: 125000,
+      };
+    case "jobs":
+      return {
+        id: crypto.randomUUID(),
+        tenant_id: fixture.tenantA.id,
+        quote_acceptance_id: crypto.randomUUID(),
+        quote_version_id: crypto.randomUUID(),
+        customer_id: crypto.randomUUID(),
+        title: "anon-spoof-job",
+        status: "created",
+      };
+    case "job_events":
+      return {
+        id: crypto.randomUUID(),
+        tenant_id: fixture.tenantA.id,
+        job_id: crypto.randomUUID(),
+        event_type: "created",
+      };
     default:
       return assertNever(table);
   }
@@ -1156,6 +1307,9 @@ export function anonFilterFor(
     case "quote_version_lines":
     case "quote_version_attachments":
     case "quote_events":
+    case "quote_acceptances":
+    case "jobs":
+    case "job_events":
       return { column: "tenant_id", value: ctx.fixture.tenantA.id };
     default:
       return assertNever(table);
@@ -1206,6 +1360,12 @@ export function anonMutationFor(
     case "quote_version_attachments":
       return { display_name: "anon-hijack" };
     case "quote_events":
+      return { channel: "anon-hijack" };
+    case "quote_acceptances":
+      return { notes: "anon-hijack" };
+    case "jobs":
+      return { title: "anon-hijack" };
+    case "job_events":
       return { channel: "anon-hijack" };
     default:
       return assertNever(table);

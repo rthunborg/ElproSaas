@@ -22,12 +22,18 @@ import { createSupabaseServerClient } from "@/server/db/supabase-server-client";
 import { runCommand, type CommandDbClient } from "@/server/commands/envelope";
 import { COMMAND_MESSAGES } from "@/server/commands/command-errors";
 import {
+  captureQuoteAcceptance,
   createNewQuoteVersion,
   generateQuotePdf,
   markQuoteVersionSent,
   updateDraftQuoteVersion,
 } from "@/server/commands/quotes";
 import { createSignedFileAccess } from "@/server/commands/files";
+import { kronorStringToOre } from "@/features/calculations/money-input";
+import {
+  ACCEPTANCE_ACTION_INITIAL,
+  type AcceptanceActionState,
+} from "./acceptance-action-state";
 import {
   QUOTE_ACTION_INITIAL,
   type QuoteActionState,
@@ -278,6 +284,85 @@ export async function createNewQuoteVersionAction(
 
   return {
     ...NEW_VERSION_ACTION_INITIAL,
+    status: "error",
+    code: result.code,
+    formError: result.message || COMMAND_MESSAGES[result.code],
+  };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Story 7.1 — the acceptance-capture server action (the ONLY write path the acceptance form
+// uses). Wires the SENT-branch acceptance form to `captureQuoteAcceptance`. Only the acceptance-
+// capture fields are read from the form — status/tenant/source-total/admin-user are NEVER accepted
+// (the command re-asserts the sent state server-side, re-validates the adjusted-price reason gate,
+// loads the frozen source sent total, and derives the admin user from the resolved session). The
+// entered kronor price is parsed to INTEGER ÖRE here (the UI-input seam); the command re-validates
+// it with `isOreAmount`. After a successful capture, revalidate BOTH `/quotes/[quoteId]` AND the
+// version subroute (the 6.2/6.3/6.4 subroute-revalidation discipline — do NOT repeat the 6.2 gap).
+// This is an authenticated admin-only server action — NO public / portal / callback route exists.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * The acceptance-capture action (React `useActionState` signature). Wires the acceptance form to
+ * `captureQuoteAcceptance`. Only the capture fields are read; the server command is the authority
+ * (the UI adjusted-price delta + reason gate is a MIRROR, not the guarantee).
+ */
+export async function captureQuoteAcceptanceAction(
+  _prev: AcceptanceActionState,
+  form: FormData,
+): Promise<AcceptanceActionState> {
+  const quoteVersionId = form.get("quote_version_id");
+  const quoteId = form.get("quote_id");
+
+  // Parse the entered kronor price → integer öre (the UI-input seam; the command re-validates).
+  // A malformed price yields a client-shaped VALIDATION_FAILED at the command (accepted_price_ore
+  // will be a non-öre value the validator rejects) — pass NaN through so the server owns the reject.
+  const priceRaw = form.get("accepted_price_ore");
+  let acceptedPriceOre: number = Number.NaN;
+  if (typeof priceRaw === "string") {
+    const parsed = kronorStringToOre(priceRaw);
+    if (parsed.ok) acceptedPriceOre = parsed.ore;
+  }
+
+  const input: Record<string, unknown> = {
+    quote_version_id: quoteVersionId,
+    accepted_price_ore: acceptedPriceOre,
+    accepted_at: form.get("accepted_at"),
+  };
+  const channel = optionalText(form, "channel");
+  const adjustmentReason = optionalText(form, "adjustment_reason");
+  const evidenceReference = optionalText(form, "evidence_reference");
+  const evidenceFileId = optionalText(form, "evidence_file_id");
+  const notes = optionalText(form, "notes");
+  const plannedStart = optionalText(form, "planned_start_date");
+  const plannedEnd = optionalText(form, "planned_end_date");
+  if (channel !== undefined) input.channel = channel;
+  if (adjustmentReason !== undefined) input.adjustment_reason = adjustmentReason;
+  if (evidenceReference !== undefined) input.evidence_reference = evidenceReference;
+  if (evidenceFileId !== undefined) input.evidence_file_id = evidenceFileId;
+  if (notes !== undefined) input.notes = notes;
+  if (plannedStart !== undefined) input.planned_start_date = plannedStart;
+  if (plannedEnd !== undefined) input.planned_end_date = plannedEnd;
+
+  const client = (await createSupabaseServerClient()) as unknown as CommandDbClient;
+  const result = await runCommand(captureQuoteAcceptance, { client, input });
+
+  if (result.ok) {
+    if (typeof quoteId === "string" && quoteId.length > 0) {
+      revalidatePath(`/quotes/${quoteId}`);
+      if (typeof quoteVersionId === "string" && quoteVersionId.length > 0) {
+        revalidatePath(`/quotes/${quoteId}/versions/${quoteVersionId}`);
+      }
+    }
+    return {
+      ...ACCEPTANCE_ACTION_INITIAL,
+      status: "success",
+      targetId: result.data.targetId,
+    };
+  }
+
+  return {
+    ...ACCEPTANCE_ACTION_INITIAL,
     status: "error",
     code: result.code,
     formError: result.message || COMMAND_MESSAGES[result.code],

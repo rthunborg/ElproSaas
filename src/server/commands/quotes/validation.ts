@@ -14,6 +14,7 @@
  * from the live rows (never trusted from the client) in the command `execute` body.
  */
 import type { ValidationResult } from "../envelope-core";
+import { isOreAmount } from "@/lib/money/ore";
 
 const fail = { ok: false as const, code: "VALIDATION_FAILED" as const };
 
@@ -292,4 +293,113 @@ export function validateMarkQuoteVersionLifecycle(
       transition: raw.transition as QuoteLifecycleTransition,
     },
   };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Story 7.1 — the capture-quote-acceptance input validator (AC1/AC2/AC5).
+//
+// The caller supplies the target sent `quote_version_id` + the acceptance-capture fields:
+// the accepted price in INTEGER ÖRE (`accepted_price_ore`, öre-shape guarded here), the
+// EXPLICIT `accepted_at` instant (H1 — the accepted moment is a real input, NEVER derived
+// from a wall-clock), the OPTIONAL channel / adjustment_reason / evidence_file_id (UUID-shaped)
+// / evidence_reference / notes / planned start/end dates. tenant_id / accepted user / source
+// sent total are NEVER read from the client — the resolved tenant is the only tenant authority,
+// the accepted user is the resolved session user, and the source sent total is loaded
+// server-side from the FROZEN version row. The adjusted-price REASON gate is a SERVER-SIDE
+// re-validation in the command execute (the client cannot bypass it) — this validator only
+// shapes input. A foreign/non-existent version/evidence id is caught by the envelope ownership
+// gate / the command's evidence-ownership re-validation, not here.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** A coarse length bound for the optional channel/reason/reference/notes free-text fields. */
+const ACCEPTANCE_TEXT_MAX = 2000;
+
+function isOptionalAcceptanceText(v: unknown): v is string | null | undefined {
+  if (v === undefined || v === null) return true;
+  return typeof v === "string" && v.length <= ACCEPTANCE_TEXT_MAX;
+}
+
+/** A required non-empty ISO-8601 date/timestamp string (the accepted / planned instants). */
+function isIsoDateString(v: unknown): v is string {
+  if (typeof v !== "string") return false;
+  if (v.length === 0 || v.length > 40) return false;
+  return Number.isFinite(Date.parse(v));
+}
+
+/** An OPTIONAL ISO date string (planned start/end) — absent/null means "not set". */
+function isOptionalIsoDateString(v: unknown): v is string | null | undefined {
+  if (v === undefined || v === null) return true;
+  return isIsoDateString(v);
+}
+
+/**
+ * Validated `captureQuoteAcceptance` input. `quote_version_id` is required + UUID-shaped;
+ * `accepted_price_ore` is a canonical öre amount (`isOreAmount`); `accepted_at` is a required
+ * ISO instant (H1 — an explicit input). The optional fields carry channel / adjustment reason /
+ * evidence file id (UUID-shaped) / external evidence reference / notes / planned dates. The
+ * adjusted-price REASON requirement is enforced SERVER-SIDE in the command (not here). tenant_id
+ * / accepted user / source sent total are NEVER part of it.
+ */
+export interface CaptureQuoteAcceptanceInput {
+  readonly quote_version_id: string;
+  readonly accepted_price_ore: number;
+  readonly accepted_at: string;
+  readonly channel?: string | null;
+  readonly adjustment_reason?: string | null;
+  readonly evidence_file_id?: string | null;
+  readonly evidence_reference?: string | null;
+  readonly notes?: string | null;
+  readonly planned_start_date?: string | null;
+  readonly planned_end_date?: string | null;
+}
+
+export function validateCaptureQuoteAcceptance(
+  raw: unknown,
+): ValidationResult<CaptureQuoteAcceptanceInput> {
+  if (!isRecord(raw)) return fail;
+  if (!isUuidLike(raw.quote_version_id)) return fail;
+  // Accepted price MUST be a canonical integer öre (float/negative/NaN/overflow ⇒ VALIDATION_FAILED).
+  if (!isOreAmount(raw.accepted_price_ore)) return fail;
+  // The accepted moment is an EXPLICIT input (H1 determinism) — a required ISO instant.
+  if (!isIsoDateString(raw.accepted_at)) return fail;
+  // Optional free-text + evidence + planned-date fields.
+  if (!isOptionalAcceptanceText(raw.channel)) return fail;
+  if (!isOptionalAcceptanceText(raw.adjustment_reason)) return fail;
+  if (raw.evidence_file_id !== undefined && raw.evidence_file_id !== null) {
+    if (!isUuidLike(raw.evidence_file_id)) return fail;
+  }
+  if (!isOptionalAcceptanceText(raw.evidence_reference)) return fail;
+  if (!isOptionalAcceptanceText(raw.notes)) return fail;
+  if (!isOptionalIsoDateString(raw.planned_start_date)) return fail;
+  if (!isOptionalIsoDateString(raw.planned_end_date)) return fail;
+
+  const data: {
+    quote_version_id: string;
+    accepted_price_ore: number;
+    accepted_at: string;
+    channel?: string | null;
+    adjustment_reason?: string | null;
+    evidence_file_id?: string | null;
+    evidence_reference?: string | null;
+    notes?: string | null;
+    planned_start_date?: string | null;
+    planned_end_date?: string | null;
+  } = {
+    quote_version_id: raw.quote_version_id as string,
+    accepted_price_ore: raw.accepted_price_ore as number,
+    accepted_at: raw.accepted_at as string,
+  };
+  if ("channel" in raw) data.channel = (raw.channel as string | null) ?? null;
+  if ("adjustment_reason" in raw)
+    data.adjustment_reason = (raw.adjustment_reason as string | null) ?? null;
+  if ("evidence_file_id" in raw)
+    data.evidence_file_id = (raw.evidence_file_id as string | null) ?? null;
+  if ("evidence_reference" in raw)
+    data.evidence_reference = (raw.evidence_reference as string | null) ?? null;
+  if ("notes" in raw) data.notes = (raw.notes as string | null) ?? null;
+  if ("planned_start_date" in raw)
+    data.planned_start_date = (raw.planned_start_date as string | null) ?? null;
+  if ("planned_end_date" in raw)
+    data.planned_end_date = (raw.planned_end_date as string | null) ?? null;
+  return { ok: true, data };
 }

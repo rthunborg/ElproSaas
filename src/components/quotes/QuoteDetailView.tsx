@@ -40,6 +40,7 @@ import { DraftQuoteEditor } from "./DraftQuoteEditor";
 import { MarkSentButton } from "./MarkSentButton";
 import { CreateNewVersionButton } from "./CreateNewVersionButton";
 import { QuotePdfPanel } from "./QuotePdfPanel";
+import { AcceptanceCaptureForm } from "./AcceptanceCaptureForm";
 
 /** The Swedish label for the (frozen) VAT display posture, for the assumptions block. */
 function vatDisplayLabel(posture: string | null): string {
@@ -396,12 +397,25 @@ export function QuoteDetailView({ detail }: { readonly detail: QuoteDetail }) {
               pdfGeneratedAt={selected.pdf_generated_at}
             />
 
-            {/* Acceptance state PLACEHOLDER — real acceptance is Epic 7 (no public affordance). */}
-            <section data-testid="quote-acceptance-placeholder" className="text-sm">
+            {/* Acceptance capture (Story 7.1) — an authenticated ADMIN-ONLY off-system capture on a
+                SENT version (no customer portal / public endpoint). The form is a MIRROR of the
+                INT-proven server gates (sent-state + adjusted-price reason), never the guarantee.
+                On a non-sent version the acceptance disclosure is text-only. */}
+            <section data-testid="quote-acceptance-section" className="text-sm">
               <h3 className="mb-1 font-medium text-zinc-800">Acceptans</h3>
-              <p className="text-zinc-600">
-                Ej accepterad ännu. Acceptans hanteras i Epic 7.
-              </p>
+              {selected.status === "sent" ? (
+                <AcceptanceCaptureForm
+                  quoteId={header.id}
+                  quoteVersionId={selected.id}
+                  sourceSentTotalOre={selected.accepted_price_ore}
+                />
+              ) : (
+                <p data-testid="quote-acceptance-placeholder" className="text-zinc-600">
+                  {selected.status === "accepted"
+                    ? "Denna version är accepterad."
+                    : "Acceptans kan registreras när versionen är skickad."}
+                </p>
+              )}
             </section>
           </div>
 

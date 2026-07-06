@@ -89,6 +89,10 @@ export function ownerTableFor(ownerType: ActiveOwnerType): string {
       return "contacts";
     case "calculation":
       return "calculations";
+    case "quote_acceptance":
+      // Story 7.1 activation: the acceptance-evidence owner side resolves the acceptance under
+      // own-tenant RLS (a foreign acceptance owner id ⇒ zero rows ⇒ TENANT_ACCESS_DENIED).
+      return "quote_acceptances";
     default:
       // Exhaustiveness guard (mirrors the codebase-standard assertNever discipline):
       // adding a 5th ACTIVE_OWNER_TYPES member without a branch here is a COMPILE
