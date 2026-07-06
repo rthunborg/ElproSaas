@@ -1,26 +1,26 @@
 # auto-bmad per-story state — written by scripts/state_update.py (full stable schema;
 # see references/state-and-resume.md). Prose belongs in reports/{key}.md, not here.
-story_key: epic-7
+story_key: 7-1-acceptance-evidence-capture-for-sent-quote-versions
 epic_num: 7
-story_num: null
+story_num: 1
 branch: epic/7-acceptance-to-job-transaction
 status: in-progress
-updated_at: "2026-07-06T17:59:44Z"
-started_at: "2026-07-06T17:50:12Z"
+updated_at: "2026-07-06T17:59:45Z"
+started_at: "2026-07-06T17:59:44Z"
 completed_at: null
-active_seconds: 487
+active_seconds: 0
 timing_anchor: null
-is_first_in_epic: false
+is_first_in_epic: true
 is_last_in_epic: false
 needs_project_context_bootstrap: false
 git_mode: remote
 base_branch: main
-tea_risk: null
-tea_selected: []
-tea_rationale: null
+tea_risk: high
+tea_selected: [atdd, automate]
+tea_rationale: "money (accepted price in ore, adjusted-price delta) + tenant-scoped RLS-sensitive immutable evidence -> High per policy"
 epic_story_count: 4
-stories_after_in_epic: null
-completed_phases: [0, 1, 2]
+stories_after_in_epic: 3
+completed_phases: [0, 1]
 code_review_iterations: 0
 code_review_loop_done: false
 hitl_halt: null
@@ -51,8 +51,4 @@ deferred_work: []
 blockers: []
 overrides: {}
 constraints: []
-epic_slug: acceptance-to-job-transaction
-active_story: 7-1-acceptance-evidence-capture-for-sent-quote-versions
-stories_landed: []
-auto_decisions: []
-uat_items: []
+tier_a_base_sha: 426513bf0d59f47f245c1b8ebea81cfe0d61eae5
