@@ -74,10 +74,18 @@ test("6.2-E2E-03: no quote surface references an email-send / portal / public-ac
     ...collectFiles(path.join(REPO, "src", "components", "quotes"), []),
     ...collectFiles(path.join(REPO, "src", "server", "commands", "quotes"), []),
   ];
-  // A conservative token scan: the 6.2 surface must not wire an email send, a customer portal,
-  // or a public/unauthenticated acceptance endpoint. (The acceptance PLACEHOLDER copy stays —
-  // it is a disclosure, not an affordance — so we scan for the mechanism tokens, not the word
+  // A conservative token scan: the quote surface must not wire an email send, a customer portal,
+  // or a PUBLIC/unauthenticated acceptance endpoint. (The acceptance PLACEHOLDER copy stays — it
+  // is a disclosure, not an affordance — so we scan for the mechanism tokens, not the word
   // "acceptans" alone.)
+  //
+  // STORY 7.2 RECONCILIATION (green-phase, per acceptance-non-scope.test.ts): the sanctioned
+  // authenticated acceptance-to-job command `acceptQuoteAndCreateJob` (which contains the tokens
+  // `acceptQuote` + `createJob`) legitimately lives in `src/server/commands/quotes` now. Those two
+  // tokens are therefore REMOVED from the forbidden set (Epic-7 in-scope); the still-out-of-scope
+  // PUBLIC-mechanism tokens (email/portal/public-accept) stay forbidden here — the acceptance flow
+  // remains an authenticated admin-only affordance, never a public route (asserted in
+  // acceptance-non-scope.test.ts).
   const forbiddenTokens = [
     "sendEmail",
     "send_email",
@@ -86,8 +94,6 @@ test("6.2-E2E-03: no quote surface references an email-send / portal / public-ac
     "customerPortal",
     "customer_portal",
     "publicAccept",
-    "acceptQuote", // the accept command is Epic 7 — must not appear in a 6.2 surface
-    "createJob",
   ];
   for (const file of surfaces) {
     const src = readFileSync(file, "utf8");

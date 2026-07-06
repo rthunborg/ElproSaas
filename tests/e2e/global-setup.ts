@@ -315,6 +315,47 @@ export default async function globalSetup() {
     event_type: "created",
   });
 
+  // Story 7.2: a DEDICATED quote whose ONLY version is a SENT v1, consumed by the accept-and-
+  // create-job FLOW E2E (confirming acceptance PERMANENTLY flips it to `accepted` + creates a job),
+  // so it does NOT mutate the shared 6.2/7.1 quote the acceptance-FORM tests rely on (those need the
+  // version to stay `sent`). Seeded draft → child → flip-to-sent per the 6.4 child-lock, carrying a
+  // NON-ZERO frozen `accepted_price_ore` (the source sent total the adjusted-price gate measures).
+  const acceptQuoteId = await adminInsertQuote({
+    tenant_id: base.tenantA.id,
+    customer_id: companyId,
+    facility_id: facilityId,
+  });
+  const acceptSentVersionId = await adminInsertQuoteVersion({
+    tenant_id: base.tenantA.id,
+    quote_id: acceptQuoteId,
+    calculation_id: calcId,
+    version_number: 1,
+    quote_number: 1005,
+    status: "draft",
+    company_name: `Elpro Demo AB ${token()}`,
+    customer_display_name: companyName,
+    intro_text: "Skickad version för accept-och-skapa-jobb-flödet",
+    accepted_price_ore: 125000,
+  });
+  await adminInsertQuoteVersionLine({
+    tenant_id: base.tenantA.id,
+    quote_version_id: acceptSentVersionId,
+    label: `Accept-rad ${token()}`,
+    unit_sell_ore: 85000,
+    vat_rate_bp: 2500,
+    sort_order: 0,
+  });
+  await adminQuery(
+    `update public.quote_versions set status = 'sent' where id = $1`,
+    [acceptSentVersionId],
+  );
+  await adminInsertQuoteEvent({
+    tenant_id: base.tenantA.id,
+    quote_id: acceptQuoteId,
+    quote_version_id: acceptSentVersionId,
+    event_type: "created",
+  });
+
   // PDF render-state seed (Story 6.3): a SEPARATE quote (so the 6.2 quote above keeps EXACTLY
   // two versions) with THREE versions exercising the render states DETERMINISTICALLY without a
   // real generation:
@@ -459,6 +500,13 @@ export default async function globalSetup() {
     newVersionQuote: {
       id: newVersionQuoteId,
       sentVersionId: newVersionSentVersionId,
+    },
+    // Story 7.2 — a dedicated single-SENT-version quote the accept-and-create-job FLOW E2E consumes
+    // (confirming acceptance permanently flips it to `accepted` + creates a job), kept off the
+    // shared 6.2/7.1 quote whose sent version the acceptance-FORM tests need to stay `sent`.
+    acceptQuote: {
+      id: acceptQuoteId,
+      sentVersionId: acceptSentVersionId,
     },
     // Story 6.3 — a SEPARATE quote whose versions exercise the PDF render states.
     pdfQuote: {

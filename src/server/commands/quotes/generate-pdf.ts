@@ -191,6 +191,13 @@ export const generateQuotePdf = defineCommand<
     // ── Read the FROZEN snapshot rows under the caller's RLS (ownership proved visibility). ──
     const version = await loadQuoteVersionSnapshot(db, versionId);
     if (version === null) throw new CommandError("TENANT_ACCESS_DENIED");
+    // ── LIFECYCLE GATE (Story 7.2, Task 5 / architecture §12) — PDF retry is scoped to draft/sent.
+    // ── An `accepted` (or any terminal: rejected/expired/superseded) version offers NO PDF-retry
+    // ── affordance (the UI gates the panel off too). Reject with a generic VALIDATION_FAILED (no
+    // ── leaked status). 7.2 makes `accepted` reachable, so it owns closing this command-side gap.
+    if (version.status !== "draft" && version.status !== "sent") {
+      throw new CommandError("VALIDATION_FAILED");
+    }
     const lines = await loadQuoteVersionLineSnapshots(db, versionId);
     const attachments = await loadQuoteVersionAttachmentSnapshots(db, versionId);
 

@@ -93,6 +93,12 @@ export function QuoteDetailView({ detail }: { readonly detail: QuoteDetail }) {
   );
   const latest = ordered[ordered.length - 1];
   const isDraft = selected.status === "draft";
+  // Story 7.2, Task 5 (epic-6 gate carry): once a version reaches `accepted`, the PDF-retry +
+  // new-version affordances are GATED OFF (architecture §12 scopes PDF retry + new-version to
+  // draft/sent, NEVER accepted). 7.2 is the first story that makes `accepted` reachable, so 7.2 owns
+  // this gating. The commands independently reject an accepted version (createNewQuoteVersion guards a
+  // draft/non-draft parent; generateQuotePdf is scoped to draft/sent) — the UI is the MIRROR.
+  const isAccepted = selected.status === "accepted";
 
   const lines = buildCustomerVisibleLines(
     selectedLines.map((l) => ({
@@ -388,19 +394,26 @@ export function QuoteDetailView({ detail }: { readonly detail: QuoteDetail }) {
 
             {/* PDF render-state panel (Story 6.3) — the six states + preview/download via a
                 short-lived signed URL. Wires to the generateQuotePdf / createSignedFileAccess
-                commands (never a bespoke path). */}
-            <QuotePdfPanel
-              quoteId={header.id}
-              quoteVersionId={selected.id}
-              pdfStatus={selected.pdf_status}
-              pdfFileId={selected.pdf_file_id}
-              pdfGeneratedAt={selected.pdf_generated_at}
-            />
+                commands (never a bespoke path). GATED OFF an `accepted` version (Story 7.2, Task 5):
+                PDF retry is scoped to draft/sent (architecture §12) — an accepted commitment offers
+                no PDF-retry affordance. */}
+            {!isAccepted && (
+              <QuotePdfPanel
+                quoteId={header.id}
+                quoteVersionId={selected.id}
+                pdfStatus={selected.pdf_status}
+                pdfFileId={selected.pdf_file_id}
+                pdfGeneratedAt={selected.pdf_generated_at}
+              />
+            )}
 
-            {/* Acceptance capture (Story 7.1) — an authenticated ADMIN-ONLY off-system capture on a
-                SENT version (no customer portal / public endpoint). The form is a MIRROR of the
-                INT-proven server gates (sent-state + adjusted-price reason), never the guarantee.
-                On a non-sent version the acceptance disclosure is text-only. */}
+            {/* Acceptance capture (Story 7.1 → 7.2) — an authenticated ADMIN-ONLY off-system capture
+                on a SENT version (no customer portal / public endpoint). Confirming now runs the
+                TRANSACTIONAL acceptQuoteAndCreateJob (records the acceptance + creates the job in one
+                atomic call — Story 7.2, Task 4). The form is a MIRROR of the INT-proven server gates
+                (sent-state + adjusted-price reason), never the guarantee. On an ACCEPTED version the
+                EXISTING accepted state is shown (a repeat attempt lands here idempotently — UX-DR24;
+                the deep job-view is Story 7.3). On any other non-sent version the disclosure is text. */}
             <section data-testid="quote-acceptance-section" className="text-sm">
               <h3 className="mb-1 font-medium text-zinc-800">Acceptans</h3>
               {selected.status === "sent" ? (
@@ -409,11 +422,13 @@ export function QuoteDetailView({ detail }: { readonly detail: QuoteDetail }) {
                   quoteVersionId={selected.id}
                   sourceSentTotalOre={selected.accepted_price_ore}
                 />
+              ) : selected.status === "accepted" ? (
+                <p data-testid="quote-acceptance-accepted" className="text-green-800">
+                  Denna version är accepterad. Ett jobb har skapats från den accepterade offerten.
+                </p>
               ) : (
                 <p data-testid="quote-acceptance-placeholder" className="text-zinc-600">
-                  {selected.status === "accepted"
-                    ? "Denna version är accepterad."
-                    : "Acceptans kan registreras när versionen är skickad."}
+                  Acceptans kan registreras när versionen är skickad.
                 </p>
               )}
             </section>
@@ -445,18 +460,24 @@ export function QuoteDetailView({ detail }: { readonly detail: QuoteDetail }) {
               <p className="text-sm text-zinc-700">
                 Den här versionen är{" "}
                 <strong>{quoteStatusLabel(selected.status)}</strong> och kan inte
-                redigeras — kundens innehåll är låst. Skapa en ny version för att göra
-                ändringar.
+                redigeras — kundens innehåll är låst.
+                {isAccepted
+                  ? " Ett jobb har skapats från den accepterade offerten."
+                  : " Skapa en ny version för att göra ändringar."}
               </p>
               {/* The ACTIVATED "Skapa ny version" affordance (Story 6.5, Task 4.1). Wires to the
                   createNewQuoteVersion command — a change spawns a NEW immutable draft version on
                   the SAME quote while every prior version is PRESERVED. The button is a convenience;
                   the SERVER command + the DB triggers are the enforcement (a UI-only versioning
-                  rule is a STOP condition — architecture §9). */}
-              <CreateNewVersionButton
-                quoteId={header.id}
-                quoteVersionId={selected.id}
-              />
+                  rule is a STOP condition — architecture §9). GATED OFF an `accepted` version (Story
+                  7.2, Task 5): new-version is scoped to draft/sent (architecture §12) — an accepted
+                  commitment is terminal for Phase A (7.4 hardens the full immutability). */}
+              {!isAccepted && (
+                <CreateNewVersionButton
+                  quoteId={header.id}
+                  quoteVersionId={selected.id}
+                />
+              )}
             </div>
           )}
 

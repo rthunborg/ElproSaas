@@ -1547,6 +1547,58 @@ export async function adminSelectAcceptancesForVersion(
   );
 }
 
+/**
+ * Read a full jobs row back (BYPASSRLS) for source-ref / persistence proofs (Story 7.2). The
+ * transaction (accept_quote_and_create_job) inserts it; this reads its immutable source refs +
+ * carried customer/facility/contact + status back independent of the app/RLS path.
+ */
+export async function adminSelectJobRow(
+  id: string,
+): Promise<Record<string, unknown> | null> {
+  const rows = await adminQuery<Record<string, unknown>>(
+    `select * from public.jobs where id = $1`,
+    [id],
+  );
+  return rows[0] ?? null;
+}
+
+/** Read all jobs rows for a source acceptance back (BYPASSRLS) — the one-job-per-acceptance count proof. */
+export async function adminSelectJobsForAcceptance(
+  acceptanceId: string,
+): Promise<Record<string, unknown>[]> {
+  return adminQuery<Record<string, unknown>>(
+    `select * from public.jobs where quote_acceptance_id = $1`,
+    [acceptanceId],
+  );
+}
+
+/**
+ * Read the job_events rows for a job back (BYPASSRLS, ordered). Coerces the `occurred_at`
+ * timestamptz (raw pg returns it as a Date) to an ISO string so a deterministic injected-instant
+ * assertion compares by representation (mirrors adminSelectQuoteEventsForVersion).
+ */
+export async function adminSelectJobEventsForJob(
+  jobId: string,
+): Promise<{ id: string; event_type: string; occurred_at: string }[]> {
+  const rows = await adminQuery<{
+    id: string;
+    event_type: string;
+    occurred_at: Date | string;
+  }>(
+    `select id, event_type, occurred_at from public.job_events
+      where job_id = $1 order by occurred_at asc`,
+    [jobId],
+  );
+  return rows.map((r) => ({
+    id: r.id,
+    event_type: r.event_type,
+    occurred_at:
+      r.occurred_at instanceof Date
+        ? r.occurred_at.toISOString()
+        : String(r.occurred_at),
+  }));
+}
+
 /** Read the `file_links` rows for a quote_acceptance evidence owner (BYPASSRLS). */
 export async function adminSelectAcceptanceEvidenceLinks(
   acceptanceId: string,

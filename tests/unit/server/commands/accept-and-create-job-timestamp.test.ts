@@ -35,8 +35,7 @@
  */
 import { test, describe } from "node:test";
 import assert from "node:assert/strict";
-// TODO(7.2 dev): expose the RPC-arg adapter as a pure seam and import it here, e.g.:
-// import { buildAcceptAndCreateJobRpcArgs } from "@/server/commands/quotes/accept-and-create-job";
+import { buildAcceptAndCreateJobRpcArgs } from "@/server/commands/quotes/accept-and-create-job";
 import type { CommandClock } from "@/server/commands/clock";
 
 const FIXED_ISO = "2026-07-10T09:00:00.000Z";
@@ -50,34 +49,30 @@ const baseInput = {
   title: "Jobb från accepterad offert",
 } as const;
 
-const RED = { skip: "RED: buildAcceptAndCreateJobRpcArgs not implemented (Story 7.2)" };
-
 describe("acceptQuoteAndCreateJob — timestamp-injection adapter (7.2-UNIT-01, H1)", () => {
-  test("p_accepted_at is the EXPLICIT input.accepted_at, NOT the command clock", RED, () => {
-    // const args = buildAcceptAndCreateJobRpcArgs(baseInput, fixedClock);
-    // assert.equal(args.p_accepted_at, ACCEPTED_ISO);
-    // assert.notEqual(args.p_accepted_at, FIXED_ISO); // the accepted moment is a business fact, not "now"
-    assert.ok(baseInput);
+  test("p_accepted_at is the EXPLICIT input.accepted_at, NOT the command clock", () => {
+    const args = buildAcceptAndCreateJobRpcArgs(baseInput, fixedClock);
+    assert.equal(args.p_accepted_at, ACCEPTED_ISO);
+    assert.notEqual(args.p_accepted_at, FIXED_ISO); // the accepted moment is a business fact, not "now"
   });
 
-  test("the command instant comes from the injected clock (deterministic — no wall clock)", RED, () => {
-    // const args = buildAcceptAndCreateJobRpcArgs(baseInput, fixedClock);
-    // // Whatever field carries the command instant (e.g. p_command_at / occurred_at) = the injected clock.
-    // assert.equal(args.p_command_at, FIXED_ISO);
-    assert.ok(fixedClock);
+  test("the command instant comes from the injected clock (deterministic — no wall clock)", () => {
+    const args = buildAcceptAndCreateJobRpcArgs(baseInput, fixedClock);
+    // The command instant (p_command_at) = the injected clock, never a wall-clock read.
+    assert.equal(args.p_command_at, FIXED_ISO);
   });
 
-  test("a fixed clock yields byte-stable RPC args across two identical calls (reproducible transaction)", RED, () => {
-    // const a1 = buildAcceptAndCreateJobRpcArgs(baseInput, fixedClock);
-    // const a2 = buildAcceptAndCreateJobRpcArgs(baseInput, fixedClock);
-    // assert.deepEqual(a1, a2);
-    assert.ok(true);
+  test("a fixed clock yields byte-stable RPC args across two identical calls (reproducible transaction)", () => {
+    const a1 = buildAcceptAndCreateJobRpcArgs(baseInput, fixedClock);
+    const a2 = buildAcceptAndCreateJobRpcArgs(baseInput, fixedClock);
+    assert.deepEqual(a1, a2);
   });
 
-  test("the resolved tenant is NEVER sourced from the input (p_tenant_id is threaded from ctx, not input)", RED, () => {
+  test("the resolved tenant is NEVER sourced from the input (p_tenant_id is threaded from ctx, not input)", () => {
     // The input carries NO tenant_id / accepted-user field — the adapter must not read one from it.
     assert.equal("tenant_id" in baseInput, false);
-    // const args = buildAcceptAndCreateJobRpcArgs(baseInput, fixedClock);
-    // assert.equal("p_tenant_id" in args, false); // p_tenant_id is added by execute from ctx.tenantContext, not the adapter
+    const args = buildAcceptAndCreateJobRpcArgs(baseInput, fixedClock);
+    // p_tenant_id is added by execute from ctx.tenantContext, NOT by the adapter.
+    assert.equal("p_tenant_id" in args, false);
   });
 });

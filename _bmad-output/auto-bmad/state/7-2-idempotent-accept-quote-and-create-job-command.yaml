@@ -5,10 +5,10 @@ epic_num: 7
 story_num: 2
 branch: epic/7-acceptance-to-job-transaction
 status: in-progress
-updated_at: "2026-07-06T19:30:05Z"
+updated_at: "2026-07-06T20:05:59Z"
 started_at: "2026-07-06T19:09:28Z"
 completed_at: null
-active_seconds: 1217
+active_seconds: 3362
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -20,7 +20,7 @@ tea_selected: [atdd, automate]
 tea_rationale: "money/irreversible commitment + multi-table atomic transaction with uniqueness constraints + concurrency/idempotency -> High (AR20 highest-risk Phase A command)"
 epic_story_count: 4
 stories_after_in_epic: 2
-completed_phases: [0, 1, 2, 3, 4]
+completed_phases: [0, 1, 2, 3, 4, 5]
 code_review_iterations: 0
 code_review_loop_done: false
 hitl_halt: null

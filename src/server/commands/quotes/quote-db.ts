@@ -593,6 +593,79 @@ export function asQuoteLifecycleRpcClient(
   return db as unknown as QuoteLifecycleRpcClient;
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Story 7.2 — the narrow accept_quote_and_create_job RPC surface + its result shape.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** The args the narrow `accept_quote_and_create_job` RPC accepts (all resolved server-side). */
+export interface AcceptAndCreateJobRpcArgs {
+  readonly p_tenant_id: string;
+  readonly p_quote_version_id: string;
+  readonly p_accepted_at: string;
+  readonly p_accepted_price_ore: number;
+  readonly p_source_sent_total_ore: number;
+  readonly p_channel: string | null;
+  readonly p_adjustment_reason: string | null;
+  readonly p_evidence_file_id: string | null;
+  readonly p_evidence_reference: string | null;
+  readonly p_notes: string | null;
+  readonly p_planned_start_date: string | null;
+  readonly p_planned_end_date: string | null;
+  readonly p_title: string | null;
+  readonly p_fault_inject: string | null;
+}
+
+/** The minimal RPC surface for the narrow `accept_quote_and_create_job` call. */
+export type AcceptAndCreateJobRpcClient = {
+  rpc(
+    fn: "accept_quote_and_create_job",
+    args: AcceptAndCreateJobRpcArgs,
+  ): Promise<{
+    data: unknown;
+    error: { code?: string; message?: string } | null;
+  }>;
+};
+
+/** Narrow the envelope client to the accept-and-create-job RPC surface (single documented cast). */
+export function asAcceptAndCreateJobRpcClient(
+  db: CommandDbClient,
+): AcceptAndCreateJobRpcClient {
+  return db as unknown as AcceptAndCreateJobRpcClient;
+}
+
+/** The parsed result of the accept-and-create-job RPC (the returned single row). */
+export interface AcceptAndCreateJobResult {
+  readonly acceptanceId: string;
+  readonly jobId: string;
+  readonly wasExisting: boolean;
+}
+
+/**
+ * Extract the accept-and-create-job RPC result (row array or single object) into a typed shape.
+ * Exported for the fast-gate unit suite: the raw pg / PostgREST layer can return the result as
+ * either a single object or a one-row array, and `was_existing` as a boolean or a string — so this
+ * coercion/normalization is pure branch logic worth pinning WITHOUT a database.
+ */
+export function extractAcceptAndCreateJobResult(
+  data: unknown,
+): AcceptAndCreateJobResult | null {
+  const row = Array.isArray(data) ? data[0] : data;
+  if (!row || typeof row !== "object") return null;
+  const r = row as {
+    acceptance_id?: unknown;
+    job_id?: unknown;
+    was_existing?: unknown;
+  };
+  if (typeof r.acceptance_id !== "string") return null;
+  if (typeof r.job_id !== "string") return null;
+  const wasExisting = r.was_existing === true || r.was_existing === "true";
+  return {
+    acceptanceId: r.acceptance_id,
+    jobId: r.job_id,
+    wasExisting,
+  };
+}
+
 /**
  * Postgres error codes the quote mutation can surface that are DETERMINISTIC outcomes
  * (not transient infra faults):
@@ -601,9 +674,18 @@ export function asQuoteLifecycleRpcClient(
  *   - `23503` foreign_key_violation — a composite same-tenant FK rejected a cross-tenant
  *     / wrong-parent link (a foreign calc/file id) → TENANT_ACCESS_DENIED.
  *   - `42501` insufficient_privilege / RLS WITH CHECK violation → TENANT_ACCESS_DENIED.
- *   - `23505` unique_violation → VALIDATION_FAILED.
+ *   - `23505` unique_violation → VALIDATION_FAILED. (The Story 7.2 accept transaction
+ *     does NOT rely on this branch for its idempotency conflict: its narrow RPC row-locks
+ *     the version + parent quote, so a concurrent loser re-runs the existing-record
+ *     short-circuit under the lock and IDEMPOTENT-RETURNS the winner's records — it never
+ *     reaches a raced 23505 here. `ACCEPTANCE_ALREADY_RECORDED` is defined for the
+ *     genuinely-unresolvable race but is not emitted on this path, matching AC2's
+ *     "returns the existing" primary behavior. The 7.1 capture command's duplicate-
+ *     capture case keeps its shipped generic VALIDATION_FAILED here.)
  *   - `23514` check_violation (öre non-negative / status / event_type CHECK) → VALIDATION_FAILED.
  *   - `22P02` invalid_text_representation (malformed uuid/number in the jsonb) → VALIDATION_FAILED.
+ *   - `QV703` — the Story 7.2 accept-RPC TEST-ONLY fault-injection RAISE (atomicity/
+ *     rollback proof) → SERVER_ERROR (a transient-shaped failure that rolled the txn back).
  * Any other error is a transient fault — re-thrown as a plain Error so the envelope maps
  * it to SERVER_ERROR (retryable). Throw the CODE only — never the raw Postgres message,
  * which can embed row values / customer identity.
@@ -617,6 +699,11 @@ export function throwMappedQuoteWriteError(error: {
     // custom SQLSTATE the mapper branches on WITHOUT colliding with the standard classes.
     case "QV409":
       throw new CommandError("QUOTE_VERSION_LOCKED");
+    // The Story 7.2 accept-RPC test-only fault-injection RAISE — a deliberately-injected
+    // mid-transaction failure that rolled the whole txn back (no partial state). Surface as
+    // a transient SERVER_ERROR (the command did not succeed; nothing committed).
+    case "QV703":
+      throw new Error("quote write failed: injected fault (QV703)");
     case "23503":
     case "42501":
       throw new CommandError("TENANT_ACCESS_DENIED");

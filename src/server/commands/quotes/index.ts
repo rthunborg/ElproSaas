@@ -33,6 +33,11 @@ export {
   type CaptureQuoteAcceptanceResult,
 } from "./accept";
 export {
+  acceptQuoteAndCreateJob,
+  buildAcceptAndCreateJobRpcArgs,
+  type AcceptQuoteAndCreateJobResult,
+} from "./accept-and-create-job";
+export {
   validateCreateQuoteVersionFromCalculation,
   type CreateQuoteVersionInput,
   validateUpdateDraftQuoteVersion,
@@ -48,4 +53,6 @@ export {
   type QuoteLifecycleTransition,
   validateCaptureQuoteAcceptance,
   type CaptureQuoteAcceptanceInput,
+  validateAcceptQuoteAndCreateJob,
+  type AcceptQuoteAndCreateJobInput,
 } from "./validation";

@@ -222,15 +222,19 @@ describe("Acceptance/job migration reset — three new commitment tables (AC4/AC
     }
   });
 
-  it("[P0/AC4] NO acceptance-immutability trigger (7.4) and NO accept_quote_and_create_job RPC (7.2) exist yet", async (testCtx) => {
+  it("[P0/AC4] the accept_quote_and_create_job RPC (7.2) EXISTS; NO acceptance-immutability trigger (7.4) exists yet", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
-    // 7.1 creates the tables; 7.4 locks them; 7.2 adds the transactional RPC. Neither is in 7.1.
+    // 7.1 creates the tables; 7.2 adds the transactional RPC; 7.4 locks them (immutability trigger).
+    // STORY 7.2 RECONCILIATION: this assertion inverted from the 7.1-era "RPC does NOT exist yet" —
+    // 7.2 (20260710120000) now lands the RPC, so it MUST exist; the acceptance-IMMUTABILITY trigger
+    // is still 7.4 (not landed), so quote_acceptances still carries ONLY the reused set_updated_at
+    // BEFORE UPDATE trigger — no bespoke immutability/lock trigger yet.
     const rpc = await adminQuery<{ proname: string }>(
       `select proname from pg_proc where proname = 'accept_quote_and_create_job'`,
     );
-    expect(rpc).toEqual([]);
-    // The only triggers on quote_acceptances at 7.1 are the reused set_updated_at BEFORE UPDATE
-    // trigger — no bespoke immutability/lock trigger.
+    expect(rpc.map((r) => r.proname)).toEqual(["accept_quote_and_create_job"]);
+    // The only triggers on quote_acceptances at 7.2 are the reused set_updated_at BEFORE UPDATE
+    // trigger — no bespoke immutability/lock trigger (that is 7.4).
     const trg = await adminQuery<{ tgname: string }>(
       `select tgname from pg_trigger
          where tgrelid = 'public.quote_acceptances'::regclass and not tgisinternal`,

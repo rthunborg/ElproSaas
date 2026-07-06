@@ -10,3 +10,8 @@
 - [Phase 4 - ATDD] The 6.2 non-scope guardrail (tests/unit/guardrails/quote-non-scope.test.ts) forbids acceptQuote tokens in src/server/commands/quotes - the exact dir where 7.1 must add the sanctioned command; dev MUST narrow the guardrail or 7.1 fails loud. Not a scope violation.
 - [Phase 5 - dev-story] Epic-5 calc-tables-migration-reset test forbade the jobs table (deferred then, sanctioned now) - removed jobs from its forbidden list; future epics landing a previously-forbidden table should expect and fix this schema-wide guard.
 - [Phase 5 - dev-story] Decision: non-sent + delta-without-reason both surface as generic VALIDATION_FAILED (no new error code in 7.1); idempotency codes reserved for 7.2.
+
+## Story 7-2-idempotent-accept-quote-and-create-job-command
+- [Phase 5 - dev-story] RPC must read customer_id/facility_id/contact_id off the parent quotes row, NOT quote_versions (version snapshot holds only display names) - non-obvious schema split; 7.3 job UX must expect this.
+- [Phase 5 - dev-story] Command sent-state gate relaxed to let an already-accepted version reach the RPC idempotent short-circuit; a strict status==sent gate breaks retry idempotency - 7.4 immutability must preserve this path.
+- [Phase 5 - dev-story] ACCEPTANCE_ALREADY_RECORDED added but reserved (row lock resolves concurrency into idempotent return); shared error mapper keeps 23505 -> VALIDATION_FAILED so 7.1 behavior unchanged.

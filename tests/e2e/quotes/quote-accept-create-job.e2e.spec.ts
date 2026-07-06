@@ -16,16 +16,17 @@
  *     7.2 is the first story that makes `accepted` reachable, so 7.2 owns this gating.
  *
  * ════════════════════════════════════════════════════════════════════════════════════════════════
- * RED PHASE (ATDD, Story 7.2). The acceptance form is NOT yet re-pointed at `acceptQuoteAndCreateJob`
- * and the accepted-version affordance-gating does NOT exist. This whole spec is `test.describe.skip`
- * until the Task-4 re-point + Task-5 gating land; the GREEN pass removes `.skip`. Each test asserts
- * the EXPECTED post-implementation behaviour — do NOT weaken an assertion to pass early.
+ * GREEN as of Story 7.2 dev. The acceptance form is re-pointed at `acceptQuoteAndCreateJob` (Task 4)
+ * and the accepted-version affordance-gating (Task 5) lands; `.skip` removed. Runs against a
+ * DEDICATED `acceptQuote` fixture (global-setup) whose single SENT version this flow permanently
+ * ACCEPTS — so it never disturbs the shared 6.2/7.1 quote whose sent version the acceptance-FORM
+ * tests need to stay `sent`.
  * ════════════════════════════════════════════════════════════════════════════════════════════════
  *
- * Runs against the REAL app + local Supabase stack + the two-tenant quote fixture (global-setup seeds
- * a quote with a SENT version). Mirrors `quote-acceptance-capture.e2e.spec.ts` signIn/waitForHydrated
- * + the `getByTestId` UI contract. NO public/portal/webhook route (the guardrail scan owns the hard
- * proof; this asserts the flow stays inside the authenticated `/quotes/[id]` surface).
+ * Runs against the REAL app + local Supabase stack + the two-tenant quote fixture. Mirrors
+ * `quote-acceptance-capture.e2e.spec.ts` signIn/waitForHydrated + the `getByTestId` UI contract. NO
+ * public/portal/webhook route (the guardrail scan owns the hard proof; this asserts the flow stays
+ * inside the authenticated `/quotes/[id]` surface).
  *
  * [Source: test-design-epic-7.md#7.2 (AC1/UX-DR24) + the affordance-gating carry (deferred-work
  *  epic-6 review → Epic 7); story 7.2 Task 4 + Task 5; tests/e2e/quotes/quote-acceptance-capture.
@@ -39,10 +40,9 @@ import path from "node:path";
 
 interface QuoteFixture {
   readonly adminA: { readonly email: string; readonly password: string };
-  readonly quote: {
+  readonly acceptQuote: {
     readonly id: string;
     readonly sentVersionId: string;
-    readonly draftVersionId: string;
   };
 }
 
@@ -74,15 +74,32 @@ async function signIn(page: Page, email: string, password: string): Promise<void
 
 async function openSentVersion(page: Page): Promise<void> {
   await signIn(page, fixture.adminA.email, fixture.adminA.password);
-  await page.goto(`/quotes/${fixture.quote.id}/versions/${fixture.quote.sentVersionId}`);
+  await page.goto(
+    `/quotes/${fixture.acceptQuote.id}/versions/${fixture.acceptQuote.sentVersionId}`,
+  );
   await waitForHydrated(page.getByTestId("acceptance-form"));
 }
 
-test.describe.skip("accept + create job — transactional confirm (AC1, UX-DR24)", () => {
+/** Open the (now-accepted) version directly, waiting for the snapshot block (no sent form). */
+async function openAcceptedVersion(page: Page): Promise<void> {
+  await signIn(page, fixture.adminA.email, fixture.adminA.password);
+  await page.goto(
+    `/quotes/${fixture.acceptQuote.id}/versions/${fixture.acceptQuote.sentVersionId}`,
+  );
+  await waitForHydrated(page.getByTestId("quote-version-snapshot"));
+}
+
+// SERIAL: the dedicated acceptQuote sent version is a ONE-SHOT resource — the first test
+// PERMANENTLY flips it to `accepted` + creates the job, and the later tests operate on the now-
+// accepted version. Ordering matters, so the whole flow is `.serial`.
+test.describe.serial("accept + create job — transactional confirm + accepted gating (AC1, UX-DR24, Task 5)", () => {
   test("[P1] 7.2-E2E-01: confirming acceptance on a SENT version accepts it and the version reads as accepted (the transactional path)", async ({
     page,
   }) => {
     await openSentVersion(page);
+    // Supply the REQUIRED accepted moment (H1 — an explicit input, not a wall-clock). The price is
+    // pre-filled with the sent total, so no adjustment reason is required and confirm is enabled.
+    await page.getByTestId("acceptance-accepted-at").fill("2026-07-10T08:30");
     // The confirm control runs acceptQuoteAndCreateJob (records acceptance + creates the job atomically).
     const confirm = page.getByTestId("acceptance-confirm");
     await expect(confirm).toBeEnabled();
@@ -92,27 +109,21 @@ test.describe.skip("accept + create job — transactional confirm (AC1, UX-DR24)
     await expect(page.getByTestId("acceptance-form")).toHaveCount(0);
   });
 
-  test("[P1] 7.2-E2E-01: a REPEAT attempt (reload) shows the EXISTING accepted state — no duplicate form, no error", async ({
+  test("[P1] 7.2-E2E-01: a REPEAT attempt (re-open) shows the EXISTING accepted state — no duplicate form, no error (idempotent UX mirror)", async ({
     page,
   }) => {
-    await openSentVersion(page);
-    await page.getByTestId("acceptance-confirm").click();
-    await expect(page.getByTestId("quote-acceptance-accepted")).toBeVisible();
-    // Re-open the SAME version — the UI shows the existing accepted state (idempotent UX mirror).
-    await page.reload();
+    // The version is already accepted (previous serial test) — re-opening shows the existing state.
+    await openAcceptedVersion(page);
     await expect(page.getByTestId("quote-acceptance-accepted")).toBeVisible();
     await expect(page.getByTestId("acceptance-form")).toHaveCount(0);
     // No error surface presented on the repeat.
     await expect(page.getByTestId("acceptance-error")).toHaveCount(0);
   });
-});
 
-test.describe.skip("accepted-version affordance gating (Task 5, epic-6 gate carry)", () => {
-  test("[P1] 7.2-E2E-02: on an ACCEPTED version the new-version + PDF-retry affordances are NOT mounted", async ({
+  test("[P1] 7.2-E2E-02: on the ACCEPTED version the new-version + PDF-retry affordances are NOT mounted (Task 5)", async ({
     page,
   }) => {
-    await openSentVersion(page);
-    await page.getByTestId("acceptance-confirm").click();
+    await openAcceptedVersion(page);
     await expect(page.getByTestId("quote-acceptance-accepted")).toBeVisible();
     // Architecture §12: PDF retry + new-version are scoped to draft/sent, NEVER accepted.
     await expect(page.getByTestId("create-new-version")).toHaveCount(0);

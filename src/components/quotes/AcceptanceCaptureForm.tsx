@@ -1,13 +1,14 @@
 "use client";
 
 /**
- * Acceptance-capture form (Story 7.1, Task 6 / AC1/AC2) — rendered ONLY on a SENT version (mirror
- * the MarkSentButton/DraftQuoteEditor gating). Replaces the `quote-acceptance-placeholder` section.
- * A real keyboard-operable form that wires to `captureQuoteAcceptanceAction` →
- * `captureQuoteAcceptance` (never a bespoke path). Captures channel, accepted timestamp, evidence
- * file id / external reference, accepted price (öre input, Swedish comma convention), notes, and
- * planned start/end dates. The admin user is the resolved session user (server-derived, NOT a form
- * field).
+ * Acceptance-capture form (Story 7.1 → 7.2, Task 6 / AC1/AC2) — rendered ONLY on a SENT version
+ * (mirror the MarkSentButton/DraftQuoteEditor gating). Replaces the `quote-acceptance-placeholder`
+ * section. A real keyboard-operable form that wires to `captureQuoteAcceptanceAction`, which (Story
+ * 7.2, Task 4) now runs the TRANSACTIONAL `acceptQuoteAndCreateJob` command — confirming acceptance
+ * on a sent version RECORDS the acceptance AND creates the job in one atomic, idempotent call (never
+ * a bespoke path). Captures channel, accepted timestamp, an optional job title, evidence file id /
+ * external reference, accepted price (öre input, Swedish comma convention), notes, and planned
+ * start/end dates. The admin user is the resolved session user (server-derived, NOT a form field).
  *
  * ── UI IS THE MIRROR, NOT THE GUARANTEE ───────────────────────────────────────────────────────
  * The adjusted-price delta + required reason field appear when the entered price ≠ the frozen sent
@@ -133,6 +134,19 @@ export function AcceptanceCaptureForm({
             data-testid="acceptance-accepted-at"
             type="datetime-local"
             required
+            className="rounded-md border border-zinc-300 px-3 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+          />
+        </label>
+
+        {/* Optional job title (Story 7.2) — the job created from the acceptance carries this as its
+            display title; absent = the server leaves it null (a nullable Phase-A field). */}
+        <label className="flex flex-col gap-1 text-sm">
+          <span className="text-zinc-700">Jobbtitel (valfritt)</span>
+          <input
+            name="title"
+            data-testid="acceptance-job-title"
+            type="text"
+            placeholder="t.ex. jobb från offert"
             className="rounded-md border border-zinc-300 px-3 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
           />
         </label>

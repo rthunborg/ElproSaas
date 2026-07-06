@@ -35,6 +35,14 @@ import {
  *   with the SAME shape — no existence disclosure (R-809).
  * - `COMMAND_CONFLICT`           — RESERVED for idempotent/retry-able commands; not
  *   yet emitted by any command this story builds.
+ * - `ACCEPTANCE_ALREADY_RECORDED` — the Story 7.2 idempotency conflict surface: a
+ *   raced `accept_quote_and_create_job` lost the `unique (quote_version_id)` race
+ *   (23505 on `quote_acceptances_version_unique`) AND the RPC could not resolve it
+ *   into an idempotent existing-record return (the genuinely-unresolvable concurrent
+ *   loser). The PRIMARY AC2 behavior is the idempotent RETURN of the existing records
+ *   (not an error); this code surfaces ONLY the exceptional raced-insert case. Generic
+ *   + user-safe (no row/status leak). Co-exists with `COMMAND_CONFLICT` /
+ *   `QUOTE_VERSION_LOCKED` / `QUOTE_VERSION_NOT_DRAFT` — never merge or rename them.
  * - `QUOTE_VERSION_NOT_DRAFT`    — a draft-scoped edit (Story 6.2) targeted a quote
  *   version whose status is NOT `draft` (sent/accepted/rejected/expired/superseded).
  *   The load-bearing draft-only edit-scope guard: a sent/accepted version is never
@@ -58,6 +66,7 @@ export type CommandErrorCode =
   | "TENANT_ACCESS_DENIED"
   | "FILE_ACCESS_DENIED"
   | "COMMAND_CONFLICT"
+  | "ACCEPTANCE_ALREADY_RECORDED"
   | "QUOTE_VERSION_NOT_DRAFT"
   | "QUOTE_VERSION_LOCKED";
 
@@ -119,6 +128,10 @@ export const COMMAND_MESSAGES: Record<CommandErrorCode, string> = {
   // Reserved for idempotent/retry-able commands (unused until one lands).
   COMMAND_CONFLICT:
     "Åtgärden kunde inte slutföras på grund av en konflikt. Försök igen.",
+  // Story 7.2 idempotency conflict: a raced accept lost the one-acceptance-per-version
+  // race and could not resolve into an idempotent return. Generic + user-safe (no leak).
+  ACCEPTANCE_ALREADY_RECORDED:
+    "Den här offertversionen har redan accepterats. Uppdatera sidan för att se den registrerade acceptansen.",
   // A draft-scoped edit targeted a non-draft version (sent/accepted/…): once a version is
   // sent its customer-visible content is immutable — changes require a new version.
   QUOTE_VERSION_NOT_DRAFT:
