@@ -5,10 +5,10 @@ epic_num: 6
 story_num: null
 branch: epic/6-quote-versions-pdf-and-lifecycle
 status: in-progress
-updated_at: "2026-07-06T14:16:57Z"
+updated_at: "2026-07-06T14:20:34Z"
 started_at: "2026-07-05T18:20:38Z"
 completed_at: null
-active_seconds: 32432
+active_seconds: 32626
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -52,11 +52,12 @@ blockers: []
 overrides: {}
 constraints: []
 epic_slug: quote-versions-pdf-and-lifecycle
-active_story: 6-4-mark-quote-version-sent-and-enforce-immutability
+active_story: 6-5-new-quote-version-after-customer-visible-changes
 stories_landed:
   - 6-1-quote-snapshot-schema-and-server-side-version-creation
   - 6-2-draft-quote-version-review-and-timeline-ux
   - 6-3-quote-pdf-generation-from-snapshot
+  - 6-4-mark-quote-version-sent-and-enforce-immutability
 auto_decisions:
   - "Allocated quote number is never threaded into the frozen composite snapshot value [Med] -> defer: raw integer quote_number is persisted on the row (the persisted truth); Â§24 display format already an open logged owner question; threading into the frozen JSON is a later 6.x follow-up (Tier A, 6-1-quote-snapshot-schema-and-server-side-version-creation)"
   - "Lifecycle-header customer name prefers the LIVE customers join over the frozen snapshot [Low] -> fix: keep the live-first fallback (header legitimately shows current customer identity per ux Â§6) but correct the misleading read.ts comment to state the header name is the live own-tenant display while money/VAT/totals stay snapshot-verbatim (Tier A, 6-2-draft-quote-version-review-and-timeline-ux)"
@@ -103,3 +104,19 @@ uat_items:
   - "[6-3-quote-pdf-generation-from-snapshot] A11Y sweep of the PDF panel → every control reachable by Tab with visible focus ring + accessible name; render state exposed as text"
   - "[6-3-quote-pdf-generation-from-snapshot] CROSS-TENANT/ANON: as another tenant's admin (or anon), attempt to preview/download tenant A's PDF → generic access-denied, no bytes/metadata, no public URL exists (needs two seeded tenants)"
   - "[6-3-quote-pdf-generation-from-snapshot] SUBROUTE PARITY: generate/retry from /quotes/<id>/versions/<vid> then view /quotes/<id> → both routes show the updated PDF status (neither stale)"
+  - "[6-4-mark-quote-version-sent-and-enforce-immutability] Signed in as tenant_admin on /quotes/<quoteId> with a readiness-passing DRAFT selected → draft editor + 'Skicka offert' card with amber immutability note and enabled 'Markera som skickad' button"
+  - "[6-4-mark-quote-version-sent-and-enforce-immutability] Click 'Markera som skickad' → 'Skickar…' pending, then 'Offertversionen är markerad som skickad.' (role=status); after revalidation the read-only branch renders (editor + card gone)"
+  - "[6-4-mark-quote-version-sent-and-enforce-immutability] Read-only notice reads 'Den här versionen är Skickad och kan inte redigeras — kundens innehåll är låst. Skapa en ny version …' — rule explained as TEXT"
+  - "[6-4-mark-quote-version-sent-and-enforce-immutability] Status badge 'Skickad' (text, not color-only); 'Skapa ny version' present but DISABLED (6.5 not built)"
+  - "[6-4-mark-quote-version-sent-and-enforce-immutability] 'Händelser' now lists a Skickad/sent event with occurred-at timestamp"
+  - "[6-4-mark-quote-version-sent-and-enforce-immutability] Reload /quotes/<quoteId> after send → still read-only, no mark-sent button (server-side lock, not client state)"
+  - "[6-4-mark-quote-version-sent-and-enforce-immutability] Keyboard-tab the 'Skicka offert' card → button focusable with visible ring + accessible name"
+  - "[6-4-mark-quote-version-sent-and-enforce-immutability] On a readiness-BLOCKED draft, click 'Markera som skickad' → rejected with generic error banner (role=alert), version stays draft, no sent event (send gate blocks, no blocker detail leaked)"
+  - "[6-4-mark-quote-version-sent-and-enforce-immutability] On an already-sent/non-draft version → no 'Markera som skickad' button rendered at all (no re-send path)"
+  - "[6-4-mark-quote-version-sent-and-enforce-immutability] (SQL, local Supabase) UPDATE quote_versions SET base_total_ore = base_total_ore + 1 on a sent version → rejected with SQLSTATE QV409"
+  - "[6-4-mark-quote-version-sent-and-enforce-immutability] (SQL) UPDATE quote_versions SET intro_text = 'x' on a sent version → rejected (QV409); customer text frozen after send"
+  - "[6-4-mark-quote-version-sent-and-enforce-immutability] (SQL) UPDATE a sent version's quote_version_lines label AND INSERT a new line into it → both rejected by the child lock"
+  - "[6-4-mark-quote-version-sent-and-enforce-immutability] (SQL) UPDATE quote_versions SET pdf_status = 'pending' (or pdf_file_id/pdf_generated_at) on the SAME sent version → SUCCEEDS (exempt PDF render columns, 6.3 obligation)"
+  - "[6-4-mark-quote-version-sent-and-enforce-immutability] (SQL) UPDATE status = 'draft' on a sent version → rejected (QV409, no reversal); UPDATE status = 'accepted' → succeeds (sanctioned forward transition)"
+  - "[6-4-mark-quote-version-sent-and-enforce-immutability] (SQL) UPDATE or DELETE a quote_events row → rejected by the append-only trigger"
+  - "[6-4-mark-quote-version-sent-and-enforce-immutability] As tenant A's admin, open tenant B's /quotes/<quoteId> URL → quote not resolved (RLS, no existence leak), no mark-sent affordance reachable"
