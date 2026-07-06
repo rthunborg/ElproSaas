@@ -6,7 +6,15 @@ stepsCompleted:
   - step-04-coverage-plan
   - step-05-generate-output
 lastStep: step-05-generate-output
-lastSaved: '2026-07-05'
+lastSaved: '2026-07-06'
+editLog:
+  - date: '2026-07-06'
+    reason: >-
+      Post-Epic-6 reconcile: Epic 6 landed 2026-07-06 (PR #26, all stories 6.1-6.5 done,
+      retro done). Sent-eligibility scenarios promoted from planning depth to full depth
+      against the frozen state machine; quote_events confirmed EXISTING (reuse, not new);
+      R-719 updated (pnpm audit gate resolved in Epic 6; coverage reporter remains);
+      entry criteria and dependency posture updated.
 workflowType: testarch-test-design
 designLevel: epic
 epicNum: 7
@@ -16,6 +24,9 @@ inputDocuments:
   - _bmad-output/planning-artifacts/prd.md (FR41-FR48; NFR12 immutable accepted refs/evidence; NFR20 no partial acceptance/job state; UX-DR17/23/24/26/35)
   - _bmad-output/project-context.md (Money/Tax/Quote Rules öre; snapshot-source contract; Testing Rules; Security Regression Harness Rules; demo-data-only decision 2026-07-03)
   - _bmad-output/test-artifacts/test-design-epic-6.md (house style; Epic 6 sent-state lifecycle Epic 7 consumes; sent immutability R-605; 6.x Not-in-Scope cross-refs 7.4)
+  - supabase/migrations/20260705120000_quote_version_model.sql + 20260707120000_quote_version_sent_lock.sql + 20260708120000_quote_new_version.sql (LANDED Epic 6 artifacts — frozen status CHECK draft/sent/accepted/rejected/expired/superseded; quote_versions_sent_lock trigger; mark_quote_version_sent SECURITY INVOKER RPC with explicit timestamp; quote_events with occurred_at/channel/reference)
+  - src/server/commands/command-errors.ts (stable codes live: QUOTE_VERSION_LOCKED shipped 6.4; COMMAND_CONFLICT reserved for idempotent commands; ACCEPTANCE_ALREADY_RECORDED added by Epic 7)
+  - _bmad-output/test-artifacts/nfr-assessment-epic-6.md (R-617 pnpm audit gate RESOLVED as blocking CI step; coverage reporter = single remaining standing CONCERNS)
   - _bmad-output/test-artifacts/test-design-epic-8.md (house style + depth; wave-2 planning-depth pattern for not-yet-frozen dependencies; 8.1 file model; 8.4 accepted-evidence lock must AGREE with Epic 7)
   - _bmad-output/implementation-artifacts/sprint-status.yaml (Epic 7 backlog; runs AFTER Epic 6, before Wave-2 8.2-8.5; 8.1 done)
   - _bmad-output/implementation-artifacts/deferred-work.md (8.1 quote_acceptance/job owner types INACTIVE; acceptance_evidence file-evidence UX = Epic 8.2; file_links no dedupe uniqueness — find-or-create deferred; 3.5 CompanySettingsSnapshot identity-partial; 4.x per-person ROT cap deferred)
@@ -27,7 +38,7 @@ inputDocuments:
 
 # Test Design: Epic 7 - Acceptance-To-Job Transaction
 
-**Date:** 2026-07-05
+**Date:** 2026-07-05 (updated 2026-07-06 — post-Epic-6 reconcile)
 **Author:** Rasmus
 **Status:** Draft
 **Design Level:** Epic-Level (Phase 4)
@@ -72,13 +83,14 @@ three of them are new in their most consequential form:
    constraint/trigger** (architecture §9), never just a disabled button. Corrections require an explicit
    audited workflow that Phase A intentionally does **not** implement (7.4 STOP) — this epic proves the
    *boundary* holds, not a correction workflow.
-4. **Isolation across new commitment tables.** `quote_acceptances`, `jobs`, and the `job_events` /
-   `quote_events` lifecycle-event tables are new tenant-owned tables carrying customer commitment and
-   price data — each needs the full Epic 2-5 pattern (direct `tenant_id`, composite same-tenant FKs,
-   enable+**force** RLS, `anon → none`, `TENANT_TABLES` enrollment) plus cross-tenant negatives. A
-   cross-tenant leak here exposes another tenant's *accepted prices and commitments*.
+4. **Isolation across new commitment tables.** `quote_acceptances`, `jobs`, and `job_events` are new
+   tenant-owned tables carrying customer commitment and price data — each needs the full Epic 2-5
+   pattern (direct `tenant_id`, composite same-tenant FKs, enable+**force** RLS, `anon → none`,
+   `TENANT_TABLES` enrollment) plus cross-tenant negatives. (`quote_events` already exists and is
+   enrolled — Epic 6 shipped it; Epic 7 only writes new event rows through it.) A cross-tenant leak
+   here exposes another tenant's *accepted prices and commitments*.
 
-**The two consumed dependencies — one frozen on main, one NOT yet implemented:**
+**The two consumed dependencies — BOTH now frozen on main (2026-07-06 update):**
 
 - **Story 8.1's file model is merged on `main`** (`files`/`file_links`, private bucket, signed access).
   Its `owner_type` union already lists `quote_acceptance` and `job` as **structurally valid but
@@ -89,16 +101,22 @@ three of them are new in their most consequential form:
   completed by Epic 8.2 (epics.md 7.1 tech note). This is a **known integration surface**, not new file
   infrastructure — Epic 7 must NOT invent a competing file/evidence model (the 8.1 single-file-model
   contract, R-814).
-- **Epic 6's `quote_versions` / sent-state lifecycle is NOT yet implemented** (sprint-status: Epic 6
-  backlog; Epic 7 runs after Epic 6). Acceptance is only legal on a **sent** quote version, so the
-  acceptance-precondition scenarios (accept a sent version; reject a draft/rejected/expired/cross-tenant
-  version) consume a lifecycle Epic 6 owns. **This design covers Epic 7 to full implementable depth for
-  the acceptance-to-job transaction, idempotency, atomicity, and immutability mechanisms, and covers the
-  sent-state PRECONDITION scenarios to planning depth** — cross-referenced to Epic 6's frozen sent-state
-  and re-confirmed at each create-story once `quote_versions`/sent-state exists, rather than forking the
-  lifecycle rule table (the same approach epic-8 took for its Wave-2 lock matrix). This is intentional,
-  not a gap: detailing the exact "which quote states permit acceptance" matrix before Epic 6 freezes the
-  state machine would fork the rule table.
+- **Epic 6's `quote_versions` / sent-state lifecycle LANDED 2026-07-06** (PR #26; stories 6.1-6.5 done,
+  retro done). The state machine is frozen at the DB: `status CHECK IN ('draft','sent','accepted',
+  'rejected','expired','superseded')` (`20260705120000_quote_version_model.sql`); the
+  `quote_versions_sent_lock` BEFORE UPDATE trigger makes a non-draft version immutable and its status
+  irreversible (no transition back to `draft`; `20260707120000_quote_version_sent_lock.sql`); mark-sent
+  is a narrow SECURITY INVOKER RPC with an explicit sent timestamp; `QUOTE_VERSION_LOCKED` is a live
+  stable code; `quote_events` exists (with `occurred_at`/channel/reference) and is enrolled in
+  `TENANT_TABLES`. **The sent-eligibility matrix is therefore now FULL DEPTH, finalized against the
+  landed state machine:** acceptance is legal ONLY on `status = 'sent'`; a `draft`, `accepted`,
+  `rejected`, `expired`, `superseded`, or cross-tenant version is rejected. The original
+  planning-depth hedge (avoid forking a not-yet-frozen rule table) is resolved; the create-story
+  re-confirmation of this list at 7.1/7.2 remains as a cheap sanity check, not an open dependency.
+  Two useful consequences for Epic 7's mechanics: (a) the landed sent-lock trigger already PERMITS
+  non-draft → non-draft status transitions, so 7.2's `sent → accepted` lifecycle update flows through
+  the frozen trigger without modification; (b) `quote_events` is REUSED for the acceptance lifecycle
+  event — Epic 7's genuinely new tables are `quote_acceptances`, `jobs`, and `job_events` only.
 
 **Risk Summary:**
 
@@ -150,22 +168,21 @@ three of them are new in their most consequential form:
 
 ## Dependency Posture & Planning Depth (read this before the coverage plan)
 
-Epic 7 sits **between two dependencies with opposite maturity**, and that shapes how deep each part of
-this design goes:
+Epic 7 sits between two dependencies that, as of 2026-07-06, are **both landed and frozen on `main`** —
+the whole design is now at full implementable depth (the Epic 6 row below records the original
+planning-depth posture and its resolution):
 
 | Dependency | State | Effect on this design |
 | --- | --- | --- |
 | **Story 8.1 file model** (`files`/`file_links`, private bucket, signed access, `quote_acceptance`/`job` owner types + `acceptance_evidence`/`job_evidence` purposes structurally present but INACTIVE) | **DONE, merged on `main`** | **Full depth now.** Epic 7 ACTIVATES the `quote_acceptance` owner type (7.1 evidence link) and the `job` owner type (7.3 job evidence) by wiring the command-layer ownership validation the 8.1 migration deferred. 7.1's evidence can be an external reference immediately; file-upload evidence UX is Epic 8.2. Epic 7 REUSES `files`/`file_links` and MUST NOT invent a competing evidence model (R-814 single-file-model contract). |
-| **Epic 6 `quote_versions` / sent-state lifecycle** (mark-sent, `QUOTE_VERSION_LOCKED`, immutable sent snapshot) | **NOT implemented** (Epic 6 backlog; Epic 7 runs after Epic 6) | **Transaction/idempotency/immutability mechanisms = full depth; sent-state PRECONDITION scenarios = planning depth.** The "acceptance only on a sent version; reject draft/rejected/expired" matrix consumes Epic 6's state machine, which is not yet frozen. This design fixes those scenarios' *shape, risk, and dependency gate* now and cross-references Epic 6's frozen sent-state; the exact permitted-state list is re-confirmed at 7.1/7.2 create-story once `quote_versions`/sent-state exists — rather than forking the lifecycle rule table (the epic-8 Wave-2 pattern). |
+| **Epic 6 `quote_versions` / sent-state lifecycle** (mark-sent, `QUOTE_VERSION_LOCKED`, immutable sent snapshot) | **DONE, merged on `main` 2026-07-06** (PR #26; was "NOT implemented" when this design was authored 2026-07-05) | **Full depth now — the planning-depth hedge is resolved.** The frozen state machine is `draft/sent/accepted/rejected/expired/superseded` (DB CHECK); the sent-eligibility matrix is finalized: acceptance ONLY on `status = 'sent'`; reject `draft`/`accepted`/`rejected`/`expired`/`superseded`/cross-tenant. The `quote_versions_sent_lock` trigger permits non-draft → non-draft transitions, so 7.2's `sent → accepted` update flows through it unmodified; `quote_events` is reused for the acceptance event. The 7.1/7.2 create-story re-confirmation stays as a sanity check only. |
 
-**Why this is not a gap:** the transactional core of Epic 7 (idempotency, atomicity, uniqueness
-constraints, accepted-state immutability at the DB, the new-table isolation) is fully specifiable and
-testable *now* against architecture §13 + ADR-A005/A009 — it does not need Epic 6's snapshot internals,
-only that a "sent quote version" row exists to reference. The single part that depends on Epic 6's
-not-yet-frozen state machine — *which quote-version states are acceptance-eligible* — is the one held at
-planning depth. Designing that matrix before Epic 6 freezes `draft/sent/accepted/rejected/expired/
-superseded` would fork the rule table and risk disagreement between the mark-sent gate (Epic 6) and the
-acceptance gate (Epic 7).
+**Posture history (why part of this design was briefly at planning depth):** when authored (2026-07-05),
+Epic 6's state machine was not yet frozen, so the *which quote-version states are acceptance-eligible*
+matrix was deliberately held at planning depth to avoid forking a rule table Epic 6 owned. Epic 6 landed
+the next day with exactly the anticipated state set (`draft/sent/accepted/rejected/expired/superseded`),
+so the matrix is now finalized above with no fork risk — the mark-sent gate (Epic 6) and the acceptance
+gate (Epic 7) read the same frozen CHECK constraint and trigger.
 
 **Standing contract this epic honors:** the acceptance/job *lifecycle-immutability rule* (accepted →
 locked at command AND DB) must **AGREE** with Epic 6's sent-immutability (R-605) and with Epic 8.4's
@@ -180,7 +197,7 @@ between them is a design defect and a STOP condition.
 
 Epics 2-6 (+ 8.1) shipped the isolation harness, the money engine, the snapshot/immutability discipline,
 and the file model Epic 7 now composes into the acceptance-to-job transaction. Verified in-repo (8.1 on
-`main`; Epics 2-5 done; Epic 6 pending but its contracts are fixed by the epic-6 design). Epic 7 must
+`main`; Epics 2-6 ALL done and merged — Epic 6 landed 2026-07-06 via PR #26). Epic 7 must
 **reuse**, not re-invent:
 
 | Inherited asset | Where | Epic 7 obligation |
@@ -252,7 +269,7 @@ degraded-not-critical (UX plumbing, docs).
 | R-703 | DATA | **Partial acceptance/job state on mid-transaction failure** — a step failure leaves an orphaned acceptance, a half-accepted quote lifecycle, a job with no acceptance, or a dangling quote/job/audit event committed (NFR20 violation) | 2 | 3 | 6 | ALL of acceptance + lifecycle update + job insert + event/audit writes in ONE narrow-RPC transaction (ADR-A009); INT injects a failure at each step boundary (e.g. constraint violation on the job insert) and asserts NOTHING is committed — no acceptance, no lifecycle change, no job, no event; behavioral rollback proof, not field-exists; matches architecture §13 step 10 "commit or roll back all changes together" | Dev (7.2) | Story 7.2 |
 | R-704 | DATA/BUS | **Accepted-state immutability bypass** — accepted version reference, acceptance evidence, accepted price, accepted timestamp, channel, source quote total, or job source reference is mutable through a command path OR a direct own-tenant SQL UPDATE because locking is command-only / UI-only (ADR-A005 / NFR12 violation) | 2 | 3 | 6 | Two independent layers per 7.4 AC + architecture §9: command validation (⇒ stable lock code) AND DB triggers/constraints block updates to the immutable field set; INT negatives attempt mutation via command AND via direct authenticated UPDATE; UI-only locking is a STOP; must AGREE with Epic 6 sent-immutability (R-605) and Epic 8.4 accepted-evidence lock | Dev (7.4) | Story 7.4 |
 | R-705 | DATA/BUS | **Adjusted accepted price accepted without reason/evidence, or accepted price/total not in öre** — a delta from the sent total is confirmed with no explicit adjustment reason/evidence, or accepted price / source total is stored as float/kronor → an unexplained or imprecise commitment | 2 | 3 | 6 | 7.1 AC: an accepted price differing from the sent quote total REQUIRES explicit adjustment reason/evidence and SHOWS the delta before confirm; command re-validates server-side (client cannot bypass); accepted price + source sent total stored in öre (`bigint`, canonical guards); UNIT delta computation + INT reason-required negative + GOLDEN unchanged-vs-adjusted accepted-price cases | Dev (7.1/7.2) | Stories 7.1, 7.2 |
-| R-706 | BUS/DATA | **Acceptance recorded against a non-sent (or cross-tenant) quote version** — a draft, rejected, expired, superseded, or another tenant's quote version is accepted because the sent-state precondition is not enforced server-side; or the check consumes an Epic 6 lifecycle that is not yet frozen and forks the rule table | 2 | 3 | 6 | Command + RPC verify the quote version belongs to the tenant AND is in the sent state BEFORE recording (architecture §13 step 3); INT negatives: draft/rejected/expired/cross-tenant version ⇒ user-safe rejection; **sent-eligibility matrix cross-referenced to Epic 6's frozen sent-state, re-confirmed at 7.1/7.2 create-story** (planning depth pending Epic 6 — do NOT fork the state machine) | Dev (7.1/7.2) | Stories 7.1, 7.2 (after Epic 6) |
+| R-706 | BUS/DATA | **Acceptance recorded against a non-sent (or cross-tenant) quote version** — a draft, accepted, rejected, expired, superseded, or another tenant's quote version is accepted because the sent-state precondition is not enforced server-side | 2 | 3 | 6 | Command + RPC verify the quote version belongs to the tenant AND has `status = 'sent'` BEFORE recording (architecture §13 step 3); INT negatives: draft/accepted/rejected/expired/superseded/cross-tenant version ⇒ user-safe rejection. **Matrix FINALIZED against the landed Epic 6 state machine (2026-07-06)** — the frozen CHECK is `draft/sent/accepted/rejected/expired/superseded`; create-story re-confirmation at 7.1/7.2 is a sanity check only, the dependency gate is CLOSED | Dev (7.1/7.2) | Stories 7.1, 7.2 |
 | R-707 | SEC | **Cross-tenant source id accepted into the transaction** — `acceptQuoteAndCreateJob` accepts a foreign `quote_version_id`, or the evidence link accepts a foreign file id, or a bare FK lets the acceptance/job point at another tenant's parent | 2 | 3 | 6 | Composite same-tenant FKs at the DB (acceptance → version, job → acceptance/version); command re-validates quote-version + evidence-file ownership under RLS (`verifyOwnership`, zero rows ⇒ `TENANT_ACCESS_DENIED`); INT negatives spoof a foreign quote-version id AND a foreign evidence file id; generic error (no existence disclosure) | Dev (7.1/7.2) | Stories 7.1, 7.2 |
 | R-708 | DATA | **Job/order shows wrong or mutable source data** — the job detail re-derives or re-reads mutable data for source quote version, accepted price, evidence, or source totals instead of displaying the immutable accepted references → the job disagrees with the commitment it was created from | 2 | 3 | 6 | Job stores IMMUTABLE source references (accepted version id, acceptance id) at creation; detail DISPLAYS accepted price / source totals / evidence from those immutable references, never re-derives (UX-DR26); INT: mutate any mutable upstream source after job creation ⇒ job detail data unchanged; source refs are non-editable (7.3 AC) | Dev (7.3) | Story 7.3 |
 | R-709 | SEC/DATA | **Acceptance-evidence file access / activation gap** — activating the `quote_acceptance` owner type on the 8.1 model links a foreign file, or the evidence file is reachable cross-tenant/anon, or a competing evidence model is invented instead of reusing `files`/`file_links` | 2 | 3 | 6 | REUSE the 8.1 file model + command-layer ownership validation to activate `quote_acceptance`/`acceptance_evidence` (external reference now; upload UX Epic 8.2); INT: evidence link creation rejects a foreign file id; cross-tenant + anon access to the evidence file/metadata rejected via 8.1's signed-access funnel; NO competing evidence model (R-814 STOP); full storage-negative breadth stays Epic 8 (cross-ref) | Dev (7.1) | Story 7.1 |
@@ -275,7 +292,7 @@ degraded-not-critical (UX plumbing, docs).
 | Risk ID | Category | Description | Prob | Impact | Score | Action |
 | --- | --- | --- | --- | --- | --- |
 | R-718 | PERF | Acceptance/job transaction latency / concurrent-accept throughput untested (pilot-sized load only, no SLA) | 1 | 2 | 2 | DOCUMENT; add only if an SLA emerges. Functional idempotency/atomicity correctness, not perf, is the Phase A concern. |
-| R-719 | OPS | **Standing NFR carry reaches a SEVENTH epic surface** — `pnpm audit` CI gate + coverage reporter still unresolved (carried Epics 2-6, resolution forced "before Epic 6 closes" per epic-5 retro) | 1 | 2 | 2 | DOCUMENT with dated status in the gate: the standing NFR CONCERN (audit gate / coverage reporter) must show resolved-or-dated-accept, not a further silent carry; surface for the owner schedule-or-accept at the Epic 7 gate. Not test effort — a calendar item |
+| R-719 | OPS | **Standing NFR carry — HALF RESOLVED (2026-07-06 update)** — the `pnpm audit --audit-level=high` blocking CI gate LANDED in Epic 6 (R-617 resolved, `.github/workflows/ci.yml`); the coverage reporter (`c8` over `test:unit`, report-only) is the single remaining standing CONCERNS (LOW, backlog, carried since Epic 2) | 1 | 2 | 2 | DOCUMENT with dated status in the Epic 7 gate: audit gate = RESOLVED (Epic 6); coverage reporter = remaining LOW residual, show scheduled-or-dated-accept, not a silent carry. Not test effort — a calendar item |
 
 ### Risk Category Legend
 
@@ -291,10 +308,10 @@ degraded-not-critical (UX plumbing, docs).
 ## Testability Notes (Epic-Level)
 
 1. **RLS negatives BEFORE positives, and enrollment is the completeness guarantee.** `quote_acceptances`,
-   `jobs`, `job_events`, and any new `quote_events` enroll in `TENANT_TABLES` so the H4 gate + shared
-   cross-tenant/anon suites cover them automatically. The event tables (`job_events`) are easy to forget —
-   they are tenant-owned state and enroll like any other table. Do not hand-write ad-hoc isolation tests
-   that bypass the inventory (five-epic precedent).
+   `jobs`, and `job_events` enroll in `TENANT_TABLES` so the H4 gate + shared cross-tenant/anon suites
+   cover them automatically (`quote_events` is ALREADY enrolled by Epic 6 — reuse, don't re-create). The
+   event tables (`job_events`) are easy to forget — they are tenant-owned state and enroll like any other
+   table. Do not hand-write ad-hoc isolation tests that bypass the inventory (five-epic precedent).
 2. **The headline proof is idempotency, and it has two forms — sequential retry AND true concurrency.**
    (a) *Sequential retry:* call `acceptQuoteAndCreateJob` twice with the same input, assert the second
    returns the SAME acceptance + job ids and creates NO second row (the UNIQUE constraints + the RPC's
@@ -320,11 +337,13 @@ degraded-not-critical (UX plumbing, docs).
    three scopes. Cross-reference, do not fork: 7.4's lock-code and rejection behavior should be the same
    family as `QUOTE_VERSION_LOCKED` and the 8.4 file-lock code, and epic-8's design already commits 8.4 to
    AGREE with Epic 7. A divergence is a STOP.
-6. **Sent-eligibility is planning-depth pending Epic 6 — cross-reference, don't fork.** The
-   "acceptance only on a sent version; reject draft/rejected/expired/superseded/cross-tenant" matrix
-   consumes Epic 6's not-yet-frozen state machine. Fix the scenario SHAPE + the dependency gate now;
-   re-confirm the exact permitted-state list at 7.1/7.2 create-story once `quote_versions`/sent-state
-   exists. Do not encode a speculative state list that could disagree with Epic 6's mark-sent gate.
+6. **Sent-eligibility is FINALIZED against the landed Epic 6 state machine (2026-07-06).** Acceptance is
+   legal ONLY on `status = 'sent'`; INT negatives cover `draft`, `accepted`, `rejected`, `expired`,
+   `superseded`, and cross-tenant versions. Assert against the frozen artifacts, not a re-derivation:
+   the DB CHECK in `20260705120000_quote_version_model.sql` and the `quote_versions_sent_lock` trigger
+   (`20260707120000_quote_version_sent_lock.sql`). Note for 7.2: the trigger already permits
+   non-draft → non-draft transitions, so the `sent → accepted` lifecycle update needs no trigger change —
+   if a story finds itself modifying the sent-lock trigger, that is a design-drift STOP signal.
 7. **Adjusted-price gating is server-side and behavioral.** The delta-requires-reason rule must be
    re-validated in the command (client cannot bypass); INT drives an adjusted price with NO reason and
    asserts rejection, and an adjusted price WITH reason and asserts acceptance + the delta captured.
@@ -361,11 +380,11 @@ degraded-not-critical (UX plumbing, docs).
       with `quote_acceptance`/`job` owner types + `acceptance_evidence`/`job_evidence` purposes
       structurally present (INACTIVE); 7.1/7.3 activate them via command-layer ownership validation and
       MUST NOT create a competing evidence model (R-814). Verified: 8.1 done.
-- [ ] **Epic 6 landed and green (sent-state lifecycle frozen)** — `quote_versions`, mark-sent,
-      `QUOTE_VERSION_LOCKED`, and the sent-immutability model exist so acceptance has a sent version to
-      reference and the sent-eligibility matrix can be finalized at 7.1/7.2 create-story (R-706). Epic 7
-      runs AFTER Epic 6 (sprint-status). If Epic 6 slips, the transaction/idempotency/immutability
-      mechanisms are still specifiable, but the sent-eligibility scenarios stay at planning depth.
+- [x] **Epic 6 landed and green (sent-state lifecycle frozen)** — VERIFIED 2026-07-06: `quote_versions`
+      with the frozen status CHECK, `mark_quote_version_sent` RPC, `QUOTE_VERSION_LOCKED` live code,
+      `quote_versions_sent_lock` trigger, and `quote_events` all merged via PR #26 (stories 6.1-6.5 done,
+      retro done). The sent-eligibility matrix is finalized (R-706 dependency gate CLOSED); acceptance
+      references a real sent version from the landed lifecycle.
 - [ ] **Acceptance-to-job data model agreed** — `quote_acceptances` (accepted version ref, channel,
       `accepted_at`, accepted price öre, adjustment reason/evidence, evidence file/reference, notes,
       planned start/end dates), `jobs` (immutable source version + acceptance refs, customer/facility/
@@ -382,9 +401,10 @@ degraded-not-critical (UX plumbing, docs).
 - [ ] **Correction-workflow policy explicitly deferred** — Phase A locks accepted data with NO correction
       workflow; the audited-correction workflow is owner-gated (7.4 STOP, R-714). The gate must restate
       this so the boundary is proven without implying a workflow was built.
-- [ ] **Standing NFR mechanism resolved** — `pnpm audit` CI gate + coverage reporter shown
-      resolved-or-dated-accept, not a seventh silent carry (R-719; epic-5 retro forced resolution before
-      Epic 6 closes — restate status here).
+- [x] **Standing NFR mechanism resolved (audit half)** — the `pnpm audit --audit-level=high` blocking CI
+      gate landed in Epic 6 (R-617 resolved per nfr-assessment-epic-6.md). The coverage reporter is the
+      single remaining LOW residual (report-only `c8`, backlog) — the Epic 7 gate restates it as
+      scheduled-or-dated-accept, not a silent carry (R-719).
 - [ ] Anonymized Lovable acceptance/job oracle examples available for delta capture (no real data copied);
       the mutable-acceptance / client-side-multi-step vs immutable-single-transaction delta is pre-agreed
       as an intentional, documented delta.
@@ -407,8 +427,9 @@ degraded-not-critical (UX plumbing, docs).
       own-tenant SQL UPDATE ⇒ rejected by trigger/constraint; every immutable field (version ref, evidence,
       accepted price, accepted_at, channel, source total, job source ref) covered; accidental update paths
       (id-only/empty-patch/bulk) do not mutate; AGREES with Epic 6 (R-605) and Epic 8.4.
-- [ ] **Sent-precondition gated** — acceptance rejected on a draft/rejected/expired/superseded/cross-tenant
-      quote version (final permitted-state list confirmed against Epic 6 at create-story).
+- [ ] **Sent-precondition gated** — acceptance rejected on a draft/accepted/rejected/expired/superseded/
+      cross-tenant quote version (matrix finalized against the landed Epic 6 state machine — acceptance
+      ONLY on `status = 'sent'`).
 - [ ] **Adjusted price gated + öre-correct** — a delta from the sent total requires explicit reason/evidence
       and shows the delta before confirm; accepted price + source total stored in öre; unchanged-vs-adjusted
       accepted-price GOLDEN green.
@@ -448,9 +469,9 @@ workaround.
 
 | Test ID | Requirement (AC source) | Test Level | Risk Link | Test Count | Owner | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
-| 7.1-INT-01 | Migration reset from empty creates `quote_acceptances`/`jobs`/`job_events`(+`quote_events` if new) with tenant ownership, composite same-tenant parent FKs, immutable source refs, öre columns, uniqueness constraints; NO field-worker/schedule/time-material/deviation/invoice/Fortnox tables (7.x non-scope) | INT | R-701 | 2-3 | Dev | Per-table policy enumeration; deferred-table absence; öre columns `bigint` + `CHECK >= 0` |
+| 7.1-INT-01 | Migration reset from empty creates `quote_acceptances`/`jobs`/`job_events` (`quote_events` exists — Epic 6; reused, not recreated) with tenant ownership, composite same-tenant parent FKs, immutable source refs, öre columns, uniqueness constraints; NO field-worker/schedule/time-material/deviation/invoice/Fortnox tables (7.x non-scope) | INT | R-701 | 2-3 | Dev | Per-table policy enumeration; deferred-table absence; öre columns `bigint` + `CHECK >= 0` |
 | 7.1-RLS-01 | Cross-tenant read/write + anon-path rejected on every new commitment table | RLS | R-701 | 6-10 | Dev | Via `TENANT_TABLES` enrollment; spoof/filter/mutation metadata per table |
-| 7.1-RLS-02 | H4 inventory gate green — all new tables enrolled (`quote_acceptances`/`jobs`/`job_events`/`quote_events`) | RLS | R-701 | 1 | Dev | Unenrolled table fails CI by design |
+| 7.1-RLS-02 | H4 inventory gate green — all new tables enrolled (`quote_acceptances`/`jobs`/`job_events`; `quote_events` already enrolled by Epic 6) | RLS | R-701 | 1 | Dev | Unenrolled table fails CI by design |
 | 7.1-INT-02 | Acceptance capture rejects a draft/rejected/expired/superseded/cross-tenant quote version with a user-safe error (7.1 AC3) | INT | R-706, R-707 | 3-4 | Dev | **Sent-eligibility list confirmed vs Epic 6 at create-story** (planning depth pending Epic 6) |
 | 7.1-INT-03 | Adjusted accepted price (≠ sent total) REQUIRES explicit adjustment reason/evidence, re-validated server-side; missing reason ⇒ rejected (7.1 AC2) | INT | R-705 | 2-3 | Dev | Client cannot bypass; delta captured |
 | 7.1-UNIT-01 | Adjusted-price delta + reason-required decision, pure, öre-based, canonical guards; extracted to `.ts` for the fast gate (coverage-shape lesson) | UNIT | R-705 | 3-4 | Dev | Delta computed with the engine, not ad hoc |
@@ -650,10 +671,11 @@ gate. Epic 6 landing (sent-state) is the sequencing prerequisite for the sent-el
 
 ### R-701: New commitment-table isolation gap (Score 6, enrollment-gated)
 
-**Strategy:** Reuse the proven migration pattern verbatim on `quote_acceptances`/`jobs`/`job_events`/
-`quote_events`; composite same-tenant FKs down the job → acceptance → version → quote chain; enroll
-everything in `TENANT_TABLES` with spoof/filter/mutation metadata before merge (compile-exhaustive; H4
-CI-fatal). **Owner:** Dev (7.1-7.3). **Timeline:** Stories 7.1-7.3.
+**Strategy:** Reuse the proven migration pattern verbatim on `quote_acceptances`/`jobs`/`job_events`
+(`quote_events` already exists + is enrolled — Epic 6); composite same-tenant FKs down the
+job → acceptance → version → quote chain; enroll everything in `TENANT_TABLES` with
+spoof/filter/mutation metadata before merge (compile-exhaustive; H4 CI-fatal). **Owner:** Dev
+(7.1-7.3). **Timeline:** Stories 7.1-7.3.
 **Verification:** `7.1-INT-01`, `7.1-RLS-01/02`.
 
 ### R-702: Duplicate acceptance / duplicate job on retry or concurrency (Score 6)

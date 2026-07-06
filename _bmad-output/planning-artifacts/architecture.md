@@ -820,7 +820,7 @@ These questions should not block the architecture artifact. They must be answere
 
 | Area | Conservative Phase A assumption | Question |
 | --- | --- | --- |
-| Quote numbering | Tenant-scoped server counter. | What exact display format should quote numbers use? |
+| Quote numbering | Tenant-scoped server counter. | DECIDED 2026-07-06 (owner-decisions-applied-2026-07-06.md D-1): plain sequential integer displayed as `Offert #<n>`; `quote_number_display` stays a dormant presentational override; no year prefix / no counter reset. |
 | Rounding | Line net and VAT rounded per line, totals sum rounded lines. | Should accounting require document-level VAT rounding instead? |
 | VAT/ROT/grön teknik | Snapshot assumptions and treat deductions as estimates. | Which rates, caps, eligibility rules, schablon handling, BRF handling, and disclaimer text are approved? |
 | Acceptance evidence | Admin records off-system evidence. | Which channels are sufficient for real pilot use: email, phone note, signed PDF, meeting note, other? |
