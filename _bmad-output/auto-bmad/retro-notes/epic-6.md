@@ -24,3 +24,7 @@
 - [Phase 5 â€” dev-story] Send gate sources the FROZEN warnings_snapshot blocker state (not a live re-classify) â€” a sent version freezes its snapshot; both gate surfaces share blockers.length === 0.
 - [Phase 5 â€” dev-story] storage-object-isolation signed-URL-expiry INT test is timing-flaky (pre-existing, passes on re-run) â€” candidate for a hardening pass.
 - [Phase 7 â€” code review] Sent-lock trigger's fail-closed claim wasn't fully honored: status was wholesale-exempt (sent->draft reversal disarms both locks) and quote_id/id/tenant_id/created_at sat in neither exempt nor locked tuple (own-tenant re-parent of a sent commitment). INT suite only tested content-column mutation â€” immutability trigger tests must cover state-machine REVERSAL and identity/FK columns, not just content columns.
+
+## Story 6-5-new-quote-version-after-customer-visible-changes
+- [Phase 5 â€” dev-story] 6.1 execute-body snapshot sequence extracted into shared buildFreshQuoteSnapshot helper so 6.1 + 6.5 version-creation commands share one snapshot path (ADR-A009 anti-fork) â€” future quote commands must use it, never re-inline.
+- [Phase 5 â€” dev-story] Pre-authored ATDD E2E testids didn't match the shipped 6.2 UI conventions (quote-timeline-item / quote-current-commitment) â€” adapt scaffolds to real testids at green time rather than adding parallel testids.

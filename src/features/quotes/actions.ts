@@ -22,6 +22,7 @@ import { createSupabaseServerClient } from "@/server/db/supabase-server-client";
 import { runCommand, type CommandDbClient } from "@/server/commands/envelope";
 import { COMMAND_MESSAGES } from "@/server/commands/command-errors";
 import {
+  createNewQuoteVersion,
   generateQuotePdf,
   markQuoteVersionSent,
   updateDraftQuoteVersion,
@@ -41,6 +42,10 @@ import {
   MARK_SENT_ACTION_INITIAL,
   type MarkSentActionState,
 } from "./mark-sent-action-state";
+import {
+  NEW_VERSION_ACTION_INITIAL,
+  type NewVersionActionState,
+} from "./new-version-action-state";
 
 /** Read a string form field (empty → undefined so the field is left unchanged). */
 function optionalText(form: FormData, name: string): string | undefined {
@@ -217,6 +222,62 @@ export async function markQuoteVersionSentAction(
 
   return {
     ...MARK_SENT_ACTION_INITIAL,
+    status: "error",
+    code: result.code,
+    formError: result.message || COMMAND_MESSAGES[result.code],
+  };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Story 6.5 — the new-version server action (the ONLY write path the activated "Skapa ny version"
+// affordance uses). Wires the read-only branch's create-new-version button to
+// `createNewQuoteVersion`. Only the PARENT `quote_version_id` (+ optional re-selected
+// `attachment_file_ids`) is read from the form — status/tenant/totals are NEVER accepted (the
+// command re-captures the fresh snapshot server-side + runs the narrow RPC on the RLS client).
+// After a successful create, revalidate BOTH `/quotes/[quoteId]` AND the NEW version subroute (the
+// 6.2/6.3/6.4 subroute-revalidation discipline — do NOT repeat the 6.2 gap) so the admin lands on
+// the editable NEW draft. The UI is the MIRROR of the INT-proven server + DB enforcement, never the
+// guarantee (a UI-only versioning rule is a STOP condition — architecture §9).
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * The create-new-version action (React `useActionState` signature). Wires the read-only branch's
+ * "Skapa ny version" button to `createNewQuoteVersion`. Only the parent version id (+ optional
+ * re-selected attachment file ids) is read; the server command is the authority.
+ */
+export async function createNewQuoteVersionAction(
+  _prev: NewVersionActionState,
+  form: FormData,
+): Promise<NewVersionActionState> {
+  const quoteVersionId = form.get("quote_version_id");
+  const quoteId = form.get("quote_id");
+  const input: Record<string, unknown> = { quote_version_id: quoteVersionId };
+  // OPTIONAL re-selected attachment file ids (a repeated `attachment_file_ids` form field). An
+  // absent field means "no attachments re-selected" (the command validator defaults it to []).
+  const attachmentFileIds = form
+    .getAll("attachment_file_ids")
+    .filter((v): v is string => typeof v === "string" && v.length > 0);
+  if (attachmentFileIds.length > 0) input.attachment_file_ids = attachmentFileIds;
+
+  const client = (await createSupabaseServerClient()) as unknown as CommandDbClient;
+  const result = await runCommand(createNewQuoteVersion, { client, input });
+
+  if (result.ok) {
+    if (typeof quoteId === "string" && quoteId.length > 0) {
+      revalidatePath(`/quotes/${quoteId}`);
+      // Revalidate the NEW version subroute so the admin lands on the editable new draft (the new
+      // version id is the command result's targetId — NOT the parent). Do NOT repeat the 6.2 gap.
+      revalidatePath(`/quotes/${quoteId}/versions/${result.data.targetId}`);
+    }
+    return {
+      ...NEW_VERSION_ACTION_INITIAL,
+      status: "success",
+      targetId: result.data.targetId,
+    };
+  }
+
+  return {
+    ...NEW_VERSION_ACTION_INITIAL,
     status: "error",
     code: result.code,
     formError: result.message || COMMAND_MESSAGES[result.code],

@@ -276,6 +276,45 @@ export default async function globalSetup() {
     sort_order: 0,
   });
 
+  // Story 6.5: a DEDICATED quote whose ONLY version is a SENT v1, consumed by the "create a new
+  // version" flow E2E (creating a v2 permanently) so it does NOT mutate the shared 6.2/6.4 quote
+  // the read-only-messaging + timeline tests rely on. Seeded draft → child → flip-to-sent per the
+  // 6.4 child-lock. Its source calc is the baseline calc (so the fresh re-capture succeeds).
+  const newVersionQuoteId = await adminInsertQuote({
+    tenant_id: base.tenantA.id,
+    customer_id: companyId,
+    facility_id: facilityId,
+  });
+  const newVersionSentVersionId = await adminInsertQuoteVersion({
+    tenant_id: base.tenantA.id,
+    quote_id: newVersionQuoteId,
+    calculation_id: calcId,
+    version_number: 1,
+    quote_number: 1004,
+    status: "draft",
+    company_name: `Elpro Demo AB ${token()}`,
+    customer_display_name: companyName,
+    intro_text: "Skickad version för ny-version-flödet",
+  });
+  await adminInsertQuoteVersionLine({
+    tenant_id: base.tenantA.id,
+    quote_version_id: newVersionSentVersionId,
+    label: `Ny-version-rad ${token()}`,
+    unit_sell_ore: 85000,
+    vat_rate_bp: 2500,
+    sort_order: 0,
+  });
+  await adminQuery(
+    `update public.quote_versions set status = 'sent' where id = $1`,
+    [newVersionSentVersionId],
+  );
+  await adminInsertQuoteEvent({
+    tenant_id: base.tenantA.id,
+    quote_id: newVersionQuoteId,
+    quote_version_id: newVersionSentVersionId,
+    event_type: "created",
+  });
+
   // PDF render-state seed (Story 6.3): a SEPARATE quote (so the 6.2 quote above keeps EXACTLY
   // two versions) with THREE versions exercising the render states DETERMINISTICALLY without a
   // real generation:
@@ -414,6 +453,12 @@ export default async function globalSetup() {
     markSendQuote: {
       id: markSendQuoteId,
       draftVersionId: markSendableVersionId,
+    },
+    // Story 6.5 — a dedicated single-SENT-version quote the create-new-version FLOW E2E consumes
+    // (creating a v2 permanently), kept off the shared 6.2/6.4 quote.
+    newVersionQuote: {
+      id: newVersionQuoteId,
+      sentVersionId: newVersionSentVersionId,
     },
     // Story 6.3 — a SEPARATE quote whose versions exercise the PDF render states.
     pdfQuote: {

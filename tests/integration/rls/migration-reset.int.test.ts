@@ -316,6 +316,35 @@ describe("Migration reset green — tenant_foundation objects present (AC1 / R-0
       assertSearchPathExactlyEmpty(fn.proname, fn.proconfig);
     }
   });
+
+  // Story 6.5 — the new-version + lifecycle-transition RPCs land after reset. This migration adds
+  // NO table (H4 untouched — the exact POLICY enumeration above is UNCHANGED, function-only); it
+  // proves the two new-version/lifecycle RPCs exist + are hardened so the below-command transaction
+  // boundary is present.
+  it("[P0] Story 6.5 create_new_quote_version + mark_quote_version_lifecycle RPCs exist after reset (hardened)", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
+    const fnRows = await adminQuery<{
+      proname: string;
+      prosecdef: boolean;
+      proconfig: string[] | null;
+    }>(
+      `select proname, prosecdef, proconfig from pg_proc
+         where proname in (
+           'create_new_quote_version',
+           'mark_quote_version_lifecycle'
+         )`,
+    );
+    expect(fnRows.map((r) => r.proname).sort()).toEqual([
+      "create_new_quote_version",
+      "mark_quote_version_lifecycle",
+    ]);
+    for (const fn of fnRows) {
+      // Both are SECURITY INVOKER (run under the caller's RLS — own-tenant only, no service-role
+      // app path) with a fixed empty search_path + schema-qualified refs (the 6.1/6.4 RPC shape).
+      expect(fn.prosecdef).toBe(false);
+      assertSearchPathExactlyEmpty(fn.proname, fn.proconfig);
+    }
+  });
 });
 
 // Close this file's admin pool once all migration-reset assertions are done.

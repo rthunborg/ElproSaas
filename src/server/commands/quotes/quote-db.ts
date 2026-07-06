@@ -436,6 +436,101 @@ export function asQuoteRpcClient(db: CommandDbClient): QuoteRpcClient {
   return db as unknown as QuoteRpcClient;
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Story 6.5 — the new-version + lifecycle-transition RPC surfaces + the parent-version read.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** The parent-version fields the new-version command reads to derive the RPC args. */
+export interface QuoteVersionParentRow {
+  readonly id: string;
+  readonly quote_id: string;
+  readonly calculation_id: string;
+  readonly status: string;
+  readonly quote_number: number | null;
+}
+
+const PARENT_VERSION_COLUMNS =
+  "id, quote_id, calculation_id, status, quote_number";
+
+/**
+ * Load the PARENT quote-version's identity fields under the caller's RLS (ownership already proved
+ * it visible). Returns the quote_id / calculation_id / status / quote_number the new-version
+ * command threads into the RPC, or null when the row is not visible (a race → the command denies).
+ */
+export async function loadQuoteVersionParent(
+  db: CommandDbClient,
+  quoteVersionId: string,
+): Promise<QuoteVersionParentRow | null> {
+  const { data, error } = await asReadClient(db)
+    .from("quote_versions")
+    .select(PARENT_VERSION_COLUMNS)
+    .eq("id", quoteVersionId)
+    .limit(1);
+  throwOnReadError("loadQuoteVersionParent", error);
+  const raw = (data?.[0] ?? null) as Record<string, unknown> | null;
+  if (raw === null) return null;
+  return {
+    id: String(raw.id),
+    quote_id: String(raw.quote_id),
+    calculation_id: String(raw.calculation_id),
+    status: String(raw.status),
+    quote_number: numOf(raw.quote_number),
+  };
+}
+
+/** The minimal RPC surface for the narrow `create_new_quote_version` call. */
+export type NewQuoteVersionRpcClient = {
+  rpc(
+    fn: "create_new_quote_version",
+    args: {
+      readonly p_tenant_id: string;
+      readonly p_quote_id: string;
+      readonly p_calculation_id: string;
+      readonly p_captured_at: string;
+      readonly p_customer_id: string;
+      readonly p_facility_id: string | null;
+      readonly p_contact_id: string | null;
+      readonly p_snapshot: unknown;
+      readonly p_lines: unknown;
+      readonly p_attachments: unknown;
+      readonly p_supersede_prior: boolean;
+    },
+  ): Promise<{
+    data: unknown;
+    error: { code?: string; message?: string } | null;
+  }>;
+};
+
+/** Narrow the envelope client to the new-version RPC surface (single documented cast). */
+export function asNewQuoteVersionRpcClient(
+  db: CommandDbClient,
+): NewQuoteVersionRpcClient {
+  return db as unknown as NewQuoteVersionRpcClient;
+}
+
+/** The minimal RPC surface for the narrow `mark_quote_version_lifecycle` call. */
+export type QuoteLifecycleRpcClient = {
+  rpc(
+    fn: "mark_quote_version_lifecycle",
+    args: {
+      readonly p_tenant_id: string;
+      readonly p_quote_version_id: string;
+      readonly p_transition: string;
+      readonly p_occurred_at: string;
+    },
+  ): Promise<{
+    data: unknown;
+    error: { code?: string; message?: string } | null;
+  }>;
+};
+
+/** Narrow the envelope client to the lifecycle-transition RPC surface (single documented cast). */
+export function asQuoteLifecycleRpcClient(
+  db: CommandDbClient,
+): QuoteLifecycleRpcClient {
+  return db as unknown as QuoteLifecycleRpcClient;
+}
+
 /**
  * Postgres error codes the quote mutation can surface that are DETERMINISTIC outcomes
  * (not transient infra faults):

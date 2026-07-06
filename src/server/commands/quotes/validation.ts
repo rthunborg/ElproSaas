@@ -215,3 +215,81 @@ export function validateMarkQuoteVersionSent(
   if ("reference" in raw) data.reference = (raw.reference as string | null) ?? null;
   return { ok: true, data };
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Story 6.5 — the new-version + lifecycle-transition input validators.
+//
+// `validateCreateNewQuoteVersion` — the caller supplies the PARENT `quote_version_id` (the
+// read-only sent version to base the new version on) + OPTIONAL re-selected `attachment_file_ids`
+// (re-validated for ownership in execute). tenant_id / status / totals / lines are NEVER read (the
+// resolved tenant from membership is the only authority; the fresh snapshot is RE-CAPTURED
+// server-side from the CURRENT source calc). A foreign parent version id is caught by the envelope
+// ownership gate (TENANT_ACCESS_DENIED before execute), not here.
+//
+// `validateMarkQuoteVersionLifecycle` — the caller supplies the target `quote_version_id` + a
+// `transition` in the CLOSED set (`rejected` | `expired` | `superseded` — accepted is Epic 7;
+// `sent` is the mark-sent command; `draft` reversal is illegal). Mirrors `validateMarkQuoteVersionSent`.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** The closed set of standalone lifecycle transitions the 6.5 command accepts. */
+const LIFECYCLE_TRANSITIONS = new Set(["rejected", "expired", "superseded"]);
+
+/**
+ * Validated `createNewQuoteVersion` input — the parent version id + optional re-selected
+ * attachment file ids. tenant_id is NEVER part of it (derived from the resolved membership).
+ */
+export interface CreateNewQuoteVersionInput {
+  readonly quote_version_id: string;
+  readonly attachment_file_ids: readonly string[];
+}
+
+export function validateCreateNewQuoteVersion(
+  raw: unknown,
+): ValidationResult<CreateNewQuoteVersionInput> {
+  if (!isRecord(raw)) return fail;
+  if (!isUuidLike(raw.quote_version_id)) return fail;
+  // attachment_file_ids is OPTIONAL. When present it must be a bounded UUID array; an
+  // absent/empty value means "keep no attachments" (an empty list — the admin re-selects).
+  let attachmentFileIds: string[] = [];
+  if (raw.attachment_file_ids !== undefined && raw.attachment_file_ids !== null) {
+    if (!isUuidArray(raw.attachment_file_ids)) return fail;
+    attachmentFileIds = [...(raw.attachment_file_ids as string[])];
+  }
+  return {
+    ok: true,
+    data: {
+      quote_version_id: raw.quote_version_id as string,
+      attachment_file_ids: attachmentFileIds,
+    },
+  };
+}
+
+/** The standalone lifecycle transition the 6.5 command owns (accepted is Epic 7). */
+export type QuoteLifecycleTransition = "rejected" | "expired" | "superseded";
+
+/**
+ * Validated `markQuoteVersionLifecycle` input — the target version id + a transition in the
+ * closed set. tenant_id / status are NEVER read (resolved server-side; the injected clock stamps
+ * `occurred_at`). A transition outside the closed set (or a malformed id) → VALIDATION_FAILED.
+ */
+export interface MarkQuoteVersionLifecycleInput {
+  readonly quote_version_id: string;
+  readonly transition: QuoteLifecycleTransition;
+}
+
+export function validateMarkQuoteVersionLifecycle(
+  raw: unknown,
+): ValidationResult<MarkQuoteVersionLifecycleInput> {
+  if (!isRecord(raw)) return fail;
+  if (!isUuidLike(raw.quote_version_id)) return fail;
+  if (typeof raw.transition !== "string" || !LIFECYCLE_TRANSITIONS.has(raw.transition)) {
+    return fail;
+  }
+  return {
+    ok: true,
+    data: {
+      quote_version_id: raw.quote_version_id as string,
+      transition: raw.transition as QuoteLifecycleTransition,
+    },
+  };
+}

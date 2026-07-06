@@ -1,0 +1,354 @@
+/**
+ * SHARED quote-version snapshot-build helper (Story 6.5, Task 1.3 / Dev Notes decision).
+ *
+ * EXTRACTED from the Story 6.1 `createQuoteVersionFromCalculation` execute body so the 6.1
+ * create-from-calc command AND the 6.5 `createNewQuoteVersion` command cannot DRIFT — a fork of
+ * the "read source rows → engine-totals → VAT posture → classify readiness → build the frozen
+ * snapshot" sequence is the exact failure ADR-A009 warns against. Both commands RE-CAPTURE the
+ * FRESH composite snapshot from the CURRENT authoritative calc/settings/terms rows via this ONE
+ * pure-ish helper (it reads under the caller's RLS client and builds the frozen snapshot; it owns
+ * NO transaction and writes NOTHING — the narrow RPC owns the write).
+ *
+ * ── RE-CAPTURE FRESH (Story 6.5 Dev Notes — the load-bearing design decision) ──────────────────
+ * "Customer-visible content must change" means the admin has EDITED the source (calc lines/price/
+ * VAT, settings, terms) and then spawns a version that captures the NEW state — so the new
+ * version's snapshot is RE-CAPTURED FRESH from the current authoritative rows (source (a)), never a
+ * verbatim clone of a prior frozen snapshot (source (b), which is only for a pure lifecycle-
+ * supersede with no content change). This is why v2 DIFFERS from v1 (6.5-INT-01) while v1 stays
+ * byte-unchanged (6.5-INT-02). The 6.1 create path uses the SAME re-capture; 6.5 reuses it verbatim.
+ *
+ * The snapshot is built by the PURE `buildQuoteVersionSnapshot` — copy-by-value + deep
+ * Object.freeze + INJECTED capturedAt (the single command clock, never Date.now()); it CAPTURES
+ * state and computes nothing (totals are engine-produced via `totals.ts` / `@/lib/money`, never
+ * re-derived here — R-505). NO cost/margin/internal-note field (R-607); NO personnummer (the calc
+ * read + customer context take display/posture only).
+ *
+ * [Source: src/server/commands/quotes/quotes.ts:112-286 (the 6.1 execute body EXTRACTED here);
+ *  src/lib/quote-snapshot/build.ts (the pure builder); architecture.md#11 (freeze; a version
+ *  captures current state) + #5 (injected capturedAt) + ADR-A009 (no fork); test-design-epic-6.md
+ *  #6.5-INT-01, R-603/R-607/R-609]
+ */
+import { CommandError } from "../command-errors";
+import {
+  computeSectionTotal,
+  type TotalsRowInput,
+} from "@/features/calculations/totals";
+import { classifyReadiness } from "@/features/calculations/readiness";
+import { resolveVatDisplayPosture } from "@/features/calculations/vat-posture";
+import {
+  buildQuoteVersionSnapshot,
+  type QuoteAttachmentSource,
+  type QuoteLineSource,
+  type QuoteVersionSnapshot,
+} from "@/lib/quote-snapshot";
+import type { CommandDbClient } from "../envelope";
+import {
+  loadCalcHeader,
+  loadCalcRows,
+  loadCalcSections,
+  loadCompanyIdentity,
+  loadCustomerDisplay,
+  loadNameById,
+  loadOwnedAttachmentFile,
+  loadQuoteTerms,
+  type CalcRowRow,
+} from "./quote-db";
+
+/** The totals-engine row shape from a customer-visible calc row. */
+function totalsRowOf(row: CalcRowRow): TotalsRowInput {
+  return {
+    quantity: row.quantity,
+    unit_sell_ore: row.unit_sell_ore,
+    vat_rate_bp: row.vat_rate_bp,
+    is_hidden: row.is_hidden,
+    is_optional: row.is_optional,
+    is_selected: row.is_selected,
+  };
+}
+
+/** The frozen line-snapshot SOURCE from a customer-visible calc row (NO cost/internal). */
+function lineSourceOf(row: CalcRowRow, lineNetOre: number | null): QuoteLineSource {
+  return {
+    rowType: row.row_type,
+    sortOrder: row.sort_order,
+    label: row.label,
+    description: row.description,
+    // The customer-visible note ONLY — the calc row's internal_note is NEVER read (R-607).
+    quoteNote: row.quote_note,
+    quantity: row.quantity,
+    unit: row.unit,
+    unitSellOre: row.unit_sell_ore,
+    lineNetOre,
+    vatRateBp: row.vat_rate_bp,
+    isHidden: row.is_hidden,
+    isOptional: row.is_optional,
+    isSelected: row.is_selected,
+  };
+}
+
+/** The header + selected-attachment ids the caller resolved (from the calc or the parent version). */
+export interface QuoteSnapshotBuildParams {
+  readonly calculationId: string;
+  /** The optional re-selected attachment file ids — each re-validated own-tenant here (R-802). */
+  readonly attachmentFileIds: readonly string[];
+  /** The build instant — the SINGLE injected command clock (ISO string), never Date.now(). */
+  readonly capturedAt: string;
+}
+
+/** The resolved snapshot + the header ids the RPC needs (customer/facility/contact). */
+export interface QuoteSnapshotBuildResult {
+  readonly snapshot: QuoteVersionSnapshot;
+  readonly customerId: string;
+  readonly facilityId: string | null;
+  readonly contactId: string | null;
+}
+
+/**
+ * RE-CAPTURE the FRESH composite snapshot from the CURRENT source calc + settings + terms rows
+ * under the caller's RLS client, EXACTLY as the 6.1 create path does. Throws a typed `CommandError`
+ * on a null source (race → TENANT_ACCESS_DENIED), a foreign attachment (TENANT_ACCESS_DENIED), or
+ * an uncomputable total (VALIDATION_FAILED). Returns the frozen snapshot + the header ids.
+ */
+export async function buildFreshQuoteSnapshot(
+  db: CommandDbClient,
+  params: QuoteSnapshotBuildParams,
+): Promise<QuoteSnapshotBuildResult> {
+  // ── Read the calc header (ownership already proved it visible; null = race). ──
+  const header = await loadCalcHeader(db, params.calculationId);
+  if (header === null) throw new CommandError("TENANT_ACCESS_DENIED");
+
+  // ── Read the source sections + rows + identity + terms + customer context under RLS. ──
+  const sections = await loadCalcSections(db, params.calculationId);
+  const sectionIds = sections.map((s) => s.id);
+  const rows = await loadCalcRows(db, sectionIds);
+  const identity = await loadCompanyIdentity(db);
+  const terms = await loadQuoteTerms(db);
+  const customer = await loadCustomerDisplay(db, header.customer_id);
+  const facilityName = header.facility_id
+    ? await loadNameById(db, "facilities", header.facility_id)
+    : null;
+  const contactName = header.contact_id
+    ? await loadNameById(db, "contacts", header.contact_id)
+    : null;
+
+  // ── Re-validate EACH selected attachment file is own-tenant-visible (R-802). ──
+  const attachments: QuoteAttachmentSource[] = [];
+  let attachmentOrder = 0;
+  for (const fileId of params.attachmentFileIds) {
+    const file = await loadOwnedAttachmentFile(db, fileId);
+    // A foreign / non-existent file id is invisible under RLS → TENANT_ACCESS_DENIED
+    // (before any write; the composite same-tenant FK also backstops it at the DB).
+    if (file === null) throw new CommandError("TENANT_ACCESS_DENIED");
+    attachments.push({
+      fileId: file.id,
+      displayName: file.display_name,
+      sortOrder: attachmentOrder,
+    });
+    attachmentOrder += 1;
+  }
+
+  // ── Compute the totals via the frozen engine (CAPTURE — never re-derive; R-505). ──
+  const totalsRows = rows.map(totalsRowOf);
+  const total = computeSectionTotal(totalsRows);
+  if (!total.ok) throw new CommandError("VALIDATION_FAILED");
+
+  const baseRows = totalsRows.filter((r) => !r.is_optional);
+  const optionRows = totalsRows.filter(
+    (r) => r.is_optional && r.is_selected === true,
+  );
+  const baseTotal = computeSectionTotal(baseRows);
+  const optionTotal = computeSectionTotal(optionRows);
+  if (!baseTotal.ok || !optionTotal.ok) {
+    throw new CommandError("VALIDATION_FAILED");
+  }
+
+  // Per-row line nets (for the frozen line snapshots) — CAPTURED from the engine.
+  const lineNetByRowId = new Map<string, number | null>();
+  for (const row of rows) {
+    const line = computeSectionTotal([totalsRowOf(row)]);
+    lineNetByRowId.set(row.id, line.ok ? line.value.netOre : null);
+  }
+
+  // ── Resolve the VAT display posture (presentation-only) + warnings (readiness). ──
+  const vatPosture = resolveVatDisplayPosture(
+    customer?.customer_type ?? null,
+    (identity?.default_vat_display ?? null) as
+      | "company_togglable"
+      | "company_excl"
+      | null,
+  );
+  const readiness = classifyReadiness({
+    customer: {
+      customer_id: header.customer_id,
+      customer_display_name: customer?.display_name ?? null,
+      customer_type: customer?.customer_type ?? null,
+      facility_name: facilityName,
+      contact_name: contactName,
+    },
+    sections: sections.map((s) => ({
+      rows: rows
+        .filter((r) => r.section_id === s.id)
+        .map((r) => ({
+          quantity: r.quantity,
+          unit_sell_ore: r.unit_sell_ore,
+          vat_rate_bp: r.vat_rate_bp,
+          is_hidden: r.is_hidden,
+          is_optional: r.is_optional,
+          is_selected: r.is_selected,
+          row_type: r.row_type as
+            | "labor"
+            | "material"
+            | "subcontractor"
+            | "machinery"
+            | "other",
+          unit_cost_ore: null,
+          source_kind: null,
+        })),
+    })),
+    vatPostureResolved: identity !== null,
+    tax: { hasDeductionAssumption: false },
+  });
+  const warnings = [...readiness.blockers, ...readiness.warnings].map((w) => ({
+    code: w.code,
+    severity: w.severity,
+    message: w.message,
+  }));
+
+  // ── Build the FROZEN composite snapshot (pure; injected capturedAt; captures state). ──
+  const snapshot: QuoteVersionSnapshot = buildQuoteVersionSnapshot(
+    {
+      calculationId: params.calculationId,
+      company: {
+        company_name: identity?.company_name ?? null,
+        org_nr: identity?.org_nr ?? null,
+        address_line1: identity?.address_line1 ?? null,
+        address_line2: identity?.address_line2 ?? null,
+        postal_code: identity?.postal_code ?? null,
+        city: identity?.city ?? null,
+        email: identity?.email ?? null,
+        phone: identity?.phone ?? null,
+        logo_url: identity?.logo_url ?? null,
+      },
+      customer: {
+        customer_display_name: customer?.display_name ?? null,
+        customer_type: customer?.customer_type ?? null,
+        facility_name: facilityName,
+        contact_name: contactName,
+      },
+      terms: terms
+        ? {
+            terms_text: terms.terms_text,
+            approved_at: terms.approved_at,
+            approved_by: terms.approved_by,
+          }
+        : null,
+      totals: {
+        baseTotalOre: baseTotal.value.netOre,
+        optionTotalOre: optionTotal.value.netOre,
+        vatTotalOre: total.value.vatOre,
+        deductionTotalOre: 0,
+        acceptedPriceOre: total.value.grossOre,
+      },
+      assumptions: {
+        vatRateBp: identity?.vat_rate_bp ?? null,
+        vatDisplay: vatPosture,
+        deductionType: null,
+        deductionRateBp: null,
+        deductionCapOre: null,
+        deductionPersons: null,
+        // The standing UNAPPROVED-estimate marker (demo-data-only accept) — the new version
+        // carries the SAME inert deduction/VAT + requires_sign_off framing as 6.1.
+        requiresSignOff: true,
+      },
+      header: {
+        // The DISPLAY format is an open owner question (§24) — captured as null here.
+        quoteNumberDisplay: null,
+        validUntil: null,
+        introText: null,
+        customerNotes: null,
+        displayMode: sections[0]?.display_mode ?? null,
+      },
+      lines: rows.map((r) => lineSourceOf(r, lineNetByRowId.get(r.id) ?? null)),
+      attachments,
+      warnings,
+    },
+    { capturedAt: params.capturedAt },
+  );
+
+  return {
+    snapshot,
+    customerId: header.customer_id,
+    facilityId: header.facility_id,
+    contactId: header.contact_id,
+  };
+}
+
+/** The flat snapshot payload the RPC reads by key (the frozen fields, camelCase). */
+export function snapshotToPayload(
+  s: QuoteVersionSnapshot,
+): Record<string, unknown> {
+  return {
+    companyName: s.companyName,
+    companyOrgNr: s.companyOrgNr,
+    companyAddressLine1: s.companyAddressLine1,
+    companyAddressLine2: s.companyAddressLine2,
+    companyPostalCode: s.companyPostalCode,
+    companyCity: s.companyCity,
+    companyEmail: s.companyEmail,
+    companyPhone: s.companyPhone,
+    companyLogoUrl: s.companyLogoUrl,
+    customerDisplayName: s.customerDisplayName,
+    customerType: s.customerType,
+    facilityName: s.facilityName,
+    contactName: s.contactName,
+    quoteNumberDisplay: s.quoteNumberDisplay,
+    validUntil: s.validUntil,
+    introText: s.introText,
+    customerNotes: s.customerNotes,
+    termsText: s.termsText,
+    termsApprovedAt: s.termsApprovedAt,
+    termsApprovedBy: s.termsApprovedBy,
+    baseTotalOre: s.baseTotalOre,
+    optionTotalOre: s.optionTotalOre,
+    vatTotalOre: s.vatTotalOre,
+    deductionTotalOre: s.deductionTotalOre,
+    acceptedPriceOre: s.acceptedPriceOre,
+    vatRateBp: s.vatRateBp,
+    vatDisplay: s.vatDisplay,
+    deductionType: s.deductionType,
+    deductionRateBp: s.deductionRateBp,
+    deductionCapOre: s.deductionCapOre,
+    deductionPersons: s.deductionPersons,
+    requiresSignOff: s.requiresSignOff,
+    displayMode: s.displayMode,
+    warnings: s.warnings,
+  };
+}
+
+/** The line payload array the RPC reads (camelCase; NO cost/internal fields — R-607). */
+export function linesToPayload(s: QuoteVersionSnapshot): unknown[] {
+  return s.lines.map((l) => ({
+    rowType: l.rowType,
+    sortOrder: l.sortOrder,
+    label: l.label,
+    description: l.description,
+    quoteNote: l.quoteNote,
+    quantity: l.quantity,
+    unit: l.unit,
+    unitSellOre: l.unitSellOre,
+    lineNetOre: l.lineNetOre,
+    vatRateBp: l.vatRateBp,
+    isHidden: l.isHidden,
+    isOptional: l.isOptional,
+    isSelected: l.isSelected,
+  }));
+}
+
+/** The attachment payload array the RPC reads (camelCase). */
+export function attachmentsToPayload(s: QuoteVersionSnapshot): unknown[] {
+  return s.attachments.map((a) => ({
+    fileId: a.fileId,
+    displayName: a.displayName,
+    sortOrder: a.sortOrder,
+  }));
+}

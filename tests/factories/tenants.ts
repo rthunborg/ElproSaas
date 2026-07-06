@@ -1323,6 +1323,43 @@ export async function adminSelectQuoteVersionRow(
   return rows[0] ?? null;
 }
 
+/**
+ * Flip a quote_versions row's `status` via the privileged superuser pg path (BYPASSRLS). The 6.5
+ * fixtures seed a SENT version as draft → children → THEN flip to sent (the 6.4 child-lock blocks
+ * child INSERTs into an already-sent parent). BYPASSRLS bypasses the sent-lock trigger's app-path
+ * enforcement for seeding, so a draft→sent flip after the children exist is safe. Additive (B1).
+ */
+export async function adminUpdateQuoteVersionStatus(
+  id: string,
+  status: string,
+): Promise<void> {
+  await adminQuery(`update public.quote_versions set status = $2 where id = $1`, [
+    id,
+    status,
+  ]);
+}
+
+/** Read all quote_versions rows for a quote back (BYPASSRLS, ordered by version_number). */
+export async function adminSelectQuoteVersionsForQuote(
+  quoteId: string,
+): Promise<Record<string, unknown>[]> {
+  return adminQuery<Record<string, unknown>>(
+    `select * from public.quote_versions where quote_id = $1 order by version_number asc`,
+    [quoteId],
+  );
+}
+
+/** Read a quote_versions row's attachment rows back (BYPASSRLS, ordered) for freeze proofs. */
+export async function adminSelectQuoteVersionAttachments(
+  quoteVersionId: string,
+): Promise<Record<string, unknown>[]> {
+  return adminQuery<Record<string, unknown>>(
+    `select * from public.quote_version_attachments
+       where quote_version_id = $1 order by sort_order asc`,
+    [quoteVersionId],
+  );
+}
+
 /** Read a quote_versions' line rows back (BYPASSRLS, ordered) for freeze proofs. */
 export async function adminSelectQuoteVersionLines(
   quoteVersionId: string,

@@ -38,6 +38,7 @@ import { StatusBadge } from "./StatusBadge";
 import { quoteStatusLabel } from "./status";
 import { DraftQuoteEditor } from "./DraftQuoteEditor";
 import { MarkSentButton } from "./MarkSentButton";
+import { CreateNewVersionButton } from "./CreateNewVersionButton";
 import { QuotePdfPanel } from "./QuotePdfPanel";
 
 /** The Swedish label for the (frozen) VAT display posture, for the assumptions block. */
@@ -433,17 +434,15 @@ export function QuoteDetailView({ detail }: { readonly detail: QuoteDetail }) {
                 redigeras — kundens innehåll är låst. Skapa en ny version för att göra
                 ändringar.
               </p>
-              <div>
-                <button
-                  type="button"
-                  disabled
-                  data-testid="create-new-version"
-                  title="Ny version skapas i ett senare steg (Story 6.5)."
-                  className="rounded-md border border-zinc-300 bg-zinc-50 px-4 py-2 text-sm font-medium text-zinc-500"
-                >
-                  Skapa ny version
-                </button>
-              </div>
+              {/* The ACTIVATED "Skapa ny version" affordance (Story 6.5, Task 4.1). Wires to the
+                  createNewQuoteVersion command — a change spawns a NEW immutable draft version on
+                  the SAME quote while every prior version is PRESERVED. The button is a convenience;
+                  the SERVER command + the DB triggers are the enforcement (a UI-only versioning
+                  rule is a STOP condition — architecture §9). */}
+              <CreateNewVersionButton
+                quoteId={header.id}
+                quoteVersionId={selected.id}
+              />
             </div>
           )}
 

@@ -21,6 +21,14 @@ export {
   type MarkQuoteVersionSentResult,
 } from "./mark-sent";
 export {
+  createNewQuoteVersion,
+  type CreateNewQuoteVersionResult,
+} from "./new-version";
+export {
+  markQuoteVersionLifecycle,
+  type MarkQuoteVersionLifecycleResult,
+} from "./lifecycle";
+export {
   validateCreateQuoteVersionFromCalculation,
   type CreateQuoteVersionInput,
   validateUpdateDraftQuoteVersion,
@@ -29,4 +37,9 @@ export {
   type GenerateQuotePdfInput,
   validateMarkQuoteVersionSent,
   type MarkQuoteVersionSentInput,
+  validateCreateNewQuoteVersion,
+  type CreateNewQuoteVersionInput,
+  validateMarkQuoteVersionLifecycle,
+  type MarkQuoteVersionLifecycleInput,
+  type QuoteLifecycleTransition,
 } from "./validation";

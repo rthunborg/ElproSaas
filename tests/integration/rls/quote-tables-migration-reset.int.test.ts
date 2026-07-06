@@ -454,4 +454,31 @@ describe("Quote migration reset green — six new tenant-owned tables (AC1)", ()
     expect(grantees).toContain("service_role");
     expect(grantees).not.toContain("anon");
   });
+
+  it("[P0/AC1] Story 6.5 create_new_quote_version + mark_quote_version_lifecycle RPCs are SECURITY INVOKER, empty search_path, revoke-from-public (anon NO EXECUTE)", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
+    for (const fn of [
+      "create_new_quote_version",
+      "mark_quote_version_lifecycle",
+    ] as const) {
+      const rows = await adminQuery<{
+        prosecdef: boolean;
+        proconfig: string[] | null;
+      }>(`select prosecdef, proconfig from pg_proc where proname = '${fn}'`);
+      expect(rows).toHaveLength(1);
+      // SECURITY INVOKER (ADR-A009 default) — under the caller's RLS, NOT definer.
+      expect(rows[0]?.prosecdef).toBe(false);
+      // Fixed EXACTLY-EMPTY search_path (the 6.1/6.4 RPC hardening shape).
+      assertSearchPathExactlyEmpty(fn, rows[0]?.proconfig ?? null);
+      // anon has NO EXECUTE (revoke-from-public + grant-to-authenticated/service_role only).
+      const grants = await adminQuery<{ grantee: string }>(
+        `select grantee from information_schema.role_routine_grants
+           where routine_name = '${fn}'`,
+      );
+      const grantees = grants.map((g) => g.grantee);
+      expect(grantees).toContain("authenticated");
+      expect(grantees).toContain("service_role");
+      expect(grantees).not.toContain("anon");
+    }
+  });
 });
