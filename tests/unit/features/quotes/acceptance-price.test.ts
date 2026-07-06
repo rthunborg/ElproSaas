@@ -29,7 +29,11 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { ORE_AMOUNT_MAX, isOreAmount } from "@/lib/money/ore";
-import { computeAcceptanceDelta } from "@/features/quotes/acceptance-price";
+import {
+  computeAcceptanceDelta,
+  evaluateAcceptancePriceGate,
+  reasonRequiredForDelta,
+} from "@/features/quotes/acceptance-price";
 
 // ── 7.1-UNIT-01 (P0) — the delta + reason-required decision ───────────────────────────────────
 
@@ -114,5 +118,87 @@ test(
     assert.equal(atMax.ok, true);
     const overMax = computeAcceptanceDelta(ORE_AMOUNT_MAX + 1, 0);
     assert.equal(overMax.ok, false);
+  },
+);
+
+// ── 7.1-UNIT-01 (P0) — `reasonRequiredForDelta` (the thin predicate over an already-held delta) ──
+
+test(
+  "7.1-UNIT-01: reasonRequiredForDelta is true iff the signed öre delta is non-zero",
+  () => {
+    assert.equal(reasonRequiredForDelta(0), false);
+    assert.equal(reasonRequiredForDelta(5_000), true); // over
+    assert.equal(reasonRequiredForDelta(-5_000), true); // under
+    // Consistent with computeAcceptanceDelta's own reasonRequired for the same delta.
+    const d = computeAcceptanceDelta(130_000, 125_000);
+    assert.equal(d.ok, true);
+    if (d.ok) assert.equal(reasonRequiredForDelta(d.deltaOre), d.reasonRequired);
+  },
+);
+
+// ── 7.1-UNIT-01 (P0) — `evaluateAcceptancePriceGate` (the decision the command RE-VALIDATES) ────
+// This is the actual server-side gate `captureQuoteAcceptance` consumes: it folds the delta
+// computation, the REASON_REQUIRED rule, and the `hasReason` (reason OR evidence) presence into a
+// single OK/typed-failure. The command MIRRORS these three outcomes (7.1-INT-03); the UI mirrors
+// the command. Pinning it at the fast gate protects the exact bypass-resistant contract.
+
+test(
+  "7.1-UNIT-01: an EQUAL accepted price passes the gate with NO reason (delta 0, reason not required)",
+  () => {
+    const r = evaluateAcceptancePriceGate({
+      acceptedPriceOre: 125_000,
+      sourceSentTotalOre: 125_000,
+      hasReason: false,
+    });
+    assert.equal(r.ok, true);
+    if (r.ok) assert.equal(r.deltaOre, 0);
+  },
+);
+
+test(
+  "7.1-UNIT-01: a NON-ZERO delta WITHOUT a reason is REASON_REQUIRED (the client cannot bypass)",
+  () => {
+    for (const price of [130_000, 120_000]) {
+      const r = evaluateAcceptancePriceGate({
+        acceptedPriceOre: price,
+        sourceSentTotalOre: 125_000,
+        hasReason: false,
+      });
+      assert.equal(r.ok, false, `delta for ${price} must gate`);
+      if (!r.ok) assert.equal(r.code, "REASON_REQUIRED");
+    }
+  },
+);
+
+test(
+  "7.1-UNIT-01: a NON-ZERO delta WITH a reason (or evidence, folded into hasReason) passes, carrying the signed delta",
+  () => {
+    const over = evaluateAcceptancePriceGate({
+      acceptedPriceOre: 130_000,
+      sourceSentTotalOre: 125_000,
+      hasReason: true,
+    });
+    assert.equal(over.ok, true);
+    if (over.ok) assert.equal(over.deltaOre, 5_000);
+    const under = evaluateAcceptancePriceGate({
+      acceptedPriceOre: 120_000,
+      sourceSentTotalOre: 125_000,
+      hasReason: true,
+    });
+    assert.equal(under.ok, true);
+    if (under.ok) assert.equal(under.deltaOre, -5_000);
+  },
+);
+
+test(
+  "7.1-UNIT-01: an INVALID öre input surfaces the delta failure code, NOT REASON_REQUIRED (validity gates before the reason rule)",
+  () => {
+    const r = evaluateAcceptancePriceGate({
+      acceptedPriceOre: 125_000.5, // float öre
+      sourceSentTotalOre: 125_000,
+      hasReason: false, // even with no reason, the öre-validity failure wins
+    });
+    assert.equal(r.ok, false);
+    if (!r.ok) assert.equal(r.code, "INVALID_ORE_AMOUNT");
   },
 );
