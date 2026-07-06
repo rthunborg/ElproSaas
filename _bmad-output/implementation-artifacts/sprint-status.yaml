@@ -104,7 +104,7 @@ development_status:
   # The rest of Epic 8 (8.2-8.5) stays in the epic-8 block below.
   8-1-file-storage-foundation-private-bucket-metadata-links-rls-and-signed-access-command: done
 
-  epic-6: in-progress
+  epic-6: done
   6-1-quote-snapshot-schema-and-server-side-version-creation: done
   6-2-draft-quote-version-review-and-timeline-ux: done
   6-3-quote-pdf-generation-from-snapshot: done
