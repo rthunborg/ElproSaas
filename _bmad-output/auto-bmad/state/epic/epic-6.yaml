@@ -4,10 +4,10 @@ story_key: epic-6
 epic_num: 6
 story_num: null
 branch: epic/6-quote-versions-pdf-and-lifecycle
-status: in-progress
-updated_at: "2026-07-06T16:27:42Z"
+status: done
+updated_at: "2026-07-06T16:40:48Z"
 started_at: "2026-07-05T18:20:38Z"
-completed_at: null
+completed_at: "2026-07-06T16:40:48Z"
 active_seconds: 40073
 timing_anchor: null
 is_first_in_epic: false
@@ -39,9 +39,9 @@ phase8_steps:
 gate_decision: PASS
 gate_iterations: 0
 deferred_work_archived: 4
-pr_url: null
-ci_run_url: null
-ci_status: unknown
+pr_url: "https://github.com/rthunborg/ElproSaas/pull/26"
+ci_run_url: "https://github.com/rthunborg/ElproSaas/actions/runs/28807043108"
+ci_status: passed
 pr_merged: false
 merge_method: null
 merge_commit: null
@@ -140,3 +140,4 @@ uat_items:
   - "[6-5-new-quote-version-after-customer-visible-changes] NOTE: the standalone rejected/expired lifecycle command has NO UI affordance at this state (command/INT-only) — excluded from manual UAT; Epic 7 acceptance flow correctly absent"
 integration_review_done: true
 planning_drift: "none (one detail-level estimation note absorbed in-epic: 6.3 was materially heavier than the '6.3 just reuses 8.1' scope note)"
+batch_flip_done: true

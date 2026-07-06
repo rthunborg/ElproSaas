@@ -105,11 +105,11 @@ development_status:
   8-1-file-storage-foundation-private-bucket-metadata-links-rls-and-signed-access-command: done
 
   epic-6: in-progress
-  6-1-quote-snapshot-schema-and-server-side-version-creation: review
-  6-2-draft-quote-version-review-and-timeline-ux: review
-  6-3-quote-pdf-generation-from-snapshot: review
-  6-4-mark-quote-version-sent-and-enforce-immutability: review
-  6-5-new-quote-version-after-customer-visible-changes: review
+  6-1-quote-snapshot-schema-and-server-side-version-creation: done
+  6-2-draft-quote-version-review-and-timeline-ux: done
+  6-3-quote-pdf-generation-from-snapshot: done
+  6-4-mark-quote-version-sent-and-enforce-immutability: done
+  6-5-new-quote-version-after-customer-visible-changes: done
   epic-6-retrospective: done
 
   epic-7: backlog

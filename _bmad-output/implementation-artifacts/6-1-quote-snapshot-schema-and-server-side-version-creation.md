@@ -1,6 +1,6 @@
 # Story 6.1: Quote Snapshot Schema And Server-Side Version Creation
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
