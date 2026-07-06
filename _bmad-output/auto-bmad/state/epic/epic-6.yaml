@@ -5,10 +5,10 @@ epic_num: 6
 story_num: null
 branch: epic/6-quote-versions-pdf-and-lifecycle
 status: in-progress
-updated_at: "2026-07-06T15:19:09Z"
+updated_at: "2026-07-06T15:26:00Z"
 started_at: "2026-07-05T18:20:38Z"
 completed_at: null
-active_seconds: 36128
+active_seconds: 36537
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -62,6 +62,7 @@ auto_decisions:
   - "Allocated quote number is never threaded into the frozen composite snapshot value [Med] -> defer: raw integer quote_number is persisted on the row (the persisted truth); Â§24 display format already an open logged owner question; threading into the frozen JSON is a later 6.x follow-up (Tier A, 6-1-quote-snapshot-schema-and-server-side-version-creation)"
   - "Lifecycle-header customer name prefers the LIVE customers join over the frozen snapshot [Low] -> fix: keep the live-first fallback (header legitimately shows current customer identity per ux Â§6) but correct the misleading read.ts comment to state the header name is the live own-tenant display while money/VAT/totals stay snapshot-verbatim (Tier A, 6-2-draft-quote-version-review-and-timeline-ux)"
   - "Hidden rows rendered as normal PDF line items [Med] -> fix: exclude line.isHidden rows from the render loop in src/server/quote-pdf/render.ts (they still count toward the frozen totals, matching the HIDDEN_ROWS_INCLUDED warning intent); add the hidden row's label to the golden mustNotAppear for rot-with-tillval-hidden-and-attachments (Tier A, 6-3-quote-pdf-generation-from-snapshot)"
+  - "Concurrent 'Skapa ny version' clicks can leave two live drafts (only the first supersedes the sent v1) [Low] -> dismiss: AC-compliant (single superseded sent commitment, deterministic currentCommitmentVersion resolution, disable-on-submit already guards the double-click); revisit only if the owner's quote-correction policy dictates single-active-draft (Tier A, 6-5-new-quote-version-after-customer-visible-changes)"
 uat_items:
   - "[6-1-quote-snapshot-schema-and-server-side-version-creation] No manual UAT applicable at this state — backend schema + server-command foundation slice (six tenant-owned tables, snapshot builder, create RPC/command); no server action/API/UI surface yet (wiring lands in 6.2/6.3/6.4); DB mechanics covered by automated integration/RLS suites"
   - "[6-2-draft-quote-version-review-and-timeline-ux] Setup (once): sign in to the running app (demo Vercel deploy as rasmus.thunborg@enhancior.se, or pnpm dev + local Supabase as seeded adminA); need a quote with a SENT and a DRAFT version — if none, open a ready calculation and use 'Skapa offert → Skapa offertversion' (6.1) to mint one; local E2E fixture seeds SENT v1 + DRAFT v2 under 'Acme El AB'"
