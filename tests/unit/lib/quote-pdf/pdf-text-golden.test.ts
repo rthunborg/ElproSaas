@@ -23,12 +23,11 @@
  * RUNNER-GLOB TRAP: this golden lives under `tests/unit/**` (this path), NEVER
  * `tests/golden/**`. The FIXTURE lives under `tests/fixtures/golden/quote-pdf/**`.
  *
- * ── ATDD RED PHASE ──────────────────────────────────────────────────────────────────
- * The renderer (`src/server/**`), the pure view model (`src/lib/quote-pdf/**`), the pinned
- * text-extraction devDependency, and the fixture pack do NOT exist yet. These tests are
- * SKIPPED with a red-phase reason. When Task 3 (renderer) + Task 2 (view model) + Task 6.3
- * (fixtures) land: create `tests/fixtures/golden/quote-pdf/quote-pdf-source.json`, wire the
- * real render + text-extract imports, remove the `{ skip: ... }` option, and flip GREEN.
+ * ── GREEN (Story 6.3, Tasks 2/3/6.3) ────────────────────────────────────────────────
+ * The deterministic renderer (`src/server/quote-pdf/render.ts`), the pure view model
+ * (`src/lib/quote-pdf/**`), the pinned text-extraction devDependency (`pdfjs-dist`), and the
+ * origin-labelled fixture pack (`tests/fixtures/golden/quote-pdf/quote-pdf-source.json`) have
+ * landed; this golden drives them end-to-end.
  *
  * Runner: `node --test` (`pnpm run test:unit`) — pure, NO DB, NO clock (the render timestamp
  * is INJECTED, mirroring the snapshot builder's `capturedAt`).
@@ -41,36 +40,36 @@
  */
 import { test, describe } from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { dirname, resolve } from "node:path";
+import { buildQuotePdfViewModel } from "@/lib/quote-pdf/view-model";
+import { renderQuotePdf } from "@/server/quote-pdf/render";
+import { extractPdfText } from "../../../support/pdf-text";
 
-const RED_PHASE = {
-  skip: "ATDD red phase (6.3-GOLDEN-01): renderer + view model + fixture pack not implemented (story 6.3 Tasks 2/3/6.3)",
-} as const;
+// GREEN (Story 6.3, Tasks 2/3/6.3): the pure view model, the deterministic renderer, the pinned
+// text-extraction devDependency (`pdfjs-dist`), and the fixture pack have landed. Each fixture
+// case's `snapshot` is fed → buildQuotePdfViewModel → renderQuotePdf({ viewModel, renderedAt:
+// FIXED_ISO }) → extractPdfText(bytes) → assert the declared text blocks appear.
 
-// RED PHASE: when the renderer + fixture pack land, wire the real imports, e.g.:
-//
-//   import { readFileSync } from "node:fs";
-//   import { fileURLToPath } from "node:url";
-//   import { dirname, resolve } from "node:path";
-//   import { buildQuotePdfViewModel } from "@/lib/quote-pdf/view-model";
-//   import { renderQuotePdf } from "@/server/quote-pdf/render";        // server-only, bundle-contained
-//   import { extractPdfText } from "../../../support/pdf-text";         // wraps the pinned devDependency extractor
-//
-//   const HERE = dirname(fileURLToPath(import.meta.url));
-//   const FIXTURE = resolve(HERE, "../../../fixtures/golden/quote-pdf/quote-pdf-source.json");
-//
-// Each fixture case's `snapshot` is fed → buildQuotePdfViewModel → renderQuotePdf({ viewModel,
-// renderedAt: FIXED_ISO }) → extractPdfText(bytes) → assert the declared text blocks appear.
+const HERE = dirname(fileURLToPath(import.meta.url));
+const FIXTURE = resolve(
+  HERE,
+  "../../../fixtures/golden/quote-pdf/quote-pdf-source.json",
+);
+
+const GREEN = {} as const;
 
 const VALID_ORIGINS = ["old-lovable", "new-expected", "documented-delta"] as const;
 const FIXED_ISO = "2026-07-05T12:00:00.000Z"; // the INJECTED render instant (determinism, R-612)
 
 describe("Story 6.3 — quote PDF text-extraction GOLDEN (6.3-GOLDEN-01)", () => {
-  test("[P0] the pack is present and non-empty (never a vacuous green)", RED_PHASE, () => {
+  test("[P0] the pack is present and non-empty (never a vacuous green)", GREEN, () => {
     const pack = loadPack();
     assert.ok(pack.cases.length > 0, "quote-pdf-source.json must carry >=1 representative case");
   });
 
-  test("[P0] LABELLING: every case has a valid three-way origin + a non-empty note", RED_PHASE, () => {
+  test("[P0] LABELLING: every case has a valid three-way origin + a non-empty note", GREEN, () => {
     const pack = loadPack();
     for (const c of pack.cases) {
       assert.ok(VALID_ORIGINS.includes(c.origin), `case ${c.id}: invalid origin ${c.origin}`);
@@ -84,7 +83,7 @@ describe("Story 6.3 — quote PDF text-extraction GOLDEN (6.3-GOLDEN-01)", () =>
     }
   });
 
-  test("[P0] PRIVACY SCAN (6.x-UNIT-01, R-615): no personnummer/real-orgnr/non-test-email/secret; öre < 10 digits", RED_PHASE, () => {
+  test("[P0] PRIVACY SCAN (6.x-UNIT-01, R-615): no personnummer/real-orgnr/non-test-email/secret; öre < 10 digits", GREEN, () => {
     const raw = JSON.stringify(loadPack().cases);
     const scrubbed = raw
       .replace(/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/g, "")
@@ -101,12 +100,12 @@ describe("Story 6.3 — quote PDF text-extraction GOLDEN (6.3-GOLDEN-01)", () =>
     }
   });
 
-  test("[P0] TEXT GOLDEN: the extracted PDF text reproduces the snapshot totals/VAT/terms/attachments/warnings", RED_PHASE, () => {
+  test("[P0] TEXT GOLDEN: the extracted PDF text reproduces the snapshot totals/VAT/terms/attachments/warnings", GREEN, async () => {
     const pack = loadPack();
     for (const c of pack.cases) {
       const viewModel = buildQuotePdfViewModel(c.snapshot as never);
-      const bytes = renderQuotePdf({ viewModel, renderedAt: FIXED_ISO } as never);
-      const text = extractPdfText(bytes as never);
+      const bytes = await renderQuotePdf({ viewModel, renderedAt: FIXED_ISO });
+      const text = await extractPdfText(bytes);
 
       // TOTALS — the customer-visible kronor totals appear in the extracted text.
       for (const expected of c.expectText.totals) {
@@ -140,7 +139,7 @@ describe("Story 6.3 — quote PDF text-extraction GOLDEN (6.3-GOLDEN-01)", () =>
   });
 });
 
-// ── RED-PHASE placeholder bindings (DELETE when Tasks 2/3/6.3 land; import the real ones) ──
+// ── Fixture-pack loader + shape (GREEN — reads the real origin-labelled fixture pack). ──
 interface GoldenCase {
   readonly id: string;
   readonly origin: (typeof VALID_ORIGINS)[number];
@@ -160,7 +159,8 @@ interface GoldenPack {
   readonly renderedAt: string;
   readonly cases: readonly GoldenCase[];
 }
-declare function loadPack(): GoldenPack;
-declare function buildQuotePdfViewModel(snapshot: never): unknown;
-declare function renderQuotePdf(input: never): unknown;
-declare function extractPdfText(bytes: never): unknown;
+
+/** Load + parse the origin-labelled quote-PDF golden fixture pack. */
+function loadPack(): GoldenPack {
+  return JSON.parse(readFileSync(FIXTURE, "utf8")) as GoldenPack;
+}

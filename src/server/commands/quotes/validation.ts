@@ -143,3 +143,28 @@ export function validateUpdateDraftQuoteVersion(
   if ("display_mode" in raw) data.display_mode = (raw.display_mode as string | null) ?? null;
   return { ok: true, data };
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Story 6.3 — the generate-quote-PDF input validator.
+//
+// The caller supplies ONLY the target `quote_version_id` (UUID-shaped). tenant_id is NEVER
+// read (the resolved tenant from membership is the only authority). The full snapshot content
+// is READ server-side from the FROZEN version rows in the command execute — never trusted from
+// the client (a PDF built from client-supplied data would defeat the copy-by-value freeze).
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Validated `generateQuotePdf` input — just the target version id. A foreign/non-existent id is
+ * caught by the envelope ownership gate (TENANT_ACCESS_DENIED before execute), not here.
+ */
+export interface GenerateQuotePdfInput {
+  readonly quote_version_id: string;
+}
+
+export function validateGenerateQuotePdf(
+  raw: unknown,
+): ValidationResult<GenerateQuotePdfInput> {
+  if (!isRecord(raw)) return fail;
+  if (!isUuidLike(raw.quote_version_id)) return fail;
+  return { ok: true, data: { quote_version_id: raw.quote_version_id as string } };
+}

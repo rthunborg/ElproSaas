@@ -108,6 +108,10 @@ type ReadClient = {
         value: string,
       ): {
         limit(n: number): Promise<{ data: unknown[] | null; error: unknown }>;
+        order(
+          column: string,
+          opts: { ascending: boolean },
+        ): Promise<{ data: unknown[] | null; error: unknown }>;
         is(
           column: string,
           value: null,
@@ -377,4 +381,346 @@ export function throwMappedQuoteWriteError(error: {
     default:
       throw new Error(`quote write failed: ${error.code ?? "?"}`);
   }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Story 6.3 — the frozen quote-version snapshot READ + the PDF-render write surface.
+//
+// The generateQuotePdf command reads ONLY the frozen snapshot rows (the quote_versions row
+// + its quote_version_lines + quote_version_attachments), NEVER any mutable source — the
+// canonical Epic-6 source-of-truth rule (R-606). It then uploads the rendered object on the
+// RLS-client storage surface, persists the files/file_links metadata (find-or-create the PDF
+// link — R-814), writes a quote_events row, and updates the PDF-render columns. All on the
+// caller's request-bound RLS client (anon key — NEVER service-role).
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** The frozen quote_versions snapshot row the PDF reads (customer-visible fields only). */
+export interface QuoteVersionSnapshotRow {
+  readonly id: string;
+  readonly quote_id: string;
+  readonly status: string;
+  readonly calculation_id: string;
+  readonly captured_at: string | null;
+  readonly company_name: string | null;
+  readonly company_org_nr: string | null;
+  readonly company_address_line1: string | null;
+  readonly company_address_line2: string | null;
+  readonly company_postal_code: string | null;
+  readonly company_city: string | null;
+  readonly company_email: string | null;
+  readonly company_phone: string | null;
+  readonly company_logo_url: string | null;
+  readonly customer_display_name: string | null;
+  readonly customer_type: string | null;
+  readonly facility_name: string | null;
+  readonly contact_name: string | null;
+  readonly quote_number: number | null;
+  readonly quote_number_display: string | null;
+  readonly valid_until: string | null;
+  readonly intro_text: string | null;
+  readonly customer_notes: string | null;
+  readonly terms_text: string | null;
+  readonly terms_approved_at: string | null;
+  readonly terms_approved_by: string | null;
+  readonly base_total_ore: number;
+  readonly option_total_ore: number;
+  readonly vat_total_ore: number;
+  readonly deduction_total_ore: number;
+  readonly accepted_price_ore: number;
+  readonly vat_rate_bp: number | null;
+  readonly vat_display: string | null;
+  readonly deduction_type: string | null;
+  readonly deduction_rate_bp: number | null;
+  readonly deduction_cap_ore: number | null;
+  readonly deduction_persons: number | null;
+  readonly requires_sign_off: boolean;
+  readonly display_mode: string | null;
+  readonly warnings_snapshot: readonly {
+    readonly code: string;
+    readonly severity: string;
+    readonly message: string;
+  }[];
+}
+
+/** A frozen quote_version_lines snapshot row (NO cost/margin/internal — R-607). */
+export interface QuoteVersionLineSnapshotRow {
+  readonly row_type: string;
+  readonly sort_order: number;
+  readonly label: string | null;
+  readonly description: string | null;
+  readonly quote_note: string | null;
+  readonly quantity: number | null;
+  readonly unit: string | null;
+  readonly unit_sell_ore: number | null;
+  readonly line_net_ore: number | null;
+  readonly vat_rate_bp: number | null;
+  readonly is_hidden: boolean;
+  readonly is_optional: boolean;
+  readonly is_selected: boolean | null;
+}
+
+/** A frozen quote_version_attachments snapshot row (display name by value). */
+export interface QuoteVersionAttachmentSnapshotRow {
+  readonly file_id: string;
+  readonly display_name: string | null;
+  readonly sort_order: number;
+}
+
+const VERSION_SNAPSHOT_COLUMNS =
+  "id, quote_id, status, calculation_id, captured_at, company_name, company_org_nr, company_address_line1, company_address_line2, company_postal_code, company_city, company_email, company_phone, company_logo_url, customer_display_name, customer_type, facility_name, contact_name, quote_number, quote_number_display, valid_until, intro_text, customer_notes, terms_text, terms_approved_at, terms_approved_by, base_total_ore, option_total_ore, vat_total_ore, deduction_total_ore, accepted_price_ore, vat_rate_bp, vat_display, deduction_type, deduction_rate_bp, deduction_cap_ore, deduction_persons, requires_sign_off, display_mode, warnings_snapshot";
+
+const LINE_SNAPSHOT_COLUMNS =
+  "row_type, sort_order, label, description, quote_note, quantity, unit, unit_sell_ore, line_net_ore, vat_rate_bp, is_hidden, is_optional, is_selected";
+
+const ATTACHMENT_SNAPSHOT_COLUMNS = "file_id, display_name, sort_order";
+
+/** Coerce a `bigint` öre (may return as a STRING) into a JS number, or null. */
+function oreOf(v: unknown): number | null {
+  if (v === null || v === undefined) return null;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+}
+
+/** Coerce a plain numeric field (may arrive as a string) into a number, or null. */
+function numOf(v: unknown): number | null {
+  if (v === null || v === undefined) return null;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+}
+
+/** Load the FROZEN quote_versions snapshot row under the caller's RLS (null = not visible/race). */
+export async function loadQuoteVersionSnapshot(
+  db: CommandDbClient,
+  quoteVersionId: string,
+): Promise<QuoteVersionSnapshotRow | null> {
+  const { data, error } = await asReadClient(db)
+    .from("quote_versions")
+    .select(VERSION_SNAPSHOT_COLUMNS)
+    .eq("id", quoteVersionId)
+    .limit(1);
+  throwOnReadError("loadQuoteVersionSnapshot", error);
+  const raw = (data?.[0] ?? null) as Record<string, unknown> | null;
+  if (raw === null) return null;
+  const warnings = Array.isArray(raw.warnings_snapshot)
+    ? (raw.warnings_snapshot as unknown[]).map((w) => {
+        const rec = (w ?? {}) as Record<string, unknown>;
+        return {
+          code: String(rec.code ?? ""),
+          severity: String(rec.severity ?? ""),
+          message: String(rec.message ?? ""),
+        };
+      })
+    : [];
+  return {
+    id: String(raw.id),
+    quote_id: String(raw.quote_id),
+    status: String(raw.status),
+    calculation_id: String(raw.calculation_id),
+    captured_at: (raw.captured_at as string | null) ?? null,
+    company_name: (raw.company_name as string | null) ?? null,
+    company_org_nr: (raw.company_org_nr as string | null) ?? null,
+    company_address_line1: (raw.company_address_line1 as string | null) ?? null,
+    company_address_line2: (raw.company_address_line2 as string | null) ?? null,
+    company_postal_code: (raw.company_postal_code as string | null) ?? null,
+    company_city: (raw.company_city as string | null) ?? null,
+    company_email: (raw.company_email as string | null) ?? null,
+    company_phone: (raw.company_phone as string | null) ?? null,
+    company_logo_url: (raw.company_logo_url as string | null) ?? null,
+    customer_display_name: (raw.customer_display_name as string | null) ?? null,
+    customer_type: (raw.customer_type as string | null) ?? null,
+    facility_name: (raw.facility_name as string | null) ?? null,
+    contact_name: (raw.contact_name as string | null) ?? null,
+    quote_number: numOf(raw.quote_number),
+    quote_number_display: (raw.quote_number_display as string | null) ?? null,
+    valid_until: (raw.valid_until as string | null) ?? null,
+    intro_text: (raw.intro_text as string | null) ?? null,
+    customer_notes: (raw.customer_notes as string | null) ?? null,
+    terms_text: (raw.terms_text as string | null) ?? null,
+    terms_approved_at: (raw.terms_approved_at as string | null) ?? null,
+    terms_approved_by: (raw.terms_approved_by as string | null) ?? null,
+    base_total_ore: oreOf(raw.base_total_ore) ?? 0,
+    option_total_ore: oreOf(raw.option_total_ore) ?? 0,
+    vat_total_ore: oreOf(raw.vat_total_ore) ?? 0,
+    deduction_total_ore: oreOf(raw.deduction_total_ore) ?? 0,
+    accepted_price_ore: oreOf(raw.accepted_price_ore) ?? 0,
+    vat_rate_bp: numOf(raw.vat_rate_bp),
+    vat_display: (raw.vat_display as string | null) ?? null,
+    deduction_type: (raw.deduction_type as string | null) ?? null,
+    deduction_rate_bp: numOf(raw.deduction_rate_bp),
+    deduction_cap_ore: oreOf(raw.deduction_cap_ore),
+    deduction_persons: numOf(raw.deduction_persons),
+    requires_sign_off: raw.requires_sign_off === true,
+    display_mode: (raw.display_mode as string | null) ?? null,
+    warnings_snapshot: warnings,
+  };
+}
+
+/** Load the FROZEN customer-visible line snapshot rows (ordered by sort_order) under RLS. */
+export async function loadQuoteVersionLineSnapshots(
+  db: CommandDbClient,
+  quoteVersionId: string,
+): Promise<QuoteVersionLineSnapshotRow[]> {
+  const { data, error } = await asReadClient(db)
+    .from("quote_version_lines")
+    .select(LINE_SNAPSHOT_COLUMNS)
+    .eq("quote_version_id", quoteVersionId)
+    .order("sort_order", { ascending: true });
+  throwOnReadError("loadQuoteVersionLineSnapshots", error);
+  return ((data ?? []) as Record<string, unknown>[]).map((raw) => ({
+    row_type: String(raw.row_type),
+    sort_order: Number(raw.sort_order ?? 0),
+    label: (raw.label as string | null) ?? null,
+    description: (raw.description as string | null) ?? null,
+    quote_note: (raw.quote_note as string | null) ?? null,
+    quantity: numOf(raw.quantity),
+    unit: (raw.unit as string | null) ?? null,
+    unit_sell_ore: oreOf(raw.unit_sell_ore),
+    line_net_ore: oreOf(raw.line_net_ore),
+    vat_rate_bp: numOf(raw.vat_rate_bp),
+    is_hidden: raw.is_hidden === true,
+    is_optional: raw.is_optional === true,
+    is_selected:
+      raw.is_selected === null || raw.is_selected === undefined
+        ? null
+        : raw.is_selected === true,
+  }));
+}
+
+/** Load the FROZEN selected-attachment snapshot rows (ordered by sort_order) under RLS. */
+export async function loadQuoteVersionAttachmentSnapshots(
+  db: CommandDbClient,
+  quoteVersionId: string,
+): Promise<QuoteVersionAttachmentSnapshotRow[]> {
+  const { data, error } = await asReadClient(db)
+    .from("quote_version_attachments")
+    .select(ATTACHMENT_SNAPSHOT_COLUMNS)
+    .eq("quote_version_id", quoteVersionId)
+    .order("sort_order", { ascending: true });
+  throwOnReadError("loadQuoteVersionAttachmentSnapshots", error);
+  return ((data ?? []) as Record<string, unknown>[]).map((raw) => ({
+    file_id: String(raw.file_id),
+    display_name: (raw.display_name as string | null) ?? null,
+    sort_order: Number(raw.sort_order ?? 0),
+  }));
+}
+
+/**
+ * The storage + files/file_links + events write surface the PDF pipeline drives on the
+ * caller's request-bound RLS client (anon key — NEVER service-role). storage.objects RLS +
+ * the composite same-tenant FKs enforce that no cross-tenant object/metadata is reachable.
+ */
+export type QuotePdfWriteClient = {
+  storage: {
+    from(bucket: string): {
+      upload(
+        path: string,
+        body: Uint8Array,
+        options: { contentType: string; upsert: boolean },
+      ): Promise<{ data: unknown; error: { message?: string } | null }>;
+    };
+  };
+  from(table: "files"): {
+    insert(values: Record<string, unknown>): {
+      select(columns: string): Promise<{
+        data: unknown[] | null;
+        error: { code?: string; message?: string } | null;
+      }>;
+    };
+  };
+  from(table: "file_links"): {
+    insert(values: Record<string, unknown>): {
+      select(columns: string): Promise<{
+        data: unknown[] | null;
+        error: { code?: string; message?: string } | null;
+      }>;
+    };
+    update(values: Record<string, unknown>): {
+      eq(
+        column: string,
+        value: string,
+      ): {
+        select(columns: string): Promise<{
+          data: unknown[] | null;
+          error: { code?: string; message?: string } | null;
+        }>;
+      };
+    };
+  };
+  from(table: "quote_versions"): {
+    update(values: Record<string, unknown>): {
+      eq(
+        column: string,
+        value: string,
+      ): {
+        select(columns: string): Promise<{
+          data: unknown[] | null;
+          error: { code?: string; message?: string } | null;
+        }>;
+      };
+    };
+  };
+  from(table: "quote_events"): {
+    insert(values: Record<string, unknown>): {
+      select(columns: string): Promise<{
+        data: unknown[] | null;
+        error: { code?: string; message?: string } | null;
+      }>;
+    };
+  };
+};
+
+/** Narrow the envelope client to the PDF write surface (single documented cast). */
+export function asQuotePdfWriteClient(db: CommandDbClient): QuotePdfWriteClient {
+  return db as unknown as QuotePdfWriteClient;
+}
+
+/** An existing PDF file_link row (for the find-or-create-or-repoint retry semantics — R-814). */
+export interface ExistingPdfLinkRow {
+  readonly id: string;
+  readonly file_id: string;
+}
+
+/**
+ * Find an EXISTING `quote_pdf` file_link for the version under the caller's RLS (own tenant).
+ * Returns the link id + its current file_id, or null when none exists (first generation). Used
+ * for the R-814 find-or-create: a retry re-points this ONE link rather than duplicating it.
+ */
+export async function findExistingPdfLink(
+  db: CommandDbClient,
+  quoteVersionId: string,
+): Promise<ExistingPdfLinkRow | null> {
+  const { data, error } = await (
+    db as unknown as {
+      from(table: "file_links"): {
+        select(columns: string): {
+          eq(
+            column: string,
+            value: string,
+          ): {
+            eq(
+              column: string,
+              value: string,
+            ): {
+              eq(
+                column: string,
+                value: string,
+              ): {
+                limit(n: number): Promise<{ data: unknown[] | null; error: unknown }>;
+              };
+            };
+          };
+        };
+      };
+    }
+  )
+    .from("file_links")
+    .select("id, file_id")
+    .eq("owner_type", "quote_version")
+    .eq("owner_id", quoteVersionId)
+    .eq("purpose", "quote_pdf")
+    .limit(1);
+  throwOnReadError("findExistingPdfLink", error);
+  const raw = (data?.[0] ?? null) as Record<string, unknown> | null;
+  if (raw === null) return null;
+  return { id: String(raw.id), file_id: String(raw.file_id) };
 }

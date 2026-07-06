@@ -107,7 +107,7 @@ development_status:
   epic-6: in-progress
   6-1-quote-snapshot-schema-and-server-side-version-creation: review
   6-2-draft-quote-version-review-and-timeline-ux: review
-  6-3-quote-pdf-generation-from-snapshot: ready-for-dev
+  6-3-quote-pdf-generation-from-snapshot: review
   6-4-mark-quote-version-sent-and-enforce-immutability: backlog
   6-5-new-quote-version-after-customer-visible-changes: backlog
   epic-6-retrospective: optional

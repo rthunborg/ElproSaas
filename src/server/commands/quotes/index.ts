@@ -13,8 +13,14 @@ export {
   type UpdateDraftQuoteVersionResult,
 } from "./update-draft";
 export {
+  generateQuotePdf,
+  type GenerateQuotePdfResult,
+} from "./generate-pdf";
+export {
   validateCreateQuoteVersionFromCalculation,
   type CreateQuoteVersionInput,
   validateUpdateDraftQuoteVersion,
   type UpdateDraftQuoteVersionInput,
+  validateGenerateQuotePdf,
+  type GenerateQuotePdfInput,
 } from "./validation";

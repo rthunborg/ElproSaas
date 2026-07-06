@@ -24,6 +24,8 @@ import {
   adminInsertContact,
   adminInsertCustomer,
   adminInsertFacility,
+  adminInsertFile,
+  adminInsertFileLink,
   adminInsertQuote,
   adminInsertQuoteEvent,
   adminInsertQuoteVersion,
@@ -31,8 +33,10 @@ import {
   adminInsertRow,
   adminInsertSection,
   adminInsertWorkRole,
+  adminUploadStorageObject,
   createTwoTenantFixture,
 } from "../factories/tenants";
+import { adminQuery } from "../factories/admin-sql";
 
 export const FIXTURE_FILE = path.join(
   process.cwd(),
@@ -235,6 +239,112 @@ export default async function globalSetup() {
     event_type: "created",
   });
 
+  // PDF render-state seed (Story 6.3): a SEPARATE quote (so the 6.2 quote above keeps EXACTLY
+  // two versions) with THREE versions exercising the render states DETERMINISTICALLY without a
+  // real generation:
+  //   - a `not_generated` version (v1, the default) → the Generate-PDF action;
+  //   - a `generated` version (v2) with a STUB PDF file + link + a stored storage object → the
+  //     preview/download (signed-access) affordances;
+  //   - a `failed` version (v3) → the retry affordance.
+  const pdfQuoteId = await adminInsertQuote({
+    tenant_id: base.tenantA.id,
+    customer_id: companyId,
+    facility_id: facilityId,
+  });
+  const notGeneratedVersionId = await adminInsertQuoteVersion({
+    tenant_id: base.tenantA.id,
+    quote_id: pdfQuoteId,
+    calculation_id: calcId,
+    version_number: 1,
+    quote_number: 1002,
+    status: "draft",
+    company_name: `Elpro Demo AB ${token()}`,
+    customer_display_name: companyName,
+    pdf_status: "not_generated",
+  });
+  await adminInsertQuoteVersionLine({
+    tenant_id: base.tenantA.id,
+    quote_version_id: notGeneratedVersionId,
+    label: `Ogenererad rad ${token()}`,
+    unit_sell_ore: 85000,
+    vat_rate_bp: 2500,
+    sort_order: 0,
+  });
+
+  const pdfFileId = crypto.randomUUID();
+  const pdfObjectPath = `${base.tenantA.id}/${pdfFileId}/offert-1002.pdf`;
+  // A tiny real PDF object so createSignedUrl can sign a reachable key (minimal %PDF header).
+  await adminUploadStorageObject({
+    bucket: "tenant-files",
+    objectPath: pdfObjectPath,
+    body: new TextEncoder().encode("%PDF-1.7\n%stub\n"),
+  });
+  // The stub `files` row with the KNOWN id so pdf_file_id can reference it (id-in-path parity).
+  await adminInsertFile({
+    tenant_id: base.tenantA.id,
+    id: pdfFileId,
+    display_name: "offert-1002.pdf",
+    bucket_id: "tenant-files",
+    object_path: pdfObjectPath,
+    mime_type: "application/pdf",
+    lifecycle_state: "linked",
+  });
+  const generatedVersionId = await adminInsertQuoteVersion({
+    tenant_id: base.tenantA.id,
+    quote_id: pdfQuoteId,
+    calculation_id: calcId,
+    version_number: 2,
+    quote_number: 1002,
+    status: "draft",
+    company_name: `Elpro Demo AB ${token()}`,
+    customer_display_name: companyName,
+    pdf_status: "generated",
+    pdf_file_id: pdfFileId,
+    pdf_generated_at: "2026-07-05T12:00:00.000Z",
+  });
+  // The `quote_pdf` file_link (owner = the generated version).
+  await adminInsertFileLink({
+    tenant_id: base.tenantA.id,
+    file_id: pdfFileId,
+    owner_type: "quote_version",
+    owner_id: generatedVersionId,
+    purpose: "quote_pdf",
+  });
+  await adminInsertQuoteVersionLine({
+    tenant_id: base.tenantA.id,
+    quote_version_id: generatedVersionId,
+    label: `Genererad rad ${token()}`,
+    unit_sell_ore: 85000,
+    vat_rate_bp: 2500,
+    sort_order: 0,
+  });
+  const failedVersionId = await adminInsertQuoteVersion({
+    tenant_id: base.tenantA.id,
+    quote_id: pdfQuoteId,
+    calculation_id: calcId,
+    version_number: 3,
+    quote_number: 1002,
+    status: "draft",
+    company_name: `Elpro Demo AB ${token()}`,
+    customer_display_name: companyName,
+    pdf_status: "failed",
+  });
+  await adminInsertQuoteVersionLine({
+    tenant_id: base.tenantA.id,
+    quote_version_id: failedVersionId,
+    label: `Misslyckad rad ${token()}`,
+    unit_sell_ore: 50000,
+    vat_rate_bp: 2500,
+    sort_order: 0,
+  });
+
+  // Keep the 6.2 quote the MOST-RECENTLY-UPDATED so the quote list (ordered updated_at desc)
+  // still surfaces it as the first row (the 6.2 list→detail spec clicks `.first()`), even though
+  // the 6.3 pdfQuote above was seeded later.
+  await adminQuery(`update public.quotes set updated_at = now() where id = $1`, [
+    quoteId,
+  ]);
+
   const fixture = {
     ...base,
     crm: {
@@ -261,6 +371,13 @@ export default async function globalSetup() {
       id: quoteId,
       sentVersionId,
       draftVersionId,
+    },
+    // Story 6.3 — a SEPARATE quote whose versions exercise the PDF render states.
+    pdfQuote: {
+      id: pdfQuoteId,
+      notGeneratedVersionId,
+      generatedVersionId,
+      failedVersionId,
     },
   };
 

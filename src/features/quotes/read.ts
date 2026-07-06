@@ -177,6 +177,8 @@ export interface QuoteVersionRow {
   // PDF status (Story 6.3 fills them — 6.2 DISPLAYS the frozen values).
   readonly pdf_file_id: string | null;
   readonly pdf_generated_at: string | null;
+  /** The PDF render state (Story 6.3): not_generated | generating | generated | failed. */
+  readonly pdf_status: string;
   readonly warnings_snapshot: readonly {
     readonly code: string;
     readonly severity: string;
@@ -247,7 +249,7 @@ const QUOTE_HEADER_COLUMNS =
 
 // SELECT ONLY the frozen snapshot columns (no cost/margin/internal — none exist on the row).
 const VERSION_COLUMNS =
-  "id, version_number, quote_number, quote_number_display, status, calculation_id, customer_display_name, customer_type, facility_name, contact_name, valid_until, intro_text, customer_notes, terms_text, terms_approved_at, display_mode, base_total_ore, option_total_ore, vat_total_ore, deduction_total_ore, accepted_price_ore, vat_rate_bp, vat_display, deduction_type, deduction_rate_bp, deduction_cap_ore, deduction_persons, requires_sign_off, pdf_file_id, pdf_generated_at, warnings_snapshot, created_at";
+  "id, version_number, quote_number, quote_number_display, status, calculation_id, customer_display_name, customer_type, facility_name, contact_name, valid_until, intro_text, customer_notes, terms_text, terms_approved_at, display_mode, base_total_ore, option_total_ore, vat_total_ore, deduction_total_ore, accepted_price_ore, vat_rate_bp, vat_display, deduction_type, deduction_rate_bp, deduction_cap_ore, deduction_persons, requires_sign_off, pdf_file_id, pdf_generated_at, pdf_status, warnings_snapshot, created_at";
 
 const LINE_COLUMNS =
   "id, row_type, sort_order, label, description, quote_note, quantity, unit, unit_sell_ore, line_net_ore, vat_rate_bp, is_hidden, is_optional, is_selected";
@@ -300,6 +302,7 @@ function toVersionRow(raw: Record<string, unknown>): QuoteVersionRow {
     requires_sign_off: raw.requires_sign_off === true,
     pdf_file_id: (raw.pdf_file_id as string | null) ?? null,
     pdf_generated_at: (raw.pdf_generated_at as string | null) ?? null,
+    pdf_status: (raw.pdf_status as string | null) ?? "not_generated",
     warnings_snapshot: warnings,
     created_at: String(raw.created_at),
   };

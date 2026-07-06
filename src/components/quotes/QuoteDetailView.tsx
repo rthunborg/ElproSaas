@@ -37,6 +37,7 @@ import type {
 import { StatusBadge } from "./StatusBadge";
 import { quoteStatusLabel } from "./status";
 import { DraftQuoteEditor } from "./DraftQuoteEditor";
+import { QuotePdfPanel } from "./QuotePdfPanel";
 
 /** The Swedish label for the (frozen) VAT display posture, for the assumptions block. */
 function vatDisplayLabel(posture: string | null): string {
@@ -382,15 +383,16 @@ export function QuoteDetailView({ detail }: { readonly detail: QuoteDetail }) {
               )}
             </section>
 
-            {/* PDF status (Story 6.3 fills the render — 6.2 DISPLAYS the frozen status). */}
-            <section data-testid="quote-pdf-status" className="text-sm">
-              <h3 className="mb-1 font-medium text-zinc-800">PDF</h3>
-              <p className="text-zinc-700">
-                {selected.pdf_generated_at
-                  ? `Genererad ${formatDate(selected.pdf_generated_at)}`
-                  : "Ingen PDF genererad ännu."}
-              </p>
-            </section>
+            {/* PDF render-state panel (Story 6.3) — the six states + preview/download via a
+                short-lived signed URL. Wires to the generateQuotePdf / createSignedFileAccess
+                commands (never a bespoke path). */}
+            <QuotePdfPanel
+              quoteId={header.id}
+              quoteVersionId={selected.id}
+              pdfStatus={selected.pdf_status}
+              pdfFileId={selected.pdf_file_id}
+              pdfGeneratedAt={selected.pdf_generated_at}
+            />
 
             {/* Acceptance state PLACEHOLDER — real acceptance is Epic 7 (no public affordance). */}
             <section data-testid="quote-acceptance-placeholder" className="text-sm">

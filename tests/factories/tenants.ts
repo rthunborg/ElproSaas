@@ -918,6 +918,8 @@ export async function adminSelectCalcLabel(
 /** A seed for a `files` row (the snake_case columns the negatives/commands target). */
 export interface FileSeed {
   readonly tenant_id: string;
+  /** An explicit file id (Story 6.3 — bind pdf_file_id to a known id); defaults to gen_random_uuid. */
+  readonly id?: string;
   readonly display_name?: string;
   readonly bucket_id?: string;
   readonly object_path?: string;
@@ -962,18 +964,19 @@ export interface FileLinkSeed {
  * object_path) from colliding across seeds.
  */
 export async function adminInsertFile(seed: FileSeed): Promise<string> {
+  const fileId = seed.id ?? crypto.randomUUID();
   const displayName = seed.display_name ?? "tenant-file-seed.pdf";
   const objectPath =
-    seed.object_path ??
-    `${seed.tenant_id}/${crypto.randomUUID()}/${displayName}`;
+    seed.object_path ?? `${seed.tenant_id}/${fileId}/${displayName}`;
   try {
     const rows = await adminQuery<{ id: string }>(
       `insert into public.files
-         (tenant_id, bucket_id, object_path, display_name, mime_type,
+         (id, tenant_id, bucket_id, object_path, display_name, mime_type,
           size_bytes, uploaded_by, lifecycle_state)
-       values ($1, $2, $3, $4, $5, $6, $7, $8)
+       values ($1, $2, $3, $4, $5, $6, $7, $8, $9)
        returning id`,
       [
+        fileId,
         seed.tenant_id,
         seed.bucket_id ?? "tenant-files",
         objectPath,
@@ -1087,6 +1090,12 @@ export interface QuoteVersionSeed {
   /** A customer-visible presentational field (Story 6.2 draft-edit readback proof). */
   readonly intro_text?: string | null;
   readonly customer_display_name?: string | null;
+  /** PDF render state (Story 6.3) — defaults to 'not_generated' at the DB. */
+  readonly pdf_status?: string;
+  /** The generated-PDF file reference (Story 6.3) — for a `generated` fixture state. */
+  readonly pdf_file_id?: string | null;
+  /** The PDF generated-at instant (Story 6.3) — for a `generated` fixture state. */
+  readonly pdf_generated_at?: string | null;
 }
 
 /** A seed for a `quote_version_lines` row (parent version required, same tenant). */
@@ -1161,8 +1170,9 @@ export async function adminInsertQuoteVersion(
     const rows = await adminQuery<{ id: string }>(
       `insert into public.quote_versions
          (tenant_id, quote_id, version_number, quote_number, calculation_id,
-          captured_at, company_name, status, intro_text, customer_display_name)
-       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+          captured_at, company_name, status, intro_text, customer_display_name,
+          pdf_status, pdf_file_id, pdf_generated_at)
+       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
        returning id`,
       [
         seed.tenant_id,
@@ -1175,6 +1185,9 @@ export async function adminInsertQuoteVersion(
         seed.status ?? "draft",
         seed.intro_text ?? null,
         seed.customer_display_name ?? null,
+        seed.pdf_status ?? "not_generated",
+        seed.pdf_file_id ?? null,
+        seed.pdf_generated_at ?? null,
       ],
     );
     const id = rows[0]?.id;
@@ -1335,4 +1348,119 @@ export async function adminUploadStorageObject(seed: {
       `factory: failed to upload storage object ${seed.objectPath}: ${error.message}`,
     );
   }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Story 6.3 — quote-PDF storage/metadata readback helpers (BYPASSRLS via the
+// superuser pg pool + the service-role storage API). Used by the 6.3-INT proofs to
+// read the generated object bytes back (source-of-truth / determinism / retry) and to
+// assert the files/file_links/quote_events/pdf-render-column consistency.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Read a quote_versions row's PDF-render columns back (BYPASSRLS). */
+export async function adminSelectQuoteVersionPdfColumns(
+  quoteVersionId: string,
+): Promise<{
+  pdf_status: string | null;
+  pdf_file_id: string | null;
+  pdf_generated_at: string | null;
+} | null> {
+  const rows = await adminQuery<{
+    pdf_status: string | null;
+    pdf_file_id: string | null;
+    pdf_generated_at: Date | string | null;
+  }>(
+    `select pdf_status, pdf_file_id, pdf_generated_at
+       from public.quote_versions where id = $1`,
+    [quoteVersionId],
+  );
+  const row = rows[0];
+  if (!row) return null;
+  return {
+    pdf_status: row.pdf_status ?? null,
+    pdf_file_id: row.pdf_file_id ?? null,
+    pdf_generated_at:
+      row.pdf_generated_at === null || row.pdf_generated_at === undefined
+        ? null
+        : row.pdf_generated_at instanceof Date
+          ? row.pdf_generated_at.toISOString()
+          : String(row.pdf_generated_at),
+  };
+}
+
+/** Read the `files` rows for a stored PDF (via the version's pdf_file_id) (BYPASSRLS). */
+export async function adminSelectFileById(
+  fileId: string,
+): Promise<{
+  id: string;
+  tenant_id: string;
+  bucket_id: string;
+  object_path: string;
+  mime_type: string | null;
+  lifecycle_state: string;
+} | null> {
+  const rows = await adminQuery<{
+    id: string;
+    tenant_id: string;
+    bucket_id: string;
+    object_path: string;
+    mime_type: string | null;
+    lifecycle_state: string;
+  }>(
+    `select id, tenant_id, bucket_id, object_path, mime_type, lifecycle_state
+       from public.files where id = $1`,
+    [fileId],
+  );
+  return rows[0] ?? null;
+}
+
+/** Read the `file_links` rows for a quote-version PDF owner (BYPASSRLS). */
+export async function adminSelectPdfFileLinks(
+  quoteVersionId: string,
+): Promise<{ id: string; file_id: string; owner_type: string; purpose: string }[]> {
+  return adminQuery<{
+    id: string;
+    file_id: string;
+    owner_type: string;
+    purpose: string;
+  }>(
+    `select id, file_id, owner_type, purpose
+       from public.file_links
+      where owner_type = 'quote_version' and owner_id = $1 and purpose = 'quote_pdf'
+      order by id`,
+    [quoteVersionId],
+  );
+}
+
+/** Read the `quote_events` rows for a quote-version (BYPASSRLS, ordered). */
+export async function adminSelectQuoteEventsForVersion(
+  quoteVersionId: string,
+): Promise<{ id: string; event_type: string }[]> {
+  return adminQuery<{ id: string; event_type: string }>(
+    `select id, event_type from public.quote_events
+      where quote_version_id = $1 order by occurred_at asc`,
+    [quoteVersionId],
+  );
+}
+
+/**
+ * Download the STORED PDF object bytes for a version via its pdf_file_id → files.object_path
+ * → the service-role storage API (BYPASSRLS on storage.objects). Returns the bytes, or null
+ * when no file/object is present. Used by the text-extraction source-of-truth/determinism
+ * proofs to read the ACTUAL uploaded object back.
+ */
+export async function adminSelectStoredPdfBytes(
+  quoteVersionId: string,
+): Promise<Uint8Array | null> {
+  assertLocalStack();
+  const cols = await adminSelectQuoteVersionPdfColumns(quoteVersionId);
+  if (!cols?.pdf_file_id) return null;
+  const file = await adminSelectFileById(cols.pdf_file_id);
+  if (!file) return null;
+  const { data, error } = await admin()
+    .storage.from(file.bucket_id)
+    .download(file.object_path);
+  if (error || !data) return null;
+  const arrayBuffer = await data.arrayBuffer();
+  return new Uint8Array(arrayBuffer);
 }

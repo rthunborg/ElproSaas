@@ -21,11 +21,18 @@ import { revalidatePath } from "next/cache";
 import { createSupabaseServerClient } from "@/server/db/supabase-server-client";
 import { runCommand, type CommandDbClient } from "@/server/commands/envelope";
 import { COMMAND_MESSAGES } from "@/server/commands/command-errors";
-import { updateDraftQuoteVersion } from "@/server/commands/quotes";
+import { generateQuotePdf, updateDraftQuoteVersion } from "@/server/commands/quotes";
+import { createSignedFileAccess } from "@/server/commands/files";
 import {
   QUOTE_ACTION_INITIAL,
   type QuoteActionState,
 } from "./action-state";
+import {
+  QUOTE_PDF_ACTION_INITIAL,
+  QUOTE_PDF_PREVIEW_INITIAL,
+  type QuotePdfActionState,
+  type QuotePdfPreviewState,
+} from "./pdf-action-state";
 
 /** Read a string form field (empty → undefined so the field is left unchanged). */
 function optionalText(form: FormData, name: string): string | undefined {
@@ -101,5 +108,88 @@ export async function updateDraftQuoteVersionAction(
     code: result.code,
     formError: result.message || COMMAND_MESSAGES[result.code],
     values,
+  };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Story 6.3 — the PDF-panel server actions (generate/retry + preview/download).
+//
+// These `"use server"` actions are the ONLY write/sign path the six-state PDF panel uses.
+// generate/retry → `generateQuotePdf`; preview/download → `createSignedFileAccess` (mint a
+// SHORT-LIVED SIGNED URL, never a public URL). Both run on the per-request RLS server client
+// (anon key — NEVER service-role). After a generate/retry, revalidate BOTH `/quotes/[quoteId]`
+// AND the version subroute (the 6.2 review found a subroute-revalidation gap — do NOT repeat it).
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * The generate/retry action (React `useActionState` signature). Wires the PDF panel's Generate /
+ * Retry button to `generateQuotePdf`. Only the version id is read from the form (never any
+ * customer/money value); the command reads the frozen snapshot server-side.
+ */
+export async function generateQuotePdfAction(
+  _prev: QuotePdfActionState,
+  form: FormData,
+): Promise<QuotePdfActionState> {
+  const quoteVersionId = form.get("quote_version_id");
+  const quoteId = form.get("quote_id");
+  const input: Record<string, unknown> = { quote_version_id: quoteVersionId };
+
+  const client = (await createSupabaseServerClient()) as unknown as CommandDbClient;
+  const result = await runCommand(generateQuotePdf, { client, input });
+
+  if (result.ok) {
+    if (typeof quoteId === "string" && quoteId.length > 0) {
+      revalidatePath(`/quotes/${quoteId}`);
+      // Revalidate the version subroute too (the 6.2 review's subroute-revalidation fix) so a
+      // generate/retry made there refreshes the server-rendered PDF status.
+      if (typeof quoteVersionId === "string" && quoteVersionId.length > 0) {
+        revalidatePath(`/quotes/${quoteId}/versions/${quoteVersionId}`);
+      }
+    }
+    return {
+      ...QUOTE_PDF_ACTION_INITIAL,
+      status: "success",
+      targetId: result.data.targetId,
+    };
+  }
+
+  return {
+    ...QUOTE_PDF_ACTION_INITIAL,
+    status: "error",
+    code: result.code,
+    formError: result.message || COMMAND_MESSAGES[result.code],
+  };
+}
+
+/**
+ * The preview/download action (React `useActionState` signature). Mints a SHORT-LIVED SIGNED URL
+ * for the version's `quote_pdf` file via `createSignedFileAccess` (RLS-scoped signing — a
+ * cross-tenant/anon caller is denied at the DB; never a public URL). Only shown for a `generated`
+ * version. The signed URL lives only in the returned state (never logged).
+ */
+export async function previewQuotePdfAction(
+  _prev: QuotePdfPreviewState,
+  form: FormData,
+): Promise<QuotePdfPreviewState> {
+  const fileId = form.get("file_id");
+  const input: Record<string, unknown> = { file_id: fileId };
+
+  const client = (await createSupabaseServerClient()) as unknown as CommandDbClient;
+  const result = await runCommand(createSignedFileAccess, { client, input });
+
+  if (result.ok) {
+    return {
+      ...QUOTE_PDF_PREVIEW_INITIAL,
+      status: "success",
+      signedUrl: result.data.signedUrl,
+      expiresAt: result.data.expiresAt,
+    };
+  }
+
+  return {
+    ...QUOTE_PDF_PREVIEW_INITIAL,
+    status: "error",
+    code: result.code,
+    formError: result.message || COMMAND_MESSAGES[result.code],
   };
 }

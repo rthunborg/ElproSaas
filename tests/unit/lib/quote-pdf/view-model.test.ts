@@ -5,40 +5,29 @@
  * internal fields (`unit_cost_ore`/margin/markup/`internal_note`) BY CONSTRUCTION
  * (leakage-by-construction, R-606/R-607). Pure, in-memory, NO DB, NO PII, NO clock.
  *
- * ── ATDD RED PHASE ──────────────────────────────────────────────────────────────────
- * These tests assert the EXPECTED behavior of `buildQuotePdfViewModel`, which does NOT
- * exist yet (`src/lib/quote-pdf/**`). They are SKIPPED with a red-phase reason so the fast
- * `node --test` gate stays green until Task 2 lands. When the pure view model is
- * implemented: remove the `{ skip: ... }` option, adapt the import surface to the real
- * `QuotePdfViewModel` shape, and flip GREEN. Mirrors the 6.2 `view-model.test.ts` R-607
- * leakage-by-construction belt.
+ * ── GREEN (Story 6.3, Task 2) ────────────────────────────────────────────────────────
+ * `buildQuotePdfViewModel` (`src/lib/quote-pdf/**`) has landed; these tests exercise the real
+ * builder against a HOSTILE snapshot that carries internal fields at the source and assert they
+ * are dropped by construction. Mirrors the 6.2 `view-model.test.ts` R-607 leakage belt.
  *
  * Runner: `node --test` (`pnpm run test:unit`).
  *
  * [Source: test-design-epic-6.md#6.3-UNIT-01, R-606/R-607; story 6.3 Task 2 + Task 6.1;
  *  src/features/quotes/view-model.test.ts (the 6.2 precedent); src/lib/quote-snapshot/types.ts
- *  (the frozen QuoteVersionSnapshot input surface); src/features/calculations/money-input.ts
- *  (oreToKronorString — the single formatter); src/features/calculations/readiness.ts
+ *  (the frozen QuoteVersionSnapshot input surface); src/lib/money/ore.ts#formatOreAsKronor
+ *  (the single öre→kronor formatter); src/features/calculations/readiness.ts
  *  (the REAL ReadinessCode union — never the fictional 6.1 golden codes)]
  */
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { buildQuotePdfViewModel } from "@/lib/quote-pdf/view-model";
 
-// RED PHASE: these symbols do not exist yet. When Task 2 lands `src/lib/quote-pdf/**`,
-// wire the real imports here (the pure builder + the type + any key allow-list), e.g.:
-//
-//   import {
-//     buildQuotePdfViewModel,
-//     type QuotePdfViewModel,
-//   } from "@/lib/quote-pdf/view-model";
-//
-// The INPUT surface MUST be exactly the frozen snapshot shape (the `QuoteVersionSnapshot`
+// GREEN (Story 6.3, Task 2): the pure `buildQuotePdfViewModel` (`src/lib/quote-pdf/**`) has
+// landed. Its INPUT surface is EXACTLY the frozen snapshot shape (the `QuoteVersionSnapshot`
 // row + its line/attachment snapshots) — NOTHING mutable (customer/settings/terms/calc/
 // pricing). That type-level constraint is what makes 6.3-UNIT-01 provable.
 
-const RED_PHASE = {
-  skip: "ATDD red phase (6.3-UNIT-01): buildQuotePdfViewModel not implemented (story 6.3 Task 2)",
-} as const;
+const GREEN = {} as const;
 
 /**
  * A HOSTILE snapshot-shaped input that ALSO carries internal fields at the SOURCE. The
@@ -119,7 +108,7 @@ const hostileSnapshot = {
 
 test(
   "6.3-UNIT-01: the view model carries NO internal cost/margin/markup/internal-note keys (R-607)",
-  RED_PHASE,
+  GREEN,
   () => {
     const vm = buildQuotePdfViewModel(hostileSnapshot as never);
     const json = JSON.stringify(vm);
@@ -135,7 +124,7 @@ test(
 
 test(
   "6.3-UNIT-01: money is formatted VERBATIM from the snapshot via the single öre→kronor formatter (no recompute)",
-  RED_PHASE,
+  GREEN,
   () => {
     const vm = buildQuotePdfViewModel(hostileSnapshot as never);
     // The line's SELL öre (85000 = 850,00 kr) must format via oreToKronorString — never the
@@ -151,7 +140,7 @@ test(
 
 test(
   "6.3-UNIT-01: the non-final ROT/grön + requiresSignOff framing is present (demo-data-only, never legally-final)",
-  RED_PHASE,
+  GREEN,
   () => {
     const vm = buildQuotePdfViewModel(hostileSnapshot as never);
     // requiresSignOff=true must surface as an explicit non-final / estimate cue on the view
@@ -166,7 +155,7 @@ test(
 
 test(
   "6.3-UNIT-01: warnings are DISPLAYED verbatim using the REAL ReadinessCode vocabulary (no re-classification)",
-  RED_PHASE,
+  GREEN,
   () => {
     const vm = buildQuotePdfViewModel(hostileSnapshot as never);
     const flat = JSON.stringify(vm);
@@ -177,8 +166,3 @@ test(
     assert.equal(flat.includes("DEDUCTION_ESTIMATE_UNAPPROVED"), false, "the FICTIONAL 6.1 golden code must never appear");
   },
 );
-
-// A placeholder binding so the file type-checks in red phase without the real import. When
-// Task 2 lands, DELETE this and import the real `buildQuotePdfViewModel` from
-// `@/lib/quote-pdf/view-model` (see the header note above).
-declare function buildQuotePdfViewModel(snapshot: never): unknown;

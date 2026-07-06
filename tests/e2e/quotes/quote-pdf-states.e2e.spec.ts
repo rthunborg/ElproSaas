@@ -15,14 +15,12 @@
  *     operable, have accessible names, expose the state as TEXT, and the preview surface has
  *     an accessible download fallback so a screen-reader/keyboard user can still obtain the PDF.
  *
- * ── ATDD RED PHASE ──────────────────────────────────────────────────────────────────
- * The six-state PDF panel + the generate/retry/preview/download actions do NOT exist yet
- * (the 6.2 `quote-pdf-status` region is a placeholder). This suite is `test.describe.skip`'d
- * with a red-phase header. When Task 5 (PDF-state UX) lands AND global-setup seeds the
- * `generated`/`failed` fixture states: adapt the fixture→selector references, remove `.skip`,
- * and flip GREEN — mirror the 6.2 E2E which ships green alongside its UI (no lingering
- * red-phase header). MEMORY: prefer event-driven a11y focus assertions; re-establish focus
- * with a real click (the preview-harness focus limitation).
+ * ── GREEN (Story 6.3, Task 5) ────────────────────────────────────────────────────────
+ * The six-state PDF panel + the generate/retry/preview/download actions have landed, and
+ * global-setup seeds a `generated` version (stub PDF file/link/object) + a `failed` version, so
+ * the states are exercised deterministically via the version subroutes. MEMORY: prefer
+ * event-driven a11y focus assertions; re-establish focus with a real click (the preview-harness
+ * focus limitation).
  *
  * Runner: Playwright (`pnpm run test:e2e`), CI-gated (SUPABASE_TEST_REQUIRED=1).
  *
@@ -38,14 +36,15 @@ import path from "node:path";
 
 interface QuoteFixture {
   readonly adminA: { readonly email: string; readonly password: string };
-  readonly quote: {
+  // Story 6.3: global-setup seeds a SEPARATE quote whose three versions exercise the render
+  // states deterministically (no real generation): a `not_generated` version (the Generate-PDF
+  // action), a `generated` version (a stub PDF file/link/object → preview/download), and a
+  // `failed` version (the retry action).
+  readonly pdfQuote: {
     readonly id: string;
-    readonly sentVersionId: string;
-    readonly draftVersionId: string;
-    // RED PHASE: 6.3 extends global-setup to also seed a version in each render state so the
-    // states below can be exercised deterministically, e.g.:
-    //   readonly generatedVersionId: string;  // pdf_status='generated' + a stub PDF file
-    //   readonly failedVersionId: string;     // pdf_status='failed'
+    readonly notGeneratedVersionId: string;
+    readonly generatedVersionId: string;
+    readonly failedVersionId: string;
   };
 }
 
@@ -75,56 +74,67 @@ async function signIn(page: Page, email: string, password: string): Promise<void
   await expect(page).toHaveURL(/\/dashboard/);
 }
 
-test.describe.skip("Quote PDF render-state UX (Story 6.3 E2E) [ATDD red phase: PDF-state panel not implemented]", () => {
+test.describe("Quote PDF render-state UX (Story 6.3 E2E)", () => {
   test("6.3-E2E-01 (AC2): a not_generated version shows an accessible 'Generate PDF' action + a text status cue", async ({
     page,
   }) => {
     await signIn(page, fixture.adminA.email, fixture.adminA.password);
-    await page.goto(`/quotes/${fixture.quote.id}`);
+    // The DRAFT version stays `not_generated` (the Generate-PDF action).
+    await page.goto(
+      `/quotes/${fixture.pdfQuote.id}/versions/${fixture.pdfQuote.notGeneratedVersionId}`,
+    );
     const panel = page.getByTestId("quote-pdf-status");
     await expect(panel).toBeVisible();
     // Status is conveyed as TEXT (non-color cue — WCAG 1.4.1), not color alone.
-    await expect(panel).toContainText(/inte genererad|not generated/i);
+    await expect(panel).toContainText(/ingen pdf genererad|not generated/i);
     // A real keyboard-operable button with an accessible name.
     await expect(page.getByRole("button", { name: /generera pdf|generate pdf/i })).toBeVisible();
   });
 
-  test("6.3-E2E-01 (AC2): a generated version shows accessible preview + download affordances", async ({
+  test("6.3-E2E-01 (AC2): a generated version shows accessible preview affordance + a text status cue", async ({
     page,
   }) => {
     await signIn(page, fixture.adminA.email, fixture.adminA.password);
-    // RED PHASE: navigate to the seeded `generated` version subroute once global-setup seeds it,
-    // e.g. `/quotes/${fixture.quote.id}/versions/${fixture.quote.generatedVersionId}`.
-    await page.goto(`/quotes/${fixture.quote.id}`);
+    await page.goto(
+      `/quotes/${fixture.pdfQuote.id}/versions/${fixture.pdfQuote.generatedVersionId}`,
+    );
     const panel = page.getByTestId("quote-pdf-status");
-    await expect(panel).toContainText(/genererad|generated/i);
-    // Preview + download are real controls with accessible names; download via a signed URL
-    // (never a public URL — proven at the INT level).
+    await expect(panel).toContainText(/pdf genererad|generated/i);
+    // Preview is a real control with an accessible name; the download link (a signed URL, never
+    // a public URL — proven at the INT level) is the accessible fallback shown after a sign.
     await expect(page.getByRole("button", { name: /förhandsgranska|preview/i })).toBeVisible();
-    await expect(page.getByRole("link", { name: /ladda ner|download/i })).toBeVisible();
   });
 
-  test("6.3-E2E-01 (AC2): a failed version offers an accessible retry action", async ({ page }) => {
+  test("6.3-E2E-01 (AC2): a failed version offers an accessible retry action + a text status cue", async ({
+    page,
+  }) => {
     await signIn(page, fixture.adminA.email, fixture.adminA.password);
-    await page.goto(`/quotes/${fixture.quote.id}`);
+    await page.goto(
+      `/quotes/${fixture.pdfQuote.id}/versions/${fixture.pdfQuote.failedVersionId}`,
+    );
     const panel = page.getByTestId("quote-pdf-status");
-    await expect(panel).toContainText(/misslyckad|failed/i);
+    await expect(panel).toContainText(/misslyckades|failed/i);
     await expect(page.getByRole("button", { name: /försök igen|retry/i })).toBeVisible();
   });
 
-  test("6.3-E2E-02 (AC2/AC3): the preview/download controls are keyboard-operable with a download fallback", async ({
+  test("6.3-E2E-02 (AC2/AC3): the preview control is keyboard-operable; a download fallback appears after signing", async ({
     page,
   }) => {
     await signIn(page, fixture.adminA.email, fixture.adminA.password);
-    await page.goto(`/quotes/${fixture.quote.id}`);
-    // Tab/Enter operable: focus the download link via keyboard and assert it is focus-visible
-    // and reachable (the accessible fallback for the inline preview surface). MEMORY: prefer
-    // event-driven focus; re-establish focus with a real click if the harness drops it.
-    const download = page.getByRole("link", { name: /ladda ner|download/i });
-    await download.focus();
-    await expect(download).toBeFocused();
-    // The download link is the accessible fallback so a screen-reader/keyboard user can still
-    // obtain the PDF even when the inline preview viewer is unavailable.
+    await page.goto(
+      `/quotes/${fixture.pdfQuote.id}/versions/${fixture.pdfQuote.generatedVersionId}`,
+    );
+    // Tab/Enter operable: focus the preview button via keyboard and assert it is reachable.
+    // MEMORY: prefer event-driven focus; re-establish focus with a real click if the harness
+    // drops it (the preview-harness focus limitation).
+    const preview = page.getByRole("button", { name: /förhandsgranska|preview/i });
+    await preview.focus();
+    await expect(preview).toBeFocused();
+    // Activating preview signs a short-lived URL and renders the DOWNLOAD LINK — the accessible
+    // fallback so a screen-reader/keyboard user can still obtain the PDF.
+    await preview.click();
+    const download = page.getByTestId("quote-pdf-download");
     await expect(download).toBeVisible();
+    await expect(download).toHaveAttribute("href", /.+/);
   });
 });
