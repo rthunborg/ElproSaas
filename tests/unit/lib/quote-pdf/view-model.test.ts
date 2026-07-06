@@ -166,3 +166,85 @@ test(
     assert.equal(flat.includes("DEDUCTION_ESTIMATE_UNAPPROVED"), false, "the FICTIONAL 6.1 golden code must never appear");
   },
 );
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 6.3-UNIT-01 (extended) — ordering, null-öre, bp→percent formatting, and empty-collection
+// edge cases on the PURE builder. These belt the deterministic-projection contract the
+// renderer + golden depend on, without a DB or a render pass.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** A minimal well-shaped snapshot; overrides let each edge case tweak a single facet. */
+function makeSnapshot(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+  return {
+    ...hostileSnapshot,
+    lines: [],
+    attachments: [],
+    warnings: [],
+    ...overrides,
+  };
+}
+
+test("6.3-UNIT-01: lines + attachments are ordered by sortOrder (deterministic projection)", GREEN, () => {
+  const vm = buildQuotePdfViewModel(
+    makeSnapshot({
+      lines: [
+        { rowType: "labor", sortOrder: 2, label: "C", description: null, quoteNote: null, quantity: null, unit: null, unitSellOre: null, lineNetOre: null, vatRateBp: null, isHidden: false, isOptional: false, isSelected: null },
+        { rowType: "labor", sortOrder: 0, label: "A", description: null, quoteNote: null, quantity: null, unit: null, unitSellOre: null, lineNetOre: null, vatRateBp: null, isHidden: false, isOptional: false, isSelected: null },
+        { rowType: "labor", sortOrder: 1, label: "B", description: null, quoteNote: null, quantity: null, unit: null, unitSellOre: null, lineNetOre: null, vatRateBp: null, isHidden: false, isOptional: false, isSelected: null },
+      ],
+      attachments: [
+        { fileId: "22222222-2222-2222-2222-222222222222", displayName: "second", sortOrder: 1 },
+        { fileId: "11111111-1111-1111-1111-111111111111", displayName: "first", sortOrder: 0 },
+      ],
+    }) as never,
+  );
+  assert.deepEqual(vm.lines.map((l) => l.label), ["A", "B", "C"], "lines must be ordered by sortOrder");
+  assert.deepEqual(vm.attachments.map((a) => a.displayName), ["first", "second"], "attachments must be ordered by sortOrder");
+});
+
+test("6.3-UNIT-01: a null unit-sell / line-net öre projects to a null kronor string (never '0,00' by accident)", GREEN, () => {
+  const vm = buildQuotePdfViewModel(
+    makeSnapshot({
+      lines: [
+        { rowType: "text", sortOrder: 0, label: "Rubrik", description: null, quoteNote: null, quantity: null, unit: null, unitSellOre: null, lineNetOre: null, vatRateBp: null, isHidden: false, isOptional: false, isSelected: null },
+      ],
+    }) as never,
+  );
+  assert.equal(vm.lines[0].unitSellKronor, null, "a null sell öre stays null (not formatted)");
+  assert.equal(vm.lines[0].lineNetKronor, null, "a null net öre stays null (not formatted)");
+  assert.equal(vm.lines[0].vatRatePercent, null, "a null vat bp stays null");
+});
+
+test("6.3-UNIT-01: basis-points format to a percent string VERBATIM (2500→'25', 2550→'25.5')", GREEN, () => {
+  const vm = buildQuotePdfViewModel(
+    makeSnapshot({
+      vatRateBp: 2500,
+      deductionType: "gron_teknik",
+      deductionRateBp: 2550,
+      lines: [
+        { rowType: "labor", sortOrder: 0, label: "L", description: null, quoteNote: null, quantity: null, unit: null, unitSellOre: null, lineNetOre: null, vatRateBp: 1200, isHidden: false, isOptional: false, isSelected: null },
+      ],
+    }) as never,
+  );
+  assert.equal(vm.taxAssumptions.vatRatePercent, "25", "2500 bp → '25'");
+  assert.equal(vm.taxAssumptions.deductionRatePercent, "25.5", "2550 bp → '25.5'");
+  assert.equal(vm.lines[0].vatRatePercent, "12", "a line's 1200 bp → '12'");
+});
+
+test("6.3-UNIT-01: empty lines/attachments/warnings project to empty arrays (a valid, minimal view model)", GREEN, () => {
+  const vm = buildQuotePdfViewModel(makeSnapshot() as never);
+  assert.deepEqual(vm.lines, [], "no lines → empty lines array");
+  assert.deepEqual(vm.attachments, [], "no attachments → empty attachments array");
+  assert.deepEqual(vm.warnings, [], "no warnings → empty warnings array");
+  // Totals are ALWAYS present (read verbatim from the frozen row), even for an empty version.
+  assert.equal(typeof vm.totals.acceptedPriceKronor, "string", "totals are always read from the row");
+});
+
+test("6.3-UNIT-01: an absent deduction type carries through as null (the PDF omits the ROT/grön block)", GREEN, () => {
+  const vm = buildQuotePdfViewModel(
+    makeSnapshot({ deductionType: null, deductionRateBp: null, deductionCapOre: null }) as never,
+  );
+  assert.equal(vm.taxAssumptions.deductionType, null, "a null deduction type stays null");
+  assert.equal(vm.taxAssumptions.deductionRatePercent, null, "a null deduction rate stays null");
+  assert.equal(vm.taxAssumptions.deductionCapKronor, null, "a null deduction cap stays null");
+});
