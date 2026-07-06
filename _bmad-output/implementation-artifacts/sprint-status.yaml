@@ -54,7 +54,7 @@
 # epic-group order, on purpose) so it is picked next. All other entries remain grouped by epic.
 
 generated: 2026-06-12
-last_updated: 2026-07-06  # Story 6.4 → ready-for-dev (create-story complete)
+last_updated: 2026-07-06  # Story 6.5 → ready-for-dev (create-story complete)
 project: ElproSaas
 project_key: NOKEY
 tracking_system: file-system
@@ -109,7 +109,7 @@ development_status:
   6-2-draft-quote-version-review-and-timeline-ux: review
   6-3-quote-pdf-generation-from-snapshot: review
   6-4-mark-quote-version-sent-and-enforce-immutability: review
-  6-5-new-quote-version-after-customer-visible-changes: backlog
+  6-5-new-quote-version-after-customer-visible-changes: ready-for-dev
   epic-6-retrospective: optional
 
   epic-7: backlog
