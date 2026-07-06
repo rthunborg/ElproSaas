@@ -259,6 +259,63 @@ describe("Migration reset green — tenant_foundation objects present (AC1 / R-0
     // No DELETE policy exists anywhere on the app path (archive/upsert over hard delete).
     expect(rows.some((r) => r.cmd === "DELETE")).toBe(false);
   });
+
+  // Story 6.4 — the sent-immutability + append-only triggers + the mark-sent RPC land after
+  // reset. The exact POLICY enumeration above is UNCHANGED (6.4 adds no policy — the quote_events
+  // reconciliation is an append-only TRIGGER, not a policy/grant removal); this proves the new
+  // ENFORCEMENT objects exist so the below-UI immutability + the transaction boundary are present.
+  it("[P0] Story 6.4 sent-lock + append-only triggers + the mark_quote_version_sent RPC exist after reset", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
+    // The quote_versions sent-lock trigger + its child-lock triggers + the quote_events
+    // append-only trigger are present (BEFORE triggers on the frozen quote tables).
+    const trigRows = await adminQuery<{ tgname: string; relname: string }>(
+      `select t.tgname, c.relname
+         from pg_trigger t
+         join pg_class c on c.oid = t.tgrelid
+         join pg_namespace n on n.oid = c.relnamespace
+        where n.nspname = 'public'
+          and not t.tgisinternal
+          and t.tgname in (
+            'quote_versions_sent_lock',
+            'quote_version_lines_sent_lock',
+            'quote_version_attachments_sent_lock',
+            'quote_events_append_only'
+          )`,
+    );
+    expect(trigRows.map((r) => r.tgname).sort()).toEqual([
+      "quote_events_append_only",
+      "quote_version_attachments_sent_lock",
+      "quote_version_lines_sent_lock",
+      "quote_versions_sent_lock",
+    ]);
+
+    // The trigger functions + the narrow mark-sent RPC exist and are hardened (empty search_path).
+    const fnRows = await adminQuery<{
+      proname: string;
+      prosecdef: boolean;
+      proconfig: string[] | null;
+    }>(
+      `select proname, prosecdef, proconfig from pg_proc
+         where proname in (
+           'enforce_quote_version_sent_lock',
+           'enforce_quote_version_child_sent_lock',
+           'quote_events_block_mutation',
+           'mark_quote_version_sent'
+         )`,
+    );
+    expect(fnRows.map((r) => r.proname).sort()).toEqual([
+      "enforce_quote_version_child_sent_lock",
+      "enforce_quote_version_sent_lock",
+      "mark_quote_version_sent",
+      "quote_events_block_mutation",
+    ]);
+    for (const fn of fnRows) {
+      // All four are SECURITY INVOKER (ADR-A009 default — run under the caller's RLS, no
+      // service-role app path) with a fixed empty search_path (the DEFINER-fn hardening shape).
+      expect(fn.prosecdef).toBe(false);
+      assertSearchPathExactlyEmpty(fn.proname, fn.proconfig);
+    }
+  });
 });
 
 // Close this file's admin pool once all migration-reset assertions are done.

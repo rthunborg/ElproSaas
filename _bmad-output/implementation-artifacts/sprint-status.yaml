@@ -1,5 +1,5 @@
 # generated: 2026-06-12
-# last_updated: 2026-07-03  # post-epic-5 resequencing: Story 8.1 moved before Epic 6
+# last_updated: 2026-07-06  # Story 6.4 mark-sent + sent-immutability → review
 # project: ElproSaas
 # project_key: NOKEY
 # tracking_system: file-system
@@ -108,7 +108,7 @@ development_status:
   6-1-quote-snapshot-schema-and-server-side-version-creation: review
   6-2-draft-quote-version-review-and-timeline-ux: review
   6-3-quote-pdf-generation-from-snapshot: review
-  6-4-mark-quote-version-sent-and-enforce-immutability: ready-for-dev
+  6-4-mark-quote-version-sent-and-enforce-immutability: review
   6-5-new-quote-version-after-customer-visible-changes: backlog
   epic-6-retrospective: optional
 

@@ -299,6 +299,89 @@ export function asQuoteWriteClient(db: CommandDbClient): QuoteWriteClient {
   return db as unknown as QuoteWriteClient;
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Story 6.4 — the send-gate read + the narrow mark_quote_version_sent RPC surface.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * The FROZEN gate fields the mark-sent send gate reads off the target version row (under
+ * the caller's RLS): the status (the not-draft short-circuit), the captured
+ * `warnings_snapshot` (the SAME 5.4 classifier codes+severity frozen at create time — the
+ * send gate consumes its BLOCKER state, it does NOT re-classify or fork the rule table),
+ * and `requires_sign_off` / `terms_approved_at` (RE-DERIVED as server truth at send time —
+ * not trusted blindly from the persisted snapshot).
+ */
+export interface QuoteVersionSendGateRow {
+  readonly status: string;
+  readonly requires_sign_off: boolean;
+  readonly terms_approved_at: string | null;
+  readonly warnings_snapshot: readonly {
+    readonly code: string;
+    readonly severity: string;
+    readonly message: string;
+  }[];
+}
+
+/**
+ * Load the frozen send-gate fields for the target version under the caller's RLS (ownership
+ * already proved it visible). Returns null when the row is not visible (a race → the command
+ * denies). The `warnings_snapshot` blocker severities are the send gate's SAME-classifier
+ * input (never a re-read of the live calc).
+ */
+export async function loadQuoteVersionSendGate(
+  db: CommandDbClient,
+  quoteVersionId: string,
+): Promise<QuoteVersionSendGateRow | null> {
+  const { data, error } = await asReadClient(db)
+    .from("quote_versions")
+    .select("status, requires_sign_off, terms_approved_at, warnings_snapshot")
+    .eq("id", quoteVersionId)
+    .limit(1);
+  throwOnReadError("loadQuoteVersionSendGate", error);
+  const raw = (data?.[0] ?? null) as Record<string, unknown> | null;
+  if (raw === null) return null;
+  const warnings = Array.isArray(raw.warnings_snapshot)
+    ? (raw.warnings_snapshot as unknown[]).map((w) => {
+        const rec = (w ?? {}) as Record<string, unknown>;
+        return {
+          code: String(rec.code ?? ""),
+          severity: String(rec.severity ?? ""),
+          message: String(rec.message ?? ""),
+        };
+      })
+    : [];
+  return {
+    status: String(raw.status),
+    requires_sign_off: raw.requires_sign_off === true,
+    terms_approved_at: (raw.terms_approved_at as string | null) ?? null,
+    warnings_snapshot: warnings,
+  };
+}
+
+/** The minimal RPC surface for the narrow `mark_quote_version_sent` call. */
+export type MarkQuoteVersionSentRpcClient = {
+  rpc(
+    fn: "mark_quote_version_sent",
+    args: {
+      readonly p_tenant_id: string;
+      readonly p_quote_version_id: string;
+      readonly p_sent_at: string;
+      readonly p_channel: string | null;
+      readonly p_reference: string | null;
+    },
+  ): Promise<{
+    data: unknown;
+    error: { code?: string; message?: string } | null;
+  }>;
+};
+
+/** Narrow the envelope client to the mark-sent RPC surface (single documented cast). */
+export function asMarkSentRpcClient(
+  db: CommandDbClient,
+): MarkQuoteVersionSentRpcClient {
+  return db as unknown as MarkQuoteVersionSentRpcClient;
+}
+
 /** The display name of an attachment file (for the by-value metadata snapshot). */
 export interface AttachmentFileRow {
   readonly id: string;
@@ -356,6 +439,8 @@ export function asQuoteRpcClient(db: CommandDbClient): QuoteRpcClient {
 /**
  * Postgres error codes the quote mutation can surface that are DETERMINISTIC outcomes
  * (not transient infra faults):
+ *   - `QV409` — the Story 6.4 sent-lock trigger / the mark-sent RPC's not-draft assertion
+ *     (a custom SQLSTATE, DISTINCT from the standard classes below) → QUOTE_VERSION_LOCKED.
  *   - `23503` foreign_key_violation — a composite same-tenant FK rejected a cross-tenant
  *     / wrong-parent link (a foreign calc/file id) → TENANT_ACCESS_DENIED.
  *   - `42501` insufficient_privilege / RLS WITH CHECK violation → TENANT_ACCESS_DENIED.
@@ -371,6 +456,10 @@ export function throwMappedQuoteWriteError(error: {
   readonly message?: string;
 }): never {
   switch (error.code) {
+    // The Story 6.4 sent-lock RAISE (trigger + RPC not-draft assertion) — a distinguishable
+    // custom SQLSTATE the mapper branches on WITHOUT colliding with the standard classes.
+    case "QV409":
+      throw new CommandError("QUOTE_VERSION_LOCKED");
     case "23503":
     case "42501":
       throw new CommandError("TENANT_ACCESS_DENIED");

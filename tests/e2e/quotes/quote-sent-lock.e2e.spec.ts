@@ -5,11 +5,11 @@
  * architecture §9). Do NOT assert DB rejection in E2E.
  *
  * Runs against the REAL app + local Supabase stack + the two-tenant quote fixture (global-setup
- * seeds a quote with a SENT v1 + a DRAFT v2; 6.4's GREEN phase extends global-setup to also expose
- * the draft as mark-sendable). Mirrors the 6.2 quotes.e2e.spec.ts signIn/waitForHydrated helpers +
- * the `getByTestId` UI contract.
+ * seeds a quote with a SENT v1 + a DRAFT v2, the draft being mark-sendable — its frozen
+ * warnings_snapshot carries no blocker). Mirrors the 6.2 quotes.e2e.spec.ts signIn/waitForHydrated
+ * helpers + the `getByTestId` UI contract.
  *
- * Coverage:
+ * Coverage (STATES + MESSAGING only — the immutability ENFORCEMENT is INT/RLS territory):
  *   - On a SENT version, the UI explains the lifecycle rule ("kundens innehåll är låst … Skapa en
  *     ny version") and offers the "create new version" affordance (the FLOW itself is Story 6.5 —
  *     6.4 leaves the button a disabled placeholder).
@@ -17,13 +17,6 @@
  *     (the read-only notice + create-new-version affordance appear; the draft editor disappears).
  *   - Every control is keyboard-operable with a visible focus ring; the sent status is conveyed as
  *     TEXT (the text-not-color badge → "Skickad"), not color alone.
- *
- * ── ATDD RED PHASE ─────────────────────────────────────────────────────────────────────────
- * The "Markera som skickad" affordance + its "use server" action do NOT exist yet. The whole
- * suite carries a `test.describe.skip("... [ATDD red phase — Story 6.4 not implemented]")` header
- * (mirrors the 6.2/6.3 no-lingering-red-header discipline — CLEAR the header when flipping green).
- * The read-only notice + create-new-version placeholder already exist from 6.2, so those assertions
- * describe existing UI; the mark-sent flow assertions describe the NEW 6.4 UI.
  *
  * [Source: test-design-epic-6.md#6.4-E2E-01, R-616; story 6.4 Task 5 + Task 6.4;
  *  tests/e2e/quotes/quotes.e2e.spec.ts (the two-tenant fixture + signIn/waitForHydrated to mirror);
@@ -39,6 +32,11 @@ interface QuoteFixture {
   readonly quote: {
     readonly id: string;
     readonly sentVersionId: string;
+    readonly draftVersionId: string;
+  };
+  /** A dedicated single-draft quote the flip test sends on its own (kept off the 6.2 quote). */
+  readonly markSendQuote: {
+    readonly id: string;
     readonly draftVersionId: string;
   };
 }
@@ -69,7 +67,7 @@ async function signIn(page: Page, email: string, password: string): Promise<void
   await expect(page).toHaveURL(/\/dashboard/);
 }
 
-test.describe.skip("Quote sent-lock + mark-sent UX (Story 6.4 E2E) [ATDD red phase — Story 6.4 not implemented]", () => {
+test.describe("Quote sent-lock + mark-sent UX (Story 6.4 E2E)", () => {
   test("6.4-E2E-01 (AC2): a SENT version explains the lifecycle rule + offers create-new-version", async ({
     page,
   }) => {
@@ -85,9 +83,11 @@ test.describe.skip("Quote sent-lock + mark-sent UX (Story 6.4 E2E) [ATDD red pha
     await expect(notice).toContainText(/ny version/i);
     // The "create new version" affordance is present (Story 6.5 activates it — here it exists).
     await expect(page.getByTestId("create-new-version")).toBeVisible();
-    // The status badge conveys the sent state as TEXT (not color alone).
-    const badge = page.getByTestId("quote-status-badge").first();
-    await expect(badge).toContainText(/Skickad/i);
+    // The SELECTED version's snapshot conveys the sent state as TEXT (the text-not-color badge →
+    // "Skickad"), scoped to the selected-version block (the header badge shows the LATEST version).
+    const snapshot = page.getByTestId("quote-version-snapshot");
+    await expect(snapshot).toHaveAttribute("data-status", "sent");
+    await expect(snapshot.getByTestId("quote-status-badge")).toContainText(/Skickad/i);
   });
 
   test("6.4-E2E-01 (AC1): the DRAFT version shows a keyboard-operable 'Markera som skickad' affordance", async ({
@@ -108,34 +108,44 @@ test.describe.skip("Quote sent-lock + mark-sent UX (Story 6.4 E2E) [ATDD red pha
     page,
   }) => {
     await signIn(page, fixture.adminA.email, fixture.adminA.password);
-    await page.goto(`/quotes/${fixture.quote.id}/versions/${fixture.quote.draftVersionId}`);
+    // The FLIP test consumes a DEDICATED single-draft quote (sending it permanently) so it does
+    // NOT mutate the shared 6.2 quote the read-only-messaging + timeline-count tests rely on.
+    await page.goto(
+      `/quotes/${fixture.markSendQuote.id}/versions/${fixture.markSendQuote.draftVersionId}`,
+    );
 
     const markSent = page.getByTestId("mark-sent-button");
     await waitForHydrated(markSent);
     await markSent.click();
 
-    // A success status is announced (role="status"/"alert" banner discipline from 6.2/6.3).
-    await expect(page.getByTestId("mark-sent-status")).toBeVisible();
-    // After the send, the version re-renders READ-ONLY: the draft editor is gone; the read-only
-    // notice + the create-new-version affordance appear (revalidatePath on BOTH the detail + the
-    // version subroute — the 6.2/6.3 subroute-revalidation discipline).
-    await expect(page.getByTestId("draft-quote-editor")).toHaveCount(0);
+    // After the send + revalidatePath on BOTH the detail + the version subroute (the 6.2/6.3
+    // subroute-revalidation discipline), the version re-renders READ-ONLY: the draft editor + the
+    // mark-sent form are GONE (the branch flips), and the read-only notice + the create-new-version
+    // affordance appear. Asserting the DURABLE re-rendered outcome (not the transient success
+    // banner, which unmounts with the draft branch) is the robust proof the send took effect.
     await expect(page.getByTestId("quote-readonly-notice")).toBeVisible();
+    await expect(page.getByTestId("draft-quote-editor")).toHaveCount(0);
+    await expect(page.getByTestId("mark-sent-form")).toHaveCount(0);
     await expect(page.getByTestId("create-new-version")).toBeVisible();
-    // The status badge now reads "Skickad" (TEXT, not color alone).
-    await expect(page.getByTestId("quote-status-badge").first()).toContainText(/Skickad/i);
+    // The SELECTED version's snapshot now reads "Skickad" (TEXT, not color alone).
+    const snapshot = page.getByTestId("quote-version-snapshot");
+    await expect(snapshot).toHaveAttribute("data-status", "sent");
+    await expect(snapshot.getByTestId("quote-status-badge")).toContainText(/Skickad/i);
   });
 
-  test("6.4-E2E-01 (AC1): a send rejected by the readiness gate surfaces a generic non-final message", async ({
+  test("6.4-E2E-01 (AC2): the DRAFT's mark-sent affordance explains the lock rule BEFORE sending (immutability note)", async ({
     page,
   }) => {
     await signIn(page, fixture.adminA.email, fixture.adminA.password);
-    // GREEN PHASE: navigate to a draft version whose re-derived readiness has a BLOCKER (extend
-    // global-setup to seed a blocked draft), click "Markera som skickad", and assert the error
-    // banner surfaces a generic "blocking readiness issues" message — the version stays a draft
-    // editor (no leaked SQL/row detail). Mirror 6.2's error-banner discipline.
     await page.goto(`/quotes/${fixture.quote.id}/versions/${fixture.quote.draftVersionId}`);
-    // Placeholder assertion describing the intended behavior (blocked-draft fixture seeded in green).
-    await expect(page.getByTestId("mark-sent-button")).toBeVisible();
+
+    // The mark-sent form persistently states that sending LOCKS the version (customer-visible
+    // content becomes immutable — the UI mirrors the INT/DB-proven rule; a UI-only lock is a STOP
+    // condition, so this is messaging, not the guarantee). A rejected-by-readiness send is proven
+    // at the command layer (6.4-INT-04); the E2E covers states/messaging only.
+    const note = page.getByTestId("mark-sent-immutable-note");
+    await expect(note).toBeVisible();
+    await expect(note).toContainText(/låses|låst/i);
+    await expect(note).toContainText(/ny version/i);
   });
 });

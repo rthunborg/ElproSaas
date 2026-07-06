@@ -194,13 +194,17 @@ export default async function globalSetup() {
     customer_id: companyId,
     facility_id: facilityId,
   });
+  // Seed the SENT version as a DRAFT first, add its frozen line (the Story 6.4 child-lock trigger
+  // only allows child writes while the parent is a draft), THEN flip it to `sent` — a status-only
+  // draft→sent UPDATE the sent-lock trigger allows. This produces the same read-only sent fixture
+  // without hitting the immutability trigger during the line seed.
   const sentVersionId = await adminInsertQuoteVersion({
     tenant_id: base.tenantA.id,
     quote_id: quoteId,
     calculation_id: calcId,
     version_number: 1,
     quote_number: 1001,
-    status: "sent",
+    status: "draft",
     company_name: `Elpro Demo AB ${token()}`,
     customer_display_name: companyName,
     intro_text: "Skickad version – introtext",
@@ -213,6 +217,10 @@ export default async function globalSetup() {
     vat_rate_bp: 2500,
     sort_order: 0,
   });
+  await adminQuery(
+    `update public.quote_versions set status = 'sent' where id = $1`,
+    [sentVersionId],
+  );
   const draftVersionId = await adminInsertQuoteVersion({
     tenant_id: base.tenantA.id,
     quote_id: quoteId,
@@ -237,6 +245,35 @@ export default async function globalSetup() {
     quote_id: quoteId,
     quote_version_id: sentVersionId,
     event_type: "created",
+  });
+
+  // Story 6.4: a SEPARATE quote with a single mark-SENDABLE draft that the mark-sent FLIP E2E
+  // consumes on its own — clicking "Markera som skickad" PERMANENTLY sends it, so it lives on its
+  // OWN quote (never touching the 6.2 quote above, which stays EXACTLY two versions for the 6.2
+  // timeline-count spec). Its frozen warnings_snapshot carries NO blocker, so the send gate passes.
+  const markSendQuoteId = await adminInsertQuote({
+    tenant_id: base.tenantA.id,
+    customer_id: companyId,
+    facility_id: facilityId,
+  });
+  const markSendableVersionId = await adminInsertQuoteVersion({
+    tenant_id: base.tenantA.id,
+    quote_id: markSendQuoteId,
+    calculation_id: calcId,
+    version_number: 1,
+    quote_number: 1003,
+    status: "draft",
+    company_name: `Elpro Demo AB ${token()}`,
+    customer_display_name: companyName,
+    intro_text: "Utkast att skicka – introtext",
+  });
+  await adminInsertQuoteVersionLine({
+    tenant_id: base.tenantA.id,
+    quote_version_id: markSendableVersionId,
+    label: `Skickbar rad ${token()}`,
+    unit_sell_ore: 50000,
+    vat_rate_bp: 2500,
+    sort_order: 0,
   });
 
   // PDF render-state seed (Story 6.3): a SEPARATE quote (so the 6.2 quote above keeps EXACTLY
@@ -371,6 +408,12 @@ export default async function globalSetup() {
       id: quoteId,
       sentVersionId,
       draftVersionId,
+    },
+    // Story 6.4 — a dedicated single-draft quote the mark-sent FLIP E2E sends on its own (kept off
+    // the 6.2 quote so its timeline stays exactly two versions).
+    markSendQuote: {
+      id: markSendQuoteId,
+      draftVersionId: markSendableVersionId,
     },
     // Story 6.3 — a SEPARATE quote whose versions exercise the PDF render states.
     pdfQuote: {

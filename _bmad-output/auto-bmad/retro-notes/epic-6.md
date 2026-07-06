@@ -20,3 +20,6 @@
 
 ## Story 6-4-mark-quote-version-sent-and-enforce-immutability
 - [Phase 3 â€” create-story] AC1's 'record sent timestamp/channel/reference if supported' has no sent_* columns on quote_versions â€” story routes it through the existing quote_events sent row (occurred_at/channel/reference) to avoid a schema change; a real delivery-status/channel-enum model is a needs-human STOP.
+- [Phase 5 â€” dev-story] The 6.4 child-lock trigger blocks line/attachment INSERTs into an already-sent parent â€” fixtures that seed a sent version then add children must seed draft -> children -> flip-to-sent (global-setup.ts fixed); any future story adding sent-state fixtures must follow this pattern.
+- [Phase 5 â€” dev-story] Send gate sources the FROZEN warnings_snapshot blocker state (not a live re-classify) â€” a sent version freezes its snapshot; both gate surfaces share blockers.length === 0.
+- [Phase 5 â€” dev-story] storage-object-isolation signed-URL-expiry INT test is timing-flaky (pre-existing, passes on re-run) â€” candidate for a hardening pass.

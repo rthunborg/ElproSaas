@@ -13,21 +13,16 @@
  * protect the send-gate classification). The helper is a sibling `.ts` (NOT inside a `.tsx`) so
  * `node --test` can import it (the JSX-can't-import-into-node:test trap).
  *
- * ── ATDD RED PHASE ─────────────────────────────────────────────────────────────────────────
- * `canSendQuoteVersion` (`src/features/quotes/send-gate.ts`) does NOT exist yet. Every case is
- * `{ skip: "ATDD red phase — send-gate not implemented (Story 6.4 Task 4)" }` so the fast gate
- * stays GREEN (visible SKIP, never a failing build) until Task 4 lands. The `declare` block
- * placeholders the not-yet-existent module so `tsc --noEmit` is clean in the red phase; DELETE
- * the `declare` block + import the real symbols when flipping green.
- *
- * GREEN-PHASE HANDOFF: implement `canSendQuoteVersion` as a thin adapter over `classifyReadiness`
- * (or a snapshot-shaped adapter yielding the IDENTICAL blocker set) → un-skip every case → delete
- * the `declare` placeholder → import from `@/features/quotes/send-gate`.
+ * `canSendQuoteVersion` runs the SAME 5.4 `classifyReadiness` rule table (no fork) —
+ * `sendable === blockers.length === 0`. `evaluateSendGate` is the FROZEN-snapshot variant the
+ * mark-sent COMMAND uses (it consumes the version's captured `warnings_snapshot` severities);
+ * both share the identical `blockers.length === 0` semantics so preview and send never disagree.
  *
  * [Source: test-design-epic-6.md#6.4-UNIT-01, R-608; story 6.4 Task 4.1 + Task 6.1;
  *  src/features/calculations/readiness.ts (ReadinessReport — blockers vs warnings; canCreateQuote
- *  = blockers.length === 0); src/server/commands/quotes/quotes.ts:189 (the 6.1 create path already
- *  calls classifyReadiness — reuse the SAME classification, don't fork)]
+ *  = blockers.length === 0); src/features/quotes/send-gate.ts (canSendQuoteVersion +
+ *  evaluateSendGate); src/server/commands/quotes/quotes.ts:189 (the 6.1 create path already calls
+ *  classifyReadiness — reuse the SAME classification, don't fork)]
  */
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -35,14 +30,10 @@ import {
   classifyReadiness,
   type ReadinessInput,
 } from "@/features/calculations/readiness";
-
-// ── ATDD red-phase placeholder for the not-yet-existent send gate ───────────────────────────
-// DELETE this `declare` block in the green phase and replace with:
-//   import { canSendQuoteVersion } from "@/features/quotes/send-gate";
-// The gate takes the SAME already-read readiness input (resolved values passed IN — no
-// src/lib -> src/server inversion) and returns whether the version is sendable. It MUST consume
-// `classifyReadiness` (or an identical snapshot-shaped adapter) — `sendable === blockers.length === 0`.
-declare function canSendQuoteVersion(input: ReadinessInput): boolean;
+import {
+  canSendQuoteVersion,
+  evaluateSendGate,
+} from "@/features/quotes/send-gate";
 
 /** A minimal SENDABLE readiness input: a linked customer + a computable total, no blockers. */
 function sendableInput(): ReadinessInput {
@@ -76,14 +67,14 @@ function sendableInput(): ReadinessInput {
   };
 }
 
-test("6.4-UNIT-01 (AC1): a version with NO blockers is SENDABLE", { skip: "ATDD red phase — send-gate not implemented (Story 6.4 Task 4)" }, () => {
+test("6.4-UNIT-01 (AC1): a version with NO blockers is SENDABLE", () => {
   const input = sendableInput();
   // Sanity: the underlying classifier agrees there are no blockers (the gate must match it).
   assert.equal(classifyReadiness(input).blockers.length, 0);
   assert.equal(canSendQuoteVersion(input), true);
 });
 
-test("6.4-UNIT-01 (AC1): a MISSING_CUSTOMER blocker makes the version UNSENDABLE", { skip: "ATDD red phase — send-gate not implemented (Story 6.4 Task 4)" }, () => {
+test("6.4-UNIT-01 (AC1): a MISSING_CUSTOMER blocker makes the version UNSENDABLE", () => {
   const input: ReadinessInput = {
     ...sendableInput(),
     customer: {
@@ -100,7 +91,7 @@ test("6.4-UNIT-01 (AC1): a MISSING_CUSTOMER blocker makes the version UNSENDABLE
   assert.equal(canSendQuoteVersion(input), false);
 });
 
-test("6.4-UNIT-01 (AC1): a TOTAL_UNCOMPUTABLE blocker makes the version UNSENDABLE", { skip: "ATDD red phase — send-gate not implemented (Story 6.4 Task 4)" }, () => {
+test("6.4-UNIT-01 (AC1): a TOTAL_UNCOMPUTABLE blocker makes the version UNSENDABLE", () => {
   // A crafted overflow row → the engine rejects the total → TOTAL_UNCOMPUTABLE blocker.
   const input: ReadinessInput = {
     ...sendableInput(),
@@ -127,7 +118,7 @@ test("6.4-UNIT-01 (AC1): a TOTAL_UNCOMPUTABLE blocker makes the version UNSENDAB
   assert.equal(canSendQuoteVersion(input), false);
 });
 
-test("6.4-UNIT-01 (AC1): WARNINGS never gate — a version with only warnings IS SENDABLE", { skip: "ATDD red phase — send-gate not implemented (Story 6.4 Task 4)" }, () => {
+test("6.4-UNIT-01 (AC1): WARNINGS never gate — a version with only warnings IS SENDABLE", () => {
   // No facility/contact (warnings), a low-margin row (warning), a ROT sign-off assumption
   // (TAX_SIGN_OFF_REQUIRED warning — the demo-data-only accepted posture), a hidden counted row.
   const input: ReadinessInput = {
@@ -168,4 +159,45 @@ test("6.4-UNIT-01 (AC1): WARNINGS never gate — a version with only warnings IS
   assert.ok(report.warnings.length > 0);
   assert.ok(report.warnings.some((w) => w.code === "TAX_SIGN_OFF_REQUIRED"));
   assert.equal(canSendQuoteVersion(input), true);
+});
+
+// ── evaluateSendGate — the FROZEN-snapshot variant the mark-sent COMMAND consumes ────────────
+// The command gates on the version's captured `warnings_snapshot` severities (NOT a live calc
+// re-read; architecture §11). `canSend === blockers.length === 0` — the identical semantics.
+
+test("6.4-UNIT-01 (AC1): evaluateSendGate — a frozen snapshot with NO blocker severity IS sendable", () => {
+  const gate = evaluateSendGate({
+    warningsSnapshot: [
+      { code: "TAX_SIGN_OFF_REQUIRED", severity: "warning", message: "…" },
+      { code: "MISSING_FACILITY", severity: "warning", message: "…" },
+    ],
+    signOff: { requiresSignOff: true, termsApprovedAt: null },
+  });
+  assert.equal(gate.canSend, true);
+  assert.equal(gate.blockers.length, 0);
+});
+
+test("6.4-UNIT-01 (AC1): evaluateSendGate — a frozen snapshot carrying a BLOCKER severity is UNSENDABLE", () => {
+  const gate = evaluateSendGate({
+    warningsSnapshot: [
+      { code: "MISSING_CUSTOMER", severity: "blocker", message: "…" },
+      { code: "MISSING_FACILITY", severity: "warning", message: "…" },
+    ],
+    signOff: { requiresSignOff: true, termsApprovedAt: null },
+  });
+  assert.equal(gate.canSend, false);
+  assert.equal(gate.blockers.length, 1);
+  assert.equal(gate.blockers[0]?.code, "MISSING_CUSTOMER");
+});
+
+test("6.4-UNIT-01 (R-610): a requires_sign_off=true snapshot is STILL sendable (demo-data-only accept — sign-off never gates)", () => {
+  // The re-derived sign-off posture is threaded in as server truth but NEVER turns a warning into
+  // a blocker for demo data (MEMORY: tax/terms sign-off deferred). An UNAPPROVED estimate sends.
+  const gate = evaluateSendGate({
+    warningsSnapshot: [
+      { code: "TAX_SIGN_OFF_REQUIRED", severity: "warning", message: "…" },
+    ],
+    signOff: { requiresSignOff: true, termsApprovedAt: null },
+  });
+  assert.equal(gate.canSend, true);
 });

@@ -1096,6 +1096,16 @@ export interface QuoteVersionSeed {
   readonly pdf_file_id?: string | null;
   /** The PDF generated-at instant (Story 6.3) — for a `generated` fixture state. */
   readonly pdf_generated_at?: string | null;
+  /**
+   * The frozen readiness warnings snapshot (Story 6.4 send-gate proof) — a jsonb array of the
+   * 5.4 classifier codes+severities. Seed a `severity: "blocker"` entry to prove a blocked draft
+   * is UNSENDABLE. Defaults to `[]` at the DB.
+   */
+  readonly warnings_snapshot?: readonly {
+    readonly code: string;
+    readonly severity: string;
+    readonly message: string;
+  }[];
 }
 
 /** A seed for a `quote_version_lines` row (parent version required, same tenant). */
@@ -1171,8 +1181,8 @@ export async function adminInsertQuoteVersion(
       `insert into public.quote_versions
          (tenant_id, quote_id, version_number, quote_number, calculation_id,
           captured_at, company_name, status, intro_text, customer_display_name,
-          pdf_status, pdf_file_id, pdf_generated_at)
-       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+          pdf_status, pdf_file_id, pdf_generated_at, warnings_snapshot)
+       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14::jsonb)
        returning id`,
       [
         seed.tenant_id,
@@ -1188,6 +1198,7 @@ export async function adminInsertQuoteVersion(
         seed.pdf_status ?? "not_generated",
         seed.pdf_file_id ?? null,
         seed.pdf_generated_at ?? null,
+        JSON.stringify(seed.warnings_snapshot ?? []),
       ],
     );
     const id = rows[0]?.id;
@@ -1432,15 +1443,43 @@ export async function adminSelectPdfFileLinks(
   );
 }
 
-/** Read the `quote_events` rows for a quote-version (BYPASSRLS, ordered). */
+/**
+ * Read the `quote_events` rows for a quote-version (BYPASSRLS, ordered). Coerces the
+ * `occurred_at` timestamptz (raw pg returns it as a `Date`) to an ISO string so a deterministic
+ * injected-clock assertion (`occurred_at === FIXED_ISO`) compares by representation.
+ */
 export async function adminSelectQuoteEventsForVersion(
   quoteVersionId: string,
-): Promise<{ id: string; event_type: string }[]> {
-  return adminQuery<{ id: string; event_type: string }>(
-    `select id, event_type from public.quote_events
+): Promise<
+  {
+    id: string;
+    event_type: string;
+    occurred_at: string;
+    channel: string | null;
+    reference: string | null;
+  }[]
+> {
+  const rows = await adminQuery<{
+    id: string;
+    event_type: string;
+    occurred_at: Date | string;
+    channel: string | null;
+    reference: string | null;
+  }>(
+    `select id, event_type, occurred_at, channel, reference from public.quote_events
       where quote_version_id = $1 order by occurred_at asc`,
     [quoteVersionId],
   );
+  return rows.map((r) => ({
+    id: r.id,
+    event_type: r.event_type,
+    occurred_at:
+      r.occurred_at instanceof Date
+        ? r.occurred_at.toISOString()
+        : String(r.occurred_at),
+    channel: r.channel ?? null,
+    reference: r.reference ?? null,
+  }));
 }
 
 /**

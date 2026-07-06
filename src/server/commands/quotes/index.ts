@@ -17,10 +17,16 @@ export {
   type GenerateQuotePdfResult,
 } from "./generate-pdf";
 export {
+  markQuoteVersionSent,
+  type MarkQuoteVersionSentResult,
+} from "./mark-sent";
+export {
   validateCreateQuoteVersionFromCalculation,
   type CreateQuoteVersionInput,
   validateUpdateDraftQuoteVersion,
   type UpdateDraftQuoteVersionInput,
   validateGenerateQuotePdf,
   type GenerateQuotePdfInput,
+  validateMarkQuoteVersionSent,
+  type MarkQuoteVersionSentInput,
 } from "./validation";

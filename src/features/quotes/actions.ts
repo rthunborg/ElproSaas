@@ -21,7 +21,11 @@ import { revalidatePath } from "next/cache";
 import { createSupabaseServerClient } from "@/server/db/supabase-server-client";
 import { runCommand, type CommandDbClient } from "@/server/commands/envelope";
 import { COMMAND_MESSAGES } from "@/server/commands/command-errors";
-import { generateQuotePdf, updateDraftQuoteVersion } from "@/server/commands/quotes";
+import {
+  generateQuotePdf,
+  markQuoteVersionSent,
+  updateDraftQuoteVersion,
+} from "@/server/commands/quotes";
 import { createSignedFileAccess } from "@/server/commands/files";
 import {
   QUOTE_ACTION_INITIAL,
@@ -33,6 +37,10 @@ import {
   type QuotePdfActionState,
   type QuotePdfPreviewState,
 } from "./pdf-action-state";
+import {
+  MARK_SENT_ACTION_INITIAL,
+  type MarkSentActionState,
+} from "./mark-sent-action-state";
 
 /** Read a string form field (empty → undefined so the field is left unchanged). */
 function optionalText(form: FormData, name: string): string | undefined {
@@ -155,6 +163,60 @@ export async function generateQuotePdfAction(
 
   return {
     ...QUOTE_PDF_ACTION_INITIAL,
+    status: "error",
+    code: result.code,
+    formError: result.message || COMMAND_MESSAGES[result.code],
+  };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Story 6.4 — the mark-sent server action (the ONLY write path the "Markera som skickad"
+// affordance uses). Wires the DRAFT branch's mark-sent button to `markQuoteVersionSent`. Only
+// the version id + optional recorded channel/reference are read from the form (never any
+// status/tenant/totals — the command re-asserts draft server-side + gates readiness + runs the
+// narrow RPC on the RLS client). After a successful send, revalidate BOTH `/quotes/[quoteId]`
+// AND the version subroute (the 6.2/6.3 subroute-revalidation discipline — do NOT repeat the 6.2
+// gap) so the version re-renders the READ-ONLY branch.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * The mark-sent action (React `useActionState` signature). Wires the draft's "Markera som
+ * skickad" button to `markQuoteVersionSent`. Only the version id + optional channel/reference are
+ * read; the server command is the authority (the UI read-only state is a convenience).
+ */
+export async function markQuoteVersionSentAction(
+  _prev: MarkSentActionState,
+  form: FormData,
+): Promise<MarkSentActionState> {
+  const quoteVersionId = form.get("quote_version_id");
+  const quoteId = form.get("quote_id");
+  const input: Record<string, unknown> = { quote_version_id: quoteVersionId };
+  // OPTIONAL recorded free-text channel/reference (never a send integration).
+  const channel = optionalText(form, "channel");
+  const reference = optionalText(form, "reference");
+  if (channel !== undefined) input.channel = channel;
+  if (reference !== undefined) input.reference = reference;
+
+  const client = (await createSupabaseServerClient()) as unknown as CommandDbClient;
+  const result = await runCommand(markQuoteVersionSent, { client, input });
+
+  if (result.ok) {
+    if (typeof quoteId === "string" && quoteId.length > 0) {
+      revalidatePath(`/quotes/${quoteId}`);
+      // Revalidate the version subroute too so the sent version re-renders READ-ONLY there.
+      if (typeof quoteVersionId === "string" && quoteVersionId.length > 0) {
+        revalidatePath(`/quotes/${quoteId}/versions/${quoteVersionId}`);
+      }
+    }
+    return {
+      ...MARK_SENT_ACTION_INITIAL,
+      status: "success",
+      targetId: result.data.targetId,
+    };
+  }
+
+  return {
+    ...MARK_SENT_ACTION_INITIAL,
     status: "error",
     code: result.code,
     formError: result.message || COMMAND_MESSAGES[result.code],

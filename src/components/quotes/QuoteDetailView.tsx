@@ -37,6 +37,7 @@ import type {
 import { StatusBadge } from "./StatusBadge";
 import { quoteStatusLabel } from "./status";
 import { DraftQuoteEditor } from "./DraftQuoteEditor";
+import { MarkSentButton } from "./MarkSentButton";
 import { QuotePdfPanel } from "./QuotePdfPanel";
 
 /** The Swedish label for the (frozen) VAT display posture, for the assumptions block. */
@@ -403,18 +404,24 @@ export function QuoteDetailView({ detail }: { readonly detail: QuoteDetail }) {
             </section>
           </div>
 
-          {/* ── Draft edit OR read-only + "create new version" ────────────────── */}
+          {/* ── Draft edit + mark-sent OR read-only + "create new version" ────── */}
           {isDraft ? (
-            <DraftQuoteEditor
-              values={{
-                quoteId: header.id,
-                quoteVersionId: selected.id,
-                introText: selected.intro_text,
-                customerNotes: selected.customer_notes,
-                validUntil: selected.valid_until,
-                displayMode: selected.display_mode,
-              }}
-            />
+            <>
+              <DraftQuoteEditor
+                values={{
+                  quoteId: header.id,
+                  quoteVersionId: selected.id,
+                  introText: selected.intro_text,
+                  customerNotes: selected.customer_notes,
+                  validUntil: selected.valid_until,
+                  displayMode: selected.display_mode,
+                }}
+              />
+              {/* Mark-sent affordance (Story 6.4) — flips the draft to a locked sent version.
+                  The UI is the MIRROR of the INT-proven server guard + DB trigger, not the
+                  guarantee (a UI-only lock is a STOP condition). */}
+              <MarkSentButton quoteId={header.id} quoteVersionId={selected.id} />
+            </>
           ) : (
             <div
               data-testid="quote-readonly-notice"

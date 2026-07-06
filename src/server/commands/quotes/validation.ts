@@ -168,3 +168,50 @@ export function validateGenerateQuotePdf(
   if (!isUuidLike(raw.quote_version_id)) return fail;
   return { ok: true, data: { quote_version_id: raw.quote_version_id as string } };
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Story 6.4 — the mark-quote-version-sent input validator.
+//
+// The caller supplies ONLY the target `quote_version_id` (UUID-shaped) + OPTIONAL free-text
+// `channel` / `reference` (recorded on the `sent` event — "if supported" per the epic; NEVER a
+// send integration). tenant_id / status / totals are NEVER read (the resolved tenant from
+// membership is the only authority; the sent timestamp is the INJECTED command clock, never a
+// client value). A foreign/non-existent version id is caught by the envelope ownership gate
+// (TENANT_ACCESS_DENIED before execute), not here.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** A coarse length bound for the optional channel/reference free-text fields. */
+const SENT_FIELD_MAX = 200;
+
+function isOptionalShortText(v: unknown): v is string | null | undefined {
+  if (v === undefined || v === null) return true;
+  return typeof v === "string" && v.length <= SENT_FIELD_MAX;
+}
+
+/**
+ * Validated `markQuoteVersionSent` input — the target version id + optional recorded
+ * channel/reference. An absent/empty channel/reference means "not recorded" (null).
+ */
+export interface MarkQuoteVersionSentInput {
+  readonly quote_version_id: string;
+  readonly channel?: string | null;
+  readonly reference?: string | null;
+}
+
+export function validateMarkQuoteVersionSent(
+  raw: unknown,
+): ValidationResult<MarkQuoteVersionSentInput> {
+  if (!isRecord(raw)) return fail;
+  if (!isUuidLike(raw.quote_version_id)) return fail;
+  if (!isOptionalShortText(raw.channel)) return fail;
+  if (!isOptionalShortText(raw.reference)) return fail;
+
+  const data: {
+    quote_version_id: string;
+    channel?: string | null;
+    reference?: string | null;
+  } = { quote_version_id: raw.quote_version_id as string };
+  if ("channel" in raw) data.channel = (raw.channel as string | null) ?? null;
+  if ("reference" in raw) data.reference = (raw.reference as string | null) ?? null;
+  return { ok: true, data };
+}
