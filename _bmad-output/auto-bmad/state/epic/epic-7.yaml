@@ -5,10 +5,10 @@ epic_num: 7
 story_num: null
 branch: epic/7-acceptance-to-job-transaction
 status: in-progress
-updated_at: "2026-07-06T19:05:41Z"
+updated_at: "2026-07-06T19:09:27Z"
 started_at: "2026-07-06T17:50:12Z"
 completed_at: null
-active_seconds: 4373
+active_seconds: 4571
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -52,9 +52,24 @@ blockers: []
 overrides: {}
 constraints: []
 epic_slug: acceptance-to-job-transaction
-active_story: 7-1-acceptance-evidence-capture-for-sent-quote-versions
-stories_landed: []
+active_story: 7-2-idempotent-accept-quote-and-create-job-command
+stories_landed:
+  - 7-1-acceptance-evidence-capture-for-sent-quote-versions
 auto_decisions:
   - "Evidence link uses raw link_existing_file RPC, not createFileLink [Med] -> dismiss: manual path deliberate and correct (single audit row + foreign-file rejection preserved); ratify as-is (Tier A, 7-1)"
   - "Admin user captured only in audit trail, not on acceptance record [Low] -> dismiss: acting admin captured as server-derived audit actor; AC1 satisfied (Tier A, 7-1)"
-uat_items: []
+uat_items:
+  - "[7-1] Precondition: pnpm dev, log in as demo tenant-admin at /login, have a quote whose selected version is 'sent' (draft -> add line items -> mark-sent), open /quotes/<quoteId> and scroll to 'Acceptans'"
+  - "[7-1] On the sent version's detail page -> 'Registrera acceptans' form (data-testid=acceptance-form) renders fields Kanal, Accepterad (datum/tid), Accepterat pris (kr), Bevisreferens, Bevisfil (id), Planerad start, Planerat slut, Anteckningar; NO admin-user field (server-derived)"
+  - "[7-1] Select a DRAFT version of the same quote -> 'Acceptans' section shows 'Acceptans kan registreras när versionen är skickad.' and NO form"
+  - "[7-1] In the sent form -> 'Accepterat pris (kr)' pre-filled with the frozen sent total and 'Skickat totalbelopp: <X> kr' shown beneath; values match"
+  - "[7-1] Happy path: keep pre-filled price, set Accepterad datum/tid, confirm -> green status banner 'Accepterad. Acceptansen är registrerad.' (role=status)"
+  - "[7-1] Change Accepterat pris to differ from sent total -> amber 'Prisjustering: +/-<delta> kr...' panel + required 'Motivering för prisjustering' field appear; confirm button DISABLED while reason empty"
+  - "[7-1] With differing price + a typed reason -> confirm button ENABLED; submit -> success banner (delta captured server-side)"
+  - "[7-1] Verify the confirm button stays disabled whenever delta is non-zero and reason blank (UI cannot bypass the reason gate)"
+  - "[7-1] Enter free text in 'Bevisreferens (extern)' with no file id, confirm -> succeeds; reference stored, no file link created"
+  - "[7-1] Paste the id of an already-uploaded own-tenant file into 'Bevisfil (id)', confirm -> succeeds (acceptance_evidence link created for owner type quote_acceptance)"
+  - "[7-1] Paste a random UUID / another tenant's file id into 'Bevisfil (id)', confirm -> red error banner (role=alert) with generic Swedish message; acceptance NOT recorded (no existence disclosure)"
+  - "[7-1] Form unavailable on draft/accepted/rejected/expired/superseded versions (accepted shows 'Denna version är accepterad.') -> non-sent acceptance cannot be attempted by hand"
+  - "[7-1] Logged OUT, request /quotes/<quoteId> directly -> redirected to /login; no public/portal/webhook acceptance route exists"
+  - "[7-1] Keyboard-only tab through the form -> visible focus ring in order, confirm reachable, acceptance status conveyed as TEXT not color alone"
