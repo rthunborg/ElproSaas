@@ -5,10 +5,10 @@ epic_num: 6
 story_num: null
 branch: epic/6-quote-versions-pdf-and-lifecycle
 status: in-progress
-updated_at: "2026-07-06T09:31:01Z"
+updated_at: "2026-07-06T09:36:02Z"
 started_at: "2026-07-05T18:20:38Z"
 completed_at: null
-active_seconds: 15400
+active_seconds: 15611
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -52,10 +52,11 @@ blockers: []
 overrides: {}
 constraints: []
 epic_slug: quote-versions-pdf-and-lifecycle
-active_story: 6-3-quote-pdf-generation-from-snapshot
+active_story: 6-4-mark-quote-version-sent-and-enforce-immutability
 stories_landed:
   - 6-1-quote-snapshot-schema-and-server-side-version-creation
   - 6-2-draft-quote-version-review-and-timeline-ux
+  - 6-3-quote-pdf-generation-from-snapshot
 auto_decisions:
   - "Allocated quote number is never threaded into the frozen composite snapshot value [Med] -> defer: raw integer quote_number is persisted on the row (the persisted truth); Â§24 display format already an open logged owner question; threading into the frozen JSON is a later 6.x follow-up (Tier A, 6-1-quote-snapshot-schema-and-server-side-version-creation)"
   - "Lifecycle-header customer name prefers the LIVE customers join over the frozen snapshot [Low] -> fix: keep the live-first fallback (header legitimately shows current customer identity per ux Â§6) but correct the misleading read.ts comment to state the header name is the live own-tenant display while money/VAT/totals stay snapshot-verbatim (Tier A, 6-2-draft-quote-version-review-and-timeline-ux)"
@@ -85,3 +86,20 @@ uat_items:
   - "[6-2-draft-quote-version-review-and-timeline-ux] /quotes/<random-uuid> → generic 'Offerten hittades inte / …inte åtkomst…' not-found (no cross-tenant existence leak) + 'Tillbaka till offerter' link"
   - "[6-2-draft-quote-version-review-and-timeline-ux] With another tenant's real quote id → identical generic not-found (no leak)"
   - "[6-2-draft-quote-version-review-and-timeline-ux] Confirm no email-send, customer-portal, or public acceptance link/button anywhere — the only acceptance surface is the Epic-7 placeholder text"
+  - "[6-3-quote-pdf-generation-from-snapshot] On a version with no PDF → PDF panel shows text status 'Ingen PDF genererad ännu' + 'Generera PDF' button (text, not color alone)"
+  - "[6-3-quote-pdf-generation-from-snapshot] Click 'Generera PDF' → 'Genererar…'/'PDF genereras…' in-flight status, then 'PDF genererad (<date>)' with Förhandsgranska + Ladda ner affordances, no page error"
+  - "[6-3-quote-pdf-generation-from-snapshot] 'Förhandsgranska' → PDF opens via a short-lived SIGNED URL (token/expiry present; not a public/permanent object path)"
+  - "[6-3-quote-pdf-generation-from-snapshot] 'Ladda ner PDF' reachable and operable by keyboard alone (Tab + Enter) → PDF downloads"
+  - "[6-3-quote-pdf-generation-from-snapshot] Read the PDF → company identity, customer/facility/contact display names, quote number, validity, intro/notes/terms, lines, totals — and NO personnummer, NO unit cost, NO margin/markup, NO internal note anywhere"
+  - "[6-3-quote-pdf-generation-from-snapshot] PDF money/VAT/totals are the exact snapshot values in kronor and match the on-screen version totals (no recompute/disagreement)"
+  - "[6-3-quote-pdf-generation-from-snapshot] Version with a HIDDEN line row → generate PDF → hidden row's label/description/prices absent from the line list, totals still include it (unchanged)"
+  - "[6-3-quote-pdf-generation-from-snapshot] Version with an optional/tillval row → PDF renders it clearly marked '(tillval)'"
+  - "[6-3-quote-pdf-generation-from-snapshot] Version with requires_sign_off=true → PDF prominently carries the non-final 'estimate/requires sign-off' framing on ROT/grön/VAT assumptions — never presented as legally final"
+  - "[6-3-quote-pdf-generation-from-snapshot] SOURCE-OF-TRUTH: after generating, edit mutable data (CRM customer name, company_settings, a price) → regenerate/preview → PDF content UNCHANGED (frozen snapshot values, not the edits)"
+  - "[6-3-quote-pdf-generation-from-snapshot] DETERMINISM: regenerate from the same version → extracted customer-visible content identical run-to-run"
+  - "[6-3-quote-pdf-generation-from-snapshot] RETRY: on a 'PDF-generering misslyckades' (failed) version → 'Försök igen' re-runs from the same frozen snapshot; on success panel moves to 'PDF genererad'; no customer-visible value altered"
+  - "[6-3-quote-pdf-generation-from-snapshot] FAILED state shows text status + keyboard-operable 'Försök igen' (accessible name, not color-only)"
+  - "[6-3-quote-pdf-generation-from-snapshot] GENERATING state: in-flight 'PDF genereras…' announced via a status region; action button disabled against double-submit"
+  - "[6-3-quote-pdf-generation-from-snapshot] A11Y sweep of the PDF panel → every control reachable by Tab with visible focus ring + accessible name; render state exposed as text"
+  - "[6-3-quote-pdf-generation-from-snapshot] CROSS-TENANT/ANON: as another tenant's admin (or anon), attempt to preview/download tenant A's PDF → generic access-denied, no bytes/metadata, no public URL exists (needs two seeded tenants)"
+  - "[6-3-quote-pdf-generation-from-snapshot] SUBROUTE PARITY: generate/retry from /quotes/<id>/versions/<vid> then view /quotes/<id> → both routes show the updated PDF status (neither stale)"
