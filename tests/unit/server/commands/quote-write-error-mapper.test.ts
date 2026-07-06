@@ -72,6 +72,35 @@ test("[6.1] 23505 (unique) / 23514 (check) / 22P02 (invalid text repr) → VALID
   }
 });
 
+// ── Story 7.2 additions (test-design-epic-7.md#7.2-INT-04, R-703 / NFR20) ────────────────────────
+// The 7.2 accept RPC adds a TEST-ONLY injected-fault RAISE with the custom SQLSTATE `QV703`. The
+// DB-backed INT suite proves the BEHAVIORAL rollback (no partial state) end-to-end, but the mapper's
+// QV703 branch — "a deliberately-injected mid-transaction failure that rolled the whole txn back" —
+// is pure and must be pinned WITHOUT a DB: it must NOT masquerade as a stable outcome (it is a
+// transient SERVER_ERROR-shaped plain Error, so the envelope reports the command as failed), and it
+// must never leak the raw injected-fault pg text.
+
+test("[7.2] QV703 (the injected mid-transaction fault RAISE) → a generic non-CommandError (envelope SERVER_ERROR)", () => {
+  const e = catchMapped({
+    code: "QV703",
+    message: "injected fault at job-insert boundary on version 4711-…",
+  });
+  // NOT a stable CommandError — so a rolled-back injected fault can never masquerade as a
+  // locked/validation/conflict outcome; the envelope maps a plain Error to SERVER_ERROR (retryable).
+  assert.ok(e instanceof Error);
+  assert.equal(isCommandError(e), false);
+});
+
+test("[7.2] the QV703 mapping never surfaces the raw injected-fault pg text / row values (no leak)", () => {
+  const e = catchMapped({
+    code: "QV703",
+    message: "injected fault: acceptance 9999 for customer Anna Andersson 19800101-1234",
+  });
+  assert.ok(e instanceof Error);
+  // The derived message references only the injected-fault CODE placeholder — never the leaky body.
+  assert.doesNotMatch((e as Error).message, /Anna|19800101|customer|9999/);
+});
+
 test("[6.4] an UNMAPPED code throws a generic non-CommandError (never a stable code, never the raw message)", () => {
   const e = catchMapped({ code: "XX999", message: "customer Anna Andersson 19800101-1234" });
   // A default-branch error is a plain Error (the envelope maps it to SERVER_ERROR) — NOT a
