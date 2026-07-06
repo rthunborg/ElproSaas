@@ -17,3 +17,6 @@
 - [Phase 5 â€” dev-story] pdf-parse@1.1.1's bundled pdf.js cannot parse modern pdf-lib output â€” text extractor uses pdfjs-dist legacy build instead; trap for any future PDF-text story.
 - [Phase 5 â€” dev-story] 6.3 is the first story writing real object bytes and inserting files rows with an explicit server-generated id (id-in-path parity) â€” an 8.2 upload story should consolidate this into a shared helper.
 - [Phase 7 â€” code review] The rot-with-tillval-hidden-and-attachments golden shipped a hidden row with an EMPTY mustNotAppear, so the text-extraction golden provided zero negative-assertion coverage and the hidden-row PDF leak passed all green gates â€” a golden with mustNotAppear: [] guards nothing; require negative assertions on every leakage-sensitive fixture.
+
+## Story 6-4-mark-quote-version-sent-and-enforce-immutability
+- [Phase 3 â€” create-story] AC1's 'record sent timestamp/channel/reference if supported' has no sent_* columns on quote_versions â€” story routes it through the existing quote_events sent row (occurred_at/channel/reference) to avoid a schema change; a real delivery-status/channel-enum model is a needs-human STOP.
