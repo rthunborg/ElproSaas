@@ -15,6 +15,21 @@ editLog:
       against the frozen state machine; quote_events confirmed EXISTING (reuse, not new);
       R-719 updated (pnpm audit gate resolved in Epic 6; coverage reporter remains);
       entry criteria and dependency posture updated.
+  - date: '2026-07-06'
+    reason: >-
+      Edit-mode ground-truth verification pass (epic still fully backlog — 0 Epic 7
+      migrations/commands/tests on main; ACCEPTANCE_ALREADY_RECORDED not yet in
+      command-errors.ts as the design predicts; quote_events enrolled; mark-sent RPC +
+      sent-lock guards confirmed SECURITY INVOKER). Two precision fixes, no scope/verdict
+      change: (1) the "trigger permits non-draft → non-draft transitions" claim (3 sites)
+      corrected to the ACTUAL landed behaviour — a legal-transition ALLOW-LIST
+      (sent/accepted/rejected/expired/superseded only; reversal to draft RAISES) that also
+      still rejects any customer-visible/commitment column co-mutated in the same non-draft
+      UPDATE, so 7.2 must transition status ALONE; sent → accepted remains free (conclusion
+      unchanged). (2) Called out the EXISTING Story 4.4 accepted-price-delta golden
+      (accepted-price-deltas.json, "feeds Epic 7") as REUSE-not-re-author for 7.2-GOLDEN-01,
+      distinguishing 4.4's accepted-vs-recalculated delta from Epic 7 R-705's
+      accepted-vs-sent-total adjusted-price delta.
 workflowType: testarch-test-design
 designLevel: epic
 epicNum: 7
@@ -113,10 +128,15 @@ three of them are new in their most consequential form:
   `rejected`, `expired`, `superseded`, or cross-tenant version is rejected. The original
   planning-depth hedge (avoid forking a not-yet-frozen rule table) is resolved; the create-story
   re-confirmation of this list at 7.1/7.2 remains as a cheap sanity check, not an open dependency.
-  Two useful consequences for Epic 7's mechanics: (a) the landed sent-lock trigger already PERMITS
-  non-draft → non-draft status transitions, so 7.2's `sent → accepted` lifecycle update flows through
-  the frozen trigger without modification; (b) `quote_events` is REUSED for the acceptance lifecycle
-  event — Epic 7's genuinely new tables are `quote_acceptances`, `jobs`, and `job_events` only.
+  Two useful consequences for Epic 7's mechanics: (a) the landed sent-lock trigger enforces a
+  **legal-transition allow-list** — a status change on a non-draft version is permitted ONLY when the
+  new status is in `('sent','accepted','rejected','expired','superseded')` (a reversal to `draft` or any
+  non-lifecycle value RAISES; `20260707120000_quote_version_sent_lock.sql` lines 128-132). `sent →
+  accepted` is on that allow-list, so 7.2's lifecycle update flows through the frozen trigger WITHOUT
+  modification — but note this is an allow-list, not a blanket "any non-draft → non-draft" pass, so 7.2
+  must transition `status` ALONE (no other customer-visible/commitment column write in the same UPDATE,
+  which the trigger still rejects on a non-draft row); (b) `quote_events` is REUSED for the acceptance
+  lifecycle event — Epic 7's genuinely new tables are `quote_acceptances`, `jobs`, and `job_events` only.
 
 **Risk Summary:**
 
@@ -175,7 +195,7 @@ planning-depth posture and its resolution):
 | Dependency | State | Effect on this design |
 | --- | --- | --- |
 | **Story 8.1 file model** (`files`/`file_links`, private bucket, signed access, `quote_acceptance`/`job` owner types + `acceptance_evidence`/`job_evidence` purposes structurally present but INACTIVE) | **DONE, merged on `main`** | **Full depth now.** Epic 7 ACTIVATES the `quote_acceptance` owner type (7.1 evidence link) and the `job` owner type (7.3 job evidence) by wiring the command-layer ownership validation the 8.1 migration deferred. 7.1's evidence can be an external reference immediately; file-upload evidence UX is Epic 8.2. Epic 7 REUSES `files`/`file_links` and MUST NOT invent a competing evidence model (R-814 single-file-model contract). |
-| **Epic 6 `quote_versions` / sent-state lifecycle** (mark-sent, `QUOTE_VERSION_LOCKED`, immutable sent snapshot) | **DONE, merged on `main` 2026-07-06** (PR #26; was "NOT implemented" when this design was authored 2026-07-05) | **Full depth now — the planning-depth hedge is resolved.** The frozen state machine is `draft/sent/accepted/rejected/expired/superseded` (DB CHECK); the sent-eligibility matrix is finalized: acceptance ONLY on `status = 'sent'`; reject `draft`/`accepted`/`rejected`/`expired`/`superseded`/cross-tenant. The `quote_versions_sent_lock` trigger permits non-draft → non-draft transitions, so 7.2's `sent → accepted` update flows through it unmodified; `quote_events` is reused for the acceptance event. The 7.1/7.2 create-story re-confirmation stays as a sanity check only. |
+| **Epic 6 `quote_versions` / sent-state lifecycle** (mark-sent, `QUOTE_VERSION_LOCKED`, immutable sent snapshot) | **DONE, merged on `main` 2026-07-06** (PR #26; was "NOT implemented" when this design was authored 2026-07-05) | **Full depth now — the planning-depth hedge is resolved.** The frozen state machine is `draft/sent/accepted/rejected/expired/superseded` (DB CHECK); the sent-eligibility matrix is finalized: acceptance ONLY on `status = 'sent'`; reject `draft`/`accepted`/`rejected`/`expired`/`superseded`/cross-tenant. The `quote_versions_sent_lock` trigger enforces a legal-transition allow-list (`sent`/`accepted`/`rejected`/`expired`/`superseded` only on a non-draft row; a reversal to `draft` RAISES), and `sent → accepted` is on it — so 7.2's status-only update flows through unmodified, provided it transitions `status` alone (the trigger still rejects a customer-visible/commitment column change in the same UPDATE); `quote_events` is reused for the acceptance event. The 7.1/7.2 create-story re-confirmation stays as a sanity check only. |
 
 **Posture history (why part of this design was briefly at planning depth):** when authored (2026-07-05),
 Epic 6's state machine was not yet frozen, so the *which quote-version states are acceptance-eligible*
@@ -208,6 +228,7 @@ and the file model Epic 7 now composes into the acceptance-to-job transaction. V
 | **Narrow Postgres RPC discipline (ADR-A009)** — proven by Epic 5's atomic reorder RPCs, designed for Epic 6's version RPCs, and **explicitly naming `acceptQuoteAndCreateJob`** as a mandated narrow-RPC command | `supabase/migrations/2026070*` calc RPCs; `20260704120000_*` `link_existing_file`/`create_file_with_link`; ADR-A009; epics.md 7.2 tech note; AR21 | 7.2's `accept_quote_and_create_job` RPC owns: row locks on the quote version + parent quote row, sent-state + tenant verification, idempotent existing-record return, uniqueness constraints (one acceptance/version, one job/acceptance), multi-row insert (acceptance + job + events + audit), explicit timestamp parameters (`accepted_at`, command ts — H1, no wall-clock), and rollback. Security **invoker** unless a separately approved definer design. Mechanism change without ADR = STOP. |
 | **Immutability-by-DB discipline** (architecture §9: immutable lifecycle tables — `quote_versions` when sent, `quote_acceptances`, locked file snapshots, audit events — block normal updates via triggers/constraints/command-only rules, NOT UI disabling); proven behaviorally by Epic 6's sent-immutability design (R-605) and the 8.1 append-only/locked patterns | architecture §9/§6; ADR-A005; epic-6 design R-605; `20260629121136_audit_events.sql` (append-only trigger) | 7.4 composes the SAME discipline for `quote_acceptances` + `jobs` source references: command guard (stable lock code) AND DB trigger/constraint reject mutation of the immutable field set; the freeze proof is behavioral (attempt mutation via command AND via direct own-tenant authenticated UPDATE). Must AGREE with Epic 6 (R-605) and Epic 8.4. |
 | Pure `@/lib/money` engine — integer öre, `bigint`, `CHECK >= 0`, canonical `isOreAmount`/`ORE_AMOUNT_MAX`, single kronor formatter | `src/lib/money/**` | Accepted price + source sent total are stored in öre (7.1/7.2 money impact HIGH/CRITICAL); the adjusted-price DELTA is computed with the engine, never re-derived ad hoc; new öre columns reuse the canonical guards. Golden tests cover accepted-price cases incl. adjusted (architecture §12: "acceptance with unchanged and adjusted accepted price"). |
+| **Story 4.4 accepted-price-delta golden shape** — `accepted-price-deltas.json` already pins the delta SHAPE for `deltaOre = recalculatedTotalOre − acceptedTotalOre` with `origin` labels (`new-expected`/`documented-delta`/`old-lovable`) and the round-at-end→sum-of-rounded Lovable delta; authored by 4.4 explicitly to "feed Epic 7" | `tests/fixtures/golden/money/accepted-price-deltas.json` (Story 4.4, `4.4-GOLDEN-01`, R-410) | **REUSE, don't re-author.** Epic 7's `7.2-GOLDEN-01` (accepted-quote-to-job) EXTENDS the golden pack with the *transaction* shape (source refs + öre totals + Lovable transactional delta) and reuses this file's delta-shape + origin-label convention. NOTE the two deltas are distinct: 4.4 pins accepted-vs-**later-recalculated** movement (feeds the new-version-on-change concept); Epic 7 R-705's adjusted price is accepted-price-**vs-sent-total-at-acceptance-time** — related shape, different semantics, do not conflate. The exact accepted-price-delta representation is still Sign-Off Q8 (owner residual) — 7.1/7.2 re-confirm at create-story, mechanism-pinned only (R-713). |
 | **Story 8.1 file model** (`files`/`file_links`, private bucket, server-derived paths, signed access, command-layer ownership validation; `owner_type` union incl. `quote_acceptance`/`job` structurally valid but INACTIVE) | `supabase/migrations/20260704120000_file_storage_foundation.sql`; `src/server/commands/files/**` | **INTEGRATION SURFACE, LANDED.** 7.1 activates the `quote_acceptance` owner type + `acceptance_evidence` purpose for evidence links (external reference now; file-upload UX is Epic 8.2); 7.3 activates `job`/`job_evidence`. Epic 7 REUSES the file model + signed access; a competing evidence-storage model is a STOP (R-814). Note the 8.1 deferral: `file_links` has NO dedupe uniqueness — 7.1/7.3 decide find-or-create vs a constraint when they wire the link (deferred-work 8.1 iter-2). |
 | Frozen-snapshot / capture-by-value discipline (Epic 3→4→5, designed-for-6) | `src/lib/snapshots/**`; epic-6 design | The accepted price, source quote total, accepted version reference, and evidence reference are **captured commitment data** (7.2 money impact CRITICAL) — stored by value at acceptance time, immutable thereafter; the job/order detail DISPLAYS them from the immutable references, never re-derives (UX-DR26, R-708). |
 | Two-runner stack + Playwright E2E (CI-gated, `SUPABASE_TEST_REQUIRED=1`) + two-tenant fixture + per-run unique ids; goldens under `tests/unit/**` (runner-glob trap); golden PII/secret + ORGNR scan | project-context Testing Rules; `scripts/run-tests.mjs`; `tests/factories/**` | 7.1/7.2/7.4 land INT + RLS; 7.1/7.3 acceptance-form + job-detail land E2E; accepted-price + accepted-quote-to-job goldens land under `tests/unit/**` with origin labelling (new-expected / documented Lovable delta). |
@@ -341,9 +362,13 @@ degraded-not-critical (UX plumbing, docs).
    legal ONLY on `status = 'sent'`; INT negatives cover `draft`, `accepted`, `rejected`, `expired`,
    `superseded`, and cross-tenant versions. Assert against the frozen artifacts, not a re-derivation:
    the DB CHECK in `20260705120000_quote_version_model.sql` and the `quote_versions_sent_lock` trigger
-   (`20260707120000_quote_version_sent_lock.sql`). Note for 7.2: the trigger already permits
-   non-draft → non-draft transitions, so the `sent → accepted` lifecycle update needs no trigger change —
-   if a story finds itself modifying the sent-lock trigger, that is a design-drift STOP signal.
+   (`20260707120000_quote_version_sent_lock.sql`). Note for 7.2: the trigger enforces a legal-transition
+   allow-list (`sent`/`accepted`/`rejected`/`expired`/`superseded` only on a non-draft row; a reversal to
+   `draft` RAISES — lines 128-132), and `sent → accepted` is on it, so the lifecycle update needs no
+   trigger change — provided 7.2 transitions `status` ALONE, since the trigger still rejects any
+   customer-visible/commitment column co-mutated in the same non-draft UPDATE. A same-value `status`
+   write is a no-op and allowed. If a story finds itself modifying the sent-lock trigger, that is a
+   design-drift STOP signal.
 7. **Adjusted-price gating is server-side and behavioral.** The delta-requires-reason rule must be
    re-validated in the command (client cannot bypass); INT drives an adjusted price with NO reason and
    asserts rejection, and an adjusted price WITH reason and asserts acceptance + the delta captured.
@@ -501,7 +526,7 @@ workaround.
 | 7.1-E2E-02 | Adjusted-price flow: entering an accepted price ≠ sent total shows the delta and requires an adjustment reason/evidence before confirm (7.1 AC2) | E2E | R-705 | 2-3 | Dev | UI mirror of the INT-proven rule |
 | 7.1-INT-05 | Accepted price + source sent total stored in öre; audit event written for acceptance capture with allow-listed metadata (no raw price PII) (7.1 money/audit) | INT | R-705, R-710 | 2-3 | Dev | Öre discipline + audit hygiene |
 | 7.2-INT-07 | Every expected event/audit row (acceptance-recorded, job-created, quote/job lifecycle events) present on success and no DUPLICATE on retry (7.2 AC1/AC2) | INT | R-710 | 2-3 | Dev | Idempotent re-entry writes no second event |
-| 7.2-GOLDEN-01 | Accepted-quote-to-job goldens: unchanged accepted price AND adjusted accepted price; source references + öre totals pinned; documented Lovable transactional delta labelled (7.2 migration note; architecture §12 "acceptance with unchanged and adjusted accepted price") | GOLDEN | R-705, R-717 | 2-3 | Dev | Under `tests/unit/**`; anonymized; origin-labelled |
+| 7.2-GOLDEN-01 | Accepted-quote-to-job goldens: unchanged accepted price AND adjusted accepted price; source references + öre totals pinned; documented Lovable transactional delta labelled (7.2 migration note; architecture §12 "acceptance with unchanged and adjusted accepted price") | GOLDEN | R-705, R-717 | 2-3 | Dev | Under `tests/unit/**`; anonymized; origin-labelled. REUSE + EXTEND the existing `accepted-price-deltas.json` (Story 4.4, feeds-Epic-7) delta-shape + origin-label convention — do not fork it; Epic 7 adds the transaction shape (source refs), 4.4 already owns the accepted-vs-recalculated delta shape |
 | 7.3-E2E-01 | Job/order detail shows source quote version, acceptance evidence, accepted price, customer/facility/contact, basic title/status, planned dates, files, event history; source refs non-editable (7.3 AC1; UX-DR26) | E2E | R-708 | 2-3 | Dev | Traceability from immutable references |
 | 7.3-INT-01 | Job detail data unchanged after mutating any upstream mutable source post-creation — source-of-truth proof from immutable refs (7.3 AC1) | INT | R-708 | 2-3 | Dev | Regenerate/re-read unchanged |
 | 7.3-E2E-02 | Repeated acceptance/create-job attempt shows the EXISTING accepted state/job, not a duplicate or an error (UX-DR24) | E2E | R-712, R-702 | 1-2 | Dev | UI mirror of idempotency |
@@ -788,7 +813,7 @@ blocker regardless of score. **Owner:** Dev (7.1/7.2/7.3). **Timeline:** Stories
 | **`audit_events` (append-only)** | Acceptance/job/correction-attempt events written through it | `audit-append-only.int.test.ts`, `audit-metadata-hygiene-e2e.int.test.ts` — no raw accepted-price/PII in metadata; no duplicate audit on retry |
 | **Migration-reset suite** | New migration in the chain | `migration-reset.int.test.ts` + per-table policy enumeration must include the new commitment tables |
 | **Story 8.1 file model (`files`/`file_links`, signed access)** | Epic 7 activates `quote_acceptance`/`job` owner types + `acceptance_evidence`/`job_evidence` purposes | `file-link-ownership.int.test.ts`, `file-signed-access.int.test.ts`, `storage-object-isolation.rls.test.ts` stay green; the newly-active owner types get command-layer ownership validation + cross-tenant/anon evidence-access negatives; no competing model (R-814) |
-| **Epic 6 quote_versions / sent-state (LANDED 2026-07-06)** | Acceptance consumes a SENT version; accepted lifecycle transitions the version through the frozen `quote_versions_sent_lock` trigger (which permits non-draft → non-draft transitions) | Epic 6 suites stay green: sent-lock trigger tests, mark-sent RPC tests, quote_events enrollment, `QUOTE_VERSION_LOCKED` negatives. Epic 6's sent-immutability (R-605) and Epic 7's accepted-immutability must AGREE — a shared lock-code family, not a fork; modifying the sent-lock trigger in an Epic 7 story is a drift STOP |
+| **Epic 6 quote_versions / sent-state (LANDED 2026-07-06)** | Acceptance consumes a SENT version; accepted lifecycle transitions the version through the frozen `quote_versions_sent_lock` trigger (whose legal-transition allow-list permits `sent → accepted` on a status-only UPDATE, but still rejects a co-mutated customer-visible/commitment column) | Epic 6 suites stay green: sent-lock trigger tests, mark-sent RPC tests, quote_events enrollment, `QUOTE_VERSION_LOCKED` negatives. Epic 6's sent-immutability (R-605) and Epic 7's accepted-immutability must AGREE — a shared lock-code family, not a fork; modifying the sent-lock trigger in an Epic 7 story is a drift STOP |
 | **Epic 8.4 accepted-evidence lock (Wave 2, pending)** | 8.4 locks the accepted evidence FILE; Epic 7 locks the accepted RECORD | epic-8 design commits 8.4 to AGREE with Epic 7 accepted immutability — the file lock and the record lock describe one model; cross-referenced, not re-invented |
 | **Service-role containment guards** | Acceptance/job paths stay anon+RLS/server-command | `verify:service-role-containment` + `verify:bundle-containment` stay green — no service-role key on client acceptance/job paths |
 | **Money engine (`@/lib/money`)** | Accepted price + source total + delta in öre | Money golden pack + öre-boundary orgnr scan stay green; new öre columns reuse canonical guards; no forked rounding/format |
