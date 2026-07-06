@@ -380,6 +380,56 @@ describe("markQuoteVersionSent — DB-layer immutability BELOW the command (AC2,
     const after = await adminSelectQuoteVersionLines(versionId);
     expect(after.length).toBe(0);
   });
+
+  it("[P0] 6.4-INT-03: a DIRECT own-tenant status REVERSAL (sent → draft) is REJECTED by the trigger (immutability cannot be disarmed)", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
+    // Review finding: `status` is exempt so the lifecycle can advance, but a REVERSAL back to
+    // 'draft' would disarm both the sent-lock (its old.status='draft' early-return) and the
+    // child-lock (which keys off parent status <> 'draft'), re-opening every frozen column. The
+    // legal-transition guard must reject any move OUT of a non-draft state back to 'draft'.
+    const { versionId } = await seedQuoteVersion(fixture.tenantA.id, "sent");
+
+    const { error } = await a
+      .from("quote_versions")
+      .update({ status: "draft" })
+      .eq("id", versionId)
+      .select();
+
+    expect(error).not.toBeNull();
+    const after = await adminSelectQuoteVersionRow(versionId);
+    expect(after?.status).toBe("sent");
+  });
+
+  it("[P0] 6.4-INT-03: a DIRECT own-tenant RE-PARENT (quote_id → another own-tenant quote) of a SENT version is REJECTED by the trigger", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
+    // Review finding: quote_id was in neither the exempt list nor the locked comparison tuple, so a
+    // valid own-tenant re-parent (moving a sent commitment to a DIFFERENT own-tenant quote — passes
+    // the composite same-tenant FK + RLS WITH CHECK) slipped past the trigger. quote_id (and the
+    // other identity columns) are now in the locked tuple, so the re-parent RAISES.
+    const { versionId } = await seedQuoteVersion(fixture.tenantA.id, "sent");
+    const before = await adminSelectQuoteVersionRow(versionId);
+    // A SECOND own-tenant quote to re-parent onto (same tenant → passes the same-tenant FK + RLS).
+    const otherCustomerId = await adminInsertCustomer({
+      tenant_id: fixture.tenantA.id,
+      customer_type: "company",
+      display_name: `reparent-customer-${crypto.randomUUID().slice(0, 8)}`,
+    });
+    const otherQuoteId = await adminInsertQuote({
+      tenant_id: fixture.tenantA.id,
+      customer_id: otherCustomerId,
+    });
+
+    const { error } = await a
+      .from("quote_versions")
+      .update({ quote_id: otherQuoteId })
+      .eq("id", versionId)
+      .select();
+
+    expect(error).not.toBeNull();
+    const after = await adminSelectQuoteVersionRow(versionId);
+    expect(after?.quote_id).toBe(before?.quote_id);
+    expect(after?.status).toBe("sent");
+  });
 });
 
 describe("markQuoteVersionSent — send gated by the 5.4 readiness classifier (AC1, R-608)", () => {

@@ -5,10 +5,10 @@ epic_num: 6
 story_num: 4
 branch: epic/6-quote-versions-pdf-and-lifecycle
 status: in-progress
-updated_at: "2026-07-06T10:39:17Z"
+updated_at: "2026-07-06T14:16:58Z"
 started_at: "2026-07-06T09:36:03Z"
 completed_at: null
-active_seconds: 3778
+active_seconds: 16823
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -20,14 +20,14 @@ tea_selected: [atdd, automate]
 tea_rationale: "DB-level immutability enforcement (triggers/constraints rejecting mutation of sent versions) plus tenant RLS/authorization on a lifecycle command locking an irreversible customer-facing money/quote commitment (R-605)"
 epic_story_count: 5
 stories_after_in_epic: 1
-completed_phases: [0, 1, 2, 3, 4, 5, 6]
+completed_phases: [0, 1, 2, 3, 4, 5, 6, 7]
 code_review_iterations: 0
 code_review_loop_done: false
 hitl_halt: null
 external_review_iterations: 0
 convergence_unverified: false
 story_trace: null
-commits: [28ee153, a73ecad, 36eebef, 29b23a6]
+commits: [28ee153, a73ecad, 36eebef, 29b23a6, ea572f8]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -53,3 +53,4 @@ blockers: []
 overrides: {}
 constraints: []
 tier_a_base_sha: 3271911568173a81fa927e39e6f945af8029daa6
+tier_a_review: "done - auditor+security lenses, verdict Changes Requested resolved; 3 findings persisted (2 Patch [Med] fixed - sent->draft reversal guard + identity/FK columns locked, 1 Defer [Low] quote_events INSERT forge); security 0H/1M/1L (MEDIUM merged into the reversal Patch); post-fix open 0/0; 4 dismissed (noise); first attempt of both lenses died on the weekly usage limit and was re-run after the 16:00 reset"

@@ -79,13 +79,21 @@
 --     (retry regenerates a derived PDF, NOT commitment data — architecture §12; the
 --     6.3 forward obligation). A sent version's PDF stays regenerable/retryable.
 --   * status — the append-only lifecycle transitions (sent → accepted/rejected/
---     expired/superseded). A same-value status write is a no-op and allowed.
+--     expired/superseded). A same-value status write is a no-op and allowed. GUARDED
+--     by a legal-transition check: a REVERSAL back to 'draft' (or to any non-lifecycle
+--     value) on a non-draft row RAISES — otherwise a sent→draft flip would disarm this
+--     trigger (its old.status='draft' early-return) and the child-lock, re-opening the
+--     frozen row. Only the sanctioned forward states are allowed.
 --   * archived_at — the soft-delete flip.
 --   * updated_at — trigger-owned (set_updated_at bumps it on every UPDATE).
 -- A change to base_total_ore / intro_text / terms_* / company_* / customer_* / any
 -- *_total_ore / vat_* / deduction_* / requires_sign_off / display_mode / warnings_
 -- snapshot / quote_number / version_number / calculation_id / captured_at / valid_until
--- / customer_notes / … on a non-draft row is REJECTED (locked by default).
+-- / customer_notes / … on a non-draft row is REJECTED (locked by default). The row
+-- IDENTITY + PARENT columns (id / tenant_id / quote_id / created_at) are ALSO in the
+-- locked comparison tuple — a re-parent (quote_id → another own-tenant quote) or any
+-- identity change on a sent version is REJECTED (they pass the composite same-tenant FK
+-- + RLS WITH CHECK, so the trigger is the only backstop).
 --
 -- SECURITY INVOKER (default) — the guard only inspects the operation in flight and
 -- raises; it needs no elevated privilege. Pin an empty search_path defensively +
@@ -107,6 +115,24 @@ begin
     return new;
   end if;
 
+  -- LEGAL-TRANSITION GUARD (Review finding — status was wholesale-exempt with no
+  -- state-machine check). `status` is in the exempt set so the append-only lifecycle
+  -- can advance, but a REVERSAL out of a non-draft state back to 'draft' would disarm
+  -- BOTH this trigger (its old.status='draft' early-return) and the child-lock (which
+  -- keys off the parent status <> 'draft'), re-opening every frozen customer-visible
+  -- column + the lines/attachments to free mutation — defeating the story's central
+  -- irreversible-mark-sent guarantee below the command layer. Reject any move back to
+  -- 'draft'; allow only the sanctioned FORWARD lifecycle transitions from a non-draft
+  -- state (sent/accepted/rejected/expired/superseded → same, or → a later lifecycle
+  -- state) — anything else is an illegal reversal.
+  if new.status is distinct from old.status
+     and new.status not in ('sent', 'accepted', 'rejected', 'expired', 'superseded') then
+    raise exception
+      'quote_versions status is irreversible once sent: illegal transition % -> % on a non-draft version (architecture §9, §11)',
+      old.status, new.status
+      using errcode = 'QV409';
+  end if;
+
   -- The row is already sent/accepted/rejected/expired/superseded → LOCKED. Allow ONLY
   -- the exempt derived/lifecycle columns to change; RAISE on any customer-visible /
   -- commitment column change (fail-closed: everything not exempt is locked).
@@ -120,6 +146,7 @@ begin
     -- two rows with the exempt columns normalized to a common value: if the rows are
     -- still distinct after that, a LOCKED column was also touched → RAISE.
     if row(
+         new.id, new.tenant_id, new.quote_id, new.created_at,
          new.quote_number, new.version_number, new.calculation_id, new.captured_at,
          new.company_name, new.company_org_nr, new.company_address_line1,
          new.company_address_line2, new.company_postal_code, new.company_city,
@@ -133,6 +160,7 @@ begin
          new.deduction_cap_ore, new.deduction_persons, new.requires_sign_off,
          new.display_mode, new.warnings_snapshot
        ) is distinct from row(
+         old.id, old.tenant_id, old.quote_id, old.created_at,
          old.quote_number, old.version_number, old.calculation_id, old.captured_at,
          old.company_name, old.company_org_nr, old.company_address_line1,
          old.company_address_line2, old.company_postal_code, old.company_city,
@@ -157,6 +185,7 @@ begin
   -- No exempt column changed on a non-draft row, so ANY change is to a LOCKED column.
   -- Compare the full customer-visible/commitment tuple; if it changed, RAISE.
   if row(
+       new.id, new.tenant_id, new.quote_id, new.created_at,
        new.quote_number, new.version_number, new.calculation_id, new.captured_at,
        new.company_name, new.company_org_nr, new.company_address_line1,
        new.company_address_line2, new.company_postal_code, new.company_city,
@@ -170,6 +199,7 @@ begin
        new.deduction_cap_ore, new.deduction_persons, new.requires_sign_off,
        new.display_mode, new.warnings_snapshot
      ) is distinct from row(
+       old.id, old.tenant_id, old.quote_id, old.created_at,
        old.quote_number, old.version_number, old.calculation_id, old.captured_at,
        old.company_name, old.company_org_nr, old.company_address_line1,
        old.company_address_line2, old.company_postal_code, old.company_city,
@@ -193,7 +223,7 @@ end;
 $$;
 
 comment on function public.enforce_quote_version_sent_lock() is
-  'Story 6.4 sent-lock guard (architecture §9/§11). BEFORE UPDATE on quote_versions: when OLD.status <> ''draft'' (already sent/accepted/…), a change to ANY customer-visible / commitment column RAISES (SQLSTATE QV409 → command QUOTE_VERSION_LOCKED). FAIL-CLOSED by construction — the EXEMPT set (pdf_status/pdf_file_id/pdf_generated_at [derived PDF render — 6.3 retry], status [lifecycle transitions], archived_at [soft-delete], updated_at [trigger-owned]) is enumerated; everything else is locked-by-default so a FUTURE additive customer-visible column is immutable without a trigger change. The draft→sent transition (OLD.status=''draft'') is ALLOWED. SECURITY INVOKER + empty search_path + schema-qualified (mirrors audit_events_block_mutation).';
+  'Story 6.4 sent-lock guard (architecture §9/§11). BEFORE UPDATE on quote_versions: when OLD.status <> ''draft'' (already sent/accepted/…), a change to ANY customer-visible / commitment column RAISES (SQLSTATE QV409 → command QUOTE_VERSION_LOCKED). FAIL-CLOSED by construction — the EXEMPT set (pdf_status/pdf_file_id/pdf_generated_at [derived PDF render — 6.3 retry], status [lifecycle transitions, GUARDED against a reversal back to draft], archived_at [soft-delete], updated_at [trigger-owned]) is enumerated; everything else — including the identity/parent columns id/tenant_id/quote_id/created_at (a re-parent is rejected) — is locked-by-default so a FUTURE additive customer-visible column is immutable without a trigger change. A status REVERSAL out of a non-draft state (e.g. sent→draft) RAISES (only sent/accepted/rejected/expired/superseded are legal). The draft→sent transition (OLD.status=''draft'') is ALLOWED. SECURITY INVOKER + empty search_path + schema-qualified (mirrors audit_events_block_mutation).';
 
 create trigger quote_versions_sent_lock
   before update on public.quote_versions
