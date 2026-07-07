@@ -5,10 +5,10 @@ epic_num: 8
 story_num: 4
 branch: epic/8-required-files-and-private-storage
 status: in-progress
-updated_at: "2026-07-07T13:30:04Z"
+updated_at: "2026-07-07T13:35:04Z"
 started_at: "2026-07-07T12:29:41Z"
 completed_at: null
-active_seconds: 3590
+active_seconds: 3878
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -20,14 +20,14 @@ tea_selected: [atdd, automate]
 tea_rationale: "immutable lifecycle locks on sent-quote-PDF / accepted-evidence file links via DB triggers + command validation (data integrity, irreversible side effects; High money/quote snapshot impact; R-812/R-822/R-813 open; must join frozen QV409/AR704 lock-code family)"
 epic_story_count: 5
 stories_after_in_epic: 1
-completed_phases: [0, 1, 2, 3, 4, 5]
+completed_phases: [0, 1, 2, 3, 4, 5, 6]
 code_review_iterations: 0
 code_review_loop_done: false
 hitl_halt: null
 external_review_iterations: 0
 convergence_unverified: false
 story_trace: null
-commits: [cab1c2b, 61e670a, "6668502"]
+commits: [cab1c2b, 61e670a, "6668502", db5d2fc]
 phase8_steps:
   trace_gate: null
   nfr: null
