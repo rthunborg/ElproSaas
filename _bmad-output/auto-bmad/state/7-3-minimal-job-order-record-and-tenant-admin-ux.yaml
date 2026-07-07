@@ -1,14 +1,14 @@
 # auto-bmad per-story state — written by scripts/state_update.py (full stable schema;
 # see references/state-and-resume.md). Prose belongs in reports/{key}.md, not here.
-story_key: 7-2-idempotent-accept-quote-and-create-job-command
+story_key: 7-3-minimal-job-order-record-and-tenant-admin-ux
 epic_num: 7
-story_num: 2
+story_num: 3
 branch: epic/7-acceptance-to-job-transaction
 status: in-progress
-updated_at: "2026-07-07T05:18:56Z"
-started_at: "2026-07-06T19:09:28Z"
+updated_at: "2026-07-07T05:20:08Z"
+started_at: "2026-07-07T05:20:08Z"
 completed_at: null
-active_seconds: 36504
+active_seconds: 0
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -17,10 +17,10 @@ git_mode: remote
 base_branch: main
 tea_risk: high
 tea_selected: [atdd, automate]
-tea_rationale: "money/irreversible commitment + multi-table atomic transaction with uniqueness constraints + concurrency/idempotency -> High (AR20 highest-risk Phase A command)"
+tea_rationale: "RLS/command-validation cross-tenant rejection on the new jobs surface + non-editable immutable source refs (authz + data-integrity signals) -> High"
 epic_story_count: 4
-stories_after_in_epic: 2
-completed_phases: [0, 1, 2, 3, 4, 5, 6, 7]
+stories_after_in_epic: 1
+completed_phases: [0, 1, 2]
 code_review_iterations: 0
 code_review_loop_done: false
 hitl_halt: null
@@ -51,13 +51,4 @@ deferred_work: []
 blockers: []
 overrides: {}
 constraints: []
-tier_a_base_sha: 1372e3a25e752442508ad7263f6d93084ea30a62
-tier_a_review:
-  verdict: Changes Requested
-  critical: 0
-  high: 0
-  medium: 1
-  low: 2
-  open_after_fix: 0
-  decisions_auto_resolved: 1
-  deferred: 2
+tier_a_base_sha: 6fc9ad75dbc5f777b5b88d2ba11cd29afedc95e8

@@ -5,10 +5,10 @@ epic_num: 7
 story_num: null
 branch: epic/7-acceptance-to-job-transaction
 status: in-progress
-updated_at: "2026-07-07T05:16:00Z"
+updated_at: "2026-07-07T05:20:08Z"
 started_at: "2026-07-06T17:50:12Z"
 completed_at: null
-active_seconds: 40911
+active_seconds: 41137
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -52,9 +52,10 @@ blockers: []
 overrides: {}
 constraints: []
 epic_slug: acceptance-to-job-transaction
-active_story: 7-2-idempotent-accept-quote-and-create-job-command
+active_story: 7-3-minimal-job-order-record-and-tenant-admin-ux
 stories_landed:
   - 7-1-acceptance-evidence-capture-for-sent-quote-versions
+  - 7-2-idempotent-accept-quote-and-create-job-command
 auto_decisions:
   - "Evidence link uses raw link_existing_file RPC, not createFileLink [Med] -> dismiss: manual path deliberate and correct (single audit row + foreign-file rejection preserved); ratify as-is (Tier A, 7-1)"
   - "Admin user captured only in audit trail, not on acceptance record [Low] -> dismiss: acting admin captured as server-derived audit actor; AC1 satisfied (Tier A, 7-1)"
@@ -74,3 +75,17 @@ uat_items:
   - "[7-1] Form unavailable on draft/accepted/rejected/expired/superseded versions (accepted shows 'Denna version är accepterad.') -> non-sent acceptance cannot be attempted by hand"
   - "[7-1] Logged OUT, request /quotes/<quoteId> directly -> redirected to /login; no public/portal/webhook acceptance route exists"
   - "[7-1] Keyboard-only tab through the form -> visible focus ring in order, confirm reachable, acceptance status conveyed as TEXT not color alone"
+  - "[7-2] Setup: migration 20260710120000 not on main/demo yet - run locally: supabase start, supabase db reset, pnpm dev; have a tenant_admin login for the local stack"
+  - "[7-2] Signed out, open /quotes -> redirected to /login (anon rejection surfaces as the login gate)"
+  - "[7-2] Prepare a SENT version (draft -> mark-sent, non-zero frozen sent total) -> version detail shows 'Registrera acceptans' form (only on status=sent)"
+  - "[7-2] Happy path: keep pre-filled price, set Accepterad datum/tid, optional Jobbtitel, confirm -> 'Accepterad. Acceptansen är registrerad.' then section flips to 'Denna version är accepterad. Ett jobb har skapats från den accepterade offerten.'"
+  - "[7-2] DB inspection (job UI is 7.3): exactly one quote_acceptances row, version status=accepted, one jobs row (matching source refs, status=created, carried customer/facility/contact), one quote_events accepted, one job_events created, one audit_events row with targetId-only metadata"
+  - "[7-2] Reload the accepted version page -> stable '...är accepterad...' text, no form, no error (idempotent landing)"
+  - "[7-2] Re-run the exact same accept once more -> still exactly ONE acceptance/job/event row each and NO new audit_events row (no duplicate audit on retry)"
+  - "[7-2] Adjusted price: change Accepterat pris to differ -> amber Prisjustering panel + required Motivering, confirm disabled until reason typed; accepted row stores integer ore + adjustment_reason"
+  - "[7-2] Server re-validation: blank the reason via devtools/crafted POST with non-zero delta -> generic VALIDATION_FAILED (client disable is only a mirror)"
+  - "[7-2] Draft version -> 'Acceptans kan registreras när versionen är skickad.' and NO form"
+  - "[7-2] Accepted version -> 'Skapa ny version' button and PDF panel NOT mounted; new-version/PDF commands rejected server-side (affordance gating)"
+  - "[7-2] Foreign/random UUID in Bevisfil -> generic TENANT_ACCESS_DENIED-class error, no existence disclosure; valid own-tenant file id -> exactly one file_links row, no duplicate on retry"
+  - "[7-2] Cross-tenant (two tenants): accept with tenant B's version id as tenant A admin via crafted call -> generic TENANT_ACCESS_DENIED, no leak"
+  - "[7-2] NOT hand-testable: AC3 rollback (test-only __faultInject, covered by 7.2-INT-04) and true concurrent accepts (covered by parallel INT tests)"
