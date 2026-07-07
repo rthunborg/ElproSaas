@@ -23,3 +23,4 @@
 ## Story 8-4-quote-pdf-attachment-and-acceptance-evidence-locks
 - [Phase 3 â€” create-story] 6.3 PDF-retry file_id re-point is the load-bearing edge case: pre-send re-point must stay allowed, post-send rejected (FL823) â€” asymmetry vs QV409 (which exempts pdf_* render columns while the file-LINK carries commitment identity once sent); don't break 6.3 suites.
 - [Phase 3 â€” create-story] Both evidence/PDF link create paths are FROZEN RPCs â€” parent-state-keyed trigger is the only clean lock-apply mechanism avoiding edits to frozen code; this drove the task design.
+- [Phase 4 â€” atdd] Red scaffolds for not-yet-existing exports/modules must use typed local stubs, not static imports â€” a static import of a missing export fails at collection even under describe.skip, breaking the every-PR gate; green-phase real import left as a comment to uncomment.

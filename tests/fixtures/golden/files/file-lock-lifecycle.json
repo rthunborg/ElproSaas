@@ -1,0 +1,76 @@
+{
+  "_comment": "Story 8.4 (8.4-GOLDEN-01) — the LOCK-STATE lifecycle golden. Pins the is_locked / lifecycle-state outcome across the quote/PDF/attachment + acceptance-evidence lifecycle. Every case is origin 'new-expected': NO real Lovable lock oracle exists (Lovable allowed MUTABLE attachments + acceptance evidence — the documented 8.4-DOCS-01 delta), so Phase A's lock is a deliberate, safer NEW behavior. The three-way origin/schema guard is kept so an Epic-9 delta lands without a code-shape change. Lock-STATE only (no money), but every numeric value stays < 10 digits (R-717/orgnr-scan safe). NO PII.",
+  "policy": {
+    "lockableOwnerPurposes": [
+      { "ownerType": "quote_version", "purpose": "quote_pdf" },
+      { "ownerType": "quote_version", "purpose": "quote_attachment_snapshot" },
+      { "ownerType": "quote_acceptance", "purpose": "acceptance_evidence" }
+    ],
+    "quoteVersionLocksWhen": "parentStatus <> 'draft'",
+    "acceptanceLocksWhen": "the quote_acceptances row exists (AR704 has no draft state)",
+    "archiveOnlyDelete": "a locked file is archive-only (locked -> archived); never a hard delete (architecture §14)"
+  },
+  "cases": [
+    {
+      "id": "draft-version-pdf-link-unlocked",
+      "origin": "new-expected",
+      "note": "A DRAFT version's quote_pdf link is NOT locked — the 6.3 preview-on-draft retry path must stay re-pointable.",
+      "ownerType": "quote_version",
+      "purpose": "quote_pdf",
+      "parentState": "draft",
+      "expectedIsLocked": false,
+      "expectedFileLifecycle": "draft"
+    },
+    {
+      "id": "sent-version-pdf-link-locked",
+      "origin": "new-expected",
+      "note": "Once the parent version is SENT the quote_pdf link locks by construction (parent-state-keyed apply); the file lifecycle flips to locked.",
+      "ownerType": "quote_version",
+      "purpose": "quote_pdf",
+      "parentState": "sent",
+      "expectedIsLocked": true,
+      "expectedFileLifecycle": "locked"
+    },
+    {
+      "id": "sent-version-attachment-snapshot-locked",
+      "origin": "new-expected",
+      "note": "A sent version's quote_attachment_snapshot link locks alongside the PDF (both carry commitment identity once sent).",
+      "ownerType": "quote_version",
+      "purpose": "quote_attachment_snapshot",
+      "parentState": "sent",
+      "expectedIsLocked": true,
+      "expectedFileLifecycle": "locked"
+    },
+    {
+      "id": "accepted-version-pdf-link-locked",
+      "origin": "new-expected",
+      "note": "An accepted (non-draft) version's PDF link stays locked — locking activates at any non-draft parent state, not only 'sent'.",
+      "ownerType": "quote_version",
+      "purpose": "quote_pdf",
+      "parentState": "accepted",
+      "expectedIsLocked": true,
+      "expectedFileLifecycle": "locked"
+    },
+    {
+      "id": "committed-acceptance-evidence-link-locked",
+      "origin": "new-expected",
+      "note": "The acceptance_evidence link locks the moment the quote_acceptances row exists (AR704 has no draft state — always immutable).",
+      "ownerType": "quote_acceptance",
+      "purpose": "acceptance_evidence",
+      "parentState": "committed",
+      "expectedIsLocked": true,
+      "expectedFileLifecycle": "locked"
+    },
+    {
+      "id": "locked-file-archived-not-deleted",
+      "origin": "new-expected",
+      "note": "Deletion of a locked file is archive-only: locked -> archived (never a hard delete). architecture §14 / R-813.",
+      "ownerType": "quote_version",
+      "purpose": "quote_pdf",
+      "parentState": "sent",
+      "action": "archive",
+      "expectedIsLocked": true,
+      "expectedFileLifecycle": "archived"
+    }
+  ]
+}
