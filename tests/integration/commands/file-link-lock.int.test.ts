@@ -26,10 +26,12 @@
  *   - 8.4-RLS-01 (P0, AC5): a cross-tenant lock/archive/mutation attempt ⇒ `TENANT_ACCESS_DENIED`
  *     (the SAME generic shape as not-found — no existence disclosure, R-809). Anon on the LIVE archive
  *     command ⇒ `UNAUTHENTICATED`.
- *   - 8.4-INT-05 (P0, AC4/R-813): partial-lock / archive-delete CONSISTENCY — a mid-flow fault leaves
- *     a consistent, retryable state (a file is never locked without the state persisted; an archive
- *     never half-applies). BYPASSRLS re-read proves no half-written state. If the lock apply is a pure
- *     DB trigger this is atomic-by-construction (trigger + triggering write are one txn).
+ *   - 8.4-INT-05 (P0, AC4/R-813): partial-lock / archive-delete CONSISTENCY — an archive is idempotent
+ *     (a re-run is a clean no-op, no double audit, no half state), and the lock-apply is PRECISE (a
+ *     send locks only its own sent version's file, never a blanket flip). The atomic-by-construction
+ *     proof for AC4 lives in the RLS suite's 8.4-RLS-04: because the lock-apply is a pure BEFORE
+ *     trigger inside the triggering write's OWN txn (trigger + write are one txn), a rejected write
+ *     leaves the row BYTE-UNCHANGED — there is no half-write to inject a fault into.
  *
  * The DIRECT-SQL trigger-rejection half (the load-bearing DB proof — SQLSTATE `FL823`) + the FAMILY
  * AGREEMENT with `QV409`/`AR704` live in the sibling RLS suite `file-link-lock.rls.test.ts` (mirrors
@@ -430,14 +432,17 @@ describe("8.4-INT-05: partial-lock / archive-delete consistency — a mid-flow f
     expect(audits.filter((a) => a.event_type === "file.archived").length).toBe(0);
   });
 
-  it("[P0] 8.4-INT-05: the lock-apply is atomic — the sent version's lock + its audited send are one txn (a fault leaves neither a locked link nor a half-sent version)", async (testCtx) => {
+  it("[P0] 8.4-INT-05: the lock-apply is PRECISE — a send locks only its own sent version's file, leaving an unrelated stray file unlocked (no blanket flip)", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
-    // The lock apply is a DB trigger on the same write as mark-sent ⇒ atomic-by-construction. A
-    // failed send (e.g. an unmet send gate) leaves the link UNLOCKED and the version UNSENT — no
-    // half-locked orphan. Assert the negative: a send that fails does NOT leave the file locked.
+    // This test proves lock PRECISION (the lock never applies outside its own successful parent
+    // transition), NOT atomicity. AC4's atomic-by-construction proof lives in the RLS suite's
+    // 8.4-RLS-04: a rejected write leaves the row BYTE-UNCHANGED because the lock-apply is a pure
+    // BEFORE trigger running inside the triggering write's OWN transaction — trigger + triggering
+    // write are one txn, so there is NO half-write to inject a fault into (the whole txn commits or
+    // rolls back together). Hence no fault-injection path is fabricated here; the atomicity claim is
+    // discharged by 8.4-RLS-04, and this test carries the orthogonal PRECISION guarantee.
     const { versionId, fileId } = await seedDraftVersionWithPdfLink(fx.tenantA);
-    // Simulate an already-sent parent so a second send short-circuits/rejects WITHOUT re-locking a
-    // fresh unrelated file — proves the lock never applies outside its own successful transition.
+    // Send the parent so its own PDF file locks by construction.
     const firstSend = await runCommand(markQuoteVersionSent, {
       client: clientA as never,
       clock: fixedClock,
@@ -445,7 +450,8 @@ describe("8.4-INT-05: partial-lock / archive-delete consistency — a mid-flow f
       input: { quote_version_id: versionId },
     });
     expect(firstSend.ok).toBe(true);
-    // Seed a SECOND, unrelated draft file NOT linked to any sent parent — it must stay unlocked.
+    // Seed a SECOND, unrelated draft file NOT linked to any sent parent — it must stay unlocked
+    // (the send flips ONLY its own version's file, never a blanket flip across the tenant).
     const strayFileId = await adminInsertFile({
       tenant_id: fx.tenantA.id,
       display_name: "stray-8-4.pdf",
