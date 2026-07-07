@@ -74,6 +74,8 @@ import {
   adminInsertCalculation,
   adminInsertQuote,
   adminInsertQuoteVersion,
+  adminInsertFacility,
+  adminInsertContact,
   adminSelectQuoteAcceptanceRow,
   adminSelectAcceptancesForVersion,
   adminSelectJobRow,
@@ -170,6 +172,88 @@ async function seedAcceptedChain(
     acceptanceId: accepted.data.acceptanceId,
     jobId: String(jobs[0]?.id),
   };
+}
+
+/**
+ * Like `seedAcceptedChain`, but the parent quote also carries a facility + contact so the 7.2 accept
+ * RPC copies them onto the created `jobs` row. Needed for the 7.4-INT-02b exempt-precision proof: the
+ * lock deliberately LEAVES `facility_id`/`contact_id` UNLOCKED (they are ON DELETE SET NULL and NOT
+ * AC-named commitment fields), so a direct own-tenant UPDATE of them must SUCCEED — which can only be
+ * proven against a job that actually HAS a facility/contact to re-point. Returns the two alternate
+ * own-tenant facility/contact ids the exempt UPDATE re-points to.
+ */
+async function seedAcceptedChainWithFacility(
+  tenant: FixtureTenant,
+  client: TestServerClient,
+): Promise<{ jobId: string; altFacilityId: string; altContactId: string }> {
+  const customerId = await adminInsertCustomer({
+    tenant_id: tenant.id,
+    customer_type: "company",
+    display_name: `lock-fac-customer-${crypto.randomUUID().slice(0, 8)}`,
+  });
+  const facilityId = await adminInsertFacility({
+    tenant_id: tenant.id,
+    customer_id: customerId,
+    name: `Anläggning ${crypto.randomUUID().slice(0, 8)}`,
+  });
+  const contactId = await adminInsertContact({
+    tenant_id: tenant.id,
+    customer_id: customerId,
+    facility_id: facilityId,
+    name: `Kontakt ${crypto.randomUUID().slice(0, 8)}`,
+  });
+  const calcId = await adminInsertCalculation({
+    tenant_id: tenant.id,
+    customer_id: customerId,
+    title: `lock-fac-calc-${crypto.randomUUID().slice(0, 8)}`,
+  });
+  const quoteId = await adminInsertQuote({
+    tenant_id: tenant.id,
+    customer_id: customerId,
+    facility_id: facilityId,
+    contact_id: contactId,
+  });
+  const versionId = await adminInsertQuoteVersion({
+    tenant_id: tenant.id,
+    quote_id: quoteId,
+    calculation_id: calcId,
+    status: "draft",
+    accepted_price_ore: SOURCE_SENT_TOTAL_ORE,
+  });
+  const sent = await runCommand(markQuoteVersionSent, {
+    client: client as never,
+    clock: fixedClock,
+    correlationId: crypto.randomUUID(),
+    input: { quote_version_id: versionId },
+  });
+  if (!sent.ok) throw new Error(`seedAcceptedChainWithFacility: mark-sent failed (${sent.code})`);
+  const accepted = await runCommand(acceptQuoteAndCreateJob, {
+    client: client as never,
+    clock: fixedClock,
+    correlationId: crypto.randomUUID(),
+    input: {
+      quote_version_id: versionId,
+      accepted_at: ACCEPTED_ISO,
+      accepted_price_ore: SOURCE_SENT_TOTAL_ORE,
+      channel: "verbal",
+    },
+  });
+  if (!accepted.ok) throw new Error(`seedAcceptedChainWithFacility: accept failed (${accepted.code})`);
+  const jobs = await adminSelectJobsForAcceptance(accepted.data.acceptanceId);
+  if (jobs.length !== 1) throw new Error("seedAcceptedChainWithFacility: expected exactly one job");
+  // Alternate own-tenant facility/contact the exempt UPDATE re-points to (same tenant ⇒ RLS-visible).
+  const altFacilityId = await adminInsertFacility({
+    tenant_id: tenant.id,
+    customer_id: customerId,
+    name: `Anläggning ${crypto.randomUUID().slice(0, 8)}`,
+  });
+  const altContactId = await adminInsertContact({
+    tenant_id: tenant.id,
+    customer_id: customerId,
+    facility_id: altFacilityId,
+    name: `Kontakt ${crypto.randomUUID().slice(0, 8)}`,
+  });
+  return { jobId: String(jobs[0]?.id), altFacilityId, altContactId };
 }
 
 // ══════════════════════════════════════════════════════════════════════════════════════════════
@@ -316,6 +400,137 @@ describe("7.4-INT-02: accepted-record immutability BELOW the command — the DB 
     const after = await adminSelectJobRow(jobId);
     expect(after?.title).toBe("Uppdaterad jobbtitel");
     expect(after?.status).toBe("in_progress");
+  });
+});
+
+// ══════════════════════════════════════════════════════════════════════════════════════════════
+// 7.4-INT-02b (automate expansion, AC1/R-704) — the FULL fail-closed-by-construction DB surface
+//
+// The migration (20260711120000_accepted_record_lock.sql) locks EVERYTHING on quote_acceptances
+// except archived_at/updated_at, and the whole source-ref/identity tuple on jobs. The headline
+// 7.4-INT-02 block above proves the AC-NAMED subset (6 acceptance + 3 job columns). This block
+// closes the fail-closed guarantee end-to-end: (1) the REMAINING locked acceptance columns —
+// including the operational-not-commitment ones (notes/planned dates) that are deliberately
+// locked-by-default; (2) the exempt-THEN-tuple combined-mutation branch (an archived_at flip that
+// ALSO touches a locked column must RAISE, not slip through the exempt short-circuit — the trickiest
+// path of enforce_quote_acceptance_lock); (3) jobs.created_at (the one job identity column INT-02
+// omits); (4) the exempt PRECISION on jobs — facility_id/contact_id are deliberately UNLOCKED (ON
+// DELETE SET NULL), so a direct own-tenant re-point of them SUCCEEDS (the lock is precise, not a
+// blanket freeze). All via the anon-key RLS client (NEVER BYPASSRLS) against a REAL accepted chain.
+// ══════════════════════════════════════════════════════════════════════════════════════════════
+describe("7.4-INT-02b: the FULL fail-closed DB surface — every locked column + the exempt precision (AC1, R-704)", () => {
+  // (1) The remaining LOCKED quote_acceptances columns beyond the AC-named subset in 7.4-INT-02.
+  // notes/planned dates are operational (not commitment) yet locked-by-default — the fail-closed
+  // posture; adjustment_reason/evidence_file_id/quote_id complete the identity+evidence surface.
+  const REMAINING_LOCKED_ACCEPTANCE_UPDATES: readonly { field: string; value: unknown }[] = [
+    { field: "quote_id", value: crypto.randomUUID() },
+    { field: "adjustment_reason", value: "tampered-reason" },
+    { field: "evidence_file_id", value: crypto.randomUUID() },
+    { field: "notes", value: "tampered-notes" },
+    { field: "planned_start_date", value: "2030-01-01" },
+    { field: "planned_end_date", value: "2030-02-01" },
+  ];
+
+  for (const { field, value } of REMAINING_LOCKED_ACCEPTANCE_UPDATES) {
+    it(`[P0] 7.4-INT-02b: a DIRECT own-tenant UPDATE of quote_acceptances.\`${field}\` is REJECTED by the trigger (locked-by-default ⇒ AR704)`, async (testCtx) => {
+      if (skipUnlessStack(testCtx, stackUp)) return;
+      const { acceptanceId } = await seedAcceptedChain(fx.tenantA, clientA);
+      const before = await adminSelectQuoteAcceptanceRow(acceptanceId);
+
+      const { error } = await clientA
+        .from("quote_acceptances")
+        .update({ [field]: value })
+        .eq("id", acceptanceId)
+        .select();
+
+      expect(error).not.toBeNull();
+      expect(error?.code).toBe(ACCEPTED_LOCK_SQLSTATE);
+      const after = await adminSelectQuoteAcceptanceRow(acceptanceId);
+      expect(String(after?.[field])).toBe(String(before?.[field]));
+    });
+  }
+
+  // (2) The exempt-THEN-tuple combined-mutation branch: an archived_at flip that ALSO mutates a
+  // locked column in the SAME UPDATE must RAISE. A naive exempt short-circuit would let the locked
+  // column through; the fail-closed trigger re-compares the full commitment tuple inside the exempt
+  // branch and RAISEs. This is the single most important branch of enforce_quote_acceptance_lock.
+  it("[P0] 7.4-INT-02b: an archived_at flip COMBINED with a locked-column change in the SAME UPDATE is REJECTED (the exempt branch does NOT let a locked column slip through)", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
+    const { acceptanceId } = await seedAcceptedChain(fx.tenantA, clientA);
+    const before = await adminSelectQuoteAcceptanceRow(acceptanceId);
+
+    const { error } = await clientA
+      .from("quote_acceptances")
+      .update({ archived_at: fixedClock.now().toISOString(), accepted_price_ore: 999_999 })
+      .eq("id", acceptanceId)
+      .select();
+
+    // The exempt (archived_at) column co-mutated with a locked (accepted_price_ore) column ⇒ RAISE.
+    expect(error).not.toBeNull();
+    expect(error?.code).toBe(ACCEPTED_LOCK_SQLSTATE);
+    const after = await adminSelectQuoteAcceptanceRow(acceptanceId);
+    // The whole row is byte-unchanged — neither the exempt NOR the locked column was written.
+    expect(after?.archived_at ?? null).toBe(before?.archived_at ?? null);
+    expect(String(after?.accepted_price_ore)).toBe(String(before?.accepted_price_ore));
+  });
+
+  // (3) jobs.created_at — the one job identity column 7.4-INT-02 omits — is in the locked tuple.
+  it("[P0] 7.4-INT-02b: a DIRECT own-tenant UPDATE of jobs.`created_at` is REJECTED by the trigger (AR704)", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
+    const { jobId } = await seedAcceptedChain(fx.tenantA, clientA);
+    const before = await adminSelectJobRow(jobId);
+
+    const { error } = await clientA
+      .from("jobs")
+      .update({ created_at: "2020-01-01T00:00:00.000Z" })
+      .eq("id", jobId)
+      .select();
+
+    expect(error).not.toBeNull();
+    expect(error?.code).toBe(ACCEPTED_LOCK_SQLSTATE);
+    const after = await adminSelectJobRow(jobId);
+    expect(String(after?.created_at)).toBe(String(before?.created_at));
+  });
+
+  // (4) Exempt PRECISION on jobs: facility_id/contact_id are deliberately UNLOCKED (ON DELETE SET
+  // NULL, not AC-named commitment fields), so a direct own-tenant re-point SUCCEEDS. Proves the job
+  // lock is the source-ref tuple ONLY, not a blanket freeze — the migration's explicit decision.
+  it("[P0] 7.4-INT-02b: a DIRECT own-tenant UPDATE of jobs.`facility_id`/`contact_id` SUCCEEDS (deliberately UNLOCKED for the ON DELETE SET NULL cascade)", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
+    const { jobId, altFacilityId, altContactId } = await seedAcceptedChainWithFacility(
+      fx.tenantA,
+      clientA,
+    );
+
+    const { error } = await clientA
+      .from("jobs")
+      .update({ facility_id: altFacilityId, contact_id: altContactId })
+      .eq("id", jobId)
+      .select();
+
+    // The exempt SET-NULL columns are not in the locked tuple ⇒ the re-point is allowed.
+    expect(error).toBeNull();
+    const after = await adminSelectJobRow(jobId);
+    expect(after?.facility_id).toBe(altFacilityId);
+    expect(after?.contact_id).toBe(altContactId);
+  });
+
+  // Companion: nulling facility_id/contact_id (the actual ON DELETE SET NULL shape) also SUCCEEDS —
+  // the cascade the lock must never fight.
+  it("[P0] 7.4-INT-02b: a DIRECT own-tenant UPDATE nulling jobs.`facility_id`/`contact_id` SUCCEEDS (the SET NULL cascade is never fought)", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
+    const { jobId } = await seedAcceptedChainWithFacility(fx.tenantA, clientA);
+
+    const { error } = await clientA
+      .from("jobs")
+      .update({ facility_id: null, contact_id: null })
+      .eq("id", jobId)
+      .select();
+
+    expect(error).toBeNull();
+    const after = await adminSelectJobRow(jobId);
+    expect(after?.facility_id).toBeNull();
+    expect(after?.contact_id).toBeNull();
   });
 });
 
