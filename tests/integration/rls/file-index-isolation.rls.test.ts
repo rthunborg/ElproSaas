@@ -59,6 +59,13 @@ import { isLocalStackReachable } from "../../support/test-env";
 import { skipUnlessStack } from "../../support/stack-gate";
 // GREEN (Story 8.5 dev): the ACTIVE owner set is the single source of truth for the index read filter.
 import { ACTIVE_OWNER_TYPES } from "@/server/commands/files/validation";
+// GREEN (Story 8.5 dev, Task 1.1): the REAL index read is now INJECTABLE — exercise it directly on the
+// authed anon-key RLS client so the actual read path (incl. the JS archived/deleted lifecycle-drop) is
+// under test, not just the raw SQL query shape.
+import {
+  readFileIndex,
+  type FileIndexReadClient,
+} from "@/features/files/read";
 
 /** The display-safe columns the index read is allowed to select — NEVER object_path/bucket_id (R-810). */
 const INDEX_SELECT =
@@ -150,7 +157,7 @@ async function runIndexQuery(client: TestServerClient) {
 // ══════════════════════════════════════════════════════════════════════════════════════════════
 // 8.5-RLS-01 (P1, AC1/AC3) — tenant A's index lists ONLY tenant A files across several owner types
 // ══════════════════════════════════════════════════════════════════════════════════════════════
-describe.skip("8.5-RLS-01: the limited index lists ONLY the caller's own-tenant files across Phase A owner types (AC1/AC3, R-801)", () => {
+describe("8.5-RLS-01: the limited index lists ONLY the caller's own-tenant files across Phase A owner types (AC1/AC3, R-801)", () => {
   it("[P1] 8.5-RLS-01: tenant A's index returns the seeded A file_links (customer + calculation) and NO tenant-B link/file id", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     // Seed A files across two owner types + a B file that must NEVER appear in A's index.
@@ -158,11 +165,13 @@ describe.skip("8.5-RLS-01: the limited index lists ONLY the caller's own-tenant 
     const aCalc = await seedCalculationFile(fx.tenantA);
     const bCustomer = await seedCustomerFile(fx.tenantB);
 
-    const { data, error } = await runIndexQuery(clientA);
+    // Exercise the REAL injectable read on A's authed anon-key RLS client (the actual read path).
+    const { rows, error } = await readFileIndex(
+      clientA as unknown as FileIndexReadClient,
+    );
     expect(error).toBeNull();
-    const rows = data ?? [];
-    const linkIds = rows.map((r) => (r as { id: string }).id);
-    const fileIds = rows.map((r) => (r as { file_id: string }).file_id);
+    const linkIds = rows.map((r) => r.linkId);
+    const fileIds = rows.map((r) => r.fileId);
 
     // POSITIVE own-tenant set: both A links appear.
     expect(linkIds).toContain(aCustomer.linkId);
@@ -176,7 +185,7 @@ describe.skip("8.5-RLS-01: the limited index lists ONLY the caller's own-tenant 
 // ══════════════════════════════════════════════════════════════════════════════════════════════
 // 8.5-RLS-02 (P1, AC3) — a cross-tenant owner-id probe returns ZERO rows (no existence disclosure)
 // ══════════════════════════════════════════════════════════════════════════════════════════════
-describe.skip("8.5-RLS-02: a cross-tenant owner-id filter on the index returns ZERO rows (RLS invisibility, no leak) (AC3, R-809)", () => {
+describe("8.5-RLS-02: a cross-tenant owner-id filter on the index returns ZERO rows (RLS invisibility, no leak) (AC3, R-809)", () => {
   it("[P1] 8.5-RLS-02: tenant A filtering the index by a tenant-B owner_id returns an EMPTY set", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     const bCustomer = await seedCustomerFile(fx.tenantB);
@@ -198,7 +207,7 @@ describe.skip("8.5-RLS-02: a cross-tenant owner-id filter on the index returns Z
 // ══════════════════════════════════════════════════════════════════════════════════════════════
 // 8.5-RLS-03 (P1, AC1/R-810) — the index projection is display-safe (no raw object_path/bucket_id)
 // ══════════════════════════════════════════════════════════════════════════════════════════════
-describe.skip("8.5-RLS-03: the index projection returns ONLY display-safe columns — NEVER object_path/bucket_id (AC1, R-810)", () => {
+describe("8.5-RLS-03: the index projection returns ONLY display-safe columns — NEVER object_path/bucket_id (AC1, R-810)", () => {
   it("[P1] 8.5-RLS-03: no listed row exposes object_path or bucket_id", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     await seedCustomerFile(fx.tenantA);
@@ -214,7 +223,7 @@ describe.skip("8.5-RLS-03: the index projection returns ONLY display-safe column
 // ══════════════════════════════════════════════════════════════════════════════════════════════
 // 8.5-RLS-04 (P1, AC1) — archived links/files are DROPPED from the limited index
 // ══════════════════════════════════════════════════════════════════════════════════════════════
-describe.skip("8.5-RLS-04: an ARCHIVED file/link is DROPPED from the index (the .is('archived_at', null) + lifecycle filter) (AC1)", () => {
+describe("8.5-RLS-04: an ARCHIVED file/link is DROPPED from the index (the .is('archived_at', null) + lifecycle filter) (AC1)", () => {
   it("[P1] 8.5-RLS-04: after a file is archived (lifecycle_state='archived'), its link no longer appears in the index", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     const { fileId, linkId } = await seedCustomerFile(fx.tenantA);
@@ -227,9 +236,13 @@ describe.skip("8.5-RLS-04: an ARCHIVED file/link is DROPPED from the index (the 
       .select();
     expect(upErr).toBeNull();
 
-    const { data, error } = await runIndexQuery(clientA);
+    // Exercise the REAL read: the index drops an archived FILE via the JS lifecycle-state filter
+    // (the file's link has no archived_at, so only the read's lifecycle-drop excludes it).
+    const { rows, error } = await readFileIndex(
+      clientA as unknown as FileIndexReadClient,
+    );
     expect(error).toBeNull();
-    const linkIds = (data ?? []).map((r) => (r as { id: string }).id);
+    const linkIds = rows.map((r) => r.linkId);
     // The archived file's link is excluded from the limited index.
     expect(linkIds).not.toContain(linkId);
   });

@@ -145,7 +145,7 @@ async function seedSentVersionWithLockedPdf(
 // ══════════════════════════════════════════════════════════════════════════════════════════════
 // 8.5-INT-01 (P1, AC2) — the archive path writes EXACTLY ONE §15-clean audit row; re-archive writes none
 // ══════════════════════════════════════════════════════════════════════════════════════════════
-describe.skip("8.5-INT-01: the file archive path writes EXACTLY ONE file.archived audit row with allow-listed metadata; a re-archive writes none (AC2, §15)", () => {
+describe("8.5-INT-01: the file archive path writes EXACTLY ONE file.archived audit row with allow-listed metadata; a re-archive writes none (AC2, §15)", () => {
   it("[P1] 8.5-INT-01: a fresh archive writes one file.archived row with clean { targetId, reason? } metadata (no object_path/bucket/PII/file-name)", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     const { fileId } = await seedSentVersionWithLockedPdf(fx.tenantA);
@@ -198,7 +198,7 @@ describe.skip("8.5-INT-01: the file archive path writes EXACTLY ONE file.archive
 // ══════════════════════════════════════════════════════════════════════════════════════════════
 // 8.5-INT-02 (P1, AC2) — the §15 file-event set is the closed, REUSED-verbatim set (no new audit model)
 // ══════════════════════════════════════════════════════════════════════════════════════════════
-describe.skip("8.5-INT-02: the §15 file-event set is EXACTLY the four REUSED event types — no new audit model / file_events table (AC2, §15)", () => {
+describe("8.5-INT-02: the §15 file-event set is EXACTLY the four REUSED event types — no new audit model / file_events table (AC2, §15)", () => {
   it("[P1] 8.5-INT-02: the archive emits its event under the §15-named `file.archived` type (a member of the closed set)", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     const { fileId } = await seedSentVersionWithLockedPdf(fx.tenantA);
@@ -225,7 +225,7 @@ describe.skip("8.5-INT-02: the §15 file-event set is EXACTLY the four REUSED ev
 // ══════════════════════════════════════════════════════════════════════════════════════════════
 // 8.5-INT-03 (P1, AC5) — a cross-tenant archive ⇒ TENANT_ACCESS_DENIED, no audit row for the foreign id
 // ══════════════════════════════════════════════════════════════════════════════════════════════
-describe.skip("8.5-INT-03: a cross-tenant archive attempt ⇒ TENANT_ACCESS_DENIED (no existence disclosure), no audit row written (AC5, R-809)", () => {
+describe("8.5-INT-03: a cross-tenant archive attempt ⇒ TENANT_ACCESS_DENIED (no existence disclosure), no audit row written (AC5, R-809)", () => {
   it("[P1] 8.5-INT-03: tenant A archiving a tenant B locked file ⇒ TENANT_ACCESS_DENIED and NO file.archived audit row", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     const { fileId: bFileId } = await seedSentVersionWithLockedPdf(fx.tenantB);

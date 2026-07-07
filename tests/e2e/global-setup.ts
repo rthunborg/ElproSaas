@@ -456,6 +456,160 @@ export default async function globalSetup() {
   );
   const acceptedJobId = acceptRpcRows[0]?.job_id ?? null;
 
+  // Story 8.5 — a DEDICATED SENT quote whose ONLY version is a SENT v1 carrying a LOCKED quote_pdf
+  // file, so the 8.4/8.5 file-lock-panel E2E can assert the sent-quote lock notice + archive-only
+  // affordance on the quote detail's default (latest = sent) version. Seed the PDF file (draft) +
+  // its quote_pdf link WHILE the version is still draft (the 6.4 child-lock only allows child writes
+  // on a draft parent), THEN flip the version to sent — the parent-transition trigger
+  // `quote_versions_apply_file_lock` locks the PDF link + file BY CONSTRUCTION. `crypto.randomUUID`
+  // (never Date.now) for uniqueness — the epic-3 flake lesson.
+  const sentLockQuoteId = await adminInsertQuote({
+    tenant_id: base.tenantA.id,
+    customer_id: companyId,
+    facility_id: facilityId,
+  });
+  const sentLockVersionId = await adminInsertQuoteVersion({
+    tenant_id: base.tenantA.id,
+    quote_id: sentLockQuoteId,
+    calculation_id: calcId,
+    version_number: 1,
+    quote_number: 1007,
+    status: "draft",
+    company_name: `Elpro Demo AB ${token()}`,
+    customer_display_name: companyName,
+    intro_text: "Skickad version med låst PDF (8.5 file-lock-panel)",
+  });
+  await adminInsertQuoteVersionLine({
+    tenant_id: base.tenantA.id,
+    quote_version_id: sentLockVersionId,
+    label: `Låst-PDF-rad ${token()}`,
+    unit_sell_ore: 85000,
+    vat_rate_bp: 2500,
+    sort_order: 0,
+  });
+  const sentPdfFileId = crypto.randomUUID();
+  const sentPdfObjectPath = `${base.tenantA.id}/${sentPdfFileId}/offert-1007.pdf`;
+  await adminUploadStorageObject({
+    bucket: "tenant-files",
+    objectPath: sentPdfObjectPath,
+    body: new TextEncoder().encode("%PDF-1.7\n%sent-lock-stub\n"),
+  });
+  await adminInsertFile({
+    tenant_id: base.tenantA.id,
+    id: sentPdfFileId,
+    display_name: "offert-1007.pdf",
+    bucket_id: "tenant-files",
+    object_path: sentPdfObjectPath,
+    mime_type: "application/pdf",
+    lifecycle_state: "linked",
+  });
+  await adminInsertFileLink({
+    tenant_id: base.tenantA.id,
+    file_id: sentPdfFileId,
+    owner_type: "quote_version",
+    owner_id: sentLockVersionId,
+    purpose: "quote_pdf",
+  });
+  // Flip the version to sent — this fires quote_versions_apply_file_lock, locking the PDF link+file.
+  await adminQuery(
+    `update public.quote_versions set status = 'sent' where id = $1`,
+    [sentLockVersionId],
+  );
+  await adminInsertQuoteEvent({
+    tenant_id: base.tenantA.id,
+    quote_id: sentLockQuoteId,
+    quote_version_id: sentLockVersionId,
+    event_type: "created",
+  });
+
+  // Story 8.5 — a DEDICATED ACCEPTED quote whose acceptance carries a LOCKED acceptance_evidence
+  // file, so the file-lock-panel E2E can assert the evidence lock notice on the accepted section.
+  // Seed a sent version, drive the REAL accept transaction (creating the acceptance), then link an
+  // evidence file to the acceptance — `apply_file_link_lock` locks the evidence link+file the moment
+  // the acceptance exists (AR704 has no draft state).
+  const evidenceQuoteId = await adminInsertQuote({
+    tenant_id: base.tenantA.id,
+    customer_id: companyId,
+    facility_id: facilityId,
+  });
+  const evidenceVersionId = await adminInsertQuoteVersion({
+    tenant_id: base.tenantA.id,
+    quote_id: evidenceQuoteId,
+    calculation_id: calcId,
+    version_number: 1,
+    quote_number: 1008,
+    status: "draft",
+    company_name: `Elpro Demo AB ${token()}`,
+    customer_display_name: companyName,
+    intro_text: "Accepterad version med låst underlag (8.5 file-lock-panel)",
+    accepted_price_ore: 125000,
+  });
+  await adminInsertQuoteVersionLine({
+    tenant_id: base.tenantA.id,
+    quote_version_id: evidenceVersionId,
+    label: `Underlagsrad ${token()}`,
+    unit_sell_ore: 85000,
+    vat_rate_bp: 2500,
+    sort_order: 0,
+  });
+  await adminQuery(
+    `update public.quote_versions set status = 'sent' where id = $1`,
+    [evidenceVersionId],
+  );
+  await adminInsertQuoteEvent({
+    tenant_id: base.tenantA.id,
+    quote_id: evidenceQuoteId,
+    quote_version_id: evidenceVersionId,
+    event_type: "created",
+  });
+  const evidenceAcceptRpcRows = await adminQuery<{ acceptance_id: string; job_id: string }>(
+    `select acceptance_id, job_id from public.accept_quote_and_create_job(
+        $1::uuid, $2::uuid, $3::timestamptz, $4::bigint, $5::bigint,
+        $6::text, $7::text, $8::uuid, $9::text, $10::text, $11::date, $12::date, $13::text, $14::text)`,
+    [
+      base.tenantA.id,
+      evidenceVersionId,
+      "2026-07-11T08:30:00.000Z",
+      125000,
+      125000,
+      "verbal",
+      null,
+      null,
+      "Signerad orderbekräftelse (referens #A-8005)",
+      "Accepterat via telefon 2026-07-11",
+      "2026-08-01",
+      "2026-08-20",
+      "Jobb från accepterad offert 1008",
+      null,
+    ],
+  );
+  const evidenceAcceptanceId = evidenceAcceptRpcRows[0]?.acceptance_id ?? null;
+  const evidenceFileId = crypto.randomUUID();
+  const evidenceObjectPath = `${base.tenantA.id}/${evidenceFileId}/underlag-1008.pdf`;
+  await adminUploadStorageObject({
+    bucket: "tenant-files",
+    objectPath: evidenceObjectPath,
+    body: new TextEncoder().encode("%PDF-1.7\n%evidence-lock-stub\n"),
+  });
+  await adminInsertFile({
+    tenant_id: base.tenantA.id,
+    id: evidenceFileId,
+    display_name: "underlag-1008.pdf",
+    bucket_id: "tenant-files",
+    object_path: evidenceObjectPath,
+    mime_type: "application/pdf",
+    lifecycle_state: "linked",
+  });
+  if (evidenceAcceptanceId) {
+    await adminInsertFileLink({
+      tenant_id: base.tenantA.id,
+      file_id: evidenceFileId,
+      owner_type: "quote_acceptance",
+      owner_id: evidenceAcceptanceId,
+      purpose: "acceptance_evidence",
+    });
+  }
+
   // PDF render-state seed (Story 6.3): a SEPARATE quote (so the 6.2 quote above keeps EXACTLY
   // two versions) with THREE versions exercising the render states DETERMINISTICALLY without a
   // real generation:
@@ -626,6 +780,20 @@ export default async function globalSetup() {
       notGeneratedVersionId,
       generatedVersionId,
       failedVersionId,
+    },
+    // Story 8.5 — a dedicated SENT quote whose latest version carries a LOCKED quote_pdf file (the
+    // file-lock-panel E2E asserts the sent-quote lock notice + archive-only affordance).
+    sentQuote: {
+      quoteId: sentLockQuoteId,
+      sentVersionId: sentLockVersionId,
+      pdfFileId: sentPdfFileId,
+    },
+    // Story 8.5 — a dedicated ACCEPTED quote whose acceptance carries a LOCKED acceptance_evidence
+    // file (the file-lock-panel E2E asserts the evidence lock notice on the accepted section).
+    acceptedAcceptance: {
+      quoteId: evidenceQuoteId,
+      acceptanceId: evidenceAcceptanceId,
+      evidenceFileId,
     },
   };
 

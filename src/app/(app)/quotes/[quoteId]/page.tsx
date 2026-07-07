@@ -16,6 +16,7 @@ import Link from "next/link";
 import { QuoteDetailView } from "@/components/quotes/QuoteDetailView";
 import { readQuoteDetail } from "@/features/quotes/read";
 import { renderAcceptanceFilesPanel } from "@/features/files/acceptance-panel";
+import { renderSentQuoteFilesPanel } from "@/features/files/quote-files-panel";
 
 export const dynamic = "force-dynamic";
 
@@ -74,9 +75,17 @@ export default async function QuoteDetailPage({
   }
 
   // Story 8.2 — the acceptance-evidence file panel for the selected version (when accepted).
-  const acceptanceFilesPanel = await renderAcceptanceFilesPanel(detail, quoteId);
+  // Story 8.5 — the locked commitment-file panel for a non-draft (sent/accepted) version's PDF.
+  const [acceptanceFilesPanel, sentQuoteFilesPanel] = await Promise.all([
+    renderAcceptanceFilesPanel(detail, quoteId),
+    renderSentQuoteFilesPanel(detail, quoteId),
+  ]);
 
   return (
-    <QuoteDetailView detail={detail} acceptanceFilesPanel={acceptanceFilesPanel} />
+    <QuoteDetailView
+      detail={detail}
+      acceptanceFilesPanel={acceptanceFilesPanel}
+      sentQuoteFilesPanel={sentQuoteFilesPanel}
+    />
   );
 }

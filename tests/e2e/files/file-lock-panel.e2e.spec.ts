@@ -76,7 +76,7 @@ async function signIn(page: Page, email: string, password: string): Promise<void
 }
 
 test.describe("Locked-file panel lock/archive UX (Story 8.4 E2E)", () => {
-  test.skip("8.4-E2E-01 (AC1): a SENT quote's locked PDF/attachment shows a lock notice and NO replace/delete affordance", async ({
+  test("8.4-E2E-01 (AC1): a SENT quote's locked PDF/attachment shows a lock notice and NO replace/delete affordance", async ({
     page,
   }) => {
     await signIn(page, fixture.adminA.email, fixture.adminA.password);
@@ -96,7 +96,7 @@ test.describe("Locked-file panel lock/archive UX (Story 8.4 E2E)", () => {
     }
   });
 
-  test.skip("8.4-E2E-01 (AC3): the ONLY destructive affordance on a locked file is archive-only", async ({
+  test("8.4-E2E-01 (AC3): the ONLY destructive affordance on a locked file is archive-only", async ({
     page,
   }) => {
     await signIn(page, fixture.adminA.email, fixture.adminA.password);
@@ -109,7 +109,7 @@ test.describe("Locked-file panel lock/archive UX (Story 8.4 E2E)", () => {
     await expect(page.getByTestId("delete-file")).toHaveCount(0);
   });
 
-  test.skip("8.4-E2E-01 (AC2): an accepted acceptance's evidence file shows the same locked-evidence notice", async ({
+  test("8.4-E2E-01 (AC2): an accepted acceptance's evidence file shows the same locked-evidence notice", async ({
     page,
   }) => {
     await signIn(page, fixture.adminA.email, fixture.adminA.password);

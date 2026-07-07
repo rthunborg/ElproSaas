@@ -34,7 +34,11 @@ import { revalidatePath } from "next/cache";
 import { createSupabaseServerClient } from "@/server/db/supabase-server-client";
 import { runCommand, type CommandDbClient } from "@/server/commands/envelope";
 import { COMMAND_MESSAGES } from "@/server/commands/command-errors";
-import { createSignedFileAccess, uploadFile } from "@/server/commands/files";
+import {
+  archiveFile,
+  createSignedFileAccess,
+  uploadFile,
+} from "@/server/commands/files";
 import {
   classifyUploadError,
   type UploadPrecheck,
@@ -49,6 +53,11 @@ import {
   UPLOAD_ERROR_MESSAGES,
   type UploadActionState,
 } from "./upload-action-state";
+import {
+  ARCHIVE_ACTION_INITIAL,
+  ARCHIVE_ERROR_MESSAGES,
+  type ArchiveActionState,
+} from "./archive-action-state";
 
 /**
  * The entity route to revalidate on a successful upload, per owner type. `facility` /
@@ -209,5 +218,73 @@ export async function previewEntityFileAction(
     status: "error",
     code: result.code,
     formError: result.message || COMMAND_MESSAGES[result.code],
+  };
+}
+
+/**
+ * The entity-file ARCHIVE server action (Story 8.5, Task 2.3 — React `useActionState` signature:
+ * (prevState, formData)). Wires the panel/index ARCHIVE-ONLY affordance to the EXISTING `archiveFile`
+ * command — the 8.4 archive-over-delete write REUSED VERBATIM (no new command, no direct table write,
+ * no service-role, R-814).
+ *
+ *   runCommand(archiveFile, { client: createSupabaseServerClient(), input })
+ *
+ *   - `client` is the per-request, cookie-bound RLS server client (anon key ONLY — NEVER a
+ *     service-role key). The command's `ownership` gate re-verifies own-tenant: a foreign / crafted
+ *     `file_id` → zero rows → `TENANT_ACCESS_DENIED` (the SAME generic shape as not-found — no
+ *     existence disclosure, R-809/AC5).
+ *   - The action carries ONLY the row's `file_id` (+ an optional bounded `reason`). It issues an
+ *     ARCHIVE intent — NEVER `hardDelete:true` (the crafted hard-delete path is a command-layer test
+ *     surface, never the UI's happy path). An idempotent re-archive is a clean no-op at the command.
+ *   - On success `revalidatePath` the entity route (the form's `revalidate_path`, mirroring
+ *     `uploadFileAction`) so the panel/index re-renders with the archived file dropped.
+ *
+ * The typed `Result` maps to a user-safe `ArchiveActionState`: `FILE_LINK_LOCKED` → the locked
+ * message (defensive — the archive intent shouldn't trip it); `TENANT_ACCESS_DENIED` → generic
+ * permission; everything else (`SERVER_ERROR`/…) → retryable.
+ */
+export async function archiveFileAction(
+  _prev: ArchiveActionState,
+  form: FormData,
+): Promise<ArchiveActionState> {
+  const fileId = form.get("file_id");
+  const rawReason = form.get("reason");
+  const reason =
+    typeof rawReason === "string" && rawReason.trim().length > 0
+      ? rawReason.trim()
+      : undefined;
+
+  // Carry ONLY the file id (+ optional reason). NEVER hardDelete — the UI always ARCHIVES (the
+  // archive-over-delete discipline; a locked file may be archived, never hard-deleted).
+  const input: Record<string, unknown> = {
+    id: fileId,
+    ...(reason !== undefined ? { reason } : {}),
+  };
+
+  const client = (await createSupabaseServerClient()) as unknown as CommandDbClient;
+  const result = await runCommand(archiveFile, { client, input });
+
+  if (result.ok) {
+    const explicit =
+      typeof form.get("revalidate_path") === "string"
+        ? String(form.get("revalidate_path"))
+        : null;
+    if (explicit && explicit.startsWith("/")) revalidatePath(explicit);
+    return { ...ARCHIVE_ACTION_INITIAL, status: "success" };
+  }
+
+  // Map the typed Result to a user-safe error state (no existence disclosure, no raw detail).
+  const errorState =
+    result.code === "FILE_LINK_LOCKED"
+      ? "LOCKED"
+      : result.code === "TENANT_ACCESS_DENIED" ||
+          result.code === "FILE_ACCESS_DENIED"
+        ? "PERMISSION"
+        : "NETWORK_OR_SERVER";
+  return {
+    ...ARCHIVE_ACTION_INITIAL,
+    status: "error",
+    errorState,
+    formError: ARCHIVE_ERROR_MESSAGES[errorState],
   };
 }

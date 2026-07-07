@@ -22,9 +22,10 @@
  * upload authority is the `uploadFile` command's server-side gate; the client pre-check
  * (blocked-type / too-large) is a UX nicety that the server re-validates identically.
  */
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { useActionState } from "react";
-import { previewEntityFileAction, uploadFileAction } from "@/features/files/actions";
+import { uploadFileAction } from "@/features/files/actions";
+import { FilePreviewRow } from "@/components/files/FilePreviewRow";
 import {
   ALLOWED_MIME_TYPES,
   MAX_UPLOAD_SIZE_DISPLAY,
@@ -35,11 +36,6 @@ import {
   UPLOAD_ACTION_INITIAL,
   UPLOAD_ERROR_MESSAGES,
 } from "@/features/files/upload-action-state";
-import {
-  SIGNED_ACCESS_INITIAL,
-  isSignedUrlExpired,
-  type SignedAccessState,
-} from "@/features/files/signed-access-state";
 import type { UploadErrorState } from "@/server/storage/upload-error-classifier";
 import type { EntityFileRow } from "@/features/files/read";
 import type { ActiveOwnerType } from "@/server/commands/files/validation";
@@ -85,14 +81,6 @@ export interface EntityFilePanelProps {
    * Absent → the canonical unsuffixed testids (the primary panel + the E2E contract).
    */
   readonly testIdSuffix?: string;
-}
-
-/** Format a byte count as a compact human size for the list. */
-function formatSize(bytes: number | null): string {
-  if (bytes === null || !Number.isFinite(bytes)) return "";
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
-  return `${Math.round(bytes / (1024 * 1024))} MB`;
 }
 
 export function EntityFilePanel(props: EntityFilePanelProps) {
@@ -251,162 +239,21 @@ export function EntityFilePanel(props: EntityFilePanelProps) {
               </li>
             ) : (
               props.files.map((f, i) => (
-                <FilePreviewRow key={f.linkId} file={f} tid={tid} index={i} />
+                <FilePreviewRow
+                  key={f.linkId}
+                  file={f}
+                  tid={tid}
+                  index={i}
+                  purpose={props.purpose}
+                  revalidatePath={props.revalidatePath}
+                  uploadInputId={inputId}
+                />
               ))
             )}
           </ul>
         )}
       </div>
     </section>
-  );
-}
-
-/**
- * A single listed-file row with its per-file preview/download affordance (Story 8.3, Task 3).
- *
- * Each row owns its OWN `useActionState(previewEntityFileAction)` so the minted signed URL
- * lives only in THIS row's state — never shared across files, never logged, never a public URL
- * (R-810). The affordance:
- *   - a per-row form → `previewEntityFileAction` carrying ONLY the row's `fileId` (the SERVER
- *     command re-verifies own-tenant ownership + lifecycle before signing — the client shape is
- *     a UX choice, never the security boundary);
- *   - on success → a time-limited `<a target="_blank" rel="noopener noreferrer">` ("Öppna fil
- *     (tidsbegränsad länk)"); once the returned `expiresAt` has passed (the pure
- *     `isSignedUrlExpired` verdict), the stale link is HIDDEN and a "Länken har gått ut — öppna
- *     igen" control RE-SUBMITS the form (re-invoking the command = a fresh full auth — the stale
- *     URL is NEVER reused, AC2);
- *   - on error → a generic `role="alert"` message (no raw path, no existence disclosure, R-809);
- *   - while pending → a disabled "Öppnar…" button.
- *
- * NO raw `object_path` / `bucket_id` is ever rendered — the list row carries only display-safe
- * fields from `readEntityFiles`, and the signed URL is the ONLY storage handle the client sees.
- * The preview does NOT re-fetch/re-render the panel (no `router.refresh`) — the mint is a
- * client-triggered action returning state; the LIST stays the server-fetched prop (Task 3.4).
- */
-function FilePreviewRow({
-  file,
-  tid,
-  index,
-}: {
-  readonly file: EntityFileRow;
-  readonly tid: (base: string) => string;
-  readonly index: number;
-}) {
-  const [state, formAction, pending] = useActionState<SignedAccessState, FormData>(
-    previewEntityFileAction,
-    SIGNED_ACCESS_INITIAL,
-  );
-  // A per-row testid: the canonical unsuffixed base (via `tid`) for the FIRST row keeps the E2E
-  // `.first()` contract stable; each row also gets an index suffix so multiple files stay
-  // individually addressable on a multi-file panel.
-  const rowSuffix = index === 0 ? "" : `-${index}`;
-  const rid = (base: string) => `${tid(base)}${rowSuffix}`;
-
-  // Re-evaluate the expiry verdict on a wall-clock tick so a link that ages out flips to the
-  // "open again" affordance WITHOUT a full re-render of the panel (Task 3.2/3.4). `nowMs` is the
-  // client's current instant; the pure `isSignedUrlExpired` owns the comparison (never the DOM).
-  // We only ever advance `nowMs` from a scheduled timer (never synchronously in the effect body),
-  // so an already-expired link is flipped via a 0ms timer — no cascading synchronous re-render.
-  const [nowMs, setNowMs] = useState<number>(() => Date.now());
-  useEffect(() => {
-    if (state.status !== "success" || state.expiresAt === null) return;
-    const expiryMs = Date.parse(state.expiresAt);
-    if (!Number.isFinite(expiryMs)) return;
-    const remaining = expiryMs - Date.now();
-    // Flip to "expired" exactly when the link ages out (or immediately, via 0ms, for a link that
-    // arrives already past). One bounded timer per active link; cleared on state change/unmount.
-    const timer = setTimeout(() => setNowMs(Date.now()), Math.max(0, remaining));
-    return () => clearTimeout(timer);
-  }, [state.status, state.expiresAt]);
-
-  const hasFreshLink =
-    state.status === "success" &&
-    state.signedUrl !== null &&
-    !isSignedUrlExpired(state.expiresAt, new Date(nowMs).toISOString());
-  const linkExpired =
-    state.status === "success" &&
-    state.signedUrl !== null &&
-    isSignedUrlExpired(state.expiresAt, new Date(nowMs).toISOString());
-
-  const openLabel = pending
-    ? "Öppnar…"
-    : state.status === "success"
-      ? "Öppna igen"
-      : "Öppna fil";
-
-  return (
-    <li
-      data-testid={rid("file-panel-file-item")}
-      className="flex flex-col gap-1 rounded border border-zinc-100 px-2 py-1"
-    >
-      <div className="flex items-center justify-between gap-3">
-        <span className="truncate text-zinc-800">{file.displayName}</span>
-        <span className="shrink-0 text-xs text-zinc-500">
-          {formatSize(file.sizeBytes)}
-        </span>
-      </div>
-      <form action={formAction} className="flex flex-col gap-1">
-        {/* The action carries ONLY the file id — NEVER owner_type/owner_id/object_path/bucket_id
-            (the server command binds it to the caller's own tenant; a foreign id is denied). */}
-        <input type="hidden" name="file_id" value={file.fileId} />
-        {/* When the current link has NOT expired, the primary button is a plain "open"/pending.
-            Once it expires, the SAME submit becomes the re-open control (a fresh full auth). */}
-        {!linkExpired ? (
-          <button
-            type="submit"
-            disabled={pending}
-            data-testid={rid("file-preview-button")}
-            className="inline-flex w-fit items-center rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-blue-700 hover:bg-zinc-50 disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
-          >
-            {openLabel}
-          </button>
-        ) : (
-          <>
-            {/* EXPIRY → REFRESH (AC2): the stale URL is NOT reused. A generic text status (not
-                color-only) + a re-open submit that RE-INVOKES the command (a fresh full auth). */}
-            <p
-              role="status"
-              data-testid={rid("file-preview-expired")}
-              className="text-xs text-amber-800"
-            >
-              Länken har gått ut.
-            </p>
-            <button
-              type="submit"
-              disabled={pending}
-              data-testid={rid("file-preview-reopen")}
-              className="inline-flex w-fit items-center rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-blue-700 hover:bg-zinc-50 disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
-            >
-              {pending ? "Öppnar…" : "Länken har gått ut — öppna igen"}
-            </button>
-          </>
-        )}
-      </form>
-      {/* On success, the time-limited link — the ONLY storage handle the client sees (R-810).
-          Hidden once expired (the re-open control replaces it) so the stale URL is never reused. */}
-      {hasFreshLink && state.signedUrl ? (
-        <a
-          href={state.signedUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          data-testid={rid("file-preview-link")}
-          className="w-fit text-sm text-blue-700 underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
-        >
-          Öppna fil (tidsbegränsad länk)
-        </a>
-      ) : null}
-      {/* A denied/wrong-lifecycle/transient failure — a generic assertive alert, no raw path,
-          no existence disclosure (R-809). A SERVER_ERROR is retryable (re-press the button). */}
-      {state.status === "error" && state.formError ? (
-        <p
-          role="alert"
-          data-testid={rid("file-preview-error")}
-          className="text-sm text-red-800"
-        >
-          {state.formError}
-        </p>
-      ) : null}
-    </li>
   );
 }
 

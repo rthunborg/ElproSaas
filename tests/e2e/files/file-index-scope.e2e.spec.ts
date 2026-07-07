@@ -92,7 +92,7 @@ async function signIn(page: Page, email: string, password: string): Promise<void
 }
 
 test.describe("Limited Filer index scope guardrail (Story 8.5 E2E)", () => {
-  test.skip("8.5-E2E-01 (AC1): the /files index renders the limited index root", async ({ page }) => {
+  test("8.5-E2E-01 (AC1): the /files index renders the limited index root", async ({ page }) => {
     await signIn(page, fixture.adminA.email, fixture.adminA.password);
     await page.goto("/files");
 
@@ -100,7 +100,7 @@ test.describe("Limited Filer index scope guardrail (Story 8.5 E2E)", () => {
     await expect(page.getByTestId("file-index")).toBeVisible();
   });
 
-  test.skip("8.5-E2E-01 (AC1/R-816): NO deferred-module / document-center label appears on the index", async ({
+  test("8.5-E2E-01 (AC1/R-816): NO deferred-module / document-center label appears on the index", async ({
     page,
   }) => {
     await signIn(page, fixture.adminA.email, fixture.adminA.password);
@@ -115,7 +115,7 @@ test.describe("Limited Filer index scope guardrail (Story 8.5 E2E)", () => {
     }
   });
 
-  test.skip("8.5-E2E-01 (AC1): ONLY the fixed Phase A owner-category labels are used for grouping/filtering", async ({
+  test("8.5-E2E-01 (AC1): ONLY the fixed Phase A owner-category labels are used for grouping/filtering", async ({
     page,
   }) => {
     await signIn(page, fixture.adminA.email, fixture.adminA.password);

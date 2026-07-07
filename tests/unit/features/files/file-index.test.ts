@@ -33,60 +33,33 @@
 import { test, describe } from "node:test";
 import assert from "node:assert/strict";
 import { ACTIVE_OWNER_TYPES } from "@/server/commands/files/validation";
-
-// RED PHASE: the pure index helpers do not exist yet (Story 8.5 Task 1.4 extracts them to a pure
-// sibling `src/features/files/file-index.ts`). A STATIC import of a not-yet-existing module fails at
-// MODULE-LOAD even under `describe.skip` (the strip-types runner resolves top-level imports before the
-// skip takes effect — the runner-glob trap). So the green-phase import is documented here and the
-// helpers are typed local stubs that THROW — the suite is `describe.skip`, so the stubs are never
-// invoked. On green, DELETE the stub block and uncomment the real import below; align the export names
-// with the landed module (dev's choice); the assertions are unchanged.
-//
-//   import {
-//     ownerCategoryLabel,
-//     filterFileIndexRows,
-//     FORBIDDEN_DEFERRED_CATEGORIES,
-//     type FileIndexRow,
-//   } from "@/features/files/file-index";
-//
-interface FileIndexRow {
-  readonly linkId: string;
-  readonly fileId: string;
-  readonly ownerType: string;
-  readonly ownerId: string;
-  readonly displayName: string;
-  readonly mimeType: string | null;
-  readonly sizeBytes: number | null;
-  readonly createdAt: string;
-}
-const NOT_YET = "8.5 file-index pure helpers not implemented yet (red phase)";
-const ownerCategoryLabel = (_ownerType: string): string | null => {
-  throw new Error(NOT_YET);
-};
-const filterFileIndexRows = (
-  _rows: readonly FileIndexRow[],
-  _filter: { search?: string; ownerCategory?: string },
-): FileIndexRow[] => {
-  throw new Error(NOT_YET);
-};
-const FORBIDDEN_DEFERRED_CATEGORIES: readonly string[] = [];
+// GREEN (Story 8.5 dev, Task 1.4): the pure index helpers now live in the plain `.ts` sibling
+// `src/features/files/file-index.ts` (NO React/DOM/`"use client"` — the strip-types runner resolves it).
+import {
+  ownerCategoryLabel,
+  filterFileIndexRows,
+  FORBIDDEN_DEFERRED_CATEGORIES,
+  type FileIndexRow,
+} from "@/features/files/file-index";
 
 /** A minimal display-safe row shape the pure filter operates over (NO object_path/bucket_id — R-810). */
 function row(partial: Partial<FileIndexRow>): FileIndexRow {
+  const ownerType = partial.ownerType ?? "customer";
   return {
     linkId: crypto.randomUUID(),
     fileId: crypto.randomUUID(),
-    ownerType: "customer",
+    ownerType,
     ownerId: crypto.randomUUID(),
     displayName: "fil.pdf",
     mimeType: "application/pdf",
     sizeBytes: 1234,
+    ownerCategory: ownerCategoryLabel(ownerType) ?? "",
     createdAt: "2026-07-13T09:00:00.000Z",
     ...partial,
   } as FileIndexRow;
 }
 
-describe.skip("8.5-UNIT-01: limited file-index pure DECISION logic (owner-category map + filter + guard) (AC1, R-816)", () => {
+describe("8.5-UNIT-01: limited file-index pure DECISION logic (owner-category map + filter + guard) (AC1, R-816)", () => {
   test("ownerCategoryLabel: maps EXACTLY the seven ACTIVE owner types to their Swedish labels", () => {
     const expected: Record<string, string> = {
       customer: "Kund",
