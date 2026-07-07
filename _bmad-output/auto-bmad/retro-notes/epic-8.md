@@ -16,3 +16,6 @@
 - [Phase 3 â€” create-story] 8.1 create_file_with_link RPC self-allocates the file id and does no content validation â€” object path cannot bind the id through it; 8.2 upload must reuse 6.3's direct explicit-id RLS insert, not that RPC (trap called out in Task 3.3).
 - [Phase 3 â€” create-story] /files route + 'Filer' nav already exist as Epic-8 PagePlaceholder stub; 8.2 delivers per-entity panels only (central index stays optional 8.5) â€” don't build the wrong surface or touch nav.
 - [Phase 5 â€” dev-story] ATDD scaffolds drove the impl to green with zero assertion changes (only two mechanical fixes) â€” red-phase scaffolding paid off; keep the pattern.
+
+## Story 8-3-tenant-authorized-signed-file-access
+- [Phase 7 â€” Tier-A review] Story's headline UX behavior (expiry->refresh) shipped with its E2E deferred (test.fixme + vacuous-capable denial check) â€” proof rests on INT-by-equivalence; invest in a low-TTL/clock-seam test-DX before Epic 8 closes rather than accumulating across 8.x.
