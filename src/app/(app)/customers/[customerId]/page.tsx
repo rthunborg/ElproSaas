@@ -12,7 +12,9 @@
  */
 import Link from "next/link";
 import { CustomerDetail } from "@/components/crm/CustomerDetail";
+import { EntityFilePanel } from "@/components/files/EntityFilePanel";
 import { readCustomerDetail } from "@/features/crm/read";
+import { readEntityFiles } from "@/features/files/read";
 
 export const dynamic = "force-dynamic";
 
@@ -24,6 +26,28 @@ export default async function CustomerDetailPage({
   const { customerId } = await params;
   const { customer, facilities, contacts, error } =
     await readCustomerDetail(customerId);
+  // Story 8.2 — the own-tenant linked files for the customer + each facility + each contact
+  // (RLS-scoped; a cross-tenant id returns zero rows). Fetched in PARALLEL, only when we have
+  // a customer to render the panels for.
+  const [filesRead, facilityFiles, contactFiles] = customer
+    ? await Promise.all([
+        readEntityFiles({ ownerType: "customer", ownerId: customerId }),
+        Promise.all(
+          facilities.map(async (f) => ({
+            id: f.id,
+            name: f.name,
+            read: await readEntityFiles({ ownerType: "facility", ownerId: f.id }),
+          })),
+        ),
+        Promise.all(
+          contacts.map(async (c) => ({
+            id: c.id,
+            name: c.name,
+            read: await readEntityFiles({ ownerType: "contact", ownerId: c.id }),
+          })),
+        ),
+      ])
+    : [null, [], []];
 
   if (error) {
     return (
@@ -71,11 +95,54 @@ export default async function CustomerDetailPage({
     );
   }
 
+  const facilityFilePanels: Record<string, React.ReactNode> = {};
+  for (const f of facilityFiles) {
+    facilityFilePanels[f.id] = (
+      <EntityFilePanel
+        ownerType="facility"
+        ownerId={f.id}
+        purpose="crm_document"
+        ownerLabel={f.name}
+        files={f.read.files}
+        readError={f.read.error}
+        parentCustomerId={customer.id}
+        testIdSuffix={`facility-${f.id}`}
+      />
+    );
+  }
+  const contactFilePanels: Record<string, React.ReactNode> = {};
+  for (const c of contactFiles) {
+    contactFilePanels[c.id] = (
+      <EntityFilePanel
+        ownerType="contact"
+        ownerId={c.id}
+        purpose="crm_document"
+        ownerLabel={c.name}
+        files={c.read.files}
+        readError={c.read.error}
+        parentCustomerId={customer.id}
+        testIdSuffix={`contact-${c.id}`}
+      />
+    );
+  }
+
   return (
     <CustomerDetail
       customer={customer}
       facilities={facilities}
       contacts={contacts}
+      filesPanel={
+        <EntityFilePanel
+          ownerType="customer"
+          ownerId={customer.id}
+          purpose="crm_document"
+          ownerLabel={customer.display_name}
+          files={filesRead?.files ?? []}
+          readError={filesRead?.error ?? null}
+        />
+      }
+      facilityFilePanels={facilityFilePanels}
+      contactFilePanels={contactFilePanels}
     />
   );
 }

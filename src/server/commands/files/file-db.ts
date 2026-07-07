@@ -137,6 +137,81 @@ export async function ownerRecordVisible(
   return Array.isArray(data) && data.length > 0;
 }
 
+/**
+ * The minimal WRITE surface the `uploadFile` command drives (Story 8.2, Task 3): the
+ * direct explicit-id `files` insert + the `file_links` insert + the compensation UPDATE,
+ * on the CALLER's request-bound RLS client (own-tenant WITH CHECK; NEVER service-role).
+ * The `create_file_with_link` RPC self-allocates the id and cannot bind the object-path
+ * id up front — 6.3 bypassed it for exactly this reason and did a direct explicit-id RLS
+ * insert; 8.2 reuses THAT approach through this narrow write surface. A single documented
+ * cast (`asFileWriteClient`) narrows the envelope client to it.
+ */
+export type FileWriteClient = {
+  from(table: string): {
+    insert(values: Record<string, unknown>): {
+      select(columns: string): {
+        single(): Promise<{
+          data: { id: string } | null;
+          error: { code?: string; message?: string } | null;
+        }>;
+      };
+    };
+    update(values: Record<string, unknown>): {
+      eq(
+        column: string,
+        value: string,
+      ): {
+        select(columns: string): Promise<{
+          data: unknown[] | null;
+          error: { code?: string; message?: string } | null;
+        }>;
+      };
+    };
+  };
+};
+
+/** A file row as loaded for the archive-only-delete command (id + current lifecycle). */
+export interface FileArchiveRow {
+  readonly id: string;
+  readonly lifecycle_state: FileLifecycleState;
+}
+
+/**
+ * Load the target file's id + current lifecycle state under the caller's request-bound RLS
+ * client (own tenant). Returns the row when visible, or `null` when not visible (gone /
+ * cross-tenant — ownership already proved visibility, so `null` here is a race). Used by the
+ * archive command to decide idempotency (an already-archived file is a clean no-op) BEFORE any
+ * write. A transient query ERROR re-throws → SERVER_ERROR (never masked as an access decision).
+ */
+export async function loadFileForArchive(
+  db: CommandDbClient,
+  id: string,
+): Promise<FileArchiveRow | null> {
+  const { data, error } = await db
+    .from("files")
+    .select("id, lifecycle_state")
+    .eq("id", id)
+    .limit(1);
+  if (error) {
+    throw new Error(
+      `loadFileForArchive failed: ${(error as { code?: string }).code ?? "?"}`,
+    );
+  }
+  if (!data || data.length === 0) return null;
+  const row = data[0] as Record<string, unknown> | undefined;
+  if (!row) return null;
+  const lifecycle = row.lifecycle_state;
+  if (typeof row.id !== "string" || !isFileLifecycleState(lifecycle)) {
+    return null;
+  }
+  return { id: row.id, lifecycle_state: lifecycle };
+}
+
+/** Narrow the envelope client to the file-write surface (single documented cast). */
+export function asFileWriteClient(db: CommandDbClient): FileWriteClient {
+  return db as unknown as FileWriteClient;
+}
+
 /** The minimal RPC surface for the narrow `link_existing_file` call. */
 export type FileRpcClient = {
   rpc(
@@ -162,6 +237,13 @@ export function asFileRpcClient(db: CommandDbClient): FileRpcClient {
 /**
  * Postgres error codes the file mutations can surface that are DETERMINISTIC outcomes
  * (not transient infra faults):
+ *   - `FL823` — the Story 8.4 file-side lock trigger (`enforce_file_link_lock` /
+ *     `enforce_file_lock`; a custom SQLSTATE, DISTINCT from the standard classes below and
+ *     from 6.4's `QV409` / 7.4's `AR704`) → FILE_LINK_LOCKED. A mutation / re-point / hard-
+ *     delete of a LOCKED commitment file-link (or a locked `files` row's object identity)
+ *     is rejected below the command; the stable lock code must surface, not an opaque
+ *     SERVER_ERROR. `FL823` → `FILE_LINK_LOCKED` is the THIRD scope of the shared lock-code
+ *     FAMILY (sibling of `QV409` → `QUOTE_VERSION_LOCKED` and `AR704` → `ACCEPTED_RECORD_LOCKED`).
  *   - `23503` foreign_key_violation — the composite same-tenant FK rejected a
  *     cross-tenant / wrong-parent link → TENANT_ACCESS_DENIED.
  *   - `42501` insufficient_privilege / RLS WITH CHECK violation → TENANT_ACCESS_DENIED.
@@ -176,6 +258,10 @@ export function throwMappedFileWriteError(error: {
   readonly message?: string;
 }): never {
   switch (error.code) {
+    // The Story 8.4 file-side lock RAISE — a distinguishable custom SQLSTATE the mapper
+    // branches on FIRST, WITHOUT colliding with the standard classes or QV409/AR704.
+    case "FL823":
+      throw new CommandError("FILE_LINK_LOCKED");
     case "23503":
     case "42501":
       throw new CommandError("TENANT_ACCESS_DENIED");

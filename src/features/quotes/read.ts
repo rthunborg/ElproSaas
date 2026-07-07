@@ -243,6 +243,12 @@ export interface QuoteDetail {
    * accepted-section deep link uses this to point at `/jobs/[jobId]` (never a duplicate/create).
    */
   readonly acceptedJobIdByVersionId: Readonly<Record<string, string>>;
+  /**
+   * Story 8.2 (AC5): the acceptance id per accepted version id — for the acceptance-evidence
+   * file panel on the accepted section. RLS-scoped (own-tenant); at most one acceptance per
+   * version (`unique (quote_version_id)`). Empty when no version has been accepted yet.
+   */
+  readonly acceptanceIdByVersionId: Readonly<Record<string, string>>;
 }
 
 /** Result of the quote-detail read — the detail OR null (not-found) + a generic error. */
@@ -412,7 +418,8 @@ export async function readQuoteDetail(
 
     // ── The selected version's frozen children + the quote events (parallel, own-tenant RLS). ──
     // Plus (Story 7.3, AC5 seam) the jobs created off this quote's versions — the deep-link target.
-    const [linesRes, attachmentsRes, eventsRes, jobsRes] = await Promise.all([
+    const [linesRes, attachmentsRes, eventsRes, jobsRes, acceptancesRes] =
+      await Promise.all([
       client
         .from("quote_version_lines")
         .select(LINE_COLUMNS)
@@ -436,6 +443,12 @@ export async function readQuoteDetail(
         .from("jobs")
         .select("id, quote_version_id")
         .is("archived_at", null),
+      // The acceptance(s) recorded off any version of THIS quote (RLS-scoped; own-tenant only).
+      // Story 8.2 (AC5): the acceptance-evidence file panel needs the acceptance id per accepted
+      // version. `unique (quote_version_id)` guarantees at most one acceptance per version.
+      client
+        .from("quote_acceptances")
+        .select("id, quote_version_id"),
     ]);
 
     if (linesRes.error) return { detail: null, error: GENERIC_READ_ERROR };
@@ -455,6 +468,22 @@ export async function readQuoteDetail(
           versionIdSet.has(vId)
         ) {
           acceptedJobIdByVersionId[vId] = jId;
+        }
+      }
+    }
+    // Story 8.2 — the acceptance id per accepted version (for the acceptance-evidence file
+    // panel). A read fault is NON-FATAL to the quote detail (the panel is a convenience).
+    const acceptanceIdByVersionId: Record<string, string> = {};
+    if (!acceptancesRes.error) {
+      for (const raw of (acceptancesRes.data ?? []) as Record<string, unknown>[]) {
+        const vId = raw.quote_version_id;
+        const aId = raw.id;
+        if (
+          typeof vId === "string" &&
+          typeof aId === "string" &&
+          versionIdSet.has(vId)
+        ) {
+          acceptanceIdByVersionId[vId] = aId;
         }
       }
     }
@@ -508,6 +537,7 @@ export async function readQuoteDetail(
         selectedAttachments,
         events,
         acceptedJobIdByVersionId,
+        acceptanceIdByVersionId,
       },
       error: null,
     };

@@ -20,6 +20,10 @@
  * is the only authority (the validators strip/ignore any `tenant_id`).
  */
 import type { ValidationResult } from "../envelope-core";
+import {
+  isAllowedMimeType,
+  isWithinSizeLimit,
+} from "@/server/storage/upload-policy";
 
 /**
  * The closed Phase A owner-type union (architecture §14 tech note). The DB CHECK
@@ -149,6 +153,166 @@ export function validateCreateFileLink(
       owner_type: raw.owner_type,
       owner_id: raw.owner_id as string,
       purpose: raw.purpose,
+    },
+  };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// uploadFile input (Story 8.2, Task 2)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * The DEFAULT purpose EACH owner type expects (the owner_type↔purpose coupling, Task 2.3).
+ * The upload path is scoped to the ACTIVE owner types; `quote_version` links are
+ * materialized by the 6.1 RPC (never this command), so it is out of the active upload set.
+ * A submitted purpose that does not match its owner type is a VALIDATION reject (a
+ * mismatched pair — e.g. `calculation` + `acceptance_evidence` — is rejected).
+ */
+export const OWNER_TYPE_PURPOSE: Readonly<Record<ActiveOwnerType, FilePurpose>> = {
+  customer: "crm_document",
+  facility: "crm_document",
+  contact: "crm_document",
+  calculation: "calculation_attachment",
+  quote_acceptance: "acceptance_evidence",
+  job: "job_evidence",
+};
+
+/** The max display-name length (bounds the presentational segment; sanitized server-side). */
+const MAX_DISPLAY_NAME = 255;
+
+/**
+ * Validated `uploadFile` input — the generic user-facing upload gate's typed surface.
+ *
+ * Validates: `owner_type` ∈ the closed union, `owner_id` UUID-shape, `purpose` ∈ the
+ * closed union AND coupled to its owner type, `display_name` a non-empty bounded string,
+ * `mime_type` present + on the Task-1 allow-list, `size_bytes` a non-negative integer
+ * within the Task-1 size limit, and `bytes` the actual upload payload.
+ *
+ * A blocked MIME / oversized value fails as VALIDATION_FAILED — the raw value is NEVER
+ * echoed (the envelope maps the failure to a generic message). Client
+ * `tenant_id`/`object_path`/`bucket_id` are NEVER read (server-derived only) — they are
+ * stripped by omission from the validated shape.
+ */
+export interface UploadFileInput {
+  readonly owner_type: ActiveOwnerType;
+  readonly owner_id: string;
+  readonly purpose: FilePurpose;
+  readonly display_name: string;
+  readonly mime_type: string;
+  readonly size_bytes: number;
+  /**
+   * The actual bytes to write to the private object (server-derived path). Present when the
+   * command is fed a real payload (the action → `runCommand` path); the pure metadata
+   * validation accepts input WITHOUT bytes (the action parses the FormData file to bytes,
+   * measures `size_bytes` from those bytes, and takes `mime_type` from the client-declared
+   * `File.type` — the browser-set Content-Type, NOT sniffed magic bytes — which this validator
+   * gates against the fail-closed `isAllowedMimeType` allow-list; byte-level content sniffing
+   * is an R-817 / Sign-Off follow-up. The metadata gate is orthogonal to the payload). The
+   * `execute` body guards that bytes are present before writing the object.
+   */
+  readonly bytes?: Uint8Array;
+}
+
+function isUint8Array(v: unknown): v is Uint8Array {
+  return v instanceof Uint8Array;
+}
+
+export function validateUploadFile(raw: unknown): ValidationResult<UploadFileInput> {
+  if (!isRecord(raw)) return fail;
+  // owner_type: the closed union AND an ACTIVE owner type (the upload path serves only the
+  // active owner types; an unknown/deferred-module type is the STOP-condition reject).
+  if (!isOwnerType(raw.owner_type)) return fail;
+  if (!isActiveOwnerType(raw.owner_type)) return fail;
+  const ownerType = raw.owner_type; // narrowed ActiveOwnerType
+  if (!isUuidLike(raw.owner_id)) return fail;
+  if (!isFilePurpose(raw.purpose)) return fail;
+  // owner_type↔purpose coupling (Task 2.3): a mismatched pair is rejected.
+  if (OWNER_TYPE_PURPOSE[ownerType] !== raw.purpose) return fail;
+  // display_name: non-empty, bounded string.
+  if (typeof raw.display_name !== "string") return fail;
+  const displayName = raw.display_name.trim();
+  if (displayName.length === 0 || displayName.length > MAX_DISPLAY_NAME) return fail;
+  // mime_type: present + on the Task-1 allow-list (the raw value is never echoed on reject).
+  if (typeof raw.mime_type !== "string") return fail;
+  const mimeType = raw.mime_type.trim().toLowerCase();
+  if (!isAllowedMimeType(mimeType)) return fail;
+  // size_bytes: a non-negative integer within the Task-1 size limit.
+  if (typeof raw.size_bytes !== "number" || !isWithinSizeLimit(raw.size_bytes)) {
+    return fail;
+  }
+  // bytes (OPTIONAL): when a real payload is present it MUST be a Uint8Array whose length
+  // agrees with size_bytes — so a client cannot understate the declared size to slip an
+  // oversized payload past the gate. Absent for the pure metadata-validation path.
+  let bytes: Uint8Array | undefined;
+  if (raw.bytes !== undefined) {
+    if (!isUint8Array(raw.bytes)) return fail;
+    if (raw.bytes.byteLength !== raw.size_bytes) return fail;
+    bytes = raw.bytes;
+  }
+  return {
+    ok: true,
+    data: {
+      owner_type: ownerType,
+      owner_id: raw.owner_id as string,
+      purpose: raw.purpose,
+      display_name: displayName,
+      mime_type: mimeType,
+      size_bytes: raw.size_bytes,
+      // Only carry bytes when a real payload was supplied (server-derived path; NEVER a
+      // client tenant_id/object_path/bucket_id — those are omitted by construction).
+      ...(bytes !== undefined ? { bytes } : {}),
+    },
+  };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// archiveFile input (Story 8.4, Task 3.3) — the archive-only-delete gate's typed surface.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** The max reason length (bounded, allow-listed audit `reason`; drops beyond 128 anyway). */
+const MAX_REASON = 128;
+
+/**
+ * Validated `archiveFile` input — the archive-only-delete command's typed surface.
+ *
+ * Validates: `id` (the target file) UUID-shape, an OPTIONAL bounded `reason` (a short
+ * user-safe archive reason — NEVER echoed on reject), and an OPTIONAL `hardDelete` intent.
+ * `hardDelete` is a DELIBERATE crafted-request surface: the archive-over-delete rule means a
+ * hard delete of a locked file is BLOCKED at the DB (FL823 → FILE_LINK_LOCKED) — a UI never
+ * offers it, but the command proves the block for a crafted request. Client
+ * `tenant_id`/`object_path` are NEVER read (server/resolved-tenant only) — stripped by omission.
+ */
+export interface ArchiveFileInput {
+  readonly id: string;
+  readonly reason?: string;
+  readonly hardDelete?: boolean;
+}
+
+export function validateArchiveFile(
+  raw: unknown,
+): ValidationResult<ArchiveFileInput> {
+  if (!isRecord(raw)) return fail;
+  if (!isUuidLike(raw.id)) return fail;
+  // reason: OPTIONAL, bounded, non-empty when present (an empty/oversized value is dropped).
+  let reason: string | undefined;
+  if (raw.reason !== undefined) {
+    if (typeof raw.reason !== "string") return fail;
+    const trimmed = raw.reason.trim();
+    if (trimmed.length === 0 || trimmed.length > MAX_REASON) return fail;
+    reason = trimmed;
+  }
+  // hardDelete: OPTIONAL boolean (the crafted delete-intent surface). Absent = archive.
+  let hardDelete: boolean | undefined;
+  if (raw.hardDelete !== undefined) {
+    if (typeof raw.hardDelete !== "boolean") return fail;
+    hardDelete = raw.hardDelete;
+  }
+  return {
+    ok: true,
+    data: {
+      id: raw.id as string,
+      ...(reason !== undefined ? { reason } : {}),
+      ...(hardDelete !== undefined ? { hardDelete } : {}),
     },
   };
 }

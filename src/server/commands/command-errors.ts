@@ -72,6 +72,21 @@ import {
  *   FAMILY not a fork" retro constraint: a family means related-but-distinct codes with a
  *   shared trigger shape, not one reused code and not a divergent mechanism — Epic 6
  *   sent-freeze R-605, Epic 7 accepted-lock R-704, Epic 8.4 locked-evidence-file).
+ * - `FILE_LINK_LOCKED`          — the Story 8.4 FILE-SIDE lock (the THIRD scope of the
+ *   shared family): a mutation / re-point / hard-delete targeted a LOCKED commitment
+ *   file-link (a sent version's `quote_pdf` / `quote_attachment_snapshot` link, or a
+ *   committed acceptance's `acceptance_evidence` link) or a LOCKED `files` row's object
+ *   identity/metadata. Enforced at BOTH layers — a locked-file archive/mutation command
+ *   surfaces this stable code AND a DB trigger RAISES (SQLSTATE `FL823`) on a DIRECT
+ *   own-tenant authenticated UPDATE/DELETE of a locked file/link below the command
+ *   (architecture §9/§14). The ONLY sanctioned change to a locked file is the archive-only
+ *   soft-delete (`locked → archived`); the sanctioned change to accepted evidence is the
+ *   approved audited correction workflow (owner-gated, R-714 — NOT built here). `FL823` →
+ *   `FILE_LINK_LOCKED` is a DISTINCT-but-related SIBLING of 6.4's `QV409` →
+ *   `QUOTE_VERSION_LOCKED` and 7.4's `AR704` → `ACCEPTED_RECORD_LOCKED` — the "one model,
+ *   three scopes, shared lock-code FAMILY not a fork" retro constraint (Epic 6 sent-freeze
+ *   R-605, Epic 7 accepted-lock R-704, Epic 8.4 locked-evidence-file). All three co-exist —
+ *   NEVER merge or rename them.
  * - `SERVER_ERROR`              — a TRANSIENT infra failure during the command
  *   (reused from Story 2.2). Generic + retryable; leaks nothing internal.
  */
@@ -84,7 +99,8 @@ export type CommandErrorCode =
   | "ACCEPTANCE_ALREADY_RECORDED"
   | "QUOTE_VERSION_NOT_DRAFT"
   | "QUOTE_VERSION_LOCKED"
-  | "ACCEPTED_RECORD_LOCKED";
+  | "ACCEPTED_RECORD_LOCKED"
+  | "FILE_LINK_LOCKED";
 
 /**
  * A SANCTIONED typed-error escape for a command `execute` body (Story 3.1).
@@ -162,4 +178,10 @@ export const COMMAND_MESSAGES: Record<CommandErrorCode, string> = {
   // user-safe (no row/status/PII leak). Distinct from QUOTE_VERSION_LOCKED (co-exist, never merge).
   ACCEPTED_RECORD_LOCKED:
     "Den accepterade posten är låst. Korrigeringar kräver ett godkänt granskat arbetsflöde.",
+  // The Story 8.4 file-side lock: a file-link belonging to a sent quote or a registered acceptance
+  // is locked — it can be archived but not changed or hard-deleted. Generic + user-safe (no
+  // row/path/PII leak). The Epic-8.4 SIBLING of QUOTE_VERSION_LOCKED (QV409) / ACCEPTED_RECORD_LOCKED
+  // (AR704) — the shared lock-code FAMILY; all three co-exist, never merge or rename them.
+  FILE_LINK_LOCKED:
+    "Filen är låst eftersom den hör till en skickad offert eller en registrerad acceptans. Den kan arkiveras men inte ändras eller tas bort.",
 };

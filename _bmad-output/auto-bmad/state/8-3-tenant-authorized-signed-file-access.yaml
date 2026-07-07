@@ -1,0 +1,72 @@
+# auto-bmad per-story state — written by scripts/state_update.py (full stable schema;
+# see references/state-and-resume.md). Prose belongs in reports/{key}.md, not here.
+story_key: 8-3-tenant-authorized-signed-file-access
+epic_num: 8
+story_num: 3
+branch: epic/8-required-files-and-private-storage
+status: done
+updated_at: "2026-07-07T12:28:13Z"
+started_at: "2026-07-07T11:39:14Z"
+completed_at: "2026-07-07T12:28:13Z"
+active_seconds: 2576
+timing_anchor: null
+is_first_in_epic: false
+is_last_in_epic: false
+needs_project_context_bootstrap: false
+git_mode: remote
+base_branch: main
+tea_risk: high
+tea_selected: [atdd, automate]
+tea_rationale: "main private-file access boundary: server-side tenant-membership/ownership/lifecycle authorization before signed URLs, expiry reauthorization, cross-tenant path-spoof negatives (Security/RLS Impact: Critical; R-806/R-809/R-810)"
+epic_story_count: 5
+stories_after_in_epic: 2
+completed_phases: [0, 1, 2, 3, 4, 5, 6, 7]
+code_review_iterations: 0
+code_review_loop_done: false
+hitl_halt: "auto-continued (epic â€” no halt)"
+external_review_iterations: 0
+convergence_unverified: false
+story_trace: null
+commits: [550b8ad, 42a1d4f, 723bc4d, 88cb0e9, c889d61, df41c27]
+phase8_steps:
+  trace_gate: null
+  nfr: null
+  test_review: null
+  project_context: null
+  reconcile: null
+  archive: null
+  retro: null
+gate_decision: null
+gate_iterations: 0
+deferred_work_archived: 0
+pr_url: null
+ci_run_url: null
+ci_status: unknown
+pr_merged: false
+merge_method: null
+merge_commit: null
+branch_deleted: false
+open_questions:
+  - "Preview affordance shape â€” default chosen in-story"
+  - "Archived-file preview handling â€” default chosen in-story"
+  - "Whether to surface expiresAt â€” default chosen in-story"
+deferred_work:
+  - "8.3-E2E-04 real client-side expiry re-open stays test.fixme â€” needs low SUPABASE_SIGNED_URL_TTL_SECONDS E2E env or deterministic clock seam (covered by unit + INT refresh matrix)"
+  - "AC2 expiry->refresh E2E is test.fixme â€” needs low-TTL env / clock seam"
+  - "E2E 8.3-E2E-03 denial assertion can pass vacuously â€” needs deterministic denial seed"
+  - "AC3 negatives target the command, not previewEntityFileAction â€” proven by equivalence, wants a direct action-level test if a seam appears"
+blockers: []
+overrides: {}
+constraints: []
+tier_a_base_sha: 30cbf9d7b7d2180acc0956d2e0132f279d699b08
+tier_a_review:
+  verdict: Approve
+  critical: 0
+  high: 0
+  medium: 0
+  low: 3
+  open_after_fix: 0
+  deferred: 3
+  dismissed_noise: 3
+  security_findings: 0
+  auto_decisions: 0

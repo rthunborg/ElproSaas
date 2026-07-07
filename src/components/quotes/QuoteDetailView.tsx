@@ -23,6 +23,7 @@
  * the selected version. The ordering / current-commitment / selection logic is the PURE
  * `@/features/quotes/timeline` helpers (unit-pinned; never inline here).
  */
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { oreToKronorString } from "@/features/calculations/money-input";
 import {
@@ -72,7 +73,17 @@ const EVENT_LABELS: Record<string, string> = {
   superseded: "Ersatt",
 };
 
-export function QuoteDetailView({ detail }: { readonly detail: QuoteDetail }) {
+export function QuoteDetailView({
+  detail,
+  acceptanceFilesPanel,
+  sentQuoteFilesPanel,
+}: {
+  readonly detail: QuoteDetail;
+  /** The Story 8.2 acceptance-evidence file panel (rendered on the accepted section). */
+  readonly acceptanceFilesPanel?: ReactNode;
+  /** The Story 8.5 locked commitment-file panel (a non-draft version's PDF/attachment). */
+  readonly sentQuoteFilesPanel?: ReactNode;
+}) {
   const {
     header,
     versions,
@@ -418,6 +429,15 @@ export function QuoteDetailView({ detail }: { readonly detail: QuoteDetail }) {
               />
             )}
 
+            {/* Story 8.5 — the locked commitment-file panel for a NON-DRAFT (sent/accepted) version:
+                the quote's PDF/attachment links are locked once the version is sent (the 8.4
+                trigger). The panel surfaces the lock notice + archive-only affordance (AC4) — a UX
+                convenience over the DB lock, never the guarantee (the command + the FL823 trigger
+                are). Null for a draft version (a draft PDF is regenerable, not locked). */}
+            {!isDraft && sentQuoteFilesPanel ? (
+              <div className="mt-2">{sentQuoteFilesPanel}</div>
+            ) : null}
+
             {/* Acceptance capture (Story 7.1 → 7.2) — an authenticated ADMIN-ONLY off-system capture
                 on a SENT version (no customer portal / public endpoint). Confirming now runs the
                 TRANSACTIONAL acceptQuoteAndCreateJob (records the acceptance + creates the job in one
@@ -448,6 +468,10 @@ export function QuoteDetailView({ detail }: { readonly detail: QuoteDetail }) {
                       Öppna jobbet
                     </Link>
                   )}
+                  {/* Story 8.2 — acceptance-evidence file upload + own-tenant list. */}
+                  {acceptanceFilesPanel ? (
+                    <div className="mt-2">{acceptanceFilesPanel}</div>
+                  ) : null}
                 </div>
               ) : (
                 <p data-testid="quote-acceptance-placeholder" className="text-zinc-600">

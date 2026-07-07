@@ -18,7 +18,7 @@
  * never inline). Kronor/percent at the input boundary; öre/rounding wording only in the totals
  * summary (AC6).
  */
-import { useActionState, useState } from "react";
+import { useActionState, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { FormErrorSummary, TextField } from "@/components/crm/FormField";
 import { SectionEditor } from "./SectionEditor";
@@ -58,6 +58,7 @@ export function CalculationEditor({
   defaultVatDisplay,
   vatPostureResolved,
   quoteTerms,
+  filesPanel,
 }: {
   readonly detail: CalculationDetail;
   /** The ACTIVE pricing-source lists for the row-editor selection affordance (Story 5.3). */
@@ -68,6 +69,8 @@ export function CalculationEditor({
   readonly vatPostureResolved: boolean;
   /** The tenant's quote-terms for the pre-quote preview (null when none/unread). */
   readonly quoteTerms: PreQuoteTerms | null;
+  /** The Story 8.2 entity file panel (calculation_attachment upload + list), when provided. */
+  readonly filesPanel?: ReactNode;
 }) {
   const { header, sections, customer } = detail;
 
@@ -397,6 +400,9 @@ export function CalculationEditor({
           quoteTerms={quoteTerms}
         />
       </div>
+
+      {/* File upload panel (Story 8.2 — calculation_attachment upload + own-tenant list). */}
+      {filesPanel ? <div>{filesPanel}</div> : null}
 
       {/* Archive the whole calculation (soft-archive via the command). */}
       <div className="flex justify-end border-t border-zinc-200 pt-4">

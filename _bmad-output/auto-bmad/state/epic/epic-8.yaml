@@ -1,0 +1,131 @@
+# auto-bmad per-story state — written by scripts/state_update.py (full stable schema;
+# see references/state-and-resume.md). Prose belongs in reports/{key}.md, not here.
+story_key: epic-8
+epic_num: 8
+story_num: null
+branch: epic/8-required-files-and-private-storage
+status: done
+updated_at: "2026-07-07T16:20:08Z"
+started_at: "2026-07-07T10:02:38Z"
+completed_at: "2026-07-07T16:20:08Z"
+active_seconds: 20349
+timing_anchor: null
+is_first_in_epic: false
+is_last_in_epic: false
+needs_project_context_bootstrap: false
+git_mode: remote
+base_branch: main
+tea_risk: null
+tea_selected: []
+tea_rationale: null
+epic_story_count: 5
+stories_after_in_epic: null
+completed_phases: [0, 1, 2, 5, 7, 9, 81, 82]
+code_review_iterations: 1
+code_review_loop_done: true
+hitl_halt: "auto-continued (epic â€” no halt)"
+external_review_iterations: 0
+convergence_unverified: false
+story_trace: null
+commits: [a406f59, 5e2aa8c, 6fd8f84, 30cbf9d, 0bd709a, f252ab1, 656e3ad, d17dc13, b36630e]
+phase8_steps:
+  trace_gate: done
+  nfr: done
+  test_review: done
+  project_context: done
+  reconcile: done
+  archive: done
+  retro: done
+gate_decision: PASS
+gate_iterations: 0
+deferred_work_archived: 1
+pr_url: "https://github.com/rthunborg/ElproSaas/pull/31"
+ci_run_url: "https://github.com/rthunborg/ElproSaas/actions/runs/28880857481"
+ci_status: passed
+pr_merged: false
+merge_method: null
+merge_commit: null
+branch_deleted: false
+open_questions:
+  - "Final owner-approved MIME/size upload policy (R-817) â€” deferred to Wave-2 create-story (demo-data-only decision)"
+  - "Optional file-index build/skip call (R-816) â€” owner decision deferred to Wave-2 create-story"
+  - "Acceptance-evidence upload lifecycle gate (High, demo-data-accepted) â€” needs an owned follow-up or explicit re-score at Epic 9's pilot-readiness gate (epic retro)"
+  - "Epic-7 carry: DB-level evidence-exclusivity XOR constraint still untouched; draft->linked lifecycle-state gap + non-transactional PDF-metadata insert closure unconfirmed (no story record reports them fixed)"
+deferred_work: []
+blockers: []
+overrides: {}
+constraints: []
+epic_slug: required-files-and-private-storage
+active_story: null
+stories_landed:
+  - 8-2-validated-upload-and-entity-file-panels
+  - 8-3-tenant-authorized-signed-file-access
+  - 8-4-quote-pdf-attachment-and-acceptance-evidence-locks
+  - 8-5-limited-file-index-and-file-audit-within-phase-a-scope
+auto_decisions:
+  - "Server 're-derives' MIME from client-declared File.type, not bytes [Med] -> fix: correct the misleading comments in actions.ts/form-parsing.ts/validation.ts (MIME is client-declared File.type validated against fail-closed allow-list); no magic-byte sniffing now; log byte-sniffing as owner-gated R-817 follow-up (Tier A, 8-2)"
+  - "AC4 'mid-flow fault' asserted by over-titled test [Med] -> fix: rename the test to what it verifies (lock precision) and cite 8.4-RLS-04 as the atomic-by-construction AC4 proof; no fabricated fault-injection (Tier A, 8-4)"
+  - "AC3 literal target_type='file_link' not implemented [Med] -> dismiss: file-only archive satisfies AC3's file_link/file disjunction (links cascade on file archive, deviation documented); standalone archiveFileLink is 8.5 scope (Tier A, 8-4)"
+  - "AC4 gates on DB file.isLocked instead of the AC-named pure predicates [Med] -> dismiss: DB is_locked is the story's own PREFERRED authoritative lock source (Task 2.1), stronger than client-safe predicates; keep as-is (Tier A, 8-5)"
+  - "archive-file affordance renders on every listed file incl. unlocked [Med] -> dismiss: AC4's MAY permits unlocked-file archive, command gates own-tenant only, reasonable safe UX; keep as-is (Tier A, 8-5)"
+  - "Client-supplied revalidate_path [Med] -> fix: derive the revalidation route server-side from resolved ownerType/ownerId (extend ownerRoute() to cover facility/contact/quote_acceptance/quote_version) and ignore the client field; transitional retention must validate against a server-computed owner-route allow-list, not a bare / prefix (E_review, epic-8)"
+uat_items:
+  - "[8-2-validated-upload-and-entity-file-panels] Start the app (pnpm dev, supabase start) and sign in as seeded tenant_admin, open /customers/{customerId} â†’ 'Filer' panel shows allowed types (PDF, PNG/JPEG/WebP/GIF, text/CSV, Word, Excel), max 25 MB, owner name, purpose 'Kunddokument', a file input and NO path/bucket field"
+  - "[8-2-validated-upload-and-entity-file-panels] On the customer panel, choose a valid PDF < 25 MB and click 'Ladda upp fil' â†’ green 'Filen laddades upp.' status and file appears under 'Uppladdade filer' with name and size"
+  - "[8-2-validated-upload-and-entity-file-panels] Reload the customer page after uploading â†’ the uploaded file still appears in the list (persisted + linked, own-tenant only)"
+  - "[8-2-validated-upload-and-entity-file-panels] Select a blocked-type file (.exe or .html) â†’ distinct blocked-type alert (testid file-error-blocked-type) 'Filtypen stÃ¶ds inteâ€¦' immediately on selection, before any upload"
+  - "[8-2-validated-upload-and-entity-file-panels] Select an allowed-type file > 25 MB â†’ distinct too-large alert (testid file-error-too-large) 'Filen Ã¤r fÃ¶r storâ€¦'"
+  - "[8-2-validated-upload-and-entity-file-panels] Open /calculations/{calculationId} â†’ 'Filer' panel with purpose 'Kalkylbilaga'; upload a valid PDF â†’ success + listed"
+  - "[8-2-validated-upload-and-entity-file-panels] Open /jobs/{jobId} â†’ 'Filer' panel with purpose 'Jobbunderlag'; upload a valid PNG/JPEG â†’ success + listed"
+  - "[8-2-validated-upload-and-entity-file-panels] Open a customer with facilities/contacts â†’ each facility and contact renders its own 'Filer' panel; upload on a facility panel â†’ file appears under that facility's list only"
+  - "[8-2-validated-upload-and-entity-file-panels] Open an ACCEPTED quote version at /quotes/{quoteId}/versions/{versionId} â†’ acceptance-evidence 'Filer' panel (purpose 'Acceptansunderlag') appears; upload a valid PDF â†’ success + listed; non-accepted version renders no acceptance panel"
+  - "[8-2-validated-upload-and-entity-file-panels] Server-side bypass gate: POST the panel's form endpoint directly with an oversized allow-listed file or a foreign owner_id â†’ rejected server-side; the object never becomes a listed file"
+  - "[8-2-validated-upload-and-entity-file-panels] Cross-tenant / no-existence-disclosure: submit with another tenant's owner_id AND a random non-existent UUID â†’ BOTH return the identical generic permission alert (testid file-error-permission), no found-vs-forbidden signal"
+  - "[8-2-validated-upload-and-entity-file-panels] No path leakage: after a successful upload, inspect list + page source â†’ only display-safe fields (name, size); raw object_path/bucket_id never rendered"
+  - "[8-2-validated-upload-and-entity-file-panels] Consistency: after a successful upload, verify in DB a files row (lifecycle_state='linked') + matching file_links row exist and the storage object is present â€” no half-written state"
+  - "[8-3-tenant-authorized-signed-file-access] Sign in at /login with the seeded tenant_admin (local stack up: supabase start; pnpm dev or build+start; admin-created user or E2E fixture) → redirected into the app shell, no auth error"
+  - "[8-3-tenant-authorized-signed-file-access] Open /customers/{customerId} with at least one uploaded file, open 'Filer' → file listed by display name with an 'Öppna fil' button; no raw storage path / object_path / bucket_id anywhere"
+  - "[8-3-tenant-authorized-signed-file-access] If no files yet, upload a small PDF via the panel → 'Filen laddades upp.' and the file appears with its own 'Öppna fil' button"
+  - "[8-3-tenant-authorized-signed-file-access] Click 'Öppna fil' → brief 'Öppnar…' then an 'Öppna fil (tidsbegränsad länk)' link appears; clicking opens the file in a new tab (valid short-lived signed URL)"
+  - "[8-3-tenant-authorized-signed-file-access] Inspect the signed link href → Supabase signed storage URL with token/expiry param (never a public bucket URL or client-supplied path); row button now reads 'Öppna igen'"
+  - "[8-3-tenant-authorized-signed-file-access] Wait past TTL (default 300s; restart with SUPABASE_SIGNED_URL_TTL_SECONDS=5 to observe fast) → row flips to 'Länken har gått ut.' with a re-open control; stale link element is gone"
+  - "[8-3-tenant-authorized-signed-file-access] Click 'Länken har gått ut — öppna igen' → fresh link with a NEW token (retry re-ran full authorization, not a re-served URL)"
+  - "[8-3-tenant-authorized-signed-file-access] Archive a listed file mid-flight (SQL: set files.lifecycle_state='archived' without reloading), then re-open → link NOT re-issued; generic role=alert error, no raw storage error or path"
+  - "[8-3-tenant-authorized-signed-file-access] Devtools: edit the row's hidden file_id to another tenant's or a random non-existent UUID, click preview → identical generic denial either way, no existence disclosure, no path leak"
+  - "[8-3-tenant-authorized-signed-file-access] Open a calculation, a job, and an accepted quote version each with a listed file → identical per-file 'Öppna fil' preview behavior on every surface (shared panel)"
+  - "[8-4-quote-pdf-attachment-and-acceptance-evidence-locks] DB-layer story (no new UI): run checks via local stack (supabase start && supabase db reset; psql postgresql://postgres:postgres@127.0.0.1:54322/postgres or Studio SQL at 127.0.0.1:54323); seed one tenant→customer→calculation→quote→draft version→file→quote_pdf file_link and note the ids (full seed SQL in the 8-4 UAT notes)"
+  - "[8-4-quote-pdf-attachment-and-acceptance-evidence-locks] Lock-apply on send: UPDATE quote_versions SET status='sent' → file_links.is_locked=true with locked_at set AND files.lifecycle_state='locked'"
+  - "[8-4-quote-pdf-attachment-and-acceptance-evidence-locks] Pre-send boundary: on a separate still-draft version's quote_pdf link, re-point file_id to another own-tenant file → succeeds (6.3 retry stays allowed)"
+  - "[8-4-quote-pdf-attachment-and-acceptance-evidence-locks] Post-send re-point: UPDATE file_links SET file_id=<other> on the locked link → ERROR SQLSTATE FL823, row unchanged"
+  - "[8-4-quote-pdf-attachment-and-acceptance-evidence-locks] Disarm attempts (is_locked=false / locked_at=null / owner_type / purpose) on the locked link → each ERROR FL823, row byte-unchanged"
+  - "[8-4-quote-pdf-attachment-and-acceptance-evidence-locks] Locked file metadata (object_path / display_name / mime_type / bucket_id / size_bytes) → each UPDATE ERRORs FL823"
+  - "[8-4-quote-pdf-attachment-and-acceptance-evidence-locks] Hard DELETE of locked files row or file_links row → ERROR FL823 (archive-only)"
+  - "[8-4-quote-pdf-attachment-and-acceptance-evidence-locks] Sanctioned archive: UPDATE files SET archived_at=now(), lifecycle_state='archived' on the locked file → succeeds; lifecycle_state reads 'archived'"
+  - "[8-4-quote-pdf-attachment-and-acceptance-evidence-locks] Disarming lifecycle transitions (locked → linked/draft/deleted) → each ERROR FL823, stays 'locked'"
+  - "[8-4-quote-pdf-attachment-and-acceptance-evidence-locks] Acceptance evidence: insert quote_acceptances + acceptance_evidence file_link → link is_locked=true immediately; re-point then ERRORs FL823"
+  - "[8-4-quote-pdf-attachment-and-acceptance-evidence-locks] Family agreement: same seeded data — quote_versions mutation → QV409, quote_acceptances mutation → AR704, file_links mutation → FL823 (three distinct sibling codes, no fork)"
+  - "[8-4-quote-pdf-attachment-and-acceptance-evidence-locks] Cross-tenant no-disclosure: via an anon/authenticated JWT client (NOT superuser psql — RLS bypassed there), UPDATE another tenant's file_link → zero rows, no error, no FL823 leak (identical to not-found)"
+  - "[8-4-quote-pdf-attachment-and-acceptance-evidence-locks] Suites: SUPABASE_TEST_REQUIRED=1 pnpm test:int (8.4-RLS-01..07 + command suite: archive-only + clean audit row, FILE_LINK_LOCKED, TENANT_ACCESS_DENIED) and pnpm test:unit (lock-lifecycle golden + predicates) → all green; archiveFile command has no app wiring yet (8.5), so AC3 command behavior is suite-verified only"
+  - "[8-5-limited-file-index-and-file-audit-within-phase-a-scope] Setup once: supabase start && supabase db reset (kong 502 → docker restart supabase_kong_ElproSaas); seed via Playwright global-setup (e.g. pnpm test:e2e --grep file-lock-panel) which writes creds + sent-quote/accepted-acceptance/CRM-file ids to tests/e2e/.auth/fixture.json; pnpm dev against the local stack (no signup UI or standalone seed script exists)"
+  - "[8-5-limited-file-index-and-file-audit-within-phase-a-scope] Sign in at /login with fixture.adminA email/password → redirected to /dashboard, no error"
+  - "[8-5-limited-file-index-and-file-audit-within-phase-a-scope] Click 'Filer' in the nav (or /files) → Filer page renders; seeded CRM file appears with category badge 'Kund', mime/size line, 'Uppladdad:' date"
+  - "[8-5-limited-file-index-and-file-audit-within-phase-a-scope] On /files, rows show ONLY display-safe metadata (name, category, MIME, size, date) — no storage path, bucket id, or object key anywhere"
+  - "[8-5-limited-file-index-and-file-audit-within-phase-a-scope] Type part of a file name into 'Sök' → list narrows in real time; clearing restores"
+  - "[8-5-limited-file-index-and-file-audit-within-phase-a-scope] Open 'Kategori' dropdown → ONLY the seven Phase A categories + 'Alla kategorier' — no Fortnox/HR/uthyrning/tillgångar/DoU/upphandling grouping"
+  - "[8-5-limited-file-index-and-file-audit-within-phase-a-scope] Select category 'Offert' → only quote-linked files; 'Kund' → only customer files; empty category → 'Inga filer matchar…'"
+  - "[8-5-limited-file-index-and-file-audit-within-phase-a-scope] Click 'Förhandsgranska' on a row → 'Öppna fil (tidsbegränsad länk)' appears; opens in a new tab via a signed time-limited URL minted on demand"
+  - "[8-5-limited-file-index-and-file-audit-within-phase-a-scope] On /customers/{companyId}, the UNLOCKED CRM document shows preview + 'Ersätt (ladda upp ny fil)' + 'Arkivera fil'; NO delete control"
+  - "[8-5-limited-file-index-and-file-audit-within-phase-a-scope] Click 'Arkivera fil' on the unlocked file → 'Arkiverar…' then 'Arkiverad' disabled; after refresh the file is gone from both the panel and /files"
+  - "[8-5-limited-file-index-and-file-audit-within-phase-a-scope] Open /quotes/{sentQuote.quoteId} → sent version's file section shows the amber file-lock-notice: file is LÅST (skickad), can be archived, not replaced/deleted — conveyed as text, not color alone"
+  - "[8-5-limited-file-index-and-file-audit-within-phase-a-scope] On the sent-quote locked PDF: 'Arkivera fil' present; NO replace and NO delete control"
+  - "[8-5-limited-file-index-and-file-audit-within-phase-a-scope] Open /quotes/{acceptedAcceptance.quoteId} → evidence file shows the evidence-lock-notice (låst — acceptance registered); archive-only, no replace/delete"
+  - "[8-5-limited-file-index-and-file-audit-within-phase-a-scope] Keyboard-only pass on /files and locked panels → Tab reaches search/filter/preview/archive with visible focus rings; Enter/Space activates"
+  - "[8-5-limited-file-index-and-file-audit-within-phase-a-scope] Cross-tenant: as adminA the /files list shows ONLY tenant-A files; a crafted foreign file_id in a preview/archive form → generic Swedish permission error, no existence leak; orphan user (no membership) sees no tenant-A files. (AC2 audit-row hygiene is DB-only — covered by the INT suite, not hand-verifiable in UI)"
+adopt_verdicts:
+  - "8-1-file-storage-foundation-private-bucket-metadata-links-rls-and-signed-access-command: skip (already done, in base)"
+  - "8-2-validated-upload-and-entity-file-panels: fresh"
+  - "8-3-tenant-authorized-signed-file-access: fresh"
+  - "8-4-quote-pdf-attachment-and-acceptance-evidence-locks: fresh"
+  - "8-5-limited-file-index-and-file-audit-within-phase-a-scope: fresh"
+batch_flip_done: true
+integration_review_done: true

@@ -370,7 +370,12 @@ async function tryCompensateFailed(
 
 /**
  * Map a Postgres error from a PDF-pipeline write to a stable command code (mirrors
- * `throwMappedQuoteWriteError`): a same-tenant FK / RLS WITH CHECK violation is an
+ * `throwMappedQuoteWriteError`): the Story 8.4 file-lock RAISE (`FL823`) is a stable
+ * FILE_LINK_LOCKED outcome — a POST-SEND `quote_pdf` link re-point is rejected because the
+ * sent version's PDF file-link carries commitment identity (a regenerate then needs a new-
+ * version flow, 6.5, not an in-place re-point; the sent-lock EXEMPTS the version's derived
+ * pdf_* columns so a first generation on a sent version still succeeds, but a re-point of an
+ * ALREADY-LOCKED link does not); a same-tenant FK / RLS WITH CHECK violation is an
  * authorization outcome (TENANT_ACCESS_DENIED); a unique/check/malformed-uuid violation is
  * VALIDATION_FAILED; anything else is a transient fault → SERVER_ERROR (retryable). Throw the
  * CODE only — never the raw Postgres message (which can embed the object_path / tenant_id).
@@ -380,6 +385,10 @@ function throwMappedPdfWriteError(error: {
   readonly message?: string;
 }): never {
   switch (error.code) {
+    // The Story 8.4 file-side lock RAISE — a post-send quote_pdf link re-point surfaces the
+    // stable FILE_LINK_LOCKED code (the shared family), not an opaque SERVER_ERROR.
+    case "FL823":
+      throw new CommandError("FILE_LINK_LOCKED");
     case "23503":
     case "42501":
       throw new CommandError("TENANT_ACCESS_DENIED");

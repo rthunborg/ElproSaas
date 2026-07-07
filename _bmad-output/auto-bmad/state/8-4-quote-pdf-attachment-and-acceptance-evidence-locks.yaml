@@ -1,0 +1,72 @@
+# auto-bmad per-story state — written by scripts/state_update.py (full stable schema;
+# see references/state-and-resume.md). Prose belongs in reports/{key}.md, not here.
+story_key: 8-4-quote-pdf-attachment-and-acceptance-evidence-locks
+epic_num: 8
+story_num: 4
+branch: epic/8-required-files-and-private-storage
+status: done
+updated_at: "2026-07-07T13:48:20Z"
+started_at: "2026-07-07T12:29:41Z"
+completed_at: "2026-07-07T13:48:20Z"
+active_seconds: 4524
+timing_anchor: null
+is_first_in_epic: false
+is_last_in_epic: false
+needs_project_context_bootstrap: false
+git_mode: remote
+base_branch: main
+tea_risk: high
+tea_selected: [atdd, automate]
+tea_rationale: "immutable lifecycle locks on sent-quote-PDF / accepted-evidence file links via DB triggers + command validation (data integrity, irreversible side effects; High money/quote snapshot impact; R-812/R-822/R-813 open; must join frozen QV409/AR704 lock-code family)"
+epic_story_count: 5
+stories_after_in_epic: 1
+completed_phases: [0, 1, 2, 3, 4, 5, 6, 7]
+code_review_iterations: 0
+code_review_loop_done: false
+hitl_halt: "auto-continued (epic â€” no halt)"
+external_review_iterations: 0
+convergence_unverified: false
+story_trace: null
+commits: [cab1c2b, 61e670a, "6668502", db5d2fc, 199e2d6, ec00a52]
+phase8_steps:
+  trace_gate: null
+  nfr: null
+  test_review: null
+  project_context: null
+  reconcile: null
+  archive: null
+  retro: null
+gate_decision: null
+gate_iterations: 0
+deferred_work_archived: 0
+pr_url: null
+ci_run_url: null
+ci_status: unknown
+pr_merged: false
+merge_method: null
+merge_commit: null
+branch_deleted: false
+open_questions:
+  - "Lock APPLICATION mechanism: parent-state-keyed BEFORE trigger (preferred, no frozen-RPC edits) vs explicit additive command lock-step â€” flagged in-story for dev to resolve and record"
+deferred_work:
+  - "Object-byte reclamation from the bucket â€” later storage-retention story (R-818)"
+  - "Post-acceptance correction/edit workflow â€” owner-gated (R-714)"
+  - "archiveFileLink command â€” AC3 proof targets the file; links cascade on file archive"
+  - "EntityFilePanel replace/delete wiring â€” predicates ready for the 8.5 file-index UI"
+  - "archiveFile(hardDelete:true) returns FILE_LINK_LOCKED even for an unlocked file â€” safe, crafted-request-only; distinct code later (8.5)"
+  - "file-lock-panel.e2e.spec.ts fully test.skip â€” panel wiring is 8.5; enforcement proven at command+DB layers"
+blockers: []
+overrides: {}
+constraints: []
+tier_a_base_sha: df41c27bc67388c786e1a0097b1d8c22e086a6a1
+tier_a_review:
+  verdict: Approve
+  critical: 0
+  high: 0
+  medium: 2
+  low: 2
+  open_after_fix: 0
+  deferred: 2
+  dismissed_noise: 1
+  security_findings: 0
+  auto_decisions: 2
