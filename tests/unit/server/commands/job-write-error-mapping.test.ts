@@ -93,3 +93,44 @@ test("7.3: an error with NO code throws a generic non-CommandError (defensive de
   // The "?" placeholder is used when the code is absent — still no message-body leak.
   assert.doesNotMatch((e as Error).message, /no code present/);
 });
+
+// ════════════════════════════════════════════════════════════════════════════════════════════════
+// Story 7.4 (ATDD RED PHASE) — the accepted-record lock mapper branch.
+//
+// { skip: true } until 7.4 lands: the additive migration 20260711120000_accepted_record_lock.sql
+// RAISEs the custom SQLSTATE `AR704` from the `enforce_job_source_ref_lock` trigger when a DIRECT SQL
+// UPDATE mutates an immutable job source ref; the `throwMappedJobWriteError` branch must map that to
+// the NEW stable `ACCEPTED_RECORD_LOCKED` command code (mirroring the QV409 → QUOTE_VERSION_LOCKED
+// branch in the quote mapper). Remove `{ skip: true }` when 7.4 is implemented and this must PASS.
+//
+// AR704 → ACCEPTED_RECORD_LOCKED is a DISTINCT-but-related sibling of 6.4's QV409 → QUOTE_VERSION_LOCKED
+// (the "one model, three scopes, shared lock-code FAMILY not a fork" retro constraint): a family means
+// related-but-distinct codes with a shared trigger shape, NOT one reused code and NOT a divergent
+// mechanism. Both co-exist; neither is merged or renamed.
+//
+// [Source: story 7.4 Task 2.2; test-design-epic-7.md#7.4-INT-01/02, R-704;
+//  src/server/commands/jobs/jobs-db.ts (throwMappedJobWriteError — add the AR704 branch);
+//  src/server/commands/command-errors.ts (add ACCEPTED_RECORD_LOCKED to the union + COMMAND_MESSAGES);
+//  src/server/commands/quotes/quote-db.ts (the QV409 → QUOTE_VERSION_LOCKED template)]
+// ════════════════════════════════════════════════════════════════════════════════════════════════
+
+test("7.4: AR704 (accepted-record lock trigger) → ACCEPTED_RECORD_LOCKED (distinct from QUOTE_VERSION_LOCKED)", { skip: true }, () => {
+  const e = catchMapped({ code: "AR704", message: "accepted record is locked (trigger AR704)" });
+  assert.ok(e instanceof CommandError, "AR704 must throw a CommandError");
+  assert.equal(
+    (e as CommandError).code,
+    "ACCEPTED_RECORD_LOCKED",
+    "AR704 → ACCEPTED_RECORD_LOCKED",
+  );
+});
+
+test("7.4: the ACCEPTED_RECORD_LOCKED mapping never surfaces the raw SQLSTATE or pg message (no leak)", { skip: true }, () => {
+  const e = catchMapped({
+    code: "AR704",
+    message: "update on jobs rejected by enforce_job_source_ref_lock (customer 9999 accepted_price_ore=125000)",
+  });
+  assert.ok(e instanceof CommandError);
+  // The CommandError carries the CODE as its message (`super(code)`) — never the raw pg text.
+  assert.equal((e as CommandError).message, "ACCEPTED_RECORD_LOCKED");
+  assert.doesNotMatch((e as CommandError).message, /AR704|jobs|9999|125000|customer/);
+});
