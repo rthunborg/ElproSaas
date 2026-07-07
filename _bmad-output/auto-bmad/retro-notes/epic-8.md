@@ -27,3 +27,6 @@
 - [Phase 5 â€” dev-story] The story's preferred file_links-write trigger alone was insufficient: mark_quote_version_sent and the accept RPC flip parent status WITHOUT re-writing file_links, so links created while draft would never lock â€” needed two parent-side lock-apply triggers (quote_versions draft->non-draft, quote_acceptances insert). Non-obvious gap in the 2.1 design note.
 - [Phase 5 â€” dev-story] now() = transaction_timestamp() within a txn made a naive lock-apply idempotency guard mask an is_locked=false disarm as a same-tuple no-op â€” the apply trigger must key skip-re-locking on OLD.is_locked (UPDATE arm), not NEW.is_locked, so a disarm reaches the enforce trigger.
 - [Phase 7 â€” Tier-A review] A test whose title over-claims relative to its body is a coverage-honesty trap: the AC4 'atomicity' INT test proved lock precision, not fault-injection â€” reads as green AC coverage while the literal case is never exercised; renamed + cited the real atomic-by-construction proof (8.4-RLS-04).
+
+## Story 8-5-limited-file-index-and-file-audit-within-phase-a-scope
+- [Phase 4 â€” atdd] file-lock-panel.e2e.spec.ts reads fixture.sentQuote/fixture.acceptedAcceptance but global-setup does NOT emit those keys â€” the 8.4 spec header's 'already scaffolded' claim was inaccurate; dev must add the fixtures or repoint the spec before AC4 E2E can go green.

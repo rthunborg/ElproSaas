@@ -5,10 +5,10 @@ epic_num: 8
 story_num: null
 branch: epic/8-required-files-and-private-storage
 status: in-progress
-updated_at: "2026-07-07T13:59:27Z"
+updated_at: "2026-07-07T14:10:37Z"
 started_at: "2026-07-07T10:02:38Z"
 completed_at: null
-active_seconds: 13340
+active_seconds: 14000
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false

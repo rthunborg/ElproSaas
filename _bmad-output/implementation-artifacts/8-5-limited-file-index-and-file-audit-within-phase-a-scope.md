@@ -180,4 +180,20 @@ This is the **LAST story of Epic 8** (`is_last_in_epic: true`) and the **only re
 
 ### Completion Notes List
 
+### ATDD Red-Phase Scaffolds (bmad-testarch-atdd, 2026-07-07)
+
+Red-phase acceptance scaffolds generated before implementation (all inert until 8.5 lands; the
+checklist is `_bmad-output/test-artifacts/atdd-checklist-8-5.md`):
+
+- `tests/e2e/files/file-index-scope.e2e.spec.ts` (NEW, 3 `test.skip`) — AC1/R-816 index scope guardrail.
+- `tests/integration/rls/file-index-isolation.rls.test.ts` (NEW, 4 `describe.skip`) — AC1/AC3 tenant isolation.
+- `tests/integration/commands/file-audit-events.int.test.ts` (NEW, 4 `describe.skip`) — AC2/AC5 §15 audit.
+- `tests/unit/features/files/file-index.test.ts` (NEW, 7 `describe.skip` + throwing stubs) — AC1 pure index logic.
+- `tests/unit/guardrails/file-index-non-scope.test.ts` (NEW, 3 LIVE, green now) — AC1/R-816 source-tree STOP guardrail.
+- `tests/e2e/files/file-lock-panel.e2e.spec.ts` (EXISTS) — the AC4 contract; dev un-skips in Task 2.5.
+
+RED-PHASE GAP dev must close (Task 2.5): `file-lock-panel.e2e.spec.ts` reads
+`fixture.sentQuote`/`fixture.acceptedAcceptance`, which `tests/e2e/global-setup.ts` does NOT currently
+emit — add those keys (with file ids) or repoint the spec at existing fixture keys.
+
 ### File List
