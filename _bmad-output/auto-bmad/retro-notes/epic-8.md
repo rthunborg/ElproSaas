@@ -7,3 +7,7 @@
 - [Phase 5 â€” dev-story] Task 9's CI golden PII/ORGNR scan has no standalone script in repo â€” satisfied by construction (anonymized metadata-only fixtures); confirm whether a dedicated scan is expected epic-wide
 - [Phase 7 â€” code review] Local supabase db reset intermittently leaves kong returning 502 on /auth/v1/* only (stale upstream; auth container healthy) â€” docker restart supabase_kong_ElproSaas clears it; can false-fail local reachability probes
 - [Phase 7 â€” code review] When a review fix rewires production off an RPC (create_file_with_link -> link_existing_file), the old RPC's privilege negatives silently stop covering the live surface â€” iteration 3 caught this coverage inversion; check negative-test targets after any fix that swaps a privileged entry point
+
+## Story epic-8
+- [Phase 2 â€” test-design] Single Phase A file model contract (R-814) held under real pressure â€” 6.3 generateQuotePdf and 7.x accept both consume 8.1's bucket/paths/file_links with no competing model; sequencing win worth affirming in retro.
+- [Phase 2 â€” test-design] 8.4 file-lock is a known-shape task: frozen 6.4/7.4 migrations name 'Epic 8.4 locked-evidence-file' as third scope of the shared lock-code family â€” 8.4 must reuse the trigger shape with a sibling code (R-822), not invent a mechanism.

@@ -5,10 +5,10 @@ epic_num: 8
 story_num: null
 branch: epic/8-required-files-and-private-storage
 status: in-progress
-updated_at: "2026-07-07T10:02:38Z"
+updated_at: "2026-07-07T10:13:57Z"
 started_at: "2026-07-07T10:02:38Z"
 completed_at: null
-active_seconds: 0
+active_seconds: 648
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -20,7 +20,7 @@ tea_selected: []
 tea_rationale: null
 epic_story_count: 5
 stories_after_in_epic: null
-completed_phases: [0, 1]
+completed_phases: [0, 1, 2]
 code_review_iterations: 0
 code_review_loop_done: false
 hitl_halt: null
@@ -46,7 +46,9 @@ pr_merged: false
 merge_method: null
 merge_commit: null
 branch_deleted: false
-open_questions: []
+open_questions:
+  - "Final owner-approved MIME/size upload policy (R-817) â€” deferred to Wave-2 create-story (demo-data-only decision)"
+  - "Optional file-index build/skip call (R-816) â€” owner decision deferred to Wave-2 create-story"
 deferred_work: []
 blockers: []
 overrides: {}
