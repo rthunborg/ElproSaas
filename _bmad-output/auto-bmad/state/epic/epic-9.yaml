@@ -5,11 +5,11 @@ epic_num: 9
 story_num: null
 branch: epic/9-migration-coexistence-golden-masters-and-pilot-readiness
 status: in-progress
-updated_at: "2026-07-07T19:18:07Z"
+updated_at: "2026-07-07T19:25:47Z"
 started_at: "2026-07-07T17:37:04Z"
 completed_at: null
-active_seconds: 5290
-timing_anchor: 1783451498
+active_seconds: 6129
+timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
 needs_project_context_bootstrap: false
@@ -52,9 +52,10 @@ blockers: []
 overrides: {}
 constraints: []
 epic_slug: migration-coexistence-golden-masters-and-pilot-readiness
-active_story: 9-2-anonymized-lovable-fixture-capture
+active_story: 9-3-golden-master-comparison-harness-for-core-workflow
 stories_landed:
   - 9-1-legacy-record-classification-and-migration-runbook
+  - 9-2-anonymized-lovable-fixture-capture
 auto_decisions:
   - "Approved-PII-exception machine-readable marker not implemented/exercised [Med] â†’ defer: owner-gated real-capture story defines the marker key + scanner recognition when the first exception appears (Tier A, 9-2-anonymized-lovable-fixture-capture)"
 uat_items:
@@ -71,3 +72,16 @@ uat_items:
   - "[9-1-legacy-record-classification-and-migration-runbook] In migration-runbook.md Â§5 â†’ tests/fixtures/golden/lovable/** and scripts/migration/** referenced as forthcoming seams; neither directory exists yet."
   - "[9-1-legacy-record-classification-and-migration-runbook] PII spot-check both docs (name/email/phone/personnummer/orgnr/secret) â†’ none present; only masked placeholders (YYYYMMDD-XXXX, XXXXXX-XXXX)."
   - "[9-1-legacy-record-classification-and-migration-runbook] Run pnpm test:unit -- tests/unit/docs/migration-runbook-validators.test.ts â†’ all 9 validators pass."
+  - "[9-2-anonymized-lovable-fixture-capture] Run pnpm run test:unit â†’ whole unit gate passes (~1300 tests, 0 fail, 0 skipped) incl. the four lovable-pack suites; money-pack privacy scan stays green."
+  - "[9-2-anonymized-lovable-fixture-capture] Run node --experimental-strip-types --import ./tests/support/register.mjs --test \"tests/unit/fixtures/golden/lovable/**/*.test.ts\" â†’ 42 pass / 0 fail / 0 skipped (no suite self-disabled)."
+  - "[9-2-anonymized-lovable-fixture-capture] List tests/fixtures/golden/lovable/ â†’ exactly 8 category files (crm, settings-pricing, calculations, quotes, pdfs, acceptance, files, accepted-quote-to-job).json matching LOVABLE_FIXTURE_MANIFEST."
+  - "[9-2-anonymized-lovable-fixture-capture] Open e.g. crm.json â†’ personnummer is masked YYMMDD-XXXX, emails @example.test, no real name/phone/orgnr/street address in the DATA payload."
+  - "[9-2-anonymized-lovable-fixture-capture] Seeded-PII fail-closed test in lovable-privacy-scan.test.ts â†’ violation per class (PERSONNUMMER/ORGNR/NON_EXAMPLE_EMAIL/SECRET) â€” green in the suite run."
+  - "[9-2-anonymized-lovable-fixture-capture] Seeded raw-file-blob test â†’ data: URI + long base64 trip RAW_FILE_BLOB; clean link/type/purpose metadata does not â€” green in the suite run."
+  - "[9-2-anonymized-lovable-fixture-capture] Run the scanFixtureData one-liner on clean masked data â†’ prints [] (zero violations)."
+  - "[9-2-anonymized-lovable-fixture-capture] Run the scanFixtureData one-liner on planted PII (900101-1234, 5560000001, x@gmail.com, sk-x) â†’ prints 4 violations naming each class."
+  - "[9-2-anonymized-lovable-fixture-capture] Run anonymizeRecord twice on the same record â†’ byte-identical output; name â†’ 'Sample Person NN', email â†’ user-NN@example.test, api_key key dropped entirely."
+  - "[9-2-anonymized-lovable-fixture-capture] Run captureLog({customers:12,facilities:3}) â†’ 'anonymized 12 customers, 3 facilities' â€” counts only, no raw values."
+  - "[9-2-anonymized-lovable-fixture-capture] Run scanFixtureData({priceOre: 1234567890}) â†’ [] (â‰¥10-digit numeric Ã¶re does NOT trip the string-scoped ORGNR class)."
+  - "[9-2-anonymized-lovable-fixture-capture] Read scripts/migration/README.md â†’ documents local/test-oriented synthetic-input-only scope + KNOWN LIMITATION: free-form personal names not auto-anonymized (manual redaction before any real capture)."
+  - "[9-2-anonymized-lovable-fixture-capture] Verify no fictional ReadinessCode values in lovable/** fixtures â†’ only codes from the real readiness.ts union appear."

@@ -1,14 +1,14 @@
 # auto-bmad per-story state — written by scripts/state_update.py (full stable schema;
 # see references/state-and-resume.md). Prose belongs in reports/{key}.md, not here.
-story_key: 9-2-anonymized-lovable-fixture-capture
+story_key: 9-3-golden-master-comparison-harness-for-core-workflow
 epic_num: 9
-story_num: 2
+story_num: 3
 branch: epic/9-migration-coexistence-golden-masters-and-pilot-readiness
-status: done
-updated_at: "2026-07-07T19:24:44Z"
-started_at: "2026-07-07T18:27:58Z"
-completed_at: "2026-07-07T19:24:44Z"
-active_seconds: 3333
+status: in-progress
+updated_at: "2026-07-07T19:25:47Z"
+started_at: "2026-07-07T19:25:47Z"
+completed_at: null
+active_seconds: 0
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -17,17 +17,17 @@ git_mode: remote
 base_branch: main
 tea_risk: high
 tea_selected: [atdd, automate]
-tea_rationale: "Security-sensitive input handling: PII/secret/raw-customer-file anonymization in committed fixtures, irreversible once committed; corroborated by R-901/R-902/R-911 (score 6) and the zero-PII epic blocker"
+tea_rationale: "Money/tax + acceptance-transition comparisons (irreversible side effects, data integrity) and mandated two-tenant RLS/storage negatives; R-903/R-904/R-906/R-915 (score 6) all owned by 9.3"
 epic_story_count: 5
-stories_after_in_epic: 3
-completed_phases: [0, 1, 2, 3, 4, 5, 6, 7]
+stories_after_in_epic: 2
+completed_phases: [0, 1, 2]
 code_review_iterations: 0
 code_review_loop_done: false
-hitl_halt: "auto-continued (epic â€” no halt)"
+hitl_halt: null
 external_review_iterations: 0
 convergence_unverified: false
 story_trace: null
-commits: [a1578bb, 6c8c7a1]
+commits: []
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -47,10 +47,8 @@ merge_method: null
 merge_commit: null
 branch_deleted: false
 open_questions: []
-deferred_work:
-  - "Approved-PII-exception machine-readable marker mechanism â€” deferred to the owner-gated real-capture story (ledgered)"
+deferred_work: []
 blockers: []
 overrides: {}
 constraints: []
-tier_a_base_sha: a573269ab8d76e6fa947c14edad4dd8442fa23f6
-tier_a_review: "done (1 pass, Changes Requested -> fixed; Critical 0 / High 0 / Med 2 / Low 2; 1 Med Decision auto-deferred per triage recommendation, 3 Patch fixed; security 1 Low)"
+tier_a_base_sha: 4d92f6d44c6fa1452f71d6c8946323a2457237e9
