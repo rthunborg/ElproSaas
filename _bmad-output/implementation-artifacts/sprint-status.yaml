@@ -1,5 +1,5 @@
 # generated: 2026-06-12
-# last_updated: 2026-07-07  # Story 8.4 dev-story complete (review)
+# last_updated: 2026-07-07  # Story 8.5 story context created (ready-for-dev)
 # project: ElproSaas
 # project_key: NOKEY
 # tracking_system: file-system
@@ -125,7 +125,7 @@ development_status:
   8-2-validated-upload-and-entity-file-panels: review
   8-3-tenant-authorized-signed-file-access: review
   8-4-quote-pdf-attachment-and-acceptance-evidence-locks: review
-  8-5-limited-file-index-and-file-audit-within-phase-a-scope: backlog
+  8-5-limited-file-index-and-file-audit-within-phase-a-scope: ready-for-dev
   epic-8-retrospective: optional
 
   epic-9: backlog
