@@ -84,6 +84,16 @@ export async function loadJobStatus(
 /**
  * Postgres error codes a job mutation can surface that are DETERMINISTIC outcomes (not transient
  * infra faults):
+ *   - `AR704` — the Story 7.4 accepted-record-lock trigger (`enforce_job_source_ref_lock` /
+ *     `enforce_quote_acceptance_lock`; a custom SQLSTATE, DISTINCT from the standard classes below
+ *     and from 6.4's `QV409`) → ACCEPTED_RECORD_LOCKED. A DIRECT own-tenant authenticated UPDATE of
+ *     an immutable job source ref (or acceptance commitment column) is rejected below the command;
+ *     the stable lock code must surface, not an opaque SERVER_ERROR. NOTE: the `updateJob` command
+ *     already unknown-field-rejects at the validator (VALIDATION_FAILED) so the command path can't
+ *     smuggle an immutable field to the DB — the DB trigger is the backstop for the below-the-command
+ *     direct-SQL attack (proven by 7.4-INT-02); this branch maps the code if the trigger ever fires
+ *     through a command path. `AR704` → `ACCEPTED_RECORD_LOCKED` is a sibling of 6.4's
+ *     `QV409` → `QUOTE_VERSION_LOCKED` (the shared lock-code FAMILY, not a fork).
  *   - `23503` foreign_key_violation — a composite same-tenant FK → TENANT_ACCESS_DENIED.
  *   - `42501` insufficient_privilege / RLS WITH CHECK violation → TENANT_ACCESS_DENIED.
  *   - `23505` unique_violation → VALIDATION_FAILED.
@@ -96,6 +106,10 @@ export function throwMappedJobWriteError(error: {
   readonly message?: string;
 }): never {
   switch (error.code) {
+    // The Story 7.4 accepted-record-lock RAISE — a distinguishable custom SQLSTATE the mapper
+    // branches on WITHOUT colliding with the standard classes or 6.4's QV409 scope.
+    case "AR704":
+      throw new CommandError("ACCEPTED_RECORD_LOCKED");
     case "23503":
     case "42501":
       throw new CommandError("TENANT_ACCESS_DENIED");

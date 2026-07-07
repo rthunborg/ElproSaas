@@ -5,11 +5,9 @@
  * in E2E.
  *
  * ════════════════════════════════════════════════════════════════════════════════════════════════
- * ATDD RED PHASE (TDD). Story 7.4 is NOT implemented yet: the correction-boundary notice
- * (`job-accepted-lock-notice`) on `src/components/jobs/JobDetailView.tsx` does NOT exist. Every
- * `test` below is `.skip`-ed so the spec is GREEN-by-skip in the every-PR gate. Once 7.4 lands,
- * remove the `.skip` and this spec must go GREEN (the notice renders; NO edit affordance renders for
- * any immutable commitment field).
+ * GREEN as of Story 7.4 dev. The correction-boundary notice (`job-accepted-lock-notice`) on
+ * `src/components/jobs/JobDetailView.tsx` now renders; `.skip` removed. The notice renders; NO edit
+ * affordance renders for any immutable commitment field.
  * ════════════════════════════════════════════════════════════════════════════════════════════════
  *
  * Coverage (STATES + MESSAGING only):
@@ -74,7 +72,7 @@ async function signIn(page: Page, email: string, password: string): Promise<void
 }
 
 test.describe("Job accepted-lock correction-boundary UX (Story 7.4 E2E)", () => {
-  test.skip("7.4-E2E-01 (AC1): the accepted job detail explains that corrections require an approved audited workflow", async ({
+  test("7.4-E2E-01 (AC1): the accepted job detail explains that corrections require an approved audited workflow", async ({
     page,
   }) => {
     await signIn(page, fixture.adminA.email, fixture.adminA.password);
@@ -89,7 +87,7 @@ test.describe("Job accepted-lock correction-boundary UX (Story 7.4 E2E)", () => 
     await expect(notice).toContainText(/granskat arbetsflöde|godkänt/i);
   });
 
-  test.skip("7.4-E2E-01 (AC1): NO silent edit affordance renders for any immutable commitment field", async ({
+  test("7.4-E2E-01 (AC1): NO silent edit affordance renders for any immutable commitment field", async ({
     page,
   }) => {
     await signIn(page, fixture.adminA.email, fixture.adminA.password);
@@ -113,7 +111,7 @@ test.describe("Job accepted-lock correction-boundary UX (Story 7.4 E2E)", () => 
     await expect(page.getByRole("button", { name: /begär korrigering|korrigera/i })).toHaveCount(0);
   });
 
-  test.skip("7.4-E2E-01 (AC1): the correction-boundary notice is keyboard-reachable and conveyed as text (a11y baseline)", async ({
+  test("7.4-E2E-01 (AC1): the correction-boundary notice is keyboard-reachable and conveyed as text (a11y baseline)", async ({
     page,
   }) => {
     await signIn(page, fixture.adminA.email, fixture.adminA.password);

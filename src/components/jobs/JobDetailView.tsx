@@ -170,6 +170,29 @@ export function JobDetailView({ detail }: { readonly detail: JobDetail }) {
             {detail.adjustmentReason}
           </p>
         )}
+
+        {/* ── CORRECTION-BOUNDARY NOTICE (Story 7.4, AC1) ─────────────────────── */}
+        {/* The accepted commitment (accepted price, source sent total, evidence, source version, */}
+        {/* acceptance timestamp/channel) + the job's immutable source refs are LOCKED at BOTH the */}
+        {/* command and DB layers (7.4-INT-01/02). This notice EXPLAINS the boundary as TEXT (a11y — */}
+        {/* not color alone): corrections require an approved audited workflow, NOT a silent edit. */}
+        {/* SCOPE GUARD (R-714 STOP): explanatory ONLY — NO "request correction" action, NO edit */}
+        {/* affordance for any immutable field (none renders — every immutable field is display-only */}
+        {/* above; the 7.3 allowed-edit dialog exposes ONLY title/status/planned dates below). */}
+        <div
+          data-testid="job-accepted-lock-notice"
+          role="note"
+          className="border-t border-zinc-200 pt-3 text-sm text-zinc-700"
+        >
+          <p>
+            Det accepterade åtagandet är{" "}
+            <span className="font-medium text-zinc-900">låst</span> — accepterat pris,
+            ursprunglig offertsumma, bevis, källoffertversion samt tidpunkt och kanal för
+            acceptansen kan inte redigeras här. Korrigeringar kräver ett{" "}
+            <span className="font-medium text-zinc-900">godkänt granskat arbetsflöde</span>,
+            inte en tyst ändring.
+          </p>
+        </div>
       </div>
 
       {/* ── LINKED FILES (owner_type='job') ────────────────────────────────────── */}

@@ -2,14 +2,13 @@
  * Story 7.4 — Accepted-state immutability + correction boundary (R-701/R-704/R-714).
  *
  * ════════════════════════════════════════════════════════════════════════════════════════════════
- * ATDD RED PHASE (TDD). Story 7.4 is NOT implemented yet: the additive migration
+ * GREEN as of Story 7.4 dev. The additive migration
  * `supabase/migrations/20260711120000_accepted_record_lock.sql` (the `enforce_quote_acceptance_lock`
- * / `enforce_job_source_ref_lock` BEFORE-UPDATE triggers + custom SQLSTATE `AR704`) does NOT exist,
- * the `ACCEPTED_RECORD_LOCKED` command code + the `AR704` mapper branch in `jobs-db.ts` do NOT exist.
- * Every `describe` below is `.skip`-ed so the suite is GREEN-by-skip in the every-PR gate. Once 7.4
- * lands, remove the `.skip` and this suite must go GREEN (the immutable-field UPDATEs must be REJECTED
- * by the trigger; the exempt paths must still SUCCEED). A test that only proves the UI disables a
- * control is NOT evidence (architecture §9) — the DB rejection is the load-bearing proof.
+ * / `enforce_job_source_ref_lock` BEFORE-UPDATE triggers + custom SQLSTATE `AR704`), the
+ * `ACCEPTED_RECORD_LOCKED` command code + the `AR704` mapper branch in `jobs-db.ts` now exist; `.skip`
+ * removed. The immutable-field UPDATEs are REJECTED by the trigger; the exempt paths still SUCCEED. A
+ * test that only proves the UI disables a control is NOT evidence (architecture §9) — the DB rejection
+ * is the load-bearing proof.
  * ════════════════════════════════════════════════════════════════════════════════════════════════
  *
  * The two-layer immutability proof is the headline (test-design-epic-7.md, story-7.4 rows):
@@ -176,7 +175,7 @@ async function seedAcceptedChain(
 // ══════════════════════════════════════════════════════════════════════════════════════════════
 // 7.4-INT-01 (P0, AC1) — the COMMAND layer: a smuggled immutable field ⇒ VALIDATION_FAILED, byte-unchanged
 // ══════════════════════════════════════════════════════════════════════════════════════════════
-describe.skip("7.4-INT-01: accepted-record immutability at the COMMAND layer (AC1, R-704)", () => {
+describe("7.4-INT-01: accepted-record immutability at the COMMAND layer (AC1, R-704)", () => {
   // The `updateJob` command already unknown-field-rejects, so a smuggled immutable field returns
   // VALIDATION_FAILED BEFORE the DB. The DB-layer ACCEPTED_RECORD_LOCKED (via AR704) is proven by
   // 7.4-INT-02's direct-SQL path — BOTH codes are asserted across the pair.
@@ -219,7 +218,7 @@ describe.skip("7.4-INT-01: accepted-record immutability at the COMMAND layer (AC
 // ══════════════════════════════════════════════════════════════════════════════════════════════
 // 7.4-INT-02 (P0, AC1) — THE load-bearing DB proof: a DIRECT own-tenant authenticated UPDATE ⇒ rejected
 // ══════════════════════════════════════════════════════════════════════════════════════════════
-describe.skip("7.4-INT-02: accepted-record immutability BELOW the command — the DB trigger (AC1, R-704)", () => {
+describe("7.4-INT-02: accepted-record immutability BELOW the command — the DB trigger (AC1, R-704)", () => {
   // The DIRECT own-tenant AUTHENTICATED (anon-key RLS client, NEVER BYPASSRLS) UPDATE the trigger
   // must block (architecture §9). It targets an immutable column on an OWN-TENANT (RLS-visible)
   // accepted row, so the trigger RAISE — not RLS invisibility — is what rejects it. A test that only
@@ -323,7 +322,7 @@ describe.skip("7.4-INT-02: accepted-record immutability BELOW the command — th
 // ══════════════════════════════════════════════════════════════════════════════════════════════
 // 7.4-INT-03 (P0, AC2) — accidental-update regression + the 7.2 idempotent-retry preservation
 // ══════════════════════════════════════════════════════════════════════════════════════════════
-describe.skip("7.4-INT-03: accidental-update regression + retry-path preservation (AC2, R-704/R-714)", () => {
+describe("7.4-INT-03: accidental-update regression + retry-path preservation (AC2, R-704/R-714)", () => {
   it("[P0] 7.4-INT-03: an id-only `updateJob` (empty patch) is a clean no-op — no false TENANT_ACCESS_DENIED, no write, no audit row, immutable fields byte-unchanged", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     const { jobId } = await seedAcceptedChain(fx.tenantA, clientA);
@@ -406,7 +405,7 @@ describe.skip("7.4-INT-03: accidental-update regression + retry-path preservatio
 // ══════════════════════════════════════════════════════════════════════════════════════════════
 // 7.4-RLS-01 (P0, AC3) — cross-tenant attack on the accepted record (read + immutable-field update)
 // ══════════════════════════════════════════════════════════════════════════════════════════════
-describe.skip("7.4-RLS-01: cross-tenant attack on accepted records (AC3, R-701/R-704)", () => {
+describe("7.4-RLS-01: cross-tenant attack on accepted records (AC3, R-701/R-704)", () => {
   it("[P0] 7.4-RLS-01: tenant A reading a tenant B quote_acceptances/jobs row via its own RLS client ⇒ zero rows (no existence disclosure)", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     const clientB = await makeAuthedServerClient(fx.adminB);

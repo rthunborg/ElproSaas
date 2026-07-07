@@ -222,23 +222,37 @@ describe("Acceptance/job migration reset — three new commitment tables (AC4/AC
     }
   });
 
-  it("[P0/AC4] the accept_quote_and_create_job RPC (7.2) EXISTS; NO acceptance-immutability trigger (7.4) exists yet", async (testCtx) => {
+  it("[P0/AC4] the accept_quote_and_create_job RPC (7.2) EXISTS AND the accepted-immutability trigger (7.4) EXISTS on quote_acceptances/jobs", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     // 7.1 creates the tables; 7.2 adds the transactional RPC; 7.4 locks them (immutability trigger).
-    // STORY 7.2 RECONCILIATION: this assertion inverted from the 7.1-era "RPC does NOT exist yet" —
-    // 7.2 (20260710120000) now lands the RPC, so it MUST exist; the acceptance-IMMUTABILITY trigger
-    // is still 7.4 (not landed), so quote_acceptances still carries ONLY the reused set_updated_at
-    // BEFORE UPDATE trigger — no bespoke immutability/lock trigger yet.
+    // STORY 7.4 RECONCILIATION: this assertion inverted from the 7.2-era "NO acceptance-immutability
+    // trigger exists yet" — 7.4 (20260711120000) now lands the accepted-immutability triggers, so
+    // quote_acceptances carries the reused set_updated_at BEFORE UPDATE trigger AND the bespoke
+    // `quote_acceptances_accepted_lock` trigger, and jobs carries set_updated_at AND the
+    // `jobs_source_ref_lock` trigger. (The RPC inversion the 7.2 comment describes is unchanged — it
+    // still exists.)
     const rpc = await adminQuery<{ proname: string }>(
       `select proname from pg_proc where proname = 'accept_quote_and_create_job'`,
     );
     expect(rpc.map((r) => r.proname)).toEqual(["accept_quote_and_create_job"]);
-    // The only triggers on quote_acceptances at 7.2 are the reused set_updated_at BEFORE UPDATE
-    // trigger — no bespoke immutability/lock trigger (that is 7.4).
-    const trg = await adminQuery<{ tgname: string }>(
+    // quote_acceptances now carries the reused set_updated_at trigger AND the 7.4 accepted-lock
+    // trigger — the bespoke immutability trigger MUST now be present (the load-bearing DB proof).
+    const accTrg = await adminQuery<{ tgname: string }>(
       `select tgname from pg_trigger
-         where tgrelid = 'public.quote_acceptances'::regclass and not tgisinternal`,
+         where tgrelid = 'public.quote_acceptances'::regclass and not tgisinternal
+         order by tgname`,
     );
-    expect(trg.every((r) => /set_updated_at/i.test(r.tgname))).toBe(true);
+    const accNames = accTrg.map((r) => r.tgname);
+    expect(accNames).toContain("quote_acceptances_set_updated_at");
+    expect(accNames).toContain("quote_acceptances_accepted_lock");
+    // jobs now carries the reused set_updated_at trigger AND the 7.4 source-ref-lock trigger.
+    const jobTrg = await adminQuery<{ tgname: string }>(
+      `select tgname from pg_trigger
+         where tgrelid = 'public.jobs'::regclass and not tgisinternal
+         order by tgname`,
+    );
+    const jobNames = jobTrg.map((r) => r.tgname);
+    expect(jobNames).toContain("jobs_set_updated_at");
+    expect(jobNames).toContain("jobs_source_ref_lock");
   });
 });

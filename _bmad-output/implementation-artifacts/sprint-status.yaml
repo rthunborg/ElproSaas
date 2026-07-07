@@ -1,5 +1,5 @@
 # generated: 2026-06-12
-# last_updated: 2026-07-06  # Story 6.4 mark-sent + sent-immutability → review
+# last_updated: 2026-07-07  # Story 7.4 accepted-immutability + correction-boundary → review
 # project: ElproSaas
 # project_key: NOKEY
 # tracking_system: file-system
@@ -116,7 +116,7 @@ development_status:
   7-1-acceptance-evidence-capture-for-sent-quote-versions: review
   7-2-idempotent-accept-quote-and-create-job-command: review
   7-3-minimal-job-order-record-and-tenant-admin-ux: review
-  7-4-accepted-state-immutability-and-correction-boundary: ready-for-dev
+  7-4-accepted-state-immutability-and-correction-boundary: review
   epic-7-retrospective: optional
 
   epic-8: in-progress

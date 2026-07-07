@@ -21,3 +21,7 @@
 - [Phase 5 - dev-story] ATDD scaffolds were authored against a drifted API (nonexistent runCommand actor param, camelCase factory seeds, wrong audit filter shape) and had to be rewritten to the real APIs preserving assertion intent - recurring scaffold-vs-real-API reconcile cost for future ATDD passes.
 - [Phase 5 - dev-story] Client/server boundary: JOB_STATUSES/labels split into pure types.ts because a client island importing from read.ts pulled the server-only RLS client into the client bundle (build failure) - apply the type/const-split discipline to any feature module whose read.ts imports the server client.
 - [Phase 6 - automate] src/features/jobs/read.ts cannot be imported under node --test (static next/headers import) - pure read-layer mapping tests must live in the Vitest suite even with no DB dependency.
+
+## Story 7-4-accepted-state-immutability-and-correction-boundary
+- [Phase 5 - dev-story] Pattern: story-N tests that assert story-N+k artifacts are ABSENT (planted forward-references like no-7.4-trigger-yet guards) create a required, sanctioned edit in story N+k - happened twice this epic (7.2 RPC assertion, 7.4 trigger assertion).
+- [Phase 5 - dev-story] Lock design: quote_acceptances locks everything except archived_at/updated_at; jobs leaves facility_id/contact_id unlocked so ON DELETE SET NULL cascade works - a full-tuple lock would have broken the cascade.

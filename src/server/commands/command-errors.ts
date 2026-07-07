@@ -57,6 +57,21 @@ import {
  *   column below the command (architecture §9). DISTINCT from 6.2's
  *   `QUOTE_VERSION_NOT_DRAFT`: that is the draft-only EDIT-scope rejection; this is the
  *   post-send IMMUTABILITY lock. Both codes co-exist — never merge or rename them.
+ * - `ACCEPTED_RECORD_LOCKED`     — the Story 7.4 ACCEPTED-IMMUTABILITY lock: a
+ *   commitment mutation targeted an ACCEPTED record — a `quote_acceptances` row (version
+ *   ref / evidence / accepted price / accepted timestamp / channel / source sent total /
+ *   …) or a `jobs` immutable source ref (quote_acceptance_id / quote_version_id /
+ *   customer_id). Enforced at BOTH layers — the 7.3 `updateJob` command unknown-field-
+ *   rejects a smuggled immutable field (VALIDATION_FAILED at the command) AND a DB trigger
+ *   RAISES (SQLSTATE `AR704`) on a DIRECT own-tenant authenticated UPDATE of a locked
+ *   column below the command (architecture §9; the load-bearing proof). This is the
+ *   Epic-7 accepted-immutability lock, DISTINCT from 6.4's `QUOTE_VERSION_LOCKED` (the
+ *   sent-version lock) and 6.2's `QUOTE_VERSION_NOT_DRAFT` — all co-exist, NEVER merge or
+ *   rename them. `AR704` → `ACCEPTED_RECORD_LOCKED` is a DISTINCT-but-related SIBLING of
+ *   6.4's `QV409` → `QUOTE_VERSION_LOCKED` (the "one model, three scopes, shared lock-code
+ *   FAMILY not a fork" retro constraint: a family means related-but-distinct codes with a
+ *   shared trigger shape, not one reused code and not a divergent mechanism — Epic 6
+ *   sent-freeze R-605, Epic 7 accepted-lock R-704, Epic 8.4 locked-evidence-file).
  * - `SERVER_ERROR`              — a TRANSIENT infra failure during the command
  *   (reused from Story 2.2). Generic + retryable; leaks nothing internal.
  */
@@ -68,7 +83,8 @@ export type CommandErrorCode =
   | "COMMAND_CONFLICT"
   | "ACCEPTANCE_ALREADY_RECORDED"
   | "QUOTE_VERSION_NOT_DRAFT"
-  | "QUOTE_VERSION_LOCKED";
+  | "QUOTE_VERSION_LOCKED"
+  | "ACCEPTED_RECORD_LOCKED";
 
 /**
  * A SANCTIONED typed-error escape for a command `execute` body (Story 3.1).
@@ -140,4 +156,10 @@ export const COMMAND_MESSAGES: Record<CommandErrorCode, string> = {
   // content is locked — changes require a new version. Generic + user-safe (no row/status leak).
   QUOTE_VERSION_LOCKED:
     "Den här versionen är skickad och är låst. Skapa en ny version för att göra ändringar.",
+  // The Story 7.4 accepted-immutability lock: an accepted record's commitment data (accepted
+  // price, source total, evidence, source version, acceptance timestamp/channel, job source refs)
+  // is locked — a correction requires an approved audited workflow, NOT a silent edit. Generic +
+  // user-safe (no row/status/PII leak). Distinct from QUOTE_VERSION_LOCKED (co-exist, never merge).
+  ACCEPTED_RECORD_LOCKED:
+    "Den accepterade posten är låst. Korrigeringar kräver ett godkänt granskat arbetsflöde.",
 };
