@@ -5,11 +5,11 @@ epic_num: 8
 story_num: null
 branch: epic/8-required-files-and-private-storage
 status: in-progress
-updated_at: "2026-07-07T11:22:23Z"
+updated_at: "2026-07-07T11:29:31Z"
 started_at: "2026-07-07T10:02:38Z"
 completed_at: null
 active_seconds: 4564
-timing_anchor: null
+timing_anchor: 1783423370
 is_first_in_epic: false
 is_last_in_epic: false
 needs_project_context_bootstrap: false
@@ -56,7 +56,8 @@ constraints: []
 epic_slug: required-files-and-private-storage
 active_story: 8-2-validated-upload-and-entity-file-panels
 stories_landed: []
-auto_decisions: []
+auto_decisions:
+  - "Server 're-derives' MIME from client-declared File.type, not bytes [Med] -> fix: correct the misleading comments in actions.ts/form-parsing.ts/validation.ts (MIME is client-declared File.type validated against fail-closed allow-list); no magic-byte sniffing now; log byte-sniffing as owner-gated R-817 follow-up (Tier A, 8-2)"
 uat_items: []
 adopt_verdicts:
   - "8-1-file-storage-foundation-private-bucket-metadata-links-rls-and-signed-access-command: skip (already done, in base)"

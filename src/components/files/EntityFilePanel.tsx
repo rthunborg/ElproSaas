@@ -37,6 +37,7 @@ import {
 } from "@/features/files/upload-action-state";
 import type { UploadErrorState } from "@/server/storage/upload-error-classifier";
 import type { EntityFileRow } from "@/features/files/read";
+import type { ActiveOwnerType } from "@/server/commands/files/validation";
 
 /** The Swedish label for the panel's purpose (per purpose union member). */
 const PURPOSE_LABEL: Record<string, string> = {
@@ -52,13 +53,12 @@ const PURPOSE_LABEL: Record<string, string> = {
 const ALLOWED_TYPES_DISPLAY = "PDF, bilder (PNG/JPEG/WebP/GIF), text/CSV, Word, Excel";
 
 export interface EntityFilePanelProps {
-  readonly ownerType:
-    | "customer"
-    | "facility"
-    | "contact"
-    | "calculation"
-    | "quote_acceptance"
-    | "job";
+  /**
+   * The owning entity's type. Sourced from the single-source-of-truth `ActiveOwnerType`
+   * union (derived from `ACTIVE_OWNER_TYPES`) — matching the `readEntityFiles` read type —
+   * so the panel prop can never silently drift from the active owner set (Task 2.2).
+   */
+  readonly ownerType: ActiveOwnerType;
   readonly ownerId: string;
   readonly purpose: string;
   /** The owning entity's display name (shown so the file has a clear owner). */

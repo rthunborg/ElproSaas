@@ -8,8 +8,10 @@
  * reads owner_type/owner_id/purpose/display_name from the form and computes the CLIENT-SIDE
  * pre-check discriminant (blocked-type / too-large) from the SAME pure policy the server
  * re-validates with, so a near-miss surfaces as a SPECIFIC state instead of a generic
- * reject. The MIME/size AUTHORITY is re-derived from the FILE itself server-side (never a
- * client-declared MIME) in the action; this parse never trusts a client path/bucket/tenant.
+ * reject. The size AUTHORITY is measured from the parsed bytes server-side; the mime is the
+ * client-declared `File.type` (browser-set Content-Type, NOT sniffed magic bytes) gated by a
+ * fail-closed allow-list (active-content types excluded) both client-side and, authoritatively,
+ * in the command. This parse never trusts a client path/bucket/tenant.
  */
 import {
   isAllowedMimeType,
@@ -48,11 +50,13 @@ export function parseUploadForm(form: FormData): ParsedUploadForm {
 }
 
 /**
- * Compute the CLIENT-SIDE pre-check discriminant from the ACTUAL file's mime + size (both
- * derived from the File itself, server-side, NOT a client-declared MIME). `too-large` wins
- * over `blocked-type` only after the type is allowed — a blocked type is the more specific
- * signal to show when both fail. Returns `none` when the file passes both pre-checks (a
- * later reject is then a server-side coupling/owner issue, not a type/size one).
+ * Compute the CLIENT-SIDE pre-check discriminant from the file's declared mime (`File.type`,
+ * the browser-set Content-Type — NOT sniffed magic bytes) + its measured size. `too-large`
+ * wins over `blocked-type` only after the type is allowed — a blocked type is the more
+ * specific signal to show when both fail. Returns `none` when the file passes both pre-checks
+ * (a later reject is then a server-side coupling/owner issue, not a type/size one). The
+ * allow-list is fail-closed and excludes active-content types; byte-level content sniffing is
+ * an R-817 / Sign-Off follow-up.
  */
 export function precheckUpload(mimeType: string, sizeBytes: number): UploadPrecheck {
   if (!isAllowedMimeType(mimeType)) return "blocked-type";

@@ -203,9 +203,12 @@ export interface UploadFileInput {
   /**
    * The actual bytes to write to the private object (server-derived path). Present when the
    * command is fed a real payload (the action → `runCommand` path); the pure metadata
-   * validation accepts input WITHOUT bytes (the action parses the FormData file to bytes and
-   * re-derives mime/size from the file itself — the metadata gate is orthogonal to the
-   * payload). The `execute` body guards that bytes are present before writing the object.
+   * validation accepts input WITHOUT bytes (the action parses the FormData file to bytes,
+   * measures `size_bytes` from those bytes, and takes `mime_type` from the client-declared
+   * `File.type` — the browser-set Content-Type, NOT sniffed magic bytes — which this validator
+   * gates against the fail-closed `isAllowedMimeType` allow-list; byte-level content sniffing
+   * is an R-817 / Sign-Off follow-up. The metadata gate is orthogonal to the payload). The
+   * `execute` body guards that bytes are present before writing the object.
    */
   readonly bytes?: Uint8Array;
 }

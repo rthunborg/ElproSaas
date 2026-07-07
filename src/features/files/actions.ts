@@ -11,11 +11,17 @@
  *     service-role key; the containment guards enforce this). It NEVER writes a files /
  *     file_links table directly — only the command writes, and only after the server-side
  *     MIME/size/owner/purpose/lifecycle gate.
- *   - The FormData file is parsed to bytes (`File.arrayBuffer()`), and mime_type / size_bytes
- *     are RE-DERIVED FROM THE FILE ITSELF server-side (a client-declared MIME is never the
- *     authority — the command re-validates identically, R-808). owner_type / owner_id /
- *     purpose / display_name come from the form; a client path / bucket / tenant_id is NEVER
- *     read (server-derived only).
+ *   - The FormData file is parsed to bytes (`File.arrayBuffer()`); `size_bytes` is measured
+ *     from the parsed bytes, and `mime_type` is the CLIENT-DECLARED `File.type` (the multipart
+ *     `Content-Type` the browser set — NOT content-sniffed magic bytes). The server does NOT
+ *     trust it as a proven content type: `mime_type` is validated against a FAIL-CLOSED
+ *     allow-list (`ALLOWED_MIME_TYPES`) that excludes every active-content / XSS-capable type
+ *     (`text/html`, `image/svg+xml`, `application/octet-stream`, executables), and the command
+ *     re-runs that same gate server-side (a bypassed client is still rejected, R-808). The
+ *     enforced guarantee is the closed allow-list, not byte-level sniffing; true magic-byte
+ *     content sniffing is an owner-gated R-817 / Sign-Off residual (see deferred-work.md).
+ *     owner_type / owner_id / purpose / display_name come from the form; a client path /
+ *     bucket / tenant_id is NEVER read (server-derived only).
  *
  * The typed `Result` is mapped to an `UploadActionState` via the pure `classifyUploadError`
  * classifier (Task 1.2): `VALIDATION_FAILED` → BLOCKED_TYPE / TOO_LARGE (disambiguated by
@@ -83,7 +89,11 @@ export async function uploadFileAction(
     };
   }
 
-  // Re-derive mime + size FROM THE FILE ITSELF (never a client-declared MIME as authority).
+  // Measure size from the parsed bytes; take mime from the CLIENT-DECLARED `File.type` (the
+  // browser-set multipart Content-Type, NOT sniffed magic bytes). It is not trusted as a
+  // proven content type — it is validated against the fail-closed `ALLOWED_MIME_TYPES` list
+  // (which excludes every active-content/XSS type) both here (pre-check) and, authoritatively,
+  // inside the command. Byte-level content sniffing is an R-817 / Sign-Off follow-up.
   const arrayBuffer = await fileEntry.arrayBuffer();
   const bytes = new Uint8Array(arrayBuffer);
   const mimeType = (fileEntry.type || "").trim().toLowerCase();
