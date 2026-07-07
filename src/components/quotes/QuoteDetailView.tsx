@@ -73,8 +73,15 @@ const EVENT_LABELS: Record<string, string> = {
 };
 
 export function QuoteDetailView({ detail }: { readonly detail: QuoteDetail }) {
-  const { header, versions, selectedVersionId, selectedLines, selectedAttachments, events } =
-    detail;
+  const {
+    header,
+    versions,
+    selectedVersionId,
+    selectedLines,
+    selectedAttachments,
+    events,
+    acceptedJobIdByVersionId,
+  } = detail;
 
   // Order the read rows by version_number ascending (the read layer already returns them asc;
   // re-sort defensively — the snake_case rows are ordered here, the PURE helpers run on the
@@ -99,6 +106,10 @@ export function QuoteDetailView({ detail }: { readonly detail: QuoteDetail }) {
   // this gating. The commands independently reject an accepted version (createNewQuoteVersion guards a
   // draft/non-draft parent; generateQuotePdf is scoped to draft/sent) — the UI is the MIRROR.
   const isAccepted = selected.status === "accepted";
+  // Story 7.3 (AC5 deep-link seam): the ONE job created off this accepted version (if any). The
+  // accepted section links to `/jobs/[jobId]` — the idempotent mirror lands on the EXISTING job,
+  // never a duplicate or a second create affordance.
+  const selectedJobId = acceptedJobIdByVersionId[selected.id] ?? null;
 
   const lines = buildCustomerVisibleLines(
     selectedLines.map((l) => ({
@@ -423,9 +434,21 @@ export function QuoteDetailView({ detail }: { readonly detail: QuoteDetail }) {
                   sourceSentTotalOre={selected.accepted_price_ore}
                 />
               ) : selected.status === "accepted" ? (
-                <p data-testid="quote-acceptance-accepted" className="text-green-800">
-                  Denna version är accepterad. Ett jobb har skapats från den accepterade offerten.
-                </p>
+                <div
+                  data-testid="quote-acceptance-accepted"
+                  className="flex flex-col gap-1 text-green-800"
+                >
+                  <span>Denna version är accepterad. Ett jobb har skapats från den accepterade offerten.</span>
+                  {selectedJobId && (
+                    <Link
+                      href={`/jobs/${selectedJobId}`}
+                      data-testid="quote-accepted-job-link"
+                      className="w-fit font-medium text-blue-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+                    >
+                      Öppna jobbet
+                    </Link>
+                  )}
+                </div>
               ) : (
                 <p data-testid="quote-acceptance-placeholder" className="text-zinc-600">
                   Acceptans kan registreras när versionen är skickad.

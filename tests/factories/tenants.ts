@@ -436,6 +436,27 @@ export async function adminInsertCustomer(seed: CustomerSeed): Promise<string> {
 }
 
 /**
+ * Rename a `customers` row's `display_name` via the privileged superuser pg path (BYPASSRLS).
+ * Story 7.3 source-of-truth proof (7.3-INT-01): mutate the LIVE customer AFTER a job is created to
+ * prove the job detail's FROZEN commitment name (from the version snapshot) does NOT move, while the
+ * live-CRM link (jobs.customer_id join) DOES track the rename. THROWS (Postgres `code` preserved) on
+ * a DB error so a broken seed fails loudly.
+ */
+export async function adminUpdateCustomerDisplayName(
+  customerId: string,
+  displayName: string,
+): Promise<void> {
+  try {
+    await adminQuery(
+      `update public.customers set display_name = $2 where id = $1`,
+      [customerId, displayName],
+    );
+  } catch (error) {
+    rethrowWithCode(error);
+  }
+}
+
+/**
  * Seed ONE `facilities` row via the privileged superuser pg path (BYPASSRLS).
  * Returns the inserted id. THROWS (Postgres `code` preserved) on a DB error —
  * including the composite same-tenant FK `23503` if `customer_id`'s tenant differs.

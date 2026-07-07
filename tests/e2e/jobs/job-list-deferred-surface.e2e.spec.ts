@@ -10,17 +10,15 @@
  *     appears on the list OR the detail — a hard absence gate on the rendered UI. Pair with the
  *     `tests/unit/guardrails/job-non-scope.test.ts` route/surface scan (Task 6).
  *
- * ── RED PHASE (Story 7.3 not yet implemented) ─────────────────────────────────────────────────
- * `/jobs` is still a PagePlaceholder ("Den här modulen byggs i Epic 7"); the `JobList` island does
- * not exist. Every test is `test.skip`. GREEN PHASE: replace the placeholder with the server list +
- * `JobList` filter/search island, then remove `.skip`. The `getByTestId` contract below defines the
- * UI hooks the implementation must provide. These tests assert EXPECTED behavior — they FAIL until
- * 7.3 lands.
+ * ════════════════════════════════════════════════════════════════════════════════════════════════
+ * GREEN as of Story 7.3 dev. The `/jobs` placeholder is replaced with the server list + `JobList`
+ * filter/search island; `.skip` removed.
+ * ════════════════════════════════════════════════════════════════════════════════════════════════
  *
- * Runs against the REAL app + local Supabase stack + the two-tenant job fixture (the acceptQuote
- * chain from global-setup produces at least one real job for tenant A — GREEN PHASE seeds a second
- * distinguishable job if a filter needs ≥2 rows; never hand-insert a `jobs` row). Mirrors
- * `quote-accept-create-job.e2e.spec.ts` signIn/waitForHydrated + the `getByTestId` UI contract.
+ * Runs against the REAL app + local Supabase stack + the job fixture (global-setup's `acceptedJob`
+ * chain produces at least one real job for tenant A via the REAL accept transaction; never hand-insert
+ * a `jobs` row). Mirrors `quote-accept-create-job.e2e.spec.ts` signIn/waitForHydrated + the
+ * `getByTestId` UI contract.
  *
  * [Source: test-design-epic-7.md#7.3-E2E-03, #Risk R-711, #Non-scope (field-worker/invoicing/Fortnox
  *  boundaries); story 7.3 AC2 + Tasks 2/2.1/2.2 + Task 6 + Testing section; src/app/(app)/quotes/
@@ -91,7 +89,7 @@ const FORBIDDEN_VISIBLE_TEXT = [
 ];
 
 test.describe("job/order list — filter/search + deferred-surface absence (AC2, R-711)", () => {
-  test.skip("[P1] 7.3-E2E-03: the /jobs list renders rows that link to /jobs/[jobId] and exposes customer / status / planned-date / source-quote filters", async ({
+  test("[P1] 7.3-E2E-03: the /jobs list renders rows that link to /jobs/[jobId] and exposes customer / status / planned-date / source-quote filters", async ({
     page,
   }) => {
     await openJobList(page);
@@ -106,7 +104,7 @@ test.describe("job/order list — filter/search + deferred-surface absence (AC2,
     await expect(page.getByTestId("job-filter-source-quote")).toBeVisible();
   });
 
-  test.skip("[P1] 7.3-E2E-03: filtering by status narrows the visible rows (thin-index filter behavior)", async ({
+  test("[P1] 7.3-E2E-03: filtering by status narrows the visible rows (thin-index filter behavior)", async ({
     page,
   }) => {
     await openJobList(page);
@@ -118,7 +116,7 @@ test.describe("job/order list — filter/search + deferred-surface absence (AC2,
     await expect(page.getByTestId("job-list-row").first()).toBeVisible();
   });
 
-  test.skip("[P1] 7.3-E2E-03: NO field-worker / schedule / time-material / deviation / ÄTA / analytics / invoice / Fortnox / supplier surface appears on the rendered list", async ({
+  test("[P1] 7.3-E2E-03: NO field-worker / schedule / time-material / deviation / ÄTA / analytics / invoice / Fortnox / supplier surface appears on the rendered list", async ({
     page,
   }) => {
     await openJobList(page);

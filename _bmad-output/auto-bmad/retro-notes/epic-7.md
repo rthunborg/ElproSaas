@@ -16,3 +16,7 @@
 - [Phase 5 - dev-story] Command sent-state gate relaxed to let an already-accepted version reach the RPC idempotent short-circuit; a strict status==sent gate breaks retry idempotency - 7.4 immutability must preserve this path.
 - [Phase 5 - dev-story] ACCEPTANCE_ALREADY_RECORDED added but reserved (row lock resolves concurrency into idempotent return); shared error mapper keeps 23505 -> VALIDATION_FAILED so 7.1 behavior unchanged.
 - [Phase 7 - Tier A review] p_command_at was computed and unit-asserted but never passed to the RPC (no matching SQL param) - removed; future timestamp-injection assertions must verify the arg reaches the DB call, not just the adapter output.
+
+## Story 7-3-minimal-job-order-record-and-tenant-admin-ux
+- [Phase 5 - dev-story] ATDD scaffolds were authored against a drifted API (nonexistent runCommand actor param, camelCase factory seeds, wrong audit filter shape) and had to be rewritten to the real APIs preserving assertion intent - recurring scaffold-vs-real-API reconcile cost for future ATDD passes.
+- [Phase 5 - dev-story] Client/server boundary: JOB_STATUSES/labels split into pure types.ts because a client island importing from read.ts pulled the server-only RLS client into the client bundle (build failure) - apply the type/const-split discipline to any feature module whose read.ts imports the server client.

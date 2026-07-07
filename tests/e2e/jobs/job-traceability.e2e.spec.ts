@@ -20,20 +20,17 @@
  *   - allowed-edit affordance (AC4): the edit form exposes ONLY title / status / planned dates — NO
  *     edit control for any immutable source/commitment field.
  *
- * ── RED PHASE (Story 7.3 not yet implemented) ─────────────────────────────────────────────────
- * `/jobs/[jobId]` is a NEW route + `JobDetailView` is a NEW component — neither exists yet (the
- * `/jobs` index is still a PagePlaceholder). Every test is `test.skip`. GREEN PHASE: land the
- * detail page + view + the accepted-version deep link, then remove `.skip`. The `getByTestId`
- * contract below defines the UI hooks the implementation must provide (mirror the QuoteDetailView
- * testid discipline). These tests assert EXPECTED behavior — they FAIL until 7.3 lands.
+ * ════════════════════════════════════════════════════════════════════════════════════════════════
+ * GREEN as of Story 7.3 dev. `/jobs/[jobId]` + `JobDetailView` + the `JobEditDialog` allowed-edit
+ * affordance + the accepted-version deep link (`quote-accepted-job-link`) now exist; `.skip` removed.
+ * ════════════════════════════════════════════════════════════════════════════════════════════════
  *
- * Runs against the REAL app + local Supabase stack + a DEDICATED accepted-job fixture: the E2E
- * global-setup (from 7.2) already drives the REAL `mark_quote_version_sent` → `accept_quote_and_
- * create_job` chain for the `acceptQuote` fixture — GREEN PHASE reuses that fixture's ONE created
- * job (extend global-setup to persist the created `jobId` + the `sourceVersionId` deep-link seam if
- * not already present). Never hand-insert a `jobs` row (the source refs must be authentic). Mirrors
- * `quote-accept-create-job.e2e.spec.ts` signIn/waitForHydrated + the `getByTestId` UI contract. NO
- * public/portal/webhook route (the `job-non-scope` guardrail scan owns the hard proof).
+ * Runs against the REAL app + local Supabase stack + the DEDICATED `acceptedJob` fixture: global-setup
+ * drives the REAL `mark_quote_version_sent` → `accept_quote_and_create_job` chain at seed time and
+ * persists the created `jobId` + the source `sentVersionId`/`quoteId` deep-link seam. Never hand-insert
+ * a `jobs` row (the source refs must be authentic). Mirrors `quote-accept-create-job.e2e.spec.ts`
+ * signIn/waitForHydrated + the `getByTestId` UI contract. NO public/portal/webhook route (the
+ * `job-non-scope` guardrail scan owns the hard proof).
  *
  * [Source: test-design-epic-7.md#7.3-E2E-01/02/04, #Risk R-708/R-712, #Exit Criteria (Job
  *  traceability proven); story 7.3 AC1/AC4/AC5 + Tasks 2/3 + Testing section; src/components/quotes/
@@ -48,11 +45,10 @@ import path from "node:path";
 
 interface JobFixture {
   readonly adminA: { readonly email: string; readonly password: string };
-  readonly acceptQuote: {
-    readonly id: string;
+  readonly acceptedJob: {
+    readonly quoteId: string;
     readonly sentVersionId: string;
-    // RED PHASE: GREEN must extend global-setup to persist the job created by the acceptQuote chain.
-    readonly jobId?: string;
+    readonly jobId: string;
   };
 }
 
@@ -85,13 +81,12 @@ async function signIn(page: Page, email: string, password: string): Promise<void
 /** Open the job detail directly (the deep-link target the accepted version points at). */
 async function openJobDetail(page: Page): Promise<void> {
   await signIn(page, fixture.adminA.email, fixture.adminA.password);
-  const jobId = fixture.acceptQuote.jobId; // GREEN: guaranteed present once global-setup carries it.
-  await page.goto(`/jobs/${jobId}`);
+  await page.goto(`/jobs/${fixture.acceptedJob.jobId}`);
   await waitForHydrated(page.getByTestId("job-detail"));
 }
 
 test.describe("job/order detail — traceability + allowed-edit + idempotency deep-link (AC1/AC4/AC5)", () => {
-  test.skip("[P1] 7.3-E2E-01: the detail surfaces the full source-traceability block (version link, evidence, accepted price + source total, customer, planned dates, files, events)", async ({
+  test("[P1] 7.3-E2E-01: the detail surfaces the full source-traceability block (version link, evidence, accepted price + source total, customer, planned dates, files, events)", async ({
     page,
   }) => {
     await openJobDetail(page);
@@ -112,7 +107,7 @@ test.describe("job/order detail — traceability + allowed-edit + idempotency de
     await expect(page.getByTestId("job-event-history")).toBeVisible();
   });
 
-  test.skip("[P1] 7.3-E2E-01: the immutable source refs are DISPLAY-ONLY — NO edit control renders for version / acceptance / customer / accepted price / source total / evidence", async ({
+  test("[P1] 7.3-E2E-01: the immutable source refs are DISPLAY-ONLY — NO edit control renders for version / acceptance / customer / accepted price / source total / evidence", async ({
     page,
   }) => {
     await openJobDetail(page);
@@ -125,7 +120,7 @@ test.describe("job/order detail — traceability + allowed-edit + idempotency de
     await expect(page.getByTestId("edit-job-channel")).toHaveCount(0);
   });
 
-  test.skip("[P1] 7.3-E2E-01: the allowed-edit affordance exposes ONLY title / status / planned dates (AC4)", async ({
+  test("[P1] 7.3-E2E-01: the allowed-edit affordance exposes ONLY title / status / planned dates (AC4)", async ({
     page,
   }) => {
     await openJobDetail(page);
@@ -145,13 +140,13 @@ test.describe("job/order detail — traceability + allowed-edit + idempotency de
     }
   });
 
-  test.skip("[P1] 7.3-E2E-02: the deep link from the accepted quote version lands on the EXISTING single job — a repeat navigation shows the SAME job, no duplicate/create/error (idempotent UX mirror)", async ({
+  test("[P1] 7.3-E2E-02: the deep link from the accepted quote version lands on the EXISTING single job — a repeat navigation shows the SAME job, no duplicate/create/error (idempotent UX mirror)", async ({
     page,
   }) => {
     // From the accepted version, the "a job was created" note is a LINK to /jobs/[jobId] (AC5 seam).
     await signIn(page, fixture.adminA.email, fixture.adminA.password);
     await page.goto(
-      `/quotes/${fixture.acceptQuote.id}/versions/${fixture.acceptQuote.sentVersionId}`,
+      `/quotes/${fixture.acceptedJob.quoteId}/versions/${fixture.acceptedJob.sentVersionId}`,
     );
     const jobLink = page.getByTestId("quote-accepted-job-link");
     await waitForHydrated(jobLink);
@@ -162,7 +157,7 @@ test.describe("job/order detail — traceability + allowed-edit + idempotency de
     const firstUrl = page.url();
     // Repeat the navigation — the SAME job, never a second create affordance or an error.
     await page.goto(
-      `/quotes/${fixture.acceptQuote.id}/versions/${fixture.acceptQuote.sentVersionId}`,
+      `/quotes/${fixture.acceptedJob.quoteId}/versions/${fixture.acceptedJob.sentVersionId}`,
     );
     await page.getByTestId("quote-accepted-job-link").click();
     await expect(page).toHaveURL(firstUrl);
@@ -170,7 +165,7 @@ test.describe("job/order detail — traceability + allowed-edit + idempotency de
     await expect(page.getByTestId("job-error")).toHaveCount(0);
   });
 
-  test.skip("[P2] 7.3-E2E-04: the edit dialog moves focus in on open + restores it on close; status labels are TEXT not color-alone (a11y baseline)", async ({
+  test("[P2] 7.3-E2E-04: the edit dialog moves focus in on open + restores it on close; status labels are TEXT not color-alone (a11y baseline)", async ({
     page,
   }) => {
     await openJobDetail(page);

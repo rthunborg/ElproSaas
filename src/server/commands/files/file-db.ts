@@ -76,8 +76,8 @@ export async function loadFileForAccess(
 /**
  * Map an ACTIVE owner type to its owner table name (a CLOSED switch — never client
  * input, so the value is safe). Only the active owner types resolve today; the
- * deferred quote_version/quote_acceptance/job types are handled by the command BEFORE
- * this is called ("not-yet-available"), so they never reach here.
+ * deferred quote_version type is handled by the command BEFORE this is called
+ * ("not-yet-available"), so it never reaches here.
  */
 export function ownerTableFor(ownerType: ActiveOwnerType): string {
   switch (ownerType) {
@@ -93,6 +93,10 @@ export function ownerTableFor(ownerType: ActiveOwnerType): string {
       // Story 7.1 activation: the acceptance-evidence owner side resolves the acceptance under
       // own-tenant RLS (a foreign acceptance owner id ⇒ zero rows ⇒ TENANT_ACCESS_DENIED).
       return "quote_acceptances";
+    case "job":
+      // Story 7.3 activation: the job-evidence owner side resolves the job under own-tenant RLS
+      // (a foreign job owner id ⇒ zero rows ⇒ TENANT_ACCESS_DENIED; R-802 both-side check).
+      return "jobs";
     default:
       // Exhaustiveness guard (mirrors the codebase-standard assertNever discipline):
       // adding a 5th ACTIVE_OWNER_TYPES member without a branch here is a COMPILE

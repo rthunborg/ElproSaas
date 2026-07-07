@@ -107,7 +107,9 @@ test("owner-type / purpose guards match the closed unions", () => {
   for (const t of OWNER_TYPES) assert.equal(isOwnerType(t), true);
   assert.equal(isOwnerType("supplier"), false);
   for (const t of ACTIVE_OWNER_TYPES) assert.equal(isActiveOwnerType(t), true);
-  assert.equal(isActiveOwnerType("job"), false);
+  // Story 7.1 activated `quote_acceptance`; Story 7.3 activated `job` — both now ACTIVE.
+  assert.equal(isActiveOwnerType("job"), true);
+  // `quote_version` links are materialized by the 6.1 RPC directly, so it stays INACTIVE here.
   assert.equal(isActiveOwnerType("quote_version"), false);
   for (const p of FILE_PURPOSES) assert.equal(isFilePurpose(p), true);
   assert.equal(isFilePurpose("bogus"), false);
