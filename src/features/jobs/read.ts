@@ -230,8 +230,20 @@ export async function readJobDetail(
     ? (jobRaw.customers[0] as { display_name?: unknown } | undefined)
     : (jobRaw.customers as { display_name?: unknown } | null);
 
-  const acceptanceId = String(jobRaw.quote_acceptance_id);
-  const versionId = String(jobRaw.quote_version_id);
+  // Guard the immutable source refs BEFORE stringifying. A `jobs` row ALWAYS carries a non-null
+  // quote_acceptance_id + quote_version_id (both NOT NULL, set atomically by the 7.2 accept RPC).
+  // A null/undefined here is a broken source reference (a data-integrity anomaly) — surface it
+  // LOUDLY (the page-level generic failure) rather than coercing to the literal string
+  // "null"/"undefined", which would match zero rows on the dependent reads and fabricate a
+  // "0 kr" accepted price + null names on a money-critical surface (contradicting R-708's
+  // "never re-derive, never mask").
+  const acceptanceIdRaw = str(jobRaw.quote_acceptance_id);
+  const versionIdRaw = str(jobRaw.quote_version_id);
+  if (acceptanceIdRaw === null || versionIdRaw === null) {
+    throw new Error("readJobDetail: job has a broken immutable source reference");
+  }
+  const acceptanceId = acceptanceIdRaw;
+  const versionId = versionIdRaw;
 
   // The immutable acceptance row (money/evidence/channel) + the frozen version snapshot (names),
   // the linked job files, and the job events — all own-tenant RLS, in parallel.

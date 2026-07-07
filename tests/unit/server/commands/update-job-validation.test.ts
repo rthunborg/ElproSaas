@@ -104,3 +104,42 @@ test("7.3-INT-02(shape): an empty title / null date is an explicit clear (kept a
     assert.equal(r.data.planned_end_date, null);
   }
 });
+
+test("7.3-INT-02(shape): an INVERTED planned window (end before start) ⇒ VALIDATION_FAILED (epic-7 review fix)", () => {
+  assert.equal(
+    validateUpdateJob({
+      id: UUID,
+      planned_start_date: "2026-08-15",
+      planned_end_date: "2026-08-01",
+    }).ok,
+    false,
+    "an end date before the start date must be rejected as an ordering violation",
+  );
+});
+
+test("7.3-INT-02(shape): equal / ordered planned dates are ACCEPTED; a lone date has no ordering to enforce", () => {
+  // end == start is allowed (a single-day window).
+  assert.equal(
+    validateUpdateJob({
+      id: UUID,
+      planned_start_date: "2026-08-01",
+      planned_end_date: "2026-08-01",
+    }).ok,
+    true,
+  );
+  // end after start is allowed.
+  assert.equal(
+    validateUpdateJob({
+      id: UUID,
+      planned_start_date: "2026-08-01",
+      planned_end_date: "2026-08-02",
+    }).ok,
+    true,
+  );
+  // Only one date present (or one cleared) ⇒ no ordering to enforce.
+  assert.equal(validateUpdateJob({ id: UUID, planned_end_date: "2026-08-01" }).ok, true);
+  assert.equal(
+    validateUpdateJob({ id: UUID, planned_start_date: "2026-08-15", planned_end_date: null }).ok,
+    true,
+  );
+});

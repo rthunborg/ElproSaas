@@ -259,6 +259,28 @@ test("[7.1 VALIDATION_FAILED] a non-ISO / over-bound planned_start_date / planne
   );
 });
 
+test("[7.1 VALIDATION_FAILED] an INVERTED planned window (end before start) is rejected (epic-7 review fix)", () => {
+  // Both present but end < start ⇒ a nonsensical planning window that would persist on the
+  // acceptance AND the job.
+  assert.equal(
+    validateCaptureQuoteAcceptance({
+      ...base(),
+      planned_start_date: "2026-07-20T00:00:00.000Z",
+      planned_end_date: "2026-07-15T00:00:00.000Z",
+    }).ok,
+    false,
+  );
+  // Equal (single-day) and ordered windows are accepted.
+  assert.equal(
+    validateCaptureQuoteAcceptance({
+      ...base(),
+      planned_start_date: "2026-07-15T00:00:00.000Z",
+      planned_end_date: "2026-07-15T00:00:00.000Z",
+    }).ok,
+    true,
+  );
+});
+
 // ── Acceptance scope: server-resolved / smuggled keys are never carried ─────────────────────────
 
 test("[7.1] a client-supplied tenant_id / accepted user / source total / status is STRIPPED", () => {

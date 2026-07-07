@@ -127,6 +127,17 @@ export function validateUpdateJob(raw: unknown): ValidationResult<UpdateJobInput
     plannedEnd = null;
   }
 
+  // Cross-field ordering: when BOTH planned dates are present (non-null), the end must not precede
+  // the start (an inverted range is a nonsensical planning window). ISO `YYYY-MM-DD` strings compare
+  // lexicographically as calendar dates, so a plain string `>=` is a correct ordering check.
+  if (
+    typeof plannedStart === "string" &&
+    typeof plannedEnd === "string" &&
+    plannedEnd < plannedStart
+  ) {
+    return fail;
+  }
+
   const value: UpdateJobInput = {
     id: raw.id as string,
     ...(title !== undefined ? { title } : {}),

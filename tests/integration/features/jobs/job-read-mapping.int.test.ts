@@ -270,6 +270,22 @@ describe("7.3 read-mapping: readJobDetail projection (pure, injected client)", (
     expect(detail!.sourceSentTotalOre).toBe(0);
   });
 
+  it("[P1] a BROKEN immutable source ref (null quote_acceptance_id/quote_version_id) throws, never a fabricated 0 kr (epic-7 review fix)", async () => {
+    // A jobs row whose immutable source refs are null is a data-integrity anomaly. It must surface
+    // LOUDLY (the page-level generic failure) rather than coercing the id to the literal string
+    // "null" — which would match zero rows on the dependent reads and fabricate a "0 kr" accepted
+    // price + null names on a money-critical surface (R-708 "never re-derive, never mask").
+    const brokenAcceptance = { ...jobRow, quote_acceptance_id: null };
+    await expect(
+      readJobDetail(detailClient({ jobs: { data: [brokenAcceptance], error: null } }), "job-1"),
+    ).rejects.toThrow();
+
+    const brokenVersion = { ...jobRow, quote_version_id: null };
+    await expect(
+      readJobDetail(detailClient({ jobs: { data: [brokenVersion], error: null } }), "job-1"),
+    ).rejects.toThrow();
+  });
+
   it("[P1] a query error on any dependent read throws (surfaced as the page-level generic failure)", async () => {
     await expect(
       readJobDetail(detailClient({ job_events: { data: null, error: { code: "57014" } } }), "job-1"),

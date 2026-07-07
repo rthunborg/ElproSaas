@@ -172,6 +172,16 @@ begin
      where j.quote_acceptance_id = v_acceptance_id
        and j.tenant_id = p_tenant_id
      limit 1;
+    -- INVARIANT: an existing acceptance ALWAYS has its job (the acceptance + job are created in the
+    -- SAME transaction; the one-job-per-acceptance unique backstop guarantees exactly one). A NULL
+    -- v_job_id here means an orphaned-acceptance data-integrity anomaly (a partial/legacy state) —
+    -- assert it LOUDLY with a distinct, mapped SQLSTATE rather than passing NULL through the return
+    -- (which the command's result extractor rejects as an opaque "RPC returned no result" →
+    -- generic SERVER_ERROR that masks the anomaly behind a transient-looking error).
+    if v_job_id is null then
+      raise exception 'accept_quote_and_create_job: acceptance % has no job (orphaned-acceptance invariant violation)', v_acceptance_id
+        using errcode = 'QV409';
+    end if;
     return query select v_acceptance_id, v_job_id, true;
     return;
   end if;

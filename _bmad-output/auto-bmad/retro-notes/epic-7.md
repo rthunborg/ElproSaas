@@ -3,6 +3,7 @@
 
 ## Story epic-7
 - [E2 - epic test design] Sent-lock trigger enforces a forward-only legal-transition allow-list AND rejects customer-visible column co-mutation in the same non-draft UPDATE - story 7-2 accept must transition status ALONE or it hits QUOTE_VERSION_LOCKED (design doc corrected).
+- [E8a - trace gate] PASS 100% P0/P1. Design routes new-table RLS/H4 coverage through the shared TENANT_TABLES inventory, so a literal test-ID diff shows 7.1-RLS-01/02 missing when they are covered by design intent - future trace runs must not mis-score inventory-driven coverage as a gap.
 
 ## Story 7-1-acceptance-evidence-capture-for-sent-quote-versions
 - [Phase 3 - create-story] Scope boundary pinned: 7.1 owns quote_acceptances single-row persistence + form; 7.2 owns accept_quote_and_create_job RPC/transaction/idempotency; 7.4 owns DB immutability lock - epic doc bundles these.

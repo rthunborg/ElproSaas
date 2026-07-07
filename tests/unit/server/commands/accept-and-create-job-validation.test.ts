@@ -131,6 +131,26 @@ test("[7.2 VALIDATION_FAILED] an over-length title is rejected", () => {
   assert.equal(r.ok, false);
 });
 
+test("[7.2 VALIDATION_FAILED] an INVERTED planned window (end before start) is rejected (epic-7 review fix)", () => {
+  assert.equal(
+    validateAcceptQuoteAndCreateJob({
+      ...base(),
+      planned_start_date: "2026-07-20T00:00:00.000Z",
+      planned_end_date: "2026-07-15T00:00:00.000Z",
+    }).ok,
+    false,
+  );
+  // Equal / ordered windows are accepted.
+  assert.equal(
+    validateAcceptQuoteAndCreateJob({
+      ...base(),
+      planned_start_date: "2026-07-15T00:00:00.000Z",
+      planned_end_date: "2026-07-15T00:00:00.000Z",
+    }).ok,
+    true,
+  );
+});
+
 // ── Smuggled server-resolved keys are stripped ──────────────────────────────────────────────────
 
 test("[7.2] a client-supplied tenant_id / source total / status / job id is STRIPPED", () => {

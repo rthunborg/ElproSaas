@@ -333,6 +333,24 @@ function isOptionalIsoDateString(v: unknown): v is string | null | undefined {
 }
 
 /**
+ * Cross-field ordering guard for the planned window: when BOTH `planned_start_date` and
+ * `planned_end_date` are present (non-empty ISO strings), the end must NOT precede the start (an
+ * inverted range is a nonsensical planning window that would persist on the acceptance AND the job).
+ * Absent/null on either side ⇒ no ordering to enforce. Compared via `Date.parse` so it is correct
+ * across the calendar-date / full-ISO-timestamp shapes `isIsoDateString` accepts.
+ */
+function plannedDatesOrdered(
+  start: string | null | undefined,
+  end: string | null | undefined,
+): boolean {
+  if (typeof start !== "string" || typeof end !== "string") return true;
+  const startMs = Date.parse(start);
+  const endMs = Date.parse(end);
+  if (!Number.isFinite(startMs) || !Number.isFinite(endMs)) return true; // shape already validated
+  return endMs >= startMs;
+}
+
+/**
  * Validated `captureQuoteAcceptance` input. `quote_version_id` is required + UUID-shaped;
  * `accepted_price_ore` is a canonical öre amount (`isOreAmount`); `accepted_at` is a required
  * ISO instant (H1 — an explicit input). The optional fields carry channel / adjustment reason /
@@ -372,6 +390,15 @@ export function validateCaptureQuoteAcceptance(
   if (!isOptionalAcceptanceText(raw.notes)) return fail;
   if (!isOptionalIsoDateString(raw.planned_start_date)) return fail;
   if (!isOptionalIsoDateString(raw.planned_end_date)) return fail;
+  // Cross-field ordering: a both-present planned window must not have the end before the start.
+  if (
+    !plannedDatesOrdered(
+      raw.planned_start_date as string | null | undefined,
+      raw.planned_end_date as string | null | undefined,
+    )
+  ) {
+    return fail;
+  }
 
   const data: {
     quote_version_id: string;
@@ -461,6 +488,15 @@ export function validateAcceptQuoteAndCreateJob(
   if (!isOptionalAcceptanceText(raw.notes)) return fail;
   if (!isOptionalIsoDateString(raw.planned_start_date)) return fail;
   if (!isOptionalIsoDateString(raw.planned_end_date)) return fail;
+  // Cross-field ordering: a both-present planned window must not have the end before the start.
+  if (
+    !plannedDatesOrdered(
+      raw.planned_start_date as string | null | undefined,
+      raw.planned_end_date as string | null | undefined,
+    )
+  ) {
+    return fail;
+  }
   if (!isOptionalAcceptanceText(raw.title)) return fail;
   // TEST-ONLY: an explicit __faultInject must be a known boundary (a stray value is rejected).
   if (raw.__faultInject !== undefined) {

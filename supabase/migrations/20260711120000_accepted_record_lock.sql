@@ -183,6 +183,10 @@ $$;
 comment on function public.enforce_quote_acceptance_lock() is
   'Story 7.4 accepted-immutability guard (architecture §9, ADR-A005). BEFORE UPDATE on quote_acceptances: a change to ANY commitment column RAISES (SQLSTATE AR704 → command ACCEPTED_RECORD_LOCKED). FAIL-CLOSED by construction — the EXEMPT set (archived_at [soft-delete], updated_at [trigger-owned]) is enumerated; EVERYTHING else — including the identity/source columns id/tenant_id/quote_id/quote_version_id, the money accepted_price_ore/source_sent_total_ore, channel/accepted_at/adjustment_reason/evidence_*/notes/planned dates/created_at — is locked-by-default. An acceptance is ALWAYS immutable once it exists (no draft acceptance, no lifecycle status), so there is no status early-return (unlike the 6.4 sent-lock). SECURITY INVOKER + empty search_path + schema-qualified. AR704 → ACCEPTED_RECORD_LOCKED is a DISTINCT-but-related sibling of 6.4 QV409 → QUOTE_VERSION_LOCKED (the shared lock-code FAMILY, not a fork). Corrections require an approved audited workflow (owner-gated, R-714) — NOT a silent edit.';
 
+-- Drop-then-create so a migration replay (partial apply, re-pointed env, reset race) is idempotent,
+-- matching the `create or replace function` above (a bare `create trigger` would fail with "trigger
+-- already exists" on a re-run against a DB where it exists).
+drop trigger if exists quote_acceptances_accepted_lock on public.quote_acceptances;
 create trigger quote_acceptances_accepted_lock
   before update on public.quote_acceptances
   for each row execute function public.enforce_quote_acceptance_lock();
@@ -231,6 +235,8 @@ $$;
 comment on function public.enforce_job_source_ref_lock() is
   'Story 7.4 job source-ref lock (architecture §9, ADR-A005). BEFORE UPDATE on jobs: a change to the IMMUTABLE source/identity tuple (id, tenant_id, quote_acceptance_id, quote_version_id, customer_id, created_at) RAISES (SQLSTATE AR704 → command ACCEPTED_RECORD_LOCKED). The 7.3 allowed-edit columns (title/status/planned_start_date/planned_end_date) + archived_at + updated_at are NOT in the locked tuple, so an updateJob edit never trips it. facility_id/contact_id are ON DELETE SET NULL (NOT AC-named commitment fields) and deliberately UNLOCKED so the FK cascade can null them. SECURITY INVOKER + empty search_path + schema-qualified. Sibling of the 6.4 sent-lock (the shared lock-code FAMILY, not a fork).';
 
+-- Drop-then-create for replay idempotency (see the acceptance-lock trigger above — same rationale).
+drop trigger if exists jobs_source_ref_lock on public.jobs;
 create trigger jobs_source_ref_lock
   before update on public.jobs
   for each row execute function public.enforce_job_source_ref_lock();

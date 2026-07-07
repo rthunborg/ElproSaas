@@ -49,7 +49,7 @@
  */
 import { defineCommand } from "../envelope";
 import { CommandError } from "../command-errors";
-import { computeAcceptanceDelta } from "@/features/quotes/acceptance-price";
+import { evaluateAcceptancePriceGate } from "@/features/quotes/acceptance-price";
 import {
   asQuoteAcceptanceWriteClient,
   loadQuoteVersionAcceptanceSource,
@@ -94,25 +94,23 @@ export const captureQuoteAcceptance = defineCommand<
     // Acceptance is legal ONLY on a SENT version — a generic VALIDATION_FAILED (no leaked status).
     if (source.status !== "sent") throw new CommandError("VALIDATION_FAILED");
 
-    // ── THE ADJUSTED-PRICE GATE (AC2) — compute the delta via the PURE engine (never ad hoc); a
-    // ── non-zero delta REQUIRES an explicit reason OR evidence (server re-validation — the client
-    // ── cannot bypass by omitting it).
-    const delta = computeAcceptanceDelta(
-      input.accepted_price_ore,
-      source.source_sent_total_ore,
-    );
-    // Both inputs are canonical öre (validated) — a failure here would be an unexpected shape.
-    if (!delta.ok) throw new CommandError("VALIDATION_FAILED");
-    const hasReason =
-      (typeof input.adjustment_reason === "string" &&
-        input.adjustment_reason.trim().length > 0) ||
-      (typeof input.evidence_reference === "string" &&
-        input.evidence_reference.trim().length > 0) ||
-      (typeof input.evidence_file_id === "string" &&
-        input.evidence_file_id.length > 0);
-    if (delta.reasonRequired && !hasReason) {
-      throw new CommandError("VALIDATION_FAILED");
-    }
+    // ── THE ADJUSTED-PRICE GATE (AC2) — the SINGLE authority `evaluateAcceptancePriceGate` folds the
+    // ── PURE delta computation (never ad hoc), the REASON_REQUIRED rule, and the `hasReason` (reason
+    // ── OR evidence) presence into one OK/typed-failure the command RE-VALIDATES server-side (the
+    // ── client cannot bypass by omitting a reason). An INVALID öre input OR a missing-reason failure
+    // ── both map to the generic VALIDATION_FAILED.
+    const gate = evaluateAcceptancePriceGate({
+      acceptedPriceOre: input.accepted_price_ore,
+      sourceSentTotalOre: source.source_sent_total_ore,
+      hasReason:
+        (typeof input.adjustment_reason === "string" &&
+          input.adjustment_reason.trim().length > 0) ||
+        (typeof input.evidence_reference === "string" &&
+          input.evidence_reference.trim().length > 0) ||
+        (typeof input.evidence_file_id === "string" &&
+          input.evidence_file_id.length > 0),
+    });
+    if (!gate.ok) throw new CommandError("VALIDATION_FAILED");
 
     // ── EVIDENCE OWNERSHIP (AC6, R-709) — when an evidence file id is supplied, re-validate it is
     // ── own-tenant-visible BEFORE persisting (a foreign file id ⇒ TENANT_ACCESS_DENIED, the R-802
