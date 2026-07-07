@@ -148,6 +148,14 @@ interface OwnerTypeCase {
   readonly purpose: string;
   readonly ownId: () => string;
   readonly foreignId: () => string;
+  /**
+   * The lifecycle_state the uploaded file lands in. Story 8.4 CHANGE: an `acceptance_evidence`
+   * upload to a COMMITTED acceptance (the parent already exists — AR704 has no draft state) is
+   * LOCKED by the parent-state-keyed lock apply (`apply_file_link_lock`), so its file lands
+   * `locked`, not `linked`. Every OTHER active owner/purpose (crm_document / calculation_attachment
+   * / job_evidence) is NOT a lock-family member, so it stays `linked` (8.2's draft→linked transition).
+   */
+  readonly expectedLifecycle: "linked" | "locked";
 }
 
 let stackUp = false;
@@ -276,19 +284,20 @@ afterAll(async () => {
 });
 
 const ownerTypeCases: OwnerTypeCase[] = [
-  { ownerType: "customer", purpose: "crm_document", ownId: () => ownCustomerId, foreignId: () => bCustomerId },
-  { ownerType: "facility", purpose: "crm_document", ownId: () => ownFacilityId, foreignId: () => bFacilityId },
-  { ownerType: "contact", purpose: "crm_document", ownId: () => ownContactId, foreignId: () => bContactId },
-  { ownerType: "calculation", purpose: "calculation_attachment", ownId: () => ownCalculationId, foreignId: () => bCalculationId },
-  { ownerType: "quote_acceptance", purpose: "acceptance_evidence", ownId: () => ownAcceptanceId, foreignId: () => bAcceptanceId },
-  { ownerType: "job", purpose: "job_evidence", ownId: () => ownJobId, foreignId: () => bJobId },
+  { ownerType: "customer", purpose: "crm_document", ownId: () => ownCustomerId, foreignId: () => bCustomerId, expectedLifecycle: "linked" },
+  { ownerType: "facility", purpose: "crm_document", ownId: () => ownFacilityId, foreignId: () => bFacilityId, expectedLifecycle: "linked" },
+  { ownerType: "contact", purpose: "crm_document", ownId: () => ownContactId, foreignId: () => bContactId, expectedLifecycle: "linked" },
+  { ownerType: "calculation", purpose: "calculation_attachment", ownId: () => ownCalculationId, foreignId: () => bCalculationId, expectedLifecycle: "linked" },
+  // Story 8.4: acceptance evidence uploaded to a committed acceptance locks by construction.
+  { ownerType: "quote_acceptance", purpose: "acceptance_evidence", ownId: () => ownAcceptanceId, foreignId: () => bAcceptanceId, expectedLifecycle: "locked" },
+  { ownerType: "job", purpose: "job_evidence", ownId: () => ownJobId, foreignId: () => bJobId, expectedLifecycle: "linked" },
 ];
 
 describe("uploadFile — server-side gate + storage↔DB compensation (AC2/AC4/AC5)", () => {
   describe.each(ownerTypeCases)(
     "active owner type: $ownerType",
-    ({ ownerType, purpose, ownId, foreignId }) => {
-      it(`[8.2-INT-01][P0/AC2/AC5] a VALID upload SUCCEEDS own-tenant (files linked + file_links row + object present)`, async (testCtx) => {
+    ({ ownerType, purpose, ownId, foreignId, expectedLifecycle }) => {
+      it(`[8.2-INT-01][P0/AC2/AC5] a VALID upload SUCCEEDS own-tenant (files linked/locked + file_links row + object present)`, async (testCtx) => {
         if (skipUnlessBoth(testCtx)) return;
         const result = await runCommand(uploadFile as never, {
           client: a as never,
@@ -299,12 +308,13 @@ describe("uploadFile — server-side gate + storage↔DB compensation (AC2/AC4/A
         expect(result.ok).toBe(true);
         if (!result.ok) return;
         const fileId = (result.data as { fileId: string }).fileId;
-        // The files row landed lifecycle_state='linked' (8.2 owns the draft→linked transition).
+        // The files row landed lifecycle_state='linked' (8.2's draft→linked transition) — OR 'locked'
+        // for acceptance_evidence on a committed acceptance (Story 8.4 parent-state-keyed lock apply).
         const fileRows = await adminQuery<{ lifecycle_state: string; object_path: string }>(
           `select lifecycle_state, object_path from public.files where id = $1`,
           [fileId],
         );
-        expect(fileRows[0]?.lifecycle_state).toBe("linked");
+        expect(fileRows[0]?.lifecycle_state).toBe(expectedLifecycle);
         // The object path is tenant-first, server-derived (never a client path).
         expect(fileRows[0]?.object_path.startsWith(`${fixture.tenantA.id}/`)).toBe(true);
         // Exactly one file_links row binds the file to this owner + purpose.

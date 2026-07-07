@@ -2,12 +2,11 @@
  * Story 8.4 — Quote/PDF/attachment + acceptance-evidence file-link LOCK (the COMMAND-layer half).
  *
  * ════════════════════════════════════════════════════════════════════════════════════════════════
- * RED PHASE (ATDD) — INERT until Story 8.4 lands. The whole suite is `describe.skip` because none of
- * the 8.4 surfaces exist yet: the additive migration `20260712120000_file_link_lock.sql` (the
- * `enforce_file_link_lock` / `enforce_file_lock` triggers + the parent-state-keyed lock-apply +
- * custom SQLSTATE `FL823`), the `FILE_LINK_LOCKED` command code + the `FL823` mapper branch in
- * `file-db.ts`, and the `archiveFile`/`archiveFileLink` command in `files.ts`. Remove `.skip` in
- * dev-story green phase. Kept skipped so the every-PR gate stays green today.
+ * GREEN (Story 8.4 dev) — all 8.4 surfaces have landed: the additive migration
+ * `20260712120000_file_link_lock.sql` (the `enforce_file_link_lock` / `enforce_file_lock` triggers +
+ * the parent-state-keyed lock-apply + custom SQLSTATE `FL823`), the `FILE_LINK_LOCKED` command code +
+ * the `FL823` mapper branch in `file-db.ts`, and the `archiveFile` command in `files.ts`. This whole
+ * suite is ACTIVE and runs for real against the reset schema.
  * ════════════════════════════════════════════════════════════════════════════════════════════════
  *
  * The COMMAND-layer proofs (test-design-epic-8.md rows 8.4 / R-812/R-813/R-822; story Task 4.2):
@@ -66,7 +65,6 @@ import {
   adminInsertQuoteVersion,
   adminInsertFile,
   adminInsertFileLink,
-  adminUploadStorageObject,
   adminSelectFileById,
   adminSelectPdfFileLinks,
   adminSelectAcceptanceEvidenceLinks,
@@ -82,20 +80,9 @@ import {
   markQuoteVersionSent,
   captureQuoteAcceptance,
 } from "@/server/commands/quotes";
+// GREEN (Story 8.4 dev): the archive-only-delete command now exists (Task 3.3) — imported for real.
+import { archiveFile } from "@/server/commands/files";
 import type { CommandClock } from "@/server/commands/clock";
-
-// RED PHASE: `archiveFile` does not exist yet — it is added by Story 8.4 Task 3.3. A STATIC import of
-// a not-yet-existing named export fails at MODULE-LOAD even under `describe.skip` (Vitest evaluates
-// top-level imports at collection, before the skip takes effect). So the green-phase import is
-// documented here and `archiveFile` is a typed local stub — every suite that uses it is `describe.skip`,
-// so the stub is never invoked. On green, DELETE this stub and uncomment the real import; the call
-// sites are unchanged. If dev names the command differently, update the import + the stub type in one place.
-//
-//   import { archiveFile } from "@/server/commands/files";
-//
-const archiveFile = {
-  __redPhaseStub: "8.4 archiveFile not implemented yet",
-} as never;
 
 const FIXED_ISO = "2026-07-12T09:00:00.000Z";
 const fixedClock: CommandClock = { now: () => new Date(FIXED_ISO) };
@@ -166,7 +153,7 @@ async function seedDraftVersionWithPdfLink(
 // ══════════════════════════════════════════════════════════════════════════════════════════════
 // 8.4-INT-01 (P0, AC1) — the sent-version PDF/attachment link is LOCKED at the send moment
 // ══════════════════════════════════════════════════════════════════════════════════════════════
-describe.skip("8.4-INT-01: the sent-version PDF link is LOCKED by construction at the send moment (AC1, R-812)", () => {
+describe("8.4-INT-01: the sent-version PDF link is LOCKED by construction at the send moment (AC1, R-812)", () => {
   it("[P0] 8.4-INT-01: a DRAFT version's quote_pdf link is NOT locked (the 6.3 preview-on-draft path stays re-pointable)", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     const { versionId, fileId } = await seedDraftVersionWithPdfLink(fx.tenantA);
@@ -205,7 +192,7 @@ describe.skip("8.4-INT-01: the sent-version PDF link is LOCKED by construction a
 // ══════════════════════════════════════════════════════════════════════════════════════════════
 // 8.4-INT-02 (P0, AC2) — the acceptance-evidence link is LOCKED at the accept moment
 // ══════════════════════════════════════════════════════════════════════════════════════════════
-describe.skip("8.4-INT-02: the acceptance-evidence link is LOCKED by construction once the acceptance exists (AC2, R-812)", () => {
+describe("8.4-INT-02: the acceptance-evidence link is LOCKED by construction once the acceptance exists (AC2, R-812)", () => {
   it("[P0] 8.4-INT-02: after captureQuoteAcceptance with evidence, the acceptance_evidence link is locked and its files.lifecycle_state='locked'", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     // Seed a REAL sent version, an own-tenant evidence file, then capture acceptance linking it.
@@ -269,7 +256,7 @@ describe.skip("8.4-INT-02: the acceptance-evidence link is LOCKED by constructio
 // ══════════════════════════════════════════════════════════════════════════════════════════════
 // 8.4-INT-03 (P0, AC3) — archive-only-delete command + exactly one clean audit row
 // ══════════════════════════════════════════════════════════════════════════════════════════════
-describe.skip("8.4-INT-03: archive-only-delete of a locked file (never a hard delete) + one clean audit row (AC3, §15, R-813)", () => {
+describe("8.4-INT-03: archive-only-delete of a locked file (never a hard delete) + one clean audit row (AC3, §15, R-813)", () => {
   it("[P0] 8.4-INT-03: archiveFile on a locked file SUCCEEDS (soft-delete: archived_at + lifecycle_state='archived', not a hard DELETE)", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     const { versionId, fileId } = await seedDraftVersionWithPdfLink(fx.tenantA);
@@ -327,7 +314,7 @@ describe.skip("8.4-INT-03: archive-only-delete of a locked file (never a hard de
 // ══════════════════════════════════════════════════════════════════════════════════════════════
 // 8.4-INT-04 (P0, AC1/AC2) — a command-path mutation of a locked link surfaces FILE_LINK_LOCKED
 // ══════════════════════════════════════════════════════════════════════════════════════════════
-describe.skip("8.4-INT-04: a command-path mutation/re-point of a locked link ⇒ stable FILE_LINK_LOCKED (mapped from FL823, never SERVER_ERROR) (AC1/AC2)", () => {
+describe("8.4-INT-04: a command-path mutation/re-point of a locked link ⇒ stable FILE_LINK_LOCKED (mapped from FL823, never SERVER_ERROR) (AC1/AC2)", () => {
   it("[P0] 8.4-INT-04: attempting a hard-delete of a locked file through the app path surfaces FILE_LINK_LOCKED (archive-only)", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     const { versionId, fileId } = await seedDraftVersionWithPdfLink(fx.tenantA);
@@ -362,7 +349,7 @@ describe.skip("8.4-INT-04: a command-path mutation/re-point of a locked link ⇒
 // ══════════════════════════════════════════════════════════════════════════════════════════════
 // 8.4-RLS-01 (P0, AC5) — cross-tenant locked-file attack ⇒ generic TENANT_ACCESS_DENIED; anon ⇒ UNAUTH
 // ══════════════════════════════════════════════════════════════════════════════════════════════
-describe.skip("8.4-RLS-01: cross-tenant locked-file archive/mutation ⇒ TENANT_ACCESS_DENIED (no existence disclosure); anon ⇒ UNAUTHENTICATED (AC5, R-809)", () => {
+describe("8.4-RLS-01: cross-tenant locked-file archive/mutation ⇒ TENANT_ACCESS_DENIED (no existence disclosure); anon ⇒ UNAUTHENTICATED (AC5, R-809)", () => {
   it("[P0] 8.4-RLS-01: tenant A archiving a tenant B locked file ⇒ TENANT_ACCESS_DENIED (same generic shape as not-found)", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     const { fileId: bFileId, versionId: bVersionId } = await seedDraftVersionWithPdfLink(fx.tenantB);
@@ -408,7 +395,7 @@ describe.skip("8.4-RLS-01: cross-tenant locked-file archive/mutation ⇒ TENANT_
 // ══════════════════════════════════════════════════════════════════════════════════════════════
 // 8.4-INT-05 (P0, AC4) — partial-lock / archive-delete CONSISTENCY (retryable, no half-written state)
 // ══════════════════════════════════════════════════════════════════════════════════════════════
-describe.skip("8.4-INT-05: partial-lock / archive-delete consistency — a mid-flow fault leaves a consistent, retryable state (AC4, R-813)", () => {
+describe("8.4-INT-05: partial-lock / archive-delete consistency — a mid-flow fault leaves a consistent, retryable state (AC4, R-813)", () => {
   it("[P0] 8.4-INT-05: a re-run of the archive on an ALREADY-archived locked file is a clean idempotent no-op (no double audit, no half state)", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     const { versionId, fileId } = await seedDraftVersionWithPdfLink(fx.tenantA);

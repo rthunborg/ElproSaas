@@ -264,3 +264,55 @@ export function validateUploadFile(raw: unknown): ValidationResult<UploadFileInp
     },
   };
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// archiveFile input (Story 8.4, Task 3.3) — the archive-only-delete gate's typed surface.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** The max reason length (bounded, allow-listed audit `reason`; drops beyond 128 anyway). */
+const MAX_REASON = 128;
+
+/**
+ * Validated `archiveFile` input — the archive-only-delete command's typed surface.
+ *
+ * Validates: `id` (the target file) UUID-shape, an OPTIONAL bounded `reason` (a short
+ * user-safe archive reason — NEVER echoed on reject), and an OPTIONAL `hardDelete` intent.
+ * `hardDelete` is a DELIBERATE crafted-request surface: the archive-over-delete rule means a
+ * hard delete of a locked file is BLOCKED at the DB (FL823 → FILE_LINK_LOCKED) — a UI never
+ * offers it, but the command proves the block for a crafted request. Client
+ * `tenant_id`/`object_path` are NEVER read (server/resolved-tenant only) — stripped by omission.
+ */
+export interface ArchiveFileInput {
+  readonly id: string;
+  readonly reason?: string;
+  readonly hardDelete?: boolean;
+}
+
+export function validateArchiveFile(
+  raw: unknown,
+): ValidationResult<ArchiveFileInput> {
+  if (!isRecord(raw)) return fail;
+  if (!isUuidLike(raw.id)) return fail;
+  // reason: OPTIONAL, bounded, non-empty when present (an empty/oversized value is dropped).
+  let reason: string | undefined;
+  if (raw.reason !== undefined) {
+    if (typeof raw.reason !== "string") return fail;
+    const trimmed = raw.reason.trim();
+    if (trimmed.length === 0 || trimmed.length > MAX_REASON) return fail;
+    reason = trimmed;
+  }
+  // hardDelete: OPTIONAL boolean (the crafted delete-intent surface). Absent = archive.
+  let hardDelete: boolean | undefined;
+  if (raw.hardDelete !== undefined) {
+    if (typeof raw.hardDelete !== "boolean") return fail;
+    hardDelete = raw.hardDelete;
+  }
+  return {
+    ok: true,
+    data: {
+      id: raw.id as string,
+      ...(reason !== undefined ? { reason } : {}),
+      ...(hardDelete !== undefined ? { hardDelete } : {}),
+    },
+  };
+}

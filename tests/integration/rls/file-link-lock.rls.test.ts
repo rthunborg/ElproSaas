@@ -3,12 +3,10 @@
  * FAMILY AGREEMENT with QV409/AR704 (R-812/R-822).
  *
  * ════════════════════════════════════════════════════════════════════════════════════════════════
- * RED PHASE (ATDD) — INERT until Story 8.4 lands. The whole suite is `describe.skip` because the
- * additive migration `20260712120000_file_link_lock.sql` (the `enforce_file_link_lock` /
- * `enforce_file_lock` BEFORE UPDATE OR DELETE triggers + the parent-state-keyed lock apply + custom
- * SQLSTATE `FL823`) does not exist yet — today a locked-shaped `file_links` row is fully mutable and
- * a locked `files` row is fully mutable/deletable at the DB. Remove `.skip` in dev-story green phase.
- * Kept skipped so the every-PR gate stays green today.
+ * GREEN (Story 8.4 dev) — the additive migration `20260712120000_file_link_lock.sql` has landed (the
+ * `enforce_file_link_lock` / `enforce_file_lock` BEFORE UPDATE OR DELETE triggers + the parent-state-
+ * keyed lock apply [`apply_file_link_lock` + the parent-transition triggers] + custom SQLSTATE
+ * `FL823`), so this whole suite is ACTIVE and runs for real against the reset schema.
  * ════════════════════════════════════════════════════════════════════════════════════════════════
  *
  * This is the TWO-LAYER lock's DB half — a UI-only lock is a STOP (R-812; architecture §9). The
@@ -70,7 +68,6 @@ import {
   adminInsertQuoteAcceptance,
   adminSelectFileById,
   adminSelectPdfFileLinks,
-  adminSelectAcceptanceEvidenceLinks,
   type TwoTenantFixture,
   type TestServerClient,
   type FixtureTenant,
@@ -108,7 +105,7 @@ afterAll(async () => {
  */
 async function seedSentVersionWithLockedPdfLink(
   tenant: FixtureTenant,
-): Promise<{ versionId: string; fileId: string; linkId: string }> {
+): Promise<{ versionId: string; quoteId: string; fileId: string; linkId: string }> {
   const customerId = await adminInsertCustomer({
     tenant_id: tenant.id,
     customer_type: "company",
@@ -142,14 +139,14 @@ async function seedSentVersionWithLockedPdfLink(
   });
   // Flip to sent AFTER the child link exists (the ordering the parent-state-keyed apply must handle).
   await adminUpdateQuoteVersionStatus(versionId, "sent");
-  return { versionId, fileId, linkId };
+  return { versionId, quoteId, fileId, linkId };
 }
 
 /** Seed an accepted acceptance + its `acceptance_evidence` link on a real sent version. */
 async function seedAcceptedWithLockedEvidenceLink(
   tenant: FixtureTenant,
 ): Promise<{ acceptanceId: string; evidenceFileId: string; linkId: string }> {
-  const { versionId } = await seedSentVersionWithLockedPdfLink(tenant);
+  const { versionId, quoteId } = await seedSentVersionWithLockedPdfLink(tenant);
   const evidenceFileId = await adminInsertFile({
     tenant_id: tenant.id,
     display_name: "acceptans-bevis-8-4.pdf",
@@ -158,6 +155,7 @@ async function seedAcceptedWithLockedEvidenceLink(
   });
   const acceptanceId = await adminInsertQuoteAcceptance({
     tenant_id: tenant.id,
+    quote_id: quoteId,
     quote_version_id: versionId,
     accepted_at: FIXED_ISO,
     accepted_price_ore: SOURCE_SENT_TOTAL_ORE,
@@ -177,7 +175,7 @@ async function seedAcceptedWithLockedEvidenceLink(
 // ══════════════════════════════════════════════════════════════════════════════════════════════
 // 8.4-RLS-01 (P0, AC1) — a DIRECT own-tenant UPDATE of a LOCKED file_links row ⇒ FL823
 // ══════════════════════════════════════════════════════════════════════════════════════════════
-describe.skip("8.4-RLS-01: a locked file_links row is immutable at the DB — a direct own-tenant UPDATE ⇒ FL823 (AC1, R-812)", () => {
+describe("8.4-RLS-01: a locked file_links row is immutable at the DB — a direct own-tenant UPDATE ⇒ FL823 (AC1, R-812)", () => {
   const LOCKED_LINK_UPDATES: readonly { field: string; value: unknown }[] = [
     { field: "file_id", value: crypto.randomUUID() }, // the 6.3-retry re-point hazard
     { field: "owner_id", value: crypto.randomUUID() },
@@ -213,7 +211,7 @@ describe.skip("8.4-RLS-01: a locked file_links row is immutable at the DB — a 
 // ══════════════════════════════════════════════════════════════════════════════════════════════
 // 8.4-RLS-02 (P0, AC1) — a DIRECT own-tenant UPDATE of a LOCKED files row's identity/metadata ⇒ FL823
 // ══════════════════════════════════════════════════════════════════════════════════════════════
-describe.skip("8.4-RLS-02: a locked files row's object identity/metadata is immutable — a direct UPDATE ⇒ FL823 (AC1, R-812)", () => {
+describe("8.4-RLS-02: a locked files row's object identity/metadata is immutable — a direct UPDATE ⇒ FL823 (AC1, R-812)", () => {
   const LOCKED_FILE_UPDATES: readonly { field: string; value: unknown }[] = [
     { field: "object_path", value: `${crypto.randomUUID()}/tampered.pdf` },
     { field: "display_name", value: "tampered.pdf" },
@@ -248,7 +246,7 @@ describe.skip("8.4-RLS-02: a locked files row's object identity/metadata is immu
 // ══════════════════════════════════════════════════════════════════════════════════════════════
 // 8.4-RLS-03/04 (P0, AC3) — DELETE of a locked file ⇒ FL823; the SANCTIONED archive transition ⇒ ALLOWED
 // ══════════════════════════════════════════════════════════════════════════════════════════════
-describe.skip("8.4-RLS-03/04: locked deletion is archive-only — a DELETE ⇒ FL823; locked→archived ⇒ ALLOWED; a disarming transition ⇒ FL823 (AC3, R-813)", () => {
+describe("8.4-RLS-03/04: locked deletion is archive-only — a DELETE ⇒ FL823; locked→archived ⇒ ALLOWED; a disarming transition ⇒ FL823 (AC3, R-813)", () => {
   it("[P0] 8.4-RLS-04: the SANCTIONED locked→archived transition on files (archived_at + lifecycle_state='archived') is ALLOWED", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     const { fileId } = await seedSentVersionWithLockedPdfLink(fx.tenantA);
@@ -285,7 +283,7 @@ describe.skip("8.4-RLS-03/04: locked deletion is archive-only — a DELETE ⇒ F
 // ══════════════════════════════════════════════════════════════════════════════════════════════
 // 8.4-RLS-05 (P0, AC1/AC2) — the pre-send-vs-post-send re-point boundary (the 6.3-retry edge case)
 // ══════════════════════════════════════════════════════════════════════════════════════════════
-describe.skip("8.4-RLS-05: pre-send DRAFT PDF link is re-pointable; the SAME re-point after send ⇒ FL823 (AC1, the 6.3-retry boundary)", () => {
+describe("8.4-RLS-05: pre-send DRAFT PDF link is re-pointable; the SAME re-point after send ⇒ FL823 (AC1, the 6.3-retry boundary)", () => {
   it("[P0] 8.4-RLS-05: a DRAFT version's quote_pdf link file_id re-point is ALLOWED (the 6.3 preview-on-draft retry path stays green)", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     // Seed a DRAFT version + PDF link (NOT flipped to sent) so the link is unlocked.
@@ -363,7 +361,7 @@ describe.skip("8.4-RLS-05: pre-send DRAFT PDF link is re-pointable; the SAME re-
 // ══════════════════════════════════════════════════════════════════════════════════════════════
 // 8.4-RLS-06 (P0, AC1/AC2) — FAMILY AGREEMENT (R-822): the file-side lock AGREES with QV409/AR704
 // ══════════════════════════════════════════════════════════════════════════════════════════════
-describe.skip("8.4-RLS-06: FAMILY AGREEMENT (R-822) — on a sent version both QV409 and FL823 are in force; on an accepted acceptance both AR704 and FL823; the three SQLSTATEs are DISTINCT (AC1/AC2)", () => {
+describe("8.4-RLS-06: FAMILY AGREEMENT (R-822) — on a sent version both QV409 and FL823 are in force; on an accepted acceptance both AR704 and FL823; the three SQLSTATEs are DISTINCT (AC1/AC2)", () => {
   it("[P0] 8.4-RLS-06: on a SENT version, mutating the version RAISEs QV409 AND re-pointing its PDF link RAISEs FL823 (both locks in force, distinct codes)", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     const { versionId, linkId } = await seedSentVersionWithLockedPdfLink(fx.tenantA);
@@ -421,7 +419,7 @@ describe.skip("8.4-RLS-06: FAMILY AGREEMENT (R-822) — on a sent version both Q
 // ══════════════════════════════════════════════════════════════════════════════════════════════
 // 8.4-RLS-07 (P0, AC5) — cross-tenant locked-file attack ⇒ zero rows (RLS-invisible, no disclosure)
 // ══════════════════════════════════════════════════════════════════════════════════════════════
-describe.skip("8.4-RLS-07: cross-tenant attack on a locked link/file ⇒ zero rows affected (RLS-invisible, trigger never sees it, no existence disclosure) (AC5, R-809)", () => {
+describe("8.4-RLS-07: cross-tenant attack on a locked link/file ⇒ zero rows affected (RLS-invisible, trigger never sees it, no existence disclosure) (AC5, R-809)", () => {
   it("[P0] 8.4-RLS-07: tenant A's direct UPDATE of a tenant B locked file_links.file_id ⇒ zero rows, row untouched", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     const { linkId: bLinkId, versionId: bVersionId } = await seedSentVersionWithLockedPdfLink(fx.tenantB);

@@ -86,7 +86,6 @@ test("8.1 (guard): an UNMAPPED code throws a GENERIC non-CommandError (never a s
 
 test(
   "8.4: FL823 (file-link lock trigger) → FILE_LINK_LOCKED (distinct from QUOTE_VERSION_LOCKED / ACCEPTED_RECORD_LOCKED)",
-  { skip: true },
   () => {
     const e = catchMapped({ code: "FL823", message: "file link is locked (trigger FL823)" });
     assert.ok(e instanceof CommandError, "FL823 must throw a CommandError");
@@ -96,7 +95,6 @@ test(
 
 test(
   "8.4: the FILE_LINK_LOCKED mapping never surfaces the raw SQLSTATE or pg message (no leak / no existence disclosure)",
-  { skip: true },
   () => {
     const e = catchMapped({
       code: "FL823",

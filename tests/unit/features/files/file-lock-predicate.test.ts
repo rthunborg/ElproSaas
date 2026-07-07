@@ -32,26 +32,14 @@
  */
 import { test, describe } from "node:test";
 import assert from "node:assert/strict";
+// GREEN (Story 8.4 dev): the predicates now exist in the pure sibling
+// `src/features/files/lock-predicates.ts` (Task 5.1) — imported for real.
+import {
+  isFileLinkLockable,
+  isLockedFileArchivable,
+} from "@/features/files/lock-predicates";
 
-// RED PHASE: these predicates do not exist yet (Story 8.4 Task 5.1 extracts them to a pure sibling
-// `src/features/files/lock-predicates.ts`). A STATIC import of a not-yet-existing module fails at
-// MODULE-LOAD even under `describe.skip` (the strip-types runner resolves top-level imports before
-// the skip takes effect). So the green-phase import is documented here and the predicates are typed
-// local stubs that THROW — the suite is `describe.skip`, so the stubs are never invoked. On green,
-// DELETE the stub block and uncomment the real import below; the assertions are unchanged.
-//
-//   import { isFileLinkLockable, isLockedFileArchivable } from "@/features/files/lock-predicates";
-//
-type LinkLockInput = { ownerType: string; purpose: string; parentState: string };
-const NOT_YET = "8.4 lock predicates not implemented yet (red phase)";
-const isFileLinkLockable = (_input: LinkLockInput): boolean => {
-  throw new Error(NOT_YET);
-};
-const isLockedFileArchivable = (_lifecycleState: string): boolean => {
-  throw new Error(NOT_YET);
-};
-
-describe.skip("8.4-UNIT-01: file-link lock DECISION predicates (pure, client-safe) (R-822)", () => {
+describe("8.4-UNIT-01: file-link lock DECISION predicates (pure, client-safe) (R-822)", () => {
   test("isFileLinkLockable: a DRAFT-parent quote_version PDF/attachment link is NOT lockable", () => {
     assert.equal(
       isFileLinkLockable({ ownerType: "quote_version", purpose: "quote_pdf", parentState: "draft" }),

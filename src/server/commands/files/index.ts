@@ -8,9 +8,11 @@ export {
   createSignedFileAccess,
   createFileLink,
   uploadFile,
+  archiveFile,
   type SignedFileAccessResult,
   type CreateFileLinkResult,
   type UploadFileResult,
+  type ArchiveFileResult,
 } from "./files";
 export {
   OWNER_TYPES,
@@ -23,10 +25,12 @@ export {
   validateSignedAccess,
   validateCreateFileLink,
   validateUploadFile,
+  validateArchiveFile,
   type OwnerType,
   type ActiveOwnerType,
   type FilePurpose,
   type SignedAccessInput,
   type CreateFileLinkInput,
   type UploadFileInput,
+  type ArchiveFileInput,
 } from "./validation";

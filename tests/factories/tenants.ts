@@ -1623,19 +1623,43 @@ export async function adminSelectJobEventsForJob(
 /** Read the `file_links` rows for a quote_acceptance evidence owner (BYPASSRLS). */
 export async function adminSelectAcceptanceEvidenceLinks(
   acceptanceId: string,
-): Promise<{ id: string; file_id: string; owner_type: string; purpose: string }[]> {
-  return adminQuery<{
+): Promise<
+  {
     id: string;
     file_id: string;
     owner_type: string;
     purpose: string;
+    is_locked: boolean;
+    locked_at: string | null;
+  }[]
+> {
+  const rows = await adminQuery<{
+    id: string;
+    file_id: string;
+    owner_type: string;
+    purpose: string;
+    is_locked: boolean;
+    locked_at: Date | string | null;
   }>(
-    `select id, file_id, owner_type, purpose
+    `select id, file_id, owner_type, purpose, is_locked, locked_at
        from public.file_links
       where owner_type = 'quote_acceptance' and owner_id = $1
       order by id`,
     [acceptanceId],
   );
+  return rows.map((r) => ({
+    id: r.id,
+    file_id: r.file_id,
+    owner_type: r.owner_type,
+    purpose: r.purpose,
+    is_locked: r.is_locked,
+    locked_at:
+      r.locked_at === null || r.locked_at === undefined
+        ? null
+        : r.locked_at instanceof Date
+          ? r.locked_at.toISOString()
+          : String(r.locked_at),
+  }));
 }
 
 /**
@@ -1732,19 +1756,43 @@ export async function adminSelectFileById(
 /** Read the `file_links` rows for a quote-version PDF owner (BYPASSRLS). */
 export async function adminSelectPdfFileLinks(
   quoteVersionId: string,
-): Promise<{ id: string; file_id: string; owner_type: string; purpose: string }[]> {
-  return adminQuery<{
+): Promise<
+  {
     id: string;
     file_id: string;
     owner_type: string;
     purpose: string;
+    is_locked: boolean;
+    locked_at: string | null;
+  }[]
+> {
+  const rows = await adminQuery<{
+    id: string;
+    file_id: string;
+    owner_type: string;
+    purpose: string;
+    is_locked: boolean;
+    locked_at: Date | string | null;
   }>(
-    `select id, file_id, owner_type, purpose
+    `select id, file_id, owner_type, purpose, is_locked, locked_at
        from public.file_links
       where owner_type = 'quote_version' and owner_id = $1 and purpose = 'quote_pdf'
       order by id`,
     [quoteVersionId],
   );
+  return rows.map((r) => ({
+    id: r.id,
+    file_id: r.file_id,
+    owner_type: r.owner_type,
+    purpose: r.purpose,
+    is_locked: r.is_locked,
+    locked_at:
+      r.locked_at === null || r.locked_at === undefined
+        ? null
+        : r.locked_at instanceof Date
+          ? r.locked_at.toISOString()
+          : String(r.locked_at),
+  }));
 }
 
 /**
