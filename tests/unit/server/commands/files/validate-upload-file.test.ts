@@ -136,7 +136,7 @@ test("[8.2-UNIT-03g][P0/R-803] a client tenant_id/object_path/bucket_id is NOT r
   // the server derives tenant_id + object_path + bucket_id itself (never from the client).
   assert.equal(result.ok, true);
   if (result.ok) {
-    const keys = Object.keys(result.data as Record<string, unknown>);
+    const keys = Object.keys(result.data as unknown as Record<string, unknown>);
     assert.ok(!keys.includes("tenant_id"), "tenant_id must be stripped");
     assert.ok(!keys.includes("object_path"), "object_path must be stripped");
     assert.ok(!keys.includes("bucket_id"), "bucket_id must be stripped");

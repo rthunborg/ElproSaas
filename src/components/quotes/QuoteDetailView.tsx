@@ -23,6 +23,7 @@
  * the selected version. The ordering / current-commitment / selection logic is the PURE
  * `@/features/quotes/timeline` helpers (unit-pinned; never inline here).
  */
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { oreToKronorString } from "@/features/calculations/money-input";
 import {
@@ -72,7 +73,14 @@ const EVENT_LABELS: Record<string, string> = {
   superseded: "Ersatt",
 };
 
-export function QuoteDetailView({ detail }: { readonly detail: QuoteDetail }) {
+export function QuoteDetailView({
+  detail,
+  acceptanceFilesPanel,
+}: {
+  readonly detail: QuoteDetail;
+  /** The Story 8.2 acceptance-evidence file panel (rendered on the accepted section). */
+  readonly acceptanceFilesPanel?: ReactNode;
+}) {
   const {
     header,
     versions,
@@ -448,6 +456,10 @@ export function QuoteDetailView({ detail }: { readonly detail: QuoteDetail }) {
                       Öppna jobbet
                     </Link>
                   )}
+                  {/* Story 8.2 — acceptance-evidence file upload + own-tenant list. */}
+                  {acceptanceFilesPanel ? (
+                    <div className="mt-2">{acceptanceFilesPanel}</div>
+                  ) : null}
                 </div>
               ) : (
                 <p data-testid="quote-acceptance-placeholder" className="text-zinc-600">

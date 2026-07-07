@@ -15,6 +15,7 @@
 import Link from "next/link";
 import { QuoteDetailView } from "@/components/quotes/QuoteDetailView";
 import { readQuoteDetail } from "@/features/quotes/read";
+import { renderAcceptanceFilesPanel } from "@/features/files/acceptance-panel";
 
 export const dynamic = "force-dynamic";
 
@@ -72,5 +73,10 @@ export default async function QuoteDetailPage({
     );
   }
 
-  return <QuoteDetailView detail={detail} />;
+  // Story 8.2 — the acceptance-evidence file panel for the selected version (when accepted).
+  const acceptanceFilesPanel = await renderAcceptanceFilesPanel(detail, quoteId);
+
+  return (
+    <QuoteDetailView detail={detail} acceptanceFilesPanel={acceptanceFilesPanel} />
+  );
 }

@@ -13,7 +13,7 @@
  * mutations go through the server actions → 3.1 envelope commands; this component is
  * presentation + interaction only, never the security boundary.
  */
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { CustomerDialog, type CustomerEditDefaults } from "./CustomerDialog";
 import { CustomerTypeBadge } from "./CustomerTypeBadge";
@@ -31,12 +31,15 @@ import type {
   FacilityRow,
 } from "@/features/crm/read";
 
-/** The Phase-A related areas whose owning story does not exist yet (honest empties). */
+/**
+ * The Phase-A related areas whose owning story does not exist yet (honest empties). "Filer"
+ * is now built (Story 8.2 — the entity file panel is rendered when `filesPanel` is passed),
+ * so it is omitted here to avoid a false "not yet built" claim next to the live panel.
+ */
 const NOT_YET_BUILT_AREAS: ReadonlyArray<{ label: string; note: string }> = [
   { label: "Kalkyler", note: "Byggs i Epic 5 (kalkyler)." },
   { label: "Offerter", note: "Byggs i Epic 6 (offerter)." },
   { label: "Jobb/Order", note: "Byggs i Epic 7 (jobb/order)." },
-  { label: "Filer", note: "Byggs i Epic 8 (filer)." },
   { label: "Händelsehistorik", note: "Byggs i en senare story." },
 ];
 
@@ -44,10 +47,19 @@ export function CustomerDetail({
   customer,
   facilities,
   contacts,
+  filesPanel,
+  facilityFilePanels,
+  contactFilePanels,
 }: {
   readonly customer: CustomerDetailRow;
   readonly facilities: readonly FacilityRow[];
   readonly contacts: readonly ContactRow[];
+  /** The Story 8.2 customer entity file panel (server-rendered node), rendered when provided. */
+  readonly filesPanel?: ReactNode;
+  /** Per-facility Story 8.2 file panels keyed by facility id (own-tenant crm_document). */
+  readonly facilityFilePanels?: Readonly<Record<string, ReactNode>>;
+  /** Per-contact Story 8.2 file panels keyed by contact id (own-tenant crm_document). */
+  readonly contactFilePanels?: Readonly<Record<string, ReactNode>>;
 }) {
   const router = useRouter();
   const [editOpen, setEditOpen] = useState(false);
@@ -149,7 +161,11 @@ export function CustomerDetail({
       </dl>
 
       {/* Facilities (Anläggningar). */}
-      <FacilitiesSection customerId={customer.id} facilities={facilities} />
+      <FacilitiesSection
+        customerId={customer.id}
+        facilities={facilities}
+        filePanels={facilityFilePanels}
+      />
 
       {/* Contacts (Kontakter). */}
       <ContactsSection
@@ -157,7 +173,11 @@ export function CustomerDetail({
         contacts={contacts}
         facilities={facilities}
         facilityOptions={facilityOptions}
+        filePanels={contactFilePanels}
       />
+
+      {/* Files (Filer) — the Story 8.2 entity file panel (own-tenant upload + list). */}
+      {filesPanel ? <div className="mt-8">{filesPanel}</div> : null}
 
       {/* Honest "not yet built" related areas — never a deferred module. */}
       <section className="mt-8">
@@ -207,9 +227,11 @@ function Field({
 function FacilitiesSection({
   customerId,
   facilities,
+  filePanels,
 }: {
   readonly customerId: string;
   readonly facilities: readonly FacilityRow[];
+  readonly filePanels?: Readonly<Record<string, ReactNode>>;
 }) {
   const router = useRouter();
   const [createOpen, setCreateOpen] = useState(false);
@@ -239,41 +261,44 @@ function FacilitiesSection({
       ) : (
         <ul className="mt-3 divide-y divide-zinc-100 rounded-lg border border-zinc-200 bg-white">
           {facilities.map((f) => (
-            <li key={f.id} className="flex items-center justify-between px-4 py-3">
-              <div>
-                <p className="text-sm font-medium text-zinc-900">{f.name}</p>
-                <p className="text-xs text-zinc-500">
-                  {[f.address_line1, f.postal_code, f.city].filter(Boolean).join(" ") ||
-                    "—"}
-                </p>
+            <li key={f.id} className="flex flex-col gap-3 px-4 py-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-zinc-900">{f.name}</p>
+                  <p className="text-xs text-zinc-500">
+                    {[f.address_line1, f.postal_code, f.city].filter(Boolean).join(" ") ||
+                      "—"}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setEditing({
+                        id: f.id,
+                        name: f.name,
+                        address_line1: f.address_line1,
+                        address_line2: f.address_line2,
+                        postal_code: f.postal_code,
+                        city: f.city,
+                      })
+                    }
+                    className="text-sm font-medium text-blue-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+                  >
+                    Redigera
+                  </button>
+                  <ArchiveButton
+                    kind="facility"
+                    id={f.id}
+                    customerId={customerId}
+                    label={`Arkivera anläggning ${f.name}`}
+                    confirmMessage="Arkivera den här anläggningen?"
+                    onArchived={() => router.refresh()}
+                    compact
+                  />
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() =>
-                    setEditing({
-                      id: f.id,
-                      name: f.name,
-                      address_line1: f.address_line1,
-                      address_line2: f.address_line2,
-                      postal_code: f.postal_code,
-                      city: f.city,
-                    })
-                  }
-                  className="text-sm font-medium text-blue-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
-                >
-                  Redigera
-                </button>
-                <ArchiveButton
-                  kind="facility"
-                  id={f.id}
-                  customerId={customerId}
-                  label={`Arkivera anläggning ${f.name}`}
-                  confirmMessage="Arkivera den här anläggningen?"
-                  onArchived={() => router.refresh()}
-                  compact
-                />
-              </div>
+              {filePanels?.[f.id] ? <div>{filePanels[f.id]}</div> : null}
             </li>
           ))}
         </ul>
@@ -301,11 +326,13 @@ function ContactsSection({
   contacts,
   facilities,
   facilityOptions,
+  filePanels,
 }: {
   readonly customerId: string;
   readonly contacts: readonly ContactRow[];
   readonly facilities: readonly FacilityRow[];
   readonly facilityOptions: readonly FacilityOption[];
+  readonly filePanels?: Readonly<Record<string, ReactNode>>;
 }) {
   const router = useRouter();
   const [createOpen, setCreateOpen] = useState(false);
@@ -340,50 +367,53 @@ function ContactsSection({
       ) : (
         <ul className="mt-3 divide-y divide-zinc-100 rounded-lg border border-zinc-200 bg-white">
           {contacts.map((c) => (
-            <li key={c.id} className="flex items-center justify-between px-4 py-3">
-              <div>
-                <p className="flex items-center gap-2 text-sm font-medium text-zinc-900">
-                  {c.name}
-                  {c.is_primary && (
-                    <span className="rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-800 ring-1 ring-inset ring-blue-200">
-                      Primär
-                    </span>
-                  )}
-                </p>
-                <p className="text-xs text-zinc-500">
-                  {[c.role_label, c.email, c.phone, facilityName(c.facility_id)]
-                    .filter(Boolean)
-                    .join(" · ") || "—"}
-                </p>
+            <li key={c.id} className="flex flex-col gap-3 px-4 py-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="flex items-center gap-2 text-sm font-medium text-zinc-900">
+                    {c.name}
+                    {c.is_primary && (
+                      <span className="rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-800 ring-1 ring-inset ring-blue-200">
+                        Primär
+                      </span>
+                    )}
+                  </p>
+                  <p className="text-xs text-zinc-500">
+                    {[c.role_label, c.email, c.phone, facilityName(c.facility_id)]
+                      .filter(Boolean)
+                      .join(" · ") || "—"}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setEditing({
+                        id: c.id,
+                        name: c.name,
+                        facility_id: c.facility_id,
+                        email: c.email,
+                        phone: c.phone,
+                        role_label: c.role_label,
+                        is_primary: c.is_primary,
+                      })
+                    }
+                    className="text-sm font-medium text-blue-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+                  >
+                    Redigera
+                  </button>
+                  <ArchiveButton
+                    kind="contact"
+                    id={c.id}
+                    customerId={customerId}
+                    label={`Arkivera kontakt ${c.name}`}
+                    confirmMessage="Arkivera den här kontakten?"
+                    onArchived={() => router.refresh()}
+                    compact
+                  />
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() =>
-                    setEditing({
-                      id: c.id,
-                      name: c.name,
-                      facility_id: c.facility_id,
-                      email: c.email,
-                      phone: c.phone,
-                      role_label: c.role_label,
-                      is_primary: c.is_primary,
-                    })
-                  }
-                  className="text-sm font-medium text-blue-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
-                >
-                  Redigera
-                </button>
-                <ArchiveButton
-                  kind="contact"
-                  id={c.id}
-                  customerId={customerId}
-                  label={`Arkivera kontakt ${c.name}`}
-                  confirmMessage="Arkivera den här kontakten?"
-                  onArchived={() => router.refresh()}
-                  compact
-                />
-              </div>
+              {filePanels?.[c.id] ? <div>{filePanels[c.id]}</div> : null}
             </li>
           ))}
         </ul>

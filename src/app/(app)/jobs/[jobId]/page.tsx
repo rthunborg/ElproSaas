@@ -15,7 +15,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { JobDetailView } from "@/components/jobs/JobDetailView";
+import { EntityFilePanel } from "@/components/files/EntityFilePanel";
 import { readJobDetailForPage } from "@/features/jobs/read";
+import { readEntityFiles } from "@/features/files/read";
 
 export const dynamic = "force-dynamic";
 
@@ -55,5 +57,22 @@ export default async function JobDetailPage({
     notFound();
   }
 
-  return <JobDetailView detail={detail} />;
+  // Story 8.2 — the job's own-tenant evidence files for the entity file panel (RLS-scoped).
+  const filesRead = await readEntityFiles({ ownerType: "job", ownerId: jobId });
+
+  return (
+    <JobDetailView
+      detail={detail}
+      filesPanel={
+        <EntityFilePanel
+          ownerType="job"
+          ownerId={jobId}
+          purpose="job_evidence"
+          ownerLabel={detail.title ?? detail.currentCustomerName ?? "Jobb"}
+          files={filesRead.files}
+          readError={filesRead.error}
+        />
+      }
+    />
+  );
 }

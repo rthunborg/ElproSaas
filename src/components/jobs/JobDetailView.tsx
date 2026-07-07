@@ -17,6 +17,7 @@
  * states. NO create/delete affordance (a job is only created by the 7.2 transaction). NO duplicate
  * job / second create affordance / error state on the idempotency deep-link (AC5).
  */
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { oreToKronorString } from "@/features/calculations/money-input";
 import { JOB_STATUS_LABELS, type JobDetail } from "@/features/jobs/types";
@@ -38,7 +39,14 @@ const EVENT_LABELS: Record<string, string> = {
   cancelled: "Avbruten",
 };
 
-export function JobDetailView({ detail }: { readonly detail: JobDetail }) {
+export function JobDetailView({
+  detail,
+  filesPanel,
+}: {
+  readonly detail: JobDetail;
+  /** The Story 8.2 entity file panel (job_evidence upload + list), rendered when provided. */
+  readonly filesPanel?: ReactNode;
+}) {
   const versionHref = detail.quoteId
     ? `/quotes/${detail.quoteId}/versions/${detail.quoteVersionId}`
     : null;
@@ -213,6 +221,9 @@ export function JobDetailView({ detail }: { readonly detail: JobDetail }) {
           </ul>
         )}
       </section>
+
+      {/* ── FILE UPLOAD PANEL (Story 8.2 — job_evidence upload + own-tenant list) ── */}
+      {filesPanel ? <div>{filesPanel}</div> : null}
 
       {/* ── ALLOWED-EDIT AFFORDANCE (AC4) — title / status / planned dates ONLY ── */}
       <div className="rounded-lg border border-zinc-200 bg-white p-4">

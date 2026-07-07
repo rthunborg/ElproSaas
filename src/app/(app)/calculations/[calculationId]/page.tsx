@@ -12,7 +12,9 @@
  */
 import Link from "next/link";
 import { CalculationEditor } from "@/components/calculations/CalculationEditor";
+import { EntityFilePanel } from "@/components/files/EntityFilePanel";
 import { readCalculationDetail } from "@/features/calculations/read";
+import { readEntityFiles } from "@/features/files/read";
 import { readArticles, readWorkRoles } from "@/features/pricing/read";
 import {
   readCompanySettings,
@@ -118,6 +120,12 @@ export default async function CalculationEditorPage({
         }
       : null;
 
+  // Story 8.2 — the calc's own-tenant attachments for the entity file panel (RLS-scoped).
+  const filesRead = await readEntityFiles({
+    ownerType: "calculation",
+    ownerId: calculationId,
+  });
+
   return (
     <CalculationEditor
       detail={detail}
@@ -125,6 +133,16 @@ export default async function CalculationEditorPage({
       defaultVatDisplay={defaultVatDisplay}
       vatPostureResolved={vatPostureResolved}
       quoteTerms={quoteTerms}
+      filesPanel={
+        <EntityFilePanel
+          ownerType="calculation"
+          ownerId={calculationId}
+          purpose="calculation_attachment"
+          ownerLabel={detail.header.title}
+          files={filesRead.files}
+          readError={filesRead.error}
+        />
+      }
     />
   );
 }

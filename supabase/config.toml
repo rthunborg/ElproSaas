@@ -136,9 +136,17 @@ file_size_limit = "50MiB"
 # first segment. The bucket is ALSO seeded private in the migration
 # (20260704120000_file_storage_foundation.sql) as belt-and-braces so it exists + is private
 # on a fresh reset regardless of config-load order (Task 1.2). No `objects_path` is set —
-# the path is never derived from any client-derivable value. `allowed_mime_types` is
-# DEFERRED to Story 8.2 (conservative dev defaults); a conservative per-bucket size limit is
-# set here (the global [storage] file_size_limit still applies as an outer bound).
+# the path is never derived from any client-derivable value.
+#
+# MIME/SIZE POLICY AUTHORITY (Story 8.2): the SERVER upload policy
+# (src/server/storage/upload-policy.ts — a conservative dev allow-list + a 25 MiB max) is the
+# AUTHORITY for what may be uploaded; the `uploadFile` command re-validates every request
+# server-side (a bypassed client is still rejected — R-808). This bucket's `file_size_limit`
+# (50 MiB) is the OUTER BOUND the server policy must stay under (the 25 MiB policy max is ≤
+# this). No `allowed_mime_types` is set on the bucket: the server allow-list is the single
+# source of truth (a bucket-level list would be a SECOND, divergable authority). The final
+# file-type/size policy is an owner Sign-Off residual (R-817); under demo-data-only (owner
+# decision 2026-07-03) the conservative dev default is not a real-pilot blocker.
 [storage.buckets.tenant-files]
 public = false
 file_size_limit = "50MiB"

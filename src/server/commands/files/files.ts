@@ -30,18 +30,26 @@ import {
   type StorageSigningClient,
 } from "@/server/storage/signed-access";
 import {
+  uploadObjectWithMetadata,
+  type UploadStorageClient,
+} from "@/server/storage/upload-object";
+import {
   asFileRpcClient,
+  asFileWriteClient,
   loadFileForAccess,
   ownerRecordVisible,
   ownerTableFor,
   throwMappedFileWriteError,
+  type FileWriteClient,
 } from "./file-db";
 import { isActiveOwnerType } from "./validation";
 import {
   validateCreateFileLink,
   validateSignedAccess,
+  validateUploadFile,
   type CreateFileLinkInput,
   type SignedAccessInput,
+  type UploadFileInput,
 } from "./validation";
 
 /** The bucket every Phase A file lives in (single private bucket). */
@@ -206,4 +214,158 @@ function extractLinkId(data: unknown): string | null {
     if (typeof id === "string") return id;
   }
   return null;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// uploadFile (Story 8.2, Task 3) — the generic user-facing upload path.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Result of `uploadFile` — the file id (also targetId) + the created link id. */
+export interface UploadFileResult {
+  readonly targetId: string;
+  readonly fileId: string;
+  readonly linkId: string;
+}
+
+/** Assert an ACTIVE owner record is visible under the caller's RLS (R-802 owner-side). */
+async function assertUploadOwnerVisibleOrThrow(
+  db: CommandDbClient,
+  input: UploadFileInput,
+): Promise<void> {
+  // `validateUploadFile` already narrowed owner_type to an ACTIVE owner type, so
+  // `ownerTableFor` always resolves. A foreign / non-existent owner id ⇒ zero rows ⇒
+  // TENANT_ACCESS_DENIED — the SAME generic shape as not-found (no existence disclosure,
+  // R-809). A quote_version owner (materialized by the 6.1 RPC) never reaches here.
+  const ownerTable = ownerTableFor(input.owner_type);
+  const visible = await ownerRecordVisible(db, ownerTable, input.owner_id);
+  if (!visible) {
+    throw new CommandError("TENANT_ACCESS_DENIED");
+  }
+}
+
+/**
+ * `uploadFile` — the generic user-facing upload command (AC1-AC5).
+ *
+ * Envelope gates: resolve user → active tenant_admin → validate typed input (MIME/size/
+ * owner_type/purpose/owner-shape — the SERVER is the authority; a bypassed client is still
+ * rejected, R-808). In `execute`: verify the OWNER record is own-tenant-visible (R-802
+ * owner-side — a foreign owner ⇒ TENANT_ACCESS_DENIED, the SAME shape as not-found),
+ * then follow the 6.3 PROVEN ordering through the shared upload helper: id-up-front →
+ * `deriveObjectPath` (tenant-first, server-derived — NEVER a client path) → object write on
+ * the CALLER's RLS client (NEVER service-role) → explicit-id `files` insert
+ * (`lifecycle_state='linked'` — 8.2 owns the draft→linked transition) → `file_links` insert.
+ * Verified-compensated consistency: a metadata failure after the object write archives any
+ * written `files` row (archive-over-delete — no reclamation) and surfaces a retryable
+ * SERVER_ERROR (never a false success, never a permanent denial for a transient fault).
+ *
+ * Audit metadata carries ONLY `{ targetId }`-shaped allow-listed fields — NO owner PII, NO
+ * bucket/object path, NO file contents, NO signed URL (§15).
+ */
+export const uploadFile = defineCommand<UploadFileInput, UploadFileResult>({
+  command: "file.upload",
+  auditable: true,
+  eventType: "file.uploaded",
+  targetType: "file",
+  validateInput: validateUploadFile,
+  // NO envelope `ownership` target: the file does not exist yet (it is created here), and
+  // the OWNER record is polymorphic. The R-802 owner-side check runs in execute (below).
+  execute: async (ctx): Promise<UploadFileResult> => {
+    const db = ctx.db;
+    const tenantId = ctx.tenantContext.tenantId;
+    const input = ctx.input;
+
+    // OWNER-side check (R-802 both-side): the entity being attached to must belong to the
+    // resolved tenant (a foreign / non-existent owner ⇒ TENANT_ACCESS_DENIED, BEFORE any
+    // object/metadata write).
+    await assertUploadOwnerVisibleOrThrow(db, input);
+
+    // The payload must be present (the real action → runCommand path always carries it; the
+    // pure metadata-validation path never reaches execute). A missing payload is a client-
+    // shaped VALIDATION_FAILED, never a silent empty write.
+    const bytes = input.bytes;
+    if (bytes === undefined) {
+      throw new CommandError("VALIDATION_FAILED");
+    }
+
+    // The file id is generated UP FRONT so the object path binds to the same id (the 6.3
+    // pattern — `create_file_with_link` self-allocates the id, so it cannot bind the path).
+    const fileId = crypto.randomUUID();
+    const writer = asFileWriteClient(db);
+
+    const result = await uploadObjectWithMetadata({
+      client: db as unknown as UploadStorageClient,
+      tenantId,
+      fileId,
+      displayName: input.display_name,
+      mimeType: input.mime_type,
+      bytes,
+      // (d) INSERT the files metadata row (explicit id = the object-path segment). RLS
+      // WITH CHECK narrows to own tenant; a forged tenant_id fails 42501. lifecycle_state
+      // 'linked' — a file created WITH a link is linked by construction (8.2 owns this).
+      insertFileRow: async (objectPath: string) => {
+        const { error } = await writer
+          .from("files")
+          .insert({
+            id: fileId,
+            tenant_id: tenantId,
+            bucket_id: TENANT_FILES_BUCKET,
+            object_path: objectPath,
+            display_name: input.display_name,
+            mime_type: input.mime_type,
+            size_bytes: input.size_bytes,
+            uploaded_by: ctx.tenantContext.userId,
+            lifecycle_state: "linked",
+          })
+          .select("id")
+          .single();
+        if (error) throwMappedFileWriteError(error);
+      },
+      // (e) INSERT the file_links row pointing at the verified file (owner already checked).
+      insertLinkRow: async (linkedFileId: string) => {
+        const { data, error } = await writer
+          .from("file_links")
+          .insert({
+            tenant_id: tenantId,
+            file_id: linkedFileId,
+            owner_type: input.owner_type,
+            owner_id: input.owner_id,
+            purpose: input.purpose,
+          })
+          .select("id")
+          .single();
+        if (error) throwMappedFileWriteError(error);
+        if (!data || typeof data.id !== "string") {
+          throw new Error("uploadFile: file_links insert returned no id");
+        }
+        return data.id;
+      },
+      // COMPENSATION (R-807): a metadata failure AFTER the object write archives a written
+      // files row so no committed-usable row survives over the object. The orphaned OBJECT
+      // is left/archived (8.1 has no reclamation) — best-effort; swallows its own faults.
+      archiveFileRow: (writtenFileId: string) =>
+        archiveOrphanFile(writer, writtenFileId),
+    });
+
+    return { targetId: result.fileId, fileId: result.fileId, linkId: result.linkId };
+  },
+  // Audit metadata is EMPTY-shaped: the sanitizer drops everything not on the allow-list, so
+  // NO owner PII, NO bucket/object path, NO file contents can reach the row.
+  auditFields: (_ctx, result) => ({ targetId: result.targetId }),
+});
+
+/**
+ * Best-effort ARCHIVE of an orphaned `files` row (compensation). Sets
+ * `lifecycle_state='archived'` so no committed-usable row points at the stored object
+ * (archive-over-delete — 8.1 has no object-reclamation path). Swallows its own secondary
+ * fault: the ORIGINAL error is what the caller must see (never a false success).
+ */
+async function archiveOrphanFile(
+  writer: FileWriteClient,
+  fileId: string,
+): Promise<void> {
+  await writer
+    .from("files")
+    .update({ lifecycle_state: "archived" })
+    .eq("id", fileId)
+    .select("id");
 }

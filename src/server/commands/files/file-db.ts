@@ -137,6 +137,44 @@ export async function ownerRecordVisible(
   return Array.isArray(data) && data.length > 0;
 }
 
+/**
+ * The minimal WRITE surface the `uploadFile` command drives (Story 8.2, Task 3): the
+ * direct explicit-id `files` insert + the `file_links` insert + the compensation UPDATE,
+ * on the CALLER's request-bound RLS client (own-tenant WITH CHECK; NEVER service-role).
+ * The `create_file_with_link` RPC self-allocates the id and cannot bind the object-path
+ * id up front — 6.3 bypassed it for exactly this reason and did a direct explicit-id RLS
+ * insert; 8.2 reuses THAT approach through this narrow write surface. A single documented
+ * cast (`asFileWriteClient`) narrows the envelope client to it.
+ */
+export type FileWriteClient = {
+  from(table: string): {
+    insert(values: Record<string, unknown>): {
+      select(columns: string): {
+        single(): Promise<{
+          data: { id: string } | null;
+          error: { code?: string; message?: string } | null;
+        }>;
+      };
+    };
+    update(values: Record<string, unknown>): {
+      eq(
+        column: string,
+        value: string,
+      ): {
+        select(columns: string): Promise<{
+          data: unknown[] | null;
+          error: { code?: string; message?: string } | null;
+        }>;
+      };
+    };
+  };
+};
+
+/** Narrow the envelope client to the file-write surface (single documented cast). */
+export function asFileWriteClient(db: CommandDbClient): FileWriteClient {
+  return db as unknown as FileWriteClient;
+}
+
 /** The minimal RPC surface for the narrow `link_existing_file` call. */
 export type FileRpcClient = {
   rpc(

@@ -7,21 +7,26 @@
 export {
   createSignedFileAccess,
   createFileLink,
+  uploadFile,
   type SignedFileAccessResult,
   type CreateFileLinkResult,
+  type UploadFileResult,
 } from "./files";
 export {
   OWNER_TYPES,
   ACTIVE_OWNER_TYPES,
   FILE_PURPOSES,
+  OWNER_TYPE_PURPOSE,
   isOwnerType,
   isActiveOwnerType,
   isFilePurpose,
   validateSignedAccess,
   validateCreateFileLink,
+  validateUploadFile,
   type OwnerType,
   type ActiveOwnerType,
   type FilePurpose,
   type SignedAccessInput,
   type CreateFileLinkInput,
+  type UploadFileInput,
 } from "./validation";

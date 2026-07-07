@@ -5,10 +5,10 @@ epic_num: 8
 story_num: 2
 branch: epic/8-required-files-and-private-storage
 status: in-progress
-updated_at: "2026-07-07T10:34:59Z"
+updated_at: "2026-07-07T11:14:29Z"
 started_at: "2026-07-07T10:16:17Z"
 completed_at: null
-active_seconds: 1070
+active_seconds: 3425
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -20,14 +20,14 @@ tea_selected: [atdd, automate]
 tea_rationale: "security-sensitive upload/input handling with path-spoofing and cross-tenant file-ownership risk (story marks Security/RLS Impact: Critical; test-design R-808/R-809 at 6/MITIGATE)"
 epic_story_count: 5
 stories_after_in_epic: 3
-completed_phases: [0, 1, 2, 3, 4]
+completed_phases: [0, 1, 2, 3, 4, 5]
 code_review_iterations: 0
 code_review_loop_done: false
 hitl_halt: null
 external_review_iterations: 0
 convergence_unverified: false
 story_trace: null
-commits: []
+commits: [f11c91f, 5b006e3, 85a3ce5]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -50,7 +50,10 @@ open_questions:
   - "Final MIME allow-list + max size (owner sign-off residual R-817) â€” conservative default chosen in-story"
   - "Which entity pages get the file panel first â€” default: all active owner types"
   - "Whether to wire readiness.ts REQUIRED_FILES_DEFERRED now â€” default: no behavior change this story"
-deferred_work: []
+deferred_work:
+  - "Evidence-file LOCK (accepted-acceptance immutability) is Story 8.4 scope â€” this story adds only the upload panel"
+  - "/files central index remains Story 8.5 (placeholder untouched)"
+  - "readiness.ts real required-file wiring stays owner-gated (ledger Â§5-4)"
 blockers: []
 overrides: {}
 constraints: []
