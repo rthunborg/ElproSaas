@@ -17,14 +17,14 @@
  * the DB truth — NEVER the guarantee (R-812; the command FILE_LINK_LOCKED + the FL823 trigger are).
  * NO raw `object_path`/`bucket_id` is ever rendered — the signed URL is the ONLY storage handle.
  */
-import { useEffect, useState } from "react";
 import { useActionState } from "react";
 import { archiveFileAction, previewEntityFileAction } from "@/features/files/actions";
+import { RevalidateFields } from "@/components/files/RevalidateFields";
 import {
   SIGNED_ACCESS_INITIAL,
-  isSignedUrlExpired,
   type SignedAccessState,
 } from "@/features/files/signed-access-state";
+import { useSignedLinkExpiry } from "@/features/files/use-signed-link-expiry";
 import {
   ARCHIVE_ACTION_INITIAL,
   type ArchiveActionState,
@@ -46,8 +46,17 @@ export interface FilePreviewRowProps {
   readonly index: number;
   /** The panel's purpose — decides evidence-vs-file lock-notice wording (acceptance_evidence). */
   readonly purpose: string;
-  /** The route to revalidate after a successful archive (mirrors the upload revalidation). */
-  readonly revalidatePath?: string;
+  /**
+   * The owner type/id of the file's owning entity + optional STRUCTURED parent-route ids. The
+   * archive action derives the route to revalidate ENTIRELY SERVER-SIDE from these via a closed
+   * template allow-list — NO client `revalidate_path` (epic-8 review finding). Optional so a
+   * read-only preview surface can omit them (then no revalidation runs).
+   */
+  readonly ownerType?: string;
+  readonly ownerId?: string;
+  readonly parentCustomerId?: string;
+  readonly parentQuoteId?: string;
+  readonly parentVersionId?: string;
   /**
    * The panel upload input's id — the unlocked-file "replace" link scrolls to it. When absent
    * (a read-only commitment panel with no upload form), the replace link is not rendered.
@@ -60,7 +69,11 @@ export function FilePreviewRow({
   tid,
   index,
   purpose,
-  revalidatePath,
+  ownerType,
+  ownerId,
+  parentCustomerId,
+  parentQuoteId,
+  parentVersionId,
   uploadInputId,
 }: FilePreviewRowProps) {
   const [state, formAction, pending] = useActionState<SignedAccessState, FormData>(
@@ -82,26 +95,9 @@ export function FilePreviewRow({
   const isLocked = file.isLocked;
   const isEvidence = purpose === "acceptance_evidence";
 
-  // Re-evaluate the expiry verdict on a wall-clock tick so a link that ages out flips to the
-  // "open again" affordance WITHOUT a full re-render of the panel. One bounded timer per active link.
-  const [nowMs, setNowMs] = useState<number>(() => Date.now());
-  useEffect(() => {
-    if (state.status !== "success" || state.expiresAt === null) return;
-    const expiryMs = Date.parse(state.expiresAt);
-    if (!Number.isFinite(expiryMs)) return;
-    const remaining = expiryMs - Date.now();
-    const timer = setTimeout(() => setNowMs(Date.now()), Math.max(0, remaining));
-    return () => clearTimeout(timer);
-  }, [state.status, state.expiresAt]);
-
-  const hasFreshLink =
-    state.status === "success" &&
-    state.signedUrl !== null &&
-    !isSignedUrlExpired(state.expiresAt, new Date(nowMs).toISOString());
-  const linkExpired =
-    state.status === "success" &&
-    state.signedUrl !== null &&
-    isSignedUrlExpired(state.expiresAt, new Date(nowMs).toISOString());
+  // The 8.3 expiry→refresh contract: a bounded wall-clock timer flips a link that ages out to
+  // the "open again" affordance WITHOUT a full panel re-render (shared with the /files index row).
+  const { hasFreshLink, linkExpired } = useSignedLinkExpiry(state);
 
   const openLabel = pending
     ? "Öppnar…"
@@ -202,9 +198,13 @@ export function FilePreviewRow({
           archiveFile command. NO delete-file control ever renders. */}
       <form action={archiveAction} className="flex flex-col gap-1">
         <input type="hidden" name="file_id" value={file.fileId} />
-        {revalidatePath ? (
-          <input type="hidden" name="revalidate_path" value={revalidatePath} />
-        ) : null}
+        {ownerType ? <input type="hidden" name="owner_type" value={ownerType} /> : null}
+        {ownerId ? <input type="hidden" name="owner_id" value={ownerId} /> : null}
+        <RevalidateFields
+          parentCustomerId={parentCustomerId}
+          parentQuoteId={parentQuoteId}
+          parentVersionId={parentVersionId}
+        />
         <button
           type="submit"
           disabled={archivePending || archiveState.status === "success"}

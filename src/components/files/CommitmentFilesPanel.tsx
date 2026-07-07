@@ -24,8 +24,14 @@ export interface CommitmentFilesPanelProps {
   readonly files: readonly EntityFileRow[];
   /** A generic read-error signal (never a cross-tenant leak); null when the read succeeded. */
   readonly readError?: string | null;
-  /** The route to revalidate after a successful archive. */
-  readonly revalidatePath?: string;
+  /**
+   * The commitment file owner (`quote_version` + its id) + the STRUCTURED parent quote/version
+   * ids the archive action uses to derive the revalidation route SERVER-SIDE (a closed template
+   * allow-list — NO client `revalidate_path`; epic-8 review finding).
+   */
+  readonly ownerId?: string;
+  readonly parentQuoteId?: string;
+  readonly parentVersionId?: string;
   /**
    * A data-testid NAMESPACE suffix (so this panel's testids stay addressable alongside the entity
    * panels). Absent → the canonical unsuffixed testids (the E2E `file-lock-notice`/`archive-file`).
@@ -71,7 +77,10 @@ export function CommitmentFilesPanel(props: CommitmentFilesPanelProps) {
               tid={tid}
               index={i}
               purpose={props.purpose}
-              revalidatePath={props.revalidatePath}
+              ownerType="quote_version"
+              ownerId={props.ownerId}
+              parentQuoteId={props.parentQuoteId}
+              parentVersionId={props.parentVersionId}
               // NO uploadInputId → no "replace" link (the commitment panel has no upload form; an
               // unlocked commitment file — a draft-version PDF — is regenerated via the 6.3 path).
             />

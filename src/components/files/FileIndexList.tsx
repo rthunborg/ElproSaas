@@ -29,9 +29,9 @@ import {
 } from "@/features/files/file-index";
 import {
   SIGNED_ACCESS_INITIAL,
-  isSignedUrlExpired,
   type SignedAccessState,
 } from "@/features/files/signed-access-state";
+import { useSignedLinkExpiry } from "@/features/files/use-signed-link-expiry";
 
 /** Format a byte count as a compact human size for the list. */
 function formatSize(bytes: number | null): string {
@@ -143,6 +143,11 @@ export function FileIndexList({
  * (never shared, never logged, never a public URL — R-810). The action carries ONLY the row's
  * `fileId`; the SERVER command re-verifies own-tenant ownership + lifecycle before signing (a
  * foreign id is denied `TENANT_ACCESS_DENIED`, no existence disclosure — R-809/AC5).
+ *
+ * Honors the SAME 8.3 expiry→refresh contract as the shared `FilePreviewRow` (via the shared
+ * `useSignedLinkExpiry` hook): a link minted here that ages out while the row stays mounted flips
+ * to a "Länken har gått ut — öppna igen" re-open control that RE-INVOKES the command (a fresh full
+ * auth) — the stale URL is NEVER reused (epic-8 review finding).
  */
 function FileIndexRowItem({ row }: { readonly row: FileIndexRow }) {
   const [state, formAction, pending] = useActionState<SignedAccessState, FormData>(
@@ -150,10 +155,7 @@ function FileIndexRowItem({ row }: { readonly row: FileIndexRow }) {
     SIGNED_ACCESS_INITIAL,
   );
 
-  const hasFreshLink =
-    state.status === "success" &&
-    state.signedUrl !== null &&
-    !isSignedUrlExpired(state.expiresAt, new Date().toISOString());
+  const { hasFreshLink, linkExpired } = useSignedLinkExpiry(state);
 
   return (
     <li
@@ -181,14 +183,36 @@ function FileIndexRowItem({ row }: { readonly row: FileIndexRow }) {
       <form action={formAction} className="mt-1 flex flex-col gap-1">
         {/* The action carries ONLY the file id — the server binds it to the caller's own tenant. */}
         <input type="hidden" name="file_id" value={row.fileId} />
-        <button
-          type="submit"
-          disabled={pending}
-          data-testid="file-index-preview-button"
-          className="inline-flex w-fit items-center rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-blue-700 hover:bg-zinc-50 disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
-        >
-          {pending ? "Öppnar…" : state.status === "success" ? "Öppna igen" : "Förhandsgranska"}
-        </button>
+        {!linkExpired ? (
+          <button
+            type="submit"
+            disabled={pending}
+            data-testid="file-index-preview-button"
+            className="inline-flex w-fit items-center rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-blue-700 hover:bg-zinc-50 disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+          >
+            {pending ? "Öppnar…" : state.status === "success" ? "Öppna igen" : "Förhandsgranska"}
+          </button>
+        ) : (
+          <>
+            {/* EXPIRY → REFRESH (AC2): the stale URL is NOT reused. A generic text status (not
+                color-only) + a re-open submit that RE-INVOKES the command (a fresh full auth). */}
+            <p
+              role="status"
+              data-testid="file-index-preview-expired"
+              className="text-xs text-amber-800"
+            >
+              Länken har gått ut.
+            </p>
+            <button
+              type="submit"
+              disabled={pending}
+              data-testid="file-index-preview-reopen"
+              className="inline-flex w-fit items-center rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-blue-700 hover:bg-zinc-50 disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+            >
+              {pending ? "Öppnar…" : "Länken har gått ut — öppna igen"}
+            </button>
+          </>
+        )}
       </form>
       {hasFreshLink && state.signedUrl ? (
         <a

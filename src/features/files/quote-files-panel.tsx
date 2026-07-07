@@ -36,15 +36,17 @@ export async function renderSentQuoteFilesPanel(
   // Only render when the version actually has commitment files (a PDF/attachment link).
   if (filesRead.error === null && filesRead.files.length === 0) return null;
 
-  const revalidatePath = `/quotes/${quoteId}/versions/${selected.id}`;
-
   return (
     <CommitmentFilesPanel
       purpose="quote_pdf"
       heading="Offertfiler (låsta)"
       files={filesRead.files}
       readError={filesRead.error}
-      revalidatePath={revalidatePath}
+      // The archive action derives the version-subroute revalidation SERVER-SIDE from these ids
+      // (a closed template allow-list) — NO client path (epic-8 review finding).
+      ownerId={selected.id}
+      parentQuoteId={quoteId}
+      parentVersionId={selected.id}
     />
   );
 }

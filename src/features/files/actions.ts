@@ -27,8 +27,10 @@
  * classifier (Task 1.2): `VALIDATION_FAILED` → BLOCKED_TYPE / TOO_LARGE (disambiguated by
  * the client pre-check), `TENANT_ACCESS_DENIED` / `FILE_ACCESS_DENIED` → generic PERMISSION
  * (no existence disclosure — R-809), `SERVER_ERROR` → NETWORK_OR_SERVER (retryable). On
- * success `revalidatePath` refreshes the entity route so the panel's existing-files list
- * re-renders. NO new auth/error/audit mechanism, NO direct table write.
+ * success `revalidatePath` refreshes the entity route (DERIVED SERVER-SIDE from the resolved
+ * owner_type/owner_id + structured parent ids — the client `revalidate_path` is IGNORED) so
+ * the panel's existing-files list re-renders. NO new auth/error/audit mechanism, NO direct
+ * table write.
  */
 import { revalidatePath } from "next/cache";
 import { createSupabaseServerClient } from "@/server/db/supabase-server-client";
@@ -44,6 +46,7 @@ import {
   type UploadPrecheck,
 } from "@/server/storage/upload-error-classifier";
 import { parseUploadForm, precheckUpload } from "./form-parsing";
+import { resolveRevalidateRoute } from "./revalidate-route";
 import {
   SIGNED_ACCESS_INITIAL,
   type SignedAccessState,
@@ -61,25 +64,30 @@ import {
 } from "./archive-action-state";
 
 /**
- * The entity route to revalidate on a successful upload, per owner type. `facility` /
- * `contact` render inside the parent customer hub, but the owner id is the facility/contact
- * id — the panel form carries a `revalidate_path` the action revalidates directly (so a
- * facility/contact panel refreshes the customer route it lives on). A missing/blank path
- * falls back to no-revalidate (the client re-fetches via router.refresh in the panel).
+ * Read the STRUCTURED parent-context id fields the panel submits for revalidation
+ * (`revalidate_customer_id` / `revalidate_quote_id` / `revalidate_version_id`) — NEVER a
+ * free-form path. These feed the SERVER-SIDE `resolveRevalidateRoute` allow-list so a
+ * facility/contact panel refreshes its parent customer route and a quote acceptance/version
+ * panel refreshes its version subroute, all from server-owned templates. The legacy
+ * client-supplied `revalidate_path` is IGNORED (removed) — it let a crafted client bust an
+ * arbitrary route (epic-8 review finding).
  */
-function ownerRoute(ownerType: string, ownerId: string): string | null {
-  switch (ownerType) {
-    case "customer":
-      return `/customers/${ownerId}`;
-    case "calculation":
-      return `/calculations/${ownerId}`;
-    case "job":
-      return `/jobs/${ownerId}`;
-    default:
-      // facility / contact / quote_acceptance render inside a parent detail route — the
-      // panel supplies an explicit revalidate_path (handled in the action below).
-      return null;
-  }
+function readParentIds(form: FormData): {
+  parentCustomerId: string | null;
+  parentQuoteId: string | null;
+  parentVersionId: string | null;
+} {
+  const str = (name: string): string | null => {
+    const raw = form.get(name);
+    if (typeof raw !== "string") return null;
+    const trimmed = raw.trim();
+    return trimmed.length > 0 ? trimmed : null;
+  };
+  return {
+    parentCustomerId: str("revalidate_customer_id"),
+    parentQuoteId: str("revalidate_quote_id"),
+    parentVersionId: str("revalidate_version_id"),
+  };
 }
 
 /**
@@ -135,18 +143,15 @@ export async function uploadFileAction(
   const result = await runCommand(uploadFile, { client, input });
 
   if (result.ok) {
-    // Revalidate the entity route so the panel's existing-files list re-renders. An explicit
-    // `revalidate_path` (facility/contact/acceptance panels living in a parent route) wins.
-    const explicit =
-      typeof form.get("revalidate_path") === "string"
-        ? String(form.get("revalidate_path"))
-        : null;
-    const route =
-      explicit && explicit.startsWith("/")
-        ? explicit
-        : parsed.ownerType && parsed.ownerId
-          ? ownerRoute(parsed.ownerType, parsed.ownerId)
-          : null;
+    // Revalidate the entity route so the panel's existing-files list re-renders. The route is
+    // derived ENTIRELY SERVER-SIDE from the resolved owner_type/owner_id + structured parent
+    // ids (a closed template allow-list) — the client `revalidate_path` is ignored, so a
+    // crafted client can never bust an arbitrary route (epic-8 review finding).
+    const route = resolveRevalidateRoute({
+      ownerType: parsed.ownerType,
+      ownerId: parsed.ownerId,
+      ...readParentIds(form),
+    });
     if (route) revalidatePath(route);
     return {
       ...UPLOAD_ACTION_INITIAL,
@@ -237,8 +242,9 @@ export async function previewEntityFileAction(
  *   - The action carries ONLY the row's `file_id` (+ an optional bounded `reason`). It issues an
  *     ARCHIVE intent — NEVER `hardDelete:true` (the crafted hard-delete path is a command-layer test
  *     surface, never the UI's happy path). An idempotent re-archive is a clean no-op at the command.
- *   - On success `revalidatePath` the entity route (the form's `revalidate_path`, mirroring
- *     `uploadFileAction`) so the panel/index re-renders with the archived file dropped.
+ *   - On success `revalidatePath` the entity route DERIVED SERVER-SIDE from the row's
+ *     owner_type/owner_id + structured parent ids (mirroring `uploadFileAction`; the client
+ *     `revalidate_path` is ignored) so the panel/index re-renders with the archived file dropped.
  *
  * The typed `Result` maps to a user-safe `ArchiveActionState`: `FILE_LINK_LOCKED` → the locked
  * message (defensive — the archive intent shouldn't trip it); `TENANT_ACCESS_DENIED` → generic
@@ -266,11 +272,16 @@ export async function archiveFileAction(
   const result = await runCommand(archiveFile, { client, input });
 
   if (result.ok) {
-    const explicit =
-      typeof form.get("revalidate_path") === "string"
-        ? String(form.get("revalidate_path"))
-        : null;
-    if (explicit && explicit.startsWith("/")) revalidatePath(explicit);
+    // Revalidate the entity route SERVER-SIDE from the row's owner_type/owner_id + structured
+    // parent ids (a closed template allow-list) — the client `revalidate_path` is ignored so a
+    // crafted client can never bust an arbitrary route (mirrors uploadFileAction).
+    const parsed = parseUploadForm(form);
+    const route = resolveRevalidateRoute({
+      ownerType: parsed.ownerType,
+      ownerId: parsed.ownerId,
+      ...readParentIds(form),
+    });
+    if (route) revalidatePath(route);
     return { ...ARCHIVE_ACTION_INITIAL, status: "success" };
   }
 

@@ -31,8 +31,6 @@ export async function renderAcceptanceFilesPanel(
     ownerType: "quote_acceptance",
     ownerId: acceptanceId,
   });
-  // Revalidate the version subroute so a successful upload refreshes the accepted section.
-  const revalidatePath = `/quotes/${quoteId}/versions/${selected.id}`;
 
   return (
     <EntityFilePanel
@@ -42,7 +40,10 @@ export async function renderAcceptanceFilesPanel(
       ownerLabel={`Accepterad offert ${selected.quote_number_display ?? selected.quote_number ?? ""}`.trim()}
       files={filesRead.files}
       readError={filesRead.error}
-      revalidatePath={revalidatePath}
+      // Revalidate the version subroute (server-derived from these ids) so a successful upload
+      // refreshes the accepted section — NO client path (epic-8 review finding).
+      parentQuoteId={quoteId}
+      parentVersionId={selected.id}
     />
   );
 }

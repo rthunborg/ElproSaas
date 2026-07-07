@@ -95,7 +95,6 @@ export default async function CustomerDetailPage({
     );
   }
 
-  const customerRoute = `/customers/${customer.id}`;
   const facilityFilePanels: Record<string, React.ReactNode> = {};
   for (const f of facilityFiles) {
     facilityFilePanels[f.id] = (
@@ -106,7 +105,7 @@ export default async function CustomerDetailPage({
         ownerLabel={f.name}
         files={f.read.files}
         readError={f.read.error}
-        revalidatePath={customerRoute}
+        parentCustomerId={customer.id}
         testIdSuffix={`facility-${f.id}`}
       />
     );
@@ -121,7 +120,7 @@ export default async function CustomerDetailPage({
         ownerLabel={c.name}
         files={c.read.files}
         readError={c.read.error}
-        revalidatePath={customerRoute}
+        parentCustomerId={customer.id}
         testIdSuffix={`contact-${c.id}`}
       />
     );

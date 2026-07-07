@@ -5,11 +5,11 @@ epic_num: 8
 story_num: null
 branch: epic/8-required-files-and-private-storage
 status: in-progress
-updated_at: "2026-07-07T15:12:24Z"
+updated_at: "2026-07-07T15:28:40Z"
 started_at: "2026-07-07T10:02:38Z"
 completed_at: null
 active_seconds: 17474
-timing_anchor: null
+timing_anchor: 1783437419
 is_first_in_epic: false
 is_last_in_epic: false
 needs_project_context_bootstrap: false
@@ -21,7 +21,7 @@ tea_rationale: null
 epic_story_count: 5
 stories_after_in_epic: null
 completed_phases: [0, 1, 2, 5, 81]
-code_review_iterations: 0
+code_review_iterations: 1
 code_review_loop_done: false
 hitl_halt: null
 external_review_iterations: 0
@@ -66,6 +66,7 @@ auto_decisions:
   - "AC3 literal target_type='file_link' not implemented [Med] -> dismiss: file-only archive satisfies AC3's file_link/file disjunction (links cascade on file archive, deviation documented); standalone archiveFileLink is 8.5 scope (Tier A, 8-4)"
   - "AC4 gates on DB file.isLocked instead of the AC-named pure predicates [Med] -> dismiss: DB is_locked is the story's own PREFERRED authoritative lock source (Task 2.1), stronger than client-safe predicates; keep as-is (Tier A, 8-5)"
   - "archive-file affordance renders on every listed file incl. unlocked [Med] -> dismiss: AC4's MAY permits unlocked-file archive, command gates own-tenant only, reasonable safe UX; keep as-is (Tier A, 8-5)"
+  - "Client-supplied revalidate_path [Med] -> fix: derive the revalidation route server-side from resolved ownerType/ownerId (extend ownerRoute() to cover facility/contact/quote_acceptance/quote_version) and ignore the client field; transitional retention must validate against a server-computed owner-route allow-list, not a bare / prefix (E_review, epic-8)"
 uat_items:
   - "[8-2-validated-upload-and-entity-file-panels] Start the app (pnpm dev, supabase start) and sign in as seeded tenant_admin, open /customers/{customerId} â†’ 'Filer' panel shows allowed types (PDF, PNG/JPEG/WebP/GIF, text/CSV, Word, Excel), max 25 MB, owner name, purpose 'Kunddokument', a file input and NO path/bucket field"
   - "[8-2-validated-upload-and-entity-file-panels] On the customer panel, choose a valid PDF < 25 MB and click 'Ladda upp fil' â†’ green 'Filen laddades upp.' status and file appears under 'Uppladdade filer' with name and size"

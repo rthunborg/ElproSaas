@@ -26,6 +26,7 @@ import { useRef, useState } from "react";
 import { useActionState } from "react";
 import { uploadFileAction } from "@/features/files/actions";
 import { FilePreviewRow } from "@/components/files/FilePreviewRow";
+import { RevalidateFields } from "@/components/files/RevalidateFields";
 import {
   ALLOWED_MIME_TYPES,
   MAX_UPLOAD_SIZE_DISPLAY,
@@ -69,10 +70,17 @@ export interface EntityFilePanelProps {
   /** A generic read-error signal (never a cross-tenant leak); null when the read succeeded. */
   readonly readError?: string | null;
   /**
-   * An explicit route to revalidate after a successful upload (for facility/contact/
-   * acceptance panels that render inside a parent detail route). Optional.
+   * STRUCTURED parent-route context for server-side revalidation (NOT a free-form path). The
+   * upload/archive actions derive the route to revalidate ENTIRELY SERVER-SIDE from the owner
+   * type/id + these ids via a closed template allow-list — a facility/contact panel refreshes
+   * its parent customer route (`parentCustomerId`); a quote acceptance/version panel refreshes
+   * its version subroute (`parentQuoteId` + `parentVersionId`). Absent for a customer/
+   * calculation/job panel (whose owner id IS the route id). No client path ever reaches
+   * `revalidatePath()` (epic-8 review finding).
    */
-  readonly revalidatePath?: string;
+  readonly parentCustomerId?: string;
+  readonly parentQuoteId?: string;
+  readonly parentVersionId?: string;
   /**
    * A data-testid NAMESPACE suffix. When multiple panels render on the SAME page (e.g. the
    * customer's own panel PLUS a panel per facility/contact), the SECONDARY panels pass a
@@ -161,9 +169,11 @@ export function EntityFilePanel(props: EntityFilePanelProps) {
         <input type="hidden" name="owner_type" value={props.ownerType} />
         <input type="hidden" name="owner_id" value={props.ownerId} />
         <input type="hidden" name="purpose" value={props.purpose} />
-        {props.revalidatePath ? (
-          <input type="hidden" name="revalidate_path" value={props.revalidatePath} />
-        ) : null}
+        <RevalidateFields
+          parentCustomerId={props.parentCustomerId}
+          parentQuoteId={props.parentQuoteId}
+          parentVersionId={props.parentVersionId}
+        />
         <label className="font-medium text-zinc-700" htmlFor={inputId}>
           Välj en fil att ladda upp
         </label>
@@ -245,7 +255,11 @@ export function EntityFilePanel(props: EntityFilePanelProps) {
                   tid={tid}
                   index={i}
                   purpose={props.purpose}
-                  revalidatePath={props.revalidatePath}
+                  ownerType={props.ownerType}
+                  ownerId={props.ownerId}
+                  parentCustomerId={props.parentCustomerId}
+                  parentQuoteId={props.parentQuoteId}
+                  parentVersionId={props.parentVersionId}
                   uploadInputId={inputId}
                 />
               ))
