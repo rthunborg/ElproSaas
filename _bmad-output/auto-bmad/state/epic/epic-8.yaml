@@ -5,10 +5,10 @@ epic_num: 8
 story_num: null
 branch: epic/8-required-files-and-private-storage
 status: in-progress
-updated_at: "2026-07-07T13:45:51Z"
+updated_at: "2026-07-07T13:49:40Z"
 started_at: "2026-07-07T10:02:38Z"
 completed_at: null
-active_seconds: 12694
+active_seconds: 12764
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -54,10 +54,11 @@ blockers: []
 overrides: {}
 constraints: []
 epic_slug: required-files-and-private-storage
-active_story: 8-4-quote-pdf-attachment-and-acceptance-evidence-locks
+active_story: 8-5-limited-file-index-and-file-audit-within-phase-a-scope
 stories_landed:
   - 8-2-validated-upload-and-entity-file-panels
   - 8-3-tenant-authorized-signed-file-access
+  - 8-4-quote-pdf-attachment-and-acceptance-evidence-locks
 auto_decisions:
   - "Server 're-derives' MIME from client-declared File.type, not bytes [Med] -> fix: correct the misleading comments in actions.ts/form-parsing.ts/validation.ts (MIME is client-declared File.type validated against fail-closed allow-list); no magic-byte sniffing now; log byte-sniffing as owner-gated R-817 follow-up (Tier A, 8-2)"
   - "AC4 'mid-flow fault' asserted by over-titled test [Med] -> fix: rename the test to what it verifies (lock precision) and cite 8.4-RLS-04 as the atomic-by-construction AC4 proof; no fabricated fault-injection (Tier A, 8-4)"
@@ -86,6 +87,19 @@ uat_items:
   - "[8-3-tenant-authorized-signed-file-access] Archive a listed file mid-flight (SQL: set files.lifecycle_state='archived' without reloading), then re-open → link NOT re-issued; generic role=alert error, no raw storage error or path"
   - "[8-3-tenant-authorized-signed-file-access] Devtools: edit the row's hidden file_id to another tenant's or a random non-existent UUID, click preview → identical generic denial either way, no existence disclosure, no path leak"
   - "[8-3-tenant-authorized-signed-file-access] Open a calculation, a job, and an accepted quote version each with a listed file → identical per-file 'Öppna fil' preview behavior on every surface (shared panel)"
+  - "[8-4-quote-pdf-attachment-and-acceptance-evidence-locks] DB-layer story (no new UI): run checks via local stack (supabase start && supabase db reset; psql postgresql://postgres:postgres@127.0.0.1:54322/postgres or Studio SQL at 127.0.0.1:54323); seed one tenant→customer→calculation→quote→draft version→file→quote_pdf file_link and note the ids (full seed SQL in the 8-4 UAT notes)"
+  - "[8-4-quote-pdf-attachment-and-acceptance-evidence-locks] Lock-apply on send: UPDATE quote_versions SET status='sent' → file_links.is_locked=true with locked_at set AND files.lifecycle_state='locked'"
+  - "[8-4-quote-pdf-attachment-and-acceptance-evidence-locks] Pre-send boundary: on a separate still-draft version's quote_pdf link, re-point file_id to another own-tenant file → succeeds (6.3 retry stays allowed)"
+  - "[8-4-quote-pdf-attachment-and-acceptance-evidence-locks] Post-send re-point: UPDATE file_links SET file_id=<other> on the locked link → ERROR SQLSTATE FL823, row unchanged"
+  - "[8-4-quote-pdf-attachment-and-acceptance-evidence-locks] Disarm attempts (is_locked=false / locked_at=null / owner_type / purpose) on the locked link → each ERROR FL823, row byte-unchanged"
+  - "[8-4-quote-pdf-attachment-and-acceptance-evidence-locks] Locked file metadata (object_path / display_name / mime_type / bucket_id / size_bytes) → each UPDATE ERRORs FL823"
+  - "[8-4-quote-pdf-attachment-and-acceptance-evidence-locks] Hard DELETE of locked files row or file_links row → ERROR FL823 (archive-only)"
+  - "[8-4-quote-pdf-attachment-and-acceptance-evidence-locks] Sanctioned archive: UPDATE files SET archived_at=now(), lifecycle_state='archived' on the locked file → succeeds; lifecycle_state reads 'archived'"
+  - "[8-4-quote-pdf-attachment-and-acceptance-evidence-locks] Disarming lifecycle transitions (locked → linked/draft/deleted) → each ERROR FL823, stays 'locked'"
+  - "[8-4-quote-pdf-attachment-and-acceptance-evidence-locks] Acceptance evidence: insert quote_acceptances + acceptance_evidence file_link → link is_locked=true immediately; re-point then ERRORs FL823"
+  - "[8-4-quote-pdf-attachment-and-acceptance-evidence-locks] Family agreement: same seeded data — quote_versions mutation → QV409, quote_acceptances mutation → AR704, file_links mutation → FL823 (three distinct sibling codes, no fork)"
+  - "[8-4-quote-pdf-attachment-and-acceptance-evidence-locks] Cross-tenant no-disclosure: via an anon/authenticated JWT client (NOT superuser psql — RLS bypassed there), UPDATE another tenant's file_link → zero rows, no error, no FL823 leak (identical to not-found)"
+  - "[8-4-quote-pdf-attachment-and-acceptance-evidence-locks] Suites: SUPABASE_TEST_REQUIRED=1 pnpm test:int (8.4-RLS-01..07 + command suite: archive-only + clean audit row, FILE_LINK_LOCKED, TENANT_ACCESS_DENIED) and pnpm test:unit (lock-lifecycle golden + predicates) → all green; archiveFile command has no app wiring yet (8.5), so AC3 command behavior is suite-verified only"
 adopt_verdicts:
   - "8-1-file-storage-foundation-private-bucket-metadata-links-rls-and-signed-access-command: skip (already done, in base)"
   - "8-2-validated-upload-and-entity-file-panels: fresh"

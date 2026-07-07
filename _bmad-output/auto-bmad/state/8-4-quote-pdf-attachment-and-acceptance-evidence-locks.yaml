@@ -4,10 +4,10 @@ story_key: 8-4-quote-pdf-attachment-and-acceptance-evidence-locks
 epic_num: 8
 story_num: 4
 branch: epic/8-required-files-and-private-storage
-status: in-progress
-updated_at: "2026-07-07T13:45:51Z"
+status: done
+updated_at: "2026-07-07T13:48:20Z"
 started_at: "2026-07-07T12:29:41Z"
-completed_at: null
+completed_at: "2026-07-07T13:48:20Z"
 active_seconds: 4524
 timing_anchor: null
 is_first_in_epic: false
@@ -27,7 +27,7 @@ hitl_halt: "auto-continued (epic â€” no halt)"
 external_review_iterations: 0
 convergence_unverified: false
 story_trace: null
-commits: [cab1c2b, 61e670a, "6668502", db5d2fc]
+commits: [cab1c2b, 61e670a, "6668502", db5d2fc, 199e2d6, ec00a52]
 phase8_steps:
   trace_gate: null
   nfr: null
