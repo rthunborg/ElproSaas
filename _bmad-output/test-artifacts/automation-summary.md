@@ -6,111 +6,84 @@ stepsCompleted:
   - 'step-03c-aggregate'
   - 'step-04-validate-and-summarize'
 lastStep: 'step-04-validate-and-summarize'
-lastSaved: '2026-07-06'
+lastSaved: '2026-07-07'
 workflowType: testarch-automate
-story: 7.1 Acceptance Evidence Capture For Sent Quote Versions
+story: 8.2 Validated Upload And Entity File Panels
 detectedStack: fullstack
 executionMode: sequential (pure fast-gate coverage expansion)
 inputDocuments:
-  - _bmad-output/implementation-artifacts/7-1-acceptance-evidence-capture-for-sent-quote-versions.md
-  - _bmad-output/test-artifacts/test-design-epic-7.md
+  - _bmad-output/implementation-artifacts/8-2-validated-upload-and-entity-file-panels.md
+  - _bmad-output/test-artifacts/test-design-epic-8.md
   - _bmad/tea/config.yaml
-  - src/server/commands/quotes/validation.ts
-  - src/server/commands/quotes/accept.ts
-  - src/features/quotes/acceptance-price.ts
-  - tests/unit/server/commands/mark-quote-version-sent-validation.test.ts
-  - tests/unit/features/quotes/acceptance-price.test.ts
+  - src/features/files/form-parsing.ts
+  - src/features/files/upload-action-state.ts
+  - src/server/storage/upload-object.ts
+  - tests/integration/commands/file-upload.int.test.ts
+  - tests/unit/server/storage/upload-policy.test.ts
+  - tests/unit/server/storage/upload-error-classifier.test.ts
+  - tests/unit/server/commands/files/validate-upload-file.test.ts
+  - tests/e2e/files/entity-file-panel.e2e.spec.ts
 ---
 
-# Test Automation Expansion — Story 7.1 (Acceptance Evidence Capture for Sent Quote Versions)
+# Test Automation Expansion — Story 8.2 (Validated Upload & Entity File Panels)
 
 ## Mode & Context
 
-- **Mode:** BMad-Integrated (story + `test-design-epic-7.md` provided). Create mode.
-- **Detected stack:** `fullstack` (Next.js frontend + Supabase/Postgres backend).
-- **Frameworks (verified present):** `node --test` (pure UNIT + golden), Vitest (`test:int`,
-  DB-backed), Playwright (`test:e2e`). No `framework` scaffolding needed.
-- **Execution mode:** sequential — narrow, precisely-scoped fast-gate expansion (2 files); the same
-  context is held in-thread, so no subagent fan-out was warranted.
-- **Story state:** `review` — dev-story landed GREEN (unit 1040, int 571, e2e 15). This pass
-  EXPANDS the fast `node --test` gate; it does NOT re-author passing suites.
+- **Mode:** BMad-Integrated (story + `test-design-epic-8.md` provided). Create mode.
+- **Detected stack:** `fullstack` (Next.js 16 / React 19 frontend + server command layer + Supabase/Postgres backend).
+- **Frameworks (verified present):** `node --test` two-runner for pure `.ts` units (`tests/unit/**`, `@/*` alias via `tests/support/register.mjs`), Vitest (`test:int`, DB-backed), Playwright (`test:e2e`). No `framework` scaffolding needed.
+- **TEA flags:** `tea_use_playwright_utils: true`, `test_stack_type: auto`, `risk_threshold: p1`, `tea_execution_mode: auto`.
+- **Story state:** `review` — dev-story landed GREEN (unit 1152, INT 658, E2E green). This pass EXPANDS the fast `node --test` gate; it does NOT re-author passing suites.
 
-## Coverage Assessment (what Story 7.1 already had)
+## Coverage Assessment (what Story 8.2 already had)
 
-Dev-story landed comprehensive coverage across levels: `7.1-INT-01..05`, `7.1-RLS-01/02`,
-`7.1-UNIT-01/02`, `7.1-E2E-01/02/03`, plus the `7.x` guardrail scans. The INT/RLS/E2E ACs are well
-proven. The genuine, non-duplicative gaps were at the **pure fast-gate (`node --test`) level**:
+Dev-story landed comprehensive coverage across levels via the ATDD scaffolds, all green:
+`8.2-INT-01..05` (server gate + cross-tenant no-existence-disclosure + storage↔DB compensation across all 6 active owner types), `8.2-UNIT-01` (upload-policy MIME/size boundaries), `8.2-UNIT-02` (four-error-state classifier, every branch incl. R-809 collapse), `8.2-UNIT-03` (`validateUploadFile` shape/coupling/strip), `8.2-E2E-01/02` (panel structure + one deterministic error state).
 
-1. **`validateCaptureQuoteAcceptance`** (the command's input-shape guard) had **no dedicated unit
-   test** — every sibling quote validator (mark-sent, update-draft, generate-pdf, create-new-version)
-   has one. Its reject branches were only exercised indirectly and *skippably* through the DB-backed
-   INT suite (which skips when no local Supabase stack is up). The shape rules — required-UUID,
-   canonical öre-shape (AC5 money impact), explicit ISO `accepted_at` (H1), optional
-   text/evidence/date bounds, and smuggled-key stripping — were unpinned at the cheap gate.
+The genuine, non-duplicative gaps were at the **pure fast-gate (`node --test`) level** — decision-carrying `.ts` modules the dev added that ship WITHOUT dedicated unit pins (the coverage-shape lesson surface — logic currently exercised only indirectly through the `"use server"` action or the skippable DB-backed INT):
 
-2. **`evaluateAcceptancePriceGate`** and **`reasonRequiredForDelta`** (exported from
-   `acceptance-price.ts`, the *actual* server-side gate the command consumes) were **untested** —
-   the existing unit test only covered `computeAcceptanceDelta`. The `REASON_REQUIRED` code and the
-   `hasReason` (reason OR evidence) folding — the bypass-resistant AC2 contract — were unproven at
-   the unit level.
+1. **`src/features/files/form-parsing.ts`** (`parseUploadForm` + `precheckUpload`) — no dedicated unit. Untested: owner/purpose/name field trimming + null-on-blank; the R-803 guarantee that a client `object_path`/`bucket_id`/`tenant_id` is NEVER surfaced; and the client pre-check discriminant (`blocked-type` wins over `too-large`; `none` when both pass). Only exercised indirectly through the `"use server"` action.
+
+2. **`src/features/files/upload-action-state.ts`** (`UPLOAD_ERROR_MESSAGES` + `isRetryableUploadError` + `UPLOAD_ACTION_INITIAL`) — no unit. Untested: the four distinct non-empty user-safe messages (one per state, no two identical — the AC3 "four DISTINCT error states" contract at the message layer); and the retryable predicate (only `NETWORK_OR_SERVER` retryable, `PERMISSION` never — mirrors the signed-access transient-vs-permanent discipline).
+
+3. **`src/server/storage/upload-object.ts`** (`uploadObjectWithMetadata`) — the shared 6.3↔8.2 upload helper. Its verified-compensated branch table was proven end-to-end ONLY by the DB-backed INT (8.2-INT-05, which skips when no local Supabase stack is up). No FAST, deterministic pin of: storage-fault → throw before ANY metadata (nothing to compensate); file-row-written then link-fail → archive-then-rethrow the ORIGINAL error; archive secondary-fault swallowed (original still surfaced); happy path returns fileId/objectPath/linkId; object path server-derived tenant-first.
 
 ## Coverage Plan (this expansion)
 
 | Target | Level | Priority | Test IDs | Justification |
 | --- | --- | --- | --- | --- |
-| `validateCaptureQuoteAcceptance` (all branches) | Unit (`node --test`) | P0/P1 | 7.1-INT-02..05 (fast-gate half) | Selective — closes the one missing validator gap; exhaustive reject branches without a DB |
-| `evaluateAcceptancePriceGate` gate outcomes | Unit (`node --test`) | P0 | 7.1-UNIT-01 (extend) | The AC2 server-side gate decision the command mirrors; bypass-resistance pinned cheaply |
-| `reasonRequiredForDelta` predicate | Unit (`node --test`) | P0 | 7.1-UNIT-01 (extend) | Thin predicate consumed by the gate; consistency with `computeAcceptanceDelta` |
+| `parseUploadForm` / `precheckUpload` | Unit (`node --test`) | P1 | 8.2-UNIT-04 | Closes the client pre-check + R-803 strip gap at the fast gate; no DB |
+| `UPLOAD_ERROR_MESSAGES` / `isRetryableUploadError` / `UPLOAD_ACTION_INITIAL` | Unit (`node --test`) | P1 | 8.2-UNIT-05 | Pins the four-distinct-message + retryable contract (AC3) cheaply |
+| `uploadObjectWithMetadata` branch table | Unit (`node --test`, injected fakes) | P0 | 8.2-UNIT-06 | Fast, non-skippable pin of the R-807 compensation seam the INT proves only end-to-end |
 
-Scope: **selective fast-gate expansion.** No INT/RLS/E2E added — those levels are already
-comprehensively covered by dev-story per the test design; adding there would duplicate.
+Scope: **selective fast-gate expansion.** No INT/RLS/E2E added — those levels are already comprehensively covered by dev-story per the test design; adding there would duplicate. No framework/CI change (two-runner + Playwright already green). No product code, migration, or dependency touched — test-only.
 
-## Files Created / Updated
+## Files Created
 
-**Created**
-- `tests/unit/server/commands/capture-quote-acceptance-validation.test.ts` — 14 pure tests pinning
-  every `validateCaptureQuoteAcceptance` branch (happy path, field-presence semantics, non-record,
-  bad UUID, non-canonical öre, garbage `accepted_at`, over-length/non-string optionals, bad evidence
-  UUID, bad planned dates, smuggled-key stripping). Mirrors `mark-quote-version-sent-validation.test.ts`.
-
-**Updated**
-- `tests/unit/features/quotes/acceptance-price.test.ts` — +5 tests: `reasonRequiredForDelta`
-  (over/under/zero + consistency with `computeAcceptanceDelta`), and `evaluateAcceptancePriceGate`
-  (equal passes with no reason; non-zero delta without reason ⇒ `REASON_REQUIRED`; with
-  reason/evidence passes carrying the signed delta; an invalid öre input surfaces
-  `INVALID_ORE_AMOUNT`, not `REASON_REQUIRED`).
-
-No new fixtures/factories/helpers were required — both files reuse the canonical `@/lib/money/ore`
-authority and the existing validator/module exports.
+- `tests/unit/features/files/upload-form-parsing.test.ts` — pure units for `parseUploadForm` (field trim/null-on-blank; smuggled `object_path`/`bucket_id`/`tenant_id` NEVER surfaced — R-803) and `precheckUpload` (blocked-type / too-large / none; blocked-type precedence when both fail).
+- `tests/unit/features/files/upload-action-state.test.ts` — pure units for the four DISTINCT non-empty `UPLOAD_ERROR_MESSAGES`, `isRetryableUploadError` (only NETWORK_OR_SERVER; PERMISSION/BLOCKED_TYPE/TOO_LARGE not; idle not), and `UPLOAD_ACTION_INITIAL` pristine shape.
+- `tests/unit/server/storage/upload-object.test.ts` — pure units (injected fake storage/insert/archive fns) for `uploadObjectWithMetadata`: happy path (returns fileId/objectPath/linkId, tenant-first server-derived path, correct contentType/upsert, link receives the up-front id); storage fault throws BEFORE any metadata write (no compensation); link-insert fault after file-row-written archives THAT file id then re-throws the ORIGINAL error; archive secondary-fault swallowed (original still surfaced); file-row-insert fault (before file written) does NOT archive.
 
 ## Verification
 
-- New/extended subset (`capture-quote-acceptance-validation.test.ts` + `acceptance-price.test.ts`):
-  **26 pass / 0 fail** (14 + 12).
-- Full unit suite (`pnpm run test:unit`): **1059 pass / 0 fail / 0 skip** (was 1040 — +19 assertions).
-- `pnpm typecheck`: clean.
-- `eslint` on both files: 0 errors (exit 0).
+- New subset (the three files): **all pass / 0 fail** (`node --test`).
+- Full unit suite (`pnpm run test:unit`): green, no regressions.
+- `pnpm typecheck`: clean. `eslint` on the three new files: 0 errors.
 
 ## Validation (step 4)
 
 - **Framework readiness:** ✅ (node --test / Vitest / Playwright all present).
-- **Coverage mapping:** ✅ tests carry the `7.1-*` IDs and map to AC1/AC2/AC5.
-- **Test quality/structure:** ✅ pure (no DB / PII / clock), öre values < 10 digits (R-717 orgnr
-  boundary) except the deliberate in-memory `ORE_AMOUNT_MAX` ceiling case (never written to a golden).
-- **Fixtures/factories/helpers:** none added — reuse `@/lib/money/ore` + existing exports.
+- **Coverage mapping:** ✅ tests carry `8.2-UNIT-04/05/06` IDs and map to AC1/AC3/AC4.
+- **Test quality/structure:** ✅ pure (no DB / no PII / no clock), injected fakes only, runner-glob-safe under `tests/unit/**` (no `.tsx`).
+- **Fixtures/factories/helpers:** none added — reuse existing module exports + in-file fakes.
 - **CLI sessions:** none opened (source-analysis path, no browser exploration; no orphaned processes).
 - **Temp artifacts:** this summary lives under `_bmad-output/test-artifacts/`.
 
 ## Assumptions & Risks
 
-- INT/RLS/E2E suites (Vitest/Playwright, DB-backed) were **not run** in this pass — they require a
-  local Supabase stack / browser and were untouched by this expansion. CI
-  (`SUPABASE_TEST_REQUIRED=1`) remains the gate for those. No DB-dependent tests were authored, so
-  no stack run was needed.
+- INT/E2E suites (Vitest/Playwright, DB/browser-backed) were **not re-run** in this pass — they require a local Supabase stack / browser and were untouched. CI (`SUPABASE_TEST_REQUIRED=1`) remains the gate for those; the dev-story already ran them green. No DB-dependent tests were authored, so no stack run was needed.
 - No product code, migration, or dependency was modified — pure test-only expansion.
 
 ## Next Recommended Workflow
 
-- `trace` (refresh the Epic-7 traceability matrix to record the added fast-gate coverage for
-  AC1/AC2/AC5), or `test-review` (validate the new tests against best-practices). Neither is
-  blocking — the story remains `review` and green across all tiers.
+- `trace` (refresh the Epic-8 traceability matrix to record the added fast-gate coverage for AC1/AC3/AC4), or `test-review` (validate the new tests against best-practices). Neither is blocking — the story remains `review` and green across all tiers.

@@ -234,6 +234,11 @@ Opus 4.8 (1M context) — auto-bmad dev-story delegate.
 - `tests/unit/server/storage/upload-error-classifier.test.ts`
 - `tests/e2e/files/entity-file-panel.e2e.spec.ts`
 
+**New (coverage-expansion units — testarch-automate, 2026-07-07):**
+- `tests/unit/features/files/upload-form-parsing.test.ts` (8.2-UNIT-04 — `parseUploadForm` trim/null + R-803 path/bucket/tenant strip; `precheckUpload` blocked-type/too-large/none + blocked-type precedence)
+- `tests/unit/features/files/upload-action-state.test.ts` (8.2-UNIT-05 — four DISTINCT non-empty `UPLOAD_ERROR_MESSAGES`; `isRetryableUploadError` only NETWORK_OR_SERVER; `UPLOAD_ACTION_INITIAL` pristine)
+- `tests/unit/server/storage/upload-object.test.ts` (8.2-UNIT-06 — `uploadObjectWithMetadata` branch table: happy path/tenant-first path, storage-fault-before-metadata, link-fault→archive→rethrow-original, archive-secondary-fault swallowed, files-insert-fault no-archive)
+
 ## Change Log
 
 - 2026-07-07 — Story 8.2 implemented: generic user-facing upload path (`uploadFile` command + server-side MIME/size/owner/purpose gate + verified-compensated storage↔DB consistency reusing the 6.3 ordering via a shared `upload-object.ts` helper) and the entity file panels (customer/facility/contact/calculation/job/quote_acceptance). All ACs satisfied; unit 1152, INT 658 (full suite), E2E (files+CRM+calc+jobs+quotes) green. Status → review.
