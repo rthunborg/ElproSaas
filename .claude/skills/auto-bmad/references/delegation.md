@@ -223,6 +223,11 @@ TRIAGE:
    - `fix: <concrete fix direction to implement>` — when one resolution is clearly best;
    - `defer: <why it is follow-up, not now>` — when the right call is to log it for later;
    - `dismiss: <why it is a non-issue / won't-fix>` — when on reflection it needs no action.
+   A `fix:` direction that introduces a NEW error condition, state, or failure mode MUST specify a
+   NEW distinct identifier for it (SQLSTATE, error code, enum member) — never recommend reusing an
+   existing identifier whose semantics differ: the reused identifier carries its old mapping and
+   user-facing message into the new condition (epic-7 retro: a QV409 reuse surfaced a data-integrity
+   anomaly as the sent-lock message).
    Always recommend an actual resolution — NEVER "ask a human" (that is not a resolution). This is a
    best-guess for autonomous (epic-mode) runs that proceed without a human; in a per-story run a human
    still chooses, so the recommendation is advisory there.
@@ -291,7 +296,10 @@ findings under the story's `### Review Findings` section: resolve every unresolv
 item, plus each `[Review][Decision]` item for which a human-chosen fix direction is listed below.
 Implement each in the stated direction and mark it resolved in place (tick its `[ ]` checkbox if it
 has one). NEVER invent a direction for a `[Review][Decision]` item with no chosen direction — leave
-it unresolved. Make tests pass. Do not commit.
+it unresolved. For EVERY finding you fix that changes behavior, ALSO add or update at least one test
+asserting the NEW behavior (docs/comment-only fixes excepted) — a fix without its own test ships
+unverified (epic-7 retro: two fix-commit behavior changes shipped untested and had to be
+ledger-deferred). Make tests pass. Do not commit.
 
 Resolved decisions (implement exactly these): {decisions}
 ```
