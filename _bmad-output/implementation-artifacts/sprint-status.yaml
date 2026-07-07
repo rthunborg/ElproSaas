@@ -113,10 +113,10 @@ development_status:
   epic-6-retrospective: done
 
   epic-7: in-progress
-  7-1-acceptance-evidence-capture-for-sent-quote-versions: review
-  7-2-idempotent-accept-quote-and-create-job-command: review
-  7-3-minimal-job-order-record-and-tenant-admin-ux: review
-  7-4-accepted-state-immutability-and-correction-boundary: review
+  7-1-acceptance-evidence-capture-for-sent-quote-versions: done
+  7-2-idempotent-accept-quote-and-create-job-command: done
+  7-3-minimal-job-order-record-and-tenant-admin-ux: done
+  7-4-accepted-state-immutability-and-correction-boundary: done
   epic-7-retrospective: done
 
   epic-8: in-progress

@@ -4,12 +4,12 @@ story_key: epic-7
 epic_num: 7
 story_num: null
 branch: epic/7-acceptance-to-job-transaction
-status: in-progress
-updated_at: "2026-07-07T08:21:10Z"
+status: done
+updated_at: "2026-07-07T08:36:19Z"
 started_at: "2026-07-06T17:50:12Z"
-completed_at: null
-active_seconds: 51726
-timing_anchor: 1783412470
+completed_at: "2026-07-07T08:36:09Z"
+active_seconds: 52625
+timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
 needs_project_context_bootstrap: false
@@ -20,7 +20,7 @@ tea_selected: []
 tea_rationale: null
 epic_story_count: 4
 stories_after_in_epic: null
-completed_phases: [0, 1, 2, 5, 7, 81, 82]
+completed_phases: [0, 1, 2, 5, 7, 9, 81, 82]
 code_review_iterations: 2
 code_review_loop_done: true
 hitl_halt: "auto-continued (epic - no halt)"
@@ -39,9 +39,9 @@ phase8_steps:
 gate_decision: PASS
 gate_iterations: 0
 deferred_work_archived: 2
-pr_url: null
-ci_run_url: null
-ci_status: unknown
+pr_url: "https://github.com/rthunborg/ElproSaas/pull/29"
+ci_run_url: "https://github.com/rthunborg/ElproSaas/actions/runs/28852382390"
+ci_status: passed
 pr_merged: false
 merge_method: null
 merge_commit: null
@@ -107,3 +107,4 @@ uat_items:
   - "[7-4] Notice offers NO action affordance: no 'Begär korrigering' button, no edit link, no deferred-module surface (explanatory only, R-714 boundary)"
   - "[7-4] NOT hand-testable: DB-trigger AR704 rejection on direct SQL (7.4-INT-02), smuggled-field command rejection (7.4-INT-01), cross-tenant/anon negatives (7.4-RLS-01) - automated INT/RLS only; the UI by construction offers no way to submit an immutable field"
 integration_review_done: true
+batch_flip_done: true

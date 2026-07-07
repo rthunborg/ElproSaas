@@ -1,6 +1,6 @@
 # Story 7.4: Accepted State Immutability And Correction Boundary
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
