@@ -5,10 +5,10 @@ epic_num: 8
 story_num: 5
 branch: epic/8-required-files-and-private-storage
 status: in-progress
-updated_at: "2026-07-07T14:49:11Z"
+updated_at: "2026-07-07T14:55:04Z"
 started_at: "2026-07-07T13:49:40Z"
 completed_at: null
-active_seconds: 3528
+active_seconds: 3880
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: true
@@ -20,10 +20,10 @@ tea_selected: [atdd, automate]
 tea_rationale: "new tenant-scoped read/search surface over private file metadata gated by RLS (explicit RLS negative requirements) + audit-event write path; epic entry labels Security/RLS Impact: High (R-801/R-816)"
 epic_story_count: 5
 stories_after_in_epic: 0
-completed_phases: [0, 1, 2, 3, 4, 5, 6]
+completed_phases: [0, 1, 2, 3, 4, 5, 6, 7]
 code_review_iterations: 0
 code_review_loop_done: false
-hitl_halt: null
+hitl_halt: "auto-continued (epic â€” no halt)"
 external_review_iterations: 0
 convergence_unverified: false
 story_trace: null
@@ -53,3 +53,14 @@ blockers: []
 overrides: {}
 constraints: []
 tier_a_base_sha: ec00a5298e550a458d33a5d734922b63d13f3228
+tier_a_review:
+  verdict: Approve
+  critical: 0
+  high: 0
+  medium: 2
+  low: 0
+  open_after_fix: 0
+  deferred: 0
+  dismissed_noise: 4
+  security_findings: 0
+  auto_decisions: 2
