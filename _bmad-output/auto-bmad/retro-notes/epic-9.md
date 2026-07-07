@@ -5,3 +5,4 @@
 ## Story 9-1-legacy-record-classification-and-migration-runbook
 - [Phase 3 â€” create-story] Sign-off items 8.1/8.2 Ã¶ppen (mÃ¶te): 9.1 delivers the classification STRUCTURE with a deliberate STOP marker; real-record classification still needs the owner working session before real-pilot cutover (feeds 9.4/9.5).
 - [Phase 3 â€” create-story] ReadinessCode representativeness trap corrected in-flight: project-context/test-design present 3 codes as the real set but the exported union has ~12 members â€” verify against readiness.ts, never treat the 3 as complete.
+- [Phase 7 â€” Tier A review] dev-story output left stray tool-call artifact lines (</content>, </invoke>) in docs/migration/** â€” triage stripped them; doc-heavy stories (9-4, 9-5) should watch for write-tool artifacts.

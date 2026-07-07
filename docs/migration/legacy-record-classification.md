@@ -235,5 +235,3 @@ scan proving this file clean is recorded in the story's Dev Agent Record.
 - `AGENTS.md` — Lovable-oracle-only policy; Phase A boundary; deferred-module list.
 - `owner-signoff-questions.md` — sign-off system-of-record; `8.1`/`8.2` `öppen (möte)`.
 - Companion: [migration-runbook.md](./migration-runbook.md).
-</content>
-</invoke>

@@ -5,11 +5,11 @@ epic_num: 9
 story_num: null
 branch: epic/9-migration-coexistence-golden-masters-and-pilot-readiness
 status: in-progress
-updated_at: "2026-07-07T18:14:46Z"
+updated_at: "2026-07-07T18:16:45Z"
 started_at: "2026-07-07T17:37:04Z"
 completed_at: null
 active_seconds: 2093
-timing_anchor: null
+timing_anchor: 1783448205
 is_first_in_epic: false
 is_last_in_epic: false
 needs_project_context_bootstrap: false

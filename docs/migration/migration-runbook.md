@@ -154,8 +154,9 @@ is rebuilt fresh on the new tenant-owned tables (see the classification register
 - **Target treatment:** **live-rebuilt** → `jobs` + `job_events`. A job is auto-created on
   acceptance (`7.2`); its source refs (`quote_acceptance_id`/`quote_version_id`/`customer_id`)
   are immutable; only title/status/planned dates are editable. Job structure (order/arbetsorder/
-  projekt relationship) and the first-job-card required fields are **owner-pending** (`7.1`/`7.3`
-  `öppen (möte)`) — a **STOP** for those specifics (§6).
+  projekt relationship) and the first-job-card required fields are **owner-pending** (`7.1`
+  `partial (möte)` — the job name is answered, only the structure is pending; `7.3` `öppen (möte)`)
+  — a **STOP** for those specifics (§6).
 - **Fallback path:** completed Lovable jobs stay read-only on the fallback; the pilot creates
   new jobs from new acceptances. Fallback stays until the job workflow gate passes.
 - **Manual-backfill risks:** re-keying a job by hand risks an **immutable-source-ref mismatch**
@@ -255,15 +256,16 @@ guard made operational.
    outcome, STOP for clarification rather than picking a default that silently imports extra
    history.
 
-**Owner-gated items currently STOP-marked (unanswered, `öppen (möte)`):**
+**Owner-gated items currently STOP-marked (owner-pending — `öppen (möte)`, except `7.1` which is `partial (möte)`):**
 
 - **`8.1` migration-klassning** — the concrete real-record selection per live/archive bucket
   (which customers/quotes/jobs actually migrate). This runbook documents the STRUCTURE; the
   concrete selection is **owner-clarification-required**.
 - **`8.2` facit-exempel** — which quotes/calculations become the golden-master examples. Also
   owner-clarification-required; no Lovable number fabricated (§5).
-- **`7.1`/`7.3`** — the job model (order/arbetsorder/projekt relationship) and first-job-card
-  required fields, gating a real §3.5 backfill.
+- **`7.1` (`partial (möte)` — structure pending) / `7.3` (`öppen (möte)`)** — the job model
+  (order/arbetsorder/projekt relationship) and first-job-card required fields, gating a real
+  §3.5 backfill.
 - **Tax Blocks A/B/C** — rounding/VAT/ROT/grön numbers, gating real-pilot claims of
   accounting-finality on §3.2–§3.4.
 
@@ -333,4 +335,3 @@ Re-read as a fresh pilot operator:
 - `owner-signoff-questions.md` — sign-off system-of-record; `8.1`/`8.2`/`7.1`/`7.3`/Blocks
   A/B/C statuses; working session agenda item D (Migration & facit).
 - `docs/process/demo-environment.md` — demo-data-only posture; CI/tests local-only.
-</content>
