@@ -4,10 +4,10 @@ story_key: 8-3-tenant-authorized-signed-file-access
 epic_num: 8
 story_num: 3
 branch: epic/8-required-files-and-private-storage
-status: in-progress
-updated_at: "2026-07-07T12:23:08Z"
+status: done
+updated_at: "2026-07-07T12:28:13Z"
 started_at: "2026-07-07T11:39:14Z"
-completed_at: null
+completed_at: "2026-07-07T12:28:13Z"
 active_seconds: 2576
 timing_anchor: null
 is_first_in_epic: false
@@ -27,7 +27,7 @@ hitl_halt: "auto-continued (epic â€” no halt)"
 external_review_iterations: 0
 convergence_unverified: false
 story_trace: null
-commits: [550b8ad, 42a1d4f, 723bc4d, 88cb0e9]
+commits: [550b8ad, 42a1d4f, 723bc4d, 88cb0e9, c889d61, df41c27]
 phase8_steps:
   trace_gate: null
   nfr: null

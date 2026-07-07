@@ -5,10 +5,10 @@ epic_num: 8
 story_num: null
 branch: epic/8-required-files-and-private-storage
 status: in-progress
-updated_at: "2026-07-07T12:23:07Z"
+updated_at: "2026-07-07T12:29:41Z"
 started_at: "2026-07-07T10:02:38Z"
 completed_at: null
-active_seconds: 8092
+active_seconds: 8169
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -54,9 +54,10 @@ blockers: []
 overrides: {}
 constraints: []
 epic_slug: required-files-and-private-storage
-active_story: 8-3-tenant-authorized-signed-file-access
+active_story: 8-4-quote-pdf-attachment-and-acceptance-evidence-locks
 stories_landed:
   - 8-2-validated-upload-and-entity-file-panels
+  - 8-3-tenant-authorized-signed-file-access
 auto_decisions:
   - "Server 're-derives' MIME from client-declared File.type, not bytes [Med] -> fix: correct the misleading comments in actions.ts/form-parsing.ts/validation.ts (MIME is client-declared File.type validated against fail-closed allow-list); no magic-byte sniffing now; log byte-sniffing as owner-gated R-817 follow-up (Tier A, 8-2)"
 uat_items:
@@ -73,6 +74,16 @@ uat_items:
   - "[8-2-validated-upload-and-entity-file-panels] Cross-tenant / no-existence-disclosure: submit with another tenant's owner_id AND a random non-existent UUID â†’ BOTH return the identical generic permission alert (testid file-error-permission), no found-vs-forbidden signal"
   - "[8-2-validated-upload-and-entity-file-panels] No path leakage: after a successful upload, inspect list + page source â†’ only display-safe fields (name, size); raw object_path/bucket_id never rendered"
   - "[8-2-validated-upload-and-entity-file-panels] Consistency: after a successful upload, verify in DB a files row (lifecycle_state='linked') + matching file_links row exist and the storage object is present â€” no half-written state"
+  - "[8-3-tenant-authorized-signed-file-access] Sign in at /login with the seeded tenant_admin (local stack up: supabase start; pnpm dev or build+start; admin-created user or E2E fixture) → redirected into the app shell, no auth error"
+  - "[8-3-tenant-authorized-signed-file-access] Open /customers/{customerId} with at least one uploaded file, open 'Filer' → file listed by display name with an 'Öppna fil' button; no raw storage path / object_path / bucket_id anywhere"
+  - "[8-3-tenant-authorized-signed-file-access] If no files yet, upload a small PDF via the panel → 'Filen laddades upp.' and the file appears with its own 'Öppna fil' button"
+  - "[8-3-tenant-authorized-signed-file-access] Click 'Öppna fil' → brief 'Öppnar…' then an 'Öppna fil (tidsbegränsad länk)' link appears; clicking opens the file in a new tab (valid short-lived signed URL)"
+  - "[8-3-tenant-authorized-signed-file-access] Inspect the signed link href → Supabase signed storage URL with token/expiry param (never a public bucket URL or client-supplied path); row button now reads 'Öppna igen'"
+  - "[8-3-tenant-authorized-signed-file-access] Wait past TTL (default 300s; restart with SUPABASE_SIGNED_URL_TTL_SECONDS=5 to observe fast) → row flips to 'Länken har gått ut.' with a re-open control; stale link element is gone"
+  - "[8-3-tenant-authorized-signed-file-access] Click 'Länken har gått ut — öppna igen' → fresh link with a NEW token (retry re-ran full authorization, not a re-served URL)"
+  - "[8-3-tenant-authorized-signed-file-access] Archive a listed file mid-flight (SQL: set files.lifecycle_state='archived' without reloading), then re-open → link NOT re-issued; generic role=alert error, no raw storage error or path"
+  - "[8-3-tenant-authorized-signed-file-access] Devtools: edit the row's hidden file_id to another tenant's or a random non-existent UUID, click preview → identical generic denial either way, no existence disclosure, no path leak"
+  - "[8-3-tenant-authorized-signed-file-access] Open a calculation, a job, and an accepted quote version each with a listed file → identical per-file 'Öppna fil' preview behavior on every surface (shared panel)"
 adopt_verdicts:
   - "8-1-file-storage-foundation-private-bucket-metadata-links-rls-and-signed-access-command: skip (already done, in base)"
   - "8-2-validated-upload-and-entity-file-panels: fresh"
