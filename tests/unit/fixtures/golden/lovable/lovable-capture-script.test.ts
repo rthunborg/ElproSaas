@@ -10,11 +10,11 @@
  * documented, (3) it is deterministic (same input -> same output on re-run), and (4) it anonymizes
  * AT SOURCE and never echoes a raw value to stdout/log.
  *
- * ── RED PHASE ─────────────────────────────────────────────────────────────────────────
- * `describe.skip` until the capture script exists at one of the approved locations. Baseline stays
- * 1259 pass / 0 fail. GREEN: the dev creates the script (scripts/migration/** OR a colocated
- * test-oriented capture helper) exporting a pure `anonymizeRecord`/`captureFixture` the test can
- * drive deterministically WITHOUT any network/global change.
+ * ── GREEN PHASE (Story 9.2 dev) ─────────────────────────────────────────────────────────
+ * The capture script now exists at `scripts/migration/lovable-capture.ts` (imported as
+ * `@/scripts-migration/lovable-capture`) exporting a pure, deterministic `anonymizeRecord`, so this
+ * suite RUNS (no longer skipped). The assertions are UNCHANGED from the red-phase scaffold — they
+ * drive the pure anonymizer on SYNTHETIC input WITHOUT any network/global change.
  *
  * NO real PII in this file — the synthetic input below is obviously fake and its anonymized output
  * must satisfy the same privacy scan the fixtures do. [R-901]
@@ -50,7 +50,15 @@ const ADDRESS = /\b(gata|gatan|väg|vägen|street|road|avenue)\s+\d+/i;
 
 const PRESENT = captureScriptPresent();
 
-describe.skip("Story 9.2 — capture-script contract (9.2-REPEAT-01 / 9.2-PRIV-02 / R-919, RED until script lands)", () => {
+// Green phase: the capture script is present at an approved location. A HARD guard fails loud if it
+// was ever removed, so this executing suite can never silently green on nothing (R-904).
+if (!PRESENT) {
+  throw new Error(
+    "Story 9.2 capture-script contract: the scripts/migration/** capture asset is missing — this suite must not run vacuously green (R-904).",
+  );
+}
+
+describe("Story 9.2 — capture-script contract (9.2-REPEAT-01 / 9.2-PRIV-02 / R-919)", () => {
   // ── 9.x-PATH-01 / R-919 — the script lives in an approved location, off the app runtime path ──
   test("[P1] the capture script lives ONLY in an approved location (scripts/migration/** or the colocated helper)", () => {
     const inApproved = APPROVED_SCRIPT_CANDIDATES.some((dir) => existsSync(dir));

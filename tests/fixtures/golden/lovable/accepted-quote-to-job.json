@@ -1,0 +1,39 @@
+{
+  "_doc": "Story 9.2 ANONYMIZED LOVABLE FIXTURE — accepted-quote → job business shape. Preserves the acceptance→job chain shape 9.3 compares: a job carrying IMMUTABLE source references (jobSource: quoteAcceptanceId + quoteVersionId) plus the carried customer/facility/contact refs and the initial job status/event. ZERO PII (synthetic ids + labels only). Cases are origin:new-expected plus a SYNTHETIC documented-delta whose divergent old value is a CLASSIFICATION CODE (a job status label), exercising the R-913 widening on the accepted-quote→job category too.",
+  "category": "accepted-quote-to-job",
+  "cases": [
+    {
+      "id": "job-created-from-accepted-quote",
+      "origin": "new-expected",
+      "note": "A job created from an accepted quote version, carrying the immutable source refs (quoteAcceptanceId + quoteVersionId) and the carried customer/facility/contact refs, at initial status 'created'. Preserves the accepted-quote→job source-reference shape 9.3 compares.",
+      "jobSource": {
+        "quoteAcceptanceId": "quote-acceptance-0001",
+        "quoteVersionId": "quote-version-0001",
+        "customerId": "customer-0001",
+        "facilityId": "facility-0001",
+        "contactId": "contact-0001"
+      },
+      "status": "created",
+      "events": [
+        {
+          "eventType": "created",
+          "note": "Job created from accepted quote"
+        }
+      ]
+    },
+    {
+      "id": "job-initial-status-classification-delta",
+      "origin": "documented-delta",
+      "note": "SYNTHETIC documented-delta (NOT a real captured Lovable value): the initial job status classification. The plausible Lovable divergence is a CLASSIFICATION difference — Lovable created the job at status 'open', whereas Phase A creates it at 'created'. The divergent old value is a CLASSIFICATION CODE ('open'), exercising the R-913 widening.",
+      "jobSource": {
+        "quoteAcceptanceId": "quote-acceptance-0002",
+        "quoteVersionId": "quote-version-0002",
+        "customerId": "customer-0002",
+        "facilityId": null,
+        "contactId": null
+      },
+      "status": "created",
+      "oldLovableValue": "open"
+    }
+  ]
+}

@@ -6,8 +6,9 @@
  * Lightweight ON PURPOSE — this is a loader-sanity + repeatability proof, NOT a comparison harness
  * (that is Story 9.3). The loader pattern is the money-pack `readJson` = JSON.parse(readFileSync(...)).
  *
- * ── RED PHASE ─────────────────────────────────────────────────────────────────────────
- * `describe.skip` until >=1 `lovable/**` fixture exists. Baseline stays 1259 pass / 0 fail.
+ * ── GREEN PHASE (Story 9.2 dev) ─────────────────────────────────────────────────────────
+ * The committed `lovable/**` fixtures now exist, so this suite RUNS (no longer skipped). The
+ * assertions are UNCHANGED from the red-phase scaffold.
  */
 import { test, describe } from "node:test";
 import assert from "node:assert/strict";
@@ -20,7 +21,14 @@ import { readFileSync } from "node:fs";
 
 const PRESENT = lovableFixtureDirPresent();
 
-describe.skip("Story 9.2 — Lovable golden-loader round-trip (9.2-REPEAT-01, RED until fixtures land)", () => {
+// Green phase: the surface is present. A HARD guard fails loud if the fixtures were ever removed.
+if (!PRESENT) {
+  throw new Error(
+    "Story 9.2 lovable loader round-trip: the tests/fixtures/golden/lovable/** fixtures are missing — this suite must not run vacuously green (R-904).",
+  );
+}
+
+describe("Story 9.2 — Lovable golden-loader round-trip (9.2-REPEAT-01)", () => {
   // ── 9.2-REPEAT-01a — every committed fixture parses via the lightweight loader ──
   test("[P0] every committed lovable fixture parses via the lightweight loader (no unparseable fixture)", () => {
     const files = listLovableFixtureFiles();

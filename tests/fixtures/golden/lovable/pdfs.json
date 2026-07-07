@@ -1,0 +1,22 @@
+{
+  "_doc": "Story 9.2 ANONYMIZED LOVABLE FIXTURE — quote-PDF TEXT-SHAPE business shape. Preserves the customer-facing PDF text-shape 9.3 compares, applying the 6.3 text-golden mustNotAppear leakage discipline: a HIDDEN row and an UNSELECTED option must NOT appear in the customer PDF (an empty mustNotAppear guards nothing, so it is a NON-EMPTY negative assertion). ZERO PII — synthetic company/customer labels, @example.test, no personnummer/orgnr/phone/address. This is a TEXT-shape oracle (the substrings that must / must not appear), NOT a raw PDF blob. Cases are origin:new-expected.",
+  "category": "pdfs",
+  "cases": [
+    {
+      "id": "quote-pdf-hides-hidden-row-and-unselected-option",
+      "origin": "new-expected",
+      "note": "The customer PDF shows the company + customer identity, the visible base lines, and the SELECTED option, but must NOT leak the hidden row's label or the unselected option's label. Preserves the 6.3 leakage discipline as a NON-EMPTY mustNotAppear negative assertion.",
+      "mustAppear": [
+        "Sample Elföretag AB",
+        "Sample Private Customer 01",
+        "Installation labour",
+        "Optional surge protection"
+      ],
+      "mustNotAppear": [
+        "Lift rental",
+        "Optional extra outlet",
+        "Hidden row — counts toward totals"
+      ]
+    }
+  ]
+}

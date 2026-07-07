@@ -1,0 +1,107 @@
+{
+  "_doc": "Story 9.2 ANONYMIZED LOVABLE FIXTURE — quote (quote-version-visible) business shape. Preserves the customer-visible quote lines the version snapshot freezes + totals shape (base/option/VAT/deduction öre) that 9.3 compares. ZERO PII (synthetic labels, öre only). Every öre integer < 10 digits (orgnr-scan safe). Exercises the three-way origin machinery: a new-expected case, a SYNTHETIC documented-delta (numeric divergence, clearly marked synthetic), and a SYNTHETIC old-lovable PLACEHOLDER whose note states it carries NO real captured Lovable number (the real-example SELECTION is owner-gated, Sign-Off 8.2) — the origin LABEL is exercised so the machinery is genuinely used; NO real Lovable number is fabricated (AGENTS.md behavioral-oracle policy). The money-golden fixtures remain the single numeric authority for the pure engine; these totals are a representative quote SHAPE.",
+  "category": "quotes",
+  "cases": [
+    {
+      "id": "base-quote-with-selected-option",
+      "origin": "new-expected",
+      "note": "A quote version with a base section + a selected tillval line; totals carry base/option/VAT öre. Preserves the quote-version-visible line + totals shape 9.3 compares. Representative öre, not a re-pin of a money-golden value.",
+      "lines": [
+        {
+          "rowType": "labor",
+          "label": "Installation labour",
+          "quantity": 4,
+          "unit": "h",
+          "sellOre": 316000,
+          "vatBp": 2500,
+          "isOption": false,
+          "isSelected": false
+        },
+        {
+          "rowType": "material",
+          "label": "Cabling",
+          "quantity": 50,
+          "unit": "m",
+          "sellOre": 125000,
+          "vatBp": 2500,
+          "isOption": false,
+          "isSelected": false
+        },
+        {
+          "rowType": "material",
+          "label": "Optional surge protection",
+          "quantity": 1,
+          "unit": "st",
+          "sellOre": 60000,
+          "vatBp": 2500,
+          "isOption": true,
+          "isSelected": true
+        }
+      ],
+      "totals": {
+        "baseOre": 441000,
+        "optionOre": 60000,
+        "vatOre": 125250,
+        "deductionOre": 0
+      }
+    },
+    {
+      "id": "quote-total-rounding-documented-delta",
+      "origin": "documented-delta",
+      "note": "SYNTHETIC documented-delta (NOT a real captured Lovable value): a numeric divergence. The plausible Lovable behavior rounded the VAT at the DOCUMENT level (round-of-sum), giving a total 1 öre off the Phase A per-line sum-of-rounded result. The divergent old value is a NUMBER (oldLovableWouldGive), exercising the numeric arm of the documented-delta guard alongside the classification-code arm the crm/calc fixtures exercise.",
+      "lines": [
+        {
+          "rowType": "labor",
+          "label": "Labour A",
+          "quantity": 3,
+          "unit": "h",
+          "sellOre": 33333,
+          "vatBp": 2500,
+          "isOption": false,
+          "isSelected": false
+        },
+        {
+          "rowType": "labor",
+          "label": "Labour B",
+          "quantity": 3,
+          "unit": "h",
+          "sellOre": 33333,
+          "vatBp": 2500,
+          "isOption": false,
+          "isSelected": false
+        }
+      ],
+      "totals": {
+        "baseOre": 66666,
+        "optionOre": 0,
+        "vatOre": 16668,
+        "deductionOre": 0
+      },
+      "oldLovableWouldGive": 16667
+    },
+    {
+      "id": "old-lovable-quote-oracle-placeholder",
+      "origin": "old-lovable",
+      "note": "SYNTHETIC old-lovable PLACEHOLDER — this case EXERCISES the old-lovable origin label so the three-way machinery is genuinely used, but it carries NO real captured Lovable number: the real-example SELECTION (which real Lovable quote becomes the oracle) is OWNER-GATED (Sign-Off 8.1/8.2, öppen (möte)). When the owner selects a real example, a real old-lovable case backfills here with NO fixture-schema change (this three-way origin already accommodates it). The shape below is a representative placeholder; the capturedFromRealLovable flag is false to make the pending-real-capture status machine-readable.",
+      "capturedFromRealLovable": false,
+      "lines": [
+        {
+          "rowType": "labor",
+          "label": "Placeholder labour line",
+          "quantity": 1,
+          "unit": "h",
+          "sellOre": 79000,
+          "vatBp": 2500,
+          "isOption": false,
+          "isSelected": false
+        }
+      ],
+      "totals": {
+        "baseOre": 79000,
+        "optionOre": 0,
+        "vatOre": 19750,
+        "deductionOre": 0
+      }
+    }
+  ]
+}

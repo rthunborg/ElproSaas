@@ -10,10 +10,10 @@
  * widening — accepts a `documented-delta` whose divergent old value is a CLASSIFICATION CODE (a VAT
  * posture / ReadinessCode label), not forced to a bare number (R-913).
  *
- * ── RED PHASE ─────────────────────────────────────────────────────────────────────────
- * `describe.skip` until >=1 `lovable/**` fixture exists. Baseline stays 1259 pass / 0 fail. These
- * are HARD assertions (fail if a required fixture/key/export is absent) — NOT a self-disabling
- * describe.skip precondition that vacuously green-passes (R-904).
+ * ── GREEN PHASE (Story 9.2 dev) ─────────────────────────────────────────────────────────
+ * The committed `lovable/**` fixtures now exist, so this suite RUNS (no longer skipped). The
+ * assertions are UNCHANGED from the red-phase scaffold — HARD assertions (fail if a required
+ * fixture/key/export is absent), NOT a self-disabling precondition that vacuously green-passes (R-904).
  */
 import { test, describe } from "node:test";
 import assert from "node:assert/strict";
@@ -28,8 +28,13 @@ import {
   readJson,
 } from "./lovable-pack-support";
 
-// Referenced to keep the red-phase probe wired even while the suite is describe.skip.
-void lovableFixtureDirPresent();
+// Green phase: the surface is present. A HARD guard fails loud if the fixtures were ever removed, so
+// this executing suite can never silently green on nothing (R-904).
+if (!lovableFixtureDirPresent()) {
+  throw new Error(
+    "Story 9.2 lovable shape guard: the tests/fixtures/golden/lovable/** fixtures are missing — this suite must not run vacuously green (R-904).",
+  );
+}
 
 /** Collect every `origin`-bearing case across all fixtures (cases may nest under category keys). */
 function collectCases(): { file: string; cases: Record<string, unknown>[] }[] {
@@ -59,7 +64,7 @@ function stringLeaves(v: unknown, out: string[] = []): string[] {
   return out;
 }
 
-describe.skip("Story 9.2 — Lovable-pack shape/schema guard (9.2-SHAPE-01 / R-911, RED until fixtures land)", () => {
+describe("Story 9.2 — Lovable-pack shape/schema guard (9.2-SHAPE-01 / R-911)", () => {
   // ── 9.2-SHAPE-01a — every AC1 category is represented by a STRUCTURED shape match (R-921) ──
   // The GREEN dev ships a category manifest that binds each AC1 category to a fixture + a
   // per-category REQUIRED-KEY set (a structured shape match), NOT a raw `raw.includes(token)`.

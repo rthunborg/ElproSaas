@@ -1,0 +1,139 @@
+{
+  "_doc": "Story 9.2 ANONYMIZED LOVABLE FIXTURE — calculation business shape. Preserves the load-bearing calc structure 9.3 compares: labor/material/subcontractor/machinery/other rows, fractional quantity, a per-row margin (cost/sell öre), notes, the hidden-row flag (is_hidden), and option/tillval selection (is_optional/is_selected). The INCLUSION pin (2026-06-18): a selected option + a hidden row COUNT toward totals; an unselected option does NOT. readinessWarnings pins ONLY real ReadinessCode union members (LOW_MARGIN / HIDDEN_ROWS_INCLUDED / MISSING_WORK_ROLE) — NEVER the fictional REQUIRES_SIGN_OFF/DEDUCTION_ESTIMATE_UNAPPROVED (R-903). ZERO PII (money/öre/flags only). Every öre integer < 10 digits (orgnr-scan safe). Öre are representative calc rows for this comparison category — the money-golden fixtures stay the single numeric authority for the pure engine (this fixture is a SHAPE oracle, not a re-pin of an engine result).",
+  "category": "calculations",
+  "cases": [
+    {
+      "id": "mixed-rows-with-hidden-and-option-selection",
+      "origin": "new-expected",
+      "note": "A calc with all five row_types, a fractional quantity (2.5 h), a hidden row that COUNTS, a SELECTED option that counts, and an UNSELECTED option that does NOT. Preserves the row-type + hidden-row + option-selection shape the inclusion comparison depends on. readinessWarnings carry only real union members.",
+      "rows": [
+        {
+          "id": "row-0001",
+          "row_type": "labor",
+          "label": "Installation labour",
+          "quantity": 2.5,
+          "unit_cost_ore": 45000,
+          "unit_sell_ore": 79000,
+          "vat_rate_bp": 2500,
+          "source_kind": "work_role",
+          "is_hidden": false,
+          "is_optional": false,
+          "is_selected": false,
+          "notes": "Standard labour row"
+        },
+        {
+          "id": "row-0002",
+          "row_type": "material",
+          "label": "Cabling",
+          "quantity": 50,
+          "unit_cost_ore": 1800,
+          "unit_sell_ore": 2500,
+          "vat_rate_bp": 2500,
+          "source_kind": "article",
+          "is_hidden": false,
+          "is_optional": false,
+          "is_selected": false,
+          "notes": null
+        },
+        {
+          "id": "row-0003",
+          "row_type": "subcontractor",
+          "label": "External wiring",
+          "quantity": 1,
+          "unit_cost_ore": 120000,
+          "unit_sell_ore": 150000,
+          "vat_rate_bp": 2500,
+          "source_kind": null,
+          "is_hidden": false,
+          "is_optional": false,
+          "is_selected": false,
+          "notes": null
+        },
+        {
+          "id": "row-0004",
+          "row_type": "machinery",
+          "label": "Lift rental",
+          "quantity": 1,
+          "unit_cost_ore": 30000,
+          "unit_sell_ore": 38000,
+          "vat_rate_bp": 2500,
+          "source_kind": null,
+          "is_hidden": true,
+          "is_optional": false,
+          "is_selected": false,
+          "notes": "Hidden row — counts toward totals (2026-06-18 pin)"
+        },
+        {
+          "id": "row-0005",
+          "row_type": "other",
+          "label": "Waste handling",
+          "quantity": 1,
+          "unit_cost_ore": 5000,
+          "unit_sell_ore": 5200,
+          "vat_rate_bp": 2500,
+          "source_kind": null,
+          "is_hidden": false,
+          "is_optional": false,
+          "is_selected": false,
+          "notes": "Low-margin row (drives LOW_MARGIN warning)"
+        },
+        {
+          "id": "row-0006",
+          "row_type": "material",
+          "label": "Optional surge protection (selected)",
+          "quantity": 1,
+          "unit_cost_ore": 40000,
+          "unit_sell_ore": 60000,
+          "vat_rate_bp": 2500,
+          "source_kind": "article",
+          "is_hidden": false,
+          "is_optional": true,
+          "is_selected": true,
+          "notes": "Selected option — counts"
+        },
+        {
+          "id": "row-0007",
+          "row_type": "material",
+          "label": "Optional extra outlet (unselected)",
+          "quantity": 1,
+          "unit_cost_ore": 15000,
+          "unit_sell_ore": 22000,
+          "vat_rate_bp": 2500,
+          "source_kind": "article",
+          "is_hidden": false,
+          "is_optional": true,
+          "is_selected": false,
+          "notes": "Unselected option — excluded"
+        }
+      ],
+      "readinessWarnings": [
+        "LOW_MARGIN",
+        "HIDDEN_ROWS_INCLUDED",
+        "MISSING_WORK_ROLE"
+      ]
+    },
+    {
+      "id": "vat-posture-classification-delta",
+      "origin": "documented-delta",
+      "note": "SYNTHETIC documented-delta (NOT a real captured Lovable value): a private-customer calc's VAT-display posture. The plausible Lovable divergence is a CLASSIFICATION difference — Lovable stored the tenant 'company_excl' display even for a private customer, whereas Phase A resolves a private customer to the incl-VAT invariant. The divergent old value is a CLASSIFICATION CODE ('company_excl'), exercising the R-913 widening (a classification delta, not a bare number).",
+      "rows": [
+        {
+          "id": "row-0101",
+          "row_type": "labor",
+          "label": "Private-customer labour",
+          "quantity": 4,
+          "unit_cost_ore": 45000,
+          "unit_sell_ore": 79000,
+          "vat_rate_bp": 2500,
+          "source_kind": "work_role",
+          "is_hidden": false,
+          "is_optional": false,
+          "is_selected": false,
+          "notes": null
+        }
+      ],
+      "resolvedVatDisplay": "private-incl",
+      "oldLovableValue": "company_excl"
+    }
+  ]
+}

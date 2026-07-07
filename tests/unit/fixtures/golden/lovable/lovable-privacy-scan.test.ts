@@ -7,13 +7,13 @@
  * a seeded real PII/secret FAILS CI. The scan enumerates fixtures by an EXPLICIT manifest AND a
  * directory-glob backstop (Task 1.4) so a newly-added fixture cannot silently escape the scan.
  *
- * ── RED PHASE ─────────────────────────────────────────────────────────────────────────
- * Gated behind `describe.skip` until BOTH the shared scanner module AND >=1 `lovable/**` fixture
- * exist. Until then the whole suite SKIPS (0 fail) and the 1259-pass baseline is unperturbed.
- * GREEN: the dev extracts the scanner + authors the fixtures; the probe flips true; these UNCHANGED
- * assertions run. Do NOT weaken the regexes — a looser regex that misses a real value is worse than
- * the current guard (Task 1.3). Do NOT convert this to a self-disabling gate that green-passes if a
- * required fixture/export is absent — that is the vacuous-green trap (R-904).
+ * ── GREEN PHASE (Story 9.2 dev) ─────────────────────────────────────────────────────────
+ * The shared scanner module (`@/tests-support/anonymization-scan`) AND the committed `lovable/**`
+ * fixtures now exist, so the surface-present probe is TRUE and this suite RUNS (no longer skipped).
+ * The assertions are UNCHANGED from the red-phase scaffold. Do NOT weaken the regexes — a looser
+ * regex that misses a real value is worse than the current guard (Task 1.3). This is a HARD-asserting
+ * suite (it fails if the scanner export or a required fixture is absent) — NOT a self-disabling gate
+ * that green-passes on an absent surface (the vacuous-green trap, R-904).
  *
  * NO PII in this file. The seeded PII in the negative control is constructed INLINE (never written
  * to a lovable/** fixture — that would trip the real scan). [R-901]
@@ -61,7 +61,7 @@ function scanClasses(dataJson: string): string[] {
 
 const PRESENT = lovableFixtureDirPresent();
 
-describe.skip("Story 9.2 — Lovable-pack privacy scan (9.2-PRIV-01 / R-901, RED until scanner+fixtures land)", () => {
+describe("Story 9.2 — Lovable-pack privacy scan (9.2-PRIV-01 / R-901)", () => {
   // ── 9.2-PRIV-01a — the shared scanner exists and is a SINGLE authority (Task 1.2) ──
   test("[P0] the shared anonymization scanner module exists (extracted, not copy-pasted)", async () => {
     const mod = await loadScanner();
@@ -148,7 +148,10 @@ describe.skip("Story 9.2 — Lovable-pack privacy scan (9.2-PRIV-01 / R-901, RED
   });
 });
 
-// Belt-and-braces: surface the red-phase state loudly if a maintainer runs this file in isolation.
+// Belt-and-braces: the surface is now PRESENT (green phase). A HARD top-level guard fails loud if the
+// fixture dir/fixtures were ever removed, so this executing suite can never silently green on nothing.
 if (!PRESENT || !existsSync(GOLDEN_LOVABLE_DIR)) {
-  // no-op — the describe.skip above already keeps the suite out of the executed set.
+  throw new Error(
+    "Story 9.2 lovable privacy scan: the tests/fixtures/golden/lovable/** surface is missing — this suite must not run vacuously green (R-904).",
+  );
 }
