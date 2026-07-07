@@ -6,7 +6,8 @@ stepsCompleted:
   - step-04-coverage-plan
   - step-05-generate-output
   - edit-01-post-epic-6-reconcile
-lastStep: edit-01-post-epic-6-reconcile
+  - edit-02-ground-truth-verification
+lastStep: edit-02-ground-truth-verification
 lastSaved: '2026-07-06'
 workflowType: testarch-test-design
 designLevel: epic
@@ -42,6 +43,20 @@ P0/P1/P2/P3 coverage matrix across UNIT/INT/RLS/E2E/GOLDEN/DOCS, execution strat
 
 ## Step 5 — Generate Output
 Deliverable written to `_bmad-output/test-artifacts/test-design-epic-7.md` using the epic-level template + project house style (risk register with scored P×I risks, coverage plan by level with P0-P3 + risk links, execution strategy, quality gates, entry/exit criteria, interworking & regression), matched to the depth of test-design-epic-6.md and test-design-epic-8.md. Validated against the epic-level checklist. CLI sessions: none opened (nothing to clean up). Temp artifacts: none outside test_artifacts. NOT committed — orchestrator owns git.
+
+## Edit 2 (2026-07-06) — Ground-Truth Verification Pass
+Edit mode (steps-e). Trigger: re-run of `*test-design` epic-level for Epic 7 with instruction to update/complete the reconciled document rather than discard it. Verified the reconciled content against current `main` state:
+- **Epic still fully backlog** — sprint-status.yaml shows epic-7 + 7.1-7.4 all `backlog`; NO Epic 7 migration (`quote_acceptances`/`jobs`/`job_events` absent — latest quote migration is 20260708120000_quote_new_version.sql), no acceptance/job command dir (only `src/server/commands/quotes`), no acceptance/job tests. Greenfield framing holds.
+- **`ACCEPTANCE_ALREADY_RECORDED` correctly NOT yet in `command-errors.ts`** (only `COMMAND_CONFLICT` reserved + `QUOTE_VERSION_LOCKED` live) — matches the design's "Epic 7 adds it" framing.
+- **`quote_events` enrolled** in TENANT_TABLES (tenant-table-inventory.ts line 148); `quote_acceptances`/`jobs`/`job_events` correctly NOT yet enrolled (enroll during Epic 7).
+- **mark-sent RPC + sent-lock guards confirmed SECURITY INVOKER** (20260707120000_quote_version_sent_lock.sql) — validates the fixtures note + ADR-A009 row.
+- **epics.md Epic 7 anchor confirmed at line 1401** — matches the input-doc line range.
+
+Two precision fixes applied (NO scope, risk-score, coverage-count, or gate-verdict change — the design was already sound):
+1. The claim that the sent-lock trigger "permits non-draft → non-draft transitions" (Dependency Posture narrative + table row, Testability Note 6, Interworking row — 3 sites) was over-simplified. Corrected to the ACTUAL landed behaviour: a legal-transition ALLOW-LIST (`sent`/`accepted`/`rejected`/`expired`/`superseded` only on a non-draft row; a reversal to `draft` RAISES, lines 128-132), which ALSO still rejects any customer-visible/commitment column co-mutated in the same non-draft UPDATE. `sent → accepted` remains on the allow-list, so 7.2 needs no trigger change (conclusion unchanged) PROVIDED it transitions `status` alone — the new caveat a story author needs.
+2. Surfaced the EXISTING Story 4.4 golden `tests/fixtures/golden/money/accepted-price-deltas.json` (self-labelled "feeds Epic 7") as a REUSE-not-re-author input for `7.2-GOLDEN-01` (new Inherited-Foundation row + note). Distinguished 4.4's accepted-vs-later-recalculated delta shape from Epic 7 R-705's accepted-price-vs-sent-total adjusted-price delta so they are not conflated; both remain owner-gated on Sign-Off Q8/R-713 (mechanism pinned only).
+
+editLog updated in the deliverable frontmatter. CLI sessions: none. Temp artifacts: none outside test_artifacts. NOT committed — orchestrator/user owns git.
 
 ## Edit 1 (2026-07-06) — Post-Epic-6 Reconcile
 Edit mode (steps-e). Trigger: Epic 6 landed 2026-07-06 (PR #26; stories 6.1-6.5 done, retro done) — one day after this design was authored with Epic 6 treated as a pending dependency. Evidence gathered in-repo: frozen status CHECK `draft/sent/accepted/rejected/expired/superseded` (20260705120000_quote_version_model.sql); `quote_versions_sent_lock` trigger + irreversible non-draft status + `mark_quote_version_sent` SECURITY INVOKER RPC with explicit timestamp (20260707120000_quote_version_sent_lock.sql); `QUOTE_VERSION_LOCKED` + reserved `COMMAND_CONFLICT` live in command-errors.ts; `quote_versions`/`quote_events`/etc. enrolled in TENANT_TABLES; nfr-assessment-epic-6: `pnpm audit --audit-level=high` blocking CI gate RESOLVED (R-617), coverage reporter = single remaining standing CONCERNS. Edits applied to test-design-epic-7.md: (1) sent-eligibility scenarios promoted from planning depth to FULL depth — acceptance only on `status='sent'`, negatives enumerate draft/accepted/rejected/expired/superseded/cross-tenant (R-706 gate CLOSED; 7.1-INT-02 count 3-4 → 4-5); (2) `quote_events` hedge resolved — EXISTS from Epic 6, reused not recreated; Epic 7's new tables are exactly quote_acceptances/jobs/job_events (R-701, 7.1-INT-01, 7.1-RLS-02, exit criteria, mitigation, interworking updated); (3) R-719 updated to half-resolved (audit gate closed in Epic 6; coverage reporter remains, LOW); (4) entry criteria: Epic 6 + standing-NFR checkboxes checked with verification evidence; (5) dependency-posture table/narrative, testability note 6 (+ new drift-STOP: an Epic 7 story modifying the sent-lock trigger), fixtures note (drive real mark-sent RPC, no synthetic row), open assumption 1, approval comments all reconciled. NOT committed — orchestrator/user owns git.

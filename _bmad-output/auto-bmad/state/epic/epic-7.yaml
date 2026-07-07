@@ -1,0 +1,110 @@
+# auto-bmad per-story state — written by scripts/state_update.py (full stable schema;
+# see references/state-and-resume.md). Prose belongs in reports/{key}.md, not here.
+story_key: epic-7
+epic_num: 7
+story_num: null
+branch: epic/7-acceptance-to-job-transaction
+status: done
+updated_at: "2026-07-07T08:36:19Z"
+started_at: "2026-07-06T17:50:12Z"
+completed_at: "2026-07-07T08:36:09Z"
+active_seconds: 52625
+timing_anchor: null
+is_first_in_epic: false
+is_last_in_epic: false
+needs_project_context_bootstrap: false
+git_mode: remote
+base_branch: main
+tea_risk: null
+tea_selected: []
+tea_rationale: null
+epic_story_count: 4
+stories_after_in_epic: null
+completed_phases: [0, 1, 2, 5, 7, 9, 81, 82]
+code_review_iterations: 2
+code_review_loop_done: true
+hitl_halt: "auto-continued (epic - no halt)"
+external_review_iterations: 0
+convergence_unverified: false
+story_trace: null
+commits: []
+phase8_steps:
+  trace_gate: done
+  nfr: done
+  test_review: done
+  project_context: done
+  reconcile: done
+  archive: done
+  retro: done
+gate_decision: PASS
+gate_iterations: 0
+deferred_work_archived: 2
+pr_url: "https://github.com/rthunborg/ElproSaas/pull/29"
+ci_run_url: "https://github.com/rthunborg/ElproSaas/actions/runs/28852382390"
+ci_status: passed
+pr_merged: false
+merge_method: null
+merge_commit: null
+branch_deleted: false
+open_questions: []
+deferred_work: []
+blockers: []
+overrides: {}
+constraints: []
+epic_slug: acceptance-to-job-transaction
+active_story: null
+stories_landed:
+  - 7-1-acceptance-evidence-capture-for-sent-quote-versions
+  - 7-2-idempotent-accept-quote-and-create-job-command
+  - 7-3-minimal-job-order-record-and-tenant-admin-ux
+  - 7-4-accepted-state-immutability-and-correction-boundary
+auto_decisions:
+  - "Evidence link uses raw link_existing_file RPC, not createFileLink [Med] -> dismiss: manual path deliberate and correct (single audit row + foreign-file rejection preserved); ratify as-is (Tier A, 7-1)"
+  - "Admin user captured only in audit trail, not on acceptance record [Low] -> dismiss: acting admin captured as server-derived audit actor; AC1 satisfied (Tier A, 7-1)"
+  - "RPC never receives the p_command_at command-timestamp param [Med] -> fix: remove the dead p_command_at from buildAcceptAndCreateJobRpcArgs + its unit assertion (persisted instants already derive from p_accepted_at/occurred_at + audit clock) (Tier A, 7-2)"
+  - "Admin user never pinned to the immutable acceptance/job row [Med] -> defer: actor is on the append-only audit event; add accepted_by only if a real-customer/legal need surfaces (E_review, epic-7)"
+  - "Evidence exclusivity file-XOR-reference unenforced; both-present drops the reference on job detail [Med] -> fix: render BOTH fields in JobEvidenceLink when both present; DB-XOR CHECK logged to ledger (E_review, epic-7)"
+  - "correction-attempt-rejected event promised by test-design but implemented by no story [Med] -> defer: reconcile exit-criteria text to the shipped DB-trigger shape; flagged for the retro (E_review, epic-7)"
+  - "QV409 orphan-assert mislabels as QUOTE_VERSION_LOCKED [Med] -> defer: unreachable on live path, net diagnosability gain; distinct SQLSTATE belongs in the next additive accept-RPC migration (E_review iter 2, epic-7)"
+uat_items:
+  - "[7-1] Precondition: pnpm dev, log in as demo tenant-admin at /login, have a quote whose selected version is 'sent' (draft -> add line items -> mark-sent), open /quotes/<quoteId> and scroll to 'Acceptans'"
+  - "[7-1] On the sent version's detail page -> 'Registrera acceptans' form (data-testid=acceptance-form) renders fields Kanal, Accepterad (datum/tid), Accepterat pris (kr), Bevisreferens, Bevisfil (id), Planerad start, Planerat slut, Anteckningar; NO admin-user field (server-derived)"
+  - "[7-1] Select a DRAFT version of the same quote -> 'Acceptans' section shows 'Acceptans kan registreras när versionen är skickad.' and NO form"
+  - "[7-1] In the sent form -> 'Accepterat pris (kr)' pre-filled with the frozen sent total and 'Skickat totalbelopp: <X> kr' shown beneath; values match"
+  - "[7-1] Happy path: keep pre-filled price, set Accepterad datum/tid, confirm -> green status banner 'Accepterad. Acceptansen är registrerad.' (role=status)"
+  - "[7-1] Change Accepterat pris to differ from sent total -> amber 'Prisjustering' panel + required 'Motivering för prisjustering' field appear; confirm DISABLED while reason empty; typed reason enables confirm and submit succeeds"
+  - "[7-1] Enter free text in 'Bevisreferens (extern)' with no file id, confirm -> succeeds; reference stored, no file link created"
+  - "[7-1] Paste the id of an already-uploaded own-tenant file into 'Bevisfil (id)', confirm -> succeeds (acceptance_evidence link created)"
+  - "[7-1] Paste a random UUID / another tenant's file id into 'Bevisfil (id)', confirm -> red error banner (role=alert), generic message, acceptance NOT recorded (no existence disclosure)"
+  - "[7-1] Logged OUT, request /quotes/<quoteId> directly -> redirected to /login; no public/portal/webhook acceptance route exists"
+  - "[7-1] Keyboard-only tab through the form -> visible focus ring in order, confirm reachable, acceptance status conveyed as TEXT not color alone"
+  - "[7-2] Setup: migrations 20260709120000 + 20260710120000 + 20260711120000 not on main/demo yet - run locally: supabase start, supabase db reset, pnpm dev; tenant_admin login for the local stack"
+  - "[7-2] Happy path: on a sent version keep pre-filled price, set Accepterad datum/tid, optional Jobbtitel, confirm -> 'Accepterad...' then section flips to 'Denna version är accepterad. Ett jobb har skapats från den accepterade offerten.'"
+  - "[7-2] DB inspection: exactly one quote_acceptances row, version status=accepted, one jobs row (matching source refs, status=created, carried customer/facility/contact), one quote_events accepted, one job_events created, one audit_events row with targetId-only metadata"
+  - "[7-2] Reload the accepted version page -> stable accepted text, no form, no error (idempotent landing)"
+  - "[7-2] Re-run the exact same accept once more -> still exactly ONE acceptance/job/event row each and NO new audit_events row (no duplicate audit on retry)"
+  - "[7-2] Server re-validation: blank the adjustment reason via devtools/crafted POST with non-zero delta -> generic VALIDATION_FAILED (client disable is only a mirror)"
+  - "[7-2] Accepted version -> 'Skapa ny version' button and PDF panel NOT mounted; new-version/PDF commands rejected server-side (affordance gating)"
+  - "[7-2] Cross-tenant (two tenants): accept with tenant B's version id as tenant A admin via crafted call -> generic TENANT_ACCESS_DENIED, no leak"
+  - "[7-2] NOT hand-testable: AC3 rollback (test-only __faultInject, covered by 7.2-INT-04) and true concurrent accepts (covered by parallel INT tests)"
+  - "[7-3] Signed in as tenant_admin, click 'Jobb/Order' in the left nav -> /jobs list loads with heading 'Jobb/Order' (no placeholder); rows show title/customer, 'Offert #...', planned start, status as TEXT"
+  - "[7-3] Tenant with no accepted quotes -> empty state 'Inga jobb matchar. Jobb skapas när en offert accepteras.'"
+  - "[7-3] Filters: Kund, Status (Skapad/Pågår/Klar/Avbruten), Källoffert, Planerat startdatum each narrow the list; combining two filters satisfies both; clearing restores all rows"
+  - "[7-3] Scan the /jobs list + filters -> NO field-worker/schedule, time/material, deviation, ÄTA, analytics, invoice, supplier, or Fortnox column/label/link anywhere"
+  - "[7-3] Click a job row -> /jobs/[jobId] detail: 'Ursprung och åtagande' shows clickable source-version link, frozen customer/facility/contact at acceptance, accepted price + original total in kronor, channel/date, adjustment reason if present - all read-only"
+  - "[7-3] Click the 'Källoffert (version)' link -> navigates to the source /quotes/[quoteId]/versions/[versionId]"
+  - "[7-3] Evidence: acceptance with a file -> 'Öppna bevis' produces a time-limited 'Visa bevisfil' signed link that opens the file; external-reference acceptance -> reference text and no file button"
+  - "[7-3] 'Filer' section lists job-linked files or 'Inga kopplade filer.'; NO upload control (8.2). 'Händelser' lists job events with Swedish labels and dates"
+  - "[7-3] 'Redigera jobb' dialog: focus lands in Titel; ONLY Titel/Status/Planerat start/Planerat slut fields; Escape/Avbryt closes without saving and returns focus; Save updates title/status/dates and a status change appends a new event; Status select has ONLY the four Phase-A values"
+  - "[7-3] Accepted quote's acceptance section -> 'Öppna jobbet' deep link lands on the single existing job detail; re-visiting shows the same one job, never a duplicate or a second accept affordance"
+  - "[7-3] Directly visit /jobs/<random-or-foreign-jobId> -> generic 404, no existence indication"
+  - "[7-4] On an accepted job's detail -> notice with role=note (data-testid=job-accepted-lock-notice) states the accepted commitment is 'låst' and corrections require a 'godkänt granskat arbetsflöde', not a silent edit"
+  - "[7-4] Scan the whole job detail -> NO input/button to edit accepted price, source sent total, evidence, source quote version, accepted timestamp, channel, or source refs; every immutable field is display-only text"
+  - "[7-4] 'Redigera jobb' dialog exposes ONLY Titel/Status/Planerat startdatum/Planerat slutdatum - no immutable field present"
+  - "[7-4] Change Status (or Titel/planned date) and Spara -> save succeeds while accepted-price/source-refs/evidence stay unchanged (exempt allowed-edit path does not fight the lock)"
+  - "[7-4] Open the edit dialog and Spara without changes -> clean no-op: no job-edit-error alert, record unchanged (empty-patch no false denial)"
+  - "[7-4] Notice a11y: lock conveyed as TEXT (not color alone), reachable in keyboard tab order"
+  - "[7-4] Notice offers NO action affordance: no 'Begär korrigering' button, no edit link, no deferred-module surface (explanatory only, R-714 boundary)"
+  - "[7-4] NOT hand-testable: DB-trigger AR704 rejection on direct SQL (7.4-INT-02), smuggled-field command rejection (7.4-INT-01), cross-tenant/anon negatives (7.4-RLS-01) - automated INT/RLS only; the UI by construction offers no way to submit an immutable field"
+integration_review_done: true
+batch_flip_done: true

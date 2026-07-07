@@ -22,12 +22,18 @@ import { createSupabaseServerClient } from "@/server/db/supabase-server-client";
 import { runCommand, type CommandDbClient } from "@/server/commands/envelope";
 import { COMMAND_MESSAGES } from "@/server/commands/command-errors";
 import {
+  acceptQuoteAndCreateJob,
   createNewQuoteVersion,
   generateQuotePdf,
   markQuoteVersionSent,
   updateDraftQuoteVersion,
 } from "@/server/commands/quotes";
 import { createSignedFileAccess } from "@/server/commands/files";
+import { kronorStringToOre } from "@/features/calculations/money-input";
+import {
+  ACCEPTANCE_ACTION_INITIAL,
+  type AcceptanceActionState,
+} from "./acceptance-action-state";
 import {
   QUOTE_ACTION_INITIAL,
   type QuoteActionState,
@@ -278,6 +284,95 @@ export async function createNewQuoteVersionAction(
 
   return {
     ...NEW_VERSION_ACTION_INITIAL,
+    status: "error",
+    code: result.code,
+    formError: result.message || COMMAND_MESSAGES[result.code],
+  };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Story 7.1 → 7.2 — the acceptance server action (the ONLY write path the acceptance form uses).
+// Wires the SENT-branch acceptance form to the TRANSACTIONAL `acceptQuoteAndCreateJob` command
+// (Story 7.2, Task 4 — SUPERSEDING 7.1's capture-only `captureQuoteAcceptance` at the LIVE UI path).
+// Confirming acceptance on a sent version now RECORDS the acceptance AND creates the job in ONE
+// atomic, idempotent call. Only the acceptance-capture fields are read from the form —
+// status/tenant/source-total/admin-user are NEVER accepted (the command re-asserts the sent state
+// server-side, re-validates the adjusted-price reason gate, loads the frozen source sent total, and
+// derives the admin user from the resolved session). The entered kronor price is parsed to INTEGER
+// ÖRE here (the UI-input seam); the command re-validates it with `isOreAmount`. After success,
+// revalidate BOTH `/quotes/[quoteId]` AND the version subroute (the 6.2/6.3/6.4/7.1 subroute-
+// revalidation discipline — do NOT repeat the 6.2 gap) so the version re-renders as `accepted` (the
+// idempotent-return path lands on the same accepted state, never a duplicate/error — UX-DR24). This
+// is an authenticated admin-only server action — NO public / portal / callback route exists. The
+// TEST-ONLY `__faultInject` command field is NEVER read from the form here, so a real request can
+// never set it (only a direct `runCommand` test call can drive the atomicity/rollback proof).
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * The acceptance action (React `useActionState` signature). Wires the acceptance form to the
+ * transactional `acceptQuoteAndCreateJob` command. Only the capture fields are read; the server
+ * command is the authority (the UI adjusted-price delta + reason gate is a MIRROR, not the guarantee).
+ * On the idempotent re-attempt the command returns ok with the EXISTING ids — the UI still lands on
+ * the accepted state, never a duplicate or an error.
+ */
+export async function captureQuoteAcceptanceAction(
+  _prev: AcceptanceActionState,
+  form: FormData,
+): Promise<AcceptanceActionState> {
+  const quoteVersionId = form.get("quote_version_id");
+  const quoteId = form.get("quote_id");
+
+  // Parse the entered kronor price → integer öre (the UI-input seam; the command re-validates).
+  // A malformed price yields a client-shaped VALIDATION_FAILED at the command (accepted_price_ore
+  // will be a non-öre value the validator rejects) — pass NaN through so the server owns the reject.
+  const priceRaw = form.get("accepted_price_ore");
+  let acceptedPriceOre: number = Number.NaN;
+  if (typeof priceRaw === "string") {
+    const parsed = kronorStringToOre(priceRaw);
+    if (parsed.ok) acceptedPriceOre = parsed.ore;
+  }
+
+  const input: Record<string, unknown> = {
+    quote_version_id: quoteVersionId,
+    accepted_price_ore: acceptedPriceOre,
+    accepted_at: form.get("accepted_at"),
+  };
+  const channel = optionalText(form, "channel");
+  const adjustmentReason = optionalText(form, "adjustment_reason");
+  const evidenceReference = optionalText(form, "evidence_reference");
+  const evidenceFileId = optionalText(form, "evidence_file_id");
+  const notes = optionalText(form, "notes");
+  const plannedStart = optionalText(form, "planned_start_date");
+  const plannedEnd = optionalText(form, "planned_end_date");
+  const title = optionalText(form, "title");
+  if (channel !== undefined) input.channel = channel;
+  if (adjustmentReason !== undefined) input.adjustment_reason = adjustmentReason;
+  if (evidenceReference !== undefined) input.evidence_reference = evidenceReference;
+  if (evidenceFileId !== undefined) input.evidence_file_id = evidenceFileId;
+  if (notes !== undefined) input.notes = notes;
+  if (plannedStart !== undefined) input.planned_start_date = plannedStart;
+  if (plannedEnd !== undefined) input.planned_end_date = plannedEnd;
+  if (title !== undefined) input.title = title;
+
+  const client = (await createSupabaseServerClient()) as unknown as CommandDbClient;
+  const result = await runCommand(acceptQuoteAndCreateJob, { client, input });
+
+  if (result.ok) {
+    if (typeof quoteId === "string" && quoteId.length > 0) {
+      revalidatePath(`/quotes/${quoteId}`);
+      if (typeof quoteVersionId === "string" && quoteVersionId.length > 0) {
+        revalidatePath(`/quotes/${quoteId}/versions/${quoteVersionId}`);
+      }
+    }
+    return {
+      ...ACCEPTANCE_ACTION_INITIAL,
+      status: "success",
+      targetId: result.data.targetId,
+    };
+  }
+
+  return {
+    ...ACCEPTANCE_ACTION_INITIAL,
     status: "error",
     code: result.code,
     formError: result.message || COMMAND_MESSAGES[result.code],

@@ -40,6 +40,7 @@ import { DraftQuoteEditor } from "./DraftQuoteEditor";
 import { MarkSentButton } from "./MarkSentButton";
 import { CreateNewVersionButton } from "./CreateNewVersionButton";
 import { QuotePdfPanel } from "./QuotePdfPanel";
+import { AcceptanceCaptureForm } from "./AcceptanceCaptureForm";
 
 /** The Swedish label for the (frozen) VAT display posture, for the assumptions block. */
 function vatDisplayLabel(posture: string | null): string {
@@ -72,8 +73,15 @@ const EVENT_LABELS: Record<string, string> = {
 };
 
 export function QuoteDetailView({ detail }: { readonly detail: QuoteDetail }) {
-  const { header, versions, selectedVersionId, selectedLines, selectedAttachments, events } =
-    detail;
+  const {
+    header,
+    versions,
+    selectedVersionId,
+    selectedLines,
+    selectedAttachments,
+    events,
+    acceptedJobIdByVersionId,
+  } = detail;
 
   // Order the read rows by version_number ascending (the read layer already returns them asc;
   // re-sort defensively — the snake_case rows are ordered here, the PURE helpers run on the
@@ -92,6 +100,16 @@ export function QuoteDetailView({ detail }: { readonly detail: QuoteDetail }) {
   );
   const latest = ordered[ordered.length - 1];
   const isDraft = selected.status === "draft";
+  // Story 7.2, Task 5 (epic-6 gate carry): once a version reaches `accepted`, the PDF-retry +
+  // new-version affordances are GATED OFF (architecture §12 scopes PDF retry + new-version to
+  // draft/sent, NEVER accepted). 7.2 is the first story that makes `accepted` reachable, so 7.2 owns
+  // this gating. The commands independently reject an accepted version (createNewQuoteVersion guards a
+  // draft/non-draft parent; generateQuotePdf is scoped to draft/sent) — the UI is the MIRROR.
+  const isAccepted = selected.status === "accepted";
+  // Story 7.3 (AC5 deep-link seam): the ONE job created off this accepted version (if any). The
+  // accepted section links to `/jobs/[jobId]` — the idempotent mirror lands on the EXISTING job,
+  // never a duplicate or a second create affordance.
+  const selectedJobId = acceptedJobIdByVersionId[selected.id] ?? null;
 
   const lines = buildCustomerVisibleLines(
     selectedLines.map((l) => ({
@@ -387,21 +405,55 @@ export function QuoteDetailView({ detail }: { readonly detail: QuoteDetail }) {
 
             {/* PDF render-state panel (Story 6.3) — the six states + preview/download via a
                 short-lived signed URL. Wires to the generateQuotePdf / createSignedFileAccess
-                commands (never a bespoke path). */}
-            <QuotePdfPanel
-              quoteId={header.id}
-              quoteVersionId={selected.id}
-              pdfStatus={selected.pdf_status}
-              pdfFileId={selected.pdf_file_id}
-              pdfGeneratedAt={selected.pdf_generated_at}
-            />
+                commands (never a bespoke path). GATED OFF an `accepted` version (Story 7.2, Task 5):
+                PDF retry is scoped to draft/sent (architecture §12) — an accepted commitment offers
+                no PDF-retry affordance. */}
+            {!isAccepted && (
+              <QuotePdfPanel
+                quoteId={header.id}
+                quoteVersionId={selected.id}
+                pdfStatus={selected.pdf_status}
+                pdfFileId={selected.pdf_file_id}
+                pdfGeneratedAt={selected.pdf_generated_at}
+              />
+            )}
 
-            {/* Acceptance state PLACEHOLDER — real acceptance is Epic 7 (no public affordance). */}
-            <section data-testid="quote-acceptance-placeholder" className="text-sm">
+            {/* Acceptance capture (Story 7.1 → 7.2) — an authenticated ADMIN-ONLY off-system capture
+                on a SENT version (no customer portal / public endpoint). Confirming now runs the
+                TRANSACTIONAL acceptQuoteAndCreateJob (records the acceptance + creates the job in one
+                atomic call — Story 7.2, Task 4). The form is a MIRROR of the INT-proven server gates
+                (sent-state + adjusted-price reason), never the guarantee. On an ACCEPTED version the
+                EXISTING accepted state is shown (a repeat attempt lands here idempotently — UX-DR24;
+                the deep job-view is Story 7.3). On any other non-sent version the disclosure is text. */}
+            <section data-testid="quote-acceptance-section" className="text-sm">
               <h3 className="mb-1 font-medium text-zinc-800">Acceptans</h3>
-              <p className="text-zinc-600">
-                Ej accepterad ännu. Acceptans hanteras i Epic 7.
-              </p>
+              {selected.status === "sent" ? (
+                <AcceptanceCaptureForm
+                  quoteId={header.id}
+                  quoteVersionId={selected.id}
+                  sourceSentTotalOre={selected.accepted_price_ore}
+                />
+              ) : selected.status === "accepted" ? (
+                <div
+                  data-testid="quote-acceptance-accepted"
+                  className="flex flex-col gap-1 text-green-800"
+                >
+                  <span>Denna version är accepterad. Ett jobb har skapats från den accepterade offerten.</span>
+                  {selectedJobId && (
+                    <Link
+                      href={`/jobs/${selectedJobId}`}
+                      data-testid="quote-accepted-job-link"
+                      className="w-fit font-medium text-blue-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+                    >
+                      Öppna jobbet
+                    </Link>
+                  )}
+                </div>
+              ) : (
+                <p data-testid="quote-acceptance-placeholder" className="text-zinc-600">
+                  Acceptans kan registreras när versionen är skickad.
+                </p>
+              )}
             </section>
           </div>
 
@@ -431,18 +483,24 @@ export function QuoteDetailView({ detail }: { readonly detail: QuoteDetail }) {
               <p className="text-sm text-zinc-700">
                 Den här versionen är{" "}
                 <strong>{quoteStatusLabel(selected.status)}</strong> och kan inte
-                redigeras — kundens innehåll är låst. Skapa en ny version för att göra
-                ändringar.
+                redigeras — kundens innehåll är låst.
+                {isAccepted
+                  ? " Ett jobb har skapats från den accepterade offerten."
+                  : " Skapa en ny version för att göra ändringar."}
               </p>
               {/* The ACTIVATED "Skapa ny version" affordance (Story 6.5, Task 4.1). Wires to the
                   createNewQuoteVersion command — a change spawns a NEW immutable draft version on
                   the SAME quote while every prior version is PRESERVED. The button is a convenience;
                   the SERVER command + the DB triggers are the enforcement (a UI-only versioning
-                  rule is a STOP condition — architecture §9). */}
-              <CreateNewVersionButton
-                quoteId={header.id}
-                quoteVersionId={selected.id}
-              />
+                  rule is a STOP condition — architecture §9). GATED OFF an `accepted` version (Story
+                  7.2, Task 5): new-version is scoped to draft/sent (architecture §12) — an accepted
+                  commitment is terminal for Phase A (7.4 hardens the full immutability). */}
+              {!isAccepted && (
+                <CreateNewVersionButton
+                  quoteId={header.id}
+                  quoteVersionId={selected.id}
+                />
+              )}
             </div>
           )}
 

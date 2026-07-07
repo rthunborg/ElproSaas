@@ -51,8 +51,14 @@ const CALC_TABLES = [
   "calculation_rows",
 ] as const;
 
-// The deferred-module tables AC1/AC7 forbid this story from creating.
-const FORBIDDEN_TABLES = ["jobs", "projects", "field_workers"] as const;
+// The deferred-module tables AC1/AC7 forbid this story from creating. NOTE (Story 7.1
+// reconcile): `jobs` was a DEFERRED table at Epic-5 time (Story 5.1 must not create it), but
+// Epic 7 SANCTIONS it — `jobs` is now a real tenant-owned commitment table created by
+// `20260709120000_acceptance_to_job_model.sql`. It is removed from this Epic-5 forbidden list
+// (this test proves the CALC migration did not smuggle it; the query is schema-wide, so once
+// `jobs` legitimately lands it can no longer appear here). `projects`/`field_workers` remain
+// deferred (no epic creates them in Phase A).
+const FORBIDDEN_TABLES = ["projects", "field_workers"] as const;
 
 let stackUp = false;
 beforeAll(async () => {

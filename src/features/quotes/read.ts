@@ -236,6 +236,13 @@ export interface QuoteDetail {
   readonly selectedAttachments: readonly QuoteVersionAttachmentRow[];
   /** The quote's lifecycle events (ordered occurred_at asc). */
   readonly events: readonly QuoteEventRow[];
+  /**
+   * Story 7.3 (AC5 deep-link seam): the created job id per accepted version id — the ONE job the
+   * 7.2 acceptance transaction created off that version (`unique (quote_acceptance_id)` guarantees
+   * exactly one). RLS-scoped (own-tenant). Empty when no version has been accepted yet. The
+   * accepted-section deep link uses this to point at `/jobs/[jobId]` (never a duplicate/create).
+   */
+  readonly acceptedJobIdByVersionId: Readonly<Record<string, string>>;
 }
 
 /** Result of the quote-detail read — the detail OR null (not-found) + a generic error. */
@@ -404,7 +411,8 @@ export async function readQuoteDetail(
     const latest = versions[versions.length - 1];
 
     // ── The selected version's frozen children + the quote events (parallel, own-tenant RLS). ──
-    const [linesRes, attachmentsRes, eventsRes] = await Promise.all([
+    // Plus (Story 7.3, AC5 seam) the jobs created off this quote's versions — the deep-link target.
+    const [linesRes, attachmentsRes, eventsRes, jobsRes] = await Promise.all([
       client
         .from("quote_version_lines")
         .select(LINE_COLUMNS)
@@ -420,11 +428,36 @@ export async function readQuoteDetail(
         .select(EVENT_COLUMNS)
         .eq("quote_id", quoteId)
         .order("occurred_at", { ascending: true }),
+      // The job(s) created off any version of THIS quote (RLS-scoped; own-tenant only). `jobs` has
+      // NO quote_id column (it links via quote_version_id + quote_acceptance_id), so read the
+      // tenant's active jobs and filter to THIS quote's version ids in memory. One job per accepted
+      // version — the 7.2 transaction's `unique (quote_acceptance_id)` guarantees exactly one.
+      client
+        .from("jobs")
+        .select("id, quote_version_id")
+        .is("archived_at", null),
     ]);
 
     if (linesRes.error) return { detail: null, error: GENERIC_READ_ERROR };
     if (attachmentsRes.error) return { detail: null, error: GENERIC_READ_ERROR };
     if (eventsRes.error) return { detail: null, error: GENERIC_READ_ERROR };
+    // A jobs read error is NON-FATAL to the quote detail — the deep link is a convenience, not the
+    // quote's core data. Degrade to an empty map rather than fail the whole quote read.
+    const versionIdSet = new Set(versions.map((v) => v.id));
+    const acceptedJobIdByVersionId: Record<string, string> = {};
+    if (!jobsRes.error) {
+      for (const raw of (jobsRes.data ?? []) as Record<string, unknown>[]) {
+        const vId = raw.quote_version_id;
+        const jId = raw.id;
+        if (
+          typeof vId === "string" &&
+          typeof jId === "string" &&
+          versionIdSet.has(vId)
+        ) {
+          acceptedJobIdByVersionId[vId] = jId;
+        }
+      }
+    }
 
     const selectedLines = ((linesRes.data ?? []) as Record<string, unknown>[]).map(
       toLineRow,
@@ -474,6 +507,7 @@ export async function readQuoteDetail(
         selectedLines,
         selectedAttachments,
         events,
+        acceptedJobIdByVersionId,
       },
       error: null,
     };

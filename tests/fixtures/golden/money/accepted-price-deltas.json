@@ -55,5 +55,59 @@
       "recalcNetOre": 85000,
       "recalcVatRateBp": 2500
     }
+  ],
+  "_transactionDoc": "Story 7.2 EXTENSION (7.2-GOLDEN-01, R-705/R-717) — the ACCEPTED-QUOTE-TO-JOB TRANSACTION SHAPE. This block is ADDITIVE and DISTINCT from `deltaCases`: `deltaCases` pins the 4.4 accepted-vs-LATER-RECALCULATED movement (feeds the new-version-on-change concept); `transactionCases` pins Epic 7 R-705's adjusted-price = accepted-price-VS-SENT-TOTAL-AT-ACCEPTANCE-TIME plus the transaction's immutable SOURCE REFERENCES (accepted version id + acceptance id → job) and the öre totals persisted on the acceptance/job. Do NOT conflate the two deltas. Each case carries the frozen source sent total öre, the accepted price öre, the transaction delta öre = acceptedPriceOre - sourceSentTotalOre, a `reasonRequired` flag (any non-zero delta REQUIRES a reason/evidence — the AC5 gate the transaction re-enforces), and the shape of the created job's source refs (label-only placeholders — NO real ids, this is a SHAPE pin). Money/öre numbers ONLY, all < 10 digits (R-717) — NO PII (personnummer/orgnr/name/email/phone/address), NO clock (NFR17/R-411). The documented Lovable transactional delta is LABELLED (Lovable's mutable-acceptance / client-side-multi-step vs Phase A's immutable single-transaction) — NEVER Lovable code/data; only `new-expected` + one `documented-delta` case, no fabricated oracle. POLICY STATUS: pilot assumptions, Sign-Off Q8 open; nothing production-approved.",
+  "transactionPolicy": {
+    "deltaUnit": "integer öre",
+    "transactionDeltaFormula": "transactionDeltaOre = acceptedPriceOre - sourceSentTotalOre (POSITIVE = accepted above the sent total; NEGATIVE = below; zero = unchanged). This is the ACCEPTANCE-TIME adjusted-price delta (R-705), NOT the 4.4 accepted-vs-recalculated delta.",
+    "reasonRequiredRule": "reasonRequired = transactionDeltaOre !== 0 — the AC5 gate the acceptQuoteAndCreateJob transaction re-validates server-side (the client cannot bypass).",
+    "sourceRefs": "the created job stores the accepted quote_version_id + quote_acceptance_id as IMMUTABLE source references (composite same-tenant FKs, ON DELETE RESTRICT). The fixture pins the SHAPE (which refs exist), not real ids.",
+    "distinctFrom44": "4.4 `deltaCases` = accepted-vs-later-recalculated; 7.2 `transactionCases` = accepted-price-vs-sent-total-at-acceptance-time + source refs. Related shape, different semantics — do not merge.",
+    "signOffQ8": "the exact accepted-price-delta representation is OPEN (Sign-Off Q8) — pilot assumptions, not Epic-7-final",
+    "signOff": "pending-owner-accounting-legal"
+  },
+  "transactionCases": [
+    {
+      "id": "tx-unchanged-accepted-price",
+      "origin": "new-expected",
+      "note": "The unchanged case (AC1 happy path): the accepted price EQUALS the frozen source sent total -> transaction delta 0 öre -> NO adjustment reason required. The transaction records the acceptance (accepted_price_ore = source_sent_total_ore = 125000), flips the version sent->accepted, and creates ONE job whose source refs point at the accepted version + the acceptance. A non-zero delta here would wrongly demand a reason and fail loud.",
+      "sourceSentTotalOre": 125000,
+      "acceptedPriceOre": 125000,
+      "transactionDeltaOre": 0,
+      "reasonRequired": false,
+      "jobSourceRefs": ["quote_version_id", "quote_acceptance_id"]
+    },
+    {
+      "id": "tx-adjusted-accepted-price-below",
+      "origin": "new-expected",
+      "note": "The adjusted case (AC5): the accepted price is BELOW the frozen source sent total (a documented customer discount) -> transaction delta -5000 öre -> a reason/evidence IS required. accepted 120000 - sent 125000 = -5000. The transaction persists the accepted price AS GIVEN (R-716 — no VAT/ROT re-derivation) alongside the frozen source total; both are immutable commitment data (7.4 locks them).",
+      "sourceSentTotalOre": 125000,
+      "acceptedPriceOre": 120000,
+      "transactionDeltaOre": -5000,
+      "reasonRequired": true,
+      "jobSourceRefs": ["quote_version_id", "quote_acceptance_id"]
+    },
+    {
+      "id": "tx-adjusted-accepted-price-above",
+      "origin": "new-expected",
+      "note": "The adjusted case (AC5), positive direction: the accepted price is ABOVE the frozen source sent total (a documented scope add) -> transaction delta +2000 öre -> a reason/evidence IS required. accepted 127000 - sent 125000 = +2000. Proves the signed delta shape and that the reason gate fires in BOTH directions.",
+      "sourceSentTotalOre": 125000,
+      "acceptedPriceOre": 127000,
+      "transactionDeltaOre": 2000,
+      "reasonRequired": true,
+      "jobSourceRefs": ["quote_version_id", "quote_acceptance_id"]
+    },
+    {
+      "id": "tx-lovable-mutable-acceptance-documented-delta",
+      "origin": "documented-delta",
+      "note": "DOCUMENTED behavioral divergence from Lovable (behavioral-oracle-only; NO Lovable code/data). Lovable recorded acceptance as a MUTABLE, client-side MULTI-STEP sequence (an acceptance row, then a separately-created job) with no single-transaction guarantee — a retry/double-submit could fork the customer commitment (two jobs) or leave a half-accepted quote. Phase A replaces this with ONE immutable atomic transaction whose accepted price + source refs are frozen. The `documented-delta` here is BEHAVIORAL, not numeric: `oldLovableWouldGive` records the mutable/forkable Lovable outcome shape; `newExpected` records the single-immutable-transaction outcome. The öre values match the unchanged case (125000) — the divergence is the TRANSACTION SEMANTICS (mutable-multi-step vs immutable-single-transaction), which is why 7.2's idempotency/atomicity INT proofs, not a number, are the enforcement.",
+      "sourceSentTotalOre": 125000,
+      "acceptedPriceOre": 125000,
+      "transactionDeltaOre": 0,
+      "reasonRequired": false,
+      "jobSourceRefs": ["quote_version_id", "quote_acceptance_id"],
+      "oldLovableWouldGive": "mutable client-side multi-step acceptance-then-job (forkable on retry: two jobs / half-accepted quote)",
+      "newExpected": "one immutable atomic idempotent transaction (retry/concurrent-accept returns the existing single acceptance + job)"
+    }
   ]
 }

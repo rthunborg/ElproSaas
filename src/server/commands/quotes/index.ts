@@ -29,6 +29,15 @@ export {
   type MarkQuoteVersionLifecycleResult,
 } from "./lifecycle";
 export {
+  captureQuoteAcceptance,
+  type CaptureQuoteAcceptanceResult,
+} from "./accept";
+export {
+  acceptQuoteAndCreateJob,
+  buildAcceptAndCreateJobRpcArgs,
+  type AcceptQuoteAndCreateJobResult,
+} from "./accept-and-create-job";
+export {
   validateCreateQuoteVersionFromCalculation,
   type CreateQuoteVersionInput,
   validateUpdateDraftQuoteVersion,
@@ -42,4 +51,8 @@ export {
   validateMarkQuoteVersionLifecycle,
   type MarkQuoteVersionLifecycleInput,
   type QuoteLifecycleTransition,
+  validateCaptureQuoteAcceptance,
+  type CaptureQuoteAcceptanceInput,
+  validateAcceptQuoteAndCreateJob,
+  type AcceptQuoteAndCreateJobInput,
 } from "./validation";

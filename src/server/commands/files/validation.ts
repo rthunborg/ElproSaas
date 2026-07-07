@@ -10,10 +10,11 @@
  * OWNER TYPES are the closed Phase A union (customer, facility, contact, calculation,
  * quote_version, quote_acceptance, job). The validator accepts them STRUCTURALLY — an
  * UNKNOWN owner type (a deferred-module type like supplier/asset) is a STOP condition
- * rejected here. Link creation for quote_version/quote_acceptance/job is INACTIVE at
- * the COMMAND layer (the owner-resolution switch returns "not-yet-available") until
- * Epics 6/7 add those owner tables — that is an execute-layer decision, not a
- * validation one, so all seven values pass validation.
+ * rejected here. Link creation for `quote_version` is still INACTIVE at the COMMAND layer
+ * (the owner-resolution switch returns "not-yet-available"; the 6.1 RPC materializes
+ * quote_version links directly) — that is an execute-layer decision, not a validation
+ * one, so all seven values pass validation. `quote_acceptance` (7.1) and `job` (7.3) are
+ * ACTIVE.
  *
  * Client-supplied `tenant_id` is NEVER read here — the resolved tenant from membership
  * is the only authority (the validators strip/ignore any `tenant_id`).
@@ -37,15 +38,24 @@ export const OWNER_TYPES = [
 export type OwnerType = (typeof OWNER_TYPES)[number];
 
 /**
- * The owner types that are ACTIVE today — their owner tables exist by Epic 3/5 so the
- * command's own-tenant RLS SELECT can resolve them. The rest (quote_version/
- * quote_acceptance/job) are "not-yet-available" until Epics 6/7.
+ * The owner types that are ACTIVE at the `createFileLink` COMMAND layer — their owner tables
+ * exist so the command's own-tenant RLS SELECT (the R-802 owner-side check) can resolve them.
+ * Story 7.1 ACTIVATES `quote_acceptance` (its `quote_acceptances` owner table lands in the 7.1
+ * migration; the `acceptance_evidence` purpose is already in `FILE_PURPOSES`) so an evidence file
+ * can be linked to an acceptance via `createFileLink`. `quote_version` links are materialized by
+ * the 6.1 `create_quote_version_from_calculation` RPC directly (never through this command path),
+ * so it stays out of this command-layer active set. Story 7.3 ACTIVATES `job` (the 7.1 `jobs` owner
+ * table exists; the `job_evidence` purpose is already in `FILE_PURPOSES`) so a file can be
+ * own-tenant-linked to a job via `createFileLink` — reusing the 8.1 signed-access + own-tenant
+ * ownership funnel VERBATIM (no upload UX here — upload is Epic 8.2).
  */
 export const ACTIVE_OWNER_TYPES = [
   "customer",
   "facility",
   "contact",
   "calculation",
+  "quote_acceptance",
+  "job",
 ] as const;
 export type ActiveOwnerType = (typeof ACTIVE_OWNER_TYPES)[number];
 

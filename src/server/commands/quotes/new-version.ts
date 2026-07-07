@@ -73,6 +73,11 @@ export const createNewQuoteVersion = defineCommand<
     // ── OPTIONAL guard (Task 3.1.b): a new version is meaningful from a NON-draft parent. Creating a
     // ── new version off a draft is a no-op (the draft IS the editable version) → VALIDATION_FAILED.
     if (parent.status === "draft") throw new CommandError("VALIDATION_FAILED");
+    // ── ACCEPTED-PARENT GATE (Story 7.2, Task 5 / architecture §12) — new-version is scoped to
+    // ── draft/sent, NEVER `accepted`. An accepted version is a terminal customer commitment (7.4
+    // ── hardens the full immutability); it does not spawn a new version. 7.2 makes `accepted`
+    // ── reachable, so it owns closing this command-side gap. Reject with a generic VALIDATION_FAILED.
+    if (parent.status === "accepted") throw new CommandError("VALIDATION_FAILED");
 
     // ── RE-CAPTURE the FRESH composite snapshot from the CURRENT source calc (source (a)). The
     // ── shared helper re-validates each selected attachment file own-tenant (a foreign id → denied).

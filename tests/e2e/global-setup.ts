@@ -315,6 +315,116 @@ export default async function globalSetup() {
     event_type: "created",
   });
 
+  // Story 7.2: a DEDICATED quote whose ONLY version is a SENT v1, consumed by the accept-and-
+  // create-job FLOW E2E (confirming acceptance PERMANENTLY flips it to `accepted` + creates a job),
+  // so it does NOT mutate the shared 6.2/7.1 quote the acceptance-FORM tests rely on (those need the
+  // version to stay `sent`). Seeded draft → child → flip-to-sent per the 6.4 child-lock, carrying a
+  // NON-ZERO frozen `accepted_price_ore` (the source sent total the adjusted-price gate measures).
+  const acceptQuoteId = await adminInsertQuote({
+    tenant_id: base.tenantA.id,
+    customer_id: companyId,
+    facility_id: facilityId,
+  });
+  const acceptSentVersionId = await adminInsertQuoteVersion({
+    tenant_id: base.tenantA.id,
+    quote_id: acceptQuoteId,
+    calculation_id: calcId,
+    version_number: 1,
+    quote_number: 1005,
+    status: "draft",
+    company_name: `Elpro Demo AB ${token()}`,
+    customer_display_name: companyName,
+    intro_text: "Skickad version för accept-och-skapa-jobb-flödet",
+    accepted_price_ore: 125000,
+  });
+  await adminInsertQuoteVersionLine({
+    tenant_id: base.tenantA.id,
+    quote_version_id: acceptSentVersionId,
+    label: `Accept-rad ${token()}`,
+    unit_sell_ore: 85000,
+    vat_rate_bp: 2500,
+    sort_order: 0,
+  });
+  await adminQuery(
+    `update public.quote_versions set status = 'sent' where id = $1`,
+    [acceptSentVersionId],
+  );
+  await adminInsertQuoteEvent({
+    tenant_id: base.tenantA.id,
+    quote_id: acceptQuoteId,
+    quote_version_id: acceptSentVersionId,
+    event_type: "created",
+  });
+
+  // Story 7.3: a DEDICATED already-ACCEPTED quote whose sent version has ALREADY been driven through
+  // the REAL `accept_quote_and_create_job` transaction at seed time — producing an authentic
+  // acceptance + ONE job. The 7.3 detail/list/deep-link E2E consume this fixture's KNOWN `jobId`
+  // (the traceability detail + the accepted-version deep link). Kept OFF the 7.2 `acceptQuote` quote
+  // (which the 7.2 flow accepts at runtime) so 7.3 does not depend on 7.2's serial ordering. Seeded
+  // draft → child → flip-to-sent per the 6.4 child-lock, carrying a NON-ZERO frozen
+  // `accepted_price_ore` (the source sent total the job detail displays).
+  const acceptedJobQuoteId = await adminInsertQuote({
+    tenant_id: base.tenantA.id,
+    customer_id: companyId,
+    facility_id: facilityId,
+  });
+  const acceptedJobVersionId = await adminInsertQuoteVersion({
+    tenant_id: base.tenantA.id,
+    quote_id: acceptedJobQuoteId,
+    calculation_id: calcId,
+    version_number: 1,
+    quote_number: 1006,
+    status: "draft",
+    company_name: `Elpro Demo AB ${token()}`,
+    customer_display_name: companyName,
+    intro_text: "Accepterad version för jobb-traceability-flödet (7.3)",
+    accepted_price_ore: 125000,
+  });
+  await adminInsertQuoteVersionLine({
+    tenant_id: base.tenantA.id,
+    quote_version_id: acceptedJobVersionId,
+    label: `Jobbrad ${token()}`,
+    unit_sell_ore: 85000,
+    vat_rate_bp: 2500,
+    sort_order: 0,
+  });
+  await adminQuery(
+    `update public.quote_versions set status = 'sent' where id = $1`,
+    [acceptedJobVersionId],
+  );
+  await adminInsertQuoteEvent({
+    tenant_id: base.tenantA.id,
+    quote_id: acceptedJobQuoteId,
+    quote_version_id: acceptedJobVersionId,
+    event_type: "created",
+  });
+  // Drive the REAL 7.2 transaction directly (BYPASSRLS superuser passing the resolved tenant id).
+  // The RPC records the acceptance, flips sent → accepted, and creates the ONE job — the authentic
+  // source refs the 7.3 detail reads from. `p_accepted_at` is an EXPLICIT instant (H1). An external
+  // evidence reference exercises the detail's evidence surface without an uploaded file.
+  const acceptRpcRows = await adminQuery<{ acceptance_id: string; job_id: string }>(
+    `select acceptance_id, job_id from public.accept_quote_and_create_job(
+        $1::uuid, $2::uuid, $3::timestamptz, $4::bigint, $5::bigint,
+        $6::text, $7::text, $8::uuid, $9::text, $10::text, $11::date, $12::date, $13::text, $14::text)`,
+    [
+      base.tenantA.id,
+      acceptedJobVersionId,
+      "2026-07-10T08:30:00.000Z",
+      125000,
+      125000,
+      "verbal",
+      null,
+      null,
+      "Signerad orderbekräftelse (referens #A-7003)",
+      "Accepterat via telefon 2026-07-10",
+      "2026-08-01",
+      "2026-08-20",
+      "Jobb från accepterad offert 1006",
+      null,
+    ],
+  );
+  const acceptedJobId = acceptRpcRows[0]?.job_id ?? null;
+
   // PDF render-state seed (Story 6.3): a SEPARATE quote (so the 6.2 quote above keeps EXACTLY
   // two versions) with THREE versions exercising the render states DETERMINISTICALLY without a
   // real generation:
@@ -459,6 +569,21 @@ export default async function globalSetup() {
     newVersionQuote: {
       id: newVersionQuoteId,
       sentVersionId: newVersionSentVersionId,
+    },
+    // Story 7.2 — a dedicated single-SENT-version quote the accept-and-create-job FLOW E2E consumes
+    // (confirming acceptance permanently flips it to `accepted` + creates a job), kept off the
+    // shared 6.2/7.1 quote whose sent version the acceptance-FORM tests need to stay `sent`.
+    acceptQuote: {
+      id: acceptQuoteId,
+      sentVersionId: acceptSentVersionId,
+    },
+    // Story 7.3 — a dedicated ALREADY-accepted quote whose one job was created at seed time via the
+    // REAL 7.2 transaction. The 7.3 detail/list/deep-link E2E read this KNOWN jobId (self-contained,
+    // no dependence on the 7.2 runtime accept).
+    acceptedJob: {
+      quoteId: acceptedJobQuoteId,
+      sentVersionId: acceptedJobVersionId,
+      jobId: acceptedJobId,
     },
     // Story 6.3 — a SEPARATE quote whose versions exercise the PDF render states.
     pdfQuote: {
