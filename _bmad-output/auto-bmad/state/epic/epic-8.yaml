@@ -5,11 +5,11 @@ epic_num: 8
 story_num: null
 branch: epic/8-required-files-and-private-storage
 status: in-progress
-updated_at: "2026-07-07T15:28:40Z"
+updated_at: "2026-07-07T15:49:43Z"
 started_at: "2026-07-07T10:02:38Z"
 completed_at: null
-active_seconds: 17474
-timing_anchor: 1783437419
+active_seconds: 19438
+timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
 needs_project_context_bootstrap: false
@@ -20,14 +20,14 @@ tea_selected: []
 tea_rationale: null
 epic_story_count: 5
 stories_after_in_epic: null
-completed_phases: [0, 1, 2, 5, 81]
+completed_phases: [0, 1, 2, 5, 7, 81]
 code_review_iterations: 1
-code_review_loop_done: false
-hitl_halt: null
+code_review_loop_done: true
+hitl_halt: "auto-continued (epic â€” no halt)"
 external_review_iterations: 0
 convergence_unverified: false
 story_trace: null
-commits: [a406f59, 5e2aa8c, 6fd8f84, 30cbf9d]
+commits: [a406f59, 5e2aa8c, 6fd8f84, 30cbf9d, 0bd709a, f252ab1]
 phase8_steps:
   trace_gate: done
   nfr: done
