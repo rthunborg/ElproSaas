@@ -5,10 +5,10 @@ epic_num: 8
 story_num: null
 branch: epic/8-required-files-and-private-storage
 status: in-progress
-updated_at: "2026-07-07T14:55:04Z"
+updated_at: "2026-07-07T15:12:24Z"
 started_at: "2026-07-07T10:02:38Z"
 completed_at: null
-active_seconds: 16645
+active_seconds: 17474
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -20,7 +20,7 @@ tea_selected: []
 tea_rationale: null
 epic_story_count: 5
 stories_after_in_epic: null
-completed_phases: [0, 1, 2]
+completed_phases: [0, 1, 2, 5, 81]
 code_review_iterations: 0
 code_review_loop_done: false
 hitl_halt: null
@@ -29,14 +29,14 @@ convergence_unverified: false
 story_trace: null
 commits: [a406f59, 5e2aa8c, 6fd8f84, 30cbf9d]
 phase8_steps:
-  trace_gate: null
-  nfr: null
-  test_review: null
+  trace_gate: done
+  nfr: done
+  test_review: done
   project_context: null
   reconcile: null
   archive: null
   retro: null
-gate_decision: null
+gate_decision: PASS
 gate_iterations: 0
 deferred_work_archived: 0
 pr_url: null
@@ -54,11 +54,12 @@ blockers: []
 overrides: {}
 constraints: []
 epic_slug: required-files-and-private-storage
-active_story: 8-5-limited-file-index-and-file-audit-within-phase-a-scope
+active_story: null
 stories_landed:
   - 8-2-validated-upload-and-entity-file-panels
   - 8-3-tenant-authorized-signed-file-access
   - 8-4-quote-pdf-attachment-and-acceptance-evidence-locks
+  - 8-5-limited-file-index-and-file-audit-within-phase-a-scope
 auto_decisions:
   - "Server 're-derives' MIME from client-declared File.type, not bytes [Med] -> fix: correct the misleading comments in actions.ts/form-parsing.ts/validation.ts (MIME is client-declared File.type validated against fail-closed allow-list); no magic-byte sniffing now; log byte-sniffing as owner-gated R-817 follow-up (Tier A, 8-2)"
   - "AC4 'mid-flow fault' asserted by over-titled test [Med] -> fix: rename the test to what it verifies (lock precision) and cite 8.4-RLS-04 as the atomic-by-construction AC4 proof; no fabricated fault-injection (Tier A, 8-4)"
@@ -102,6 +103,21 @@ uat_items:
   - "[8-4-quote-pdf-attachment-and-acceptance-evidence-locks] Family agreement: same seeded data — quote_versions mutation → QV409, quote_acceptances mutation → AR704, file_links mutation → FL823 (three distinct sibling codes, no fork)"
   - "[8-4-quote-pdf-attachment-and-acceptance-evidence-locks] Cross-tenant no-disclosure: via an anon/authenticated JWT client (NOT superuser psql — RLS bypassed there), UPDATE another tenant's file_link → zero rows, no error, no FL823 leak (identical to not-found)"
   - "[8-4-quote-pdf-attachment-and-acceptance-evidence-locks] Suites: SUPABASE_TEST_REQUIRED=1 pnpm test:int (8.4-RLS-01..07 + command suite: archive-only + clean audit row, FILE_LINK_LOCKED, TENANT_ACCESS_DENIED) and pnpm test:unit (lock-lifecycle golden + predicates) → all green; archiveFile command has no app wiring yet (8.5), so AC3 command behavior is suite-verified only"
+  - "[8-5-limited-file-index-and-file-audit-within-phase-a-scope] Setup once: supabase start && supabase db reset (kong 502 → docker restart supabase_kong_ElproSaas); seed via Playwright global-setup (e.g. pnpm test:e2e --grep file-lock-panel) which writes creds + sent-quote/accepted-acceptance/CRM-file ids to tests/e2e/.auth/fixture.json; pnpm dev against the local stack (no signup UI or standalone seed script exists)"
+  - "[8-5-limited-file-index-and-file-audit-within-phase-a-scope] Sign in at /login with fixture.adminA email/password → redirected to /dashboard, no error"
+  - "[8-5-limited-file-index-and-file-audit-within-phase-a-scope] Click 'Filer' in the nav (or /files) → Filer page renders; seeded CRM file appears with category badge 'Kund', mime/size line, 'Uppladdad:' date"
+  - "[8-5-limited-file-index-and-file-audit-within-phase-a-scope] On /files, rows show ONLY display-safe metadata (name, category, MIME, size, date) — no storage path, bucket id, or object key anywhere"
+  - "[8-5-limited-file-index-and-file-audit-within-phase-a-scope] Type part of a file name into 'Sök' → list narrows in real time; clearing restores"
+  - "[8-5-limited-file-index-and-file-audit-within-phase-a-scope] Open 'Kategori' dropdown → ONLY the seven Phase A categories + 'Alla kategorier' — no Fortnox/HR/uthyrning/tillgångar/DoU/upphandling grouping"
+  - "[8-5-limited-file-index-and-file-audit-within-phase-a-scope] Select category 'Offert' → only quote-linked files; 'Kund' → only customer files; empty category → 'Inga filer matchar…'"
+  - "[8-5-limited-file-index-and-file-audit-within-phase-a-scope] Click 'Förhandsgranska' on a row → 'Öppna fil (tidsbegränsad länk)' appears; opens in a new tab via a signed time-limited URL minted on demand"
+  - "[8-5-limited-file-index-and-file-audit-within-phase-a-scope] On /customers/{companyId}, the UNLOCKED CRM document shows preview + 'Ersätt (ladda upp ny fil)' + 'Arkivera fil'; NO delete control"
+  - "[8-5-limited-file-index-and-file-audit-within-phase-a-scope] Click 'Arkivera fil' on the unlocked file → 'Arkiverar…' then 'Arkiverad' disabled; after refresh the file is gone from both the panel and /files"
+  - "[8-5-limited-file-index-and-file-audit-within-phase-a-scope] Open /quotes/{sentQuote.quoteId} → sent version's file section shows the amber file-lock-notice: file is LÅST (skickad), can be archived, not replaced/deleted — conveyed as text, not color alone"
+  - "[8-5-limited-file-index-and-file-audit-within-phase-a-scope] On the sent-quote locked PDF: 'Arkivera fil' present; NO replace and NO delete control"
+  - "[8-5-limited-file-index-and-file-audit-within-phase-a-scope] Open /quotes/{acceptedAcceptance.quoteId} → evidence file shows the evidence-lock-notice (låst — acceptance registered); archive-only, no replace/delete"
+  - "[8-5-limited-file-index-and-file-audit-within-phase-a-scope] Keyboard-only pass on /files and locked panels → Tab reaches search/filter/preview/archive with visible focus rings; Enter/Space activates"
+  - "[8-5-limited-file-index-and-file-audit-within-phase-a-scope] Cross-tenant: as adminA the /files list shows ONLY tenant-A files; a crafted foreign file_id in a preview/archive form → generic Swedish permission error, no existence leak; orphan user (no membership) sees no tenant-A files. (AC2 audit-row hygiene is DB-only — covered by the INT suite, not hand-verifiable in UI)"
 adopt_verdicts:
   - "8-1-file-storage-foundation-private-bucket-metadata-links-rls-and-signed-access-command: skip (already done, in base)"
   - "8-2-validated-upload-and-entity-file-panels: fresh"

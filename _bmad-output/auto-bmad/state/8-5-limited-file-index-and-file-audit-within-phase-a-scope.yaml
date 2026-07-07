@@ -4,10 +4,10 @@ story_key: 8-5-limited-file-index-and-file-audit-within-phase-a-scope
 epic_num: 8
 story_num: 5
 branch: epic/8-required-files-and-private-storage
-status: in-progress
-updated_at: "2026-07-07T14:55:04Z"
+status: done
+updated_at: "2026-07-07T14:58:14Z"
 started_at: "2026-07-07T13:49:40Z"
-completed_at: null
+completed_at: "2026-07-07T14:58:14Z"
 active_seconds: 3880
 timing_anchor: null
 is_first_in_epic: false
@@ -27,7 +27,7 @@ hitl_halt: "auto-continued (epic â€” no halt)"
 external_review_iterations: 0
 convergence_unverified: false
 story_trace: null
-commits: [ba8dec0, 40c12f3, 9a5bc9c, 64522f2]
+commits: [ba8dec0, 40c12f3, 9a5bc9c, 64522f2, d0d936c, 21266c4]
 phase8_steps:
   trace_gate: null
   nfr: null
