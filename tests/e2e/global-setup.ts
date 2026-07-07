@@ -85,6 +85,37 @@ export default async function globalSetup() {
     name: `Erik Kontakt ${token()}`,
   });
 
+  // Story 8.3: seed ONE own-tenant file linked to the COMPANY customer (owner_type='customer',
+  // purpose='crm_document' — matching the customer detail page's primary EntityFilePanel) with a
+  // REAL storage object at its server-derived path, so the panel lists a file and clicking its
+  // preview affordance mints a SIGNED URL through the 8.1 funnel (8.3-E2E-02). `crypto.randomUUID`
+  // (not Date.now) for uniqueness — the epic-3 flake lesson.
+  const crmFileId = crypto.randomUUID();
+  const crmFileName = `Kunddokument ${token()}.pdf`;
+  const crmObjectPath = `${base.tenantA.id}/${crmFileId}/${crmFileName}`;
+  // A tiny real PDF object so createSignedUrl can sign a reachable key (minimal %PDF header).
+  await adminUploadStorageObject({
+    bucket: "tenant-files",
+    objectPath: crmObjectPath,
+    body: new TextEncoder().encode("%PDF-1.7\n%crm-stub\n"),
+  });
+  await adminInsertFile({
+    tenant_id: base.tenantA.id,
+    id: crmFileId,
+    display_name: crmFileName,
+    bucket_id: "tenant-files",
+    object_path: crmObjectPath,
+    mime_type: "application/pdf",
+    lifecycle_state: "linked",
+  });
+  await adminInsertFileLink({
+    tenant_id: base.tenantA.id,
+    file_id: crmFileId,
+    owner_type: "customer",
+    owner_id: companyId,
+    purpose: "crm_document",
+  });
+
   // Calc seed (Story 5.2): a calculation under the company customer, with ONE section that
   // has TWO rows, so the editor E2E can open a pre-existing calc (rather than clicking the
   // whole create flow) and assert the totals summary + destructive-confirm behaviour. Each
@@ -537,6 +568,10 @@ export default async function globalSetup() {
       company: { id: companyId, displayName: companyName, orgNr: companyOrgNr },
       private: { id: privateId, displayName: privateName, personnummer: privatePnr },
       facilityId,
+      // Story 8.3 — the own-tenant file linked to the company customer (its preview affordance
+      // in the primary EntityFilePanel mints a signed URL).
+      fileId: crmFileId,
+      fileName: crmFileName,
     },
     calc: {
       id: calcId,

@@ -33,12 +33,17 @@
 import { revalidatePath } from "next/cache";
 import { createSupabaseServerClient } from "@/server/db/supabase-server-client";
 import { runCommand, type CommandDbClient } from "@/server/commands/envelope";
-import { uploadFile } from "@/server/commands/files";
+import { COMMAND_MESSAGES } from "@/server/commands/command-errors";
+import { createSignedFileAccess, uploadFile } from "@/server/commands/files";
 import {
   classifyUploadError,
   type UploadPrecheck,
 } from "@/server/storage/upload-error-classifier";
 import { parseUploadForm, precheckUpload } from "./form-parsing";
+import {
+  SIGNED_ACCESS_INITIAL,
+  type SignedAccessState,
+} from "./signed-access-state";
 import {
   UPLOAD_ACTION_INITIAL,
   UPLOAD_ERROR_MESSAGES,
@@ -147,5 +152,62 @@ export async function uploadFileAction(
     status: "error",
     errorState,
     formError: UPLOAD_ERROR_MESSAGES[errorState],
+  };
+}
+
+/**
+ * The entity-file preview/download action (Story 8.3, Task 2 — React `useActionState`
+ * signature: (prevState, formData)). Mints a SHORT-LIVED SIGNED URL for one own-tenant file
+ * listed in an `EntityFilePanel` row, via the EXISTING `createSignedFileAccess` command —
+ * the 8.1 signing funnel REUSED VERBATIM. There is NO competing signing path (R-814 STOP);
+ * this is the panel's twin of `previewJobEvidenceAction` (7.3) and the quote-PDF preview
+ * (6.3).
+ *
+ *   runCommand(createSignedFileAccess, { client: createSupabaseServerClient(), input })
+ *
+ *   - `client` is the per-request, cookie-bound RLS server client (anon key ONLY — NEVER a
+ *     service-role key; the containment guards enforce this). `storage.objects` RLS re-checks
+ *     the tenant path prefix on the sign.
+ *   - The action carries ONLY `file_id` (read from the row's form). It NEVER accepts/reads
+ *     `owner_type`/`owner_id`/`object_path`/`bucket_id` from the client for signing — the
+ *     command's own-tenant `ownership` gate re-verifies the id belongs to the caller's tenant,
+ *     so a hand-crafted foreign `file_id` is denied `TENANT_ACCESS_DENIED` (the SAME generic
+ *     shape as not-found — no existence disclosure, R-809; the epic-6 "preview accepts any
+ *     own-tenant file id" residual is BOUNDED to own-tenant by the command — do NOT widen it).
+ *   - EVERY call re-runs the WHOLE funnel (membership → ownership → lifecycle → sign), so an
+ *     expiry-refresh reauthorization is achieved by calling this action AGAIN — never by
+ *     re-issuing a cached URL (metadata-first ordering, R-810/AC2). No explicit `ttlSeconds`
+ *     is passed (the command uses the clamped env default — never the clamp-bypass path).
+ *
+ * The typed `Result` maps to a `SignedAccessState`: `ok` → { status: "success", signedUrl,
+ * expiresAt }; a failure → { status: "error", code, formError } (a generic Swedish message —
+ * `TENANT_ACCESS_DENIED`/`FILE_ACCESS_DENIED` are user-safe with NO existence disclosure; a
+ * `SERVER_ERROR` is RETRYABLE). The signed URL lives ONLY in the returned state (NEVER logged,
+ * NEVER a public URL). NO new command, NO direct table write, NO signed URL in any log.
+ */
+export async function previewEntityFileAction(
+  _prev: SignedAccessState,
+  form: FormData,
+): Promise<SignedAccessState> {
+  const fileId = form.get("file_id");
+  const input: Record<string, unknown> = { file_id: fileId };
+
+  const client = (await createSupabaseServerClient()) as unknown as CommandDbClient;
+  const result = await runCommand(createSignedFileAccess, { client, input });
+
+  if (result.ok) {
+    return {
+      ...SIGNED_ACCESS_INITIAL,
+      status: "success",
+      signedUrl: result.data.signedUrl,
+      expiresAt: result.data.expiresAt,
+    };
+  }
+
+  return {
+    ...SIGNED_ACCESS_INITIAL,
+    status: "error",
+    code: result.code,
+    formError: result.message || COMMAND_MESSAGES[result.code],
   };
 }
