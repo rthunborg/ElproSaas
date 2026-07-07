@@ -136,6 +136,17 @@ function replaceByClass(cls: Exclude<PiiClass, null | "secret">, raw: string): s
  * NEVER mutated (no raw value can leak back out through an in-place edit). Secrets are DROPPED
  * (the key is omitted entirely). Nested objects/arrays are recursed. A non-PII scalar is copied
  * verbatim (öre integers, flags, ids — the load-bearing business shape 9.3 depends on is preserved).
+ *
+ * ── KNOWN LIMITATION — free-form personal NAMES are NOT auto-anonymized (manual redaction required) ──
+ * A personal NAME is replaced only when the field KEY matches `NAME_KEYS`. A real name typed into a
+ * free-form / notes leaf under a NON-name key (e.g. `notes: "Contact Anna Andersson…"`) passes through
+ * VERBATIM — `anonymizeUnhintedString` (the value-shape backstop) masks personnummer/orgnr/phone/
+ * address/email SHAPES but has NO name detector (a name has no regex shape distinct from ordinary
+ * prose), and the shared CI scanner likewise has no name class. This is a defense-in-depth gap
+ * reachable only via a future real-capture story (the committed 9.2 fixtures are synthetic-only, and
+ * real-capture SELECTION is an owner-gated HARD STOP). BEFORE any REAL data is captured/committed,
+ * free-form fields MUST be manually redacted (or run through an allowlist / NER pass) — do NOT rely on
+ * this function to strip a name embedded in free-form text. See scripts/migration/README.md.
  */
 export function anonymizeRecord(record: Record_): Record_ {
   return anonymizeObject(record) as Record_;
@@ -171,7 +182,14 @@ const NON_EXAMPLE_EMAIL_RE = /@(?!example\.test\b)[a-z0-9.-]+\.[a-z]{2,}/i;
 const PHONE_RE = /(?:\+?46|0)\s?7\d(?:[\s-]?\d){7}\b/;
 const ADDRESS_RE = /\b(gata|gatan|väg|vägen|street|road|avenue)\s+\d+/i;
 
-/** A free-form (unhinted) string that HAPPENS to carry a PII shape is masked to a safe placeholder. */
+/**
+ * A free-form (unhinted) string that HAPPENS to carry a PII SHAPE is masked to a safe placeholder.
+ * NOTE — this backstop covers only shapes with a distinguishable regex (personnummer/orgnr/phone/
+ * address/email). It does NOT — and cannot — detect a personal NAME embedded in prose (a name has no
+ * regex shape distinct from ordinary text). A real name in a free-form field therefore passes through
+ * verbatim; it requires manual redaction / an allowlist / NER pass before any real capture. See the
+ * limitation note on `anonymizeRecord` and scripts/migration/README.md.
+ */
 function anonymizeUnhintedString(value: string): string {
   if (PERSONNUMMER_RE.test(value)) return syntheticPersonnummer();
   if (ORGNR_RE.test(value)) return syntheticOrgnr();

@@ -5,11 +5,11 @@ epic_num: 9
 story_num: null
 branch: epic/9-migration-coexistence-golden-masters-and-pilot-readiness
 status: in-progress
-updated_at: "2026-07-07T19:11:26Z"
+updated_at: "2026-07-07T19:18:07Z"
 started_at: "2026-07-07T17:37:04Z"
 completed_at: null
 active_seconds: 5290
-timing_anchor: null
+timing_anchor: 1783451498
 is_first_in_epic: false
 is_last_in_epic: false
 needs_project_context_bootstrap: false
@@ -55,7 +55,8 @@ epic_slug: migration-coexistence-golden-masters-and-pilot-readiness
 active_story: 9-2-anonymized-lovable-fixture-capture
 stories_landed:
   - 9-1-legacy-record-classification-and-migration-runbook
-auto_decisions: []
+auto_decisions:
+  - "Approved-PII-exception machine-readable marker not implemented/exercised [Med] â†’ defer: owner-gated real-capture story defines the marker key + scanner recognition when the first exception appears (Tier A, 9-2-anonymized-lovable-fixture-capture)"
 uat_items:
   - "[9-1-legacy-record-classification-and-migration-runbook] Open docs/migration/legacy-record-classification.md Â§2+Â§4 â†’ four-bucket contract stated; all four buckets populated (Â§4.1 live, Â§4.2 archive-only, Â§4.3 excluded, Â§4.4 deferred)."
   - "[9-1-legacy-record-classification-and-migration-runbook] In legacy-record-classification.md Â§4.4, scan target-treatment of every deferred group â†’ each maps to 'none â€” deferred'; none points at a live Phase A table (AC1/R-907 guard)."

@@ -5,11 +5,11 @@ epic_num: 9
 story_num: 2
 branch: epic/9-migration-coexistence-golden-masters-and-pilot-readiness
 status: in-progress
-updated_at: "2026-07-07T19:11:26Z"
+updated_at: "2026-07-07T19:22:56Z"
 started_at: "2026-07-07T18:27:58Z"
 completed_at: null
 active_seconds: 2547
-timing_anchor: null
+timing_anchor: 1783451498
 is_first_in_epic: false
 is_last_in_epic: false
 needs_project_context_bootstrap: false
@@ -20,14 +20,14 @@ tea_selected: [atdd, automate]
 tea_rationale: "Security-sensitive input handling: PII/secret/raw-customer-file anonymization in committed fixtures, irreversible once committed; corroborated by R-901/R-902/R-911 (score 6) and the zero-PII epic blocker"
 epic_story_count: 5
 stories_after_in_epic: 3
-completed_phases: [0, 1, 2, 3, 4, 5, 6]
+completed_phases: [0, 1, 2, 3, 4, 5, 6, 7]
 code_review_iterations: 0
 code_review_loop_done: false
-hitl_halt: null
+hitl_halt: "auto-continued (epic â€” no halt)"
 external_review_iterations: 0
 convergence_unverified: false
 story_trace: null
-commits: [a1578bb, 86785e0]
+commits: [a1578bb, 6c8c7a1]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -47,8 +47,10 @@ merge_method: null
 merge_commit: null
 branch_deleted: false
 open_questions: []
-deferred_work: []
+deferred_work:
+  - "Approved-PII-exception machine-readable marker mechanism â€” deferred to the owner-gated real-capture story (ledgered)"
 blockers: []
 overrides: {}
 constraints: []
 tier_a_base_sha: a573269ab8d76e6fa947c14edad4dd8442fa23f6
+tier_a_review: "done (1 pass, Changes Requested -> fixed; Critical 0 / High 0 / Med 2 / Low 2; 1 Med Decision auto-deferred per triage recommendation, 3 Patch fixed; security 1 Low)"

@@ -22,6 +22,9 @@
  *   SECRET        /secret|password|api_key/i
  *   PHONE         /(?:\+?46|0)\s?7\d(?:[\s-]?\d){7}\b/   SE mobile shape
  *   ADDRESS       /\b(gata|gatan|väg|vägen|street|road|avenue)\s+\d+/i   street-type + number
+ *   RAW_FILE_BLOB `data:` URI OR a long unbroken base64 run in a STRING leaf — the AC1/R-901 raw-file
+ *                 prohibition made an ASSERTED guard (a files fixture must be link/type/purpose
+ *                 metadata only, never a smuggled base64/binary customer file). String-leaf scoped.
  *
  * ── P2 ORGNR HARDENING (Task 4.3 / R-914 / 9.2-ORGNR-01) ─────────────────────────────────────────
  *   The bare `\b\d{10}\b` orgnr guard flags ANY 10-digit run — including a legitimate ≥10-digit öre
@@ -54,6 +57,18 @@ export const NON_EXAMPLE_EMAIL = /@(?!example\.test\b)[a-z0-9.-]+\.[a-z]{2,}/i;
 export const SECRET = /secret|password|api_key/i;
 export const PHONE = /(?:\+?46|0)\s?7\d(?:[\s-]?\d){7}\b/;
 export const ADDRESS = /\b(gata|gatan|väg|vägen|street|road|avenue)\s+\d+/i;
+
+/**
+ * RAW_FILE_BLOB (AC1 / R-901 raw-file prohibition, 9.2-PRIV-02 raw-file arm) — the files fixture (and
+ * any future files-shaped fixture) must carry link/type/purpose METADATA only, NEVER a raw customer
+ * file smuggled in as a base64/binary/`data:` payload. This class detects a `data:` URI (with an
+ * embedded encoded payload) OR a long unbroken base64 run in a STRING leaf — the shape a raw file blob
+ * takes when embedded in JSON. Scoped to string leaves (like ORGNR) so it never trips on a numeric öre
+ * value; the base64 threshold (>= 120 chars of unbroken base64) is far above any legitimate synthetic
+ * id/label/hash a fixture carries, so a link/purpose metadata leaf cannot false-positive.
+ */
+export const DATA_URI_BLOB = /data:[a-z0-9.+-]+\/[a-z0-9.+-]+;base64,/i;
+export const BASE64_BLOB = /[A-Za-z0-9+/]{120,}={0,2}/;
 
 /** A single detected PII/secret violation — the CLASS that tripped + the optional fixture label. */
 export interface Violation {
@@ -97,14 +112,19 @@ function scanClasses(dataOnly: Record<string, unknown>, file?: string): Violatio
   const violations: Violation[] = [];
   const hit = (cls: string) => violations.push(file ? { class: cls, file } : { class: cls });
 
+  const leaves = stringLeaves(dataOnly);
+
   if (PERSONNUMMER.test(dataJson)) hit("PERSONNUMMER");
   // ORGNR: STRING leaves only (a real orgnr is a string field; a numeric öre leaf never appears as a
   // 10-digit token inside a string). Do NOT scan the full JSON — that would flag a legit ≥10-digit öre.
-  if (stringLeaves(dataOnly).some((s) => ORGNR.test(s))) hit("ORGNR");
+  if (leaves.some((s) => ORGNR.test(s))) hit("ORGNR");
   if (NON_EXAMPLE_EMAIL.test(dataJson)) hit("NON_EXAMPLE_EMAIL");
   if (SECRET.test(dataJson)) hit("SECRET");
   if (PHONE.test(dataJson)) hit("PHONE");
   if (ADDRESS.test(dataJson)) hit("ADDRESS");
+  // RAW_FILE_BLOB: STRING leaves only — a raw customer file (base64/`data:` payload) is a string leaf;
+  // a numeric öre value never is. Detect a `data:` URI OR a long unbroken base64 run (a smuggled blob).
+  if (leaves.some((s) => DATA_URI_BLOB.test(s) || BASE64_BLOB.test(s))) hit("RAW_FILE_BLOB");
   return violations;
 }
 

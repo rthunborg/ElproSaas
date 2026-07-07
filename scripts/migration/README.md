@@ -45,6 +45,24 @@ The anonymized output satisfies the same shared privacy scanner
 (`tests/support/anonymization-scan.ts`, imported as `@/tests-support/anonymization-scan`) the
 committed fixtures are held to.
 
+### KNOWN LIMITATION — free-form personal NAMES are NOT auto-anonymized (manual redaction required before any real capture)
+
+`anonymizeRecord` replaces a personal **name** only when the field **key** matches the name-key
+heuristic (`name`/`first_name`/`contact_name`/…). Its value-shape backstop
+(`anonymizeUnhintedString`) masks a personnummer/orgnr/phone/address/email SHAPE that appears in an
+unhinted free-form field — but it does **NOT** detect a name, because a personal name has no regex
+shape distinguishable from ordinary prose (unlike a personnummer or an email). So a real name typed
+into a free-form leaf under a non-name key (e.g. `notes: "Contact Anna Andersson about the meter"`)
+would pass through **verbatim**, and the shared CI scanner likewise has **no name class**, so it
+would not catch it either.
+
+This is a **defense-in-depth gap reachable only via a future real-capture story** — the committed
+9.2 fixtures are synthetic-only and clean, and real-capture SELECTION is itself an owner-gated **HARD
+STOP**. But names are privacy-critical. **Before any REAL Lovable data is captured and committed**,
+free-form / notes / comment fields MUST be manually redacted (or run through an allowlist / NER pass)
+— do NOT rely on `anonymizeRecord` to strip a name embedded in free-form text. The owner-gated
+real-capture story that introduces the first real value must own this redaction step.
+
 ## Usage (illustrative — synthetic input)
 
 ```ts

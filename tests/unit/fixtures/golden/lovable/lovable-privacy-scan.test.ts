@@ -146,6 +146,44 @@ describe("Story 9.2 — Lovable-pack privacy scan (9.2-PRIV-01 / R-901)", () => 
       }
     }
   });
+
+  // ── 9.2-PRIV-02 (AC1 / R-901 raw-file arm) — POSITIVE CONTROL: the scan FAILS-CLOSED on a raw blob ──
+  // A files fixture must be link/type/purpose METADATA only — never a raw customer file smuggled in as
+  // a base64/`data:` payload. Feed a SEEDED object carrying a `data:` URI AND a long base64 run; assert
+  // the shared scanner reports a RAW_FILE_BLOB violation for each. Constructed INLINE — never committed.
+  test("[P0] seeded raw file blob trips the scan — data: URI and long base64 each detected (raw-file fail-closed)", async () => {
+    const mod = await loadScanner();
+    assert.ok(mod, "the shared scanner module must exist");
+    const scan =
+      typeof (mod as Record<string, unknown>).scanFixtureData === "function"
+        ? (mod as { scanFixtureData: (o: unknown, label?: string) => { violations: { class: string }[] } }).scanFixtureData
+        : null;
+    assert.ok(scan, "the shared scanner must export scanFixtureData for the raw-blob positive control");
+
+    // A `data:` URI payload — the shape a raw customer file takes when embedded in JSON.
+    const dataUriBlob = {
+      _doc: "SEEDED raw-file positive control — NOT a committed fixture. Proves the raw-file arm fails-closed.",
+      fileLinks: [{ purpose: "acceptance_evidence", type: "application/pdf", payload: "data:application/pdf;base64,JVBERi0xLjc=" }],
+    };
+    const dataUriHits = scan!(dataUriBlob).violations.map((v) => v.class);
+    assert.ok(dataUriHits.includes("RAW_FILE_BLOB"), "a data: URI raw-file payload was NOT detected — the raw-file arm is not fail-closed");
+
+    // A long unbroken base64 run (a raw blob without the data: prefix).
+    const base64Blob = {
+      _doc: "SEEDED raw-file positive control — NOT a committed fixture.",
+      fileLinks: [{ purpose: "acceptance_evidence", type: "image/png", payload: "A".repeat(160) }],
+    };
+    const base64Hits = scan!(base64Blob).violations.map((v) => v.class);
+    assert.ok(base64Hits.includes("RAW_FILE_BLOB"), "a long base64 raw-file run was NOT detected — the raw-file arm is not fail-closed");
+
+    // Negative: the CLEAN files metadata (link/type/purpose, short synthetic ids) must NOT trip it.
+    const cleanMetadata = {
+      _doc: "clean files metadata — link/type/purpose only, no blob.",
+      fileLinks: [{ purpose: "acceptance_evidence", type: "application/pdf", url: "https://storage.example.test/file-01" }],
+    };
+    const cleanHits = scan!(cleanMetadata).violations.map((v) => v.class);
+    assert.ok(!cleanHits.includes("RAW_FILE_BLOB"), "clean link/type/purpose metadata must NOT trip RAW_FILE_BLOB (no false positive)");
+  });
 });
 
 // Belt-and-braces: the surface is now PRESENT (green phase). A HARD top-level guard fails loud if the
