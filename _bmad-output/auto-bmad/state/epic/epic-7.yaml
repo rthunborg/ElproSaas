@@ -5,11 +5,11 @@ epic_num: 7
 story_num: null
 branch: epic/7-acceptance-to-job-transaction
 status: in-progress
-updated_at: "2026-07-07T08:20:58Z"
+updated_at: "2026-07-07T08:21:10Z"
 started_at: "2026-07-06T17:50:12Z"
 completed_at: null
 active_seconds: 51726
-timing_anchor: null
+timing_anchor: 1783412470
 is_first_in_epic: false
 is_last_in_epic: false
 needs_project_context_bootstrap: false
