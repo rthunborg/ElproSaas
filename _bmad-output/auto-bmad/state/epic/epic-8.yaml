@@ -5,11 +5,11 @@ epic_num: 8
 story_num: null
 branch: epic/8-required-files-and-private-storage
 status: in-progress
-updated_at: "2026-07-07T11:29:31Z"
+updated_at: "2026-07-07T11:39:13Z"
 started_at: "2026-07-07T10:02:38Z"
 completed_at: null
-active_seconds: 4564
-timing_anchor: 1783423370
+active_seconds: 5515
+timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
 needs_project_context_bootstrap: false
@@ -27,7 +27,7 @@ hitl_halt: null
 external_review_iterations: 0
 convergence_unverified: false
 story_trace: null
-commits: [a406f59, 5e2aa8c]
+commits: [a406f59, 5e2aa8c, 6fd8f84, 30cbf9d]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -54,11 +54,25 @@ blockers: []
 overrides: {}
 constraints: []
 epic_slug: required-files-and-private-storage
-active_story: 8-2-validated-upload-and-entity-file-panels
-stories_landed: []
+active_story: 8-3-tenant-authorized-signed-file-access
+stories_landed:
+  - 8-2-validated-upload-and-entity-file-panels
 auto_decisions:
   - "Server 're-derives' MIME from client-declared File.type, not bytes [Med] -> fix: correct the misleading comments in actions.ts/form-parsing.ts/validation.ts (MIME is client-declared File.type validated against fail-closed allow-list); no magic-byte sniffing now; log byte-sniffing as owner-gated R-817 follow-up (Tier A, 8-2)"
-uat_items: []
+uat_items:
+  - "[8-2-validated-upload-and-entity-file-panels] Start the app (pnpm dev, supabase start) and sign in as seeded tenant_admin, open /customers/{customerId} â†’ 'Filer' panel shows allowed types (PDF, PNG/JPEG/WebP/GIF, text/CSV, Word, Excel), max 25 MB, owner name, purpose 'Kunddokument', a file input and NO path/bucket field"
+  - "[8-2-validated-upload-and-entity-file-panels] On the customer panel, choose a valid PDF < 25 MB and click 'Ladda upp fil' â†’ green 'Filen laddades upp.' status and file appears under 'Uppladdade filer' with name and size"
+  - "[8-2-validated-upload-and-entity-file-panels] Reload the customer page after uploading â†’ the uploaded file still appears in the list (persisted + linked, own-tenant only)"
+  - "[8-2-validated-upload-and-entity-file-panels] Select a blocked-type file (.exe or .html) â†’ distinct blocked-type alert (testid file-error-blocked-type) 'Filtypen stÃ¶ds inteâ€¦' immediately on selection, before any upload"
+  - "[8-2-validated-upload-and-entity-file-panels] Select an allowed-type file > 25 MB â†’ distinct too-large alert (testid file-error-too-large) 'Filen Ã¤r fÃ¶r storâ€¦'"
+  - "[8-2-validated-upload-and-entity-file-panels] Open /calculations/{calculationId} â†’ 'Filer' panel with purpose 'Kalkylbilaga'; upload a valid PDF â†’ success + listed"
+  - "[8-2-validated-upload-and-entity-file-panels] Open /jobs/{jobId} â†’ 'Filer' panel with purpose 'Jobbunderlag'; upload a valid PNG/JPEG â†’ success + listed"
+  - "[8-2-validated-upload-and-entity-file-panels] Open a customer with facilities/contacts â†’ each facility and contact renders its own 'Filer' panel; upload on a facility panel â†’ file appears under that facility's list only"
+  - "[8-2-validated-upload-and-entity-file-panels] Open an ACCEPTED quote version at /quotes/{quoteId}/versions/{versionId} â†’ acceptance-evidence 'Filer' panel (purpose 'Acceptansunderlag') appears; upload a valid PDF â†’ success + listed; non-accepted version renders no acceptance panel"
+  - "[8-2-validated-upload-and-entity-file-panels] Server-side bypass gate: POST the panel's form endpoint directly with an oversized allow-listed file or a foreign owner_id â†’ rejected server-side; the object never becomes a listed file"
+  - "[8-2-validated-upload-and-entity-file-panels] Cross-tenant / no-existence-disclosure: submit with another tenant's owner_id AND a random non-existent UUID â†’ BOTH return the identical generic permission alert (testid file-error-permission), no found-vs-forbidden signal"
+  - "[8-2-validated-upload-and-entity-file-panels] No path leakage: after a successful upload, inspect list + page source â†’ only display-safe fields (name, size); raw object_path/bucket_id never rendered"
+  - "[8-2-validated-upload-and-entity-file-panels] Consistency: after a successful upload, verify in DB a files row (lifecycle_state='linked') + matching file_links row exist and the storage object is present â€” no half-written state"
 adopt_verdicts:
   - "8-1-file-storage-foundation-private-bucket-metadata-links-rls-and-signed-access-command: skip (already done, in base)"
   - "8-2-validated-upload-and-entity-file-panels: fresh"

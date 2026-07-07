@@ -4,12 +4,12 @@ story_key: 8-2-validated-upload-and-entity-file-panels
 epic_num: 8
 story_num: 2
 branch: epic/8-required-files-and-private-storage
-status: in-progress
-updated_at: "2026-07-07T11:35:57Z"
+status: done
+updated_at: "2026-07-07T11:37:40Z"
 started_at: "2026-07-07T10:16:17Z"
-completed_at: null
-active_seconds: 3842
-timing_anchor: 1783423371
+completed_at: "2026-07-07T11:37:40Z"
+active_seconds: 4731
+timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
 needs_project_context_bootstrap: false
@@ -27,7 +27,7 @@ hitl_halt: "auto-continued (epic â€” no halt)"
 external_review_iterations: 0
 convergence_unverified: false
 story_trace: null
-commits: [f11c91f, 5b006e3, 85a3ce5, cf3b67a]
+commits: [f11c91f, 5b006e3, 85a3ce5, cf3b67a, 30cbf9d]
 phase8_steps:
   trace_gate: null
   nfr: null
