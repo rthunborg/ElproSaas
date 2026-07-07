@@ -1,0 +1,3 @@
+## Story epic-9
+- [E2 â€” epic test design] Golden `origin` discipline goes live this epic: all current goldens are origin:"new-expected"; 9.2/9.3 introduce first real documented-delta/old-lovable cases and must widen the numeric-only LABELLING guard to number|classification-code.
+- [E2 â€” epic test design] Harness representativeness traps flagged as P0 controls (R-903/R-904): fictional ReadinessCode values pinned in fixtures + substring-token coverage manifests can green-pass a naive 9.3 harness â€” validate enums against the real union; ban vacuous-green/stale RED-PHASE banners/out-of-glob pins.
