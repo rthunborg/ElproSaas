@@ -5,10 +5,10 @@ epic_num: 8
 story_num: null
 branch: epic/8-required-files-and-private-storage
 status: in-progress
-updated_at: "2026-07-07T15:49:43Z"
+updated_at: "2026-07-07T16:02:39Z"
 started_at: "2026-07-07T10:02:38Z"
 completed_at: null
-active_seconds: 19438
+active_seconds: 20202
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -20,25 +20,25 @@ tea_selected: []
 tea_rationale: null
 epic_story_count: 5
 stories_after_in_epic: null
-completed_phases: [0, 1, 2, 5, 7, 81]
+completed_phases: [0, 1, 2, 5, 7, 81, 82]
 code_review_iterations: 1
 code_review_loop_done: true
 hitl_halt: "auto-continued (epic â€” no halt)"
 external_review_iterations: 0
 convergence_unverified: false
 story_trace: null
-commits: [a406f59, 5e2aa8c, 6fd8f84, 30cbf9d, 0bd709a, f252ab1]
+commits: [a406f59, 5e2aa8c, 6fd8f84, 30cbf9d, 0bd709a, f252ab1, 656e3ad]
 phase8_steps:
   trace_gate: done
   nfr: done
   test_review: done
-  project_context: null
-  reconcile: null
-  archive: null
-  retro: null
+  project_context: done
+  reconcile: done
+  archive: done
+  retro: done
 gate_decision: PASS
 gate_iterations: 0
-deferred_work_archived: 0
+deferred_work_archived: 1
 pr_url: null
 ci_run_url: null
 ci_status: unknown
@@ -49,6 +49,8 @@ branch_deleted: false
 open_questions:
   - "Final owner-approved MIME/size upload policy (R-817) â€” deferred to Wave-2 create-story (demo-data-only decision)"
   - "Optional file-index build/skip call (R-816) â€” owner decision deferred to Wave-2 create-story"
+  - "Acceptance-evidence upload lifecycle gate (High, demo-data-accepted) â€” needs an owned follow-up or explicit re-score at Epic 9's pilot-readiness gate (epic retro)"
+  - "Epic-7 carry: DB-level evidence-exclusivity XOR constraint still untouched; draft->linked lifecycle-state gap + non-transactional PDF-metadata insert closure unconfirmed (no story record reports them fixed)"
 deferred_work: []
 blockers: []
 overrides: {}
