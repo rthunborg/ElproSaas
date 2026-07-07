@@ -1,6 +1,6 @@
 # Story 9.1: Legacy Record Classification And Migration Runbook
 
-Status: ready-for-dev
+Status: review
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -20,31 +20,31 @@ so that the pilot migrates only what is needed and keeps old-app fallback explic
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Create the `docs/migration/` home and the migration runbook skeleton (AC: 1, 2, 3)
-  - [ ] 1.1 Create `docs/migration/` (it does NOT exist yet — architecture §16 names it as the canonical home for "classification, deltas, and fallback notes"). Author the primary runbook doc there (e.g. `docs/migration/migration-runbook.md`) plus a classification register (e.g. `docs/migration/legacy-record-classification.md`), OR a single well-sectioned file — pick one home and cross-link, do NOT duplicate the same content in two places. Keep everything **docs-only** — this story writes NO migration script, NO `scripts/migration/**` asset, NO `supabase/migration`, and runs NO production data mutation (Technical Note; architecture §16 reserves `scripts/migration/**` for "approved, testable data capture/reset scripts WHEN a migration story exists" — this is NOT that story). [Source: architecture.md#16; epics.md#Story 9.1 Technical Notes]
-  - [ ] 1.2 State phase + scope + mode at the top per the BMAD Output Discipline: **Phase A, docs-only**, migration/coexistence control point. Mark every classification decision as `live` / `archive-only` / `excluded` / `deferred` and every treatment item as `IN` / `DEFERRED` / `SEAM` where relevant; separate assumptions from decisions; link back to the baseline plan + architecture §16/§17. [Source: project-context.md#BMAD Output Discipline]
-  - [ ] 1.3 Reference **architecture §-anchors** (architecture §16 Migration And Coexistence, §17 Golden-Master Fixture Strategy), NOT plan positions like "Epic 9 / Story 9.2", in the evergreen doc body — hardcoding plan numbers into durable docs is a known staleness risk (R-922). A one-time provenance line ("authored by the 9.1 migration story") is fine; recurring in-body "Epic N/Story X-Y" cross-refs are not. [Source: project-context.md#Code Quality Rules; test-design-epic-9.md R-922, 9.x-DOC-01]
-- [ ] Task 2: Classify the legacy Lovable record groups (AC: 1)
-  - [ ] 2.1 Enumerate the Lovable legacy module/record groups from the behavioral-oracle inventory (`docs/oracle/initial-system-audit-2026-06-01.md` — 107 detected application tables across customers/CRM, calculations, quotes, jobs/projects, time planning, rentals, assets, electrical panels, articles/supplier data, service, warranties, documents/file_index, DoU, self-inspections, tenders/FKU, KNX, HR, notes/board, admin, notifications/email, AI-parsing flows). Do NOT copy Lovable code or import its schema — it is a behavioral oracle only (AR26). [Source: docs/oracle/initial-system-audit-2026-06-01.md; project-context.md#Lovable Oracle Policy; AGENTS.md]
-  - [ ] 2.2 Classify each group into exactly one of the four buckets, aligned to the Phase A product boundary:
+- [x] Task 1: Create the `docs/migration/` home and the migration runbook skeleton (AC: 1, 2, 3)
+  - [x] 1.1 Create `docs/migration/` (it does NOT exist yet — architecture §16 names it as the canonical home for "classification, deltas, and fallback notes"). Author the primary runbook doc there (e.g. `docs/migration/migration-runbook.md`) plus a classification register (e.g. `docs/migration/legacy-record-classification.md`), OR a single well-sectioned file — pick one home and cross-link, do NOT duplicate the same content in two places. Keep everything **docs-only** — this story writes NO migration script, NO `scripts/migration/**` asset, NO `supabase/migration`, and runs NO production data mutation (Technical Note; architecture §16 reserves `scripts/migration/**` for "approved, testable data capture/reset scripts WHEN a migration story exists" — this is NOT that story). [Source: architecture.md#16; epics.md#Story 9.1 Technical Notes]
+  - [x] 1.2 State phase + scope + mode at the top per the BMAD Output Discipline: **Phase A, docs-only**, migration/coexistence control point. Mark every classification decision as `live` / `archive-only` / `excluded` / `deferred` and every treatment item as `IN` / `DEFERRED` / `SEAM` where relevant; separate assumptions from decisions; link back to the baseline plan + architecture §16/§17. [Source: project-context.md#BMAD Output Discipline]
+  - [x] 1.3 Reference **architecture §-anchors** (architecture §16 Migration And Coexistence, §17 Golden-Master Fixture Strategy), NOT plan positions like "Epic 9 / Story 9.2", in the evergreen doc body — hardcoding plan numbers into durable docs is a known staleness risk (R-922). A one-time provenance line ("authored by the 9.1 migration story") is fine; recurring in-body "Epic N/Story X-Y" cross-refs are not. [Source: project-context.md#Code Quality Rules; test-design-epic-9.md R-922, 9.x-DOC-01]
+- [x] Task 2: Classify the legacy Lovable record groups (AC: 1)
+  - [x] 2.1 Enumerate the Lovable legacy module/record groups from the behavioral-oracle inventory (`docs/oracle/initial-system-audit-2026-06-01.md` — 107 detected application tables across customers/CRM, calculations, quotes, jobs/projects, time planning, rentals, assets, electrical panels, articles/supplier data, service, warranties, documents/file_index, DoU, self-inspections, tenders/FKU, KNX, HR, notes/board, admin, notifications/email, AI-parsing flows). Do NOT copy Lovable code or import its schema — it is a behavioral oracle only (AR26). [Source: docs/oracle/initial-system-audit-2026-06-01.md; project-context.md#Lovable Oracle Policy; AGENTS.md]
+  - [x] 2.2 Classify each group into exactly one of the four buckets, aligned to the Phase A product boundary:
     - **live for pilot** — the Phase A workflow surface that is actually rebuilt and pilot-usable: CRM (customers/facilities/contacts), company settings + quote terms + pricing (work_roles/articles), calculations, quote versions/PDF/acceptance, basic job/order, required files. These map to the twenty-four IN-scope tenant-owned tables the new system already ships.
     - **archive-only** — historical records kept for reference/fallback but NOT actively edited in the pilot (read-only historical quotes/jobs for continuity).
     - **excluded** — record groups intentionally not carried at all.
     - **deferred** — every deferred-module surface (Fortnox, field-worker UX, supplier APIs/integrations, AI/document-parsing jobs, HR/personnel, rentals, assets/QR, electrical panels/KNX, service/warranties, DoU automation, tender/FKU RAG, notifications/email infra, full RBAC, customer portal, broad document center/analytics). **A deferred group MUST NOT be mapped to a live Phase A table or UI** — this is the AC1 hard constraint and the R-907 over-migration guard. [Source: AGENTS.md; project-context.md#Product Boundary; architecture.md#16; epics.md#Epic 9 Explicit non-scope; test-design-epic-9.md R-907, 9.1-CLASS-01]
-  - [ ] 2.3 For each classified group, record: source-record description (redacted/synthetic, never a real value), target treatment (which Phase A table/workflow OR "none — deferred/excluded"), and a one-line rationale tying to the product boundary. A group whose real record selection is owner-gated (the pending `8.1`/`8.2` möte items) is classified STRUCTURALLY (bucket + rationale) but its concrete record selection is marked owner-pending (see Task 3.2 / Task 4). [Source: owner-signoff-questions.md#8.1/8.2; architecture.md#16]
-- [ ] Task 3: Author the per-workflow migration runbook + fallback + cutover decisions (AC: 2, 3)
-  - [ ] 3.1 For each Phase A pilot workflow (CRM → settings/pricing → calculations → quote versions/PDF/acceptance → job/order → required files), document: **source records** (which Lovable data feeds it), **target treatment** (live-rebuilt vs archive-only), **fallback path** (the Lovable app stays the behavioral oracle + fallback for that workflow until its pilot acceptance gate passes — NFR21), **manual-backfill risks** (what a human would have to re-enter by hand and where that can go wrong), and a **cutover-by-workflow decision** (cutover is per-workflow, never whole-company — architecture §16). [Source: architecture.md#16; PRD FR58/NFR21; epics.md#Story 9.1 AC2; test-design-epic-9.md 9.1-RUNBOOK-01, 9.4-FALLBACK-01]
-  - [ ] 3.2 Add an explicit **"scope-unclear → STOP for owner clarification"** protocol section AND inline STOP markers wherever a real decision is owner-gated. The runbook must fail-closed on ambiguity: an unclear/owner-pending item is a STOP, NOT a silent default-import. Concretely, the **real migration classification (`8.1`) and golden-example selection (`8.2`) are BOTH owner-pending (`öppen (möte)`)** in the sign-off register — the runbook documents the classification STRUCTURE and buckets but marks the concrete real-record selection as owner-clarification-required, and states plainly that any **real customer data export/import is a hard STOP requiring owner sign-off**. [Source: owner-signoff-questions.md#8.1/8.2, Working session agenda D; epics.md#Story 9.1 AC3 + Stop Conditions; test-design-epic-9.md 9.1-STOP-01, R-907]
-  - [ ] 3.3 Record the demo-data-only posture explicitly: the pilot runs on disposable, obviously-fake demo data through MVP (owner decision 2026-07-03); the migration/classification/fallback decisions gate REAL-customer/real-pilot cutover but are non-blocking for the demo track. Do NOT conflate the two tracks. [Source: MEMORY (demo-data-only, tax sign-off deferred); project-context.md#Development Workflow Rules; test-design-epic-9.md Assumptions #1, R-905]
-  - [ ] 3.4 Point the runbook at the approved asset locations (architecture §16) as SEAMS for the later Epic-9 stories WITHOUT building them here: anonymized structured fixtures → `tests/fixtures/golden/lovable/**` (9.2); comparison tests → `tests/golden/**` / the existing `tests/unit/**` golden pins (9.3); classification/delta/fallback docs → `docs/migration/**` (this story); approved capture/reset scripts → `scripts/migration/**` (only when a real migration story lands, NOT here). Note that `tests/fixtures/golden/lovable/**` and `scripts/migration/**` do NOT exist yet — reference them as forthcoming, do not scaffold them. [Source: architecture.md#16; test-design-epic-9.md R-919, 9.x-PATH-01]
-- [ ] Task 4: PII / privacy hygiene sweep on the authored docs (AC: 1, 2, 3; epic blocker R-902)
-  - [ ] 4.1 Every example in `docs/migration/**` MUST be redacted or synthetic — NO real name, email, phone, address, personnummer, organization number, secret, or raw customer value. Where a personnummer/orgnr example is illustratively needed, use an obviously-fake placeholder (e.g. `YYYYMMDD-XXXX`, `XXXXXX-XXXX`) that a PII scan cannot mistake for real data. Note the standing scan constraint: a bare 10-digit run reads as an orgnr to the anonymization scan (R-914) — keep illustrative numeric strings non-10-digit or clearly masked. [Source: PRD NFR17; project-context.md#Lovable Oracle Policy + Testing Rules (ORGNR 10-digit scan); test-design-epic-9.md R-901/R-902/R-914, 9.1-PRIV-03]
-  - [ ] 4.2 Self-verify: grep the new docs for personnummer-shaped (`\d{6,8}[-\s]?\d{4}`), orgnr-shaped (bare `\d{10}`), email (`@` non-`example.test`), phone, and secret/`api_key`/`password` patterns; confirm zero real hits. Record the check in the Dev Agent Record. (No new automated privacy-scan test is built HERE — the whole-fixture-set scan is Story 9.2's deliverable, 9.2-PRIV-01; 9.1's obligation is that its OWN docs are clean, proven by the manual scan.) [Source: test-design-epic-9.md 9.1-PRIV-03 (docs-scan over `docs/migration/**`), 9.2-PRIV-01 (the automated scanner is 9.2)]
-- [ ] Task 5: Verify (docs-only; AC: 1, 2, 3)
-  - [ ] 5.1 Docs review: re-read the runbook as a fresh pilot operator — every one of the four buckets is used, every deferred group maps to "no Phase A table/UI", every pilot workflow has source/treatment/fallback/backfill-risk/cutover fields, and the scope-unclear STOP protocol is present and unambiguous. [Source: epics.md#Story 9.1 Test Requirements; test-design-epic-9.md 9.1-CLASS-01/RUNBOOK-01/STOP-01]
-  - [ ] 5.2 Scope-guardrail sweep: confirm NO product code touched (`git diff src/ supabase/ package.json pnpm-lock.yaml` empty), NO dependency added, NO `.env` edited, NO `scripts/migration/**` or `supabase/migration` created, NO deferred-module table/route/nav item introduced (nav-items.ts still exactly seven), NO real customer data exported. [Source: epics.md#Story 9.1 Stop Conditions; AGENTS.md; project-context.md#Critical Don't-Miss Rules]
-  - [ ] 5.3 State the skipped product gates: this is a **docs-only** PR — typecheck/lint/unit/build/migration-reset/int/RLS gates are not applicable (no product code, no schema) and are explicitly SKIPPED-WITH-REASON in the PR body per the quality-gate convention. Do NOT claim a product-gate green run that was not needed. [Source: docs/quality/ci.md; architecture.md#19; project-context.md#Development Workflow Rules]
-  - [ ] 5.4 Do NOT modify `owner-signoff-questions.md`, the deferred-work ledger, or any golden fixture in this story — the sign-off register is Story 9.4's system-of-record and the fixtures are Story 9.2/9.3's; 9.1 only REFERENCES them. (Sprint-status tracking update is expected and allowed.) [Source: test-design-epic-9.md 9.4-REG-01, Interworking table; scope discipline]
+  - [x] 2.3 For each classified group, record: source-record description (redacted/synthetic, never a real value), target treatment (which Phase A table/workflow OR "none — deferred/excluded"), and a one-line rationale tying to the product boundary. A group whose real record selection is owner-gated (the pending `8.1`/`8.2` möte items) is classified STRUCTURALLY (bucket + rationale) but its concrete record selection is marked owner-pending (see Task 3.2 / Task 4). [Source: owner-signoff-questions.md#8.1/8.2; architecture.md#16]
+- [x] Task 3: Author the per-workflow migration runbook + fallback + cutover decisions (AC: 2, 3)
+  - [x] 3.1 For each Phase A pilot workflow (CRM → settings/pricing → calculations → quote versions/PDF/acceptance → job/order → required files), document: **source records** (which Lovable data feeds it), **target treatment** (live-rebuilt vs archive-only), **fallback path** (the Lovable app stays the behavioral oracle + fallback for that workflow until its pilot acceptance gate passes — NFR21), **manual-backfill risks** (what a human would have to re-enter by hand and where that can go wrong), and a **cutover-by-workflow decision** (cutover is per-workflow, never whole-company — architecture §16). [Source: architecture.md#16; PRD FR58/NFR21; epics.md#Story 9.1 AC2; test-design-epic-9.md 9.1-RUNBOOK-01, 9.4-FALLBACK-01]
+  - [x] 3.2 Add an explicit **"scope-unclear → STOP for owner clarification"** protocol section AND inline STOP markers wherever a real decision is owner-gated. The runbook must fail-closed on ambiguity: an unclear/owner-pending item is a STOP, NOT a silent default-import. Concretely, the **real migration classification (`8.1`) and golden-example selection (`8.2`) are BOTH owner-pending (`öppen (möte)`)** in the sign-off register — the runbook documents the classification STRUCTURE and buckets but marks the concrete real-record selection as owner-clarification-required, and states plainly that any **real customer data export/import is a hard STOP requiring owner sign-off**. [Source: owner-signoff-questions.md#8.1/8.2, Working session agenda D; epics.md#Story 9.1 AC3 + Stop Conditions; test-design-epic-9.md 9.1-STOP-01, R-907]
+  - [x] 3.3 Record the demo-data-only posture explicitly: the pilot runs on disposable, obviously-fake demo data through MVP (owner decision 2026-07-03); the migration/classification/fallback decisions gate REAL-customer/real-pilot cutover but are non-blocking for the demo track. Do NOT conflate the two tracks. [Source: MEMORY (demo-data-only, tax sign-off deferred); project-context.md#Development Workflow Rules; test-design-epic-9.md Assumptions #1, R-905]
+  - [x] 3.4 Point the runbook at the approved asset locations (architecture §16) as SEAMS for the later Epic-9 stories WITHOUT building them here: anonymized structured fixtures → `tests/fixtures/golden/lovable/**` (9.2); comparison tests → `tests/golden/**` / the existing `tests/unit/**` golden pins (9.3); classification/delta/fallback docs → `docs/migration/**` (this story); approved capture/reset scripts → `scripts/migration/**` (only when a real migration story lands, NOT here). Note that `tests/fixtures/golden/lovable/**` and `scripts/migration/**` do NOT exist yet — reference them as forthcoming, do not scaffold them. [Source: architecture.md#16; test-design-epic-9.md R-919, 9.x-PATH-01]
+- [x] Task 4: PII / privacy hygiene sweep on the authored docs (AC: 1, 2, 3; epic blocker R-902)
+  - [x] 4.1 Every example in `docs/migration/**` MUST be redacted or synthetic — NO real name, email, phone, address, personnummer, organization number, secret, or raw customer value. Where a personnummer/orgnr example is illustratively needed, use an obviously-fake placeholder (e.g. `YYYYMMDD-XXXX`, `XXXXXX-XXXX`) that a PII scan cannot mistake for real data. Note the standing scan constraint: a bare 10-digit run reads as an orgnr to the anonymization scan (R-914) — keep illustrative numeric strings non-10-digit or clearly masked. [Source: PRD NFR17; project-context.md#Lovable Oracle Policy + Testing Rules (ORGNR 10-digit scan); test-design-epic-9.md R-901/R-902/R-914, 9.1-PRIV-03]
+  - [x] 4.2 Self-verify: grep the new docs for personnummer-shaped (`\d{6,8}[-\s]?\d{4}`), orgnr-shaped (bare `\d{10}`), email (`@` non-`example.test`), phone, and secret/`api_key`/`password` patterns; confirm zero real hits. Record the check in the Dev Agent Record. (No new automated privacy-scan test is built HERE — the whole-fixture-set scan is Story 9.2's deliverable, 9.2-PRIV-01; 9.1's obligation is that its OWN docs are clean, proven by the manual scan.) [Source: test-design-epic-9.md 9.1-PRIV-03 (docs-scan over `docs/migration/**`), 9.2-PRIV-01 (the automated scanner is 9.2)]
+- [x] Task 5: Verify (docs-only; AC: 1, 2, 3)
+  - [x] 5.1 Docs review: re-read the runbook as a fresh pilot operator — every one of the four buckets is used, every deferred group maps to "no Phase A table/UI", every pilot workflow has source/treatment/fallback/backfill-risk/cutover fields, and the scope-unclear STOP protocol is present and unambiguous. [Source: epics.md#Story 9.1 Test Requirements; test-design-epic-9.md 9.1-CLASS-01/RUNBOOK-01/STOP-01]
+  - [x] 5.2 Scope-guardrail sweep: confirm NO product code touched (`git diff src/ supabase/ package.json pnpm-lock.yaml` empty), NO dependency added, NO `.env` edited, NO `scripts/migration/**` or `supabase/migration` created, NO deferred-module table/route/nav item introduced (nav-items.ts still exactly seven), NO real customer data exported. [Source: epics.md#Story 9.1 Stop Conditions; AGENTS.md; project-context.md#Critical Don't-Miss Rules]
+  - [x] 5.3 State the skipped product gates: this is a **docs-only** PR — typecheck/lint/unit/build/migration-reset/int/RLS gates are not applicable (no product code, no schema) and are explicitly SKIPPED-WITH-REASON in the PR body per the quality-gate convention. Do NOT claim a product-gate green run that was not needed. [Source: docs/quality/ci.md; architecture.md#19; project-context.md#Development Workflow Rules]
+  - [x] 5.4 Do NOT modify `owner-signoff-questions.md`, the deferred-work ledger, or any golden fixture in this story — the sign-off register is Story 9.4's system-of-record and the fixtures are Story 9.2/9.3's; 9.1 only REFERENCES them. (Sprint-status tracking update is expected and allowed.) [Source: test-design-epic-9.md 9.4-REG-01, Interworking table; scope discipline]
 
 ## Dev Notes
 
@@ -134,10 +134,87 @@ Established cadence: conventional commits scoped per story, one branch per epic 
 
 ### Agent Model Used
 
-{{agent_model_name_version}}
+Claude Opus 4.8 (claude-opus-4-8[1m]) — BMAD dev-story workflow (auto-bmad delegate).
 
 ### Debug Log References
 
+- **PII / privacy self-scan (Task 4.2, 9.1-PRIV-03)** — ran the five documented scans over
+  `docs/migration/*.md`; **zero real hits** on every class:
+  - personnummer-shaped `\d{6,8}[-\s]?\d{4}` → no matches
+  - bare 10-digit orgnr run (R-914) → no matches
+  - email non-`example.test`/`example.com` → no matches
+  - phone-ish `+46`/separated long digit runs → no matches
+  - `api_key`/`password:`/`secret:`/`bearer`/`-----BEGIN` → no matches
+  - context check of the words personnummer/orgnr/secret/org-number confirmed all are
+    module/column-name or policy-rationale mentions, never values; the only placeholders are
+    the obviously-fake masked forms `YYYYMMDD-XXXX` / `XXXXXX-XXXX` (non-10-digit).
+- **Scope-guardrail sweep (Task 5.2)** — `git status --porcelain src/ supabase/ package.json
+  pnpm-lock.yaml` **empty** (no product code/schema/deps touched); `scripts/migration/` and
+  `supabase/migration/` **do not exist** (not created); `tests/fixtures/golden/lovable/` **does
+  not exist** (not scaffolded — 9.2's job); `nav-items.ts` unchanged, **exactly seven** nav
+  href destinations; `owner-signoff-questions.md`, the deferred-work ledger, and `tests/fixtures/`
+  **untouched** (Task 5.4). Working tree diff limited to `docs/migration/**` + this story file +
+  `sprint-status.yaml` + auto-bmad state.
+- **ReadinessCode verification** — verified the real `ReadinessCode` union against
+  `src/features/calculations/readiness.ts` (12 members incl. `TAX_SIGN_OFF_REQUIRED`,
+  `REQUIRED_FILES_DEFERRED`, `HIDDEN_ROWS_INCLUDED`, `LOW_MARGIN`, `MISSING_CUSTOMER`,
+  `TOTAL_UNCOMPUTABLE`, `UNRESOLVED_VAT`, …). The docs deliberately reference readiness
+  codes only in-passing (`REQUIRED_FILES_DEFERRED` for the required-files fallback seam) and
+  never invent a code; the fictional `REQUIRES_SIGN_OFF`/`DEDUCTION_ESTIMATE_UNAPPROVED` codes
+  are NOT used.
+
 ### Completion Notes List
 
+- **Docs-only story complete.** Created the new `docs/migration/` home (architecture §16's
+  canonical location, which did not exist before) with two cross-linked files: a
+  **classification register** (`legacy-record-classification.md`) and the **per-workflow
+  migration runbook** (`migration-runbook.md`). Content is NOT duplicated across the two — the
+  register owns the four-bucket record-group decisions, the runbook owns the per-workflow
+  source/treatment/fallback/backfill/cutover mechanics; each cross-links the other.
+- **AC1 (classification):** every one of the four buckets is used — **live** (18 groups →
+  the twenty-four IN-scope tenant-owned tables), **archive-only** (4 historical-continuity
+  groups → Lovable fallback, no active table), **excluded** (4 groups), **deferred** (18
+  deferred-module groups). **Every deferred group maps to "none — deferred"** (no Phase A
+  table/UI) — the R-907 hard constraint, self-checked in register §6. No live group exceeds
+  the twenty-four-table boundary.
+- **AC2 (runbook):** all six Phase A pilot workflows (CRM, settings/pricing, calculations,
+  quote versions/PDF/acceptance, basic job/order, required files) each carry the five required
+  fields — source records, target treatment, fallback path, manual-backfill risks, and a
+  cutover-by-workflow decision (per-workflow, never whole-company).
+- **AC3 (STOP):** an explicit fail-closed **"scope-unclear → STOP for owner clarification"**
+  protocol (runbook §6) plus inline STOP markers wherever a decision is owner-gated. The
+  concrete real-record selection (`8.1`) and golden-example selection (`8.2`) are both
+  `öppen (möte)` and are STOP-marked, not fabricated; any real customer data export/import is
+  stated as a **hard STOP requiring owner sign-off**.
+- **Epic-blocker R-901/R-902 (zero real PII):** confirmed clean by the manual five-class scan
+  (see Debug Log). Redacted/synthetic examples only; obviously-fake masked placeholders where
+  ever illustratively needed.
+- **Retro/deferred constraints honored:** current owner-decided personnummer state reflected
+  (private-only, access-controlled — supersedes stale R-009 text); the required-files
+  `REQUIRED_FILES_DEFERRED` seam noted as a live manual-fallback consideration (R-513); the
+  Epic-8 pilot-readiness re-score triggers (acceptance-evidence-upload gate, R-817, R-818)
+  **referenced** as workflow-level considerations, **not resolved** (their consolidation is
+  the fallback/cutover/sign-off-register + acceptance-gate work). No golden/Lovable oracle
+  number fabricated (golden examples framed as forthcoming, owner-gated).
+- **No new automated test authored** — per the test design (9.1's "tests" are the docs-review /
+  classification-checklist / STOP-marker / docs-PII-scan validators; the automated whole-fixture
+  privacy scanner is 9.2-PRIV-01, the executable classification/runbook validators land in a
+  later Epic-9 story). 9.1's obligation — clean, complete, STOP-marked docs — is met and
+  proven by the manual scan above.
+- **Skipped product gates (docs-only, Task 5.3):** typecheck / lint / unit / build /
+  migration-reset / integration / RLS gates are **not applicable** (no product code, no schema,
+  no deps) and are explicitly SKIPPED-WITH-REASON — to be stated in the PR body per the
+  quality-gate convention. No product-gate green run is claimed.
+
 ### File List
+
+- `docs/migration/legacy-record-classification.md` (new) — the four-bucket classification register.
+- `docs/migration/migration-runbook.md` (new) — the per-workflow migration/coexistence runbook.
+- `_bmad-output/implementation-artifacts/9-1-legacy-record-classification-and-migration-runbook.md` (modified) — tasks checked, Dev Agent Record, Change Log, status.
+- `_bmad-output/implementation-artifacts/sprint-status.yaml` (modified) — story status tracking.
+
+## Change Log
+
+| Date | Change |
+| --- | --- |
+| 2026-07-07 | Story 9.1 implemented (docs-only). Created `docs/migration/` with the legacy-record classification register (four buckets: live/archive-only/excluded/deferred; every deferred group → no Phase A table/UI) and the per-workflow migration runbook (six workflows × source/treatment/fallback/backfill/cutover; scope-unclear→STOP protocol; demo-data-only posture; approved-asset-location seams). Zero real PII (manual five-class scan clean). No product code/schema/deps touched; scope-guardrail sweep clean. Status → review. |
