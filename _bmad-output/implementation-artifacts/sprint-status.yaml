@@ -1,5 +1,5 @@
 # generated: 2026-06-12
-# last_updated: 2026-07-07  # Story 8.2 story-context created (ready-for-dev)
+# last_updated: 2026-07-07  # Story 8.3 story-context created (ready-for-dev)
 # project: ElproSaas
 # project_key: NOKEY
 # tracking_system: file-system
@@ -123,7 +123,7 @@ development_status:
   # 8-1 (file storage foundation) is listed ABOVE under WAVE 1, before the epic-6 block,
   # so it is picked next. Not duplicated here. Wave 2 (8.2-8.5) follows Epics 6-7.
   8-2-validated-upload-and-entity-file-panels: review
-  8-3-tenant-authorized-signed-file-access: backlog
+  8-3-tenant-authorized-signed-file-access: ready-for-dev
   8-4-quote-pdf-attachment-and-acceptance-evidence-locks: backlog
   8-5-limited-file-index-and-file-audit-within-phase-a-scope: backlog
   epic-8-retrospective: optional
