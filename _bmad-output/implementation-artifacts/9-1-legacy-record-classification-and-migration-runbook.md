@@ -196,11 +196,27 @@ Claude Opus 4.8 (claude-opus-4-8[1m]) — BMAD dev-story workflow (auto-bmad del
   **referenced** as workflow-level considerations, **not resolved** (their consolidation is
   the fallback/cutover/sign-off-register + acceptance-gate work). No golden/Lovable oracle
   number fabricated (golden examples framed as forthcoming, owner-gated).
-- **No new automated test authored** — per the test design (9.1's "tests" are the docs-review /
-  classification-checklist / STOP-marker / docs-PII-scan validators; the automated whole-fixture
-  privacy scanner is 9.2-PRIV-01, the executable classification/runbook validators land in a
-  later Epic-9 story). 9.1's obligation — clean, complete, STOP-marked docs — is met and
-  proven by the manual scan above.
+- **No new automated test authored in the initial dev pass** — per the test design (9.1's
+  "tests" are the docs-review / classification-checklist / STOP-marker / docs-PII-scan
+  validators; the automated whole-fixture privacy scanner is 9.2-PRIV-01, the executable
+  classification/runbook validators may land in a later Epic-9 story). 9.1's obligation —
+  clean, complete, STOP-marked docs — is met and proven by the manual scan above.
+- **Automated-coverage expansion (TEA `testarch-automate`, 2026-07-07).** The story's manual
+  docs-review "tests" were PROMOTED to standing executable `node --test` coverage:
+  `tests/unit/docs/migration-runbook-validators.test.ts` (9 cases) implements the four
+  test-design validators over `docs/migration/**` — 9.1-CLASS-01 (four buckets used; every
+  DEFERRED row → `none — deferred`; every LIVE target ∈ the real 24 `TENANT_TABLES` loaded
+  live from `tests/integration/rls/tenant-table-inventory.ts`), 9.1-RUNBOOK-01 (all six
+  workflows carry source/treatment/fallback/backfill-risk/cutover, non-empty; per-workflow
+  cutover), 9.1-STOP-01 (fail-closed scope-unclear → STOP protocol + owner-gated `8.1`/`8.2`
+  STOP-marked), 9.1-PRIV-03 (whole-directory PII scan) — plus a representativeness guard that
+  the docs cite only the REAL `ReadinessCode` union (`REQUIRED_FILES_DEFERRED`), never the
+  fictional `REQUIRES_SIGN_OFF`/`DEDUCTION_ESTIMATE_UNAPPROVED`. The file lives under
+  `tests/unit/**` so it is picked up by the real `pnpm test:unit` glob (NOT vacuous-green).
+  All 9 pass; full unit suite 1259/1259 green; mutation-tested (breaking the STOP heading,
+  wiring a deferred group to a live table, and injecting a bare-10-digit orgnr each fail the
+  matching validator; docs restored byte-identical). Summary:
+  `_bmad-output/test-artifacts/automation-summary-9-1-legacy-record-classification-and-migration-runbook.md`.
 - **Skipped product gates (docs-only, Task 5.3):** typecheck / lint / unit / build /
   migration-reset / integration / RLS gates are **not applicable** (no product code, no schema,
   no deps) and are explicitly SKIPPED-WITH-REASON — to be stated in the PR body per the
@@ -210,6 +226,8 @@ Claude Opus 4.8 (claude-opus-4-8[1m]) — BMAD dev-story workflow (auto-bmad del
 
 - `docs/migration/legacy-record-classification.md` (new) — the four-bucket classification register.
 - `docs/migration/migration-runbook.md` (new) — the per-workflow migration/coexistence runbook.
+- `tests/unit/docs/migration-runbook-validators.test.ts` (new) — 9 executable `node --test` validators over `docs/migration/**` (9.1-CLASS-01 / RUNBOOK-01 / STOP-01 / PRIV-03 + a real-ReadinessCode representativeness guard); added by the TEA `testarch-automate` coverage-expansion pass.
+- `_bmad-output/test-artifacts/automation-summary-9-1-legacy-record-classification-and-migration-runbook.md` (new) — TEA automation summary (coverage plan, generation, mutation-test evidence).
 - `_bmad-output/implementation-artifacts/9-1-legacy-record-classification-and-migration-runbook.md` (modified) — tasks checked, Dev Agent Record, Change Log, status.
 - `_bmad-output/implementation-artifacts/sprint-status.yaml` (modified) — story status tracking.
 
@@ -218,3 +236,4 @@ Claude Opus 4.8 (claude-opus-4-8[1m]) — BMAD dev-story workflow (auto-bmad del
 | Date | Change |
 | --- | --- |
 | 2026-07-07 | Story 9.1 implemented (docs-only). Created `docs/migration/` with the legacy-record classification register (four buckets: live/archive-only/excluded/deferred; every deferred group → no Phase A table/UI) and the per-workflow migration runbook (six workflows × source/treatment/fallback/backfill/cutover; scope-unclear→STOP protocol; demo-data-only posture; approved-asset-location seams). Zero real PII (manual five-class scan clean). No product code/schema/deps touched; scope-guardrail sweep clean. Status → review. |
+| 2026-07-07 | TEA `testarch-automate` — expanded automated coverage: added `tests/unit/docs/migration-runbook-validators.test.ts` (9 executable `node --test` validators over `docs/migration/**`) promoting the story's manual docs-review checks to standing coverage (9.1-CLASS-01/RUNBOOK-01/STOP-01/PRIV-03 + real-ReadinessCode guard). Cross-checks the live 24-table `TENANT_TABLES` and `ReadinessCode` union. All 9 pass; full unit suite 1259/1259; mutation-tested. Docs unchanged. |
