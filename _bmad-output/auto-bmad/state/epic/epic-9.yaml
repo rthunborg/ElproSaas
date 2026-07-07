@@ -5,11 +5,11 @@ epic_num: 9
 story_num: null
 branch: epic/9-migration-coexistence-golden-masters-and-pilot-readiness
 status: in-progress
-updated_at: "2026-07-07T18:16:45Z"
+updated_at: "2026-07-07T18:27:57Z"
 started_at: "2026-07-07T17:37:04Z"
 completed_at: null
-active_seconds: 2093
-timing_anchor: 1783448205
+active_seconds: 2743
+timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
 needs_project_context_bootstrap: false
@@ -52,7 +52,21 @@ blockers: []
 overrides: {}
 constraints: []
 epic_slug: migration-coexistence-golden-masters-and-pilot-readiness
-active_story: 9-1-legacy-record-classification-and-migration-runbook
-stories_landed: []
+active_story: 9-2-anonymized-lovable-fixture-capture
+stories_landed:
+  - 9-1-legacy-record-classification-and-migration-runbook
 auto_decisions: []
-uat_items: []
+uat_items:
+  - "[9-1-legacy-record-classification-and-migration-runbook] Open docs/migration/legacy-record-classification.md Â§2+Â§4 â†’ four-bucket contract stated; all four buckets populated (Â§4.1 live, Â§4.2 archive-only, Â§4.3 excluded, Â§4.4 deferred)."
+  - "[9-1-legacy-record-classification-and-migration-runbook] In legacy-record-classification.md Â§4.4, scan target-treatment of every deferred group â†’ each maps to 'none â€” deferred'; none points at a live Phase A table (AC1/R-907 guard)."
+  - "[9-1-legacy-record-classification-and-migration-runbook] In legacy-record-classification.md Â§4.1, spot-check live groups' target tables â†’ each is one of the 24 in-scope tenant-owned tables; none beyond that boundary."
+  - "[9-1-legacy-record-classification-and-migration-runbook] Read legacy-record-classification.md Â§3 â†’ 'Decisions (this register)' and 'Assumptions (carried, not decided here)' are separate sections."
+  - "[9-1-legacy-record-classification-and-migration-runbook] Open docs/migration/migration-runbook.md Â§3.1â€“Â§3.6 â†’ every one of the six workflows carries all five fields: source records, target treatment, fallback path, manual-backfill risks, cutover decision."
+  - "[9-1-legacy-record-classification-and-migration-runbook] In migration-runbook.md Â§2 (+Â§1 scope note) â†’ cutover stated as by-workflow, never whole-company."
+  - "[9-1-legacy-record-classification-and-migration-runbook] Read migration-runbook.md Â§6 'Scope-Unclear â†’ STOP Protocol' â†’ fail-closed STOP section lists hard-STOP conditions (real data export/import, full historical migration, deferred-module activation, material ambiguity)."
+  - "[9-1-legacy-record-classification-and-migration-runbook] In migration-runbook.md Â§6 â†’ 8.1/8.2 STOP-marked owner-pending (no fabricated selections); 7.1 labelled partial (mÃ¶te) distinct from Ã¶ppen (mÃ¶te)."
+  - "[9-1-legacy-record-classification-and-migration-runbook] In migration-runbook.md Â§6/Â§8 â†’ real customer data export/import stated as hard STOP requiring owner sign-off."
+  - "[9-1-legacy-record-classification-and-migration-runbook] Read migration-runbook.md Â§7 â†’ demo-data-only track kept explicitly separate from the real-customer cutover track."
+  - "[9-1-legacy-record-classification-and-migration-runbook] In migration-runbook.md Â§5 â†’ tests/fixtures/golden/lovable/** and scripts/migration/** referenced as forthcoming seams; neither directory exists yet."
+  - "[9-1-legacy-record-classification-and-migration-runbook] PII spot-check both docs (name/email/phone/personnummer/orgnr/secret) â†’ none present; only masked placeholders (YYYYMMDD-XXXX, XXXXXX-XXXX)."
+  - "[9-1-legacy-record-classification-and-migration-runbook] Run pnpm test:unit -- tests/unit/docs/migration-runbook-validators.test.ts â†’ all 9 validators pass."
