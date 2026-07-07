@@ -9,3 +9,6 @@
 
 ## Story 9-2-anonymized-lovable-fixture-capture
 - [Phase 3 â€” create-story] Existing golden fixture quote-version-source.json carries fictional ReadinessCode values REQUIRES_SIGN_OFF/DEDUCTION_ESTIMATE_UNAPPROVED (lines 48, 94); 9.2 bars propagating them into lovable/** and DEFERS aligning the existing fixture to story 9.3 (9.3-VALID-01) â€” flag if 9.3 doesn't pick that alignment up.
+- [Phase 4 â€” ATDD] Node --experimental-strip-types prematurely closes block comments on any */ sequence (hit via a literal **/*.json glob in a doc comment) â€” avoid /*-containing globs inside block comments in tests/unit/** TS files.
+- [Phase 4 â€” ATDD] .claude/hooks/guard.ps1 blocks rm -rf/-f even for scratchpad paths â€” temp probe files can't be deleted via bash; harmless but plan cleanup accordingly.
+- [Phase 4 â€” ATDD] Red scaffolds are describe.skip surface-probe gated (Epic-4 precedent) â€” dev must land them genuinely running (probe satisfied), and the Tier-A auditor should verify no self-disabling gate remains (ledger non-regression: TAX/VAT_SURFACE_PRESENT describe.skip weakness).
