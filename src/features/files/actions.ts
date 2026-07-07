@@ -56,6 +56,7 @@ import {
 import {
   ARCHIVE_ACTION_INITIAL,
   ARCHIVE_ERROR_MESSAGES,
+  classifyArchiveError,
   type ArchiveActionState,
 } from "./archive-action-state";
 
@@ -273,14 +274,9 @@ export async function archiveFileAction(
     return { ...ARCHIVE_ACTION_INITIAL, status: "success" };
   }
 
-  // Map the typed Result to a user-safe error state (no existence disclosure, no raw detail).
-  const errorState =
-    result.code === "FILE_LINK_LOCKED"
-      ? "LOCKED"
-      : result.code === "TENANT_ACCESS_DENIED" ||
-          result.code === "FILE_ACCESS_DENIED"
-        ? "PERMISSION"
-        : "NETWORK_OR_SERVER";
+  // Map the typed Result to a user-safe error state via the PURE classifier (unit-covered at every
+  // branch — no existence disclosure, no raw detail, R-809).
+  const errorState = classifyArchiveError(result.code);
   return {
     ...ARCHIVE_ACTION_INITIAL,
     status: "error",

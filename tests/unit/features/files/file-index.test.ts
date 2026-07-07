@@ -129,6 +129,61 @@ describe("8.5-UNIT-01: limited file-index pure DECISION logic (owner-category ma
     assert.equal(filterFileIndexRows(rows, {}).length, 3);
   });
 
+  test("filterFileIndexRows: the search is CASE-INSENSITIVE over name and type", () => {
+    const rows = [
+      row({ displayName: "Offert-April.PDF", mimeType: "application/PDF" }),
+      row({ displayName: "kalkyl.xlsx", mimeType: "application/vnd.ms-excel" }),
+    ];
+    // A mixed-case query matches a mixed-case name (name path)…
+    assert.equal(filterFileIndexRows(rows, { search: "OFFERT" }).length, 1);
+    // …and a lowercase query matches a mixed-case mime (type path).
+    const byType = filterFileIndexRows(rows, { search: "pdf" });
+    assert.equal(byType.length, 1);
+    assert.equal(byType[0]?.displayName, "Offert-April.PDF");
+  });
+
+  test("filterFileIndexRows: leading/trailing whitespace in the search/category is TRIMMED", () => {
+    const rows = [row({ displayName: "offert.pdf", ownerType: "quote_version" }), row({ ownerType: "job" })];
+    // A padded search still matches (trim before compare).
+    assert.equal(filterFileIndexRows(rows, { search: "  offert  " }).length, 1);
+    // A padded category still equals the owner type (trim before compare).
+    const byCat = filterFileIndexRows(rows, { ownerCategory: "  quote_version  " });
+    assert.equal(byCat.length, 1);
+    assert.equal(byCat[0]?.ownerType, "quote_version");
+  });
+
+  test("filterFileIndexRows: a search AND a category are ANDed (both must match)", () => {
+    const rows = [
+      row({ displayName: "offert.pdf", ownerType: "quote_version" }),
+      row({ displayName: "offert.pdf", ownerType: "job" }),
+      row({ displayName: "kalkyl.pdf", ownerType: "quote_version" }),
+    ];
+    const out = filterFileIndexRows(rows, { search: "offert", ownerCategory: "quote_version" });
+    assert.equal(out.length, 1);
+    assert.equal(out[0]?.ownerType, "quote_version");
+    assert.equal(out[0]?.displayName, "offert.pdf");
+  });
+
+  test("filterFileIndexRows: a NULL mimeType is handled safely — a type search never throws and never matches", () => {
+    const rows = [row({ displayName: "namnlös", mimeType: null })];
+    // Searching for a mime substring on a null-mime row must not throw and must not match.
+    assert.equal(filterFileIndexRows(rows, { search: "pdf" }).length, 0);
+    // A name substring still matches even when the mime is null (the name branch is independent).
+    assert.equal(filterFileIndexRows(rows, { search: "namn" }).length, 1);
+  });
+
+  test("filterFileIndexRows: a NO-MATCH search returns an EMPTY set (not the identity set)", () => {
+    const rows = [row({ displayName: "a.pdf" }), row({ displayName: "b.png" })];
+    assert.equal(filterFileIndexRows(rows, { search: "zzz-nothing" }).length, 0);
+  });
+
+  test("filterFileIndexRows: is PURE — it does not mutate the input array", () => {
+    const rows = [row({ displayName: "a.pdf" }), row({ displayName: "b.png" })];
+    const before = rows.length;
+    filterFileIndexRows(rows, { search: "a" });
+    assert.equal(rows.length, before, "the input array must be unchanged");
+  });
+
   test("FORBIDDEN_DEFERRED_CATEGORIES: the guard list is exhaustive — every known deferred module is denied", () => {
     // The index can NEVER surface any of these as a grouping (the R-816 STOP encoded as a deny-list).
     for (const deferred of ["fortnox", "supplier", "asset", "rental", "hr", "dou", "upphandling"]) {
