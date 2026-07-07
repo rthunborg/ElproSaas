@@ -5,10 +5,10 @@ epic_num: 7
 story_num: 3
 branch: epic/7-acceptance-to-job-transaction
 status: in-progress
-updated_at: "2026-07-07T06:12:39Z"
+updated_at: "2026-07-07T06:19:40Z"
 started_at: "2026-07-07T05:20:08Z"
 completed_at: null
-active_seconds: 3112
+active_seconds: 3523
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -20,7 +20,7 @@ tea_selected: [atdd, automate]
 tea_rationale: "RLS/command-validation cross-tenant rejection on the new jobs surface + non-editable immutable source refs (authz + data-integrity signals) -> High"
 epic_story_count: 4
 stories_after_in_epic: 1
-completed_phases: [0, 1, 2, 3, 4, 5]
+completed_phases: [0, 1, 2, 3, 4, 5, 6]
 code_review_iterations: 0
 code_review_loop_done: false
 hitl_halt: null

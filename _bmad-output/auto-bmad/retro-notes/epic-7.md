@@ -20,3 +20,4 @@
 ## Story 7-3-minimal-job-order-record-and-tenant-admin-ux
 - [Phase 5 - dev-story] ATDD scaffolds were authored against a drifted API (nonexistent runCommand actor param, camelCase factory seeds, wrong audit filter shape) and had to be rewritten to the real APIs preserving assertion intent - recurring scaffold-vs-real-API reconcile cost for future ATDD passes.
 - [Phase 5 - dev-story] Client/server boundary: JOB_STATUSES/labels split into pure types.ts because a client island importing from read.ts pulled the server-only RLS client into the client bundle (build failure) - apply the type/const-split discipline to any feature module whose read.ts imports the server client.
+- [Phase 6 - automate] src/features/jobs/read.ts cannot be imported under node --test (static next/headers import) - pure read-layer mapping tests must live in the Vitest suite even with no DB dependency.
