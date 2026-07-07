@@ -5,10 +5,10 @@ epic_num: 8
 story_num: 2
 branch: epic/8-required-files-and-private-storage
 status: in-progress
-updated_at: "2026-07-07T10:16:17Z"
+updated_at: "2026-07-07T10:25:01Z"
 started_at: "2026-07-07T10:16:17Z"
 completed_at: null
-active_seconds: 0
+active_seconds: 499
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -20,7 +20,7 @@ tea_selected: [atdd, automate]
 tea_rationale: "security-sensitive upload/input handling with path-spoofing and cross-tenant file-ownership risk (story marks Security/RLS Impact: Critical; test-design R-808/R-809 at 6/MITIGATE)"
 epic_story_count: 5
 stories_after_in_epic: 3
-completed_phases: [0, 1, 2]
+completed_phases: [0, 1, 2, 3]
 code_review_iterations: 0
 code_review_loop_done: false
 hitl_halt: null
@@ -46,7 +46,10 @@ pr_merged: false
 merge_method: null
 merge_commit: null
 branch_deleted: false
-open_questions: []
+open_questions:
+  - "Final MIME allow-list + max size (owner sign-off residual R-817) â€” conservative default chosen in-story"
+  - "Which entity pages get the file panel first â€” default: all active owner types"
+  - "Whether to wire readiness.ts REQUIRED_FILES_DEFERRED now â€” default: no behavior change this story"
 deferred_work: []
 blockers: []
 overrides: {}

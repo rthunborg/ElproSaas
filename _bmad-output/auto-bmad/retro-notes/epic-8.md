@@ -11,3 +11,7 @@
 ## Story epic-8
 - [Phase 2 â€” test-design] Single Phase A file model contract (R-814) held under real pressure â€” 6.3 generateQuotePdf and 7.x accept both consume 8.1's bucket/paths/file_links with no competing model; sequencing win worth affirming in retro.
 - [Phase 2 â€” test-design] 8.4 file-lock is a known-shape task: frozen 6.4/7.4 migrations name 'Epic 8.4 locked-evidence-file' as third scope of the shared lock-code family â€” 8.4 must reuse the trigger shape with a sibling code (R-822), not invent a mechanism.
+
+## Story 8-2-validated-upload-and-entity-file-panels
+- [Phase 3 â€” create-story] 8.1 create_file_with_link RPC self-allocates the file id and does no content validation â€” object path cannot bind the id through it; 8.2 upload must reuse 6.3's direct explicit-id RLS insert, not that RPC (trap called out in Task 3.3).
+- [Phase 3 â€” create-story] /files route + 'Filer' nav already exist as Epic-8 PagePlaceholder stub; 8.2 delivers per-entity panels only (central index stays optional 8.5) â€” don't build the wrong surface or touch nav.
