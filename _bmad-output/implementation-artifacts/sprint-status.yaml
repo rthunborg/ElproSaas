@@ -122,10 +122,10 @@ development_status:
   epic-8: in-progress
   # 8-1 (file storage foundation) is listed ABOVE under WAVE 1, before the epic-6 block,
   # so it is picked next. Not duplicated here. Wave 2 (8.2-8.5) follows Epics 6-7.
-  8-2-validated-upload-and-entity-file-panels: review
-  8-3-tenant-authorized-signed-file-access: review
-  8-4-quote-pdf-attachment-and-acceptance-evidence-locks: review
-  8-5-limited-file-index-and-file-audit-within-phase-a-scope: review
+  8-2-validated-upload-and-entity-file-panels: done
+  8-3-tenant-authorized-signed-file-access: done
+  8-4-quote-pdf-attachment-and-acceptance-evidence-locks: done
+  8-5-limited-file-index-and-file-audit-within-phase-a-scope: done
   epic-8-retrospective: done
 
   epic-9: backlog

@@ -1,6 +1,6 @@
 # Story 8.3: Tenant-Authorized Signed File Access
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 

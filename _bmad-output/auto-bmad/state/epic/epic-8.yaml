@@ -4,10 +4,10 @@ story_key: epic-8
 epic_num: 8
 story_num: null
 branch: epic/8-required-files-and-private-storage
-status: in-progress
-updated_at: "2026-07-07T16:05:33Z"
+status: done
+updated_at: "2026-07-07T16:20:08Z"
 started_at: "2026-07-07T10:02:38Z"
-completed_at: null
+completed_at: "2026-07-07T16:20:08Z"
 active_seconds: 20349
 timing_anchor: null
 is_first_in_epic: false
@@ -20,14 +20,14 @@ tea_selected: []
 tea_rationale: null
 epic_story_count: 5
 stories_after_in_epic: null
-completed_phases: [0, 1, 2, 5, 7, 81, 82]
+completed_phases: [0, 1, 2, 5, 7, 9, 81, 82]
 code_review_iterations: 1
 code_review_loop_done: true
 hitl_halt: "auto-continued (epic â€” no halt)"
 external_review_iterations: 0
 convergence_unverified: false
 story_trace: null
-commits: [a406f59, 5e2aa8c, 6fd8f84, 30cbf9d, 0bd709a, f252ab1, 656e3ad]
+commits: [a406f59, 5e2aa8c, 6fd8f84, 30cbf9d, 0bd709a, f252ab1, 656e3ad, d17dc13, b36630e]
 phase8_steps:
   trace_gate: done
   nfr: done
@@ -39,9 +39,9 @@ phase8_steps:
 gate_decision: PASS
 gate_iterations: 0
 deferred_work_archived: 1
-pr_url: null
-ci_run_url: null
-ci_status: unknown
+pr_url: "https://github.com/rthunborg/ElproSaas/pull/31"
+ci_run_url: "https://github.com/rthunborg/ElproSaas/actions/runs/28880857481"
+ci_status: passed
 pr_merged: false
 merge_method: null
 merge_commit: null
@@ -127,3 +127,5 @@ adopt_verdicts:
   - "8-3-tenant-authorized-signed-file-access: fresh"
   - "8-4-quote-pdf-attachment-and-acceptance-evidence-locks: fresh"
   - "8-5-limited-file-index-and-file-audit-within-phase-a-scope: fresh"
+batch_flip_done: true
+integration_review_done: true
