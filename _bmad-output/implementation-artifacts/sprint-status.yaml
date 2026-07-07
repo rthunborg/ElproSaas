@@ -1,5 +1,5 @@
 # generated: 2026-06-12
-# last_updated: 2026-07-07  # Epic 8 retrospective completed
+# last_updated: 2026-07-07  # Story 9-1 contexted (ready-for-dev); epic-9 in-progress
 # project: ElproSaas
 # project_key: NOKEY
 # tracking_system: file-system
@@ -128,8 +128,8 @@ development_status:
   8-5-limited-file-index-and-file-audit-within-phase-a-scope: done
   epic-8-retrospective: done
 
-  epic-9: backlog
-  9-1-legacy-record-classification-and-migration-runbook: backlog
+  epic-9: in-progress
+  9-1-legacy-record-classification-and-migration-runbook: ready-for-dev
   9-2-anonymized-lovable-fixture-capture: backlog
   9-3-golden-master-comparison-harness-for-core-workflow: backlog
   9-4-pilot-fallback-cutover-and-sign-off-register: backlog
