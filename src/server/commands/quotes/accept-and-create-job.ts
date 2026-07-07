@@ -40,7 +40,6 @@
 import { defineCommand } from "../envelope";
 import { CommandError } from "../command-errors";
 import { writeAuditEvent } from "../audit";
-import type { CommandClock } from "../clock";
 import type { CommandExecuteContext } from "../envelope-core";
 import type { CommandDbClient } from "../envelope";
 import { computeAcceptanceDelta } from "@/features/quotes/acceptance-price";
@@ -74,22 +73,26 @@ const ACCEPT_TARGET_TYPE = "quote_acceptance";
 
 /**
  * PURE arg adapter (7.2-UNIT-01, H1): build the RPC args (minus `p_tenant_id`, which execute threads
- * from `ctx.tenantContext` — NEVER from the input) from the validated input + the injected clock.
+ * from `ctx.tenantContext` — NEVER from the input) from the validated input.
  * `p_accepted_at` is the EXPLICIT `input.accepted_at` (the accepted moment — a business fact, not
- * "now"); `p_command_at` is the injected `clock.now()` (the deterministic command instant). Exposed as
- * a pure, testable seam mirroring how mark-sent's timestamp is unit-pinned. The `p_source_sent_total_ore`
- * is passed by execute (loaded server-side from the frozen version row), so it is threaded in via the
- * override rather than read from the input (which never carries it).
+ * "now"). Exposed as a pure, testable seam mirroring how mark-sent's timestamp is unit-pinned. The
+ * `p_source_sent_total_ore` is passed by execute (loaded server-side from the frozen version row), so
+ * it is threaded in via the override rather than read from the input (which never carries it).
+ *
+ * DETERMINISM (H1, R-715): every persisted instant derives from the EXPLICIT `p_accepted_at` — the
+ * acceptance row's `accepted_at`, and the `quote_events`/`job_events` `occurred_at` all use it inside
+ * the RPC — while the audit row's timing comes from the injected `ctx.clock` via `writeAuditEvent`.
+ * The RPC therefore takes NO command-timestamp param (there is no wall-clock read anywhere in the
+ * transaction), so the adapter passes none either — no dead arg implying an end-to-end wiring that
+ * does not exist.
  */
 export function buildAcceptAndCreateJobRpcArgs(
   input: AcceptQuoteAndCreateJobInput,
-  clock: CommandClock,
   overrides?: { readonly sourceSentTotalOre?: number },
-): Omit<AcceptAndCreateJobRpcArgs, "p_tenant_id"> & { readonly p_command_at: string } {
+): Omit<AcceptAndCreateJobRpcArgs, "p_tenant_id"> {
   return {
     p_quote_version_id: input.quote_version_id,
-    p_accepted_at: input.accepted_at, // the EXPLICIT accepted moment (H1), NOT the command clock
-    p_command_at: clock.now().toISOString(), // the injected command instant (deterministic)
+    p_accepted_at: input.accepted_at, // the EXPLICIT accepted moment (H1), NOT a wall clock
     p_accepted_price_ore: input.accepted_price_ore,
     p_source_sent_total_ore: overrides?.sourceSentTotalOre ?? input.accepted_price_ore,
     p_channel: input.channel ?? null,
@@ -168,7 +171,7 @@ export const acceptQuoteAndCreateJob = defineCommand<
     // ── THE NARROW ATOMIC TRANSACTION (ADR-A009 / §13) on the RLS client (never service-role). The
     // ── accepted moment is the EXPLICIT input (H1); the resolved tenant is the ONLY tenant authority.
     // ── The RPC row-locks + idempotently returns the existing records on a retry / concurrent loser.
-    const args = buildAcceptAndCreateJobRpcArgs(input, ctx.clock, {
+    const args = buildAcceptAndCreateJobRpcArgs(input, {
       sourceSentTotalOre: source.source_sent_total_ore,
     });
     const rpc = asAcceptAndCreateJobRpcClient(db);

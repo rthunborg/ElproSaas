@@ -5,10 +5,10 @@ epic_num: 7
 story_num: null
 branch: epic/7-acceptance-to-job-transaction
 status: in-progress
-updated_at: "2026-07-06T20:11:53Z"
+updated_at: "2026-07-07T05:16:00Z"
 started_at: "2026-07-06T17:50:12Z"
 completed_at: null
-active_seconds: 8277
+active_seconds: 40911
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -58,6 +58,7 @@ stories_landed:
 auto_decisions:
   - "Evidence link uses raw link_existing_file RPC, not createFileLink [Med] -> dismiss: manual path deliberate and correct (single audit row + foreign-file rejection preserved); ratify as-is (Tier A, 7-1)"
   - "Admin user captured only in audit trail, not on acceptance record [Low] -> dismiss: acting admin captured as server-derived audit actor; AC1 satisfied (Tier A, 7-1)"
+  - "RPC never receives the p_command_at command-timestamp param [Med] -> fix: remove the dead p_command_at from buildAcceptAndCreateJobRpcArgs + its unit assertion (persisted instants already derive from p_accepted_at/occurred_at + audit clock) (Tier A, 7-2)"
 uat_items:
   - "[7-1] Precondition: pnpm dev, log in as demo tenant-admin at /login, have a quote whose selected version is 'sent' (draft -> add line items -> mark-sent), open /quotes/<quoteId> and scroll to 'Acceptans'"
   - "[7-1] On the sent version's detail page -> 'Registrera acceptans' form (data-testid=acceptance-form) renders fields Kanal, Accepterad (datum/tid), Accepterat pris (kr), Bevisreferens, Bevisfil (id), Planerad start, Planerat slut, Anteckningar; NO admin-user field (server-derived)"

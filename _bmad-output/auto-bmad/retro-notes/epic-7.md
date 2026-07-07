@@ -15,3 +15,4 @@
 - [Phase 5 - dev-story] RPC must read customer_id/facility_id/contact_id off the parent quotes row, NOT quote_versions (version snapshot holds only display names) - non-obvious schema split; 7.3 job UX must expect this.
 - [Phase 5 - dev-story] Command sent-state gate relaxed to let an already-accepted version reach the RPC idempotent short-circuit; a strict status==sent gate breaks retry idempotency - 7.4 immutability must preserve this path.
 - [Phase 5 - dev-story] ACCEPTANCE_ALREADY_RECORDED added but reserved (row lock resolves concurrency into idempotent return); shared error mapper keeps 23505 -> VALIDATION_FAILED so 7.1 behavior unchanged.
+- [Phase 7 - Tier A review] p_command_at was computed and unit-asserted but never passed to the RPC (no matching SQL param) - removed; future timestamp-injection assertions must verify the arg reaches the DB call, not just the adapter output.

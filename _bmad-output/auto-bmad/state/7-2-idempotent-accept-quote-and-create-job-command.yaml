@@ -5,10 +5,10 @@ epic_num: 7
 story_num: 2
 branch: epic/7-acceptance-to-job-transaction
 status: in-progress
-updated_at: "2026-07-06T20:11:54Z"
+updated_at: "2026-07-07T05:16:00Z"
 started_at: "2026-07-06T19:09:28Z"
 completed_at: null
-active_seconds: 3706
+active_seconds: 36340
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -52,3 +52,12 @@ blockers: []
 overrides: {}
 constraints: []
 tier_a_base_sha: 1372e3a25e752442508ad7263f6d93084ea30a62
+tier_a_review:
+  verdict: Changes Requested
+  critical: 0
+  high: 0
+  medium: 1
+  low: 2
+  open_after_fix: 0
+  decisions_auto_resolved: 1
+  deferred: 2
