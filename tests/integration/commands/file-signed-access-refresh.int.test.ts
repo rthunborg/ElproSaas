@@ -180,6 +180,49 @@ describe("createSignedFileAccess expiry→refresh reauthorization (Story 8.3, AC
     }
   });
 
+  it("[8.3-INT-01a2][P0/AC2/R-806] a file DELETED between the first sign and the retry is NOT re-signed (FILE_ACCESS_DENIED)", async (testCtx) => {
+    if (skipUnlessBoth(testCtx)) return;
+
+    // Coverage-expansion (bmad-testarch-automate): the base refresh case (01a) proves the
+    // ARCHIVED transition. The lifecycle gate (isAccessEligibleLifecycle) rejects BOTH
+    // `archived` AND `deleted`, but only `archived` was exercised through the refresh entry
+    // point. This pins the SECOND ineligible branch on the refresh path — a file whose
+    // lifecycle flips to `deleted` between the first sign and the retry is likewise NOT re-
+    // signed (the retry re-runs the FULL lifecycle gate, not a bare re-sign of the cached URL).
+    const first = await runCommand(createSignedFileAccess as never, {
+      client: a as never,
+      input: { file_id: refreshFileId },
+      clock: fixedClock,
+      correlationId: crypto.randomUUID(),
+    });
+    expect(first.ok).toBe(true);
+
+    await adminSetLifecycle(refreshFileId, "deleted");
+
+    const retry = await runCommand(createSignedFileAccess as never, {
+      client: a as never,
+      input: { file_id: refreshFileId },
+      clock: fixedClock,
+      correlationId: crypto.randomUUID(),
+    });
+    expect(retry.ok).toBe(false);
+    if (!retry.ok) {
+      expect(retry.code).toBe("FILE_ACCESS_DENIED");
+      // R-810: the denial carries no signed URL payload.
+      expect((retry as { data?: { signedUrl?: string } }).data?.signedUrl).toBeUndefined();
+    }
+
+    // Restore for ordering independence with the other cases in this describe.
+    await adminSetLifecycle(refreshFileId, "linked");
+    if (storageUp) {
+      await adminUploadStorageObject({
+        bucket: BUCKET,
+        objectPath: await objectPathOf(refreshFileId),
+        body: new TextEncoder().encode("refresh-eligible-bytes"),
+      });
+    }
+  });
+
   it("[8.3-INT-01b][P1/AC2] signing the SAME eligible file twice re-authorizes (two valid results, identical deterministic expiresAt)", async (testCtx) => {
     if (skipUnlessBoth(testCtx)) return;
     const first = await runCommand(createSignedFileAccess as never, {

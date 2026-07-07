@@ -8,82 +8,85 @@ stepsCompleted:
 lastStep: 'step-04-validate-and-summarize'
 lastSaved: '2026-07-07'
 workflowType: testarch-automate
-story: 8.2 Validated Upload And Entity File Panels
+story: 8.3 Tenant-Authorized Signed File Access
 detectedStack: fullstack
-executionMode: sequential (pure fast-gate coverage expansion)
+executionMode: sequential (pure fast-gate + INT refresh-matrix coverage expansion)
 inputDocuments:
-  - _bmad-output/implementation-artifacts/8-2-validated-upload-and-entity-file-panels.md
+  - _bmad-output/implementation-artifacts/8-3-tenant-authorized-signed-file-access.md
   - _bmad-output/test-artifacts/test-design-epic-8.md
   - _bmad/tea/config.yaml
-  - src/features/files/form-parsing.ts
-  - src/features/files/upload-action-state.ts
-  - src/server/storage/upload-object.ts
-  - tests/integration/commands/file-upload.int.test.ts
-  - tests/unit/server/storage/upload-policy.test.ts
-  - tests/unit/server/storage/upload-error-classifier.test.ts
-  - tests/unit/server/commands/files/validate-upload-file.test.ts
-  - tests/e2e/files/entity-file-panel.e2e.spec.ts
+  - src/features/files/signed-access-state.ts
+  - src/features/files/actions.ts
+  - src/components/files/EntityFilePanel.tsx
+  - src/server/storage/lifecycle.ts
+  - tests/unit/features/files/signed-access-state.test.ts
+  - tests/integration/commands/file-signed-access-refresh.int.test.ts
+  - tests/integration/commands/file-signed-access.int.test.ts
+  - tests/integration/rls/storage-object-isolation.rls.test.ts
+  - tests/e2e/files/entity-file-preview.e2e.spec.ts
 ---
 
-# Test Automation Expansion — Story 8.2 (Validated Upload & Entity File Panels)
+# Test Automation Expansion — Story 8.3 (Tenant-Authorized Signed File Access)
 
 ## Mode & Context
 
 - **Mode:** BMad-Integrated (story + `test-design-epic-8.md` provided). Create mode.
-- **Detected stack:** `fullstack` (Next.js 16 / React 19 frontend + server command layer + Supabase/Postgres backend).
-- **Frameworks (verified present):** `node --test` two-runner for pure `.ts` units (`tests/unit/**`, `@/*` alias via `tests/support/register.mjs`), Vitest (`test:int`, DB-backed), Playwright (`test:e2e`). No `framework` scaffolding needed.
+- **Detected stack:** `fullstack` (Next.js 16 / React 19 client island + `"use server"` feature action + Supabase/Postgres command layer).
+- **Frameworks (verified present):** `node --test` two-runner for pure `.ts` units (`tests/unit/**`, `@/*` alias via `tests/support/register.mjs`), Vitest (`test:int`, DB-backed under `SUPABASE_TEST_REQUIRED=1`), Playwright (`test:e2e`). No `framework` scaffolding needed.
 - **TEA flags:** `tea_use_playwright_utils: true`, `test_stack_type: auto`, `risk_threshold: p1`, `tea_execution_mode: auto`.
-- **Story state:** `review` — dev-story landed GREEN (unit 1152, INT 658, E2E green). This pass EXPANDS the fast `node --test` gate; it does NOT re-author passing suites.
+- **Story state:** `review` — dev-story landed GREEN (unit 1183, INT 663, E2E 6 pass / 1 pre-marked `test.fixme`). This pass EXPANDS the fast `node --test` gate + the INT refresh matrix; it does NOT re-author passing suites or touch product code.
 
-## Coverage Assessment (what Story 8.2 already had)
+## Coverage Assessment (what Story 8.3 already had)
 
 Dev-story landed comprehensive coverage across levels via the ATDD scaffolds, all green:
-`8.2-INT-01..05` (server gate + cross-tenant no-existence-disclosure + storage↔DB compensation across all 6 active owner types), `8.2-UNIT-01` (upload-policy MIME/size boundaries), `8.2-UNIT-02` (four-error-state classifier, every branch incl. R-809 collapse), `8.2-UNIT-03` (`validateUploadFile` shape/coupling/strip), `8.2-E2E-01/02` (panel structure + one deterministic error state).
+- **Pure (`node --test`):** `signed-access-state.test.ts` — 11 cases pinning `SIGNED_ACCESS_INITIAL`, the success-vs-error shape (R-809/R-810: no url on error), and `isSignedUrlExpired` / `shouldReauthorize` core branches (null / past / future / exactly-at-boundary).
+- **INT (Vitest, DB-backed):** `file-signed-access.int.test.ts` (8.1 base auth matrix + expiry) and `file-signed-access-refresh.int.test.ts` (8.3 refresh: archive-on-retry → `FILE_ACCESS_DENIED`, twice-signed determinism, foreign/non-existent id → `TENANT_ACCESS_DENIED`, no-raw-path projection).
+- **RLS:** `storage-object-isolation.rls.test.ts` (cross-tenant list/read/sign, spoof, malformed-segment, anon, expired-URL).
+- **E2E (Playwright):** `entity-file-preview.e2e.spec.ts` (per-file preview mint, generic `role="alert"` denial, no-raw-path DOM guarantee; the low-TTL expiry→reopen case is pre-marked `test.fixme`).
 
-The genuine, non-duplicative gaps were at the **pure fast-gate (`node --test`) level** — decision-carrying `.ts` modules the dev added that ship WITHOUT dedicated unit pins (the coverage-shape lesson surface — logic currently exercised only indirectly through the `"use server"` action or the skippable DB-backed INT):
+The genuine, non-duplicative gaps were narrow ROBUSTNESS branches in the shipped code, exercised nowhere:
 
-1. **`src/features/files/form-parsing.ts`** (`parseUploadForm` + `precheckUpload`) — no dedicated unit. Untested: owner/purpose/name field trimming + null-on-blank; the R-803 guarantee that a client `object_path`/`bucket_id`/`tenant_id` is NEVER surfaced; and the client pre-check discriminant (`blocked-type` wins over `too-large`; `none` when both pass). Only exercised indirectly through the `"use server"` action.
+1. **`isSignedUrlExpired` fail-toward-expired branch** (`!Number.isFinite(expiryMs || nowMs) ⇒ return true`) — an unparseable / empty-string `expiresAt`, and an unparseable `nowIso`, were untested. This is load-bearing security behavior: a malformed/missing expiry must fail toward "expired / re-authorize", NEVER fail-open (silently serving a stale signed URL past its window — R-806/R-810).
+2. **`shouldReauthorize` on a `success` state with a NULL / unparseable / exactly-at-boundary `expiresAt`** — the existing units covered a `success` with a concrete past/future expiry, but not the defensive delegation paths (a success carrying no verifiable window must still offer re-authorize).
+3. **The `deleted` lifecycle transition on the refresh path** — the INT refresh matrix exercised only `archived`-on-retry. `isAccessEligibleLifecycle` rejects BOTH `archived` and `deleted`; only the first ineligible branch was proven through the actual 8.3 refresh entry point (coverage-inversion risk per the epic-8 retro).
 
-2. **`src/features/files/upload-action-state.ts`** (`UPLOAD_ERROR_MESSAGES` + `isRetryableUploadError` + `UPLOAD_ACTION_INITIAL`) — no unit. Untested: the four distinct non-empty user-safe messages (one per state, no two identical — the AC3 "four DISTINCT error states" contract at the message layer); and the retryable predicate (only `NETWORK_OR_SERVER` retryable, `PERMISSION` never — mirrors the signed-access transient-vs-permanent discipline).
-
-3. **`src/server/storage/upload-object.ts`** (`uploadObjectWithMetadata`) — the shared 6.3↔8.2 upload helper. Its verified-compensated branch table was proven end-to-end ONLY by the DB-backed INT (8.2-INT-05, which skips when no local Supabase stack is up). No FAST, deterministic pin of: storage-fault → throw before ANY metadata (nothing to compensate); file-row-written then link-fail → archive-then-rethrow the ORIGINAL error; archive secondary-fault swallowed (original still surfaced); happy path returns fileId/objectPath/linkId; object path server-derived tenant-first.
+Note: `previewEntityFileAction` (the `"use server"` mapper) is intentionally NOT unit-mocked — the project uses no `vi.mock` anywhere, its sibling preview actions (`previewJobEvidenceAction`, `previewQuotePdfAction`) are likewise covered by command-INT + E2E, and the action has no DI seam (hard-calls `createSupabaseServerClient` + `runCommand`). Adding a mock harness would break project convention and require a production refactor — out of scope for a test-only expansion.
 
 ## Coverage Plan (this expansion)
 
 | Target | Level | Priority | Test IDs | Justification |
 | --- | --- | --- | --- | --- |
-| `parseUploadForm` / `precheckUpload` | Unit (`node --test`) | P1 | 8.2-UNIT-04 | Closes the client pre-check + R-803 strip gap at the fast gate; no DB |
-| `UPLOAD_ERROR_MESSAGES` / `isRetryableUploadError` / `UPLOAD_ACTION_INITIAL` | Unit (`node --test`) | P1 | 8.2-UNIT-05 | Pins the four-distinct-message + retryable contract (AC3) cheaply |
-| `uploadObjectWithMetadata` branch table | Unit (`node --test`, injected fakes) | P0 | 8.2-UNIT-06 | Fast, non-skippable pin of the R-807 compensation seam the INT proves only end-to-end |
+| `isSignedUrlExpired` unparseable/empty/bad-clock branch | Unit (`node --test`) | P1 | 8.3-UNIT-01l/01m/01n | Pins fail-toward-expired (never fail-open on a malformed window) — R-806/R-810 |
+| `shouldReauthorize` null / boundary / unparseable success expiry | Unit (`node --test`) | P1 | 8.3-UNIT-01o/01p/01q | Closes the defensive-delegation gap on the re-open verdict (AC2) |
+| `deleted`-lifecycle transition through the refresh entry point | INT (Vitest, DB-backed) | P0 | 8.3-INT-01a2 | Proves the SECOND ineligible branch is rejected on refresh, not just `archived` (AC2/R-806) |
 
-Scope: **selective fast-gate expansion.** No INT/RLS/E2E added — those levels are already comprehensively covered by dev-story per the test design; adding there would duplicate. No framework/CI change (two-runner + Playwright already green). No product code, migration, or dependency touched — test-only.
+Scope: **selective expansion** — 6 fast-gate units + 1 DB-backed INT case. No new E2E/RLS (already comprehensive; adding there would duplicate). No framework/CI change. No product code, migration, or dependency touched — test-only.
 
-## Files Created
+## Files Changed
 
-- `tests/unit/features/files/upload-form-parsing.test.ts` — pure units for `parseUploadForm` (field trim/null-on-blank; smuggled `object_path`/`bucket_id`/`tenant_id` NEVER surfaced — R-803) and `precheckUpload` (blocked-type / too-large / none; blocked-type precedence when both fail).
-- `tests/unit/features/files/upload-action-state.test.ts` — pure units for the four DISTINCT non-empty `UPLOAD_ERROR_MESSAGES`, `isRetryableUploadError` (only NETWORK_OR_SERVER; PERMISSION/BLOCKED_TYPE/TOO_LARGE not; idle not), and `UPLOAD_ACTION_INITIAL` pristine shape.
-- `tests/unit/server/storage/upload-object.test.ts` — pure units (injected fake storage/insert/archive fns) for `uploadObjectWithMetadata`: happy path (returns fileId/objectPath/linkId, tenant-first server-derived path, correct contentType/upsert, link receives the up-front id); storage fault throws BEFORE any metadata write (no compensation); link-insert fault after file-row-written archives THAT file id then re-throws the ORIGINAL error; archive secondary-fault swallowed (original still surfaced); file-row-insert fault (before file written) does NOT archive.
+- `tests/unit/features/files/signed-access-state.test.ts` (modified) — +6 cases (`8.3-UNIT-01l..01q`): `isSignedUrlExpired` fails toward expired on an unparseable / empty-string `expiresAt` and on an unparseable `nowIso`; `shouldReauthorize` offers re-authorize on a `success` with a null / exactly-at-boundary / unparseable `expiresAt`.
+- `tests/integration/commands/file-signed-access-refresh.int.test.ts` (modified) — +1 case (`8.3-INT-01a2`): a file `deleted` between the first sign and the retry is NOT re-signed (`FILE_ACCESS_DENIED`, no url payload), with lifecycle restored for ordering independence.
 
 ## Verification
 
-- New subset (the three files): **all pass / 0 fail** (`node --test`).
-- Full unit suite (`pnpm run test:unit`): green, no regressions.
-- `pnpm typecheck`: clean. `eslint` on the three new files: 0 errors.
+- Pure suite (the extended file): **17 pass / 0 fail** (`node --test`; was 11). Full `pnpm test:unit`: **1189 pass** (was 1183), no regressions.
+- INT under `SUPABASE_TEST_REQUIRED=1` (local Supabase stack up): `file-signed-access-refresh` **6 pass** (was 5), `file-signed-access` + `storage-object-isolation` unchanged green — **19 pass across the 3 signed-access/storage suites**.
+- `pnpm typecheck`: clean. `eslint` on the two changed files: 0 errors.
 
 ## Validation (step 4)
 
 - **Framework readiness:** ✅ (node --test / Vitest / Playwright all present).
-- **Coverage mapping:** ✅ tests carry `8.2-UNIT-04/05/06` IDs and map to AC1/AC3/AC4.
-- **Test quality/structure:** ✅ pure (no DB / no PII / no clock), injected fakes only, runner-glob-safe under `tests/unit/**` (no `.tsx`).
-- **Fixtures/factories/helpers:** none added — reuse existing module exports + in-file fakes.
+- **Coverage mapping:** ✅ tests carry `8.3-UNIT-01l..01q` and `8.3-INT-01a2` IDs mapping to AC2/AC3 and R-806/R-809/R-810.
+- **Test quality/structure:** ✅ new units are pure (no DB / no PII / no wall-clock read — both instants passed in), runner-glob-safe under `tests/unit/**` (no `.tsx`); the INT case reuses the enrolled two-tenant fixture + admin lifecycle helper (no ad-hoc isolation test), skips visibly when the local stack/storage is unreachable.
+- **Fixtures/factories/helpers:** none added — reuse existing exports + the suite's `adminSetLifecycle` helper.
 - **CLI sessions:** none opened (source-analysis path, no browser exploration; no orphaned processes).
 - **Temp artifacts:** this summary lives under `_bmad-output/test-artifacts/`.
 
 ## Assumptions & Risks
 
-- INT/E2E suites (Vitest/Playwright, DB/browser-backed) were **not re-run** in this pass — they require a local Supabase stack / browser and were untouched. CI (`SUPABASE_TEST_REQUIRED=1`) remains the gate for those; the dev-story already ran them green. No DB-dependent tests were authored, so no stack run was needed.
-- No product code, migration, or dependency was modified — pure test-only expansion.
+- E2E (Playwright) was **not re-run** in this pass — untouched; the dev-story ran it green (1 case pre-marked `test.fixme` for a low-TTL expiry driver, unchanged and out of scope here). No new E2E authored.
+- No product code, migration, or dependency modified — pure test-only expansion; the anon+RLS / no-service-role posture and the signing-funnel reuse (R-814) are unaffected.
 
 ## Next Recommended Workflow
 
-- `trace` (refresh the Epic-8 traceability matrix to record the added fast-gate coverage for AC1/AC3/AC4), or `test-review` (validate the new tests against best-practices). Neither is blocking — the story remains `review` and green across all tiers.
+- `trace` (refresh the Epic-8 traceability matrix to record the added fast-gate + refresh-matrix coverage for AC2/AC3), or `test-review` (validate the new tests against best-practices). Neither is blocking — the story remains `review` and green across all tiers.

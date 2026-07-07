@@ -152,3 +152,60 @@ test("[8.3-UNIT-01k][P1/AC2] shouldReauthorize: an error state offers (re)author
   };
   assert.equal(shouldReauthorize(error, NOW), true);
 });
+
+// ── COVERAGE EXPANSION (bmad-testarch-automate, Story 8.3) ─────────────────────────────────
+// The shipped `isSignedUrlExpired` has an explicit fail-toward-expired branch for UNPARSEABLE
+// instants (`!Number.isFinite(...) ⇒ return true`) and a `shouldReauthorize` success-with-null-
+// expiry path — both untested by the ATDD scaffold above. These pin the ROBUSTNESS boundary:
+// a malformed/missing `expiresAt` must NEVER fail-OPEN (serving a possibly-stale URL) — the
+// helper must fail toward "expired / re-authorize". A regression here would silently reuse a
+// stale signed URL past its window (R-806/R-810), so these branches are load-bearing security
+// behavior, not incidental defensiveness.
+
+test("[8.3-UNIT-01l][P1/R-806] isSignedUrlExpired: an UNPARSEABLE expiresAt fails toward expired (never serve a stale URL)", () => {
+  assert.equal(isSignedUrlExpired("not-a-date", NOW), true);
+});
+
+test("[8.3-UNIT-01m][P1/R-806] isSignedUrlExpired: an EMPTY-STRING expiresAt fails toward expired", () => {
+  // Date.parse("") is NaN — a blank/missing expiry must be treated as expired, not fail-open.
+  assert.equal(isSignedUrlExpired("", NOW), true);
+});
+
+test("[8.3-UNIT-01n][P1/R-806] isSignedUrlExpired: an UNPARSEABLE nowIso fails toward expired (defensive — no fail-open on a bad clock)", () => {
+  assert.equal(isSignedUrlExpired(FUTURE, "not-a-date"), true);
+});
+
+test("[8.3-UNIT-01o][P1/AC2] shouldReauthorize: a SUCCESS state with a NULL expiresAt offers re-authorize (defensive — a success without an expiry is not a reusable window)", () => {
+  const successNoExpiry: SignedAccessState = {
+    status: "success",
+    code: null,
+    formError: null,
+    signedUrl: "https://local/…",
+    expiresAt: null,
+  };
+  // Delegates to isSignedUrlExpired(null) ⇒ expired ⇒ offer re-authorize (do NOT reuse a URL
+  // that carries no verifiable expiry window).
+  assert.equal(shouldReauthorize(successNoExpiry, NOW), true);
+});
+
+test("[8.3-UNIT-01p][P1/AC2/R-806] shouldReauthorize: a SUCCESS state EXACTLY at the expiry boundary offers re-authorize (valid strictly before)", () => {
+  const atBoundary: SignedAccessState = {
+    status: "success",
+    code: null,
+    formError: null,
+    signedUrl: "https://local/…",
+    expiresAt: NOW, // expiry == now ⇒ expired (mirrors the isSignedUrlExpired boundary rule)
+  };
+  assert.equal(shouldReauthorize(atBoundary, NOW), true);
+});
+
+test("[8.3-UNIT-01q][P1/AC2] shouldReauthorize: a SUCCESS with an UNPARSEABLE expiresAt offers re-authorize (fails toward re-sign, never reuses a malformed-window URL)", () => {
+  const badExpiry: SignedAccessState = {
+    status: "success",
+    code: null,
+    formError: null,
+    signedUrl: "https://local/…",
+    expiresAt: "garbage",
+  };
+  assert.equal(shouldReauthorize(badExpiry, NOW), true);
+});
