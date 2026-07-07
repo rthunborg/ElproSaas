@@ -5,9 +5,9 @@
  * A `defineCommand` through the EXISTING envelope (resolve user → resolve active tenant_admin →
  * validate typed input → envelope `ownership` verifies the quote_version id is own-tenant-visible
  * → in execute: LOAD the version's real status + parent quote + frozen source sent total on the RLS
- * client → re-assert `status='sent'` (reject a non-sent with VALIDATION_FAILED) → compute the
- * adjusted-price delta via the PURE Task-3 module and re-validate the reason/evidence gate
- * server-side → persist the `quote_acceptances` row via an own-tenant RLS INSERT (a single-row
+ * client → re-assert `status='sent'` (reject a non-sent with VALIDATION_FAILED) → re-validate the
+ * adjusted-price + reason/evidence gate server-side via the PURE Task-3 `evaluateAcceptancePriceGate`
+ * authority → persist the `quote_acceptances` row via an own-tenant RLS INSERT (a single-row
  * write — NOT the 7.2 RPC) → optionally link the evidence file → append-only audit `{ targetId }`).
  * No bespoke auth/error/audit mechanism. Patterned EXACTLY on `mark-sent.ts`.
  *
@@ -21,11 +21,12 @@
  *
  * ── THE ADJUSTED-PRICE GATE (AC2, R-705 — server truth, the UI mirrors it) ─────────────────────
  * The frozen source sent total (the customer-commitment gross the version froze) is loaded
- * server-side; the delta = accepted_price_ore − source_sent_total_ore is computed with the PURE
- * `computeAcceptanceDelta` engine (never re-derived ad hoc). If the delta is non-zero and NEITHER
- * an `adjustment_reason` NOR evidence (a file id or an external reference) is supplied ⇒
- * `VALIDATION_FAILED` (the client cannot bypass — a missing reason is rejected even if omitted
- * client-side). The delta is CAPTURED (both öre values persist).
+ * server-side and fed to the SINGLE authority `evaluateAcceptancePriceGate` — the PURE Task-3 module
+ * the command CONSUMES (it internally computes the delta = accepted_price_ore − source_sent_total_ore
+ * via `computeAcceptanceDelta` and applies the reason rule; the command never re-derives either ad
+ * hoc). If the delta is non-zero and NEITHER an `adjustment_reason` NOR evidence (a file id or an
+ * external reference) is supplied ⇒ `VALIDATION_FAILED` (the client cannot bypass — a missing reason
+ * is rejected even if omitted client-side). The delta is CAPTURED (both öre values persist).
  *
  * ── ÖRE DISCIPLINE + PERSISTENCE (AC5, 7.1 Decision (a)) ───────────────────────────────────────
  * `accepted_price_ore` (validated `isOreAmount`) + `source_sent_total_ore` (the frozen commitment

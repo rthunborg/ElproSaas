@@ -5,7 +5,7 @@ epic_num: 7
 story_num: null
 branch: epic/7-acceptance-to-job-transaction
 status: in-progress
-updated_at: "2026-07-07T07:44:12Z"
+updated_at: "2026-07-07T08:06:06Z"
 started_at: "2026-07-06T17:50:12Z"
 completed_at: null
 active_seconds: 48707
@@ -21,7 +21,7 @@ tea_rationale: null
 epic_story_count: 4
 stories_after_in_epic: null
 completed_phases: [0, 1, 2, 5, 81]
-code_review_iterations: 1
+code_review_iterations: 2
 code_review_loop_done: false
 hitl_halt: null
 external_review_iterations: 0
@@ -65,6 +65,7 @@ auto_decisions:
   - "Admin user never pinned to the immutable acceptance/job row [Med] -> defer: actor is on the append-only audit event; add accepted_by only if a real-customer/legal need surfaces (E_review, epic-7)"
   - "Evidence exclusivity file-XOR-reference unenforced; both-present drops the reference on job detail [Med] -> fix: render BOTH fields in JobEvidenceLink when both present; DB-XOR CHECK logged to ledger (E_review, epic-7)"
   - "correction-attempt-rejected event promised by test-design but implemented by no story [Med] -> defer: reconcile exit-criteria text to the shipped DB-trigger shape; flagged for the retro (E_review, epic-7)"
+  - "QV409 orphan-assert mislabels as QUOTE_VERSION_LOCKED [Med] -> defer: unreachable on live path, net diagnosability gain; distinct SQLSTATE belongs in the next additive accept-RPC migration (E_review iter 2, epic-7)"
 uat_items:
   - "[7-1] Precondition: pnpm dev, log in as demo tenant-admin at /login, have a quote whose selected version is 'sent' (draft -> add line items -> mark-sent), open /quotes/<quoteId> and scroll to 'Acceptans'"
   - "[7-1] On the sent version's detail page -> 'Registrera acceptans' form (data-testid=acceptance-form) renders fields Kanal, Accepterad (datum/tid), Accepterat pris (kr), Bevisreferens, Bevisfil (id), Planerad start, Planerat slut, Anteckningar; NO admin-user field (server-derived)"
