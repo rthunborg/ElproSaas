@@ -219,6 +219,15 @@ default-marked `signed-off` to "complete" the register.
 
 ### 4.1 AC2 decision items
 
+**Per-ID status coherence (no ID carries two opposite gate statuses).** The SoR reuses bare `A22`
+for two distinct facets that resolve to OPPOSITE gate statuses: the **quote-terms text + approver**
+facet is `answered` → `signed-off`, while the **customer-facing tax-deduction disclaimer wording**
+facet is parked → `blocking`. To keep the register unambiguous — and to let a downstream consumer
+keying on "is this ID blocking?" resolve it — the disclaimer-wording facet is carried under the
+register-local sub-ID **`A22-tax`**, so bare `A22` (signed-off) and `A22-tax` (blocking) never
+collide. The sign-off-register validator asserts this invariant: no single owning ID may appear with
+both `signed-off` and `blocking` status.
+
 | Decision item | Status | Owning question ID(s) | Owner | Affected workflow(s) | Notes / real-pilot re-score residual |
 | --- | --- | --- | --- | --- | --- |
 | Quote numbering | `signed-off` | `4.1` (answered) + architecture §24 (DECIDED) | Owner | Quote Versions | Plain sequential `Offert #<n>`; `quote_number_display` dormant. Decided — not a real-pilot blocker. |
@@ -230,8 +239,8 @@ default-marked `signed-off` to "complete" the register.
 | ROT | **`blocking`** real-pilot | `B.1-B.4` (öppen (möte) — sats/tak/underlag/moms) + `D.1`/`D.2`/`D.3` (answered — eligibility) | Accounting | Settings / Pricing, Calculations, Quote Versions | Rates/caps/basis are `möte`-open ("tar vi tillsammans"); eligibility is decided (only private; BRF not; ROT + grön not mixed). Blocks real-pilot. |
 | grön teknik | **`blocking`** real-pilot | `C.1-C.3` (öppen (möte) — satser/tak/schablon) | Accounting | Settings / Pricing, Calculations, Quote Versions | Rates/caps/schablon are `möte`-open. Blocks real-pilot. |
 | rounding | **`blocking`** real-pilot | `A.1` (öppen (möte) — avrundning + PDF-visning) | Accounting | Settings / Pricing, Calculations, Quote Versions | The line-level round-half-away default is a golden-pinned UNAPPROVED placeholder; document-level rounding is a STOP. Blocks real-pilot. |
-| quote terms | `signed-off` (demo; real-pilot re-score) | `A22` (answered — platshållartext räcker för piloten) | Owner + Legal | Settings / Pricing, Quote Versions | Placeholder terms suffice for the pilot; the structural `quote_terms.approved_at` sign-off gate is human-only (edit resets). **Re-score for real-pilot:** real terms text + the send gate flipping `requires_sign_off` / `TAX_SIGN_OFF_REQUIRED` from a warning to a hard blocker (no compile/runtime send-time approvedAt marker exists today — epic-3). |
-| tax wording | **`blocking`** real-pilot / parked | `A20` / `A21` / `A22` (parked for full-release) | Legal + Accounting | Quote Versions | Estimate-vs-promised-reduction wording + customer-facing disclaimer — a real-customer-facing decision. Never a demo blocker; parked for full-release, blocks real-pilot. |
+| quote terms | `signed-off` (demo; real-pilot re-score) | `A22` (answered — platshållartext räcker för piloten; **facet: quote-terms text + approver**, SoR "Villkorstext + godkännare" row) | Owner + Legal | Settings / Pricing, Quote Versions | Placeholder terms suffice for the pilot; the structural `quote_terms.approved_at` sign-off gate is human-only (edit resets). **Re-score for real-pilot:** real terms text + the send gate flipping `requires_sign_off` / `TAX_SIGN_OFF_REQUIRED` from a warning to a hard blocker (no compile/runtime send-time approvedAt marker exists today — epic-3). |
+| tax wording | **`blocking`** real-pilot / parked | `A20` / `A21` / `A22-tax` (parked for full-release; **facet: customer-facing tax-deduction disclaimer wording**, SoR "Parked for full-release" prose bullet) | Legal + Accounting | Quote Versions | Estimate-vs-promised-reduction wording + customer-facing disclaimer — a real-customer-facing decision. Never a demo blocker; parked for full-release, blocks real-pilot. **`A22-tax` is a register-local sub-ID that isolates the disclaimer-wording facet from the answered quote-terms facet (bare `A22`, signed-off above)** — the SoR reuses bare `A22` for both; the two facets carry opposite gate statuses, so they MUST NOT share one owning ID (per-ID status-coherence is asserted by the sign-off-register validator). |
 
 ### 4.2 Migration / job-model blocking items (cross-referenced from the system-of-record)
 

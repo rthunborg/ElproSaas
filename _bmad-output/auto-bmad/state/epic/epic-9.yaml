@@ -5,11 +5,11 @@ epic_num: 9
 story_num: null
 branch: epic/9-migration-coexistence-golden-masters-and-pilot-readiness
 status: in-progress
-updated_at: "2026-07-08T11:12:40Z"
+updated_at: "2026-07-08T12:02:30Z"
 started_at: "2026-07-07T17:37:04Z"
 completed_at: null
-active_seconds: 13414
-timing_anchor: 1783509160
+active_seconds: 15069
+timing_anchor: 1783510827
 is_first_in_epic: false
 is_last_in_epic: false
 needs_project_context_bootstrap: false
@@ -20,8 +20,8 @@ tea_selected: []
 tea_rationale: null
 epic_story_count: 5
 stories_after_in_epic: null
-completed_phases: [0, 1, 2]
-code_review_iterations: 0
+completed_phases: [0, 1, 2, 5, 81]
+code_review_iterations: 2
 code_review_loop_done: false
 hitl_halt: null
 external_review_iterations: 0
@@ -29,14 +29,14 @@ convergence_unverified: false
 story_trace: null
 commits: [a1578bb]
 phase8_steps:
-  trace_gate: null
-  nfr: null
-  test_review: null
+  trace_gate: done
+  nfr: done
+  test_review: done
   project_context: null
   reconcile: null
   archive: null
   retro: null
-gate_decision: null
+gate_decision: PASS
 gate_iterations: 0
 deferred_work_archived: 0
 pr_url: null
@@ -52,17 +52,19 @@ blockers: []
 overrides: {}
 constraints: []
 epic_slug: migration-coexistence-golden-masters-and-pilot-readiness
-active_story: 9-5-phase-a-acceptance-gate-report
+active_story: null
 stories_landed:
   - 9-1-legacy-record-classification-and-migration-runbook
   - 9-2-anonymized-lovable-fixture-capture
   - 9-3-golden-master-comparison-harness-for-core-workflow
   - 9-4-pilot-fallback-cutover-and-sign-off-register
+  - 9-5-phase-a-acceptance-gate-report
 auto_decisions:
   - "Approved-PII-exception machine-readable marker not implemented/exercised [Med] â†’ defer: owner-gated real-capture story defines the marker key + scanner recognition when the first exception appears (Tier A, 9-2-anonymized-lovable-fixture-capture)"
   - "PDF mustNotAppear unselected-option leakage assertion vacuous [Med] â†’ fix: carry the unselected option + hidden-row literal into the snapshot so leaked==[] is meaningful for all three negatives (Tier A, 9-3-golden-master-comparison-harness-for-core-workflow)"
   - "MISSING_WORK_ROLE routed around AC2 classification machinery [Low] â†’ dismiss: over-stated fixture representativeness claim, live oracle authoritative, fixture mutation forbidden (Tier A, 9-3-golden-master-comparison-harness-for-core-workflow)"
   - "classifyDelta one-armed vs AC2 three-way vocabulary [Low] â†’ defer: arms first needed when the first real captured Lovable delta backfills; ledgered (Tier A, 9-3-golden-master-comparison-harness-for-core-workflow)"
+  - "A22 carries two contradictory gate statuses in the 9.4 register [Med] → fix: split the tax-wording facet onto a distinct owning sub-ID (new A22-tax, not reusing A22) or add a facet qualifier so the rows are unambiguous, plus a per-ID status-coherence assertion (E_review, epic-9)"
 uat_items:
   - "[9-1-legacy-record-classification-and-migration-runbook] Open docs/migration/legacy-record-classification.md §2+§4 → four-bucket contract stated; all four buckets populated (§4.1 live, §4.2 archive-only, §4.3 excluded, §4.4 deferred)."
   - "[9-1-legacy-record-classification-and-migration-runbook] In legacy-record-classification.md §4.4, scan target-treatment of every deferred group → each maps to 'none — deferred'; none points at a live Phase A table (AC1/R-907 guard)."
@@ -118,3 +120,18 @@ uat_items:
   - "[9-4-pilot-fallback-cutover-and-sign-off-register] Read §3.1–§3.6 → each of the six workflows carries non-empty old-app fallback, cutover-by-workflow plan, manual-backfill risks, rollback decision points."
   - "[9-4-pilot-fallback-cutover-and-sign-off-register] Read §2 + §3 rollback rows → cutover/rollback per-workflow never whole-company; fallback not removable while a blocking assumption is open (NFR21/R-908)."
   - "[9-4-pilot-fallback-cutover-and-sign-off-register] Optional: cross-check owner-signoff-questions.md öppen/partial IDs vs register §4 → each appears with blocking status (manual R-917 confirmation)."
+  - "[9-5-phase-a-acceptance-gate-report] Run pnpm run test:unit → suite green; acceptance-gate-report-validators.test.ts block shows 29 passing tests incl. seeded negative paths."
+  - "[9-5-phase-a-acceptance-gate-report] Run node --experimental-strip-types --import ./tests/support/register.mjs --test tests/unit/docs/acceptance-gate-report-validators.test.ts → pass 29 / fail 0."
+  - "[9-5-phase-a-acceptance-gate-report] In that output → GATE-HONESTY negative paths pass: seeded MISSING-gate report FAILS, seeded SKIPPED-WITHOUT-REASON FAILS (false-green guard fires, R-909)."
+  - "[9-5-phase-a-acceptance-gate-report] In that output → SCOPE-scan negative path passes: seeded deferred-module token trips the scan; deny-list module itself not flagged (R-910)."
+  - "[9-5-phase-a-acceptance-gate-report] In that output → READINESS no-drift negative path passes: a dotted money/tax blocking ID removed from §6 FAILS reconciliation (R-920)."
+  - "[9-5-phase-a-acceptance-gate-report] In that output → PII negative paths pass: seeded personnummer/orgnr/email/phone/secret each trip the scan; docs/migration/** scans clean."
+  - "[9-5-phase-a-acceptance-gate-report] Open docs/migration/phase-a-acceptance-gate.md §2 → every gate row has status ∈ {pass, fail, skipped-with-reason} and cites a CI job/step (no bare skipped)."
+  - "[9-5-phase-a-acceptance-gate-report] Cross-read §2 vs .github/workflows/ci.yml + package.json scripts → all 12 real CI gates appear as rows, none missing (AC1 1:1)."
+  - "[9-5-phase-a-acceptance-gate-report] Read §3 → N/A product gates each skipped-with-reason; typecheck/lint/unit/build marked applying-and-passing."
+  - "[9-5-phase-a-acceptance-gate-report] Read §4.1 → every deny-list category named; machine half matches FORBIDDEN_DEFERRED_CATEGORIES in src/features/files/deferred-categories.ts (AC2)."
+  - "[9-5-phase-a-acceptance-gate-report] Read §4.2 → anchors match live sources: exactly 7 nav items (nav-items.ts), exactly 24 tenant-owned tables (tenant-table-inventory.ts)."
+  - "[9-5-phase-a-acceptance-gate-report] Read §6.1/§6.2 → every register blocking ID (A.1, A.2, B.1-B.4, C.1-C.3, 7.1, 7.3, 8.1, 8.2) listed with named owner and real-pilot-blocking; reconciles 1:1 with pilot-fallback-cutover.md §4 (AC3)."
+  - "[9-5-phase-a-acceptance-gate-report] Read §6 header + §6.3 → demo track non-blocking on every row; deferred-work re-score residuals each carry an owner."
+  - "[9-5-phase-a-acceptance-gate-report] Read §7 → only real readiness codes (UNRESOLVED_VAT, TAX_SIGN_OFF_REQUIRED, REQUIRED_FILES_DEFERRED) — grep readiness.ts to confirm; no fictional codes."
+  - "[9-5-phase-a-acceptance-gate-report] Visual scan of phase-a-acceptance-gate.md → no stray tool-artifact lines, no bare 10-digit numbers; ends cleanly at §8."

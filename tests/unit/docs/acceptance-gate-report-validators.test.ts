@@ -198,26 +198,38 @@ function registerBlockingIds(): string[] {
   const section = end > 0 ? rest.slice(0, end) : rest;
 
   const ids = new Set<string>();
-  // ID pattern (alternation, dotted-letter family FIRST so `A.1`/`B.1-B.4` are captured whole):
+  // ID pattern (alternation, most-specific families FIRST so the whole token is captured):
   //   (a) letter-dot-digit, optionally a `-<same>` range     — `A.1`, `A.2`, `B.1-B.4`, `C.1-C.3`
-  //   (b) letter-then-digits (no dot)                          — `A20`, `A21`, `A22`
-  //   (c) digit-dot-digit, optionally a range                  — `7.1`, `7.3`, `8.1`, `8.2`
+  //   (b) letter-then-digits + a `-<facet>` register-local sub-ID — `A22-tax` (MUST precede bare
+  //       `[A-Z]\d+` so `A22-tax` is captured WHOLE, not split into a stray bare `A22`)
+  //   (c) letter-then-digits (no dot)                          — `A20`, `A21`, `A22`
+  //   (d) digit-dot-digit, optionally a range                  — `7.1`, `7.3`, `8.1`, `8.2`
   // The letter-then-dot families were previously DROPPED because a leading `[A-Z]?\d+` requires a
   // digit immediately after the optional letter — `A.1` never matched (R-917 no-drift hole).
+  // The `A22-tax` sub-ID isolates the parked tax-wording facet from the answered quote-terms `A22`
+  // (opposite gate statuses); capturing it whole keeps the two facets distinct in the blocking set.
   const idRe =
-    /\b([A-Z]\.\d+(?:-[A-Z]\.\d+)?|[A-Z]\d+|\d+\.\d+(?:-\d+\.\d+)?)\b/g;
+    /\b([A-Z]\.\d+(?:-[A-Z]\.\d+)?|[A-Z]\d+-[a-z]+|[A-Z]\d+|\d+\.\d+(?:-\d+\.\d+)?)\b/g;
   for (const line of section.split("\n")) {
     if (!line.trim().startsWith("|")) continue;
-    // A blocking row carries `blocking` in its status cell (not the header/separator).
-    if (!/blocking/i.test(line)) continue;
     if (/^\s*\|\s*Blocking item\s*\|/i.test(line) || /^\s*\|\s*Decision item\s*\|/i.test(line)) continue;
-    // Pull IDs from the owning-question-ID cell(s). Restrict to ID-shaped tokens.
-    for (const m of line.matchAll(idRe)) {
+    // Both §4.1 and §4.2 tables share the column shape `| item | Status | Owning ID(s) | Owner |
+    // Affected | Notes |`, so after splitting on `|`: cell[2]=Status, cell[3]=Owning ID(s). Scope the
+    // ID extraction to the OWNING-ID cell only — never the whole line — so an ID mentioned in prose
+    // (e.g. a Notes-cell reference to the answered `A22` explaining the `A22-tax` split) cannot leak
+    // into the blocking set. A blocking row is one whose STATUS cell carries `blocking`.
+    const cells = line.split("|").map((c) => c.trim());
+    const statusCell = cells[2] ?? "";
+    if (!/blocking/i.test(statusCell)) continue;
+    const idCell = cells[3] ?? "";
+    // Pull IDs from the owning-question-ID cell only. Restrict to ID-shaped tokens.
+    for (const m of idCell.matchAll(idRe)) {
       const id = m[1];
-      // Owner-signoff IDs look like `A.1`/`A.2`/`B.1-B.4`/`C.1-C.3`, `A20`, `7.1`, `8.2`. Exclude bare
-      // section refs like `4.1`/`4.2`/`5` and pure prose numbers by requiring the letter-prefixed
-      // (dotted or not) or 7/8-prefixed families that the register actually uses as blocking owning IDs.
-      if (/^[A-C]\.\d/.test(id) || /^[A-C]\d+$/.test(id) || /^[78]\.\d$/.test(id)) {
+      // Owner-signoff IDs look like `A.1`/`A.2`/`B.1-B.4`/`C.1-C.3`, `A20`, `A22-tax`, `7.1`, `8.2`.
+      // Exclude bare section refs like `4.1`/`4.2`/`5` and pure prose numbers by requiring the
+      // letter-prefixed (dotted, bare, or `-facet` sub-ID) or 7/8-prefixed families that the register
+      // actually uses as blocking owning IDs.
+      if (/^[A-C]\.\d/.test(id) || /^[A-C]\d+(?:-[a-z]+)?$/.test(id) || /^[78]\.\d$/.test(id)) {
         ids.add(id);
       }
     }
@@ -643,6 +655,56 @@ test("9.5-READY-01: the report records the demo track as explicitly NON-BLOCKING
   );
 });
 
+test("9.5-EVID-01: the §2 golden-master evidence row NAMES the real Story 9.3 old/new Lovable-comparison suites (the epic's headline AC1 artifact)", () => {
+  const report = reportText();
+  // Isolate §2 so a mention elsewhere in prose (line 213) does not satisfy the gate-evidence row.
+  const g2Start = report.search(/##\s*2\.\s*Gate Summary/i);
+  const g2End = report.search(/##\s*3\./i);
+  const gateSection = report.slice(g2Start, g2End > g2Start ? g2End : undefined);
+
+  // The four (of five) load-bearing 9.3 comparison suites the golden-master evidence row must cite —
+  // these are the artifact that answers AC1's "old/new comparisons ... evidence instead of memory."
+  // Each named suite must ALSO exist in the repo (no citing a suite that isn't there).
+  const suites = [
+    "lovable-comparison-guards.test.ts",
+    "lovable-comparison-calc-quote-pdf.test.ts",
+    "lovable-comparison-acceptance-job.test.ts",
+    "lovable-comparison-delta-classification.test.ts",
+  ];
+  for (const suite of suites) {
+    assert.ok(
+      gateSection.includes(suite),
+      `the §2 golden-master evidence row must name the Story 9.3 comparison suite "${suite}" — the old/new comparison artifact must be cited AS gate evidence, not only pre-Epic-9 new-side packs (AC1)`,
+    );
+    assert.ok(
+      existsSync(path.join(REPO, "tests", "unit", "fixtures", "golden", "lovable", suite)),
+      `precondition: the cited 9.3 comparison suite "${suite}" must exist under tests/unit/fixtures/golden/lovable/** (no citing a non-existent suite)`,
+    );
+  }
+});
+
+test("9.5-READY-01: the §6 'reconciled 1:1' claim is QUALIFIED — it states only `blocking` rows are live-reconciled and signed-off rows are hand-authored (no over-claim)", () => {
+  const report = reportText();
+  const start = report.search(/##\s*6\.\s*Readiness/i);
+  assert.ok(start >= 0, "the report must contain a '## 6. Readiness' section");
+  const rest = report.slice(start);
+  const end = rest.search(/\n##\s*7\./);
+  const readiness = end > 0 ? rest.slice(0, end) : rest;
+  const lc = readiness.toLowerCase();
+
+  // The reconciliation guard scans only `blocking`-status register rows — the §6 claim must scope its
+  // "1:1" to the blocking rows and disclose that the signed-off rows are hand-authored, not
+  // live-reconciled. An unqualified "reconciled 1:1 with §4" oversells the executable guard's reach.
+  assert.ok(
+    /1:1[^\n]*blocking|blocking[^\n]*1:1/.test(lc),
+    "the §6 reconciliation claim must scope its 1:1 guarantee to the `blocking` rows (the only rows the guard live-reconciles)",
+  );
+  assert.ok(
+    /(hand-authored|not live-reconciled|not.{0,20}reconciled)/.test(lc),
+    "the §6 claim must disclose that the `signed-off` register rows are hand-authored / NOT live-reconciled — the guard scans only blocking-status rows (no over-claim vs the R-917/R-920 no-drift discipline)",
+  );
+});
+
 // ══ 9.5-EVID-01 (P1) + docs-structure — the report carries all required sections non-empty ═════
 
 test("9.5-EVID-01: the report carries the required sections (gate summary, scope confirmation, readiness), each non-empty", () => {
@@ -905,13 +967,17 @@ test("9.5-GATE-01: parseReportedGates reads the REAL report and yields the manda
 test("9.5-READY-01: registerBlockingIds parses EVERY blocking owning ID from the 9.4 register §4 — dotted money/tax families included — and excludes section-reference tokens", () => {
   const ids = registerBlockingIds();
   // The parser must extract the FULL blocking set: the dotted money/tax families (`A.1`/`A.2`/
-  // `B.1-B.4`/`C.1-C.3`), the tax-wording family (`A20`/`A21`/`A22`), and the migration/job-model
+  // `B.1-B.4`/`C.1-C.3`), the tax-wording family (`A20`/`A21`/`A22-tax`), and the migration/job-model
   // families (`7.1`/`7.3`/`8.1`/`8.2`). The dotted `[A-C].\d` families were previously dropped by the
   // extraction regex (letter-then-dot never matched), so the no-drift reconciliation could not enforce
   // them 1:1 against §6 — the R-917 hole this closes.
-  for (const id of ["A.1", "A.2", "B.1-B.4", "C.1-C.3", "A20", "A21", "A22", "8.1", "8.2", "7.1", "7.3"]) {
+  for (const id of ["A.1", "A.2", "B.1-B.4", "C.1-C.3", "A20", "A21", "A22-tax", "8.1", "8.2", "7.1", "7.3"]) {
     assert.ok(ids.includes(id), `registerBlockingIds must include the known blocking owning ID "${id}" — parsed: ${ids.join(", ")}`);
   }
+  // The disclaimer-wording facet is carried under the register-local sub-ID `A22-tax`, isolating it
+  // from the answered quote-terms `A22` (signed-off). The blocking set must therefore carry `A22-tax`
+  // WHOLE and NOT emit a stray bare `A22` (which would re-conflate the two opposite-status facets).
+  assert.ok(!ids.includes("A22"), `registerBlockingIds must carry the tax-wording facet as the whole sub-ID "A22-tax", never a stray bare "A22" (facet disambiguation) — parsed: ${ids.join(", ")}`);
   // The answered (non-blocking) `D.1`/`D.2`/`D.3` eligibility tokens riding in the ROT blocking row must
   // NOT leak in — they sit outside the `[A-C]` money/tax family filter.
   for (const nonId of ["D.1", "D.2", "D.3"]) {

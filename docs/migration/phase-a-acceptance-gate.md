@@ -100,7 +100,7 @@ layer).
 
 | Gate | Status | CI job / step | Notes |
 | --- | --- | --- | --- |
-| Golden-master comparisons (money / calc / quote-PDF text / accept→job) | `pass` | `verify` job · step "Unit tests (pure logic, node --test)" (runs inside `test:unit`) | The `@/lib/money` golden pack, the calc golden pack, the quote-PDF text-extraction golden, and the accept→job golden — architecture §19 stage 9. Golden-pinned pending owner sign-off (`requiresSignOff` framing threads through every snapshot; see §5). No golden is authored by this story — it REFERENCES them. |
+| Golden-master comparisons (money / calc / quote-PDF text / accept→job) + Story 9.3 old/new Lovable-comparison suites | `pass` | `verify` job · step "Unit tests (pure logic, node --test)" (runs inside `test:unit`) | The pre-Epic-9 new-side golden packs — `@/lib/money`, calc, quote-PDF text-extraction, accept→job — architecture §19 stage 9. **PLUS the Story 9.3 old-vs-new Lovable-comparison harness (the epic's headline old/new comparison artifact for AC1) under `tests/unit/fixtures/golden/lovable/**`:** `lovable-comparison-guards.test.ts`, `lovable-comparison-calc-quote-pdf.test.ts`, `lovable-comparison-acceptance-job.test.ts`, `lovable-comparison-delta-classification.test.ts` (+ `lovable-comparison-classification-deltas.test.ts`) — these drive the 8 anonymized Lovable fixtures (`tests/fixtures/golden/lovable/**`) through the real oracle and compare old-vs-new, answering AC1's "approve workflows based on evidence instead of memory." Golden-pinned pending owner sign-off (`requiresSignOff` framing threads through every snapshot; see §5). No golden is authored by this story — it REFERENCES them. |
 | Fixture-privacy / anonymization checks | `pass` | `verify` job · step "Unit tests (pure logic, node --test)" (runs inside `test:unit`) | The anonymized-fixture scanner + the whole-directory `docs/migration/**` PII scan (personnummer / orgnr / email / phone / secret) — the fixture-privacy layer of architecture §19 stage 10. This report is authored under `docs/migration/**` and is proven clean by that scan (§7). |
 
 ## 3. Skipped-Gates-With-Reasons Discipline (this story's own PR)
@@ -218,11 +218,16 @@ broad admin analytics module, and NO deferred-scope activation before pilot use.
 ## 6. Readiness / Stop Conditions (named owners; blocks real-pilot where required)
 
 Every unresolved stop condition is listed below with a **named decision owner** (owner / accounting /
-legal / security) and marked whether it **blocks real-pilot use**. This list is reconciled **1:1** with
-the [sign-off register](./pilot-fallback-cutover.md) §4 `blocking` rows (the single source of truth for
-what is `blocking`, verified there live against `owner-signoff-questions.md`) — it does not fork a
-divergent status list. An owner-pending item (`öppen (möte)` / `partial (möte)`) stays **`blocking`**;
-it is never default-marked `signed-off`.
+legal / security) and marked whether it **blocks real-pilot use**. This list is reconciled **1:1 with
+the [sign-off register](./pilot-fallback-cutover.md) §4 `blocking` rows** (the single source of truth
+for what is `blocking`, verified there live against `owner-signoff-questions.md`) — the readiness
+validator reads the register LIVE and FAILS if a register-`blocking` ID is absent here, so the
+`blocking` set is guarded 1:1, not just hand-authored. The register's `signed-off (demo; real-pilot
+re-score)` rows are **hand-authored here (the §6.3 re-score residuals), NOT live-reconciled** — the
+reconciliation guard scans only `blocking`-status register rows (`registerBlockingIds()` /
+`reconcileReadinessBlocking`), so the signed-off rows rest on the author's cross-check at authoring
+time, not an executable guard. An owner-pending item (`öppen (möte)` / `partial (möte)`) stays
+**`blocking`**; it is never default-marked `signed-off`.
 
 **Two tracks, never conflated (owner decision 2026-07-03).** Every item below is **`blocking` for the
 real-pilot track** and **non-blocking for the demo track** (disposable, obviously-fake demo data,
@@ -237,7 +242,7 @@ real-customer use is proposed.
 | ROT (rates / caps / basis) | **Yes — blocking** | Non-blocking | Accounting | `B.1-B.4` (öppen (möte)) | Rates / caps / basis are `möte`-open; eligibility is decided (private only). Blocks real-pilot. |
 | grön teknik (rates / caps / schablon) | **Yes — blocking** | Non-blocking | Accounting | `C.1-C.3` (öppen (möte)) | Rates / caps / schablon are `möte`-open. Blocks real-pilot. |
 | rounding | **Yes — blocking** | Non-blocking | Accounting | `A.1` (öppen (möte)) | Line-level round-half-away is a golden-pinned UNAPPROVED placeholder; document-level rounding is a STOP. Blocks real-pilot. |
-| tax wording (estimate-vs-promised + disclaimer) | **Yes — blocking / parked** | Non-blocking | Legal + Accounting | `A20` / `A21` / `A22` (parked) | Customer-facing reduction wording + disclaimer — parked for full-release, blocks real-pilot; never a demo blocker. |
+| tax wording (estimate-vs-promised + disclaimer) | **Yes — blocking / parked** | Non-blocking | Legal + Accounting | `A20` / `A21` / `A22-tax` (parked) | Customer-facing reduction wording + disclaimer — parked for full-release, blocks real-pilot; never a demo blocker. `A22-tax` is the register-local sub-ID isolating the disclaimer-wording facet from the answered quote-terms facet (bare `A22`, signed-off) — the two carry opposite gate statuses (sign-off register §4.1). |
 
 ### 6.2 Migration / job-model owner blockers (from sign-off register §4.2)
 

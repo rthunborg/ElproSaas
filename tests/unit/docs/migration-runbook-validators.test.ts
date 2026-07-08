@@ -240,6 +240,61 @@ test("9.1-RUNBOOK-01: cutover is stated as per-workflow, NEVER whole-company (ar
   );
 });
 
+// ── 9.1-RUNBOOK §5 asset-location seams: evergreen-accurate + no vacuous-green home (R-922/R-904) ──
+
+/** Isolate the runbook's §5 "Approved Asset-Location Seams" section text. */
+function assetSeamsSection(): string {
+  const src = readRequiredDoc(RUNBOOK_DOC);
+  const start = src.search(/##\s*5\.\s*Approved Asset-Location Seams/i);
+  assert.ok(start >= 0, "the runbook must contain a '## 5. Approved Asset-Location Seams' section");
+  const rest = src.slice(start);
+  const end = rest.slice(3).search(/\n##\s/);
+  return end > 0 ? rest.slice(0, end + 3) : rest;
+}
+
+test("9.1-RUNBOOK §5 (R-922 evergreen): the fixture + capture-script homes that Story 9.2 committed are marked LANDED, not 'does NOT exist yet'", () => {
+  const section = assetSeamsSection();
+  // The two homes 9.2 actually created — if the runbook still declares them non-existent while the
+  // files are committed, §5 is stale-on-arrival (the R-922 evergreen-doc violation this fix closed).
+  const fixtureHome = path.join(REPO, "tests", "fixtures", "golden", "lovable");
+  const captureScript = path.join(REPO, "scripts", "migration", "lovable-capture.ts");
+  assert.ok(existsSync(fixtureHome), "precondition: the 9.2 fixture home must exist in the repo");
+  assert.ok(existsSync(captureScript), "precondition: the 9.2 capture harness must exist in the repo");
+
+  // §5 must NOT describe an existing repo location as forthcoming / non-existent.
+  assert.ok(
+    !/does NOT exist yet/i.test(section),
+    "§5 still declares an asset home 'does NOT exist yet' while Story 9.2 committed it — flip the status to 'landed' (R-922 evergreen-doc discipline)",
+  );
+  // The fixtures + capture-script rows must carry a 'landed' status (Story 9.2).
+  assert.ok(
+    /`tests\/fixtures\/golden\/lovable\/\*\*`[^\n]*landed/i.test(section),
+    "§5 must mark the anonymized-fixtures home as landed (Story 9.2)",
+  );
+  assert.ok(
+    /`scripts\/migration\/\*\*`[^\n]*landed/i.test(section),
+    "§5 must mark the capture/reset-scripts home as landed (Story 9.2)",
+  );
+});
+
+test("9.1-RUNBOOK §5 (R-904 runner-glob): §5 does NOT offer `tests/golden/**` as a comparison-test home without flagging it never runs", () => {
+  const section = assetSeamsSection();
+  // `tests/golden/**` is outside the `test:unit` glob (`tests/unit/**`), so a suite there is
+  // never executed (vacuous-green). If §5 mentions it at all, it MUST warn it is not executed —
+  // it must never be offered as an unqualified valid comparison-test home (the runner-glob trap).
+  if (/`tests\/golden\/\*\*`/.test(section)) {
+    assert.ok(
+      /`tests\/golden\/\*\*`[^\n]*(never executed|NOT[^\n]*glob|do NOT use|vacuous)/i.test(section),
+      "§5 lists `tests/golden/**` but does not flag that it is never executed by `test:unit` — a comparison suite placed there is vacuous-green (R-904). Mark it 'never executed / do NOT use' or drop it.",
+    );
+  }
+  // The approved comparison-test home must be under tests/unit/** (the executed glob).
+  assert.ok(
+    /`tests\/unit\/\*\*`/.test(section),
+    "§5 must name `tests/unit/**` as the executed comparison-test home (the only glob `test:unit` runs)",
+  );
+});
+
 // ── 9.1-STOP-01 — fail-closed scope-unclear STOP protocol ─────────────────────────────────────
 
 test("9.1-STOP-01: the runbook has a fail-closed 'scope-unclear → STOP for owner clarification' protocol section", () => {

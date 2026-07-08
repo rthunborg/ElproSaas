@@ -215,16 +215,18 @@ them off. The `requiresSignOff` framing threads through the snapshots/goldens al
 
 ## 5. Approved Asset-Location Seams (do NOT build here)
 
-Architecture §16 fixes where each migration/comparison asset lives. This runbook points at
-them as **forthcoming seams** for the later migration/comparison/fallback work — it does not
-scaffold them (landing an asset in the wrong place is R-919):
+Architecture §16 fixes where each migration/comparison asset lives. This runbook is the evergreen
+control point for those asset homes: it names the approved location for each and its current status
+in the repo (landing an asset in the wrong place is R-919). Most of these seams have since **landed**
+within Epic 9 (Stories 9.2/9.3) — the status column below reflects the repo at merge, per the
+runbook's own R-922 evergreen-doc discipline:
 
-| Asset | Approved location | Status in this story |
+| Asset | Approved location | Status |
 | --- | --- | --- |
-| Classification / delta / fallback **docs** | `docs/migration/**` | **This story's output** (this file + the classification register). |
-| Anonymized structured **fixtures** | `tests/fixtures/golden/lovable/**` | **Forthcoming — does NOT exist yet.** Reference only; do NOT scaffold. |
-| Golden-master **comparison tests** | `tests/golden/**` / the existing `tests/unit/**` golden pins | Forthcoming comparison-harness concern. |
-| Approved **capture/reset scripts** | `scripts/migration/**` | **Forthcoming — does NOT exist yet, and is NOT this story.** Reserved for a real, approved migration-script story. Do NOT create. |
+| Classification / delta / fallback **docs** | `docs/migration/**` | **Landed** (this file + the classification register; the 9.4 fallback/cutover register + the 9.5 acceptance-gate report). |
+| Anonymized structured **fixtures** | `tests/fixtures/golden/lovable/**` | **Landed (Story 9.2)** — the 8 anonymized Lovable fixtures live here (`crm.json`, `settings-pricing.json`, `calculations.json`, `quotes.json`, `pdfs.json`, `acceptance.json`, `accepted-quote-to-job.json`, `files.json`). Add to this home; do NOT relocate. |
+| Golden-master **comparison tests** | `tests/unit/**` (executed by `test:unit`) — the existing `tests/unit/**` golden pins + the 9.3 Lovable-comparison suites under `tests/unit/fixtures/golden/lovable/**` | **Landed (Story 9.3).** NOTE: `tests/golden/**` is **NOT** in the `test:unit` glob — a suite placed there is **never executed** (vacuous-green, R-904). Comparison suites MUST live under `tests/unit/**` (9.3 correctly placed them under `tests/unit/fixtures/golden/lovable/**`). Do NOT use `tests/golden/**`. |
+| Approved **capture/reset scripts** | `scripts/migration/**` | **Landed (Story 9.2)** — the anonymized capture harness (`lovable-capture.ts` + `README.md`) lives here. Add approved capture/reset scripts to this home; a real historical-data export/import remains an owner-gated STOP (§6). |
 
 The golden-master fixture strategy (architecture §17) governs the delta-documentation framing:
 preserve **business shape, not real customer data**; remove/replace all real PII unless

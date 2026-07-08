@@ -164,6 +164,56 @@ function blockingSignoffIds(): string[] {
   return [...ids];
 }
 
+/**
+ * Parse the §4.1 AC2-decision register rows into {status, ids} pairs so a per-ID status-coherence
+ * check can run. Each §4.1 row is `| Decision item | Status | Owning question ID(s) | Owner |
+ * Affected workflow(s) | Notes |`; the Status cell (cell[2]) resolves to `signed-off` or `blocking`,
+ * and the Owning-ID cell (cell[3]) carries the owning question ID token(s). We extract owning-ID
+ * tokens including the register-local `-facet` sub-IDs (e.g. `A22-tax`) so a facet that has been
+ * split off onto its own sub-ID is NOT re-conflated with the bare ID by the parser.
+ *
+ * [Source: R-917 register-drift discipline extended to per-ID status COHERENCE — auditor@primary
+ *  M1+L1 / auditor@secondary #3: a single owning ID must never carry two contradictory gate statuses]
+ */
+function ac2RegisterRows(): Array<{ status: "signed-off" | "blocking"; ids: string[] }> {
+  const reg = registerText();
+  const start = reg.search(/###\s*4\.1\s*AC2 decision items/i);
+  assert.ok(start >= 0, "the register must contain a '### 4.1 AC2 decision items' section");
+  const rest = reg.slice(start);
+  const end = rest.search(/\n###\s*4\.2/);
+  const section = end > 0 ? rest.slice(0, end) : rest;
+
+  // Owning-ID token: `-facet` sub-ID FIRST so `A22-tax` is captured whole (not split into bare `A22`).
+  const idRe = /\b([A-Z]\.\d+(?:-[A-Z]\.\d+)?|[A-Z]\d+-[a-z]+|[A-Z]\d+|\d+\.\d+(?:-\d+\.\d+)?)\b/g;
+  const rows: Array<{ status: "signed-off" | "blocking"; ids: string[] }> = [];
+  for (const line of section.split("\n")) {
+    const trimmed = line.trim();
+    if (!trimmed.startsWith("|")) continue;
+    if (/^\|\s*Decision item\s*\|/i.test(trimmed) || /^\|\s*-+\s*\|/.test(trimmed)) continue;
+    const cells = line.split("|").map((c) => c.trim());
+    // cells[0] is the empty pre-pipe cell; cells[1]=item, cells[2]=status, cells[3]=owning ID(s).
+    const statusCell = cells[2] ?? "";
+    const idCell = cells[3] ?? "";
+    const status: "signed-off" | "blocking" | null = /signed-off/i.test(statusCell)
+      ? "signed-off"
+      : /blocking/i.test(statusCell)
+        ? "blocking"
+        : null;
+    if (status === null) continue;
+    const ids: string[] = [];
+    for (const m of idCell.matchAll(idRe)) {
+      const id = m[1];
+      // Keep only owner-signoff-shaped owning IDs (letter families + `-facet` sub-IDs + 7/8 job IDs);
+      // drop section refs like `4.1`/`5` and prose numbers that ride in the cell.
+      if (/^[A-C]\.\d/.test(id) || /^[A-C]\d+(?:-[a-z]+)?$/.test(id) || /^[78]\.\d$/.test(id)) {
+        ids.push(id);
+      }
+    }
+    rows.push({ status, ids });
+  }
+  return rows;
+}
+
 /** Load the REAL exported ReadinessCode runtime union LIVE (never a hardcoded subset). */
 async function loadReadinessCodes(): Promise<readonly string[]> {
   const mod = (await import(
@@ -332,6 +382,81 @@ test("9.4-REG-01: the register records the demo-vs-real-pilot track split (every
   assert.ok(
     /non-blocking|not blocking|does not block/.test(lc),
     "[RED] the register must state the demo track is non-blocking (demo-data-only owner decision 2026-07-03) — do NOT conflate the two tracks",
+  );
+});
+
+test("9.4-REG-01 (per-ID status coherence, R-917): NO single owning ID appears with BOTH a signed-off AND a blocking status", () => {
+  // The register-drift discipline (R-917) previously asserted only ID PRESENCE — an ID could sit in a
+  // `signed-off` row AND a `blocking` row and no gate would notice (auditor@primary M1+L1 / secondary
+  // #3: `A22` was `signed-off` on the quote-terms row and `blocking` on the tax-wording row). A
+  // downstream consumer keying on "is this ID blocking?" could not resolve it. This asserts per-ID
+  // status COHERENCE: an owning ID is either signed-off or blocking, never both. The tax-wording facet
+  // is carried under the register-local sub-ID `A22-tax`, so it no longer collides with the answered
+  // quote-terms `A22`.
+  const rows = ac2RegisterRows();
+  assert.ok(rows.length >= 8, `expected the §4.1 AC2 register to carry >=8 decision rows — parsed ${rows.length}`);
+
+  const statusesById = new Map<string, Set<"signed-off" | "blocking">>();
+  for (const { status, ids } of rows) {
+    for (const id of ids) {
+      const set = statusesById.get(id) ?? new Set();
+      set.add(status);
+      statusesById.set(id, set);
+    }
+  }
+  const conflicted = [...statusesById.entries()]
+    .filter(([, statuses]) => statuses.has("signed-off") && statuses.has("blocking"))
+    .map(([id]) => id);
+  assert.deepEqual(
+    conflicted,
+    [],
+    `per-ID status conflict (R-917): these owning ID(s) appear with BOTH signed-off AND blocking status in §4.1 — ${conflicted.join(", ")}. One ID cannot carry two opposite gate statuses; split the conflicting facet onto a distinct sub-ID (e.g. \`A22-tax\`) so each ID resolves to a single status.`,
+  );
+});
+
+test("9.4-REG-01 (per-ID coherence guard FIRES): a seeded row that reuses a signed-off ID with blocking status is detected (negative path)", () => {
+  // Prove the coherence check is not vacuous-green: reconstruct the same conflict class the fix removed
+  // — the answered quote-terms `A22` reused on a `blocking` row — and assert the conflict-detection
+  // logic flags it. This mirrors the exact R-917 hole (auditor@primary M1+L1 / secondary #3).
+  const seeded: Array<{ status: "signed-off" | "blocking"; ids: string[] }> = [
+    { status: "signed-off", ids: ["A22"] }, // quote-terms facet (answered)
+    { status: "blocking", ids: ["A20", "A21", "A22"] }, // tax-wording facet re-using bare A22 (the bug)
+  ];
+  const statusesById = new Map<string, Set<"signed-off" | "blocking">>();
+  for (const { status, ids } of seeded) {
+    for (const id of ids) {
+      const set = statusesById.get(id) ?? new Set();
+      set.add(status);
+      statusesById.set(id, set);
+    }
+  }
+  const conflicted = [...statusesById.entries()]
+    .filter(([, statuses]) => statuses.has("signed-off") && statuses.has("blocking"))
+    .map(([id]) => id);
+  assert.deepEqual(
+    conflicted,
+    ["A22"],
+    "the per-ID coherence check MUST flag a bare ID reused across a signed-off and a blocking row — the guard is proven reachable (not dead machinery)",
+  );
+});
+
+test("9.4-REG-01: the register split the tax-wording facet onto its own sub-ID — bare `A22` is signed-off, `A22-tax` is blocking (facets no longer collide)", () => {
+  const rows = ac2RegisterRows();
+  const a22Statuses = new Set<string>();
+  const a22TaxStatuses = new Set<string>();
+  for (const { status, ids } of rows) {
+    if (ids.includes("A22")) a22Statuses.add(status);
+    if (ids.includes("A22-tax")) a22TaxStatuses.add(status);
+  }
+  assert.deepEqual(
+    [...a22Statuses],
+    ["signed-off"],
+    "the answered quote-terms facet (bare `A22`) must be signed-off ONLY — the SoR answered it (platshållartext räcker för piloten)",
+  );
+  assert.deepEqual(
+    [...a22TaxStatuses],
+    ["blocking"],
+    "the parked tax-wording disclaimer facet (`A22-tax`) must be blocking ONLY — it stays a real-pilot blocker, isolated from the answered quote-terms facet",
   );
 });
 
