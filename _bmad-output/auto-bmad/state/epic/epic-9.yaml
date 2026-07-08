@@ -5,7 +5,7 @@ epic_num: 9
 story_num: null
 branch: epic/9-migration-coexistence-golden-masters-and-pilot-readiness
 status: in-progress
-updated_at: "2026-07-08T12:02:30Z"
+updated_at: "2026-07-08T12:13:22Z"
 started_at: "2026-07-07T17:37:04Z"
 completed_at: null
 active_seconds: 15069
@@ -20,10 +20,10 @@ tea_selected: []
 tea_rationale: null
 epic_story_count: 5
 stories_after_in_epic: null
-completed_phases: [0, 1, 2, 5, 81]
+completed_phases: [0, 1, 2, 5, 7, 81]
 code_review_iterations: 2
-code_review_loop_done: false
-hitl_halt: null
+code_review_loop_done: true
+hitl_halt: "auto-continued (epic â€” no halt)"
 external_review_iterations: 0
 convergence_unverified: false
 story_trace: null
@@ -135,3 +135,4 @@ uat_items:
   - "[9-5-phase-a-acceptance-gate-report] Read §6 header + §6.3 → demo track non-blocking on every row; deferred-work re-score residuals each carry an owner."
   - "[9-5-phase-a-acceptance-gate-report] Read §7 → only real readiness codes (UNRESOLVED_VAT, TAX_SIGN_OFF_REQUIRED, REQUIRED_FILES_DEFERRED) — grep readiness.ts to confirm; no fictional codes."
   - "[9-5-phase-a-acceptance-gate-report] Visual scan of phase-a-acceptance-gate.md → no stray tool-artifact lines, no bare 10-digit numbers; ends cleanly at §8."
+integration_review_done: true
