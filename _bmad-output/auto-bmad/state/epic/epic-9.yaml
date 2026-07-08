@@ -5,11 +5,11 @@ epic_num: 9
 story_num: null
 branch: epic/9-migration-coexistence-golden-masters-and-pilot-readiness
 status: in-progress
-updated_at: "2026-07-08T09:54:02Z"
+updated_at: "2026-07-08T10:01:23Z"
 started_at: "2026-07-07T17:37:04Z"
 completed_at: null
 active_seconds: 8734
-timing_anchor: null
+timing_anchor: 1783504444
 is_first_in_epic: false
 is_last_in_epic: false
 needs_project_context_bootstrap: false
@@ -58,6 +58,9 @@ stories_landed:
   - 9-2-anonymized-lovable-fixture-capture
 auto_decisions:
   - "Approved-PII-exception machine-readable marker not implemented/exercised [Med] â†’ defer: owner-gated real-capture story defines the marker key + scanner recognition when the first exception appears (Tier A, 9-2-anonymized-lovable-fixture-capture)"
+  - "PDF mustNotAppear unselected-option leakage assertion vacuous [Med] â†’ fix: carry the unselected option + hidden-row literal into the snapshot so leaked==[] is meaningful for all three negatives (Tier A, 9-3-golden-master-comparison-harness-for-core-workflow)"
+  - "MISSING_WORK_ROLE routed around AC2 classification machinery [Low] â†’ dismiss: over-stated fixture representativeness claim, live oracle authoritative, fixture mutation forbidden (Tier A, 9-3-golden-master-comparison-harness-for-core-workflow)"
+  - "classifyDelta one-armed vs AC2 three-way vocabulary [Low] â†’ defer: arms first needed when the first real captured Lovable delta backfills; ledgered (Tier A, 9-3-golden-master-comparison-harness-for-core-workflow)"
 uat_items:
   - "[9-1-legacy-record-classification-and-migration-runbook] Open docs/migration/legacy-record-classification.md Â§2+Â§4 â†’ four-bucket contract stated; all four buckets populated (Â§4.1 live, Â§4.2 archive-only, Â§4.3 excluded, Â§4.4 deferred)."
   - "[9-1-legacy-record-classification-and-migration-runbook] In legacy-record-classification.md Â§4.4, scan target-treatment of every deferred group â†’ each maps to 'none â€” deferred'; none points at a live Phase A table (AC1/R-907 guard)."

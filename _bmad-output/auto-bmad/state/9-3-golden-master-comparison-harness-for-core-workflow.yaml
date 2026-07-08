@@ -5,11 +5,11 @@ epic_num: 9
 story_num: 3
 branch: epic/9-migration-coexistence-golden-masters-and-pilot-readiness
 status: in-progress
-updated_at: "2026-07-08T09:54:03Z"
+updated_at: "2026-07-08T10:07:04Z"
 started_at: "2026-07-07T19:25:47Z"
 completed_at: null
 active_seconds: 2606
-timing_anchor: null
+timing_anchor: 1783504445
 is_first_in_epic: false
 is_last_in_epic: false
 needs_project_context_bootstrap: false
@@ -20,14 +20,14 @@ tea_selected: [atdd, automate]
 tea_rationale: "Money/tax + acceptance-transition comparisons (irreversible side effects, data integrity) and mandated two-tenant RLS/storage negatives; R-903/R-904/R-906/R-915 (score 6) all owned by 9.3"
 epic_story_count: 5
 stories_after_in_epic: 2
-completed_phases: [0, 1, 2, 3, 4, 5, 6]
+completed_phases: [0, 1, 2, 3, 4, 5, 6, 7]
 code_review_iterations: 0
 code_review_loop_done: false
-hitl_halt: null
+hitl_halt: "auto-continued (epic â€” no halt)"
 external_review_iterations: 0
 convergence_unverified: false
 story_trace: null
-commits: [a1578bb, 4fe31d6]
+commits: [a1578bb, 78b8982]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -47,8 +47,11 @@ merge_method: null
 merge_commit: null
 branch_deleted: false
 open_questions: []
-deferred_work: []
+deferred_work:
+  - "classifyDelta one-armed vs AC2 vocabulary â€” deferred to first real-capture backfill story (ledgered)"
+  - "attachment-selection coverage proven only as empty set â€” future coverage-hardening pass (ledgered)"
 blockers: []
 overrides: {}
 constraints: []
 tier_a_base_sha: 4d92f6d44c6fa1452f71d6c8946323a2457237e9
+tier_a_review: "done (1 pass, Changes Requested -> fixed; Critical 0 / High 0 / Med 1 / Low 3; Med Decision auto-fixed per triage recommendation, 1 Low dismissed, 2 Low deferred+ledgered; security clean 0 findings)"

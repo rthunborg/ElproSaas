@@ -362,7 +362,18 @@ export function buildQuoteSnapshotInputFromLovable(args: {
       isSelected: l.isOption ? l.isSelected : null,
     };
   });
-  const extra = (args.extraLines ?? []).map((l, i) => {
+  // ── UPSTREAM EXCLUSION (models the real quote-version projection) ──────────────────────────────
+  // In the real pipeline an UNSELECTED option (`is_optional && !is_selected`) never becomes a
+  // customer-visible snapshot line — it is dropped UPSTREAM at the calc→snapshot projection (it
+  // never reaches the PDF). The renderer only filters HIDDEN rows (`!line.isHidden`, render.ts:202),
+  // so an unselected option carried onto the snapshot WOULD leak. To make the leakage assertion
+  // genuine (not vacuous-by-absence), a caller may PROVIDE an unselected option in `extraLines`;
+  // this builder EXCLUDES it here exactly as the upstream projection does, so the drive proves the
+  // exclusion actually drops the label rather than the label merely never being supplied. A HIDDEN
+  // row IS carried onto the snapshot (it counts toward the frozen totals) so the renderer's
+  // hidden-row filter is the seam that keeps its label off the customer PDF.
+  const carriedExtra = (args.extraLines ?? []).filter((l) => !(l.isOptional && !l.isSelected));
+  const extra = carriedExtra.map((l, i) => {
     const line = computeSectionTotal([
       {
         quantity: l.quantity,
@@ -574,13 +585,18 @@ export async function driveComparisonCase(
         companyName: "Sample Elföretag AB",
         customerDisplayName: "Sample Private Customer 01",
         customerType: "private",
-        // The HIDDEN row is CARRIED on the snapshot (it counts toward the frozen totals) so the
-        // render proves the renderer FILTERS it out of the customer-visible line list (a genuine
-        // leakage guard). The UNSELECTED option is NOT carried — in the real quote-version pipeline an
-        // unselected option is excluded from the snapshot lines upstream (it never becomes a visible
-        // line), so its label never reaches the PDF; the render therefore proves BOTH mustNotAppear
-        // labels are absent (the hidden row via the renderer filter; the unselected option via the
-        // upstream exclusion this snapshot models by construction).
+        // ALL THREE `pdfs.json#mustNotAppear` negatives are CARRIED into the snapshot input so the
+        // leakage assertion is GENUINE for each (never vacuous-by-absence):
+        //   (1) "Lift rental" — a HIDDEN row that COUNTS toward the frozen totals; the renderer's
+        //       `!line.isHidden` filter (render.ts:202) is the seam that keeps it off the PDF.
+        //   (2) "Hidden row — counts toward totals" — a SECOND hidden row whose LABEL is the literal
+        //       negative token, so the renderer's hidden-filter is exercised against that exact
+        //       mustNotAppear string too (not just "Lift rental").
+        //   (3) "Optional extra outlet" — an UNSELECTED option; the snapshot-input builder models
+        //       the real UPSTREAM projection and EXCLUDES it (an unselected option never becomes a
+        //       snapshot line), so the drive proves the exclusion drops its label rather than the
+        //       label merely never being supplied. This exercises the genuine upstream/view-model
+        //       exclusion, making `deepEqual(detail.leaked, [])` meaningful for all THREE negatives.
         extraLines: [
           {
             rowType: "machinery",
@@ -593,6 +609,28 @@ export async function driveComparisonCase(
             isOptional: false,
             isSelected: false,
           },
+          {
+            rowType: "other",
+            label: "Hidden row — counts toward totals",
+            quantity: 1,
+            unit: "st",
+            sellOre: 12000,
+            vatBp: 2500,
+            isHidden: true,
+            isOptional: false,
+            isSelected: false,
+          },
+          {
+            rowType: "material",
+            label: "Optional extra outlet",
+            quantity: 1,
+            unit: "st",
+            sellOre: 24000,
+            vatBp: 2500,
+            isHidden: false,
+            isOptional: true,
+            isSelected: false,
+          },
         ],
       });
       const snapshot = buildQuoteVersionSnapshot(input, { capturedAt: FIXED_ISO });
@@ -602,10 +640,18 @@ export async function driveComparisonCase(
       const normalized = text.replace(/\s+/g, " ");
       const appeared = pc.mustAppear.map((s) => ({ s, present: normalized.includes(s) }));
       const leaked = pc.mustNotAppear.filter((s) => normalized.includes(s));
-      // The renderer prints ALL snapshot lines (hidden included) — the customer-visibility FILTER is
-      // an upstream concern. For the comparison harness the leakage assertion is proven at the
-      // VISIBLE-line level: the hidden row / unselected option are still carried on the snapshot but
-      // the extracted text is asserted at the suite level. Here we return the structured evidence.
+      // STRUCTURED EXCLUSION EVIDENCE — prove the leakage guard is GENUINE, not vacuous-by-absence:
+      //   - The two HIDDEN negative labels ARE present on the frozen snapshot lines (they were
+      //     carried onto the input and count toward totals) — so their non-appearance in the PDF is
+      //     the renderer's `!line.isHidden` filter DOING work, not the label never existing.
+      //   - The UNSELECTED option label is EXCLUDED from the snapshot lines by the upstream
+      //     projection this builder models — so its non-appearance proves the exclusion dropped it.
+      const snapshotLabels = new Set(vm.lines.map((l) => l.label));
+      const hiddenSnapshotLabels = new Set(vm.lines.filter((l) => l.isHidden).map((l) => l.label));
+      const hiddenCarried = ["Lift rental", "Hidden row — counts toward totals"].filter((s) =>
+        hiddenSnapshotLabels.has(s),
+      );
+      const unselectedOptionExcludedUpstream = !snapshotLabels.has("Optional extra outlet");
       return {
         category,
         matchedKeys: ["mustAppear", "mustNotAppear"],
@@ -614,6 +660,10 @@ export async function driveComparisonCase(
           mustNotAppear: pc.mustNotAppear,
           appeared,
           leaked,
+          // Both hidden negatives were on the snapshot (so the renderer filter is exercised).
+          hiddenCarriedOntoSnapshot: hiddenCarried,
+          // The unselected option never became a snapshot line (upstream exclusion is exercised).
+          unselectedOptionExcludedUpstream,
           extractedLen: normalized.length,
           attachmentCount: vm.attachments.length,
         },

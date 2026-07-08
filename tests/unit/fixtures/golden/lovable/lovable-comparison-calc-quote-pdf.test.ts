@@ -233,9 +233,14 @@ describe("Story 9.3 — QUOTE-VISIBLE LINES + PDF TEXT + ATTACHMENT SELECTION co
     );
 
     // Drive the REAL snapshot → view-model → renderer → text-extraction path (the 6.3 pattern). The
-    // snapshot carries the visible base + selected-option lines PLUS a HIDDEN row; the renderer must
-    // (a) print every mustAppear label, and (b) NOT leak any mustNotAppear label (the hidden-row label
-    // is filtered by the renderer; the unselected-option label is excluded upstream from the snapshot).
+    // snapshot carries the visible base + selected-option lines PLUS every mustNotAppear negative in
+    // its input, so the leakage guard is GENUINE for all three (never vacuous-by-absence):
+    //   - two HIDDEN rows ("Lift rental" + the literal "Hidden row — counts toward totals") ARE
+    //     carried onto the frozen snapshot (they count toward totals) and must be dropped by the
+    //     renderer's `!line.isHidden` filter (render.ts:202);
+    //   - an UNSELECTED option ("Optional extra outlet") is supplied to the input but EXCLUDED
+    //     upstream by the snapshot-input projection (an unselected option never becomes a snapshot
+    //     line) — so its non-appearance proves the exclusion dropped it, not that it was never there.
     const result = await driveComparisonCase("pdf-text-visual");
     assert.equal(result.category, "pdf-text-visual");
     const detail = result.detail as {
@@ -243,6 +248,8 @@ describe("Story 9.3 — QUOTE-VISIBLE LINES + PDF TEXT + ATTACHMENT SELECTION co
       leaked: string[];
       mustAppear: string[];
       mustNotAppear: string[];
+      hiddenCarriedOntoSnapshot: string[];
+      unselectedOptionExcludedUpstream: boolean;
     };
     for (const a of detail.appeared) {
       assert.ok(a.present, `the customer PDF must render the mustAppear label '${a.s}'`);
@@ -252,6 +259,24 @@ describe("Story 9.3 — QUOTE-VISIBLE LINES + PDF TEXT + ATTACHMENT SELECTION co
       [],
       `NO mustNotAppear label may leak into the customer PDF text (leaked: ${detail.leaked.join(", ")}) — ` +
         "a hidden row and an unselected option must never reach the customer PDF (6.3 leakage discipline)",
+    );
+
+    // NON-VACUITY: the leakage guard must genuinely EXERCISE each seam, not pass because the label was
+    // never in the input. Both HIDDEN negatives must actually be present on the frozen snapshot (so the
+    // renderer's hidden-filter is the thing keeping them off the PDF)...
+    assert.deepEqual(
+      [...detail.hiddenCarriedOntoSnapshot].sort(),
+      ["Hidden row — counts toward totals", "Lift rental"],
+      "both hidden-row mustNotAppear labels must be CARRIED onto the snapshot so the renderer's " +
+        "`!line.isHidden` filter is genuinely exercised (not proven by absence of input)",
+    );
+    // ...and the UNSELECTED option must have been supplied to the input but dropped by the UPSTREAM
+    // projection (an unselected option never becomes a snapshot line), so its exclusion is real.
+    assert.equal(
+      detail.unselectedOptionExcludedUpstream,
+      true,
+      "the unselected-option label must be EXCLUDED UPSTREAM from the snapshot lines (the real " +
+        "quote-version projection drops an unselected option) — proving the exclusion, not absence",
     );
 
     // attachment-selection: the same live drive proves the attachment set (empty here — no selected
