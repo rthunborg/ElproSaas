@@ -136,3 +136,39 @@ Everything ELSE in the ledger (money-engine union parity, calc/quote/file/CRM co
 ### Completion Notes List
 
 ### File List
+
+## ATDD Red-Phase Record (2026-07-08)
+
+Red-phase acceptance scaffolds + checklist authored via `bmad-testarch-atdd` BEFORE the green-phase
+harness. Verified: full unit gate 1318 tests → 1310 pass / 8 fail / 0 skipped; the 8 fails are exactly
+the 9.3 RED scaffolds (unperturbed baseline stays 1301 pass / 0 fail); `tsc --noEmit` clean; `eslint`
+0 errors; snapshot-consumer suites (`tests/unit/lib/quote-snapshot/**`) 26/26 green (the mis-pinned
+`quote-version-source.json` is intentionally LEFT for the green dev to align — it is the GUARD 1c RED
+signal, Task 1.3). No `describe.skip`/self-disabling gate (`skipped: 0`); surface-present is a HARD
+top-level assertion (GUARD 0). Non-vacuity proven — the 9 passing tests are real invariants (INCLUSION
+frozen pin, accepted-price delta arithmetic + reason-gate, immutable job source-ref tuple, non-empty
+PDF `mustNotAppear`, widened `number | classification-code` LABELLING both-arms, seeded malformed-delta
+guard firing), and the 8 failing tests genuinely fail because the green dev-glue does not exist yet
+(the runtime `ReadinessCode` union export + `realReadinessCodeSet()` wiring, the coverage-manifest
+category registration, the live-driven vat-tax/quote-visible/pdf-text comparisons, the per-delta
+`deltaKind` classification, and the snapshot-fixture alignment).
+
+Red-phase test assets authored (all under the `test:unit` glob `tests/unit/**`):
+
+- `tests/unit/fixtures/golden/lovable/comparison-support.ts` — shared support extending the 9.2
+  pack-support (real `ReadinessCode` type import, the nine AC1 COMPARISON categories, the widened
+  `number | classification-code` divergent-value helper, loaders, the RED `realReadinessCodeSet()` seam).
+- `tests/unit/fixtures/golden/lovable/lovable-comparison-guards.test.ts` — GUARD 0 (hard surface
+  probe), GUARD 1 (representativeness validator + snapshot-alignment gate), GUARD 2 (structured
+  coverage manifest, count derived from the manifest), GUARD 3 (widened LABELLING guard + fires-on-malformed proof).
+- `tests/unit/fixtures/golden/lovable/lovable-comparison-calc-quote-pdf.test.ts` — 9.3-CMP-01/02
+  (calc-totals / vat-tax-blocks / options-tillval / hidden-rows / quote-visible-lines / pdf-text-visual / attachment-selection).
+- `tests/unit/fixtures/golden/lovable/lovable-comparison-acceptance-job.test.ts` — 9.3-CMP-03
+  (acceptance transition + accepted price + job source refs).
+- `tests/unit/fixtures/golden/lovable/lovable-comparison-delta-classification.test.ts` — 9.3-DELTA-01
+  (three-way origin + `deltaKind` + the STOP gate against silently labelling a sensitive divergence).
+- `_bmad-output/test-artifacts/atdd-checklist-9-3-golden-master-comparison-harness-for-core-workflow.md` — the ATDD checklist + green-phase task map.
+
+AC3 recorded SATISFIED-BY-NON-APPLICABILITY: 9.3 is pure-unit comparison over anonymized static
+fixtures — no DB-backed comparison case touches a tenant-owned table or storage object, so no
+`tests/integration/**` RLS negative is authored (Task 4.1; no hollow integration case fabricated).
