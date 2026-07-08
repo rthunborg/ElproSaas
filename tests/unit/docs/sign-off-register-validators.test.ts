@@ -454,3 +454,166 @@ test("9.4: the fallback/cutover doc has NO stray tool-call artifact lines (write
     );
   }
 });
+
+// ══════════════════════════════════════════════════════════════════════════════════════════════
+// COVERAGE EXPANSION (testarch-automate) — deeper edge/negative coverage of the epic-blocker teeth
+// ══════════════════════════════════════════════════════════════════════════════════════════════
+//
+// The RED-phase scaffold above proves the ACs at a happy-path + single-negative level. This block
+// hardens the P0 cutover-block guard (9.4-BLOCK-01) against edge cases the single-item tests leave
+// open, and — the highest-value new invariant — ties the register (the DECISION doc) to the
+// executable model (the GUARD) so the two artifacts cannot silently disagree about what blocks:
+//
+//   - multi-item attribution: `blockedBy` must carry EVERY offending open item, not just one;
+//   - full real-pilot block symmetry: an open item denies BOTH cutover AND fallback removal, with
+//     `blockedBy` reflecting the exact set (R-908 fallback-erosion, not just cutover);
+//   - clean-path completeness: a resolved real-pilot workflow allows cutover AND fallback removal
+//     with an EMPTY `blockedBy` (the guard is not a blanket deny, and does not fabricate blockers);
+//   - demo-track totality: the demo track never blocks — even with many open items, and its
+//     `fallbackRemovalAllowed` is likewise unblocked (the two tracks are never conflated, on BOTH
+//     decision axes, not just `cutoverAllowed`);
+//   - input purity: the model must not mutate the caller's `openBlockingItems` (a pure gate);
+//   - register↔model consistency (the load-bearing new coverage, R-905/R-908/R-917): EVERY
+//     `blocking` question ID the live system-of-record carries — the exact set the register must
+//     enumerate — when fed to `evaluateCutover` on the real-pilot track MUST block cutover, and on
+//     the demo track MUST NOT. This wires the decision doc's blocking set to the guard's behavior so
+//     a register that lists an item as blocking cannot be paired with a guard that lets it through.
+//
+// [Source: testarch-automate coverage expansion; test-design-epic-9.md 9.4-BLOCK-01/REG-01,
+//  R-905/R-908/R-917; sign-off-checklist-model.ts (the pure evaluateCutover gate); the 9.1 pattern
+//  of promoting docs/decision invariants to standing node --test coverage]
+
+test("9.4-BLOCK-01 (multi-item): a real-pilot workflow with SEVERAL open blocking items is blocked, and blockedBy names ALL of them", async () => {
+  const { evaluateCutover } = await loadCutoverModel();
+  const open = ["A.1", "A.2", "B.1-B.4", "8.1"];
+  const result = evaluateCutover({
+    workflow: "Calculations",
+    track: "real-pilot",
+    openBlockingItems: open,
+  });
+  assert.equal(
+    result.cutoverAllowed,
+    false,
+    "any open blocking item blocks real-pilot cutover — a workflow with several open items is not cutover-ready",
+  );
+  // Attribution must be COMPLETE — every offending item is named, so a caller can report the full
+  // remediation set, not just the first blocker.
+  for (const id of open) {
+    assert.ok(
+      result.blockedBy.includes(id),
+      `blockedBy must name EVERY open blocking item that stopped cutover — "${id}" is missing (traceable, complete block)`,
+    );
+  }
+});
+
+test("9.4-BLOCK-01 (R-908 symmetry): an open item denies BOTH cutover AND fallback removal, with matching blockedBy", async () => {
+  const { evaluateCutover } = await loadCutoverModel();
+  const result = evaluateCutover({
+    workflow: "Quote Versions",
+    track: "real-pilot",
+    openBlockingItems: ["8.2"], // facit-exempel — öppen (möte)
+  });
+  assert.equal(result.cutoverAllowed, false, "cutover blocked while a blocking item is open");
+  assert.equal(
+    result.fallbackRemovalAllowed,
+    false,
+    "fallback removal MUST be gated by the SAME open-item state as cutover (R-908/NFR21 fallback-erosion) — the two decision axes move together",
+  );
+  assert.deepEqual(
+    [...result.blockedBy],
+    ["8.2"],
+    "the block attributes exactly the open item(s) — no phantom blockers, no dropped ones",
+  );
+});
+
+test("9.4-BLOCK-01 (clean real-pilot): a resolved workflow allows cutover AND fallback removal with an EMPTY blockedBy", async () => {
+  const { evaluateCutover } = await loadCutoverModel();
+  const result = evaluateCutover({
+    workflow: "CRM",
+    track: "real-pilot",
+    openBlockingItems: [],
+  });
+  assert.equal(result.cutoverAllowed, true, "no open items → cutover-ready (the guard is not a blanket deny)");
+  assert.equal(
+    result.fallbackRemovalAllowed,
+    true,
+    "no open items → fallback may be removed (the fallback-erosion guard releases once every blocking assumption is resolved)",
+  );
+  assert.deepEqual(
+    [...result.blockedBy],
+    [],
+    "a clean workflow must report NO blockers — the model must not fabricate a blocker where none is open",
+  );
+});
+
+test("9.4-BLOCK-01 (demo totality): the demo track NEVER blocks — cutover AND fallback removal both allowed even with many open items", async () => {
+  const { evaluateCutover } = await loadCutoverModel();
+  const result = evaluateCutover({
+    workflow: "Basic Job / Order",
+    track: "demo",
+    openBlockingItems: ["A.1", "A.2", "B.1-B.4", "C.1-C.3", "7.1", "7.3", "8.1", "8.2"],
+  });
+  assert.equal(result.cutoverAllowed, true, "demo cutover proceeds regardless of open items (disposable fake data, nothing migrated)");
+  assert.equal(
+    result.fallbackRemovalAllowed,
+    true,
+    "the demo track is non-blocking on BOTH axes — fallback removal is not gated on the demo track either (the two tracks are never conflated)",
+  );
+  assert.deepEqual(
+    [...result.blockedBy],
+    [],
+    "the demo track attributes no blockers — its open items never gate demo work (owner decision 2026-07-03)",
+  );
+});
+
+test("9.4-BLOCK-01 (purity): evaluateCutover does NOT mutate the caller's openBlockingItems array", async () => {
+  const { evaluateCutover } = await loadCutoverModel();
+  const open = ["A.2", "8.1"];
+  const snapshot = [...open];
+  evaluateCutover({ workflow: "Calculations", track: "real-pilot", openBlockingItems: open });
+  assert.deepEqual(
+    open,
+    snapshot,
+    "the cutover gate must be a PURE function — it must not mutate the caller's input array (a shared-state side effect would corrupt a caller iterating the same list)",
+  );
+});
+
+test("9.4-REG-01 (register↔model consistency): EVERY live blocking question ID blocks real-pilot cutover and does NOT block demo", async () => {
+  const { evaluateCutover } = await loadCutoverModel();
+  const blocking = blockingSignoffIds();
+  assert.ok(
+    blocking.length >= 6,
+    `expected the live system-of-record to carry the known open blocking IDs (>=6) — parsed ${blocking.length}: ${blocking.join(", ")}`,
+  );
+  // The register (§4) enumerates exactly this blocking set (9.4-REG-01 above proves no drift). Here
+  // we tie that DECISION set to the GUARD's behavior: feeding each blocking ID to the model must
+  // HARD-BLOCK the real-pilot track and leave the demo track open — so the doc's blocking marks and
+  // the executable gate cannot silently disagree.
+  for (const id of blocking) {
+    const realPilot = evaluateCutover({
+      workflow: "Calculations",
+      track: "real-pilot",
+      openBlockingItems: [id],
+    });
+    assert.equal(
+      realPilot.cutoverAllowed,
+      false,
+      `the system-of-record marks "${id}" blocking, but evaluateCutover let a real-pilot cutover through — the register and the guard MUST agree (9.4-REG-01/9.4-BLOCK-01)`,
+    );
+    assert.ok(
+      realPilot.blockedBy.includes(id),
+      `the block for "${id}" must attribute that exact ID (traceable register→guard mapping)`,
+    );
+
+    const demo = evaluateCutover({
+      workflow: "Calculations",
+      track: "demo",
+      openBlockingItems: [id],
+    });
+    assert.equal(
+      demo.cutoverAllowed,
+      true,
+      `blocking item "${id}" must NOT gate the demo track — demo stays non-blocking for every real-pilot blocker (two tracks never conflated)`,
+    );
+  }
+});
