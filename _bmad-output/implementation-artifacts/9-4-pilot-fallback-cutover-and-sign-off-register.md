@@ -1,6 +1,6 @@
 # Story 9.4: Pilot Fallback, Cutover, And Sign-Off Register
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 

@@ -4,12 +4,12 @@ story_key: epic-9
 epic_num: 9
 story_num: null
 branch: epic/9-migration-coexistence-golden-masters-and-pilot-readiness
-status: in-progress
-updated_at: "2026-07-08T12:27:11Z"
+status: done
+updated_at: "2026-07-08T12:51:21Z"
 started_at: "2026-07-07T17:37:04Z"
-completed_at: null
-active_seconds: 17840
-timing_anchor: 1783513631
+completed_at: "2026-07-08T12:51:21Z"
+active_seconds: 19290
+timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
 needs_project_context_bootstrap: false
@@ -20,7 +20,7 @@ tea_selected: []
 tea_rationale: null
 epic_story_count: 5
 stories_after_in_epic: null
-completed_phases: [0, 1, 2, 5, 7, 81, 82]
+completed_phases: [0, 1, 2, 5, 7, 9, 81, 82]
 code_review_iterations: 2
 code_review_loop_done: true
 hitl_halt: "auto-continued (epic â€” no halt)"
@@ -39,9 +39,9 @@ phase8_steps:
 gate_decision: PASS
 gate_iterations: 0
 deferred_work_archived: 0
-pr_url: null
-ci_run_url: null
-ci_status: unknown
+pr_url: "https://github.com/rthunborg/ElproSaas/pull/32"
+ci_run_url: "https://github.com/rthunborg/ElproSaas/actions/runs/28942913259"
+ci_status: passed
 pr_merged: false
 merge_method: null
 merge_commit: null
@@ -136,3 +136,4 @@ uat_items:
   - "[9-5-phase-a-acceptance-gate-report] Read §7 → only real readiness codes (UNRESOLVED_VAT, TAX_SIGN_OFF_REQUIRED, REQUIRED_FILES_DEFERRED) — grep readiness.ts to confirm; no fictional codes."
   - "[9-5-phase-a-acceptance-gate-report] Visual scan of phase-a-acceptance-gate.md → no stray tool-artifact lines, no bare 10-digit numbers; ends cleanly at §8."
 integration_review_done: true
+batch_flip_done: true

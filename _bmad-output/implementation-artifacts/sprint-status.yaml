@@ -129,9 +129,9 @@ development_status:
   epic-8-retrospective: done
 
   epic-9: in-progress
-  9-1-legacy-record-classification-and-migration-runbook: review
-  9-2-anonymized-lovable-fixture-capture: review
-  9-3-golden-master-comparison-harness-for-core-workflow: review
-  9-4-pilot-fallback-cutover-and-sign-off-register: review
-  9-5-phase-a-acceptance-gate-report: review
+  9-1-legacy-record-classification-and-migration-runbook: done
+  9-2-anonymized-lovable-fixture-capture: done
+  9-3-golden-master-comparison-harness-for-core-workflow: done
+  9-4-pilot-fallback-cutover-and-sign-off-register: done
+  9-5-phase-a-acceptance-gate-report: done
   epic-9-retrospective: done
