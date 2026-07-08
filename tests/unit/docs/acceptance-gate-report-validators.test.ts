@@ -338,6 +338,50 @@ function scanSurfaceForDeferred(
   return violations;
 }
 
+// ══════════════════════════════════════════════════════════════════════════════════════════════
+// The PII-scan pure model (R-901/R-902/R-914) — f(text) => violations. Extracted from the inline
+// whole-directory scan so it can be driven BOTH over the real docs (positive: clean) AND over a
+// seeded-PII string (negative: FIRES) — proving the scan is not vacuous-green machinery (R-904). The
+// regexes + masked-placeholder stripping are the 9.1/9.4 scan verbatim (never a looser fork).
+// ══════════════════════════════════════════════════════════════════════════════════════════════
+
+interface PiiViolation {
+  readonly kind: "personnummer" | "orgnr" | "email" | "phone" | "secret";
+  readonly matches: string[];
+}
+
+/**
+ * PURE PII scan. Strips the sanctioned obviously-fake masked placeholders first, then matches each
+ * PII family. Returns one {kind, matches} entry per family that fired (empty array = clean). Mirrors
+ * the 9.1/9.4 whole-directory scan exactly so the report/docs cannot carry a real personnummer /
+ * orgnr / email / SE phone / secret.
+ */
+function scanTextForPii(text: string): PiiViolation[] {
+  const scanned = text.replace(/YYYYMMDD-XXXX/g, "").replace(/XXXXXX-XXXX/g, "");
+  const violations: PiiViolation[] = [];
+
+  const pnr = scanned.match(/\b\d{6,8}[-\s]?\d{4}\b/g);
+  if (pnr) violations.push({ kind: "personnummer", matches: pnr });
+
+  const orgnr = scanned.match(/\b\d{10}\b/g);
+  if (orgnr) violations.push({ kind: "orgnr", matches: orgnr });
+
+  const emails = (scanned.match(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g) ?? []).filter(
+    (e) => !/@(example\.(test|com|org)|test\.test|localhost)$/i.test(e),
+  );
+  if (emails.length > 0) violations.push({ kind: "email", matches: emails });
+
+  const phones = scanned.match(/\+46[\s-]?\d[\d\s-]{6,}|\b0\d{1,3}[-\s]\d{5,}\b/g);
+  if (phones) violations.push({ kind: "phone", matches: phones });
+
+  const secrets = scanned.match(
+    /(api[_-]?key|password|secret|token|bearer)\s*[:=]\s*["']?[A-Za-z0-9/_+.\-]{12,}|-----BEGIN [A-Z ]+-----/gi,
+  );
+  if (secrets) violations.push({ kind: "secret", matches: secrets });
+
+  return violations;
+}
+
 // ══ 9.5-GATE-01 (P0, epic blocker, R-909) — the gate-honesty teeth ════════════════════════════
 
 test("9.5-GATE-01: the report's gate summary reports EVERY mandatory Phase A gate (reconciled 1:1 with the real CI gate list)", () => {
@@ -643,26 +687,183 @@ test("9.5-PRIV: NO real PII (personnummer / orgnr / email / phone / secret) in a
   for (const file of files) {
     const src = readFileSync(file, "utf8");
     const rel = path.relative(REPO, file);
-    // Strip the sanctioned obviously-fake masked placeholders (same as the 9.1/9.4 scan).
-    const scanned = src.replace(/YYYYMMDD-XXXX/g, "").replace(/XXXXXX-XXXX/g, "");
-
-    const pnr = scanned.match(/\b\d{6,8}[-\s]?\d{4}\b/g);
-    assert.equal(pnr, null, `${rel} contains a personnummer-shaped string ${JSON.stringify(pnr)} (R-902)`);
-
-    const orgnr = scanned.match(/\b\d{10}\b/g);
-    assert.equal(orgnr, null, `${rel} contains a bare 10-digit orgnr-shaped string ${JSON.stringify(orgnr)} (R-914)`);
-
-    const emails = (scanned.match(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g) ?? []).filter(
-      (e) => !/@(example\.(test|com|org)|test\.test|localhost)$/i.test(e),
+    const violations = scanTextForPii(src);
+    assert.deepEqual(
+      violations,
+      [],
+      `${rel} contains real-PII-shaped material (R-901/R-902/R-914): ${JSON.stringify(violations)}`,
     );
-    assert.deepEqual(emails, [], `${rel} contains a non-placeholder email ${JSON.stringify(emails)} (R-902)`);
+  }
+});
 
-    const phones = scanned.match(/\+46[\s-]?\d[\d\s-]{6,}|\b0\d{1,3}[-\s]\d{5,}\b/g);
-    assert.equal(phones, null, `${rel} contains a phone-shaped string ${JSON.stringify(phones)} (R-902)`);
+// ══════════════════════════════════════════════════════════════════════════════════════════════
+// COVERAGE EXPANSION (testarch-automate) — edge cases + negative-path proofs the initial red-phase
+// scaffold did not exercise. These strengthen the exact anti-patterns the epic-9 retro constraints
+// flag: the substring-token trap (R-903), vacuous-green guards (R-904), and the honesty model's
+// full status vocabulary. Each added case is unit-level, pure-logic, P0/P1 (the models are the
+// epic-blocker teeth). No new source, no DB, no browser — the docs-validator shape (single
+// node --test file), per the story's own Testing Standards.
+// ══════════════════════════════════════════════════════════════════════════════════════════════
 
-    const secrets = scanned.match(
-      /(api[_-]?key|password|secret|token|bearer)\s*[:=]\s*["']?[A-Za-z0-9/_+.\-]{12,}|-----BEGIN [A-Z ]+-----/gi,
+// ── PII scan: prove the guard FIRES (R-904 vacuous-green teeth) ────────────────────────────────
+
+test("9.5-PRIV (the PII scan FIRES): a seeded personnummer / orgnr / email / phone / secret each trips the scan (negative path)", () => {
+  // Each seeded synthetic string must be caught by its family — a scan that only asserts today's docs
+  // are clean without proving it CAN fire is the vacuous-green trap the epic ledgers (R-904).
+  const cases: Array<{ kind: PiiViolation["kind"]; sample: string }> = [
+    { kind: "personnummer", sample: "born 19850101-1234 in the record" },
+    { kind: "orgnr", sample: "org 5560360793 on file" },
+    { kind: "email", sample: "contact anna.andersson@realcompany.se today" },
+    { kind: "phone", sample: "call +46 70 123 45 67 now" },
+    { kind: "secret", sample: 'api_key: "sk_live_ABCDEF0123456789"' },
+  ];
+  for (const { kind, sample } of cases) {
+    const violations = scanTextForPii(sample);
+    assert.ok(
+      violations.some((v) => v.kind === kind),
+      `the PII scan MUST fire on a seeded ${kind} ("${sample}") — the R-902 teeth are proven reachable, not dead machinery`,
     );
-    assert.equal(secrets, null, `${rel} contains secret-shaped material ${JSON.stringify(secrets)} (R-902)`);
+  }
+});
+
+test("9.5-PRIV: the PII scan does NOT false-positive on the sanctioned masked placeholders (YYYYMMDD-XXXX / XXXXXX-XXXX) or test-domain emails", () => {
+  const clean =
+    "Illustrative personnummer YYYYMMDD-XXXX and orgnr XXXXXX-XXXX; reach us at qa@example.test — all synthetic.";
+  assert.deepEqual(
+    scanTextForPii(clean),
+    [],
+    "the sanctioned masked placeholders + test-domain emails must NOT be flagged (they are the approved synthetic forms)",
+  );
+});
+
+// ── evaluateGateHonesty: full status vocabulary + invalidStatus teeth ──────────────────────────
+
+test("9.5-GATE-01: a clean report (every mandatory gate present, valid status, reasons on skips) passes the honesty model with ZERO findings", () => {
+  const realKeys = realMandatoryGateKeys();
+  const clean: ReportedGate[] = realKeys.map((key, i) => {
+    // Mix the full valid vocabulary: pass / fail / skipped-with-reason (reason present) — all honest.
+    if (i % 3 === 0) return { key, status: "pass" as const, hasReason: true };
+    if (i % 3 === 1) return { key, status: "fail" as const, hasReason: true };
+    return { key, status: "skipped-with-reason" as const, hasReason: true };
+  });
+  const result = evaluateGateHonesty(clean, realKeys);
+  assert.deepEqual(result, { missing: [], skippedWithoutReason: [], invalidStatus: [] });
+});
+
+test("9.5-GATE-01 (the honesty guard FIRES): a gate with a status OUTSIDE pass/fail/skipped-with-reason is flagged invalidStatus (negative path)", () => {
+  const realKeys = realMandatoryGateKeys();
+  // A bare `skipped` (no `-with-reason` suffix) is NOT a valid status token — even if it carries a
+  // reason it must surface as invalidStatus, because the report vocabulary is strictly the three.
+  const seeded: ReportedGate[] = realKeys.map((key) =>
+    key === "build"
+      ? { key, status: "skipped" as const, hasReason: true }
+      : { key, status: "pass" as const, hasReason: true },
+  );
+  const result = evaluateGateHonesty(seeded, realKeys);
+  assert.ok(
+    result.invalidStatus.includes("build"),
+    "a bare `skipped` (not `skipped-with-reason`) must be flagged invalidStatus — the honesty vocabulary is exactly pass/fail/skipped-with-reason",
+  );
+});
+
+test("9.5-GATE-01: a `skipped-with-reason` gate WITH a reason is honest; the SAME gate with NO reason is flagged (the reason is load-bearing)", () => {
+  const realKeys = realMandatoryGateKeys();
+  const withReason: ReportedGate[] = realKeys.map((key) =>
+    key === "test:e2e" ? { key, status: "skipped-with-reason" as const, hasReason: true } : { key, status: "pass" as const, hasReason: true },
+  );
+  assert.deepEqual(
+    evaluateGateHonesty(withReason, realKeys).skippedWithoutReason,
+    [],
+    "a skipped-with-reason gate that carries its reason is honest — it must NOT be flagged",
+  );
+  const withoutReason = withReason.map((g) =>
+    g.key === "test:e2e" ? { ...g, hasReason: false } : g,
+  );
+  assert.ok(
+    evaluateGateHonesty(withoutReason, realKeys).skippedWithoutReason.includes("test:e2e"),
+    "the SAME gate with its reason removed MUST be flagged — proving the reason is the load-bearing honesty signal, not decoration",
+  );
+});
+
+// ── scanSurfaceForDeferred: substring-token trap (R-903) + every-category proof ─────────────────
+
+test("9.5-SCOPE-01: the scope scan uses WHOLE-WORD matching — benign tokens that merely CONTAIN a deny-list substring do NOT false-positive (R-903 substring trap)", async () => {
+  const denyList = await loadDenyList();
+  // Real-shaped surface tokens whose substrings brush the short deny-list categories (hr/dou/asset/…)
+  // but are NOT deferred modules. A naive `includes` scan would false-positive; the word-boundary scan
+  // must stay silent — the R-903 substring-token trap the epic explicitly ledgers.
+  const benignSurface = [
+    "characters", // contains ...har... — must NOT trip `hr`
+    "threshold", // contains ...hr... inside — must NOT trip `hr` (no word boundary)
+    "shredder", // ...hr... mid-word — must NOT trip `hr`
+    "assessment", // contains `asses` not `asset` — must NOT trip `asset`
+    "doubt", // contains `dou` mid-word — must NOT trip `dou`
+    "rentalize_nothing_here", // whole-word `rental` WOULD trip; kept out below
+    "quote_version_attachments", // a REAL table — must stay clean
+    "calculation_sections",
+  ].filter((t) => t !== "rentalize_nothing_here"); // exclude the intentional positive
+  const violations = scanSurfaceForDeferred(benignSurface, denyList);
+  assert.deepEqual(
+    violations,
+    [],
+    `the scope scan false-positived on a benign substring (R-903 substring-token trap): ${JSON.stringify(violations)} — matching must be whole-word, not naive includes`,
+  );
+});
+
+test("9.5-SCOPE-01: EVERY deny-list category (not just fortnox/supplier) trips the scan when seeded as a whole-word surface token", async () => {
+  const denyList = await loadDenyList();
+  // Drive the seeded-token proof across the ENTIRE live deny-list, not a hardcoded subset — so a newly
+  // added category is automatically covered (never a drifting subset). Each seeded token is the bare
+  // category as a standalone surface token, which must match its own category.
+  for (const category of denyList) {
+    const violations = scanSurfaceForDeferred([`/${category}`, `${category}_table`], denyList);
+    assert.ok(
+      violations.some((v) => v.category === category),
+      `the scope scan MUST trip on a seeded "${category}" surface token — every deny-list category must be reachable, not just the two named in the scaffold`,
+    );
+  }
+});
+
+test("9.5-SCOPE-01: the scope scan is case-insensitive — an UPPERCASE deferred token (e.g. `/Fortnox`, `HR_Report`) still trips", async () => {
+  const denyList = await loadDenyList();
+  const violations = scanSurfaceForDeferred(["/Fortnox", "HR_Report", "SUPPLIER_APIS"], denyList);
+  assert.ok(violations.some((v) => v.category === "fortnox"), "an uppercase `/Fortnox` must trip the case-insensitive scan");
+  assert.ok(violations.some((v) => v.category === "hr"), "an uppercase `HR_Report` must trip the case-insensitive scan");
+  assert.ok(violations.some((v) => v.category === "supplier"), "an uppercase `SUPPLIER_APIS` must trip the case-insensitive scan");
+});
+
+// ── parseReportedGates + registerBlockingIds: parser fidelity (the models are only as honest as their input) ──
+
+test("9.5-GATE-01: parseReportedGates reads the REAL report and yields the mandatory core gates each with a VALID parsed status", () => {
+  const rows = parseReportedGates(reportText());
+  const byKey = new Map(rows.map((r) => [r.key, r]));
+  // The parser must actually find the core gate rows in the real §2 (else the honesty model runs on air).
+  for (const key of ["test:unit", "test:int", "test:e2e", "typecheck", "lint", "build", "db-reset"]) {
+    const row = byKey.get(key);
+    assert.ok(row, `parseReportedGates did not extract the mandatory gate row "${key}" from the real report §2`);
+    assert.ok(
+      ["pass", "fail", "skipped-with-reason"].includes(row.status),
+      `the parsed status for "${key}" ("${row.status}") must be a valid honesty-vocabulary token`,
+    );
+  }
+});
+
+test("9.5-READY-01: registerBlockingIds parses the digit-led blocking owning IDs from the 9.4 register §4 and excludes section-reference tokens", () => {
+  const ids = registerBlockingIds();
+  // The digit-led / letter-prefixed-digit blocking owning IDs the parser recognises must be present.
+  // (Note: the parser's ID regex matches digit-led tokens — `A20`/`8.1`/`7.1` — and the dotted
+  // `A.1`/`A.2`/`B.1-B.4`/`C.1-C.3` families are carried in the readiness §6 prose/notes, which the
+  // no-drift reconciliation test asserts against the readiness section text. This test pins the
+  // subset registerBlockingIds itself extracts, so a future regex change is caught here.)
+  for (const id of ["A20", "A21", "A22", "8.1", "8.2", "7.1", "7.3"]) {
+    assert.ok(ids.includes(id), `registerBlockingIds must include the known blocking owning ID "${id}" — parsed: ${ids.join(", ")}`);
+  }
+  // Section-reference tokens (§4.1 / §4.2 / §5) must NOT leak in as blocking IDs (parser scoping).
+  for (const nonId of ["4.1", "4.2", "5"]) {
+    assert.ok(!ids.includes(nonId), `registerBlockingIds must NOT treat the section reference "${nonId}" as a blocking owning ID`);
+  }
+  // Every parsed ID must be a real ID-shaped token, never stray prose (parser fidelity).
+  for (const id of ids) {
+    assert.ok(/^[A-C]?\d/.test(id), `registerBlockingIds returned a non-ID-shaped token "${id}"`);
   }
 });

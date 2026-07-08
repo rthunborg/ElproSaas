@@ -26,3 +26,4 @@
 
 ## Story 9-5-phase-a-acceptance-gate-report
 - [Phase 5 â€” dev-story] No-fictional-readiness-code heuristic false-positived on CI env var SUPABASE_TEST_REQUIRED (ends in _REQUIRED) â€” future SCREAMING_SNAKE-scanning validators must exclude infra env-var prefixes from readiness-code detection.
+- [Phase 6 â€” automate] registerBlockingIds() regex only matches digit-led IDs (8.1/7.1) â€” dotted families A.1/A.2/B.1-B.4/C.1-C.3 in the 9.4 register are authored into report Â§6 but NOT machine-reconciled as blocking; epic-close decision needed on tightening the parser (pre-existing 9-4 ledger awareness item).
