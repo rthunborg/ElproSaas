@@ -23,3 +23,6 @@
 
 ## Story 9-4-pilot-fallback-cutover-and-sign-off-register
 - [Phase 4 â€” ATDD] testarch-atdd's step-04 assumes a Playwright/E2E stack with an API+E2E subagent split â€” N/A for docs-validator stories; the right red-phase deliverable is a single node --test scaffold mirroring the 9.1 validator (relevant for 9-5, also docs/validator-shaped).
+
+## Story 9-5-phase-a-acceptance-gate-report
+- [Phase 5 â€” dev-story] No-fictional-readiness-code heuristic false-positived on CI env var SUPABASE_TEST_REQUIRED (ends in _REQUIRED) â€” future SCREAMING_SNAKE-scanning validators must exclude infra env-var prefixes from readiness-code detection.
