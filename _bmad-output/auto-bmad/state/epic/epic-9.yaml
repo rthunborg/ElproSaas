@@ -5,11 +5,11 @@ epic_num: 9
 story_num: null
 branch: epic/9-migration-coexistence-golden-masters-and-pilot-readiness
 status: in-progress
-updated_at: "2026-07-08T10:01:23Z"
+updated_at: "2026-07-08T10:11:17Z"
 started_at: "2026-07-07T17:37:04Z"
 completed_at: null
-active_seconds: 8734
-timing_anchor: 1783504444
+active_seconds: 9757
+timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
 needs_project_context_bootstrap: false
@@ -52,39 +52,54 @@ blockers: []
 overrides: {}
 constraints: []
 epic_slug: migration-coexistence-golden-masters-and-pilot-readiness
-active_story: 9-3-golden-master-comparison-harness-for-core-workflow
+active_story: 9-4-pilot-fallback-cutover-and-sign-off-register
 stories_landed:
   - 9-1-legacy-record-classification-and-migration-runbook
   - 9-2-anonymized-lovable-fixture-capture
+  - 9-3-golden-master-comparison-harness-for-core-workflow
 auto_decisions:
   - "Approved-PII-exception machine-readable marker not implemented/exercised [Med] â†’ defer: owner-gated real-capture story defines the marker key + scanner recognition when the first exception appears (Tier A, 9-2-anonymized-lovable-fixture-capture)"
   - "PDF mustNotAppear unselected-option leakage assertion vacuous [Med] â†’ fix: carry the unselected option + hidden-row literal into the snapshot so leaked==[] is meaningful for all three negatives (Tier A, 9-3-golden-master-comparison-harness-for-core-workflow)"
   - "MISSING_WORK_ROLE routed around AC2 classification machinery [Low] â†’ dismiss: over-stated fixture representativeness claim, live oracle authoritative, fixture mutation forbidden (Tier A, 9-3-golden-master-comparison-harness-for-core-workflow)"
   - "classifyDelta one-armed vs AC2 three-way vocabulary [Low] â†’ defer: arms first needed when the first real captured Lovable delta backfills; ledgered (Tier A, 9-3-golden-master-comparison-harness-for-core-workflow)"
 uat_items:
-  - "[9-1-legacy-record-classification-and-migration-runbook] Open docs/migration/legacy-record-classification.md Â§2+Â§4 â†’ four-bucket contract stated; all four buckets populated (Â§4.1 live, Â§4.2 archive-only, Â§4.3 excluded, Â§4.4 deferred)."
-  - "[9-1-legacy-record-classification-and-migration-runbook] In legacy-record-classification.md Â§4.4, scan target-treatment of every deferred group â†’ each maps to 'none â€” deferred'; none points at a live Phase A table (AC1/R-907 guard)."
-  - "[9-1-legacy-record-classification-and-migration-runbook] In legacy-record-classification.md Â§4.1, spot-check live groups' target tables â†’ each is one of the 24 in-scope tenant-owned tables; none beyond that boundary."
-  - "[9-1-legacy-record-classification-and-migration-runbook] Read legacy-record-classification.md Â§3 â†’ 'Decisions (this register)' and 'Assumptions (carried, not decided here)' are separate sections."
-  - "[9-1-legacy-record-classification-and-migration-runbook] Open docs/migration/migration-runbook.md Â§3.1â€“Â§3.6 â†’ every one of the six workflows carries all five fields: source records, target treatment, fallback path, manual-backfill risks, cutover decision."
-  - "[9-1-legacy-record-classification-and-migration-runbook] In migration-runbook.md Â§2 (+Â§1 scope note) â†’ cutover stated as by-workflow, never whole-company."
-  - "[9-1-legacy-record-classification-and-migration-runbook] Read migration-runbook.md Â§6 'Scope-Unclear â†’ STOP Protocol' â†’ fail-closed STOP section lists hard-STOP conditions (real data export/import, full historical migration, deferred-module activation, material ambiguity)."
-  - "[9-1-legacy-record-classification-and-migration-runbook] In migration-runbook.md Â§6 â†’ 8.1/8.2 STOP-marked owner-pending (no fabricated selections); 7.1 labelled partial (mÃ¶te) distinct from Ã¶ppen (mÃ¶te)."
-  - "[9-1-legacy-record-classification-and-migration-runbook] In migration-runbook.md Â§6/Â§8 â†’ real customer data export/import stated as hard STOP requiring owner sign-off."
-  - "[9-1-legacy-record-classification-and-migration-runbook] Read migration-runbook.md Â§7 â†’ demo-data-only track kept explicitly separate from the real-customer cutover track."
-  - "[9-1-legacy-record-classification-and-migration-runbook] In migration-runbook.md Â§5 â†’ tests/fixtures/golden/lovable/** and scripts/migration/** referenced as forthcoming seams; neither directory exists yet."
-  - "[9-1-legacy-record-classification-and-migration-runbook] PII spot-check both docs (name/email/phone/personnummer/orgnr/secret) â†’ none present; only masked placeholders (YYYYMMDD-XXXX, XXXXXX-XXXX)."
-  - "[9-1-legacy-record-classification-and-migration-runbook] Run pnpm test:unit -- tests/unit/docs/migration-runbook-validators.test.ts â†’ all 9 validators pass."
-  - "[9-2-anonymized-lovable-fixture-capture] Run pnpm run test:unit â†’ whole unit gate passes (~1300 tests, 0 fail, 0 skipped) incl. the four lovable-pack suites; money-pack privacy scan stays green."
-  - "[9-2-anonymized-lovable-fixture-capture] Run node --experimental-strip-types --import ./tests/support/register.mjs --test \"tests/unit/fixtures/golden/lovable/**/*.test.ts\" â†’ 42 pass / 0 fail / 0 skipped (no suite self-disabled)."
-  - "[9-2-anonymized-lovable-fixture-capture] List tests/fixtures/golden/lovable/ â†’ exactly 8 category files (crm, settings-pricing, calculations, quotes, pdfs, acceptance, files, accepted-quote-to-job).json matching LOVABLE_FIXTURE_MANIFEST."
-  - "[9-2-anonymized-lovable-fixture-capture] Open e.g. crm.json â†’ personnummer is masked YYMMDD-XXXX, emails @example.test, no real name/phone/orgnr/street address in the DATA payload."
-  - "[9-2-anonymized-lovable-fixture-capture] Seeded-PII fail-closed test in lovable-privacy-scan.test.ts â†’ violation per class (PERSONNUMMER/ORGNR/NON_EXAMPLE_EMAIL/SECRET) â€” green in the suite run."
-  - "[9-2-anonymized-lovable-fixture-capture] Seeded raw-file-blob test â†’ data: URI + long base64 trip RAW_FILE_BLOB; clean link/type/purpose metadata does not â€” green in the suite run."
-  - "[9-2-anonymized-lovable-fixture-capture] Run the scanFixtureData one-liner on clean masked data â†’ prints [] (zero violations)."
-  - "[9-2-anonymized-lovable-fixture-capture] Run the scanFixtureData one-liner on planted PII (900101-1234, 5560000001, x@gmail.com, sk-x) â†’ prints 4 violations naming each class."
-  - "[9-2-anonymized-lovable-fixture-capture] Run anonymizeRecord twice on the same record â†’ byte-identical output; name â†’ 'Sample Person NN', email â†’ user-NN@example.test, api_key key dropped entirely."
-  - "[9-2-anonymized-lovable-fixture-capture] Run captureLog({customers:12,facilities:3}) â†’ 'anonymized 12 customers, 3 facilities' â€” counts only, no raw values."
-  - "[9-2-anonymized-lovable-fixture-capture] Run scanFixtureData({priceOre: 1234567890}) â†’ [] (â‰¥10-digit numeric Ã¶re does NOT trip the string-scoped ORGNR class)."
-  - "[9-2-anonymized-lovable-fixture-capture] Read scripts/migration/README.md â†’ documents local/test-oriented synthetic-input-only scope + KNOWN LIMITATION: free-form personal names not auto-anonymized (manual redaction before any real capture)."
-  - "[9-2-anonymized-lovable-fixture-capture] Verify no fictional ReadinessCode values in lovable/** fixtures â†’ only codes from the real readiness.ts union appear."
+  - "[9-1-legacy-record-classification-and-migration-runbook] Open docs/migration/legacy-record-classification.md §2+§4 → four-bucket contract stated; all four buckets populated (§4.1 live, §4.2 archive-only, §4.3 excluded, §4.4 deferred)."
+  - "[9-1-legacy-record-classification-and-migration-runbook] In legacy-record-classification.md §4.4, scan target-treatment of every deferred group → each maps to 'none — deferred'; none points at a live Phase A table (AC1/R-907 guard)."
+  - "[9-1-legacy-record-classification-and-migration-runbook] In legacy-record-classification.md §4.1, spot-check live groups' target tables → each is one of the 24 in-scope tenant-owned tables; none beyond that boundary."
+  - "[9-1-legacy-record-classification-and-migration-runbook] Read legacy-record-classification.md §3 → 'Decisions (this register)' and 'Assumptions (carried, not decided here)' are separate sections."
+  - "[9-1-legacy-record-classification-and-migration-runbook] Open docs/migration/migration-runbook.md §3.1–§3.6 → every one of the six workflows carries all five fields: source records, target treatment, fallback path, manual-backfill risks, cutover decision."
+  - "[9-1-legacy-record-classification-and-migration-runbook] In migration-runbook.md §2 (+§1 scope note) → cutover stated as by-workflow, never whole-company."
+  - "[9-1-legacy-record-classification-and-migration-runbook] Read migration-runbook.md §6 'Scope-Unclear → STOP Protocol' → fail-closed STOP section lists hard-STOP conditions (real data export/import, full historical migration, deferred-module activation, material ambiguity)."
+  - "[9-1-legacy-record-classification-and-migration-runbook] In migration-runbook.md §6 → 8.1/8.2 STOP-marked owner-pending (no fabricated selections); 7.1 labelled partial (möte) distinct from öppen (möte)."
+  - "[9-1-legacy-record-classification-and-migration-runbook] In migration-runbook.md §6/§8 → real customer data export/import stated as hard STOP requiring owner sign-off."
+  - "[9-1-legacy-record-classification-and-migration-runbook] Read migration-runbook.md §7 → demo-data-only track kept explicitly separate from the real-customer cutover track."
+  - "[9-1-legacy-record-classification-and-migration-runbook] In migration-runbook.md §5 → tests/fixtures/golden/lovable/** and scripts/migration/** referenced as forthcoming seams; neither directory exists yet."
+  - "[9-1-legacy-record-classification-and-migration-runbook] PII spot-check both docs (name/email/phone/personnummer/orgnr/secret) → none present; only masked placeholders (YYYYMMDD-XXXX, XXXXXX-XXXX)."
+  - "[9-1-legacy-record-classification-and-migration-runbook] Run pnpm test:unit -- tests/unit/docs/migration-runbook-validators.test.ts → all 9 validators pass."
+  - "[9-2-anonymized-lovable-fixture-capture] Run pnpm run test:unit → whole unit gate passes (~1300 tests, 0 fail, 0 skipped) incl. the four lovable-pack suites; money-pack privacy scan stays green."
+  - "[9-2-anonymized-lovable-fixture-capture] Run node --experimental-strip-types --import ./tests/support/register.mjs --test tests/unit/fixtures/golden/lovable → all lovable-pack tests pass, 0 skipped (no suite self-disabled)."
+  - "[9-2-anonymized-lovable-fixture-capture] List tests/fixtures/golden/lovable/ → exactly 8 category files (crm, settings-pricing, calculations, quotes, pdfs, acceptance, files, accepted-quote-to-job).json matching LOVABLE_FIXTURE_MANIFEST."
+  - "[9-2-anonymized-lovable-fixture-capture] Open e.g. crm.json → personnummer is masked YYMMDD-XXXX, emails @example.test, no real name/phone/orgnr/street address in the DATA payload."
+  - "[9-2-anonymized-lovable-fixture-capture] Seeded-PII fail-closed test in lovable-privacy-scan.test.ts → violation per class (PERSONNUMMER/ORGNR/NON_EXAMPLE_EMAIL/SECRET) — green in the suite run."
+  - "[9-2-anonymized-lovable-fixture-capture] Seeded raw-file-blob test → data: URI + long base64 trip RAW_FILE_BLOB; clean link/type/purpose metadata does not — green in the suite run."
+  - "[9-2-anonymized-lovable-fixture-capture] Run the scanFixtureData one-liner on clean masked data → prints [] (zero violations)."
+  - "[9-2-anonymized-lovable-fixture-capture] Run the scanFixtureData one-liner on planted PII (900101-1234, 5560000001, x@gmail.com, sk-x) → prints 4 violations naming each class."
+  - "[9-2-anonymized-lovable-fixture-capture] Run anonymizeRecord twice on the same record → byte-identical output; name → 'Sample Person NN', email → user-NN@example.test, api_key key dropped entirely."
+  - "[9-2-anonymized-lovable-fixture-capture] Run captureLog({customers:12,facilities:3}) → 'anonymized 12 customers, 3 facilities' — counts only, no raw values."
+  - "[9-2-anonymized-lovable-fixture-capture] Run scanFixtureData({priceOre: 1234567890}) → [] (≥10-digit numeric öre does NOT trip the string-scoped ORGNR class)."
+  - "[9-2-anonymized-lovable-fixture-capture] Read scripts/migration/README.md → documents local/test-oriented synthetic-input-only scope + KNOWN LIMITATION: free-form personal names not auto-anonymized (manual redaction before any real capture)."
+  - "[9-2-anonymized-lovable-fixture-capture] Verify no fictional ReadinessCode values in lovable/** fixtures → only codes from the real readiness.ts union appear."
+  - "[9-3-golden-master-comparison-harness-for-core-workflow] Run node --experimental-strip-types --import ./tests/support/register.mjs --test tests/unit/fixtures/golden/lovable (comparison suites) → 22/22 comparison tests pass, 0 skipped."
+  - "[9-3-golden-master-comparison-harness-for-core-workflow] Run pnpm run test:unit → fail 0, skipped 0 (9.3 pins run inside the real tests/unit/** glob)."
+  - "[9-3-golden-master-comparison-harness-for-core-workflow] Search quote-version-source.json for REQUIRES_SIGN_OFF / DEDUCTION_ESTIMATE_UNAPPROVED → absent; warnings carry only TAX_SIGN_OFF_REQUIRED (Task 1.3 alignment)."
+  - "[9-3-golden-master-comparison-harness-for-core-workflow] In the comparison run, GUARD 1c (aligned snapshot fixture passes the representativeness gate) → pass."
+  - "[9-3-golden-master-comparison-harness-for-core-workflow] Run tests/unit/lib/quote-snapshot suites → all pass (the fixture alignment broke nothing)."
+  - "[9-3-golden-master-comparison-harness-for-core-workflow] GUARD 1b (every fixture code is a REAL ReadinessCode union member) → pass."
+  - "[9-3-golden-master-comparison-harness-for-core-workflow] GUARD 2 (manifest covers every AC1 category by a LIVE-driven case; fails on zero-executed) → pass."
+  - "[9-3-golden-master-comparison-harness-for-core-workflow] GUARD 3b (LABELLING guard FIRES on seeded malformed documented-delta) → pass."
+  - "[9-3-golden-master-comparison-harness-for-core-workflow] GUARD 3a (every documented-delta carries a divergent old value as NUMBER or CLASSIFICATION CODE) → pass."
+  - "[9-3-golden-master-comparison-harness-for-core-workflow] INCLUSION pin test (selected option + hidden row count toward totals; unselected option does not) → pass."
+  - "[9-3-golden-master-comparison-harness-for-core-workflow] pdf-text-visual test (mustAppear present AND non-empty mustNotAppear absent: hidden row + unselected option never leak) → pass."
+  - "[9-3-golden-master-comparison-harness-for-core-workflow] accepted-price delta (reasonRequired === (delta !== 0)) and job-source-refs (immutable quoteVersionId + quoteAcceptanceId tuple) tests → pass."
+  - "[9-3-golden-master-comparison-harness-for-core-workflow] STOP-gate test (sensitive divergence lacking justification NOT auto-labelled simplification) → pass."
+  - "[9-3-golden-master-comparison-harness-for-core-workflow] Negative check (local only, revert after): set a warnings array in quote-version-source.json to NOT_A_REAL_CODE and re-run → GUARD 1b/1c fail (guard is real); revert the edit."

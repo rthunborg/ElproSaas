@@ -4,12 +4,12 @@ story_key: 9-3-golden-master-comparison-harness-for-core-workflow
 epic_num: 9
 story_num: 3
 branch: epic/9-migration-coexistence-golden-masters-and-pilot-readiness
-status: in-progress
-updated_at: "2026-07-08T10:07:04Z"
+status: done
+updated_at: "2026-07-08T10:10:10Z"
 started_at: "2026-07-07T19:25:47Z"
-completed_at: null
-active_seconds: 2606
-timing_anchor: 1783504445
+completed_at: "2026-07-08T10:10:10Z"
+active_seconds: 3571
+timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
 needs_project_context_bootstrap: false
