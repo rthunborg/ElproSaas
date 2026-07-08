@@ -198,8 +198,14 @@ function registerBlockingIds(): string[] {
   const section = end > 0 ? rest.slice(0, end) : rest;
 
   const ids = new Set<string>();
-  // ID pattern: a letter or digit head, a dot, an alnum tail, optionally a `-<same>` range.
-  const idRe = /\b([A-Z]?\d+(?:\.\d+)?(?:-[A-Z]?\d+(?:\.\d+)?)?)\b/g;
+  // ID pattern (alternation, dotted-letter family FIRST so `A.1`/`B.1-B.4` are captured whole):
+  //   (a) letter-dot-digit, optionally a `-<same>` range     — `A.1`, `A.2`, `B.1-B.4`, `C.1-C.3`
+  //   (b) letter-then-digits (no dot)                          — `A20`, `A21`, `A22`
+  //   (c) digit-dot-digit, optionally a range                  — `7.1`, `7.3`, `8.1`, `8.2`
+  // The letter-then-dot families were previously DROPPED because a leading `[A-Z]?\d+` requires a
+  // digit immediately after the optional letter — `A.1` never matched (R-917 no-drift hole).
+  const idRe =
+    /\b([A-Z]\.\d+(?:-[A-Z]\.\d+)?|[A-Z]\d+|\d+\.\d+(?:-\d+\.\d+)?)\b/g;
   for (const line of section.split("\n")) {
     if (!line.trim().startsWith("|")) continue;
     // A blocking row carries `blocking` in its status cell (not the header/separator).
@@ -208,15 +214,25 @@ function registerBlockingIds(): string[] {
     // Pull IDs from the owning-question-ID cell(s). Restrict to ID-shaped tokens.
     for (const m of line.matchAll(idRe)) {
       const id = m[1];
-      // Owner-signoff IDs look like `A.2`, `B.1-B.4`, `7.1`, `8.2`, `A20`. Exclude bare section refs
-      // like `4.1`/`4.2`/`5` and pure prose numbers by requiring the letter-prefixed or 7/8-prefixed
-      // families that the register actually uses as blocking owning IDs.
+      // Owner-signoff IDs look like `A.1`/`A.2`/`B.1-B.4`/`C.1-C.3`, `A20`, `7.1`, `8.2`. Exclude bare
+      // section refs like `4.1`/`4.2`/`5` and pure prose numbers by requiring the letter-prefixed
+      // (dotted or not) or 7/8-prefixed families that the register actually uses as blocking owning IDs.
       if (/^[A-C]\.\d/.test(id) || /^[A-C]\d+$/.test(id) || /^[78]\.\d$/.test(id)) {
         ids.add(id);
       }
     }
   }
   return [...ids];
+}
+
+/**
+ * PURE readiness-reconciliation model (9.5-READY-01, R-920/R-917). A blocking owning ID from the 9.4
+ * register drifts iff it is NOT present in the report's readiness section text. Returns the missing set
+ * (empty === reconciled 1:1). Extracted so the validator drives it with the REAL readiness slice
+ * (positive) AND with a seeded slice that OMITS a dotted money/tax ID (negative — proves the guard fires).
+ */
+function reconcileReadinessBlocking(blockingIds: readonly string[], readinessSection: string): string[] {
+  return blockingIds.filter((id) => !readinessSection.includes(id));
 }
 
 // ══════════════════════════════════════════════════════════════════════════════════════════════
@@ -539,6 +555,15 @@ test("9.5-SCOPE-01: the surface anchors are the LIVE counts — exactly 7 nav it
 
 // ══ 9.5-READY-01 (P2, R-920) — readiness reconciliation, no drift from the 9.4 register ═══════
 
+// Isolate the report's readiness section (§6) so a blocking ID mentioned elsewhere does not falsely satisfy.
+function readinessSection(report: string): string {
+  const start = report.search(/##\s*6\.\s*Readiness/i);
+  assert.ok(start >= 0, "the report must contain a '## 6. Readiness' section");
+  const rest = report.slice(start);
+  const end = rest.search(/\n##\s*7\./);
+  return end > 0 ? rest.slice(0, end) : rest;
+}
+
 test("9.5-READY-01: every 9.4-register BLOCKING id appears in the report's readiness section (no drift, R-917 extended)", () => {
   const report = reportText();
   const blocking = registerBlockingIds();
@@ -546,18 +571,44 @@ test("9.5-READY-01: every 9.4-register BLOCKING id appears in the report's readi
     blocking.length >= 6,
     `expected the live 9.4 register §4 to carry the known open blocking IDs (>=6; A.1/A.2/B.1-B.4/C.1-C.3/7.1/7.3/8.1/8.2) — parsed ${blocking.length}: ${blocking.join(", ")}`,
   );
-  // Isolate the readiness section (§6) so a blocking ID mentioned elsewhere does not falsely satisfy.
-  const start = report.search(/##\s*6\.\s*Readiness/i);
-  assert.ok(start >= 0, "the report must contain a '## 6. Readiness' section");
-  const rest = report.slice(start);
-  const end = rest.search(/\n##\s*7\./);
-  const readiness = end > 0 ? rest.slice(0, end) : rest;
-
-  const missing = blocking.filter((id) => !readiness.includes(id));
+  // The dotted money/tax families MUST be in the reconciled set — this is the R-917 hole the extraction
+  // fix closes: a blocking ID the parser can't see could never be enforced 1:1 against §6.
+  for (const dotted of ["A.1", "A.2", "B.1-B.4", "C.1-C.3"]) {
+    assert.ok(
+      blocking.includes(dotted),
+      `the reconciliation must cover the dotted money/tax blocking ID "${dotted}" — parsed: ${blocking.join(", ")}`,
+    );
+  }
+  const readiness = readinessSection(report);
+  const missing = reconcileReadinessBlocking(blocking, readiness);
   assert.deepEqual(
     missing,
     [],
     `readiness drift (R-920/R-917): these BLOCKING IDs from the 9.4 register §4 are absent from the report's readiness section: ${missing.join(", ")} — the readiness list REFERENCES the register, it must not fork a divergent copy`,
+  );
+});
+
+test("9.5-READY-01: PROVE the no-drift guard FIRES — a dotted money/tax blocking ID missing from §6 fails reconciliation (negative path)", () => {
+  const report = reportText();
+  const blocking = registerBlockingIds();
+  const readiness = readinessSection(report);
+
+  // Positive control: the REAL §6 reconciles clean (no missing blocking IDs).
+  assert.deepEqual(
+    reconcileReadinessBlocking(blocking, readiness),
+    [],
+    "sanity: the real readiness section must reconcile 1:1 before the negative case is meaningful",
+  );
+
+  // Seed a §6 that DROPS a dotted money/tax blocker (`B.1-B.4`) — every occurrence removed so a stray
+  // mention elsewhere in §6 cannot mask the drift. The guard MUST now report it missing.
+  const dropped = "B.1-B.4";
+  assert.ok(blocking.includes(dropped), `the negative case requires the dotted blocking ID "${dropped}" to be in the parsed set`);
+  const seededReadiness = readiness.split(dropped).join("〈removed〉");
+  const missing = reconcileReadinessBlocking(blocking, seededReadiness);
+  assert.ok(
+    missing.includes(dropped),
+    `the no-drift reconciliation FAILED to fire on a seeded §6 that omits the dotted blocking ID "${dropped}" — the R-917 guard is not enforcing the dotted money/tax families (missing set: ${missing.join(", ")})`,
   );
 });
 
@@ -712,7 +763,10 @@ test("9.5-PRIV (the PII scan FIRES): a seeded personnummer / orgnr / email / pho
   // are clean without proving it CAN fire is the vacuous-green trap the epic ledgers (R-904).
   const cases: Array<{ kind: PiiViolation["kind"]; sample: string }> = [
     { kind: "personnummer", sample: "born 19850101-1234 in the record" },
-    { kind: "orgnr", sample: "org 5560360793 on file" },
+    // Fake, NON-registered 10-digit placeholder (R-914): the orgnr scan is a bare `\b\d{10}\b` match
+    // with no Luhn/registry check, so any 10-digit token fires it — never commit a real registered orgnr
+    // even as negative-path test data (this file sits outside the docs/migration/** scan that would catch it).
+    { kind: "orgnr", sample: "org 1234567890 on file" },
     { kind: "email", sample: "contact anna.andersson@realcompany.se today" },
     { kind: "phone", sample: "call +46 70 123 45 67 now" },
     { kind: "secret", sample: 'api_key: "sk_live_ABCDEF0123456789"' },
@@ -848,15 +902,20 @@ test("9.5-GATE-01: parseReportedGates reads the REAL report and yields the manda
   }
 });
 
-test("9.5-READY-01: registerBlockingIds parses the digit-led blocking owning IDs from the 9.4 register §4 and excludes section-reference tokens", () => {
+test("9.5-READY-01: registerBlockingIds parses EVERY blocking owning ID from the 9.4 register §4 — dotted money/tax families included — and excludes section-reference tokens", () => {
   const ids = registerBlockingIds();
-  // The digit-led / letter-prefixed-digit blocking owning IDs the parser recognises must be present.
-  // (Note: the parser's ID regex matches digit-led tokens — `A20`/`8.1`/`7.1` — and the dotted
-  // `A.1`/`A.2`/`B.1-B.4`/`C.1-C.3` families are carried in the readiness §6 prose/notes, which the
-  // no-drift reconciliation test asserts against the readiness section text. This test pins the
-  // subset registerBlockingIds itself extracts, so a future regex change is caught here.)
-  for (const id of ["A20", "A21", "A22", "8.1", "8.2", "7.1", "7.3"]) {
+  // The parser must extract the FULL blocking set: the dotted money/tax families (`A.1`/`A.2`/
+  // `B.1-B.4`/`C.1-C.3`), the tax-wording family (`A20`/`A21`/`A22`), and the migration/job-model
+  // families (`7.1`/`7.3`/`8.1`/`8.2`). The dotted `[A-C].\d` families were previously dropped by the
+  // extraction regex (letter-then-dot never matched), so the no-drift reconciliation could not enforce
+  // them 1:1 against §6 — the R-917 hole this closes.
+  for (const id of ["A.1", "A.2", "B.1-B.4", "C.1-C.3", "A20", "A21", "A22", "8.1", "8.2", "7.1", "7.3"]) {
     assert.ok(ids.includes(id), `registerBlockingIds must include the known blocking owning ID "${id}" — parsed: ${ids.join(", ")}`);
+  }
+  // The answered (non-blocking) `D.1`/`D.2`/`D.3` eligibility tokens riding in the ROT blocking row must
+  // NOT leak in — they sit outside the `[A-C]` money/tax family filter.
+  for (const nonId of ["D.1", "D.2", "D.3"]) {
+    assert.ok(!ids.includes(nonId), `registerBlockingIds must NOT treat the answered eligibility token "${nonId}" as a blocking owning ID`);
   }
   // Section-reference tokens (§4.1 / §4.2 / §5) must NOT leak in as blocking IDs (parser scoping).
   for (const nonId of ["4.1", "4.2", "5"]) {
@@ -864,6 +923,6 @@ test("9.5-READY-01: registerBlockingIds parses the digit-led blocking owning IDs
   }
   // Every parsed ID must be a real ID-shaped token, never stray prose (parser fidelity).
   for (const id of ids) {
-    assert.ok(/^[A-C]?\d/.test(id), `registerBlockingIds returned a non-ID-shaped token "${id}"`);
+    assert.ok(/^[A-C]?\d|^[A-C]\.\d/.test(id), `registerBlockingIds returned a non-ID-shaped token "${id}"`);
   }
 });
