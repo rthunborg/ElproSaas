@@ -15,3 +15,7 @@
 - [Phase 5 â€” dev-story] Non-src alias roots (@/tests-support/*, @/scripts-migration/*) need DUAL mapping: alias-hook.mjs AND tsconfig paths (longest-prefix-wins, probed before @/*) â€” any future test-support/script module imported under @/... needs both.
 - [Phase 5 â€” dev-story] old-lovable origin exercised WITHOUT fabricating a real Lovable number: clearly-marked SYNTHETIC placeholder with machine-readable capturedFromRealLovable: false â€” real value backfills later (owner-gated 8.2) with no schema change.
 - [Phase 6 â€” automate] ADDRESS regex only matches street-type words at a WORD BOUNDARY â€” compounds like 'Storgatan 12' do NOT trip it; 9.3 must not over-rely on the ADDRESS class (other PII classes unaffected). Recorded inline in lovable-scanner-unit.test.ts.
+
+## Story 9-3-golden-master-comparison-harness-for-core-workflow
+- [Phase 5 â€” dev-story] calculations.json#mixed-rows (9.2 fixture) pins MISSING_WORK_ROLE in readinessWarnings but the code is not structurally reachable from its rows â€” harness asserts the live-oracle truth and documents the divergence; fixture-vs-oracle representativeness gap for 9.2's owner (non-sensitive: warning classification).
+- [Phase 5 â€” dev-story] node --test process isolation (one process per file) breaks any cross-file mutable registry â€” coverage manifests must re-drive shared live-drive functions in-process; trap for future golden packs assuming shared in-memory state.

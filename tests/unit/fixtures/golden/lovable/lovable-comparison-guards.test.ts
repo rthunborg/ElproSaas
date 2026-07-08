@@ -1,5 +1,5 @@
 /**
- * Story 9.3 — GOLDEN-MASTER COMPARISON HARNESS: the PACK GUARDS (RED-PHASE SCAFFOLD).
+ * Story 9.3 — GOLDEN-MASTER COMPARISON HARNESS: the PACK GUARDS (GREEN).
  *
  * These are the three EPIC-BLOCKER guards + the hard surface probe that make the 9.3 comparison
  * harness trustworthy (test-design-epic-9.md Non-Negotiable Requirements):
@@ -21,21 +21,20 @@
  *             CLASSIFICATION CODE (`oldLovableValue`) — a union, non-empty. Proven to FIRE on a
  *             seeded malformed case missing its divergent value (never structurally-unreachable).
  *
- * ── RED-PHASE STATUS ─────────────────────────────────────────────────────────────────
- * Authored to RUN (the oracle surfaces exist since Epics 4-8). The RED signal:
- *   - GUARD 1 FAILS today: `realReadinessCodeSet()` returns null (no runtime union export wired)
- *     AND `snapshots/quote-version-source.json` still carries the two fictional codes (Task 1.3).
- *   - GUARD 2 FAILS today: `EXECUTED_COMPARISON_CATEGORIES` is empty until the comparison suites
- *     (Task 2) register their live-driven categories.
- *   - GUARD 3 is authored GREEN in shape (the 9.2 fixtures already ship both divergent-value
- *     shapes) but the money-pack numeric-only guard it WIDENS (golden-pack.test.ts:217-232) is not
- *     yet updated — the dev must ensure this widened guard is the one the harness enforces.
+ * ── GREEN STATUS ─────────────────────────────────────────────────────────────────────
+ * All four guards RUN and PASS (the oracle surfaces exist since Epics 4-8):
+ *   - GUARD 1: `realReadinessCodeSet()` derives the real union from the runtime `READINESS_CODES`
+ *     export in readiness.ts (Task 1.2); `snapshots/quote-version-source.json` is ALIGNED to the real
+ *     union (Task 1.3 — the fictional codes are gone).
+ *   - GUARD 2: `EXECUTED_COMPARISON_CATEGORIES` is BUILT below by driving every AC1 comparison
+ *     category through the shared `driveComparisonCase` live-drive path (a structured per-category key
+ *     match, never a substring token — R-921); a broken drive leaves its category out and GUARD 2
+ *     fails loud.
+ *   - GUARD 3: the widened `number | classification-code` LABELLING guard is the one the harness
+ *     enforces (both arms exercised by the 9.2 fixtures; proven to FIRE on a seeded malformed case).
  *
  * Runner: `node --test` (`pnpm run test:unit`, glob `tests/unit/**`). NEVER `tests/golden/**` (the
  * runner-glob trap — an out-of-glob pin is a vacuous green). NO DB, NO PII, NO clock.
- *
- * GREEN CHECKLIST for the dev is in
- * `_bmad-output/test-artifacts/atdd-checklist-9-3-golden-master-comparison-harness-for-core-workflow.md`.
  */
 import { test, describe } from "node:test";
 import assert from "node:assert/strict";
@@ -57,17 +56,31 @@ import {
   snapshotStillCarriesFictionalCode,
   divergentOldValue,
   isValidOrigin,
+  driveComparisonCase,
+  type ComparisonResult,
 } from "./comparison-support";
 
-// The categories the comparison suites (Task 2) prove by a LIVE-driven case. The GREEN dev
-// registers each one from its comparison suite (a real oracle case, not a token). RED: empty →
-// GUARD 2 fails until every AC1 comparison category is driven. The green dev replaces this with an
-// import of the actually-executed set the comparison suites export, so a category cannot be
-// "declared covered" without a live case behind it.
-export const EXECUTED_COMPARISON_CATEGORIES: ReadonlySet<string> = new Set<string>([
-  // GREEN: populate from the Task-2 comparison suites — one entry per category ONLY when a live
-  //        oracle case for it actually runs. e.g. "calc-totals", "vat-tax-blocks", ...
-]);
+// The categories the comparison harness proves by a LIVE-driven case (GUARD 2 / Task 1.4). A category
+// is registered ONLY when its real-oracle drive (`driveComparisonCase`) succeeds with a STRUCTURED
+// per-category key match — NEVER a substring token (R-921). `node --test` runs each test file in its
+// OWN process, so the manifest cannot read a mutable set another file populated; instead it drives the
+// SAME shared live-drive functions (the identical path the dedicated comparison suites use) here,
+// in-process, so a category cannot be declared covered without a genuine live case behind it. The set
+// is BUILT below by driving every AC1 comparison category — a drive that throws (a broken fixture/oracle
+// mapping) leaves its category OUT, and GUARD 2 fails loud (never a vacuous green).
+const executedCategories = new Set<string>();
+const driveResults = new Map<string, ComparisonResult>();
+for (const category of AC1_COMPARISON_CATEGORIES) {
+  // Sequential drive is intentional: determinism over speed for the coverage manifest.
+  const result = await driveComparisonCase(category);
+  // A category counts as covered ONLY if the live drive returned a structured result whose
+  // matchedKeys are non-empty (a genuine per-category key match, not a token) for THIS category.
+  if (result.category === category && result.matchedKeys.length > 0) {
+    executedCategories.add(category);
+    driveResults.set(category, result);
+  }
+}
+export const EXECUTED_COMPARISON_CATEGORIES: ReadonlySet<string> = executedCategories;
 
 describe("Story 9.3 — comparison-harness PACK GUARDS (9.3-VALID-01 / 9.3-MANIFEST-01 / 9.3-DELTA-01, R-903/R-904/R-906/R-913/R-921)", () => {
   // ── GUARD 0 — HARD surface-present (never a self-disabling describe.skip) ──────────────────
@@ -147,6 +160,19 @@ describe("Story 9.3 — comparison-harness PACK GUARDS (9.3-VALID-01 / 9.3-MANIF
         `${missing.join(", ")}. GREEN: the Task-2 comparison suites register each category as they drive the real ` +
         `oracle over the 9.2 fixture; prove coverage by a STRUCTURED per-category key match, NEVER a raw substring token (R-921).`,
     );
+    // R-921 STRUCTURED-MATCH proof: every covered category carries a live-drive result whose
+    // structured matchedKeys are non-empty AND whose category tag equals the requested category.
+    // A raw substring `raw.includes(token)` coverage claim would carry NO structured keys — this
+    // asserts the coverage is behavioral (a real per-category key/shape match), not a grep.
+    for (const category of AC1_COMPARISON_CATEGORIES) {
+      const result = driveResults.get(category);
+      assert.ok(result, `no live-drive result recorded for '${category}' (structured coverage missing)`);
+      assert.equal(result!.category, category, `drive result category tag mismatch for '${category}'`);
+      assert.ok(
+        result!.matchedKeys.length > 0,
+        `'${category}' coverage must be proven by a STRUCTURED per-category key match, not a substring token (R-921)`,
+      );
+    }
   });
 
   // ── GUARD 3 — WIDENED LABELLING guard (R-913 / 9.3-DELTA-01) ──────────────────────────────
