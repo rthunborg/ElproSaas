@@ -5,11 +5,11 @@ epic_num: 9
 story_num: null
 branch: epic/9-migration-coexistence-golden-masters-and-pilot-readiness
 status: in-progress
-updated_at: "2026-07-08T10:38:51Z"
+updated_at: "2026-07-08T10:46:28Z"
 started_at: "2026-07-07T17:37:04Z"
 completed_at: null
-active_seconds: 11403
-timing_anchor: 1783507131
+active_seconds: 11848
+timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
 needs_project_context_bootstrap: false
@@ -52,11 +52,12 @@ blockers: []
 overrides: {}
 constraints: []
 epic_slug: migration-coexistence-golden-masters-and-pilot-readiness
-active_story: 9-4-pilot-fallback-cutover-and-sign-off-register
+active_story: 9-5-phase-a-acceptance-gate-report
 stories_landed:
   - 9-1-legacy-record-classification-and-migration-runbook
   - 9-2-anonymized-lovable-fixture-capture
   - 9-3-golden-master-comparison-harness-for-core-workflow
+  - 9-4-pilot-fallback-cutover-and-sign-off-register
 auto_decisions:
   - "Approved-PII-exception machine-readable marker not implemented/exercised [Med] â†’ defer: owner-gated real-capture story defines the marker key + scanner recognition when the first exception appears (Tier A, 9-2-anonymized-lovable-fixture-capture)"
   - "PDF mustNotAppear unselected-option leakage assertion vacuous [Med] â†’ fix: carry the unselected option + hidden-row literal into the snapshot so leaked==[] is meaningful for all three negatives (Tier A, 9-3-golden-master-comparison-harness-for-core-workflow)"
@@ -103,3 +104,17 @@ uat_items:
   - "[9-3-golden-master-comparison-harness-for-core-workflow] accepted-price delta (reasonRequired === (delta !== 0)) and job-source-refs (immutable quoteVersionId + quoteAcceptanceId tuple) tests → pass."
   - "[9-3-golden-master-comparison-harness-for-core-workflow] STOP-gate test (sensitive divergence lacking justification NOT auto-labelled simplification) → pass."
   - "[9-3-golden-master-comparison-harness-for-core-workflow] Negative check (local only, revert after): set a warnings array in quote-version-source.json to NOT_A_REAL_CODE and re-run → GUARD 1b/1c fail (guard is real); revert the edit."
+  - "[9-4-pilot-fallback-cutover-and-sign-off-register] Run node --experimental-strip-types --import ./tests/support/register.mjs --test tests/unit/docs/sign-off-register-validators.test.ts → all 19 tests pass, fail 0."
+  - "[9-4-pilot-fallback-cutover-and-sign-off-register] In that run, 9.4-BLOCK-01 'seeded open blocking item CANNOT be cutover-ready' → pass (the block demonstrably FIRES)."
+  - "[9-4-pilot-fallback-cutover-and-sign-off-register] In that run, 9.4-BLOCK-01 'DEMO track stays UNBLOCKED with the same open items' → pass (tracks never conflated)."
+  - "[9-4-pilot-fallback-cutover-and-sign-off-register] In that run, 9.4-BLOCK-01 'no open blocking items IS cutover-ready' → pass (gate is item-driven, not a blanket deny)."
+  - "[9-4-pilot-fallback-cutover-and-sign-off-register] In that run, 9.4-REG-01 (R-917) 'every blocking question ID appears in the register' → pass (no register drift)."
+  - "[9-4-pilot-fallback-cutover-and-sign-off-register] In that run, 9.4-PRIV whole-docs/migration PII scan → pass."
+  - "[9-4-pilot-fallback-cutover-and-sign-off-register] Run pnpm run test:unit → suite green incl. the 9.4 validator; 9.1 validator unregressed."
+  - "[9-4-pilot-fallback-cutover-and-sign-off-register] Open docs/migration/pilot-fallback-cutover.md §4.1 → all 11 AC2 items listed, each signed-off or blocking with owning question ID, owner, and workflow(s)."
+  - "[9-4-pilot-fallback-cutover-and-sign-off-register] In §4.1 → VAT / ROT / grön teknik / rounding / tax wording each marked blocking real-pilot (öppen (möte) in the source), never default-signed-off."
+  - "[9-4-pilot-fallback-cutover-and-sign-off-register] In §4.2 → migration/job-model blocking items 8.1, 8.2, 7.1, 7.3 each present with blocking status + owning ID."
+  - "[9-4-pilot-fallback-cutover-and-sign-off-register] Read §5 → every §4 blocking item is blocking for real-pilot and non-blocking for the demo track."
+  - "[9-4-pilot-fallback-cutover-and-sign-off-register] Read §3.1–§3.6 → each of the six workflows carries non-empty old-app fallback, cutover-by-workflow plan, manual-backfill risks, rollback decision points."
+  - "[9-4-pilot-fallback-cutover-and-sign-off-register] Read §2 + §3 rollback rows → cutover/rollback per-workflow never whole-company; fallback not removable while a blocking assumption is open (NFR21/R-908)."
+  - "[9-4-pilot-fallback-cutover-and-sign-off-register] Optional: cross-check owner-signoff-questions.md öppen/partial IDs vs register §4 → each appears with blocking status (manual R-917 confirmation)."
