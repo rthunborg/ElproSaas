@@ -5,11 +5,11 @@ epic_num: 9
 story_num: 4
 branch: epic/9-migration-coexistence-golden-masters-and-pilot-readiness
 status: in-progress
-updated_at: "2026-07-08T10:38:50Z"
+updated_at: "2026-07-08T10:43:17Z"
 started_at: "2026-07-08T10:11:17Z"
 completed_at: null
 active_seconds: 1647
-timing_anchor: null
+timing_anchor: 1783507131
 is_first_in_epic: false
 is_last_in_epic: false
 needs_project_context_bootstrap: false
@@ -20,14 +20,14 @@ tea_selected: [atdd, automate]
 tea_rationale: "Sign-off register checklist validator hard-blocks irreversible real-pilot cutover on unresolved money/tax/immutability/acceptance/migration sign-offs (R-905/R-908, 9.4-BLOCK-01) â€” irreversible-side-effect gate, not passive docs"
 epic_story_count: 5
 stories_after_in_epic: 1
-completed_phases: [0, 1, 2, 3, 4, 5, 6]
+completed_phases: [0, 1, 2, 3, 4, 5, 6, 7]
 code_review_iterations: 0
 code_review_loop_done: false
-hitl_halt: null
+hitl_halt: "auto-continued (epic â€” no halt)"
 external_review_iterations: 0
 convergence_unverified: false
 story_trace: null
-commits: [a1578bb, 0d83f18]
+commits: [a1578bb, 4095f01]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -47,8 +47,11 @@ merge_method: null
 merge_commit: null
 branch_deleted: false
 open_questions: []
-deferred_work: []
+deferred_work:
+  - "Register-traceability check asserts substring presence not a decision-status row (test hardening, ledgered)"
+  - "AC2 per-item column completeness not independently asserted per row (test hardening, ledgered)"
 blockers: []
 overrides: {}
 constraints: []
 tier_a_base_sha: 7af02c8c4645e090f89cf2b552d4ac5373311c1d
+tier_a_review: "done (1 pass, Approve; Critical 0 / High 0 / Med 0 / Low 2 both deferred+ledgered, 3 noise dismissed; security clean 0 findings)"
