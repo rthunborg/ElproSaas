@@ -18,6 +18,18 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 const srcRoot = join(process.cwd(), "src");
 
+// Non-`src` alias roots for TEST + CAPTURE-SCRIPT support modules that the pure-logic runner must
+// import (Story 9.2): the shared anonymization scanner lives under `tests/support/**` and the
+// Lovable capture script under `scripts/migration/**`, NEITHER of which is `src/**`. Mapping them
+// via distinct `@/...` prefixes (not `@/*` -> `src/*`) keeps the test-support + capture assets OFF
+// the app runtime path (AR25/R-919) while still resolving under `node --test`. These MUST be probed
+// BEFORE the generic `@/*` -> `src/*` branch below (a longer, more-specific prefix wins). tsconfig
+// `paths` carries the mirror mapping so `tsc` type-checks the same imports.
+const NON_SRC_ALIAS_ROOTS = [
+  { prefix: "@/tests-support/", root: join(process.cwd(), "tests", "support") },
+  { prefix: "@/scripts-migration/", root: join(process.cwd(), "scripts", "migration") },
+];
+
 function withResolvedExtension(absPath) {
   // A bare DIRECTORY (e.g. `@/lib/money` → `src/lib/money`) is not an ESM importable — Node
   // rejects a directory import. Resolve it to its `index.ts` barrel so an extensionless
@@ -41,6 +53,15 @@ function withResolvedExtension(absPath) {
 }
 
 export async function resolve(specifier, context, nextResolve) {
+  // Non-`src` alias roots (`@/tests-support/*`, `@/scripts-migration/*`) — probed FIRST so the more
+  // specific prefix wins over the generic `@/*` -> `src/*` mapping below.
+  for (const { prefix, root } of NON_SRC_ALIAS_ROOTS) {
+    if (specifier.startsWith(prefix)) {
+      const target = withResolvedExtension(join(root, specifier.slice(prefix.length)));
+      return nextResolve(pathToFileURL(target).href, context);
+    }
+  }
+
   // `@/*` path alias -> `src/*`.
   if (specifier.startsWith("@/")) {
     const target = withResolvedExtension(join(srcRoot, specifier.slice(2)));

@@ -1,0 +1,47 @@
+{
+  "_doc": "Story 9.2 ANONYMIZED LOVABLE FIXTURE — settings / pricing business shape. Preserves company settings (identity + VAT posture in basis points), quote terms (sign-off captured as approvedAt/approvedBy VERBATIM — null = not approved), work_roles (cost/sell hourly rates in integer öre), and an optional manual article. ZERO real PII: company identity is synthetic, email @example.test, orgnr masked (non-\\d{10}), address synthetic. Every öre integer stays < 10 digits (orgnr-scan safe). Cases are origin:new-expected; the vat display posture stays the tenant setting AS-IS (private→incl is resolved elsewhere). Reference the existing money/settings fixtures as the single numeric authority — the öre here are fresh, representative pricing rows for a genuinely-new comparison category (settings/pricing was not pinned by a prior lovable oracle).",
+  "category": "settings-pricing",
+  "cases": [
+    {
+      "id": "company-settings-terms-and-pricing",
+      "origin": "new-expected",
+      "note": "Company settings (identity + VAT rate 2500 bp + company_togglable display), UNAPPROVED quote terms (approvedAt null), two work roles, and one optional article. Preserves the settings/pricing shape the quote-version snapshot freezes and 9.3 compares. Öre are representative pricing rows, not a re-pin of a money-golden value.",
+      "companySettings": {
+        "companyName": "Sample Elföretag AB",
+        "orgNr": "XXXXXX-XXXX",
+        "addressLine1": "Sample plats A",
+        "postalCode": "111 11",
+        "city": "Sample City",
+        "email": "user-01@example.test",
+        "phone": "07X-XXX XX XX",
+        "vatRateBp": 2500,
+        "defaultVatDisplay": "company_togglable"
+      },
+      "quoteTerms": {
+        "termsText": "Non-final pilot terms — requires sign-off before customer use.",
+        "approvedAt": null,
+        "approvedBy": null
+      },
+      "workRoles": [
+        {
+          "id": "work-role-0001",
+          "name": "Elektriker",
+          "costHourlyOre": 45000,
+          "sellHourlyOre": 79000
+        },
+        {
+          "id": "work-role-0002",
+          "name": "Servicetekniker",
+          "costHourlyOre": 42000,
+          "sellHourlyOre": 72000
+        }
+      ],
+      "article": {
+        "id": "article-0001",
+        "name": "Sample material item",
+        "unit": "st",
+        "unitPriceOre": 12500
+      }
+    }
+  ]
+}

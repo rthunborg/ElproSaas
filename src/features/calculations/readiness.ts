@@ -81,6 +81,47 @@ export type ReadinessCode =
   /** DOCUMENTED DEFERRAL: required-file checking is not yet available (Story 8.1 has not landed, R-513). */
   | "REQUIRED_FILES_DEFERRED";
 
+/**
+ * The RUNTIME enumeration of the `ReadinessCode` union — the AUTHORITATIVE representativeness
+ * authority the golden-master comparison harness validates fixture codes against (Story 9.3, R-903 /
+ * 9.3-VALID-01). The TypeScript `ReadinessCode` above is a pure type with NO runtime value, so a
+ * comparison fixture pinning an unknown/fictional code could green-pass a harness that trusts a
+ * hand-copied list. This `as const` array IS that list, and the `satisfies readonly ReadinessCode[]`
+ * check makes the compiler REJECT any member that is not a real union code AND any real code omitted
+ * here — so the runtime set can never drift from the type. Import THIS, never a re-typed copy.
+ *
+ * Order mirrors the union declaration (blockers first, then warnings) for stable enumeration.
+ */
+export const READINESS_CODES = [
+  // ── BLOCKERS ──
+  "MISSING_CUSTOMER",
+  "TOTAL_UNCOMPUTABLE",
+  // ── WARNINGS ──
+  "LOW_MARGIN",
+  "MISSING_FACILITY",
+  "MISSING_CONTACT",
+  "EMPTY_SECTION",
+  "ZERO_PRICE_ROW",
+  "MISSING_WORK_ROLE",
+  "UNRESOLVED_VAT",
+  "TAX_SIGN_OFF_REQUIRED",
+  "HIDDEN_ROWS_INCLUDED",
+  "REQUIRED_FILES_DEFERRED",
+] as const satisfies readonly ReadinessCode[];
+
+/**
+ * COMPLETENESS guard: force a COMPILE error if a `ReadinessCode` union member is ever added without
+ * being listed in `READINESS_CODES` above (the `satisfies` check only rejects EXTRA/invalid members;
+ * this catches an OMITTED member so the runtime set can never silently under-report the real union).
+ * If this line errors, add the new code to `READINESS_CODES`.
+ */
+type _ReadinessCodeExhaustive =
+  Exclude<ReadinessCode, (typeof READINESS_CODES)[number]> extends never
+    ? true
+    : ["READINESS_CODES is missing a ReadinessCode union member", Exclude<ReadinessCode, (typeof READINESS_CODES)[number]>];
+const _readinessCodeExhaustive: _ReadinessCodeExhaustive = true;
+void _readinessCodeExhaustive;
+
 /** Severity of a readiness issue — a `blocker` GATES quote creation; a `warning` does not. */
 export type ReadinessSeverity = "blocker" | "warning";
 

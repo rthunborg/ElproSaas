@@ -19,7 +19,9 @@
       }
     ],
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@/tests-support/*": ["./tests/support/*"],
+      "@/scripts-migration/*": ["./scripts/migration/*"]
     }
   },
   "include": [

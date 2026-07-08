@@ -1,0 +1,43 @@
+{
+  "_doc": "Story 9.2 ANONYMIZED LOVABLE FIXTURE — file-metadata business shape. Preserves the file-link METADATA shape 9.3 compares: fileLinks with ownerType/ownerId/purpose/fileName/mimeType — link/type/purpose metadata ONLY. NEVER a raw file blob / base64 / binary payload (R-901/AC1 raw-file prohibition — a fixture that smuggled a customer file would be a full privacy breach). ownerType/purpose values are drawn from the real Phase A polymorphic file_links union (owner_type ∈ customer/facility/contact/calculation/quote_version/quote_acceptance/job; purpose ∈ calculation_attachment/quote_attachment_snapshot/quote_pdf/acceptance_evidence/job_evidence/crm_document). ZERO PII (synthetic file names, no customer identity). Cases are origin:new-expected.",
+  "category": "files",
+  "cases": [
+    {
+      "id": "file-link-metadata-across-owner-types",
+      "origin": "new-expected",
+      "note": "File-link metadata for several active owner types + purposes — a CRM document, a calculation attachment, a quote PDF, and an acceptance-evidence reference. Link/type/purpose metadata ONLY (no blob). Preserves the polymorphic file_links shape 9.3 compares.",
+      "fileLinks": [
+        {
+          "ownerType": "customer",
+          "ownerId": "customer-0001",
+          "purpose": "crm_document",
+          "fileName": "sample-crm-doc.pdf",
+          "mimeType": "application/pdf"
+        },
+        {
+          "ownerType": "calculation",
+          "ownerId": "calculation-0001",
+          "purpose": "calculation_attachment",
+          "fileName": "sample-calc-attachment.pdf",
+          "mimeType": "application/pdf"
+        },
+        {
+          "ownerType": "quote_version",
+          "ownerId": "quote-version-0001",
+          "purpose": "quote_pdf",
+          "fileName": "sample-quote.pdf",
+          "mimeType": "application/pdf",
+          "isLocked": true
+        },
+        {
+          "ownerType": "quote_acceptance",
+          "ownerId": "quote-acceptance-0001",
+          "purpose": "acceptance_evidence",
+          "fileName": "sample-acceptance-evidence.pdf",
+          "mimeType": "application/pdf",
+          "isLocked": true
+        }
+      ]
+    }
+  ]
+}

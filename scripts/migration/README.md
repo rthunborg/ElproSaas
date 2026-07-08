@@ -1,0 +1,80 @@
+# `scripts/migration/` — Lovable fixture capture (Story 9.2)
+
+Local, test-oriented, **repeatable** helpers for producing the anonymized Lovable golden fixtures
+under `tests/fixtures/golden/lovable/**`. This is the architecture §16 home for "approved, testable
+data capture/reset scripts when a migration story exists" — Story 9.2 is that story for capture
+(Story 9.1 deferred creating `scripts/migration/**` to a real capture story).
+
+## Scope / hard constraints
+
+- **LOCAL / TEST-ORIENTED only.** No network, no DB, no real Lovable connection, no global/system
+  change, no dependency add. Nothing here runs on the app runtime path (`src/**`) — these assets are
+  kept OFF the runtime path per AR25 / R-919.
+- **Synthetic input only (Story 9.2 Stop Condition).** The input for this story is
+  synthetic/representative sample data — NOT a live real-Lovable pull. The real-capture record
+  SELECTION (which real Lovable records become the oracle) is owner-gated (Sign-Off 8.1/8.2,
+  `öppen (möte)`), and any real customer-data export/import is a **HARD STOP** requiring owner
+  sign-off. The script proves the anonymization + capture pipeline works and is repeatable;
+  backfilling real captured values happens later with **no fixture-schema change** (the three-way
+  `origin` already accommodates a real `old-lovable` case).
+- **Zero real PII, anonymized AT SOURCE (R-901/R-902).** `anonymizeRecord` maps real → synthetic
+  BEFORE anything is written to disk or a log; a raw value is never written or echoed. Use
+  `captureLog({...})` for progress output — it logs **counts/ids only** ("anonymized 12 customers"),
+  never a raw name/email/personnummer.
+
+## `lovable-capture.ts`
+
+Exports a **pure, deterministic** `anonymizeRecord(record)` and a `captureLog(counts)` helper.
+
+- `anonymizeRecord` returns a fresh deeply-anonymized copy (it never mutates its input), classifying
+  each field by key-name heuristic (and by value shape as a defense-in-depth backstop):
+  - names → `Sample Person NN`
+  - emails → `user-NN@example.test`
+  - personnummer → `YYMMDD-XXXX` (masked, non-`\d{6}-\d{4}`)
+  - orgnr → `XXXXXX-XXXX` (masked, non-`\d{10}`)
+  - phone → `07X-XXX XX XX` (masked, non-matching SE-mobile shape)
+  - address → `Sample plats A` (no street-type-word + digit, so it does not match the address heuristic)
+  - secrets (`api_key`/`password`/`token`/…) → **dropped entirely** (never masked in place)
+  - öre integers, flags, ids, and every other non-PII scalar → copied **verbatim** (the business
+    shape the later 9.3 comparison depends on is preserved — this is NOT over-anonymization).
+- **Deterministic:** replacements are seeded/fixed (a stable FNV-1a hash of the raw value derives the
+  synthetic suffix; no `Math.random`, no clock). Re-running on the same input yields byte-identical
+  output — the AC2 "repeatable" obligation.
+
+The anonymized output satisfies the same shared privacy scanner
+(`tests/support/anonymization-scan.ts`, imported as `@/tests-support/anonymization-scan`) the
+committed fixtures are held to.
+
+### KNOWN LIMITATION — free-form personal NAMES are NOT auto-anonymized (manual redaction required before any real capture)
+
+`anonymizeRecord` replaces a personal **name** only when the field **key** matches the name-key
+heuristic (`name`/`first_name`/`contact_name`/…). Its value-shape backstop
+(`anonymizeUnhintedString`) masks a personnummer/orgnr/phone/address/email SHAPE that appears in an
+unhinted free-form field — but it does **NOT** detect a name, because a personal name has no regex
+shape distinguishable from ordinary prose (unlike a personnummer or an email). So a real name typed
+into a free-form leaf under a non-name key (e.g. `notes: "Contact Anna Andersson about the meter"`)
+would pass through **verbatim**, and the shared CI scanner likewise has **no name class**, so it
+would not catch it either.
+
+This is a **defense-in-depth gap reachable only via a future real-capture story** — the committed
+9.2 fixtures are synthetic-only and clean, and real-capture SELECTION is itself an owner-gated **HARD
+STOP**. But names are privacy-critical. **Before any REAL Lovable data is captured and committed**,
+free-form / notes / comment fields MUST be manually redacted (or run through an allowlist / NER pass)
+— do NOT rely on `anonymizeRecord` to strip a name embedded in free-form text. The owner-gated
+real-capture story that introduces the first real value must own this redaction step.
+
+## Usage (illustrative — synthetic input)
+
+```ts
+import { anonymizeRecord, captureLog } from "@/scripts-migration/lovable-capture";
+
+const anonymized = sampleRecords.map(anonymizeRecord);
+// Emit COUNTS only — never a raw value:
+console.log(captureLog({ customers: anonymized.length }));
+// The dev hand-authors the committed golden JSON from the anonymized shape, written via a canonical
+// 2-space serialization so a re-run is byte-identical (see the loader-round-trip unit test).
+```
+
+The unit contract for this script lives in
+`tests/unit/fixtures/golden/lovable/lovable-capture-script.test.ts` (approved-location, anonymize-at-
+source, deterministic, and non-mutating checks).

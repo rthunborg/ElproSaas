@@ -45,7 +45,7 @@
           "deductionType": null,
           "requiresSignOff": true
         },
-        "warnings": ["REQUIRES_SIGN_OFF"],
+        "warnings": ["TAX_SIGN_OFF_REQUIRED"],
         "selectedAttachments": []
       }
     },
@@ -91,7 +91,7 @@
           "deductionType": "rot",
           "requiresSignOff": true
         },
-        "warnings": ["REQUIRES_SIGN_OFF", "DEDUCTION_ESTIMATE_UNAPPROVED"],
+        "warnings": ["TAX_SIGN_OFF_REQUIRED"],
         "selectedAttachments": [
           { "fileId": "00000000-0000-0000-0000-000000000001", "purpose": "attachment", "displayName": "product-sheet.pdf" }
         ]

@@ -1,0 +1,79 @@
+{
+  "_doc": "Story 9.2 ANONYMIZED LOVABLE FIXTURE — CRM business shape (customers + facilities + contacts). Preserves the load-bearing CRM shape the later 9.3 comparison depends on: customer_type, an identifier-by-type placeholder (private carries a MASKED personnummer FIELD per owner decision 2026-06-18 — access-controlled, obviously-fake non-\\d{6}-\\d{4} placeholder; company/brf carry a MASKED orgnr non-\\d{10} placeholder), facility binding, and a primary-contact flag. ZERO real PII: names are synthetic labels, emails are @example.test, personnummer/orgnr are masked placeholders, phone/address are synthetic non-matching values. No anonymized real Lovable CRM oracle exists yet (real-capture SELECTION is owner-gated, Sign-Off 8.1/8.2) — cases are origin:new-expected plus one SYNTHETIC documented-delta and one SYNTHETIC old-lovable-placeholder (clearly marked in the note) so the three-way origin machinery is genuinely exercised; NO real captured Lovable number is fabricated. The masked personnummer/orgnr placeholders here NAME the field the ROT flow needs without leaking a real value.",
+  "category": "crm",
+  "cases": [
+    {
+      "id": "private-customer-with-facility-and-primary-contact",
+      "origin": "new-expected",
+      "note": "A PRIVATE customer carrying an access-controlled personnummer FIELD (owner decision 2026-06-18 — ROT requires it; excluded from list, masked on detail, never in audit) as an OBVIOUSLY-FAKE masked placeholder, bound to one facility and a primary contact. Preserves the customer_type + identifier-by-type + facility-binding + primary-contact shape 9.3 compares.",
+      "customer_type": "private",
+      "customer_display_name": "Sample Private Customer 01",
+      "personnummer": "YYMMDD-XXXX",
+      "facilities": [
+        {
+          "id": "facility-0001",
+          "facility_display_name": "Sample Facility A",
+          "address": "Sample plats A"
+        }
+      ],
+      "contacts": [
+        {
+          "id": "contact-0001",
+          "contact_name": "Sample Person 11",
+          "email": "user-11@example.test",
+          "phone": "07X-XXX XX XX",
+          "is_primary": true
+        }
+      ]
+    },
+    {
+      "id": "company-customer-with-orgnr",
+      "origin": "new-expected",
+      "note": "A COMPANY customer carrying a MASKED orgnr placeholder (non-\\d{10}) instead of a personnummer, one facility, and a non-primary contact. Preserves the by-type identifier divergence (personnummer for private, orgnr for company) the CRM oracle must keep.",
+      "customer_type": "company",
+      "customer_display_name": "Sample Company Customer AB",
+      "org_nr": "XXXXXX-XXXX",
+      "facilities": [
+        {
+          "id": "facility-0002",
+          "facility_display_name": "Sample Facility B",
+          "address": "Sample plats B"
+        }
+      ],
+      "contacts": [
+        {
+          "id": "contact-0002",
+          "contact_name": "Sample Person 22",
+          "email": "user-22@example.test",
+          "phone": "07X-XXX XX XX",
+          "is_primary": false
+        }
+      ]
+    },
+    {
+      "id": "brf-customer-shape",
+      "origin": "documented-delta",
+      "note": "SYNTHETIC documented-delta (NOT a real captured Lovable value): a BRF-like customer. The plausible Lovable divergence is a CLASSIFICATION difference — Lovable modeled a BRF under the generic 'company' customer_type, whereas Phase A carries a distinct 'brf' customer_type. The divergent old value is a CLASSIFICATION CODE ('company'), exercising the R-913 number|classification-code widening.",
+      "customer_type": "brf",
+      "customer_display_name": "Sample BRF Customer",
+      "org_nr": "XXXXXX-XXXX",
+      "oldLovableValue": "company",
+      "facilities": [
+        {
+          "id": "facility-0003",
+          "facility_display_name": "Sample Facility C",
+          "address": "Sample plats C"
+        }
+      ],
+      "contacts": [
+        {
+          "id": "contact-0003",
+          "contact_name": "Sample Person 33",
+          "email": "user-33@example.test",
+          "phone": "07X-XXX XX XX",
+          "is_primary": true
+        }
+      ]
+    }
+  ]
+}

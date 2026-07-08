@@ -1,0 +1,33 @@
+{
+  "_doc": "Story 9.2 ANONYMIZED LOVABLE FIXTURE — acceptance business shape. Preserves the accepted-quote commitment shape 9.3 compares: the accepted price öre (acceptedPriceOre), the channel, an unchanged accepted price (equal to the recalculated total) AND an ADJUSTED accepted price (with an adjustment reason and a non-zero delta). ZERO PII (öre + channel + reason text only; no name/email/personnummer). Every öre integer < 10 digits (orgnr-scan safe). An acceptance-evidence reference is a file-link REFERENCE (see the files fixture), NEVER a raw file blob (R-901/AC1). Cases are origin:new-expected.",
+  "category": "acceptance",
+  "cases": [
+    {
+      "id": "unchanged-accepted-price",
+      "origin": "new-expected",
+      "note": "The customer accepts at the quoted total unchanged — acceptedPriceOre equals recalculatedTotalOre, so the adjustment delta is 0 and no adjustment reason is required. Preserves the unchanged-acceptance shape.",
+      "channel": "email",
+      "acceptedPriceOre": 566250,
+      "recalculatedTotalOre": 566250,
+      "adjustmentReason": null,
+      "adjustmentDeltaOre": 0,
+      "evidenceFileRef": {
+        "fileId": "file-0001",
+        "purpose": "acceptance_evidence"
+      }
+    },
+    {
+      "id": "adjusted-accepted-price",
+      "origin": "new-expected",
+      "note": "The customer accepts at an ADJUSTED (negotiated-down) price — acceptedPriceOre is below the recalculated total, carrying an adjustment reason and a non-zero delta. Preserves the adjusted-acceptance shape (the delta feeds the Epic-7 correction boundary).",
+      "channel": "phone",
+      "acceptedPriceOre": 540000,
+      "recalculatedTotalOre": 566250,
+      "adjustmentReason": "Negotiated discount agreed with customer",
+      "adjustmentDeltaOre": -26250,
+      "evidenceFileRef": {
+        "externalReference": "Signed order confirmation on file"
+      }
+    }
+  ]
+}
