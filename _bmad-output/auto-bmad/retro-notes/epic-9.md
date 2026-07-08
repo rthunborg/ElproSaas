@@ -20,3 +20,6 @@
 - [Phase 5 â€” dev-story] calculations.json#mixed-rows (9.2 fixture) pins MISSING_WORK_ROLE in readinessWarnings but the code is not structurally reachable from its rows â€” harness asserts the live-oracle truth and documents the divergence; fixture-vs-oracle representativeness gap for 9.2's owner (non-sensitive: warning classification).
 - [Phase 5 â€” dev-story] node --test process isolation (one process per file) breaks any cross-file mutable registry â€” coverage manifests must re-drive shared live-drive functions in-process; trap for future golden packs assuming shared in-memory state.
 - [Phase 6 â€” automate] quotes.json#quote-total-rounding-documented-delta: fixture LINES carry quantity:3 while totals.vatOre/_doc describe quantity-1 math â€” the totals block is captured SHAPE, not an engine re-pin of its own lines (driving the lines yields 50000, not 16666). Frozen fixture, not a defect, but a trap for tests assuming line->total derivation.
+
+## Story 9-4-pilot-fallback-cutover-and-sign-off-register
+- [Phase 4 â€” ATDD] testarch-atdd's step-04 assumes a Playwright/E2E stack with an API+E2E subagent split â€” N/A for docs-validator stories; the right red-phase deliverable is a single node --test scaffold mirroring the 9.1 validator (relevant for 9-5, also docs/validator-shaped).
