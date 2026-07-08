@@ -54,7 +54,7 @@
 # epic-group order, on purpose) so it is picked next. All other entries remain grouped by epic.
 
 generated: 2026-06-12
-last_updated: 2026-07-08  # Story 9-5 dev-story done (review)
+last_updated: 2026-07-08  # Epic 9 retrospective done
 project: ElproSaas
 project_key: NOKEY
 tracking_system: file-system
@@ -134,4 +134,4 @@ development_status:
   9-3-golden-master-comparison-harness-for-core-workflow: review
   9-4-pilot-fallback-cutover-and-sign-off-register: review
   9-5-phase-a-acceptance-gate-report: review
-  epic-9-retrospective: optional
+  epic-9-retrospective: done

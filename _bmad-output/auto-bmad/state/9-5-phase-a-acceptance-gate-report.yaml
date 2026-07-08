@@ -4,12 +4,12 @@ story_key: 9-5-phase-a-acceptance-gate-report
 epic_num: 9
 story_num: 5
 branch: epic/9-migration-coexistence-golden-masters-and-pilot-readiness
-status: in-progress
-updated_at: "2026-07-08T11:23:01Z"
+status: done
+updated_at: "2026-07-08T11:25:25Z"
 started_at: "2026-07-08T10:46:29Z"
-completed_at: null
-active_seconds: 1564
-timing_anchor: 1783509161
+completed_at: "2026-07-08T11:25:25Z"
+active_seconds: 2328
+timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: true
 needs_project_context_bootstrap: false
