@@ -1,5 +1,5 @@
 # generated: 2026-06-12
-# last_updated: 2026-07-08  # Story 9-3 dev-story done (review)
+# last_updated: 2026-07-08  # Story 9-5 context created (ready-for-dev)
 # project: ElproSaas
 # project_key: NOKEY
 # tracking_system: file-system
@@ -133,5 +133,5 @@ development_status:
   9-2-anonymized-lovable-fixture-capture: review
   9-3-golden-master-comparison-harness-for-core-workflow: review
   9-4-pilot-fallback-cutover-and-sign-off-register: review
-  9-5-phase-a-acceptance-gate-report: backlog
+  9-5-phase-a-acceptance-gate-report: ready-for-dev
   epic-9-retrospective: optional
