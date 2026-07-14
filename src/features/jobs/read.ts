@@ -230,34 +230,40 @@ export async function readJobDetail(
     ? (jobRaw.customers[0] as { display_name?: unknown } | undefined)
     : (jobRaw.customers as { display_name?: unknown } | null);
 
-  // Guard the immutable source refs BEFORE stringifying. A `jobs` row ALWAYS carries a non-null
-  // quote_acceptance_id + quote_version_id (both NOT NULL, set atomically by the 7.2 accept RPC).
-  // A null/undefined here is a broken source reference (a data-integrity anomaly) — surface it
-  // LOUDLY (the page-level generic failure) rather than coercing to the literal string
-  // "null"/"undefined", which would match zero rows on the dependent reads and fabricate a
-  // "0 kr" accepted price + null names on a money-critical surface (contradicting R-708's
-  // "never re-derive, never mask").
-  const acceptanceIdRaw = str(jobRaw.quote_acceptance_id);
-  const versionIdRaw = str(jobRaw.quote_version_id);
-  if (acceptanceIdRaw === null || versionIdRaw === null) {
+  // Guard the immutable source refs BEFORE stringifying. Since the 2026-07-14 owner decision a
+  // STANDALONE job (created via `createJob`) legitimately carries BOTH refs NULL — that is the
+  // standalone branch (no acceptance/version reads; no commitment/money block). An acceptance-
+  // created job (the 7.2 RPC) always sets BOTH atomically, so EXACTLY ONE null is still a broken
+  // source reference (a data-integrity anomaly) — surface it LOUDLY (the page-level generic
+  // failure) rather than coercing to the literal string "null"/"undefined", which would match
+  // zero rows on the dependent reads and fabricate a "0 kr" accepted price + null names on a
+  // money-critical surface (contradicting R-708's "never re-derive, never mask").
+  const acceptanceId = str(jobRaw.quote_acceptance_id);
+  const versionId = str(jobRaw.quote_version_id);
+  if ((acceptanceId === null) !== (versionId === null)) {
     throw new Error("readJobDetail: job has a broken immutable source reference");
   }
-  const acceptanceId = acceptanceIdRaw;
-  const versionId = versionIdRaw;
+  const isStandalone = acceptanceId === null;
 
-  // The immutable acceptance row (money/evidence/channel) + the frozen version snapshot (names),
-  // the linked job files, and the job events — all own-tenant RLS, in parallel.
+  // The immutable acceptance row (money/evidence/channel) + the frozen version snapshot (names)
+  // — SKIPPED for a standalone job (no source to display) — plus the linked job files and the
+  // job events — all own-tenant RLS, in parallel.
+  const emptyRead = Promise.resolve({ data: [] as unknown[], error: null });
   const [acceptanceRes, versionRes, filesRes, eventsRes] = await Promise.all([
-    client
-      .from("quote_acceptances")
-      .select(ACCEPTANCE_COLUMNS)
-      .eq("id", acceptanceId)
-      .limit(1),
-    client
-      .from("quote_versions")
-      .select(VERSION_COLUMNS)
-      .eq("id", versionId)
-      .limit(1),
+    isStandalone || acceptanceId === null
+      ? emptyRead
+      : client
+          .from("quote_acceptances")
+          .select(ACCEPTANCE_COLUMNS)
+          .eq("id", acceptanceId)
+          .limit(1),
+    isStandalone || versionId === null
+      ? emptyRead
+      : client
+          .from("quote_versions")
+          .select(VERSION_COLUMNS)
+          .eq("id", versionId)
+          .limit(1),
     client
       .from("file_links")
       .select(FILE_LINK_COLUMNS)
@@ -318,8 +324,14 @@ export async function readJobDetail(
     commitmentCustomerName: str(version.customer_display_name),
     commitmentFacilityName: str(version.facility_name),
     commitmentContactName: str(version.contact_name),
-    acceptedPriceOre: oreNumber(acceptance.accepted_price_ore) ?? 0,
-    sourceSentTotalOre: oreNumber(acceptance.source_sent_total_ore) ?? 0,
+    // NULL for a standalone job (no acceptance — never fabricate a 0 kr commitment); the
+    // acceptance-created branch keeps the epic-7 `?? 0` coercion for the read row.
+    acceptedPriceOre: isStandalone
+      ? null
+      : oreNumber(acceptance.accepted_price_ore) ?? 0,
+    sourceSentTotalOre: isStandalone
+      ? null
+      : oreNumber(acceptance.source_sent_total_ore) ?? 0,
     channel: str(acceptance.channel),
     acceptedAt: str(acceptance.accepted_at),
     adjustmentReason: str(acceptance.adjustment_reason),

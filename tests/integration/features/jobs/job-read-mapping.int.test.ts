@@ -270,11 +270,12 @@ describe("7.3 read-mapping: readJobDetail projection (pure, injected client)", (
     expect(detail!.sourceSentTotalOre).toBe(0);
   });
 
-  it("[P1] a BROKEN immutable source ref (null quote_acceptance_id/quote_version_id) throws, never a fabricated 0 kr (epic-7 review fix)", async () => {
-    // A jobs row whose immutable source refs are null is a data-integrity anomaly. It must surface
-    // LOUDLY (the page-level generic failure) rather than coercing the id to the literal string
-    // "null" — which would match zero rows on the dependent reads and fabricate a "0 kr" accepted
-    // price + null names on a money-critical surface (R-708 "never re-derive, never mask").
+  it("[P1] a BROKEN immutable source ref (EXACTLY ONE of the two null) throws, never a fabricated 0 kr (epic-7 review fix)", async () => {
+    // An acceptance-created job sets BOTH refs atomically (the 7.2 RPC), so exactly one null is a
+    // data-integrity anomaly. It must surface LOUDLY (the page-level generic failure) rather than
+    // coercing the id to the literal string "null" — which would match zero rows on the dependent
+    // reads and fabricate a "0 kr" accepted price + null names on a money-critical surface (R-708
+    // "never re-derive, never mask"). BOTH null is the legitimate STANDALONE branch (below).
     const brokenAcceptance = { ...jobRow, quote_acceptance_id: null };
     await expect(
       readJobDetail(detailClient({ jobs: { data: [brokenAcceptance], error: null } }), "job-1"),
@@ -284,6 +285,40 @@ describe("7.3 read-mapping: readJobDetail projection (pure, injected client)", (
     await expect(
       readJobDetail(detailClient({ jobs: { data: [brokenVersion], error: null } }), "job-1"),
     ).rejects.toThrow();
+  });
+
+  it("[P1] a STANDALONE job (BOTH source refs null — owner decision 2026-07-14) returns a detail with NULL money and SKIPS the acceptance/version reads", async () => {
+    const standalone = {
+      ...jobRow,
+      quote_acceptance_id: null,
+      quote_version_id: null,
+      title: "Fristående jobb",
+    };
+    // POISON the acceptance/version tables: if the standalone branch issued either read, the
+    // canned error would throw — proving both reads are SKIPPED, not just tolerated.
+    const detail = await readJobDetail(
+      detailClient({
+        jobs: { data: [standalone], error: null },
+        quote_acceptances: { data: null, error: { code: "57014" } },
+        quote_versions: { data: null, error: { code: "57014" } },
+      }),
+      "job-1",
+    );
+    expect(detail).not.toBeNull();
+    expect(detail!.title).toBe("Fristående jobb");
+    // The source refs stay null (standalone) and NO commitment/money value is fabricated —
+    // null, NEVER a 0 that would render as a money-looking "0 kr" (R-708 never-mask).
+    expect(detail!.quoteAcceptanceId).toBeNull();
+    expect(detail!.quoteVersionId).toBeNull();
+    expect(detail!.quoteId).toBeNull();
+    expect(detail!.quoteNumber).toBeNull();
+    expect(detail!.acceptedPriceOre).toBeNull();
+    expect(detail!.sourceSentTotalOre).toBeNull();
+    expect(detail!.commitmentCustomerName).toBeNull();
+    // The live-CRM customer link + files + events still surface as usual.
+    expect(detail!.currentCustomerName).toBe("Nuvarande Kund");
+    expect(detail!.files).toHaveLength(1);
+    expect(detail!.events.map((e) => e.eventType)).toEqual(["created", "done"]);
   });
 
   it("[P1] a query error on any dependent read throws (surfaced as the page-level generic failure)", async () => {

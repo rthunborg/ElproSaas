@@ -20,6 +20,10 @@
  */
 import { useMemo, useState } from "react";
 import { useActionState } from "react";
+import {
+  FileIndexUpload,
+  type UploadOwnerOptions,
+} from "@/components/files/FileIndexUpload";
 import { previewEntityFileAction } from "@/features/files/actions";
 import {
   filterFileIndexRows,
@@ -51,9 +55,15 @@ function formatDate(iso: string | null): string {
 export function FileIndexList({
   rows,
   loadError,
+  uploadOwnerOptions,
+  uploadOptionsLoadError = false,
 }: {
   readonly rows: readonly FileIndexRow[];
   readonly loadError: string | null;
+  /** The owner option lists for the "Ladda upp fil" affordance (owner decision 2026-07-14). */
+  readonly uploadOwnerOptions: UploadOwnerOptions;
+  /** True when any owner-options read FAILED (threaded to the upload form's neutral message). */
+  readonly uploadOptionsLoadError?: boolean;
 }) {
   const [search, setSearch] = useState("");
   const [ownerCategory, setOwnerCategory] = useState("");
@@ -70,9 +80,16 @@ export function FileIndexList({
       aria-labelledby="file-index-heading"
       className="flex flex-col gap-6 p-6"
     >
-      <h1 id="file-index-heading" className="text-2xl font-semibold text-zinc-900">
-        Filer
-      </h1>
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <h1 id="file-index-heading" className="text-2xl font-semibold text-zinc-900">
+          Filer
+        </h1>
+        {/* The list-page upload entry point (reuses uploadFileAction — no new upload path). */}
+        <FileIndexUpload
+          ownerOptions={uploadOwnerOptions}
+          optionsLoadError={uploadOptionsLoadError}
+        />
+      </div>
       <p className="text-sm text-zinc-600">
         Här listas dina filer kopplade till kunder, kalkyler, offerter och jobb.
       </p>
@@ -121,8 +138,9 @@ export function FileIndexList({
 
           {filtered.length === 0 ? (
             <p data-testid="file-index-empty" className="text-sm text-zinc-600">
-              Inga filer matchar. Filer visas när de laddats upp och kopplats till en
-              kund, kalkyl, offert eller ett jobb.
+              Inga filer matchar. Ladda upp en fil med “Ladda upp fil” och koppla den
+              till en kund, kalkyl eller ett jobb — filer kopplade till offerter (t.ex.
+              offert-PDF:er och acceptansunderlag) visas här när de skapas.
             </p>
           ) : (
             <ul className="flex flex-col gap-2">
