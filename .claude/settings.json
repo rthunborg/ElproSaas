@@ -1,4 +1,7 @@
 {
+  "env": {
+    "SUPABASE_PROFILE": "supabase/cli-profile.yaml"
+  },
   "permissions": {
     "deny": [
       "Read(./.env)",
