@@ -13,6 +13,30 @@ target. It exists so the owner can demo the product and pilot users can try it.
 | App env vars (Vercel) | `NEXT_PUBLIC_SUPABASE_URL=https://wmqmzznmwpheswjjozhq.supabase.co` + `NEXT_PUBLIC_SUPABASE_ANON_KEY` (from the project's API settings). No service-role key anywhere in the app — anon + RLS only, enforced by the CI containment gates. |
 | Accounts | Two Supabase CLI/dashboard identities exist: the **Enhancior** company account (owns this project — the CLI on the dev machine is logged into it) and a private `rthunborg` account (owns unrelated projects; the Claude Code Supabase MCP connector is currently bound to it — prefer the CLI for this project). |
 
+## Supabase CLI profile (per-project isolation)
+
+Added 2026-07-14 after another project on the dev machine overwrote the global
+`~/.supabase/profile` selector and broke every CLI call. This repo pins its own
+CLI profile so cross-project clobbering can't recur:
+
+- **Profile file:** [`supabase/cli-profile.yaml`](../../supabase/cli-profile.yaml)
+  (committed; YAML — the CLI's TS implementation parses custom profiles with a
+  YAML parser and silently falls back to the default profile on a parse
+  failure, so don't convert it). It points at the normal production platform;
+  only `name: elprosaas` is project-specific. No secrets.
+- **Selection:** `SUPABASE_PROFILE=supabase/cli-profile.yaml` is set in the
+  committed `.claude/settings.json` `env`, so agent sessions always use it
+  (env/flag beat the global `~/.supabase/profile` file). The relative path
+  resolves against the process cwd — run `supabase` from the repo root, or use
+  `--profile` with an absolute path. Humans: set the env var in your shell or
+  pass `--profile` explicitly.
+- **Token slot:** the CLI stores its access token in the OS credential store
+  under the ACTIVE profile's name, so this profile needs a one-time
+  `supabase login --profile "<repo>/supabase/cli-profile.yaml"` (browser flow,
+  Enhancior account). Other projects should get their own profile file + name
+  + login the same way; then no project's `supabase login` can evict another's
+  token, and nothing needs to write the shared global selector file.
+
 ## Schema & data lifecycle
 
 - **Migrations flow one way: repo → demo.** The committed `supabase/migrations/`

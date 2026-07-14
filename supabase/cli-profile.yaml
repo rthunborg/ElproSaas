@@ -1,0 +1,24 @@
+# Supabase CLI profile for ElproSaas (see docs/process/demo-environment.md).
+#
+# Why: the CLI keeps ONE global default profile file at ~/.supabase/profile,
+# and the login token is stored in the OS credential store under the ACTIVE
+# profile's name. With every project on the default profile, any project's
+# `supabase login` (or profile switch) clobbers the others. Selecting this
+# file gives ElproSaas its own profile name — and therefore its own token
+# slot — so other projects on this machine can never break this one.
+#
+# Format: YAML (the CLI's TS implementation parses custom profiles with a YAML
+# parser and SILENTLY falls back to the default profile if parsing fails or
+# `api_url` is missing — do not convert this file to TOML/JSON). The endpoints
+# are the production Supabase platform, copied from the CLI's built-in
+# "supabase" profile; only `name` is project-specific. No secrets in this file.
+#
+# Use (agent sessions get this automatically via .claude/settings.json):
+#   SUPABASE_PROFILE=<repo>/supabase/cli-profile.yaml   # env, or:
+#   supabase --profile "<repo>/supabase/cli-profile.yaml" <command>
+# One-time login for this profile (browser flow, run by a human):
+#   supabase login --profile "<repo>/supabase/cli-profile.yaml"
+name: elprosaas
+api_url: https://api.supabase.com
+project_host: supabase.co
+pooler_host: supabase.com
