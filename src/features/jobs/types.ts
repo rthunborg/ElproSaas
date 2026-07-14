@@ -87,9 +87,11 @@ export interface JobDetail {
   readonly status: JobStatus;
   readonly plannedStartDate: string | null;
   readonly plannedEndDate: string | null;
-  // Immutable source references (display-only).
-  readonly quoteAcceptanceId: string;
-  readonly quoteVersionId: string;
+  // Immutable source references (display-only). BOTH null for a STANDALONE job (owner decision
+  // 2026-07-14 — created via `createJob`, never connected to a quote later); both set for an
+  // acceptance-created job (the 7.2 transaction).
+  readonly quoteAcceptanceId: string | null;
+  readonly quoteVersionId: string | null;
   readonly quoteId: string | null;
   readonly quoteNumber: number | null;
   // The CURRENT (live-CRM) customer id + display name (the jobs.customer_id join — tracks a rename).
@@ -99,9 +101,10 @@ export interface JobDetail {
   readonly commitmentCustomerName: string | null;
   readonly commitmentFacilityName: string | null;
   readonly commitmentContactName: string | null;
-  // Accepted commitment money — DISPLAYED VERBATIM from the immutable acceptance row (integer öre).
-  readonly acceptedPriceOre: number;
-  readonly sourceSentTotalOre: number;
+  // Accepted commitment money — DISPLAYED VERBATIM from the immutable acceptance row (integer
+  // öre). NULL for a standalone job (no acceptance exists — never fabricate a 0 kr commitment).
+  readonly acceptedPriceOre: number | null;
+  readonly sourceSentTotalOre: number | null;
   readonly channel: string | null;
   readonly acceptedAt: string | null;
   readonly adjustmentReason: string | null;

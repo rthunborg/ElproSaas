@@ -47,9 +47,14 @@ export function JobDetailView({
   /** The Story 8.2 entity file panel (job_evidence upload + list), rendered when provided. */
   readonly filesPanel?: ReactNode;
 }) {
-  const versionHref = detail.quoteId
-    ? `/quotes/${detail.quoteId}/versions/${detail.quoteVersionId}`
-    : null;
+  const versionHref =
+    detail.quoteId && detail.quoteVersionId
+      ? `/quotes/${detail.quoteId}/versions/${detail.quoteVersionId}`
+      : null;
+  // STANDALONE job (owner decision 2026-07-14): both source refs NULL — no acceptance/commitment
+  // exists, so the source-traceability block is replaced by a plain origin note (never a
+  // fabricated 0 kr commitment).
+  const isStandalone = detail.quoteAcceptanceId === null;
 
   return (
     <section
@@ -88,6 +93,23 @@ export function JobDetailView({
       </header>
 
       {/* ── SOURCE TRACEABILITY (AC1, read-only immutable refs) ────────────────── */}
+      {/* A STANDALONE job has NO acceptance/commitment — render an origin note instead of the
+          commitment block (money stays absent; nothing is fabricated). */}
+      {isStandalone ? (
+        <div
+          data-testid="job-standalone-origin"
+          role="note"
+          className="rounded-lg border border-zinc-200 bg-white p-4 text-sm text-zinc-700"
+        >
+          <h2 className="mb-1 text-lg font-semibold text-zinc-900">
+            Ursprung och åtagande
+          </h2>
+          <p>
+            Fristående jobb — skapat direkt utan källoffert. Det finns ingen
+            accepterad offert eller något åtagande kopplat till jobbet.
+          </p>
+        </div>
+      ) : (
       <div
         data-testid="job-source-traceability"
         className="flex flex-col gap-4 rounded-lg border border-zinc-200 bg-white p-4"
@@ -133,17 +155,23 @@ export function JobDetailView({
             <dd className="text-zinc-900">{detail.commitmentContactName ?? "—"}</dd>
           </div>
 
-          {/* Accepted price + source sent total — DISPLAYED from the immutable acceptance row. */}
+          {/* Accepted price + source sent total — DISPLAYED from the immutable acceptance row.
+              A null value renders an em dash, NEVER a fabricated "0 kr" (R-708: display the
+              frozen ref verbatim, never mask an absent value with a money-looking zero). */}
           <div className="flex flex-col gap-1">
             <dt className="text-zinc-600">Accepterat pris:</dt>
             <dd data-testid="job-accepted-price" className="font-semibold text-zinc-900">
-              {oreToKronorString(detail.acceptedPriceOre)} kr
+              {detail.acceptedPriceOre !== null
+                ? `${oreToKronorString(detail.acceptedPriceOre)} kr`
+                : "—"}
             </dd>
           </div>
           <div className="flex flex-col gap-1">
             <dt className="text-zinc-600">Ursprunglig offertsumma:</dt>
             <dd data-testid="job-source-sent-total" className="text-zinc-900">
-              {oreToKronorString(detail.sourceSentTotalOre)} kr
+              {detail.sourceSentTotalOre !== null
+                ? `${oreToKronorString(detail.sourceSentTotalOre)} kr`
+                : "—"}
             </dd>
           </div>
 
@@ -202,6 +230,7 @@ export function JobDetailView({
           </p>
         </div>
       </div>
+      )}
 
       {/* ── LINKED FILES (owner_type='job') ────────────────────────────────────── */}
       <section

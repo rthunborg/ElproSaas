@@ -2,9 +2,10 @@
  * Job command write-surface helpers (Story 7.3, Task 4; architecture §5).
  *
  * The envelope's `CommandDbClient` declares only the read/ownership/audit surface
- * (`.from().select().eq().limit()` + `.rpc()`). The `updateJob` execute body ALSO needs the WRITE
- * surface (`.update()` returning the affected rows) + a status-change lifecycle INSERT into
- * `job_events`, all on the SAME request-bound, RLS-protected client (`ctx.db`). This module narrows
+ * (`.from().select().eq().limit()` + `.rpc()`). The `updateJob` / `createJob` execute bodies ALSO
+ * need the WRITE surface (`.update()`/`.insert()` returning the affected rows) + a lifecycle
+ * INSERT into `job_events`, all on the SAME request-bound, RLS-protected client (`ctx.db`). This
+ * module narrows
  * the real `@supabase/supabase-js` client to a small typed write view (`asJobWriteClient`) so the
  * command body never casts inline, and maps Postgres/PostgREST error codes to the stable command
  * codes (mirroring `crm/crm-db.ts`).
@@ -41,9 +42,14 @@ export type JobWriteClient = {
         select(columns: string): Promise<JobWriteResult>;
       };
     };
-    insert(values: Record<string, unknown>): Promise<{
+    // The real Supabase insert builder is BOTH awaitable (the plain job_events append) AND
+    // chainable to `.select()` (the createJob insert that needs the new row id back) —
+    // declare the intersection so both uses type-check against the one narrowed surface.
+    insert(values: Record<string, unknown>): PromiseLike<{
       error: { code?: string; message?: string } | null;
-    }>;
+    }> & {
+      select(columns: string): Promise<JobWriteResult>;
+    };
   };
 };
 

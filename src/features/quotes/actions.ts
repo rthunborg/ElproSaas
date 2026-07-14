@@ -24,6 +24,7 @@ import { COMMAND_MESSAGES } from "@/server/commands/command-errors";
 import {
   acceptQuoteAndCreateJob,
   createNewQuoteVersion,
+  createQuoteVersionFromCalculation,
   generateQuotePdf,
   markQuoteVersionSent,
   updateDraftQuoteVersion,
@@ -52,6 +53,10 @@ import {
   NEW_VERSION_ACTION_INITIAL,
   type NewVersionActionState,
 } from "./new-version-action-state";
+import {
+  CREATE_QUOTE_ACTION_INITIAL,
+  type CreateQuoteActionState,
+} from "./create-quote-action-state";
 
 /** Read a string form field (empty → undefined so the field is left unchanged). */
 function optionalText(form: FormData, name: string): string | undefined {
@@ -376,6 +381,57 @@ export async function captureQuoteAcceptanceAction(
     status: "error",
     code: result.code,
     formError: result.message || COMMAND_MESSAGES[result.code],
+  };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// List-page quote creation (owner decision 2026-07-14) — the "Skapa ny offert" server action.
+// Wires the `/quotes` list's create affordance to the EXISTING 6.1
+// `createQuoteVersionFromCalculation` command (reused verbatim — no new command, no new
+// auth/error/audit mechanism). Only the picked `calculation_id` is read from the form — the full
+// frozen snapshot is RE-CAPTURED server-side from the live rows (never trusted from the client);
+// a crafted foreign calc id is denied TENANT_ACCESS_DENIED BEFORE execute (envelope ownership).
+// On success revalidate `/quotes` + the new detail route; the returned `quoteId` is the
+// navigation target (`/quotes/{quoteId}`).
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * The list-page create-quote action (React `useActionState` signature). Wires the "Skapa ny
+ * offert" calc picker to `createQuoteVersionFromCalculation`. Only the calculation id is read;
+ * the server command is the authority.
+ */
+export async function createQuoteVersionFromCalculationAction(
+  _prev: CreateQuoteActionState,
+  form: FormData,
+): Promise<CreateQuoteActionState> {
+  const calculationId = form.get("calculation_id");
+  const values: Record<string, string> = {};
+  if (typeof calculationId === "string") values.calculation_id = calculationId;
+  const input: Record<string, unknown> = { calculation_id: calculationId };
+
+  const client = (await createSupabaseServerClient()) as unknown as CommandDbClient;
+  const result = await runCommand(createQuoteVersionFromCalculation, {
+    client,
+    input,
+  });
+
+  if (result.ok) {
+    revalidatePath("/quotes");
+    revalidatePath(`/quotes/${result.data.quoteId}`);
+    return {
+      ...CREATE_QUOTE_ACTION_INITIAL,
+      status: "success",
+      targetId: result.data.targetId,
+      quoteId: result.data.quoteId,
+    };
+  }
+
+  return {
+    ...CREATE_QUOTE_ACTION_INITIAL,
+    status: "error",
+    code: result.code,
+    formError: result.message || COMMAND_MESSAGES[result.code],
+    values,
   };
 }
 

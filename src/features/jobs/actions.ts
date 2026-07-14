@@ -15,14 +15,15 @@
  *
  * The typed `Result` is mapped to a `JobActionState`: `ok` revalidates the detail + list paths;
  * `VALIDATION_FAILED`/`TENANT_ACCESS_DENIED` are generic messages; a transient `SERVER_ERROR` is a
- * RETRYABLE failure. NO create/delete/archive surface (a job is only created by the 7.2 acceptance
- * transaction; delete is not granted). NO new auth/error/audit mechanism, NO direct table write.
+ * RETRYABLE failure. Since 2026-07-14 (owner decision) `createJobAction` adds the STANDALONE
+ * create path (the `createJob` command — NULL source refs, no connect-later mechanism); delete /
+ * archive still have NO surface. NO new auth/error/audit mechanism, NO direct table write.
  */
 import { revalidatePath } from "next/cache";
 import { createSupabaseServerClient } from "@/server/db/supabase-server-client";
 import { runCommand, type CommandDbClient } from "@/server/commands/envelope";
 import { COMMAND_MESSAGES } from "@/server/commands/command-errors";
-import { updateJob } from "@/server/commands/jobs";
+import { createJob, updateJob } from "@/server/commands/jobs";
 import { createSignedFileAccess } from "@/server/commands/files";
 import { JOB_ACTION_INITIAL, type JobActionState } from "./action-state";
 import {
@@ -83,6 +84,63 @@ export async function updateJobAction(
     if (typeof jobId === "string" && jobId.length > 0) {
       revalidatePath(`/jobs/${jobId}`);
     }
+    return {
+      ...JOB_ACTION_INITIAL,
+      status: "success",
+      targetId: result.data.targetId,
+    };
+  }
+
+  return {
+    ...JOB_ACTION_INITIAL,
+    status: "error",
+    code: result.code,
+    formError: result.message || COMMAND_MESSAGES[result.code],
+    values,
+  };
+}
+
+/**
+ * The standalone-create action (owner decision 2026-07-14; React `useActionState` signature) —
+ * the ONLY write path the `/jobs` list's "Skapa nytt jobb" form uses. Wires the form to the
+ * `createJob` envelope command: ONLY customer_id + the optional title/planned dates are read from
+ * the form — source refs / status / tenant_id are NEVER accepted (the command validator hard-rejects
+ * any unknown key; the resolved tenant is the only tenant authority). On success revalidates
+ * `/jobs` and returns the new job id so the list island can `router.push('/jobs/{id}')`.
+ */
+export async function createJobAction(
+  _prev: JobActionState,
+  form: FormData,
+): Promise<JobActionState> {
+  const values: Record<string, string> = {};
+  const input: Record<string, unknown> = { customer_id: form.get("customer_id") };
+  const customerIdRaw = form.get("customer_id");
+  if (typeof customerIdRaw === "string") values.customer_id = customerIdRaw;
+  // Only carry a field the form actually submitted with a value (absent = born NULL).
+  const title = clearableText(form, "title");
+  if (typeof title === "string") {
+    input.title = title;
+    values.title = title;
+  }
+  const plannedStart = clearableText(form, "planned_start_date");
+  if (typeof plannedStart === "string") {
+    input.planned_start_date = plannedStart;
+    values.planned_start_date = plannedStart;
+  }
+  const plannedEnd = clearableText(form, "planned_end_date");
+  if (typeof plannedEnd === "string") {
+    input.planned_end_date = plannedEnd;
+    values.planned_end_date = plannedEnd;
+  }
+
+  const client = (await createSupabaseServerClient()) as unknown as CommandDbClient;
+  const result = await runCommand(createJob, { client, input });
+
+  if (result.ok) {
+    // Revalidate the list AND the new detail route (the list+detail discipline the quote
+    // actions follow) — the island lands the admin on `/jobs/{id}` right after.
+    revalidatePath("/jobs");
+    revalidatePath(`/jobs/${result.data.targetId}`);
     return {
       ...JOB_ACTION_INITIAL,
       status: "success",

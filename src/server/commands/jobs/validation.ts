@@ -77,6 +77,90 @@ function isPresent(v: unknown): boolean {
   return v !== undefined && v !== null;
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Standalone job creation (owner decision 2026-07-14) — the `createJob` input.
+//
+// A standalone job needs ONLY an own-tenant customer; title + planned dates are
+// optional niceties. The IMMUTABLE source refs (`quote_acceptance_id` /
+// `quote_version_id`) are NOT part of the input shape — a standalone job is born
+// with NULL refs and the 7.4 `jobs_source_ref_lock` trigger keeps a set tuple
+// immutable (there is NO connect-later mechanism). `status` is NOT accepted
+// either: a created job is ALWAYS 'created' (server-derived, never client-set).
+// Same closed-key hard-reject discipline as `validateUpdateJob`.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** The CLOSED allow-list of keys `createJob` accepts (customer + the optional display fields).
+ * Any key outside this set (a source ref / status / tenant_id / money field) → VALIDATION_FAILED. */
+const CREATE_ALLOWED_KEYS = new Set([
+  "customer_id",
+  "title",
+  "planned_start_date",
+  "planned_end_date",
+]);
+
+/** Validated `createJob` input — the required customer + the optional display fields. */
+export interface CreateJobInput {
+  readonly customer_id: string;
+  readonly title?: string | null;
+  readonly planned_start_date?: string | null;
+  readonly planned_end_date?: string | null;
+}
+
+export function validateCreateJob(raw: unknown): ValidationResult<CreateJobInput> {
+  if (!isRecord(raw)) return fail;
+  if (!isUuidLike(raw.customer_id)) return fail;
+  // Hard-reject any key outside the allow-list — a source ref / status / tenant_id cannot be
+  // smuggled onto a standalone create (same posture as validateUpdateJob's unknown-field reject).
+  for (const key of Object.keys(raw)) {
+    if (!CREATE_ALLOWED_KEYS.has(key)) return fail;
+  }
+
+  // title: OPTIONAL. When present it must be a bounded string; empty/whitespace → null (absent).
+  let title: string | null | undefined;
+  if ("title" in raw && isPresent(raw.title)) {
+    if (typeof raw.title !== "string" || raw.title.length > MAX_TITLE) return fail;
+    const trimmed = raw.title.trim();
+    title = trimmed.length > 0 ? trimmed : null;
+  } else if ("title" in raw && raw.title === null) {
+    title = null;
+  }
+
+  // planned dates: OPTIONAL. When present, an ISO calendar date (null = absent).
+  let plannedStart: string | null | undefined;
+  if ("planned_start_date" in raw && isPresent(raw.planned_start_date)) {
+    if (!isIsoDate(raw.planned_start_date)) return fail;
+    plannedStart = raw.planned_start_date as string;
+  } else if ("planned_start_date" in raw && raw.planned_start_date === null) {
+    plannedStart = null;
+  }
+
+  let plannedEnd: string | null | undefined;
+  if ("planned_end_date" in raw && isPresent(raw.planned_end_date)) {
+    if (!isIsoDate(raw.planned_end_date)) return fail;
+    plannedEnd = raw.planned_end_date as string;
+  } else if ("planned_end_date" in raw && raw.planned_end_date === null) {
+    plannedEnd = null;
+  }
+
+  // Cross-field ordering: when BOTH planned dates are present, the end must not precede the
+  // start (the SAME rule as validateUpdateJob — lexicographic compare is calendar-correct).
+  if (
+    typeof plannedStart === "string" &&
+    typeof plannedEnd === "string" &&
+    plannedEnd < plannedStart
+  ) {
+    return fail;
+  }
+
+  const value: CreateJobInput = {
+    customer_id: raw.customer_id as string,
+    ...(title !== undefined ? { title } : {}),
+    ...(plannedStart !== undefined ? { planned_start_date: plannedStart } : {}),
+    ...(plannedEnd !== undefined ? { planned_end_date: plannedEnd } : {}),
+  };
+  return { ok: true, data: value };
+}
+
 export function validateUpdateJob(raw: unknown): ValidationResult<UpdateJobInput> {
   if (!isRecord(raw)) return fail;
   if (!isUuidLike(raw.id)) return fail;
