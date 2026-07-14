@@ -41,6 +41,7 @@ target. It exists so the owner can demo the product and pilot users can try it.
 | --- | --- | --- |
 | `rasmus.thunborg@enhancior.se` | Elpro Demo AB | `tenant_admin` |
 | `johan@eraelteknik.se` | Elpro Demo AB | `tenant_admin` |
+| `alexander.lewandowski@gmail.com` | Elpro Demo AB | `tenant_admin` |
 
 Passwords are held by the owner (never committed anywhere); reset via the
 Supabase dashboard (Authentication → Users) if lost. To add another user:
@@ -48,7 +49,11 @@ insert into `auth.users` + `auth.identities` (GoTrue email-provider shape,
 `extensions.crypt(pw, extensions.gen_salt('bf'))`, confirmed email, matching
 `auth.identities` row with `provider_id = user id::text`) plus a
 `tenant_memberships` row (`role='tenant_admin'`, `status='active'`) — or use
-the dashboard's Add User button and insert only the membership row.
+the dashboard's Add User button and insert only the membership row. When
+inserting `auth.users` by SQL, set `confirmation_token`, `recovery_token`,
+`email_change`, and `email_change_token_new` to `''` (not NULL) — GoTrue fails
+sign-in with a 500 "Database error querying schema" otherwise. SQL can be run
+without the DB password via `supabase db query --linked` (Management API).
 
 ## Guardrail posture (what agents may/may not do here)
 
