@@ -201,6 +201,29 @@ note AR16/NFR16, not PRD A16 which is job terminology). In scope for the pilot;
 implementation (Story 3.1) keeps the private, tenant-owned, access-controlled
 handling from the security guardrails. Full GDPR/retention deferred to full release.
 
+## Phase B additions (2026-07-18 party session)
+
+Phase B was shaped and team-ratified in
+`phase-b-party-session-2026-07-18.md` (its §9 is the authoritative delta;
+condensed here). The carried möte items above are **unchanged but now also gate
+Phase B design**: `7.1`/`7.3` gate the B1b Jobs epics (options A/B/C prepared in
+the session doc §9.2); tax blocks `A`–`C` additionally bound billing-basis (E26)
+correctness sign-off; `8.1`/`8.2` gain a per-module classification round 2 (N-1).
+One working session can clear both sets.
+
+| ID | Question | Gates |
+| --- | --- | --- |
+| N-1 | Migration classification **round 2**: live/archive/excluded per B module (rentals, assets, service, DoU, self-inspections, tenders, HR, time data) | Each B2/B3 module's migration story |
+| N-2 | Business model / per-company pricing / provisioning flow (Roadmap 7) | Self-serve signup scope in E12 (admin provisioning proceeds regardless) |
+| N-3 | Mobile posture for field workers (team rec: responsive web first; native = Phase C option) | B1b field UX (E14-E16) |
+| N-4 | Confirm role set as RBAC seed: Admin, Projektledare, Montör, Säljare, Ekonomi + per-job Arbetsledare — incl. per-role money/sensitive-field visibility | E11 permission-matrix seed |
+| N-5 | Fortnox prerequisites: account/licenses, API access, first flows, and the content definition of a faktureringsunderlag | E26 shape; E33/E34 |
+| N-6 | Email sending activation: domain, from-address, which flows email first | E13 |
+| N-7 | Accept the tenders/FKU **thin** manual core as Phase B parity (full value = Phase C) | E29 (visibility item) |
+| N-8 | Who supplies real DoU + self-inspection template content | E27/E28 |
+| N-9 | Scheduling inputs: work-hours model, capacity rules, public-holiday handling | E14 |
+| N-10 | GDPR/retention posture for the HR deletion-request workflow (full legal program stays Phase C) | E31 |
+
 ## Appendix — Swedish email status
 
 Drafted 2026-06-14 (never sent), revised, and **sent 2026-06-16**; full reply
