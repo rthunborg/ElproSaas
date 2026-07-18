@@ -1,5 +1,5 @@
 # generated: 2026-06-12
-# last_updated: 2026-07-08  # Story 9-5 context created (ready-for-dev)
+# last_updated: 2026-07-18  # Phase B sprint planning: epics 10-34 appended (next: Story 10-1)
 # project: ElproSaas
 # project_key: NOKEY
 # tracking_system: file-system
@@ -52,9 +52,15 @@
 # MACHINE-EFFECTIVE ORDERING: the auto-bmad story picker selects the first `backlog` entry in
 # FILE ORDER. Story 8.1 is therefore physically listed below BEFORE the epic-6 block (out of
 # epic-group order, on purpose) so it is picked next. All other entries remain grouped by epic.
+#
+# EXECUTION ORDER NOTE (PHASE B, added 2026-07-18): Phase A epics 1-9 are COMPLETE —
+# the WAVE 1 / Story 8.1 notes above are historical record. Phase B epics 10-34 are
+# appended below (see the PHASE B header inside development_status for wave order,
+# checkpoints, and owner gates). NEXT ACTIONABLE: Epic 10, Story 10-1 — the first
+# `backlog` story in file order.
 
 generated: 2026-06-12
-last_updated: 2026-07-08  # Epic 9 retrospective done
+last_updated: 2026-07-18  # Phase B sprint planning: epics 10-34 appended (next: Story 10-1)
 project: ElproSaas
 project_key: NOKEY
 tracking_system: file-system
@@ -135,3 +141,204 @@ development_status:
   9-4-pilot-fallback-cutover-and-sign-off-register: done
   9-5-phase-a-acceptance-gate-report: done
   epic-9-retrospective: done
+
+  # ===========================================================================
+  # PHASE B (Legacy Parity Release) — epics 10-34, appended by sprint planning
+  # 2026-07-18. Source: _bmad-output/planning-artifacts/epics-phase-b.md
+  # (wave-tagged E10-E34; wave order per phase-b-party-session-2026-07-18 §2/§6).
+  #
+  # EXECUTION ORDER NOTE (Phase B):
+  #   Story 10-1 (governance re-baseline + scope manifest) is the FIRST Phase B
+  #   story and blocks every other Phase B story (AC-B1a-6); the
+  #   project-context.md refresh follows immediately after 10-1 merges.
+  #   Wave order: B1a (E10 → E11 → E12 → E13) → B1b (E14/E15/E19; E16 → E17 →
+  #   E18 only after ADR-B006) → B2 (E20-E26; E26 closes the wave) → B3 (E27-E34).
+  #
+  # WAVE-BOUNDARY CHECKPOINTS (PB-D10) — formal re-planning points; re-run
+  # sprint planning at each to expand this file:
+  #   B1a→B1b: finalize E14-E19 stories from the sketches below (E16-E18 only at
+  #     ADR-B006 gate close).
+  #   B1b→B2: author full B2 stories from the candidate lists + PRD coarse-FR
+  #     expansion + B2 schema finalization + time-report approval decision
+  #     (AB-A10, with E26/N-5) + E24→E22 merge decision.
+  #   B2→B3: author full B3 stories + PRD coarse-FR expansion + B3 schema
+  #     finalization + E29/E30 adjacency + E32 bundle decisions.
+  #
+  # OWNER-GATE WATCHLIST (epics doc, Open Items for Sprint Planning #3):
+  #   N-3 (field posture) before E14/E15 UX stories (14-4, 15-1, 15-6);
+  #   N-4 before the 11-2 entitlement seed is treated as confirmed (mechanism
+  #     proceeds ungated);
+  #   N-9 before conflict/capacity rule fixtures harden (14-3, 15-1);
+  #   N-6 before Story 13-4 is scheduled (story stays DARK until then);
+  #   ADR-B006 (owner 7.1/7.3) before ANY E16-E18 design/schema/story work.
+  # Oracle terminology task (legacy-oracle-explorer) runs before the first story
+  # of every epic carrying [oracle-check] labels: E10, E13, E15-E18, E20-E25,
+  # E27-E32 (Cross-Epic Rule 2). AC-PH-3 second-tenant proof: verification run
+  # after Epic 12 completes, re-run at phase close.
+  #
+  # STATUS ENCODING (this run): only the existing status vocabulary is used;
+  # gates are carried as comments, never as invented status tokens. B1b story
+  # keys are provisional sketches (EB-A11), finalized at their checkpoint.
+  # B2/B3 epics carry epic-level rows ONLY — their candidate stories are not
+  # committed, so no story rows exist for the picker until a checkpoint authors
+  # them.
+
+  # WAVE B1a — full stories, build-ready. Epic 10 / Story 10-1 is NEXT.
+  epic-10: backlog
+  10-1-phase-b-governance-re-baseline-and-scope-manifest: backlog
+  10-2-forlorad-avbojd-status-and-lost-reason-lifecycle: backlog
+  10-3-quote-follow-up-workflow: backlog
+  10-4-pipeline-surfacing-and-dashboard-read-model: backlog
+  epic-10-retrospective: optional
+
+  epic-11: backlog
+  11-1-role-storage-and-permission-matrix-mechanism: backlog
+  # 11-2 ships the entitlement seed as a flagged conservative default
+  # [gated: N-4 — confirmation is a config-level matrix edit; mechanism ungated].
+  11-2-non-admin-access-to-the-phase-a-surface-matrix-seed-role-aware-rls-nav-and-landing: backlog
+  11-3-admin-user-management: backlog
+  11-4-roles-surface-effective-permissions-and-the-per-role-test-harness: backlog
+  epic-11-retrospective: optional
+
+  epic-12: backlog
+  12-1-platform-operator-identity-and-the-provision-tenant-command: backlog
+  12-2-operator-console: backlog
+  # 12-3 keeps the N-2 seam only: no public signup surface may exist (FR76);
+  # admin/operator-driven provisioning proceeds regardless of N-2.
+  12-3-first-admin-onboarding-checklist: backlog
+  epic-12-retrospective: optional
+
+  epic-13: backlog
+  13-1-authenticated-background-runner-and-producer-registry: backlog
+  13-2-in-app-notifications-bell-center-and-preferences: backlog
+  13-3-email-outbox-pipeline-queued-non-sending: backlog
+  # 13-4 is DARK [gated: N-6]: defined but MUST NOT be scheduled until the owner
+  # activates sending (domain, from-address, first flows) — scheduling it before
+  # N-6 resolves is a process violation (epics doc, Story 13.4 banner).
+  13-4-email-sending-activation: backlog
+  epic-13-retrospective: optional
+
+  # ---- B1a→B1b wave checkpoint happens HERE, before any B1b story is created.
+
+  # WAVE B1b — story titles + AC sketches (EB-A11: keys provisional until
+  # finalized at the checkpoint / gate close).
+  # E14 gates: [N-3] before the editor/phone UX story 14-4; [N-9] before the
+  # conflict/capacity rule fixtures harden in 14-3 (engine ships injectable
+  # strawman config until gate close).
+  epic-14: backlog
+  14-1-scheduling-activation-person-profiles-and-work-hours: backlog
+  14-2-bookings-and-assignees-schema-and-transactional-commands: backlog
+  14-3-deterministic-conflict-engine-detection-core: backlog
+  14-4-booking-editor-with-live-conflict-warnings-and-audited-override: backlog
+  epic-14-retrospective: optional
+
+  # E15 gates: 15-5 is public token surface #1 — ships only with the ADR-B004
+  # abuse suite green (AC-B1b-7); [N-3] before 15-1/15-6 phone-shape work;
+  # [N-9] capacity-view rules in 15-1.
+  epic-15: backlog
+  15-1-the-five-scheduling-views: backlog
+  15-2-recurring-bookings-series-materialized-occurrences-exceptions: backlog
+  15-3-conflict-resolver: backlog
+  15-4-time-reporting-filing-timesheet-review: backlog
+  15-5-personal-calendar-feed-adr-b004-surface-1: backlog
+  15-6-min-dag-the-field-landing: backlog
+  epic-15-retrospective: optional
+
+  # ======= GATE BANNER (E16-E18) [gated: owner 7.1/7.3 → ADR-B006] =======
+  # Per AC-B1b-6, NO design, schema, or story work on epics 16-18 may start
+  # before ADR-B006 is recorded. Entries below are model-agnostic sketch
+  # placeholders, finalized (and possibly re-cut, e.g. Option B variants) at
+  # gate close. Do NOT run create-story/auto-bmad against epics 16-18 while
+  # the gate is open; plan B1b around E14/E15/E19 until then.
+  epic-16: backlog
+  16-1-jobs-depth-activation-container-evolution-and-my-jobs: backlog
+  16-2-job-members-and-per-job-roles-arbetsledare: backlog
+  16-3-arbetsorder: backlog
+  16-4-projekt-upgrade-and-job-card-semantics: backlog
+  16-5-job-workspace-shell: backlog
+  epic-16-retrospective: optional
+
+  # E17 inherits the E16 ADR-B006 gate banner (economy separation is
+  # model-independent; 17-2 payment-plan attachment is itself [gated: 7.1/7.3]).
+  epic-17: backlog
+  17-1-material-usage-and-material-requests: backlog
+  17-2-payment-plan-on-projekt-scope: backlog
+  17-3-economy-rollup-budget-vs-actual: backlog
+  17-4-jobs-money-golden-coverage-and-billing-seam: backlog
+  epic-17-retrospective: optional
+
+  # E18 inherits the E16 ADR-B006 gate banner (field-capture UX and the
+  # completion-event contract are model-independent).
+  epic-18: backlog
+  18-1-diary-and-photos-field-capture-core: backlog
+  18-2-deviations-risks-and-job-chat: backlog
+  18-3-job-reports-and-exports: backlog
+  18-4-job-completion-event: backlog
+  epic-18-retrospective: optional
+
+  epic-19: backlog
+  19-1-widget-registry-and-dashboard-framework: backlog
+  19-2-the-v1-widget-set: backlog
+  epic-19-retrospective: optional
+
+  # ---- B1b→B2 wave checkpoint happens HERE: author full B2 stories from the
+  # ---- candidate lists (32 candidates, epics-phase-b.md Wave B2 section) and
+  # ---- add their story rows to this file (re-run sprint planning).
+
+  # WAVE B2 — epic-level entries ONLY (candidate stories uncommitted, PB-D10).
+  # Every B2/B3 module: activation story first (Cross-Epic Rule 1);
+  # [oracle-check] labels resolve before the epic's first story (Rule 2);
+  # N-1 migration classification round 2 precedes each module's data-migration
+  # story (Rule 4, NFR52).
+  epic-20: backlog  # Documents center — 3 candidates; aggregation only, no tables (PB-D6)
+  epic-20-retrospective: optional
+  epic-21: backlog  # Rentals — 6 candidates; feeds E26; migration story [gated: N-1]
+  epic-21-retrospective: optional
+  epic-22: backlog  # Assets + QR — 6 candidates; ADR-B004 surface #2; may absorb E24; migration [gated: N-1]
+  epic-22-retrospective: optional
+  epic-23: backlog  # Service + warranties — 5 candidates; consumes E18 completion event; migration [gated: N-1]
+  epic-23-retrospective: optional
+  epic-24: backlog  # Electrical panels — 3 candidates; E24→E22 merge decided at checkpoint; migration [gated: N-1]
+  epic-24-retrospective: optional
+  epic-25: backlog  # Supplier data + imports — 4 candidates; migration [gated: N-1]
+  epic-25-retrospective: optional
+  epic-26: backlog  # Billing basis + B2 Fortnox spike (26-5) — 5 candidates; closes B2 (PB-D11); [gated: N-5 content; tax A/B/C + 2.2 bind real-invoicing sign-off — demo track unaffected]
+  epic-26-retrospective: optional
+
+  # ---- B2→B3 wave checkpoint happens HERE: author full B3 stories from the
+  # ---- candidate lists (30 candidates) and add their story rows (re-run
+  # ---- sprint planning). E33/E34 additionally require ADR-B005-final
+  # ---- (post-26-5 spike) + N-5 before ANY Fortnox artifact exists.
+
+  # WAVE B3 — epic-level entries ONLY (candidate stories uncommitted, PB-D10).
+  epic-27: backlog  # DoU manual core — 5 candidates; [content gated: N-8]; migration [gated: N-1]
+  epic-27-retrospective: optional
+  epic-28: backlog  # Self-inspections — 4 candidates; [content gated: N-8]; migration [gated: N-1]
+  epic-28-retrospective: optional
+  epic-29: backlog  # Tenders/FKU thin core — 3 candidates; [gated: N-7 owner visibility]; migration [gated: N-1]
+  epic-29-retrospective: optional
+  epic-30: backlog  # KNX manual tables — 2 candidates; migration [gated: N-1]
+  epic-30-retrospective: optional
+  epic-31: backlog  # HR + personnel depth — 6 candidates; [deletion posture gated: N-10]; salary-adjacent fields [N-4]; migration [gated: N-1]
+  epic-31-retrospective: optional
+  epic-32: backlog  # Notes + CRM completions — 4 candidates; migration [gated: N-1]
+  epic-32-retrospective: optional
+  # E33/E34 GATE: no Fortnox credentials, tables, routes, dependencies, or UI
+  # may exist before ADR-B005-final (post-B2-spike) + N-5 (NFR50, AR-B18).
+  epic-33: backlog  # Fortnox foundation — 3 candidates; [gated: ADR-B005-final + N-5]
+  epic-33-retrospective: optional
+  epic-34: backlog  # Fortnox billing flows — 3 candidates; [gated: ADR-B005-final + N-5]; needs E33
+  epic-34-retrospective: optional
+
+# SPRINT-PLANNING JUDGMENT CALLS (2026-07-18 autonomous append run):
+# - Only existing status tokens are used (backlog/optional); gates are carried
+#   as comments because the schema has no blocked/gated status. Gated entries
+#   (13-4, epics 16-18, 33-34) therefore read `backlog` — the gate comments are
+#   the guard; orchestrators must not start them while their gate is open.
+# - B2/B3 candidate stories intentionally have NO rows so the file-order picker
+#   cannot select uncommitted work; rows are added at each wave checkpoint.
+# - B1b story keys are derived from the epics doc sketch titles and may be
+#   renumbered/retitled when finalized (EB-A11) — update keys here at that time.
+# - Phase A entries (epics 1-9) preserved byte-for-byte; epics 7/8/9 remain
+#   `in-progress` because the epic→done transition is manual per this file's
+#   conventions and flipping them is not this run's call.
