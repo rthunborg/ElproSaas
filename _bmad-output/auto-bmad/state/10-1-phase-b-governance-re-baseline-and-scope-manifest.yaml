@@ -1,26 +1,26 @@
 # auto-bmad per-story state — written by scripts/state_update.py (full stable schema;
 # see references/state-and-resume.md). Prose belongs in reports/{key}.md, not here.
-story_key: epic-10
+story_key: 10-1-phase-b-governance-re-baseline-and-scope-manifest
 epic_num: 10
-story_num: null
+story_num: 1
 branch: epic/10-quote-lifecycle-completion
 status: in-progress
 updated_at: "2026-07-19T12:47:02Z"
-started_at: "2026-07-19T12:24:42Z"
+started_at: "2026-07-19T12:47:02Z"
 completed_at: null
-active_seconds: 1284
+active_seconds: 0
 timing_anchor: null
-is_first_in_epic: false
+is_first_in_epic: true
 is_last_in_epic: false
 needs_project_context_bootstrap: false
 git_mode: remote
 base_branch: main
-tea_risk: null
-tea_selected: []
-tea_rationale: null
+tea_risk: high
+tea_selected: [atdd, automate]
+tea_rationale: "Governance keystone: derivation refactor of guardrail machinery; silent fail-loud-regression blast radius (R-1001..R-1003); tie-break to high"
 epic_story_count: 4
-stories_after_in_epic: null
-completed_phases: [0, 1, 2]
+stories_after_in_epic: 3
+completed_phases: []
 code_review_iterations: 0
 code_review_loop_done: false
 hitl_halt: null
@@ -51,8 +51,4 @@ deferred_work: []
 blockers: []
 overrides: {}
 constraints: []
-active_story: 10-1-phase-b-governance-re-baseline-and-scope-manifest
-stories_landed: []
-auto_decisions: []
-uat_items: []
-epic_slug: quote-lifecycle-completion
+tier_a_base_sha: 206f541d79d0fde9c315b1231db9002896bf0d27
