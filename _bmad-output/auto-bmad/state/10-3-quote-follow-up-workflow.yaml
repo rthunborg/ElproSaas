@@ -5,10 +5,10 @@ epic_num: 10
 story_num: 3
 branch: epic/10-quote-lifecycle-completion
 status: in-progress
-updated_at: "2026-07-19T16:31:09Z"
+updated_at: "2026-07-19T16:45:12Z"
 started_at: "2026-07-19T16:14:10Z"
 completed_at: null
-active_seconds: 1015
+active_seconds: 1856
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -20,7 +20,7 @@ tea_selected: [atdd, automate]
 tea_rationale: "New quote_follow_ups tenant table + one-open partial unique + audited commands + cross-story auto-complete on the 10.2 lost path (R-1030/31/33); category stack matches 10.1/10.2 High precedent"
 epic_story_count: 4
 stories_after_in_epic: 1
-completed_phases: [3]
+completed_phases: [3, 4]
 code_review_iterations: 0
 code_review_loop_done: false
 hitl_halt: null
