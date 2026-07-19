@@ -28,3 +28,5 @@
 ## Story 10-4-pipeline-surfacing-and-dashboard-read-model
 - [Phase 3 â€” create-story] Hit-rate denominator accepted/(accepted+lost) with zero-decided => null is an AUTHOR-CHOSEN assumption FR65 does not pin â€” E19's dashboard inherits it; needs explicit owner/E19 confirmation, flagged in-story.
 - [Phase 3 â€” create-story] UX-BDR17 'ConnectionChip' has no repo component â€” contract honored via status.ts + text-first rendering; reviewers reading the UX spec literally may expect a component that cannot exist.
+- [Phase 5 â€” dev-story] ATDD scaffolds shipped a placeholder read-model signature ((client, period)) that didn't match the story contract and an E2E missing sign-in â€” green phase completed both per the hand-off's 'wire the injection' instruction; scaffold authors should pin the contract signature from the story, not invent one.
+- [Phase 5 â€” dev-story] The .gitattributes eol=lf pin (added 10-2) does NOT renormalize an already-checked-out working copy â€” the local CRLF golden-fixture failure persists until a re-checkout/renormalize; CI unaffected.

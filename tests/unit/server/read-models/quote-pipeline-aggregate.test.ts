@@ -22,21 +22,10 @@
  *     never the host default zone, never `Date.now()` on the pure path.
  *   - EMPTY input ⇒ all counts 0, hitRate null, acceptedValueOre 0.
  *
- * ── WHY SKIPPED (RED PHASE) ──────────────────────────────────────────────────────────────────────
- * `src/server/read-models/quote-pipeline-aggregate.ts` (the pure aggregation) does NOT exist yet
- * (Task 1 is the Story 10.4 DEV phase). The scaffold declares the intended surface via LOCAL
- * `notYetImplemented()` placeholders + local row/aggregate types so it TYPE-CHECKS today WITHOUT
- * importing a non-existent module, and keeps every `test(...)` `{ skip: true }`. `formatOreAsKronor`
- * IS imported (it exists today — the single öre→kronor authority) to prove the money aggregate rides
- * that one formatter, never a second.
- *
- * ── GREEN-PHASE HAND-OFF (Story 10.4 dev) ────────────────────────────────────────────────────────
- * After Task 1 lands:
- *   1. Delete the LOCAL placeholder + local types, replacing with real imports:
- *        import { aggregateQuotePipeline, resolvePipelinePeriod } from "@/server/read-models/quote-pipeline-aggregate";
- *        import type { PipelineEventRow, AcceptedVersionRow, FollowUpRow } from "@/server/read-models/quote-pipeline-aggregate";
- *      (If the period helper lands in `src/features/quotes/pipeline-period.ts`, import it from there.)
- *   2. Remove `{ skip: true }` from every test. The assertions are the CONTRACT — do NOT weaken them.
+ * ── GREEN (Story 10.4 implemented) ───────────────────────────────────────────────────────────────
+ * `src/server/read-models/quote-pipeline-aggregate.ts` (the pure aggregation + the Europe/Stockholm
+ * period helper) is landed; the suite imports the REAL functions and is unskipped. `formatOreAsKronor`
+ * (the single öre→kronor authority) proves the money aggregate rides that one formatter, never a second.
  *
  * Runner: `node --test` (`pnpm run test:unit`) — pure, NO DB, NO PII.
  *
@@ -47,68 +36,14 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { formatOreAsKronor } from "@/lib/money/ore";
-
-// ── LOCAL red-phase declarations (green phase replaces with real imports; see hand-off) ──────────
-function notYetImplemented(): never {
-  throw new Error(
-    "Story 10.4 not yet implemented — remove this placeholder and import aggregateQuotePipeline / " +
-      "resolvePipelinePeriod from @/server/read-models/quote-pipeline-aggregate in the green phase.",
-  );
-}
-
-/** A lifecycle event row (RLS-scoped) — the count source of truth (never the live status). */
-interface PipelineEventRow {
-  readonly quote_version_id: string;
-  readonly event_type: "sent" | "accepted" | "lost";
-  readonly occurred_at: string;
-}
-/** An accepted version's frozen accepted price (öre) — the money aggregate source. */
-interface AcceptedVersionRow {
-  readonly quote_version_id: string;
-  readonly accepted_price_ore: number;
-}
-/** A follow-up row — open/overdue count source (10.3 shape). */
-interface FollowUpRow {
-  readonly id: string;
-  readonly status: "open" | "completed";
-  readonly due_date: string;
-}
-interface PipelinePeriod {
-  readonly from: string;
-  readonly to: string;
-}
-interface PipelineAggregate {
-  readonly period: PipelinePeriod;
-  readonly sentCount: number;
-  readonly acceptedCount: number;
-  readonly lostCount: number;
-  readonly hitRate: number | null;
-  readonly openFollowUpCount: number;
-  readonly overdueFollowUpCount: number;
-  readonly acceptedValueOre: number;
-}
-interface AggregateInput {
-  readonly events: readonly PipelineEventRow[];
-  readonly acceptedVersions: readonly AcceptedVersionRow[];
-  readonly followUps: readonly FollowUpRow[];
-}
-
-// Green phase: import the real pure functions (see hand-off).
-function aggregateQuotePipeline(
-  input: AggregateInput,
-  period: PipelinePeriod,
-  now: string,
-): PipelineAggregate {
-  void input;
-  void period;
-  void now;
-  return notYetImplemented();
-}
-function resolvePipelinePeriod(instant: string, months?: number): PipelinePeriod {
-  void instant;
-  void months;
-  return notYetImplemented();
-}
+import {
+  aggregateQuotePipeline,
+  resolvePipelinePeriod,
+  type PipelineEventRow,
+  type AcceptedVersionRow,
+  type FollowUpRow,
+  type PipelinePeriod,
+} from "@/server/read-models/quote-pipeline-aggregate";
 
 // ── Fixtures ─────────────────────────────────────────────────────────────────────────────────────
 // "now" is late in a UTC day so the Stockholm calendar day is the NEXT day — the tz boundary is
@@ -136,19 +71,19 @@ const FOLLOW_UPS: FollowUpRow[] = [
 
 // ── 10.4-UNIT-02: aggregation ─────────────────────────────────────────────────────────────────────
 
-test("10.4-UNIT-02: counts derive from in-window quote_events (distinct versions per event_type)", { skip: true }, () => {
+test("10.4-UNIT-02: counts derive from in-window quote_events (distinct versions per event_type)", () => {
   const agg = aggregateQuotePipeline({ events: EVENTS, acceptedVersions: ACCEPTED_VERSIONS, followUps: FOLLOW_UPS }, JULY, NOW);
   assert.equal(agg.sentCount, 3, "three in-window sent versions (June sent excluded)");
   assert.equal(agg.acceptedCount, 1);
   assert.equal(agg.lostCount, 1);
 });
 
-test("10.4-UNIT-02: hit rate = accepted / (accepted + lost)", { skip: true }, () => {
+test("10.4-UNIT-02: hit rate = accepted / (accepted + lost)", () => {
   const agg = aggregateQuotePipeline({ events: EVENTS, acceptedVersions: ACCEPTED_VERSIONS, followUps: FOLLOW_UPS }, JULY, NOW);
   assert.equal(agg.hitRate, 1 / 2);
 });
 
-test("10.4-UNIT-02: ZERO decided ⇒ hitRate is null (never 0, never NaN)", { skip: true }, () => {
+test("10.4-UNIT-02: ZERO decided ⇒ hitRate is null (never 0, never NaN)", () => {
   const sentOnly: PipelineEventRow[] = [
     { quote_version_id: "v1", event_type: "sent", occurred_at: "2026-07-03T09:00:00.000Z" },
   ];
@@ -158,7 +93,7 @@ test("10.4-UNIT-02: ZERO decided ⇒ hitRate is null (never 0, never NaN)", { sk
   assert.ok(!Number.isNaN(agg.hitRate as unknown as number));
 });
 
-test("10.4-UNIT-02: EMPTY input ⇒ all counts 0, hitRate null, acceptedValueOre 0", { skip: true }, () => {
+test("10.4-UNIT-02: EMPTY input ⇒ all counts 0, hitRate null, acceptedValueOre 0", () => {
   const agg = aggregateQuotePipeline({ events: [], acceptedVersions: [], followUps: [] }, JULY, NOW);
   assert.equal(agg.sentCount, 0);
   assert.equal(agg.acceptedCount, 0);
@@ -169,7 +104,7 @@ test("10.4-UNIT-02: EMPTY input ⇒ all counts 0, hitRate null, acceptedValueOre
   assert.equal(agg.acceptedValueOre, 0);
 });
 
-test("10.4-UNIT-02: acceptedValueOre is the INTEGER öre sum of frozen accepted prices (no new money path)", { skip: true }, () => {
+test("10.4-UNIT-02: acceptedValueOre is the INTEGER öre sum of frozen accepted prices (no new money path)", () => {
   const accepted: AcceptedVersionRow[] = [
     { quote_version_id: "v1", accepted_price_ore: 12_500_00 },
     { quote_version_id: "v4", accepted_price_ore: 749_950 }, // 7 499,50 kr in öre
@@ -183,13 +118,13 @@ test("10.4-UNIT-02: acceptedValueOre is the INTEGER öre sum of frozen accepted 
   assert.ok(Number.isInteger(agg.acceptedValueOre), "öre aggregate is a plain integer sum");
 });
 
-test("10.4-UNIT-02: the accepted value formats for display via the single @/lib/money authority only", { skip: true }, () => {
+test("10.4-UNIT-02: the accepted value formats for display via the single @/lib/money authority only", () => {
   const agg = aggregateQuotePipeline({ events: EVENTS, acceptedVersions: ACCEPTED_VERSIONS, followUps: FOLLOW_UPS }, JULY, NOW);
   // Display formatting is formatOreAsKronor — never a second formatter, never a re-derived total.
   assert.equal(formatOreAsKronor(agg.acceptedValueOre), "12500,00");
 });
 
-test("10.4-UNIT-02: open/overdue follow-up counts (open only; overdue via classifyFollowUp on the Stockholm boundary)", { skip: true }, () => {
+test("10.4-UNIT-02: open/overdue follow-up counts (open only; overdue via classifyFollowUp on the Stockholm boundary)", () => {
   const agg = aggregateQuotePipeline({ events: EVENTS, acceptedVersions: ACCEPTED_VERSIONS, followUps: FOLLOW_UPS }, JULY, NOW);
   assert.equal(agg.openFollowUpCount, 2, "two open follow-ups (completed excluded)");
   assert.equal(agg.overdueFollowUpCount, 1, "only the 2026-07-15 open row is overdue vs 2026-07-20 Stockholm");
@@ -197,7 +132,7 @@ test("10.4-UNIT-02: open/overdue follow-up counts (open only; overdue via classi
 
 // ── 10.4-UNIT-02: deterministic Europe/Stockholm period windows ────────────────────────────────────
 
-test("10.4-UNIT-02: resolvePipelinePeriod is deterministic over an injected instant (no Date.now on the pure path)", { skip: true }, () => {
+test("10.4-UNIT-02: resolvePipelinePeriod is deterministic over an injected instant (no Date.now on the pure path)", () => {
   const a = resolvePipelinePeriod(NOW);
   const b = resolvePipelinePeriod(NOW);
   assert.deepEqual(a, b, "same injected instant ⇒ identical window (pure/deterministic)");
@@ -206,7 +141,7 @@ test("10.4-UNIT-02: resolvePipelinePeriod is deterministic over an injected inst
   assert.ok(a.from <= a.to, "window is ordered [from, to]");
 });
 
-test("10.4-UNIT-02: the period boundary is computed on the Europe/Stockholm calendar day of the injected instant", { skip: true }, () => {
+test("10.4-UNIT-02: the period boundary is computed on the Europe/Stockholm calendar day of the injected instant", () => {
   // 2026-07-19T23:30Z is already 2026-07-20 in Stockholm (UTC+2) — the window's upper bound reflects
   // the Stockholm calendar day, not the host/UTC day (the tz boundary R-1032 shares with 10.3).
   const period = resolvePipelinePeriod(NOW);

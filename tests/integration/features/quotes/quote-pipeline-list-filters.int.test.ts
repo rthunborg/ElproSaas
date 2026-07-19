@@ -11,20 +11,12 @@
  * flags are correct per lifecycle state so the (client-side) filters select the right subset — the
  * rendered-filter contract itself is proven by the E2E (10.4-E2E-01).
  *
- * ── WHY SKIPPED (RED PHASE) ──────────────────────────────────────────────────────────────────────
- * The 10.4 consistency pass (Task 4 tone fold + Task 3.2 proof) is DEV work; `readQuoteList` reads via
- * the per-request cookie-bound client, so an injectable variant is wired in the integration harness in
- * the green phase. Until then a LOCAL `readQuoteListAs(client)` placeholder keeps the file type-checking
- * and the suite is `describe.skip`. Assertions encode EXPECTED behaviour; the mixed fixture makes them
- * meaningful.
- *
- * ── GREEN-PHASE HAND-OFF (Story 10.4 dev) ────────────────────────────────────────────────────────
- *   1. Wire the injectable list read (bind `readQuoteList`'s query to tenant A's harness client) and
- *      replace the LOCAL `readQuoteListAs` placeholder; seed the mixed fixture via the existing
- *      quote/version/event/lost-reason/follow-up factories (extend with an accepted version + an OPEN
- *      OVERDUE follow-up + a lost version with a reason).
- *   2. Remove `.skip`. Run against a freshly `supabase db reset` LOCAL stack (`SUPABASE_TEST_REQUIRED=1`).
- *      The assertions are the CONTRACT — do NOT weaken them.
+ * ── GREEN (Story 10.4 implemented) ───────────────────────────────────────────────────────────────
+ * `readQuoteList` gained a NON-behavioral `deps.client` seam (Task 3) so the harness binds tenant A's
+ * RLS-scoped client; the mixed two-tenant fixture (a LOST version with a reason + a sent version with an
+ * OPEN OVERDUE follow-up) is seeded in `beforeAll` via the existing factories, and the suite is
+ * unskipped. Run against a freshly `supabase db reset` LOCAL stack (`SUPABASE_TEST_REQUIRED=1`). The
+ * assertions are the CONTRACT.
  *
  * [Source: story 10.4 AC2 + Task 3.1/3.2 + Task 6.2; src/features/quotes/read.ts (readQuoteList — the
  *  lost_reason / has_open_follow_up / overdue_follow_up projection); test-design-epic-10.md#10.4-INT-02,
@@ -35,23 +27,72 @@ import {
   createTwoTenantFixture,
   makeAuthedServerClient,
   cleanupFixture,
+  adminInsertCustomer,
+  adminInsertCalculation,
+  adminInsertQuote,
+  adminInsertQuoteVersion,
+  adminInsertQuoteLostReason,
+  adminInsertQuoteFollowUp,
   type TwoTenantFixture,
   type TestServerClient,
 } from "../../../factories/tenants";
 import { isLocalStackReachable } from "../../../support/test-env";
 import { skipUnlessStack } from "../../../support/stack-gate";
-import type { QuoteListRow } from "@/features/quotes/read";
+import { readQuoteList, type QuoteListRow } from "@/features/quotes/read";
 
-// ── LOCAL red-phase declaration (green phase replaces with the injectable readQuoteList; see hand-off)
-function notYetImplemented(): never {
-  throw new Error(
-    "Story 10.4 not yet implemented — wire the injectable readQuoteList against the harness client in " +
-      "the green phase and remove this placeholder.",
-  );
-}
+/** Bind the RLS-scoped list read to a tenant's authed harness client (the Task 3 `deps.client` seam). */
 async function readQuoteListAs(client: TestServerClient): Promise<readonly QuoteListRow[]> {
-  void client;
-  return notYetImplemented();
+  const { rows } = await readQuoteList({ client });
+  return rows;
+}
+
+/** Seed a mixed lifecycle set for a tenant: a LOST quote (reason) + a sent quote with an OPEN OVERDUE
+ * follow-up. Anonymized shape-only tokens (no PII). Returns nothing — the list read surfaces the flags. */
+async function seedMixedLifecycle(tenantId: string): Promise<void> {
+  const customerId = await adminInsertCustomer({
+    tenant_id: tenantId,
+    customer_type: "company",
+    display_name: `pipeline-mix-${crypto.randomUUID().slice(0, 8)}`,
+  });
+  const calcId = await adminInsertCalculation({
+    tenant_id: tenantId,
+    customer_id: customerId,
+    title: `pipeline-mix-calc-${crypto.randomUUID().slice(0, 8)}`,
+  });
+
+  // (a) A LOST quote — its latest version is `lost` and carries a Förlorad/Avböjd reason.
+  const lostQuoteId = await adminInsertQuote({ tenant_id: tenantId, customer_id: customerId });
+  const lostVersionId = await adminInsertQuoteVersion({
+    tenant_id: tenantId,
+    quote_id: lostQuoteId,
+    calculation_id: calcId,
+    status: "lost",
+  });
+  await adminInsertQuoteLostReason({
+    tenant_id: tenantId,
+    quote_id: lostQuoteId,
+    quote_version_id: lostVersionId,
+    outcome: "forlorad",
+    category: "pris",
+    note: null,
+  });
+
+  // (b) A sent quote with an OPEN OVERDUE follow-up (a fixed PAST due date → overdue at every run).
+  const fuQuoteId = await adminInsertQuote({ tenant_id: tenantId, customer_id: customerId });
+  const fuVersionId = await adminInsertQuoteVersion({
+    tenant_id: tenantId,
+    quote_id: fuQuoteId,
+    calculation_id: calcId,
+    status: "sent",
+  });
+  await adminInsertQuoteFollowUp({
+    tenant_id: tenantId,
+    quote_id: fuQuoteId,
+    quote_version_id: fuVersionId,
+    due_date: "2026-07-01",
+    note: "boka uppföljning",
+    status: "open",
+  });
 }
 
 let stackUp = false;
@@ -63,13 +104,16 @@ beforeAll(async () => {
   if (!stackUp) return;
   fixture = await createTwoTenantFixture();
   a = await makeAuthedServerClient(fixture.adminA);
+  // Seed the mixed lifecycle on BOTH tenants — A's read must reflect ONLY A's rows (cross-tenant proof).
+  await seedMixedLifecycle(fixture.tenantA.id);
+  await seedMixedLifecycle(fixture.tenantB.id);
 });
 
 afterAll(async () => {
   if (fixture) await cleanupFixture(fixture);
 });
 
-describe.skip("10.4-INT-02: list-filter consistency over a mixed lifecycle fixture", () => {
+describe("10.4-INT-02: list-filter consistency over a mixed lifecycle fixture", () => {
   it("Förlorad/Avböjd rows carry a lost_reason (the Förlustorsak column source) and status 'lost'", async (ctx) => {
     if (skipUnlessStack(ctx, stackUp)) return;
     const rows = await readQuoteListAs(a);

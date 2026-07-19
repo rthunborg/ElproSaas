@@ -25,7 +25,12 @@ import {
   isRetryableCreateQuoteError,
 } from "@/features/quotes/create-quote-action-state";
 import { StatusBadge } from "./StatusBadge";
-import { lostOutcomeLabel, lostCategoryLabel } from "./status";
+import {
+  lostOutcomeLabel,
+  lostCategoryLabel,
+  followUpToneLabel,
+  followUpToneColor,
+} from "./status";
 import type { QuoteListRow } from "@/features/quotes/read";
 
 /**
@@ -346,13 +351,19 @@ export function QuoteList({
                   </div>
                   <div className="flex items-center gap-2">
                     {/* Story 10.3 (AC2): an OVERDUE open follow-up escalates the row visually (a
-                        StatusBadge-style badge — text-first, color redundant). */}
+                        StatusBadge-style badge — text-first, color redundant). Story 10.4 (Task 4.3):
+                        the tone + label are drawn from the SHARED status.ts follow-up authority (the
+                        named 10-3 deferral); the hardcoded rose literal that byte-duplicated
+                        QUOTE_STATUS_COLORS.lost is deleted. */}
                     {row.overdue_follow_up && (
                       <span
                         data-testid="quote-row-overdue-follow-up-badge"
-                        className="inline-flex items-center rounded-full border border-rose-300 bg-rose-100 px-2.5 py-0.5 text-xs font-medium text-rose-900"
+                        className={[
+                          "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium",
+                          followUpToneColor("overdue"),
+                        ].join(" ")}
                       >
-                        Försenad uppföljning
+                        {followUpToneLabel("overdue")}
                       </span>
                     )}
                     {row.latest_status ? (

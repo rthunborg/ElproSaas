@@ -11,7 +11,14 @@
  * The overdue/due-today flags are computed by the pure `followUpChipState` selector on the
  * Europe/Stockholm boundary from an INJECTED instant (never `Date.now()`); this component only
  * renders that already-computed state.
+ *
+ * Story 10.4 (Task 4.2; the named 10-3 deferral): the label + tone are drawn from the SHARED
+ * `status.ts` follow-up tone authority (`followUpToneLabel`/`followUpToneColor`) — the bespoke inline
+ * `label`/`color` ternaries that shadowed `QUOTE_STATUS_COLORS` are deleted. Text stays the primary
+ * signal; the `data-testid`/`data-overdue`/`data-due-today` contract is preserved.
  */
+import { followUpToneLabel, followUpToneColor } from "./status";
+import type { FollowUpDateClass } from "@/features/quotes/follow-up-dates";
 
 /** Format an ISO date (YYYY-MM-DD) as a Swedish date; a malformed value renders "—". */
 function formatDueDate(dueDate: string): string {
@@ -29,16 +36,14 @@ export function FollowUpChip({
   readonly overdue: boolean;
   readonly dueToday: boolean;
 }) {
-  const label = overdue
-    ? "Försenad uppföljning"
+  // The escalation state → a FollowUpDateClass; label + tone come from the shared status.ts authority.
+  const toneState: FollowUpDateClass = overdue
+    ? "overdue"
     : dueToday
-      ? "Uppföljning idag"
-      : "Uppföljning";
-  const color = overdue
-    ? "bg-rose-100 text-rose-900 border-rose-300"
-    : dueToday
-      ? "bg-amber-100 text-amber-900 border-amber-300"
-      : "bg-blue-100 text-blue-800 border-blue-300";
+      ? "due-today"
+      : "upcoming";
+  const label = followUpToneLabel(toneState);
+  const color = followUpToneColor(toneState);
   return (
     <span
       data-testid="next-follow-up-chip"

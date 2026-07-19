@@ -28,8 +28,12 @@ export type FollowUpDateClass = "upcoming" | "due-today" | "overdue";
  * "Today in `timeZone`" as a YYYY-MM-DD string, computed from the injected instant via an explicit
  * `sv-SE` formatter (assembled from parts so a locale separator variation can never corrupt the
  * shape). Accepts a `Date` or an ISO string for `now`.
+ *
+ * EXPORTED (Story 10.4, Task 1.5): the pipeline read-model's period-window helper reuses this SAME
+ * sv-SE/injected-clock discipline for its `[from, to]` calendar boundary — the date convention is
+ * shared, never forked (SETTLED DESIGN DECISION 6; R-1032).
  */
-function calendarDayIn(now: Date | string, timeZone: string): string {
+export function calendarDayIn(now: Date | string, timeZone: string): string {
   const instant = typeof now === "string" ? new Date(now) : now;
   const parts = new Intl.DateTimeFormat("sv-SE", {
     timeZone,

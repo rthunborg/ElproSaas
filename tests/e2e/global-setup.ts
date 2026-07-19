@@ -29,6 +29,7 @@ import {
   adminInsertQuote,
   adminInsertQuoteEvent,
   adminInsertQuoteFollowUp,
+  adminInsertQuoteLostReason,
   adminInsertQuoteVersion,
   adminInsertQuoteVersionLine,
   adminInsertRow,
@@ -576,6 +577,43 @@ export default async function globalSetup() {
     status: "open",
   });
 
+  // Story 10.4 — a DEDICATED already-LOST quote (latest version status='lost' + a Förlorad reason), so
+  // the pipeline render-consistency E2E (10.4-E2E-01) has a DETERMINISTIC lost row in the list
+  // (Förlorad/Avböjd filter → quote-list-lost-row + the Förlustorsak column) independent of the 10.2
+  // runtime mark-lost flip's ordering. Seeded directly at status='lost' (BYPASSRLS; the sent-lock
+  // trigger is BEFORE UPDATE only, so a fresh lost insert is allowed). Its overdue-follow-up
+  // counterpart is the existing 10.3 overdueFollowUpQuote (chip + list overdue badge).
+  const pipelineLostQuoteId = await adminInsertQuote({
+    tenant_id: base.tenantA.id,
+    customer_id: companyId,
+    facility_id: facilityId,
+  });
+  const pipelineLostVersionId = await adminInsertQuoteVersion({
+    tenant_id: base.tenantA.id,
+    quote_id: pipelineLostQuoteId,
+    calculation_id: calcId,
+    version_number: 1,
+    quote_number: 1013,
+    status: "lost",
+    company_name: `Elpro Demo AB ${token()}`,
+    customer_display_name: companyName,
+    intro_text: "Förlorad version för pipeline-render-konsistens (10.4)",
+  });
+  await adminInsertQuoteLostReason({
+    tenant_id: base.tenantA.id,
+    quote_id: pipelineLostQuoteId,
+    quote_version_id: pipelineLostVersionId,
+    outcome: "forlorad",
+    category: "pris",
+    note: null,
+  });
+  await adminInsertQuoteEvent({
+    tenant_id: base.tenantA.id,
+    quote_id: pipelineLostQuoteId,
+    quote_version_id: pipelineLostVersionId,
+    event_type: "lost",
+  });
+
   // Story 8.5 — a DEDICATED SENT quote whose ONLY version is a SENT v1 carrying a LOCKED quote_pdf
   // file, so the 8.4/8.5 file-lock-panel E2E can assert the sent-quote lock notice + archive-only
   // affordance on the quote detail's default (latest = sent) version. Seed the PDF file (draft) +
@@ -885,6 +923,12 @@ export default async function globalSetup() {
     markLostQuote: {
       id: markLostQuoteId,
       sentVersionId: markLostSentVersionId,
+    },
+    // Story 10.4 — a dedicated already-LOST quote (latest version status='lost' + a Förlorad reason)
+    // so the pipeline render-consistency E2E has a deterministic lost row + Förlustorsak column cell.
+    pipelineLostQuote: {
+      id: pipelineLostQuoteId,
+      lostVersionId: pipelineLostVersionId,
     },
     // Story 10.3 — three dedicated sent quotes for the follow-up E2E (plan / overdue / complete), each
     // on its own quote so the tests are order-independent.

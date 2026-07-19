@@ -8,6 +8,7 @@
  * [Source: epics.md#Story 6.2 Technical Notes; test-design-epic-6.md#6.2-E2E-04; ux §6]
  */
 import type { QuoteVersionStatus } from "@/features/quotes/timeline";
+import type { FollowUpDateClass } from "@/features/quotes/follow-up-dates";
 
 /** The Swedish TEXT label shown IN the badge (the machine status → a human word). */
 export const QUOTE_STATUS_LABELS: Record<QuoteVersionStatus, string> = {
@@ -86,4 +87,43 @@ export function lostOutcomeLabel(outcome: string): string {
 /** The Swedish category label for a machine token (unknown → the raw token, never blank). */
 export function lostCategoryLabel(category: string): string {
   return LOST_CATEGORY_LABELS[category] ?? category;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Story 10.4 — the FOLLOW-UP tone authority (Task 4.1; AC2; the named 10-3 deferred item). The 10.3
+// follow-up chip + overdue badge hardcoded bespoke inline tones that SHADOWED QUOTE_STATUS_COLORS;
+// this folds them into the SHARED status.ts primitive keyed by the FollowUpDateClass (upcoming /
+// due-today / overdue), mirroring the QUOTE_STATUS_LABELS/COLORS + quoteStatusLabel/Color shape.
+// TEXT-FIRST (WCAG 1.4.1): the label is the primary signal; the color is a REDUNDANT reinforcement.
+// PURE (no JSX) so both the client island (FollowUpChip.tsx) and a node --test unit consume ONE authority.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** The Swedish TEXT label per follow-up date class (the primary, text-first signal). */
+export const FOLLOW_UP_TONE_LABELS: Record<FollowUpDateClass, string> = {
+  upcoming: "Uppföljning",
+  "due-today": "Uppföljning idag",
+  overdue: "Försenad uppföljning",
+};
+
+/**
+ * A REDUNDANT color class per follow-up date class (blue / amber / rose). These are the 10.3 chip tones,
+ * byte-preserved through the fold so the render is visually unchanged. Text is always the primary signal.
+ */
+export const FOLLOW_UP_TONE_COLORS: Record<FollowUpDateClass, string> = {
+  upcoming: "bg-blue-100 text-blue-800 border-blue-300",
+  "due-today": "bg-amber-100 text-amber-900 border-amber-300",
+  overdue: "bg-rose-100 text-rose-900 border-rose-300",
+};
+
+/** The TEXT label for a follow-up tone. Unknown key → the raw key (never blank), mirrors quoteStatusLabel. */
+export function followUpToneLabel(state: string): string {
+  return FOLLOW_UP_TONE_LABELS[state as FollowUpDateClass] ?? state;
+}
+
+/** The redundant color class for a follow-up tone. Unknown key → a neutral class, mirrors quoteStatusColor. */
+export function followUpToneColor(state: string): string {
+  return (
+    FOLLOW_UP_TONE_COLORS[state as FollowUpDateClass] ??
+    "bg-zinc-100 text-zinc-700 border-zinc-300"
+  );
 }

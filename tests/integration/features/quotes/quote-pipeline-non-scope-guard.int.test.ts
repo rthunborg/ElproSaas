@@ -14,17 +14,12 @@
  *     so no manifest count pin is bumped and no table is enrolled (there is none);
  *   - the read-model + list source path imports NO email/notification send path (Epic 13 owns reminders).
  *
- * ── WHY SKIPPED (RED PHASE) ──────────────────────────────────────────────────────────────────────
- * The manifest pins are already true today (this guard protects against 10.4 DEV regressing them), and
- * the email-path scan targets `src/server/read-models` which does not exist yet. The suite is
- * `describe.skip` until the read-model lands; the source scan is guarded by `existsSync` so it cannot
- * throw at collection. Assertions encode the EXPECTED (no-growth) surface.
- *
- * ── GREEN-PHASE HAND-OFF (Story 10.4 dev) ────────────────────────────────────────────────────────
- *   1. After the read-model + tone fold land, remove `.skip`. The manifest pins must stay green with NO
- *      pin change; the email-path scan must find none. The assertions are the CONTRACT — do NOT weaken.
- *   2. If a widget/nav/analytics-page/email path is ever genuinely required, that is Epic 19 / Epic 13
- *      scope — STOP and escalate, do not grow the manifest here.
+ * ── GREEN (Story 10.4 implemented) ───────────────────────────────────────────────────────────────
+ * The read-model landed with NO manifest growth; the suite is unskipped. The manifest pins stay green
+ * with NO pin change; the read-model source scan finds no email-send path. The `existsSync` guard keeps
+ * the source scan safe. If a widget/nav/analytics-page/email path is ever genuinely required, that is
+ * Epic 19 / Epic 13 scope — STOP and escalate, do not grow the manifest here. The assertions are the
+ * CONTRACT.
  *
  * [Source: story 10.4 AC3 + Task 5 + the ⚑ SCOPE BOUNDARY section; src/scope/manifest.ts (quotes module
  *  widgets []/one nav item); test-design-epic-10.md#10.4-INT-03, R-1045]
@@ -48,7 +43,7 @@ const READ_MODELS_DIR = path.join(process.cwd(), "src", "server", "read-models")
 // Any token that would betray a notification / email send path leaking onto the read-model surface.
 const EMAIL_PATH_TOKENS = /sendMail|sendEmail|nodemailer|resend|smtp|notification.*send|mailer/i;
 
-describe.skip("10.4-INT-03: non-scope guard — no new analytics surface / no email-send path", () => {
+describe("10.4-INT-03: non-scope guard — no new analytics surface / no email-send path", () => {
   it("the quotes module keeps widgets: [] (no dashboard widget grows here — Epic 19 owns widgets)", () => {
     const quotes = SCOPE_MANIFEST.modules.find((m) => m.id === "quotes");
     expect(quotes).toBeDefined();

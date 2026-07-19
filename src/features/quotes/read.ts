@@ -90,6 +90,18 @@ export interface QuoteListReadResult {
   readonly error: string | null;
 }
 
+/** The request-bound RLS client type (the ONLY client the list read queries). */
+type QuoteReadServerClient = Awaited<ReturnType<typeof createSupabaseServerClient>>;
+
+/**
+ * Injectable dependencies for the list read (Story 10.4, Task 3): the integration harness binds a
+ * tenant's RLS-scoped client so the list-filter consistency proof (10.4-INT-02) runs against the local
+ * stack; production resolves the per-request client. NON-behavioral — the query/projection is unchanged.
+ */
+export interface QuoteListReadDeps {
+  readonly client?: QuoteReadServerClient;
+}
+
 /**
  * Read the ACTIVE quote list (`archived_at is null`), ordered by `updated_at` desc. RLS scopes
  * to the caller's tenant. The customer display_name is joined via the embedded
@@ -98,9 +110,11 @@ export interface QuoteListReadResult {
  * `quote_versions(...)` relationship, resolved by highest `version_number`. On a query error
  * returns a GENERIC Swedish message (the FAILED state) — never a leaked stack/SQL.
  */
-export async function readQuoteList(): Promise<QuoteListReadResult> {
+export async function readQuoteList(
+  deps: QuoteListReadDeps = {},
+): Promise<QuoteListReadResult> {
   try {
-    const client = await createSupabaseServerClient();
+    const client = deps.client ?? (await createSupabaseServerClient());
     // Read the quotes + their versions (incl. the version id so a lost version's joined reason can
     // be matched below), plus the tenant's lost reasons (RLS-scoped; own-tenant only) mapped by
     // version id — mirroring the readQuoteDetail jobs/acceptances secondary-read pattern.

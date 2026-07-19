@@ -22,24 +22,16 @@
  * READ-MODEL-level composition proof + the structural no-service-role assertion only. NO new tenant
  * table is added (TENANT_TABLES stays 26), so nothing is enrolled here.
  *
- * ── WHY SKIPPED (RED PHASE) ──────────────────────────────────────────────────────────────────────
- * `src/server/read-models/quote-pipeline.ts` does NOT exist yet (Task 2.3 is DEV). `readQuotePipeline`
- * is a LOCAL `notYetImplemented()` placeholder so the file type-checks; the whole suite is
- * `describe.skip`, and the structural `readFileSync` is guarded by `existsSync` so it cannot throw at
- * collection before the source exists.
- *
- * ── GREEN-PHASE HAND-OFF (Story 10.4 dev) ────────────────────────────────────────────────────────
- *   1. Land Task 2.3, then replace the LOCAL `readQuotePipeline` placeholder with the real import and
- *      wire the RLS-client injection the read-model uses in the integration harness (mirror how the
- *      existing `read.ts` reads are exercised against the local stack — server client bound to A).
- *   2. Remove `.skip` from `describe`. The structural assertion + the cross-tenant proof are the
- *      CONTRACT — do NOT weaken them.
- *   3. Run against a freshly `supabase db reset` LOCAL stack (`SUPABASE_TEST_REQUIRED=1` hard-fails on
- *      an unreset/unreachable stack — the post-reset false-green trap).
+ * ── GREEN (Story 10.4 implemented) ───────────────────────────────────────────────────────────────
+ * `src/server/read-models/quote-pipeline.ts` is landed; the suite imports the REAL `readQuotePipeline`,
+ * binds the RLS-scoped harness client via the `deps.client` seam, and is unskipped. The structural
+ * `readFileSync` is guarded by `existsSync`. Run against a freshly `supabase db reset` LOCAL stack
+ * (`SUPABASE_TEST_REQUIRED=1` hard-fails on an unreset/unreachable stack — the post-reset false-green
+ * trap). The structural assertion + the cross-tenant proof are the CONTRACT.
  *
  * [Source: story 10.4 AC4 + Task 6.2 + SETTLED DESIGN DECISION 1 (RLS client only) + Dev Notes
- *  "The security floor is §3.6"; src/server/db/supabase-server-client.ts (anon-key RLS client, NO
- *  service-role factory); test-design-epic-10.md#10.4-INT-01, R-1041]
+ *  "The security floor is §3.6"; src/server/db/supabase-server-client.ts (anon-key RLS client);
+ *  test-design-epic-10.md#10.4-INT-01, R-1041]
  */
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { existsSync, readFileSync } from "node:fs";
@@ -58,36 +50,8 @@ import {
 } from "../../factories/tenants";
 import { isLocalStackReachable } from "../../support/test-env";
 import { skipUnlessStack } from "../../support/stack-gate";
-
-// ── LOCAL red-phase declaration (green phase replaces with the real import; see hand-off) ────────
-function notYetImplemented(): never {
-  throw new Error(
-    "Story 10.4 not yet implemented — remove this placeholder and import readQuotePipeline from " +
-      "@/server/read-models/quote-pipeline in the green phase.",
-  );
-}
-interface PipelinePeriod {
-  readonly from: string;
-  readonly to: string;
-}
-interface PipelineDescriptor {
-  readonly data: {
-    readonly sentCount: number;
-    readonly acceptedCount: number;
-    readonly lostCount: number;
-    readonly acceptedValueOre?: number;
-  };
-  readonly entitlements: { readonly withheld: readonly string[] };
-}
-// Green phase: import { readQuotePipeline } from "@/server/read-models/quote-pipeline";
-async function readQuotePipeline(
-  client: TestServerClient,
-  period: PipelinePeriod,
-): Promise<PipelineDescriptor> {
-  void client;
-  void period;
-  return notYetImplemented();
-}
+import { readQuotePipeline } from "@/server/read-models/quote-pipeline";
+import type { PipelinePeriod } from "@/server/read-models/quote-pipeline-aggregate";
 
 const READ_MODEL_SOURCE = path.join(
   process.cwd(),
@@ -113,7 +77,7 @@ afterAll(async () => {
   if (fixture) await cleanupFixture(fixture);
 });
 
-describe.skip("10.4-INT-01: pipeline read-model isolation floor (RLS-client-only, cross-tenant)", () => {
+describe("10.4-INT-01: pipeline read-model isolation floor (RLS-client-only, cross-tenant)", () => {
   it("STRUCTURAL: the read-model imports the RLS client and imports NO service-role / unscoped client", () => {
     // The R-1041 invariant asserted at the SOURCE level (mirror the Phase-A "no service-role from
     // client paths" negatives) — a bypass is caught here even without a running stack.
@@ -138,8 +102,9 @@ describe.skip("10.4-INT-01: pipeline read-model isolation floor (RLS-client-only
     });
     await adminInsertQuoteEvent({ tenant_id: tid, quote_id: bQuote, quote_version_id: bVersion, event_type: "sent" });
     await adminInsertQuoteEvent({ tenant_id: tid, quote_id: bQuote, quote_version_id: bVersion, event_type: "accepted" });
-    // A's RLS-scoped read-model must see NONE of tenant B's pipeline.
-    const result = await readQuotePipeline(a, JULY);
+    // A's RLS-scoped read-model must see NONE of tenant B's pipeline. The `deps.client` seam binds
+    // tenant A's authed harness client; production resolves the request client.
+    const result = await readQuotePipeline(JULY, undefined, { client: a });
     expect(result.data.sentCount).toBe(0);
     expect(result.data.acceptedCount).toBe(0);
     expect(result.data.lostCount).toBe(0);
@@ -158,7 +123,7 @@ describe.skip("10.4-INT-01: pipeline read-model isolation floor (RLS-client-only
       tenant_id: tid, quote_id: aQuote, calculation_id: aCalc, status: "sent",
     });
     await adminInsertQuoteEvent({ tenant_id: tid, quote_id: aQuote, quote_version_id: aVersion, event_type: "sent" });
-    const result = await readQuotePipeline(a, JULY);
+    const result = await readQuotePipeline(JULY, undefined, { client: a });
     // A's counts are driven by A's events only (RLS scopes every underlying query to A).
     expect(result.data.sentCount).toBeGreaterThanOrEqual(0);
     expect(result.entitlements.withheld).toEqual([]); // tenant_admin ⇒ money entitled
