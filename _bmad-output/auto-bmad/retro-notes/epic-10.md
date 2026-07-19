@@ -16,3 +16,7 @@
 - [Phase 5 â€” dev-story] Committed supabase/cli-profile.yaml lacks dashboard_url required by CLI 2.109.1 â€” db reset fails against it; temp profile used; one-line fix flagged.
 - [Tier A â€” review] Two ATDD scaffolds shipped still describe.skip while the Change Log claimed 'all unskipped and green' â€” the unskip-or-delete finalize step needs a mechanical checklist gate in dev-story (echoes epic-9 self-documented!=done).
 - [Tier A â€” review] Task 6.4 marked done but the named standing R-1015 scan glob was never widened (only a fixture-local check added) â€” marked-complete task whose standing control went untouched; fixed in review.
+
+## Story 10-3-quote-follow-up-workflow
+- [Phase 3 â€” create-story] Cross-story attribution conflict resolved: 10.3 ships functional follow-up filters + overdue badge (per 10.4 AC2's own 'from Stories 10.2-10.3' language); 10.2's Task-5.4 note loosely said '10.4, not here' â€” reviewer reading only 10.2 may misread scope creep.
+- [Phase 3 â€” create-story] Auto-complete-on-lost is deliberately non-atomic (two-command orchestration; no RPC per architecture) rather than re-touching the frozen lost RPC â€” rare orphaned open follow-up is an accepted, audited, recoverable residual BY DESIGN.

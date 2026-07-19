@@ -60,7 +60,7 @@
 # `backlog` story in file order.
 
 generated: 2026-06-12
-last_updated: 2026-07-19  # Story 10-2 dev-story complete → review (Förlorad/Avböjd lifecycle + lost-reason)
+last_updated: 2026-07-19  # Story 10-3 context created → ready-for-dev (quote follow-up workflow)
 project: ElproSaas
 project_key: NOKEY
 tracking_system: file-system
@@ -187,7 +187,7 @@ development_status:
   epic-10: in-progress
   10-1-phase-b-governance-re-baseline-and-scope-manifest: review
   10-2-forlorad-avbojd-status-and-lost-reason-lifecycle: review
-  10-3-quote-follow-up-workflow: backlog
+  10-3-quote-follow-up-workflow: ready-for-dev
   10-4-pipeline-surfacing-and-dashboard-read-model: backlog
   epic-10-retrospective: optional
 
