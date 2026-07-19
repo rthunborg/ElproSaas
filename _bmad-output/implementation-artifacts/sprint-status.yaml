@@ -60,7 +60,7 @@
 # `backlog` story in file order.
 
 generated: 2026-06-12
-last_updated: 2026-07-19  # Story 10-1 dev-story complete → review (governance re-baseline + scope manifest)
+last_updated: 2026-07-19  # Story 10-2 create-story complete → ready-for-dev (Förlorad/Avböjd lifecycle + lost-reason)
 project: ElproSaas
 project_key: NOKEY
 tracking_system: file-system
@@ -186,7 +186,7 @@ development_status:
   # WAVE B1a — full stories, build-ready. Epic 10 / Story 10-1 is NEXT.
   epic-10: in-progress
   10-1-phase-b-governance-re-baseline-and-scope-manifest: review
-  10-2-forlorad-avbojd-status-and-lost-reason-lifecycle: backlog
+  10-2-forlorad-avbojd-status-and-lost-reason-lifecycle: ready-for-dev
   10-3-quote-follow-up-workflow: backlog
   10-4-pipeline-surfacing-and-dashboard-read-model: backlog
   epic-10-retrospective: optional
