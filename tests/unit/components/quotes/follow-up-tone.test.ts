@@ -29,6 +29,7 @@ import assert from "node:assert/strict";
 import type { FollowUpDateClass } from "@/features/quotes/follow-up-dates";
 import {
   FOLLOW_UP_TONE_LABELS,
+  FOLLOW_UP_TONE_COLORS,
   followUpToneLabel,
   followUpToneColor,
 } from "@/components/quotes/status";
@@ -70,4 +71,17 @@ test("10.4: an UNKNOWN tone key falls back to a neutral color and never throws (
 
 test("10.4: the label map covers exactly the closed FollowUpDateClass set", () => {
   assert.deepEqual(Object.keys(FOLLOW_UP_TONE_LABELS).sort(), [...ALL_CLASSES].sort());
+});
+
+test("10.4: the COLOR map covers exactly the closed FollowUpDateClass set (no orphan/missing tone key)", () => {
+  // Parallels the label-map coverage: a new FollowUpDateClass added without a color entry (or a stale
+  // key left behind) is a drift the shared authority must not permit.
+  assert.deepEqual(Object.keys(FOLLOW_UP_TONE_COLORS).sort(), [...ALL_CLASSES].sort());
+});
+
+test("10.4: the unknown-key fallbacks are the NEUTRAL primitives (color = neutral class, label = the raw key)", () => {
+  // The fold must degrade exactly like quoteStatusColor/Label — a neutral tri-part color class and the
+  // raw key echoed back (never blank, never a throw), so an unexpected state renders legibly.
+  assert.equal(followUpToneColor("weird"), "bg-zinc-100 text-zinc-700 border-zinc-300");
+  assert.equal(followUpToneLabel("weird"), "weird");
 });

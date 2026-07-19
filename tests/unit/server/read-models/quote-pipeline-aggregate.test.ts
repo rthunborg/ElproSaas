@@ -147,3 +147,75 @@ test("10.4-UNIT-02: the period boundary is computed on the Europe/Stockholm cale
   const period = resolvePipelinePeriod(NOW);
   assert.ok(period.to >= "2026-07-20", "upper bound reflects the Stockholm calendar day, not UTC");
 });
+
+// ── 10.4-UNIT-02 (expanded edge/negative coverage — bmad-testarch-automate) ─────────────────────────
+// The counts are "DISTINCT versions per event_type" (a Set), the money sum is IN-WINDOW-accepted only,
+// and the follow-up counts are status-gated BEFORE the date classify. These pin the branch behaviour the
+// original happy-path suite leaves implicit — a naive re-implementation (array length; classify-then-
+// status; sum-all-prices) would pass the originals but fail here.
+
+test("10.4-UNIT-02: repeated events for the same version+type collapse to ONE (distinct-version count, not row count)", () => {
+  // A re-sent history: v1 carries TWO in-window `sent` events — it must count as a single sent version.
+  const events: PipelineEventRow[] = [
+    { quote_version_id: "v1", event_type: "sent", occurred_at: "2026-07-03T09:00:00.000Z" },
+    { quote_version_id: "v1", event_type: "sent", occurred_at: "2026-07-06T09:00:00.000Z" },
+    { quote_version_id: "v2", event_type: "sent", occurred_at: "2026-07-05T09:00:00.000Z" },
+  ];
+  const agg = aggregateQuotePipeline({ events, acceptedVersions: [], followUps: [] }, JULY, NOW);
+  assert.equal(agg.sentCount, 2, "v1's duplicate sent events count once (distinct versions, not rows)");
+});
+
+test("10.4-UNIT-02: an accepted version with NO frozen price row contributes 0 to acceptedValueOre (never NaN)", () => {
+  // v2 is accepted (counts) but its price row is absent from acceptedVersions — it must add 0, not NaN.
+  const events: PipelineEventRow[] = [
+    { quote_version_id: "v1", event_type: "accepted", occurred_at: "2026-07-10T09:00:00.000Z" },
+    { quote_version_id: "v2", event_type: "accepted", occurred_at: "2026-07-11T09:00:00.000Z" },
+  ];
+  const acceptedVersions: AcceptedVersionRow[] = [{ quote_version_id: "v1", accepted_price_ore: 100_00 }];
+  const agg = aggregateQuotePipeline({ events, acceptedVersions, followUps: [] }, JULY, NOW);
+  assert.equal(agg.acceptedCount, 2, "both accepted versions are counted");
+  assert.equal(agg.acceptedValueOre, 100_00, "the missing-price version adds 0 (never NaN)");
+  assert.ok(Number.isInteger(agg.acceptedValueOre));
+});
+
+test("10.4-UNIT-02: acceptedValueOre sums ONLY in-window accepted versions (an out-of-window accepted price is excluded)", () => {
+  // v2 was accepted in JUNE (out of the July window): it must count toward NEITHER the money aggregate
+  // NOR acceptedCount — the money leaf sums exactly the versions the in-window count recognises.
+  const events: PipelineEventRow[] = [
+    { quote_version_id: "v1", event_type: "accepted", occurred_at: "2026-07-10T09:00:00.000Z" },
+    { quote_version_id: "v2", event_type: "accepted", occurred_at: "2026-06-10T09:00:00.000Z" },
+  ];
+  const acceptedVersions: AcceptedVersionRow[] = [
+    { quote_version_id: "v1", accepted_price_ore: 100_00 },
+    { quote_version_id: "v2", accepted_price_ore: 999_00 },
+  ];
+  const agg = aggregateQuotePipeline({ events, acceptedVersions, followUps: [] }, JULY, NOW);
+  assert.equal(agg.acceptedCount, 1, "only the in-window accepted version counts");
+  assert.equal(agg.acceptedValueOre, 100_00, "the June-accepted version's price is NOT summed into July");
+});
+
+test("10.4-UNIT-02: a COMPLETED follow-up with a PAST due date is neither open NOR overdue (status-gated before classify)", () => {
+  // Guards against a refactor that classifies the date before checking status — a completed past-due row
+  // must never inflate the open/overdue counts.
+  const followUps: FollowUpRow[] = [{ id: "f1", status: "completed", due_date: "2000-01-01" }];
+  const agg = aggregateQuotePipeline({ events: [], acceptedVersions: [], followUps }, JULY, NOW);
+  assert.equal(agg.openFollowUpCount, 0);
+  assert.equal(agg.overdueFollowUpCount, 0);
+});
+
+test("10.4-UNIT-02: a DUE-TODAY open follow-up counts as open but NOT overdue (the overdue boundary is strict <)", () => {
+  // NOW resolves to 2026-07-20 in Stockholm; a follow-up due exactly today is open + due-today, never
+  // overdue (overdue = due_date < today, a strict inequality — the 10.3 classifyFollowUp contract).
+  const followUps: FollowUpRow[] = [{ id: "f1", status: "open", due_date: "2026-07-20" }];
+  const agg = aggregateQuotePipeline({ events: [], acceptedVersions: [], followUps }, JULY, NOW);
+  assert.equal(agg.openFollowUpCount, 1);
+  assert.equal(agg.overdueFollowUpCount, 0, "due-today is not overdue (strict < boundary)");
+});
+
+test("10.4-UNIT-02: resolvePipelinePeriod honours a custom trailing window and rolls the year back correctly", () => {
+  // A 1-month window anchored in early January must roll `from` into the PREVIOUS year (the setUTCMonth
+  // year-rollover path) — deterministic, on the Stockholm calendar day of the injected instant.
+  const period = resolvePipelinePeriod("2026-01-10T12:00:00.000Z", 1);
+  assert.equal(period.to, "2026-01-10", "upper bound is the Stockholm calendar day of the instant");
+  assert.equal(period.from, "2025-12-10", "one month earlier rolls back across the year boundary");
+});

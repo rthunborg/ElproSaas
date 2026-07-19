@@ -151,3 +151,56 @@ test(
     assert.deepEqual([...entitlements.withheld], ["acceptedValueOre"]);
   },
 );
+
+// ── 10.4-UNIT-01 (expanded — the resolver seam that Epic 11's matrix retrofits) ─────────────────────
+// The originals prove the descriptor mechanism via the explicit `moneyEntitled` flag; these pin the
+// ROLE-SET resolution path (the seam 11.2 feeds the real matrix) + the explicit-flag precedence + the
+// projection's purity, so a wrong resolver default or an in-place mutation can never ship silently.
+
+test(
+  "10.4-UNIT-01: a role set WITHOUT tenant_admin is unentitled — the money field is withheld (the mechanism via the role path)",
+  () => {
+    // Under B1a everyone is tenant_admin, but the withholding path MUST work off a role set too so
+    // Epic 11's per-role matrix retrofits the SAME seam. A non-admin role ⇒ money absent + listed.
+    const { data, entitlements } = projectWithEntitlements(FULL_AGGREGATE, { roles: ["saljare"] });
+    assert.equal(Object.prototype.hasOwnProperty.call(data, "acceptedValueOre"), false);
+    assert.deepEqual([...entitlements.withheld], ["acceptedValueOre"]);
+  },
+);
+
+test(
+  "10.4-UNIT-01: an EMPTY role set is unentitled (conservative — no role grants money ⇒ withheld)",
+  () => {
+    const { data, entitlements } = projectWithEntitlements(FULL_AGGREGATE, { roles: [] });
+    assert.equal("acceptedValueOre" in data, false);
+    assert.ok(entitlements.withheld.includes("acceptedValueOre"));
+  },
+);
+
+test(
+  "10.4-UNIT-01: an explicit moneyEntitled flag OVERRIDES the role set (precedence, both directions)",
+  () => {
+    // Explicit `moneyEntitled: true` entitles a non-admin role set...
+    const entitled = projectWithEntitlements(FULL_AGGREGATE, { roles: ["saljare"], moneyEntitled: true });
+    assert.equal(entitled.data.acceptedValueOre, FULL_AGGREGATE.acceptedValueOre);
+    assert.deepEqual([...entitled.entitlements.withheld], []);
+    // ...and explicit `moneyEntitled: false` withholds even from tenant_admin (the flag wins).
+    const withheld = projectWithEntitlements(FULL_AGGREGATE, { roles: ["tenant_admin"], moneyEntitled: false });
+    assert.equal("acceptedValueOre" in withheld.data, false);
+    assert.deepEqual([...withheld.entitlements.withheld], ["acceptedValueOre"]);
+  },
+);
+
+test(
+  "10.4-UNIT-01: projectWithEntitlements does NOT mutate the input aggregate (pure — the source survives withholding)",
+  () => {
+    // Withholding deletes from a COPY, never the caller's aggregate — the same `full` can be re-projected
+    // for another role in the same request without the money leaf having vanished from the source.
+    const source: PipelineAggregate = { ...FULL_AGGREGATE };
+    projectWithEntitlements(source, { moneyEntitled: false });
+    assert.equal(source.acceptedValueOre, FULL_AGGREGATE.acceptedValueOre, "input aggregate is untouched");
+    // Re-projecting the SAME source for an entitled caller still yields the money field.
+    const second = projectWithEntitlements(source, { moneyEntitled: true });
+    assert.equal(second.data.acceptedValueOre, FULL_AGGREGATE.acceptedValueOre);
+  },
+);
