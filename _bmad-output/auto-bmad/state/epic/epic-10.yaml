@@ -5,10 +5,10 @@ epic_num: 10
 story_num: null
 branch: epic/10-quote-lifecycle-completion
 status: in-progress
-updated_at: "2026-07-19T19:16:50Z"
+updated_at: "2026-07-19T19:35:48Z"
 started_at: "2026-07-19T12:24:42Z"
 completed_at: null
-active_seconds: 24427
+active_seconds: 25563
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -25,7 +25,7 @@ code_review_iterations: 0
 code_review_loop_done: false
 hitl_halt: null
 external_review_iterations: 0
-convergence_unverified: false
+convergence_unverified: true
 story_trace: null
 commits: []
 phase8_steps:
@@ -61,6 +61,7 @@ auto_decisions:
   - "Phase-A gate validators relaxed ===24 -> >=24 floor [Low] -> dismiss: correct additive-only reconciliation; live count re-pinned at 25 in manifest tests; Phase-A report stays a correct historical snapshot (Tier A, 10-2-forlorad-avbojd-status-and-lost-reason-lifecycle)"
   - "Hand-rolled follow-up chip/badge vs reuse constraint [Low] -> defer: fold tones into status.ts during 10.4 consistency pass; ledgered (Tier A, 10-3-quote-follow-up-workflow)"
   - "annotateQuoteFollowUp shipped with no UI caller [Low] -> dismiss: spec-compliant forward-provisioning (Tasks 3.2+5.4 mandate command+action only); owner-visibility note kept (Tier A, 10-3-quote-follow-up-workflow)"
+  - "Aggregate-honesty flat delete-list vs dependency-aware mandate [Med] -> fix: correct the overstated withholdFields comment to describe the actual flat list; dependency modeling deferred to first multi-component read-model (Tier A, 10-4-pipeline-surfacing-and-dashboard-read-model)"
 uat_items:
   - "[10-1-phase-b-governance-re-baseline-and-scope-manifest] Run the scope suite (node --test tests/unit/scope/**) -> all shape/coherence/derivation/invariant/selector/governance tests pass"
   - "[10-1-phase-b-governance-re-baseline-and-scope-manifest] Run pnpm test:unit -> suite grew vs pre-10.1 and all pass except the known pre-existing 9.2-REPEAT-01 CRLF failure on Windows (passes CI)"

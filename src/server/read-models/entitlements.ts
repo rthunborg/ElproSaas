@@ -10,10 +10,14 @@
  *     `FieldPath` string is listed in `entitlements.withheld` (the "absent + listed" rule). The UI
  *     rule (later): absent + listed ⇒ mask/omit column; absent + NOT listed ⇒ genuinely empty. The UI
  *     NEVER consults role names client-side.
- *   - AGGREGATE HONESTY: any aggregate whose components include a withheld leaf is ITSELF withheld
- *     (absent + listed) — the server never ships a partial sum. For 10.4 the money aggregate is a
- *     single leaf, but the rule is baked into the projection (`withholdFields`) so later multi-
- *     component read-models inherit correct behaviour by extending the leaf/dependency sets.
+ *   - WITHHOLDING TODAY IS A FLAT LEAF LIST: `withholdFields` deletes each named field in
+ *     `MONEY_FIELD_PATHS` and lists it. For 10.4 the money aggregate IS the single leaf
+ *     `acceptedValueOre`, so this is correct AND complete. It does NOT yet model leaf→aggregate
+ *     DEPENDENCY: a later read-model whose aggregate DEPENDS on a withheld leaf would need that
+ *     aggregate's own path added to the withheld set by hand — genuine dependency-aware
+ *     aggregate-honesty (withhold ANY aggregate depending on a withheld leaf) is DEFERRED to the
+ *     first multi-component Phase-B read-model where it is exercisable and testable (see the
+ *     10.4 review Defer). Do NOT build speculative untested dependency machinery for one leaf now.
  *   - COUNTS + HIT RATE are NEVER money and are ALWAYS present (never withheld).
  *
  * ── THE MECHANISM, NOT THE N-4 MATRIX (SETTLED DECISION 3 — OWNER-GATED) ─────────────────────────
@@ -66,9 +70,10 @@ export interface EntitlementInput {
 }
 
 /**
- * The MONEY leaves that ride the entitlement descriptor. A single-field money aggregate today; declared
- * as a set so a later multi-component read-model withholds any aggregate depending on a withheld leaf
- * (aggregate honesty) by extending this list — no reshape of the projection.
+ * The MONEY leaves that ride the entitlement descriptor — a FLAT withhold list. Today it is exactly the
+ * single money leaf `acceptedValueOre`. A later multi-component read-model that adds more money leaves
+ * (or an aggregate DEPENDENT on one) must add each dependent path to this list by hand until the
+ * deferred dependency-aware helper lands; the list is NOT a dependency graph.
  */
 const MONEY_FIELD_PATHS: readonly FieldPath[] = ["acceptedValueOre"];
 
@@ -85,10 +90,12 @@ function resolveMoneyEntitled(input?: EntitlementInput): boolean {
 }
 
 /**
- * Aggregate-honesty withholding: DELETE each listed field from `data` and return its FieldPath listing.
- * Given the set of withheld leaf paths, an aggregate that depends on a withheld leaf is itself withheld
- * here (absent + listed). For 10.4 the money aggregate IS the single money leaf; the helper is written
- * generally so later read-models inherit the "never ship a partial sum" rule.
+ * FLAT withhold list: DELETE each listed field from `data` (so it is ABSENT, never null/0) and return
+ * the FieldPath listing of what was removed. This withholds exactly the NAMED leaves in `fieldPaths` —
+ * it does NOT inspect leaf→aggregate dependencies, so it is correct-and-complete for 10.4's single money
+ * leaf but would need each dependent aggregate path added by hand for a multi-component read-model. The
+ * genuine dependency-aware helper ("withhold ANY aggregate depending on a withheld leaf") is deferred to
+ * the first multi-component read-model (10.4 review Defer) — no speculative machinery here.
  */
 function withholdFields(
   data: Record<string, unknown>,

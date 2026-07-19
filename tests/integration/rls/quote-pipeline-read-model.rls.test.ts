@@ -51,7 +51,10 @@ import {
 import { isLocalStackReachable } from "../../support/test-env";
 import { skipUnlessStack } from "../../support/stack-gate";
 import { readQuotePipeline } from "@/server/read-models/quote-pipeline";
-import type { PipelinePeriod } from "@/server/read-models/quote-pipeline-aggregate";
+import {
+  resolvePipelinePeriod,
+  type PipelinePeriod,
+} from "@/server/read-models/quote-pipeline-aggregate";
 
 const READ_MODEL_SOURCE = path.join(
   process.cwd(),
@@ -60,7 +63,13 @@ const READ_MODEL_SOURCE = path.join(
   "read-models",
   "quote-pipeline.ts",
 );
-const JULY: PipelinePeriod = { from: "2026-07-01", to: "2026-07-31" };
+
+// A FIXED seed instant, with the period window DERIVED from it (the same pure helper the read-model
+// uses). Seeding every event at SEED_INSTANT and deriving the window from SEED_INSTANT keeps the
+// seeded events UNAMBIGUOUSLY in-window at any wall-clock time — no hardcoded-July time-bomb where a
+// run after July 2026 would push default-`now()` events out of window and read 0 for the WRONG reason.
+const SEED_INSTANT = "2026-07-15T12:00:00.000Z";
+const WINDOW: PipelinePeriod = resolvePipelinePeriod(SEED_INSTANT);
 
 let stackUp = false;
 let fixture: TwoTenantFixture;
@@ -100,11 +109,13 @@ describe("10.4-INT-01: pipeline read-model isolation floor (RLS-client-only, cro
     const bVersion = await adminInsertQuoteVersion({
       tenant_id: tid, quote_id: bQuote, calculation_id: bCalc, status: "sent", accepted_price_ore: 500_000,
     });
-    await adminInsertQuoteEvent({ tenant_id: tid, quote_id: bQuote, quote_version_id: bVersion, event_type: "sent" });
-    await adminInsertQuoteEvent({ tenant_id: tid, quote_id: bQuote, quote_version_id: bVersion, event_type: "accepted" });
+    // Seed B's lifecycle events with an EXPLICIT in-window occurred_at (not the default run-time now())
+    // so the window/event relationship is deterministic across any run date.
+    await adminInsertQuoteEvent({ tenant_id: tid, quote_id: bQuote, quote_version_id: bVersion, event_type: "sent", occurred_at: SEED_INSTANT });
+    await adminInsertQuoteEvent({ tenant_id: tid, quote_id: bQuote, quote_version_id: bVersion, event_type: "accepted", occurred_at: SEED_INSTANT });
     // A's RLS-scoped read-model must see NONE of tenant B's pipeline. The `deps.client` seam binds
     // tenant A's authed harness client; production resolves the request client.
-    const result = await readQuotePipeline(JULY, undefined, { client: a });
+    const result = await readQuotePipeline(WINDOW, undefined, { client: a });
     expect(result.data.sentCount).toBe(0);
     expect(result.data.acceptedCount).toBe(0);
     expect(result.data.lostCount).toBe(0);
@@ -112,9 +123,13 @@ describe("10.4-INT-01: pipeline read-model isolation floor (RLS-client-only, cro
     expect(result.data.acceptedValueOre).toBe(0);
   });
 
-  it("cross-tenant: tenant A's read-model reflects ONLY A's own in-period lifecycle events", async (ctx) => {
+  it("cross-tenant: tenant A's read-model reflects EXACTLY A's own in-period lifecycle events (never B's)", async (ctx) => {
     if (skipUnlessStack(ctx, stackUp)) return;
-    // Seed A's own sent version + event; assert A sees its own count and B's parallel data never bleeds in.
+    // This test runs on a FRESH fixture where tenant A has been seeded NOTHING yet (the prior test
+    // seeded tenant B only). So after seeding exactly ONE in-window sent version for A, A's read-model
+    // must report sentCount === 1 — B's parallel sent+accepted lifecycle (seeded on the same fixture)
+    // does NOT bleed in. A tautological `>= 0` would pass even on a total isolation failure; the exact
+    // `=== 1` genuinely proves A sees its OWN seed and only its own.
     const tid = fixture.tenantA.id;
     const aCustomer = await adminInsertCustomer({ tenant_id: tid, customer_type: "company", display_name: "Kund A" });
     const aCalc = await adminInsertCalculation({ tenant_id: tid, customer_id: aCustomer });
@@ -122,10 +137,14 @@ describe("10.4-INT-01: pipeline read-model isolation floor (RLS-client-only, cro
     const aVersion = await adminInsertQuoteVersion({
       tenant_id: tid, quote_id: aQuote, calculation_id: aCalc, status: "sent",
     });
-    await adminInsertQuoteEvent({ tenant_id: tid, quote_id: aQuote, quote_version_id: aVersion, event_type: "sent" });
-    const result = await readQuotePipeline(JULY, undefined, { client: a });
-    // A's counts are driven by A's events only (RLS scopes every underlying query to A).
-    expect(result.data.sentCount).toBeGreaterThanOrEqual(0);
+    await adminInsertQuoteEvent({ tenant_id: tid, quote_id: aQuote, quote_version_id: aVersion, event_type: "sent", occurred_at: SEED_INSTANT });
+    const result = await readQuotePipeline(WINDOW, undefined, { client: a });
+    // A's counts are driven by A's events ONLY (RLS scopes every underlying query to A). Exactly one
+    // sent version was seeded for A; B's sent version (from the sibling test) must NOT be counted.
+    expect(result.data.sentCount).toBe(1);
+    // B seeded an ACCEPTED event; if it leaked, A's acceptedCount would be > 0. It must stay 0.
+    expect(result.data.acceptedCount).toBe(0);
+    expect(result.data.lostCount).toBe(0);
     expect(result.entitlements.withheld).toEqual([]); // tenant_admin ⇒ money entitled
   });
 });

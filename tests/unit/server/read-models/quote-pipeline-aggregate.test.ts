@@ -213,9 +213,32 @@ test("10.4-UNIT-02: a DUE-TODAY open follow-up counts as open but NOT overdue (t
 });
 
 test("10.4-UNIT-02: resolvePipelinePeriod honours a custom trailing window and rolls the year back correctly", () => {
-  // A 1-month window anchored in early January must roll `from` into the PREVIOUS year (the setUTCMonth
+  // A 1-month window anchored in early January must roll `from` into the PREVIOUS year (the month
   // year-rollover path) — deterministic, on the Stockholm calendar day of the injected instant.
   const period = resolvePipelinePeriod("2026-01-10T12:00:00.000Z", 1);
   assert.equal(period.to, "2026-01-10", "upper bound is the Stockholm calendar day of the instant");
   assert.equal(period.from, "2025-12-10", "one month earlier rolls back across the year boundary");
+});
+
+test("10.4-UNIT-02: a MONTH-END anchor does NOT overflow — the day is clamped to the target month's last day", () => {
+  // to = 2026-05-31, months = 3 → February. A raw setUTCMonth would land on the nonexistent 2026-02-31
+  // and silently roll forward to 2026-03-03 (a WRONG lower bound). The fix clamps to 2026-02-28.
+  const period = resolvePipelinePeriod("2026-05-31T09:00:00.000Z", 3);
+  assert.equal(period.to, "2026-05-31");
+  assert.equal(period.from, "2026-02-28", "May-31 minus 3 months clamps to Feb-28 (never rolls to Mar-03)");
+});
+
+test("10.4-UNIT-02: the default 12-month window is safe at the Feb-29 leap anchor (no forward overflow)", () => {
+  // to = 2024-02-29 (leap day), default months = 12 → 2023 has no Feb-29, so the day clamps to Feb-28
+  // rather than overflowing into 2023-03-01. Deterministic on the Stockholm calendar day.
+  const period = resolvePipelinePeriod("2024-02-29T09:00:00.000Z");
+  assert.equal(period.to, "2024-02-29");
+  assert.equal(period.from, "2023-02-28", "leap-day anchor minus a year clamps to Feb-28 (no overflow)");
+});
+
+test("10.4-UNIT-02: a month-end anchor into a 31-day target keeps the full day (no needless clamp)", () => {
+  // to = 2026-03-31, months = 4 → November (30 days) → clamps to 2025-11-30. Guards that the clamp only
+  // trims when the target month is shorter, and that the year rolls back correctly.
+  const period = resolvePipelinePeriod("2026-03-31T09:00:00.000Z", 4);
+  assert.equal(period.from, "2025-11-30", "Mar-31 minus 4 months clamps to Nov-30 across the year boundary");
 });

@@ -5,10 +5,10 @@ epic_num: 10
 story_num: 4
 branch: epic/10-quote-lifecycle-completion
 status: in-progress
-updated_at: "2026-07-19T19:16:51Z"
+updated_at: "2026-07-19T19:35:50Z"
 started_at: "2026-07-19T18:15:05Z"
 completed_at: null
-active_seconds: 3699
+active_seconds: 4834
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: true
@@ -20,7 +20,7 @@ tea_selected: [atdd, automate]
 tea_rationale: "First { data, entitlements } read-model contract every later Phase B read-model inherits (R-1040 score 6) + RLS-client-only read path (R-1041 score 6); authorization/contract High signals"
 epic_story_count: 4
 stories_after_in_epic: 0
-completed_phases: [3, 4, 5, 6]
+completed_phases: [3, 4, 5, 6, 7]
 code_review_iterations: 0
 code_review_loop_done: false
 hitl_halt: null
@@ -52,3 +52,15 @@ blockers: []
 overrides: {}
 constraints: []
 tier_a_base_sha: d18f5b031af49e2ec4e1538af8ebe4b50d06d09e
+tier_a_review:
+  verdict: Changes Requested
+  critical: 0
+  high: 1
+  medium: 4
+  low: 1
+  decisions_auto_resolved: 1
+  patches_fixed: 4
+  deferred: 1
+  security: clean 0/0/0
+  post_fix: proceed
+  note: "High = tautological cross-tenant test, fixed into a real isolation proof; epic convergence_unverified set sticky per E5f"

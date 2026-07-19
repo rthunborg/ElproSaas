@@ -171,8 +171,14 @@ export function aggregateQuotePipeline(
  * Resolve the pipeline period `[from, to]` on the Europe/Stockholm calendar boundary from an INJECTED
  * instant. `to` is "today in Stockholm"; `from` is `months` calendar months earlier (default 12 — a
  * trailing-year window). DETERMINISTIC over the injected instant: the Stockholm day is derived via the
- * shared `calendarDayIn` (sv-SE) discipline, then the lower bound is pure UTC-midnight month math —
+ * shared `calendarDayIn` (sv-SE) discipline, then the lower bound is pure calendar month math —
  * never `Date.now()`, never the host default zone (SETTLED DESIGN DECISION 6).
+ *
+ * Month subtraction CLAMPS the day to the target month's last valid day, so a month-end/leap anchor
+ * never OVERFLOWS forward (e.g. `to = 2026-05-31`, `months = 3` ⇒ `from = 2026-02-28`, never a rolled
+ * `2026-03-03`; `to = 2024-02-29`, `months = 12` ⇒ `from = 2023-02-28`). A raw `Date.setUTCMonth` on a
+ * day-31 anchor would land on a nonexistent day and silently roll into the next month — a wrong lower
+ * bound that skews the window.
  *
  * When the DB read-model is called WITHOUT an explicit period, this default window is used; callers
  * that need a specific window (E19 widgets later) pass their own `PipelinePeriod`.
@@ -183,10 +189,14 @@ export function resolvePipelinePeriod(
 ): PipelinePeriod {
   const to = calendarDayIn(instant, STOCKHOLM_TZ);
   const [y, m, d] = to.split("-").map(Number);
-  // Pure UTC-midnight arithmetic on the Stockholm calendar date (no host-zone/clock dependency);
-  // setUTCMonth handles year rollover deterministically.
-  const fromDate = new Date(Date.UTC(y, m - 1, d));
-  fromDate.setUTCMonth(fromDate.getUTCMonth() - months);
-  const from = `${fromDate.getUTCFullYear()}-${pad2(fromDate.getUTCMonth() + 1)}-${pad2(fromDate.getUTCDate())}`;
+  // Subtract `months` on the calendar WITHOUT day overflow: compute the target year+month, then clamp
+  // the day to that month's last valid day (Date.UTC(year, month+1, 0) = the month's final day). This
+  // keeps a month-end/leap anchor on the intended boundary instead of rolling it forward.
+  const zeroBasedMonth = m - 1 - months;
+  const targetYear = y + Math.floor(zeroBasedMonth / 12);
+  const targetMonth = ((zeroBasedMonth % 12) + 12) % 12; // normalise to 0..11
+  const lastDayOfTargetMonth = new Date(Date.UTC(targetYear, targetMonth + 1, 0)).getUTCDate();
+  const day = Math.min(d, lastDayOfTargetMonth);
+  const from = `${targetYear}-${pad2(targetMonth + 1)}-${pad2(day)}`;
   return { from, to };
 }

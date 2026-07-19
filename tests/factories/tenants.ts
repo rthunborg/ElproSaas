@@ -1160,6 +1160,12 @@ export interface QuoteEventSeed {
   readonly quote_id: string;
   readonly quote_version_id?: string | null;
   readonly event_type?: string;
+  /**
+   * The lifecycle instant (timestamptz ISO). Defaults to the DB `now()` when omitted. Supply an
+   * EXPLICIT in-window value where a period-scoped read (Story 10.4 pipeline read-model) must be
+   * deterministic — otherwise a run outside the test's window silently drops the seeded event.
+   */
+  readonly occurred_at?: string | null;
 }
 
 /** Seed ONE `tenant_counters` row via the privileged superuser pg path (BYPASSRLS). */
@@ -1297,14 +1303,15 @@ export async function adminInsertQuoteEvent(
   try {
     const rows = await adminQuery<{ id: string }>(
       `insert into public.quote_events
-         (tenant_id, quote_id, quote_version_id, event_type)
-       values ($1, $2, $3, $4)
+         (tenant_id, quote_id, quote_version_id, event_type, occurred_at)
+       values ($1, $2, $3, $4, coalesce($5::timestamptz, now()))
        returning id`,
       [
         seed.tenant_id,
         seed.quote_id,
         seed.quote_version_id ?? null,
         seed.event_type ?? "created",
+        seed.occurred_at ?? null,
       ],
     );
     const id = rows[0]?.id;

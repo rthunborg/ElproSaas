@@ -46,9 +46,17 @@ async function readQuoteListAs(client: TestServerClient): Promise<readonly Quote
   return rows;
 }
 
+/** The quote ids a `seedMixedLifecycle` call created — used by the cross-tenant proof to assert that
+ * tenant B's seeded quotes never appear in tenant A's RLS-scoped list (and that A's own DO). */
+interface MixedLifecycleIds {
+  readonly lostQuoteId: string;
+  readonly fuQuoteId: string;
+}
+
 /** Seed a mixed lifecycle set for a tenant: a LOST quote (reason) + a sent quote with an OPEN OVERDUE
- * follow-up. Anonymized shape-only tokens (no PII). Returns nothing — the list read surfaces the flags. */
-async function seedMixedLifecycle(tenantId: string): Promise<void> {
+ * follow-up. Anonymized shape-only tokens (no PII). Returns the created quote ids so the cross-tenant
+ * proof can assert genuine per-tenant visibility (not just that a list came back). */
+async function seedMixedLifecycle(tenantId: string): Promise<MixedLifecycleIds> {
   const customerId = await adminInsertCustomer({
     tenant_id: tenantId,
     customer_type: "company",
@@ -93,11 +101,15 @@ async function seedMixedLifecycle(tenantId: string): Promise<void> {
     note: "boka uppföljning",
     status: "open",
   });
+
+  return { lostQuoteId, fuQuoteId };
 }
 
 let stackUp = false;
 let fixture: TwoTenantFixture;
 let a: TestServerClient;
+let aSeed: MixedLifecycleIds;
+let bSeed: MixedLifecycleIds;
 
 beforeAll(async () => {
   stackUp = await isLocalStackReachable();
@@ -105,8 +117,9 @@ beforeAll(async () => {
   fixture = await createTwoTenantFixture();
   a = await makeAuthedServerClient(fixture.adminA);
   // Seed the mixed lifecycle on BOTH tenants — A's read must reflect ONLY A's rows (cross-tenant proof).
-  await seedMixedLifecycle(fixture.tenantA.id);
-  await seedMixedLifecycle(fixture.tenantB.id);
+  // Capture each tenant's created quote ids so the isolation assertion can check concrete visibility.
+  aSeed = await seedMixedLifecycle(fixture.tenantA.id);
+  bSeed = await seedMixedLifecycle(fixture.tenantB.id);
 });
 
 afterAll(async () => {
@@ -146,8 +159,14 @@ describe("10.4-INT-02: list-filter consistency over a mixed lifecycle fixture", 
   it("cross-tenant: the mixed fixture on tenant B never appears in tenant A's list", async (ctx) => {
     if (skipUnlessStack(ctx, stackUp)) return;
     const rows = await readQuoteListAs(a);
-    // Every returned row belongs to tenant A (RLS-scoped read); B's mixed lifecycle is invisible.
-    // (Row-level tenant ownership is enforced by RLS; the list read passes no tenant id.)
-    expect(Array.isArray(rows)).toBe(true);
+    const rowIds = new Set(rows.map((r) => r.id));
+    // GENUINE isolation proof: tenant B's concretely-seeded quotes are INVISIBLE in tenant A's
+    // RLS-scoped list, while tenant A's OWN seeded quotes ARE present (proves the read returned real
+    // rows, so the B-absence is isolation — not an empty/failed read). RLS scopes every row to A with
+    // no tenant id passed; a leak would surface B's ids here.
+    expect(rowIds.has(bSeed.lostQuoteId)).toBe(false);
+    expect(rowIds.has(bSeed.fuQuoteId)).toBe(false);
+    expect(rowIds.has(aSeed.lostQuoteId)).toBe(true);
+    expect(rowIds.has(aSeed.fuQuoteId)).toBe(true);
   });
 });
