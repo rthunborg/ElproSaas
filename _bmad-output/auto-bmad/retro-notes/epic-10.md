@@ -9,3 +9,5 @@
 
 ## Story 10-2-forlorad-avbojd-status-and-lost-reason-lifecycle
 - [Phase 3 â€” create-story] Lifecycle-token model settled: ONE new `lost` status+event token; Forlorad/Avbojd lives only in quote_lost_reasons.outcome. Deciding fact: shipped Epic-6 markQuoteVersionLifecycle writes reason-less `rejected` and is not UI-wired, so rejected-mapping would make 10.4's lost bucket dishonest; owner 4.3 names Forlorad/Avbojd as its own status.
+- [Phase 4 â€” ATDD] A literal **/*.json glob inside a JSDoc block comment contains */ which closes the comment and breaks --experimental-strip-types parsing â€” keep */ out of block comments in scaffolds.
+- [Phase 4 â€” ATDD] .gitattributes eol=lf pin for golden fixtures added here (retro gotcha closed in-branch).
