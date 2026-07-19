@@ -5,10 +5,10 @@ epic_num: 10
 story_num: null
 branch: epic/10-quote-lifecycle-completion
 status: in-progress
-updated_at: "2026-07-19T14:10:48Z"
+updated_at: "2026-07-19T14:14:35Z"
 started_at: "2026-07-19T12:24:42Z"
 completed_at: null
-active_seconds: 6290
+active_seconds: 6345
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -51,9 +51,22 @@ deferred_work: []
 blockers: []
 overrides: {}
 constraints: []
-active_story: 10-1-phase-b-governance-re-baseline-and-scope-manifest
-stories_landed: []
+active_story: 10-2-forlorad-avbojd-status-and-lost-reason-lifecycle
+stories_landed:
+  - 10-1-phase-b-governance-re-baseline-and-scope-manifest
 auto_decisions:
   - "Module id typed as bare string, not the literal-union Task 1.1 requires [Med] -> fix: document the id: string deviation + rationale in completion notes, mirroring the TenantTableName decision entry; do not force the union (Tier A, 10-1-phase-b-governance-re-baseline-and-scope-manifest)"
-uat_items: []
+uat_items:
+  - "[10-1-phase-b-governance-re-baseline-and-scope-manifest] Run the scope suite (node --test tests/unit/scope/**) -> all shape/coherence/derivation/invariant/selector/governance tests pass"
+  - "[10-1-phase-b-governance-re-baseline-and-scope-manifest] Run pnpm test:unit -> suite grew vs pre-10.1 and all pass except the known pre-existing 9.2-REPEAT-01 CRLF failure on Windows (passes CI)"
+  - "[10-1-phase-b-governance-re-baseline-and-scope-manifest] Run pnpm typecheck -> exit 0 (SCOPE_MANIFEST satisfies-guard + literal unions compile)"
+  - "[10-1-phase-b-governance-re-baseline-and-scope-manifest] Run pnpm lint -> 0 errors (one pre-existing vat.test.ts warning acceptable)"
+  - "[10-1-phase-b-governance-re-baseline-and-scope-manifest] Print FORBIDDEN_DEFERRED_CATEGORIES via node one-liner -> exactly asset,dou,fortnox,hr,rental,supplier,upphandling"
+  - "[10-1-phase-b-governance-re-baseline-and-scope-manifest] Print EXPECTED_NAV_ROUTES via node one-liner -> exactly /calculations,/customers,/dashboard,/files,/jobs,/quotes,/settings"
+  - "[10-1-phase-b-governance-re-baseline-and-scope-manifest] Re-run manifest-coherence.test.ts alone -> every AC4 negative case green (validator provably bites, incl. pending-module-live-surface and orphan branches)"
+  - "[10-1-phase-b-governance-re-baseline-and-scope-manifest] Inspect AGENTS.md line 3 -> 'Current project phase: Phase B / Legacy Parity Release' + src/scope/manifest.ts named as scope source of truth"
+  - "[10-1-phase-b-governance-re-baseline-and-scope-manifest] Inspect CLAUDE.md phase-scope-reviewer row -> reviews against manifest-governed Phase B scope + Phase C ledger (old Phase A wording gone)"
+  - "[10-1-phase-b-governance-re-baseline-and-scope-manifest] Inspect .claude/agents/phase-scope-reviewer.md AND .codex/agents/phase-scope-reviewer.toml -> both reference src/scope/manifest.ts, no drift between them"
+  - "[10-1-phase-b-governance-re-baseline-and-scope-manifest] Inspect .claude/settings.json deny set -> the three forbidden supabase ops (function deploys, secrets ops, project deletion) + Read(./.env) all still present (no guardrail weakened)"
+  - "[10-1-phase-b-governance-re-baseline-and-scope-manifest] (Local Supabase stack) db reset + pnpm test:int -> H4 inventory gate proves manifest-derived TENANT_TABLES == live 24 tables; RLS suites green (CI-covered if stack unavailable)"
 epic_slug: quote-lifecycle-completion
