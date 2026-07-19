@@ -69,3 +69,30 @@ test("10.3-UNIT-01: classification is DETERMINISTIC over the injected instant (n
   assert.equal(a, b);
   assert.equal(a, "due-today");
 });
+
+// ── coverage expansion (bmad-testarch-automate): the WINTER (UTC+1) offset ───────────────────────────
+// The scaffold above proves the SUMMER (CEST, UTC+2) boundary. Stockholm is UTC+1 in winter (CET), so
+// the SAME 22:30Z instant that already rolled the day over in summer is STILL the same calendar day in
+// winter. These cases prove the classifier reads the ACTUAL DST offset per instant — not a hard-coded
+// +2 that would happen to pass the summer scaffold while misfiling every winter follow-up by a day.
+test("10.3-UNIT-01: the offset is DST-aware — a 22:30Z WINTER instant is STILL the same Stockholm day", () => {
+  // 2026-01-15 22:30Z in Stockholm winter (UTC+1) is 2026-01-15 23:30 — still 2026-01-15. A classifier
+  // that assumed a fixed +2 would wrongly advance to 2026-01-16 and misclassify both cases.
+  assert.equal(classifyFollowUp("2026-01-15", "2026-01-15T22:30:00.000Z"), "due-today");
+  assert.equal(classifyFollowUp("2026-01-16", "2026-01-15T22:30:00.000Z"), "upcoming");
+});
+
+test("10.3-UNIT-01: the WINTER after-midnight-Stockholm instant (23:30Z) advances the day by +1 only", () => {
+  // 2026-01-15 23:30Z in Stockholm winter (UTC+1) is 2026-01-16 00:30 — the day HAS rolled over, so a
+  // follow-up due 2026-01-16 is due-today and 2026-01-15 is now overdue.
+  assert.equal(classifyFollowUp("2026-01-16", "2026-01-15T23:30:00.000Z"), "due-today");
+  assert.equal(classifyFollowUp("2026-01-15", "2026-01-15T23:30:00.000Z"), "overdue");
+});
+
+test("10.3-UNIT-01: an explicit non-Stockholm timeZone argument is honoured (the zone is a real input)", () => {
+  // At 2026-07-19 23:30Z it is already 2026-07-20 in Tokyo (UTC+9), so a follow-up due 2026-07-20 is
+  // due-today there — proving the timeZone parameter (not a baked-in constant) drives the boundary.
+  assert.equal(classifyFollowUp("2026-07-20", "2026-07-19T23:30:00.000Z", "Asia/Tokyo"), "due-today");
+  // And UTC itself: 23:30Z is still 2026-07-19, so 2026-07-20 remains upcoming under the UTC zone.
+  assert.equal(classifyFollowUp("2026-07-20", "2026-07-19T23:30:00.000Z", "UTC"), "upcoming");
+});

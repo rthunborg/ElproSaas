@@ -71,3 +71,28 @@ test("10.3-UNIT-02: followUpChipState yields NO chip for an absent or completed 
   assert.equal(completed.present, false);
   assert.equal(completed.overdue, false, "a completed follow-up is never overdue");
 });
+
+// ── coverage expansion (bmad-testarch-automate) ──────────────────────────────────────────────────────
+// The scaffold pins overdue / due-today / absent / completed. The UPCOMING branch (an open follow-up
+// whose due date is still in the future) was unasserted: the chip must be PRESENT but neither escalated
+// (overdue:false) nor flagged due-today — a follow-up on track shows a calm chip, no badge.
+const OPEN_UPCOMING: FollowUpRecord = { id: "f-open-upcoming", status: "open", due_date: "2026-08-15", note: null };
+
+test("10.3-UNIT-02: followUpChipState marks an UPCOMING open follow-up present but NOT escalated", () => {
+  const state = followUpChipState(OPEN_UPCOMING, NOON_UTC);
+  assert.equal(state.present, true);
+  assert.equal(state.overdue, false);
+  assert.equal(state.dueToday, false);
+});
+
+test("10.3-UNIT-02: selectNextOpenFollowUp finds the single open row among interleaved completed rows", () => {
+  // The one-open invariant guarantees at most one open row; the selector must find it regardless of
+  // position among completed rows (order is immaterial — first-open wins).
+  const picked = selectNextOpenFollowUp([
+    COMPLETED,
+    { ...COMPLETED, id: "f-done-2" },
+    OPEN_UPCOMING,
+    { ...COMPLETED, id: "f-done-3" },
+  ]);
+  assert.equal(picked?.id, OPEN_UPCOMING.id);
+});

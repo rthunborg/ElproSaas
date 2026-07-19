@@ -99,6 +99,29 @@ async function seedSentQuoteVersion(tenantId: string): Promise<{ quoteId: string
   return { quoteId, versionId };
 }
 
+/** Seed a quote + one DRAFT version for a tenant (a NON-sent anchor — a follow-up must be refused). */
+async function seedDraftQuoteVersion(tenantId: string): Promise<{ quoteId: string; versionId: string }> {
+  const customerId = await adminInsertCustomer({
+    tenant_id: tenantId,
+    customer_type: "company",
+    display_name: `followup-draft-customer-${crypto.randomUUID().slice(0, 8)}`,
+  });
+  const calcId = await adminInsertCalculation({
+    tenant_id: tenantId,
+    customer_id: customerId,
+    title: `followup-draft-calc-${crypto.randomUUID().slice(0, 8)}`,
+  });
+  const quoteId = await adminInsertQuote({ tenant_id: tenantId, customer_id: customerId });
+  const versionId = await adminInsertQuoteVersion({
+    tenant_id: tenantId,
+    quote_id: quoteId,
+    calculation_id: calcId,
+    status: "draft",
+    intro_text: "utkast",
+  });
+  return { quoteId, versionId };
+}
+
 function plan(versionId: string, over: { due_date?: string; note?: string | null } = {}) {
   return runCommand(planQuoteFollowUp, {
     client: a as never,
@@ -266,6 +289,57 @@ describe("quote follow-up commands — plan/complete/annotate + one-open + auto-
     // Both writes are audited under their own correlation ids.
     expect((await adminSelectAuditEvents({ correlationId: lostCorr })).length).toBe(1);
     expect((await adminSelectAuditEvents({ correlationId: completeCorr })).length).toBe(1);
+  });
+
+  // ── coverage expansion (bmad-testarch-automate): the two command reject BRANCHES the scaffold left
+  // ── unproven — plan-on-a-non-sent-anchor and annotate-on-a-completed-row.
+
+  it("[P1] 10.3-INT-01 (AC1): planning on a NON-sent (draft) version is refused (VALIDATION_FAILED); no row is written", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
+    // The command asserts the loaded anchor version is `sent` (a follow-up is for an OPEN deal). A
+    // draft anchor is own-tenant-VISIBLE (ownership passes), so the refusal is the command's own
+    // status guard — VALIDATION_FAILED, NOT an access denial — and NOTHING is inserted.
+    const { quoteId, versionId } = await seedDraftQuoteVersion(fixture.tenantA.id);
+    const res = await plan(versionId);
+    expect(res.ok).toBe(false);
+    if (res.ok) return;
+    expect(res.code).toBe("VALIDATION_FAILED");
+    // No follow-up row is written for a refused plan (the guard runs BEFORE the insert).
+    const rows = await adminSelectFollowUps(quoteId);
+    expect(rows.length).toBe(0);
+  });
+
+  it("[P1] 10.3-INT-03 (AC3): annotate on a COMPLETED follow-up is a clean no-op-reject (VALIDATION_FAILED); the note is unchanged", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
+    const { quoteId, versionId } = await seedSentQuoteVersion(fixture.tenantA.id);
+    const planned = await plan(versionId, { note: "notering före avslut" });
+    expect(planned.ok).toBe(true);
+    if (!planned.ok) return;
+
+    // Complete it first, then attempt to annotate — annotate filters `status='open'`, so a completed
+    // row yields zero rows → the same already-completed reject as a double-complete.
+    const done = await runCommand(completeQuoteFollowUp, {
+      client: a as never,
+      input: { follow_up_id: planned.data.targetId, outcome: "avslutad" },
+      clock: fixedClock,
+      correlationId: crypto.randomUUID(),
+    });
+    expect(done.ok).toBe(true);
+
+    const res = await runCommand(annotateQuoteFollowUp, {
+      client: a as never,
+      input: { follow_up_id: planned.data.targetId, note: "får inte skrivas" },
+      clock: fixedClock,
+      correlationId: crypto.randomUUID(),
+    });
+    expect(res.ok).toBe(false);
+    if (res.ok) return;
+    expect(res.code).toBe("VALIDATION_FAILED");
+    expect(res.message).toBe("Uppföljningen är redan avslutad.");
+    // The completed row's note is untouched by the refused annotate (the where-status='open' no-op).
+    const row = (await adminSelectFollowUps(quoteId))[0];
+    expect(row?.status).toBe("completed");
+    expect(row?.note).toBe("notering före avslut");
   });
 
   it("[P0] 10.3-INT (AC4): a cross-tenant complete (Tenant-B follow-up id) ⇒ TENANT_ACCESS_DENIED generically; row untouched", async (testCtx) => {
