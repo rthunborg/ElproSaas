@@ -4,3 +4,5 @@
 ## Story 10-1-phase-b-governance-re-baseline-and-scope-manifest
 - [Phase 3 â€” create-story] Deny-list derivation is the sharpest risk: the 7 forbidden tokens mix pending-Phase-B modules and Phase-C hard-exclusions; reproducing exactly those 7 from the manifest vs flagging genuine drift is the main Stop-Condition trigger at dev/review.
 - [Phase 4 â€” ATDD] testarch-atdd hard-wires Playwright API+E2E workers; for a pure-TS-unit governance story the right red-phase medium is node:test unit suites per repo convention â€” worth remembering for future TEA-on-governance stories.
+- [Phase 5 â€” dev-story] All 7 deny-tokens map to genuine Phase-B pending modules (DoU/tenders manual cores are B3; only AI layers are C) â€” story Dev Notes' 'Phase C hard-exclusion' framing could have misled toward a wave:'C' schema extension; five-value wave union held.
+- [Phase 5 â€” dev-story] Golden JSON fixtures not pinned eol=lf in .gitattributes â€” 9.2-REPEAT-01 fails on Windows autocrlf checkouts, passes CI; one-line fix exists, out of story scope.

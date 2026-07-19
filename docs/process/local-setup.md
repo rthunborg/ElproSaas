@@ -6,7 +6,7 @@ document holds the detail. Where another doc owns a rule (CI gates, the Lovable
 oracle policy), this doc **links** rather than restating it, so there is one
 source of truth.
 
-Current phase: **Phase A / Internal Pilot MVP** (see [`AGENTS.md`](../../AGENTS.md)).
+Current phase: **Phase B / Legacy Parity Release**, manifest-governed (see [`AGENTS.md`](../../AGENTS.md) and `src/scope/manifest.ts`).
 
 ## Prerequisites
 
