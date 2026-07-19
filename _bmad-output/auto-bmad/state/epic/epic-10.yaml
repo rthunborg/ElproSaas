@@ -5,10 +5,10 @@ epic_num: 10
 story_num: null
 branch: epic/10-quote-lifecycle-completion
 status: in-progress
-updated_at: "2026-07-19T16:08:43Z"
+updated_at: "2026-07-19T16:14:09Z"
 started_at: "2026-07-19T12:24:42Z"
 completed_at: null
-active_seconds: 13182
+active_seconds: 13489
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -51,9 +51,10 @@ deferred_work: []
 blockers: []
 overrides: {}
 constraints: []
-active_story: 10-2-forlorad-avbojd-status-and-lost-reason-lifecycle
+active_story: 10-3-quote-follow-up-workflow
 stories_landed:
   - 10-1-phase-b-governance-re-baseline-and-scope-manifest
+  - 10-2-forlorad-avbojd-status-and-lost-reason-lifecycle
 auto_decisions:
   - "Module id typed as bare string, not the literal-union Task 1.1 requires [Med] -> fix: document the id: string deviation + rationale in completion notes, mirroring the TenantTableName decision entry; do not force the union (Tier A, 10-1-phase-b-governance-re-baseline-and-scope-manifest)"
   - "Phase-A gate validators relaxed ===24 -> >=24 floor [Low] -> dismiss: correct additive-only reconciliation; live count re-pinned at 25 in manifest tests; Phase-A report stays a correct historical snapshot (Tier A, 10-2-forlorad-avbojd-status-and-lost-reason-lifecycle)"
@@ -70,4 +71,26 @@ uat_items:
   - "[10-1-phase-b-governance-re-baseline-and-scope-manifest] Inspect .claude/agents/phase-scope-reviewer.md AND .codex/agents/phase-scope-reviewer.toml -> both reference src/scope/manifest.ts, no drift between them"
   - "[10-1-phase-b-governance-re-baseline-and-scope-manifest] Inspect .claude/settings.json deny set -> the three forbidden supabase ops (function deploys, secrets ops, project deletion) + Read(./.env) all still present (no guardrail weakened)"
   - "[10-1-phase-b-governance-re-baseline-and-scope-manifest] (Local Supabase stack) db reset + pnpm test:int -> H4 inventory gate proves manifest-derived TENANT_TABLES == live 24 tables; RLS suites green (CI-covered if stack unavailable)"
+  - "[10-2-forlorad-avbojd-status-and-lost-reason-lifecycle] SETUP: local stack up + db reset (applies 20260719120000 migration); seed adminA + a sent-version quote via pnpm test:e2e global-setup (creds/ids in tests/e2e/.auth/fixture.json — capture before teardown) or by hand (Kund -> Kalkyl -> Skapa ny offert -> Markera som skickad); pnpm dev; login as adminA"
+  - "[10-2-forlorad-avbojd-status-and-lost-reason-lifecycle] Open /quotes/<lostQuoteId> (latest sent) -> 'Markera som forlorad/avbojd' button appears in the Acceptans section alongside acceptance capture"
+  - "[10-2-forlorad-avbojd-status-and-lost-reason-lifecycle] Click the button -> dialog opens: Utfall radio (Forlorad/Avbojd), Orsak select (exactly Pris, Konkurrent, Tidplan, Uteblivet svar, Annat), Notering textarea, Bekrafta button"
+  - "[10-2-forlorad-avbojd-status-and-lost-reason-lifecycle] Read the amber confirmation copy -> states append-only lifecycle event, sent snapshot does NOT change, deal revivable via new version"
+  - "[10-2-forlorad-avbojd-status-and-lost-reason-lifecycle] No outcome/category selected -> Bekrafta disabled; outcome only -> still disabled"
+  - "[10-2-forlorad-avbojd-status-and-lost-reason-lifecycle] Utfall=Forlorad + Orsak=Annat + empty note -> Bekrafta disabled, label 'Notering (kravs for Annat)'; type note -> enabled"
+  - "[10-2-forlorad-avbojd-status-and-lost-reason-lifecycle] Utfall=Forlorad + Orsak=Pris + empty note -> label 'Notering (valfritt)', Bekrafta enabled"
+  - "[10-2-forlorad-avbojd-status-and-lost-reason-lifecycle] Avbryt -> dialog closes, status still Skickad, affordance still present"
+  - "[10-2-forlorad-avbojd-status-and-lost-reason-lifecycle] Confirm Forlorad+Pris -> badge flips to 'Forlorad/Avbojd' in rose terminal style distinct from Accepterad green; mark-lost + acceptance affordances gone (read-only)"
+  - "[10-2-forlorad-avbojd-status-and-lost-reason-lifecycle] Snapshot card after flip -> rose note block 'Forlorad · Pris' + note text if entered"
+  - "[10-2-forlorad-avbojd-status-and-lost-reason-lifecycle] Handelser list -> a 'Forlorad/Avbojd' event with date appears in addition to prior events"
+  - "[10-2-forlorad-avbojd-status-and-lost-reason-lifecycle] Lifecycle header -> 'Senaste versionens status: Forlorad/Avbojd'"
+  - "[10-2-forlorad-avbojd-status-and-lost-reason-lifecycle] Compare flipped version's snapshot (Kund/Anlaggning/Offertnummer/rows/totals) vs while sent -> byte-identical; only status/badge changed (AC3 sent-immutability)"
+  - "[10-2-forlorad-avbojd-status-and-lost-reason-lifecycle] Second sent quote: choose Avbojd + any category -> card shows 'Avbojd · <category>' (distinction captured, not one label)"
+  - "[10-2-forlorad-avbojd-status-and-lost-reason-lifecycle] Reload lost quote -> stays Forlorad/Avbojd, read-only notice, no accept/mark-lost/mark-sent affordance reappears"
+  - "[10-2-forlorad-avbojd-status-and-lost-reason-lifecycle] /quotes Status filter -> offers Alla, Utkast, Skickad, Accepterad, Forlorad/Avbojd"
+  - "[10-2-forlorad-avbojd-status-and-lost-reason-lifecycle] Select Forlorad/Avbojd filter -> table with Kund/Offert/Forlustorsak/Status columns; lost quote row shows 'Forlorad · Pris' + badge"
+  - "[10-2-forlorad-avbojd-status-and-lost-reason-lifecycle] Same filter with no lost quotes -> headers render + 'Inga forlorade/avbojda offerter.'"
+  - "[10-2-forlorad-avbojd-status-and-lost-reason-lifecycle] Switch filter Skickad/Accepterad/Utkast -> normal views return; lost quote absent from them"
+  - "[10-2-forlorad-avbojd-status-and-lost-reason-lifecycle] Open an accepted quote -> NO mark-lost affordance (lost flip is sent-only)"
+  - "[10-2-forlorad-avbojd-status-and-lost-reason-lifecycle] Open a draft version -> draft editor + Markera som skickad only; NO mark-lost affordance"
+  - "[10-2-forlorad-avbojd-status-and-lost-reason-lifecycle] Cross-tenant: login as adminB (fixture creds), open Tenant A's lost quote URL -> denied/not found (RLS, AC5)"
 epic_slug: quote-lifecycle-completion
