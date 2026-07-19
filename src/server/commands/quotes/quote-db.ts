@@ -594,6 +594,33 @@ export function asQuoteLifecycleRpcClient(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Story 10.2 — the narrow mark_quote_version_lost RPC surface (§14 widening).
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** The minimal RPC surface for the narrow `mark_quote_version_lost` call (Story 10.2). */
+export type QuoteLostRpcClient = {
+  rpc(
+    fn: "mark_quote_version_lost",
+    args: {
+      readonly p_tenant_id: string;
+      readonly p_quote_version_id: string;
+      readonly p_outcome: string;
+      readonly p_category: string;
+      readonly p_note: string | null;
+      readonly p_occurred_at: string;
+    },
+  ): Promise<{
+    data: unknown;
+    error: { code?: string; message?: string } | null;
+  }>;
+};
+
+/** Narrow the envelope client to the mark-lost RPC surface (single documented cast). */
+export function asQuoteLostRpcClient(db: CommandDbClient): QuoteLostRpcClient {
+  return db as unknown as QuoteLostRpcClient;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Story 7.2 — the narrow accept_quote_and_create_job RPC surface + its result shape.
 // ─────────────────────────────────────────────────────────────────────────────
 

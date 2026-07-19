@@ -124,7 +124,10 @@ export type TenantTableName =
   // boundary, R-717). `job_events` is the easy-to-forget event table (retro epic-8).
   | "quote_acceptances"
   | "jobs"
-  | "job_events";
+  | "job_events"
+  // Story 10.2 Förlorad/Avböjd reason table (INSERT-ONLY: no UPDATE grant/policy → cross-tenant
+  // AND own-tenant UPDATE are denied at the privilege layer, 42501; no money/öre column).
+  | "quote_lost_reasons";
 
 /**
  * The enrolled tenant-owned tables — the H4 EXPECTED enrolment set. Story 10.1 (ADR-B003 §5.3
@@ -243,6 +246,13 @@ export interface InventoryContext {
   readonly tenantBQuoteAcceptanceId?: string;
   readonly tenantBJobId?: string;
   readonly tenantBJobEventId?: string;
+  /**
+   * REAL Tenant B LOST-REASON row id (Story 10.2) — the concrete cross-tenant target the
+   * quote_lost_reasons negatives point Tenant A at (never a non-existent id that would deny
+   * vacuously). Optional so the anon suite can omit it; the cross-tenant suite seeds and asserts
+   * it. A consumer that needs one but finds it missing fails LOUDLY (requireCrmId).
+   */
+  readonly tenantBQuoteLostReasonId?: string;
 }
 
 /**
@@ -270,6 +280,10 @@ export function updateDenialKind(table: TenantTableName): MutationDenialKind {
     case "tenants":
     case "tenant_memberships":
     case "audit_events":
+    // Story 10.2 quote_lost_reasons is INSERT-ONLY — `authenticated` has NO UPDATE grant, so a
+    // cross-tenant (AND own-tenant) UPDATE is denied at the privilege layer (42501), like the
+    // append-only foundation tables. This is the load-bearing insert-only enforcement.
+    case "quote_lost_reasons":
       return "privilege"; // no UPDATE grant to authenticated → 42501
     case "customers":
     case "facilities":
@@ -640,6 +654,27 @@ export function spoofedRowFor(
         job_id: requireCrmId(ctx.tenantBJobId, "tenantBJobId", table),
         event_type: "created",
       };
+    case "quote_lost_reasons":
+      // A lost-reason forging Tenant B ownership, pointing at REAL Tenant B quote + version
+      // parents. `authenticated` HAS an INSERT grant on quote_lost_reasons, so the denial is the
+      // RLS INSERT WITH CHECK (is_tenant_admin(tenant_id=B) is false for a Tenant A admin) → `42501`.
+      // The RLS WITH CHECK fires BEFORE the unique (quote_version_id) / composite-FK checks (the
+      // SAME precedent as the quote_acceptances spoof, which also references tenantBQuoteVersionId
+      // despite a seeded acceptance on it), so the denial is the policy (42501), never a `23505`.
+      // outcome/category are valid closed-set tokens (annat is avoided so the note-required CHECK is
+      // not the thing that fires). NO money/öre column exists to populate.
+      return {
+        id: crypto.randomUUID(),
+        tenant_id: fixture.tenantB.id,
+        quote_id: requireCrmId(ctx.tenantBQuoteId, "tenantBQuoteId", table),
+        quote_version_id: requireCrmId(
+          ctx.tenantBQuoteVersionId,
+          "tenantBQuoteVersionId",
+          table,
+        ),
+        outcome: "forlorad",
+        category: "pris",
+      };
     default:
       return assertNever(table);
   }
@@ -855,6 +890,15 @@ export function tenantBFilter(
         column: "id",
         value: requireCrmId(ctx.tenantBJobEventId, "tenantBJobEventId", table),
       };
+    case "quote_lost_reasons":
+      return {
+        column: "id",
+        value: requireCrmId(
+          ctx.tenantBQuoteLostReasonId,
+          "tenantBQuoteLostReasonId",
+          table,
+        ),
+      };
     default:
       return assertNever(table);
   }
@@ -932,6 +976,12 @@ export function hijackMutationFor(
       // channel is a mutable free-text column (seed is NULL) — the hijack sets a value so the
       // unchanged re-read (channel stays NULL) is meaningful.
       return { channel: "hijacked-by-tenant-a" };
+    case "quote_lost_reasons":
+      // INSERT-ONLY: `authenticated` has NO UPDATE grant, so this payload is denied at the
+      // privilege layer (42501, "privilege" denial kind) and never reaches the unchanged re-read.
+      // `note` is a real column so the statement parses (the denial is the missing grant, not a
+      // bad column reference).
+      return { note: "hijacked-by-tenant-a" };
     default:
       return assertNever(table);
   }
@@ -1008,6 +1058,10 @@ export function rlsInvisibleLabelColumn(table: TenantTableName): string {
       return "command";
     case "tenant_memberships":
       return "status";
+    // quote_lost_reasons is a "privilege"-denial (insert-only) table — the unchanged-re-read branch
+    // is never reached; `note` keeps the exhaustive switch compile-safe.
+    case "quote_lost_reasons":
+      return "note";
     default:
       return assertNever(table);
   }
@@ -1243,6 +1297,18 @@ export function anonRowFor(
         job_id: crypto.randomUUID(),
         event_type: "created",
       };
+    case "quote_lost_reasons":
+      // Anon has NO grant on quote_lost_reasons → the INSERT is denied at the privilege layer
+      // (42501) regardless of the row shape (a random parent id never matters — the grant denial
+      // fires first). outcome/category are valid closed-set tokens. NO money/öre column.
+      return {
+        id: crypto.randomUUID(),
+        tenant_id: fixture.tenantA.id,
+        quote_id: crypto.randomUUID(),
+        quote_version_id: crypto.randomUUID(),
+        outcome: "forlorad",
+        category: "pris",
+      };
     default:
       return assertNever(table);
   }
@@ -1291,6 +1357,7 @@ export function anonFilterFor(
     case "quote_acceptances":
     case "jobs":
     case "job_events":
+    case "quote_lost_reasons":
       return { column: "tenant_id", value: ctx.fixture.tenantA.id };
     default:
       return assertNever(table);
@@ -1348,6 +1415,8 @@ export function anonMutationFor(
       return { title: "anon-hijack" };
     case "job_events":
       return { channel: "anon-hijack" };
+    case "quote_lost_reasons":
+      return { note: "anon-hijack" };
     default:
       return assertNever(table);
   }

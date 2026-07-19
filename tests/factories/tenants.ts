@@ -1431,6 +1431,16 @@ export interface QuoteAcceptanceSeed {
   readonly notes?: string | null;
 }
 
+/** A seed for a `quote_lost_reasons` row (Story 10.2; parent quote + version required, same tenant). */
+export interface QuoteLostReasonSeed {
+  readonly tenant_id: string;
+  readonly quote_id: string;
+  readonly quote_version_id: string;
+  readonly outcome?: string;
+  readonly category?: string;
+  readonly note?: string | null;
+}
+
 /** A seed for a `jobs` row (source acceptance + version + customer required, same tenant). */
 export interface JobSeed {
   readonly tenant_id: string;
@@ -1482,6 +1492,44 @@ export async function adminInsertQuoteAcceptance(
   } catch (error) {
     rethrowWithCode(error);
   }
+}
+
+/** Seed ONE `quote_lost_reasons` row via the privileged superuser pg path (BYPASSRLS). Story 10.2. */
+export async function adminInsertQuoteLostReason(
+  seed: QuoteLostReasonSeed,
+): Promise<string> {
+  try {
+    const rows = await adminQuery<{ id: string }>(
+      `insert into public.quote_lost_reasons
+         (tenant_id, quote_id, quote_version_id, outcome, category, note)
+       values ($1, $2, $3, $4, $5, $6)
+       returning id`,
+      [
+        seed.tenant_id,
+        seed.quote_id,
+        seed.quote_version_id,
+        seed.outcome ?? "forlorad",
+        seed.category ?? "pris",
+        seed.note ?? null,
+      ],
+    );
+    const id = rows[0]?.id;
+    if (!id) throw new Error("adminInsertQuoteLostReason: no id returned");
+    return id;
+  } catch (error) {
+    rethrowWithCode(error);
+  }
+}
+
+/** Read the `quote_lost_reasons` rows for a version back (BYPASSRLS). Story 10.2 readback helper. */
+export async function adminSelectLostReasons(
+  quoteVersionId: string,
+): Promise<{ outcome: string; category: string; note: string | null }[]> {
+  return adminQuery<{ outcome: string; category: string; note: string | null }>(
+    `select outcome, category, note from public.quote_lost_reasons
+      where quote_version_id = $1`,
+    [quoteVersionId],
+  );
 }
 
 /** Seed ONE `jobs` row via the privileged superuser pg path (BYPASSRLS). */

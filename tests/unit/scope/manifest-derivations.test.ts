@@ -60,6 +60,8 @@ const PINNED_TENANT_TABLES = [
   "quote_version_attachments",
   "quote_events",
   "quote_acceptances",
+  // Story 10.2 — the Förlorad/Avböjd reason table joins the active quotes module (activation seam).
+  "quote_lost_reasons",
   "jobs",
   "job_events",
 ];
@@ -129,15 +131,16 @@ test("10.1-UNIT-DERIVE-04 (AC3): the manifest-derived nav routes equal the AUTHO
 });
 
 // ── Derivation 3: the H4 tenant-table inventory expectation (Task 6) ──────────────────────────
-test("10.1-UNIT-DERIVE-05 (AC3): TENANT_TABLES derives as the union of active modules' tenantTables == the pinned 24", async () => {
+test("10.1-UNIT-DERIVE-05 (AC3): TENANT_TABLES derives as the union of active modules' tenantTables == the pinned 25", async () => {
+  // Baseline was 24; Story 10.2's quote_lost_reasons enrolment grows the active union to 25.
   const { SCOPE_MANIFEST } = await loadManifest();
   const { tenantTablesFromManifest } = await loadSchema();
   const derived = tenantTablesFromManifest(SCOPE_MANIFEST);
-  assert.equal(derived.length, 24, "the derived tenant-table union must total exactly 24");
+  assert.equal(derived.length, 25, "the derived tenant-table union must total exactly 25");
   assert.deepEqual(
     sortedUnique(derived),
     sortedUnique(PINNED_TENANT_TABLES),
-    "the manifest-derived tenant tables must equal exactly the 24 authored H4-enrolled tables (no drift)",
+    "the manifest-derived tenant tables must equal exactly the 25 authored H4-enrolled tables (no drift)",
   );
 });
 

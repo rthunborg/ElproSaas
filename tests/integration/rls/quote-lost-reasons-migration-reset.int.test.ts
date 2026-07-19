@@ -62,7 +62,7 @@ afterAll(async () => {
 });
 
 describe("quote_lost_reasons migration reset — insert-only reason table + lost widening (AC2/AC3/AC5)", () => {
-  it.skip("[P0] 10.2-INT-04: the quote_lost_reasons table exists after reset", async (testCtx) => {
+  it("[P0] 10.2-INT-04: the quote_lost_reasons table exists after reset", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     const rows = await adminQuery<{ table_name: string }>(
       `select table_name from information_schema.tables
@@ -72,7 +72,7 @@ describe("quote_lost_reasons migration reset — insert-only reason table + lost
     expect(rows.map((r) => r.table_name)).toEqual([TABLE]);
   });
 
-  it.skip("[P0] carries a NOT NULL tenant_id FK to public.tenants ON DELETE CASCADE", async (testCtx) => {
+  it("[P0] carries a NOT NULL tenant_id FK to public.tenants ON DELETE CASCADE", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     const nn = await adminQuery<{ is_nullable: string }>(
       `select is_nullable from information_schema.columns
@@ -92,7 +92,7 @@ describe("quote_lost_reasons migration reset — insert-only reason table + lost
     expect(fk.some((r) => r.confdeltype === "c")).toBe(true);
   });
 
-  it.skip("[P0] carries COMPOSITE same-tenant FKs to quotes(id,tenant_id) + quote_versions(id,tenant_id)", async (testCtx) => {
+  it("[P0] carries COMPOSITE same-tenant FKs to quotes(id,tenant_id) + quote_versions(id,tenant_id)", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     const fk = await adminQuery<{ fdef: string }>(
       `select pg_get_constraintdef(con.oid) as fdef from pg_constraint con
@@ -115,7 +115,7 @@ describe("quote_lost_reasons migration reset — insert-only reason table + lost
     ).toBe(true);
   });
 
-  it.skip("[P0] enforces unique (quote_version_id) — one reason per version (R-1013)", async (testCtx) => {
+  it("[P0] enforces unique (quote_version_id) — one reason per version (R-1013)", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     const rows = await adminQuery<{ def: string }>(
       `select pg_get_constraintdef(oid) as def from pg_constraint
@@ -125,7 +125,7 @@ describe("quote_lost_reasons migration reset — insert-only reason table + lost
     expect(rows.some((r) => /\(quote_version_id\)/i.test(r.def))).toBe(true);
   });
 
-  it.skip("[P0] outcome + category carry the closed CHECK vocabularies (ASCII machine tokens)", async (testCtx) => {
+  it("[P0] outcome + category carry the closed CHECK vocabularies (ASCII machine tokens)", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     const checks = await adminQuery<{ def: string }>(
       `select pg_get_constraintdef(oid) as def from pg_constraint
@@ -141,7 +141,7 @@ describe("quote_lost_reasons migration reset — insert-only reason table + lost
     }
   });
 
-  it.skip("[P0] RLS is ENABLED + FORCED", async (testCtx) => {
+  it("[P0] RLS is ENABLED + FORCED", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     const rows = await adminQuery<{ relrowsecurity: boolean; relforcerowsecurity: boolean }>(
       `select relrowsecurity, relforcerowsecurity from pg_class
@@ -152,7 +152,7 @@ describe("quote_lost_reasons migration reset — insert-only reason table + lost
     expect(rows[0]?.relforcerowsecurity).toBe(true);
   });
 
-  it.skip("[P0] INSERT-ONLY: EXACTLY the own-tenant SELECT + INSERT policies (NO UPDATE, NO DELETE policy)", async (testCtx) => {
+  it("[P0] INSERT-ONLY: EXACTLY the own-tenant SELECT + INSERT policies (NO UPDATE, NO DELETE policy)", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     const rows = await adminQuery<{ cmd: string }>(
       `select cmd from pg_policies where schemaname = 'public' and tablename = $1`,
@@ -161,17 +161,23 @@ describe("quote_lost_reasons migration reset — insert-only reason table + lost
     expect(rows.map((r) => r.cmd).sort()).toEqual(["INSERT", "SELECT"]);
   });
 
-  it.skip("[P0] INSERT-ONLY: the authenticated GRANT is SELECT+INSERT only (NO update/delete privilege)", async (testCtx) => {
+  it("[P0] INSERT-ONLY: the authenticated DML GRANT is SELECT+INSERT only (NO update/delete privilege)", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
+    // The Supabase local baseline grants `authenticated` the STRUCTURAL privileges REFERENCES /
+    // TRIGGER / TRUNCATE (and SELECT) on EVERY public table; migrations ADD the DML privileges. The
+    // insert-only property is about the DML grants — so scope the assertion to {SELECT, INSERT,
+    // UPDATE, DELETE} and prove they are EXACTLY {INSERT, SELECT} (no UPDATE, no DELETE). This is the
+    // load-bearing insert-only enforcement (the own-tenant-UPDATE-rejected negative depends on it).
     const rows = await adminQuery<{ privilege_type: string }>(
       `select privilege_type from information_schema.role_table_grants
-         where table_schema = 'public' and table_name = $1 and grantee = 'authenticated'`,
+         where table_schema = 'public' and table_name = $1 and grantee = 'authenticated'
+           and privilege_type in ('SELECT', 'INSERT', 'UPDATE', 'DELETE')`,
       [TABLE],
     );
     expect(rows.map((r) => r.privilege_type).sort()).toEqual(["INSERT", "SELECT"]);
   });
 
-  it.skip("[P0/scope] NO forbidden column (supplier/Fortnox/sync/portal/invoice) AND NO updated_at + NO float money", async (testCtx) => {
+  it("[P0/scope] NO forbidden column (supplier/Fortnox/sync/portal/invoice) AND NO updated_at + NO float money", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     const forbidden = await adminQuery<{ column_name: string }>(
       `select column_name from information_schema.columns
@@ -189,7 +195,7 @@ describe("quote_lost_reasons migration reset — insert-only reason table + lost
   });
 
   // ── DB layers 1-2 of the 5-layer widening: the CHECK sets now include 'lost' ────────────────
-  it.skip("[P0/R-1011] quote_versions.status CHECK now admits 'lost' (and keeps the legacy set)", async (testCtx) => {
+  it("[P0/R-1011] quote_versions.status CHECK now admits 'lost' (and keeps the legacy set)", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     const checks = await adminQuery<{ def: string }>(
       `select pg_get_constraintdef(oid) as def from pg_constraint
@@ -202,7 +208,7 @@ describe("quote_lost_reasons migration reset — insert-only reason table + lost
     }
   });
 
-  it.skip("[P0/R-1011] quote_events.event_type CHECK now admits 'lost' (and keeps the legacy set)", async (testCtx) => {
+  it("[P0/R-1011] quote_events.event_type CHECK now admits 'lost' (and keeps the legacy set)", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     const checks = await adminQuery<{ def: string }>(
       `select pg_get_constraintdef(oid) as def from pg_constraint
@@ -214,7 +220,7 @@ describe("quote_lost_reasons migration reset — insert-only reason table + lost
   });
 
   // ── DB layer 4: the narrow RPC exists (SECURITY INVOKER; §14 widening) ──────────────────────
-  it.skip("[P0] the mark_quote_version_lost RPC exists (SECURITY INVOKER, EXECUTE not granted to public)", async (testCtx) => {
+  it("[P0] the mark_quote_version_lost RPC exists (SECURITY INVOKER, EXECUTE not granted to public)", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     const rpc = await adminQuery<{ prosecdef: boolean }>(
       `select prosecdef from pg_proc where proname = 'mark_quote_version_lost'`,

@@ -26,6 +26,7 @@ import {
   createNewQuoteVersion,
   createQuoteVersionFromCalculation,
   generateQuotePdf,
+  markQuoteVersionLost,
   markQuoteVersionSent,
   updateDraftQuoteVersion,
 } from "@/server/commands/quotes";
@@ -49,6 +50,10 @@ import {
   MARK_SENT_ACTION_INITIAL,
   type MarkSentActionState,
 } from "./mark-sent-action-state";
+import {
+  LOST_ACTION_INITIAL,
+  type LostActionState,
+} from "./lost-action-state";
 import {
   NEW_VERSION_ACTION_INITIAL,
   type NewVersionActionState,
@@ -289,6 +294,66 @@ export async function createNewQuoteVersionAction(
 
   return {
     ...NEW_VERSION_ACTION_INITIAL,
+    status: "error",
+    code: result.code,
+    formError: result.message || COMMAND_MESSAGES[result.code],
+  };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Story 10.2 — the mark-lost server action (the ONLY write path the "Markera som förlorad/avböjd"
+// dialog uses). Wires the SENT-branch dialog to `markQuoteVersionLost`. Only the version id + the
+// structured reason (outcome + category + optional/required note) are read from the form —
+// status/tenant are NEVER accepted (the command re-asserts the sent → lost transition server-side,
+// re-validates the reason, and runs the narrow RPC on the RLS client). After a successful flip,
+// revalidate BOTH `/quotes/[quoteId]` AND the version subroute (the 6.2 subroute-revalidation
+// discipline — do NOT repeat the 6.2 gap) so the version re-renders the terminal Förlorad/Avböjd
+// state. The append-only lifecycle flip changes ONLY `status` — the sent snapshot is never touched.
+// This is an authenticated admin-only affordance — NO public / portal / callback route exists.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * The mark-lost action (React `useActionState` signature). Wires the "Markera som förlorad/avböjd"
+ * dialog to `markQuoteVersionLost`. Only the version id + the structured reason are read; the server
+ * command is the authority (the client-side outcome/category/note validation is a MIRROR, not the
+ * guarantee).
+ */
+export async function markQuoteVersionLostAction(
+  _prev: LostActionState,
+  form: FormData,
+): Promise<LostActionState> {
+  const quoteVersionId = form.get("quote_version_id");
+  const quoteId = form.get("quote_id");
+  const input: Record<string, unknown> = {
+    quote_version_id: quoteVersionId,
+    outcome: form.get("outcome"),
+    category: form.get("category"),
+  };
+  // The note is OPTIONAL in general, REQUIRED when category='annat' — the command validator owns the
+  // hard gate. Carry the field only when the form actually submitted a value (an absent field = no note).
+  const note = optionalText(form, "note");
+  if (form.has("note")) input.note = note ?? null;
+
+  const client = (await createSupabaseServerClient()) as unknown as CommandDbClient;
+  const result = await runCommand(markQuoteVersionLost, { client, input });
+
+  if (result.ok) {
+    if (typeof quoteId === "string" && quoteId.length > 0) {
+      revalidatePath(`/quotes/${quoteId}`);
+      // Revalidate the version subroute too so the lost version re-renders the terminal state there.
+      if (typeof quoteVersionId === "string" && quoteVersionId.length > 0) {
+        revalidatePath(`/quotes/${quoteId}/versions/${quoteVersionId}`);
+      }
+    }
+    return {
+      ...LOST_ACTION_INITIAL,
+      status: "success",
+      targetId: result.data.targetId,
+    };
+  }
+
+  return {
+    ...LOST_ACTION_INITIAL,
     status: "error",
     code: result.code,
     formError: result.message || COMMAND_MESSAGES[result.code],

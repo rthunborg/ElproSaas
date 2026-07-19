@@ -17,6 +17,9 @@ export const QUOTE_STATUS_LABELS: Record<QuoteVersionStatus, string> = {
   rejected: "Avvisad",
   expired: "Utgången",
   superseded: "Ersatt",
+  // Story 10.2 — the single terminal Förlorad/Avböjd token. The Förlorad-vs-Avböjd flavour is
+  // resolved from the joined quote_lost_reasons.outcome on the card; the badge word is this label.
+  lost: "Förlorad/Avböjd",
 };
 
 /**
@@ -30,6 +33,9 @@ export const QUOTE_STATUS_COLORS: Record<QuoteVersionStatus, string> = {
   rejected: "bg-red-100 text-red-800 border-red-300",
   expired: "bg-amber-100 text-amber-800 border-amber-300",
   superseded: "bg-zinc-100 text-zinc-600 border-zinc-300",
+  // Story 10.2 — a terminal rose/dark tone, VISUALLY DISTINCT from accepted's green (AC2). Text is
+  // still the primary signal; this color only reinforces the terminal Förlorad/Avböjd state.
+  lost: "bg-rose-100 text-rose-900 border-rose-300",
 };
 
 /** The TEXT label for a status (the badge text). Unknown status → the raw code (never blank). */
@@ -48,4 +54,36 @@ export function quoteStatusColor(status: string): string {
 /** A version is customer-visible READ-ONLY (no edit affordances) once it is sent/accepted. */
 export function isReadOnlyStatus(status: string): boolean {
   return status !== "draft";
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Story 10.2 — the Förlorad/Avböjd reason label maps (ASCII machine token → Swedish UI label).
+// The lifecycle STATUS is the single `lost` token (badge label "Förlorad/Avböjd"); the specific
+// Förlorad-vs-Avböjd flavour + the category live in the joined quote_lost_reasons row and are
+// resolved to Swedish here for the version card + the list Förlustorsak column.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** The lost-reason outcome label (forlorad→"Förlorad", avbojd→"Avböjd"). */
+export const LOST_OUTCOME_LABELS: Record<string, string> = {
+  forlorad: "Förlorad",
+  avbojd: "Avböjd",
+};
+
+/** The lost-reason category label (the strawman set → Swedish UI words). */
+export const LOST_CATEGORY_LABELS: Record<string, string> = {
+  pris: "Pris",
+  konkurrent: "Konkurrent",
+  tidplan: "Tidplan",
+  uteblivet_svar: "Uteblivet svar",
+  annat: "Annat",
+};
+
+/** The Swedish outcome label for a machine token (unknown → the raw token, never blank). */
+export function lostOutcomeLabel(outcome: string): string {
+  return LOST_OUTCOME_LABELS[outcome] ?? outcome;
+}
+
+/** The Swedish category label for a machine token (unknown → the raw token, never blank). */
+export function lostCategoryLabel(category: string): string {
+  return LOST_CATEGORY_LABELS[category] ?? category;
 }

@@ -1,0 +1,63 @@
+{
+  "_doc": "Story 10.2 lost-version lifecycle golden oracle. ANONYMIZED, shape-only — synthetic prose + integer ore only, NO real PII/secret. Each case pins the Foerlorad/Avboejd shape: an append-only lost event, exactly one reason, and lostSnapshot byte-identical to sentSnapshot (the flip changes ONLY status). Pinned eol=lf (tests/fixtures/golden/**/*.json).",
+  "lostCases": [
+    {
+      "id": "lost-forlorad-pris",
+      "status": "lost",
+      "sentSnapshot": {
+        "introText": "Offert for elinstallation i lokal.",
+        "termsText": "Betalningsvillkor 30 dagar netto. Priser inkl. moms.",
+        "baseTotalOre": 4500000,
+        "lines": [
+          { "label": "Framdragning kraft", "unitSellOre": 150000 },
+          { "label": "Belysningsarmaturer", "unitSellOre": 85000 }
+        ]
+      },
+      "lostSnapshot": {
+        "introText": "Offert for elinstallation i lokal.",
+        "termsText": "Betalningsvillkor 30 dagar netto. Priser inkl. moms.",
+        "baseTotalOre": 4500000,
+        "lines": [
+          { "label": "Framdragning kraft", "unitSellOre": 150000 },
+          { "label": "Belysningsarmaturer", "unitSellOre": 85000 }
+        ]
+      },
+      "events": [
+        { "type": "created", "occurredAt": "2026-07-10T08:00:00.000Z" },
+        { "type": "sent", "occurredAt": "2026-07-11T09:00:00.000Z" },
+        { "type": "lost", "occurredAt": "2026-07-15T14:30:00.000Z" }
+      ],
+      "reason": { "outcome": "forlorad", "category": "pris" }
+    },
+    {
+      "id": "lost-avbojd-annat",
+      "status": "lost",
+      "sentSnapshot": {
+        "introText": "Offert for serviceavtal och underhall.",
+        "termsText": "Avtalet loper ett ar med automatisk forlangning.",
+        "baseTotalOre": 1200000,
+        "lines": [
+          { "label": "Serviceavtal grund", "unitSellOre": 1200000 }
+        ]
+      },
+      "lostSnapshot": {
+        "introText": "Offert for serviceavtal och underhall.",
+        "termsText": "Avtalet loper ett ar med automatisk forlangning.",
+        "baseTotalOre": 1200000,
+        "lines": [
+          { "label": "Serviceavtal grund", "unitSellOre": 1200000 }
+        ]
+      },
+      "events": [
+        { "type": "created", "occurredAt": "2026-07-12T10:00:00.000Z" },
+        { "type": "sent", "occurredAt": "2026-07-13T11:00:00.000Z" },
+        { "type": "lost", "occurredAt": "2026-07-18T16:45:00.000Z" }
+      ],
+      "reason": {
+        "outcome": "avbojd",
+        "category": "annat",
+        "note": "Kunden valde att avvakta med projektet till nasta ar."
+      }
+    }
+  ]
+}

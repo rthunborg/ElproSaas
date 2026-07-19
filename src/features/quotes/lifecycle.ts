@@ -6,13 +6,14 @@
  * `mark_quote_version_lifecycle` RPC guard. The command guard and the DB triggers are the SAME
  * state machine at three layers; a drift between them is the failure this pins.
  *
- * The closed transition set (Story 6.5 Task 2.2):
- *   - from `draft`:      → sent            (a draft is EDITED or DELETED, never rejected/expired/superseded)
- *   - from `sent`:       → accepted | rejected | expired | superseded
+ * The closed transition set (Story 6.5 Task 2.2, WIDENED by Story 10.2 with the `lost` token):
+ *   - from `draft`:      → sent            (a draft is EDITED or DELETED, never rejected/expired/superseded/lost)
+ *   - from `sent`:       → accepted | rejected | expired | superseded | lost
  *   - from `accepted`:   (terminal for Epic 6 — acceptance correction is Epic 7)
  *   - from `rejected`:   (terminal)
  *   - from `expired`:    (terminal)
  *   - from `superseded`: (terminal)
+ *   - from `lost`:       (terminal — Story 10.2 Förlorad/Avböjd; revive the deal via a NEW version)
  *   - ANY reversal back to `draft` from a non-draft state is ILLEGAL (the trigger RAISES QV409;
  *     the command guard returns VALIDATION_FAILED BEFORE any write).
  *
@@ -36,13 +37,16 @@ export type LifecycleTransition = "rejected" | "expired" | "superseded";
 const LEGAL_TRANSITIONS: Record<QuoteVersionStatus, readonly QuoteVersionStatus[]> = {
   // A draft is edited or deleted — its only lifecycle move is to `sent` (the mark-sent command).
   draft: ["sent"],
-  // A sent commitment can be accepted (Epic 7), rejected, expired, or superseded (by a new version).
-  sent: ["accepted", "rejected", "expired", "superseded"],
+  // A sent commitment can be accepted (Epic 7), rejected, expired, superseded (by a new version),
+  // or marked lost/declined (Story 10.2 Förlorad/Avböjd — the single new terminal token).
+  sent: ["accepted", "rejected", "expired", "superseded", "lost"],
   // Terminal within Epic 6 (accepted correction is Epic 7; the rest are end states).
   accepted: [],
   rejected: [],
   expired: [],
   superseded: [],
+  // Terminal (Story 10.2): a lost/declined version is a dead-end — revive the deal via a NEW version.
+  lost: [],
 };
 
 /**

@@ -82,17 +82,19 @@ async function signIn(page: Page, email: string, password: string): Promise<void
   await expect(page).toHaveURL(/\/dashboard/);
 }
 
-test.describe.skip("Quote Förlorad/Avböjd dialog + terminal badge (Story 10.2 E2E)", () => {
+test.describe("Quote Förlorad/Avböjd dialog + terminal badge (Story 10.2 E2E)", () => {
   test("10.2-E2E-01: the dialog requires outcome + a structured reason (note required on Annat), confirm blocked until valid", async ({
     page,
   }) => {
     await signIn(page, fixture.adminA.email, fixture.adminA.password);
     await page.goto(`/quotes/${fixture.markLostQuote!.id}/versions/${fixture.markLostQuote!.sentVersionId}`);
 
-    // The affordance appears on a SENT version alongside the accept affordance.
+    // The affordance appears on a SENT version alongside the accept affordance (the acceptance
+    // capture form — heading "Registrera acceptans"). Assert the acceptance form is present so the
+    // "alongside the accept affordance" contract is checked against the actually-rendered surface.
     const markLost = page.getByRole("button", { name: /Markera som förlorad\/avböjd/i });
     await waitForHydrated(markLost);
-    await expect(page.getByRole("button", { name: /Registrera accept/i })).toBeVisible();
+    await expect(page.getByTestId("acceptance-form")).toBeVisible();
     await markLost.click();
 
     const dialog = page.getByRole("dialog");
@@ -127,7 +129,11 @@ test.describe.skip("Quote Förlorad/Avböjd dialog + terminal badge (Story 10.2 
     await dialog.getByRole("button", { name: /Bekräfta|Markera/i }).click();
 
     // The terminal badge conveys status as TEXT (Förlorad/Avböjd), visually distinct from Accepterad.
-    const badge = page.getByTestId("quote-version-status-badge");
+    // Scoped to the selected-version snapshot (the established `quote-status-badge` convention the
+    // 6.4/6.5 specs use) so it resolves to exactly the selected version's badge.
+    const badge = page
+      .getByTestId("quote-version-snapshot")
+      .getByTestId("quote-status-badge");
     await expect(badge).toHaveText(/Förlorad\/Avböjd/i);
     // The specific outcome + reason are surfaced on the version card and in the event timeline.
     await expect(page.getByTestId("quote-lost-reason")).toContainText(/Avböjd/i);

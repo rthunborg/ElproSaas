@@ -456,6 +456,45 @@ export default async function globalSetup() {
   );
   const acceptedJobId = acceptRpcRows[0]?.job_id ?? null;
 
+  // Story 10.2 — a DEDICATED quote whose ONLY version is a SENT v1, consumed by the Förlorad/Avböjd
+  // dialog E2E (confirming the flip PERMANENTLY marks it lost), kept OFF the shared 6.2/7.1 quotes
+  // (whose sent version other tests need to stay `sent`). Seeded draft → child → flip-to-sent per the
+  // 6.4 child-lock. The mark-lost affordance appears on this SENT version alongside the accept form.
+  const markLostQuoteId = await adminInsertQuote({
+    tenant_id: base.tenantA.id,
+    customer_id: companyId,
+    facility_id: facilityId,
+  });
+  const markLostSentVersionId = await adminInsertQuoteVersion({
+    tenant_id: base.tenantA.id,
+    quote_id: markLostQuoteId,
+    calculation_id: calcId,
+    version_number: 1,
+    quote_number: 1009,
+    status: "draft",
+    company_name: `Elpro Demo AB ${token()}`,
+    customer_display_name: companyName,
+    intro_text: "Skickad version för förlorad/avböjd-flödet (10.2)",
+  });
+  await adminInsertQuoteVersionLine({
+    tenant_id: base.tenantA.id,
+    quote_version_id: markLostSentVersionId,
+    label: `Förlorad-rad ${token()}`,
+    unit_sell_ore: 85000,
+    vat_rate_bp: 2500,
+    sort_order: 0,
+  });
+  await adminQuery(
+    `update public.quote_versions set status = 'sent' where id = $1`,
+    [markLostSentVersionId],
+  );
+  await adminInsertQuoteEvent({
+    tenant_id: base.tenantA.id,
+    quote_id: markLostQuoteId,
+    quote_version_id: markLostSentVersionId,
+    event_type: "created",
+  });
+
   // Story 8.5 — a DEDICATED SENT quote whose ONLY version is a SENT v1 carrying a LOCKED quote_pdf
   // file, so the 8.4/8.5 file-lock-panel E2E can assert the sent-quote lock notice + archive-only
   // affordance on the quote detail's default (latest = sent) version. Seed the PDF file (draft) +
@@ -758,6 +797,13 @@ export default async function globalSetup() {
     newVersionQuote: {
       id: newVersionQuoteId,
       sentVersionId: newVersionSentVersionId,
+    },
+    // Story 10.2 — a dedicated single-SENT-version quote the Förlorad/Avböjd dialog E2E marks lost
+    // (permanently flipping it to `lost`), kept off the shared quotes whose sent version other tests
+    // need to stay `sent`.
+    markLostQuote: {
+      id: markLostQuoteId,
+      sentVersionId: markLostSentVersionId,
     },
     // Story 7.2 — a dedicated single-SENT-version quote the accept-and-create-job FLOW E2E consumes
     // (confirming acceptance permanently flips it to `accepted` + creates a job), kept off the

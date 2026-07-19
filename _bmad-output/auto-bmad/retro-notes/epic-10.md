@@ -11,3 +11,6 @@
 - [Phase 3 â€” create-story] Lifecycle-token model settled: ONE new `lost` status+event token; Forlorad/Avbojd lives only in quote_lost_reasons.outcome. Deciding fact: shipped Epic-6 markQuoteVersionLifecycle writes reason-less `rejected` and is not UI-wired, so rejected-mapping would make 10.4's lost bucket dishonest; owner 4.3 names Forlorad/Avbojd as its own status.
 - [Phase 4 â€” ATDD] A literal **/*.json glob inside a JSDoc block comment contains */ which closes the comment and breaks --experimental-strip-types parsing â€” keep */ out of block comments in scaffolds.
 - [Phase 4 â€” ATDD] .gitattributes eol=lf pin for golden fixtures added here (retro gotcha closed in-branch).
+- [Phase 5 â€” dev-story] Adding an active tenant table (24->25) trips Phase-A hard-pinned count guardrails; reconciliation pattern ratified: 10.1 pins bump to the new count, frozen Phase-A gate validators become floors (>=24). Every Phase B table-adding story will repeat this.
+- [Phase 5 â€” dev-story] Sequential second-lost returns VALIDATION_FAILED (command guard primary); the DB belt fires only under the concurrent race â€” scaffold expectation corrected to spec-accurate layering.
+- [Phase 5 â€” dev-story] Committed supabase/cli-profile.yaml lacks dashboard_url required by CLI 2.109.1 â€” db reset fails against it; temp profile used; one-line fix flagged.

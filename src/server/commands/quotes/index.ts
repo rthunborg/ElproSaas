@@ -29,6 +29,10 @@ export {
   type MarkQuoteVersionLifecycleResult,
 } from "./lifecycle";
 export {
+  markQuoteVersionLost,
+  type MarkQuoteVersionLostResult,
+} from "./lost";
+export {
   captureQuoteAcceptance,
   type CaptureQuoteAcceptanceResult,
 } from "./accept";
@@ -51,6 +55,10 @@ export {
   validateMarkQuoteVersionLifecycle,
   type MarkQuoteVersionLifecycleInput,
   type QuoteLifecycleTransition,
+  validateMarkQuoteVersionLost,
+  type MarkQuoteVersionLostInput,
+  type QuoteLostOutcome,
+  type QuoteLostCategory,
   validateCaptureQuoteAcceptance,
   type CaptureQuoteAcceptanceInput,
   validateAcceptQuoteAndCreateJob,

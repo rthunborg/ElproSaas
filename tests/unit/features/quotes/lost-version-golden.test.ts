@@ -84,8 +84,7 @@ const PII_PATTERNS: readonly RegExp[] = [
 ];
 
 describe(
-  "10.2-GOLDEN-01: lost-version lifecycle golden (RED — fixture not authored)",
-  { skip: "ATDD red phase — Story 10.2 lost-lifecycle golden fixture not authored" },
+  "10.2-GOLDEN-01: lost-version lifecycle golden (GREEN — fixture authored)",
   () => {
     test("the fixture carries at least one lost case incl. an `annat` case (note required)", () => {
       assert.ok(cases.length > 0, "expected authored lostCases");

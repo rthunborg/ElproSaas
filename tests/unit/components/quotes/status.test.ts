@@ -19,6 +19,8 @@ const ALL_STATUSES = [
   "rejected",
   "expired",
   "superseded",
+  // Story 10.2 — the single new terminal Förlorad/Avböjd token widens the closed lifecycle set.
+  "lost",
 ] as const;
 
 test("6.2: every status has a non-empty distinct TEXT label", () => {

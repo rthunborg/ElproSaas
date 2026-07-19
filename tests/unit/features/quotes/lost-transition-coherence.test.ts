@@ -52,10 +52,9 @@ import {
   isReadOnlyStatus,
 } from "@/components/quotes/status";
 
-// RED-PHASE CAST: `"lost"` is not yet a member of the `QuoteVersionStatus` union (Task 3.2 adds it).
-// The double-cast lets the file TYPE-CHECK today; GREEN phase deletes it (a bare `"lost"` literal
-// then satisfies the union). The whole suite is skipped, so this is never dereferenced at runtime.
-const LOST = "lost" as unknown as QuoteVersionStatus;
+// GREEN PHASE (Story 10.2 landed): `"lost"` is now a real member of the `QuoteVersionStatus` union
+// (Task 3.2), so this is a plain literal — no cast. The suite runs (no `skip`).
+const LOST: QuoteVersionStatus = "lost";
 
 // The Phase-A statuses that MUST be byte-unchanged by the additive `lost` widening.
 const PRE_EXISTING: readonly QuoteVersionStatus[] = [
@@ -68,8 +67,7 @@ const PRE_EXISTING: readonly QuoteVersionStatus[] = [
 ];
 
 describe(
-  "10.2-UNIT-01: the `lost` token is coherent across the PURE layers (RED — Story 10.2 not implemented)",
-  { skip: "ATDD red phase — Story 10.2 (lost lifecycle token) not implemented" },
+  "10.2-UNIT-01: the `lost` token is coherent across the PURE layers (GREEN — Story 10.2 implemented)",
   () => {
     // ── Layer 5: LEGAL_TRANSITIONS (via the public predicate) ─────────────────────────────────
     test("sent → lost is a LEGAL forward transition (the ONLY new edge into `lost`)", () => {

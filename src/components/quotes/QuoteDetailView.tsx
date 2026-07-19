@@ -36,9 +36,10 @@ import type {
   QuoteVersionRow,
 } from "@/features/quotes/read";
 import { StatusBadge } from "./StatusBadge";
-import { quoteStatusLabel } from "./status";
+import { quoteStatusLabel, lostOutcomeLabel, lostCategoryLabel } from "./status";
 import { DraftQuoteEditor } from "./DraftQuoteEditor";
 import { MarkSentButton } from "./MarkSentButton";
+import { MarkLostButton } from "./MarkLostButton";
 import { CreateNewVersionButton } from "./CreateNewVersionButton";
 import { QuotePdfPanel } from "./QuotePdfPanel";
 import { AcceptanceCaptureForm } from "./AcceptanceCaptureForm";
@@ -71,6 +72,8 @@ const EVENT_LABELS: Record<string, string> = {
   rejected: "Avvisad",
   expired: "Utgången",
   superseded: "Ersatt",
+  // Story 10.2 — the lost lifecycle event renders "Förlorad/Avböjd" in the Händelser timeline.
+  lost: "Förlorad/Avböjd",
 };
 
 export function QuoteDetailView({
@@ -91,6 +94,7 @@ export function QuoteDetailView({
     selectedLines,
     selectedAttachments,
     events,
+    selectedLostReason,
     acceptedJobIdByVersionId,
   } = detail;
 
@@ -117,6 +121,9 @@ export function QuoteDetailView({
   // this gating. The commands independently reject an accepted version (createNewQuoteVersion guards a
   // draft/non-draft parent; generateQuotePdf is scoped to draft/sent) — the UI is the MIRROR.
   const isAccepted = selected.status === "accepted";
+  // Story 10.2: a terminal Förlorad/Avböjd version — the badge + the specific outcome/reason render
+  // from the joined `selectedLostReason`. The mark-lost affordance is offered ONLY on a sent version.
+  const isLost = selected.status === "lost";
   // Story 7.3 (AC5 deep-link seam): the ONE job created off this accepted version (if any). The
   // accepted section links to `/jobs/[jobId]` — the idempotent mirror lands on the EXISTING job,
   // never a duplicate or a second create affordance.
@@ -248,6 +255,25 @@ export function QuoteDetailView({
               </h2>
               <StatusBadge status={selected.status} />
             </div>
+
+            {/* Story 10.2 — the specific Förlorad/Avböjd outcome + reason for a lost version, resolved
+                from the joined quote_lost_reasons row (the terminal badge above says "Förlorad/Avböjd";
+                this card line carries the specific outcome + category + optional note). */}
+            {isLost && selectedLostReason && (
+              <div
+                role="note"
+                data-testid="quote-lost-reason"
+                className="flex flex-col gap-1 rounded-md border border-rose-300 bg-rose-50 px-3 py-2 text-sm text-rose-900"
+              >
+                <span>
+                  <strong>{lostOutcomeLabel(selectedLostReason.outcome)}</strong> ·{" "}
+                  {lostCategoryLabel(selectedLostReason.category)}
+                </span>
+                {selectedLostReason.note && (
+                  <span className="text-rose-800">{selectedLostReason.note}</span>
+                )}
+              </div>
+            )}
 
             {/* Customer / facility / contact display (from the frozen snapshot). */}
             <dl
@@ -448,11 +474,17 @@ export function QuoteDetailView({
             <section data-testid="quote-acceptance-section" className="text-sm">
               <h3 className="mb-1 font-medium text-zinc-800">Acceptans</h3>
               {selected.status === "sent" ? (
-                <AcceptanceCaptureForm
-                  quoteId={header.id}
-                  quoteVersionId={selected.id}
-                  sourceSentTotalOre={selected.accepted_price_ore}
-                />
+                <div className="flex flex-col gap-3">
+                  <AcceptanceCaptureForm
+                    quoteId={header.id}
+                    quoteVersionId={selected.id}
+                    sourceSentTotalOre={selected.accepted_price_ore}
+                  />
+                  {/* Story 10.2 — the Förlorad/Avböjd affordance, offered ALONGSIDE the acceptance
+                      capture on a SENT version ONLY. Opens an explicit-confirm dialog (never
+                      undo-based). The UI is the MIRROR of the INT-proven server + DB enforcement. */}
+                  <MarkLostButton quoteId={header.id} quoteVersionId={selected.id} />
+                </div>
               ) : selected.status === "accepted" ? (
                 <div
                   data-testid="quote-acceptance-accepted"
@@ -528,9 +560,12 @@ export function QuoteDetailView({
             </div>
           )}
 
-          {/* Lifecycle events (READ only — 6.2 never mutates the event log). */}
+          {/* Lifecycle events (READ only — 6.2 never mutates the event log). The aria-label promotes
+              the <section> to a named "Händelser" landmark region (Story 10.2 E2E surfaces the lost
+              event here). */}
           <section
             data-testid="quote-events"
+            aria-label="Händelser"
             className="rounded-lg border border-zinc-200 bg-white p-4 text-sm"
           >
             <h2 className="mb-2 text-sm font-semibold text-zinc-900">Händelser</h2>

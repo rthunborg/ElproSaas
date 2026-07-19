@@ -161,6 +161,11 @@ describe("Migration reset green — tenant_foundation objects present (AC1 / R-0
     // per table, NO DELETE (archive over hard delete). All three are MANY-rows-per-tenant
     // collections. Placed alphabetically. The "no DELETE policy anywhere" assertion below
     // still holds; 7.1 adds NO immutability trigger/policy (Story 7.4 locks accepted state).
+    // Story 10.2 EXTENDS it again (NOT loosened) by the 2 new INSERT-ONLY LOST-REASON policies:
+    // quote_lost_reasons.{SELECT,INSERT} — NO UPDATE, NO DELETE (the insert-only + archive-over-
+    // delete discipline; the own-tenant-UPDATE-rejected negative depends on the absent UPDATE
+    // grant/policy). Placed alphabetically (between quote_events and quote_terms). This is the ONLY
+    // insert-only pair; the "no DELETE policy anywhere" assertion below still holds.
     expect(rows.map((r) => `${r.tablename}.${r.cmd}`).sort()).toEqual([
       "articles.INSERT",
       "articles.SELECT",
@@ -205,6 +210,8 @@ describe("Migration reset green — tenant_foundation objects present (AC1 / R-0
       "quote_events.INSERT",
       "quote_events.SELECT",
       "quote_events.UPDATE",
+      "quote_lost_reasons.INSERT",
+      "quote_lost_reasons.SELECT",
       "quote_terms.INSERT",
       "quote_terms.SELECT",
       "quote_terms.UPDATE",
@@ -272,6 +279,13 @@ describe("Migration reset green — tenant_foundation objects present (AC1 / R-0
         "SELECT",
         "UPDATE",
       ]);
+    }
+    // Story 10.2 quote_lost_reasons is INSERT-ONLY — SELECT + INSERT policies, NO UPDATE, NO DELETE
+    // (the insert-only + archive-over-delete discipline; the absent UPDATE grant/policy is the
+    // load-bearing own-tenant-UPDATE-rejected enforcement).
+    const insertOnlyTables = ["quote_lost_reasons"];
+    for (const t of insertOnlyTables) {
+      expect((cmdsByTable.get(t) ?? []).sort()).toEqual(["INSERT", "SELECT"]);
     }
     // No DELETE policy exists anywhere on the app path (archive/upsert over hard delete).
     expect(rows.some((r) => r.cmd === "DELETE")).toBe(false);

@@ -5,10 +5,10 @@ epic_num: 10
 story_num: 2
 branch: epic/10-quote-lifecycle-completion
 status: in-progress
-updated_at: "2026-07-19T14:47:27Z"
+updated_at: "2026-07-19T15:47:47Z"
 started_at: "2026-07-19T14:14:36Z"
 completed_at: null
-active_seconds: 1968
+active_seconds: 5587
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -20,7 +20,7 @@ tea_selected: [atdd, automate]
 tea_rationale: "New migration + insert-only RLS table + 5-layer lifecycle state-machine widening touching the sent-snapshot commitment (R-1010..R-1012); stacked High signals"
 epic_story_count: 4
 stories_after_in_epic: 2
-completed_phases: [3, 4]
+completed_phases: [3, 4, 5]
 code_review_iterations: 0
 code_review_loop_done: false
 hitl_halt: null

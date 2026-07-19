@@ -55,34 +55,19 @@ import {
   adminSelectQuoteVersionRow,
   adminSelectQuoteVersionPdfColumns,
   adminSelectQuoteEventsForVersion,
+  adminSelectLostReasons,
   type TwoTenantFixture,
   type TestServerClient,
 } from "../../factories/tenants";
-import { adminQuery } from "../../factories/admin-sql";
 import { adminSelectAuditEvents } from "../../factories/audit-events";
 import { isLocalStackReachable } from "../../support/test-env";
 import { skipUnlessStack } from "../../support/stack-gate";
 import { runCommand } from "@/server/commands/envelope";
-import { markQuoteVersionSent } from "@/server/commands/quotes";
+import { markQuoteVersionSent, markQuoteVersionLost } from "@/server/commands/quotes";
 import type { CommandClock } from "@/server/commands/clock";
 
 const FIXED_ISO = "2026-07-19T09:00:00.000Z";
 const fixedClock: CommandClock = { now: () => new Date(FIXED_ISO) };
-
-// ── RED-PHASE PLACEHOLDER (delete in green — see header) ──────────────────────────────────────
-// GREEN: `import { markQuoteVersionLost } from "@/server/commands/quotes";`
-// `never` is assignable to `runCommand`'s command param; the suite is skipped so it is never called.
-const markQuoteVersionLost = null as unknown as never;
-
-/** Local BYPASSRLS readback of the lost-reason row(s) for a version (green: move to factories). */
-async function adminSelectLostReasons(
-  versionId: string,
-): Promise<{ outcome: string; category: string; note: string | null }[]> {
-  return adminQuery(
-    `select outcome, category, note from public.quote_lost_reasons where quote_version_id = $1`,
-    [versionId],
-  );
-}
 
 let stackUp = false;
 let fixture: TwoTenantFixture;
@@ -139,7 +124,7 @@ async function seedSentVersion(tenantId: string): Promise<string> {
 
 const LOST_INPUT = { outcome: "forlorad", category: "pris" } as const;
 
-describe.skip("markQuoteVersionLost — the lost flip (RED — Story 10.2 not implemented)", () => {
+describe("markQuoteVersionLost — the lost flip (GREEN — Story 10.2 implemented)", () => {
   it("[P0] 10.2-INT-02: ONE txn flips status→lost, appends one lost event, inserts one reason, writes one audit ({ targetId } only)", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     const versionId = await seedSentVersion(fixture.tenantA.id);
@@ -227,7 +212,7 @@ describe.skip("markQuoteVersionLost — the lost flip (RED — Story 10.2 not im
     }
   });
 
-  it("[P0] 10.2-INT-03 (DB belt): a SECOND lost on an already-lost version ⇒ QV409 → QUOTE_VERSION_LOCKED (the RPC assert v_status='sent')", async (testCtx) => {
+  it("[P0] 10.2-INT-03 (command guard): a SECOND lost on an already-lost version ⇒ VALIDATION_FAILED before any write (lost is terminal)", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     const versionId = await seedSentVersion(fixture.tenantA.id);
     const first = await runCommand(markQuoteVersionLost, {
@@ -238,6 +223,13 @@ describe.skip("markQuoteVersionLost — the lost flip (RED — Story 10.2 not im
     });
     expect(first.ok).toBe(true);
 
+    // A sequential second lost re-loads the CURRENT status (now 'lost'); `lost → lost` is illegal, so
+    // the COMMAND GUARD (isLegalLifecycleTransition) rejects it with VALIDATION_FAILED BEFORE any
+    // write — the story-spec primary rejection for an illegal lost transition (R-1011: "the command
+    // guard is the primary rejection; if a RACE slips past, the RPC/trigger raises QV409 →
+    // QUOTE_VERSION_LOCKED"). The below-command DB belt (QV409) is exercised under the CONCURRENT race
+    // in 10.2-INT-05, where a loser that passed the guard before the winner committed maps to
+    // QUOTE_VERSION_LOCKED. A sequential attempt can never reach the belt — the guard sees 'lost'.
     const res = await runCommand(markQuoteVersionLost, {
       client: a as never,
       input: { quote_version_id: versionId, outcome: "avbojd", category: "konkurrent" },
@@ -246,10 +238,12 @@ describe.skip("markQuoteVersionLost — the lost flip (RED — Story 10.2 not im
     });
     expect(res.ok).toBe(false);
     if (res.ok) return;
-    expect(res.code).toBe("QUOTE_VERSION_LOCKED");
+    expect(res.code).toBe("VALIDATION_FAILED");
     expect(res.message).not.toMatch(/QV409|23514|status|stack/i);
-    // Still exactly one reason (the second flip never wrote).
-    expect((await adminSelectLostReasons(versionId)).length).toBe(1);
+    // Still exactly one reason (the second flip never wrote); the original outcome survives.
+    const reasons = await adminSelectLostReasons(versionId);
+    expect(reasons.length).toBe(1);
+    expect(reasons[0]?.outcome).toBe("forlorad");
   });
 
   it("[P0] 10.2-INT-05: a duplicate reason (Promise.all double-submit race) ⇒ unique(quote_version_id) → VALIDATION_FAILED; ONE row survives", async (testCtx) => {
@@ -295,5 +289,33 @@ describe.skip("markQuoteVersionLost — the lost flip (RED — Story 10.2 not im
     const after = await adminSelectQuoteVersionRow(bVersionId);
     expect(after?.status).toBe(before?.status);
     expect((await adminSelectLostReasons(bVersionId)).length).toBe(0);
+  });
+
+  it("[P0] 10.2-RLS-01 (insert-only): an OWN-tenant UPDATE of a lost reason is denied at the privilege layer (42501)", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
+    // Mark a sent version lost, then have adminA (its OWN tenant) attempt to UPDATE the reason row
+    // via the anon-key RLS client. quote_lost_reasons is INSERT-ONLY (no UPDATE grant/policy), so the
+    // write is denied at the PRIVILEGE layer (42501) — the load-bearing insert-only enforcement.
+    const versionId = await seedSentVersion(fixture.tenantA.id);
+    const flip = await runCommand(markQuoteVersionLost, {
+      client: a as never,
+      input: { quote_version_id: versionId, outcome: "forlorad", category: "pris", note: "för dyrt" },
+      clock: fixedClock,
+      correlationId: crypto.randomUUID(),
+    });
+    expect(flip.ok).toBe(true);
+
+    const { data, error } = await a
+      .from("quote_lost_reasons")
+      .update({ note: "tampered" })
+      .eq("quote_version_id", versionId)
+      .select();
+    expect(error).not.toBeNull();
+    expect(error?.code).toBe("42501"); // no UPDATE grant → privilege denial
+    expect(data).toBeNull();
+    // The reason row is UNCHANGED (the note was not overwritten).
+    const reasons = await adminSelectLostReasons(versionId);
+    expect(reasons.length).toBe(1);
+    expect(reasons[0]?.note).toBe("för dyrt");
   });
 });
