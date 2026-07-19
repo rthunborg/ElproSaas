@@ -5,10 +5,10 @@ epic_num: 10
 story_num: null
 branch: epic/10-quote-lifecycle-completion
 status: in-progress
-updated_at: "2026-07-19T13:54:13Z"
+updated_at: "2026-07-19T14:10:48Z"
 started_at: "2026-07-19T12:24:42Z"
 completed_at: null
-active_seconds: 5306
+active_seconds: 6290
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -53,6 +53,7 @@ overrides: {}
 constraints: []
 active_story: 10-1-phase-b-governance-re-baseline-and-scope-manifest
 stories_landed: []
-auto_decisions: []
+auto_decisions:
+  - "Module id typed as bare string, not the literal-union Task 1.1 requires [Med] -> fix: document the id: string deviation + rationale in completion notes, mirroring the TenantTableName decision entry; do not force the union (Tier A, 10-1-phase-b-governance-re-baseline-and-scope-manifest)"
 uat_items: []
 epic_slug: quote-lifecycle-completion
