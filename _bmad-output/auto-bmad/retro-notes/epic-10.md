@@ -24,3 +24,7 @@
 - [Phase 5 â€” dev-story] Post-mutation UI pattern ratified: lift useActionState into an always-mounted orchestrator (FollowUpPanel) when the mutation unmounts its triggering affordance â€” success detectors inside the unmounting component never fire.
 - [Phase 5 â€” dev-story] CommandError gained OPTIONAL userMessage surfaced via envelope-core (23505 one-open maps to a clear message without a new error code) â€” small backward-compatible widening of the shared envelope, all 765 INT green.
 - [Tier A â€” review] Occluded-error-banner class of UI bug (banner behind a fixed-overlay Dialog) is invisible to node:test/Vitest-node/happy-path E2E â€” the react-dom/server render-tree assertion used in the fix is a cheap stack-free lane for Dialog-hosted error surfaces; consider adopting as standing pattern.
+
+## Story 10-4-pipeline-surfacing-and-dashboard-read-model
+- [Phase 3 â€” create-story] Hit-rate denominator accepted/(accepted+lost) with zero-decided => null is an AUTHOR-CHOSEN assumption FR65 does not pin â€” E19's dashboard inherits it; needs explicit owner/E19 confirmation, flagged in-story.
+- [Phase 3 â€” create-story] UX-BDR17 'ConnectionChip' has no repo component â€” contract honored via status.ts + text-first rendering; reviewers reading the UX spec literally may expect a component that cannot exist.
