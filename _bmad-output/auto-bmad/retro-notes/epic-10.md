@@ -14,3 +14,5 @@
 - [Phase 5 â€” dev-story] Adding an active tenant table (24->25) trips Phase-A hard-pinned count guardrails; reconciliation pattern ratified: 10.1 pins bump to the new count, frozen Phase-A gate validators become floors (>=24). Every Phase B table-adding story will repeat this.
 - [Phase 5 â€” dev-story] Sequential second-lost returns VALIDATION_FAILED (command guard primary); the DB belt fires only under the concurrent race â€” scaffold expectation corrected to spec-accurate layering.
 - [Phase 5 â€” dev-story] Committed supabase/cli-profile.yaml lacks dashboard_url required by CLI 2.109.1 â€” db reset fails against it; temp profile used; one-line fix flagged.
+- [Tier A â€” review] Two ATDD scaffolds shipped still describe.skip while the Change Log claimed 'all unskipped and green' â€” the unskip-or-delete finalize step needs a mechanical checklist gate in dev-story (echoes epic-9 self-documented!=done).
+- [Tier A â€” review] Task 6.4 marked done but the named standing R-1015 scan glob was never widened (only a fixture-local check added) â€” marked-complete task whose standing control went untouched; fixed in review.

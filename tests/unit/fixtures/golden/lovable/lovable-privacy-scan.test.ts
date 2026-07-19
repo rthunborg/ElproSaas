@@ -91,6 +91,34 @@ describe("Story 9.2 — Lovable-pack privacy scan (9.2-PRIV-01 / R-901)", () => 
     }
   });
 
+  // ── 10.2 / R-1015 (10.x-UNIT-01) — the STANDING scan also covers the quotes golden estate ──
+  // The lost-reason golden fixture (tests/fixtures/golden/quotes/lost-lifecycle.json) must be gated by
+  // the SAME shared authority as the lovable pack — not only by the weaker fixture-local PII_PATTERNS
+  // in lost-version-golden.test.ts. A new quotes golden fixture carrying real PII must FAIL CI here.
+  test("[P0] no real PII/secret in ANY committed quotes golden fixture DATA payload (R-1015 / 10.2)", async () => {
+    const mod = await loadScanner();
+    assert.ok(mod, "the shared anonymization scanner module must exist");
+    const lister = (mod as Record<string, unknown>).listGoldenQuotesFixtureFiles as
+      | (() => string[])
+      | undefined;
+    const scan = (mod as Record<string, unknown>).scanFixtureData as
+      | ((o: unknown, label?: string) => { violations: { class: string }[] })
+      | undefined;
+    assert.ok(typeof lister === "function", "the scanner must export listGoldenQuotesFixtureFiles()");
+    assert.ok(typeof scan === "function", "the scanner must export scanFixtureData()");
+    const files = lister!();
+    assert.ok(files.length >= 1, "the quotes golden estate must carry >=1 committed fixture to scan");
+    for (const file of files) {
+      const parsed = readJson(file) as Record<string, unknown>;
+      const { violations } = scan!(parsed, file);
+      assert.deepEqual(
+        violations.map((v) => v.class),
+        [],
+        `${file}: DATA payload leaked PII/secret class(es): ${violations.map((v) => v.class).join(", ")}`,
+      );
+    }
+  });
+
   // ── 9.2-PRIV-01c — the EXPLICIT manifest and the glob backstop agree (Task 1.4) ──
   // A bare hardcoded file list a future fixture is not added to is a silent-miss trap. The scan must
   // cover the glob-discovered set; assert the manifest (if the dev ships one) is a SUPERSET-or-equal

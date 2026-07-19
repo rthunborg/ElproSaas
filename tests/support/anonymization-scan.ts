@@ -50,6 +50,13 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 /** The canonical home for the anonymized Lovable fixtures (architecture §16/§17). */
 export const GOLDEN_LOVABLE_DIR = resolve(HERE, "../fixtures/golden/lovable");
 
+/**
+ * The quotes golden estate (Story 10.2 `lost-lifecycle.json`, and any future quotes golden fixture).
+ * The standing R-1015 privacy scan (10.x-UNIT-01) covers this dir too — a new quotes golden fixture
+ * carrying real PII must FAIL CI through the SAME authority, not a weaker fixture-local regex block.
+ */
+export const GOLDEN_QUOTES_DIR = resolve(HERE, "../fixtures/golden/quotes");
+
 // ── The EXACT PII/secret regex set (ported from golden-pack.test.ts:388-401 — do NOT loosen) ──
 export const PERSONNUMMER = /\b\d{6}-\d{4}\b/; // YYMMDD-NNNN
 export const ORGNR = /\b\d{10}\b/; // orgnr 10-digit no-dash — a distinct guard, not a personnummer alias
@@ -156,17 +163,31 @@ export function assertNoPii(fixture: unknown, label = "fixture"): void {
  * A newly-added fixture the dev forgets to list in the explicit manifest is STILL caught here.
  */
 export function listLovableFixtureFiles(): string[] {
-  if (!existsSync(GOLDEN_LOVABLE_DIR)) return [];
+  return listGoldenFixtureFiles(GOLDEN_LOVABLE_DIR);
+}
+
+/**
+ * Directory-glob backstop generalized over ANY golden-fixture dir (Task 1.4, reused by 10.2). Every
+ * committed `*.json` under `dir`, recursively. The quotes golden estate (`GOLDEN_QUOTES_DIR`) uses
+ * this so the standing R-1015 scan cannot silently miss a newly-added quotes golden fixture.
+ */
+export function listGoldenFixtureFiles(dir: string): string[] {
+  if (!existsSync(dir)) return [];
   const out: string[] = [];
-  const walk = (dir: string) => {
-    for (const entry of readdirSync(dir, { withFileTypes: true })) {
-      const full = resolve(dir, entry.name);
+  const walk = (d: string) => {
+    for (const entry of readdirSync(d, { withFileTypes: true })) {
+      const full = resolve(d, entry.name);
       if (entry.isDirectory()) walk(full);
       else if (entry.isFile() && entry.name.endsWith(".json")) out.push(full);
     }
   };
-  walk(GOLDEN_LOVABLE_DIR);
+  walk(dir);
   return out.sort();
+}
+
+/** The quotes golden estate glob (Story 10.2 lost-reason fixture + any future quotes golden). */
+export function listGoldenQuotesFixtureFiles(): string[] {
+  return listGoldenFixtureFiles(GOLDEN_QUOTES_DIR);
 }
 
 /**

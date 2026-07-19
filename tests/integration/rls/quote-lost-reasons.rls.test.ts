@@ -13,12 +13,13 @@
  * grant + no UPDATE policy). This is the "own-tenant-UPDATE-rejected" negative the story calls out as
  * the distinctive insert-only signal — the same discipline as `quote_events` / audit append-only.
  *
- * ── GREEN-PHASE HAND-OFF (Story 10.2 dev) ─────────────────────────────────────────────────────────
- * Task 2.2 enrols `quote_lost_reasons` in `TENANT_TABLES` with its per-table spoof/insert/mutation/
- * anon metadata AND marks its mutation-denial profile INSERT-ONLY (the own-tenant-UPDATE-rejected
- * branch). Once enrolled, this focused negative is redundant with the shared mutation suite and MAY be
- * folded into it — keep it only if a table-specific readability aid is wanted. Remove `.skip` after the
- * migration + enrolment land.
+ * ── GREEN (Story 10.2 landed) ─────────────────────────────────────────────────────────────────────
+ * Task 2.2 enrolled `quote_lost_reasons` in `TENANT_TABLES` with its per-table spoof/insert/mutation/
+ * anon metadata AND marked its mutation-denial profile INSERT-ONLY (the own-tenant-UPDATE-rejected
+ * branch). The migration + enrolment have landed, so this focused own-tenant insert-only negative now
+ * RUNS (no longer skipped) against the local stack — it is a table-specific readability aid alongside
+ * the shared mutation suite (the same own-tenant-UPDATE→42501 proof also lives in
+ * `tests/integration/commands/mark-quote-version-lost.int.test.ts`).
  *
  * Runs against the LOCAL Supabase stack only; skips visibly when unreachable. Mirrors the authed-client
  * mutation-rejection pattern in `mark-quote-version-sent.int.test.ts` (the direct-authed-UPDATE proof).
@@ -84,7 +85,7 @@ async function seedLostReason(): Promise<string> {
   return rows[0]!.id;
 }
 
-describe.skip("quote_lost_reasons INSERT-ONLY RLS (RED — Story 10.2 not implemented)", () => {
+describe("quote_lost_reasons INSERT-ONLY RLS (GREEN — Story 10.2 landed)", () => {
   it("[P0] 10.2-RLS-01: an OWN-TENANT authenticated UPDATE of a lost-reason row is REJECTED (insert-only: no UPDATE grant/policy)", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     const reasonId = await seedLostReason();
