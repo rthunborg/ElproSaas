@@ -31,6 +31,14 @@ import {
 export interface MarkLostButtonProps {
   readonly quoteId: string;
   readonly quoteVersionId: string;
+  /**
+   * Story 10.3 — the auto-complete-on-lost seam (Task 5.5). When this mark-lost affordance is offered
+   * on the FOLLOW-UP surface (a sent version carrying an OPEN follow-up), the open follow-up id is
+   * carried as a hidden field so `markQuoteVersionLostAction` auto-completes it with the chosen
+   * förlorad/avböjd outcome after the lost flip succeeds. Absent on the standalone lost dialog — 10.2's
+   * behavior is byte-unchanged when no follow-up id is carried.
+   */
+  readonly followUpId?: string;
 }
 
 /** The strawman category options (ASCII machine token → Swedish UI label). */
@@ -42,7 +50,7 @@ const CATEGORY_OPTIONS: ReadonlyArray<{ value: string; label: string }> = [
   { value: "annat", label: "Annat" },
 ];
 
-export function MarkLostButton({ quoteId, quoteVersionId }: MarkLostButtonProps) {
+export function MarkLostButton({ quoteId, quoteVersionId, followUpId }: MarkLostButtonProps) {
   const [open, setOpen] = useState(false);
   const [outcome, setOutcome] = useState<string>("");
   const [category, setCategory] = useState<string>("");
@@ -111,6 +119,11 @@ export function MarkLostButton({ quoteId, quoteVersionId }: MarkLostButtonProps)
         >
           <input type="hidden" name="quote_id" value={quoteId} />
           <input type="hidden" name="quote_version_id" value={quoteVersionId} />
+          {/* Story 10.3 — carry the OPEN follow-up id so the lost flip auto-completes it (Task 5.5).
+              Omitted on the standalone dialog, so 10.2's behavior is byte-unchanged without it. */}
+          {followUpId && (
+            <input type="hidden" name="follow_up_id" value={followUpId} />
+          )}
 
           {/* Outcome — a required radio group (Förlorad / Avböjd). */}
           <fieldset className="flex flex-col gap-2">

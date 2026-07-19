@@ -20,16 +20,11 @@
  *   - cross-tenant (P0, AC4): adminA acting on a Tenant-B follow-up id ⇒ TENANT_ACCESS_DENIED
  *     generically (envelope ownership gate); the Tenant-B row is untouched.
  *
- * ── WHY the top `describe` is skipped (RED PHASE) ─────────────────────────────────────────────────
- * `planQuoteFollowUp` / `completeQuoteFollowUp` / `annotateQuoteFollowUp` + the `quote_follow_ups` table
- * do NOT exist yet (Tasks 1 + 3 are the DEV phase). To keep the file TYPE-CHECKING today WITHOUT
- * importing non-existent exports, the three commands are LOCAL red-phase placeholders (typed handles
- * whose config never runs) and the follow-up readback is a LOCAL `adminQuery`; the whole suite is
- * `describe.skip` so nothing is invoked. `markQuoteVersionLost` is the REAL shipped 10.2 command. GREEN:
- *   1. replace the placeholders with
- *      `import { planQuoteFollowUp, completeQuoteFollowUp, annotateQuoteFollowUp } from "@/server/commands/quotes";`
- *   2. (optional) move `adminSelectFollowUps` into `tests/factories/tenants.ts`;
- *   3. remove `.skip`. Assertions are the CONTRACT — do not weaken them.
+ * ── GREEN (Story 10.3 implemented) ────────────────────────────────────────────────────────────────
+ * The three commands + the `quote_follow_ups` table are landed; this suite imports the real commands
+ * from `@/server/commands/quotes`, uses the factory `adminSelectFollowUps` readback, and is unskipped
+ * and green. `markQuoteVersionLost` is the REAL shipped 10.2 command. Assertions are the CONTRACT — do
+ * not weaken them.
  *
  * Mirrors `mark-quote-version-lost.int.test.ts` (10.2): per-run `crypto.randomUUID()` ids, BYPASSRLS
  * readback, deterministic injected clock, LOCAL Supabase only + visible skip when unreachable. CI
@@ -47,6 +42,7 @@ import {
   adminInsertCalculation,
   adminInsertQuote,
   adminInsertQuoteVersion,
+  adminSelectFollowUps,
   type TwoTenantFixture,
   type TestServerClient,
 } from "../../factories/tenants";
@@ -54,48 +50,17 @@ import { adminQuery } from "../../factories/admin-sql";
 import { adminSelectAuditEvents } from "../../factories/audit-events";
 import { isLocalStackReachable } from "../../support/test-env";
 import { skipUnlessStack } from "../../support/stack-gate";
-import { runCommand, type Command } from "@/server/commands/envelope";
-import { markQuoteVersionLost } from "@/server/commands/quotes";
+import { runCommand } from "@/server/commands/envelope";
+import {
+  markQuoteVersionLost,
+  planQuoteFollowUp,
+  completeQuoteFollowUp,
+  annotateQuoteFollowUp,
+} from "@/server/commands/quotes";
 import type { CommandClock } from "@/server/commands/clock";
 
 const FIXED_ISO = "2026-07-19T09:00:00.000Z";
 const fixedClock: CommandClock = { now: () => new Date(FIXED_ISO) };
-
-/**
- * RED-PHASE command placeholders — typed handles whose config is never executed (the suite is
- * `describe.skip`). GREEN: delete these and import the real commands from `@/server/commands/quotes`.
- */
-function redPhaseCommand<I, R>(): Command<I, R> {
-  return { config: {} as never };
-}
-const planQuoteFollowUp = redPhaseCommand<
-  { quote_version_id: string; due_date: string; note?: string | null },
-  { targetId: string }
->();
-const completeQuoteFollowUp = redPhaseCommand<
-  { follow_up_id: string; outcome: string },
-  { targetId: string }
->();
-const annotateQuoteFollowUp = redPhaseCommand<
-  { follow_up_id: string; note?: string | null },
-  { targetId: string }
->();
-
-type FollowUpRow = {
-  id: string;
-  status: string;
-  outcome: string | null;
-  completed_at: string | null;
-  note: string | null;
-};
-/** GREEN: consider moving to tests/factories/tenants.ts (adminSelectFollowUps). */
-async function adminSelectFollowUps(quoteId: string): Promise<FollowUpRow[]> {
-  return adminQuery<FollowUpRow>(
-    `select id, status, outcome, completed_at, note from public.quote_follow_ups
-       where quote_id = $1 order by created_at`,
-    [quoteId],
-  );
-}
 
 let stackUp = false;
 let fixture: TwoTenantFixture;
@@ -143,7 +108,7 @@ function plan(versionId: string, over: { due_date?: string; note?: string | null
   });
 }
 
-describe.skip("quote follow-up commands — plan/complete/annotate + one-open + auto-complete-on-lost (AC1/AC3/AC4)", () => {
+describe("quote follow-up commands — plan/complete/annotate + one-open + auto-complete-on-lost (AC1/AC3/AC4)", () => {
   it("[P0] 10.3-INT-01: planning an OPEN follow-up on a sent version creates exactly one open row + one audit ({ targetId } only)", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     const { quoteId, versionId } = await seedSentQuoteVersion(fixture.tenantA.id);

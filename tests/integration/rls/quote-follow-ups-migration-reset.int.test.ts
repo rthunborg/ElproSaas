@@ -27,10 +27,9 @@
  * lands. The GREEN phase EXTENDS that file (add quote_follow_ups × SELECT/INSERT/UPDATE to the expected
  * EXACT set + the table to the exists/RLS-forced checks), keeping the enumeration EXACT — never a superset.
  *
- * ── RED PHASE (Story 10.3 not yet implemented) ────────────────────────────────────────────────────
- * The migration does NOT exist yet, so the introspection finds nothing. The whole describe block is
- * `describe.skip`; the assertions encode the CONTRACT the green phase must satisfy. GREEN: land the
- * migration, remove `.skip`, re-label "green", and EXTEND `migration-reset.int.test.ts` in lockstep.
+ * ── GREEN (Story 10.3 implemented) ────────────────────────────────────────────────────────────────
+ * The migration is landed; this suite is unskipped and green, and `migration-reset.int.test.ts` was
+ * extended in lockstep with the three new quote_follow_ups policies (the EXACT enumeration).
  *
  * Runs against the LOCAL Supabase stack only; skips visibly when unreachable. Mirrors
  * `quote-lost-reasons-migration-reset.int.test.ts` (10.2). CI (`SUPABASE_TEST_REQUIRED=1`) hard-fails so
@@ -57,7 +56,7 @@ afterAll(async () => {
   await closeAdminPool();
 });
 
-describe.skip("quote_follow_ups migration reset — updatable one-open-per-quote table + full RLS (AC1/AC3/AC4)", () => {
+describe("quote_follow_ups migration reset — updatable one-open-per-quote table + full RLS (AC1/AC3/AC4)", () => {
   it("[P0] 10.3-INT-02: the quote_follow_ups table exists after reset", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     const rows = await adminQuery<{ table_name: string }>(

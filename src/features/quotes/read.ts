@@ -24,6 +24,7 @@
  */
 import { createSupabaseServerClient } from "@/server/db/supabase-server-client";
 import type { QuoteVersionStatus } from "./timeline";
+import { classifyFollowUp } from "./follow-up-dates";
 
 const GENERIC_READ_ERROR =
   "Ett tillfälligt fel inträffade. Försök igen om en stund.";
@@ -69,6 +70,17 @@ export interface QuoteListRow {
    * unless the latest version is lost. Note is intentionally OMITTED from the list projection.
    */
   readonly lost_reason: { readonly outcome: string; readonly category: string } | null;
+  /**
+   * Story 10.3 (AC2): whether the quote has an OPEN follow-up (the `Har uppföljning` filter). At most
+   * one open follow-up per quote (the one-open partial unique index).
+   */
+  readonly has_open_follow_up: boolean;
+  /**
+   * Story 10.3 (AC2): whether the quote's open follow-up is OVERDUE on the Europe/Stockholm date
+   * boundary (the `Försenad uppföljning` filter + the row overdue badge). False when there is no open
+   * follow-up or it is due-today/upcoming.
+   */
+  readonly overdue_follow_up: boolean;
   readonly updated_at: string;
 }
 
@@ -92,7 +104,10 @@ export async function readQuoteList(): Promise<QuoteListReadResult> {
     // Read the quotes + their versions (incl. the version id so a lost version's joined reason can
     // be matched below), plus the tenant's lost reasons (RLS-scoped; own-tenant only) mapped by
     // version id — mirroring the readQuoteDetail jobs/acceptances secondary-read pattern.
-    const [quotesRes, lostRes] = await Promise.all([
+    // The injected render instant for the Europe/Stockholm due/overdue classification (captured ONCE
+    // here — never `Date.now()` on the pure classification path). Story 10.4 reuses this discipline.
+    const nowInstant = new Date();
+    const [quotesRes, lostRes, followUpsRes] = await Promise.all([
       client
         .from("quotes")
         .select(
@@ -103,8 +118,26 @@ export async function readQuoteList(): Promise<QuoteListReadResult> {
       client
         .from("quote_lost_reasons")
         .select("quote_version_id, outcome, category"),
+      // Story 10.3 (AC2): the tenant's OPEN follow-ups (RLS-scoped; own-tenant only), mapped by
+      // quote_id. At most one open per quote (the one-open partial unique index). This is the
+      // UI-level surfacing of the open/overdue flags — the read-model/aggregation is Story 10.4.
+      client
+        .from("quote_follow_ups")
+        .select("quote_id, due_date, status")
+        .eq("status", "open"),
     ]);
     if (quotesRes.error) return { rows: [], error: GENERIC_READ_ERROR };
+    // An open-follow-up read fault is NON-FATAL to the list (the flags degrade to false — no badge).
+    const openFollowUpByQuoteId: Record<string, { due_date: string }> = {};
+    if (!followUpsRes.error) {
+      for (const raw of (followUpsRes.data ?? []) as Record<string, unknown>[]) {
+        const qId = raw.quote_id;
+        const dueDate = raw.due_date;
+        if (typeof qId === "string" && typeof dueDate === "string") {
+          openFollowUpByQuoteId[qId] = { due_date: dueDate };
+        }
+      }
+    }
     // A lost-reason read fault is NON-FATAL to the list (the Förlustorsak column degrades to "—").
     const lostByVersionId: Record<string, { outcome: string; category: string }> = {};
     if (!lostRes.error) {
@@ -151,6 +184,12 @@ export async function readQuoteList(): Promise<QuoteListReadResult> {
         latest && latest.status === "lost" && latest.id in lostByVersionId
           ? lostByVersionId[latest.id]
           : null;
+      // Story 10.3: the quote's OPEN follow-up flags (has-open + overdue-on-the-Stockholm-boundary).
+      const openFollowUp = openFollowUpByQuoteId[rec.id] ?? null;
+      const hasOpenFollowUp = openFollowUp !== null;
+      const overdueFollowUp =
+        openFollowUp !== null &&
+        classifyFollowUp(openFollowUp.due_date, nowInstant) === "overdue";
       return {
         id: rec.id,
         customer_display_name: customer?.display_name ?? null,
@@ -158,6 +197,8 @@ export async function readQuoteList(): Promise<QuoteListReadResult> {
         latest_quote_number: latest ? num(latest.quote_number) : null,
         version_count: versions.length,
         lost_reason: lostReason,
+        has_open_follow_up: hasOpenFollowUp,
+        overdue_follow_up: overdueFollowUp,
         updated_at: rec.updated_at,
       };
     });
@@ -254,6 +295,20 @@ export interface QuoteVersionAttachmentRow {
   readonly sort_order: number;
 }
 
+/**
+ * Story 10.3: a follow-up workflow row for the quote (the detail-header chip + the completion sheet).
+ * `note`/`outcome` are free text; at most ONE open per quote (the one-open partial unique index).
+ */
+export interface QuoteFollowUpDetailRow {
+  readonly id: string;
+  readonly quote_version_id: string;
+  readonly status: "open" | "completed";
+  readonly due_date: string;
+  readonly note: string | null;
+  readonly outcome: string | null;
+  readonly completed_at: string | null;
+}
+
 /** A quote lifecycle event (the append-friendly event log — READ only in 6.2). */
 export interface QuoteEventRow {
   readonly id: string;
@@ -283,6 +338,16 @@ export interface QuoteDetail {
    * RLS-scoped (own-tenant); at most one reason per version (unique (quote_version_id)).
    */
   readonly selectedLostReason: QuoteLostReasonRow | null;
+  /**
+   * Story 10.3: ALL follow-up rows for the quote (open + completed), for the detail-header
+   * next-follow-up chip + the completion sheet. At most one open per quote. RLS-scoped (own-tenant).
+   */
+  readonly followUps: readonly QuoteFollowUpDetailRow[];
+  /**
+   * Story 10.3: the injected render instant (ISO) for the Europe/Stockholm due/overdue classification
+   * of the header chip — captured ONCE at read time so the client island never reads `Date.now()`.
+   */
+  readonly nowISO: string;
   /**
    * Story 7.3 (AC5 deep-link seam): the created job id per accepted version id — the ONE job the
    * 7.2 acceptance transaction created off that version (`unique (quote_acceptance_id)` guarantees
@@ -465,8 +530,15 @@ export async function readQuoteDetail(
 
     // ── The selected version's frozen children + the quote events (parallel, own-tenant RLS). ──
     // Plus (Story 7.3, AC5 seam) the jobs created off this quote's versions — the deep-link target.
-    const [linesRes, attachmentsRes, eventsRes, jobsRes, acceptancesRes, lostRes] =
-      await Promise.all([
+    const [
+      linesRes,
+      attachmentsRes,
+      eventsRes,
+      jobsRes,
+      acceptancesRes,
+      lostRes,
+      followUpsRes,
+    ] = await Promise.all([
       client
         .from("quote_version_lines")
         .select(LINE_COLUMNS)
@@ -502,6 +574,13 @@ export async function readQuoteDetail(
         .from("quote_lost_reasons")
         .select("outcome, category, note")
         .eq("quote_version_id", selectedId),
+      // Story 10.3 (AC1/AC2/AC3): ALL follow-ups for THIS quote (own-tenant RLS) — the header chip +
+      // the completion sheet. A read fault is NON-FATAL (the chip/sheet degrade to absent).
+      client
+        .from("quote_follow_ups")
+        .select("id, quote_version_id, status, due_date, note, outcome, completed_at")
+        .eq("quote_id", quoteId)
+        .order("created_at", { ascending: true }),
     ]);
 
     if (linesRes.error) return { detail: null, error: GENERIC_READ_ERROR };
@@ -555,6 +634,24 @@ export async function readQuoteDetail(
       }
     }
 
+    // Story 10.3: the quote's follow-ups (open + completed). A read fault degrades to an empty list
+    // (the chip/sheet simply do not render) — the follow-up surface is a convenience over the DB.
+    const followUps: QuoteFollowUpDetailRow[] = [];
+    if (!followUpsRes.error) {
+      for (const raw of (followUpsRes.data ?? []) as Record<string, unknown>[]) {
+        const status = raw.status === "completed" ? "completed" : "open";
+        followUps.push({
+          id: String(raw.id),
+          quote_version_id: String(raw.quote_version_id),
+          status,
+          due_date: String(raw.due_date),
+          note: (raw.note as string | null) ?? null,
+          outcome: (raw.outcome as string | null) ?? null,
+          completed_at: (raw.completed_at as string | null) ?? null,
+        });
+      }
+    }
+
     const selectedLines = ((linesRes.data ?? []) as Record<string, unknown>[]).map(
       toLineRow,
     );
@@ -604,6 +701,8 @@ export async function readQuoteDetail(
         selectedAttachments,
         events,
         selectedLostReason,
+        followUps,
+        nowISO: new Date().toISOString(),
         acceptedJobIdByVersionId,
         acceptanceIdByVersionId,
       },

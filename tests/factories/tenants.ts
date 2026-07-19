@@ -1328,7 +1328,8 @@ export async function adminSelectQuoteLabel(
     | "quote_versions"
     | "quote_version_lines"
     | "quote_version_attachments"
-    | "quote_events",
+    | "quote_events"
+    | "quote_follow_ups",
   labelColumn: string,
   id: string,
 ): Promise<{ id: string; label: string | null } | null> {
@@ -1530,6 +1531,89 @@ export async function adminSelectLostReasons(
       where quote_version_id = $1`,
     [quoteVersionId],
   );
+}
+
+/** A seed for a `quote_follow_ups` row (Story 10.3; parent quote + version required, same tenant). */
+export interface QuoteFollowUpSeed {
+  readonly tenant_id: string;
+  readonly quote_id: string;
+  readonly quote_version_id: string;
+  readonly due_date?: string;
+  readonly note?: string | null;
+  readonly status?: "open" | "completed";
+  readonly outcome?: string | null;
+  readonly completed_at?: string | null;
+}
+
+/**
+ * Seed ONE `quote_follow_ups` row via the privileged superuser pg path (BYPASSRLS). Story 10.3.
+ * Returns the inserted id. THROWS (Postgres `code` preserved) on a DB error — including the
+ * one-open partial-unique-index `23505` if a second OPEN row is seeded on the same quote. The
+ * note carries an anonymized shape-only token; NO PII.
+ */
+export async function adminInsertQuoteFollowUp(
+  seed: QuoteFollowUpSeed,
+): Promise<string> {
+  try {
+    const rows = await adminQuery<{ id: string }>(
+      `insert into public.quote_follow_ups
+         (tenant_id, quote_id, quote_version_id, due_date, note, status, outcome, completed_at)
+       values ($1, $2, $3, $4, $5, $6, $7, $8)
+       returning id`,
+      [
+        seed.tenant_id,
+        seed.quote_id,
+        seed.quote_version_id,
+        seed.due_date ?? "2026-08-01",
+        seed.note ?? null,
+        seed.status ?? "open",
+        seed.outcome ?? null,
+        seed.completed_at ?? null,
+      ],
+    );
+    const id = rows[0]?.id;
+    if (!id) throw new Error("adminInsertQuoteFollowUp: no id returned");
+    return id;
+  } catch (error) {
+    rethrowWithCode(error);
+  }
+}
+
+/** Read the `quote_follow_ups` rows for a quote back (BYPASSRLS, ordered). Story 10.3 readback helper. */
+export async function adminSelectFollowUps(
+  quoteId: string,
+): Promise<
+  {
+    id: string;
+    status: string;
+    outcome: string | null;
+    completed_at: string | null;
+    note: string | null;
+  }[]
+> {
+  const rows = await adminQuery<{
+    id: string;
+    status: string;
+    outcome: string | null;
+    completed_at: Date | string | null;
+    note: string | null;
+  }>(
+    `select id, status, outcome, completed_at, note from public.quote_follow_ups
+       where quote_id = $1 order by created_at`,
+    [quoteId],
+  );
+  return rows.map((r) => ({
+    id: r.id,
+    status: r.status,
+    outcome: r.outcome ?? null,
+    completed_at:
+      r.completed_at === null || r.completed_at === undefined
+        ? null
+        : r.completed_at instanceof Date
+          ? r.completed_at.toISOString()
+          : String(r.completed_at),
+    note: r.note ?? null,
+  }));
 }
 
 /** Seed ONE `jobs` row via the privileged superuser pg path (BYPASSRLS). */

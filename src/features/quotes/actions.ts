@@ -23,11 +23,14 @@ import { runCommand, type CommandDbClient } from "@/server/commands/envelope";
 import { COMMAND_MESSAGES } from "@/server/commands/command-errors";
 import {
   acceptQuoteAndCreateJob,
+  annotateQuoteFollowUp,
+  completeQuoteFollowUp,
   createNewQuoteVersion,
   createQuoteVersionFromCalculation,
   generateQuotePdf,
   markQuoteVersionLost,
   markQuoteVersionSent,
+  planQuoteFollowUp,
   updateDraftQuoteVersion,
 } from "@/server/commands/quotes";
 import { createSignedFileAccess } from "@/server/commands/files";
@@ -54,6 +57,10 @@ import {
   LOST_ACTION_INITIAL,
   type LostActionState,
 } from "./lost-action-state";
+import {
+  FOLLOW_UP_ACTION_INITIAL,
+  type FollowUpActionState,
+} from "./follow-up-action-state";
 import {
   NEW_VERSION_ACTION_INITIAL,
   type NewVersionActionState,
@@ -338,6 +345,29 @@ export async function markQuoteVersionLostAction(
   const result = await runCommand(markQuoteVersionLost, { client, input });
 
   if (result.ok) {
+    // Story 10.3 — the auto-complete-on-lost seam (Task 5.5, SETTLED DESIGN DECISION 5). When the
+    // lost path is taken FROM the follow-up surface, the dialog carries a hidden `follow_up_id`. On a
+    // successful lost flip (the irreversible commitment, done FIRST), auto-complete the open follow-up
+    // with the chosen förlorad/avböjd outcome — so no open follow-up survives a lost flip taken from
+    // this surface. TWO-command orchestration (NOT a widened RPC — the frozen mark_quote_version_lost
+    // RPC is untouched). Accepted, recoverable non-atomicity residual: a rare transient failure of the
+    // completion AFTER a successful lost flip leaves an orphaned OPEN follow-up on the now-lost quote —
+    // non-corrupting (the sheet stays available; the user can Klarmarkera it manually; both commands
+    // are independently audited). The standalone (non-follow-up) lost dialog omits the field, so 10.2's
+    // behavior is byte-unchanged when no follow-up id is carried.
+    const followUpId = form.get("follow_up_id");
+    const outcome = form.get("outcome");
+    if (
+      typeof followUpId === "string" &&
+      followUpId.length > 0 &&
+      typeof outcome === "string" &&
+      outcome.length > 0
+    ) {
+      await runCommand(completeQuoteFollowUp, {
+        client,
+        input: { follow_up_id: followUpId, outcome },
+      });
+    }
     if (typeof quoteId === "string" && quoteId.length > 0) {
       revalidatePath(`/quotes/${quoteId}`);
       // Revalidate the version subroute too so the lost version re-renders the terminal state there.
@@ -354,6 +384,144 @@ export async function markQuoteVersionLostAction(
 
   return {
     ...LOST_ACTION_INITIAL,
+    status: "error",
+    code: result.code,
+    formError: result.message || COMMAND_MESSAGES[result.code],
+  };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Story 10.3 — the follow-up server actions (plan / complete / annotate). The ONLY write path the
+// follow-up dialog + completion sheet use. Each wires its affordance to the matching single-row
+// envelope command (NO RPC). Only the follow-up shape is read from the form — tenant/status/quote_id
+// are NEVER accepted (the plan command derives quote_id from the loaded anchor version; the
+// complete/annotate commands re-assert the open-only predicate server-side). After success, revalidate
+// BOTH `/quotes/[quoteId]` AND the version subroute (the 6.2 subroute-revalidation lesson) so the chip
+// / completion sheet / list flags re-render. Authenticated admin-only — NO public / portal route.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * The plan-follow-up action (React `useActionState` signature). Wires the "Planera uppföljning"
+ * dialog to `planQuoteFollowUp`. Only the anchor version id + due date + optional note are read; the
+ * server command is the authority (the one-open rule is DB-enforced → a clear VALIDATION_FAILED).
+ */
+export async function planQuoteFollowUpAction(
+  _prev: FollowUpActionState,
+  form: FormData,
+): Promise<FollowUpActionState> {
+  const quoteVersionId = form.get("quote_version_id");
+  const quoteId = form.get("quote_id");
+  const input: Record<string, unknown> = {
+    quote_version_id: quoteVersionId,
+    due_date: form.get("due_date"),
+  };
+  // The planning note is OPTIONAL — carry the field only when the form submitted a value.
+  const note = optionalText(form, "note");
+  if (form.has("note")) input.note = note ?? null;
+
+  const client = (await createSupabaseServerClient()) as unknown as CommandDbClient;
+  const result = await runCommand(planQuoteFollowUp, { client, input });
+
+  if (result.ok) {
+    if (typeof quoteId === "string" && quoteId.length > 0) {
+      revalidatePath(`/quotes/${quoteId}`);
+      if (typeof quoteVersionId === "string" && quoteVersionId.length > 0) {
+        revalidatePath(`/quotes/${quoteId}/versions/${quoteVersionId}`);
+      }
+    }
+    return {
+      ...FOLLOW_UP_ACTION_INITIAL,
+      status: "success",
+      targetId: result.data.targetId,
+    };
+  }
+
+  return {
+    ...FOLLOW_UP_ACTION_INITIAL,
+    status: "error",
+    code: result.code,
+    formError: result.message || COMMAND_MESSAGES[result.code],
+  };
+}
+
+/**
+ * The complete-follow-up action (React `useActionState` signature). Wires the "Klarmarkera"
+ * completion sheet to `completeQuoteFollowUp`. Only the follow-up id + the required outcome note are
+ * read; the server command re-asserts the open-only predicate and stamps completed_at with the
+ * injected clock.
+ */
+export async function completeQuoteFollowUpAction(
+  _prev: FollowUpActionState,
+  form: FormData,
+): Promise<FollowUpActionState> {
+  const followUpId = form.get("follow_up_id");
+  const quoteId = form.get("quote_id");
+  const quoteVersionId = form.get("quote_version_id");
+  const input: Record<string, unknown> = {
+    follow_up_id: followUpId,
+    outcome: form.get("outcome"),
+  };
+
+  const client = (await createSupabaseServerClient()) as unknown as CommandDbClient;
+  const result = await runCommand(completeQuoteFollowUp, { client, input });
+
+  if (result.ok) {
+    if (typeof quoteId === "string" && quoteId.length > 0) {
+      revalidatePath(`/quotes/${quoteId}`);
+      if (typeof quoteVersionId === "string" && quoteVersionId.length > 0) {
+        revalidatePath(`/quotes/${quoteId}/versions/${quoteVersionId}`);
+      }
+    }
+    return {
+      ...FOLLOW_UP_ACTION_INITIAL,
+      status: "success",
+      targetId: result.data.targetId,
+    };
+  }
+
+  return {
+    ...FOLLOW_UP_ACTION_INITIAL,
+    status: "error",
+    code: result.code,
+    formError: result.message || COMMAND_MESSAGES[result.code],
+  };
+}
+
+/**
+ * The annotate-follow-up action (React `useActionState` signature). Wires the note-edit affordance to
+ * `annotateQuoteFollowUp`. Only the follow-up id + the note are read; the server command re-asserts
+ * the open-only predicate.
+ */
+export async function annotateQuoteFollowUpAction(
+  _prev: FollowUpActionState,
+  form: FormData,
+): Promise<FollowUpActionState> {
+  const followUpId = form.get("follow_up_id");
+  const quoteId = form.get("quote_id");
+  const quoteVersionId = form.get("quote_version_id");
+  const input: Record<string, unknown> = { follow_up_id: followUpId };
+  const note = optionalText(form, "note");
+  if (form.has("note")) input.note = note ?? null;
+
+  const client = (await createSupabaseServerClient()) as unknown as CommandDbClient;
+  const result = await runCommand(annotateQuoteFollowUp, { client, input });
+
+  if (result.ok) {
+    if (typeof quoteId === "string" && quoteId.length > 0) {
+      revalidatePath(`/quotes/${quoteId}`);
+      if (typeof quoteVersionId === "string" && quoteVersionId.length > 0) {
+        revalidatePath(`/quotes/${quoteId}/versions/${quoteVersionId}`);
+      }
+    }
+    return {
+      ...FOLLOW_UP_ACTION_INITIAL,
+      status: "success",
+      targetId: result.data.targetId,
+    };
+  }
+
+  return {
+    ...FOLLOW_UP_ACTION_INITIAL,
     status: "error",
     code: result.code,
     formError: result.message || COMMAND_MESSAGES[result.code],

@@ -127,7 +127,11 @@ export type TenantTableName =
   | "job_events"
   // Story 10.2 Förlorad/Avböjd reason table (INSERT-ONLY: no UPDATE grant/policy → cross-tenant
   // AND own-tenant UPDATE are denied at the privilege layer, 42501; no money/öre column).
-  | "quote_lost_reasons";
+  | "quote_lost_reasons"
+  // Story 10.3 follow-up workflow table (UPDATE-able: SELECT+INSERT+UPDATE grant/policy, NO DELETE →
+  // cross-tenant UPDATE is RLS-invisible zero-rows, own-tenant DELETE is a privilege-layer denial;
+  // no money/öre column). The load-bearing "rls-invisible" contrast with 10.2's insert-only table.
+  | "quote_follow_ups";
 
 /**
  * The enrolled tenant-owned tables — the H4 EXPECTED enrolment set. Story 10.1 (ADR-B003 §5.3
@@ -253,6 +257,15 @@ export interface InventoryContext {
    * it. A consumer that needs one but finds it missing fails LOUDLY (requireCrmId).
    */
   readonly tenantBQuoteLostReasonId?: string;
+  /**
+   * REAL Tenant B FOLLOW-UP row id (Story 10.3) — the concrete cross-tenant target the
+   * quote_follow_ups negatives point Tenant A at (never a non-existent id that would deny
+   * vacuously). Optional so the anon suite can omit it; the cross-tenant suite seeds and asserts
+   * it. A consumer that needs one but finds it missing fails LOUDLY (requireCrmId). The table is
+   * UPDATE-able, so its cross-tenant UPDATE negative is the "rls-invisible" mechanism (zero rows +
+   * unchanged re-read of `note`), NOT the insert-only privilege denial.
+   */
+  readonly tenantBQuoteFollowUpId?: string;
 }
 
 /**
@@ -306,6 +319,10 @@ export function updateDenialKind(table: TenantTableName): MutationDenialKind {
     case "quote_acceptances":
     case "jobs":
     case "job_events":
+    // Story 10.3 quote_follow_ups is UPDATE-able (SELECT+INSERT+UPDATE grant/policy) — a
+    // cross-tenant UPDATE is hidden by RLS USING (zero rows), NOT a missing-grant 42501. This is
+    // the load-bearing contrast with 10.2's insert-only quote_lost_reasons ("privilege" above).
+    case "quote_follow_ups":
       return "rls-invisible"; // UPDATE granted; RLS USING hides foreign rows
     default:
       return assertNever(table);
@@ -675,6 +692,25 @@ export function spoofedRowFor(
         outcome: "forlorad",
         category: "pris",
       };
+    case "quote_follow_ups":
+      // A follow-up forging Tenant B ownership, pointing at REAL Tenant B quote + version parents.
+      // `authenticated` HAS an INSERT grant on quote_follow_ups, so the denial is the RLS INSERT
+      // WITH CHECK (is_tenant_admin(tenant_id=B) is false for a Tenant A admin) → `42501`. The RLS
+      // WITH CHECK fires BEFORE the composite-FK / one-open partial-unique-index checks, so the
+      // denial is the policy (42501), never a `23503`/`23505`. status='open' is the default; a valid
+      // due_date is supplied (NOT NULL). NO money/öre column exists to populate.
+      return {
+        id: crypto.randomUUID(),
+        tenant_id: fixture.tenantB.id,
+        quote_id: requireCrmId(ctx.tenantBQuoteId, "tenantBQuoteId", table),
+        quote_version_id: requireCrmId(
+          ctx.tenantBQuoteVersionId,
+          "tenantBQuoteVersionId",
+          table,
+        ),
+        due_date: "2026-08-01",
+        status: "open",
+      };
     default:
       return assertNever(table);
   }
@@ -899,6 +935,15 @@ export function tenantBFilter(
           table,
         ),
       };
+    case "quote_follow_ups":
+      return {
+        column: "id",
+        value: requireCrmId(
+          ctx.tenantBQuoteFollowUpId,
+          "tenantBQuoteFollowUpId",
+          table,
+        ),
+      };
     default:
       return assertNever(table);
   }
@@ -982,6 +1027,11 @@ export function hijackMutationFor(
       // `note` is a real column so the statement parses (the denial is the missing grant, not a
       // bad column reference).
       return { note: "hijacked-by-tenant-a" };
+    case "quote_follow_ups":
+      // UPDATE-able ("rls-invisible"): the cross-tenant UPDATE matches ZERO rows under RLS USING —
+      // the hijack sets `note` (a mutable free-text column) to a value DIFFERENT from the seed's
+      // ("tenant-b-followup-seed") so the unchanged re-read is meaningful.
+      return { note: "hijacked-by-tenant-a" };
     default:
       return assertNever(table);
   }
@@ -1061,6 +1111,10 @@ export function rlsInvisibleLabelColumn(table: TenantTableName): string {
     // quote_lost_reasons is a "privilege"-denial (insert-only) table — the unchanged-re-read branch
     // is never reached; `note` keeps the exhaustive switch compile-safe.
     case "quote_lost_reasons":
+      return "note";
+    // Story 10.3 quote_follow_ups is UPDATE-able ("rls-invisible"): `note` is the column the hijack
+    // sets — re-read it to prove the seed value ("tenant-b-followup-seed") was NOT overwritten.
+    case "quote_follow_ups":
       return "note";
     default:
       return assertNever(table);
@@ -1309,6 +1363,19 @@ export function anonRowFor(
         outcome: "forlorad",
         category: "pris",
       };
+    case "quote_follow_ups":
+      // Anon has NO grant on quote_follow_ups → the INSERT is denied at the privilege layer (42501)
+      // regardless of the row shape (a random parent id never matters — the grant denial fires
+      // first). NOT-NULL due_date populated so the grant denial — not a NOT-NULL violation — fires.
+      // NO money/öre column.
+      return {
+        id: crypto.randomUUID(),
+        tenant_id: fixture.tenantA.id,
+        quote_id: crypto.randomUUID(),
+        quote_version_id: crypto.randomUUID(),
+        due_date: "2026-08-01",
+        status: "open",
+      };
     default:
       return assertNever(table);
   }
@@ -1358,6 +1425,7 @@ export function anonFilterFor(
     case "jobs":
     case "job_events":
     case "quote_lost_reasons":
+    case "quote_follow_ups":
       return { column: "tenant_id", value: ctx.fixture.tenantA.id };
     default:
       return assertNever(table);
@@ -1416,6 +1484,8 @@ export function anonMutationFor(
     case "job_events":
       return { channel: "anon-hijack" };
     case "quote_lost_reasons":
+      return { note: "anon-hijack" };
+    case "quote_follow_ups":
       return { note: "anon-hijack" };
     default:
       return assertNever(table);

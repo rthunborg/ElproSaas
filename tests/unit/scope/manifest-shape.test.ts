@@ -67,6 +67,9 @@ const PINNED_TENANT_TABLES = [
   // Story 10.2 enrols the Förlorad/Avböjd reason table into the ACTIVE quotes module (epic-10
   // activation seam) — the Phase-A baseline active set grows 24 → 25 in the same PR as its migration.
   "quote_lost_reasons",
+  // Story 10.3 enrols the follow-up workflow table into the same ACTIVE quotes module (epic-10
+  // activation seam) — the active set grows 25 → 26 in the same PR as its migration.
+  "quote_follow_ups",
   "jobs",
   "job_events",
 ];
@@ -137,14 +140,15 @@ test("10.1-UNIT-SHAPE-03 (AC2): the `active` set reproduces exactly the 7 Phase-
   assert.deepEqual(sortedUnique(routes), sortedUnique(PINNED_NAV_ROUTES));
 });
 
-test("10.1-UNIT-SHAPE-04 (AC2): the `active` set reproduces exactly the 25 tenant tables (pinned, non-circular)", async () => {
-  // Baseline was 24 (Phase A); Story 10.2 enrols quote_lost_reasons into the active quotes module in
-  // the same PR as its migration (ADR-B003 §5.5 activation seam), so the active union is now 25.
+test("10.1-UNIT-SHAPE-04 (AC2): the `active` set reproduces exactly the 26 tenant tables (pinned, non-circular)", async () => {
+  // Baseline was 24 (Phase A); Story 10.2 enrolled quote_lost_reasons (→ 25) and Story 10.3 enrols
+  // quote_follow_ups (→ 26) into the active quotes module, each in the same PR as its migration
+  // (ADR-B003 §5.5 activation seam), so the active union is now 26.
   const manifest = await loadManifest();
   const tables = manifest.modules
     .filter((m) => m.status === "active")
     .flatMap((m) => m.tenantTables);
-  assert.equal(tables.length, 25, "the active tenant-table union must total exactly 25 (no dup, no gap)");
+  assert.equal(tables.length, 26, "the active tenant-table union must total exactly 26 (no dup, no gap)");
   assert.deepEqual(sortedUnique(tables), sortedUnique(PINNED_TENANT_TABLES));
 });
 

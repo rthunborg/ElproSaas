@@ -131,8 +131,8 @@ export const SCOPE_MANIFEST: ScopeManifest = {
       epic: "E6",
       activatedAt: PHASE_A.E6,
       navItems: [{ route: "/quotes", group: "primary" }],
-      // The quote-family tables. Story 10.2 enrols quote_lost_reasons HERE, in the same PR as its
-      // schema change (epic-10 activation seam, ADR-B003 §5.5 / FR129); Story 10.3 will add
+      // The quote-family tables. Story 10.2 enrolled quote_lost_reasons HERE, in the same PR as its
+      // schema change (epic-10 activation seam, ADR-B003 §5.5 / FR129); Story 10.3 adds
       // quote_follow_ups similarly — keep this boundary clean. tenant_counters is the quote-numbering
       // table (the easy-to-forget one).
       tenantTables: [
@@ -144,6 +144,7 @@ export const SCOPE_MANIFEST: ScopeManifest = {
         "quote_events",
         "quote_acceptances",
         "quote_lost_reasons",
+        "quote_follow_ups",
       ],
       widgets: [],
       notificationCategories: [],

@@ -187,7 +187,7 @@ development_status:
   epic-10: in-progress
   10-1-phase-b-governance-re-baseline-and-scope-manifest: review
   10-2-forlorad-avbojd-status-and-lost-reason-lifecycle: review
-  10-3-quote-follow-up-workflow: ready-for-dev
+  10-3-quote-follow-up-workflow: review
   10-4-pipeline-surfacing-and-dashboard-read-model: backlog
   epic-10-retrospective: optional
 

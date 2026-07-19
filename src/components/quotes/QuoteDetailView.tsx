@@ -31,6 +31,11 @@ import {
   type QuoteVersionStatus,
 } from "@/features/quotes/timeline";
 import { buildCustomerVisibleLines } from "@/features/quotes/view-model";
+import {
+  selectNextOpenFollowUp,
+  followUpChipState,
+  type FollowUpRecord,
+} from "@/features/quotes/follow-up-view";
 import type {
   QuoteDetail,
   QuoteVersionRow,
@@ -41,6 +46,8 @@ import { DraftQuoteEditor } from "./DraftQuoteEditor";
 import { MarkSentButton } from "./MarkSentButton";
 import { MarkLostButton } from "./MarkLostButton";
 import { CreateNewVersionButton } from "./CreateNewVersionButton";
+import { FollowUpChip } from "./FollowUpChip";
+import { FollowUpPanel } from "./FollowUpPanel";
 import { QuotePdfPanel } from "./QuotePdfPanel";
 import { AcceptanceCaptureForm } from "./AcceptanceCaptureForm";
 
@@ -95,8 +102,21 @@ export function QuoteDetailView({
     selectedAttachments,
     events,
     selectedLostReason,
+    followUps,
+    nowISO,
     acceptedJobIdByVersionId,
   } = detail;
+
+  // Story 10.3: the quote's single OPEN follow-up (one-open invariant) + the header chip state
+  // (overdue/due-today classified on the Europe/Stockholm boundary from the injected read instant).
+  const followUpRecords: FollowUpRecord[] = followUps.map((f) => ({
+    id: f.id,
+    status: f.status,
+    due_date: f.due_date,
+    note: f.note,
+  }));
+  const openFollowUp = selectNextOpenFollowUp(followUpRecords);
+  const followUpChip = followUpChipState(openFollowUp, nowISO);
 
   // Order the read rows by version_number ascending (the read layer already returns them asc;
   // re-sort defensively — the snake_case rows are ordered here, the PURE helpers run on the
@@ -165,7 +185,18 @@ export function QuoteDetailView({
           >
             {header.customer_display_name ?? "Offert"}
           </h1>
-          <StatusBadge status={latest?.status ?? selected.status} />
+          <div className="flex items-center gap-2">
+            {/* Story 10.3 — the next-follow-up chip (UX-BDR17). Rendered when the quote has an OPEN
+                follow-up; an OVERDUE one escalates visually (text-first, color redundant). */}
+            {followUpChip.present && openFollowUp && (
+              <FollowUpChip
+                dueDate={openFollowUp.due_date}
+                overdue={followUpChip.overdue}
+                dueToday={followUpChip.dueToday}
+              />
+            )}
+            <StatusBadge status={latest?.status ?? selected.status} />
+          </div>
         </div>
         <dl className="grid grid-cols-1 gap-x-6 gap-y-1 text-sm sm:grid-cols-2">
           <div className="flex gap-2">
@@ -482,8 +513,29 @@ export function QuoteDetailView({
                   />
                   {/* Story 10.2 — the Förlorad/Avböjd affordance, offered ALONGSIDE the acceptance
                       capture on a SENT version ONLY. Opens an explicit-confirm dialog (never
-                      undo-based). The UI is the MIRROR of the INT-proven server + DB enforcement. */}
-                  <MarkLostButton quoteId={header.id} quoteVersionId={selected.id} />
+                      undo-based). The UI is the MIRROR of the INT-proven server + DB enforcement.
+                      Story 10.3 — when the quote has an OPEN follow-up, this surface carries its id so
+                      the lost flip auto-completes the follow-up (the auto-complete-on-lost seam). */}
+                  <MarkLostButton
+                    quoteId={header.id}
+                    quoteVersionId={selected.id}
+                    followUpId={openFollowUp?.id}
+                  />
+                  {/* Story 10.3 — the follow-up surface: plan (no open follow-up) OR the Klarmarkera
+                      completion sheet (open follow-up) + the decide-here jumps after completion. */}
+                  <FollowUpPanel
+                    quoteId={header.id}
+                    quoteVersionId={selected.id}
+                    openFollowUp={
+                      openFollowUp
+                        ? {
+                            id: openFollowUp.id,
+                            due_date: openFollowUp.due_date,
+                            note: openFollowUp.note,
+                          }
+                        : null
+                    }
+                  />
                 </div>
               ) : selected.status === "accepted" ? (
                 <div

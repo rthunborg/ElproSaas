@@ -166,6 +166,11 @@ describe("Migration reset green — tenant_foundation objects present (AC1 / R-0
     // delete discipline; the own-tenant-UPDATE-rejected negative depends on the absent UPDATE
     // grant/policy). Placed alphabetically (between quote_events and quote_terms). This is the ONLY
     // insert-only pair; the "no DELETE policy anywhere" assertion below still holds.
+    // Story 10.3 EXTENDS it again (NOT loosened) by the 3 new UPDATE-able FOLLOW-UP policies:
+    // quote_follow_ups.{SELECT,INSERT,UPDATE} — NO DELETE (archive-over-delete; the row advances
+    // open -> completed, so it carries an UPDATE policy — the load-bearing contrast with 10.2's
+    // insert-only quote_lost_reasons that drives the "rls-invisible" cross-tenant UPDATE profile).
+    // Placed alphabetically (between quote_events and quote_lost_reasons).
     expect(rows.map((r) => `${r.tablename}.${r.cmd}`).sort()).toEqual([
       "articles.INSERT",
       "articles.SELECT",
@@ -210,6 +215,9 @@ describe("Migration reset green — tenant_foundation objects present (AC1 / R-0
       "quote_events.INSERT",
       "quote_events.SELECT",
       "quote_events.UPDATE",
+      "quote_follow_ups.INSERT",
+      "quote_follow_ups.SELECT",
+      "quote_follow_ups.UPDATE",
       "quote_lost_reasons.INSERT",
       "quote_lost_reasons.SELECT",
       "quote_terms.INSERT",
@@ -269,6 +277,7 @@ describe("Migration reset green — tenant_foundation objects present (AC1 / R-0
       "quote_version_lines",
       "quote_version_attachments",
       "quote_events",
+      "quote_follow_ups",
       "quote_acceptances",
       "jobs",
       "job_events",

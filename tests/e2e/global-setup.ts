@@ -28,6 +28,7 @@ import {
   adminInsertFileLink,
   adminInsertQuote,
   adminInsertQuoteEvent,
+  adminInsertQuoteFollowUp,
   adminInsertQuoteVersion,
   adminInsertQuoteVersionLine,
   adminInsertRow,
@@ -495,6 +496,86 @@ export default async function globalSetup() {
     event_type: "created",
   });
 
+  // Story 10.3 — three DEDICATED sent quotes for the follow-up E2E, each on its own quote so the
+  // tests are order-independent (the one-open-per-quote rule + the completion mutation would otherwise
+  // couple them). Seeded draft -> child -> flip-to-sent per the 6.4 child-lock. Follow-up notes are
+  // anonymized shape-only (no PII).
+  //   (a) planFollowUpQuote — sent v1 with NO follow-up → the "Planera uppföljning" plan flow.
+  //   (b) overdueFollowUpQuote — sent v1 + an OVERDUE OPEN follow-up (past due date) → the overdue chip
+  //       + the list overdue badge/filters. Never completed by any test (read-only).
+  //   (c) completeFollowUpQuote — sent v1 + an OPEN follow-up → the "Klarmarkera" completion flow + jumps.
+  async function seedSentFollowUpQuote(
+    quoteNumber: number,
+    intro: string,
+  ): Promise<{ quoteId: string; sentVersionId: string }> {
+    const quoteId = await adminInsertQuote({
+      tenant_id: base.tenantA.id,
+      customer_id: companyId,
+      facility_id: facilityId,
+    });
+    const sentVersionId = await adminInsertQuoteVersion({
+      tenant_id: base.tenantA.id,
+      quote_id: quoteId,
+      calculation_id: calcId,
+      version_number: 1,
+      quote_number: quoteNumber,
+      status: "draft",
+      company_name: `Elpro Demo AB ${token()}`,
+      customer_display_name: companyName,
+      intro_text: intro,
+    });
+    await adminInsertQuoteVersionLine({
+      tenant_id: base.tenantA.id,
+      quote_version_id: sentVersionId,
+      label: `Uppföljningsrad ${token()}`,
+      unit_sell_ore: 85000,
+      vat_rate_bp: 2500,
+      sort_order: 0,
+    });
+    await adminQuery(
+      `update public.quote_versions set status = 'sent' where id = $1`,
+      [sentVersionId],
+    );
+    await adminInsertQuoteEvent({
+      tenant_id: base.tenantA.id,
+      quote_id: quoteId,
+      quote_version_id: sentVersionId,
+      event_type: "created",
+    });
+    return { quoteId, sentVersionId };
+  }
+
+  const planFollowUp = await seedSentFollowUpQuote(
+    1010,
+    "Skickad version för planera-uppföljning-flödet (10.3)",
+  );
+  const overdueFollowUp = await seedSentFollowUpQuote(
+    1011,
+    "Skickad version med försenad uppföljning (10.3)",
+  );
+  // An OVERDUE OPEN follow-up (a fixed PAST due date, so it is overdue at every future run).
+  const overdueFollowUpId = await adminInsertQuoteFollowUp({
+    tenant_id: base.tenantA.id,
+    quote_id: overdueFollowUp.quoteId,
+    quote_version_id: overdueFollowUp.sentVersionId,
+    due_date: "2026-07-01",
+    note: "ring kund om beslut",
+    status: "open",
+  });
+  const completeFollowUp = await seedSentFollowUpQuote(
+    1012,
+    "Skickad version för klarmarkera-flödet (10.3)",
+  );
+  // An OPEN follow-up to complete (a fixed future due date — not overdue; the test completes it).
+  const completeFollowUpId = await adminInsertQuoteFollowUp({
+    tenant_id: base.tenantA.id,
+    quote_id: completeFollowUp.quoteId,
+    quote_version_id: completeFollowUp.sentVersionId,
+    due_date: "2026-12-01",
+    note: "boka uppföljningssamtal",
+    status: "open",
+  });
+
   // Story 8.5 — a DEDICATED SENT quote whose ONLY version is a SENT v1 carrying a LOCKED quote_pdf
   // file, so the 8.4/8.5 file-lock-panel E2E can assert the sent-quote lock notice + archive-only
   // affordance on the quote detail's default (latest = sent) version. Seed the PDF file (draft) +
@@ -804,6 +885,22 @@ export default async function globalSetup() {
     markLostQuote: {
       id: markLostQuoteId,
       sentVersionId: markLostSentVersionId,
+    },
+    // Story 10.3 — three dedicated sent quotes for the follow-up E2E (plan / overdue / complete), each
+    // on its own quote so the tests are order-independent.
+    followUpQuote: {
+      id: planFollowUp.quoteId,
+      sentVersionId: planFollowUp.sentVersionId,
+    },
+    overdueFollowUpQuote: {
+      id: overdueFollowUp.quoteId,
+      sentVersionId: overdueFollowUp.sentVersionId,
+      followUpId: overdueFollowUpId,
+    },
+    completeFollowUpQuote: {
+      id: completeFollowUp.quoteId,
+      sentVersionId: completeFollowUp.sentVersionId,
+      followUpId: completeFollowUpId,
     },
     // Story 7.2 — a dedicated single-SENT-version quote the accept-and-create-job FLOW E2E consumes
     // (confirming acceptance permanently flips it to `accepted` + creates a job), kept off the

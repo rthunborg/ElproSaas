@@ -33,6 +33,14 @@ export {
   type MarkQuoteVersionLostResult,
 } from "./lost";
 export {
+  planQuoteFollowUp,
+  completeQuoteFollowUp,
+  annotateQuoteFollowUp,
+  type PlanQuoteFollowUpResult,
+  type CompleteQuoteFollowUpResult,
+  type AnnotateQuoteFollowUpResult,
+} from "./follow-ups";
+export {
   captureQuoteAcceptance,
   type CaptureQuoteAcceptanceResult,
 } from "./accept";
@@ -59,6 +67,12 @@ export {
   type MarkQuoteVersionLostInput,
   type QuoteLostOutcome,
   type QuoteLostCategory,
+  validatePlanQuoteFollowUp,
+  type PlanQuoteFollowUpInput,
+  validateCompleteQuoteFollowUp,
+  type CompleteQuoteFollowUpInput,
+  validateAnnotateQuoteFollowUp,
+  type AnnotateQuoteFollowUpInput,
   validateCaptureQuoteAcceptance,
   type CaptureQuoteAcceptanceInput,
   validateAcceptQuoteAndCreateJob,

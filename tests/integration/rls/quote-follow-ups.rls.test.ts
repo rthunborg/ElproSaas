@@ -20,11 +20,10 @@
  * Getting the profile wrong (using `"privilege"` as for 10.2) would make the cross-tenant UPDATE assert
  * the WRONG mechanism — hence this focused readability aid alongside the shared mutation suite.
  *
- * ── RED PHASE (Story 10.3 not yet implemented) ────────────────────────────────────────────────────
- * The `quote_follow_ups` table + its `TENANT_TABLES` enrolment (mutation profile `"rls-invisible"`) do
- * NOT exist yet (Tasks 1 + 2.3 are the DEV phase). The suite is `describe.skip` so it cannot fail CI
- * before the surface exists. GREEN phase: land the migration + the enrolment, then remove `.skip`; the
- * shared cross-tenant/anon suites then also cover this table via enrolment.
+ * ── GREEN (Story 10.3 implemented) ────────────────────────────────────────────────────────────────
+ * The `quote_follow_ups` table + its `TENANT_TABLES` enrolment (mutation profile `"rls-invisible"`) are
+ * landed; this suite is unskipped and green, and the shared cross-tenant/anon suites also cover this
+ * table via enrolment.
  *
  * Runs against the LOCAL Supabase stack only; skips visibly when unreachable. Mirrors the authed-client
  * mutation pattern in `quote-lost-reasons.rls.test.ts` (10.2) — inverted for the UPDATE-allowed profile.
@@ -90,7 +89,7 @@ async function seedOpenFollowUp(tenantId: string): Promise<string> {
   return rows[0]!.id;
 }
 
-describe.skip("quote_follow_ups UPDATABLE RLS profile (rls-invisible) — own-tenant UPDATE allowed, cross-tenant hidden (AC4)", () => {
+describe("quote_follow_ups UPDATABLE RLS profile (rls-invisible) — own-tenant UPDATE allowed, cross-tenant hidden (AC4)", () => {
   it("[P0] 10.3-RLS-01: an OWN-TENANT authenticated UPDATE of a follow-up note is ALLOWED (updatable table)", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     const followUpId = await seedOpenFollowUp(fixture.tenantA.id);

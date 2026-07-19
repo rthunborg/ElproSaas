@@ -623,3 +623,125 @@ export function validateAcceptQuoteAndCreateJob(
   if (raw.__faultInject !== undefined) data.__faultInject = raw.__faultInject as string;
   return { ok: true, data };
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Story 10.3 — the plan / complete / annotate follow-up input validators (AC1/AC3).
+//
+// The caller supplies ONLY the shape below; tenant_id / status / quote_id are NEVER read onto the
+// validated data (the plan command DERIVES quote_id from the loaded anchor version — SETTLED DESIGN
+// DECISION 3 — and tenant/status are server-resolved). The raw invalid value is NEVER echoed — a
+// shape violation → VALIDATION_FAILED. A foreign/non-existent version/follow-up id is caught by the
+// envelope ownership gate (TENANT_ACCESS_DENIED before execute), not here.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** A coarse length bound for the follow-up free-text note/outcome fields. */
+const FOLLOW_UP_TEXT_MAX = 4000;
+
+/**
+ * A valid ISO calendar date (YYYY-MM-DD) that names a REAL day — rejects an impossible month
+ * (2026-13-01) or day (2026-02-30) via a UTC round-trip, and any non-`date`-shaped string/number.
+ */
+function isIsoCalendarDate(v: unknown): v is string {
+  if (typeof v !== "string") return false;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) return false;
+  const [y, m, d] = v.split("-").map((p) => Number(p));
+  if (m < 1 || m > 12 || d < 1 || d > 31) return false;
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  return (
+    dt.getUTCFullYear() === y && dt.getUTCMonth() === m - 1 && dt.getUTCDate() === d
+  );
+}
+
+/**
+ * Validate an OPTIONAL bounded note. Absent/null ⇒ "no note" (undefined out). A present value must
+ * be a string within the length bound; it is TRIMMED (an all-whitespace note collapses to null).
+ */
+function validatedOptionalNote(v: unknown): { ok: true; value?: string | null } | { ok: false } {
+  if (v === undefined || v === null) return { ok: true };
+  if (typeof v !== "string" || v.length > FOLLOW_UP_TEXT_MAX) return { ok: false };
+  const trimmed = v.trim();
+  return { ok: true, value: trimmed.length > 0 ? trimmed : null };
+}
+
+/**
+ * Validated `planQuoteFollowUp` input — the anchor version id + a due date + an optional note.
+ * `quote_version_id` is required + UUID-shaped; `due_date` a valid ISO calendar date; `note`
+ * optional + bounded + trimmed. tenant_id / quote_id / status are NEVER part of it.
+ */
+export interface PlanQuoteFollowUpInput {
+  readonly quote_version_id: string;
+  readonly due_date: string;
+  readonly note?: string | null;
+}
+
+export function validatePlanQuoteFollowUp(
+  raw: unknown,
+): ValidationResult<PlanQuoteFollowUpInput> {
+  if (!isRecord(raw)) return fail;
+  if (!isUuidLike(raw.quote_version_id)) return fail;
+  if (!isIsoCalendarDate(raw.due_date)) return fail;
+  const note = validatedOptionalNote(raw.note);
+  if (!note.ok) return fail;
+
+  const data: {
+    quote_version_id: string;
+    due_date: string;
+    note?: string | null;
+  } = {
+    quote_version_id: raw.quote_version_id as string,
+    due_date: raw.due_date as string,
+  };
+  // Only carry a note when the caller supplied one (server-owned keys quote_id/tenant_id/status are
+  // never read — the command derives quote_id from the loaded version, tenant/status are resolved).
+  if (raw.note !== undefined) data.note = note.value ?? null;
+  return { ok: true, data };
+}
+
+/**
+ * Validated `completeQuoteFollowUp` input — the target follow-up id + a REQUIRED outcome note.
+ * `follow_up_id` is required + UUID-shaped; `outcome` is required, non-empty (trimmed), bounded.
+ */
+export interface CompleteQuoteFollowUpInput {
+  readonly follow_up_id: string;
+  readonly outcome: string;
+}
+
+export function validateCompleteQuoteFollowUp(
+  raw: unknown,
+): ValidationResult<CompleteQuoteFollowUpInput> {
+  if (!isRecord(raw)) return fail;
+  if (!isUuidLike(raw.follow_up_id)) return fail;
+  if (typeof raw.outcome !== "string" || raw.outcome.length > FOLLOW_UP_TEXT_MAX) {
+    return fail;
+  }
+  const outcome = raw.outcome.trim();
+  if (outcome.length === 0) return fail; // REQUIRED — a whitespace-only outcome is rejected
+  return {
+    ok: true,
+    data: { follow_up_id: raw.follow_up_id as string, outcome },
+  };
+}
+
+/**
+ * Validated `annotateQuoteFollowUp` input — the target follow-up id + a bounded note.
+ * `follow_up_id` is required + UUID-shaped; `note` is optional + bounded + trimmed.
+ */
+export interface AnnotateQuoteFollowUpInput {
+  readonly follow_up_id: string;
+  readonly note?: string | null;
+}
+
+export function validateAnnotateQuoteFollowUp(
+  raw: unknown,
+): ValidationResult<AnnotateQuoteFollowUpInput> {
+  if (!isRecord(raw)) return fail;
+  if (!isUuidLike(raw.follow_up_id)) return fail;
+  const note = validatedOptionalNote(raw.note);
+  if (!note.ok) return fail;
+
+  const data: { follow_up_id: string; note?: string | null } = {
+    follow_up_id: raw.follow_up_id as string,
+  };
+  if (raw.note !== undefined) data.note = note.value ?? null;
+  return { ok: true, data };
+}

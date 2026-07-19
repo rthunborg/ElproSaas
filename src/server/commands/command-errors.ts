@@ -120,10 +120,19 @@ export type CommandErrorCode =
  */
 export class CommandError extends Error {
   readonly code: CommandErrorCode;
-  constructor(code: CommandErrorCode) {
-    super(code);
+  /**
+   * An OPTIONAL user-safe message that OVERRIDES the generic `COMMAND_MESSAGES[code]` when the
+   * command needs a more specific (still generic — NO PII/SQL/echoed input) explanation for a
+   * stable code. Example: the Story 10.3 one-open partial-unique-index (23505) maps to
+   * VALIDATION_FAILED with the clear "En öppen uppföljning finns redan för offerten." message,
+   * never a raw DB error. Absent ⇒ the generic per-code message is used (unchanged behaviour).
+   */
+  readonly userMessage?: string;
+  constructor(code: CommandErrorCode, userMessage?: string) {
+    super(userMessage ?? code);
     this.name = "CommandError";
     this.code = code;
+    this.userMessage = userMessage;
   }
 }
 
