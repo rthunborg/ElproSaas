@@ -30,6 +30,12 @@ export interface FollowUpSheetProps {
   readonly formAction: (formData: FormData) => void;
   readonly state: FollowUpActionState;
   readonly pending: boolean;
+  /**
+   * Start with the completion dialog already open. Mirrors `PlanFollowUpButton`'s `autoOpen`; the
+   * live panel never sets it (the sheet opens on the `Klarmarkera` click), so this is a deterministic
+   * render seam for the error-visibility test (which must render the dialog-open error state).
+   */
+  readonly autoOpen?: boolean;
 }
 
 export function FollowUpSheet({
@@ -39,8 +45,9 @@ export function FollowUpSheet({
   formAction,
   state,
   pending,
+  autoOpen = false,
 }: FollowUpSheetProps) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(autoOpen);
   const [outcome, setOutcome] = useState<string>("");
   const retryable = isRetryableFollowUpError(state);
 
@@ -60,17 +67,6 @@ export function FollowUpSheet({
       <p className="text-sm text-zinc-600">
         Det finns en öppen uppföljning på offerten. Klarmarkera den med ett utfall när den är avslutad.
       </p>
-
-      {state.status === "error" && state.formError && (
-        <p role="alert" data-testid="complete-follow-up-error" className="text-sm text-red-800">
-          {state.formError}
-        </p>
-      )}
-      {retryable && (
-        <p role="status" className="text-sm text-amber-800">
-          Försök igen.
-        </p>
-      )}
 
       <div className="flex justify-end">
         <button
@@ -93,6 +89,26 @@ export function FollowUpSheet({
           <input type="hidden" name="quote_id" value={quoteId} />
           <input type="hidden" name="quote_version_id" value={quoteVersionId} />
           <input type="hidden" name="follow_up_id" value={followUpId} />
+
+          {/*
+           * The error / retry feedback MUST live INSIDE the Dialog form. On a failed completion (the
+           * reachable "Uppföljningen är redan avslutad." race, or a transient SERVER_ERROR) the dialog
+           * stays open (`dialogOpen` is true whenever status !== "success"), and the shared Dialog
+           * paints a fixed `inset-0 z-50` overlay over the page. A banner in the section body behind
+           * that overlay is in the DOM but occluded — the AC3 "clear message" would be invisible
+           * exactly when it matters. Rendering it here keeps it above the overlay (inside the `z-10`
+           * panel), so the message is actually seen on error.
+           */}
+          {state.status === "error" && state.formError && (
+            <p role="alert" data-testid="complete-follow-up-error" className="text-sm text-red-800">
+              {state.formError}
+            </p>
+          )}
+          {retryable && (
+            <p role="status" className="text-sm text-amber-800">
+              Försök igen.
+            </p>
+          )}
 
           <label className="flex flex-col gap-1 text-sm">
             <span className="text-zinc-700">Utfall</span>

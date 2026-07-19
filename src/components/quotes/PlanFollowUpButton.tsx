@@ -70,17 +70,6 @@ export function PlanFollowUpButton({
         Planera en uppföljning på den skickade offerten så att affären bearbetas och beslutas i tid.
       </p>
 
-      {state.status === "error" && state.formError && (
-        <p role="alert" data-testid="plan-follow-up-error" className="text-sm text-red-800">
-          {state.formError}
-        </p>
-      )}
-      {retryable && (
-        <p role="status" className="text-sm text-amber-800">
-          Försök igen.
-        </p>
-      )}
-
       <div className="flex justify-end">
         <button
           type="button"
@@ -101,6 +90,25 @@ export function PlanFollowUpButton({
         >
           <input type="hidden" name="quote_id" value={quoteId} />
           <input type="hidden" name="quote_version_id" value={quoteVersionId} />
+
+          {/*
+           * The error / retry feedback MUST live INSIDE the Dialog form. On a failed submit the
+           * dialog stays open (`dialogOpen` is true whenever status !== "success"), and the shared
+           * Dialog paints a fixed `inset-0 z-50` overlay over the page. A banner rendered in the
+           * section body behind that overlay is in the DOM but occluded — the AC1 "clear message"
+           * would be invisible exactly when it matters. Rendering it here keeps it above the overlay
+           * (inside the `z-10` panel), so the message is actually seen on error.
+           */}
+          {state.status === "error" && state.formError && (
+            <p role="alert" data-testid="plan-follow-up-error" className="text-sm text-red-800">
+              {state.formError}
+            </p>
+          )}
+          {retryable && (
+            <p role="status" className="text-sm text-amber-800">
+              Försök igen.
+            </p>
+          )}
 
           <label className="flex flex-col gap-1 text-sm">
             <span className="text-zinc-700">Förfallodatum</span>
