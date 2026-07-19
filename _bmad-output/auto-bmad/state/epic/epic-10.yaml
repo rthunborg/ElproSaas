@@ -5,10 +5,10 @@ epic_num: 10
 story_num: null
 branch: epic/10-quote-lifecycle-completion
 status: in-progress
-updated_at: "2026-07-19T18:11:36Z"
+updated_at: "2026-07-19T18:15:04Z"
 started_at: "2026-07-19T12:24:42Z"
 completed_at: null
-active_seconds: 20522
+active_seconds: 20727
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -51,10 +51,11 @@ deferred_work: []
 blockers: []
 overrides: {}
 constraints: []
-active_story: 10-3-quote-follow-up-workflow
+active_story: 10-4-pipeline-surfacing-and-dashboard-read-model
 stories_landed:
   - 10-1-phase-b-governance-re-baseline-and-scope-manifest
   - 10-2-forlorad-avbojd-status-and-lost-reason-lifecycle
+  - 10-3-quote-follow-up-workflow
 auto_decisions:
   - "Module id typed as bare string, not the literal-union Task 1.1 requires [Med] -> fix: document the id: string deviation + rationale in completion notes, mirroring the TenantTableName decision entry; do not force the union (Tier A, 10-1-phase-b-governance-re-baseline-and-scope-manifest)"
   - "Phase-A gate validators relaxed ===24 -> >=24 floor [Low] -> dismiss: correct additive-only reconciliation; live count re-pinned at 25 in manifest tests; Phase-A report stays a correct historical snapshot (Tier A, 10-2-forlorad-avbojd-status-and-lost-reason-lifecycle)"
@@ -95,4 +96,17 @@ uat_items:
   - "[10-2-forlorad-avbojd-status-and-lost-reason-lifecycle] Open an accepted quote -> NO mark-lost affordance (lost flip is sent-only)"
   - "[10-2-forlorad-avbojd-status-and-lost-reason-lifecycle] Open a draft version -> draft editor + Markera som skickad only; NO mark-lost affordance"
   - "[10-2-forlorad-avbojd-status-and-lost-reason-lifecycle] Cross-tenant: login as adminB (fixture creds), open Tenant A's lost quote URL -> denied/not found (RLS, AC5)"
+  - "[10-3-quote-follow-up-workflow] PRECONDITION: follow-up surface lives in a SENT version's Acceptans section (below acceptance form + mark-lost card); all states reachable via the date picker, no DB seeding"
+  - "[10-3-quote-follow-up-workflow] Sent version, no follow-up -> Uppfoljning card shows 'Planera uppfoljning'; dialog opens with Forfallodatum, Notering (valfritt), Planera button (disabled until date picked)"
+  - "[10-3-quote-follow-up-workflow] Plan future date + note -> dialog closes; lifecycle header shows BLUE chip 'Uppfoljning · <date>'; card switches to Klarmarkera; survives reload"
+  - "[10-3-quote-follow-up-workflow] Plan due today -> chip escalates AMBER 'Uppfoljning idag'; plan yesterday (past accepted) -> ROSE 'Forsenad uppfoljning' (overdue = strictly before today Europe/Stockholm); tomorrow stays blue"
+  - "[10-3-quote-follow-up-workflow] /quotes list -> overdue quote shows rose 'Forsenad uppfoljning' badge; upcoming/due-today shows none"
+  - "[10-3-quote-follow-up-workflow] 'Har uppfoljning' filter -> exactly quotes with an open follow-up; toggle clears. 'Forsenad uppfoljning' -> exactly overdue ones; empty state message intact when none match"
+  - "[10-3-quote-follow-up-workflow] Klarmarkera dialog -> Utfall textarea required (Bekrafta disabled until non-empty); confirm -> 'Vad vill du gora harnast?' with planera nasta / Markera som forlorad/avbojd / Ny version; header chip disappears"
+  - "[10-3-quote-follow-up-workflow] 'planera nasta' -> plan dialog auto-opens; new follow-up succeeds (new open allowed after completion)"
+  - "[10-3-quote-follow-up-workflow] Auto-complete-on-lost: with an OPEN follow-up, mark the version forlorad/avbojd from the Acceptans card -> version flips, follow-up surface unmounts, chip gone (open follow-up auto-completed)"
+  - "[10-3-quote-follow-up-workflow] One-open rejection: two tabs, plan in both -> second shows clear in-dialog error 'En oppen uppfoljning finns redan for offerten.' (not a raw DB error, visible above overlay)"
+  - "[10-3-quote-follow-up-workflow] Already-completed rejection: complete in two tabs -> second shows 'Uppfoljningen ar redan avslutad.' inside the dialog"
+  - "[10-3-quote-follow-up-workflow] Error-banner visibility guard (review fix): any failed plan/complete submit renders its red error + 'Forsok igen.' INSIDE the open dialog, never behind the overlay"
+  - "[10-3-quote-follow-up-workflow] NOTE: cross-tenant AC4 is automated-only (RLS/TENANT_TABLES suites) — intentionally not in the manual list"
 epic_slug: quote-lifecycle-completion
