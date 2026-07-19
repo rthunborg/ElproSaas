@@ -5,10 +5,10 @@ epic_num: 10
 story_num: null
 branch: epic/10-quote-lifecycle-completion
 status: in-progress
-updated_at: "2026-07-19T12:25:16Z"
+updated_at: "2026-07-19T12:45:12Z"
 started_at: "2026-07-19T12:24:42Z"
 completed_at: null
-active_seconds: 0
+active_seconds: 1194
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -20,7 +20,7 @@ tea_selected: []
 tea_rationale: null
 epic_story_count: 4
 stories_after_in_epic: null
-completed_phases: [0, 1]
+completed_phases: [0, 1, 2]
 code_review_iterations: 0
 code_review_loop_done: false
 hitl_halt: null
