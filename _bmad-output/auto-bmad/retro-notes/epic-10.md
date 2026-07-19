@@ -1,5 +1,7 @@
 ## Story epic-10
 - [Phase 2 â€” epic test design] FÃ¶rlorad/AvbÃ¶jd lifecycle-token model under-specified in architecture Â§9.1/Â§14 (new status token vs rejected+quote_lost_reasons) â€” must be decided at 10.2 create-story; scopes R-1011 coverage.
+- [E8a â€” gates] Trace PASS (17/17 ACs FULL, 100% P0/P1/P2); NFR CONCERNS advisory-only (deliberately-undefined pilot thresholds: perf SLA, DR, APM â€” zero FAIL); test-review 94/100 Grade A. Med finding: 9 files carry stale RED-phase headers contradicting their GREEN code â€” purge follow-up logged.
+- [E8a â€” gates] NFR audit independently re-surfaced the non-vacuity theme: the fix is a MECHANICAL no-residual-skip/non-vacuity gate in dev-story finalize, not more reviewer discipline.
 
 ## Story 10-1-phase-b-governance-re-baseline-and-scope-manifest
 - [Phase 3 â€” create-story] Deny-list derivation is the sharpest risk: the 7 forbidden tokens mix pending-Phase-B modules and Phase-C hard-exclusions; reproducing exactly those 7 from the manifest vs flagging genuine drift is the main Stop-Condition trigger at dev/review.

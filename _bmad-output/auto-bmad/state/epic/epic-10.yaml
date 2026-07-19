@@ -5,10 +5,10 @@ epic_num: 10
 story_num: null
 branch: epic/10-quote-lifecycle-completion
 status: in-progress
-updated_at: "2026-07-19T19:35:48Z"
+updated_at: "2026-07-19T19:53:46Z"
 started_at: "2026-07-19T12:24:42Z"
 completed_at: null
-active_seconds: 25563
+active_seconds: 26631
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -20,7 +20,7 @@ tea_selected: []
 tea_rationale: null
 epic_story_count: 4
 stories_after_in_epic: null
-completed_phases: [0, 1, 2]
+completed_phases: [0, 1, 2, 5, 81]
 code_review_iterations: 0
 code_review_loop_done: false
 hitl_halt: null
@@ -29,14 +29,14 @@ convergence_unverified: true
 story_trace: null
 commits: []
 phase8_steps:
-  trace_gate: null
-  nfr: null
-  test_review: null
+  trace_gate: done
+  nfr: done
+  test_review: done
   project_context: null
   reconcile: null
   archive: null
   retro: null
-gate_decision: null
+gate_decision: PASS
 gate_iterations: 0
 deferred_work_archived: 0
 pr_url: null
@@ -51,11 +51,12 @@ deferred_work: []
 blockers: []
 overrides: {}
 constraints: []
-active_story: 10-4-pipeline-surfacing-and-dashboard-read-model
+active_story: null
 stories_landed:
   - 10-1-phase-b-governance-re-baseline-and-scope-manifest
   - 10-2-forlorad-avbojd-status-and-lost-reason-lifecycle
   - 10-3-quote-follow-up-workflow
+  - 10-4-pipeline-surfacing-and-dashboard-read-model
 auto_decisions:
   - "Module id typed as bare string, not the literal-union Task 1.1 requires [Med] -> fix: document the id: string deviation + rationale in completion notes, mirroring the TenantTableName decision entry; do not force the union (Tier A, 10-1-phase-b-governance-re-baseline-and-scope-manifest)"
   - "Phase-A gate validators relaxed ===24 -> >=24 floor [Low] -> dismiss: correct additive-only reconciliation; live count re-pinned at 25 in manifest tests; Phase-A report stays a correct historical snapshot (Tier A, 10-2-forlorad-avbojd-status-and-lost-reason-lifecycle)"
@@ -110,4 +111,12 @@ uat_items:
   - "[10-3-quote-follow-up-workflow] Already-completed rejection: complete in two tabs -> second shows 'Uppfoljningen ar redan avslutad.' inside the dialog"
   - "[10-3-quote-follow-up-workflow] Error-banner visibility guard (review fix): any failed plan/complete submit renders its red error + 'Forsok igen.' INSIDE the open dialog, never behind the overlay"
   - "[10-3-quote-follow-up-workflow] NOTE: cross-tenant AC4 is automated-only (RLS/TENANT_TABLES suites) — intentionally not in the manual list"
+  - "[10-4-pipeline-surfacing-and-dashboard-read-model] OBSERVABILITY NOTE: the { data, entitlements } pipeline read-model has NO consuming UI yet (dashboard is still a placeholder; E19 consumes it) — counts/hit-rate/withholding/period windows are automated-suite-only; the hand-testable 10.4 delta is the list/detail consistency pass"
+  - "[10-4-pipeline-surfacing-and-dashboard-read-model] /quotes -> every row's status renders via StatusBadge (Skickad blue, Accepterad green, Forlorad/Avbojd rose), word-first"
+  - "[10-4-pipeline-surfacing-and-dashboard-read-model] Status=Forlorad/Avbojd -> Forlustorsak table shows '<outcome> · <category>' per row; empty state keeps headers + 'Inga forlorade/avbojda offerter.'"
+  - "[10-4-pipeline-surfacing-and-dashboard-read-model] Status=Skickad/Accepterad/Alla -> rows match the filter; Alla restores everything"
+  - "[10-4-pipeline-surfacing-and-dashboard-read-model] Har uppfoljning toggle (aria-pressed) -> only quotes with open follow-ups; re-click clears. Forsenad uppfoljning -> only overdue; combinable with Status, each axis clears independently"
+  - "[10-4-pipeline-surfacing-and-dashboard-read-model] Tone consolidation: list overdue badge rose == lost badge rose (same bg-rose-100/text-rose-900/border-rose-300 from the single status.ts authority)"
+  - "[10-4-pipeline-surfacing-and-dashboard-read-model] Detail chip: overdue -> rose 'Forsenad uppfoljning · <date>'; due today -> amber 'Uppfoljning idag'; upcoming -> blue 'Uppfoljning'; no open follow-up -> no chip, no list badge (no refactor regression)"
+  - "[10-4-pipeline-surfacing-and-dashboard-read-model] Nav/app shell -> still exactly seven items; /dashboard remains the placeholder (no fabricated metrics, no new Pipeline/Analytics entry)"
 epic_slug: quote-lifecycle-completion
