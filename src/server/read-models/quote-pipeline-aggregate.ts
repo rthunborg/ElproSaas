@@ -69,9 +69,10 @@ export interface AcceptedVersionRow {
 /**
  * A follow-up row — the open/overdue count source (the 10.3 shape; `due_date` is a YYYY-MM-DD date).
  * `quoteLatestVersionStatus` is the status of the follow-up's quote's LATEST version: an OPEN follow-up
- * whose quote has already been DECIDED (its latest version is `accepted`/`lost`) is EXCLUDED from the
- * open/overdue counts (10.4 integration review — a decided quote must not keep escalating a stale
- * follow-up). Absent/null ⇒ not decided ⇒ counted (the query layer supplies it).
+ * whose quote has already been DECIDED (its latest version is a terminal status — `accepted`/`lost`/
+ * `rejected`/`expired`) is EXCLUDED from the open/overdue counts (10.4 integration review — a decided
+ * quote must not keep escalating a stale follow-up). Absent/null ⇒ not decided ⇒ counted (the query
+ * layer supplies it).
  */
 export interface FollowUpRow {
   readonly id: string;
@@ -80,8 +81,19 @@ export interface FollowUpRow {
   readonly quoteLatestVersionStatus?: string | null;
 }
 
-/** The terminal (decided) quote-version statuses whose OPEN follow-ups are excluded from the counts. */
-const TERMINAL_QUOTE_STATUSES: ReadonlySet<string> = new Set(["accepted", "lost"]);
+/**
+ * The terminal (decided) quote-version statuses whose OPEN follow-ups are excluded from the counts.
+ * Derived from the version status domain's DECIDED-as-latest set: a deal is dead (no longer worth
+ * chasing) once its latest version is `accepted`, `lost`, `rejected`, or `expired`. `superseded` is
+ * intentionally NOT here — a superseded version always has a higher-numbered successor, so it is never
+ * a quote's LATEST version (iteration-2 integration review — rejected/expired are equally terminal).
+ */
+const TERMINAL_QUOTE_STATUSES: ReadonlySet<string> = new Set([
+  "accepted",
+  "lost",
+  "rejected",
+  "expired",
+]);
 
 /** The resolved period window — inclusive `[from, to]` YYYY-MM-DD Europe/Stockholm calendar dates. */
 export interface PipelinePeriod {
@@ -166,8 +178,9 @@ export function aggregateQuotePipeline(
   }
 
   // ── Follow-up counts: open only, AND the follow-up's quote is NOT already decided (its latest
-  // version is not accepted/lost) — a decided quote's stale open follow-up must not inflate the
-  // open/overdue counts (10.4 integration review). overdue = counted AND classifyFollowUp === "overdue".
+  // version is not a terminal status: accepted/lost/rejected/expired) — a decided quote's stale open
+  // follow-up must not inflate the open/overdue counts (10.4 + iteration-2 integration review).
+  // overdue = counted AND classifyFollowUp === "overdue".
   let openFollowUpCount = 0;
   let overdueFollowUpCount = 0;
   for (const f of input.followUps) {

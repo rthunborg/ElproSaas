@@ -159,9 +159,10 @@ export async function readQuotePipeline(
     }
 
     // ── The OPEN follow-ups (open/overdue count source). Read the quote_id too so an OPEN follow-up on
-    // an already-DECIDED quote (its latest version accepted/lost) is EXCLUDED from the counts — a decided
-    // deal must not keep escalating a stale follow-up (10.4 review). The overdue subset is derived in the
-    // pure aggregate via classifyFollowUp on the Stockholm boundary. ──
+    // an already-DECIDED quote (its latest version is a terminal status: accepted/lost/rejected/expired)
+    // is EXCLUDED from the counts — a decided deal must not keep escalating a stale follow-up (10.4 +
+    // iteration-2 review). The overdue subset is derived in the pure aggregate via classifyFollowUp on
+    // the Stockholm boundary. ──
     const followUpsRes = await client
       .from("quote_follow_ups")
       .select("id, status, due_date, quote_id")

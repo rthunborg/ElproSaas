@@ -51,6 +51,8 @@ async function readQuoteListAs(client: TestServerClient): Promise<readonly Quote
 interface MixedLifecycleIds {
   readonly lostQuoteId: string;
   readonly fuQuoteId: string;
+  readonly rejectedQuoteId: string;
+  readonly expiredQuoteId: string;
 }
 
 /** Seed a mixed lifecycle set for a tenant: a LOST quote (reason) + a sent quote with an OPEN OVERDUE
@@ -113,7 +115,31 @@ async function seedMixedLifecycle(tenantId: string): Promise<MixedLifecycleIds> 
     status: "open",
   });
 
-  return { lostQuoteId, fuQuoteId };
+  // (c) A REJECTED quote and (d) an EXPIRED quote — both EQUALLY-TERMINAL latest statuses reachable via
+  // the Story 6.5 standalone lifecycle command. Each carries a stranded OPEN overdue follow-up that the
+  // list must NOT escalate (iteration-2 integration review — rejected/expired are dead deals like lost).
+  const seedTerminalWithStrandedFollowUp = async (status: "rejected" | "expired"): Promise<string> => {
+    const quoteId = await adminInsertQuote({ tenant_id: tenantId, customer_id: customerId });
+    const versionId = await adminInsertQuoteVersion({
+      tenant_id: tenantId,
+      quote_id: quoteId,
+      calculation_id: calcId,
+      status,
+    });
+    await adminInsertQuoteFollowUp({
+      tenant_id: tenantId,
+      quote_id: quoteId,
+      quote_version_id: versionId,
+      due_date: "2026-07-01",
+      note: `stranded på ${status} offert`,
+      status: "open",
+    });
+    return quoteId;
+  };
+  const rejectedQuoteId = await seedTerminalWithStrandedFollowUp("rejected");
+  const expiredQuoteId = await seedTerminalWithStrandedFollowUp("expired");
+
+  return { lostQuoteId, fuQuoteId, rejectedQuoteId, expiredQuoteId };
 }
 
 let stackUp = false;
@@ -178,6 +204,24 @@ describe("10.4-INT-02: list-filter consistency over a mixed lifecycle fixture", 
     expect(lostRow?.latest_status).toBe("lost");
     expect(lostRow?.has_open_follow_up).toBe(false);
     expect(lostRow?.overdue_follow_up).toBe(false);
+  });
+
+  it("a decided quote (latest version rejected OR expired) does NOT surface its stranded open follow-up (iteration-2 review)", async (ctx) => {
+    if (skipUnlessStack(ctx, stackUp)) return;
+    const rows = await readQuoteListAs(a);
+    // rejected/expired are equally-terminal latest statuses (Story 6.5 lifecycle command). Each quote
+    // holds an OPEN overdue follow-up row in the DB, but a decided deal must stop escalating — the list
+    // must exclude both from has_open_follow_up / overdue_follow_up exactly as it does for lost.
+    for (const [quoteId, status] of [
+      [aSeed.rejectedQuoteId, "rejected"],
+      [aSeed.expiredQuoteId, "expired"],
+    ] as const) {
+      const row = rows.find((r) => r.id === quoteId);
+      expect(row, `decided (${status}) quote row present`).toBeDefined();
+      expect(row?.latest_status).toBe(status);
+      expect(row?.has_open_follow_up, `${status}: has_open_follow_up excluded`).toBe(false);
+      expect(row?.overdue_follow_up, `${status}: overdue_follow_up excluded`).toBe(false);
+    }
   });
 
   it("cross-tenant: the mixed fixture on tenant B never appears in tenant A's list", async (ctx) => {

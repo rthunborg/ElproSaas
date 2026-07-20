@@ -46,6 +46,7 @@ import {
   adminInsertQuoteVersion,
   adminInsertQuoteEvent,
   adminInsertQuoteAcceptance,
+  adminInsertQuoteFollowUp,
   type TwoTenantFixture,
   type TestServerClient,
 } from "../../factories/tenants";
@@ -176,6 +177,32 @@ describe("10.4-INT-01: pipeline read-model isolation floor (RLS-client-only, cro
     // frozen sent total — a value between them would prove the wrong column is summed.
     expect(result.data.acceptedValueOre).toBe(ACCEPTED_ORE);
     expect(result.data.acceptedValueOre).not.toBe(SENT_TOTAL_ORE);
+  });
+
+  it("follow-up counts: an open follow-up on a REJECTED or EXPIRED (decided) quote is excluded (iteration-2 review)", async (ctx) => {
+    if (skipUnlessStack(ctx, stackUp)) return;
+    // A decided deal must not keep escalating a stale open follow-up in the pipeline open/overdue counts.
+    // rejected/expired are equally-terminal latest statuses (Story 6.5 lifecycle command) — the same
+    // exclusion as accepted/lost. Seed one SENT quote (its open follow-up counts) and one REJECTED + one
+    // EXPIRED quote (each with a stranded open follow-up that must NOT count). Tenant A has no
+    // follow-ups seeded by the prior tests, so the count is unambiguous.
+    const tid = fixture.tenantA.id;
+    const customer = await adminInsertCustomer({ tenant_id: tid, customer_type: "company", display_name: "Kund FU A" });
+    const calc = await adminInsertCalculation({ tenant_id: tid, customer_id: customer });
+    const seedFollowUp = async (status: "sent" | "rejected" | "expired", dueDate: string): Promise<void> => {
+      const quote = await adminInsertQuote({ tenant_id: tid, customer_id: customer });
+      const version = await adminInsertQuoteVersion({ tenant_id: tid, quote_id: quote, calculation_id: calc, status });
+      await adminInsertQuoteFollowUp({
+        tenant_id: tid, quote_id: quote, quote_version_id: version, due_date: dueDate, note: `fu-${status}`, status: "open",
+      });
+    };
+    // The sent quote's follow-up is OVERDUE (past due date) → it drives both open and overdue counts.
+    await seedFollowUp("sent", "2020-01-01");
+    await seedFollowUp("rejected", "2020-01-01"); // excluded — decided
+    await seedFollowUp("expired", "2020-01-01"); // excluded — decided
+    const result = await readQuotePipeline(WINDOW, { roles: ["tenant_admin"] }, { client: a });
+    expect(result.data.openFollowUpCount).toBe(1);
+    expect(result.data.overdueFollowUpCount).toBe(1);
   });
 
   it("fail-closed: the read-model with an OMITTED entitlement input withholds the money leaf (defense-in-depth)", async (ctx) => {

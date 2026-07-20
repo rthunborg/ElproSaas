@@ -56,7 +56,9 @@ export function MarkLostButton({ quoteId, quoteVersionId, followUpId }: MarkLost
   const [category, setCategory] = useState<string>("");
   const [note, setNote] = useState<string>("");
   // Hide a stale error/retry banner once the dialog is closed, so reopening starts clean (a prior
-  // failed submit's banner must not linger on the next open). Un-dismissed on a new submit below.
+  // failed submit's banner must not linger on the next open). It is re-armed ONLY by a new SUBMIT (the
+  // form `onSubmit` below) — NEVER on open, so a reopen after a failed submit stays clean (iteration-2
+  // review: re-arming on open re-showed the prior failure's banner immediately).
   const [bannerDismissed, setBannerDismissed] = useState(false);
   const [state, formAction, pending] = useActionState(
     markQuoteVersionLostAction,
@@ -64,8 +66,9 @@ export function MarkLostButton({ quoteId, quoteVersionId, followUpId }: MarkLost
   );
   const retryable = isRetryableLostError(state);
 
-  // Close + reset the local form fields AND retire the stale banner. A cancel-mid-flight is blocked
-  // (the Avbryt button is disabled while `pending`), so no request lands after this close.
+  // Close + reset the local form fields AND retire the stale banner. Cancel-mid-flight is blocked on
+  // EVERY path: the Avbryt button is disabled while `pending`, and the Dialog's own Escape/backdrop/X
+  // close paths are gated by `busy={pending}` — so no request lands after this close.
   const closeDialog = () => {
     setOpen(false);
     setOutcome("");
@@ -101,10 +104,7 @@ export function MarkLostButton({ quoteId, quoteVersionId, followUpId }: MarkLost
         <button
           type="button"
           data-testid="mark-lost-open"
-          onClick={() => {
-            setBannerDismissed(false);
-            setOpen(true);
-          }}
+          onClick={() => setOpen(true)}
           className="rounded-md border border-rose-300 bg-rose-50 px-4 py-2 text-sm font-medium text-rose-900 hover:bg-rose-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-600"
         >
           Markera som förlorad/avböjd
@@ -114,6 +114,7 @@ export function MarkLostButton({ quoteId, quoteVersionId, followUpId }: MarkLost
       <Dialog
         open={open}
         onClose={closeDialog}
+        busy={pending}
         title="Markera som förlorad/avböjd"
       >
         <form

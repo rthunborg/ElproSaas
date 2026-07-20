@@ -51,6 +51,10 @@ export function PlanFollowUpButton({
     planQuoteFollowUpAction,
     FOLLOW_UP_ACTION_INITIAL,
   );
+  // Hide a stale error/retry banner once the dialog is closed so reopening starts clean — the
+  // `useActionState` error persists across close/reopen, so without this flag a prior failed plan's
+  // banner would re-appear on the next open (iteration-2 review). Re-armed ONLY by a new SUBMIT below.
+  const [bannerDismissed, setBannerDismissed] = useState(false);
   const retryable = isRetryableFollowUpError(state);
 
   // Notify the parent panel on a successful plan (it leaves the "planera nästa" state). The dialog is
@@ -63,11 +67,13 @@ export function PlanFollowUpButton({
   const dialogOpen = open && state.status !== "success";
   const confirmDisabled = pending || dueDate.length === 0;
 
-  // Close + reset the local due-date field. Cancel-mid-flight is blocked (Avbryt is disabled while
-  // `pending`) so no plan request lands after this close.
+  // Close + reset the local due-date field AND retire the stale banner. Cancel-mid-flight is blocked on
+  // EVERY path: Avbryt is disabled while `pending`, and the Dialog's Escape/backdrop/X close paths are
+  // gated by `busy={pending}` — so no plan request lands after this close.
   const closeDialog = () => {
     setOpen(false);
     setDueDate("");
+    setBannerDismissed(true);
   };
 
   return (
@@ -93,9 +99,10 @@ export function PlanFollowUpButton({
         </button>
       </div>
 
-      <Dialog open={dialogOpen} onClose={closeDialog} title="Planera uppföljning">
+      <Dialog open={dialogOpen} onClose={closeDialog} busy={pending} title="Planera uppföljning">
         <form
           action={formAction}
+          onSubmit={() => setBannerDismissed(false)}
           data-testid="plan-follow-up-form"
           className="flex flex-col gap-4"
           noValidate
@@ -111,12 +118,12 @@ export function PlanFollowUpButton({
            * would be invisible exactly when it matters. Rendering it here keeps it above the overlay
            * (inside the `z-10` panel), so the message is actually seen on error.
            */}
-          {state.status === "error" && state.formError && (
+          {!bannerDismissed && state.status === "error" && state.formError && (
             <p role="alert" data-testid="plan-follow-up-error" className="text-sm text-red-800">
               {state.formError}
             </p>
           )}
-          {retryable && (
+          {!bannerDismissed && retryable && (
             <p role="status" className="text-sm text-amber-800">
               Försök igen.
             </p>

@@ -49,6 +49,11 @@ export function FollowUpSheet({
 }: FollowUpSheetProps) {
   const [open, setOpen] = useState(autoOpen);
   const [outcome, setOutcome] = useState<string>("");
+  // Hide a stale error/retry banner once the dialog is closed so reopening starts clean. The action
+  // state is OWNED BY THE PARENT (it persists across this sheet's close/reopen), so without this flag a
+  // prior failed completion's banner would re-appear on the next open (iteration-2 review). Re-armed
+  // ONLY by a new SUBMIT (the form `onSubmit` below) — never on open.
+  const [bannerDismissed, setBannerDismissed] = useState(false);
   const retryable = isRetryableFollowUpError(state);
 
   // Close the dialog by DERIVING its open state from the success result (no setState-in-effect); on
@@ -56,11 +61,13 @@ export function FollowUpSheet({
   const dialogOpen = open && state.status !== "success";
   const confirmDisabled = pending || outcome.trim().length === 0;
 
-  // Close + reset the local outcome field. Cancel-mid-flight is blocked (Avbryt is disabled while
-  // `pending`) so no completion request lands after this close.
+  // Close + reset the local outcome field AND retire the stale banner. Cancel-mid-flight is blocked on
+  // EVERY path: Avbryt is disabled while `pending`, and the Dialog's Escape/backdrop/X close paths are
+  // gated by `busy={pending}` — so no completion request lands after this close.
   const closeDialog = () => {
     setOpen(false);
     setOutcome("");
+    setBannerDismissed(true);
   };
 
   return (
@@ -86,9 +93,10 @@ export function FollowUpSheet({
         </button>
       </div>
 
-      <Dialog open={dialogOpen} onClose={closeDialog} title="Klarmarkera uppföljning">
+      <Dialog open={dialogOpen} onClose={closeDialog} busy={pending} title="Klarmarkera uppföljning">
         <form
           action={formAction}
+          onSubmit={() => setBannerDismissed(false)}
           data-testid="complete-follow-up-form"
           className="flex flex-col gap-4"
           noValidate
@@ -106,12 +114,12 @@ export function FollowUpSheet({
            * exactly when it matters. Rendering it here keeps it above the overlay (inside the `z-10`
            * panel), so the message is actually seen on error.
            */}
-          {state.status === "error" && state.formError && (
+          {!bannerDismissed && state.status === "error" && state.formError && (
             <p role="alert" data-testid="complete-follow-up-error" className="text-sm text-red-800">
               {state.formError}
             </p>
           )}
-          {retryable && (
+          {!bannerDismissed && retryable && (
             <p role="status" className="text-sm text-amber-800">
               Försök igen.
             </p>

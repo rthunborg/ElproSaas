@@ -203,18 +203,34 @@ test("10.4-UNIT-02: a COMPLETED follow-up with a PAST due date is neither open N
   assert.equal(agg.overdueFollowUpCount, 0);
 });
 
-test("10.4-UNIT-02: an OPEN follow-up on an ALREADY-DECIDED quote (latest version accepted/lost) is EXCLUDED from the counts", () => {
-  // 10.4 integration review: a decided deal must not keep escalating a stale open follow-up. An open
-  // follow-up whose quote's LATEST version is accepted or lost is dropped from BOTH the open and the
-  // overdue counts; a follow-up on a still-open (sent) quote is counted as before.
+test("10.4-UNIT-02: an OPEN follow-up on an ALREADY-DECIDED quote (accepted/lost/rejected/expired latest) is EXCLUDED from the counts", () => {
+  // 10.4 + iteration-2 integration review: a decided deal must not keep escalating a stale open
+  // follow-up. An open follow-up whose quote's LATEST version is a TERMINAL status — accepted, lost,
+  // rejected, OR expired — is dropped from BOTH the open and the overdue counts; a follow-up on a
+  // still-open (sent) quote is counted as before. rejected/expired are reachable LATEST statuses via
+  // the Story 6.5 standalone lifecycle command and are equally terminal (dead deals).
   const followUps: FollowUpRow[] = [
     { id: "f-sent", status: "open", due_date: "2026-07-15", quoteLatestVersionStatus: "sent" }, // overdue vs 2026-07-20
     { id: "f-accepted", status: "open", due_date: "2026-07-15", quoteLatestVersionStatus: "accepted" }, // excluded
     { id: "f-lost", status: "open", due_date: "2026-07-15", quoteLatestVersionStatus: "lost" }, // excluded
+    { id: "f-rejected", status: "open", due_date: "2026-07-15", quoteLatestVersionStatus: "rejected" }, // excluded
+    { id: "f-expired", status: "open", due_date: "2026-07-15", quoteLatestVersionStatus: "expired" }, // excluded
   ];
   const agg = aggregateQuotePipeline({ events: [], acceptedVersions: [], followUps }, JULY, NOW);
   assert.equal(agg.openFollowUpCount, 1, "only the follow-up on the still-open (sent) quote counts");
-  assert.equal(agg.overdueFollowUpCount, 1, "the decided-quote follow-ups never inflate the overdue count");
+  assert.equal(agg.overdueFollowUpCount, 1, "the decided-quote follow-ups (incl. rejected/expired) never inflate the overdue count");
+});
+
+test("10.4-UNIT-02: a SUPERSEDED latest status does NOT exclude its open follow-up (superseded is never a quote's latest)", () => {
+  // `superseded` is intentionally NOT terminal for this exclusion: a superseded version always has a
+  // higher-numbered successor, so it can never actually BE the quote's latest version. If the query
+  // layer ever hands one through, it must still be treated as not-decided (counted) — guarding against
+  // an over-broad terminal set that would silently drop a live follow-up.
+  const followUps: FollowUpRow[] = [
+    { id: "f-superseded", status: "open", due_date: "2026-07-25", quoteLatestVersionStatus: "superseded" },
+  ];
+  const agg = aggregateQuotePipeline({ events: [], acceptedVersions: [], followUps }, JULY, NOW);
+  assert.equal(agg.openFollowUpCount, 1, "a superseded latest status is not decided ⇒ counted");
 });
 
 test("10.4-UNIT-02: a follow-up with NO quoteLatestVersionStatus (undefined/null) is counted (not-decided default)", () => {
