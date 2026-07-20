@@ -4,10 +4,10 @@ story_key: epic-10
 epic_num: 10
 story_num: null
 branch: epic/10-quote-lifecycle-completion
-status: in-progress
-updated_at: "2026-07-20T14:03:31Z"
+status: done
+updated_at: "2026-07-20T14:05:17Z"
 started_at: "2026-07-19T12:24:42Z"
-completed_at: null
+completed_at: "2026-07-20T14:05:17Z"
 active_seconds: 91998
 timing_anchor: null
 is_first_in_epic: false
@@ -20,7 +20,7 @@ tea_selected: []
 tea_rationale: null
 epic_story_count: 4
 stories_after_in_epic: null
-completed_phases: [0, 1, 2, 5, 7, 81, 82]
+completed_phases: [0, 1, 2, 5, 7, 9, 81, 82]
 code_review_iterations: 2
 code_review_loop_done: true
 hitl_halt: "auto-continued (epic â€” no halt)"
@@ -39,8 +39,8 @@ phase8_steps:
 gate_decision: PASS
 gate_iterations: 0
 deferred_work_archived: 1
-pr_url: null
-ci_run_url: null
+pr_url: "https://github.com/rthunborg/ElproSaas/pull/38"
+ci_run_url: "https://github.com/rthunborg/ElproSaas/actions/runs/29749054297"
 ci_status: unknown
 pr_merged: false
 merge_method: null
