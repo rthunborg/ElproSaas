@@ -23,7 +23,7 @@
  * the selected version. The ordering / current-commitment / selection logic is the PURE
  * `@/features/quotes/timeline` helpers (unit-pinned; never inline here).
  */
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import Link from "next/link";
 import { oreToKronorString } from "@/features/calculations/money-input";
 import {
@@ -117,6 +117,11 @@ export function QuoteDetailView({
   }));
   const openFollowUp = selectNextOpenFollowUp(followUpRecords);
   const followUpChip = followUpChipState(openFollowUp, nowISO);
+
+  // Story 10.4 review: while the FollowUpPanel's decide-here JUMPS branch is showing, it renders its
+  // OWN `Markera som förlorad/avböjd` + `Ny version` affordances — so suppress the standalone copies
+  // below to keep exactly ONE visible owner per affordance (no duplicated accessible name / testid).
+  const [jumpsActive, setJumpsActive] = useState(false);
 
   // Order the read rows by version_number ascending (the read layer already returns them asc;
   // re-sort defensively — the snake_case rows are ordered here, the PURE helpers run on the
@@ -516,16 +521,22 @@ export function QuoteDetailView({
                       undo-based). The UI is the MIRROR of the INT-proven server + DB enforcement.
                       Story 10.3 — when the quote has an OPEN follow-up, this surface carries its id so
                       the lost flip auto-completes the follow-up (the auto-complete-on-lost seam). */}
-                  <MarkLostButton
-                    quoteId={header.id}
-                    quoteVersionId={selected.id}
-                    followUpId={openFollowUp?.id}
-                  />
+                  {/* Suppressed while the FollowUpPanel jumps branch owns the lost affordance (10.4
+                      review) — the jumps render their own MarkLostButton, so the standalone copy would
+                      otherwise duplicate the accessible name + data-testid="mark-lost-section". */}
+                  {!jumpsActive && (
+                    <MarkLostButton
+                      quoteId={header.id}
+                      quoteVersionId={selected.id}
+                      followUpId={openFollowUp?.id}
+                    />
+                  )}
                   {/* Story 10.3 — the follow-up surface: plan (no open follow-up) OR the Klarmarkera
                       completion sheet (open follow-up) + the decide-here jumps after completion. */}
                   <FollowUpPanel
                     quoteId={header.id}
                     quoteVersionId={selected.id}
+                    onJumpsActiveChange={setJumpsActive}
                     openFollowUp={
                       openFollowUp
                         ? {
@@ -602,8 +613,10 @@ export function QuoteDetailView({
                   the SERVER command + the DB triggers are the enforcement (a UI-only versioning
                   rule is a STOP condition — architecture §9). GATED OFF an `accepted` version (Story
                   7.2, Task 5): new-version is scoped to draft/sent (architecture §12) — an accepted
-                  commitment is terminal for Phase A (7.4 hardens the full immutability). */}
-              {!isAccepted && (
+                  commitment is terminal for Phase A (7.4 hardens the full immutability). Suppressed
+                  while the FollowUpPanel jumps branch owns the `Ny version` affordance (10.4 review) so
+                  only one `CreateNewVersionButton` renders at a time. */}
+              {!isAccepted && !jumpsActive && (
                 <CreateNewVersionButton
                   quoteId={header.id}
                   quoteVersionId={selected.id}
@@ -617,10 +630,12 @@ export function QuoteDetailView({
               event here). */}
           <section
             data-testid="quote-events"
-            aria-label="Händelser"
+            aria-labelledby="quote-events-heading"
             className="rounded-lg border border-zinc-200 bg-white p-4 text-sm"
           >
-            <h2 className="mb-2 text-sm font-semibold text-zinc-900">Händelser</h2>
+            <h2 id="quote-events-heading" className="mb-2 text-sm font-semibold text-zinc-900">
+              Händelser
+            </h2>
             {events.length === 0 ? (
               <p className="text-zinc-600">Inga händelser.</p>
             ) : (

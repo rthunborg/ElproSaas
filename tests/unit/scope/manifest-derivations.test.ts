@@ -1,12 +1,11 @@
 /**
- * ATDD RED-PHASE scaffold — Story 10.1 AC3 (the four authored guardrail copies now DERIVE from the
- * manifest, proven byte-equal to today's Phase-A values — zero drift).
+ * Story 10.1 AC3 (the four authored guardrail copies now DERIVE from the manifest, proven byte-equal
+ * to today's Phase-A values — zero drift).
  *
- * ── RED PHASE (implementation not yet landed) ─────────────────────────────────────────────────
- * The manifest (`@/scope/manifest`), its selector helpers (`@/scope/manifest-schema`), and the new
- * nav registry (`@/scope/nav-registry`) do NOT exist yet, so the manifest-derived side of every
- * equality throws on import and these tests FAIL — the intended red state. Dev-story turns them
- * green by landing the manifest + refactoring the four consumers to derive from it.
+ * ── GREEN (Story 10.1 shipped) ─────────────────────────────────────────────────────────────────
+ * The manifest (`@/scope/manifest`), its selector helpers (`@/scope/manifest-schema`), and the nav
+ * registry (`@/scope/nav-registry`) are landed and the four consumers derive from the manifest; the
+ * suite imports the REAL modules, is unskipped, and runs green.
  *
  * NON-CIRCULAR PROOF (Dev Notes "circular-derivation trap"): each derivation is proven equal to an
  * INDEPENDENT ground truth — a PINNED Phase-A literal here, plus the still-authored `navItems` /

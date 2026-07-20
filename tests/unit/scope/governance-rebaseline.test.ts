@@ -1,13 +1,11 @@
 /**
- * ATDD RED-PHASE scaffold — Story 10.1 AC1 (re-baseline the authored governance docs to Phase B,
- * pointing scope enforcement at the manifest — one ADR-backed change).
+ * Story 10.1 AC1 (re-baseline the authored governance docs to Phase B, pointing scope enforcement at
+ * the manifest — one ADR-backed change).
  *
- * ── RED PHASE (implementation not yet landed) ─────────────────────────────────────────────────
- * `AGENTS.md`, `CLAUDE.md`, and the `phase-scope-reviewer` agent files still declare the FROZEN
- * "Phase A / Internal Pilot MVP" scope, so the Phase-B assertions below FAIL today — the intended
- * red state. Dev-story (Task 7) turns them green by re-baselining the governance/enforcement
- * statements to Phase B + the manifest, WITHOUT touching historical/record docs (Task 7.4) and
- * WITHOUT weakening the deny set / hook (Stop Condition).
+ * ── GREEN (Story 10.1 shipped) ─────────────────────────────────────────────────────────────────
+ * `AGENTS.md`, `CLAUDE.md`, and the `phase-scope-reviewer` agent files are re-baselined to Phase B +
+ * the manifest (Task 7), WITHOUT touching historical/record docs (Task 7.4) and WITHOUT weakening the
+ * deny set / hook (Stop Condition); the Phase-B assertions below now pass and the suite is unskipped.
  *
  * This is a pure docs-invariant scan (node:test, no DB) — mirrors the project's existing
  * `tests/unit/docs/**` validator pattern.

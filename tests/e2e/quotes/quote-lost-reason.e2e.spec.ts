@@ -23,15 +23,11 @@
  *   - The quote list exposes a `Förlorad/Avböjd` status-filter value (→ status='lost') and a
  *     `Förlustorsak` column in that filter view (AC4).
  *
- * ── WHY `test.describe.skip` (RED PHASE) ──────────────────────────────────────────────────────────
- * `MarkLostButton.tsx` + the server action + the list surfacing do NOT exist yet (Task 5 is the DEV
- * phase), and the two-tenant fixture is not yet extended with a dedicated lost-target sent version.
- * The suite is `test.describe.skip` so it cannot fail CI before the surface exists. GREEN phase:
- *   1. extend `global-setup.ts` to seed a `markLostQuote` (a sent version dedicated to the flip) +
- *      expose its ids on `fixture.json`;
- *   2. implement Task 5 (dialog + action + card/list surfacing) with stable `getByTestId`/`getByRole`
- *      handles matching the selectors below;
- *   3. remove `.skip`. The assertions are the CONTRACT — do not weaken them.
+ * ── GREEN (Story 10.2 shipped) ────────────────────────────────────────────────────────────────────
+ * `MarkLostButton.tsx` + the server action + the list surfacing are landed, and `global-setup.ts`
+ * seeds a dedicated lost-target sent version exposed on `fixture.json`; the suite is unskipped and runs
+ * green with the stable `getByTestId`/`getByRole` handles below. The assertions are the CONTRACT — do
+ * not weaken them.
  *
  * Mirrors `quote-sent-lock.e2e.spec.ts` (6.4) signIn/waitForHydrated helpers + the `getByTestId`/
  * `getByRole` UI contract; two-tenant fixture, `crypto.randomUUID()` seeds.

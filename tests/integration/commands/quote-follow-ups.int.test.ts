@@ -177,6 +177,23 @@ describe("quote follow-up commands — plan/complete/annotate + one-open + auto-
     expect(rows.filter((r) => r.status === "open").length).toBe(1);
   });
 
+  it("10.4-review: planning a follow-up with a PAST due_date is rejected with FOLLOW_UP_DUE_DATE_IN_PAST", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
+    const { quoteId, versionId } = await seedSentQuoteVersion(fixture.tenantA.id);
+    // The injected clock is 2026-07-19 (Europe/Stockholm). A due date before today would surface as an
+    // instantly-overdue "Försenad uppföljning" — the plan command rejects it with a NEW, DISTINCT code.
+    const past = await plan(versionId, { due_date: "2026-07-01" });
+    expect(past.ok).toBe(false);
+    if (past.ok) return;
+    expect(past.code).toBe("FOLLOW_UP_DUE_DATE_IN_PAST");
+    // Nothing was planned — the reject is BEFORE the insert.
+    expect((await adminSelectFollowUps(quoteId)).length).toBe(0);
+
+    // The boundary is strict: a due date EQUAL to today (Stockholm) is accepted (not overdue).
+    const today = await plan(versionId, { due_date: "2026-07-19" });
+    expect(today.ok).toBe(true);
+  });
+
   it("[P0] 10.3-INT-01: a NEW open follow-up IS allowed once the prior is COMPLETED (planera nästa)", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     const { quoteId, versionId } = await seedSentQuoteVersion(fixture.tenantA.id);

@@ -84,6 +84,17 @@ async function seedMixedLifecycle(tenantId: string): Promise<MixedLifecycleIds> 
     category: "pris",
     note: null,
   });
+  // 10.4 review: a stranded OPEN follow-up on this now-LOST quote must NOT surface in the list (a
+  // decided deal stops escalating). Seed one on the lost version (factory bypasses the app's sent-only
+  // gate) so the exclusion is proven against a real row, not just its absence.
+  await adminInsertQuoteFollowUp({
+    tenant_id: tenantId,
+    quote_id: lostQuoteId,
+    quote_version_id: lostVersionId,
+    due_date: "2026-07-01",
+    note: "stranded på förlorad offert",
+    status: "open",
+  });
 
   // (b) A sent quote with an OPEN OVERDUE follow-up (a fixed PAST due date → overdue at every run).
   const fuQuoteId = await adminInsertQuote({ tenant_id: tenantId, customer_id: customerId });
@@ -154,6 +165,19 @@ describe("10.4-INT-02: list-filter consistency over a mixed lifecycle fixture", 
     expect(overdue.length).toBeGreaterThan(0);
     // Overdue implies open — the escalation is a strict subset (10.3 date discipline).
     for (const r of overdue) expect(r.has_open_follow_up).toBe(true);
+  });
+
+  it("a decided quote (latest version lost) does NOT surface its stranded open follow-up (10.4 review)", async (ctx) => {
+    if (skipUnlessStack(ctx, stackUp)) return;
+    const rows = await readQuoteListAs(a);
+    // The lost quote carries an OPEN follow-up row in the DB (seeded above), but its latest version is
+    // `lost` — the list must EXCLUDE it from has_open_follow_up / overdue_follow_up so a decided deal
+    // never keeps escalating a "Försenad uppföljning" badge.
+    const lostRow = rows.find((r) => r.id === aSeed.lostQuoteId);
+    expect(lostRow).toBeDefined();
+    expect(lostRow?.latest_status).toBe("lost");
+    expect(lostRow?.has_open_follow_up).toBe(false);
+    expect(lostRow?.overdue_follow_up).toBe(false);
   });
 
   it("cross-tenant: the mixed fixture on tenant B never appears in tenant A's list", async (ctx) => {

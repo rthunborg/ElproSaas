@@ -16,7 +16,7 @@
  * The one-open-per-quote rule is DB-enforced; this UI is the MIRROR. The pipeline read-model /
  * aggregation is Story 10.4 — this panel only surfaces the plan/complete/jumps affordances.
  */
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { completeQuoteFollowUpAction } from "@/features/quotes/actions";
 import { FOLLOW_UP_ACTION_INITIAL } from "@/features/quotes/follow-up-action-state";
 import { FollowUpSheet } from "./FollowUpSheet";
@@ -33,25 +33,42 @@ export interface FollowUpPanelProps {
     readonly due_date: string;
     readonly note: string | null;
   } | null;
+  /**
+   * Story 10.4 review: notify the parent when the decide-here JUMPS branch is active, so the parent can
+   * SUPPRESS its standalone `MarkLostButton` / `CreateNewVersionButton` while the jumps render their own
+   * copies — one visible owner per affordance at a time (no duplicated accessible name / data-testid).
+   */
+  readonly onJumpsActiveChange?: (active: boolean) => void;
 }
 
 export function FollowUpPanel({
   quoteId,
   quoteVersionId,
   openFollowUp,
+  onJumpsActiveChange,
 }: FollowUpPanelProps) {
   const [completeState, completeAction, completePending] = useActionState(
     completeQuoteFollowUpAction,
     FOLLOW_UP_ACTION_INITIAL,
   );
-  // "planera nästa" was chosen after a completion (force the plan dialog); `dismissedJumps` retires the
-  // jumps once we move on, so a fresh plan lands back on the Klarmarkera sheet, not the stale jumps.
+  // "planera nästa" was chosen after a completion (force the plan dialog). `dismissedTarget` records the
+  // COMPLETED follow-up id whose jumps we retired, so a fresh plan lands back on the Klarmarkera sheet —
+  // yet a LATER completion (a NEW follow-up id) shows its jumps again. This replaces the old one-way
+  // `dismissedJumps` boolean latch that silently killed the 2nd+ completion's jumps until a reload.
   const [planNext, setPlanNext] = useState(false);
-  const [dismissedJumps, setDismissedJumps] = useState(false);
+  const [dismissedTarget, setDismissedTarget] = useState<string | null>(null);
 
   // The decide-here jumps are DERIVED from the completion success (no local flag, no effect) so they
   // survive the completion's page revalidation (which unmounts the sheet as the follow-up completes).
-  const showJumps = completeState.status === "success" && !dismissedJumps;
+  // `completedId` is the just-completed follow-up id; jumps show unless THAT target was dismissed.
+  const completedId =
+    completeState.status === "success" ? completeState.targetId ?? null : null;
+  const showJumps = completedId !== null && completedId !== dismissedTarget;
+
+  // Notify the parent so it can retire its standalone lost/new-version affordances while jumps own them.
+  useEffect(() => {
+    onJumpsActiveChange?.(showJumps);
+  }, [showJumps, onJumpsActiveChange]);
 
   if (planNext) {
     return (
@@ -81,7 +98,7 @@ export function FollowUpPanel({
               type="button"
               data-testid="follow-up-plan-next"
               onClick={() => {
-                setDismissedJumps(true);
+                setDismissedTarget(completedId);
                 setPlanNext(true);
               }}
               className="rounded-md border border-blue-300 bg-blue-50 px-4 py-2 text-sm font-medium text-blue-900 hover:bg-blue-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"

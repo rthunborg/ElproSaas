@@ -26,14 +26,10 @@
  *     `TENANT_ACCESS_DENIED` (envelope ownership gate), generically (no cross-tenant existence signal);
  *     the Tenant-B row is untouched and the attempt is audited.
  *
- * ── WHY the top `describe` is skipped (RED PHASE) ─────────────────────────────────────────────────
- * `markQuoteVersionLost` + the RPC do NOT exist yet (Tasks 1.6 + 4 are the DEV phase). To keep the
- * file TYPE-CHECKING today WITHOUT importing a non-existent export, the command is a LOCAL RED-PHASE
- * placeholder and the reason readback is a LOCAL `adminQuery`; the whole suite is `describe.skip` so
- * neither is invoked. GREEN phase:
- *   1. replace the placeholder with `import { markQuoteVersionLost } from "@/server/commands/quotes";`
- *   2. (optional) move `adminSelectLostReasons` into `tests/factories/tenants.ts`;
- *   3. remove `.skip`. Assertions are the CONTRACT — do not weaken them.
+ * ── GREEN (Story 10.2 shipped) ────────────────────────────────────────────────────────────────────
+ * `markQuoteVersionLost` + the `mark_quote_version_lost` RPC are landed; the suite imports the REAL
+ * command, is unskipped, and runs green against the local stack. Assertions are the CONTRACT — do not
+ * weaken them.
  *
  * Mirrors `mark-quote-version-sent.int.test.ts` (6.4): per-run `crypto.randomUUID()` ids, raw pg
  * readback via BYPASSRLS admin helpers, deterministic injected clock, runs against the LOCAL Supabase

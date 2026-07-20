@@ -20,11 +20,17 @@
 import { followUpToneLabel, followUpToneColor } from "./status";
 import type { FollowUpDateClass } from "@/features/quotes/follow-up-dates";
 
-/** Format an ISO date (YYYY-MM-DD) as a Swedish date; a malformed value renders "—". */
+/**
+ * Format an ISO date (YYYY-MM-DD) as a Swedish date; a malformed value renders "—". The
+ * `timeZone: "Europe/Stockholm"` option is load-bearing: without it the browser folds the
+ * midnight-UTC `date` to the HOST zone, so a viewer west of UTC (or a UTC render environment)
+ * can see the PREVIOUS calendar day — disagreeing with the server overdue flag. This module
+ * reasons on the Stockholm boundary everywhere; the display must too (WCAG/date-discipline).
+ */
 function formatDueDate(dueDate: string): string {
   const t = Date.parse(dueDate);
   if (!Number.isFinite(t)) return "—";
-  return new Date(t).toLocaleDateString("sv-SE");
+  return new Date(t).toLocaleDateString("sv-SE", { timeZone: "Europe/Stockholm" });
 }
 
 export function FollowUpChip({

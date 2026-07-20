@@ -199,7 +199,13 @@ export async function readQuoteList(
           ? lostByVersionId[latest.id]
           : null;
       // Story 10.3: the quote's OPEN follow-up flags (has-open + overdue-on-the-Stockholm-boundary).
-      const openFollowUp = openFollowUpByQuoteId[rec.id] ?? null;
+      // Story 10.4 review: EXCLUDE a follow-up whose quote is already DECIDED (its latest version is
+      // accepted/lost) — a decided deal must not keep surfacing a stale "Försenad uppföljning" badge in
+      // /quotes. The follow-up row still exists in the DB (auto-completion is a separate concern); the
+      // list simply stops escalating it once the quote is terminal.
+      const latestDecided =
+        latest !== null && (latest.status === "accepted" || latest.status === "lost");
+      const openFollowUp = latestDecided ? null : openFollowUpByQuoteId[rec.id] ?? null;
       const hasOpenFollowUp = openFollowUp !== null;
       const overdueFollowUp =
         openFollowUp !== null &&

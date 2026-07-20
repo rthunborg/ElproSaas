@@ -91,9 +91,11 @@ function emptyAggregate(period: PipelinePeriod): PipelineAggregate {
 
 /**
  * Read the quote pipeline for `period` (default: the trailing-year window resolved from `now`) and
- * project it through the entitlement descriptor. Queries `quote_events` (the count source), the
- * accepted versions' frozen `accepted_price_ore` (the money source), and the OPEN `quote_follow_ups`
- * (the follow-up counts) — all on the RLS client. Returns the `{ data, entitlements }` descriptor.
+ * project it through the entitlement descriptor. Queries `quote_events` (the count source),
+ * `quote_acceptances.accepted_price_ore` for the accepted versions (the ACCEPTED-commitment money
+ * source — adjusted-price-aware, NOT the version's frozen sent total), and the OPEN `quote_follow_ups`
+ * joined to their quote's latest version status (the follow-up counts, EXCLUDING decided quotes) — all
+ * on the RLS client. Returns the `{ data, entitlements }` descriptor.
  */
 export async function readQuotePipeline(
   period?: PipelinePeriod,
@@ -101,9 +103,13 @@ export async function readQuotePipeline(
   deps: QuotePipelineDeps = {},
 ): Promise<PipelineDescriptor> {
   const now = deps.now ?? new Date().toISOString();
-  const resolvedPeriod = period ?? resolvePipelinePeriod(now);
 
   try {
+    // Resolve the period INSIDE the try: a malformed injected clock throws from `resolvePipelinePeriod`,
+    // and this module's contract is to degrade to a generic empty descriptor — never leak a stack. A
+    // resolution outside the try would escape that posture (10.4 review patch).
+    const resolvedPeriod = period ?? resolvePipelinePeriod(now);
+
     const base = deps.client ?? (await createSupabaseServerClient());
     const client = base as unknown as PipelineReadClient;
 
@@ -131,41 +137,75 @@ export async function readQuotePipeline(
       if (type === "accepted") acceptedVersionIds.add(versionId);
     }
 
-    // ── The accepted versions' frozen accepted_price_ore (the money aggregate source). Only the
-    // versions with an accepted event are read; skip the query entirely when none exist. ──
+    // ── The accepted versions' ACCEPTED commitment öre (the money aggregate source) — read from
+    // `quote_acceptances.accepted_price_ore` (what the customer ACTUALLY accepted, adjusted-price-aware),
+    // NOT `quote_versions.accepted_price_ore` (that is the frozen SOURCE SENT total the delta is measured
+    // against). Only the versions with an accepted event are read; skip the query when none exist. ──
     const acceptedVersions: AcceptedVersionRow[] = [];
     if (acceptedVersionIds.size > 0) {
-      const versionsRes = await client
-        .from("quote_versions")
-        .select("id, accepted_price_ore")
-        .in("id", [...acceptedVersionIds]);
-      if (versionsRes.error) return projectWithEntitlements(emptyAggregate(resolvedPeriod), entitlementInput);
-      for (const raw of (versionsRes.data ?? []) as Record<string, unknown>[]) {
-        const id = raw.id;
-        if (typeof id !== "string") continue;
+      const acceptancesRes = await client
+        .from("quote_acceptances")
+        .select("quote_version_id, accepted_price_ore")
+        .in("quote_version_id", [...acceptedVersionIds]);
+      if (acceptancesRes.error) return projectWithEntitlements(emptyAggregate(resolvedPeriod), entitlementInput);
+      for (const raw of (acceptancesRes.data ?? []) as Record<string, unknown>[]) {
+        const vId = raw.quote_version_id;
+        if (typeof vId !== "string") continue;
         acceptedVersions.push({
-          quote_version_id: id,
+          quote_version_id: vId,
           accepted_price_ore: oreNumber(raw.accepted_price_ore),
         });
       }
     }
 
-    // ── The OPEN follow-ups (open/overdue count source). The overdue subset is derived in the pure
-    // aggregate via classifyFollowUp on the Stockholm boundary. ──
+    // ── The OPEN follow-ups (open/overdue count source). Read the quote_id too so an OPEN follow-up on
+    // an already-DECIDED quote (its latest version accepted/lost) is EXCLUDED from the counts — a decided
+    // deal must not keep escalating a stale follow-up (10.4 review). The overdue subset is derived in the
+    // pure aggregate via classifyFollowUp on the Stockholm boundary. ──
     const followUpsRes = await client
       .from("quote_follow_ups")
-      .select("id, status, due_date")
+      .select("id, status, due_date, quote_id")
       .eq("status", "open");
     if (followUpsRes.error) return projectWithEntitlements(emptyAggregate(resolvedPeriod), entitlementInput);
 
+    const rawFollowUps = (followUpsRes.data ?? []) as Record<string, unknown>[];
+
+    // Resolve each open follow-up's quote's LATEST version status (highest version_number) so the pure
+    // aggregate can exclude follow-ups on decided quotes. One RLS-scoped read over the involved quotes.
+    const followUpQuoteIds = new Set<string>();
+    for (const raw of rawFollowUps) {
+      if (typeof raw.quote_id === "string") followUpQuoteIds.add(raw.quote_id);
+    }
+    const latestStatusByQuoteId = new Map<string, { versionNumber: number; status: string }>();
+    if (followUpQuoteIds.size > 0) {
+      const versionsRes = await client
+        .from("quote_versions")
+        .select("quote_id, version_number, status")
+        .in("quote_id", [...followUpQuoteIds]);
+      if (versionsRes.error) return projectWithEntitlements(emptyAggregate(resolvedPeriod), entitlementInput);
+      for (const raw of (versionsRes.data ?? []) as Record<string, unknown>[]) {
+        const quoteId = raw.quote_id;
+        if (typeof quoteId !== "string") continue;
+        const versionNumber = Number(raw.version_number);
+        if (!Number.isFinite(versionNumber)) continue;
+        const status = String(raw.status ?? "");
+        const prev = latestStatusByQuoteId.get(quoteId);
+        if (!prev || versionNumber > prev.versionNumber) {
+          latestStatusByQuoteId.set(quoteId, { versionNumber, status });
+        }
+      }
+    }
+
     const followUps: FollowUpRow[] = [];
-    for (const raw of (followUpsRes.data ?? []) as Record<string, unknown>[]) {
+    for (const raw of rawFollowUps) {
       const id = raw.id;
       if (typeof id !== "string") continue;
+      const quoteId = typeof raw.quote_id === "string" ? raw.quote_id : null;
       followUps.push({
         id,
         status: raw.status === "completed" ? "completed" : "open",
         due_date: String(raw.due_date),
+        quoteLatestVersionStatus: quoteId ? latestStatusByQuoteId.get(quoteId)?.status ?? null : null,
       });
     }
 
@@ -176,7 +216,18 @@ export async function readQuotePipeline(
     );
     return projectWithEntitlements(aggregate, entitlementInput);
   } catch {
-    // Generic degrade — never leak a SQL/stack detail (mirror read.ts's FAILED posture).
-    return projectWithEntitlements(emptyAggregate(resolvedPeriod), entitlementInput);
+    // Generic degrade — never leak a SQL/stack detail (mirror read.ts's FAILED posture). Resolve a
+    // period WITHOUT re-running a possibly-throwing clock: prefer the caller's window, else a safe
+    // same-day window from the raw instant slice (string ops never throw).
+    return projectWithEntitlements(
+      emptyAggregate(period ?? safePeriodFromInstant(now)),
+      entitlementInput,
+    );
   }
+}
+
+/** A same-day fallback window from a raw ISO instant — string-only (never throws), for the degrade path. */
+function safePeriodFromInstant(now: string): PipelinePeriod {
+  const day = typeof now === "string" && now.length >= 10 ? now.slice(0, 10) : "1970-01-01";
+  return { from: day, to: day };
 }

@@ -24,6 +24,7 @@ import {
   FOLLOW_UP_ACTION_INITIAL,
   isRetryableFollowUpError,
 } from "@/features/quotes/follow-up-action-state";
+import { calendarDayIn } from "@/features/quotes/follow-up-dates";
 
 export interface PlanFollowUpButtonProps {
   readonly quoteId: string;
@@ -42,6 +43,10 @@ export function PlanFollowUpButton({
 }: PlanFollowUpButtonProps) {
   const [open, setOpen] = useState(autoOpen);
   const [dueDate, setDueDate] = useState<string>("");
+  // The MINIMUM selectable due date: "today in Europe/Stockholm" (the same boundary the server rejects
+  // a past due_date on — FOLLOW_UP_DUE_DATE_IN_PAST). Computed inline (cheap Intl call); the server
+  // command is the authority, this `min` is a UX nicety that only fences the picker client-side.
+  const minDate = calendarDayIn(new Date(), "Europe/Stockholm");
   const [state, formAction, pending] = useActionState(
     planQuoteFollowUpAction,
     FOLLOW_UP_ACTION_INITIAL,
@@ -57,6 +62,13 @@ export function PlanFollowUpButton({
 
   const dialogOpen = open && state.status !== "success";
   const confirmDisabled = pending || dueDate.length === 0;
+
+  // Close + reset the local due-date field. Cancel-mid-flight is blocked (Avbryt is disabled while
+  // `pending`) so no plan request lands after this close.
+  const closeDialog = () => {
+    setOpen(false);
+    setDueDate("");
+  };
 
   return (
     <div
@@ -81,7 +93,7 @@ export function PlanFollowUpButton({
         </button>
       </div>
 
-      <Dialog open={dialogOpen} onClose={() => setOpen(false)} title="Planera uppföljning">
+      <Dialog open={dialogOpen} onClose={closeDialog} title="Planera uppföljning">
         <form
           action={formAction}
           data-testid="plan-follow-up-form"
@@ -118,6 +130,7 @@ export function PlanFollowUpButton({
               data-testid="plan-follow-up-due-date"
               value={dueDate}
               onChange={(e) => setDueDate(e.target.value)}
+              min={minDate}
               aria-required="true"
               className="rounded-md border border-zinc-300 px-3 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
             />
@@ -136,8 +149,9 @@ export function PlanFollowUpButton({
           <div className="flex justify-end gap-2">
             <button
               type="button"
-              onClick={() => setOpen(false)}
-              className="rounded-md border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+              onClick={closeDialog}
+              disabled={pending}
+              className="rounded-md border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 disabled:opacity-60"
             >
               Avbryt
             </button>

@@ -203,6 +203,29 @@ test("10.4-UNIT-02: a COMPLETED follow-up with a PAST due date is neither open N
   assert.equal(agg.overdueFollowUpCount, 0);
 });
 
+test("10.4-UNIT-02: an OPEN follow-up on an ALREADY-DECIDED quote (latest version accepted/lost) is EXCLUDED from the counts", () => {
+  // 10.4 integration review: a decided deal must not keep escalating a stale open follow-up. An open
+  // follow-up whose quote's LATEST version is accepted or lost is dropped from BOTH the open and the
+  // overdue counts; a follow-up on a still-open (sent) quote is counted as before.
+  const followUps: FollowUpRow[] = [
+    { id: "f-sent", status: "open", due_date: "2026-07-15", quoteLatestVersionStatus: "sent" }, // overdue vs 2026-07-20
+    { id: "f-accepted", status: "open", due_date: "2026-07-15", quoteLatestVersionStatus: "accepted" }, // excluded
+    { id: "f-lost", status: "open", due_date: "2026-07-15", quoteLatestVersionStatus: "lost" }, // excluded
+  ];
+  const agg = aggregateQuotePipeline({ events: [], acceptedVersions: [], followUps }, JULY, NOW);
+  assert.equal(agg.openFollowUpCount, 1, "only the follow-up on the still-open (sent) quote counts");
+  assert.equal(agg.overdueFollowUpCount, 1, "the decided-quote follow-ups never inflate the overdue count");
+});
+
+test("10.4-UNIT-02: a follow-up with NO quoteLatestVersionStatus (undefined/null) is counted (not-decided default)", () => {
+  const followUps: FollowUpRow[] = [
+    { id: "f1", status: "open", due_date: "2026-07-25" }, // no status field ⇒ counted
+    { id: "f2", status: "open", due_date: "2026-07-25", quoteLatestVersionStatus: null }, // null ⇒ counted
+  ];
+  const agg = aggregateQuotePipeline({ events: [], acceptedVersions: [], followUps }, JULY, NOW);
+  assert.equal(agg.openFollowUpCount, 2, "an absent/null latest-status defaults to not-decided ⇒ counted");
+});
+
 test("10.4-UNIT-02: a DUE-TODAY open follow-up counts as open but NOT overdue (the overdue boundary is strict <)", () => {
   // NOW resolves to 2026-07-20 in Stockholm; a follow-up due exactly today is open + due-today, never
   // overdue (overdue = due_date < today, a strict inequality — the 10.3 classifyFollowUp contract).

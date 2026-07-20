@@ -21,9 +21,14 @@
  * `accepted / (accepted + lost)` assumption is carried in the story completion notes for E19/owner.
  *
  * ── MONEY = öre-derived integer SUM of EXISTING frozen values (SETTLED DECISION 5; R-1042 STOP) ──
- * `acceptedValueOre` = the plain INTEGER öre sum of the frozen `quote_versions.accepted_price_ore`
- * for the period's accepted versions. NO new money/VAT/ROT/rounding path — just integer addition of
- * ALREADY-computed frozen öre. Any display formatting uses `formatOreAsKronor` (`@/lib/money`) ONLY.
+ * `acceptedValueOre` = the plain INTEGER öre sum of the frozen `quote_acceptances.accepted_price_ore`
+ * (the ACCEPTED commitment — what the customer actually accepted, already frozen integer öre; captured
+ * at an ADJUSTED price where the acceptance adjusted the sent total) for the period's accepted versions.
+ * NOT `quote_versions.accepted_price_ore` — that column is the frozen SOURCE SENT total the adjusted-
+ * price delta is measured against (quote-db.ts), so summing it would report the QUOTED amount, not the
+ * ACCEPTED amount (10.4 integration review, Decision reconciling SETTLED DECISION 5). NO new
+ * money/VAT/ROT/rounding path — just integer addition of ALREADY-computed frozen öre. Any display
+ * formatting uses `formatOreAsKronor` (`@/lib/money`) ONLY.
  *
  * ── PERIOD WINDOW + OVERDUE reuse the 10.3 date discipline (SETTLED DECISION 6) ──────────────────
  * The window `[from, to]` resolves on the Europe/Stockholm calendar boundary from an INJECTED instant
@@ -51,18 +56,32 @@ export interface PipelineEventRow {
   readonly occurred_at: string;
 }
 
-/** An accepted version's FROZEN accepted price (integer öre) — the money aggregate source. */
+/**
+ * An accepted version's FROZEN ACCEPTED price (integer öre) — the money aggregate source. Sourced from
+ * `quote_acceptances.accepted_price_ore` (the accepted commitment, adjusted-price-aware), NOT the
+ * version's frozen sent total (10.4 integration review).
+ */
 export interface AcceptedVersionRow {
   readonly quote_version_id: string;
   readonly accepted_price_ore: number;
 }
 
-/** A follow-up row — the open/overdue count source (the 10.3 shape; `due_date` is a YYYY-MM-DD date). */
+/**
+ * A follow-up row — the open/overdue count source (the 10.3 shape; `due_date` is a YYYY-MM-DD date).
+ * `quoteLatestVersionStatus` is the status of the follow-up's quote's LATEST version: an OPEN follow-up
+ * whose quote has already been DECIDED (its latest version is `accepted`/`lost`) is EXCLUDED from the
+ * open/overdue counts (10.4 integration review — a decided quote must not keep escalating a stale
+ * follow-up). Absent/null ⇒ not decided ⇒ counted (the query layer supplies it).
+ */
 export interface FollowUpRow {
   readonly id: string;
   readonly status: "open" | "completed";
   readonly due_date: string;
+  readonly quoteLatestVersionStatus?: string | null;
 }
+
+/** The terminal (decided) quote-version statuses whose OPEN follow-ups are excluded from the counts. */
+const TERMINAL_QUOTE_STATUSES: ReadonlySet<string> = new Set(["accepted", "lost"]);
 
 /** The resolved period window — inclusive `[from, to]` YYYY-MM-DD Europe/Stockholm calendar dates. */
 export interface PipelinePeriod {
@@ -146,11 +165,14 @@ export function aggregateQuotePipeline(
     acceptedValueOre += priceByVersion.get(versionId) ?? 0;
   }
 
-  // ── Follow-up counts: open only; overdue = open AND classifyFollowUp(...) === "overdue" (10.3). ──
+  // ── Follow-up counts: open only, AND the follow-up's quote is NOT already decided (its latest
+  // version is not accepted/lost) — a decided quote's stale open follow-up must not inflate the
+  // open/overdue counts (10.4 integration review). overdue = counted AND classifyFollowUp === "overdue".
   let openFollowUpCount = 0;
   let overdueFollowUpCount = 0;
   for (const f of input.followUps) {
     if (f.status !== "open") continue;
+    if (f.quoteLatestVersionStatus && TERMINAL_QUOTE_STATUSES.has(f.quoteLatestVersionStatus)) continue;
     openFollowUpCount += 1;
     if (classifyFollowUp(f.due_date, now) === "overdue") overdueFollowUpCount += 1;
   }

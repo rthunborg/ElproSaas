@@ -55,11 +55,24 @@ export function MarkLostButton({ quoteId, quoteVersionId, followUpId }: MarkLost
   const [outcome, setOutcome] = useState<string>("");
   const [category, setCategory] = useState<string>("");
   const [note, setNote] = useState<string>("");
+  // Hide a stale error/retry banner once the dialog is closed, so reopening starts clean (a prior
+  // failed submit's banner must not linger on the next open). Un-dismissed on a new submit below.
+  const [bannerDismissed, setBannerDismissed] = useState(false);
   const [state, formAction, pending] = useActionState(
     markQuoteVersionLostAction,
     LOST_ACTION_INITIAL,
   );
   const retryable = isRetryableLostError(state);
+
+  // Close + reset the local form fields AND retire the stale banner. A cancel-mid-flight is blocked
+  // (the Avbryt button is disabled while `pending`), so no request lands after this close.
+  const closeDialog = () => {
+    setOpen(false);
+    setOutcome("");
+    setCategory("");
+    setNote("");
+    setBannerDismissed(true);
+  };
 
   // NOTE: no explicit "close on success" effect is needed — on a successful flip the page revalidates
   // and this whole affordance (rendered ONLY on a sent version) unmounts as the version becomes `lost`.
@@ -84,22 +97,14 @@ export function MarkLostButton({ quoteId, quoteVersionId, followUpId }: MarkLost
         orsak. Detta ändrar inte det skickade underlaget — det registrerar en livscykelhändelse.
       </p>
 
-      {state.status === "error" && state.formError && (
-        <p role="alert" data-testid="mark-lost-error" className="text-sm text-red-800">
-          {state.formError}
-        </p>
-      )}
-      {retryable && (
-        <p role="status" className="text-sm text-amber-800">
-          Försök igen.
-        </p>
-      )}
-
       <div className="flex justify-end">
         <button
           type="button"
           data-testid="mark-lost-open"
-          onClick={() => setOpen(true)}
+          onClick={() => {
+            setBannerDismissed(false);
+            setOpen(true);
+          }}
           className="rounded-md border border-rose-300 bg-rose-50 px-4 py-2 text-sm font-medium text-rose-900 hover:bg-rose-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-600"
         >
           Markera som förlorad/avböjd
@@ -108,11 +113,12 @@ export function MarkLostButton({ quoteId, quoteVersionId, followUpId }: MarkLost
 
       <Dialog
         open={open}
-        onClose={() => setOpen(false)}
+        onClose={closeDialog}
         title="Markera som förlorad/avböjd"
       >
         <form
           action={formAction}
+          onSubmit={() => setBannerDismissed(false)}
           data-testid="mark-lost-form"
           className="flex flex-col gap-4"
           noValidate
@@ -123,6 +129,24 @@ export function MarkLostButton({ quoteId, quoteVersionId, followUpId }: MarkLost
               Omitted on the standalone dialog, so 10.2's behavior is byte-unchanged without it. */}
           {followUpId && (
             <input type="hidden" name="follow_up_id" value={followUpId} />
+          )}
+
+          {/*
+           * The error / retry feedback MUST live INSIDE the Dialog form. On a failed submit the dialog
+           * stays open, and the shared Dialog paints a fixed `inset-0 z-50` overlay over the page; a
+           * banner in the section body behind that overlay is in the DOM but occluded — the AC1/AC2
+           * "clear message" would be invisible exactly when it matters. Rendering it here (inside the
+           * `z-10` panel) keeps it above the overlay, mirroring the 10.3 FollowUpSheet/PlanFollowUpButton fix.
+           */}
+          {!bannerDismissed && state.status === "error" && state.formError && (
+            <p role="alert" data-testid="mark-lost-error" className="text-sm text-red-800">
+              {state.formError}
+            </p>
+          )}
+          {!bannerDismissed && retryable && (
+            <p role="status" className="text-sm text-amber-800">
+              Försök igen.
+            </p>
           )}
 
           {/* Outcome — a required radio group (Förlorad / Avböjd). */}
@@ -182,6 +206,7 @@ export function MarkLostButton({ quoteId, quoteVersionId, followUpId }: MarkLost
               rows={2}
               value={note}
               onChange={(e) => setNote(e.target.value)}
+              maxLength={2000}
               aria-required={noteRequired ? "true" : undefined}
               className="rounded-md border border-zinc-300 px-3 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-600"
             />
@@ -200,8 +225,9 @@ export function MarkLostButton({ quoteId, quoteVersionId, followUpId }: MarkLost
           <div className="flex justify-end gap-2">
             <button
               type="button"
-              onClick={() => setOpen(false)}
-              className="rounded-md border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+              onClick={closeDialog}
+              disabled={pending}
+              className="rounded-md border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 disabled:opacity-60"
             >
               Avbryt
             </button>

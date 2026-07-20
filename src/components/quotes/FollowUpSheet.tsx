@@ -56,6 +56,13 @@ export function FollowUpSheet({
   const dialogOpen = open && state.status !== "success";
   const confirmDisabled = pending || outcome.trim().length === 0;
 
+  // Close + reset the local outcome field. Cancel-mid-flight is blocked (Avbryt is disabled while
+  // `pending`) so no completion request lands after this close.
+  const closeDialog = () => {
+    setOpen(false);
+    setOutcome("");
+  };
+
   return (
     <div
       data-testid="complete-follow-up-section"
@@ -79,7 +86,7 @@ export function FollowUpSheet({
         </button>
       </div>
 
-      <Dialog open={dialogOpen} onClose={() => setOpen(false)} title="Klarmarkera uppföljning">
+      <Dialog open={dialogOpen} onClose={closeDialog} title="Klarmarkera uppföljning">
         <form
           action={formAction}
           data-testid="complete-follow-up-form"
@@ -118,6 +125,7 @@ export function FollowUpSheet({
               rows={2}
               value={outcome}
               onChange={(e) => setOutcome(e.target.value)}
+              maxLength={4000}
               aria-required="true"
               className="rounded-md border border-zinc-300 px-3 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
             />
@@ -126,8 +134,9 @@ export function FollowUpSheet({
           <div className="flex justify-end gap-2">
             <button
               type="button"
-              onClick={() => setOpen(false)}
-              className="rounded-md border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+              onClick={closeDialog}
+              disabled={pending}
+              className="rounded-md border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 disabled:opacity-60"
             >
               Avbryt
             </button>

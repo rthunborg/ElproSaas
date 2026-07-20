@@ -25,6 +25,7 @@
  */
 import { defineCommand } from "../envelope";
 import { CommandError } from "../command-errors";
+import { calendarDayIn } from "@/features/quotes/follow-up-dates";
 import {
   asQuoteFollowUpWriteClient,
   loadQuoteVersionAnchor,
@@ -79,6 +80,15 @@ export const planQuoteFollowUp = defineCommand<
 
     // ── A follow-up is planned only on a SENT version (an OPEN deal). ──
     if (anchor.status !== "sent") throw new CommandError("VALIDATION_FAILED");
+
+    // ── Reject a due date strictly BEFORE "today in Europe/Stockholm" (judged on the SINGLE injected
+    // command clock — never Date.now() on this path, matching the 10.3/10.4 date discipline). A past
+    // due date would surface as an instantly-overdue "Försenad uppföljning" (10.4 integration review).
+    // A DISTINCT stable code (FOLLOW_UP_DUE_DATE_IN_PAST), never a reused generic VALIDATION_FAILED. ──
+    const todayStockholm = calendarDayIn(ctx.clock.now(), "Europe/Stockholm");
+    if (ctx.input.due_date < todayStockholm) {
+      throw new CommandError("FOLLOW_UP_DUE_DATE_IN_PAST");
+    }
 
     // ── INSERT the open row on the RLS client (never service-role). tenant_id from the resolved ──
     // ── context; quote_id DERIVED from the loaded anchor row (never a client value).            ──

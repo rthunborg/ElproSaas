@@ -29,10 +29,9 @@
  * The GREEN phase EXTENDS that file (add quote_lost_reasons × SELECT/INSERT to the expected EXACT set
  * + the table to the exists/RLS-forced checks), keeping the enumeration EXACT — never a superset.
  *
- * ── RED PHASE (Story 10.2 not yet implemented) ────────────────────────────────────────────────────
- * The migration does NOT exist yet, so the introspection finds nothing. The whole describe block is
- * `describe.skip`; the assertions encode the CONTRACT the green phase must satisfy. GREEN: land the
- * migration, remove `.skip`, re-label "green", and EXTEND `migration-reset.int.test.ts` in lockstep.
+ * ── GREEN (Story 10.2 shipped) ────────────────────────────────────────────────────────────────────
+ * The migration is landed and `migration-reset.int.test.ts` is extended in lockstep; the introspection
+ * runs against the reset local stack, the suite is unskipped, and the assertions encode the CONTRACT.
  *
  * Runs against the LOCAL Supabase stack only; skips visibly when unreachable. Mirrors
  * `acceptance-tables-migration-reset.int.test.ts` (7.1). CI (`SUPABASE_TEST_REQUIRED=1`) hard-fails so

@@ -1,12 +1,13 @@
 /**
- * ATDD RED-PHASE scaffold — Story 10.1 AC4 (manifest coherence validator: presence AND coherence).
+ * Story 10.1 AC4 (manifest coherence validator: presence AND coherence).
  *
- * ── RED PHASE (implementation not yet landed) ─────────────────────────────────────────────────
- * `src/scope/manifest-schema.ts` (which exports `validateManifestCoherence`) and `src/scope/
- * manifest.ts` (which exports `SCOPE_MANIFEST`) do NOT exist yet, so every dynamic import throws
- * and these tests FAIL — the intended red state. Story 10.1's dev-story turns them green.
+ * ── GREEN (Story 10.1 shipped; extended by the 10.4 integration review) ────────────────────────
+ * `src/scope/manifest-schema.ts` (`validateManifestCoherence`) and `src/scope/manifest.ts`
+ * (`SCOPE_MANIFEST`) are landed; the suite imports the REAL modules and runs green. The 10.4 review
+ * added the `missing-activation-date` / `duplicate-module-id` / `duplicate-soft-surface` rules with
+ * biting negatives below so the validator matches the docstring/AGENTS.md "presence AND coherence".
  *
- * Intended contract (dev-story implements exactly this):
+ * The contract the validator implements:
  *   `validateManifestCoherence(manifest): CoherenceViolation[]`
  *     - pure function, input = a manifest object, output = a list of violations (empty = coherent).
  *     - `CoherenceViolation = { rule: CoherenceRule; detail: string }`
@@ -169,6 +170,52 @@ test("10.1-UNIT-COH-05 (AC4 rule 4): a public-surface union EXCEEDING the closed
     flagged.has("public-surface-exceeds-closed-set") || flagged.has("orphan-surface"),
     "a public-surface union of four (outside the ADR-B004 closed set) must be flagged",
   );
+});
+
+test("10.1-UNIT-COH-07 (AC4): an `active` module WITHOUT an activatedAt date is flagged (missing-activation-date)", async () => {
+  const validate = await loadValidator();
+  const manifest = {
+    modules: [makeModule({ id: "live-no-date", activatedAt: undefined })],
+  };
+  assert.ok(
+    rules(validate(manifest)).has("missing-activation-date"),
+    "an active module without an activatedAt date must be flagged (it went live but recorded no activation date)",
+  );
+});
+
+test("10.1-UNIT-COH-08 (AC4): a module `id` declared by TWO modules is flagged (duplicate-module-id)", async () => {
+  const validate = await loadValidator();
+  const manifest = {
+    modules: [
+      makeModule({ id: "crm", navItems: [{ route: "/customers" }] }),
+      // A second module reusing the same id — activeModules/pendingModules key by status, not id, so a
+      // duplicate id would collapse two modules' derived surface onto one key. Distinct routes so the
+      // ONLY violation is the duplicate id (not a duplicate nav route).
+      makeModule({ id: "crm", navItems: [{ route: "/facilities" }] }),
+    ],
+  };
+  assert.ok(
+    rules(validate(manifest)).has("duplicate-module-id"),
+    "a module id declared by more than one module must be flagged",
+  );
+});
+
+test("10.1-UNIT-COH-09 (AC4): a SOFT surface declared by TWO modules is flagged (duplicate-soft-surface)", async () => {
+  const validate = await loadValidator();
+  // Two ACTIVE modules (so neither is an orphan) each declare the SAME notification category — the
+  // soft-surface uniqueness invariant the hard nav/table/widget `duplicate-surface` rule doesn't cover.
+  const manifest = {
+    modules: [
+      makeModule({ id: "a", notificationCategories: ["job.reminder"] }),
+      makeModule({ id: "b", notificationCategories: ["job.reminder"] }),
+    ],
+  };
+  const flagged = rules(validate(manifest));
+  assert.ok(
+    flagged.has("duplicate-soft-surface"),
+    "a notification category declared by two modules must be flagged as a duplicate soft surface",
+  );
+  assert.ok(!flagged.has("orphan-surface"), "two active modules own their own surface — never orphans");
 });
 
 test("10.1-UNIT-COH-06 (EB-A5 carve-out): the validator does NOT implement the permission-matrix-row rule (wired at 11.1)", async () => {

@@ -23,12 +23,10 @@
  * ("Förlorad/Avböjd" for the `lost` event in `Händelser`) is exercised in the E2E (10.2-E2E-01),
  * because `read.ts` is not a PURE import (it pulls the server read path).
  *
- * ── WHY the top `describe` is skipped (RED PHASE) ─────────────────────────────────────────────────
- * The `lost` token does NOT exist yet in the union / transition map / label maps (Story 10.2 Task 3
- * is the DEV phase). Every assertion below encodes the EXPECTED post-widening behaviour, so each one
- * FAILS today — the suite is `describe(..., { skip: ... })` so it cannot fail CI before the feature
- * lands. GREEN phase: land Task 3, drop the `LOST` cast (once `"lost"` is a real union member it is a
- * plain literal), remove `{ skip }`, and re-label. Do NOT weaken any assertion.
+ * ── GREEN (Story 10.2 shipped) ────────────────────────────────────────────────────────────────────
+ * The `lost` token is a real member of the union / transition map / label maps (Task 3 landed); the
+ * suite is unskipped and runs green. Every assertion below encodes the post-widening CONTRACT — do NOT
+ * weaken any assertion.
  *
  * Runner: `node --test` (`pnpm test:unit`) — PURE, NO DB, NO PII, NO clock. Two-runner discipline
  * (epic-10 retro, Story 10-1 Phase-4): the widened transition map + token coherence land as UNIT, not

@@ -45,6 +45,7 @@ import {
   adminInsertQuote,
   adminInsertQuoteVersion,
   adminInsertQuoteEvent,
+  adminInsertQuoteAcceptance,
   type TwoTenantFixture,
   type TestServerClient,
 } from "../../factories/tenants";
@@ -114,8 +115,10 @@ describe("10.4-INT-01: pipeline read-model isolation floor (RLS-client-only, cro
     await adminInsertQuoteEvent({ tenant_id: tid, quote_id: bQuote, quote_version_id: bVersion, event_type: "sent", occurred_at: SEED_INSTANT });
     await adminInsertQuoteEvent({ tenant_id: tid, quote_id: bQuote, quote_version_id: bVersion, event_type: "accepted", occurred_at: SEED_INSTANT });
     // A's RLS-scoped read-model must see NONE of tenant B's pipeline. The `deps.client` seam binds
-    // tenant A's authed harness client; production resolves the request client.
-    const result = await readQuotePipeline(WINDOW, undefined, { client: a });
+    // tenant A's authed harness client; production resolves the request client. Pass an EXPLICIT
+    // money-entitled input (the B1a all-tenant_admin reality) — the entitlement resolver is FAIL-CLOSED
+    // on an OMITTED input (10.4 review hardening), so an entitled caller states its role set.
+    const result = await readQuotePipeline(WINDOW, { roles: ["tenant_admin"] }, { client: a });
     expect(result.data.sentCount).toBe(0);
     expect(result.data.acceptedCount).toBe(0);
     expect(result.data.lostCount).toBe(0);
@@ -138,13 +141,50 @@ describe("10.4-INT-01: pipeline read-model isolation floor (RLS-client-only, cro
       tenant_id: tid, quote_id: aQuote, calculation_id: aCalc, status: "sent",
     });
     await adminInsertQuoteEvent({ tenant_id: tid, quote_id: aQuote, quote_version_id: aVersion, event_type: "sent", occurred_at: SEED_INSTANT });
-    const result = await readQuotePipeline(WINDOW, undefined, { client: a });
+    const result = await readQuotePipeline(WINDOW, { roles: ["tenant_admin"] }, { client: a });
     // A's counts are driven by A's events ONLY (RLS scopes every underlying query to A). Exactly one
     // sent version was seeded for A; B's sent version (from the sibling test) must NOT be counted.
     expect(result.data.sentCount).toBe(1);
     // B seeded an ACCEPTED event; if it leaked, A's acceptedCount would be > 0. It must stay 0.
     expect(result.data.acceptedCount).toBe(0);
     expect(result.data.lostCount).toBe(0);
-    expect(result.entitlements.withheld).toEqual([]); // tenant_admin ⇒ money entitled
+    expect(result.entitlements.withheld).toEqual([]); // explicit tenant_admin ⇒ money entitled
+  });
+
+  it("money: acceptedValueOre sums the ACCEPTED commitment (quote_acceptances), NOT the frozen sent total (quote_versions)", async (ctx) => {
+    if (skipUnlessStack(ctx, stackUp)) return;
+    // Seed for tenant A an accepted version whose FROZEN sent total differs from the ACCEPTED price
+    // (an adjusted-price acceptance). The pipeline money leaf must report what was ACCEPTED (the
+    // quote_acceptances.accepted_price_ore), never the version's frozen sent total (10.4 review).
+    const tid = fixture.tenantA.id;
+    const SENT_TOTAL_ORE = 900_000; // 9 000,00 kr — the frozen sent total on the version
+    const ACCEPTED_ORE = 750_000; // 7 500,00 kr — the ADJUSTED accepted commitment
+    const customer = await adminInsertCustomer({ tenant_id: tid, customer_type: "company", display_name: "Kund Money A" });
+    const calc = await adminInsertCalculation({ tenant_id: tid, customer_id: customer });
+    const quote = await adminInsertQuote({ tenant_id: tid, customer_id: customer });
+    const version = await adminInsertQuoteVersion({
+      tenant_id: tid, quote_id: quote, calculation_id: calc, status: "accepted", accepted_price_ore: SENT_TOTAL_ORE,
+    });
+    await adminInsertQuoteEvent({ tenant_id: tid, quote_id: quote, quote_version_id: version, event_type: "sent", occurred_at: SEED_INSTANT });
+    await adminInsertQuoteEvent({ tenant_id: tid, quote_id: quote, quote_version_id: version, event_type: "accepted", occurred_at: SEED_INSTANT });
+    await adminInsertQuoteAcceptance({
+      tenant_id: tid, quote_id: quote, quote_version_id: version,
+      accepted_price_ore: ACCEPTED_ORE, source_sent_total_ore: SENT_TOTAL_ORE, accepted_at: SEED_INSTANT,
+    });
+    const result = await readQuotePipeline(WINDOW, { roles: ["tenant_admin"] }, { client: a });
+    // The money leaf reports exactly the accepted commitment (the review-mandated source), never the
+    // frozen sent total — a value between them would prove the wrong column is summed.
+    expect(result.data.acceptedValueOre).toBe(ACCEPTED_ORE);
+    expect(result.data.acceptedValueOre).not.toBe(SENT_TOTAL_ORE);
+  });
+
+  it("fail-closed: the read-model with an OMITTED entitlement input withholds the money leaf (defense-in-depth)", async (ctx) => {
+    if (skipUnlessStack(ctx, stackUp)) return;
+    // The least-known caller (no entitlement input) is the MOST guarded — the read-model must NOT
+    // expose the money aggregate on an omitted input (10.4 review hardening, R-1040). An entitled
+    // caller states an explicit role set (the sibling tests above); this proves the default is closed.
+    const result = await readQuotePipeline(WINDOW, undefined, { client: a });
+    expect(Object.prototype.hasOwnProperty.call(result.data, "acceptedValueOre")).toBe(false);
+    expect(result.entitlements.withheld).toContain("acceptedValueOre");
   });
 });

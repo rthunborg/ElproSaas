@@ -91,13 +91,20 @@ test(
 );
 
 test(
-  "10.4-UNIT-01: absent/omitted entitlement input falls back to the conservative tenant_admin default (withheld [])",
+  "10.4-UNIT-01: an OMITTED entitlement input is FAIL-CLOSED (unentitled — money absent + listed), same as an empty role set",
   () => {
-    // Under B1a everyone IS tenant_admin (EB-A4); the baked-in default must be money-entitled so
-    // runtime `withheld` is [] today — the unentitled path is proven by an explicit input above.
+    // Hardened by the 10.4 integration review (defense-in-depth, R-1040): the LEAST-known caller (no
+    // input at all) must be the MOST guarded, not the most permissive — an omitted input resolves the
+    // SAME as an explicit empty role set (unentitled). Callers that ARE entitled (the B1a all-
+    // tenant_admin reality) pass an EXPLICIT EntitlementInput; the read-model never relies on the
+    // omitted-input default to expose money.
     const { data, entitlements } = projectWithEntitlements(FULL_AGGREGATE);
-    assert.deepEqual([...entitlements.withheld], []);
-    assert.equal(data.acceptedValueOre, FULL_AGGREGATE.acceptedValueOre);
+    assert.equal(
+      Object.prototype.hasOwnProperty.call(data, "acceptedValueOre"),
+      false,
+      "an omitted input must withhold the money leaf (fail-closed), never expose it",
+    );
+    assert.deepEqual([...entitlements.withheld], ["acceptedValueOre"]);
   },
 );
 

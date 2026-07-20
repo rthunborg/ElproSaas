@@ -1,14 +1,12 @@
 /**
- * ATDD RED-PHASE scaffold — Story 10.1 AC2 (typed scope manifest) + Task 1.3 uniqueness invariant.
+ * Story 10.1 AC2 (typed scope manifest) + Task 1.3 uniqueness invariant.
  *
- * ── RED PHASE (implementation not yet landed) ─────────────────────────────────────────────────
- * `src/scope/manifest.ts` and `src/scope/manifest-schema.ts` do NOT exist yet, so every dynamic
- * `import("@/scope/...")` below throws ERR_MODULE_NOT_FOUND and these tests FAIL. That is the
- * intended TDD red state. Story 10.1's dev-story turns them green by creating:
- *   - `src/scope/manifest-schema.ts` — the `ScopeManifest`/`ScopeModule` types + pure selector
- *     helpers `activeModules` / `pendingModules` / `navRoutesFromManifest(m)` /
- *     `tenantTablesFromManifest(m)` / `fileOwnerTypesFromManifest(m)` (unions over modules).
- *   - `src/scope/manifest.ts` — the `SCOPE_MANIFEST` constant, `satisfies ScopeManifest`-guarded.
+ * ── GREEN (Story 10.1 shipped) ─────────────────────────────────────────────────────────────────
+ * `src/scope/manifest.ts` (the `SCOPE_MANIFEST` constant, `satisfies ScopeManifest`-guarded) and
+ * `src/scope/manifest-schema.ts` (the `ScopeManifest`/`ScopeModule` types + pure selectors
+ * `activeModules` / `pendingModules` / `navRoutesFromManifest(m)` / `tenantTablesFromManifest(m)` /
+ * `fileOwnerTypesFromManifest(m)`) are landed; the suite imports the REAL modules, is unskipped, and
+ * runs green. The assertions are the CONTRACT — do not weaken them.
  *
  * These assertions encode AC2's concrete numbers (7 nav / 24 tenant tables / 7 file owner types as
  * the Phase A `active` set under wave `A`, every Phase B module `pending`) + the per-module field

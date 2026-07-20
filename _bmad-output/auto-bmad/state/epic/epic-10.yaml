@@ -5,11 +5,11 @@ epic_num: 10
 story_num: null
 branch: epic/10-quote-lifecycle-completion
 status: in-progress
-updated_at: "2026-07-19T19:53:46Z"
+updated_at: "2026-07-20T12:03:07Z"
 started_at: "2026-07-19T12:24:42Z"
 completed_at: null
 active_seconds: 26631
-timing_anchor: null
+timing_anchor: 1784490843
 is_first_in_epic: false
 is_last_in_epic: false
 needs_project_context_bootstrap: false
@@ -63,6 +63,13 @@ auto_decisions:
   - "Hand-rolled follow-up chip/badge vs reuse constraint [Low] -> defer: fold tones into status.ts during 10.4 consistency pass; ledgered (Tier A, 10-3-quote-follow-up-workflow)"
   - "annotateQuoteFollowUp shipped with no UI caller [Low] -> dismiss: spec-compliant forward-provisioning (Tasks 3.2+5.4 mandate command+action only); owner-visibility note kept (Tier A, 10-3-quote-follow-up-workflow)"
   - "Aggregate-honesty flat delete-list vs dependency-aware mandate [Med] -> fix: correct the overstated withholdFields comment to describe the actual flat list; dependency modeling deferred to first multi-component read-model (Tier A, 10-4-pipeline-surfacing-and-dashboard-read-model)"
+  - "Money leaf sums wrong column (sent total, not accepted commitment) [High] -> fix: source acceptedValueOre from quote_acceptances.accepted_price_ore; reconcile SETTLED DECISION 5 (E_review, epic-10)"
+  - "Open follow-ups on decided quotes keep escalating + inflate pipeline [High] -> fix: exclude follow-ups on terminal latest versions from list projection AND aggregate; correct the recoverable-residual comment (E_review, epic-10)"
+  - "Fail-open entitlement default asymmetry [Med] -> fix: omitted EntitlementInput resolves unentitled (fail-closed) (E_review, epic-10)"
+  - "Duplicate mark-lost/new-version affordances in jumps state [Med] -> fix: single owner — suppress FollowUpPanel jumps-branch duplicates while standalone affordances show (E_review, epic-10)"
+  - "validateManifestCoherence under-enforces documented invariants [Med] -> fix: add missing-activation-date / duplicate-module-id / duplicate-soft-surface rules or soften the docstring to match (E_review, epic-10)"
+  - "Past due_date creates instantly-overdue follow-up [Low] -> fix: reject with NEW error FOLLOW_UP_DUE_DATE_IN_PAST + min on input (E_review, epic-10)"
+  - "Pipeline follow-up counts point-in-time vs period [Low] -> dismiss: 'currently open' semantics documented for E19 (E_review, epic-10)"
 uat_items:
   - "[10-1-phase-b-governance-re-baseline-and-scope-manifest] Run the scope suite (node --test tests/unit/scope/**) -> all shape/coherence/derivation/invariant/selector/governance tests pass"
   - "[10-1-phase-b-governance-re-baseline-and-scope-manifest] Run pnpm test:unit -> suite grew vs pre-10.1 and all pass except the known pre-existing 9.2-REPEAT-01 CRLF failure on Windows (passes CI)"

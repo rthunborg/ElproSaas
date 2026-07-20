@@ -350,11 +350,15 @@ export async function markQuoteVersionLostAction(
     // successful lost flip (the irreversible commitment, done FIRST), auto-complete the open follow-up
     // with the chosen förlorad/avböjd outcome — so no open follow-up survives a lost flip taken from
     // this surface. TWO-command orchestration (NOT a widened RPC — the frozen mark_quote_version_lost
-    // RPC is untouched). Accepted, recoverable non-atomicity residual: a rare transient failure of the
-    // completion AFTER a successful lost flip leaves an orphaned OPEN follow-up on the now-lost quote —
-    // non-corrupting (the sheet stays available; the user can Klarmarkera it manually; both commands
-    // are independently audited). The standalone (non-follow-up) lost dialog omits the field, so 10.2's
-    // behavior is byte-unchanged when no follow-up id is carried.
+    // RPC is untouched). Non-atomicity residual: a rare transient failure of the completion AFTER a
+    // successful lost flip leaves an OPEN follow-up row on the now-lost quote. This is NON-CORRUPTING but
+    // NOT self-healing via the UI — once the version leaves `sent` the follow-up sheet UNMOUNTS, so the
+    // user CANNOT Klarmarkera it manually (the earlier "the sheet stays available" claim was false). The
+    // stranded row is harmless because the 10.4 read paths now EXCLUDE follow-ups on decided (accepted/
+    // lost) quotes from the /quotes list flags AND the pipeline open/overdue counts — so it never
+    // escalates. We still capture + log the completion Result on failure so the orphan has telemetry (no
+    // silent swallow). The standalone (non-follow-up) lost dialog omits the field, so 10.2's behavior is
+    // byte-unchanged when no follow-up id is carried.
     const followUpId = form.get("follow_up_id");
     const outcome = form.get("outcome");
     if (
@@ -363,10 +367,19 @@ export async function markQuoteVersionLostAction(
       typeof outcome === "string" &&
       outcome.length > 0
     ) {
-      await runCommand(completeQuoteFollowUp, {
+      const completeResult = await runCommand(completeQuoteFollowUp, {
         client,
         input: { follow_up_id: followUpId, outcome },
       });
+      if (!completeResult.ok) {
+        // Surface the stranded-open-follow-up residual: the lost flip already committed, so the flip
+        // still succeeds, but the auto-complete failed and left an orphaned open row (excluded from the
+        // 10.4 read paths, so non-escalating). Log for telemetry — never swallow silently.
+        console.error(
+          "markQuoteVersionLostAction: auto-complete-on-lost failed after a successful lost flip",
+          { followUpId, code: completeResult.code },
+        );
+      }
     }
     if (typeof quoteId === "string" && quoteId.length > 0) {
       revalidatePath(`/quotes/${quoteId}`);

@@ -20,12 +20,11 @@
  * LF fails on a Windows `autocrlf` checkout while passing CI). A broad
  * `text eol=lf` entry for the golden-fixtures JSON glob is added in this same PR.
  *
- * ── WHY the top `describe` is skipped (RED PHASE) ─────────────────────────────────────────────────
- * The fixture does NOT exist yet (Task 6.4 authors `tests/fixtures/golden/quotes/lost-lifecycle.json`
- * in the DEV phase). The read is guarded so an absent fixture does not throw at module load; the whole
- * suite is `describe(..., { skip })` until the fixture is authored + the `lost` shape lands. GREEN
- * phase: author the fixture (anonymized), add the `.gitattributes` LF pin, remove `{ skip }`. The
- * assertions are the CONTRACT — do not weaken them.
+ * ── GREEN (Story 10.2 shipped) ────────────────────────────────────────────────────────────────────
+ * The anonymized fixture `tests/fixtures/golden/quotes/lost-lifecycle.json` is authored (Task 6.4) and
+ * the `.gitattributes` LF pin is in place; the suite is unskipped and runs green. The read is still
+ * guarded so an absent fixture does not throw at module load. The assertions are the CONTRACT — do not
+ * weaken them.
  *
  * Runner: `node --test` (`pnpm test:unit`) — PURE, NO DB, NO PII, NO clock. Mirrors
  * `accept-quote-to-job-golden.test.ts` (7.2) + `tests/unit/lib/money/golden-pack.test.ts`.

@@ -78,15 +78,20 @@ export interface EntitlementInput {
 const MONEY_FIELD_PATHS: readonly FieldPath[] = ["acceptedValueOre"];
 
 /**
- * The SINGLE, injectable entitlement resolver with a CONSERVATIVE default (SETTLED DECISION 3): an
- * explicit `moneyEntitled` wins; else a role set is money-entitled iff it contains `tenant_admin`; else
- * (no input at all) the conservative default is money-entitled — the B1a single-role reality where
- * everyone IS `tenant_admin`, so runtime `withheld` is `[]`. NOT the N-4 per-role matrix (Epic 11).
+ * The SINGLE, injectable entitlement resolver, FAIL-CLOSED by default (SETTLED DECISION 3, hardened by
+ * the 10.4 integration review): an explicit `moneyEntitled` wins; else a role set is money-entitled iff
+ * it contains `tenant_admin`; else (NO input at all — the LEAST-known caller) the conservative default
+ * is UNENTITLED (money withheld). Defense-in-depth: an omitted input resolves the SAME as an explicit
+ * empty role set (both unentitled), so the least-known caller is the MOST guarded rather than the most
+ * permissive — the phase-defining precedent every later Phase-B read-model inherits (R-1040). Callers
+ * that ARE entitled (e.g. the B1a all-`tenant_admin` reality) pass an EXPLICIT EntitlementInput; the
+ * read-model MUST NOT rely on the omitted-input default to expose money. NOT the N-4 per-role matrix
+ * (Epic 11 feeds this SAME seam the real matrix — EB-A4).
  */
 function resolveMoneyEntitled(input?: EntitlementInput): boolean {
   if (input?.moneyEntitled !== undefined) return input.moneyEntitled;
   if (input?.roles !== undefined) return input.roles.includes("tenant_admin");
-  return true;
+  return false;
 }
 
 /**

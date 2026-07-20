@@ -102,8 +102,9 @@ test.describe("Quote follow-up dialog + chip + completion sheet (Story 10.3 E2E)
 
     const chip = page.getByTestId("next-follow-up-chip");
     await expect(chip).toBeVisible();
-    // The overdue state surfaces as an escalated badge (text + a data attribute the chip sets).
-    await expect(chip).toContainText(/Försenad|Överfallen|Överdue|Försenad uppföljning/i);
+    // The overdue state surfaces as an escalated badge (text + a data attribute the chip sets). Assert
+    // the ACTUAL rendered escalation label — not an over-permissive alternation of never-rendered strings.
+    await expect(chip).toContainText("Försenad uppföljning");
     await expect(chip).toHaveAttribute("data-overdue", "true");
   });
 

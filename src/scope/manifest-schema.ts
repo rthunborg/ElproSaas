@@ -215,6 +215,8 @@ export function deferredFileTokensFromManifest(manifest: ManifestInput): string[
 export type CoherenceRule =
   /** An `active` module without an `epic` reference (§5.4 rule 1). */
   | "active-module-missing-epic"
+  /** An `active` module without an `activatedAt` date (§5.2 — an active module went live on a date). */
+  | "missing-activation-date"
   /** A surface (nav/table/widget/notification-category/file-owner-type/public-surface) not
    *  traceable to an `active` module (§5.4 rule 2 — the A22 lesson: presence is not enough). */
   | "orphan-surface"
@@ -224,7 +226,14 @@ export type CoherenceRule =
   | "public-surface-exceeds-closed-set"
   /** A tenant table / nav route / file owner type / widget declared by two modules
    *  (Task 1.3 uniqueness invariant — the improvement over the `READINESS_CODES` gap). */
-  | "duplicate-surface";
+  | "duplicate-surface"
+  /** A module `id` declared by two modules (a duplicate id collapses two modules' derived
+   *  surface into one key — the module-identity half of the uniqueness invariant). */
+  | "duplicate-module-id"
+  /** A SOFT surface (notification category / file owner type / public surface / deferred file
+   *  token) declared by two modules — the uniqueness invariant extended to the soft surfaces the
+   *  `duplicate-surface` (hard nav/table/widget) rule does not cover. */
+  | "duplicate-soft-surface";
 
 /** A single coherence violation: the rule that fired + a developer-facing detail. */
 export interface CoherenceViolation {
@@ -241,13 +250,15 @@ const PUBLIC_SURFACE_CLOSED_SET: ReadonlySet<string> = new Set<string>([
 
 /**
  * Validate the manifest for PRESENCE AND COHERENCE (§5.4). Pure: input = the manifest, output = the
- * list of violations (empty = coherent). Encodes the four Story-10.1 rules + the uniqueness
+ * list of violations (empty = coherent). Encodes the Story-10.1 rules + the full uniqueness
  * invariant; NOT the permission-matrix rule (EB-A5 → 11.1).
  *
- * The "A22 lesson": it is not enough that a listed surface EXISTS — every surface must be traceable
- * to an `active` module, `pending` modules must carry no live surface, and the public-surface union
- * must stay within the closed set of three. Each rule is exercised by a biting negative case in
- * `tests/unit/scope/manifest-coherence.test.ts`.
+ * The rules enforced: an `active` module carries an `epic` AND an `activatedAt` date; every surface is
+ * traceable to an `active` module (the A22 lesson — presence is not enough); `pending` modules carry no
+ * live surface; the public-surface union stays within the ADR-B004 closed set; module ids are unique;
+ * and NO nav route / tenant table / widget / file owner type (hard) NOR notification category / public
+ * surface / deferred file token (soft) is declared by two modules. Each rule is exercised by a biting
+ * negative case in `tests/unit/scope/manifest-coherence.test.ts`.
  */
 export function validateManifestCoherence(
   manifest: ScopeManifest,
@@ -255,7 +266,9 @@ export function validateManifestCoherence(
   const violations: CoherenceViolation[] = [];
   const modules = manifest.modules ?? [];
 
-  // ── Rule 1: an `active` module must carry an `epic` reference (§5.4 rule 1). ──
+  // ── Rule 1: an `active` module must carry an `epic` reference (§5.4 rule 1) AND an activation
+  // date (§5.2 — an active module went live on a specific date; a missing date is an incoherent
+  // "live but never activated" record). ──
   for (const m of modules) {
     if (m.status !== "active") continue;
     if (!m.epic || String(m.epic).length === 0) {
@@ -263,6 +276,30 @@ export function validateManifestCoherence(
         rule: "active-module-missing-epic",
         detail: `active module "${m.id}" has no epic reference (an active module must name its delivering epic)`,
       });
+    }
+    if (!m.activatedAt || String(m.activatedAt).length === 0) {
+      violations.push({
+        rule: "missing-activation-date",
+        detail: `active module "${m.id}" has no activatedAt date (an active module must record the date it went live)`,
+      });
+    }
+  }
+
+  // ── Module-id uniqueness: a module `id` declared by two modules collapses their derived surface
+  // onto one key (activeModules/pendingModules filter by status, not id) — the module-identity half
+  // of the uniqueness invariant the READINESS_CODES gap taught us to enforce. ──
+  {
+    const seen = new Set<string>();
+    const reported = new Set<string>();
+    for (const m of modules) {
+      if (seen.has(m.id) && !reported.has(m.id)) {
+        reported.add(m.id);
+        violations.push({
+          rule: "duplicate-module-id",
+          detail: `module id "${m.id}" is declared by more than one module (module ids must be unique across the manifest)`,
+        });
+      }
+      seen.add(m.id);
     }
   }
 
@@ -307,7 +344,9 @@ export function validateManifestCoherence(
   const allPublic = modules.flatMap((m) => m.publicSurfaces as readonly string[]);
   const uniquePublic = [...new Set<string>(allPublic)];
   const outOfSet = uniquePublic.filter((s) => !PUBLIC_SURFACE_CLOSED_SET.has(s));
-  if (outOfSet.length > 0 || uniquePublic.length > 3) {
+  // Bound against the CLOSED-SET's own size, not a driftable literal `3` — the exact invariant the
+  // manifest initiative exists to remove (a duplicated magic number is the READINESS_CODES gap).
+  if (outOfSet.length > 0 || uniquePublic.length > PUBLIC_SURFACE_CLOSED_SET.size) {
     violations.push({
       rule: "public-surface-exceeds-closed-set",
       detail: `the public-surface union ${JSON.stringify(uniquePublic)} exceeds the ADR-B004 closed set {calendar_feed, asset_qr, unsubscribe}`,
@@ -335,6 +374,32 @@ export function validateManifestCoherence(
   flagDuplicates("nav route", modules.flatMap((m) => m.navItems.map((n) => n.route)));
   flagDuplicates("file owner type", modules.flatMap((m) => m.fileOwnerTypes));
   flagDuplicates("widget", modules.flatMap((m) => m.widgets));
+
+  // ── SOFT-surface uniqueness: the `duplicate-surface` rule above covers the HARD nav/table/widget
+  // surfaces (+ file owner type). Extend the same invariant to the remaining SOFT surfaces
+  // (notification categories, public surfaces, deferred file tokens) so a value declared by two
+  // modules can never silently double-count in a derived union — the docstring/AGENTS.md
+  // "cross-module uniqueness of publicSurfaces/notificationCategories/deferredFileToken" claim. ──
+  const flagSoftDuplicates = (label: string, xs: readonly string[]): void => {
+    const seen = new Set<string>();
+    const reported = new Set<string>();
+    for (const x of xs) {
+      if (seen.has(x) && !reported.has(x)) {
+        reported.add(x);
+        violations.push({
+          rule: "duplicate-soft-surface",
+          detail: `${label} "${x}" is declared by more than one module (cross-module soft-surface uniqueness invariant)`,
+        });
+      }
+      seen.add(x);
+    }
+  };
+  flagSoftDuplicates("notification category", modules.flatMap((m) => m.notificationCategories));
+  flagSoftDuplicates("public surface", modules.flatMap((m) => m.publicSurfaces as readonly string[]));
+  flagSoftDuplicates(
+    "deferred file token",
+    modules.flatMap((m) => (m.deferredFileToken ? [m.deferredFileToken] : [])),
+  );
 
   return violations;
 }
