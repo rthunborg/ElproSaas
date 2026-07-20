@@ -5,11 +5,11 @@ epic_num: 10
 story_num: null
 branch: epic/10-quote-lifecycle-completion
 status: in-progress
-updated_at: "2026-07-20T13:11:09Z"
+updated_at: "2026-07-20T13:55:36Z"
 started_at: "2026-07-19T12:24:42Z"
 completed_at: null
-active_seconds: 26631
-timing_anchor: 1784490843
+active_seconds: 91524
+timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
 needs_project_context_bootstrap: false
@@ -20,10 +20,10 @@ tea_selected: []
 tea_rationale: null
 epic_story_count: 4
 stories_after_in_epic: null
-completed_phases: [0, 1, 2, 5, 81]
+completed_phases: [0, 1, 2, 5, 7, 81, 82]
 code_review_iterations: 2
-code_review_loop_done: false
-hitl_halt: null
+code_review_loop_done: true
+hitl_halt: "auto-continued (epic â€” no halt)"
 external_review_iterations: 0
 convergence_unverified: true
 story_trace: null
@@ -32,13 +32,13 @@ phase8_steps:
   trace_gate: done
   nfr: done
   test_review: done
-  project_context: null
-  reconcile: null
-  archive: null
-  retro: null
+  project_context: done
+  reconcile: done
+  archive: done
+  retro: done
 gate_decision: PASS
 gate_iterations: 0
-deferred_work_archived: 0
+deferred_work_archived: 1
 pr_url: null
 ci_run_url: null
 ci_status: unknown

@@ -60,7 +60,7 @@
 # `backlog` story in file order.
 
 generated: 2026-06-12
-last_updated: 2026-07-19  # Story 10-4 implemented → review (first read-model + entitlement mechanism + status.ts tone fold)
+last_updated: 2026-07-20  # Epic 10 retrospective completed (epic-10-retrospective: optional → done)
 project: ElproSaas
 project_key: NOKEY
 tracking_system: file-system
@@ -189,7 +189,7 @@ development_status:
   10-2-forlorad-avbojd-status-and-lost-reason-lifecycle: review
   10-3-quote-follow-up-workflow: review
   10-4-pipeline-surfacing-and-dashboard-read-model: review
-  epic-10-retrospective: optional
+  epic-10-retrospective: done
 
   epic-11: backlog
   11-1-role-storage-and-permission-matrix-mechanism: backlog
