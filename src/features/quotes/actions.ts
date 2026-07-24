@@ -34,6 +34,7 @@ import {
   updateDraftQuoteVersion,
 } from "@/server/commands/quotes";
 import { createSignedFileAccess } from "@/server/commands/files";
+import { loadQuoteVersionAnchor } from "@/server/commands/quotes/quote-db";
 import { kronorStringToOre } from "@/features/calculations/money-input";
 import {
   ACCEPTANCE_ACTION_INITIAL,
@@ -361,15 +362,27 @@ export async function markQuoteVersionLostAction(
     // byte-unchanged when no follow-up id is carried.
     const followUpId = form.get("follow_up_id");
     const outcome = form.get("outcome");
+    // F5 (integration review): derive the just-lost version's REAL quote id from the DB (NEVER the
+    // form's `quote_id`, which is untrusted) and scope the auto-completion to it. A crafted/stale form
+    // carrying the `follow_up_id` of ANOTHER own-tenant quote then completes zero rows instead of
+    // silently completing the wrong quote's follow-up with the lost outcome. If the quote id cannot be
+    // derived (a rare post-flip read race), we skip the auto-complete — the orphan open row is harmless
+    // (the 10.4 read paths already exclude follow-ups on decided quotes).
+    const expectedQuoteId =
+      typeof quoteVersionId === "string" && quoteVersionId.length > 0
+        ? (await loadQuoteVersionAnchor(client, quoteVersionId))?.quote_id
+        : undefined;
     if (
       typeof followUpId === "string" &&
       followUpId.length > 0 &&
       typeof outcome === "string" &&
-      outcome.length > 0
+      outcome.length > 0 &&
+      typeof expectedQuoteId === "string" &&
+      expectedQuoteId.length > 0
     ) {
       const completeResult = await runCommand(completeQuoteFollowUp, {
         client,
-        input: { follow_up_id: followUpId, outcome },
+        input: { follow_up_id: followUpId, outcome, expected_quote_id: expectedQuoteId },
       });
       if (!completeResult.ok) {
         // Surface the stranded-open-follow-up residual: the lost flip already committed, so the flip

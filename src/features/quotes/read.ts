@@ -24,24 +24,11 @@
  */
 import { createSupabaseServerClient } from "@/server/db/supabase-server-client";
 import type { QuoteVersionStatus } from "./timeline";
+import { LATEST_DECIDED_STATUSES } from "./terminal-status";
 import { classifyFollowUp } from "./follow-up-dates";
 
 const GENERIC_READ_ERROR =
   "Ett tillfälligt fel inträffade. Försök igen om en stund.";
-
-/**
- * The TERMINAL (decided) latest-version statuses whose open follow-up must stop escalating in the list.
- * Derived from the `QuoteVersionStatus` domain: a deal is dead once its latest version is `accepted`,
- * `lost`, `rejected`, or `expired`. `superseded` is intentionally EXCLUDED — a superseded version
- * always has a higher-numbered successor, so it is never a quote's LATEST version. Kept in lockstep with
- * `TERMINAL_QUOTE_STATUSES` in the pipeline aggregate (iteration-2 integration review).
- */
-const LATEST_DECIDED_STATUSES: ReadonlySet<QuoteVersionStatus> = new Set([
-  "accepted",
-  "lost",
-  "rejected",
-  "expired",
-]);
 
 /** Coerce a `bigint` öre that PostgREST may return as a STRING into a JS number (or null). */
 function oreNumber(v: unknown): number | null {

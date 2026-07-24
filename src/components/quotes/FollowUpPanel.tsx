@@ -66,8 +66,14 @@ export function FollowUpPanel({
   const showJumps = completedId !== null && completedId !== dismissedTarget;
 
   // Notify the parent so it can retire its standalone lost/new-version affordances while jumps own them.
+  // The cleanup RESETS the flag to false — critical on UNMOUNT: in the lost-from-jumps path, submitting
+  // `MarkLostButton` flips the version sent→lost, so this panel unmounts while the flag is still true;
+  // without the reset the terminal read-only view would keep suppressing `CreateNewVersionButton` via
+  // `!jumpsActive`, hiding the documented revive path until a reload (integration review F2). The parent
+  // passes a stable `setJumpsActive` setter, so the cleanup does not thrash on re-render.
   useEffect(() => {
     onJumpsActiveChange?.(showJumps);
+    return () => onJumpsActiveChange?.(false);
   }, [showJumps, onJumpsActiveChange]);
 
   if (planNext) {

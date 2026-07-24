@@ -49,6 +49,7 @@ import { CreateNewVersionButton } from "./CreateNewVersionButton";
 import { FollowUpChip } from "./FollowUpChip";
 import { FollowUpPanel } from "./FollowUpPanel";
 import { QuotePdfPanel } from "./QuotePdfPanel";
+import { isLatestDecidedStatus } from "@/features/quotes/terminal-status";
 import { AcceptanceCaptureForm } from "./AcceptanceCaptureForm";
 
 /** The Swedish label for the (frozen) VAT display posture, for the assumptions block. */
@@ -149,6 +150,17 @@ export function QuoteDetailView({
   // Story 10.2: a terminal Förlorad/Avböjd version — the badge + the specific outcome/reason render
   // from the joined `selectedLostReason`. The mark-lost affordance is offered ONLY on a sent version.
   const isLost = selected.status === "lost";
+  const isSent = selected.status === "sent";
+  // Integration review F4: PDF generate/retry is scoped to draft/sent (architecture §12;
+  // generateQuotePdf rejects every other status with VALIDATION_FAILED). Gate the panel POSITIVELY on
+  // draft/sent so a `lost` (or rejected/expired/superseded) version is never offered an action the
+  // command always refuses — the previous `!isAccepted` gate leaked the affordance onto a lost version.
+  const canGeneratePdf = isDraft || isSent;
+  // Integration review F3: the header follow-up chip must stop escalating once the LATEST version is
+  // decided (accepted/lost/rejected/expired) — the follow-up panel that could clear the row only renders
+  // on a sent version, so a decided quote would otherwise show an unclearable "Försenad uppföljning".
+  // Single-sourced with the list flags + pipeline counts via `isLatestDecidedStatus`.
+  const isLatestDecided = isLatestDecidedStatus(latest?.status ?? selected.status);
   // Story 7.3 (AC5 deep-link seam): the ONE job created off this accepted version (if any). The
   // accepted section links to `/jobs/[jobId]` — the idempotent mirror lands on the EXISTING job,
   // never a duplicate or a second create affordance.
@@ -193,7 +205,7 @@ export function QuoteDetailView({
           <div className="flex items-center gap-2">
             {/* Story 10.3 — the next-follow-up chip (UX-BDR17). Rendered when the quote has an OPEN
                 follow-up; an OVERDUE one escalates visually (text-first, color redundant). */}
-            {followUpChip.present && openFollowUp && (
+            {followUpChip.present && openFollowUp && !isLatestDecided && (
               <FollowUpChip
                 dueDate={openFollowUp.due_date}
                 overdue={followUpChip.overdue}
@@ -481,7 +493,7 @@ export function QuoteDetailView({
                 commands (never a bespoke path). GATED OFF an `accepted` version (Story 7.2, Task 5):
                 PDF retry is scoped to draft/sent (architecture §12) — an accepted commitment offers
                 no PDF-retry affordance. */}
-            {!isAccepted && (
+            {canGeneratePdf && (
               <QuotePdfPanel
                 quoteId={header.id}
                 quoteVersionId={selected.id}

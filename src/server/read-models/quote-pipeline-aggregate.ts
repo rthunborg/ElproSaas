@@ -41,6 +41,7 @@
  *  test-design-epic-10.md#10.4-UNIT-02, R-1042]
  */
 import { classifyFollowUp, calendarDayIn } from "@/features/quotes/follow-up-dates";
+import { isLatestDecidedStatus } from "@/features/quotes/terminal-status";
 
 /** The Europe/Stockholm zone — the ONE tz the whole pipeline period + overdue boundary reasons on. */
 const STOCKHOLM_TZ = "Europe/Stockholm";
@@ -81,19 +82,6 @@ export interface FollowUpRow {
   readonly quoteLatestVersionStatus?: string | null;
 }
 
-/**
- * The terminal (decided) quote-version statuses whose OPEN follow-ups are excluded from the counts.
- * Derived from the version status domain's DECIDED-as-latest set: a deal is dead (no longer worth
- * chasing) once its latest version is `accepted`, `lost`, `rejected`, or `expired`. `superseded` is
- * intentionally NOT here — a superseded version always has a higher-numbered successor, so it is never
- * a quote's LATEST version (iteration-2 integration review — rejected/expired are equally terminal).
- */
-const TERMINAL_QUOTE_STATUSES: ReadonlySet<string> = new Set([
-  "accepted",
-  "lost",
-  "rejected",
-  "expired",
-]);
 
 /** The resolved period window — inclusive `[from, to]` YYYY-MM-DD Europe/Stockholm calendar dates. */
 export interface PipelinePeriod {
@@ -185,7 +173,7 @@ export function aggregateQuotePipeline(
   let overdueFollowUpCount = 0;
   for (const f of input.followUps) {
     if (f.status !== "open") continue;
-    if (f.quoteLatestVersionStatus && TERMINAL_QUOTE_STATUSES.has(f.quoteLatestVersionStatus)) continue;
+    if (isLatestDecidedStatus(f.quoteLatestVersionStatus)) continue;
     openFollowUpCount += 1;
     if (classifyFollowUp(f.due_date, now) === "overdue") overdueFollowUpCount += 1;
   }

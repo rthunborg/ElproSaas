@@ -139,7 +139,7 @@ export const completeQuoteFollowUp = defineCommand<
     // ── UPDATE the open row → completed on the RLS client. completed_at = the SINGLE injected ──
     // ── command clock. The `status='open'` predicate makes an already-completed row a no-op.   ──
     const w = asQuoteFollowUpWriteClient(db);
-    const { data, error } = await w
+    let q = w
       .from("quote_follow_ups")
       .update({
         status: "completed",
@@ -148,8 +148,15 @@ export const completeQuoteFollowUp = defineCommand<
       })
       .eq("id", followUpId)
       .eq("tenant_id", ctx.tenantContext.tenantId)
-      .eq("status", "open")
-      .select("id");
+      .eq("status", "open");
+    // F5 (integration review): when the caller carries a SERVER-DERIVED expected quote id (the
+    // auto-complete-on-lost path derives it from the just-lost version, never the client), scope the
+    // completion to that quote too — so a forged/stale `follow_up_id` from a DIFFERENT own-tenant quote
+    // updates zero rows (clean reject) instead of silently completing the wrong quote's follow-up.
+    if (ctx.input.expected_quote_id !== undefined) {
+      q = q.eq("quote_id", ctx.input.expected_quote_id);
+    }
+    const { data, error } = await q.select("id");
     if (error) throwMappedQuoteWriteError(error);
     // Zero rows: the follow-up is not open (already completed) → a clean no-op-reject.
     if (!data || data.length === 0) {

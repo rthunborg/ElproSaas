@@ -114,6 +114,36 @@ test("10.3-UNIT (complete): a non-UUID follow_up_id is rejected", () => {
   }
 });
 
+// F5 (integration review): the OPTIONAL expected_quote_id scope — absent is fine (unchanged sheet
+// path), a valid UUID is carried through (auto-complete-on-lost path), a malformed one is rejected.
+test("F5-UNIT (complete): expected_quote_id is optional — absent → accepted, no field carried", () => {
+  const r = validateCompleteQuoteFollowUp({ follow_up_id: UUID_A, outcome: "ok" });
+  assert.equal(r.ok, true);
+  if (!r.ok) return;
+  assert.equal("expected_quote_id" in r.data, false);
+});
+
+test("F5-UNIT (complete): a valid expected_quote_id is carried through", () => {
+  const r = validateCompleteQuoteFollowUp({
+    follow_up_id: UUID_A,
+    outcome: "ok",
+    expected_quote_id: UUID_UPPER,
+  });
+  assert.equal(r.ok, true);
+  if (!r.ok) return;
+  assert.equal(r.data.expected_quote_id, UUID_UPPER);
+});
+
+test("F5-UNIT (complete): a malformed expected_quote_id is rejected", () => {
+  for (const bad of ["nope", "", 7, null]) {
+    assert.equal(
+      validateCompleteQuoteFollowUp({ follow_up_id: UUID_A, outcome: "ok", expected_quote_id: bad }).ok,
+      false,
+      `expected_quote_id ${JSON.stringify(bad)} must be rejected`,
+    );
+  }
+});
+
 // ── validateAnnotateQuoteFollowUp ───────────────────────────────────────────────────────────────
 test("10.3-UNIT (annotate): accepts a uuid follow_up_id + a bounded note; rejects a non-uuid id and an over-long note", () => {
   assert.equal(validateAnnotateQuoteFollowUp({ follow_up_id: UUID_A, note: "uppdaterad notering" }).ok, true);

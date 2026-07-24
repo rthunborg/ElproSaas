@@ -127,3 +127,54 @@ describe("quote_lost_reasons INSERT-ONLY RLS (GREEN — Story 10.2 landed)", () 
     expect(after.length).toBe(1);
   });
 });
+
+// F1 (integration review / Codex): the sent-lock allow-set lets a direct own-tenant UPDATE flip a
+// sent version's status to 'lost', bypassing the RPC's reason/event/audit writes. The DEFERRABLE
+// constraint trigger `enforce_lost_version_has_reason` rejects a forged 'lost' with no companion
+// quote_lost_reasons row (QV422) at commit, so the invariant "status='lost' ⟺ a reason row" holds
+// below the command layer. Scoped to 'lost' — rejected/expired/superseded have no companion invariant.
+describe("quote_versions lost-forge coherence guard (F1)", () => {
+  /** Seed a SENT version (NO reason row) for Tenant A; returns its version id. */
+  async function seedSentVersionNoReason(): Promise<string> {
+    const customerId = await adminInsertCustomer({
+      tenant_id: fixture.tenantA.id,
+      customer_type: "company",
+      display_name: `forge-${crypto.randomUUID().slice(0, 8)}`,
+    });
+    const calcId = await adminInsertCalculation({
+      tenant_id: fixture.tenantA.id,
+      customer_id: customerId,
+      title: `forge-calc-${crypto.randomUUID().slice(0, 8)}`,
+    });
+    const quoteId = await adminInsertQuote({ tenant_id: fixture.tenantA.id, customer_id: customerId });
+    return adminInsertQuoteVersion({
+      tenant_id: fixture.tenantA.id,
+      quote_id: quoteId,
+      calculation_id: calcId,
+      status: "sent",
+    });
+  }
+
+  it("[P0] F1: a direct own-tenant UPDATE forging status='lost' with NO reason row is REJECTED (QV422); the version stays 'sent'", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
+    const versionId = await seedSentVersionNoReason();
+
+    // adminA owns this row (RLS-visible) and the sent-lock allow-set permits the sent→lost status
+    // transition — but the deferred coherence trigger must reject the commit (no reason row).
+    const { error } = await a
+      .from("quote_versions")
+      .update({ status: "lost" })
+      .eq("id", versionId)
+      .select();
+
+    // The forged transition must NOT persist — the version is provably still 'sent'.
+    const after = await adminQuery<{ status: string }>(
+      `select status from public.quote_versions where id = $1`,
+      [versionId],
+    );
+    expect(after[0]?.status).toBe("sent");
+    // The rejection surfaces as an error (QV422) — a silent zero-row no-op would still leave it 'sent',
+    // but the guard's job is to ABORT the forge, so an error is expected on this deferred-check path.
+    expect(error).not.toBeNull();
+  });
+});

@@ -700,10 +700,15 @@ export function validatePlanQuoteFollowUp(
 /**
  * Validated `completeQuoteFollowUp` input — the target follow-up id + a REQUIRED outcome note.
  * `follow_up_id` is required + UUID-shaped; `outcome` is required, non-empty (trimmed), bounded.
+ * `expected_quote_id` is OPTIONAL: when present (the auto-complete-on-lost path derives it
+ * server-side from the just-lost version), the completion is additionally scoped to that quote so a
+ * forged/stale `follow_up_id` belonging to ANOTHER own-tenant quote cannot be completed by mistake
+ * (integration review F5).
  */
 export interface CompleteQuoteFollowUpInput {
   readonly follow_up_id: string;
   readonly outcome: string;
+  readonly expected_quote_id?: string;
 }
 
 export function validateCompleteQuoteFollowUp(
@@ -716,9 +721,19 @@ export function validateCompleteQuoteFollowUp(
   }
   const outcome = raw.outcome.trim();
   if (outcome.length === 0) return fail; // REQUIRED — a whitespace-only outcome is rejected
+  // OPTIONAL quote scope (F5): when carried it must be UUID-shaped; an absent field is fine.
+  if (raw.expected_quote_id !== undefined && !isUuidLike(raw.expected_quote_id)) {
+    return fail;
+  }
   return {
     ok: true,
-    data: { follow_up_id: raw.follow_up_id as string, outcome },
+    data: {
+      follow_up_id: raw.follow_up_id as string,
+      outcome,
+      ...(raw.expected_quote_id !== undefined
+        ? { expected_quote_id: raw.expected_quote_id as string }
+        : {}),
+    },
   };
 }
 

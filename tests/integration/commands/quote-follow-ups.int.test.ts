@@ -132,6 +132,45 @@ function plan(versionId: string, over: { due_date?: string; note?: string | null
 }
 
 describe("quote follow-up commands — plan/complete/annotate + one-open + auto-complete-on-lost (AC1/AC3/AC4)", () => {
+  it("[P0] F5: completing with an expected_quote_id that does NOT own the follow-up is REJECTED; the other quote's follow-up stays open", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
+    // Two own-tenant quotes, each with an OPEN follow-up. The auto-complete-on-lost path derives the
+    // just-lost quote's id server-side and passes it as `expected_quote_id`; a forged/stale
+    // `follow_up_id` from a DIFFERENT quote (here quote B) must NOT complete B's follow-up when the
+    // scope names quote A. This is the F5 forge defense at the command layer.
+    const A = await seedSentQuoteVersion(fixture.tenantA.id);
+    const B = await seedSentQuoteVersion(fixture.tenantA.id);
+    await plan(A.versionId);
+    const planB = await plan(B.versionId);
+    expect(planB.ok).toBe(true);
+    const bFollowUpId = planB.ok ? planB.data.targetId : "";
+
+    // Try to complete B's follow-up while scoping to quote A (the "just-lost" quote) — must reject.
+    const res = await runCommand(completeQuoteFollowUp, {
+      client: a as never,
+      input: { follow_up_id: bFollowUpId, outcome: "forlorad", expected_quote_id: A.quoteId },
+      clock: fixedClock,
+      correlationId: crypto.randomUUID(),
+    });
+    expect(res.ok).toBe(false);
+
+    // B's follow-up is provably STILL open (not silently completed by the mismatched scope).
+    const bRows = (await adminSelectFollowUps(B.quoteId)).filter((r) => r.status === "open");
+    expect(bRows.length).toBe(1);
+    expect(bRows[0]?.id).toBe(bFollowUpId);
+
+    // And the correctly-scoped completion (expected_quote_id = B) DOES complete it — the guard is not
+    // over-broad (it only rejects a mismatch).
+    const ok = await runCommand(completeQuoteFollowUp, {
+      client: a as never,
+      input: { follow_up_id: bFollowUpId, outcome: "forlorad", expected_quote_id: B.quoteId },
+      clock: fixedClock,
+      correlationId: crypto.randomUUID(),
+    });
+    expect(ok.ok).toBe(true);
+    expect((await adminSelectFollowUps(B.quoteId)).filter((r) => r.status === "open").length).toBe(0);
+  });
+
   it("[P0] 10.3-INT-01: planning an OPEN follow-up on a sent version creates exactly one open row + one audit ({ targetId } only)", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     const { quoteId, versionId } = await seedSentQuoteVersion(fixture.tenantA.id);

@@ -374,3 +374,48 @@ revoke execute on function public.mark_quote_version_lost(
 grant execute on function public.mark_quote_version_lost(
   uuid, uuid, text, text, text, timestamptz
 ) to authenticated, service_role;
+
+-- ─────────────────────────────────────────────────────────────────────────────────────────────────
+-- (6) Coherence guard: status='lost' ⟺ a quote_lost_reasons row exists (integration-review F5/Codex).
+--
+-- The sent-lock trigger's status allow-set (§4) lets an authenticated own-tenant admin flip a sent
+-- version's `status` to 'lost' via a DIRECT quote_versions UPDATE through the RLS client/PostgREST —
+-- bypassing `mark_quote_version_lost` and its required reason/event/audit writes. That would forge a
+-- 'lost' version WITHOUT the `quote_lost_reasons` row, breaking the story's central invariant
+-- ("status='lost' ⟺ exactly one reason row" — the row is what carries the Förlorad/Avböjd outcome the
+-- pipeline reads). Unlike rejected/expired/superseded (no companion row), 'lost' is load-bearing, so the
+-- guard is scoped to 'lost' only.
+--
+-- A DEFERRABLE INITIALLY DEFERRED constraint trigger checks at COMMIT: the RPC inserts the reason row in
+-- the SAME transaction, so it passes; a bare status-only UPDATE has no reason row at commit and is
+-- rejected with a NEW distinct code (QV422 → mapped to VALIDATION_FAILED at the app boundary if ever
+-- reached that way). Deferred so intra-transaction ordering (status flip before reason insert) is fine.
+create or replace function public.enforce_lost_version_has_reason()
+returns trigger
+language plpgsql
+security invoker
+set search_path = ''
+as $$
+begin
+  if new.status = 'lost'
+     and not exists (
+       select 1 from public.quote_lost_reasons r
+       where r.quote_version_id = new.id
+     ) then
+    raise exception
+      'quote_versions %.status=lost requires a quote_lost_reasons row — use mark_quote_version_lost (architecture-phase-b §9.1, §14)',
+      new.id
+      using errcode = 'QV422';
+  end if;
+  return null;
+end;
+$$;
+
+comment on function public.enforce_lost_version_has_reason() is
+  'Coherence guard (Story 10.2, integration-review F5): a quote_versions row at status=''lost'' MUST have a companion quote_lost_reasons row. Runs as a DEFERRABLE INITIALLY DEFERRED constraint trigger checked at COMMIT, so the mark_quote_version_lost RPC (which inserts the reason in the same txn) passes, but a direct status-only UPDATE that forges ''lost'' without a reason row is rejected (QV422). Scoped to ''lost'' only — rejected/expired/superseded have no companion-row invariant.';
+
+create constraint trigger enforce_lost_version_has_reason
+  after insert or update on public.quote_versions
+  deferrable initially deferred
+  for each row
+  execute function public.enforce_lost_version_has_reason();
