@@ -34,15 +34,18 @@ Vårt förslag: kör **A som modell, C som teknik**. Bekräfta eller välj annat
 
 ---
 
-## 2. Migration (8.1 / 8.2 + N-1)
+## 2. Migration — AVKLARAD (ingen datamigrering)
 
-- **8.1** — Vilken Lovable-data tas in? Klassa som **aktiv / arkiv / uteslut / vänta**.
-- **8.2** — Vilka offerter/kalkyler blir **"facit"** (golden masters för jämförelse)?
-- **N-1 (runda 2)** — Samma klassning per modul allteftersom de aktiveras (uthyrning,
-  tillgångar, service, DoU, egenkontroller, upphandling, HR, tid). Tas modul för modul.
+**Ägarbeslut 2026-07-20:** det blir **ingen datamigrering** från Lovable, någonsin.
+När appen är redo för skarp användning börjar företaget använda den för **nya
+jobb/projekt**; **befintliga pågående** jobb/projekt körs klart i **Lovable parallellt**
+tills de är avslutade. De två apparna körs sida vid sida under övergången.
 
-*8.1/8.2 behövs före skarp datamigrering (inte kopplat till ett specifikt byggsteg);
-N-1 tas per B2/B3-modul, tidigast vid Epic 21.*
+**Följd:** frågorna `8.1` (aktiv/arkiv/uteslut/vänta-klassning), `8.2` (golden masters
+ur Lovable-data) och `N-1` (klassning runda 2 per modul) **behöver inga svar längre** —
+det finns ingen import att klassa. Lovable-jämförelsen från Fas A står kvar som
+**beteende-referens** (anonymiserade fixtures), aldrig som datainförsel. Cutover = "börja
+med nya jobb i nya appen" — ett go-live-beslut, inte ett byggsteg.
 
 ---
 
@@ -75,11 +78,10 @@ N-1 tas per B2/B3-modul, tidigast vid Epic 21.*
 | **Skatt A/B/C + 2.2** *(separat blad)* | **E26 – Faktureringsunderlag** | 🔴 Hård — även innan skarp ROT-offert skickas |
 | **N-5 underlagets innehåll** | **E26** | 🔴 Hård |
 | **N-5 Fortnox konto/API** | **E33 – Fortnox** | 🔴 Hård (B2-spike förbereder) |
-| **N-1 migration runda 2** | **E21 och framåt** | Per modul |
 | **N-8 mall-innehåll** | **E27/E28 – DoU/egenkontroll** | Innehållet är er sida |
 | **N-7 tunn upphandlingsmodul** | **E29 – Upphandling** | Synlighet — svara innan bygget |
 | **N-10 GDPR/gallring HR** | **E31 – HR** | 🔴 Hård |
-| **Migration 8.1/8.2** | Före skarp datamigrering | Cutover-beslut |
+| ~~Migration 8.1/8.2 + N-1~~ | — | ✅ Avklarad — ingen datamigrering (§2) |
 
 ---
 
