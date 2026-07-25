@@ -694,6 +694,71 @@ So that the pipeline is visible now and the E19 dashboard can render it without 
 
 **Stop Conditions Requiring Human Approval:** Stop if pipeline aggregation would require a new money computation path outside `@/lib/money`.
 
+### Story 10.5: Quote-Table DB Hardening and Read-Model Pagination (post-review follow-up)
+
+As a tenant admin whose data integrity must not depend on clients using the app,
+I want the quote lifecycle tables to enforce their invariants in the DATABASE and the pipeline reads to stay correct at scale,
+so that a direct table-API call cannot forge or corrupt follow-up/lost state, and pipeline numbers do not silently truncate as a tenant grows.
+
+**Origin:** the independent Codex review rounds on [PR #38](https://github.com/rthunborg/ElproSaas/pull/38). The two **P1** findings from that review (source→destination transition validation on the sent-lock trigger; the manual-completion quote scope) were fixed **in** Epic 10. The 8 items below were **consciously ledgered** rather than bolted onto an already thrice-revised PR — see `deferred-work.md` → `## Deferred from: Codex review of epic-10 (2026-07-25)`. Each is **P2**; none is exploitable cross-tenant (RLS holds throughout — these are own-tenant integrity and scale issues).
+
+**Acceptance Criteria**
+
+### AC1 — `quote_lost_reasons` cannot be orphaned or mis-anchored
+
+**Given** the insert policy today only checks tenant membership
+**When** an authenticated tenant admin inserts a reason row directly through the table API
+**Then** the DB rejects a reason whose `quote_version_id` does not belong to the supplied `quote_id`, or whose version is not becoming `lost` in the same transaction
+**And** the unique `(quote_version_id)` slot can no longer be consumed pre-emptively — which today makes a later legitimate `mark_quote_version_lost` fail with 23505 and roll back (a self-inflicted denial of the app path).
+
+### AC2 — `quote_follow_ups` anchors are enforced in the DB
+
+**Given** the two independent same-tenant FKs prove same-tenant parents but not their relationship
+**When** a follow-up row is written directly
+**Then** a composite constraint (or equivalent trigger) requires `quote_version_id` to belong to `quote_id`
+**And** an open follow-up requires a `sent` anchor version, so a forged row cannot attach to a draft or occupy another quote's one-open slot.
+
+### AC3 — Follow-up identity and lifecycle are immutable in the wrong directions
+
+**Given** the UPDATE policy currently permits every column while the row stays in-tenant
+**When** a direct UPDATE attempts to move a follow-up to another quote/version, reopen a completed row, or pre-populate completion fields
+**Then** a transition/column trigger rejects it — only `open → completed` (plus note edits on an open row) is legal, matching the audited commands.
+
+### AC4 — Plan-time anchor check is atomic
+
+**Given** `planQuoteFollowUp` reads the anchor status and then inserts
+**When** the version is accepted/lost between the read and the insert
+**Then** the insert still cannot create an open follow-up on a terminal quote — the anchor is locked and re-checked in the same transaction, or the sent-state predicate is enforced in the DB.
+
+### AC5 — Pipeline reads are complete at scale
+
+**Given** `supabase/config.toml` sets `max_rows = 1000` and PostgREST truncates **silently** (no error, so the empty-result fallback never fires)
+**When** a tenant exceeds 1000 lifecycle events, versions, or lost-reason rows
+**Then** the pipeline event read, the latest-status lookup, and the quote-list lost-reason read all return complete results — by pushing the period/id filters into the database and paginating (or aggregating in a DB query/RPC)
+**And** counts, hit rate, accepted value, and the `Förlustorsak` column stay correct rather than degrading quietly.
+
+### AC6 — Accepted-value summation cannot silently lose öre
+
+**Given** the canonical money contract requires safe-integer öre end-to-end
+**When** summed accepted commitments would exceed `Number.MAX_SAFE_INTEGER`
+**Then** the aggregate uses the guarded öre summation (or a bigint representation) and fails loudly rather than returning a silently rounded amount.
+
+**Technical Notes**
+
+- **Do NOT weaken** the Epic-10 guards to satisfy these: `enforce_lost_version_has_reason` fires on INSERT **and** UPDATE deliberately (`authenticated` holds a direct INSERT grant on `quote_versions`), and the sent-lock trigger now validates the `(old → new)` pair. Both are load-bearing.
+- Test seeding must keep using `adminInsertLostQuoteVersionWithReason` (one writable-CTE statement = one transaction), since the coherence trigger is `DEFERRABLE INITIALLY DEFERRED`.
+- AC5 is the only item with user-visible impact **at scale**; at pilot data volumes none of these bite today — which is why they were ledgered rather than rushed.
+
+**Security/RLS Impact:** Meaningful but bounded. **No cross-tenant exposure** — every item is own-tenant integrity (RLS and the envelope hold). The theme is "the direct table API can bypass invariants the command layer enforces," the same theme as the two P1s already fixed.
+
+**Migration/Coexistence Impact:** New migration(s) adding constraints/triggers to `quote_lost_reasons` and `quote_follow_ups`. Additive; must flow repo→demo after merge.
+
+**Money Impact:** AC6 only (guarded öre summation).
+
+**Dependencies:** Stories 10.1–10.4 (the tables and read-model it hardens).
+
+**Stop Conditions Requiring Human Approval:** Stop if enforcing an AC would require weakening an existing Epic-10 guard, or if a constraint would break the shipped RPC paths (the RPC must remain the sanctioned way to reach these states).
+
 ## Epic 11 [Wave B1a]: RBAC Mechanism and Admin User Management
 
 **Epic goal:** End the `tenant_admin`-only era with a mechanism-first permission system (ADR-B001): role storage, the code-level matrix, role-aware RLS, server-side sensitive-field withholding, admin user management, and the generated per-role negative-test harness.

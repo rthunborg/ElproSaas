@@ -189,6 +189,12 @@ development_status:
   10-2-forlorad-avbojd-status-and-lost-reason-lifecycle: review
   10-3-quote-follow-up-workflow: review
   10-4-pipeline-surfacing-and-dashboard-read-model: review
+  # Story 10.5 — post-review DB-hardening + read-model pagination follow-up. Created 2026-07-25 from
+  # the independent Codex review of PR #38: its two P1 findings were FIXED in Epic 10; these 8 P2
+  # items were consciously ledgered (deferred-work.md -> "Deferred from: Codex review of epic-10")
+  # rather than bolted onto an already thrice-revised PR. All own-tenant integrity/scale — none is
+  # cross-tenant. Deliberately NOT gating the Epic 10 PR; schedule after Epic 11 or as capacity allows.
+  10-5-quote-table-db-hardening-and-read-model-pagination: backlog
   epic-10-retrospective: done
 
   epic-11: backlog
