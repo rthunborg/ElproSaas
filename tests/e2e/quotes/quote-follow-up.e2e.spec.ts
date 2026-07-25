@@ -85,7 +85,13 @@ test.describe("Quote follow-up dialog + chip + completion sheet (Story 10.3 E2E)
     await expect(dialog).toBeVisible();
     const confirm = dialog.getByRole("button", { name: /Planera|Spara|Bekräfta/i });
     await expect(confirm).toBeDisabled(); // blocked until a due date is supplied
-    await dialog.getByLabel(/Förfallodatum|Datum/i).fill("2026-09-01");
+    // Codex review: a hardcoded near-future literal is a TIME BOMB — the plan command rejects any
+    // due_date before today in Europe/Stockholm (FOLLOW_UP_DUE_DATE_IN_PAST), so a fixed date starts
+    // failing the moment CI runs past it. Derive a always-future date from the run instant instead.
+    const futureDue = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+      .toISOString()
+      .slice(0, 10);
+    await dialog.getByLabel(/Förfallodatum|Datum/i).fill(futureDue);
     await dialog.getByLabel(/Notering|Anteckning/i).fill("ring kund om beslut");
     await expect(confirm).toBeEnabled();
     await confirm.click();

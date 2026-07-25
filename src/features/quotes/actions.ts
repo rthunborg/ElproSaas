@@ -483,12 +483,26 @@ export async function completeQuoteFollowUpAction(
   const followUpId = form.get("follow_up_id");
   const quoteId = form.get("quote_id");
   const quoteVersionId = form.get("quote_version_id");
+  const client = (await createSupabaseServerClient()) as unknown as CommandDbClient;
+
+  // Codex review: the auto-complete-on-lost path scopes its completion to the just-lost quote, but
+  // THIS manual path did not — so a crafted submit from quote A's sheet could carry the follow_up_id
+  // of any other OPEN follow-up in the same tenant and complete quote B's follow-up while
+  // revalidating quote A. Derive the displayed quote id SERVER-SIDE from the version the sheet is
+  // rendered on (never the form's own quote_id, which is equally untrusted) and pass the same scope.
+  const expectedQuoteId =
+    typeof quoteVersionId === "string" && quoteVersionId.length > 0
+      ? (await loadQuoteVersionAnchor(client, quoteVersionId))?.quote_id
+      : undefined;
+
   const input: Record<string, unknown> = {
     follow_up_id: followUpId,
     outcome: form.get("outcome"),
+    ...(typeof expectedQuoteId === "string" && expectedQuoteId.length > 0
+      ? { expected_quote_id: expectedQuoteId }
+      : {}),
   };
 
-  const client = (await createSupabaseServerClient()) as unknown as CommandDbClient;
   const result = await runCommand(completeQuoteFollowUp, { client, input });
 
   if (result.ok) {

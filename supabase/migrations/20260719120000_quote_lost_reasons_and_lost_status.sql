@@ -183,12 +183,22 @@ begin
   -- 'draft'; allow only the sanctioned FORWARD lifecycle transitions from a non-draft
   -- state (sent/accepted/rejected/expired/superseded/lost → same, or → a later lifecycle
   -- state) — anything else is an illegal reversal. Story 10.2 ADDS 'lost' to this allow-set.
-  if new.status is distinct from old.status
-     and new.status not in ('sent', 'accepted', 'rejected', 'expired', 'superseded', 'lost') then
-    raise exception
-      'quote_versions status is irreversible once sent: illegal transition % -> % on a non-draft version (architecture §9, §11)',
-      old.status, new.status
-      using errcode = 'QV409';
+  -- Codex review P1 (x2): this guard previously validated only the DESTINATION status, so ANY
+  -- allow-listed destination was reachable from ANY non-draft source. That permitted (a) a TERMINAL
+  -- version being rewritten to 'lost' (e.g. accepted -> lost, whose deferred coherence check an
+  -- attacker satisfies by pre-inserting the reason row) and (b) transitions OUT of a terminal state
+  -- (lost -> sent / accepted), contradicting the TypeScript state machine where lost/accepted/
+  -- rejected/expired/superseded are all terminal ([]). Both bypassed the RPC's event + audit writes.
+  -- Validate the (old -> new) PAIR against that same state machine instead. Within this trigger the
+  -- draft source already returned above, so 'sent' is the ONLY source with legal onward moves.
+  if new.status is distinct from old.status then
+    if old.status <> 'sent'
+       or new.status not in ('accepted', 'rejected', 'expired', 'superseded', 'lost') then
+      raise exception
+        'quote_versions status is irreversible once sent: illegal transition % -> % on a non-draft version (architecture §9, §11)',
+        old.status, new.status
+        using errcode = 'QV409';
+    end if;
   end if;
 
   -- The row is already sent/accepted/rejected/expired/superseded/lost → LOCKED. Allow ONLY

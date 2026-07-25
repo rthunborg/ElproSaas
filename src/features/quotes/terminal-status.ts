@@ -20,6 +20,12 @@ export const LATEST_DECIDED_STATUSES: ReadonlySet<QuoteVersionStatus> = new Set(
   "lost",
   "rejected",
   "expired",
+  // Codex review: `superseded` IS reachable as a quote's latest status — the standalone Story 6.5
+  // lifecycle command (and a direct own-tenant table write) can supersede a version WITHOUT creating
+  // a successor. Excluding it left an open follow-up escalating on such a quote while the completion
+  // panel (sent-only) no longer rendered — unclearable. Including it is harmless when a real
+  // successor DOES exist, because the latest-version lookup selects that successor instead.
+  "superseded",
 ]);
 
 /** True when `status` is a terminal/decided LATEST-version status. Accepts null/undefined/any string. */
