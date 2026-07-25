@@ -29,7 +29,7 @@ import {
   adminInsertQuote,
   adminInsertQuoteEvent,
   adminInsertQuoteFollowUp,
-  adminInsertQuoteLostReason,
+  adminInsertLostQuoteVersionWithReason,
   adminInsertQuoteVersion,
   adminInsertQuoteVersionLine,
   adminInsertRow,
@@ -580,33 +580,30 @@ export default async function globalSetup() {
   // Story 10.4 — a DEDICATED already-LOST quote (latest version status='lost' + a Förlorad reason), so
   // the pipeline render-consistency E2E (10.4-E2E-01) has a DETERMINISTIC lost row in the list
   // (Förlorad/Avböjd filter → quote-list-lost-row + the Förlustorsak column) independent of the 10.2
-  // runtime mark-lost flip's ordering. Seeded directly at status='lost' (BYPASSRLS; the sent-lock
-  // trigger is BEFORE UPDATE only, so a fresh lost insert is allowed). Its overdue-follow-up
-  // counterpart is the existing 10.3 overdueFollowUpQuote (chip + list overdue badge).
+  // runtime mark-lost flip's ordering. Seeded directly at status='lost' (BYPASSRLS) TOGETHER WITH its
+  // reason row in ONE statement/transaction (the writable-CTE factory helper): the 10.2 coherence
+  // trigger `enforce_lost_version_has_reason` is DEFERRABLE INITIALLY DEFERRED and checks at COMMIT, so
+  // a two-statement seed would commit the lost version ALONE and be rejected (QV422). Its
+  // overdue-follow-up counterpart is the existing 10.3 overdueFollowUpQuote (chip + list overdue badge).
   const pipelineLostQuoteId = await adminInsertQuote({
     tenant_id: base.tenantA.id,
     customer_id: companyId,
     facility_id: facilityId,
   });
-  const pipelineLostVersionId = await adminInsertQuoteVersion({
-    tenant_id: base.tenantA.id,
-    quote_id: pipelineLostQuoteId,
-    calculation_id: calcId,
-    version_number: 1,
-    quote_number: 1013,
-    status: "lost",
-    company_name: `Elpro Demo AB ${token()}`,
-    customer_display_name: companyName,
-    intro_text: "Förlorad version för pipeline-render-konsistens (10.4)",
-  });
-  await adminInsertQuoteLostReason({
-    tenant_id: base.tenantA.id,
-    quote_id: pipelineLostQuoteId,
-    quote_version_id: pipelineLostVersionId,
-    outcome: "forlorad",
-    category: "pris",
-    note: null,
-  });
+  const { quoteVersionId: pipelineLostVersionId } =
+    await adminInsertLostQuoteVersionWithReason({
+      tenant_id: base.tenantA.id,
+      quote_id: pipelineLostQuoteId,
+      calculation_id: calcId,
+      version_number: 1,
+      quote_number: 1013,
+      company_name: `Elpro Demo AB ${token()}`,
+      customer_display_name: companyName,
+      intro_text: "Förlorad version för pipeline-render-konsistens (10.4)",
+      outcome: "forlorad",
+      category: "pris",
+      note: null,
+    });
   await adminInsertQuoteEvent({
     tenant_id: base.tenantA.id,
     quote_id: pipelineLostQuoteId,

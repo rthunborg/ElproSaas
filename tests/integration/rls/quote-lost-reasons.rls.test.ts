@@ -37,6 +37,7 @@ import {
   adminInsertCalculation,
   adminInsertQuote,
   adminInsertQuoteVersion,
+  adminInsertLostQuoteVersionWithReason,
   type TwoTenantFixture,
   type TestServerClient,
 } from "../../factories/tenants";
@@ -71,18 +72,19 @@ async function seedLostReason(): Promise<string> {
     title: `lost-rls-calc-${crypto.randomUUID().slice(0, 8)}`,
   });
   const quoteId = await adminInsertQuote({ tenant_id: fixture.tenantA.id, customer_id: customerId });
-  const versionId = await adminInsertQuoteVersion({
+  // The version + its reason row MUST be seeded in ONE statement/transaction: the deferred coherence
+  // trigger `enforce_lost_version_has_reason` (F1, below) checks at COMMIT, so a two-statement seed
+  // would commit the lost version ALONE and be rejected (QV422). The factory's writable-CTE helper is
+  // the single-transaction seed path; the reason row id it returns is what these tests mutate.
+  const { lostReasonId } = await adminInsertLostQuoteVersionWithReason({
     tenant_id: fixture.tenantA.id,
     quote_id: quoteId,
     calculation_id: calcId,
-    status: "lost",
+    outcome: "forlorad",
+    category: "pris",
+    note: null,
   });
-  const rows = await adminQuery<{ id: string }>(
-    `insert into public.quote_lost_reasons (tenant_id, quote_id, quote_version_id, outcome, category, note)
-       values ($1, $2, $3, 'forlorad', 'pris', null) returning id`,
-    [fixture.tenantA.id, quoteId, versionId],
-  );
-  return rows[0]!.id;
+  return lostReasonId;
 }
 
 describe("quote_lost_reasons INSERT-ONLY RLS (GREEN — Story 10.2 landed)", () => {

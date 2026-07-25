@@ -31,7 +31,7 @@ import {
   adminInsertCalculation,
   adminInsertQuote,
   adminInsertQuoteVersion,
-  adminInsertQuoteLostReason,
+  adminInsertLostQuoteVersionWithReason,
   adminInsertQuoteFollowUp,
   type TwoTenantFixture,
   type TestServerClient,
@@ -70,18 +70,15 @@ async function seedMixedLifecycle(tenantId: string): Promise<MixedLifecycleIds> 
     title: `pipeline-mix-calc-${crypto.randomUUID().slice(0, 8)}`,
   });
 
-  // (a) A LOST quote — its latest version is `lost` and carries a Förlorad/Avböjd reason.
+  // (a) A LOST quote — its latest version is `lost` and carries a Förlorad/Avböjd reason. Version +
+  // reason are seeded in ONE statement/transaction (the writable-CTE factory helper): the 10.2
+  // coherence trigger `enforce_lost_version_has_reason` is DEFERRABLE INITIALLY DEFERRED and checks at
+  // COMMIT, so a two-statement seed would commit the lost version ALONE and be rejected (QV422).
   const lostQuoteId = await adminInsertQuote({ tenant_id: tenantId, customer_id: customerId });
-  const lostVersionId = await adminInsertQuoteVersion({
+  const { quoteVersionId: lostVersionId } = await adminInsertLostQuoteVersionWithReason({
     tenant_id: tenantId,
     quote_id: lostQuoteId,
     calculation_id: calcId,
-    status: "lost",
-  });
-  await adminInsertQuoteLostReason({
-    tenant_id: tenantId,
-    quote_id: lostQuoteId,
-    quote_version_id: lostVersionId,
     outcome: "forlorad",
     category: "pris",
     note: null,

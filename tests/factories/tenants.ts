@@ -1529,6 +1529,97 @@ export async function adminInsertQuoteLostReason(
   }
 }
 
+/**
+ * A seed for a LOST `quote_versions` row PLUS its companion `quote_lost_reasons` row (Story 10.2).
+ * Mirrors `QuoteVersionSeed` MINUS `status` (which is forced to 'lost' — that is the whole point of
+ * this helper) PLUS the three reason columns.
+ */
+export type LostQuoteVersionSeed = Omit<QuoteVersionSeed, "status"> &
+  Pick<QuoteLostReasonSeed, "outcome" | "category" | "note">;
+
+/** The two ids a `adminInsertLostQuoteVersionWithReason` call created. */
+export interface LostQuoteVersionIds {
+  /** The inserted `quote_versions` row id (status='lost'). */
+  readonly quoteVersionId: string;
+  /** The inserted companion `quote_lost_reasons` row id. */
+  readonly lostReasonId: string;
+}
+
+/**
+ * Seed a LOST `quote_versions` row AND its companion `quote_lost_reasons` row in ONE SQL statement
+ * (therefore ONE transaction) via the privileged superuser pg path (BYPASSRLS). Story 10.2.
+ *
+ * WHY A WRITABLE CTE (do not split this back into two calls): the migration
+ * `20260719120000_quote_lost_reasons_and_lost_status.sql` installs the coherence guard
+ * `enforce_lost_version_has_reason` — a DEFERRABLE INITIALLY DEFERRED constraint trigger on
+ * `quote_versions` that raises QV422 at COMMIT when a row sits at status='lost' with NO
+ * `quote_lost_reasons` row. That guard is load-bearing security (an own-tenant direct INSERT/UPDATE
+ * through PostgREST could otherwise forge a 'lost' version, bypassing `mark_quote_version_lost` and
+ * its required reason/event/audit writes), so it is NOT weakened for tests. Each `adminQuery` call is
+ * its OWN transaction, so seeding the version and the reason as two statements commits the version
+ * ALONE and trips the deferred check. Inserting both in a single data-modifying-CTE statement means
+ * the reason row exists at COMMIT — exactly like the RPC path — and the check passes.
+ *
+ * Defaults mirror `adminInsertQuoteVersion` for the version columns and `adminInsertQuoteLostReason`
+ * for the reason columns (outcome 'forlorad', category 'pris', note null); every one is overridable.
+ * Returns BOTH ids (the version id and the reason id) so callers that assert on either can use it.
+ * THROWS (Postgres `code` preserved) on a DB error, mirroring `adminInsertQuoteVersion`.
+ */
+export async function adminInsertLostQuoteVersionWithReason(
+  seed: LostQuoteVersionSeed,
+): Promise<LostQuoteVersionIds> {
+  try {
+    const rows = await adminQuery<{
+      quote_version_id: string;
+      lost_reason_id: string;
+    }>(
+      `with v as (
+         insert into public.quote_versions
+           (tenant_id, quote_id, version_number, quote_number, calculation_id,
+            captured_at, company_name, status, intro_text, customer_display_name,
+            pdf_status, pdf_file_id, pdf_generated_at, warnings_snapshot, accepted_price_ore)
+         values ($1, $2, $3, $4, $5, $6, $7, 'lost', $8, $9, $10, $11, $12, $13::jsonb, $14)
+         returning id
+       ), r as (
+         insert into public.quote_lost_reasons
+           (tenant_id, quote_id, quote_version_id, outcome, category, note)
+         select $1, $2, v.id, $15, $16, $17 from v
+         returning id
+       )
+       select v.id as quote_version_id, r.id as lost_reason_id from v, r`,
+      [
+        seed.tenant_id,
+        seed.quote_id,
+        seed.version_number ?? 1,
+        seed.quote_number ?? 1,
+        seed.calculation_id,
+        seed.captured_at ?? "2026-07-05T12:00:00.000Z",
+        seed.company_name ?? "tenant-b-company-seed",
+        seed.intro_text ?? null,
+        seed.customer_display_name ?? null,
+        seed.pdf_status ?? "not_generated",
+        seed.pdf_file_id ?? null,
+        seed.pdf_generated_at ?? null,
+        JSON.stringify(seed.warnings_snapshot ?? []),
+        seed.accepted_price_ore ?? 0,
+        seed.outcome ?? "forlorad",
+        seed.category ?? "pris",
+        seed.note ?? null,
+      ],
+    );
+    const row = rows[0];
+    if (!row?.quote_version_id || !row?.lost_reason_id) {
+      throw new Error("adminInsertLostQuoteVersionWithReason: no ids returned");
+    }
+    return {
+      quoteVersionId: row.quote_version_id,
+      lostReasonId: row.lost_reason_id,
+    };
+  } catch (error) {
+    rethrowWithCode(error);
+  }
+}
+
 /** Read the `quote_lost_reasons` rows for a version back (BYPASSRLS). Story 10.2 readback helper. */
 export async function adminSelectLostReasons(
   quoteVersionId: string,
