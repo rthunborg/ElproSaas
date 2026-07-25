@@ -201,9 +201,10 @@ export async function readQuoteList(
           : null;
       // Story 10.3: the quote's OPEN follow-up flags (has-open + overdue-on-the-Stockholm-boundary).
       // Story 10.4 review (+ iteration-2): EXCLUDE a follow-up whose quote is already DECIDED — its
-      // latest version is a TERMINAL status (accepted/lost/rejected/expired). A decided deal must not
-      // keep surfacing a stale "Försenad uppföljning" badge in /quotes. `superseded` is NOT terminal
-      // here (a superseded version always has a higher-numbered successor, so it is never the LATEST).
+      // latest version is a TERMINAL status. A decided deal must not keep surfacing a stale
+      // "Försenad uppföljning" badge in /quotes. The terminal set is single-sourced in
+      // `terminal-status.ts` and INCLUDES `superseded` (Codex review: a version can be superseded
+      // WITHOUT a successor being created, so it is genuinely reachable as a quote's latest status).
       // The follow-up row still exists in the DB (auto-completion is a separate concern); the list
       // simply stops escalating it once the quote is terminal.
       const latestDecided = latest !== null && LATEST_DECIDED_STATUSES.has(latest.status);

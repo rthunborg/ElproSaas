@@ -221,16 +221,19 @@ test("10.4-UNIT-02: an OPEN follow-up on an ALREADY-DECIDED quote (accepted/lost
   assert.equal(agg.overdueFollowUpCount, 1, "the decided-quote follow-ups (incl. rejected/expired) never inflate the overdue count");
 });
 
-test("10.4-UNIT-02: a SUPERSEDED latest status does NOT exclude its open follow-up (superseded is never a quote's latest)", () => {
-  // `superseded` is intentionally NOT terminal for this exclusion: a superseded version always has a
-  // higher-numbered successor, so it can never actually BE the quote's latest version. If the query
-  // layer ever hands one through, it must still be treated as not-decided (counted) — guarding against
-  // an over-broad terminal set that would silently drop a live follow-up.
+test("10.4-UNIT-02: a SUPERSEDED latest status DOES exclude its open follow-up (Codex review — superseded is reachable as latest)", () => {
+  // CORRECTED (Codex review): the earlier assumption — "superseded always has a higher-numbered
+  // successor, so it can never BE the latest" — is false. The standalone Story 6.5 lifecycle command
+  // (and a direct own-tenant table write) can supersede a version WITHOUT creating a successor, so
+  // superseded genuinely can be a quote's latest status. Leaving it out of the decided set left an
+  // open follow-up escalating on such a quote while the completion panel (sent-only) no longer
+  // rendered — i.e. unclearable. Including it is harmless when a real successor DOES exist, because
+  // the latest-version lookup selects that successor instead.
   const followUps: FollowUpRow[] = [
     { id: "f-superseded", status: "open", due_date: "2026-07-25", quoteLatestVersionStatus: "superseded" },
   ];
   const agg = aggregateQuotePipeline({ events: [], acceptedVersions: [], followUps }, JULY, NOW);
-  assert.equal(agg.openFollowUpCount, 1, "a superseded latest status is not decided ⇒ counted");
+  assert.equal(agg.openFollowUpCount, 0, "a superseded latest status is decided ⇒ excluded");
 });
 
 test("10.4-UNIT-02: a follow-up with NO quoteLatestVersionStatus (undefined/null) is counted (not-decided default)", () => {
