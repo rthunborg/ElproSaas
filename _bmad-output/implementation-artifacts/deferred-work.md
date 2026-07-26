@@ -417,3 +417,23 @@ Also **verified NOT actionable** in the same review pass (recorded so they are n
 - ✅ [Review] "Strip comments before scanning for service role" — FALSE POSITIVE: `quote-pipeline.ts` contains ZERO occurrences of `service[_-]?role` (grep -c = 0) and the CI `db` job passes that exact assertion.
 - ✅ [Review] "Seed lost versions in one transaction" — already resolved in `adminInsertLostQuoteVersionWithReason` (writable CTE, one transaction).
 - ✅ [Review] Degrade-path period fidelity — already ledgered under the epic-10 iter-2 review section; not re-opened here.
+
+## Deferred from: Codex review of epic-10, round 3 (2026-07-25)
+
+Third independent Codex pass on PR #38. One finding was FIXED immediately (the AGENTS.md
+active-only wording contradicted the manifest, which deliberately puts `deferredFileToken` on
+PENDING modules — binding instructions must not contradict the implementation a scope reviewer
+enforces). The two below are deferred to **Story 10.5** (see `epics-phase-b.md`):
+
+- [Med] `quote_events` is client-insertable (authenticated INSERT grant + own-tenant policy) with a caller-chosen `occurred_at`, and Story 10.4's pipeline read-model now treats that log as its COUNT SOURCE — so an own-tenant admin can inflate/shift period counts and corrupt hit rate without any authoritative status change. The insertability itself is a PRE-EXISTING Story 6.4 deferral; what is new is the log being promoted to an analytics source. → Story 10.5 AC7.
+- [Med] A lifecycle transition and its audit row can diverge: `mark_quote_version_lost` commits status + event + reason in its OWN transaction, then the envelope writes `audit_events` separately. A transient audit failure after that commit leaves the user seeing a FAILED command, the retry refused (already `lost`), and the transition permanently unaudited. **Envelope-wide shape** — every RPC-backed command (incl. `acceptQuoteAndCreateJob`) shares it; likely needs its own ADR rather than a point fix. → Story 10.5 AC8.
+
+## Deferred from: Codex review of epic-10 round 3 (2026-07-26)
+
+Final Codex pass on PR #38 before merge. Three findings were FIXED in the PR (the fail-open manual
+completion scope — my own regression from the round-2 fix; the stale `completeState` blocking the next
+Klarmarkera dialog; and the AGENTS.md deferred-token contradiction). The two ARCHITECTURAL items below
+are deferred and **owned by Story 10.5** (AC7/AC8).
+
+- [Med] Pipeline metrics rest on `quote_events`, which carries an `authenticated` INSERT grant + own-tenant insert policy — an admin can insert arbitrary sent/accepted/lost rows with caller-chosen `occurred_at`, inflating or period-shifting counts and hit rate WITHOUT changing the authoritative version status or invoking a lifecycle command. Compounds the pre-existing `6-4` deferral (`quote_events` client-insertable; the append-only trigger only blocks UPDATE/DELETE). → Story 10.5 AC7.
+- [Med] A critical transition can commit WITHOUT its audit row: `mark_quote_version_lost` commits status+event+reason in its own RPC transaction, then the envelope writes the audit separately. A transient failure there leaves the transition committed, the audit missing, the user shown an error, and the retry rejected (already `lost`). **ENVELOPE-WIDE, not lost-specific** — every RPC-backed command shares the shape; likely warrants its own ADR (same transaction, or a durable transactional outbox). → Story 10.5 AC8.

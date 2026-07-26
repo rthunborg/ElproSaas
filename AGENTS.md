@@ -3,11 +3,17 @@
 Current project phase: Phase B / Legacy Parity Release. Product implementation
 requires an approved story (or an ADR-backed task) AND must respect the scope
 manifest — the single machine-readable source of truth for what surface is
-active vs pending: `src/scope/manifest.ts` (ADR-B003). A module's surface (nav,
-tenant tables, widgets, notification categories, public surfaces, file owner
-types, deferred file tokens) may exist only when that module is `active`; a
-module is flipped `pending → active` in the **same PR** as its first schema/nav
-change (per-epic activation, FR129).
+active vs pending: `src/scope/manifest.ts` (ADR-B003). A module's **live surface**
+(nav, tenant tables, widgets, notification categories, public surfaces, file
+owner types) may exist only when that module is `active`; a module is flipped
+`pending → active` in the **same PR** as its first schema/nav change (per-epic
+activation, FR129). **`deferredFileToken` is the deliberate exception — it is
+PENDING-only governance metadata, not live surface:** a pending module carries
+the token that its module's files would use, and the file-index deny-list is
+DERIVED from exactly those pending tokens (a token on an `active` module would
+mean the deny-list blocks a shipped module's own files, so activation drops it).
+Do not read the active-only rule as applying to deferred tokens — the manifest,
+its coherence validator, and the deny-list tests all encode the opposite.
 
 Mandatory rules:
 

@@ -490,17 +490,28 @@ export async function completeQuoteFollowUpAction(
   // of any other OPEN follow-up in the same tenant and complete quote B's follow-up while
   // revalidating quote A. Derive the displayed quote id SERVER-SIDE from the version the sheet is
   // rendered on (never the form's own quote_id, which is equally untrusted) and pass the same scope.
+  // FAIL CLOSED (Codex follow-up): the previous shape added the scope only WHEN it resolved, so a
+  // submit carrying a valid-but-foreign/nonexistent quote_version_id made the anchor lookup return
+  // nothing, the scope was silently omitted, and the command fell back to an UNSCOPED completion —
+  // completing an unrelated own-tenant follow-up. A scope that is conditional is not a scope. If the
+  // displayed version cannot be resolved server-side, REFUSE rather than widening.
   const expectedQuoteId =
     typeof quoteVersionId === "string" && quoteVersionId.length > 0
       ? (await loadQuoteVersionAnchor(client, quoteVersionId))?.quote_id
       : undefined;
+  if (typeof expectedQuoteId !== "string" || expectedQuoteId.length === 0) {
+    return {
+      ...FOLLOW_UP_ACTION_INITIAL,
+      status: "error",
+      code: "TENANT_ACCESS_DENIED",
+      formError: COMMAND_MESSAGES.TENANT_ACCESS_DENIED,
+    };
+  }
 
   const input: Record<string, unknown> = {
     follow_up_id: followUpId,
     outcome: form.get("outcome"),
-    ...(typeof expectedQuoteId === "string" && expectedQuoteId.length > 0
-      ? { expected_quote_id: expectedQuoteId }
-      : {}),
+    expected_quote_id: expectedQuoteId,
   };
 
   const result = await runCommand(completeQuoteFollowUp, { client, input });

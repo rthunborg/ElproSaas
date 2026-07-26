@@ -124,13 +124,22 @@ export function FollowUpPanel({
   }
 
   if (openFollowUp) {
+    // Codex follow-up: the sheet must NOT inherit a PREVIOUS row's success state. After
+    // complete(A) -> "planera nästa" -> plan(B), `completeState` still carries A's success, and the
+    // sheet computes `dialogOpen = open && state.status !== "success"` — so B's Klarmarkera dialog
+    // could never open until a full remount. `useActionState` has no reset, so neutralize the state
+    // when it refers to a follow-up that is no longer the active one (targetId mismatch).
+    const sheetState =
+      completeState.status === "success" && completeState.targetId !== openFollowUp.id
+        ? FOLLOW_UP_ACTION_INITIAL
+        : completeState;
     return (
       <FollowUpSheet
         quoteId={quoteId}
         quoteVersionId={quoteVersionId}
         followUpId={openFollowUp.id}
         formAction={completeAction}
-        state={completeState}
+        state={sheetState}
         pending={completePending}
       />
     );

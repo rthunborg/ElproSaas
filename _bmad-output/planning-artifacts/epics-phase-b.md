@@ -743,6 +743,38 @@ so that a direct table-API call cannot forge or corrupt follow-up/lost state, an
 **When** summed accepted commitments would exceed `Number.MAX_SAFE_INTEGER`
 **Then** the aggregate uses the guarded öre summation (or a bigint representation) and fails loudly rather than returning a silently rounded amount.
 
+### AC7 — Pipeline metrics do not rest on a forgeable log
+
+**Given** `quote_events` carries an `authenticated` INSERT grant plus an own-tenant insert policy
+**When** a tenant admin inserts arbitrary `sent`/`accepted`/`lost` events with caller-chosen `occurred_at` through the table API
+**Then** the pipeline can no longer be skewed by them — either event insertion is hardened to the command/RPC path (the log becomes append-only-by-command), or the metrics are derived from a command-owned authoritative source (version status + acceptance rows) rather than the event log
+**And** counts, hit rate and accepted value cannot be inflated or shifted between periods without an authoritative state change.
+
+*Note: the underlying client-insertability of `quote_events` is a PRE-EXISTING deferral from Story 6.4 — what Story 10.4 changed is that this log is now an **analytics source**, which raises the stakes. Fixing the insert path likely closes both.*
+
+### AC8 — A lifecycle transition and its audit row cannot diverge
+
+**Given** `mark_quote_version_lost` commits status + event + reason in its OWN transaction and the envelope writes `audit_events` afterwards
+**When** the audit write fails transiently after the RPC has committed
+**Then** the system does not end in the current state — where the user sees a failed command, the retry is refused (the version is already `lost`), and a critical transition is left permanently unaudited
+**And** the fix is either an audit insert inside the same transaction as the transition, or a durable transactional outbox — never treating a post-commit audit failure as if the mutation failed.
+
+*Scope warning: this is an **envelope-wide** shape, not a `lost.ts` bug — every RPC-backed command (including `acceptQuoteAndCreateJob`) has it. Fixing it properly touches the command envelope and probably deserves its own ADR; it is filed here because Codex found it here. Split it out if it grows beyond this story.*
+
+### AC7 — Pipeline metrics do not rest on a forgeable log
+
+**Given** `quote_events` carries an `authenticated` INSERT grant plus an own-tenant insert policy
+**When** a tenant admin inserts arbitrary `sent`/`accepted`/`lost` rows with caller-chosen `occurred_at` through the table API
+**Then** the pipeline read-model must not silently treat those as truth — either event insertion is hardened to command-only (closing the pre-existing `quote_events` client-insertable deferral, ledger item `6-4`), or the metrics are derived from a command-owned authoritative source (e.g. version status + acceptance rows) rather than the log
+**And** counts, hit rate, and accepted value can no longer be inflated or period-shifted without a lifecycle command.
+
+### AC8 — A critical transition cannot commit without its audit
+
+**Given** `mark_quote_version_lost` (and every other RPC-backed command) commits its own transaction, after which the envelope writes the audit row separately
+**When** that audit write fails transiently
+**Then** the system must not end in the current state — transition committed, audit missing, user shown an error, and the retry rejected because the version is already `lost`
+**And** the fix is either to include the audit insert in the same transaction as the transition, or to use a durable transactional outbox; **note this is an ENVELOPE-WIDE property, not specific to the lost path** — scope the fix accordingly (it may warrant its own ADR).
+
 **Technical Notes**
 
 - **Do NOT weaken** the Epic-10 guards to satisfy these: `enforce_lost_version_has_reason` fires on INSERT **and** UPDATE deliberately (`authenticated` holds a direct INSERT grant on `quote_versions`), and the sent-lock trigger now validates the `(old → new)` pair. Both are load-bearing.
