@@ -5,3 +5,8 @@
 .claude/agents/*.md    text eol=lf
 .codex/agents/*.toml   text eol=lf
 .opencode/agent/*.md   text eol=lf
+
+# Golden fixtures are byte-compared oracles: a CRLF checkout (Windows core.autocrlf)
+# would diverge from the LF bytes CI stores, a false-green on Windows and a false-red in
+# CI (the 9.2-REPEAT-01 / epic-10 Story 10-1 Phase-5 class). Pin them LF everywhere.
+tests/fixtures/golden/**/*.json  text eol=lf

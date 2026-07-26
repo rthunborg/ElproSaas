@@ -142,7 +142,28 @@ jobs:
         run: supabase start
 
       - name: Migration reset (empty DB → migrate → seed)
-        run: supabase db reset
+        # Bounded retry (added 2026-07-26): `supabase db reset` intermittently fails with
+        # "Error status 502: An invalid response was received from the upstream server" during its
+        # FINAL "Restarting containers..." step — i.e. AFTER every migration applied and seed.sql ran
+        # (four occurrences on one branch; two cleared on a plain re-run). That is CLI/container
+        # health-check flakiness, not a migration error. `db reset` is idempotent (it rebuilds from an
+        # empty DB every time), so retrying is safe and does NOT mask a real failure: a genuinely
+        # broken migration fails all three attempts and still reds the gate.
+        run: |
+          for attempt in 1 2 3; do
+            echo "::group::supabase db reset (attempt $attempt/3)"
+            if supabase db reset; then
+              echo "::endgroup::"
+              exit 0
+            fi
+            echo "::endgroup::"
+            echo "db reset attempt $attempt failed"
+            if [ "$attempt" -lt 3 ]; then
+              sleep 15
+            fi
+          done
+          echo "supabase db reset failed after 3 attempts — treating as a REAL failure"
+          exit 1
 
       # Stage 8: DB-backed integration + cross-tenant RLS-negative suites.
       - name: Integration + RLS negative tests (local stack)
@@ -187,7 +208,28 @@ jobs:
         run: supabase start
 
       - name: Migration reset (empty DB → migrate → seed)
-        run: supabase db reset
+        # Bounded retry (added 2026-07-26): `supabase db reset` intermittently fails with
+        # "Error status 502: An invalid response was received from the upstream server" during its
+        # FINAL "Restarting containers..." step — i.e. AFTER every migration applied and seed.sql ran
+        # (four occurrences on one branch; two cleared on a plain re-run). That is CLI/container
+        # health-check flakiness, not a migration error. `db reset` is idempotent (it rebuilds from an
+        # empty DB every time), so retrying is safe and does NOT mask a real failure: a genuinely
+        # broken migration fails all three attempts and still reds the gate.
+        run: |
+          for attempt in 1 2 3; do
+            echo "::group::supabase db reset (attempt $attempt/3)"
+            if supabase db reset; then
+              echo "::endgroup::"
+              exit 0
+            fi
+            echo "::endgroup::"
+            echo "db reset attempt $attempt failed"
+            if [ "$attempt" -lt 3 ]; then
+              sleep 15
+            fi
+          done
+          echo "supabase db reset failed after 3 attempts — treating as a REAL failure"
+          exit 1
 
       # The Playwright webServer builds + starts the app against the local stack
       # (NEXT_PUBLIC_* are inlined from playwright.config.ts), globalSetup seeds the

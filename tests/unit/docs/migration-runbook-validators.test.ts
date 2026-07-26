@@ -139,10 +139,15 @@ test("9.1-CLASS-01 (R-907): EVERY deferred-bucket row maps to 'none — deferred
 test("9.1-CLASS-01 (D2): every LIVE-bucket target table is one of the 24 real TENANT_TABLES (no live group exceeds the Phase A boundary)", async () => {
   const src = readRequiredDoc(CLASSIFICATION_DOC);
   const tenantTables = await loadTenantTables();
-  assert.equal(
-    tenantTables.length,
-    24,
-    `the Phase A boundary must be exactly 24 tenant-owned tables (source of truth) — found ${tenantTables.length}`,
+  // The Phase A migration runbook classifies Phase A records against the 24-table Phase A boundary.
+  // Phase B ONLY ADDS tenant tables to the ACTIVE modules (Story 10.2 enrols quote_lost_reasons → 25;
+  // demo-data-only, NO data migration for it) and NEVER removes one, so the live set is a FLOOR of
+  // that boundary — assert `>= 24` rather than an exact 24 a legitimate Phase B addition would fail.
+  // The runbook's live-bucket rows are still asserted ⊆ the real tenant set below (the load-bearing
+  // "no live group exceeds the boundary" check), which stays correct as the set grows.
+  assert.ok(
+    tenantTables.length >= 24,
+    `the Phase A boundary must be AT LEAST 24 tenant-owned tables — Phase B only adds — found ${tenantTables.length}`,
   );
   const tableSet = new Set(tenantTables);
 

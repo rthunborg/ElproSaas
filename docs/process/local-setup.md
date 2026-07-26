@@ -6,7 +6,7 @@ document holds the detail. Where another doc owns a rule (CI gates, the Lovable
 oracle policy), this doc **links** rather than restating it, so there is one
 source of truth.
 
-Current phase: **Phase A / Internal Pilot MVP** (see [`AGENTS.md`](../../AGENTS.md)).
+Current phase: **Phase B / Legacy Parity Release**, manifest-governed (see [`AGENTS.md`](../../AGENTS.md) and `src/scope/manifest.ts`).
 
 ## Prerequisites
 
@@ -94,7 +94,7 @@ Rules (see [`docs/security/security-guardrails.md`](../security/security-guardra
 
 ## Local Supabase (wired)
 
-Supabase is the Phase A backend (Auth + Postgres + Storage, architecture §6). The
+Supabase is the backend (Auth + Postgres + Storage, architecture §6). The
 local CLI stack is now wired: `supabase/config.toml`, the first migration
 (`supabase/migrations/*_tenant_foundation.sql`), and a minimal `supabase/seed.sql`
 live in the repo (architecture §3, §7, §8, §9).

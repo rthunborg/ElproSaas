@@ -90,15 +90,23 @@ async function seedVersion(
     title: `acc-calc-${crypto.randomUUID().slice(0, 8)}`,
   });
   const quoteId = await adminInsertQuote({ tenant_id: tenantId, customer_id: customerId });
+  // The draft -> sent flip is a LEGAL transition and stays on its proven two-step path (7 call sites
+  // depend on it). Every OTHER target is seeded AT its status directly: the old shape updated
+  // draft -> accepted/rejected/expired/superseded, which the domain state machine forbids (draft
+  // advances only to sent) and which the sent-lock trigger now rejects on the draft branch too
+  // (Codex P1). `enforce_quote_version_sent_lock` is an UPDATE trigger, so a direct insert at a
+  // terminal status is legal — and truer to what these cases need: a version that IS in a non-sent
+  // state, not a record of how it got there.
+  const seedStatus = status === "sent" ? "draft" : status;
   const versionId = await adminInsertQuoteVersion({
     tenant_id: tenantId,
     quote_id: quoteId,
     calculation_id: calcId,
-    status: "draft",
+    status: seedStatus,
     accepted_price_ore: SOURCE_SENT_TOTAL_ORE,
   });
-  if (status !== "draft") {
-    await adminUpdateQuoteVersionStatus(versionId, status);
+  if (status === "sent") {
+    await adminUpdateQuoteVersionStatus(versionId, "sent");
   }
   return { quoteId, versionId };
 }

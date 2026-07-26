@@ -22,6 +22,7 @@ export function Dialog({
   title,
   children,
   initialFocusRef,
+  busy = false,
 }: {
   readonly open: boolean;
   readonly onClose: () => void;
@@ -29,6 +30,13 @@ export function Dialog({
   readonly children: React.ReactNode;
   /** Optional control to focus on open (defaults to the first focusable element). */
   readonly initialFocusRef?: React.RefObject<HTMLElement | null>;
+  /**
+   * When true a mutation is IN FLIGHT: ALL dismiss paths (Escape, backdrop click, the header X) are
+   * gated off and the close controls render `disabled`, so a mid-flight dismissal can't discard the
+   * entered fields / reset local state while the server action is still running. The caller's own
+   * cancel button must be disabled independently (this only owns the Dialog's chrome close paths).
+   */
+  readonly busy?: boolean;
 }) {
   const panelRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -69,12 +77,19 @@ export function Dialog({
     };
   }, [open, initialFocusRef]);
 
-  // Escape closes; Tab is trapped within the panel (same shape as AppShell drawer).
+  // Close the dialog ONLY when not busy — the single guard shared by every chrome dismiss path
+  // (Escape, backdrop, header X). A mid-flight dismissal would reset the caller's local state while
+  // the server action is still running (iteration-2 review patch).
+  const guardedClose = useCallback(() => {
+    if (!busy) onClose();
+  }, [busy, onClose]);
+
+  // Escape closes (unless busy); Tab is trapped within the panel (same shape as AppShell drawer).
   const onKeyDown = useCallback(
     (event: React.KeyboardEvent<HTMLDivElement>) => {
       if (event.key === "Escape") {
         event.preventDefault();
-        onClose();
+        guardedClose();
         return;
       }
       if (event.key !== "Tab") return;
@@ -99,7 +114,7 @@ export function Dialog({
         first.focus();
       }
     },
-    [onClose],
+    [guardedClose],
   );
 
   if (!open) return null;
@@ -110,7 +125,8 @@ export function Dialog({
         type="button"
         aria-label="Stäng dialogruta"
         tabIndex={-1}
-        onClick={onClose}
+        onClick={guardedClose}
+        disabled={busy}
         className="fixed inset-0 bg-black/40"
       />
       <div
@@ -128,9 +144,10 @@ export function Dialog({
           <button
             ref={closeButtonRef}
             type="button"
-            onClick={onClose}
+            onClick={guardedClose}
+            disabled={busy}
             aria-label="Stäng"
-            className="rounded-md p-1.5 text-zinc-500 hover:bg-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+            className="rounded-md p-1.5 text-zinc-500 hover:bg-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 disabled:opacity-60"
           >
             <svg
               viewBox="0 0 24 24"

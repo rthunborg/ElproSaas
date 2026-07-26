@@ -554,13 +554,21 @@ test("9.5-SCOPE-01: the deny-list MODULE itself is NOT treated as a scope violat
   );
 });
 
-test("9.5-SCOPE-01: the surface anchors are the LIVE counts — exactly 7 nav items and 24 tenant-owned tables", async () => {
+test("9.5-SCOPE-01: the surface anchors match the Phase A gate report — exactly 7 nav items and the 24-table Phase A floor", async () => {
   const nav = await loadNavItems();
   const tables = await loadTenantTables();
   assert.equal(nav.length, 7, `the nav must be EXACTLY seven items (the frozen Phase A shell) — found ${nav.length}`);
-  assert.equal(tables.length, 24, `the tenant-owned set must be EXACTLY 24 tables — found ${tables.length}`);
+  // The Phase A acceptance gate report froze the tenant-owned set at 24 tables. Phase B ONLY ADDS
+  // tables to the ACTIVE modules (Story 10.2 enrols quote_lost_reasons → 25; later stories add more)
+  // and NEVER removes one, so the live set is a FLOOR of the frozen Phase A anchor — assert `>= 24`
+  // rather than an exact 24 that a legitimate Phase B addition would falsely fail. The report's
+  // 24-table claim (checked below) stays a correct historical Phase-A snapshot.
+  assert.ok(
+    tables.length >= 24,
+    `the tenant-owned set must be AT LEAST the 24-table Phase A floor (Phase B only adds) — found ${tables.length}`,
+  );
   const report = reportText();
-  // The report must cite the live counts (7 nav / 24 tables) — the scope confirmation anchors.
+  // The report cites the frozen Phase A counts (7 nav / 24 tables) — the scope confirmation anchors.
   assert.ok(/seven nav|7 nav|exactly seven/i.test(report), "the report must cite the seven-item nav anchor");
   assert.ok(/twenty-four|24 tenant-owned|exactly twenty-four/i.test(report), "the report must cite the 24-table anchor");
 });

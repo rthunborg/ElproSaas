@@ -23,7 +23,7 @@
  * the selected version. The ordering / current-commitment / selection logic is the PURE
  * `@/features/quotes/timeline` helpers (unit-pinned; never inline here).
  */
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import Link from "next/link";
 import { oreToKronorString } from "@/features/calculations/money-input";
 import {
@@ -31,16 +31,25 @@ import {
   type QuoteVersionStatus,
 } from "@/features/quotes/timeline";
 import { buildCustomerVisibleLines } from "@/features/quotes/view-model";
+import {
+  selectNextOpenFollowUp,
+  followUpChipState,
+  type FollowUpRecord,
+} from "@/features/quotes/follow-up-view";
 import type {
   QuoteDetail,
   QuoteVersionRow,
 } from "@/features/quotes/read";
 import { StatusBadge } from "./StatusBadge";
-import { quoteStatusLabel } from "./status";
+import { quoteStatusLabel, lostOutcomeLabel, lostCategoryLabel } from "./status";
 import { DraftQuoteEditor } from "./DraftQuoteEditor";
 import { MarkSentButton } from "./MarkSentButton";
+import { MarkLostButton } from "./MarkLostButton";
 import { CreateNewVersionButton } from "./CreateNewVersionButton";
+import { FollowUpChip } from "./FollowUpChip";
+import { FollowUpPanel } from "./FollowUpPanel";
 import { QuotePdfPanel } from "./QuotePdfPanel";
+import { isLatestDecidedStatus } from "@/features/quotes/terminal-status";
 import { AcceptanceCaptureForm } from "./AcceptanceCaptureForm";
 
 /** The Swedish label for the (frozen) VAT display posture, for the assumptions block. */
@@ -71,6 +80,8 @@ const EVENT_LABELS: Record<string, string> = {
   rejected: "Avvisad",
   expired: "Utgången",
   superseded: "Ersatt",
+  // Story 10.2 — the lost lifecycle event renders "Förlorad/Avböjd" in the Händelser timeline.
+  lost: "Förlorad/Avböjd",
 };
 
 export function QuoteDetailView({
@@ -91,8 +102,27 @@ export function QuoteDetailView({
     selectedLines,
     selectedAttachments,
     events,
+    selectedLostReason,
+    followUps,
+    nowISO,
     acceptedJobIdByVersionId,
   } = detail;
+
+  // Story 10.3: the quote's single OPEN follow-up (one-open invariant) + the header chip state
+  // (overdue/due-today classified on the Europe/Stockholm boundary from the injected read instant).
+  const followUpRecords: FollowUpRecord[] = followUps.map((f) => ({
+    id: f.id,
+    status: f.status,
+    due_date: f.due_date,
+    note: f.note,
+  }));
+  const openFollowUp = selectNextOpenFollowUp(followUpRecords);
+  const followUpChip = followUpChipState(openFollowUp, nowISO);
+
+  // Story 10.4 review: while the FollowUpPanel's decide-here JUMPS branch is showing, it renders its
+  // OWN `Markera som förlorad/avböjd` + `Ny version` affordances — so suppress the standalone copies
+  // below to keep exactly ONE visible owner per affordance (no duplicated accessible name / testid).
+  const [jumpsActive, setJumpsActive] = useState(false);
 
   // Order the read rows by version_number ascending (the read layer already returns them asc;
   // re-sort defensively — the snake_case rows are ordered here, the PURE helpers run on the
@@ -117,6 +147,20 @@ export function QuoteDetailView({
   // this gating. The commands independently reject an accepted version (createNewQuoteVersion guards a
   // draft/non-draft parent; generateQuotePdf is scoped to draft/sent) — the UI is the MIRROR.
   const isAccepted = selected.status === "accepted";
+  // Story 10.2: a terminal Förlorad/Avböjd version — the badge + the specific outcome/reason render
+  // from the joined `selectedLostReason`. The mark-lost affordance is offered ONLY on a sent version.
+  const isLost = selected.status === "lost";
+  const isSent = selected.status === "sent";
+  // Integration review F4: PDF generate/retry is scoped to draft/sent (architecture §12;
+  // generateQuotePdf rejects every other status with VALIDATION_FAILED). Gate the panel POSITIVELY on
+  // draft/sent so a `lost` (or rejected/expired/superseded) version is never offered an action the
+  // command always refuses — the previous `!isAccepted` gate leaked the affordance onto a lost version.
+  const canGeneratePdf = isDraft || isSent;
+  // Integration review F3: the header follow-up chip must stop escalating once the LATEST version is
+  // decided (accepted/lost/rejected/expired) — the follow-up panel that could clear the row only renders
+  // on a sent version, so a decided quote would otherwise show an unclearable "Försenad uppföljning".
+  // Single-sourced with the list flags + pipeline counts via `isLatestDecidedStatus`.
+  const isLatestDecided = isLatestDecidedStatus(latest?.status ?? selected.status);
   // Story 7.3 (AC5 deep-link seam): the ONE job created off this accepted version (if any). The
   // accepted section links to `/jobs/[jobId]` — the idempotent mirror lands on the EXISTING job,
   // never a duplicate or a second create affordance.
@@ -158,7 +202,18 @@ export function QuoteDetailView({
           >
             {header.customer_display_name ?? "Offert"}
           </h1>
-          <StatusBadge status={latest?.status ?? selected.status} />
+          <div className="flex items-center gap-2">
+            {/* Story 10.3 — the next-follow-up chip (UX-BDR17). Rendered when the quote has an OPEN
+                follow-up; an OVERDUE one escalates visually (text-first, color redundant). */}
+            {followUpChip.present && openFollowUp && !isLatestDecided && (
+              <FollowUpChip
+                dueDate={openFollowUp.due_date}
+                overdue={followUpChip.overdue}
+                dueToday={followUpChip.dueToday}
+              />
+            )}
+            <StatusBadge status={latest?.status ?? selected.status} />
+          </div>
         </div>
         <dl className="grid grid-cols-1 gap-x-6 gap-y-1 text-sm sm:grid-cols-2">
           <div className="flex gap-2">
@@ -248,6 +303,25 @@ export function QuoteDetailView({
               </h2>
               <StatusBadge status={selected.status} />
             </div>
+
+            {/* Story 10.2 — the specific Förlorad/Avböjd outcome + reason for a lost version, resolved
+                from the joined quote_lost_reasons row (the terminal badge above says "Förlorad/Avböjd";
+                this card line carries the specific outcome + category + optional note). */}
+            {isLost && selectedLostReason && (
+              <div
+                role="note"
+                data-testid="quote-lost-reason"
+                className="flex flex-col gap-1 rounded-md border border-rose-300 bg-rose-50 px-3 py-2 text-sm text-rose-900"
+              >
+                <span>
+                  <strong>{lostOutcomeLabel(selectedLostReason.outcome)}</strong> ·{" "}
+                  {lostCategoryLabel(selectedLostReason.category)}
+                </span>
+                {selectedLostReason.note && (
+                  <span className="text-rose-800">{selectedLostReason.note}</span>
+                )}
+              </div>
+            )}
 
             {/* Customer / facility / contact display (from the frozen snapshot). */}
             <dl
@@ -419,7 +493,7 @@ export function QuoteDetailView({
                 commands (never a bespoke path). GATED OFF an `accepted` version (Story 7.2, Task 5):
                 PDF retry is scoped to draft/sent (architecture §12) — an accepted commitment offers
                 no PDF-retry affordance. */}
-            {!isAccepted && (
+            {canGeneratePdf && (
               <QuotePdfPanel
                 quoteId={header.id}
                 quoteVersionId={selected.id}
@@ -448,11 +522,44 @@ export function QuoteDetailView({
             <section data-testid="quote-acceptance-section" className="text-sm">
               <h3 className="mb-1 font-medium text-zinc-800">Acceptans</h3>
               {selected.status === "sent" ? (
-                <AcceptanceCaptureForm
-                  quoteId={header.id}
-                  quoteVersionId={selected.id}
-                  sourceSentTotalOre={selected.accepted_price_ore}
-                />
+                <div className="flex flex-col gap-3">
+                  <AcceptanceCaptureForm
+                    quoteId={header.id}
+                    quoteVersionId={selected.id}
+                    sourceSentTotalOre={selected.accepted_price_ore}
+                  />
+                  {/* Story 10.2 — the Förlorad/Avböjd affordance, offered ALONGSIDE the acceptance
+                      capture on a SENT version ONLY. Opens an explicit-confirm dialog (never
+                      undo-based). The UI is the MIRROR of the INT-proven server + DB enforcement.
+                      Story 10.3 — when the quote has an OPEN follow-up, this surface carries its id so
+                      the lost flip auto-completes the follow-up (the auto-complete-on-lost seam). */}
+                  {/* Suppressed while the FollowUpPanel jumps branch owns the lost affordance (10.4
+                      review) — the jumps render their own MarkLostButton, so the standalone copy would
+                      otherwise duplicate the accessible name + data-testid="mark-lost-section". */}
+                  {!jumpsActive && (
+                    <MarkLostButton
+                      quoteId={header.id}
+                      quoteVersionId={selected.id}
+                      followUpId={openFollowUp?.id}
+                    />
+                  )}
+                  {/* Story 10.3 — the follow-up surface: plan (no open follow-up) OR the Klarmarkera
+                      completion sheet (open follow-up) + the decide-here jumps after completion. */}
+                  <FollowUpPanel
+                    quoteId={header.id}
+                    quoteVersionId={selected.id}
+                    onJumpsActiveChange={setJumpsActive}
+                    openFollowUp={
+                      openFollowUp
+                        ? {
+                            id: openFollowUp.id,
+                            due_date: openFollowUp.due_date,
+                            note: openFollowUp.note,
+                          }
+                        : null
+                    }
+                  />
+                </div>
               ) : selected.status === "accepted" ? (
                 <div
                   data-testid="quote-acceptance-accepted"
@@ -518,8 +625,10 @@ export function QuoteDetailView({
                   the SERVER command + the DB triggers are the enforcement (a UI-only versioning
                   rule is a STOP condition — architecture §9). GATED OFF an `accepted` version (Story
                   7.2, Task 5): new-version is scoped to draft/sent (architecture §12) — an accepted
-                  commitment is terminal for Phase A (7.4 hardens the full immutability). */}
-              {!isAccepted && (
+                  commitment is terminal for Phase A (7.4 hardens the full immutability). Suppressed
+                  while the FollowUpPanel jumps branch owns the `Ny version` affordance (10.4 review) so
+                  only one `CreateNewVersionButton` renders at a time. */}
+              {!isAccepted && !jumpsActive && (
                 <CreateNewVersionButton
                   quoteId={header.id}
                   quoteVersionId={selected.id}
@@ -528,12 +637,17 @@ export function QuoteDetailView({
             </div>
           )}
 
-          {/* Lifecycle events (READ only — 6.2 never mutates the event log). */}
+          {/* Lifecycle events (READ only — 6.2 never mutates the event log). The aria-label promotes
+              the <section> to a named "Händelser" landmark region (Story 10.2 E2E surfaces the lost
+              event here). */}
           <section
             data-testid="quote-events"
+            aria-labelledby="quote-events-heading"
             className="rounded-lg border border-zinc-200 bg-white p-4 text-sm"
           >
-            <h2 className="mb-2 text-sm font-semibold text-zinc-900">Händelser</h2>
+            <h2 id="quote-events-heading" className="mb-2 text-sm font-semibold text-zinc-900">
+              Händelser
+            </h2>
             {events.length === 0 ? (
               <p className="text-zinc-600">Inga händelser.</p>
             ) : (

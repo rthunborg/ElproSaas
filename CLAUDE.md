@@ -26,7 +26,8 @@ Code–specific bindings (permission gates, hooks, subagents).
 
 Mirrors `docs/process/agent-workflow.md`. Before making changes, state whether
 you are in **read-only**, **docs/config-only**, or **implementation** mode.
-Implementation mode requires an approved Phase A story or ADR-backed task.
+Implementation mode requires an approved story (or ADR-backed task) and must
+respect the manifest-governed Phase B scope (`src/scope/manifest.ts`).
 
 ## Hard Approval Gates → Claude Code Bindings
 
@@ -82,7 +83,7 @@ follows. Use the `Agent` tool (or the project's `code-review` /
 
 | Codex agent | Claude Code use |
 | --- | --- |
-| `phase-scope-reviewer` | Agent task: review diff against Phase A scope + deferrals in `AGENTS.md`. |
+| `phase-scope-reviewer` | Agent task: review diff against the manifest-governed Phase B scope (`src/scope/manifest.ts`) + the Phase C ledger in `AGENTS.md`. |
 | `security-rls-reviewer` | Agent task: tenant isolation / RLS / service-role / secrets review. |
 | `money-tax-reviewer` | Agent task: SEK öre, VAT/ROT/grön teknik, quote immutability review. |
 | `test-gap-reviewer` | Agent task: missing unit/integration/RLS/golden-master coverage. |

@@ -1,0 +1,65 @@
+# auto-bmad per-story state — written by scripts/state_update.py (full stable schema;
+# see references/state-and-resume.md). Prose belongs in reports/{key}.md, not here.
+story_key: 10-1-phase-b-governance-re-baseline-and-scope-manifest
+epic_num: 10
+story_num: 1
+branch: epic/10-quote-lifecycle-completion
+status: in-progress
+updated_at: "2026-07-19T14:11:07Z"
+started_at: "2026-07-19T12:47:02Z"
+completed_at: null
+active_seconds: 5009
+timing_anchor: 1784470267
+is_first_in_epic: true
+is_last_in_epic: false
+needs_project_context_bootstrap: false
+git_mode: remote
+base_branch: main
+tea_risk: high
+tea_selected: [atdd, automate]
+tea_rationale: "Governance keystone: derivation refactor of guardrail machinery; silent fail-loud-regression blast radius (R-1001..R-1003); tie-break to high"
+epic_story_count: 4
+stories_after_in_epic: 3
+completed_phases: [3, 4, 5, 6, 7]
+code_review_iterations: 0
+code_review_loop_done: false
+hitl_halt: null
+external_review_iterations: 0
+convergence_unverified: false
+story_trace: null
+commits: []
+phase8_steps:
+  trace_gate: null
+  nfr: null
+  test_review: null
+  project_context: null
+  reconcile: null
+  archive: null
+  retro: null
+gate_decision: null
+gate_iterations: 0
+deferred_work_archived: 0
+pr_url: null
+ci_run_url: null
+ci_status: unknown
+pr_merged: false
+merge_method: null
+merge_commit: null
+branch_deleted: false
+open_questions: []
+deferred_work: []
+blockers: []
+overrides: {}
+constraints: []
+tier_a_base_sha: 206f541d79d0fde9c315b1231db9002896bf0d27
+tier_a_review:
+  verdict: "Changes Requested (minor)"
+  critical: 0
+  high: 0
+  medium: 1
+  low: 2
+  decisions_auto_resolved: 1
+  patches_fixed: 1
+  deferred: 1
+  security: clean 0/0/0
+  post_fix: proceed

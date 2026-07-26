@@ -24,6 +24,8 @@
  */
 import { createSupabaseServerClient } from "@/server/db/supabase-server-client";
 import type { QuoteVersionStatus } from "./timeline";
+import { LATEST_DECIDED_STATUSES } from "./terminal-status";
+import { classifyFollowUp } from "./follow-up-dates";
 
 const GENERIC_READ_ERROR =
   "Ett tillfälligt fel inträffade. Försök igen om en stund.";
@@ -46,6 +48,13 @@ function num(v: unknown): number | null {
 // Quote LIST projection (the `/quotes` Offerter index).
 // ─────────────────────────────────────────────────────────────────────────────
 
+/** A joined Förlorad/Avböjd reason (Story 10.2) — the flavour + category surfaced on a lost version. */
+export interface QuoteLostReasonRow {
+  readonly outcome: string;
+  readonly category: string;
+  readonly note: string | null;
+}
+
 /** A quote list row — the `/quotes` index projection (latest-version status + count). */
 export interface QuoteListRow {
   readonly id: string;
@@ -56,6 +65,23 @@ export interface QuoteListRow {
   readonly latest_quote_number: number | null;
   /** How many versions the quote has (the timeline length). */
   readonly version_count: number;
+  /**
+   * Story 10.2 (AC4): the joined Förlorad/Avböjd reason of the LATEST version WHEN it is `lost`
+   * (surfaced in the list's Förlustorsak column under the Förlorad/Avböjd status filter). Null
+   * unless the latest version is lost. Note is intentionally OMITTED from the list projection.
+   */
+  readonly lost_reason: { readonly outcome: string; readonly category: string } | null;
+  /**
+   * Story 10.3 (AC2): whether the quote has an OPEN follow-up (the `Har uppföljning` filter). At most
+   * one open follow-up per quote (the one-open partial unique index).
+   */
+  readonly has_open_follow_up: boolean;
+  /**
+   * Story 10.3 (AC2): whether the quote's open follow-up is OVERDUE on the Europe/Stockholm date
+   * boundary (the `Försenad uppföljning` filter + the row overdue badge). False when there is no open
+   * follow-up or it is due-today/upcoming.
+   */
+  readonly overdue_follow_up: boolean;
   readonly updated_at: string;
 }
 
@@ -63,6 +89,18 @@ export interface QuoteListRow {
 export interface QuoteListReadResult {
   readonly rows: readonly QuoteListRow[];
   readonly error: string | null;
+}
+
+/** The request-bound RLS client type (the ONLY client the list read queries). */
+type QuoteReadServerClient = Awaited<ReturnType<typeof createSupabaseServerClient>>;
+
+/**
+ * Injectable dependencies for the list read (Story 10.4, Task 3): the integration harness binds a
+ * tenant's RLS-scoped client so the list-filter consistency proof (10.4-INT-02) runs against the local
+ * stack; production resolves the per-request client. NON-behavioral — the query/projection is unchanged.
+ */
+export interface QuoteListReadDeps {
+  readonly client?: QuoteReadServerClient;
 }
 
 /**
@@ -73,18 +111,62 @@ export interface QuoteListReadResult {
  * `quote_versions(...)` relationship, resolved by highest `version_number`. On a query error
  * returns a GENERIC Swedish message (the FAILED state) — never a leaked stack/SQL.
  */
-export async function readQuoteList(): Promise<QuoteListReadResult> {
+export async function readQuoteList(
+  deps: QuoteListReadDeps = {},
+): Promise<QuoteListReadResult> {
   try {
-    const client = await createSupabaseServerClient();
-    const { data, error } = await client
-      .from("quotes")
-      .select(
-        "id, updated_at, customers(display_name), quote_versions(version_number, status, quote_number)",
-      )
-      .is("archived_at", null)
-      .order("updated_at", { ascending: false });
-    if (error) return { rows: [], error: GENERIC_READ_ERROR };
-    const rows: QuoteListRow[] = (data ?? []).map((r) => {
+    const client = deps.client ?? (await createSupabaseServerClient());
+    // Read the quotes + their versions (incl. the version id so a lost version's joined reason can
+    // be matched below), plus the tenant's lost reasons (RLS-scoped; own-tenant only) mapped by
+    // version id — mirroring the readQuoteDetail jobs/acceptances secondary-read pattern.
+    // The injected render instant for the Europe/Stockholm due/overdue classification (captured ONCE
+    // here — never `Date.now()` on the pure classification path). Story 10.4 reuses this discipline.
+    const nowInstant = new Date();
+    const [quotesRes, lostRes, followUpsRes] = await Promise.all([
+      client
+        .from("quotes")
+        .select(
+          "id, updated_at, customers(display_name), quote_versions(id, version_number, status, quote_number)",
+        )
+        .is("archived_at", null)
+        .order("updated_at", { ascending: false }),
+      client
+        .from("quote_lost_reasons")
+        .select("quote_version_id, outcome, category"),
+      // Story 10.3 (AC2): the tenant's OPEN follow-ups (RLS-scoped; own-tenant only), mapped by
+      // quote_id. At most one open per quote (the one-open partial unique index). This is the
+      // UI-level surfacing of the open/overdue flags — the read-model/aggregation is Story 10.4.
+      client
+        .from("quote_follow_ups")
+        .select("quote_id, due_date, status")
+        .eq("status", "open"),
+    ]);
+    if (quotesRes.error) return { rows: [], error: GENERIC_READ_ERROR };
+    // An open-follow-up read fault is NON-FATAL to the list (the flags degrade to false — no badge).
+    const openFollowUpByQuoteId: Record<string, { due_date: string }> = {};
+    if (!followUpsRes.error) {
+      for (const raw of (followUpsRes.data ?? []) as Record<string, unknown>[]) {
+        const qId = raw.quote_id;
+        const dueDate = raw.due_date;
+        if (typeof qId === "string" && typeof dueDate === "string") {
+          openFollowUpByQuoteId[qId] = { due_date: dueDate };
+        }
+      }
+    }
+    // A lost-reason read fault is NON-FATAL to the list (the Förlustorsak column degrades to "—").
+    const lostByVersionId: Record<string, { outcome: string; category: string }> = {};
+    if (!lostRes.error) {
+      for (const raw of (lostRes.data ?? []) as Record<string, unknown>[]) {
+        const vId = raw.quote_version_id;
+        if (typeof vId === "string") {
+          lostByVersionId[vId] = {
+            outcome: String(raw.outcome ?? ""),
+            category: String(raw.category ?? ""),
+          };
+        }
+      }
+    }
+    const rows: QuoteListRow[] = (quotesRes.data ?? []).map((r) => {
       const rec = r as unknown as {
         id: string;
         updated_at: string;
@@ -94,6 +176,7 @@ export async function readQuoteList(): Promise<QuoteListReadResult> {
           | null;
         quote_versions:
           | {
+              id: string;
               version_number: number | string;
               status: QuoteVersionStatus;
               quote_number: number | string | null;
@@ -111,12 +194,34 @@ export async function readQuoteList(): Promise<QuoteListReadResult> {
           latest = v;
         }
       }
+      // Story 10.2: the joined reason of the latest version WHEN it is lost (else null).
+      const lostReason =
+        latest && latest.status === "lost" && latest.id in lostByVersionId
+          ? lostByVersionId[latest.id]
+          : null;
+      // Story 10.3: the quote's OPEN follow-up flags (has-open + overdue-on-the-Stockholm-boundary).
+      // Story 10.4 review (+ iteration-2): EXCLUDE a follow-up whose quote is already DECIDED — its
+      // latest version is a TERMINAL status. A decided deal must not keep surfacing a stale
+      // "Försenad uppföljning" badge in /quotes. The terminal set is single-sourced in
+      // `terminal-status.ts` and INCLUDES `superseded` (Codex review: a version can be superseded
+      // WITHOUT a successor being created, so it is genuinely reachable as a quote's latest status).
+      // The follow-up row still exists in the DB (auto-completion is a separate concern); the list
+      // simply stops escalating it once the quote is terminal.
+      const latestDecided = latest !== null && LATEST_DECIDED_STATUSES.has(latest.status);
+      const openFollowUp = latestDecided ? null : openFollowUpByQuoteId[rec.id] ?? null;
+      const hasOpenFollowUp = openFollowUp !== null;
+      const overdueFollowUp =
+        openFollowUp !== null &&
+        classifyFollowUp(openFollowUp.due_date, nowInstant) === "overdue";
       return {
         id: rec.id,
         customer_display_name: customer?.display_name ?? null,
         latest_status: latest?.status ?? null,
         latest_quote_number: latest ? num(latest.quote_number) : null,
         version_count: versions.length,
+        lost_reason: lostReason,
+        has_open_follow_up: hasOpenFollowUp,
+        overdue_follow_up: overdueFollowUp,
         updated_at: rec.updated_at,
       };
     });
@@ -213,6 +318,20 @@ export interface QuoteVersionAttachmentRow {
   readonly sort_order: number;
 }
 
+/**
+ * Story 10.3: a follow-up workflow row for the quote (the detail-header chip + the completion sheet).
+ * `note`/`outcome` are free text; at most ONE open per quote (the one-open partial unique index).
+ */
+export interface QuoteFollowUpDetailRow {
+  readonly id: string;
+  readonly quote_version_id: string;
+  readonly status: "open" | "completed";
+  readonly due_date: string;
+  readonly note: string | null;
+  readonly outcome: string | null;
+  readonly completed_at: string | null;
+}
+
 /** A quote lifecycle event (the append-friendly event log — READ only in 6.2). */
 export interface QuoteEventRow {
   readonly id: string;
@@ -236,6 +355,22 @@ export interface QuoteDetail {
   readonly selectedAttachments: readonly QuoteVersionAttachmentRow[];
   /** The quote's lifecycle events (ordered occurred_at asc). */
   readonly events: readonly QuoteEventRow[];
+  /**
+   * Story 10.2 (AC2): the joined Förlorad/Avböjd reason of the SELECTED version WHEN it is `lost`
+   * (outcome/category/note surfaced on the version card). Null unless the selected version is lost.
+   * RLS-scoped (own-tenant); at most one reason per version (unique (quote_version_id)).
+   */
+  readonly selectedLostReason: QuoteLostReasonRow | null;
+  /**
+   * Story 10.3: ALL follow-up rows for the quote (open + completed), for the detail-header
+   * next-follow-up chip + the completion sheet. At most one open per quote. RLS-scoped (own-tenant).
+   */
+  readonly followUps: readonly QuoteFollowUpDetailRow[];
+  /**
+   * Story 10.3: the injected render instant (ISO) for the Europe/Stockholm due/overdue classification
+   * of the header chip — captured ONCE at read time so the client island never reads `Date.now()`.
+   */
+  readonly nowISO: string;
   /**
    * Story 7.3 (AC5 deep-link seam): the created job id per accepted version id — the ONE job the
    * 7.2 acceptance transaction created off that version (`unique (quote_acceptance_id)` guarantees
@@ -418,8 +553,15 @@ export async function readQuoteDetail(
 
     // ── The selected version's frozen children + the quote events (parallel, own-tenant RLS). ──
     // Plus (Story 7.3, AC5 seam) the jobs created off this quote's versions — the deep-link target.
-    const [linesRes, attachmentsRes, eventsRes, jobsRes, acceptancesRes] =
-      await Promise.all([
+    const [
+      linesRes,
+      attachmentsRes,
+      eventsRes,
+      jobsRes,
+      acceptancesRes,
+      lostRes,
+      followUpsRes,
+    ] = await Promise.all([
       client
         .from("quote_version_lines")
         .select(LINE_COLUMNS)
@@ -449,6 +591,19 @@ export async function readQuoteDetail(
       client
         .from("quote_acceptances")
         .select("id, quote_version_id"),
+      // Story 10.2 (AC2): the selected version's Förlorad/Avböjd reason (own-tenant RLS). At most one
+      // per version (unique (quote_version_id)). A read fault is NON-FATAL (the card degrades).
+      client
+        .from("quote_lost_reasons")
+        .select("outcome, category, note")
+        .eq("quote_version_id", selectedId),
+      // Story 10.3 (AC1/AC2/AC3): ALL follow-ups for THIS quote (own-tenant RLS) — the header chip +
+      // the completion sheet. A read fault is NON-FATAL (the chip/sheet degrade to absent).
+      client
+        .from("quote_follow_ups")
+        .select("id, quote_version_id, status, due_date, note, outcome, completed_at")
+        .eq("quote_id", quoteId)
+        .order("created_at", { ascending: true }),
     ]);
 
     if (linesRes.error) return { detail: null, error: GENERIC_READ_ERROR };
@@ -485,6 +640,38 @@ export async function readQuoteDetail(
         ) {
           acceptanceIdByVersionId[vId] = aId;
         }
+      }
+    }
+
+    // Story 10.2: the selected version's Förlorad/Avböjd reason (only when it is lost). A read fault
+    // (or an absent row on a non-lost version) degrades to null — the card simply omits the reason.
+    let selectedLostReason: QuoteLostReasonRow | null = null;
+    if (!lostRes.error) {
+      const raw = ((lostRes.data ?? []) as Record<string, unknown>[])[0] ?? null;
+      if (raw) {
+        selectedLostReason = {
+          outcome: String(raw.outcome ?? ""),
+          category: String(raw.category ?? ""),
+          note: (raw.note as string | null) ?? null,
+        };
+      }
+    }
+
+    // Story 10.3: the quote's follow-ups (open + completed). A read fault degrades to an empty list
+    // (the chip/sheet simply do not render) — the follow-up surface is a convenience over the DB.
+    const followUps: QuoteFollowUpDetailRow[] = [];
+    if (!followUpsRes.error) {
+      for (const raw of (followUpsRes.data ?? []) as Record<string, unknown>[]) {
+        const status = raw.status === "completed" ? "completed" : "open";
+        followUps.push({
+          id: String(raw.id),
+          quote_version_id: String(raw.quote_version_id),
+          status,
+          due_date: String(raw.due_date),
+          note: (raw.note as string | null) ?? null,
+          outcome: (raw.outcome as string | null) ?? null,
+          completed_at: (raw.completed_at as string | null) ?? null,
+        });
       }
     }
 
@@ -536,6 +723,9 @@ export async function readQuoteDetail(
         selectedLines,
         selectedAttachments,
         events,
+        selectedLostReason,
+        followUps,
+        nowISO: new Date().toISOString(),
         acceptedJobIdByVersionId,
         acceptanceIdByVersionId,
       },

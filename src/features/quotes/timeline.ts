@@ -17,14 +17,15 @@
  * [Source: test-design-epic-6.md#6.2-UNIT-02; architecture.md#4/#11; story Task 1.4/2.4]
  */
 
-/** The closed set of quote-version lifecycle statuses (mirrors the 6.1 schema check). */
+/** The closed set of quote-version lifecycle statuses (mirrors the 6.1 schema check + the 10.2 `lost` token). */
 export type QuoteVersionStatus =
   | "draft"
   | "sent"
   | "accepted"
   | "rejected"
   | "expired"
-  | "superseded";
+  | "superseded"
+  | "lost";
 
 /** The minimal per-version shape the timeline logic needs (a subset of the read row). */
 export interface TimelineVersion {

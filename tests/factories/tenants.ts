@@ -1160,6 +1160,12 @@ export interface QuoteEventSeed {
   readonly quote_id: string;
   readonly quote_version_id?: string | null;
   readonly event_type?: string;
+  /**
+   * The lifecycle instant (timestamptz ISO). Defaults to the DB `now()` when omitted. Supply an
+   * EXPLICIT in-window value where a period-scoped read (Story 10.4 pipeline read-model) must be
+   * deterministic — otherwise a run outside the test's window silently drops the seeded event.
+   */
+  readonly occurred_at?: string | null;
 }
 
 /** Seed ONE `tenant_counters` row via the privileged superuser pg path (BYPASSRLS). */
@@ -1297,14 +1303,15 @@ export async function adminInsertQuoteEvent(
   try {
     const rows = await adminQuery<{ id: string }>(
       `insert into public.quote_events
-         (tenant_id, quote_id, quote_version_id, event_type)
-       values ($1, $2, $3, $4)
+         (tenant_id, quote_id, quote_version_id, event_type, occurred_at)
+       values ($1, $2, $3, $4, coalesce($5::timestamptz, now()))
        returning id`,
       [
         seed.tenant_id,
         seed.quote_id,
         seed.quote_version_id ?? null,
         seed.event_type ?? "created",
+        seed.occurred_at ?? null,
       ],
     );
     const id = rows[0]?.id;
@@ -1328,7 +1335,8 @@ export async function adminSelectQuoteLabel(
     | "quote_versions"
     | "quote_version_lines"
     | "quote_version_attachments"
-    | "quote_events",
+    | "quote_events"
+    | "quote_follow_ups",
   labelColumn: string,
   id: string,
 ): Promise<{ id: string; label: string | null } | null> {
@@ -1431,6 +1439,16 @@ export interface QuoteAcceptanceSeed {
   readonly notes?: string | null;
 }
 
+/** A seed for a `quote_lost_reasons` row (Story 10.2; parent quote + version required, same tenant). */
+export interface QuoteLostReasonSeed {
+  readonly tenant_id: string;
+  readonly quote_id: string;
+  readonly quote_version_id: string;
+  readonly outcome?: string;
+  readonly category?: string;
+  readonly note?: string | null;
+}
+
 /** A seed for a `jobs` row (source acceptance + version + customer required, same tenant). */
 export interface JobSeed {
   readonly tenant_id: string;
@@ -1482,6 +1500,218 @@ export async function adminInsertQuoteAcceptance(
   } catch (error) {
     rethrowWithCode(error);
   }
+}
+
+/** Seed ONE `quote_lost_reasons` row via the privileged superuser pg path (BYPASSRLS). Story 10.2. */
+export async function adminInsertQuoteLostReason(
+  seed: QuoteLostReasonSeed,
+): Promise<string> {
+  try {
+    const rows = await adminQuery<{ id: string }>(
+      `insert into public.quote_lost_reasons
+         (tenant_id, quote_id, quote_version_id, outcome, category, note)
+       values ($1, $2, $3, $4, $5, $6)
+       returning id`,
+      [
+        seed.tenant_id,
+        seed.quote_id,
+        seed.quote_version_id,
+        seed.outcome ?? "forlorad",
+        seed.category ?? "pris",
+        seed.note ?? null,
+      ],
+    );
+    const id = rows[0]?.id;
+    if (!id) throw new Error("adminInsertQuoteLostReason: no id returned");
+    return id;
+  } catch (error) {
+    rethrowWithCode(error);
+  }
+}
+
+/**
+ * A seed for a LOST `quote_versions` row PLUS its companion `quote_lost_reasons` row (Story 10.2).
+ * Mirrors `QuoteVersionSeed` MINUS `status` (which is forced to 'lost' — that is the whole point of
+ * this helper) PLUS the three reason columns.
+ */
+export type LostQuoteVersionSeed = Omit<QuoteVersionSeed, "status"> &
+  Pick<QuoteLostReasonSeed, "outcome" | "category" | "note">;
+
+/** The two ids a `adminInsertLostQuoteVersionWithReason` call created. */
+export interface LostQuoteVersionIds {
+  /** The inserted `quote_versions` row id (status='lost'). */
+  readonly quoteVersionId: string;
+  /** The inserted companion `quote_lost_reasons` row id. */
+  readonly lostReasonId: string;
+}
+
+/**
+ * Seed a LOST `quote_versions` row AND its companion `quote_lost_reasons` row in ONE SQL statement
+ * (therefore ONE transaction) via the privileged superuser pg path (BYPASSRLS). Story 10.2.
+ *
+ * WHY A WRITABLE CTE (do not split this back into two calls): the migration
+ * `20260719120000_quote_lost_reasons_and_lost_status.sql` installs the coherence guard
+ * `enforce_lost_version_has_reason` — a DEFERRABLE INITIALLY DEFERRED constraint trigger on
+ * `quote_versions` that raises QV422 at COMMIT when a row sits at status='lost' with NO
+ * `quote_lost_reasons` row. That guard is load-bearing security (an own-tenant direct INSERT/UPDATE
+ * through PostgREST could otherwise forge a 'lost' version, bypassing `mark_quote_version_lost` and
+ * its required reason/event/audit writes), so it is NOT weakened for tests. Each `adminQuery` call is
+ * its OWN transaction, so seeding the version and the reason as two statements commits the version
+ * ALONE and trips the deferred check. Inserting both in a single data-modifying-CTE statement means
+ * the reason row exists at COMMIT — exactly like the RPC path — and the check passes.
+ *
+ * Defaults mirror `adminInsertQuoteVersion` for the version columns and `adminInsertQuoteLostReason`
+ * for the reason columns (outcome 'forlorad', category 'pris', note null); every one is overridable.
+ * Returns BOTH ids (the version id and the reason id) so callers that assert on either can use it.
+ * THROWS (Postgres `code` preserved) on a DB error, mirroring `adminInsertQuoteVersion`.
+ */
+export async function adminInsertLostQuoteVersionWithReason(
+  seed: LostQuoteVersionSeed,
+): Promise<LostQuoteVersionIds> {
+  try {
+    const rows = await adminQuery<{
+      quote_version_id: string;
+      lost_reason_id: string;
+    }>(
+      `with v as (
+         insert into public.quote_versions
+           (tenant_id, quote_id, version_number, quote_number, calculation_id,
+            captured_at, company_name, status, intro_text, customer_display_name,
+            pdf_status, pdf_file_id, pdf_generated_at, warnings_snapshot, accepted_price_ore)
+         values ($1, $2, $3, $4, $5, $6, $7, 'lost', $8, $9, $10, $11, $12, $13::jsonb, $14)
+         returning id
+       ), r as (
+         insert into public.quote_lost_reasons
+           (tenant_id, quote_id, quote_version_id, outcome, category, note)
+         select $1, $2, v.id, $15, $16, $17 from v
+         returning id
+       )
+       select v.id as quote_version_id, r.id as lost_reason_id from v, r`,
+      [
+        seed.tenant_id,
+        seed.quote_id,
+        seed.version_number ?? 1,
+        seed.quote_number ?? 1,
+        seed.calculation_id,
+        seed.captured_at ?? "2026-07-05T12:00:00.000Z",
+        seed.company_name ?? "tenant-b-company-seed",
+        seed.intro_text ?? null,
+        seed.customer_display_name ?? null,
+        seed.pdf_status ?? "not_generated",
+        seed.pdf_file_id ?? null,
+        seed.pdf_generated_at ?? null,
+        JSON.stringify(seed.warnings_snapshot ?? []),
+        seed.accepted_price_ore ?? 0,
+        seed.outcome ?? "forlorad",
+        seed.category ?? "pris",
+        seed.note ?? null,
+      ],
+    );
+    const row = rows[0];
+    if (!row?.quote_version_id || !row?.lost_reason_id) {
+      throw new Error("adminInsertLostQuoteVersionWithReason: no ids returned");
+    }
+    return {
+      quoteVersionId: row.quote_version_id,
+      lostReasonId: row.lost_reason_id,
+    };
+  } catch (error) {
+    rethrowWithCode(error);
+  }
+}
+
+/** Read the `quote_lost_reasons` rows for a version back (BYPASSRLS). Story 10.2 readback helper. */
+export async function adminSelectLostReasons(
+  quoteVersionId: string,
+): Promise<{ outcome: string; category: string; note: string | null }[]> {
+  return adminQuery<{ outcome: string; category: string; note: string | null }>(
+    `select outcome, category, note from public.quote_lost_reasons
+      where quote_version_id = $1`,
+    [quoteVersionId],
+  );
+}
+
+/** A seed for a `quote_follow_ups` row (Story 10.3; parent quote + version required, same tenant). */
+export interface QuoteFollowUpSeed {
+  readonly tenant_id: string;
+  readonly quote_id: string;
+  readonly quote_version_id: string;
+  readonly due_date?: string;
+  readonly note?: string | null;
+  readonly status?: "open" | "completed";
+  readonly outcome?: string | null;
+  readonly completed_at?: string | null;
+}
+
+/**
+ * Seed ONE `quote_follow_ups` row via the privileged superuser pg path (BYPASSRLS). Story 10.3.
+ * Returns the inserted id. THROWS (Postgres `code` preserved) on a DB error — including the
+ * one-open partial-unique-index `23505` if a second OPEN row is seeded on the same quote. The
+ * note carries an anonymized shape-only token; NO PII.
+ */
+export async function adminInsertQuoteFollowUp(
+  seed: QuoteFollowUpSeed,
+): Promise<string> {
+  try {
+    const rows = await adminQuery<{ id: string }>(
+      `insert into public.quote_follow_ups
+         (tenant_id, quote_id, quote_version_id, due_date, note, status, outcome, completed_at)
+       values ($1, $2, $3, $4, $5, $6, $7, $8)
+       returning id`,
+      [
+        seed.tenant_id,
+        seed.quote_id,
+        seed.quote_version_id,
+        seed.due_date ?? "2026-08-01",
+        seed.note ?? null,
+        seed.status ?? "open",
+        seed.outcome ?? null,
+        seed.completed_at ?? null,
+      ],
+    );
+    const id = rows[0]?.id;
+    if (!id) throw new Error("adminInsertQuoteFollowUp: no id returned");
+    return id;
+  } catch (error) {
+    rethrowWithCode(error);
+  }
+}
+
+/** Read the `quote_follow_ups` rows for a quote back (BYPASSRLS, ordered). Story 10.3 readback helper. */
+export async function adminSelectFollowUps(
+  quoteId: string,
+): Promise<
+  {
+    id: string;
+    status: string;
+    outcome: string | null;
+    completed_at: string | null;
+    note: string | null;
+  }[]
+> {
+  const rows = await adminQuery<{
+    id: string;
+    status: string;
+    outcome: string | null;
+    completed_at: Date | string | null;
+    note: string | null;
+  }>(
+    `select id, status, outcome, completed_at, note from public.quote_follow_ups
+       where quote_id = $1 order by created_at`,
+    [quoteId],
+  );
+  return rows.map((r) => ({
+    id: r.id,
+    status: r.status,
+    outcome: r.outcome ?? null,
+    completed_at:
+      r.completed_at === null || r.completed_at === undefined
+        ? null
+        : r.completed_at instanceof Date
+          ? r.completed_at.toISOString()
+          : String(r.completed_at),
+    note: r.note ?? null,
+  }));
 }
 
 /** Seed ONE `jobs` row via the privileged superuser pg path (BYPASSRLS). */

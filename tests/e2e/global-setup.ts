@@ -28,6 +28,8 @@ import {
   adminInsertFileLink,
   adminInsertQuote,
   adminInsertQuoteEvent,
+  adminInsertQuoteFollowUp,
+  adminInsertLostQuoteVersionWithReason,
   adminInsertQuoteVersion,
   adminInsertQuoteVersionLine,
   adminInsertRow,
@@ -456,6 +458,159 @@ export default async function globalSetup() {
   );
   const acceptedJobId = acceptRpcRows[0]?.job_id ?? null;
 
+  // Story 10.2 — a DEDICATED quote whose ONLY version is a SENT v1, consumed by the Förlorad/Avböjd
+  // dialog E2E (confirming the flip PERMANENTLY marks it lost), kept OFF the shared 6.2/7.1 quotes
+  // (whose sent version other tests need to stay `sent`). Seeded draft → child → flip-to-sent per the
+  // 6.4 child-lock. The mark-lost affordance appears on this SENT version alongside the accept form.
+  const markLostQuoteId = await adminInsertQuote({
+    tenant_id: base.tenantA.id,
+    customer_id: companyId,
+    facility_id: facilityId,
+  });
+  const markLostSentVersionId = await adminInsertQuoteVersion({
+    tenant_id: base.tenantA.id,
+    quote_id: markLostQuoteId,
+    calculation_id: calcId,
+    version_number: 1,
+    quote_number: 1009,
+    status: "draft",
+    company_name: `Elpro Demo AB ${token()}`,
+    customer_display_name: companyName,
+    intro_text: "Skickad version för förlorad/avböjd-flödet (10.2)",
+  });
+  await adminInsertQuoteVersionLine({
+    tenant_id: base.tenantA.id,
+    quote_version_id: markLostSentVersionId,
+    label: `Förlorad-rad ${token()}`,
+    unit_sell_ore: 85000,
+    vat_rate_bp: 2500,
+    sort_order: 0,
+  });
+  await adminQuery(
+    `update public.quote_versions set status = 'sent' where id = $1`,
+    [markLostSentVersionId],
+  );
+  await adminInsertQuoteEvent({
+    tenant_id: base.tenantA.id,
+    quote_id: markLostQuoteId,
+    quote_version_id: markLostSentVersionId,
+    event_type: "created",
+  });
+
+  // Story 10.3 — three DEDICATED sent quotes for the follow-up E2E, each on its own quote so the
+  // tests are order-independent (the one-open-per-quote rule + the completion mutation would otherwise
+  // couple them). Seeded draft -> child -> flip-to-sent per the 6.4 child-lock. Follow-up notes are
+  // anonymized shape-only (no PII).
+  //   (a) planFollowUpQuote — sent v1 with NO follow-up → the "Planera uppföljning" plan flow.
+  //   (b) overdueFollowUpQuote — sent v1 + an OVERDUE OPEN follow-up (past due date) → the overdue chip
+  //       + the list overdue badge/filters. Never completed by any test (read-only).
+  //   (c) completeFollowUpQuote — sent v1 + an OPEN follow-up → the "Klarmarkera" completion flow + jumps.
+  async function seedSentFollowUpQuote(
+    quoteNumber: number,
+    intro: string,
+  ): Promise<{ quoteId: string; sentVersionId: string }> {
+    const quoteId = await adminInsertQuote({
+      tenant_id: base.tenantA.id,
+      customer_id: companyId,
+      facility_id: facilityId,
+    });
+    const sentVersionId = await adminInsertQuoteVersion({
+      tenant_id: base.tenantA.id,
+      quote_id: quoteId,
+      calculation_id: calcId,
+      version_number: 1,
+      quote_number: quoteNumber,
+      status: "draft",
+      company_name: `Elpro Demo AB ${token()}`,
+      customer_display_name: companyName,
+      intro_text: intro,
+    });
+    await adminInsertQuoteVersionLine({
+      tenant_id: base.tenantA.id,
+      quote_version_id: sentVersionId,
+      label: `Uppföljningsrad ${token()}`,
+      unit_sell_ore: 85000,
+      vat_rate_bp: 2500,
+      sort_order: 0,
+    });
+    await adminQuery(
+      `update public.quote_versions set status = 'sent' where id = $1`,
+      [sentVersionId],
+    );
+    await adminInsertQuoteEvent({
+      tenant_id: base.tenantA.id,
+      quote_id: quoteId,
+      quote_version_id: sentVersionId,
+      event_type: "created",
+    });
+    return { quoteId, sentVersionId };
+  }
+
+  const planFollowUp = await seedSentFollowUpQuote(
+    1010,
+    "Skickad version för planera-uppföljning-flödet (10.3)",
+  );
+  const overdueFollowUp = await seedSentFollowUpQuote(
+    1011,
+    "Skickad version med försenad uppföljning (10.3)",
+  );
+  // An OVERDUE OPEN follow-up (a fixed PAST due date, so it is overdue at every future run).
+  const overdueFollowUpId = await adminInsertQuoteFollowUp({
+    tenant_id: base.tenantA.id,
+    quote_id: overdueFollowUp.quoteId,
+    quote_version_id: overdueFollowUp.sentVersionId,
+    due_date: "2026-07-01",
+    note: "ring kund om beslut",
+    status: "open",
+  });
+  const completeFollowUp = await seedSentFollowUpQuote(
+    1012,
+    "Skickad version för klarmarkera-flödet (10.3)",
+  );
+  // An OPEN follow-up to complete (a fixed future due date — not overdue; the test completes it).
+  const completeFollowUpId = await adminInsertQuoteFollowUp({
+    tenant_id: base.tenantA.id,
+    quote_id: completeFollowUp.quoteId,
+    quote_version_id: completeFollowUp.sentVersionId,
+    due_date: "2026-12-01",
+    note: "boka uppföljningssamtal",
+    status: "open",
+  });
+
+  // Story 10.4 — a DEDICATED already-LOST quote (latest version status='lost' + a Förlorad reason), so
+  // the pipeline render-consistency E2E (10.4-E2E-01) has a DETERMINISTIC lost row in the list
+  // (Förlorad/Avböjd filter → quote-list-lost-row + the Förlustorsak column) independent of the 10.2
+  // runtime mark-lost flip's ordering. Seeded directly at status='lost' (BYPASSRLS) TOGETHER WITH its
+  // reason row in ONE statement/transaction (the writable-CTE factory helper): the 10.2 coherence
+  // trigger `enforce_lost_version_has_reason` is DEFERRABLE INITIALLY DEFERRED and checks at COMMIT, so
+  // a two-statement seed would commit the lost version ALONE and be rejected (QV422). Its
+  // overdue-follow-up counterpart is the existing 10.3 overdueFollowUpQuote (chip + list overdue badge).
+  const pipelineLostQuoteId = await adminInsertQuote({
+    tenant_id: base.tenantA.id,
+    customer_id: companyId,
+    facility_id: facilityId,
+  });
+  const { quoteVersionId: pipelineLostVersionId } =
+    await adminInsertLostQuoteVersionWithReason({
+      tenant_id: base.tenantA.id,
+      quote_id: pipelineLostQuoteId,
+      calculation_id: calcId,
+      version_number: 1,
+      quote_number: 1013,
+      company_name: `Elpro Demo AB ${token()}`,
+      customer_display_name: companyName,
+      intro_text: "Förlorad version för pipeline-render-konsistens (10.4)",
+      outcome: "forlorad",
+      category: "pris",
+      note: null,
+    });
+  await adminInsertQuoteEvent({
+    tenant_id: base.tenantA.id,
+    quote_id: pipelineLostQuoteId,
+    quote_version_id: pipelineLostVersionId,
+    event_type: "lost",
+  });
+
   // Story 8.5 — a DEDICATED SENT quote whose ONLY version is a SENT v1 carrying a LOCKED quote_pdf
   // file, so the 8.4/8.5 file-lock-panel E2E can assert the sent-quote lock notice + archive-only
   // affordance on the quote detail's default (latest = sent) version. Seed the PDF file (draft) +
@@ -758,6 +913,35 @@ export default async function globalSetup() {
     newVersionQuote: {
       id: newVersionQuoteId,
       sentVersionId: newVersionSentVersionId,
+    },
+    // Story 10.2 — a dedicated single-SENT-version quote the Förlorad/Avböjd dialog E2E marks lost
+    // (permanently flipping it to `lost`), kept off the shared quotes whose sent version other tests
+    // need to stay `sent`.
+    markLostQuote: {
+      id: markLostQuoteId,
+      sentVersionId: markLostSentVersionId,
+    },
+    // Story 10.4 — a dedicated already-LOST quote (latest version status='lost' + a Förlorad reason)
+    // so the pipeline render-consistency E2E has a deterministic lost row + Förlustorsak column cell.
+    pipelineLostQuote: {
+      id: pipelineLostQuoteId,
+      lostVersionId: pipelineLostVersionId,
+    },
+    // Story 10.3 — three dedicated sent quotes for the follow-up E2E (plan / overdue / complete), each
+    // on its own quote so the tests are order-independent.
+    followUpQuote: {
+      id: planFollowUp.quoteId,
+      sentVersionId: planFollowUp.sentVersionId,
+    },
+    overdueFollowUpQuote: {
+      id: overdueFollowUp.quoteId,
+      sentVersionId: overdueFollowUp.sentVersionId,
+      followUpId: overdueFollowUpId,
+    },
+    completeFollowUpQuote: {
+      id: completeFollowUp.quoteId,
+      sentVersionId: completeFollowUp.sentVersionId,
+      followUpId: completeFollowUpId,
     },
     // Story 7.2 — a dedicated single-SENT-version quote the accept-and-create-job FLOW E2E consumes
     // (confirming acceptance permanently flips it to `accepted` + creates a job), kept off the

@@ -594,6 +594,99 @@ export function asQuoteLifecycleRpcClient(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Story 10.2 — the narrow mark_quote_version_lost RPC surface (§14 widening).
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** The minimal RPC surface for the narrow `mark_quote_version_lost` call (Story 10.2). */
+export type QuoteLostRpcClient = {
+  rpc(
+    fn: "mark_quote_version_lost",
+    args: {
+      readonly p_tenant_id: string;
+      readonly p_quote_version_id: string;
+      readonly p_outcome: string;
+      readonly p_category: string;
+      readonly p_note: string | null;
+      readonly p_occurred_at: string;
+    },
+  ): Promise<{
+    data: unknown;
+    error: { code?: string; message?: string } | null;
+  }>;
+};
+
+/** Narrow the envelope client to the mark-lost RPC surface (single documented cast). */
+export function asQuoteLostRpcClient(db: CommandDbClient): QuoteLostRpcClient {
+  return db as unknown as QuoteLostRpcClient;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Story 10.3 — the follow-up anchor read + the direct quote_follow_ups write surfaces.
+//
+// The plan/complete/annotate commands are single-row ENVELOPE commands (architecture-phase-b §14 —
+// NO RPC): they issue direct RLS-client table writes on quote_follow_ups. The anchor read loads the
+// version's status + quote_id so the plan command can (a) assert the anchor is `sent` and (b) DERIVE
+// quote_id from the loaded row (never trust a client-supplied quote_id — SETTLED DESIGN DECISION 3).
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** The anchor-version fields the plan command reads: the lifecycle `status` + the parent `quote_id`. */
+export interface QuoteVersionAnchorRow {
+  readonly status: string;
+  readonly quote_id: string;
+}
+
+/**
+ * Load the anchor version's `status` + `quote_id` under the caller's RLS (ownership already proved it
+ * visible). Returns null when the row is not visible (a race → the command denies). The plan command
+ * DERIVES quote_id from THIS loaded row — never from client input.
+ */
+export async function loadQuoteVersionAnchor(
+  db: CommandDbClient,
+  quoteVersionId: string,
+): Promise<QuoteVersionAnchorRow | null> {
+  const { data, error } = await asReadClient(db)
+    .from("quote_versions")
+    .select("status, quote_id")
+    .eq("id", quoteVersionId)
+    .limit(1);
+  throwOnReadError("loadQuoteVersionAnchor", error);
+  const raw = (data?.[0] ?? null) as Record<string, unknown> | null;
+  if (raw === null) return null;
+  return { status: String(raw.status), quote_id: String(raw.quote_id) };
+}
+
+/** A chainable RLS UPDATE filter (multiple `.eq()` then a terminal `.select()`). */
+type FollowUpUpdateFilter = {
+  eq(column: string, value: string): FollowUpUpdateFilter;
+  select(columns: string): Promise<{
+    data: unknown[] | null;
+    error: { code?: string; message?: string } | null;
+  }>;
+};
+
+/** The minimal quote_follow_ups INSERT + UPDATE surface of the request-bound RLS client. */
+export type QuoteFollowUpWriteClient = {
+  from(table: "quote_follow_ups"): {
+    insert(values: Record<string, unknown>): {
+      select(columns: string): Promise<{
+        data: unknown[] | null;
+        error: { code?: string; message?: string } | null;
+      }>;
+    };
+    update(values: Record<string, unknown>): {
+      eq(column: string, value: string): FollowUpUpdateFilter;
+    };
+  };
+};
+
+/** Narrow the envelope client to the quote-follow-up write surface (single documented cast). */
+export function asQuoteFollowUpWriteClient(
+  db: CommandDbClient,
+): QuoteFollowUpWriteClient {
+  return db as unknown as QuoteFollowUpWriteClient;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Story 7.2 — the narrow accept_quote_and_create_job RPC surface + its result shape.
 // ─────────────────────────────────────────────────────────────────────────────
 

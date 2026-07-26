@@ -45,6 +45,8 @@ import {
   adminInsertQuoteVersionAttachment,
   adminInsertQuoteEvent,
   adminInsertQuoteAcceptance,
+  adminInsertQuoteLostReason,
+  adminInsertQuoteFollowUp,
   adminInsertJob,
   adminInsertJobEvent,
   adminUpdateQuoteVersionStatus,
@@ -97,6 +99,8 @@ let tenantBQuoteEventId: string; // a seeded Tenant B event (6.1 target)
 let tenantBQuoteAcceptanceId: string; // a seeded Tenant B acceptance (7.1 target + job parent)
 let tenantBJobId: string; // a seeded Tenant B job (7.1 target + job_event parent)
 let tenantBJobEventId: string; // a seeded Tenant B job event (7.1 target)
+let tenantBQuoteLostReasonId: string; // a seeded Tenant B lost reason (10.2 target)
+let tenantBQuoteFollowUpId: string; // a seeded Tenant B follow-up (10.3 target)
 let ctx: InventoryContext; // shared-inventory context (fixture + the seeded ids)
 
 beforeAll(async () => {
@@ -274,6 +278,32 @@ beforeAll(async () => {
     job_id: tenantBJobId,
     event_type: "created",
   });
+  // Seed a REAL Tenant B LOST REASON (Story 10.2) so the quote_lost_reasons cross-tenant negative
+  // targets a CONCRETE Tenant B row (never a non-existent id that would deny vacuously). It
+  // references the SAME Tenant B quote + version (composite same-tenant FKs). quote_lost_reasons is
+  // INSERT-ONLY (no UPDATE grant), so the cross-tenant UPDATE negative is a privilege denial (42501);
+  // the row carries NO money/öre column (Story 10.2 Stop Condition).
+  tenantBQuoteLostReasonId = await adminInsertQuoteLostReason({
+    tenant_id: fixture.tenantB.id,
+    quote_id: tenantBQuoteId,
+    quote_version_id: tenantBQuoteVersionId,
+    outcome: "forlorad",
+    category: "pris",
+  });
+  // Seed a REAL Tenant B FOLLOW-UP (Story 10.3) so the quote_follow_ups cross-tenant negative targets
+  // a CONCRETE Tenant B row (never a non-existent id that would deny vacuously). It references the
+  // SAME Tenant B quote + version (composite same-tenant FKs). quote_follow_ups is UPDATE-able (has an
+  // UPDATE grant), so the cross-tenant UPDATE negative is the "rls-invisible" mechanism (zero rows +
+  // an unchanged `note` re-read); the seed note is a recognizable token proving the hijack never
+  // landed. The row carries NO money/öre column (Story 10.3 Stop Condition).
+  tenantBQuoteFollowUpId = await adminInsertQuoteFollowUp({
+    tenant_id: fixture.tenantB.id,
+    quote_id: tenantBQuoteId,
+    quote_version_id: tenantBQuoteVersionId,
+    due_date: "2026-08-01",
+    note: "tenant-b-followup-seed",
+    status: "open",
+  });
   // VACUITY GUARD (DX#4, epic-2 hardening): the audit_events cross-tenant negatives
   // filter Tenant B's row by `id = tenantBAuditId`. If the seed ever returned without
   // a real id, `.eq("id", undefined/null)` would match NOTHING and the SELECT/UPDATE/
@@ -341,6 +371,18 @@ beforeAll(async () => {
         "acceptance cross-tenant negatives would pass VACUOUSLY against a non-existent row.",
     );
   }
+  if (!tenantBQuoteLostReasonId) {
+    throw new Error(
+      "cross-tenant lost-reason seed produced no id (quote_lost_reasons) — the lost-reason " +
+        "cross-tenant negative would pass VACUOUSLY against a non-existent row.",
+    );
+  }
+  if (!tenantBQuoteFollowUpId) {
+    throw new Error(
+      "cross-tenant follow-up seed produced no id (quote_follow_ups) — the follow-up " +
+        "cross-tenant negative would pass VACUOUSLY against a non-existent row.",
+    );
+  }
   ctx = {
     fixture,
     tenantBAuditId,
@@ -366,6 +408,8 @@ beforeAll(async () => {
     tenantBQuoteAcceptanceId,
     tenantBJobId,
     tenantBJobEventId,
+    tenantBQuoteLostReasonId,
+    tenantBQuoteFollowUpId,
   };
 });
 
@@ -484,6 +528,14 @@ describe("Cross-tenant RLS isolation — data-driven over the shared inventory (
             } else {
               expect(row?.label).not.toBe("hijacked-by-tenant-a");
             }
+          } else if (table === "quote_follow_ups") {
+            // Story 10.3: UPDATE-able ("rls-invisible"). The hijack sets note = "hijacked-by-tenant-a";
+            // prove the seed value ("tenant-b-followup-seed") was NOT overwritten by A's denied UPDATE.
+            const labelColumn = rlsInvisibleLabelColumn(table);
+            const row = await adminSelectQuoteLabel(table, labelColumn, value);
+            expect(row).not.toBeNull();
+            expect(row?.label).not.toBe("hijacked-by-tenant-a");
+            expect(row?.label).toBe("tenant-b-followup-seed");
           } else if (
             table === "quote_acceptances" ||
             table === "jobs" ||

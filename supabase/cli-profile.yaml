@@ -20,5 +20,11 @@
 #   supabase login --profile "<repo>/supabase/cli-profile.yaml"
 name: elprosaas
 api_url: https://api.supabase.com
+# REQUIRED by Supabase CLI 2.109.1+ — without it every command using this profile aborts with
+# "invalid profile: Field validation for 'DashboardURL' failed on the 'required' tag", which blocked
+# `supabase start` / `db reset` locally (so DB-backed verification kept falling to CI). This is the
+# platform dashboard origin, NOT a project-specific URL — the project ref is supplied per command /
+# by the linked project (elprosaas-demo = wmqmzznmwpheswjjozhq). No secret.
+dashboard_url: https://supabase.com/dashboard
 project_host: supabase.co
 pooler_host: supabase.com

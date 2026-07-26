@@ -8,7 +8,7 @@ Manual check:
 
 1. Start Codex from the project root: `codex -C C:\ElproSaas`
 2. Ask: `What is the current project phase and what scope is deferred?`
-3. Expected answer: Phase A / Internal Pilot MVP; product implementation requires an approved Phase A story; Fortnox, field-worker UX, supplier APIs, AI jobs, HR, rentals, assets, DoU, tender/FKU RAG, and full RBAC are deferred.
+3. Expected answer: Phase B / Legacy Parity Release; scope is manifest-governed (`src/scope/manifest.ts`) — a module's surface may exist only when the module is `active`; the Phase C ledger (all AI flows, live supplier vendor APIs, customer portal / BankID online acceptance, bookkeeping beyond Fortnox, the public anonymous suggestion endpoint, the full-release legal/GDPR program, a native mobile app, self-serve tenant signup, or any net-new feature beyond parity + the two sanctioned additions) is deferred with no exceptions without a new owner decision.
 
 Do not treat this as verified until the answer cites the repo instructions or matches them exactly.
 

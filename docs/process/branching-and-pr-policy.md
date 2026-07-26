@@ -32,28 +32,26 @@ Every PR must include:
 
 ## Merge Gates
 
-Phase A PRs must not merge unless:
+PRs must not merge unless:
 
 - CI passes for the required gates.
-- No forbidden scope is included.
+- No out-of-scope surface is included: any product surface (route, table, widget, public surface, file owner type) must belong to a module that is `active` in `src/scope/manifest.ts`, or be part of that module's same-PR activation (per-epic activation, FR129). The manifest coherence validator must pass.
 - No secrets or `.env` changes are included.
-- No database migrations are present unless the PR is explicitly a migration story.
-- No dependency changes are present unless explicitly approved.
+- No Phase C hard-exclusion (below) is brought into scope.
 
 ## Deferred Scope Handling
 
-If a PR touches deferred modules, it must be stopped unless there is explicit re-approval in the PR description and linked planning artifact.
+Scope is manifest-governed: a `pending` module's surface must not land except as part of that module's activation PR (flip `pending → active` with an epic ref + date, in the same PR as its first schema/nav change). If a PR touches a Phase C hard-exclusion, it must be stopped unless there is an explicit new owner decision in the PR description and linked planning artifact.
 
-Deferred in Phase A:
+Deferred to Phase C (hard exclusions — the Phase C ledger, PRD §14):
 
-- Fortnox.
-- Field-worker UX.
-- Supplier APIs.
-- AI jobs.
-- HR.
-- Rentals.
-- Assets.
-- DoU automation.
-- Tender/FKU RAG.
-- Full RBAC.
+- All AI flows (DoU/self-inspection/tender/panel-image/KNX/supplier AI parsing, RAG chat, any AI job or mutation).
+- Live supplier vendor APIs (file import only in Phase B).
+- Customer portal / online acceptance (BankID/portal signing).
+- Bookkeeping integrations beyond Fortnox.
+- The public anonymous suggestion endpoint (P70).
+- Net-new features beyond parity + the two sanctioned additions (Fortnox, multi-tenant productization).
+- The full-release legal/GDPR program (`A22`-tax disclaimer wording, retention program, authoritative tax-number ownership).
+- A native mobile app.
+- Self-serve tenant signup (until N-2).
 

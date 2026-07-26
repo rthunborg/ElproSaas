@@ -296,6 +296,90 @@ export function validateMarkQuoteVersionLifecycle(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Story 10.2 — the mark-quote-version-lost input validator (AC1/AC2/AC5).
+//
+// The caller supplies the target `quote_version_id` (UUID-shaped) + the structured Förlorad/Avböjd
+// reason: an `outcome` in the closed set {forlorad, avbojd}, a `category` in the strawman closed set
+// {pris, konkurrent, tidplan, uteblivet_svar, annat}, and an OPTIONAL free-text `note` that is
+// REQUIRED (non-empty trimmed) when the category is `annat`. tenant_id / status are NEVER read (the
+// resolved tenant is the only authority; the injected clock stamps `occurred_at`). The raw invalid
+// value is NEVER echoed — a shape/closed-set violation → VALIDATION_FAILED. A foreign/non-existent
+// version id is caught by the envelope ownership gate (TENANT_ACCESS_DENIED before execute), not here.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** The closed set of Förlorad/Avböjd outcomes (the flavour stored in quote_lost_reasons.outcome). */
+const LOST_OUTCOMES = new Set(["forlorad", "avbojd"]);
+
+/** The closed strawman category set (UXB-A5; tenant-tunable in a later story — hard-coded here). */
+const LOST_CATEGORIES = new Set([
+  "pris",
+  "konkurrent",
+  "tidplan",
+  "uteblivet_svar",
+  "annat",
+]);
+
+/** A coarse length bound for the optional/required lost-reason note free-text field. */
+const LOST_NOTE_MAX = 2000;
+
+/** The Förlorad/Avböjd outcome — the flavour stored solely in quote_lost_reasons.outcome. */
+export type QuoteLostOutcome = "forlorad" | "avbojd";
+
+/** The strawman lost-reason category (ASCII machine token; Swedish UI label resolved in the UI). */
+export type QuoteLostCategory =
+  | "pris"
+  | "konkurrent"
+  | "tidplan"
+  | "uteblivet_svar"
+  | "annat";
+
+/**
+ * Validated `markQuoteVersionLost` input — the target version id + the structured reason (outcome +
+ * category + optional/required note). `note` is required (non-empty trimmed) when `category==='annat'`,
+ * else optional + bounded. tenant_id / status are NEVER part of it (resolved server-side).
+ */
+export interface MarkQuoteVersionLostInput {
+  readonly quote_version_id: string;
+  readonly outcome: QuoteLostOutcome;
+  readonly category: QuoteLostCategory;
+  readonly note?: string | null;
+}
+
+export function validateMarkQuoteVersionLost(
+  raw: unknown,
+): ValidationResult<MarkQuoteVersionLostInput> {
+  if (!isRecord(raw)) return fail;
+  if (!isUuidLike(raw.quote_version_id)) return fail;
+  if (typeof raw.outcome !== "string" || !LOST_OUTCOMES.has(raw.outcome)) return fail;
+  if (typeof raw.category !== "string" || !LOST_CATEGORIES.has(raw.category)) return fail;
+
+  // The note: bounded free text. When present it must be a string within the length bound; when the
+  // category is `annat` it is REQUIRED (a non-empty trimmed value). Otherwise it is optional.
+  let note: string | null = null;
+  if (raw.note !== undefined && raw.note !== null) {
+    if (typeof raw.note !== "string" || raw.note.length > LOST_NOTE_MAX) return fail;
+    note = raw.note;
+  }
+  if (raw.category === "annat") {
+    if (note === null || note.trim().length === 0) return fail;
+  }
+
+  const data: {
+    quote_version_id: string;
+    outcome: QuoteLostOutcome;
+    category: QuoteLostCategory;
+    note?: string | null;
+  } = {
+    quote_version_id: raw.quote_version_id as string,
+    outcome: raw.outcome as QuoteLostOutcome,
+    category: raw.category as QuoteLostCategory,
+  };
+  // Only carry a note when the caller supplied one (an absent note = null downstream).
+  if (raw.note !== undefined) data.note = note;
+  return { ok: true, data };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Story 7.1 — the capture-quote-acceptance input validator (AC1/AC2/AC5).
 //
 // The caller supplies the target sent `quote_version_id` + the acceptance-capture fields:
@@ -537,5 +621,142 @@ export function validateAcceptQuoteAndCreateJob(
     data.planned_end_date = (raw.planned_end_date as string | null) ?? null;
   if ("title" in raw) data.title = (raw.title as string | null) ?? null;
   if (raw.__faultInject !== undefined) data.__faultInject = raw.__faultInject as string;
+  return { ok: true, data };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Story 10.3 — the plan / complete / annotate follow-up input validators (AC1/AC3).
+//
+// The caller supplies ONLY the shape below; tenant_id / status / quote_id are NEVER read onto the
+// validated data (the plan command DERIVES quote_id from the loaded anchor version — SETTLED DESIGN
+// DECISION 3 — and tenant/status are server-resolved). The raw invalid value is NEVER echoed — a
+// shape violation → VALIDATION_FAILED. A foreign/non-existent version/follow-up id is caught by the
+// envelope ownership gate (TENANT_ACCESS_DENIED before execute), not here.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** A coarse length bound for the follow-up free-text note/outcome fields. */
+const FOLLOW_UP_TEXT_MAX = 4000;
+
+/**
+ * A valid ISO calendar date (YYYY-MM-DD) that names a REAL day — rejects an impossible month
+ * (2026-13-01) or day (2026-02-30) via a UTC round-trip, and any non-`date`-shaped string/number.
+ */
+function isIsoCalendarDate(v: unknown): v is string {
+  if (typeof v !== "string") return false;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) return false;
+  const [y, m, d] = v.split("-").map((p) => Number(p));
+  if (m < 1 || m > 12 || d < 1 || d > 31) return false;
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  return (
+    dt.getUTCFullYear() === y && dt.getUTCMonth() === m - 1 && dt.getUTCDate() === d
+  );
+}
+
+/**
+ * Validate an OPTIONAL bounded note. Absent/null ⇒ "no note" (undefined out). A present value must
+ * be a string within the length bound; it is TRIMMED (an all-whitespace note collapses to null).
+ */
+function validatedOptionalNote(v: unknown): { ok: true; value?: string | null } | { ok: false } {
+  if (v === undefined || v === null) return { ok: true };
+  if (typeof v !== "string" || v.length > FOLLOW_UP_TEXT_MAX) return { ok: false };
+  const trimmed = v.trim();
+  return { ok: true, value: trimmed.length > 0 ? trimmed : null };
+}
+
+/**
+ * Validated `planQuoteFollowUp` input — the anchor version id + a due date + an optional note.
+ * `quote_version_id` is required + UUID-shaped; `due_date` a valid ISO calendar date; `note`
+ * optional + bounded + trimmed. tenant_id / quote_id / status are NEVER part of it.
+ */
+export interface PlanQuoteFollowUpInput {
+  readonly quote_version_id: string;
+  readonly due_date: string;
+  readonly note?: string | null;
+}
+
+export function validatePlanQuoteFollowUp(
+  raw: unknown,
+): ValidationResult<PlanQuoteFollowUpInput> {
+  if (!isRecord(raw)) return fail;
+  if (!isUuidLike(raw.quote_version_id)) return fail;
+  if (!isIsoCalendarDate(raw.due_date)) return fail;
+  const note = validatedOptionalNote(raw.note);
+  if (!note.ok) return fail;
+
+  const data: {
+    quote_version_id: string;
+    due_date: string;
+    note?: string | null;
+  } = {
+    quote_version_id: raw.quote_version_id as string,
+    due_date: raw.due_date as string,
+  };
+  // Only carry a note when the caller supplied one (server-owned keys quote_id/tenant_id/status are
+  // never read — the command derives quote_id from the loaded version, tenant/status are resolved).
+  if (raw.note !== undefined) data.note = note.value ?? null;
+  return { ok: true, data };
+}
+
+/**
+ * Validated `completeQuoteFollowUp` input — the target follow-up id + a REQUIRED outcome note.
+ * `follow_up_id` is required + UUID-shaped; `outcome` is required, non-empty (trimmed), bounded.
+ * `expected_quote_id` is OPTIONAL: when present (the auto-complete-on-lost path derives it
+ * server-side from the just-lost version), the completion is additionally scoped to that quote so a
+ * forged/stale `follow_up_id` belonging to ANOTHER own-tenant quote cannot be completed by mistake
+ * (integration review F5).
+ */
+export interface CompleteQuoteFollowUpInput {
+  readonly follow_up_id: string;
+  readonly outcome: string;
+  readonly expected_quote_id?: string;
+}
+
+export function validateCompleteQuoteFollowUp(
+  raw: unknown,
+): ValidationResult<CompleteQuoteFollowUpInput> {
+  if (!isRecord(raw)) return fail;
+  if (!isUuidLike(raw.follow_up_id)) return fail;
+  if (typeof raw.outcome !== "string" || raw.outcome.length > FOLLOW_UP_TEXT_MAX) {
+    return fail;
+  }
+  const outcome = raw.outcome.trim();
+  if (outcome.length === 0) return fail; // REQUIRED — a whitespace-only outcome is rejected
+  // OPTIONAL quote scope (F5): when carried it must be UUID-shaped; an absent field is fine.
+  if (raw.expected_quote_id !== undefined && !isUuidLike(raw.expected_quote_id)) {
+    return fail;
+  }
+  return {
+    ok: true,
+    data: {
+      follow_up_id: raw.follow_up_id as string,
+      outcome,
+      ...(raw.expected_quote_id !== undefined
+        ? { expected_quote_id: raw.expected_quote_id as string }
+        : {}),
+    },
+  };
+}
+
+/**
+ * Validated `annotateQuoteFollowUp` input — the target follow-up id + a bounded note.
+ * `follow_up_id` is required + UUID-shaped; `note` is optional + bounded + trimmed.
+ */
+export interface AnnotateQuoteFollowUpInput {
+  readonly follow_up_id: string;
+  readonly note?: string | null;
+}
+
+export function validateAnnotateQuoteFollowUp(
+  raw: unknown,
+): ValidationResult<AnnotateQuoteFollowUpInput> {
+  if (!isRecord(raw)) return fail;
+  if (!isUuidLike(raw.follow_up_id)) return fail;
+  const note = validatedOptionalNote(raw.note);
+  if (!note.ok) return fail;
+
+  const data: { follow_up_id: string; note?: string | null } = {
+    follow_up_id: raw.follow_up_id as string,
+  };
+  if (raw.note !== undefined) data.note = note.value ?? null;
   return { ok: true, data };
 }

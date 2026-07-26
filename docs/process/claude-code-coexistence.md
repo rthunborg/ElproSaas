@@ -3,7 +3,7 @@
 Status: active. This repo is governed for **both OpenAI Codex and Claude Code**.
 `AGENTS.md` is the shared source of truth; `CLAUDE.md` imports it. This document
 records the migration audit and maps every Codex guardrail to its Claude Code
-home so both tools enforce the same Phase A rules.
+home so both tools enforce the same manifest-governed Phase B rules.
 
 Related: [ADR-0001](../decisions/ADR-0001-agentic-development-process.md),
 [agent-workflow.md](agent-workflow.md), [codex-hooks-proposal.md](codex-hooks-proposal.md),
@@ -13,7 +13,7 @@ Related: [ADR-0001](../decisions/ADR-0001-agentic-development-process.md),
 
 | File | Scope | Tool |
 | --- | --- | --- |
-| `AGENTS.md` | Phase A scope, deferrals, oracle policy, hard gates. Tool-agnostic. | Both |
+| `AGENTS.md` | Phase B scope (manifest-governed, `src/scope/manifest.ts`), the Phase C ledger, oracle policy, hard gates. Tool-agnostic. | Both |
 | `CLAUDE.md` | Imports `@AGENTS.md`; binds gates to Claude Code permissions/hooks/subagents. | Claude Code |
 | `_bmad-output/project-context.md` | BMAD context: product boundary, architecture, money/tax, oracle, quality. | Both (BMAD) |
 | `docs/decisions/ADR-0001-agentic-development-process.md` | Decision establishing the BMAD + Codex operating layer and hard gates. | Both |
@@ -60,7 +60,7 @@ cleanly with nothing to rewrite. The Codex-specific surface is isolated to
 
 ### Advisory conventions → `CLAUDE.md` / `docs/` (already committed)
 
-- Phase A scope boundary, deferred modules, Lovable-oracle policy, source
+- Phase B scope boundary (manifest-governed), the Phase C ledger, Lovable-oracle policy, source
   hierarchy, money/tax conventions, branching/PR policy, operating modes,
   reviewer responsibilities. These remain in `AGENTS.md` + `docs/` and are
   surfaced to Claude Code via `CLAUDE.md`.
@@ -155,7 +155,7 @@ committed alongside `settings.json` (and regenerable from the TOMLs):
 
 | `.claude/agents/*.md` | Source TOML | Access | Use |
 | --- | --- | --- | --- |
-| `phase-scope-reviewer.md` | `phase-scope-reviewer.toml` | read-only | Phase A scope + deferral check on a diff/plan. |
+| `phase-scope-reviewer.md` | `phase-scope-reviewer.toml` | read-only | Manifest-governed Phase B scope + Phase C ledger check on a diff/plan. |
 | `security-rls-reviewer.md` | `security-rls-reviewer.toml` | read-only | Tenant-isolation / RLS / service-role / secrets review. |
 | `money-tax-reviewer.md` | `money-tax-reviewer.toml` | read-only | SEK öre, VAT/ROT/grön teknik, snapshot/immutability review. |
 | `test-gap-reviewer.md` | `test-gap-reviewer.toml` | read-only | Missing unit/integration/RLS/golden-master coverage. |

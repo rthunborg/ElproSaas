@@ -77,6 +77,32 @@ test("6.2-UNIT-02: current commitment on an empty list is null", () => {
   assert.equal(currentCommitmentVersion([]), null);
 });
 
+// ── Story 10.2 — the `lost` token's timeline semantics (10.2-UNIT-04, added by the automation pass).
+// The settled 10.2 design (Task 3.2) is EXPLICIT: `lost` is a TERMINAL dead-end and is NOT a
+// commitment (do NOT add it to `isCommitment`), yet the `currentCommitmentVersion` fallback still
+// surfaces a lost LATEST version as the current version (so the detail page renders it). Before this
+// pass that decision lived only in a code comment + the E2E — a future dev could add `lost` to
+// `isCommitment` (or drop the fallback) and no fast-gate test would catch the semantic regression.
+
+test("10.2-UNIT-04: a `lost` version is NOT a commitment — an earlier SENT stays the current commitment", () => {
+  // v3 is lost (terminal); the last real commitment is the earlier SENT v2, not the lost latest.
+  const input = [v("a", 1, "superseded"), v("b", 2, "sent"), v("c", 3, "lost")];
+  assert.equal(currentCommitmentVersion(input)?.id, "b");
+});
+
+test("10.2-UNIT-04: a `lost` latest with NO prior commitment still surfaces via the latest-version fallback", () => {
+  // No sent/accepted version exists → the fallback returns the LATEST (the lost v2) so the page
+  // still has a version to render (the deal can be revived only via a NEW version).
+  const input = [v("a", 1, "draft"), v("b", 2, "lost")];
+  assert.equal(currentCommitmentVersion(input)?.id, "b");
+});
+
+test("10.2-UNIT-04: a `lost` version never masks a later ACCEPTED commitment", () => {
+  // A revive-via-new-version path: v1 lost, then a fresh v2 accepted — the accepted v2 wins.
+  const input = [v("a", 1, "lost"), v("b", 2, "accepted")];
+  assert.equal(currentCommitmentVersion(input)?.id, "b");
+});
+
 test("6.2-UNIT-02: resolveSelectedVersion picks the supplied id when present", () => {
   const input = [v("a", 1, "sent"), v("b", 2, "draft")];
   assert.equal(resolveSelectedVersion(input, "a")?.id, "a");

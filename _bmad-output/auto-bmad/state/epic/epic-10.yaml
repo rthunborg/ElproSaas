@@ -1,0 +1,130 @@
+# auto-bmad per-story state — written by scripts/state_update.py (full stable schema;
+# see references/state-and-resume.md). Prose belongs in reports/{key}.md, not here.
+story_key: epic-10
+epic_num: 10
+story_num: null
+branch: epic/10-quote-lifecycle-completion
+status: done
+updated_at: "2026-07-20T14:05:17Z"
+started_at: "2026-07-19T12:24:42Z"
+completed_at: "2026-07-20T14:05:17Z"
+active_seconds: 91998
+timing_anchor: null
+is_first_in_epic: false
+is_last_in_epic: false
+needs_project_context_bootstrap: false
+git_mode: remote
+base_branch: main
+tea_risk: null
+tea_selected: []
+tea_rationale: null
+epic_story_count: 4
+stories_after_in_epic: null
+completed_phases: [0, 1, 2, 5, 7, 9, 81, 82]
+code_review_iterations: 2
+code_review_loop_done: true
+hitl_halt: "auto-continued (epic â€” no halt)"
+external_review_iterations: 0
+convergence_unverified: true
+story_trace: null
+commits: []
+phase8_steps:
+  trace_gate: done
+  nfr: done
+  test_review: done
+  project_context: done
+  reconcile: done
+  archive: done
+  retro: done
+gate_decision: PASS
+gate_iterations: 0
+deferred_work_archived: 1
+pr_url: "https://github.com/rthunborg/ElproSaas/pull/38"
+ci_run_url: "https://github.com/rthunborg/ElproSaas/actions/runs/29749054297"
+ci_status: unknown
+pr_merged: false
+merge_method: null
+merge_commit: null
+branch_deleted: false
+open_questions: []
+deferred_work: []
+blockers: []
+overrides: {}
+constraints: []
+active_story: null
+stories_landed:
+  - 10-1-phase-b-governance-re-baseline-and-scope-manifest
+  - 10-2-forlorad-avbojd-status-and-lost-reason-lifecycle
+  - 10-3-quote-follow-up-workflow
+  - 10-4-pipeline-surfacing-and-dashboard-read-model
+auto_decisions:
+  - "Module id typed as bare string, not the literal-union Task 1.1 requires [Med] -> fix: document the id: string deviation + rationale in completion notes, mirroring the TenantTableName decision entry; do not force the union (Tier A, 10-1-phase-b-governance-re-baseline-and-scope-manifest)"
+  - "Phase-A gate validators relaxed ===24 -> >=24 floor [Low] -> dismiss: correct additive-only reconciliation; live count re-pinned at 25 in manifest tests; Phase-A report stays a correct historical snapshot (Tier A, 10-2-forlorad-avbojd-status-and-lost-reason-lifecycle)"
+  - "Hand-rolled follow-up chip/badge vs reuse constraint [Low] -> defer: fold tones into status.ts during 10.4 consistency pass; ledgered (Tier A, 10-3-quote-follow-up-workflow)"
+  - "annotateQuoteFollowUp shipped with no UI caller [Low] -> dismiss: spec-compliant forward-provisioning (Tasks 3.2+5.4 mandate command+action only); owner-visibility note kept (Tier A, 10-3-quote-follow-up-workflow)"
+  - "Aggregate-honesty flat delete-list vs dependency-aware mandate [Med] -> fix: correct the overstated withholdFields comment to describe the actual flat list; dependency modeling deferred to first multi-component read-model (Tier A, 10-4-pipeline-surfacing-and-dashboard-read-model)"
+  - "Money leaf sums wrong column (sent total, not accepted commitment) [High] -> fix: source acceptedValueOre from quote_acceptances.accepted_price_ore; reconcile SETTLED DECISION 5 (E_review, epic-10)"
+  - "Open follow-ups on decided quotes keep escalating + inflate pipeline [High] -> fix: exclude follow-ups on terminal latest versions from list projection AND aggregate; correct the recoverable-residual comment (E_review, epic-10)"
+  - "Fail-open entitlement default asymmetry [Med] -> fix: omitted EntitlementInput resolves unentitled (fail-closed) (E_review, epic-10)"
+  - "Duplicate mark-lost/new-version affordances in jumps state [Med] -> fix: single owner — suppress FollowUpPanel jumps-branch duplicates while standalone affordances show (E_review, epic-10)"
+  - "validateManifestCoherence under-enforces documented invariants [Med] -> fix: add missing-activation-date / duplicate-module-id / duplicate-soft-surface rules or soften the docstring to match (E_review, epic-10)"
+  - "Past due_date creates instantly-overdue follow-up [Low] -> fix: reject with NEW error FOLLOW_UP_DUE_DATE_IN_PAST + min on input (E_review, epic-10)"
+  - "Pipeline follow-up counts point-in-time vs period [Low] -> dismiss: 'currently open' semantics documented for E19 (E_review, epic-10)"
+  - "Decided-quote exclusion misses rejected/expired terminal statuses [Med] -> fix: derive the terminal set from the status domain — add rejected+expired to TERMINAL_QUOTE_STATUSES and latestDecided (E_review iter 2, epic-10)"
+uat_items:
+  - "[10-1-phase-b-governance-re-baseline-and-scope-manifest] Run the scope suite (node --test tests/unit/scope/**) -> all shape/coherence/derivation/invariant/selector/governance tests pass"
+  - "[10-1-phase-b-governance-re-baseline-and-scope-manifest] Run pnpm test:unit -> suite grew vs pre-10.1 and all pass except the known pre-existing 9.2-REPEAT-01 CRLF failure on Windows (passes CI)"
+  - "[10-1-phase-b-governance-re-baseline-and-scope-manifest] Run pnpm typecheck -> exit 0 (SCOPE_MANIFEST satisfies-guard + literal unions compile)"
+  - "[10-1-phase-b-governance-re-baseline-and-scope-manifest] Run pnpm lint -> 0 errors (one pre-existing vat.test.ts warning acceptable)"
+  - "[10-1-phase-b-governance-re-baseline-and-scope-manifest] Print FORBIDDEN_DEFERRED_CATEGORIES via node one-liner -> exactly asset,dou,fortnox,hr,rental,supplier,upphandling"
+  - "[10-1-phase-b-governance-re-baseline-and-scope-manifest] Print EXPECTED_NAV_ROUTES via node one-liner -> exactly /calculations,/customers,/dashboard,/files,/jobs,/quotes,/settings"
+  - "[10-1-phase-b-governance-re-baseline-and-scope-manifest] Re-run manifest-coherence.test.ts alone -> every AC4 negative case green (validator provably bites, incl. pending-module-live-surface and orphan branches)"
+  - "[10-1-phase-b-governance-re-baseline-and-scope-manifest] Inspect AGENTS.md line 3 -> 'Current project phase: Phase B / Legacy Parity Release' + src/scope/manifest.ts named as scope source of truth"
+  - "[10-1-phase-b-governance-re-baseline-and-scope-manifest] Inspect CLAUDE.md phase-scope-reviewer row -> reviews against manifest-governed Phase B scope + Phase C ledger (old Phase A wording gone)"
+  - "[10-1-phase-b-governance-re-baseline-and-scope-manifest] Inspect .claude/agents/phase-scope-reviewer.md AND .codex/agents/phase-scope-reviewer.toml -> both reference src/scope/manifest.ts, no drift between them"
+  - "[10-1-phase-b-governance-re-baseline-and-scope-manifest] Inspect .claude/settings.json deny set -> the three forbidden supabase ops (function deploys, secrets ops, project deletion) + Read(./.env) all still present (no guardrail weakened)"
+  - "[10-1-phase-b-governance-re-baseline-and-scope-manifest] (Local Supabase stack) db reset + pnpm test:int -> H4 inventory gate proves manifest-derived TENANT_TABLES == live 24 tables; RLS suites green (CI-covered if stack unavailable)"
+  - "[10-2-forlorad-avbojd-status-and-lost-reason-lifecycle] SETUP: local stack up + db reset (applies 20260719120000 migration); seed adminA + a sent-version quote via pnpm test:e2e global-setup (creds/ids in tests/e2e/.auth/fixture.json — capture before teardown) or by hand (Kund -> Kalkyl -> Skapa ny offert -> Markera som skickad); pnpm dev; login as adminA"
+  - "[10-2-forlorad-avbojd-status-and-lost-reason-lifecycle] Open /quotes/<lostQuoteId> (latest sent) -> 'Markera som forlorad/avbojd' button appears in the Acceptans section alongside acceptance capture"
+  - "[10-2-forlorad-avbojd-status-and-lost-reason-lifecycle] Click the button -> dialog opens: Utfall radio (Forlorad/Avbojd), Orsak select (exactly Pris, Konkurrent, Tidplan, Uteblivet svar, Annat), Notering textarea, Bekrafta button"
+  - "[10-2-forlorad-avbojd-status-and-lost-reason-lifecycle] Read the amber confirmation copy -> states append-only lifecycle event, sent snapshot does NOT change, deal revivable via new version"
+  - "[10-2-forlorad-avbojd-status-and-lost-reason-lifecycle] No outcome/category selected -> Bekrafta disabled; outcome only -> still disabled"
+  - "[10-2-forlorad-avbojd-status-and-lost-reason-lifecycle] Utfall=Forlorad + Orsak=Annat + empty note -> Bekrafta disabled, label 'Notering (kravs for Annat)'; type note -> enabled"
+  - "[10-2-forlorad-avbojd-status-and-lost-reason-lifecycle] Utfall=Forlorad + Orsak=Pris + empty note -> label 'Notering (valfritt)', Bekrafta enabled"
+  - "[10-2-forlorad-avbojd-status-and-lost-reason-lifecycle] Avbryt -> dialog closes, status still Skickad, affordance still present"
+  - "[10-2-forlorad-avbojd-status-and-lost-reason-lifecycle] Confirm Forlorad+Pris -> badge flips to 'Forlorad/Avbojd' in rose terminal style distinct from Accepterad green; mark-lost + acceptance affordances gone (read-only)"
+  - "[10-2-forlorad-avbojd-status-and-lost-reason-lifecycle] Snapshot card after flip -> rose note block 'Forlorad · Pris' + note text if entered"
+  - "[10-2-forlorad-avbojd-status-and-lost-reason-lifecycle] Handelser list -> a 'Forlorad/Avbojd' event with date appears in addition to prior events"
+  - "[10-2-forlorad-avbojd-status-and-lost-reason-lifecycle] Lifecycle header -> 'Senaste versionens status: Forlorad/Avbojd'"
+  - "[10-2-forlorad-avbojd-status-and-lost-reason-lifecycle] Compare flipped version's snapshot (Kund/Anlaggning/Offertnummer/rows/totals) vs while sent -> byte-identical; only status/badge changed (AC3 sent-immutability)"
+  - "[10-2-forlorad-avbojd-status-and-lost-reason-lifecycle] Second sent quote: choose Avbojd + any category -> card shows 'Avbojd · <category>' (distinction captured, not one label)"
+  - "[10-2-forlorad-avbojd-status-and-lost-reason-lifecycle] Reload lost quote -> stays Forlorad/Avbojd, read-only notice, no accept/mark-lost/mark-sent affordance reappears"
+  - "[10-2-forlorad-avbojd-status-and-lost-reason-lifecycle] /quotes Status filter -> offers Alla, Utkast, Skickad, Accepterad, Forlorad/Avbojd"
+  - "[10-2-forlorad-avbojd-status-and-lost-reason-lifecycle] Select Forlorad/Avbojd filter -> table with Kund/Offert/Forlustorsak/Status columns; lost quote row shows 'Forlorad · Pris' + badge"
+  - "[10-2-forlorad-avbojd-status-and-lost-reason-lifecycle] Same filter with no lost quotes -> headers render + 'Inga forlorade/avbojda offerter.'"
+  - "[10-2-forlorad-avbojd-status-and-lost-reason-lifecycle] Switch filter Skickad/Accepterad/Utkast -> normal views return; lost quote absent from them"
+  - "[10-2-forlorad-avbojd-status-and-lost-reason-lifecycle] Open an accepted quote -> NO mark-lost affordance (lost flip is sent-only)"
+  - "[10-2-forlorad-avbojd-status-and-lost-reason-lifecycle] Open a draft version -> draft editor + Markera som skickad only; NO mark-lost affordance"
+  - "[10-2-forlorad-avbojd-status-and-lost-reason-lifecycle] Cross-tenant: login as adminB (fixture creds), open Tenant A's lost quote URL -> denied/not found (RLS, AC5)"
+  - "[10-3-quote-follow-up-workflow] PRECONDITION: follow-up surface lives in a SENT version's Acceptans section (below acceptance form + mark-lost card); all states reachable via the date picker, no DB seeding"
+  - "[10-3-quote-follow-up-workflow] Sent version, no follow-up -> Uppfoljning card shows 'Planera uppfoljning'; dialog opens with Forfallodatum, Notering (valfritt), Planera button (disabled until date picked)"
+  - "[10-3-quote-follow-up-workflow] Plan future date + note -> dialog closes; lifecycle header shows BLUE chip 'Uppfoljning · <date>'; card switches to Klarmarkera; survives reload"
+  - "[10-3-quote-follow-up-workflow] Plan due today -> chip escalates AMBER 'Uppfoljning idag'; plan yesterday (past accepted) -> ROSE 'Forsenad uppfoljning' (overdue = strictly before today Europe/Stockholm); tomorrow stays blue"
+  - "[10-3-quote-follow-up-workflow] /quotes list -> overdue quote shows rose 'Forsenad uppfoljning' badge; upcoming/due-today shows none"
+  - "[10-3-quote-follow-up-workflow] 'Har uppfoljning' filter -> exactly quotes with an open follow-up; toggle clears. 'Forsenad uppfoljning' -> exactly overdue ones; empty state message intact when none match"
+  - "[10-3-quote-follow-up-workflow] Klarmarkera dialog -> Utfall textarea required (Bekrafta disabled until non-empty); confirm -> 'Vad vill du gora harnast?' with planera nasta / Markera som forlorad/avbojd / Ny version; header chip disappears"
+  - "[10-3-quote-follow-up-workflow] 'planera nasta' -> plan dialog auto-opens; new follow-up succeeds (new open allowed after completion)"
+  - "[10-3-quote-follow-up-workflow] Auto-complete-on-lost: with an OPEN follow-up, mark the version forlorad/avbojd from the Acceptans card -> version flips, follow-up surface unmounts, chip gone (open follow-up auto-completed)"
+  - "[10-3-quote-follow-up-workflow] One-open rejection: two tabs, plan in both -> second shows clear in-dialog error 'En oppen uppfoljning finns redan for offerten.' (not a raw DB error, visible above overlay)"
+  - "[10-3-quote-follow-up-workflow] Already-completed rejection: complete in two tabs -> second shows 'Uppfoljningen ar redan avslutad.' inside the dialog"
+  - "[10-3-quote-follow-up-workflow] Error-banner visibility guard (review fix): any failed plan/complete submit renders its red error + 'Forsok igen.' INSIDE the open dialog, never behind the overlay"
+  - "[10-3-quote-follow-up-workflow] NOTE: cross-tenant AC4 is automated-only (RLS/TENANT_TABLES suites) — intentionally not in the manual list"
+  - "[10-4-pipeline-surfacing-and-dashboard-read-model] OBSERVABILITY NOTE: the { data, entitlements } pipeline read-model has NO consuming UI yet (dashboard is still a placeholder; E19 consumes it) — counts/hit-rate/withholding/period windows are automated-suite-only; the hand-testable 10.4 delta is the list/detail consistency pass"
+  - "[10-4-pipeline-surfacing-and-dashboard-read-model] /quotes -> every row's status renders via StatusBadge (Skickad blue, Accepterad green, Forlorad/Avbojd rose), word-first"
+  - "[10-4-pipeline-surfacing-and-dashboard-read-model] Status=Forlorad/Avbojd -> Forlustorsak table shows '<outcome> · <category>' per row; empty state keeps headers + 'Inga forlorade/avbojda offerter.'"
+  - "[10-4-pipeline-surfacing-and-dashboard-read-model] Status=Skickad/Accepterad/Alla -> rows match the filter; Alla restores everything"
+  - "[10-4-pipeline-surfacing-and-dashboard-read-model] Har uppfoljning toggle (aria-pressed) -> only quotes with open follow-ups; re-click clears. Forsenad uppfoljning -> only overdue; combinable with Status, each axis clears independently"
+  - "[10-4-pipeline-surfacing-and-dashboard-read-model] Tone consolidation: list overdue badge rose == lost badge rose (same bg-rose-100/text-rose-900/border-rose-300 from the single status.ts authority)"
+  - "[10-4-pipeline-surfacing-and-dashboard-read-model] Detail chip: overdue -> rose 'Forsenad uppfoljning · <date>'; due today -> amber 'Uppfoljning idag'; upcoming -> blue 'Uppfoljning'; no open follow-up -> no chip, no list badge (no refactor regression)"
+  - "[10-4-pipeline-surfacing-and-dashboard-read-model] Nav/app shell -> still exactly seven items; /dashboard remains the placeholder (no fabricated metrics, no new Pipeline/Analytics entry)"
+epic_slug: quote-lifecycle-completion

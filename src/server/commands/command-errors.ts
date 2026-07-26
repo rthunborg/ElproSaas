@@ -87,6 +87,11 @@ import {
  *   three scopes, shared lock-code FAMILY not a fork" retro constraint (Epic 6 sent-freeze
  *   R-605, Epic 7 accepted-lock R-704, Epic 8.4 locked-evidence-file). All three co-exist —
  *   NEVER merge or rename them.
+ * - `FOLLOW_UP_DUE_DATE_IN_PAST` — the Story 10.3 follow-up plan command rejected a `due_date`
+ *   strictly BEFORE "today in Europe/Stockholm" (judged on the injected command clock): a follow-up
+ *   planned in the past would surface as instantly-overdue "Försenad uppföljning". A NEW, DISTINCT
+ *   code (never a reused VALIDATION_FAILED) so the past-date rejection is separable from a generic
+ *   shape reject. Generic + user-safe (no echoed input). 10.4 integration review.
  * - `SERVER_ERROR`              — a TRANSIENT infra failure during the command
  *   (reused from Story 2.2). Generic + retryable; leaks nothing internal.
  */
@@ -100,7 +105,8 @@ export type CommandErrorCode =
   | "QUOTE_VERSION_NOT_DRAFT"
   | "QUOTE_VERSION_LOCKED"
   | "ACCEPTED_RECORD_LOCKED"
-  | "FILE_LINK_LOCKED";
+  | "FILE_LINK_LOCKED"
+  | "FOLLOW_UP_DUE_DATE_IN_PAST";
 
 /**
  * A SANCTIONED typed-error escape for a command `execute` body (Story 3.1).
@@ -120,10 +126,19 @@ export type CommandErrorCode =
  */
 export class CommandError extends Error {
   readonly code: CommandErrorCode;
-  constructor(code: CommandErrorCode) {
-    super(code);
+  /**
+   * An OPTIONAL user-safe message that OVERRIDES the generic `COMMAND_MESSAGES[code]` when the
+   * command needs a more specific (still generic — NO PII/SQL/echoed input) explanation for a
+   * stable code. Example: the Story 10.3 one-open partial-unique-index (23505) maps to
+   * VALIDATION_FAILED with the clear "En öppen uppföljning finns redan för offerten." message,
+   * never a raw DB error. Absent ⇒ the generic per-code message is used (unchanged behaviour).
+   */
+  readonly userMessage?: string;
+  constructor(code: CommandErrorCode, userMessage?: string) {
+    super(userMessage ?? code);
     this.name = "CommandError";
     this.code = code;
+    this.userMessage = userMessage;
   }
 }
 
@@ -184,4 +199,8 @@ export const COMMAND_MESSAGES: Record<CommandErrorCode, string> = {
   // (AR704) — the shared lock-code FAMILY; all three co-exist, never merge or rename them.
   FILE_LINK_LOCKED:
     "Filen är låst eftersom den hör till en skickad offert eller en registrerad acceptans. Den kan arkiveras men inte ändras eller tas bort.",
+  // The Story 10.3 follow-up plan past-date rejection: a due date before today (Europe/Stockholm)
+  // would be instantly overdue. Generic + user-safe (no echoed input). 10.4 integration review.
+  FOLLOW_UP_DUE_DATE_IN_PAST:
+    "Förfallodatumet kan inte vara i det förflutna. Välj dagens datum eller senare.",
 };

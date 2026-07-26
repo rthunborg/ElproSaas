@@ -6,7 +6,7 @@ This document defines how BMAD and Codex are used together in this repo.
 
 BMAD is used for product, architecture, story, test, and review structure. Codex is used for repository edits, file-level verification, and implementation once a story is approved.
 
-During the current setup phase, agents may create process, configuration, and documentation files only. Product code, database migrations, dependencies, and `.env` are out of scope.
+Product implementation is scoped by the machine-readable scope manifest (`src/scope/manifest.ts`, ADR-B003): a module's surface may be built only when the module is `active`, and a module is flipped `pending → active` in the same PR as its first schema/nav change (per-epic activation, FR129). Process-only / docs-only tasks still create process, configuration, and documentation files only — no product code, migrations, dependencies, or `.env`.
 
 ## Source Hierarchy
 
@@ -22,8 +22,8 @@ During the current setup phase, agents may create process, configuration, and do
 ## Standard Flow
 
 1. Read `AGENTS.md` and the baseline plan.
-2. Identify phase: Phase A, External Beta, or Commercial V1+.
-3. Run a scope check against explicit deferrals.
+2. Identify phase (currently Phase B / Legacy Parity Release) and the target module's wave/status in `src/scope/manifest.ts`.
+3. Run a scope check against the manifest (is the module `active`?) and the Phase C ledger (hard exclusions) in `AGENTS.md`.
 4. If coding is requested, require an approved story or ADR-backed change.
 5. Use the Lovable app only to understand behavior or produce fixtures.
 6. Make narrowly scoped changes.
@@ -35,7 +35,7 @@ During the current setup phase, agents may create process, configuration, and do
 BMAD agents should:
 
 - Create or validate PRDs, stories, architecture notes, test plans, and reviews.
-- Keep Phase A small.
+- Keep scope manifest-governed: build only `active`-module surface; flip a module `active` in the same PR as its first schema/nav change.
 - Ask owner questions for ambiguous Swedish domain terms.
 - Produce artifacts with acceptance criteria and explicit deferrals.
 - Avoid implementation details unless the artifact requires them.
@@ -79,4 +79,5 @@ Manual approval is required before:
 - Dependencies are added or upgraded.
 - Network commands are run.
 - `.env` or secrets handling changes.
-- Fortnox, supplier APIs, AI jobs, field-worker UX, HR, rentals, assets, DoU, tender/FKU RAG, or full RBAC is brought into active scope.
+- A scope-manifest module is flipped `pending → active` (per-epic activation — must land in the same PR as the module's first schema/nav change, with its H4 enrollment and deny-list token removal).
+- Any Phase C hard-exclusion (all AI flows, live supplier vendor APIs, customer portal / BankID online acceptance, bookkeeping beyond Fortnox, the public anonymous suggestion endpoint, the full-release legal/GDPR program, a native mobile app, self-serve tenant signup) is brought into active scope.

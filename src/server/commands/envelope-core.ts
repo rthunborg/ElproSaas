@@ -230,7 +230,9 @@ export async function runCommandCore<I, R, DB = unknown>(
     result = await execute(execCtx);
   } catch (e) {
     if (isCommandError(e)) {
-      return err(e.code, COMMAND_MESSAGES[e.code]);
+      // A CommandError may carry an OPTIONAL user-safe message overriding the generic per-code one
+      // (still generic — no PII/SQL/echoed input); absent ⇒ the generic COMMAND_MESSAGES[code].
+      return err(e.code, e.userMessage ?? COMMAND_MESSAGES[e.code]);
     }
     return err("SERVER_ERROR", COMMAND_MESSAGES.SERVER_ERROR);
   }

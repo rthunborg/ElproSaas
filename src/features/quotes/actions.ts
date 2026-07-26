@@ -23,13 +23,18 @@ import { runCommand, type CommandDbClient } from "@/server/commands/envelope";
 import { COMMAND_MESSAGES } from "@/server/commands/command-errors";
 import {
   acceptQuoteAndCreateJob,
+  annotateQuoteFollowUp,
+  completeQuoteFollowUp,
   createNewQuoteVersion,
   createQuoteVersionFromCalculation,
   generateQuotePdf,
+  markQuoteVersionLost,
   markQuoteVersionSent,
+  planQuoteFollowUp,
   updateDraftQuoteVersion,
 } from "@/server/commands/quotes";
 import { createSignedFileAccess } from "@/server/commands/files";
+import { loadQuoteVersionAnchor } from "@/server/commands/quotes/quote-db";
 import { kronorStringToOre } from "@/features/calculations/money-input";
 import {
   ACCEPTANCE_ACTION_INITIAL,
@@ -50,6 +55,14 @@ import {
   type MarkSentActionState,
 } from "./mark-sent-action-state";
 import {
+  LOST_ACTION_INITIAL,
+  type LostActionState,
+} from "./lost-action-state";
+import {
+  FOLLOW_UP_ACTION_INITIAL,
+  type FollowUpActionState,
+} from "./follow-up-action-state";
+import {
   NEW_VERSION_ACTION_INITIAL,
   type NewVersionActionState,
 } from "./new-version-action-state";
@@ -57,6 +70,28 @@ import {
   CREATE_QUOTE_ACTION_INITIAL,
   type CreateQuoteActionState,
 } from "./create-quote-action-state";
+
+/**
+ * Resolve a version's IMMUTABLE `quote_id` without ever throwing (Codex follow-up).
+ *
+ * These pre-reads run BEFORE the command envelope validates input, so a crafted-but-malformed
+ * `quote_version_id` would make PostgREST raise an invalid-UUID comparison and the Server Action
+ * would reject with an infrastructure failure instead of the intended VALIDATION_FAILED state. A
+ * transient read failure has the same shape. Returning `undefined` hands control back to each
+ * caller's own safe path: the lost action skips the auto-complete (harmless orphan), and the
+ * completion action FAILS CLOSED — neither ever widens a scope because a read misbehaved.
+ */
+async function tryResolveQuoteIdForVersion(
+  client: CommandDbClient,
+  quoteVersionId: unknown,
+): Promise<string | undefined> {
+  if (typeof quoteVersionId !== "string" || quoteVersionId.length === 0) return undefined;
+  try {
+    return (await loadQuoteVersionAnchor(client, quoteVersionId))?.quote_id;
+  } catch {
+    return undefined;
+  }
+}
 
 /** Read a string form field (empty → undefined so the field is left unchanged). */
 function optionalText(form: FormData, name: string): string | undefined {
@@ -289,6 +324,299 @@ export async function createNewQuoteVersionAction(
 
   return {
     ...NEW_VERSION_ACTION_INITIAL,
+    status: "error",
+    code: result.code,
+    formError: result.message || COMMAND_MESSAGES[result.code],
+  };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Story 10.2 — the mark-lost server action (the ONLY write path the "Markera som förlorad/avböjd"
+// dialog uses). Wires the SENT-branch dialog to `markQuoteVersionLost`. Only the version id + the
+// structured reason (outcome + category + optional/required note) are read from the form —
+// status/tenant are NEVER accepted (the command re-asserts the sent → lost transition server-side,
+// re-validates the reason, and runs the narrow RPC on the RLS client). After a successful flip,
+// revalidate BOTH `/quotes/[quoteId]` AND the version subroute (the 6.2 subroute-revalidation
+// discipline — do NOT repeat the 6.2 gap) so the version re-renders the terminal Förlorad/Avböjd
+// state. The append-only lifecycle flip changes ONLY `status` — the sent snapshot is never touched.
+// This is an authenticated admin-only affordance — NO public / portal / callback route exists.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * The mark-lost action (React `useActionState` signature). Wires the "Markera som förlorad/avböjd"
+ * dialog to `markQuoteVersionLost`. Only the version id + the structured reason are read; the server
+ * command is the authority (the client-side outcome/category/note validation is a MIRROR, not the
+ * guarantee).
+ */
+export async function markQuoteVersionLostAction(
+  _prev: LostActionState,
+  form: FormData,
+): Promise<LostActionState> {
+  const quoteVersionId = form.get("quote_version_id");
+  const quoteId = form.get("quote_id");
+  const input: Record<string, unknown> = {
+    quote_version_id: quoteVersionId,
+    outcome: form.get("outcome"),
+    category: form.get("category"),
+  };
+  // The note is OPTIONAL in general, REQUIRED when category='annat' — the command validator owns the
+  // hard gate. Carry the field only when the form actually submitted a value (an absent field = no note).
+  const note = optionalText(form, "note");
+  if (form.has("note")) input.note = note ?? null;
+
+  const client = (await createSupabaseServerClient()) as unknown as CommandDbClient;
+
+  // Resolve the anchor BEFORE the mutation (Codex follow-up). A version's `quote_id` is IMMUTABLE, so
+  // reading it up-front is equivalent to reading it after — but a transient failure of a read placed
+  // AFTER the commit would reject the whole action even though the lost status/event/reason had
+  // already committed, and the retry would then be refused ("already lost") leaving the follow-up
+  // open. Failing here is safe: nothing has been committed yet.
+  const preResolvedQuoteId = await tryResolveQuoteIdForVersion(client, quoteVersionId);
+
+  // If the caller ASKED for auto-completion (the follow-up surface carries a hidden follow_up_id) but
+  // the scope could not be resolved, abort BEFORE the irreversible transition (Codex follow-up).
+  // Committing anyway would strand an open follow-up: it is hidden only while the quote stays
+  // terminal, and creating a new version re-exposes it while the one-open-per-quote index then blocks
+  // planning a replacement — a user-visible dead-end. Refusing here costs nothing (nothing has
+  // committed) and the user can simply retry. The standalone lost dialog carries no follow_up_id and
+  // is unaffected.
+  const wantsAutoComplete =
+    typeof form.get("follow_up_id") === "string" &&
+    String(form.get("follow_up_id")).length > 0;
+  if (wantsAutoComplete && !preResolvedQuoteId) {
+    return {
+      ...LOST_ACTION_INITIAL,
+      status: "error",
+      code: "SERVER_ERROR",
+      formError: COMMAND_MESSAGES.SERVER_ERROR,
+    };
+  }
+
+  const result = await runCommand(markQuoteVersionLost, { client, input });
+
+  if (result.ok) {
+    // Story 10.3 — the auto-complete-on-lost seam (Task 5.5, SETTLED DESIGN DECISION 5). When the
+    // lost path is taken FROM the follow-up surface, the dialog carries a hidden `follow_up_id`. On a
+    // successful lost flip (the irreversible commitment, done FIRST), auto-complete the open follow-up
+    // with the chosen förlorad/avböjd outcome — so no open follow-up survives a lost flip taken from
+    // this surface. TWO-command orchestration (NOT a widened RPC — the frozen mark_quote_version_lost
+    // RPC is untouched). Non-atomicity residual: a rare transient failure of the completion AFTER a
+    // successful lost flip leaves an OPEN follow-up row on the now-lost quote. This is NON-CORRUPTING but
+    // NOT self-healing via the UI — once the version leaves `sent` the follow-up sheet UNMOUNTS, so the
+    // user CANNOT Klarmarkera it manually (the earlier "the sheet stays available" claim was false). The
+    // stranded row is harmless because the 10.4 read paths now EXCLUDE follow-ups on decided (accepted/
+    // lost) quotes from the /quotes list flags AND the pipeline open/overdue counts — so it never
+    // escalates. We still capture + log the completion Result on failure so the orphan has telemetry (no
+    // silent swallow). The standalone (non-follow-up) lost dialog omits the field, so 10.2's behavior is
+    // byte-unchanged when no follow-up id is carried.
+    const followUpId = form.get("follow_up_id");
+    const outcome = form.get("outcome");
+    // F5 (integration review): derive the just-lost version's REAL quote id from the DB (NEVER the
+    // form's `quote_id`, which is untrusted) and scope the auto-completion to it. A crafted/stale form
+    // carrying the `follow_up_id` of ANOTHER own-tenant quote then completes zero rows instead of
+    // silently completing the wrong quote's follow-up with the lost outcome. If the quote id cannot be
+    // derived, we skip the auto-complete — the orphan open row is harmless (the 10.4 read paths
+    // already exclude follow-ups on decided quotes). Uses the PRE-resolved id (read before the
+    // mutation), so no fallible read runs after the transition has committed.
+    const expectedQuoteId = preResolvedQuoteId;
+    if (
+      typeof followUpId === "string" &&
+      followUpId.length > 0 &&
+      typeof outcome === "string" &&
+      outcome.length > 0 &&
+      typeof expectedQuoteId === "string" &&
+      expectedQuoteId.length > 0
+    ) {
+      const completeResult = await runCommand(completeQuoteFollowUp, {
+        client,
+        input: { follow_up_id: followUpId, outcome, expected_quote_id: expectedQuoteId },
+      });
+      if (!completeResult.ok) {
+        // Surface the stranded-open-follow-up residual: the lost flip already committed, so the flip
+        // still succeeds, but the auto-complete failed and left an orphaned open row (excluded from the
+        // 10.4 read paths, so non-escalating). Log for telemetry — never swallow silently.
+        console.error(
+          "markQuoteVersionLostAction: auto-complete-on-lost failed after a successful lost flip",
+          { followUpId, code: completeResult.code },
+        );
+      }
+    }
+    if (typeof quoteId === "string" && quoteId.length > 0) {
+      revalidatePath(`/quotes/${quoteId}`);
+      // Revalidate the version subroute too so the lost version re-renders the terminal state there.
+      if (typeof quoteVersionId === "string" && quoteVersionId.length > 0) {
+        revalidatePath(`/quotes/${quoteId}/versions/${quoteVersionId}`);
+      }
+    }
+    return {
+      ...LOST_ACTION_INITIAL,
+      status: "success",
+      targetId: result.data.targetId,
+    };
+  }
+
+  return {
+    ...LOST_ACTION_INITIAL,
+    status: "error",
+    code: result.code,
+    formError: result.message || COMMAND_MESSAGES[result.code],
+  };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Story 10.3 — the follow-up server actions (plan / complete / annotate). The ONLY write path the
+// follow-up dialog + completion sheet use. Each wires its affordance to the matching single-row
+// envelope command (NO RPC). Only the follow-up shape is read from the form — tenant/status/quote_id
+// are NEVER accepted (the plan command derives quote_id from the loaded anchor version; the
+// complete/annotate commands re-assert the open-only predicate server-side). After success, revalidate
+// BOTH `/quotes/[quoteId]` AND the version subroute (the 6.2 subroute-revalidation lesson) so the chip
+// / completion sheet / list flags re-render. Authenticated admin-only — NO public / portal route.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * The plan-follow-up action (React `useActionState` signature). Wires the "Planera uppföljning"
+ * dialog to `planQuoteFollowUp`. Only the anchor version id + due date + optional note are read; the
+ * server command is the authority (the one-open rule is DB-enforced → a clear VALIDATION_FAILED).
+ */
+export async function planQuoteFollowUpAction(
+  _prev: FollowUpActionState,
+  form: FormData,
+): Promise<FollowUpActionState> {
+  const quoteVersionId = form.get("quote_version_id");
+  const quoteId = form.get("quote_id");
+  const input: Record<string, unknown> = {
+    quote_version_id: quoteVersionId,
+    due_date: form.get("due_date"),
+  };
+  // The planning note is OPTIONAL — carry the field only when the form submitted a value.
+  const note = optionalText(form, "note");
+  if (form.has("note")) input.note = note ?? null;
+
+  const client = (await createSupabaseServerClient()) as unknown as CommandDbClient;
+  const result = await runCommand(planQuoteFollowUp, { client, input });
+
+  if (result.ok) {
+    if (typeof quoteId === "string" && quoteId.length > 0) {
+      revalidatePath(`/quotes/${quoteId}`);
+      if (typeof quoteVersionId === "string" && quoteVersionId.length > 0) {
+        revalidatePath(`/quotes/${quoteId}/versions/${quoteVersionId}`);
+      }
+    }
+    return {
+      ...FOLLOW_UP_ACTION_INITIAL,
+      status: "success",
+      targetId: result.data.targetId,
+    };
+  }
+
+  return {
+    ...FOLLOW_UP_ACTION_INITIAL,
+    status: "error",
+    code: result.code,
+    formError: result.message || COMMAND_MESSAGES[result.code],
+  };
+}
+
+/**
+ * The complete-follow-up action (React `useActionState` signature). Wires the "Klarmarkera"
+ * completion sheet to `completeQuoteFollowUp`. Only the follow-up id + the required outcome note are
+ * read; the server command re-asserts the open-only predicate and stamps completed_at with the
+ * injected clock.
+ */
+export async function completeQuoteFollowUpAction(
+  _prev: FollowUpActionState,
+  form: FormData,
+): Promise<FollowUpActionState> {
+  const followUpId = form.get("follow_up_id");
+  const quoteId = form.get("quote_id");
+  const quoteVersionId = form.get("quote_version_id");
+  const client = (await createSupabaseServerClient()) as unknown as CommandDbClient;
+
+  // Codex review: the auto-complete-on-lost path scopes its completion to the just-lost quote, but
+  // THIS manual path did not — so a crafted submit from quote A's sheet could carry the follow_up_id
+  // of any other OPEN follow-up in the same tenant and complete quote B's follow-up while
+  // revalidating quote A. Derive the displayed quote id SERVER-SIDE from the version the sheet is
+  // rendered on (never the form's own quote_id, which is equally untrusted) and pass the same scope.
+  // FAIL CLOSED (Codex follow-up): the previous shape added the scope only WHEN it resolved, so a
+  // submit carrying a valid-but-foreign/nonexistent quote_version_id made the anchor lookup return
+  // nothing, the scope was silently omitted, and the command fell back to an UNSCOPED completion —
+  // completing an unrelated own-tenant follow-up. A scope that is conditional is not a scope. If the
+  // displayed version cannot be resolved server-side, REFUSE rather than widening.
+  const expectedQuoteId = await tryResolveQuoteIdForVersion(client, quoteVersionId);
+  if (typeof expectedQuoteId !== "string" || expectedQuoteId.length === 0) {
+    return {
+      ...FOLLOW_UP_ACTION_INITIAL,
+      status: "error",
+      code: "TENANT_ACCESS_DENIED",
+      formError: COMMAND_MESSAGES.TENANT_ACCESS_DENIED,
+    };
+  }
+
+  const input: Record<string, unknown> = {
+    follow_up_id: followUpId,
+    outcome: form.get("outcome"),
+    expected_quote_id: expectedQuoteId,
+  };
+
+  const result = await runCommand(completeQuoteFollowUp, { client, input });
+
+  if (result.ok) {
+    if (typeof quoteId === "string" && quoteId.length > 0) {
+      revalidatePath(`/quotes/${quoteId}`);
+      if (typeof quoteVersionId === "string" && quoteVersionId.length > 0) {
+        revalidatePath(`/quotes/${quoteId}/versions/${quoteVersionId}`);
+      }
+    }
+    return {
+      ...FOLLOW_UP_ACTION_INITIAL,
+      status: "success",
+      targetId: result.data.targetId,
+    };
+  }
+
+  return {
+    ...FOLLOW_UP_ACTION_INITIAL,
+    status: "error",
+    code: result.code,
+    formError: result.message || COMMAND_MESSAGES[result.code],
+  };
+}
+
+/**
+ * The annotate-follow-up action (React `useActionState` signature). Wires the note-edit affordance to
+ * `annotateQuoteFollowUp`. Only the follow-up id + the note are read; the server command re-asserts
+ * the open-only predicate.
+ */
+export async function annotateQuoteFollowUpAction(
+  _prev: FollowUpActionState,
+  form: FormData,
+): Promise<FollowUpActionState> {
+  const followUpId = form.get("follow_up_id");
+  const quoteId = form.get("quote_id");
+  const quoteVersionId = form.get("quote_version_id");
+  const input: Record<string, unknown> = { follow_up_id: followUpId };
+  const note = optionalText(form, "note");
+  if (form.has("note")) input.note = note ?? null;
+
+  const client = (await createSupabaseServerClient()) as unknown as CommandDbClient;
+  const result = await runCommand(annotateQuoteFollowUp, { client, input });
+
+  if (result.ok) {
+    if (typeof quoteId === "string" && quoteId.length > 0) {
+      revalidatePath(`/quotes/${quoteId}`);
+      if (typeof quoteVersionId === "string" && quoteVersionId.length > 0) {
+        revalidatePath(`/quotes/${quoteId}/versions/${quoteVersionId}`);
+      }
+    }
+    return {
+      ...FOLLOW_UP_ACTION_INITIAL,
+      status: "success",
+      targetId: result.data.targetId,
+    };
+  }
+
+  return {
+    ...FOLLOW_UP_ACTION_INITIAL,
     status: "error",
     code: result.code,
     formError: result.message || COMMAND_MESSAGES[result.code],

@@ -65,6 +65,8 @@
  * introspection runs the loopback-gated `pg` superuser pool (admin-sql.ts).
  */
 import type { TwoTenantFixture } from "../../factories/tenants";
+import { SCOPE_MANIFEST } from "@/scope/manifest";
+import { tenantTablesFromManifest } from "@/scope/manifest-schema";
 
 /**
  * The `tenants` ROOT table — tenant-owned despite carrying NO `tenant_id` column
@@ -74,96 +76,82 @@ import type { TwoTenantFixture } from "../../factories/tenants";
  */
 export const TENANT_ROOT_TABLE = "tenants" as const;
 
-/** The enrolled tenant-owned tables — the single source of truth (Task 1.2). */
-export const TENANT_TABLES = [
-  "tenants",
-  "tenant_memberships",
-  "audit_events",
-  // Story 3.1 CRM tables (the first tenant-owned BUSINESS tables). UNLIKE the
-  // three above, `authenticated` HAS an INSERT/UPDATE grant on these (the tenant
-  // admin manages CRM via the app path) — so their cross-tenant UPDATE denial
-  // mechanism is RLS-USING invisibility (zero rows + unchanged on independent
-  // re-read), NOT a missing-grant 42501. See `mutationDenialKind` below.
-  "customers",
-  "facilities",
-  "contacts",
-  // Story 3.3 settings tables (the first tenant-owned SETTINGS tables). Like the CRM
-  // tables, `authenticated` HAS an INSERT/UPDATE grant (the tenant admin manages
-  // settings via the app path) — so their cross-tenant UPDATE denial mechanism is
-  // RLS-USING invisibility (zero rows + unchanged on independent re-read), NOT a
-  // missing-grant 42501. See `updateDenialKind` below. Both are ONE-row-per-tenant
-  // (a unique (tenant_id)).
-  "company_settings",
-  "quote_terms",
-  // Story 3.4 pricing tables (the first tenant-owned PRICING tables). Like the CRM /
-  // settings tables, `authenticated` HAS an INSERT/UPDATE grant (the tenant admin
-  // manages pricing via the app path) — so their cross-tenant UPDATE denial mechanism
-  // is RLS-USING invisibility (zero rows + unchanged re-read), NOT a missing-grant
-  // 42501. UNLIKE the settings tables these are MANY-rows-per-tenant collections (NO
-  // unique (tenant_id)). The articles spoof/anon rows carry ONLY the minimal manual
-  // columns — there is NO supplier-ish column to populate (HARD no-supplier-scope).
-  "work_roles",
-  "articles",
-  // Story 5.1 calculation tables (the first tenant-owned CALCULATION tables). Like the
-  // CRM / settings / pricing tables, `authenticated` HAS an INSERT/UPDATE grant (the
-  // tenant admin manages calculations via the app path) — so their cross-tenant UPDATE
-  // denial mechanism is RLS-USING invisibility (zero rows + unchanged re-read), NOT a
-  // missing-grant 42501. See `updateDenialKind` below. All three are MANY-rows-per-tenant
-  // collections (NO unique (tenant_id)). The spoof/anon rows carry ONLY the closed-union
-  // / integer-öre / bp columns — NO supplier-ish column (HARD no-supplier-scope). The
-  // cross-tenant spoof INSERT carries a parent id pointing at a Tenant B parent (customer
-  // for calculations; calc for calculation_sections; section for calculation_rows).
-  "calculations",
-  "calculation_sections",
-  "calculation_rows",
-  // Story 8.1 file tables (the first tenant-owned FILE tables — the single Phase A file
-  // model). Like the CRM / settings / pricing / calc tables, `authenticated` HAS an
-  // INSERT/UPDATE grant (the tenant admin manages files/links via the app path) — so
-  // their cross-tenant UPDATE denial mechanism is RLS-USING invisibility (zero rows +
-  // unchanged re-read), NOT a missing-grant 42501. See `updateDenialKind` below. Both
-  // are MANY-rows-per-tenant collections (NO unique (tenant_id)). The spoof/anon rows
-  // carry ONLY the file-metadata / link columns — NO supplier-ish column, NO raw file
-  // content, NO PII. The file_links cross-tenant spoof carries a Tenant B file_id parent
-  // + a valid owner_type/purpose (the composite same-tenant FK binds it to Tenant B).
-  "files",
-  "file_links",
-  // Story 6.1 quote tables (the first tenant-owned QUOTE tables — the composite immutable
-  // snapshot model). Like the CRM / settings / pricing / calc / file tables,
-  // `authenticated` HAS an INSERT/UPDATE grant (the tenant admin creates quote versions
-  // via the app path + the create_quote_version_from_calculation RPC) — so their
-  // cross-tenant UPDATE denial mechanism is RLS-USING invisibility (zero rows + unchanged
-  // re-read), NOT a missing-grant 42501. See `updateDenialKind` below. All six are
-  // MANY-rows-per-tenant collections (tenant_counters is many-per-tenant keyed by
-  // (tenant_id, counter_name); NO unique (tenant_id)). The spoof/anon rows carry ONLY the
-  // display/metadata / integer-öre / bp columns — NO supplier-ish column, NO PII. The
-  // child spoof INSERTs carry a Tenant B parent id (quote for quote_versions/quote_events;
-  // version for quote_version_lines/quote_version_attachments) + the source calc/file
-  // parents so the composite same-tenant FKs bind them to Tenant B. `tenant_counters` is
-  // the easy-to-forget one — it enrolls like any other tenant-owned table.
-  "tenant_counters",
-  "quotes",
-  "quote_versions",
-  "quote_version_lines",
-  "quote_version_attachments",
-  "quote_events",
-  // Story 7.1 acceptance/job commitment tables (the acceptance-to-job model). Like every
-  // business table since 3.1, `authenticated` HAS an INSERT/UPDATE grant (the tenant admin
-  // captures acceptances via the app path / the captureQuoteAcceptance command; jobs are
-  // created but unpopulated by any live path in 7.1) — so their cross-tenant UPDATE denial
-  // mechanism is RLS-USING invisibility (zero rows + unchanged re-read), NOT a missing-grant
-  // 42501. See `updateDenialKind` below. All three are MANY-rows-per-tenant collections (NO
-  // unique (tenant_id)). The spoof/anon rows carry ONLY the display/metadata / integer-öre
-  // columns — NO supplier-ish column, NO PII; öre values kept < 10 digits (the orgnr-scan
-  // boundary, R-717). The child spoof INSERTs carry a Tenant B parent id (acceptance →
-  // version/quote; job → acceptance/version/customer; job_event → job) + the source parents so
-  // the composite same-tenant FKs bind them to Tenant B. `job_events` is the easy-to-forget
-  // event table — it enrolls like any other tenant-owned table (retro epic-8).
-  "quote_acceptances",
-  "jobs",
-  "job_events",
-] as const;
+/**
+ * The precise tenant-table literal union — the compile-time contract the per-table metadata
+ * `switch (table)` statements below EXHAUST (each ends in `default: assertNever(table)`). Authored
+ * explicitly here because the runtime EXPECTED SET now DERIVES from the scope manifest (Story 10.1 /
+ * ADR-B003 §5.3 derivation 3 — see `TENANT_TABLES` below), and a derived `readonly string[]` cannot
+ * carry a literal union. This type is NOT a second copy of the expected SET — it is the switch
+ * contract: a FUTURE active table added to the manifest without a branch here fails the switch
+ * typecheck (correct fail-loud, matching the standing enrollment contract), and Story 10.1 changes
+ * none of the 24 so every switch compiles unchanged.
+ *
+ * Ordering by domain (foundation, CRM, settings, pricing, calc, files, quotes, acceptance/job) —
+ * union member order is irrelevant; the runtime `TENANT_TABLES` order follows the manifest.
+ */
+export type TenantTableName =
+  // foundation
+  | "tenants"
+  | "tenant_memberships"
+  | "audit_events"
+  // Story 3.1 CRM — `authenticated` HAS an INSERT/UPDATE grant → cross-tenant UPDATE denial is
+  // RLS-USING invisibility (zero rows + unchanged re-read), NOT a missing-grant 42501.
+  | "customers"
+  | "facilities"
+  | "contacts"
+  // Story 3.3 settings (one-row-per-tenant) + Story 3.4 pricing (many-rows-per-tenant; the articles
+  // rows carry ONLY minimal manual columns — HARD no-supplier-scope).
+  | "company_settings"
+  | "quote_terms"
+  | "work_roles"
+  | "articles"
+  // Story 5.1 calculations (closed-union / integer-öre / bp columns only — HARD no-supplier-scope).
+  | "calculations"
+  | "calculation_sections"
+  | "calculation_rows"
+  // Story 8.1 files (the single Phase A file model; NO raw content, NO PII).
+  | "files"
+  | "file_links"
+  // Story 6.1 quotes (composite immutable snapshot model). `tenant_counters` (quote numbering) is
+  // the easy-to-forget one; it enrolls like any other tenant-owned table.
+  | "tenant_counters"
+  | "quotes"
+  | "quote_versions"
+  | "quote_version_lines"
+  | "quote_version_attachments"
+  | "quote_events"
+  // Story 7.1 acceptance/job commitment tables (öre values kept < 10 digits — the orgnr-scan
+  // boundary, R-717). `job_events` is the easy-to-forget event table (retro epic-8).
+  | "quote_acceptances"
+  | "jobs"
+  | "job_events"
+  // Story 10.2 Förlorad/Avböjd reason table (INSERT-ONLY: no UPDATE grant/policy → cross-tenant
+  // AND own-tenant UPDATE are denied at the privilege layer, 42501; no money/öre column).
+  | "quote_lost_reasons"
+  // Story 10.3 follow-up workflow table (UPDATE-able: SELECT+INSERT+UPDATE grant/policy, NO DELETE →
+  // cross-tenant UPDATE is RLS-invisible zero-rows, own-tenant DELETE is a privilege-layer denial;
+  // no money/öre column). The load-bearing "rls-invisible" contrast with 10.2's insert-only table.
+  | "quote_follow_ups";
 
-export type TenantTableName = (typeof TENANT_TABLES)[number];
+/**
+ * The enrolled tenant-owned tables — the H4 EXPECTED enrolment set. Story 10.1 (ADR-B003 §5.3
+ * derivation 3): this is DERIVED as the union of the scope manifest's `active` modules'
+ * `tenantTables`, collapsing one of the four independently-authored scope copies into the single
+ * manifest source (the Epic 9 retro drift theme). Non-circular by construction: the H4 gate
+ * (`rls-inventory-gate.int.test.ts`) independently introspects the LIVE DB schema and asserts this
+ * derived set equals the real 24 enrolled tables — the DB itself is the ground truth, not another
+ * authored copy. A unit check (`tests/unit/scope/manifest-derivations.test.ts`) additionally pins
+ * the derivation to the 24 authored table names (a fast, stack-free equality).
+ *
+ * The manifest lists exactly the same 24 tables, so the cast to `readonly TenantTableName[]` is
+ * exact; a manifest change that added an unknown table would surface at runtime through the
+ * per-table metadata switches' `default: assertNever(table)` (fail-loud), and through the H4 gate.
+ * Only `TENANT_TABLES` re-sources; the introspection (`introspectTenantOwnedTables`) and every
+ * per-table metadata helper stay exactly as-is (Story 10.1 Task 6.2 — the ACTUAL side is a
+ * separately-ledgered, deliberately-deferred concern).
+ */
+export const TENANT_TABLES: readonly TenantTableName[] =
+  tenantTablesFromManifest(SCOPE_MANIFEST) as readonly TenantTableName[];
 
 /** The path to this module, surfaced in the gate's developer-facing failure (DX). */
 export const INVENTORY_MODULE_PATH =
@@ -262,6 +250,22 @@ export interface InventoryContext {
   readonly tenantBQuoteAcceptanceId?: string;
   readonly tenantBJobId?: string;
   readonly tenantBJobEventId?: string;
+  /**
+   * REAL Tenant B LOST-REASON row id (Story 10.2) — the concrete cross-tenant target the
+   * quote_lost_reasons negatives point Tenant A at (never a non-existent id that would deny
+   * vacuously). Optional so the anon suite can omit it; the cross-tenant suite seeds and asserts
+   * it. A consumer that needs one but finds it missing fails LOUDLY (requireCrmId).
+   */
+  readonly tenantBQuoteLostReasonId?: string;
+  /**
+   * REAL Tenant B FOLLOW-UP row id (Story 10.3) — the concrete cross-tenant target the
+   * quote_follow_ups negatives point Tenant A at (never a non-existent id that would deny
+   * vacuously). Optional so the anon suite can omit it; the cross-tenant suite seeds and asserts
+   * it. A consumer that needs one but finds it missing fails LOUDLY (requireCrmId). The table is
+   * UPDATE-able, so its cross-tenant UPDATE negative is the "rls-invisible" mechanism (zero rows +
+   * unchanged re-read of `note`), NOT the insert-only privilege denial.
+   */
+  readonly tenantBQuoteFollowUpId?: string;
 }
 
 /**
@@ -289,6 +293,10 @@ export function updateDenialKind(table: TenantTableName): MutationDenialKind {
     case "tenants":
     case "tenant_memberships":
     case "audit_events":
+    // Story 10.2 quote_lost_reasons is INSERT-ONLY — `authenticated` has NO UPDATE grant, so a
+    // cross-tenant (AND own-tenant) UPDATE is denied at the privilege layer (42501), like the
+    // append-only foundation tables. This is the load-bearing insert-only enforcement.
+    case "quote_lost_reasons":
       return "privilege"; // no UPDATE grant to authenticated → 42501
     case "customers":
     case "facilities":
@@ -311,6 +319,10 @@ export function updateDenialKind(table: TenantTableName): MutationDenialKind {
     case "quote_acceptances":
     case "jobs":
     case "job_events":
+    // Story 10.3 quote_follow_ups is UPDATE-able (SELECT+INSERT+UPDATE grant/policy) — a
+    // cross-tenant UPDATE is hidden by RLS USING (zero rows), NOT a missing-grant 42501. This is
+    // the load-bearing contrast with 10.2's insert-only quote_lost_reasons ("privilege" above).
+    case "quote_follow_ups":
       return "rls-invisible"; // UPDATE granted; RLS USING hides foreign rows
     default:
       return assertNever(table);
@@ -659,6 +671,46 @@ export function spoofedRowFor(
         job_id: requireCrmId(ctx.tenantBJobId, "tenantBJobId", table),
         event_type: "created",
       };
+    case "quote_lost_reasons":
+      // A lost-reason forging Tenant B ownership, pointing at REAL Tenant B quote + version
+      // parents. `authenticated` HAS an INSERT grant on quote_lost_reasons, so the denial is the
+      // RLS INSERT WITH CHECK (is_tenant_admin(tenant_id=B) is false for a Tenant A admin) → `42501`.
+      // The RLS WITH CHECK fires BEFORE the unique (quote_version_id) / composite-FK checks (the
+      // SAME precedent as the quote_acceptances spoof, which also references tenantBQuoteVersionId
+      // despite a seeded acceptance on it), so the denial is the policy (42501), never a `23505`.
+      // outcome/category are valid closed-set tokens (annat is avoided so the note-required CHECK is
+      // not the thing that fires). NO money/öre column exists to populate.
+      return {
+        id: crypto.randomUUID(),
+        tenant_id: fixture.tenantB.id,
+        quote_id: requireCrmId(ctx.tenantBQuoteId, "tenantBQuoteId", table),
+        quote_version_id: requireCrmId(
+          ctx.tenantBQuoteVersionId,
+          "tenantBQuoteVersionId",
+          table,
+        ),
+        outcome: "forlorad",
+        category: "pris",
+      };
+    case "quote_follow_ups":
+      // A follow-up forging Tenant B ownership, pointing at REAL Tenant B quote + version parents.
+      // `authenticated` HAS an INSERT grant on quote_follow_ups, so the denial is the RLS INSERT
+      // WITH CHECK (is_tenant_admin(tenant_id=B) is false for a Tenant A admin) → `42501`. The RLS
+      // WITH CHECK fires BEFORE the composite-FK / one-open partial-unique-index checks, so the
+      // denial is the policy (42501), never a `23503`/`23505`. status='open' is the default; a valid
+      // due_date is supplied (NOT NULL). NO money/öre column exists to populate.
+      return {
+        id: crypto.randomUUID(),
+        tenant_id: fixture.tenantB.id,
+        quote_id: requireCrmId(ctx.tenantBQuoteId, "tenantBQuoteId", table),
+        quote_version_id: requireCrmId(
+          ctx.tenantBQuoteVersionId,
+          "tenantBQuoteVersionId",
+          table,
+        ),
+        due_date: "2026-08-01",
+        status: "open",
+      };
     default:
       return assertNever(table);
   }
@@ -874,6 +926,24 @@ export function tenantBFilter(
         column: "id",
         value: requireCrmId(ctx.tenantBJobEventId, "tenantBJobEventId", table),
       };
+    case "quote_lost_reasons":
+      return {
+        column: "id",
+        value: requireCrmId(
+          ctx.tenantBQuoteLostReasonId,
+          "tenantBQuoteLostReasonId",
+          table,
+        ),
+      };
+    case "quote_follow_ups":
+      return {
+        column: "id",
+        value: requireCrmId(
+          ctx.tenantBQuoteFollowUpId,
+          "tenantBQuoteFollowUpId",
+          table,
+        ),
+      };
     default:
       return assertNever(table);
   }
@@ -951,6 +1021,17 @@ export function hijackMutationFor(
       // channel is a mutable free-text column (seed is NULL) — the hijack sets a value so the
       // unchanged re-read (channel stays NULL) is meaningful.
       return { channel: "hijacked-by-tenant-a" };
+    case "quote_lost_reasons":
+      // INSERT-ONLY: `authenticated` has NO UPDATE grant, so this payload is denied at the
+      // privilege layer (42501, "privilege" denial kind) and never reaches the unchanged re-read.
+      // `note` is a real column so the statement parses (the denial is the missing grant, not a
+      // bad column reference).
+      return { note: "hijacked-by-tenant-a" };
+    case "quote_follow_ups":
+      // UPDATE-able ("rls-invisible"): the cross-tenant UPDATE matches ZERO rows under RLS USING —
+      // the hijack sets `note` (a mutable free-text column) to a value DIFFERENT from the seed's
+      // ("tenant-b-followup-seed") so the unchanged re-read is meaningful.
+      return { note: "hijacked-by-tenant-a" };
     default:
       return assertNever(table);
   }
@@ -1027,6 +1108,14 @@ export function rlsInvisibleLabelColumn(table: TenantTableName): string {
       return "command";
     case "tenant_memberships":
       return "status";
+    // quote_lost_reasons is a "privilege"-denial (insert-only) table — the unchanged-re-read branch
+    // is never reached; `note` keeps the exhaustive switch compile-safe.
+    case "quote_lost_reasons":
+      return "note";
+    // Story 10.3 quote_follow_ups is UPDATE-able ("rls-invisible"): `note` is the column the hijack
+    // sets — re-read it to prove the seed value ("tenant-b-followup-seed") was NOT overwritten.
+    case "quote_follow_ups":
+      return "note";
     default:
       return assertNever(table);
   }
@@ -1262,6 +1351,31 @@ export function anonRowFor(
         job_id: crypto.randomUUID(),
         event_type: "created",
       };
+    case "quote_lost_reasons":
+      // Anon has NO grant on quote_lost_reasons → the INSERT is denied at the privilege layer
+      // (42501) regardless of the row shape (a random parent id never matters — the grant denial
+      // fires first). outcome/category are valid closed-set tokens. NO money/öre column.
+      return {
+        id: crypto.randomUUID(),
+        tenant_id: fixture.tenantA.id,
+        quote_id: crypto.randomUUID(),
+        quote_version_id: crypto.randomUUID(),
+        outcome: "forlorad",
+        category: "pris",
+      };
+    case "quote_follow_ups":
+      // Anon has NO grant on quote_follow_ups → the INSERT is denied at the privilege layer (42501)
+      // regardless of the row shape (a random parent id never matters — the grant denial fires
+      // first). NOT-NULL due_date populated so the grant denial — not a NOT-NULL violation — fires.
+      // NO money/öre column.
+      return {
+        id: crypto.randomUUID(),
+        tenant_id: fixture.tenantA.id,
+        quote_id: crypto.randomUUID(),
+        quote_version_id: crypto.randomUUID(),
+        due_date: "2026-08-01",
+        status: "open",
+      };
     default:
       return assertNever(table);
   }
@@ -1310,6 +1424,8 @@ export function anonFilterFor(
     case "quote_acceptances":
     case "jobs":
     case "job_events":
+    case "quote_lost_reasons":
+    case "quote_follow_ups":
       return { column: "tenant_id", value: ctx.fixture.tenantA.id };
     default:
       return assertNever(table);
@@ -1367,6 +1483,10 @@ export function anonMutationFor(
       return { title: "anon-hijack" };
     case "job_events":
       return { channel: "anon-hijack" };
+    case "quote_lost_reasons":
+      return { note: "anon-hijack" };
+    case "quote_follow_ups":
+      return { note: "anon-hijack" };
     default:
       return assertNever(table);
   }

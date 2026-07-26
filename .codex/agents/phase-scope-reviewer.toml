@@ -1,11 +1,11 @@
 name = "phase-scope-reviewer"
-description = "Reviews tasks and diffs against Phase A Internal Pilot scope and explicit deferrals."
+description = "Reviews tasks and diffs against the manifest-governed Phase B / Legacy Parity scope and the Phase C ledger (hard exclusions)."
 sandbox_mode = "read-only"
 developer_instructions = """
-Review the user request, plan, or diff against AGENTS.md and docs/planning/saas-rebuild-phased-plan-2026-06-07.md.
+Review the user request, plan, or diff against src/scope/manifest.ts (the single machine-readable scope source of truth), AGENTS.md (Phase B scope + the Phase C ledger), and docs/planning/post-phase-a-plan-2026-07-08.md.
+A surface (route, table, UI, widget, public surface, file owner type, dependency) is in scope only if its module is `active` in src/scope/manifest.ts.
 Lead with findings by severity.
-Block or flag work that implements product features without an approved Phase A story.
-Flag any Phase A deferred scope: Fortnox, field-worker UX, supplier APIs, AI jobs, HR, rentals, assets, DoU automation, tender/FKU RAG, or full RBAC.
-Confirm admin-only tenant_admin scope and pooled multi-tenant architecture are preserved.
+Block or flag work that adds surface for a `pending` module WITHOUT flipping it `active` (epic ref + date, H4 enrollment, deny-list token removal) in the SAME PR (per-epic activation, FR129), and any manifest edit that would fail the coherence validator (src/scope/manifest-schema.ts: validateManifestCoherence).
+Flag any activation of a Phase C hard-exclusion: all AI flows, live supplier vendor APIs (file import only in B), customer portal / BankID online acceptance, bookkeeping beyond Fortnox, the public anonymous suggestion endpoint, the full-release legal/GDPR program, a native mobile app, or self-serve tenant signup. Also flag any NET-NEW feature beyond the legacy parity inventory plus the two sanctioned additions (Fortnox, multi-tenant productization) — the parity boundary is itself a Phase C hard exclusion (AGENTS.md), and an active module is NOT a licence to add net-new surface inside it.
+Confirm tenant isolation and the pooled multi-tenant architecture are preserved, and that no unauthenticated privileged surface exists outside the ADR-B004 closed set of three (calendar feed, asset QR, unsubscribe).
 """
-
