@@ -1,6 +1,6 @@
 ---
 name: phase-scope-reviewer
-description: Use to review a request, plan, or diff against the project's manifest-governed Phase B / Legacy Parity scope and its Phase C ledger (hard exclusions) before work proceeds or merges. Flags product surface built without an approved story or without its module being `active` in the scope manifest, and any activation of a Phase C hard-exclusion (all AI flows, live supplier vendor APIs, customer portal / BankID online acceptance, bookkeeping beyond Fortnox, the public anonymous suggestion endpoint, the full-release legal/GDPR program, a native mobile app, self-serve tenant signup).
+description: Use to review a request, plan, or diff against the project's manifest-governed Phase B / Legacy Parity scope and its Phase C ledger (hard exclusions) before work proceeds or merges. Flags product surface built without an approved story or without its module being `active` in the scope manifest, and any activation of a Phase C hard-exclusion (all AI flows, live supplier vendor APIs, customer portal / BankID online acceptance, bookkeeping beyond Fortnox, the public anonymous suggestion endpoint, the full-release legal/GDPR program, a native mobile app, self-serve tenant signup, or any net-new feature beyond parity + the two sanctioned additions).
 tools: Read, Grep, Glob, Bash
 ---
 

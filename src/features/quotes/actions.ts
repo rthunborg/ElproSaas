@@ -343,6 +343,17 @@ export async function markQuoteVersionLostAction(
   if (form.has("note")) input.note = note ?? null;
 
   const client = (await createSupabaseServerClient()) as unknown as CommandDbClient;
+
+  // Resolve the anchor BEFORE the mutation (Codex follow-up). A version's `quote_id` is IMMUTABLE, so
+  // reading it up-front is equivalent to reading it after — but a transient failure of a read placed
+  // AFTER the commit would reject the whole action even though the lost status/event/reason had
+  // already committed, and the retry would then be refused ("already lost") leaving the follow-up
+  // open. Failing here is safe: nothing has been committed yet.
+  const preResolvedQuoteId =
+    typeof quoteVersionId === "string" && quoteVersionId.length > 0
+      ? (await loadQuoteVersionAnchor(client, quoteVersionId))?.quote_id
+      : undefined;
+
   const result = await runCommand(markQuoteVersionLost, { client, input });
 
   if (result.ok) {
@@ -366,12 +377,10 @@ export async function markQuoteVersionLostAction(
     // form's `quote_id`, which is untrusted) and scope the auto-completion to it. A crafted/stale form
     // carrying the `follow_up_id` of ANOTHER own-tenant quote then completes zero rows instead of
     // silently completing the wrong quote's follow-up with the lost outcome. If the quote id cannot be
-    // derived (a rare post-flip read race), we skip the auto-complete — the orphan open row is harmless
-    // (the 10.4 read paths already exclude follow-ups on decided quotes).
-    const expectedQuoteId =
-      typeof quoteVersionId === "string" && quoteVersionId.length > 0
-        ? (await loadQuoteVersionAnchor(client, quoteVersionId))?.quote_id
-        : undefined;
+    // derived, we skip the auto-complete — the orphan open row is harmless (the 10.4 read paths
+    // already exclude follow-ups on decided quotes). Uses the PRE-resolved id (read before the
+    // mutation), so no fallible read runs after the transition has committed.
+    const expectedQuoteId = preResolvedQuoteId;
     if (
       typeof followUpId === "string" &&
       followUpId.length > 0 &&

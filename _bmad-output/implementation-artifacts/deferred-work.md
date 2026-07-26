@@ -445,3 +445,11 @@ the manifest coherence gap were FIXED in the PR. The two below are deferred and 
 
 - [Med] `readQuoteList`'s open-follow-up query is tenant-wide and unpaginated — the SAME silent `max_rows = 1000` truncation already ledgered for the pipeline reads. Past 1000 open follow-ups, quotes whose row falls outside the subset return `has_open_follow_up`/`overdue_follow_up` false, so the list FILTERS and overdue badges silently omit valid matches. This is the FOURTH instance of the class → fold into Story 10.5 **AC5** (query by the listed quote ids in bounded batches, or paginate).
 - [Low] `quote_follow_ups` lacks an index for the quote-detail read path: the detail read filters ALL statuses by `quote_id` ordered by `created_at`, but only a `tenant_id` index and a PARTIAL `(quote_id) WHERE status='open'` index exist — Postgres cannot use the partial index for the all-status query, so opening one quote scans the tenant's follow-up history. Add `(quote_id, created_at)`. Pure performance, no correctness impact, invisible at pilot volume → Story 10.5 (extends the hardening scope).
+
+## Deferred from: Codex review of epic-10 round 5 (2026-07-26)
+
+Two fixed in the PR (the fallible post-commit read in the lost action; the missing net-new-feature
+exclusion in the scope-reviewer config). The two below are deferred, **owned by Story 10.5**.
+
+- [Med] The quote-detail follow-up read (`readQuoteDetail`) selects a quote's FULL follow-up history ascending, so once one quote has >= 1000 completed follow-ups the SILENT `max_rows = 1000` cap can omit the newer OPEN row — the detail page then renders neither the chip nor the completion sheet and may offer planning another follow-up that the unique index rejects. FIFTH instance of the truncation class → Story 10.5 **AC5** (fetch the open row separately, or paginate).
+- [Low] `quote-lost-reason.e2e.spec.ts` is not retry-safe: `playwright.config.ts` sets `retries: 1` but global setup does not reseed between attempts, so a retry meets an already-terminal `lost` version, finds no mark-lost affordance, and fails deterministically before reaching the original assertion. Amplifies any flake into a hard failure. → Story 10.5 (seed/reset per attempt, or tolerate the already-committed state).
