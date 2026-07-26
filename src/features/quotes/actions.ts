@@ -373,6 +373,25 @@ export async function markQuoteVersionLostAction(
   // open. Failing here is safe: nothing has been committed yet.
   const preResolvedQuoteId = await tryResolveQuoteIdForVersion(client, quoteVersionId);
 
+  // If the caller ASKED for auto-completion (the follow-up surface carries a hidden follow_up_id) but
+  // the scope could not be resolved, abort BEFORE the irreversible transition (Codex follow-up).
+  // Committing anyway would strand an open follow-up: it is hidden only while the quote stays
+  // terminal, and creating a new version re-exposes it while the one-open-per-quote index then blocks
+  // planning a replacement — a user-visible dead-end. Refusing here costs nothing (nothing has
+  // committed) and the user can simply retry. The standalone lost dialog carries no follow_up_id and
+  // is unaffected.
+  const wantsAutoComplete =
+    typeof form.get("follow_up_id") === "string" &&
+    String(form.get("follow_up_id")).length > 0;
+  if (wantsAutoComplete && !preResolvedQuoteId) {
+    return {
+      ...LOST_ACTION_INITIAL,
+      status: "error",
+      code: "SERVER_ERROR",
+      formError: COMMAND_MESSAGES.SERVER_ERROR,
+    };
+  }
+
   const result = await runCommand(markQuoteVersionLost, { client, input });
 
   if (result.ok) {
