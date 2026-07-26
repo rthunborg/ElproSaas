@@ -185,6 +185,31 @@ test("10.1-UNIT-COH-07 (AC4): an `active` module WITHOUT an activatedAt date is 
   );
 });
 
+test("10.1-UNIT-COH-11 (Codex review): an `active` module with a MALFORMED activatedAt is flagged (missing-activation-date)", async () => {
+  const validate = await loadValidator();
+  // Presence alone let a mistyped/impossible date claim valid activation provenance. Each of these
+  // is non-empty (so the old presence check passed) but is not a real ISO calendar date.
+  for (const bad of ["soon", "2026-13-01", "2026-02-30", "26-07-20", "2026/07/20", "2026-07-20T00:00:00Z"]) {
+    const manifest = { modules: [makeModule({ id: "crm", activatedAt: bad })] };
+    assert.ok(
+      rules(validate(manifest)).has("missing-activation-date"),
+      `activatedAt ${JSON.stringify(bad)} must be flagged as not a real ISO YYYY-MM-DD date`,
+    );
+  }
+});
+
+test("10.1-UNIT-COH-11 (Codex review): a WELL-FORMED activatedAt is NOT flagged (non-vacuity)", async () => {
+  const validate = await loadValidator();
+  // The other half: a real date must pass, or the rule would reject the live manifest.
+  for (const good of ["2026-07-20", "2026-02-28", "2024-02-29"]) {
+    const manifest = { modules: [makeModule({ id: "crm", activatedAt: good })] };
+    assert.ok(
+      !rules(validate(manifest)).has("missing-activation-date"),
+      `activatedAt ${JSON.stringify(good)} is a real calendar date and must NOT be flagged`,
+    );
+  }
+});
+
 test("10.1-UNIT-COH-10 (Codex review): an `active` module RETAINING a deferredFileToken is flagged (active-module-retains-deferred-token)", async () => {
   const validate = await loadValidator();
   // The realistic regression: an activation PR flips only `status` and forgets to drop the token.

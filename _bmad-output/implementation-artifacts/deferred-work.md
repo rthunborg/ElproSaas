@@ -453,3 +453,11 @@ exclusion in the scope-reviewer config). The two below are deferred, **owned by 
 
 - [Med] The quote-detail follow-up read (`readQuoteDetail`) selects a quote's FULL follow-up history ascending, so once one quote has >= 1000 completed follow-ups the SILENT `max_rows = 1000` cap can omit the newer OPEN row — the detail page then renders neither the chip nor the completion sheet and may offer planning another follow-up that the unique index rejects. FIFTH instance of the truncation class → Story 10.5 **AC5** (fetch the open row separately, or paginate).
 - [Low] `quote-lost-reason.e2e.spec.ts` is not retry-safe: `playwright.config.ts` sets `retries: 1` but global setup does not reseed between attempts, so a retry meets an already-terminal `lost` version, finds no mark-lost affordance, and fails deterministically before reaching the original assertion. Amplifies any flake into a hard failure. → Story 10.5 (seed/reset per attempt, or tolerate the already-committed state).
+
+## Deferred from: Codex review of epic-10 round 6 (2026-07-26)
+
+Two fixed in the PR (the pre-read that could throw before envelope validation; activatedAt validated
+as a real calendar date). The two below are deferred, **owned by Story 10.5**.
+
+- [Low] `quote-follow-up.e2e.spec.ts` plan-flow is not retry-safe: `retries: 1` with a globally seeded shared fixture means a retry meets a quote that ALREADY has an open follow-up, so `Planera` is replaced by `Klarmarkera` and the retry fails deterministically before reproducing the original flake. → Story 10.5 (seed/reset per attempt, or tolerate the already-planned state).
+- [Low] Same file, completion-flow: a retry meets an already-completed row, so `Klarmarkera` is absent and the retry fails before reaching the flaky assertion. Same class as the lost-E2E retry item already ledgered in round 5 — THREE E2E specs now share it; fix them together. → Story 10.5.

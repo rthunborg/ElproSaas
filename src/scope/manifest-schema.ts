@@ -263,6 +263,16 @@ const PUBLIC_SURFACE_CLOSED_SET: ReadonlySet<string> = new Set<string>([
  * surface / deferred file token (soft) is declared by two modules. Each rule is exercised by a biting
  * negative case in `tests/unit/scope/manifest-coherence.test.ts`.
  */
+/**
+ * True only for a REAL ISO `YYYY-MM-DD` calendar date. Round-trips through Date so an impossible
+ * day (2026-02-30, 2026-13-01) is rejected rather than silently rolled over by the Date parser.
+ */
+function isCalendarDate(v: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) return false;
+  const d = new Date(`${v}T00:00:00Z`);
+  return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === v;
+}
+
 export function validateManifestCoherence(
   manifest: ScopeManifest,
 ): CoherenceViolation[] {
@@ -284,6 +294,14 @@ export function validateManifestCoherence(
       violations.push({
         rule: "missing-activation-date",
         detail: `active module "${m.id}" has no activatedAt date (an active module must record the date it went live)`,
+      });
+    } else if (!isCalendarDate(String(m.activatedAt))) {
+      // Presence alone let a mistyped/impossible date ("2026-13-45", "soon") pass the gate while
+      // claiming valid activation provenance (Codex review). Require the documented YYYY-MM-DD shape
+      // AND a real calendar date (round-tripped, so 2026-02-30 is rejected rather than rolled over).
+      violations.push({
+        rule: "missing-activation-date",
+        detail: `active module "${m.id}" has activatedAt "${m.activatedAt}", which is not a real ISO YYYY-MM-DD calendar date`,
       });
     }
     // `deferredFileToken` is PENDING-only governance metadata (AGENTS.md): the file-index deny-list

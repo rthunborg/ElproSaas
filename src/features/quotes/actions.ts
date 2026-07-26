@@ -71,6 +71,28 @@ import {
   type CreateQuoteActionState,
 } from "./create-quote-action-state";
 
+/**
+ * Resolve a version's IMMUTABLE `quote_id` without ever throwing (Codex follow-up).
+ *
+ * These pre-reads run BEFORE the command envelope validates input, so a crafted-but-malformed
+ * `quote_version_id` would make PostgREST raise an invalid-UUID comparison and the Server Action
+ * would reject with an infrastructure failure instead of the intended VALIDATION_FAILED state. A
+ * transient read failure has the same shape. Returning `undefined` hands control back to each
+ * caller's own safe path: the lost action skips the auto-complete (harmless orphan), and the
+ * completion action FAILS CLOSED — neither ever widens a scope because a read misbehaved.
+ */
+async function tryResolveQuoteIdForVersion(
+  client: CommandDbClient,
+  quoteVersionId: unknown,
+): Promise<string | undefined> {
+  if (typeof quoteVersionId !== "string" || quoteVersionId.length === 0) return undefined;
+  try {
+    return (await loadQuoteVersionAnchor(client, quoteVersionId))?.quote_id;
+  } catch {
+    return undefined;
+  }
+}
+
 /** Read a string form field (empty → undefined so the field is left unchanged). */
 function optionalText(form: FormData, name: string): string | undefined {
   const v = form.get(name);
@@ -349,10 +371,7 @@ export async function markQuoteVersionLostAction(
   // AFTER the commit would reject the whole action even though the lost status/event/reason had
   // already committed, and the retry would then be refused ("already lost") leaving the follow-up
   // open. Failing here is safe: nothing has been committed yet.
-  const preResolvedQuoteId =
-    typeof quoteVersionId === "string" && quoteVersionId.length > 0
-      ? (await loadQuoteVersionAnchor(client, quoteVersionId))?.quote_id
-      : undefined;
+  const preResolvedQuoteId = await tryResolveQuoteIdForVersion(client, quoteVersionId);
 
   const result = await runCommand(markQuoteVersionLost, { client, input });
 
@@ -504,10 +523,7 @@ export async function completeQuoteFollowUpAction(
   // nothing, the scope was silently omitted, and the command fell back to an UNSCOPED completion —
   // completing an unrelated own-tenant follow-up. A scope that is conditional is not a scope. If the
   // displayed version cannot be resolved server-side, REFUSE rather than widening.
-  const expectedQuoteId =
-    typeof quoteVersionId === "string" && quoteVersionId.length > 0
-      ? (await loadQuoteVersionAnchor(client, quoteVersionId))?.quote_id
-      : undefined;
+  const expectedQuoteId = await tryResolveQuoteIdForVersion(client, quoteVersionId);
   if (typeof expectedQuoteId !== "string" || expectedQuoteId.length === 0) {
     return {
       ...FOLLOW_UP_ACTION_INITIAL,
