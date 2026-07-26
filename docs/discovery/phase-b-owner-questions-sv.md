@@ -3,6 +3,20 @@
 **Datum:** 2026-07-20
 **Från:** ElproSaas (Rasmus)
 
+> ## ✅ BESVARAD 2026-07-26
+>
+> Ägaren har besvarat samtliga frågor i detta blad. Svaren finns i
+> `phase-b-owner-answers-2026-07-26.md` och är inarbetade i systemets register
+> (`_bmad-output/planning-artifacts/owner-signoff-questions.md`).
+>
+> **Jobbmodellen: Alternativ A som modell, C som teknik** — låser upp E16-E18/ADR-B006.
+> Tre svar ÄNDRAR levererad/planerad funktionalitet och har fått egna stories:
+> **10.6** (momsavrundning per momskategori på dokumentnivå, dolda rader vs avdragsunderlag,
+> omvänd betalningsskyldighet) och **10.7** (PWA + offline).
+>
+> Detta blad behålls som historiskt underlag — ställ inte frågorna igen.
+
+
 Fas B är igång. **Första epiken** (offertens livscykel — Förlorad/Avböjd-status,
 uppföljningar och pipeline) är byggd och ligger i granskning. Nedan är besluten vi
 behöver för att fortsätta bygga — med en **tidslinje** som visar *senast* när varje svar

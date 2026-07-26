@@ -8,6 +8,22 @@
 innan någon skarp ROT-/grön-offert går ut till kund) behöver vi era exakta, aktuella
 siffror nedan.
 
+> ## ✅ BESVARAD 2026-07-26
+>
+> Redovisningsansvarig har besvarat samtliga block. Svaren finns i
+> `phase-b-accountant-answers-2026-07-26.md` och är inarbetade i registret.
+>
+> Kortfattat: moms 25 %, ROT 30 % (tak 50 000, underlag arbete inkl. moms),
+> grön teknik 15/50/50 (tak 50 000, 97 %-schablon endast vid fast totalentreprenad).
+> **Avvikelser mot vår implementation:** moms ska avrundas PER MOMSKATEGORI PÅ
+> DOKUMENTNIVÅ (ej per rad), dolda rader räknas i avdragsunderlaget endast om
+> kostnadstypen är avdragsgrundande, och omvänd betalningsskyldighet ska vara en egen
+> momstyp. **Story 10.6 äger dessa ändringar — schemalägg den INNAN någon skarp
+> ROT-/grön-offert lämnar systemet.**
+>
+> Detta blad behålls som historiskt underlag — ställ inte frågorna igen.
+
+
 **Redan bestämt (av ägaren, behöver ej besvaras här):**
 - Endast **privatpersoner** är berättigade till ROT och grön teknik.
 - ROT och grön teknik **får inte kombineras** på samma offert.
