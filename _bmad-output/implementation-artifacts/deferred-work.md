@@ -437,3 +437,11 @@ are deferred and **owned by Story 10.5** (AC7/AC8).
 
 - [Med] Pipeline metrics rest on `quote_events`, which carries an `authenticated` INSERT grant + own-tenant insert policy — an admin can insert arbitrary sent/accepted/lost rows with caller-chosen `occurred_at`, inflating or period-shifting counts and hit rate WITHOUT changing the authoritative version status or invoking a lifecycle command. Compounds the pre-existing `6-4` deferral (`quote_events` client-insertable; the append-only trigger only blocks UPDATE/DELETE). → Story 10.5 AC7.
 - [Med] A critical transition can commit WITHOUT its audit row: `mark_quote_version_lost` commits status+event+reason in its own RPC transaction, then the envelope writes the audit separately. A transient failure there leaves the transition committed, the audit missing, the user shown an error, and the retry rejected (already `lost`). **ENVELOPE-WIDE, not lost-specific** — every RPC-backed command shares the shape; likely warrants its own ADR (same transaction, or a durable transactional outbox). → Story 10.5 AC8.
+
+## Deferred from: Codex review of epic-10 round 4 (2026-07-26)
+
+Final pre-merge pass. The P1 (draft -> lost via the trigger's unconditional draft early-return) and
+the manifest coherence gap were FIXED in the PR. The two below are deferred and **owned by Story 10.5**.
+
+- [Med] `readQuoteList`'s open-follow-up query is tenant-wide and unpaginated — the SAME silent `max_rows = 1000` truncation already ledgered for the pipeline reads. Past 1000 open follow-ups, quotes whose row falls outside the subset return `has_open_follow_up`/`overdue_follow_up` false, so the list FILTERS and overdue badges silently omit valid matches. This is the FOURTH instance of the class → fold into Story 10.5 **AC5** (query by the listed quote ids in bounded batches, or paginate).
+- [Low] `quote_follow_ups` lacks an index for the quote-detail read path: the detail read filters ALL statuses by `quote_id` ordered by `created_at`, but only a `tenant_id` index and a PARTIAL `(quote_id) WHERE status='open'` index exist — Postgres cannot use the partial index for the all-status query, so opening one quote scans the tenant's follow-up history. Add `(quote_id, created_at)`. Pure performance, no correctness impact, invisible at pilot volume → Story 10.5 (extends the hardening scope).

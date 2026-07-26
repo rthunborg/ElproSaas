@@ -45,6 +45,8 @@ type FixtureModule = {
   notificationCategories: string[];
   publicSurfaces: string[];
   fileOwnerTypes: string[];
+  /** PENDING-only governance metadata — the deny-list derives from it; activation must drop it. */
+  deferredFileToken?: string;
 };
 type Violation = { rule: string; detail: string };
 
@@ -180,6 +182,41 @@ test("10.1-UNIT-COH-07 (AC4): an `active` module WITHOUT an activatedAt date is 
   assert.ok(
     rules(validate(manifest)).has("missing-activation-date"),
     "an active module without an activatedAt date must be flagged (it went live but recorded no activation date)",
+  );
+});
+
+test("10.1-UNIT-COH-10 (Codex review): an `active` module RETAINING a deferredFileToken is flagged (active-module-retains-deferred-token)", async () => {
+  const validate = await loadValidator();
+  // The realistic regression: an activation PR flips only `status` and forgets to drop the token.
+  // The deny-list derives from pending tokens, so a retained token on an active module would block
+  // that shipped module's OWN files. Nothing else catches it (the orphan pass skips active modules).
+  const manifest = {
+    modules: [makeModule({ id: "rentals", deferredFileToken: "rental" })],
+  };
+  assert.ok(
+    rules(validate(manifest)).has("active-module-retains-deferred-token"),
+    "an active module still carrying a deferredFileToken must be flagged — activation has to drop it",
+  );
+});
+
+test("10.1-UNIT-COH-10 (Codex review): a PENDING module carrying a deferredFileToken is NOT flagged (pending-only metadata is the intended baseline)", async () => {
+  const validate = await loadValidator();
+  // The non-vacuity half: the rule must not fire on the CORRECT shape, or it would reject the real
+  // manifest (all seven current tokens sit on pending modules and feed the deny-list).
+  const manifest = {
+    modules: [
+      makeModule({
+        id: "rentals",
+        status: "pending",
+        epic: undefined,
+        activatedAt: undefined,
+        deferredFileToken: "rental",
+      }),
+    ],
+  };
+  assert.ok(
+    !rules(validate(manifest)).has("active-module-retains-deferred-token"),
+    "a pending module's deferredFileToken is the intended baseline and must NOT be flagged",
   );
 });
 

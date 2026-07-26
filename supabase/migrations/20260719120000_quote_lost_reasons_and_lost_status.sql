@@ -170,6 +170,18 @@ begin
   -- Only a NON-draft row is locked. The draft→sent transition (OLD.status='draft')
   -- is the ALLOWED path — flip status + stamp nothing else on the row.
   if old.status = 'draft' then
+    -- Codex P1 (follow-up to the transition-pair fix below): this early return previously skipped
+    -- ALL transition validation, so a draft could be driven straight to 'lost' (or any other status)
+    -- by a direct table-API UPDATE — the deferred coherence trigger passes if the caller pre-inserts
+    -- the reason row, yielding a version that was NEVER SENT marked lost, with no lifecycle event and
+    -- no command audit. The TS state machine allows exactly draft -> sent, so enforce that here too
+    -- BEFORE returning. (A no-op update that leaves status unchanged is still fine.)
+    if new.status is distinct from old.status and new.status <> 'sent' then
+      raise exception
+        'quote_versions draft may only advance to sent: illegal transition % -> % (architecture §9, §11)',
+        old.status, new.status
+        using errcode = 'QV409';
+    end if;
     return new;
   end if;
 

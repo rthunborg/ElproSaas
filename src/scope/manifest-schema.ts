@@ -217,6 +217,9 @@ export type CoherenceRule =
   | "active-module-missing-epic"
   /** An `active` module without an `activatedAt` date (§5.2 — an active module went live on a date). */
   | "missing-activation-date"
+  /** An `active` module RETAINING a `deferredFileToken` — pending-only governance metadata that
+   *  activation must drop, or the derived deny-list blocks the shipped module's own files. */
+  | "active-module-retains-deferred-token"
   /** A surface (nav/table/widget/notification-category/file-owner-type/public-surface) not
    *  traceable to an `active` module (§5.4 rule 2 — the A22 lesson: presence is not enough). */
   | "orphan-surface"
@@ -281,6 +284,17 @@ export function validateManifestCoherence(
       violations.push({
         rule: "missing-activation-date",
         detail: `active module "${m.id}" has no activatedAt date (an active module must record the date it went live)`,
+      });
+    }
+    // `deferredFileToken` is PENDING-only governance metadata (AGENTS.md): the file-index deny-list
+    // is DERIVED from pending tokens, so a token retained on an ACTIVE module would make the
+    // deny-list block a SHIPPED module's own files. Activation must drop it. Without this rule an
+    // activation that flips only `status` passes coherence while carrying the stale token — the
+    // orphan-surface pass skips active modules, so nothing else catches it (Codex review).
+    if (m.deferredFileToken && String(m.deferredFileToken).length > 0) {
+      violations.push({
+        rule: "active-module-retains-deferred-token",
+        detail: `active module "${m.id}" still carries deferredFileToken "${m.deferredFileToken}" (a deferred token is pending-only metadata — activation must drop it, or the deny-list will block this module's own files)`,
       });
     }
   }
