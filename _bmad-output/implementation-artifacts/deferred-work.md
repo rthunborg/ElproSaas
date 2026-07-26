@@ -461,3 +461,10 @@ as a real calendar date). The two below are deferred, **owned by Story 10.5**.
 
 - [Low] `quote-follow-up.e2e.spec.ts` plan-flow is not retry-safe: `retries: 1` with a globally seeded shared fixture means a retry meets a quote that ALREADY has an open follow-up, so `Planera` is replaced by `Klarmarkera` and the retry fails deterministically before reproducing the original flake. → Story 10.5 (seed/reset per attempt, or tolerate the already-planned state).
 - [Low] Same file, completion-flow: a retry meets an already-completed row, so `Klarmarkera` is absent and the retry fails before reaching the flaky assertion. Same class as the lost-E2E retry item already ledgered in round 5 — THREE E2E specs now share it; fix them together. → Story 10.5.
+
+## Deferred from: Codex review of epic-10 round 7 (2026-07-26)
+
+Both deferred (neither blocks merge — see the rationale per item), **owned by Story 10.5**.
+
+- [Med] `acceptQuoteAndCreateJob` does not complete an open follow-up, so accepting a quote that has one leaves the row open forever with no UI path (the panel is sent-only; list/header/pipeline deliberately hide follow-ups on decided quotes). This is the SAME accepted residual already documented for the lost path's non-atomic auto-complete — the row is invisible and non-escalating, so it is a data-hygiene wart rather than a user-visible defect. Fix alongside the lost-path seam: either complete the follow-up in the acceptance flow, or (cleaner) give decided quotes a single reconciliation path that closes stranded rows. → Story 10.5 (extends AC4's area).
+- [Med] `readQuoteList` returns at most the newest 1000 quotes (PostgREST cap) and the new status/follow-up filters run CLIENT-SIDE over that truncated array, so a lost or follow-up-bearing quote outside the first page can never appear and the filtered view can wrongly show no matches. SIXTH instance of the silent-truncation class — and the one with the clearest user-visible symptom, because the FILTERS are the feature. Push the filters into the database and paginate the base query. → Story 10.5 **AC5** (raise this to the AC's headline case).
