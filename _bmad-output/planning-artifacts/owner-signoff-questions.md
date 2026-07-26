@@ -96,8 +96,8 @@ items deferred to full release). Status: `open` → `answered` → `signed-off`
 
 | ID | Question | Answer | Status |
 | --- | --- | --- | --- |
-| 8.1 | Migration-klassning | Per telefon | öppen (möte) |
-| 8.2 | Facit-exempel | Per telefon | öppen (möte) |
+| 8.1 | Migration-klassning | **Utgår** — ägaren beslutade 2026-07-20: ingen datamigrering från Lovable (nya jobb i nya appen; befintliga körs klart i Lovable parallellt). Ingen import att klassa. | resolved (no-migration) |
+| 8.2 | Facit-exempel | **Utgår** — se `8.1`. Fas A:s Lovable-jämförelse står kvar som beteende-referens (anonymiserade fixtures), inte datainförsel. | resolved (no-migration) |
 
 ### Tax sheet (Blad 2) — Blocks A-D — Epic 4
 
@@ -213,7 +213,7 @@ One working session can clear both sets.
 
 | ID | Question | Gates |
 | --- | --- | --- |
-| N-1 | Migration classification **round 2**: live/archive/excluded per B module (rentals, assets, service, DoU, self-inspections, tenders, HR, time data) | Each B2/B3 module's migration story |
+| ~~N-1~~ | ~~Migration classification round 2 per B module~~ — **withdrawn 2026-07-20**: owner decided there is no data migration ever (new work starts in the new app; existing jobs finish in Lovable in parallel). No per-module classification is needed. | resolved (no-migration) |
 | N-2 | Business model / per-company pricing / provisioning flow (Roadmap 7) | Self-serve signup scope in E12 (admin provisioning proceeds regardless) |
 | N-3 | Mobile posture for field workers (team rec: responsive web first; native = Phase C option) | B1b field UX (E14-E16) |
 | N-4 | Confirm role set as RBAC seed: Admin, Projektledare, Montör, Säljare, Ekonomi + per-job Arbetsledare — incl. per-role money/sensitive-field visibility | E11 permission-matrix seed |
