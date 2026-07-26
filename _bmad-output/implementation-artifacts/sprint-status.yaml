@@ -195,6 +195,12 @@ development_status:
   # rather than bolted onto an already thrice-revised PR. All own-tenant integrity/scale — none is
   # cross-tenant. Deliberately NOT gating the Epic 10 PR; schedule after Epic 11 or as capacity allows.
   10-5-quote-table-db-hardening-and-read-model-pagination: backlog
+  # Added 2026-07-26 from the owner + accountant answers. 10.6 changes SHIPPED money behaviour
+  # (VAT rounding scope, hidden-row deduction eligibility, reverse charge) and 10.7 supersedes the
+  # "responsive web first" assumption with a PWA + offline requirement. Both are real scope, not
+  # register entries — schedule 10.6 BEFORE any real ROT/gron quote leaves the system.
+  10-6-tax-answer-reconciliation: backlog
+  10-7-pwa-offline-field-capability: backlog
   epic-10-retrospective: done
 
   epic-11: backlog
