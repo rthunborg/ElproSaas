@@ -24,7 +24,7 @@ governedBy:
   - _bmad-output/planning-artifacts/ux-design-specification-phase-b.md   # §4 B1 surfaces, §5 B2/B3 patterns, §6 components, §9 terminology incl. [oracle-check]
   - _bmad-output/planning-artifacts/phase-b-party-session-2026-07-18.md  # PB-D1..PB-D14 binding; §2 waves; §4 dependency map; §6 epic candidates E10–E34
 epicNumbering: "continues at 10 (Phase A froze at Epic 9); every epic wave-tagged B1a / B1b / B2 / B3"
-depthModel: "PB-D10 wave-checkpoint calibration — B1a (Epics 10–13): FULL stories with complete acceptance criteria; B1b (Epics 14–19): story titles + AC sketches, finalized before B1b build (E16–E18 additionally gated on ADR-B006); B2 (Epics 20–26) and B3 (Epics 27–34): candidate story lists only, expanded to full stories at their wave-boundary checkpoint together with the PRD coarse-FR expansion"
+depthModel: "PB-D10 wave-checkpoint calibration — B1a (Epics 10–13): FULL stories with complete acceptance criteria; B1b (Epics 14–19): story titles + AC sketches, finalized before B1b build (E16–E18 were gated on ADR-B006 — RECORDED 2026-07-26, gate lifted); B2 (Epics 20–26) and B3 (Epics 27–34): candidate story lists only, expanded to full stories at their wave-boundary checkpoint together with the PRD coarse-FR expansion"
 ---
 
 # ElproSaas — Phase B Epic Breakdown (Epics 10–34)
@@ -37,7 +37,7 @@ Rules of this document:
 
 - **The epic structure is bound.** The party-session candidates E10–E34 are the ratified epic set (session §2/§4/§6). Story-level refinement is owned here; wave membership and epic identity are not. Merge candidates the session itself flagged (E12→E11 provisioning→RBAC, E24→E22 panels→assets, E30 KNX→tenders adjacency, E32 notes+CRM bundle) are noted where they apply, but **E-numbers stay stable** — a merge exercised later absorbs stories without renumbering.
 - **Depth follows the ratified wave-checkpoint model (PB-D10)** as stated in the frontmatter `depthModel`. B2/B3 candidate lists bound scope (traceable to the PRD §6 parity register); they are **not build-ready as written** — expanding them is a required output of the wave-boundary checkpoint that also expands the PRD's coarse FRs.
-- **Owner gates stay open.** Gated stories carry explicit banners (`[gated: X]`); no gate is resolved here. The sequencing watchlist (architecture §22.7) is encoded on the affected stories: N-3 before E14/E15 UX stories, N-4 before the E11 matrix seed is more than mechanism, N-9 before conflict-rule fixtures harden, N-6 before any send activation.
+- ~~**Owner gates stay open.**~~ **UPDATED 2026-07-26 — every owner gate is CLOSED** (owner + accountant answers; `architecture-phase-b.md` §24 is the disposition ledger). The `[gated: X]` markers below are resolved in place. What replaces the sequencing watchlist is a **reconciliation dependency**: Story 10.6 (ratified money rules) must land before any real ROT/grön-teknik document leaves the system, and Story 10.7 (PWA + offline platform capability) must land before or with the E14–E18 field stories that now assume offline states.
 - **Story 10.1 is the first delivered story of Phase B**, before any module story: the one-time governance re-baseline (AGENTS.md + docs/process + phase-scope-reviewer rewrite, the TypeScript scope manifest per ADR-B003, guardrail derivation refactor, manifest coherence validator) — all in one story.
 - Phase A epics 1–9 are frozen and delivered; nothing here re-plans them. Phase C surfaces (PRD §14 ledger) appear nowhere in this breakdown.
 
@@ -47,8 +47,8 @@ These rules are story-template requirements. Sprint planning and story creation 
 
 1. **Activation protocol (FR129, ADR-B003 §5.5):** a module epic's **first story** flips the module `pending → active` in `src/scope/manifest.ts` (adding epic reference + date) **in the same PR** as the module's first schema/nav change, removes the corresponding derived deny-list category, adds the module's permission-matrix rows, enrolls its tables in the H4 inventory + exact-policy enumeration, and lands the module's per-role negative tests. The manifest coherence validator blocks activation without matrix rows.
 2. **Oracle terminology story-gate (architecture §22.4 / UX §14.14):** every epic whose UX surface carries `[oracle-check]` labels runs a `legacy-oracle-explorer` terminology task **before that epic's first story**; the resolved labels are recorded in the story context. Per-epic oracle-check registers are listed in each epic below.
-3. **ADR gates:** no background execution path outside ADR-B002; no public token surface outside ADR-B004's closed set of three; no Fortnox artifact before ADR-B005-final; **no E16–E18 design/schema/story finalization before ADR-B006 is recorded** (AC-B1b-6).
-4. **Migration classification round 2 (N-1, NFR52):** every B2/B3 module's data-migration story requires its N-1 classification (live/archive/excluded) before real legacy data moves. B2/B3 candidate lists below carry this note per epic.
+3. **ADR gates:** no background execution path outside ADR-B002; no public token surface outside ADR-B004's closed set of three; no Fortnox artifact before ADR-B005-final; **ADR-B006 is recorded (2026-07-26) — E16–E18 are unblocked**, and their schema follows §8.3 (typed container, no `projects` table); any offline-capable write follows ADR-B007 (operation-id idempotency, re-authorisation on sync); any money path follows the §12A ratified rules.
+4. ~~**Migration classification round 2 (N-1, NFR52)**~~ — **EXPIRED.** Owner decision 2026-07-20: there is no Lovable→app data migration; existing jobs finish in the legacy app while new work starts in the new one (parallel-run cutover). No B2/B3 module needs a data-migration story, and the per-epic N-1 notes below are void.
 5. **Phase A invariants carry:** integer öre through `@/lib/money`, envelope commands + SECURITY INVOKER RPCs for transaction-sensitive writes (architecture §14; DEFINER only for the two sanctioned exceptions), DB-trigger lock family for new immutability scopes, entity-scoped `files`/`file_links` for every file, append-only audit, archive-over-delete, composite same-tenant FKs, exact-policy enumeration extended never loosened, unit gate grows from its 1378 baseline.
 6. **Wave-boundary checkpoints (PB-D10):** B1a→B1b, B1b→B2, B2→B3 are formal re-scope events — mini-retro, re-validation of the next wave, PRD coarse-FR expansion, full story authoring for the next wave from the sketches/candidates here, and any re-estimate. Checkpoint outcomes are recorded; they are process events, not epics.
 
@@ -56,48 +56,48 @@ These rules are story-template requirements. Sprint planning and story creation 
 
 ### Functional Requirements
 
-Restated (condensed, faithful) from the Phase B PRD §8; the PRD text governs. `[gated: X]` and `[coarse]` markers carry the PRD's meaning.
+Restated (condensed, faithful) from the Phase B PRD §8; the PRD text governs. `[coarse]` markers carry the PRD's meaning. **All `[gated: X]` markers were resolved on 2026-07-26** when the owner and accountant answered.
 
 - FR62: Users with quote permissions can mark a sent quote version Förlorad/Avböjd with a required reason, completing the owner-confirmed status set (`4.3`).
 - FR63: Lost/declined transitions are append-only quote lifecycle events; the immutable sent snapshot is untouched (NFR11 unaffected).
 - FR64: Users with quote permissions can schedule follow-ups on sent quotes, see due/overdue lists, and complete or annotate follow-ups.
 - FR65: The system surfaces quote pipeline data (sent/accepted/lost counts, open follow-ups, hit rate) for dashboard consumption.
-- FR66: Tenant-scoped role model; every user holds at least one role; seed set Admin, Projektledare, Montör, Säljare, Ekonomi `[gated: N-4]` plus job-scoped Arbetsledare.
+- FR66: Tenant-scoped role model; every user holds at least one role; seed set **Företagsadmin, Projektledare, Montör, Säljare, Ekonomi** (confirmed N-4) plus job-scoped Arbetsledare; **a user may hold several roles at once**.
 - FR67: Every read and mutation is authorized server-side against the permission matrix and RLS; client gating is UX only.
 - FR68: The permission matrix gains per-module rows with each module activation (same change), without respecifying existing modules.
 - FR69: Admins can invite/resend/revoke invitations, trigger resets, deactivate/reactivate users, and remove memberships; all audited.
 - FR70: Admins can assign/change roles and view the effective permission set per user.
-- FR71: Sensitive money fields are withheld server-side from unentitled roles (no value in the response) `[gated: N-4 for the per-role seed]`.
+- FR71: Sensitive money fields are withheld server-side from unentitled roles (no value in the response). Seed per N-4: Montör none; Säljare sales prices only; Arbetsledare defaults to Montör's posture; PL/Ekonomi/Företagsadmin all.
 - FR72: Non-admin users reach only role-appropriate modules/actions; unauthorized attempts are rejected server-side with no existence signals.
 - FR73: Operators/admins can provision a new tenant (create → baseline → first-Admin invite) with zero engineering steps.
 - FR74: The system guides a new tenant's first Admin through onboarding to a working state.
 - FR75: Provisioning is audited and fully tenant-isolated; it can neither read nor affect any other tenant.
-- FR76: Self-serve public tenant signup stays out `[gated: N-2]`; admin-driven provisioning proceeds regardless.
+- FR76: Self-serve public tenant signup is **permanently out** (N-2 — no self-registration for customer companies, ever); operator-driven provisioning is the only path and must be validated, idempotent, dry-runnable, audit-logged, and re-runnable after partial failure.
 - FR77: Users receive in-app notifications (bell + feed) with read/unread state and per-user preferences.
 - FR78: Modules register notification producers running under the sanctioned authenticated background path (ADR-B002); producers activate with their modules.
 - FR79: Outbound email is queued with delivery log, retries, suppression list, and unsubscribe handling.
 - FR80: Users can unsubscribe from non-essential email via tokenized links governed by ADR-B004.
-- FR81: Email sending activation (domain, from-address, first flows) is `[gated: N-6]`; until then email paths run queued/non-sending.
+- FR81: Email sending activation is specified by N-6 (central verified subdomain, `[Företag] via [System]`, tenant Reply-To, six-step flow priority, five automatic reminder-stop conditions, invoices from Fortnox); until the activation story lands, email paths run queued/non-sending.
 - FR82: Each schedulable person is the existing tenant user extended with work role, work hours, capacity basics (PB-D13); HR (E31) extends the same record.
 - FR83: Users with scheduling permissions can create/edit/cancel bookings with assignees, time range, work role, and optional job/customer/facility/contact connections.
 - FR84: Bookings exist standalone and can connect to Phase A basic jobs before jobs depth ships (PB-D12); later jobs epics deepen, never break, existing bookings.
 - FR85: Booking conflicts (double-booking overlaps, capacity/work-hours violations) are detected at create and edit time and surfaced for resolution.
-- FR86: Per-user work hours and capacity are represented; exact rules are owner inputs `[gated: N-9]` accepted without schema rework.
+- FR86: Per-user work hours and capacity are represented. **Capacity derives from the actual weekly schedule, not employment percentage** (N-9); formula = scheduled − holidays/closed − absence − bookings − blocked − buffer; overtime is not ordinary capacity; overbooking warns; central Swedish holiday calendar + tenant closed days. Rules stay config + data, never schema.
 - FR87: Scheduling data renders in schedule, resource, team, capacity, and personal views appropriate to role.
 - FR88: Recurring bookings expand deterministically and participate fully in conflict detection.
 - FR89: Detected conflicts are resolvable through an explicit resolution flow (move, reassign, adjust) that records the outcome.
 - FR90: Users file time reports against bookings/jobs; entitled roles review team/job time reports.
 - FR91: Users obtain a personal calendar feed via a revocable, rotatable tokenized URL governed by ADR-B004.
 - FR92: Booking and time-report data flows into job economy (E17) and billing basis (E26) without re-entry.
-- FR93: Users see a my-jobs view of jobs where they are members or assignees. `[gated: 7.1/7.3 → ADR-B006]`
+- FR93: Users see a my-jobs view of jobs where they are members or assignees. (ADR-B006 recorded — the container is the typed `jobs` row.)
 - FR94: Jobs are creatable standalone and connectable to customers/facilities/contacts/accepted quotes; the Phase A acceptance→job path continues unchanged.
 - FR95: Jobs carry members with per-job operational roles, including per-job Arbetsledare.
-- FR96: Jobs contain arbetsorder as constituent work items `[gated: 7.1/7.3 containment]`.
-- FR97: A job can be upgraded/designated to projekt scope (audited) `[gated: 7.1/7.3 upgrade semantics]`.
+- FR96: Jobs contain arbetsorder as constituent work items — `work_orders` children of the container, valid under both `type='order'` and `type='projekt'`.
+- FR97: A job can be upgraded to projekt scope — an audited, event-logged, idempotent, **one-way** single-row `type` change.
 - FR98: Offert/jobb-level workflows bind an anläggning and a specific contact per owner rule `1.5`.
-- FR99: First job-card field set follows the owner `7.3` answer (session strawman) `[gated: 7.3]`.
+- FR99: Job-card field set per the answered `7.3`/N-9 list (architecture §8.4).
 - FR100: Job members log material usage; material requests flow through a request workflow visible to the responsible role.
-- FR101: Projekt-scope jobs carry a payment plan `[gated: 7.1/7.3 attachment point]`.
+- FR101: Projekt-scope jobs carry a payment plan, attached to the container and DB-bound to `type='projekt'`.
 - FR102: Job economy rolls up budget/time/material/other costs in integer öre with budget-vs-actual per job for entitled roles.
 - FR103: Job economy data feeds billing basis (E26) without re-entry.
 - FR104: Job members record diary entries, deviations, photos, chat, and risks per role permissions; entries carry author + timestamp.
@@ -113,17 +113,17 @@ Restated (condensed, faithful) from the Phase B PRD §8; the PRD text governs. `
 - FR114 `[coarse]` (E23): Warranties — created from job completion events, with expiry tracking and notifications.
 - FR115 `[coarse]` (E24): Electrical panels — register/detail, gruppförteckning incl. RCD data, bulk edit, duplicate, print/PDF; manual core only.
 - FR116 `[coarse]` (E25): Supplier data — master data, price lists, supplier articles, discount agreements, deterministic file import, supplier references on calc rows.
-- FR117 `[coarse]` (E26): Billing basis — assemble faktureringsunderlag across jobs/rentals/service; review, adjust (audited), lock, export `[gated: N-5 content; tax A/B/C + 2.2 correctness sign-off]`.
+- FR117 `[coarse]` (E26): Billing basis — assemble faktureringsunderlag across jobs/rentals/service; review, adjust (audited), approve/lock, export. Content per N-5 (architecture §7.3); versioned status flow `Draft → UnderReview → Approved → Exported → PartiallyInvoiced → Invoiced → Cancelled`; correctness bound to the §12A ratified rules delivered by Story 10.6.
 - FR118: Billing bases are immutable once locked/exported; corrections follow the audited-correction pattern.
-- FR119 `[coarse]` (E27): DoU manual core — projects, templates, folder/document structure, upload, versioning, lock, package export, material-list sync, seed-from-job `[gated: N-8 content]`.
-- FR120 `[coarse]` (E28): Self-inspections manual core — templates, sections, items, assignees, measurements, attachments, manual creation, export, links `[gated: N-8 content]`.
-- FR121 `[coarse]` (E29): Tenders/FKU thin core — upload/ZIP/unzip, organized storage, manual summary fields, manual conversion links `[gated: N-7 visibility]`.
+- FR119 `[coarse]` (E27): DoU manual core — projects, templates, folder/document structure, upload, versioning, lock, package export, material-list sync, seed-from-job. Compliance content is owner-side (N-8: Johan Ahlström is the named content owner); `ContentOwnerUserId` is a configurable reference, never a hardcoded name.
+- FR120 `[coarse]` (E28): Self-inspections manual core — templates, sections, items, assignees, measurements, attachments, manual creation, export, links. Same N-8 content-ownership contract as FR119.
+- FR121 `[coarse]` (E29): Tenders/FKU thin core — upload/ZIP/unzip, organized storage, manual summary fields, manual conversion links. **Owner accepted the thin slice (N-7)**; AI analysis is explicitly Phase C.
 - FR122 `[coarse]` (E30): KNX manual tables — group-address projects with rooms/functions/address tables and settings.
 - FR123 `[coarse]` (E31): HR depth — employment data extending the B1 resource records (no parallel employee table), competence cards, certifications, training plans, documents, incidents, HR inbox, my-page, employee bookings/assets views.
-- FR124 `[coarse]` (E31): GDPR deletion-request workflow — authenticated, audited `[gated: N-10 posture]`.
+- FR124 `[coarse]` (E31): GDPR deletion-request workflow — authenticated, audited, over the N-10 states `Received → … → Closed`, with retention fields, `LegalHold`, and a central versioned retention policy; ordinary admins cannot hard-delete.
 - FR125 `[coarse]` (E32): Notes/notice board with categories, archive, mention notifications.
 - FR126 `[coarse]` (E32): CRM & calc completions — customer 360, favorites, classification, duplicate-calculation, quote-settings/branding completions.
-- FR127 `[coarse]` (E33): Fortnox foundation — per-tenant connection (server-side OAuth), mapping configuration, export architecture per ADR-B005 `[gated: N-5]`.
+- FR127 `[coarse]` (E33): Fortnox foundation — **per-tenant OAuth 2 Authorization Code Flow** (never shared credentials), initial scopes `companyinformation, customer, article, invoice`, mapping configuration, export architecture per ADR-B005. Mastership split per N-5: we own the invoice basis, Fortnox owns the invoice, its number, bookkeeping, and payment status.
 - FR128 `[coarse]` (E34): Fortnox billing flows — export customers/articles/invoice basis with per-record status, error visibility, retry UX.
 - FR129: Module activation is governed by the machine-readable scope manifest; activation flips `pending → active` in the same PR as the first schema/nav change; guardrails derive from the manifest; unlisted surface fails CI.
 - FR130: No Phase C surface (PRD §14 ledger) is reachable in Phase B UI, schema, endpoints, or background jobs.
@@ -134,7 +134,7 @@ The Phase A NFR spine **NFR1–NFR41 carries forward unchanged** (PRD §9.1) wit
 
 - NFR42: Server-side enforcement of every permission decision; per module activation, per-role authorization negative tests (denied command + RLS negative per seeded role).
 - NFR43: The permission matrix is a single machine-readable source of truth; matrix rows land with module activation; job-scoped roles enforced per job.
-- NFR44: Sensitive-field visibility enforced server-side (value absent from payload); entitlement seed owner-gated (N-4), mechanism not.
+- NFR44: Sensitive-field visibility enforced server-side (value absent from payload); entitlement seed supplied by N-4 (architecture §3.3A), deny-by-default.
 - NFR45: All background execution runs authenticated under ADR-B002; the legacy forged-JWT cron P0 is structurally impossible and proven rejected by negative tests.
 - NFR46: Public token surfaces limited to the closed set of three (calendar feeds, asset QR, unsubscribe) with high-entropy revocable/rotatable tokens, rate limits, abuse monitoring, minimal data, no privilege; ADR-B004 accepted before the first surface ships.
 - NFR47: Notification/email delivery reliable and idempotent (queue, delivery log, bounded retries, suppression, no duplicate sends, admin failure visibility, no entitlement leakage in outbound content).
@@ -142,8 +142,9 @@ The Phase A NFR spine **NFR1–NFR41 carries forward unchanged** (PRD §9.1) wit
 - NFR49: Billing bases integer-öre end-to-end, immutable once locked/exported, golden-covered; correctness sign-off bound to tax gates A/B/C + `2.2` before real invoicing use.
 - NFR50: Fortnox boundary isolation — server-side-only credentials, per-tenant isolation, no client-path calls, per-record inspectable export state; outbox/retry semantics per ADR-B005-final.
 - NFR51: The scope manifest is the single source of scope truth; all guardrails derive from it; unlisted surface fails CI; the manifest has its own coherence validator.
-- NFR52: Migration classification round 2 (N-1) per B2/B3 module before real legacy data moves; golden/comparison discipline extends to scheduling and jobs money paths.
-- NFR53: Field-worker flows usable on the N-3-confirmed posture; under the team-recommended responsive web, usable on common mobile viewports (360×640 floor).
+- NFR52: ~~Migration classification round 2 (N-1)~~ — void; there is no data migration (owner 2026-07-20). The golden/comparison discipline still extends to scheduling and jobs money paths.
+- NFR53 (restated per N-3): **installable PWA** with **offline capture** for assigned jobs — local queue; sync on reconnect/open/foreground/manual retry with no dependency on background sync while closed; visible per-change states `SavedLocally|WaitingForSync|Syncing|Synced|Conflict|Failed`; operation-id idempotent writes; scoped, minimised, time-boxed, purged local storage under the same permission checks as online reads. 360×640 viewport floor carried. No native app.
+- NFR55 (new): money and tax follow the ratified §12A rules — per-VAT-category document-level rounding, visibility decoupled from deduction eligibility, reverse charge as a VAT type, claim amounts truncated to whole SEK, rates/caps time-versioned. Corrects shipped behaviour; delivered by Story 10.6.
 - NFR54: Tenant provisioning proven leak-free — automated negatives on the provisioning path plus the end-to-end second-tenant proof (AC-PH-3).
 
 ### Additional Requirements (from the Phase B architecture)
@@ -162,15 +163,19 @@ The Phase A NFR spine **NFR1–NFR41 carries forward unchanged** (PRD §9.1) wit
 - AR-B12: Time reports are own-row-scoped; the `status` column ships with the single value `submitted` (reserved approval seam); a hard approval state is decided at the B1b→B2 checkpoint with E26/N-5 and would be an additive enum widening.
 - AR-B13: Transaction-sensitive commands use SECURITY INVOKER RPCs per architecture §14 (`createBooking`/`updateBooking`, `createBookingSeries`/`updateBookingSeries`, `resolveConflict`, `markQuoteVersionLost`, `markJobComplete`, `lockBillingBasis`, `provisionTenant`, email-queue claim/process). The only DEFINER exceptions: `provision_tenant` (operator-gated, hardened, negative-tested) and the background service context (§4.3 containment).
 - AR-B14: Tenant provisioning: `platform_operators` allow-list (platform-scoped exception table) + `is_platform_operator()` hardened helper; `provisionTenant` idempotent (`ALREADY_PROVISIONED`); operator console in the same app at `src/app/operator/**` outside tenant shell/context, exposing tenant identity/status only (NFR54).
-- AR-B15: Person model (PB-D13): `person_profiles` 1:1 with `tenant_memberships`; default work role FKs the Phase A `work_roles` catalog (one catalog, pricing + scheduling consumers); `person_work_hours` normalized templates + injectable rule config so N-9 answers land without schema rework; B3 HR extends the same record — a parallel employee table is forbidden.
+- AR-B15: Person model (PB-D13): `person_profiles` 1:1 with `tenant_memberships`; default work role FKs the Phase A `work_roles` catalog (one catalog, pricing + scheduling consumers); `person_work_hours` normalized templates carrying the N-9 shape (weekly schedule, shift times, breaks, per-person exceptions, absence kinds) plus injectable rule config; `tenant_calendar_days` is **built**, not reserved (N-9 requires tenant closed days over a central Swedish holiday calendar); B3 HR extends the same record — a parallel employee table is forbidden.
 - AR-B16: Every B1+ module stores files per the Phase A model (`files` + polymorphic `file_links`); new owner types/purposes are manifest-declared per module and valid only on activation; the E20 documents center is an aggregation read-model adding zero storage tables (PB-D6).
 - AR-B17: Billing basis: `billing_basis_lines` are copy-by-value öre snapshots; `Utkast → Låst → Exporterad`; lock via the DB-trigger lock family (new SQLSTATE + `BILLING_BASIS_LOCKED`, reversal + identity tests); audited corrections only; no new rounding rule (ADR-A004 STOP condition carried).
 - AR-B18: Fortnox: no credentials, tables, routes, dependencies, or UI before ADR-B005-final + E33 activation; per-tenant server-side-encrypted tokens; `integration_outbox` appended transactionally with the warranting domain event; `external_mappings` per (tenant, type, local id); export-only in Phase B.
 - AR-B19: Every new tenant-owned table is direct-`tenant_id`, RLS-forced, GRANT+policy paired, H4-enrolled, exact-policy-enumerated, composite-same-tenant-FK'd where parented, archive-over-delete, manifest-governed, integer-öre-validated where money flows. Enumerated non-tenant exceptions: `platform_operators`, `job_runs` (documented RLS posture).
 - AR-B20: Test strategy scales along five axes (architecture §16): generated per-role matrix suites (H4 gains a role dimension; policy↔matrix agreement), background-execution negatives (forged JWT, idempotency, containment), public-surface abuse suites, comparison-harness extension to scheduling (DST/recurrence packs) and jobs money paths (economy/billing goldens), unchanged migration-reset discipline.
 - AR-B21: Nav registry (`src/scope/nav-registry.ts`), widget registry (`src/scope/widget-registry.ts`), and `resolveLandingRoute` derive from manifest × permission matrix; hide-don't-disable; no placeholder nav items or widgets can exist by construction.
-- AR-B22: ADR-B006 (job model A/B/C) is gated on owner `7.1`/`7.3`; the architecture §8.1 options table is the möte hand-out; job-workspace data contracts stay model-agnostic (one container id, per-tab read-models on stable keys); bookings bind `jobs.id` and survive every option.
-- AR-B23: The B2 Fortnox spike must answer architecture §7's questions (licensing/API access, rate limits, idempotency keys, invoice-basis payload vs N-5, token refresh, sandbox) and feeds ADR-B005-final and the N-5 owner conversation (AC-B2-6).
+- AR-B22: **ADR-B006 is RECORDED (2026-07-26): Option A as the model, Option C as the technique.** Jobb is the container and holds arbetsorder; a jobb upgrades to projekt; implemented as ONE `jobs` table with `type ∈ {order, projekt}`, additive on the Phase A table, with `work_orders` and `job_members` as children and the upgrade as an audited one-way single-row type change. **No `projects` table.** Job-workspace data contracts hold unchanged (one container id, per-tab read-models on stable keys); bookings bind `jobs.id`, which survives the upgrade because the id does not change. Job-card fields per architecture §8.4.
+- AR-B24 (new): **ADR-B007** — installable PWA with offline field capture; local queue, operation-id idempotent writes re-authorised on sync, append-only field records with optimistic locking on shared objects, scoped/minimised/time-boxed/purged local storage. Story 10.7 delivers the platform capability; module epics consume it.
+- AR-B25 (new): **§12A money amendment** — VAT rounds per VAT category at document level (BR-CO-17), not per line; `VisibleToCustomer` / `IncludedInInvoiceTotal` / `DeductionClassification` are three independent row properties; construction reverse charge is a VAT type; Skatteverket claims truncate to whole SEK; rates/caps carry `ValidFrom`/`ValidTo`. Three distinct rounding rules, three named primitives. Story 10.6 delivers it.
+- AR-B26 (new): **§12B retention groundwork** — retention fields, deletion-request states, `LegalHold`, and a central versioned retention policy, adopted per table as modules activate; applies to every identifiable person including contact persons, subcontractors, and people in photos.
+- AR-B27 (new): **§15.4A provisioning** — the AI agent orchestrates and validates; the provisioning logic is a deterministic service. The agent gets no general DB access and cannot run arbitrary SQL in production; the flow is dry-runnable, idempotent, audited, and re-runnable after partial failure. Subscription terms are tenant data, never hardcoded.
+- AR-B23: N-5 settled the Fortnox auth model, scopes, mastership split, and invoice-basis content (architecture §7.1/§7.3). The B2 spike narrows to: rate limits, Fortnox-side idempotency keys, the payload mapping from our line model to Fortnox invoice rows, token-refresh semantics, and sandbox availability. It feeds ADR-B005-final (AC-B2-6).
 
 ### UX Design Requirements
 
@@ -178,9 +183,9 @@ The Phase A NFR spine **NFR1–NFR41 carries forward unchanged** (PRD §9.1) wit
 - UX-BDR2: Sensitive-field masking mechanism: `MaskedValue` (lock glyph + `Dold`, SR text "Dolt för din roll") in detail contexts; whole-column omission in tables; aggregate honesty (any withheld component withholds the aggregate); feature-shaped fallout (hide the surface rather than render a field of locks); absence is never rendered as 0/empty.
 - UX-BDR3: Per-role landings: Montör lands on `Min dag` (`/my-day`, B1b); dashboard-entitled roles land on `/dashboard` with role-weighted default widget layouts.
 - UX-BDR4: Quote lifecycle delta UX: `Markera som förlorad/avböjd` on sent versions with outcome + required structured reason (category strawman Pris/Konkurrent/Tidplan/Uteblivet svar/Annat + note); terminal badge distinct from `Accepterad`; list gains status filter + `Förlustorsak` column; follow-ups appear as dashboard widget, list filters, and detail header chip; one open follow-up per quote; completion offers plan-next and jump-to-lost/new-version.
-- UX-BDR5: `Användare & roller` (Admin-only): Användare tab (list, invite flow, user detail sheet with role editor/reset/deactivate/remove, audit panel) and Roller tab (seed roles with matrix rows grouped by module, growth-per-activation visible, N-4 entitlements shown as "väntar på ägarbeslut"); effective-permissions viewer per user; last-admin protection.
-- UX-BDR6: Operator console: three-step provisioning wizard (Företagsuppgifter → Baslinje → Bjud in första Admin), re-entrant/resumable, idempotent re-run shows already-provisioned; first-Admin `Kom igång` checklist (5 items, server-derived auto-check, dismissable, pinned until done, deep-linked); entry-point-agnostic for a future N-2 signup.
-- UX-BDR7: Notifications: top-bar bell + unread badge for every role; popover (latest ~10, mark-all-read, Visa alla); `/notifications` center with filters; per-user preferences matrix (categories × I appen/E-post) with the e-post column inactive-with-explainer until N-6; essential categories non-disableable; every notification deep-links; producer-fed surfaces show last-scan recency.
+- UX-BDR5: `Användare & roller` (Admin-only): Användare tab (list, invite flow, user detail sheet with role editor/reset/deactivate/remove, audit panel) and Roller tab (seed roles with matrix rows grouped by module, growth-per-activation visible, N-4 entitlements seeded and shown concretely; role/permission edits capture a required reason and are audited); effective-permissions viewer per user; last-admin protection.
+- UX-BDR6: Operator console: three-step provisioning wizard (Företagsuppgifter → Baslinje → Bjud in första Admin), re-entrant/resumable, idempotent re-run shows already-provisioned; first-Admin `Kom igång` checklist (5 items, server-derived auto-check, dismissable, pinned until done, deep-linked); entry-point-agnostic as a design property only — **N-2 rules out public signup permanently**; the wizard adds a preview-then-approve step and a write-nothing dry run.
+- UX-BDR7: Notifications: top-bar bell + unread badge for every role; popover (latest ~10, mark-all-read, Visa alla); `/notifications` center with filters; per-user preferences matrix (categories × I appen/E-post) with the e-post column inactive-with-explainer until sending activates (sender identity and flow priority per N-6); essential categories non-disableable; every notification deep-links; producer-fed surfaces show last-scan recency.
 - UX-BDR8: Scheduling: five views (`Schema`, `Resurser`, `Team`, `Beläggning`, `Min kalender`) as projections of one booking/filter model; shared toolbar (date nav, granularity, filters, `Ny bokning`); persistent `Konflikter (n)` chip; per-user per-view filter/period persistence; capacity cells show number + color, never color alone.
 - UX-BDR9: Booking editor (side sheet desktop / full-screen phone): multi-assignee picker with availability hints, work role, time, all-optional connections, description, recurrence; live inline conflict panel per violation; conflicts warn-and-allow — saving requires explicit `Boka ändå` with required reason; series-vs-occurrence edit scope prompt; dirty-state guard.
 - UX-BDR10: `RecurrencePreview`: deterministic next ~10 occurrences with per-occurrence conflict glyphs always shown before committing a series; exceptions render "avviker från serien"; cancelled occurrences remain visible tombstones.
@@ -188,11 +193,11 @@ The Phase A NFR spine **NFR1–NFR41 carries forward unchanged** (PRD §9.1) wit
 - UX-BDR12: Time reporting: filing from booking cards pre-filled (≤30-second one-hand phone interaction) or standalone; personal week timesheet with missing-day nudges; desktop review surface (person/job/week filters, report-vs-booked delta highlight); reserved status column (no hard approval state in B1b).
 - UX-BDR13: `Min dag` (Montör landing): today header, time-ordered booking cards (job/kund + map-linked address, `Öppna jobbet`, `Rapportera tid`), `Mina jobb` section, banner-level schedule-change notices, pull-to-refresh, no money content.
 - UX-BDR14: Field capture ergonomics (gloves-and-daylight): sticky bottom `CaptureButton`s ≥48px; camera-first `Foton` with multi-shot; one-thumb `Dagbok`; structured `Avvikelse` quick-form (severity per oracle) notifying Arbetsledare/PL; `Material` quantity steppers + `Materialförfrågan`; transient-failure retention (component state + sessionStorage, in-memory photo blobs) with explicit `Försök igen` — never silent loss, no offline promise.
-- UX-BDR15: Job workspace: model-agnostic shell bound to one container id — header (title, type badge, status, kund/anläggning/kontakt chips, PL + Arbetsledare, planned dates, budget mini-bar `[N-4]`, primary actions) + tab set (Översikt, Arbetsorder, Schema, Material, Ekonomi, Dagbok, Avvikelser, Foton, Chatt, Risker, Rapporter, Filer, Händelser); per-tab visibility = matrix × activation; Montör field shape = bottom tab bar with reduced set; completion dialog states downstream effects before commit; post-completion read-only-with-notice.
+- UX-BDR15: Job workspace: shell bound to one container id (confirmed unchanged by ADR-B006; no `Ingående jobb` aggregate) — header (title, type badge, status, kund/anläggning/kontakt chips, PL + Arbetsledare, planned dates, budget mini-bar (absent for Montör and, by default, Arbetsledare — N-4), primary actions) + tab set (Översikt, Arbetsorder, Schema, Material, Ekonomi, Dagbok, Avvikelser, Foton, Chatt, Risker, Rapporter, Filer, Händelser); per-tab visibility = matrix × activation; Montör field shape = bottom tab bar with reduced set; completion dialog states downstream effects before commit; post-completion read-only-with-notice.
 - UX-BDR16: Dashboard v1: registry-driven `WidgetCard` grid (12-col → 1-col); v1 widgets exactly Offertpipeline, Uppföljningar, Veckans bokningar, Konflikter, Aktiva jobb, Tidläget; role-default layouts, no user customization; per-widget skeleton/empty/error/retry/freshness; a failed widget never blanks the grid.
 - UX-BDR17: Component behavioral contracts per UX §6 are binding: MaskedValue, StatusBadge, ConnectionChip, BookingBlock, ConflictPanel, RecurrencePreview, SideSheet, Wizard, WidgetCard, NotificationItem, QueueList, CaptureButton, AuditTrail, LockConfirmDialog, EffectivePermissions.
 - UX-BDR18: B2/B3 modules inherit the shared module conventions (UX §5.1): list page pattern, detail header + tabs ending `Filer`/`Händelser`, archive-over-delete, connections ("skapa och koppla"), role gating, announced locks, background-producer freshness honesty, import/export wizard with per-row error reports and explicit commit.
-- UX-BDR19: Accessibility floor additions: touch targets ≥44px (≥48px field primary), WCAG AA everywhere with high-contrast field primaries, full drag parity (keyboard/dialog equivalents), polite live regions for conflicts/saves/notifications, numeric keyboards for quantities/hours, 360×640 field viewport floor `[gated: N-3]`, public pages held to the same floor.
+- UX-BDR19: Accessibility floor additions: touch targets ≥44px (≥48px field primary), WCAG AA everywhere with high-contrast field primaries, full drag parity (keyboard/dialog equivalents), polite live regions for conflicts/saves/notifications, numeric keyboards for quantities/hours, 360×640 field viewport floor, offline states surfaced per ADR-B007 §8A (a locally-saved change never reads as synced), public pages held to the same floor.
 - UX-BDR20: Terminology: Swedish UI labels per UX §9 with English routes/identifiers; every `[oracle-check]` label resolves via the legacy-oracle terminology pass before the owning epic's first story (Cross-Epic Delivery Rule 2).
 
 ### FR Coverage Map
@@ -203,42 +208,42 @@ FR62: Epic 10 - Förlorad/Avböjd with required reason on sent versions.
 FR63: Epic 10 - Append-only lost/declined lifecycle events; sent snapshot untouched.
 FR64: Epic 10 - Follow-up scheduling, due/overdue lists, completion/annotation.
 FR65: Epic 10 - Pipeline read-model (counts, open follow-ups, hit rate) for dashboard consumption (rendered by Epic 19).
-FR66: Epic 11 - Tenant-scoped role model with the seed set `[gated: N-4]` + job-scoped Arbetsledare (enforced per job from Epic 16).
+FR66: Epic 11 - Tenant-scoped role model with the N-4-confirmed seed set + multi-role support + job-scoped Arbetsledare (enforced per job from Epic 16).
 FR67: Epic 11 - Server-side authorization of every read/mutation (matrix + RLS); client gating UX-only.
 FR68: Epic 11 - Matrix mechanism gaining rows per module activation (exercised by every activation story via Cross-Epic Rule 1).
 FR69: Epic 11 - Admin user management commands (invite/reset/deactivate/reactivate/remove), audited.
 FR70: Epic 11 - Role assignment + effective-permissions viewer.
-FR71: Epic 11 - Server-side sensitive-field withholding `[seed gated: N-4]`.
+FR71: Epic 11 - Server-side sensitive-field withholding against the N-4 seed.
 FR72: Epic 11 - Non-admin users reach only role-appropriate surface; generic server-side denials.
 FR73: Epic 12 - Operator provisioning flow with zero engineering steps.
 FR74: Epic 12 - First-Admin onboarding to a working state.
 FR75: Epic 12 - Audited, tenant-isolated provisioning.
-FR76: Epic 12 - Self-serve signup stays out `[gated: N-2]`; seam only.
+FR76: Epic 12 - Self-serve signup is permanently out (N-2); operator provisioning only.
 FR77: Epic 13 - In-app notifications (bell + feed + preferences).
 FR78: Epic 13 - Producer registry on the sanctioned background path (consumers register per later epic).
 FR79: Epic 13 - Email queue, delivery log, retries, suppression, unsubscribe handling.
 FR80: Epic 13 - Tokenized unsubscribe under ADR-B004 (activates with sending).
-FR81: Epic 13 - Sending activation `[gated: N-6]`; queued/non-sending until then.
+FR81: Epic 13 - Sending activation per N-6; queued/non-sending until the activation story.
 FR82: Epic 14 - Minimal bookable person on the existing user record (PB-D13).
 FR83: Epic 14 - Booking create/edit/cancel with assignees, work role, optional connections.
 FR84: Epic 14 - Standalone bookings + Phase A basic-job binding (PB-D12).
 FR85: Epic 14 - Deterministic conflict detection at create/edit.
-FR86: Epic 14 - Work hours/capacity model with injectable rules `[gated: N-9]`.
+FR86: Epic 14 - Work hours/capacity model with the N-9 rules (actual weekly schedule, not employment percentage).
 FR87: Epic 15 - The five scheduling views.
 FR88: Epic 15 - Recurring bookings with deterministic expansion + conflict participation.
 FR89: Epic 15 - Conflict resolution flow with recorded outcomes.
 FR90: Epic 15 - Time-report filing + role-scoped review.
 FR91: Epic 15 - Tokenized personal calendar feed (ADR-B004).
 FR92: Epic 15 - Booking/time data flows onward to Epics 17/26 without re-entry.
-FR93: Epic 16 - My-jobs view `[gated: ADR-B006]`.
+FR93: Epic 16 - My-jobs view (ADR-B006 recorded).
 FR94: Epic 16 - Standalone-creatable, connectable jobs; Phase A acceptance→job path unchanged.
 FR95: Epic 16 - Job members with per-job roles incl. Arbetsledare.
-FR96: Epic 16 - Arbetsorder as constituent work items `[gated: ADR-B006]`.
-FR97: Epic 16 - Audited projekt upgrade `[gated: ADR-B006]`.
+FR96: Epic 16 - Arbetsorder as `work_orders` children of the container.
+FR97: Epic 16 - Audited one-way projekt upgrade (single-row type change).
 FR98: Epic 16 - Anläggning + specific contact binding per owner rule `1.5`.
-FR99: Epic 16 - Job-card field set per `7.3` `[gated: 7.3]`.
+FR99: Epic 16 - Job-card field set per the answered `7.3`/N-9 list (architecture §8.4).
 FR100: Epic 17 - Material usage + request workflow.
-FR101: Epic 17 - Payment plan on projekt scope `[gated: ADR-B006]`.
+FR101: Epic 17 - Payment plan on projekt scope, DB-bound to `type='projekt'`.
 FR102: Epic 17 - Integer-öre economy rollup with budget-vs-actual.
 FR103: Epic 17 - Economy feed to billing basis (consumed by Epic 26).
 FR104: Epic 18 - Diary, deviations, photos, chat, risks with author + timestamp.
@@ -254,17 +259,17 @@ FR113: Epic 23 - Service records/plans/agreements + scanning `[coarse]`.
 FR114: Epic 23 - Warranties from completion events `[coarse]`.
 FR115: Epic 24 - Electrical panels manual core `[coarse]`.
 FR116: Epic 25 - Supplier data + deterministic imports + calc-row references `[coarse]`.
-FR117: Epic 26 - Billing basis assembly/review/lock/export `[coarse; gated: N-5 + tax gates]`.
+FR117: Epic 26 - Billing basis assembly/review/approve/export `[coarse]`; content per N-5, correctness per §12A (Story 10.6).
 FR118: Epic 26 - Locked-basis immutability + audited corrections.
-FR119: Epic 27 - DoU manual core `[coarse; content gated: N-8]`.
-FR120: Epic 28 - Self-inspections manual core `[coarse; content gated: N-8]`.
-FR121: Epic 29 - Tenders/FKU thin core `[coarse; gated: N-7 visibility]`.
+FR119: Epic 27 - DoU manual core `[coarse]`; compliance content owner-side per N-8.
+FR120: Epic 28 - Self-inspections manual core `[coarse]`; content owner-side per N-8.
+FR121: Epic 29 - Tenders/FKU thin core `[coarse]`; slice accepted by the owner (N-7).
 FR122: Epic 30 - KNX manual tables `[coarse]`.
 FR123: Epic 31 - HR depth on the B1 person record `[coarse]`.
-FR124: Epic 31 - GDPR deletion-request workflow `[coarse; gated: N-10]`.
+FR124: Epic 31 - GDPR deletion-request workflow `[coarse]`; N-10 field/state contract + central versioned retention policy.
 FR125: Epic 32 - Notes/notice board with mentions `[coarse]`.
 FR126: Epic 32 - CRM & calc completions `[coarse]`.
-FR127: Epic 33 - Fortnox foundation `[coarse; gated: N-5 + ADR-B005-final]`.
+FR127: Epic 33 - Fortnox foundation `[coarse]`; N-5 prerequisites settled, ADR-B005-final still post-spike.
 FR128: Epic 34 - Fortnox billing flows `[coarse]`.
 FR129: Story 10.1 (manifest + derivations) + every module epic's activation story (Cross-Epic Rule 1).
 FR130: Story 10.1 (manifest-derived Phase C enforcement) + continuously by the manifest validator/CI in every epic.
@@ -343,17 +348,17 @@ so that losing connectivity does not lose my time, materials, photos, or checkli
 
 ## Epic 11 [Wave B1a]: RBAC Mechanism and Admin User Management
 
-The `tenant_admin`-only era ends: role storage, the code-level permission matrix, role-aware RLS, sensitive-field withholding, admin user management, and the per-role negative-test harness (ADR-B001) — mechanism now, matrix seed flagged on N-4.
+The `tenant_admin`-only era ends: role storage, the code-level permission matrix, role-aware RLS, sensitive-field withholding, admin user management, and the per-role negative-test harness (ADR-B001). **The matrix seed is no longer a placeholder — N-4 (2026-07-26) supplied it in full** (architecture §3.2A/§3.3A): the five tenant roles with **Företagsadmin** as the admin label, Arbetsledare as a per-job assignment, **multi-role membership as a requirement** (`membership_roles` is built here, not reserved), the four-dimension permission model with the owner's named keys (`Jobs.ViewAssigned`, `Economy.ViewCostPrice`, `Economy.ViewContributionMargin`, `InvoiceBasis.ExportToFortnox`, …), the default money-visibility table, deny-by-default, and audited role/permission changes carrying a required reason.
 
 **FRs covered:** FR66, FR67, FR68, FR69, FR70, FR71, FR72
 **Primary NFR coverage:** NFR42, NFR43, NFR44
 **Natural dependencies:** Story 10.1 (manifest). Precedes everything in B1b (PB-D2); contributes matrix rows to every later activation.
 **Activation:** No new tenant module; adds the matrix + role dimension to the manifest/H4 machinery and seeds matrix rows for the active Phase A modules. Nav item `Användare & roller` (Admin).
-**Oracle checks:** None (role names are owner vocabulary; labels stay swappable per N-4).
+**Oracle checks:** None (role names are the owner's own vocabulary, confirmed in N-4; labels stay swappable — the stored admin literal remains `tenant_admin`).
 
 ### Epic 12 [Wave B1a]: Tenant Provisioning and Onboarding
 
-An operator provisions a new tenant end-to-end (create → baseline → first-Admin invite → onboarding checklist) with zero engineering steps; self-serve signup remains a seam only (N-2).
+An operator provisions a new tenant end-to-end (fill the structured onboarding template → validate → preview → approve → create → first-Admin invite → onboarding checklist) with zero engineering steps. **N-2 (2026-07-26): self-serve signup is permanently out** — not a seam being built toward. The provisioning logic is a deterministic service; an AI agent may orchestrate and validate but gets **no general DB access and cannot run arbitrary SQL in production**. The flow must be dry-runnable without writing, idempotent, audit-logged (including who approved), and safe to re-run after a partial failure. Subscription terms (`SubscriptionPlan`, `IncludedUsers`, `AdditionalUserPrice`, `EnabledModules`, `CommercialOverrides`, …) are stored as **data** — no price is ever hardcoded (architecture §15.4A).
 
 **FRs covered:** FR73, FR74, FR75, FR76
 **Primary NFR coverage:** NFR54
@@ -363,7 +368,7 @@ An operator provisions a new tenant end-to-end (create → baseline → first-Ad
 
 ### Epic 13 [Wave B1a]: Notifications and Email Infrastructure
 
-The sanctioned background-execution path (ADR-B002 runner + producer registry), in-app notifications (bell/center/preferences), and the outbox-shaped email pipeline — queued/non-sending until N-6.
+The sanctioned background-execution path (ADR-B002 runner + producer registry), in-app notifications (bell/center/preferences), and the outbox-shaped email pipeline — queued/non-sending until the activation story. **N-6 (2026-07-26) specifies what activation looks like** (architecture §4.6): a central verified sending subdomain, display name `[Företagsnamn] via [Systemnamn]`, **Reply-To set to the tenant's own address**, the six-step flow priority (invitations/security → quote sending → accept/reject notification → job assignment → quote reminders → digests), **five automatic reminder-stop conditions** (accept, reject, withdrawal, new version, expiry), invoices sent from Fortnox rather than from us, and the full delivery-log field set.
 
 **FRs covered:** FR77, FR78, FR79, FR80, FR81
 **Primary NFR coverage:** NFR45, NFR47
@@ -373,11 +378,11 @@ The sanctioned background-execution path (ADR-B002 runner + producer registry), 
 
 ### Epic 14 [Wave B1b]: Resource and Scheduling Foundation
 
-The minimal bookable person (PB-D13), bookings with optional connections (PB-D12), and deterministic conflict detection with the warn-and-allow override — conflict-rule fixtures harden only after N-9.
+The minimal bookable person (PB-D13), bookings with optional connections (PB-D12), and deterministic conflict detection with the warn-and-allow override. **N-9 (2026-07-26) supplied the rules, so the conflict/capacity fixtures can harden now** (architecture §10.5A): capacity derives from the **actual weekly schedule**, not employment percentage; capacity = scheduled − holidays/closed days − absence − bookings − blocked time − buffer; overtime is not ordinary capacity and needs an explicit authorised decision; overbooking warns, and a large overrun may require a specific permission; a central Swedish public-holiday calendar plus per-tenant closed days (`tenant_calendar_days` is built, not reserved); no automatic optimisation in Phase B.
 
 **FRs covered:** FR82, FR83, FR84, FR85, FR86
-**Primary NFR coverage:** NFR48, NFR53 `[gated: N-3]`
-**Natural dependencies:** Epics 11, 13. Does NOT wait for jobs depth (PB-D12). N-3 (field posture) before E14/E15 UX stories; N-9 before conflict-rule fixtures harden.
+**Primary NFR coverage:** NFR48, NFR53 (PWA + offline per ADR-B007)
+**Natural dependencies:** Epics 11, 13, and **Story 10.7** (the PWA/offline platform capability the field surfaces consume). Does NOT wait for jobs depth (PB-D12). N-3 and N-9 are both answered, so neither gates these stories any longer.
 **Activation:** `scheduling` module → active (tables `person_profiles`, `person_work_hours`, `bookings`, `booking_assignees`, `booking_conflicts`); nav item `Planering` lands with the first view surface (E15) in that PR's manifest change.
 **Oracle checks:** None at foundation level (E15 carries the view-level checks).
 
@@ -393,19 +398,19 @@ The five scheduling views, recurring bookings, the conflict resolver, time repor
 
 ### Epic 16 [Wave B1b]: Jobs Core
 
-> **GATE BANNER: schema/design gated on owner `7.1`/`7.3` → ADR-B006; stories to be finalized at gate close.** No E16–E18 design, schema, or story work starts before ADR-B006 is recorded (AC-B1b-6). Sketches below are model-agnostic capability slices.
+> **GATE LIFTED 2026-07-26 — ADR-B006 is recorded.** The model is Jobb-as-container (Option A) implemented as one typed entity (Option C): a single `jobs` table with `type ∈ {order, projekt}`, `work_orders` as children, and "upgrade to projekt" as an audited one-way single-row type change. No `projects` table. E16–E18 design, schema, and story work may proceed (AC-B1b-6 satisfied).
 
 My-jobs, standalone-creatable + connectable jobs, members with per-job roles (Arbetsledare), arbetsorder, projekt upgrade, and the model-agnostic job workspace shell.
 
 **FRs covered:** FR93, FR94, FR95, FR96, FR97, FR98, FR99
 **Primary NFR coverage:** NFR42/43 (job-scoped role enforcement)
 **Natural dependencies:** ADR-B006 recorded; Epics 11, 14 (bookings deepen). Seeds E27 (DoU) and feeds E17/E18.
-**Activation:** `jobs` module is Phase A-active; E16 enrolls the job-depth tables (final set per ADR-B006: container evolution, `work_orders`, `job_members`, …) under it; nav label `Jobb` / `Jobb & Projekt` per ADR-B006.
-**Oracle checks:** Jobs nav label semantics under the chosen model; job workspace tab labels against legacy usage.
+**Activation:** `jobs` module is Phase A-active; E16 enrolls the job-depth tables per ADR-B006 §8.3 — additive columns on the existing `jobs` (`type` CHECK, project-scope fields, the §8.4 job-card fields), plus `work_orders`, `job_members`, `job_dependencies`, `job_access_windows`. Nav label **`Jobb`** (a projekt is an upgraded jobb, not a sibling entity).
+**Oracle checks:** job workspace tab labels against legacy usage; the `Jobb` label's casing/vocabulary (the label choice itself follows from ADR-B006, not from the oracle); the priority value set on the job card (§8.4).
 
 ### Epic 17 [Wave B1b]: Jobs Economy and Material
 
-> Inherits the Epic 16 gate banner (ADR-B006) for schema shape; economy separation (companion tables) applies regardless of model.
+> Gate lifted with Epic 16 (ADR-B006 recorded). Economy separation (companion tables) applies as designed — economy money never sits on the container.
 
 Material usage/requests, payment plan on projekt scope, the integer-öre economy rollup with budget-vs-actual, and the jobs-money golden/comparison-harness extension.
 
@@ -417,12 +422,12 @@ Material usage/requests, payment plan on projekt scope, the integer-öre economy
 
 ### Epic 18 [Wave B1b]: Jobs Field Depth and Completion
 
-> Inherits the Epic 16 gate banner (ADR-B006) for schema shape; capture UX per UX §4.8 is model-independent.
+> Gate lifted with Epic 16 (ADR-B006 recorded). Capture UX per UX §4.8/§4.8A — and note that E18's capture surfaces are the primary consumers of ADR-B007's offline capability.
 
 Diary, deviations, photos, chat, risks, reports/exports, and the audited completion event that seeds warranties (E23) and DoU (E27).
 
 **FRs covered:** FR104, FR105, FR106
-**Primary NFR coverage:** NFR53 `[gated: N-3]` (field capture), NFR45 (no new background paths outside ADR-B002)
+**Primary NFR coverage:** NFR53 (field capture — **these are the primary offline-capture surfaces** under ADR-B007: diary, deviations, photos, checklists, material, start/complete marking), NFR45 (no new background paths outside ADR-B002)
 **Natural dependencies:** Epics 13, 16. Emits the completion event consumed by E23/E27.
 **Activation:** Extends `jobs` (tables `job_diary_entries`, `job_deviations`, `job_chat_messages`, `job_risks`; photos/documents via manifest-declared `files`/`file_links` owner types/purposes, no new file tables).
 **Oracle checks:** Avvikelse severity levels.
@@ -497,7 +502,7 @@ The Ekonomi assembly workbench: candidate lines from jobs/rentals/service as cop
 
 **FRs covered:** FR117, FR118 (spike feeds FR127)
 **Primary NFR coverage:** NFR49; NFR52 (billing goldens)
-**Natural dependencies:** Epics 17, 21, 23 (line sources); `[gated: N-5 content; tax A/B/C + 2.2 correctness sign-off — demo track unaffected]`.
+**Natural dependencies:** Epics 17, 21, 23 (line sources); **Story 10.6** — the ratified money rules (§12A) must be in the engine before a basis drives real invoicing (demo track unaffected). Content definition per N-5 (architecture §7.3), including the versioned `Draft → UnderReview → Approved → Exported → PartiallyInvoiced → Invoiced → Cancelled` status flow and the double-invoicing lock on consumed source items.
 **Activation:** `billing` → active (3 outline tables; nav `Faktureringsunderlag`).
 **Oracle checks:** Faktureringsunderlag line/adjustment vocabulary (legacy had rental-only underlag, P40).
 
@@ -506,7 +511,7 @@ The Ekonomi assembly workbench: candidate lines from jobs/rentals/service as cop
 DoU projects, discipline templates, folder/document structure, upload/import, versioning + lock, package export, material-list sync, and seed-from-job.
 
 **FRs covered:** FR119
-**Natural dependencies:** Epics 16/18 (seed-from-job, completion consumer), 20 (document volume) `[content gated: N-8]`.
+**Natural dependencies:** Epics 16/18 (seed-from-job, completion consumer), 20 (document volume). Compliance content is owner-side (N-8 — Johan Ahlström named as content owner); we build the template engine, versioning, and approval flow, store `ContentOwnerUserId` as a **configurable reference rather than a hardcoded name**, and do not author content presented as legally, regulatorily, or electrically authoritative.
 **Activation:** `dou` → active (4 outline tables; nav `DoU`).
 **Oracle checks:** DoU folder/template structure vocabulary.
 
@@ -515,7 +520,7 @@ DoU projects, discipline templates, folder/document structure, upload/import, ve
 Template-driven form runner (field-shape capable), sections/items/measurements/attachments, manual creation, export, and links to kund/anläggning/jobb/DoU.
 
 **FRs covered:** FR120
-**Natural dependencies:** Epic 27 adjacency (links), field shape from E18 patterns `[content gated: N-8]`.
+**Natural dependencies:** Epic 27 adjacency (links), field shape from E18 patterns. Template content is owner-side per N-8; `ContentOwnerUserId` is a configurable reference.
 **Activation:** `self_inspections` → active (4 outline tables; nav `Egenkontroller`).
 **Oracle checks:** Egenkontroll template/section vocabulary.
 
@@ -524,7 +529,7 @@ Template-driven form runner (field-shape capable), sections/items/measurements/a
 Upload tender files/ZIP with unzip into organized storage, manual summary fields, manual conversion links — the conscious thin parity slice.
 
 **FRs covered:** FR121
-**Natural dependencies:** Epic 20 (file volume) `[gated: N-7 owner visibility of the thin slice]`. Session-flagged KNX adjacency (E30).
+**Natural dependencies:** Epic 20 (file volume). **Thin slice accepted by the owner (N-7, 2026-07-26)** — AI document analysis, requirement extraction, version comparison, risk classification, generated answers, and scoring are explicitly Phase C. Session-flagged KNX adjacency (E30).
 **Activation:** `tenders` → active (1 outline table; nav `Anbud (FKU)`).
 **Oracle checks:** `Anbud (FKU)` label.
 
@@ -542,7 +547,7 @@ Group-address projects with rooms/functions/address tables and settings — the 
 Employment depth on the same person record (PB-D13), competence cards, certifications, training plans, employee documents, incidents + HR inbox, `Min sida` self-service (incl. authenticated suggestions, P70 thinned), and the GDPR deletion-request workflow.
 
 **FRs covered:** FR123, FR124
-**Natural dependencies:** Epics 13 (expiry alerts), 14 (person record), 22 (assigned-assets view) `[deletion posture gated: N-10]`.
+**Natural dependencies:** Epics 13 (expiry alerts), 14 (person record), 22 (assigned-assets view). **Deletion posture answered by N-10** (architecture §12B): retention fields, `Received → … → Closed` request states, `LegalHold`, a central versioned retention policy rather than scattered constants, coverage of every identifiable person including contact persons/subcontractors/people in photos, and no hard-delete affordance for ordinary tenant admins. Earlier modules adopt the retention field contract as they activate — E31 owns the workflow, not the fields.
 **Activation:** `hr` → active (~6–7 outline tables extending `person_profiles`; nav `Personal`, `Min sida`).
 **Oracle checks:** Competence-card/certification vocabulary; `Min sida` matches legacy P69.
 
@@ -561,7 +566,7 @@ Per-tenant Fortnox connection (OAuth entirely server-side), mapping configuratio
 
 **FRs covered:** FR127
 **Primary NFR coverage:** NFR50
-**Natural dependencies:** Epic 26 (billing basis), the E26-hosted spike, ADR-B005-final `[gated: N-5]`.
+**Natural dependencies:** Epic 26 (billing basis), the E26-hosted spike, ADR-B005-final. **N-5 prerequisites are settled** (architecture §7.1): per-tenant OAuth 2 Authorization Code Flow, never shared credentials; initial scopes `companyinformation, customer, article, invoice` with the rest added only when the feature is built; our system master for the invoice basis, Fortnox master for the invoice, its number, bookkeeping and payment status; no automatic bookkeeping or sending from our system in v1.
 **Activation:** `fortnox` → active (3 sketch tables `fortnox_connections`, `integration_outbox`, `external_mappings`; nav `Fortnox`; settings section) — nothing exists before the final ADR + this activation.
 **Oracle checks:** None (net-new owner-directed addition; no legacy Fortnox surface existed).
 
@@ -581,7 +586,7 @@ Export customers, articles, and invoice bases to Fortnox with per-record status,
 
 **Scope:** Story 10.1 re-baseline (AGENTS.md/docs/process/phase-scope-reviewer + scope manifest + derivations + coherence validator); Förlorad/Avböjd with reasons; follow-up workflow; quote-list and read-model surfacing for the dashboard.
 
-**Explicit non-scope:** Any mutation of sent snapshots; a separate analytics page (PB-D7); email reminders (E13 registers the producer; sending gated N-6); dashboard widget rendering (E19).
+**Explicit non-scope:** Any mutation of sent snapshots; a separate analytics page (PB-D7); email reminders (E13 registers the producer; sending activates per N-6); dashboard widget rendering (E19).
 
 **Dependencies:** None. Story 10.1 precedes every other Phase B story.
 
@@ -726,7 +731,7 @@ So that the pipeline is visible now and the E19 dashboard can render it without 
 **Given** quotes across the lifecycle (sent, accepted, lost/declined)
 **When** the pipeline read-model is queried for a period
 **Then** it returns sent/accepted/lost counts, hit rate, and open/overdue follow-up counts computed server-side from lifecycle events (FR65)
-**And** money amounts in the projection ride the entitlement descriptor so unentitled roles receive no amounts (mechanism per AR-B6; seed `[gated: N-4]`).
+**And** money amounts in the projection ride the entitlement descriptor so unentitled roles receive no amounts (mechanism per AR-B6; seed per N-4 / architecture §3.3A).
 
 **Given** the quote list and detail surfaces
 **When** lifecycle completion data exists
@@ -871,8 +876,8 @@ So that every later module can declare authorization rows once, in one source, e
 
 **Given** the existing `tenant_memberships` table
 **When** the role mechanism lands
-**Then** the `role` CHECK widens from the single literal `tenant_admin` to the seed set (`tenant_admin` retained as the Admin literal — no rename, no data migration, `is_tenant_admin()` untouched; plus `projektledare`, `montor`, `saljare`, `ekonomi`) `[labels/entitlements gated: N-4; mechanism is not]`
-**And** storage is single-role per membership while every authorization API takes a role set (`roles: Role[]`), keeping multi-role additive (AB-A2).
+**Then** the `role` CHECK widens from the single literal `tenant_admin` to the seed set (`tenant_admin` retained as the stored literal, UI label **Företagsadmin** — no rename, no data migration, `is_tenant_admin()` untouched; plus `projektledare`, `montor`, `saljare`, `ekonomi`), confirmed by owner answer N-4.
+**And** **multi-role membership ships here, not later** — N-4 revised AB-A2: *"En användare ska kunna ha flera roller och jobbrelaterade uppdrag samtidigt."* The additive `membership_roles` child table (tenant_id, membership_id, role; unique per membership × role) lands in this story, and every authorization API takes a role set (`roles: Role[]`), evaluated as the **union** of the held roles' permissions — with sensitive fields withheld only when **no** held role is entitled.
 
 **Given** the permission matrix at `src/server/authz/permission-matrix.ts`
 **When** it is introduced
@@ -887,7 +892,7 @@ So that every later module can declare authorization rows once, in one source, e
 **When** it is created
 **Then** it follows the proven hardened DEFINER-helper shape (fixed empty `search_path`, schema-qualified, `STABLE`, revoked from PUBLIC) with a standing negative test.
 
-**Technical Notes:** ADR-B001 §3.2–§3.5. No UI in this story. Arbetsledare is deliberately absent from tenant roles (job-scoped, E16). The CHECK widening migration is additive-only.
+**Technical Notes:** ADR-B001 §3.2–§3.5, and **§3.3A for the seed content** (N-4). The permission model has four dimensions — resource/area, action, data scope, sensitive field groups — and keys bind to **stable business functions and API operations, never to page names or a field's current UI position**. Use the owner's named keys verbatim (`Customers.*`, `Jobs.ViewAssigned`/`ViewAll`/`AssignUsers`/`ApproveCompletion`, `Quotes.*`, `InvoiceBasis.*` incl. `ExportToFortnox`, `Economy.ViewSalesPrice`/`EditSalesPrice`/`ViewCostPrice`/`EditCostPrice`/`ViewContributionMargin`, `Users.*`, `Roles.*`, `CompanySettings.*`) — do not coin synonyms alongside them. **Deny-by-default**: absence of an explicit permission is a denial. No UI in this story. Arbetsledare is deliberately absent from tenant roles (a per-job assignment, E16 — §3.2A). The CHECK widening migration is additive-only.
 
 **Test Requirements:** Unit tests for matrix typing/lookup and `requireCapability`; migration reset green; `has_tenant_role` positive/negative integration tests; standing hardened-helper negative test; coherence-validator rule test.
 
@@ -899,11 +904,13 @@ So that every later module can declare authorization rows once, in one source, e
 
 **Dependencies:** Story 10.1.
 
-**Stop Conditions Requiring Human Approval:** Stop if any design pressure pushes toward DB permission tables or runtime-mutable roles in B1a (contradicts AB-A3/UXB-A7), or if the widening would require touching `is_tenant_admin` semantics.
+**Stop Conditions Requiring Human Approval:** Stop if any design pressure pushes toward DB permission tables or **tenant-runtime-mutable** roles in B1a (contradicts AB-A3/UXB-A7 — N-4 confirms tenant-specific role compositions are authored by us via an internal surface or version-controlled configuration, never by direct production-DB edits), or if the widening would require touching `is_tenant_admin` semantics.
 
 ### Story 11.2: Non-Admin Access to the Phase A Surface (Matrix Seed, Role-Aware RLS, Nav and Landing)
 
-> `[gated: N-4]` — the per-role entitlement seed (which roles see money/sensitive fields, final labels) ships here as a conservative team default and is explicitly flagged "väntar på ägarbeslut"; N-4 confirmation is a config-level matrix edit, not rework. The mechanism itself is ungated.
+> **N-4 ANSWERED 2026-07-26 — the conservative-default placeholder is retired.** This story seeds the matrix with the owner's actual defaults, not a team guess, and nothing renders "väntar på ägarbeslut". The seed (architecture §3.3A): **Företagsadmin** — whole company, sales prices yes, cost + contribution margin yes. **Projektledare** — assigned projects/jobs, planning, resources, economy; prices yes; cost + TB yes. **Montör** — own/assigned jobs, time, material, documents, checklists, deviations; **no sales price, no cost price, no contribution margin**. **Säljare** — customers, leads, quotes, sales prices and discounts; **sales prices yes, cost and TB no by default**, with `Economy.ViewContributionMargin` grantable separately to e.g. a sales manager or senior seller. **Ekonomi** — invoice basis, invoices, VAT, ROT, grön teknik, financial follow-up; prices, cost, and TB yes. **Arbetsledare** (per-job, E16) — the specific job's crew, planning, documentation, and consumption; no prices, no cost/TB by default.
+>
+> Two additional requirements from N-4 that belong to this story: **role and permission changes are audit-logged** with `ChangedBy`, `ChangedAt`, `CompanyId`, `RoleId`, `PreviousPermissions`, `NewPermissions`, and a **required** `Reason`; and the owner's suggested margin affordance for Säljare — a **warning when a quote falls below the company's permitted margin that reveals no cost figure**. Design that warning so it is not invertible back to the cost price (a boolean plus a threshold label, never a derived amount).
 
 As a non-admin user (Projektledare, Montör, Säljare, Ekonomi),
 I want to sign in and reach exactly my role-appropriate slice of the active Phase A surface,
@@ -1033,7 +1040,7 @@ So that "why can/can't Emil see X" has a server-derived answer and every future 
 
 **Scope:** `platform_operators` + `is_platform_operator()`; the `provisionTenant` DEFINER RPC (sanctioned exception); operator console at `/operator` (identity/status only); three-step provisioning wizard; `Kom igång` onboarding checklist; NFR54 negative suite.
 
-**Explicit non-scope:** Public self-serve signup (`[gated: N-2]` — FR76, seam only); separate-deployment operator isolation (Phase C hardening option, AB-A8); commercial pricing/packaging (N-2 business outcomes).
+**Explicit non-scope:** Public self-serve signup — **permanently out per N-2** (FR76), not a seam being built toward; separate-deployment operator isolation (Phase C hardening option, AB-A8); commercial pricing/packaging as application logic (N-2: these are tenant data — `SubscriptionPlan`, `IncludedUsers`, `AdditionalUserPrice`, `CommercialOverrides`, … — never hardcoded values, so that a manually agreed discount needs no new build).
 
 **Dependencies:** Epic 11 (roles, invitations). Session-flagged merge candidate into E11 — number kept stable.
 
@@ -1291,21 +1298,25 @@ So that when the owner activates sending (N-6), only the provider adapter and fl
 
 ### Story 13.4: Email Sending Activation
 
-> `[gated: N-6 — this story is defined now and stays DARK until the owner activates sending (domain, from-address, first flows). Scheduling it before N-6 resolves is a process violation.]`
+> **N-6 ANSWERED 2026-07-26 — this story is unblocked.** Sender identity, priority order, and reminder-stop rules are settled (architecture §4.6). What remains a deliberate sequencing choice, not a gate, is the owner's go-ahead to actually start delivering mail to real recipients: **do not flip a flow to sending without it.**
 
 As an Admin,
 I want email sending activated per the owner's N-6 decisions,
-So that queued flows (per owner `3.4`: quote send, follow-up reminders, digests — as N-6 chooses) start delivering with suppression and unsubscribe working.
+So that the queued flows start delivering in the owner's priority order, with suppression and unsubscribe working.
 
 **Acceptance Criteria:**
 
-**Given** the N-6 decisions (sending domain, from-address, first flows)
+**Given** the N-6 decisions — a **central verified sending subdomain** (e.g. `notify.<system>.se`), display name **`[Företagsnamn] via [Systemnamn]`**, and **Reply-To set to the tenant's own chosen address** (e.g. `offert@kundforetag.se`) so customer replies reach the company, not us
 **When** activation lands
-**Then** the provider adapter is implemented behind the existing seam (dependency added only now), the chosen flows switch from queued to sending, and every outbound mail carries tenant identity, a clear subject convention, and a deep link
+**Then** the provider adapter is implemented behind the existing seam (dependency added only now), flows switch from queued to sending **in the owner's priority order** — (1) invitations and account-security messages, (2) quote sending to the customer incl. the open/accept/reject link, (3) internal accept/reject notification, (4) job-assignment or material-reschedule notice to the field worker, (5) configurable quote reminders, (6) daily/weekly digest — and every outbound mail carries tenant identity, a clear subject convention, and a deep link
+**And** **quote reminders stop automatically** on accept, reject, withdrawal, supersession by a new version, and expiry — five conditions, each with its own test; an unstoppable reminder aimed at a customer is the failure mode this guards
+**And** **invoice emails are NOT sent from this system** — Fortnox sends them, so the recipient never gets two invoice mails (N-5/§7.1)
+**And** each send is logged with `MessageType`, `TemplateId`, `TemplateVersion`, `CompanyId`, `Recipient`, `FromAddress`, `ReplyToAddress`, `TriggeredBy`, `TriggeredAt`, `RelatedEntityType`, `RelatedEntityId`, `ProviderMessageId`, `DeliveryStatus`, `DeliveredAt`, `BouncedAt`, `FailureReason`
+**And** transactional and marketing classes are distinguishable in the model, with **no marketing path built** (out of the initial email capability)
 **And** non-essential mail carries a tokenized unsubscribe link; the public unsubscribe page (ADR-B004 rules: hashed token lookup, uniform responses, no tenant enumeration, re-subscribe offer) activates in the `(public)` route group with its abuse suite green
 **And** the preferences e-post column becomes live; suppression + unsubscribe are enforced end-to-end; delivery events show real provider outcomes.
 
-**Technical Notes:** ADR-B004 governs the unsubscribe surface (closed-set member 3). Flow selection is owner content, not team judgment.
+**Technical Notes:** ADR-B004 governs the unsubscribe surface (closed-set member 3). Architecture §4.6 carries the full N-6 contract. Per-tenant **verified sending domains are explicitly a later version** — the adapter must not assume a per-tenant domain, and must not make one hard to add.
 
 **Test Requirements:** Provider-adapter contract tests; unsubscribe token abuse suite (validity/revocation/uniform response/rate limit); end-to-end queued→sent path against a sandbox/mock; suppression + dedupe re-proof under real sending.
 
@@ -1315,19 +1326,19 @@ So that queued flows (per owner `3.4`: quote send, follow-up reminders, digests 
 
 **Migration/Coexistence Impact:** None.
 
-**Dependencies:** Stories 13.1–13.3; ADR-B004; owner gate N-6.
+**Dependencies:** Stories 13.1–13.3; ADR-B004; the owner's go-live approval for real sending.
 
-**Stop Conditions Requiring Human Approval:** This entire story is owner-gated (N-6). Additionally stop if a flow outside the owner's chosen set is proposed for activation.
+**Stop Conditions Requiring Human Approval:** Stop before any flow begins delivering to real recipients without the owner's explicit go-ahead. Additionally stop if a flow outside the six-step priority order is proposed for activation, or if a design would send invoice mail from this system.
 
 ---
 
 # Wave B1b — Story Titles + AC Sketches
 
-> **Depth note (PB-D10):** Epics 14–19 below carry story titles with AC sketches, not full acceptance criteria. They are finalized to Phase-A-style full stories at the B1a→B1b checkpoint — and for Epics 16–18 only after ADR-B006 is recorded. Cross-Epic Delivery Rules 1–5 apply to every story below.
+> **Depth note (PB-D10):** Epics 14–19 below carry story titles with AC sketches, not full acceptance criteria. They are finalized to Phase-A-style full stories at the B1a→B1b checkpoint. **ADR-B006 is recorded (2026-07-26), so Epics 16–18 no longer carry an extra precondition.** Cross-Epic Delivery Rules 1–5 apply to every story below. Note that every field-capture surface in E14–E18 now also carries ADR-B007 offline acceptance criteria, consuming the platform capability Story 10.7 delivers.
 
 ## Epic 14 [Wave B1b]: Resource and Scheduling Foundation
 
-> **Gate notes:** `[N-3]` — field-posture confirmation precedes the E14/E15 UX stories (team recommendation: responsive web; the data/engine stories are posture-independent). `[N-9]` — conflict/capacity **rule fixtures harden only after N-9**: rules enter as injectable config + strawman fixtures now, golden-pinned rule packs only at gate close (FR86, NFR48).
+> **Gate notes — both closed 2026-07-26.** `[N-3]` → **ADR-B007**: the field posture is an installable PWA with offline capture, so the E14/E15 UX stories carry offline states and depend on Story 10.7's platform capability; the data/engine stories remain posture-independent. `[N-9]` → **answered**: the conflict/capacity rules are supplied (architecture §10.5A), so the **golden-pinned rule packs can be authored now** rather than waiting — capacity from the actual weekly schedule, the six-term capacity formula, overtime excluded, overbooking warning thresholds, and the central-holidays-plus-tenant-closed-days calendar (FR86, NFR48).
 
 **Stories:**
 
@@ -1341,21 +1352,21 @@ AC sketch: `bookings` (UTC `timestamptz`, all-day flag, work role, all-optional 
 
 #### Story 14.3: Deterministic Conflict Engine (Detection Core)
 
-AC sketch: one pure engine (`src/features/scheduling/conflicts.ts`) — no I/O, no clock — detecting `double_booking`, `over_capacity`, `outside_work_hours` from (candidate, existing bookings, work-hour templates, injectable rule config); server re-runs detection inside the write transaction; editor preview calls the same module so preview and save can never disagree; Europe/Stockholm evaluation with the pinned DST edge policy (spring-forward → first valid instant; fall-back → earlier instant) covered by boundary-week fixtures; missed/phantom conflicts are correctness defects with regression fixtures; `[N-9]` capacity/work-hours rule packs golden-pinned only at gate close (strawman config until then).
+AC sketch: one pure engine (`src/features/scheduling/conflicts.ts`) — no I/O, no clock — detecting `double_booking`, `over_capacity`, `outside_work_hours` from (candidate, existing bookings, work-hour templates, injectable rule config); server re-runs detection inside the write transaction; editor preview calls the same module so preview and save can never disagree; Europe/Stockholm evaluation with the pinned DST edge policy (spring-forward → first valid instant; fall-back → earlier instant) covered by boundary-week fixtures; missed/phantom conflicts are correctness defects with regression fixtures; capacity/work-hours rule packs are golden-pinned **now** — N-9 supplied the rules (architecture §10.5A), so the packs cover the six-term capacity formula, actual-weekly-schedule derivation, holiday/closed-day layering, and the overbooking warning threshold. Conflict types extend with `outside_access_window` and `competence_missing` from the N-9 job-card inputs.
 
 #### Story 14.4: Booking Editor with Live Conflict Warnings and Audited Override
 
-AC sketch: side-sheet editor (desktop) / full-screen (phone) with multi-assignee picker + availability hints, work role, time, optional connections, description; live inline `ConflictPanel` per violation with mini-timeline; saving with conflicts requires explicit `Boka ändå` + required reason → persists `booking_conflicts` rows in state `accepted` (unacknowledged detected conflicts persist as `open`) in the same transaction plus audit event; persistent `Konflikter (n)` chip counts open conflicts; entry points: toolbar, empty-slot click/drag, pre-connected from job/customer; dirty-state guard; `[N-3]` posture confirmation before the phone-shape work.
+AC sketch: side-sheet editor (desktop) / full-screen (phone) with multi-assignee picker + availability hints, work role, time, optional connections, description; live inline `ConflictPanel` per violation with mini-timeline; saving with conflicts requires explicit `Boka ändå` + required reason → persists `booking_conflicts` rows in state `accepted` (unacknowledged detected conflicts persist as `open`) in the same transaction plus audit event; persistent `Konflikter (n)` chip counts open conflicts; entry points: toolbar, empty-slot click/drag, pre-connected from job/customer; dirty-state guard; the phone shape is the installed-PWA shape (ADR-B007) and its capture path carries offline states.
 
 ## Epic 15 [Wave B1b]: Scheduling Views, Time Reporting, and Calendar Feeds
 
-> **Gate notes:** calendar feed (Story 15.5) ships **only after the ADR-B004 suite is green** (AC-B1b-7) — it is Phase B's first public token surface. `[N-3]` posture confirmation precedes the Min dag/phone-shape stories. Reminder producers activate via the E13 registry.
+> **Gate notes:** calendar feed (Story 15.5) ships **only after the ADR-B004 suite is green** (AC-B1b-7) — it is Phase B's first public token surface. the field posture is settled (ADR-B007 — installable PWA with offline capture), so the Min dag/phone-shape stories proceed and carry offline acceptance criteria consuming Story 10.7. Reminder producers activate via the E13 registry.
 
 **Stories:**
 
 #### Story 15.1: The Five Scheduling Views
 
-AC sketch: `Planering` nav lands (manifest change in this PR); `Schema` (time-grid day/week, month density), `Resurser` (person-row timeline, empty-slot create, needs-reassignment lane), `Team` (week board grouped by arbetsroll — named teams only if the oracle demands, UXB-A9 `[oracle-check]`), `Beläggning` (capacity matrix, number + color never color alone, >100% links to bookings, rules `[N-9]`), `Min kalender` (agenda phone-first); all five are projections of one booking/filter model (AC-B1b-2); shared toolbar with per-user per-view filter/period persistence; `BookingBlock` contract with drag parity (keyboard/dialog equivalents).
+AC sketch: `Planering` nav lands (manifest change in this PR); `Schema` (time-grid day/week, month density), `Resurser` (person-row timeline, empty-slot create, needs-reassignment lane), `Team` (week board grouped by arbetsroll — named teams only if the oracle demands, UXB-A9 `[oracle-check]`), `Beläggning` (capacity matrix, number + color never color alone, >100% links to bookings, capacity rules per architecture §10.5A), `Min kalender` (agenda phone-first); all five are projections of one booking/filter model (AC-B1b-2); shared toolbar with per-user per-view filter/period persistence; `BookingBlock` contract with drag parity (keyboard/dialog equivalents).
 
 #### Story 15.2: Recurring Bookings — Series, Materialized Occurrences, Exceptions
 
@@ -1375,17 +1386,17 @@ AC sketch: `calendar_feed_tokens` hashed 256-bit tokens; user-self-serve `Kalend
 
 #### Story 15.6: Min Dag — the Field Landing
 
-AC sketch: `/my-day` route + Montör landing redirect activates (completing EB-A6); today header with week nav; time-ordered booking cards (job/kund + map-linked address, `Öppna jobbet`, `Rapportera tid`); banner-level schedule-change notices from `booking.changed`; pull-to-refresh; no money content; `Mina jobb` section renders when E16 activates (PB-D12 seam — the section contributes nothing before then); 360×640 floor `[N-3]`; empty state "inga bokningar ännu".
+AC sketch: `/my-day` route + Montör landing redirect activates (completing EB-A6); today header with week nav; time-ordered booking cards (job/kund + map-linked address, `Öppna jobbet`, `Rapportera tid`); banner-level schedule-change notices from `booking.changed`; pull-to-refresh; no money content; `Mina jobb` section renders when E16 activates (PB-D12 seam — the section contributes nothing before then); 360×640 floor; installed-PWA shape with offline access to the day's assigned jobs (ADR-B007); empty state "inga bokningar ännu".
 
 ## Epic 16 [Wave B1b]: Jobs Core
 
-> **GATE BANNER — schema/design gated on owner `7.1`/`7.3` → ADR-B006; stories to be finalized at gate close.** Per AC-B1b-6 no E16–E18 design, schema, or story work starts before ADR-B006 is recorded. The sketches below are model-agnostic capability slices drawn for the team recommendation (present A, implement as C) and re-cut at gate close if the outcome differs (Option B adds an `Ingående jobb` read-model story and a `projects` grouping story).
+> **GATE LIFTED 2026-07-26 — ADR-B006 recorded (architecture §8).** The owner chose exactly the team recommendation: **Option A as the model, Option C as the technique.** The sketches below were drawn for that outcome and therefore stand as written, with the Option B branches deleted rather than kept as alternatives — there is no `projects` grouping story and no `Ingående jobb` read-model story. Story-level detail may now be finalized (AC-B1b-6 satisfied).
 
 **Stories:**
 
 #### Story 16.1: Jobs Depth Activation — Container Evolution and My-Jobs
 
-AC sketch: per ADR-B006 outcome, evolve the Phase A `jobs` container (option C: additive `type ∈ {order, projekt}` CHECK + nullable project-scope fields; option B instead adds `projects` + nullable `project_id`); manifest/table enrollment + matrix rows + per-role negatives in the same PR; my-jobs view (`Mina jobb`) scoped to membership/assignment (FR93); standalone create + connect per FR94/FR98 with the `7.3` field set `[gated: 7.3]`; Phase A acceptance→job path regression-proven unchanged; existing bookings bind seamlessly (PB-D12).
+AC sketch: evolve the Phase A `jobs` container per ADR-B006 §8.3 — additive `type ∈ {order, projekt}` CHECK defaulting to `'order'` (so every existing row stays valid with no backfill ambiguity), plus nullable project-scope fields whose non-null state implies `type='projekt'` by DB CHECK. `status` is NOT overloaded — lifecycle and kind stay orthogonal. Manifest/table enrollment + matrix rows + per-role negatives in the same PR; my-jobs view (`Mina jobb`) scoped to membership/assignment (FR93); standalone create + connect per FR94/FR98 with the answered §8.4 field set (progressive disclosure — identity fields first, N-9 scheduling inputs in a second group; dependencies and access windows as repeatable child rows, not JSON); budget is read from the economy projection, never a column on the container. **Both Phase A creation paths are regression-proven unchanged** — the Epic 7 acceptance→job RPC and the 2026-07-14 standalone-create command — and existing bookings bind seamlessly (PB-D12).
 
 #### Story 16.2: Job Members and Per-Job Roles (Arbetsledare)
 
@@ -1393,15 +1404,15 @@ AC sketch: `job_members` (person, per-job operational role incl. `Arbetsledare` 
 
 #### Story 16.3: Arbetsorder
 
-AC sketch: `work_orders` child work items (title, status, assignees, description, own files via manifest-declared owner type) `[gated: 7.1/7.3 containment]`; workspace `Arbetsorder` tab with list/cards + work-order pane; creation/edit envelope commands; RLS + role gating per matrix.
+AC sketch: `work_orders` child work items (title, status, assignees, description, own files via manifest-declared owner type), composite same-tenant FK to `jobs (id, tenant_id)`; **present on both `type='order'` and `type='projekt'`** — containment is the model's core relation, not a project feature; workspace `Arbetsorder` tab with list/cards + work-order pane; creation/edit envelope commands; RLS + role gating per matrix.
 
 #### Story 16.4: Projekt Upgrade and Job-Card Semantics
 
-AC sketch: audited upgrade (option C: single-row type transition guarded by lifecycle check; project-only children DB-bound to `type='projekt'`) `[gated: 7.1/7.3 upgrade semantics]`; `Uppgradera till projekt` header action with audited confirm listing unlocked features; job-card create/edit form per the owner-pruned `7.3` field list; nav label `Jobb`/`Jobb & Projekt` per ADR-B006 `[oracle-check]`.
+AC sketch: the `upgradeJobToProjekt` command (architecture §14) — a single-row `type` transition in one transaction with a `job_events` row, an `audit_events` row, and the project-surface unlock; **idempotent** (already-`projekt` short-circuits) and **one-way** (a DB trigger rejects `projekt → order`, error code `JOB_TYPE_DOWNGRADE_FORBIDDEN`); project-only children (payment plan) DB-bound to `type='projekt'` by CHECK or trigger, **not** by command-layer convention. `Uppgradera till projekt` header action shown only on `type='order'`, with an audited confirm listing the features it unlocks before commit; **no downgrade action exists**. Job-card create/edit form per the §8.4 field set; nav label **`Jobb`** (`[oracle-check]` on casing/vocabulary only).
 
 #### Story 16.5: Job Workspace Shell
 
-AC sketch: model-agnostic shell bound to one container id — header (title, type badge, status, kund/anläggning/kontakt chips per `1.5`, PL + Arbetsledare picker, planned dates, budget mini-bar `[N-4]`, primary actions `Boka`/`Rapportera tid`/`Markera som klar`) + tab registry where each tab is a read-model keyed by container id; tabs live in B1b: Översikt, Arbetsorder, Schema (job's bookings, `Ny bokning` pre-connected), Filer, Händelser — later tabs contribute per epic; per-tab visibility = matrix × activation; Montör field shape = bottom tab bar (UX §4.8); narrow-viewport priority tabs + `Mer`.
+AC sketch: shell bound to one container id (ADR-B006 confirms the contract unchanged; no `Ingående jobb` aggregate) — header (title, type badge `Jobb`/`Projekt`, status, kund/anläggning/kontakt chips per `1.5`, PL + Arbetsledare picker, planned dates, budget mini-bar **absent entirely for Montör and, by default, Arbetsledare** per the N-4 seed, primary actions `Boka`/`Rapportera tid`/`Markera som klar`) + tab registry where each tab is a read-model keyed by container id; tabs live in B1b: Översikt, Arbetsorder, Schema (job's bookings, `Ny bokning` pre-connected), Filer, Händelser — later tabs contribute per epic; per-tab visibility = matrix × activation; Montör field shape = bottom tab bar (UX §4.8); narrow-viewport priority tabs + `Mer`.
 
 ## Epic 17 [Wave B1b]: Jobs Economy and Material
 
@@ -1415,7 +1426,7 @@ AC sketch: `job_material_usage` (who/what/qty/unit/when; article search over own
 
 #### Story 17.2: Payment Plan on Projekt Scope
 
-AC sketch: `job_payment_plans` (+ items) attached per the ADR-B006 outcome `[gated: 7.1/7.3 attachment]`, DB-bound to projekt scope; integer-öre amounts via `@/lib/money`; visible in the Ekonomi tab for entitled roles; plan items become billing-basis candidates later (N-5 content definition decides inclusion — seam only here).
+AC sketch: `job_payment_plans` (+ items) attached to the job container and **DB-bound to `type='projekt'`** (ADR-B006 §8.3); integer-öre amounts via `@/lib/money`; visible in the Ekonomi tab for entitled roles; plan items become billing-basis candidates later (N-5 content definition decides inclusion — seam only here).
 
 #### Story 17.3: Economy Rollup — Budget vs Actual
 
@@ -1457,7 +1468,7 @@ AC sketch: `src/scope/widget-registry.ts` — manifest-declared widget ids → c
 
 #### Story 19.2: The v1 Widget Set
 
-AC sketch: exactly six widgets on live B1 data (PB-A11): `Offertpipeline` (E10 read-model; amounts `[N-4]`), `Uppföljningar` (due/overdue + quick complete), `Veckans bokningar` (mine/team toggle per role), `Konflikter` (open by type → resolver), `Aktiva jobb` (status, recently active, missing planned dates), `Tidläget` (reported vs expected hours); widget money rides the entitlement contract (FR108); widget list manifest-traceable (AC-B1b-8); Montör does not land here (`Min dag`) but may open if granted.
+AC sketch: exactly six widgets on live B1 data (PB-A11): `Offertpipeline` (E10 read-model; amounts per the N-4 seed), `Uppföljningar` (due/overdue + quick complete), `Veckans bokningar` (mine/team toggle per role), `Konflikter` (open by type → resolver), `Aktiva jobb` (status, recently active, missing planned dates), `Tidläget` (reported vs expected hours); widget money rides the entitlement contract (FR108); widget list manifest-traceable (AC-B1b-8); Montör does not land here (`Min dag`) but may open if granted.
 
 ---
 
@@ -1482,7 +1493,7 @@ AC sketch: exactly six widgets on live B1 data (PB-A11): `Offertpipeline` (E10 r
 - Story 21.3 (candidate): Rental orders (incl. grouped) with lifecycle (reserved → out → returned).
 - Story 21.4 (candidate): Delivery notes + return flows producing PDF documents (`Följesedel`, `Retur`).
 - Story 21.5 (candidate): Rental history, item availability views, and rental billing records ("väntar på underlag" until E26 consumes).
-- Story 21.6 (candidate): Rentals data migration `[gated: N-1]`.
+- Story 21.6 (candidate): Rentals data migration — **VOID (owner decision 2026-07-20: no Lovable→app data migration; parallel-run cutover). Do not create this story.**
 
 ## Epic 22 [Wave B2]: Assets and QR — candidates
 
@@ -1493,7 +1504,7 @@ AC sketch: exactly six widgets on live B1 data (PB-A11): `Offertpipeline` (E10 r
 - Story 22.3 (candidate): Fault reports + QR/label PDF generation (`Skriv ut etikett`).
 - Story 22.4 (candidate): Public QR route (ADR-B004 surface #2): hashed `asset_qr_tokens`, minimal projection, felanmälan submit deriving tenant/asset from the token row, rate limits, abuse suite (AC-B2-3).
 - Story 22.5 (candidate): Proactive asset scan producer → expiry/service notifications with freshness stamps (AC-B2-4).
-- Story 22.6 (candidate): Assets data migration `[gated: N-1]`.
+- Story 22.6 (candidate): Assets data migration — **VOID (owner decision 2026-07-20: no Lovable→app data migration; parallel-run cutover). Do not create this story.**
 
 ## Epic 23 [Wave B2]: Service and Warranties — candidates
 
@@ -1503,7 +1514,7 @@ AC sketch: exactly six widgets on live B1 data (PB-A11): `Offertpipeline` (E10 r
 - Story 23.2 (candidate): Due/overdue scan producer + suggestion inbox (`QueueList`: context, snooze, dismiss-with-reason, `Skapa jobb` pre-connected).
 - Story 23.3 (candidate): Service-plan → job creation flow.
 - Story 23.4 (candidate): Warranties — created by the E18 completion event (provenance link back to the job), expiry tracking + notifications.
-- Story 23.5 (candidate): Service data migration `[gated: N-1]`.
+- Story 23.5 (candidate): Service data migration — **VOID (owner decision 2026-07-20: no Lovable→app data migration; parallel-run cutover). Do not create this story.**
 
 ## Epic 24 [Wave B2]: Electrical Panels — candidates
 
@@ -1511,7 +1522,7 @@ AC sketch: exactly six widgets on live B1 data (PB-A11): `Offertpipeline` (E10 r
 
 - Story 24.1 (candidate): Panels activation + register/detail.
 - Story 24.2 (candidate): Gruppförteckning editable grid (groups/circuits incl. RCD), bulk edit, duplicate, print/PDF export tuned to the standardized artifact.
-- Story 24.3 (candidate): Panels data migration `[gated: N-1]`.
+- Story 24.3 (candidate): Panels data migration — **VOID (owner decision 2026-07-20: no Lovable→app data migration; parallel-run cutover). Do not create this story.**
 
 ## Epic 25 [Wave B2]: Supplier Data and Imports — candidates
 
@@ -1520,14 +1531,14 @@ AC sketch: exactly six widgets on live B1 data (PB-A11): `Offertpipeline` (E10 r
 - Story 25.1 (candidate): Suppliers activation + master data, price lists, discount agreements (discounts row-sensitive → role-gated RLS).
 - Story 25.2 (candidate): Deterministic price-list file import via the wizard pattern (`supplier_import_runs` audit; per-row error report; re-import diff summary; explicit commit — nothing silently skipped).
 - Story 25.3 (candidate): Supplier articles selectable on calculation rows (extends the frozen source picker with a supplier scope; snapshot-on-select semantics unchanged).
-- Story 25.4 (candidate): Supplier data migration `[gated: N-1]`.
+- Story 25.4 (candidate): Supplier data migration — **VOID (owner decision 2026-07-20: no Lovable→app data migration; parallel-run cutover). Do not create this story.**
 
 ## Epic 26 [Wave B2]: Billing Basis (+ Fortnox Spike) — candidates
 
 **Scope line:** The Ekonomi assembly workbench closing B2 (PB-D11): candidate lines from jobs/rentals/service as copy-by-value öre snapshots; review → audited adjust → announced lock → export; plus the B2 Fortnox spike. **Key dependency:** E17/E21/E23 line sources. **Gates:** `[N-5 content definition; tax A/B/C + 2.2 bind real-invoicing use — demo unaffected]` (NFR49). **N-1 note:** no legacy billing-basis data expected (legacy had rental-only underlag support, P40) — confirm in classification.
 
 - Story 26.1 (candidate): Billing activation + schema (`billing_bases`, `billing_basis_lines` copy-by-value snapshots, `billing_basis_events` append-only).
-- Story 26.2 (candidate): Assembly workbench — scope pick (kund/jobb/period), candidate-line streaming from jobs (time/material/plan items `[N-5]`), rentals, service; per-line include/exclude `[gated: N-5]`.
+- Story 26.2 (candidate): Assembly workbench — scope pick (kund/jobb/period), candidate-line streaming from jobs (time, material, fixed price, payment-plan items, and other billable items per the N-5 content definition — architecture §7.3), rentals, service; per-line include/exclude; only approved, not-yet-invoiced source items are eligible and a consumed item is locked against double invoicing.
 - Story 26.3 (candidate): Audited adjustments + `Lås underlag` (`Utkast → Låst → Exporterad`; `lockBillingBasis` RPC; DB-trigger lock-family member `BILLING_BASIS_LOCKED` with reversal + identity tests; audited-correction path; FR118) + export.
 - Story 26.4 (candidate): Billing golden/regression packs (line assembly, lock totals, öre-exactness) + the real-invoicing correctness banner bound to the tax gates (NFR49, AC-B2-5).
 - Story 26.5 (candidate): **B2 Fortnox spike** — answers architecture §7's questions (licensing/API access, rate limits, idempotency keys, invoice-basis payload vs N-5, token refresh, sandbox); produces the spike report feeding ADR-B005-final and the N-5 owner conversation (AC-B2-6). Runs parallel to 26.1–26.4; may be lifted to a standalone pre-E33 item at the checkpoint (EB-A9). **No Fortnox code, credentials, tables, or dependencies — a report.**
@@ -1546,7 +1557,7 @@ AC sketch: exactly six widgets on live B1 data (PB-A11): `Offertpipeline` (E10 r
 - Story 27.2 (candidate): Folder/document tree, upload/import, per-document versioning + lock (lock-trigger family member).
 - Story 27.3 (candidate): Package export (`Exportera paket`) + material-list sync status.
 - Story 27.4 (candidate): `Skapa från jobb` — completion-event consumer seeding structure from a completed job (activates the E18 offer card).
-- Story 27.5 (candidate): DoU data migration `[gated: N-1]`.
+- Story 27.5 (candidate): DoU data migration — **VOID (owner decision 2026-07-20: no Lovable→app data migration; parallel-run cutover). Do not create this story.**
 
 ## Epic 28 [Wave B3]: Self-Inspections — candidates
 
@@ -1555,7 +1566,7 @@ AC sketch: exactly six widgets on live B1 data (PB-A11): `Offertpipeline` (E10 r
 - Story 28.1 (candidate): Self-inspections activation + templates (sections/items) with ingestion-ready template model.
 - Story 28.2 (candidate): Form runner — assignable to Montör, field-shape ergonomics, measurements + attachments.
 - Story 28.3 (candidate): Export to the standardized document + links to customer/facility/job/DoU.
-- Story 28.4 (candidate): Self-inspections data migration `[gated: N-1]`.
+- Story 28.4 (candidate): Self-inspections data migration — **VOID (owner decision 2026-07-20: no Lovable→app data migration; parallel-run cutover). Do not create this story.**
 
 ## Epic 29 [Wave B3]: Tenders/FKU Thin Core — candidates
 
@@ -1563,25 +1574,25 @@ AC sketch: exactly six widgets on live B1 data (PB-A11): `Offertpipeline` (E10 r
 
 - Story 29.1 (candidate): Tenders activation + upload/ZIP/unzip organized storage (files via `file_links`).
 - Story 29.2 (candidate): Manual summary fields + manual conversion links to kalkyl/offert/jobb/DoU/egenkontroll (with the N-7 owner-visibility note on the surface).
-- Story 29.3 (candidate): Tender file/data migration `[gated: N-1]`.
+- Story 29.3 (candidate): Tender file/data migration — **VOID (owner decision 2026-07-20: no Lovable→app data migration; parallel-run cutover). Do not create this story.**
 
 ## Epic 30 [Wave B3]: KNX Manual Tables — candidates
 
 **Scope line:** Group-address projects with rooms/functions/address tables and settings — panels-style dense grid, small scope (P63; ETS parsing stays C). **N-1 note:** classification before 30.2. **Merge note:** tenders adjacency.
 
 - Story 30.1 (candidate): KNX activation + projects with rooms/functions/group-address tables (dense grid pattern) and settings.
-- Story 30.2 (candidate): KNX data migration `[gated: N-1]`.
+- Story 30.2 (candidate): KNX data migration — **VOID (owner decision 2026-07-20: no Lovable→app data migration; parallel-run cutover). Do not create this story.**
 
 ## Epic 31 [Wave B3]: HR and Personnel Depth — candidates
 
-**Scope line:** Employment depth on the same person record (PB-D13 — parallel employee tables forbidden), competence/certifications/training with expiry alerts, incidents + HR inbox, `Min sida` self-service (authenticated suggestions — P70 thinned), GDPR deletion-request workflow (P65–P71). **Key dependency:** E13 (expiries), E14 (person record), E22 (assigned assets). **Gates:** `[N-10 deletion posture]`; HR data row-sensitive → role-gated RLS; salary-adjacent fields `[N-4]`. **N-1 note:** HR classification before 31.6.
+**Scope line:** Employment depth on the same person record (PB-D13 — parallel employee tables forbidden), competence/certifications/training with expiry alerts, incidents + HR inbox, `Min sida` self-service (authenticated suggestions — P70 thinned), GDPR deletion-request workflow (P65–P71). **Key dependency:** E13 (expiries), E14 (person record), E22 (assigned assets). **Answered gates:** N-10 supplies the deletion/retention posture (architecture §12B — retention fields, `LegalHold`, `Received → … → Closed` states, a central versioned retention policy, and no hard-delete for ordinary tenant admins, covering every identifiable person incl. contact persons, subcontractors, and people in photos); HR data is row-sensitive → role-gated RLS; salary-adjacent fields ride the N-4 sensitive-field seed. **N-1 note VOID** — there is no data migration (owner 2026-07-20).
 
 - Story 31.1 (candidate): HR activation + employment extension of `person_profiles` (columns/child tables; zero parallel tables — AC-B3-2).
 - Story 31.2 (candidate): Competence cards, certifications, training plans, employee documents with expiry-driven notifications.
 - Story 31.3 (candidate): Incident reports + HR inbox (`QueueList`).
 - Story 31.4 (candidate): `Min sida` — employee self-service (own profile, bookings, assigned assets, documents, authenticated suggestion box).
-- Story 31.5 (candidate): GDPR deletion-request workflow — formal request → status tracker, authenticated + audited processing via ADR-B002 `[gated: N-10]`.
-- Story 31.6 (candidate): HR data migration `[gated: N-1]`.
+- Story 31.5 (candidate): GDPR deletion-request workflow — formal request → status tracker, authenticated + audited processing via ADR-B002, over the N-10 states `Received → IdentityVerificationRequired → UnderAssessment → PartiallyApproved | Approved | Rejected → Executed → Closed`, honouring `LegalHold` and the central versioned retention policy (architecture §12B).
+- Story 31.6 (candidate): HR data migration — **VOID (owner decision 2026-07-20: no Lovable→app data migration; parallel-run cutover). Do not create this story.**
 
 ## Epic 32 [Wave B3]: Notes and CRM Completions — candidates
 
@@ -1590,7 +1601,7 @@ AC sketch: exactly six widgets on live B1 data (PB-A11): `Offertpipeline` (E10 r
 - Story 32.1 (candidate): Notes activation + notice board (categories, pinning, archive) with @mention notifications.
 - Story 32.2 (candidate): Customer 360 tab + favorites + classification tools (read-models + small columns on frozen CRM surfaces).
 - Story 32.3 (candidate): Duplicate-calculation flow + quote-settings/branding completions.
-- Story 32.4 (candidate): Notes/CRM-completions data migration `[gated: N-1]`.
+- Story 32.4 (candidate): Notes/CRM-completions data migration — **VOID (owner decision 2026-07-20: no Lovable→app data migration; parallel-run cutover). Do not create this story.**
 
 ## Epic 33 [Wave B3]: Fortnox Foundation — candidates
 
