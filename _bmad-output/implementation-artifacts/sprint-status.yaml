@@ -60,7 +60,7 @@
 # `backlog` story in file order.
 
 generated: 2026-06-12
-last_updated: 2026-07-20  # Epic 10 retrospective completed (epic-10-retrospective: optional → done)
+last_updated: 2026-07-26  # Epic 10 stories 10-1..10-4 flipped to done post-merge (PR #38)
 project: ElproSaas
 project_key: NOKEY
 tracking_system: file-system
@@ -184,11 +184,21 @@ development_status:
   # them.
 
   # WAVE B1a — full stories, build-ready. Epic 10 / Story 10-1 is NEXT.
+  # DELIVERED SCOPE IS SHIPPED: stories 10-1..10-4 are done and merged to main (PR #38), and the
+  # retrospective is done. Deliberately left `in-progress` rather than `done` because 10-5/10-6/10-7
+  # are still open — marking the epic done would be inaccurate.
+  # HOW TO RUN THE REMAINING THREE: use PER-STORY mode, e.g.
+  #   /auto-bmad --story 10-6-tax-answer-reconciliation
+  # NOT `/auto-bmad epic --epic 10`. The epic anchor
+  # (_bmad-output/auto-bmad/state/epic/epic-10.yaml) is already `status: done`, and the epic
+  # pipeline's E1 `init` REFUSES to overwrite an existing anchor — so an epic-mode rerun cannot
+  # start. Per-story mode needs no anchor, and the epic-ownership guard only blocks when an
+  # IN-FLIGHT anchor owns the story, which this one is not.
   epic-10: in-progress
-  10-1-phase-b-governance-re-baseline-and-scope-manifest: review
-  10-2-forlorad-avbojd-status-and-lost-reason-lifecycle: review
-  10-3-quote-follow-up-workflow: review
-  10-4-pipeline-surfacing-and-dashboard-read-model: review
+  10-1-phase-b-governance-re-baseline-and-scope-manifest: done
+  10-2-forlorad-avbojd-status-and-lost-reason-lifecycle: done
+  10-3-quote-follow-up-workflow: done
+  10-4-pipeline-surfacing-and-dashboard-read-model: done
   # Story 10.5 — post-review DB-hardening + read-model pagination follow-up. Created 2026-07-25 from
   # the independent Codex review of PR #38: its two P1 findings were FIXED in Epic 10; these 8 P2
   # items were consciously ledgered (deferred-work.md -> "Deferred from: Codex review of epic-10")
