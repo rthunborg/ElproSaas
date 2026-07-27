@@ -4,10 +4,10 @@ story_key: 3-2-crm-tenant-admin-ux-and-lifecycle-context
 epic_num: 3
 story_num: 2
 branch: epic/3-crm-company-settings-and-pricing-foundation
-status: in-progress
-updated_at: "2026-06-30T14:35:29Z"
+status: done
+updated_at: "2026-07-27T14:57:08Z"
 started_at: "2026-06-30T12:40:19Z"
-completed_at: null
+completed_at: "2026-07-27T14:57:08Z"
 active_seconds: 3496
 timing_anchor: null
 is_first_in_epic: false

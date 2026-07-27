@@ -4,10 +4,10 @@ story_key: 5-2-calculation-editor-ux-for-sections-and-rows
 epic_num: 5
 story_num: 2
 branch: epic/5-calculation-workspace-and-quote-readiness
-status: in-progress
-updated_at: "2026-07-03T07:46:14Z"
+status: done
+updated_at: "2026-07-27T14:57:10Z"
 started_at: "2026-07-03T06:43:41Z"
-completed_at: null
+completed_at: "2026-07-27T14:57:10Z"
 active_seconds: 3690
 timing_anchor: null
 is_first_in_epic: false

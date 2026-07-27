@@ -4,10 +4,10 @@ story_key: 5-1-tenant-owned-calculation-schema-and-server-commands
 epic_num: 5
 story_num: 1
 branch: epic/5-calculation-workspace-and-quote-readiness
-status: in-progress
-updated_at: "2026-07-03T06:41:47Z"
+status: done
+updated_at: "2026-07-27T14:57:09Z"
 started_at: "2026-07-02T18:26:43Z"
-completed_at: null
+completed_at: "2026-07-27T14:57:09Z"
 active_seconds: 4430
 timing_anchor: null
 is_first_in_epic: true

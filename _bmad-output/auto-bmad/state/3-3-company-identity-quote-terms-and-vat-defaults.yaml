@@ -4,10 +4,10 @@ story_key: 3-3-company-identity-quote-terms-and-vat-defaults
 epic_num: 3
 story_num: 3
 branch: epic/3-crm-company-settings-and-pricing-foundation
-status: in-progress
-updated_at: "2026-06-30T15:53:41Z"
+status: done
+updated_at: "2026-07-27T14:57:09Z"
 started_at: "2026-06-30T14:37:23Z"
-completed_at: null
+completed_at: "2026-07-27T14:57:09Z"
 active_seconds: 4438
 timing_anchor: null
 is_first_in_epic: false

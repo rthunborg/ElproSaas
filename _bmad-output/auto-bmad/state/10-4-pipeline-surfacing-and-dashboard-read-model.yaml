@@ -4,10 +4,10 @@ story_key: 10-4-pipeline-surfacing-and-dashboard-read-model
 epic_num: 10
 story_num: 4
 branch: epic/10-quote-lifecycle-completion
-status: in-progress
-updated_at: "2026-07-19T19:37:51Z"
+status: done
+updated_at: "2026-07-27T14:56:15Z"
 started_at: "2026-07-19T18:15:05Z"
-completed_at: null
+completed_at: "2026-07-27T14:56:15Z"
 active_seconds: 4947
 timing_anchor: null
 is_first_in_epic: false

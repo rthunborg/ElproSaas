@@ -4,10 +4,10 @@ story_key: 7-1-acceptance-evidence-capture-for-sent-quote-versions
 epic_num: 7
 story_num: 1
 branch: epic/7-acceptance-to-job-transaction
-status: in-progress
-updated_at: "2026-07-06T19:07:57Z"
+status: done
+updated_at: "2026-07-27T14:57:13Z"
 started_at: "2026-07-06T17:59:44Z"
-completed_at: null
+completed_at: "2026-07-27T14:57:13Z"
 active_seconds: 4007
 timing_anchor: null
 is_first_in_epic: true

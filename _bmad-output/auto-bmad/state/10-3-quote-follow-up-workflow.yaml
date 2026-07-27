@@ -4,10 +4,10 @@ story_key: 10-3-quote-follow-up-workflow
 epic_num: 10
 story_num: 3
 branch: epic/10-quote-lifecycle-completion
-status: in-progress
-updated_at: "2026-07-19T18:14:15Z"
+status: done
+updated_at: "2026-07-27T14:56:15Z"
 started_at: "2026-07-19T16:14:10Z"
-completed_at: null
+completed_at: "2026-07-27T14:56:15Z"
 active_seconds: 7190
 timing_anchor: null
 is_first_in_epic: false

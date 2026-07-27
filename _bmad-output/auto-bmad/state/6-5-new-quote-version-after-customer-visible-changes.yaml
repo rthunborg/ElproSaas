@@ -4,10 +4,10 @@ story_key: 6-5-new-quote-version-after-customer-visible-changes
 epic_num: 6
 story_num: 5
 branch: epic/6-quote-versions-pdf-and-lifecycle
-status: in-progress
-updated_at: "2026-07-06T15:28:11Z"
+status: done
+updated_at: "2026-07-27T14:57:12Z"
 started_at: "2026-07-06T14:20:35Z"
-completed_at: null
+completed_at: "2026-07-27T14:57:12Z"
 active_seconds: 4033
 timing_anchor: null
 is_first_in_epic: false
