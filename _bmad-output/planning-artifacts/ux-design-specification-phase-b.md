@@ -17,7 +17,7 @@ classification:
   projectType: saas_b2b_operations_app
   domain: swedish_electrical_contracting
   phase: Phase B - Legacy Parity Release
-  scope: multi_role_ux (Admin, Projektledare, Montör, Säljare, Ekonomi, per-job Arbetsledare — seed gated N-4)
+  scope: multi_role_ux (Företagsadmin, Projektledare, Montör, Säljare, Ekonomi, per-job Arbetsledare — seed CONFIRMED by owner answer N-4, 2026-07-26)
 ---
 
 # UX Design Specification — ElproSaas Phase B (Legacy Parity Release)
@@ -34,7 +34,7 @@ Boundary rules:
 
 - **The Phase A UX spec is frozen.** Carried tenant-admin surfaces (CRM, settings/pricing, calculation editor, quote versions/PDF/acceptance, basic job record, entity file panels, states, workflow) are specified there and are **referenced, never restated and never edited**. Where Phase B extends a carried surface (e.g. the quote detail gains Förlorad/Avböjd), only the delta is specified here.
 - **Depth follows the ratified wave-checkpoint model (PB-D10).** Wave B1a/B1b surfaces are specified in detail (§4). Wave B2/B3 surfaces are specified at pattern level only (§5) — interaction patterns, list/detail conventions, and how they inherit the B1 system — and are deepened at their wave-boundary checkpoint before build.
-- **Owner gates stay open.** Every place a gated decision touches a surface is flagged inline as `[gated: X]` (7.1/7.3, N-2, N-3, N-4, N-6, N-9, N-5, N-7, N-8). This spec designs mechanisms and seams around gates; it resolves none of them. §13 maps every gate to the surfaces it touches.
+- ~~**Owner gates stay open.**~~ **UPDATED 2026-07-26 — the gates are CLOSED.** This spec was written with `[gated: X]` markers (7.1/7.3, N-2, N-3, N-4, N-6, N-9, N-5, N-7, N-8) around decisions it deliberately did not resolve. The owner answered all of them on 2026-07-26; the markers below have been replaced with the answered content, and §13 records each gate's disposition. **Two answers changed this spec rather than merely filling it in:** N-3 (installable PWA with offline capture, §1/§4.8A/§11) and the money rules behind the correctness banner (`architecture-phase-b.md` §12A).
 - **The legacy Lovable app is the behavioral and terminology oracle, not a visual template.** Nothing here copies legacy layout or code; legacy terms are adopted where they are the words users already use (§9), and uncertain labels carry an explicit `[oracle-check]` marker to be verified against the legacy app before build.
 - **Phase C surfaces are unreachable** (PRD FR130): no AI affordances, no customer portal, no supplier-API UI, no placeholder screens or nav items for anything not manifest-active.
 
@@ -44,7 +44,7 @@ Reading order for downstream consumers: this spec → Phase B architecture exten
 
 ### Form factor and posture
 
-- **Responsive web, one app.** Desktop/laptop remains the primary posture for Admin, Projektledare, Säljare, and Ekonomi (the Phase A shell). Field-worker (Montör) surfaces are designed **responsive-web-first for phone-sized viewports** per the team recommendation `[gated: N-3 — the owner mobile-posture decision; if the owner chooses native, §4.8 becomes the requirements input to that app instead]`. No native app is designed in Phase B (Phase C option per the ledger).
+- **One installable app (PWA), responsive across desktop, tablet, and phone.** Desktop/laptop remains the primary posture for Företagsadmin, Projektledare, Säljare, and Ekonomi (the Phase A shell). Field-worker (Montör) surfaces are designed phone-first. **Owner answer N-3 (2026-07-26) superseded the team's "responsive web first, no offline" recommendation: the app is an installable PWA with genuine offline capture** for assigned jobs — see §4.8A for the offline UX contract and ADR-B007 (`architecture-phase-b.md` §8A) for the decision. **No native app** is designed in Phase B, and the owner has confirmed none is planned as a separate delivery phase.
 - **One codebase, role-shaped surfaces.** There is no separate "field app" URL space: the same routes render role- and viewport-appropriate layouts. Least privilege shapes what exists on screen (§3), the server enforces it (FR67).
 
 ### UI system
@@ -77,7 +77,7 @@ Phase A's flat seven-item sidebar does not scale to ~20 modules. Phase B introdu
 
 Wave column = when the item first appears (manifest activation). Labels per §9; routes stay English.
 
-| Group | Item (Swedish label) | Route | Wave | Roles (seed default) `[gated: N-4]` |
+| Group | Item (Swedish label) | Route | Wave | Roles (seed default, confirmed N-4) |
 | --- | --- | --- | --- | --- |
 | — | `Dashboard` | `/dashboard` | A (v1 rework B1b) | All desktop roles; Montör lands on `Min dag` instead |
 | — | `Min dag` | `/my-day` | B1b | Montör (landing), all roles optional |
@@ -109,7 +109,7 @@ Notes:
 
 - **Notification center is not a nav item** — it opens from the top-bar bell ("Visa alla") at `/notifications` (§4.4). Preferences live under the user profile menu.
 - **Operator provisioning console** (§4.3) is deliberately **outside the tenant nav** — a separate operator-scoped area, invisible to tenant users.
-- The Phase A `Pilotstöd`/`Migrering` support surface remains available to Admin as needed (frozen spec) and joins per-module migration states as B2/B3 migration stories land `[gated: N-1]`.
+- The Phase A `Pilotstöd`/`Migrering` support surface remains available to Admin as needed (frozen spec) and remains as pilot-support surface only. **N-1 (migration classification round 2) EXPIRED** with the owner's 2026-07-20 decision that there will be no Lovable→app data migration — cutover is a parallel run, so no per-module migration states are designed.
 - Group and item labels ship with the activating epic; exact grouping may be re-balanced at wave checkpoints without changing the derivation rule.
 
 ### 2.3 Top bar
@@ -132,12 +132,12 @@ Phase A's lifecycle linking (kund → kalkyl → offert → acceptans → jobb) 
 
 ### 3.1 Role → home surface
 
-| Role | Landing | Primary surfaces | Never sees (seed default) `[gated: N-4]` |
+| Role | Landing | Primary surfaces | Never sees (seed default, confirmed N-4) |
 | --- | --- | --- | --- |
 | Admin | `Dashboard` | Everything active | — |
 | Projektledare | `Dashboard` (drift-weighted widgets) | Planering, Jobb, Tidrapporter (review), Kunder/Kalkyler/Offerter | Tenant provisioning; user admin |
 | Montör | `Min dag` | Min dag, Mina jobb, job field tabs, Tidrapporter (own), Egenkontroller (assigned, B3) | Prices/costs/margins, others' rates, tenant settings, user admin, other people's time |
-| Säljare | `Dashboard` (pipeline-weighted) | Kunder, Kalkyler, Offerter (+uppföljningar), Anbud (B3) | Job economy detail, HR, admin `[margin visibility gated: N-4]` |
+| Säljare | `Dashboard` (pipeline-weighted) | Kunder, Kalkyler, Offerter (+uppföljningar), Anbud (B3) | Job economy detail, HR, admin, **cost price and contribution margin** (N-4 default — `Economy.ViewContributionMargin` is grantable separately to e.g. a sales manager) |
 | Ekonomi | `Dashboard` (economy-weighted) | Faktureringsunderlag (B2), Fortnox (B3), job economy rollups, Leverantörer | User admin, HR depth (except what N-4 grants) |
 | Arbetsledare (job-scoped) | — (their tenant role's landing) | Elevated capabilities **inside the specific job workspace only** (§4.9) | Everything their tenant role doesn't grant |
 
@@ -152,7 +152,7 @@ The PRD requires server-side withholding (FR71, NFR44): a role without entitleme
 5. **Feature-shaped fallout:** where masking would gut a surface (e.g. Ekonomi tab for Montör), the surface/tab is hidden for that role rather than rendered as a field of locks (§3.1, §4.9).
 6. **Contract note for architecture (§14):** the UI needs a deterministic way to distinguish "withheld" from "empty/null" (field-presence/entitlement descriptor in the payload shape) — never a client-side role lookup.
 
-The per-role entitlement seed (may Montör see prices? Säljare margins?) is exactly the owner's N-4 question — every surface below marks its money elements `[gated: N-4]` and renders per this mechanism whatever the answer is.
+The per-role entitlement seed is **answered (N-4, 2026-07-26)**: **Montör sees no sales price, no cost price, and no contribution margin. Säljare sees sales prices but not cost or margin by default.** Arbetsledare defaults to Montör's money posture on the jobs they lead. Projektledare, Ekonomi, and Företagsadmin see all three. Every money element below renders through the mechanism above against exactly that seed (`architecture-phase-b.md` §3.3A). One new surface follows from it: a **below-margin warning for Säljare** that says the quote is under the permitted margin **without revealing any cost figure** — the warning must not be invertible back to the cost price.
 
 ## 4. Wave B1 Detailed Surface Specifications
 
@@ -192,7 +192,7 @@ Surface: `Användare & roller` (`/admin/users`), Admin-only. Two tabs: `Använda
 **Roller:**
 
 - B1a scope is **seed roles, no custom role builder** (UXB-A7): the five tenant roles listed with description and member count; per-role view shows its permission-matrix rows grouped by module — the matrix visibly **grows as modules activate** (PB-D2): a module's rows appear only when it is manifest-active, with the activating wave noted.
-- Sensitive-field entitlements (money visibility) render as explicit rows per role `[gated: N-4 — displayed as "väntar på ägarbeslut" until seeded]`.
+- Sensitive-field entitlements (money visibility) render as explicit rows per role, seeded per N-4. **Role and permission changes are audited and require a reason** — the edit surface captures it rather than writing silently (arch §3.3A).
 - The per-job `Arbetsledare` designation is deliberately **not** here — it is assigned inside each job workspace (§4.9); the Roller tab explains this ("jobbroll, tilldelas på jobbet").
 
 ### 4.3 Tenant provisioning and onboarding (E12)
@@ -212,7 +212,7 @@ Surface: `Användare & roller` (`/admin/users`), Admin-only. Two tabs: `Använda
 
 Each item deep-links to the real settings surface and auto-checks on completion (server-derived, not click-tracked). "Working state" = all items green (AC-B1a-1's demo path).
 
-**Self-serve seam `[gated: N-2]`:** the checklist and wizard are **entry-point agnostic** — a future public signup would create the tenant and land its first Admin in the same onboarding. No public registration surface, route, or copy ships in Phase B (FR76).
+**No self-serve signup (N-2, answered 2026-07-26):** the owner has ruled it out — every customer company is registered and provisioned internally after a contract. No public registration surface, route, or copy ships. The wizard stays entry-point agnostic as a design property, not as a seam being built toward. The operator flow gains a **preview-then-approve** step: the provisioning agent shows exactly what will be created, an authorised person approves, and the outcome plus the approver are written to the audit log. The wizard must also support a **dry run** that writes nothing (FR76; arch §15.4A).
 
 ### 4.4 Notifications and email touchpoints (E13)
 
@@ -220,9 +220,9 @@ Each item deep-links to the real settings surface and auto-checks on completion 
 
 **Notification center (`/notifications`):** full list with filters (category/module, read state, date). Categories exist only for **registered producers of active modules** (no placeholder categories): B1a ships quote follow-up reminders + admin/user events; B1b adds booking reminders, booking changes ("din bokning har flyttats"), time-report nudges; B2/B3 add service suggestions, expiries, mentions, export failures as their modules activate.
 
-**Preferences (per user):** `Notisinställningar` under the profile menu — matrix rows = notification categories (grouped by module), columns = `I appen` / `E-post`. The e-post column renders but is **inactive with an explainer** ("e-postutskick aktiveras senare") until sending activates `[gated: N-6]`; in-app toggles are live from B1a. Essential/security notices are non-disableable and marked so.
+**Preferences (per user):** `Notisinställningar` under the profile menu — matrix rows = notification categories (grouped by module), columns = `I appen` / `E-post`. The e-post column renders but is **inactive with an explainer** ("e-postutskick aktiveras senare") until sending activates; in-app toggles are live from B1a. Essential/security notices are non-disableable and marked so.
 
-**Email touchpoints `[gated: N-6]`:** email bodies/flows (which flows email first — quote send per owner `3.4`, follow-up reminders, digests) are designed at activation; this spec commits only to: every outbound email carries the tenant identity, a clear subject convention, a deep link back to the record, and an unsubscribe link for non-essential mail (tokenized, ADR-B004). Unsubscribe landing page: minimal, confirms scope ("du får inte längre påminnelser via e-post"), offers re-subscribe, no login required, no tenant enumeration.
+**Email touchpoints (N-6 answered 2026-07-26):** the sender renders as **`[Företagsnamn] via [Systemnamn]`** from the central verified subdomain, with **Reply-To set to the tenant's own address** so customer replies reach the company, not us. Flow priority: invitations/security → quote sending → accept/reject notification → job assignment → quote reminders → digests. **Quote reminders stop automatically** on accept, reject, withdrawal, a new version, or expiry — the reminder settings UI must state those five conditions so nobody expects to have to cancel manually. Invoice emails come from **Fortnox**, not from us, so the customer never receives two. Bodies are designed at activation; this spec commits to: every outbound email carries the tenant identity, a clear subject convention, a deep link back to the record, and an unsubscribe link for non-essential mail (tokenized, ADR-B004). Unsubscribe landing page: minimal, confirms scope ("du får inte längre påminnelser via e-post"), offers re-subscribe, no login required, no tenant enumeration.
 
 **Freshness honesty:** surfaces fed by background producers (due scans etc.) display last-run recency ("skannad för 2 tim sedan") rather than implying real-time (§7).
 
@@ -235,7 +235,7 @@ Surface: `Planering` (`/scheduling`) with a view switcher (segmented control, ke
 | `Schema` | Time-grid calendar (day/week), bookings as blocks; month = density overview | "What is happening when" | Default for Projektledare. Booking blocks show assignees, job/kund chip, work-role tint + icon; conflict-marked blocks carry a warning glyph. |
 | `Resurser` | Horizontal timeline: rows = bookable persons, columns = time (day/week) | "Who is free when" — assignment work | Row header: person + arbetsroll + capacity hint. Empty-slot click/drag creates a booking pre-filled with that person+time. Unassigned/needs-reassignment lane at top (e.g. bookings of deactivated users). |
 | `Team` | Week board grouped by team/arbetsroll: columns = days, cards = bookings per group | Crew planning at a glance | Grouping toggle: per arbetsroll (B1) — named teams only if the oracle demands them `[oracle-check]` (UXB-A9). |
-| `Beläggning` | Capacity matrix: rows = persons (or roll rollup), columns = periods, cells = booked vs available (percent + bar) | Spotting over/under-load | Cell color + **number** (never color alone); >100% cells link to the affected bookings. Rules for capacity math `[gated: N-9]`. |
+| `Beläggning` | Capacity matrix: rows = persons (or roll rollup), columns = periods, cells = booked vs available (percent + bar) | Spotting over/under-load | Cell color + **number** (never color alone); >100% cells link to the affected bookings. Capacity math per N-9: scheduled time − holidays/closed days − absence − bookings − blocked time − buffer, derived from the **actual weekly schedule** rather than employment percentage. Overtime is not ordinary capacity. |
 | `Min kalender` | Personal agenda list (phone-first) + week grid (desktop) | The individual's own day/week | This is Montör's slice of Planering and the heart of `Min dag` (§4.8). Includes `Kalenderprenumeration` — create/rotate/revoke the personal tokenized feed URL with a plain-language warning that the link grants read access to their calendar `[ADR-B004]` (FR91). |
 
 All five views read the same booking data and the same filter model; they are projections, not separate modules (AC-B1b-2).
@@ -246,7 +246,7 @@ All five views read the same booking data and the same filter model; they are pr
 
 - Entry points: `Ny bokning` (toolbar, keyboard path), empty-slot drag/click (Schema/Resurser), `Boka` from a job workspace (pre-connected), `Ny bokning` from a customer/anläggning (pre-connected).
 - Editor: side sheet (desktop) / full-screen sheet (phone). Fields: **Tilldelade** (multi-person picker with live availability hints and arbetsroll filter), **Arbetsroll**, **Tid** (start/end; full-day toggle), **Koppling** — Jobb / Kund / Anläggning / Kontakt, all optional (PB-D12; a booking is valid standalone), **Beskrivning**, **Återkommande** (off by default).
-- **Live conflict check (FR85):** on every assignee/time change, the sheet shows an inline conflict panel per violation — type (`Dubbelbokning` / `Över kapacitet` / `Utanför arbetstid` `[rules gated: N-9]`), who, what collides, with a mini-timeline of the collision. Conflicts **warn, they do not hard-block**: saving with conflicts requires an explicit `Boka ändå` acknowledgment, which records the conflict as open on the booking (UXB-A10 — field reality sometimes needs deliberate double-booking; architecture validates the override/audit shape).
+- **Live conflict check (FR85):** on every assignee/time change, the sheet shows an inline conflict panel per violation — type (`Dubbelbokning` / `Över kapacitet` / `Utanför arbetstid`, plus `Utanför åtkomstfönster` and `Saknad kompetens` from the N-9 job inputs), who, what collides, with a mini-timeline of the collision. Conflicts **warn, they do not hard-block**: saving with conflicts requires an explicit `Boka ändå` acknowledgment, which records the conflict as open on the booking (UXB-A10 — field reality sometimes needs deliberate double-booking; architecture validates the override/audit shape).
 - Editing a booking that participates in a recurrence asks scope: `Endast detta tillfälle` / `Detta och kommande` (§ below).
 
 **Recurring bookings (FR88):**
@@ -273,10 +273,10 @@ All five views read the same booking data and the same filter model; they are pr
 - **Filing (Montör-first, FR90):** from a booking card (`Min dag`, booking detail) → `Rapportera tid`, pre-filled from the booking's times and job connection; adjust start/end or hours, optional note; submit. Also creatable standalone from `Tidrapporter` (`Ny tidrapport`, pick job/booking optionally — PB-D12).
 - **Personal timesheet:** `Tidrapporter` for a Montör = own week list: day rows with reported hours, booking/job chips, and **missing-day indicators** for weekdays with bookings but no report (nudge, not enforcement; a producer sends the reminder via E13).
 - **Review surface:** for Projektledare/Admin, `Tidrapporter` = team view filterable by person/job/week, with per-job and per-person sums. Rows open a review sheet (report vs booked time delta highlighted). **Approval semantics are deliberately open** (PB-A9): the surface ships with review/annotate affordances; a hard approval state lands only if architecture/owner define one — the layout reserves a status column so adding it is additive.
-- Reported time flows onward without re-entry (FR92): visible in the job Ekonomi tab (hours × role rates `[money gated: N-4]`) and later billing basis (E26).
+- Reported time flows onward without re-entry (FR92): visible in the job Ekonomi tab (hours × role rates — **valued amounts render only for entitled roles per the N-4 seed; a Montör's own time report shows hours, never money**) and later billing basis (E26).
 - Phone posture: filing must be a ≤30-second, one-hand interaction (§4.8); the review surface is desktop-weighted.
 
-### 4.8 The field-worker experience (Montör on a phone) `[gated: N-3 — designed responsive-web-first per team recommendation]`
+### 4.8 The field-worker experience (Montör on a phone) — **installable PWA with offline capture (N-3 answered 2026-07-26)**
 
 **`Min dag` (`/my-day`) — the Montör landing:**
 
@@ -284,7 +284,7 @@ All five views read the same booking data and the same filter model; they are pr
 - **Dagens bokningar:** cards in time order — time range, job/kund + address (address links to the phone's map app), assignees, description. Primary card action: `Öppna jobbet`. Secondary: `Rapportera tid`.
 - **Mina jobb** section (FR93): active jobs where the user is member/assignee — name, kund, status, my role on it; opens the job workspace in its field shape.
 - Notification chips surface schedule changes prominently (a moved booking today/tomorrow is banner-level).
-- Pull-to-refresh; content-first (no dashboard widgets, no money `[per N-4 seed]`).
+- Pull-to-refresh; content-first (no dashboard widgets, and **no money at all** — N-4 confirms Montör receives no sales price, cost price, or contribution margin; the values are absent from the payload, not masked in the UI).
 
 **Job workspace, field shape (§4.9 on a phone, Montör permissions):**
 
@@ -297,24 +297,49 @@ All five views read the same booking data and the same filter model; they are pr
   - `Material`: quick usage logging — search own articles, quantity steppers (big +/- targets), unit displayed; requests (`Materialförfrågan`) as a separate small form routed to the responsible role (FR100).
   - Time reporting per §4.7 — reachable from the job and from `Min dag`.
 - **Daylight/contrast:** field surfaces respect the AA floor with preference for high-contrast pairings on primary actions and status text (§10); no information carried by thin color differences alone.
-- **Connectivity honesty (no offline promise in B1):** capture forms keep entered data on transient failure and offer explicit `Försök igen`; a visible "kunde inte spara — behåll och försök igen" state replaces silent loss. True offline capture is **not** designed in Phase B (UXB-A11; revisit at a wave checkpoint if field reality demands it).
+- **Connectivity honesty — now offline-capable (supersedes the no-offline-promise posture):** capture works without a connection and the user is never left guessing about it. The transient-failure retention above remains the online path; §4.8A is the offline contract.
 - Least-privilege reminder: everything above is served scoped to the user (my bookings, my jobs, my reports); the server rejects out-of-scope reads regardless of UI (FR72; Journey B1's "the server, not the UI, stops him").
 
-### 4.9 The job workspace (E16–E18) `[gated: 7.1/7.3 → ADR-B006 — shell designed model-agnostically]`
+#### 4.8A Offline UX contract (ADR-B007)
 
-**Shell contract (model-agnostic):** the workspace binds to **one job container id** and renders: header + tab set. This contract holds under every §7 model option; only the header's type semantics and one tab differ (see divergence notes).
+**Installability.** The app is installable to the home screen from the browser; installed and browser-tab use are the same app, not two experiences.
 
-**Header:** title, type badge (`Order`/`Projekt`), status, kund + anläggning + kontakt chips (per owner rule `1.5`), Projektledare + `Arbetsledare` (job-scoped role, assigned here — picker among job members, FR95), planned start/end, budget vs upparbetat mini-bar `[money gated: N-4]`, primary actions: `Boka` (pre-connected booking), `Rapportera tid`, `Markera som klar`, overflow (`Uppgradera till projekt` under options A/C).
+**What works offline** (for the user's assigned jobs only): previously downloaded jobs plus their basic customer and site information, time reporting, work notes, material usage, checklists/egenkontroller, deviations, photos within size limits, marking work items started or completed, and signature/confirmation capture where legally sound. **Administration, economy, company settings, and user administration honestly require connectivity** — they show a "kräver anslutning" state, never a silently stale read.
+
+**Per-change status is visible, never inferred.** Every captured change carries one of six states, and the UI names them in plain Swedish rather than showing a spinner and hoping:
+
+| State | What the user is told |
+| --- | --- |
+| `SavedLocally` | Saved on the device; not yet sent. |
+| `WaitingForSync` | Queued; will send when there is a connection. |
+| `Syncing` | Sending now. |
+| `Synced` | Safely stored in the system. |
+| `Conflict` | Someone else changed the same thing — needs a decision. |
+| `Failed` | Could not be sent, with the reason and a retry action. |
+
+**Sync moments** are shown, not hidden: on reconnect, on opening the app, on returning to the foreground, and on an explicit manual retry the user can always reach. A per-screen or global indicator shows how many changes are still waiting, so "did my time report go in?" is answerable at a glance.
+
+**Failure never loses data.** A failed transfer keeps the change queued and explains itself. The word to avoid in these states is "error" without a next action.
+
+**Conflicts.** Time rows, material lines, and photos are separate append-only records, so two people working the same job simply produce two records — no conflict UI at all, which is the common case. Only shared objects (job header, work-order status, checklist item state) can conflict, and then the user is shown both values and chooses. **The UI never silently overwrites another person's change.**
+
+**What is on the device.** Only assigned or explicitly selected jobs — never the company's whole database. Cached data is minimised, time-boxed, and cleared on logout. An unentitled role's device holds no money value, because the cached projection is the same entitlement projection the screen would receive online (§3.2).
+
+### 4.9 The job workspace (E16–E18) — **model resolved by ADR-B006 (2026-07-26)**
+
+**Shell contract:** the workspace binds to **one job container id** and renders header + tab set. The contract was written model-agnostically and **the chosen model confirms it unchanged** — ADR-B006 landed Jobb-as-container implemented as one typed entity (`type ∈ {order, projekt}`), so there is one container, one id, and one workspace. The Option B divergence (an `Ingående jobb` aggregate tab) **is not built**. The header's type semantics resolve to: a type badge (`Jobb` / `Projekt`) and an `Uppgradera till projekt` action on `type='order'` that states which features the upgrade unlocks before committing — and does not offer a downgrade, because the upgrade is one-way.
+
+**Header:** title, type badge (`Order`/`Projekt`), status, kund + anläggning + kontakt chips (per owner rule `1.5`), Projektledare + `Arbetsledare` (job-scoped role, assigned here — picker among job members, FR95), planned start/end, budget vs upparbetat mini-bar (**absent entirely for Montör and for Arbetsledare by default** — N-4), primary actions: `Boka` (pre-connected booking), `Rapportera tid`, `Markera som klar`, overflow (`Uppgradera till projekt`, shown on `type='order'` only — the upgrade is one-way, so no downgrade action exists).
 
 **Tab set** (full set; per-tab visibility = permission matrix × module activation; on narrow viewports: priority tabs + `Mer` overflow; Montör field shape per §4.8):
 
 | Tab | Content (summary) | FR |
 | --- | --- | --- |
 | `Översikt` | Status, connections, next bookings, latest activity, open items (deviations, requests), member list with per-job roles | FR93–FR95 |
-| `Arbetsorder` | Work-order list/cards: title, status, assignee(s); create/edit; each opens a work-order pane with its own description/status/files | FR96 `[gated: 7.1/7.3 containment]` |
+| `Arbetsorder` | Work-order list/cards: title, status, assignee(s); create/edit; each opens a work-order pane with its own description/status/files | FR96 — `work_orders` as children of the container, present on both `Jobb` and `Projekt` (ADR-B006) |
 | `Schema` | The job's bookings (list + mini-timeline); `Ny bokning` pre-connected | FR84, P25 |
 | `Material` | Usage log (who/what/qty/when) + `Materialförfrågningar` with request status | FR100 |
-| `Ekonomi` | Rollup: budget (from accepted quote where connected), reported time value, material, other costs; budget-vs-actual; payment plan on projekt scope | FR101–FR102 `[money gated: N-4; plan attachment gated: 7.1/7.3]` |
+| `Ekonomi` | Rollup: budget (from accepted quote where connected), reported time value, material, other costs; budget-vs-actual; payment plan on projekt scope | FR101–FR102 — money per the N-4 seed (tab hidden for roles that would see only locks); the payment plan attaches to the container and is DB-bound to `type='projekt'` (ADR-B006 §8.3) |
 | `Dagbok` | Chronological diary entries (author, timestamp, attachments) | FR104 |
 | `Avvikelser` | Deviation list with status (open/closed), severity, photos | FR104 |
 | `Foton` | Photo grid, capture-first on phone; photos taken in Dagbok/Avvikelser appear here too (one pool, contextual links) | FR104 |
@@ -331,7 +356,7 @@ All five views read the same booking data and the same filter model; they are pr
 - **Option A / C (container + typed upgrade — team recommendation):** one list at `Jobb`; `Uppgradera till projekt` is a header action with an audited confirm ("lås upp projektfunktioner: betalningsplan, fördjupad ekonomi, medlemsroller"); the tab set is constant, with Ekonomi gaining the payment plan section on projekt scope. **This spec's screens are drawn for this shape.**
 - **Option B (flat + grouping):** `Jobb` list gains a sibling `Projekt` list; a projekt workspace reuses the same shell with one additional tab `Ingående jobb` (child list + aggregate Ekonomi); the per-job workspace is unchanged. No other surface in this spec changes.
 - Either way, **bookings created against Phase A basic jobs before E16 deepen seamlessly** (PB-D12) — the workspace renders whatever depth exists; missing modules simply contribute no tab.
-- The `7.3` job-card field list (create/edit form) follows the owner's answer; the create form is drawn from the session strawman (title, type, status, kund, anläggning + kontakt, PL/Arbetsledare, planned dates, budget from accepted quote, description) `[gated: 7.3]`.
+- The `7.3` job-card field list is **answered** (arch §8.4). The create/edit form carries the identity and planning fields (title, type, status, kund, anläggning + kontakt, PL/Arbetsledare, planned dates, budget from the accepted quote where connected, description) **plus the N-9 scheduling inputs**: estimated duration, earliest start, desired and latest end dates, priority, number of people, competence/certification requirements, location, dependencies on other work items, travel time, whether the customer must be present, and access/time windows. That is a long form — it needs progressive disclosure (identity first, scheduling detail in a second group) rather than one flat column, and the two set-valued fields (dependencies, access windows) are repeatable rows.
 
 ### 4.10 Operational dashboard v1 (E19)
 
@@ -340,7 +365,7 @@ All five views read the same booking data and the same filter model; they are pr
 
 | Widget | Content | Source | Roles (default) |
 | --- | --- | --- | --- |
-| `Offertpipeline` | Skickade/Accepterade/Förlorade counts (period), hit rate | E10/FR65 | Admin, Säljare, PL `[amounts gated: N-4]` |
+| `Offertpipeline` | Skickade/Accepterade/Förlorade counts (period), hit rate | E10/FR65 | Företagsadmin, Säljare, PL — amounts per the N-4 seed |
 | `Uppföljningar` | Due today / overdue list, quick complete | E10 | Admin, Säljare |
 | `Veckans bokningar` | Next bookings (mine vs team toggle per role) | E14/E15 | All |
 | `Konflikter` | Open conflict count by type → resolver | E14 | Admin, PL |
@@ -376,12 +401,12 @@ Every B2/B3 module inherits, by default:
 - **Service + warranties (E23):** service records/plans/agreements lists; a **due/overdue queue** (`Förfaller`) fed by the authenticated scan; **suggestion inbox** — each suggestion: context, snooze, dismiss-with-reason, or `Skapa jobb` (pre-connected job creation); warranties are created by job completion events (visible provenance link back to the job) with expiry tracking + notifications.
 - **Electrical panels (E24):** panel register + detail; the **gruppförteckning is a dense editable grid** (rows = groups/circuits, columns per legacy schema incl. RCD data `[oracle-check]`) with bulk edit, duplicate, and print/PDF export tuned for the standardized printed artifact. Manual core only — no image import affordance exists (Phase C).
 - **Supplier data + imports (E25):** supplier register, price lists, discount agreements; **price-list file import** via the §5.1 wizard pattern (deterministic formats; per-row error report; re-import shows diff summary before commit); supplier articles become selectable as calc-row pricing sources (extends the frozen Phase A source-picker with a supplier scope; snapshot-on-select semantics unchanged).
-- **Billing basis (E26):** Ekonomi-facing **assembly workbench**: pick scope (kund/jobb/period) → candidate lines from jobs (time, material, plan items `[content gated: N-5]`), rentals, service → review with per-line include/exclude → `Justera` requires an audited reason → **`Lås underlag`** with the announced-lock pattern (immutability consequence stated; corrections only via audited path, FR118) → export. Status flow: `Utkast → Låst → Exporterad`. Correctness banner ties real-invoicing use to the tax gates `[gated: tax A/B/C + 2.2]` — demo track unaffected.
-- **DoU (E27):** DoU projects list; project detail = folder/document tree + template picker (discipline templates `[content gated: N-8]`), upload/import, versioning + lock states per document, material-list sync status, `Exportera paket` (the contractual deliverable); `Skapa från jobb` seeds structure from a completed job (FR106 consumer).
-- **Self-inspections (E28):** template-driven **form runner** — sections → items → measurements/attachments — designed to run in the field shape (§4.8 ergonomics; assignable to Montör); manual creation, export to the standardized document; linkable to kund/anläggning/jobb/DoU `[template content gated: N-8]`.
-- **Tenders/FKU thin core (E29):** upload files/ZIP (auto-unzip) into organized storage; manual summary fields; manual conversion links to kalkyl/offert/jobb/DoU/egenkontroll. **Deliberately thin** — the UI must not promise analysis; an owner-visibility note accompanies the surface `[gated: N-7]`. No AI affordances (Phase C).
+- **Billing basis (E26):** Ekonomi-facing **assembly workbench**: pick scope (kund/jobb/period) → candidate lines from jobs (time, material, fixed price, payment-plan items, and other billable items — the per-kind content is defined in N-5 / arch §7.3), rentals, service → review with per-line include/exclude → `Justera` requires an audited reason → **approve**, with the announced-lock pattern (immutability consequence stated; corrections only via audited path, FR118) → export. **Status flow (N-5): `Draft → UnderReview → Approved → Exported → PartiallyInvoiced → Invoiced → Cancelled`**, replacing the earlier `Utkast → Låst → Exporterad` sketch — the workbench therefore needs a review state before approval and must show the basis **version**, since an Approved version can only be changed by reopening or replacing it. A consumed source item is visibly locked against double invoicing. The correctness banner now ties real-invoicing use to **Story 10.6 landing the ratified money rules** (arch §12A) rather than to an unanswered gate — demo track unaffected.
+- **DoU (E27):** DoU projects list; project detail = folder/document tree + template picker (discipline templates; content owned by the designated content owner per N-8, surfaced as a **content-owner and approver attribution on every published template version** — never an anonymous template), upload/import, versioning + lock states per document, material-list sync status, `Exportera paket` (the contractual deliverable); `Skapa från jobb` seeds structure from a completed job (FR106 consumer).
+- **Self-inspections (E28):** template-driven **form runner** — sections → items → measurements/attachments — designed to run in the field shape (§4.8 ergonomics; assignable to Montör); manual creation, export to the standardized document; linkable to kund/anläggning/jobb/DoU. Template content ownership and approval attribution per N-8, as for DoU. An in-progress document stays bound to the template version it was created from even after a newer version is published.
+- **Tenders/FKU thin core (E29):** upload files/ZIP (auto-unzip) into organized storage; manual summary fields; manual conversion links to kalkyl/offert/jobb/DoU/egenkontroll. **Deliberately thin** — the UI must not promise analysis; an owner-visibility note accompanies the surface. **Owner accepted the thin slice as Phase B parity (N-7, 2026-07-26).** No AI affordances (Phase C).
 - **KNX (E30):** group-address projects with rooms/functions/address tables — the panels-style dense grid pattern, small scope.
-- **HR depth (E31):** extends the **same person record** (PB-D13 — no parallel employee UI): the person detail (reached from Användare or Personal) gains HR tabs (anställning, kompetenskort, certifikat, utbildningsplaner, dokument) with expiry-driven notifications; incident reports + HR inbox as a queue surface; **`Min sida`** = employee self-service (own profile, bookings, assigned assets, documents, suggestion box — authenticated, P70 thinned); GDPR deletion-request flow as a formal request → status tracker `[posture gated: N-10]`. Salary-adjacent fields ride the §3.2 masking mechanism `[gated: N-4]`.
+- **HR depth (E31):** extends the **same person record** (PB-D13 — no parallel employee UI): the person detail (reached from Användare or Personal) gains HR tabs (anställning, kompetenskort, certifikat, utbildningsplaner, dokument) with expiry-driven notifications; incident reports + HR inbox as a queue surface; **`Min sida`** = employee self-service (own profile, bookings, assigned assets, documents, suggestion box — authenticated, P70 thinned); GDPR deletion-request flow as a formal request → status tracker over the N-10 states (`Received → IdentityVerificationRequired → UnderAssessment → PartiallyApproved | Approved | Rejected → Executed → Closed`), showing what will be deleted, what must be retained and why, any `LegalHold`, and the response deadline. **Ordinary tenant admins get no hard-delete affordance at all** — deletion is the workflow's, not the admin's (arch §12B). Salary-adjacent fields ride the §3.2 masking mechanism against the N-4 seed.
 - **Notes/notice board (E32):** tenant-wide feed with categories, pinning, archive; @mentions notify via E13; simple editor, no rich document ambitions.
 - **CRM & calc completions (E32):** customer 360 tab on the frozen customer detail (aggregated cross-module context), favorites (star + filter), classification tools, duplicate-calculation action, quote-settings/branding completions — all deltas on frozen Phase A surfaces.
 - **Fortnox (E33/E34):** connection settings under `Inställningar` (per-tenant status: `Ansluten/Ej ansluten/Fel`, connect/disconnect — OAuth entirely server-side, no tokens ever displayed, NFR50); `/fortnox` export surface = **outbox pattern**: export runs list → per-record rows (kund/artikel/fakturaunderlag) with status (`Köad → Skickad → Fel`), per-record error detail in plain language, `Försök igen` per record and per run, and filter `Endast fel`. Status/error/retry UX is the module's core, not an afterthought (FR128).
@@ -447,7 +472,7 @@ Carried in full from the frozen Phase A spec §9 (validation placement, blocking
 | Conflict | `Konflikt` | PRD §5 |
 | Time report | `Tidrapport` | PRD §5 |
 | Work order | `Arbetsorder` | PRD §5 |
-| Job/project container | `Jobb` / `Projekt` (list label per ADR-B006) | `[gated: 7.1/7.3]` |
+| Job/project container | **`Jobb`** — a projekt is an upgraded jobb, not a sibling entity (ADR-B006); `Projekt` appears as a type badge, not a separate nav item | `[oracle-check]` on casing/vocabulary only |
 | Diary / deviation / photos / risks | `Dagbok` / `Avvikelse` / `Foton` / `Risker` | PRD §5 / P28 |
 | Billing basis | `Faktureringsunderlag` | PRD §5 |
 | Notifications | `Notiser` | UXB choice `[oracle-check]` |
@@ -462,7 +487,7 @@ Carried in full from the frozen Phase A spec §9 (validation placement, blocking
 | My day / my page | `Min dag` / `Min sida` | UXB choice; `Min sida` matches legacy P69 |
 | Lost/declined | `Förlorad/Avböjd` | Owner status set `4.3` |
 
-Role names (Admin, Projektledare, Montör, Säljare, Ekonomi, Arbetsledare) are UI labels for the seed and must remain label-swappable `[gated: N-4]` (PB-A7).
+Role names (**Företagsadmin**, Projektledare, Montör, Säljare, Ekonomi, Arbetsledare) are the owner's confirmed labels (N-4, 2026-07-26) and remain label-swappable — the stored literal for the admin role is still `tenant_admin` (PB-A7; arch §3.2).
 
 ## 10. Accessibility Floor
 
@@ -475,7 +500,7 @@ The Phase A floor (frozen spec §10; NFR30) carries in full: keyboard operabilit
 - **Camera/photo flows:** capture and review operable with SR; captions attachable; photo grids expose meaningful alt/labels (date, job, author).
 - **Forms in the field:** large inputs, numeric keyboards for quantities/hours, no time-entry that requires precision sliders.
 - **Public pages** (QR, unsubscribe): same floor applies; minimal, language-clear, no login walls for their single purpose.
-- **Viewport floor `[gated: N-3]`:** field-worker flows usable at 360×640 upward (NFR53); desktop surfaces usable from common laptop widths (carried); scheduling views degrade gracefully (Schema → agenda list on phone; Beläggning is desktop-weighted with a phone summary).
+- **Viewport floor:** field-worker flows usable at 360×640 upward (NFR53, as restated for the PWA posture); desktop surfaces usable from common laptop widths (carried); scheduling views degrade gracefully (Schema → agenda list on phone; Beläggning is desktop-weighted with a phone summary).
 
 ## 11. Responsive and Platform Strategy
 
@@ -488,6 +513,15 @@ The Phase A floor (frozen spec §10; NFR30) carries in full: keyboard operabilit
 | Lists/details (all modules) | Card lists, stacked detail | Hybrid | Dense tables, side panels |
 
 Rules: one breakpoint system (Tailwind defaults) app-wide; sidebar → icon rail → drawer (carried); tables switch to cards only when genuinely necessary (carried); sticky summaries become inline blocks on narrow (carried). No user-agent branching — viewport + capability only.
+
+**Platform posture (N-3, answered 2026-07-26 — ADR-B007):** the app is an **installable PWA**. Installed and browser-tab use render the same app; installation adds a home-screen entry point and the offline capability of §4.8A, not a different UI. **No native app** is designed or planned as a separate delivery phase.
+
+| Capability | Offline | Requires connectivity |
+| --- | --- | --- |
+| Field surfaces (`Min dag`, job field shape, capture, time filing, checklists/egenkontroller, deviations, photos) | **Yes**, for the user's assigned jobs (§4.8A) | — |
+| Everything else — dashboard, scheduling planning views, admin, provisioning, economy, billing workbench, imports, Fortnox, settings, user administration | — | **Yes**, and they say so honestly rather than showing stale data |
+
+Two rules that fall out of the posture and apply app-wide: **connection state is never guessed from the UI** (a change's state comes from the sync queue, §4.8A), and **an offline-capable surface never shows an unqualified success message** for something that has only been saved locally — `SavedLocally` and `Synced` are different words for a reason.
 
 ## 12. Key Flows (protagonists per PRD §4 journeys; climax beats marked)
 
@@ -507,13 +541,13 @@ Rules: one breakpoint system (Tailwind defaults) app-wide; sidebar → icon rail
 
 | Gate | Surfaces touched here | Designed now | Waits for the gate |
 | --- | --- | --- | --- |
-| `7.1`/`7.3` → ADR-B006 | Job workspace (§4.9), jobs nav label, job create form | Model-agnostic shell, tab contract, divergence notes | Final list/label semantics, upgrade semantics, job-card field list; **no E16–E18 build-detail before ADR-B006** (AC-B1b-6) |
-| N-2 | Provisioning/onboarding (§4.3) | Operator wizard + entry-point-agnostic onboarding | Any public signup surface (none ships without N-2) |
-| N-3 | All §4.8 field surfaces, NFR53 viewport floor | Responsive-web field UX (team recommendation) | Confirmation of posture; native pivot would re-target §4.8 as requirements |
-| N-4 | Every money/sensitive element (§3.2, §4.7, §4.9 Ekonomi, §4.10, HR) | The masking mechanism + role-surface model | The per-role entitlement seed (which roles see prices/margins/HR fields) |
-| N-5 | Billing workbench candidate-line model (§5.2 E26) | Workbench pattern, lock flow | Faktureringsunderlag content definition; Fortnox first-flow choices |
-| N-6 | Notification preferences e-mail column, email touchpoints (§4.4) | In-app complete; e-mail column inactive-with-explainer; unsubscribe pattern | Sending activation, domain/from, first email flows |
-| N-7 | Tenders thin core (§5.2 E29) | Thin-slice UX with visibility note | Owner acknowledgment of the slice |
+| `7.1`/`7.3` → ADR-B006 | Job workspace (§4.9), jobs nav label, job create form | ✅ **Closed 2026-07-26.** Shell confirmed unchanged; nav label is **`Jobb`** (a projekt is an upgraded jobb, not a sibling entity); upgrade is a one-way audited action with an announce-before-commit dialog; job-card fields per arch §8.4. E16–E18 build detail is unblocked. |
+| N-2 | Provisioning/onboarding (§4.3) | ✅ **Closed 2026-07-26.** Operator wizard + entry-point-agnostic onboarding confirmed; the wizard gains a **preview-then-approve** step (the agent shows exactly what will be created before an authorised person approves). **No public signup surface is designed — ever.** |
+| N-3 | All §4.8 field surfaces, NFR53 viewport floor | ⚠ **Closed 2026-07-26 — the answer differed from the recommendation.** Installable PWA with offline capture; §4.8A adds the offline UX contract (six per-change states, sync-moment visibility, conflict presentation, on-device scoping). No native app. |
+| N-4 | Every money/sensitive element (§3.2, §4.7, §4.9 Ekonomi, §4.10, HR) | ✅ **Closed 2026-07-26.** Seed supplied: Montör sees no price/cost/margin; Säljare sees sales prices but not contribution margin by default; Arbetsledare defaults to Montör's money posture; Projektledare/Ekonomi/Företagsadmin see all. Also new UX work: a **below-margin warning for Säljare that reveals no cost figures** (arch §3.3A). |
+| N-5 | Billing workbench candidate-line model (§5.2 E26) | ✅ **Closed 2026-07-26.** Line content defined per source kind (time/material/fixed price/payment plan/other); the lock flow becomes a **versioned status flow** `Draft → UnderReview → Approved → Exported → PartiallyInvoiced → Invoiced → Cancelled`, with Approved locked against edits (arch §7.3). |
+| N-6 | Notification preferences e-mail column, email touchpoints (§4.4) | ✅ **Closed 2026-07-26.** Sender shows as `[Företagsnamn] via [Systemnamn]` with the tenant's own Reply-To; flow priority and the five automatic reminder-stop conditions defined; invoices come from Fortnox, not from us (arch §4.6). |
+| N-7 | Tenders thin core (§5.2 E29) | ✅ **Closed 2026-07-26** — owner accepted the thin manual slice as Phase B parity; AI analysis explicitly Phase C. |
 | N-8 | DoU/egenkontroll templates (§5.2 E27/E28) | Template-driven runner/ingestion UX | Real template content |
 | N-9 | Conflict/capacity rules (§4.5 Beläggning, §4.6 checks) | Conflict surfacing, resolver, capacity view shells | Exact work-hours/capacity/holiday rules the checks encode |
 | N-10 | HR deletion-request flow (§5.2 E31) | Request → status-tracker pattern | Retention posture |
@@ -533,8 +567,8 @@ Rules: one breakpoint system (Tailwind defaults) app-wide; sidebar → icon rail
 9. **Dashboard widget registry** (§4.10): manifest-traceable widget list + role defaults (FR107/108).
 10. **Calendar-feed token UX mechanics** (§4.5): create/rotate/revoke affordances bound to ADR-B004's entropy/rate-limit/revocation rules.
 11. **Public QR page isolation** (§5.2 E22): layout/app-shell separation for unauthenticated surfaces, no tenant enumeration (ADR-B004).
-12. **Job-workspace tab data contracts** under ADR-B006's outcome — confirm the shell contract (§4.9) against the chosen model, incl. Option B's `Ingående jobb` aggregate.
-13. **Field transient-failure retention** (§4.8): where unsent capture data lives (form state vs storage) given no offline promise (UXB-A11).
+12. **Job-workspace tab data contracts** — ✅ resolved: ADR-B006 landed the typed single container, the §4.9 shell contract holds unchanged, and Option B's `Ingående jobb` aggregate is not built.
+13. **Field capture persistence** (§4.8/§4.8A) — ✅ re-answered by ADR-B007: durable, scoped, purgeable on-device storage plus a sync queue, with sessionStorage retention remaining the online transient-failure path (arch §8A.6).
 14. **Oracle terminology pass:** resolve every `[oracle-check]` label against the legacy app (legacy-oracle-explorer task) before the relevant epic's first story.
 
 ## 15. Assumptions Register (autonomous run record)
@@ -547,11 +581,11 @@ Rules: one breakpoint system (Tailwind defaults) app-wide; sidebar → icon rail
 | UXB-A4 | Hide-don't-disable for unauthorized/inactive nav (no teaser items) — least-privilege clarity outweighs discoverability inside a tenant. | accepted |
 | UXB-A5 | Förlorad/Avböjd reason = structured category (Pris/Konkurrent/Tidplan/Uteblivet svar/Annat) + note. Category list is a strawman for the owner/oracle; free text alone would kill hit-rate analytics. | needs oracle/owner glance |
 | UXB-A6 | One open follow-up per quote at a time (complete-then-plan-next) — keeps due lists honest; revisit if the oracle shows parallel follow-ups. | assumption |
-| UXB-A7 | B1a ships seed roles only — no custom-role builder UI (mechanism-first per PB-D2; the matrix grows per module). A role builder is a later decision, not designed here. | accepted |
+| UXB-A7 | B1a ships seed roles only — no custom-role builder UI (mechanism-first per PB-D2; the matrix grows per module). A role builder is a later decision, not designed here. | **CONFIRMED 2026-07-26 by N-4** — tenant-specific roles in v1 are created only by us internally, via an internal surface or version-controlled configuration; no tenant-facing builder is designed. |
 | UXB-A8 | Montör's landing is `Min dag`, not the dashboard; dashboard remains one surface with role-default widget layouts, no v1 user customization (PB-A11/PB-D7 alignment). | accepted |
 | UXB-A9 | Team view groups by arbetsroll in B1 (no named-teams entity in the PRD); named teams only if the oracle demands them. | needs oracle check |
 | UXB-A10 | Conflicts warn-and-allow with explicit `Boka ändå` + accepted-conflict state, rather than hard-blocking — matches field reality and FR85/FR89's "surface for resolution"; override shape is an architecture item (§14.3). | assumption for architecture |
-| UXB-A11 | No offline capture promise in Phase B: transient-failure retention + explicit retry only. Revisit at a wave checkpoint if pilot field use demands more. | accepted (revisit signal named) |
+| UXB-A11 | No offline capture promise in Phase B: transient-failure retention + explicit retry only. Revisit at a wave checkpoint if pilot field use demands more. | **SUPERSEDED 2026-07-26 by owner answer N-3 / ADR-B007** — genuine offline capture is required. The named revisit signal fired earlier than a wave checkpoint: the owner asked directly. §4.8A is the replacement contract. |
 | UXB-A12 | Dashboard v1 widget set per PB-A11's minimal B1 list; widgets are registry-driven and manifest-traceable. | accepted |
 | UXB-A13 | Documents center is filter/search-shaped (no folder tree) since it aggregates entity-scoped files (PB-D6); folders exist only where the domain has them (DoU, tenders). | assumption |
 | UXB-A14 | All `[oracle-check]` labels (§9) must be resolved via the legacy-oracle terminology pass before the owning epic's first story — labels are cheap to change now, expensive after users learn them. | open item (§14.14) |
