@@ -8,7 +8,9 @@
         "--project-ref=wmqmzznmwpheswjjozhq"
       ],
       "env": {
-        "SUPABASE_ACCESS_TOKEN": "${SUPABASE_ACCESS_TOKEN}"
+        "SUPABASE_ACCESS_TOKEN": "${SUPABASE_ACCESS_TOKEN}",
+        "FORTNOX_CLIENT_ID": "${FORTNOX_CLIENT_ID}",
+        "FORTNOX_CLIENT_SECRET": "${FORTNOX_CLIENT_SECRET}"
       }
     }
   }
