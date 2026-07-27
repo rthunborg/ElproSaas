@@ -147,6 +147,20 @@ function migrationDocFiles(): string[] {
  * cell(s) — including ranged IDs like `B.1-B.4` and `C.1-C.3` — so the register-traceability check
  * cross-references the REAL open set, never a hardcoded copy that drifts (R-917).
  */
+/** Total parsed status rows in the system-of-record — the non-vacuity anchor for the drift guard. */
+function parsedSignoffStatusRowCount(): number {
+  const src = readFileSync(SIGNOFF_SOR, "utf8");
+  let n = 0;
+  for (const line of src.split(String.fromCharCode(10))) {
+    if (!line.trim().startsWith("|")) continue;
+    const cells = line.split("|").map((c) => c.trim());
+    const id = cells[1];
+    if (!id || id === "ID" || id.startsWith("---")) continue;
+    n += 1;
+  }
+  return n;
+}
+
 function blockingSignoffIds(): string[] {
   const src = readFileSync(SIGNOFF_SOR, "utf8");
   const ids = new Set<string>();
@@ -361,9 +375,15 @@ test("9.4-REG-01: EVERY AC2 decision item appears in the register with a signed-
 test("9.4-REG-01 (R-917): EVERY blocking question ID in owner-signoff-questions.md appears in the register (no register drift)", () => {
   const reg = registerText();
   const blocking = blockingSignoffIds();
+  // NON-VACUITY: prove the PARSER still works, not that a fixed NUMBER of items is open. The old
+  // assertion pinned `>= 6` — a snapshot of July 2026, when A.1/A.2/B/C/7.1/7.3/8.1/8.2 were all
+  // `möte`-open. Answers legitimately SHRINK that set (owner + accountant answered 2026-07-26; the
+  // no-migration decision withdrew 8.1/8.2), so a hardcoded floor turns "the owner answered our
+  // questions" into a RED build. The real invariant is the drift check below: whatever is blocking
+  // must appear in the register. Non-vacuity is proven by the parser seeing the status table at all.
   assert.ok(
-    blocking.length >= 6,
-    `[RED] expected the live system-of-record to carry the known open blocking IDs (>=6; A.1/A.2/B.1-B.4/C.1-C.3/7.1/7.3/8.1/8.2) — parsed ${blocking.length}: ${blocking.join(", ")}`,
+    parsedSignoffStatusRowCount() > 0,
+    "[RED] the sign-off system-of-record parsed ZERO status rows — the table shape changed and this guard has gone vacuous",
   );
   const missing = blocking.filter((id) => !reg.includes(id));
   assert.deepEqual(
@@ -706,9 +726,12 @@ test("9.4-BLOCK-01 (purity): evaluateCutover does NOT mutate the caller's openBl
 test("9.4-REG-01 (register↔model consistency): EVERY live blocking question ID blocks real-pilot cutover and does NOT block demo", async () => {
   const { evaluateCutover } = await loadCutoverModel();
   const blocking = blockingSignoffIds();
+  // Non-vacuity via the PARSER, not a frozen count — see the drift guard above: answers legitimately
+  // shrink the open set (owner + accountant answered 2026-07-26; no-migration withdrew 8.1/8.2), so a
+  // hardcoded `>= 6` floor would red the build precisely BECAUSE the owner answered.
   assert.ok(
-    blocking.length >= 6,
-    `expected the live system-of-record to carry the known open blocking IDs (>=6) — parsed ${blocking.length}: ${blocking.join(", ")}`,
+    parsedSignoffStatusRowCount() > 0,
+    "[RED] the sign-off system-of-record parsed ZERO status rows — the table shape changed and this guard has gone vacuous",
   );
   // The register (§4) enumerates exactly this blocking set (9.4-REG-01 above proves no drift). Here
   // we tie that DECISION set to the GUARD's behavior: feeding each blocking ID to the model must

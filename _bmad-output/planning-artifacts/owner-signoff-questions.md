@@ -47,7 +47,7 @@ items deferred to full release). Status: `open` → `answered` → `signed-off`
 | ID | Question | Answer | Status |
 | --- | --- | --- | --- |
 | 2.1 | PDF moms-visning | Valbart. Default: **privat måste alltid se momssats + momssumma + ink-moms-total**; företag kan togglas. Ref: hans Lovable-offert. | answered |
-| 2.2 | Dolda rader i total/avdrag | Ja, räknas med (kund ska inte alltid se kalkylunderlaget). Vill stämma av per telefon. | answered (möte) |
+| 2.2 | Dolda rader i total/avdrag | **OMPRÖVAT 2026-07-26:** synlighet styr INTE ekonomisk inräkning. En dold rad räknas i TOTALEN om den är debiterbar, men i AVDRAGSUNDERLAGET **endast om dess kostnadstyp är avdragsgrundande** (material ⇒ ej ROT; resa/maskin/adm ⇒ varken ROT eller grön). Kräver tre separata egenskaper: `VisibleToCustomer`, `IncludedInInvoiceTotal`, `DeductionClassification`. | **answered (2026-07-26)** ⚠ ändrar shippat antagande |
 
 ### Prio 2 — Block 3: Kalkyl & offert — Epic 5-6
 
@@ -86,9 +86,9 @@ items deferred to full release). Status: `open` → `answered` → `signed-off`
 
 | ID | Question | Answer | Status |
 | --- | --- | --- | --- |
-| 7.1 | Vad jobbet kallas | "**Jobb**". MEN strukturen (jobb innehåller order/arbetsorder, kan vara projekt) → telefon | partial (möte) |
+| 7.1 | Vad jobbet kallas | "**Jobb**". Struktur BESVARAD 2026-07-26: **Alternativ A som modell, C som teknik** — Jobb är behållaren, innehåller arbetsorder, kan uppgraderas till projekt; implementeras som EN typad entitet (`type ∈ {order, projekt}`, uppgradering = revisionsspårat typbyte). | **answered (2026-07-26)** |
 | 7.2 | Auto-skapa jobb | Ja | answered |
-| 7.3 | Fält första jobbkortet | Per telefon | öppen (möte) |
+| 7.3 | Fält första jobbkortet | Följer av 7.1 + N-9:s jobbindata (uppskattad tid, tidigaste start, önskat/senast slutdatum, prioritet, antal personer, kompetenskrav, plats, beroenden, restid, projektledare, arbetsledare, kund på plats, åtkomstfönster). | **answered (2026-07-26)** |
 | 7.4 | Planerat start/slut vid accept | **Direkt** (ja) | answered |
 | 7.5 | Dokumentbibliotek | **Samlat** vore bäst. ⚠ Scope: Fas A = begränsat index, ej brett dok-center — se Scope decisions. | answered (scope) |
 
@@ -103,10 +103,10 @@ items deferred to full release). Status: `open` → `answered` → `signed-off`
 
 | ID | Question | Answer | Status |
 | --- | --- | --- | --- |
-| A.1 | Avrundning + PDF-visning | (ej besvarad) | öppen (möte) |
-| A.2 | Moms-sats idag | (ej besvarad; privat alltid ink-moms-visning enligt 2.1) | öppen (möte) |
-| B.1-B.4 | ROT: sats/tak/underlag/moms | "Tar vi tillsammans" — arbetsmöte om regler & satser | öppen (möte) |
-| C.1-C.3 | Grön teknik: satser/tak/schablon | "Tar vi tillsammans" — arbetsmöte | öppen (möte) |
+| A.1 | Avrundning + PDF-visning | **Moms avrundas PER MOMSKATEGORI på DOKUMENTNIVÅ** (Peppol/EN 16931 BR-CO-17), ej per rad. Radnetto 2 decimaler; PDF 2 decimaler; öresavrundning stöds men EJ default (separat dokumentrad). **ROT/grön-belopp som begärs från SKV: hela kronor, öretal TRUNKERAS bort.** | **answered (2026-07-26)** ⚠ ändrar shippad implementation |
+| A.2 | Moms-sats idag | **25 %** standard. Skattereduktion ändrar EJ momssatsen. **Omvänd betalningsskyldighet i byggsektorn ska modelleras som EGEN momstyp** (`STANDARD_VAT_25` / `REVERSE_CHARGE_CONSTRUCTION`), inte som 0 %. | **answered (2026-07-26)** ⚠ ny funktion |
+| B.1-B.4 | ROT: sats/tak/underlag/moms | **B.1 30 %** (den tillfälliga höjningen upphörde 2026-01-01). **B.2 tak 50 000 kr/person/år**, ROT+RUT tillsammans max 75 000. **B.3 underlag = arbetskostnad INKL. moms** (ej material/resa/maskin/adm). **B.4 ordningen bekräftad**; vid flera personer fördelas avdraget i HELA kronor. | **answered (2026-07-26)** |
+| C.1-C.3 | Grön teknik: satser/tak/schablon | **C.1 solceller 15 %, lagring 50 %, laddpunkt 50 %** (på arbete+material inkl. moms, uppdelat per kategori). **C.2 tak 50 000 kr/person/år, SEPARAT från ROT/RUT.** **C.3 97 %-schablon endast vid TOTALENTREPRENAD TILL FAST PRIS**; default `ACTUAL_ELIGIBLE_COSTS`. | **answered (2026-07-26)** |
 | D.1 | Berättigade kundtyper | **Endast privatpersoner** | answered |
 | D.2 | BRF berättigad? | **Nej** (endast privat) | answered |
 | D.3 | ROT + grön kombination | **Får inte blandas** | answered |
@@ -231,3 +231,46 @@ received **2026-06-18**. The Swedish email lives in
 `docs/discovery/e0-owner-questions-sv.md` (owner) and
 `docs/discovery/e0-accounting-tax-questions-sv.md` (tax). Those sheets are the
 outgoing artifact; this list stays the system of record for assumption sign-off.
+
+## Svar mottagna 2026-07-26 — N-2…N-10 + skatteblocket (källfiler: owner_questions_response.md, accountant_questions_response.md)
+
+**Alla tidigare öppna möte-punkter är nu besvarade utom `8.1`/`8.2`, som är UTGÅNGNA
+(ingen datamigrering — ägarbeslut 2026-07-20). Fas B har därmed inga kvarvarande
+hårda ägargrindar.** Svaren nedan är dock inte enbart bekräftelser — tre av dem
+ÄNDRAR redan levererad eller planerad funktionalitet, se "⚠ Konsekvenser" sist.
+
+| ID | Beslut (kort) |
+| --- | --- |
+| **Jobbmodell** | **A som modell, C som teknik** — precis teamets rekommendation. Låser upp E16-E18 och ADR-B006. |
+| **N-2** | INGEN självregistrering. Interna grundare provisionerar efter avtal. AI-assisterat men **deterministisk provisioneringstjänst** — agenten är gränssnitt/orkestrerare, får INTE generell DB-åtkomst eller godtycklig SQL i produktion. Strukturerad, versionshanterad onboardingmall (≈17 fält). Flödet ska vara validerat, **idempotent**, dry-run-bart, revisionsloggat och säkert att köra om efter partiellt fel. Prismodell: fast månadsavgift + tillägg per användare/modul; priser i DATA (`SubscriptionPlan`, `IncludedUsers`, `CommercialOverrides` …), aldrig hårdkodade. |
+| **N-3** | ⚠ **PWA med OFFLINE-stöd** — inte "responsiv webb först". Installerbar, offline för tilldelade jobb, tid, material, checklistor, avvikelser, foton; lokal kö + synk med `SavedLocally/WaitingForSync/Syncing/Synced/Conflict/Failed`, **idempotenta skrivningar med operations-ID**, append-only för tidrader/material, optimistisk låsning för delade objekt, minimerad + tidsbegränsad lokal lagring. Native app INGÅR INTE. |
+| **N-4** | Roller bekräftade (Företagsadmin, Projektledare, Montör, Säljare, Ekonomi) + **Arbetsledare som JOBB-/PROJEKTBUNDET uppdrag, inte global roll**; flera roller samtidigt. Behörighetsmodell i 4 dimensioner (resurs, handling, dataomfattning, känsliga fältgrupper) med namngivna nycklar. **Montör ser INTE pris/självkostnad/TB. Säljare ser försäljningspris men INTE TB** (separat nyckel `Economy.ViewContributionMargin`). Serverside-kontroll; **deny-by-default**. Kundspecifika roller endast av oss internt i v1; alla ändringar revisionsloggas. |
+| **N-5** | Fortnox Developer Portal ansökt. **OAuth2 Authorization Code Flow, per kundföretag** (aldrig delade credentials). Scopes initialt `companyinformation, customer, article, invoice`. **Vårt system = master för faktureringsunderlaget; Fortnox = master för faktura/nummer/bokföring/betalning.** Ingen automatisk bokföring/utskick i v1. Detaljerat radinnehåll för tid/material/fastpris/betalningsplan/övrigt + statusflöde Draft→…→Invoiced; godkänd version låst mot ändring. |
+| **N-6** | Central verifierad avsändardomän (`notify.<system>.se`); `[Företag] via [System]` som visningsnamn, **Reply-To = kundföretagets adress**. Prioritetsordning: inbjudningar/säkerhet → offertutskick → accept/avslag-notis → jobbtilldelning → offertpåminnelse → sammandrag. **Påminnelser stoppas automatiskt** vid accept/avslag/återkallelse/ny version/utgång. Fakturautskick sker från FORTNOX (undvik dubbla mejl). Full leveranslogg. |
+| **N-7** | ✅ Tunn manuell upphandlings-/FKU-modul ACCEPTERAD som Fas B-parity; AI-analys uttryckligen Fas C. |
+| **N-8** | **Johan Ahlström utsedd innehållsägare** för DoU/egenkontroll-innehåll. Vi levererar mallmotor/versionshantering/flöde; han levererar och godkänner fack- och compliance-innehållet. `ContentOwnerUserId` ska vara en KONFIGURERBAR användarreferens, aldrig ett hårdkodat namn. Utvecklingsteamet får INTE själv formulera innehåll som framställs som juridiskt/eltekniskt korrekt. |
+| **N-9** | Schemaläggning på **faktiskt veckoschema**, inte enbart anställningsgrad (80 % kan vara 4 heldagar ELLER 5 korta). Kapacitet = schemalagd tid − helgdagar − frånvaro − bokningar − blockerad tid − buffert. Övertid ej ordinarie kapacitet. Överbokning tillåts men varnar. Central svensk helgdagskalender + företagsspecifika stängda dagar. Ingen automatisk optimering krävs i Fas B. |
+| **N-10** | Fas B ska ha teknisk GRUND för datalivscykel: `RetentionCategory`, `RetentionUntil`, `LegalHold`, `AnonymizedAt` m.fl. + raderingsärende-statusar (Received→…→Closed). Gäller ALLA identifierbara personer (även kontaktpersoner, UE, personer på foton). Vanliga admins får INTE hårdradera. Gallringstider i **central versionshanterad policy**, ej utspridda konstanter. |
+
+### ⚠ Konsekvenser — tre svar ändrar redan levererad/planerad funktionalitet
+
+1. **A.1 momsavrundning ÄNDRAR den shippade motorn.** Nuvarande implementation
+   (architecture §10 "Rounding") avrundar moms **per rad** och summerar avrundade
+   radbelopp. Revisorn föreskriver **avrundning per momskategori på dokumentnivå**
+   (Peppol/EN 16931 BR-CO-17) och varnar uttryckligen för radmodellen, eftersom den
+   ger olika resultat beroende på hur fakturan delas upp i rader. Detta berör
+   `@/lib/money`/`@/lib/tax`, quote-snapshots och alla golden-master-fixtures.
+2. **2.2 dolda rader ÄNDRAR ett shippat antagande.** Systemet antar idag "dolda rader
+   räknas alltid med i BÅDE total och avdragsunderlag". Rätt regel: total = ja om
+   debiterbar; avdragsunderlag = **endast om kostnadstypen är avdragsgrundande**
+   (material ⇒ ej ROT). Kräver tre separata egenskaper och en
+   `DeductionClassification`-uppsättning per rad.
+3. **N-3 PWA + offline är en VÄSENTLIG scope-utökning** mot den ledgerade gissningen
+   ("responsiv webb först"). Offline-kö, synkstatusar, idempotenta skrivningar och
+   konflikthantering är arkitektur, inte finish — påverkar B1b:s fältflöden och
+   förmodligen ADR-nivå.
+
+Dessutom NYTT: **omvänd betalningsskyldighet** (A.2) som egen momstyp, **ROT/grön-belopp
+trunkeras till hela kronor**, **ROT+RUT-gemensamt tak 75 000**, och satser/tak ska lagras
+med `ValidFrom`/`ValidTo` — inte som konstanter. För ROT styr dessutom **kundens
+betalningsdatum**, inte fakturadatumet, vilket beskattningsår avdraget hör till.

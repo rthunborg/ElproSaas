@@ -285,7 +285,63 @@ Säljare close the quote loop: Förlorad/Avböjd with reasons, follow-up workflo
 **Activation:** No new module — quotes are Phase A-active; Story 10.1 introduces the manifest itself with Phase A as the initial active set; 10.2/10.3 enroll the new quote tables under the active quotes module in the same PRs.
 **Oracle checks:** Förlorad vs Avböjd distinction; lost-reason category list (UXB-A5).
 
-### Epic 11 [Wave B1a]: RBAC Mechanism and Admin User Management
+#### Story 10.6: Tax-Answer Reconciliation — VAT rounding scope, deduction classification, reverse charge (owner/accountant answers 2026-07-26)
+
+As the company owner who must issue legally correct quotes and invoices,
+I want the money engine to match the accountant's ratified rules rather than our provisional assumptions,
+so that a real ROT/grön-teknik quote is correct the first time it leaves the system.
+
+**Origin:** the accountant's answers of 2026-07-26 (`docs/discovery/phase-b-accountant-answers-2026-07-26.md`). Most answers CONFIRMED our assumptions (25 % VAT, ROT 30 %, caps 50 000, grön 15/50/50). **Three did not, and they change SHIPPED behaviour** — this story exists because a register entry cannot fix code.
+
+### AC1 — VAT rounds per VAT category at DOCUMENT level, not per line
+**Given** architecture §10 currently specifies per-line VAT rounding, summing rounded line values
+**When** the money engine computes VAT
+**Then** line NET is rounded to öre, but VAT is computed and rounded **per VAT category on the summed document-level basis** (Peppol/EN 16931 **BR-CO-17**)
+**And** the golden-master fixtures are re-derived, because the accountant explicitly warns the per-line model yields different totals depending on how many lines an invoice is split into.
+
+### AC2 — Hidden rows: visibility is decoupled from economic inclusion
+**Given** the shipped assumption "hidden rows always count in BOTH total and deduction basis"
+**When** a row is hidden from the customer
+**Then** it counts in the TOTAL when billable, but in the DEDUCTION basis **only when its cost type is eligible** (material is never ROT-eligible; travel/machine/admin are neither ROT nor grön)
+**And** each row carries the three separate properties `VisibleToCustomer`, `IncludedInInvoiceTotal`, `DeductionClassification` (`NONE`, `ROT_LABOR`, `GREEN_*_LABOR`, `GREEN_*_MATERIAL`).
+
+### AC3 — Reverse charge is a VAT TYPE, not rate 0
+**Given** construction-sector reverse charge (`omvänd betalningsskyldighet`) applies to electrical work on property for qualifying buyers
+**When** a quote/invoice is issued under it
+**Then** it is modelled as a distinct VAT type (`STANDARD_VAT_25` / `REVERSE_CHARGE_CONSTRUCTION`), never as a 0 % rate
+**And** it requires an explicit choice or verified customer setting — being a company is NOT sufficient — and prints the buyer's VAT number plus the text "Omvänd betalningsskyldighet".
+
+### AC4 — Claim amounts truncate to whole SEK; rates are time-versioned
+**Given** amounts claimed from Skatteverket must be whole SEK with öre DISCARDED (truncation, not rounding)
+**When** a ROT/grön amount is claimed
+**Then** it truncates down, and a multi-person allocation distributes in whole SEK summing exactly to the invoice's deduction
+**And** rates/caps are stored with `ValidFrom`/`ValidTo` (not constants), the ROT+RUT combined 75 000 ceiling is representable alongside the 50 000 ROT cap, and the ROT tax year follows the customer's **payment** date, not the invoice date.
+
+### AC5 — Grön teknik 97 % schablon is opt-in, per category
+**Given** the 97 % standard applies ONLY to a genuine fixed-price total contract
+**Then** the default basis method is `ACTUAL_ELIGIBLE_COSTS`; the schablon is an explicit user choice, and a mixed project (e.g. solar + battery) splits its basis per category before applying 15/50/50.
+
+**Security/RLS Impact:** none new. **Money Impact:** HIGH — this is the money engine and its golden masters. **Dependencies:** Epic 4 money/tax primitives. **Stop Conditions:** stop if a change would alter an already-SENT quote version's frozen snapshot — snapshots are immutable; new rules apply to NEW versions only.
+
+### Story 10.7: PWA + Offline Field Capability (owner answer N-3, 2026-07-26)
+
+As a field electrician working in basements and rural sites,
+I want the app installable with offline capture that syncs when I regain signal,
+so that losing connectivity does not lose my time, materials, photos, or checklists.
+
+**Origin:** owner answer N-3. This **supersedes the ledgered assumption "responsive web first"** — the owner asked for an installable **PWA with genuine offline support**, which is architecture rather than polish and therefore cannot be absorbed into E14-E16 unexamined.
+
+### AC1 — Installable PWA, one app across desktop/tablet/mobile (no native app — that stays out of scope).
+### AC2 — Offline capture for: assigned jobs + their customer/site info, time entries, work notes, material usage, checklists/egenkontroller, deviations, photos within size limits, start/complete marking, signature where legally sound.
+### AC3 — Local queue + sync on: reconnect, app open, foreground, and manual retry. **MUST NOT depend on background sync while closed** — unsynced work is reprocessed on next open.
+### AC4 — Visible per-change state: `SavedLocally`, `WaitingForSync`, `Syncing`, `Synced`, `Conflict`, `Failed`; a failed transfer never loses data and explains itself.
+### AC5 — Sync APIs use operation ids + **idempotent writes** so a replayed change never duplicates a time row, material line, or attachment.
+### AC6 — Conflicts: time/material/photos are append-only; shared objects use versioning/optimistic locking; never silently overwrite another user's edit.
+### AC7 — Local storage is **scoped** (assigned/selected jobs only, never the tenant database), minimised, time-boxed, purged on logout where feasible, and under the same permission checks as online reads. Admin/economy/settings surfaces may require connectivity.
+
+**Security/RLS Impact:** HIGH — tenant data at rest on devices; scoping and purge are security properties. **Dependencies:** E14-E16 field surfaces. **Stop Conditions:** stop if offline scope would require caching data the user lacks permission to read online. Likely warrants its own ADR.
+
+## Epic 11 [Wave B1a]: RBAC Mechanism and Admin User Management
 
 The `tenant_admin`-only era ends: role storage, the code-level permission matrix, role-aware RLS, sensitive-field withholding, admin user management, and the per-role negative-test harness (ADR-B001) — mechanism now, matrix seed flagged on N-4.
 
