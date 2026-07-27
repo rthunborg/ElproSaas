@@ -4,10 +4,10 @@ story_key: 6-4-mark-quote-version-sent-and-enforce-immutability
 epic_num: 6
 story_num: 4
 branch: epic/6-quote-versions-pdf-and-lifecycle
-status: in-progress
-updated_at: "2026-07-06T14:19:27Z"
+status: done
+updated_at: "2026-07-27T14:57:12Z"
 started_at: "2026-07-06T09:36:03Z"
-completed_at: null
+completed_at: "2026-07-27T14:57:12Z"
 active_seconds: 16962
 timing_anchor: null
 is_first_in_epic: false

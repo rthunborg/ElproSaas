@@ -4,10 +4,10 @@ story_key: 10-2-forlorad-avbojd-status-and-lost-reason-lifecycle
 epic_num: 10
 story_num: 2
 branch: epic/10-quote-lifecycle-completion
-status: in-progress
-updated_at: "2026-07-19T16:12:46Z"
+status: done
+updated_at: "2026-07-27T14:56:14Z"
 started_at: "2026-07-19T14:14:36Z"
-completed_at: null
+completed_at: "2026-07-27T14:56:14Z"
 active_seconds: 7074
 timing_anchor: null
 is_first_in_epic: false

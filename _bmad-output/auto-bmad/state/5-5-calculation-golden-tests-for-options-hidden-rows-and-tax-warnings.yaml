@@ -4,10 +4,10 @@ story_key: 5-5-calculation-golden-tests-for-options-hidden-rows-and-tax-warnings
 epic_num: 5
 story_num: 5
 branch: epic/5-calculation-workspace-and-quote-readiness
-status: in-progress
-updated_at: "2026-07-03T10:54:05Z"
+status: done
+updated_at: "2026-07-27T14:57:11Z"
 started_at: "2026-07-03T10:09:50Z"
-completed_at: null
+completed_at: "2026-07-27T14:57:11Z"
 active_seconds: 2575
 timing_anchor: null
 is_first_in_epic: false

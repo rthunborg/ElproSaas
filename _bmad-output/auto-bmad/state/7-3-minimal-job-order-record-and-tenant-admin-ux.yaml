@@ -4,10 +4,10 @@ story_key: 7-3-minimal-job-order-record-and-tenant-admin-ux
 epic_num: 7
 story_num: 3
 branch: epic/7-acceptance-to-job-transaction
-status: in-progress
-updated_at: "2026-07-07T06:26:29Z"
+status: done
+updated_at: "2026-07-27T14:57:13Z"
 started_at: "2026-07-07T05:20:08Z"
-completed_at: null
+completed_at: "2026-07-27T14:57:13Z"
 active_seconds: 3911
 timing_anchor: null
 is_first_in_epic: false

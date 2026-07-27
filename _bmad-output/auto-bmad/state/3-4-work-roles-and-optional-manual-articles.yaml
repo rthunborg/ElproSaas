@@ -4,10 +4,10 @@ story_key: 3-4-work-roles-and-optional-manual-articles
 epic_num: 3
 story_num: 4
 branch: epic/3-crm-company-settings-and-pricing-foundation
-status: in-progress
-updated_at: "2026-06-30T20:23:30Z"
+status: done
+updated_at: "2026-07-27T14:57:09Z"
 started_at: "2026-06-30T15:55:30Z"
-completed_at: null
+completed_at: "2026-07-27T14:57:09Z"
 active_seconds: 2753
 timing_anchor: null
 is_first_in_epic: false
