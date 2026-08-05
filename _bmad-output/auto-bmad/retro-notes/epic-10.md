@@ -35,3 +35,6 @@
 - [Tier A â€” review] THIRD hollow-assertion instance this epic (Array.isArray masqueraded as a cross-tenant proof; earlier: 10-2 skipped scaffolds claimed unskipped, 10-2 standing-control glob untouched) â€” 'unskipped and green' can be literally true while proving nothing; needs a mechanical non-vacuity gate, not more discipline.
 - [Tier A â€” review] Tier-A High found-and-fixed => epic convergence_unverified sticky per E5f; epic PR will ship as DRAFT for human review even if Tier B converges clean â€” expected, by design.
 - [Tier A â€” review] resolvePipelinePeriod setUTCMonth overflow (month-end/leap anchors) â€” date windows built with setUTCMonth need day-clamping; boundary tests now pin it.
+
+## Story 10-6-tax-answer-reconciliation
+- [Phase 3 - create-story] Carry forward two-runner test discipline, non-vacuous golden/scanner assertions, warning-code alignment, union drift guards, and the count-only person-cap seam.

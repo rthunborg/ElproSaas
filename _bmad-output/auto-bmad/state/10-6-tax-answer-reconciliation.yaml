@@ -5,10 +5,10 @@ epic_num: 10
 story_num: 6
 branch: story/10-6-tax-answer-reconciliation
 status: in-progress
-updated_at: "2026-07-29T10:02:59Z"
+updated_at: "2026-07-29T10:31:53Z"
 started_at: "2026-07-29T10:02:59Z"
 completed_at: null
-active_seconds: 0
+active_seconds: 1308
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -20,14 +20,14 @@ tea_selected: [atdd, automate]
 tea_rationale: "Legally consequential money/tax engine changes and golden-master recalculation require both ATDD and post-dev automation; trace advisory excluded because stories_after_in_epic=1 is below the skip threshold of 3."
 epic_story_count: 7
 stories_after_in_epic: 1
-completed_phases: [0, 1]
+completed_phases: [0, 1, 2, 3]
 code_review_iterations: 0
 code_review_loop_done: false
 hitl_halt: null
 external_review_iterations: 0
 convergence_unverified: false
 story_trace: null
-commits: []
+commits: [c091f02]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -47,7 +47,8 @@ merge_method: null
 merge_commit: null
 branch_deleted: false
 open_questions: []
-deferred_work: []
+deferred_work:
+  - "Out of Story 10.6: e-invoice/Skatteverket submission, verified-customer reverse-charge defaults, payable-rounding UI, and the Phase C legal-disclaimer program."
 blockers: []
 overrides: {}
 constraints: []
