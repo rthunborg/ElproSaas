@@ -14,12 +14,8 @@
  * Runner: `node --test` (`pnpm run test:unit`) — pure, NO DB. Fixture:
  * tests/fixtures/golden/money/rot-gron-deductions.json (anonymized; money/rate/cap numbers only).
  *
- * 🔴 RED PHASE — the tax surface (`estimateDeduction`, the named profiles) does NOT exist yet in
- * `@/lib/money`. The `@/lib/money` barrel resolves today (Story 4.1), so the whole suite is gated
- * behind `TAX_SURFACE_PRESENT` via `describe.skip` — keeping the green `test:unit` baseline
- * UNPERTURBED. The dev's GREEN phase adds `src/lib/money/tax.ts` + the barrel re-exports; the gate
- * then flips true automatically and the PINNED expected values (the load-bearing deduction policy)
- * run UNCHANGED — no test edit needed.
+ * Story 10.6 standing-control repair: the landed tax export is a hard precondition. Dropping it
+ * fails this golden immediately; the policy pin can never silently self-disable.
  *
  * POLICY STATUS: the ROT/grön rates/caps/schablon, the eligibility rule, and the customer-facing
  * disclaimer wording are CONSERVATIVE PILOT ASSUMPTIONS pending owner/accounting/legal sign-off
@@ -126,9 +122,7 @@ type TaxEngine = {
 };
 const engine = money as unknown as TaxEngine & Record<string, unknown>;
 
-// 🔴 RED-PHASE GATE — flips true once the dev adds the tax surface to `@/lib/money`.
-const TAX_SURFACE_PRESENT = typeof engine.estimateDeduction === "function";
-const suite = TAX_SURFACE_PRESENT ? describe : describe.skip;
+assert.equal(typeof engine.estimateDeduction, "function", "estimateDeduction export is a hard golden precondition");
 
 const CAPTURED_AT = "2026-07-02T00:00:00.000Z";
 
@@ -144,7 +138,7 @@ function inputFor(c: DeductionCase): Record<string, unknown> {
   };
 }
 
-suite("Story 4.3 — GOLDEN ROT / grön-teknik deduction pin (4.3-GOLDEN-01/02, R-405/R-406/R-407)", () => {
+describe("Story 4.3 — GOLDEN ROT / grön-teknik deduction pin (4.3-GOLDEN-01/02, R-405/R-406/R-407)", () => {
   test("the fixture pins the conservative UNAPPROVED deduction policy (basis-points, capped, private-only, unapproved)", () => {
     const fx = loadFixture();
     assert.equal(fx.policy.deductionRateUnit, "basis-points");

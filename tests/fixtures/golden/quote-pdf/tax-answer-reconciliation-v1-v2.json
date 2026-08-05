@@ -1,0 +1,111 @@
+{
+  "coverageManifest": {
+    "mixed-reverse-charge-v2": "exact-text-and-reconciled-totals"
+  },
+  "cases": [
+    {
+      "id": "mixed-reverse-charge-v2",
+      "snapshot": {
+        "calculationId": "calc-tax-answer-pdf-v2",
+        "capturedAt": "2026-08-05T09:00:00.000Z",
+        "companyName": "Example El AB",
+        "companyOrgNr": "556000-0000",
+        "companyAddressLine1": "Exempelvägen 1",
+        "companyAddressLine2": null,
+        "companyPostalCode": "111 11",
+        "companyCity": "Teststad",
+        "companyEmail": "info@example.test",
+        "companyPhone": "070-0000000",
+        "companyLogoUrl": null,
+        "customerDisplayName": "Example Customer",
+        "customerType": "company",
+        "facilityName": "Example Facility",
+        "contactName": "Example Contact",
+        "quoteNumberDisplay": "Offert #106",
+        "validUntil": "2026-09-05",
+        "introText": null,
+        "customerNotes": null,
+        "termsText": "Betalning 30 dagar.",
+        "termsApprovedAt": null,
+        "termsApprovedBy": null,
+        "baseTotalOre": 300000,
+        "optionTotalOre": 0,
+        "vatTotalOre": 25000,
+        "deductionTotalOre": 0,
+        "acceptedPriceOre": 325000,
+        "vatRateBp": 2500,
+        "vatDisplay": "company_excl",
+        "deductionType": null,
+        "deductionRateBp": null,
+        "deductionCapOre": null,
+        "deductionPersons": null,
+        "requiresSignOff": true,
+        "displayMode": "detailed",
+        "lines": [
+          {
+            "rowType": "material",
+            "sortOrder": 0,
+            "label": "Standardrad",
+            "description": null,
+            "quoteNote": null,
+            "quantity": 1,
+            "unit": "st",
+            "unitSellOre": 100000,
+            "lineNetOre": 100000,
+            "vatRateBp": 2500,
+            "isHidden": false,
+            "isOptional": false,
+            "isSelected": null,
+            "includedInInvoiceTotal": true,
+            "deductionClassification": "NONE",
+            "vatType": "STANDARD_VAT_25"
+          },
+          {
+            "rowType": "labor",
+            "sortOrder": 1,
+            "label": "Omvänd rad",
+            "description": null,
+            "quoteNote": null,
+            "quantity": 1,
+            "unit": "st",
+            "unitSellOre": 200000,
+            "lineNetOre": 200000,
+            "vatRateBp": 0,
+            "isHidden": false,
+            "isOptional": false,
+            "isSelected": null,
+            "includedInInvoiceTotal": true,
+            "deductionClassification": "NONE",
+            "vatType": "REVERSE_CHARGE_CONSTRUCTION"
+          }
+        ],
+        "attachments": [],
+        "warnings": [],
+        "snapshotSchemaVersion": 2,
+        "buyerVatNumber": "SE556677889901",
+        "netOre": 300000,
+        "vatOre": 25000,
+        "grossOre": 325000,
+        "deductionOre": 0,
+        "payableOre": 325000,
+        "categories": [
+          { "vatType": "STANDARD_VAT_25", "rateBp": 2500, "netOre": 100000, "vatOre": 25000, "grossOre": 125000 },
+          { "vatType": "REVERSE_CHARGE_CONSTRUCTION", "rateBp": 0, "netOre": 200000, "vatOre": 0, "grossOre": 200000 }
+        ]
+      },
+      "mustAppear": [
+        "Omvänd betalningsskyldighet",
+        "SE556677889901",
+        "3 000,00",
+        "250,00",
+        "3 250,00"
+      ],
+      "mustNotAppear": [
+        "internal-hidden-label",
+        "margin",
+        "kostpris",
+        "25% moms på omvänd betalningsskyldighet"
+      ]
+    }
+  ]
+}

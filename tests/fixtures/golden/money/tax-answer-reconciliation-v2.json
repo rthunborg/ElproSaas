@@ -1,0 +1,73 @@
+{
+  "policyVersion": "SE-TAX-2026-v1",
+  "coverageManifest": {
+    "category-vat-split-invariance": "aggregateDocumentVat",
+    "whole-sek-truncation-99": "truncateClaimToWholeSekOre",
+    "ordered-person-cap": "allocateWholeSekClaimByPerson",
+    "explicit-reverse-charge": "aggregateDocumentVat",
+    "green-category-rates": "estimateClassifiedDeductions"
+  },
+  "cases": [
+    {
+      "id": "category-vat-split-invariance",
+      "operation": "aggregateDocumentVat",
+      "input": {
+        "rows": [
+          { "id": "a", "netOre": 1, "vatType": "STANDARD_VAT_25", "rateBp": 2500, "includedInInvoiceTotal": true, "deductionClassification": "NONE" },
+          { "id": "b", "netOre": 1, "vatType": "STANDARD_VAT_25", "rateBp": 2500, "includedInInvoiceTotal": true, "deductionClassification": "NONE" }
+        ]
+      },
+      "expected": { "netOre": 2, "vatOre": 1, "grossOre": 3 }
+    },
+    {
+      "id": "whole-sek-truncation-99",
+      "operation": "truncateClaimToWholeSekOre",
+      "input": 12399,
+      "expected": 12300
+    },
+    {
+      "id": "ordered-person-cap",
+      "operation": "allocateWholeSekClaimByPerson",
+      "input": {
+        "candidateClaimOre": 6000099,
+        "perPersonCapOre": 5000000,
+        "combinedRotRutCapOre": 7500000,
+        "persons": [
+          { "slot": "PERSON_1", "remainingAllowanceOre": 4000000 },
+          { "slot": "PERSON_2", "remainingAllowanceOre": 2000000 }
+        ]
+      },
+      "expected": {
+        "appliedOre": 6000000,
+        "allocations": [
+          { "slot": "PERSON_1", "ore": 4000000 },
+          { "slot": "PERSON_2", "ore": 2000000 }
+        ]
+      }
+    },
+    {
+      "id": "explicit-reverse-charge",
+      "operation": "aggregateDocumentVat",
+      "input": {
+        "rows": [
+          { "id": "standard", "netOre": 100000, "vatType": "STANDARD_VAT_25", "rateBp": 2500, "includedInInvoiceTotal": true, "deductionClassification": "NONE" },
+          { "id": "reverse", "netOre": 200000, "vatType": "REVERSE_CHARGE_CONSTRUCTION", "rateBp": 0, "includedInInvoiceTotal": true, "deductionClassification": "NONE" }
+        ]
+      },
+      "expected": { "netOre": 300000, "vatOre": 25000, "grossOre": 325000 }
+    },
+    {
+      "id": "green-category-rates",
+      "operation": "estimateClassifiedDeductions",
+      "input": {
+        "effectiveDate": "2026-08-05",
+        "parts": [
+          { "id": "solar", "classification": "GREEN_SOLAR_MATERIAL", "eligibleCostOre": 100000 },
+          { "id": "storage", "classification": "GREEN_STORAGE_MATERIAL", "eligibleCostOre": 100000 },
+          { "id": "charging", "classification": "GREEN_CHARGING_LABOR", "eligibleCostOre": 100000 }
+        ]
+      },
+      "expected": { "basisMethod": "ACTUAL_ELIGIBLE_COSTS", "greenSolarDeductionOre": 15000, "greenStorageDeductionOre": 50000, "greenChargingDeductionOre": 50000 }
+    }
+  ]
+}

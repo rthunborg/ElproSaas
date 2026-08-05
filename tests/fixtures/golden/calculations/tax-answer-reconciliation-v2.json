@@ -1,0 +1,30 @@
+{
+  "coverageManifest": {
+    "hidden-included-rot-labor": "hidden-billable",
+    "visible-excluded-green-material": "visible-excluded",
+    "rot-material-is-none": "rot-material-none"
+  },
+  "cases": [
+    {
+      "id": "hidden-included-rot-labor",
+      "rows": [
+        { "id": "hidden-labor", "netOre": 10000, "vatType": "STANDARD_VAT_25", "rateBp": 2500, "isHidden": true, "includedInInvoiceTotal": true, "deductionClassification": "ROT_LABOR" }
+      ],
+      "expected": { "netOre": 10000, "vatOre": 2500, "grossOre": 12500, "rotBasisNetOre": 10000 }
+    },
+    {
+      "id": "visible-excluded-green-material",
+      "rows": [
+        { "id": "excluded", "netOre": 20000, "vatType": "STANDARD_VAT_25", "rateBp": 2500, "isHidden": false, "includedInInvoiceTotal": false, "deductionClassification": "GREEN_SOLAR_MATERIAL" }
+      ],
+      "expected": { "netOre": 0, "vatOre": 0, "grossOre": 0, "greenBasisNetOre": 0 }
+    },
+    {
+      "id": "rot-material-is-none",
+      "rows": [
+        { "id": "material", "netOre": 5000, "vatType": "STANDARD_VAT_25", "rateBp": 2500, "isHidden": false, "includedInInvoiceTotal": true, "deductionClassification": "NONE", "rowType": "material" }
+      ],
+      "expected": { "netOre": 5000, "vatOre": 1250, "grossOre": 6250, "rotBasisNetOre": 0 }
+    }
+  ]
+}

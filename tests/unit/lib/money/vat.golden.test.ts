@@ -12,12 +12,8 @@
  * Runner: `node --test` (`pnpm run test:unit`) — pure, NO DB. Fixture:
  * tests/fixtures/golden/money/vat-rates.json (anonymized; money/rate numbers only, NFR17).
  *
- * 🔴 RED PHASE — the VAT surface (`lineVatOre`, `vatBreakdown`, `sumVatOre`/`sumOre`) does NOT
- * exist yet in `@/lib/money`. The `@/lib/money` barrel resolves today (Story 4.1), so the whole
- * suite is gated behind `VAT_SURFACE_PRESENT` via `describe.skip` — keeping the green `test:unit`
- * baseline UNPERTURBED. The dev's GREEN phase adds `src/lib/money/vat.ts` + the barrel re-exports;
- * the gate then flips true automatically and the PINNED expected values (the load-bearing VAT
- * policy) run UNCHANGED — no test edit needed.
+ * Story 10.6 standing-control repair: the landed VAT exports are hard preconditions. Dropping an
+ * export fails this golden immediately; the policy pin can never silently self-disable.
  *
  * POLICY STATUS: the per-line VAT rounding policy, the excl/incl/both display views, and the
  * 'private customer → always incl-VAT' presentation invariant are CONSERVATIVE PILOT ASSUMPTIONS
@@ -111,10 +107,8 @@ type VatEngine = {
 };
 const engine = money as unknown as VatEngine & Record<string, unknown>;
 
-// 🔴 RED-PHASE GATE — flips true once the dev adds the VAT surface to `@/lib/money`.
-const VAT_SURFACE_PRESENT =
-  typeof engine.lineVatOre === "function" && typeof engine.vatBreakdown === "function";
-const suite = VAT_SURFACE_PRESENT ? describe : describe.skip;
+assert.equal(typeof engine.lineVatOre, "function", "lineVatOre export is a hard golden precondition");
+assert.equal(typeof engine.vatBreakdown, "function", "vatBreakdown export is a hard golden precondition");
 
 function sumVat(values: readonly number[]): OkLike | { ok: false } {
   const fn = engine.sumVatOre ?? engine.sumOre;
@@ -122,7 +116,7 @@ function sumVat(values: readonly number[]): OkLike | { ok: false } {
   return fn!(values);
 }
 
-suite("Story 4.2 — GOLDEN VAT + quote-total pin (4.2-GOLDEN-01, R-403/R-404)", () => {
+describe("Story 4.2 — GOLDEN VAT + quote-total pin (4.2-GOLDEN-01, R-403/R-404)", () => {
   test("the fixture pins the conservative pilot VAT policy (basis-points, per-line, sum-of-rounded)", () => {
     const fx = loadFixture();
     assert.equal(fx.policy.vatRateUnit, "basis-points");

@@ -38,3 +38,4 @@
 
 ## Story 10-6-tax-answer-reconciliation
 - [Phase 3 - create-story] Carry forward two-runner test discipline, non-vacuous golden/scanner assertions, warning-code alignment, union drift guards, and the count-only person-cap seam.
+- [Phase 4] Active-RED scaffolds must override generic skip templates; current-shape fixtures execute existing builders so intended failures stay assertion-level, never harness TypeErrors.
