@@ -17,6 +17,10 @@
  */
 import type { CommandDbClient } from "../envelope";
 import { CommandError } from "../command-errors";
+import {
+  isDeductionClassification,
+  type DeductionClassification,
+} from "@/lib/money";
 import { isCalcStatus, isRowType, type CalcStatus, type RowType } from "./validation";
 
 /** A PostgREST result envelope for a write returning the inserted/updated rows. */
@@ -151,6 +155,81 @@ export async function loadRowType(
       ? (row as { row_type?: unknown }).row_type
       : undefined;
   return isRowType(rowType) ? rowType : null;
+}
+
+export interface RowTaxClassificationState {
+  readonly rowType: RowType;
+  readonly deductionClassification: DeductionClassification;
+}
+
+/**
+ * Load both persisted halves of the row-kind/classification invariant for a partial update.
+ * Returning null is fail-closed for a gone, cross-tenant, or malformed row.
+ */
+export async function loadRowTaxClassificationState(
+  db: CommandDbClient,
+  id: string,
+): Promise<RowTaxClassificationState | null> {
+  const { data, error } = await db
+    .from("calculation_rows")
+    .select("row_type, deduction_classification")
+    .eq("id", id)
+    .limit(1);
+  if (error) {
+    throw new Error(
+      `loadRowTaxClassificationState failed: ${(error as { code?: string }).code ?? "?"}`,
+    );
+  }
+  if (!data || data.length === 0) return null;
+  const row = data[0] as { row_type?: unknown; deduction_classification?: unknown } | undefined;
+  if (!row || !isRowType(row.row_type) || !isDeductionClassification(row.deduction_classification)) {
+    return null;
+  }
+  return {
+    rowType: row.row_type,
+    deductionClassification: row.deduction_classification,
+  };
+}
+
+export interface RowOptionState {
+  readonly isOptional: boolean;
+  readonly isSelected: boolean | null;
+  readonly includedInInvoiceTotal: boolean;
+}
+
+/** Load the persisted option state needed to keep selection and inclusion atomic. */
+export async function loadRowOptionState(
+  db: CommandDbClient,
+  id: string,
+): Promise<RowOptionState | null> {
+  const { data, error } = await db
+    .from("calculation_rows")
+    .select("is_optional, is_selected, included_in_invoice_total")
+    .eq("id", id)
+    .limit(1);
+  if (error) {
+    throw new Error(
+      `loadRowOptionState failed: ${(error as { code?: string }).code ?? "?"}`,
+    );
+  }
+  if (!data || data.length === 0) return null;
+  const row = data[0] as {
+    is_optional?: unknown;
+    is_selected?: unknown;
+    included_in_invoice_total?: unknown;
+  };
+  if (
+    typeof row.is_optional !== "boolean" ||
+    (row.is_selected !== null && typeof row.is_selected !== "boolean") ||
+    typeof row.included_in_invoice_total !== "boolean"
+  ) {
+    throw new Error("loadRowOptionState returned an invalid persisted row");
+  }
+  return {
+    isOptional: row.is_optional,
+    isSelected: row.is_selected,
+    includedInInvoiceTotal: row.included_in_invoice_total,
+  };
 }
 
 /**

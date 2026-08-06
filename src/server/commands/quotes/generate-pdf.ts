@@ -50,10 +50,12 @@ import { CommandError } from "../command-errors";
 import { deriveObjectPath } from "@/server/storage/object-path";
 import { renderQuotePdf } from "@/server/quote-pdf/render";
 import { buildQuotePdfViewModel } from "@/lib/quote-pdf";
+import { isDeductionClassification, isVatType } from "@/lib/money";
 import type {
   QuoteDeductionType,
   QuoteVersionSnapshot,
 } from "@/lib/quote-snapshot";
+import { adaptQuoteTaxSnapshot } from "@/lib/quote-snapshot";
 import {
   asQuotePdfWriteClient,
   findExistingPdfLink,
@@ -79,13 +81,22 @@ export interface GenerateQuotePdfResult {
 
 /** A deduction type narrowed to the closed snapshot union (else null). */
 function deductionTypeOf(v: string | null): QuoteDeductionType | null {
-  return v === "rot" || v === "gron_teknik" ? v : null;
+  return v === "rot" || v === "gron_teknik" || v === "rot_and_green" ? v : null;
 }
 
 /** Map a frozen line-snapshot DB row into the pure snapshot line shape. */
 function lineSnapshotOf(
   row: QuoteVersionLineSnapshotRow,
 ): QuoteVersionSnapshot["lines"][number] {
+  if (
+    row.deduction_classification !== null &&
+    !isDeductionClassification(row.deduction_classification)
+  ) {
+    throw new CommandError("VALIDATION_FAILED");
+  }
+  if (row.vat_type !== null && !isVatType(row.vat_type)) {
+    throw new CommandError("VALIDATION_FAILED");
+  }
   return {
     rowType: row.row_type,
     sortOrder: row.sort_order,
@@ -97,6 +108,9 @@ function lineSnapshotOf(
     unitSellOre: row.unit_sell_ore,
     lineNetOre: row.line_net_ore,
     vatRateBp: row.vat_rate_bp,
+    includedInInvoiceTotal: row.included_in_invoice_total,
+    deductionClassification: row.deduction_classification,
+    vatType: row.vat_type,
     isHidden: row.is_hidden,
     isOptional: row.is_optional,
     isSelected: row.is_selected,
@@ -117,6 +131,19 @@ function snapshotFromRows(
   const quoteNumberDisplay =
     version.quote_number_display ??
     (version.quote_number !== null ? String(version.quote_number) : null);
+  const tax = adaptQuoteTaxSnapshot({
+    snapshotSchemaVersion: version.snapshot_schema_version,
+    taxRuleVersion: version.tax_rule_version,
+    taxAnswerSnapshot: version.tax_answer_snapshot,
+    buyerVatNumber: version.buyer_vat_number,
+    calculatedDeductionOre: version.calculated_deduction_ore,
+    claimDeductionOre: version.claim_deduction_ore,
+    payableOre: version.payable_ore,
+    vatOre: version.vat_total_ore,
+    deductionOre: version.deduction_total_ore,
+    acceptedPriceOre: version.accepted_price_ore,
+  });
+  if (!tax.ok) throw new CommandError("VALIDATION_FAILED");
   return {
     calculationId: version.calculation_id,
     capturedAt: version.captured_at ?? "", // the frozen snapshot instant (view model ignores it)
@@ -145,6 +172,17 @@ function snapshotFromRows(
     vatTotalOre: version.vat_total_ore,
     deductionTotalOre: version.deduction_total_ore,
     acceptedPriceOre: version.accepted_price_ore,
+    snapshotSchemaVersion: version.snapshot_schema_version,
+    taxRuleVersion: version.tax_rule_version,
+    taxAnswerSnapshot: tax.value.taxAnswer,
+    buyerVatNumber: tax.value.buyerVatNumber,
+    calculatedDeductionOre: tax.value.calculatedDeductionOre,
+    claimDeductionOre: tax.value.claimDeductionOre,
+    payableOre: tax.value.payableOre,
+    netOre: tax.value.netOre,
+    vatOre: tax.value.vatOre,
+    grossOre: tax.value.grossOre,
+    deductionOre: tax.value.deductionOre,
     vatRateBp: version.vat_rate_bp,
     vatDisplay: version.vat_display,
     deductionType: deductionTypeOf(version.deduction_type),

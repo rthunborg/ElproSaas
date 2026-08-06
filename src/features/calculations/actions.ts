@@ -57,6 +57,7 @@ import {
   parseReorderRowsForm,
   parseReorderSectionsForm,
   parseUpdateCalculationForm,
+  parseUpdateTaxInputForm,
   parseUpdateRowForm,
   parseUpdateSectionForm,
   type ParsedCalcForm,
@@ -155,6 +156,18 @@ export async function updateCalculationAction(
     updateCalculation as unknown as Command<never, CalcCommandResult>,
     parseUpdateCalculationForm(form),
     "calculation",
+    calcIdOf(form, "id"),
+  );
+}
+
+export async function updateTaxInputAction(
+  _prev: CalcActionState,
+  form: FormData,
+): Promise<CalcActionState> {
+  return run(
+    updateCalculation as unknown as Command<never, CalcCommandResult>,
+    parseUpdateTaxInputForm(form),
+    "tax_input",
     calcIdOf(form, "id"),
   );
 }

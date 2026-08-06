@@ -48,6 +48,12 @@
  *  #6.1-UNIT-01/02, #6.1-INT-03/04, R-603/R-607.]
  */
 
+import type {
+  DeductionClassification,
+  TaxAnswerSnapshotV2,
+  VatType,
+} from "@/lib/money";
+
 /** The closed set of Phase-A quote-version lifecycle statuses (architecture §7). 6.1 creates 'draft'. */
 export type QuoteVersionStatus =
   | "draft"
@@ -58,7 +64,7 @@ export type QuoteVersionStatus =
   | "superseded";
 
 /** The closed set of deduction types a quote version can carry (mirrors the engine). */
-export type QuoteDeductionType = "rot" | "gron_teknik";
+export type QuoteDeductionType = "rot" | "gron_teknik" | "rot_and_green";
 
 /**
  * A single customer-visible LINE snapshot (R-607). Carries ONLY the customer-visible
@@ -82,6 +88,9 @@ export interface QuoteVersionLineSnapshot {
   readonly lineNetOre: number | null;
   /** The row VAT assumption in BASIS POINTS. */
   readonly vatRateBp: number | null;
+  readonly includedInInvoiceTotal: boolean | null;
+  readonly deductionClassification: DeductionClassification | null;
+  readonly vatType: VatType | null;
   readonly isHidden: boolean;
   readonly isOptional: boolean;
   readonly isSelected: boolean | null;
@@ -153,6 +162,17 @@ export interface QuoteVersionSnapshot {
   readonly deductionTotalOre: number;
   /** The customer-commitment gross the version freezes (the accepted-price basis). */
   readonly acceptedPriceOre: number;
+  readonly snapshotSchemaVersion?: number | null;
+  readonly taxRuleVersion?: string | null;
+  readonly taxAnswerSnapshot?: TaxAnswerSnapshotV2 | null;
+  readonly buyerVatNumber?: string | null;
+  readonly calculatedDeductionOre?: number | null;
+  readonly claimDeductionOre?: number | null;
+  readonly payableOre?: number | null;
+  readonly netOre?: number | null;
+  readonly vatOre?: number | null;
+  readonly grossOre?: number | null;
+  readonly deductionOre?: number | null;
 
   // ── VAT / tax assumptions (BASIS POINTS — never a float) ──────────────────────
   readonly vatRateBp: number | null;

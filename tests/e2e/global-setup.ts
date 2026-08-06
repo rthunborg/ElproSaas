@@ -53,6 +53,26 @@ function token(): string {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 }
 
+/** Complete no-deduction V2 input used by quote-capable E2E calculations. */
+function noDeductionTaxInput(
+  documentVatType: "STANDARD_VAT_25" | "REVERSE_CHARGE_CONSTRUCTION" = "STANDARD_VAT_25",
+  buyerVatNumber: string | null = null,
+): Readonly<Record<string, unknown>> {
+  return {
+    schemaVersion: 2,
+    documentVatType,
+    buyerVatNumber,
+    deductionChoice: "NONE",
+    paymentDate: null,
+    finalPaymentDate: null,
+    personAllowanceSlots: [],
+    greenBasisMethod: "ACTUAL_ELIGIBLE_COSTS",
+    genuineFixedPrice: false,
+    fixedPriceOre: null,
+    fixedPriceCategorySplitOre: null,
+  };
+}
+
 export default async function globalSetup() {
   const base = await createTwoTenantFixture();
 
@@ -130,6 +150,9 @@ export default async function globalSetup() {
     facility_id: facilityId,
     title: calcTitle,
     status: "draft",
+    // Story 10.6 makes a complete V2 tax input mandatory for fresh quote capture. Keep the
+    // long-lived healthy baseline quote-capable without changing its historic money facts.
+    tax_input_snapshot: noDeductionTaxInput(),
   });
   const sectionId = await adminInsertSection({
     tenant_id: base.tenantA.id,
@@ -157,6 +180,108 @@ export default async function globalSetup() {
     unit: "st",
     unit_sell_ore: 50000,
     vat_rate_bp: 2500,
+    sort_order: 1,
+  });
+
+  // Story 10.6: dedicated, order-independent fixtures. The first calculation carries TWO
+  // explicit VAT categories: 1 000,00 kr standard (250,00 kr VAT) + 2 000,00 kr reverse charge
+  // (0,00 kr seller VAT) = net 3 000,00, VAT 250,00, gross/payable 3 250,00. The document has
+  // already explicitly selected reverse charge, but intentionally starts without the buyer VAT
+  // number so the real readiness blocker can be cleared through the UI before quote capture.
+  const reverseChargeBuyerVatNumber = "SE556677889901";
+  const reverseChargeCalcTitle = `Kalkyl omvänd moms ${token()}`;
+  const reverseChargeCalcId = await adminInsertCalculation({
+    tenant_id: base.tenantA.id,
+    customer_id: companyId,
+    facility_id: facilityId,
+    title: reverseChargeCalcTitle,
+    status: "draft",
+    tax_input_snapshot: noDeductionTaxInput("REVERSE_CHARGE_CONSTRUCTION", null),
+  });
+  const reverseChargeSectionId = await adminInsertSection({
+    tenant_id: base.tenantA.id,
+    calculation_id: reverseChargeCalcId,
+    title: `Standard och omvänd moms ${token()}`,
+    display_mode: "detailed",
+    sort_order: 0,
+  });
+  const reverseChargeStandardRowId = await adminInsertRow({
+    tenant_id: base.tenantA.id,
+    section_id: reverseChargeSectionId,
+    row_type: "material",
+    quantity: 1,
+    unit: "st",
+    unit_sell_ore: 100000,
+    vat_rate_bp: 2500,
+    vat_type: "STANDARD_VAT_25",
+    deduction_classification: "NONE",
+    included_in_invoice_total: true,
+    label: "Standardmomsarbete E2E",
+    sort_order: 0,
+  });
+  const reverseChargeConstructionRowId = await adminInsertRow({
+    tenant_id: base.tenantA.id,
+    section_id: reverseChargeSectionId,
+    row_type: "subcontractor",
+    quantity: 1,
+    unit: "st",
+    unit_sell_ore: 200000,
+    vat_rate_bp: 2500,
+    vat_type: "REVERSE_CHARGE_CONSTRUCTION",
+    deduction_classification: "NONE",
+    included_in_invoice_total: true,
+    label: "Byggtjänst med omvänd moms E2E",
+    sort_order: 1,
+  });
+
+  // The second calculation pins the three independent row facts. Its subject row is hidden,
+  // economically included, and ROT-classified at the same time. A separate 500,00 kr standard
+  // row remains included, so toggling ONLY the subject's inclusion moves gross from 1 875,00 kr
+  // to 625,00 kr while visibility/classification stay untouched.
+  const independentPropertiesCalcTitle = `Kalkyl oberoende radfakta ${token()}`;
+  const independentPropertiesCalcId = await adminInsertCalculation({
+    tenant_id: base.tenantA.id,
+    customer_id: companyId,
+    facility_id: facilityId,
+    title: independentPropertiesCalcTitle,
+    status: "draft",
+    tax_input_snapshot: noDeductionTaxInput(),
+  });
+  const independentPropertiesSectionId = await adminInsertSection({
+    tenant_id: base.tenantA.id,
+    calculation_id: independentPropertiesCalcId,
+    title: `Oberoende radfakta ${token()}`,
+    display_mode: "detailed",
+    sort_order: 0,
+  });
+  const independentPropertiesSubjectRowId = await adminInsertRow({
+    tenant_id: base.tenantA.id,
+    section_id: independentPropertiesSectionId,
+    row_type: "labor",
+    quantity: 1,
+    unit: "h",
+    unit_sell_ore: 100000,
+    vat_rate_bp: 2500,
+    vat_type: "STANDARD_VAT_25",
+    deduction_classification: "ROT_LABOR",
+    included_in_invoice_total: true,
+    is_hidden: true,
+    label: "Dold men inkluderad ROT-rad E2E",
+    sort_order: 0,
+  });
+  const independentPropertiesControlRowId = await adminInsertRow({
+    tenant_id: base.tenantA.id,
+    section_id: independentPropertiesSectionId,
+    row_type: "material",
+    quantity: 1,
+    unit: "st",
+    unit_sell_ore: 50000,
+    vat_rate_bp: 2500,
+    vat_type: "STANDARD_VAT_25",
+    deduction_classification: "NONE",
+    included_in_invoice_total: true,
+    is_hidden: false,
+    label: "Synlig kontrollrad E2E",
     sort_order: 1,
   });
 
@@ -894,6 +1019,25 @@ export default async function globalSetup() {
       title: blockerCalcTitle,
       sectionId: blockerSectionId,
       rowId: blockerRowId,
+    },
+    // Story 10.6 — the two dedicated tax-answer journeys and their deterministic frozen facts.
+    taxAnswer: {
+      reverseChargeCalc: {
+        id: reverseChargeCalcId,
+        title: reverseChargeCalcTitle,
+        sectionId: reverseChargeSectionId,
+        rowIds: [reverseChargeStandardRowId, reverseChargeConstructionRowId],
+        buyerVatNumber: reverseChargeBuyerVatNumber,
+        expectedOre: { net: 300000, vat: 25000, gross: 325000 },
+      },
+      independentPropertiesCalc: {
+        id: independentPropertiesCalcId,
+        title: independentPropertiesCalcTitle,
+        sectionId: independentPropertiesSectionId,
+        subjectRowId: independentPropertiesSubjectRowId,
+        controlRowId: independentPropertiesControlRowId,
+        expectedGrossOre: { bothIncluded: 187500, controlOnly: 62500 },
+      },
     },
     workRole: { id: workRoleId, displayName: workRoleName },
     article: { id: articleId, name: articleName },

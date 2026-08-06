@@ -12,6 +12,11 @@ export {
   type QuotePdfLine,
   type QuotePdfTotals,
   type QuotePdfTaxAssumptions,
+  type QuotePdfTaxAnswer,
+  type QuotePdfTaxCategory,
+  type QuotePdfTaxSummary,
+  type QuotePdfResolvedPolicy,
+  type QuotePdfPersonAllocation,
   type QuotePdfWarning,
   type QuotePdfAttachment,
 } from "./view-model";

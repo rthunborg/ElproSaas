@@ -19,21 +19,17 @@
  * detect the frozen-inclusion state, and computes TB% as a pure ratio of already-öre values (integer
  * öre in, a ratio out — no öre arithmetic invented). There is NO inline `+`/`*`/`0.25` here.
  *
- * INCLUSION (frozen 2026-06-18, R-508): hidden rows + selected tillval COUNT toward totals; an
- * unselected option does NOT (`totals.ts#rowCountsTowardTotal` already implements it). The readiness
- * surface adds an INFORMATIONAL disclosure warning that hidden rows COUNT (a disclosure, NOT a
- * defect); it does NOT re-decide the inclusion rule.
+ * INCLUSION: `included_in_invoice_total` is the sole economic fact. Hidden rows can still count;
+ * option commands keep selection and inclusion coherent, but this classifier never derives one
+ * from the other.
  *
  * TAX (R-509/R-512/R-516): a ROT/grön assumption present on the calc surfaces the engine's
- * `requiresSignOff: true` posture with NON-FINAL "estimate requiring sign-off" framing — a deduction
- * is NEVER rendered approved/legally-final. The eligibility POSTURE feeding any deduction is the
- * resolved posture (`private`-only per 2026-06-18), NEVER a personnummer. `persons` stays a flat-cap
- * placeholder (R-512) — the classifier NEVER asserts a per-person-scaled cap.
+ * `requiresSignOff: true` posture with NON-FINAL "estimate requiring sign-off" framing. The V2
+ * answer additionally feeds typed blocker codes for dates/profiles, buyer VAT, classifications,
+ * explicit fixed-price splits, and declared person allowances. Personnummer never enters.
  *
- * BLOCKER vs WARNING split (conservative default, Open Question 2 / Sign-Off Q2 owner-pending):
- * BLOCKERS (hard, GATE quote creation) = MISSING CUSTOMER + an ENGINE-REJECTED total (`{ok:false}`).
- * EVERYTHING ELSE is a WARNING (soft, does NOT gate) — fail-open on classification is safer than a
- * spurious hard gate for a pilot. A DIFFERENT split treated as production-approved is a STOP.
+ * BLOCKER vs WARNING split: invalid monetary or tax facts gate quote creation. Commercial
+ * advisories remain warnings.
  *
  * [Source: epics.md#Story 5.4 AC1 (the full warning list); test-design-epic-5.md#5.4-UNIT-01/02/04,
  *  Testability Notes 4, R-508/R-509/R-512/R-513/R-516; owner-decisions-applied-2026-06-18.md#Epic
@@ -59,6 +55,15 @@ export type ReadinessCode =
   | "MISSING_CUSTOMER"
   /** The whole-calc total could not be computed (an engine `{ok:false}` — overflow / invalid row). */
   | "TOTAL_UNCOMPUTABLE"
+  | "MISSING_TAX_INPUT"
+  | "MISSING_BUYER_VAT_NUMBER"
+  | "MISSING_TAX_RESOLVING_DATE"
+  | "MISSING_TAX_RESOLVING_PROFILE"
+  | "INVALID_DEDUCTION_CLASSIFICATION"
+  | "INSUFFICIENT_PERSON_ALLOWANCE"
+  | "INCOMPLETE_FIXED_PRICE_CATEGORY_SPLIT"
+  | "INVALID_FIXED_PRICE_SCHABLON"
+  | "INCOMPLETE_VAT_INPUT"
   // ── WARNINGS (soft, do NOT gate) ──
   /** A counted row/section/calc TB% is below the pilot low-margin threshold. */
   | "LOW_MARGIN"
@@ -96,6 +101,15 @@ export const READINESS_CODES = [
   // ── BLOCKERS ──
   "MISSING_CUSTOMER",
   "TOTAL_UNCOMPUTABLE",
+  "MISSING_TAX_INPUT",
+  "MISSING_BUYER_VAT_NUMBER",
+  "MISSING_TAX_RESOLVING_DATE",
+  "MISSING_TAX_RESOLVING_PROFILE",
+  "INVALID_DEDUCTION_CLASSIFICATION",
+  "INSUFFICIENT_PERSON_ALLOWANCE",
+  "INCOMPLETE_FIXED_PRICE_CATEGORY_SPLIT",
+  "INVALID_FIXED_PRICE_SCHABLON",
+  "INCOMPLETE_VAT_INPUT",
   // ── WARNINGS ──
   "LOW_MARGIN",
   "MISSING_FACILITY",
@@ -186,10 +200,45 @@ export interface ReadinessTaxContext {
   /** True iff a ROT or grön-teknik deduction assumption is present on the calc. */
   readonly hasDeductionAssumption: boolean;
   /** The deduction category, when a deduction is present (for the message framing). */
-  readonly deductionType?: "rot" | "gron_teknik";
+  readonly deductionType?: "rot" | "gron_teknik" | "rot_and_gron_teknik";
   /** The resolved eligibility posture (`private` is the only eligible one per 2026-06-18). NEVER a personnummer. */
   readonly eligibilityPosture?: "private" | "company" | "brf" | "public";
+  /** Typed failures produced by the shared tax input/answer authority. */
+  readonly blockingCodes?: readonly TaxReadinessBlockerCode[];
 }
+
+export type TaxReadinessBlockerCode = Extract<
+  ReadinessCode,
+  | "MISSING_TAX_INPUT"
+  | "MISSING_BUYER_VAT_NUMBER"
+  | "MISSING_TAX_RESOLVING_DATE"
+  | "MISSING_TAX_RESOLVING_PROFILE"
+  | "INVALID_DEDUCTION_CLASSIFICATION"
+  | "INSUFFICIENT_PERSON_ALLOWANCE"
+  | "INCOMPLETE_FIXED_PRICE_CATEGORY_SPLIT"
+  | "INVALID_FIXED_PRICE_SCHABLON"
+  | "INCOMPLETE_VAT_INPUT"
+>;
+
+const TAX_BLOCKER_MESSAGES: Readonly<Record<TaxReadinessBlockerCode, string>> = {
+  MISSING_TAX_INPUT: "Skatte- och momsuppgifterna måste sparas innan en offert skapas.",
+  MISSING_BUYER_VAT_NUMBER:
+    "Köparens giltiga momsregistreringsnummer krävs vid omvänd betalningsskyldighet.",
+  MISSING_TAX_RESOLVING_DATE:
+    "Datumet som styr den valda skatteregeln saknas eller är ogiltigt.",
+  MISSING_TAX_RESOLVING_PROFILE:
+    "Ingen entydig skatteregel kunde fastställas för det angivna datumet.",
+  INVALID_DEDUCTION_CLASSIFICATION:
+    "En rad har en ogiltig avdragsklassificering och måste rättas.",
+  INSUFFICIENT_PERSON_ALLOWANCE:
+    "Det kunduppgivna återstående avdragsutrymmet räcker inte för anspråket.",
+  INCOMPLETE_FIXED_PRICE_CATEGORY_SPLIT:
+    "Fastpriset måste fördelas fullständigt mellan sol, lagring och laddning.",
+  INVALID_FIXED_PRICE_SCHABLON:
+    "97-procentsregeln får bara användas för ett uttryckligen bekräftat äkta fastprisavtal.",
+  INCOMPLETE_VAT_INPUT:
+    "Momsuppgifterna är ofullständiga eller motsägelsefulla och måste rättas.",
+};
 
 /** The full classifier input — the already-read calc detail + resolved postures. */
 export interface ReadinessInput {
@@ -202,10 +251,8 @@ export interface ReadinessInput {
 }
 
 /**
- * The pure ROW-inclusion predicate reused from `totals.ts` — a row COUNTS unless it is an UNSELECTED
- * option (the frozen 2026-06-18 inclusion pin). The classifier reasons ONLY about counted rows for
- * every totals-facing condition (empty section, zero-price, low margin, hidden-rows-included), so an
- * unselected option never triggers a spurious warning.
+ * The pure row-inclusion predicate reused from `totals.ts`; explicit invoice inclusion controls
+ * every totals-facing condition.
  */
 function counts(row: ReadinessRowInput): boolean {
   return rowCountsTowardTotal(row);
@@ -271,6 +318,9 @@ export function classifyReadiness(input: ReadinessInput): ReadinessReport {
         quantity: r.quantity,
         unit_sell_ore: r.unit_sell_ore,
         vat_rate_bp: r.vat_rate_bp,
+        vat_type: r.vat_type,
+        included_in_invoice_total: r.included_in_invoice_total,
+        deduction_classification: r.deduction_classification,
         is_hidden: r.is_hidden,
         is_optional: r.is_optional,
         is_selected: r.is_selected,
@@ -283,6 +333,14 @@ export function classifyReadiness(input: ReadinessInput): ReadinessReport {
       severity: "blocker",
       message:
         "Totalsumman kunde inte beräknas. Kontrollera raderna innan du skapar en offert.",
+    });
+  }
+
+  for (const code of [...new Set(input.tax.blockingCodes ?? [])]) {
+    blockers.push({
+      code,
+      severity: "blocker",
+      message: TAX_BLOCKER_MESSAGES[code],
     });
   }
 

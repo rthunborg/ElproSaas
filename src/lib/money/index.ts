@@ -10,6 +10,88 @@
  * `node --test` unit runner (via `tests/support/alias-hook.mjs`) and tsc/Next.
  */
 export {
+  VAT_TYPES,
+  DEDUCTION_CLASSIFICATIONS,
+  GREEN_CATEGORIES,
+  TAX_SUMMARY_CATEGORIES,
+  GREEN_BASIS_METHODS,
+  TAX_DEDUCTION_CHOICES,
+  isVatType,
+  isDeductionClassification,
+  isDeductionClassificationCompatibleWithSummaryCategory,
+  isGreenCategory,
+  isTaxSummaryCategory,
+  isGreenBasisMethod,
+  isTaxDeductionChoice,
+} from "./domain";
+
+export type {
+  VatType,
+  DeductionClassification,
+  GreenCategory,
+  TaxSummaryCategory,
+  GreenBasisMethod,
+  TaxDeductionChoice,
+  TaxPersonAllowanceSlot,
+  FixedPriceCategorySplitOre,
+  TaxInputSnapshotV2,
+} from "./domain";
+
+export {
+  isIsoCalendarDate,
+  normalizeBuyerVatNumber,
+  isValidBuyerVatNumber,
+  parseTaxInputSnapshot,
+} from "./tax-input";
+
+export type {
+  TaxInputValidationErrorCode,
+  TaxInputValidationResult,
+} from "./tax-input";
+
+export {
+  TAX_POLICY_2026,
+  TAX_POLICY_REGISTRY,
+  resolveTaxPolicy,
+  aggregateDocumentVat,
+  allocateCategoryVatByDeductionClassification,
+  computeReconciledDocumentTotals,
+  truncateClaimToWholeSekOre,
+  allocateWholeSekClaimByPerson,
+  estimateClassifiedDeductions,
+} from "./tax-policy";
+
+export { buildTaxAnswerSnapshotV2 } from "./tax-answer";
+
+export type {
+  ResolvedTaxPolicySnapshot,
+  FrozenPersonClaimAllocation,
+  RotTaxAnswer,
+  GreenCategoryTaxAnswer,
+  GreenTaxAnswer,
+  TaxSummaryBucket,
+  TaxAnswerSnapshotV2,
+  BuildTaxAnswerInput,
+} from "./tax-answer";
+
+export type {
+  TaxPolicy,
+  TaxPolicyWindow,
+  TaxPolicyResolutionErrorCode,
+  TaxPolicyResolutionResult,
+  ResolveTaxPolicyInput,
+  DocumentVatRowInput,
+  DocumentVatCategory,
+  DocumentVatAggregate,
+  TaxAnswerResult,
+  VatAllocationBucket,
+  ReconciledDocumentTotals,
+  PersonAllowanceSlot,
+  PersonClaimAllocation,
+  ClassifiedDeductionPart,
+} from "./tax-policy";
+
+export {
   ORE_AMOUNT_MAX,
   isOreAmount,
   isQuantity,
@@ -23,8 +105,9 @@ export {
 export type { MoneyErrorCode, OreResult } from "./ore";
 
 /**
- * Story 4.2 — the VAT + quote-total primitives (per-line VAT from basis points, sum-of-rounded
- * VAT totals, the excl/incl/both display views, and the frozen VAT-assumption snapshot builder).
+ * Story 4.2 compatibility/display VAT primitives. Fresh document totals use the Story 10.6
+ * `aggregateDocumentVat` category authority exported above; `lineVatOre`/`sumVatOre` are not
+ * a quote-total policy.
  * The basis-point-validity rule (`isVatRateBp` + `VAT_RATE_BP_MIN`/`MAX`) is canonical here and
  * re-exported by `src/server/commands/settings/validation.ts` (one bp-validity authority, no fork).
  * See `./vat.ts` for the full module documentation (basis-points-only / no-hidden-25% invariant,
@@ -55,12 +138,14 @@ export type {
 } from "./vat";
 
 /**
- * Story 4.3 — the ROT / grön-teknik ESTIMATE ENGINE (the named UNAPPROVED deduction profiles, the
+ * Story 4.3 compatibility-only ROT / grön-teknik estimate surface. Fresh calculations and quote
+ * versions use `buildTaxAnswerSnapshotV2`; the legacy profiles below remain readable for frozen
+ * V1 fixtures and must not be used as current policy. The named UNAPPROVED deduction profiles, the
  * pure `estimateDeduction` engine — deduction + eligible basis + warnings + `requiresSignOff` +
  * ROT×grön mix-block + cap-clamp — and the frozen `buildTaxAssumptionSnapshot` builder). The
  * deduction rate flows in as BASIS POINTS from a named profile (no hidden percent literal); the
  * output is NEVER approvable without an explicit human sign-off (`requiresSignOff: true` is the
- * structural default); ROT and grön teknik CANNOT be mixed (a blocking typed failure); the engine
+ * structural default); its historical global mix block does not apply to the V2 classified engine,
  * takes a resolved eligibility POSTURE, never a personnummer / PII. See `./tax.ts` for the full
  * module documentation.
  */

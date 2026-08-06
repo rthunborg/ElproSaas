@@ -60,7 +60,7 @@
 # `backlog` story in file order.
 
 generated: 2026-06-12
-last_updated: 2026-07-29  # Story 10.6 context created; 10-1..10-4 remain done post-merge (PR #38)
+last_updated: 2026-08-06  # Story 10.6 implementation completed; review pending
 project: ElproSaas
 project_key: NOKEY
 tracking_system: file-system
@@ -209,7 +209,7 @@ development_status:
   # (VAT rounding scope, hidden-row deduction eligibility, reverse charge) and 10.7 supersedes the
   # "responsive web first" assumption with a PWA + offline requirement. Both are real scope, not
   # register entries — schedule 10.6 BEFORE any real ROT/gron quote leaves the system.
-  10-6-tax-answer-reconciliation: ready-for-dev
+  10-6-tax-answer-reconciliation: review
   10-7-pwa-offline-field-capability: backlog
   epic-10-retrospective: done
 

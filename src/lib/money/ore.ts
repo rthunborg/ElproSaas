@@ -23,16 +23,15 @@
  * a second forked rule. (project-context: "Reuse `isOreAmount` for every new öre field".)
  *
  * ── ROUNDING POLICY (R-402, golden-PINNED conservative pilot assumption) ─────────
- * Rounding is LINE-LEVEL with a single explicitly-pinned half-rounding mode:
+ * Line-net rounding uses a single explicitly-pinned half-rounding mode:
  * ROUND-HALF-AWAY-FROM-ZERO (`Math.round` semantics on non-negative inputs — `x.5 → x+1`),
- * NOT half-to-even / banker's rounding. Section/quote totals PRESERVE exact öre by SUMMING
- * the already-rounded line values (`sumOre` = SUM-OF-ROUNDED, never round-of-sum). The mode
+ * NOT half-to-even / banker's rounding. Story 10.6 VAT is then rounded once per
+ * `(VatType, rateBp)` document category; tax claims separately discard öre below whole SEK.
+ * Section/quote net totals preserve exact öre by summing already-rounded line nets. The mode
  * is pinned by `tests/fixtures/golden/money/rounding-mode.json` so an accidental flip fails
  * loud. THIS ROUNDING POLICY IS A CONSERVATIVE PILOT ASSUMPTION PENDING OWNER/ACCOUNTING
- * SIGN-OFF (architecture.md#10 Rounding) — it is recorded as an assumption, NOT hard-coded
- * as accounting-final. If accounting requires DOCUMENT-LEVEL rounding, or a discount /
- * negative-amount data model, that is a STOP CONDITION (report `needs-human`), not something
- * this engine invents.
+ * SIGN-OFF (architecture.md#10 Rounding) — it is recorded as an assumption, not a license
+ * to apply line-level rounding to document VAT or whole-SEK claims.
  *
  * ── NO PII in the pure engine (R-411/R-412 posture) ─────────────────────────────
  * No personnummer, orgnr, customer field, or clock read ever enters this module — it is pure
@@ -78,9 +77,8 @@ export type MoneyErrorCode =
   /** A computed line net / total exceeded the safe öre ceiling (`ORE_AMOUNT_MAX`). */
   | "ORE_OVERFLOW"
   /**
-   * A single calculation attempted to combine ROT AND grön teknik — Story 4.3 tax path.
-   * ROT and grön teknik CANNOT be mixed on one calculation (owner decision 2026-06-18): the
-   * engine returns this BLOCKING failure, NEVER a silently-combined deduction sum (R-406).
+   * Compatibility-only Story 4.3 estimator rejection. Story 10.6's canonical classified
+   * answer permits ROT and green on disjoint work and rejects only double-fed work.
    */
   | "ROT_GRON_MIX_NOT_ALLOWED"
   /**

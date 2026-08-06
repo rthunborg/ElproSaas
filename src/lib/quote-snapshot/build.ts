@@ -32,6 +32,15 @@
  *  #6.1-UNIT-01/02, #6.1-INT-03/04, R-603/R-607.]
  */
 import type {
+  DeductionClassification,
+  TaxAnswerSnapshotV2,
+  VatType,
+} from "@/lib/money";
+import {
+  adaptQuoteTaxSnapshot,
+  parseTaxAnswerSnapshotV2,
+} from "./tax-compat";
+import type {
   QuoteDeductionType,
   QuoteSnapshotBuildOptions,
   QuoteVersionAttachmentSnapshot,
@@ -108,6 +117,9 @@ export interface QuoteLineSource {
   /** The engine-produced line net (integer öre — CAPTURED, never re-derived here). */
   readonly lineNetOre: number | null;
   readonly vatRateBp: number | null;
+  readonly includedInInvoiceTotal?: boolean | null;
+  readonly deductionClassification?: DeductionClassification | null;
+  readonly vatType?: VatType | null;
   readonly isHidden: boolean;
   readonly isOptional: boolean;
   readonly isSelected: boolean | null;
@@ -149,6 +161,17 @@ export interface QuoteVersionSnapshotInput {
   readonly lines: readonly QuoteLineSource[];
   readonly attachments: readonly QuoteAttachmentSource[];
   readonly warnings: readonly QuoteWarningSource[];
+  readonly snapshotSchemaVersion?: number | null;
+  readonly taxRuleVersion?: string | null;
+  readonly taxAnswerSnapshot?: TaxAnswerSnapshotV2 | null;
+  readonly buyerVatNumber?: string | null;
+  readonly calculatedDeductionOre?: number | null;
+  readonly claimDeductionOre?: number | null;
+  readonly payableOre?: number | null;
+  readonly netOre?: number | null;
+  readonly vatOre?: number | null;
+  readonly grossOre?: number | null;
+  readonly deductionOre?: number | null;
 }
 
 /** Build ONE frozen customer-visible line snapshot (drops cost/margin/internal by construction). */
@@ -164,6 +187,9 @@ function buildLineSnapshot(row: QuoteLineSource): QuoteVersionLineSnapshot {
     unitSellOre: row.unitSellOre,
     lineNetOre: row.lineNetOre,
     vatRateBp: row.vatRateBp,
+    includedInInvoiceTotal: row.includedInInvoiceTotal ?? null,
+    deductionClassification: row.deductionClassification ?? null,
+    vatType: row.vatType ?? null,
     isHidden: row.isHidden,
     isOptional: row.isOptional,
     isSelected: row.isSelected,
@@ -207,6 +233,36 @@ export function buildQuoteVersionSnapshot(
     input.attachments.map(buildAttachmentSnapshot),
   );
   const warnings = Object.freeze(input.warnings.map(buildWarningSnapshot));
+  const parsedTaxAnswer = input.taxAnswerSnapshot === null || input.taxAnswerSnapshot === undefined
+    ? null
+    : parseTaxAnswerSnapshotV2(input.taxAnswerSnapshot);
+  if (parsedTaxAnswer !== null && !parsedTaxAnswer.ok) {
+    throw new TypeError("Invalid V2 quote tax answer snapshot");
+  }
+  if (input.snapshotSchemaVersion === 2 && parsedTaxAnswer === null) {
+    throw new TypeError("A V2 quote requires a complete tax answer snapshot");
+  }
+  if (input.snapshotSchemaVersion !== 2 && parsedTaxAnswer !== null) {
+    throw new TypeError("A tax answer snapshot requires quote snapshot schema V2");
+  }
+  const taxAnswerSnapshot = parsedTaxAnswer?.value ?? null;
+  if (input.snapshotSchemaVersion === 2) {
+    const compatible = adaptQuoteTaxSnapshot({
+      snapshotSchemaVersion: 2,
+      taxRuleVersion: input.taxRuleVersion,
+      taxAnswerSnapshot,
+      buyerVatNumber: input.buyerVatNumber,
+      calculatedDeductionOre: input.calculatedDeductionOre,
+      claimDeductionOre: input.claimDeductionOre,
+      payableOre: input.payableOre,
+      vatOre: input.totals.vatTotalOre,
+      deductionOre: input.totals.deductionTotalOre,
+      acceptedPriceOre: input.totals.acceptedPriceOre,
+    });
+    if (!compatible.ok) {
+      throw new TypeError("V2 quote scalar totals do not match its frozen tax answer");
+    }
+  }
 
   return Object.freeze({
     calculationId: input.calculationId,
@@ -243,6 +299,18 @@ export function buildQuoteVersionSnapshot(
     vatTotalOre: input.totals.vatTotalOre,
     deductionTotalOre: input.totals.deductionTotalOre,
     acceptedPriceOre: input.totals.acceptedPriceOre,
+    snapshotSchemaVersion: input.snapshotSchemaVersion ?? null,
+    taxRuleVersion: input.taxRuleVersion ?? null,
+    taxAnswerSnapshot,
+    buyerVatNumber: input.buyerVatNumber ?? null,
+    calculatedDeductionOre:
+      input.calculatedDeductionOre ?? input.totals.deductionTotalOre,
+    claimDeductionOre: input.claimDeductionOre ?? input.totals.deductionTotalOre,
+    payableOre: input.payableOre ?? input.totals.acceptedPriceOre,
+    netOre: input.netOre ?? input.totals.baseTotalOre + input.totals.optionTotalOre,
+    vatOre: input.vatOre ?? input.totals.vatTotalOre,
+    grossOre: input.grossOre ?? input.totals.acceptedPriceOre + input.totals.deductionTotalOre,
+    deductionOre: input.deductionOre ?? input.totals.deductionTotalOre,
 
     vatRateBp: input.assumptions.vatRateBp,
     vatDisplay: input.assumptions.vatDisplay,

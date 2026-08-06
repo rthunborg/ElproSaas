@@ -30,11 +30,24 @@
  */
 import { CommandError } from "../command-errors";
 import {
+  computeLineTotal,
   computeSectionTotal,
   type TotalsRowInput,
 } from "@/features/calculations/totals";
 import { classifyReadiness } from "@/features/calculations/readiness";
 import { resolveVatDisplayPosture } from "@/features/calculations/vat-posture";
+import {
+  isRowType,
+  taxSummaryCategoryForRowType,
+} from "@/server/commands/calculations/validation";
+import {
+  buildTaxAnswerSnapshotV2,
+  isDeductionClassification,
+  isVatType,
+  parseTaxInputSnapshot,
+  type DeductionClassification,
+  type VatType,
+} from "@/lib/money";
 import {
   buildQuoteVersionSnapshot,
   type QuoteAttachmentSource,
@@ -60,10 +73,28 @@ function totalsRowOf(row: CalcRowRow): TotalsRowInput {
     quantity: row.quantity,
     unit_sell_ore: row.unit_sell_ore,
     vat_rate_bp: row.vat_rate_bp,
+    vat_type: vatTypeOf(row.vat_type),
+    included_in_invoice_total: row.included_in_invoice_total,
+    deduction_classification: deductionClassificationOf(row.deduction_classification),
     is_hidden: row.is_hidden,
     is_optional: row.is_optional,
     is_selected: row.is_selected,
   };
+}
+
+function vatTypeOf(value: string): VatType {
+  if (!isVatType(value)) throw new CommandError("VALIDATION_FAILED");
+  return value;
+}
+
+function deductionClassificationOf(value: string): DeductionClassification {
+  if (!isDeductionClassification(value)) throw new CommandError("VALIDATION_FAILED");
+  return value;
+}
+
+function summaryCategoryOf(rowType: string): "labor" | "material" | "other" {
+  if (!isRowType(rowType)) throw new CommandError("VALIDATION_FAILED");
+  return taxSummaryCategoryForRowType(rowType);
 }
 
 /** The frozen line-snapshot SOURCE from a customer-visible calc row (NO cost/internal). */
@@ -80,6 +111,9 @@ function lineSourceOf(row: CalcRowRow, lineNetOre: number | null): QuoteLineSour
     unitSellOre: row.unit_sell_ore,
     lineNetOre,
     vatRateBp: row.vat_rate_bp,
+    includedInInvoiceTotal: row.included_in_invoice_total,
+    deductionClassification: deductionClassificationOf(row.deduction_classification),
+    vatType: vatTypeOf(row.vat_type),
     isHidden: row.is_hidden,
     isOptional: row.is_optional,
     isSelected: row.is_selected,
@@ -149,13 +183,8 @@ export async function buildFreshQuoteSnapshot(
 
   // ── Compute the totals via the frozen engine (CAPTURE — never re-derive; R-505). ──
   const totalsRows = rows.map(totalsRowOf);
-  const total = computeSectionTotal(totalsRows);
-  if (!total.ok) throw new CommandError("VALIDATION_FAILED");
-
   const baseRows = totalsRows.filter((r) => !r.is_optional);
-  const optionRows = totalsRows.filter(
-    (r) => r.is_optional && r.is_selected === true,
-  );
+  const optionRows = totalsRows.filter((r) => r.is_optional);
   const baseTotal = computeSectionTotal(baseRows);
   const optionTotal = computeSectionTotal(optionRows);
   if (!baseTotal.ok || !optionTotal.ok) {
@@ -165,9 +194,27 @@ export async function buildFreshQuoteSnapshot(
   // Per-row line nets (for the frozen line snapshots) — CAPTURED from the engine.
   const lineNetByRowId = new Map<string, number | null>();
   for (const row of rows) {
-    const line = computeSectionTotal([totalsRowOf(row)]);
+    const line = computeLineTotal(totalsRowOf(row));
     lineNetByRowId.set(row.id, line.ok ? line.value.netOre : null);
   }
+
+  const parsedTaxInput = parseTaxInputSnapshot(header.tax_input_snapshot);
+  if (!parsedTaxInput.ok) throw new CommandError("VALIDATION_FAILED");
+  const quoteCaptureDate = params.capturedAt.slice(0, 10);
+  const taxAnswer = buildTaxAnswerSnapshotV2({
+    rows: rows.map((row) => ({
+      id: row.id,
+      netOre: lineNetByRowId.get(row.id) ?? 0,
+      vatType: vatTypeOf(row.vat_type),
+      rateBp: row.vat_rate_bp ?? 0,
+      includedInInvoiceTotal: row.included_in_invoice_total,
+      deductionClassification: deductionClassificationOf(row.deduction_classification),
+      summaryCategory: summaryCategoryOf(row.row_type),
+    })),
+    taxInput: parsedTaxInput.value,
+    quoteCaptureDate,
+  });
+  if (!taxAnswer.ok) throw new CommandError("VALIDATION_FAILED");
 
   // ── Resolve the VAT display posture (presentation-only) + warnings (readiness). ──
   const vatPosture = resolveVatDisplayPosture(
@@ -192,6 +239,9 @@ export async function buildFreshQuoteSnapshot(
           quantity: r.quantity,
           unit_sell_ore: r.unit_sell_ore,
           vat_rate_bp: r.vat_rate_bp,
+          vat_type: vatTypeOf(r.vat_type),
+          included_in_invoice_total: r.included_in_invoice_total,
+          deduction_classification: deductionClassificationOf(r.deduction_classification),
           is_hidden: r.is_hidden,
           is_optional: r.is_optional,
           is_selected: r.is_selected,
@@ -206,7 +256,7 @@ export async function buildFreshQuoteSnapshot(
         })),
     })),
     vatPostureResolved: identity !== null,
-    tax: { hasDeductionAssumption: false },
+    tax: { hasDeductionAssumption: parsedTaxInput.value.deductionChoice !== "NONE" },
   });
   const warnings = [...readiness.blockers, ...readiness.warnings].map((w) => ({
     code: w.code,
@@ -245,19 +295,26 @@ export async function buildFreshQuoteSnapshot(
       totals: {
         baseTotalOre: baseTotal.value.netOre,
         optionTotalOre: optionTotal.value.netOre,
-        vatTotalOre: total.value.vatOre,
-        deductionTotalOre: 0,
-        acceptedPriceOre: total.value.grossOre,
+        vatTotalOre: taxAnswer.value.vatOre,
+        deductionTotalOre: taxAnswer.value.deductionOre,
+        acceptedPriceOre: taxAnswer.value.payableOre,
       },
       assumptions: {
         vatRateBp: identity?.vat_rate_bp ?? null,
         vatDisplay: vatPosture,
-        deductionType: null,
+        deductionType:
+          parsedTaxInput.value.deductionChoice === "ROT"
+            ? "rot"
+            : parsedTaxInput.value.deductionChoice === "GREEN"
+              ? "gron_teknik"
+              : parsedTaxInput.value.deductionChoice === "ROT_AND_GREEN"
+                ? "rot_and_green"
+                : null,
         deductionRateBp: null,
         deductionCapOre: null,
         deductionPersons: null,
-        // The standing UNAPPROVED-estimate marker (demo-data-only accept) — the new version
-        // carries the SAME inert deduction/VAT + requires_sign_off framing as 6.1.
+        // Customer-declared applicability/allowance facts remain preliminary until externally
+        // verified; the complete reconciled answer above is nevertheless frozen verbatim.
         requiresSignOff: true,
       },
       header: {
@@ -271,6 +328,17 @@ export async function buildFreshQuoteSnapshot(
       lines: rows.map((r) => lineSourceOf(r, lineNetByRowId.get(r.id) ?? null)),
       attachments,
       warnings,
+      snapshotSchemaVersion: 2,
+      taxRuleVersion: taxAnswer.value.taxRuleVersions.join("+"),
+      taxAnswerSnapshot: taxAnswer.value,
+      buyerVatNumber: taxAnswer.value.buyerVatNumber,
+      calculatedDeductionOre: taxAnswer.value.calculatedDeductionOre,
+      claimDeductionOre: taxAnswer.value.claimDeductionOre,
+      payableOre: taxAnswer.value.payableOre,
+      netOre: taxAnswer.value.netOre,
+      vatOre: taxAnswer.value.vatOre,
+      grossOre: taxAnswer.value.grossOre,
+      deductionOre: taxAnswer.value.deductionOre,
     },
     { capturedAt: params.capturedAt },
   );
@@ -313,6 +381,13 @@ export function snapshotToPayload(
     vatTotalOre: s.vatTotalOre,
     deductionTotalOre: s.deductionTotalOre,
     acceptedPriceOre: s.acceptedPriceOre,
+    snapshotSchemaVersion: s.snapshotSchemaVersion,
+    taxRuleVersion: s.taxRuleVersion,
+    taxAnswerSnapshot: s.taxAnswerSnapshot,
+    buyerVatNumber: s.buyerVatNumber,
+    calculatedDeductionOre: s.calculatedDeductionOre,
+    claimDeductionOre: s.claimDeductionOre,
+    payableOre: s.payableOre,
     vatRateBp: s.vatRateBp,
     vatDisplay: s.vatDisplay,
     deductionType: s.deductionType,
@@ -338,6 +413,9 @@ export function linesToPayload(s: QuoteVersionSnapshot): unknown[] {
     unitSellOre: l.unitSellOre,
     lineNetOre: l.lineNetOre,
     vatRateBp: l.vatRateBp,
+    includedInInvoiceTotal: l.includedInInvoiceTotal,
+    deductionClassification: l.deductionClassification,
+    vatType: l.vatType,
     isHidden: l.isHidden,
     isOptional: l.isOptional,
     isSelected: l.isSelected,

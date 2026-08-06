@@ -743,6 +743,8 @@ export interface CalculationSeed {
   readonly contact_id?: string | null;
   readonly title?: string;
   readonly status?: "draft" | "ready" | "archived";
+  /** Story 10.6: complete versioned tax input, stored as one atomic JSON document. */
+  readonly tax_input_snapshot?: Readonly<Record<string, unknown>> | null;
 }
 
 /** A seed for a `calculation_sections` row (parent calc required, same tenant). */
@@ -764,6 +766,25 @@ export interface CalculationRowSeed {
   readonly unit_cost_ore?: number | null;
   readonly unit_sell_ore?: number | null;
   readonly vat_rate_bp?: number | null;
+  readonly included_in_invoice_total?: boolean;
+  readonly deduction_classification?:
+    | "NONE"
+    | "ROT_LABOR"
+    | "GREEN_SOLAR_LABOR"
+    | "GREEN_SOLAR_MATERIAL"
+    | "GREEN_STORAGE_LABOR"
+    | "GREEN_STORAGE_MATERIAL"
+    | "GREEN_CHARGING_LABOR"
+    | "GREEN_CHARGING_MATERIAL";
+  readonly vat_type?:
+    | "STANDARD_VAT_25"
+    | "REDUCED_VAT"
+    | "ZERO_RATED"
+    | "REVERSE_CHARGE_CONSTRUCTION";
+  readonly is_hidden?: boolean;
+  readonly is_optional?: boolean;
+  readonly is_selected?: boolean | null;
+  readonly label?: string | null;
   readonly sort_order?: number;
 }
 
@@ -778,8 +799,8 @@ export async function adminInsertCalculation(
   try {
     const rows = await adminQuery<{ id: string }>(
       `insert into public.calculations
-         (tenant_id, customer_id, facility_id, contact_id, title, status)
-       values ($1, $2, $3, $4, $5, $6)
+         (tenant_id, customer_id, facility_id, contact_id, title, status, tax_input_snapshot)
+       values ($1, $2, $3, $4, $5, $6, $7::jsonb)
        returning id`,
       [
         seed.tenant_id,
@@ -788,6 +809,7 @@ export async function adminInsertCalculation(
         seed.contact_id ?? null,
         seed.title ?? "tenant-calc-seed",
         seed.status ?? "draft",
+        seed.tax_input_snapshot ?? null,
       ],
     );
     const id = rows[0]?.id;
@@ -837,8 +859,11 @@ export async function adminInsertRow(seed: CalculationRowSeed): Promise<string> 
     const rows = await adminQuery<{ id: string }>(
       `insert into public.calculation_rows
          (tenant_id, section_id, row_type, quantity, unit,
-          unit_cost_ore, unit_sell_ore, vat_rate_bp, sort_order)
-       values ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+          unit_cost_ore, unit_sell_ore, vat_rate_bp,
+          included_in_invoice_total, deduction_classification, vat_type,
+          is_hidden, is_optional, is_selected, label, sort_order)
+       values ($1, $2, $3, $4, $5, $6, $7, $8,
+               $9, $10, $11, $12, $13, $14, $15, $16)
        returning id`,
       [
         seed.tenant_id,
@@ -849,6 +874,13 @@ export async function adminInsertRow(seed: CalculationRowSeed): Promise<string> 
         seed.unit_cost_ore ?? null,
         seed.unit_sell_ore ?? null,
         seed.vat_rate_bp ?? 2500,
+        seed.included_in_invoice_total ?? true,
+        seed.deduction_classification ?? "NONE",
+        seed.vat_type ?? "STANDARD_VAT_25",
+        seed.is_hidden ?? false,
+        seed.is_optional ?? false,
+        seed.is_selected ?? null,
+        seed.label ?? null,
         seed.sort_order ?? 0,
       ],
     );
@@ -1204,12 +1236,38 @@ export async function adminInsertQuote(seed: QuoteSeed): Promise<string> {
   }
 }
 
-/** Seed ONE `quote_versions` row via the privileged superuser pg path (BYPASSRLS). */
+/**
+ * Seed a deliberately historical V1 quote artifact while current production triggers require
+ * fresh rows to use the V2 command path. This is test-only, superuser-only, transaction-local,
+ * and resets automatically through `adminSession`; application code can never reach it.
+ */
+async function adminInsertHistoricalQuoteArtifact(
+  sql: string,
+  params: readonly unknown[],
+  label: string,
+): Promise<string> {
+  return adminSession(async ({ query }) => {
+    await query("begin");
+    try {
+      await query("set local session_replication_role = replica");
+      const rows = await query<{ id: string }>(sql, params);
+      const id = rows[0]?.id;
+      if (!id) throw new Error(`${label}: no id returned`);
+      await query("commit");
+      return id;
+    } catch (error) {
+      await query("rollback");
+      throw error;
+    }
+  });
+}
+
+/** Seed ONE historical `quote_versions` row through the tightly scoped test-only trigger bypass. */
 export async function adminInsertQuoteVersion(
   seed: QuoteVersionSeed,
 ): Promise<string> {
   try {
-    const rows = await adminQuery<{ id: string }>(
+    return await adminInsertHistoricalQuoteArtifact(
       `insert into public.quote_versions
          (tenant_id, quote_id, version_number, quote_number, calculation_id,
           captured_at, company_name, status, intro_text, customer_display_name,
@@ -1233,21 +1291,19 @@ export async function adminInsertQuoteVersion(
         JSON.stringify(seed.warnings_snapshot ?? []),
         seed.accepted_price_ore ?? 0,
       ],
+      "adminInsertQuoteVersion",
     );
-    const id = rows[0]?.id;
-    if (!id) throw new Error("adminInsertQuoteVersion: no id returned");
-    return id;
   } catch (error) {
     rethrowWithCode(error);
   }
 }
 
-/** Seed ONE `quote_version_lines` row via the privileged superuser pg path (BYPASSRLS). */
+/** Seed ONE historical line through the tightly scoped test-only trigger bypass. */
 export async function adminInsertQuoteVersionLine(
   seed: QuoteVersionLineSeed,
 ): Promise<string> {
   try {
-    const rows = await adminQuery<{ id: string }>(
+    return await adminInsertHistoricalQuoteArtifact(
       `insert into public.quote_version_lines
          (tenant_id, quote_version_id, row_type, label, unit_sell_ore, vat_rate_bp, sort_order)
        values ($1, $2, $3, $4, $5, $6, $7)
@@ -1261,21 +1317,19 @@ export async function adminInsertQuoteVersionLine(
         seed.vat_rate_bp ?? 2500,
         seed.sort_order ?? 0,
       ],
+      "adminInsertQuoteVersionLine",
     );
-    const id = rows[0]?.id;
-    if (!id) throw new Error("adminInsertQuoteVersionLine: no id returned");
-    return id;
   } catch (error) {
     rethrowWithCode(error);
   }
 }
 
-/** Seed ONE `quote_version_attachments` row via the privileged superuser pg path (BYPASSRLS). */
+/** Seed ONE historical attachment through the tightly scoped test-only trigger bypass. */
 export async function adminInsertQuoteVersionAttachment(
   seed: QuoteVersionAttachmentSeed,
 ): Promise<string> {
   try {
-    const rows = await adminQuery<{ id: string }>(
+    return await adminInsertHistoricalQuoteArtifact(
       `insert into public.quote_version_attachments
          (tenant_id, quote_version_id, file_id, display_name, sort_order)
        values ($1, $2, $3, $4, $5)
@@ -1287,10 +1341,8 @@ export async function adminInsertQuoteVersionAttachment(
         seed.display_name ?? "tenant-b-attachment-seed.pdf",
         seed.sort_order ?? 0,
       ],
+      "adminInsertQuoteVersionAttachment",
     );
-    const id = rows[0]?.id;
-    if (!id) throw new Error("adminInsertQuoteVersionAttachment: no id returned");
-    return id;
   } catch (error) {
     rethrowWithCode(error);
   }

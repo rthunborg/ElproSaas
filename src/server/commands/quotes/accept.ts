@@ -95,6 +95,8 @@ export const captureQuoteAcceptance = defineCommand<
     // Acceptance is legal ONLY on a SENT version — a generic VALIDATION_FAILED (no leaked status).
     if (source.status !== "sent") throw new CommandError("VALIDATION_FAILED");
 
+    // Story 10.6: for snapshotSchemaVersion=2, loadQuoteVersionAcceptanceSource normalizes the
+    // frozen payableOre into source_sent_total_ore; V1 rows still fall back to acceptedPriceOre.
     // ── THE ADJUSTED-PRICE GATE (AC2) — the SINGLE authority `evaluateAcceptancePriceGate` folds the
     // ── PURE delta computation (never ad hoc), the REASON_REQUIRED rule, and the `hasReason` (reason
     // ── OR evidence) presence into one OK/typed-failure the command RE-VALIDATES server-side (the

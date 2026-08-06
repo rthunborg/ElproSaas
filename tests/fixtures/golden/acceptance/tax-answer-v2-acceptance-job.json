@@ -1,0 +1,254 @@
+{
+  "_doc": "Story 10.6 V2 acceptance-to-job behavioral golden. The quote freezes document-category VAT (5001 ore, deliberately distinct from the former 5000 ore per-line sum), a 25003 ore payable, and then records a reason-backed 300 ore acceptance adjustment. The created job exposes that 24703 ore agreed amount only through its immutable acceptance/version references. Synthetic values only; no PII and no runtime clock.",
+  "capturedAt": "2026-08-05T12:00:00.000Z",
+  "commandAt": "2026-08-05T12:05:00.000Z",
+  "acceptedAt": "2026-08-05T12:04:00.000Z",
+  "calculationTaxInput": {
+    "schemaVersion": 2,
+    "documentVatType": "STANDARD_VAT_25",
+    "buyerVatNumber": null,
+    "deductionChoice": "NONE",
+    "paymentDate": null,
+    "finalPaymentDate": null,
+    "personAllowanceSlots": [],
+    "greenBasisMethod": "ACTUAL_ELIGIBLE_COSTS",
+    "genuineFixedPrice": false,
+    "fixedPriceOre": null,
+    "fixedPriceCategorySplitOre": null
+  },
+  "quoteSnapshot": {
+    "companyName": "Synthetic Test Company",
+    "companyOrgNr": "SYNTHETIC-ORG",
+    "companyAddressLine1": null,
+    "companyAddressLine2": null,
+    "companyPostalCode": null,
+    "companyCity": null,
+    "companyEmail": null,
+    "companyPhone": null,
+    "companyLogoUrl": null,
+    "customerDisplayName": "Synthetic Acceptance Customer",
+    "customerType": "company",
+    "facilityName": null,
+    "contactName": null,
+    "quoteNumberDisplay": null,
+    "validUntil": null,
+    "introText": null,
+    "customerNotes": null,
+    "termsText": null,
+    "termsApprovedAt": null,
+    "termsApprovedBy": null,
+    "baseTotalOre": 20002,
+    "optionTotalOre": 0,
+    "vatTotalOre": 5001,
+    "deductionTotalOre": 0,
+    "acceptedPriceOre": 25003,
+    "snapshotSchemaVersion": 2,
+    "taxRuleVersion": "SE-TAX-2026-v1",
+    "taxAnswerSnapshot": {
+      "schemaVersion": 2,
+      "taxRuleVersions": [
+        "SE-TAX-2026-v1"
+      ],
+      "vatPolicy": {
+        "id": "SE-TAX-2026-v1",
+        "validFrom": "2026-01-01",
+        "validTo": null,
+        "resolvingDate": "2026-08-05",
+        "resolvingFact": "QUOTE_CAPTURE_DATE",
+        "values": {
+          "vat": {
+            "standardRateBp": 2500
+          },
+          "rot": {
+            "rateBp": 3000,
+            "maxPerPersonYearOre": 5000000,
+            "combinedRotRutMaxPerPersonYearOre": 7500000
+          },
+          "green": {
+            "rateBpByCategory": {
+              "SOLAR": 1500,
+              "STORAGE": 5000,
+              "CHARGING": 5000
+            },
+            "maxPerPersonYearOre": 5000000,
+            "defaultBasisMethod": "ACTUAL_ELIGIBLE_COSTS",
+            "fixedPriceEligibleShareBp": 9700
+          }
+        }
+      },
+      "documentVatType": "STANDARD_VAT_25",
+      "buyerVatNumber": null,
+      "reverseChargeApplied": false,
+      "deductionChoice": "NONE",
+      "categories": [
+        {
+          "vatType": "STANDARD_VAT_25",
+          "rateBp": 2500,
+          "netOre": 20002,
+          "vatOre": 5001,
+          "grossOre": 25003
+        }
+      ],
+      "netByDeductionClassification": {
+        "NONE": 20002,
+        "ROT_LABOR": 0,
+        "GREEN_SOLAR_LABOR": 0,
+        "GREEN_SOLAR_MATERIAL": 0,
+        "GREEN_STORAGE_LABOR": 0,
+        "GREEN_STORAGE_MATERIAL": 0,
+        "GREEN_CHARGING_LABOR": 0,
+        "GREEN_CHARGING_MATERIAL": 0
+      },
+      "vatByDeductionClassification": {
+        "NONE": 5001,
+        "ROT_LABOR": 0,
+        "GREEN_SOLAR_LABOR": 0,
+        "GREEN_SOLAR_MATERIAL": 0,
+        "GREEN_STORAGE_LABOR": 0,
+        "GREEN_STORAGE_MATERIAL": 0,
+        "GREEN_CHARGING_LABOR": 0,
+        "GREEN_CHARGING_MATERIAL": 0
+      },
+      "summaries": {
+        "labor": {
+          "netOre": 0,
+          "vatOre": 0,
+          "grossOre": 0
+        },
+        "material": {
+          "netOre": 0,
+          "vatOre": 0,
+          "grossOre": 0
+        },
+        "other": {
+          "netOre": 20002,
+          "vatOre": 5001,
+          "grossOre": 25003
+        }
+      },
+      "rot": {
+        "policy": null,
+        "basisNetOre": 0,
+        "allocatedVatOre": 0,
+        "basisOre": 0,
+        "calculatedOre": 0,
+        "claimOre": 0,
+        "allocations": []
+      },
+      "green": {
+        "policy": null,
+        "basisMethod": "ACTUAL_ELIGIBLE_COSTS",
+        "categories": {
+          "SOLAR": {
+            "category": "SOLAR",
+            "basisOre": 0,
+            "calculatedOre": 0,
+            "claimOre": 0
+          },
+          "STORAGE": {
+            "category": "STORAGE",
+            "basisOre": 0,
+            "calculatedOre": 0,
+            "claimOre": 0
+          },
+          "CHARGING": {
+            "category": "CHARGING",
+            "basisOre": 0,
+            "calculatedOre": 0,
+            "claimOre": 0
+          }
+        },
+        "calculatedOre": 0,
+        "claimOre": 0,
+        "allocations": []
+      },
+      "netOre": 20002,
+      "vatOre": 5001,
+      "grossOre": 25003,
+      "calculatedDeductionOre": 0,
+      "claimDeductionOre": 0,
+      "deductionOre": 0,
+      "payableOre": 25003
+    },
+    "buyerVatNumber": null,
+    "calculatedDeductionOre": 0,
+    "claimDeductionOre": 0,
+    "payableOre": 25003,
+    "vatRateBp": 2500,
+    "vatDisplay": "company_togglable",
+    "deductionType": null,
+    "deductionRateBp": null,
+    "deductionCapOre": null,
+    "deductionPersons": null,
+    "requiresSignOff": true,
+    "displayMode": "detailed",
+    "warnings": []
+  },
+  "quoteLines": [
+    {
+      "rowType": "other",
+      "sortOrder": 0,
+      "label": "Synthetic part A",
+      "description": null,
+      "quoteNote": null,
+      "quantity": 1,
+      "unit": "st",
+      "unitSellOre": 10001,
+      "lineNetOre": 10001,
+      "vatRateBp": 2500,
+      "includedInInvoiceTotal": true,
+      "deductionClassification": "NONE",
+      "vatType": "STANDARD_VAT_25",
+      "isHidden": false,
+      "isOptional": false,
+      "isSelected": null
+    },
+    {
+      "rowType": "other",
+      "sortOrder": 1,
+      "label": "Synthetic part B",
+      "description": null,
+      "quoteNote": null,
+      "quantity": 1,
+      "unit": "st",
+      "unitSellOre": 10001,
+      "lineNetOre": 10001,
+      "vatRateBp": 2500,
+      "includedInInvoiceTotal": true,
+      "deductionClassification": "NONE",
+      "vatType": "STANDARD_VAT_25",
+      "isHidden": false,
+      "isOptional": false,
+      "isSelected": null
+    }
+  ],
+  "acceptance": {
+    "adjustedPriceOre": 24703,
+    "adjustmentReason": "Synthetic agreed-scope adjustment",
+    "channel": "verbal",
+    "jobTitle": "Synthetic accepted work"
+  },
+  "sourceMutation": {
+    "unitSellOre": 777777,
+    "vatRateBp": 0,
+    "vatType": "ZERO_RATED"
+  },
+  "expectedProjection": {
+    "status": "accepted",
+    "snapshotSchemaVersion": 2,
+    "taxRuleVersion": "SE-TAX-2026-v1",
+    "frozenNetOre": 20002,
+    "frozenVatOre": 5001,
+    "legacyPerLineVatOre": 5000,
+    "frozenPayableOre": 25003,
+    "quoteAcceptedPriceMirrorOre": 25003,
+    "liveCalculationUnitSellOreAfterFreeze": 777777,
+    "acceptanceAcceptedPriceOre": 24703,
+    "acceptanceSourceSentTotalOre": 25003,
+    "adjustmentDeltaOre": -300,
+    "jobAgreedAmountOre": 24703,
+    "jobSourceSentTotalOre": 25003,
+    "quoteAcceptanceRefMatches": true,
+    "quoteVersionRefMatches": true
+  }
+}

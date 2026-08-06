@@ -198,9 +198,10 @@ export interface DeltaClassification {
  * (its `note` records the intended divergence + the divergent old value), so the harness classifies
  * it `expected-simplification` — but ONLY because each is an owner-understood Phase-A modelling
  * choice, NOT a money/tax defect:
- *   - quotes.json quote-total-rounding-documented-delta: Phase A pins per-line sum-of-rounded VAT
- *     (16666) vs Lovable's document-level round-of-sum (16667). The per-line rule is the FROZEN
- *     Epic-4 money-engine posture — an intended, engine-authoritative simplification, not a bug.
+ *   - quotes.json quote-total-rounding-documented-delta: Story 10.6 pins document-category VAT
+ *     (16667) vs the synthetic prior per-line sum-of-rounded comparison value (16666). The
+ *     document-category rule is the current money/tax-engine posture — an intended,
+ *     engine-authoritative simplification, not a bug.
  *   - calculations.json vat-posture-classification-delta: Phase A resolves a private customer to the
  *     incl-VAT invariant (private-incl) vs Lovable storing the tenant company_excl view — the frozen
  *     2026-06-18 VAT-display owner decision, an intended posture simplification.
@@ -271,6 +272,9 @@ export function toTotalsRow(r: LovableCalcRow): TotalsRowInput {
     quantity: r.quantity,
     unit_sell_ore: r.unit_sell_ore,
     vat_rate_bp: r.vat_rate_bp,
+    // Story 10.6's one-time legacy migration freezes the old optional-selection decision into
+    // the new independent economic-inclusion fact. Live totals consume only this property.
+    included_in_invoice_total: !r.is_optional || r.is_selected,
     is_hidden: r.is_hidden,
     is_optional: r.is_optional,
     // An optional row carries its selection; a non-optional row is always counted (is_selected null).

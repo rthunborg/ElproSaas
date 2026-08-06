@@ -110,6 +110,8 @@ test("6.5-INT-01 (unit): snapshotToPayload emits the full frozen header/totals/t
     "quoteNumberDisplay", "validUntil", "introText", "customerNotes",
     "termsText", "termsApprovedAt", "termsApprovedBy",
     "baseTotalOre", "optionTotalOre", "vatTotalOre", "deductionTotalOre", "acceptedPriceOre",
+    "snapshotSchemaVersion", "taxRuleVersion", "taxAnswerSnapshot", "buyerVatNumber",
+    "calculatedDeductionOre", "claimDeductionOre", "payableOre",
     "vatRateBp", "vatDisplay", "deductionType", "deductionRateBp", "deductionCapOre",
     "deductionPersons", "requiresSignOff", "displayMode", "warnings",
   ].sort();
@@ -122,10 +124,11 @@ test("6.5-INT-01 (unit): snapshotToPayload copies values verbatim + preserves in
   assert.equal(payload.baseTotalOre, 120000);
   assert.equal(payload.vatTotalOre, 30000);
   assert.equal(payload.acceptedPriceOre, 150000);
+  assert.equal(payload.payableOre, 150000);
   assert.equal(payload.vatRateBp, 2500);
   assert.equal(payload.requiresSignOff, true);
   // öre stay integers (never a float/kr conversion).
-  for (const k of ["baseTotalOre", "vatTotalOre", "acceptedPriceOre"] as const) {
+  for (const k of ["baseTotalOre", "vatTotalOre", "acceptedPriceOre", "payableOre"] as const) {
     assert.equal(Number.isInteger(payload[k] as number), true, `${k} must be integer öre`);
   }
 });
@@ -146,6 +149,7 @@ test("6.5-INT-01 (unit): linesToPayload emits exactly the customer-visible line 
   const expected = [
     "rowType", "sortOrder", "label", "description", "quoteNote",
     "quantity", "unit", "unitSellOre", "lineNetOre", "vatRateBp",
+    "includedInInvoiceTotal", "deductionClassification", "vatType",
     "isHidden", "isOptional", "isSelected",
   ].sort();
   const keys = Object.keys(lines[0] as Record<string, unknown>).sort();

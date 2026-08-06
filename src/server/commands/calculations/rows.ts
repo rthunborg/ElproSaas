@@ -19,10 +19,15 @@ import { defineCommand } from "../envelope";
 import { CommandError } from "../command-errors";
 import {
   asCalcWriteClient,
+  loadRowOptionState,
+  loadRowTaxClassificationState,
   loadRowType,
   throwMappedWriteError,
 } from "./calc-db";
-import { kindForRowType } from "./validation";
+import {
+  kindForRowType,
+  taxSummaryCategoryForRowType,
+} from "./validation";
 import { nextSortOrder } from "./sort-order";
 import { resolveSnapshotSource } from "@/server/snapshots/resolve-source";
 import {
@@ -33,6 +38,7 @@ import {
 } from "@/lib/snapshots/build";
 import type { CommandExecuteContext } from "../envelope-core";
 import type { CommandDbClient } from "../envelope";
+import { isDeductionClassificationCompatibleWithSummaryCategory } from "@/lib/money";
 import type { CalcCommandResult } from "./calculations";
 import {
   validateArchiveRow,
@@ -162,6 +168,11 @@ function rowInsertValues(
   input: CreateRowInput,
   source: RowSourceColumns,
 ): Record<string, unknown> {
+  const isOptional = input.is_optional ?? false;
+  const isSelected = input.is_selected ?? null;
+  const includedInInvoiceTotal = isOptional
+    ? isSelected === true
+    : (input.included_in_invoice_total ?? true);
   return {
     tenant_id: tenantId, // resolved tenant — NEVER a client-supplied id
     section_id: input.section_id,
@@ -172,9 +183,12 @@ function rowInsertValues(
     unit_sell_ore: input.unit_sell_ore ?? null,
     markup_bp: input.markup_bp ?? null,
     vat_rate_bp: input.vat_rate_bp,
+    included_in_invoice_total: includedInInvoiceTotal,
+    deduction_classification: input.deduction_classification ?? "NONE",
+    vat_type: input.vat_type ?? "STANDARD_VAT_25",
     is_hidden: input.is_hidden ?? false,
-    is_optional: input.is_optional ?? false,
-    is_selected: input.is_selected ?? null,
+    is_optional: isOptional,
+    is_selected: isSelected,
     label: input.label ?? null,
     description: input.description ?? null,
     internal_note: input.internal_note ?? null,
@@ -250,6 +264,13 @@ function buildRowPatch(
   if (input.unit_sell_ore !== undefined) patch.unit_sell_ore = input.unit_sell_ore;
   if (input.markup_bp !== undefined) patch.markup_bp = input.markup_bp;
   if (input.vat_rate_bp !== undefined) patch.vat_rate_bp = input.vat_rate_bp;
+  if (input.included_in_invoice_total !== undefined) {
+    patch.included_in_invoice_total = input.included_in_invoice_total;
+  }
+  if (input.deduction_classification !== undefined) {
+    patch.deduction_classification = input.deduction_classification;
+  }
+  if (input.vat_type !== undefined) patch.vat_type = input.vat_type;
   if (input.is_hidden !== undefined) patch.is_hidden = input.is_hidden;
   if (input.is_optional !== undefined) patch.is_optional = input.is_optional;
   if (input.is_selected !== undefined) patch.is_selected = input.is_selected;
@@ -269,6 +290,24 @@ export const updateRow = defineCommand<UpdateRowInput, CalcCommandResult>({
   validateInput: validateUpdateRow,
   ownership: (input) => ({ table: "calculation_rows", id: input.id }),
   execute: async (ctx) => {
+    const changesRowType = ctx.input.row_type !== undefined;
+    const changesClassification = ctx.input.deduction_classification !== undefined;
+    if (changesRowType !== changesClassification) {
+      const persisted = await loadRowTaxClassificationState(ctx.db, ctx.input.id);
+      if (persisted === null) throw new CommandError("TENANT_ACCESS_DENIED");
+      const effectiveRowType = ctx.input.row_type ?? persisted.rowType;
+      const effectiveClassification =
+        ctx.input.deduction_classification ?? persisted.deductionClassification;
+      if (
+        !isDeductionClassificationCompatibleWithSummaryCategory(
+          effectiveClassification,
+          taxSummaryCategoryForRowType(effectiveRowType),
+        )
+      ) {
+        throw new CommandError("VALIDATION_FAILED");
+      }
+    }
+
     // Resolve the pricing-source change (Story 5.3), if any, on the SAME per-request RLS
     // client. A source pair → resolve + freeze the captured columns (a foreign source →
     // TENANT_ACCESS_DENIED, no write). An explicit clear (`source_clear`) → all-null
@@ -303,6 +342,17 @@ export const updateRow = defineCommand<UpdateRowInput, CalcCommandResult>({
     }
 
     const patch = buildRowPatch(ctx.input, source);
+    if (ctx.input.is_optional !== undefined || ctx.input.is_selected !== undefined) {
+      const persisted = await loadRowOptionState(ctx.db, ctx.input.id);
+      if (persisted === null) throw new CommandError("TENANT_ACCESS_DENIED");
+      const effectiveOptional = ctx.input.is_optional ?? persisted.isOptional;
+      const effectiveSelected = ctx.input.is_selected ?? persisted.isSelected;
+      if (effectiveOptional) {
+        patch.included_in_invoice_total = effectiveSelected === true;
+      } else if (ctx.input.included_in_invoice_total === undefined) {
+        patch.included_in_invoice_total = persisted.includedInInvoiceTotal;
+      }
+    }
     // Empty-patch guard (Task 3.5): id-only update is a no-op — no `.update({})`.
     if (Object.keys(patch).length === 0) {
       return { targetId: ctx.input.id };

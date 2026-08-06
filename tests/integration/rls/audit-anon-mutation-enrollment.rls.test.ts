@@ -45,6 +45,28 @@ import {
 
 const AUDIT_TABLE = "audit_events";
 const ANON_MUTATION_VERBS = ["UPDATE", "DELETE"] as const;
+const STRUCTURAL_CTX: InventoryContext = {
+  fixture: {
+    tenantA: { id: "00000000-0000-4000-8000-000000000001", name: "tenant-a" },
+    tenantB: { id: "00000000-0000-4000-8000-000000000002", name: "tenant-b" },
+    adminA: {
+      id: "00000000-0000-4000-8000-000000000011",
+      email: "admin-a@example.test",
+      password: "unused",
+    },
+    adminB: {
+      id: "00000000-0000-4000-8000-000000000012",
+      email: "admin-b@example.test",
+      password: "unused",
+    },
+    orphanUser: {
+      id: "00000000-0000-4000-8000-000000000013",
+      email: "orphan@example.test",
+      password: "unused",
+    },
+  },
+  tenantBAuditId: "00000000-0000-4000-8000-000000000021",
+};
 
 let stackUp = false;
 let fixture: TwoTenantFixture;
@@ -75,7 +97,7 @@ describe("audit_events anon UPDATE/DELETE enrollment completeness (Gap G-5)", ()
     // assertNever }` — so if audit_events were ever removed from the metadata, these
     // would throw. Resolving cleanly proves the anon UPDATE/DELETE enumeration includes
     // audit_events, not just SELECT/INSERT/EXECUTE.
-    const filter = anonFilterFor(AUDIT_TABLE, ctx);
+    const filter = anonFilterFor(AUDIT_TABLE, STRUCTURAL_CTX);
     expect(typeof filter.column).toBe("string");
     expect(typeof filter.value).toBe("string");
     const mutation = anonMutationFor(AUDIT_TABLE);

@@ -52,6 +52,14 @@ const SUPPLIER_FORBIDDEN = [
   "mapping",
 ];
 
+function carriesForbiddenSupplierToken(key: string, forbidden: string): boolean {
+  // Story 10.6 adds the legitimate tax field `includedInInvoiceTotal`; its normalized key
+  // contains the short substring "edi" across a word boundary. Keep the supplier-scope guard
+  // focused on real integration keys rather than that incidental spelling.
+  if (forbidden === "edi" && key === "includedininvoicetotal") return false;
+  return key.includes(forbidden);
+}
+
 /** A fully-populated in-memory input fixture (no DB, no PII). */
 function makeInput(over: Partial<QuoteVersionSnapshotInput> = {}): QuoteVersionSnapshotInput {
   return {
@@ -276,7 +284,7 @@ describe("Story 6.1 — pure QuoteVersionSnapshot builder purity + öre + intern
     for (const forbidden of SUPPLIER_FORBIDDEN) {
       for (const key of keys) {
         assert.ok(
-          !key.includes(forbidden),
+          !carriesForbiddenSupplierToken(key, forbidden),
           `no snapshot key may contain the supplier/integration token '${forbidden}' (got '${key}')`,
         );
       }

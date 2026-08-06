@@ -4,27 +4,51 @@
     "freshV2": "buildFreshQuoteSnapshot"
   },
   "legacyV1": {
-    "snapshotSchemaVersion": 1,
-    "netOre": 100000,
-    "vatOre": 25000,
-    "grossOre": 125000,
-    "deductionOre": 0,
-    "payableOre": 125000,
-    "taxAnswer": null
+    "source": {
+      "snapshotSchemaVersion": 1,
+      "vatOre": 25000,
+      "deductionOre": 6700,
+      "acceptedPriceOre": 118300
+    },
+    "expected": {
+      "source": "legacy-v1",
+      "schemaVersion": 1,
+      "netOre": null,
+      "vatOre": 25000,
+      "grossOre": null,
+      "calculatedDeductionOre": null,
+      "claimDeductionOre": null,
+      "deductionOre": 6700,
+      "payableOre": 118300,
+      "taxAnswer": null
+    }
   },
   "freshV2": {
     "capturedAt": "2026-08-05T09:00:00.000Z",
+    "taxInput": {
+      "schemaVersion": 2,
+      "documentVatType": "REVERSE_CHARGE_CONSTRUCTION",
+      "buyerVatNumber": "SE556677889901",
+      "deductionChoice": "NONE",
+      "paymentDate": null,
+      "finalPaymentDate": null,
+      "personAllowanceSlots": [],
+      "greenBasisMethod": "ACTUAL_ELIGIBLE_COSTS",
+      "genuineFixedPrice": false,
+      "fixedPriceOre": null,
+      "fixedPriceCategorySplitOre": null
+    },
     "source": {
       "calculationId": "calc-tax-answer-v2",
       "company": {
         "company_name": "Example El AB",
-        "org_nr": "556000-0000",
+        "org_nr": "XXXXXX-XXXX",
         "address_line1": "Exempelvägen 1",
         "address_line2": null,
         "postal_code": "111 11",
         "city": "Teststad",
         "email": "info@example.test",
-        "phone": "070-0000000",
+        "phone": null,
         "logo_url": null
       },
       "customer": {
@@ -113,7 +137,19 @@
       "grossOre": 325000,
       "deductionOre": 0,
       "payableOre": 325000,
-      "buyerVatNumber": "SE556677889901"
+      "buyerVatNumber": "SE556677889901",
+      "calculatedDeductionOre": 0,
+      "claimDeductionOre": 0,
+      "taxAnswerSnapshot": {
+        "schemaVersion": 2,
+        "reverseChargeApplied": true,
+        "deductionChoice": "NONE",
+        "netOre": 300000,
+        "vatOre": 25000,
+        "grossOre": 325000,
+        "deductionOre": 0,
+        "payableOre": 325000
+      }
     }
   }
 }

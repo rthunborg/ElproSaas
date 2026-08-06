@@ -25,6 +25,7 @@ import { SectionEditor } from "./SectionEditor";
 import { TotalsSummary } from "./TotalsSummary";
 import { ReadinessSummary } from "./ReadinessSummary";
 import { PreQuotePreview, type PreQuoteTerms } from "./PreQuotePreview";
+import { TaxSettingsPanel } from "./TaxSettingsPanel";
 import {
   archiveCalculationAction,
   createSectionAction,
@@ -38,9 +39,11 @@ import {
 import { moveDown, moveUp, toOrderedIds } from "@/features/calculations/ordering";
 import {
   computeCalcTotal,
+  computeLineTotal,
   resolveTotalDisplay,
 } from "@/features/calculations/totals";
 import { classifyReadiness } from "@/features/calculations/readiness";
+import { resolveTaxReadiness } from "@/features/calculations/tax-readiness";
 import { resolveVatDisplayPosture } from "@/features/calculations/vat-posture";
 import type { CalculationDetail } from "@/features/calculations/read";
 import type { RowSourceLists } from "@/features/calculations/source-options";
@@ -109,6 +112,9 @@ export function CalculationEditor({
         quantity: r.quantity,
         unit_sell_ore: r.unit_sell_ore,
         vat_rate_bp: r.vat_rate_bp,
+        vat_type: r.vat_type,
+        included_in_invoice_total: r.included_in_invoice_total,
+        deduction_classification: r.deduction_classification,
         is_hidden: r.is_hidden,
         is_optional: r.is_optional,
         is_selected: r.is_selected,
@@ -121,6 +127,41 @@ export function CalculationEditor({
   const view = calcTotal.ok
     ? resolveTotalDisplay(calcTotal.value, posture)
     : null;
+
+  const taxRows = sections.flatMap((section) =>
+    section.rows.map((row) => {
+      const line = computeLineTotal({
+        quantity: row.quantity,
+        unit_sell_ore: row.unit_sell_ore,
+        vat_rate_bp: row.vat_rate_bp,
+        vat_type: row.vat_type,
+        included_in_invoice_total: row.included_in_invoice_total,
+        deduction_classification: row.deduction_classification,
+        is_hidden: row.is_hidden,
+        is_optional: row.is_optional,
+        is_selected: row.is_selected,
+      });
+      return {
+        id: row.id,
+        netOre: line.ok ? line.value.netOre : 0,
+        vatType: row.vat_type,
+        rateBp: row.vat_rate_bp,
+        includedInInvoiceTotal: row.included_in_invoice_total,
+        deductionClassification: row.deduction_classification,
+        summaryCategory:
+          row.row_type === "labor"
+            ? "labor" as const
+            : row.row_type === "material"
+              ? "material" as const
+              : "other" as const,
+      };
+    }),
+  );
+  const taxResolution = resolveTaxReadiness({
+    taxInput: header.tax_input_snapshot,
+    rows: taxRows,
+  });
+  const deductionChoice = header.tax_input_snapshot?.deductionChoice ?? "NONE";
 
   // Story 5.4 — the PURE readiness report (blockers vs warnings). The classification lives in
   // fast-gate-protected `readiness.ts`; this island only DISPLAYS it and GATES the create-quote
@@ -141,6 +182,9 @@ export function CalculationEditor({
         unit_sell_ore: r.unit_sell_ore,
         unit_cost_ore: r.unit_cost_ore,
         vat_rate_bp: r.vat_rate_bp,
+        vat_type: r.vat_type,
+        included_in_invoice_total: r.included_in_invoice_total,
+        deduction_classification: r.deduction_classification,
         is_hidden: r.is_hidden,
         is_optional: r.is_optional,
         is_selected: r.is_selected,
@@ -149,7 +193,25 @@ export function CalculationEditor({
       })),
     })),
     vatPostureResolved,
-    tax: { hasDeductionAssumption: false },
+    tax: {
+      hasDeductionAssumption: deductionChoice !== "NONE",
+      deductionType:
+        deductionChoice === "ROT"
+          ? "rot"
+          : deductionChoice === "GREEN"
+            ? "gron_teknik"
+            : deductionChoice === "ROT_AND_GREEN"
+              ? "rot_and_gron_teknik"
+              : undefined,
+      eligibilityPosture:
+        customer.customer_type === "private" ||
+        customer.customer_type === "company" ||
+        customer.customer_type === "brf" ||
+        customer.customer_type === "public"
+          ? customer.customer_type
+          : undefined,
+      blockingCodes: taxResolution.blockingCodes,
+    },
   });
 
   // Server-owned section ordering (R-503): move-up/down computes the new ordered-id array
@@ -245,6 +307,11 @@ export function CalculationEditor({
           </div>
         </form>
       </header>
+
+      <TaxSettingsPanel
+        calculationId={header.id}
+        value={header.tax_input_snapshot}
+      />
 
       {/* Workspace: sections (left/center) + totals summary (right on desktop). */}
       <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
@@ -380,6 +447,7 @@ export function CalculationEditor({
             total={calcTotal.ok ? calcTotal.value : null}
             view={view}
             quoteTerms={quoteTerms}
+            taxAnswer={taxResolution.answer}
           />
         </div>
       </div>
@@ -398,6 +466,7 @@ export function CalculationEditor({
           total={calcTotal.ok ? calcTotal.value : null}
           view={view}
           quoteTerms={quoteTerms}
+          taxAnswer={taxResolution.answer}
         />
       </div>
 

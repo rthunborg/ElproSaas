@@ -5,10 +5,10 @@ epic_num: 10
 story_num: 6
 branch: story/10-6-tax-answer-reconciliation
 status: in-progress
-updated_at: "2026-08-05T17:54:34Z"
+updated_at: "2026-08-06T17:42:12Z"
 started_at: "2026-07-29T10:02:59Z"
 completed_at: null
-active_seconds: 5011
+active_seconds: 89948
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -20,14 +20,14 @@ tea_selected: [atdd, automate]
 tea_rationale: "Legally consequential money/tax engine changes and golden-master recalculation require both ATDD and post-dev automation; trace advisory excluded because stories_after_in_epic=1 is below the skip threshold of 3."
 epic_story_count: 7
 stories_after_in_epic: 1
-completed_phases: [0, 1, 2, 3, 4]
+completed_phases: [0, 1, 2, 3, 4, 5]
 code_review_iterations: 0
 code_review_loop_done: false
 hitl_halt: null
 external_review_iterations: 0
 convergence_unverified: false
 story_trace: null
-commits: [c091f02, b76a59d]
+commits: [c091f02, b76a59d, 11ed949]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -46,9 +46,17 @@ pr_merged: false
 merge_method: null
 merge_commit: null
 branch_deleted: false
-open_questions: []
+open_questions:
+  - "Should SE-TAX-2026-v1 remain open-ended, or should unknown future years fail closed?"
+  - "Should TAX_SIGN_OFF_REQUIRED remain sendable, including known non-private eligibility, or hard-block pending human confirmation?"
+  - "Should insufficient declared ROT/green allowance block finalization or reduce the claim automatically?"
+  - "Confirm that each fixed-price green category input is gross including VAT and reconciles before applying the 97% rule."
+  - Confirm that disjoint ROT and green work may coexist on one quote.
+  - "Must reverse-charge construction VAT be mutually exclusive with ROT/green deductions?"
 deferred_work:
   - "Out of Story 10.6: e-invoice/Skatteverket submission, verified-customer reverse-charge defaults, payable-rounding UI, and the Phase C legal-disclaimer program."
+  - "Security follow-up: redesign quote lifecycle privileges/API to prevent valid same-tenant direct state transitions from bypassing command audit/event provenance."
+  - "Hardening follow-up: make SQL tax-input/person-slot JSON validators reject unknown keys."
 blockers: []
 overrides: {}
 constraints: []

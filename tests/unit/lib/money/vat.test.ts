@@ -109,8 +109,6 @@ const engine = money as unknown as VatEngine & Record<string, unknown>;
 assert.equal(typeof engine.lineVatOre, "function", "lineVatOre export is a hard standing precondition");
 assert.equal(typeof engine.vatBreakdown, "function", "vatBreakdown export is a hard standing precondition");
 
-const ORE_AMOUNT_MAX = Number.MAX_SAFE_INTEGER; // mirrors @/lib/money ORE_AMOUNT_MAX
-
 describe("Story 4.2 — @/lib/money VAT + quote-total primitives (standing regression)", () => {
   // ── 4.2-UNIT-01: per-line VAT rounded; section totals SUM rounded line VAT (AC1, R-403) ──
   describe("4.2-UNIT-01 — per-line VAT rounding + sum-of-rounded totals (R-403, R-404)", () => {

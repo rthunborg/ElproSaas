@@ -8,7 +8,8 @@
  *   - calc-totals / vat-tax-blocks / options-tillval / hidden-rows  → drive
  *     computeLineTotal/computeSectionTotal/resolveTotalDisplay + classifyReadiness +
  *     resolveVatDisplayPosture over `calculations.json` (the INCLUSION frozen pin: a SELECTED option
- *     and a HIDDEN row COUNT; an UNSELECTED option does NOT). Route EVERY öre op through
+ *     and a HIDDEN row COUNT after the legacy option decision is backfilled into explicit
+ *     inclusion; an UNSELECTED legacy option does NOT). Route EVERY öre op through
  *     totals.ts / @/lib/money — NO inline `+`/`*`/`0.25`/`Number(x)*rate`. REFERENCE the money
  *     fixtures as the single numeric authority; a divergence from a frozen pin is a STOP (needs-human).
  *   - quote-visible-lines → drive the quote-version-visible line/totals shape over `quotes.json`.

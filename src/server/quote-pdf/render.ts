@@ -207,11 +207,14 @@ export async function renderQuotePdf(
     for (const line of visibleLines) {
       const label = line.label ?? line.description ?? "—";
       const tillval = line.isOptional ? " (tillval)" : "";
+      const excluded = line.includedInInvoiceTotal === false
+        ? " (ingår inte i totalsumman)"
+        : "";
       const qty = line.quantity !== null ? `${line.quantity} ${line.unit ?? ""}`.trim() : "";
       const unitSell = line.unitSellKronor !== null ? `${line.unitSellKronor} kr` : "";
       const net = line.lineNetKronor !== null ? `${line.lineNetKronor} kr` : "";
       const segments = joinParts([qty, unitSell ? `à ${unitSell}` : "", net ? `= ${net}` : ""], "  ");
-      cursor.text(joinParts([`${label}${tillval}`, segments], "  —  "));
+      cursor.text(joinParts([`${label}${tillval}${excluded}`, segments], "  —  "));
       if (line.quoteNote) cursor.text(`  ${line.quoteNote}`);
     }
   }
@@ -222,18 +225,96 @@ export async function renderQuotePdf(
   cursor.text(`Grundbelopp (netto): ${vm.totals.baseKronor} kr`);
   cursor.text(`Tillval (valda): ${vm.totals.optionKronor} kr`);
   cursor.text(`Moms: ${vm.totals.vatKronor} kr`);
-  if (vm.taxAssumptions.deductionType) {
+  if (
+    vm.taxAnswer?.source === "v2" &&
+    vm.taxAnswer.deductionChoice !== null &&
+    vm.taxAnswer.deductionChoice !== "NONE"
+  ) {
+    cursor.text(`Beräknat avdrag: ${vm.taxAnswer.calculatedDeductionKronor} kr`);
+    cursor.text(`Begärt avdrag: ${vm.taxAnswer.claimDeductionKronor} kr`);
+  } else if (vm.taxAssumptions.deductionType) {
     cursor.text(`Avdrag (uppskattning): ${vm.totals.deductionKronor} kr`);
   }
-  cursor.text(`Att betala (inkl. moms): ${vm.totals.acceptedPriceKronor} kr`, { bold: true });
+  cursor.text(
+    vm.taxAnswer?.source === "v2" || vm.reverseChargeText
+      ? `Att betala: ${vm.taxAnswer?.payableKronor ?? vm.totals.acceptedPriceKronor} kr`
+      : `Att betala (inkl. moms): ${vm.totals.acceptedPriceKronor} kr`,
+    { bold: true },
+  );
   cursor.gap();
+
+  if (vm.taxAnswer?.source === "v2") {
+    cursor.text("Moms per kategori", { size: SUBHEADING_SIZE, bold: true });
+    for (const category of vm.taxAnswer.categories) {
+      cursor.text(
+        `${category.label} (${category.ratePercent} %): netto ${category.netKronor} kr, moms ${category.vatKronor} kr, brutto ${category.grossKronor} kr`,
+      );
+    }
+    if (vm.taxAnswer.summaries) {
+      cursor.text("Arbete, material och övrigt", { bold: true });
+      cursor.text(
+        `Arbete: netto ${vm.taxAnswer.summaries.labor.netKronor} kr, moms ${vm.taxAnswer.summaries.labor.vatKronor} kr, brutto ${vm.taxAnswer.summaries.labor.grossKronor} kr`,
+      );
+      cursor.text(
+        `Material: netto ${vm.taxAnswer.summaries.material.netKronor} kr, moms ${vm.taxAnswer.summaries.material.vatKronor} kr, brutto ${vm.taxAnswer.summaries.material.grossKronor} kr`,
+      );
+      cursor.text(
+        `Övrigt: netto ${vm.taxAnswer.summaries.other.netKronor} kr, moms ${vm.taxAnswer.summaries.other.vatKronor} kr, brutto ${vm.taxAnswer.summaries.other.grossKronor} kr`,
+      );
+    }
+    if (vm.taxAnswer.deductionChoice === "ROT" || vm.taxAnswer.deductionChoice === "ROT_AND_GREEN") {
+      const rot = vm.taxAnswer.rot;
+      if (rot) {
+        cursor.text("ROT-avdrag", { bold: true });
+        cursor.text(
+          `Underlag: ${rot.basisKronor} kr (arbete ${rot.basisNetKronor} kr, fördelad moms ${rot.allocatedVatKronor} kr)`,
+        );
+        cursor.text(`Beräknat: ${rot.calculatedKronor} kr. Begärt: ${rot.claimKronor} kr.`);
+        if (rot.policy) {
+          cursor.text(
+            `Regelverk ${rot.policy.id}, betalningsdatum ${rot.policy.resolvingDate}, giltigt från ${rot.policy.validFrom}${rot.policy.validTo ? ` till ${rot.policy.validTo}` : ""}.`,
+          );
+        }
+        for (const allocation of rot.allocations) {
+          cursor.text(`Fördelning ${allocation.slot}: ${allocation.kronor} kr`);
+        }
+      }
+    }
+    if (vm.taxAnswer.deductionChoice === "GREEN" || vm.taxAnswer.deductionChoice === "ROT_AND_GREEN") {
+      const green = vm.taxAnswer.green;
+      if (green) {
+        cursor.text("Grön teknik", { bold: true });
+        cursor.text(`Underlagsmetod: ${green.basisMethod}`);
+        for (const category of ["SOLAR", "STORAGE", "CHARGING"] as const) {
+          const values = green.categories[category];
+          cursor.text(
+            `${category}: underlag ${values.basisKronor} kr, beräknat ${values.calculatedKronor} kr, begärt ${values.claimKronor} kr`,
+          );
+        }
+        cursor.text(`Beräknat: ${green.calculatedKronor} kr. Begärt: ${green.claimKronor} kr.`);
+        if (green.policy) {
+          cursor.text(
+            `Regelverk ${green.policy.id}, slutbetalningsdatum ${green.policy.resolvingDate}, giltigt från ${green.policy.validFrom}${green.policy.validTo ? ` till ${green.policy.validTo}` : ""}.`,
+          );
+        }
+        for (const allocation of green.allocations) {
+          cursor.text(`Fördelning ${allocation.slot}: ${allocation.kronor} kr`);
+        }
+      }
+    }
+    cursor.gap();
+  }
 
   // ── VAT / tax assumptions (with the non-final ROT/grön framing). ──
   cursor.text("Moms- och skatteantaganden", { size: SUBHEADING_SIZE, bold: true });
   if (vm.taxAssumptions.vatRatePercent) {
     cursor.text(`Momssats: ${vm.taxAssumptions.vatRatePercent} %`);
   }
-  if (vm.taxAssumptions.deductionType) {
+  if (vm.reverseChargeText) {
+    cursor.text(vm.reverseChargeText, { bold: true });
+    if (vm.buyerVatNumber) cursor.text(`Köparens momsregistreringsnummer: ${vm.buyerVatNumber}`);
+  }
+  if (vm.taxAssumptions.deductionType && vm.taxAnswer?.source !== "v2") {
     const dType = vm.taxAssumptions.deductionType === "rot" ? "ROT-avdrag" : "Grön teknik";
     const rate = vm.taxAssumptions.deductionRatePercent
       ? ` (${vm.taxAssumptions.deductionRatePercent} %)`

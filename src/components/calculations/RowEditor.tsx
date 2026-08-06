@@ -54,7 +54,16 @@ import {
 } from "@/features/calculations/source-select";
 import type { CalculationRowRow } from "@/features/calculations/read";
 import type { RowSourceLists } from "@/features/calculations/source-options";
-import type { VatDisplayPosture } from "@/lib/money";
+import {
+  DEDUCTION_CLASSIFICATIONS,
+  VAT_TYPES,
+  isDeductionClassification,
+  isDeductionClassificationCompatibleWithSummaryCategory,
+  type DeductionClassification,
+  type TaxSummaryCategory,
+  type VatDisplayPosture,
+  type VatType,
+} from "@/lib/money";
 
 const ROW_TYPE_OPTIONS = [
   { value: "labor", label: "Arbete" },
@@ -63,6 +72,38 @@ const ROW_TYPE_OPTIONS = [
   { value: "machinery", label: "Maskin" },
   { value: "other", label: "Övrigt" },
 ] as const;
+
+const VAT_TYPE_LABELS: Record<VatType, string> = {
+  STANDARD_VAT_25: "Standardmoms",
+  REDUCED_VAT: "Reducerad moms",
+  ZERO_RATED: "Momsfri (0 %)",
+  REVERSE_CHARGE_CONSTRUCTION: "Omvänd betalningsskyldighet, bygg",
+};
+const VAT_TYPE_OPTIONS = VAT_TYPES.map((value) => ({
+  value,
+  label: VAT_TYPE_LABELS[value],
+}));
+
+const DEDUCTION_CLASSIFICATION_LABELS: Record<DeductionClassification, string> = {
+  NONE: "Ingen",
+  ROT_LABOR: "ROT – arbete",
+  GREEN_SOLAR_LABOR: "Grön teknik – sol, arbete",
+  GREEN_SOLAR_MATERIAL: "Grön teknik – sol, material",
+  GREEN_STORAGE_LABOR: "Grön teknik – lagring, arbete",
+  GREEN_STORAGE_MATERIAL: "Grön teknik – lagring, material",
+  GREEN_CHARGING_LABOR: "Grön teknik – laddning, arbete",
+  GREEN_CHARGING_MATERIAL: "Grön teknik – laddning, material",
+};
+const DEDUCTION_CLASSIFICATION_OPTIONS = DEDUCTION_CLASSIFICATIONS.map((value) => ({
+  value,
+  label: DEDUCTION_CLASSIFICATION_LABELS[value],
+}));
+
+function summaryCategoryForRowType(rowType: string): TaxSummaryCategory {
+  if (rowType === "labor") return "labor";
+  if (rowType === "material") return "material";
+  return "other";
+}
 
 /** A hidden `false` companion + a checkbox for a row flag (turn-OFF safe). */
 function FlagField({
@@ -122,6 +163,8 @@ export function RowEditor({
     (isUpdate ? state.targetId === row?.id || state.status === "error" : true);
   const v = (field: string, fallback: string): string =>
     (mine && state.values[field]) || fallback;
+  const checked = (field: string, fallback: boolean): boolean =>
+    v(field, String(fallback)) === "true";
   const err = (field: string): string | undefined =>
     mine ? state.fieldErrors[field] : undefined;
   const retryable = mine && isRetryableCalcError(state);
@@ -154,6 +197,24 @@ export function RowEditor({
     () => sourcesForRowType(rowType, sources),
     [rowType, sources],
   );
+  const deductionClassificationOptions = DEDUCTION_CLASSIFICATION_OPTIONS.filter((option) =>
+    isDeductionClassificationCompatibleWithSummaryCategory(
+      option.value,
+      summaryCategoryForRowType(rowType),
+    ),
+  );
+  const echoedDeductionClassification = v(
+    "deduction_classification",
+    row?.deduction_classification ?? "NONE",
+  );
+  const deductionClassificationValue =
+    isDeductionClassification(echoedDeductionClassification) &&
+    isDeductionClassificationCompatibleWithSummaryCategory(
+      echoedDeductionClassification,
+      summaryCategoryForRowType(rowType),
+    )
+      ? echoedDeductionClassification
+      : "NONE";
 
   // The decoded current source pair (null = manual).
   const selectedPair = decodeSourceValue(sourceValue);
@@ -226,6 +287,9 @@ export function RowEditor({
         quantity: row.quantity,
         unit_sell_ore: row.unit_sell_ore,
         vat_rate_bp: row.vat_rate_bp,
+        vat_type: row.vat_type,
+        included_in_invoice_total: row.included_in_invoice_total,
+        deduction_classification: row.deduction_classification,
         is_hidden: row.is_hidden,
         is_optional: row.is_optional,
         is_selected: row.is_selected,
@@ -337,6 +401,21 @@ export function RowEditor({
           )}
           error={err("vat_percent")}
         />
+        <SelectField
+          name="vat_type"
+          label="Momstyp"
+          defaultValue={v("vat_type", row?.vat_type ?? "STANDARD_VAT_25")}
+          error={err("vat_type")}
+          options={[...VAT_TYPE_OPTIONS]}
+        />
+        <SelectField
+          key={`deduction-classification-${rowType}`}
+          name="deduction_classification"
+          label="Avdragsklassificering"
+          defaultValue={deductionClassificationValue}
+          error={err("deduction_classification")}
+          options={deductionClassificationOptions}
+        />
       </div>
 
       {/* Pricing-source selection (Story 5.3, AC1/AC2/AC6). Offered for labor (work roles)
@@ -373,17 +452,22 @@ export function RowEditor({
       )}
 
       <fieldset className="flex flex-wrap gap-4">
-        <legend className="sr-only">Synlighet och tillval</legend>
-        <FlagField name="is_hidden" label="Dold rad" defaultChecked={row?.is_hidden ?? false} />
+        <legend className="sr-only">Synlighet, fakturainkludering och tillval</legend>
+        <FlagField name="is_hidden" label="Dold rad" defaultChecked={checked("is_hidden", row?.is_hidden ?? false)} />
+        <FlagField
+          name="included_in_invoice_total"
+          label="Ingår i fakturasumman"
+          defaultChecked={checked("included_in_invoice_total", row?.included_in_invoice_total ?? true)}
+        />
         <FlagField
           name="is_optional"
           label="Tillval (valfri)"
-          defaultChecked={row?.is_optional ?? false}
+          defaultChecked={checked("is_optional", row?.is_optional ?? false)}
         />
         <FlagField
           name="is_selected"
           label="Vald (tillval)"
-          defaultChecked={row?.is_selected ?? false}
+          defaultChecked={checked("is_selected", row?.is_selected ?? false)}
         />
       </fieldset>
 

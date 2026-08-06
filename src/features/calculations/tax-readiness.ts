@@ -1,0 +1,78 @@
+import {
+  TAX_POLICY_2026,
+  buildTaxAnswerSnapshotV2,
+  parseTaxInputSnapshot,
+  type DocumentVatRowInput,
+  type TaxAnswerSnapshotV2,
+} from "@/lib/money";
+
+import type { TaxReadinessBlockerCode } from "./readiness";
+
+function mapFailure(code: string): TaxReadinessBlockerCode {
+  if (code === "MISSING_BUYER_VAT_NUMBER" || code === "INVALID_BUYER_VAT_NUMBER") {
+    return "MISSING_BUYER_VAT_NUMBER";
+  }
+  if (code === "MISSING_TAX_RESOLVING_DATE" || code === "TAX_POLICY_INVALID_DATE") {
+    return "MISSING_TAX_RESOLVING_DATE";
+  }
+  if (code.startsWith("TAX_POLICY_")) return "MISSING_TAX_RESOLVING_PROFILE";
+  if (code === "INSUFFICIENT_PERSON_ALLOWANCE" || code === "INVALID_PERSON_ALLOWANCE") {
+    return "INSUFFICIENT_PERSON_ALLOWANCE";
+  }
+  if (
+    code === "INCOMPLETE_FIXED_PRICE_CATEGORY_SPLIT" ||
+    code === "FIXED_PRICE_CLASSIFICATION_MISMATCH"
+  ) {
+    return "INCOMPLETE_FIXED_PRICE_CATEGORY_SPLIT";
+  }
+  if (code === "FIXED_PRICE_97_REQUIRES_GENUINE_FIXED_PRICE") {
+    return "INVALID_FIXED_PRICE_SCHABLON";
+  }
+  if (
+    code === "INVALID_DEDUCTION_CLASSIFICATION" ||
+    code === "DOUBLE_DEDUCTION_FEED" ||
+    code === "DEDUCTION_EXCEEDS_GROSS"
+  ) {
+    return "INVALID_DEDUCTION_CLASSIFICATION";
+  }
+  return "INCOMPLETE_VAT_INPUT";
+}
+
+/** Pure bridge from the canonical tax engine's typed failures to the readiness vocabulary. */
+export interface TaxReadinessResolution {
+  readonly blockingCodes: readonly TaxReadinessBlockerCode[];
+  readonly answer: TaxAnswerSnapshotV2 | null;
+}
+
+export function resolveTaxReadiness(input: {
+  readonly taxInput: unknown;
+  readonly rows: readonly DocumentVatRowInput[];
+}): TaxReadinessResolution {
+  if (input.taxInput === null || input.taxInput === undefined) {
+    return { blockingCodes: Object.freeze(["MISSING_TAX_INPUT"]), answer: null };
+  }
+  const parsed = parseTaxInputSnapshot(input.taxInput);
+  if (!parsed.ok) {
+    return { blockingCodes: Object.freeze([mapFailure(parsed.code)]), answer: null };
+  }
+
+  const quoteCaptureDate =
+    parsed.value.paymentDate ??
+    parsed.value.finalPaymentDate ??
+    TAX_POLICY_2026.validFrom;
+  const answer = buildTaxAnswerSnapshotV2({
+    rows: input.rows,
+    taxInput: parsed.value,
+    quoteCaptureDate,
+  });
+  return answer.ok
+    ? { blockingCodes: Object.freeze([]), answer: answer.value }
+    : { blockingCodes: Object.freeze([mapFailure(answer.code)]), answer: null };
+}
+
+export function resolveTaxReadinessCodes(input: {
+  readonly taxInput: unknown;
+  readonly rows: readonly DocumentVatRowInput[];
+}): readonly TaxReadinessBlockerCode[] {
+  return resolveTaxReadiness(input).blockingCodes;
+}

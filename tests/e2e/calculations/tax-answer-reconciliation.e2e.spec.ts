@@ -1,4 +1,4 @@
-/** Story 10.6 user-boundary acceptance journeys. Active and intentionally red before UI/seed work. */
+/** Story 10.6 user-boundary acceptance journeys against the real app and local Supabase stack. */
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { readFileSync } from "node:fs";
 import path from "node:path";
@@ -8,8 +8,25 @@ import { extractPdfText } from "../../support/pdf-text";
 interface TaxAnswerFixture {
   readonly adminA: { readonly email: string; readonly password: string };
   readonly taxAnswer: {
-    readonly reverseChargeCalc: { readonly id: string; readonly buyerVatNumber: string };
-    readonly independentPropertiesCalc: { readonly id: string };
+    readonly reverseChargeCalc: {
+      readonly id: string;
+      readonly title: string;
+      readonly sectionId: string;
+      readonly rowIds: readonly [string, string];
+      readonly buyerVatNumber: string;
+      readonly expectedOre: { readonly net: number; readonly vat: number; readonly gross: number };
+    };
+    readonly independentPropertiesCalc: {
+      readonly id: string;
+      readonly title: string;
+      readonly sectionId: string;
+      readonly subjectRowId: string;
+      readonly controlRowId: string;
+      readonly expectedGrossOre: {
+        readonly bothIncluded: number;
+        readonly controlOnly: number;
+      };
+    };
   };
 }
 
@@ -19,10 +36,25 @@ const fixture = JSON.parse(
 
 async function signIn(page: Page): Promise<void> {
   await page.goto("/login");
+  const submit = page.getByRole("button", { name: "Logga in" });
+  await waitForHydrated(submit);
   await page.getByLabel("E-post").fill(fixture.adminA.email);
   await page.getByLabel("Lösenord").fill(fixture.adminA.password);
-  await page.getByRole("button", { name: "Logga in" }).click();
+  await submit.click();
   await expect(page).toHaveURL(/\/dashboard/);
+}
+
+/** Wait until the client island has hydrated before triggering a server action. */
+async function waitForHydrated(locator: Locator): Promise<void> {
+  await locator.waitFor({ state: "visible" });
+  await locator.evaluate(
+    (element) =>
+      new Promise<void>((resolve) => {
+        const ready = () => Object.keys(element).some((key) => key.startsWith("__react"));
+        const tick = () => (ready() ? resolve() : requestAnimationFrame(tick));
+        tick();
+      }),
+  );
 }
 
 function waitForCalculationMutation(page: Page, calculationId: string) {
@@ -34,10 +66,31 @@ function waitForCalculationMutation(page: Page, calculationId: string) {
 }
 
 async function saveRow(page: Page, calculationId: string, form: Locator): Promise<void> {
+  const button = form.getByRole("button", { name: "Spara rad" });
+  await waitForHydrated(button);
   const response = waitForCalculationMutation(page, calculationId);
-  await form.getByRole("button", { name: "Spara rad" }).click();
+  await button.click();
   expect((await response).ok()).toBeTruthy();
   await expect(form.getByTestId("row-saved")).toBeVisible();
+}
+
+async function saveTaxSettings(
+  page: Page,
+  calculationId: string,
+  settings: Locator,
+): Promise<void> {
+  const button = settings.getByRole("button", { name: "Spara skatte- och momsuppgifter" });
+  await waitForHydrated(button);
+  const response = waitForCalculationMutation(page, calculationId);
+  await button.click();
+  expect((await response).ok()).toBeTruthy();
+  await expect(settings.getByRole("status")).toContainText("har sparats");
+}
+
+function rowForm(page: Page, rowId: string): Locator {
+  return page
+    .getByTestId("row-edit-form")
+    .filter({ has: page.locator(`input[name="id"][value="${rowId}"]`) });
 }
 
 test.describe("Story 10.6 — tax answer reconciliation", () => {
@@ -48,11 +101,14 @@ test.describe("Story 10.6 — tax answer reconciliation", () => {
 
     const settings = page.getByTestId("tax-document-settings");
     await expect(settings).toBeVisible();
-    await settings.getByLabel("Momshantering").selectOption("REVERSE_CHARGE_CONSTRUCTION");
+    await expect(settings.getByLabel("Momshantering")).toHaveValue(
+      "REVERSE_CHARGE_CONSTRUCTION",
+    );
 
-    const firstSave = waitForCalculationMutation(page, calculation.id);
-    await settings.getByRole("button", { name: "Spara skatte- och momsuppgifter" }).click();
-    expect((await firstSave).ok()).toBeTruthy();
+    // Restore the blocker first so this mutating journey remains deterministic on a CI retry.
+    await settings.getByLabel("Momshantering").selectOption("REVERSE_CHARGE_CONSTRUCTION");
+    await settings.getByLabel("Köparens momsregistreringsnummer").fill("");
+    await saveTaxSettings(page, calculation.id, settings);
 
     const readiness = page.getByTestId("readiness-summary").first();
     await expect(readiness).toHaveAttribute("data-can-create-quote", "false");
@@ -60,9 +116,7 @@ test.describe("Story 10.6 — tax answer reconciliation", () => {
     await expect(page.getByTestId("create-quote").first()).toBeDisabled();
 
     await settings.getByLabel("Köparens momsregistreringsnummer").fill(calculation.buyerVatNumber);
-    const secondSave = waitForCalculationMutation(page, calculation.id);
-    await settings.getByRole("button", { name: "Spara skatte- och momsuppgifter" }).click();
-    expect((await secondSave).ok()).toBeTruthy();
+    await saveTaxSettings(page, calculation.id, settings);
 
     await expect(readiness).toHaveAttribute("data-can-create-quote", "true");
     await expect(page.getByTestId("readiness-blocker-MISSING_BUYER_VAT_NUMBER")).toHaveCount(0);
@@ -75,18 +129,39 @@ test.describe("Story 10.6 — tax answer reconciliation", () => {
     await expect(preview.getByTestId("preview-net")).toContainText("3000,00");
     await expect(preview.getByTestId("preview-vat")).toContainText("250,00");
     await expect(preview.getByTestId("preview-gross")).toContainText("3250,00");
+    await expect(preview.getByTestId("preview-summary-labor")).toContainText(
+      "2000,00 + 0,00 moms = 2000,00 kr",
+    );
+    await expect(preview.getByTestId("preview-summary-material")).toContainText(
+      "1000,00 + 250,00 moms = 1250,00 kr",
+    );
+    await expect(preview.getByTestId("preview-summary-other")).toContainText(
+      "0,00 + 0,00 moms = 0,00 kr",
+    );
 
     const quoteNavigation = page.waitForURL(/\/quotes\/[^/]+\/versions\/[^/]+$/);
     await preview.getByTestId("confirm-create-quote-version").click();
     await quoteNavigation;
 
     const pdfPanel = page.getByTestId("quote-pdf-status");
+    await expect(pdfPanel).toHaveAttribute("data-pdf-status", "not_generated");
+    const generatePdf = pdfPanel.getByRole("button", { name: /generera pdf/i });
+    await waitForHydrated(generatePdf);
     const pdfResponse = page.waitForResponse(
       (response) => response.request().method() === "POST" && response.url().includes("/quotes/"),
     );
-    await pdfPanel.getByRole("button", { name: /generera pdf/i }).click();
+    await generatePdf.click();
     expect((await pdfResponse).ok()).toBeTruthy();
-    await expect(pdfPanel).toContainText(/pdf genererad/i);
+    await expect(pdfPanel).toHaveAttribute("data-pdf-status", "generated");
+
+    // The generated state intentionally exposes a signed URL only after the real preview action.
+    const signResponse = page.waitForResponse(
+      (response) => response.request().method() === "POST" && response.url().includes("/quotes/"),
+    );
+    const previewPdf = pdfPanel.getByRole("button", { name: /förhandsgranska/i });
+    await waitForHydrated(previewPdf);
+    await previewPdf.click();
+    expect((await signResponse).ok()).toBeTruthy();
 
     const download = page.getByTestId("quote-pdf-download");
     await expect(download).toBeVisible();
@@ -101,7 +176,13 @@ test.describe("Story 10.6 — tax answer reconciliation", () => {
 
     expect(pdfText).toContain("Omvänd betalningsskyldighet");
     expect(pdfText).toContain(calculation.buyerVatNumber);
-    expect(pdfText).toMatch(/Totalt.*3 000,00.*250,00.*3 250,00/);
+    expect(pdfText).toContain("Att betala: 3 250,00 kr");
+    expect(pdfText).toContain(
+      "STANDARD_VAT_25 (25 %): netto 1 000,00 kr, moms 250,00 kr, brutto 1 250,00 kr",
+    );
+    expect(pdfText).toContain(
+      "REVERSE_CHARGE_CONSTRUCTION (25 %): netto 2 000,00 kr, moms 0,00 kr, brutto 2 000,00 kr",
+    );
   });
 
   test("[10.6-E2E-02][P1][AC2] visibility, invoice inclusion, and classification remain independent", async ({ page }) => {
@@ -109,11 +190,18 @@ test.describe("Story 10.6 — tax answer reconciliation", () => {
     await signIn(page);
     await page.goto(`/calculations/${calculation.id}`);
 
-    const subject = page.getByTestId("row-edit-form").first();
+    const subject = rowForm(page, calculation.subjectRowId);
+    await expect(subject).toHaveCount(1);
     const hidden = subject.getByRole("checkbox", { name: "Dold rad" });
     const included = subject.getByRole("checkbox", { name: "Ingår i fakturasumman" });
     const classification = subject.getByLabel("Avdragsklassificering");
     const gross = page.getByTestId("totals-summary").first().getByTestId("summary-gross");
+
+    // Restore the fixture facts first so the journey is deterministic on a CI retry.
+    await hidden.check();
+    await included.check();
+    await classification.selectOption("ROT_LABOR");
+    await saveRow(page, calculation.id, subject);
 
     await expect(hidden).toBeChecked();
     await expect(included).toBeChecked();

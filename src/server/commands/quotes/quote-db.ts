@@ -18,6 +18,7 @@
  */
 import type { CommandDbClient } from "../envelope";
 import { CommandError } from "../command-errors";
+import { adaptQuoteTaxSnapshot } from "@/lib/quote-snapshot";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Snapshot-source row shapes (read under the caller's RLS).
@@ -31,6 +32,8 @@ export interface CalcHeaderRow {
   readonly contact_id: string | null;
   readonly title: string;
   readonly status: string;
+  /** Untrusted calculation JSONB; fresh quote creation validates it through the money domain. */
+  readonly tax_input_snapshot: unknown;
 }
 
 /** A calc section (with its display mode + ordering) for the snapshot. */
@@ -50,6 +53,9 @@ export interface CalcRowRow {
   readonly unit: string;
   readonly unit_sell_ore: number | null;
   readonly vat_rate_bp: number | null;
+  readonly included_in_invoice_total: boolean;
+  readonly deduction_classification: string;
+  readonly vat_type: string;
   readonly is_hidden: boolean;
   readonly is_optional: boolean;
   readonly is_selected: boolean | null;
@@ -90,11 +96,11 @@ export interface CustomerContextRow {
 }
 
 const CALC_HEADER_COLUMNS =
-  "id, customer_id, facility_id, contact_id, title, status";
+  "id, customer_id, facility_id, contact_id, title, status, tax_input_snapshot";
 const CALC_SECTION_COLUMNS = "id, title, display_mode, sort_order";
 // CUSTOMER-VISIBLE fields only — NO internal_note, NO unit_cost_ore, NO markup_bp (R-607).
 const CALC_ROW_COLUMNS =
-  "id, section_id, row_type, quantity, unit, unit_sell_ore, vat_rate_bp, is_hidden, is_optional, is_selected, label, description, quote_note, sort_order";
+  "id, section_id, row_type, quantity, unit, unit_sell_ore, vat_rate_bp, included_in_invoice_total, deduction_classification, vat_type, is_hidden, is_optional, is_selected, label, description, quote_note, sort_order";
 const COMPANY_IDENTITY_COLUMNS =
   "company_name, org_nr, address_line1, address_line2, postal_code, city, email, phone, logo_url, default_vat_display, vat_rate_bp";
 const QUOTE_TERMS_COLUMNS = "terms_text, approved_at, approved_by";
@@ -285,20 +291,23 @@ export async function loadQuoteVersionStatus(
  * The frozen fields the acceptance-capture command reads off the target version row (under the
  * caller's RLS): the lifecycle `status` (the sent-state gate — acceptance is legal ONLY on
  * `status = 'sent'`), the parent `quote_id` (the acceptance's parent-quote FK), and the frozen
- * customer-commitment gross the version snapshot froze (`accepted_price_ore` — the SOURCE SENT
- * TOTAL the adjusted-price delta is measured against; captured, never re-derived).
+ * customer-commitment gross the version snapshot froze (Story 10.6 V2 `payable_ore`, falling back
+ * to V1 `accepted_price_ore` — the SOURCE SENT TOTAL the adjusted-price delta is measured against;
+ * captured, never re-derived).
  */
 export interface QuoteVersionAcceptanceSourceRow {
   readonly status: string;
   readonly quote_id: string;
+  readonly snapshot_schema_version: number | null;
+  readonly payable_ore: number | null;
   readonly source_sent_total_ore: number;
 }
 
 /**
  * Load the acceptance-capture source fields for the target version under the caller's RLS
  * (ownership already proved it visible). Returns null when the row is not visible (a race → the
- * command denies). The `source_sent_total_ore` reads the frozen `accepted_price_ore` (the
- * customer-commitment gross the version froze) — bigint öre may arrive as a STRING, coerced here.
+ * command denies). The `source_sent_total_ore` reads the frozen V2 `payable_ore` when present, and
+ * falls back to V1 `accepted_price_ore`; bigint öre may arrive as a STRING, coerced here.
  */
 export async function loadQuoteVersionAcceptanceSource(
   db: CommandDbClient,
@@ -306,17 +315,38 @@ export async function loadQuoteVersionAcceptanceSource(
 ): Promise<QuoteVersionAcceptanceSourceRow | null> {
   const { data, error } = await asReadClient(db)
     .from("quote_versions")
-    .select("status, quote_id, accepted_price_ore")
+    .select("status, quote_id, snapshot_schema_version, tax_rule_version, tax_answer_snapshot, buyer_vat_number, calculated_deduction_ore, claim_deduction_ore, payable_ore, vat_total_ore, deduction_total_ore, accepted_price_ore")
     .eq("id", quoteVersionId)
     .limit(1);
   throwOnReadError("loadQuoteVersionAcceptanceSource", error);
   const raw = (data?.[0] ?? null) as Record<string, unknown> | null;
   if (raw === null) return null;
-  const total = Number(raw.accepted_price_ore);
+  const payableOre = oreOf(raw.payable_ore);
+  const acceptedPriceOre = oreOf(raw.accepted_price_ore);
+  const vatOre = oreOf(raw.vat_total_ore);
+  const deductionOre = oreOf(raw.deduction_total_ore);
+  if (acceptedPriceOre === null || vatOre === null || deductionOre === null) {
+    throw new CommandError("VALIDATION_FAILED");
+  }
+  const tax = adaptQuoteTaxSnapshot({
+    snapshotSchemaVersion: numOf(raw.snapshot_schema_version),
+    taxRuleVersion: (raw.tax_rule_version as string | null) ?? null,
+    taxAnswerSnapshot: raw.tax_answer_snapshot,
+    buyerVatNumber: (raw.buyer_vat_number as string | null) ?? null,
+    calculatedDeductionOre: oreOf(raw.calculated_deduction_ore),
+    claimDeductionOre: oreOf(raw.claim_deduction_ore),
+    payableOre,
+    vatOre,
+    deductionOre,
+    acceptedPriceOre,
+  });
+  if (!tax.ok) throw new CommandError("VALIDATION_FAILED");
   return {
     status: String(raw.status),
     quote_id: String(raw.quote_id),
-    source_sent_total_ore: Number.isFinite(total) ? total : 0,
+    snapshot_schema_version: numOf(raw.snapshot_schema_version),
+    payable_ore: payableOre,
+    source_sent_total_ore: tax.value.payableOre,
   };
 }
 
@@ -853,6 +883,14 @@ export interface QuoteVersionSnapshotRow {
   readonly vat_total_ore: number;
   readonly deduction_total_ore: number;
   readonly accepted_price_ore: number;
+  readonly snapshot_schema_version: number | null;
+  readonly tax_rule_version: string | null;
+  /** Untrusted JSONB at the DB boundary; downstream must parse it fail-closed before use. */
+  readonly tax_answer_snapshot: unknown;
+  readonly buyer_vat_number: string | null;
+  readonly calculated_deduction_ore: number | null;
+  readonly claim_deduction_ore: number | null;
+  readonly payable_ore: number | null;
   readonly vat_rate_bp: number | null;
   readonly vat_display: string | null;
   readonly deduction_type: string | null;
@@ -880,6 +918,9 @@ export interface QuoteVersionLineSnapshotRow {
   readonly unit_sell_ore: number | null;
   readonly line_net_ore: number | null;
   readonly vat_rate_bp: number | null;
+  readonly included_in_invoice_total: boolean | null;
+  readonly deduction_classification: string | null;
+  readonly vat_type: string | null;
   readonly is_hidden: boolean;
   readonly is_optional: boolean;
   readonly is_selected: boolean | null;
@@ -893,10 +934,10 @@ export interface QuoteVersionAttachmentSnapshotRow {
 }
 
 const VERSION_SNAPSHOT_COLUMNS =
-  "id, quote_id, status, calculation_id, captured_at, company_name, company_org_nr, company_address_line1, company_address_line2, company_postal_code, company_city, company_email, company_phone, company_logo_url, customer_display_name, customer_type, facility_name, contact_name, quote_number, quote_number_display, valid_until, intro_text, customer_notes, terms_text, terms_approved_at, terms_approved_by, base_total_ore, option_total_ore, vat_total_ore, deduction_total_ore, accepted_price_ore, vat_rate_bp, vat_display, deduction_type, deduction_rate_bp, deduction_cap_ore, deduction_persons, requires_sign_off, display_mode, warnings_snapshot";
+  "id, quote_id, status, calculation_id, captured_at, company_name, company_org_nr, company_address_line1, company_address_line2, company_postal_code, company_city, company_email, company_phone, company_logo_url, customer_display_name, customer_type, facility_name, contact_name, quote_number, quote_number_display, valid_until, intro_text, customer_notes, terms_text, terms_approved_at, terms_approved_by, base_total_ore, option_total_ore, vat_total_ore, deduction_total_ore, accepted_price_ore, snapshot_schema_version, tax_rule_version, tax_answer_snapshot, buyer_vat_number, calculated_deduction_ore, claim_deduction_ore, payable_ore, vat_rate_bp, vat_display, deduction_type, deduction_rate_bp, deduction_cap_ore, deduction_persons, requires_sign_off, display_mode, warnings_snapshot";
 
 const LINE_SNAPSHOT_COLUMNS =
-  "row_type, sort_order, label, description, quote_note, quantity, unit, unit_sell_ore, line_net_ore, vat_rate_bp, is_hidden, is_optional, is_selected";
+  "row_type, sort_order, label, description, quote_note, quantity, unit, unit_sell_ore, line_net_ore, vat_rate_bp, included_in_invoice_total, deduction_classification, vat_type, is_hidden, is_optional, is_selected";
 
 const ATTACHMENT_SNAPSHOT_COLUMNS = "file_id, display_name, sort_order";
 
@@ -969,6 +1010,13 @@ export async function loadQuoteVersionSnapshot(
     vat_total_ore: oreOf(raw.vat_total_ore) ?? 0,
     deduction_total_ore: oreOf(raw.deduction_total_ore) ?? 0,
     accepted_price_ore: oreOf(raw.accepted_price_ore) ?? 0,
+    snapshot_schema_version: numOf(raw.snapshot_schema_version),
+    tax_rule_version: (raw.tax_rule_version as string | null) ?? null,
+    tax_answer_snapshot: raw.tax_answer_snapshot ?? null,
+    buyer_vat_number: (raw.buyer_vat_number as string | null) ?? null,
+    calculated_deduction_ore: oreOf(raw.calculated_deduction_ore),
+    claim_deduction_ore: oreOf(raw.claim_deduction_ore),
+    payable_ore: oreOf(raw.payable_ore),
     vat_rate_bp: numOf(raw.vat_rate_bp),
     vat_display: (raw.vat_display as string | null) ?? null,
     deduction_type: (raw.deduction_type as string | null) ?? null,
@@ -1003,6 +1051,13 @@ export async function loadQuoteVersionLineSnapshots(
     unit_sell_ore: oreOf(raw.unit_sell_ore),
     line_net_ore: oreOf(raw.line_net_ore),
     vat_rate_bp: numOf(raw.vat_rate_bp),
+    included_in_invoice_total:
+      raw.included_in_invoice_total === null || raw.included_in_invoice_total === undefined
+        ? null
+        : raw.included_in_invoice_total === true,
+    deduction_classification:
+      (raw.deduction_classification as string | null) ?? null,
+    vat_type: (raw.vat_type as string | null) ?? null,
     is_hidden: raw.is_hidden === true,
     is_optional: raw.is_optional === true,
     is_selected:

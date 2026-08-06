@@ -22,7 +22,21 @@
  * Client-supplied `tenant_id` is NEVER read here — the resolved tenant from membership
  * is the only authority (the validators strip/ignore any `tenant_id`).
  */
-import { isOreAmount, isQuantity, isVatRateBp } from "@/lib/money";
+import {
+  TAX_DEDUCTION_CHOICES as MONEY_TAX_DEDUCTION_CHOICES,
+  isDeductionClassification,
+  isDeductionClassificationCompatibleWithSummaryCategory,
+  isOreAmount,
+  isQuantity,
+  isVatRateBp,
+  isVatType,
+  parseTaxInputSnapshot,
+  type DeductionClassification,
+  type TaxDeductionChoice,
+  type TaxInputSnapshotV2,
+  type TaxSummaryCategory,
+  type VatType,
+} from "@/lib/money";
 import type { ValidationResult } from "../envelope-core";
 
 /**
@@ -94,6 +108,11 @@ export type SectionDisplayMode = (typeof SECTION_DISPLAY_MODES)[number];
  */
 export const ROW_SOURCE_KINDS = ["work_role", "article"] as const;
 export type RowSourceKind = (typeof ROW_SOURCE_KINDS)[number];
+
+// Story 10.6 row tax inputs use the shared money-domain guards for exact values such as
+// `ROT_LABOR` and `REVERSE_CHARGE_CONSTRUCTION`; the validator never infers them from labels.
+export const TAX_DEDUCTION_CHOICES = MONEY_TAX_DEDUCTION_CHOICES;
+export type { TaxDeductionChoice };
 
 /** A runtime guard that a raw value is a known calc-row `RowSourceKind`. */
 function isRowSourceKind(v: unknown): v is RowSourceKind {
@@ -201,6 +220,7 @@ export interface UpdateCalculationInput {
   readonly id: string;
   readonly title?: string;
   readonly status?: CalcStatus;
+  readonly tax_input_snapshot?: TaxInputSnapshot;
 }
 
 /** Validated `{ id }` input shared by the archive commands. */
@@ -254,12 +274,20 @@ export function validateUpdateCalculation(
     status = raw.status;
   }
 
+  let taxInputSnapshot: TaxInputSnapshot | undefined;
+  if (isPresent(raw.tax_input_snapshot)) {
+    const parsed = validateTaxInputSnapshot(raw.tax_input_snapshot);
+    if (!parsed.ok) return fail;
+    taxInputSnapshot = parsed.data;
+  }
+
   return {
     ok: true,
     data: {
       id: raw.id as string,
       title: isPresent(raw.title) ? (raw.title as string).trim() : undefined,
       status,
+      tax_input_snapshot: taxInputSnapshot,
     },
   };
 }
@@ -354,6 +382,9 @@ export interface CreateRowInput {
   readonly unit_sell_ore?: number;
   readonly markup_bp?: number;
   readonly vat_rate_bp: number;
+  readonly included_in_invoice_total?: boolean;
+  readonly deduction_classification?: DeductionClassification;
+  readonly vat_type?: VatType;
   readonly is_hidden?: boolean;
   readonly is_optional?: boolean;
   readonly is_selected?: boolean;
@@ -380,6 +411,9 @@ export interface UpdateRowInput {
   readonly unit_sell_ore?: number;
   readonly markup_bp?: number;
   readonly vat_rate_bp?: number;
+  readonly included_in_invoice_total?: boolean;
+  readonly deduction_classification?: DeductionClassification;
+  readonly vat_type?: VatType;
   readonly is_hidden?: boolean;
   readonly is_optional?: boolean;
   readonly is_selected?: boolean;
@@ -404,6 +438,13 @@ export function isRowType(v: unknown): v is RowType {
   return typeof v === "string" && (ROW_TYPES as readonly string[]).includes(v);
 }
 
+/** Canonical projection from calculation row type to the customer summary/tax bucket. */
+export function taxSummaryCategoryForRowType(rowType: RowType): TaxSummaryCategory {
+  if (rowType === "labor") return "labor";
+  if (rowType === "material") return "material";
+  return "other";
+}
+
 /** A positive finite decimal quantity (a calc row must have a positive quantity). */
 function isPositiveQuantity(v: unknown): v is number {
   return isQuantity(v) && v > 0;
@@ -412,6 +453,15 @@ function isPositiveQuantity(v: unknown): v is number {
 function optionalBoolOk(v: unknown): boolean {
   if (v === undefined || v === null) return true;
   return typeof v === "boolean";
+}
+
+export type TaxInputSnapshot = TaxInputSnapshotV2;
+
+export function validateTaxInputSnapshot(
+  raw: unknown,
+): ValidationResult<TaxInputSnapshot> {
+  const parsed = parseTaxInputSnapshot(raw);
+  return parsed.ok ? { ok: true, data: parsed.value } : fail;
 }
 
 /**
@@ -439,6 +489,14 @@ function validateRowCommonFields(
     return fail;
   }
   if (!optionalBoolOk(raw.is_hidden)) return fail;
+  if (!optionalBoolOk(raw.included_in_invoice_total)) return fail;
+  if (
+    isPresent(raw.deduction_classification) &&
+    !isDeductionClassification(raw.deduction_classification)
+  ) {
+    return fail;
+  }
+  if (isPresent(raw.vat_type) && !isVatType(raw.vat_type)) return fail;
   if (!optionalBoolOk(raw.is_optional)) return fail;
   if (!optionalBoolOk(raw.is_selected)) return fail;
   if (!optionalTextOk(raw.label)) return fail;
@@ -527,6 +585,17 @@ export function validateCreateRow(
   if (!isNonEmptyText(raw.unit)) return fail;
   const common = validateRowCommonFields(raw, /* vatRequired */ true);
   if (common) return common;
+  const deductionClassification = isDeductionClassification(raw.deduction_classification)
+    ? raw.deduction_classification
+    : "NONE";
+  if (
+    !isDeductionClassificationCompatibleWithSummaryCategory(
+      deductionClassification,
+      taxSummaryCategoryForRowType(raw.row_type),
+    )
+  ) {
+    return fail;
+  }
   const source = validateSourcePair(raw);
   if (!source.ok) return source;
 
@@ -541,6 +610,9 @@ export function validateCreateRow(
       unit_sell_ore: num(raw, "unit_sell_ore"),
       markup_bp: num(raw, "markup_bp"),
       vat_rate_bp: raw.vat_rate_bp as number,
+      included_in_invoice_total: bool(raw, "included_in_invoice_total") ?? true,
+      deduction_classification: deductionClassification,
+      vat_type: isVatType(raw.vat_type) ? raw.vat_type : "STANDARD_VAT_25",
       is_hidden: bool(raw, "is_hidden"),
       is_optional: bool(raw, "is_optional"),
       is_selected: bool(raw, "is_selected"),
@@ -562,6 +634,16 @@ export function validateUpdateRow(raw: unknown): ValidationResult<UpdateRowInput
   if (isPresent(raw.unit) && !isNonEmptyText(raw.unit)) return fail;
   const common = validateRowCommonFields(raw, /* vatRequired */ false);
   if (common) return common;
+  if (
+    isRowType(raw.row_type) &&
+    isDeductionClassification(raw.deduction_classification) &&
+    !isDeductionClassificationCompatibleWithSummaryCategory(
+      raw.deduction_classification,
+      taxSummaryCategoryForRowType(raw.row_type),
+    )
+  ) {
+    return fail;
+  }
   const source = validateSourcePair(raw);
   if (!source.ok) return source;
   // A present-but-non-boolean source_clear is a validation failure; an absent one is
@@ -583,6 +665,11 @@ export function validateUpdateRow(raw: unknown): ValidationResult<UpdateRowInput
       unit_sell_ore: num(raw, "unit_sell_ore"),
       markup_bp: num(raw, "markup_bp"),
       vat_rate_bp: num(raw, "vat_rate_bp"),
+      included_in_invoice_total: bool(raw, "included_in_invoice_total"),
+      deduction_classification: isDeductionClassification(raw.deduction_classification)
+        ? raw.deduction_classification
+        : undefined,
+      vat_type: isVatType(raw.vat_type) ? raw.vat_type : undefined,
       is_hidden: bool(raw, "is_hidden"),
       is_optional: bool(raw, "is_optional"),
       is_selected: bool(raw, "is_selected"),

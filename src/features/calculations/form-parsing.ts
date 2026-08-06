@@ -37,6 +37,14 @@ import {
   percentStringToBp,
   percentStringToMarkupBp,
 } from "./money-input";
+import {
+  DEDUCTION_CLASSIFICATIONS,
+  GREEN_BASIS_METHODS,
+  TAX_DEDUCTION_CHOICES,
+  VAT_TYPES,
+  isIsoCalendarDate,
+  isValidBuyerVatNumber,
+} from "@/lib/money";
 
 const REQUIRED_MSG = "Fältet är obligatoriskt.";
 const PRICE_MSG =
@@ -88,7 +96,10 @@ function collectValues(
 ): Record<string, string> {
   const out: Record<string, string> = {};
   for (const name of names) {
-    const raw = form.get(name);
+    // Flag fields carry a hidden `false` followed by an optional checked `true`.
+    // Echo the last value just as `parseFlag` does so failed forms preserve the user's toggle.
+    const all = form.getAll(name);
+    const raw = all[all.length - 1];
     if (typeof raw === "string") out[name] = raw;
   }
   return out;
@@ -153,6 +164,172 @@ export function parseUpdateCalculationForm(form: FormData): ParsedCalcForm {
   return { input, fieldErrors, values };
 }
 
+const TAX_INPUT_FIELDS = [
+  "id",
+  "document_vat_type",
+  "buyer_vat_number",
+  "deduction_choice",
+  "payment_date",
+  "final_payment_date",
+  "green_basis_method",
+  "genuine_fixed_price",
+  "fixed_price_kronor",
+  "fixed_solar_kronor",
+  "fixed_storage_kronor",
+  "fixed_charging_kronor",
+  "person_1_rot_remaining_kronor",
+  "person_1_combined_rot_rut_remaining_kronor",
+  "person_1_green_remaining_kronor",
+  "person_2_rot_remaining_kronor",
+  "person_2_combined_rot_rut_remaining_kronor",
+  "person_2_green_remaining_kronor",
+] as const;
+
+/** Parse the complete versioned document tax form into one atomic header snapshot. */
+export function parseUpdateTaxInputForm(form: FormData): ParsedCalcForm {
+  const fieldErrors: Record<string, string> = {};
+  const values = collectValues(form, TAX_INPUT_FIELDS);
+  const id = trimmedField(form, "id");
+  if (!id) fieldErrors.id = REQUIRED_MSG;
+
+  const documentVatType = trimmedField(form, "document_vat_type");
+  if (!documentVatType || !(VAT_TYPES as readonly string[]).includes(documentVatType)) {
+    fieldErrors.document_vat_type = "Välj en giltig momshantering.";
+  }
+  const deductionChoice = trimmedField(form, "deduction_choice");
+  if (!deductionChoice || !(TAX_DEDUCTION_CHOICES as readonly string[]).includes(deductionChoice)) {
+    fieldErrors.deduction_choice = "Välj ett giltigt skatteavdrag.";
+  }
+  const greenBasisMethod = trimmedField(form, "green_basis_method");
+  if (!greenBasisMethod || !(GREEN_BASIS_METHODS as readonly string[]).includes(greenBasisMethod)) {
+    fieldErrors.green_basis_method = "Välj en giltig beräkningsgrund.";
+  }
+  const buyerVatNumber = trimmedField(form, "buyer_vat_number") ?? null;
+  if (buyerVatNumber !== null && !isValidBuyerVatNumber(buyerVatNumber)) {
+    fieldErrors.buyer_vat_number = "Ange ett giltigt momsregistreringsnummer.";
+  }
+  const readsRot = deductionChoice === "ROT" || deductionChoice === "ROT_AND_GREEN";
+  const readsGreen = deductionChoice === "GREEN" || deductionChoice === "ROT_AND_GREEN";
+  const paymentDate = trimmedField(form, "payment_date") ?? null;
+  const finalPaymentDate = trimmedField(form, "final_payment_date") ?? null;
+  if ((readsRot && paymentDate === null) || (paymentDate !== null && !isIsoCalendarDate(paymentDate))) {
+    fieldErrors.payment_date = "Ange ett giltigt betalningsdatum för ROT.";
+  }
+  if (
+    (readsGreen && finalPaymentDate === null) ||
+    (finalPaymentDate !== null && !isIsoCalendarDate(finalPaymentDate))
+  ) {
+    fieldErrors.final_payment_date = "Ange ett giltigt slutbetalningsdatum för grön teknik.";
+  }
+
+  const fixedPriceOre = optionalTaxPrice(form, "fixed_price_kronor", fieldErrors);
+  const fixedSolarOre = optionalTaxPrice(form, "fixed_solar_kronor", fieldErrors);
+  const fixedStorageOre = optionalTaxPrice(form, "fixed_storage_kronor", fieldErrors);
+  const fixedChargingOre = optionalTaxPrice(form, "fixed_charging_kronor", fieldErrors);
+
+  const personAllowanceSlots: Record<string, unknown>[] = [];
+  let rotAllowanceCount = 0;
+  let greenAllowanceCount = 0;
+  for (const personNumber of [1, 2] as const) {
+    const prefix = `person_${personNumber}`;
+    const rot = optionalTaxPrice(form, `${prefix}_rot_remaining_kronor`, fieldErrors);
+    const combined = optionalTaxPrice(
+      form,
+      `${prefix}_combined_rot_rut_remaining_kronor`,
+      fieldErrors,
+    );
+    const green = optionalTaxPrice(form, `${prefix}_green_remaining_kronor`, fieldErrors);
+    if (rot !== null) {
+      rotAllowanceCount += 1;
+      if (combined === null) {
+        fieldErrors[`${prefix}_combined_rot_rut_remaining_kronor`] =
+          "Ange personens återstående gemensamma ROT/RUT-utrymme.";
+      }
+    }
+    if (green !== null) greenAllowanceCount += 1;
+    if (rot !== null || combined !== null || green !== null) {
+      personAllowanceSlots.push({
+        slot: `PERSON_${personNumber}`,
+        ...(rot === null ? {} : { remainingRotAllowanceOre: rot }),
+        ...(combined === null ? {} : { remainingCombinedRotRutAllowanceOre: combined }),
+        ...(green === null ? {} : { remainingGreenAllowanceOre: green }),
+      });
+    }
+  }
+  if (readsRot && rotAllowanceCount === 0) {
+    fieldErrors.person_1_rot_remaining_kronor = "Ange återstående ROT-utrymme för minst en person.";
+  }
+  if (readsGreen && greenAllowanceCount === 0) {
+    fieldErrors.person_1_green_remaining_kronor =
+      "Ange återstående utrymme för grön teknik för minst en person.";
+  }
+
+  const fixedSplitComplete =
+    fixedSolarOre !== null && fixedStorageOre !== null && fixedChargingOre !== null;
+  const anyFixedSplit =
+    fixedSolarOre !== null || fixedStorageOre !== null || fixedChargingOre !== null;
+  const genuineFixedPrice = parseFlag(form, "genuine_fixed_price") ?? false;
+  if (anyFixedSplit && !fixedSplitComplete) {
+    if (fixedSolarOre === null) fieldErrors.fixed_solar_kronor = "Ange solandelen.";
+    if (fixedStorageOre === null) fieldErrors.fixed_storage_kronor = "Ange lagringsandelen.";
+    if (fixedChargingOre === null) fieldErrors.fixed_charging_kronor = "Ange laddningsandelen.";
+  }
+  if (greenBasisMethod === "FIXED_PRICE_97_PERCENT") {
+    if (!readsGreen) {
+      fieldErrors.green_basis_method = "97 %-metoden kräver avdrag för grön teknik.";
+    }
+    if (!genuineFixedPrice) {
+      fieldErrors.genuine_fixed_price = "Bekräfta att avtalet är ett äkta fastprisavtal.";
+    }
+    if (fixedPriceOre === null) fieldErrors.fixed_price_kronor = "Ange fastpriset.";
+    if (!fixedSplitComplete) {
+      if (fixedSolarOre === null) fieldErrors.fixed_solar_kronor = "Ange solandelen.";
+      if (fixedStorageOre === null) fieldErrors.fixed_storage_kronor = "Ange lagringsandelen.";
+      if (fixedChargingOre === null) fieldErrors.fixed_charging_kronor = "Ange laddningsandelen.";
+    } else if (
+      fixedPriceOre !== null &&
+      fixedSolarOre + fixedStorageOre + fixedChargingOre !== fixedPriceOre
+    ) {
+      fieldErrors.fixed_price_kronor = "Fastpriset måste motsvara summan av kategoriandelarna.";
+    }
+  }
+  const taxInputSnapshot = {
+    schemaVersion: 2,
+    documentVatType,
+    buyerVatNumber,
+    deductionChoice,
+    paymentDate,
+    finalPaymentDate,
+    personAllowanceSlots,
+    greenBasisMethod,
+    genuineFixedPrice,
+    fixedPriceOre,
+    fixedPriceCategorySplitOre: fixedSplitComplete
+      ? { SOLAR: fixedSolarOre, STORAGE: fixedStorageOre, CHARGING: fixedChargingOre }
+      : null,
+  };
+  return {
+    input: { id, tax_input_snapshot: taxInputSnapshot },
+    fieldErrors,
+    values,
+  };
+}
+
+function optionalTaxPrice(
+  form: FormData,
+  name: string,
+  fieldErrors: Record<string, string>,
+): number | null {
+  const raw = form.get(name);
+  if (typeof raw !== "string" || raw.trim().length === 0) return null;
+  const parsed = kronorStringToOre(raw);
+  if (!parsed.ok) {
+    fieldErrors[name] = PRICE_MSG;
+    return null;
+  }
+  return parsed.ore;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Section forms
 // ─────────────────────────────────────────────────────────────────────────────
@@ -215,6 +392,9 @@ const ROW_FIELDS = [
   "unit_sell_kronor",
   "markup_percent",
   "vat_percent",
+  "included_in_invoice_total",
+  "deduction_classification",
+  "vat_type",
   "is_hidden",
   "is_optional",
   "is_selected",
@@ -323,10 +503,18 @@ function attachFlags(
 ): void {
   const hidden = parseFlag(form, "is_hidden");
   if (hidden !== undefined) input.is_hidden = hidden;
+  const included = parseFlag(form, "included_in_invoice_total");
+  if (included !== undefined) input.included_in_invoice_total = included;
   const optional = parseFlag(form, "is_optional");
   if (optional !== undefined) input.is_optional = optional;
   const selected = parseFlag(form, "is_selected");
   if (selected !== undefined) input.is_selected = selected;
+
+  const classification = trimmedField(form, "deduction_classification");
+  if (classification !== undefined) input.deduction_classification = classification;
+  const vatType = trimmedField(form, "vat_type");
+  if (vatType !== undefined) input.vat_type = vatType;
+  void DEDUCTION_CLASSIFICATIONS;
 }
 
 /** Attach the row's free-text fields (label/description/internal_note/quote_note). */

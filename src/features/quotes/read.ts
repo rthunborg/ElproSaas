@@ -23,6 +23,14 @@
  * personnummer (the 6.1 snapshot carries display fields only; no pnr is ever selected here).
  */
 import { createSupabaseServerClient } from "@/server/db/supabase-server-client";
+import {
+  isDeductionClassification,
+  isVatType,
+  type DeductionClassification,
+  type TaxAnswerSnapshotV2,
+  type VatType,
+} from "@/lib/money";
+import { adaptQuoteTaxSnapshot } from "@/lib/quote-snapshot";
 import type { QuoteVersionStatus } from "./timeline";
 import { LATEST_DECIDED_STATUSES } from "./terminal-status";
 import { classifyFollowUp } from "./follow-up-dates";
@@ -271,6 +279,14 @@ export interface QuoteVersionRow {
   readonly vat_total_ore: number;
   readonly deduction_total_ore: number;
   readonly accepted_price_ore: number;
+  readonly snapshot_schema_version: number | null;
+  readonly tax_rule_version: string | null;
+  readonly tax_answer_snapshot: TaxAnswerSnapshotV2 | null;
+  readonly buyer_vat_number: string | null;
+  /** Null on literal V1 snapshots, which froze only one undifferentiated deduction scalar. */
+  readonly calculated_deduction_ore: number | null;
+  readonly claim_deduction_ore: number | null;
+  readonly payable_ore: number;
   // VAT / tax assumptions (basis points / flags), frozen at snapshot time.
   readonly vat_rate_bp: number | null;
   readonly vat_display: string | null;
@@ -305,6 +321,9 @@ export interface QuoteVersionLineRow {
   readonly unit_sell_ore: number | null;
   readonly line_net_ore: number | null;
   readonly vat_rate_bp: number | null;
+  readonly included_in_invoice_total: boolean | null;
+  readonly deduction_classification: DeductionClassification | null;
+  readonly vat_type: VatType | null;
   readonly is_hidden: boolean;
   readonly is_optional: boolean;
   readonly is_selected: boolean | null;
@@ -397,10 +416,10 @@ const QUOTE_HEADER_COLUMNS =
 
 // SELECT ONLY the frozen snapshot columns (no cost/margin/internal — none exist on the row).
 const VERSION_COLUMNS =
-  "id, version_number, quote_number, quote_number_display, status, calculation_id, customer_display_name, customer_type, facility_name, contact_name, valid_until, intro_text, customer_notes, terms_text, terms_approved_at, display_mode, base_total_ore, option_total_ore, vat_total_ore, deduction_total_ore, accepted_price_ore, vat_rate_bp, vat_display, deduction_type, deduction_rate_bp, deduction_cap_ore, deduction_persons, requires_sign_off, pdf_file_id, pdf_generated_at, pdf_status, warnings_snapshot, created_at";
+  "id, version_number, quote_number, quote_number_display, status, calculation_id, customer_display_name, customer_type, facility_name, contact_name, valid_until, intro_text, customer_notes, terms_text, terms_approved_at, display_mode, base_total_ore, option_total_ore, vat_total_ore, deduction_total_ore, accepted_price_ore, snapshot_schema_version, tax_rule_version, tax_answer_snapshot, buyer_vat_number, calculated_deduction_ore, claim_deduction_ore, payable_ore, vat_rate_bp, vat_display, deduction_type, deduction_rate_bp, deduction_cap_ore, deduction_persons, requires_sign_off, pdf_file_id, pdf_generated_at, pdf_status, warnings_snapshot, created_at";
 
 const LINE_COLUMNS =
-  "id, row_type, sort_order, label, description, quote_note, quantity, unit, unit_sell_ore, line_net_ore, vat_rate_bp, is_hidden, is_optional, is_selected";
+  "id, row_type, sort_order, label, description, quote_note, quantity, unit, unit_sell_ore, line_net_ore, vat_rate_bp, included_in_invoice_total, deduction_classification, vat_type, is_hidden, is_optional, is_selected";
 
 const ATTACHMENT_COLUMNS = "id, file_id, display_name, sort_order";
 
@@ -419,6 +438,22 @@ function toVersionRow(raw: Record<string, unknown>): QuoteVersionRow {
         };
       })
     : [];
+  const acceptedPriceOre = oreNumber(raw.accepted_price_ore) ?? 0;
+  const vatTotalOre = oreNumber(raw.vat_total_ore) ?? 0;
+  const deductionTotalOre = oreNumber(raw.deduction_total_ore) ?? 0;
+  const tax = adaptQuoteTaxSnapshot({
+    snapshotSchemaVersion: num(raw.snapshot_schema_version),
+    taxRuleVersion: (raw.tax_rule_version as string | null) ?? null,
+    taxAnswerSnapshot: raw.tax_answer_snapshot,
+    buyerVatNumber: (raw.buyer_vat_number as string | null) ?? null,
+    calculatedDeductionOre: oreNumber(raw.calculated_deduction_ore),
+    claimDeductionOre: oreNumber(raw.claim_deduction_ore),
+    payableOre: oreNumber(raw.payable_ore),
+    vatOre: vatTotalOre,
+    deductionOre: deductionTotalOre,
+    acceptedPriceOre,
+  });
+  if (!tax.ok) throw new Error("Malformed frozen V2 quote tax snapshot");
   return {
     id: String(raw.id),
     version_number: Number(raw.version_number),
@@ -438,9 +473,16 @@ function toVersionRow(raw: Record<string, unknown>): QuoteVersionRow {
     display_mode: (raw.display_mode as string | null) ?? null,
     base_total_ore: oreNumber(raw.base_total_ore) ?? 0,
     option_total_ore: oreNumber(raw.option_total_ore) ?? 0,
-    vat_total_ore: oreNumber(raw.vat_total_ore) ?? 0,
-    deduction_total_ore: oreNumber(raw.deduction_total_ore) ?? 0,
-    accepted_price_ore: oreNumber(raw.accepted_price_ore) ?? 0,
+    vat_total_ore: vatTotalOre,
+    deduction_total_ore: deductionTotalOre,
+    accepted_price_ore: acceptedPriceOre,
+    snapshot_schema_version: num(raw.snapshot_schema_version),
+    tax_rule_version: (raw.tax_rule_version as string | null) ?? null,
+    tax_answer_snapshot: tax.value.taxAnswer,
+    buyer_vat_number: tax.value.buyerVatNumber,
+    calculated_deduction_ore: tax.value.calculatedDeductionOre,
+    claim_deduction_ore: tax.value.claimDeductionOre,
+    payable_ore: tax.value.payableOre,
     vat_rate_bp: num(raw.vat_rate_bp),
     vat_display: (raw.vat_display as string | null) ?? null,
     deduction_type: (raw.deduction_type as string | null) ?? null,
@@ -458,6 +500,14 @@ function toVersionRow(raw: Record<string, unknown>): QuoteVersionRow {
 
 /** Normalise a raw line row (coerce öre/quantity; snake_case in the type). */
 function toLineRow(raw: Record<string, unknown>): QuoteVersionLineRow {
+  const deductionClassification = raw.deduction_classification ?? null;
+  const vatType = raw.vat_type ?? null;
+  if (
+    (deductionClassification !== null && !isDeductionClassification(deductionClassification)) ||
+    (vatType !== null && !isVatType(vatType))
+  ) {
+    throw new Error("Malformed frozen V2 quote line tax facts");
+  }
   return {
     id: String(raw.id),
     row_type: String(raw.row_type),
@@ -470,6 +520,12 @@ function toLineRow(raw: Record<string, unknown>): QuoteVersionLineRow {
     unit_sell_ore: oreNumber(raw.unit_sell_ore),
     line_net_ore: oreNumber(raw.line_net_ore),
     vat_rate_bp: num(raw.vat_rate_bp),
+    included_in_invoice_total:
+      raw.included_in_invoice_total === null || raw.included_in_invoice_total === undefined
+        ? null
+        : raw.included_in_invoice_total === true,
+    deduction_classification: deductionClassification,
+    vat_type: vatType,
     is_hidden: raw.is_hidden === true,
     is_optional: raw.is_optional === true,
     is_selected: raw.is_selected === null || raw.is_selected === undefined
