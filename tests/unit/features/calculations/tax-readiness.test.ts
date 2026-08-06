@@ -27,7 +27,7 @@ const baseInput = {
 };
 
 test("10.6 tax readiness blocks a missing versioned header instead of assuming defaults", () => {
-  const resolution = resolveTaxReadiness({ taxInput: null, rows: [standardRow] });
+  const resolution = resolveTaxReadiness({ taxInput: null, rows: [standardRow], quoteCaptureDate: "2026-08-06" });
   assert.deepEqual(resolution.blockingCodes, ["MISSING_TAX_INPUT"]);
   assert.equal(resolution.answer, null);
 });
@@ -38,15 +38,16 @@ test("10.6 tax readiness maps reverse-charge buyer metadata failures", () => {
       {
         ...standardRow,
         vatType: "REVERSE_CHARGE_CONSTRUCTION",
-        rateBp: 0,
+        rateBp: 2500,
       },
     ],
+    quoteCaptureDate: "2026-08-06",
   });
   assert.deepEqual(resolution.blockingCodes, ["MISSING_BUYER_VAT_NUMBER"]);
 });
 
 test("10.6 tax readiness returns the exact reconciled answer when inputs are complete", () => {
-  const resolution = resolveTaxReadiness({ taxInput: baseInput, rows: [standardRow] });
+  const resolution = resolveTaxReadiness({ taxInput: baseInput, rows: [standardRow], quoteCaptureDate: "2026-08-06" });
   assert.deepEqual(resolution.blockingCodes, []);
   assert.equal(resolution.answer?.netOre, 100_000);
   assert.equal(resolution.answer?.vatOre, 25_000);

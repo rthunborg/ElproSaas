@@ -66,6 +66,18 @@ export type TotalsResult<T> =
   | { readonly ok: false; readonly code: string };
 
 /**
+ * Legacy callers supplied only a numeric VAT rate. Preserve that read-model
+ * compatibility by deriving the unambiguous reduced category for the two
+ * reduced rates; new writes carry `vat_type` explicitly and are validated at
+ * the command/database boundary.
+ */
+function vatTypeForTotal(row: TotalsRowInput): VatType {
+  if (row.vat_type !== null && row.vat_type !== undefined) return row.vat_type;
+  if (row.vat_rate_bp === 600 || row.vat_rate_bp === 1200) return "REDUCED_VAT";
+  return "STANDARD_VAT_25";
+}
+
+/**
  * Story 10.6 sole inclusion rule. Legacy optional state was converted once by the
  * migration; runtime totals never re-infer inclusion from option or visibility flags.
  */
@@ -90,7 +102,7 @@ export function computeLineTotal(row: TotalsRowInput): TotalsResult<LineTotal> {
   const breakdown = aggregateDocumentVat({
     rows: [{
       netOre: net.value,
-      vatType: row.vat_type ?? "STANDARD_VAT_25",
+      vatType: vatTypeForTotal(row),
       rateBp: row.vat_rate_bp,
       includedInInvoiceTotal: true,
       deductionClassification: row.deduction_classification ?? "NONE",
@@ -128,7 +140,7 @@ export function computeSectionTotal(
     if (!line.ok) return { ok: false, code: line.code };
     includedRows.push({
       netOre: line.value.netOre,
-      vatType: row.vat_type ?? "STANDARD_VAT_25",
+      vatType: vatTypeForTotal(row),
       rateBp: row.vat_rate_bp ?? 0,
       includedInInvoiceTotal: true,
       deductionClassification: row.deduction_classification ?? "NONE",

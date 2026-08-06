@@ -78,7 +78,7 @@ describe("Story 10.6 Task 1 — canonical tax domain and policy authority", () =
     assert.deepEqual(policy, {
       id: "SE-TAX-2026-v1",
       validFrom: "2026-01-01",
-      validTo: null,
+    validTo: "2027-01-01",
       vat: { standardRateBp: 2500 },
       rot: {
         rateBp: 3000,

@@ -9,7 +9,6 @@ import { oreToKronorString } from "@/features/calculations/money-input";
 import {
   GREEN_BASIS_METHODS,
   TAX_DEDUCTION_CHOICES,
-  VAT_TYPES,
   type GreenBasisMethod,
   type TaxDeductionChoice,
   type TaxInputSnapshotV2,
@@ -23,7 +22,12 @@ const VAT_LABELS: Record<VatType, string> = {
   ZERO_RATED: "Momsfri (0 %)",
   REVERSE_CHARGE_CONSTRUCTION: "Omvänd betalningsskyldighet, bygg",
 };
-const VAT_OPTIONS = VAT_TYPES.map((value) => ({ value, label: VAT_LABELS[value] }));
+// The document field is an explicit reverse-charge applicability choice, not a
+// second per-row VAT category. Standard and reverse may coexist in one document.
+const VAT_OPTIONS = (["STANDARD_VAT_25", "REVERSE_CHARGE_CONSTRUCTION"] as const).map((value) => ({
+  value,
+  label: VAT_LABELS[value],
+}));
 
 const DEDUCTION_LABELS: Record<TaxDeductionChoice, string> = {
   NONE: "Inget avdrag",
@@ -59,8 +63,8 @@ const EMPTY_TAX_INPUT: TaxInputSnapshotV2 = {
   fixedPriceCategorySplitOre: null,
 };
 
-function slotAt(input: TaxInputSnapshotV2, index: number): TaxPersonAllowanceSlot | undefined {
-  return input.personAllowanceSlots[index];
+function slotAt(input: TaxInputSnapshotV2, number: number): TaxPersonAllowanceSlot | undefined {
+  return input.personAllowanceSlots.find((slot) => slot.slot === `PERSON_${number}`);
 }
 
 function oreValue(value: number | undefined | null): string {
@@ -81,8 +85,14 @@ export function TaxSettingsPanel({
     (mine && state.values[field] !== undefined ? state.values[field] : fallback) ?? fallback;
   const err = (field: string): string | undefined =>
     mine ? state.fieldErrors[field] : undefined;
-  const first = slotAt(input, 0);
-  const second = slotAt(input, 1);
+  // Preserve every already-declared allowance slot. Two empty slots remain
+  // visible for a new calculation; the parser accepts the full canonical 50.
+  const highestExistingSlot = input.personAllowanceSlots.reduce((highest, slot) => {
+    const parsed = /^PERSON_(\d+)$/.exec(slot.slot);
+    return parsed === null ? highest : Math.max(highest, Number(parsed[1]));
+  }, 0);
+  const personCount = Math.min(50, Math.max(2, highestExistingSlot));
+  const persons = Array.from({ length: personCount }, (_, index) => index + 1);
 
   return (
     <section
@@ -159,10 +169,10 @@ export function TaxSettingsPanel({
         <fieldset className="rounded-md border border-zinc-200 p-3">
           <legend className="px-1 text-sm font-medium text-zinc-800">Återstående utrymme per person</legend>
           <p className="mb-3 text-xs text-zinc-600">
-            Använd endast neutrala platser som PERSON_1 och PERSON_2; personnummer lagras inte här.
+            Använd endast neutrala platser som PERSON_1, PERSON_2 osv.; personnummer och namn lagras inte här.
           </p>
-          {[first, second].map((slot, index) => {
-            const number = index + 1;
+          {persons.map((number) => {
+            const slot = slotAt(input, number);
             return (
               <div key={number} className="mb-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
                 <TextField

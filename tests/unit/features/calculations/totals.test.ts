@@ -85,7 +85,7 @@ test("5.2-UNIT-01: a section total equals the engine document-category VAT aggre
   // Build the engine's rounded line nets, then aggregate VAT once per document category.
   const aggregateRows: {
     readonly netOre: number;
-    readonly vatType: "STANDARD_VAT_25";
+    readonly vatType: "STANDARD_VAT_25" | "REDUCED_VAT";
     readonly rateBp: number;
   }[] = [];
   for (const r of rows) {
@@ -94,7 +94,9 @@ test("5.2-UNIT-01: a section total equals the engine document-category VAT aggre
     if (!net.ok) return;
     aggregateRows.push({
       netOre: net.value,
-      vatType: "STANDARD_VAT_25",
+      vatType: r.vat_rate_bp === 600 || r.vat_rate_bp === 1200
+        ? "REDUCED_VAT"
+        : "STANDARD_VAT_25",
       rateBp: r.vat_rate_bp ?? 0,
     });
   }

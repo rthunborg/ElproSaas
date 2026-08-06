@@ -525,12 +525,12 @@ test("10.6 tax form: authoritative draft failures are associated with actionable
   }
 });
 
-test("10.6 tax form: reverse-charge buyer VAT may remain blank in a saved draft", () => {
+test("10.6 tax form: reverse-charge requires a buyer VAT number", () => {
   const parsed = parseUpdateTaxInputForm(fd({
     id: ROW,
     document_vat_type: "REVERSE_CHARGE_CONSTRUCTION",
     deduction_choice: "NONE",
     green_basis_method: "ACTUAL_ELIGIBLE_COSTS",
   }));
-  assert.deepEqual(parsed.fieldErrors, {});
+  assert.equal(typeof parsed.fieldErrors.buyer_vat_number, "string");
 });

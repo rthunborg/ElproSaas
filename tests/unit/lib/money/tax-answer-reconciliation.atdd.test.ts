@@ -157,8 +157,8 @@ describe("Story 10.6 — tax answer reconciliation", () => {
         documentVatType: "STANDARD_VAT_25",
         buyerVatNumber: null,
         deductionChoice: entry.choice,
-        paymentDate: entry.choice === "ROT" ? "2027-02-03" : null,
-        finalPaymentDate: entry.choice === "GREEN" ? "2028-04-05" : null,
+        paymentDate: entry.choice === "ROT" ? "2026-02-03" : null,
+        finalPaymentDate: entry.choice === "GREEN" ? "2026-04-05" : null,
         personAllowanceSlots: entry.choice === "NONE"
           ? []
           : [{
@@ -396,10 +396,10 @@ describe("Story 10.6 — tax answer reconciliation", () => {
     const aggregate = requireFunction("aggregateDocumentVat");
     const result = okValue<{ vatOre: number }>(
       aggregate({
-        rows: [standard(1_000_000_000_000_015, { rateBp: 333 })],
+        rows: [standard(1_000_000_000_000_015, { rateBp: 2500 })],
       }),
     );
-    assert.equal(result.vatOre, 33_300_000_000_000);
+    assert.equal(result.vatOre, 250_000_000_000_004);
   });
 
   test("[10.6-UNIT-09][P0][AC4/AC5] the finalized answer composes disjoint ROT and green through payable", () => {
@@ -506,8 +506,8 @@ describe("Story 10.6 — tax answer reconciliation", () => {
       documentVatType: "STANDARD_VAT_25",
       buyerVatNumber: null,
       deductionChoice: "ROT_AND_GREEN",
-      paymentDate: "2027-02-03",
-      finalPaymentDate: "2028-04-05",
+      paymentDate: "2026-02-03",
+      finalPaymentDate: "2026-04-05",
       personAllowanceSlots: [{
         slot: "dated_slot",
         remainingRotAllowanceOre: 5_000_000,
@@ -544,11 +544,11 @@ describe("Story 10.6 — tax answer reconciliation", () => {
     );
     assert.deepEqual(
       [answer.value.rot.policy?.resolvingFact, answer.value.rot.policy?.resolvingDate],
-      ["ROT_PAYMENT_DATE", "2027-02-03"],
+      ["ROT_PAYMENT_DATE", "2026-02-03"],
     );
     assert.deepEqual(
       [answer.value.green.policy?.resolvingFact, answer.value.green.policy?.resolvingDate],
-      ["GREEN_FINAL_PAYMENT_DATE", "2028-04-05"],
+      ["GREEN_FINAL_PAYMENT_DATE", "2026-04-05"],
     );
   });
 

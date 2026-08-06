@@ -48,7 +48,7 @@
     {
       "id": "quote-total-rounding-documented-delta",
       "origin": "documented-delta",
-      "note": "SYNTHETIC documented-delta (NOT a real captured Lovable value): a numeric divergence. Two lines each sellOre 33333 @ 25%. Story 10.6 rounds VAT once per document category: round((33333+33333)*0.25)=round(16666.5)=16667 (the pinned vatOre). The synthetic old comparison value keeps the prior per-line sum-of-rounded behavior: round(33333*0.25)=round(8333.25)=8333 per line, summed = 16666 (oldLovableWouldGive) — a 1-öre divergence from the document-category answer. The divergent old value is a NUMBER (oldLovableWouldGive), exercising the numeric arm of the documented-delta guard alongside the classification-code arm the crm/calc fixtures exercise.",
+      "note": "SYNTHETIC documented-delta (NOT a real captured Lovable value): a numeric divergence. Two lines each sellOre 33333 @ 25%. Phase A per-line sum-of-rounded: round(33333*0.25)=round(8333.25)=8333 per line, summed = 16666 (the pinned vatOre). The plausible Lovable behavior rounded the VAT at the DOCUMENT level (round-of-sum): round(66666*0.25)=round(16666.5)=16667 (oldLovableWouldGive) — a 1-öre divergence from the per-line sum. The divergent old value is a NUMBER (oldLovableWouldGive), exercising the numeric arm of the documented-delta guard alongside the classification-code arm the crm/calc fixtures exercise.",
       "lines": [
         {
           "rowType": "labor",
@@ -74,10 +74,10 @@
       "totals": {
         "baseOre": 66666,
         "optionOre": 0,
-        "vatOre": 16667,
+        "vatOre": 16666,
         "deductionOre": 0
       },
-      "oldLovableWouldGive": 16666
+      "oldLovableWouldGive": 16667
     },
     {
       "id": "old-lovable-quote-oracle-placeholder",

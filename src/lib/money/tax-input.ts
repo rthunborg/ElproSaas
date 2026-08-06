@@ -1,8 +1,8 @@
 import {
   GREEN_CATEGORIES,
+  isCanonicalTaxPersonSlot,
   isGreenBasisMethod,
   isTaxDeductionChoice,
-  isVatType,
   type FixedPriceCategorySplitOre,
   type GreenCategory,
   type TaxDeductionChoice,
@@ -66,14 +66,6 @@ export function isValidBuyerVatNumber(value: unknown): value is string {
   );
 }
 
-function isSafeSlotId(value: unknown): value is string {
-  return (
-    typeof value === "string" &&
-    /^[A-Za-z][A-Za-z0-9_-]{0,63}$/.test(value) &&
-    !/^\d{6,8}-?\d{4}$/.test(value)
-  );
-}
-
 function optionalOre(value: unknown): value is number | undefined {
   return value === undefined || isOreAmount(value);
 }
@@ -96,7 +88,7 @@ function parsePersonSlots(
   let hasRotAllowance = false;
   let hasGreenAllowance = false;
   for (const raw of value) {
-    if (!isRecord(raw) || !isSafeSlotId(raw.slot) || seen.has(raw.slot)) return null;
+    if (!isRecord(raw) || !isCanonicalTaxPersonSlot(raw.slot) || seen.has(raw.slot)) return null;
     seen.add(raw.slot);
     if (
       !optionalOre(raw.remainingAllowanceOre) ||
@@ -156,7 +148,14 @@ function parseFixedPriceSplit(value: unknown): FixedPriceCategorySplitOre | null
  */
 export function parseTaxInputSnapshot(raw: unknown): TaxInputValidationResult {
   if (!isRecord(raw) || raw.schemaVersion !== 2) return fail("INVALID_TAX_INPUT");
-  if (!isVatType(raw.documentVatType) || !isTaxDeductionChoice(raw.deductionChoice)) {
+  // This header field is solely the explicit reverse-charge applicability
+  // choice. Category rows continue to carry the actual standard/zero/reduced
+  // tax treatment, including the sanctioned standard+reverse mixed case.
+  if (
+    (raw.documentVatType !== "STANDARD_VAT_25" &&
+      raw.documentVatType !== "REVERSE_CHARGE_CONSTRUCTION") ||
+    !isTaxDeductionChoice(raw.deductionChoice)
+  ) {
     return fail("INVALID_TAX_INPUT");
   }
   if (!isGreenBasisMethod(raw.greenBasisMethod) || typeof raw.genuineFixedPrice !== "boolean") {
@@ -167,6 +166,9 @@ export function parseTaxInputSnapshot(raw: unknown): TaxInputValidationResult {
   if (raw.buyerVatNumber !== null && raw.buyerVatNumber !== undefined && raw.buyerVatNumber !== "") {
     if (!isValidBuyerVatNumber(raw.buyerVatNumber)) return fail("INVALID_BUYER_VAT_NUMBER");
     buyerVatNumber = normalizeBuyerVatNumber(raw.buyerVatNumber as string);
+  }
+  if (raw.documentVatType === "REVERSE_CHARGE_CONSTRUCTION" && buyerVatNumber === null) {
+    return fail("INVALID_BUYER_VAT_NUMBER");
   }
 
   const choice = raw.deductionChoice;

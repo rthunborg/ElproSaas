@@ -3,6 +3,8 @@ import {
   GREEN_CATEGORIES,
   isOreAmount,
   isGreenBasisMethod,
+  isCanonicalTaxPersonSlot,
+  isCoherentVatTypeRate,
   isTaxDeductionChoice,
   isVatType,
   isValidBuyerVatNumber,
@@ -17,6 +19,7 @@ import {
   type TaxAnswerSnapshotV2,
   type TaxSummaryBucket,
 } from "@/lib/money";
+import { TAX_POLICY_REGISTRY } from "@/lib/money";
 
 /** A fail-closed parse result for JSONB-loaded V2 tax answers. */
 export type TaxAnswerSnapshotParseResult =
@@ -137,6 +140,9 @@ function parsePolicy(value: unknown): ResolvedTaxPolicySnapshot | null | undefin
     !isIsoCalendarDate(raw.validFrom) ||
     (raw.validTo !== null && !isIsoCalendarDate(raw.validTo)) ||
     !isIsoCalendarDate(raw.resolvingDate) ||
+    (raw.validTo !== null && raw.validTo <= raw.validFrom) ||
+    raw.resolvingDate < raw.validFrom ||
+    (raw.validTo !== null && raw.resolvingDate >= raw.validTo) ||
     (raw.resolvingFact !== "QUOTE_CAPTURE_DATE" &&
       raw.resolvingFact !== "ROT_PAYMENT_DATE" &&
       raw.resolvingFact !== "GREEN_FINAL_PAYMENT_DATE") ||
@@ -148,6 +154,28 @@ function parsePolicy(value: unknown): ResolvedTaxPolicySnapshot | null | undefin
     fixedPriceEligibleShareBp === null ||
     greenRates === null ||
     !isGreenBasisMethod(green?.defaultBasisMethod)
+  ) {
+    return undefined;
+  }
+  const canonical = TAX_POLICY_REGISTRY.find((policy) => policy.id === raw.id);
+  if (
+    canonical === undefined ||
+    canonical.validFrom !== raw.validFrom ||
+    // Existing V2 drafts created before the finite-horizon correction froze a
+    // nullable end. They remain readable as historic commitments; fresh writes
+    // always use the finite canonical window.
+    (canonical.validTo !== raw.validTo &&
+      !(canonical.id === "SE-TAX-2026-v1" && raw.validTo === null)) ||
+    canonical.vat.standardRateBp !== standardRateBp ||
+    canonical.rot.rateBp !== rotRateBp ||
+    canonical.rot.maxPerPersonYearOre !== rotCapOre ||
+    canonical.rot.combinedRotRutMaxPerPersonYearOre !== combinedRotRutCapOre ||
+    canonical.green.maxPerPersonYearOre !== greenCapOre ||
+    canonical.green.defaultBasisMethod !== green?.defaultBasisMethod ||
+    canonical.green.fixedPriceEligibleShareBp !== fixedPriceEligibleShareBp ||
+    GREEN_CATEGORIES.some(
+      (category) => canonical.green.rateBpByCategory[category] !== greenRateBpByCategory[category],
+    )
   ) {
     return undefined;
   }
@@ -183,8 +211,7 @@ function parseAllocations(value: unknown): readonly FrozenPersonClaimAllocation[
     const amount = raw === null ? null : ore(raw.ore);
     if (
       raw === null ||
-      typeof raw.slot !== "string" ||
-      raw.slot.length === 0 ||
+      !isCanonicalTaxPersonSlot(raw.slot) ||
       seen.has(raw.slot) ||
       amount === null ||
       amount % 100 !== 0
@@ -236,7 +263,10 @@ function parseCategory(value: unknown): DocumentVatCategory | null {
     vatOre === null ||
     grossOre === null ||
     netOre + vatOre !== grossOre ||
-    (raw.vatType === "REVERSE_CHARGE_CONSTRUCTION" && vatOre !== 0)
+    !isCoherentVatTypeRate(raw.vatType, rate) ||
+    (raw.vatType === "REVERSE_CHARGE_CONSTRUCTION" && vatOre !== 0) ||
+    (raw.vatType !== "REVERSE_CHARGE_CONSTRUCTION" &&
+      vatOre !== Math.floor((netOre * rate + 5_000) / 10_000))
   ) {
     return null;
   }
@@ -309,7 +339,12 @@ export function parseTaxAnswerSnapshotV2(rawValue: unknown): TaxAnswerSnapshotPa
   const hasReverse = categories.some(
     (category) => category.vatType === "REVERSE_CHARGE_CONSTRUCTION",
   );
-  if (hasReverse !== raw.reverseChargeApplied) return invalid();
+  if (
+    hasReverse !== raw.reverseChargeApplied ||
+    (raw.documentVatType !== "STANDARD_VAT_25" &&
+      raw.documentVatType !== "REVERSE_CHARGE_CONSTRUCTION") ||
+    (raw.documentVatType === "REVERSE_CHARGE_CONSTRUCTION") !== hasReverse
+  ) return invalid();
 
   const netBy = parseClassificationRecord(raw.netByDeductionClassification);
   const vatBy = parseClassificationRecord(raw.vatByDeductionClassification);
@@ -460,7 +495,9 @@ export function parseTaxAnswerSnapshotV2(rawValue: unknown): TaxAnswerSnapshotPa
       : greenPolicy !== null || unusedGreenHasFacts) ||
     (raw.reverseChargeApplied && raw.documentVatType !== "REVERSE_CHARGE_CONSTRUCTION") ||
     (rotPolicy !== null && !ruleVersions.includes(rotPolicy.id)) ||
-    (greenPolicy !== null && !ruleVersions.includes(greenPolicy.id))
+    (greenPolicy !== null && !ruleVersions.includes(greenPolicy.id)) ||
+    ruleVersions.some((id) => !TAX_POLICY_REGISTRY.some((policy) => policy.id === id)) ||
+    !sameRuleVersionSet(ruleVersions, vatPolicy, rotPolicy, greenPolicy)
   ) {
     return invalid();
   }
@@ -503,6 +540,18 @@ export function parseTaxAnswerSnapshotV2(rawValue: unknown): TaxAnswerSnapshotPa
     payableOre,
   });
   return { ok: true, value: answer };
+}
+
+function sameRuleVersionSet(
+  ruleVersions: readonly string[],
+  vatPolicy: ResolvedTaxPolicySnapshot,
+  rotPolicy: ResolvedTaxPolicySnapshot | null,
+  greenPolicy: ResolvedTaxPolicySnapshot | null,
+): boolean {
+  const expected = new Set([vatPolicy.id]);
+  if (rotPolicy !== null) expected.add(rotPolicy.id);
+  if (greenPolicy !== null) expected.add(greenPolicy.id);
+  return ruleVersions.length === expected.size && ruleVersions.every((id) => expected.has(id));
 }
 
 /**

@@ -177,12 +177,11 @@ const TAX_INPUT_FIELDS = [
   "fixed_solar_kronor",
   "fixed_storage_kronor",
   "fixed_charging_kronor",
-  "person_1_rot_remaining_kronor",
-  "person_1_combined_rot_rut_remaining_kronor",
-  "person_1_green_remaining_kronor",
-  "person_2_rot_remaining_kronor",
-  "person_2_combined_rot_rut_remaining_kronor",
-  "person_2_green_remaining_kronor",
+  ...Array.from({ length: 50 }, (_, index) => index + 1).flatMap((number) => [
+    `person_${number}_rot_remaining_kronor`,
+    `person_${number}_combined_rot_rut_remaining_kronor`,
+    `person_${number}_green_remaining_kronor`,
+  ]),
 ] as const;
 
 /** Parse the complete versioned document tax form into one atomic header snapshot. */
@@ -208,6 +207,9 @@ export function parseUpdateTaxInputForm(form: FormData): ParsedCalcForm {
   if (buyerVatNumber !== null && !isValidBuyerVatNumber(buyerVatNumber)) {
     fieldErrors.buyer_vat_number = "Ange ett giltigt momsregistreringsnummer.";
   }
+  if (documentVatType === "REVERSE_CHARGE_CONSTRUCTION" && buyerVatNumber === null) {
+    fieldErrors.buyer_vat_number = "Ange köparens momsregistreringsnummer vid omvänd betalningsskyldighet.";
+  }
   const readsRot = deductionChoice === "ROT" || deductionChoice === "ROT_AND_GREEN";
   const readsGreen = deductionChoice === "GREEN" || deductionChoice === "ROT_AND_GREEN";
   const paymentDate = trimmedField(form, "payment_date") ?? null;
@@ -230,7 +232,7 @@ export function parseUpdateTaxInputForm(form: FormData): ParsedCalcForm {
   const personAllowanceSlots: Record<string, unknown>[] = [];
   let rotAllowanceCount = 0;
   let greenAllowanceCount = 0;
-  for (const personNumber of [1, 2] as const) {
+  for (let personNumber = 1; personNumber <= 50; personNumber += 1) {
     const prefix = `person_${personNumber}`;
     const rot = optionalTaxPrice(form, `${prefix}_rot_remaining_kronor`, fieldErrors);
     const combined = optionalTaxPrice(

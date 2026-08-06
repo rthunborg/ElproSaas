@@ -190,11 +190,9 @@ describe("Story 9.2 — Lovable-pack shape/schema guard (9.2-SHAPE-01 / R-911)",
   });
 
   // ── 9.2-SHAPE-01h — the quotes documented-delta oracle is INTERNALLY CONSISTENT with its note ──
-  // The quote-total-rounding-documented-delta case's pinned vatOre must equal the Story 10.6
-  // document-category VAT its note documents, and oldLovableWouldGive must equal the synthetic
-  // prior per-line sum-of-rounded value — so the oracle is self-consistent, not contradicting
-  // its own note.
-  test("[P0] quotes documented-delta vatOre = document-category VAT; oldLovableWouldGive = per-line sum (oracle self-consistent)", () => {
+  // The quote-total-rounding-documented-delta fixture stays a Phase A per-line oracle, while
+  // oldLovableWouldGive records the documented legacy document-category comparison value.
+  test("[P0] quotes documented-delta vatOre = Phase A per-line sum; oldLovableWouldGive = document-category VAT", () => {
     const quotes = listLovableFixtureFiles()
       .map((f) => readJson(f) as Record<string, unknown>)
       .find((p) => p.category === "quotes");
@@ -204,17 +202,17 @@ describe("Story 9.2 — Lovable-pack shape/schema guard (9.2-SHAPE-01 / R-911)",
     assert.ok(delta, "the quote-total-rounding-documented-delta case must exist");
 
     const lines = delta!.lines as { sellOre: number; vatBp: number }[];
-    // Recorded old comparison: round each line's VAT, then sum.
+    // Phase A: round each line's VAT, then sum.
     const perLineSumOfRounded = lines.reduce((acc, l) => acc + Math.round((l.sellOre * l.vatBp) / 10000), 0);
-    // Story 10.6: sum the bases by document category, then round once.
+    // Legacy Lovable comparison: sum the bases by document category, then round once.
     const baseSum = lines.reduce((acc, l) => acc + l.sellOre, 0);
     const vatBp = lines[0].vatBp;
     const roundOfSum = Math.round((baseSum * vatBp) / 10000);
 
     const totals = delta!.totals as { vatOre: number };
-    assert.equal(totals.vatOre, roundOfSum, "pinned vatOre must equal the Story 10.6 document-category VAT the note documents");
-    assert.equal(delta!.oldLovableWouldGive, perLineSumOfRounded, "oldLovableWouldGive must equal the recorded old per-line comparison value");
-    assert.notEqual(totals.vatOre, delta!.oldLovableWouldGive, "the documented-delta must carry a genuine divergence (Story 10.6 != recorded old value)");
+    assert.equal(totals.vatOre, perLineSumOfRounded, "pinned vatOre must equal the historical Phase A per-line VAT");
+    assert.equal(delta!.oldLovableWouldGive, roundOfSum, "oldLovableWouldGive must equal the documented legacy document-category value");
+    assert.notEqual(totals.vatOre, delta!.oldLovableWouldGive, "the documented-delta must carry a genuine 1-öre divergence");
   });
 });
 

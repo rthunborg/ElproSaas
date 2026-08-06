@@ -10,6 +10,7 @@
  * `node --test` unit runner (via `tests/support/alias-hook.mjs`) and tsc/Next.
  */
 export {
+  isCanonicalTaxPersonSlot,
   VAT_TYPES,
   DEDUCTION_CLASSIFICATIONS,
   GREEN_CATEGORIES,
@@ -54,6 +55,7 @@ export {
   TAX_POLICY_REGISTRY,
   resolveTaxPolicy,
   aggregateDocumentVat,
+  isCoherentVatTypeRate,
   allocateCategoryVatByDeductionClassification,
   computeReconciledDocumentTotals,
   truncateClaimToWholeSekOre,

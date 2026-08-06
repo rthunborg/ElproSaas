@@ -77,6 +77,7 @@ export function PreQuotePreview({
 }) {
   const { customer, sections } = detail;
   const [open, setOpen] = useState(false);
+  const [reviewedRevision, setReviewedRevision] = useState<string | null>(null);
   const router = useRouter();
   const [createState, createAction, createPending] = useActionState(
     createQuoteVersionFromCalculationAction,
@@ -91,7 +92,13 @@ export function PreQuotePreview({
       router.push(`/quotes/${createState.quoteId}/versions/${createState.targetId}`);
     }
   }, [createState.status, createState.quoteId, createState.targetId, router]);
-  const gated = !report.canCreateQuote;
+  const previewStale = reviewedRevision !== null && reviewedRevision !== detail.header.updated_at;
+  const gated = !report.canCreateQuote || taxAnswer === null;
+  const confirmationDisabled =
+    gated ||
+    previewStale ||
+    createPending ||
+    createState.status === "success";
   // Compute the tax sign-off warning ONCE and branch on truthiness (never a `.some(...)` +
   // `.find(...)!` double-scan whose non-null assertion would crash the whole preview if the two
   // predicate strings ever drifted).
@@ -144,7 +151,10 @@ export function PreQuotePreview({
         data-testid="create-quote"
         disabled={gated}
         aria-disabled={gated ? "true" : "false"}
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => {
+          setReviewedRevision(detail.header.updated_at);
+          setOpen((v) => !v);
+        }}
         className="self-start rounded-md bg-blue-700 px-4 py-2 text-sm font-medium text-white hover:bg-blue-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 disabled:cursor-not-allowed disabled:opacity-50"
       >
         {open ? "Dölj förhandsvisning" : "Skapa offertversion"}
@@ -398,10 +408,16 @@ export function PreQuotePreview({
             <button
               type="submit"
               data-testid="confirm-create-quote-version"
-              disabled={createPending}
+              disabled={confirmationDisabled}
               className="self-start rounded-md bg-blue-700 px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
             >
-              {createPending ? "Skapar…" : "Bekräfta och skapa offertversion"}
+              {createPending
+                ? "Skapar…"
+                : createState.status === "success"
+                  ? "Offertversion skapad"
+                  : previewStale
+                    ? "Förhandsvisningen är inaktuell"
+                    : "Bekräfta och skapa offertversion"}
             </button>
           </form>
         </div>

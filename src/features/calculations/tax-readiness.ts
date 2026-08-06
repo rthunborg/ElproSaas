@@ -1,5 +1,4 @@
 import {
-  TAX_POLICY_2026,
   buildTaxAnswerSnapshotV2,
   parseTaxInputSnapshot,
   type DocumentVatRowInput,
@@ -47,7 +46,14 @@ export interface TaxReadinessResolution {
 export function resolveTaxReadiness(input: {
   readonly taxInput: unknown;
   readonly rows: readonly DocumentVatRowInput[];
+  /** The quote-capture fact projected by the caller; never a deduction-payment date. */
+  readonly quoteCaptureDate: string;
+  /** Excluded rows still cross the quote RPC and must be computable. */
+  readonly hasInvalidRow?: boolean;
 }): TaxReadinessResolution {
+  if (input.hasInvalidRow === true) {
+    return { blockingCodes: Object.freeze(["INCOMPLETE_VAT_INPUT"]), answer: null };
+  }
   if (input.taxInput === null || input.taxInput === undefined) {
     return { blockingCodes: Object.freeze(["MISSING_TAX_INPUT"]), answer: null };
   }
@@ -56,14 +62,10 @@ export function resolveTaxReadiness(input: {
     return { blockingCodes: Object.freeze([mapFailure(parsed.code)]), answer: null };
   }
 
-  const quoteCaptureDate =
-    parsed.value.paymentDate ??
-    parsed.value.finalPaymentDate ??
-    TAX_POLICY_2026.validFrom;
   const answer = buildTaxAnswerSnapshotV2({
     rows: input.rows,
     taxInput: parsed.value,
-    quoteCaptureDate,
+    quoteCaptureDate: input.quoteCaptureDate,
   });
   return answer.ok
     ? { blockingCodes: Object.freeze([]), answer: answer.value }
@@ -73,6 +75,8 @@ export function resolveTaxReadiness(input: {
 export function resolveTaxReadinessCodes(input: {
   readonly taxInput: unknown;
   readonly rows: readonly DocumentVatRowInput[];
+  readonly quoteCaptureDate: string;
+  readonly hasInvalidRow?: boolean;
 }): readonly TaxReadinessBlockerCode[] {
   return resolveTaxReadiness(input).blockingCodes;
 }

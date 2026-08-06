@@ -262,6 +262,19 @@ export function buildQuoteVersionSnapshot(
     if (!compatible.ok) {
       throw new TypeError("V2 quote scalar totals do not match its frozen tax answer");
     }
+    if (
+      input.netOre !== undefined && input.netOre !== taxAnswerSnapshot!.netOre ||
+      input.vatOre !== undefined && input.vatOre !== taxAnswerSnapshot!.vatOre ||
+      input.grossOre !== undefined && input.grossOre !== taxAnswerSnapshot!.grossOre ||
+      input.deductionOre !== undefined && input.deductionOre !== taxAnswerSnapshot!.deductionOre ||
+      input.payableOre !== undefined && input.payableOre !== taxAnswerSnapshot!.payableOre ||
+      input.calculatedDeductionOre !== undefined &&
+        input.calculatedDeductionOre !== taxAnswerSnapshot!.calculatedDeductionOre ||
+      input.claimDeductionOre !== undefined &&
+        input.claimDeductionOre !== taxAnswerSnapshot!.claimDeductionOre
+    ) {
+      throw new TypeError("V2 duplicate monetary fields must equal the frozen tax answer");
+    }
   }
 
   return Object.freeze({

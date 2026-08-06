@@ -19,7 +19,6 @@ import { defineCommand } from "../envelope";
 import { CommandError } from "../command-errors";
 import {
   asCalcWriteClient,
-  loadRowOptionState,
   loadRowTaxClassificationState,
   loadRowType,
   throwMappedWriteError,
@@ -170,9 +169,10 @@ function rowInsertValues(
 ): Record<string, unknown> {
   const isOptional = input.is_optional ?? false;
   const isSelected = input.is_selected ?? null;
-  const includedInInvoiceTotal = isOptional
-    ? isSelected === true
-    : (input.included_in_invoice_total ?? true);
+  // Selection is a presentation/option fact; invoice inclusion is independently
+  // explicit. A caller may deliberately keep an optional row billable or a
+  // mandatory row excluded while preparing a calculation.
+  const includedInInvoiceTotal = input.included_in_invoice_total ?? true;
   return {
     tenant_id: tenantId, // resolved tenant — NEVER a client-supplied id
     section_id: input.section_id,
@@ -342,17 +342,6 @@ export const updateRow = defineCommand<UpdateRowInput, CalcCommandResult>({
     }
 
     const patch = buildRowPatch(ctx.input, source);
-    if (ctx.input.is_optional !== undefined || ctx.input.is_selected !== undefined) {
-      const persisted = await loadRowOptionState(ctx.db, ctx.input.id);
-      if (persisted === null) throw new CommandError("TENANT_ACCESS_DENIED");
-      const effectiveOptional = ctx.input.is_optional ?? persisted.isOptional;
-      const effectiveSelected = ctx.input.is_selected ?? persisted.isSelected;
-      if (effectiveOptional) {
-        patch.included_in_invoice_total = effectiveSelected === true;
-      } else if (ctx.input.included_in_invoice_total === undefined) {
-        patch.included_in_invoice_total = persisted.includedInInvoiceTotal;
-      }
-    }
     // Empty-patch guard (Task 3.5): id-only update is a no-op — no `.update({})`.
     if (Object.keys(patch).length === 0) {
       return { targetId: ctx.input.id };

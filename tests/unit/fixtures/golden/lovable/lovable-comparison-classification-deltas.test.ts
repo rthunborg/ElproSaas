@@ -118,7 +118,7 @@ describe("Story 9.3 — CLASSIFICATION-DELTA live-drive: VAT posture (9.3-CMP-01
 });
 
 describe("Story 9.3/10.6 — NUMERIC-DELTA live-drive: quote-total rounding (R-912 numeric arm)", () => {
-  test("[P0] quote-total-rounding-documented-delta — the REAL engine emits document-category VAT (16667), diverging from the recorded old per-line value (16666)", () => {
+  test("[P0] quote-total-rounding-documented-delta — the REAL engine emits document-category VAT (16667), diverging from the recorded Phase A per-line value (16666)", () => {
     const fx = loadLovableFixture("quotes");
     const c = (fx.cases ?? []).find(
       (x) => (x as Record<string, unknown>).id === "quote-total-rounding-documented-delta",
@@ -133,12 +133,12 @@ describe("Story 9.3/10.6 — NUMERIC-DELTA live-drive: quote-total rounding (R-9
     assert.ok(c, "quotes.json must carry the quote-total-rounding-documented-delta case");
     assert.equal(c!.origin, "documented-delta", "this case is a numeric documented delta");
 
-    // The recorded OLD value the harness LABELLING guard requires (R-913 numeric arm).
+    // The recorded legacy-Lovable value the harness LABELLING guard requires (R-913 numeric arm).
     const oldValue = divergentOldValue(c as unknown as Record<string, unknown>);
-    assert.equal(oldValue, 16666, "the divergent old value is the prior per-line VAT (16666)");
+    assert.equal(oldValue, 16667, "the divergent old Lovable value is document-category VAT (16667)");
     assert.equal(typeof oldValue, "number", "the numeric arm carries a number, not a classification code");
-    // The fixture's pinned NEW value (document-category VAT) the delta documents.
-    assert.equal(c!.totals.vatOre, 16667, "the fixture pins the Story 10.6 document-category VAT (16667)");
+    // The fixture remains the historical Phase A per-line oracle; the engine proves the new result.
+    assert.equal(c!.totals.vatOre, 16666, "the fixture pins Phase A per-line VAT (16666)");
 
     // DRIVE the REAL engine at the exact ROUNDING SCENARIO the numeric delta documents: two lines of
     // net 33333 öre each @ 25% VAT. The fixture's `note` states the divergence explicitly —
@@ -147,25 +147,25 @@ describe("Story 9.3/10.6 — NUMERIC-DELTA live-drive: quote-total rounding (R-9
     // (the fixture's representative LINES carry quantity 3, a captured SHAPE — the totals block is NOT
     // a re-pin of those lines; the documented rounding DELTA is the note's net-33333-per-line scenario.
     // We drive the real engine at that scenario, routing every öre op through computeSectionTotal —
-    // NO inline `*0.25`.) The engine's document-category VAT MUST reproduce the fixture's pinned
-    // 16667 and DIVERGE from the recorded old per-line 16666.
+    // NO inline `*0.25`.) The engine's document-category VAT MUST reproduce the recorded
+    // legacy document-level result 16667 and diverge from the Phase A per-line 16666.
     const section = computeSectionTotal([
       { quantity: 1, unit_sell_ore: 33333, vat_rate_bp: 2500, is_hidden: false, is_optional: false, is_selected: null },
       { quantity: 1, unit_sell_ore: 33333, vat_rate_bp: 2500, is_hidden: false, is_optional: false, is_selected: null },
     ]);
     assert.ok(section.ok, "the rounding section must resolve through the real engine");
 
-    // The engine REPRODUCES the fixture's pinned NEW value (document-category VAT = 16667)...
+    // The engine reproduces the legacy document-category value (16667)...
     assert.equal(
       section.value.vatOre,
-      c!.totals.vatOre,
-      "the real engine (document-category VAT) must reproduce the fixture's pinned VAT (16667)",
+      oldValue,
+      "the real engine (document-category VAT) must reproduce the recorded Lovable VAT (16667)",
     );
-    // ...and DIVERGES from the recorded OLD per-line value (16666) — the golden-master signal.
+    // ...and diverges from the historical Phase A per-line value (16666) — the golden-master signal.
     assert.notEqual(
       section.value.vatOre,
-      oldValue,
-      "the real engine's document-category VAT (16667) must DIVERGE from the old per-line value (16666) — the documented 1-öre delta",
+      c!.totals.vatOre,
+      "the real engine's document-category VAT (16667) must diverge from the Phase A per-line value (16666) — the documented 1-öre delta",
     );
     // The delta is exactly the recorded 1-öre divergence (never fabricated). Prove the NEW
     // document-category value equals round((33333+33333)*0.25) so the direction is real.
@@ -175,7 +175,7 @@ describe("Story 9.3/10.6 — NUMERIC-DELTA live-drive: quote-total rounding (R-9
       "the new value must equal the document-level category VAT (16667) — the delta direction is real",
     );
     assert.equal(
-      Math.abs((oldValue as number) - section.value.vatOre),
+      Math.abs(c!.totals.vatOre - section.value.vatOre),
       1,
       "the documented rounding delta must be exactly 1 öre (document-category vs per-line)",
     );

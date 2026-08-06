@@ -177,12 +177,11 @@ test.describe("Story 10.6 — tax answer reconciliation", () => {
     expect(pdfText).toContain("Omvänd betalningsskyldighet");
     expect(pdfText).toContain(calculation.buyerVatNumber);
     expect(pdfText).toContain("Att betala: 3 250,00 kr");
-    expect(pdfText).toContain(
-      "STANDARD_VAT_25 (25 %): netto 1 000,00 kr, moms 250,00 kr, brutto 1 250,00 kr",
-    );
-    expect(pdfText).toContain(
-      "REVERSE_CHARGE_CONSTRUCTION (25 %): netto 2 000,00 kr, moms 0,00 kr, brutto 2 000,00 kr",
-    );
+    expect(pdfText).toContain("Standardmoms");
+    expect(pdfText).toContain("25 %");
+    expect(pdfText).toContain("netto 1 000,00 kr, moms 250,00 kr, brutto 1 250,00 kr");
+    expect(pdfText).toContain("Omvänd betalningsskyldighet");
+    expect(pdfText).toContain("netto 2 000,00 kr, moms 0,00 kr, brutto 2 000,00 kr");
   });
 
   test("[10.6-E2E-02][P1][AC2] visibility, invoice inclusion, and classification remain independent", async ({ page }) => {

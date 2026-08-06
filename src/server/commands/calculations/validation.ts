@@ -26,6 +26,7 @@ import {
   TAX_DEDUCTION_CHOICES as MONEY_TAX_DEDUCTION_CHOICES,
   isDeductionClassification,
   isDeductionClassificationCompatibleWithSummaryCategory,
+  isCoherentVatTypeRate,
   isOreAmount,
   isQuantity,
   isVatRateBp,
@@ -497,6 +498,15 @@ function validateRowCommonFields(
     return fail;
   }
   if (isPresent(raw.vat_type) && !isVatType(raw.vat_type)) return fail;
+  if (
+    isPresent(raw.vat_type) &&
+    isPresent(raw.vat_rate_bp) &&
+    isVatType(raw.vat_type) &&
+    isVatRateBp(raw.vat_rate_bp) &&
+    !isCoherentVatTypeRate(raw.vat_type, raw.vat_rate_bp)
+  ) {
+    return fail;
+  }
   if (!optionalBoolOk(raw.is_optional)) return fail;
   if (!optionalBoolOk(raw.is_selected)) return fail;
   if (!optionalTextOk(raw.label)) return fail;

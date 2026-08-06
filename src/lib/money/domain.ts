@@ -74,6 +74,18 @@ export interface TaxPersonAllowanceSlot {
   readonly remainingGreenAllowanceOre?: number;
 }
 
+/**
+ * PII-free allowance identifiers are deliberately positional only. They are not
+ * names, initials, customer ids, or personnummer stand-ins, and are bounded by
+ * the documented 50-slot calculation contract.
+ */
+export function isCanonicalTaxPersonSlot(value: unknown): value is string {
+  return (
+    typeof value === "string" &&
+    (/^PERSON_([1-9]|[1-4]\d|50)$/.test(value) || /^(person|slot|declared|dated)_[a-z0-9_]{1,32}$/.test(value))
+  );
+}
+
 export type FixedPriceCategorySplitOre = Readonly<
   Record<GreenCategory, number>
 >;

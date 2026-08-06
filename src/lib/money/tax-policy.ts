@@ -75,7 +75,10 @@ const TAX_POLICY_2026_GREEN: GreenPolicy = Object.freeze({
 export const TAX_POLICY_2026: TaxPolicy = Object.freeze({
   id: "SE-TAX-2026-v1",
   validFrom: "2026-01-01",
-  validTo: null,
+  // This is a ratified 2026 policy, not an implicit perpetual default. A later
+  // policy must be added as a new adjacent registry entry before a fresh quote
+  // can be captured in 2027.
+  validTo: "2027-01-01",
   vat: TAX_POLICY_2026_VAT,
   rot: TAX_POLICY_2026_ROT,
   green: TAX_POLICY_2026_GREEN,
@@ -295,11 +298,22 @@ function sellerChargedVatOre(vatType: VatType, netOre: number, rateBp: number): 
   return roundedRatioOre(netOre, rateBp);
 }
 
-function isCoherentVatTypeRate(vatType: VatType, rateBp: number): boolean {
-  if (vatType === "ZERO_RATED") return rateBp === 0;
-  // A numeric rate (including zero) remains its explicitly selected type. Reverse charge uses
-  // the service's underlying rate as category metadata but charges zero seller VAT.
-  return true;
+export function isCoherentVatTypeRate(vatType: VatType, rateBp: number): boolean {
+  // Fresh Story 10.6 facts use only the policy-backed pairs. In particular, a
+  // zero numeric rate never upgrades a supply to reverse charge, and reverse
+  // charge retains the underlying standard rate as category identity.
+  switch (vatType) {
+    case "STANDARD_VAT_25":
+      // An explicit ordinary zero-rate remains distinct from both zero-rated
+      // supply and reverse charge; it is never inferred as either category.
+      return rateBp === 0 || rateBp === TAX_POLICY_2026.vat.standardRateBp;
+    case "REVERSE_CHARGE_CONSTRUCTION":
+      return rateBp === 0 || rateBp === TAX_POLICY_2026.vat.standardRateBp;
+    case "ZERO_RATED":
+      return rateBp === 0;
+    case "REDUCED_VAT":
+      return rateBp === 600 || rateBp === 1200;
+  }
 }
 
 /**
@@ -545,16 +559,37 @@ export function computeReconciledDocumentTotals(input: {
   );
   if (deductionBasisOre === null) return fail("ORE_OVERFLOW");
 
+  const deductionEstimate = estimateClassifiedDeductions({
+    parts: DEDUCTION_CLASSIFICATIONS.map((classification) => ({
+      classification,
+      eligibleCostOre: addOreValues(
+        netByClassification[classification] ?? 0,
+        vatByClassification[classification] ?? 0,
+      ) ?? 0,
+    })),
+    effectiveDate: TAX_POLICY_2026.validFrom,
+  });
+  if (!deductionEstimate.ok) return deductionEstimate;
+  const deductionOre = addOreValues(
+    deductionEstimate.value.rotDeductionOre,
+    deductionEstimate.value.greenSolarDeductionOre,
+    deductionEstimate.value.greenStorageDeductionOre,
+    deductionEstimate.value.greenChargingDeductionOre,
+  );
+  if (deductionOre === null || deductionOre > aggregate.value.grossOre) {
+    return fail(deductionOre === null ? "ORE_OVERFLOW" : "DEDUCTION_EXCEEDS_GROSS");
+  }
   return ok(Object.freeze({
     ...aggregate.value,
     rotBasisNetOre,
     greenBasisNetOre,
     deductionBasisOre,
-    deductionOre: 0,
-    payableOre: aggregate.value.grossOre,
+    deductionOre,
+    payableOre: aggregate.value.grossOre - deductionOre,
     vatByDeductionClassification: Object.freeze(vatByClassification),
   }));
 }
+
 
 /** Discard öre below whole kronor at the tax-claim boundary. */
 export function truncateClaimToWholeSekOre(claimOre: number): number | null {

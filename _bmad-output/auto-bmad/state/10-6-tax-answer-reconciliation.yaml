@@ -5,11 +5,11 @@ epic_num: 10
 story_num: 6
 branch: story/10-6-tax-answer-reconciliation
 status: in-progress
-updated_at: "2026-08-06T18:11:45Z"
+updated_at: "2026-08-06T19:54:13Z"
 started_at: "2026-07-29T10:02:59Z"
 completed_at: null
-active_seconds: 91566
-timing_anchor: null
+active_seconds: 93177
+timing_anchor: 1786043137
 is_first_in_epic: false
 is_last_in_epic: false
 needs_project_context_bootstrap: false
@@ -21,13 +21,13 @@ tea_rationale: "Legally consequential money/tax engine changes and golden-master
 epic_story_count: 7
 stories_after_in_epic: 1
 completed_phases: [0, 1, 2, 3, 4, 5, 6]
-code_review_iterations: 0
+code_review_iterations: 1
 code_review_loop_done: false
 hitl_halt: null
 external_review_iterations: 0
 convergence_unverified: false
 story_trace: null
-commits: [c091f02, b76a59d, 11ed949, 83e597d]
+commits: [c091f02, b76a59d, 11ed949, 83e597d, 56f92b8]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -47,7 +47,6 @@ merge_method: null
 merge_commit: null
 branch_deleted: false
 open_questions:
-  - "Should SE-TAX-2026-v1 remain open-ended, or should unknown future years fail closed?"
   - "Should TAX_SIGN_OFF_REQUIRED remain sendable, including known non-private eligibility, or hard-block pending human confirmation?"
   - "Should insufficient declared ROT/green allowance block finalization or reduce the claim automatically?"
   - "Confirm that each fixed-price green category input is gross including VAT and reconciles before applying the 97% rule."
@@ -59,4 +58,7 @@ deferred_work:
   - "Hardening follow-up: make SQL tax-input/person-slot JSON validators reject unknown keys."
 blockers: []
 overrides: {}
-constraints: []
+constraints:
+  - "Owner-approved review decision: SE-TAX-2026-v1 is valid through 2026-12-31 and unknown policy horizons fail closed."
+  - "Owner-approved review decision: document VAT state is standard/reverse-charge only while mixed row VAT categories remain supported."
+  - "Owner-approved review decision: calculation-row migration uses staged low-lock backfill and deferred validation."

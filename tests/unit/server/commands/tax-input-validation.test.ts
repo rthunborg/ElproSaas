@@ -37,7 +37,7 @@ function baseRow(overrides: Record<string, unknown> = {}) {
 }
 
 describe("Story 10.6 Task 3 tax-input validation", () => {
-  test("keeps the deduction choice closed and accepts an unresolved buyer VAT as a draft", () => {
+  test("keeps the deduction choice closed and requires buyer VAT for reverse charge", () => {
     assert.deepEqual(TAX_DEDUCTION_CHOICES, [
       "NONE",
       "ROT",
@@ -48,8 +48,13 @@ describe("Story 10.6 Task 3 tax-input validation", () => {
       ...baseTaxInput,
       documentVatType: "REVERSE_CHARGE_CONSTRUCTION",
     });
-    assert.equal(result.ok, true);
-    if (result.ok) assert.equal(result.data.buyerVatNumber, null);
+    assert.equal(result.ok, false);
+    const resolved = validateTaxInputSnapshot({
+      ...baseTaxInput,
+      documentVatType: "REVERSE_CHARGE_CONSTRUCTION",
+      buyerVatNumber: "SE556677889901",
+    });
+    assert.equal(resolved.ok, true);
   });
 
   test("requires a valid resolving date and stable PII-free allowance slots for ROT", () => {
@@ -151,11 +156,11 @@ describe("Story 10.6 Task 3 tax-input validation", () => {
       finalPaymentDate: "2026-08-06",
       personAllowanceSlots: [
         {
-          slot: "PERSON_ROT",
+          slot: "PERSON_1",
           remainingRotAllowanceOre: 5_000_000,
           remainingCombinedRotRutAllowanceOre: 7_500_000,
         },
-        { slot: "PERSON_GREEN", remainingGreenAllowanceOre: 5_000_000 },
+        { slot: "PERSON_2", remainingGreenAllowanceOre: 5_000_000 },
       ],
     };
     assert.equal(validateTaxInputSnapshot(disjointPeople).ok, true);
@@ -163,8 +168,8 @@ describe("Story 10.6 Task 3 tax-input validation", () => {
       validateTaxInputSnapshot({
         ...disjointPeople,
         personAllowanceSlots: [
-          { slot: "PERSON_ROT", remainingRotAllowanceOre: 5_000_000 },
-          { slot: "PERSON_GREEN", remainingGreenAllowanceOre: 5_000_000 },
+          { slot: "PERSON_1", remainingRotAllowanceOre: 5_000_000 },
+          { slot: "PERSON_2", remainingGreenAllowanceOre: 5_000_000 },
         ],
       }).ok,
       false,

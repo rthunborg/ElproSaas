@@ -143,6 +143,7 @@ export function CalculationEditor({
       });
       return {
         id: row.id,
+        computationFailed: !line.ok,
         netOre: line.ok ? line.value.netOre : 0,
         vatType: row.vat_type,
         rateBp: row.vat_rate_bp,
@@ -160,6 +161,10 @@ export function CalculationEditor({
   const taxResolution = resolveTaxReadiness({
     taxInput: header.tax_input_snapshot,
     rows: taxRows,
+    // Header revision is the server-projected calculation capture fact used for
+    // this preview. Payment dates resolve only ROT/green policy, never VAT.
+    quoteCaptureDate: header.updated_at.slice(0, 10),
+    hasInvalidRow: taxRows.some((row) => row.computationFailed),
   });
   const deductionChoice = header.tax_input_snapshot?.deductionChoice ?? "NONE";
 

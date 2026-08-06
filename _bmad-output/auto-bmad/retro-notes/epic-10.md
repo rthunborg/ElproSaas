@@ -46,3 +46,5 @@
 - Owner/accounting sign-off remains on 2026 policy validity, sign-off blocking, allowance behavior, 97% gross semantics, mixed ROT+green, and reverse-charge coexistence.
 - Coverage decision: add direct authenticated cross-tenant negatives for both quote-creation RPCs alongside generic table RLS coverage.
 - Test-evidence rule: pair skip-aware integration output with required-stack fail-closed evidence whenever local Supabase is unavailable.
+- [Phase 7 â€” code review] Owner approved fixes: expire SE-TAX-2026-v1 on 2026-12-31, make document VAT standard/reverse-only while preserving mixed rows, and stage the migration for low-lock rollout.
+- [Phase 7 â€” code review] Iteration 1 persisted and fixed 19 non-deferred findings (9 High, 10 Medium); one pre-existing SECURITY INVOKER/table-grant architecture issue remains logged as deferred.

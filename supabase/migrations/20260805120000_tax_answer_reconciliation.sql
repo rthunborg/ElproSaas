@@ -54,7 +54,7 @@ begin
       jsonb_typeof(p_value -> 'validTo') = 'null'
       or (p_value ->> 'validTo') ~ '^\d{4}-\d{2}-\d{2}$'
     )
-    and jsonb_typeof(p_value -> 'validTo') = 'null'
+    and p_value ->> 'validTo' = '2027-01-01'
     and jsonb_typeof(p_value -> 'resolvingDate') = 'string'
     and (p_value ->> 'resolvingDate') ~ '^\d{4}-\d{2}-\d{2}$'
     and (p_value ->> 'resolvingDate')::date >= (p_value ->> 'validFrom')::date
@@ -156,6 +156,30 @@ as $$
   )
 $$;
 
+create or replace function public.is_story_10_6_calendar_date(p_value text)
+returns boolean
+language plpgsql
+immutable
+security invoker
+set search_path = ''
+as $$
+begin
+  if p_value !~ '^\d{4}-\d{2}-\d{2}$' then
+    return false;
+  end if;
+  return to_char(
+    make_date(
+      substring(p_value from 1 for 4)::integer,
+      substring(p_value from 6 for 2)::integer,
+      substring(p_value from 9 for 2)::integer
+    ),
+    'YYYY-MM-DD'
+  ) = p_value;
+exception when others then
+  return false;
+end;
+$$;
+
 create or replace function public.is_story_10_6_tax_input_v2(p_value jsonb)
 returns boolean
 language plpgsql
@@ -181,13 +205,21 @@ begin
      ]) then
     return false;
   end if;
+  if exists (
+    select 1 from jsonb_object_keys(p_value) as key
+    where key not in (
+      'schemaVersion', 'documentVatType', 'buyerVatNumber', 'deductionChoice',
+      'paymentDate', 'finalPaymentDate', 'personAllowanceSlots',
+      'greenBasisMethod', 'genuineFixedPrice', 'fixedPriceOre',
+      'fixedPriceCategorySplitOre'
+    )
+  ) then
+    return false;
+  end if;
 
   if jsonb_typeof(p_value -> 'schemaVersion') <> 'number'
      or (p_value ->> 'schemaVersion')::numeric <> 2
-     or p_value ->> 'documentVatType' not in (
-       'STANDARD_VAT_25', 'REDUCED_VAT', 'ZERO_RATED',
-       'REVERSE_CHARGE_CONSTRUCTION'
-     )
+     or p_value ->> 'documentVatType' not in ('STANDARD_VAT_25', 'REVERSE_CHARGE_CONSTRUCTION')
      or p_value ->> 'deductionChoice' not in (
        'NONE', 'ROT', 'GREEN', 'ROT_AND_GREEN'
      )
@@ -210,11 +242,11 @@ begin
     return false;
   end if;
   if jsonb_typeof(p_value -> 'paymentDate') = 'string'
-     and not ((p_value ->> 'paymentDate') ~ '^\d{4}-\d{2}-\d{2}$') then
+     and not public.is_story_10_6_calendar_date(p_value ->> 'paymentDate') then
     return false;
   end if;
   if jsonb_typeof(p_value -> 'finalPaymentDate') = 'string'
-     and not ((p_value ->> 'finalPaymentDate') ~ '^\d{4}-\d{2}-\d{2}$') then
+     and not public.is_story_10_6_calendar_date(p_value ->> 'finalPaymentDate') then
     return false;
   end if;
   if p_value ->> 'deductionChoice' in ('ROT', 'ROT_AND_GREEN')
@@ -235,7 +267,11 @@ begin
   loop
     if jsonb_typeof(v_slot) <> 'object'
        or jsonb_typeof(v_slot -> 'slot') <> 'string'
-       or not ((v_slot ->> 'slot') ~ '^[A-Za-z][A-Za-z0-9_-]{0,63}$') then
+       or not ((v_slot ->> 'slot') ~ '^(PERSON_([1-9]|[1-4][0-9]|50)|(person|slot|declared|dated)_[a-z0-9_]{1,32})$')
+       or exists (select 1 from jsonb_object_keys(v_slot) as key where key not in (
+         'slot', 'remainingAllowanceOre', 'remainingRotAllowanceOre',
+         'remainingCombinedRotRutAllowanceOre', 'remainingGreenAllowanceOre'
+       )) then
       return false;
     end if;
     if (v_slot ->> 'slot') = any(v_seen_slots) then
@@ -287,6 +323,12 @@ begin
     if not ((p_value -> 'fixedPriceCategorySplitOre') ?& array['SOLAR', 'STORAGE', 'CHARGING']) then
       return false;
     end if;
+    if exists (
+      select 1 from jsonb_object_keys(p_value -> 'fixedPriceCategorySplitOre') as key
+      where key not in ('SOLAR', 'STORAGE', 'CHARGING')
+    ) then
+      return false;
+    end if;
     foreach v_category in array array['SOLAR', 'STORAGE', 'CHARGING']
     loop
       if not public.is_story_10_6_ore(p_value #> array['fixedPriceCategorySplitOre', v_category]) then
@@ -335,6 +377,8 @@ declare
   v_policy_id text;
   v_rule_id text;
   v_seen_rule_ids text[] := array[]::text[];
+  v_expected_rule_ids text[] := array[]::text[];
+  v_distinct_expected_rule_ids text[] := array[]::text[];
   v_seen_slots text[] := array[]::text[];
   v_category_key text;
   v_seen_category_keys text[] := array[]::text[];
@@ -357,20 +401,31 @@ begin
      ]) then
     return false;
   end if;
+  if exists (
+    select 1 from jsonb_object_keys(p_value) as key
+    where key not in (
+      'schemaVersion', 'taxRuleVersions', 'vatPolicy', 'documentVatType', 'buyerVatNumber',
+      'reverseChargeApplied', 'deductionChoice', 'categories',
+      'netByDeductionClassification', 'vatByDeductionClassification', 'summaries', 'rot', 'green',
+      'netOre', 'vatOre', 'grossOre', 'calculatedDeductionOre', 'claimDeductionOre',
+      'deductionOre', 'payableOre'
+    )
+  ) then
+    return false;
+  end if;
   if jsonb_typeof(p_value -> 'schemaVersion') <> 'number'
      or (p_value ->> 'schemaVersion')::numeric <> 2
      or jsonb_typeof(p_value -> 'taxRuleVersions') <> 'array'
      or jsonb_array_length(p_value -> 'taxRuleVersions') = 0
+     or jsonb_array_length(p_value -> 'taxRuleVersions') > 3
      or not public.is_story_10_6_tax_policy_snapshot(p_value -> 'vatPolicy')
      or p_value #>> array['vatPolicy', 'resolvingFact'] <> 'QUOTE_CAPTURE_DATE'
-     or p_value ->> 'documentVatType' not in (
-       'STANDARD_VAT_25', 'REDUCED_VAT', 'ZERO_RATED',
-       'REVERSE_CHARGE_CONSTRUCTION'
-     )
+     or p_value ->> 'documentVatType' not in ('STANDARD_VAT_25', 'REVERSE_CHARGE_CONSTRUCTION')
      or jsonb_typeof(p_value -> 'buyerVatNumber') not in ('string', 'null')
      or jsonb_typeof(p_value -> 'reverseChargeApplied') <> 'boolean'
      or p_value ->> 'deductionChoice' not in ('NONE', 'ROT', 'GREEN', 'ROT_AND_GREEN')
      or jsonb_typeof(p_value -> 'categories') <> 'array'
+     or jsonb_array_length(p_value -> 'categories') > 4
      or jsonb_typeof(p_value -> 'netByDeductionClassification') <> 'object'
      or jsonb_typeof(p_value -> 'vatByDeductionClassification') <> 'object'
      or jsonb_typeof(p_value -> 'summaries') <> 'object'
@@ -391,7 +446,8 @@ begin
     v_seen_rule_ids := array_append(v_seen_rule_ids, v_rule_id);
   end loop;
   v_policy_id := p_value #>> array['vatPolicy', 'id'];
-  if p_value -> 'taxRuleVersions' <> jsonb_build_array(v_policy_id) then
+  v_expected_rule_ids := array_append(v_expected_rule_ids, v_policy_id);
+  if not ((p_value -> 'taxRuleVersions') @> jsonb_build_array(v_policy_id)) then
     return false;
   end if;
 
@@ -416,6 +472,14 @@ begin
        or jsonb_typeof(v_value -> 'rateBp') <> 'number'
        or (v_value ->> 'rateBp')::numeric <> trunc((v_value ->> 'rateBp')::numeric)
        or (v_value ->> 'rateBp')::numeric not between 0 and 10000
+       or (v_value ->> 'vatType' = 'STANDARD_VAT_25'
+           and (v_value ->> 'rateBp')::numeric not in (0, 2500))
+       or (v_value ->> 'vatType' = 'REVERSE_CHARGE_CONSTRUCTION'
+           and (v_value ->> 'rateBp')::numeric not in (0, 2500))
+       or (v_value ->> 'vatType' = 'ZERO_RATED'
+           and (v_value ->> 'rateBp')::numeric <> 0)
+       or (v_value ->> 'vatType' = 'REDUCED_VAT'
+           and (v_value ->> 'rateBp')::numeric not in (600, 1200))
        or not public.is_story_10_6_ore(v_value -> 'netOre')
        or not public.is_story_10_6_ore(v_value -> 'vatOre')
        or not public.is_story_10_6_ore(v_value -> 'grossOre')
@@ -430,6 +494,10 @@ begin
       if (v_value ->> 'vatOre')::bigint <> 0 then
         return false;
       end if;
+    elsif (v_value ->> 'vatOre')::numeric <> floor(
+      ((v_value ->> 'netOre')::numeric * (v_value ->> 'rateBp')::numeric + 5000) / 10000
+    ) then
+      return false;
     end if;
     v_category_key := (v_value ->> 'vatType') || ':' || (v_value ->> 'rateBp');
     if v_category_key = any(v_seen_category_keys) then
@@ -449,11 +517,11 @@ begin
   if (p_value ->> 'reverseChargeApplied')::boolean is distinct from v_has_reverse then
     return false;
   end if;
-  if v_has_reverse and (
+  if (v_has_reverse and (
     p_value ->> 'documentVatType' <> 'REVERSE_CHARGE_CONSTRUCTION'
     or jsonb_typeof(p_value -> 'buyerVatNumber') <> 'string'
     or not public.is_story_10_6_buyer_vat_number(p_value ->> 'buyerVatNumber')
-  ) then
+  )) or ((not v_has_reverse) and p_value ->> 'documentVatType' <> 'STANDARD_VAT_25') then
     return false;
   end if;
   if jsonb_typeof(p_value -> 'buyerVatNumber') = 'string'
@@ -748,12 +816,25 @@ begin
     if not ((p_value -> 'taxRuleVersions') @> jsonb_build_array(v_policy_id)) then
       return false;
     end if;
+    v_expected_rule_ids := array_append(v_expected_rule_ids, v_policy_id);
   end if;
   if jsonb_typeof(p_value #> array['green', 'policy']) = 'object' then
     v_policy_id := p_value #>> array['green', 'policy', 'id'];
     if not ((p_value -> 'taxRuleVersions') @> jsonb_build_array(v_policy_id)) then
       return false;
     end if;
+    v_expected_rule_ids := array_append(v_expected_rule_ids, v_policy_id);
+  end if;
+
+  select coalesce(array_agg(distinct id order by id), array[]::text[])
+    into v_distinct_expected_rule_ids
+    from unnest(v_expected_rule_ids) as ids(id);
+  if cardinality(v_seen_rule_ids) <> cardinality(v_distinct_expected_rule_ids)
+     or exists (
+       select 1 from unnest(v_seen_rule_ids) as ids(id)
+       where not (id = any(v_distinct_expected_rule_ids))
+     ) then
+    return false;
   end if;
 
   return true;
@@ -806,6 +887,9 @@ declare
   v_bonus_used boolean[];
 begin
   if not public.is_story_10_6_tax_answer_v2(p_answer)
+     or p_lines is null
+     or jsonb_typeof(p_lines) <> 'array'
+     or jsonb_array_length(p_lines) > 500
      or p_lines is null
      or jsonb_typeof(p_lines) <> 'array' then
     return false;
@@ -1276,30 +1360,65 @@ comment on function public.is_story_10_6_tax_answer_matches_input(jsonb, jsonb, 
 -- --------------------------------------------------------------------------
 -- Calculation inputs: visibility, economic inclusion and deduction eligibility
 -- are independent facts. Legacy optional-selection state is interpreted exactly
--- once during this backfill; all later totals read included_in_invoice_total only.
+-- by a controlled post-deploy job; all later totals read included_in_invoice_total only.
 -- --------------------------------------------------------------------------
 alter table public.calculation_rows
   add column included_in_invoice_total boolean,
   add column deduction_classification text,
   add column vat_type text;
 
-update public.calculation_rows
-   set included_in_invoice_total = (not is_optional or is_selected is true),
-       deduction_classification = 'NONE',
-       -- Never infer reverse charge from a legacy zero rate. Historical rows have
-       -- no explicit VAT type, so the only safe compatibility default is standard.
-       vat_type = 'STANDARD_VAT_25'
- where included_in_invoice_total is null
-    or deduction_classification is null
-    or vat_type is null;
-
+-- DEPLOYMENT POSTURE: do not rewrite a live calculation_rows table while taking this
+-- schema lock. New writes receive safe defaults; the repository-owned staged backfill
+-- below is deliberately bounded and may be invoked repeatedly between deployments.
 alter table public.calculation_rows
   alter column included_in_invoice_total set default true,
-  alter column included_in_invoice_total set not null,
   alter column deduction_classification set default 'NONE',
-  alter column deduction_classification set not null,
-  alter column vat_type set default 'STANDARD_VAT_25',
-  alter column vat_type set not null,
+  alter column vat_type set default 'STANDARD_VAT_25';
+
+create or replace function public.backfill_story_10_6_calculation_rows(p_batch_size integer default 500)
+returns integer
+language plpgsql
+set search_path = ''
+as $$
+declare
+  v_updated integer;
+begin
+  if p_batch_size < 1 or p_batch_size > 5000 then
+    raise exception using errcode = '22023', message = 'Story 10.6 backfill batch must be between 1 and 5000';
+  end if;
+  with candidates as (
+    select id
+    from public.calculation_rows
+    where included_in_invoice_total is null
+       or deduction_classification is null
+       or vat_type is null
+    order by id
+    limit p_batch_size
+    for update skip locked
+  )
+  update public.calculation_rows row
+     set included_in_invoice_total = coalesce(row.included_in_invoice_total, not row.is_optional or row.is_selected is true),
+         deduction_classification = coalesce(row.deduction_classification, 'NONE'),
+         -- Legacy rows had no explicit VAT category. Preserve the unambiguous reduced
+         -- rates; a legacy zero becomes ordinary zero-rated, never reverse.
+         vat_type = coalesce(row.vat_type, case
+           when row.vat_rate_bp = 0 then 'ZERO_RATED'
+           when row.vat_rate_bp in (600, 1200) then 'REDUCED_VAT'
+           else 'STANDARD_VAT_25'
+         end)
+   where row.id in (select id from candidates);
+  get diagnostics v_updated = row_count;
+  return v_updated;
+end;
+$$;
+
+alter table public.calculation_rows
+  add constraint calculation_rows_included_in_invoice_total_present_check
+    check (included_in_invoice_total is not null) not valid,
+  add constraint calculation_rows_deduction_classification_present_check
+    check (deduction_classification is not null) not valid,
+  add constraint calculation_rows_vat_type_present_check
+    check (vat_type is not null) not valid,
   add constraint calculation_rows_deduction_classification_check
     check (deduction_classification in (
       'NONE',
@@ -1310,7 +1429,7 @@ alter table public.calculation_rows
       'GREEN_STORAGE_MATERIAL',
       'GREEN_CHARGING_LABOR',
       'GREEN_CHARGING_MATERIAL'
-    )),
+    )) not valid,
   add constraint calculation_rows_classification_matches_row_type_check
     check (
       deduction_classification = 'NONE'
@@ -1328,14 +1447,22 @@ alter table public.calculation_rows
           'GREEN_CHARGING_MATERIAL'
         )
       )
-    ),
+    ) not valid,
   add constraint calculation_rows_vat_type_check
     check (vat_type in (
       'STANDARD_VAT_25',
       'REDUCED_VAT',
       'ZERO_RATED',
       'REVERSE_CHARGE_CONSTRUCTION'
-    ));
+    )) not valid,
+  add constraint calculation_rows_vat_type_rate_check
+    check (
+      vat_type is null or vat_rate_bp is null or
+      (vat_type = 'STANDARD_VAT_25' and vat_rate_bp in (0, 2500)) or
+      (vat_type = 'REVERSE_CHARGE_CONSTRUCTION' and vat_rate_bp in (0, 2500)) or
+      (vat_type = 'REDUCED_VAT' and vat_rate_bp in (600, 1200)) or
+      (vat_type = 'ZERO_RATED' and vat_rate_bp = 0)
+    ) not valid;
 
 comment on column public.calculation_rows.included_in_invoice_total is
   'Story 10.6 sole economic-inclusion input. Independent of is_hidden; legacy values were backfilled once from optional selection.';
