@@ -855,6 +855,129 @@ describe("Story 10.6 — local Supabase behavior", () => {
     expect(Number(count[0]?.count)).toBe(1);
   });
 
+  it("[10.6-INT-12][P0] authenticated Tenant B cannot call either fresh-version RPC against Tenant A data and leaves the existing A quote untouched", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
+    const tenantBClient = await makeAuthedServerClient(fixture.adminB);
+    const existing = await createFreshV2();
+
+    type TenantWriteFootprint = {
+      quote_count: string;
+      version_count: string;
+      line_count: string;
+      event_count: string;
+      counter_value: string | null;
+    };
+    type ExistingVersionState = {
+      id: string;
+      quote_id: string;
+      version_number: string;
+      quote_number: string;
+      status: string;
+      snapshot_schema_version: number;
+      tax_rule_version: string;
+      tax_answer_snapshot: Record<string, unknown>;
+      buyer_vat_number: string | null;
+      calculated_deduction_ore: string;
+      claim_deduction_ore: string;
+      payable_ore: string;
+      accepted_price_ore: string;
+    };
+    type ExistingLineState = {
+      id: string;
+      quote_version_id: string;
+      row_type: string;
+      label: string | null;
+      line_net_ore: string;
+      vat_rate_bp: number;
+      included_in_invoice_total: boolean;
+      deduction_classification: string;
+      vat_type: string;
+      is_hidden: boolean;
+      is_optional: boolean;
+      is_selected: boolean | null;
+    };
+
+    const readFootprint = async (): Promise<TenantWriteFootprint> => {
+      const rows = await adminQuery<TenantWriteFootprint>(
+        `select
+           (select count(*)::text from public.quotes
+             where tenant_id = $1) as quote_count,
+           (select count(*)::text from public.quote_versions
+             where tenant_id = $1) as version_count,
+           (select count(*)::text from public.quote_version_lines
+             where tenant_id = $1) as line_count,
+           (select count(*)::text from public.quote_events
+             where tenant_id = $1) as event_count,
+           (select current_value::text from public.tenant_counters
+             where tenant_id = $1 and counter_name = 'quote_number') as counter_value`,
+        [fixture.tenantA.id],
+      );
+      expect(rows).toHaveLength(1);
+      return rows[0]!;
+    };
+
+    const readExistingState = async () => {
+      const versions = await adminQuery<ExistingVersionState>(
+        `select id, quote_id, version_number::text, quote_number::text, status,
+                snapshot_schema_version, tax_rule_version, tax_answer_snapshot,
+                buyer_vat_number, calculated_deduction_ore::text,
+                claim_deduction_ore::text, payable_ore::text, accepted_price_ore::text
+           from public.quote_versions where id = $1`,
+        [existing.versionId],
+      );
+      const lines = await adminQuery<ExistingLineState>(
+        `select id, quote_version_id, row_type, label, line_net_ore::text, vat_rate_bp,
+                included_in_invoice_total, deduction_classification, vat_type,
+                is_hidden, is_optional, is_selected
+           from public.quote_version_lines
+          where quote_version_id = $1
+          order by sort_order, id`,
+        [existing.versionId],
+      );
+      expect(versions).toHaveLength(1);
+      expect(lines).toHaveLength(1);
+      return { version: versions[0]!, lines };
+    };
+
+    const beforeFootprint = await readFootprint();
+    const beforeState = await readExistingState();
+
+    const deniedInitial = await tenantBClient.rpc("create_quote_version_from_calculation", {
+      p_tenant_id: fixture.tenantA.id,
+      p_calculation_id: calculationId,
+      p_captured_at: CAPTURED_AT,
+      p_customer_id: customerId,
+      p_facility_id: null,
+      p_contact_id: null,
+      p_snapshot: validSnapshot(),
+      p_lines: [validLine()],
+      p_attachments: [],
+    });
+    expect(deniedInitial.data).toBeNull();
+    expect(deniedInitial.error).not.toBeNull();
+
+    const deniedNewVersion = await tenantBClient.rpc("create_new_quote_version", {
+      p_tenant_id: fixture.tenantA.id,
+      p_quote_id: existing.quoteId,
+      p_calculation_id: calculationId,
+      p_captured_at: CAPTURED_AT,
+      p_customer_id: customerId,
+      p_facility_id: null,
+      p_contact_id: null,
+      p_snapshot: validSnapshot(),
+      p_lines: [validLine()],
+      p_attachments: [],
+      p_supersede_prior: true,
+    });
+    expect(deniedNewVersion.data).toBeNull();
+    expect(deniedNewVersion.error).not.toBeNull();
+
+    const afterFootprint = await readFootprint();
+    const afterState = await readExistingState();
+    expect(afterFootprint).toEqual(beforeFootprint);
+    expect(afterState).toEqual(beforeState);
+  });
+
   it("[10.6-INT-06][P0] historical V1 stays readable but a V1 draft cannot newly send", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     const quote = await adminQuery<{ id: string }>(

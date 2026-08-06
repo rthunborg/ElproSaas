@@ -44,3 +44,5 @@
 - Accepted limitation: keep quote RPCs SECURITY INVOKER; same-tenant valid direct lifecycle DML can bypass command audit provenance until a broader privilege/API redesign.
 - Verification gap: Docker/Supabase was unavailable locally, so CI must execute 10 DB-backed assertions and Story 10.6 E2E before release.
 - Owner/accounting sign-off remains on 2026 policy validity, sign-off blocking, allowance behavior, 97% gross semantics, mixed ROT+green, and reverse-charge coexistence.
+- Coverage decision: add direct authenticated cross-tenant negatives for both quote-creation RPCs alongside generic table RLS coverage.
+- Test-evidence rule: pair skip-aware integration output with required-stack fail-closed evidence whenever local Supabase is unavailable.

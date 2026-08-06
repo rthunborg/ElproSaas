@@ -453,10 +453,14 @@ GPT-5 Codex
 - Migration parse/runtime harnesses — PASS: pglast parse and focused PGlite validator/trigger
   scenarios, including exact policy math, fixed-price reconciliation, sent insertion/transition
   rejection, child immutability, and line/input binding.
-- `pnpm exec vitest run tests/integration/commands/tax-answer-reconciliation.int.test.ts
+- Phase 5 baseline, `pnpm exec vitest run tests/integration/commands/tax-answer-reconciliation.int.test.ts
   tests/integration/commands/tax-answer-acceptance-job.int.test.ts` — PASS in skip-aware mode:
   3 source-contract tests passed and 10 DB-backed tests skipped because the local Supabase stack was
   unreachable.
+- Phase 6 targeted rerun, `pnpm exec vitest run
+  tests/integration/commands/tax-answer-reconciliation.int.test.ts` — PASS in skip-aware mode:
+  3 source-contract tests passed and 9 DB-backed tests skipped. The newly added direct cross-tenant
+  RPC case is among the skipped DB cases and therefore remains pending a real local/CI stack run.
 - `pnpm exec supabase db reset` — SKIPPED-WITH-REASON / infrastructure failure: Docker Desktop's
   Linux engine pipe was unavailable; no global Docker setting was changed.
 - `SUPABASE_TEST_REQUIRED=1 pnpm run test:int` — expected hard FAIL before test discovery because
@@ -491,6 +495,10 @@ GPT-5 Codex
 - Added/re-derived structured money, calculation, snapshot, PDF, and acceptance-to-job goldens;
   repaired the touched self-skipping standing controls; and routed all new Story 10.6 fixtures
   through the shared PII scanner.
+- Added `10.6-INT-12`, a direct authenticated Tenant B regression for both redefined quote-version
+  RPCs. It asserts rejection and an exact before/after Tenant A quote/version/line/event/counter plus
+  frozen-parent readback, covering the SECURITY INVOKER + RLS boundary without duplicating UI or
+  pure-money tests.
 - Recorded the intentional Lovable parity delta: Story 10.6 document-category VAT may differ by one
   öre from the historical per-line oracle. Captured old values remain unchanged.
 - Accepted architecture limitation: the inherited `SECURITY INVOKER` design requires same-tenant
@@ -502,7 +510,7 @@ GPT-5 Codex
 - Non-blocking security hardening follow-up: database JSON validators require every canonical key
   but do not reject additional unknown keys. Application parsing strips extras; RLS isolates them,
   but a future migration can make the database payloads closed-key if the owner prioritizes it.
-- Release-verification gap: Docker/Supabase was unavailable locally. The empty-DB reset, all 10
+- Release-verification gap: Docker/Supabase was unavailable locally. The empty-DB reset, all 11
   DB-backed integration assertions, and the Story 10.6 Playwright path must execute in CI or on a
   running local stack before release. Required-mode integration correctly failed closed.
 
@@ -510,6 +518,7 @@ GPT-5 Codex
 
 - `_bmad-output/implementation-artifacts/10-6-tax-answer-reconciliation.md`
 - `_bmad-output/implementation-artifacts/sprint-status.yaml`
+- `_bmad-output/test-artifacts/automation-summary.md`
 - `src/components/calculations/CalculationEditor.tsx`
 - `src/components/calculations/PreQuotePreview.tsx`
 - `src/components/calculations/RowEditor.tsx`
@@ -588,3 +597,5 @@ GPT-5 Codex
   engine, V2 snapshot/PDF/acceptance path, compatibility adapter, validation/readiness/UI changes,
   and full automated evidence. Status set to `review`; Docker-backed gates remain explicitly
   pending execution on available infrastructure.
+- 2026-08-06: Phase 6 automation expansion added direct foreign-tenant coverage for both Story 10.6
+  quote-version RPCs and recorded fail-closed Docker/Supabase validation evidence.
