@@ -19,9 +19,20 @@
  */
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { extractNewVersionResult } from "@/server/commands/quotes/new-version";
+import {
+  extractNewVersionResult,
+  isRecoverableLegacyDraftParent,
+} from "@/server/commands/quotes/new-version";
 
 const VERSION_ID = "33333333-3333-3333-3333-333333333333";
+
+test("10.6 recovery: only a literal V1/null-schema draft may branch from a draft parent", () => {
+  assert.equal(isRecoverableLegacyDraftParent("draft", null), true);
+  assert.equal(isRecoverableLegacyDraftParent("draft", 2), false);
+  assert.equal(isRecoverableLegacyDraftParent("draft", 1), false);
+  assert.equal(isRecoverableLegacyDraftParent("sent", null), false);
+  assert.equal(isRecoverableLegacyDraftParent("accepted", null), false);
+});
 
 test("6.5-INT-01 (unit): a single-object row with a numeric version_number is normalized", () => {
   const res = extractNewVersionResult({

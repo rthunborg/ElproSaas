@@ -19,8 +19,11 @@ import { defineCommand } from "../envelope";
 import { CommandError } from "../command-errors";
 import {
   asCalcWriteClient,
+  loadActiveCalculationRowCountForSection,
+  loadRowOptionState,
   loadRowTaxClassificationState,
   loadRowType,
+  loadRowVatState,
   throwMappedWriteError,
 } from "./calc-db";
 import {
@@ -38,6 +41,9 @@ import {
 import type { CommandExecuteContext } from "../envelope-core";
 import type { CommandDbClient } from "../envelope";
 import { isDeductionClassificationCompatibleWithSummaryCategory } from "@/lib/money";
+import { canAddCalculationRow } from "@/features/calculations/limits";
+import { invoiceInclusionForOptionSelectionTransition } from "@/features/calculations/row-option-transition";
+import { isEffectiveRowVatPairCoherent } from "@/features/calculations/row-vat-transition";
 import type { CalcCommandResult } from "./calculations";
 import {
   validateArchiveRow,
@@ -209,6 +215,15 @@ export const createRow = defineCommand<CreateRowInput, CalcCommandResult>({
   // Parent ownership: the section must be visible under the caller's RLS.
   ownership: (input) => ({ table: "calculation_sections", id: input.section_id }),
   execute: async (ctx) => {
+    const activeRowCount = await loadActiveCalculationRowCountForSection(
+      ctx.db,
+      ctx.input.section_id,
+    );
+    if (activeRowCount === null) throw new CommandError("TENANT_ACCESS_DENIED");
+    if (!canAddCalculationRow(activeRowCount)) {
+      throw new CommandError("VALIDATION_FAILED");
+    }
+
     // Resolve + freeze the chosen pricing source (Story 5.3) BEFORE the insert, on the
     // SAME per-request RLS client (`ctx.db`). A foreign/nonexistent source → the resolver
     // throws TENANT_ACCESS_DENIED (no row inserted). A manual row → all-null source cols.
@@ -308,6 +323,43 @@ export const updateRow = defineCommand<UpdateRowInput, CalcCommandResult>({
       }
     }
 
+    const changesVatType = ctx.input.vat_type !== undefined;
+    const changesVatRate = ctx.input.vat_rate_bp !== undefined;
+    if (changesVatType !== changesVatRate) {
+      const persisted = await loadRowVatState(ctx.db, ctx.input.id);
+      if (persisted === null) throw new CommandError("TENANT_ACCESS_DENIED");
+      if (persisted.reconciliationRequired) {
+        // Quarantined legacy ambiguity may be resolved only by an explicit complete pair; do not
+        // silently treat its old numeric rate as an owner classification decision.
+        throw new CommandError("VALIDATION_FAILED");
+      }
+      if (
+        !isEffectiveRowVatPairCoherent(
+          {
+            vatType: ctx.input.vat_type,
+            vatRateBp: ctx.input.vat_rate_bp,
+          },
+          persisted,
+        )
+      ) {
+        throw new CommandError("VALIDATION_FAILED");
+      }
+    }
+
+    let inclusionFromSelectionTransition: boolean | undefined;
+    if (ctx.input.is_selected !== undefined) {
+      const persisted = await loadRowOptionState(ctx.db, ctx.input.id);
+      if (persisted === null) throw new CommandError("TENANT_ACCESS_DENIED");
+      inclusionFromSelectionTransition = invoiceInclusionForOptionSelectionTransition(
+        {
+          isOptional: ctx.input.is_optional,
+          isSelected: ctx.input.is_selected,
+          includedInInvoiceTotal: ctx.input.included_in_invoice_total,
+        },
+        persisted,
+      );
+    }
+
     // Resolve the pricing-source change (Story 5.3), if any, on the SAME per-request RLS
     // client. A source pair → resolve + freeze the captured columns (a foreign source →
     // TENANT_ACCESS_DENIED, no write). An explicit clear (`source_clear`) → all-null
@@ -342,6 +394,15 @@ export const updateRow = defineCommand<UpdateRowInput, CalcCommandResult>({
     }
 
     const patch = buildRowPatch(ctx.input, source);
+    if (changesVatType && changesVatRate) {
+      // An explicit, validator-approved complete pair is the owner remediation action for a
+      // quarantined legacy VAT row. Clear both closed metadata halves atomically with the pair.
+      patch.tax_reconciliation_required = false;
+      patch.tax_reconciliation_reason = null;
+    }
+    if (inclusionFromSelectionTransition !== undefined) {
+      patch.included_in_invoice_total = inclusionFromSelectionTransition;
+    }
     // Empty-patch guard (Task 3.5): id-only update is a no-op — no `.update({})`.
     if (Object.keys(patch).length === 0) {
       return { targetId: ctx.input.id };

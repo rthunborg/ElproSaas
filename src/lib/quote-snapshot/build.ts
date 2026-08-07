@@ -233,20 +233,21 @@ export function buildQuoteVersionSnapshot(
     input.attachments.map(buildAttachmentSnapshot),
   );
   const warnings = Object.freeze(input.warnings.map(buildWarningSnapshot));
+  const isV2 = input.snapshotSchemaVersion === 2;
   const parsedTaxAnswer = input.taxAnswerSnapshot === null || input.taxAnswerSnapshot === undefined
     ? null
     : parseTaxAnswerSnapshotV2(input.taxAnswerSnapshot);
   if (parsedTaxAnswer !== null && !parsedTaxAnswer.ok) {
     throw new TypeError("Invalid V2 quote tax answer snapshot");
   }
-  if (input.snapshotSchemaVersion === 2 && parsedTaxAnswer === null) {
+  if (isV2 && parsedTaxAnswer === null) {
     throw new TypeError("A V2 quote requires a complete tax answer snapshot");
   }
-  if (input.snapshotSchemaVersion !== 2 && parsedTaxAnswer !== null) {
+  if (!isV2 && parsedTaxAnswer !== null) {
     throw new TypeError("A tax answer snapshot requires quote snapshot schema V2");
   }
   const taxAnswerSnapshot = parsedTaxAnswer?.value ?? null;
-  if (input.snapshotSchemaVersion === 2) {
+  if (isV2) {
     const compatible = adaptQuoteTaxSnapshot({
       snapshotSchemaVersion: 2,
       taxRuleVersion: input.taxRuleVersion,
@@ -313,17 +314,16 @@ export function buildQuoteVersionSnapshot(
     deductionTotalOre: input.totals.deductionTotalOre,
     acceptedPriceOre: input.totals.acceptedPriceOre,
     snapshotSchemaVersion: input.snapshotSchemaVersion ?? null,
-    taxRuleVersion: input.taxRuleVersion ?? null,
+    taxRuleVersion: isV2 ? input.taxRuleVersion ?? null : null,
     taxAnswerSnapshot,
-    buyerVatNumber: input.buyerVatNumber ?? null,
-    calculatedDeductionOre:
-      input.calculatedDeductionOre ?? input.totals.deductionTotalOre,
-    claimDeductionOre: input.claimDeductionOre ?? input.totals.deductionTotalOre,
-    payableOre: input.payableOre ?? input.totals.acceptedPriceOre,
-    netOre: input.netOre ?? input.totals.baseTotalOre + input.totals.optionTotalOre,
-    vatOre: input.vatOre ?? input.totals.vatTotalOre,
-    grossOre: input.grossOre ?? input.totals.acceptedPriceOre + input.totals.deductionTotalOre,
-    deductionOre: input.deductionOre ?? input.totals.deductionTotalOre,
+    buyerVatNumber: isV2 ? taxAnswerSnapshot!.buyerVatNumber : null,
+    calculatedDeductionOre: isV2 ? taxAnswerSnapshot!.calculatedDeductionOre : null,
+    claimDeductionOre: isV2 ? taxAnswerSnapshot!.claimDeductionOre : null,
+    payableOre: isV2 ? taxAnswerSnapshot!.payableOre : null,
+    netOre: isV2 ? taxAnswerSnapshot!.netOre : null,
+    vatOre: isV2 ? taxAnswerSnapshot!.vatOre : null,
+    grossOre: isV2 ? taxAnswerSnapshot!.grossOre : null,
+    deductionOre: isV2 ? taxAnswerSnapshot!.deductionOre : null,
 
     vatRateBp: input.assumptions.vatRateBp,
     vatDisplay: input.assumptions.vatDisplay,

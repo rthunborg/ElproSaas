@@ -40,7 +40,7 @@ function reverseChargeSnapshot() {
         id: "reverse",
         netOre: 200_000,
         vatType: "REVERSE_CHARGE_CONSTRUCTION",
-        rateBp: 0,
+        rateBp: 2_500,
         includedInInvoiceTotal: true,
         deductionClassification: "NONE",
         summaryCategory: "labor",
@@ -48,6 +48,7 @@ function reverseChargeSnapshot() {
     ],
     taxInput: taxInput.value,
     quoteCaptureDate: "2026-08-05",
+    customerEligibilityPosture: "company",
   });
   if (!answer.ok) assert.fail(`tax answer failed: ${answer.code}`);
   const frozen = answer.value;
@@ -124,7 +125,7 @@ function reverseChargeSnapshot() {
           unit: "st",
           unitSellOre: 200_000,
           lineNetOre: 200_000,
-          vatRateBp: 0,
+          vatRateBp: 2_500,
           includedInInvoiceTotal: true,
           deductionClassification: "NONE",
           vatType: "REVERSE_CHARGE_CONSTRUCTION",
@@ -149,6 +150,69 @@ function reverseChargeSnapshot() {
     },
     { capturedAt: "2026-08-05T09:00:00.000Z" },
   );
+}
+
+function historicalAllocationSnapshot() {
+  const taxInput = parseTaxInputSnapshot({
+    schemaVersion: 2,
+    documentVatType: "STANDARD_VAT_25",
+    buyerVatNumber: null,
+    deductionChoice: "ROT",
+    paymentDate: "2026-08-05",
+    finalPaymentDate: null,
+    personAllowanceSlots: [{
+      slot: "PERSON_1",
+      remainingRotAllowanceOre: 5_000_000,
+      remainingCombinedRotRutAllowanceOre: 7_500_000,
+    }],
+    greenBasisMethod: "ACTUAL_ELIGIBLE_COSTS",
+    genuineFixedPrice: false,
+    fixedPriceOre: null,
+    fixedPriceCategorySplitOre: null,
+  });
+  if (!taxInput.ok) assert.fail(`legacy-allocation tax input failed: ${taxInput.code}`);
+  const answer = buildTaxAnswerSnapshotV2({
+    rows: [{
+      id: "rot-labor",
+      netOre: 100_000,
+      vatType: "STANDARD_VAT_25",
+      rateBp: 2_500,
+      includedInInvoiceTotal: true,
+      deductionClassification: "ROT_LABOR",
+      summaryCategory: "labor",
+    }],
+    taxInput: taxInput.value,
+    quoteCaptureDate: "2026-08-05",
+    customerEligibilityPosture: "private",
+  });
+  if (!answer.ok) assert.fail(`legacy-allocation tax answer failed: ${answer.code}`);
+
+  const historicalAnswer = JSON.parse(JSON.stringify(answer.value)) as Record<string, unknown>;
+  const historicalRot = historicalAnswer.rot as Record<string, unknown>;
+  const historicalAllocations = historicalRot.allocations as Array<Record<string, unknown>>;
+  historicalAllocations[0].slot = "LegacyRawSlot";
+
+  const snapshot = JSON.parse(JSON.stringify(reverseChargeSnapshot())) as Record<string, unknown>;
+  Object.assign(snapshot, {
+    customerType: "private",
+    baseTotalOre: answer.value.netOre,
+    optionTotalOre: 0,
+    vatTotalOre: answer.value.vatOre,
+    deductionTotalOre: answer.value.deductionOre,
+    acceptedPriceOre: answer.value.payableOre,
+    taxRuleVersion: answer.value.taxRuleVersions.join("+"),
+    taxAnswerSnapshot: historicalAnswer,
+    buyerVatNumber: answer.value.buyerVatNumber,
+    calculatedDeductionOre: answer.value.calculatedDeductionOre,
+    claimDeductionOre: answer.value.claimDeductionOre,
+    payableOre: answer.value.payableOre,
+    netOre: answer.value.netOre,
+    vatOre: answer.value.vatOre,
+    grossOre: answer.value.grossOre,
+    deductionOre: answer.value.deductionOre,
+    lines: [],
+  });
+  return snapshot;
 }
 
 describe("Story 10.6 — frozen V2 PDF consumption", () => {
@@ -184,7 +248,7 @@ describe("Story 10.6 — frozen V2 PDF consumption", () => {
     }));
     assert.ok(text.includes("Omvänd betalningsskyldighet"));
     assert.ok(text.includes("Köparens momsregistreringsnummer: SE556677889901"));
-    assert.ok(text.includes("Omvänd betalningsskyldighet (0 %)"));
+    assert.ok(text.includes("Omvänd betalningsskyldighet"));
     assert.ok(text.includes("Att betala: 3 250,00 kr"));
   });
 
@@ -197,5 +261,22 @@ describe("Story 10.6 — frozen V2 PDF consumption", () => {
       () => buildQuotePdfViewModel(malformed as never),
       /Invalid V2 quote tax snapshot/,
     );
+  });
+
+  test("keeps a historical allocation readable while canonicalizing its raw id before PDF output", async () => {
+    const vm = buildQuotePdfViewModel(historicalAllocationSnapshot() as never);
+    assert.equal(vm.taxAnswer?.source, "v2");
+    if (vm.taxAnswer?.source !== "v2") return;
+    assert.deepEqual(vm.taxAnswer.rot.allocations, [
+      { slot: "PERSON_1", kronor: "375,00" },
+    ]);
+    assert.equal(JSON.stringify(vm).includes("LegacyRawSlot"), false);
+
+    const text = await extractPdfText(await renderQuotePdf({
+      viewModel: vm,
+      renderedAt: "2026-08-05T09:00:00.000Z",
+    }));
+    assert.ok(text.includes("Fördelning PERSON_1: 375,00 kr"));
+    assert.equal(text.includes("LegacyRawSlot"), false);
   });
 });

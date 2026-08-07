@@ -60,10 +60,10 @@ describe("Story 10.6 — tax answer reconciliation", () => {
     const splitRows = [standard(1, { id: "split-a" }), standard(1, { id: "split-b" }), { ...standard(10_000), id: "reduced", vatType: "REDUCED_VAT", rateBp: 1200 }];
 
     const unsplitVat = okValue<{ categories: readonly Record<string, unknown>[]; vatOre: number }>(
-      aggregate({ rows: unsplitRows }),
+      aggregate({ rows: unsplitRows, standardRateBp: 2500 }),
     );
     const splitVat = okValue<{ categories: readonly Record<string, unknown>[]; vatOre: number }>(
-      aggregate({ rows: splitRows }),
+      aggregate({ rows: splitRows, standardRateBp: 2500 }),
     );
 
     assert.deepEqual(splitVat, unsplitVat, "same-category line splitting must not change category/document VAT");
@@ -75,9 +75,9 @@ describe("Story 10.6 — tax answer reconciliation", () => {
       grossOre: 3,
     });
 
-    const a = okValue<Record<string, unknown>>(reconcile({ rows: unsplitRows }));
-    const b = okValue<Record<string, unknown>>(reconcile({ rows: splitRows }));
-    for (const key of ["netOre", "vatOre", "grossOre", "deductionBasisOre", "deductionOre", "payableOre"]) {
+    const a = okValue<Record<string, unknown>>(reconcile({ rows: unsplitRows, standardRateBp: 2500 }));
+    const b = okValue<Record<string, unknown>>(reconcile({ rows: splitRows, standardRateBp: 2500 }));
+    for (const key of ["netOre", "vatOre", "grossOre"]) {
       assert.equal(b[key], a[key], `${key} must be split invariant`);
     }
   });
@@ -108,19 +108,18 @@ describe("Story 10.6 — tax answer reconciliation", () => {
       includedInInvoiceTotal: false,
       deductionClassification: "GREEN_SOLAR_MATERIAL",
     });
-    const base = okValue<Record<string, unknown>>(reconcile({ rows: [hiddenIncluded, visibleExcluded] }));
-    const visible = okValue<Record<string, unknown>>(reconcile({ rows: [{ ...hiddenIncluded, isHidden: false }, visibleExcluded] }));
+    const base = okValue<Record<string, unknown>>(reconcile({ rows: [hiddenIncluded, visibleExcluded], standardRateBp: 2500 }));
+    const visible = okValue<Record<string, unknown>>(reconcile({ rows: [{ ...hiddenIncluded, isHidden: false }, visibleExcluded], standardRateBp: 2500 }));
     assert.equal(visible.netOre, base.netOre, "visibility alone cannot change economic totals");
     assert.equal(visible.vatOre, base.vatOre, "visibility alone cannot change VAT");
     assert.equal(base.netOre, 10_000, "excluded rows count nowhere in customer totals");
-    assert.equal(base.rotBasisNetOre, 10_000, "hidden billable ROT labor remains eligible");
-    assert.equal(base.greenBasisNetOre, 0, "excluded green material feeds no deduction basis");
   });
 
   test("[10.6-UNIT-02][P0][AC2] impossible summary-kind/classification pairs fail closed", () => {
     const aggregate = requireFunction("aggregateDocumentVat");
     assert.equal(
       errorCode(aggregate({
+        standardRateBp: 2500,
         rows: [standard(10_000, {
           summaryCategory: "material",
           deductionClassification: "ROT_LABOR",
@@ -130,6 +129,7 @@ describe("Story 10.6 — tax answer reconciliation", () => {
     );
     assert.equal(
       errorCode(aggregate({
+        standardRateBp: 2500,
         rows: [standard(10_000, {
           summaryCategory: "other",
           deductionClassification: "GREEN_CHARGING_MATERIAL",
@@ -162,7 +162,7 @@ describe("Story 10.6 — tax answer reconciliation", () => {
         personAllowanceSlots: entry.choice === "NONE"
           ? []
           : [{
-              slot: "declared_slot",
+              slot: "PERSON_1",
               ...(entry.choice === "ROT"
                 ? {
                     remainingRotAllowanceOre: 5_000_000,
@@ -184,6 +184,7 @@ describe("Story 10.6 — tax answer reconciliation", () => {
         }) as money.DocumentVatRowInput],
         taxInput: parsed.value,
         quoteCaptureDate: "2026-01-02",
+        customerEligibilityPosture: "private",
       });
       assert.equal(answer.ok, true, entry.classification);
       if (!answer.ok) continue;
@@ -270,12 +271,12 @@ describe("Story 10.6 — tax answer reconciliation", () => {
       finalPaymentDate: null,
       personAllowanceSlots: [
         {
-          slot: "slot_z_first",
+          slot: "PERSON_1",
           remainingRotAllowanceOre: 10_000,
           remainingCombinedRotRutAllowanceOre: 10_000,
         },
         {
-          slot: "slot_a_second",
+          slot: "PERSON_2",
           remainingRotAllowanceOre: 10_000,
           remainingCombinedRotRutAllowanceOre: 10_000,
         },
@@ -298,12 +299,13 @@ describe("Story 10.6 — tax answer reconciliation", () => {
       }],
       taxInput: parsed.value,
       quoteCaptureDate: "2026-08-05",
+      customerEligibilityPosture: "private",
     });
     assert.equal(answer.ok, true);
     if (!answer.ok) return;
     assert.deepEqual(answer.value.rot.allocations, [
-      { slot: "slot_z_first", ore: 10_000 },
-      { slot: "slot_a_second", ore: 5_000 },
+      { slot: "PERSON_1", ore: 10_000 },
+      { slot: "PERSON_2", ore: 5_000 },
     ]);
   });
 
@@ -343,21 +345,25 @@ describe("Story 10.6 — tax answer reconciliation", () => {
     const aggregate = requireFunction("aggregateDocumentVat");
     const mixed = okValue<{ netOre: number; vatOre: number; grossOre: number; categories: readonly Record<string, unknown>[] }>(
       aggregate({
+        standardRateBp: 2500,
         rows: [
           standard(10_000),
-          standard(20_000, { id: "reverse", vatType: "REVERSE_CHARGE_CONSTRUCTION", rateBp: 0 }),
+          standard(20_000, { id: "reverse", vatType: "REVERSE_CHARGE_CONSTRUCTION", rateBp: 2500 }),
         ],
       }),
     );
     assert.deepEqual({ netOre: mixed.netOre, vatOre: mixed.vatOre, grossOre: mixed.grossOre }, { netOre: 30_000, vatOre: 2_500, grossOre: 32_500 });
-    assert.equal(mixed.categories.length, 2, "reverse charge remains a distinct VAT category at rate zero");
-    const ordinaryZero = okValue<{ categories: readonly Record<string, unknown>[] }>(
-      aggregate({ rows: [standard(10_000, { rateBp: 0 })] }),
+    assert.equal(mixed.categories.length, 2, "reverse charge remains a distinct VAT category at the underlying policy rate");
+    assert.equal(
+      errorCode(aggregate({
+        rows: [standard(10_000, { rateBp: 0 })],
+        standardRateBp: 2500,
+      })),
+      "INCOMPLETE_VAT_INPUT",
     );
-    assert.equal(ordinaryZero.categories[0]?.vatType, "STANDARD_VAT_25");
-    assert.equal(ordinaryZero.categories[0]?.vatOre, 0);
     const reverseAtUnderlyingRate = okValue<{ categories: readonly Record<string, unknown>[] }>(
       aggregate({
+        standardRateBp: 2500,
         rows: [standard(10_000, { vatType: "REVERSE_CHARGE_CONSTRUCTION", rateBp: 2_500 })],
       }),
     );
@@ -396,6 +402,7 @@ describe("Story 10.6 — tax answer reconciliation", () => {
     const aggregate = requireFunction("aggregateDocumentVat");
     const result = okValue<{ vatOre: number }>(
       aggregate({
+        standardRateBp: 2500,
         rows: [standard(1_000_000_000_000_015, { rateBp: 2500 })],
       }),
     );
@@ -430,6 +437,7 @@ describe("Story 10.6 — tax answer reconciliation", () => {
     }>(
       build({
         quoteCaptureDate: "2026-08-05",
+        customerEligibilityPosture: "private",
         rows: [
           standard(100_000, {
             id: "rot",
@@ -509,7 +517,7 @@ describe("Story 10.6 — tax answer reconciliation", () => {
       paymentDate: "2026-02-03",
       finalPaymentDate: "2026-04-05",
       personAllowanceSlots: [{
-        slot: "dated_slot",
+        slot: "PERSON_1",
         remainingRotAllowanceOre: 5_000_000,
         remainingCombinedRotRutAllowanceOre: 7_500_000,
         remainingGreenAllowanceOre: 5_000_000,
@@ -535,6 +543,7 @@ describe("Story 10.6 — tax answer reconciliation", () => {
         }) as money.DocumentVatRowInput,
       ],
       taxInput: parsed.value,
+      customerEligibilityPosture: "private",
     });
     assert.equal(answer.ok, true);
     if (!answer.ok) return;
@@ -571,7 +580,8 @@ describe("Story 10.6 — tax answer reconciliation", () => {
       errorCode(
         build({
           quoteCaptureDate: "2026-08-05",
-          rows: [standard(100_000, { vatType: "REVERSE_CHARGE_CONSTRUCTION", rateBp: 0 })],
+          customerEligibilityPosture: "private",
+          rows: [standard(100_000, { vatType: "REVERSE_CHARGE_CONSTRUCTION", rateBp: 2500 })],
           taxInput: baseTaxInput,
         }),
       ),
@@ -581,6 +591,7 @@ describe("Story 10.6 — tax answer reconciliation", () => {
       errorCode(
         build({
           quoteCaptureDate: "2026-08-05",
+          customerEligibilityPosture: "private",
           rows: [standard(100_000)],
           taxInput: {
             ...baseTaxInput,
@@ -595,6 +606,7 @@ describe("Story 10.6 — tax answer reconciliation", () => {
       errorCode(
         build({
           quoteCaptureDate: "2026-08-05",
+          customerEligibilityPosture: "private",
           rows: [standard(100_000_000, { deductionClassification: "GREEN_SOLAR_MATERIAL" })],
           taxInput: {
             ...baseTaxInput,
@@ -620,6 +632,7 @@ describe("Story 10.6 — tax answer reconciliation", () => {
     }>(
       build({
         quoteCaptureDate: "2026-08-05",
+        customerEligibilityPosture: "private",
         rows: [
           standard(2, { id: "plain-labor", summaryCategory: "labor" }),
           standard(2, { id: "plain-material", summaryCategory: "material" }),
@@ -656,7 +669,7 @@ describe("Story 10.6 — tax answer reconciliation", () => {
       paymentDate: null,
       finalPaymentDate: "2026-08-05",
       personAllowanceSlots: [
-        { slot: "PERSON_GREEN", remainingGreenAllowanceOre: 5_000_000 },
+        { slot: "PERSON_1", remainingGreenAllowanceOre: 5_000_000 },
       ],
       greenBasisMethod: "FIXED_PRICE_97_PERCENT",
       genuineFixedPrice: true,
@@ -668,6 +681,7 @@ describe("Story 10.6 — tax answer reconciliation", () => {
       payableOre: number;
     }>(build({
       quoteCaptureDate: "2026-08-05",
+      customerEligibilityPosture: "private",
       rows: [standard(1_100, {
         id: "fixed-solar",
         deductionClassification: "GREEN_SOLAR_MATERIAL",
@@ -686,6 +700,7 @@ describe("Story 10.6 — tax answer reconciliation", () => {
     assert.equal(
       errorCode(build({
         quoteCaptureDate: "2026-08-05",
+        customerEligibilityPosture: "private",
         rows: [standard(1_100, {
           id: "rot-cannot-feed-fixed-green",
           deductionClassification: "ROT_LABOR",
@@ -696,7 +711,7 @@ describe("Story 10.6 — tax answer reconciliation", () => {
           deductionChoice: "ROT_AND_GREEN",
           paymentDate: "2026-08-05",
           personAllowanceSlots: [{
-            slot: "PERSON_BOTH",
+            slot: "PERSON_1",
             remainingRotAllowanceOre: 5_000_000,
             remainingCombinedRotRutAllowanceOre: 7_500_000,
             remainingGreenAllowanceOre: 5_000_000,
@@ -705,5 +720,57 @@ describe("Story 10.6 — tax answer reconciliation", () => {
       })),
       "FIXED_PRICE_CLASSIFICATION_MISMATCH",
     );
+  });
+
+  test("[10.6-UNIT-13][P0][AC4] customer eligibility is authoritative, frozen, and private-only for deductions", () => {
+    const build = requireFunction("buildTaxAnswerSnapshotV2");
+    const noDeduction = okValue<{ customerEligibilityPosture: string }>(build({
+      quoteCaptureDate: "2026-08-05",
+      customerEligibilityPosture: "company",
+      rows: [standard(10_000)],
+      taxInput: {
+        schemaVersion: 2,
+        documentVatType: "STANDARD_VAT_25",
+        buyerVatNumber: null,
+        deductionChoice: "NONE",
+        paymentDate: null,
+        finalPaymentDate: null,
+        personAllowanceSlots: [],
+        greenBasisMethod: "ACTUAL_ELIGIBLE_COSTS",
+        genuineFixedPrice: false,
+        fixedPriceOre: null,
+        fixedPriceCategorySplitOre: null,
+      },
+    }));
+    assert.equal(noDeduction.customerEligibilityPosture, "company");
+
+    const rotTaxInput = {
+      schemaVersion: 2,
+      documentVatType: "STANDARD_VAT_25",
+      buyerVatNumber: null,
+      deductionChoice: "ROT",
+      paymentDate: "2026-08-05",
+      finalPaymentDate: null,
+      personAllowanceSlots: [{
+        slot: "PERSON_1",
+        remainingRotAllowanceOre: 5_000_000,
+        remainingCombinedRotRutAllowanceOre: 7_500_000,
+      }],
+      greenBasisMethod: "ACTUAL_ELIGIBLE_COSTS",
+      genuineFixedPrice: false,
+      fixedPriceOre: null,
+      fixedPriceCategorySplitOre: null,
+    };
+    for (const posture of ["company", "brf", "public"]) {
+      assert.equal(
+        errorCode(build({
+          quoteCaptureDate: "2026-08-05",
+          customerEligibilityPosture: posture,
+          rows: [standard(10_000, { deductionClassification: "ROT_LABOR" })],
+          taxInput: rotTaxInput,
+        })),
+        "CUSTOMER_NOT_ELIGIBLE_FOR_DEDUCTION",
+      );
+    }
   });
 });

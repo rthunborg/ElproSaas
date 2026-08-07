@@ -23,7 +23,10 @@
  */
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { validateCreateQuoteVersionFromCalculation } from "@/server/commands/quotes/validation";
+import {
+  validateCreateQuoteVersionFromCalculation,
+  validateCreateReviewedQuoteVersionFromCalculation,
+} from "@/server/commands/quotes/validation";
 
 const UUID_A = "11111111-1111-1111-1111-111111111111";
 const UUID_B = "22222222-2222-2222-2222-222222222222";
@@ -36,6 +39,8 @@ test("[6.1-INT-02] accepts a uuid calculation_id with NO attachments (the common
   assert.equal(r.data.calculation_id, UUID_A);
   // An absent attachment list narrows to the empty list (no attachments selected).
   assert.deepEqual(r.data.attachment_file_ids, []);
+  assert.equal(r.data.reviewed_snapshot_digest, null);
+  assert.equal(r.data.reviewed_quote_capture_date, null);
 });
 
 test("[6.1-INT-02] accepts a uuid calculation_id WITH a bounded uuid attachment array", () => {
@@ -156,7 +161,69 @@ test("a client-supplied tenant_id is STRIPPED — never surfaced on the validate
   assert.deepEqual(Object.keys(r.data).sort(), [
     "attachment_file_ids",
     "calculation_id",
+    "reviewed_quote_capture_date",
+    "reviewed_snapshot_digest",
   ]);
+});
+
+test("reviewed preview proof is accepted only as a complete digest/date pair", () => {
+  const digest = "a".repeat(64);
+  const valid = validateCreateQuoteVersionFromCalculation({
+    calculation_id: UUID_A,
+    reviewed_snapshot_digest: digest,
+    reviewed_quote_capture_date: "2026-08-07",
+  });
+  assert.equal(valid.ok, true);
+  if (!valid.ok) return;
+  assert.equal(valid.data.reviewed_snapshot_digest, digest);
+  assert.equal(valid.data.reviewed_quote_capture_date, "2026-08-07");
+
+  const invalid: unknown[] = [
+    { calculation_id: UUID_A, reviewed_snapshot_digest: digest },
+    { calculation_id: UUID_A, reviewed_quote_capture_date: "2026-08-07" },
+    {
+      calculation_id: UUID_A,
+      reviewed_snapshot_digest: "A".repeat(64),
+      reviewed_quote_capture_date: "2026-08-07",
+    },
+    {
+      calculation_id: UUID_A,
+      reviewed_snapshot_digest: "a".repeat(63),
+      reviewed_quote_capture_date: "2026-08-07",
+    },
+    {
+      calculation_id: UUID_A,
+      reviewed_snapshot_digest: digest,
+      reviewed_quote_capture_date: "2026-02-30",
+    },
+  ];
+  for (const raw of invalid) {
+    assert.equal(validateCreateQuoteVersionFromCalculation(raw).ok, false);
+  }
+});
+
+test("preview-specific validation requires proof even though list-page direct creation does not", () => {
+  const digest = "b".repeat(64);
+  assert.equal(
+    validateCreateReviewedQuoteVersionFromCalculation({
+      calculation_id: UUID_A,
+      reviewed_snapshot_digest: digest,
+      reviewed_quote_capture_date: "2026-08-07",
+    }).ok,
+    true,
+  );
+  for (const raw of [
+    { calculation_id: UUID_A },
+    { calculation_id: UUID_A, reviewed_snapshot_digest: digest },
+    { calculation_id: UUID_A, reviewed_quote_capture_date: "2026-08-07" },
+  ]) {
+    assert.equal(validateCreateReviewedQuoteVersionFromCalculation(raw).ok, false);
+  }
+  assert.equal(
+    validateCreateQuoteVersionFromCalculation({ calculation_id: UUID_A }).ok,
+    true,
+    "the separate list-page direct-create flow remains supported",
+  );
 });
 
 test("the validated attachment array is a COPY (a later mutation of the raw input can't reach it)", () => {

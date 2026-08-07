@@ -44,13 +44,17 @@ export interface CalcSectionRow {
   readonly sort_order: number;
 }
 
-/** A calc row — the CUSTOMER-VISIBLE fields (NO internal_note/unit_cost_ore/markup_bp read). */
+/**
+ * A calc row used to build the customer-visible snapshot. Cost/source-kind are read only
+ * for reviewed-readiness parity and are never copied into the frozen line payload.
+ */
 export interface CalcRowRow {
   readonly id: string;
   readonly section_id: string;
   readonly row_type: string;
   readonly quantity: number;
   readonly unit: string;
+  readonly unit_cost_ore: number | null;
   readonly unit_sell_ore: number | null;
   readonly vat_rate_bp: number | null;
   readonly included_in_invoice_total: boolean;
@@ -63,6 +67,7 @@ export interface CalcRowRow {
   readonly description: string | null;
   readonly quote_note: string | null;
   readonly sort_order: number;
+  readonly source_kind: string | null;
 }
 
 /** The FULL company identity row (all PDF fields — the identity-FULL capture). */
@@ -98,9 +103,10 @@ export interface CustomerContextRow {
 const CALC_HEADER_COLUMNS =
   "id, customer_id, facility_id, contact_id, title, status, tax_input_snapshot";
 const CALC_SECTION_COLUMNS = "id, title, display_mode, sort_order";
-// CUSTOMER-VISIBLE fields only — NO internal_note, NO unit_cost_ore, NO markup_bp (R-607).
+// unit_cost/source_kind affect customer-visible readiness warnings but are never snapshotted.
+// internal_note and markup_bp remain excluded (R-607).
 const CALC_ROW_COLUMNS =
-  "id, section_id, row_type, quantity, unit, unit_sell_ore, vat_rate_bp, included_in_invoice_total, deduction_classification, vat_type, is_hidden, is_optional, is_selected, label, description, quote_note, sort_order";
+  "id, section_id, row_type, quantity, unit, unit_cost_ore, unit_sell_ore, vat_rate_bp, included_in_invoice_total, deduction_classification, vat_type, is_hidden, is_optional, is_selected, label, description, quote_note, sort_order, source_kind";
 const COMPANY_IDENTITY_COLUMNS =
   "company_name, org_nr, address_line1, address_line2, postal_code, city, email, phone, logo_url, default_vat_display, vat_rate_bp";
 const QUOTE_TERMS_COLUMNS = "terms_text, approved_at, approved_by";
@@ -539,15 +545,16 @@ export interface QuoteVersionParentRow {
   readonly calculation_id: string;
   readonly status: string;
   readonly quote_number: number | null;
+  readonly snapshot_schema_version: number | null;
 }
 
 const PARENT_VERSION_COLUMNS =
-  "id, quote_id, calculation_id, status, quote_number";
+  "id, quote_id, calculation_id, status, quote_number, snapshot_schema_version";
 
 /**
  * Load the PARENT quote-version's identity fields under the caller's RLS (ownership already proved
- * it visible). Returns the quote_id / calculation_id / status / quote_number the new-version
- * command threads into the RPC, or null when the row is not visible (a race → the command denies).
+ * it visible). Returns the quote_id / calculation_id / status / quote_number / snapshot schema the
+ * new-version command uses, or null when the row is not visible (a race → the command denies).
  */
 export async function loadQuoteVersionParent(
   db: CommandDbClient,
@@ -567,6 +574,7 @@ export async function loadQuoteVersionParent(
     calculation_id: String(raw.calculation_id),
     status: String(raw.status),
     quote_number: numOf(raw.quote_number),
+    snapshot_schema_version: numOf(raw.snapshot_schema_version),
   };
 }
 

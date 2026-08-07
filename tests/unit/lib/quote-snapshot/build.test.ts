@@ -143,6 +143,22 @@ function collectKeys(value: unknown, acc: Set<string>): void {
 }
 
 describe("Story 6.1 — pure QuoteVersionSnapshot builder purity + öre + internal-exclusion", () => {
+  test("legacy V1 builds keep every V2-only tax fact explicitly null", () => {
+    const snap = buildQuoteVersionSnapshot(makeInput(), { capturedAt: CAPTURED_AT });
+
+    assert.equal(snap.snapshotSchemaVersion, null);
+    assert.equal(snap.taxRuleVersion, null);
+    assert.equal(snap.taxAnswerSnapshot, null);
+    assert.equal(snap.buyerVatNumber, null);
+    assert.equal(snap.calculatedDeductionOre, null);
+    assert.equal(snap.claimDeductionOre, null);
+    assert.equal(snap.payableOre, null);
+    assert.equal(snap.netOre, null);
+    assert.equal(snap.vatOre, null);
+    assert.equal(snap.grossOre, null);
+    assert.equal(snap.deductionOre, null);
+  });
+
   test("[P0] copy-by-value: mutating the source after build does not change the snapshot (6.1-UNIT-01)", () => {
     const input = makeInput();
     const snap = buildQuoteVersionSnapshot(input, { capturedAt: CAPTURED_AT });

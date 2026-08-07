@@ -203,7 +203,12 @@ export function parseUpdateTaxInputForm(form: FormData): ParsedCalcForm {
   if (!greenBasisMethod || !(GREEN_BASIS_METHODS as readonly string[]).includes(greenBasisMethod)) {
     fieldErrors.green_basis_method = "Välj en giltig beräkningsgrund.";
   }
-  const buyerVatNumber = trimmedField(form, "buyer_vat_number") ?? null;
+  // The buyer identifier is a reverse-charge fact, not reusable customer master data. A stale
+  // browser value must be discarded as soon as standard VAT is selected.
+  const buyerVatNumber =
+    documentVatType === "REVERSE_CHARGE_CONSTRUCTION"
+      ? (trimmedField(form, "buyer_vat_number") ?? null)
+      : null;
   if (buyerVatNumber !== null && !isValidBuyerVatNumber(buyerVatNumber)) {
     fieldErrors.buyer_vat_number = "Ange ett giltigt momsregistreringsnummer.";
   }

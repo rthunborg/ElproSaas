@@ -174,6 +174,7 @@ function totalsRow(sellOre: number, vatBp: number, quantity = 1): TotalsRowInput
     quantity,
     unit_sell_ore: sellOre,
     vat_rate_bp: vatBp,
+    vat_type: "STANDARD_VAT_25",
     is_hidden: false,
     is_optional: false,
     is_selected: null,
@@ -186,6 +187,7 @@ function readinessRow(over: Partial<ReadinessRowInput>): ReadinessRowInput {
     unit_cost_ore: 0,
     unit_sell_ore: 0,
     vat_rate_bp: 2500,
+    vat_type: "STANDARD_VAT_25",
     is_hidden: false,
     is_optional: false,
     is_selected: null,
@@ -544,11 +546,12 @@ describe("Story 5.5 — the FULL calc golden PACK (5.5-GOLDEN-01/UNIT-01/UNIT-02
         quantity: 1,
         unit_sell_ore: ore,
         vat_rate_bp: 0,
+        vat_type: "ZERO_RATED" as const,
         is_hidden: i === 0, // the FIRST base row is HIDDEN — it still counts
         is_optional: false,
         is_selected: null,
       })),
-      { quantity: 1, unit_sell_ore: selected!.selectedOptionOre!, vat_rate_bp: 0, is_hidden: false, is_optional: true, is_selected: true }, // SELECTED option — counts
+      { quantity: 1, unit_sell_ore: selected!.selectedOptionOre!, vat_rate_bp: 0, vat_type: "ZERO_RATED" as const, is_hidden: false, is_optional: true, is_selected: true }, // SELECTED option — counts
     ];
     const total = computeSectionTotal(rows);
     assert.ok(total.ok, "the composed section must resolve");

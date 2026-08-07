@@ -48,3 +48,8 @@
 - Test-evidence rule: pair skip-aware integration output with required-stack fail-closed evidence whenever local Supabase is unavailable.
 - [Phase 7 â€” code review] Owner approved fixes: expire SE-TAX-2026-v1 on 2026-12-31, make document VAT standard/reverse-only while preserving mixed rows, and stage the migration for low-lock rollout.
 - [Phase 7 â€” code review] Iteration 1 persisted and fixed 19 non-deferred findings (9 High, 10 Medium); one pre-existing SECURITY INVOKER/table-grant architecture issue remains logged as deferred.
+- [Phase 7 â€” code review] Owner approved fail-safe legacy handling: quarantine ambiguous VAT rows and require fresh V2 regeneration for readable-but-unsendable V1 drafts.
+- [Phase 7 â€” code review] Shared integration factories must track database commitment invariants; permissive legacy seeds caused broad false failures after V2-only triggers.
+- [Phase 7 â€” code review] React server-action HTTP 200 is transport success, not business success; E2E must assert rendered action state.
+- [Phase 7 â€” code review] Canonical summary buckets follow row-type projections (for example subcontractor maps to other).
+- [Phase 7 â€” code review] Iteration 2 fixed 23 non-deferred findings (14 High, 9 Medium); full reset, 816 integration tests, 1635 unit tests, and 2 browser journeys passed, but the iteration cap leaves final fixes unreviewed.

@@ -5,11 +5,11 @@ epic_num: 10
 story_num: 6
 branch: story/10-6-tax-answer-reconciliation
 status: in-progress
-updated_at: "2026-08-06T19:54:13Z"
+updated_at: "2026-08-07T15:40:40Z"
 started_at: "2026-07-29T10:02:59Z"
 completed_at: null
-active_seconds: 93177
-timing_anchor: 1786043137
+active_seconds: 99934
+timing_anchor: 1786111510
 is_first_in_epic: false
 is_last_in_epic: false
 needs_project_context_bootstrap: false
@@ -21,13 +21,13 @@ tea_rationale: "Legally consequential money/tax engine changes and golden-master
 epic_story_count: 7
 stories_after_in_epic: 1
 completed_phases: [0, 1, 2, 3, 4, 5, 6]
-code_review_iterations: 1
-code_review_loop_done: false
+code_review_iterations: 2
+code_review_loop_done: true
 hitl_halt: null
 external_review_iterations: 0
-convergence_unverified: false
+convergence_unverified: true
 story_trace: null
-commits: [c091f02, b76a59d, 11ed949, 83e597d, 56f92b8]
+commits: [c091f02, b76a59d, 11ed949, 83e597d, 56f92b8, 7fdda86]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -56,9 +56,13 @@ deferred_work:
   - "Out of Story 10.6: e-invoice/Skatteverket submission, verified-customer reverse-charge defaults, payable-rounding UI, and the Phase C legal-disclaimer program."
   - "Security follow-up: redesign quote lifecycle privileges/API to prevent valid same-tenant direct state transitions from bypassing command audit/event provenance."
   - "Hardening follow-up: make SQL tax-input/person-slot JSON validators reject unknown keys."
+  - "Coverage follow-up: add a genuine pre-migration upgrade fixture, application-command V1 recovery coverage, and command-level review-token parity/staleness coverage."
+  - "Optional follow-up: align inherited V1 presentation/PDF server paths with the recovery-only UI."
 blockers: []
 overrides: {}
 constraints:
   - "Owner-approved review decision: SE-TAX-2026-v1 is valid through 2026-12-31 and unknown policy horizons fail closed."
   - "Owner-approved review decision: document VAT state is standard/reverse-charge only while mixed row VAT categories remain supported."
   - "Owner-approved review decision: calculation-row migration uses staged low-lock backfill and deferred validation."
+  - "Owner-approved review decision: quarantine ambiguous zero/unsupported legacy VAT rather than inferring a legal classification."
+  - "Owner-approved review decision: V1 drafts remain readable and unsendable; recovery creates a fresh authoritative V2 without mutating or infer-converting V1."

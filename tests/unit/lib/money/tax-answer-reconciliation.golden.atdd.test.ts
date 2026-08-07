@@ -95,7 +95,7 @@ describe("Story 10.6 — re-derived structured goldens", () => {
     assert.ok(!/personnummer|password|api_key/i.test(raw), "calculation fixture must be PII/secret free");
     const reconcile = requireFunction("computeReconciledDocumentTotals");
     for (const entry of value.cases as readonly JsonObject[]) {
-      const result = unwrap(reconcile({ rows: entry.rows }));
+      const result = unwrap(reconcile({ rows: entry.rows, standardRateBp: 2500 }));
       assertExpectedSubset(result, entry.expected, String(entry.id));
     }
   });
@@ -127,6 +127,7 @@ describe("Story 10.6 — re-derived structured goldens", () => {
       })),
       taxInput,
       quoteCaptureDate: String(fresh.capturedAt).slice(0, 10),
+      customerEligibilityPosture: (source.customer as JsonObject).customer_type,
     })) as JsonObject;
     const built = unwrap(
       requireFunction("buildQuoteVersionSnapshot")(
@@ -173,6 +174,7 @@ describe("Story 10.6 — re-derived structured goldens", () => {
           })),
           taxInput,
           quoteCaptureDate: String(snapshot.capturedAt).slice(0, 10),
+          customerEligibilityPosture: "company",
         })) as JsonObject;
         pdfInput = {
           ...snapshot,

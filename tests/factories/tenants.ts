@@ -788,6 +788,23 @@ export interface CalculationRowSeed {
   readonly sort_order?: number;
 }
 
+/** Canonical deduction-free Story 10.6 input for calculations not testing legacy/null behavior. */
+function story106FixtureTaxInput(): Record<string, unknown> {
+  return {
+    schemaVersion: 2,
+    documentVatType: "STANDARD_VAT_25",
+    buyerVatNumber: null,
+    deductionChoice: "NONE",
+    paymentDate: null,
+    finalPaymentDate: null,
+    personAllowanceSlots: [],
+    greenBasisMethod: "ACTUAL_ELIGIBLE_COSTS",
+    genuineFixedPrice: false,
+    fixedPriceOre: null,
+    fixedPriceCategorySplitOre: null,
+  };
+}
+
 /**
  * Seed ONE `calculations` row via the privileged superuser pg path (BYPASSRLS).
  * Returns the inserted id. THROWS (Postgres `code` preserved) on a DB error —
@@ -809,7 +826,9 @@ export async function adminInsertCalculation(
         seed.contact_id ?? null,
         seed.title ?? "tenant-calc-seed",
         seed.status ?? "draft",
-        seed.tax_input_snapshot ?? null,
+        seed.tax_input_snapshot === undefined
+          ? story106FixtureTaxInput()
+          : seed.tax_input_snapshot,
       ],
     );
     const id = rows[0]?.id;
@@ -1172,8 +1191,16 @@ export interface QuoteVersionLineSeed {
   readonly quote_version_id: string;
   readonly row_type?: string;
   readonly label?: string | null;
+  readonly quantity?: number | null;
+  readonly unit?: string | null;
   readonly unit_sell_ore?: number | null;
+  /** Frozen line net used by Story 10.6 reconciliation; defaults to `unit_sell_ore`. */
+  readonly line_net_ore?: number | null;
   readonly vat_rate_bp?: number | null;
+  /** Economic inclusion is explicit in V2; fixture-only display rows default to excluded. */
+  readonly included_in_invoice_total?: boolean;
+  readonly deduction_classification?: string;
+  readonly vat_type?: string;
   readonly sort_order?: number;
 }
 
@@ -1237,11 +1264,11 @@ export async function adminInsertQuote(seed: QuoteSeed): Promise<string> {
 }
 
 /**
- * Seed a deliberately historical V1 quote artifact while current production triggers require
- * fresh rows to use the V2 command path. This is test-only, superuser-only, transaction-local,
- * and resets automatically through `adminSession`; application code can never reach it.
+ * Seed a quote child artifact through a test-only, superuser-only, transaction-local trigger
+ * bypass. This is reserved for arranging frozen fixture state (including an already-terminal
+ * parent); application code can never reach it and every table CHECK still applies.
  */
-async function adminInsertHistoricalQuoteArtifact(
+async function adminInsertQuoteArtifactWithTriggerBypass(
   sql: string,
   params: readonly unknown[],
   label: string,
@@ -1262,59 +1289,362 @@ async function adminInsertHistoricalQuoteArtifact(
   });
 }
 
-/** Seed ONE historical `quote_versions` row through the tightly scoped test-only trigger bypass. */
+const STORY_10_6_FIXTURE_POLICY_ID = "SE-TAX-2026-v1";
+const STORY_10_6_FIXTURE_CLASSIFICATIONS = [
+  "NONE",
+  "ROT_LABOR",
+  "GREEN_SOLAR_LABOR",
+  "GREEN_SOLAR_MATERIAL",
+  "GREEN_STORAGE_LABOR",
+  "GREEN_STORAGE_MATERIAL",
+  "GREEN_CHARGING_LABOR",
+  "GREEN_CHARGING_MATERIAL",
+] as const;
+
+type Story106FixtureCustomerPosture = "private" | "company" | "brf" | "public";
+
+interface Story106FixtureLostReason {
+  readonly outcome: string;
+  readonly category: string;
+  readonly note: string | null;
+}
+
+interface Story106FixtureTaxState {
+  readonly capturedAt: string;
+  readonly customerPosture: Story106FixtureCustomerPosture;
+  readonly baseTotalOre: number;
+  readonly vatTotalOre: number;
+  readonly payableOre: number;
+  readonly lineVatRateBp: number | null;
+  readonly lineVatType: string | null;
+  readonly taxInput: Record<string, unknown>;
+  readonly taxAnswer: Record<string, unknown>;
+}
+
+function story106FixtureZeroClassifications(): Record<string, number> {
+  return Object.fromEntries(
+    STORY_10_6_FIXTURE_CLASSIFICATIONS.map((classification) => [classification, 0]),
+  );
+}
+
+function story106FixturePolicy(resolvingDate: string): Record<string, unknown> {
+  return {
+    id: STORY_10_6_FIXTURE_POLICY_ID,
+    validFrom: "2026-01-01",
+    validTo: "2027-01-01",
+    resolvingDate,
+    resolvingFact: "QUOTE_CAPTURE_DATE",
+    values: {
+      vat: { standardRateBp: 2500 },
+      rot: {
+        rateBp: 3000,
+        maxPerPersonYearOre: 5_000_000,
+        combinedRotRutMaxPerPersonYearOre: 7_500_000,
+      },
+      green: {
+        rateBpByCategory: { SOLAR: 1500, STORAGE: 5000, CHARGING: 5000 },
+        maxPerPersonYearOre: 5_000_000,
+        defaultBasisMethod: "ACTUAL_ELIGIBLE_COSTS",
+        fixedPriceEligibleShareBp: 9700,
+      },
+    },
+  };
+}
+
+/**
+ * Build a deliberately small but fully reconciled Story 10.6 V2 tax snapshot for shared
+ * integration fixtures. Non-zero customer payables use 25% VAT when the gross can be represented
+ * exactly; uncommon remainder values fall back to a canonical zero-rated category rather than
+ * inventing or rounding away money. The fixture never exercises deductions.
+ */
+function buildStory106FixtureTaxState(
+  seed: QuoteVersionSeed,
+  customerPosture: Story106FixtureCustomerPosture,
+): Story106FixtureTaxState {
+  const capturedAt = seed.captured_at ?? "2026-07-05T12:00:00.000Z";
+  const parsedCapture = new Date(capturedAt);
+  if (Number.isNaN(parsedCapture.valueOf())) {
+    throw new Error("adminInsertQuoteVersion: captured_at must be a valid timestamp");
+  }
+  const resolvingDate = parsedCapture.toISOString().slice(0, 10);
+  if (resolvingDate < "2026-01-01" || resolvingDate >= "2027-01-01") {
+    throw new Error("adminInsertQuoteVersion: V2 fixture capture must resolve inside 2026 policy");
+  }
+
+  const payableOre = seed.accepted_price_ore ?? 0;
+  if (!Number.isSafeInteger(payableOre) || payableOre < 0) {
+    throw new Error("adminInsertQuoteVersion: accepted_price_ore must be non-negative safe öre");
+  }
+
+  const canUseStandardVat = payableOre > 0 && payableOre % 5 === 0;
+  const baseTotalOre = canUseStandardVat ? (payableOre / 5) * 4 : payableOre;
+  const vatTotalOre = payableOre - baseTotalOre;
+  const lineVatRateBp = payableOre === 0 ? null : canUseStandardVat ? 2500 : 0;
+  const lineVatType =
+    payableOre === 0 ? null : canUseStandardVat ? "STANDARD_VAT_25" : "ZERO_RATED";
+  const zeroClassifications = story106FixtureZeroClassifications();
+  const categories =
+    payableOre === 0
+      ? []
+      : [
+          {
+            vatType: lineVatType,
+            rateBp: lineVatRateBp,
+            netOre: baseTotalOre,
+            vatOre: vatTotalOre,
+            grossOre: payableOre,
+          },
+        ];
+
+  const taxInput = story106FixtureTaxInput();
+  const taxAnswer = {
+    schemaVersion: 2,
+    taxRuleVersions: [STORY_10_6_FIXTURE_POLICY_ID],
+    vatPolicy: story106FixturePolicy(resolvingDate),
+    customerEligibilityPosture: customerPosture,
+    documentVatType: "STANDARD_VAT_25",
+    buyerVatNumber: null,
+    reverseChargeApplied: false,
+    deductionChoice: "NONE",
+    categories,
+    netByDeductionClassification: { ...zeroClassifications, NONE: baseTotalOre },
+    vatByDeductionClassification: { ...zeroClassifications, NONE: vatTotalOre },
+    summaries: {
+      labor: { netOre: 0, vatOre: 0, grossOre: 0 },
+      material: { netOre: 0, vatOre: 0, grossOre: 0 },
+      other: { netOre: baseTotalOre, vatOre: vatTotalOre, grossOre: payableOre },
+    },
+    rot: {
+      policy: null,
+      basisNetOre: 0,
+      allocatedVatOre: 0,
+      basisOre: 0,
+      calculatedOre: 0,
+      claimOre: 0,
+      allocations: [],
+    },
+    green: {
+      policy: null,
+      basisMethod: "ACTUAL_ELIGIBLE_COSTS",
+      categories: {
+        SOLAR: { category: "SOLAR", basisOre: 0, calculatedOre: 0, claimOre: 0 },
+        STORAGE: { category: "STORAGE", basisOre: 0, calculatedOre: 0, claimOre: 0 },
+        CHARGING: { category: "CHARGING", basisOre: 0, calculatedOre: 0, claimOre: 0 },
+      },
+      calculatedOre: 0,
+      claimOre: 0,
+      allocations: [],
+    },
+    netOre: baseTotalOre,
+    vatOre: vatTotalOre,
+    grossOre: payableOre,
+    calculatedDeductionOre: 0,
+    claimDeductionOre: 0,
+    deductionOre: 0,
+    payableOre,
+  };
+
+  return {
+    capturedAt,
+    customerPosture,
+    baseTotalOre,
+    vatTotalOre,
+    payableOre,
+    lineVatRateBp,
+    lineVatType,
+    taxInput,
+    taxAnswer,
+  };
+}
+
+/**
+ * Seed a complete V2 quote version, plus the one economic line needed to reconcile a non-zero
+ * payable. The transaction-local replica role remains narrowly test-only so callers can seed a
+ * historical lifecycle status directly; all V2 CHECK constraints still run, and the constructed
+ * parent/line pair is the same shape the production send guard validates.
+ */
+async function adminInsertStory106QuoteVersion(
+  seed: QuoteVersionSeed,
+  lostReason?: Story106FixtureLostReason,
+): Promise<{ quoteVersionId: string; lostReasonId: string | null }> {
+  return adminSession(async ({ query }) => {
+    await query("begin");
+    try {
+      const sources = await query<{ customer_type: string }>(
+        `select customer.customer_type
+           from public.calculations calculation
+           join public.customers customer
+             on customer.id = calculation.customer_id
+            and customer.tenant_id = calculation.tenant_id
+          where calculation.id = $1
+            and calculation.tenant_id = $2`,
+        [seed.calculation_id, seed.tenant_id],
+      );
+      const customerPosture = sources[0]?.customer_type;
+      if (
+        customerPosture !== "private" &&
+        customerPosture !== "company" &&
+        customerPosture !== "brf" &&
+        customerPosture !== "public"
+      ) {
+        throw new Error("adminInsertQuoteVersion: no canonical source customer posture");
+      }
+      const tax = buildStory106FixtureTaxState(seed, customerPosture);
+
+      // A later fresh-version command must be able to recapture from this source calculation.
+      // Preserve any test-authored tax input; only legacy/null calculations receive the canonical
+      // deduction-free fixture input.
+      await query(
+        `update public.calculations
+            set tax_input_snapshot = coalesce(tax_input_snapshot, $3::jsonb)
+          where id = $1 and tenant_id = $2`,
+        [seed.calculation_id, seed.tenant_id, JSON.stringify(tax.taxInput)],
+      );
+
+      await query("set local session_replication_role = replica");
+      const versions = await query<{ id: string }>(
+        `insert into public.quote_versions
+           (tenant_id, quote_id, version_number, quote_number, calculation_id,
+            captured_at, company_name, status, intro_text, customer_display_name, customer_type,
+            pdf_status, pdf_file_id, pdf_generated_at, warnings_snapshot,
+            base_total_ore, option_total_ore, vat_total_ore, deduction_total_ore,
+            accepted_price_ore, vat_rate_bp, vat_display, deduction_type, requires_sign_off,
+            snapshot_schema_version, tax_rule_version, tax_answer_snapshot, buyer_vat_number,
+            calculated_deduction_ore, claim_deduction_ore, payable_ore)
+         values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11,
+                 $12, $13, $14, $15::jsonb,
+                 $16, 0, $17, 0, $18, $19, 'fixture_v2', null, true,
+                 2, $20, $21::jsonb, null, 0, 0, $22)
+         returning id`,
+        [
+          seed.tenant_id,
+          seed.quote_id,
+          seed.version_number ?? 1,
+          seed.quote_number ?? 1,
+          seed.calculation_id,
+          tax.capturedAt,
+          seed.company_name ?? "tenant-b-company-seed",
+          seed.status ?? "draft",
+          seed.intro_text ?? null,
+          seed.customer_display_name ?? null,
+          tax.customerPosture,
+          seed.pdf_status ?? "not_generated",
+          seed.pdf_file_id ?? null,
+          seed.pdf_generated_at ?? null,
+          JSON.stringify(seed.warnings_snapshot ?? []),
+          tax.baseTotalOre,
+          tax.vatTotalOre,
+          tax.payableOre,
+          tax.lineVatRateBp,
+          STORY_10_6_FIXTURE_POLICY_ID,
+          JSON.stringify(tax.taxAnswer),
+          tax.payableOre,
+        ],
+      );
+      const quoteVersionId = versions[0]?.id;
+      if (!quoteVersionId) throw new Error("adminInsertQuoteVersion: no id returned");
+
+      if (tax.payableOre > 0 && tax.lineVatRateBp !== null && tax.lineVatType !== null) {
+        await query(
+          `insert into public.quote_version_lines
+             (tenant_id, quote_version_id, row_type, sort_order, label, quantity, unit,
+              unit_sell_ore, line_net_ore, vat_rate_bp, is_hidden, is_optional, is_selected,
+              included_in_invoice_total, deduction_classification, vat_type)
+           values ($1, $2, 'line', 2147483647, 'Story 10.6 fixture total', 1, 'st',
+                   $3, $3, $4, false, false, null, true, 'NONE', $5)`,
+          [
+            seed.tenant_id,
+            quoteVersionId,
+            tax.baseTotalOre,
+            tax.lineVatRateBp,
+            tax.lineVatType,
+          ],
+        );
+      }
+
+      let lostReasonId: string | null = null;
+      if (lostReason) {
+        const reasons = await query<{ id: string }>(
+          `insert into public.quote_lost_reasons
+             (tenant_id, quote_id, quote_version_id, outcome, category, note)
+           values ($1, $2, $3, $4, $5, $6)
+           returning id`,
+          [
+            seed.tenant_id,
+            seed.quote_id,
+            quoteVersionId,
+            lostReason.outcome,
+            lostReason.category,
+            lostReason.note,
+          ],
+        );
+        lostReasonId = reasons[0]?.id ?? null;
+        if (!lostReasonId) {
+          throw new Error("adminInsertLostQuoteVersionWithReason: no reason id returned");
+        }
+      }
+
+      await query("commit");
+      return { quoteVersionId, lostReasonId };
+    } catch (error) {
+      await query("rollback");
+      throw error;
+    }
+  });
+}
+
+/** Seed ONE complete, internally reconciled Story 10.6 V2 `quote_versions` fixture. */
 export async function adminInsertQuoteVersion(
   seed: QuoteVersionSeed,
 ): Promise<string> {
   try {
-    return await adminInsertHistoricalQuoteArtifact(
-      `insert into public.quote_versions
-         (tenant_id, quote_id, version_number, quote_number, calculation_id,
-          captured_at, company_name, status, intro_text, customer_display_name,
-          pdf_status, pdf_file_id, pdf_generated_at, warnings_snapshot, accepted_price_ore)
-       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14::jsonb, $15)
-       returning id`,
-      [
-        seed.tenant_id,
-        seed.quote_id,
-        seed.version_number ?? 1,
-        seed.quote_number ?? 1,
-        seed.calculation_id,
-        seed.captured_at ?? "2026-07-05T12:00:00.000Z",
-        seed.company_name ?? "tenant-b-company-seed",
-        seed.status ?? "draft",
-        seed.intro_text ?? null,
-        seed.customer_display_name ?? null,
-        seed.pdf_status ?? "not_generated",
-        seed.pdf_file_id ?? null,
-        seed.pdf_generated_at ?? null,
-        JSON.stringify(seed.warnings_snapshot ?? []),
-        seed.accepted_price_ore ?? 0,
-      ],
-      "adminInsertQuoteVersion",
-    );
+    const inserted = await adminInsertStory106QuoteVersion(seed);
+    return inserted.quoteVersionId;
   } catch (error) {
     rethrowWithCode(error);
   }
 }
 
-/** Seed ONE historical line through the tightly scoped test-only trigger bypass. */
+/** Seed ONE complete V2 line through the tightly scoped test-only trigger bypass. */
 export async function adminInsertQuoteVersionLine(
   seed: QuoteVersionLineSeed,
 ): Promise<string> {
   try {
-    return await adminInsertHistoricalQuoteArtifact(
+    const unitSellOre = seed.unit_sell_ore ?? 85000;
+    const lineNetOre = seed.line_net_ore ?? unitSellOre ?? 0;
+    const vatRateBp = seed.vat_rate_bp ?? 2500;
+    const vatType =
+      seed.vat_type ??
+      (vatRateBp === 2500
+        ? "STANDARD_VAT_25"
+        : vatRateBp === 1200 || vatRateBp === 600
+          ? "REDUCED_VAT"
+          : vatRateBp === 0
+            ? "ZERO_RATED"
+            : null);
+    if (vatType === null) {
+      throw new Error("adminInsertQuoteVersionLine: vat_rate_bp needs a canonical V2 VAT type");
+    }
+    return await adminInsertQuoteArtifactWithTriggerBypass(
       `insert into public.quote_version_lines
-         (tenant_id, quote_version_id, row_type, label, unit_sell_ore, vat_rate_bp, sort_order)
-       values ($1, $2, $3, $4, $5, $6, $7)
+         (tenant_id, quote_version_id, row_type, label, quantity, unit,
+          unit_sell_ore, line_net_ore, vat_rate_bp, included_in_invoice_total,
+          deduction_classification, vat_type, sort_order)
+       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
        returning id`,
       [
         seed.tenant_id,
         seed.quote_version_id,
         seed.row_type ?? "line",
         seed.label ?? "tenant-b-line-seed",
-        seed.unit_sell_ore ?? 85000,
-        seed.vat_rate_bp ?? 2500,
+        seed.quantity ?? null,
+        seed.unit ?? null,
+        unitSellOre,
+        lineNetOre,
+        vatRateBp,
+        seed.included_in_invoice_total ?? false,
+        seed.deduction_classification ?? "NONE",
+        vatType,
         seed.sort_order ?? 0,
       ],
       "adminInsertQuoteVersionLine",
@@ -1324,12 +1654,12 @@ export async function adminInsertQuoteVersionLine(
   }
 }
 
-/** Seed ONE historical attachment through the tightly scoped test-only trigger bypass. */
+/** Seed ONE frozen attachment through the tightly scoped test-only trigger bypass. */
 export async function adminInsertQuoteVersionAttachment(
   seed: QuoteVersionAttachmentSeed,
 ): Promise<string> {
   try {
-    return await adminInsertHistoricalQuoteArtifact(
+    return await adminInsertQuoteArtifactWithTriggerBypass(
       `insert into public.quote_version_attachments
          (tenant_id, quote_version_id, file_id, display_name, sort_order)
        values ($1, $2, $3, $4, $5)
@@ -1598,19 +1928,19 @@ export interface LostQuoteVersionIds {
 }
 
 /**
- * Seed a LOST `quote_versions` row AND its companion `quote_lost_reasons` row in ONE SQL statement
- * (therefore ONE transaction) via the privileged superuser pg path (BYPASSRLS). Story 10.2.
+ * Seed a complete V2 LOST `quote_versions` row AND its companion `quote_lost_reasons` row in one
+ * dedicated transaction via the privileged superuser pg path (BYPASSRLS). Story 10.2.
  *
- * WHY A WRITABLE CTE (do not split this back into two calls): the migration
+ * WHY ONE TRANSACTION: the migration
  * `20260719120000_quote_lost_reasons_and_lost_status.sql` installs the coherence guard
  * `enforce_lost_version_has_reason` — a DEFERRABLE INITIALLY DEFERRED constraint trigger on
  * `quote_versions` that raises QV422 at COMMIT when a row sits at status='lost' with NO
  * `quote_lost_reasons` row. That guard is load-bearing security (an own-tenant direct INSERT/UPDATE
  * through PostgREST could otherwise forge a 'lost' version, bypassing `mark_quote_version_lost` and
- * its required reason/event/audit writes), so it is NOT weakened for tests. Each `adminQuery` call is
- * its OWN transaction, so seeding the version and the reason as two statements commits the version
- * ALONE and trips the deferred check. Inserting both in a single data-modifying-CTE statement means
- * the reason row exists at COMMIT — exactly like the RPC path — and the check passes.
+ * its required reason/event/audit writes), so it is NOT weakened in production. The fixture's
+ * transaction-local replica role is scoped to arranging an already-terminal fixture state; it
+ * inserts the V2 parent, any required economic line, and the reason before commit, so the resulting
+ * rows are internally coherent even though no live lifecycle command is being exercised here.
  *
  * Defaults mirror `adminInsertQuoteVersion` for the version columns and `adminInsertQuoteLostReason`
  * for the reason columns (outcome 'forlorad', category 'pris', note null); every one is overridable.
@@ -1621,51 +1951,20 @@ export async function adminInsertLostQuoteVersionWithReason(
   seed: LostQuoteVersionSeed,
 ): Promise<LostQuoteVersionIds> {
   try {
-    const rows = await adminQuery<{
-      quote_version_id: string;
-      lost_reason_id: string;
-    }>(
-      `with v as (
-         insert into public.quote_versions
-           (tenant_id, quote_id, version_number, quote_number, calculation_id,
-            captured_at, company_name, status, intro_text, customer_display_name,
-            pdf_status, pdf_file_id, pdf_generated_at, warnings_snapshot, accepted_price_ore)
-         values ($1, $2, $3, $4, $5, $6, $7, 'lost', $8, $9, $10, $11, $12, $13::jsonb, $14)
-         returning id
-       ), r as (
-         insert into public.quote_lost_reasons
-           (tenant_id, quote_id, quote_version_id, outcome, category, note)
-         select $1, $2, v.id, $15, $16, $17 from v
-         returning id
-       )
-       select v.id as quote_version_id, r.id as lost_reason_id from v, r`,
-      [
-        seed.tenant_id,
-        seed.quote_id,
-        seed.version_number ?? 1,
-        seed.quote_number ?? 1,
-        seed.calculation_id,
-        seed.captured_at ?? "2026-07-05T12:00:00.000Z",
-        seed.company_name ?? "tenant-b-company-seed",
-        seed.intro_text ?? null,
-        seed.customer_display_name ?? null,
-        seed.pdf_status ?? "not_generated",
-        seed.pdf_file_id ?? null,
-        seed.pdf_generated_at ?? null,
-        JSON.stringify(seed.warnings_snapshot ?? []),
-        seed.accepted_price_ore ?? 0,
-        seed.outcome ?? "forlorad",
-        seed.category ?? "pris",
-        seed.note ?? null,
-      ],
+    const inserted = await adminInsertStory106QuoteVersion(
+      { ...seed, status: "lost" },
+      {
+        outcome: seed.outcome ?? "forlorad",
+        category: seed.category ?? "pris",
+        note: seed.note ?? null,
+      },
     );
-    const row = rows[0];
-    if (!row?.quote_version_id || !row?.lost_reason_id) {
+    if (!inserted.lostReasonId) {
       throw new Error("adminInsertLostQuoteVersionWithReason: no ids returned");
     }
     return {
-      quoteVersionId: row.quote_version_id,
-      lostReasonId: row.lost_reason_id,
+      quoteVersionId: inserted.quoteVersionId,
+      lostReasonId: inserted.lostReasonId,
     };
   } catch (error) {
     rethrowWithCode(error);

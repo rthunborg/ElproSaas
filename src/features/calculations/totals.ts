@@ -20,6 +20,7 @@
  */
 import {
   aggregateDocumentVat,
+  TAX_POLICY_2026,
   lineNetOre,
   lineVatOre,
   selectVatDisplay,
@@ -66,15 +67,13 @@ export type TotalsResult<T> =
   | { readonly ok: false; readonly code: string };
 
 /**
- * Legacy callers supplied only a numeric VAT rate. Preserve that read-model
- * compatibility by deriving the unambiguous reduced category for the two
- * reduced rates; new writes carry `vat_type` explicitly and are validated at
- * the command/database boundary.
+ * A quarantined legacy row deliberately has no VAT type. Runtime totals never
+ * infer a legal category from its numeric rate; an admin must remediate the
+ * explicit type/rate pair first.
  */
-function vatTypeForTotal(row: TotalsRowInput): VatType {
+function vatTypeForTotal(row: TotalsRowInput): VatType | null {
   if (row.vat_type !== null && row.vat_type !== undefined) return row.vat_type;
-  if (row.vat_rate_bp === 600 || row.vat_rate_bp === 1200) return "REDUCED_VAT";
-  return "STANDARD_VAT_25";
+  return null;
 }
 
 /**
@@ -99,10 +98,13 @@ export function computeLineTotal(row: TotalsRowInput): TotalsResult<LineTotal> {
   const sellOre = row.unit_sell_ore ?? 0;
   const net = lineNetOre(row.quantity, sellOre);
   if (!net.ok) return { ok: false, code: net.code };
+  const vatType = vatTypeForTotal(row);
+  if (vatType === null) return { ok: false, code: "INCOMPLETE_VAT_INPUT" };
   const breakdown = aggregateDocumentVat({
+    standardRateBp: TAX_POLICY_2026.vat.standardRateBp,
     rows: [{
       netOre: net.value,
-      vatType: vatTypeForTotal(row),
+      vatType,
       rateBp: row.vat_rate_bp,
       includedInInvoiceTotal: true,
       deductionClassification: row.deduction_classification ?? "NONE",
@@ -138,15 +140,20 @@ export function computeSectionTotal(
     if (!rowCountsTowardTotal(row)) continue;
     const line = computeLineTotal(row);
     if (!line.ok) return { ok: false, code: line.code };
+    const vatType = vatTypeForTotal(row);
+    if (vatType === null) return { ok: false, code: "INCOMPLETE_VAT_INPUT" };
     includedRows.push({
       netOre: line.value.netOre,
-      vatType: vatTypeForTotal(row),
+      vatType,
       rateBp: row.vat_rate_bp ?? 0,
       includedInInvoiceTotal: true,
       deductionClassification: row.deduction_classification ?? "NONE",
     });
   }
-  const aggregate = aggregateDocumentVat({ rows: includedRows });
+  const aggregate = aggregateDocumentVat({
+    rows: includedRows,
+    standardRateBp: TAX_POLICY_2026.vat.standardRateBp,
+  });
   if (!aggregate.ok) return { ok: false, code: aggregate.code };
   return {
     ok: true,

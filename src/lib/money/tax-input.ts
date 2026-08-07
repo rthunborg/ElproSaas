@@ -170,6 +170,11 @@ export function parseTaxInputSnapshot(raw: unknown): TaxInputValidationResult {
   if (raw.documentVatType === "REVERSE_CHARGE_CONSTRUCTION" && buyerVatNumber === null) {
     return fail("INVALID_BUYER_VAT_NUMBER");
   }
+  // A buyer VAT identifier is a reverse-charge fact. Deselecting that posture
+  // must not retain or duplicate an unnecessary tax identifier in later drafts.
+  if (raw.documentVatType !== "REVERSE_CHARGE_CONSTRUCTION") {
+    buyerVatNumber = null;
+  }
 
   const choice = raw.deductionChoice;
   const paymentDate = raw.paymentDate === null || raw.paymentDate === undefined

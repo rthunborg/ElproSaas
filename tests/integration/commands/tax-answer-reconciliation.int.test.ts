@@ -118,11 +118,12 @@ function validTaxAnswer(): Record<string, unknown> {
     vatPolicy: {
       id: POLICY_ID,
       validFrom: "2026-01-01",
-      validTo: null,
+      validTo: "2027-01-01",
       resolvingDate: "2026-08-05",
       resolvingFact: "QUOTE_CAPTURE_DATE",
       values: frozenPolicyValues(),
     },
+    customerEligibilityPosture: "private",
     documentVatType: "STANDARD_VAT_25",
     buyerVatNumber: null,
     reverseChargeApplied: false,
@@ -241,6 +242,27 @@ function validLine(): Record<string, unknown> {
   };
 }
 
+type JsonPathPart = string | number;
+
+function objectAt(root: unknown, path: readonly JsonPathPart[]): Record<string, unknown> {
+  let current: unknown = root;
+  for (const part of path) {
+    if (typeof part === "number") {
+      if (!Array.isArray(current)) throw new Error(`Expected array at ${path.join(".")}`);
+      current = current[part];
+    } else {
+      if (typeof current !== "object" || current === null || Array.isArray(current)) {
+        throw new Error(`Expected object at ${path.join(".")}`);
+      }
+      current = (current as Record<string, unknown>)[part];
+    }
+  }
+  if (typeof current !== "object" || current === null || Array.isArray(current)) {
+    throw new Error(`Expected object at ${path.join(".")}`);
+  }
+  return current as Record<string, unknown>;
+}
+
 function errorCode(error: unknown): string | undefined {
   return typeof error === "object" && error !== null && "code" in error
     ? String((error as { code?: unknown }).code)
@@ -313,6 +335,8 @@ describe("Story 10.6 — migration source contract", () => {
         "is_story_10_6_quote_lines_reconciled",
         "is_story_10_6_tax_answer_matches_input",
         "calculation_rows_classification_matches_row_type_check",
+        "calculation_rows_tax_reconciliation_metadata_check",
+        "enforce_story_10_6_calculation_row_limit",
         "quote_version_lines_classification_matches_row_type_check",
         "assert_story_10_6_fresh_quote_v2",
         "create_quote_version_from_calculation",
@@ -322,6 +346,7 @@ describe("Story 10.6 — migration source contract", () => {
     );
     expect(migration.match(/create\s+table/gi) ?? [], "reconciliation adds no tenant table").toHaveLength(0);
     expect(migration.match(/perform\s+public\.assert_story_10_6_fresh_quote_v2/gi) ?? []).toHaveLength(2);
+    expect(migration.match(/jsonb_array_length\(p_lines\)\s*>\s*500/gi) ?? []).toHaveLength(2);
   });
 
   it("[10.6-INT-02][P0] lock source pins transition-only freeze and OLD+NEW serialized child parents", () => {
@@ -416,12 +441,33 @@ describe("Story 10.6 — local Supabase behavior", () => {
         [
           calculationId,
           JSON.stringify({
+            ...validTaxInput(),
+            deductionChoice: "ROT",
+            paymentDate: "2026-08-05",
+            personAllowanceSlots: [
+              {
+                slot: "person_legacy",
+                remainingRotAllowanceOre: 5_000_000,
+                remainingCombinedRotRutAllowanceOre: 7_500_000,
+              },
+            ],
+          }),
+        ],
+      ),
+    ).rejects.toMatchObject({ code: "23514" });
+
+    await expect(
+      adminQuery(
+        `update public.calculations set tax_input_snapshot = $2::jsonb where id = $1`,
+        [
+          calculationId,
+          JSON.stringify({
             ...invalid,
             documentVatType: "STANDARD_VAT_25",
             deductionChoice: "ROT",
             paymentDate: "2026-08-05",
             personAllowanceSlots: [
-              { slot: "rot_without_combined", remainingRotAllowanceOre: 5_000_000 },
+              { slot: "PERSON_1", remainingRotAllowanceOre: 5_000_000 },
             ],
           }),
         ],
@@ -436,12 +482,12 @@ describe("Story 10.6 — local Supabase behavior", () => {
       finalPaymentDate: "2026-08-06",
       personAllowanceSlots: [
         {
-          slot: "rot_person",
+          slot: "PERSON_1",
           remainingRotAllowanceOre: 5_000_000,
           remainingCombinedRotRutAllowanceOre: 7_500_000,
         },
         {
-          slot: "green_person",
+          slot: "PERSON_2",
           remainingGreenAllowanceOre: 5_000_000,
         },
       ],
@@ -473,6 +519,225 @@ describe("Story 10.6 — local Supabase behavior", () => {
     ).rejects.toMatchObject({ code: "23514" });
   });
 
+  it("[10.6-INT-04A][P0] migration finishes row reconciliation with owner-only bounded remediation", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
+
+    const privileges = await adminQuery<{
+      anon_executes: boolean;
+      authenticated_executes: boolean;
+      service_executes: boolean;
+    }>(
+      `select
+         has_function_privilege(
+           'anon',
+           'public.backfill_story_10_6_calculation_rows(integer)',
+           'EXECUTE'
+         ) as anon_executes,
+         has_function_privilege(
+           'authenticated',
+           'public.backfill_story_10_6_calculation_rows(integer)',
+           'EXECUTE'
+         ) as authenticated_executes,
+         has_function_privilege(
+           'service_role',
+           'public.backfill_story_10_6_calculation_rows(integer)',
+           'EXECUTE'
+         ) as service_executes`,
+    );
+    expect(privileges[0]).toEqual({
+      anon_executes: false,
+      authenticated_executes: false,
+      service_executes: false,
+    });
+
+    for (const batchSize of [null, 0, 5001] as const) {
+      await expect(
+        adminQuery(`select public.backfill_story_10_6_calculation_rows($1)`, [batchSize]),
+      ).rejects.toMatchObject({ code: "22023" });
+    }
+    const completed = await adminQuery<{ updated: number }>(
+      `select public.backfill_story_10_6_calculation_rows(1) as updated`,
+    );
+    expect(Number(completed[0]?.updated)).toBe(0);
+
+    const constraints = await adminQuery<{ conname: string; convalidated: boolean }>(
+      `select conname, convalidated
+         from pg_constraint
+        where conrelid = 'public.calculation_rows'::regclass
+          and conname = any($1::text[])
+        order by conname`,
+      [[
+        "calculation_rows_included_in_invoice_total_present_check",
+        "calculation_rows_deduction_classification_present_check",
+        "calculation_rows_tax_reconciliation_required_present_check",
+        "calculation_rows_tax_reconciliation_metadata_check",
+        "calculation_rows_vat_type_rate_check",
+      ]],
+    );
+    expect(constraints).toHaveLength(5);
+    expect(constraints.every((constraint) => constraint.convalidated)).toBe(true);
+
+    const quarantined = await adminQuery<{
+      id: string;
+      vat_type: string | null;
+      tax_reconciliation_required: boolean;
+      tax_reconciliation_reason: string;
+    }>(
+      `insert into public.calculation_rows (
+         tenant_id, section_id, row_type, quantity, unit, unit_sell_ore, vat_rate_bp,
+         included_in_invoice_total, deduction_classification, vat_type,
+         tax_reconciliation_required, tax_reconciliation_reason
+       ) values (
+         $1, $2, 'other', 1, 'st', 10000, 0,
+         true, 'NONE', null, true, 'LEGACY_VAT_ZERO_AMBIGUOUS'
+       )
+       returning id, vat_type, tax_reconciliation_required, tax_reconciliation_reason`,
+      [fixture.tenantA.id, sectionId],
+    );
+    expect(quarantined[0]).toMatchObject({
+      vat_type: null,
+      tax_reconciliation_required: true,
+      tax_reconciliation_reason: "LEGACY_VAT_ZERO_AMBIGUOUS",
+    });
+    await expect(
+      adminQuery(
+        `insert into public.calculation_rows (
+           tenant_id, section_id, row_type, quantity, unit, unit_sell_ore, vat_rate_bp,
+           included_in_invoice_total, deduction_classification, vat_type,
+           tax_reconciliation_required, tax_reconciliation_reason
+         ) values (
+           $1, $2, 'other', 1, 'st', 10000, null,
+           true, 'NONE', 'STANDARD_VAT_25', false, null
+         )`,
+        [fixture.tenantA.id, sectionId],
+      ),
+    ).rejects.toMatchObject({ code: "23514" });
+    await expect(
+      adminQuery(
+        `update public.calculation_rows
+            set tax_reconciliation_required = false,
+                tax_reconciliation_reason = null
+          where id = $1`,
+        [quarantined[0]!.id],
+      ),
+    ).rejects.toMatchObject({ code: "23514" });
+    await expect(
+      adminQuery(
+        `update public.calculation_rows
+            set vat_rate_bp = 2500,
+                vat_type = 'STANDARD_VAT_25',
+                tax_reconciliation_required = false,
+                tax_reconciliation_reason = null
+          where id = $1`,
+        [quarantined[0]!.id],
+      ),
+    ).resolves.toBeDefined();
+  });
+
+  it("[10.6-INT-04C][P0] calculation rows are capped at 500 across all sections", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
+    const cappedCalculationId = await adminInsertCalculation({
+      tenant_id: fixture.tenantA.id,
+      customer_id: customerId,
+      title: "Story 10.6 capped calculation",
+    });
+    const firstSectionId = await adminInsertSection({
+      tenant_id: fixture.tenantA.id,
+      calculation_id: cappedCalculationId,
+      title: "First capped section",
+    });
+    const secondSectionId = await adminInsertSection({
+      tenant_id: fixture.tenantA.id,
+      calculation_id: cappedCalculationId,
+      title: "Second capped section",
+    });
+
+    await adminQuery(
+      `insert into public.calculation_rows (
+         tenant_id, section_id, row_type, quantity, unit, unit_sell_ore, vat_rate_bp,
+         included_in_invoice_total, deduction_classification, vat_type, sort_order
+       )
+       select $1, $2, 'other', 1, 'st', 0, 2500,
+              true, 'NONE', 'STANDARD_VAT_25', ordinal
+         from generate_series(1, 499) as ordinal`,
+      [fixture.tenantA.id, firstSectionId],
+    );
+    await expect(
+      adminInsertRow({
+        tenant_id: fixture.tenantA.id,
+        section_id: secondSectionId,
+        row_type: "other",
+        unit_sell_ore: 0,
+      }),
+    ).resolves.toBeDefined();
+    await expect(
+      adminInsertRow({
+        tenant_id: fixture.tenantA.id,
+        section_id: secondSectionId,
+        row_type: "other",
+        unit_sell_ore: 0,
+      }),
+    ).rejects.toMatchObject({ code: "23514" });
+
+    await adminQuery(
+      `update public.calculation_rows
+          set archived_at = now()
+        where id = (
+          select id
+            from public.calculation_rows
+           where section_id = $1 and archived_at is null
+           order by id
+           limit 1
+        )`,
+      [firstSectionId],
+    );
+    await expect(
+      adminInsertRow({
+        tenant_id: fixture.tenantA.id,
+        section_id: secondSectionId,
+        row_type: "other",
+        unit_sell_ore: 0,
+      }),
+    ).resolves.toBeDefined();
+
+    await adminQuery(
+      `update public.calculation_sections set archived_at = now() where id = $1`,
+      [firstSectionId],
+    );
+    await expect(
+      adminInsertRow({
+        tenant_id: fixture.tenantA.id,
+        section_id: secondSectionId,
+        row_type: "other",
+        unit_sell_ore: 0,
+      }),
+    ).resolves.toBeDefined();
+    await expect(
+      adminQuery(
+        `update public.calculation_sections set archived_at = null where id = $1`,
+        [firstSectionId],
+      ),
+    ).rejects.toMatchObject({ code: "23514" });
+    await adminQuery(
+      `update public.calculation_rows
+          set archived_at = now()
+        where id = (
+          select id
+            from public.calculation_rows
+           where section_id = $1 and archived_at is null
+           order by id
+           limit 1
+        )`,
+      [firstSectionId],
+    );
+    await expect(
+      adminQuery(
+        `update public.calculation_sections set archived_at = null where id = $1`,
+        [firstSectionId],
+      ),
+    ).resolves.toBeDefined();
+  });
+
   it("[10.6-INT-04B][P0] finalized V2 enforces whole-SEK claims and reverse metadata", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     const missingVatPolicy = validTaxAnswer();
@@ -482,6 +747,64 @@ describe("Story 10.6 — local Supabase behavior", () => {
       [JSON.stringify(missingVatPolicy)],
     );
     expect(missingVatPolicyResult[0]?.valid).toBe(false);
+
+    const missingPosture = validTaxAnswer();
+    delete missingPosture.customerEligibilityPosture;
+    const missingPostureResult = await adminQuery<{ valid: boolean }>(
+      `select public.is_story_10_6_tax_answer_v2($1::jsonb) as valid`,
+      [JSON.stringify(missingPosture)],
+    );
+    expect(missingPostureResult[0]?.valid).toBe(false);
+
+    const standardWithBuyerVat = validTaxAnswer();
+    standardWithBuyerVat.buyerVatNumber = "SE123456789012";
+    const standardWithBuyerVatResult = await adminQuery<{ valid: boolean }>(
+      `select public.is_story_10_6_tax_answer_v2($1::jsonb) as valid`,
+      [JSON.stringify(standardWithBuyerVat)],
+    );
+    expect(standardWithBuyerVatResult[0]?.valid).toBe(false);
+
+    const companyAnswer = validTaxAnswer();
+    companyAnswer.customerEligibilityPosture = "company";
+    const companyAnswerResult = await adminQuery<{ valid: boolean }>(
+      `select public.is_story_10_6_tax_answer_v2($1::jsonb) as valid`,
+      [JSON.stringify(companyAnswer)],
+    );
+    expect(companyAnswerResult[0]?.valid).toBe(true);
+    await expect(
+      adminQuery(
+        `select public.assert_story_10_6_fresh_quote_v2(
+           $1::jsonb, $2::jsonb, $3::jsonb, $4::date
+         )`,
+        [
+          JSON.stringify({
+            ...validSnapshot(),
+            customerType: "company",
+            taxAnswerSnapshot: companyAnswer,
+          }),
+          JSON.stringify([validLine()]),
+          JSON.stringify(validTaxInput()),
+          "2026-08-05",
+        ],
+      ),
+    ).resolves.toBeDefined();
+    await expect(
+      adminQuery(
+        `select public.assert_story_10_6_fresh_quote_v2(
+           $1::jsonb, $2::jsonb, $3::jsonb, $4::date
+         )`,
+        [
+          JSON.stringify({
+            ...validSnapshot(),
+            customerType: "private",
+            taxAnswerSnapshot: companyAnswer,
+          }),
+          JSON.stringify([validLine()]),
+          JSON.stringify(validTaxInput()),
+          "2026-08-05",
+        ],
+      ),
+    ).rejects.toMatchObject({ code: "23514" });
 
     const tamperedPolicy = validTaxAnswer();
     (
@@ -508,7 +831,7 @@ describe("Story 10.6 — local Supabase behavior", () => {
       policy: {
         id: POLICY_ID,
         validFrom: "2026-01-01",
-        validTo: null,
+        validTo: "2027-01-01",
         resolvingDate: "2026-08-05",
         resolvingFact: "ROT_PAYMENT_DATE",
         values: frozenPolicyValues(),
@@ -518,7 +841,7 @@ describe("Story 10.6 — local Supabase behavior", () => {
       basisOre: 12_500,
       calculatedOre: 3_750,
       claimOre: 3_700,
-      allocations: [{ slot: "person_a", ore: 3_700 }],
+      allocations: [{ slot: "PERSON_1", ore: 3_700 }],
     };
     whole.calculatedDeductionOre = 3_750;
     whole.claimDeductionOre = 3_700;
@@ -530,18 +853,80 @@ describe("Story 10.6 — local Supabase behavior", () => {
     );
     expect(wholeResult[0]?.valid).toBe(true);
 
+    const ineligibleWhole = structuredClone(whole);
+    ineligibleWhole.customerEligibilityPosture = "company";
+    const ineligibleWholeResult = await adminQuery<{ valid: boolean }>(
+      `select public.is_story_10_6_tax_answer_v2($1::jsonb) as valid`,
+      [JSON.stringify(ineligibleWhole)],
+    );
+    expect(ineligibleWholeResult[0]?.valid).toBe(false);
+
+    const exactObjectPaths: readonly (readonly JsonPathPart[])[] = [
+      [],
+      ["vatPolicy"],
+      ["vatPolicy", "values"],
+      ["vatPolicy", "values", "vat"],
+      ["vatPolicy", "values", "rot"],
+      ["vatPolicy", "values", "green"],
+      ["vatPolicy", "values", "green", "rateBpByCategory"],
+      ["categories", 0],
+      ["netByDeductionClassification"],
+      ["vatByDeductionClassification"],
+      ["summaries"],
+      ["summaries", "labor"],
+      ["rot"],
+      ["rot", "policy"],
+      ["rot", "allocations", 0],
+      ["green"],
+      ["green", "categories"],
+      ["green", "categories", "SOLAR"],
+    ];
+    for (const path of exactObjectPaths) {
+      const withUnknownKey = structuredClone(whole);
+      objectAt(withUnknownKey, path)._unexpected = true;
+      const result = await adminQuery<{ valid: boolean }>(
+        `select public.is_story_10_6_tax_answer_v2($1::jsonb) as valid`,
+        [JSON.stringify(withUnknownKey)],
+      );
+      expect(result[0]?.valid, `unknown key at ${path.join(".")} must fail`).toBe(false);
+    }
+
+    const rotAtLimit = structuredClone(whole);
+    (rotAtLimit.rot as Record<string, unknown>).allocations = [
+      { slot: "PERSON_1", ore: 3_700 },
+      ...Array.from({ length: 49 }, (_, index) => ({
+        slot: `zero_rot_${index + 1}`,
+        ore: 0,
+      })),
+    ];
+    const rotAtLimitResult = await adminQuery<{ valid: boolean }>(
+      `select public.is_story_10_6_tax_answer_v2($1::jsonb) as valid`,
+      [JSON.stringify(rotAtLimit)],
+    );
+    expect(rotAtLimitResult[0]?.valid).toBe(true);
+    const oversizedRot = structuredClone(rotAtLimit);
+    ((oversizedRot.rot as Record<string, unknown>).allocations as unknown[]).push({
+      slot: "zero_rot_50",
+      ore: 0,
+    });
+    const oversizedRotResult = await adminQuery<{ valid: boolean }>(
+      `select public.is_story_10_6_tax_answer_v2($1::jsonb) as valid`,
+      [JSON.stringify(oversizedRot)],
+    );
+    expect(oversizedRotResult[0]?.valid).toBe(false);
+
     const orderedInput = {
       ...validTaxInput(),
       deductionChoice: "ROT",
       paymentDate: "2026-08-05",
       personAllowanceSlots: [
         {
-          slot: "first",
+          slot: "PERSON_1",
           remainingRotAllowanceOre: 2_000,
           remainingCombinedRotRutAllowanceOre: 2_000,
         },
         {
-          slot: "second",
+          slot: "PERSON_2",
           remainingRotAllowanceOre: 2_000,
           remainingCombinedRotRutAllowanceOre: 2_000,
         },
@@ -549,8 +934,8 @@ describe("Story 10.6 — local Supabase behavior", () => {
     };
     const orderedAnswer = structuredClone(whole);
     (orderedAnswer.rot as Record<string, unknown>).allocations = [
-      { slot: "first", ore: 2_000 },
-      { slot: "second", ore: 1_700 },
+      { slot: "PERSON_1", ore: 2_000 },
+      { slot: "PERSON_2", ore: 1_700 },
     ];
     const orderedMatch = await adminQuery<{ valid: boolean }>(
       `select public.is_story_10_6_tax_answer_matches_input(
@@ -560,8 +945,8 @@ describe("Story 10.6 — local Supabase behavior", () => {
     );
     expect(orderedMatch[0]?.valid).toBe(true);
     (orderedAnswer.rot as Record<string, unknown>).allocations = [
-      { slot: "second", ore: 1_700 },
-      { slot: "first", ore: 2_000 },
+      { slot: "PERSON_2", ore: 1_700 },
+      { slot: "PERSON_1", ore: 2_000 },
     ];
     const reorderedMatch = await adminQuery<{ valid: boolean }>(
       `select public.is_story_10_6_tax_answer_matches_input(
@@ -576,7 +961,7 @@ describe("Story 10.6 — local Supabase behavior", () => {
     (mixed.green as Record<string, unknown>).policy = {
       id: POLICY_ID,
       validFrom: "2026-01-01",
-      validTo: null,
+      validTo: "2027-01-01",
       resolvingDate: "2026-08-06",
       resolvingFact: "GREEN_FINAL_PAYMENT_DATE",
       values: frozenPolicyValues(),
@@ -599,7 +984,7 @@ describe("Story 10.6 — local Supabase behavior", () => {
       finalPaymentDate: "2026-08-06",
       personAllowanceSlots: [
         {
-          slot: "person_a",
+          slot: "PERSON_1",
           remainingRotAllowanceOre: 5_000_000,
           remainingCombinedRotRutAllowanceOre: 7_500_000,
           remainingGreenAllowanceOre: 5_000_000,
@@ -652,7 +1037,7 @@ describe("Story 10.6 — local Supabase behavior", () => {
       policy: {
         id: POLICY_ID,
         validFrom: "2026-01-01",
-        validTo: null,
+        validTo: "2027-01-01",
         resolvingDate: "2026-08-06",
         resolvingFact: "GREEN_FINAL_PAYMENT_DATE",
         values: frozenPolicyValues(),
@@ -676,6 +1061,36 @@ describe("Story 10.6 — local Supabase behavior", () => {
       [JSON.stringify(fixedGreen)],
     );
     expect(fixedGreenResult[0]?.valid).toBe(true);
+    const greenWithUnknownAllocationKey = structuredClone(fixedGreen);
+    objectAt(greenWithUnknownAllocationKey, ["green", "policy"])._unexpected = true;
+    const unknownGreenPolicyResult = await adminQuery<{ valid: boolean }>(
+      `select public.is_story_10_6_tax_answer_v2($1::jsonb) as valid`,
+      [JSON.stringify(greenWithUnknownAllocationKey)],
+    );
+    expect(unknownGreenPolicyResult[0]?.valid).toBe(false);
+    const greenAtLimit = structuredClone(fixedGreen);
+    (greenAtLimit.green as Record<string, unknown>).allocations = [
+      { slot: "green_person", ore: 1_800 },
+      ...Array.from({ length: 49 }, (_, index) => ({
+        slot: `zero_green_${index + 1}`,
+        ore: 0,
+      })),
+    ];
+    const greenAtLimitResult = await adminQuery<{ valid: boolean }>(
+      `select public.is_story_10_6_tax_answer_v2($1::jsonb) as valid`,
+      [JSON.stringify(greenAtLimit)],
+    );
+    expect(greenAtLimitResult[0]?.valid).toBe(true);
+    const oversizedGreen = structuredClone(greenAtLimit);
+    ((oversizedGreen.green as Record<string, unknown>).allocations as unknown[]).push({
+      slot: "zero_green_50",
+      ore: 0,
+    });
+    const oversizedGreenResult = await adminQuery<{ valid: boolean }>(
+      `select public.is_story_10_6_tax_answer_v2($1::jsonb) as valid`,
+      [JSON.stringify(oversizedGreen)],
+    );
+    expect(oversizedGreenResult[0]?.valid).toBe(false);
     const mismatchedFixedGreen = structuredClone(fixedGreen);
     (
       (mismatchedFixedGreen.green as Record<string, unknown>).categories as Record<
@@ -691,7 +1106,7 @@ describe("Story 10.6 — local Supabase behavior", () => {
 
     const fractional = structuredClone(whole);
     (fractional.rot as Record<string, unknown>).claimOre = 3_750;
-    (fractional.rot as Record<string, unknown>).allocations = [{ slot: "person_a", ore: 3_750 }];
+    (fractional.rot as Record<string, unknown>).allocations = [{ slot: "PERSON_1", ore: 3_750 }];
     fractional.claimDeductionOre = 3_750;
     fractional.deductionOre = 3_750;
     fractional.payableOre = 8_750;
@@ -739,6 +1154,98 @@ describe("Story 10.6 — local Supabase behavior", () => {
       [JSON.stringify(reverse)],
     );
     expect(completeReverse[0]?.valid).toBe(true);
+
+    // The closed VAT-category set contains five identities because reduced VAT has
+    // two sanctioned rates. Pin both the structural validator and the fresh-RPC
+    // reconciliation so a count cap cannot accidentally reject a legal mixed quote.
+    const allFiveCategories = validTaxAnswer();
+    allFiveCategories.documentVatType = "REVERSE_CHARGE_CONSTRUCTION";
+    allFiveCategories.buyerVatNumber = "SE123456789012";
+    allFiveCategories.reverseChargeApplied = true;
+    allFiveCategories.categories = [
+      { vatType: "STANDARD_VAT_25", rateBp: 2500, netOre: 10_000, vatOre: 2_500, grossOre: 12_500 },
+      { vatType: "REVERSE_CHARGE_CONSTRUCTION", rateBp: 2500, netOre: 10_000, vatOre: 0, grossOre: 10_000 },
+      { vatType: "ZERO_RATED", rateBp: 0, netOre: 10_000, vatOre: 0, grossOre: 10_000 },
+      { vatType: "REDUCED_VAT", rateBp: 600, netOre: 10_000, vatOre: 600, grossOre: 10_600 },
+      { vatType: "REDUCED_VAT", rateBp: 1200, netOre: 10_000, vatOre: 1_200, grossOre: 11_200 },
+    ];
+    allFiveCategories.netByDeductionClassification = {
+      ...zeroClassifications(),
+      NONE: 50_000,
+    };
+    allFiveCategories.vatByDeductionClassification = {
+      ...zeroClassifications(),
+      NONE: 4_300,
+    };
+    allFiveCategories.summaries = {
+      labor: { netOre: 50_000, vatOre: 4_300, grossOre: 54_300 },
+      material: { netOre: 0, vatOre: 0, grossOre: 0 },
+      other: { netOre: 0, vatOre: 0, grossOre: 0 },
+    };
+    allFiveCategories.netOre = 50_000;
+    allFiveCategories.vatOre = 4_300;
+    allFiveCategories.grossOre = 54_300;
+    allFiveCategories.payableOre = 54_300;
+    const allFiveResult = await adminQuery<{ valid: boolean }>(
+      `select public.is_story_10_6_tax_answer_v2($1::jsonb) as valid`,
+      [JSON.stringify(allFiveCategories)],
+    );
+    expect(allFiveResult[0]?.valid).toBe(true);
+
+    const allFiveLines = (
+      allFiveCategories.categories as Array<Record<string, unknown>>
+    ).map((category, index) => ({
+      ...validLine(),
+      sortOrder: index,
+      label: `VAT category ${index + 1}`,
+      vatType: category.vatType,
+      vatRateBp: category.rateBp,
+    }));
+    await expect(
+      adminQuery(
+        `select public.assert_story_10_6_fresh_quote_v2(
+           $1::jsonb, $2::jsonb, $3::jsonb, $4::date
+         )`,
+        [
+          JSON.stringify({
+            ...validSnapshot(),
+            baseTotalOre: 50_000,
+            vatTotalOre: 4_300,
+            acceptedPriceOre: 54_300,
+            taxAnswerSnapshot: allFiveCategories,
+            buyerVatNumber: "SE123456789012",
+            payableOre: 54_300,
+          }),
+          JSON.stringify(allFiveLines),
+          JSON.stringify({
+            ...validTaxInput(),
+            documentVatType: "REVERSE_CHARGE_CONSTRUCTION",
+            buyerVatNumber: "SE123456789012",
+          }),
+          "2026-08-05",
+        ],
+      ),
+    ).resolves.toBeDefined();
+
+    const duplicateWithinFive = structuredClone(allFiveCategories);
+    (duplicateWithinFive.categories as unknown[])[4] = structuredClone(
+      (duplicateWithinFive.categories as unknown[])[0],
+    );
+    const duplicateWithinFiveResult = await adminQuery<{ valid: boolean }>(
+      `select public.is_story_10_6_tax_answer_v2($1::jsonb) as valid`,
+      [JSON.stringify(duplicateWithinFive)],
+    );
+    expect(duplicateWithinFiveResult[0]?.valid).toBe(false);
+
+    const oversizedCategories = structuredClone(allFiveCategories);
+    (oversizedCategories.categories as unknown[]).push(
+      structuredClone((oversizedCategories.categories as unknown[])[0]),
+    );
+    const oversizedCategoriesResult = await adminQuery<{ valid: boolean }>(
+      `select public.is_story_10_6_tax_answer_v2($1::jsonb) as valid`,
+      [JSON.stringify(oversizedCategories)],
+    );
+    expect(oversizedCategoriesResult[0]?.valid).toBe(false);
   });
 
   it("[10.6-INT-05][P0] both fresh RPCs reject V1/partial V2 and incomplete child keys", async (testCtx) => {
@@ -853,6 +1360,33 @@ describe("Story 10.6 — local Supabase behavior", () => {
       [created.quoteId],
     );
     expect(Number(count[0]?.count)).toBe(1);
+  });
+
+  it("[10.6-INT-05B][P0] quote validation accepts 500 lines and rejects 501", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
+    const excluded = {
+      ...validLine(),
+      includedInInvoiceTotal: false,
+      lineNetOre: 0,
+      unitSellOre: 0,
+    };
+    const linesAtLimit = [
+      validLine(),
+      ...Array.from({ length: 499 }, (_, index) => ({
+        ...excluded,
+        sortOrder: index + 1,
+      })),
+    ];
+    const atLimit = await adminQuery<{ valid: boolean }>(
+      `select public.is_story_10_6_quote_lines_reconciled($1::jsonb, $2::jsonb) as valid`,
+      [JSON.stringify(validTaxAnswer()), JSON.stringify(linesAtLimit)],
+    );
+    expect(atLimit[0]?.valid).toBe(true);
+    const overLimit = await adminQuery<{ valid: boolean }>(
+      `select public.is_story_10_6_quote_lines_reconciled($1::jsonb, $2::jsonb) as valid`,
+      [JSON.stringify(validTaxAnswer()), JSON.stringify([...linesAtLimit, excluded])],
+    );
+    expect(overLimit[0]?.valid).toBe(false);
   });
 
   it("[10.6-INT-12][P0] authenticated Tenant B cannot call either fresh-version RPC against Tenant A data and leaves the existing A quote untouched", async (testCtx) => {
@@ -978,8 +1512,9 @@ describe("Story 10.6 — local Supabase behavior", () => {
     expect(afterState).toEqual(beforeState);
   });
 
-  it("[10.6-INT-06][P0] historical V1 stays readable but a V1 draft cannot newly send", async (testCtx) => {
+  it("[10.6-INT-06][P0] historical V1 stays readable, cannot send, and can recover through a fresh V2", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
+    await setCalculationTaxInput();
     const quote = await adminQuery<{ id: string }>(
       `insert into public.quotes (tenant_id, customer_id) values ($1, $2) returning id`,
       [fixture.tenantA.id, customerId],
@@ -1034,11 +1569,61 @@ describe("Story 10.6 — local Supabase behavior", () => {
     await expect(
       adminQuery(`update public.quote_versions set status = 'sent' where id = $1`, [version[0]!.id]),
     ).rejects.toMatchObject({ code: "QV409" });
-    const after = await adminQuery<{ status: string }>(
-      `select status from public.quote_versions where id = $1`,
+
+    const legacyBeforeRecovery = await adminQuery<{ frozen: Record<string, unknown> }>(
+      `select to_jsonb(qv) as frozen from public.quote_versions qv where id = $1`,
       [version[0]!.id],
     );
-    expect(after[0]?.status).toBe("draft");
+    const inventory = await adminQuery<{ count: string }>(
+      `select count(*)::text as count
+         from public.quote_versions
+        where tenant_id = $1
+          and status = 'draft'
+          and snapshot_schema_version is null`,
+      [fixture.tenantA.id],
+    );
+    expect(Number(inventory[0]?.count)).toBeGreaterThanOrEqual(1);
+
+    const recovered = await client.rpc("create_new_quote_version", {
+      p_tenant_id: fixture.tenantA.id,
+      p_quote_id: quote[0]!.id,
+      p_calculation_id: calculationId,
+      p_captured_at: CAPTURED_AT,
+      p_customer_id: customerId,
+      p_facility_id: null,
+      p_contact_id: null,
+      p_snapshot: validSnapshot(),
+      p_lines: [validLine()],
+      p_attachments: [],
+      p_supersede_prior: false,
+    });
+    expect(recovered.error).toBeNull();
+    const recoveredRow = Array.isArray(recovered.data) ? recovered.data[0] : recovered.data;
+    expect(recoveredRow && typeof recoveredRow === "object").toBe(true);
+    const recoveredVersionId = String(
+      (recoveredRow as Record<string, unknown>).quote_version_id,
+    );
+
+    const legacyAfterRecovery = await adminQuery<{ frozen: Record<string, unknown> }>(
+      `select to_jsonb(qv) as frozen from public.quote_versions qv where id = $1`,
+      [version[0]!.id],
+    );
+    expect(legacyAfterRecovery[0]?.frozen).toEqual(legacyBeforeRecovery[0]?.frozen);
+    const recoveredState = await adminQuery<{
+      status: string;
+      snapshot_schema_version: number;
+    }>(
+      `select status, snapshot_schema_version
+         from public.quote_versions
+        where id = $1`,
+      [recoveredVersionId],
+    );
+    expect(recoveredState[0]).toEqual({ status: "draft", snapshot_schema_version: 2 });
+    await expect(
+      adminQuery(`update public.quote_versions set status = 'sent' where id = $1`, [
+        recoveredVersionId,
+      ]),
+    ).resolves.toBeDefined();
   });
 
   it("[10.6-INT-07][P0] draft→sent rejects co-mutation and locks child mutation/reparent", async (testCtx) => {
@@ -1109,6 +1694,55 @@ describe("Story 10.6 — local Supabase behavior", () => {
     ).rejects.toMatchObject({ code: "QV409" });
   });
 
+  it("[10.6-INT-07A][P0] draft→sent validates frozen V2 facts, not mutable calculation input", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
+    const frozen = await createFreshV2();
+    const before = await adminQuery<{
+      tax_answer_snapshot: Record<string, unknown>;
+      line_count: string;
+    }>(
+      `select qv.tax_answer_snapshot,
+              (select count(*)::text
+                 from public.quote_version_lines qvl
+                where qvl.quote_version_id = qv.id) as line_count
+         from public.quote_versions qv
+        where qv.id = $1`,
+      [frozen.versionId],
+    );
+
+    try {
+      await setCalculationTaxInput({
+        ...validTaxInput(),
+        documentVatType: "REVERSE_CHARGE_CONSTRUCTION",
+        buyerVatNumber: "SE123456789012",
+      });
+      await expect(
+        adminQuery(`update public.quote_versions set status = 'sent' where id = $1`, [
+          frozen.versionId,
+        ]),
+      ).resolves.toBeDefined();
+    } finally {
+      await setCalculationTaxInput();
+    }
+
+    const after = await adminQuery<{
+      status: string;
+      tax_answer_snapshot: Record<string, unknown>;
+      line_count: string;
+    }>(
+      `select qv.status, qv.tax_answer_snapshot,
+              (select count(*)::text
+                 from public.quote_version_lines qvl
+                where qvl.quote_version_id = qv.id) as line_count
+         from public.quote_versions qv
+        where qv.id = $1`,
+      [frozen.versionId],
+    );
+    expect(after[0]?.status).toBe("sent");
+    expect(after[0]?.tax_answer_snapshot).toEqual(before[0]?.tax_answer_snapshot);
+    expect(after[0]?.line_count).toBe(before[0]?.line_count);
+  });
+
   it("[10.6-INT-07B][P0] direct inserts cannot skip draft or send line-inconsistent V2", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     await setCalculationTaxInput();
@@ -1126,6 +1760,7 @@ describe("Story 10.6 — local Supabase behavior", () => {
         `insert into public.quote_versions (
            tenant_id, quote_id, version_number, quote_number, status,
            calculation_id, captured_at,
+           customer_type,
            base_total_ore, option_total_ore, vat_total_ore,
            deduction_total_ore, accepted_price_ore,
            snapshot_schema_version, tax_rule_version, tax_answer_snapshot,
@@ -1133,6 +1768,7 @@ describe("Story 10.6 — local Supabase behavior", () => {
            claim_deduction_ore, payable_ore, deduction_type
          ) values (
            $1, $2, 1, $3, $4, $5, $6,
+           'private',
            10000, 0, 2500, 0, 12500,
            2, $7, $8::jsonb, null, 0, 0, 12500, null
          ) returning id`,
@@ -1150,6 +1786,21 @@ describe("Story 10.6 — local Supabase behavior", () => {
 
     await expect(insertParent("sent")).rejects.toMatchObject({ code: "QV409" });
     const direct = await insertParent("draft");
+    await expect(
+      adminQuery(
+        `insert into public.quote_version_lines (
+           tenant_id, quote_version_id, row_type, sort_order, label,
+           quantity, unit, unit_sell_ore, line_net_ore, vat_rate_bp,
+           included_in_invoice_total, deduction_classification, vat_type,
+           is_hidden, is_optional, is_selected
+         ) values (
+           $1, $2, 'labor', 0, 'null-rate tamper',
+           1, 'st', 10000, 10000, null,
+           true, 'NONE', 'STANDARD_VAT_25', false, false, null
+         )`,
+        [fixture.tenantA.id, direct[0]!.id],
+      ),
+    ).rejects.toMatchObject({ code: "23514" });
     await adminQuery(
       `insert into public.quote_version_lines (
          tenant_id, quote_version_id, row_type, sort_order, label,

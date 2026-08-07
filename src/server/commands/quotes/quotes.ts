@@ -71,6 +71,8 @@ export const createQuoteVersionFromCalculation = defineCommand<
         calculationId: ctx.input.calculation_id,
         attachmentFileIds: ctx.input.attachment_file_ids,
         capturedAt,
+        reviewedSnapshotDigest: ctx.input.reviewed_snapshot_digest,
+        reviewedQuoteCaptureDate: ctx.input.reviewed_quote_capture_date,
       });
 
     // ── Call the narrow atomic RPC on the RLS client (never service-role). ──

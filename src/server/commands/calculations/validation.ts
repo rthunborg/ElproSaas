@@ -24,6 +24,7 @@
  */
 import {
   TAX_DEDUCTION_CHOICES as MONEY_TAX_DEDUCTION_CHOICES,
+  TAX_POLICY_2026,
   isDeductionClassification,
   isDeductionClassificationCompatibleWithSummaryCategory,
   isCoherentVatTypeRate,
@@ -503,7 +504,11 @@ function validateRowCommonFields(
     isPresent(raw.vat_rate_bp) &&
     isVatType(raw.vat_type) &&
     isVatRateBp(raw.vat_rate_bp) &&
-    !isCoherentVatTypeRate(raw.vat_type, raw.vat_rate_bp)
+    !isCoherentVatTypeRate(
+      raw.vat_type,
+      raw.vat_rate_bp,
+      TAX_POLICY_2026.vat.standardRateBp,
+    )
   ) {
     return fail;
   }
@@ -598,6 +603,19 @@ export function validateCreateRow(
   const deductionClassification = isDeductionClassification(raw.deduction_classification)
     ? raw.deduction_classification
     : "NONE";
+  const vatType = isVatType(raw.vat_type) ? raw.vat_type : "STANDARD_VAT_25";
+  // `vat_type` is optional on create for compatibility, but its default must still be validated
+  // together with the required rate. Otherwise an omitted type plus 0 bp creates a contradictory
+  // fresh standard-VAT row that the common-field validator cannot see as a complete pair.
+  if (
+    !isCoherentVatTypeRate(
+      vatType,
+      raw.vat_rate_bp as number,
+      TAX_POLICY_2026.vat.standardRateBp,
+    )
+  ) {
+    return fail;
+  }
   if (
     !isDeductionClassificationCompatibleWithSummaryCategory(
       deductionClassification,
@@ -622,7 +640,7 @@ export function validateCreateRow(
       vat_rate_bp: raw.vat_rate_bp as number,
       included_in_invoice_total: bool(raw, "included_in_invoice_total") ?? true,
       deduction_classification: deductionClassification,
-      vat_type: isVatType(raw.vat_type) ? raw.vat_type : "STANDARD_VAT_25",
+      vat_type: vatType,
       is_hidden: bool(raw, "is_hidden"),
       is_optional: bool(raw, "is_optional"),
       is_selected: bool(raw, "is_selected"),

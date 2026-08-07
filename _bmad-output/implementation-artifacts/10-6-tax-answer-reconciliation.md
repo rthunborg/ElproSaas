@@ -443,31 +443,31 @@ GPT-5 Codex
 
 ### Debug Log References
 
-- `pnpm exec tsc --noEmit` — PASS.
-- `pnpm run lint` — PASS.
-- `pnpm run test:unit` — PASS: 1,606 tests, 0 failures, 0 skipped.
-- `pnpm run build` — PASS (Next.js production build).
+- `pnpm run typecheck` — PASS.
+- `pnpm run lint` — PASS, zero warnings.
+- `pnpm run test:unit` — PASS: 1,635 tests, 0 failures, 0 skipped.
+- `pnpm run build` — PASS (Next.js 16.2.11 production build).
 - `pnpm run verify:lockfiles` — PASS.
 - `pnpm run verify:service-role-containment` — PASS.
 - `pnpm run verify:bundle-containment` — PASS after the production build.
-- Migration parse/runtime harnesses — PASS: pglast parse and focused PGlite validator/trigger
-  scenarios, including exact policy math, fixed-price reconciliation, sent insertion/transition
-  rejection, child immutability, and line/input binding.
-- Phase 5 baseline, `pnpm exec vitest run tests/integration/commands/tax-answer-reconciliation.int.test.ts
-  tests/integration/commands/tax-answer-acceptance-job.int.test.ts` — PASS in skip-aware mode:
-  3 source-contract tests passed and 10 DB-backed tests skipped because the local Supabase stack was
-  unreachable.
-- Phase 6 targeted rerun, `pnpm exec vitest run
-  tests/integration/commands/tax-answer-reconciliation.int.test.ts` — PASS in skip-aware mode:
-  3 source-contract tests passed and 9 DB-backed tests skipped. The newly added direct cross-tenant
-  RPC case is among the skipped DB cases and therefore remains pending a real local/CI stack run.
-- `pnpm exec supabase db reset` — SKIPPED-WITH-REASON / infrastructure failure: Docker Desktop's
-  Linux engine pipe was unavailable; no global Docker setting was changed.
-- `SUPABASE_TEST_REQUIRED=1 pnpm run test:int` — expected hard FAIL before test discovery because
-  the required local Supabase stack was unreachable. This keeps the release gate fail-closed.
-- `pnpm exec playwright test tests/e2e/calculations/tax-answer-reconciliation.e2e.spec.ts` —
-  SKIPPED-WITH-REASON / setup failure: tenant fixture creation could not reach local Supabase.
-- Final money/tax review — PASS: no unresolved Critical, High, or Medium implementation finding.
+- `pnpm exec supabase db reset --local` — PASS from an empty local database through the complete
+  migration chain, including the terminating legacy-VAT backfill/finalization path.
+- `SUPABASE_TEST_REQUIRED=1 pnpm exec vitest run
+  tests/integration/commands/tax-answer-reconciliation.int.test.ts` — PASS: 16/16 required
+  Story 10.6 assertions, 0 skipped, including five sanctioned VAT identities, duplicate/oversize
+  negatives, V1 recovery, quarantine/remediation, sent locks, and cross-tenant RPC denial.
+- `SUPABASE_TEST_REQUIRED=1 pnpm run test:int` — PASS: 77/77 files and 816/816 tests, 0 failures,
+  0 skipped. Shared historical quote fixtures now carry complete, reconciled V2 facts.
+- Focused acceptance evidence — PASS: acceptance-to-job 2/2 and acceptance golden 1/1.
+- Focused frozen compatibility/PDF evidence — PASS: 21/21; preview review-token evidence — PASS:
+  16/16.
+- `pnpm exec playwright test tests/e2e/calculations/tax-answer-reconciliation.e2e.spec.ts` — PASS:
+  2/2 real-browser journeys, including quote creation, PDF generation, reverse-charge disclosure,
+  and independent row properties.
+- `pnpm exec supabase db lint --local` — PASS (exit 0); only advisory volatility and retained
+  compatibility-parameter warnings were reported.
+- Final independent money/tax review — PASS: no unresolved release-blocking SEK, VAT, ROT,
+  grön-teknik, snapshot, or acceptance finding.
 - Final security/RLS review — PASS-WITH-LIMITATION: no release-blocking Critical/High isolation,
   service-role, storage, or unauthenticated-function finding.
 
@@ -486,12 +486,21 @@ GPT-5 Codex
 - Added the canonical V2 quote tax snapshot and category/summary facts to the single shared fresh
   snapshot path. Initial creation and re-versioning freeze the same result; V2 acceptance/job
   source totals consume frozen `payableOre` without tax recomputation.
-- Kept V1 compatibility literal: legacy/null-version snapshots remain readable/renderable and only
-  expose stored legacy facts; the adapter does not invent gross, calculated deduction, claim, or
-  other V2-derived facts.
-- Added the single forward-only additive migration. It backfills only row inclusion, validates
-  calculation input and V2 answers, binds both creation RPCs to persisted calculation/line facts,
-  blocks invalid direct sent insertion/transitions, and freezes all V2 parent/child facts.
+- Kept V1 compatibility literal: legacy/null-version snapshots remain readable and expose only
+  stored legacy facts; the adapter does not invent gross, calculated deduction, claim, or other
+  V2-derived facts. Existing V1 drafts are explicitly unsendable and the user-facing recovery flow
+  creates a fresh V2 from current authoritative calculation/tax inputs without mutating the V1 row.
+- Added the single forward-only additive migration. It backfills only provable canonical legacy VAT
+  pairs, quarantines ambiguous zero/unsupported values for explicit remediation, loops bounded
+  batches to a completion assertion, validates closed input/V2-answer shapes and row/person limits,
+  binds both creation RPCs to persisted calculation/line facts, blocks invalid sent transitions,
+  and freezes all V2 parent/child facts.
+- Added a server-verified SHA-256 review proof over every quote-relevant calculation, customer,
+  terms, row, source, and policy fact. Preview uses the projected quote-capture date; confirmation
+  fails closed if any reviewed source changes before the frozen V2 snapshot is created.
+- Added a keyboard-operable, order-preserving allowance editor for up to 50 canonical `PERSON_n`
+  slots. Fresh writes stay PII-free, while the frozen compatibility adapter preserves bounded
+  historical allocation order/amounts without returning or rendering raw legacy identifiers.
 - Added/re-derived structured money, calculation, snapshot, PDF, and acceptance-to-job goldens;
   repaired the touched self-skipping standing controls; and routed all new Story 10.6 fixtures
   through the shared PII scanner.
@@ -507,29 +516,38 @@ GPT-5 Codex
   provenance. Inconsistent math, non-draft inserts, cross-tenant access, and post-send mutation are
   still blocked. Closing this safely requires an owner-approved privilege/API redesign, not a casual
   `SECURITY DEFINER` switch.
-- Non-blocking security hardening follow-up: database JSON validators require every canonical key
-  but do not reject additional unknown keys. Application parsing strips extras; RLS isolates them,
-  but a future migration can make the database payloads closed-key if the owner prioritizes it.
-- Release-verification gap: Docker/Supabase was unavailable locally. The empty-DB reset, all 11
-  DB-backed integration assertions, and the Story 10.6 Playwright path must execute in CI or on a
-  running local stack before release. Required-mode integration correctly failed closed.
+- Non-blocking test-hardening follow-ups: add a genuine pre-migration upgrade fixture for the
+  backfill/quarantine path, application-command coverage for V1 recovery, and command-level
+  review-token parity/staleness coverage. Current SQL/RPC, helper, UI, and pure digest tests cover
+  the shipped behavior; these follow-ups reduce future projection-drift risk.
+- Optional compatibility alignment follow-up: the V1-draft UI hides presentation edits and PDF
+  generation, while inherited same-tenant server paths still permit those non-send operations.
+  Sending remains blocked at the database boundary and this does not alter the frozen commitment.
 
 ### File List
 
 - `_bmad-output/implementation-artifacts/10-6-tax-answer-reconciliation.md`
 - `_bmad-output/implementation-artifacts/sprint-status.yaml`
 - `_bmad-output/test-artifacts/automation-summary.md`
+- `src/app/(app)/calculations/[calculationId]/page.tsx`
 - `src/components/calculations/CalculationEditor.tsx`
 - `src/components/calculations/PreQuotePreview.tsx`
 - `src/components/calculations/RowEditor.tsx`
+- `src/components/calculations/SectionEditor.tsx`
 - `src/components/calculations/TaxSettingsPanel.tsx`
+- `src/components/quotes/QuoteDetailView.tsx`
 - `src/features/calculations/action-state.ts`
 - `src/features/calculations/actions.ts`
+- `src/features/calculations/allowance-editor.ts`
 - `src/features/calculations/form-parsing.ts`
+- `src/features/calculations/limits.ts`
 - `src/features/calculations/read.ts`
 - `src/features/calculations/readiness.ts`
+- `src/features/calculations/row-option-transition.ts`
+- `src/features/calculations/row-vat-transition.ts`
 - `src/features/calculations/tax-readiness.ts`
 - `src/features/calculations/totals.ts`
+- `src/features/quotes/actions.ts`
 - `src/features/quotes/read.ts`
 - `src/lib/money/domain.ts`
 - `src/lib/money/index.ts`
@@ -551,8 +569,12 @@ GPT-5 Codex
 - `src/server/commands/quotes/accept-and-create-job.ts`
 - `src/server/commands/quotes/accept.ts`
 - `src/server/commands/quotes/generate-pdf.ts`
+- `src/server/commands/quotes/new-version.ts`
 - `src/server/commands/quotes/quote-db.ts`
+- `src/server/commands/quotes/quotes.ts`
+- `src/server/commands/quotes/review-token.ts`
 - `src/server/commands/quotes/snapshot-build.ts`
+- `src/server/commands/quotes/validation.ts`
 - `src/server/quote-pdf/render.ts`
 - `supabase/migrations/20260805120000_tax_answer_reconciliation.sql`
 - `tests/e2e/calculations/tax-answer-reconciliation.e2e.spec.ts`
@@ -566,12 +588,22 @@ GPT-5 Codex
 - `tests/fixtures/golden/snapshots/tax-answer-reconciliation-v1-v2.json`
 - `tests/integration/commands/tax-answer-acceptance-job.int.test.ts`
 - `tests/integration/commands/tax-answer-reconciliation.int.test.ts`
+- `tests/integration/commands/file-upload.int.test.ts`
+- `tests/integration/commands/generate-quote-pdf-storage-privacy.int.test.ts`
+- `tests/integration/components/legacy-draft-recovery.test.ts`
+- `tests/integration/rls/cross-tenant-isolation.rls.test.ts`
+- `tests/unit/features/calculations/allowance-editor.test.ts`
 - `tests/unit/features/calculations/calc-golden-pack-coverage.test.ts`
+- `tests/unit/features/calculations/calc-golden-pack.test.ts`
 - `tests/unit/features/calculations/form-parsing.test.ts`
+- `tests/unit/features/calculations/limits.test.ts`
 - `tests/unit/features/calculations/readiness-inclusion.golden.test.ts`
 - `tests/unit/features/calculations/readiness.test.ts`
+- `tests/unit/features/calculations/row-option-transition.test.ts`
+- `tests/unit/features/calculations/row-vat-transition.test.ts`
 - `tests/unit/features/calculations/tax-readiness.test.ts`
 - `tests/unit/features/calculations/totals.test.ts`
+- `tests/unit/features/quotes/send-gate.test.ts`
 - `tests/unit/fixtures/golden/lovable/comparison-support.ts`
 - `tests/unit/fixtures/golden/lovable/lovable-comparison-calc-quote-pdf.test.ts`
 - `tests/unit/fixtures/golden/lovable/lovable-comparison-classification-deltas.test.ts`
@@ -587,6 +619,11 @@ GPT-5 Codex
 - `tests/unit/lib/quote-pdf/tax-answer-v2.test.ts`
 - `tests/unit/lib/quote-snapshot/build.test.ts`
 - `tests/unit/lib/quote-snapshot/tax-compat.test.ts`
+- `tests/unit/server/commands/calculation-row-limit-command.test.ts`
+- `tests/unit/server/commands/calc-validation.test.ts`
+- `tests/unit/server/commands/extract-new-version-result.test.ts`
+- `tests/unit/server/commands/quote-review-token.test.ts`
+- `tests/unit/server/commands/quote-validation.test.ts`
 - `tests/unit/server/commands/snapshot-payload-serializers.test.ts`
 - `tests/unit/server/commands/tax-input-validation.test.ts`
 
@@ -599,6 +636,11 @@ GPT-5 Codex
   pending execution on available infrastructure.
 - 2026-08-06: Phase 6 automation expansion added direct foreign-tenant coverage for both Story 10.6
   quote-version RPCs and recorded fail-closed Docker/Supabase validation evidence.
+- 2026-08-07: Completed review remediation for all 23 iteration-2 findings: terminating
+  quarantine-first VAT backfill, explicit V1 recovery, frozen-policy compatibility, five-identity
+  VAT coherence, bounded rows/allocations, server-verified preview proof, 50-person authoring, and
+  complete V2 integration fixtures. Empty-DB, required integration, E2E, static, build, and
+  containment gates are green; status remains `review` for the Phase 9 completion gate.
 
 ### Review Findings
 
@@ -622,3 +664,26 @@ GPT-5 Codex
 - [x] [Review][Patch][Med] Excluded-row overflow creates a readiness/RPC contradiction [src/components/calculations/CalculationEditor.tsx:131] — readiness ignores a line-net overflow on an economically excluded row while quote creation validates and rejects it, leaving an enabled action that cannot succeed; align the boundaries on whether excluded rows must be computable. Sources: Edge Case Hunter primary.
 - [x] [Review][Patch][Med] Quote RPC JSON arrays have no defensive size bounds [supabase/migrations/20260805120000_tax_answer_reconciliation.sql:808] — an authenticated caller can submit thousands of categories and lines into nested validation scans and monopolize database CPU; cap arrays to the supported calculation limits before nested reconciliation. Sources: Edge Case Hunter primary.
 - [x] [Review][Defer][High] Same-tenant direct quote RPC authority can create internally inconsistent commitments [supabase/migrations/20260805120000_tax_answer_reconciliation.sql:1956] — deferred, pre-existing SECURITY INVOKER/table-grant architecture requiring the already-identified owner-approved privilege/API redesign; Sources: Blind Hunter primary.
+- [x] [Review][Decision][High] Legacy VAT values cannot be safely classified by the staged backfill — zero may mean zero-rated, exempt, reverse charge, or incomplete legacy data, while unsupported historical rates can roll back every batch and strand later rows. Sources: Blind Hunter primary; Edge Case Hunter primary. Recommended: fix: backfill only provable canonical pairs, quarantine zero and unsupported rates, and require explicit remediation instead of inferring a legal VAT type.
+- [x] [Review][Decision][High] Existing V1 drafts have no release disposition before the new send lock strands them — the migration makes historical drafts unsendable without an inventory, conversion path, expiry policy, or user-facing recovery flow. Sources: Blind Hunter secondary. Recommended: fix: inventory existing V1 drafts and choose an explicit safe-send compatibility or re-version/conversion path, with user messaging and an upgrade regression test.
+- [x] [Review][Patch][High] Staged legacy-row backfill is defined but never executed or finalized [supabase/migrations/20260805120000_tax_answer_reconciliation.sql:1365] — repo-to-demo deployment leaves historical row facts null, `NOT VALID` checks can reject ordinary updates during the window, null inclusion changes legacy totals, and no loop, completion assertion, constraint validation, or upgrade test closes the transition. Sources: Blind Hunter primary; Edge Case Hunter primary; Blind Hunter secondary; Acceptance Auditor secondary.
+- [x] [Review][Patch][High] Preview still uses calculation revision time instead of quote-capture time [src/components/calculations/CalculationEditor.tsx:161] — `header.updated_at` can cross a policy boundary differently from the command clock's `capturedAt`, so reviewed readiness and the frozen quote can select different policy facts. Sources: Blind Hunter primary; Edge Case Hunter primary; Blind Hunter secondary; Edge Case Hunter secondary; Acceptance Auditor secondary.
+- [x] [Review][Patch][High] Preview staleness has no server-verified reviewed snapshot [src/components/calculations/PreQuotePreview.tsx:79] — the client compares only the header timestamp and submits only `calculation_id`; child row, section, customer, or tax mutations can therefore be recomputed into content the user never approved. Sources: Edge Case Hunter primary; Blind Hunter secondary; Edge Case Hunter secondary.
+- [x] [Review][Patch][High] Allowance editor cannot author a third person [src/components/calculations/TaxSettingsPanel.tsx:88] — new calculations render exactly two slots with no keyboard-operable add/remove control despite the canonical 50-slot contract, blocking valid multi-owner allowance input. Sources: Blind Hunter primary; Edge Case Hunter primary; Acceptance Auditor primary; Blind Hunter secondary; Edge Case Hunter secondary; Acceptance Auditor secondary.
+- [x] [Review][Patch][High] Allowance-slot compatibility is both lossy and PII-unsafe [src/lib/money/domain.ts:82] — accepted compatibility ids can contain names or personal-number-like strings that are printed in PDFs, while the form reconstructs only ordered `PERSON_n` slots and can drop or reorder those accepted facts on unrelated saves; restrict fresh ids to opaque canonical slots and safely migrate/preserve legacy ordering without rendering raw identifiers. Sources: Blind Hunter primary; Edge Case Hunter primary; Acceptance Auditor primary; Blind Hunter secondary; Edge Case Hunter secondary.
+- [x] [Review][Patch][High] Frozen V2 snapshots are re-authorized against the current policy registry [src/lib/quote-snapshot/tax-compat.ts:145] — registry equality checks make historical copy-by-value commitments unreadable after a policy correction, retirement, or refactor; validate frozen structure and internal arithmetic without consulting today's registry values. Sources: Blind Hunter primary.
+- [x] [Review][Patch][High] VAT pair/posture contract remains incoherent across domain, commands, and SQL [src/lib/money/tax-policy.ts:301] — fresh standard VAT can still pair with 0%, omitted or one-sided command updates are not validated as an effective pair, the document type remains broader than its supported posture, and the database caps categories by four enum values instead of the sanctioned `(VatType, rateBp)` identities. Sources: Blind Hunter primary; Edge Case Hunter primary; Acceptance Auditor primary; Blind Hunter secondary; Edge Case Hunter secondary.
+- [x] [Review][Patch][High] Backfill mutation helper is executable by PUBLIC [supabase/migrations/20260805120000_tax_answer_reconciliation.sql:1378] — the unsanctioned unauthenticated function can initiate bulk row updates, and a null batch size removes the intended bound; revoke PUBLIC execution, grant only the deployment role, and reject invalid batch sizes. Sources: Blind Hunter primary; Edge Case Hunter primary; Blind Hunter secondary; Acceptance Auditor secondary.
+- [x] [Review][Patch][High] Required DB integration fixtures retain the rejected open-ended policy window [tests/integration/commands/tax-answer-reconciliation.int.test.ts:114] — valid V2 fixtures still use `validTo:null` while the migration requires `2027-01-01`, so a live Supabase run fails during baseline setup before exercising the mandatory AC cases. Sources: Acceptance Auditor primary.
+- [x] [Review][Patch][High] Canonical quote answer omits customer eligibility posture [src/lib/money/tax-answer.ts:327] — deduction choice and classified rows can apply private-only ROT/green treatment to company, BRF, or public customers because the server snapshot path never supplies or verifies eligibility. Sources: Blind Hunter secondary.
+- [x] [Review][Patch][High] Send validation consults mutable calculation tax input after the draft was frozen [supabase/migrations/20260805120000_tax_answer_reconciliation.sql:1850] — editing calculation settings after quote creation can make an otherwise valid immutable draft permanently unsendable; validate the frozen quote facts or freeze the exact source input with the draft. Sources: Blind Hunter secondary.
+- [x] [Review][Patch][High] Option-selection UX no longer makes a selected option economically included [src/server/commands/calculations/rows.ts:267] — the independent fields are written without the settled option-intent behavior, so selecting a legacy excluded option leaves it outside invoice, VAT, and deduction totals. Sources: Acceptance Auditor secondary.
+- [x] [Review][Patch][Med] Exported reconciled-payable helper estimates deductions without complete tax context [src/lib/money/tax-policy.ts:514] — it accepts only rows yet subtracts ROT/green using implicit 2026 dates, choice, basis method, and capacity, producing payable values that can contradict the canonical V2 answer; keep it VAT-only or require the full input authority. Sources: Blind Hunter primary; Acceptance Auditor primary; Acceptance Auditor secondary.
+- [x] [Review][Patch][Med] Compatibility VAT arithmetic loses precision near the supported money ceiling [src/lib/quote-snapshot/tax-compat.ts:253] — JavaScript `number` multiplication can reject a valid frozen category or accept an off-by-one result; reuse the BigInt-backed canonical rounding authority. Sources: Blind Hunter primary; Edge Case Hunter primary; Edge Case Hunter secondary.
+- [x] [Review][Patch][Med] TypeScript V2 parser does not validate frozen deduction bases and policy math [src/lib/quote-snapshot/tax-compat.ts:274] — it verifies aggregate sums but not classification-to-basis binding or calculated/claim amounts from frozen rates, leaving the read/PDF boundary weaker than SQL. Sources: Blind Hunter primary.
+- [x] [Review][Patch][Med] VAT coherence is hard-coded to the 2026 profile before policy resolution [src/lib/money/tax-policy.ts:313] — a later resolved policy with a changed standard rate is rejected by the old constant, so the frozen VAT policy is not authoritative. Sources: Blind Hunter primary.
+- [x] [Review][Patch][Med] Calculation row creation and quote RPC disagree on the 500-line limit [supabase/migrations/20260805120000_tax_answer_reconciliation.sql:889] — the application can create a valid 501-row calculation that readiness accepts but persistence rejects; enforce the same bound at row creation or remove the mismatch. Sources: Edge Case Hunter primary.
+- [x] [Review][Patch][Med] Person-allocation arrays remain unbounded inside quote validation [supabase/migrations/20260805120000_tax_answer_reconciliation.sql:603] — authenticated payloads can force thousands of nested scans before rejection despite the canonical 50-person limit; reject oversized ROT and green allocations before iteration. Sources: Edge Case Hunter primary.
+- [x] [Review][Patch][Med] Nested V2 tax objects still accept unknown keys [supabase/migrations/20260805120000_tax_answer_reconciliation.sql:41] — iteration-1 closure covers roots and selected children but policy, category, summary, deduction, and allocation objects remain open-ended; enforce exact keys at every nested typed boundary. Sources: Edge Case Hunter primary; Acceptance Auditor primary.
+- [x] [Review][Patch][Med] Buyer VAT number remains frozen after reverse charge is deselected [src/lib/money/tax-input.ts:173] — standard-VAT inputs retain and duplicate an unnecessary tax identifier; normalize it to null unless the reverse-charge posture requires it. Sources: Blind Hunter secondary.
+- [x] [Review][Patch][Med] V1 snapshot builder invents tax-answer scalars unavailable in legacy data [src/lib/quote-snapshot/build.ts:312] — fallback calculated deduction, claim, payable, net, and gross values violate literal V1 compatibility and conflict with the database branch requiring new fields to remain null. Sources: Blind Hunter secondary.

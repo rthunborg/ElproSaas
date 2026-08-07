@@ -52,7 +52,7 @@
       "vatPolicy": {
         "id": "SE-TAX-2026-v1",
         "validFrom": "2026-01-01",
-        "validTo": null,
+        "validTo": "2027-01-01",
         "resolvingDate": "2026-08-05",
         "resolvingFact": "QUOTE_CAPTURE_DATE",
         "values": {
@@ -76,6 +76,7 @@
           }
         }
       },
+      "customerEligibilityPosture": "company",
       "documentVatType": "STANDARD_VAT_25",
       "buyerVatNumber": null,
       "reverseChargeApplied": false,

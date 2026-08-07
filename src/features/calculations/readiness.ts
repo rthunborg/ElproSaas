@@ -42,6 +42,7 @@ import {
   rowCountsTowardTotal,
   type TotalsRowInput,
 } from "./totals";
+import { exceedsCalculationRowLimit, MAX_CALCULATION_ROWS } from "./limits";
 
 /**
  * The CLOSED union of readiness rule-table codes — ONE code per rule-table condition. A stable,
@@ -55,6 +56,7 @@ export type ReadinessCode =
   | "MISSING_CUSTOMER"
   /** The whole-calc total could not be computed (an engine `{ok:false}` — overflow / invalid row). */
   | "TOTAL_UNCOMPUTABLE"
+  | "CALCULATION_ROW_LIMIT_EXCEEDED"
   | "MISSING_TAX_INPUT"
   | "MISSING_BUYER_VAT_NUMBER"
   | "MISSING_TAX_RESOLVING_DATE"
@@ -101,6 +103,7 @@ export const READINESS_CODES = [
   // ── BLOCKERS ──
   "MISSING_CUSTOMER",
   "TOTAL_UNCOMPUTABLE",
+  "CALCULATION_ROW_LIMIT_EXCEEDED",
   "MISSING_TAX_INPUT",
   "MISSING_BUYER_VAT_NUMBER",
   "MISSING_TAX_RESOLVING_DATE",
@@ -333,6 +336,20 @@ export function classifyReadiness(input: ReadinessInput): ReadinessReport {
       severity: "blocker",
       message:
         "Totalsumman kunde inte beräknas. Kontrollera raderna innan du skapar en offert.",
+    });
+  }
+
+  const activeRowCount = input.sections.reduce(
+    (count, section) => count + section.rows.length,
+    0,
+  );
+  if (exceedsCalculationRowLimit(activeRowCount)) {
+    blockers.push({
+      code: "CALCULATION_ROW_LIMIT_EXCEEDED",
+      severity: "blocker",
+      message:
+        `Kalkylen har fler än ${MAX_CALCULATION_ROWS} aktiva rader. ` +
+        "Ta bort rader innan du skapar en offert.",
     });
   }
 

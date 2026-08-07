@@ -128,7 +128,7 @@ describe("Story 10.6 Task 3 tax-input validation", () => {
     );
   });
 
-  test("normalizes a valid buyer VAT number and accepts disjoint ROT plus green inputs", () => {
+  test("clears buyer VAT outside reverse charge and accepts disjoint ROT plus green inputs", () => {
     const result = validateTaxInputSnapshot({
       ...baseTaxInput,
       buyerVatNumber: " se 5566778899-01 ",
@@ -145,7 +145,15 @@ describe("Story 10.6 Task 3 tax-input validation", () => {
       ],
     });
     assert.equal(result.ok, true);
-    if (result.ok) assert.equal(result.data.buyerVatNumber, "SE556677889901");
+    if (result.ok) assert.equal(result.data.buyerVatNumber, null);
+
+    const reverse = validateTaxInputSnapshot({
+      ...baseTaxInput,
+      documentVatType: "REVERSE_CHARGE_CONSTRUCTION",
+      buyerVatNumber: " se 5566778899-01 ",
+    });
+    assert.equal(reverse.ok, true);
+    if (reverse.ok) assert.equal(reverse.data.buyerVatNumber, "SE556677889901");
   });
 
   test("mixed deductions allow scheme-specific people but require combined ROT/RUT capacity for each ROT slot", () => {
@@ -192,7 +200,7 @@ describe("Story 10.6 Task 3 tax-input validation", () => {
       included_in_invoice_total: false,
       deduction_classification: "GREEN_STORAGE_MATERIAL",
       vat_type: "REVERSE_CHARGE_CONSTRUCTION",
-      vat_rate_bp: 0,
+      vat_rate_bp: 2500,
     });
     assert.equal(valid.ok, true);
     assert.equal(

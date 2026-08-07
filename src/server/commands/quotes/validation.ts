@@ -45,6 +45,8 @@ function isUuidArray(v: unknown): v is string[] {
 export interface CreateQuoteVersionInput {
   readonly calculation_id: string;
   readonly attachment_file_ids: readonly string[];
+  readonly reviewed_snapshot_digest: string | null;
+  readonly reviewed_quote_capture_date: string | null;
 }
 
 export function validateCreateQuoteVersionFromCalculation(
@@ -59,11 +61,57 @@ export function validateCreateQuoteVersionFromCalculation(
     if (!isUuidArray(raw.attachment_file_ids)) return fail;
     attachmentFileIds = [...(raw.attachment_file_ids as string[])];
   }
+  const reviewedDigest = raw.reviewed_snapshot_digest;
+  const reviewedDate = raw.reviewed_quote_capture_date;
+  const hasReviewedDigest = reviewedDigest !== undefined && reviewedDigest !== null;
+  const hasReviewedDate = reviewedDate !== undefined && reviewedDate !== null;
+  if (hasReviewedDigest !== hasReviewedDate) return fail;
+  if (
+    hasReviewedDigest &&
+    (typeof reviewedDigest !== "string" ||
+      !/^[a-f0-9]{64}$/.test(reviewedDigest) ||
+      typeof reviewedDate !== "string" ||
+      !isIsoCalendarDate(reviewedDate))
+  ) {
+    return fail;
+  }
   return {
     ok: true,
     data: {
       calculation_id: raw.calculation_id as string,
       attachment_file_ids: attachmentFileIds,
+      reviewed_snapshot_digest: hasReviewedDigest ? reviewedDigest as string : null,
+      reviewed_quote_capture_date: hasReviewedDate ? reviewedDate as string : null,
+    },
+  };
+}
+
+/** Preview-confirmation input: unlike list-page direct creation, proof is mandatory. */
+export type CreateReviewedQuoteVersionInput = Omit<
+  CreateQuoteVersionInput,
+  "reviewed_snapshot_digest" | "reviewed_quote_capture_date"
+> & {
+  readonly reviewed_snapshot_digest: string;
+  readonly reviewed_quote_capture_date: string;
+};
+
+export function validateCreateReviewedQuoteVersionFromCalculation(
+  raw: unknown,
+): ValidationResult<CreateReviewedQuoteVersionInput> {
+  const validated = validateCreateQuoteVersionFromCalculation(raw);
+  if (
+    !validated.ok ||
+    validated.data.reviewed_snapshot_digest === null ||
+    validated.data.reviewed_quote_capture_date === null
+  ) {
+    return fail;
+  }
+  return {
+    ok: true,
+    data: {
+      ...validated.data,
+      reviewed_snapshot_digest: validated.data.reviewed_snapshot_digest,
+      reviewed_quote_capture_date: validated.data.reviewed_quote_capture_date,
     },
   };
 }

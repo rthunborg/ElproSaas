@@ -43,6 +43,7 @@ import {
   resolveTotalDisplay,
 } from "@/features/calculations/totals";
 import { classifyReadiness } from "@/features/calculations/readiness";
+import { canAddCalculationRow, MAX_CALCULATION_ROWS } from "@/features/calculations/limits";
 import { resolveTaxReadiness } from "@/features/calculations/tax-readiness";
 import { resolveVatDisplayPosture } from "@/features/calculations/vat-posture";
 import type { CalculationDetail } from "@/features/calculations/read";
@@ -61,6 +62,8 @@ export function CalculationEditor({
   defaultVatDisplay,
   vatPostureResolved,
   quoteTerms,
+  previewQuoteCaptureDate,
+  reviewedSnapshotDigest,
   filesPanel,
 }: {
   readonly detail: CalculationDetail;
@@ -72,6 +75,10 @@ export function CalculationEditor({
   readonly vatPostureResolved: boolean;
   /** The tenant's quote-terms for the pre-quote preview (null when none/unread). */
   readonly quoteTerms: PreQuoteTerms | null;
+  /** Server-rendered quote-capture date used by both preview policy and review token. */
+  readonly previewQuoteCaptureDate: string;
+  /** Server-generated digest of all customer-visible source semantics. */
+  readonly reviewedSnapshotDigest: string;
   /** The Story 8.2 entity file panel (calculation_attachment upload + list), when provided. */
   readonly filesPanel?: ReactNode;
 }) {
@@ -163,10 +170,22 @@ export function CalculationEditor({
     rows: taxRows,
     // Header revision is the server-projected calculation capture fact used for
     // this preview. Payment dates resolve only ROT/green policy, never VAT.
-    quoteCaptureDate: header.updated_at.slice(0, 10),
+    quoteCaptureDate: previewQuoteCaptureDate,
+    customerEligibilityPosture:
+      customer.customer_type === "private" ||
+      customer.customer_type === "company" ||
+      customer.customer_type === "brf" ||
+      customer.customer_type === "public"
+        ? customer.customer_type
+        : "public",
     hasInvalidRow: taxRows.some((row) => row.computationFailed),
   });
   const deductionChoice = header.tax_input_snapshot?.deductionChoice ?? "NONE";
+  const activeRowCount = sections.reduce(
+    (count, section) => count + section.rows.length,
+    0,
+  );
+  const canAddRow = canAddCalculationRow(activeRowCount);
 
   // Story 5.4 — the PURE readiness report (blockers vs warnings). The classification lives in
   // fast-gate-protected `readiness.ts`; this island only DISPLAYS it and GATES the create-quote
@@ -332,6 +351,17 @@ export function CalculationEditor({
             </p>
           )}
 
+          {!canAddRow ? (
+            <p
+              role="status"
+              data-testid="calculation-row-limit"
+              className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900"
+            >
+              Kalkylen har nått gränsen på {MAX_CALCULATION_ROWS} aktiva rader. Ta bort en rad
+              innan du lägger till en ny.
+            </p>
+          ) : null}
+
           {sections.length === 0 ? (
             <p data-testid="sections-empty" className="text-sm text-zinc-600">
               Inga sektioner ännu. Lägg till din första sektion nedan.
@@ -388,6 +418,7 @@ export function CalculationEditor({
                   calculationId={header.id}
                   sources={sources}
                   posture={posture}
+                  canAddRow={canAddRow}
                 />
               </div>
             ))
@@ -453,6 +484,8 @@ export function CalculationEditor({
             view={view}
             quoteTerms={quoteTerms}
             taxAnswer={taxResolution.answer}
+            quoteCaptureDate={previewQuoteCaptureDate}
+            reviewedSnapshotDigest={reviewedSnapshotDigest}
           />
         </div>
       </div>
@@ -472,6 +505,8 @@ export function CalculationEditor({
           view={view}
           quoteTerms={quoteTerms}
           taxAnswer={taxResolution.answer}
+          quoteCaptureDate={previewQuoteCaptureDate}
+          reviewedSnapshotDigest={reviewedSnapshotDigest}
         />
       </div>
 

@@ -16,8 +16,9 @@
  * has NO INSERT grant (writes go via the record_audit_event DEFINER), so the
  * spoof-INSERT is denied at the privilege layer (42501) exactly like the others.
  *
- * The denial-MECHANISM assertions (42501 + independent re-read) are UNCHANGED from
- * the original suite — Story 2.4 only points the iteration at the shared inventory.
+ * Denial assertions pin the actual fail-closed layer: normally RLS/privilege `42501`,
+ * with generic `QV409` for Story 10.6 quote-family triggers that must resolve a parent
+ * before RLS WITH CHECK. Independent re-reads still prove every foreign row is unchanged.
  *
  * Runs against the LOCAL Supabase stack only; skips when unreachable.
  */
@@ -232,6 +233,7 @@ beforeAll(async () => {
     quote_id: tenantBQuoteId,
     calculation_id: tenantBQuoteSourceCalcId,
     company_name: "tenant-b-version-seed",
+    accepted_price_ore: 125000,
   });
   tenantBQuoteVersionLineId = await adminInsertQuoteVersionLine({
     tenant_id: fixture.tenantB.id,
@@ -418,6 +420,13 @@ afterAll(async () => {
 });
 
 describe("Cross-tenant RLS isolation — data-driven over the shared inventory (AC2 / R-001)", () => {
+  const story106TriggerGuardedInserts = new Set([
+    "quote_versions",
+    "quote_version_lines",
+    "quote_version_attachments",
+    "quote_acceptances",
+  ]);
+
   for (const table of TENANT_TABLES) {
     describe(`table: ${table}`, () => {
       it(`[P0] SELECT: Tenant A admin reads ZERO ${table} rows belonging to Tenant B (no error leak)`, async (testCtx) => {
@@ -432,13 +441,14 @@ describe("Cross-tenant RLS isolation — data-driven over the shared inventory (
       it(`[P0] INSERT: Tenant A admin cannot INSERT a ${table} row carrying Tenant B ownership (no spoof)`, async (testCtx) => {
         if (skipUnlessStack(testCtx, stackUp)) return;
         const { error } = await a.from(table).insert(spoofedRowFor(table, ctx));
-        // Assert the DENIAL MECHANISM, not a bare non-null error. `authenticated` has
-        // NO INSERT GRANT on these tables, so the write is denied at the privilege
-        // layer with `42501` (permission denied) — NOT a `23505` PK collision (the
-        // spoof row uses a fresh id / non-conflicting key, review fix 2026-06-26).
-        // This proves the privilege/RLS layer is doing the work, not a unique key.
+        // Assert the DENIAL MECHANISM, not a bare non-null error. Most tables reject
+        // the spoof at the privilege/RLS layer (`42501`). Story 10.6's fail-closed
+        // quote-family triggers must resolve/lock a source parent before RLS WITH CHECK
+        // runs; a foreign parent is deliberately indistinguishable from a missing one
+        // and raises the generic family lock code (`QV409`). Neither path is a PK/FK
+        // collision or an existence disclosure.
         expect(error).not.toBeNull();
-        expect(error?.code).toBe("42501");
+        expect(error?.code).toBe(story106TriggerGuardedInserts.has(table) ? "QV409" : "42501");
       });
 
       it(`[P0] UPDATE: Tenant A admin cannot UPDATE Tenant B's ${table} rows`, async (testCtx) => {

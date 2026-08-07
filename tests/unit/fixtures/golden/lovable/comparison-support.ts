@@ -272,6 +272,7 @@ export function toTotalsRow(r: LovableCalcRow): TotalsRowInput {
     quantity: r.quantity,
     unit_sell_ore: r.unit_sell_ore,
     vat_rate_bp: r.vat_rate_bp,
+    vat_type: "STANDARD_VAT_25",
     // Story 10.6's one-time legacy migration freezes the old optional-selection decision into
     // the new independent economic-inclusion fact. Live totals consume only this property.
     included_in_invoice_total: !r.is_optional || r.is_selected,
@@ -344,6 +345,7 @@ export function buildQuoteSnapshotInputFromLovable(args: {
         quantity: l.quantity,
         unit_sell_ore: l.sellOre,
         vat_rate_bp: l.vatBp,
+        vat_type: "STANDARD_VAT_25",
         is_hidden: false,
         is_optional: l.isOption,
         is_selected: l.isOption ? l.isSelected : null,
@@ -383,6 +385,7 @@ export function buildQuoteSnapshotInputFromLovable(args: {
         quantity: l.quantity,
         unit_sell_ore: l.sellOre,
         vat_rate_bp: l.vatBp,
+        vat_type: "STANDARD_VAT_25",
         is_hidden: l.isHidden,
         is_optional: l.isOptional,
         is_selected: l.isOptional ? l.isSelected : null,

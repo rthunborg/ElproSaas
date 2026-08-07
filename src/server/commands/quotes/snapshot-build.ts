@@ -43,6 +43,7 @@ import {
 import {
   buildTaxAnswerSnapshotV2,
   isDeductionClassification,
+  isCustomerEligibilityPosture,
   isVatType,
   parseTaxInputSnapshot,
   type DeductionClassification,
@@ -66,6 +67,10 @@ import {
   loadQuoteTerms,
   type CalcRowRow,
 } from "./quote-db";
+import {
+  buildQuoteReviewDigest,
+  quoteReviewDigestsEqual,
+} from "./review-token";
 
 /** The totals-engine row shape from a customer-visible calc row. */
 function totalsRowOf(row: CalcRowRow): TotalsRowInput {
@@ -127,6 +132,8 @@ export interface QuoteSnapshotBuildParams {
   readonly attachmentFileIds: readonly string[];
   /** The build instant — the SINGLE injected command clock (ISO string), never Date.now(). */
   readonly capturedAt: string;
+  readonly reviewedSnapshotDigest?: string | null;
+  readonly reviewedQuoteCaptureDate?: string | null;
 }
 
 /** The resolved snapshot + the header ids the RPC needs (customer/facility/contact). */
@@ -181,6 +188,84 @@ export async function buildFreshQuoteSnapshot(
     attachmentOrder += 1;
   }
 
+  const quoteCaptureDate = params.capturedAt.slice(0, 10);
+  const currentReviewDigest = buildQuoteReviewDigest({
+    quoteCaptureDate,
+    calculation: {
+      id: header.id,
+      status: header.status,
+      customerId: header.customer_id,
+      facilityId: header.facility_id,
+      contactId: header.contact_id,
+      taxInput: header.tax_input_snapshot,
+    },
+    sections: sections.map((section) => ({
+      id: section.id,
+      title: section.title,
+      displayMode: section.display_mode,
+      sortOrder: section.sort_order,
+    })),
+    rows: rows.map((row) => ({
+      id: row.id,
+      sectionId: row.section_id,
+      rowType: row.row_type,
+      quantity: row.quantity,
+      unit: row.unit,
+      unitCostOre: row.unit_cost_ore,
+      unitSellOre: row.unit_sell_ore,
+      vatRateBp: row.vat_rate_bp,
+      includedInInvoiceTotal: row.included_in_invoice_total,
+      deductionClassification: row.deduction_classification,
+      vatType: row.vat_type,
+      isHidden: row.is_hidden,
+      isOptional: row.is_optional,
+      isSelected: row.is_selected,
+      label: row.label,
+      description: row.description,
+      quoteNote: row.quote_note,
+      sortOrder: row.sort_order,
+      sourceKind: row.source_kind,
+    })),
+    customer: {
+      displayName: customer?.display_name ?? null,
+      customerType: customer?.customer_type ?? null,
+      facilityName,
+      contactName,
+    },
+    company: identity === null ? null : {
+      companyName: identity.company_name,
+      orgNr: identity.org_nr,
+      addressLine1: identity.address_line1,
+      addressLine2: identity.address_line2,
+      postalCode: identity.postal_code,
+      city: identity.city,
+      email: identity.email,
+      phone: identity.phone,
+      logoUrl: identity.logo_url,
+      defaultVatDisplay: identity.default_vat_display,
+      vatRateBp: identity.vat_rate_bp,
+    },
+    terms: terms === null ? null : {
+      text: terms.terms_text,
+      approvedAt: terms.approved_at,
+      approvedBy: terms.approved_by,
+    },
+    attachments,
+  });
+  const reviewedDigest = params.reviewedSnapshotDigest ?? null;
+  const reviewedDate = params.reviewedQuoteCaptureDate ?? null;
+  if (
+    (reviewedDigest !== null || reviewedDate !== null) &&
+    (reviewedDigest === null ||
+      reviewedDate !== quoteCaptureDate ||
+      !quoteReviewDigestsEqual(reviewedDigest, currentReviewDigest))
+  ) {
+    throw new CommandError(
+      "VALIDATION_FAILED",
+      "Kalkylen har ändrats – öppna och granska en ny förhandsvisning.",
+    );
+  }
+
   // ── Compute the totals via the frozen engine (CAPTURE — never re-derive; R-505). ──
   const totalsRows = rows.map(totalsRowOf);
   const baseRows = totalsRows.filter((r) => !r.is_optional);
@@ -200,7 +285,6 @@ export async function buildFreshQuoteSnapshot(
 
   const parsedTaxInput = parseTaxInputSnapshot(header.tax_input_snapshot);
   if (!parsedTaxInput.ok) throw new CommandError("VALIDATION_FAILED");
-  const quoteCaptureDate = params.capturedAt.slice(0, 10);
   const taxAnswer = buildTaxAnswerSnapshotV2({
     rows: rows.map((row) => ({
       id: row.id,
@@ -213,6 +297,11 @@ export async function buildFreshQuoteSnapshot(
     })),
     taxInput: parsedTaxInput.value,
     quoteCaptureDate,
+    customerEligibilityPosture: isCustomerEligibilityPosture(customer?.customer_type)
+      ? customer.customer_type
+      : (() => {
+          throw new CommandError("VALIDATION_FAILED");
+        })(),
   });
   if (!taxAnswer.ok) throw new CommandError("VALIDATION_FAILED");
 
@@ -237,6 +326,7 @@ export async function buildFreshQuoteSnapshot(
         .filter((r) => r.section_id === s.id)
         .map((r) => ({
           quantity: r.quantity,
+          unit_cost_ore: r.unit_cost_ore,
           unit_sell_ore: r.unit_sell_ore,
           vat_rate_bp: r.vat_rate_bp,
           vat_type: vatTypeOf(r.vat_type),
@@ -251,12 +341,24 @@ export async function buildFreshQuoteSnapshot(
             | "subcontractor"
             | "machinery"
             | "other",
-          unit_cost_ore: null,
-          source_kind: null,
+          source_kind: r.source_kind as "work_role" | "article" | null,
         })),
     })),
     vatPostureResolved: identity !== null,
-    tax: { hasDeductionAssumption: parsedTaxInput.value.deductionChoice !== "NONE" },
+    tax: {
+      hasDeductionAssumption: parsedTaxInput.value.deductionChoice !== "NONE",
+      deductionType:
+        parsedTaxInput.value.deductionChoice === "ROT"
+          ? "rot"
+          : parsedTaxInput.value.deductionChoice === "GREEN"
+            ? "gron_teknik"
+            : parsedTaxInput.value.deductionChoice === "ROT_AND_GREEN"
+              ? "rot_and_gron_teknik"
+              : undefined,
+      eligibilityPosture: isCustomerEligibilityPosture(customer?.customer_type)
+        ? customer.customer_type
+        : undefined,
+    },
   });
   const warnings = [...readiness.blockers, ...readiness.warnings].map((w) => ({
     code: w.code,

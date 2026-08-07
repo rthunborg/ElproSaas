@@ -457,7 +457,7 @@ test("10.6 updateRow: inclusion, classification, and VAT type round-trip indepen
   assert.equal(parsed.input.vat_type, "REVERSE_CHARGE_CONSTRUCTION");
 });
 
-test("10.6 tax form: mixed deductions, dates, allowances, and kronor split become one V2 snapshot", () => {
+test("10.6 tax form: standard VAT clears a stale buyer VAT number", () => {
   const form = fd({
     id: ROW,
     document_vat_type: "STANDARD_VAT_25",
@@ -480,7 +480,7 @@ test("10.6 tax form: mixed deductions, dates, allowances, and kronor split becom
   assert.deepEqual(parsed.input.tax_input_snapshot, {
     schemaVersion: 2,
     documentVatType: "STANDARD_VAT_25",
-    buyerVatNumber: "se 556677889901",
+    buyerVatNumber: null,
     deductionChoice: "ROT_AND_GREEN",
     paymentDate: "2026-08-05",
     finalPaymentDate: "2026-08-06",
@@ -497,6 +497,26 @@ test("10.6 tax form: mixed deductions, dates, allowances, and kronor split becom
     fixedPriceOre: 100_000,
     fixedPriceCategorySplitOre: { SOLAR: 40_000, STORAGE: 30_000, CHARGING: 30_000 },
   });
+});
+
+test("10.6 tax form: allowance persons 3 and 50 round-trip as canonical ordered slots", () => {
+  const parsed = parseUpdateTaxInputForm(fd({
+    id: ROW,
+    document_vat_type: "STANDARD_VAT_25",
+    deduction_choice: "NONE",
+    green_basis_method: "ACTUAL_ELIGIBLE_COSTS",
+    person_3_green_remaining_kronor: "123,00",
+    person_50_green_remaining_kronor: "456,00",
+  }));
+
+  assert.deepEqual(parsed.fieldErrors, {});
+  assert.deepEqual(
+    (parsed.input.tax_input_snapshot as { personAllowanceSlots: unknown[] }).personAllowanceSlots,
+    [
+      { slot: "PERSON_3", remainingGreenAllowanceOre: 12_300 },
+      { slot: "PERSON_50", remainingGreenAllowanceOre: 45_600 },
+    ],
+  );
 });
 
 test("10.6 tax form: authoritative draft failures are associated with actionable fields", () => {

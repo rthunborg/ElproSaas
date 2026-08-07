@@ -169,7 +169,7 @@
             "unit": "st",
             "unitSellOre": 200000,
             "lineNetOre": 200000,
-            "vatRateBp": 0,
+            "vatRateBp": 2500,
             "isHidden": false,
             "isOptional": false,
             "isSelected": null,
@@ -189,7 +189,7 @@
         "payableOre": 325000,
         "categories": [
           { "vatType": "STANDARD_VAT_25", "rateBp": 2500, "netOre": 100000, "vatOre": 25000, "grossOre": 125000 },
-          { "vatType": "REVERSE_CHARGE_CONSTRUCTION", "rateBp": 0, "netOre": 200000, "vatOre": 0, "grossOre": 200000 }
+          { "vatType": "REVERSE_CHARGE_CONSTRUCTION", "rateBp": 2500, "netOre": 200000, "vatOre": 0, "grossOre": 200000 }
         ]
       },
       "mustAppear": [

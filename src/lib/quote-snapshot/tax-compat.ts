@@ -1,7 +1,9 @@
 import {
   DEDUCTION_CLASSIFICATIONS,
   GREEN_CATEGORIES,
+  calculateCategoryVatOre,
   isOreAmount,
+  isCustomerEligibilityPosture,
   isGreenBasisMethod,
   isCanonicalTaxPersonSlot,
   isCoherentVatTypeRate,
@@ -19,7 +21,9 @@ import {
   type TaxAnswerSnapshotV2,
   type TaxSummaryBucket,
 } from "@/lib/money";
-import { TAX_POLICY_REGISTRY } from "@/lib/money";
+
+const BP_PER_UNIT = BigInt(10_000);
+const ORE_PER_SEK = BigInt(100);
 
 /** A fail-closed parse result for JSONB-loaded V2 tax answers. */
 export type TaxAnswerSnapshotParseResult =
@@ -104,6 +108,27 @@ function sumOre(values: readonly number[]): number | null {
   return isOreAmount(numeric) && BigInt(numeric) === sum ? numeric : null;
 }
 
+function floorRatioOre(
+  amountOre: number,
+  numerator: bigint,
+  denominator = BP_PER_UNIT,
+): number | null {
+  const value = (BigInt(amountOre) * numerator) / denominator;
+  const numeric = Number(value);
+  return isOreAmount(numeric) && BigInt(numeric) === value ? numeric : null;
+}
+
+function wholeSekRatioOre(
+  amountOre: number,
+  numerator: bigint,
+  denominator = BP_PER_UNIT,
+): number | null {
+  const value =
+    ((BigInt(amountOre) * numerator) / (denominator * ORE_PER_SEK)) * ORE_PER_SEK;
+  const numeric = Number(value);
+  return isOreAmount(numeric) && BigInt(numeric) === value ? numeric : null;
+}
+
 function rateBp(value: unknown): number | null {
   return Number.isInteger(value) && (value as number) >= 0 && (value as number) <= 10_000
     ? (value as number)
@@ -137,6 +162,7 @@ function parsePolicy(value: unknown): ResolvedTaxPolicySnapshot | null | undefin
   if (
     raw === null ||
     typeof raw.id !== "string" ||
+    raw.id.length === 0 ||
     !isIsoCalendarDate(raw.validFrom) ||
     (raw.validTo !== null && !isIsoCalendarDate(raw.validTo)) ||
     !isIsoCalendarDate(raw.resolvingDate) ||
@@ -154,28 +180,6 @@ function parsePolicy(value: unknown): ResolvedTaxPolicySnapshot | null | undefin
     fixedPriceEligibleShareBp === null ||
     greenRates === null ||
     !isGreenBasisMethod(green?.defaultBasisMethod)
-  ) {
-    return undefined;
-  }
-  const canonical = TAX_POLICY_REGISTRY.find((policy) => policy.id === raw.id);
-  if (
-    canonical === undefined ||
-    canonical.validFrom !== raw.validFrom ||
-    // Existing V2 drafts created before the finite-horizon correction froze a
-    // nullable end. They remain readable as historic commitments; fresh writes
-    // always use the finite canonical window.
-    (canonical.validTo !== raw.validTo &&
-      !(canonical.id === "SE-TAX-2026-v1" && raw.validTo === null)) ||
-    canonical.vat.standardRateBp !== standardRateBp ||
-    canonical.rot.rateBp !== rotRateBp ||
-    canonical.rot.maxPerPersonYearOre !== rotCapOre ||
-    canonical.rot.combinedRotRutMaxPerPersonYearOre !== combinedRotRutCapOre ||
-    canonical.green.maxPerPersonYearOre !== greenCapOre ||
-    canonical.green.defaultBasisMethod !== green?.defaultBasisMethod ||
-    canonical.green.fixedPriceEligibleShareBp !== fixedPriceEligibleShareBp ||
-    GREEN_CATEGORIES.some(
-      (category) => canonical.green.rateBpByCategory[category] !== greenRateBpByCategory[category],
-    )
   ) {
     return undefined;
   }
@@ -202,16 +206,26 @@ function parsePolicy(value: unknown): ResolvedTaxPolicySnapshot | null | undefin
   });
 }
 
-function parseAllocations(value: unknown): readonly FrozenPersonClaimAllocation[] | null {
-  if (!Array.isArray(value)) return null;
+interface HistoricalClaimAllocation {
+  readonly sourceSlot: string;
+  readonly ore: number;
+}
+
+/** The bounded identifier shape accepted by the original V2 allocation writer. */
+function isHistoricalAllocationSlot(value: unknown): value is string {
+  return typeof value === "string" && /^[A-Za-z][A-Za-z0-9_-]{0,63}$/.test(value);
+}
+
+function parseHistoricalAllocations(value: unknown): readonly HistoricalClaimAllocation[] | null {
+  if (!Array.isArray(value) || value.length > 50) return null;
   const seen = new Set<string>();
-  const result: FrozenPersonClaimAllocation[] = [];
+  const result: HistoricalClaimAllocation[] = [];
   for (const candidate of value) {
     const raw = recordOf(candidate);
     const amount = raw === null ? null : ore(raw.ore);
     if (
       raw === null ||
-      !isCanonicalTaxPersonSlot(raw.slot) ||
+      !isHistoricalAllocationSlot(raw.slot) ||
       seen.has(raw.slot) ||
       amount === null ||
       amount % 100 !== 0
@@ -219,9 +233,59 @@ function parseAllocations(value: unknown): readonly FrozenPersonClaimAllocation[
       return null;
     }
     seen.add(raw.slot);
-    result.push(Object.freeze({ slot: raw.slot, ore: amount }));
+    result.push({ sourceSlot: raw.slot, ore: amount });
   }
-  return Object.freeze(result);
+  return result;
+}
+
+/**
+ * Historic V2 JSON could carry a bounded opaque/name-like allocation id. Never expose that value
+ * downstream: reserve existing canonical positions, then map every other shared ROT/green identity
+ * to the next free `PERSON_n` slot. The two arrays retain their original order and amounts.
+ */
+function normalizeAllocationSlots(
+  rot: readonly HistoricalClaimAllocation[],
+  green: readonly HistoricalClaimAllocation[],
+): Readonly<{
+  rot: readonly FrozenPersonClaimAllocation[];
+  green: readonly FrozenPersonClaimAllocation[];
+}> | null {
+  const all = [...rot, ...green];
+  const slotBySource = new Map<string, string>();
+  const reservedCanonicalSlots = new Set<string>();
+
+  for (const allocation of all) {
+    if (!isCanonicalTaxPersonSlot(allocation.sourceSlot)) continue;
+    slotBySource.set(allocation.sourceSlot, allocation.sourceSlot);
+    reservedCanonicalSlots.add(allocation.sourceSlot);
+  }
+
+  let nextCanonicalIndex = 1;
+  for (const allocation of all) {
+    if (slotBySource.has(allocation.sourceSlot)) continue;
+    while (
+      nextCanonicalIndex <= 50 &&
+      reservedCanonicalSlots.has(`PERSON_${nextCanonicalIndex}`)
+    ) {
+      nextCanonicalIndex += 1;
+    }
+    if (nextCanonicalIndex > 50) return null;
+    const canonicalSlot = `PERSON_${nextCanonicalIndex}`;
+    slotBySource.set(allocation.sourceSlot, canonicalSlot);
+    reservedCanonicalSlots.add(canonicalSlot);
+    nextCanonicalIndex += 1;
+  }
+
+  const normalize = (
+    allocations: readonly HistoricalClaimAllocation[],
+  ): readonly FrozenPersonClaimAllocation[] => Object.freeze(
+    allocations.map((allocation) => Object.freeze({
+      slot: slotBySource.get(allocation.sourceSlot)!,
+      ore: allocation.ore,
+    })),
+  );
+
+  return Object.freeze({ rot: normalize(rot), green: normalize(green) });
 }
 
 function parseSummary(value: unknown): TaxSummaryBucket | null {
@@ -230,7 +294,12 @@ function parseSummary(value: unknown): TaxSummaryBucket | null {
   const netOre = ore(raw.netOre);
   const vatOre = ore(raw.vatOre);
   const grossOre = ore(raw.grossOre);
-  if (netOre === null || vatOre === null || grossOre === null || netOre + vatOre !== grossOre) {
+  if (
+    netOre === null ||
+    vatOre === null ||
+    grossOre === null ||
+    sumOre([netOre, vatOre]) !== grossOre
+  ) {
     return null;
   }
   return Object.freeze({ netOre, vatOre, grossOre });
@@ -250,23 +319,26 @@ function parseClassificationRecord(
   return Object.freeze(result);
 }
 
-function parseCategory(value: unknown): DocumentVatCategory | null {
+function parseCategory(value: unknown, standardRateBp: number): DocumentVatCategory | null {
   const raw = recordOf(value);
   if (raw === null || !isVatType(raw.vatType)) return null;
   const rate = rateBp(raw.rateBp);
   const netOre = ore(raw.netOre);
   const vatOre = ore(raw.vatOre);
   const grossOre = ore(raw.grossOre);
+  const calculatedVatOre =
+    rate === null || netOre === null
+      ? null
+      : calculateCategoryVatOre(raw.vatType, netOre, rate);
   if (
     rate === null ||
     netOre === null ||
     vatOre === null ||
     grossOre === null ||
-    netOre + vatOre !== grossOre ||
-    !isCoherentVatTypeRate(raw.vatType, rate) ||
-    (raw.vatType === "REVERSE_CHARGE_CONSTRUCTION" && vatOre !== 0) ||
-    (raw.vatType !== "REVERSE_CHARGE_CONSTRUCTION" &&
-      vatOre !== Math.floor((netOre * rate + 5_000) / 10_000))
+    sumOre([netOre, vatOre]) !== grossOre ||
+    !isCoherentVatTypeRate(raw.vatType, rate, standardRateBp) ||
+    calculatedVatOre === null ||
+    vatOre !== calculatedVatOre
   ) {
     return null;
   }
@@ -305,6 +377,7 @@ export function parseTaxAnswerSnapshotV2(rawValue: unknown): TaxAnswerSnapshotPa
     !Array.isArray(raw.taxRuleVersions) ||
     raw.taxRuleVersions.length === 0 ||
     !raw.taxRuleVersions.every((value) => typeof value === "string" && value.length > 0) ||
+    !isCustomerEligibilityPosture(raw.customerEligibilityPosture) ||
     !isVatType(raw.documentVatType) ||
     !isTaxDeductionChoice(raw.deductionChoice) ||
     typeof raw.reverseChargeApplied !== "boolean"
@@ -321,7 +394,7 @@ export function parseTaxAnswerSnapshotV2(rawValue: unknown): TaxAnswerSnapshotPa
     (buyerVatNumber !== null &&
       (!isValidBuyerVatNumber(buyerVatNumber) ||
         normalizeBuyerVatNumber(buyerVatNumber) !== buyerVatNumber)) ||
-    (raw.reverseChargeApplied && buyerVatNumber === null)
+    (raw.reverseChargeApplied ? buyerVatNumber === null : buyerVatNumber !== null)
   ) {
     return invalid();
   }
@@ -329,7 +402,7 @@ export function parseTaxAnswerSnapshotV2(rawValue: unknown): TaxAnswerSnapshotPa
   const categories: DocumentVatCategory[] = [];
   const categoryKeys = new Set<string>();
   for (const candidate of raw.categories) {
-    const category = parseCategory(candidate);
+    const category = parseCategory(candidate, vatPolicy.values.vat.standardRateBp);
     if (category === null) return invalid();
     const key = `${category.vatType}:${category.rateBp}`;
     if (categoryKeys.has(key)) return invalid();
@@ -363,7 +436,8 @@ export function parseTaxAnswerSnapshotV2(rawValue: unknown): TaxAnswerSnapshotPa
   const rotBasisOre = rotRaw === null ? null : ore(rotRaw.basisOre);
   const rotCalculatedOre = rotRaw === null ? null : ore(rotRaw.calculatedOre);
   const rotClaimOre = rotRaw === null ? null : ore(rotRaw.claimOre);
-  const rotAllocations = rotRaw === null ? null : parseAllocations(rotRaw.allocations);
+  const historicalRotAllocations =
+    rotRaw === null ? null : parseHistoricalAllocations(rotRaw.allocations);
   if (
     rotRaw === null ||
     rotPolicy === undefined ||
@@ -372,8 +446,8 @@ export function parseTaxAnswerSnapshotV2(rawValue: unknown): TaxAnswerSnapshotPa
     rotBasisOre === null ||
     rotCalculatedOre === null ||
     rotClaimOre === null ||
-    rotAllocations === null ||
-    rotBasisNetOre + rotAllocatedVatOre !== rotBasisOre ||
+    historicalRotAllocations === null ||
+    sumOre([rotBasisNetOre, rotAllocatedVatOre]) !== rotBasisOre ||
     rotClaimOre % 100 !== 0
   ) {
     return invalid();
@@ -381,11 +455,12 @@ export function parseTaxAnswerSnapshotV2(rawValue: unknown): TaxAnswerSnapshotPa
 
   const greenRaw = recordOf(raw.green);
   const greenPolicy = greenRaw === null ? undefined : parsePolicy(greenRaw.policy);
+  const greenBasisMethod = greenRaw?.basisMethod;
   if (
     greenRaw === null ||
     greenPolicy === undefined ||
-    (greenRaw.basisMethod !== "ACTUAL_ELIGIBLE_COSTS" &&
-      greenRaw.basisMethod !== "FIXED_PRICE_97_PERCENT")
+    (greenBasisMethod !== "ACTUAL_ELIGIBLE_COSTS" &&
+      greenBasisMethod !== "FIXED_PRICE_97_PERCENT")
   ) {
     return invalid();
   }
@@ -399,15 +474,22 @@ export function parseTaxAnswerSnapshotV2(rawValue: unknown): TaxAnswerSnapshotPa
   }
   const greenCalculatedOre = ore(greenRaw.calculatedOre);
   const greenClaimOre = ore(greenRaw.claimOre);
-  const greenAllocations = parseAllocations(greenRaw.allocations);
+  const historicalGreenAllocations = parseHistoricalAllocations(greenRaw.allocations);
   if (
     greenCalculatedOre === null ||
     greenClaimOre === null ||
     greenClaimOre % 100 !== 0 ||
-    greenAllocations === null
+    historicalGreenAllocations === null
   ) {
     return invalid();
   }
+  const normalizedAllocations = normalizeAllocationSlots(
+    historicalRotAllocations,
+    historicalGreenAllocations,
+  );
+  if (normalizedAllocations === null) return invalid();
+  const rotAllocations = normalizedAllocations.rot;
+  const greenAllocations = normalizedAllocations.green;
 
   const netOre = ore(raw.netOre);
   const vatOre = ore(raw.vatOre);
@@ -424,11 +506,11 @@ export function parseTaxAnswerSnapshotV2(rawValue: unknown): TaxAnswerSnapshotPa
     claimDeductionOre === null ||
     deductionOre === null ||
     payableOre === null ||
-    netOre + vatOre !== grossOre ||
-    grossOre - deductionOre !== payableOre ||
+    sumOre([netOre, vatOre]) !== grossOre ||
+    sumOre([payableOre, deductionOre]) !== grossOre ||
     claimDeductionOre !== deductionOre ||
-    rotCalculatedOre + greenCalculatedOre !== calculatedDeductionOre ||
-    rotClaimOre + greenClaimOre !== claimDeductionOre
+    sumOre([rotCalculatedOre, greenCalculatedOre]) !== calculatedDeductionOre ||
+    sumOre([rotClaimOre, greenClaimOre]) !== claimDeductionOre
   ) {
     return invalid();
   }
@@ -454,6 +536,87 @@ export function parseTaxAnswerSnapshotV2(rawValue: unknown): TaxAnswerSnapshotPa
   );
   const usesRot = raw.deductionChoice === "ROT" || raw.deductionChoice === "ROT_AND_GREEN";
   const usesGreen = raw.deductionChoice === "GREEN" || raw.deductionChoice === "ROT_AND_GREEN";
+  const expectedRotCalculatedOre =
+    usesRot && rotPolicy !== null
+      ? floorRatioOre(rotBasisOre, BigInt(rotPolicy.values.rot.rateBp))
+      : 0;
+  const expectedRotClaimOre =
+    usesRot && rotPolicy !== null
+      ? wholeSekRatioOre(rotBasisOre, BigInt(rotPolicy.values.rot.rateBp))
+      : 0;
+  const rotAllocationCapOre = rotPolicy === null
+    ? null
+    : Math.min(
+        rotPolicy.values.rot.maxPerPersonYearOre,
+        rotPolicy.values.rot.combinedRotRutMaxPerPersonYearOre,
+      );
+  const rotMathMatches =
+    (!usesRot ||
+      (rotPolicy !== null &&
+        rotBasisNetOre === netBy.ROT_LABOR &&
+        rotAllocatedVatOre === vatBy.ROT_LABOR &&
+        expectedRotCalculatedOre === rotCalculatedOre &&
+        expectedRotClaimOre === rotClaimOre)) &&
+    (rotAllocationCapOre === null ||
+      rotAllocations.every((allocation) => allocation.ore <= rotAllocationCapOre));
+
+  let greenMathMatches = true;
+  if (usesGreen) {
+    if (greenPolicy === null) {
+      greenMathMatches = false;
+    } else {
+      for (const category of GREEN_CATEGORIES) {
+        const laborClassification = `GREEN_${category}_LABOR` as DeductionClassification;
+        const materialClassification = `GREEN_${category}_MATERIAL` as DeductionClassification;
+        const classifiedGrossOre = sumOre([
+          netBy[laborClassification],
+          vatBy[laborClassification],
+          netBy[materialClassification],
+          vatBy[materialClassification],
+        ]);
+        if (classifiedGrossOre === null) {
+          greenMathMatches = false;
+          break;
+        }
+        const policyGreen = greenPolicy.values.green;
+        const categoryRate = policyGreen.rateBpByCategory[category];
+        const isFixedPrice = greenBasisMethod === "FIXED_PRICE_97_PERCENT";
+        const expectedBasisOre = isFixedPrice
+          ? floorRatioOre(classifiedGrossOre, BigInt(policyGreen.fixedPriceEligibleShareBp))
+          : classifiedGrossOre;
+        const numerator = isFixedPrice
+          ? BigInt(policyGreen.fixedPriceEligibleShareBp) * BigInt(categoryRate)
+          : BigInt(categoryRate);
+        const denominator = isFixedPrice ? BP_PER_UNIT * BP_PER_UNIT : BP_PER_UNIT;
+        const expectedCalculatedOre = floorRatioOre(
+          classifiedGrossOre,
+          numerator,
+          denominator,
+        );
+        const expectedClaimOre = wholeSekRatioOre(
+          classifiedGrossOre,
+          numerator,
+          denominator,
+        );
+        const frozenCategory = greenCategories[category];
+        if (
+          expectedBasisOre !== frozenCategory.basisOre ||
+          expectedCalculatedOre !== frozenCategory.calculatedOre ||
+          expectedClaimOre !== frozenCategory.claimOre
+        ) {
+          greenMathMatches = false;
+          break;
+        }
+      }
+      if (
+        greenAllocations.some(
+          (allocation) => allocation.ore > greenPolicy.values.green.maxPerPersonYearOre,
+        )
+      ) {
+        greenMathMatches = false;
+      }
+    }
+  }
   const ruleVersions = raw.taxRuleVersions as string[];
   const uniqueSortedRuleVersions = [...new Set(ruleVersions)].sort();
   const unusedRotHasFacts =
@@ -484,6 +647,9 @@ export function parseTaxAnswerSnapshotV2(rawValue: unknown): TaxAnswerSnapshotPa
     greenAllocationTotal !== greenClaimOre ||
     greenCategoryCalculated !== greenCalculatedOre ||
     greenCategoryClaim !== greenClaimOre ||
+    !rotMathMatches ||
+    !greenMathMatches ||
+    ((usesRot || usesGreen) && raw.customerEligibilityPosture !== "private") ||
     ruleVersions.length !== uniqueSortedRuleVersions.length ||
     ruleVersions.some((version, index) => version !== uniqueSortedRuleVersions[index]) ||
     !ruleVersions.includes(vatPolicy.id) ||
@@ -496,7 +662,6 @@ export function parseTaxAnswerSnapshotV2(rawValue: unknown): TaxAnswerSnapshotPa
     (raw.reverseChargeApplied && raw.documentVatType !== "REVERSE_CHARGE_CONSTRUCTION") ||
     (rotPolicy !== null && !ruleVersions.includes(rotPolicy.id)) ||
     (greenPolicy !== null && !ruleVersions.includes(greenPolicy.id)) ||
-    ruleVersions.some((id) => !TAX_POLICY_REGISTRY.some((policy) => policy.id === id)) ||
     !sameRuleVersionSet(ruleVersions, vatPolicy, rotPolicy, greenPolicy)
   ) {
     return invalid();
@@ -506,6 +671,7 @@ export function parseTaxAnswerSnapshotV2(rawValue: unknown): TaxAnswerSnapshotPa
     schemaVersion: 2,
     taxRuleVersions: Object.freeze([...(raw.taxRuleVersions as string[])]),
     vatPolicy,
+    customerEligibilityPosture: raw.customerEligibilityPosture,
     documentVatType: raw.documentVatType,
     buyerVatNumber,
     reverseChargeApplied: raw.reverseChargeApplied,
@@ -525,7 +691,7 @@ export function parseTaxAnswerSnapshotV2(rawValue: unknown): TaxAnswerSnapshotPa
     }),
     green: Object.freeze({
       policy: greenPolicy,
-      basisMethod: greenRaw.basisMethod,
+      basisMethod: greenBasisMethod,
       categories: Object.freeze(greenCategories),
       calculatedOre: greenCalculatedOre,
       claimOre: greenClaimOre,

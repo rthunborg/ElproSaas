@@ -114,7 +114,7 @@
           "unit": "st",
           "unitSellOre": 200000,
           "lineNetOre": 200000,
-          "vatRateBp": 0,
+          "vatRateBp": 2500,
           "isHidden": false,
           "isOptional": false,
           "isSelected": null,

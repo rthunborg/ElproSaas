@@ -118,17 +118,17 @@ test("6.5-INT-01 (unit): snapshotToPayload emits the full frozen header/totals/t
   assert.deepEqual(Object.keys(payload).sort(), expectedKeys);
 });
 
-test("6.5-INT-01 (unit): snapshotToPayload copies values verbatim + preserves integer öre / basis-points", () => {
+test("6.5-INT-01 (unit): snapshotToPayload copies literal V1 values without inventing V2 tax scalars", () => {
   const payload = snapshotToPayload(buildFixtureSnapshot());
   assert.equal(payload.companyName, "Elpro Test AB");
   assert.equal(payload.baseTotalOre, 120000);
   assert.equal(payload.vatTotalOre, 30000);
   assert.equal(payload.acceptedPriceOre, 150000);
-  assert.equal(payload.payableOre, 150000);
+  assert.equal(payload.payableOre, null);
   assert.equal(payload.vatRateBp, 2500);
   assert.equal(payload.requiresSignOff, true);
   // öre stay integers (never a float/kr conversion).
-  for (const k of ["baseTotalOre", "vatTotalOre", "acceptedPriceOre", "payableOre"] as const) {
+  for (const k of ["baseTotalOre", "vatTotalOre", "acceptedPriceOre"] as const) {
     assert.equal(Number.isInteger(payload[k] as number), true, `${k} must be integer öre`);
   }
 });

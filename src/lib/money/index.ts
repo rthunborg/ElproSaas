@@ -12,12 +12,16 @@
 export {
   isCanonicalTaxPersonSlot,
   VAT_TYPES,
+  DOCUMENT_VAT_POSTURES,
+  CUSTOMER_ELIGIBILITY_POSTURES,
   DEDUCTION_CLASSIFICATIONS,
   GREEN_CATEGORIES,
   TAX_SUMMARY_CATEGORIES,
   GREEN_BASIS_METHODS,
   TAX_DEDUCTION_CHOICES,
   isVatType,
+  isDocumentVatPosture,
+  isCustomerEligibilityPosture,
   isDeductionClassification,
   isDeductionClassificationCompatibleWithSummaryCategory,
   isGreenCategory,
@@ -28,6 +32,8 @@ export {
 
 export type {
   VatType,
+  DocumentVatPosture,
+  CustomerEligibilityPosture,
   DeductionClassification,
   GreenCategory,
   TaxSummaryCategory,
@@ -55,6 +61,7 @@ export {
   TAX_POLICY_REGISTRY,
   resolveTaxPolicy,
   aggregateDocumentVat,
+  calculateCategoryVatOre,
   isCoherentVatTypeRate,
   allocateCategoryVatByDeductionClassification,
   computeReconciledDocumentTotals,

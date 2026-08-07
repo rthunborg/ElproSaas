@@ -93,10 +93,20 @@ function readJson(name: string): unknown {
 
 // ── Row builders — drive the REAL engine, never re-derive a total (mirrors the pack) ─────────────
 function plainRow(sellOre: number, vatBp: number, quantity = 1): TotalsRowInput {
+  const vatType =
+    vatBp === 2_500
+      ? "STANDARD_VAT_25"
+      : vatBp === 600 || vatBp === 1_200
+        ? "REDUCED_VAT"
+        : vatBp === 0
+          ? "ZERO_RATED"
+          : null;
+  assert.notEqual(vatType, null, "test fixture must name a canonical VAT pair for " + vatBp + " bp");
   return {
     quantity,
     unit_sell_ore: sellOre,
     vat_rate_bp: vatBp,
+    vat_type: vatType!,
     is_hidden: false,
     is_optional: false,
     is_selected: null,
@@ -108,6 +118,7 @@ function readinessRow(over: Partial<ReadinessRowInput>): ReadinessRowInput {
     unit_cost_ore: 0,
     unit_sell_ore: 8000,
     vat_rate_bp: 2500,
+    vat_type: "STANDARD_VAT_25",
     is_hidden: false,
     is_optional: false,
     is_selected: null,
@@ -170,13 +181,14 @@ describe("Story 5.5 — EXPANDED calc golden PACK coverage (gap-closing live ora
         quantity: 1,
         unit_sell_ore: ore,
         vat_rate_bp: 0,
+        vat_type: "ZERO_RATED" as const,
         included_in_invoice_total: true,
         is_hidden: i === 0, // HIDDEN base row — still counts (frozen 2026-06-18 pin)
         is_optional: false,
         is_selected: null,
       })),
-      { quantity: 1, unit_sell_ore: selected!.selectedOptionOre!, vat_rate_bp: 0, included_in_invoice_total: true, is_hidden: false, is_optional: true, is_selected: true }, // persisted inclusion → counts
-      { quantity: 1, unit_sell_ore: unselected!.unselectedOptionOre!, vat_rate_bp: 0, included_in_invoice_total: false, is_hidden: false, is_optional: true, is_selected: false }, // persisted exclusion → dropped
+      { quantity: 1, unit_sell_ore: selected!.selectedOptionOre!, vat_rate_bp: 0, vat_type: "ZERO_RATED" as const, included_in_invoice_total: true, is_hidden: false, is_optional: true, is_selected: true }, // persisted inclusion → counts
+      { quantity: 1, unit_sell_ore: unselected!.unselectedOptionOre!, vat_rate_bp: 0, vat_type: "ZERO_RATED" as const, included_in_invoice_total: false, is_hidden: false, is_optional: true, is_selected: false }, // persisted exclusion → dropped
     ];
     const total = computeSectionTotal(rows);
     assert.ok(total.ok, "the composed section must resolve");

@@ -108,6 +108,7 @@ describe("Story 9.3 — CALC + VAT/TAX + OPTIONS + HIDDEN ROWS comparison (9.3-C
         quantity: 1,
         unit_sell_ore: ore,
         vat_rate_bp: 0,
+        vat_type: "ZERO_RATED",
         is_hidden: false,
         is_optional: false,
         is_selected: null,

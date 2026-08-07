@@ -193,6 +193,23 @@ test("validateCreateRow rejects a missing or non-integer VAT assumption", () => 
   assertRejected(validateCreateRow(baseRow({ vat_rate_bp: "2500" })), "string vat");
 });
 
+test("validateCreateRow rejects policy-incoherent fresh VAT type/rate pairs", () => {
+  const { validateCreateRow } = notYetImplemented();
+  assertRejected(validateCreateRow(baseRow({ vat_rate_bp: 0 })), "default standard at 0 bp");
+  assertRejected(
+    validateCreateRow(baseRow({ vat_type: "STANDARD_VAT_25", vat_rate_bp: 0 })),
+    "explicit standard at 0 bp",
+  );
+  assertRejected(
+    validateCreateRow(baseRow({ vat_type: "REVERSE_CHARGE_CONSTRUCTION", vat_rate_bp: 0 })),
+    "reverse charge with erased category rate",
+  );
+  assertAccepted(
+    validateCreateRow(baseRow({ vat_type: "REVERSE_CHARGE_CONSTRUCTION", vat_rate_bp: 2500 })),
+    "reverse charge with policy category rate",
+  );
+});
+
 // ─────────────────────────────────────────────────────────────────────────────
 // lifecycle state machine — only legal status transitions (5.1-UNIT-01)
 // ─────────────────────────────────────────────────────────────────────────────

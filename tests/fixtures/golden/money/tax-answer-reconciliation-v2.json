@@ -12,6 +12,7 @@
       "id": "category-vat-split-invariance",
       "operation": "aggregateDocumentVat",
       "input": {
+        "standardRateBp": 2500,
         "rows": [
           { "id": "a", "netOre": 1, "vatType": "STANDARD_VAT_25", "rateBp": 2500, "includedInInvoiceTotal": true, "deductionClassification": "NONE" },
           { "id": "b", "netOre": 1, "vatType": "STANDARD_VAT_25", "rateBp": 2500, "includedInInvoiceTotal": true, "deductionClassification": "NONE" }
@@ -49,9 +50,10 @@
       "id": "explicit-reverse-charge",
       "operation": "aggregateDocumentVat",
       "input": {
+        "standardRateBp": 2500,
         "rows": [
           { "id": "standard", "netOre": 100000, "vatType": "STANDARD_VAT_25", "rateBp": 2500, "includedInInvoiceTotal": true, "deductionClassification": "NONE" },
-          { "id": "reverse", "netOre": 200000, "vatType": "REVERSE_CHARGE_CONSTRUCTION", "rateBp": 0, "includedInInvoiceTotal": true, "deductionClassification": "NONE" }
+          { "id": "reverse", "netOre": 200000, "vatType": "REVERSE_CHARGE_CONSTRUCTION", "rateBp": 2500, "includedInInvoiceTotal": true, "deductionClassification": "NONE" }
         ]
       },
       "expected": { "netOre": 300000, "vatOre": 25000, "grossOre": 325000 }

@@ -3,6 +3,7 @@ import { expect, test, type Locator, type Page } from "@playwright/test";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 
+import { adminExec, closeAdminPool } from "../../factories/admin-sql";
 import { extractPdfText } from "../../support/pdf-text";
 
 interface TaxAnswerFixture {
@@ -93,9 +94,40 @@ function rowForm(page: Page, rowId: string): Locator {
     .filter({ has: page.locator(`input[name="id"][value="${rowId}"]`) });
 }
 
+async function resetReverseChargeReadinessBlocker(calculationId: string): Promise<void> {
+  try {
+    await adminExec(
+      `update public.calculations
+       set tax_input_snapshot = $2::jsonb
+       where id = $1`,
+      [
+        calculationId,
+        JSON.stringify({
+          schemaVersion: 2,
+          documentVatType: "REVERSE_CHARGE_CONSTRUCTION",
+          buyerVatNumber: null,
+          deductionChoice: "NONE",
+          paymentDate: null,
+          finalPaymentDate: null,
+          personAllowanceSlots: [],
+          greenBasisMethod: "ACTUAL_ELIGIBLE_COSTS",
+          genuineFixedPrice: false,
+          fixedPriceOre: null,
+          fixedPriceCategorySplitOre: null,
+        }),
+      ],
+    );
+  } finally {
+    await closeAdminPool();
+  }
+}
+
 test.describe("Story 10.6 — tax answer reconciliation", () => {
   test("[10.6-E2E-01][P1][AC3] explicit reverse charge gates readiness, then PDF truth reconciles", async ({ page, request }) => {
     const calculation = fixture.taxAnswer.reverseChargeCalc;
+    // The journey mutates the shared fixture. Restore the intentionally incomplete
+    // calculation before every attempt so Playwright's CI retry proves the same gate.
+    await resetReverseChargeReadinessBlocker(calculation.id);
     await signIn(page);
     await page.goto(`/calculations/${calculation.id}`);
 
@@ -104,11 +136,7 @@ test.describe("Story 10.6 — tax answer reconciliation", () => {
     await expect(settings.getByLabel("Momshantering")).toHaveValue(
       "REVERSE_CHARGE_CONSTRUCTION",
     );
-
-    // Restore the blocker first so this mutating journey remains deterministic on a CI retry.
-    await settings.getByLabel("Momshantering").selectOption("REVERSE_CHARGE_CONSTRUCTION");
-    await settings.getByLabel("Köparens momsregistreringsnummer").fill("");
-    await saveTaxSettings(page, calculation.id, settings);
+    await expect(settings.getByLabel("Köparens momsregistreringsnummer")).toHaveValue("");
 
     const readiness = page.getByTestId("readiness-summary").first();
     await expect(readiness).toHaveAttribute("data-can-create-quote", "false");
@@ -130,13 +158,13 @@ test.describe("Story 10.6 — tax answer reconciliation", () => {
     await expect(preview.getByTestId("preview-vat")).toContainText("250,00");
     await expect(preview.getByTestId("preview-gross")).toContainText("3250,00");
     await expect(preview.getByTestId("preview-summary-labor")).toContainText(
-      "2000,00 + 0,00 moms = 2000,00 kr",
+      "0,00 + 0,00 moms = 0,00 kr",
     );
     await expect(preview.getByTestId("preview-summary-material")).toContainText(
       "1000,00 + 250,00 moms = 1250,00 kr",
     );
     await expect(preview.getByTestId("preview-summary-other")).toContainText(
-      "0,00 + 0,00 moms = 0,00 kr",
+      "2000,00 + 0,00 moms = 2000,00 kr",
     );
 
     const quoteNavigation = page.waitForURL(/\/quotes\/[^/]+\/versions\/[^/]+$/);

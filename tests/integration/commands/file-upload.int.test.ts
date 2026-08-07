@@ -194,6 +194,7 @@ async function seedAcceptanceAndJob(
     quote_id: quoteId,
     calculation_id: calculationId,
     status: "sent",
+    accepted_price_ore: 125000,
   });
   const acceptanceId = await adminInsertQuoteAcceptance({
     tenant_id: tenantId,

@@ -54,6 +54,7 @@ function sendableInput(): ReadinessInput {
             unit_sell_ore: 100000,
             unit_cost_ore: 60000,
             vat_rate_bp: 2500,
+            vat_type: "STANDARD_VAT_25",
             is_hidden: false,
             is_optional: false,
             is_selected: null,
@@ -104,6 +105,7 @@ test("6.4-UNIT-01 (AC1): a TOTAL_UNCOMPUTABLE blocker makes the version UNSENDAB
             unit_sell_ore: Number.MAX_SAFE_INTEGER,
             unit_cost_ore: 0,
             vat_rate_bp: 2500,
+            vat_type: "STANDARD_VAT_25",
             is_hidden: false,
             is_optional: false,
             is_selected: null,
@@ -138,6 +140,7 @@ test("6.4-UNIT-01 (AC1): WARNINGS never gate — a version with only warnings IS
             unit_sell_ore: 100000,
             unit_cost_ore: 95000, // LOW_MARGIN warning (TB% < 15%)
             vat_rate_bp: 2500,
+            vat_type: "STANDARD_VAT_25",
             is_hidden: true, // HIDDEN_ROWS_INCLUDED warning
             is_optional: false,
             is_selected: null,

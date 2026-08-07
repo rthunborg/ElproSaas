@@ -35,6 +35,7 @@ import {
   adminInsertQuoteTerms,
   adminInsertQuote,
   adminInsertQuoteVersion,
+  adminInsertQuoteVersionLine,
   adminSelectQuoteVersionPdfColumns,
   adminSelectFileById,
   adminSelectPdfFileLinks,
@@ -43,7 +44,6 @@ import {
   type TestServerClient,
 } from "../../factories/tenants";
 import { adminSelectAuditEvents } from "../../factories/audit-events";
-import { adminQuery } from "../../factories/admin-sql";
 import { isLocalStackReachable, isLocalStorageReachable } from "../../support/test-env";
 import {
   skipUnlessStack,
@@ -108,12 +108,18 @@ async function seedSnapshottedVersion(tenantId: string): Promise<string> {
     sort_order: 0,
   });
   // Seed a line snapshot so the PDF has customer-visible content.
-  await adminQuery(
-    `insert into public.quote_version_lines
-       (tenant_id, quote_version_id, row_type, label, quantity, unit, unit_sell_ore, line_net_ore, vat_rate_bp, sort_order)
-     values ($1,$2,'labor','Elarbete',2,'h',85000,170000,2500,0)`,
-    [tenantId, versionId],
-  );
+  await adminInsertQuoteVersionLine({
+    tenant_id: tenantId,
+    quote_version_id: versionId,
+    row_type: "labor",
+    label: "Elarbete",
+    quantity: 2,
+    unit: "h",
+    unit_sell_ore: 85000,
+    line_net_ore: 170000,
+    vat_rate_bp: 2500,
+    sort_order: 0,
+  });
   return versionId;
 }
 

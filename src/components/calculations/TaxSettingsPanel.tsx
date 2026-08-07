@@ -1,10 +1,16 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useRef, useState } from "react";
 
 import { FormErrorSummary, SelectField, TextField } from "@/components/crm/FormField";
 import { CALC_ACTION_INITIAL, isRetryableCalcError } from "@/features/calculations/action-state";
 import { updateTaxInputAction } from "@/features/calculations/actions";
+import {
+  MAX_PERSON_ALLOWANCE_SLOTS,
+  addAllowanceEditorSlot,
+  initializeAllowanceEditorSlots,
+  removeAllowanceEditorSlot,
+} from "@/features/calculations/allowance-editor";
 import { oreToKronorString } from "@/features/calculations/money-input";
 import {
   GREEN_BASIS_METHODS,
@@ -12,7 +18,6 @@ import {
   type GreenBasisMethod,
   type TaxDeductionChoice,
   type TaxInputSnapshotV2,
-  type TaxPersonAllowanceSlot,
   type VatType,
 } from "@/lib/money";
 
@@ -63,10 +68,6 @@ const EMPTY_TAX_INPUT: TaxInputSnapshotV2 = {
   fixedPriceCategorySplitOre: null,
 };
 
-function slotAt(input: TaxInputSnapshotV2, number: number): TaxPersonAllowanceSlot | undefined {
-  return input.personAllowanceSlots.find((slot) => slot.slot === `PERSON_${number}`);
-}
-
 function oreValue(value: number | undefined | null): string {
   return value === undefined || value === null ? "" : oreToKronorString(value);
 }
@@ -85,14 +86,17 @@ export function TaxSettingsPanel({
     (mine && state.values[field] !== undefined ? state.values[field] : fallback) ?? fallback;
   const err = (field: string): string | undefined =>
     mine ? state.fieldErrors[field] : undefined;
-  // Preserve every already-declared allowance slot. Two empty slots remain
-  // visible for a new calculation; the parser accepts the full canonical 50.
-  const highestExistingSlot = input.personAllowanceSlots.reduce((highest, slot) => {
-    const parsed = /^PERSON_(\d+)$/.exec(slot.slot);
-    return parsed === null ? highest : Math.max(highest, Number(parsed[1]));
-  }, 0);
-  const personCount = Math.min(50, Math.max(2, highestExistingSlot));
-  const persons = Array.from({ length: personCount }, (_, index) => index + 1);
+  const [documentVatType, setDocumentVatType] = useState(() =>
+    v("document_vat_type", input.documentVatType),
+  );
+  const [buyerVatWasCleared, setBuyerVatWasCleared] = useState(false);
+  // Persisted slot identifiers are intentionally ignored. Array order carries the compatibility
+  // order; visible names and submitted ids are freshly canonical PERSON_1..PERSON_50 positions.
+  const [allowanceSlots, setAllowanceSlots] = useState(() =>
+    initializeAllowanceEditorSlots(input.personAllowanceSlots),
+  );
+  const nextAllowanceKey = useRef(allowanceSlots.length + 1);
+  const canAddAllowanceSlot = allowanceSlots.length < MAX_PERSON_ALLOWANCE_SLOTS;
 
   return (
     <section
@@ -128,14 +132,28 @@ export function TaxSettingsPanel({
             options={[...VAT_OPTIONS]}
             defaultValue={v("document_vat_type", input.documentVatType)}
             error={err("document_vat_type")}
+            onChange={(next) => {
+              setDocumentVatType(next);
+              if (next !== "REVERSE_CHARGE_CONSTRUCTION") {
+                setBuyerVatWasCleared(true);
+              }
+            }}
           />
-          <TextField
-            name="buyer_vat_number"
-            label="Köparens momsregistreringsnummer"
-            defaultValue={v("buyer_vat_number", input.buyerVatNumber ?? "")}
-            error={err("buyer_vat_number")}
-            autoComplete="off"
-          />
+          {documentVatType === "REVERSE_CHARGE_CONSTRUCTION" ? (
+            <TextField
+              name="buyer_vat_number"
+              label="Köparens momsregistreringsnummer"
+              defaultValue={
+                buyerVatWasCleared
+                  ? ""
+                  : v("buyer_vat_number", input.buyerVatNumber ?? "")
+              }
+              error={err("buyer_vat_number")}
+              autoComplete="off"
+            />
+          ) : (
+            <input type="hidden" name="buyer_vat_number" value="" />
+          )}
           <SelectField
             name="deduction_choice"
             label="Skatteavdrag"
@@ -171,10 +189,14 @@ export function TaxSettingsPanel({
           <p className="mb-3 text-xs text-zinc-600">
             Använd endast neutrala platser som PERSON_1, PERSON_2 osv.; personnummer och namn lagras inte här.
           </p>
-          {persons.map((number) => {
-            const slot = slotAt(input, number);
+          {allowanceSlots.map((editorSlot, index) => {
+            const number = index + 1;
+            const slot = editorSlot.source;
             return (
-              <div key={number} className="mb-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <div
+                key={editorSlot.key}
+                className="mb-3 grid grid-cols-1 items-end gap-3 sm:grid-cols-[1fr_1fr_1fr_auto]"
+              >
                 <TextField
                   name={`person_${number}_rot_remaining_kronor`}
                   label={`Person ${number}: ROT kvar (kr)`}
@@ -202,9 +224,39 @@ export function TaxSettingsPanel({
                   )}
                   error={err(`person_${number}_green_remaining_kronor`)}
                 />
+                <button
+                  type="button"
+                  aria-label={`Ta bort person ${number}`}
+                  disabled={allowanceSlots.length <= 2}
+                  onClick={() => {
+                    setAllowanceSlots((current) =>
+                      removeAllowanceEditorSlot(current, editorSlot.key),
+                    );
+                  }}
+                  className="rounded-md border border-zinc-300 px-3 py-2 text-sm text-zinc-700 hover:bg-zinc-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 disabled:opacity-40"
+                >
+                  Ta bort
+                </button>
               </div>
             );
           })}
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              disabled={!canAddAllowanceSlot}
+              onClick={() => {
+                const key = `new-${nextAllowanceKey.current}`;
+                nextAllowanceKey.current += 1;
+                setAllowanceSlots((current) => addAllowanceEditorSlot(current, key));
+              }}
+              className="rounded-md border border-zinc-300 px-3 py-2 text-sm text-zinc-700 hover:bg-zinc-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 disabled:opacity-40"
+            >
+              Lägg till person
+            </button>
+            <span aria-live="polite" className="text-xs text-zinc-600">
+              {allowanceSlots.length} av {MAX_PERSON_ALLOWANCE_SLOTS} personer
+            </span>
+          </div>
         </fieldset>
 
         <fieldset className="rounded-md border border-zinc-200 p-3">

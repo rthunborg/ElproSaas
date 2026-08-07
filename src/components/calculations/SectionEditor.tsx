@@ -45,6 +45,7 @@ export function SectionEditor({
   calculationId,
   sources,
   posture,
+  canAddRow,
 }: {
   readonly section: CalculationSectionRow;
   readonly calculationId: string;
@@ -52,6 +53,8 @@ export function SectionEditor({
   readonly sources: RowSourceLists;
   /** The resolved VAT display posture (Story 5.4 — drives the posture-aware line-total label). */
   readonly posture: VatDisplayPosture;
+  /** Whole-calculation row cap; the server and DB independently enforce the same invariant. */
+  readonly canAddRow: boolean;
 }) {
   const [renameState, renameAction, renamePending] = useActionState(
     updateSectionAction,
@@ -234,7 +237,7 @@ export function SectionEditor({
           </p>
         )}
 
-        {showAddRow ? (
+        {showAddRow && canAddRow ? (
           <RowEditor
             sectionId={section.id}
             calculationId={calculationId}
@@ -245,8 +248,9 @@ export function SectionEditor({
           <button
             type="button"
             data-testid="add-row"
+            disabled={!canAddRow}
             onClick={() => setShowAddRow(true)}
-            className="self-start rounded-md border border-dashed border-zinc-300 px-3 py-2 text-sm text-zinc-700 hover:bg-zinc-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+            className="self-start rounded-md border border-dashed border-zinc-300 px-3 py-2 text-sm text-zinc-700 hover:bg-zinc-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 disabled:cursor-not-allowed disabled:opacity-40"
           >
             Lägg till rad
           </button>

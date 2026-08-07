@@ -3,6 +3,7 @@ import {
   GREEN_CATEGORIES,
   TAX_SUMMARY_CATEGORIES,
   type DeductionClassification,
+  type CustomerEligibilityPosture,
   type GreenCategory,
   type TaxInputSnapshotV2,
   type TaxSummaryCategory,
@@ -89,6 +90,8 @@ export interface TaxAnswerSnapshotV2 {
   readonly taxRuleVersions: readonly string[];
   /** Quote-capture/VAT policy, frozen even when no deduction scheme is selected. */
   readonly vatPolicy: ResolvedTaxPolicySnapshot;
+  /** Non-PII customer posture used to authorize private-only deductions. */
+  readonly customerEligibilityPosture: CustomerEligibilityPosture;
   readonly documentVatType: TaxInputSnapshotV2["documentVatType"];
   readonly buyerVatNumber: string | null;
   readonly reverseChargeApplied: boolean;
@@ -311,6 +314,8 @@ export interface BuildTaxAnswerInput {
   readonly taxInput: TaxInputSnapshotV2;
   /** Explicit fallback for a no-deduction document; never read from the ambient clock. */
   readonly quoteCaptureDate: string;
+  /** Authoritative customer type resolved server-side; never inferred from names or ids. */
+  readonly customerEligibilityPosture: CustomerEligibilityPosture;
 }
 
 /**
@@ -320,7 +325,14 @@ export interface BuildTaxAnswerInput {
 export function buildTaxAnswerSnapshotV2(
   input: BuildTaxAnswerInput,
 ): TaxAnswerResult<TaxAnswerSnapshotV2> {
-  const aggregate = aggregateDocumentVat({ rows: input.rows });
+  // Resolve the quote-capture policy before authorizing category pairs. A later
+  // standard rate must be evaluated against the policy actually frozen here.
+  const fallbackPolicy = policyFor(input.quoteCaptureDate, "QUOTE_CAPTURE_DATE");
+  if (!fallbackPolicy.ok) return fallbackPolicy;
+  const aggregate = aggregateDocumentVat({
+    rows: input.rows,
+    standardRateBp: fallbackPolicy.value.policy.vat.standardRateBp,
+  });
   if (!aggregate.ok) return aggregate;
 
   const hasReverseChargeCategory = aggregate.value.categories.some(
@@ -400,8 +412,9 @@ export function buildTaxAnswerSnapshotV2(
     input.taxInput.deductionChoice === "ROT_AND_GREEN";
   const usesGreen = input.taxInput.deductionChoice === "GREEN" ||
     input.taxInput.deductionChoice === "ROT_AND_GREEN";
-  const fallbackPolicy = policyFor(input.quoteCaptureDate, "QUOTE_CAPTURE_DATE");
-  if (!fallbackPolicy.ok) return fallbackPolicy;
+  if ((usesRot || usesGreen) && input.customerEligibilityPosture !== "private") {
+    return fail("CUSTOMER_NOT_ELIGIBLE_FOR_DEDUCTION");
+  }
 
   let rotPolicy: ReturnType<typeof policyFor> | null = null;
   if (usesRot) {
@@ -522,6 +535,7 @@ export function buildTaxAnswerSnapshotV2(
     schemaVersion: 2,
     taxRuleVersions: Object.freeze([...versionIds].sort()),
     vatPolicy: fallbackPolicy.value.frozen,
+    customerEligibilityPosture: input.customerEligibilityPosture,
     documentVatType: input.taxInput.documentVatType,
     buyerVatNumber: input.taxInput.buyerVatNumber,
     reverseChargeApplied,

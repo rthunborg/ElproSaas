@@ -597,6 +597,19 @@ test("EXPANDED: no tax message implies a per-person-scaled cap for ANY deduction
   }
 });
 
+test("a calculation with more than 500 active rows is blocked before quote creation", () => {
+  const input = baseInput({
+    sections: [{ rows: Array.from({ length: 501 }, () => row()) }],
+  });
+  const report = classifyReadiness(input);
+  assert.ok(
+    report.blockers.some(
+      (issue) => issue.code === "CALCULATION_ROW_LIMIT_EXCEEDED" && issue.severity === "blocker",
+    ),
+  );
+  assert.equal(report.canCreateQuote, false);
+});
+
 test("10.6-UNIT: every tax-answer failure category is a quote-creation blocker", () => {
   const codes = [
     "MISSING_TAX_INPUT",

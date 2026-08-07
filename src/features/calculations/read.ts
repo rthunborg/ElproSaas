@@ -115,7 +115,7 @@ export interface CalculationRowRow {
   readonly vat_rate_bp: number | null;
   readonly included_in_invoice_total: boolean;
   readonly deduction_classification: DeductionClassification;
-  readonly vat_type: VatType;
+  readonly vat_type: VatType | null;
   readonly is_hidden: boolean;
   readonly is_optional: boolean;
   readonly is_selected: boolean | null;

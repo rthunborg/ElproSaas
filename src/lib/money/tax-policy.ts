@@ -254,7 +254,8 @@ function wholeSekRatioOre(
 export interface DocumentVatRowInput {
   readonly id?: string;
   readonly netOre: number;
-  readonly vatType: VatType;
+  /** Null only for explicitly quarantined legacy rows awaiting remediation. */
+  readonly vatType: VatType | null;
   readonly rateBp: number | null;
   readonly includedInInvoiceTotal?: boolean;
   readonly deductionClassification?: DeductionClassification;
@@ -293,22 +294,31 @@ function vatCategoryKey(vatType: VatType, rateBp: number): string {
   return `${vatType}:${rateBp}`;
 }
 
-function sellerChargedVatOre(vatType: VatType, netOre: number, rateBp: number): number | null {
+/** BigInt-backed, half-up category VAT authority shared by build and compatibility reads. */
+export function calculateCategoryVatOre(
+  vatType: VatType,
+  netOre: number,
+  rateBp: number,
+): number | null {
+  if (!isOreAmount(netOre) || !isVatRateBp(rateBp)) return null;
   if (vatType === "REVERSE_CHARGE_CONSTRUCTION") return 0;
   return roundedRatioOre(netOre, rateBp);
 }
 
-export function isCoherentVatTypeRate(vatType: VatType, rateBp: number): boolean {
-  // Fresh Story 10.6 facts use only the policy-backed pairs. In particular, a
-  // zero numeric rate never upgrades a supply to reverse charge, and reverse
-  // charge retains the underlying standard rate as category identity.
+export function isCoherentVatTypeRate(
+  vatType: VatType,
+  rateBp: number,
+  standardRateBp: number,
+): boolean {
+  if (!isVatRateBp(standardRateBp)) return false;
+  // Fresh Story 10.6 facts use only policy-backed pairs. A numeric zero never
+  // upgrades an ordinary supply to reverse charge, and reverse charge retains
+  // the resolved underlying standard rate as its category identity.
   switch (vatType) {
     case "STANDARD_VAT_25":
-      // An explicit ordinary zero-rate remains distinct from both zero-rated
-      // supply and reverse charge; it is never inferred as either category.
-      return rateBp === 0 || rateBp === TAX_POLICY_2026.vat.standardRateBp;
+      return rateBp === standardRateBp;
     case "REVERSE_CHARGE_CONSTRUCTION":
-      return rateBp === 0 || rateBp === TAX_POLICY_2026.vat.standardRateBp;
+      return rateBp === standardRateBp;
     case "ZERO_RATED":
       return rateBp === 0;
     case "REDUCED_VAT":
@@ -323,7 +333,10 @@ export function isCoherentVatTypeRate(vatType: VatType, rateBp: number): boolean
  */
 export function aggregateDocumentVat(input: {
   readonly rows: readonly DocumentVatRowInput[];
+  /** Standard VAT rate from the already-resolved quote-capture policy. */
+  readonly standardRateBp: number;
 }): TaxAnswerResult<DocumentVatAggregate> {
+  if (!isVatRateBp(input.standardRateBp)) return fail("INVALID_VAT_RATE");
   const categories = new Map<string, { vatType: VatType; rateBp: number; netOre: number }>();
   for (const row of input.rows) {
     if (row.includedInInvoiceTotal === false) continue;
@@ -351,7 +364,7 @@ export function aggregateDocumentVat(input: {
     if (row.rateBp === null || !isVatRateBp(row.rateBp)) {
       return fail("INCOMPLETE_VAT_INPUT");
     }
-    if (!isCoherentVatTypeRate(row.vatType, row.rateBp)) {
+    if (!isCoherentVatTypeRate(row.vatType, row.rateBp, input.standardRateBp)) {
       return fail("INCOMPLETE_VAT_INPUT");
     }
     const key = vatCategoryKey(row.vatType, row.rateBp);
@@ -375,7 +388,7 @@ export function aggregateDocumentVat(input: {
     return typeOrder !== 0 ? typeOrder : left.rateBp - right.rateBp;
   });
   for (const category of orderedCategories) {
-    const categoryVat = sellerChargedVatOre(
+    const categoryVat = calculateCategoryVatOre(
       category.vatType,
       category.netOre,
       category.rateBp,
@@ -483,111 +496,14 @@ export function allocateCategoryVatByDeductionClassification(input: {
   return ok(Object.freeze(output));
 }
 
-function classificationBucketsForCategory(
-  rows: readonly DocumentVatRowInput[],
-  category: DocumentVatCategory,
-): readonly VatAllocationBucket[] {
-  const netByClass = new Map<DeductionClassification, number>();
-  for (const row of rows) {
-    if (row.includedInInvoiceTotal === false) continue;
-    if (row.vatType !== category.vatType || row.rateBp !== category.rateBp) continue;
-    const classification = row.deductionClassification ?? "NONE";
-    const next = addOreValues(netByClass.get(classification) ?? 0, row.netOre);
-    if (next === null) return [];
-    netByClass.set(classification, next);
-  }
-  return [...netByClass.entries()].map(([deductionClassification, netOre]) => ({
-    deductionClassification,
-    netOre,
-  }));
-}
-
-export interface ReconciledDocumentTotals extends DocumentVatAggregate {
-  readonly rotBasisNetOre: number;
-  readonly greenBasisNetOre: number;
-  readonly deductionBasisOre: number;
-  readonly deductionOre: number;
-  readonly payableOre: number;
-  readonly vatByDeductionClassification: Readonly<Partial<Record<DeductionClassification, number>>>;
-}
+/** @deprecated This helper is deliberately VAT-only; canonical payable is TaxAnswerSnapshotV2. */
+export type ReconciledDocumentTotals = DocumentVatAggregate;
 
 export function computeReconciledDocumentTotals(input: {
   readonly rows: readonly DocumentVatRowInput[];
+  readonly standardRateBp: number;
 }): TaxAnswerResult<ReconciledDocumentTotals> {
-  const aggregate = aggregateDocumentVat(input);
-  if (!aggregate.ok) return aggregate;
-
-  const netByClassification: Partial<Record<DeductionClassification, number>> = {};
-  const vatByClassification: Partial<Record<DeductionClassification, number>> = {};
-  for (const row of input.rows) {
-    if (row.includedInInvoiceTotal === false) continue;
-    const classification = row.deductionClassification ?? "NONE";
-    const next = addOreValues(netByClassification[classification] ?? 0, row.netOre);
-    if (next === null) return fail("ORE_OVERFLOW");
-    netByClassification[classification] = next;
-  }
-  for (const category of aggregate.value.categories) {
-    const allocated = allocateCategoryVatByDeductionClassification({
-      vatOre: category.vatOre,
-      buckets: classificationBucketsForCategory(input.rows, category),
-    });
-    if (!allocated.ok) return allocated;
-    for (const [classification, vatOre] of Object.entries(allocated.value) as Array<
-      [DeductionClassification, number]
-    >) {
-      const next = addOreValues(vatByClassification[classification] ?? 0, vatOre);
-      if (next === null) return fail("ORE_OVERFLOW");
-      vatByClassification[classification] = next;
-    }
-  }
-
-  const rotBasisNetOre = netByClassification.ROT_LABOR ?? 0;
-  const greenBasisNetOre = DEDUCTION_CLASSIFICATIONS.filter((c) => c.startsWith("GREEN_")).reduce(
-    (sum, classification) => sum + (netByClassification[classification] ?? 0),
-    0,
-  );
-  const rotBasisVatOre = vatByClassification.ROT_LABOR ?? 0;
-  const greenBasisVatOre = DEDUCTION_CLASSIFICATIONS.filter((c) => c.startsWith("GREEN_")).reduce(
-    (sum, classification) => sum + (vatByClassification[classification] ?? 0),
-    0,
-  );
-  const deductionBasisOre = addOreValues(
-    rotBasisNetOre,
-    rotBasisVatOre,
-    greenBasisNetOre,
-    greenBasisVatOre,
-  );
-  if (deductionBasisOre === null) return fail("ORE_OVERFLOW");
-
-  const deductionEstimate = estimateClassifiedDeductions({
-    parts: DEDUCTION_CLASSIFICATIONS.map((classification) => ({
-      classification,
-      eligibleCostOre: addOreValues(
-        netByClassification[classification] ?? 0,
-        vatByClassification[classification] ?? 0,
-      ) ?? 0,
-    })),
-    effectiveDate: TAX_POLICY_2026.validFrom,
-  });
-  if (!deductionEstimate.ok) return deductionEstimate;
-  const deductionOre = addOreValues(
-    deductionEstimate.value.rotDeductionOre,
-    deductionEstimate.value.greenSolarDeductionOre,
-    deductionEstimate.value.greenStorageDeductionOre,
-    deductionEstimate.value.greenChargingDeductionOre,
-  );
-  if (deductionOre === null || deductionOre > aggregate.value.grossOre) {
-    return fail(deductionOre === null ? "ORE_OVERFLOW" : "DEDUCTION_EXCEEDS_GROSS");
-  }
-  return ok(Object.freeze({
-    ...aggregate.value,
-    rotBasisNetOre,
-    greenBasisNetOre,
-    deductionBasisOre,
-    deductionOre,
-    payableOre: aggregate.value.grossOre - deductionOre,
-    vatByDeductionClassification: Object.freeze(vatByClassification),
-  }));
+  return aggregateDocumentVat(input);
 }
 
 

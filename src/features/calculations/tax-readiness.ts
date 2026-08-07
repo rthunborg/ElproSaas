@@ -2,6 +2,7 @@ import {
   buildTaxAnswerSnapshotV2,
   parseTaxInputSnapshot,
   type DocumentVatRowInput,
+  type CustomerEligibilityPosture,
   type TaxAnswerSnapshotV2,
 } from "@/lib/money";
 
@@ -29,6 +30,7 @@ function mapFailure(code: string): TaxReadinessBlockerCode {
   }
   if (
     code === "INVALID_DEDUCTION_CLASSIFICATION" ||
+    code === "CUSTOMER_NOT_ELIGIBLE_FOR_DEDUCTION" ||
     code === "DOUBLE_DEDUCTION_FEED" ||
     code === "DEDUCTION_EXCEEDS_GROSS"
   ) {
@@ -48,6 +50,7 @@ export function resolveTaxReadiness(input: {
   readonly rows: readonly DocumentVatRowInput[];
   /** The quote-capture fact projected by the caller; never a deduction-payment date. */
   readonly quoteCaptureDate: string;
+  readonly customerEligibilityPosture: CustomerEligibilityPosture;
   /** Excluded rows still cross the quote RPC and must be computable. */
   readonly hasInvalidRow?: boolean;
 }): TaxReadinessResolution {
@@ -66,6 +69,7 @@ export function resolveTaxReadiness(input: {
     rows: input.rows,
     taxInput: parsed.value,
     quoteCaptureDate: input.quoteCaptureDate,
+    customerEligibilityPosture: input.customerEligibilityPosture,
   });
   return answer.ok
     ? { blockingCodes: Object.freeze([]), answer: answer.value }
@@ -76,6 +80,7 @@ export function resolveTaxReadinessCodes(input: {
   readonly taxInput: unknown;
   readonly rows: readonly DocumentVatRowInput[];
   readonly quoteCaptureDate: string;
+  readonly customerEligibilityPosture: CustomerEligibilityPosture;
   readonly hasInvalidRow?: boolean;
 }): readonly TaxReadinessBlockerCode[] {
   return resolveTaxReadiness(input).blockingCodes;

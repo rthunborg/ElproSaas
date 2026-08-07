@@ -100,7 +100,7 @@ describe("Story 9.3 — CLASSIFICATION-DELTA live-drive: VAT posture (9.3-CMP-01
     // private (incl-VAT) posture — the re-exported resolver the base suites never assert. Proves the
     // customer-facing display path is exercised end-to-end through the real engine (no inline math).
     const section = computeSectionTotal([
-      { quantity: 1, unit_sell_ore: 100000, vat_rate_bp: 2500, is_hidden: false, is_optional: false, is_selected: null },
+      { quantity: 1, unit_sell_ore: 100000, vat_rate_bp: 2500, vat_type: "STANDARD_VAT_25", is_hidden: false, is_optional: false, is_selected: null },
     ]);
     assert.ok(section.ok, "the section must resolve through the real engine");
 
@@ -150,8 +150,8 @@ describe("Story 9.3/10.6 — NUMERIC-DELTA live-drive: quote-total rounding (R-9
     // NO inline `*0.25`.) The engine's document-category VAT MUST reproduce the recorded
     // legacy document-level result 16667 and diverge from the Phase A per-line 16666.
     const section = computeSectionTotal([
-      { quantity: 1, unit_sell_ore: 33333, vat_rate_bp: 2500, is_hidden: false, is_optional: false, is_selected: null },
-      { quantity: 1, unit_sell_ore: 33333, vat_rate_bp: 2500, is_hidden: false, is_optional: false, is_selected: null },
+      { quantity: 1, unit_sell_ore: 33333, vat_rate_bp: 2500, vat_type: "STANDARD_VAT_25", is_hidden: false, is_optional: false, is_selected: null },
+      { quantity: 1, unit_sell_ore: 33333, vat_rate_bp: 2500, vat_type: "STANDARD_VAT_25", is_hidden: false, is_optional: false, is_selected: null },
     ]);
     assert.ok(section.ok, "the rounding section must resolve through the real engine");
 

@@ -49,6 +49,17 @@ export interface CreateNewQuoteVersionResult {
   readonly versionNumber: number;
 }
 
+/**
+ * A pre-V2 draft cannot be edited or sent safely because it has no complete frozen tax answer.
+ * It gets one narrow recovery path: create a fresh V2 version while preserving the legacy row.
+ */
+export function isRecoverableLegacyDraftParent(
+  status: string,
+  snapshotSchemaVersion: number | null,
+): boolean {
+  return status === "draft" && snapshotSchemaVersion === null;
+}
+
 export const createNewQuoteVersion = defineCommand<
   CreateNewQuoteVersionInput,
   CreateNewQuoteVersionResult
@@ -70,9 +81,15 @@ export const createNewQuoteVersion = defineCommand<
     const parent = await loadQuoteVersionParent(db, ctx.input.quote_version_id);
     if (parent === null) throw new CommandError("TENANT_ACCESS_DENIED");
 
-    // ── OPTIONAL guard (Task 3.1.b): a new version is meaningful from a NON-draft parent. Creating a
-    // ── new version off a draft is a no-op (the draft IS the editable version) → VALIDATION_FAILED.
-    if (parent.status === "draft") throw new CommandError("VALIDATION_FAILED");
+    // A current V2 draft remains the editable version, so branching from it is a no-op. A literal
+    // V1/null-schema draft is the deliberate exception: it is read-only and may be re-captured as a
+    // fresh V2 draft without mutating the historical row.
+    if (
+      parent.status === "draft" &&
+      !isRecoverableLegacyDraftParent(parent.status, parent.snapshot_schema_version)
+    ) {
+      throw new CommandError("VALIDATION_FAILED");
+    }
     // ── ACCEPTED-PARENT GATE (Story 7.2, Task 5 / architecture §12) — new-version is scoped to
     // ── draft/sent, NEVER `accepted`. An accepted version is a terminal customer commitment (7.4
     // ── hardens the full immutability); it does not spawn a new version. 7.2 makes `accepted`

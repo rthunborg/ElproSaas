@@ -14,6 +14,29 @@ export const VAT_TYPES = Object.freeze([
 
 export type VatType = (typeof VAT_TYPES)[number];
 
+/**
+ * Document posture is deliberately narrower than the per-line VAT category.
+ * It answers only whether construction reverse charge applies anywhere on the
+ * document; reduced and zero-rated treatment remain row/category facts.
+ */
+export const DOCUMENT_VAT_POSTURES = Object.freeze([
+  "STANDARD_VAT_25",
+  "REVERSE_CHARGE_CONSTRUCTION",
+] as const);
+
+export type DocumentVatPosture = (typeof DOCUMENT_VAT_POSTURES)[number];
+
+/** Non-PII customer posture frozen with the tax answer. */
+export const CUSTOMER_ELIGIBILITY_POSTURES = Object.freeze([
+  "private",
+  "company",
+  "brf",
+  "public",
+] as const);
+
+export type CustomerEligibilityPosture =
+  (typeof CUSTOMER_ELIGIBILITY_POSTURES)[number];
+
 export const DEDUCTION_CLASSIFICATIONS = Object.freeze([
   "NONE",
   "ROT_LABOR",
@@ -82,7 +105,7 @@ export interface TaxPersonAllowanceSlot {
 export function isCanonicalTaxPersonSlot(value: unknown): value is string {
   return (
     typeof value === "string" &&
-    (/^PERSON_([1-9]|[1-4]\d|50)$/.test(value) || /^(person|slot|declared|dated)_[a-z0-9_]{1,32}$/.test(value))
+    /^PERSON_([1-9]|[1-4]\d|50)$/.test(value)
   );
 }
 
@@ -93,7 +116,7 @@ export type FixedPriceCategorySplitOre = Readonly<
 /** The versioned calculation-side inputs from which a fresh V2 quote is resolved. */
 export interface TaxInputSnapshotV2 {
   readonly schemaVersion: 2;
-  readonly documentVatType: VatType;
+  readonly documentVatType: DocumentVatPosture;
   readonly buyerVatNumber: string | null;
   readonly deductionChoice: TaxDeductionChoice;
   /** ROT is resolved by the customer's payment date. */
@@ -119,6 +142,18 @@ function includesString<T extends string>(
 
 export function isVatType(value: unknown): value is VatType {
   return includesString(VAT_TYPES, value);
+}
+
+export function isDocumentVatPosture(
+  value: unknown,
+): value is DocumentVatPosture {
+  return includesString(DOCUMENT_VAT_POSTURES, value);
+}
+
+export function isCustomerEligibilityPosture(
+  value: unknown,
+): value is CustomerEligibilityPosture {
+  return includesString(CUSTOMER_ELIGIBILITY_POSTURES, value);
 }
 
 export function isDeductionClassification(

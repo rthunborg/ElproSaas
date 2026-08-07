@@ -34,6 +34,7 @@ function row(overrides: Partial<{
   quantity: number;
   unit_sell_ore: number | null;
   vat_rate_bp: number | null;
+  vat_type: "STANDARD_VAT_25" | "REDUCED_VAT" | "ZERO_RATED" | "REVERSE_CHARGE_CONSTRUCTION" | null;
   included_in_invoice_total: boolean;
   is_hidden: boolean;
   is_optional: boolean;
@@ -43,6 +44,7 @@ function row(overrides: Partial<{
     quantity: overrides.quantity ?? 1,
     unit_sell_ore: overrides.unit_sell_ore ?? 0,
     vat_rate_bp: overrides.vat_rate_bp ?? 2500,
+    vat_type: overrides.vat_type ?? "STANDARD_VAT_25",
     included_in_invoice_total: overrides.included_in_invoice_total ?? true,
     is_hidden: overrides.is_hidden ?? false,
     is_optional: overrides.is_optional ?? false,
@@ -75,8 +77,8 @@ test("5.2-UNIT-01: a line total equals a DIRECT lineNetOre + vatBreakdown engine
 test("5.2-UNIT-01: a section total equals the engine document-category VAT aggregate", () => {
   const rows = [
     row({ quantity: 2, unit_sell_ore: 12345, vat_rate_bp: 2500 }),
-    row({ quantity: 1, unit_sell_ore: 99999, vat_rate_bp: 1200 }),
-    row({ quantity: 3.5, unit_sell_ore: 5000, vat_rate_bp: 600 }),
+    row({ quantity: 1, unit_sell_ore: 99999, vat_rate_bp: 1200, vat_type: "REDUCED_VAT" }),
+    row({ quantity: 3.5, unit_sell_ore: 5000, vat_rate_bp: 600, vat_type: "REDUCED_VAT" }),
   ];
 
   const section = computeSectionTotal(rows);
@@ -100,7 +102,7 @@ test("5.2-UNIT-01: a section total equals the engine document-category VAT aggre
       rateBp: r.vat_rate_bp ?? 0,
     });
   }
-  const aggregate = aggregateDocumentVat({ rows: aggregateRows });
+  const aggregate = aggregateDocumentVat({ rows: aggregateRows, standardRateBp: 2500 });
   assert.equal(aggregate.ok, true);
   if (section.ok && aggregate.ok) {
     assert.equal(section.value.netOre, aggregate.value.netOre);
@@ -122,6 +124,7 @@ test("5.2-UNIT-01: same-category VAT is rounded once at document-category level"
   assert.equal(v1.ok, true);
   const perLine = v1.ok ? v1.value : -1;
   const aggregate = aggregateDocumentVat({
+    standardRateBp: 2500,
     rows: rows.map((r) => ({
       netOre: r.unit_sell_ore ?? 0,
       vatType: "STANDARD_VAT_25" as const,
@@ -138,7 +141,7 @@ test("5.2-UNIT-01: same-category VAT is rounded once at document-category level"
 
 test("5.2-UNIT-01: computeCalcTotal flattens sections and matches a single section sum", () => {
   const rowsA = [row({ quantity: 2, unit_sell_ore: 10000, vat_rate_bp: 2500 })];
-  const rowsB = [row({ quantity: 1, unit_sell_ore: 20000, vat_rate_bp: 1200 })];
+  const rowsB = [row({ quantity: 1, unit_sell_ore: 20000, vat_rate_bp: 1200, vat_type: "REDUCED_VAT" })];
   const calc = computeCalcTotal([{ rows: rowsA }, { rows: rowsB }]);
   const flat = computeSectionTotal([...rowsA, ...rowsB]);
   assert.equal(calc.ok, true);

@@ -30,7 +30,7 @@ import type { CalculationDetail } from "@/features/calculations/read";
 import type { SectionTotal } from "@/features/calculations/totals";
 import type { VatDisplayView } from "@/lib/money";
 import type { TaxAnswerSnapshotV2 } from "@/lib/money";
-import { createQuoteVersionFromCalculationAction } from "@/features/quotes/actions";
+import { createReviewedQuoteVersionFromCalculationAction } from "@/features/quotes/actions";
 import {
   CREATE_QUOTE_ACTION_INITIAL,
   isRetryableCreateQuoteError,
@@ -63,6 +63,8 @@ export function PreQuotePreview({
   view,
   quoteTerms,
   taxAnswer,
+  quoteCaptureDate,
+  reviewedSnapshotDigest,
 }: {
   readonly detail: CalculationDetail;
   readonly report: ReadinessReport;
@@ -74,13 +76,15 @@ export function PreQuotePreview({
   readonly quoteTerms: PreQuoteTerms | null;
   /** Canonical reconciled preview; null exactly when readiness carries a tax blocker. */
   readonly taxAnswer: TaxAnswerSnapshotV2 | null;
+  readonly quoteCaptureDate: string;
+  readonly reviewedSnapshotDigest: string;
 }) {
   const { customer, sections } = detail;
   const [open, setOpen] = useState(false);
-  const [reviewedRevision, setReviewedRevision] = useState<string | null>(null);
+  const [reviewedDigest, setReviewedDigest] = useState<string | null>(null);
   const router = useRouter();
   const [createState, createAction, createPending] = useActionState(
-    createQuoteVersionFromCalculationAction,
+    createReviewedQuoteVersionFromCalculationAction,
     CREATE_QUOTE_ACTION_INITIAL,
   );
   useEffect(() => {
@@ -92,7 +96,7 @@ export function PreQuotePreview({
       router.push(`/quotes/${createState.quoteId}/versions/${createState.targetId}`);
     }
   }, [createState.status, createState.quoteId, createState.targetId, router]);
-  const previewStale = reviewedRevision !== null && reviewedRevision !== detail.header.updated_at;
+  const previewStale = reviewedDigest !== null && reviewedDigest !== reviewedSnapshotDigest;
   const gated = !report.canCreateQuote || taxAnswer === null;
   const confirmationDisabled =
     gated ||
@@ -152,7 +156,7 @@ export function PreQuotePreview({
         disabled={gated}
         aria-disabled={gated ? "true" : "false"}
         onClick={() => {
-          setReviewedRevision(detail.header.updated_at);
+          setReviewedDigest(reviewedSnapshotDigest);
           setOpen((v) => !v);
         }}
         className="self-start rounded-md bg-blue-700 px-4 py-2 text-sm font-medium text-white hover:bg-blue-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 disabled:cursor-not-allowed disabled:opacity-50"
@@ -399,6 +403,21 @@ export function PreQuotePreview({
 
           <form action={createAction} className="flex flex-col gap-2">
             <input type="hidden" name="calculation_id" value={detail.header.id} />
+            <input
+              type="hidden"
+              name="reviewed_snapshot_digest"
+              value={reviewedDigest ?? ""}
+            />
+            <input
+              type="hidden"
+              name="reviewed_quote_capture_date"
+              value={quoteCaptureDate}
+            />
+            {previewStale ? (
+              <p role="alert" className="text-sm text-red-800">
+                Kalkylen har ändrats – öppna och granska en ny förhandsvisning.
+              </p>
+            ) : null}
             {createState.status === "error" ? (
               <p role="alert" className="text-sm text-red-800">
                 {createState.formError}
