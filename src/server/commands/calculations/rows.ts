@@ -175,10 +175,7 @@ function rowInsertValues(
 ): Record<string, unknown> {
   const isOptional = input.is_optional ?? false;
   const isSelected = input.is_selected ?? null;
-  // Selection is a presentation/option fact; invoice inclusion is independently
-  // explicit. A caller may deliberately keep an optional row billable or a
-  // mandatory row excluded while preparing a calculation.
-  const includedInInvoiceTotal = input.included_in_invoice_total ?? true;
+  const includedInInvoiceTotal = input.included_in_invoice_total ?? (isOptional ? isSelected === true : true);
   return {
     tenant_id: tenantId, // resolved tenant — NEVER a client-supplied id
     section_id: input.section_id,
@@ -400,7 +397,10 @@ export const updateRow = defineCommand<UpdateRowInput, CalcCommandResult>({
       patch.tax_reconciliation_required = false;
       patch.tax_reconciliation_reason = null;
     }
-    if (inclusionFromSelectionTransition !== undefined) {
+    if (
+      inclusionFromSelectionTransition !== undefined &&
+      ctx.input.included_in_invoice_total === undefined
+    ) {
       patch.included_in_invoice_total = inclusionFromSelectionTransition;
     }
     // Empty-patch guard (Task 3.5): id-only update is a no-op — no `.update({})`.

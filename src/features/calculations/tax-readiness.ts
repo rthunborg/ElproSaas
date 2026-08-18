@@ -28,12 +28,13 @@ function mapFailure(code: string): TaxReadinessBlockerCode {
   if (code === "FIXED_PRICE_97_REQUIRES_GENUINE_FIXED_PRICE") {
     return "INVALID_FIXED_PRICE_SCHABLON";
   }
-  if (
-    code === "INVALID_DEDUCTION_CLASSIFICATION" ||
-    code === "CUSTOMER_NOT_ELIGIBLE_FOR_DEDUCTION" ||
-    code === "DOUBLE_DEDUCTION_FEED" ||
-    code === "DEDUCTION_EXCEEDS_GROSS"
-  ) {
+  if (code === "CUSTOMER_NOT_ELIGIBLE_FOR_DEDUCTION") {
+    return "CUSTOMER_NOT_ELIGIBLE_FOR_DEDUCTION";
+  }
+  if (code === "DEDUCTION_EXCEEDS_GROSS") {
+    return "DEDUCTION_EXCEEDS_GROSS";
+  }
+  if (code === "INVALID_DEDUCTION_CLASSIFICATION" || code === "DOUBLE_DEDUCTION_FEED") {
     return "INVALID_DEDUCTION_CLASSIFICATION";
   }
   return "INCOMPLETE_VAT_INPUT";

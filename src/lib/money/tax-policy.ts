@@ -263,6 +263,56 @@ export interface GreenSchemeAmounts {
   readonly categories: Readonly<Record<GreenCategory, GreenSchemeCategoryAmounts>>;
 }
 
+function allocateGreenOreByExactNumerators(
+  exactNumerators: Readonly<Record<GreenCategory, bigint>>,
+  denominator: bigint,
+  totalOre: number,
+): Record<GreenCategory, number> | null {
+  const allocatedByCategory = Object.fromEntries(
+    GREEN_CATEGORIES.map((category) => [category, 0]),
+  ) as Record<GreenCategory, number>;
+  if (totalOre === 0) return allocatedByCategory;
+  if (denominator <= BigInt(0)) return null;
+
+  let allocated = 0;
+  const remainders = GREEN_CATEGORIES.map((category, order) => {
+    const floor = bigintToOre(exactNumerators[category] / denominator);
+    if (floor === null) return null;
+    allocatedByCategory[category] = floor;
+    allocated += floor;
+    return { category, order, remainder: exactNumerators[category] % denominator };
+  });
+  if (remainders.some((entry) => entry === null)) return null;
+
+  let residual = totalOre - allocated;
+  for (const entry of remainders
+    .filter((candidate) => candidate !== null)
+    .sort((left, right) => {
+      if (left.remainder > right.remainder) return -1;
+      if (left.remainder < right.remainder) return 1;
+      return left.order - right.order;
+    })) {
+    if (residual <= 0) break;
+    allocatedByCategory[entry.category] += 1;
+    residual -= 1;
+  }
+  return allocatedByCategory;
+}
+
+function allocateGreenOreByWeights(
+  weights: Readonly<Record<GreenCategory, number>>,
+  totalOre: number,
+): Record<GreenCategory, number> | null {
+  const totalWeight = GREEN_CATEGORIES.reduce(
+    (sum, category) => sum + BigInt(weights[category]),
+    BigInt(0),
+  );
+  const exactNumerators = Object.fromEntries(
+    GREEN_CATEGORIES.map((category) => [category, BigInt(totalOre) * BigInt(weights[category])]),
+  ) as Record<GreenCategory, bigint>;
+  return allocateGreenOreByExactNumerators(exactNumerators, totalWeight, totalOre);
+}
+
 /**
  * Apply category-specific green rates as exact rationals, sum them, then truncate exactly once
  * at the scheme/document claim boundary. Category calculated amounts use largest remainder over
@@ -300,56 +350,23 @@ export function calculateGreenSchemeAmounts(input: {
   );
   if (calculatedOre === null || claimOre === null) return fail("ORE_OVERFLOW");
 
-  const calculatedByCategory = {} as Record<GreenCategory, number>;
-  let calculatedAllocated = 0;
-  const calculatedRemainders = GREEN_CATEGORIES.map((category, order) => {
-    const floor = bigintToOre(exactNumerators[category] / denominator);
-    if (floor === null) return null;
-    calculatedByCategory[category] = floor;
-    calculatedAllocated += floor;
-    return { category, order, remainder: exactNumerators[category] % denominator };
-  });
-  if (calculatedRemainders.some((entry) => entry === null)) return fail("ORE_OVERFLOW");
-  let calculatedResidual = calculatedOre - calculatedAllocated;
-  for (const entry of calculatedRemainders
-    .filter((candidate) => candidate !== null)
-    .sort((left, right) => {
-      if (left.remainder > right.remainder) return -1;
-      if (left.remainder < right.remainder) return 1;
-      return left.order - right.order;
-    })) {
-    if (calculatedResidual <= 0) break;
-    calculatedByCategory[entry.category] += 1;
-    calculatedResidual -= 1;
-  }
+  const calculatedByCategory = allocateGreenOreByExactNumerators(
+    exactNumerators,
+    denominator,
+    calculatedOre,
+  );
+  if (calculatedByCategory === null) return fail("ORE_OVERFLOW");
 
-  const claimByCategory = Object.fromEntries(
-    GREEN_CATEGORIES.map((category) => [category, 0]),
-  ) as Record<GreenCategory, number>;
-  if (claimOre > 0 && calculatedOre > 0) {
-    let claimAllocated = 0;
-    const claimRemainders = GREEN_CATEGORIES.map((category, order) => {
-      const numerator = BigInt(claimOre) * BigInt(calculatedByCategory[category]);
-      const floor = bigintToOre(numerator / BigInt(calculatedOre));
-      if (floor === null) return null;
-      claimByCategory[category] = floor;
-      claimAllocated += floor;
-      return { category, order, remainder: numerator % BigInt(calculatedOre) };
-    });
-    if (claimRemainders.some((entry) => entry === null)) return fail("ORE_OVERFLOW");
-    let claimResidual = claimOre - claimAllocated;
-    for (const entry of claimRemainders
-      .filter((candidate) => candidate !== null)
-      .sort((left, right) => {
-        if (left.remainder > right.remainder) return -1;
-        if (left.remainder < right.remainder) return 1;
-        return left.order - right.order;
-      })) {
-      if (claimResidual <= 0) break;
-      claimByCategory[entry.category] += 1;
-      claimResidual -= 1;
-    }
-  }
+  const claimExactNumerators = Object.fromEntries(
+    GREEN_CATEGORIES.map((category) => [
+      category,
+      BigInt(claimOre) * exactNumerators[category],
+    ]),
+  ) as Record<GreenCategory, bigint>;
+  const claimByCategory = totalNumerator > BigInt(0)
+    ? allocateGreenOreByExactNumerators(claimExactNumerators, totalNumerator, claimOre)
+    : Object.fromEntries(GREEN_CATEGORIES.map((category) => [category, 0])) as Record<GreenCategory, number>;
+  if (claimByCategory === null) return fail("ORE_OVERFLOW");
 
   return ok(Object.freeze({
     calculatedOre,
@@ -819,15 +836,14 @@ export function estimateClassifiedDeductions(input: {
   });
   if (!greenAmounts.ok) return greenAmounts;
 
-  let remainingGreenCap = policy.green.maxPerPersonYearOre;
-  const cappedGreen = { SOLAR: 0, STORAGE: 0, CHARGING: 0 };
-  for (const category of GREEN_CATEGORIES) {
-    cappedGreen[category] = Math.min(
-      greenAmounts.value.categories[category].claimOre,
-      remainingGreenCap,
-    );
-    remainingGreenCap -= cappedGreen[category];
-  }
+  const greenClaimWeights = Object.fromEntries(
+    GREEN_CATEGORIES.map((category) => [category, greenAmounts.value.categories[category].claimOre]),
+  ) as Record<GreenCategory, number>;
+  const cappedGreenTotal = Math.min(greenAmounts.value.claimOre, policy.green.maxPerPersonYearOre);
+  const cappedGreen = greenAmounts.value.claimOre > 0
+    ? allocateGreenOreByWeights(greenClaimWeights, cappedGreenTotal)
+    : { SOLAR: 0, STORAGE: 0, CHARGING: 0 };
+  if (cappedGreen === null) return fail("ORE_OVERFLOW");
 
   return ok(Object.freeze({
     basisMethod,

@@ -218,7 +218,6 @@ export async function buildFreshQuoteSnapshot(
       rowType: row.row_type,
       quantity: row.quantity,
       unit: row.unit,
-      unitCostOre: row.unit_cost_ore,
       unitSellOre: row.unit_sell_ore,
       vatRateBp: row.vat_rate_bp,
       includedInInvoiceTotal: row.included_in_invoice_total,
@@ -231,7 +230,6 @@ export async function buildFreshQuoteSnapshot(
       description: row.description,
       quoteNote: row.quote_note,
       sortOrder: row.sort_order,
-      sourceKind: row.source_kind,
     })),
     customer: {
       displayName: customer?.display_name ?? null,
@@ -287,7 +285,10 @@ export async function buildFreshQuoteSnapshot(
   const lineNetByRowId = new Map<string, number | null>();
   for (const row of rows) {
     const line = computeLineTotal(totalsRowOf(row));
-    lineNetByRowId.set(row.id, line.ok ? line.value.netOre : null);
+    if (!line.ok) {
+      throw new CommandError("VALIDATION_FAILED");
+    }
+    lineNetByRowId.set(row.id, line.value.netOre);
   }
 
   const parsedTaxInput = parseTaxInputSnapshot(header.tax_input_snapshot);

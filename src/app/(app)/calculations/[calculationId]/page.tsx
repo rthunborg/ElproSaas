@@ -154,7 +154,6 @@ export default async function CalculationEditorPage({
       rowType: row.row_type,
       quantity: row.quantity,
       unit: row.unit,
-      unitCostOre: row.unit_cost_ore,
       unitSellOre: row.unit_sell_ore,
       vatRateBp: row.vat_rate_bp,
       includedInInvoiceTotal: row.included_in_invoice_total,
@@ -167,7 +166,6 @@ export default async function CalculationEditorPage({
       description: row.description,
       quoteNote: row.quote_note,
       sortOrder: row.sort_order,
-      sourceKind: row.source_kind,
     }))),
     customer: {
       displayName: detail.customer.customer_display_name,

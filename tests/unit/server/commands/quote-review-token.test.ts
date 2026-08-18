@@ -29,7 +29,6 @@ function reviewedSource(): QuoteReviewSource {
         rowType: "material",
         quantity: 1,
         unit: "st",
-        unitCostOre: 15_000,
         unitSellOre: 20_000,
         vatRateBp: 2_500,
         includedInInvoiceTotal: true,
@@ -42,7 +41,6 @@ function reviewedSource(): QuoteReviewSource {
         description: null,
         quoteNote: null,
         sortOrder: 1,
-        sourceKind: "article",
       },
       {
         id: "row-a",
@@ -50,7 +48,6 @@ function reviewedSource(): QuoteReviewSource {
         rowType: "labor",
         quantity: 2,
         unit: "h",
-        unitCostOre: 6_000,
         unitSellOre: 10_000,
         vatRateBp: 2_500,
         includedInInvoiceTotal: true,
@@ -63,7 +60,6 @@ function reviewedSource(): QuoteReviewSource {
         description: "Arbete",
         quoteNote: null,
         sortOrder: 1,
-        sourceKind: "work_role",
       },
     ],
     customer: {
@@ -120,20 +116,12 @@ test("quote review digest changes for customer-visible, tax, and capture-date ch
   };
   assert.notEqual(buildQuoteReviewDigest(changedRow), original);
   assert.notEqual(buildQuoteReviewDigest(changedTax), original);
-  assert.notEqual(
+  assert.equal(
     buildQuoteReviewDigest({
       ...source,
       rows: source.rows.map((row) =>
-        row.id === "row-a" ? { ...row, unitCostOre: 7_000 } : row),
-    }),
-    original,
-  );
-  assert.notEqual(
-    buildQuoteReviewDigest({
-      ...source,
-      rows: source.rows.map((row) =>
-        row.id === "row-a" ? { ...row, sourceKind: null } : row),
-    }),
+        row.id === "row-a" ? { ...row, unitCostOre: 7_000, sourceKind: null } : row),
+    } as unknown as QuoteReviewSource),
     original,
   );
   assert.notEqual(

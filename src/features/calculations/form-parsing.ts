@@ -41,7 +41,6 @@ import {
   DEDUCTION_CLASSIFICATIONS,
   GREEN_BASIS_METHODS,
   TAX_DEDUCTION_CHOICES,
-  VAT_TYPES,
   isIsoCalendarDate,
   isValidBuyerVatNumber,
 } from "@/lib/money";
@@ -62,6 +61,7 @@ const ROW_TYPES = [
   "other",
 ] as const;
 const DISPLAY_MODES = ["detailed", "summary", "text_only"] as const;
+const DOCUMENT_VAT_TYPES = ["STANDARD_VAT_25", "REVERSE_CHARGE_CONSTRUCTION"] as const;
 
 /**
  * Read a FormData entry as a string. Returns undefined ONLY for an absent field or an
@@ -192,7 +192,7 @@ export function parseUpdateTaxInputForm(form: FormData): ParsedCalcForm {
   if (!id) fieldErrors.id = REQUIRED_MSG;
 
   const documentVatType = trimmedField(form, "document_vat_type");
-  if (!documentVatType || !(VAT_TYPES as readonly string[]).includes(documentVatType)) {
+  if (!documentVatType || !(DOCUMENT_VAT_TYPES as readonly string[]).includes(documentVatType)) {
     fieldErrors.document_vat_type = "Välj en giltig momshantering.";
   }
   const deductionChoice = trimmedField(form, "deduction_choice");
@@ -403,9 +403,12 @@ const ROW_FIELDS = [
   "unit_sell_kronor",
   "markup_percent",
   "vat_percent",
+  "original_vat_percent",
   "included_in_invoice_total",
   "deduction_classification",
+  "original_deduction_classification",
   "vat_type",
+  "original_vat_type",
   "is_hidden",
   "is_optional",
   "is_selected",
@@ -497,10 +500,18 @@ export function parseUpdateRowForm(form: FormData): ParsedCalcForm {
   const markup = parseMarkup(form, fieldErrors);
   if (markup !== undefined) input.markup_bp = markup;
   const vat = parseVat(form, fieldErrors, /* required */ false);
-  if (vat !== undefined) input.vat_rate_bp = vat;
+  const submittedVatPercent = rawField(form, "vat_percent");
+  const originalVatPercent = rawField(form, "original_vat_percent");
+  if (vat !== undefined && submittedVatPercent !== originalVatPercent) input.vat_rate_bp = vat;
 
   // Flags: explicit false when the companion is present so a flag can be turned OFF.
   attachFlags(form, input);
+  const submittedClassification = rawField(form, "deduction_classification");
+  const originalClassification = rawField(form, "original_deduction_classification");
+  if (submittedClassification === originalClassification) delete input.deduction_classification;
+  const submittedVatType = rawField(form, "vat_type");
+  const originalVatType = rawField(form, "original_vat_type");
+  if (submittedVatType === originalVatType) delete input.vat_type;
   attachRowText(form, input);
   attachSource(form, input);
 

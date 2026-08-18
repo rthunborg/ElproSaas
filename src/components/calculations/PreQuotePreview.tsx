@@ -56,6 +56,17 @@ const ROW_TYPE_LABELS: Record<string, string> = {
   other: "Övrigt",
 };
 
+function stockholmBusinessDate(date: Date = new Date()): string {
+  const parts = new Intl.DateTimeFormat("sv-SE", {
+    timeZone: "Europe/Stockholm",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+  const part = (type: string) => parts.find((entry) => entry.type === type)?.value ?? "";
+  return `${part("year")}-${part("month")}-${part("day")}`;
+}
+
 export function PreQuotePreview({
   detail,
   report,
@@ -81,7 +92,8 @@ export function PreQuotePreview({
 }) {
   const { customer, sections } = detail;
   const [open, setOpen] = useState(false);
-  const [reviewedDigest, setReviewedDigest] = useState<string | null>(null);
+  const [now, setNow] = useState(() => new Date());
+  const [reviewedProof, setReviewedProof] = useState<{ digest: string; quoteCaptureDate: string } | null>(null);
   const router = useRouter();
   const [createState, createAction, createPending] = useActionState(
     createReviewedQuoteVersionFromCalculationAction,
@@ -96,11 +108,22 @@ export function PreQuotePreview({
       router.push(`/quotes/${createState.quoteId}/versions/${createState.targetId}`);
     }
   }, [createState.status, createState.quoteId, createState.targetId, router]);
-  const previewStale = reviewedDigest !== null && reviewedDigest !== reviewedSnapshotDigest;
+  useEffect(() => {
+    const intervalId = window.setInterval(() => setNow(new Date()), 60_000);
+    return () => window.clearInterval(intervalId);
+  }, []);
+  const previewStale = reviewedProof !== null && (
+    reviewedProof.digest !== reviewedSnapshotDigest ||
+    reviewedProof.quoteCaptureDate !== quoteCaptureDate
+  );
+  const previewNotReviewed = reviewedProof === null;
+  const captureDateExpired = quoteCaptureDate !== stockholmBusinessDate(now);
   const gated = !report.canCreateQuote || taxAnswer === null;
   const confirmationDisabled =
     gated ||
+    previewNotReviewed ||
     previewStale ||
+    captureDateExpired ||
     createPending ||
     createState.status === "success";
   // Compute the tax sign-off warning ONCE and branch on truthiness (never a `.some(...)` +
@@ -156,7 +179,7 @@ export function PreQuotePreview({
         disabled={gated}
         aria-disabled={gated ? "true" : "false"}
         onClick={() => {
-          setReviewedDigest(reviewedSnapshotDigest);
+          setReviewedProof({ digest: reviewedSnapshotDigest, quoteCaptureDate });
           setOpen((v) => !v);
         }}
         className="self-start rounded-md bg-blue-700 px-4 py-2 text-sm font-medium text-white hover:bg-blue-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 disabled:cursor-not-allowed disabled:opacity-50"
@@ -406,16 +429,26 @@ export function PreQuotePreview({
             <input
               type="hidden"
               name="reviewed_snapshot_digest"
-              value={reviewedDigest ?? ""}
+              value={reviewedProof?.digest ?? ""}
             />
             <input
               type="hidden"
               name="reviewed_quote_capture_date"
               value={quoteCaptureDate}
             />
+            {previewNotReviewed ? (
+              <p role="alert" className="text-sm text-red-800">
+                Öppna och granska förhandsvisningen innan offertversionen skapas.
+              </p>
+            ) : null}
             {previewStale ? (
               <p role="alert" className="text-sm text-red-800">
                 Kalkylen har ändrats – öppna och granska en ny förhandsvisning.
+              </p>
+            ) : null}
+            {captureDateExpired ? (
+              <p role="alert" className="text-sm text-red-800">
+                Förhandsvisningen gäller en tidigare svensk affärsdag. Öppna och granska en ny förhandsvisning.
               </p>
             ) : null}
             {createState.status === "error" ? (
@@ -434,9 +467,11 @@ export function PreQuotePreview({
                 ? "Skapar…"
                 : createState.status === "success"
                   ? "Offertversion skapad"
-                  : previewStale
+                  : previewStale || captureDateExpired
                     ? "Förhandsvisningen är inaktuell"
-                    : "Bekräfta och skapa offertversion"}
+                    : previewNotReviewed
+                      ? "Granska förhandsvisningen först"
+                      : "Bekräfta och skapa offertversion"}
             </button>
           </form>
         </div>

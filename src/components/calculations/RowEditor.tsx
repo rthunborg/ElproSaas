@@ -207,14 +207,16 @@ export function RowEditor({
     "deduction_classification",
     row?.deduction_classification ?? "NONE",
   );
-  const deductionClassificationValue =
+  const needsExplicitDeductionClassification = !(
     isDeductionClassification(echoedDeductionClassification) &&
     isDeductionClassificationCompatibleWithSummaryCategory(
       echoedDeductionClassification,
       summaryCategoryForRowType(rowType),
     )
-      ? echoedDeductionClassification
-      : "NONE";
+  );
+  const deductionClassificationValue = needsExplicitDeductionClassification
+    ? ""
+    : echoedDeductionClassification;
 
   // The decoded current source pair (null = manual).
   const selectedPair = decodeSourceValue(sourceValue);
@@ -316,6 +318,21 @@ export function RowEditor({
       {isUpdate && <input type="hidden" name="id" value={row!.id} />}
       {!isUpdate && <input type="hidden" name="section_id" value={sectionId} />}
       <input type="hidden" name="calculation_id" value={calculationId} />
+      {isUpdate ? (
+        <>
+          <input
+            type="hidden"
+            name="original_vat_percent"
+            value={row?.vat_rate_bp != null ? bpToPercentString(row.vat_rate_bp) : ""}
+          />
+          <input type="hidden" name="original_vat_type" value={row?.vat_type ?? ""} />
+          <input
+            type="hidden"
+            name="original_deduction_classification"
+            value={row?.deduction_classification ?? ""}
+          />
+        </>
+      ) : null}
 
       <FormErrorSummary message={mine ? state.formError : null} />
       {mine && state.status === "success" && (
@@ -398,16 +415,21 @@ export function RowEditor({
           required
           defaultValue={v(
             "vat_percent",
-            row?.vat_rate_bp != null ? bpToPercentString(row.vat_rate_bp) : "25",
+            row?.vat_rate_bp != null ? bpToPercentString(row.vat_rate_bp) : isUpdate ? "" : "25",
           )}
           error={err("vat_percent")}
         />
         <SelectField
           name="vat_type"
           label="Momstyp"
-          defaultValue={v("vat_type", row?.vat_type ?? "STANDARD_VAT_25")}
+          defaultValue={v("vat_type", row?.vat_type ?? (isUpdate ? "" : "STANDARD_VAT_25"))}
           error={err("vat_type")}
-          options={[...VAT_TYPE_OPTIONS]}
+          options={[
+            ...(isUpdate && row?.vat_type == null
+              ? [{ value: "", label: "Välj momstyp för att rätta äldre rad" }]
+              : []),
+            ...VAT_TYPE_OPTIONS,
+          ]}
         />
         <SelectField
           key={`deduction-classification-${rowType}`}
@@ -415,7 +437,12 @@ export function RowEditor({
           label="Avdragsklassificering"
           defaultValue={deductionClassificationValue}
           error={err("deduction_classification")}
-          options={deductionClassificationOptions}
+          options={[
+            ...(needsExplicitDeductionClassification
+              ? [{ value: "", label: "Välj avdragsklassificering" }]
+              : []),
+            ...deductionClassificationOptions,
+          ]}
         />
       </div>
 

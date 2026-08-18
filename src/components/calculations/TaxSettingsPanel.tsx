@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState, useRef, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 
 import { FormErrorSummary, SelectField, TextField } from "@/components/crm/FormField";
 import { CALC_ACTION_INITIAL, isRetryableCalcError } from "@/features/calculations/action-state";
@@ -81,15 +82,27 @@ export function TaxSettingsPanel({
 }) {
   const input = value ?? EMPTY_TAX_INPUT;
   const [state, action, pending] = useActionState(updateTaxInputAction, CALC_ACTION_INITIAL);
+  const router = useRouter();
   const mine = state.form === "tax_input";
   const v = (field: string, fallback: string): string =>
     (mine && state.values[field] !== undefined ? state.values[field] : fallback) ?? fallback;
   const err = (field: string): string | undefined =>
     mine ? state.fieldErrors[field] : undefined;
+  useEffect(() => {
+    if (mine && state.status === "success") router.refresh();
+  }, [mine, router, state.status]);
   const [documentVatType, setDocumentVatType] = useState(() =>
     v("document_vat_type", input.documentVatType),
   );
-  const [buyerVatWasCleared, setBuyerVatWasCleared] = useState(false);
+  const [deductionChoice, setDeductionChoice] = useState<TaxDeductionChoice>(() =>
+    v("deduction_choice", input.deductionChoice) as TaxDeductionChoice,
+  );
+  const [greenBasisMethod, setGreenBasisMethod] = useState<GreenBasisMethod>(() =>
+    v("green_basis_method", input.greenBasisMethod) as GreenBasisMethod,
+  );
+  const readsRot = deductionChoice === "ROT" || deductionChoice === "ROT_AND_GREEN";
+  const readsGreen = deductionChoice === "GREEN" || deductionChoice === "ROT_AND_GREEN";
+  const usesFixedPrice = readsGreen && greenBasisMethod === "FIXED_PRICE_97_PERCENT";
   // Persisted slot identifiers are intentionally ignored. Array order carries the compatibility
   // order; visible names and submitted ids are freshly canonical PERSON_1..PERSON_50 positions.
   const [allowanceSlots, setAllowanceSlots] = useState(() =>
@@ -132,22 +145,13 @@ export function TaxSettingsPanel({
             options={[...VAT_OPTIONS]}
             defaultValue={v("document_vat_type", input.documentVatType)}
             error={err("document_vat_type")}
-            onChange={(next) => {
-              setDocumentVatType(next);
-              if (next !== "REVERSE_CHARGE_CONSTRUCTION") {
-                setBuyerVatWasCleared(true);
-              }
-            }}
+            onChange={setDocumentVatType}
           />
           {documentVatType === "REVERSE_CHARGE_CONSTRUCTION" ? (
             <TextField
               name="buyer_vat_number"
               label="Köparens momsregistreringsnummer"
-              defaultValue={
-                buyerVatWasCleared
-                  ? ""
-                  : v("buyer_vat_number", input.buyerVatNumber ?? "")
-              }
+              defaultValue={v("buyer_vat_number", input.buyerVatNumber ?? "")}
               error={err("buyer_vat_number")}
               autoComplete="off"
             />
@@ -160,30 +164,45 @@ export function TaxSettingsPanel({
             options={[...DEDUCTION_OPTIONS]}
             defaultValue={v("deduction_choice", input.deductionChoice)}
             error={err("deduction_choice")}
+            onChange={(next) => setDeductionChoice(next as TaxDeductionChoice)}
           />
-          <SelectField
-            name="green_basis_method"
-            label="Beräkningsgrund för grön teknik"
-            options={[...BASIS_OPTIONS]}
-            defaultValue={v("green_basis_method", input.greenBasisMethod)}
-            error={err("green_basis_method")}
-          />
-          <TextField
-            name="payment_date"
-            label="Betalningsdatum för ROT"
-            type="date"
-            defaultValue={v("payment_date", input.paymentDate ?? "")}
-            error={err("payment_date")}
-          />
-          <TextField
-            name="final_payment_date"
-            label="Slutbetalningsdatum för grön teknik"
-            type="date"
-            defaultValue={v("final_payment_date", input.finalPaymentDate ?? "")}
-            error={err("final_payment_date")}
-          />
+          {readsGreen ? (
+            <SelectField
+              name="green_basis_method"
+              label="Beräkningsgrund för grön teknik"
+              options={[...BASIS_OPTIONS]}
+              defaultValue={v("green_basis_method", input.greenBasisMethod)}
+              error={err("green_basis_method")}
+              onChange={(next) => setGreenBasisMethod(next as GreenBasisMethod)}
+            />
+          ) : (
+            <input type="hidden" name="green_basis_method" value="ACTUAL_ELIGIBLE_COSTS" />
+          )}
+          {readsRot ? (
+            <TextField
+              name="payment_date"
+              label="Betalningsdatum för ROT"
+              type="date"
+              defaultValue={v("payment_date", input.paymentDate ?? "")}
+              error={err("payment_date")}
+            />
+          ) : (
+            <input type="hidden" name="payment_date" value="" />
+          )}
+          {readsGreen ? (
+            <TextField
+              name="final_payment_date"
+              label="Slutbetalningsdatum för grön teknik"
+              type="date"
+              defaultValue={v("final_payment_date", input.finalPaymentDate ?? "")}
+              error={err("final_payment_date")}
+            />
+          ) : (
+            <input type="hidden" name="final_payment_date" value="" />
+          )}
         </div>
 
+        {readsRot || readsGreen ? (
         <fieldset className="rounded-md border border-zinc-200 p-3">
           <legend className="px-1 text-sm font-medium text-zinc-800">Återstående utrymme per person</legend>
           <p className="mb-3 text-xs text-zinc-600">
@@ -192,6 +211,8 @@ export function TaxSettingsPanel({
           {allowanceSlots.map((editorSlot, index) => {
             const number = index + 1;
             const slot = editorSlot.source;
+            const rotAliasFallback = input.deductionChoice === "ROT" ? slot?.remainingAllowanceOre : undefined;
+            const greenAliasFallback = input.deductionChoice === "GREEN" ? slot?.remainingAllowanceOre : undefined;
             return (
               <div
                 key={editorSlot.key}
@@ -202,7 +223,7 @@ export function TaxSettingsPanel({
                   label={`Person ${number}: ROT kvar (kr)`}
                   defaultValue={v(
                     `person_${number}_rot_remaining_kronor`,
-                    oreValue(slot?.remainingRotAllowanceOre ?? slot?.remainingAllowanceOre),
+                    oreValue(slot?.remainingRotAllowanceOre ?? rotAliasFallback),
                   )}
                   error={err(`person_${number}_rot_remaining_kronor`)}
                 />
@@ -220,7 +241,7 @@ export function TaxSettingsPanel({
                   label={`Person ${number}: grön teknik kvar (kr)`}
                   defaultValue={v(
                     `person_${number}_green_remaining_kronor`,
-                    oreValue(slot?.remainingGreenAllowanceOre ?? slot?.remainingAllowanceOre),
+                    oreValue(slot?.remainingGreenAllowanceOre ?? greenAliasFallback),
                   )}
                   error={err(`person_${number}_green_remaining_kronor`)}
                 />
@@ -258,7 +279,9 @@ export function TaxSettingsPanel({
             </span>
           </div>
         </fieldset>
+        ) : null}
 
+        {readsGreen && usesFixedPrice ? (
         <fieldset className="rounded-md border border-zinc-200 p-3">
           <legend className="px-1 text-sm font-medium text-zinc-800">Fastprisunderlag (endast vid 97 %)</legend>
           <label className="mb-3 flex items-center gap-2 text-sm text-zinc-800">
@@ -306,6 +329,9 @@ export function TaxSettingsPanel({
             />
           </div>
         </fieldset>
+        ) : (
+          <input type="hidden" name="genuine_fixed_price" value="false" />
+        )}
 
         <button
           type="submit"

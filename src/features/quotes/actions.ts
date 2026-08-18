@@ -766,7 +766,13 @@ export async function createQuoteVersionFromCalculationAction(
   const calculationId = form.get("calculation_id");
   const values: Record<string, string> = {};
   if (typeof calculationId === "string") values.calculation_id = calculationId;
-  return runCreateQuoteVersionAction({ calculation_id: calculationId }, values);
+  return {
+    ...CREATE_QUOTE_ACTION_INITIAL,
+    status: "error",
+    code: "VALIDATION_FAILED",
+    formError: "Skapa offertversion från kalkylens förhandsvisning så att den granskade versionen kan verifieras.",
+    values,
+  };
 }
 
 /**

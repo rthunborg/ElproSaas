@@ -1,11 +1,11 @@
 import { createHash, timingSafeEqual } from "node:crypto";
 
-import { TAX_POLICY_REGISTRY } from "@/lib/money";
+import { TAX_POLICY_REGISTRY, resolveTaxPolicy } from "@/lib/money";
 
 /**
  * Semantic source reviewed before quote creation. It contains no PII/internal notes.
- * Unit cost and source kind are hashed because they affect customer-visible readiness
- * warnings, but neither value is copied into the frozen quote or exposed to the client.
+ * Only customer-visible, frozen quote semantics are hashed. Internal cost/source provenance is
+ * deliberately excluded because those facts are not copied into the frozen quote.
  */
 export interface QuoteReviewSource {
   readonly quoteCaptureDate: string;
@@ -29,7 +29,6 @@ export interface QuoteReviewSource {
     rowType: string;
     quantity: number;
     unit: string;
-    unitCostOre: number | null;
     unitSellOre: number | null;
     vatRateBp: number | null;
     includedInInvoiceTotal: boolean;
@@ -42,7 +41,6 @@ export interface QuoteReviewSource {
     description: string | null;
     quoteNote: string | null;
     sortOrder: number;
-    sourceKind: string | null;
   }>[];
   readonly customer: Readonly<{
     displayName: string | null;
@@ -85,25 +83,58 @@ function stableJson(value: unknown): string {
     .join(",")}}`;
 }
 
-/** SHA-256 digest of all reviewed semantics plus the active code-owned policy registry. */
+function applicableTaxPolicyDigestFacts(quoteCaptureDate: string): unknown {
+  const resolved = resolveTaxPolicy({
+    registry: TAX_POLICY_REGISTRY,
+    effectiveDate: quoteCaptureDate,
+  });
+  return resolved.ok
+    ? resolved.value
+    : { unresolved: true, code: resolved.code, effectiveDate: quoteCaptureDate };
+}
+
+/** SHA-256 digest of all reviewed semantics plus the applicable code-owned policy facts. */
 export function buildQuoteReviewDigest(source: QuoteReviewSource): string {
   const sections = [...source.sections].sort(
     (left, right) => left.sortOrder - right.sortOrder || left.id.localeCompare(right.id),
   );
   const sectionOrder = new Map(sections.map((section, index) => [section.id, index]));
-  const rows = [...source.rows].sort((left, right) =>
+  const sortedRows = [...source.rows].sort((left, right) =>
     (sectionOrder.get(left.sectionId) ?? Number.MAX_SAFE_INTEGER) -
       (sectionOrder.get(right.sectionId) ?? Number.MAX_SAFE_INTEGER) ||
     left.sortOrder - right.sortOrder ||
     left.id.localeCompare(right.id));
+  const rows = sortedRows.map((row) => ({
+    id: row.id,
+    sectionId: row.sectionId,
+    rowType: row.rowType,
+    quantity: row.quantity,
+    unit: row.unit,
+    unitSellOre: row.unitSellOre,
+    vatRateBp: row.vatRateBp,
+    includedInInvoiceTotal: row.includedInInvoiceTotal,
+    deductionClassification: row.deductionClassification,
+    vatType: row.vatType,
+    isHidden: row.isHidden,
+    isOptional: row.isOptional,
+    isSelected: row.isSelected,
+    label: row.label,
+    description: row.description,
+    quoteNote: row.quoteNote,
+    sortOrder: row.sortOrder,
+  }));
   const attachments = [...source.attachments].sort(
     (left, right) => left.sortOrder - right.sortOrder || left.fileId.localeCompare(right.fileId),
   );
-  const normalized = { ...source, sections, rows, attachments };
+  const normalized = {
+    ...source,
+    sections,
+    rows,
+    attachments,
+    applicableTaxPolicy: applicableTaxPolicyDigestFacts(source.quoteCaptureDate),
+  };
   return createHash("sha256")
     .update("quote-review-v2\n")
-    .update(stableJson(TAX_POLICY_REGISTRY))
-    .update("\n")
     .update(stableJson(normalized))
     .digest("hex");
 }

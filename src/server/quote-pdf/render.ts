@@ -246,8 +246,11 @@ export async function renderQuotePdf(
   if (vm.taxAnswer?.source === "v2") {
     cursor.text("Moms per kategori", { size: SUBHEADING_SIZE, bold: true });
     for (const category of vm.taxAnswer.categories) {
+      const label = category.vatType === "REVERSE_CHARGE_CONSTRUCTION"
+        ? category.label
+        : `${category.label} (${category.ratePercent} %)`;
       cursor.text(
-        `${category.label} (${category.ratePercent} %): netto ${category.netKronor} kr, moms ${category.vatKronor} kr, brutto ${category.grossKronor} kr`,
+        `${label}: netto ${category.netKronor} kr, moms ${category.vatKronor} kr, brutto ${category.grossKronor} kr`,
       );
     }
     if (vm.taxAnswer.summaries) {

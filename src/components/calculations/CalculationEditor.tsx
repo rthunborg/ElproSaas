@@ -18,8 +18,9 @@
  * never inline). Kronor/percent at the input boundary; öre/rounding wording only in the totals
  * summary (AC6).
  */
-import { useActionState, useState, type ReactNode } from "react";
+import { useActionState, useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { FormErrorSummary, TextField } from "@/components/crm/FormField";
 import { SectionEditor } from "./SectionEditor";
 import { TotalsSummary } from "./TotalsSummary";
@@ -101,8 +102,25 @@ export function CalculationEditor({
     CALC_ACTION_INITIAL,
   );
   const [showAddSection, setShowAddSection] = useState(false);
+  const router = useRouter();
 
   const titleMine = titleState.form === "calculation";
+  useEffect(() => {
+    if (
+      titleState.status === "success" ||
+      sectionState.status === "success" ||
+      archiveState.status === "success" ||
+      sectionReorderState.status === "success"
+    ) {
+      router.refresh();
+    }
+  }, [
+    archiveState.status,
+    router,
+    sectionReorderState.status,
+    sectionState.status,
+    titleState.status,
+  ]);
 
   // Story 5.4 — RESOLVE the VAT display posture from the tenant setting (the inherited 5.2
   // Med deferral) via the PURE helper: a `private` customer → the always-incl invariant; a
