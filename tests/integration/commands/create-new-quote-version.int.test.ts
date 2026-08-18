@@ -233,13 +233,13 @@ describe("createNewQuoteVersion — new version with an explicit parent relation
     expect(JSON.stringify(audits[0]?.metadata)).not.toMatch(/kund|ore|intro|company/i);
   });
 
-  it("[P0] 6.5-INT-01 (R-604): concurrent new-version creations on the SAME quote serialize on the parent-quote lock and get DISTINCT version numbers", async (testCtx) => {
+  it("[P0] 6.5-INT-01 (R-604): concurrent new-version creations from the SAME source serialize and reject the stale parent", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     const seed = await seedSentVersionWithChildren(fixture.tenantA.id);
 
     // Fire two createNewQuoteVersion calls concurrently (NO sleeps). The parent-quote FOR UPDATE
-    // lock serializes them so each gets a DISTINCT version number; the (quote_id, version_number)
-    // unique is the belt-and-braces backstop.
+    // lock serializes them. Exactly one may consume this authoritative source version; the other
+    // must reject the now-stale parent instead of silently creating a version from old evidence.
     const [r1, r2] = await Promise.all([
       runCommand(createNewQuoteVersion, {
         client: a as never,
@@ -254,16 +254,18 @@ describe("createNewQuoteVersion — new version with an explicit parent relation
         correlationId: crypto.randomUUID(),
       }),
     ]);
-    expect(r1.ok).toBe(true);
-    expect(r2.ok).toBe(true);
+    const results = [r1, r2];
+    const successful = results.filter((result) => result.ok);
+    const failed = results.filter((result) => !result.ok);
+    expect(successful).toHaveLength(1);
+    expect(failed).toHaveLength(1);
+    if (failed[0]?.ok === false) expect(failed[0].code).toBe("QUOTE_VERSION_LOCKED");
 
-    // Both new versions exist on the same quote with DISTINCT version numbers (2 and 3), sharing
-    // the parent quote_number. (The immediately-prior sent v1 was superseded on the FIRST create;
-    // the second create supersedes nothing new since v2 is a draft — the point is the DISTINCT
-    // numbers under the concurrency lock.)
+    // The winning request creates v2 on the same quote. The stale request creates no v3, and the
+    // existing versions retain the one shared quote number.
     const versions = await adminSelectQuoteVersionsForQuote(seed.quoteId);
     const numbers = versions.map((v) => Number(v.version_number)).sort((x, y) => x - y);
-    expect(numbers).toEqual([1, 2, 3]);
+    expect(numbers).toEqual([1, 2]);
     const quoteNumbers = new Set(versions.map((v) => String(v.quote_number)));
     expect(quoteNumbers.size).toBe(1); // all versions share the ONE per-quote number
   });

@@ -20,7 +20,8 @@
  */
 import {
   aggregateDocumentVat,
-  TAX_POLICY_2026,
+  TAX_POLICY_REGISTRY,
+  resolveTaxPolicy,
   lineNetOre,
   lineVatOre,
   selectVatDisplay,
@@ -69,6 +70,20 @@ export type TotalsResult<T> =
   | { readonly ok: true; readonly value: T }
   | { readonly ok: false; readonly code: string };
 
+function standardRateForDate(effectiveDate?: string): TotalsResult<number> {
+  // Omitted dates remain a compatibility seam for historical pure fixtures only. Every live
+  // editor/snapshot caller injects its Stockholm quote-capture date.
+  const date = effectiveDate ?? TAX_POLICY_REGISTRY[0]?.validFrom;
+  if (date === undefined) return { ok: false, code: "TAX_POLICY_NO_MATCH" };
+  const resolved = resolveTaxPolicy({
+    registry: TAX_POLICY_REGISTRY,
+    effectiveDate: date,
+  });
+  return resolved.ok
+    ? { ok: true, value: resolved.value.vat.standardRateBp }
+    : { ok: false, code: resolved.code };
+}
+
 /**
  * A quarantined legacy row deliberately has no VAT type. Runtime totals never
  * infer a legal category from its numeric rate; an admin must remediate the
@@ -103,14 +118,19 @@ export function rowCountsTowardTotal(row: {
  * A null sell/VAT is treated as 0 (a draft row without a price contributes 0). Returns a
  * typed failure if the engine rejects an input (e.g. overflow) — never a NaN.
  */
-export function computeLineTotal(row: TotalsRowInput): TotalsResult<LineTotal> {
+export function computeLineTotal(
+  row: TotalsRowInput,
+  effectiveDate?: string,
+): TotalsResult<LineTotal> {
   const sellOre = row.unit_sell_ore ?? 0;
   const net = lineNetOre(row.quantity, sellOre);
   if (!net.ok) return { ok: false, code: net.code };
   const vatType = vatTypeForTotal(row);
   if (vatType === null) return { ok: false, code: "INCOMPLETE_VAT_INPUT" };
+  const standardRate = standardRateForDate(effectiveDate);
+  if (!standardRate.ok) return standardRate;
   const breakdown = aggregateDocumentVat({
-    standardRateBp: TAX_POLICY_2026.vat.standardRateBp,
+    standardRateBp: standardRate.value,
     rows: [{
       netOre: net.value,
       vatType,
@@ -138,7 +158,10 @@ export function computeLineTotal(row: TotalsRowInput): TotalsResult<LineTotal> {
  */
 export function computeSectionTotal(
   rows: readonly TotalsRowInput[],
+  effectiveDate?: string,
 ): TotalsResult<SectionTotal> {
+  const standardRate = standardRateForDate(effectiveDate);
+  if (!standardRate.ok) return standardRate;
   const includedRows: {
     readonly netOre: number;
     readonly vatType: VatType;
@@ -149,7 +172,7 @@ export function computeSectionTotal(
   }[] = [];
   for (const row of rows) {
     if (!rowCountsTowardTotal(row)) continue;
-    const line = computeLineTotal(row);
+    const line = computeLineTotal(row, effectiveDate);
     if (!line.ok) return { ok: false, code: line.code };
     const vatType = vatTypeForTotal(row);
     if (vatType === null) return { ok: false, code: "INCOMPLETE_VAT_INPUT" };
@@ -164,7 +187,7 @@ export function computeSectionTotal(
   }
   const aggregate = aggregateDocumentVat({
     rows: includedRows,
-    standardRateBp: TAX_POLICY_2026.vat.standardRateBp,
+    standardRateBp: standardRate.value,
   });
   if (!aggregate.ok) return { ok: false, code: aggregate.code };
   return {
@@ -184,12 +207,13 @@ export function computeSectionTotal(
  */
 export function computeCalcTotal(
   sections: ReadonlyArray<{ readonly rows: readonly TotalsRowInput[] }>,
+  effectiveDate?: string,
 ): TotalsResult<SectionTotal> {
   const allRows: TotalsRowInput[] = [];
   for (const section of sections) {
     for (const row of section.rows) allRows.push(row);
   }
-  return computeSectionTotal(allRows);
+  return computeSectionTotal(allRows, effectiveDate);
 }
 
 /**

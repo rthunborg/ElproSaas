@@ -802,6 +802,7 @@ function story106FixtureTaxInput(): Record<string, unknown> {
     genuineFixedPrice: false,
     fixedPriceOre: null,
     fixedPriceCategorySplitOre: null,
+    fixedPriceRowIds: null,
   };
 }
 
@@ -1202,6 +1203,7 @@ export interface QuoteVersionLineSeed {
   readonly deduction_classification?: string;
   readonly vat_type?: string;
   readonly sort_order?: number;
+  readonly source_calculation_row_id?: string | null;
 }
 
 /** A seed for a `quote_version_attachments` row (parent version + file required, same tenant). */
@@ -1426,6 +1428,9 @@ function buildStory106FixtureTaxState(
     green: {
       policy: null,
       basisMethod: "ACTUAL_ELIGIBLE_COSTS",
+      fixedPriceRowIds: null,
+      fixedPriceOre: null,
+      fixedPriceCategorySplitOre: null,
       categories: {
         SOLAR: { category: "SOLAR", basisOre: 0, calculatedOre: 0, claimOre: 0 },
         STORAGE: { category: "STORAGE", basisOre: 0, calculatedOre: 0, claimOre: 0 },
@@ -1490,6 +1495,57 @@ async function adminInsertStory106QuoteVersion(
         throw new Error("adminInsertQuoteVersion: no canonical source customer posture");
       }
       const tax = buildStory106FixtureTaxState(seed, customerPosture);
+      let sourceCalculationRowId: string | null = null;
+      if (tax.payableOre > 0) {
+        const existingSourceRows = await query<{ id: string }>(
+          `select row.id
+             from public.calculation_rows row
+             join public.calculation_sections section
+               on section.id = row.section_id
+              and section.tenant_id = row.tenant_id
+            where section.calculation_id = $1
+              and row.tenant_id = $2
+              and row.archived_at is null
+              and section.archived_at is null
+            order by section.sort_order, section.id, row.sort_order, row.id
+            limit 1`,
+          [seed.calculation_id, seed.tenant_id],
+        );
+        sourceCalculationRowId = existingSourceRows[0]?.id ?? null;
+        if (sourceCalculationRowId === null) {
+          const sections = await query<{ id: string }>(
+            `insert into public.calculation_sections
+               (tenant_id, calculation_id, title, display_mode, sort_order)
+             values ($1, $2, 'Story 10.6 fixture source', 'detailed', 2147483647)
+             returning id`,
+            [seed.tenant_id, seed.calculation_id],
+          );
+          const sectionId = sections[0]?.id;
+          if (!sectionId || tax.lineVatRateBp === null || tax.lineVatType === null) {
+            throw new Error("adminInsertQuoteVersion: could not create canonical source section");
+          }
+          const sourceRows = await query<{ id: string }>(
+            `insert into public.calculation_rows
+               (tenant_id, section_id, row_type, quantity, unit, unit_sell_ore,
+                vat_rate_bp, included_in_invoice_total, deduction_classification,
+                vat_type, is_hidden, is_optional, is_selected, label, sort_order)
+             values ($1, $2, 'other', 1, 'st', $3, $4, true, 'NONE',
+                     $5, false, false, null, 'Story 10.6 fixture total', 2147483647)
+             returning id`,
+            [
+              seed.tenant_id,
+              sectionId,
+              tax.baseTotalOre,
+              tax.lineVatRateBp,
+              tax.lineVatType,
+            ],
+          );
+          sourceCalculationRowId = sourceRows[0]?.id ?? null;
+          if (sourceCalculationRowId === null) {
+            throw new Error("adminInsertQuoteVersion: could not create canonical source row");
+          }
+        }
+      }
 
       // A later fresh-version command must be able to recapture from this source calculation.
       // Preserve any test-authored tax input; only legacy/null calculations receive the canonical
@@ -1549,15 +1605,17 @@ async function adminInsertStory106QuoteVersion(
           `insert into public.quote_version_lines
              (tenant_id, quote_version_id, row_type, sort_order, label, quantity, unit,
               unit_sell_ore, line_net_ore, vat_rate_bp, is_hidden, is_optional, is_selected,
-              included_in_invoice_total, deduction_classification, vat_type)
+              included_in_invoice_total, deduction_classification, vat_type,
+              source_calculation_row_id)
            values ($1, $2, 'line', 2147483647, 'Story 10.6 fixture total', 1, 'st',
-                   $3, $3, $4, false, false, null, true, 'NONE', $5)`,
+                   $3, $3, $4, false, false, null, true, 'NONE', $5, $6)`,
           [
             seed.tenant_id,
             quoteVersionId,
             tax.baseTotalOre,
             tax.lineVatRateBp,
             tax.lineVatType,
+            sourceCalculationRowId,
           ],
         );
       }
@@ -1625,12 +1683,33 @@ export async function adminInsertQuoteVersionLine(
     if (vatType === null) {
       throw new Error("adminInsertQuoteVersionLine: vat_rate_bp needs a canonical V2 VAT type");
     }
+    let sourceCalculationRowId = seed.source_calculation_row_id ?? null;
+    if (sourceCalculationRowId === null) {
+      const sourceRows = await adminQuery<{ id: string }>(
+        `select calculation_row.id
+           from public.quote_versions quote_version
+           join public.calculation_sections section
+             on section.calculation_id = quote_version.calculation_id
+            and section.tenant_id = quote_version.tenant_id
+           join public.calculation_rows calculation_row
+             on calculation_row.section_id = section.id
+            and calculation_row.tenant_id = section.tenant_id
+          where quote_version.id = $1
+            and calculation_row.archived_at is null
+            and section.archived_at is null
+          order by section.sort_order, section.id,
+                   calculation_row.sort_order, calculation_row.id
+          limit 1`,
+        [seed.quote_version_id],
+      );
+      sourceCalculationRowId = sourceRows[0]?.id ?? null;
+    }
     return await adminInsertQuoteArtifactWithTriggerBypass(
       `insert into public.quote_version_lines
          (tenant_id, quote_version_id, row_type, label, quantity, unit,
           unit_sell_ore, line_net_ore, vat_rate_bp, included_in_invoice_total,
-          deduction_classification, vat_type, sort_order)
-       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+          deduction_classification, vat_type, sort_order, source_calculation_row_id)
+       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
        returning id`,
       [
         seed.tenant_id,
@@ -1646,6 +1725,7 @@ export async function adminInsertQuoteVersionLine(
         seed.deduction_classification ?? "NONE",
         vatType,
         seed.sort_order ?? 0,
+        sourceCalculationRowId,
       ],
       "adminInsertQuoteVersionLine",
     );

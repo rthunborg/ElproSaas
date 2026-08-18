@@ -23,6 +23,7 @@ const baseTaxInput = {
   genuineFixedPrice: false,
   fixedPriceOre: null,
   fixedPriceCategorySplitOre: null,
+  fixedPriceRowIds: null,
 } as const;
 
 function baseRow(overrides: Record<string, unknown> = {}) {
@@ -106,6 +107,7 @@ describe("Story 10.6 Task 3 tax-input validation", () => {
         STORAGE: 30_000,
         CHARGING: 30_000,
       },
+      fixedPriceRowIds: [ROW_ID],
     } as const;
     assert.equal(validateTaxInputSnapshot(valid).ok, true);
     assert.equal(

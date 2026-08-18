@@ -98,6 +98,7 @@ function lineSnapshotOf(
     throw new CommandError("VALIDATION_FAILED");
   }
   return {
+    sourceRowId: row.source_calculation_row_id,
     rowType: row.row_type,
     sortOrder: row.sort_order,
     label: row.label,

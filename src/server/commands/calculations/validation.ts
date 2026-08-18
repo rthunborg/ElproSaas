@@ -24,7 +24,7 @@
  */
 import {
   TAX_DEDUCTION_CHOICES as MONEY_TAX_DEDUCTION_CHOICES,
-  TAX_POLICY_2026,
+  TAX_POLICY_REGISTRY,
   isDeductionClassification,
   isDeductionClassificationCompatibleWithSummaryCategory,
   isCoherentVatTypeRate,
@@ -40,6 +40,15 @@ import {
   type VatType,
 } from "@/lib/money";
 import type { ValidationResult } from "../envelope-core";
+
+function isCoherentVatTypeRateForKnownPolicy(
+  vatType: VatType,
+  vatRateBp: number,
+): boolean {
+  return TAX_POLICY_REGISTRY.some((policy) =>
+    isCoherentVatTypeRate(vatType, vatRateBp, policy.vat.standardRateBp)
+  );
+}
 
 /**
  * The closed row-type union (architecture §7). A row_type outside this set is
@@ -504,11 +513,7 @@ function validateRowCommonFields(
     isPresent(raw.vat_rate_bp) &&
     isVatType(raw.vat_type) &&
     isVatRateBp(raw.vat_rate_bp) &&
-    !isCoherentVatTypeRate(
-      raw.vat_type,
-      raw.vat_rate_bp,
-      TAX_POLICY_2026.vat.standardRateBp,
-    )
+    !isCoherentVatTypeRateForKnownPolicy(raw.vat_type, raw.vat_rate_bp)
   ) {
     return fail;
   }
@@ -608,11 +613,7 @@ export function validateCreateRow(
   // together with the required rate. Otherwise an omitted type plus 0 bp creates a contradictory
   // fresh standard-VAT row that the common-field validator cannot see as a complete pair.
   if (
-    !isCoherentVatTypeRate(
-      vatType,
-      raw.vat_rate_bp as number,
-      TAX_POLICY_2026.vat.standardRateBp,
-    )
+    !isCoherentVatTypeRateForKnownPolicy(vatType, raw.vat_rate_bp as number)
   ) {
     return fail;
   }

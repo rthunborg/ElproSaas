@@ -172,6 +172,59 @@ describe("Story 6.3 — renderQuotePdf determinism + framing (fast-gate belt for
     assert.ok(text.includes("Ritning.pdf"), "the selected attachment name must print");
     assert.ok(text.includes("TAX_SIGN_OFF_REQUIRED"), "the REAL ReadinessCode warning must print verbatim");
   });
+
+  test("[10.6][P1] green fixed-price basis and category enums render only customer-facing Swedish labels", async () => {
+    const text = await extractPdfText(await renderQuotePdf({
+      viewModel: baseViewModel({
+        taxAnswer: {
+          source: "v2",
+          deductionChoice: "GREEN",
+          netKronor: "1 000,00",
+          vatKronor: "250,00",
+          grossKronor: "1 250,00",
+          calculatedDeductionKronor: "181,87",
+          claimDeductionKronor: "181,00",
+          deductionKronor: "181,00",
+          payableKronor: "1 069,00",
+          categories: [],
+          summaries: {
+            labor: { netKronor: "0,00", vatKronor: "0,00", grossKronor: "0,00" },
+            material: { netKronor: "1 000,00", vatKronor: "250,00", grossKronor: "1 250,00" },
+            other: { netKronor: "0,00", vatKronor: "0,00", grossKronor: "0,00" },
+          },
+          rot: {
+            policy: null,
+            basisNetKronor: "0,00",
+            allocatedVatKronor: "0,00",
+            basisKronor: "0,00",
+            calculatedKronor: "0,00",
+            claimKronor: "0,00",
+            allocations: [],
+          },
+          green: {
+            policy: null,
+            basisMethod: "FIXED_PRICE_97_PERCENT",
+            categories: {
+              SOLAR: { basisKronor: "1 212,50", calculatedKronor: "181,87", claimKronor: "181,00" },
+              STORAGE: { basisKronor: "0,00", calculatedKronor: "0,00", claimKronor: "0,00" },
+              CHARGING: { basisKronor: "0,00", calculatedKronor: "0,00", claimKronor: "0,00" },
+            },
+            calculatedKronor: "181,87",
+            claimKronor: "181,00",
+            allocations: [],
+          },
+        },
+      }),
+      renderedAt: FIXED_ISO,
+    }));
+
+    for (const label of ["97 % av äkta fastprisavtal", "Solceller", "Lagring", "Laddningspunkt"]) {
+      assert.ok(text.includes(label), "the PDF must render the Swedish label: " + label);
+    }
+    for (const rawEnum of ["FIXED_PRICE_97_PERCENT", "SOLAR", "STORAGE", "CHARGING"]) {
+      assert.equal(text.includes(rawEnum), false, "the PDF must not expose the enum: " + rawEnum);
+    }
+  });
 });
 
 describe("Story 6.3 — renderQuotePdf branch coverage (empty/absent-field paths)", () => {
@@ -254,6 +307,7 @@ describe("Story 6.3 — renderQuotePdf branch coverage (empty/absent-field paths
           unitSellKronor: "500,00",
           lineNetKronor: "500,00",
           vatRatePercent: "25",
+          includedInInvoiceTotal: true,
           isHidden: false,
           isOptional: true,
           isSelected: true,
@@ -262,5 +316,7 @@ describe("Story 6.3 — renderQuotePdf branch coverage (empty/absent-field paths
     });
     const text = await extractPdfText(await renderQuotePdf({ viewModel: vm, renderedAt: FIXED_ISO }));
     assert.ok(text.includes("tillval"), "an optional line must be marked '(tillval)' in the PDF text");
+    assert.ok(text.includes("ingår i totalsumman"), "invoice inclusion must be stated independently from selection");
+    assert.ok(text.includes("Tillval som ingår (netto)"), "the subtotal label must describe inclusion, not selection");
   });
 });

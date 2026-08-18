@@ -110,10 +110,14 @@ function FlagField({
   name,
   label,
   defaultChecked,
+  checked,
+  onChange,
 }: {
   readonly name: string;
   readonly label: string;
-  readonly defaultChecked: boolean;
+  readonly defaultChecked?: boolean;
+  readonly checked?: boolean;
+  readonly onChange?: (checked: boolean) => void;
 }) {
   return (
     <label className="flex items-center gap-2 text-sm text-zinc-800">
@@ -124,7 +128,8 @@ function FlagField({
         type="checkbox"
         name={name}
         value="true"
-        defaultChecked={defaultChecked}
+        {...(checked === undefined ? { defaultChecked } : { checked })}
+        onChange={(event) => onChange?.(event.target.checked)}
         className="size-4 rounded border-zinc-300 text-blue-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
       />
       {label}
@@ -138,6 +143,7 @@ export function RowEditor({
   row,
   sources,
   posture,
+  policyEffectiveDate,
   onArchive,
 }: {
   readonly sectionId: string;
@@ -148,6 +154,8 @@ export function RowEditor({
   readonly sources: RowSourceLists;
   /** The resolved VAT display posture (Story 5.4 — drives the posture-aware line-total label). */
   readonly posture: VatDisplayPosture;
+  /** Swedish quote-capture date used to resolve the applicable live VAT policy. */
+  readonly policyEffectiveDate: string;
   /** Render the archive/delete control for an existing row (direct — a single row). */
   readonly onArchive?: (row: CalculationRowRow) => void;
 }) {
@@ -192,6 +200,20 @@ export function RowEditor({
   // The effective price field value: the ECHOED submitted value on a failed submit (input
   // preservation) wins; otherwise the current prefill. Never inline math — just a string pick.
   const priceFieldValue = v("unit_sell_kronor", prefillValue);
+
+  // Selection and invoice inclusion are independent persisted facts, with one explicit
+  // transition affordance: changing selection on an effective option carries the same intent to
+  // inclusion. Keep that pair controlled so the form visibly represents the atomic write; a
+  // later inclusion-only edit remains independent.
+  const [isOptional, setIsOptional] = useState(() =>
+    checked("is_optional", row?.is_optional ?? false),
+  );
+  const [isSelected, setIsSelected] = useState(() =>
+    checked("is_selected", row?.is_selected ?? false),
+  );
+  const [includedInInvoiceTotal, setIncludedInInvoiceTotal] = useState(() =>
+    checked("included_in_invoice_total", row?.included_in_invoice_total ?? true),
+  );
 
   const offeredSources = useMemo(
     () => sourcesForRowType(rowType, sources),
@@ -296,7 +318,7 @@ export function RowEditor({
         is_hidden: row.is_hidden,
         is_optional: row.is_optional,
         is_selected: row.is_selected,
-      })
+      }, policyEffectiveDate)
     : null;
 
   // Story 5.4 (the paired 5.2 Low deferral) — the line-total qualifier is now POSTURE-AWARE.
@@ -330,6 +352,16 @@ export function RowEditor({
             type="hidden"
             name="original_deduction_classification"
             value={row?.deduction_classification ?? ""}
+          />
+          <input
+            type="hidden"
+            name="original_is_optional"
+            value={String(row?.is_optional ?? false)}
+          />
+          <input
+            type="hidden"
+            name="original_is_selected"
+            value={row?.is_selected == null ? "" : String(row.is_selected)}
           />
         </>
       ) : null}
@@ -485,17 +517,23 @@ export function RowEditor({
         <FlagField
           name="included_in_invoice_total"
           label="Ingår i fakturasumman"
-          defaultChecked={checked("included_in_invoice_total", row?.included_in_invoice_total ?? true)}
+          checked={includedInInvoiceTotal}
+          onChange={setIncludedInInvoiceTotal}
         />
         <FlagField
           name="is_optional"
           label="Tillval (valfri)"
-          defaultChecked={checked("is_optional", row?.is_optional ?? false)}
+          checked={isOptional}
+          onChange={setIsOptional}
         />
         <FlagField
           name="is_selected"
           label="Vald (tillval)"
-          defaultChecked={checked("is_selected", row?.is_selected ?? false)}
+          checked={isSelected}
+          onChange={(nextSelected) => {
+            setIsSelected(nextSelected);
+            if (isOptional) setIncludedInInvoiceTotal(nextSelected);
+          }}
         />
       </fieldset>
 

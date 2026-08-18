@@ -16,7 +16,20 @@ function reviewedSource(): QuoteReviewSource {
       customerId: "22222222-2222-2222-2222-222222222222",
       facilityId: null,
       contactId: null,
-      taxInput: { schemaVersion: 2, deductionChoice: "NONE" },
+      taxInput: {
+        schemaVersion: 2,
+        documentVatType: "STANDARD_VAT_25",
+        buyerVatNumber: null,
+        deductionChoice: "NONE",
+        paymentDate: null,
+        finalPaymentDate: null,
+        personAllowanceSlots: [],
+        greenBasisMethod: "ACTUAL_ELIGIBLE_COSTS",
+        genuineFixedPrice: false,
+        fixedPriceOre: null,
+        fixedPriceCategorySplitOre: null,
+        fixedPriceRowIds: null,
+      },
     },
     sections: [
       { id: "section-b", title: "B", displayMode: "detailed", sortOrder: 2 },
@@ -29,6 +42,8 @@ function reviewedSource(): QuoteReviewSource {
         rowType: "material",
         quantity: 1,
         unit: "st",
+        unitCostOre: 12_000,
+        sourceKind: "article",
         unitSellOre: 20_000,
         vatRateBp: 2_500,
         includedInInvoiceTotal: true,
@@ -48,6 +63,8 @@ function reviewedSource(): QuoteReviewSource {
         rowType: "labor",
         quantity: 2,
         unit: "h",
+        unitCostOre: 5_000,
+        sourceKind: "work_role",
         unitSellOre: 10_000,
         vatRateBp: 2_500,
         includedInInvoiceTotal: true,
@@ -111,18 +128,42 @@ test("quote review digest changes for customer-visible, tax, and capture-date ch
     ...source,
     calculation: {
       ...source.calculation,
-      taxInput: { schemaVersion: 2, deductionChoice: "ROT" },
+      taxInput: {
+        ...(source.calculation.taxInput as Record<string, unknown>),
+        deductionChoice: "ROT",
+        paymentDate: "2026-08-10",
+        personAllowanceSlots: [{
+          slot: "PERSON_1",
+          remainingRotAllowanceOre: 5_000_000,
+          remainingCombinedRotRutAllowanceOre: 7_500_000,
+        }],
+      },
     },
   };
   assert.notEqual(buildQuoteReviewDigest(changedRow), original);
   assert.notEqual(buildQuoteReviewDigest(changedTax), original);
-  assert.equal(
+  assert.notEqual(
     buildQuoteReviewDigest({
       ...source,
       rows: source.rows.map((row) =>
         row.id === "row-a" ? { ...row, unitCostOre: 7_000, sourceKind: null } : row),
-    } as unknown as QuoteReviewSource),
+    }),
     original,
+  );
+  const changedPaymentPolicyDate: QuoteReviewSource = {
+    ...changedTax,
+    calculation: {
+      ...changedTax.calculation,
+      taxInput: {
+        ...(changedTax.calculation.taxInput as Record<string, unknown>),
+        paymentDate: "2026-08-11",
+      },
+    },
+  };
+  assert.notEqual(
+    buildQuoteReviewDigest(changedPaymentPolicyDate),
+    buildQuoteReviewDigest(changedTax),
+    "the independently resolved ROT payment-date policy fact belongs to the proof",
   );
   assert.notEqual(
     buildQuoteReviewDigest({ ...source, quoteCaptureDate: "2026-08-08" }),

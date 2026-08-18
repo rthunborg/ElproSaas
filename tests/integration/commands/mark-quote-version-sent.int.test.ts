@@ -44,7 +44,6 @@ import {
   adminInsertCalculation,
   adminInsertQuote,
   adminInsertQuoteVersion,
-  adminInsertQuoteVersionLine,
   adminSelectQuoteVersionRow,
   adminSelectQuoteVersionLines,
   adminSelectQuoteVersionPdfColumns,
@@ -79,6 +78,7 @@ async function seedQuoteVersion(
   tenantId: string,
   status: string,
   warnings?: readonly { code: string; severity: string; message: string }[],
+  acceptedPriceOre = 0,
 ): Promise<{ quoteId: string; versionId: string }> {
   const customerId = await adminInsertCustomer({
     tenant_id: tenantId,
@@ -98,6 +98,7 @@ async function seedQuoteVersion(
     status,
     intro_text: "ursprunglig introtext",
     warnings_snapshot: warnings,
+    accepted_price_ore: acceptedPriceOre,
   });
   return { quoteId, versionId };
 }
@@ -313,21 +314,20 @@ describe("markQuoteVersionSent — DB-layer immutability BELOW the command (AC2,
     if (skipUnlessStack(testCtx, stackUp)) return;
     // Seed a DRAFT version + its line (the child-lock allows writes to a draft parent), then flip
     // the parent to SENT via the command — the line is now frozen.
-    const { versionId } = await seedQuoteVersion(fixture.tenantA.id, "draft");
-    await adminInsertQuoteVersionLine({
-      tenant_id: fixture.tenantA.id,
-      quote_version_id: versionId,
-      label: "rad-1",
-      unit_sell_ore: 85000,
-      sort_order: 0,
-    });
+    const { versionId } = await seedQuoteVersion(
+      fixture.tenantA.id,
+      "draft",
+      undefined,
+      85_000,
+    );
+    expect((await adminSelectQuoteVersionRow(versionId))?.status).toBe("draft");
     const sent = await runCommand(markQuoteVersionSent, {
       client: a as never,
       input: { quote_version_id: versionId },
       clock: fixedClock,
       correlationId: crypto.randomUUID(),
     });
-    expect(sent.ok).toBe(true);
+    expect(sent.ok, JSON.stringify(sent)).toBe(true);
     const before = await adminSelectQuoteVersionLines(versionId);
 
     // The child snapshot tables (quote_version_lines / quote_version_attachments) are ALSO immutable

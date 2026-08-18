@@ -400,6 +400,22 @@ describe("Story 10.6 — tax answer reconciliation", () => {
       }),
     );
     assert.equal(fixed.greenSolarDeductionOre, 200, "the 97% basis is not itself truncated");
+
+    const exactCategories = okValue<{
+      calculatedOre: number;
+      claimOre: number;
+      categories: Readonly<Record<string, Readonly<{ calculatedOre: number; claimOre: number }>>>;
+    }>(requireFunction("calculateGreenSchemeAmounts")({
+      amountOreByCategory: { SOLAR: 1, STORAGE: 1, CHARGING: 222 },
+      rateBpByCategory: { SOLAR: 1_500, STORAGE: 5_000, CHARGING: 5_000 },
+    }));
+    assert.equal(exactCategories.calculatedOre, 111);
+    assert.equal(exactCategories.claimOre, 100);
+    assert.deepEqual(exactCategories.categories, {
+      SOLAR: { calculatedOre: 0, claimOre: 0 },
+      STORAGE: { calculatedOre: 0, claimOre: 1 },
+      CHARGING: { calculatedOre: 111, claimOre: 99 },
+    }, "the whole-krona claim allocates from exact numerators, not rounded category calculations");
   });
 
   test("[10.6-UNIT-08][P0][AC1/AC4] large safe operands use exact category VAT arithmetic", () => {
@@ -668,6 +684,8 @@ describe("Story 10.6 — tax answer reconciliation", () => {
 
   test("[10.6-UNIT-12][P0][AC5] fixed-price green splits reconcile to green-classified work and cannot overlap ROT", () => {
     const build = requireFunction("buildTaxAnswerSnapshotV2");
+    const fixedSolarRowId = "11111111-1111-4111-8111-111111111111";
+    const unrelatedRowId = "22222222-2222-4222-8222-222222222222";
     const fixedTaxInput = {
       schemaVersion: 2,
       documentVatType: "STANDARD_VAT_25",
@@ -682,34 +700,48 @@ describe("Story 10.6 — tax answer reconciliation", () => {
       genuineFixedPrice: true,
       fixedPriceOre: 1_375,
       fixedPriceCategorySplitOre: { SOLAR: 1_375, STORAGE: 0, CHARGING: 0 },
+      fixedPriceRowIds: [fixedSolarRowId],
     };
     const answer = okValue<{
-      green: { categories: { SOLAR: { basisOre: number; calculatedOre: number; claimOre: number } } };
+      green: {
+        fixedPriceRowIds: readonly string[];
+        categories: { SOLAR: { basisOre: number; calculatedOre: number; claimOre: number } };
+      };
       payableOre: number;
     }>(build({
       quoteCaptureDate: "2026-08-05",
       customerEligibilityPosture: "private",
-      rows: [standard(1_100, {
-        id: "fixed-solar",
-        deductionClassification: "GREEN_SOLAR_MATERIAL",
-        summaryCategory: "material",
-      })],
+      rows: [
+        standard(1_100, {
+          id: fixedSolarRowId,
+          deductionClassification: "GREEN_SOLAR_MATERIAL",
+          summaryCategory: "material",
+        }),
+        standard(400, {
+          id: unrelatedRowId,
+          deductionClassification: "NONE",
+          summaryCategory: "other",
+        }),
+      ],
       taxInput: fixedTaxInput,
     }));
+    assert.deepEqual(answer.green.fixedPriceRowIds, [fixedSolarRowId]);
     assert.deepEqual(answer.green.categories.SOLAR, {
       category: "SOLAR",
       basisOre: 1_333,
       calculatedOre: 200,
       claimOre: 200,
     });
-    assert.equal(answer.payableOre, 1_175);
+    assert.equal(answer.payableOre, 1_675, "unrelated billed work remains outside the green scope");
+
+    const rotRowId = "33333333-3333-4333-8333-333333333333";
 
     assert.equal(
       errorCode(build({
         quoteCaptureDate: "2026-08-05",
         customerEligibilityPosture: "private",
         rows: [standard(1_100, {
-          id: "rot-cannot-feed-fixed-green",
+          id: rotRowId,
           deductionClassification: "ROT_LABOR",
           summaryCategory: "labor",
         })],
@@ -723,9 +755,19 @@ describe("Story 10.6 — tax answer reconciliation", () => {
             remainingCombinedRotRutAllowanceOre: 7_500_000,
             remainingGreenAllowanceOre: 5_000_000,
           }],
+          fixedPriceRowIds: [rotRowId],
         },
       })),
-      "FIXED_PRICE_CLASSIFICATION_MISMATCH",
+      "FIXED_PRICE_SCOPE_MISMATCH",
+    );
+
+    assert.equal(
+      errorCode(money.parseTaxInputSnapshot({
+        ...fixedTaxInput,
+        fixedPriceRowIds: null,
+      })),
+      "INCOMPLETE_FIXED_PRICE_ROW_SCOPE",
+      "97% must be rejected until an explicit persisted row scope exists",
     );
   });
 

@@ -1,11 +1,15 @@
 import { createHash, timingSafeEqual } from "node:crypto";
 
-import { TAX_POLICY_REGISTRY, resolveTaxPolicy } from "@/lib/money";
+import {
+  TAX_POLICY_REGISTRY,
+  parseTaxInputSnapshot,
+  resolveTaxPolicy,
+} from "@/lib/money";
 
 /**
- * Semantic source reviewed before quote creation. It contains no PII/internal notes.
- * Only customer-visible, frozen quote semantics are hashed. Internal cost/source provenance is
- * deliberately excluded because those facts are not copied into the frozen quote.
+ * Semantic source reviewed before quote creation. It contains no personnummer/internal notes.
+ * Customer-visible frozen semantics and the internal cost/source facts that affect readiness
+ * warnings are hashed; the latter are never copied into or rendered from the frozen quote.
  */
 export interface QuoteReviewSource {
   readonly quoteCaptureDate: string;
@@ -29,6 +33,9 @@ export interface QuoteReviewSource {
     rowType: string;
     quantity: number;
     unit: string;
+    /** Warning-affecting internal facts are reviewed but never frozen/rendered. */
+    unitCostOre: number | null;
+    sourceKind: string | null;
     unitSellOre: number | null;
     vatRateBp: number | null;
     includedInInvoiceTotal: boolean;
@@ -93,6 +100,28 @@ function applicableTaxPolicyDigestFacts(quoteCaptureDate: string): unknown {
     : { unresolved: true, code: resolved.code, effectiveDate: quoteCaptureDate };
 }
 
+function resolvedTaxPolicyDigestFacts(source: QuoteReviewSource): unknown {
+  const parsed = parseTaxInputSnapshot(source.calculation.taxInput);
+  if (!parsed.ok) {
+    return {
+      quoteCapture: applicableTaxPolicyDigestFacts(source.quoteCaptureDate),
+      taxInputUnresolved: parsed.code,
+    };
+  }
+  const choice = parsed.value.deductionChoice;
+  const usesRot = choice === "ROT" || choice === "ROT_AND_GREEN";
+  const usesGreen = choice === "GREEN" || choice === "ROT_AND_GREEN";
+  return {
+    quoteCapture: applicableTaxPolicyDigestFacts(source.quoteCaptureDate),
+    rotPayment: usesRot && parsed.value.paymentDate !== null
+      ? applicableTaxPolicyDigestFacts(parsed.value.paymentDate)
+      : null,
+    greenFinalPayment: usesGreen && parsed.value.finalPaymentDate !== null
+      ? applicableTaxPolicyDigestFacts(parsed.value.finalPaymentDate)
+      : null,
+  };
+}
+
 /** SHA-256 digest of all reviewed semantics plus the applicable code-owned policy facts. */
 export function buildQuoteReviewDigest(source: QuoteReviewSource): string {
   const sections = [...source.sections].sort(
@@ -110,6 +139,8 @@ export function buildQuoteReviewDigest(source: QuoteReviewSource): string {
     rowType: row.rowType,
     quantity: row.quantity,
     unit: row.unit,
+    unitCostOre: row.unitCostOre,
+    sourceKind: row.sourceKind,
     unitSellOre: row.unitSellOre,
     vatRateBp: row.vatRateBp,
     includedInInvoiceTotal: row.includedInInvoiceTotal,
@@ -131,7 +162,7 @@ export function buildQuoteReviewDigest(source: QuoteReviewSource): string {
     sections,
     rows,
     attachments,
-    applicableTaxPolicy: applicableTaxPolicyDigestFacts(source.quoteCaptureDate),
+    applicableTaxPolicies: resolvedTaxPolicyDigestFacts(source),
   };
   return createHash("sha256")
     .update("quote-review-v2\n")

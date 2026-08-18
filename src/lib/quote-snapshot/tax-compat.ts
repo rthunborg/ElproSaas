@@ -6,6 +6,7 @@ import {
   isOreAmount,
   isCustomerEligibilityPosture,
   isGreenBasisMethod,
+  isCanonicalFixedPriceRowId,
   isCanonicalTaxPersonSlot,
   isCoherentVatTypeRate,
   isTaxDeductionChoice,
@@ -474,12 +475,49 @@ export function parseTaxAnswerSnapshotV2(rawValue: unknown): TaxAnswerSnapshotPa
   }
   const greenCalculatedOre = ore(greenRaw.calculatedOre);
   const greenClaimOre = ore(greenRaw.claimOre);
+  const fixedPriceRowIdsRaw = greenRaw.fixedPriceRowIds;
+  const fixedPriceOre = greenRaw.fixedPriceOre === null ? null : ore(greenRaw.fixedPriceOre);
+  const fixedPriceSplitRaw = greenRaw.fixedPriceCategorySplitOre === null
+    ? null
+    : recordOf(greenRaw.fixedPriceCategorySplitOre);
+  const fixedPriceCategorySplitOre = fixedPriceSplitRaw === null
+    ? null
+    : Object.freeze({
+        SOLAR: ore(fixedPriceSplitRaw.SOLAR),
+        STORAGE: ore(fixedPriceSplitRaw.STORAGE),
+        CHARGING: ore(fixedPriceSplitRaw.CHARGING),
+      });
   const historicalGreenAllocations = parseHistoricalAllocations(greenRaw.allocations);
   if (
     greenCalculatedOre === null ||
     greenClaimOre === null ||
     greenClaimOre % 100 !== 0 ||
     historicalGreenAllocations === null
+  ) {
+    return invalid();
+  }
+  let fixedPriceRowIds: readonly string[] | null = null;
+  if (greenBasisMethod === "FIXED_PRICE_97_PERCENT") {
+    if (
+      !Array.isArray(fixedPriceRowIdsRaw) ||
+      fixedPriceRowIdsRaw.length === 0 ||
+      fixedPriceRowIdsRaw.length > 500 ||
+      !fixedPriceRowIdsRaw.every(isCanonicalFixedPriceRowId) ||
+      new Set(fixedPriceRowIdsRaw).size !== fixedPriceRowIdsRaw.length ||
+      fixedPriceRowIdsRaw.some(
+        (id, index) => id !== [...fixedPriceRowIdsRaw].sort()[index],
+      ) ||
+      fixedPriceOre === null ||
+      fixedPriceCategorySplitOre === null ||
+      Object.values(fixedPriceCategorySplitOre).some((value) => value === null)
+    ) {
+      return invalid();
+    }
+    fixedPriceRowIds = Object.freeze([...(fixedPriceRowIdsRaw as string[])]);
+  } else if (
+    fixedPriceRowIdsRaw !== null ||
+    greenRaw.fixedPriceOre !== null ||
+    greenRaw.fixedPriceCategorySplitOre !== null
   ) {
     return invalid();
   }
@@ -582,6 +620,13 @@ export function parseTaxAnswerSnapshotV2(rawValue: unknown): TaxAnswerSnapshotPa
         greenGrossByCategory[category] = classifiedGrossOre;
         const policyGreen = greenPolicy.values.green;
         const isFixedPrice = greenBasisMethod === "FIXED_PRICE_97_PERCENT";
+        if (
+          isFixedPrice &&
+          fixedPriceCategorySplitOre?.[category] !== classifiedGrossOre
+        ) {
+          greenMathMatches = false;
+          break;
+        }
         const expectedBasisOre = isFixedPrice
           ? floorRatioOre(classifiedGrossOre, BigInt(policyGreen.fixedPriceEligibleShareBp))
           : classifiedGrossOre;
@@ -622,6 +667,16 @@ export function parseTaxAnswerSnapshotV2(rawValue: unknown): TaxAnswerSnapshotPa
         )
       ) {
         greenMathMatches = false;
+      }
+      if (greenBasisMethod === "FIXED_PRICE_97_PERCENT") {
+        const splitTotal = fixedPriceCategorySplitOre === null
+          ? null
+          : sumOre(GREEN_CATEGORIES.map(
+              (category) => fixedPriceCategorySplitOre[category] ?? -1,
+            ));
+        if (splitTotal === null || splitTotal !== fixedPriceOre) {
+          greenMathMatches = false;
+        }
       }
     }
   }
@@ -701,6 +756,16 @@ export function parseTaxAnswerSnapshotV2(rawValue: unknown): TaxAnswerSnapshotPa
     green: Object.freeze({
       policy: greenPolicy,
       basisMethod: greenBasisMethod,
+      fixedPriceRowIds,
+      fixedPriceOre,
+      fixedPriceCategorySplitOre:
+        fixedPriceCategorySplitOre === null
+          ? null
+          : Object.freeze({
+              SOLAR: fixedPriceCategorySplitOre.SOLAR as number,
+              STORAGE: fixedPriceCategorySplitOre.STORAGE as number,
+              CHARGING: fixedPriceCategorySplitOre.CHARGING as number,
+            }),
       categories: Object.freeze(greenCategories),
       calculatedOre: greenCalculatedOre,
       claimOre: greenClaimOre,

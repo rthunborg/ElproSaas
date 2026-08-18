@@ -25,11 +25,13 @@ import {
 import { adminQuery } from "../../factories/admin-sql";
 import { isLocalStackReachable } from "../../support/test-env";
 import { skipUnlessStack } from "../../support/stack-gate";
+import { buildQuoteReviewProof } from "../../support/quote-review-proof";
 import { readJobDetail, type JobReadClient } from "@/features/jobs/read";
 import type { CommandClock } from "@/server/commands/clock";
 import { runCommand } from "@/server/commands/envelope";
 import {
   acceptQuoteAndCreateJob,
+  createQuoteVersionFromCalculation,
   markQuoteVersionSent,
 } from "@/server/commands/quotes";
 
@@ -175,26 +177,25 @@ async function seedSentV2(
   }
   expect(sourceRows).toHaveLength(2);
 
-  const { data, error } = await client.rpc("create_quote_version_from_calculation", {
-    p_tenant_id: tenantId,
-    p_calculation_id: calculationId,
-    p_captured_at: golden.capturedAt,
-    p_customer_id: customerId,
-    p_facility_id: null,
-    p_contact_id: null,
-    p_snapshot: golden.quoteSnapshot,
-    p_lines: golden.quoteLines,
-    p_attachments: [],
+  const proof = await buildQuoteReviewProof(client, {
+    calculationId,
+    capturedAt: golden.capturedAt,
   });
-  if (error) {
-    throw new Error(`seedSentV2: V2 quote RPC failed (${error.code} ${error.message})`);
+  const created = await runCommand(createQuoteVersionFromCalculation, {
+    client: client as never,
+    input: {
+      calculation_id: calculationId,
+      attachment_file_ids: [],
+      ...proof,
+    },
+    clock: { now: () => new Date(golden.capturedAt) },
+    correlationId: crypto.randomUUID(),
+  });
+  if (!created.ok) {
+    throw new Error(`seedSentV2: V2 quote command failed (${created.code})`);
   }
-  const created = (Array.isArray(data) ? data[0] : data) as Record<string, unknown> | null;
-  if (!created?.quote_id || !created.quote_version_id) {
-    throw new Error("seedSentV2: V2 quote RPC returned no ids");
-  }
-  const quoteId = String(created.quote_id);
-  const versionId = String(created.quote_version_id);
+  const quoteId = created.data.quoteId;
+  const versionId = created.data.targetId;
 
   const sent = await runCommand(markQuoteVersionSent, {
     client: client as never,

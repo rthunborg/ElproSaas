@@ -105,6 +105,8 @@ export interface QuoteAssumptionsSource {
  * read). `lineNetOre` is the engine-produced net for the row (passed in, not computed).
  */
 export interface QuoteLineSource {
+  /** Internal source lineage; required by fresh V2 persistence, never customer-rendered. */
+  readonly sourceRowId?: string | null;
   readonly rowType: string;
   readonly sortOrder: number;
   readonly label: string | null;
@@ -177,6 +179,7 @@ export interface QuoteVersionSnapshotInput {
 /** Build ONE frozen customer-visible line snapshot (drops cost/margin/internal by construction). */
 function buildLineSnapshot(row: QuoteLineSource): QuoteVersionLineSnapshot {
   return Object.freeze({
+    sourceRowId: row.sourceRowId ?? null,
     rowType: row.rowType,
     sortOrder: row.sortOrder,
     label: row.label,

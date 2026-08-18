@@ -113,6 +113,20 @@ export type FixedPriceCategorySplitOre = Readonly<
   Record<GreenCategory, number>
 >;
 
+/** Canonical calculation-row ids that define one green fixed-price contract. */
+export type FixedPriceRowIds = readonly string[];
+
+/**
+ * Fixed-price scope identifiers are persisted UUIDs, never labels or positions.
+ * PostgreSQL emits UUIDs in this lowercase canonical form.
+ */
+export function isCanonicalFixedPriceRowId(value: unknown): value is string {
+  return (
+    typeof value === "string" &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(value)
+  );
+}
+
 /** The versioned calculation-side inputs from which a fresh V2 quote is resolved. */
 export interface TaxInputSnapshotV2 {
   readonly schemaVersion: 2;
@@ -128,6 +142,8 @@ export interface TaxInputSnapshotV2 {
   readonly genuineFixedPrice: boolean;
   readonly fixedPriceOre: number | null;
   readonly fixedPriceCategorySplitOre: FixedPriceCategorySplitOre | null;
+  /** Included green calculation rows covered by the genuine fixed-price contract. */
+  readonly fixedPriceRowIds: FixedPriceRowIds | null;
 }
 
 function includesString<T extends string>(

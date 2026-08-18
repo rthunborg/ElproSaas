@@ -72,6 +72,8 @@ export type QuoteDeductionType = "rot" | "gron_teknik" | "rot_and_green";
  * ÖRE; the VAT rate is BASIS POINTS; the line net is CAPTURED from the engine total.
  */
 export interface QuoteVersionLineSnapshot {
+  /** Internal immutable lineage to the canonical calculation row (never rendered). */
+  readonly sourceRowId: string | null;
   /** A display discriminant (a line vs a section-header vs a text row). */
   readonly rowType: string;
   /** Presentation ordering (server-owned, from the calc row order). */

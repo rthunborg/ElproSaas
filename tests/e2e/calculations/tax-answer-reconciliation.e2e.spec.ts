@@ -117,6 +117,7 @@ async function resetReverseChargeTaxInput(
           genuineFixedPrice: false,
           fixedPriceOre: null,
           fixedPriceCategorySplitOre: null,
+          fixedPriceRowIds: null,
         }),
       ],
     );

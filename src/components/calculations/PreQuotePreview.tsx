@@ -22,7 +22,7 @@
  *  readiness review (pre-quote checkpoint) + #Readiness and safety; src/features/calculations/
  *  totals.ts]
  */
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { oreToKronorString } from "@/features/calculations/money-input";
 import type { ReadinessReport } from "@/features/calculations/readiness";
@@ -31,6 +31,11 @@ import type { SectionTotal } from "@/features/calculations/totals";
 import type { VatDisplayView } from "@/lib/money";
 import type { TaxAnswerSnapshotV2 } from "@/lib/money";
 import { createReviewedQuoteVersionFromCalculationAction } from "@/features/quotes/actions";
+import {
+  isQuoteCaptureDateExpired,
+  isReviewedQuoteProofStale,
+  type ReviewedQuoteProof,
+} from "@/features/calculations/pre-quote-review";
 import {
   CREATE_QUOTE_ACTION_INITIAL,
   isRetryableCreateQuoteError,
@@ -55,17 +60,6 @@ const ROW_TYPE_LABELS: Record<string, string> = {
   machinery: "Maskin",
   other: "Övrigt",
 };
-
-function stockholmBusinessDate(date: Date = new Date()): string {
-  const parts = new Intl.DateTimeFormat("sv-SE", {
-    timeZone: "Europe/Stockholm",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).formatToParts(date);
-  const part = (type: string) => parts.find((entry) => entry.type === type)?.value ?? "";
-  return `${part("year")}-${part("month")}-${part("day")}`;
-}
 
 export function PreQuotePreview({
   detail,
@@ -93,7 +87,8 @@ export function PreQuotePreview({
   const { customer, sections } = detail;
   const [open, setOpen] = useState(false);
   const [now, setNow] = useState(() => new Date());
-  const [reviewedProof, setReviewedProof] = useState<{ digest: string; quoteCaptureDate: string } | null>(null);
+  const [reviewedProof, setReviewedProof] = useState<ReviewedQuoteProof | null>(null);
+  const refreshedExpiredCaptureDate = useRef<string | null>(null);
   const router = useRouter();
   const [createState, createAction, createPending] = useActionState(
     createReviewedQuoteVersionFromCalculationAction,
@@ -112,12 +107,22 @@ export function PreQuotePreview({
     const intervalId = window.setInterval(() => setNow(new Date()), 60_000);
     return () => window.clearInterval(intervalId);
   }, []);
-  const previewStale = reviewedProof !== null && (
-    reviewedProof.digest !== reviewedSnapshotDigest ||
-    reviewedProof.quoteCaptureDate !== quoteCaptureDate
+  const previewStale = isReviewedQuoteProofStale(
+    reviewedProof,
+    reviewedSnapshotDigest,
+    quoteCaptureDate,
   );
   const previewNotReviewed = reviewedProof === null;
-  const captureDateExpired = quoteCaptureDate !== stockholmBusinessDate(now);
+  const captureDateExpired = isQuoteCaptureDateExpired(quoteCaptureDate, now);
+  useEffect(() => {
+    if (!captureDateExpired) {
+      refreshedExpiredCaptureDate.current = null;
+      return;
+    }
+    if (refreshedExpiredCaptureDate.current === quoteCaptureDate) return;
+    refreshedExpiredCaptureDate.current = quoteCaptureDate;
+    router.refresh();
+  }, [captureDateExpired, quoteCaptureDate, router]);
   const gated = !report.canCreateQuote || taxAnswer === null;
   const confirmationDisabled =
     gated ||
@@ -179,12 +184,24 @@ export function PreQuotePreview({
         disabled={gated}
         aria-disabled={gated ? "true" : "false"}
         onClick={() => {
+          if (captureDateExpired) {
+            router.refresh();
+            return;
+          }
           setReviewedProof({ digest: reviewedSnapshotDigest, quoteCaptureDate });
-          setOpen((v) => !v);
+          setOpen((current) =>
+            previewNotReviewed || previewStale ? true : !current,
+          );
         }}
         className="self-start rounded-md bg-blue-700 px-4 py-2 text-sm font-medium text-white hover:bg-blue-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 disabled:cursor-not-allowed disabled:opacity-50"
       >
-        {open ? "Dölj förhandsvisning" : "Skapa offertversion"}
+        {captureDateExpired
+          ? "Hämta dagens förhandsvisning"
+          : open && (previewNotReviewed || previewStale)
+            ? "Granska uppdaterad förhandsvisning"
+            : open
+              ? "Dölj förhandsvisning"
+              : "Skapa offertversion"}
       </button>
 
       {open && !gated && (
@@ -238,6 +255,7 @@ export function PreQuotePreview({
                             data-hidden={row.is_hidden ? "true" : "false"}
                             data-optional={row.is_optional ? "true" : "false"}
                             data-selected={row.is_selected === true ? "true" : "false"}
+                            data-included={row.included_in_invoice_total ? "true" : "false"}
                             className="flex items-center justify-between gap-2 text-zinc-700"
                           >
                             <span>
@@ -248,7 +266,7 @@ export function PreQuotePreview({
                                   data-testid="preview-row-hidden-badge"
                                   className="ml-2 rounded bg-zinc-200 px-1 text-xs text-zinc-700"
                                 >
-                                  dold (räknas med)
+                                  dold i offert
                                 </span>
                               ) : null}
                               {row.is_optional ? (
@@ -259,6 +277,19 @@ export function PreQuotePreview({
                                   tillval ({unselectedOption ? "ej vald" : "vald"})
                                 </span>
                               ) : null}
+                              <span
+                                data-testid="preview-row-inclusion-badge"
+                                className={[
+                                  "ml-2 rounded px-1 text-xs",
+                                  row.included_in_invoice_total
+                                    ? "bg-green-100 text-green-900"
+                                    : "bg-amber-100 text-amber-900",
+                                ].join(" ")}
+                              >
+                                {row.included_in_invoice_total
+                                  ? "ingår i fakturasumman"
+                                  : "ingår inte i fakturasumman"}
+                              </span>
                             </span>
                           </li>
                         );
@@ -434,7 +465,7 @@ export function PreQuotePreview({
             <input
               type="hidden"
               name="reviewed_quote_capture_date"
-              value={quoteCaptureDate}
+              value={reviewedProof?.quoteCaptureDate ?? ""}
             />
             {previewNotReviewed ? (
               <p role="alert" className="text-sm text-red-800">
@@ -448,7 +479,8 @@ export function PreQuotePreview({
             ) : null}
             {captureDateExpired ? (
               <p role="alert" className="text-sm text-red-800">
-                Förhandsvisningen gäller en tidigare svensk affärsdag. Öppna och granska en ny förhandsvisning.
+                Förhandsvisningen gäller en tidigare svensk affärsdag. Dagens underlag hämtas;
+                granska sedan den uppdaterade förhandsvisningen.
               </p>
             ) : null}
             {createState.status === "error" ? (

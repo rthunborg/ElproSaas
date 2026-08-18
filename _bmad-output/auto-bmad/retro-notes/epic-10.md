@@ -57,3 +57,5 @@
 - [Phase 7 â€” code review] Authoritative summary categories derive from row_type; browser fixtures must persist canonical reverse-charge facts and exercise invalid clearing as an edit, not seed an impossible DB state.
 - [Phase 7 â€” code review] Reviewed-preview proof must be mandatory outside list-page shortcuts and must stale on digest, applicability, or Stockholm business-date changes.
 - [Phase 7 â€” code review] Windows sandbox-helper failures caused an apply_patch-contract deviation during iteration 4; require the next full six-lens plus security pass before accepting the diff.
+- Iteration-5 review exposed that transaction-bound quote proofs need a single cross-resource lock order plus parent-chain re-scans; independent SQL re-audit caught phantom/deadlock and lineage gaps after focused tests were already green.
+- Shared integration and E2E factories must seed the complete canonical V2 row-lineage and green-scope contract; otherwise stricter persistence guards create broad fixture-only cascades.

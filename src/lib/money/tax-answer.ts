@@ -1,6 +1,7 @@
 import {
   DEDUCTION_CLASSIFICATIONS,
   GREEN_CATEGORIES,
+  isCanonicalFixedPriceRowId,
   TAX_SUMMARY_CATEGORIES,
   type DeductionClassification,
   type CustomerEligibilityPosture,
@@ -73,6 +74,10 @@ export interface GreenCategoryTaxAnswer {
 export interface GreenTaxAnswer {
   readonly policy: ResolvedTaxPolicySnapshot | null;
   readonly basisMethod: TaxInputSnapshotV2["greenBasisMethod"];
+  /** Exact persisted calculation-row scope for a genuine 97% fixed-price contract. */
+  readonly fixedPriceRowIds: TaxInputSnapshotV2["fixedPriceRowIds"];
+  readonly fixedPriceOre: TaxInputSnapshotV2["fixedPriceOre"];
+  readonly fixedPriceCategorySplitOre: TaxInputSnapshotV2["fixedPriceCategorySplitOre"];
   readonly categories: Readonly<Record<GreenCategory, GreenCategoryTaxAnswer>>;
   readonly calculatedOre: number;
   readonly claimOre: number;
@@ -412,6 +417,52 @@ export function buildTaxAnswerSnapshotV2(
     return fail("CUSTOMER_NOT_ELIGIBLE_FOR_DEDUCTION");
   }
 
+  let fixedPriceRowIds: TaxInputSnapshotV2["fixedPriceRowIds"] = null;
+  if (usesGreen && input.taxInput.greenBasisMethod === "FIXED_PRICE_97_PERCENT") {
+    const scope = input.taxInput.fixedPriceRowIds;
+    if (scope === null || scope.length === 0 || scope.length > 500) {
+      return fail("INCOMPLETE_FIXED_PRICE_ROW_SCOPE");
+    }
+    const canonicalScope = [...scope].sort();
+    if (
+      new Set(scope).size !== scope.length ||
+      scope.some((id, index) =>
+        !isCanonicalFixedPriceRowId(id) || id !== canonicalScope[index])
+    ) {
+      return fail("INCOMPLETE_FIXED_PRICE_ROW_SCOPE");
+    }
+    const rowsById = new Map<string, DocumentVatRowInput>();
+    for (const row of input.rows) {
+      if (row.id === undefined) continue;
+      if (rowsById.has(row.id)) return fail("FIXED_PRICE_SCOPE_MISMATCH");
+      rowsById.set(row.id, row);
+    }
+    const scopeSet = new Set(scope);
+    for (const rowId of scope) {
+      const row = rowsById.get(rowId);
+      const classification = row?.deductionClassification ?? "NONE";
+      if (
+        row === undefined ||
+        row.includedInInvoiceTotal === false ||
+        greenCategoryOf(classification) === null
+      ) {
+        return fail("FIXED_PRICE_SCOPE_MISMATCH");
+      }
+    }
+    for (const row of input.rows) {
+      if (
+        row.includedInInvoiceTotal !== false &&
+        greenCategoryOf(row.deductionClassification ?? "NONE") !== null &&
+        (row.id === undefined || !scopeSet.has(row.id))
+      ) {
+        return fail("FIXED_PRICE_SCOPE_MISMATCH");
+      }
+    }
+    fixedPriceRowIds = Object.freeze([...scope]);
+  } else if (input.taxInput.fixedPriceRowIds != null) {
+    return fail("INVALID_TAX_INPUT");
+  }
+
   let rotPolicy: ReturnType<typeof policyFor> | null = null;
   if (usesRot) {
     if (input.taxInput.paymentDate === null) return fail("MISSING_TAX_RESOLVING_DATE");
@@ -463,7 +514,12 @@ export function buildTaxAnswerSnapshotV2(
     let basisOre = classifiedGreenGrossOre;
     if (usesGreen && input.taxInput.greenBasisMethod === "FIXED_PRICE_97_PERCENT") {
       const split = input.taxInput.fixedPriceCategorySplitOre;
-      if (!input.taxInput.genuineFixedPrice || split === null) {
+      if (
+        !input.taxInput.genuineFixedPrice ||
+        input.taxInput.fixedPriceOre === null ||
+        split === null ||
+        fixedPriceRowIds === null
+      ) {
         return fail("INCOMPLETE_FIXED_PRICE_CATEGORY_SPLIT");
       }
       const fixedPriceSplitOre = split[category];
@@ -493,6 +549,17 @@ export function buildTaxAnswerSnapshotV2(
       : {}),
   });
   if (!greenAmounts.ok) return greenAmounts;
+  if (fixedPriceRowIds !== null) {
+    const split = input.taxInput.fixedPriceCategorySplitOre;
+    if (split === null || input.taxInput.fixedPriceOre === null) {
+      return fail("INCOMPLETE_FIXED_PRICE_CATEGORY_SPLIT");
+    }
+    const splitTotal = addOre(...GREEN_CATEGORIES.map((category) => split[category]));
+    if (splitTotal === null) return fail("ORE_OVERFLOW");
+    if (splitTotal !== input.taxInput.fixedPriceOre) {
+      return fail("INCOMPLETE_FIXED_PRICE_CATEGORY_SPLIT");
+    }
+  }
   const greenCalculatedOre = usesGreen ? greenAmounts.value.calculatedOre : 0;
   const greenClaimOre = usesGreen ? greenAmounts.value.claimOre : 0;
   for (const category of GREEN_CATEGORIES) {
@@ -547,6 +614,10 @@ export function buildTaxAnswerSnapshotV2(
     green: Object.freeze({
       policy: greenPolicy?.ok ? greenPolicy.value.frozen : null,
       basisMethod: input.taxInput.greenBasisMethod,
+      fixedPriceRowIds,
+      fixedPriceOre: fixedPriceRowIds === null ? null : input.taxInput.fixedPriceOre,
+      fixedPriceCategorySplitOre:
+        fixedPriceRowIds === null ? null : input.taxInput.fixedPriceCategorySplitOre,
       categories: Object.freeze(greenAnswers),
       calculatedOre: greenCalculatedOre,
       claimOre: greenClaimOre,

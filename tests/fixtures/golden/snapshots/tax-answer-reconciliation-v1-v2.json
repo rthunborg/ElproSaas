@@ -36,7 +36,8 @@
       "greenBasisMethod": "ACTUAL_ELIGIBLE_COSTS",
       "genuineFixedPrice": false,
       "fixedPriceOre": null,
-      "fixedPriceCategorySplitOre": null
+      "fixedPriceCategorySplitOre": null,
+      "fixedPriceRowIds": null
     },
     "source": {
       "calculationId": "calc-tax-answer-v2",

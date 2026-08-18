@@ -150,7 +150,7 @@ test("6.5-INT-01 (unit): linesToPayload emits exactly the customer-visible line 
     "rowType", "sortOrder", "label", "description", "quoteNote",
     "quantity", "unit", "unitSellOre", "lineNetOre", "vatRateBp",
     "includedInInvoiceTotal", "deductionClassification", "vatType",
-    "isHidden", "isOptional", "isSelected",
+    "isHidden", "isOptional", "isSelected", "sourceRowId",
   ].sort();
   const keys = Object.keys(lines[0] as Record<string, unknown>).sort();
   assert.deepEqual(keys, expected);
@@ -171,6 +171,7 @@ test("6.5-INT-01 (unit): linesToPayload preserves the customer-visible values + 
   assert.equal(line.unitSellOre, 120000);
   assert.equal(line.lineNetOre, 120000);
   assert.equal(line.vatRateBp, 2500);
+  assert.equal(line.sourceRowId, null);
 });
 
 test("6.5-INT-01 (unit): linesToPayload maps an empty snapshot to an empty array (never null)", () => {

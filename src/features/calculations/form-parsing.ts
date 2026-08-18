@@ -41,9 +41,14 @@ import {
   DEDUCTION_CLASSIFICATIONS,
   GREEN_BASIS_METHODS,
   TAX_DEDUCTION_CHOICES,
+  isCanonicalFixedPriceRowId,
   isIsoCalendarDate,
   isValidBuyerVatNumber,
 } from "@/lib/money";
+import {
+  REVERSE_CHARGE_DEDUCTION_CONFLICT_MESSAGE,
+  hasReverseChargeDeductionConflict,
+} from "./tax-settings-ui";
 
 const REQUIRED_MSG = "Fältet är obligatoriskt.";
 const PRICE_MSG =
@@ -177,6 +182,7 @@ const TAX_INPUT_FIELDS = [
   "fixed_solar_kronor",
   "fixed_storage_kronor",
   "fixed_charging_kronor",
+  "fixed_price_row_ids",
   ...Array.from({ length: 50 }, (_, index) => index + 1).flatMap((number) => [
     `person_${number}_rot_remaining_kronor`,
     `person_${number}_combined_rot_rut_remaining_kronor`,
@@ -198,6 +204,13 @@ export function parseUpdateTaxInputForm(form: FormData): ParsedCalcForm {
   const deductionChoice = trimmedField(form, "deduction_choice");
   if (!deductionChoice || !(TAX_DEDUCTION_CHOICES as readonly string[]).includes(deductionChoice)) {
     fieldErrors.deduction_choice = "Välj ett giltigt skatteavdrag.";
+  }
+  if (
+    deductionChoice !== undefined &&
+    hasReverseChargeDeductionConflict(documentVatType ?? "", deductionChoice)
+  ) {
+    fieldErrors.document_vat_type = REVERSE_CHARGE_DEDUCTION_CONFLICT_MESSAGE;
+    fieldErrors.deduction_choice = REVERSE_CHARGE_DEDUCTION_CONFLICT_MESSAGE;
   }
   const greenBasisMethod = trimmedField(form, "green_basis_method");
   if (!greenBasisMethod || !(GREEN_BASIS_METHODS as readonly string[]).includes(greenBasisMethod)) {
@@ -280,6 +293,16 @@ export function parseUpdateTaxInputForm(form: FormData): ParsedCalcForm {
   const anyFixedSplit =
     fixedSolarOre !== null || fixedStorageOre !== null || fixedChargingOre !== null;
   const usesFixedPrice = readsGreen && greenBasisMethod === "FIXED_PRICE_97_PERCENT";
+  const submittedFixedPriceRowIds = form
+    .getAll("fixed_price_row_ids")
+    .filter((value): value is string => typeof value === "string")
+    .map((value) => value.trim());
+  values.fixed_price_row_ids = submittedFixedPriceRowIds.join(",");
+  const fixedPriceRowIds = [...submittedFixedPriceRowIds].sort();
+  const fixedPriceRowIdsAreCanonical =
+    fixedPriceRowIds.length <= 500 &&
+    fixedPriceRowIds.every(isCanonicalFixedPriceRowId) &&
+    new Set(fixedPriceRowIds).size === fixedPriceRowIds.length;
   const genuineFixedPrice = usesFixedPrice
     ? (parseFlag(form, "genuine_fixed_price") ?? false)
     : false;
@@ -293,6 +316,13 @@ export function parseUpdateTaxInputForm(form: FormData): ParsedCalcForm {
       fieldErrors.genuine_fixed_price = "Bekräfta att avtalet är ett äkta fastprisavtal.";
     }
     if (fixedPriceOre === null) fieldErrors.fixed_price_kronor = "Ange fastpriset.";
+    if (fixedPriceRowIds.length === 0) {
+      fieldErrors.fixed_price_row_ids =
+        "Välj minst en inkluderad rad för det äkta fastprisavtalet.";
+    } else if (!fixedPriceRowIdsAreCanonical) {
+      fieldErrors.fixed_price_row_ids =
+        "Fastprisets radurval är ogiltigt. Välj raderna på nytt.";
+    }
     if (!fixedSplitComplete) {
       if (fixedSolarOre === null) fieldErrors.fixed_solar_kronor = "Ange solandelen.";
       if (fixedStorageOre === null) fieldErrors.fixed_storage_kronor = "Ange lagringsandelen.";
@@ -318,6 +348,10 @@ export function parseUpdateTaxInputForm(form: FormData): ParsedCalcForm {
     fixedPriceCategorySplitOre: usesFixedPrice && fixedSplitComplete
       ? { SOLAR: fixedSolarOre, STORAGE: fixedStorageOre, CHARGING: fixedChargingOre }
       : null,
+    fixedPriceRowIds:
+      usesFixedPrice && fixedPriceRowIds.length > 0 && fixedPriceRowIdsAreCanonical
+        ? fixedPriceRowIds
+        : null,
   };
   return {
     input: { id, tax_input_snapshot: taxInputSnapshot },
@@ -405,10 +439,12 @@ const ROW_FIELDS = [
   "vat_percent",
   "original_vat_percent",
   "included_in_invoice_total",
+  "original_is_optional",
   "deduction_classification",
   "original_deduction_classification",
   "vat_type",
   "original_vat_type",
+  "original_is_selected",
   "is_hidden",
   "is_optional",
   "is_selected",
@@ -502,16 +538,44 @@ export function parseUpdateRowForm(form: FormData): ParsedCalcForm {
   const vat = parseVat(form, fieldErrors, /* required */ false);
   const submittedVatPercent = rawField(form, "vat_percent");
   const originalVatPercent = rawField(form, "original_vat_percent");
-  if (vat !== undefined && submittedVatPercent !== originalVatPercent) input.vat_rate_bp = vat;
+  const submittedVatType = trimmedField(form, "vat_type");
+  const originalVatType = trimmedField(form, "original_vat_type");
+  const vatPairChanged =
+    submittedVatPercent !== originalVatPercent || submittedVatType !== originalVatType;
+  // A VAT remediation is one atomic `(type, rate)` owner decision. Whenever either half changes,
+  // submit both parsed halves so a quarantined legacy pair can be repaired without relying on the
+  // ambiguous persisted counterpart.
+  if (vatPairChanged && vat !== undefined) input.vat_rate_bp = vat;
 
   // Flags: explicit false when the companion is present so a flag can be turned OFF.
   attachFlags(form, input);
+  if (vatPairChanged && submittedVatType !== undefined) input.vat_type = submittedVatType;
   const submittedClassification = rawField(form, "deduction_classification");
   const originalClassification = rawField(form, "original_deduction_classification");
   if (submittedClassification === originalClassification) delete input.deduction_classification;
-  const submittedVatType = rawField(form, "vat_type");
-  const originalVatType = rawField(form, "original_vat_type");
-  if (submittedVatType === originalVatType) delete input.vat_type;
+  if (!vatPairChanged) delete input.vat_type;
+
+  const submittedOptional = parseFlag(form, "is_optional");
+  const originalOptional = parseFlag(form, "original_is_optional");
+  const submittedSelected = parseFlag(form, "is_selected");
+  const originalSelectedRaw = rawField(form, "original_is_selected");
+  const originalSelected =
+    originalSelectedRaw === "true"
+      ? true
+      : originalSelectedRaw === "false"
+        ? false
+        : null;
+  const effectiveOptional = submittedOptional ?? originalOptional;
+  if (
+    effectiveOptional === true &&
+    submittedSelected !== undefined &&
+    submittedSelected !== originalSelected
+  ) {
+    // Selection is the dedicated transition intent. Omit the ordinary inclusion patch so the
+    // command derives matching inclusion atomically from the authoritative persisted state.
+    // An unchanged selection leaves an explicit inclusion-only edit intact.
+    delete input.included_in_invoice_total;
+  }
   attachRowText(form, input);
   attachSource(form, input);
 

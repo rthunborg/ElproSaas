@@ -45,6 +45,7 @@ export function SectionEditor({
   calculationId,
   sources,
   posture,
+  policyEffectiveDate,
   canAddRow,
 }: {
   readonly section: CalculationSectionRow;
@@ -53,6 +54,8 @@ export function SectionEditor({
   readonly sources: RowSourceLists;
   /** The resolved VAT display posture (Story 5.4 — drives the posture-aware line-total label). */
   readonly posture: VatDisplayPosture;
+  /** Swedish quote-capture date used to resolve the applicable live VAT policy. */
+  readonly policyEffectiveDate: string;
   /** Whole-calculation row cap; the server and DB independently enforce the same invariant. */
   readonly canAddRow: boolean;
 }) {
@@ -106,6 +109,7 @@ export function SectionEditor({
       is_optional: r.is_optional,
       is_selected: r.is_selected,
     })),
+    policyEffectiveDate,
   );
 
   const orderedIds = toOrderedIds(section.rows as CalculationRowRow[]);
@@ -220,6 +224,7 @@ export function SectionEditor({
                   row={row}
                   sources={sources}
                   posture={posture}
+                  policyEffectiveDate={policyEffectiveDate}
                   onArchive={(r) => {
                     const fd = new FormData();
                     fd.set("id", r.id);
@@ -247,6 +252,7 @@ export function SectionEditor({
             calculationId={calculationId}
             sources={sources}
             posture={posture}
+            policyEffectiveDate={policyEffectiveDate}
           />
         ) : (
           <button

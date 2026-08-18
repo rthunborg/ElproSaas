@@ -61,7 +61,7 @@ begin
       substring(p_value ->> 'resolvingDate' from 1 for 4)::integer,
       substring(p_value ->> 'resolvingDate' from 6 for 2)::integer,
       substring(p_value ->> 'resolvingDate' from 9 for 2)::integer
-    )::text = p_value ->> 'resolvingDate'
+    ) is not null
     and p_value ->> 'resolvingDate' >= p_value ->> 'validFrom'
     and p_value ->> 'resolvingDate' < p_value ->> 'validTo'
     and p_value ->> 'resolvingFact' in (
@@ -201,9 +201,11 @@ set search_path = ''
 as $$
 declare
   v_slot jsonb;
+  v_row_id jsonb;
   v_category text;
   v_split_total numeric := 0;
   v_seen_slots text[] := array[]::text[];
+  v_seen_row_ids text[] := array[]::text[];
   v_has_rot_slot boolean := false;
   v_has_green_slot boolean := false;
 begin
@@ -213,7 +215,7 @@ begin
        'schemaVersion', 'documentVatType', 'buyerVatNumber', 'deductionChoice',
        'paymentDate', 'finalPaymentDate', 'personAllowanceSlots',
        'greenBasisMethod', 'genuineFixedPrice', 'fixedPriceOre',
-       'fixedPriceCategorySplitOre'
+       'fixedPriceCategorySplitOre', 'fixedPriceRowIds'
      ]) then
     return false;
   end if;
@@ -223,7 +225,7 @@ begin
       'schemaVersion', 'documentVatType', 'buyerVatNumber', 'deductionChoice',
       'paymentDate', 'finalPaymentDate', 'personAllowanceSlots',
       'greenBasisMethod', 'genuineFixedPrice', 'fixedPriceOre',
-      'fixedPriceCategorySplitOre'
+      'fixedPriceCategorySplitOre', 'fixedPriceRowIds'
     )
   ) then
     return false;
@@ -248,7 +250,8 @@ begin
      or jsonb_typeof(p_value -> 'personAllowanceSlots') <> 'array'
      or jsonb_array_length(p_value -> 'personAllowanceSlots') > 50
      or jsonb_typeof(p_value -> 'fixedPriceOre') not in ('number', 'null')
-     or jsonb_typeof(p_value -> 'fixedPriceCategorySplitOre') not in ('object', 'null') then
+     or jsonb_typeof(p_value -> 'fixedPriceCategorySplitOre') not in ('object', 'null')
+     or jsonb_typeof(p_value -> 'fixedPriceRowIds') not in ('array', 'null') then
     return false;
   end if;
 
@@ -397,12 +400,31 @@ begin
        or (p_value ->> 'genuineFixedPrice')::boolean is not true
        or not public.is_story_10_6_ore(p_value -> 'fixedPriceOre')
        or jsonb_typeof(p_value -> 'fixedPriceCategorySplitOre') <> 'object'
+       or jsonb_typeof(p_value -> 'fixedPriceRowIds') <> 'array'
+       or jsonb_array_length(p_value -> 'fixedPriceRowIds') not between 1 and 500
        or v_split_total <> (p_value ->> 'fixedPriceOre')::numeric then
       return false;
     end if;
+    for v_row_id in
+      select value from jsonb_array_elements(p_value -> 'fixedPriceRowIds')
+    loop
+      if jsonb_typeof(v_row_id) <> 'string'
+         or not ((v_row_id #>> '{}') ~
+           '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$')
+         or (v_row_id #>> '{}') = any(v_seen_row_ids)
+         or (
+           cardinality(v_seen_row_ids) > 0
+           and (v_row_id #>> '{}') <
+             v_seen_row_ids[cardinality(v_seen_row_ids)]
+         ) then
+        return false;
+      end if;
+      v_seen_row_ids := array_append(v_seen_row_ids, v_row_id #>> '{}');
+    end loop;
   elsif (p_value ->> 'genuineFixedPrice')::boolean is not false
      or jsonb_typeof(p_value -> 'fixedPriceOre') <> 'null'
-     or jsonb_typeof(p_value -> 'fixedPriceCategorySplitOre') <> 'null' then
+     or jsonb_typeof(p_value -> 'fixedPriceCategorySplitOre') <> 'null'
+     or jsonb_typeof(p_value -> 'fixedPriceRowIds') <> 'null' then
     return false;
   end if;
 
@@ -426,6 +448,7 @@ set search_path = ''
 as $$
 declare
   v_value jsonb;
+  v_row_id jsonb;
   v_category text;
   v_classification text;
   v_bucket text;
@@ -442,6 +465,7 @@ declare
   v_expected_rule_ids text[] := array[]::text[];
   v_distinct_expected_rule_ids text[] := array[]::text[];
   v_seen_slots text[] := array[]::text[];
+  v_seen_fixed_price_row_ids text[] := array[]::text[];
   v_category_key text;
   v_seen_category_keys text[] := array[]::text[];
   v_labor_classification text;
@@ -459,8 +483,8 @@ declare
   v_green_claim_remainders numeric[] := array[0, 0, 0]::numeric[];
   v_green_total_numerator numeric := 0;
   v_green_remaining numeric := 0;
-  v_i integer;
-  v_j integer;
+  v_fixed_price_split_total numeric := 0;
+  v_category_index integer := 0;
   v_rank integer;
 begin
   if p_value is null
@@ -534,7 +558,7 @@ begin
   end loop;
   v_policy_id := p_value #>> array['vatPolicy', 'id'];
   v_expected_rule_ids := array_append(v_expected_rule_ids, v_policy_id);
-  if not ((p_value -> 'taxRuleVersions') @> jsonb_build_array(v_policy_id)) then
+  if not ((p_value -> 'taxRuleVersions') ? v_policy_id) then
     return false;
   end if;
 
@@ -751,7 +775,7 @@ begin
        or not (v_value ?& array['slot', 'ore'])
        or (v_value - array['slot', 'ore']) <> '{}'::jsonb
        or jsonb_typeof(v_value -> 'slot') <> 'string'
-       or not ((v_value ->> 'slot') ~ '^[A-Za-z][A-Za-z0-9_-]{0,63}$')
+       or not ((v_value ->> 'slot') ~ '^PERSON_([1-9]|[1-4][0-9]|50)$')
        or not public.is_story_10_6_ore(v_value -> 'ore')
        or (v_value ->> 'ore')::bigint % 100 <> 0
        or (v_value ->> 'ore')::numeric > (
@@ -771,13 +795,20 @@ begin
 
   v_value := p_value -> 'green';
   if not (v_value ?& array[
-       'policy', 'basisMethod', 'categories', 'calculatedOre', 'claimOre', 'allocations'
+       'policy', 'basisMethod', 'fixedPriceRowIds', 'fixedPriceOre',
+       'fixedPriceCategorySplitOre', 'categories',
+       'calculatedOre', 'claimOre', 'allocations'
      ])
      or (v_value - array[
-       'policy', 'basisMethod', 'categories', 'calculatedOre', 'claimOre', 'allocations'
+       'policy', 'basisMethod', 'fixedPriceRowIds', 'fixedPriceOre',
+       'fixedPriceCategorySplitOre', 'categories',
+       'calculatedOre', 'claimOre', 'allocations'
      ]) <> '{}'::jsonb
      or jsonb_typeof(v_value -> 'policy') not in ('object', 'null')
      or v_value ->> 'basisMethod' not in ('ACTUAL_ELIGIBLE_COSTS', 'FIXED_PRICE_97_PERCENT')
+     or jsonb_typeof(v_value -> 'fixedPriceRowIds') not in ('array', 'null')
+     or jsonb_typeof(v_value -> 'fixedPriceOre') not in ('number', 'null')
+     or jsonb_typeof(v_value -> 'fixedPriceCategorySplitOre') not in ('object', 'null')
      or jsonb_typeof(v_value -> 'categories') <> 'object'
      or not ((v_value -> 'categories') ?& array['SOLAR', 'STORAGE', 'CHARGING'])
      or ((v_value -> 'categories') - array['SOLAR', 'STORAGE', 'CHARGING']) <> '{}'::jsonb
@@ -801,16 +832,65 @@ begin
      or jsonb_array_length(v_value -> 'allocations') <> 0 then
     return false;
   end if;
+  if p_value ->> 'deductionChoice' in ('GREEN', 'ROT_AND_GREEN')
+     and v_value ->> 'basisMethod' = 'FIXED_PRICE_97_PERCENT' then
+    if jsonb_typeof(v_value -> 'fixedPriceRowIds') <> 'array'
+       or jsonb_array_length(v_value -> 'fixedPriceRowIds') not between 1 and 500
+       or not public.is_story_10_6_ore(v_value -> 'fixedPriceOre')
+       or jsonb_typeof(v_value -> 'fixedPriceCategorySplitOre') <> 'object'
+       or not ((v_value -> 'fixedPriceCategorySplitOre')
+         ?& array['SOLAR', 'STORAGE', 'CHARGING'])
+       or ((v_value -> 'fixedPriceCategorySplitOre')
+         - array['SOLAR', 'STORAGE', 'CHARGING']) <> '{}'::jsonb then
+      return false;
+    end if;
+    for v_row_id in
+      select value from jsonb_array_elements(v_value -> 'fixedPriceRowIds')
+    loop
+      if jsonb_typeof(v_row_id) <> 'string'
+         or not ((v_row_id #>> '{}') ~
+           '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$')
+         or (v_row_id #>> '{}') = any(v_seen_fixed_price_row_ids)
+         or (
+           cardinality(v_seen_fixed_price_row_ids) > 0
+           and (v_row_id #>> '{}') <
+             v_seen_fixed_price_row_ids[cardinality(v_seen_fixed_price_row_ids)]
+         ) then
+        return false;
+      end if;
+      v_seen_fixed_price_row_ids := array_append(
+        v_seen_fixed_price_row_ids,
+        v_row_id #>> '{}'
+      );
+    end loop;
+    foreach v_category in array array['SOLAR', 'STORAGE', 'CHARGING']
+    loop
+      if not public.is_story_10_6_ore(
+           v_value #> array['fixedPriceCategorySplitOre', v_category]
+         ) then
+        return false;
+      end if;
+      v_fixed_price_split_total := v_fixed_price_split_total
+        + (v_value #>> array['fixedPriceCategorySplitOre', v_category])::numeric;
+    end loop;
+    if v_fixed_price_split_total <> (v_value ->> 'fixedPriceOre')::numeric then
+      return false;
+    end if;
+  elsif jsonb_typeof(v_value -> 'fixedPriceRowIds') <> 'null'
+     or jsonb_typeof(v_value -> 'fixedPriceOre') <> 'null'
+     or jsonb_typeof(v_value -> 'fixedPriceCategorySplitOre') <> 'null' then
+    return false;
+  end if;
   v_sum_calculated := 0;
   v_sum_claim := 0;
   if p_value ->> 'deductionChoice' in ('GREEN', 'ROT_AND_GREEN')
      and p_value #>> array['green', 'basisMethod'] = 'FIXED_PRICE_97_PERCENT' then
     v_green_denominator := 10000 * 10000;
   end if;
-  v_i := 0;
+  v_category_index := 0;
   foreach v_category in array array['SOLAR', 'STORAGE', 'CHARGING']
   loop
-    v_i := v_i + 1;
+    v_category_index := v_category_index + 1;
     v_value := p_value #> array['green', 'categories', v_category];
     if jsonb_typeof(v_value) <> 'object'
        or not (v_value ?& array['category', 'basisOre', 'calculatedOre', 'claimOre'])
@@ -818,8 +898,7 @@ begin
        or v_value ->> 'category' <> v_category
        or not public.is_story_10_6_ore(v_value -> 'basisOre')
        or not public.is_story_10_6_ore(v_value -> 'calculatedOre')
-       or not public.is_story_10_6_ore(v_value -> 'claimOre')
-       or (v_value ->> 'claimOre')::bigint > (v_value ->> 'calculatedOre')::bigint then
+       or not public.is_story_10_6_ore(v_value -> 'claimOre') then
       return false;
     end if;
     if p_value ->> 'deductionChoice' not in ('GREEN', 'ROT_AND_GREEN')
@@ -841,6 +920,11 @@ begin
       if (p_value #>> array['green', 'basisMethod']) = 'ACTUAL_ELIGIBLE_COSTS' then
         v_expected_green_basis := v_classified_green_gross;
       else
+        if (p_value #>> array[
+             'green', 'fixedPriceCategorySplitOre', v_category
+           ])::numeric <> v_classified_green_gross then
+          return false;
+        end if;
         v_expected_green_basis := floor(
           v_classified_green_gross
           * (p_value #>> array[
@@ -858,18 +942,20 @@ begin
         ]
       )::numeric;
       if (p_value #>> array['green', 'basisMethod']) = 'ACTUAL_ELIGIBLE_COSTS' then
-        v_green_exact_numerators[v_i] := v_expected_green_basis * v_policy_rate;
+        v_green_exact_numerators[v_category_index] :=
+          v_expected_green_basis * v_policy_rate;
       else
         -- Preserve the exact fixed-price rational; the displayed category basis is
         -- not fed back into either the calculated or whole-SEK claim arithmetic.
-        v_green_exact_numerators[v_i] :=
+        v_green_exact_numerators[v_category_index] :=
           v_classified_green_gross
           * (p_value #>> array[
               'green', 'policy', 'values', 'green', 'fixedPriceEligibleShareBp'
             ])::numeric
           * v_policy_rate;
       end if;
-      v_green_total_numerator := v_green_total_numerator + v_green_exact_numerators[v_i];
+      v_green_total_numerator :=
+        v_green_total_numerator + v_green_exact_numerators[v_category_index];
     end if;
   end loop;
 
@@ -918,13 +1004,13 @@ begin
     end loop;
 
     v_sum_claim := 0;
-    if v_expected_calculated > 0 then
+    if v_green_total_numerator > 0 then
       for v_i in 1..3 loop
         v_green_claim_allocations[v_i] := floor(
-          v_expected_claim * v_green_calculated_allocations[v_i] / v_expected_calculated
+          v_expected_claim * v_green_exact_numerators[v_i] / v_green_total_numerator
         );
         v_green_claim_remainders[v_i] := mod(
-          v_expected_claim * v_green_calculated_allocations[v_i], v_expected_calculated
+          v_expected_claim * v_green_exact_numerators[v_i], v_green_total_numerator
         );
         v_sum_claim := v_sum_claim + v_green_claim_allocations[v_i]::bigint;
       end loop;
@@ -961,7 +1047,7 @@ begin
        or not (v_value ?& array['slot', 'ore'])
        or (v_value - array['slot', 'ore']) <> '{}'::jsonb
        or jsonb_typeof(v_value -> 'slot') <> 'string'
-       or not ((v_value ->> 'slot') ~ '^[A-Za-z][A-Za-z0-9_-]{0,63}$')
+       or not ((v_value ->> 'slot') ~ '^PERSON_([1-9]|[1-4][0-9]|50)$')
        or not public.is_story_10_6_ore(v_value -> 'ore')
        or (v_value ->> 'ore')::bigint % 100 <> 0
        or (v_value ->> 'ore')::numeric > (
@@ -996,14 +1082,14 @@ begin
 
   if jsonb_typeof(p_value #> array['rot', 'policy']) = 'object' then
     v_policy_id := p_value #>> array['rot', 'policy', 'id'];
-    if not ((p_value -> 'taxRuleVersions') @> jsonb_build_array(v_policy_id)) then
+    if not ((p_value -> 'taxRuleVersions') ? v_policy_id) then
       return false;
     end if;
     v_expected_rule_ids := array_append(v_expected_rule_ids, v_policy_id);
   end if;
   if jsonb_typeof(p_value #> array['green', 'policy']) = 'object' then
     v_policy_id := p_value #>> array['green', 'policy', 'id'];
-    if not ((p_value -> 'taxRuleVersions') @> jsonb_build_array(v_policy_id)) then
+    if not ((p_value -> 'taxRuleVersions') ? v_policy_id) then
       return false;
     end if;
     v_expected_rule_ids := array_append(v_expected_rule_ids, v_policy_id);
@@ -1064,6 +1150,10 @@ declare
   v_bucket_floor numeric[];
   v_bucket_remainder numeric[];
   v_bonus_used boolean[];
+  v_source_row_id text;
+  v_seen_source_row_ids text[] := array[]::text[];
+  v_fixed_price_row_ids jsonb;
+  v_is_fixed_price boolean;
 begin
   if not public.is_story_10_6_tax_answer_v2(p_answer)
      or p_lines is null
@@ -1071,14 +1161,20 @@ begin
      or jsonb_array_length(p_lines) > 500 then
     return false;
   end if;
+  v_is_fixed_price :=
+    p_answer #>> array['green', 'basisMethod'] = 'FIXED_PRICE_97_PERCENT';
+  v_fixed_price_row_ids := p_answer #> array['green', 'fixedPriceRowIds'];
 
   for v_line in select value from jsonb_array_elements(p_lines)
   loop
     if jsonb_typeof(v_line) <> 'object'
        or not (v_line ?& array[
-         'rowType', 'lineNetOre', 'vatRateBp', 'includedInInvoiceTotal',
+         'sourceRowId', 'rowType', 'lineNetOre', 'vatRateBp', 'includedInInvoiceTotal',
          'deductionClassification', 'vatType'
        ])
+       or jsonb_typeof(v_line -> 'sourceRowId') <> 'string'
+       or not ((v_line ->> 'sourceRowId') ~
+         '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$')
        or jsonb_typeof(v_line -> 'rowType') <> 'string'
        or not public.is_story_10_6_ore(v_line -> 'lineNetOre')
        or jsonb_typeof(v_line -> 'vatRateBp') <> 'number'
@@ -1119,6 +1215,11 @@ begin
            and (v_line ->> 'vatRateBp')::numeric <> 0) then
       return false;
     end if;
+    v_source_row_id := v_line ->> 'sourceRowId';
+    if v_source_row_id = any(v_seen_source_row_ids) then
+      return false;
+    end if;
+    v_seen_source_row_ids := array_append(v_seen_source_row_ids, v_source_row_id);
 
     if (v_line ->> 'includedInInvoiceTotal')::boolean then
       select exists(
@@ -1142,7 +1243,29 @@ begin
       v_summary_net[v_summary_index] := v_summary_net[v_summary_index]
         + (v_line ->> 'lineNetOre')::numeric;
     end if;
+
+    -- A 97% fixed-price answer names its exact economic contract rows. Every
+    -- scoped row must be an included green labor/material row, and every included
+    -- green row must be scoped. ROT/NONE rows may coexist only outside this set.
+    if v_is_fixed_price then
+      if (v_fixed_price_row_ids ? v_source_row_id)
+         is distinct from (
+           (v_line ->> 'includedInInvoiceTotal')::boolean
+           and left(v_line ->> 'deductionClassification', 6) = 'GREEN_'
+         ) then
+        return false;
+      end if;
+    end if;
   end loop;
+
+  if v_is_fixed_price
+     and exists (
+       select 1
+         from jsonb_array_elements_text(v_fixed_price_row_ids) as scoped(row_id)
+        where not (scoped.row_id = any(v_seen_source_row_ids))
+     ) then
+    return false;
+  end if;
 
   for v_category in select value from jsonb_array_elements(p_answer -> 'categories')
   loop
@@ -1343,8 +1466,17 @@ begin
      or p_answer ->> 'deductionChoice' is distinct from p_tax_input ->> 'deductionChoice'
      or p_answer #>> array['green', 'basisMethod']
         is distinct from p_tax_input ->> 'greenBasisMethod'
-     or p_answer #>> array['vatPolicy', 'resolvingDate']
-        is distinct from p_quote_capture_date::text then
+     or p_answer #> array['green', 'fixedPriceRowIds']
+        is distinct from p_tax_input -> 'fixedPriceRowIds'
+     or p_answer #> array['green', 'fixedPriceOre']
+        is distinct from p_tax_input -> 'fixedPriceOre'
+     or p_answer #> array['green', 'fixedPriceCategorySplitOre']
+        is distinct from p_tax_input -> 'fixedPriceCategorySplitOre'
+     or p_quote_capture_date is distinct from make_date(
+       substring(p_answer #>> array['vatPolicy', 'resolvingDate'] from 1 for 4)::integer,
+       substring(p_answer #>> array['vatPolicy', 'resolvingDate'] from 6 for 2)::integer,
+       substring(p_answer #>> array['vatPolicy', 'resolvingDate'] from 9 for 2)::integer
+     ) then
     return false;
   end if;
 
@@ -1791,7 +1923,7 @@ declare
   v_section record;
   v_calculation_ids uuid[] := array[]::uuid[];
 begin
-  if new.archived_at is not null then
+  if tg_op = 'UPDATE' and new.archived_at is not null then
     return new;
   end if;
   if tg_op = 'UPDATE'
@@ -1838,6 +1970,14 @@ begin
    where c.id = any(v_calculation_ids)
    order by c.id
    for update;
+
+  -- An archived INSERT does not affect the active-row limit, but it still must
+  -- establish section -> calculation before its tenant FK check. Otherwise it
+  -- can hold tenant KEY SHARE while waiting on quote proof's section/calculation
+  -- locks, inversing the quote proof's later calculation -> tenant order.
+  if new.archived_at is not null then
+    return new;
+  end if;
 
   if tg_op = 'UPDATE' then
     select count(*)::integer
@@ -1898,6 +2038,33 @@ create trigger calculation_rows_story_10_6_limit
   before insert or update of tenant_id, section_id, archived_at
   on public.calculation_rows
   for each row execute function public.enforce_story_10_6_calculation_row_limit();
+
+-- A section INSERT has no extant section row to lock. Pin its calculation before
+-- PostgreSQL's tenant FK check so it composes with quote proof's
+-- row -> section -> calculation -> tenant protocol instead of acquiring tenant
+-- KEY SHARE first and deadlocking against a quote-held calculation lock.
+create or replace function public.lock_story_10_6_calculation_section_insert()
+returns trigger
+language plpgsql
+security invoker
+set search_path = ''
+as $$
+begin
+  perform calculation.id
+    from public.calculations calculation
+   where calculation.id = new.calculation_id
+     and calculation.tenant_id = new.tenant_id
+   for update;
+  return new;
+end;
+$$;
+
+revoke execute on function public.lock_story_10_6_calculation_section_insert()
+  from public, anon, authenticated, service_role;
+
+create trigger calculation_sections_story_10_6_insert_lock
+  before insert on public.calculation_sections
+  for each row execute function public.lock_story_10_6_calculation_section_insert();
 
 create or replace function public.enforce_story_10_6_calculation_section_row_limit()
 returns trigger
@@ -2057,6 +2224,7 @@ alter table public.quote_versions
     );
 
 alter table public.quote_version_lines
+  add column source_calculation_row_id uuid,
   add column included_in_invoice_total boolean,
   add column deduction_classification text,
   add column vat_type text,
@@ -2119,6 +2287,762 @@ comment on column public.quote_versions.payable_ore is
   'Frozen V2 customer payable. accepted_price_ore must equal this value for V2.';
 comment on column public.quote_version_lines.included_in_invoice_total is
   'Frozen economic inclusion independent of visibility. Null only on historical V1 lines.';
+comment on column public.quote_version_lines.source_calculation_row_id is
+  'Canonical calculation-row UUID captured by value for each V2 line. It binds explicit fixed-price scope and transactional review proof without making historical V1 rows depend on mutable source rows.';
+
+-- Lock and compare the complete active calculation-row set against the V2 line
+-- payload. UUID provenance alone is insufficient: a caller must not attach a
+-- real row id to stale or invented economic facts.
+create or replace function public.assert_story_10_6_line_sources(
+  p_tenant_id uuid,
+  p_calculation_id uuid,
+  p_lines jsonb
+)
+returns void
+language plpgsql
+security invoker
+set search_path = ''
+as $$
+declare
+  v_active_row_count integer;
+begin
+  if p_lines is null
+     or jsonb_typeof(p_lines) <> 'array'
+     or jsonb_array_length(p_lines) > 500
+     or exists (
+       select 1
+         from jsonb_array_elements(p_lines) as lines(value)
+        where jsonb_typeof(lines.value) <> 'object'
+           or jsonb_typeof(lines.value -> 'sourceRowId') <> 'string'
+           or not ((lines.value ->> 'sourceRowId') ~
+             '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$')
+     ) then
+    raise exception 'fresh V2 quote lines require canonical source row ids'
+      using errcode = '23514';
+  end if;
+
+  -- A row UPDATE owns its tuple before its BEFORE trigger locks section then
+  -- calculation. Follow that physical row -> section -> calculation order. The
+  -- second section/row scans run after the calculation lock: an in-flight FK
+  -- insert must finish before that lock is granted, while a later insert blocks,
+  -- so both scans are exhaustive without a phantom or inverse-lock deadlock.
+  perform 1
+    from public.calculation_rows row
+    join public.calculation_sections section
+      on section.id = row.section_id
+     and section.tenant_id = row.tenant_id
+   where row.tenant_id = p_tenant_id
+     and section.calculation_id = p_calculation_id
+   order by row.id
+   for update of row;
+
+  perform 1
+    from public.calculation_sections section
+   where section.tenant_id = p_tenant_id
+     and section.calculation_id = p_calculation_id
+   order by section.id
+   for update;
+
+  perform 1
+    from public.calculations calculation
+   where calculation.id = p_calculation_id
+     and calculation.tenant_id = p_tenant_id
+   for update;
+  if not found then
+    raise exception 'fresh V2 quote calculation source is missing'
+      using errcode = '23514';
+  end if;
+
+  perform 1
+    from public.calculation_sections section
+   where section.tenant_id = p_tenant_id
+     and section.calculation_id = p_calculation_id
+   order by section.id
+   for update;
+
+  perform 1
+    from public.calculation_rows row
+    join public.calculation_sections section
+      on section.id = row.section_id
+     and section.tenant_id = row.tenant_id
+   where row.tenant_id = p_tenant_id
+     and section.calculation_id = p_calculation_id
+   order by row.id
+   for update of row;
+
+  select count(*)::integer
+    into v_active_row_count
+    from public.calculation_rows row
+    join public.calculation_sections section
+      on section.id = row.section_id
+     and section.tenant_id = row.tenant_id
+   where row.tenant_id = p_tenant_id
+     and section.calculation_id = p_calculation_id
+     and section.archived_at is null
+     and row.archived_at is null;
+
+  if v_active_row_count <> jsonb_array_length(p_lines)
+     or exists (
+       select 1
+         from jsonb_array_elements(p_lines) as lines(value)
+        where not exists (
+          select 1
+            from public.calculation_rows row
+            join public.calculation_sections section
+              on section.id = row.section_id
+             and section.tenant_id = row.tenant_id
+           where row.id = (lines.value ->> 'sourceRowId')::uuid
+             and row.tenant_id = p_tenant_id
+             and section.calculation_id = p_calculation_id
+             and section.archived_at is null
+             and row.archived_at is null
+             and lines.value ->> 'rowType' is not distinct from row.row_type
+             and (lines.value -> 'sortOrder') is not distinct from to_jsonb(row.sort_order)
+             and (lines.value -> 'label') is not distinct from
+               coalesce(to_jsonb(row.label), 'null'::jsonb)
+             and (lines.value -> 'description') is not distinct from
+               coalesce(to_jsonb(row.description), 'null'::jsonb)
+             and (lines.value -> 'quoteNote') is not distinct from
+               coalesce(to_jsonb(row.quote_note), 'null'::jsonb)
+             and (lines.value -> 'quantity') is not distinct from to_jsonb(row.quantity)
+             and (lines.value -> 'unit') is not distinct from to_jsonb(row.unit)
+             and (lines.value -> 'unitSellOre') is not distinct from
+               coalesce(to_jsonb(row.unit_sell_ore), 'null'::jsonb)
+             -- Mirror non-negative JavaScript Math.round using IEEE-754 binary
+             -- inputs: floor(quantity * unitSellOre + 0.5). A caller cannot bind
+             -- a real source UUID to invented, self-consistent line economics.
+             and (lines.value ->> 'lineNetOre')::numeric = floor(
+               row.quantity::double precision
+               * coalesce(row.unit_sell_ore, 0)::double precision
+               + 0.5
+             )::numeric
+             and (lines.value -> 'vatRateBp') is not distinct from
+               coalesce(to_jsonb(row.vat_rate_bp), 'null'::jsonb)
+             and (lines.value -> 'includedInInvoiceTotal')
+               is not distinct from to_jsonb(row.included_in_invoice_total)
+             and lines.value ->> 'deductionClassification'
+               is not distinct from row.deduction_classification
+             and lines.value ->> 'vatType' is not distinct from row.vat_type
+             and (lines.value -> 'isHidden') is not distinct from to_jsonb(row.is_hidden)
+             and (lines.value -> 'isOptional') is not distinct from to_jsonb(row.is_optional)
+             and (lines.value -> 'isSelected') is not distinct from
+               coalesce(to_jsonb(row.is_selected), 'null'::jsonb)
+        )
+     ) then
+    raise exception
+      'fresh V2 quote line payload must match the complete active calculation row set'
+      using errcode = '23514';
+  end if;
+end;
+$$;
+
+revoke execute on function public.assert_story_10_6_line_sources(
+  uuid, uuid, jsonb
+) from public;
+grant execute on function public.assert_story_10_6_line_sources(
+  uuid, uuid, jsonb
+) to authenticated, service_role;
+
+-- Missing tenant-singleton rows cannot be row-locked. Lock their authoritative
+-- tenant parent instead: FK checks for a first company_settings/quote_terms insert
+-- take KEY SHARE and therefore serialize with this UPDATE lock. Keep the elevated
+-- helper deliberately tiny; it returns no tenant data and authorizes only the
+-- caller's own tenant (plus the service/admin maintenance paths).
+create or replace function public.lock_story_10_6_tenant_snapshot_parent(
+  p_tenant_id uuid
+)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if not public.is_tenant_admin(p_tenant_id)
+     and coalesce(auth.role()::text, '') <> 'service_role'
+     and session_user not in ('postgres', 'supabase_admin') then
+    raise exception 'tenant snapshot parent lock is not authorized'
+      using errcode = '42501';
+  end if;
+
+  perform 1
+    from public.tenants tenant
+   where tenant.id = p_tenant_id
+   for update;
+  if not found then
+    raise exception 'tenant snapshot parent is missing'
+      using errcode = '23514';
+  end if;
+end;
+$$;
+
+revoke execute on function public.lock_story_10_6_tenant_snapshot_parent(uuid)
+  from public;
+grant execute on function public.lock_story_10_6_tenant_snapshot_parent(uuid)
+  to authenticated, service_role;
+
+comment on function public.lock_story_10_6_tenant_snapshot_parent(uuid) is
+  'Narrow Story 10.6 lock primitive. Own-tenant authorization plus a tenant-row UPDATE lock serializes first inserts into tenant-singleton quote snapshot sources; it returns and mutates no tenant data.';
+
+-- Common by-value source binding for both quote-version creation RPCs. Initial
+-- creation adds reviewed-preview readiness proof below; successor creation still
+-- must bind its calculation identity, mutable company/terms sources and selected
+-- attachment files transactionally.
+create or replace function public.assert_story_10_6_snapshot_sources(
+  p_tenant_id uuid,
+  p_calculation_id uuid,
+  p_customer_id uuid,
+  p_facility_id uuid,
+  p_contact_id uuid,
+  p_snapshot jsonb,
+  p_attachments jsonb
+)
+returns void
+language plpgsql
+security invoker
+set search_path = ''
+as $$
+declare
+  v_calculation public.calculations%rowtype;
+  v_customer public.customers%rowtype;
+  v_company public.company_settings%rowtype;
+  v_terms public.quote_terms%rowtype;
+  v_has_company boolean;
+  v_has_terms boolean;
+  v_facility_name text;
+  v_contact_name text;
+  v_expected_vat_display text;
+  v_attachment jsonb;
+  v_attachment_ordinality bigint;
+  v_attachment_file public.files%rowtype;
+  v_seen_attachment_ids text[] := array[]::text[];
+begin
+  if p_snapshot is null
+     or jsonb_typeof(p_snapshot) <> 'object'
+     or p_attachments is null
+     or jsonb_typeof(p_attachments) <> 'array'
+     or jsonb_array_length(p_attachments) > 500 then
+    raise exception 'fresh quote snapshot sources must be complete'
+      using errcode = '23514';
+  end if;
+
+  select calculation.*
+    into v_calculation
+    from public.calculations calculation
+   where calculation.id = p_calculation_id
+     and calculation.tenant_id = p_tenant_id
+   for share;
+  if not found
+     or v_calculation.customer_id is distinct from p_customer_id
+     or v_calculation.facility_id is distinct from p_facility_id
+     or v_calculation.contact_id is distinct from p_contact_id then
+    raise exception 'quote snapshot calculation identity changed before creation'
+      using errcode = '23514';
+  end if;
+
+  select customer.*
+    into v_customer
+    from public.customers customer
+   where customer.id = v_calculation.customer_id
+     and customer.tenant_id = p_tenant_id
+   for share;
+  if not found
+     or p_snapshot ->> 'customerDisplayName' is distinct from v_customer.display_name
+     or p_snapshot ->> 'customerType' is distinct from v_customer.customer_type then
+    raise exception 'quote snapshot customer identity changed before creation'
+      using errcode = '23514';
+  end if;
+
+  if v_calculation.facility_id is not null then
+    select facility.name
+      into v_facility_name
+      from public.facilities facility
+     where facility.id = v_calculation.facility_id
+       and facility.tenant_id = p_tenant_id
+       and facility.customer_id = v_calculation.customer_id
+     for share;
+    if not found then
+      raise exception 'quote snapshot facility changed before creation'
+        using errcode = '23514';
+    end if;
+  end if;
+  if p_snapshot ->> 'facilityName' is distinct from v_facility_name then
+    raise exception 'quote snapshot facility changed before creation'
+      using errcode = '23514';
+  end if;
+
+  if v_calculation.contact_id is not null then
+    select contact.name
+      into v_contact_name
+      from public.contacts contact
+     where contact.id = v_calculation.contact_id
+       and contact.tenant_id = p_tenant_id
+       and contact.customer_id = v_calculation.customer_id
+       and (
+         contact.facility_id is null
+         or contact.facility_id is not distinct from v_calculation.facility_id
+       )
+     for share;
+    if not found then
+      raise exception 'quote snapshot contact changed before creation'
+        using errcode = '23514';
+    end if;
+  end if;
+  if p_snapshot ->> 'contactName' is distinct from v_contact_name then
+    raise exception 'quote snapshot contact changed before creation'
+      using errcode = '23514';
+  end if;
+
+  perform public.lock_story_10_6_tenant_snapshot_parent(p_tenant_id);
+
+  select settings.*
+    into v_company
+    from public.company_settings settings
+   where settings.tenant_id = p_tenant_id
+   for share;
+  v_has_company := found;
+  v_expected_vat_display := case
+    when v_customer.customer_type = 'private' then 'private'
+    else coalesce(v_company.default_vat_display, 'company_togglable')
+  end;
+  if (
+    not v_has_company
+    and exists (
+      select 1
+        from unnest(array[
+          'companyName', 'companyOrgNr', 'companyAddressLine1',
+          'companyAddressLine2', 'companyPostalCode', 'companyCity',
+          'companyEmail', 'companyPhone', 'companyLogoUrl'
+        ]) as keys(key)
+       where jsonb_typeof(p_snapshot -> keys.key) is distinct from 'null'
+    )
+  ) or (
+    v_has_company
+    and (
+      p_snapshot ->> 'companyName' is distinct from v_company.company_name
+      or p_snapshot ->> 'companyOrgNr' is distinct from v_company.org_nr
+      or p_snapshot ->> 'companyAddressLine1' is distinct from v_company.address_line1
+      or p_snapshot ->> 'companyAddressLine2' is distinct from v_company.address_line2
+      or p_snapshot ->> 'companyPostalCode' is distinct from v_company.postal_code
+      or p_snapshot ->> 'companyCity' is distinct from v_company.city
+      or p_snapshot ->> 'companyEmail' is distinct from v_company.email
+      or p_snapshot ->> 'companyPhone' is distinct from v_company.phone
+      or p_snapshot ->> 'companyLogoUrl' is distinct from v_company.logo_url
+    )
+  ) or p_snapshot ->> 'vatDisplay' is distinct from v_expected_vat_display
+    or (p_snapshot -> 'vatRateBp') is distinct from
+      coalesce(to_jsonb(v_company.vat_rate_bp), 'null'::jsonb) then
+    raise exception 'quote snapshot company identity changed before creation'
+      using errcode = '23514';
+  end if;
+
+  select terms.*
+    into v_terms
+    from public.quote_terms terms
+   where terms.tenant_id = p_tenant_id
+   for share;
+  v_has_terms := found;
+  if (
+    not v_has_terms
+    and (
+      jsonb_typeof(p_snapshot -> 'termsText') is distinct from 'null'
+      or jsonb_typeof(p_snapshot -> 'termsApprovedAt') is distinct from 'null'
+      or jsonb_typeof(p_snapshot -> 'termsApprovedBy') is distinct from 'null'
+    )
+  ) or (
+    v_has_terms
+    and (
+      p_snapshot ->> 'termsText' is distinct from v_terms.terms_text
+      or case
+        when jsonb_typeof(p_snapshot -> 'termsApprovedAt') = 'null'
+          then v_terms.approved_at is not null
+        else (p_snapshot ->> 'termsApprovedAt')::timestamptz
+          is distinct from v_terms.approved_at
+      end
+      or case
+        when jsonb_typeof(p_snapshot -> 'termsApprovedBy') = 'null'
+          then v_terms.approved_by is not null
+        else (p_snapshot ->> 'termsApprovedBy')::uuid
+          is distinct from v_terms.approved_by
+      end
+    )
+  ) then
+    raise exception 'quote snapshot terms changed before creation'
+      using errcode = '23514';
+  end if;
+
+  for v_attachment, v_attachment_ordinality in
+    select value, ordinality
+      from jsonb_array_elements(p_attachments) with ordinality
+  loop
+    if jsonb_typeof(v_attachment) <> 'object'
+       or not (v_attachment ?& array['fileId', 'displayName', 'sortOrder'])
+       or (v_attachment - array['fileId', 'displayName', 'sortOrder']) <> '{}'::jsonb
+       or jsonb_typeof(v_attachment -> 'fileId') <> 'string'
+       or not ((v_attachment ->> 'fileId') ~
+         '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$')
+       or jsonb_typeof(v_attachment -> 'displayName') not in ('string', 'null')
+       or jsonb_typeof(v_attachment -> 'sortOrder') <> 'number'
+       or (v_attachment ->> 'sortOrder')::numeric
+         <> v_attachment_ordinality - 1
+       or (v_attachment ->> 'fileId') = any(v_seen_attachment_ids) then
+      raise exception 'quote snapshot attachment selection changed before creation'
+        using errcode = '23514';
+    end if;
+    select file.*
+      into v_attachment_file
+      from public.files file
+     where file.id = (v_attachment ->> 'fileId')::uuid
+       and file.tenant_id = p_tenant_id
+       and file.archived_at is null
+       and file.lifecycle_state not in ('archived', 'deleted')
+     for share;
+    if not found
+       or v_attachment ->> 'displayName'
+         is distinct from v_attachment_file.display_name then
+      raise exception 'quote snapshot attachment selection changed before creation'
+        using errcode = '23514';
+    end if;
+
+    perform link.id
+      from public.file_links link
+     where link.tenant_id = p_tenant_id
+       and link.file_id = v_attachment_file.id
+       and link.owner_type = 'calculation'
+       and link.owner_id = p_calculation_id
+       and link.purpose = 'calculation_attachment'
+       and link.archived_at is null
+     order by link.id
+     limit 1
+     for share;
+    if not found then
+      raise exception 'quote snapshot attachment is not an active calculation source'
+        using errcode = '23514';
+    end if;
+
+    v_seen_attachment_ids := array_append(
+      v_seen_attachment_ids,
+      v_attachment ->> 'fileId'
+    );
+  end loop;
+exception
+  when invalid_text_representation or numeric_value_out_of_range
+    or datetime_field_overflow then
+    raise exception 'fresh quote snapshot sources must be complete'
+      using errcode = '23514';
+end;
+$$;
+
+revoke execute on function public.assert_story_10_6_snapshot_sources(
+  uuid, uuid, uuid, uuid, uuid, jsonb, jsonb
+) from public;
+grant execute on function public.assert_story_10_6_snapshot_sources(
+  uuid, uuid, uuid, uuid, uuid, jsonb, jsonb
+) to authenticated, service_role;
+
+-- The server verifies the reviewed SHA-256 token against a fresh read before it
+-- calls the RPC. This transaction-side assertion then locks and compares every
+-- reviewed source fact that can affect the frozen quote or its readiness warnings,
+-- closing the read-to-write race without trying to reproduce Node's hash encoding
+-- inside PostgreSQL.
+create or replace function public.assert_story_10_6_reviewed_source(
+  p_tenant_id uuid,
+  p_calculation_id uuid,
+  p_customer_id uuid,
+  p_facility_id uuid,
+  p_contact_id uuid,
+  p_snapshot jsonb,
+  p_attachments jsonb,
+  p_reviewed_snapshot_digest text,
+  p_reviewed_quote_capture_date date,
+  p_reviewed_calculation_status text,
+  p_reviewed_readiness_rows jsonb,
+  p_quote_capture_date date
+)
+returns void
+language plpgsql
+security invoker
+set search_path = ''
+as $$
+declare
+  v_calculation public.calculations%rowtype;
+  v_customer public.customers%rowtype;
+  v_company public.company_settings%rowtype;
+  v_terms public.quote_terms%rowtype;
+  v_has_company boolean;
+  v_has_terms boolean;
+  v_facility_name text;
+  v_contact_name text;
+  v_expected_vat_display text;
+  v_active_row_count integer;
+  v_readiness jsonb;
+  v_seen_readiness_ids text[] := array[]::text[];
+  v_attachment jsonb;
+  v_attachment_ordinality bigint;
+  v_attachment_file public.files%rowtype;
+  v_seen_attachment_ids text[] := array[]::text[];
+begin
+  if p_reviewed_snapshot_digest is null
+     or p_reviewed_snapshot_digest !~ '^[0-9a-f]{64}$'
+     or p_reviewed_quote_capture_date is null
+     or p_reviewed_quote_capture_date is distinct from p_quote_capture_date
+     or p_reviewed_calculation_status is null
+     or p_reviewed_readiness_rows is null
+     or jsonb_typeof(p_reviewed_readiness_rows) <> 'array'
+     or jsonb_array_length(p_reviewed_readiness_rows) > 500
+     or p_attachments is null
+     or jsonb_typeof(p_attachments) <> 'array'
+     or jsonb_array_length(p_attachments) > 500 then
+    raise exception 'fresh quote creation requires a complete current reviewed-preview proof'
+     using errcode = '23514';
+  end if;
+
+  perform public.assert_story_10_6_snapshot_sources(
+    p_tenant_id,
+    p_calculation_id,
+    p_customer_id,
+    p_facility_id,
+    p_contact_id,
+    p_snapshot,
+    p_attachments
+  );
+
+  select calculation.*
+    into v_calculation
+    from public.calculations calculation
+   where calculation.id = p_calculation_id
+     and calculation.tenant_id = p_tenant_id
+   for share;
+  if not found
+     or v_calculation.customer_id is distinct from p_customer_id
+     or v_calculation.facility_id is distinct from p_facility_id
+     or v_calculation.contact_id is distinct from p_contact_id
+     or v_calculation.status is distinct from p_reviewed_calculation_status then
+    raise exception 'reviewed calculation header changed before quote creation'
+      using errcode = '23514';
+  end if;
+
+  select customer.*
+    into v_customer
+    from public.customers customer
+   where customer.id = v_calculation.customer_id
+     and customer.tenant_id = p_tenant_id
+   for share;
+  if not found
+     or p_snapshot ->> 'customerDisplayName' is distinct from v_customer.display_name
+     or p_snapshot ->> 'customerType' is distinct from v_customer.customer_type then
+    raise exception 'reviewed customer identity changed before quote creation'
+      using errcode = '23514';
+  end if;
+
+  if v_calculation.facility_id is not null then
+    select facility.name
+      into v_facility_name
+      from public.facilities facility
+     where facility.id = v_calculation.facility_id
+       and facility.tenant_id = p_tenant_id
+     for share;
+    if not found then
+      raise exception 'reviewed facility changed before quote creation'
+        using errcode = '23514';
+    end if;
+  end if;
+  if p_snapshot ->> 'facilityName' is distinct from v_facility_name then
+    raise exception 'reviewed facility changed before quote creation'
+      using errcode = '23514';
+  end if;
+
+  if v_calculation.contact_id is not null then
+    select contact.name
+      into v_contact_name
+      from public.contacts contact
+     where contact.id = v_calculation.contact_id
+       and contact.tenant_id = p_tenant_id
+     for share;
+    if not found then
+      raise exception 'reviewed contact changed before quote creation'
+        using errcode = '23514';
+    end if;
+  end if;
+  if p_snapshot ->> 'contactName' is distinct from v_contact_name then
+    raise exception 'reviewed contact changed before quote creation'
+      using errcode = '23514';
+  end if;
+
+  select settings.*
+    into v_company
+    from public.company_settings settings
+   where settings.tenant_id = p_tenant_id
+   for share;
+  v_has_company := found;
+  v_expected_vat_display := case
+    when v_customer.customer_type = 'private' then 'private'
+    else coalesce(v_company.default_vat_display, 'company_togglable')
+  end;
+  if (
+    not v_has_company
+    and exists (
+      select 1
+        from unnest(array[
+          'companyName', 'companyOrgNr', 'companyAddressLine1',
+          'companyAddressLine2', 'companyPostalCode', 'companyCity',
+          'companyEmail', 'companyPhone', 'companyLogoUrl'
+        ]) as keys(key)
+       where jsonb_typeof(p_snapshot -> keys.key) is distinct from 'null'
+    )
+  ) or (
+    v_has_company
+    and (
+      p_snapshot ->> 'companyName' is distinct from v_company.company_name
+      or p_snapshot ->> 'companyOrgNr' is distinct from v_company.org_nr
+      or p_snapshot ->> 'companyAddressLine1' is distinct from v_company.address_line1
+      or p_snapshot ->> 'companyAddressLine2' is distinct from v_company.address_line2
+      or p_snapshot ->> 'companyPostalCode' is distinct from v_company.postal_code
+      or p_snapshot ->> 'companyCity' is distinct from v_company.city
+      or p_snapshot ->> 'companyEmail' is distinct from v_company.email
+      or p_snapshot ->> 'companyPhone' is distinct from v_company.phone
+      or p_snapshot ->> 'companyLogoUrl' is distinct from v_company.logo_url
+    )
+  ) or p_snapshot ->> 'vatDisplay' is distinct from v_expected_vat_display
+    or (p_snapshot -> 'vatRateBp') is distinct from
+      coalesce(to_jsonb(v_company.vat_rate_bp), 'null'::jsonb) then
+    raise exception 'reviewed company identity changed before quote creation'
+      using errcode = '23514';
+  end if;
+
+  select terms.*
+    into v_terms
+    from public.quote_terms terms
+   where terms.tenant_id = p_tenant_id
+   for share;
+  v_has_terms := found;
+  if (
+    not v_has_terms
+    and (
+      jsonb_typeof(p_snapshot -> 'termsText') is distinct from 'null'
+      or jsonb_typeof(p_snapshot -> 'termsApprovedAt') is distinct from 'null'
+      or jsonb_typeof(p_snapshot -> 'termsApprovedBy') is distinct from 'null'
+    )
+  ) or (
+    v_has_terms
+    and (
+      p_snapshot ->> 'termsText' is distinct from v_terms.terms_text
+      or case
+        when jsonb_typeof(p_snapshot -> 'termsApprovedAt') = 'null'
+          then v_terms.approved_at is not null
+        else (p_snapshot ->> 'termsApprovedAt')::timestamptz
+          is distinct from v_terms.approved_at
+      end
+      or case
+        when jsonb_typeof(p_snapshot -> 'termsApprovedBy') = 'null'
+          then v_terms.approved_by is not null
+        else (p_snapshot ->> 'termsApprovedBy')::uuid
+          is distinct from v_terms.approved_by
+      end
+    )
+  ) then
+    raise exception 'reviewed quote terms changed before quote creation'
+      using errcode = '23514';
+  end if;
+
+  select count(*)::integer
+    into v_active_row_count
+    from public.calculation_rows row
+    join public.calculation_sections section
+      on section.id = row.section_id
+     and section.tenant_id = row.tenant_id
+   where row.tenant_id = p_tenant_id
+     and section.calculation_id = p_calculation_id
+     and section.archived_at is null
+     and row.archived_at is null;
+  if jsonb_array_length(p_reviewed_readiness_rows) <> v_active_row_count then
+    raise exception 'reviewed readiness rows changed before quote creation'
+      using errcode = '23514';
+  end if;
+  for v_readiness in
+    select value from jsonb_array_elements(p_reviewed_readiness_rows)
+  loop
+    if jsonb_typeof(v_readiness) <> 'object'
+       or not (v_readiness ?& array['sourceRowId', 'unitCostOre', 'sourceKind'])
+       or (v_readiness - array['sourceRowId', 'unitCostOre', 'sourceKind']) <> '{}'::jsonb
+       or jsonb_typeof(v_readiness -> 'sourceRowId') <> 'string'
+       or not ((v_readiness ->> 'sourceRowId') ~
+         '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$')
+       or jsonb_typeof(v_readiness -> 'unitCostOre') not in ('number', 'null')
+       or jsonb_typeof(v_readiness -> 'sourceKind') not in ('string', 'null')
+       or (v_readiness ->> 'sourceRowId') = any(v_seen_readiness_ids)
+       or not exists (
+         select 1
+           from public.calculation_rows row
+           join public.calculation_sections section
+             on section.id = row.section_id
+            and section.tenant_id = row.tenant_id
+          where row.id = (v_readiness ->> 'sourceRowId')::uuid
+            and row.tenant_id = p_tenant_id
+            and section.calculation_id = p_calculation_id
+            and section.archived_at is null
+            and row.archived_at is null
+            and (v_readiness -> 'unitCostOre') is not distinct from
+              coalesce(to_jsonb(row.unit_cost_ore), 'null'::jsonb)
+            and v_readiness ->> 'sourceKind' is not distinct from row.source_kind
+       ) then
+      raise exception 'reviewed readiness rows changed before quote creation'
+        using errcode = '23514';
+    end if;
+    v_seen_readiness_ids := array_append(
+      v_seen_readiness_ids,
+      v_readiness ->> 'sourceRowId'
+    );
+  end loop;
+
+  for v_attachment, v_attachment_ordinality in
+    select value, ordinality
+      from jsonb_array_elements(p_attachments) with ordinality
+  loop
+    if jsonb_typeof(v_attachment) <> 'object'
+       or not (v_attachment ?& array['fileId', 'displayName', 'sortOrder'])
+       or (v_attachment - array['fileId', 'displayName', 'sortOrder']) <> '{}'::jsonb
+       or jsonb_typeof(v_attachment -> 'fileId') <> 'string'
+       or not ((v_attachment ->> 'fileId') ~
+         '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$')
+       or jsonb_typeof(v_attachment -> 'displayName') not in ('string', 'null')
+       or jsonb_typeof(v_attachment -> 'sortOrder') <> 'number'
+       or (v_attachment ->> 'sortOrder')::numeric
+         <> v_attachment_ordinality - 1
+       or (v_attachment ->> 'fileId') = any(v_seen_attachment_ids) then
+      raise exception 'reviewed attachment selection changed before quote creation'
+        using errcode = '23514';
+    end if;
+    select file.*
+      into v_attachment_file
+      from public.files file
+     where file.id = (v_attachment ->> 'fileId')::uuid
+       and file.tenant_id = p_tenant_id
+     for share;
+    if not found
+       or v_attachment ->> 'displayName'
+         is distinct from v_attachment_file.display_name then
+      raise exception 'reviewed attachment selection changed before quote creation'
+        using errcode = '23514';
+    end if;
+    v_seen_attachment_ids := array_append(
+      v_seen_attachment_ids,
+      v_attachment ->> 'fileId'
+    );
+  end loop;
+exception
+  when invalid_text_representation or numeric_value_out_of_range
+    or datetime_field_overflow then
+    raise exception 'fresh quote creation requires a complete current reviewed-preview proof'
+      using errcode = '23514';
+end;
+$$;
+
+revoke execute on function public.assert_story_10_6_reviewed_source(
+  uuid, uuid, uuid, uuid, uuid, jsonb, jsonb, text, date, text, jsonb, date
+) from public;
+grant execute on function public.assert_story_10_6_reviewed_source(
+  uuid, uuid, uuid, uuid, uuid, jsonb, jsonb, text, date, text, jsonb, date
+) to authenticated, service_role;
 
 -- Shared fail-closed RPC boundary. Both fresh-version functions call this before
 -- inserting a parent or child row. It independently recomputes the monetary answer
@@ -2136,6 +3060,8 @@ set search_path = ''
 as $$
 declare
   v_line jsonb;
+  v_expected_base_total bigint := 0;
+  v_expected_option_total bigint := 0;
 begin
   if p_snapshot is null
      or jsonb_typeof(p_snapshot) <> 'object'
@@ -2160,6 +3086,8 @@ begin
      or not public.is_story_10_6_ore(p_snapshot -> 'optionTotalOre')
      or not public.is_story_10_6_ore(p_snapshot -> 'vatTotalOre')
      or not public.is_story_10_6_ore(p_snapshot -> 'deductionTotalOre')
+     or jsonb_typeof(p_snapshot -> 'requiresSignOff') is distinct from 'boolean'
+     or (p_snapshot ->> 'requiresSignOff')::boolean is not true
      or p_snapshot ->> 'buyerVatNumber'
         is distinct from p_snapshot #>> array['taxAnswerSnapshot', 'buyerVatNumber']
      or (p_snapshot ->> 'calculatedDeductionOre')::bigint
@@ -2203,9 +3131,12 @@ begin
   loop
     if jsonb_typeof(v_line) <> 'object'
        or not (v_line ?& array[
-         'includedInInvoiceTotal', 'deductionClassification', 'vatType'
+         'lineNetOre', 'includedInInvoiceTotal', 'deductionClassification',
+         'vatType', 'isOptional'
        ])
+       or not public.is_story_10_6_ore(v_line -> 'lineNetOre')
        or jsonb_typeof(v_line -> 'includedInInvoiceTotal') <> 'boolean'
+       or jsonb_typeof(v_line -> 'isOptional') <> 'boolean'
        or v_line ->> 'deductionClassification' not in (
          'NONE', 'ROT_LABOR', 'GREEN_SOLAR_LABOR', 'GREEN_SOLAR_MATERIAL',
          'GREEN_STORAGE_LABOR', 'GREEN_STORAGE_MATERIAL',
@@ -2216,12 +3147,24 @@ begin
          'REVERSE_CHARGE_CONSTRUCTION'
        ) then
       raise exception
-        'fresh V2 quote lines require non-null inclusion, classification and VAT type'
+        'fresh V2 quote lines require net, inclusion, option, classification and VAT facts'
       using errcode = '23514';
+    end if;
+
+    if (v_line ->> 'includedInInvoiceTotal')::boolean then
+      if (v_line ->> 'isOptional')::boolean then
+        v_expected_option_total := v_expected_option_total
+          + (v_line ->> 'lineNetOre')::bigint;
+      else
+        v_expected_base_total := v_expected_base_total
+          + (v_line ->> 'lineNetOre')::bigint;
+      end if;
     end if;
   end loop;
 
-  if not public.is_story_10_6_quote_lines_reconciled(
+  if (p_snapshot ->> 'baseTotalOre')::bigint <> v_expected_base_total
+     or (p_snapshot ->> 'optionTotalOre')::bigint <> v_expected_option_total
+     or not public.is_story_10_6_quote_lines_reconciled(
        p_snapshot -> 'taxAnswerSnapshot', p_lines
      )
      or not public.is_story_10_6_tax_answer_matches_input(
@@ -2341,6 +3284,7 @@ begin
     select coalesce(
              jsonb_agg(
                jsonb_build_object(
+                 'sourceRowId', qvl.source_calculation_row_id,
                  'rowType', qvl.row_type,
                  'lineNetOre', qvl.line_net_ore,
                  'vatRateBp', qvl.vat_rate_bp,
@@ -2373,6 +3317,7 @@ begin
           where qvl.quote_version_id = new.id
             and (
               qvl.included_in_invoice_total is null
+              or qvl.source_calculation_row_id is null
               or qvl.deduction_classification is null
               or qvl.vat_type is null
             )
@@ -2517,6 +3462,7 @@ begin
      and v_new_parent_schema = 2
      and (
        jsonb_typeof(to_jsonb(new) -> 'included_in_invoice_total') <> 'boolean'
+       or jsonb_typeof(to_jsonb(new) -> 'source_calculation_row_id') <> 'string'
        or jsonb_typeof(to_jsonb(new) -> 'deduction_classification') <> 'string'
        or jsonb_typeof(to_jsonb(new) -> 'vat_type') <> 'string'
      ) then
@@ -2577,9 +3523,14 @@ create trigger quote_acceptances_frozen_source_total
 comment on function public.enforce_quote_acceptance_frozen_source_total() is
   'Story 10.6 acceptance backstop: source_sent_total_ore equals V2 payable_ore, with historical V1 falling back to its frozen accepted_price_ore. Adjusted accepted_price_ore remains supported.';
 
--- Both quote-creation RPC implementations retain their existing signatures. They
--- consume the same snapshot/line payload and independently verify its tax arithmetic
--- against the versioned calculation-side input before any parent or child insert.
+-- Both quote-creation RPCs consume the same snapshot/line payload and independently
+-- verify its tax arithmetic and source lineage before any parent or child insert.
+-- Initial creation additionally requires the reviewed-preview proof; successor
+-- creation names the exact authoritative source version.
+
+drop function if exists public.create_quote_version_from_calculation(
+  uuid, uuid, timestamptz, uuid, uuid, uuid, jsonb, jsonb, jsonb
+);
 
 create or replace function public.create_quote_version_from_calculation(
   p_tenant_id uuid,
@@ -2590,7 +3541,11 @@ create or replace function public.create_quote_version_from_calculation(
   p_contact_id uuid,
   p_snapshot jsonb,
   p_lines jsonb,
-  p_attachments jsonb
+  p_attachments jsonb,
+  p_reviewed_snapshot_digest text,
+  p_reviewed_quote_capture_date date,
+  p_reviewed_calculation_status text,
+  p_reviewed_readiness_rows jsonb
 )
 returns table (quote_id uuid, quote_version_id uuid, quote_number bigint)
 language plpgsql
@@ -2607,6 +3562,12 @@ declare
   v_link_exists boolean;
   v_tax_input jsonb;
 begin
+  perform public.assert_story_10_6_line_sources(
+    p_tenant_id,
+    p_calculation_id,
+    p_lines
+  );
+
   select c.tax_input_snapshot
     into v_tax_input
     from public.calculations c
@@ -2621,6 +3582,20 @@ begin
     p_snapshot,
     p_lines,
     v_tax_input,
+    (p_captured_at at time zone 'Europe/Stockholm')::date
+  );
+  perform public.assert_story_10_6_reviewed_source(
+    p_tenant_id,
+    p_calculation_id,
+    p_customer_id,
+    p_facility_id,
+    p_contact_id,
+    p_snapshot,
+    p_attachments,
+    p_reviewed_snapshot_digest,
+    p_reviewed_quote_capture_date,
+    p_reviewed_calculation_status,
+    p_reviewed_readiness_rows,
     (p_captured_at at time zone 'Europe/Stockholm')::date
   );
 
@@ -2703,7 +3678,7 @@ begin
   for v_line in select * from jsonb_array_elements(coalesce(p_lines, '[]'::jsonb))
   loop
     insert into public.quote_version_lines (
-      tenant_id, quote_version_id, row_type, sort_order,
+      tenant_id, quote_version_id, source_calculation_row_id, row_type, sort_order,
       label, description, quote_note, quantity, unit, unit_sell_ore, line_net_ore,
       vat_rate_bp, included_in_invoice_total, deduction_classification, vat_type,
       is_hidden, is_optional, is_selected
@@ -2711,6 +3686,7 @@ begin
     values (
       p_tenant_id,
       v_version_id,
+      (v_line ->> 'sourceRowId')::uuid,
       coalesce(v_line ->> 'rowType', 'line'),
       coalesce((v_line ->> 'sortOrder')::integer, 0),
       v_line ->> 'label',
@@ -2775,20 +3751,28 @@ end;
 $$;
 
 comment on function public.create_quote_version_from_calculation(
-  uuid, uuid, timestamptz, uuid, uuid, uuid, jsonb, jsonb, jsonb
+  uuid, uuid, timestamptz, uuid, uuid, uuid, jsonb, jsonb, jsonb,
+  text, date, text, jsonb
 ) is
-  'Story 10.6 atomic quote-version creation RPC. It independently reconciles the prebuilt tax answer against actual line facts and the stored calculation tax input before persisting the frozen V2 parent and child snapshot.';
+  'Story 10.6 atomic quote-version creation RPC. A mandatory reviewed-preview proof is transactionally rebound to locked calculation, row, readiness, identity, terms and attachment sources; it independently reconciles the prebuilt tax answer against those facts and the stored calculation tax input before persisting the frozen V2 parent and child snapshot.';
 
 revoke execute on function public.create_quote_version_from_calculation(
-  uuid, uuid, timestamptz, uuid, uuid, uuid, jsonb, jsonb, jsonb
+  uuid, uuid, timestamptz, uuid, uuid, uuid, jsonb, jsonb, jsonb,
+  text, date, text, jsonb
 ) from public;
 grant execute on function public.create_quote_version_from_calculation(
-  uuid, uuid, timestamptz, uuid, uuid, uuid, jsonb, jsonb, jsonb
+  uuid, uuid, timestamptz, uuid, uuid, uuid, jsonb, jsonb, jsonb,
+  text, date, text, jsonb
 ) to authenticated, service_role;
+
+drop function if exists public.create_new_quote_version(
+  uuid, uuid, uuid, timestamptz, uuid, uuid, uuid, jsonb, jsonb, jsonb, boolean
+);
 
 create or replace function public.create_new_quote_version(
   p_tenant_id uuid,
   p_quote_id uuid,
+  p_source_quote_version_id uuid,
   p_calculation_id uuid,
   p_captured_at timestamptz,
   p_customer_id uuid,
@@ -2810,17 +3794,26 @@ declare
   v_quote_number bigint;
   v_prior_version_id uuid;
   v_prior_status text;
+  v_prior_calculation_id uuid;
+  v_quote_customer_id uuid;
+  v_quote_facility_id uuid;
+  v_quote_contact_id uuid;
   v_line jsonb;
   v_att jsonb;
   v_att_file_id uuid;
   v_link_exists boolean;
   v_tax_input jsonb;
 begin
+  if p_supersede_prior is null then
+    raise exception 'create_new_quote_version: supersede decision is required'
+      using errcode = 'QV409';
+  end if;
+
   -- Match the acceptance RPC's version-then-quote lock order. The first lock
   -- serializes against an in-flight acceptance of the authoritative latest
   -- version; the second protects quote-wide version creation.
-  select qv.id, qv.status
-    into v_prior_version_id, v_prior_status
+  select qv.id, qv.status, qv.calculation_id
+    into v_prior_version_id, v_prior_status, v_prior_calculation_id
     from public.quote_versions qv
    where qv.quote_id = p_quote_id
      and qv.tenant_id = p_tenant_id
@@ -2832,7 +3825,8 @@ begin
       using errcode = 'QV409';
   end if;
 
-  perform 1
+  select q.customer_id, q.facility_id, q.contact_id
+    into v_quote_customer_id, v_quote_facility_id, v_quote_contact_id
     from public.quotes q
    where q.id = p_quote_id
      and q.tenant_id = p_tenant_id
@@ -2841,12 +3835,20 @@ begin
     raise exception 'create_new_quote_version: parent quote not found for tenant'
       using errcode = 'QV409';
   end if;
+  if v_quote_customer_id is distinct from p_customer_id
+     or v_quote_facility_id is distinct from p_facility_id
+     or v_quote_contact_id is distinct from p_contact_id then
+    raise exception 'create_new_quote_version: customer context does not match quote root'
+      using errcode = 'QV409';
+  end if;
 
   -- A waiter may have selected the previous latest row before another creation
   -- committed. Under the quote lock, re-read and lock the current authoritative
   -- latest version before choosing the next number or lifecycle action.
-  select qv.id, qv.status, qv.version_number + 1, qv.quote_number
-    into v_prior_version_id, v_prior_status, v_version_number, v_quote_number
+  select qv.id, qv.status, qv.version_number + 1, qv.quote_number,
+         qv.calculation_id
+    into v_prior_version_id, v_prior_status, v_version_number, v_quote_number,
+         v_prior_calculation_id
     from public.quote_versions qv
    where qv.quote_id = p_quote_id
      and qv.tenant_id = p_tenant_id
@@ -2857,14 +3859,28 @@ begin
     raise exception 'create_new_quote_version: parent quote has no existing version to derive quote_number from'
       using errcode = 'QV409';
   end if;
+  if v_prior_version_id is distinct from p_source_quote_version_id then
+    raise exception 'create_new_quote_version: source version is not authoritative latest'
+      using errcode = 'QV409';
+  end if;
+  if v_prior_calculation_id is distinct from p_calculation_id then
+    raise exception 'create_new_quote_version: calculation does not match source lineage'
+      using errcode = 'QV409';
+  end if;
   if v_prior_status = 'accepted' then
     raise exception 'create_new_quote_version: accepted quote cannot gain a successor draft'
       using errcode = 'QV409';
   end if;
-  if v_prior_status = 'sent' and not p_supersede_prior then
+  if v_prior_status = 'sent' and p_supersede_prior is not true then
     raise exception 'create_new_quote_version: sent latest version must be superseded atomically'
       using errcode = 'QV409';
   end if;
+
+  perform public.assert_story_10_6_line_sources(
+    p_tenant_id,
+    p_calculation_id,
+    p_lines
+  );
 
   select c.tax_input_snapshot
     into v_tax_input
@@ -2881,6 +3897,15 @@ begin
     p_lines,
     v_tax_input,
     (p_captured_at at time zone 'Europe/Stockholm')::date
+  );
+  perform public.assert_story_10_6_snapshot_sources(
+    p_tenant_id,
+    p_calculation_id,
+    p_customer_id,
+    p_facility_id,
+    p_contact_id,
+    p_snapshot,
+    p_attachments
   );
 
   insert into public.quote_versions (
@@ -2952,7 +3977,7 @@ begin
   for v_line in select * from jsonb_array_elements(coalesce(p_lines, '[]'::jsonb))
   loop
     insert into public.quote_version_lines (
-      tenant_id, quote_version_id, row_type, sort_order,
+      tenant_id, quote_version_id, source_calculation_row_id, row_type, sort_order,
       label, description, quote_note, quantity, unit, unit_sell_ore, line_net_ore,
       vat_rate_bp, included_in_invoice_total, deduction_classification, vat_type,
       is_hidden, is_optional, is_selected
@@ -2960,6 +3985,7 @@ begin
     values (
       p_tenant_id,
       v_version_id,
+      (v_line ->> 'sourceRowId')::uuid,
       coalesce(v_line ->> 'rowType', 'line'),
       coalesce((v_line ->> 'sortOrder')::integer, 0),
       v_line ->> 'label',
@@ -3019,7 +4045,7 @@ begin
     p_tenant_id, p_quote_id, v_version_id, 'created', p_captured_at
   );
 
-  if p_supersede_prior then
+  if p_supersede_prior is true then
     if v_prior_version_id is not null and v_prior_status = 'sent' then
       update public.quote_versions
          set status = 'superseded'
@@ -3040,13 +4066,13 @@ end;
 $$;
 
 comment on function public.create_new_quote_version(
-  uuid, uuid, uuid, timestamptz, uuid, uuid, uuid, jsonb, jsonb, jsonb, boolean
+  uuid, uuid, uuid, uuid, timestamptz, uuid, uuid, uuid, jsonb, jsonb, jsonb, boolean
 ) is
-  'Story 10.6 atomic new-version RPC. It independently reconciles category VAT, allocation buckets, deductions and payable against actual line facts and the stored calculation tax input; sent/accepted prior versions are not recomputed.';
+  'Story 10.6 atomic new-version RPC. It locks and requires the explicit source version to remain authoritative latest, binds the calculation to that source lineage, and independently reconciles category VAT, allocation buckets, deductions and payable against actual line facts and the stored calculation tax input; sent/accepted prior versions are not recomputed.';
 
 revoke execute on function public.create_new_quote_version(
-  uuid, uuid, uuid, timestamptz, uuid, uuid, uuid, jsonb, jsonb, jsonb, boolean
+  uuid, uuid, uuid, uuid, timestamptz, uuid, uuid, uuid, jsonb, jsonb, jsonb, boolean
 ) from public;
 grant execute on function public.create_new_quote_version(
-  uuid, uuid, uuid, timestamptz, uuid, uuid, uuid, jsonb, jsonb, jsonb, boolean
+  uuid, uuid, uuid, uuid, timestamptz, uuid, uuid, uuid, jsonb, jsonb, jsonb, boolean
 ) to authenticated, service_role;

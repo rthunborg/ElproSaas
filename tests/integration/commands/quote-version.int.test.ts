@@ -44,8 +44,15 @@ import { adminQuery } from "../../factories/admin-sql";
 import { adminSelectAuditEvents } from "../../factories/audit-events";
 import { isLocalStackReachable } from "../../support/test-env";
 import { skipUnlessStack } from "../../support/stack-gate";
+import { buildQuoteReviewProof } from "../../support/quote-review-proof";
 import { runCommand } from "@/server/commands/envelope";
 import { createQuoteVersionFromCalculation } from "@/server/commands/quotes";
+import {
+  attachmentsToPayload,
+  buildFreshQuoteSnapshot,
+  linesToPayload,
+  snapshotToPayload,
+} from "@/server/commands/quotes/snapshot-build";
 import type { CommandClock } from "@/server/commands/clock";
 
 const FIXED_ISO = "2026-07-05T12:00:00.000Z";
@@ -152,6 +159,7 @@ async function seedFullIdentity(tenantId: string): Promise<void> {
 let stackUp = false;
 let fixture: TwoTenantFixture;
 let a: TestServerClient; // adminA's authenticated anon-key client
+let b: TestServerClient; // adminB's authenticated anon-key client
 let tenantBCalcId: string; // a REAL Tenant B calc (cross-tenant source target)
 let tenantBFileId: string; // a REAL Tenant B file (cross-tenant attachment target)
 
@@ -160,6 +168,7 @@ beforeAll(async () => {
   if (!stackUp) return;
   fixture = await createTwoTenantFixture();
   a = await makeAuthedServerClient(fixture.adminA);
+  b = await makeAuthedServerClient(fixture.adminB);
   await seedFullIdentity(fixture.tenantA.id);
   await adminInsertQuoteTerms({
     tenant_id: fixture.tenantA.id,
@@ -192,9 +201,17 @@ afterAll(async () => {
 describe("createQuoteVersionFromCalculation — cross-tenant source rejection (AC2, 6.1-INT-02)", () => {
   it("[P0] a foreign calculation_id → TENANT_ACCESS_DENIED (envelope ownership gate)", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
+    const reviewProof = await buildQuoteReviewProof(b, {
+      calculationId: tenantBCalcId,
+      capturedAt: FIXED_ISO,
+    });
     const res = await runCommand(createQuoteVersionFromCalculation, {
       client: a as never,
-      input: { calculation_id: tenantBCalcId, attachment_file_ids: [] },
+      input: {
+        calculation_id: tenantBCalcId,
+        attachment_file_ids: [],
+        ...reviewProof,
+      },
       clock: fixedClock,
       correlationId: crypto.randomUUID(),
     });
@@ -210,10 +227,18 @@ describe("createQuoteVersionFromCalculation — cross-tenant source rejection (A
     const src = await seedQuoteSource(fixture.tenantA.id);
     const beforeCount = await countQuoteVersions(fixture.tenantA.id);
     const beforeCounter = await counterValue(fixture.tenantA.id);
+    const reviewProof = await buildQuoteReviewProof(a, {
+      calculationId: src.calcId,
+      capturedAt: FIXED_ISO,
+    });
     const res = await runCommand(createQuoteVersionFromCalculation, {
       client: a as never,
       // An A-owned calc, but a Tenant-B file id as an attachment → re-validated denial.
-      input: { calculation_id: src.calcId, attachment_file_ids: [tenantBFileId] },
+      input: {
+        calculation_id: src.calcId,
+        attachment_file_ids: [tenantBFileId],
+        ...reviewProof,
+      },
       clock: fixedClock,
       correlationId: crypto.randomUUID(),
     });
@@ -230,9 +255,17 @@ describe("createQuoteVersionFromCalculation — snapshot completeness (AC2, 6.1-
   it("[P0] captures the full §11 checklist incl. FULL company identity + terms sign-off + warnings + source refs", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     const src = await seedQuoteSource(fixture.tenantA.id);
+    const reviewProof = await buildQuoteReviewProof(a, {
+      calculationId: src.calcId,
+      capturedAt: FIXED_ISO,
+    });
     const res = await runCommand(createQuoteVersionFromCalculation, {
       client: a as never,
-      input: { calculation_id: src.calcId, attachment_file_ids: [] },
+      input: {
+        calculation_id: src.calcId,
+        attachment_file_ids: [],
+        ...reviewProof,
+      },
       clock: fixedClock,
       correlationId: crypto.randomUUID(),
     });
@@ -295,9 +328,17 @@ describe("createQuoteVersionFromCalculation — BEHAVIORAL FREEZE (AC2, 6.1-INT-
   it("[P0] mutating calc rows / settings / terms / CRM AFTER creation leaves the snapshot BYTE-UNCHANGED", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     const src = await seedQuoteSource(fixture.tenantA.id);
+    const reviewProof = await buildQuoteReviewProof(a, {
+      calculationId: src.calcId,
+      capturedAt: FIXED_ISO,
+    });
     const res = await runCommand(createQuoteVersionFromCalculation, {
       client: a as never,
-      input: { calculation_id: src.calcId, attachment_file_ids: [] },
+      input: {
+        calculation_id: src.calcId,
+        attachment_file_ids: [],
+        ...reviewProof,
+      },
       clock: fixedClock,
       correlationId: crypto.randomUUID(),
     });
@@ -363,12 +404,22 @@ describe("createQuoteVersionFromCalculation — numbering race-safety (AC3, 6.1-
       const src = await seedQuoteSource(fixture.tenantA.id);
       calcIds.push(src.calcId);
     }
+    const reviewedInputs = await Promise.all(
+      calcIds.map(async (calcId) => ({
+        calculation_id: calcId,
+        attachment_file_ids: [],
+        ...(await buildQuoteReviewProof(a, {
+          calculationId: calcId,
+          capturedAt: FIXED_ISO,
+        })),
+      })),
+    );
     // Fire all N creations CONCURRENTLY (NO sleep/timing).
     const results = await Promise.all(
-      calcIds.map((calcId) =>
+      reviewedInputs.map((input) =>
         runCommand(createQuoteVersionFromCalculation, {
           client: a as never,
-          input: { calculation_id: calcId, attachment_file_ids: [] },
+          input,
           clock: fixedClock,
           correlationId: crypto.randomUUID(),
         }),
@@ -384,7 +435,6 @@ describe("createQuoteVersionFromCalculation — numbering race-safety (AC3, 6.1-
 
   it("[P0] tenant B's quote-number sequence is INDEPENDENT of tenant A's", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
-    const b = await makeAuthedServerClient(fixture.adminB);
     await seedFullIdentity(fixture.tenantB.id);
     // A B-owned calc.
     const bCustomerId = await adminInsertCustomer({
@@ -413,9 +463,17 @@ describe("createQuoteVersionFromCalculation — numbering race-safety (AC3, 6.1-
     // which is already advanced by the concurrency test above) — B starts fresh at its own
     // counter. We assert B's number is small (its own sequence), not continued from A's.
     const bBefore = await counterValue(fixture.tenantB.id);
+    const reviewProof = await buildQuoteReviewProof(b, {
+      calculationId: bCalcId,
+      capturedAt: FIXED_ISO,
+    });
     const res = await runCommand(createQuoteVersionFromCalculation, {
       client: b as never,
-      input: { calculation_id: bCalcId, attachment_file_ids: [] },
+      input: {
+        calculation_id: bCalcId,
+        attachment_file_ids: [],
+        ...reviewProof,
+      },
       clock: fixedClock,
       correlationId: crypto.randomUUID(),
     });
@@ -428,31 +486,44 @@ describe("createQuoteVersionFromCalculation — numbering race-safety (AC3, 6.1-
 
   it("[P0] a failure mid-RPC rolls back the WHOLE txn — no orphaned number, no partial version", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
-    // Drive the RPC DIRECTLY (bypassing the command validator) with a malformed line
-    // payload (a NEGATIVE öre value) so the quote_version_lines CHECK (>= 0) raises AFTER
-    // the counter increment — proving the WHOLE txn rolls back atomically. Ensure the
-    // counter row exists first (seed it at a known value) so the "did NOT advance" assert
-    // is meaningful. The RPC runs under adminA's RLS client (own tenant).
+    // Drive the RPC DIRECTLY (bypassing the command validator) with a canonical reviewed V2
+    // payload except for an invalid presentational timestamp. The source/tax assertions pass,
+    // then the quote-version insert's timestamptz cast raises AFTER the counter increment and
+    // quote insert — proving the WHOLE txn rolls back atomically. Ensure the counter row exists
+    // first so the "did NOT advance" assert is meaningful. The RPC runs under adminA's RLS client.
     const src = await seedQuoteSource(fixture.tenantA.id);
     // Seed / read the current counter value (create the row if absent via a no-op create).
     const beforeCounter = await counterValue(fixture.tenantA.id);
     const beforeCount = await countQuoteVersions(fixture.tenantA.id);
+    const reviewed = await buildFreshQuoteSnapshot(a as never, {
+      calculationId: src.calcId,
+      attachmentFileIds: [],
+      capturedAt: FIXED_ISO,
+    });
+    const malformedSnapshot = {
+      ...snapshotToPayload(reviewed.snapshot),
+      validUntil: "not-a-timestamp",
+    };
 
     const { error } = await a.rpc("create_quote_version_from_calculation", {
       p_tenant_id: fixture.tenantA.id,
       p_calculation_id: src.calcId,
       p_captured_at: FIXED_ISO,
-      p_customer_id: src.customerId,
-      p_facility_id: null,
-      p_contact_id: null,
-      p_snapshot: { companyName: "X", requiresSignOff: true, warnings: [] },
-      // A malformed line: a NEGATIVE line_net_ore trips the CHECK (>= 0) mid-RPC, AFTER
-      // the counter increment + the quote/version inserts — the whole txn must roll back.
-      p_lines: [{ rowType: "line", lineNetOre: -1, unitSellOre: -1 }],
-      p_attachments: [],
+      p_customer_id: reviewed.customerId,
+      p_facility_id: reviewed.facilityId,
+      p_contact_id: reviewed.contactId,
+      p_snapshot: malformedSnapshot,
+      p_lines: linesToPayload(reviewed.snapshot),
+      p_attachments: attachmentsToPayload(reviewed.snapshot),
+      p_reviewed_snapshot_digest: reviewed.currentReviewDigest,
+      p_reviewed_quote_capture_date: reviewed.quoteCaptureDate,
+      p_reviewed_calculation_status: reviewed.reviewedCalculationStatus,
+      p_reviewed_readiness_rows: reviewed.reviewedReadinessRows,
     });
-    // The RPC raised (the CHECK violation) — the transaction rolled back.
+    // The RPC reached the version insert and raised on its timestamptz cast.
     expect(error).not.toBeNull();
+    expect(error?.code).toBe("22007");
+    expect(error?.message).toMatch(/timestamp/i);
     // No orphaned number (the counter did NOT advance) and no partial version persisted.
     expect(await counterValue(fixture.tenantA.id)).toBe(beforeCounter);
     expect(await countQuoteVersions(fixture.tenantA.id)).toBe(beforeCount);
@@ -464,9 +535,17 @@ describe("createQuoteVersionFromCalculation — audit (AC2/AC3, 6.1-INT-06)", ()
     if (skipUnlessStack(testCtx, stackUp)) return;
     const src = await seedQuoteSource(fixture.tenantA.id);
     const correlationId = crypto.randomUUID();
+    const reviewProof = await buildQuoteReviewProof(a, {
+      calculationId: src.calcId,
+      capturedAt: FIXED_ISO,
+    });
     const res = await runCommand(createQuoteVersionFromCalculation, {
       client: a as never,
-      input: { calculation_id: src.calcId, attachment_file_ids: [] },
+      input: {
+        calculation_id: src.calcId,
+        attachment_file_ids: [],
+        ...reviewProof,
+      },
       clock: fixedClock,
       correlationId,
     });

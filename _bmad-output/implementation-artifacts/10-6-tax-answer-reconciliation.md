@@ -471,6 +471,10 @@ GPT-5 Codex
   grön-teknik, snapshot, or acceptance finding.
 - Final security/RLS review — PASS-WITH-LIMITATION: no release-blocking Critical/High isolation,
   service-role, storage, or unauthenticated-function finding.
+- Iteration-5 final verification — PASS: `npm run typecheck`; `npm run lint`; full unit 94 suites,
+  1,653/1,653 tests; clean local Supabase reset; strict warning-level DB lint with `results: []`;
+  Story integration 25/25; full required integration/RLS 77/77 files and 825/825 tests; Story E2E
+  2/2; production build; and lockfile, service-role, and post-build bundle containment.
 
 ### Completion Notes List
 
@@ -548,6 +552,27 @@ GPT-5 Codex
   Story integration 17/17, full required integration/RLS 77/77 files and 817/817 tests, Story E2E
   2/2, production build, lockfile/service-role/bundle containment, DB lint exit 0 with retained
   Story 10.6 advisories only, review-finding accounting, post-fix verifier, and diff hygiene.
+- Corrected all 16 iteration-5 review findings. The 97% green fixed-price method now requires a
+  persisted, canonical `fixedPriceRowIds` scope; the scoped included green rows reconcile exactly to
+  `fixedPriceOre` and its category split, while unrelated ROT/NONE rows may coexist only outside the
+  scope and no row can fund both schemes.
+- Made reviewed-preview proof mandatory and transaction-bound. Both creation RPCs lock and bind the
+  authoritative source version, calculation rows and derived line economics, quote/customer/company/
+  terms/attachment facts, readiness projection, capture date, and calculation status before freezing
+  V2 snapshots. Successor lineage, insert phantoms, singleton sources, attachment lifecycle, null
+  supersede, base/option splits, and sign-off posture fail closed.
+- Aligned TypeScript and SQL for exact-rational green allocation, canonical `PERSON_1..50` slots,
+  source-row persistence, and the 1/1/222 öre boundary. Repaired coherent option/VAT transitions,
+  rollover refresh, controlled tax-settings resynchronization, reverse-charge conflicts, applicable
+  policy resolution, proof inputs, truthful inclusion presentation, and Swedish PDF green labels.
+- Retained the already-approved same-tenant `SECURITY INVOKER` limitation: a direct caller with the
+  inherited quote-table authority can fabricate human-review/warning provenance while still being
+  constrained by all structural, economic, lineage, lifecycle, tenant, and RLS invariants. Persisted
+  or HMAC-backed review authority remains an owner-level API redesign outside Story 10.6.
+- Iteration-5 verification is green: clean reset; warning-clean strict DB lint; Story integration
+  25/25; full required integration/RLS 77/77 files and 825/825 tests; Story E2E 2/2; full unit
+  1,653/1,653; typecheck; zero-warning lint; production build; lockfile, service-role, and post-build
+  bundle containment.
 
 ### File List
 
@@ -566,11 +591,13 @@ GPT-5 Codex
 - `src/features/calculations/allowance-editor.ts`
 - `src/features/calculations/form-parsing.ts`
 - `src/features/calculations/limits.ts`
+- `src/features/calculations/pre-quote-review.ts`
 - `src/features/calculations/read.ts`
 - `src/features/calculations/readiness.ts`
 - `src/features/calculations/row-option-transition.ts`
 - `src/features/calculations/row-vat-transition.ts`
 - `src/features/calculations/tax-readiness.ts`
+- `src/features/calculations/tax-settings-ui.ts`
 - `src/features/calculations/totals.ts`
 - `src/features/quotes/actions.ts`
 - `src/features/quotes/follow-up-dates.ts`
@@ -607,6 +634,7 @@ GPT-5 Codex
 - `tests/e2e/calculations/tax-answer-reconciliation.e2e.spec.ts`
 - `tests/e2e/global-setup.ts`
 - `tests/factories/tenants.ts`
+- `tests/support/quote-review-proof.ts`
 - `tests/fixtures/golden/acceptance/tax-answer-v2-acceptance-job.json`
 - `tests/fixtures/golden/calculations/tax-answer-reconciliation-v2.json`
 - `tests/fixtures/golden/lovable/quotes.json`
@@ -615,8 +643,14 @@ GPT-5 Codex
 - `tests/fixtures/golden/snapshots/tax-answer-reconciliation-v1-v2.json`
 - `tests/integration/commands/tax-answer-acceptance-job.int.test.ts`
 - `tests/integration/commands/tax-answer-reconciliation.int.test.ts`
+- `tests/integration/commands/create-new-quote-version.int.test.ts`
 - `tests/integration/commands/file-upload.int.test.ts`
+- `tests/integration/commands/generate-quote-pdf-determinism.int.test.ts`
+- `tests/integration/commands/generate-quote-pdf-retry-consistency.int.test.ts`
+- `tests/integration/commands/generate-quote-pdf-source-of-truth.int.test.ts`
 - `tests/integration/commands/generate-quote-pdf-storage-privacy.int.test.ts`
+- `tests/integration/commands/mark-quote-version-sent.int.test.ts`
+- `tests/integration/commands/quote-version.int.test.ts`
 - `tests/integration/components/legacy-draft-recovery.test.ts`
 - `tests/integration/rls/cross-tenant-isolation.rls.test.ts`
 - `tests/unit/features/calculations/allowance-editor.test.ts`
@@ -624,11 +658,13 @@ GPT-5 Codex
 - `tests/unit/features/calculations/calc-golden-pack.test.ts`
 - `tests/unit/features/calculations/form-parsing.test.ts`
 - `tests/unit/features/calculations/limits.test.ts`
+- `tests/unit/features/calculations/pre-quote-review.test.ts`
 - `tests/unit/features/calculations/readiness-inclusion.golden.test.ts`
 - `tests/unit/features/calculations/readiness.test.ts`
 - `tests/unit/features/calculations/row-option-transition.test.ts`
 - `tests/unit/features/calculations/row-vat-transition.test.ts`
 - `tests/unit/features/calculations/tax-readiness.test.ts`
+- `tests/unit/features/calculations/tax-settings-ui.test.ts`
 - `tests/unit/features/calculations/totals.test.ts`
 - `tests/unit/features/quotes/send-gate.test.ts`
 - `tests/unit/fixtures/golden/lovable/comparison-support.ts`
@@ -654,6 +690,7 @@ GPT-5 Codex
 - `tests/unit/server/commands/quote-validation.test.ts`
 - `tests/unit/server/commands/snapshot-payload-serializers.test.ts`
 - `tests/unit/server/commands/tax-input-validation.test.ts`
+- `tests/unit/server/quote-pdf/render.test.ts`
 
 ### Change Log
 
@@ -681,8 +718,31 @@ GPT-5 Codex
   PDF, parser, and readiness semantics. Full iteration-4 gates are green: typecheck, lint, focused
   regression, full unit, fresh Supabase reset, Story/full integration, Story E2E, build,
   containment, DB lint, review accounting, post-fix verifier, and diff hygiene.
+- 2026-08-18: Completed review remediation for all 16 iteration-5 findings: persisted explicit green
+  fixed-price row scope, mandatory transaction-bound review proof, authoritative successor/source
+  lineage, exact TypeScript/SQL allocation parity, canonical allocation slots, synchronized editor
+  transitions, rollover/policy-proof handling, and truthful preview/PDF presentation. Clean reset,
+  strict DB lint, Story/full integration, Story E2E, full unit, static, build, and containment gates
+  are green; status remains `review` for the Phase 9 completion gate.
 
 ### Review Findings
+
+- [x] [Review][Decision][High] The 97% method has no authoritative fixed-price contract scope — AC5 requires a genuine fixed-price total contract, but the input proves only that green-category splits sum to `fixedPriceOre` and the answer binds that amount to the green-classified subset; billed NONE/ROT/other rows may either be unrelated work or costs inside the fixed installation, so requiring document gross would also conflict with sanctioned disjoint ROT+green coexistence. Recommended: fix: define and persist the fixed-price contract scope; until then reject 97% whenever included billed amounts fall outside the declared green split rather than silently treating a partial subtotal as the total contract price.
+- [x] [Review][Patch][High] Tax-setting saves bypass the option selection/inclusion transition contract [src/components/calculations/RowEditor.tsx:486] — The row editor submits ordinary updates for tax-only edits, while command validation rejects selection/inclusion transitions unless the dedicated transition intent is present; an option row cannot reliably save the coherent selection/inclusion state required by AC1.
+- [x] [Review][Patch][High] Reviewed-preview proof is optional and checked outside the version-creation transaction [src/server/commands/quotes/snapshot-build.ts:260] — Validation accepts a null proof pair, and a supplied proof is checked through separate reads before the RPC; AC1's required reviewed-state gate can therefore be bypassed or become stale before the snapshot is frozen.
+- [x] [Review][Patch][High] Quarantined VAT pairs cannot be repaired atomically in the row editor [src/server/commands/calculations/form-parsing.ts:500] — The parser suppresses an unchanged persisted rate while the command requires VAT type and rate to transition together, so changing the type of a quarantined incompatible pair is rejected instead of producing the coherent pair required by AC2.
+- [x] [Review][Patch][High] Frozen V2 allocation slots still accept name-like identifiers [supabase/migrations/20260818090000_story_10_6_tax_answer_reconciliation.sql:750] — The persistence validator permits broad free-form slot identifiers and the compatibility reader remaps them, so customer-identifying text can still enter canonical allocation slots contrary to AC4's non-PII slot contract.
+- [x] [Review][Patch][High] The create-new-version RPC omits command-equivalent lineage guards [supabase/migrations/20260818090000_story_10_6_tax_answer_reconciliation.sql:2789] — Direct authenticated invocation can create from a draft that is not the latest quote version or bind calculation input outside the source quote's validated lineage, bypassing the versioning invariants required by AC1 and AC6.
+- [x] [Review][Patch][High] SQL and TypeScript reconcile green category claims differently [supabase/migrations/20260818090000_story_10_6_tax_answer_reconciliation.sql:923] — TypeScript allocates the claim with exact rational numerators, but SQL reweights already-rounded category calculations; valid canonical splits such as 1/1/222 öre can be rejected at the persistence boundary, violating AC5's one deterministic reconciliation contract.
+- [x] [Review][Patch][Med] A mounted preview becomes permanently stale after the Stockholm date rolls over [src/components/quotes/PreQuotePreview.tsx:120] — Capture-date expiry is derived from the initial preview payload and only disables creation; the component does not refresh or recapture, so AC1's create flow cannot recover without a full remount.
+- [x] [Review][Patch][Med] Tax settings do not resynchronize from refreshed canonical props [src/components/calculations/TaxSettingsPanel.tsx:100] — Local state and uncontrolled inputs are initialized once, so `router.refresh()` or scheme toggles can leave displayed basis and allowance values different from the persisted answer required by AC3 and AC5.
+- [x] [Review][Patch][Med] The form permits reverse charge together with ROT or green deduction [src/components/calculations/TaxSettingsPanel.tsx:138] — No cross-field UI validation blocks the prohibited combination before submit, leaving AC2's fail-loud rule to surface only as a generic server failure.
+- [x] [Review][Patch][Med] Editor totals and VAT transitions pin the 2026 policy constant [src/lib/calculations/totals.ts:113] — These paths use `TAX_POLICY_2026` instead of resolving by capture date, so the displayed and transitioned answer can diverge from the versioned policy registry required by AC2 and AC6.
+- [x] [Review][Patch][Med] Quote PDFs expose internal green-tax enum values [src/server/quote-pdf/render.ts:290] — Basis and category values are rendered as raw implementation tokens rather than customer-facing Swedish labels, contrary to AC7's truthful customer-facing tax presentation.
+- [x] [Review][Patch][Med] Review tokens omit row facts that change derived readiness warnings [src/server/commands/quotes/review-token.ts:107] — Unit cost and source kind affect frozen-source and cost-basis warnings but are absent from the reviewed digest, allowing AC1-relevant preview meaning to change without invalidating the proof.
+- [x] [Review][Patch][Med] Review tokens omit payment and final-invoice policy facts [src/server/commands/quotes/review-token.ts:87] — The digest resolves only quote-capture policy while ROT payment-date and green final-invoice policy versions remain outside the proof, so AC1 can freeze an answer that was not the one reviewed.
+- [x] [Review][Patch][Med] Preview and PDF labels conceal independent invoice inclusion [src/server/quote-pdf/render.ts:226] — The preview does not disclose per-row inclusion and the PDF labels a subtotal as selected options even though it sums included options, misrepresenting the two independent AC1 states.
+- [x] [Review][Patch][Med] Inactive deduction allowance controls remain editable and are silently discarded [src/components/calculations/TaxSettingsPanel.tsx:211] — ROT and green allowance fields are rendered regardless of active scheme while parsing drops inactive values, so the UI suggests an economic input was saved when AC3/AC5 persistence ignores it.
 
 - [x] [Review][Decision][High] Tax-policy rollover has no safe validity horizon or multi-policy database contract — `TAX_POLICY_2026.validTo=null` applies the 2026 profile indefinitely, while the SQL validator hard-codes `SE-TAX-2026-v1` and an exact single-version set; a later policy therefore requires mutating the old window or is rejected when VAT/ROT/green resolve to different versions. Recommended: fix: establish an owner-approved finite ratified horizon and update the validator to accept the canonical set of independently resolved version ids while still failing gaps and unknown ids. Sources: Blind Hunter primary; Blind Hunter secondary.
 - [x] [Review][Decision][High] Document-level VAT choice is ambiguous for mixed and non-reverse categories — the equality guard is authoritative only for reverse charge, so a `ZERO_RATED` or `REDUCED_VAT` document choice can freeze standard-VAT categories, while requiring every row to equal the document choice would contradict AC3's sanctioned mixed standard/reverse supplies. Recommended: fix: preserve mixed-category support, narrow the document field to an explicit reverse-charge applicability choice, require it iff any reverse category exists, and remove or reject meaningless zero/reduced document states. Sources: Blind Hunter primary; Edge Case Hunter primary; Blind Hunter secondary.

@@ -1,9 +1,11 @@
 import {
   GREEN_CATEGORIES,
+  isCanonicalFixedPriceRowId,
   isCanonicalTaxPersonSlot,
   isGreenBasisMethod,
   isTaxDeductionChoice,
   type FixedPriceCategorySplitOre,
+  type FixedPriceRowIds,
   type GreenCategory,
   type TaxDeductionChoice,
   type TaxInputSnapshotV2,
@@ -17,6 +19,7 @@ export type TaxInputValidationErrorCode =
   | "MISSING_TAX_RESOLVING_DATE"
   | "INVALID_PERSON_ALLOWANCE"
   | "INCOMPLETE_FIXED_PRICE_CATEGORY_SPLIT"
+  | "INCOMPLETE_FIXED_PRICE_ROW_SCOPE"
   | "FIXED_PRICE_97_REQUIRES_GENUINE_FIXED_PRICE";
 
 export type TaxInputValidationResult =
@@ -143,6 +146,13 @@ function parseFixedPriceSplit(value: unknown): FixedPriceCategorySplitOre | null
   return Object.freeze(output);
 }
 
+function parseFixedPriceRowIds(value: unknown): FixedPriceRowIds | null {
+  if (!Array.isArray(value) || value.length === 0 || value.length > 500) return null;
+  const ids = value.filter(isCanonicalFixedPriceRowId);
+  if (ids.length !== value.length || new Set(ids).size !== ids.length) return null;
+  return Object.freeze([...ids].sort());
+}
+
 /**
  * Validate and normalize the complete versioned calculation tax input. This is
  * the shared authority used by commands, readiness, and fresh quote creation.
@@ -236,6 +246,17 @@ export function parseTaxInputSnapshot(raw: unknown): TaxInputValidationResult {
   if (raw.fixedPriceCategorySplitOre !== null && raw.fixedPriceCategorySplitOre !== undefined && fixedPriceCategorySplitOre === null) {
     return fail("INCOMPLETE_FIXED_PRICE_CATEGORY_SPLIT");
   }
+  const fixedPriceRowIds = raw.fixedPriceRowIds === null ||
+    raw.fixedPriceRowIds === undefined
+    ? null
+    : parseFixedPriceRowIds(raw.fixedPriceRowIds);
+  if (
+    raw.fixedPriceRowIds !== null &&
+    raw.fixedPriceRowIds !== undefined &&
+    fixedPriceRowIds === null
+  ) {
+    return fail("INCOMPLETE_FIXED_PRICE_ROW_SCOPE");
+  }
 
   if (raw.greenBasisMethod === "FIXED_PRICE_97_PERCENT") {
     if (!readsGreen(choice)) return fail("INVALID_TAX_INPUT");
@@ -244,6 +265,9 @@ export function parseTaxInputSnapshot(raw: unknown): TaxInputValidationResult {
     }
     if (!isOreAmount(fixedPriceOre) || fixedPriceCategorySplitOre === null) {
       return fail("INCOMPLETE_FIXED_PRICE_CATEGORY_SPLIT");
+    }
+    if (fixedPriceRowIds === null) {
+      return fail("INCOMPLETE_FIXED_PRICE_ROW_SCOPE");
     }
     let splitTotal = 0;
     for (const category of GREEN_CATEGORIES) {
@@ -258,7 +282,8 @@ export function parseTaxInputSnapshot(raw: unknown): TaxInputValidationResult {
   } else if (
     raw.genuineFixedPrice !== false ||
     fixedPriceOre !== null ||
-    fixedPriceCategorySplitOre !== null
+    fixedPriceCategorySplitOre !== null ||
+    fixedPriceRowIds !== null
   ) {
     return fail("INVALID_TAX_INPUT");
   }
@@ -280,6 +305,7 @@ export function parseTaxInputSnapshot(raw: unknown): TaxInputValidationResult {
       genuineFixedPrice: raw.genuineFixedPrice,
       fixedPriceOre: fixedPriceOre as number | null,
       fixedPriceCategorySplitOre,
+      fixedPriceRowIds,
     }),
   };
 }

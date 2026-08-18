@@ -522,6 +522,10 @@ export type QuoteRpcClient = {
       readonly p_snapshot: unknown;
       readonly p_lines: unknown;
       readonly p_attachments: unknown;
+      readonly p_reviewed_snapshot_digest: string;
+      readonly p_reviewed_quote_capture_date: string;
+      readonly p_reviewed_readiness_rows: unknown;
+      readonly p_reviewed_calculation_status: string;
     },
   ): Promise<{
     data: unknown;
@@ -585,6 +589,7 @@ export type NewQuoteVersionRpcClient = {
     args: {
       readonly p_tenant_id: string;
       readonly p_quote_id: string;
+      readonly p_source_quote_version_id: string;
       readonly p_calculation_id: string;
       readonly p_captured_at: string;
       readonly p_customer_id: string;
@@ -916,6 +921,7 @@ export interface QuoteVersionSnapshotRow {
 
 /** A frozen quote_version_lines snapshot row (NO cost/margin/internal — R-607). */
 export interface QuoteVersionLineSnapshotRow {
+  readonly source_calculation_row_id: string | null;
   readonly row_type: string;
   readonly sort_order: number;
   readonly label: string | null;
@@ -945,7 +951,7 @@ const VERSION_SNAPSHOT_COLUMNS =
   "id, quote_id, status, calculation_id, captured_at, company_name, company_org_nr, company_address_line1, company_address_line2, company_postal_code, company_city, company_email, company_phone, company_logo_url, customer_display_name, customer_type, facility_name, contact_name, quote_number, quote_number_display, valid_until, intro_text, customer_notes, terms_text, terms_approved_at, terms_approved_by, base_total_ore, option_total_ore, vat_total_ore, deduction_total_ore, accepted_price_ore, snapshot_schema_version, tax_rule_version, tax_answer_snapshot, buyer_vat_number, calculated_deduction_ore, claim_deduction_ore, payable_ore, vat_rate_bp, vat_display, deduction_type, deduction_rate_bp, deduction_cap_ore, deduction_persons, requires_sign_off, display_mode, warnings_snapshot";
 
 const LINE_SNAPSHOT_COLUMNS =
-  "row_type, sort_order, label, description, quote_note, quantity, unit, unit_sell_ore, line_net_ore, vat_rate_bp, included_in_invoice_total, deduction_classification, vat_type, is_hidden, is_optional, is_selected";
+  "source_calculation_row_id, row_type, sort_order, label, description, quote_note, quantity, unit, unit_sell_ore, line_net_ore, vat_rate_bp, included_in_invoice_total, deduction_classification, vat_type, is_hidden, is_optional, is_selected";
 
 const ATTACHMENT_SNAPSHOT_COLUMNS = "file_id, display_name, sort_order";
 
@@ -1049,6 +1055,8 @@ export async function loadQuoteVersionLineSnapshots(
     .order("sort_order", { ascending: true });
   throwOnReadError("loadQuoteVersionLineSnapshots", error);
   return ((data ?? []) as Record<string, unknown>[]).map((raw) => ({
+    source_calculation_row_id:
+      (raw.source_calculation_row_id as string | null) ?? null,
     row_type: String(raw.row_type),
     sort_order: Number(raw.sort_order ?? 0),
     label: (raw.label as string | null) ?? null,

@@ -14,7 +14,8 @@
     "greenBasisMethod": "ACTUAL_ELIGIBLE_COSTS",
     "genuineFixedPrice": false,
     "fixedPriceOre": null,
-    "fixedPriceCategorySplitOre": null
+    "fixedPriceCategorySplitOre": null,
+    "fixedPriceRowIds": null
   },
   "quoteSnapshot": {
     "companyName": "Synthetic Test Company",
@@ -161,7 +162,10 @@
         },
         "calculatedOre": 0,
         "claimOre": 0,
-        "allocations": []
+        "allocations": [],
+        "fixedPriceRowIds": null,
+        "fixedPriceOre": null,
+        "fixedPriceCategorySplitOre": null
       },
       "netOre": 20002,
       "vatOre": 5001,

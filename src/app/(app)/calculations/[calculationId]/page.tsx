@@ -154,6 +154,8 @@ export default async function CalculationEditorPage({
       rowType: row.row_type,
       quantity: row.quantity,
       unit: row.unit,
+      unitCostOre: row.unit_cost_ore,
+      sourceKind: row.source_kind,
       unitSellOre: row.unit_sell_ore,
       vatRateBp: row.vat_rate_bp,
       includedInInvoiceTotal: row.included_in_invoice_total,

@@ -445,6 +445,7 @@ test("updateRow: no source fields at all leaves the input empty-patch safe (id o
 test("10.6 updateRow: inclusion, classification, and VAT type round-trip independently", () => {
   const form = fd({
     id: ROW,
+    vat_percent: "25",
     deduction_classification: "GREEN_STORAGE_MATERIAL",
     vat_type: "REVERSE_CHARGE_CONSTRUCTION",
   });
@@ -455,6 +456,45 @@ test("10.6 updateRow: inclusion, classification, and VAT type round-trip indepen
   assert.equal(parsed.input.is_hidden, true);
   assert.equal(parsed.input.deduction_classification, "GREEN_STORAGE_MATERIAL");
   assert.equal(parsed.input.vat_type, "REVERSE_CHARGE_CONSTRUCTION");
+});
+
+test("10.6 updateRow: a changed VAT type posts the complete pair for atomic quarantine repair", () => {
+  const parsed = parseUpdateRowForm(fd({
+    id: ROW,
+    vat_percent: "25",
+    original_vat_percent: "25",
+    vat_type: "REVERSE_CHARGE_CONSTRUCTION",
+    original_vat_type: "STANDARD_VAT_25",
+  }));
+  assert.equal(parsed.input.vat_type, "REVERSE_CHARGE_CONSTRUCTION");
+  assert.equal(parsed.input.vat_rate_bp, 2_500);
+});
+
+test("10.6 updateRow: option selection transition delegates inclusion to the atomic command intent", () => {
+  const form = fd({
+    id: ROW,
+    original_is_optional: "true",
+    original_is_selected: "false",
+  });
+  withFlag(form, "is_optional", true);
+  withFlag(form, "is_selected", true);
+  withFlag(form, "included_in_invoice_total", false);
+  const parsed = parseUpdateRowForm(form);
+  assert.equal(parsed.input.is_selected, true);
+  assert.equal("included_in_invoice_total" in parsed.input, false);
+});
+
+test("10.6 updateRow: unchanged option selection preserves an independent inclusion-only edit", () => {
+  const form = fd({
+    id: ROW,
+    original_is_optional: "true",
+    original_is_selected: "true",
+  });
+  withFlag(form, "is_optional", true);
+  withFlag(form, "is_selected", true);
+  withFlag(form, "included_in_invoice_total", false);
+  const parsed = parseUpdateRowForm(form);
+  assert.equal(parsed.input.included_in_invoice_total, false);
 });
 
 test("10.6 tax form: standard VAT clears a stale buyer VAT number", () => {
@@ -475,6 +515,7 @@ test("10.6 tax form: standard VAT clears a stale buyer VAT number", () => {
     person_1_green_remaining_kronor: "50000,00",
   });
   withFlag(form, "genuine_fixed_price", true);
+  form.append("fixed_price_row_ids", ROW);
   const parsed = parseUpdateTaxInputForm(form);
   assert.deepEqual(parsed.fieldErrors, {});
   assert.deepEqual(parsed.input.tax_input_snapshot, {
@@ -496,6 +537,7 @@ test("10.6 tax form: standard VAT clears a stale buyer VAT number", () => {
     genuineFixedPrice: true,
     fixedPriceOre: 100_000,
     fixedPriceCategorySplitOre: { SOLAR: 40_000, STORAGE: 30_000, CHARGING: 30_000 },
+    fixedPriceRowIds: [ROW],
   });
 });
 
@@ -541,6 +583,7 @@ test("10.6 tax form: inactive dates and fixed-price facts normalize to canonical
   assert.equal(taxInput.genuineFixedPrice, false);
   assert.equal(taxInput.fixedPriceOre, null);
   assert.equal(taxInput.fixedPriceCategorySplitOre, null);
+  assert.equal(taxInput.fixedPriceRowIds, null);
   assert.deepEqual(taxInput.personAllowanceSlots, [{
     slot: "PERSON_1",
     remainingRotAllowanceOre: 5_000_000,
@@ -569,6 +612,7 @@ test("10.6 tax form: authoritative draft failures are associated with actionable
     "genuine_fixed_price",
     "fixed_storage_kronor",
     "fixed_charging_kronor",
+    "fixed_price_row_ids",
   ]) {
     assert.equal(typeof parsed.fieldErrors[field], "string", `${field} must carry a field error`);
   }
@@ -582,4 +626,54 @@ test("10.6 tax form: reverse-charge requires a buyer VAT number", () => {
     green_basis_method: "ACTUAL_ELIGIBLE_COSTS",
   }));
   assert.equal(typeof parsed.fieldErrors.buyer_vat_number, "string");
+});
+
+test("10.6 tax form: reverse charge plus a deduction gets specific cross-field errors", () => {
+  const parsed = parseUpdateTaxInputForm(fd({
+    id: ROW,
+    document_vat_type: "REVERSE_CHARGE_CONSTRUCTION",
+    buyer_vat_number: "SE556677889901",
+    deduction_choice: "ROT",
+    payment_date: "2026-08-05",
+    person_1_rot_remaining_kronor: "50000,00",
+    person_1_combined_rot_rut_remaining_kronor: "75000,00",
+    green_basis_method: "ACTUAL_ELIGIBLE_COSTS",
+  }));
+  assert.match(parsed.fieldErrors.document_vat_type ?? "", /kan inte kombineras/i);
+  assert.equal(
+    parsed.fieldErrors.deduction_choice,
+    parsed.fieldErrors.document_vat_type,
+  );
+});
+
+test("10.6 tax form: fixed-price row scope is required, unique, canonical, and sorted", () => {
+  const valid = fd({
+    id: ROW,
+    document_vat_type: "STANDARD_VAT_25",
+    deduction_choice: "GREEN",
+    final_payment_date: "2026-08-06",
+    person_1_green_remaining_kronor: "50000,00",
+    green_basis_method: "FIXED_PRICE_97_PERCENT",
+    fixed_price_kronor: "1000,00",
+    fixed_solar_kronor: "400,00",
+    fixed_storage_kronor: "300,00",
+    fixed_charging_kronor: "300,00",
+  });
+  withFlag(valid, "genuine_fixed_price", true);
+  valid.append("fixed_price_row_ids", ROW);
+  valid.append("fixed_price_row_ids", SECT);
+  const parsed = parseUpdateTaxInputForm(valid);
+  assert.deepEqual(parsed.fieldErrors, {});
+  assert.deepEqual(
+    (parsed.input.tax_input_snapshot as { fixedPriceRowIds: string[] }).fixedPriceRowIds,
+    [SECT, ROW],
+  );
+
+  valid.append("fixed_price_row_ids", ROW);
+  const rejected = parseUpdateTaxInputForm(valid);
+  assert.equal(typeof rejected.fieldErrors.fixed_price_row_ids, "string");
+  assert.equal(
+    (rejected.input.tax_input_snapshot as { fixedPriceRowIds: unknown }).fixedPriceRowIds,
+    null,
+  );
 });

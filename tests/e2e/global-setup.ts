@@ -70,6 +70,7 @@ function noDeductionTaxInput(
     genuineFixedPrice: false,
     fixedPriceOre: null,
     fixedPriceCategorySplitOre: null,
+    fixedPriceRowIds: null,
   };
 }
 
@@ -498,14 +499,6 @@ export default async function globalSetup() {
     intro_text: "Skickad version för accept-och-skapa-jobb-flödet",
     accepted_price_ore: 125000,
   });
-  await adminInsertQuoteVersionLine({
-    tenant_id: base.tenantA.id,
-    quote_version_id: acceptSentVersionId,
-    label: `Accept-rad ${token()}`,
-    unit_sell_ore: 85000,
-    vat_rate_bp: 2500,
-    sort_order: 0,
-  });
   await adminQuery(
     `update public.quote_versions set status = 'sent' where id = $1`,
     [acceptSentVersionId],
@@ -540,14 +533,6 @@ export default async function globalSetup() {
     customer_display_name: companyName,
     intro_text: "Accepterad version för jobb-traceability-flödet (7.3)",
     accepted_price_ore: 125000,
-  });
-  await adminInsertQuoteVersionLine({
-    tenant_id: base.tenantA.id,
-    quote_version_id: acceptedJobVersionId,
-    label: `Jobbrad ${token()}`,
-    unit_sell_ore: 85000,
-    vat_rate_bp: 2500,
-    sort_order: 0,
   });
   await adminQuery(
     `update public.quote_versions set status = 'sent' where id = $1`,
@@ -826,14 +811,6 @@ export default async function globalSetup() {
     customer_display_name: companyName,
     intro_text: "Accepterad version med låst underlag (8.5 file-lock-panel)",
     accepted_price_ore: 125000,
-  });
-  await adminInsertQuoteVersionLine({
-    tenant_id: base.tenantA.id,
-    quote_version_id: evidenceVersionId,
-    label: `Underlagsrad ${token()}`,
-    unit_sell_ore: 85000,
-    vat_rate_bp: 2500,
-    sort_order: 0,
   });
   await adminQuery(
     `update public.quote_versions set status = 'sent' where id = $1`,

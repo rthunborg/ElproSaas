@@ -112,6 +112,7 @@ function summaryCategoryOf(rowType: string): "labor" | "material" | "other" {
 /** The frozen line-snapshot SOURCE from a customer-visible calc row (NO cost/internal). */
 function lineSourceOf(row: CalcRowRow, lineNetOre: number | null): QuoteLineSource {
   return {
+    sourceRowId: row.id,
     rowType: row.row_type,
     sortOrder: row.sort_order,
     label: row.label,
@@ -149,6 +150,16 @@ export interface QuoteSnapshotBuildResult {
   readonly customerId: string;
   readonly facilityId: string | null;
   readonly contactId: string | null;
+  /** Canonical proof of the exact source state read for this build. */
+  readonly currentReviewDigest: string;
+  readonly quoteCaptureDate: string;
+  readonly reviewedCalculationStatus: string;
+  /** Internal-only warning inputs bound inside the create RPC; never frozen or rendered. */
+  readonly reviewedReadinessRows: readonly Readonly<{
+    sourceRowId: string;
+    unitCostOre: number | null;
+    sourceKind: string | null;
+  }>[];
 }
 
 /**
@@ -218,6 +229,8 @@ export async function buildFreshQuoteSnapshot(
       rowType: row.row_type,
       quantity: row.quantity,
       unit: row.unit,
+      unitCostOre: row.unit_cost_ore,
+      sourceKind: row.source_kind,
       unitSellOre: row.unit_sell_ore,
       vatRateBp: row.vat_rate_bp,
       includedInInvoiceTotal: row.included_in_invoice_total,
@@ -275,8 +288,8 @@ export async function buildFreshQuoteSnapshot(
   const totalsRows = rows.map(totalsRowOf);
   const baseRows = totalsRows.filter((r) => !r.is_optional);
   const optionRows = totalsRows.filter((r) => r.is_optional);
-  const baseTotal = computeSectionTotal(baseRows);
-  const optionTotal = computeSectionTotal(optionRows);
+  const baseTotal = computeSectionTotal(baseRows, quoteCaptureDate);
+  const optionTotal = computeSectionTotal(optionRows, quoteCaptureDate);
   if (!baseTotal.ok || !optionTotal.ok) {
     throw new CommandError("VALIDATION_FAILED");
   }
@@ -284,7 +297,7 @@ export async function buildFreshQuoteSnapshot(
   // Per-row line nets (for the frozen line snapshots) — CAPTURED from the engine.
   const lineNetByRowId = new Map<string, number | null>();
   for (const row of rows) {
-    const line = computeLineTotal(totalsRowOf(row));
+    const line = computeLineTotal(totalsRowOf(row), quoteCaptureDate);
     if (!line.ok) {
       throw new CommandError("VALIDATION_FAILED");
     }
@@ -458,6 +471,14 @@ export async function buildFreshQuoteSnapshot(
     customerId: header.customer_id,
     facilityId: header.facility_id,
     contactId: header.contact_id,
+    currentReviewDigest,
+    quoteCaptureDate,
+    reviewedCalculationStatus: header.status,
+    reviewedReadinessRows: Object.freeze(rows.map((row) => Object.freeze({
+      sourceRowId: row.id,
+      unitCostOre: row.unit_cost_ore,
+      sourceKind: row.source_kind,
+    }))),
   };
 }
 
@@ -513,6 +534,7 @@ export function snapshotToPayload(
 /** The line payload array the RPC reads (camelCase; NO cost/internal fields — R-607). */
 export function linesToPayload(s: QuoteVersionSnapshot): unknown[] {
   return s.lines.map((l) => ({
+    sourceRowId: l.sourceRowId,
     rowType: l.rowType,
     sortOrder: l.sortOrder,
     label: l.label,

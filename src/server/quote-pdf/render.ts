@@ -206,15 +206,21 @@ export async function renderQuotePdf(
   } else {
     for (const line of visibleLines) {
       const label = line.label ?? line.description ?? "—";
-      const tillval = line.isOptional ? " (tillval)" : "";
-      const excluded = line.includedInInvoiceTotal === false
-        ? " (ingår inte i totalsumman)"
+      const tillval = line.isOptional
+        ? line.isSelected
+          ? " (tillval, valt)"
+          : " (tillval, inte valt)"
         : "";
+      const inclusion = line.includedInInvoiceTotal === false
+        ? " (ingår inte i totalsumman)"
+        : line.isOptional
+          ? " (ingår i totalsumman)"
+          : "";
       const qty = line.quantity !== null ? `${line.quantity} ${line.unit ?? ""}`.trim() : "";
       const unitSell = line.unitSellKronor !== null ? `${line.unitSellKronor} kr` : "";
       const net = line.lineNetKronor !== null ? `${line.lineNetKronor} kr` : "";
       const segments = joinParts([qty, unitSell ? `à ${unitSell}` : "", net ? `= ${net}` : ""], "  ");
-      cursor.text(joinParts([`${label}${tillval}${excluded}`, segments], "  —  "));
+      cursor.text(joinParts([`${label}${tillval}${inclusion}`, segments], "  —  "));
       if (line.quoteNote) cursor.text(`  ${line.quoteNote}`);
     }
   }
@@ -223,7 +229,7 @@ export async function renderQuotePdf(
   // ── Totals (READ VERBATIM from the frozen row — the renderer does NO money math). ──
   cursor.text("Summering", { size: SUBHEADING_SIZE, bold: true });
   cursor.text(`Grundbelopp (netto): ${vm.totals.baseKronor} kr`);
-  cursor.text(`Tillval (valda): ${vm.totals.optionKronor} kr`);
+  cursor.text(`Tillval som ingår (netto): ${vm.totals.optionKronor} kr`);
   cursor.text(`Moms: ${vm.totals.vatKronor} kr`);
   if (
     vm.taxAnswer?.source === "v2" &&
@@ -286,12 +292,23 @@ export async function renderQuotePdf(
     if (vm.taxAnswer.deductionChoice === "GREEN" || vm.taxAnswer.deductionChoice === "ROT_AND_GREEN") {
       const green = vm.taxAnswer.green;
       if (green) {
+        const basisLabels = {
+          ACTUAL_ELIGIBLE_COSTS: "Faktiska stödberättigade kostnader",
+          FIXED_PRICE_97_PERCENT: "97 % av äkta fastprisavtal",
+        } as const;
+        const categoryLabels = {
+          SOLAR: "Solceller",
+          STORAGE: "Lagring",
+          CHARGING: "Laddningspunkt",
+        } as const;
         cursor.text("Grön teknik", { bold: true });
-        cursor.text(`Underlagsmetod: ${green.basisMethod}`);
+        const basisLabel = basisLabels[green.basisMethod as keyof typeof basisLabels]
+          ?? "Okänd underlagsmetod";
+        cursor.text(`Underlagsmetod: ${basisLabel}`);
         for (const category of ["SOLAR", "STORAGE", "CHARGING"] as const) {
           const values = green.categories[category];
           cursor.text(
-            `${category}: underlag ${values.basisKronor} kr, beräknat ${values.calculatedKronor} kr, begärt ${values.claimKronor} kr`,
+            `${categoryLabels[category]}: underlag ${values.basisKronor} kr, beräknat ${values.calculatedKronor} kr, begärt ${values.claimKronor} kr`,
           );
         }
         cursor.text(`Beräknat: ${green.calculatedKronor} kr. Begärt: ${green.claimKronor} kr.`);

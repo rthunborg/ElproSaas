@@ -49,12 +49,27 @@ import { resolveTaxReadiness } from "@/features/calculations/tax-readiness";
 import { resolveVatDisplayPosture } from "@/features/calculations/vat-posture";
 import type { CalculationDetail } from "@/features/calculations/read";
 import type { RowSourceLists } from "@/features/calculations/source-options";
-import type { VatDisplayMode, VatDisplayPosture } from "@/lib/money";
+import type {
+  DeductionClassification,
+  VatDisplayMode,
+  VatDisplayPosture,
+} from "@/lib/money";
 
 const STATUS_LABELS: Record<string, string> = {
   draft: "Utkast",
   ready: "Klar",
   archived: "Arkiverad",
+};
+
+const GREEN_SCOPE_CLASSIFICATION_LABELS: Partial<
+  Record<DeductionClassification, string>
+> = {
+  GREEN_SOLAR_LABOR: "Sol – arbete",
+  GREEN_SOLAR_MATERIAL: "Sol – material",
+  GREEN_STORAGE_LABOR: "Lagring – arbete",
+  GREEN_STORAGE_MATERIAL: "Lagring – material",
+  GREEN_CHARGING_LABOR: "Laddning – arbete",
+  GREEN_CHARGING_MATERIAL: "Laddning – material",
 };
 
 export function CalculationEditor({
@@ -146,6 +161,7 @@ export function CalculationEditor({
         is_selected: r.is_selected,
       })),
     })),
+    previewQuoteCaptureDate,
   );
   // NEVER fabricate a plausible-looking zero when the engine fails (the AC4 money-display
   // risk): surface a failed-total state instead. `TotalsSummary` renders only when the
@@ -167,7 +183,7 @@ export function CalculationEditor({
         is_hidden: row.is_hidden,
         is_optional: row.is_optional,
         is_selected: row.is_selected,
-      });
+      }, previewQuoteCaptureDate);
       return {
         id: row.id,
         computationFailed: !line.ok,
@@ -206,6 +222,22 @@ export function CalculationEditor({
     0,
   );
   const canAddRow = canAddCalculationRow(activeRowCount);
+  const fixedPriceScopeRows = sections.flatMap((section) =>
+    section.rows
+      .filter(
+        (row) =>
+          row.included_in_invoice_total &&
+          GREEN_SCOPE_CLASSIFICATION_LABELS[row.deduction_classification] !== undefined,
+      )
+      .map((row) => ({
+        id: row.id,
+        label: [
+          section.title ?? "Namnlös sektion",
+          row.label ?? row.description ?? (row.row_type === "labor" ? "Arbetsrad" : "Materialrad"),
+          GREEN_SCOPE_CLASSIFICATION_LABELS[row.deduction_classification],
+        ].join(" · "),
+      })),
+  );
 
   // Story 5.4 — the PURE readiness report (blockers vs warnings). The classification lives in
   // fast-gate-protected `readiness.ts`; this island only DISPLAYS it and GATES the create-quote
@@ -355,6 +387,7 @@ export function CalculationEditor({
       <TaxSettingsPanel
         calculationId={header.id}
         value={header.tax_input_snapshot}
+        fixedPriceScopeRows={fixedPriceScopeRows}
       />
 
       {/* Workspace: sections (left/center) + totals summary (right on desktop). */}
@@ -438,6 +471,7 @@ export function CalculationEditor({
                   calculationId={header.id}
                   sources={sources}
                   posture={posture}
+                  policyEffectiveDate={previewQuoteCaptureDate}
                   canAddRow={canAddRow}
                 />
               </div>

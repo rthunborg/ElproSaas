@@ -10,6 +10,7 @@
  * `node --test` unit runner (via `tests/support/alias-hook.mjs`) and tsc/Next.
  */
 export {
+  isCanonicalFixedPriceRowId,
   isCanonicalTaxPersonSlot,
   VAT_TYPES,
   DOCUMENT_VAT_POSTURES,
@@ -41,6 +42,7 @@ export type {
   TaxDeductionChoice,
   TaxPersonAllowanceSlot,
   FixedPriceCategorySplitOre,
+  FixedPriceRowIds,
   TaxInputSnapshotV2,
 } from "./domain";
 

@@ -42,7 +42,6 @@ import {
   adminInsertTenantCounter,
   adminInsertQuote,
   adminInsertQuoteVersion,
-  adminInsertQuoteVersionLine,
   adminInsertQuoteVersionAttachment,
   adminInsertQuoteEvent,
   adminInsertQuoteAcceptance,
@@ -58,6 +57,7 @@ import {
   adminSelectFileLabel,
   adminSelectQuoteLabel,
   adminSelectAcceptanceLabel,
+  adminSelectQuoteVersionLines,
   type TwoTenantFixture,
   type TestServerClient,
 } from "../../factories/tenants";
@@ -235,11 +235,11 @@ beforeAll(async () => {
     company_name: "tenant-b-version-seed",
     accepted_price_ore: 125000,
   });
-  tenantBQuoteVersionLineId = await adminInsertQuoteVersionLine({
-    tenant_id: fixture.tenantB.id,
-    quote_version_id: tenantBQuoteVersionId,
-    label: "tenant-b-line-seed",
-  });
+  const tenantBVersionLines = await adminSelectQuoteVersionLines(tenantBQuoteVersionId);
+  tenantBQuoteVersionLineId = String(tenantBVersionLines[0]?.id ?? "");
+  if (!tenantBQuoteVersionLineId) {
+    throw new Error("cross-tenant fixture: canonical V2 quote line missing");
+  }
   tenantBQuoteVersionAttachmentId = await adminInsertQuoteVersionAttachment({
     tenant_id: fixture.tenantB.id,
     quote_version_id: tenantBQuoteVersionId,

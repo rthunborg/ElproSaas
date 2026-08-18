@@ -350,3 +350,15 @@ test("computeLineVat equals a direct lineVatOre engine call and propagates its f
   const bad = computeLineVat(10000, -1);
   assert.equal(bad.ok, false);
 });
+
+test("live totals resolve the injected policy date and fail loud outside ratified windows", () => {
+  const current = computeSectionTotal([
+    row({ unit_sell_ore: 10_000, vat_rate_bp: 2_500 }),
+  ], "2026-08-18");
+  assert.equal(current.ok, true);
+
+  const unresolved = computeSectionTotal([
+    row({ unit_sell_ore: 10_000, vat_rate_bp: 2_500 }),
+  ], "2027-01-01");
+  assert.deepEqual(unresolved, { ok: false, code: "TAX_POLICY_NO_MATCH" });
+});

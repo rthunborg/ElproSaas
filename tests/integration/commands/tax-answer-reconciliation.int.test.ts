@@ -10,6 +10,8 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
   adminInsertCalculation,
   adminInsertCustomer,
+  adminInsertFile,
+  adminInsertFileLink,
   adminInsertRow,
   adminInsertSection,
   cleanupFixture,
@@ -42,6 +44,7 @@ let client: TestServerClient;
 let customerId: string;
 let calculationId: string;
 let sectionId: string;
+let sourceRowId: string;
 
 function readRepoFile(relativePath: string): string {
   const path = resolve(ROOT, relativePath);
@@ -69,6 +72,10 @@ function zeroClassifications(): Record<(typeof CLASSIFICATIONS)[number], number>
     (typeof CLASSIFICATIONS)[number],
     number
   >;
+}
+
+function syntheticRowId(index: number): string {
+  return `00000000-0000-0000-0000-${String(index).padStart(12, "0")}`;
 }
 
 function frozenPolicyValues(): Record<string, unknown> {
@@ -101,6 +108,7 @@ function validTaxInput(): Record<string, unknown> {
     genuineFixedPrice: false,
     fixedPriceOre: null,
     fixedPriceCategorySplitOre: null,
+    fixedPriceRowIds: null,
   };
 }
 
@@ -156,6 +164,9 @@ function validTaxAnswer(): Record<string, unknown> {
     green: {
       policy: null,
       basisMethod: "ACTUAL_ELIGIBLE_COSTS",
+      fixedPriceRowIds: null,
+      fixedPriceOre: null,
+      fixedPriceCategorySplitOre: null,
       categories: {
         SOLAR: { category: "SOLAR", basisOre: 0, calculatedOre: 0, claimOre: 0 },
         STORAGE: { category: "STORAGE", basisOre: 0, calculatedOre: 0, claimOre: 0 },
@@ -177,8 +188,8 @@ function validTaxAnswer(): Record<string, unknown> {
 
 function validSnapshot(): Record<string, unknown> {
   return {
-    companyName: "Elpro Test AB",
-    companyOrgNr: "556000-1234",
+    companyName: null,
+    companyOrgNr: null,
     companyAddressLine1: null,
     companyAddressLine2: null,
     companyPostalCode: null,
@@ -186,7 +197,7 @@ function validSnapshot(): Record<string, unknown> {
     companyEmail: null,
     companyPhone: null,
     companyLogoUrl: null,
-    customerDisplayName: "Taxkund",
+    customerDisplayName: "Story 10.6 customer",
     customerType: "private",
     facilityName: null,
     contactName: null,
@@ -210,7 +221,7 @@ function validSnapshot(): Record<string, unknown> {
     claimDeductionOre: 0,
     payableOre: 12_500,
     vatRateBp: 2500,
-    vatDisplay: "company_togglable",
+    vatDisplay: "private",
     deductionType: null,
     deductionRateBp: null,
     deductionCapOre: null,
@@ -223,6 +234,7 @@ function validSnapshot(): Record<string, unknown> {
 
 function validLine(): Record<string, unknown> {
   return {
+    sourceRowId,
     rowType: "labor",
     sortOrder: 0,
     label: "Arbete",
@@ -239,6 +251,17 @@ function validLine(): Record<string, unknown> {
     isHidden: false,
     isOptional: false,
     isSelected: null,
+  };
+}
+
+function validReviewedProof(): Record<string, unknown> {
+  return {
+    p_reviewed_snapshot_digest: "0".repeat(64),
+    p_reviewed_quote_capture_date: "2026-08-05",
+    p_reviewed_calculation_status: "draft",
+    p_reviewed_readiness_rows: [
+      { sourceRowId, unitCostOre: null, sourceKind: null },
+    ],
   };
 }
 
@@ -284,6 +307,7 @@ async function createFreshV2(): Promise<{
     p_snapshot: validSnapshot(),
     p_lines: [validLine()],
     p_attachments: [],
+    ...validReviewedProof(),
   });
   if (error) throw new Error(`valid V2 RPC failed: ${error.code} ${error.message}`);
   const row = Array.isArray(data) ? data[0] : data;
@@ -299,6 +323,12 @@ beforeAll(async () => {
   if (!stackUp) return;
   fixture = await createTwoTenantFixture();
   client = await makeAuthedServerClient(fixture.adminA);
+  await adminQuery(
+    `insert into public.company_settings (
+       tenant_id, company_name, default_vat_display, vat_rate_bp
+     ) values ($1, null, 'company_togglable', 2500)`,
+    [fixture.tenantA.id],
+  );
   customerId = await adminInsertCustomer({
     tenant_id: fixture.tenantA.id,
     customer_type: "private",
@@ -308,11 +338,29 @@ beforeAll(async () => {
     tenant_id: fixture.tenantA.id,
     customer_id: customerId,
     title: "Story 10.6 calculation",
+    tax_input_snapshot: validTaxInput(),
   });
   sectionId = await adminInsertSection({
     tenant_id: fixture.tenantA.id,
     calculation_id: calculationId,
     title: "Story 10.6 tax rows",
+  });
+  sourceRowId = await adminInsertRow({
+    tenant_id: fixture.tenantA.id,
+    section_id: sectionId,
+    row_type: "labor",
+    quantity: 1,
+    unit: "st",
+    unit_sell_ore: 10_000,
+    vat_rate_bp: 2500,
+    included_in_invoice_total: true,
+    deduction_classification: "NONE",
+    vat_type: "STANDARD_VAT_25",
+    is_hidden: false,
+    is_optional: false,
+    is_selected: null,
+    label: "Arbete",
+    sort_order: 0,
   });
   await setCalculationTaxInput();
 });
@@ -346,7 +394,7 @@ describe("Story 10.6 — migration source contract", () => {
     );
     expect(migration.match(/create\s+table/gi) ?? [], "reconciliation adds no tenant table").toHaveLength(0);
     expect(migration.match(/perform\s+public\.assert_story_10_6_fresh_quote_v2/gi) ?? []).toHaveLength(2);
-    expect(migration.match(/jsonb_array_length\(p_lines\)\s*>\s*500/gi) ?? []).toHaveLength(2);
+    expect(migration.match(/jsonb_array_length\(p_lines\)\s*>\s*500/gi) ?? []).toHaveLength(3);
   });
 
   it("[10.6-INT-02][P0] lock source pins transition-only freeze and OLD+NEW serialized child parents", () => {
@@ -414,6 +462,7 @@ describe("Story 10.6 — local Supabase behavior", () => {
       genuineFixedPrice: false,
       fixedPriceOre: null,
       fixedPriceCategorySplitOre: null,
+      fixedPriceRowIds: null,
     };
     await expect(
       adminQuery(
@@ -667,6 +716,10 @@ describe("Story 10.6 — local Supabase behavior", () => {
         [quarantined[0]!.id],
       ),
     ).resolves.toBeDefined();
+    await adminQuery(
+      `update public.calculation_rows set archived_at = now() where id = $1`,
+      [quarantined[0]!.id],
+    );
   });
 
   it("[10.6-INT-04C][P0] calculation rows are capped at 500 across all sections", async (testCtx) => {
@@ -946,7 +999,7 @@ describe("Story 10.6 — local Supabase behavior", () => {
     (rotAtLimit.rot as Record<string, unknown>).allocations = [
       { slot: "PERSON_1", ore: 3_700 },
       ...Array.from({ length: 49 }, (_, index) => ({
-        slot: `zero_rot_${index + 1}`,
+        slot: `PERSON_${index + 2}`,
         ore: 0,
       })),
     ];
@@ -957,7 +1010,7 @@ describe("Story 10.6 — local Supabase behavior", () => {
     expect(rotAtLimitResult[0]?.valid).toBe(true);
     const oversizedRot = structuredClone(rotAtLimit);
     ((oversizedRot.rot as Record<string, unknown>).allocations as unknown[]).push({
-      slot: "zero_rot_50",
+      slot: "PERSON_51",
       ore: 0,
     });
     const oversizedRotResult = await adminQuery<{ valid: boolean }>(
@@ -1094,6 +1147,13 @@ describe("Story 10.6 — local Supabase behavior", () => {
         values: frozenPolicyValues(),
       },
       basisMethod: "FIXED_PRICE_97_PERCENT",
+      fixedPriceRowIds: [sourceRowId],
+      fixedPriceOre: 12_500,
+      fixedPriceCategorySplitOre: {
+        SOLAR: 12_500,
+        STORAGE: 0,
+        CHARGING: 0,
+      },
       categories: {
         SOLAR: { category: "SOLAR", basisOre: 12_125, calculatedOre: 1_818, claimOre: 1_800 },
         STORAGE: { category: "STORAGE", basisOre: 0, calculatedOre: 0, claimOre: 0 },
@@ -1101,7 +1161,7 @@ describe("Story 10.6 — local Supabase behavior", () => {
       },
       calculatedOre: 1_818,
       claimOre: 1_800,
-      allocations: [{ slot: "green_person", ore: 1_800 }],
+      allocations: [{ slot: "PERSON_1", ore: 1_800 }],
     };
     fixedGreen.calculatedDeductionOre = 1_818;
     fixedGreen.claimDeductionOre = 1_800;
@@ -1112,6 +1172,98 @@ describe("Story 10.6 — local Supabase behavior", () => {
       [JSON.stringify(fixedGreen)],
     );
     expect(fixedGreenResult[0]?.valid).toBe(true);
+
+    const unrelatedRowId = syntheticRowId(900);
+    const fixedGreenWithUnrelated = structuredClone(fixedGreen);
+    fixedGreenWithUnrelated.categories = [
+      {
+        vatType: "STANDARD_VAT_25",
+        rateBp: 2500,
+        netOre: 11_000,
+        vatOre: 2_750,
+        grossOre: 13_750,
+      },
+    ];
+    fixedGreenWithUnrelated.netByDeductionClassification = {
+      ...zeroClassifications(),
+      NONE: 1_000,
+      GREEN_SOLAR_LABOR: 10_000,
+    };
+    fixedGreenWithUnrelated.vatByDeductionClassification = {
+      ...zeroClassifications(),
+      NONE: 250,
+      GREEN_SOLAR_LABOR: 2_500,
+    };
+    fixedGreenWithUnrelated.summaries = {
+      labor: { netOre: 10_000, vatOre: 2_500, grossOre: 12_500 },
+      material: { netOre: 0, vatOre: 0, grossOre: 0 },
+      other: { netOre: 1_000, vatOre: 250, grossOre: 1_250 },
+    };
+    fixedGreenWithUnrelated.netOre = 11_000;
+    fixedGreenWithUnrelated.vatOre = 2_750;
+    fixedGreenWithUnrelated.grossOre = 13_750;
+    fixedGreenWithUnrelated.payableOre = 11_950;
+    const fixedGreenLine = {
+      ...validLine(),
+      deductionClassification: "GREEN_SOLAR_LABOR",
+    };
+    const unrelatedNoneLine = {
+      ...validLine(),
+      sourceRowId: unrelatedRowId,
+      rowType: "other",
+      sortOrder: 1,
+      label: "Unrelated billed work",
+      unitSellOre: 1_000,
+      lineNetOre: 1_000,
+      deductionClassification: "NONE",
+    };
+    const fixedInput = {
+      ...validTaxInput(),
+      deductionChoice: "GREEN",
+      finalPaymentDate: "2026-08-06",
+      personAllowanceSlots: [
+        { slot: "PERSON_1", remainingGreenAllowanceOre: 5_000_000 },
+      ],
+      greenBasisMethod: "FIXED_PRICE_97_PERCENT",
+      genuineFixedPrice: true,
+      fixedPriceOre: 12_500,
+      fixedPriceCategorySplitOre: {
+        SOLAR: 12_500,
+        STORAGE: 0,
+        CHARGING: 0,
+      },
+      fixedPriceRowIds: [sourceRowId],
+    };
+    const fixedScopeResult = await adminQuery<{ lines_valid: boolean; input_valid: boolean }>(
+      `select
+         public.is_story_10_6_quote_lines_reconciled($1::jsonb, $2::jsonb)
+           as lines_valid,
+         public.is_story_10_6_tax_answer_matches_input(
+           $1::jsonb, $3::jsonb, $4::date
+         ) as input_valid`,
+      [
+        JSON.stringify(fixedGreenWithUnrelated),
+        JSON.stringify([fixedGreenLine, unrelatedNoneLine]),
+        JSON.stringify(fixedInput),
+        "2026-08-05",
+      ],
+    );
+    expect(fixedScopeResult[0]).toEqual({ lines_valid: true, input_valid: true });
+
+    const wronglyScopedUnrelated = structuredClone(fixedGreenWithUnrelated);
+    (
+      wronglyScopedUnrelated.green as Record<string, unknown>
+    ).fixedPriceRowIds = [sourceRowId, unrelatedRowId].sort();
+    const wronglyScopedResult = await adminQuery<{ valid: boolean }>(
+      `select public.is_story_10_6_quote_lines_reconciled(
+         $1::jsonb, $2::jsonb
+       ) as valid`,
+      [
+        JSON.stringify(wronglyScopedUnrelated),
+        JSON.stringify([fixedGreenLine, unrelatedNoneLine]),
+      ],
+    );
+    expect(wronglyScopedResult[0]?.valid).toBe(false);
 
     // Each category is below one SEK on its own (30 öre + 70 öre), but their
     // exact rational claims sum to one SEK. The document truncates once and then
@@ -1152,6 +1304,9 @@ describe("Story 10.6 — local Supabase behavior", () => {
         values: frozenPolicyValues(),
       },
       basisMethod: "ACTUAL_ELIGIBLE_COSTS",
+      fixedPriceRowIds: null,
+      fixedPriceOre: null,
+      fixedPriceCategorySplitOre: null,
       categories: {
         SOLAR: { category: "SOLAR", basisOre: 200, calculatedOre: 30, claimOre: 30 },
         STORAGE: { category: "STORAGE", basisOre: 140, calculatedOre: 70, claimOre: 70 },
@@ -1159,7 +1314,7 @@ describe("Story 10.6 — local Supabase behavior", () => {
       },
       calculatedOre: 100,
       claimOre: 100,
-      allocations: [{ slot: "green_person", ore: 100 }],
+      allocations: [{ slot: "PERSON_1", ore: 100 }],
     };
     aggregateGreen.netOre = 272;
     aggregateGreen.vatOre = 68;
@@ -1173,6 +1328,55 @@ describe("Story 10.6 — local Supabase behavior", () => {
       [JSON.stringify(aggregateGreen)],
     );
     expect(aggregateGreenResult[0]?.valid).toBe(true);
+
+    // Regression: exact category numerators are 1*15%, 1*50%, and 222*50%.
+    // The 100 öre whole-document claim allocates 0/1/99, while reweighting the
+    // already-rounded 0/0/111 calculated amounts would incorrectly yield 0/0/100.
+    const exactRationalGreen = structuredClone(aggregateGreen);
+    exactRationalGreen.categories = [
+      {
+        vatType: "ZERO_RATED",
+        rateBp: 0,
+        netOre: 224,
+        vatOre: 0,
+        grossOre: 224,
+      },
+    ];
+    exactRationalGreen.netByDeductionClassification = {
+      ...zeroClassifications(),
+      GREEN_SOLAR_LABOR: 1,
+      GREEN_STORAGE_LABOR: 1,
+      GREEN_CHARGING_LABOR: 222,
+    };
+    exactRationalGreen.vatByDeductionClassification = zeroClassifications();
+    exactRationalGreen.summaries = {
+      labor: { netOre: 224, vatOre: 0, grossOre: 224 },
+      material: { netOre: 0, vatOre: 0, grossOre: 0 },
+      other: { netOre: 0, vatOre: 0, grossOre: 0 },
+    };
+    exactRationalGreen.green = {
+      ...(exactRationalGreen.green as Record<string, unknown>),
+      categories: {
+        SOLAR: { category: "SOLAR", basisOre: 1, calculatedOre: 0, claimOre: 0 },
+        STORAGE: { category: "STORAGE", basisOre: 1, calculatedOre: 0, claimOre: 1 },
+        CHARGING: { category: "CHARGING", basisOre: 222, calculatedOre: 111, claimOre: 99 },
+      },
+      calculatedOre: 111,
+      claimOre: 100,
+      allocations: [{ slot: "PERSON_1", ore: 100 }],
+    };
+    exactRationalGreen.netOre = 224;
+    exactRationalGreen.vatOre = 0;
+    exactRationalGreen.grossOre = 224;
+    exactRationalGreen.calculatedDeductionOre = 111;
+    exactRationalGreen.claimDeductionOre = 100;
+    exactRationalGreen.deductionOre = 100;
+    exactRationalGreen.payableOre = 124;
+    const exactRationalGreenResult = await adminQuery<{ valid: boolean }>(
+      `select public.is_story_10_6_tax_answer_v2($1::jsonb) as valid`,
+      [JSON.stringify(exactRationalGreen)],
+    );
+    expect(exactRationalGreenResult[0]?.valid).toBe(true);
 
     const independentlyTruncatedGreen = structuredClone(aggregateGreen);
     const independentlyTruncatedCategories = (
@@ -1199,9 +1403,9 @@ describe("Story 10.6 — local Supabase behavior", () => {
     expect(unknownGreenPolicyResult[0]?.valid).toBe(false);
     const greenAtLimit = structuredClone(fixedGreen);
     (greenAtLimit.green as Record<string, unknown>).allocations = [
-      { slot: "green_person", ore: 1_800 },
+      { slot: "PERSON_1", ore: 1_800 },
       ...Array.from({ length: 49 }, (_, index) => ({
-        slot: `zero_green_${index + 1}`,
+        slot: `PERSON_${index + 2}`,
         ore: 0,
       })),
     ];
@@ -1212,7 +1416,7 @@ describe("Story 10.6 — local Supabase behavior", () => {
     expect(greenAtLimitResult[0]?.valid).toBe(true);
     const oversizedGreen = structuredClone(greenAtLimit);
     ((oversizedGreen.green as Record<string, unknown>).allocations as unknown[]).push({
-      slot: "zero_green_50",
+      slot: "PERSON_51",
       ore: 0,
     });
     const oversizedGreenResult = await adminQuery<{ valid: boolean }>(
@@ -1332,6 +1536,7 @@ describe("Story 10.6 — local Supabase behavior", () => {
       allFiveCategories.categories as Array<Record<string, unknown>>
     ).map((category, index) => ({
       ...validLine(),
+      sourceRowId: syntheticRowId(index + 1),
       sortOrder: index,
       label: `VAT category ${index + 1}`,
       vatType: category.vatType,
@@ -1398,6 +1603,7 @@ describe("Story 10.6 — local Supabase behavior", () => {
       p_snapshot: v1,
       p_lines: [validLine()],
       p_attachments: [],
+      ...validReviewedProof(),
     });
     expect(initialV1.error?.code).toBe("23514");
 
@@ -1413,6 +1619,7 @@ describe("Story 10.6 — local Supabase behavior", () => {
       p_snapshot: validSnapshot(),
       p_lines: [incompleteLine],
       p_attachments: [],
+      ...validReviewedProof(),
     });
     expect(initialLine.error?.code).toBe("23514");
 
@@ -1455,6 +1662,7 @@ describe("Story 10.6 — local Supabase behavior", () => {
       p_snapshot: falseMathSnapshot,
       p_lines: [validLine()],
       p_attachments: [],
+      ...validReviewedProof(),
     });
     expect(initialFalseMath.error?.code).toBe("23514");
 
@@ -1464,6 +1672,7 @@ describe("Story 10.6 — local Supabase behavior", () => {
     const newVersion = await client.rpc("create_new_quote_version", {
       p_tenant_id: fixture.tenantA.id,
       p_quote_id: created.quoteId,
+      p_source_quote_version_id: created.versionId,
       p_calculation_id: calculationId,
       p_captured_at: CAPTURED_AT,
       p_customer_id: customerId,
@@ -1479,6 +1688,7 @@ describe("Story 10.6 — local Supabase behavior", () => {
     const falseMathNewVersion = await client.rpc("create_new_quote_version", {
       p_tenant_id: fixture.tenantA.id,
       p_quote_id: created.quoteId,
+      p_source_quote_version_id: created.versionId,
       p_calculation_id: calculationId,
       p_captured_at: CAPTURED_AT,
       p_customer_id: customerId,
@@ -1498,6 +1708,761 @@ describe("Story 10.6 — local Supabase behavior", () => {
     expect(Number(count[0]?.count)).toBe(1);
   });
 
+  it("[10.6-INT-05A][P0] initial RPC requires a current reviewed proof and locked source facts", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
+    await setCalculationTaxInput();
+    const oldOverload = await adminQuery<{ old_signature: string | null }>(
+      `select to_regprocedure(
+         'public.create_quote_version_from_calculation(uuid,uuid,timestamptz,uuid,uuid,uuid,jsonb,jsonb,jsonb)'
+       )::text as old_signature`,
+    );
+    expect(oldOverload[0]?.old_signature).toBeNull();
+
+    const attempt = (
+      proof: Record<string, unknown>,
+      line = validLine(),
+      snapshot = validSnapshot(),
+    ) =>
+      client.rpc("create_quote_version_from_calculation", {
+        p_tenant_id: fixture.tenantA.id,
+        p_calculation_id: calculationId,
+        p_captured_at: CAPTURED_AT,
+        p_customer_id: customerId,
+        p_facility_id: null,
+        p_contact_id: null,
+        p_snapshot: snapshot,
+        p_lines: [line],
+        p_attachments: [],
+        ...proof,
+      });
+
+    const malformedDigest = await attempt({
+      ...validReviewedProof(),
+      p_reviewed_snapshot_digest: "A".repeat(64),
+    });
+    expect(malformedDigest.error?.code).toBe("23514");
+
+    const staleDate = await attempt({
+      ...validReviewedProof(),
+      p_reviewed_quote_capture_date: "2026-08-04",
+    });
+    expect(staleDate.error?.code).toBe("23514");
+
+    const staleStatus = await attempt({
+      ...validReviewedProof(),
+      p_reviewed_calculation_status: "ready",
+    });
+    expect(staleStatus.error?.code).toBe("23514");
+
+    const staleReadiness = await attempt({
+      ...validReviewedProof(),
+      p_reviewed_readiness_rows: [
+        { sourceRowId, unitCostOre: 1, sourceKind: null },
+      ],
+    });
+    expect(staleReadiness.error?.code).toBe("23514");
+
+    const staleFrozenLine = await attempt(
+      validReviewedProof(),
+      { ...validLine(), label: "Stale reviewed label" },
+    );
+    expect(staleFrozenLine.error?.code).toBe("23514");
+
+    const inventedAnswer = validTaxAnswer();
+    inventedAnswer.categories = [{
+      vatType: "STANDARD_VAT_25",
+      rateBp: 2500,
+      netOre: 20_000,
+      vatOre: 5_000,
+      grossOre: 25_000,
+    }];
+    inventedAnswer.netByDeductionClassification = {
+      ...zeroClassifications(),
+      NONE: 20_000,
+    };
+    inventedAnswer.vatByDeductionClassification = {
+      ...zeroClassifications(),
+      NONE: 5_000,
+    };
+    inventedAnswer.summaries = {
+      labor: { netOre: 20_000, vatOre: 5_000, grossOre: 25_000 },
+      material: { netOre: 0, vatOre: 0, grossOre: 0 },
+      other: { netOre: 0, vatOre: 0, grossOre: 0 },
+    };
+    inventedAnswer.netOre = 20_000;
+    inventedAnswer.vatOre = 5_000;
+    inventedAnswer.grossOre = 25_000;
+    inventedAnswer.payableOre = 25_000;
+    const inventedSnapshot = {
+      ...validSnapshot(),
+      baseTotalOre: 20_000,
+      vatTotalOre: 5_000,
+      acceptedPriceOre: 25_000,
+      payableOre: 25_000,
+      taxAnswerSnapshot: inventedAnswer,
+    };
+    const inventedLineNet = await attempt(
+      validReviewedProof(),
+      { ...validLine(), lineNetOre: 20_000 },
+      inventedSnapshot,
+    );
+    expect(inventedLineNet.error?.code).toBe("23514");
+
+    const fabricatedBaseOptionSplit = await attempt(
+      validReviewedProof(),
+      validLine(),
+      { ...validSnapshot(), baseTotalOre: 0, optionTotalOre: 10_000 },
+    );
+    expect(fabricatedBaseOptionSplit.error?.code).toBe("23514");
+
+    const disabledSignOff = await attempt(
+      validReviewedProof(),
+      validLine(),
+      { ...validSnapshot(), requiresSignOff: false },
+    );
+    expect(disabledSignOff.error?.code).toBe("23514");
+
+    const valid = await attempt(validReviewedProof());
+    expect(valid.error).toBeNull();
+  });
+
+  it("[10.6-INT-05AA][P0] source locks block a phantom calculation row until validation commits", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
+
+    let signalSourceLocked!: () => void;
+    let releaseSource!: () => void;
+    const sourceLocked = new Promise<void>((resolveLocked) => {
+      signalSourceLocked = resolveLocked;
+    });
+    const sourceRelease = new Promise<void>((resolveRelease) => {
+      releaseSource = resolveRelease;
+    });
+
+    const sourceTx = adminSession(async ({ query }) => {
+      await query("begin");
+      try {
+        await query(
+          `select public.assert_story_10_6_line_sources($1::uuid, $2::uuid, $3::jsonb)`,
+          [
+            fixture.tenantA.id,
+            calculationId,
+            JSON.stringify([validLine()]),
+          ],
+        );
+        signalSourceLocked();
+        await sourceRelease;
+        await query("commit");
+      } catch (error) {
+        await query("rollback");
+        throw error;
+      }
+    });
+    await sourceLocked;
+
+    let signalInsertPid!: (pid: number) => void;
+    const insertPidReady = new Promise<number>((resolvePid) => {
+      signalInsertPid = resolvePid;
+    });
+    const insertAttempt = adminSession(async ({ query }) => {
+      await query("begin");
+      try {
+        const pid = await query<{ pid: number }>(`select pg_backend_pid() as pid`);
+        signalInsertPid(pid[0]!.pid);
+        await query(
+          `insert into public.calculation_rows (
+             tenant_id, section_id, row_type, quantity, unit, unit_sell_ore,
+             vat_rate_bp, included_in_invoice_total, deduction_classification,
+             vat_type, label, sort_order
+           ) values ($1, $2, 'labor', 1, 'st', 100, 2500, true,
+                     'NONE', 'STANDARD_VAT_25', 'phantom', 1)`,
+          [fixture.tenantA.id, sectionId],
+        );
+        await query("rollback");
+      } catch (error) {
+        await query("rollback");
+        throw error;
+      }
+    });
+    const insertPid = await insertPidReady;
+
+    let observedSourceWait = false;
+    try {
+      for (let attempt = 0; attempt < 100; attempt += 1) {
+        const activity = await adminQuery<{ wait_event_type: string | null }>(
+          `select wait_event_type from pg_stat_activity where pid = $1`,
+          [insertPid],
+        );
+        if (activity[0]?.wait_event_type === "Lock") {
+          observedSourceWait = true;
+          break;
+        }
+        const finished = await Promise.race([
+          insertAttempt.then(() => true),
+          new Promise<false>((resolveDelay) => setTimeout(() => resolveDelay(false), 10)),
+        ]);
+        if (finished) break;
+      }
+      expect(
+        observedSourceWait,
+        "a child insert must wait on the locked calculation-section source chain",
+      ).toBe(true);
+    } finally {
+      releaseSource();
+      await sourceTx;
+    }
+    await insertAttempt;
+  });
+
+  it("[10.6-INT-05AB][P0] source proof follows row-section-calculation lock order without deadlock", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
+
+    let signalSectionLocked!: () => void;
+    let releaseSection!: () => void;
+    const sectionLocked = new Promise<void>((resolveLocked) => {
+      signalSectionLocked = resolveLocked;
+    });
+    const sectionRelease = new Promise<void>((resolveRelease) => {
+      releaseSection = resolveRelease;
+    });
+
+    const sectionTx = adminSession(async ({ query }) => {
+      await query("begin");
+      try {
+        await query("set local lock_timeout = '5s'");
+        await query(
+          "select id from public.calculation_sections where id = $1 for update",
+          [sectionId],
+        );
+        signalSectionLocked();
+        await sectionRelease;
+        await query(
+          "select id from public.calculations where id = $1 for update",
+          [calculationId],
+        );
+        await query("commit");
+      } catch (error) {
+        await query("rollback");
+        throw error;
+      }
+    });
+    await sectionLocked;
+
+    let signalSourcePid!: (pid: number) => void;
+    const sourcePidReady = new Promise<number>((resolvePid) => {
+      signalSourcePid = resolvePid;
+    });
+    const sourceTx = adminSession(async ({ query }) => {
+      await query("begin");
+      try {
+        await query("set local lock_timeout = '5s'");
+        const pid = await query<{ pid: number }>("select pg_backend_pid() as pid");
+        signalSourcePid(pid[0]!.pid);
+        await query(
+          "select public.assert_story_10_6_line_sources($1::uuid, $2::uuid, $3::jsonb)",
+          [fixture.tenantA.id, calculationId, JSON.stringify([validLine()])],
+        );
+        await query("commit");
+      } catch (error) {
+        await query("rollback");
+        throw error;
+      }
+    });
+    const sourcePid = await sourcePidReady;
+
+    let observedSectionWait = false;
+    try {
+      for (let attempt = 0; attempt < 100; attempt += 1) {
+        const activity = await adminQuery<{ wait_event_type: string | null }>(
+          "select wait_event_type from pg_stat_activity where pid = $1",
+          [sourcePid],
+        );
+        if (activity[0]?.wait_event_type === "Lock") {
+          observedSectionWait = true;
+          break;
+        }
+        const finished = await Promise.race([
+          sourceTx.then(() => true),
+          new Promise<false>((resolveDelay) => setTimeout(() => resolveDelay(false), 10)),
+        ]);
+        if (finished) break;
+      }
+      expect(
+        observedSectionWait,
+        "source proof must wait on the section before it owns the calculation lock",
+      ).toBe(true);
+    } finally {
+      releaseSection();
+      await sectionTx;
+    }
+    await sourceTx;
+  });
+
+  it("[10.6-INT-05AC][P0] tenant parent lock blocks first company-settings and quote-terms inserts", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
+    const singletonCustomerName = "Tenant B singleton-lock customer";
+    const singletonCustomerId = await adminInsertCustomer({
+      tenant_id: fixture.tenantB.id,
+      display_name: singletonCustomerName,
+      customer_type: "private",
+    });
+    const singletonCalculationId = await adminInsertCalculation({
+      tenant_id: fixture.tenantB.id,
+      customer_id: singletonCustomerId,
+      title: "Tenant B singleton-lock calculation",
+      tax_input_snapshot: validTaxInput(),
+    });
+    const singletonSnapshot = {
+      ...validSnapshot(),
+      customerDisplayName: singletonCustomerName,
+      vatRateBp: null,
+    };
+    await adminQuery("delete from public.company_settings where tenant_id = $1", [
+      fixture.tenantB.id,
+    ]);
+    await adminQuery("delete from public.quote_terms where tenant_id = $1", [
+      fixture.tenantB.id,
+    ]);
+
+    const expectFirstInsertBlocked = async (
+      source: "company_settings" | "quote_terms",
+    ): Promise<void> => {
+      let signalSnapshotLocked!: () => void;
+      let releaseSnapshot!: () => void;
+      const snapshotLocked = new Promise<void>((resolveLocked) => {
+        signalSnapshotLocked = resolveLocked;
+      });
+      const snapshotRelease = new Promise<void>((resolveRelease) => {
+        releaseSnapshot = resolveRelease;
+      });
+
+      const snapshotTx = adminSession(async ({ query }) => {
+        await query("begin");
+        try {
+          await query(
+            "select public.assert_story_10_6_snapshot_sources(" +
+              "$1::uuid, $2::uuid, $3::uuid, $4::uuid, $5::uuid, $6::jsonb, $7::jsonb)",
+            [
+              fixture.tenantB.id,
+              singletonCalculationId,
+              singletonCustomerId,
+              null,
+              null,
+              JSON.stringify(singletonSnapshot),
+              JSON.stringify([]),
+            ],
+          );
+          signalSnapshotLocked();
+          await snapshotRelease;
+          await query("commit");
+        } catch (error) {
+          await query("rollback");
+          throw error;
+        }
+      });
+      await Promise.race([
+        snapshotLocked,
+        snapshotTx.then(() => {
+          throw new Error("snapshot source transaction ended before acquiring its locks");
+        }),
+      ]);
+
+      let signalInsertPid!: (pid: number) => void;
+      const insertPidReady = new Promise<number>((resolvePid) => {
+        signalInsertPid = resolvePid;
+      });
+      const insertTx = adminSession(async ({ query }) => {
+        await query("begin");
+        try {
+          await query("set local lock_timeout = '5s'");
+          const pid = await query<{ pid: number }>("select pg_backend_pid() as pid");
+          signalInsertPid(pid[0]!.pid);
+          if (source === "company_settings") {
+            await query(
+              "insert into public.company_settings (tenant_id, company_name) " +
+                "values ($1, 'phantom company')",
+              [fixture.tenantB.id],
+            );
+          } else {
+            await query(
+              "insert into public.quote_terms (tenant_id, terms_text) " +
+                "values ($1, 'phantom terms')",
+              [fixture.tenantB.id],
+            );
+          }
+          await query("rollback");
+        } catch (error) {
+          await query("rollback");
+          throw error;
+        }
+      });
+      const insertPid = await insertPidReady;
+
+      let observedParentWait = false;
+      try {
+        for (let attempt = 0; attempt < 100; attempt += 1) {
+          const activity = await adminQuery<{ wait_event_type: string | null }>(
+            "select wait_event_type from pg_stat_activity where pid = $1",
+            [insertPid],
+          );
+          if (activity[0]?.wait_event_type === "Lock") {
+            observedParentWait = true;
+            break;
+          }
+          const finished = await Promise.race([
+            insertTx.then(() => true),
+            new Promise<false>((resolveDelay) => setTimeout(() => resolveDelay(false), 10)),
+          ]);
+          if (finished) break;
+        }
+        expect(
+          observedParentWait,
+          "a first " + source + " insert must wait behind the tenant snapshot parent lock",
+        ).toBe(true);
+      } finally {
+        releaseSnapshot();
+        await snapshotTx;
+      }
+      await insertTx;
+    };
+
+    await expectFirstInsertBlocked("company_settings");
+    await expectFirstInsertBlocked("quote_terms");
+
+    const expectInsertFirstRescanned = async (
+      source: "company_settings" | "quote_terms",
+    ): Promise<void> => {
+      let signalInserted!: () => void;
+      let releaseInsert!: () => void;
+      const inserted = new Promise<void>((resolveInserted) => {
+        signalInserted = resolveInserted;
+      });
+      const insertRelease = new Promise<void>((resolveRelease) => {
+        releaseInsert = resolveRelease;
+      });
+      const insertTx = adminSession(async ({ query }) => {
+        await query("begin");
+        try {
+          if (source === "company_settings") {
+            await query(
+              "insert into public.company_settings (tenant_id, company_name) " +
+                "values ($1, 'insert-first company')",
+              [fixture.tenantB.id],
+            );
+          } else {
+            await query(
+              "insert into public.quote_terms (tenant_id, terms_text) " +
+                "values ($1, 'insert-first terms')",
+              [fixture.tenantB.id],
+            );
+          }
+          signalInserted();
+          await insertRelease;
+          await query("commit");
+        } catch (error) {
+          await query("rollback");
+          throw error;
+        }
+      });
+      await Promise.race([
+        inserted,
+        insertTx.then(() => {
+          throw new Error("singleton insert ended before holding its tenant FK lock");
+        }),
+      ]);
+
+      let signalSnapshotPid!: (pid: number) => void;
+      const snapshotPidReady = new Promise<number>((resolvePid) => {
+        signalSnapshotPid = resolvePid;
+      });
+      const snapshotResult = adminSession(async ({ query }) => {
+        await query("begin");
+        try {
+          await query("set local lock_timeout = '5s'");
+          const pid = await query<{ pid: number }>("select pg_backend_pid() as pid");
+          signalSnapshotPid(pid[0]!.pid);
+          await query(
+            "select public.assert_story_10_6_snapshot_sources(" +
+              "$1::uuid, $2::uuid, $3::uuid, $4::uuid, $5::uuid, $6::jsonb, $7::jsonb)",
+            [
+              fixture.tenantB.id,
+              singletonCalculationId,
+              singletonCustomerId,
+              null,
+              null,
+              JSON.stringify(singletonSnapshot),
+              JSON.stringify([]),
+            ],
+          );
+          await query("commit");
+          return null;
+        } catch (error) {
+          await query("rollback");
+          return error as { code?: string };
+        }
+      });
+      const snapshotPid = await snapshotPidReady;
+
+      try {
+        let observedInsertWait = false;
+        for (let attempt = 0; attempt < 100; attempt += 1) {
+          const activity = await adminQuery<{ wait_event_type: string | null }>(
+            "select wait_event_type from pg_stat_activity where pid = $1",
+            [snapshotPid],
+          );
+          if (activity[0]?.wait_event_type === "Lock") {
+            observedInsertWait = true;
+            break;
+          }
+          const finished = await Promise.race([
+            snapshotResult.then(() => true),
+            new Promise<false>((resolveDelay) => setTimeout(() => resolveDelay(false), 10)),
+          ]);
+          if (finished) break;
+        }
+        expect(
+          observedInsertWait,
+          "snapshot proof must wait for insert-first " + source,
+        ).toBe(true);
+        releaseInsert();
+        await insertTx;
+        expect((await snapshotResult)?.code).toBe("23514");
+      } finally {
+        releaseInsert();
+        await insertTx.catch(() => undefined);
+        if (source === "company_settings") {
+          await adminQuery("delete from public.company_settings where tenant_id = $1", [
+            fixture.tenantB.id,
+          ]);
+        } else {
+          await adminQuery("delete from public.quote_terms where tenant_id = $1", [
+            fixture.tenantB.id,
+          ]);
+        }
+      }
+    };
+
+    await expectInsertFirstRescanned("company_settings");
+    await expectInsertFirstRescanned("quote_terms");
+  });
+
+  it("[10.6-INT-05AD][P0] section and archived-row inserts cannot form a calculation-tenant deadlock", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
+
+    const expectInsertWaitsBeforeTenantFk = async (
+      source: "section" | "archived_row",
+    ): Promise<void> => {
+      let signalLineSourceLocked!: () => void;
+      let releaseSnapshotProof!: () => void;
+      const lineSourceLocked = new Promise<void>((resolveLocked) => {
+        signalLineSourceLocked = resolveLocked;
+      });
+      const snapshotProofRelease = new Promise<void>((resolveRelease) => {
+        releaseSnapshotProof = resolveRelease;
+      });
+
+      const quoteTx = adminSession(async ({ query }) => {
+        await query("begin");
+        try {
+          await query("set local lock_timeout = '5s'");
+          await query(
+            "select public.assert_story_10_6_line_sources($1::uuid, $2::uuid, $3::jsonb)",
+            [fixture.tenantA.id, calculationId, JSON.stringify([validLine()])],
+          );
+          signalLineSourceLocked();
+          await snapshotProofRelease;
+          await query(
+            "select public.assert_story_10_6_snapshot_sources(" +
+              "$1::uuid, $2::uuid, $3::uuid, $4::uuid, $5::uuid, $6::jsonb, $7::jsonb)",
+            [
+              fixture.tenantA.id,
+              calculationId,
+              customerId,
+              null,
+              null,
+              JSON.stringify(validSnapshot()),
+              JSON.stringify([]),
+            ],
+          );
+          await query("commit");
+        } catch (error) {
+          await query("rollback");
+          throw error;
+        }
+      });
+      await Promise.race([
+        lineSourceLocked,
+        quoteTx.then(() => {
+          throw new Error("quote transaction ended before locking calculation sources");
+        }),
+      ]);
+
+      let signalInsertPid!: (pid: number) => void;
+      const insertPidReady = new Promise<number>((resolvePid) => {
+        signalInsertPid = resolvePid;
+      });
+      const insertTx = adminSession(async ({ query }) => {
+        await query("begin");
+        try {
+          await query("set local lock_timeout = '5s'");
+          const pid = await query<{ pid: number }>("select pg_backend_pid() as pid");
+          signalInsertPid(pid[0]!.pid);
+          if (source === "section") {
+            await query(
+              "insert into public.calculation_sections " +
+                "(tenant_id, calculation_id, title) values ($1, $2, 'lock-order section')",
+              [fixture.tenantA.id, calculationId],
+            );
+          } else {
+            await query(
+              "insert into public.calculation_rows (" +
+                "tenant_id, section_id, row_type, quantity, unit, unit_sell_ore, " +
+                "vat_rate_bp, included_in_invoice_total, deduction_classification, " +
+                "vat_type, label, sort_order, archived_at) " +
+                "values ($1, $2, 'labor', 1, 'st', 100, 2500, true, " +
+                "'NONE', 'STANDARD_VAT_25', 'archived lock-order row', 99, now())",
+              [fixture.tenantA.id, sectionId],
+            );
+          }
+          await query("rollback");
+        } catch (error) {
+          await query("rollback");
+          throw error;
+        }
+      });
+      const insertPid = await insertPidReady;
+
+      let observedSourceLock = false;
+      try {
+        for (let attempt = 0; attempt < 100; attempt += 1) {
+          const activity = await adminQuery<{ wait_event_type: string | null }>(
+            "select wait_event_type from pg_stat_activity where pid = $1",
+            [insertPid],
+          );
+          if (activity[0]?.wait_event_type === "Lock") {
+            observedSourceLock = true;
+            break;
+          }
+          const finished = await Promise.race([
+            insertTx.then(() => true),
+            new Promise<false>((resolveDelay) => setTimeout(() => resolveDelay(false), 10)),
+          ]);
+          if (finished) break;
+        }
+        expect(
+          observedSourceLock,
+          source + " insert must wait on source lineage before acquiring tenant FK state",
+        ).toBe(true);
+      } finally {
+        releaseSnapshotProof();
+      }
+
+      await quoteTx;
+      await insertTx;
+    };
+
+    await expectInsertWaitsBeforeTenantFk("section");
+    await expectInsertWaitsBeforeTenantFk("archived_row");
+  });
+
+  it("[10.6-INT-05AE][P0] insert-first source rows are caught by the post-calculation re-scan", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
+    const insertedSectionId = crypto.randomUUID();
+    const insertedRowId = crypto.randomUUID();
+
+    let signalInsertReady!: () => void;
+    let releaseInsert!: () => void;
+    const insertReady = new Promise<void>((resolveReady) => {
+      signalInsertReady = resolveReady;
+    });
+    const insertRelease = new Promise<void>((resolveRelease) => {
+      releaseInsert = resolveRelease;
+    });
+    const insertTx = adminSession(async ({ query }) => {
+      await query("begin");
+      try {
+        await query(
+          "insert into public.calculation_sections " +
+            "(id, tenant_id, calculation_id, title) values ($1, $2, $3, 'insert-first section')",
+          [insertedSectionId, fixture.tenantA.id, calculationId],
+        );
+        await query(
+          "insert into public.calculation_rows (" +
+            "id, tenant_id, section_id, row_type, quantity, unit, unit_sell_ore, " +
+            "vat_rate_bp, included_in_invoice_total, deduction_classification, " +
+            "vat_type, label, sort_order) " +
+            "values ($1, $2, $3, 'labor', 1, 'st', 100, 2500, true, " +
+            "'NONE', 'STANDARD_VAT_25', 'insert-first row', 1)",
+          [insertedRowId, fixture.tenantA.id, insertedSectionId],
+        );
+        signalInsertReady();
+        await insertRelease;
+        await query("commit");
+      } catch (error) {
+        await query("rollback");
+        throw error;
+      }
+    });
+    await Promise.race([
+      insertReady,
+      insertTx.then(() => {
+        throw new Error("insert-first transaction ended before holding source locks");
+      }),
+    ]);
+
+    let signalSourcePid!: (pid: number) => void;
+    const sourcePidReady = new Promise<number>((resolvePid) => {
+      signalSourcePid = resolvePid;
+    });
+    const sourceResult = adminSession(async ({ query }) => {
+      await query("begin");
+      try {
+        await query("set local lock_timeout = '5s'");
+        const pid = await query<{ pid: number }>("select pg_backend_pid() as pid");
+        signalSourcePid(pid[0]!.pid);
+        await query(
+          "select public.assert_story_10_6_line_sources($1::uuid, $2::uuid, $3::jsonb)",
+          [fixture.tenantA.id, calculationId, JSON.stringify([validLine()])],
+        );
+        await query("commit");
+        return null;
+      } catch (error) {
+        await query("rollback");
+        return error as { code?: string };
+      }
+    });
+    const sourcePid = await sourcePidReady;
+
+    try {
+      let observedInsertWait = false;
+      for (let attempt = 0; attempt < 100; attempt += 1) {
+        const activity = await adminQuery<{ wait_event_type: string | null }>(
+          "select wait_event_type from pg_stat_activity where pid = $1",
+          [sourcePid],
+        );
+        if (activity[0]?.wait_event_type === "Lock") {
+          observedInsertWait = true;
+          break;
+        }
+        const finished = await Promise.race([
+          sourceResult.then(() => true),
+          new Promise<false>((resolveDelay) => setTimeout(() => resolveDelay(false), 10)),
+        ]);
+        if (finished) break;
+      }
+      expect(observedInsertWait, "source proof must wait for insert-first lineage").toBe(true);
+      releaseInsert();
+      await insertTx;
+      expect((await sourceResult)?.code).toBe("23514");
+    } finally {
+      releaseInsert();
+      await insertTx.catch(() => undefined);
+      await adminQuery("delete from public.calculation_rows where id = $1", [insertedRowId]);
+      await adminQuery("delete from public.calculation_sections where id = $1", [
+        insertedSectionId,
+      ]);
+    }
+  });
+
   it("[10.6-INT-05B][P0] quote validation accepts 500 lines and rejects 501", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     const excluded = {
@@ -1510,6 +2475,7 @@ describe("Story 10.6 — local Supabase behavior", () => {
       validLine(),
       ...Array.from({ length: 499 }, (_, index) => ({
         ...excluded,
+        sourceRowId: syntheticRowId(index + 1),
         sortOrder: index + 1,
       })),
     ];
@@ -1539,14 +2505,19 @@ describe("Story 10.6 — local Supabase behavior", () => {
       p_snapshot: validSnapshot(),
       p_lines: [validLine()],
       p_attachments: [],
+      ...validReviewedProof(),
     });
     expect(initial.error).toBeNull();
     const initialRow = Array.isArray(initial.data) ? initial.data[0] : initial.data;
     const quoteId = String((initialRow as Record<string, unknown>).quote_id);
+    const initialVersionId = String(
+      (initialRow as Record<string, unknown>).quote_version_id,
+    );
 
     const successor = await client.rpc("create_new_quote_version", {
       p_tenant_id: fixture.tenantA.id,
       p_quote_id: quoteId,
+      p_source_quote_version_id: initialVersionId,
       p_calculation_id: calculationId,
       p_captured_at: stockholmMidnightBoundary,
       p_customer_id: customerId,
@@ -1558,6 +2529,313 @@ describe("Story 10.6 — local Supabase behavior", () => {
       p_supersede_prior: false,
     });
     expect(successor.error).toBeNull();
+  });
+
+  it("[10.6-INT-05D][P0] new-version RPC requires the authoritative latest source and its calculation lineage", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
+    const created = await createFreshV2();
+
+    const missingSupersedeDecision = await client.rpc("create_new_quote_version", {
+      p_tenant_id: fixture.tenantA.id,
+      p_quote_id: created.quoteId,
+      p_source_quote_version_id: created.versionId,
+      p_calculation_id: calculationId,
+      p_captured_at: CAPTURED_AT,
+      p_customer_id: customerId,
+      p_facility_id: null,
+      p_contact_id: null,
+      p_snapshot: validSnapshot(),
+      p_lines: [validLine()],
+      p_attachments: [],
+      p_supersede_prior: null as never,
+    });
+    expect(missingSupersedeDecision.error?.code).toBe("QV409");
+
+    const unrelatedCustomerId = await adminInsertCustomer({
+      tenant_id: fixture.tenantA.id,
+      display_name: "Unrelated Story 10.6 customer",
+      customer_type: "private",
+    });
+    const wrongCustomerSource = await client.rpc("create_new_quote_version", {
+      p_tenant_id: fixture.tenantA.id,
+      p_quote_id: created.quoteId,
+      p_source_quote_version_id: created.versionId,
+      p_calculation_id: calculationId,
+      p_captured_at: CAPTURED_AT,
+      p_customer_id: unrelatedCustomerId,
+      p_facility_id: null,
+      p_contact_id: null,
+      p_snapshot: validSnapshot(),
+      p_lines: [validLine()],
+      p_attachments: [],
+      p_supersede_prior: false,
+    });
+    expect(wrongCustomerSource.error?.code).toBe("QV409");
+
+    await adminQuery(
+      "update public.calculations set customer_id = $2 where id = $1",
+      [calculationId, unrelatedCustomerId],
+    );
+    try {
+      const reassignedCalculationSource = await client.rpc("create_new_quote_version", {
+        p_tenant_id: fixture.tenantA.id,
+        p_quote_id: created.quoteId,
+        p_source_quote_version_id: created.versionId,
+        p_calculation_id: calculationId,
+        p_captured_at: CAPTURED_AT,
+        p_customer_id: unrelatedCustomerId,
+        p_facility_id: null,
+        p_contact_id: null,
+        p_snapshot: {
+          ...validSnapshot(),
+          customerDisplayName: "Unrelated Story 10.6 customer",
+        },
+        p_lines: [validLine()],
+        p_attachments: [],
+        p_supersede_prior: false,
+      });
+      expect(reassignedCalculationSource.error?.code).toBe("QV409");
+    } finally {
+      await adminQuery(
+        "update public.calculations set customer_id = $2 where id = $1",
+        [calculationId, customerId],
+      );
+    }
+
+    const attachmentFileId = await adminInsertFile({
+      tenant_id: fixture.tenantA.id,
+      display_name: "bound-source.pdf",
+    });
+    await adminInsertFileLink({
+      tenant_id: fixture.tenantA.id,
+      file_id: attachmentFileId,
+      owner_type: "calculation",
+      owner_id: calculationId,
+      purpose: "calculation_attachment",
+    });
+    const staleAttachmentSource = await client.rpc("create_new_quote_version", {
+      p_tenant_id: fixture.tenantA.id,
+      p_quote_id: created.quoteId,
+      p_source_quote_version_id: created.versionId,
+      p_calculation_id: calculationId,
+      p_captured_at: CAPTURED_AT,
+      p_customer_id: customerId,
+      p_facility_id: null,
+      p_contact_id: null,
+      p_snapshot: validSnapshot(),
+      p_lines: [validLine()],
+      p_attachments: [{
+        fileId: attachmentFileId,
+        displayName: "fabricated-name.pdf",
+        sortOrder: 0,
+      }],
+      p_supersede_prior: false,
+    });
+    expect(staleAttachmentSource.error?.code).toBe("23514");
+
+    const unrelatedFileId = await adminInsertFile({
+      tenant_id: fixture.tenantA.id,
+      display_name: "unrelated-source.pdf",
+    });
+    const unrelatedAttachmentSource = await client.rpc("create_new_quote_version", {
+      p_tenant_id: fixture.tenantA.id,
+      p_quote_id: created.quoteId,
+      p_source_quote_version_id: created.versionId,
+      p_calculation_id: calculationId,
+      p_captured_at: CAPTURED_AT,
+      p_customer_id: customerId,
+      p_facility_id: null,
+      p_contact_id: null,
+      p_snapshot: validSnapshot(),
+      p_lines: [validLine()],
+      p_attachments: [{
+        fileId: unrelatedFileId,
+        displayName: "unrelated-source.pdf",
+        sortOrder: 0,
+      }],
+      p_supersede_prior: false,
+    });
+    expect(unrelatedAttachmentSource.error?.code).toBe("23514");
+
+    const archivedFileId = await adminInsertFile({
+      tenant_id: fixture.tenantA.id,
+      display_name: "archived-source.pdf",
+    });
+    await adminInsertFileLink({
+      tenant_id: fixture.tenantA.id,
+      file_id: archivedFileId,
+      owner_type: "calculation",
+      owner_id: calculationId,
+      purpose: "calculation_attachment",
+    });
+    await adminQuery(
+      "update public.files set lifecycle_state = 'archived', archived_at = now() where id = $1",
+      [archivedFileId],
+    );
+    const archivedAttachmentSource = await client.rpc("create_new_quote_version", {
+      p_tenant_id: fixture.tenantA.id,
+      p_quote_id: created.quoteId,
+      p_source_quote_version_id: created.versionId,
+      p_calculation_id: calculationId,
+      p_captured_at: CAPTURED_AT,
+      p_customer_id: customerId,
+      p_facility_id: null,
+      p_contact_id: null,
+      p_snapshot: validSnapshot(),
+      p_lines: [validLine()],
+      p_attachments: [{
+        fileId: archivedFileId,
+        displayName: "archived-source.pdf",
+        sortOrder: 0,
+      }],
+      p_supersede_prior: false,
+    });
+    expect(archivedAttachmentSource.error?.code).toBe("23514");
+
+    const firstSuccessor = await client.rpc("create_new_quote_version", {
+      p_tenant_id: fixture.tenantA.id,
+      p_quote_id: created.quoteId,
+      p_source_quote_version_id: created.versionId,
+      p_calculation_id: calculationId,
+      p_captured_at: CAPTURED_AT,
+      p_customer_id: customerId,
+      p_facility_id: null,
+      p_contact_id: null,
+      p_snapshot: validSnapshot(),
+      p_lines: [validLine()],
+      p_attachments: [{
+        fileId: attachmentFileId,
+        displayName: "bound-source.pdf",
+        sortOrder: 0,
+      }],
+      p_supersede_prior: false,
+    });
+    expect(firstSuccessor.error).toBeNull();
+    const successorRow = Array.isArray(firstSuccessor.data)
+      ? firstSuccessor.data[0]
+      : firstSuccessor.data;
+    const latestVersionId = String(
+      (successorRow as Record<string, unknown>).quote_version_id,
+    );
+
+    const staleSource = await client.rpc("create_new_quote_version", {
+      p_tenant_id: fixture.tenantA.id,
+      p_quote_id: created.quoteId,
+      p_source_quote_version_id: created.versionId,
+      p_calculation_id: calculationId,
+      p_captured_at: CAPTURED_AT,
+      p_customer_id: customerId,
+      p_facility_id: null,
+      p_contact_id: null,
+      p_snapshot: validSnapshot(),
+      p_lines: [validLine()],
+      p_attachments: [],
+      p_supersede_prior: false,
+    });
+    expect(staleSource.error?.code).toBe("QV409");
+
+    const unrelatedCalculationId = await adminInsertCalculation({
+      tenant_id: fixture.tenantA.id,
+      customer_id: customerId,
+      title: "Unrelated Story 10.6 calculation",
+      tax_input_snapshot: validTaxInput(),
+    });
+    const wrongCalculation = await client.rpc("create_new_quote_version", {
+      p_tenant_id: fixture.tenantA.id,
+      p_quote_id: created.quoteId,
+      p_source_quote_version_id: latestVersionId,
+      p_calculation_id: unrelatedCalculationId,
+      p_captured_at: CAPTURED_AT,
+      p_customer_id: customerId,
+      p_facility_id: null,
+      p_contact_id: null,
+      p_snapshot: validSnapshot(),
+      p_lines: [validLine()],
+      p_attachments: [],
+      p_supersede_prior: false,
+    });
+    expect(wrongCalculation.error?.code).toBe("QV409");
+  });
+
+  it("[10.6-INT-05E][P0] successor RPC rejects mixed-tenant source rows and attachment files", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
+    const tenantBCustomerId = await adminInsertCustomer({
+      tenant_id: fixture.tenantB.id,
+      display_name: "Tenant B source customer",
+      customer_type: "private",
+    });
+    const tenantBCalculationId = await adminInsertCalculation({
+      tenant_id: fixture.tenantB.id,
+      customer_id: tenantBCustomerId,
+      title: "Tenant B source calculation",
+      tax_input_snapshot: validTaxInput(),
+    });
+    const tenantBSectionId = await adminInsertSection({
+      tenant_id: fixture.tenantB.id,
+      calculation_id: tenantBCalculationId,
+      title: "Tenant B source section",
+    });
+    const tenantBRowId = await adminInsertRow({
+      tenant_id: fixture.tenantB.id,
+      section_id: tenantBSectionId,
+      row_type: "labor",
+      quantity: 1,
+      unit: "st",
+      unit_sell_ore: 10_000,
+      vat_rate_bp: 2500,
+      included_in_invoice_total: true,
+      deduction_classification: "NONE",
+      vat_type: "STANDARD_VAT_25",
+      label: "Tenant B source row",
+      sort_order: 0,
+    });
+    const tenantBFileId = await adminInsertFile({
+      tenant_id: fixture.tenantB.id,
+      display_name: "tenant-b-source.pdf",
+    });
+    const created = await createFreshV2();
+
+    const foreignRowSource = await client.rpc("create_new_quote_version", {
+      p_tenant_id: fixture.tenantA.id,
+      p_quote_id: created.quoteId,
+      p_source_quote_version_id: created.versionId,
+      p_calculation_id: calculationId,
+      p_captured_at: CAPTURED_AT,
+      p_customer_id: customerId,
+      p_facility_id: null,
+      p_contact_id: null,
+      p_snapshot: validSnapshot(),
+      p_lines: [{ ...validLine(), sourceRowId: tenantBRowId }],
+      p_attachments: [],
+      p_supersede_prior: false,
+    });
+    expect(foreignRowSource.error?.code).toBe("23514");
+
+    const foreignAttachmentSource = await client.rpc("create_new_quote_version", {
+      p_tenant_id: fixture.tenantA.id,
+      p_quote_id: created.quoteId,
+      p_source_quote_version_id: created.versionId,
+      p_calculation_id: calculationId,
+      p_captured_at: CAPTURED_AT,
+      p_customer_id: customerId,
+      p_facility_id: null,
+      p_contact_id: null,
+      p_snapshot: validSnapshot(),
+      p_lines: [validLine()],
+      p_attachments: [{
+        fileId: tenantBFileId,
+        displayName: "tenant-b-source.pdf",
+        sortOrder: 0,
+      }],
+      p_supersede_prior: false,
+    });
+    expect(foreignAttachmentSource.error?.code).toBe("23514");
+
+    const count = await adminQuery<{ count: string }>(
+      "select count(*)::text as count from public.quote_versions where quote_id = $1",
+      [created.quoteId],
+    );
+    expect(count[0]?.count).toBe("1");
   });
 
   it("[10.6-INT-12][P0] authenticated Tenant B cannot call either fresh-version RPC against Tenant A data and leaves the existing A quote untouched", async (testCtx) => {
@@ -1657,6 +2935,7 @@ describe("Story 10.6 — local Supabase behavior", () => {
       p_snapshot: validSnapshot(),
       p_lines: [validLine()],
       p_attachments: [],
+      ...validReviewedProof(),
     });
     expect(deniedInitial.data).toBeNull();
     expect(deniedInitial.error).not.toBeNull();
@@ -1664,6 +2943,7 @@ describe("Story 10.6 — local Supabase behavior", () => {
     const deniedNewVersion = await tenantBClient.rpc("create_new_quote_version", {
       p_tenant_id: fixture.tenantA.id,
       p_quote_id: existing.quoteId,
+      p_source_quote_version_id: existing.versionId,
       p_calculation_id: calculationId,
       p_captured_at: CAPTURED_AT,
       p_customer_id: customerId,
@@ -1758,6 +3038,7 @@ describe("Story 10.6 — local Supabase behavior", () => {
     const recovered = await client.rpc("create_new_quote_version", {
       p_tenant_id: fixture.tenantA.id,
       p_quote_id: quote[0]!.id,
+      p_source_quote_version_id: version[0]!.id,
       p_calculation_id: calculationId,
       p_captured_at: CAPTURED_AT,
       p_customer_id: customerId,
@@ -2069,7 +3350,7 @@ describe("Story 10.6 — local Supabase behavior", () => {
     const childResult = await childAttempt;
     expect(childResult.ok).toBe(false);
     expect(errorCode(childResult.error)).toBe("QV409");
-  }, 10_000);
+  }, 30_000);
 
   it("[10.6-INT-09][P0] acceptance source total must equal frozen V2 payable", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
@@ -2104,6 +3385,7 @@ describe("Story 10.6 — local Supabase behavior", () => {
     const acceptedSuccessor = await client.rpc("create_new_quote_version", {
       p_tenant_id: fixture.tenantA.id,
       p_quote_id: created.quoteId,
+      p_source_quote_version_id: created.versionId,
       p_calculation_id: calculationId,
       p_captured_at: CAPTURED_AT,
       p_customer_id: customerId,

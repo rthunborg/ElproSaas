@@ -14,6 +14,10 @@ import {
 } from "@/features/calculations/allowance-editor";
 import { oreToKronorString } from "@/features/calculations/money-input";
 import {
+  REVERSE_CHARGE_DEDUCTION_CONFLICT_MESSAGE,
+  hasReverseChargeDeductionConflict,
+} from "@/features/calculations/tax-settings-ui";
+import {
   GREEN_BASIS_METHODS,
   TAX_DEDUCTION_CHOICES,
   type GreenBasisMethod,
@@ -67,25 +71,58 @@ const EMPTY_TAX_INPUT: TaxInputSnapshotV2 = {
   genuineFixedPrice: false,
   fixedPriceOre: null,
   fixedPriceCategorySplitOre: null,
+  fixedPriceRowIds: null,
 };
 
 function oreValue(value: number | undefined | null): string {
   return value === undefined || value === null ? "" : oreToKronorString(value);
 }
 
+export interface FixedPriceScopeRowOption {
+  readonly id: string;
+  readonly label: string;
+}
+
 export function TaxSettingsPanel({
   calculationId,
   value,
+  fixedPriceScopeRows,
 }: {
   readonly calculationId: string;
   readonly value: TaxInputSnapshotV2 | null;
+  readonly fixedPriceScopeRows: readonly FixedPriceScopeRowOption[];
 }) {
   const input = value ?? EMPTY_TAX_INPUT;
+  // A changed canonical snapshot remounts every uncontrolled field and local editor state. This
+  // makes a server refresh authoritative without sacrificing the browser's in-place values while
+  // a validation error is being corrected.
+  const canonicalRevision = JSON.stringify(input);
+  return (
+    <TaxSettingsForm
+      key={canonicalRevision}
+      calculationId={calculationId}
+      input={input}
+      fixedPriceScopeRows={fixedPriceScopeRows}
+    />
+  );
+}
+
+function TaxSettingsForm({
+  calculationId,
+  input,
+  fixedPriceScopeRows,
+}: {
+  readonly calculationId: string;
+  readonly input: TaxInputSnapshotV2;
+  readonly fixedPriceScopeRows: readonly FixedPriceScopeRowOption[];
+}) {
   const [state, action, pending] = useActionState(updateTaxInputAction, CALC_ACTION_INITIAL);
   const router = useRouter();
   const mine = state.form === "tax_input";
   const v = (field: string, fallback: string): string =>
-    (mine && state.values[field] !== undefined ? state.values[field] : fallback) ?? fallback;
+    (mine && state.status === "error" && state.values[field] !== undefined
+      ? state.values[field]
+      : fallback) ?? fallback;
   const err = (field: string): string | undefined =>
     mine ? state.fieldErrors[field] : undefined;
   useEffect(() => {
@@ -100,9 +137,21 @@ export function TaxSettingsPanel({
   const [greenBasisMethod, setGreenBasisMethod] = useState<GreenBasisMethod>(() =>
     v("green_basis_method", input.greenBasisMethod) as GreenBasisMethod,
   );
+  const [selectedFixedPriceRowIds, setSelectedFixedPriceRowIds] = useState(
+    () => new Set(input.fixedPriceRowIds ?? []),
+  );
   const readsRot = deductionChoice === "ROT" || deductionChoice === "ROT_AND_GREEN";
   const readsGreen = deductionChoice === "GREEN" || deductionChoice === "ROT_AND_GREEN";
   const usesFixedPrice = readsGreen && greenBasisMethod === "FIXED_PRICE_97_PERCENT";
+  const reverseChargeDeductionConflict = hasReverseChargeDeductionConflict(
+    documentVatType,
+    deductionChoice,
+  );
+  const selectedEligibleFixedPriceRows = fixedPriceScopeRows.filter((row) =>
+    selectedFixedPriceRowIds.has(row.id),
+  );
+  const fixedPriceScopeMissing =
+    usesFixedPrice && selectedEligibleFixedPriceRows.length === 0;
   // Persisted slot identifiers are intentionally ignored. Array order carries the compatibility
   // order; visible names and submitted ids are freshly canonical PERSON_1..PERSON_50 positions.
   const [allowanceSlots, setAllowanceSlots] = useState(() =>
@@ -124,7 +173,16 @@ export function TaxSettingsPanel({
         Ange explicita moms- och avdragsfakta. Uppgifterna fryses när en offertversion skapas.
       </p>
 
-      <form action={action} className="mt-4 flex flex-col gap-4" noValidate>
+      <form
+        action={action}
+        className="mt-4 flex flex-col gap-4"
+        noValidate
+        onSubmit={(event) => {
+          if (reverseChargeDeductionConflict || fixedPriceScopeMissing) {
+            event.preventDefault();
+          }
+        }}
+      >
         <input type="hidden" name="id" value={calculationId} />
         <FormErrorSummary message={mine ? state.formError : null} />
         {mine && state.status === "success" ? (
@@ -144,7 +202,12 @@ export function TaxSettingsPanel({
             label="Momshantering"
             options={[...VAT_OPTIONS]}
             defaultValue={v("document_vat_type", input.documentVatType)}
-            error={err("document_vat_type")}
+            error={
+              err("document_vat_type") ??
+              (reverseChargeDeductionConflict
+                ? REVERSE_CHARGE_DEDUCTION_CONFLICT_MESSAGE
+                : undefined)
+            }
             onChange={setDocumentVatType}
           />
           {documentVatType === "REVERSE_CHARGE_CONSTRUCTION" ? (
@@ -163,7 +226,12 @@ export function TaxSettingsPanel({
             label="Skatteavdrag"
             options={[...DEDUCTION_OPTIONS]}
             defaultValue={v("deduction_choice", input.deductionChoice)}
-            error={err("deduction_choice")}
+            error={
+              err("deduction_choice") ??
+              (reverseChargeDeductionConflict
+                ? REVERSE_CHARGE_DEDUCTION_CONFLICT_MESSAGE
+                : undefined)
+            }
             onChange={(next) => setDeductionChoice(next as TaxDeductionChoice)}
           />
           {readsGreen ? (
@@ -202,6 +270,17 @@ export function TaxSettingsPanel({
           )}
         </div>
 
+        {reverseChargeDeductionConflict ? (
+          <p
+            id="tax-posture-conflict"
+            role="alert"
+            data-testid="tax-posture-conflict"
+            className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800"
+          >
+            {REVERSE_CHARGE_DEDUCTION_CONFLICT_MESSAGE}
+          </p>
+        ) : null}
+
         {readsRot || readsGreen ? (
         <fieldset className="rounded-md border border-zinc-200 p-3">
           <legend className="px-1 text-sm font-medium text-zinc-800">Återstående utrymme per person</legend>
@@ -216,35 +295,48 @@ export function TaxSettingsPanel({
             return (
               <div
                 key={editorSlot.key}
-                className="mb-3 grid grid-cols-1 items-end gap-3 sm:grid-cols-[1fr_1fr_1fr_auto]"
+                className={[
+                  "mb-3 grid grid-cols-1 items-end gap-3",
+                  readsRot && readsGreen
+                    ? "sm:grid-cols-[1fr_1fr_1fr_auto]"
+                    : readsRot
+                      ? "sm:grid-cols-[1fr_1fr_auto]"
+                      : "sm:grid-cols-[1fr_auto]",
+                ].join(" ")}
               >
-                <TextField
-                  name={`person_${number}_rot_remaining_kronor`}
-                  label={`Person ${number}: ROT kvar (kr)`}
-                  defaultValue={v(
-                    `person_${number}_rot_remaining_kronor`,
-                    oreValue(slot?.remainingRotAllowanceOre ?? rotAliasFallback),
-                  )}
-                  error={err(`person_${number}_rot_remaining_kronor`)}
-                />
-                <TextField
-                  name={`person_${number}_combined_rot_rut_remaining_kronor`}
-                  label={`Person ${number}: ROT/RUT kvar (kr)`}
-                  defaultValue={v(
-                    `person_${number}_combined_rot_rut_remaining_kronor`,
-                    oreValue(slot?.remainingCombinedRotRutAllowanceOre),
-                  )}
-                  error={err(`person_${number}_combined_rot_rut_remaining_kronor`)}
-                />
-                <TextField
-                  name={`person_${number}_green_remaining_kronor`}
-                  label={`Person ${number}: grön teknik kvar (kr)`}
-                  defaultValue={v(
-                    `person_${number}_green_remaining_kronor`,
-                    oreValue(slot?.remainingGreenAllowanceOre ?? greenAliasFallback),
-                  )}
-                  error={err(`person_${number}_green_remaining_kronor`)}
-                />
+                {readsRot ? (
+                  <>
+                    <TextField
+                      name={`person_${number}_rot_remaining_kronor`}
+                      label={`Person ${number}: ROT kvar (kr)`}
+                      defaultValue={v(
+                        `person_${number}_rot_remaining_kronor`,
+                        oreValue(slot?.remainingRotAllowanceOre ?? rotAliasFallback),
+                      )}
+                      error={err(`person_${number}_rot_remaining_kronor`)}
+                    />
+                    <TextField
+                      name={`person_${number}_combined_rot_rut_remaining_kronor`}
+                      label={`Person ${number}: ROT/RUT kvar (kr)`}
+                      defaultValue={v(
+                        `person_${number}_combined_rot_rut_remaining_kronor`,
+                        oreValue(slot?.remainingCombinedRotRutAllowanceOre),
+                      )}
+                      error={err(`person_${number}_combined_rot_rut_remaining_kronor`)}
+                    />
+                  </>
+                ) : null}
+                {readsGreen ? (
+                  <TextField
+                    name={`person_${number}_green_remaining_kronor`}
+                    label={`Person ${number}: grön teknik kvar (kr)`}
+                    defaultValue={v(
+                      `person_${number}_green_remaining_kronor`,
+                      oreValue(slot?.remainingGreenAllowanceOre ?? greenAliasFallback),
+                    )}
+                    error={err(`person_${number}_green_remaining_kronor`)}
+                  />
+                ) : null}
                 <button
                   type="button"
                   aria-label={`Ta bort person ${number}`}
@@ -328,6 +420,63 @@ export function TaxSettingsPanel({
               error={err("fixed_charging_kronor")}
             />
           </div>
+          <fieldset className="mt-4 rounded-md border border-zinc-200 p-3">
+            <legend className="px-1 text-sm font-medium text-zinc-800">
+              Rader som omfattas av fastprisavtalet
+            </legend>
+            <p className="mb-3 text-xs text-zinc-600">
+              Välj endast de inkluderade raderna för grön teknik som ingår i det äkta
+              fastprisavtalet. Eventuella ROT-rader och övriga rader ligger uttryckligen utanför
+              detta avtal.
+            </p>
+            {fixedPriceScopeRows.length === 0 ? (
+              <p className="text-sm text-amber-900">
+                Det finns inga inkluderade och grönklassificerade rader att välja.
+              </p>
+            ) : (
+              <div className="flex flex-col gap-2">
+                {fixedPriceScopeRows.map((row) => {
+                  const checkboxId = `fixed-price-row-${row.id}`;
+                  return (
+                    <label
+                      key={row.id}
+                      htmlFor={checkboxId}
+                      className="flex items-start gap-2 text-sm text-zinc-800"
+                    >
+                      <input
+                        id={checkboxId}
+                        type="checkbox"
+                        name="fixed_price_row_ids"
+                        value={row.id}
+                        checked={selectedFixedPriceRowIds.has(row.id)}
+                        onChange={(event) => {
+                          setSelectedFixedPriceRowIds((current) => {
+                            const next = new Set(current);
+                            if (event.target.checked) next.add(row.id);
+                            else next.delete(row.id);
+                            return next;
+                          });
+                        }}
+                        className="mt-0.5 size-4 rounded border-zinc-300"
+                      />
+                      <span>{row.label}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            )}
+            {err("fixed_price_row_ids") || fixedPriceScopeMissing ? (
+              <p
+                id="fixed-price-row-scope-error"
+                role="alert"
+                data-testid="fixed-price-row-scope-error"
+                className="mt-3 text-sm text-red-700"
+              >
+                {err("fixed_price_row_ids") ??
+                  "Välj minst en inkluderad rad för det äkta fastprisavtalet."}
+              </p>
+            ) : null}
+          </fieldset>
         </fieldset>
         ) : (
           <input type="hidden" name="genuine_fixed_price" value="false" />
@@ -335,7 +484,14 @@ export function TaxSettingsPanel({
 
         <button
           type="submit"
-          disabled={pending}
+          disabled={pending || reverseChargeDeductionConflict || fixedPriceScopeMissing}
+          aria-describedby={
+            reverseChargeDeductionConflict
+              ? "tax-posture-conflict"
+              : fixedPriceScopeMissing
+                ? "fixed-price-row-scope-error"
+                : undefined
+          }
           className="self-start rounded-md bg-blue-700 px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
         >
           {pending ? "Sparar…" : "Spara skatte- och momsuppgifter"}

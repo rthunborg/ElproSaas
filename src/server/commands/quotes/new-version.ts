@@ -112,6 +112,7 @@ export const createNewQuoteVersion = defineCommand<
     const { data, error } = await rpc.rpc("create_new_quote_version", {
       p_tenant_id: tenantId, // resolved tenant, never a client id
       p_quote_id: parent.quote_id,
+      p_source_quote_version_id: parent.id,
       p_calculation_id: parent.calculation_id,
       p_captured_at: capturedAt,
       p_customer_id: customerId,

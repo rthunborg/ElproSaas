@@ -24,6 +24,7 @@ function answerFor(netOre = 100_000): TaxAnswerSnapshotV2 {
     genuineFixedPrice: false,
     fixedPriceOre: null,
     fixedPriceCategorySplitOre: null,
+    fixedPriceRowIds: null,
   });
   if (!taxInput.ok) assert.fail(`tax input failed: ${taxInput.code}`);
   const answer = buildTaxAnswerSnapshotV2({
@@ -62,6 +63,7 @@ function mixedAnswer(): TaxAnswerSnapshotV2 {
     genuineFixedPrice: false,
     fixedPriceOre: null,
     fixedPriceCategorySplitOre: null,
+    fixedPriceRowIds: null,
   });
   if (!taxInput.ok) assert.fail(`mixed tax input failed: ${taxInput.code}`);
   const answer = buildTaxAnswerSnapshotV2({
@@ -109,11 +111,12 @@ function fixedPriceAnswer(): TaxAnswerSnapshotV2 {
     genuineFixedPrice: true,
     fixedPriceOre: 7,
     fixedPriceCategorySplitOre: { SOLAR: 7, STORAGE: 0, CHARGING: 0 },
+    fixedPriceRowIds: ["11111111-1111-4111-8111-111111111111"],
   });
   if (!taxInput.ok) assert.fail(`fixed-price tax input failed: ${taxInput.code}`);
   const answer = buildTaxAnswerSnapshotV2({
     rows: [{
-      id: "green-solar-material",
+      id: "11111111-1111-4111-8111-111111111111",
       netOre: 7,
       vatType: "ZERO_RATED",
       rateBp: 0,
@@ -142,6 +145,7 @@ function aggregateGreenAnswer(): TaxAnswerSnapshotV2 {
     genuineFixedPrice: false,
     fixedPriceOre: null,
     fixedPriceCategorySplitOre: null,
+    fixedPriceRowIds: null,
   });
   if (!taxInput.ok) assert.fail(`aggregate-green tax input failed: ${taxInput.code}`);
   const answer = buildTaxAnswerSnapshotV2({

@@ -36,8 +36,8 @@ import {
   snapshotToPayload,
 } from "./snapshot-build";
 import {
-  validateCreateQuoteVersionFromCalculation,
-  type CreateQuoteVersionInput,
+  validateCreateReviewedQuoteVersionFromCalculation,
+  type CreateReviewedQuoteVersionInput,
 } from "./validation";
 
 /** Result of `createQuoteVersionFromCalculation` — the new version id + quote id + number. */
@@ -48,14 +48,14 @@ export interface CreateQuoteVersionResult {
 }
 
 export const createQuoteVersionFromCalculation = defineCommand<
-  CreateQuoteVersionInput,
+  CreateReviewedQuoteVersionInput,
   CreateQuoteVersionResult
 >({
   command: "quote.version.create",
   auditable: true,
   eventType: "quote.version.created",
   targetType: "quote_version",
-  validateInput: validateCreateQuoteVersionFromCalculation,
+  validateInput: validateCreateReviewedQuoteVersionFromCalculation,
   // Envelope ownership: the SOURCE calculation must be visible under the caller's RLS
   // (own tenant). A foreign / non-existent calc id → zero rows → TENANT_ACCESS_DENIED,
   // BEFORE execute.
@@ -66,7 +66,14 @@ export const createQuoteVersionFromCalculation = defineCommand<
     const capturedAt = ctx.clock.now().toISOString();
 
     // ── RE-CAPTURE the FROZEN composite snapshot from the CURRENT source rows (shared helper). ──
-    const { snapshot, customerId, facilityId, contactId } =
+    const {
+      snapshot,
+      customerId,
+      facilityId,
+      contactId,
+      reviewedReadinessRows,
+      reviewedCalculationStatus,
+    } =
       await buildFreshQuoteSnapshot(db, {
         calculationId: ctx.input.calculation_id,
         attachmentFileIds: ctx.input.attachment_file_ids,
@@ -89,6 +96,10 @@ export const createQuoteVersionFromCalculation = defineCommand<
         p_snapshot: snapshotToPayload(snapshot),
         p_lines: linesToPayload(snapshot),
         p_attachments: attachmentsToPayload(snapshot),
+        p_reviewed_snapshot_digest: ctx.input.reviewed_snapshot_digest,
+        p_reviewed_quote_capture_date: ctx.input.reviewed_quote_capture_date,
+        p_reviewed_readiness_rows: reviewedReadinessRows,
+        p_reviewed_calculation_status: reviewedCalculationStatus,
       },
     );
     if (error) throwMappedQuoteWriteError(error);
