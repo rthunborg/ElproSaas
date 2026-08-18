@@ -23,6 +23,7 @@ import {
 import { toSourceOptions } from "@/features/calculations/source-options";
 import { DEFAULT_TENANT_VAT_DISPLAY } from "@/features/calculations/vat-posture";
 import { buildQuoteReviewDigest } from "@/server/commands/quotes/review-token";
+import { stockholmBusinessDate } from "@/lib/datetime/business-date";
 
 export const dynamic = "force-dynamic";
 
@@ -130,7 +131,7 @@ export default async function CalculationEditorPage({
   // The reviewed token covers every semantic source that can enter the fresh
   // customer-visible quote. Confirmation re-reads the same sources and rejects
   // when any child/customer/settings/tax fact changed after this render.
-  const previewQuoteCaptureDate = new Date().toISOString().slice(0, 10);
+  const previewQuoteCaptureDate = stockholmBusinessDate(new Date());
   const reviewedSnapshotDigest = buildQuoteReviewDigest({
     quoteCaptureDate: previewQuoteCaptureDate,
     calculation: {

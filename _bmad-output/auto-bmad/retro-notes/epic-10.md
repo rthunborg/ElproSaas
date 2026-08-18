@@ -53,3 +53,5 @@
 - [Phase 7 â€” code review] React server-action HTTP 200 is transport success, not business success; E2E must assert rendered action state.
 - [Phase 7 â€” code review] Canonical summary buckets follow row-type projections (for example subcontractor maps to other).
 - [Phase 7 â€” code review] Iteration 2 fixed 23 non-deferred findings (14 High, 9 Medium); full reset, 816 integration tests, 1635 unit tests, and 2 browser journeys passed, but the iteration cap leaves final fixes unreviewed.
+- [Phase 7 â€” code review] GrÃ¶n category claims must stay exact through category reconciliation, then aggregate before the single document-level whole-SEK truncation across TS, SQL, snapshot, and PDF paths.
+- [Phase 7 â€” code review] Authoritative summary categories derive from row_type; browser fixtures must persist canonical reverse-charge facts and exercise invalid clearing as an edit, not seed an impossible DB state.

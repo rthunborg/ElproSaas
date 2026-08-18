@@ -99,6 +99,7 @@ function parsePersonSlots(
       return null;
     }
     const legacy = raw.remainingAllowanceOre as number | undefined;
+    if (choice === "ROT_AND_GREEN" && legacy !== undefined) return null;
     const hasRot = raw.remainingRotAllowanceOre !== undefined || legacy !== undefined;
     const hasGreen = raw.remainingGreenAllowanceOre !== undefined || legacy !== undefined;
     // A declared ROT slot must also carry the customer's declared remaining combined ROT/RUT
@@ -170,10 +171,16 @@ export function parseTaxInputSnapshot(raw: unknown): TaxInputValidationResult {
   if (raw.documentVatType === "REVERSE_CHARGE_CONSTRUCTION" && buyerVatNumber === null) {
     return fail("INVALID_BUYER_VAT_NUMBER");
   }
-  // A buyer VAT identifier is a reverse-charge fact. Deselecting that posture
-  // must not retain or duplicate an unnecessary tax identifier in later drafts.
-  if (raw.documentVatType !== "REVERSE_CHARGE_CONSTRUCTION") {
-    buyerVatNumber = null;
+  // Canonical persistence is exact: a buyer VAT identifier is a reverse-charge fact.
+  // The form boundary clears stale UI values before calling this parser.
+  if (raw.documentVatType !== "REVERSE_CHARGE_CONSTRUCTION" && buyerVatNumber !== null) {
+    return fail("INVALID_TAX_INPUT");
+  }
+  if (
+    raw.documentVatType === "REVERSE_CHARGE_CONSTRUCTION" &&
+    raw.deductionChoice !== "NONE"
+  ) {
+    return fail("INVALID_TAX_INPUT");
   }
 
   const choice = raw.deductionChoice;
@@ -191,11 +198,31 @@ export function parseTaxInputSnapshot(raw: unknown): TaxInputValidationResult {
   }
   if (readsRot(choice) && paymentDate === null) return fail("MISSING_TAX_RESOLVING_DATE");
   if (readsGreen(choice) && finalPaymentDate === null) return fail("MISSING_TAX_RESOLVING_DATE");
+  if (!readsRot(choice) && paymentDate !== null) return fail("INVALID_TAX_INPUT");
+  if (!readsGreen(choice) && finalPaymentDate !== null) return fail("INVALID_TAX_INPUT");
 
   const personAllowanceSlots = parsePersonSlots(raw.personAllowanceSlots, choice);
   if (personAllowanceSlots === null) return fail("INVALID_PERSON_ALLOWANCE");
   if (choice !== "NONE" && personAllowanceSlots.length === 0) {
     return fail("INVALID_PERSON_ALLOWANCE");
+  }
+  if (choice === "NONE" && personAllowanceSlots.length !== 0) {
+    return fail("INVALID_PERSON_ALLOWANCE");
+  }
+  for (const slot of personAllowanceSlots) {
+    if (
+      choice === "ROT" &&
+      slot.remainingGreenAllowanceOre !== undefined
+    ) {
+      return fail("INVALID_PERSON_ALLOWANCE");
+    }
+    if (
+      choice === "GREEN" &&
+      (slot.remainingRotAllowanceOre !== undefined ||
+        slot.remainingCombinedRotRutAllowanceOre !== undefined)
+    ) {
+      return fail("INVALID_PERSON_ALLOWANCE");
+    }
   }
 
   const fixedPriceOre = raw.fixedPriceOre === null || raw.fixedPriceOre === undefined
@@ -228,6 +255,15 @@ export function parseTaxInputSnapshot(raw: unknown): TaxInputValidationResult {
     if (splitTotal !== fixedPriceOre) {
       return fail("INCOMPLETE_FIXED_PRICE_CATEGORY_SPLIT");
     }
+  } else if (
+    raw.genuineFixedPrice !== false ||
+    fixedPriceOre !== null ||
+    fixedPriceCategorySplitOre !== null
+  ) {
+    return fail("INVALID_TAX_INPUT");
+  }
+  if (!readsGreen(choice) && raw.greenBasisMethod !== "ACTUAL_ELIGIBLE_COSTS") {
+    return fail("INVALID_TAX_INPUT");
   }
 
   return {

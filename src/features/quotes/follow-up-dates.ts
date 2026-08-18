@@ -24,6 +24,8 @@
 /** The classification of an OPEN follow-up's due date relative to "today in Stockholm". */
 export type FollowUpDateClass = "upcoming" | "due-today" | "overdue";
 
+import { stockholmBusinessDate } from "@/lib/datetime/business-date";
+
 /**
  * "Today in `timeZone`" as a YYYY-MM-DD string, computed from the injected instant via an explicit
  * `sv-SE` formatter (assembled from parts so a locale separator variation can never corrupt the
@@ -34,6 +36,7 @@ export type FollowUpDateClass = "upcoming" | "due-today" | "overdue";
  * shared, never forked (SETTLED DESIGN DECISION 6; R-1032).
  */
 export function calendarDayIn(now: Date | string, timeZone: string): string {
+  if (timeZone === "Europe/Stockholm") return stockholmBusinessDate(now);
   const instant = typeof now === "string" ? new Date(now) : now;
   const parts = new Intl.DateTimeFormat("sv-SE", {
     timeZone,

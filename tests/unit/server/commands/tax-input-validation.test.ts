@@ -128,7 +128,7 @@ describe("Story 10.6 Task 3 tax-input validation", () => {
     );
   });
 
-  test("clears buyer VAT outside reverse charge and accepts disjoint ROT plus green inputs", () => {
+  test("rejects retained buyer VAT outside reverse charge and accepts disjoint ROT plus green inputs", () => {
     const result = validateTaxInputSnapshot({
       ...baseTaxInput,
       buyerVatNumber: " se 5566778899-01 ",
@@ -144,8 +144,7 @@ describe("Story 10.6 Task 3 tax-input validation", () => {
         },
       ],
     });
-    assert.equal(result.ok, true);
-    if (result.ok) assert.equal(result.data.buyerVatNumber, null);
+    assert.equal(result.ok, false);
 
     const reverse = validateTaxInputSnapshot({
       ...baseTaxInput,
@@ -179,6 +178,43 @@ describe("Story 10.6 Task 3 tax-input validation", () => {
           { slot: "PERSON_1", remainingRotAllowanceOre: 5_000_000 },
           { slot: "PERSON_2", remainingGreenAllowanceOre: 5_000_000 },
         ],
+      }).ok,
+      false,
+    );
+    assert.equal(
+      validateTaxInputSnapshot({
+        ...disjointPeople,
+        personAllowanceSlots: [{ slot: "PERSON_1", remainingAllowanceOre: 5_000_000 }],
+      }).ok,
+      false,
+      "the legacy one-balance alias cannot finance both ROT and green",
+    );
+  });
+
+  test("rejects inactive scheme facts and reverse-charge deductions", () => {
+    assert.equal(
+      validateTaxInputSnapshot({ ...baseTaxInput, paymentDate: "2026-08-05" }).ok,
+      false,
+    );
+    assert.equal(
+      validateTaxInputSnapshot({
+        ...baseTaxInput,
+        personAllowanceSlots: [{ slot: "PERSON_1", remainingGreenAllowanceOre: 1_000 }],
+      }).ok,
+      false,
+    );
+    assert.equal(
+      validateTaxInputSnapshot({
+        ...baseTaxInput,
+        documentVatType: "REVERSE_CHARGE_CONSTRUCTION",
+        buyerVatNumber: "SE556677889901",
+        deductionChoice: "ROT",
+        paymentDate: "2026-08-05",
+        personAllowanceSlots: [{
+          slot: "PERSON_1",
+          remainingRotAllowanceOre: 5_000_000,
+          remainingCombinedRotRutAllowanceOre: 7_500_000,
+        }],
       }).ok,
       false,
     );

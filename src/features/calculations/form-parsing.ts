@@ -217,8 +217,10 @@ export function parseUpdateTaxInputForm(form: FormData): ParsedCalcForm {
   }
   const readsRot = deductionChoice === "ROT" || deductionChoice === "ROT_AND_GREEN";
   const readsGreen = deductionChoice === "GREEN" || deductionChoice === "ROT_AND_GREEN";
-  const paymentDate = trimmedField(form, "payment_date") ?? null;
-  const finalPaymentDate = trimmedField(form, "final_payment_date") ?? null;
+  const paymentDate = readsRot ? (trimmedField(form, "payment_date") ?? null) : null;
+  const finalPaymentDate = readsGreen
+    ? (trimmedField(form, "final_payment_date") ?? null)
+    : null;
   if ((readsRot && paymentDate === null) || (paymentDate !== null && !isIsoCalendarDate(paymentDate))) {
     fieldErrors.payment_date = "Ange ett giltigt betalningsdatum för ROT.";
   }
@@ -246,20 +248,22 @@ export function parseUpdateTaxInputForm(form: FormData): ParsedCalcForm {
       fieldErrors,
     );
     const green = optionalTaxPrice(form, `${prefix}_green_remaining_kronor`, fieldErrors);
-    if (rot !== null) {
+    if (readsRot && rot !== null) {
       rotAllowanceCount += 1;
       if (combined === null) {
         fieldErrors[`${prefix}_combined_rot_rut_remaining_kronor`] =
           "Ange personens återstående gemensamma ROT/RUT-utrymme.";
       }
     }
-    if (green !== null) greenAllowanceCount += 1;
-    if (rot !== null || combined !== null || green !== null) {
+    if (readsGreen && green !== null) greenAllowanceCount += 1;
+    if ((readsRot && (rot !== null || combined !== null)) || (readsGreen && green !== null)) {
       personAllowanceSlots.push({
         slot: `PERSON_${personNumber}`,
-        ...(rot === null ? {} : { remainingRotAllowanceOre: rot }),
-        ...(combined === null ? {} : { remainingCombinedRotRutAllowanceOre: combined }),
-        ...(green === null ? {} : { remainingGreenAllowanceOre: green }),
+        ...(!readsRot || rot === null ? {} : { remainingRotAllowanceOre: rot }),
+        ...(!readsRot || combined === null
+          ? {}
+          : { remainingCombinedRotRutAllowanceOre: combined }),
+        ...(!readsGreen || green === null ? {} : { remainingGreenAllowanceOre: green }),
       });
     }
   }
@@ -275,16 +279,16 @@ export function parseUpdateTaxInputForm(form: FormData): ParsedCalcForm {
     fixedSolarOre !== null && fixedStorageOre !== null && fixedChargingOre !== null;
   const anyFixedSplit =
     fixedSolarOre !== null || fixedStorageOre !== null || fixedChargingOre !== null;
-  const genuineFixedPrice = parseFlag(form, "genuine_fixed_price") ?? false;
-  if (anyFixedSplit && !fixedSplitComplete) {
+  const usesFixedPrice = readsGreen && greenBasisMethod === "FIXED_PRICE_97_PERCENT";
+  const genuineFixedPrice = usesFixedPrice
+    ? (parseFlag(form, "genuine_fixed_price") ?? false)
+    : false;
+  if (usesFixedPrice && anyFixedSplit && !fixedSplitComplete) {
     if (fixedSolarOre === null) fieldErrors.fixed_solar_kronor = "Ange solandelen.";
     if (fixedStorageOre === null) fieldErrors.fixed_storage_kronor = "Ange lagringsandelen.";
     if (fixedChargingOre === null) fieldErrors.fixed_charging_kronor = "Ange laddningsandelen.";
   }
-  if (greenBasisMethod === "FIXED_PRICE_97_PERCENT") {
-    if (!readsGreen) {
-      fieldErrors.green_basis_method = "97 %-metoden kräver avdrag för grön teknik.";
-    }
+  if (usesFixedPrice) {
     if (!genuineFixedPrice) {
       fieldErrors.genuine_fixed_price = "Bekräfta att avtalet är ett äkta fastprisavtal.";
     }
@@ -308,10 +312,10 @@ export function parseUpdateTaxInputForm(form: FormData): ParsedCalcForm {
     paymentDate,
     finalPaymentDate,
     personAllowanceSlots,
-    greenBasisMethod,
+    greenBasisMethod: readsGreen ? greenBasisMethod : "ACTUAL_ELIGIBLE_COSTS",
     genuineFixedPrice,
-    fixedPriceOre,
-    fixedPriceCategorySplitOre: fixedSplitComplete
+    fixedPriceOre: usesFixedPrice ? fixedPriceOre : null,
+    fixedPriceCategorySplitOre: usesFixedPrice && fixedSplitComplete
       ? { SOLAR: fixedSolarOre, STORAGE: fixedStorageOre, CHARGING: fixedChargingOre }
       : null,
   };

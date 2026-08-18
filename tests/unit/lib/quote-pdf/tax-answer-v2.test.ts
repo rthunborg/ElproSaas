@@ -220,6 +220,11 @@ describe("Story 10.6 — frozen V2 PDF consumption", () => {
     const vm = buildQuotePdfViewModel(reverseChargeSnapshot());
     assert.equal(vm.reverseChargeText, "Omvänd betalningsskyldighet");
     assert.equal(vm.buyerVatNumber, "SE556677889901");
+    assert.equal(
+      vm.taxAssumptions.vatRatePercent,
+      null,
+      "V2 category facts replace the misleading scalar tenant VAT rate",
+    );
     assert.equal(vm.taxAnswer?.source, "v2");
     assert.equal(vm.taxAnswer?.payableKronor, "3 250,00");
     assert.deepEqual(vm.taxAnswer?.summaries, {
@@ -250,6 +255,7 @@ describe("Story 10.6 — frozen V2 PDF consumption", () => {
     assert.ok(text.includes("Köparens momsregistreringsnummer: SE556677889901"));
     assert.ok(text.includes("Omvänd betalningsskyldighet"));
     assert.ok(text.includes("Att betala: 3 250,00 kr"));
+    assert.equal(text.includes("Momssats: 25 %"), false);
   });
 
   test("fails closed when a V2 answer is malformed instead of falling back to legacy math", () => {

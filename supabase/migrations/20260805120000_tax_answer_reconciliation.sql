@@ -56,11 +56,12 @@ begin
     and (p_value ->> 'validTo') ~ '^\d{4}-\d{2}-\d{2}$'
     and p_value ->> 'validTo' = '2027-01-01'
     and jsonb_typeof(p_value -> 'resolvingDate') = 'string'
+    and (p_value ->> 'resolvingDate') ~ '^\d{4}-\d{2}-\d{2}$'
     and make_date(
       substring(p_value ->> 'resolvingDate' from 1 for 4)::integer,
       substring(p_value ->> 'resolvingDate' from 6 for 2)::integer,
       substring(p_value ->> 'resolvingDate' from 9 for 2)::integer
-    ) is not null
+    )::text = p_value ->> 'resolvingDate'
     and p_value ->> 'resolvingDate' >= p_value ->> 'validFrom'
     and p_value ->> 'resolvingDate' < p_value ->> 'validTo'
     and p_value ->> 'resolvingFact' in (
@@ -255,6 +256,14 @@ begin
      and not public.is_story_10_6_buyer_vat_number(p_value ->> 'buyerVatNumber') then
     return false;
   end if;
+  if (p_value ->> 'documentVatType' = 'REVERSE_CHARGE_CONSTRUCTION' and (
+        jsonb_typeof(p_value -> 'buyerVatNumber') <> 'string'
+        or p_value ->> 'deductionChoice' <> 'NONE'
+      ))
+     or (p_value ->> 'documentVatType' = 'STANDARD_VAT_25'
+         and jsonb_typeof(p_value -> 'buyerVatNumber') <> 'null') then
+    return false;
+  end if;
   if jsonb_typeof(p_value -> 'paymentDate') = 'string'
      and not public.is_story_10_6_calendar_date(p_value ->> 'paymentDate') then
     return false;
@@ -271,8 +280,20 @@ begin
      and jsonb_typeof(p_value -> 'finalPaymentDate') <> 'string' then
     return false;
   end if;
+  if p_value ->> 'deductionChoice' not in ('ROT', 'ROT_AND_GREEN')
+     and jsonb_typeof(p_value -> 'paymentDate') <> 'null' then
+    return false;
+  end if;
+  if p_value ->> 'deductionChoice' not in ('GREEN', 'ROT_AND_GREEN')
+     and jsonb_typeof(p_value -> 'finalPaymentDate') <> 'null' then
+    return false;
+  end if;
   if p_value ->> 'deductionChoice' <> 'NONE'
      and jsonb_array_length(p_value -> 'personAllowanceSlots') = 0 then
+    return false;
+  end if;
+  if p_value ->> 'deductionChoice' = 'NONE'
+     and jsonb_array_length(p_value -> 'personAllowanceSlots') <> 0 then
     return false;
   end if;
 
@@ -306,6 +327,24 @@ begin
     end if;
     if v_slot ? 'remainingGreenAllowanceOre'
        and not public.is_story_10_6_ore(v_slot -> 'remainingGreenAllowanceOre') then
+      return false;
+    end if;
+    if p_value ->> 'deductionChoice' = 'ROT'
+       and v_slot ? 'remainingGreenAllowanceOre' then
+      return false;
+    end if;
+    if p_value ->> 'deductionChoice' = 'GREEN'
+       and (
+         v_slot ? 'remainingRotAllowanceOre'
+         or v_slot ? 'remainingCombinedRotRutAllowanceOre'
+       ) then
+      return false;
+    end if;
+    -- The historical single allowance alias is intentionally retained only for
+    -- one-scheme compatibility. A mixed document must declare independent ROT
+    -- and green capacities so one balance cannot finance both deductions.
+    if p_value ->> 'deductionChoice' = 'ROT_AND_GREEN'
+       and v_slot ? 'remainingAllowanceOre' then
       return false;
     end if;
     if v_slot ? 'remainingRotAllowanceOre'
@@ -361,6 +400,15 @@ begin
        or v_split_total <> (p_value ->> 'fixedPriceOre')::numeric then
       return false;
     end if;
+  elsif (p_value ->> 'genuineFixedPrice')::boolean is not false
+     or jsonb_typeof(p_value -> 'fixedPriceOre') <> 'null'
+     or jsonb_typeof(p_value -> 'fixedPriceCategorySplitOre') <> 'null' then
+    return false;
+  end if;
+
+  if p_value ->> 'deductionChoice' not in ('GREEN', 'ROT_AND_GREEN')
+     and p_value ->> 'greenBasisMethod' <> 'ACTUAL_ELIGIBLE_COSTS' then
+    return false;
   end if;
 
   return true;
@@ -403,6 +451,17 @@ declare
   v_expected_calculated numeric;
   v_expected_claim numeric;
   v_policy_rate numeric;
+  v_green_denominator numeric := 10000;
+  v_green_exact_numerators numeric[] := array[0, 0, 0]::numeric[];
+  v_green_calculated_allocations numeric[] := array[0, 0, 0]::numeric[];
+  v_green_fractional_remainders numeric[] := array[0, 0, 0]::numeric[];
+  v_green_claim_allocations numeric[] := array[0, 0, 0]::numeric[];
+  v_green_claim_remainders numeric[] := array[0, 0, 0]::numeric[];
+  v_green_total_numerator numeric := 0;
+  v_green_remaining numeric := 0;
+  v_i integer;
+  v_j integer;
+  v_rank integer;
 begin
   if p_value is null
      or jsonb_typeof(p_value) <> 'object'
@@ -455,6 +514,10 @@ begin
   end if;
   if p_value ->> 'deductionChoice' <> 'NONE'
      and p_value ->> 'customerEligibilityPosture' <> 'private' then
+    return false;
+  end if;
+  if p_value ->> 'deductionChoice' <> 'NONE'
+     and p_value ->> 'documentVatType' = 'REVERSE_CHARGE_CONSTRUCTION' then
     return false;
   end if;
 
@@ -740,8 +803,14 @@ begin
   end if;
   v_sum_calculated := 0;
   v_sum_claim := 0;
+  if p_value ->> 'deductionChoice' in ('GREEN', 'ROT_AND_GREEN')
+     and p_value #>> array['green', 'basisMethod'] = 'FIXED_PRICE_97_PERCENT' then
+    v_green_denominator := 10000 * 10000;
+  end if;
+  v_i := 0;
   foreach v_category in array array['SOLAR', 'STORAGE', 'CHARGING']
   loop
+    v_i := v_i + 1;
     v_value := p_value #> array['green', 'categories', v_category];
     if jsonb_typeof(v_value) <> 'object'
        or not (v_value ?& array['category', 'basisOre', 'calculatedOre', 'claimOre'])
@@ -750,7 +819,6 @@ begin
        or not public.is_story_10_6_ore(v_value -> 'basisOre')
        or not public.is_story_10_6_ore(v_value -> 'calculatedOre')
        or not public.is_story_10_6_ore(v_value -> 'claimOre')
-       or (v_value ->> 'claimOre')::bigint % 100 <> 0
        or (v_value ->> 'claimOre')::bigint > (v_value ->> 'calculatedOre')::bigint then
       return false;
     end if;
@@ -790,39 +858,100 @@ begin
         ]
       )::numeric;
       if (p_value #>> array['green', 'basisMethod']) = 'ACTUAL_ELIGIBLE_COSTS' then
-        v_expected_calculated := floor(v_expected_green_basis * v_policy_rate / 10000);
-        v_expected_claim := floor(v_expected_green_basis * v_policy_rate / (10000 * 100)) * 100;
+        v_green_exact_numerators[v_i] := v_expected_green_basis * v_policy_rate;
       else
-        -- The application performs the fixed-price calculation as one exact
-        -- rational expression. Do not reuse the already-floored displayed basis.
-        v_expected_calculated := floor(
+        -- Preserve the exact fixed-price rational; the displayed category basis is
+        -- not fed back into either the calculated or whole-SEK claim arithmetic.
+        v_green_exact_numerators[v_i] :=
           v_classified_green_gross
           * (p_value #>> array[
               'green', 'policy', 'values', 'green', 'fixedPriceEligibleShareBp'
             ])::numeric
-          * v_policy_rate
-          / (10000 * 10000)
-        );
-        v_expected_claim := floor(
-          v_classified_green_gross
-          * (p_value #>> array[
-              'green', 'policy', 'values', 'green', 'fixedPriceEligibleShareBp'
-            ])::numeric
-          * v_policy_rate
-          / 10000000000::numeric
-        ) * 100;
+          * v_policy_rate;
       end if;
-      if (v_value ->> 'calculatedOre')::numeric <> v_expected_calculated
-         or (v_value ->> 'claimOre')::numeric <> v_expected_claim then
+      v_green_total_numerator := v_green_total_numerator + v_green_exact_numerators[v_i];
+    end if;
+  end loop;
+
+  if p_value ->> 'deductionChoice' in ('GREEN', 'ROT_AND_GREEN') then
+    -- Calculate once at document level. First allocate the aggregate calculated
+    -- öre to categories by exact fractional remainder; then truncate the exact
+    -- document claim once to whole SEK and allocate those öre proportionally over
+    -- the calculated category amounts. Canonical ties are SOLAR/STORAGE/CHARGING.
+    v_expected_calculated := floor(v_green_total_numerator / v_green_denominator);
+    v_expected_claim := floor(v_green_total_numerator / (v_green_denominator * 100)) * 100;
+    if (p_value #>> array['green', 'calculatedOre'])::numeric <> v_expected_calculated
+       or (p_value #>> array['green', 'claimOre'])::numeric <> v_expected_claim then
+      return false;
+    end if;
+
+    v_sum_calculated := 0;
+    for v_i in 1..3 loop
+      v_green_calculated_allocations[v_i] := floor(
+        v_green_exact_numerators[v_i] / v_green_denominator
+      );
+      v_green_fractional_remainders[v_i] := mod(
+        v_green_exact_numerators[v_i], v_green_denominator
+      );
+      v_sum_calculated := v_sum_calculated + v_green_calculated_allocations[v_i]::bigint;
+    end loop;
+    v_green_remaining := v_expected_calculated - v_sum_calculated;
+    for v_i in 1..3 loop
+      v_rank := 1;
+      for v_j in 1..3 loop
+        if v_green_fractional_remainders[v_j] > v_green_fractional_remainders[v_i]
+           or (
+             v_green_fractional_remainders[v_j] = v_green_fractional_remainders[v_i]
+             and v_j < v_i
+           ) then
+          v_rank := v_rank + 1;
+        end if;
+      end loop;
+      if v_rank <= v_green_remaining then
+        v_green_calculated_allocations[v_i] := v_green_calculated_allocations[v_i] + 1;
+      end if;
+      v_category := (array['SOLAR', 'STORAGE', 'CHARGING'])[v_i];
+      if (p_value #>> array['green', 'categories', v_category, 'calculatedOre'])::numeric
+           <> v_green_calculated_allocations[v_i] then
         return false;
       end if;
+    end loop;
+
+    v_sum_claim := 0;
+    if v_expected_calculated > 0 then
+      for v_i in 1..3 loop
+        v_green_claim_allocations[v_i] := floor(
+          v_expected_claim * v_green_calculated_allocations[v_i] / v_expected_calculated
+        );
+        v_green_claim_remainders[v_i] := mod(
+          v_expected_claim * v_green_calculated_allocations[v_i], v_expected_calculated
+        );
+        v_sum_claim := v_sum_claim + v_green_claim_allocations[v_i]::bigint;
+      end loop;
+      v_green_remaining := v_expected_claim - v_sum_claim;
+      for v_i in 1..3 loop
+        v_rank := 1;
+        for v_j in 1..3 loop
+          if v_green_claim_remainders[v_j] > v_green_claim_remainders[v_i]
+             or (
+               v_green_claim_remainders[v_j] = v_green_claim_remainders[v_i]
+               and v_j < v_i
+             ) then
+            v_rank := v_rank + 1;
+          end if;
+        end loop;
+        if v_rank <= v_green_remaining then
+          v_green_claim_allocations[v_i] := v_green_claim_allocations[v_i] + 1;
+        end if;
+      end loop;
     end if;
-    v_sum_calculated := v_sum_calculated + (v_value ->> 'calculatedOre')::bigint;
-    v_sum_claim := v_sum_claim + (v_value ->> 'claimOre')::bigint;
-  end loop;
-  if v_sum_calculated <> (p_value #>> array['green', 'calculatedOre'])::bigint
-     or v_sum_claim <> (p_value #>> array['green', 'claimOre'])::bigint then
-    return false;
+    for v_i in 1..3 loop
+      v_category := (array['SOLAR', 'STORAGE', 'CHARGING'])[v_i];
+      if (p_value #>> array['green', 'categories', v_category, 'claimOre'])::numeric
+           <> v_green_claim_allocations[v_i] then
+        return false;
+      end if;
+    end loop;
   end if;
   v_sum_alloc := 0;
   v_seen_slots := array[]::text[];
@@ -883,11 +1012,9 @@ begin
   select coalesce(array_agg(distinct id order by id), array[]::text[])
     into v_distinct_expected_rule_ids
     from unnest(v_expected_rule_ids) as ids(id);
-  if cardinality(v_seen_rule_ids) <> cardinality(v_distinct_expected_rule_ids)
-     or exists (
-       select 1 from unnest(v_seen_rule_ids) as ids(id)
-       where not (id = any(v_distinct_expected_rule_ids))
-     ) then
+  -- Canonical answers carry exactly the sorted, distinct policy-id vector. Set
+  -- membership alone is not sufficient because array order is digest-significant.
+  if v_seen_rule_ids is distinct from v_distinct_expected_rule_ids then
     return false;
   end if;
 
@@ -1661,6 +1788,8 @@ declare
   v_calculation_id uuid;
   v_section_active boolean;
   v_active_count integer;
+  v_section record;
+  v_calculation_ids uuid[] := array[]::uuid[];
 begin
   if new.archived_at is not null then
     return new;
@@ -1672,22 +1801,42 @@ begin
     return new;
   end if;
 
-  select cs.calculation_id, cs.archived_at is null
-    into v_calculation_id, v_section_active
-    from public.calculation_sections cs
-   where cs.id = new.section_id
-     and cs.tenant_id = new.tenant_id;
-  if not found then
+  -- Lock every section touched by a row move before resolving its parent. This
+  -- prevents a concurrent section move from changing the aggregate after the
+  -- row trigger has selected the calculation, and UUID order avoids inverse-move
+  -- deadlocks.
+  for v_section in
+    select cs.id, cs.calculation_id, cs.archived_at, cs.tenant_id
+      from public.calculation_sections cs
+     where (cs.id = new.section_id and cs.tenant_id = new.tenant_id)
+        or (
+          tg_op = 'UPDATE'
+          and cs.id = old.section_id
+          and cs.tenant_id = old.tenant_id
+        )
+     order by cs.id
+     for update
+  loop
+    if not (v_section.calculation_id = any(v_calculation_ids)) then
+      v_calculation_ids := array_append(v_calculation_ids, v_section.calculation_id);
+    end if;
+    if v_section.id = new.section_id and v_section.tenant_id = new.tenant_id then
+      v_calculation_id := v_section.calculation_id;
+      v_section_active := v_section.archived_at is null;
+    end if;
+  end loop;
+  if v_calculation_id is null then
     return new;
   end if;
   if not v_section_active then
     return new;
   end if;
 
+  -- Serialize all source/destination calculations in the same deterministic order.
   perform c.id
     from public.calculations c
-   where c.id = v_calculation_id
-     and c.tenant_id = new.tenant_id
+   where c.id = any(v_calculation_ids)
+   order by c.id
    for update;
 
   if tg_op = 'UPDATE' then
@@ -1768,10 +1917,13 @@ begin
     return new;
   end if;
 
+  -- The section row itself is already locked by UPDATE. Lock both source and
+  -- destination calculations in UUID order so section moves compose with the
+  -- row trigger's section-then-calculation lock protocol.
   perform c.id
     from public.calculations c
-   where c.id = new.calculation_id
-     and c.tenant_id = new.tenant_id
+   where c.id in (old.calculation_id, new.calculation_id)
+   order by c.id
    for update;
 
   select count(*)::integer
@@ -2139,7 +2291,7 @@ begin
        or not public.is_story_10_6_tax_answer_matches_input(
          new.tax_answer_snapshot,
          v_tax_input,
-         (new.captured_at at time zone 'UTC')::date
+          (new.captured_at at time zone 'Europe/Stockholm')::date
        ) then
       raise exception
         'new quote version tax answer must match its calculation tax input'
@@ -2288,6 +2440,7 @@ declare
   v_seen_count integer := 0;
   v_old_parent_schema integer;
   v_new_parent_schema integer;
+  v_new_parent_created_in_xact boolean := false;
 begin
   if tg_op <> 'INSERT' then
     v_old_parent_id := old.quote_version_id;
@@ -2303,7 +2456,8 @@ begin
   end;
 
   for v_parent in
-    select qv.id, qv.status, qv.snapshot_schema_version
+    select qv.id, qv.status, qv.snapshot_schema_version,
+           qv.xmin::text = pg_current_xact_id()::text as created_in_current_transaction
       from public.quote_versions qv
      where qv.id in (v_old_parent_id, v_new_parent_id)
      order by qv.id
@@ -2312,6 +2466,7 @@ begin
     v_seen_count := v_seen_count + 1;
     if v_parent.id = v_new_parent_id then
       v_new_parent_schema := v_parent.snapshot_schema_version;
+      v_new_parent_created_in_xact := v_parent.created_in_current_transaction;
     end if;
     if v_parent.id = v_old_parent_id then
       v_old_parent_schema := v_parent.snapshot_schema_version;
@@ -2349,6 +2504,14 @@ begin
       using errcode = 'QV409';
   end if;
 
+  if tg_op = 'INSERT'
+     and v_new_parent_schema = 2
+     and not v_new_parent_created_in_xact then
+    raise exception
+      'V2 quote-version children may only be inserted in the atomic parent-creation transaction'
+      using errcode = 'QV409';
+  end if;
+
   if tg_op <> 'DELETE'
      and tg_table_name = 'quote_version_lines'
      and v_new_parent_schema = 2
@@ -2370,7 +2533,7 @@ end;
 $$;
 
 comment on function public.enforce_quote_version_child_sent_lock() is
-  'Story 10.6 fail-closed child lock. It serializes OLD+NEW parents in UUID order, rejects non-draft parents, makes V2 line/attachment snapshots immutable immediately after creation, and requires complete V2 line tax facts on insert.';
+  'Story 10.6 fail-closed child lock. It serializes OLD+NEW parents in UUID order, rejects non-draft parents, permits V2 child inserts only in the atomic parent-creation transaction, makes V2 line/attachment snapshots immutable immediately after creation, and requires complete V2 line tax facts on insert.';
 
 -- Acceptance may intentionally record an adjusted accepted price, but its
 -- source_sent_total_ore must always equal the immutable customer payable captured
@@ -2458,7 +2621,7 @@ begin
     p_snapshot,
     p_lines,
     v_tax_input,
-    (p_captured_at at time zone 'UTC')::date
+    (p_captured_at at time zone 'Europe/Stockholm')::date
   );
 
   insert into public.tenant_counters (tenant_id, counter_name, current_value)
@@ -2653,6 +2816,22 @@ declare
   v_link_exists boolean;
   v_tax_input jsonb;
 begin
+  -- Match the acceptance RPC's version-then-quote lock order. The first lock
+  -- serializes against an in-flight acceptance of the authoritative latest
+  -- version; the second protects quote-wide version creation.
+  select qv.id, qv.status
+    into v_prior_version_id, v_prior_status
+    from public.quote_versions qv
+   where qv.quote_id = p_quote_id
+     and qv.tenant_id = p_tenant_id
+   order by qv.version_number desc
+   limit 1
+   for update;
+  if not found then
+    raise exception 'create_new_quote_version: parent quote has no existing version'
+      using errcode = 'QV409';
+  end if;
+
   perform 1
     from public.quotes q
    where q.id = p_quote_id
@@ -2660,6 +2839,30 @@ begin
    for update;
   if not found then
     raise exception 'create_new_quote_version: parent quote not found for tenant'
+      using errcode = 'QV409';
+  end if;
+
+  -- A waiter may have selected the previous latest row before another creation
+  -- committed. Under the quote lock, re-read and lock the current authoritative
+  -- latest version before choosing the next number or lifecycle action.
+  select qv.id, qv.status, qv.version_number + 1, qv.quote_number
+    into v_prior_version_id, v_prior_status, v_version_number, v_quote_number
+    from public.quote_versions qv
+   where qv.quote_id = p_quote_id
+     and qv.tenant_id = p_tenant_id
+   order by qv.version_number desc
+   limit 1
+   for update;
+  if not found or v_quote_number is null then
+    raise exception 'create_new_quote_version: parent quote has no existing version to derive quote_number from'
+      using errcode = 'QV409';
+  end if;
+  if v_prior_status = 'accepted' then
+    raise exception 'create_new_quote_version: accepted quote cannot gain a successor draft'
+      using errcode = 'QV409';
+  end if;
+  if v_prior_status = 'sent' and not p_supersede_prior then
+    raise exception 'create_new_quote_version: sent latest version must be superseded atomically'
       using errcode = 'QV409';
   end if;
 
@@ -2677,20 +2880,8 @@ begin
     p_snapshot,
     p_lines,
     v_tax_input,
-    (p_captured_at at time zone 'UTC')::date
+    (p_captured_at at time zone 'Europe/Stockholm')::date
   );
-
-  select coalesce(max(qv.version_number), 0) + 1,
-         max(qv.quote_number)
-    into v_version_number, v_quote_number
-    from public.quote_versions qv
-   where qv.quote_id = p_quote_id
-     and qv.tenant_id = p_tenant_id;
-
-  if v_quote_number is null then
-    raise exception 'create_new_quote_version: parent quote has no existing version to derive quote_number from'
-      using errcode = 'QV409';
-  end if;
 
   insert into public.quote_versions (
     tenant_id, quote_id, version_number, quote_number, status,
@@ -2829,15 +3020,6 @@ begin
   );
 
   if p_supersede_prior then
-    select qv.id, qv.status
-      into v_prior_version_id, v_prior_status
-      from public.quote_versions qv
-     where qv.quote_id = p_quote_id
-       and qv.tenant_id = p_tenant_id
-       and qv.version_number < v_version_number
-     order by qv.version_number desc
-     limit 1;
-
     if v_prior_version_id is not null and v_prior_status = 'sent' then
       update public.quote_versions
          set status = 'superseded'

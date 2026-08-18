@@ -94,7 +94,10 @@ function rowForm(page: Page, rowId: string): Locator {
     .filter({ has: page.locator(`input[name="id"][value="${rowId}"]`) });
 }
 
-async function resetReverseChargeReadinessBlocker(calculationId: string): Promise<void> {
+async function resetReverseChargeTaxInput(
+  calculationId: string,
+  buyerVatNumber: string,
+): Promise<void> {
   try {
     await adminExec(
       `update public.calculations
@@ -105,7 +108,7 @@ async function resetReverseChargeReadinessBlocker(calculationId: string): Promis
         JSON.stringify({
           schemaVersion: 2,
           documentVatType: "REVERSE_CHARGE_CONSTRUCTION",
-          buyerVatNumber: null,
+          buyerVatNumber,
           deductionChoice: "NONE",
           paymentDate: null,
           finalPaymentDate: null,
@@ -123,11 +126,11 @@ async function resetReverseChargeReadinessBlocker(calculationId: string): Promis
 }
 
 test.describe("Story 10.6 — tax answer reconciliation", () => {
-  test("[10.6-E2E-01][P1][AC3] explicit reverse charge gates readiness, then PDF truth reconciles", async ({ page, request }) => {
+  test("[10.6-E2E-01][P1][AC3] explicit reverse charge rejects incomplete input, then PDF truth reconciles", async ({ page, request }) => {
     const calculation = fixture.taxAnswer.reverseChargeCalc;
-    // The journey mutates the shared fixture. Restore the intentionally incomplete
-    // calculation before every attempt so Playwright's CI retry proves the same gate.
-    await resetReverseChargeReadinessBlocker(calculation.id);
+    // The database permits only canonical buyer-VAT/document postures. Restore the valid
+    // snapshot before every attempt so Playwright retries exercise the same form boundary.
+    await resetReverseChargeTaxInput(calculation.id, calculation.buyerVatNumber);
     await signIn(page);
     await page.goto(`/calculations/${calculation.id}`);
 
@@ -136,12 +139,20 @@ test.describe("Story 10.6 — tax answer reconciliation", () => {
     await expect(settings.getByLabel("Momshantering")).toHaveValue(
       "REVERSE_CHARGE_CONSTRUCTION",
     );
-    await expect(settings.getByLabel("Köparens momsregistreringsnummer")).toHaveValue("");
+    const buyerVatNumber = settings.getByLabel("Köparens momsregistreringsnummer");
+    await expect(buyerVatNumber).toHaveValue(calculation.buyerVatNumber);
 
     const readiness = page.getByTestId("readiness-summary").first();
-    await expect(readiness).toHaveAttribute("data-can-create-quote", "false");
-    await expect(page.getByTestId("readiness-blocker-MISSING_BUYER_VAT_NUMBER").first()).toBeVisible();
-    await expect(page.getByTestId("create-quote").first()).toBeDisabled();
+    await expect(readiness).toHaveAttribute("data-can-create-quote", "true");
+
+    await buyerVatNumber.fill("");
+    const invalidSave = waitForCalculationMutation(page, calculation.id);
+    await settings.getByRole("button", { name: "Spara skatte- och momsuppgifter" }).click();
+    expect((await invalidSave).ok()).toBeTruthy();
+    await expect(settings).toContainText(
+      "Ange köparens momsregistreringsnummer vid omvänd betalningsskyldighet.",
+    );
+    await expect(readiness).toHaveAttribute("data-can-create-quote", "true");
 
     await settings.getByLabel("Köparens momsregistreringsnummer").fill(calculation.buyerVatNumber);
     await saveTaxSettings(page, calculation.id, settings);

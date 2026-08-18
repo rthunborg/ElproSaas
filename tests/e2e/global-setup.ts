@@ -186,8 +186,8 @@ export default async function globalSetup() {
   // Story 10.6: dedicated, order-independent fixtures. The first calculation carries TWO
   // explicit VAT categories: 1 000,00 kr standard (250,00 kr VAT) + 2 000,00 kr reverse charge
   // (0,00 kr seller VAT) = net 3 000,00, VAT 250,00, gross/payable 3 250,00. The document has
-  // already explicitly selected reverse charge, but intentionally starts without the buyer VAT
-  // number so the real readiness blocker can be cleared through the UI before quote capture.
+  // explicitly selected reverse charge with the required buyer VAT number. The database rejects
+  // incomplete VAT/document postures, while the E2E journey proves the form rejects clearing it.
   const reverseChargeBuyerVatNumber = "SE556677889901";
   const reverseChargeCalcTitle = `Kalkyl omvänd moms ${token()}`;
   const reverseChargeCalcId = await adminInsertCalculation({
@@ -196,7 +196,10 @@ export default async function globalSetup() {
     facility_id: facilityId,
     title: reverseChargeCalcTitle,
     status: "draft",
-    tax_input_snapshot: noDeductionTaxInput("REVERSE_CHARGE_CONSTRUCTION", null),
+    tax_input_snapshot: noDeductionTaxInput(
+      "REVERSE_CHARGE_CONSTRUCTION",
+      reverseChargeBuyerVatNumber,
+    ),
   });
   const reverseChargeSectionId = await adminInsertSection({
     tenant_id: base.tenantA.id,

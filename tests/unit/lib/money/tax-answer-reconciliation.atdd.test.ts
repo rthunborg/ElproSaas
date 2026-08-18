@@ -48,6 +48,7 @@ const standard = (netOre: number, overrides: Record<string, unknown> = {}) => ({
   isHidden: false,
   includedInInvoiceTotal: true,
   deductionClassification: "NONE",
+  summaryCategory: "other",
   ...overrides,
 });
 
@@ -102,11 +103,13 @@ describe("Story 10.6 — tax answer reconciliation", () => {
       id: "hidden-included-labor",
       isHidden: true,
       deductionClassification: "ROT_LABOR",
+      summaryCategory: "labor",
     });
     const visibleExcluded = standard(20_000, {
       id: "visible-excluded-green",
       includedInInvoiceTotal: false,
       deductionClassification: "GREEN_SOLAR_MATERIAL",
+      summaryCategory: "material",
     });
     const base = okValue<Record<string, unknown>>(reconcile({ rows: [hiddenIncluded, visibleExcluded], standardRateBp: 2500 }));
     const visible = okValue<Record<string, unknown>>(reconcile({ rows: [{ ...hiddenIncluded, isHidden: false }, visibleExcluded], standardRateBp: 2500 }));
@@ -296,6 +299,7 @@ describe("Story 10.6 — tax answer reconciliation", () => {
         rateBp: 2_500,
         includedInInvoiceTotal: true,
         deductionClassification: "ROT_LABOR",
+        summaryCategory: "labor",
       }],
       taxInput: parsed.value,
       quoteCaptureDate: "2026-08-05",
@@ -607,7 +611,10 @@ describe("Story 10.6 — tax answer reconciliation", () => {
         build({
           quoteCaptureDate: "2026-08-05",
           customerEligibilityPosture: "private",
-          rows: [standard(100_000_000, { deductionClassification: "GREEN_SOLAR_MATERIAL" })],
+          rows: [standard(100_000_000, {
+            deductionClassification: "GREEN_SOLAR_MATERIAL",
+            summaryCategory: "material",
+          })],
           taxInput: {
             ...baseTaxInput,
             documentVatType: "STANDARD_VAT_25",
@@ -766,11 +773,104 @@ describe("Story 10.6 — tax answer reconciliation", () => {
         errorCode(build({
           quoteCaptureDate: "2026-08-05",
           customerEligibilityPosture: posture,
-          rows: [standard(10_000, { deductionClassification: "ROT_LABOR" })],
+          rows: [standard(10_000, {
+            deductionClassification: "ROT_LABOR",
+            summaryCategory: "labor",
+          })],
           taxInput: rotTaxInput,
         })),
         "CUSTOMER_NOT_ELIGIBLE_FOR_DEDUCTION",
       );
     }
+  });
+
+  test("[10.6-UNIT-14][P0][AC4/AC5] green exact category claims truncate once at the scheme boundary", () => {
+    const parsed = money.parseTaxInputSnapshot({
+      schemaVersion: 2,
+      documentVatType: "STANDARD_VAT_25",
+      buyerVatNumber: null,
+      deductionChoice: "GREEN",
+      paymentDate: null,
+      finalPaymentDate: "2026-08-05",
+      personAllowanceSlots: [{ slot: "PERSON_1", remainingGreenAllowanceOre: 5_000_000 }],
+      greenBasisMethod: "ACTUAL_ELIGIBLE_COSTS",
+      genuineFixedPrice: false,
+      fixedPriceOre: null,
+      fixedPriceCategorySplitOre: null,
+    });
+    assert.equal(parsed.ok, true);
+    if (!parsed.ok) return;
+    const answer = okValue<money.TaxAnswerSnapshotV2>(
+      money.buildTaxAnswerSnapshotV2({
+        quoteCaptureDate: "2026-08-05",
+        customerEligibilityPosture: "private",
+        taxInput: parsed.value,
+        rows: [
+          standard(160, {
+            id: "solar-sub-sek",
+            deductionClassification: "GREEN_SOLAR_LABOR",
+            summaryCategory: "labor",
+          }) as money.DocumentVatRowInput,
+          standard(112, {
+            id: "storage-sub-sek",
+            deductionClassification: "GREEN_STORAGE_LABOR",
+            summaryCategory: "labor",
+          }) as money.DocumentVatRowInput,
+        ],
+      }),
+    );
+    assert.equal(answer.green.calculatedOre, 100);
+    assert.equal(answer.green.claimOre, 100);
+    assert.deepEqual(
+      money.GREEN_CATEGORIES.map((category) => answer.green.categories[category].claimOre),
+      [30, 70, 0],
+      "category shares reconcile the one whole-SEK document claim without per-category truncation",
+    );
+    assert.equal(
+      money.GREEN_CATEGORIES.reduce(
+        (sum, category) => sum + answer.green.categories[category].claimOre,
+        0,
+      ),
+      answer.green.claimOre,
+    );
+  });
+
+  test("[10.6-UNIT-15][P0][AC3/AC4] mixed allowances and reverse-charge deductions fail closed", () => {
+    assert.equal(
+      money.parseTaxInputSnapshot({
+        schemaVersion: 2,
+        documentVatType: "STANDARD_VAT_25",
+        buyerVatNumber: null,
+        deductionChoice: "ROT_AND_GREEN",
+        paymentDate: "2026-08-05",
+        finalPaymentDate: "2026-08-05",
+        personAllowanceSlots: [{ slot: "PERSON_1", remainingAllowanceOre: 5_000_000 }],
+        greenBasisMethod: "ACTUAL_ELIGIBLE_COSTS",
+        genuineFixedPrice: false,
+        fixedPriceOre: null,
+        fixedPriceCategorySplitOre: null,
+      }).ok,
+      false,
+    );
+    assert.equal(
+      money.parseTaxInputSnapshot({
+        schemaVersion: 2,
+        documentVatType: "REVERSE_CHARGE_CONSTRUCTION",
+        buyerVatNumber: "SE556677889901",
+        deductionChoice: "ROT",
+        paymentDate: "2026-08-05",
+        finalPaymentDate: null,
+        personAllowanceSlots: [{
+          slot: "PERSON_1",
+          remainingRotAllowanceOre: 5_000_000,
+          remainingCombinedRotRutAllowanceOre: 7_500_000,
+        }],
+        greenBasisMethod: "ACTUAL_ELIGIBLE_COSTS",
+        genuineFixedPrice: false,
+        fixedPriceOre: null,
+        fixedPriceCategorySplitOre: null,
+      }).ok,
+      false,
+    );
   });
 });

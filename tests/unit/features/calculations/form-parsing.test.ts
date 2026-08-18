@@ -499,7 +499,7 @@ test("10.6 tax form: standard VAT clears a stale buyer VAT number", () => {
   });
 });
 
-test("10.6 tax form: allowance persons 3 and 50 round-trip as canonical ordered slots", () => {
+test("10.6 tax form: inactive allowance fields are cleared when no deduction is selected", () => {
   const parsed = parseUpdateTaxInputForm(fd({
     id: ROW,
     document_vat_type: "STANDARD_VAT_25",
@@ -512,11 +512,40 @@ test("10.6 tax form: allowance persons 3 and 50 round-trip as canonical ordered 
   assert.deepEqual(parsed.fieldErrors, {});
   assert.deepEqual(
     (parsed.input.tax_input_snapshot as { personAllowanceSlots: unknown[] }).personAllowanceSlots,
-    [
-      { slot: "PERSON_3", remainingGreenAllowanceOre: 12_300 },
-      { slot: "PERSON_50", remainingGreenAllowanceOre: 45_600 },
-    ],
+    [],
   );
+});
+
+test("10.6 tax form: inactive dates and fixed-price facts normalize to canonical nulls", () => {
+  const form = fd({
+    id: ROW,
+    document_vat_type: "STANDARD_VAT_25",
+    deduction_choice: "ROT",
+    payment_date: "2026-08-05",
+    final_payment_date: "2026-08-06",
+    green_basis_method: "FIXED_PRICE_97_PERCENT",
+    fixed_price_kronor: "1000,00",
+    fixed_solar_kronor: "400,00",
+    fixed_storage_kronor: "300,00",
+    fixed_charging_kronor: "300,00",
+    person_1_rot_remaining_kronor: "50000,00",
+    person_1_combined_rot_rut_remaining_kronor: "75000,00",
+    person_1_green_remaining_kronor: "50000,00",
+  });
+  withFlag(form, "genuine_fixed_price", true);
+  const parsed = parseUpdateTaxInputForm(form);
+  assert.deepEqual(parsed.fieldErrors, {});
+  const taxInput = parsed.input.tax_input_snapshot as Record<string, unknown>;
+  assert.equal(taxInput.finalPaymentDate, null);
+  assert.equal(taxInput.greenBasisMethod, "ACTUAL_ELIGIBLE_COSTS");
+  assert.equal(taxInput.genuineFixedPrice, false);
+  assert.equal(taxInput.fixedPriceOre, null);
+  assert.equal(taxInput.fixedPriceCategorySplitOre, null);
+  assert.deepEqual(taxInput.personAllowanceSlots, [{
+    slot: "PERSON_1",
+    remainingRotAllowanceOre: 5_000_000,
+    remainingCombinedRotRutAllowanceOre: 7_500_000,
+  }]);
 });
 
 test("10.6 tax form: authoritative draft failures are associated with actionable fields", () => {

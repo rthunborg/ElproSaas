@@ -10,6 +10,7 @@ const standardRow = {
   rateBp: 2500,
   includedInInvoiceTotal: true,
   deductionClassification: "NONE" as const,
+  summaryCategory: "other" as const,
 };
 
 const baseInput = {

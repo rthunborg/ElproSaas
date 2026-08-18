@@ -36,6 +36,7 @@ import {
 } from "@/features/calculations/totals";
 import { classifyReadiness } from "@/features/calculations/readiness";
 import { resolveVatDisplayPosture } from "@/features/calculations/vat-posture";
+import { stockholmBusinessDate } from "@/lib/datetime/business-date";
 import {
   isRowType,
   taxSummaryCategoryForRowType,
@@ -75,6 +76,7 @@ import {
 /** The totals-engine row shape from a customer-visible calc row. */
 function totalsRowOf(row: CalcRowRow): TotalsRowInput {
   return {
+    row_type: rowTypeOf(row.row_type),
     quantity: row.quantity,
     unit_sell_ore: row.unit_sell_ore,
     vat_rate_bp: row.vat_rate_bp,
@@ -85,6 +87,11 @@ function totalsRowOf(row: CalcRowRow): TotalsRowInput {
     is_optional: row.is_optional,
     is_selected: row.is_selected,
   };
+}
+
+function rowTypeOf(value: string): "labor" | "material" | "subcontractor" | "machinery" | "other" {
+  if (!isRowType(value)) throw new CommandError("VALIDATION_FAILED");
+  return value;
 }
 
 function vatTypeOf(value: string): VatType {
@@ -188,7 +195,7 @@ export async function buildFreshQuoteSnapshot(
     attachmentOrder += 1;
   }
 
-  const quoteCaptureDate = params.capturedAt.slice(0, 10);
+  const quoteCaptureDate = stockholmBusinessDate(params.capturedAt);
   const currentReviewDigest = buildQuoteReviewDigest({
     quoteCaptureDate,
     calculation: {

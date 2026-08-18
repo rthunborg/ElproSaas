@@ -358,8 +358,10 @@ describe("Story 10.6 — migration source contract", () => {
         "only a complete reconciled Story 10.6 V2 quote version may be sent",
         "quote_versions draft updates are limited to presentation and derived PDF state",
         "V2 quote-version child snapshots are immutable after creation",
+        "V2 quote-version children may only be inserted in the atomic parent-creation transaction",
         "v_old_parent_id",
         "v_new_parent_id",
+        "qv.xmin::text = pg_current_xact_id()::text",
         "order by qv.id",
         "for update",
         "enforce_quote_acceptance_frozen_source_total",
@@ -420,8 +422,8 @@ describe("Story 10.6 — local Supabase behavior", () => {
       ),
     ).rejects.toMatchObject({ code: "23514" });
 
-    // Incomplete reverse-charge selection is valid DRAFT state: readiness must be
-    // able to show MISSING_BUYER_VAT_NUMBER. Final quote validation remains strict.
+    // Canonical persisted input is fail-closed: reverse charge requires its buyer
+    // VAT number even at the database boundary.
     await expect(
       adminQuery(
         `update public.calculations set tax_input_snapshot = $2::jsonb where id = $1`,
@@ -433,7 +435,7 @@ describe("Story 10.6 — local Supabase behavior", () => {
           }),
         ],
       ),
-    ).resolves.toBeDefined();
+    ).rejects.toMatchObject({ code: "23514" });
 
     await expect(
       adminQuery(
@@ -498,6 +500,39 @@ describe("Story 10.6 — local Supabase behavior", () => {
         [calculationId, JSON.stringify(validMixed)],
       ),
     ).resolves.toBeDefined();
+
+    const invalidCanonicalInputs = [
+      {
+        ...validTaxInput(),
+        buyerVatNumber: "SE123456789012",
+      },
+      {
+        ...validTaxInput(),
+        paymentDate: "2026-08-05",
+      },
+      {
+        ...validTaxInput(),
+        genuineFixedPrice: true,
+        fixedPriceOre: 10_000,
+        fixedPriceCategorySplitOre: { SOLAR: 10_000, STORAGE: 0, CHARGING: 0 },
+      },
+      {
+        ...validMixed,
+        personAllowanceSlots: [{ slot: "PERSON_1", remainingAllowanceOre: 5_000_000 }],
+      },
+      {
+        ...validMixed,
+        documentVatType: "REVERSE_CHARGE_CONSTRUCTION",
+        buyerVatNumber: "SE123456789012",
+      },
+    ];
+    for (const input of invalidCanonicalInputs) {
+      const result = await adminQuery<{ valid: boolean }>(
+        `select public.is_story_10_6_tax_input_v2($1::jsonb) as valid`,
+        [JSON.stringify(input)],
+      );
+      expect(result[0]?.valid).toBe(false);
+    }
 
     await expect(
       adminInsertRow({
@@ -747,6 +782,22 @@ describe("Story 10.6 — local Supabase behavior", () => {
       [JSON.stringify(missingVatPolicy)],
     );
     expect(missingVatPolicyResult[0]?.valid).toBe(false);
+
+    const nonCanonicalResolvingDate = validTaxAnswer();
+    (nonCanonicalResolvingDate.vatPolicy as Record<string, unknown>).resolvingDate = "2026/08/05";
+    const nonCanonicalDateResult = await adminQuery<{ valid: boolean }>(
+      `select public.is_story_10_6_tax_answer_v2($1::jsonb) as valid`,
+      [JSON.stringify(nonCanonicalResolvingDate)],
+    );
+    expect(nonCanonicalDateResult[0]?.valid).toBe(false);
+
+    const duplicateRuleVersion = validTaxAnswer();
+    duplicateRuleVersion.taxRuleVersions = [POLICY_ID, POLICY_ID];
+    const duplicateRuleResult = await adminQuery<{ valid: boolean }>(
+      `select public.is_story_10_6_tax_answer_v2($1::jsonb) as valid`,
+      [JSON.stringify(duplicateRuleVersion)],
+    );
+    expect(duplicateRuleResult[0]?.valid).toBe(false);
 
     const missingPosture = validTaxAnswer();
     delete missingPosture.customerEligibilityPosture;
@@ -1061,6 +1112,84 @@ describe("Story 10.6 — local Supabase behavior", () => {
       [JSON.stringify(fixedGreen)],
     );
     expect(fixedGreenResult[0]?.valid).toBe(true);
+
+    // Each category is below one SEK on its own (30 öre + 70 öre), but their
+    // exact rational claims sum to one SEK. The document truncates once and then
+    // allocates the resulting 100 öre proportionally across the categories.
+    const aggregateGreen = validTaxAnswer();
+    aggregateGreen.deductionChoice = "GREEN";
+    aggregateGreen.categories = [
+      {
+        vatType: "STANDARD_VAT_25",
+        rateBp: 2500,
+        netOre: 272,
+        vatOre: 68,
+        grossOre: 340,
+      },
+    ];
+    aggregateGreen.netByDeductionClassification = {
+      ...zeroClassifications(),
+      GREEN_SOLAR_LABOR: 160,
+      GREEN_STORAGE_LABOR: 112,
+    };
+    aggregateGreen.vatByDeductionClassification = {
+      ...zeroClassifications(),
+      GREEN_SOLAR_LABOR: 40,
+      GREEN_STORAGE_LABOR: 28,
+    };
+    aggregateGreen.summaries = {
+      labor: { netOre: 272, vatOre: 68, grossOre: 340 },
+      material: { netOre: 0, vatOre: 0, grossOre: 0 },
+      other: { netOre: 0, vatOre: 0, grossOre: 0 },
+    };
+    aggregateGreen.green = {
+      policy: {
+        id: POLICY_ID,
+        validFrom: "2026-01-01",
+        validTo: "2027-01-01",
+        resolvingDate: "2026-08-06",
+        resolvingFact: "GREEN_FINAL_PAYMENT_DATE",
+        values: frozenPolicyValues(),
+      },
+      basisMethod: "ACTUAL_ELIGIBLE_COSTS",
+      categories: {
+        SOLAR: { category: "SOLAR", basisOre: 200, calculatedOre: 30, claimOre: 30 },
+        STORAGE: { category: "STORAGE", basisOre: 140, calculatedOre: 70, claimOre: 70 },
+        CHARGING: { category: "CHARGING", basisOre: 0, calculatedOre: 0, claimOre: 0 },
+      },
+      calculatedOre: 100,
+      claimOre: 100,
+      allocations: [{ slot: "green_person", ore: 100 }],
+    };
+    aggregateGreen.netOre = 272;
+    aggregateGreen.vatOre = 68;
+    aggregateGreen.grossOre = 340;
+    aggregateGreen.calculatedDeductionOre = 100;
+    aggregateGreen.claimDeductionOre = 100;
+    aggregateGreen.deductionOre = 100;
+    aggregateGreen.payableOre = 240;
+    const aggregateGreenResult = await adminQuery<{ valid: boolean }>(
+      `select public.is_story_10_6_tax_answer_v2($1::jsonb) as valid`,
+      [JSON.stringify(aggregateGreen)],
+    );
+    expect(aggregateGreenResult[0]?.valid).toBe(true);
+
+    const independentlyTruncatedGreen = structuredClone(aggregateGreen);
+    const independentlyTruncatedCategories = (
+      independentlyTruncatedGreen.green as Record<string, unknown>
+    ).categories as Record<string, Record<string, unknown>>;
+    independentlyTruncatedCategories.SOLAR!.claimOre = 0;
+    independentlyTruncatedCategories.STORAGE!.claimOre = 0;
+    (independentlyTruncatedGreen.green as Record<string, unknown>).claimOre = 0;
+    (independentlyTruncatedGreen.green as Record<string, unknown>).allocations = [];
+    independentlyTruncatedGreen.claimDeductionOre = 0;
+    independentlyTruncatedGreen.deductionOre = 0;
+    independentlyTruncatedGreen.payableOre = 340;
+    const independentlyTruncatedResult = await adminQuery<{ valid: boolean }>(
+      `select public.is_story_10_6_tax_answer_v2($1::jsonb) as valid`,
+      [JSON.stringify(independentlyTruncatedGreen)],
+    );
+    expect(independentlyTruncatedResult[0]?.valid).toBe(false);
     const greenWithUnknownAllocationKey = structuredClone(fixedGreen);
     objectAt(greenWithUnknownAllocationKey, ["green", "policy"])._unexpected = true;
     const unknownGreenPolicyResult = await adminQuery<{ valid: boolean }>(
@@ -1154,6 +1283,13 @@ describe("Story 10.6 — local Supabase behavior", () => {
       [JSON.stringify(reverse)],
     );
     expect(completeReverse[0]?.valid).toBe(true);
+    const reverseWithPrivateDeduction = structuredClone(reverse);
+    reverseWithPrivateDeduction.deductionChoice = "ROT";
+    const reverseDeductionResult = await adminQuery<{ valid: boolean }>(
+      `select public.is_story_10_6_tax_answer_v2($1::jsonb) as valid`,
+      [JSON.stringify(reverseWithPrivateDeduction)],
+    );
+    expect(reverseDeductionResult[0]?.valid).toBe(false);
 
     // The closed VAT-category set contains five identities because reduced VAT has
     // two sanctioned rates. Pin both the structural validator and the fresh-RPC
@@ -1387,6 +1523,41 @@ describe("Story 10.6 — local Supabase behavior", () => {
       [JSON.stringify(validTaxAnswer()), JSON.stringify([...linesAtLimit, excluded])],
     );
     expect(overLimit[0]?.valid).toBe(false);
+  });
+
+  it("[10.6-INT-05C][P0] both creation RPCs resolve capture dates in Europe/Stockholm", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
+    await setCalculationTaxInput();
+    const stockholmMidnightBoundary = "2026-08-04T22:30:00.000Z";
+    const initial = await client.rpc("create_quote_version_from_calculation", {
+      p_tenant_id: fixture.tenantA.id,
+      p_calculation_id: calculationId,
+      p_captured_at: stockholmMidnightBoundary,
+      p_customer_id: customerId,
+      p_facility_id: null,
+      p_contact_id: null,
+      p_snapshot: validSnapshot(),
+      p_lines: [validLine()],
+      p_attachments: [],
+    });
+    expect(initial.error).toBeNull();
+    const initialRow = Array.isArray(initial.data) ? initial.data[0] : initial.data;
+    const quoteId = String((initialRow as Record<string, unknown>).quote_id);
+
+    const successor = await client.rpc("create_new_quote_version", {
+      p_tenant_id: fixture.tenantA.id,
+      p_quote_id: quoteId,
+      p_calculation_id: calculationId,
+      p_captured_at: stockholmMidnightBoundary,
+      p_customer_id: customerId,
+      p_facility_id: null,
+      p_contact_id: null,
+      p_snapshot: validSnapshot(),
+      p_lines: [validLine()],
+      p_attachments: [],
+      p_supersede_prior: false,
+    });
+    expect(successor.error).toBeNull();
   });
 
   it("[10.6-INT-12][P0] authenticated Tenant B cannot call either fresh-version RPC against Tenant A data and leaves the existing A quote untouched", async (testCtx) => {
@@ -1743,7 +1914,7 @@ describe("Story 10.6 — local Supabase behavior", () => {
     expect(after[0]?.line_count).toBe(before[0]?.line_count);
   });
 
-  it("[10.6-INT-07B][P0] direct inserts cannot skip draft or send line-inconsistent V2", async (testCtx) => {
+  it("[10.6-INT-07B][P0] direct inserts cannot skip draft or append V2 children after parent creation", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     await setCalculationTaxInput();
     const quote = await adminQuery<{ id: string }>(
@@ -1800,24 +1971,21 @@ describe("Story 10.6 — local Supabase behavior", () => {
          )`,
         [fixture.tenantA.id, direct[0]!.id],
       ),
-    ).rejects.toMatchObject({ code: "23514" });
-    await adminQuery(
-      `insert into public.quote_version_lines (
-         tenant_id, quote_version_id, row_type, sort_order, label,
-         quantity, unit, unit_sell_ore, line_net_ore, vat_rate_bp,
-         included_in_invoice_total, deduction_classification, vat_type,
-         is_hidden, is_optional, is_selected
-       ) values (
-         $1, $2, 'labor', 0, 'malicious mismatch',
-         1, 'st', 9000, 9000, 2500,
-         true, 'NONE', 'STANDARD_VAT_25', false, false, null
-       )`,
-      [fixture.tenantA.id, direct[0]!.id],
-    );
+    ).rejects.toMatchObject({ code: "QV409" });
     await expect(
-      adminQuery(`update public.quote_versions set status = 'sent' where id = $1`, [
-        direct[0]!.id,
-      ]),
+      adminQuery(
+        `insert into public.quote_version_lines (
+           tenant_id, quote_version_id, row_type, sort_order, label,
+           quantity, unit, unit_sell_ore, line_net_ore, vat_rate_bp,
+           included_in_invoice_total, deduction_classification, vat_type,
+           is_hidden, is_optional, is_selected
+         ) values (
+           $1, $2, 'labor', 0, 'late append',
+           1, 'st', 10000, 10000, 2500,
+           true, 'NONE', 'STANDARD_VAT_25', false, false, null
+         )`,
+        [fixture.tenantA.id, direct[0]!.id],
+      ),
     ).rejects.toMatchObject({ code: "QV409" });
     const after = await adminQuery<{ status: string }>(
       `select status from public.quote_versions where id = $1`,
@@ -1929,5 +2097,23 @@ describe("Story 10.6 — local Supabase behavior", () => {
         [fixture.tenantA.id, created.quoteId, created.versionId, CAPTURED_AT],
       ),
     ).resolves.toBeDefined();
+
+    await adminQuery(`update public.quote_versions set status = 'accepted' where id = $1`, [
+      created.versionId,
+    ]);
+    const acceptedSuccessor = await client.rpc("create_new_quote_version", {
+      p_tenant_id: fixture.tenantA.id,
+      p_quote_id: created.quoteId,
+      p_calculation_id: calculationId,
+      p_captured_at: CAPTURED_AT,
+      p_customer_id: customerId,
+      p_facility_id: null,
+      p_contact_id: null,
+      p_snapshot: validSnapshot(),
+      p_lines: [validLine()],
+      p_attachments: [],
+      p_supersede_prior: true,
+    });
+    expect(acceptedSuccessor.error?.code).toBe("QV409");
   });
 });

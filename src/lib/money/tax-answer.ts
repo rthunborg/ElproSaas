@@ -14,6 +14,7 @@ import {
   aggregateDocumentVat,
   allocateCategoryVatByDeductionClassification,
   allocateWholeSekClaimByPerson,
+  calculateGreenSchemeAmounts,
   resolveTaxPolicy,
   type DocumentVatCategory,
   type DocumentVatRowInput,
@@ -172,16 +173,8 @@ function emptyClassificationRecord(): Record<DeductionClassification, number> {
   ) as Record<DeductionClassification, number>;
 }
 
-function classificationCategory(
-  classification: DeductionClassification,
-): TaxSummaryCategory {
-  if (classification === "ROT_LABOR" || classification.endsWith("_LABOR")) return "labor";
-  if (classification.endsWith("_MATERIAL")) return "material";
-  return "other";
-}
-
 function summaryCategoryOf(row: DocumentVatRowInput): TaxSummaryCategory {
-  return row.summaryCategory ?? classificationCategory(row.deductionClassification ?? "NONE");
+  return row.summaryCategory;
 }
 
 /** Allocate one already-rounded VAT category across economic summary buckets exactly. */
@@ -412,6 +405,9 @@ export function buildTaxAnswerSnapshotV2(
     input.taxInput.deductionChoice === "ROT_AND_GREEN";
   const usesGreen = input.taxInput.deductionChoice === "GREEN" ||
     input.taxInput.deductionChoice === "ROT_AND_GREEN";
+  if (reverseChargeApplied && (usesRot || usesGreen)) {
+    return fail("INVALID_DEDUCTION_CLASSIFICATION");
+  }
   if ((usesRot || usesGreen) && input.customerEligibilityPosture !== "private") {
     return fail("CUSTOMER_NOT_ELIGIBLE_FOR_DEDUCTION");
   }
@@ -450,8 +446,8 @@ export function buildTaxAnswerSnapshotV2(
   const effectiveGreenPolicy = greenPolicy?.ok
     ? greenPolicy.value.policy
     : fallbackPolicy.value.policy;
-  let greenCalculatedOre = 0;
-  let greenClaimOre = 0;
+  const greenGrossByCategory = {} as Record<GreenCategory, number>;
+  const greenBasisByCategory = {} as Record<GreenCategory, number>;
   for (const category of GREEN_CATEGORIES) {
     let classifiedGreenGrossOre = 0;
     for (const classification of DEDUCTION_CLASSIFICATIONS) {
@@ -465,13 +461,12 @@ export function buildTaxAnswerSnapshotV2(
       classifiedGreenGrossOre = next;
     }
     let basisOre = classifiedGreenGrossOre;
-    let fixedPriceSplitOre: number | null = null;
     if (usesGreen && input.taxInput.greenBasisMethod === "FIXED_PRICE_97_PERCENT") {
       const split = input.taxInput.fixedPriceCategorySplitOre;
       if (!input.taxInput.genuineFixedPrice || split === null) {
         return fail("INCOMPLETE_FIXED_PRICE_CATEGORY_SPLIT");
       }
-      fixedPriceSplitOre = split[category];
+      const fixedPriceSplitOre = split[category];
       // Fixed-price green facts must reconcile to green-classified document work. This is the
       // no-double-feed proof when a document also contains separately classified ROT labor.
       if (fixedPriceSplitOre !== classifiedGreenGrossOre) {
@@ -487,34 +482,26 @@ export function buildTaxAnswerSnapshotV2(
     } else if (!usesGreen) {
       basisOre = 0;
     }
-    const greenRate = BigInt(effectiveGreenPolicy.green.rateBpByCategory[category]);
-    // Fixed-price claims are one exact rational policy calculation. The separately displayed
-    // integer-öre basis is never reused as a rounded intermediate authority.
-    const calculatedOre = !usesGreen
-      ? 0
-      : fixedPriceSplitOre === null
-        ? multiplyFloorOre(basisOre, greenRate, BP_PER_UNIT)
-        : multiplyFloorOre(
-            fixedPriceSplitOre,
-            BigInt(effectiveGreenPolicy.green.fixedPriceEligibleShareBp) * greenRate,
-            BP_PER_UNIT * BP_PER_UNIT,
-          );
-    const claimOre = !usesGreen
-      ? 0
-      : fixedPriceSplitOre === null
-        ? multiplyClaimOre(basisOre, greenRate, BP_PER_UNIT)
-        : multiplyClaimOre(
-            fixedPriceSplitOre,
-            BigInt(effectiveGreenPolicy.green.fixedPriceEligibleShareBp) * greenRate,
-            BP_PER_UNIT * BP_PER_UNIT,
-          );
-    if (calculatedOre === null || claimOre === null) return fail("ORE_OVERFLOW");
-    const nextCalculated = addOre(greenCalculatedOre, calculatedOre);
-    const nextClaim = addOre(greenClaimOre, claimOre);
-    if (nextCalculated === null || nextClaim === null) return fail("ORE_OVERFLOW");
-    greenCalculatedOre = nextCalculated;
-    greenClaimOre = nextClaim;
-    greenAnswers[category] = Object.freeze({ category, basisOre, calculatedOre, claimOre });
+    greenGrossByCategory[category] = usesGreen ? classifiedGreenGrossOre : 0;
+    greenBasisByCategory[category] = basisOre;
+  }
+  const greenAmounts = calculateGreenSchemeAmounts({
+    amountOreByCategory: greenGrossByCategory,
+    rateBpByCategory: effectiveGreenPolicy.green.rateBpByCategory,
+    ...(usesGreen && input.taxInput.greenBasisMethod === "FIXED_PRICE_97_PERCENT"
+      ? { eligibleShareBp: effectiveGreenPolicy.green.fixedPriceEligibleShareBp }
+      : {}),
+  });
+  if (!greenAmounts.ok) return greenAmounts;
+  const greenCalculatedOre = usesGreen ? greenAmounts.value.calculatedOre : 0;
+  const greenClaimOre = usesGreen ? greenAmounts.value.claimOre : 0;
+  for (const category of GREEN_CATEGORIES) {
+    greenAnswers[category] = Object.freeze({
+      category,
+      basisOre: greenBasisByCategory[category],
+      calculatedOre: usesGreen ? greenAmounts.value.categories[category].calculatedOre : 0,
+      claimOre: usesGreen ? greenAmounts.value.categories[category].claimOre : 0,
+    });
   }
   const greenAllocations = usesGreen
     ? allocationsFor(input.taxInput, "GREEN", greenClaimOre, effectiveGreenPolicy)

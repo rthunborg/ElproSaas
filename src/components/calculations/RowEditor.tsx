@@ -284,6 +284,7 @@ export function RowEditor({
   // The LINE TOTAL — computed by the PURE totals engine (never inline math here).
   const lineTotal = row
     ? computeLineTotal({
+        row_type: row.row_type,
         quantity: row.quantity,
         unit_sell_ore: row.unit_sell_ore,
         vat_rate_bp: row.vat_rate_bp,

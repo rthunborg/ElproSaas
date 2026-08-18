@@ -251,6 +251,118 @@ function wholeSekRatioOre(
   return bigintToOre(wholeSek * BigInt(ORE_PER_SEK));
 }
 
+export interface GreenSchemeCategoryAmounts {
+  readonly calculatedOre: number;
+  /** A reconciled share of the one document-level whole-SEK green claim. */
+  readonly claimOre: number;
+}
+
+export interface GreenSchemeAmounts {
+  readonly calculatedOre: number;
+  readonly claimOre: number;
+  readonly categories: Readonly<Record<GreenCategory, GreenSchemeCategoryAmounts>>;
+}
+
+/**
+ * Apply category-specific green rates as exact rationals, sum them, then truncate exactly once
+ * at the scheme/document claim boundary. Category calculated amounts use largest remainder over
+ * the exact rationals; the finalized claim is then reconciled across those category amounts in
+ * canonical SOLAR/STORAGE/CHARGING order. No category is whole-SEK-truncated independently.
+ */
+export function calculateGreenSchemeAmounts(input: {
+  readonly amountOreByCategory: Readonly<Record<GreenCategory, number>>;
+  readonly rateBpByCategory: Readonly<Record<GreenCategory, number>>;
+  readonly eligibleShareBp?: number;
+}): TaxAnswerResult<GreenSchemeAmounts> {
+  const shareBp = input.eligibleShareBp;
+  if (shareBp !== undefined && !isVatRateBp(shareBp)) {
+    return fail("INVALID_GREEN_BASIS_METHOD");
+  }
+
+  const denominator = BigInt(BP_PER_UNIT) *
+    (input.eligibleShareBp === undefined ? BigInt(1) : BigInt(BP_PER_UNIT));
+  const exactNumerators = {} as Record<GreenCategory, bigint>;
+  let totalNumerator = BigInt(0);
+  for (const category of GREEN_CATEGORIES) {
+    const amountOre = input.amountOreByCategory[category];
+    const rateBp = input.rateBpByCategory[category];
+    if (!isOreAmount(amountOre) || !isVatRateBp(rateBp)) {
+      return fail("INVALID_GREEN_BASIS_METHOD");
+    }
+    const numerator = BigInt(amountOre) * BigInt(shareBp ?? 1) * BigInt(rateBp);
+    exactNumerators[category] = numerator;
+    totalNumerator += numerator;
+  }
+
+  const calculatedOre = bigintToOre(totalNumerator / denominator);
+  const claimOre = bigintToOre(
+    (totalNumerator / (denominator * BigInt(ORE_PER_SEK))) * BigInt(ORE_PER_SEK),
+  );
+  if (calculatedOre === null || claimOre === null) return fail("ORE_OVERFLOW");
+
+  const calculatedByCategory = {} as Record<GreenCategory, number>;
+  let calculatedAllocated = 0;
+  const calculatedRemainders = GREEN_CATEGORIES.map((category, order) => {
+    const floor = bigintToOre(exactNumerators[category] / denominator);
+    if (floor === null) return null;
+    calculatedByCategory[category] = floor;
+    calculatedAllocated += floor;
+    return { category, order, remainder: exactNumerators[category] % denominator };
+  });
+  if (calculatedRemainders.some((entry) => entry === null)) return fail("ORE_OVERFLOW");
+  let calculatedResidual = calculatedOre - calculatedAllocated;
+  for (const entry of calculatedRemainders
+    .filter((candidate) => candidate !== null)
+    .sort((left, right) => {
+      if (left.remainder > right.remainder) return -1;
+      if (left.remainder < right.remainder) return 1;
+      return left.order - right.order;
+    })) {
+    if (calculatedResidual <= 0) break;
+    calculatedByCategory[entry.category] += 1;
+    calculatedResidual -= 1;
+  }
+
+  const claimByCategory = Object.fromEntries(
+    GREEN_CATEGORIES.map((category) => [category, 0]),
+  ) as Record<GreenCategory, number>;
+  if (claimOre > 0 && calculatedOre > 0) {
+    let claimAllocated = 0;
+    const claimRemainders = GREEN_CATEGORIES.map((category, order) => {
+      const numerator = BigInt(claimOre) * BigInt(calculatedByCategory[category]);
+      const floor = bigintToOre(numerator / BigInt(calculatedOre));
+      if (floor === null) return null;
+      claimByCategory[category] = floor;
+      claimAllocated += floor;
+      return { category, order, remainder: numerator % BigInt(calculatedOre) };
+    });
+    if (claimRemainders.some((entry) => entry === null)) return fail("ORE_OVERFLOW");
+    let claimResidual = claimOre - claimAllocated;
+    for (const entry of claimRemainders
+      .filter((candidate) => candidate !== null)
+      .sort((left, right) => {
+        if (left.remainder > right.remainder) return -1;
+        if (left.remainder < right.remainder) return 1;
+        return left.order - right.order;
+      })) {
+      if (claimResidual <= 0) break;
+      claimByCategory[entry.category] += 1;
+      claimResidual -= 1;
+    }
+  }
+
+  return ok(Object.freeze({
+    calculatedOre,
+    claimOre,
+    categories: Object.freeze(Object.fromEntries(
+      GREEN_CATEGORIES.map((category) => [category, Object.freeze({
+        calculatedOre: calculatedByCategory[category],
+        claimOre: claimByCategory[category],
+      })]),
+    ) as Record<GreenCategory, GreenSchemeCategoryAmounts>),
+  }));
+}
+
 export interface DocumentVatRowInput {
   readonly id?: string;
   readonly netOre: number;
@@ -259,8 +371,8 @@ export interface DocumentVatRowInput {
   readonly rateBp: number | null;
   readonly includedInInvoiceTotal?: boolean;
   readonly deductionClassification?: DeductionClassification;
-  /** Economic row kind for labor/material/other answer summaries. */
-  readonly summaryCategory?: TaxSummaryCategory;
+  /** Authoritative economic row kind for labor/material/other answer summaries. */
+  readonly summaryCategory: TaxSummaryCategory;
 }
 
 export interface DocumentVatCategory {
@@ -348,12 +460,11 @@ export function aggregateDocumentVat(input: {
     ) {
       return fail("INVALID_DEDUCTION_CLASSIFICATION");
     }
-    if (row.summaryCategory !== undefined && !isTaxSummaryCategory(row.summaryCategory)) {
+    if (!isTaxSummaryCategory(row.summaryCategory)) {
       return fail("INVALID_SUMMARY_CATEGORY");
     }
     if (
       row.deductionClassification !== undefined &&
-      row.summaryCategory !== undefined &&
       !isDeductionClassificationCompatibleWithSummaryCategory(
         row.deductionClassification,
         row.summaryCategory,
@@ -672,7 +783,8 @@ export function estimateClassifiedDeductions(input: {
     policy.rot.combinedRotRutMaxPerPersonYearOre,
   );
 
-  const uncappedGreen = { SOLAR: 0, STORAGE: 0, CHARGING: 0 };
+  const greenAmountOreByCategory = { SOLAR: 0, STORAGE: 0, CHARGING: 0 };
+  let greenEligibleShareBp: number | undefined;
 
   if (basisMethod === "FIXED_PRICE_97_PERCENT") {
     if (input.genuineFixedPrice !== true) {
@@ -692,30 +804,28 @@ export function estimateClassifiedDeductions(input: {
     if (splitTotal !== input.fixedPriceOre) {
       return fail("INCOMPLETE_FIXED_PRICE_CATEGORY_SPLIT");
     }
-    for (const category of GREEN_CATEGORIES) {
-      const claim = wholeSekRatioOre(
-        split[category]!,
-        policy.green.fixedPriceEligibleShareBp * policy.green.rateBpByCategory[category],
-        BP_PER_UNIT * BP_PER_UNIT,
-      );
-      if (claim === null) return fail("ORE_OVERFLOW");
-      uncappedGreen[category] = claim;
-    }
+    for (const category of GREEN_CATEGORIES) greenAmountOreByCategory[category] = split[category]!;
+    greenEligibleShareBp = policy.green.fixedPriceEligibleShareBp;
   } else {
     for (const category of GREEN_CATEGORIES) {
-      const claim = wholeSekRatioOre(
-        actualGreenBasis[category],
-        policy.green.rateBpByCategory[category],
-      );
-      if (claim === null) return fail("ORE_OVERFLOW");
-      uncappedGreen[category] = claim;
+      greenAmountOreByCategory[category] = actualGreenBasis[category];
     }
   }
+
+  const greenAmounts = calculateGreenSchemeAmounts({
+    amountOreByCategory: greenAmountOreByCategory,
+    rateBpByCategory: policy.green.rateBpByCategory,
+    ...(greenEligibleShareBp === undefined ? {} : { eligibleShareBp: greenEligibleShareBp }),
+  });
+  if (!greenAmounts.ok) return greenAmounts;
 
   let remainingGreenCap = policy.green.maxPerPersonYearOre;
   const cappedGreen = { SOLAR: 0, STORAGE: 0, CHARGING: 0 };
   for (const category of GREEN_CATEGORIES) {
-    cappedGreen[category] = Math.min(uncappedGreen[category], remainingGreenCap);
+    cappedGreen[category] = Math.min(
+      greenAmounts.value.categories[category].claimOre,
+      remainingGreenCap,
+    );
     remainingGreenCap -= cappedGreen[category];
   }
 

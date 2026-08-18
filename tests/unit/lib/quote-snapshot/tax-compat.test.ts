@@ -34,6 +34,7 @@ function answerFor(netOre = 100_000): TaxAnswerSnapshotV2 {
       rateBp: 2_500,
       includedInInvoiceTotal: true,
       deductionClassification: "NONE",
+      summaryCategory: "other",
     }],
     taxInput: taxInput.value,
     quoteCaptureDate: "2026-08-05",
@@ -125,6 +126,50 @@ function fixedPriceAnswer(): TaxAnswerSnapshotV2 {
     customerEligibilityPosture: "private",
   });
   if (!answer.ok) assert.fail(`fixed-price tax answer failed: ${answer.code}`);
+  return answer.value;
+}
+
+function aggregateGreenAnswer(): TaxAnswerSnapshotV2 {
+  const taxInput = parseTaxInputSnapshot({
+    schemaVersion: 2,
+    documentVatType: "STANDARD_VAT_25",
+    buyerVatNumber: null,
+    deductionChoice: "GREEN",
+    paymentDate: null,
+    finalPaymentDate: "2026-08-06",
+    personAllowanceSlots: [{ slot: "PERSON_1", remainingGreenAllowanceOre: 5_000_000 }],
+    greenBasisMethod: "ACTUAL_ELIGIBLE_COSTS",
+    genuineFixedPrice: false,
+    fixedPriceOre: null,
+    fixedPriceCategorySplitOre: null,
+  });
+  if (!taxInput.ok) assert.fail(`aggregate-green tax input failed: ${taxInput.code}`);
+  const answer = buildTaxAnswerSnapshotV2({
+    rows: [
+      {
+        id: "solar",
+        netOre: 160,
+        vatType: "STANDARD_VAT_25",
+        rateBp: 2_500,
+        includedInInvoiceTotal: true,
+        deductionClassification: "GREEN_SOLAR_LABOR",
+        summaryCategory: "labor",
+      },
+      {
+        id: "storage",
+        netOre: 112,
+        vatType: "STANDARD_VAT_25",
+        rateBp: 2_500,
+        includedInInvoiceTotal: true,
+        deductionClassification: "GREEN_STORAGE_LABOR",
+        summaryCategory: "labor",
+      },
+    ],
+    taxInput: taxInput.value,
+    quoteCaptureDate: "2026-08-05",
+    customerEligibilityPosture: "private",
+  });
+  if (!answer.ok) assert.fail(`aggregate-green tax answer failed: ${answer.code}`);
   return answer.value;
 }
 
@@ -344,6 +389,32 @@ describe("Story 10.6 — quote-tax compatibility boundary", () => {
     calculationGreen.calculatedOre = (calculationGreen.calculatedOre as number) + 1;
     calculationDrift.calculatedDeductionOre = source.calculatedDeductionOre + 1;
     assert.equal(parseTaxAnswerSnapshotV2(calculationDrift).ok, false);
+  });
+
+  test("accepts only the reconciled document-level green claim allocation", () => {
+    const source = aggregateGreenAnswer();
+    assert.equal(source.green.claimOre, 100);
+    assert.deepEqual(
+      [
+        source.green.categories.SOLAR.claimOre,
+        source.green.categories.STORAGE.claimOre,
+        source.green.categories.CHARGING.claimOre,
+      ],
+      [30, 70, 0],
+    );
+    assert.equal(parseTaxAnswerSnapshotV2(JSON.parse(JSON.stringify(source))).ok, true);
+
+    const independentlyTruncated = mutableRecord(JSON.parse(JSON.stringify(source)));
+    const green = mutableRecord(independentlyTruncated.green);
+    const categories = mutableRecord(green.categories);
+    mutableRecord(categories.SOLAR).claimOre = 0;
+    mutableRecord(categories.STORAGE).claimOre = 0;
+    green.claimOre = 0;
+    green.allocations = [];
+    independentlyTruncated.claimDeductionOre = 0;
+    independentlyTruncated.deductionOre = 0;
+    independentlyTruncated.payableOre = independentlyTruncated.grossOre;
+    assert.equal(parseTaxAnswerSnapshotV2(independentlyTruncated).ok, false);
   });
 
   test("validates fixed-price green math as one exact rational, not from its floored display basis", () => {

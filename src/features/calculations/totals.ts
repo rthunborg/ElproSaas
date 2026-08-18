@@ -25,6 +25,7 @@ import {
   lineVatOre,
   selectVatDisplay,
   type DeductionClassification,
+  type TaxSummaryCategory,
   type VatType,
   type VatDisplayPosture,
   type VatDisplayView,
@@ -32,6 +33,8 @@ import {
 
 /** The minimal row shape the totals engine needs (a subset of the read/row model). */
 export interface TotalsRowInput {
+  /** Authoritative economic kind used for labor/material/other reconciliation. */
+  readonly row_type?: "labor" | "material" | "subcontractor" | "machinery" | "other";
   readonly quantity: number;
   /** The customer-facing sell price per unit, in integer öre (null → treated as 0). */
   readonly unit_sell_ore: number | null;
@@ -76,6 +79,12 @@ function vatTypeForTotal(row: TotalsRowInput): VatType | null {
   return null;
 }
 
+function summaryCategoryForTotal(row: TotalsRowInput): TaxSummaryCategory {
+  if (row.row_type === "labor") return "labor";
+  if (row.row_type === "material") return "material";
+  return "other";
+}
+
 /**
  * Story 10.6 sole inclusion rule. Legacy optional state was converted once by the
  * migration; runtime totals never re-infer inclusion from option or visibility flags.
@@ -108,6 +117,7 @@ export function computeLineTotal(row: TotalsRowInput): TotalsResult<LineTotal> {
       rateBp: row.vat_rate_bp,
       includedInInvoiceTotal: true,
       deductionClassification: row.deduction_classification ?? "NONE",
+      summaryCategory: summaryCategoryForTotal(row),
     }],
   });
   if (!breakdown.ok) return { ok: false, code: breakdown.code };
@@ -135,6 +145,7 @@ export function computeSectionTotal(
     readonly rateBp: number;
     readonly includedInInvoiceTotal: true;
     readonly deductionClassification: DeductionClassification;
+    readonly summaryCategory: TaxSummaryCategory;
   }[] = [];
   for (const row of rows) {
     if (!rowCountsTowardTotal(row)) continue;
@@ -148,6 +159,7 @@ export function computeSectionTotal(
       rateBp: row.vat_rate_bp ?? 0,
       includedInInvoiceTotal: true,
       deductionClassification: row.deduction_classification ?? "NONE",
+      summaryCategory: summaryCategoryForTotal(row),
     });
   }
   const aggregate = aggregateDocumentVat({

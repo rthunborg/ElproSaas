@@ -31,6 +31,7 @@ import {
 } from "@/lib/money";
 
 function row(overrides: Partial<{
+  row_type: "labor" | "material" | "subcontractor" | "machinery" | "other";
   quantity: number;
   unit_sell_ore: number | null;
   vat_rate_bp: number | null;
@@ -41,6 +42,7 @@ function row(overrides: Partial<{
   is_selected: boolean | null;
 }> = {}) {
   return {
+    row_type: overrides.row_type ?? "other",
     quantity: overrides.quantity ?? 1,
     unit_sell_ore: overrides.unit_sell_ore ?? 0,
     vat_rate_bp: overrides.vat_rate_bp ?? 2500,
@@ -89,6 +91,7 @@ test("5.2-UNIT-01: a section total equals the engine document-category VAT aggre
     readonly netOre: number;
     readonly vatType: "STANDARD_VAT_25" | "REDUCED_VAT";
     readonly rateBp: number;
+    readonly summaryCategory: "other";
   }[] = [];
   for (const r of rows) {
     const net = lineNetOre(r.quantity, r.unit_sell_ore ?? 0);
@@ -100,6 +103,7 @@ test("5.2-UNIT-01: a section total equals the engine document-category VAT aggre
         ? "REDUCED_VAT"
         : "STANDARD_VAT_25",
       rateBp: r.vat_rate_bp ?? 0,
+      summaryCategory: "other",
     });
   }
   const aggregate = aggregateDocumentVat({ rows: aggregateRows, standardRateBp: 2500 });
@@ -129,6 +133,7 @@ test("5.2-UNIT-01: same-category VAT is rounded once at document-category level"
       netOre: r.unit_sell_ore ?? 0,
       vatType: "STANDARD_VAT_25" as const,
       rateBp: r.vat_rate_bp ?? 0,
+      summaryCategory: "other" as const,
     })),
   });
   assert.equal(aggregate.ok, true);

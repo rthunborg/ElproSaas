@@ -482,3 +482,7 @@ existing AC, recorded so it is not re-triaged a third time.
 ## Deferred from: code review of 10-6-tax-answer-reconciliation (2026-08-06)
 
 - [x] [Review][Defer][High] Same-tenant direct quote RPC authority can create internally inconsistent commitments [supabase/migrations/20260805120000_tax_answer_reconciliation.sql:1956] — deferred, pre-existing SECURITY INVOKER/table-grant architecture requiring the already-identified owner-approved privilege/API redesign; Sources: Blind Hunter primary.
+
+## Deferred from: code review of 10-6-tax-answer-reconciliation (2026-08-07)
+
+- [x] [Review][Defer][Low] PDF policy-window wording treats exclusive `validTo` as inclusive [src/server/quote-pdf/render.ts:275] — deferred, customer documents say the rule is valid “till” the exclusive boundary date, overstating the frozen window by one day; render the inclusive previous date or state that validity ends before `validTo`. Sources: Blind Hunter primary; Edge Case Hunter primary.

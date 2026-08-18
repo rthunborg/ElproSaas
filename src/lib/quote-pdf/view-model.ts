@@ -511,7 +511,9 @@ export function buildQuotePdfViewModel(
     },
 
     taxAssumptions: {
-      vatRatePercent: bpToPercentOrNull(snapshot.vatRateBp),
+      // V2 VAT truth is the frozen category list. A scalar tenant standard rate is misleading
+      // for pure reverse-charge/non-standard documents and redundant for mixed documents.
+      vatRatePercent: frozen.source === "v2" ? null : bpToPercentOrNull(snapshot.vatRateBp),
       vatDisplay: snapshot.vatDisplay,
       deductionType: snapshot.deductionType,
       deductionRatePercent: bpToPercentOrNull(snapshot.deductionRateBp),

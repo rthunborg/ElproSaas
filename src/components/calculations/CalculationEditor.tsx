@@ -116,6 +116,7 @@ export function CalculationEditor({
   const calcTotal = computeCalcTotal(
     sections.map((s) => ({
       rows: s.rows.map((r) => ({
+        row_type: r.row_type,
         quantity: r.quantity,
         unit_sell_ore: r.unit_sell_ore,
         vat_rate_bp: r.vat_rate_bp,
@@ -138,6 +139,7 @@ export function CalculationEditor({
   const taxRows = sections.flatMap((section) =>
     section.rows.map((row) => {
       const line = computeLineTotal({
+        row_type: row.row_type,
         quantity: row.quantity,
         unit_sell_ore: row.unit_sell_ore,
         vat_rate_bp: row.vat_rate_bp,

@@ -1,6 +1,7 @@
 import {
   DEDUCTION_CLASSIFICATIONS,
   GREEN_CATEGORIES,
+  calculateGreenSchemeAmounts,
   calculateCategoryVatOre,
   isOreAmount,
   isCustomerEligibilityPosture,
@@ -357,8 +358,7 @@ function parseGreenCategory(
   if (
     basisOre === null ||
     calculatedOre === null ||
-    claimOre === null ||
-    claimOre % 100 !== 0
+    claimOre === null
   ) {
     return null;
   }
@@ -565,6 +565,7 @@ export function parseTaxAnswerSnapshotV2(rawValue: unknown): TaxAnswerSnapshotPa
     if (greenPolicy === null) {
       greenMathMatches = false;
     } else {
+      const greenGrossByCategory = {} as Record<GreenCategory, number>;
       for (const category of GREEN_CATEGORIES) {
         const laborClassification = `GREEN_${category}_LABOR` as DeductionClassification;
         const materialClassification = `GREEN_${category}_MATERIAL` as DeductionClassification;
@@ -578,34 +579,41 @@ export function parseTaxAnswerSnapshotV2(rawValue: unknown): TaxAnswerSnapshotPa
           greenMathMatches = false;
           break;
         }
+        greenGrossByCategory[category] = classifiedGrossOre;
         const policyGreen = greenPolicy.values.green;
-        const categoryRate = policyGreen.rateBpByCategory[category];
         const isFixedPrice = greenBasisMethod === "FIXED_PRICE_97_PERCENT";
         const expectedBasisOre = isFixedPrice
           ? floorRatioOre(classifiedGrossOre, BigInt(policyGreen.fixedPriceEligibleShareBp))
           : classifiedGrossOre;
-        const numerator = isFixedPrice
-          ? BigInt(policyGreen.fixedPriceEligibleShareBp) * BigInt(categoryRate)
-          : BigInt(categoryRate);
-        const denominator = isFixedPrice ? BP_PER_UNIT * BP_PER_UNIT : BP_PER_UNIT;
-        const expectedCalculatedOre = floorRatioOre(
-          classifiedGrossOre,
-          numerator,
-          denominator,
-        );
-        const expectedClaimOre = wholeSekRatioOre(
-          classifiedGrossOre,
-          numerator,
-          denominator,
-        );
         const frozenCategory = greenCategories[category];
-        if (
-          expectedBasisOre !== frozenCategory.basisOre ||
-          expectedCalculatedOre !== frozenCategory.calculatedOre ||
-          expectedClaimOre !== frozenCategory.claimOre
-        ) {
+        if (expectedBasisOre !== frozenCategory.basisOre) {
           greenMathMatches = false;
           break;
+        }
+      }
+      const policyGreen = greenPolicy.values.green;
+      const expectedGreenAmounts = calculateGreenSchemeAmounts({
+        amountOreByCategory: greenGrossByCategory,
+        rateBpByCategory: policyGreen.rateBpByCategory,
+        ...(greenBasisMethod === "FIXED_PRICE_97_PERCENT"
+          ? { eligibleShareBp: policyGreen.fixedPriceEligibleShareBp }
+          : {}),
+      });
+      if (!expectedGreenAmounts.ok) {
+        greenMathMatches = false;
+      } else {
+        greenMathMatches &&= expectedGreenAmounts.value.calculatedOre === greenCalculatedOre &&
+          expectedGreenAmounts.value.claimOre === greenClaimOre;
+        for (const category of GREEN_CATEGORIES) {
+          const expected = expectedGreenAmounts.value.categories[category];
+          const frozen = greenCategories[category];
+          if (
+            expected.calculatedOre !== frozen.calculatedOre ||
+            expected.claimOre !== frozen.claimOre
+          ) {
+            greenMathMatches = false;
+            break;
+          }
         }
       }
       if (
@@ -649,6 +657,7 @@ export function parseTaxAnswerSnapshotV2(rawValue: unknown): TaxAnswerSnapshotPa
     greenCategoryClaim !== greenClaimOre ||
     !rotMathMatches ||
     !greenMathMatches ||
+    (raw.reverseChargeApplied && (usesRot || usesGreen)) ||
     ((usesRot || usesGreen) && raw.customerEligibilityPosture !== "private") ||
     ruleVersions.length !== uniqueSortedRuleVersions.length ||
     ruleVersions.some((version, index) => version !== uniqueSortedRuleVersions[index]) ||

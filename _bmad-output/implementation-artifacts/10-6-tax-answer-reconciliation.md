@@ -445,18 +445,19 @@ GPT-5 Codex
 
 - `pnpm run typecheck` — PASS.
 - `pnpm run lint` — PASS, zero warnings.
-- `pnpm run test:unit` — PASS: 1,635 tests, 0 failures, 0 skipped.
+- `pnpm run test:unit` — PASS: 1,642 tests, 0 failures, 0 skipped.
 - `pnpm run build` — PASS (Next.js 16.2.11 production build).
+- Current-diff focused consistency suite — PASS: 47/47.
 - `pnpm run verify:lockfiles` — PASS.
 - `pnpm run verify:service-role-containment` — PASS.
 - `pnpm run verify:bundle-containment` — PASS after the production build.
 - `pnpm exec supabase db reset --local` — PASS from an empty local database through the complete
   migration chain, including the terminating legacy-VAT backfill/finalization path.
 - `SUPABASE_TEST_REQUIRED=1 pnpm exec vitest run
-  tests/integration/commands/tax-answer-reconciliation.int.test.ts` — PASS: 16/16 required
+  tests/integration/commands/tax-answer-reconciliation.int.test.ts` — PASS: 17/17 required
   Story 10.6 assertions, 0 skipped, including five sanctioned VAT identities, duplicate/oversize
   negatives, V1 recovery, quarantine/remediation, sent locks, and cross-tenant RPC denial.
-- `SUPABASE_TEST_REQUIRED=1 pnpm run test:int` — PASS: 77/77 files and 816/816 tests, 0 failures,
+- `SUPABASE_TEST_REQUIRED=1 pnpm run test:int` — PASS: 77/77 files and 817/817 tests, 0 failures,
   0 skipped. Shared historical quote fixtures now carry complete, reconciled V2 facts.
 - Focused acceptance evidence — PASS: acceptance-to-job 2/2 and acceptance golden 1/1.
 - Focused frozen compatibility/PDF evidence — PASS: 21/21; preview review-token evidence — PASS:
@@ -523,6 +524,19 @@ GPT-5 Codex
 - Optional compatibility alignment follow-up: the V1-draft UI hides presentation edits and PDF
   generation, while inherited same-tenant server paths still permit those non-send operations.
   Sending remains blocked at the database boundary and this does not alter the frozen commitment.
+- Resolved all 13 non-deferred iteration-3 review findings. Green-category calculations now
+  preserve exact rational shares and truncate once at the scheme/document claim boundary; mixed
+  allowance capacity, reverse-charge/deduction posture, inactive scheme facts, and economic summary
+  categories fail closed across canonical input, frozen-answer compatibility, and SQL validation.
+- Hardened V2 lifecycle and concurrency boundaries: child inserts are creation-transaction-only,
+  successor creation locks and revalidates the authoritative latest version, row/section moves use
+  a deterministic lock protocol, and SQL enforces canonical buyer-VAT posture, ISO resolving dates,
+  and sorted rule-version ids. Quote capture now uses one DST-aware Europe/Stockholm business date.
+- Corrected V2 PDF VAT presentation to derive from frozen categories and omit the misleading tenant
+  standard-rate scalar. Iteration-3 verification is green: focused consistency 47/47, Story INT
+  17/17, full required integration/RLS 77/77 files and 817/817 tests, Story E2E 2/2, full unit
+  1,642/1,642, fresh database reset, database lint (advisories only), typecheck, lint, build,
+  lockfile, service-role containment, and bundle containment.
 
 ### File List
 
@@ -548,7 +562,9 @@ GPT-5 Codex
 - `src/features/calculations/tax-readiness.ts`
 - `src/features/calculations/totals.ts`
 - `src/features/quotes/actions.ts`
+- `src/features/quotes/follow-up-dates.ts`
 - `src/features/quotes/read.ts`
+- `src/lib/datetime/business-date.ts`
 - `src/lib/money/domain.ts`
 - `src/lib/money/index.ts`
 - `src/lib/money/ore.ts`
@@ -609,6 +625,7 @@ GPT-5 Codex
 - `tests/unit/fixtures/golden/lovable/lovable-comparison-classification-deltas.test.ts`
 - `tests/unit/fixtures/golden/lovable/lovable-pack-support.ts`
 - `tests/unit/fixtures/golden/lovable/lovable-shape-guard.test.ts`
+- `tests/unit/lib/datetime/business-date.test.ts`
 - `tests/unit/lib/money/tax-answer-reconciliation.atdd.test.ts`
 - `tests/unit/lib/money/tax-answer-reconciliation.golden.atdd.test.ts`
 - `tests/unit/lib/money/tax-policy.test.ts`
@@ -641,6 +658,11 @@ GPT-5 Codex
   VAT coherence, bounded rows/allocations, server-verified preview proof, 50-person authoring, and
   complete V2 integration fixtures. Empty-DB, required integration, E2E, static, build, and
   containment gates are green; status remains `review` for the Phase 9 completion gate.
+- 2026-08-18: Completed review remediation for all 13 non-deferred iteration-3 findings: one-boundary
+  green-claim truncation, strict tax-input/frozen-answer posture, V2 child and successor lifecycle
+  locks, Stockholm legal-date resolution, category-derived PDF VAT presentation, canonical SQL
+  validators, and row/section concurrency serialization. Full required regression evidence is green;
+  status remains `review` for the Phase 9 completion gate.
 
 ### Review Findings
 
@@ -687,3 +709,17 @@ GPT-5 Codex
 - [x] [Review][Patch][Med] Nested V2 tax objects still accept unknown keys [supabase/migrations/20260805120000_tax_answer_reconciliation.sql:41] — iteration-1 closure covers roots and selected children but policy, category, summary, deduction, and allocation objects remain open-ended; enforce exact keys at every nested typed boundary. Sources: Edge Case Hunter primary; Acceptance Auditor primary.
 - [x] [Review][Patch][Med] Buyer VAT number remains frozen after reverse charge is deselected [src/lib/money/tax-input.ts:173] — standard-VAT inputs retain and duplicate an unnecessary tax identifier; normalize it to null unless the reverse-charge posture requires it. Sources: Blind Hunter secondary.
 - [x] [Review][Patch][Med] V1 snapshot builder invents tax-answer scalars unavailable in legacy data [src/lib/quote-snapshot/build.ts:312] — fallback calculated deduction, claim, payable, net, and gross values violate literal V1 compatibility and conflict with the database branch requiring new fields to remain null. Sources: Blind Hunter secondary.
+- [x] [Review][Decision][Med] Green claim truncation occurs independently for solar, storage, and charging, so category partitioning can change the whole-SEK claim — the engine truncates each category before summing, while AC4 names one finalized claim boundary and AC5 only requires category-specific rates. Recommended: fix: sum the exact rational green-category claims first and truncate once at the scheme/document claim boundary, retaining category calculations without independently whole-SEK-truncating each category. Sources: Blind Hunter primary.
+- [x] [Review][Patch][High] V2 child snapshots remain appendable after atomic quote creation [supabase/migrations/20260805120000_tax_answer_reconciliation.sql:2342] — the trigger freezes only UPDATE/DELETE, so tenant-authorized INSERT can append lines or attachments after review; lines may still reconcile at send and attachments are not reconciled there. Restrict V2 child INSERT to the atomic creation RPC/transaction or verify a frozen child digest before PDF generation and send. Sources: Blind Hunter primary; Edge Case Hunter primary.
+- [x] [Review][Patch][High] The legacy allowance alias can fund both ROT and green in one mixed quote [src/lib/money/tax-input.ts:101] — `remainingAllowanceOre` satisfies both scheme-presence checks and is then exposed independently to both allocators, allowing the same declared capacity to be consumed twice. Require distinct ROT/combined and green allowances for `ROT_AND_GREEN`; keep the alias only for explicit one-scheme compatibility. Sources: Blind Hunter primary.
+- [x] [Review][Patch][High] Private-customer deductions can coexist with construction reverse charge [src/lib/money/tax-answer.ts:338] — reverse-charge applicability and private-only deduction eligibility are validated independently, so the same frozen document can treat the buyer as both a private deduction beneficiary and a VAT-registered construction-service buyer. Reject that cross-field posture in the engine, compatibility reader, SQL validator, and RPC negatives. Sources: Blind Hunter primary.
+- [x] [Review][Patch][High] Quote-capture policy dates use UTC instead of the Swedish business date [src/server/commands/quotes/snapshot-build.ts:191] — preview, snapshot, and SQL RPC validation slice/cast UTC, so captures between Stockholm and UTC midnight can resolve and freeze the wrong legal policy day. Use one Europe/Stockholm business-date authority consistently in preview, command, and database validation. Sources: Blind Hunter secondary; Edge Case Hunter primary.
+- [x] [Review][Patch][High] V2 reverse-charge PDFs still print the tenant's standard VAT rate [src/server/quote-pdf/render.ts:311] — snapshot assumptions always freeze the company standard rate, and the renderer prints it even when no frozen category charges that rate, contradicting the category authority and reverse-charge disclosure. Derive the displayed VAT summary from frozen categories and omit the scalar standard-rate claim for pure reverse-charge/non-standard documents. Sources: Acceptance Auditor primary.
+- [x] [Review][Patch][High] A terminal accepted quote can gain a successor draft through a race [supabase/migrations/20260805120000_tax_answer_reconciliation.sql:2656] — the new-version RPC locks the quote row but does not lock and revalidate the latest version's terminal status, so acceptance after the command precheck can interleave before draft creation. Lock and revalidate the authoritative latest parent version inside the RPC before inserting. Sources: Edge Case Hunter primary.
+- [x] [Review][Patch][Med] Canonical tax input preserves inactive or contradictory scheme facts [src/lib/money/tax-input.ts:179] — `NONE` can retain dates, allowances, and green inputs, while `ACTUAL_ELIGIBLE_COSTS` can freeze mismatched fixed-price totals/splits or `genuineFixedPrice=true` that the engine silently ignores. Normalize or reject fields by deduction choice and basis method at both TypeScript and SQL boundaries. Sources: Blind Hunter primary.
+- [x] [Review][Patch][Med] Canonical answer rows can omit their economic summary category [src/lib/money/tax-policy.ts:254] — the public row shape makes `summaryCategory` optional and silently maps an ordinary `NONE` labor/material row to `other`, corrupting the frozen labor/material/other reconciliation. Require the category for canonical answers or fail closed when it cannot be inferred from an authoritative row type. Sources: Blind Hunter primary.
+- [x] [Review][Patch][Med] The SQL tax-input validator permits invalid buyer-VAT/document-posture pairs [supabase/migrations/20260805120000_tax_answer_reconciliation.sql:254] — it accepts reverse charge with JSON null and standard VAT with a retained buyer number, unlike the canonical TypeScript parser, allowing direct RLS writes to persist drafts the application later rejects or normalizes. Enforce the same required/cleared invariant in SQL. Sources: Blind Hunter primary; Blind Hunter secondary.
+- [x] [Review][Patch][Med] Frozen policy resolving dates are not required to be canonical ISO dates in SQL [supabase/migrations/20260805120000_tax_answer_reconciliation.sql:58] — substring-to-`make_date` validation accepts values such as `2026/02/03`, creating a database/application parser mismatch. Require `YYYY-MM-DD` and round-trip the parsed date before window comparison. Sources: Blind Hunter secondary.
+- [x] [Review][Patch][Med] SQL accepts non-canonical `taxRuleVersions` ordering that TypeScript rejects [supabase/migrations/20260805120000_tax_answer_reconciliation.sql:461] — the database checks distinct membership but not sorted order, so persistence can succeed for a payload that later fails the compatibility reader and joined version scalar. Require the exact sorted-distinct expected array. Sources: Edge Case Hunter primary.
+- [x] [Review][Patch][Med] Calculation-row limit enforcement races with concurrent section moves [supabase/migrations/20260805120000_tax_answer_reconciliation.sql:1675] — the row trigger reads a section's calculation before locking the section, so an interleaving move can make the insert count the old parent while landing under the new parent and exceed the 500-row bound. Lock the section before resolving its parent and serialize all affected calculation rows consistently. Sources: Edge Case Hunter primary.
+- [x] [Review][Defer][Low] PDF policy-window wording treats exclusive `validTo` as inclusive [src/server/quote-pdf/render.ts:275] — deferred, customer documents say the rule is valid “till” the exclusive boundary date, overstating the frozen window by one day; render the inclusive previous date or state that validity ends before `validTo`. Sources: Blind Hunter primary; Edge Case Hunter primary.

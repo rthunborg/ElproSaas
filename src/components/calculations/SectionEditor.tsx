@@ -95,9 +95,13 @@ export function SectionEditor({
 
   const sectionTotal = computeSectionTotal(
     section.rows.map((r) => ({
+      row_type: r.row_type,
       quantity: r.quantity,
       unit_sell_ore: r.unit_sell_ore,
       vat_rate_bp: r.vat_rate_bp,
+      vat_type: r.vat_type,
+      included_in_invoice_total: r.included_in_invoice_total,
+      deduction_classification: r.deduction_classification,
       is_hidden: r.is_hidden,
       is_optional: r.is_optional,
       is_selected: r.is_selected,
