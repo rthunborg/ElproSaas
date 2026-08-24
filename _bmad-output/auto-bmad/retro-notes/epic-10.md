@@ -59,3 +59,4 @@
 - [Phase 7 â€” code review] Windows sandbox-helper failures caused an apply_patch-contract deviation during iteration 4; require the next full six-lens plus security pass before accepting the diff.
 - Iteration-5 review exposed that transaction-bound quote proofs need a single cross-resource lock order plus parent-chain re-scans; independent SQL re-audit caught phantom/deadlock and lineage gaps after focused tests were already green.
 - Shared integration and E2E factories must seed the complete canonical V2 row-lineage and green-scope contract; otherwise stricter persistence guards create broad fixture-only cascades.
+- Cross-machine pause occurred after iteration-6 primary review analysis began but before a complete six-lens fan-out or triage; no iteration-6 findings were persisted, so resume must rerun iteration 6 from step 1.
