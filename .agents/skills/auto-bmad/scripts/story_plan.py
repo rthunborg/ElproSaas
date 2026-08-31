@@ -1578,6 +1578,9 @@ def build_find_spec_result(impl_dir, story_key, sprint_status_path=None):
 # --adopt-legacy-spec: explicit pre-v0.30 story/state bridge                 #
 # --------------------------------------------------------------------------- #
 _LEGACY_ADOPTION_TAG = "v0.24-to-v0.31"
+_RECOGNIZED_LEGACY_FRONTMATTER_RE = re.compile(
+    r"\A---(?P<eol>\r?\n)baseline_commit: NO_VCS(?P=eol)---(?P=eol)"
+)
 
 
 def _load_state_update_module():
@@ -1611,6 +1614,27 @@ def _legacy_adoption_frontmatter(story_key, baseline_revision, created, source_n
         "deferred: []\n"
         "---\n\n"
     )
+
+
+def _legacy_adoption_body(text):
+    """Return the adoptable legacy body or a fail-closed frontmatter error.
+
+    Pre-v0.30 Story 10.6 documents may carry exactly the historical
+    ``baseline_commit: NO_VCS`` envelope.  It is not a current build-auto
+    contract, so remove only that envelope from the generated current spec;
+    the original source is moved unchanged to the archive.  Any other leading
+    envelope could be a current/double-adopted spec (or an unknown format),
+    and an unclosed envelope is malformed, so neither is safe to adopt.
+    """
+    if not text.startswith("---"):
+        return text, None
+    recognized = _RECOGNIZED_LEGACY_FRONTMATTER_RE.match(text)
+    if recognized:
+        return text[recognized.end():], None
+    fm_lines, _body = _frontmatter_block(text)
+    if fm_lines is None:
+        return None, "legacy source has malformed/unclosed frontmatter; refusing adoption"
+    return None, "legacy source has unrecognized/current frontmatter; refusing lossy/double adoption"
 
 
 def _verify_baseline_commit(impl_dir, baseline_revision, git_run=None):
@@ -1686,12 +1710,13 @@ def build_legacy_adoption_result(impl_dir, story_key, state_file, baseline_revis
         return result, 1
     try:
         with open(evidence_path, "r", encoding="utf-8", newline="") as fh:
-            legacy_body = fh.read()
+            legacy_evidence = fh.read()
     except (OSError, UnicodeDecodeError) as exc:
         result["error"] = f"could not read legacy story evidence: {exc}"
         return result, 1
-    if legacy_body.startswith("---"):
-        result["error"] = "legacy source already has frontmatter; refusing a lossy/double adoption"
+    legacy_body, frontmatter_error = _legacy_adoption_body(legacy_evidence)
+    if frontmatter_error:
+        result["error"] = frontmatter_error
         return result, 1
     expected = _legacy_adoption_frontmatter(
         story_key, baseline_revision, created, os.path.basename(archive)) + legacy_body
@@ -1767,7 +1792,7 @@ def build_legacy_adoption_result(impl_dir, story_key, state_file, baseline_revis
         if os.path.isfile(source):
             if os.path.isfile(archive):
                 with open(archive, "r", encoding="utf-8", newline="") as fh:
-                    if fh.read() != legacy_body:
+                    if fh.read() != legacy_evidence:
                         raise OSError(f"legacy archive exists with different content: {archive}")
                 os.unlink(source)
             else:
@@ -3389,24 +3414,53 @@ development_status:
     os.unlink(legacy)
     os.unlink(modern)
 
-    # Explicit adoption is dry-run by default, preserves the legacy body and
-    # review evidence, writes a current parser contract, and is idempotent.
+    # Explicit adoption is dry-run by default, recognizes the one historical
+    # header, preserves archive bytes and the remaining body, writes a current
+    # parser contract, and is idempotent.
     adopt_dir = os.path.join(root, "adopt")
     os.makedirs(adopt_dir)
     adopt_key = "10-6-tax-answer-reconciliation"
-    adopt_body = "# Story 10.6\r\n\r\nStatus: review\r\n\r\n## Review Findings\r\n\r\n- kept\r\n"
+    adopt_body = "\r\n# Story 10.6\r\n\r\nStatus: review\r\n\r\n## Review Findings\r\n\r\n- kept\r\n"
+    adopt_source_text = "---\r\nbaseline_commit: NO_VCS\r\n---\r\n" + adopt_body
+    adopt_source_bytes = adopt_source_text.encode("utf-8")
     adopt_source = os.path.join(adopt_dir, adopt_key + ".md")
-    with open(adopt_source, "w", encoding="utf-8", newline="") as fh:
-        fh.write(adopt_body)
-    adopt_state = write(
-        "state/10-6-tax-answer-reconciliation.yaml",
+    with open(adopt_source, "wb") as fh:
+        fh.write(adopt_source_bytes)
+    adoption_state_text = (
         "story_key: 10-6-tax-answer-reconciliation\n"
         "status: in-progress\n"
         "completed_phases: [0, 1, 2, 3, 4, 5, 6]\n"
         "code_review_iterations: 6\ncode_review_loop_done: false\n"
-        "external_review_iterations: 0\nconvergence_unverified: false\n",
+        "external_review_iterations: 0\nconvergence_unverified: false\n"
     )
+    adopt_state = write("state/10-6-tax-answer-reconciliation.yaml", adoption_state_text)
     adopt_git = lambda _argv: (0, "e90ec0e000000000000000000000000000000000\n", "")
+
+    # Unknown/current and malformed envelopes must fail before a target is
+    # generated, while preserving the source exactly for a human to inspect.
+    refusal_cases = [
+        ("unknown", "---\nbaseline_commit: SOMEWHERE_ELSE\n---\n# Story 10.6\n",
+         "unrecognized/current frontmatter"),
+        ("current", "---\ntitle: Current Spec\nstatus: done\n---\n# Story 10.6\n",
+         "unrecognized/current frontmatter"),
+        ("malformed", "---\nbaseline_commit: NO_VCS\n# Story 10.6\n",
+         "malformed/unclosed frontmatter"),
+    ]
+    for refusal_name, refusal_source_text, refusal_error in refusal_cases:
+        refusal_dir = os.path.join(root, "adopt-" + refusal_name)
+        os.makedirs(refusal_dir)
+        refusal_source = os.path.join(refusal_dir, adopt_key + ".md")
+        with open(refusal_source, "w", encoding="utf-8", newline="") as fh:
+            fh.write(refusal_source_text)
+        refusal_state = write("state/adopt-" + refusal_name + ".yaml", adoption_state_text)
+        refused, code = build_legacy_adoption_result(
+            refusal_dir, adopt_key, refusal_state, "e90ec0e", "2026-08-31", write=False,
+            git_run=adopt_git)
+        check("legacy adoption: " + refusal_name + " frontmatter is refused safely",
+              code == 1 and refusal_error in refused["error"]
+              and slurp(refusal_source) == refusal_source_text
+              and not os.path.exists(refused["target"]))
+
     plan_adopt, code = build_legacy_adoption_result(
         adopt_dir, adopt_key, adopt_state, "e90ec0e", "2026-08-31", write=False,
         git_run=adopt_git)
@@ -3420,8 +3474,13 @@ development_status:
           code == 0 and done_adopt["verified"] is True
           and not os.path.exists(adopt_source) and os.path.isfile(done_adopt["archive"])
           and read_spec(done_adopt["target"])["frontmatter"]["review_loop_iteration"] == 0)
-    with open(done_adopt["archive"], "r", encoding="utf-8", newline="") as fh:
-        check("legacy adoption: body evidence preserved byte-for-byte", fh.read() == adopt_body)
+    with open(done_adopt["archive"], "rb") as fh:
+        check("legacy adoption: original header and body archive bytes preserved", fh.read() == adopt_source_bytes)
+    with open(done_adopt["target"], "r", encoding="utf-8", newline="") as fh:
+        check("legacy adoption: target has one current header and preserved legacy body",
+              fh.read() == _legacy_adoption_frontmatter(
+                  adopt_key, "e90ec0e", "2026-08-31", os.path.basename(done_adopt["archive"]))
+              + adopt_body)
     su = _load_state_update_module()
     adopted_state = su.full_state(su.load_state(su.Path(adopt_state)))
     check("legacy adoption: old counters are evidence, not current passes",
@@ -3444,6 +3503,49 @@ development_status:
         git_run=adopt_git)
     check("legacy adoption: mismatched current target is ambiguity-safe",
           code == 1 and "different content" in refused_adopt["error"])
+
+    # Pre-v0.30 documents without frontmatter remain adoptable unchanged.
+    plain_dir = os.path.join(root, "adopt-no-frontmatter")
+    os.makedirs(plain_dir)
+    plain_body = "# Story 10.6\n\nStatus: review\n"
+    plain_source = os.path.join(plain_dir, adopt_key + ".md")
+    with open(plain_source, "w", encoding="utf-8", newline="") as fh:
+        fh.write(plain_body)
+    plain_state = write("state/adopt-no-frontmatter.yaml", adoption_state_text)
+    plain_adopt, code = build_legacy_adoption_result(
+        plain_dir, adopt_key, plain_state, "e90ec0e", "2026-08-31", write=True,
+        git_run=adopt_git)
+    check("legacy adoption: no-frontmatter legacy source remains compatible",
+          code == 0 and plain_adopt["verified"] is True
+          and slurp(plain_adopt["archive"]) == plain_body
+          and slurp(plain_adopt["target"]) == _legacy_adoption_frontmatter(
+              adopt_key, "e90ec0e", "2026-08-31", os.path.basename(plain_adopt["archive"]))
+          + plain_body)
+
+    # If a prior run wrote the target/archive but stopped before cleanup/state,
+    # recognized-header adoption resumes without comparing the stripped body to
+    # the byte-preserved archive.
+    recovery_dir = os.path.join(root, "adopt-header-recovery")
+    os.makedirs(recovery_dir)
+    recovery_source = os.path.join(recovery_dir, adopt_key + ".md")
+    recovery_archive = os.path.join(recovery_dir, "legacy-v024-" + adopt_key + ".md")
+    recovery_target = os.path.join(recovery_dir, "spec-" + adopt_key + ".md")
+    with open(recovery_source, "wb") as fh:
+        fh.write(adopt_source_bytes)
+    with open(recovery_archive, "wb") as fh:
+        fh.write(adopt_source_bytes)
+    with open(recovery_target, "w", encoding="utf-8", newline="") as fh:
+        fh.write(_legacy_adoption_frontmatter(
+            adopt_key, "e90ec0e", "2026-08-31", os.path.basename(recovery_archive)) + adopt_body)
+    recovery_state = write("state/adopt-header-recovery.yaml", adoption_state_text)
+    recovered, code = build_legacy_adoption_result(
+        recovery_dir, adopt_key, recovery_state, "e90ec0e", "2026-08-31", write=True,
+        git_run=adopt_git)
+    with open(recovery_archive, "rb") as fh:
+        recovery_archive_bytes = fh.read()
+    check("legacy adoption: recognized-header crash recovery preserves archive",
+          code == 0 and recovered["verified"] is True and not os.path.exists(recovery_source)
+          and recovery_archive_bytes == adopt_source_bytes)
     r, code = build_find_spec_result(os.path.join(root, "no-impl"), "3-1-nothing")
     check("find: missing dir ⇒ found false + error", code == 0 and r["found"] is False and bool(r["error"]))
     r, code = build_find_spec_result(fs_dir, "bogus")
