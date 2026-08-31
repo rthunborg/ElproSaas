@@ -9,14 +9,13 @@ spec_folder: null
 story_id: null
 branch: story/10-6-tax-answer-reconciliation
 status: in-progress
-updated_at: "2026-08-24T13:10:31Z"
+updated_at: "2026-08-31T09:53:06Z"
 started_at: "2026-07-29T10:02:59Z"
 completed_at: null
 active_seconds: 121109
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
-needs_project_context_bootstrap: false
 git_mode: remote
 base_branch: main
 selected_phase: null
@@ -35,7 +34,7 @@ tea_rationale: "Legally consequential money/tax engine changes and golden-master
 epic_story_count: 7
 stories_after_in_epic: 1
 completed_phases: [0, 1, 2, 3, 4, 5, 6]
-spec_path: null
+spec_path: "C:\\DEV\\ElproSaas\\_bmad-output\\implementation-artifacts\\spec-10-6-tax-answer-reconciliation.md"
 spec_approved: false
 build:
   status: done
@@ -43,31 +42,26 @@ build:
   followup_review_recommended: true
   review_loop_iteration: 0
   deferred_count: 0
-  warnings:
-    - "Legacy v0.24 adoption pending; old review count remains evidence only."
+  warnings: []
 followup_passes: 0
-code_review_iterations: 6
-code_review_loop_done: false
 hitl_halt: null
-external_review_iterations: 0
-convergence_unverified: false
 review_unverified: true
 story_trace: null
-legacy_review_resume: true
+legacy_review_resume: false
 legacy_review_iteration: 6
 legacy_review_loop_done: false
 legacy_external_review_iterations: 0
 legacy_convergence_unverified: false
-legacy_artifact_path: "C:/DEV/ElproSaas/_bmad-output/implementation-artifacts/10-6-tax-answer-reconciliation.md"
+legacy_artifact_path: "C:\\DEV\\ElproSaas\\_bmad-output\\implementation-artifacts\\legacy-v024-10-6-tax-answer-reconciliation.md"
 commits: [c091f02, b76a59d, 11ed949, 83e597d, 56f92b8, 7fdda86, 5483b1c, 3ecc15e, aab4f9b, f5de47d]
 phase8_steps:
   trace_gate: null
   nfr: null
   test_review: null
-  project_context: null
   reconcile: null
   archive: null
   retro: null
+  project_context: null
 gate_decision: null
 gate_iterations: 0
 deferred_work_archived: 0
@@ -98,8 +92,8 @@ deferred_work:
   - "Review defer: correct PDF policy-window wording so exclusive validTo is not presented as inclusive on customer documents."
 blockers: []
 overrides:
-  legacy_adoption_pending: true
   start_phase: 7
+  legacy_adoption: v0.24-to-v0.31
 constraints:
   - "Owner-approved review decision: SE-TAX-2026-v1 is valid through 2026-12-31 and unknown policy horizons fail closed."
   - "Owner-approved review decision: document VAT state is standard/reverse-charge only while mixed row VAT categories remain supported."
@@ -108,3 +102,8 @@ constraints:
   - "Owner-approved review decision: V1 drafts remain readable and unsendable; recovery creates a fresh authoritative V2 without mutating or infer-converting V1."
   - "Owner-approved review decision: sum exact rational grön-teknik category claims first and truncate once to whole SEK at the scheme/document claim boundary."
   - "Owner-approved review decision: green 97% fixed-price scope is an explicit persisted canonical row-id set; every included green row must be scoped, unrelated disjoint ROT/NONE rows may remain outside, and fixed-price total/category splits reconcile exactly to the scope."
+needs_project_context_bootstrap: false
+code_review_iterations: 6
+code_review_loop_done: false
+external_review_iterations: 0
+convergence_unverified: false
