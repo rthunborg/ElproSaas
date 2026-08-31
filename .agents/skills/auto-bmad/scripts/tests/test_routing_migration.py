@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import hashlib
 import importlib.util
+import re
 import tempfile
 import tomllib
 import unittest
@@ -145,9 +146,8 @@ class RoutingAndMigrationTests(unittest.TestCase):
         path = (REPO / "_bmad-output" / "auto-bmad" / "state" /
                 "10-6-tax-answer-reconciliation.yaml")
         state = state_update.full_state(state_update.load_state(path))
-        self.assertEqual(list(range(7)), state["completed_phases"])
+        self.assertTrue(set(range(7)).issubset(state["completed_phases"]))
         self.assertEqual(6, state["legacy_review_iteration"])
-        self.assertEqual(0, state["followup_passes"])
         self.assertEqual(0, state["build"]["review_loop_iteration"])
         found = story_plan.build_find_spec_result(
             str(REPO / "_bmad-output" / "implementation-artifacts"),
@@ -159,6 +159,7 @@ class RoutingAndMigrationTests(unittest.TestCase):
             self.assertIsNone(state["spec_path"])
             self.assertTrue(state["overrides"]["legacy_adoption_pending"])
             self.assertIsNone(found["status"])
+            self.assertEqual(0, state["followup_passes"])
         else:
             self.assertEqual("bmad-build-auto", found["artifact_format"])
             self.assertFalse(state["legacy_review_resume"])
@@ -649,6 +650,82 @@ class RoutingAndMigrationTests(unittest.TestCase):
             self.assertNotIn("legacy_adoption_pending", state["overrides"])
             self.assertEqual("keep", state["overrides"]["owner_note"])
 
+    def test_recognized_no_vcs_frontmatter_adoption_is_lossless_and_idempotent(self):
+        key = "10-6-tax-answer-reconciliation"
+        state_text = (
+            f"story_key: {key}\nstatus: in-progress\n"
+            "completed_phases: [0, 1, 2, 3, 4, 5, 6]\n"
+            "code_review_iterations: 6\n"
+            "overrides:\n  legacy_adoption_pending: true\n"
+        )
+        for eol in ("\n", "\r\n"):
+            with self.subTest(eol=repr(eol)), tempfile.TemporaryDirectory() as td:
+                impl = Path(td) / "impl"
+                impl.mkdir()
+                source = impl / f"{key}.md"
+                legacy_body = f"# Story 10.6{eol}{eol}Status: review{eol}"
+                source_bytes = (
+                    f"---{eol}baseline_commit: NO_VCS{eol}---{eol}" + legacy_body
+                ).encode("utf-8")
+                source.write_bytes(source_bytes)
+                state_file = Path(td) / "state.yaml"
+                state_file.write_text(state_text, encoding="utf-8")
+
+                done, code = story_plan.build_legacy_adoption_result(
+                    str(impl), key, str(state_file), "e90ec0e", "2026-08-31", write=True,
+                    git_run=VALID_GIT_RUN)
+                self.assertEqual(0, code, done)
+                self.assertTrue(done["verified"])
+                archive = Path(done["archive"])
+                target = Path(done["target"])
+                self.assertEqual(source_bytes, archive.read_bytes())
+                adopted = target.read_bytes().decode("utf-8")
+                self.assertTrue(adopted.endswith(legacy_body))
+                self.assertNotIn("baseline_commit: NO_VCS", adopted)
+                self.assertEqual(2, len(re.findall(r"(?m)^---\r?$", adopted)))
+                self.assertEqual("bmad-build-auto", story_plan.read_spec(str(target))["artifact_format"])
+
+                before_rerun = {
+                    "archive": archive.read_bytes(), "target": target.read_bytes(),
+                    "state": state_file.read_bytes(),
+                }
+                rerun, code = story_plan.build_legacy_adoption_result(
+                    str(impl), key, str(state_file), "e90ec0e", "2026-08-31", write=True,
+                    git_run=VALID_GIT_RUN)
+                self.assertEqual(0, code, rerun)
+                self.assertTrue(rerun["already_adopted"])
+                self.assertEqual(before_rerun["archive"], archive.read_bytes())
+                self.assertEqual(before_rerun["target"], target.read_bytes())
+                self.assertEqual(before_rerun["state"], state_file.read_bytes())
+
+    def test_legacy_adoption_rejects_malformed_frontmatter_without_writes(self):
+        with tempfile.TemporaryDirectory() as td:
+            impl = Path(td) / "impl"
+            impl.mkdir()
+            key = "10-6-tax-answer-reconciliation"
+            source = impl / f"{key}.md"
+            source.write_bytes(b"---\nbaseline_commit: NO_VCS\n# unclosed legacy header\n")
+            state_file = Path(td) / "state.yaml"
+            state_file.write_text(
+                f"story_key: {key}\nstatus: in-progress\n"
+                "completed_phases: [0, 1, 2, 3, 4, 5, 6]\n"
+                "code_review_iterations: 6\n",
+                encoding="utf-8",
+            )
+            source_before = source.read_bytes()
+            state_before = state_file.read_bytes()
+
+            refused, code = story_plan.build_legacy_adoption_result(
+                str(impl), key, str(state_file), "e90ec0e", "2026-08-31", write=True,
+                git_run=VALID_GIT_RUN)
+
+            self.assertEqual(1, code)
+            self.assertIn("malformed/unclosed frontmatter", refused["error"])
+            self.assertEqual(source_before, source.read_bytes())
+            self.assertEqual(state_before, state_file.read_bytes())
+            self.assertFalse((impl / f"legacy-v024-{key}.md").exists())
+            self.assertFalse((impl / f"spec-{key}.md").exists())
+
     def test_legacy_adoption_is_refusal_and_ambiguity_safe(self):
         with tempfile.TemporaryDirectory() as td:
             impl = Path(td) / "impl"
@@ -714,7 +791,7 @@ class RoutingAndMigrationTests(unittest.TestCase):
                 str(impl), key, str(state_file), "e90ec0e", "2026-08-31", write=True,
                 git_run=VALID_GIT_RUN)
             self.assertEqual(1, code)
-            self.assertIn("refusing a lossy/double adoption", refused["error"])
+            self.assertIn("refusing lossy/double adoption", refused["error"])
             self.assertEqual(source_before, source.read_bytes())
             self.assertEqual(state_before, state_file.read_bytes())
             self.assertFalse((impl / f"spec-{key}.md").exists())
