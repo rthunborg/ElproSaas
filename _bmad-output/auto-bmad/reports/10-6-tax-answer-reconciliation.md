@@ -128,3 +128,46 @@
 3. Optional: AGENTS.md has no <!-- bmad:context --> block — run /bmad-project-context setup so build-auto implementers inherit repository conventions.
 
 **Next:** After enabling nested subagents and restarting Codex, rerun `/auto-bmad --story 10-6-tax-answer-reconciliation` with the same resume instruction; the authoritative state is under C:/DEV/ElproSaas, not the absent C:/ElproSaas path.
+
+## Report — 2026-08-31T11:04:55Z (completed - caveated local)
+
+**Story:** `10-6-tax-answer-reconciliation` (epic 10, story 6) — mid-epic.
+**Spec:** `C:\DEV\ElproSaas\_bmad-output\implementation-artifacts\spec-10-6-tax-answer-reconciliation.md`
+**Branch:** `story/10-6-tax-answer-reconciliation` (HEAD `a66dc94`).
+**Pipeline status:** Completed locally with review caveats. Story implementation and bounded verification are finished; sprint status remains review, and no PR or CI run was created because GitHub CLI is unauthenticated.
+**Continues:** 2026-08-29T11:16:08Z (halted - nested subagents unavailable)
+
+**Timing:** started 2026-07-29T10:02:59Z; completed 2026-08-31T11:04:23Z — elapsed 793h 01m (≈34h 34m AI-run, ≈758h 26m human/idle wait); resumed 4×.
+
+**Phases run:** Infrastructure recovery and v0.31 migration; lossless legacy adoption; Phases 7-9; Sol/xhigh final convergence and repair; Luna/xhigh independent leaf review.
+**Skipped:** Phase 8 epic-only work (this is not the last story); 146 live-Supabase INT/RLS cases skipped because no stack was available; the prohibited cli_delegate self-test was not run. The failed external CLI review was replaced by the native Luna/xhigh leaf review.
+
+**Overrides:** Started at Phase 7 from the adopted v0.24 artifact; user-directed automatic continuation through bounded review; primary-task model unchanged.
+
+**TEA:** High-risk selection preserved: ATDD and automate. Trace advisory was not selected because only one story follows in the epic.
+
+**Build:** Done. Final convergence patched 5 findings; a post-review repair normalized row inclusion defaults; 3 findings were deferred. Targeted non-DB verification is green.
+
+**Review:** One Sol/xhigh final-convergence pass plus repair; independent Luna/xhigh leaf returned no findings. Last triage: patch 5, defer 3, reject 20. Follow-up remains recommended; HITL continued; review_unverified=true.
+
+**Retrospective:** Not run: Story 10.6 is mid-epic, so Phase 8 was a documented no-op.
+
+**Open questions:**
+1. Should TAX_SIGN_OFF_REQUIRED remain sendable, including known non-private eligibility, or hard-block pending human confirmation?
+2. Should insufficient declared ROT/green allowance block finalization or reduce the claim automatically?
+3. Confirm that each fixed-price green category input is gross including VAT and reconciles before applying the 97% rule.
+4. Confirm that disjoint ROT and green work may coexist on one quote.
+5. Must reverse-charge construction VAT be mutually exclusive with ROT/green deductions?
+
+**Deferred work:**
+1. High: replace forgeable same-tenant reviewed-preview provenance with an owner-approved persisted or privileged/server-signed authority boundary.
+2. High: define and implement generated-PDF invalidation/regeneration after customer-visible draft edits.
+3. Medium: add successor-version attachment retention/reselection in the UI.
+All three final-review deferrals were harvested idempotently into deferred-work.md; earlier Story 10.6 ledger entries were preserved.
+
+**⚠️ Needs human:**
+1. Approve the reviewed-preview provenance architecture before treating the remaining security caveat as resolved.
+2. Schedule or explicitly disposition the PDF invalidation and successor attachment-retention follow-ups.
+3. Authenticate GitHub CLI if a draft PR and CI run are desired; this branch was intentionally left local.
+
+**Next:** Owner review of the three deferrals; then authenticate GitHub and open a draft PR if remote review is desired. Keep the sprint entry at review while review_unverified remains true.
