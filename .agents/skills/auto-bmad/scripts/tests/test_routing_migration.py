@@ -444,16 +444,31 @@ class RoutingAndMigrationTests(unittest.TestCase):
                         state_update._validate_route_selection({**payload, field: value})
 
     def test_cross_model_layer_has_static_posix_and_powershell_commands(self):
-        args = ("codex", "C:/work/repo", "gpt-5.6-luna", "xhigh", None)
+        root = "C:/work repo/O'Brien"
+        prompt = "Review O'Brien's change"
+        args = ("codex", root, "gpt-5.6-luna", "xhigh", None, prompt)
         posix = cli_delegate.build_layer_command(*args, platform="posix")
         windows = cli_delegate.build_layer_command(*args, platform="nt")
         self.assertIn('</dev/null >/dev/null 2>&1 && cat "<DIFF_FILE>.review"', posix)
         self.assertNotIn("; cat", posix)
         self.assertNotIn("cmd.exe", posix)
-        self.assertTrue(windows.startswith(
-            'cmd.exe /d /s /c --% cd /d "C:/work/repo" && codex exec '))
-        self.assertIn(' -o "<DIFF_FILE>.review" ', windows)
-        self.assertIn("< NUL > NUL 2>&1 && type \"<DIFF_FILE>.review\"", windows)
+        self.assertTrue(windows.startswith("cmd.exe /d /s /c '"))
+        self.assertTrue(windows.endswith("'"))
+        self.assertNotIn("--%", windows)
+        payload = windows.removeprefix("cmd.exe /d /s /c ")[1:-1]
+        # PowerShell single-quote escaping keeps apostrophes literal while its
+        # parser treats the whole cmd payload (including <, > and &&) as one arg.
+        self.assertEqual(
+            'cd /d "C:/work repo/O\'\'Brien" && codex exec '
+            '-m "gpt-5.6-luna" -c model_reasoning_effort="xhigh" '
+            '-c approval_policy=never -s read-only -C "C:/work repo/O\'\'Brien" '
+            '--ephemeral -o "<DIFF_FILE>.review" "Review O\'\'Brien\'\'s change" '
+            '< NUL > NUL 2>&1 && type "<DIFF_FILE>.review"',
+            payload,
+        )
+        self.assertNotIn("< NUL", windows[:len("cmd.exe /d /s /c ")])
+        self.assertIn(' -o "<DIFF_FILE>.review" ', payload)
+        self.assertIn("< NUL > NUL 2>&1 && type \"<DIFF_FILE>.review\"", payload)
         self.assertNotIn("/dev/null", windows)
         self.assertNotIn("; cat", windows)
         self.assertNotIn("timeout", windows)

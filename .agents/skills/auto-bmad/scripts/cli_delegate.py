@@ -621,6 +621,23 @@ def _timeout_prefix(timeout_bin: str | None) -> str:
     return f"{Path(timeout_bin).name} -k {_LAYER_TIMEOUT_KILL_GRACE} {_LAYER_TIMEOUT_SECS} "
 
 
+def _powershell_single_quoted(value: str) -> str:
+    """Return one PowerShell single-quoted argument, preserving literal cmd syntax.
+
+    The cross-model layer is rendered as a shell command which Windows hosts run through
+    PowerShell.  A stop-parsing token cannot protect redirection following ``cmd /c``:
+    PowerShell still sees ``< NUL`` / ``> NUL`` as part of its own command line.  Passing the
+    complete cmd payload as one single-quoted PowerShell argument keeps those tokens for cmd.exe.
+    In PowerShell a literal apostrophe is represented by two apostrophes.
+    """
+    return "'" + value.replace("'", "''") + "'"
+
+
+def _windows_cmd_command(payload: str) -> str:
+    """Wrap a complete cmd.exe payload so outer PowerShell cannot parse its metacharacters."""
+    return f"cmd.exe /d /s /c {_powershell_single_quoted(payload)}"
+
+
 def build_layer_command(
     tool: str, root: str, model: str | None, effort: str | None,
     timeout_bin: str | None, prompt: str = CROSS_MODEL_REVIEW_PROMPT,
@@ -634,30 +651,35 @@ def build_layer_command(
     """
     platform = os.name if platform is None else platform
     if platform == "nt":
-        # This string is launched from Windows PowerShell 5.1. ``--%`` stops
-        # PowerShell from interpreting cmd.exe metacharacters; cmd then owns the
-        # redirections. Keep the Codex transcript silent and emit only its final
-        # message, just like the POSIX command. ``&& type`` preserves failure:
-        # the result file is printed only after a successful reviewer exit.
-        prefix = 'cmd.exe /d /s /c --% cd /d "{}" && '.format(root)
+        # This string is launched from Windows PowerShell.  Keep the ENTIRE cmd
+        # payload in one single-quoted PowerShell argument: ``--%`` does not
+        # reliably shield ``< NUL`` / ``> NUL`` after ``cmd /c`` from outer
+        # PowerShell parsing.  cmd.exe therefore owns every redirection.  Keep
+        # the Codex transcript silent and emit only its final message, just like
+        # the POSIX command. ``&& type`` preserves failure: the result file is
+        # printed only after a successful reviewer exit.
+        prefix = 'cd /d "{}" && '.format(root)
         if tool == "claude":
-            return (
+            payload = (
                 f'{prefix}claude -p "{prompt}" --model "{model}" --effort "{effort}" '
                 f'--output-format text --allowedTools "{_LAYER_CLAUDE_TOOLS}" < NUL'
             )
+            return _windows_cmd_command(payload)
         if tool == "codex":
             review = f"{DIFF_FILE_TOKEN}.review"
-            return (
+            payload = (
                 f'{prefix}codex exec -m "{model}" -c model_reasoning_effort="{effort}" '
                 f'-c approval_policy=never -s read-only -C "{root}" --ephemeral -o "{review}" '
                 f'"{prompt}" < NUL > NUL 2>&1 && type "{review}"'
             )
+            return _windows_cmd_command(payload)
         parts = ["opencode", "run"]
         if model:
             parts += ["-m", f'"{model}"']
         if effort:
             parts += ["--variant", f'"{effort}"']
-        return f'{prefix}{" ".join(parts)} --dir "{root}" --auto "{prompt}" < NUL'
+        payload = f'{prefix}{" ".join(parts)} --dir "{root}" --auto "{prompt}" < NUL'
+        return _windows_cmd_command(payload)
 
     q = shlex.quote
     tp = _timeout_prefix(timeout_bin)
