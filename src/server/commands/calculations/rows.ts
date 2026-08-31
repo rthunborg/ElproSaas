@@ -180,8 +180,8 @@ function rowInsertValues(
   const isSelected = input.is_selected ?? null;
   const includedInInvoiceTotal = invoiceInclusionForNewRow({
     isOptional,
-    isSelected,
-    includedInInvoiceTotal: input.included_in_invoice_total,
+    isSelected: isSelected ?? undefined,
+    includedInInvoiceTotal: input.included_in_invoice_total ?? undefined,
   });
   return {
     tenant_id: tenantId, // resolved tenant — NEVER a client-supplied id

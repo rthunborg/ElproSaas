@@ -222,12 +222,12 @@ describe("Story 10.6 Task 3 tax-input validation", () => {
     );
   });
 
-  test("defaults new row economics independently from visibility", () => {
+  test("preserves omitted row inclusion for command-owned defaults", () => {
     const result = validateCreateRow(baseRow({ is_hidden: true }));
     assert.equal(result.ok, true);
     if (!result.ok) return;
     assert.equal(result.data.is_hidden, true);
-    assert.equal(result.data.included_in_invoice_total, true);
+    assert.equal(result.data.included_in_invoice_total, undefined);
     assert.equal(result.data.deduction_classification, "NONE");
     assert.equal(result.data.vat_type, "STANDARD_VAT_25");
   });
