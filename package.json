@@ -17,6 +17,7 @@
     "test:int": "vitest run",
     "test:int:watch": "vitest",
     "test:e2e": "playwright test",
+    "test:auto-bmad-focused": "python .agents/skills/auto-bmad/scripts/tests/test_routing_migration.py && python .agents/skills/auto-bmad/scripts/tests/test_cli_delegate_windows_pid.py",
     "verify:lockfiles": "node scripts/verify/check-lockfiles.mjs",
     "verify:service-role-containment": "node scripts/verify/check-service-role-containment.mjs",
     "verify:bundle-containment": "node scripts/verify/check-bundle-containment.mjs"

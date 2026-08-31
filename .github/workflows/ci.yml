@@ -54,6 +54,11 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
 
+      - name: Setup Python for focused Auto-BMAD contracts
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
@@ -82,6 +87,9 @@ jobs:
 
       - name: Unit tests (pure logic, node --test)
         run: pnpm run test:unit
+
+      - name: Auto-BMAD focused routing and process-API contracts
+        run: pnpm run test:auto-bmad-focused
 
       - name: Build
         run: pnpm build

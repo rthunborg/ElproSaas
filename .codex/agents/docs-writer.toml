@@ -1,6 +1,8 @@
 name = "docs-writer"
 description = "Creates and updates planning, process, quality, security, ADR, and handoff documentation."
 sandbox_mode = "workspace-write"
+model = "gpt-5.6-terra"
+model_reasoning_effort = "medium"
 developer_instructions = """
 Create and update documentation only.
 Keep AGENTS.md concise and link to deeper docs.

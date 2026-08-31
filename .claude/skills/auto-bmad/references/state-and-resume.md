@@ -1,269 +1,233 @@
-# Config, state, resume & first-run
+# Config, state & resume
 
-Everything auto-bmad persists lives under `{project-root}/_bmad-output/auto-bmad/`. One section each below:
+Everything auto-bmad persists lives under `{output_folder}/auto-bmad/` (`{output_folder}` = `core.output_folder` from the BMAD central TOML config — read only through `preflight.py --central-config-only`, never by hand). One section each below:
 - `config.yaml` — project config, created on first run.
-- `state/{key}.yaml` — one resumable state file per story.
-- `retro-notes/epic-{e}.md` — accumulated notes feeding the epic retrospective.
-- `reports/{key}.md` — per-story report log, appended each run.
+- `state/{key}.yaml` — one resumable state file per story (epic mode adds the anchor `state/epic/epic-{e}.yaml`).
+- `reports/{key}.md` — per-story report log, appended each run (epic mode: one `reports/epic-{e}.md`).
+
+`{key}` comes from the story source: sprint mode `{e}-{s}[a]-{slug}`, stories mode `spec-{spec_slug}-{id}` (epic anchor `spec-{spec_slug}`, epic report `reports/spec-{spec_slug}.md`). Everything below is written by the same scripts in both modes — the stories-mode deltas are marked inline, and the per-phase flow lives in `stories-mode.md`.
+
+The interactive config commands that write this config — the first-run flow, `reset-defaults`, `config-check` — live in `config-commands.md`.
 
 ## config.yaml
 ```yaml
-version: 1
-profiles_source_version: "0.24.0"  # abm version whose assets/agents/profiles.yaml seeded the profiles +
-                                  # phase_profiles blocks below; re-stamped by the Phase 0 heal (ADDITIVE-only —
-                                  # never overwrites user values; see assets/config-defaults.yaml header) or `reprovision`.
-delegation:                # spawn mechanism — host/mode auto-detected each run
-  host: auto               # auto (detect each run) | claude-code | codex | opencode | other
-  mode: auto               # auto (derive from host) | custom-subagents | general-subagents | inline
-  target_tools:            # tools to provision agents for; detected from installed skill dirs
-    - claude-code          # (rules: module-setup.md) and confirmed at first run. May also list
-    - codex                # `opencode`. More than one = run in any of those tools, no reconfig.
-  cli_phases: {}           # OPT-IN per-phase external-CLI routing: keys = phase_profiles keys, value =
-                           # claude|codex|opencode; empty/absent => every phase uses its tier. Hand-edited.
-                           # Semantics: delegation-runtime.md "Per-phase external-CLI routing"; examples: assets/config-defaults.yaml.
+version: 1                          # schema version
+profiles_source_version: "0.31.0"   # abm version whose assets/profiles.yaml seeded the profiles + phase_profiles blocks below;
+                                    #   restamped by the Phase 0 additive heal or a full `reset-defaults`
+delegation:                         # spawn mechanism — host/mode re-detected every run (stored values are inert)
+  host: auto                        # auto | claude-code | codex | opencode | other
+  mode: auto                        # auto (derive from host) | subagents | inline   (legacy custom-subagents reads as subagents)
+  cli_phases: {}                    # OPT-IN per-phase external-CLI routing: <phase_profiles key> -> claude|codex|opencode; empty/absent
+                                    #   => every phase uses its tier. Setup answer (heal-immune), hand-edited. Semantics:
+                                    #   cli-route.md; examples: assets/config-defaults.yaml
 tea:
-  enabled: true            # set at first run after checking TEA skills exist
-  framework_ci: prompt     # prompt | done | skip  (resolved at first run)
-  gate_max_iterations: 2   # Phase 8 trace-gate remediation cap (automate + re-trace) before only waive/stop are offered
-  story_trace_advisory:    # per-story, non-blocking trace pass — shifts coverage-gap visibility left on LONG epics
-    enabled: true          # self-activating: dormant on short epics (see min_epic_stories), fires only on long high-risk stories
-    min_epic_stories: 6    # only runs in epics with >= this many stories; short epics rely on the epic-end gate alone
-    skip_last_stories: 3   # also skip the epic's last N stories (distance-to-gate, tea-policy.md §3) — their gap surfaces at the epic-end trace gate anyway. Absent in older configs => orchestrator defaults to 3
+  enabled: true                     # interviewed at first run (default yes iff bmad-testarch-* installed)
+  framework_ci: prompt              # prompt | done | skip (resolved at first run)
+  gate_max_iterations: 2            # Phase 8 trace-gate remediation cap (automate + re-trace) before only waive/stop (constant default)
+  story_trace_advisory:             # per-story, non-blocking trace pass (constant defaults; rubric tea-policy.md §3)
+    enabled: true                   # self-activating: dormant on short epics, fires only on long high-risk stories
+    min_epic_stories: 6             # only runs in epics with >= this many stories
+    skip_last_stories: 3            # also skip the epic's last N stories
 git:
-  mode: auto               # auto -> detect; or force "remote" / "local"
-  branch_prefix: "story/"
-  epic_branch_prefix: "epic/"  # epic mode: the one branch a whole epic run commits to (epic/{e}-{slug}). Absent => orchestrator defaults to "epic/"
-  base_branch: main        # auto-detected; written after first detection
-  offer_merge: true        # Phase 9: ask the user whether to merge a clean-completion PR
-  ci_wait_minutes: 30      # max wait for in-progress CI before deciding (used only when offer_merge is on)
+  mode: auto                        # auto -> detect | remote | local (Full setup; heal-immune)
+  branch_prefix: "story/"           # constant default
+  epic_branch_prefix: "epic/"       # epic mode's one branch, epic/{e}-{slug} (constant default)
+  base_branch: main                 # detected once; never asked; never healed
+  offer_merge: true                 # Phase 9: ask whether to merge a clean-completion PR (constant default)
+  ci_wait_minutes: 30               # max wait for in-progress CI (only when offer_merge is on) (constant default)
 code_review:
-  max_iterations: 2
-  security_review: true    # run the dedicated per-story security review inside the Phase 7 loop (auto-bmad-local; ab-security delegate). false => skip it. Absent => orchestrator defaults to true
-  epic_review: true        # epic mode: run the Tier-B epic integration review (heavy adversarial pass; no halt — decisions auto-resolved, unconverged ships a draft). false => per-story thin review only. Absent => defaults to true
-  tier_a_lenses: [auditor, security]  # epic mode: the per-story thin-review lens set (one pass, no loop/halt); security gated by security_review. Absent => defaults to [auditor, security]
-  epic_diff_chunk_threshold_lines: 6000  # epic mode: chunk the Tier-B review when the epic diff exceeds this many lines (per-story sub-diffs + joint triage); 0 => never. Absent => defaults to 6000
-# profiles + phase_profiles complete the file — single source: assets/agents/profiles.yaml
-# (first run copies it in verbatim; edit it or this copy, then `/auto-bmad reprovision`;
-# `/auto-bmad reset-defaults` re-seeds — see below). Codex model names ship as real defaults —
-# retune them (in the asset) if your install differs; set opencode.model per profile for
-# per-phase tiering + cross-vendor review diversity. Shape only:
-profiles: {…}              # ab-deep | ab-standard | ab-alt-deep | ab-alt-standard, each:
-                           #   {claude: {model, effort}, codex: {model, reasoning_effort},
-                           #    opencode: {model, variant}} — opencode is model-only + ships model
-                           #   BLANK (inherit your opencode default); variant is cli_phases-only.
-                           #   CUSTOM profiles may be ADDED here (same field set incl. the persona
-                           #   strings; name MUST start with `ab-`) — reprovision renders every
-                           #   ab-* profile it finds; a whole-block reset-defaults prunes them
-phase_profiles: {…}        # create_story, dev_story, code_review_review, code_review_review_secondary,
-                           #   code_review_review_tertiary (the two extra reviewer slots are OPTIONAL —
-                           #   blank "" => disabled; secondary ships on, tertiary ships blank),
-                           #   code_review_security (dedicated security review; blank "" => primary profile),
-                           #   code_review_fix, tea_triage, tea_per_story, tea_epic, tea_epic_audit,
-                           #   retrospective, project_context, uat (git/PR work runs in the orchestrator
-                           #   directly — no delegate profile). Values may name ANY profile in the
-                           #   profiles block above — shipped or custom
+  followup: recommended             # recommended | always | never — Phase 7 follow-up bmad-build-auto review pass on the done spec at the
+                                    #   followup_review profile: recommended => only when the spec says followup_review_recommended: true;
+                                    #   always => every story; never => skip (constant default)
+  security_layer: true              # write the auto-bmad-security review layer into _bmad/custom/bmad-build-auto.toml (constant default)
+  cross_model_layer: codex          # codex | claude | opencode | "" — external CLI for the auto-bmad-cross-model layer; ENV-DETECTED
+                                    #   at first run (first of codex, claude, opencode on PATH that is not the host, else "");
+                                    #   absent key => ""; NOT in config-defaults.yaml (setup answer, heal-immune)
+build:
+  spec_approval: false              # opt-in per-story HITL halt between Phase 3 (plan) and Phase 4/5 (constant default; a run can also
+                                    #   ask for it in its instructions; never in epic mode)
+profiles:                           # copied VERBATIM (block style) from assets/profiles.yaml at first run — model/effort ONLY, no persona
+  default: {…}                      # Codex shipped pair: gpt-5.6-terra/medium (unspecified, read-heavy exploration/docs/repo mapping)
+  light:                            #   strings. Shown flow-style here for brevity:
+    claude: {model: sonnet, effort: high}              # claude.model = the Agent tool's per-call model; claude.effort is used ONLY by the
+                                                       #   cli_phases route / cross-model layer (`claude -p --effort`)
+    codex: {model: gpt-5.6-luna, reasoning_effort: medium}  # both are per-call knobs of Codex's spawn_agent (and `codex exec`)
+    opencode: {model: "", variant: ""}                 # BOTH used ONLY by the cli_phases route / cross-model layer (`opencode run -m/--variant`);
+                                                       #   in-tool opencode subagents inherit the user's default model; ships BLANK (inherit)
+  standard: {…}                     # Codex shipped pair: gpt-5.6-terra/high
+  critical: {…}                     # Codex shipped pair: gpt-5.6-sol/xhigh
+  diverse_review: {…}               # Codex shipped pair: gpt-5.6-luna/xhigh (leaf reviewer; not a nesting parent)
+                                    # + any CUSTOM profile (any name, same field set) — phase_profiles may name shipped or custom profiles
+phase_profiles: {…}                 # build, followup_review, final_convergence, security_layer, cross_model_layer, tea_triage, tea_per_story, tea_epic,
+                                    #   tea_epic_audit, retrospective, deferred_reconcile — the SINGLE phase->profile binding
+                                    #   (references name these keys, never raw profiles); git/PR work runs in the orchestrator
+                                    #   directly — no delegate profile. delegation.cli_phases keys are exactly these keys
 ```
-
-## First-run flow (only when config.yaml is absent)
-This is the single interactive episode in normal operation.
-- Always confirm `target_tools`.
-- Then offer **quick vs full** setup.
-- Use AskUserQuestion.
-
-0. **Seed delegation & profiles (non-interactive).** All of these are file-edited later, never interviewed.
-   - Set `delegation.host`/`mode` to `auto`.
-   - Seed `delegation.cli_phases: {}`.
-   - Copy the `profiles` + `phase_profiles` defaults from `{skill-root}/assets/agents/profiles.yaml`.
-   - Detect the live host.
-   - Run `reprovision` (`scripts/render-agents.py`) before the pipeline starts — if the host needs `custom-subagents` but its agent files are missing.
-1. **Confirm `target_tools` (always).** Detect from the installed skill dirs on disk and confirm with the user — exact rules: `assets/module-setup.md` → "Provision Delegate Agents" (Step 1).
-   - Reuse the `abm` value `module-setup.md` just confirmed — if it already ran *this session*.
-   - Run `reprovision` for the confirmed set — if it differs from what agents were rendered for.
-2. **Choose setup depth.** Ask **Quick** or **Full**.
-   - **Quick** (recommended) — `target_tools` + TEA only; sensible defaults for everything else. Skip step 4.
-   - **Full** — also set git + code-review prefs.
-3. **TEA (both depths).** Detect the TEA skills (`bmad-testarch-*`) and ask `tea.enabled`.
-   - Default "yes" if present.
-   - Default "no" if absent — don't offer yes when absent.
-   - If enabled, resolve `framework_ci` via `preflight.py --detect-framework-ci` (`framework.configs` = test-framework configs found, `framework.ci_present` = CI workflow):
-     - Both present → `framework_ci: done` silently.
-     - Missing → **ask** to run one-time `/bmad-testarch-framework` + `/bmad-testarch-ci` now (delegate to `ab-standard`) or `skip` — never auto-run unasked, because it is heavy, infra-choosing setup.
-4. **Full only — extra prefs** (each prefilled with the default shown):
-   - `git.mode` (auto | remote | local; default auto).
-   - `git.branch_prefix` (default `story/`).
-   - `code_review.max_iterations` (default 2).
-   - `git.base_branch` is auto-detected, never asked.
-5. **Write `config.yaml`** with the seeded delegation/profiles, the confirmed `target_tools`, the answers, and detected `git`/`base_branch` values (Quick fills the step-4 fields with the defaults above).
-   - Above the copied `profiles:` block, write a pointer comment naming both retune paths (*edit here + `/auto-bmad reprovision`*; *discard edits with `/auto-bmad reset-defaults`*).
-   - Stamp `profiles_source_version` with the `module_version` from `{skill-root}/assets/module.yaml`.
-   - **Then stop — do not start the pipeline this session** — because it would waste the context window that just did setup.
-   - Report what was configured, then tell the user how to begin the first story:
-     - **`custom-subagents` tier (Claude Code / Codex):** fully quit and relaunch the tool before `/auto-bmad` (a `/clear` or "new chat" is not enough) — see `delegation-runtime.md` → "Newly-rendered agents need a process restart".
-     - **Other tiers:** a fresh session/context is enough — no project agents to load.
-
-## reset-defaults — restore shipped profile defaults
-`/auto-bmad reset-defaults [scope]` discards retunes in `config.yaml` and re-seeds the **asset-sourced** blocks from `{skill-root}/assets/agents/profiles.yaml`.
-- It is also the one-shot fix for a `manual_review` item the heal won't auto-write — a sub-key missing from an existing profile.
-- **Config-only:** report what changed, then stop — never start a pipeline.
-
-**Scope** (the optional arg; bare = both asset blocks):
-- *(omitted)* — both `profiles` and `phase_profiles`.
-- `profiles` — every profile block.
-  - Also **prunes** a profile present in the config but absent from the asset — the renamed/dropped remedy; pruned names return on `removed_profiles`.
-  - Doesn't touch `phase_profiles` — so a *custom* mapping pointing at a pruned profile dangles (bare scope resets both).
-- `<profile-name>` (e.g. `ab-standard`) — that one profile. Never prunes — a user-added profile is left intact.
-- `phase_profiles` — the phase→profile mapping only.
-
-**Boundary (state it to the user).** reset-defaults touches **only** `profiles`, `phase_profiles`, and the `profiles_source_version` stamp.
-- It touches **never** `delegation`/`tea`/`git`/`code_review` — because those are setup answers, not shipped defaults, and reset *overwrites* where the Phase 0 heal only *appends*, so it would clobber them.
-- Redoing those is `setup`/`configure`.
-
-**Flow:**
-1. Require `config.yaml` to exist. Absent → "Nothing to reset — run `/auto-bmad setup` first." and stop.
-2. Plan (read-only):
-   ```
-   python3 {skill-root}/scripts/config_plan.py --reset <scope> --config <output_folder>/auto-bmad/config.yaml
-   ```
-   Empty `would_change`, empty `removed_profiles`, **and** no `version_restamp` → "Already at shipped defaults for `<scope>`." and stop.
-3. **Confirm** with `AskUserQuestion`. This is the sole interactive moment.
-   - Show the `current → default` diff (truncate long persona strings).
-   - Call out **separately — never buried in the diff — any `removed_profiles`**: those blocks are deleted outright, so a user-added profile would be lost.
-   - Options: **Reset** / **Cancel**.
-   - Cancel → stop, write nothing.
-4. On confirm, write by re-running with `--write` (backs the prior config up to `config.yaml.bak`, then overwrites). Report the backup path and any `version_restamp`:
-   - A **full** reset restamps `profiles_source_version` to the module version.
-   - A **scoped** reset leaves it.
-5. **Re-render delegates iff the plan's `render_needed` is true** — the `ab-*` agent files are now stale. Use the **same reprovision path** the rest of the skill uses; don't re-derive it here:
-   - Resolve host/tier per `delegation-runtime.md`.
-   - Read `delegation.target_tools` from the config just written.
-   - Run the `reprovision` action exactly as `module-setup.md` describes.
-   - No-op off `custom-subagents`.
-   - A `phase_profiles`-only reset never sets `render_needed`.
-   - When agents were rendered, surface the **process-restart caveat** (`delegation-runtime.md` → "Newly-rendered agents need a process restart").
-6. Report scope, what was reset, the backup path, restamp, and whether a relaunch is needed. Stop.
+- **Retune paths** (write a pointer comment above the copied `profiles:` block naming both): edit the `profiles` / `phase_profiles` copy here, then `/auto-bmad reprovision` (re-syncs the review-layers TOML that bakes the `security_layer` / `cross_model_layer` models — see `config-commands.md`); discard retunes with `/auto-bmad reset-defaults`.
+- **Absent-key orchestrator fallbacks** (must equal `assets/config-defaults.yaml`): `code_review.followup: recommended`, `code_review.security_layer: true`, `build.spec_approval: false`, `git.branch_prefix: "story/"`, `git.epic_branch_prefix: "epic/"`, `git.offer_merge: true`, `git.ci_wait_minutes: 30`, `tea.gate_max_iterations: 2`, `tea.story_trace_advisory.{enabled: true, min_epic_stories: 6, skip_last_stories: 3}`, `delegation.cli_phases: {}`. Plus `code_review.cross_model_layer: ""` — an env-detected setup answer the asset deliberately omits (documented only in its header + `config-commands.md` → First-run flow, step 0), so an absent key means the layer is off.
+- **No config key for the story source.** Stories mode (a `bmad-spec` spec folder: `SPEC.md` + `stories.yaml` + `stories/{id}-*.md`) is chosen **per run** — the `--spec <folder>` flag, or the Phase 0 auto-detect + confirm when the project has no `sprint-status.yaml` — never a stored setting, so `config.yaml` and `assets/config-defaults.yaml` are unchanged. The auto-detect roots are `{output_folder}/specs`, `{planning_artifacts}` and `{implementation_artifacts}` (all three already in the preflight JSON). The resolved source is recorded per story in the state file (`story_source` / `spec_folder` / `story_id`). Per-phase flow: `stories-mode.md`.
+- **Removed keys.** Unknown setup keys remain ignored and are never stripped: `delegation.target_tools`; `code_review.max_iterations`, `code_review.security_review`, `code_review.verification_gap`, `code_review.epic_review`, `code_review.tier_a_lenses`, `code_review.epic_diff_chunk_threshold_lines`. The obsolete v0.24 rendered-agent profile schema is the deliberate exception: `config_plan.py --apply` idempotently replaces the closed shipped profile set `ab-verification`, `ab-deep`, `ab-standard`, `ab-alt-deep`, `ab-alt-standard`, `ab-security` and its old phase mappings (`create_story`, `dev_story`, `code_review_review`, `code_review_review_secondary`, `code_review_review_tertiary`, `code_review_security`, `code_review_verification`, `code_review_fix`, `project_context`, `uat`) with the current schema, preserving unrelated config, current-profile model/effort retunes, and valid project-local profiles/routes. Other stale profile subkeys (`description` / `role_blurb` / `status_example`) remain informational until `reset-defaults`. `delegation.mode: custom-subagents` reads as `subagents` and is reported as `legacy_mode_alias`.
 
 ## state/{key}.yaml
 The state file is a **machine-readable contract**, not a prose log — the source of truth for resume.
-- It is updated after every phase.
-- `state_update.py` owns every write.
+- Updated after every phase; `state_update.py` owns every write.
 - Every field is always emitted with an explicit `null`/`false`/`[]`/`{}`.
 - Prose belongs in `reports/{key}.md`, not here.
 
 ```yaml
-story_key: 1-2-user-auth
-epic_num: 1
-story_num: 2
-branch: story/1-2-user-auth
+story_key: 2-6a-digest-delivery
+epic_num: 2                 # null in stories mode (no epic integer — the spec folder is the epic)
+story_num: 6                # null in stories mode
+story_suffix: "a"           # split-story suffix from the key grammar ^(\d+)-(\d+)([a-z]?)-.+ ; "" when none; null in stories mode
+story_source: sprint        # sprint (sprint-status.yaml + epics docs) | stories (a bmad-spec spec folder — stories-mode.md)
+spec_folder: null           # stories mode: ABSOLUTE path of the spec folder (SPEC.md + stories.yaml + stories/); null in sprint mode
+story_id: null              # stories mode: the stories.yaml entry id, a string ("1", "3-2"); null in sprint mode
+branch: story/2-6a-digest-delivery
 status: in-progress         # in-progress | done
-updated_at: "2026-05-28T14:04:41Z"  # ISO-8601 UTC; set by the orchestrator after every phase write
-started_at: "2026-05-28T13:55:02Z"  # ISO-8601 UTC; stamped ONCE at the Phase 1 write, never rewritten (survives resume)
+updated_at: "2026-05-28T14:04:41Z"  # ISO-8601 UTC; stamped by state_update.py on every write
+started_at: "2026-05-28T13:55:02Z"  # ISO-8601 UTC; stamped ONCE at the Phase 1 init, never rewritten (survives resume)
 completed_at: null          # ISO-8601 UTC; set when status flips to done (Phase 9 finalize); null while in-progress
-active_seconds: 0           # wall-clock spent EXECUTING phases (delegate runtime + orchestrator work up to
-                            #   the pause; the state write + commit land after it), summed across sessions.
+active_seconds: 0           # wall-clock spent EXECUTING phases (delegate runtime + orchestrator work up to the
+                            #   pause; the state write + commit land after it), summed across sessions.
                             #   Script-owned via timing-start/-pause — never hand-add.
-timing_anchor: null         # epoch seconds while a phase (or a bracketed user prompt) is executing; null when
-                            #   idle. Non-null on resume = crash tail (timing notes below).
+timing_anchor: null         # epoch seconds while a phase (or a bracketed user prompt) is executing; null when idle.
+                            #   Non-null on resume = crash tail (timing notes below).
 is_first_in_epic: false
 is_last_in_epic: false
-needs_project_context_bootstrap: false  # decided at Phase 0 (carried into Phase 1's init --json — no state file exists during Phase 0); flipped to false by Phase 2's bootstrap sub-step
 git_mode: remote
 base_branch: main
-tea_risk: high                   # low|med|high from Phase 0 triage; gates per-story TEA + the long-epic trace advisory
+selected_phase: followup_review     # exact persisted dispatch capsule; route-select writes all nine selection fields before launch
+selected_role: primary-reviewer     # explicit role (critical roles are never inferred)
+selected_profile: standard
+selected_model: gpt-5.6-terra
+selected_effort: high
+selected_host: codex
+selected_tier: subagents
+selected_route: subagent            # subagent | inline | cli:claude | cli:codex | cli:opencode
+escalation_reason: null             # required when changing an in-flight phase's route; stepwise Luna/medium -> Terra/high -> Sol/xhigh
+routing_ledger:                     # append-only canonical JSON selections; the flat fields above are the resume capsule
+  - '{"effort":"high","escalation_reason":"","host":"codex","model":"gpt-5.6-terra","phase":"followup_review","profile":"standard","role":"primary-reviewer","route":"subagent","tier":"subagents"}'
+tea_risk: high                   # low|med|high from Phase 0 triage (input: the epics doc entry); gates per-story TEA + the trace advisory
 tea_selected: [atdd, automate]   # from triage; [] if trivial or TEA off; may also include trace-advisory (long-epic high-risk)
 tea_rationale: "touches auth -> High risk"
-epic_story_count: 12             # stories under epic {e} (from sprint-status); gates the long-epic trace advisory
-stories_after_in_epic: 7         # epic stories ordered after this one (0=last); with epic_story_count, drives the trace-advisory distance gate (skip the last skip_last_stories)
-completed_phases: [0, 1, 2, 3, 4, 5, 6] # phase numbers from pipeline.md; gate-false no-op phases land here too (override-window skips do NOT); Phase 2 only once BOTH its sub-step gates resolved (ran, or gate false)
-code_review_iterations: 1      # the review-loop iteration currently in progress (1-based); a mid-iteration resume re-runs this iteration from step 1 (one redundant review pass is the cost of a rare crash — there is no mid-iteration capsule). A value ABOVE code_review.max_iterations is a user-granted extension from the step-4 halt — gate it as the final iteration (--max-iterations {code_review_iterations}, pipeline.md step 3)
-code_review_loop_done: false   # set true when the review loop exits (converged or capped); flipped back to false when the user extends the loop at the step-4 halt; on resume, true => re-open the Phase 7 HITL halt instead of re-iterating — UNLESS the step-4 skip gate applies (convergence_unverified=false, a clean convergence), in which case proceed to the Phase 7 tail without re-opening
-hitl_halt: null                # Phase 7 step-4 outcome once the loop is done: "continued" | "stopped" | "skipped (clean convergence)" | "auto-continued (epic — no halt)" (epic mode never opens the halt) | null (not yet reached; also reset to null when the user extends the loop at the halt — it resolves at the next exit)
-external_review_iterations: 0  # Phase 7 post-halt re-reviews of external-review changes run on Continue (single-shot — at most one per run; resumes can accumulate more); 0 if none
-convergence_unverified: false  # true if the review loop hit max_iterations while the last pass still hadn't converged (review_loop.py's convergence rule: a non-deferred Critical/High/untagged finding, or >3 non-deferred findings that aren't all Low) (Phase 7); ALSO set when a post-halt re-review surfaced meaningful external-change findings and the user chose to continue with them open, or Phase 7 was skipped by the `skip code-review` override (zero review passes), or — in EPIC mode — any `[Review][Decision]` was auto-resolved at Critical/High severity (a best-guess on a high-severity item ships as a draft for human review; epic-pipeline.md E5f/E_review) -> Phase 9 opens the PR as a draft. CLEARED when the user extends the loop at the step-4 halt — the extended pass re-verifies it and the gate re-decides
-story_trace: null              # Phase 7 tail trace advisory result, or null if not selected / not yet run:
-                               #   {verdict: PASS|CONCERNS|FAIL, uncovered: [..], ran: true}. Advisory only — never blocks/drafts; non-null = done (resume marker)
-commits: [a1b2c3d, e4f5g6h]
-phase8_steps:                # per-sub-step epic-end resume markers, recorded in each sub-step's folded state
-  trace_gate: null           #   write: null (not yet run) | done; trace_gate may also be waived | failed.
-  nfr: null                  #   A mid-Phase-8 crash resumes at the first null instead of re-running completed
-  test_review: null          #   delegations; Phase 8 joins completed_phases only once all seven markers resolve
-  project_context: null      #   (ran, or its gate was false).
-  reconcile: null            #   delegated pre-archive pass: mark ledger items whose deferred work fully landed but went unmarked
+epic_story_count: 12             # stories under epic {e} (from sprint-status; stories mode: entries in stories.yaml); gates the long-epic trace advisory
+stories_after_in_epic: 7         # epic stories ordered after this one (0=last); with epic_story_count, drives the trace-advisory distance gate
+completed_phases: [0, 1, 2, 3]   # phase numbers from pipeline.md; gate-false no-op phases land here too (a phase this run's instructions skipped does NOT); Phase 8 only once all six phase8_steps markers resolve
+spec_path: null                  # absolute path of the story's bmad-build-auto spec (story_plan.py --find-spec after the Phase 3 halt); every later phase reads it from here
+spec_approved: false             # true once the spec-approval halt was answered Approve, or immediately when approval is not required (build.spec_approval false and this run did not ask for approval); resume re-opens the halt while false and required
+build:                           # last bmad-build-auto result for this story (Phase 5, refreshed by every Phase 7 pass) — from story_plan.py --spec
+  status: null                   #   draft | ready-for-dev | in-progress | in-review | done | blocked | null (not yet run)
+  blocking_condition: null       #   when blocked: the spec's `## Auto Run Result` `Blocking condition:` line, else the delegate's reported condition, else "(not stated)" (the frontmatter status is authoritative — pipeline.md Phase 5)
+  followup_review_recommended: false
+  review_loop_iteration: 0
+  deferred_count: 0              #   items in the spec's frontmatter `deferred:` list
+  warnings: []                   #   spec frontmatter `warnings` (e.g. oversized, multiple-goals) — a flat list inside the map; round-trips
+followup_passes: 0               # Phase 7 follow-up build-auto review passes run (incl. external-change re-reviews)
+hitl_halt: null                  # Phase 7 halt outcome: "continued" | "stopped" | "skipped (clean)" | "auto-continued (epic — no halt)" | null (not yet reached)
+review_unverified: false         # draft-predicate clause 2: this run skipped the follow-up review, or the spec still says followup_review_recommended: true after Phase 7's last pass (incl. followup: never) -> Phase 9 opens the PR as a draft
+story_trace: null                # Phase 7 tail trace advisory: {verdict: PASS|CONCERNS|FAIL, uncovered: [..], ran: true}; non-null = done (resume marker); verdict is delegate-derived from the skill's coverage numbers — advisory only, never blocks/drafts
+legacy_review_resume: false      # migration-only: old v0.24 counters exist and Phase 7 adoption is still pending
+legacy_review_iteration: null    # old code_review_iterations evidence only; NEVER copied to current build.review_loop_iteration/followup_passes
+legacy_review_loop_done: false   # old code_review_loop_done evidence only
+legacy_external_review_iterations: null  # old external_review_iterations evidence only
+legacy_convergence_unverified: false      # old convergence_unverified evidence only
+legacy_artifact_path: null       # preserved legacy story/review artifact after explicit adoption
+commits: [a1b2c3d, e4f5g6h]      # orchestrator commits (sha-lag rule) + build-auto's own (git log <head_before>..HEAD around every build-auto invocation — git-and-pr.md → "commits[]")
+phase8_steps:                    # per-sub-step epic-end resume markers, recorded in each sub-step's folded state write:
+  trace_gate: null               #   null (not yet run) | done; trace_gate may also be waived | failed (failed = parked, not resolved: resume re-opens the gate — resume rules below). A mid-Phase-8 crash
+  nfr: null                      #   resumes at the first null instead of re-running completed delegations; Phase 8 joins
+  test_review: null              #   completed_phases only once all six markers resolve (ran, or its gate was false)
+  reconcile: null                #   delegated pre-archive pass: mark ledger items whose deferred work fully landed but went unmarked
   archive: null
   retro: null
-gate_decision: null          # PASS|CONCERNS|FAIL|WAIVED (last story only)
-gate_iterations: 0           # Phase 8 trace-gate remediation passes run (automate+re-trace); capped by tea.gate_max_iterations; resume continues mid-loop
-deferred_work_archived: 0    # Phase 8 (last story only): count of resolved entries moved from deferred-work.md to the deferred-work-resolved.md archive
+gate_decision: null              # PASS|CONCERNS|FAIL|WAIVED|NOT_EVALUATED (last story only)
+gate_iterations: 0               # Phase 8 trace-gate remediation passes run (automate+re-trace); capped by tea.gate_max_iterations; resume continues mid-loop
+deferred_work_archived: 0        # Phase 8 (last story only): count of resolved entries moved from deferred-work.md to the deferred-work-resolved.md archive
+retro:                           # epic-end retrospective (last story only)
+  doc: null                      #   path of <impl>/epic-{e}-retro-<date>.md (stories mode: {spec_folder}/RETROSPECTIVE.md)
+  verdict: null                  #   accepted | accepted-with-open-items | rejected | null
+  open_action_items: 0           #   open/in-progress action_items for this epic after the retro (sprint_plan.py status); null in stories mode (no scripted source)
+bmad_status_flipped_at: null     # 8 (pre-retro flip, last story) | 9 (finalize) | null — which phase flipped the sprint entry to done;
+                                 #   ALWAYS null in stories mode (build-auto owns the story file's status — nothing to flip)
 pr_url: null
-ci_run_url: null             # link to the CI run the PR/push triggered, if the repo has workflows
-ci_status: unknown           # passed|failed|timeout|none|unknown — set only when Phase 9 waited (offer_merge on); else 'unknown'
-pr_merged: false             # true only if the user chose a merge style in Phase 9's merge prompt and `gh pr merge` succeeded
-merge_method: null           # squash|merge|rebase|null — null if not merged or prompt was skipped
-merge_commit: null           # full SHA of the merge commit on the base branch, or null
-branch_deleted: false        # true if --delete-branch was used in the successful merge
+ci_run_url: null                 # link to the CI run the PR/push triggered, if the repo has workflows
+ci_status: unknown               # passed|failed|timeout|none|unknown — set only when Phase 9 waited (offer_merge on); else 'unknown'
+pr_merged: false                 # true only if the user chose a merge style in Phase 9's merge prompt and `gh pr merge` succeeded
+merge_method: null               # squash|merge|rebase|null — null if not merged or prompt was skipped
+merge_commit: null               # full SHA of the merge commit on the base branch, or null
+branch_deleted: false            # true if --delete-branch was used in the successful merge
 open_questions: []
 deferred_work: []
-blockers: []                 # each: short human-action description
-overrides: {}                # this run's normalized invocation overrides (see overrides.md); {} if none
-constraints: []              # caller-supplied constraints carried in via invocation (e.g. exact-string requirements); [] if none
+blockers: []                     # each: short human-action description; a blocked phase's entries are removed when that phase completes on resume ("Blockers clear on resume" below)
+overrides: {}                    # free-form record of this run's instructions (SKILL.md -> Run instructions) plus orchestrator-set
+                                 #   entry markers (e.g. start_phase, no_pr_draft); {} if none
+constraints: []                  # caller-supplied constraints carried in via invocation (e.g. exact-string requirements); [] if none
 ```
 
-The **timing** fields are script-owned — all clock arithmetic lives in `scripts/state_update.py`.
-- Bracket work: `timing-start` before delegating a phase, `timing-pause` when it returns (just before the phase's state write + commit).
-- Invert the bracket around any `AskUserQuestion` — pause before the prompt, start after — so user waits land on idle, not active.
+The **timing** fields are script-owned — all clock arithmetic lives in `scripts/state_update.py`. When to bracket (and how to invert a bracket around a user prompt): `pipeline.md` → "Timing".
 - A non-null `timing_anchor` on resume is a crash tail: the next `timing-start` re-anchors and conservatively discards the dangling interval (reported as `dropped_anchor: true`).
 - Report derivation (`state_update.py report-section`) — best-effort host wall-clock, not token-compute time:
   - **elapsed** = `completed_at − started_at` (includes resume gaps).
   - **AI-run time** ≈ `active_seconds`.
   - **human/idle wait** ≈ `elapsed − active_seconds`.
 
-## state/epic/epic-{e}.yaml  (epic mode)
+## state/epic/epic-{e}.yaml  (epic mode; stories mode: state/epic/spec-{spec_slug}.yaml)
 The **epic anchor** — one per epic run, the cursor + epic-level bookkeeping for `/auto-bmad epic`.
-- It lives under the `epic/` **subdirectory** so the per-story `state_plan.py` scan cannot see it — that scan lists only `state/*.yaml` files, never a subdir.
+- It lives under the `epic/` **subdirectory** so the per-story `state_plan.py` scan (which lists only `state/*.yaml`) cannot see it.
 - The epic resume scan is `state_plan.py --scope epic`.
 - It reuses the **same per-story schema** and the same `state_update.py` writers (`init` / `set` / `phase-done` / `timing-*` / `report-section --epic`) — there is no separate state schema.
 
 Meaningful reused fields:
 - `story_key: epic-{e}`, `epic_num`, `status`, `branch` (`epic/{e}-{slug}`).
 - The timing fields.
-- `completed_phases` — the epic **E-steps** as ints.
+- `completed_phases` — the epic **E-steps** as ints (`E0→0`, `E1→1`, `E2→2`, `E5→5`, `E8a→81`, `E8b→82`, `E_final→9`).
 - `gate_decision` / `gate_iterations` — epic-end trace gate.
 - `deferred_work_archived`.
-- `convergence_unverified` — aggregated up from the per-story thin reviews + the Tier-B integration review; drives the epic PR draft predicate.
+- `review_unverified` — aggregated from the landed stories (any story's `review_unverified: true`, or a run that skipped the follow-up review); drives the epic PR draft predicate.
+- `retro` — the E8b retrospective block (`doc` / `verdict` / `open_action_items`), same shape as per story.
+- `bmad_status_flipped_at` — `82` (E8b pre-retro batch flip) | `9` (E_final) | null.
 - `pr_url` / `ci_run_url` / `ci_status`.
 - `blockers` / `open_questions` / `deferred_work` — the epic rollup.
 - The merge fields.
-- `story_num` stays null.
+- `story_num` / `story_suffix` / `spec_path` / `build` / `hitl_halt` stay at their defaults — per-story concerns live in the per-story files.
 
-Plus net-new epic fields that ride as **preserved extras** — NOT in the per-story `SCHEMA_ORDER`, so they cost no lockstep change (`state_update.py` keeps unknown fields verbatim):
+Plus net-new epic fields that ride as **preserved extras** — not in the per-story `SCHEMA_ORDER` (`state_update.py` keeps unknown fields verbatim):
 - `active_story` — the loop cursor (the `{key}` being processed, or null before E5 / after E_final).
-- `stories_landed` — the `{key}`s this run actually processed (drives the batch BMAD-status flip + the report rollup).
+- `stories_landed` — the `{key}`s this run actually processed (drives the batch BMAD-status flip + the report rollup; E0-skipped stories never join it).
 - `epic_slug` — the resolved branch/PR slug (stored so resume reuses it, never re-derives a different one).
-- `auto_decisions` — the `[Review][Decision]` items this epic auto-resolved with the triage's recommendation (Tier A + E_review), each a one-line `"<title> [<sev>] → <fix|defer|dismiss>: <direction> (<context>)"`; rendered into the E_final report's `auto_decided` section. A Critical/High entry also set `convergence_unverified` (the epic PR ships a draft — `epic-pipeline.md` E5f).
-- `uat_items` — the per-story manual UAT one-liners accumulated across the loop; E5 appends each landed story's `[{key}]`-tagged check items in the SAME `set` write as `stories_landed` (so a crash between them can't double-append on resume). The E_final `uat (epic)` consolidation delegate composes them into the single-session checklist rendered in the epic report's **UAT** section.
-- `batch_flip_done` / `integration_review_done` — idempotency markers for E_final / E_review on resume.
+- `stories_skipped` — the E0 skip verdicts (`"{key} — <reason>"`, e.g. `already done` or the E0 no-spec note); persisted so a resume never re-asks and E5 never enters them (never flipped, never in the rollup, listed under **Skipped**). Like `stories_landed`, a read-modify-write list — `_append` does not apply.
+- `batch_flip_done` — idempotency marker for the E8b/E_final batch BMAD-status flip on resume.
 
-Ownership split — full flow: `epic-pipeline.md`.
-- The per-story `state/{key}.yaml` files still exist (one per story the loop touches) and own intra-story resume.
-- The epic anchor owns *which story / which E-step*.
+**Stories-mode anchor** (`story_source: stories`): same schema, same writers, same E-step `completed_phases` — only the naming and three fields differ.
+- File `state/epic/spec-{spec_slug}.yaml`, `story_key: spec-{spec_slug}`, `epic_num: null`, `story_source: stories`, `spec_folder` (absolute), `epic_slug: {spec_slug}`, `branch: {git.epic_branch_prefix}{spec_slug}` — `{spec_slug}` = the spec folder's basename minus a leading `spec-`. Epic report: `reports/spec-{spec_slug}.md`.
+- `active_story` / `stories_landed` / `stories_skipped` hold `spec-{spec_slug}-{id}` keys; `batch_flip_done` stays vacuously true (there is no BMAD status to flip) and `bmad_status_flipped_at` stays null.
+- The epic-ownership guard matches on `spec_folder`, not `epic_num` (which is null in both places).
+
+Ownership split (full flow: `epic-pipeline.md`; stories-mode E-steps: `stories-mode.md`): the per-story `state/{key}.yaml` files still exist (one per story the loop touches) and own intra-story resume; the anchor owns *which story / which E-step*.
 
 ## Target selection & resume logic
-No-arg `/auto-bmad` chooses the target story with this precedence (an explicit `--story <arg>` overrides both and targets that story directly):
+`--story` and `epic` are mutually exclusive — both in one invocation ⇒ hard-stop `` `--story` picks one story; `epic` runs a whole epic — pick one ``.
+
+An explicit `--story <arg>` overrides the precedence below and targets that story directly: `story_plan.py --resolve <arg> --sprint-status <impl>/sprint-status.yaml --planning-dir <planning>` (stories mode: `--resolve <arg> --spec-folder <DIR>`); `hard_stop` ⇒ surface the reason (not found, or ambiguous with its `candidates`) and stop.
+
+No-arg `/auto-bmad` chooses the target story with this precedence:
 1. **Incomplete auto-bmad pipeline first.** If any `state/*.yaml` has `status != done`, that story is the target — finish in-flight work before starting anything new.
-   - State files are named `{key}.yaml` (e.g. `1-2-user-auth.yaml`) — **no `story-` prefix**.
-   - The `story-{e}-{s}` form appears only in commit/PR scopes, never in a filename.
-   - **Don't hand-roll shell for this** — never probe with raw shell globs (unmatched ⇒ `nomatch` abort under zsh/fish). Call the deterministic reader:
+   - State files are named `{key}.yaml` (e.g. `1-2-user-auth.yaml`, or `spec-digest-delivery-3-2.yaml` in stories mode) — **no `story-` prefix**; the `story-{e}-{s}` / `story-{spec_slug}-{id}` form appears only in commit/PR scopes.
+   - **Don't hand-roll shell for this** (no bare globs). Call the deterministic reader:
      ```
      python3 {skill-root}/scripts/state_plan.py --state-dir {output_folder}/auto-bmad/state
      ```
    - Parse its JSON:
-     - `resume: true` ⇒ resume `target` (the most-recently-updated in-flight story); `extra_in_flight` lists any others to mention in the report.
-     - `resume: false` (empty/absent dir, or all `done`) ⇒ fall through to `story_plan.py`.
-2. **Else `story_plan.py`** picks the next actionable story — its precedence (`in-progress → review → ready-for-dev → backlog → retrospective`) resumes BMAD-level unfinished work first.
+     - `resume: true` ⇒ resume `target` (the most-recently-updated in-flight story; its record's `branch` feeds the resume preflight's `--expected-branch`); `extra_in_flight` lists any others to mention in the report.
+     - `resume: false` (empty/absent dir, or all `done`) ⇒ fall through to the sprint-status pick.
+   - Epic-ownership guard: `state_plan.py --state-dir … --scope epic` — an in-flight anchor whose `epic_num` matches the target's epic ⇒ hard-stop → `/auto-bmad epic --epic {e}`.
+2. **Else the upstream sprint-status picker** — the call, its JSON contract and its hard-stops: `pipeline.md` Phase 0 step 5 (it runs after the full preflight, which supplies `skills.sprint_plan_script`). Its own precedence is `in-progress → review → ready-for-dev → backlog → retrospective`; step 1 still wins over it.
+3. Then always the `story_plan.py --epic {e}` read — `pipeline.md` Phase 0 step 5.
 
-**Why a finished story doesn't re-stick (clean completions).**
-- Phase 9 flips the BMAD-level status (story file `Status:` + the `sprint-status.yaml` entry) to `done` on a clean completion — else `story_plan.py` would re-pick it (`state_plan.py --finalize` ⇒ `flip_bmad_status: true`, run by `story_plan.py --mark-done`; mechanics: `pipeline.md` Phase 9).
-- A **caveated** completion (draft PR / blocker / waived gate / CI red or timed-out) deliberately stays at `review` — it still needs a human, so it re-surfaces.
-- A re-run, finding state already `done`, reports it complete (rule below) instead of redoing the work.
+**Stories mode** (`story_source: stories`; the per-phase flow lives in `stories-mode.md` — don't duplicate it here) keeps that precedence with two substitutions:
+1. **In-flight state still wins** — the same `state_plan.py` scan. Stories-mode state files are `state/spec-{spec_slug}-{id}.yaml`, so **the key prefix alone tells the modes apart**: `spec-{spec_slug}-{id}` starts with `spec-`, and the sprint key grammar `^(\d+)-(\d+)([a-z]?)-.+` requires a leading digit — the two can never collide. A scan may return either kind, so branch on the source, never on the key shape: every `state_plan.py` record — the scan's `target`/`extra_in_flight` entries, a `--story-key` read and an `--scope epic` anchor — carries `story_source` / `spec_folder` / `story_id`. A state file written before stories mode existed has none of them and reports all three `null` ⇒ treat it as `sprint`.
+2. **Else `story_plan.py --stories --spec-folder <DIR>`** (the `--epic` mirror) → `next_story_key` = the first `stories.yaml` entry, in list order, whose status is not `done` (`all_done: true` ⇒ no target). There is **no upstream picker** — `sprint_plan.py status` is sprint-only.
+An explicit `--story <arg>` resolves through `story_plan.py --resolve <arg> --spec-folder <DIR>` (exact id → exact `spec-{spec_slug}-{id}` key → case-insensitive title/slug substring; several ⇒ hard-stop with `candidates`).
 
 Once the target `story_key` is known, check its state with the same reader — an exact `{key}` lookup, never a glob:
 ```
@@ -271,91 +235,94 @@ python3 {skill-root}/scripts/state_plan.py --state-dir {output_folder}/auto-bmad
 ```
 - `resume: true` (file exists, `status != done`) → **resume**:
   - Skip phases already in `completed_phases`.
-  - If Phase 7 is in progress (`code_review_loop_done` false), re-run iteration `code_review_iterations` in full from step 1 — a fresh review pass.
-    - An iteration above `code_review.max_iterations` is a user-granted extension from the step-4 halt: gate it as the final iteration (pipeline.md step 3).
-    - Never reconstruct a half-finished iteration from the story file — post-fix check-offs would fake a clean pass, and one redundant pass is the cost of a rare mid-iteration crash.
-  - If `code_review_loop_done` is already `true`, re-open the Phase 7 HITL halt rather than re-iterating — the re-opened halt re-runs its git-only change check, so external changes made between runs get their single-shot re-review.
-    - But if the step-4 skip gate applies — `convergence_unverified` false, a clean convergence — proceed to the Phase 7 tail without re-opening.
-  - Re-detect git mode/branch (cheap) rather than trusting stale values if the branch is missing.
+  - Reuse the persisted `selected_*` route capsule when resuming the same in-flight phase. Re-run `state_update.py route-select` with that exact selection: it returns `resumed: true` and does not append the ledger. Governed Codex phases validate the exact role/profile/model/effort tuple listed in `delegation-runtime.md`; aliases and mislabeled critical roles are rejected. A route change requires a non-empty `escalation_reason`; known Codex escalation for ungoverned/custom work is stepwise only (`Luna/medium → Terra/high → Sol/xhigh`), never a downgrade or direct Luna→Sol jump. A newly entered critical phase starts directly at Sol/xhigh.
+  - **Pre-v0.30 legacy story/state:** `state_update.py` preserves old review counters in `legacy_*` evidence and sets `legacy_review_resume: true`; it never maps the old count into current passes. If `story_plan.py --find-spec` returns `artifact_format: legacy-story`, do not dispatch it to build-auto. Run the explicit adoption helper read-only first, using a confirmed historical baseline and created date: `python3 {skill-root}/scripts/story_plan.py --adopt-legacy-spec --impl-dir <impl> --story-key <key> --state-file <state> --baseline-revision <rev> --created <YYYY-MM-DD>`. Inspect the plan, then repeat with `--write`. For Story 10.6 the confirmed baseline is `e90ec0e`. The helper preserves the body as `legacy-v024-<key>.md`, creates the one recognized `spec-<key>.md`, verifies current parser output, records `overrides.legacy_adoption: v0.24-to-v0.31` + `start_phase: 7`, and resumes through the explicit `final_convergence` Sol/xhigh phase. If both legacy and modern files exist, content differs, or baseline/evidence is missing, hard-stop; never guess or restart.
+  - Phase 3: the resume matrix in `pipeline.md` P3.2.
+  - Spec-approval halt: re-opened before Phase 4/5 per `pipeline.md` Phase 3 step 6.
+  - Phase 5 re-invokes build-auto with the spec path — build-auto routes by the spec's own status (`ready-for-dev` / `in-progress` / `in-review`); a `blocked` spec ⇒ needs-human (recovery text: `pipeline.md` Phase 5).
+  - Phase 7: a follow-up pass is atomic — re-run it in full (never reconstruct a half-finished pass). `hitl_halt` null and a halt is due ⇒ re-open it. **`hitl_halt: stopped` with 7 ∉ `completed_phases` ⇒ re-open the halt** — reset `hitl_halt` to null and re-ask; choosing Continue then runs the external-change check as usual, so edits made while stopped get their single re-review (mirrors the spec-approval Stop rule). That check is defined in `pipeline.md` Phase 7 step 3.
+  - Phase 8 resumes by its `phase8_steps` markers (first null sub-step) — except `trace_gate: failed`, a parked verdict, not a resolved one: re-delegate **`testarch-trace (epic gate)`** and re-apply its verdict handling under the same `gate_iterations` cap (`pipeline.md` Phase 8); a non-`FAIL` verdict removes the earlier FAIL entry from `blockers[]` and re-derives `gate_decision`.
+  - **Blockers clear on resume.** A blocked phase's `blockers[]` entries (a Phase 3 plan-time block's result-file path; a Phase 8 trace-gate `FAIL` Stop) are live only while the block stands: when that phase later completes on resume — the Phase 3 plan succeeds, a Phase 5 / Phase 7 build-auto run returns `done`, a re-run epic trace gate returns non-`FAIL` or the human waives it (`trace_gate: waived`) — remove that phase's entries via `state_update.py set` (`blockers: [<list without them>]`) before its `phase-done` write. Epic mode's E5h rollup then carries only live blockers.
+  - Re-detect git mode/branch (cheap) rather than trusting stale values if the branch is missing — the resume preflight gets `--expected-branch <state branch>` (`state_plan.py --story-key` emits `branch`).
 - `exists: false` → start fresh (state file init in Phase 1) — **after the status-mismatch guard.**
-  - Check the story's BMAD status from the `story_plan.py` read (`current_status` / `next_action`).
-  - `backlog`/`ready-for-dev` ⇒ start fresh.
-  - **`review` or `in-progress` with NO state file** means the work happened outside auto-bmad (a hand-driven/brownfield story, or a lost state dir) — the full pipeline would re-create and re-implement an already-built story. **ASK the user** (`AskUserQuestion`):
-    - **Enter at the matching phase** *(recommended — `in-progress` ⇒ Phase 5 dev-story, `review` ⇒ Phase 7 code-review; first validate that phase's `start_phase` prerequisites per `overrides.md`, hard-stop if they fail)*.
+  - Check the story's BMAD status from the `story_plan.py --resolve`/`--epic` read (`current_status` / the epic entry's `status`).
+  - `backlog` ⇒ start fresh.
+  - `ready-for-dev` ⇒ start fresh; Phase 3 first probes `story_plan.py --find-spec` (a spec may pre-exist from a bare `/bmad-build-auto` run) and routes by its status — the resume matrix in `pipeline.md` P3.2.
+  - **`review` or `in-progress` with NO state file** means the work happened outside auto-bmad (a hand-driven/brownfield story, or a lost state dir) — the full pipeline would re-plan and re-implement an already-built story. **ASK the user** (`AskUserQuestion`):
+    - **Enter at the matching phase** *(recommended)* — `in-progress` ⇒ Phase 5 Build, `review` ⇒ Phase 7 follow-up review. **Validate the entry first and hard-stop with a precise message if it fails** (read spec facts only through `story_plan.py`; never open the spec yourself):
+      - **Phase 5** — the story's build-auto spec must exist at `ready-for-dev` or later (never `draft`/`blocked`): `python3 {skill-root}/scripts/story_plan.py --find-spec --impl-dir <impl> --story-key {key} --sprint-status <impl>/sprint-status.yaml` (`found: false` ⇒ hard-stop; `ambiguous: true` ⇒ hard-stop listing `candidates`); record `spec_path` in state.
+      - **Phase 7** — same spec requirement, plus the spec's `status` (`--spec <spec_path>`) is `done` and the sprint entry is `review` (`--resolve` → `current_status`); a `review` entry whose spec is not `done` enters at Phase 5 instead.
+      - Entering Phase 7 with no Phase 5 result seeds `build.*` from `story_plan.py --spec <spec_path>` and runs ONE pass regardless of the recommendation gate; an instruction to skip the follow-up review still wins (`pipeline.md` Phase 7).
     - **Run the full pipeline anyway** (a deliberate redo).
     - **Stop**.
-    - Record the chosen entry as `start_phase` in `overrides`.
-- A `done` status → tell the user it's already complete and show the recorded `pr_url`; do not redo it (unless they explicitly force a re-run).
-  - On a **no-arg** run — a *caveated* completion parked at `review` keeps being re-picked — also name the way forward: resolve the recorded caveat (then flip the BMAD status to `done`), or work another story via `/auto-bmad <story-id>`.
+    - Record the chosen entry as `start_phase` in the state's `overrides` map (an orchestrator-set entry marker, not a user instruction).
+  - **Stories mode: the guard reads the STORY FILE.** There is no sprint entry, so the vocabulary is the id-keyed story file's frontmatter `status` — `draft | ready-for-dev | in-progress | in-review | done | blocked`, and **no file at all = not started**. Read it only through `story_plan.py --find-spec --spec-folder <DIR> --story-id <id>` (then `--spec <spec_path>`) — never by opening the file. Branch mapping: no file or `draft` ⇒ start fresh; `ready-for-dev` ⇒ start fresh (Phase 3 routes by the spec); `in-progress` ⇒ the Phase 5 ask above; `in-review` ⇒ the `review` ask above (Phase 7 entry); `blocked` ⇒ needs-human stop, never an auto-entry; `done` ⇒ the `done` rule below.
+  - **Sanctioned regress paths (sprint mode only** — stories mode never calls `--mark-status`; `bmad-build-auto` owns the story file's status, so there is nothing to regress and `bmad_status_flipped_at` stays null**)** — the ONLY places the orchestrator passes `story_plan.py --mark-status … --allow-regress`: "Run the full pipeline anyway" for an `in-progress`/`review` story (Phase 3 → `ready-for-dev`, Phase 5 → `in-progress`); entering Phase 5 for a `review` story whose spec is not `done`; a confirmed full re-run of a `done` story (below); an entry that re-enters a phase whose target status is below the entry's current one. Any other `refusing to regress` exit is a hard-stop (the entry moved outside auto-bmad — surface the message).
+- State `status: done` for the target (a completed run) → never redo silently: print the recorded report tail + `pr_url` and stop.
+  - A clean completion flips the sprint entry to `done` at Phase 8 (pre-retro, last story) or Phase 9, so the picker moves on; a **caveated** one deliberately stays at `review`, so the picker re-surfaces it.
+  - On a **no-arg** run this is the caveated case — the story sits at `review` (draft PR / blocker / waived gate / CI red), so the picker re-recommends it on every bare `/auto-bmad`. The stop text names the way forward explicitly: (1) resolve the recorded caveat, then flip the entry (`/auto-bmad --story {key}` re-opens Phase 9 only when the caveat is cleared, else it prints the same stop); (2) work another story: `/auto-bmad --story <next>` where `<next>` = the first `ready-for-dev`/`backlog` key after this one from `story_plan.py --epic {e}`, or, when the epic has none, "epic {e} has no unstarted stories — pick a key with `/auto-bmad --story <key>` or start the next epic with `/auto-bmad epic --epic <N>`". (`SKILL.md` lists this under not-silent stops.)
+  - An explicit `--story {key}` on a `done` state ⇒ ask "already complete (PR …) — re-run the full pipeline anyway?" (Yes ⇒ the sanctioned regress path; No ⇒ stop).
+  - **Stories mode:** a caveated completion is NOT re-surfaced by the picker — `bmad-build-auto` already left the story file at `done`, so the caveat lives only in the state file and the report's `(final — caveated)` tag + `⚠️ Needs human` list. A re-run needs an explicit `/auto-bmad --spec <folder> --story <id>` (same confirm as above; no status regress — there is none to make).
 
-Git commits are the secondary safety net: even if the state file is lost, the per-phase commits on the story branch show how far the pipeline got.
+Git commits are the secondary safety net: even if the state file is lost, the per-phase commits on the branch (and build-auto's own) show how far the pipeline got.
 
-## retro-notes/epic-{e}.md
-The cross-story scratchpad the epic retrospective reads — **signal only, not a log.** After each phase, hand the agent's **Retro notes** to the deterministic writer — never append by hand:
-```
-python3 {skill-root}/scripts/state_update.py retro-append --retro-file <output_folder>/auto-bmad/retro-notes/epic-{e}.md --story-key {key} --json -
-```
-(`--json` is `{"lines": [...]}`; the script manages the one `## Story {key}` heading per story). Keep it small so it stays usable across a multi-story epic:
-- **Skip empty notes** — most phases run clean: filter routine "did the work" text with your own judgment and send `none` (the script drops empty/`none` lines and then writes nothing); only genuine signal lands here.
-- **One terse line per item** — a deviation / non-obvious decision / surprise / risk / deferred item; never a paragraph, never a recap of what the story file already records.
-
-Handed to `/bmad-retrospective` at epic end as primary input — the cross-step context (autonomy choices, why things were done a certain way) the story file alone doesn't capture.
+Draft predicate: computed by `state_plan.py --finalize` (Phase 9); the four clauses are defined once in `git-and-pr.md` → "Draft predicate (clauses 1–4)" — the state fields it reads are above. In stories mode pass `--finalize --story-source stories`: the clauses, `draft` and `clean_completion` are unchanged, `flip_bmad_status` is forced `false`, and `reasons` carries the note `stories mode: no BMAD-status flip (build-auto owns the story-file status)` — a `reasons` entry is therefore not the same as a fired clause; read `clauses` for the predicate.
 
 ## reports/{key}.md
 The per-story report is a **log**, not a single overwritten document.
-- It carries only the **story-level** outputs that aren't recorded elsewhere — overrides, TEA outcomes, open questions, deferred work, blockers, next-story preview.
-- The finalization **artifacts** are **chat-only** — already retrievable from git/GitHub/sprint-status.
-  - These are: PR URL, CI run link, merge method + branch-deleted state, and the BMAD-status-flip outcome.
-  - So the file is written **once** pre-push, never re-touched after PR/CI/merge resolve.
-- The one-line **disposition** is NOT chat-only — it is a summary, not an artifact.
-  - It belongs in the `Pipeline status` line.
-  - It covers clean / caveated / halted, plus a draft's summary reason.
-- Clean path: written + committed in **Phase 9 before push** (`docs(story-{e}-{s}): pipeline report`) so it ships in the PR diff (`pipeline.md` Phase 9; `git-and-pr.md` → "Ownership"). Any path that didn't reach that pre-push write gets the `SKILL.md` Step 3 fallback — same content, no commit (the tree is already needs-human; the human commits it alongside their fix).
-- Each run (first completion OR resume) **appends** a new `## Report — <ISO timestamp>` section via `state_update.py report-section` — the script never overwrites existing sections; prior sections may hold context a resume must never clobber.
+- It carries only the **story-level** outputs that aren't recorded elsewhere — this run's instructions, TEA outcomes, open questions, deferred work, blockers, next-story preview.
+- The finalization **artifacts** (PR URL, CI run link, merge method + branch-deleted state, BMAD-status-flip outcome) are **chat-only**, so the file is written **once** pre-push and never re-touched after PR/CI/merge resolve.
+- The one-line **disposition** is NOT chat-only: it belongs in the `Pipeline status` line and covers clean / caveated / halted, plus a draft's summary reason.
+- Clean path: written + committed in **Phase 9 before push** (`docs(story-{e}-{s}): pipeline report`; stories mode `docs(story-{spec_slug}-{id}): …`) so it ships in the PR diff (`pipeline.md` Phase 9; `git-and-pr.md` → "Ownership"). Any path that didn't reach that pre-push write gets the `SKILL.md` Step 3 fallback — same content, no commit.
+- Each run (first completion OR resume) **appends** a new `## Report — <ISO timestamp>` section via `state_update.py report-section` — the script never overwrites existing sections.
 - **Each section is a session delta, not a cumulative rollup** — `Phases run` / `Skipped` cover this session alone; a resume carries a `Continues:` back-reference. Don't re-derive an earlier (possibly cross-tool) run's TEA counts or review tally into a later section.
-- **Tag the `## Report` heading with this section's terminal disposition** — read the last tag to know where the story stands. Closed vocabulary: `(final)` (clean, BMAD status flipped `done`), `(final — caveated)` (finalized but left at `review`: draft PR / blocker / waived gate / CI red), `(halted — <reason>)` for a stop before Phase 9 (`needs-human`, `override stop_before: <phase>`, `override stop_after: <phase>` — the override tokens spelled as in `overrides.md`). Lineage is not in the tag — a prior section plus the `Continues:` line already mark a resume. (A clause-4 caveat — CI red/timeout — resolves only *after* the pre-push write, so it shows up in the chat report and in a later resume section's tag, never in the section written before push.)
+- **Tag the `## Report` heading with this section's terminal disposition** — read the last tag to know where the story stands. Closed vocabulary: `(final)` (clean, BMAD status flipped `done`), `(final — caveated)` (finalized but left at `review`: draft PR / blocker / waived gate / CI red), `(halted — <reason>)` for a stop before Phase 9 (`needs-human`, or `stopped: <the run instruction that ended it>` — quote the instruction as the user gave it). Lineage is not in the tag — a prior section plus the `Continues:` line already mark a resume. (A clause-4 caveat — CI red/timeout — resolves only *after* the pre-push write, so it shows up in the chat report and in a later resume section's tag, never in the section written before push.)
 - The **only** overwrite is a deliberate full re-run of an already-`done` story, after explicit user confirmation ("overwrite the existing report log for {key}?") — only then pass `--overwrite-confirmed` (without the flag the script always appends); if declined, append instead.
-- **Epic mode** writes ONE epic report — `reports/epic-{e}.md`, via `state_update.py report-section --epic` (the epic-rollup template + its own `EPIC_REPORT_PAYLOAD_KEYS` allowlist): epic header, the per-story rollup, the integration-review + epic-gate verdicts, a single-session **UAT** checklist (`uat` — composed across all stories by the E_final `uat (epic)` consolidation), an **Auto-decided (epic mode)** section (`auto_decided` — every `[Review][Decision]` the run auto-resolved with the triage's recommendation, Tier A + E_review), and the aggregated open-findings / deferred checklist. It replaces the per-story reports (per-story detail lives in the per-story state files + the rollup), committed once pre-push as `docs(epic-{e}): pipeline report`. Same append + disposition-tag rules as above (`epic-pipeline.md` E_final).
+- **Epic mode** writes ONE epic report — `reports/epic-{e}.md` (stories mode: `reports/spec-{spec_slug}.md`, whose **Epic:** line reads `spec {spec_slug}`), via `state_update.py report-section --epic` (the epic-rollup template + its own `EPIC_REPORT_PAYLOAD_KEYS` allowlist): epic header, the per-story rollup, the skipped stories, the epic-gate + TEA outcomes, the retrospective verdict, and the aggregated open-questions / deferred checklist. It replaces the per-story reports, committed once pre-push as `docs(epic-{e}): pipeline report`. Same append + disposition-tag rules as above (`epic-pipeline.md` E_final).
+  **`--json` payload keys (exact names — unknown keys are REJECTED):** `disposition_tag`, `pipeline_status`, `continues`, `epic_summary`, `story_rollup` (list — one line per landed story: build status / review passes / deferred / trace), `stories_skipped` (list — one line per story with its reason: `already done` or the E0 skip note), `epic_gate`, `tea`, `retro` (verdict + open action items + doc path), `overrides`, `open_questions` (list), `deferred_work` (list) + `deferred_archived_note`, `needs_human` (list), `next` (includes the `/bmad-project-context refresh` recommendation), `head_sha`.
+  Rendered order: **Epic** / **Branch** / **Pipeline status** / **Continues** / **Summary** / **Timing** / **Stories** / **Skipped** / **Epic gate** / **TEA** / **Retrospective** / **Overrides** / **Open questions** / **Deferred work** / **⚠️ Needs human** / **Next**.
 
 ### Section template (use literally, in this order)
 This template is the **single home** for the file portion's fields, heading order, and per-field semantics.
-- `SKILL.md` Step 3 only points here.
 - `state_update.py report-section` renders it literally:
   - Story/Branch/Timing lines (and the `resumed N×` count) derive from the state file + prior sections.
   - Prose snippets come from `--json`.
   - A heading is never dropped — an empty field keeps its heading with `(none)`.
 - Timing-split semantics: the timing fields above.
 
-**`--json` payload keys (exact names — the script REJECTS unknown keys, because a misspelled key would silently render its heading `(none)`):** `disposition_tag` (the heading tag), `pipeline_status`, `continues`, `phases_run`, `skipped`, `overrides`, `tea`, `code_review`, `uat` (list), `open_questions` (list), `deferred_work` (list) + `deferred_archived_note` (the Phase 8 reconcile + archive line appended under it), `planning_drift`, `needs_human` (list — the ⚠️ heading), `next`, `head_sha` (the Branch line's short SHA).
+**`--json` payload keys (exact names — the script REJECTS unknown keys, because a misspelled key would silently render its heading `(none)`):** `disposition_tag` (the heading tag), `pipeline_status`, `continues`, `phases_run`, `skipped`, `overrides`, `tea`, `build`, `review`, `retro`, `open_questions` (list), `deferred_work` (list) + `deferred_archived_note` (the Phase 8 reconcile + archive line appended under it), `needs_human` (list — the ⚠️ heading), `next`, `head_sha` (the Branch line's short SHA). The **Spec** line is not a payload key — it renders the state's `spec_path`.
+
+Renderer defaults when a key is absent: `Overrides` → `none`, `Build` → `not run`, `Review` → `skipped`, `Retrospective` → `(none)`, `Continues` → `(none — first run)`, every list block → `(none)`.
 
 ```markdown
 ## Report — <ISO timestamp UTC> (<disposition tag — the closed vocabulary above: (final) / (final — caveated) / (halted — <reason>) — tagging the heading keeps the log skim-readable from its outline>)
 
-**Story:** `{key}` (epic {e}, story {s}) — {first-in-epic? / last-in-epic? / mid-epic}.
+**Story:** `{key}` (epic {e}, story {s}) — {first-in-epic? / last-in-epic? / mid-epic}.   <!-- stories mode: `spec-{spec_slug}-{id}` (spec {spec_slug}, story {id}) — same line, rendered from story_source -->
+**Spec:** `<spec_path>` (from state; `(none)` before Phase 3)
 **Branch:** `<branch>` (HEAD `<short-sha>`).
-**Pipeline status:** <one-line summary, e.g. ✅ clean completion / halted at Phase 5 (needs-human) / draft (CI red)>.
-**Continues:** <on a resume, the prior section's ISO timestamp + its tag, e.g. `2026-05-29T15:05:06Z (halted — override stop_before: 7)`; `(none — first run)` on a first run — keep the line either way, like every other heading>.
+**Pipeline status:** <one-line summary, e.g. ✅ clean completion / halted at Phase 5 (needs-human: build-auto blocked) / draft (CI red)>.
+**Continues:** <on a resume, the prior section's ISO timestamp + its tag, e.g. `2026-05-29T15:05:06Z (halted — stopped: stop before the review)`; `(none — first run)` on a first run — keep the line either way, like every other heading>.
 
 **Timing:** started <ISO>; completed <ISO, or "in progress"> — elapsed <Hh Mm> (≈<Hh Mm> AI-run, ≈<Hh Mm> human/idle wait)<; resumed N× if >1 session>.
 
-**Phases run:** <comma-joined Phase N list for THIS session, with profile in parens for delegated phases; on a resume this is the session delta — earlier phases live in the section named by `Continues:`>.
+**Phases run:** <comma-joined Phase N list for THIS session, with profile/model in parens for delegated phases; on a resume this is the session delta — earlier phases live in the section named by `Continues:`>.
 **Skipped:** <comma-joined Phase N list with reason in parens; this session>.
 
-**Overrides:** <one line — the invocation overrides applied this run (phase window, skips, caps); "none" if no invocation overrides applied>.
+**Overrides:** <one line — this run's instructions as you interpreted them, plus any orchestrator-set entry marker; "none" if the invocation carried none>.
 
 **TEA:** <which skills ran and their one-line outcome; "disabled" if tea.enabled=false; epic-gate decision if last story; for the per-story trace advisory, its verdict + any uncovered ACs (advisory, non-blocking)>.
 
-**Code review:** <iterations run; one line each: per-iteration verdict + severity counts in the fixed form `Critical N / High N / Medium N / Low N`; then the end-of-loop HITL-halt outcome (continued / stopped / skipped (clean convergence)); and, if external-review changes triggered a post-halt re-review, its verdict/counts and the user's continue / stop decision; "skipped" if no review>.
+**Build:** <build-auto result: spec status; review_loop_iteration; deferred N (harvested to the ledger); warnings; commits by build-auto; "not run" if Phase 5 never ran>.
 
-**UAT:** <numbered manual User-Acceptance-Testing checklist — what a human can exercise BY HAND at THIS implementation state; one item per line, each an action → expected result, scoped to the acceptance criteria actually satisfied (never aspirational / full-feature steps). The producing `uat` delegate (Phase 9 head per story; E5 per story + the E_final consolidation in epic mode) ALWAYS returns ≥1 item: when nothing is manually testable yet (pure internal refactor, infra-only, no human-observable surface) it returns ONE line saying exactly that + the reason. "(none)" renders only when the step did not run — a halt before Phase 9 / E_final, or the `skip uat` override>.
+**Review:** <follow-up passes N (profile / cli route); last pass patch/bad_spec/defer counts + reject (≤ 6.11.0) or dismissals (≥ 6.11.1); followup still recommended?; HITL halt outcome (continued / stopped / skipped (clean) / auto-continued (epic — no halt)); review_unverified; "skipped" if no follow-up review>.
+
+**Retrospective:** <epic-end only: verdict; N open action items (listed); doc path; "(none)" otherwise>.
 
 **Open questions:** <numbered list, one per line — questions surfaced by any step; "(none)" if empty — keep the heading>.
 
-**Deferred work:** <numbered list, one per line — anything intentionally postponed (also appended to the durable cross-story `<impl>/deferred-work.md` ledger; cross-link it when items landed there); on the last story of an epic, add a line from Phase 8 covering the reconcile + archive (e.g. "marked 2 missed-completions; archived 6 resolved → deferred-work-resolved.md"; name each reconcile-marked item with its one-line evidence; omit the note if nothing was marked or moved); "(none)" if empty — keep the heading>.
+**Deferred work:** <numbered list, one per line — anything intentionally postponed (also harvested into the durable cross-story `<impl>/deferred-work.md` ledger; cross-link it when items landed there); on the last story of an epic, add a line from Phase 8 covering the reconcile + archive (e.g. "marked 2 missed-completions; archived 6 resolved → deferred-work-resolved.md"; name each reconcile-marked item with its one-line evidence; omit the note if nothing was marked or moved); "(none)" if empty — keep the heading>.
 
-**Planning drift:** <epic-end only — planning assumptions the retrospective proved wrong + the recommended re-sync (document-project → generate-project-context → /bmad-prd update; /bmad-correct-course if structural); non-blocking, never auto-run; "(none)" if clean or not epic-end>.
+**⚠️ Needs human:** <numbered list of blockers / manual actions. On a caveated completion these are required before the story can be considered done (it was left at `review`); on a clean completion the story is already `done` — list only genuine optional follow-ups (e.g. merging the open PR, the AGENTS.md block missing) and never imply the merge gates `done`; "(none)" if clean>.
 
-**⚠️ Needs human:** <numbered list of blockers / manual actions. On a caveated completion these are required before the story can be considered done (it was left at `review`); on a clean completion the story is already `done` — list only genuine optional follow-ups (e.g. merging the open PR, on the human's own time) and never imply the merge gates `done`; "(none)" if clean>.
-
-**Next:** <one line — the story `story_plan.py` would pick next; preview only — do NOT start it>.
+**Next:** Human review: `/bmad-checkpoint-preview <pr_url | branch>` (spec: `<spec_path>`); then `/auto-bmad` (sprint_plan.py status recommends the next story; stories mode: `/auto-bmad --spec <folder>` picks the next stories.yaml entry). <epic end: "Project context: run /bmad-project-context refresh (recommended after an epic)."> — preview only; do NOT start the next story.
 ```
