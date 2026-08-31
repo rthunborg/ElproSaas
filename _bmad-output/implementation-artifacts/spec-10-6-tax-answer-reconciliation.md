@@ -12,28 +12,28 @@ warnings:
   - "Adopted from the pre-v0.30 Auto-BMAD story/review artifact; legacy review counters remain state evidence only."
 deferred:
   - severity: high
-    finding: >-
+    summary: >-
       Same-tenant authenticated administrators can invoke
       create_quote_version_from_calculation directly with an arbitrary SHA-256-shaped digest,
       bypassing the browser's reviewed-preview click as provenance. The current SECURITY INVOKER
       boundary still enforces tenant, lifecycle, lineage, structural, economic, and RLS checks, but
       a real fix requires an owner-level persisted review authority or a privileged/HMAC boundary.
-    reason: >-
+    evidence: >-
       Architecture follow-up: changing this trust boundary safely is broader than the finished
       reconciliation story and must not weaken the existing safeguards merely to close review.
   - severity: high
-    finding: >-
+    summary: >-
       Editing a draft quote's introduction, customer notes, validity date, or display mode can
       leave an already-generated PDF marked ready, while the send gate does not require a newly
       rendered PDF.
-    reason: >-
+    evidence: >-
       Pre-existing quote lifecycle issue outside the tax-answer reconciliation change; address
       with explicit PDF invalidation/regeneration semantics.
   - severity: medium
-    finding: >-
+    summary: >-
       The create-new-version UI does not submit attachment identifiers even though the successor
       command supports them, so successor versions can omit attachments.
-    reason: >-
+    evidence: >-
       Pre-existing attachment-retention/UI workflow issue outside this story's no-attachment
       initial reviewed-creation path.
 ---
@@ -886,5 +886,7 @@ GPT-5 Codex
 - Follow-up review: recommended (`true`) because the weighted patch score is 8 and a high-severity patch was required.
 - Verification: 28 targeted Node unit tests passed; the rendered fixed-price authoring Vitest passed; changed-source ESLint passed; `git diff --check` passed. The focused calculation-command integration file was discovered but its database-backed cases were skipped because no local Supabase stack was available; no stack was started or reset.
 - Post-HALT bounded repair verification: normalized nullable option facts to omission at the create-command/helper boundary and reconciled the legacy validation expectation with command-owned inclusion defaults. The three exact affected Node test files passed 33/33, preserving explicit evidence that mandatory rows start included and optional-unselected rows start excluded; `pnpm exec tsc --noEmit --pretty false` passed.
-- Cross-model layer: unavailable. The required command was attempted exactly once and failed in PowerShell parsing before delegate execution because `< NUL` used the reserved `<` operator; no retry was made.
+- Cross-model layer: the original external CLI attempt failed before delegate execution because
+  PowerShell parsed `< NUL`; after the Windows command transport was fixed and regenerated, a
+  context-free Luna/xhigh leaf review ran through native subagent routing and returned no findings.
 - Residual risk: the three frontmatter deferrals above remain visible. The previously documented genuine pre-migration fixture limitation remains non-blocking evidence rather than a newly reopened task.

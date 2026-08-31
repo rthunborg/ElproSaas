@@ -486,3 +486,18 @@ existing AC, recorded so it is not re-triaged a third time.
 ## Deferred from: code review of 10-6-tax-answer-reconciliation (2026-08-07)
 
 - [x] [Review][Defer][Low] PDF policy-window wording treats exclusive `validTo` as inclusive [src/server/quote-pdf/render.ts:275] — deferred, customer documents say the rule is valid “till” the exclusive boundary date, overstating the frozen window by one day; render the inclusive previous date or state that validity ends before `validTo`. Sources: Blind Hunter primary; Edge Case Hunter primary.
+
+## Deferred from: build-auto review of 10-6-tax-answer-reconciliation (2026-08-31)
+
+- source_spec: `spec-10-6-tax-answer-reconciliation.md`
+  summary: Same-tenant authenticated administrators can invoke create_quote_version_from_calculation directly with an arbitrary SHA-256-shaped digest, bypassing the browser's reviewed-preview click as provenance. The current SECURITY INVOKER boundary still enforces tenant, lifecycle, lineage, structural, economic, and RLS checks, but a real fix requires an owner-level persisted review authority or a privileged/HMAC boundary.
+  evidence: Architecture follow-up: changing this trust boundary safely is broader than the finished reconciliation story and must not weaken the existing safeguards merely to close review.
+  severity: high
+- source_spec: `spec-10-6-tax-answer-reconciliation.md`
+  summary: Editing a draft quote's introduction, customer notes, validity date, or display mode can leave an already-generated PDF marked ready, while the send gate does not require a newly rendered PDF.
+  evidence: Pre-existing quote lifecycle issue outside the tax-answer reconciliation change; address with explicit PDF invalidation/regeneration semantics.
+  severity: high
+- source_spec: `spec-10-6-tax-answer-reconciliation.md`
+  summary: The create-new-version UI does not submit attachment identifiers even though the successor command supports them, so successor versions can omit attachments.
+  evidence: Pre-existing attachment-retention/UI workflow issue outside this story's no-attachment initial reviewed-creation path.
+  severity: medium

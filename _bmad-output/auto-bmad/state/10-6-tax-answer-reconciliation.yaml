@@ -9,11 +9,11 @@ spec_folder: null
 story_id: null
 branch: story/10-6-tax-answer-reconciliation
 status: in-progress
-updated_at: "2026-08-31T09:55:01Z"
+updated_at: "2026-08-31T10:53:18Z"
 started_at: "2026-07-29T10:02:59Z"
 completed_at: null
-active_seconds: 121109
-timing_anchor: 1788170101
+active_seconds: 124479
+timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
 git_mode: remote
@@ -34,7 +34,7 @@ tea_selected: [atdd, automate]
 tea_rationale: "Legally consequential money/tax engine changes and golden-master recalculation require both ATDD and post-dev automation; trace advisory excluded because stories_after_in_epic=1 is below the skip threshold of 3."
 epic_story_count: 7
 stories_after_in_epic: 1
-completed_phases: [0, 1, 2, 3, 4, 5, 6]
+completed_phases: [0, 1, 2, 3, 4, 5, 6, 7, 8]
 spec_path: "C:\\DEV\\ElproSaas\\_bmad-output\\implementation-artifacts\\spec-10-6-tax-answer-reconciliation.md"
 spec_approved: false
 build:
@@ -42,10 +42,10 @@ build:
   blocking_condition: null
   followup_review_recommended: true
   review_loop_iteration: 0
-  deferred_count: 0
-  warnings: []
-followup_passes: 0
-hitl_halt: null
+  deferred_count: 3
+  warnings: ["Adopted from the pre-v0.30 Auto-BMAD story/review artifact; legacy review counters remain state evidence only."]
+followup_passes: 1
+hitl_halt: continued
 review_unverified: true
 story_trace: null
 legacy_review_resume: false
@@ -54,7 +54,7 @@ legacy_review_loop_done: false
 legacy_external_review_iterations: 0
 legacy_convergence_unverified: false
 legacy_artifact_path: "C:\\DEV\\ElproSaas\\_bmad-output\\implementation-artifacts\\legacy-v024-10-6-tax-answer-reconciliation.md"
-commits: [c091f02, b76a59d, 11ed949, 83e597d, 56f92b8, 7fdda86, 5483b1c, 3ecc15e, aab4f9b, f5de47d]
+commits: [c091f02, b76a59d, 11ed949, 83e597d, 56f92b8, 7fdda86, 5483b1c, 3ecc15e, aab4f9b, f5de47d, 146d566, 14beac5]
 phase8_steps:
   trace_gate: null
   nfr: null
