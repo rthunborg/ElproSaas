@@ -3,6 +3,10 @@
 story_key: 10-6-tax-answer-reconciliation
 epic_num: 10
 story_num: 6
+story_suffix: ""
+story_source: sprint
+spec_folder: null
+story_id: null
 branch: story/10-6-tax-answer-reconciliation
 status: in-progress
 updated_at: "2026-08-24T13:10:31Z"
@@ -15,18 +19,46 @@ is_last_in_epic: false
 needs_project_context_bootstrap: false
 git_mode: remote
 base_branch: main
+selected_phase: null
+selected_role: null
+selected_profile: null
+selected_model: null
+selected_effort: null
+selected_host: null
+selected_tier: null
+selected_route: null
+escalation_reason: null
+routing_ledger: []
 tea_risk: high
 tea_selected: [atdd, automate]
 tea_rationale: "Legally consequential money/tax engine changes and golden-master recalculation require both ATDD and post-dev automation; trace advisory excluded because stories_after_in_epic=1 is below the skip threshold of 3."
 epic_story_count: 7
 stories_after_in_epic: 1
 completed_phases: [0, 1, 2, 3, 4, 5, 6]
+spec_path: null
+spec_approved: false
+build:
+  status: done
+  blocking_condition: null
+  followup_review_recommended: true
+  review_loop_iteration: 0
+  deferred_count: 0
+  warnings:
+    - "Legacy v0.24 adoption pending; old review count remains evidence only."
+followup_passes: 0
 code_review_iterations: 6
 code_review_loop_done: false
 hitl_halt: null
 external_review_iterations: 0
 convergence_unverified: false
+review_unverified: true
 story_trace: null
+legacy_review_resume: true
+legacy_review_iteration: 6
+legacy_review_loop_done: false
+legacy_external_review_iterations: 0
+legacy_convergence_unverified: false
+legacy_artifact_path: "C:/DEV/ElproSaas/_bmad-output/implementation-artifacts/10-6-tax-answer-reconciliation.md"
 commits: [c091f02, b76a59d, 11ed949, 83e597d, 56f92b8, 7fdda86, 5483b1c, 3ecc15e, aab4f9b, f5de47d]
 phase8_steps:
   trace_gate: null
@@ -39,6 +71,11 @@ phase8_steps:
 gate_decision: null
 gate_iterations: 0
 deferred_work_archived: 0
+retro:
+  doc: null
+  verdict: null
+  open_action_items: 0
+bmad_status_flipped_at: null
 pr_url: null
 ci_run_url: null
 ci_status: unknown
@@ -60,12 +97,14 @@ deferred_work:
   - "Optional follow-up: align inherited V1 presentation/PDF server paths with the recovery-only UI."
   - "Review defer: correct PDF policy-window wording so exclusive validTo is not presented as inclusive on customer documents."
 blockers: []
-overrides: {}
+overrides:
+  legacy_adoption_pending: true
+  start_phase: 7
 constraints:
   - "Owner-approved review decision: SE-TAX-2026-v1 is valid through 2026-12-31 and unknown policy horizons fail closed."
   - "Owner-approved review decision: document VAT state is standard/reverse-charge only while mixed row VAT categories remain supported."
   - "Owner-approved review decision: calculation-row migration uses staged low-lock backfill and deferred validation."
   - "Owner-approved review decision: quarantine ambiguous zero/unsupported legacy VAT rather than inferring a legal classification."
   - "Owner-approved review decision: V1 drafts remain readable and unsendable; recovery creates a fresh authoritative V2 without mutating or infer-converting V1."
-  - "Owner-approved review decision: sum exact rational grÃ¶n-teknik category claims first and truncate once to whole SEK at the scheme/document claim boundary."
+  - "Owner-approved review decision: sum exact rational grön-teknik category claims first and truncate once to whole SEK at the scheme/document claim boundary."
   - "Owner-approved review decision: green 97% fixed-price scope is an explicit persisted canonical row-id set; every included green row must be scoped, unrelated disjoint ROT/NONE rows may remain outside, and fixed-price total/category splits reconcile exactly to the scope."
