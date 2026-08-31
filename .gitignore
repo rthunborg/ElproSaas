@@ -50,6 +50,9 @@ next-env.d.ts
 .claude/settings.local.json
 .codex/config.local.toml
 
+# Auto-BMAD config migration/reset keeps the previous project config locally.
+/_bmad-output/auto-bmad/config.yaml.bak
+
 # Playwright E2E (TEA testarch-framework): browser report + traces + the seeded
 # fixture credentials written by globalSetup are all ephemeral, never committed.
 /test-results/

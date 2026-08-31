@@ -3,6 +3,22 @@
 # requires-python = ">=3.9"
 # dependencies = []
 # ///
+# ---------------------------------------------------------------------------
+# VENDORED FILE — synced from upstream; do not edit casually.
+#
+# Origin: https://github.com/bmad-code-org/bmad-builder
+#   skills/bmad-module-builder/assets/standalone-module-template/merge-help-csv.py
+# Synced: 2026-07-30 from main @ e6935f2776c34ffd9b18f4ef1e334584ef10a50f
+#
+# Copyright (c) 2025 BMad Code, LLC — MIT License.
+# Full text: https://github.com/bmad-code-org/bmad-builder/blob/main/LICENSE
+#
+# Local deltas from upstream:
+#   - HEADER columns 9-10: "after"/"before" -> "preceded-by"/"followed-by", matching every
+#     real module-help.csv. Upstream bug, reported as bmad-builder#102; drop this delta once
+#     that lands and re-sync.
+# Record EVERY local edit above, or the next re-sync silently reverts it.
+# ---------------------------------------------------------------------------
 """Merge module help entries into shared _bmad/module-help.csv.
 
 Reads a source CSV with module help entries and merges them into a target CSV.
@@ -33,8 +49,8 @@ HEADER = [
     "action",
     "args",
     "phase",
-    "after",
-    "before",
+    "preceded-by",
+    "followed-by",
     "required",
     "output-location",
     "outputs",
@@ -139,8 +155,36 @@ def cleanup_legacy_csvs(
     return deleted
 
 
+def reject_unresolved_paths(named_paths: list[tuple[str, str]]) -> None:
+    """Exit with a clear error if any path argument still contains the literal
+    ``{project-root}`` token. That token is meaningful only inside config
+    values; filesystem path arguments must be resolved by the caller. Failing
+    loudly here prevents silently creating a junk ``{project-root}/`` directory.
+    """
+    for name, value in named_paths:
+        if value and "{project-root}" in value:
+            print(
+                json.dumps(
+                    {
+                        "status": "error",
+                        "error": (
+                            f"Unresolved '{{project-root}}' token in {name} path: {value!r}. "
+                            "Resolve '{project-root}' to the actual project root before running "
+                            "this script — it is a filesystem path, not a config value."
+                        ),
+                    },
+                    indent=2,
+                )
+            )
+            sys.exit(1)
+
+
 def main():
     args = parse_args()
+
+    reject_unresolved_paths(
+        [("--target", args.target), ("--legacy-dir", args.legacy_dir)]
+    )
 
     # Read source entries
     source_header, source_rows = read_csv_rows(args.source)
