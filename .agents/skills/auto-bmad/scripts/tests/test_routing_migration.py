@@ -473,6 +473,36 @@ class RoutingAndMigrationTests(unittest.TestCase):
         self.assertNotIn("; cat", windows)
         self.assertNotIn("timeout", windows)
 
+    def test_resolve_layer_can_pin_platform_for_deterministic_self_test_shapes(self):
+        config = (
+            "code_review:\n  cross_model_layer: codex\n"
+            "phase_profiles:\n  cross_model_layer: diverse_review\n"
+            "profiles:\n  diverse_review:\n    codex:\n"
+            "      model: gpt-5.6-luna\n      reasoning_effort: xhigh\n"
+        )
+        posix = cli_delegate.resolve_layer(
+            config, "/proj", timeout_bin="", platform="posix")
+        windows = cli_delegate.resolve_layer(
+            config, "/proj", timeout_bin="", platform="nt")
+
+        for resolved in (posix, windows):
+            self.assertTrue(resolved["ok"])
+            self.assertEqual("codex", resolved["tool"])
+            self.assertEqual("gpt-5.6-luna", resolved["model"])
+            self.assertEqual("xhigh", resolved["effort"])
+        self.assertTrue(posix["command"].startswith('cd "/proj" && codex exec '))
+        self.assertNotIn("cmd.exe", posix["command"])
+        self.assertTrue(windows["command"].startswith(
+            'cmd.exe /d /s /c \'cd /d "/proj" && codex exec '))
+        self.assertNotIn("</dev/null", windows["command"])
+        with mock.patch.object(cli_delegate.shutil, "which", return_value="/tools/gtimeout"):
+            windows_auto = cli_delegate.resolve_layer(config, "/proj", platform="nt")
+            posix_auto = cli_delegate.resolve_layer(config, "/proj", platform="posix")
+        self.assertIsNone(windows_auto["timeout_bin"])
+        self.assertNotIn("gtimeout", windows_auto["command"])
+        self.assertEqual("/tools/gtimeout", posix_auto["timeout_bin"])
+        self.assertIn("gtimeout -k 30 1200 codex exec", posix_auto["command"])
+
     def test_legacy_profile_schema_migration_preserves_valid_overrides(self):
         asset = (ASSETS / "profiles.yaml").read_text(encoding="utf-8")
         old = (

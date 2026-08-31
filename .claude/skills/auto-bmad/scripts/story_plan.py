@@ -1776,6 +1776,9 @@ def build_legacy_adoption_result(impl_dir, story_key, state_file, baseline_revis
         and state.get("followup_passes") == 0
         and state.get("build", {}).get("status") == "done"
         and state.get("build", {}).get("followup_review_recommended") is True
+        and state.get("review_unverified") is True
+        and state.get("legacy_review_resume") is False
+        and state.get("legacy_artifact_path") == archive
         and state.get("overrides", {}).get("legacy_adoption") == _LEGACY_ADOPTION_TAG
         and state.get("overrides", {}).get("start_phase") == 7
     )
@@ -1799,9 +1802,10 @@ def build_legacy_adoption_result(impl_dir, story_key, state_file, baseline_revis
                 os.replace(source, archive)
         # apply_patch intentionally deep-merges maps, so replace this map first
         # to make removal of the one-time pending marker explicit.
-        state["overrides"] = overrides
-        su.apply_patch(state, state_patch)
-        su.write_state(su.Path(state_file), state)
+        if not already_state:
+            state["overrides"] = overrides
+            su.apply_patch(state, state_patch)
+            su.write_state(su.Path(state_file), state)
     except Exception as exc:
         result["error"] = f"legacy adoption write failed (safe to re-run): {exc}"
         return result, 1

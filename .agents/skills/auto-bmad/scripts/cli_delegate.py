@@ -714,6 +714,7 @@ def resolve_layer(
     project_root: str,
     tool: str | None = None,
     timeout_bin: str | None = None,
+    platform: str | None = None,
 ) -> dict:
     """Build the auto-bmad-cross-model review layer's command from the runtime config. Pure.
 
@@ -721,6 +722,8 @@ def resolve_layer(
     ``""``); ``""``/absent => ``{ok: True, enabled: False}``. Profile = ``phase_profiles.cross_model_layer``;
     model/effort from that profile's tool block (same rules as ``resolve()``). ``timeout_bin``: ``None``
     => detect GNU ``timeout``/``gtimeout`` on PATH; ``""`` => no wrapper; a path => use it (basename baked).
+    ``platform`` is an injectable platform selector for deterministic command-shape tests; production
+    callers omit it and use ``os.name``.
     Returns ``{ok, enabled, tool, profile, model, effort, timeout_bin, command, prompt, errors}``.
     """
     lines = config_text.splitlines()
@@ -760,12 +763,13 @@ def resolve_layer(
     if bad_prompt:
         errors.append(bad_prompt)
 
+    effective_platform = os.name if platform is None else platform
     if timeout_bin is None:
         # `timeout(1)` is GNU coreutils — absent on stock macOS (Homebrew ships it as `gtimeout`).
         # Windows' built-in timeout.exe is a different command and rejects GNU's -k flag; never
         # select it. No GNU wrapper => run unwrapped rather than bake a command that dies with 127.
-        timeout_bin = shutil.which("gtimeout") or (
-            None if os.name == "nt" else shutil.which("timeout")
+        timeout_bin = None if effective_platform == "nt" else (
+            shutil.which("gtimeout") or shutil.which("timeout")
         )
     out["timeout_bin"] = timeout_bin or None
 
@@ -775,7 +779,10 @@ def resolve_layer(
         return out
 
     out["prompt"] = CROSS_MODEL_REVIEW_PROMPT
-    out["command"] = build_layer_command(tool_name, root, out["model"], out["effort"], timeout_bin or None)
+    out["command"] = build_layer_command(
+        tool_name, root, out["model"], out["effort"], timeout_bin or None,
+        platform=effective_platform,
+    )
     return out
 
 
@@ -1513,7 +1520,7 @@ def _run_self_test() -> int:
     assert _check_prompt_shell_safe("a `b`") and _check_prompt_shell_safe("a\\b") and _check_prompt_shell_safe("a\nb")
 
     # codex (from code_review.cross_model_layer: codex; profile ab-alt-deep, inline codex map).
-    ly = resolve_layer(cfg, "/proj", timeout_bin="")
+    ly = resolve_layer(cfg, "/proj", timeout_bin="", platform="posix")
     assert ly["ok"] and ly["enabled"] and ly["tool"] == "codex" and ly["profile"] == "ab-alt-deep", ly
     assert ly["model"] == "gpt-5.4" and ly["effort"] == "xhigh" and ly["timeout_bin"] is None, ly
     assert ly["prompt"] == CROSS_MODEL_REVIEW_PROMPT and not ly["errors"], ly
@@ -1528,7 +1535,8 @@ def _run_self_test() -> int:
 
     # claude via --tool override (ignores code_review.cross_model_layer); timeout wrapper baked by
     # BASENAME (gtimeout on a Homebrew macOS, timeout on Linux) — never an absolute bake-host path.
-    lc_ = resolve_layer(cfg, "/proj", tool="claude", timeout_bin="/opt/homebrew/bin/gtimeout")
+    lc_ = resolve_layer(
+        cfg, "/proj", tool="claude", timeout_bin="/opt/homebrew/bin/gtimeout", platform="posix")
     assert lc_["ok"] and lc_["tool"] == "claude" and lc_["model"] == "sonnet" and lc_["effort"] == "xhigh", lc_
     assert lc_["timeout_bin"] == "/opt/homebrew/bin/gtimeout", lc_
     cmd = lc_["command"]
@@ -1537,18 +1545,19 @@ def _run_self_test() -> int:
         '--effort xhigh --output-format text --allowedTools "Read,Grep,Glob" </dev/null'
     ), cmd
     assert "--dangerously-skip-permissions" not in cmd and "--output-format json" not in cmd, cmd
-    lt = resolve_layer(cfg, "/proj", tool="claude-code", timeout_bin="/usr/bin/timeout")
+    lt = resolve_layer(
+        cfg, "/proj", tool="claude-code", timeout_bin="/usr/bin/timeout", platform="posix")
     assert lt["tool"] == "claude" and lt["command"].startswith('cd "/proj" && timeout -k 30 1200 claude -p "'), lt
 
     # opencode with model + variant (ab-deep) and BLANK model/variant (ab-alt-deep => inherit).
     cfg_oc = cfg.replace("cross_model_layer: ab-alt-deep", "cross_model_layer: ab-deep")
-    lo = resolve_layer(cfg_oc, "/proj", tool="opencode", timeout_bin="")
+    lo = resolve_layer(cfg_oc, "/proj", tool="opencode", timeout_bin="", platform="posix")
     assert lo["ok"] and lo["model"] == "anthropic/claude-opus-4-5" and lo["effort"] == "high", lo
     assert lo["command"] == (
         'cd "/proj" && opencode run -m anthropic/claude-opus-4-5 --variant high --dir "/proj" --auto "'
         + CROSS_MODEL_REVIEW_PROMPT + '" </dev/null'
     ), lo["command"]
-    lob = resolve_layer(cfg, "/proj", tool="opencode", timeout_bin="")
+    lob = resolve_layer(cfg, "/proj", tool="opencode", timeout_bin="", platform="posix")
     assert lob["ok"] and lob["model"] is None and lob["effort"] is None and not lob["errors"], lob
     assert lob["command"] == 'cd "/proj" && opencode run --dir "/proj" --auto "' + CROSS_MODEL_REVIEW_PROMPT + '" </dev/null', lob["command"]
     assert "--format" not in lob["command"] and "--dangerously-skip-permissions" not in lob["command"], lob["command"]
@@ -1581,7 +1590,7 @@ def _run_self_test() -> int:
         le = resolve_layer(
             "code_review:\n  cross_model_layer: opencode\n"
             "phase_profiles:\n  cross_model_layer: ab-empty\nprofiles:\n" + empty,
-            "/proj", timeout_bin="")
+            "/proj", timeout_bin="", platform="posix")
         assert le["ok"] and not le["errors"] and le["model"] is None and le["effort"] is None, (empty, le)
         assert le["command"] == 'cd "/proj" && opencode run --dir "/proj" --auto "' + CROSS_MODEL_REVIEW_PROMPT + '" </dev/null', le
     # claude/codex still REQUIRE their two keys: an empty block there stays an error.
@@ -1596,7 +1605,7 @@ def _run_self_test() -> int:
     assert parse_block_scalars(inline_cfg.splitlines(), "code_review") == {
         "followup": "recommended", "security_layer": "true", "cross_model_layer": "codex",
     }
-    li = resolve_layer(inline_cfg, "/proj", timeout_bin="")
+    li = resolve_layer(inline_cfg, "/proj", timeout_bin="", platform="posix")
     assert li["ok"] and li["enabled"] and li["tool"] == "codex" and li["command"] == ly["command"], li
     # An empty inline map (and an inline map without the key) leaves the layer disabled.
     assert resolve_layer(cfg.replace(
@@ -1608,7 +1617,7 @@ def _run_self_test() -> int:
     e = resolve_layer(cfg, '/pro"j', timeout_bin="")
     assert e["ok"] is False and any("double-quoted shell argument" in x for x in e["errors"]), e
     # A root with a space is fine (it rides inside the double quotes).
-    sp = resolve_layer(cfg, "/my proj", timeout_bin="")
+    sp = resolve_layer(cfg, "/my proj", timeout_bin="", platform="posix")
     assert sp["ok"] and 'cd "/my proj" && ' in sp["command"] and '-C "/my proj"' in sp["command"], sp
     # timeout_bin=None => live PATH detection (result is env-dependent; only its shape is asserted).
     live = resolve_layer(cfg, "/proj")
@@ -1628,7 +1637,12 @@ def _run_self_test() -> int:
         assert p.returncode == 0, (p.returncode, p.stdout, p.stderr)
         j = json.loads(p.stdout)
         expected_root, _ = _portable_project_root(os.path.abspath(ld))
-        assert j["ok"] and j["enabled"] and j["tool"] == "codex" and j["command"].startswith(f'cd "{expected_root}" && '), j
+        escaped_root = expected_root.replace("'", "''")
+        expected_prefix = (
+            f'cmd.exe /d /s /c \'cd /d "{escaped_root}" && '
+            if os.name == "nt" else f'cd "{expected_root}" && '
+        )
+        assert j["ok"] and j["enabled"] and j["tool"] == "codex" and j["command"].startswith(expected_prefix), j
         p = subprocess.run([sys.executable, me, "--layer-argv", "--config", str(cfg_file), "--project-root", ld, "--tool", "opencode"],
                            capture_output=True, text=True, timeout=60)
         j = json.loads(p.stdout)
