@@ -1,13 +1,36 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { invoiceInclusionForOptionSelectionTransition } from "@/features/calculations/row-option-transition";
+import {
+  invoiceInclusionForNewRow,
+  invoiceInclusionForOptionSelectionTransition,
+} from "@/features/calculations/row-option-transition";
 
 const persisted = {
   isOptional: true,
   isSelected: false,
   includedInInvoiceTotal: false,
 } as const;
+
+test("new optional rows derive inclusion from selection only when inclusion is omitted", () => {
+  assert.equal(
+    invoiceInclusionForNewRow({ isOptional: true, isSelected: false }),
+    false,
+  );
+  assert.equal(
+    invoiceInclusionForNewRow({ isOptional: true, isSelected: true }),
+    true,
+  );
+  assert.equal(
+    invoiceInclusionForNewRow({
+      isOptional: true,
+      isSelected: false,
+      includedInInvoiceTotal: true,
+    }),
+    true,
+  );
+  assert.equal(invoiceInclusionForNewRow({ isOptional: false }), true);
+});
 
 test("an actual optional selection transition synchronizes economic inclusion", () => {
   assert.equal(

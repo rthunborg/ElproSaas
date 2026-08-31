@@ -113,6 +113,27 @@ test("validateCreateRow accepts every approved row_type", () => {
   }
 });
 
+test("validateCreateRow preserves omitted invoice inclusion for command-owned option defaults", () => {
+  const { validateCreateRow } = notYetImplemented();
+  const data = assertAccepted<{ readonly included_in_invoice_total?: boolean }>(
+    validateCreateRow(baseRow({ is_optional: true, is_selected: false })),
+    "optional unselected row with omitted inclusion",
+  );
+  assert.equal(data.included_in_invoice_total, undefined);
+
+  const explicit = assertAccepted<{ readonly included_in_invoice_total?: boolean }>(
+    validateCreateRow(
+      baseRow({
+        is_optional: true,
+        is_selected: false,
+        included_in_invoice_total: true,
+      }),
+    ),
+    "explicit independent inclusion",
+  );
+  assert.equal(explicit.included_in_invoice_total, true);
+});
+
 test("validateCreateRow rejects a row_type outside the closed union", () => {
   const { validateCreateRow } = notYetImplemented();
   assertRejected(validateCreateRow(baseRow({ row_type: "consulting" })), "bad row_type");

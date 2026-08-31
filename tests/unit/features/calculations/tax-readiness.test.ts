@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { resolveTaxReadiness } from "@/features/calculations/tax-readiness";
+import {
+  resolveTaxReadiness,
+  taxReadinessBlockerForFailure,
+} from "@/features/calculations/tax-readiness";
 
 const standardRow = {
   id: "row-1",
@@ -54,4 +57,15 @@ test("10.6 tax readiness returns the exact reconciled answer when inputs are com
   assert.equal(resolution.answer?.netOre, 100_000);
   assert.equal(resolution.answer?.vatOre, 25_000);
   assert.equal(resolution.answer?.payableOre, 125_000);
+});
+
+test("10.6 tax readiness maps fixed-price row-scope failures to actionable fixed-price guidance", () => {
+  assert.equal(
+    taxReadinessBlockerForFailure("INCOMPLETE_FIXED_PRICE_ROW_SCOPE"),
+    "INCOMPLETE_FIXED_PRICE_CATEGORY_SPLIT",
+  );
+  assert.equal(
+    taxReadinessBlockerForFailure("FIXED_PRICE_SCOPE_MISMATCH"),
+    "INCOMPLETE_FIXED_PRICE_CATEGORY_SPLIT",
+  );
 });

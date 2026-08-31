@@ -1637,6 +1637,7 @@ end;
 $$;
 
 revoke execute on function public.is_story_10_6_ore(jsonb) from public;
+revoke execute on function public.is_story_10_6_calendar_date(text) from public, anon;
 revoke execute on function public.is_story_10_6_tax_policy_snapshot(jsonb) from public;
 revoke execute on function public.is_story_10_6_buyer_vat_number(text) from public;
 revoke execute on function public.is_story_10_6_tax_input_v2(jsonb) from public;
@@ -1647,6 +1648,8 @@ revoke execute on function public.is_story_10_6_tax_answer_matches_input(jsonb, 
   from public;
 revoke execute on function public.story_10_6_tax_rule_version(jsonb) from public;
 grant execute on function public.is_story_10_6_ore(jsonb)
+  to authenticated, service_role;
+grant execute on function public.is_story_10_6_calendar_date(text)
   to authenticated, service_role;
 grant execute on function public.is_story_10_6_tax_policy_snapshot(jsonb)
   to authenticated, service_role;

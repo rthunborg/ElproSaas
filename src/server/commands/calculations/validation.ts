@@ -639,7 +639,10 @@ export function validateCreateRow(
       unit_sell_ore: num(raw, "unit_sell_ore"),
       markup_bp: num(raw, "markup_bp"),
       vat_rate_bp: raw.vat_rate_bp as number,
-      included_in_invoice_total: bool(raw, "included_in_invoice_total") ?? true,
+      // Preserve omission so the command can derive the settled option-selection default:
+      // optional + unselected starts excluded; mandatory rows start included. Collapsing an
+      // omitted field to `true` here bypasses that command-layer transition authority.
+      included_in_invoice_total: bool(raw, "included_in_invoice_total"),
       deduction_classification: deductionClassification,
       vat_type: vatType,
       is_hidden: bool(raw, "is_hidden"),

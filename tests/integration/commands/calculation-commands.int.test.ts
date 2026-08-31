@@ -43,6 +43,7 @@ import {
   updateCalculation,
   archiveCalculation,
   createRow,
+  updateRow,
   reorderRows,
   reorderSections,
 } from "@/server/commands/calculations";
@@ -190,6 +191,65 @@ describe("Calc commands via the envelope (AC2/AC6/AC7 / 5.1-INT-03/04/05)", () =
     expect(persisted[0].sort_order).not.toBeNull();
     // The 3 seeded rows carry sort_order 0..2, so the appended row is 3 (server-owned).
     expect(persisted[0].sort_order).toBe(3);
+  });
+
+  it("[P0/10.6-AC2] option selection persists coherent invoice inclusion through the real command", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
+    const { sectionId } = await seedTenantACalcWithSection(fixture.tenantA.id);
+
+    const created = await runCommand(createRow, {
+      client: a as never,
+      input: {
+        section_id: sectionId,
+        row_type: "labor",
+        quantity: 1,
+        unit: "h",
+        unit_sell_ore: 100_000,
+        vat_rate_bp: 2_500,
+        is_optional: true,
+        is_selected: false,
+      },
+      clock: fixedClock,
+      correlationId: crypto.randomUUID(),
+    });
+    expect(created.ok).toBe(true);
+    if (!created.ok) return;
+    const rowId = (created.data as { targetId: string }).targetId;
+
+    const assertState = async (isSelected: boolean, included: boolean) => {
+      const rows = await adminQuery<{
+        is_selected: boolean;
+        included_in_invoice_total: boolean;
+      }>(
+        `select is_selected, included_in_invoice_total
+           from public.calculation_rows
+          where id = $1`,
+        [rowId],
+      );
+      expect(rows).toEqual([
+        { is_selected: isSelected, included_in_invoice_total: included },
+      ]);
+    };
+
+    await assertState(false, false);
+
+    const selected = await runCommand(updateRow, {
+      client: a as never,
+      input: { id: rowId, is_selected: true },
+      clock: fixedClock,
+      correlationId: crypto.randomUUID(),
+    });
+    expect(selected.ok).toBe(true);
+    await assertState(true, true);
+
+    const unselected = await runCommand(updateRow, {
+      client: a as never,
+      input: { id: rowId, is_selected: false },
+      clock: fixedClock,
+      correlationId: crypto.randomUUID(),
+    });
+    expect(unselected.ok).toBe(true);
+    await assertState(false, false);
   });
 
   it("[P0] VALIDATION_FAILED for a row_type outside the closed 5-value union", async (testCtx) => {

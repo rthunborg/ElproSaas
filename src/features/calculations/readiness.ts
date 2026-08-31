@@ -246,7 +246,7 @@ const TAX_BLOCKER_MESSAGES: Readonly<Record<TaxReadinessBlockerCode, string>> = 
   INSUFFICIENT_PERSON_ALLOWANCE:
     "Det kunduppgivna återstående avdragsutrymmet räcker inte för anspråket.",
   INCOMPLETE_FIXED_PRICE_CATEGORY_SPLIT:
-    "Fastpriset måste fördelas fullständigt mellan sol, lagring och laddning.",
+    "Fastprisets rader och belopp måste stämma med fördelningen mellan sol, lagring och laddning.",
   INVALID_FIXED_PRICE_SCHABLON:
     "97-procentsregeln får bara användas för ett uttryckligen bekräftat äkta fastprisavtal.",
   INCOMPLETE_VAT_INPUT:

@@ -10,6 +10,13 @@ export interface RowOptionUpdate {
   readonly includedInInvoiceTotal?: boolean;
 }
 
+/** Resolve the persisted inclusion fact for a newly-created row. */
+export function invoiceInclusionForNewRow(input: RowOptionUpdate): boolean {
+  const isOptional = input.isOptional ?? false;
+  const isSelected = input.isSelected ?? null;
+  return input.includedInInvoiceTotal ?? (isOptional ? isSelected === true : true);
+}
+
 /**
  * Preserve selection/inclusion as independent facts except for the settled option affordance: an
  * actual selection transition on an effective optional row carries the same intent to inclusion.

@@ -8,7 +8,7 @@ import {
 
 import type { TaxReadinessBlockerCode } from "./readiness";
 
-function mapFailure(code: string): TaxReadinessBlockerCode {
+export function taxReadinessBlockerForFailure(code: string): TaxReadinessBlockerCode {
   if (code === "MISSING_BUYER_VAT_NUMBER" || code === "INVALID_BUYER_VAT_NUMBER") {
     return "MISSING_BUYER_VAT_NUMBER";
   }
@@ -21,7 +21,9 @@ function mapFailure(code: string): TaxReadinessBlockerCode {
   }
   if (
     code === "INCOMPLETE_FIXED_PRICE_CATEGORY_SPLIT" ||
-    code === "FIXED_PRICE_CLASSIFICATION_MISMATCH"
+    code === "FIXED_PRICE_CLASSIFICATION_MISMATCH" ||
+    code === "INCOMPLETE_FIXED_PRICE_ROW_SCOPE" ||
+    code === "FIXED_PRICE_SCOPE_MISMATCH"
   ) {
     return "INCOMPLETE_FIXED_PRICE_CATEGORY_SPLIT";
   }
@@ -63,7 +65,10 @@ export function resolveTaxReadiness(input: {
   }
   const parsed = parseTaxInputSnapshot(input.taxInput);
   if (!parsed.ok) {
-    return { blockingCodes: Object.freeze([mapFailure(parsed.code)]), answer: null };
+    return {
+      blockingCodes: Object.freeze([taxReadinessBlockerForFailure(parsed.code)]),
+      answer: null,
+    };
   }
 
   const answer = buildTaxAnswerSnapshotV2({
@@ -74,7 +79,10 @@ export function resolveTaxReadiness(input: {
   });
   return answer.ok
     ? { blockingCodes: Object.freeze([]), answer: answer.value }
-    : { blockingCodes: Object.freeze([mapFailure(answer.code)]), answer: null };
+    : {
+        blockingCodes: Object.freeze([taxReadinessBlockerForFailure(answer.code)]),
+        answer: null,
+      };
 }
 
 export function resolveTaxReadinessCodes(input: {

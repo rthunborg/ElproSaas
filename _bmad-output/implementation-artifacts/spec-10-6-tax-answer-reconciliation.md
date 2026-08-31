@@ -10,13 +10,38 @@ legacy_source: "legacy-v024-10-6-tax-answer-reconciliation.md"
 context: []
 warnings:
   - "Adopted from the pre-v0.30 Auto-BMAD story/review artifact; legacy review counters remain state evidence only."
-deferred: []
+deferred:
+  - severity: high
+    finding: >-
+      Same-tenant authenticated administrators can invoke
+      create_quote_version_from_calculation directly with an arbitrary SHA-256-shaped digest,
+      bypassing the browser's reviewed-preview click as provenance. The current SECURITY INVOKER
+      boundary still enforces tenant, lifecycle, lineage, structural, economic, and RLS checks, but
+      a real fix requires an owner-level persisted review authority or a privileged/HMAC boundary.
+    reason: >-
+      Architecture follow-up: changing this trust boundary safely is broader than the finished
+      reconciliation story and must not weaken the existing safeguards merely to close review.
+  - severity: high
+    finding: >-
+      Editing a draft quote's introduction, customer notes, validity date, or display mode can
+      leave an already-generated PDF marked ready, while the send gate does not require a newly
+      rendered PDF.
+    reason: >-
+      Pre-existing quote lifecycle issue outside the tax-answer reconciliation change; address
+      with explicit PDF invalidation/regeneration semantics.
+  - severity: medium
+    finding: >-
+      The create-new-version UI does not submit attachment identifiers even though the successor
+      command supports them, so successor versions can omit attachments.
+    reason: >-
+      Pre-existing attachment-retention/UI workflow issue outside this story's no-attachment
+      initial reviewed-creation path.
 ---
 
 
 # Story 10.6: Tax-Answer Reconciliation — VAT Rounding, Deduction Classification, and Reverse Charge
 
-Status: review
+Status: done
 
 <!-- Created 2026-07-29 from the ratified owner/accountant answers. -->
 
@@ -832,3 +857,33 @@ GPT-5 Codex
 - [x] [Review][Patch][Low] Tax-readiness failures for customer ineligibility or excessive deduction claims are mapped to a row-classification blocker [src/features/calculations/tax-readiness.ts:37] — the UI can point the user toward row classification when the repair is customer posture or claim sizing; preserve a more specific blocker code. Sources: Blind Hunter primary.
 - [x] [Review][Patch][Low] Form parsing accepts row-only VAT types as document VAT posture values [src/features/calculations/form-parsing.ts:195] — `document_vat_type` is checked against every `VAT_TYPES` member even though the canonical document posture accepts only standard VAT or reverse charge, causing stale/forged reduced or zero-rated document states to fail later as generic command errors. Sources: Blind Hunter primary; Blind Hunter secondary.
 - [x] [Review][Patch][Low] The reverse-charge buyer VAT field is cleared by a one-way session flag [src/components/calculations/TaxSettingsPanel.tsx:92] — toggling away from reverse charge and back in one edit session always blanks the persisted buyer VAT number, forcing re-entry and making accidental empty submissions more likely. Sources: Blind Hunter secondary.
+
+## Review Triage Log
+
+### 2026-08-31 — Review pass
+
+- intent_gap: 0
+- bad_spec: 0
+- patch: 5 (high 1, medium 2, low 2)
+- defer: 3 (high 2, medium 1, low 0)
+- reject: 20 (high 4, medium 11, low 5)
+- addressed_findings:
+  - `[high]` `[patch]` Preserve an omitted create-row inclusion field through validation and derive optional-row invoice inclusion from explicit option selection, preventing optional-unselected rows from defaulting into totals.
+  - `[medium]` `[patch]` Map fixed-price row-scope and fixed-price scope-mismatch failures to the fixed-price allocation blocker instead of generic VAT guidance.
+  - `[medium]` `[patch]` Exercise optional-row selection and invoice-inclusion transitions through the real calculation row command and database persistence path.
+  - `[low]` `[patch]` Revoke default `PUBLIC`/`anon` execute on the new Story 10.6 calendar helper and grant only `authenticated` and `service_role`.
+  - `[low]` `[patch]` Render the real fixed-price tax-settings authoring branch and pin its allocation and row-scope controls.
+  - `[high]` `[defer]` Preserve the existing same-tenant review-RPC security safeguards while deferring the review-provenance authority redesign; direct invocation cannot be made browser-click authoritative without a persisted or privileged boundary.
+  - `[high]` `[defer]` Record the pre-existing stale-PDF-after-draft-edit lifecycle risk for explicit invalidation/regeneration work.
+  - `[medium]` `[defer]` Record the pre-existing successor attachment-retention UI gap.
+  - `[reject]` The remaining twenty candidates were dismissed after deduplication because the cited consequence was disproved by current guards, the behavior was an intentional settled story decision, the path was stale/nonexistent, the observation was non-actionable, or the change belonged to unrelated workflow tooling rather than the Story 10.6 product surface.
+
+## Auto Run Result
+
+- Summary: Completed a fresh whole-story convergence review from baseline `aab9fc0e38ae022d009967f3ebcd2a93e7ca723b`, reconciled security, architecture, intent, edge-case, and verification evidence, patched five in-scope findings, and retained three explicit follow-ups without weakening critical safeguards.
+- Files changed: calculation row validation/transition command logic; tax-readiness blocker mapping and copy; Story 10.6 migration function grants; focused unit, command-integration, and rendered fixed-price authoring tests; this finished story artifact.
+- Findings: `intent_gap=0`, `bad_spec=0`, `patch=5 (high 1, medium 2, low 2)`, `defer=3 (high 2, medium 1)`, `reject=20 (high 4, medium 11, low 5)`.
+- Follow-up review: recommended (`true`) because the weighted patch score is 8 and a high-severity patch was required.
+- Verification: 28 targeted Node unit tests passed; the rendered fixed-price authoring Vitest passed; changed-source ESLint passed; `git diff --check` passed. The focused calculation-command integration file was discovered but its database-backed cases were skipped because no local Supabase stack was available; no stack was started or reset.
+- Cross-model layer: unavailable. The required command was attempted exactly once and failed in PowerShell parsing before delegate execution because `< NUL` used the reserved `<` operator; no retry was made.
+- Residual risk: the three frontmatter deferrals above remain visible. The previously documented genuine pre-migration fixture limitation remains non-blocking evidence rather than a newly reopened task.

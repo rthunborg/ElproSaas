@@ -42,7 +42,10 @@ import type { CommandExecuteContext } from "../envelope-core";
 import type { CommandDbClient } from "../envelope";
 import { isDeductionClassificationCompatibleWithSummaryCategory } from "@/lib/money";
 import { canAddCalculationRow } from "@/features/calculations/limits";
-import { invoiceInclusionForOptionSelectionTransition } from "@/features/calculations/row-option-transition";
+import {
+  invoiceInclusionForNewRow,
+  invoiceInclusionForOptionSelectionTransition,
+} from "@/features/calculations/row-option-transition";
 import { isEffectiveRowVatPairCoherent } from "@/features/calculations/row-vat-transition";
 import type { CalcCommandResult } from "./calculations";
 import {
@@ -175,7 +178,11 @@ function rowInsertValues(
 ): Record<string, unknown> {
   const isOptional = input.is_optional ?? false;
   const isSelected = input.is_selected ?? null;
-  const includedInInvoiceTotal = input.included_in_invoice_total ?? (isOptional ? isSelected === true : true);
+  const includedInInvoiceTotal = invoiceInclusionForNewRow({
+    isOptional,
+    isSelected,
+    includedInInvoiceTotal: input.included_in_invoice_total,
+  });
   return {
     tenant_id: tenantId, // resolved tenant — NEVER a client-supplied id
     section_id: input.section_id,
