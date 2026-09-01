@@ -40,7 +40,7 @@ Stories 10.1–10.6.
 
 ## Tasks / Subtasks
 
-Checked tasks indicate the implementation is present. Round 3/final automatic convergence is complete; status is `review` for human/CI handling of the explicitly unrun browser and remote-provisioning gates.
+Checked tasks indicate the implementation is present. Round 3/final automatic convergence and hosted verify/database/Playwright CI are complete; status remains `review` only for post-merge remote-demo provisioning.
 
 - [x] Task 1 — Authorize and persist one-time review authority (AC1, AC2).
   - [x] Enforce authenticated actor identity and exact server-validated content binding.
@@ -98,7 +98,7 @@ Checked tasks indicate the implementation is present. Round 3/final automatic co
 
 ## Test Gate
 
-Verification status: current local evidence is recorded below. Round 3/final automatic convergence is complete; the story remains `review`, not done, because browser E2E and remote provisioning are explicitly unclaimed.
+Verification status: current local and hosted-CI evidence is recorded below. Round 3/final automatic convergence is complete; the story remains `review`, not done, because post-merge remote-demo provisioning is explicitly unclaimed.
 
 ### Required full project gates
 
@@ -113,13 +113,13 @@ Verification status: current local evidence is recorded below. Round 3/final aut
 ### Evidence actually run
 
 - **Dependency audit:** passed — the project-scoped pnpm override schema moved from its obsolete `package.json` placement to `pnpm-workspace.yaml`; the lockfile resolves `brace-expansion` 5.0.9, `js-yaml` 4.3.1, and `nanoid` 3.3.18; `pnpm audit --audit-level=high` exits 0 with `No known vulnerabilities found`. Frozen lockfile-only regeneration and the bundled-Node lockfile guard passed. Existing `node_modules` was deliberately not broadly reinstalled, so focused `pnpm why` still observes its stale pre-lockfile graph; CI's frozen install will materialize the patched graph.
-- Lockfile guard and service-role source containment passed. Full TypeScript passed. Changed-file ESLint and full ESLint passed: the bundled Node ran `node_modules/eslint/bin/eslint.js .` and exited 0 with no findings after `eslint.config.mjs` explicitly ignored non-product `.agents/**` skill resources and generated `supabase/.temp/**`; application, tests, scripts, and real Supabase sources remain in scope. Full unit ran through the equivalent bundled-Node command and passed 94 suites / 1,672 tests.
+- Lockfile guard and service-role source containment passed. Full TypeScript passed. Changed-file ESLint and full ESLint passed: the bundled Node ran `node_modules/eslint/bin/eslint.js .` and exited 0 with no findings after `eslint.config.mjs` explicitly ignored non-product `.agents/**` skill resources and generated `supabase/.temp/**`; application, tests, scripts, and real Supabase sources remain in scope. Full unit ran through the equivalent bundled-Node command and passed 94 suites / 1,673 tests.
 - Next build, service-role bundle containment, and HMAC secret/bundle containment passed.
-- Empty-DB local `supabase db reset` completed successfully twice; local DB lint and tenant-table inventory (27) passed. Focused post-replay migration/behavior contracts passed (4 files / 50 tests), complete changed integration surface passed (27 unique files / 382 tests), and changed unit surface passed (15 files / 110 tests). **Additional supporting verification, not the canonical CI migration-ledger contract:** both 10.8/10.9 migrations are replay-safe and passed real replay against an already-migrated local database; the canonical migration proof remains empty-DB `supabase db reset`.
+- Empty-DB local `supabase db reset` completed successfully twice; local DB lint and tenant-table inventory (27) passed. Focused migration/authority/PDF/audit contracts passed 48/48, the parallel-safe rollback contract passed 7/7, the complete changed integration surface passed 28 unique files / 388 tests, and the required full integration/RLS suite passed 85 files / 905 tests. **Additional supporting verification, not the canonical CI migration-ledger contract:** both 10.8/10.9 migrations are replay-safe and passed real replay against an already-migrated local database; the canonical migration proof remains empty-DB `supabase db reset`.
 - **Round-3 delta:** a fresh local reset applied the complete migration/seed chain; both 10.8 and 10.9 real replays passed; DB lint was clean; the four focused migration/authority/PDF/audit files passed 48/48; and the production mark-sent plus forced-audit-rollback files initially passed 24/24. A later parallel run exposed and fixed a test-only trigger-DDL deadlock: seed now installs one local-only, unexposed, correlation-scoped audit-failure trigger/control table, while cases use DML only. After a fresh reset, the rollback file passed 7/7 and all 28 changed integration files passed 388/388. Final TypeScript, full ESLint, Next build, full unit (94 suites / 1,673 tests), DB lint, lock/source/bundle/HMAC containment, and diff hygiene passed.
-- Browser E2E/Playwright is a required project gate but was deliberately **NOT RUN** inside Codex because it would require a persistent app server; CI/standalone verification remains responsible.
+- Hosted GitHub Actions run [33495807115](https://github.com/rthunborg/ElproSaas/actions/runs/33495807115) passed verify, database, and Playwright: 121 passed and 1 skipped, with the Playwright report uploaded. Local Playwright was deliberately **NOT RUN** inside Codex because it would require a persistent app server.
 
-`git diff --check` passed. The prohibited Auto-BMAD self-test and broad wrappers were not run. Remote demo Vault/Vercel secret provisioning is not attested, repository-scoped Supabase profile auth remains pending owner login, and demo migrations flow only after merge.
+`git diff --check` passed. The prohibited Auto-BMAD self-test and broad wrappers were not run. Remote demo Vault/Vercel secret provisioning is not attested, and demo migrations flow only after merge; no pre-merge demo mutation was attempted.
 
 ### Review Findings
 
@@ -141,4 +141,4 @@ Verification status: current local evidence is recorded below. Round 3/final aut
 - Fixed accountable audit attribution at the shared boundary: `record_audit_event` now requires `auth.uid()` to equal the persisted actor, retains the active-tenant membership check, and is no longer executable by `service_role`. A focused forged-actor negative was added.
 - Preserved the cross-story separation: Story 10.8 final-send review authority remains a one-time, 15-minute, non-HMAC record. Story 10.9's server-only PDF-byte HMAC is a separate prerequisite consumed in the same atomic send transaction.
 - Fixed the CI-parallel rollback harness without changing production behavior: the shared `audit_events` table is no longer repeatedly schema-locked by per-case trigger DDL. The local seed installs one inaccessible correlation-scoped trigger, and tests activate it through isolated control-table DML.
-- Final evidence is green: fresh reset, both real migration replays, focused DB/grant/behavior coverage (48/48), rollback 7/7, all 28 changed integration files 388/388, TypeScript, full ESLint, Next build, full unit (94 suites / 1,673 tests), DB lint, lock/source/bundle/HMAC containment, and diff hygiene. Final automatic convergence is verified; no fourth automatic review is permitted, so any later concern requires human triage.
+- Final evidence is green: fresh reset, both real migration replays, focused DB/grant/behavior coverage (48/48), rollback 7/7, all 28 changed integration files 388/388, full integration/RLS 85 files/905 tests, TypeScript, full ESLint, Next build, full unit (94 suites / 1,673 tests), DB lint, lock/source/bundle/HMAC containment, diff hygiene, and hosted Playwright (121 passed, 1 skipped). Final automatic convergence is verified; no fourth automatic review is permitted, so any later concern requires human triage.

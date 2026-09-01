@@ -213,9 +213,9 @@ development_status:
   10-7-pwa-offline-field-capability: backlog
   # Approved corrective follow-ups from the 2026-08-31 Story 10.6 review. Stories 10.8/10.9
   # implement ADR-B008 provenance/authority/audit, HMAC PDF-byte attestation, and
-  # PDF-validity/attachment carry-forward. Fresh verification counts and final convergence are
-  # pending. Physical Storage byte reclamation remains deferred to future Story 31.7 after E31;
-  # 10.6 stays in review.
+  # PDF-validity/attachment carry-forward. Final local verification and hosted verify/db/Playwright
+  # CI are green; 10.6/10.8/10.9 remain in review pending post-merge demo secret/migration
+  # attestation. Physical Storage byte reclamation remains deferred to future Story 31.7 after E31.
   10-8-quote-review-provenance-authority-and-audit: review
   10-9-quote-pdf-validity-and-attachment-carry-forward: review
   epic-10-retrospective: done
