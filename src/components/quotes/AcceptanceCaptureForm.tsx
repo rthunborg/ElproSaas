@@ -33,7 +33,16 @@ import {
   oreToKronorString,
 } from "@/features/calculations/money-input";
 import { computeAcceptanceDelta } from "@/features/quotes/acceptance-price";
-import { localAcceptanceTimeToIso } from "@/features/quotes/acceptance-time";
+import { localAcceptanceTimeCandidates } from "@/features/quotes/acceptance-time";
+
+function formatUtcOffset(iso: string): string {
+  const minutes = -new Date(iso).getTimezoneOffset();
+  const sign = minutes >= 0 ? "+" : "-";
+  const absolute = Math.abs(minutes);
+  const hours = String(Math.floor(absolute / 60)).padStart(2, "0");
+  const remainingMinutes = String(absolute % 60).padStart(2, "0");
+  return `UTC${sign}${hours}:${remainingMinutes}`;
+}
 
 export interface AcceptanceCaptureFormProps {
   readonly quoteId: string;
@@ -60,10 +69,17 @@ export function AcceptanceCaptureForm({
   );
   const [reasonInput, setReasonInput] = useState<string>("");
   const [acceptedAtLocal, setAcceptedAtLocal] = useState<string>("");
-  const acceptedAtIso = useMemo(
-    () => localAcceptanceTimeToIso(acceptedAtLocal),
+  const [acceptedAtOccurrence, setAcceptedAtOccurrence] = useState<string>("");
+  const acceptedAtCandidates = useMemo(
+    () => localAcceptanceTimeCandidates(acceptedAtLocal),
     [acceptedAtLocal],
   );
+  const acceptedAtIso =
+    acceptedAtCandidates.length === 1
+      ? acceptedAtCandidates[0]!
+      : acceptedAtCandidates.length > 1 && acceptedAtOccurrence !== ""
+        ? (acceptedAtCandidates[Number(acceptedAtOccurrence)] ?? null)
+        : null;
 
   // Mirror the server rule with the SAME pure engine: parse the entered kronor → öre, compute the
   // delta, decide whether a reason is required. A malformed price parses to null → treated as "no
@@ -134,29 +150,68 @@ export function AcceptanceCaptureForm({
           />
         </label>
 
-        <label className="flex flex-col gap-1 text-sm">
-          <span className="text-zinc-700">Accepterad (datum/tid)</span>
+        <div className="flex flex-col gap-1 text-sm">
+          <label htmlFor="acceptance-accepted-at" className="text-zinc-700">
+            Accepterad (datum/tid)
+          </label>
           <input
+            id="acceptance-accepted-at"
             name="accepted_at_local"
             data-testid="acceptance-accepted-at"
             type="datetime-local"
             required
             value={acceptedAtLocal}
-            onChange={(event) => setAcceptedAtLocal(event.target.value)}
-            aria-invalid={acceptedAtLocal !== "" && acceptedAtIso === null ? "true" : undefined}
+            onChange={(event) => {
+              setAcceptedAtLocal(event.target.value);
+              setAcceptedAtOccurrence("");
+            }}
+            aria-invalid={
+              acceptedAtLocal !== "" && acceptedAtCandidates.length === 0
+                ? "true"
+                : undefined
+            }
             aria-describedby={
-              acceptedAtLocal !== "" && acceptedAtIso === null
+              acceptedAtLocal !== "" && acceptedAtCandidates.length === 0
                 ? "acceptance-accepted-at-error"
+                : acceptedAtCandidates.length > 1
+                  ? "acceptance-accepted-at-overlap"
                 : undefined
             }
             className="rounded-md border border-zinc-300 px-3 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
           />
-          {acceptedAtLocal !== "" && acceptedAtIso === null ? (
+          {acceptedAtLocal !== "" && acceptedAtCandidates.length === 0 ? (
             <span id="acceptance-accepted-at-error" role="alert" className="text-xs text-red-800">
               Datumet eller tiden finns inte i din lokala tidszon.
             </span>
           ) : null}
-        </label>
+          {acceptedAtCandidates.length > 1 ? (
+            <fieldset
+              id="acceptance-accepted-at-overlap"
+              data-testid="acceptance-accepted-at-overlap"
+              className="mt-1 flex flex-col gap-1 rounded-md border border-amber-300 bg-amber-50 p-2"
+            >
+              <legend className="px-1 text-xs font-medium text-amber-950">
+                Tiden inträffar två gånger – välj rätt tillfälle
+              </legend>
+              {acceptedAtCandidates.map((candidate, index) => (
+                <label
+                  key={candidate}
+                  className="flex items-center gap-2 text-xs text-amber-950"
+                >
+                  <input
+                    type="radio"
+                    name="accepted_at_occurrence"
+                    value={String(index)}
+                    checked={acceptedAtOccurrence === String(index)}
+                    onChange={(event) => setAcceptedAtOccurrence(event.target.value)}
+                  />
+                  {index === 0 ? "Första tillfället" : "Andra tillfället"} (
+                  {formatUtcOffset(candidate)})
+                </label>
+              ))}
+            </fieldset>
+          ) : null}
+        </div>
 
         {/* Optional job title (Story 7.2) — the job created from the acceptance carries this as its
             display title; absent = the server leaves it null (a nullable Phase-A field). */}

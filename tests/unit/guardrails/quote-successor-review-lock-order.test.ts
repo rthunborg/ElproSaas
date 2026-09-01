@@ -21,7 +21,7 @@ test("successor review locks the source quote version before calculation-backed 
   const definition = migration.slice(start, end);
 
   const quoteVersionLock = definition.indexOf(
-    "perform 1 from public.quote_versions qv",
+    "select qv.calculation_id into v_source_calculation_id",
   );
   const calculationLock = definition.indexOf(
     "perform public.assert_story_10_6_line_sources",

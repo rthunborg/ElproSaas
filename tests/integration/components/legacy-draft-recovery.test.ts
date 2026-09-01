@@ -24,7 +24,8 @@ vi.mock("@/components/quotes/AcceptanceCaptureForm", () => ({
   AcceptanceCaptureForm: () => null,
 }));
 vi.mock("@/components/quotes/QuotePdfPanel", () => ({
-  QuotePdfPanel: () => "PDF_PANEL",
+  QuotePdfPanel: ({ allowGeneration }: { readonly allowGeneration: boolean }) =>
+    allowGeneration ? "PDF_PANEL_GENERATE" : "PDF_PANEL_READ_ONLY",
 }));
 
 import {
@@ -134,9 +135,23 @@ describe("QuoteDetailView — legacy V1 draft recovery", () => {
     expect(html).not.toContain('data-testid="legacy-draft-recovery"');
     expect(html).toContain("DRAFT_EDITOR");
     expect(html).toContain("MARK_SENT");
-    expect(html).toContain("PDF_PANEL");
+    expect(html).toContain("PDF_PANEL_GENERATE");
     expect(html).toContain('data-testid="quote-buyer-vat-number"');
     expect(html).toContain("SE556677889901");
     expect(html).not.toContain("CREATE_NEW_VERSION");
+  });
+
+  it("keeps sent PDF history visible without offering draft-only generation", () => {
+    const sent = {
+      ...version(2),
+      status: "sent" as const,
+      pdf_status: "failed",
+    };
+    const html = renderToStaticMarkup(
+      createElement(QuoteDetailView, { detail: detailFor(sent) }),
+    );
+
+    expect(html).toContain("PDF_PANEL_READ_ONLY");
+    expect(html).not.toContain("PDF_PANEL_GENERATE");
   });
 });

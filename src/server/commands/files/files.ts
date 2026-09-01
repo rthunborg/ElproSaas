@@ -458,9 +458,9 @@ export const archiveFile = defineCommand<ArchiveFileInput, ArchiveFileResult>({
       return { targetId: fileId, archived: false };
     }
 
-    // Quote PDFs are owned by the render/invalidation lifecycle. Letting the generic file
-    // archive path mutate one would stale or disable the quote's current immutable PDF.
-    if (isGenericFileArchiveForbidden(file.artifact_kind)) {
+    // Current/reserved quote PDFs are owned by the render/invalidation lifecycle. A LOCKED PDF
+    // belongs to a sent commitment and retains the established archive-over-delete affordance.
+    if (isGenericFileArchiveForbidden(file.artifact_kind, file.lifecycle_state)) {
       throw new CommandError("FILE_LINK_LOCKED");
     }
 

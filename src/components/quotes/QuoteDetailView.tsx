@@ -166,11 +166,10 @@ export function QuoteDetailView({
   // from the joined `selectedLostReason`. The mark-lost affordance is offered ONLY on a sent version.
   const isLost = selected.status === "lost";
   const isSent = selected.status === "sent";
-  // Integration review F4: PDF generate/retry is scoped to draft/sent (architecture §12;
-  // generateQuotePdf rejects every other status with VALIDATION_FAILED). Gate the panel POSITIVELY on
-  // draft/sent so a `lost` (or rejected/expired/superseded) version is never offered an action the
-  // command always refuses — the previous `!isAccepted` gate leaked the affordance onto a lost version.
-  const canGeneratePdf = (isDraft && !isLegacyDraft) || isSent;
+  // Rendering is draft-only in the DB. Sent versions still show their frozen PDF status and signed
+  // preview/download, but must never receive Generate/Retry controls that deterministically fail.
+  const canShowPdfPanel = (isDraft && !isLegacyDraft) || isSent;
+  const canGeneratePdf = isDraft && !isLegacyDraft;
   // Integration review F3: the header follow-up chip must stop escalating once the LATEST version is
   // decided (accepted/lost/rejected/expired) — the follow-up panel that could clear the row only renders
   // on a sent version, so a decided quote would otherwise show an unclearable "Försenad uppföljning".
@@ -509,15 +508,14 @@ export function QuoteDetailView({
               )}
             </section>
 
-            {/* PDF render-state panel (Story 6.3) — the six states + preview/download via a
-                short-lived signed URL. Wires to the generateQuotePdf / createSignedFileAccess
-                commands (never a bespoke path). GATED OFF an `accepted` version (Story 7.2, Task 5):
-                PDF retry is scoped to draft/sent (architecture §12) — an accepted commitment offers
-                no PDF-retry affordance. */}
-            {canGeneratePdf && (
+            {/* PDF render-state panel (Story 6.3) — preview/download use a short-lived signed URL.
+                Generation is draft-only; sent versions retain read-only PDF history. Accepted and
+                other terminal versions remain gated off as established by Story 7.2. */}
+            {canShowPdfPanel && (
               <QuotePdfPanel
                 quoteId={header.id}
                 quoteVersionId={selected.id}
+                allowGeneration={canGeneratePdf}
                 pdfStatus={selected.pdf_status}
                 pdfFileId={selected.pdf_file_id}
                 pdfGeneratedAt={selected.pdf_generated_at}

@@ -181,12 +181,15 @@ export interface FileArchiveRow {
 }
 
 /**
- * Quote PDFs are lifecycle-owned derived artifacts. Their quote render/invalidation
- * workflow is the only path allowed to archive them; the generic file command must
- * not invalidate a current, reserved, or in-flight quote PDF.
+ * Quote PDFs are lifecycle-owned derived artifacts. The generic file command must
+ * not invalidate a current, reserved, or in-flight quote PDF. Once the PDF is locked
+ * to a sent commitment, the established archive-over-delete path remains available.
  */
-export function isGenericFileArchiveForbidden(artifactKind: string | null): boolean {
-  return artifactKind === "quote_pdf";
+export function isGenericFileArchiveForbidden(
+  artifactKind: string | null,
+  lifecycleState: FileLifecycleState,
+): boolean {
+  return artifactKind === "quote_pdf" && lifecycleState !== "locked";
 }
 
 /**

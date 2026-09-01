@@ -327,15 +327,21 @@ declare
   v_issued_at timestamptz := statement_timestamp();
   v_tax_input jsonb;
   v_revision jsonb;
+  v_source_calculation_id uuid;
 begin
   perform public.assert_story_10_8_quote_reviewer(p_tenant_id, p_actor_user_id);
   -- Keep the shared quote-version lock first so successor review follows the
   -- same quote-version -> calculation lock order as successor creation.
-  perform 1 from public.quote_versions qv
+  select qv.calculation_id into v_source_calculation_id
+    from public.quote_versions qv
    where qv.tenant_id = p_tenant_id and qv.id = p_source_quote_version_id
-     and qv.quote_id = p_quote_id and qv.calculation_id = p_calculation_id
+     and qv.quote_id = p_quote_id
    for share;
   if not found then raise exception 'successor source missing' using errcode = 'QV409'; end if;
+  if v_source_calculation_id is distinct from p_calculation_id then
+    raise exception 'successor calculation must match the source quote version'
+      using errcode = '23514';
+  end if;
   perform public.assert_story_10_6_line_sources(p_tenant_id, p_calculation_id, p_lines);
   select c.tax_input_snapshot into v_tax_input from public.calculations c
    where c.tenant_id = p_tenant_id and c.id = p_calculation_id for share;
@@ -970,6 +976,12 @@ begin
     return new;
   end if;
 
+  -- Serialize the entire duplicate-check transaction without requiring UPDATE privilege on the
+  -- immutable acceptance row. A concurrent inserter resumes only after the first link commits,
+  -- then observes that link below. Hash collisions only over-serialize unrelated acceptances.
+  perform pg_catalog.pg_advisory_xact_lock(
+    pg_catalog.hashtextextended('quote_acceptance_evidence:' || new.owner_id::text, 0)
+  );
   select qa.evidence_file_id, qa.evidence_reference
     into v_evidence_file_id, v_evidence_reference
     from public.quote_acceptances qa
