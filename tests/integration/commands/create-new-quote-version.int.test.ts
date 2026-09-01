@@ -64,6 +64,10 @@ import {
 import { adminSelectAuditEvents } from "../../factories/audit-events";
 import { isLocalStackReachable } from "../../support/test-env";
 import { skipUnlessStack } from "../../support/stack-gate";
+import {
+  expectDatabaseOwnedTimestamp,
+  readDatabaseNow,
+} from "../../support/database-time";
 import { runCommand } from "@/server/commands/envelope";
 import {
   createNewQuoteVersion,
@@ -486,6 +490,7 @@ describe("markQuoteVersionLifecycle — the lifecycle state machine at BOTH laye
     if (skipUnlessStack(testCtx, stackUp)) return;
     const seed = await seedSentVersionWithChildren(fixture.tenantA.id);
     const correlationId = crypto.randomUUID();
+    const databaseBefore = await readDatabaseNow();
 
     const res = await runCommand(markQuoteVersionLifecycle, {
       client: a as never,
@@ -493,6 +498,7 @@ describe("markQuoteVersionLifecycle — the lifecycle state machine at BOTH laye
       clock: fixedClock,
       correlationId,
     });
+    const databaseAfter = await readDatabaseNow();
     expect(res.ok).toBe(true);
 
     const after = await adminSelectQuoteVersionRow(seed.sentVersionId);
@@ -500,7 +506,7 @@ describe("markQuoteVersionLifecycle — the lifecycle state machine at BOTH laye
     const events = await adminSelectQuoteEventsForVersion(seed.sentVersionId);
     const expired = events.find((e) => e.event_type === "expired");
     expect(expired).toBeDefined();
-    expect(expired?.occurred_at).toBe(FIXED_ISO);
+    expectDatabaseOwnedTimestamp(expired?.occurred_at, databaseBefore, databaseAfter, FIXED_ISO);
     const audits = await adminSelectAuditEvents({ correlationId });
     expect(audits.length).toBe(1);
     expect(audits[0]?.target_id).toBe(seed.sentVersionId);

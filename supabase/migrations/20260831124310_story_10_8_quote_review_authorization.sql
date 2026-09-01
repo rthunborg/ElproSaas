@@ -635,6 +635,40 @@ begin
      or a.correlation_id <> p_correlation_id then
     raise exception 'invalid or expired quote review authorization' using errcode = 'QV401';
   end if;
+
+  -- Serialize successor consumption on the same parent quote before revalidating
+  -- its source. The legacy writer takes this same lock, so the winning request
+  -- creates the next version and commits before a concurrent loser continues.
+  perform 1
+    from public.quotes q
+   where q.tenant_id = a.tenant_id
+     and q.id = a.quote_id
+   for update;
+  if not found then
+    raise exception 'successor parent quote missing' using errcode = 'QV409';
+  end if;
+
+  -- A successor must branch from the latest version. Re-check this only after
+  -- taking the parent lock: if another reviewed request already created v+1,
+  -- this authorization's source is now stale and must not create v+2. Keep this
+  -- distinct from QV401 below, which still signals changed reviewed source facts.
+  perform 1
+    from public.quote_versions source_qv
+   where source_qv.tenant_id = a.tenant_id
+     and source_qv.quote_id = a.quote_id
+     and source_qv.id = a.source_quote_version_id
+     and not exists (
+       select 1
+         from public.quote_versions newer_qv
+        where newer_qv.tenant_id = source_qv.tenant_id
+          and newer_qv.quote_id = source_qv.quote_id
+          and newer_qv.version_number > source_qv.version_number
+     )
+   for update of source_qv;
+  if not found then
+    raise exception 'successor source is stale' using errcode = 'QV409';
+  end if;
+
   perform public.assert_story_10_6_line_sources(a.tenant_id, a.calculation_id, a.lines_payload);
   perform public.assert_story_10_6_snapshot_sources(
     a.tenant_id, a.calculation_id, a.customer_id, a.facility_id, a.contact_id,

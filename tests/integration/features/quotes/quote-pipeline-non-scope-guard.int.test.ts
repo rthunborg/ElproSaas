@@ -10,13 +10,13 @@
  *   - the `quotes` module in `SCOPE_MANIFEST` keeps `widgets: []` and its SINGLE `navItems`
  *     `[{ route: "/quotes" }]` — unchanged by this story;
  *   - the derived active nav route set stays the 7 Phase-A routes (no new nav module directory);
- *   - `TENANT_TABLES` count stays 26 — NO new tenant table is added (Migration/Coexistence Impact: None),
- *     so no manifest count pin is bumped and no table is enrolled (there is none);
+ *   - the current governed `TENANT_TABLES` count stays 27. Story 10.4 added none; the later,
+ *     explicitly governed Story 10.8 authorization table accounts for the sanctioned increment;
  *   - the read-model + list source path imports NO email/notification send path (Epic 13 owns reminders).
  *
  * ── GREEN (Story 10.4 implemented) ───────────────────────────────────────────────────────────────
- * The read-model landed with NO manifest growth; the suite is unskipped. The manifest pins stay green
- * with NO pin change; the read-model source scan finds no email-send path. The `existsSync` guard keeps
+ * The read-model landed with NO manifest growth; the suite is unskipped. Later manifest-governed
+ * stories may advance the explicit inventory pin; the read-model source scan finds no email-send path. The `existsSync` guard keeps
  * the source scan safe. If a widget/nav/analytics-page/email path is ever genuinely required, that is
  * Epic 19 / Epic 13 scope — STOP and escalate, do not grow the manifest here. The assertions are the
  * CONTRACT.
@@ -70,11 +70,11 @@ describe("10.4-INT-03: non-scope guard — no new analytics surface / no email-s
     expect(widgets).toEqual([]);
   });
 
-  it("TENANT_TABLES count stays 26 — no new tenant table is added by this story", () => {
+  it("the governed tenant-table inventory stays at the current manifest count of 27", () => {
     const tenantTables = SCOPE_MANIFEST.modules
       .filter((m) => m.status === "active")
       .flatMap((m) => m.tenantTables);
-    expect(new Set(tenantTables).size).toBe(26);
+    expect(new Set(tenantTables).size).toBe(27);
   });
 
   it("the read-model source path imports NO email/notification send path (Epic 13 owns reminders)", () => {

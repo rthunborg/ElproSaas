@@ -199,10 +199,10 @@ describe("generateQuotePdf — retry + consistency (AC2/AC3, 6.3-INT-04)", () =>
     expect(versionRowAfter).toEqual(versionRowBefore);
   });
 
-  it("[P1] retry is allowed on a SENT version (PDF is derived, not commitment) — no sent-lock trigger in 6.3", async (testCtx) => {
+  it("[P1] generation is rejected on a SENT version because its exact PDF is commitment evidence", async (testCtx) => {
     if (skipUnlessBoth(testCtx)) return;
     const versionId = await seedSnapshottedVersion(fixture.tenantA.id);
-    // Flip the version to `sent` (6.3 introduces no sent-lock; retry must still succeed).
+    // A sent version must use the PDF attested at send; regeneration requires a successor draft.
     await adminQuery(`update public.quote_versions set status = 'sent' where id = $1`, [
       versionId,
     ]);
@@ -212,10 +212,12 @@ describe("generateQuotePdf — retry + consistency (AC2/AC3, 6.3-INT-04)", () =>
       clock: fixedClock,
       correlationId: crypto.randomUUID(),
     });
-    expect(gen.ok).toBe(true);
+    expect(gen.ok).toBe(false);
+    if (!gen.ok) expect(gen.code).toBe("VALIDATION_FAILED");
     const cols = await adminSelectQuoteVersionPdfColumns(versionId);
-    expect(cols?.pdf_status).toBe("generated");
-    // The status stays 'sent' — only the render columns changed.
+    expect(cols?.pdf_status).toBe("not_generated");
+    expect(cols?.pdf_file_id).toBeNull();
+    // The status and render state remain unchanged.
     const statusRow = await adminQuery<{ status: string }>(
       `select status from public.quote_versions where id = $1`,
       [versionId],
@@ -258,7 +260,7 @@ describe("generateQuotePdf — retry + consistency (AC2/AC3, 6.3-INT-04)", () =>
     expect(cols2?.pdf_file_id).not.toBeNull();
   });
 
-  it("[P1] a repeated retry does NOT duplicate a file_links row for the same version (R-814 find-or-create)", async (testCtx) => {
+  it("[P1] repeated draft retries leave one active PDF link and archive superseded references", async (testCtx) => {
     if (skipUnlessBoth(testCtx)) return;
     const versionId = await seedSnapshottedVersion(fixture.tenantA.id);
     for (let i = 0; i < 3; i += 1) {
@@ -270,9 +272,11 @@ describe("generateQuotePdf — retry + consistency (AC2/AC3, 6.3-INT-04)", () =>
       });
       expect(gen.ok).toBe(true);
     }
-    // Exactly ONE live quote_pdf file_link per version+purpose (the link is re-pointed, not
-    // duplicated — the superseded prior objects are left/archived, not reclaimed).
+    // Exactly ONE live quote_pdf link remains. Prior metadata/links are archived and their bytes
+    // are retained for the future governed reclamation story.
     const links = await adminSelectPdfFileLinks(versionId);
-    expect(links.length).toBe(1);
+    expect(links.filter((link) => link.archived_at === null)).toHaveLength(1);
+    expect(links.filter((link) => link.archived_at !== null)).toHaveLength(2);
+    expect(new Set(links.map((link) => link.file_id)).size).toBe(3);
   });
 });

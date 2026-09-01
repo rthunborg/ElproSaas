@@ -40,10 +40,10 @@
  * A mid-pipeline failure sets `pdf_status='failed'` (retryable) — NEVER `generated` over a
  * missing file — and returns a generic retryable SERVER_ERROR (an infra fault is NOT conflated
  * with a not-authorized denial). Retry regenerates from the SAME immutable snapshot (retry is
- * allowed on draft AND sent versions — the PDF is DERIVED, not commitment data; 6.3 introduces
- * NO sent-lock trigger). A double-submit retry does NOT duplicate the `file_links` row: the ONE
- * `quote_pdf` link per version is FOUND and RE-POINTED to the new file (find-or-create, R-814);
- * the superseded prior object is left/archived (archive-over-delete — 8.1 has no reclamation).
+ * allowed only while the version is draft. Once sent, the exact current PDF is commitment
+ * evidence and regeneration requires the new-version flow. A draft retry creates one fresh active
+ * `quote_pdf` link while archiving the superseded link/file metadata; bytes remain retained
+ * (archive-over-delete — physical reclamation is deferred).
  *
  * Audit metadata is `{ targetId }` ONLY (no PII/money/customer/URL — §15).
  */
@@ -291,7 +291,7 @@ export const generateQuotePdf = defineCommand<
       // snapshot reads. This ensures no retryable fault leaves `generating` behind.
       const version = await loadQuoteVersionSnapshot(db, versionId);
       if (version === null) throw new CommandError("TENANT_ACCESS_DENIED");
-      if (version.status !== "draft" && version.status !== "sent") {
+      if (version.status !== "draft") {
         throw new CommandError("VALIDATION_FAILED");
       }
       const lines = await loadQuoteVersionLineSnapshots(db, versionId);
@@ -524,11 +524,9 @@ function extractReservedPdfFileId(data: unknown): string | null {
 /**
  * Map a Postgres error from a PDF-pipeline write to a stable command code (mirrors
  * `throwMappedQuoteWriteError`): the Story 8.4 file-lock RAISE (`FL823`) is a stable
- * FILE_LINK_LOCKED outcome — a POST-SEND `quote_pdf` link re-point is rejected because the
- * sent version's PDF file-link carries commitment identity (a regenerate then needs a new-
- * version flow, 6.5, not an in-place re-point; the sent-lock EXEMPTS the version's derived
- * pdf_* columns so a first generation on a sent version still succeeds, but a re-point of an
- * ALREADY-LOCKED link does not); a same-tenant FK / RLS WITH CHECK violation is an
+ * FILE_LINK_LOCKED outcome — a protected `quote_pdf` link cannot be repointed. Story 10.9 makes
+ * generation draft-only because the exact PDF becomes commitment evidence at send; subsequent
+ * changes use the new-version flow. A same-tenant FK / RLS WITH CHECK violation is an
  * authorization outcome (TENANT_ACCESS_DENIED); a unique/check/malformed-uuid violation is
  * VALIDATION_FAILED; anything else is a transient fault → SERVER_ERROR (retryable). Throw the
  * CODE only — never the raw Postgres message (which can embed the object_path / tenant_id).
@@ -538,7 +536,7 @@ function throwMappedPdfWriteError(error: {
   readonly message?: string;
 }): never {
   switch (error.code) {
-    // The Story 8.4 file-side lock RAISE — a post-send quote_pdf link re-point surfaces the
+    // The Story 8.4 file-side lock RAISE — a protected quote_pdf link re-point surfaces the
     // stable FILE_LINK_LOCKED code (the shared family), not an opaque SERVER_ERROR.
     case "FL823":
       throw new CommandError("FILE_LINK_LOCKED");

@@ -34,7 +34,7 @@
  *   - VALIDATION_FAILED for bad customer_type / missing-or-mismatched identifier /
  *     bad email,
  *   - archive sets `archived_at` (soft-delete, no hard delete),
- *   - deterministic command timestamp via the injected clock (never `sleep`),
+ *   - database-owned audit timestamp bounded by Postgres clock samples (never `sleep`),
  *   - audit metadata carries NO PII (personnummer/org_nr/name/email).
  */
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
@@ -49,6 +49,10 @@ import {
 import { adminSelectAuditEvents } from "../../factories/audit-events";
 import { isLocalStackReachable } from "../../support/test-env";
 import { skipUnlessStack } from "../../support/stack-gate";
+import {
+  expectDatabaseOwnedTimestamp,
+  readDatabaseNow,
+} from "../../support/database-time";
 import { runCommand } from "@/server/commands/envelope";
 import {
   createCustomer,
@@ -80,6 +84,7 @@ describe("CRM customer commands via the envelope (AC3 / R-001,R-010)", () => {
   it("[P1] createCustomer (private) persists the row and writes EXACTLY ONE audit_events row", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     const correlationId = crypto.randomUUID(); // append-only audit → unique per run
+    const databaseBefore = await readDatabaseNow();
 
     const result = await runCommand(createCustomer, {
       client: a as never,
@@ -93,13 +98,13 @@ describe("CRM customer commands via the envelope (AC3 / R-001,R-010)", () => {
       clock: fixedClock,
       correlationId,
     });
+    const databaseAfter = await readDatabaseNow();
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     const customerId = (result.data as { targetId: string }).targetId;
 
-    // EXACTLY ONE audit row, every snake_case column correct, created_at == the
-    // single injected instant (no drift; AC3 / time discipline).
+    // EXACTLY ONE audit row, every snake_case column correct, with a database-owned timestamp.
     const rows = await adminSelectAuditEvents({ correlationId });
     expect(rows.length).toBe(1);
     const row = rows[0];
@@ -109,7 +114,7 @@ describe("CRM customer commands via the envelope (AC3 / R-001,R-010)", () => {
     expect(row.event_type).toBe("customer.created");
     expect(row.target_type).toBe("customer");
     expect(row.target_id).toBe(customerId);
-    expect(new Date(row.created_at).toISOString()).toBe(FIXED_ISO);
+    expectDatabaseOwnedTimestamp(row.created_at, databaseBefore, databaseAfter, FIXED_ISO);
 
     // Audit metadata carries NO PII — personnummer/name/email never routed there
     // (SAFE_FIELDS allow-list; project-context Security Regression Harness Rules).

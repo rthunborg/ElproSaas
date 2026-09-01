@@ -9,7 +9,7 @@
  *
  * COVERAGE (test-design-epic-5.md 5.1-INT-03/04/05; story AC2/AC6/AC7 / Task 3 / 5.3):
  *   - happy-path create calc → persisted row + EXACTLY ONE calc-lifecycle audit row
- *     (per-run unique correlationId; deterministic injected timestamp),
+ *     (per-run unique correlationId; database-owned audit timestamp),
  *   - happy-path create section/row → persisted under the correct parent with a
  *     server-owned sort_order,
  *   - VALIDATION_FAILED for bad row_type / non-positive qty / empty unit / float-or-
@@ -37,6 +37,10 @@ import { adminSelectAuditEvents } from "../../factories/audit-events";
 import { adminQuery } from "../../factories/admin-sql";
 import { isLocalStackReachable } from "../../support/test-env";
 import { skipUnlessStack } from "../../support/stack-gate";
+import {
+  expectDatabaseOwnedTimestamp,
+  readDatabaseNow,
+} from "../../support/database-time";
 import { runCommand } from "@/server/commands/envelope";
 import {
   createCalculation,
@@ -119,6 +123,7 @@ describe("Calc commands via the envelope (AC2/AC6/AC7 / 5.1-INT-03/04/05)", () =
     if (skipUnlessStack(testCtx, stackUp)) return;
     const { customerId } = await seedTenantACalcWithSection(fixture.tenantA.id);
     const correlationId = crypto.randomUUID(); // append-only audit → unique per run
+    const databaseBefore = await readDatabaseNow();
 
     const result = await runCommand(createCalculation, {
       client: a as never,
@@ -126,6 +131,7 @@ describe("Calc commands via the envelope (AC2/AC6/AC7 / 5.1-INT-03/04/05)", () =
       clock: fixedClock,
       correlationId,
     });
+    const databaseAfter = await readDatabaseNow();
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
@@ -140,7 +146,7 @@ describe("Calc commands via the envelope (AC2/AC6/AC7 / 5.1-INT-03/04/05)", () =
     expect(persisted[0].tenant_id).toBe(fixture.tenantA.id);
     expect(persisted[0].status).toBe("draft");
 
-    // EXACTLY ONE calc-lifecycle audit row; created_at == the single injected instant.
+    // EXACTLY ONE calc-lifecycle audit row; the database owns its evidence timestamp.
     const rows = await adminSelectAuditEvents({ correlationId });
     expect(rows.length).toBe(1);
     const row = rows[0];
@@ -150,7 +156,7 @@ describe("Calc commands via the envelope (AC2/AC6/AC7 / 5.1-INT-03/04/05)", () =
     expect(row.event_type).toBe("calculation.created");
     expect(row.target_type).toBe("calculation");
     expect(row.target_id).toBe(calcId);
-    expect(new Date(row.created_at).toISOString()).toBe(FIXED_ISO);
+    expectDatabaseOwnedTimestamp(row.created_at, databaseBefore, databaseAfter, FIXED_ISO);
 
     // Audit metadata carries NO PII / money / customer values (SAFE_FIELDS allow-list).
     const serialized = JSON.stringify(row.metadata ?? {});
