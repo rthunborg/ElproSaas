@@ -96,6 +96,40 @@ function withFailingUpload(client: TestServerClient): TestServerClient {
   }) as TestServerClient;
 }
 
+type StartResponseFault = "throw-once" | "malformed-always";
+
+/** Commit the real start RPC, then corrupt only its client-visible response. */
+function withStartResponseFault(
+  client: TestServerClient,
+  fault: StartResponseFault,
+): { readonly client: TestServerClient; readonly startCalls: () => number } {
+  let startCalls = 0;
+  const wrapped = new Proxy(client, {
+    get(target, prop, receiver) {
+      if (prop === "rpc") {
+        const realRpc = Reflect.get(target, prop, target) as unknown as (
+          fn: string,
+          args: Record<string, unknown>,
+        ) => PromiseLike<{ data: unknown; error: unknown }>;
+        return async (fn: string, args: Record<string, unknown>) => {
+          const result = await realRpc.call(target, fn, args);
+          if (fn !== "start_quote_pdf_render") return result;
+          startCalls += 1;
+          if (fault === "throw-once" && startCalls === 1) {
+            throw new Error("injected lost start response after commit");
+          }
+          if (fault === "malformed-always") {
+            return { data: { unexpected: true }, error: null };
+          }
+          return result;
+        };
+      }
+      return Reflect.get(target, prop, receiver);
+    },
+  }) as TestServerClient;
+  return { client: wrapped, startCalls: () => startCalls };
+}
+
 async function seedSnapshottedVersion(tenantId: string): Promise<string> {
   const customerId = await adminInsertCustomer({
     tenant_id: tenantId,
@@ -258,6 +292,77 @@ describe("generateQuotePdf — retry + consistency (AC2/AC3, 6.3-INT-04)", () =>
     const cols2 = await adminSelectQuoteVersionPdfColumns(versionId);
     expect(cols2?.pdf_status).toBe("generated");
     expect(cols2?.pdf_file_id).not.toBeNull();
+  });
+
+  it("[10.9][P0] a lost committed start response replays the same correlation and completes", async (testCtx) => {
+    if (skipUnlessBoth(testCtx)) return;
+    const versionId = await seedSnapshottedVersion(fixture.tenantA.id);
+    const fault = withStartResponseFault(a, "throw-once");
+
+    const generated = await runCommand(generateQuotePdf, {
+      client: fault.client as never,
+      input: { quote_version_id: versionId },
+      clock: fixedClock,
+      correlationId: crypto.randomUUID(),
+    });
+
+    expect(generated.ok).toBe(true);
+    expect(fault.startCalls()).toBe(2);
+    const rows = await adminQuery<{
+      pdf_status: string;
+      pdf_file_id: string | null;
+      pdf_render_file_id: string | null;
+      pdf_render_correlation_id: string | null;
+    }>(
+      `select pdf_status, pdf_file_id, pdf_render_file_id, pdf_render_correlation_id
+         from public.quote_versions where id = $1`,
+      [versionId],
+    );
+    expect(rows).toEqual([{
+      pdf_status: "generated",
+      pdf_file_id: generated.ok ? generated.data.fileId : null,
+      pdf_render_file_id: null,
+      pdf_render_correlation_id: null,
+    }]);
+  });
+
+  it("[10.9][P0] repeated malformed start responses compensate the owned lease for immediate retry", async (testCtx) => {
+    if (skipUnlessBoth(testCtx)) return;
+    const versionId = await seedSnapshottedVersion(fixture.tenantA.id);
+    const fault = withStartResponseFault(a, "malformed-always");
+
+    const failed = await runCommand(generateQuotePdf, {
+      client: fault.client as never,
+      input: { quote_version_id: versionId },
+      clock: fixedClock,
+      correlationId: crypto.randomUUID(),
+    });
+    expect(failed.ok).toBe(false);
+    if (!failed.ok) expect(failed.code).toBe("SERVER_ERROR");
+    expect(fault.startCalls()).toBe(2);
+
+    const failedRows = await adminQuery<{
+      pdf_status: string;
+      pdf_render_file_id: string | null;
+      pdf_render_correlation_id: string | null;
+    }>(
+      `select pdf_status, pdf_render_file_id, pdf_render_correlation_id
+         from public.quote_versions where id = $1`,
+      [versionId],
+    );
+    expect(failedRows).toEqual([{
+      pdf_status: "failed",
+      pdf_render_file_id: null,
+      pdf_render_correlation_id: null,
+    }]);
+
+    const immediateRetry = await runCommand(generateQuotePdf, {
+      client: a as never,
+      input: { quote_version_id: versionId },
+      clock: fixedClock,
+      correlationId: crypto.randomUUID(),
+    });
+    expect(immediateRetry.ok).toBe(true);
   });
 
   it("[P1] repeated draft retries leave one active PDF link and archive superseded references", async (testCtx) => {

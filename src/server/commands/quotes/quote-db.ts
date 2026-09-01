@@ -1421,10 +1421,12 @@ export type QuotePdfRenderRpcClient = QuotePdfCompleteRpcClient & {
   ): Promise<{ data: unknown; error: { code?: string; message?: string } | null }>;
 };
 
-/** Minimal authoritative state read used only to make completion response-loss safe. */
+/** Minimal authoritative state read used to make start/completion response loss safe. */
 export interface QuotePdfLifecycleStateRow {
   readonly pdf_status: string;
   readonly pdf_file_id: string | null;
+  readonly pdf_render_file_id: string | null;
+  readonly pdf_render_correlation_id: string | null;
 }
 
 export async function loadQuotePdfLifecycleState(
@@ -1433,7 +1435,7 @@ export async function loadQuotePdfLifecycleState(
 ): Promise<QuotePdfLifecycleStateRow | null> {
   const { data, error } = await asReadClient(db)
     .from("quote_versions")
-    .select("pdf_status, pdf_file_id")
+    .select("pdf_status, pdf_file_id, pdf_render_file_id, pdf_render_correlation_id")
     .eq("id", quoteVersionId)
     .limit(1);
   throwOnReadError("loadQuotePdfLifecycleState", error);
@@ -1442,6 +1444,8 @@ export async function loadQuotePdfLifecycleState(
   return {
     pdf_status: String(row.pdf_status ?? "not_generated"),
     pdf_file_id: (row.pdf_file_id as string | null) ?? null,
+    pdf_render_file_id: (row.pdf_render_file_id as string | null) ?? null,
+    pdf_render_correlation_id: (row.pdf_render_correlation_id as string | null) ?? null,
   };
 }
 

@@ -268,18 +268,48 @@ export const generateQuotePdf = defineCommand<
     // customer-visible edit clears that binding; completion then refuses activation.
     // The database, rather than a caller-provided id, allocates the sole file UUID
     // that this render may ever activate or compensate.
-    const start = await renderRpc.rpc("start_quote_pdf_render", {
+    const startArgs: PdfRenderStartArgs = {
       p_tenant_id: tenantId,
       p_quote_version_id: versionId,
       p_actor_user_id: ctx.tenantContext.userId,
       p_correlation_id: ctx.correlationId,
       p_started_at: nowIso,
       p_attestation_key_id: attestationConfig.keyId,
-    });
-    if (start.error) throwMappedPdfWriteError(start.error);
-    const render = extractPdfRenderStart(start.data);
-    if (render === null) {
-      throw new Error("startQuotePdfRender: RPC returned no expected file id");
+    };
+    let render: PdfRenderStart;
+    try {
+      // A committed start is idempotently recoverable with the SAME correlation.
+      // Replay once when the first response is lost or malformed; a different
+      // correlation would collide with the still-active five-minute lease.
+      render = await startQuotePdfRenderWithRecovery(renderRpc, startArgs);
+    } catch (error) {
+      // If both response attempts were ambiguous, recover only this command's
+      // database-issued identity and fail-compensate it. Never disturb a render
+      // owned by another correlation, and preserve the original start failure.
+      let compensationError: Error | null = null;
+      try {
+        const recovered = await loadQuotePdfLifecycleState(db, versionId);
+        if (
+          recovered?.pdf_status === "generating" &&
+          recovered.pdf_render_file_id !== null &&
+          recovered.pdf_render_correlation_id === ctx.correlationId
+        ) {
+          compensationError = await tryCompensateFailed(
+            renderRpc, tenantId, versionId, recovered.pdf_render_file_id, nowIso,
+            ctx.tenantContext.userId, ctx.correlationId,
+          );
+        }
+      } catch (recoveryError) {
+        compensationError = recoveryError instanceof Error
+          ? recoveryError
+          : new Error("PDF start-response recovery failed");
+      }
+      if (compensationError) {
+        console.error("quote PDF render start-response compensation failed", {
+          compensationError: compensationError.message,
+        });
+      }
+      throw error;
     }
     if (render.completedFileId !== null) {
       return { targetId: versionId, fileId: render.completedFileId };
@@ -475,6 +505,56 @@ interface PdfRenderStart {
   readonly issuedAt: string;
   readonly expiresAt: string;
   readonly generationStartedAt: string;
+}
+
+interface PdfRenderStartArgs {
+  readonly p_tenant_id: string;
+  readonly p_quote_version_id: string;
+  readonly p_actor_user_id: string;
+  readonly p_correlation_id: string;
+  readonly p_started_at: string;
+  readonly p_attestation_key_id: string;
+}
+
+/**
+ * Recover an ambiguous start response by replaying the idempotent RPC once with
+ * the exact same correlation. A successful first commit returns the existing
+ * render identity; a first call that never committed safely starts it on replay.
+ */
+export async function startQuotePdfRenderWithRecovery(
+  rpc: ReturnType<typeof asQuotePdfRenderRpcClient>,
+  args: PdfRenderStartArgs,
+): Promise<PdfRenderStart> {
+  let lastFailure: Error = new Error("startQuotePdfRender: RPC returned no expected file id");
+
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    let start: Awaited<ReturnType<typeof rpc.rpc>>;
+    try {
+      start = await rpc.rpc("start_quote_pdf_render", args);
+    } catch (error) {
+      lastFailure = error instanceof Error
+        ? error
+        : new Error("startQuotePdfRender: RPC response was lost");
+      continue;
+    }
+
+    if (start.error) {
+      // Postgres-coded denials are deterministic and cannot have committed.
+      // A code-less transport/PostgREST response is ambiguous and safe to replay
+      // because the same correlation is idempotent inside the start RPC.
+      if (attempt === 0 && !start.error.code) {
+        lastFailure = new Error(start.error.message ?? "startQuotePdfRender: RPC failed");
+        continue;
+      }
+      throwMappedPdfWriteError(start.error);
+    }
+
+    const render = extractPdfRenderStart(start.data);
+    if (render !== null) return render;
+    lastFailure = new Error("startQuotePdfRender: RPC returned no expected file id");
+  }
+
+  throw lastFailure;
 }
 
 function extractPdfRenderStart(data: unknown): PdfRenderStart | null {
