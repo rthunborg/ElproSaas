@@ -148,23 +148,26 @@ class RoutingAndMigrationTests(unittest.TestCase):
         state = state_update.full_state(state_update.load_state(path))
         self.assertTrue(set(range(7)).issubset(state["completed_phases"]))
         self.assertEqual(6, state["legacy_review_iteration"])
-        self.assertEqual(0, state["build"]["review_loop_iteration"])
         found = story_plan.build_find_spec_result(
             str(REPO / "_bmad-output" / "implementation-artifacts"),
             "10-6-tax-answer-reconciliation",
         )[0]
         self.assertTrue(found["found"])
         if found["artifact_format"] == "legacy-story":
+            self.assertEqual(0, state["build"]["review_loop_iteration"])
             self.assertTrue(state["legacy_review_resume"])
             self.assertIsNone(state["spec_path"])
             self.assertTrue(state["overrides"]["legacy_adoption_pending"])
             self.assertIsNone(found["status"])
             self.assertEqual(0, state["followup_passes"])
         else:
+            spec = story_plan.read_spec(found["spec_path"])
             self.assertEqual("bmad-build-auto", found["artifact_format"])
             self.assertFalse(state["legacy_review_resume"])
             self.assertEqual(str(Path(found["spec_path"]).resolve()),
                              str(Path(state["spec_path"]).resolve()))
+            self.assertEqual(spec["frontmatter"]["review_loop_iteration"],
+                             state["build"]["review_loop_iteration"])
             self.assertEqual("done", state["build"]["status"])
             self.assertNotIn("legacy_adoption_pending", state["overrides"])
             self.assertEqual("v0.24-to-v0.31", state["overrides"]["legacy_adoption"])
