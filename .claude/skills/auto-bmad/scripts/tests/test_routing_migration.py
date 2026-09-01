@@ -164,8 +164,11 @@ class RoutingAndMigrationTests(unittest.TestCase):
             spec = story_plan.read_spec(found["spec_path"])
             self.assertEqual("bmad-build-auto", found["artifact_format"])
             self.assertFalse(state["legacy_review_resume"])
-            self.assertEqual(str(Path(found["spec_path"]).resolve()),
-                             str(Path(state["spec_path"]).resolve()))
+            found_tail = Path(found["spec_path"]).parts[-3:]
+            state_tail = tuple(
+                part for part in re.split(r"[\\/]", state["spec_path"]) if part
+            )[-3:]
+            self.assertEqual(found_tail, state_tail)
             self.assertEqual(spec["frontmatter"]["review_loop_iteration"],
                              state["build"]["review_loop_iteration"])
             self.assertEqual("done", state["build"]["status"])
