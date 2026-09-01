@@ -1,6 +1,9 @@
 approval_policy = "on-request"
 sandbox_mode = "workspace-write"
 
+web_search = "live"
+model_verbosity = "low"
+model_reasoning_summary = "none"
 [sandbox_workspace_write]
 # Relaxed to true for parity with Claude Code (which no longer gates network
 # commands) so the agentic dev process runs without friction. Removes a sandbox
