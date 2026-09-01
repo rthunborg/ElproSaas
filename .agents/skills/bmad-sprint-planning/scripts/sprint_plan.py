@@ -47,7 +47,7 @@ STORY_RE = re.compile(
 )
 # Heading lines that mention Epic/Story but failed the strict patterns above.
 SUSPECT_RE = re.compile(r"^#{1,4}\s.*\b(?:epic|story)\b", re.IGNORECASE)
-FENCE_RE = re.compile(r"^\s{0,3}(?:```|~~~)")
+FENCE_RE = re.compile(r"^\s{0,3}(`{3,}|~{3,})(.*)$")
 
 # The key grammar for sprint-status.yaml. The trailing [a-z]? matches
 # split-story keys like 2-6a-...; bmad-retrospective's sprint_status.py reads
@@ -178,12 +178,24 @@ def parse_epics(paths):
             lines = Path(path).read_text(encoding="utf-8").splitlines()
         except OSError as exc:
             _fail(f"cannot read epic file {path}: {exc}")
-        in_fence = False
+        in_fence: tuple[str, int] | None = None
         for lineno, line in enumerate(lines, 1):
-            if FENCE_RE.match(line):
-                in_fence = not in_fence
+            fence_match = FENCE_RE.match(line)
+            if in_fence is None and fence_match:
+                marker, info = fence_match.groups()
+                # CommonMark backtick fence info strings cannot contain backticks.
+                if marker[0] != "`" or "`" not in info:
+                    in_fence = (marker[0], len(marker))
                 continue
-            if in_fence:
+            if in_fence is not None:
+                if fence_match:
+                    marker, trailing = fence_match.groups()
+                    if (
+                        marker[0] == in_fence[0]
+                        and len(marker) >= in_fence[1]
+                        and not trailing.strip()
+                    ):
+                        in_fence = None
                 continue
             epic_m = EPIC_RE.match(line)
             if epic_m:
@@ -589,7 +601,7 @@ def cmd_status(args):
         "legacy_mapped": legacy_mapped, "illegal": illegal, "unrecognized": unrecognized,
         "open_action_items": open_items, "risks": risks, "warnings": warnings,
         "recommendation": recommendation,
-        "all_done": recommendation is None,
+        "all_done": recommendation is None and not illegal and not unrecognized,
     }, default=str))
 
 

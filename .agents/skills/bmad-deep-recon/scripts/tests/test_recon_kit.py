@@ -73,6 +73,19 @@ class CitationsTest(unittest.TestCase):
         self.assertNotIn(9, result["markers"])  # fenced content ignored
         self.assertEqual(code, 1)
 
+    def test_duplicate_appendix_ids_fail_without_overwriting(self):
+        report = Path(__file__).parent / "_report.md"
+        report.write_text(REPORT +
+                          "| [1] | conflicting row | https://example.com/other | 2026-01 | 2026-07-01 | low |\n",
+                          encoding="utf-8")
+        try:
+            code, result = run(["citations", str(report)])
+        finally:
+            report.unlink()
+        self.assertEqual(result["duplicate_rows"], [1])
+        self.assertFalse(result["ok"])
+        self.assertEqual(code, 1)
+
 
 class TallyTest(unittest.TestCase):
     def test_last_status_wins_per_ref(self):
@@ -137,6 +150,19 @@ class EscapeSourcesTest(unittest.TestCase):
         self.assertNotIn("javascript:", result["html"])  # never linked
         self.assertIn('href="https://example.com/g"', result["html"])
         self.assertIn('id="src-1"', result["html"])
+        self.assertEqual(code, 1)
+
+    def test_duplicate_appendix_ids_refuse_ambiguous_html(self):
+        report = Path(__file__).parent / "_report.md"
+        report.write_text(REPORT +
+                          "| [1] | conflicting row | https://example.com/other | 2026-01 | 2026-07-01 | low |\n",
+                          encoding="utf-8")
+        try:
+            code, result = run(["escape-sources", str(report)])
+        finally:
+            report.unlink()
+        self.assertEqual(result["duplicate_rows"], [1])
+        self.assertEqual(result["html"], "")
         self.assertEqual(code, 1)
 
 

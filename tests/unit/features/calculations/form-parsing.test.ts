@@ -558,6 +558,22 @@ test("10.6 tax form: inactive allowance fields are cleared when no deduction is 
   );
 });
 
+test("10.6 tax form: combined ROT/RUT capacity cannot be submitted without ROT capacity", () => {
+  const parsed = parseUpdateTaxInputForm(fd({
+    id: ROW,
+    document_vat_type: "STANDARD_VAT_25",
+    deduction_choice: "ROT",
+    payment_date: "2026-08-05",
+    green_basis_method: "ACTUAL_ELIGIBLE_COSTS",
+    person_1_combined_rot_rut_remaining_kronor: "75000,00",
+  }));
+
+  assert.equal(
+    parsed.fieldErrors.person_1_rot_remaining_kronor,
+    "Ange personens återstående ROT-utrymme.",
+  );
+});
+
 test("10.6 tax form: inactive dates and fixed-price facts normalize to canonical nulls", () => {
   const form = fd({
     id: ROW,

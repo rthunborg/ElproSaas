@@ -33,6 +33,7 @@ import {
   oreToKronorString,
 } from "@/features/calculations/money-input";
 import { computeAcceptanceDelta } from "@/features/quotes/acceptance-price";
+import { localAcceptanceTimeToIso } from "@/features/quotes/acceptance-time";
 
 export interface AcceptanceCaptureFormProps {
   readonly quoteId: string;
@@ -58,6 +59,11 @@ export function AcceptanceCaptureForm({
     oreToKronorString(sourceSentTotalOre),
   );
   const [reasonInput, setReasonInput] = useState<string>("");
+  const [acceptedAtLocal, setAcceptedAtLocal] = useState<string>("");
+  const acceptedAtIso = useMemo(
+    () => localAcceptanceTimeToIso(acceptedAtLocal),
+    [acceptedAtLocal],
+  );
 
   // Mirror the server rule with the SAME pure engine: parse the entered kronor → öre, compute the
   // delta, decide whether a reason is required. A malformed price parses to null → treated as "no
@@ -74,7 +80,7 @@ export function AcceptanceCaptureForm({
 
   const reasonMissing =
     decision.reasonRequired && reasonInput.trim().length === 0;
-  const confirmDisabled = pending || reasonMissing;
+  const confirmDisabled = pending || reasonMissing || acceptedAtIso === null;
 
   return (
     <form
@@ -114,6 +120,7 @@ export function AcceptanceCaptureForm({
 
       <input type="hidden" name="quote_id" value={quoteId} />
       <input type="hidden" name="quote_version_id" value={quoteVersionId} />
+      <input type="hidden" name="accepted_at" value={acceptedAtIso ?? ""} />
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <label className="flex flex-col gap-1 text-sm">
@@ -130,12 +137,25 @@ export function AcceptanceCaptureForm({
         <label className="flex flex-col gap-1 text-sm">
           <span className="text-zinc-700">Accepterad (datum/tid)</span>
           <input
-            name="accepted_at"
+            name="accepted_at_local"
             data-testid="acceptance-accepted-at"
             type="datetime-local"
             required
+            value={acceptedAtLocal}
+            onChange={(event) => setAcceptedAtLocal(event.target.value)}
+            aria-invalid={acceptedAtLocal !== "" && acceptedAtIso === null ? "true" : undefined}
+            aria-describedby={
+              acceptedAtLocal !== "" && acceptedAtIso === null
+                ? "acceptance-accepted-at-error"
+                : undefined
+            }
             className="rounded-md border border-zinc-300 px-3 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
           />
+          {acceptedAtLocal !== "" && acceptedAtIso === null ? (
+            <span id="acceptance-accepted-at-error" role="alert" className="text-xs text-red-800">
+              Datumet eller tiden finns inte i din lokala tidszon.
+            </span>
+          ) : null}
         </label>
 
         {/* Optional job title (Story 7.2) — the job created from the acceptance carries this as its

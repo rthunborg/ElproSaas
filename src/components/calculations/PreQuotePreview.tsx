@@ -40,6 +40,7 @@ import {
   CREATE_QUOTE_ACTION_INITIAL,
   isRetryableCreateQuoteError,
 } from "@/features/quotes/create-quote-action-state";
+import { BuyerVatNumberFact } from "@/components/quotes/BuyerVatNumberFact";
 
 /** The tenant quote-terms slice the preview surfaces (never any approval enforcement — Epic 6). */
 export interface PreQuoteTerms {
@@ -366,28 +367,35 @@ export function PreQuotePreview({
               Momsvisning: {vatPostureLabel}.
             </p>
             {taxAnswer ? (
-              <ul className="mt-2 flex flex-col gap-1 text-xs text-zinc-700">
-                {taxAnswer.categories.map((category) => {
-                  const suffix =
-                    category.vatType === "STANDARD_VAT_25"
-                      ? "standard"
-                      : category.vatType === "REVERSE_CHARGE_CONSTRUCTION"
-                        ? "reverse-charge"
-                        : category.vatType === "REDUCED_VAT"
-                          ? "reduced"
-                          : "zero";
-                  return (
-                    <li
-                      key={`${category.vatType}-${category.rateBp}`}
-                      data-testid={`preview-vat-category-${suffix}`}
-                    >
-                      {category.vatType === "REVERSE_CHARGE_CONSTRUCTION"
-                        ? `Omvänd betalningsskyldighet · ${oreToKronorString(category.netOre)} kr`
-                        : `${category.rateBp / 100} % moms · ${oreToKronorString(category.vatOre)} kr`}
-                    </li>
-                  );
-                })}
-              </ul>
+              <>
+                <ul className="mt-2 flex flex-col gap-1 text-xs text-zinc-700">
+                  {taxAnswer.categories.map((category) => {
+                    const suffix =
+                      category.vatType === "STANDARD_VAT_25"
+                        ? "standard"
+                        : category.vatType === "REVERSE_CHARGE_CONSTRUCTION"
+                          ? "reverse-charge"
+                          : category.vatType === "REDUCED_VAT"
+                            ? "reduced"
+                            : "zero";
+                    return (
+                      <li
+                        key={`${category.vatType}-${category.rateBp}`}
+                        data-testid={`preview-vat-category-${suffix}`}
+                      >
+                        {category.vatType === "REVERSE_CHARGE_CONSTRUCTION"
+                          ? `Omvänd betalningsskyldighet · ${oreToKronorString(category.netOre)} kr`
+                          : `${category.rateBp / 100} % moms · ${oreToKronorString(category.vatOre)} kr`}
+                      </li>
+                    );
+                  })}
+                </ul>
+                <BuyerVatNumberFact
+                  value={taxAnswer.buyerVatNumber}
+                  testId="preview-buyer-vat-number"
+                  className="mt-2 text-xs text-zinc-700"
+                />
+              </>
             ) : null}
           </div>
             );

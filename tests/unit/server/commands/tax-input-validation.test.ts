@@ -191,6 +191,19 @@ describe("Story 10.6 Task 3 tax-input validation", () => {
       false,
       "the legacy one-balance alias cannot finance both ROT and green",
     );
+    assert.equal(
+      validateTaxInputSnapshot({
+        ...baseTaxInput,
+        deductionChoice: "ROT",
+        paymentDate: "2026-08-05",
+        personAllowanceSlots: [{
+          slot: "PERSON_1",
+          remainingCombinedRotRutAllowanceOre: 7_500_000,
+        }],
+      }).ok,
+      false,
+      "combined ROT/RUT capacity cannot stand in for the missing ROT capacity",
+    );
   });
 
   test("rejects inactive scheme facts and reverse-charge deductions", () => {

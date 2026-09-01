@@ -268,6 +268,10 @@ export function parseUpdateTaxInputForm(form: FormData): ParsedCalcForm {
           "Ange personens återstående gemensamma ROT/RUT-utrymme.";
       }
     }
+    if (readsRot && combined !== null && rot === null) {
+      fieldErrors[`${prefix}_rot_remaining_kronor`] =
+        "Ange personens återstående ROT-utrymme.";
+    }
     if (readsGreen && green !== null) greenAllowanceCount += 1;
     if ((readsRot && (rot !== null || combined !== null)) || (readsGreen && green !== null)) {
       personAllowanceSlots.push({
@@ -281,7 +285,8 @@ export function parseUpdateTaxInputForm(form: FormData): ParsedCalcForm {
     }
   }
   if (readsRot && rotAllowanceCount === 0) {
-    fieldErrors.person_1_rot_remaining_kronor = "Ange återstående ROT-utrymme för minst en person.";
+    fieldErrors.person_1_rot_remaining_kronor ??=
+      "Ange återstående ROT-utrymme för minst en person.";
   }
   if (readsGreen && greenAllowanceCount === 0) {
     fieldErrors.person_1_green_remaining_kronor =

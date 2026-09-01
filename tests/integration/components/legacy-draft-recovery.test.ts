@@ -126,14 +126,17 @@ describe("QuoteDetailView — legacy V1 draft recovery", () => {
   });
 
   it("keeps a current V2 draft on the ordinary edit, send, and PDF path", () => {
+    const current = { ...version(2), buyer_vat_number: "SE556677889901" };
     const html = renderToStaticMarkup(
-      createElement(QuoteDetailView, { detail: detailFor(version(2)) }),
+      createElement(QuoteDetailView, { detail: detailFor(current) }),
     );
 
     expect(html).not.toContain('data-testid="legacy-draft-recovery"');
     expect(html).toContain("DRAFT_EDITOR");
     expect(html).toContain("MARK_SENT");
     expect(html).toContain("PDF_PANEL");
+    expect(html).toContain('data-testid="quote-buyer-vat-number"');
+    expect(html).toContain("SE556677889901");
     expect(html).not.toContain("CREATE_NEW_VERSION");
   });
 });

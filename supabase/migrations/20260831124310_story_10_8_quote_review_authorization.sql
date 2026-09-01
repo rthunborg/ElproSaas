@@ -329,6 +329,13 @@ declare
   v_revision jsonb;
 begin
   perform public.assert_story_10_8_quote_reviewer(p_tenant_id, p_actor_user_id);
+  -- Keep the shared quote-version lock first so successor review follows the
+  -- same quote-version -> calculation lock order as successor creation.
+  perform 1 from public.quote_versions qv
+   where qv.tenant_id = p_tenant_id and qv.id = p_source_quote_version_id
+     and qv.quote_id = p_quote_id and qv.calculation_id = p_calculation_id
+   for share;
+  if not found then raise exception 'successor source missing' using errcode = 'QV409'; end if;
   perform public.assert_story_10_6_line_sources(p_tenant_id, p_calculation_id, p_lines);
   select c.tax_input_snapshot into v_tax_input from public.calculations c
    where c.tenant_id = p_tenant_id and c.id = p_calculation_id for share;
@@ -341,11 +348,6 @@ begin
     p_tenant_id, p_calculation_id, p_customer_id, p_facility_id, p_contact_id,
     p_snapshot, p_attachments
   );
-  perform 1 from public.quote_versions qv
-   where qv.tenant_id = p_tenant_id and qv.id = p_source_quote_version_id
-     and qv.quote_id = p_quote_id and qv.calculation_id = p_calculation_id
-   for share;
-  if not found then raise exception 'successor source missing' using errcode = 'QV409'; end if;
   v_revision := public.story_10_8_calculation_source_revision(
     p_tenant_id, p_calculation_id, p_customer_id, p_facility_id, p_contact_id, p_attachments
   ) || jsonb_build_object('sourceQuoteVersionHash', (

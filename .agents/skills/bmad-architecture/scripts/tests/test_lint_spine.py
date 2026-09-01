@@ -110,6 +110,18 @@ def test_missing_field_caught():
     assert any(f["category"] == "ad_fields" and "rule" in f["detail"] for f in result["findings"])
 
 
+def test_field_words_in_prose_do_not_satisfy_required_labels():
+    text = CLEAN.replace(
+        "- **Binds:** all\n- **Prevents:** divergent mutation\n- **Rule:** state changes only through the command bus",
+        "This decision binds every caller, prevents drift, and states the governing rule.",
+    )
+    result = lint_spine.lint(text)
+    finding = next(f for f in result["findings"] if f["category"] == "ad_fields")
+    assert "binds" in finding["detail"]
+    assert "prevents" in finding["detail"]
+    assert "rule" in finding["detail"]
+
+
 def test_unpinned_dep_caught():
     text = CLEAN.replace("| fastapi | 0.115 |", "| fastapi |  |")
     result = lint_spine.lint(text)

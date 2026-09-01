@@ -105,6 +105,13 @@ function parsePersonSlots(
     if (choice === "ROT_AND_GREEN" && legacy !== undefined) return null;
     const hasRot = raw.remainingRotAllowanceOre !== undefined || legacy !== undefined;
     const hasGreen = raw.remainingGreenAllowanceOre !== undefined || legacy !== undefined;
+    if (
+      readsRot(choice) &&
+      raw.remainingCombinedRotRutAllowanceOre !== undefined &&
+      !hasRot
+    ) {
+      return null;
+    }
     // A declared ROT slot must also carry the customer's declared remaining combined ROT/RUT
     // ceiling. The legacy one-value alias remains a conservative compatibility value for both.
     if (hasRot && raw.remainingCombinedRotRutAllowanceOre === undefined && legacy === undefined) {

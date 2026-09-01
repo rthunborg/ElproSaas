@@ -173,10 +173,20 @@ export type FileWriteClient = {
   };
 };
 
-/** A file row as loaded for the archive-only-delete command (id + current lifecycle). */
+/** A file row as loaded for the archive-only-delete command. */
 export interface FileArchiveRow {
   readonly id: string;
   readonly lifecycle_state: FileLifecycleState;
+  readonly artifact_kind: string | null;
+}
+
+/**
+ * Quote PDFs are lifecycle-owned derived artifacts. Their quote render/invalidation
+ * workflow is the only path allowed to archive them; the generic file command must
+ * not invalidate a current, reserved, or in-flight quote PDF.
+ */
+export function isGenericFileArchiveForbidden(artifactKind: string | null): boolean {
+  return artifactKind === "quote_pdf";
 }
 
 /**
@@ -192,7 +202,7 @@ export async function loadFileForArchive(
 ): Promise<FileArchiveRow | null> {
   const { data, error } = await db
     .from("files")
-    .select("id, lifecycle_state")
+    .select("id, lifecycle_state, artifact_kind")
     .eq("id", id)
     .limit(1);
   if (error) {
@@ -207,7 +217,11 @@ export async function loadFileForArchive(
   if (typeof row.id !== "string" || !isFileLifecycleState(lifecycle)) {
     return null;
   }
-  return { id: row.id, lifecycle_state: lifecycle };
+  return {
+    id: row.id,
+    lifecycle_state: lifecycle,
+    artifact_kind: typeof row.artifact_kind === "string" ? row.artifact_kind : null,
+  };
 }
 
 /** Narrow the envelope client to the file-write surface (single documented cast). */

@@ -37,6 +37,16 @@ FENCE = re.compile(r"```.*?```", re.DOTALL)
 PLACEHOLDER_WORD = re.compile(r"\b(TBD|TODO|FIXME|XXX)\b")
 SIMILAR_TO = re.compile(r"similar to AD-\d+", re.IGNORECASE)
 TEMPLATE_TOKEN = re.compile(r"\{[a-z_][a-z0-9_ /.-]*\}")
+AD_REQUIRED_FIELDS = ("binds", "prevents", "rule")
+
+
+def has_ad_field(block: str, field: str) -> bool:
+    """Require a real Markdown field label with a non-empty value, not prose words."""
+    pattern = re.compile(
+        rf"^\s*(?:[-*+]\s+)?(?:\*\*)?{re.escape(field)}\s*:(?:\*\*)?\s*\S",
+        re.IGNORECASE | re.MULTILINE,
+    )
+    return pattern.search(block) is not None
 
 
 def split_frontmatter(text: str) -> tuple[str, str, int]:
@@ -138,8 +148,7 @@ def find_ad_issues(body: str, offset: int) -> list[dict]:
         start = m.end()
         nxt = HEADING.search(scan, start)
         block = scan[start:nxt.start()] if nxt else scan[start:]
-        low = block.lower()
-        missing = [f for f in ("binds", "prevents", "rule") if f not in low]
+        missing = [field for field in AD_REQUIRED_FIELDS if not has_ad_field(block, field)]
         if missing:
             findings.append({
                 "category": "ad_fields",

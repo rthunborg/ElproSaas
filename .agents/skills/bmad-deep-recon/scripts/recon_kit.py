@@ -73,9 +73,10 @@ def table_cells(line: str) -> list[str]:
     return [c.strip() for c in line.strip().strip("|").split("|")]
 
 
-def appendix_rows(text: str) -> dict[int, list[str]]:
-    """Source-appendix rows: markdown table rows whose first cell is a bare [n] / n."""
+def appendix_rows(text: str) -> tuple[dict[int, list[str]], list[int]]:
+    """Return unique source rows and sorted duplicate numeric identifiers."""
     rows: dict[int, list[str]] = {}
+    duplicates: set[int] = set()
     for ln in text.splitlines():
         stripped = ln.strip()
         if not stripped.startswith("|"):
@@ -85,15 +86,19 @@ def appendix_rows(text: str) -> dict[int, list[str]]:
             continue
         m = re.fullmatch(r"\[?(\d+)\]?", cells[0])
         if m:
-            rows[int(m.group(1))] = cells
-    return rows
+            row_id = int(m.group(1))
+            if row_id in rows:
+                duplicates.add(row_id)
+            else:
+                rows[row_id] = cells
+    return rows, sorted(duplicates)
 
 
 # --- citations ---------------------------------------------------------------
 
 def cmd_citations(args) -> int:
     text = strip_fences(read_text(args.file))
-    rows = appendix_rows(text)
+    rows, duplicates = appendix_rows(text)
     markers: set[int] = set()
     for ln in text.splitlines():
         stripped = ln.strip()
@@ -104,12 +109,13 @@ def cmd_citations(args) -> int:
         markers.update(int(n) for n in MARKER_RE.findall(ln))
     dangling = sorted(markers - set(rows))
     orphaned = sorted(set(rows) - markers)
-    ok = not dangling and not orphaned
+    ok = not dangling and not orphaned and not duplicates
     return out({
         "markers": sorted(markers),
         "appendix_rows": sorted(rows),
         "dangling_markers": dangling,
         "orphaned_rows": orphaned,
+        "duplicate_rows": duplicates,
         "ok": ok,
     }, 0 if ok else 1)
 
@@ -260,10 +266,17 @@ def cell_html(cell: str, invalid: list[str]) -> str:
 
 def cmd_escape_sources(args) -> int:
     text = strip_fences(read_text(args.file))
-    rows = appendix_rows(text)
+    rows, duplicates = appendix_rows(text)
     if not rows:
         print("error: no source-appendix table rows found", file=sys.stderr)
         return 2
+    if duplicates:
+        return out({
+            "rows": len(rows),
+            "duplicate_rows": duplicates,
+            "invalid_urls": [],
+            "html": "",
+        }, 1)
     invalid: list[str] = []
     body_rows = []
     for n in sorted(rows):
@@ -271,7 +284,7 @@ def cmd_escape_sources(args) -> int:
         tds = "".join(f"<td>{cell_html(c, invalid)}</td>" for c in cells[1:])
         body_rows.append(f'<tr id="src-{n}"><td>[{n}]</td>{tds}</tr>')
     table = ('<table class="sources"><tbody>' + "".join(body_rows) + "</tbody></table>")
-    return out({"rows": len(rows), "invalid_urls": invalid, "html": table},
+    return out({"rows": len(rows), "duplicate_rows": [], "invalid_urls": invalid, "html": table},
                1 if invalid else 0)
 
 

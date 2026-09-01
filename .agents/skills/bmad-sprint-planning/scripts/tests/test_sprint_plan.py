@@ -251,6 +251,17 @@ def test_fenced_code_blocks_are_not_parsed(tmp_path, capsys):
     assert not any("Epic 9" in w for w in result["warnings"])
 
 
+def test_mixed_fence_delimiters_do_not_close_each_other(tmp_path, capsys):
+    text = (EPICS_FIXTURE +
+            "\n~~~~markdown\n```\n## Epic 9: Example Format\n"
+            "### Story 9.1: Sample\n```\n~~~~\n")
+    status_file = run_generate(tmp_path, epics_text=text)
+    result = out_json(capsys)
+    data = load(status_file)
+    assert "epic-9" not in data["development_status"]
+    assert result["epics"] == 2
+
+
 def test_non_ascii_titles_keep_distinct_keys(tmp_path, capsys):
     text = "## Epic 1: 基础\n### Story 1.1: 用户认证\n### Story 1.2: 账户管理\n"
     status_file = run_generate(tmp_path, epics_text=text)
@@ -468,12 +479,14 @@ def test_status_odd_retro_key_reports_instead_of_crashing(tmp_path, capsys):
     assert result["ok"] is True
     assert {"key": "epic-abc-retrospective", "status": "optional"} in result["unrecognized"]
     assert any("unrecognized key" in r for r in result["risks"])
+    assert result["all_done"] is False
 
 
 def test_status_illegal_status_reported(tmp_path, capsys):
     fixture = STATUS_FIXTURE.replace("2-1-personality-system: backlog", "2-1-personality-system: shipped")
     result = run_status(tmp_path, capsys, fixture=fixture)
     assert {"key": "2-1-personality-system", "status": "shipped"} in result["illegal"]
+    assert result["all_done"] is False
 
 
 def test_status_missing_file_fails_json(tmp_path, capsys):

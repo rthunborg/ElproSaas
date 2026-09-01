@@ -38,6 +38,7 @@ import {
 import {
   asFileRpcClient,
   asFileWriteClient,
+  isGenericFileArchiveForbidden,
   loadFileForAccess,
   loadFileForArchive,
   ownerRecordVisible,
@@ -455,6 +456,12 @@ export const archiveFile = defineCommand<ArchiveFileInput, ArchiveFileResult>({
     // IDEMPOTENT NO-OP (AC4): an already-archived file is not re-archived and writes NO audit row.
     if (file.lifecycle_state === "archived") {
       return { targetId: fileId, archived: false };
+    }
+
+    // Quote PDFs are owned by the render/invalidation lifecycle. Letting the generic file
+    // archive path mutate one would stale or disable the quote's current immutable PDF.
+    if (isGenericFileArchiveForbidden(file.artifact_kind)) {
+      throw new CommandError("FILE_LINK_LOCKED");
     }
 
     // Flip to archived via an UPDATE (NEVER a DELETE). The `enforce_file_lock` trigger PERMITS the

@@ -51,6 +51,7 @@ import { FollowUpPanel } from "./FollowUpPanel";
 import { QuotePdfPanel } from "./QuotePdfPanel";
 import { isLatestDecidedStatus } from "@/features/quotes/terminal-status";
 import { AcceptanceCaptureForm } from "./AcceptanceCaptureForm";
+import { BuyerVatNumberFact } from "./BuyerVatNumberFact";
 
 /** The Swedish label for the (frozen) VAT display posture, for the assumptions block. */
 function vatDisplayLabel(posture: string | null): string {
@@ -456,6 +457,12 @@ export function QuoteDetailView({
                 {vatDisplayLabel(selected.vat_display)}.
               </p>
             </dl>
+
+            <BuyerVatNumberFact
+              value={selected.buyer_vat_number}
+              testId="quote-buyer-vat-number"
+              className="text-sm text-zinc-700"
+            />
 
             {/* Tax / deduction assumption with the NON-FINAL / requiresSignOff framing. */}
             {selected.requires_sign_off && (
