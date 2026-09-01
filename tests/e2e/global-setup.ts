@@ -797,9 +797,9 @@ export default async function globalSetup() {
 
   // Story 8.5 — a DEDICATED ACCEPTED quote whose acceptance carries a LOCKED acceptance_evidence
   // file, so the file-lock-panel E2E can assert the evidence lock notice on the accepted section.
-  // Seed a sent version, drive the REAL accept transaction (creating the acceptance), then link an
-  // evidence file to the acceptance — `apply_file_link_lock` locks the evidence link+file the moment
-  // the acceptance exists (AR704 has no draft state).
+  // Seed a sent version and its evidence file, then drive the REAL accept transaction with that
+  // exact file captured immutably. The RPC creates the acceptance_evidence link atomically;
+  // `apply_file_link_lock` locks the link+file immediately (AR704 has no draft state).
   const evidenceQuoteId = await adminInsertQuote({
     tenant_id: base.tenantA.id,
     customer_id: companyId,
@@ -827,6 +827,22 @@ export default async function globalSetup() {
     quote_version_id: evidenceVersionId,
     event_type: "created",
   });
+  const evidenceFileId = crypto.randomUUID();
+  const evidenceObjectPath = `${base.tenantA.id}/${evidenceFileId}/underlag-1008.pdf`;
+  await adminUploadStorageObject({
+    bucket: "tenant-files",
+    objectPath: evidenceObjectPath,
+    body: new TextEncoder().encode("%PDF-1.7\n%evidence-lock-stub\n"),
+  });
+  await adminInsertFile({
+    tenant_id: base.tenantA.id,
+    id: evidenceFileId,
+    display_name: "underlag-1008.pdf",
+    bucket_id: "tenant-files",
+    object_path: evidenceObjectPath,
+    mime_type: "application/pdf",
+    lifecycle_state: "linked",
+  });
   const evidenceAcceptRpc = await adminAClient.rpc("accept_quote_and_create_job", {
     p_tenant_id: base.tenantA.id,
     p_quote_version_id: evidenceVersionId,
@@ -835,8 +851,8 @@ export default async function globalSetup() {
     p_source_sent_total_ore: 125000,
     p_channel: "verbal",
     p_adjustment_reason: null,
-    p_evidence_file_id: null,
-    p_evidence_reference: "Signerad orderbekräftelse (referens #A-8005)",
+    p_evidence_file_id: evidenceFileId,
+    p_evidence_reference: null,
     p_notes: "Accepterat via telefon 2026-07-11",
     p_planned_start_date: "2026-08-01",
     p_planned_end_date: "2026-08-20",
@@ -855,31 +871,6 @@ export default async function globalSetup() {
     job_id: string;
   }>;
   const evidenceAcceptanceId = evidenceAcceptRpcRows[0]?.acceptance_id ?? null;
-  const evidenceFileId = crypto.randomUUID();
-  const evidenceObjectPath = `${base.tenantA.id}/${evidenceFileId}/underlag-1008.pdf`;
-  await adminUploadStorageObject({
-    bucket: "tenant-files",
-    objectPath: evidenceObjectPath,
-    body: new TextEncoder().encode("%PDF-1.7\n%evidence-lock-stub\n"),
-  });
-  await adminInsertFile({
-    tenant_id: base.tenantA.id,
-    id: evidenceFileId,
-    display_name: "underlag-1008.pdf",
-    bucket_id: "tenant-files",
-    object_path: evidenceObjectPath,
-    mime_type: "application/pdf",
-    lifecycle_state: "linked",
-  });
-  if (evidenceAcceptanceId) {
-    await adminInsertFileLink({
-      tenant_id: base.tenantA.id,
-      file_id: evidenceFileId,
-      owner_type: "quote_acceptance",
-      owner_id: evidenceAcceptanceId,
-      purpose: "acceptance_evidence",
-    });
-  }
 
   // PDF render-state seed (Story 6.3): a SEPARATE quote (so the 6.2 quote above keeps EXACTLY
   // two versions) with THREE versions exercising the render states DETERMINISTICALLY without a
