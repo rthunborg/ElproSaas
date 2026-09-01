@@ -44,6 +44,7 @@ import {
   adminInsertQuoteVersion,
   adminInsertQuoteVersionAttachment,
   adminInsertQuoteEvent,
+  adminInsertQuoteReviewAuthorization,
   adminInsertQuoteAcceptance,
   adminInsertQuoteLostReason,
   adminInsertQuoteFollowUp,
@@ -97,6 +98,7 @@ let tenantBQuoteVersionId: string; // a seeded Tenant B version (6.1 target + li
 let tenantBQuoteVersionLineId: string; // a seeded Tenant B line (6.1 target)
 let tenantBQuoteVersionAttachmentId: string; // a seeded Tenant B attachment (6.1 target)
 let tenantBQuoteEventId: string; // a seeded Tenant B event (6.1 target)
+let tenantBQuoteReviewAuthorizationId: string; // a seeded Tenant B review authority (10.8 target)
 let tenantBQuoteAcceptanceId: string; // a seeded Tenant B acceptance (7.1 target + job parent)
 let tenantBJobId: string; // a seeded Tenant B job (7.1 target + job_event parent)
 let tenantBJobEventId: string; // a seeded Tenant B job event (7.1 target)
@@ -252,6 +254,12 @@ beforeAll(async () => {
     quote_version_id: tenantBQuoteVersionId,
     event_type: "created",
   });
+  tenantBQuoteReviewAuthorizationId = await adminInsertQuoteReviewAuthorization({
+    tenant_id: fixture.tenantB.id,
+    actor_user_id: fixture.adminB.id,
+    quote_id: tenantBQuoteId,
+    quote_version_id: tenantBQuoteVersionId,
+  });
   // Seed a REAL Tenant B ACCEPTANCE → JOB → JOB_EVENT chain (Story 7.1) so the three new
   // commitment-table cross-tenant negatives target a CONCRETE Tenant B row (never a
   // non-existent id that would deny vacuously), AND so the job/job_event spoof INSERTs have a
@@ -359,7 +367,8 @@ beforeAll(async () => {
     !tenantBQuoteVersionId ||
     !tenantBQuoteVersionLineId ||
     !tenantBQuoteVersionAttachmentId ||
-    !tenantBQuoteEventId
+    !tenantBQuoteEventId ||
+    !tenantBQuoteReviewAuthorizationId
   ) {
     throw new Error(
       "cross-tenant quote seed produced no id (tenant_counters/quotes/quote_versions/" +
@@ -407,6 +416,7 @@ beforeAll(async () => {
     tenantBQuoteVersionLineId,
     tenantBQuoteVersionAttachmentId,
     tenantBQuoteEventId,
+    tenantBQuoteReviewAuthorizationId,
     tenantBQuoteAcceptanceId,
     tenantBJobId,
     tenantBJobEventId,
@@ -420,10 +430,10 @@ afterAll(async () => {
 });
 
 describe("Cross-tenant RLS isolation — data-driven over the shared inventory (AC2 / R-001)", () => {
-  const story106TriggerGuardedInserts = new Set([
-    "quote_versions",
-    "quote_version_lines",
-    "quote_version_attachments",
+  // Story 10.8 intentionally removes every authenticated direct-DML path for
+  // quote_acceptances. Keep this explicit instead of treating its 42501 as an
+  // RLS-invisible result or the older quote-family trigger's QV409.
+  const directDmlRevokedTables = new Set([
     "quote_acceptances",
   ]);
 
@@ -441,14 +451,13 @@ describe("Cross-tenant RLS isolation — data-driven over the shared inventory (
       it(`[P0] INSERT: Tenant A admin cannot INSERT a ${table} row carrying Tenant B ownership (no spoof)`, async (testCtx) => {
         if (skipUnlessStack(testCtx, stackUp)) return;
         const { error } = await a.from(table).insert(spoofedRowFor(table, ctx));
-        // Assert the DENIAL MECHANISM, not a bare non-null error. Most tables reject
-        // the spoof at the privilege/RLS layer (`42501`). Story 10.6's fail-closed
-        // quote-family triggers must resolve/lock a source parent before RLS WITH CHECK
-        // runs; a foreign parent is deliberately indistinguishable from a missing one
-        // and raises the generic family lock code (`QV409`). Neither path is a PK/FK
-        // collision or an existence disclosure.
+        // Assert the DENIAL MECHANISM, not a bare non-null error. This includes
+        // quote_acceptances: Story 10.8 deliberately revokes its authenticated
+        // direct-DML grant, so the spoof is rejected at the privilege layer before
+        // any quote-family trigger can run. This is neither a PK/FK collision nor an
+        // existence disclosure.
         expect(error).not.toBeNull();
-        expect(error?.code).toBe(story106TriggerGuardedInserts.has(table) ? "QV409" : "42501");
+        expect(error?.code).toBe("42501");
       });
 
       it(`[P0] UPDATE: Tenant A admin cannot UPDATE Tenant B's ${table} rows`, async (testCtx) => {
@@ -472,10 +481,18 @@ describe("Cross-tenant RLS isolation — data-driven over the shared inventory (
         //     NO error (empty set, not null). The denial is proven by zero-rows-affected
         //     PLUS an INDEPENDENT BYPASSRLS re-read showing the Tenant B row is UNCHANGED
         //     (its label was NOT overwritten with the hijack value).
-        if (updateDenialKind(table) === "privilege") {
+        if (directDmlRevokedTables.has(table) || updateDenialKind(table) === "privilege") {
           expect(error).not.toBeNull();
           expect(error?.code).toBe("42501");
           expect(affected).toBeNull();
+          if (table === "quote_acceptances") {
+            // Privilege denial is deliberate (Story 10.8), but still prove the real
+            // foreign acceptance exists and its immutable channel was not overwritten.
+            const labelColumn = rlsInvisibleLabelColumn(table);
+            const row = await adminSelectAcceptanceLabel(table, labelColumn, value);
+            expect(row).not.toBeNull();
+            expect(row?.label).toBeNull();
+          }
         } else {
           // rls-invisible (customers/facilities/contacts/company_settings/quote_terms).
           expect(error).toBeNull();

@@ -2,9 +2,9 @@
  * Story 6.4 — mark-sent lifecycle transition + BELOW-THE-UI sent immutability (R-605/R-608).
  *
  * The load-bearing correctness proofs of the story, at BOTH enforcement layers:
- *   - 6.4-INT-01 (P0, AC1): mark-sent records the sent timestamp (the EXPLICIT RPC parameter —
- *     asserted on the DETERMINISTIC injected clock, NO sleeps/wall-clock), the optional
- *     channel/reference, a `quote_events` `sent` row (`occurred_at` = the sent timestamp), an
+ *   - 6.4-INT-01 (P0, AC1): mark-sent records database-owned lifecycle and audit timestamps;
+ *     the fixed injected command clock is deliberately ignored. It preserves the optional
+ *     channel/reference, writes a `quote_events` `sent` row, an
  *     `audit_events` row (allow-listed `{ targetId }` metadata ONLY — NO PII/money/channel), and
  *     the immutable lifecycle state (`status` → `sent`).
  *   - 6.4-INT-02 (P0, AC2, R-605 LAYER 1 — command guard): after a version is SENT, a customer-
@@ -46,20 +46,45 @@ import {
   adminInsertQuoteVersion,
   adminSelectQuoteVersionRow,
   adminSelectQuoteVersionLines,
-  adminSelectQuoteVersionPdfColumns,
   adminSelectQuoteEventsForVersion,
   type TwoTenantFixture,
   type TestServerClient,
 } from "../../factories/tenants";
 import { adminSelectAuditEvents } from "../../factories/audit-events";
+import { adminQuery } from "../../factories/admin-sql";
 import { isLocalStackReachable } from "../../support/test-env";
 import { skipUnlessStack } from "../../support/stack-gate";
 import { runCommand } from "@/server/commands/envelope";
 import { markQuoteVersionSent, updateDraftQuoteVersion } from "@/server/commands/quotes";
 import type { CommandClock } from "@/server/commands/clock";
+import { establishCurrentQuotePdf } from "../../support/quote-pdf";
 
 const FIXED_ISO = "2026-07-06T09:00:00.000Z";
 const fixedClock: CommandClock = { now: () => new Date(FIXED_ISO) };
+
+async function readDatabaseNow(): Promise<Date> {
+  const rows = await adminQuery<{ database_now: string | Date }>(
+    `select statement_timestamp() as database_now`,
+  );
+  const value = rows[0]?.database_now;
+  const timestamp = new Date(value instanceof Date ? value.toISOString() : String(value));
+  expect(Number.isNaN(timestamp.getTime())).toBe(false);
+  return timestamp;
+}
+
+function expectDatabaseOwnedTimestamp(
+  value: unknown,
+  before: Date,
+  after: Date,
+): void {
+  const timestamp = new Date(value instanceof Date ? value.toISOString() : String(value));
+  expect(Number.isNaN(timestamp.getTime())).toBe(false);
+  // Both bounds are sampled from Postgres. The tiny scheduling margin avoids host-clock flakiness
+  // while proving this mutation was timestamped by the database during the command.
+  expect(timestamp.getTime()).toBeGreaterThanOrEqual(before.getTime() - 5_000);
+  expect(timestamp.getTime()).toBeLessThanOrEqual(after.getTime() + 5_000);
+  expect(timestamp.toISOString()).not.toBe(FIXED_ISO);
+}
 
 /** A frozen readiness snapshot carrying a BLOCKER (the send-gate must reject a send). */
 const BLOCKED_WARNINGS = [
@@ -103,6 +128,17 @@ async function seedQuoteVersion(
   return { quoteId, versionId };
 }
 
+/** Establish the authenticated Story 10.9 current-PDF proof required before final send. */
+async function establishCurrentPdf(versionId: string): Promise<void> {
+  await establishCurrentQuotePdf({
+    client: a,
+    tenantId: fixture.tenantA.id,
+    quoteVersionId: versionId,
+    actorUserId: fixture.adminA.id,
+    occurredAt: FIXED_ISO,
+  });
+}
+
 let stackUp = false;
 let fixture: TwoTenantFixture;
 let a: TestServerClient; // adminA's authenticated anon-key (RLS) client
@@ -118,10 +154,12 @@ afterAll(async () => {
 });
 
 describe("markQuoteVersionSent — mark-sent transition (AC1)", () => {
-  it("[P0] 6.4-INT-01: records the sent timestamp (explicit RPC parameter), channel/reference, a `sent` event, an audit row, and status='sent'", async (testCtx) => {
+  it("[P0] 6.4-INT-01: DB-owns sent lifecycle/audit timestamps while preserving channel/reference, event, audit row, and status='sent'", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     const { versionId } = await seedQuoteVersion(fixture.tenantA.id, "draft");
     const correlationId = crypto.randomUUID();
+    await establishCurrentPdf(versionId);
+    const databaseBefore = await readDatabaseNow();
 
     const res = await runCommand(markQuoteVersionSent, {
       client: a as never,
@@ -129,6 +167,7 @@ describe("markQuoteVersionSent — mark-sent transition (AC1)", () => {
       clock: fixedClock,
       correlationId,
     });
+    const databaseAfter = await readDatabaseNow();
     expect(res.ok).toBe(true);
     if (!res.ok) return;
     expect(res.data.targetId).toBe(versionId);
@@ -136,13 +175,14 @@ describe("markQuoteVersionSent — mark-sent transition (AC1)", () => {
     // The lifecycle state flipped to sent (the immutable transition).
     const row = await adminSelectQuoteVersionRow(versionId);
     expect(row?.status).toBe("sent");
+    expectDatabaseOwnedTimestamp(row?.updated_at, databaseBefore, databaseAfter);
 
-    // A `sent` quote_event was written with occurred_at = the INJECTED clock (NO wall-clock) +
-    // the recorded channel/reference.
+    // A `sent` quote_event was written with a database-owned timestamp (the injected command
+    // clock cannot backdate lifecycle evidence) plus the recorded channel/reference.
     const events = await adminSelectQuoteEventsForVersion(versionId);
     const sentEvent = events.find((e) => e.event_type === "sent");
     expect(sentEvent).toBeDefined();
-    expect(sentEvent?.occurred_at).toBe(FIXED_ISO);
+    expectDatabaseOwnedTimestamp(sentEvent?.occurred_at, databaseBefore, databaseAfter);
     expect(sentEvent?.channel).toBe("email");
     expect(sentEvent?.reference).toBe("REF-123");
 
@@ -153,29 +193,36 @@ describe("markQuoteVersionSent — mark-sent transition (AC1)", () => {
     expect(audits.length).toBe(1);
     const audit = audits[0];
     expect(audit?.target_id).toBe(versionId);
+    expectDatabaseOwnedTimestamp(audit?.created_at, databaseBefore, databaseAfter);
     expect(audit?.metadata).toEqual({});
     expect(JSON.stringify(audit?.metadata)).not.toMatch(/email|REF-123|ore/i);
   });
 
-  it("[P0] 6.4-INT-01: the sent timestamp comes from the injected clock, not the wall clock (channel/reference optional)", async (testCtx) => {
+  it("[P0] 6.4-INT-01: the DB owns the sent timestamp and ignores the injected clock (channel/reference optional)", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     const { versionId } = await seedQuoteVersion(fixture.tenantA.id, "draft");
+    await establishCurrentPdf(versionId);
+    const correlationId = crypto.randomUUID();
+    const databaseBefore = await readDatabaseNow();
 
     // No channel/reference supplied — they are OPTIONAL recorded fields (null when absent).
     const res = await runCommand(markQuoteVersionSent, {
       client: a as never,
       input: { quote_version_id: versionId },
       clock: fixedClock,
-      correlationId: crypto.randomUUID(),
+      correlationId,
     });
+    const databaseAfter = await readDatabaseNow();
     expect(res.ok).toBe(true);
 
     const events = await adminSelectQuoteEventsForVersion(versionId);
     const sentEvent = events.find((e) => e.event_type === "sent");
-    // A wall-clock stamp would drift from FIXED_ISO — the injected clock pins it exactly.
-    expect(sentEvent?.occurred_at).toBe(FIXED_ISO);
+    expectDatabaseOwnedTimestamp(sentEvent?.occurred_at, databaseBefore, databaseAfter);
     expect(sentEvent?.channel).toBeNull();
     expect(sentEvent?.reference).toBeNull();
+    const audits = await adminSelectAuditEvents({ correlationId });
+    expect(audits).toHaveLength(1);
+    expectDatabaseOwnedTimestamp(audits[0]?.created_at, databaseBefore, databaseAfter);
   });
 });
 
@@ -184,6 +231,7 @@ describe("markQuoteVersionSent — command-layer immutability (AC2, R-605 layer 
     if (skipUnlessStack(testCtx, stackUp)) return;
     // Mark a draft sent via the command (the real transition), then re-attempt the send.
     const { versionId } = await seedQuoteVersion(fixture.tenantA.id, "draft");
+    await establishCurrentPdf(versionId);
     const first = await runCommand(markQuoteVersionSent, {
       client: a as never,
       input: { quote_version_id: versionId },
@@ -276,38 +324,36 @@ describe("markQuoteVersionSent — DB-layer immutability BELOW the command (AC2,
     expect(String(after?.base_total_ore)).toBe(String(before?.base_total_ore));
   });
 
-  it("[P0] 6.4-INT-03: the EXEMPT PDF-render columns (pdf_status/pdf_file_id/pdf_generated_at) are STILL mutable on a SENT version (the 6.3 retry path)", async (testCtx) => {
+  it("[P0] 10.8/10.9: direct authenticated PDF render-state DML is denied; narrow render RPCs are the only allowed path", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     const { versionId } = await seedQuoteVersion(fixture.tenantA.id, "sent");
 
-    // A direct own-tenant authenticated UPDATE of an EXEMPT PDF-render column must SUCCEED — a sent
-    // version's PDF stays regenerable/retryable (deferred-work 6-3 → owner 6.4; architecture §12).
+    // Derived PDF state remains allowed only through the attributable start/complete RPCs; direct
+    // authenticated table DML is no longer a provenance bypass.
     const { error } = await a
       .from("quote_versions")
       .update({ pdf_status: "generating" })
       .eq("id", versionId)
       .select();
 
-    expect(error).toBeNull();
-    const cols = await adminSelectQuoteVersionPdfColumns(versionId);
-    expect(cols?.pdf_status).toBe("generating");
+    expect(error?.code).toBe("42501");
   });
 
-  it("[P0] 6.4-INT-03: an allowed lifecycle transition (status → accepted) on a SENT version still succeeds (append-only lifecycle keeps working)", async (testCtx) => {
+  it("[P0] 10.8: direct authenticated lifecycle DML is denied; lifecycle transitions require their narrow RPC", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     const { versionId } = await seedQuoteVersion(fixture.tenantA.id, "sent");
 
-    // The trigger must EXEMPT the allowed status transitions (accepted/rejected/expired/superseded)
-    // + archived_at + updated_at so the append-only lifecycle machinery keeps working.
+    // A status UPDATE used to be trigger-permitted. It is now denied at the table
+    // boundary so callers cannot bypass review provenance.
     const { error } = await a
       .from("quote_versions")
       .update({ status: "accepted" })
       .eq("id", versionId)
       .select();
 
-    expect(error).toBeNull();
+    expect(error?.code).toBe("42501");
     const after = await adminSelectQuoteVersionRow(versionId);
-    expect(after?.status).toBe("accepted");
+    expect(after?.status).toBe("sent");
   });
 
   it("[P0] 6.4-INT-03: a direct authenticated UPDATE of a customer-visible line on a SENT version is REJECTED (attachment/line snapshot immutable)", async (testCtx) => {
@@ -321,6 +367,7 @@ describe("markQuoteVersionSent — DB-layer immutability BELOW the command (AC2,
       85_000,
     );
     expect((await adminSelectQuoteVersionRow(versionId))?.status).toBe("draft");
+    await establishCurrentPdf(versionId);
     const sent = await runCommand(markQuoteVersionSent, {
       client: a as never,
       input: { quote_version_id: versionId },
@@ -343,20 +390,20 @@ describe("markQuoteVersionSent — DB-layer immutability BELOW the command (AC2,
     expect(after[0]?.label).toBe(before[0]?.label);
   });
 
-  it("[P0] 6.4-INT-03: the sent-lock trigger does NOT fire on a DRAFT row (a draft is still fully mutable)", async (testCtx) => {
+  it("[P0] 10.8: a direct authenticated DRAFT mutation is denied; the command/RPC path is required", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     const { versionId } = await seedQuoteVersion(fixture.tenantA.id, "draft");
 
-    // A DRAFT row is still fully mutable — the trigger only fires when OLD.status <> 'draft'.
+    // Provenance hardening removes direct quote_versions DML even while draft.
     const { error } = await a
       .from("quote_versions")
       .update({ intro_text: "draft edit still allowed" })
       .eq("id", versionId)
       .select();
 
-    expect(error).toBeNull();
+    expect(error?.code).toBe("42501");
     const after = await adminSelectQuoteVersionRow(versionId);
-    expect(after?.intro_text).toBe("draft edit still allowed");
+    expect(after?.intro_text).not.toBe("draft edit still allowed");
   });
 
   it("[P0] 6.4-INT-03: a line INSERT into a SENT version is REJECTED (a crafted new line cannot be smuggled into a frozen snapshot)", async (testCtx) => {
@@ -461,23 +508,60 @@ describe("markQuoteVersionSent — send gated by the 5.4 readiness classifier (A
     expect(after?.status).toBe("draft");
   });
 
-  it("[P0] 6.4-INT-04: a draft with only WARNINGS (no blocker) IS sendable — warnings never gate (demo-data-only accept)", async (testCtx) => {
+  it("[P0] 6.4-INT-04: a draft with only WARNINGS (no blocker) IS sendable only on the explicit demo track", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
-    const { versionId } = await seedQuoteVersion(fixture.tenantA.id, "draft", [
-      { code: "TAX_SIGN_OFF_REQUIRED", severity: "warning", message: "…" },
-      { code: "MISSING_FACILITY", severity: "warning", message: "…" },
-    ]);
+    const previousTrack = process.env.ELPRO_QUOTE_SEND_TRACK;
+    process.env.ELPRO_QUOTE_SEND_TRACK = "demo";
+    try {
+      const { versionId } = await seedQuoteVersion(fixture.tenantA.id, "draft", [
+        { code: "TAX_SIGN_OFF_REQUIRED", severity: "warning", message: "…" },
+        { code: "MISSING_FACILITY", severity: "warning", message: "…" },
+      ]);
+      await establishCurrentPdf(versionId);
 
-    const res = await runCommand(markQuoteVersionSent, {
-      client: a as never,
-      input: { quote_version_id: versionId },
-      clock: fixedClock,
-      correlationId: crypto.randomUUID(),
-    });
+      const res = await runCommand(markQuoteVersionSent, {
+        client: a as never,
+        input: { quote_version_id: versionId },
+        clock: fixedClock,
+        correlationId: crypto.randomUUID(),
+      });
 
-    expect(res.ok).toBe(true);
-    const after = await adminSelectQuoteVersionRow(versionId);
-    expect(after?.status).toBe("sent");
+      expect(res.ok).toBe(true);
+      const after = await adminSelectQuoteVersionRow(versionId);
+      expect(after?.status).toBe("sent");
+    } finally {
+      if (previousTrack === undefined) delete process.env.ELPRO_QUOTE_SEND_TRACK;
+      else process.env.ELPRO_QUOTE_SEND_TRACK = previousTrack;
+    }
+  });
+
+  it("[P0] Story 10.6: unresolved tax sign-off rejects the same warning-only draft on the real-customer track", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
+    const previousTrack = process.env.ELPRO_QUOTE_SEND_TRACK;
+    process.env.ELPRO_QUOTE_SEND_TRACK = "real_customer";
+    try {
+      const { versionId } = await seedQuoteVersion(fixture.tenantA.id, "draft", [
+        { code: "TAX_SIGN_OFF_REQUIRED", severity: "warning", message: "…" },
+        { code: "MISSING_FACILITY", severity: "warning", message: "…" },
+      ]);
+      await establishCurrentPdf(versionId);
+
+      const res = await runCommand(markQuoteVersionSent, {
+        client: a as never,
+        input: { quote_version_id: versionId },
+        clock: fixedClock,
+        correlationId: crypto.randomUUID(),
+      });
+
+      expect(res.ok).toBe(false);
+      if (res.ok) return;
+      expect(res.code).toBe("VALIDATION_FAILED");
+      const after = await adminSelectQuoteVersionRow(versionId);
+      expect(after?.status).toBe("draft");
+    } finally {
+      if (previousTrack === undefined) delete process.env.ELPRO_QUOTE_SEND_TRACK;
+      else process.env.ELPRO_QUOTE_SEND_TRACK = previousTrack;
+    }
   });
 });
 

@@ -52,6 +52,7 @@ import {
 import { adminSelectAuditEvents } from "../../factories/audit-events";
 import { isLocalStackReachable } from "../../support/test-env";
 import { skipUnlessStack } from "../../support/stack-gate";
+import { establishCurrentQuotePdf } from "../../support/quote-pdf";
 import { runCommand } from "@/server/commands/envelope";
 import {
   markQuoteVersionSent,
@@ -106,6 +107,11 @@ describe("7.3-INT-02 + AC3: updateJob — allowed edits audited, immutable refs 
       calculation_id: calcId,
       status: "draft",
       accepted_price_ore: SOURCE_SENT_TOTAL_ORE,
+    });
+    await establishCurrentQuotePdf({
+      client, tenantId: tenant.id, quoteVersionId: versionId,
+      actorUserId: tenant.id === fx.tenantA.id ? fx.adminA.id : fx.adminB.id,
+      occurredAt: fixedClock.now().toISOString(),
     });
     const sent = await runCommand(markQuoteVersionSent, {
       client: client as never,

@@ -200,7 +200,27 @@ test("6.4-UNIT-01 (R-610): a requires_sign_off=true snapshot is STILL sendable (
     warningsSnapshot: [
       { code: "TAX_SIGN_OFF_REQUIRED", severity: "warning", message: "…" },
     ],
-    signOff: { requiresSignOff: true, termsApprovedAt: null },
+    signOff: { requiresSignOff: true, termsApprovedAt: null, customerDataTrack: "demo" },
   });
   assert.equal(gate.canSend, true);
+});
+
+test("10.6: unresolved TAX_SIGN_OFF_REQUIRED blocks a real-customer send but not a demo", () => {
+  const frozenTaxWarning = [
+    { code: "TAX_SIGN_OFF_REQUIRED", severity: "warning", message: "…" },
+  ];
+  assert.equal(
+    evaluateSendGate({
+      warningsSnapshot: frozenTaxWarning,
+      signOff: { requiresSignOff: true, termsApprovedAt: null, customerDataTrack: "real_customer" },
+    }).canSend,
+    false,
+  );
+  assert.equal(
+    evaluateSendGate({
+      warningsSnapshot: frozenTaxWarning,
+      signOff: { requiresSignOff: true, termsApprovedAt: null, customerDataTrack: "demo" },
+    }).canSend,
+    true,
+  );
 });

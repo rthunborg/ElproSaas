@@ -220,6 +220,7 @@ describe("Migration reset green — tenant_foundation objects present (AC1 / R-0
       "quote_follow_ups.UPDATE",
       "quote_lost_reasons.INSERT",
       "quote_lost_reasons.SELECT",
+      "quote_review_authorizations.SELECT",
       "quote_terms.INSERT",
       "quote_terms.SELECT",
       "quote_terms.UPDATE",
@@ -251,7 +252,12 @@ describe("Migration reset green — tenant_foundation objects present (AC1 / R-0
     for (const r of rows) {
       cmdsByTable.set(r.tablename, [...(cmdsByTable.get(r.tablename) ?? []), r.cmd]);
     }
-    const selectOnly = ["tenants", "tenant_memberships", "audit_events"];
+    const selectOnly = [
+      "tenants",
+      "tenant_memberships",
+      "audit_events",
+      "quote_review_authorizations",
+    ];
     for (const t of selectOnly) {
       expect((cmdsByTable.get(t) ?? []).sort()).toEqual(["SELECT"]);
     }
@@ -350,9 +356,7 @@ describe("Migration reset green — tenant_foundation objects present (AC1 / R-0
       "quote_events_block_mutation",
     ]);
     for (const fn of fnRows) {
-      // All four are SECURITY INVOKER (ADR-A009 default — run under the caller's RLS, no
-      // service-role app path) with a fixed empty search_path (the DEFINER-fn hardening shape).
-      expect(fn.prosecdef).toBe(false);
+      expect(fn.prosecdef).toBe(fn.proname === "mark_quote_version_sent");
       assertSearchPathExactlyEmpty(fn.proname, fn.proconfig);
     }
   });
@@ -379,9 +383,7 @@ describe("Migration reset green — tenant_foundation objects present (AC1 / R-0
       "mark_quote_version_lifecycle",
     ]);
     for (const fn of fnRows) {
-      // Both are SECURITY INVOKER (run under the caller's RLS — own-tenant only, no service-role
-      // app path) with a fixed empty search_path + schema-qualified refs (the 6.1/6.4 RPC shape).
-      expect(fn.prosecdef).toBe(false);
+      expect(fn.prosecdef).toBe(true);
       assertSearchPathExactlyEmpty(fn.proname, fn.proconfig);
     }
   });

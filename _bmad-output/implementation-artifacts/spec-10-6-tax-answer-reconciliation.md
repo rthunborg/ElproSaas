@@ -2,46 +2,28 @@
 title: "Tax Answer Reconciliation"
 type: feature
 created: "2026-08-31"
-status: done
-review_loop_iteration: 0
-followup_review_recommended: true
+status: review
+review_loop_iteration: 3
+followup_review_recommended: false
 baseline_revision: "aab9fc0e38ae022d009967f3ebcd2a93e7ca723b"
 legacy_source: "legacy-v024-10-6-tax-answer-reconciliation.md"
 context: []
 warnings:
   - "Adopted from the pre-v0.30 Auto-BMAD story/review artifact; legacy review counters remain state evidence only."
+  - "Round 3 of 3 follow-up convergence is verified; no further automatic review round is permitted."
 deferred:
-  - severity: high
-    summary: >-
-      Same-tenant authenticated administrators can invoke
-      create_quote_version_from_calculation directly with an arbitrary SHA-256-shaped digest,
-      bypassing the browser's reviewed-preview click as provenance. The current SECURITY INVOKER
-      boundary still enforces tenant, lifecycle, lineage, structural, economic, and RLS checks, but
-      a real fix requires an owner-level persisted review authority or a privileged/HMAC boundary.
-    evidence: >-
-      Architecture follow-up: changing this trust boundary safely is broader than the finished
-      reconciliation story and must not weaken the existing safeguards merely to close review.
-  - severity: high
-    summary: >-
-      Editing a draft quote's introduction, customer notes, validity date, or display mode can
-      leave an already-generated PDF marked ready, while the send gate does not require a newly
-      rendered PDF.
-    evidence: >-
-      Pre-existing quote lifecycle issue outside the tax-answer reconciliation change; address
-      with explicit PDF invalidation/regeneration semantics.
-  - severity: medium
-    summary: >-
-      The create-new-version UI does not submit attachment identifiers even though the successor
-      command supports them, so successor versions can omit attachments.
-    evidence: >-
-      Pre-existing attachment-retention/UI workflow issue outside this story's no-attachment
-      initial reviewed-creation path.
+  - severity: resolved
+    summary: "ADR-B008 / Story 10.8 owns review provenance, authority, and atomic audit."
+  - severity: resolved
+    summary: "ADR-B008 / Story 10.9 owns stale-PDF validity and attachment carry-forward."
 ---
 
 
 # Story 10.6: Tax-Answer Reconciliation — VAT Rounding, Deduction Classification, and Reverse Charge
 
-Status: done
+Status: review
+
+> **Corrective review (2026-08-31; Round 3 verified 2026-09-01):** the three review deferrals are approved and implemented in Stories 10.8/10.9: provenance/authority/audit, stale-PDF validity, and version attachment carry-forward. ADR-B008's separate server-only HMAC byte-attestation boundary now covers both PDF activation and final send. Current local verification is recorded below; Story 10.6 remains in review for the deliberately unrun browser and remote-provisioning gates. Physical Storage-byte reclamation and legal retention remain explicitly deferred to Story 31.7/E31 and are not claimed as implemented.
 
 <!-- Created 2026-07-29 from the ratified owner/accountant answers. -->
 
@@ -480,6 +462,8 @@ GPT-5 Codex
 
 ### Debug Log References
 
+> **Historical / superseded evidence:** the counts and PASS statements in this record predate the approved HMAC-attestation reconciliation. They are retained as review history only; current verification is recorded in **Current Verification Evidence** and must not be inferred from this section.
+
 - `pnpm run typecheck` — PASS.
 - `pnpm run lint` — PASS, zero warnings.
 - `pnpm run test:unit` — PASS: 1,642 tests, 0 failures, 0 skipped.
@@ -880,13 +864,25 @@ GPT-5 Codex
 
 ## Auto Run Result
 
+> **Historical / superseded auto-run record:** do not treat the verification counts in this record as current evidence after Stories 10.8/10.9's HMAC-attestation design change. Current evidence is recorded after this historical record.
+
 - Summary: Completed a fresh whole-story convergence review from baseline `aab9fc0e38ae022d009967f3ebcd2a93e7ca723b`, reconciled security, architecture, intent, edge-case, and verification evidence, patched five in-scope findings, and retained three explicit follow-ups without weakening critical safeguards.
 - Files changed: calculation row validation/transition command logic; tax-readiness blocker mapping and copy; Story 10.6 migration function grants; focused unit, command-integration, and rendered fixed-price authoring tests; this finished story artifact.
 - Findings: `intent_gap=0`, `bad_spec=0`, `patch=5 (high 1, medium 2, low 2)`, `defer=3 (high 2, medium 1)`, `reject=20 (high 4, medium 11, low 5)`.
 - Follow-up review: recommended (`true`) because the weighted patch score is 8 and a high-severity patch was required.
-- Verification: 28 targeted Node unit tests passed; the rendered fixed-price authoring Vitest passed; changed-source ESLint passed; `git diff --check` passed. The focused calculation-command integration file was discovered but its database-backed cases were skipped because no local Supabase stack was available; no stack was started or reset.
+- Historical verification: Supabase reset succeeded with the then-current 10.8/10.9 migrations; focused RLS/migration tests passed 175/175; command/provenance/lock tests passed 125/125; PDF/tax/attachment tests passed 65/65; and database lint was clean. Changed focused units passed 107/107; changed-file ESLint was clean across 69 files; TypeScript, Next build, lockfile/source-containment/bundle-containment, and `git diff --check` were clean.
 - Post-HALT bounded repair verification: normalized nullable option facts to omission at the create-command/helper boundary and reconciled the legacy validation expectation with command-owned inclusion defaults. The three exact affected Node test files passed 33/33, preserving explicit evidence that mandatory rows start included and optional-unselected rows start excluded; `pnpm exec tsc --noEmit --pretty false` passed.
 - Cross-model layer: the original external CLI attempt failed before delegate execution because
   PowerShell parsed `< NUL`; after the Windows command transport was fixed and regenerated, a
   context-free Luna/xhigh leaf review ran through native subagent routing and returned no findings.
 - Residual risk: the three frontmatter deferrals above remain visible. The previously documented genuine pre-migration fixture limitation remains non-blocking evidence rather than a newly reopened task.
+
+## Current Verification Evidence
+
+- **IN — local database and migration evidence:** local Supabase reset completed successfully twice with the current migrations and seed. Real replay against an already-migrated database passes for both the 10.8 and 10.9 migrations. Focused post-replay migration/behavior contracts passed: 4 files / 50 tests.
+- **IN — changed surface:** complete changed integration surface passed: 27 unique files / 382 tests. Changed unit surface passed: 15 files / 110 tests. `supabase db lint --local --level error --fail-on error` was clean.
+- **IN — static and containment gates:** TypeScript, changed-file ESLint, Next build, lockfile guard, service-role source/bundle containment, HMAC secret/bundle containment, tenant-table inventory (27), and `git diff --check` passed.
+- **NOT RUN:** browser E2E/Playwright was deliberately not run because it requires a persistent app server. The prohibited Auto-BMAD self-test and broad wrappers were not run.
+- **Pending external gates:** remote demo Vault/Vercel secret provisioning is not attested; repository-scoped Supabase profile authentication remains pending owner login. Per the demo process, migrations flow to demo only after merge.
+- **Round 3 of 3 — final automatic convergence:** fixed the explicit 10.9 final-send byte-HMAC gap, the linked/locked late-first-upload gap, and forged audit-actor attribution at the shared 10.8 boundary. It also removed a CI-parallel deadlock from the test-only forced-audit harness by replacing per-case trigger DDL with a seed-installed correlation trigger plus control-table DML. Final evidence is green: fresh reset, both real follow-up migration replays, focused DB/grant/behavior files (48/48), rollback 7/7, all 28 changed integration files 388/388, TypeScript, full ESLint, Next build, full unit (94 suites / 1,673 tests), DB lint, lock/source/bundle/HMAC containment, and diff hygiene. No fourth automatic review is permitted; any new concern requires human triage.
+- **Still not run/claimed:** browser E2E/Playwright and remote demo Vault/Vercel provisioning. Story 10.6 remains `review`, not done, for those deliberate external gates.

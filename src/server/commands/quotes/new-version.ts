@@ -11,7 +11,8 @@
  * source calc via the SHARED `buildFreshQuoteSnapshot` helper [source (a) — the mutation surface for
  * customer-visible changes is the calc/settings/terms the admin already edited] → call the narrow
  * atomic `create_new_quote_version` RPC on the RLS client with the INJECTED clock + the resolved
- * tenant → append-only audit `{ targetId: <new version id> }`). No bespoke auth/error/audit path.
+ * tenant → consume the review authority + write the version/event/audit atomically). No bespoke
+ * auth/error/audit path.
  *
  * ── PRIOR-VERSION PRESERVATION IS THE HEADLINE PROPERTY (R-609) ────────────────────────────────
  * Creating v2 mutates NOTHING on v1 — the RPC inserts a NEW row + (optionally) flips ONLY v1's
@@ -29,6 +30,11 @@ import { defineCommand } from "../envelope";
 import { CommandError } from "../command-errors";
 import {
   asNewQuoteVersionRpcClient,
+  asQuoteReviewAuthorizationRpcClient,
+  extractQuoteReviewAuthorizationId,
+  loadEligibleCalculationAttachmentFileIds,
+  loadVisibleAttachmentFileId,
+  loadQuoteVersionAttachmentSnapshots,
   loadQuoteVersionParent,
   throwMappedQuoteWriteError,
 } from "./quote-db";
@@ -60,12 +66,36 @@ export function isRecoverableLegacyDraftParent(
   return status === "draft" && snapshotSchemaVersion === null;
 }
 
+/**
+ * Resolve the attachment ids for a successor snapshot without trusting the predecessor's frozen
+ * bytes. An absent selection requests the eligible predecessor default; an explicit empty array
+ * is a deliberate "copy none" choice. In every case retain only currently eligible calculation
+ * attachments and preserve the first requested occurrence, so the RPC can never insert duplicate
+ * snapshot attachment rows.
+ */
+export function resolveCarryForwardAttachmentFileIds(
+  requestedAttachmentFileIds: readonly string[] | undefined,
+  predecessorAttachmentFileIds: readonly string[],
+  eligibleCalculationAttachmentFileIds: readonly string[],
+): string[] {
+  const requestedIds = requestedAttachmentFileIds ?? predecessorAttachmentFileIds;
+  const eligibleIds = new Set(eligibleCalculationAttachmentFileIds);
+  const seen = new Set<string>();
+  const result: string[] = [];
+  for (const fileId of requestedIds) {
+    if (!eligibleIds.has(fileId) || seen.has(fileId)) continue;
+    seen.add(fileId);
+    result.push(fileId);
+  }
+  return result;
+}
+
 export const createNewQuoteVersion = defineCommand<
   CreateNewQuoteVersionInput,
   CreateNewQuoteVersionResult
 >({
   command: "quote.version.new",
-  auditable: true,
+  auditable: false,
   eventType: "quote.version.created",
   targetType: "quote_version",
   validateInput: validateCreateNewQuoteVersion,
@@ -96,21 +126,46 @@ export const createNewQuoteVersion = defineCommand<
     // ── reachable, so it owns closing this command-side gap. Reject with a generic VALIDATION_FAILED.
     if (parent.status === "accepted") throw new CommandError("VALIDATION_FAILED");
 
+    // Carry-forward defaults to the intersection of the predecessor's frozen attachments
+    // and currently active/eligible calculation attachments. An explicit UI selection is
+    // still intersected with the same current eligible set, so stale predecessor bytes are
+    // never copied into a successor.
+    const [predecessorAttachments, currentCalculationAttachmentIds] = await Promise.all([
+      loadQuoteVersionAttachmentSnapshots(db, parent.id),
+      loadEligibleCalculationAttachmentFileIds(db, parent.calculation_id),
+    ]);
+    // Explicit ids are an authorization-bearing request: a foreign or nonexistent
+    // id must be denied, not silently treated as an unavailable attachment. Owned
+    // archived/unlinked/ineligible files remain safe to omit below.
+    if (ctx.input.attachment_file_ids !== undefined) {
+      const visible = await Promise.all(
+        ctx.input.attachment_file_ids.map((fileId) => loadVisibleAttachmentFileId(db, fileId)),
+      );
+      if (visible.some((fileId) => fileId === null)) {
+        throw new CommandError("TENANT_ACCESS_DENIED");
+      }
+    }
+    const attachmentFileIds = resolveCarryForwardAttachmentFileIds(
+      ctx.input.attachment_file_ids,
+      predecessorAttachments.map((attachment) => attachment.file_id),
+      currentCalculationAttachmentIds,
+    );
+
     // ── RE-CAPTURE the FRESH composite snapshot from the CURRENT source calc (source (a)). The
     // ── shared helper re-validates each selected attachment file own-tenant (a foreign id → denied).
     const { snapshot, customerId, facilityId, contactId } =
       await buildFreshQuoteSnapshot(db, {
         calculationId: parent.calculation_id,
-        attachmentFileIds: ctx.input.attachment_file_ids,
+        attachmentFileIds,
         capturedAt,
       });
 
-    // ── Call the narrow atomic new-version RPC on the RLS client (never service-role). The parent's
-    // ── existing SENT commitment is superseded (p_supersede_prior=true) so the timeline never shows
-    // ── two live sent commitments (AC2) — the RPC only supersedes a `sent` prior version.
-    const rpc = asNewQuoteVersionRpcClient(db);
-    const { data, error } = await rpc.rpc("create_new_quote_version", {
-      p_tenant_id: tenantId, // resolved tenant, never a client id
+    const snapshotPayload = snapshotToPayload(snapshot);
+    const linesPayload = linesToPayload(snapshot);
+    const attachmentsPayload = attachmentsToPayload(snapshot);
+    const authorityRpc = asQuoteReviewAuthorizationRpcClient(db);
+    const authorization = await authorityRpc.rpc("authorize_quote_successor_review", {
+      p_tenant_id: tenantId,
       p_quote_id: parent.quote_id,
       p_source_quote_version_id: parent.id,
       p_calculation_id: parent.calculation_id,
@@ -118,10 +173,27 @@ export const createNewQuoteVersion = defineCommand<
       p_customer_id: customerId,
       p_facility_id: facilityId,
       p_contact_id: contactId,
-      p_snapshot: snapshotToPayload(snapshot),
-      p_lines: linesToPayload(snapshot),
-      p_attachments: attachmentsToPayload(snapshot),
+      p_snapshot: snapshotPayload,
+      p_lines: linesPayload,
+      p_attachments: attachmentsPayload,
       p_supersede_prior: true,
+      p_actor_user_id: ctx.tenantContext.userId,
+      p_correlation_id: ctx.correlationId,
+    });
+    if (authorization.error) throwMappedQuoteWriteError(authorization.error);
+    const authorizationId = extractQuoteReviewAuthorizationId(authorization.data);
+    if (authorizationId === null) {
+      throw new Error("authorizeQuoteSuccessorReview: RPC returned no authorization id");
+    }
+
+    // Consume the one-time authorization in the same transaction as the successor rows/event/audit.
+    const rpc = asNewQuoteVersionRpcClient(db);
+    const { data, error } = await rpc.rpc("create_new_quote_version", {
+      p_tenant_id: tenantId, // resolved tenant, never a client id
+      p_authorization_id: authorizationId,
+      p_captured_at: capturedAt,
+      p_actor_user_id: ctx.tenantContext.userId,
+      p_correlation_id: ctx.correlationId,
     });
     if (error) throwMappedQuoteWriteError(error);
 
@@ -131,7 +203,6 @@ export const createNewQuoteVersion = defineCommand<
     }
     return { targetId: parsed.quoteVersionId, versionNumber: parsed.versionNumber };
   },
-  auditFields: (_ctx, result) => ({ targetId: result.targetId }),
 });
 
 /**

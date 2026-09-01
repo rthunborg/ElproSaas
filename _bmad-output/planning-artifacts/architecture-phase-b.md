@@ -60,6 +60,7 @@ Two further decisions were recorded from the 2026-07-26 answers and are numbered
 
 7. **ADR-B007 (decided 2026-07-26, §8A):** the field posture is an **installable PWA with genuine offline capture** — not "responsive web first". A local queue with idempotent, operation-id-keyed writes, per-change sync states, append-only field records, and scoped/minimised/purgeable local storage under the same permission checks as online reads. No native app.
 8. **ADR-A004 amendment (decided 2026-07-26, §12A):** VAT rounds **per VAT category at document level** (Peppol/EN 16931 BR-CO-17), not per line; row visibility does not drive economic inclusion; construction reverse charge is a VAT **type**, not a 0 % rate; Skatteverket claim amounts truncate to whole SEK. This **corrects shipped behaviour** and is owned by Story 10.6.
+9. **ADR-B008 (decided 2026-08-31):** quote review is an authenticated user attestation to exact server-validated content, not proof of UI attention. A one-time 15-minute non-HMAC authorization, invalidated by relevant changes, governs creation/review/send; lifecycle mutations atomically audit actor/correlation. For quote PDFs, a database-issued render ID is durably reserved before upload through the narrow authenticated `reserve_quote_pdf_file` RPC; it alone may set immutable `files.artifact_kind='quote_pdf'`, and an unlinked reserved draft is not signable. PDF-byte activation/send additionally require a short-lived server-only HMAC-SHA256 attestation verified in PostgreSQL with `pgcrypto` against matching Vault secret `quote_pdf_attestation_<key-id>`. It binds tenant/actor/version/render-file/current fingerprint/bucket/path/checksum/size/MIME/correlation/key/time window, is never returned/logged/persisted, and fails closed. Start is correlation-idempotent with a five-minute lease; response-loss reconciliation preserves a current generated PDF. No Edge Function, service-role/elevated Storage credential, or client bypass. This retains Option A and does not claim final convergence or DB-test completion. Current-PDF send validity and eligible immutable attachment carry-forward are Stories 10.8/10.9. Global retention/reclamation remains deferred to E31 / B2→B3.
 
 The highest-risk Phase B surfaces are (a) per-role authorization correctness at 2.5× the module surface, (b) the two new attack-surface classes (background execution, public tokens), (c) scheduling correctness across recurrence and DST, and (d) money-out immutability. The test strategy (§16) scales the Phase A negative-test discipline along exactly those axes.
 
@@ -587,12 +588,13 @@ The Phase A/B posture "sessionStorage only, nothing long-lived on shared devices
 
 Baseline: Phase A ships **24 tenant-owned tables** (enrolled set per `project-context.md`). Every Phase B table below is direct-`tenant_id`, RLS-forced, GRANT+policy paired, H4-enrolled, exact-policy-enumerated, composite-same-tenant-FK'd where parented, archive-over-delete, and **manifest-governed** — it may exist only when its module is `active`, activated in the same PR as its first schema change (ADR-B003). Wave tags are binding; B2/B3 rows are outline-level and are finalized at their wave-boundary checkpoint (PB-D10). Money columns are integer öre with `isOreAmount` validation; no exceptions.
 
-### 9.1 Wave B1a (full depth) — 8 tenant-owned + 2 platform-scoped + 1 ops table
+### 9.1 Wave B1a (full depth) — 9 tenant-owned + 2 platform-scoped + 1 ops table
 
 | Epic | Table | Purpose / key constraints |
 | --- | --- | --- |
 | E10 | `quote_follow_ups` | Follow-ups on sent quotes: due date, note, status open/completed, outcome. Partial unique index: one open follow-up per quote (UXB-A6). |
 | E10 | `quote_lost_reasons` | One row per lost/declined version (`unique (quote_version_id)`): outcome ∈ {förlorad, avböjd}, category, note. Insert-only (no UPDATE policy); the status flip itself is an append-only `quote_events` row via the widened lifecycle RPC (§14). Sent snapshot untouched (FR63). |
+| E10 | `quote_review_authorizations` | Story 10.8's one-time, 15-minute review authority over exact server-validated quote content; invalidated by relevant changes and enrolled with the active `quotes` module, H4, and exact-policy enumeration in the same PR. |
 | E11 | *(no new table)* | Role mechanism = `tenant_memberships.role` CHECK widening + `membership_roles` reserved extension (§3.2). Permission matrix is code (§3.3). Invitations reuse `status='invited'`. |
 | E12 | `platform_operators` **(platform-scoped)** | Operator allow-list (user_id, granted_at/by). **Not tenant-owned** — the enumerated exception class (§2/ADR-A002 delta); RLS: operator-only self-read; consulted via `is_platform_operator()` DEFINER helper (hardened shape). |
 | E12 | *(columns)* | Provisioning/onboarding state: additive columns on `tenants` (provisioning status) — the onboarding checklist is **derived** from server data, not stored; per-admin dismissal is a small column, not a table. |
@@ -644,7 +646,7 @@ Baseline: Phase A ships **24 tenant-owned tables** (enrolled set per `project-co
 | E32 notes + CRM completions | `notice_posts` (+ categories/pins/mentions via E13), `customer_favorites`; customer-360/classification are read-models + small columns | ~2 |
 | E33/E34 Fortnox | `fortnox_connections`, `integration_outbox`, `external_mappings` — **only after the final ADR-B005**, only with E33 activation | 3 (sketch) |
 
-**Summary:** B1a adds 8 tenant-owned tables (+2 platform-scoped, +1 ops); B1b adds 8 ungated + ~9–11 gated job-depth candidates; B2 outlines ~26; B3 outlines ~19–20 (+3 Fortnox post-ADR). Every activation extends `TENANT_TABLES`, the exact-policy enumeration, and the per-role negative suite in the same PR.
+**Summary:** B1a adds 9 tenant-owned tables (+2 platform-scoped, +1 ops); B1b adds 8 ungated + ~9–11 gated job-depth candidates; B2 outlines ~26; B3 outlines ~19–20 (+3 Fortnox post-ADR). Every activation extends `TENANT_TABLES`, the exact-policy enumeration, and the per-role negative suite in the same PR.
 
 ## 10. Scheduling and Booking Engine
 
@@ -883,6 +885,8 @@ DeletionDecisionReason  DeletionApprovedBy
 **Deletion-request states:** `Received → IdentityVerificationRequired → UnderAssessment → PartiallyApproved | Approved | Rejected → Executed → Closed`. The workflow must record who the request concerns and when it arrived, verify identity, locate the relevant data, **separate deletable data from data that must be retained**, delete or anonymise what is permitted, restrict access to what must be kept, document the decision and its legal basis, and track the response deadline and the date answered.
 
 **`LegalHold` blocks automatic purging** for anything under dispute, investigation, or a documented preservation duty. A hold overrides an expired `RetentionUntil` — the purge job must consult it, and a purge path that does not is a defect.
+
+**Physical Storage reclamation is future Story 31.7, after the central policy and deletion-request workflow exist.** It must be tenant-scoped, dry-run-first, idempotent, and audited per object; it may delete only policy-expired, unlinked bytes with no `LegalHold`, and it must re-authorize every execution batch. The executor consumes owner-approved legal periods and never invents them.
 
 **Retention periods live in a central, versioned policy — never scattered constants.** Each policy carries `DataCategory`, `LegalBasis`, `Purpose`, `RetentionPeriod`, `RetentionStartEvent`, `DeletionMethod`, `AnonymizationMethod`, `PolicyOwner`, `EffectiveFrom`, `EffectiveTo`. This is the same `ValidFrom`/`ValidTo` shape as §12A's tax rates and for the same reason: a value with legal consequences that changes over time is data, not a constant.
 

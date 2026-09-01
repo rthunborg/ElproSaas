@@ -86,13 +86,12 @@ test("[7.1] accepts an UPPERCASE (case-insensitive) uuid quote_version_id and ev
   assert.equal(r.ok, true, "the uuid check is case-insensitive");
 });
 
-test("[7.1] accepts a fully-populated capture (channel/reason/evidence/notes/planned dates)", () => {
+test("[7.1] accepts a fully-populated capture with one evidence form (channel/reason/notes/planned dates)", () => {
   const r = validateCaptureQuoteAcceptance({
     ...base(),
     channel: "email",
     adjustment_reason: "kundrabatt",
     evidence_file_id: UUID_FILE,
-    evidence_reference: "kundmail 4711",
     notes: "kundens bekräftelse",
     planned_start_date: "2026-07-15T00:00:00.000Z",
     planned_end_date: "2026-07-20T00:00:00.000Z",
@@ -102,10 +101,24 @@ test("[7.1] accepts a fully-populated capture (channel/reason/evidence/notes/pla
   assert.equal(r.data.channel, "email");
   assert.equal(r.data.adjustment_reason, "kundrabatt");
   assert.equal(r.data.evidence_file_id, UUID_FILE);
-  assert.equal(r.data.evidence_reference, "kundmail 4711");
   assert.equal(r.data.notes, "kundens bekräftelse");
   assert.equal(r.data.planned_start_date, "2026-07-15T00:00:00.000Z");
   assert.equal(r.data.planned_end_date, "2026-07-20T00:00:00.000Z");
+});
+
+test("[10.6 VALIDATION_FAILED] file evidence and external evidence are mutually exclusive", () => {
+  assert.equal(
+    validateCaptureQuoteAcceptance({
+      ...base(),
+      evidence_file_id: UUID_FILE,
+      evidence_reference: "kundmail 4711",
+    }).ok,
+    false,
+  );
+  assert.equal(
+    validateCaptureQuoteAcceptance({ ...base(), evidence_file_id: null, evidence_reference: null }).ok,
+    true,
+  );
 });
 
 test("[7.1] accepts accepted_price_ore = 0 (a canonical öre value — the zero-price boundary)", () => {

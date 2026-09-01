@@ -109,6 +109,8 @@ export function QuoteDetailView({
     selectedVersionId,
     selectedLines,
     selectedAttachments,
+    eligibleCarryForwardAttachments,
+    omittedCarryForwardAttachmentCount,
     events,
     selectedLostReason,
     followUps,
@@ -621,6 +623,11 @@ export function QuoteDetailView({
               <CreateNewVersionButton
                 quoteId={header.id}
                 quoteVersionId={selected.id}
+                predecessorAttachments={eligibleCarryForwardAttachments.map((attachment) => ({
+                  fileId: attachment.file_id,
+                  displayName: attachment.display_name,
+                }))}
+                omittedPredecessorAttachmentCount={omittedCarryForwardAttachmentCount}
               />
             </div>
           ) : isDraft ? (
@@ -666,6 +673,11 @@ export function QuoteDetailView({
                 <CreateNewVersionButton
                   quoteId={header.id}
                   quoteVersionId={selected.id}
+                  predecessorAttachments={eligibleCarryForwardAttachments.map((attachment) => ({
+                    fileId: attachment.file_id,
+                    displayName: attachment.display_name,
+                  }))}
+                  omittedPredecessorAttachmentCount={omittedCarryForwardAttachmentCount}
                 />
               )}
             </div>

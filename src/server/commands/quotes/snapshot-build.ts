@@ -150,7 +150,7 @@ export interface QuoteSnapshotBuildResult {
   readonly customerId: string;
   readonly facilityId: string | null;
   readonly contactId: string | null;
-  /** Canonical proof of the exact source state read for this build. */
+  /** UI stale-preview detector; never a database authorization or signature. */
   readonly currentReviewDigest: string;
   readonly quoteCaptureDate: string;
   readonly reviewedCalculationStatus: string;

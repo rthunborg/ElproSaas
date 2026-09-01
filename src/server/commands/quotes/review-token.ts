@@ -122,7 +122,11 @@ function resolvedTaxPolicyDigestFacts(source: QuoteReviewSource): unknown {
   };
 }
 
-/** SHA-256 digest of all reviewed semantics plus the applicable code-owned policy facts. */
+/**
+ * Client/UI stale-preview detector only. This unkeyed digest is not an authority and
+ * is never trusted by PostgreSQL; the attributable authority is the one-time UUID
+ * issued after the database validates and persists the exact canonical payload.
+ */
 export function buildQuoteReviewDigest(source: QuoteReviewSource): string {
   const sections = [...source.sections].sort(
     (left, right) => left.sortOrder - right.sortOrder || left.id.localeCompare(right.id),

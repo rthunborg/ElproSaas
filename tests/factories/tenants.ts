@@ -998,6 +998,8 @@ export interface FileSeed {
   readonly object_path?: string;
   readonly mime_type?: string | null;
   readonly size_bytes?: number | null;
+  readonly checksum?: string | null;
+  readonly artifact_kind?: "quote_pdf" | null;
   readonly uploaded_by?: string | null;
   readonly lifecycle_state?:
     | "draft"
@@ -1045,8 +1047,8 @@ export async function adminInsertFile(seed: FileSeed): Promise<string> {
     const rows = await adminQuery<{ id: string }>(
       `insert into public.files
          (id, tenant_id, bucket_id, object_path, display_name, mime_type,
-          size_bytes, uploaded_by, lifecycle_state)
-       values ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+          size_bytes, checksum, artifact_kind, uploaded_by, lifecycle_state)
+       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
        returning id`,
       [
         fileId,
@@ -1056,6 +1058,8 @@ export async function adminInsertFile(seed: FileSeed): Promise<string> {
         displayName,
         seed.mime_type ?? null,
         seed.size_bytes ?? null,
+        seed.checksum ?? null,
+        seed.artifact_kind ?? null,
         seed.uploaded_by ?? null,
         seed.lifecycle_state ?? "linked",
       ],
@@ -2190,6 +2194,31 @@ export async function adminInsertJobEvent(seed: JobEventSeed): Promise<string> {
   }
 }
 
+/** Seed one Story 10.8 review authorization for inventory isolation proofs. */
+export async function adminInsertQuoteReviewAuthorization(seed: {
+  tenant_id: string;
+  actor_user_id: string;
+  quote_id: string;
+  quote_version_id: string;
+}): Promise<string> {
+  try {
+    const rows = await adminQuery<{ id: string }>(
+      `insert into public.quote_review_authorizations
+         (tenant_id, actor_user_id, purpose, quote_id, target_quote_version_id,
+          source_revision, correlation_id, issued_at, expires_at)
+       values ($1, $2, 'final_send', $3, $4, '{"seed":true}'::jsonb,
+               gen_random_uuid(), '2026-08-31T10:00:00Z', '2026-08-31T10:15:00Z')
+       returning id`,
+      [seed.tenant_id, seed.actor_user_id, seed.quote_id, seed.quote_version_id],
+    );
+    const id = rows[0]?.id;
+    if (!id) throw new Error("adminInsertQuoteReviewAuthorization: no id returned");
+    return id;
+  } catch (error) {
+    rethrowWithCode(error);
+  }
+}
+
 /**
  * Read ONE acceptance/job-table row's label column back via the privileged superuser pg
  * path (BYPASSRLS), independent of the app/RLS path. Used by the cross-tenant UPDATE
@@ -2350,6 +2379,24 @@ export async function adminUploadStorageObject(seed: {
   }
 }
 
+/**
+ * Remove ONE known test fixture object via the service-role Storage API. This keeps
+ * cleanup on the supported storage plane instead of writing `storage.objects`
+ * directly, while retaining an exact bucket/path boundary.
+ */
+export async function adminRemoveStorageObject(seed: {
+  readonly bucket: string;
+  readonly objectPath: string;
+}): Promise<void> {
+  assertLocalStack();
+  const { error } = await admin().storage.from(seed.bucket).remove([seed.objectPath]);
+  if (error) {
+    throw new Error(
+      `factory: failed to remove storage object ${seed.objectPath}: ${error.message}`,
+    );
+  }
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Story 6.3 — quote-PDF storage/metadata readback helpers (BYPASSRLS via the
 // superuser pg pool + the service-role storage API). Used by the 6.3-INT proofs to
@@ -2396,7 +2443,10 @@ export async function adminSelectFileById(
   tenant_id: string;
   bucket_id: string;
   object_path: string;
+  display_name: string;
   mime_type: string | null;
+  checksum: string | null;
+  artifact_kind: "quote_pdf" | null;
   lifecycle_state: string;
 } | null> {
   const rows = await adminQuery<{
@@ -2404,10 +2454,13 @@ export async function adminSelectFileById(
     tenant_id: string;
     bucket_id: string;
     object_path: string;
+    display_name: string;
     mime_type: string | null;
+    checksum: string | null;
+    artifact_kind: "quote_pdf" | null;
     lifecycle_state: string;
   }>(
-    `select id, tenant_id, bucket_id, object_path, mime_type, lifecycle_state
+    `select id, tenant_id, bucket_id, object_path, display_name, mime_type, checksum, artifact_kind, lifecycle_state
        from public.files where id = $1`,
     [fileId],
   );
@@ -2425,6 +2478,7 @@ export async function adminSelectPdfFileLinks(
     purpose: string;
     is_locked: boolean;
     locked_at: string | null;
+    archived_at: string | null;
   }[]
 > {
   const rows = await adminQuery<{
@@ -2434,8 +2488,9 @@ export async function adminSelectPdfFileLinks(
     purpose: string;
     is_locked: boolean;
     locked_at: Date | string | null;
+    archived_at: Date | string | null;
   }>(
-    `select id, file_id, owner_type, purpose, is_locked, locked_at
+    `select id, file_id, owner_type, purpose, is_locked, locked_at, archived_at
        from public.file_links
       where owner_type = 'quote_version' and owner_id = $1 and purpose = 'quote_pdf'
       order by id`,
@@ -2453,6 +2508,12 @@ export async function adminSelectPdfFileLinks(
         : r.locked_at instanceof Date
           ? r.locked_at.toISOString()
           : String(r.locked_at),
+    archived_at:
+      r.archived_at === null || r.archived_at === undefined
+        ? null
+        : r.archived_at instanceof Date
+          ? r.archived_at.toISOString()
+          : String(r.archived_at),
   }));
 }
 

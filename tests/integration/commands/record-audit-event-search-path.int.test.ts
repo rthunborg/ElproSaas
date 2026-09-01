@@ -118,4 +118,23 @@ describe("record_audit_event resists search_path hijack (R-006)", () => {
     });
     expect(ok).toBe(true); // proves the function is not trivially always-raising
   });
+
+  it("[P0] an active member cannot attribute a direct audit write to another user", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
+    const forged = await adminSession(async ({ query }) => {
+      await query(`select set_config('request.jwt.claim.sub', $1, false)`, [fixture.adminA.id]);
+      try {
+        await query(
+          `select public.record_audit_event(
+             $1::uuid, $2::uuid, 'forged.write', 'forged.event', 'tenant', $1::uuid,
+             $3::uuid, '{}'::jsonb, statement_timestamp())`,
+          [fixture.tenantA.id, fixture.adminB.id, crypto.randomUUID()],
+        );
+        return false;
+      } catch (error) {
+        return (error as { code?: string }).code === "42501";
+      }
+    });
+    expect(forged).toBe(true);
+  });
 });

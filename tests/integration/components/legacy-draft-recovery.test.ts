@@ -92,6 +92,8 @@ function detailFor(selected: QuoteVersionRow): QuoteDetail {
     selectedVersionId: selected.id,
     selectedLines: [],
     selectedAttachments: [],
+    eligibleCarryForwardAttachments: [],
+    omittedCarryForwardAttachmentCount: 0,
     events: [],
     selectedLostReason: null,
     followUps: [],

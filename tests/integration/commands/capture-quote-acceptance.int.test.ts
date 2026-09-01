@@ -20,10 +20,11 @@
  *     `audit_events` row is written with ALLOW-LISTED metadata — `{ targetId }` ONLY, NO raw
  *     accepted price / channel / customer PII in the audit metadata.
  *
- * Persistence shape (7.1 Decision, prefer (a)): 7.1 persists `quote_acceptances` via an own-tenant
- * RLS-client INSERT in this command (a single-row write — NOT the 7.2 RPC). `accepted_at` is an
- * EXPLICIT input field (H1 determinism — no wall-clock derivation of the accepted moment); the
- * command clock anchors only the command instant. The resolved tenant is the ONLY tenant authority.
+ * Compatibility persistence shape (Story 10.8): `captureQuoteAcceptance` preserves its historic
+ * `{ targetId }` result but delegates its write to the same atomic `accept_quote_and_create_job`
+ * RPC as the live action. `accepted_at` remains an EXPLICIT input field (H1 determinism); the
+ * resolved tenant, actor, and correlation id are the only authorities supplied to the RPC. An
+ * authenticated user cannot directly INSERT an own-tenant acceptance row.
  *
  * Mirrors `mark-quote-version-sent.int.test.ts`: per-run unique ids (`crypto.randomUUID()`), raw pg
  * readback via the BYPASSRLS admin helpers (bigint öre → STRING; timestamptz → Date; coerce on
@@ -49,6 +50,7 @@ import {
   adminUpdateQuoteVersionStatus,
   adminSelectQuoteAcceptanceRow,
   adminSelectAcceptancesForVersion,
+  adminSelectJobsForAcceptance,
   type TwoTenantFixture,
   type TestServerClient,
 } from "../../factories/tenants";
@@ -177,6 +179,23 @@ describe("captureQuoteAcceptance — sent-state gate (AC3)", () => {
     const rows = await adminSelectAcceptancesForVersion(bVersionId);
     expect(rows.length).toBe(0);
   });
+
+  it("[P0] Story 10.8: an authenticated own-tenant client cannot directly INSERT quote_acceptances (42501); the atomic RPC is the only app write path", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
+    const { quoteId, versionId } = await seedVersion(fixture.tenantA.id, "sent");
+
+    const { error } = await a.from("quote_acceptances").insert({
+      tenant_id: fixture.tenantA.id,
+      quote_id: quoteId,
+      quote_version_id: versionId,
+      accepted_at: ACCEPTED_ISO,
+      accepted_price_ore: SOURCE_SENT_TOTAL_ORE,
+      source_sent_total_ore: SOURCE_SENT_TOTAL_ORE,
+    });
+
+    expect(error?.code).toBe("42501");
+    expect((await adminSelectAcceptancesForVersion(versionId)).length).toBe(0);
+  });
 });
 
 describe("captureQuoteAcceptance — adjusted-price server-side gate (AC2)", () => {
@@ -246,6 +265,9 @@ describe("captureQuoteAcceptance — adjusted-price server-side gate (AC2)", () 
     // The öre values persist; the delta = accepted − sent = −5000 (computed via @/lib/money).
     expect(String(row?.accepted_price_ore)).toBe(String(SOURCE_SENT_TOTAL_ORE - 5_000));
     expect(String(row?.source_sent_total_ore)).toBe(String(SOURCE_SENT_TOTAL_ORE));
+    // Story 10.8 compatibility behavior: capture now uses the authoritative transaction, so its
+    // returned acceptance always has its paired job in the same commit.
+    expect((await adminSelectJobsForAcceptance(res.data.targetId)).length).toBe(1);
     expect(row?.adjustment_reason).toBe("kundrabatt");
   });
 
@@ -272,8 +294,8 @@ describe("captureQuoteAcceptance — adjusted-price server-side gate (AC2)", () 
   });
 });
 
-describe("captureQuoteAcceptance — öre persistence + audit hygiene (AC5)", () => {
-  it("[P1] 7.1-INT-05: accepted price + source sent total persist as integer öre (bigint); accepted_at is the EXPLICIT input; a SINGLE audit row with { targetId } only (no raw price / channel / PII)", async (testCtx) => {
+describe("captureQuoteAcceptance — compatibility result, öre persistence + audit hygiene (AC5)", () => {
+  it("[P1] 7.1-INT-05 / Story 10.8: the compatibility facade returns the acceptance target while the atomic RPC persists the job-backed acceptance and a SINGLE audit row", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     const { versionId } = await seedVersion(fixture.tenantA.id, "sent");
     const correlationId = crypto.randomUUID();
@@ -306,7 +328,8 @@ describe("captureQuoteAcceptance — öre persistence + audit hygiene (AC5)", ()
     expect(acceptedAt).not.toBe(FIXED_ISO);
 
     // EXACTLY ONE append-only audit row: target_id is the acceptance id; metadata is `{}` (the
-    // `{ targetId }` allow-list lives on the target_id COLUMN). NO price/channel/PII anywhere.
+    // `{ targetId }` allow-list lives on the target_id COLUMN). It is created atomically by the
+    // RPC, not appended again by the compatibility command envelope.
     const audits = await adminSelectAuditEvents({ correlationId });
     expect(audits.length).toBe(1);
     const audit = audits[0];

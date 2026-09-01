@@ -22,6 +22,8 @@
  *  supabase/migrations/20260704120000_file_storage_foundation.sql;
  *  tests/integration/commands/file-signed-access.int.test.ts (the 8.1 storage-privacy precedent)]
  */
+import { createHash } from "node:crypto";
+
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import {
   createTwoTenantFixture,
@@ -38,6 +40,7 @@ import {
   adminInsertQuoteVersionLine,
   adminSelectQuoteVersionPdfColumns,
   adminSelectFileById,
+  adminSelectStoredPdfBytes,
   adminSelectPdfFileLinks,
   adminSelectQuoteEventsForVersion,
   type TwoTenantFixture,
@@ -68,6 +71,74 @@ let anon: TestServerClient; // unauthenticated client
 function skipUnlessBoth(ctx: SkippableTestContext): boolean {
   if (skipUnlessStack(ctx, stackUp)) return true;
   return skipUnlessStorage(ctx, storageUp);
+}
+
+/**
+ * Make the completion RPC commit through the real client, then simulate a response lost after
+ * PostgreSQL committed. Every other surface remains the real request-bound RLS client.
+ */
+function withLostCompletionResponse(client: TestServerClient): TestServerClient {
+  return new Proxy(client, {
+    get(target, prop, receiver) {
+      if (prop === "rpc") {
+        return async (fn: string, args: unknown) => {
+          const result = await (target as unknown as {
+            rpc(name: string, params: unknown): Promise<unknown>;
+          }).rpc(fn, args);
+          if (fn === "complete_quote_pdf_render") {
+            throw new Error("injected completion response lost after commit");
+          }
+          return result;
+        };
+      }
+      return Reflect.get(target, prop, receiver);
+    },
+  }) as TestServerClient;
+}
+
+/** Record the real command's reservation/upload ordering without replacing either operation. */
+function withPdfPipelineEventLog(
+  client: TestServerClient,
+  eventLog: string[],
+): TestServerClient {
+  return new Proxy(client, {
+    get(target, prop, receiver) {
+      if (prop === "rpc") {
+        return async (fn: string, args: unknown) => {
+          eventLog.push(`rpc:${fn}`);
+          return (target as unknown as {
+            rpc(name: string, params: unknown): Promise<unknown>;
+          }).rpc(fn, args);
+        };
+      }
+      if (prop === "storage") {
+        const realStorage = Reflect.get(target, prop, receiver) as {
+          from(bucket: string): object;
+        };
+        return {
+          from(bucket: string) {
+            const realBucket = realStorage.from(bucket);
+            return new Proxy(realBucket, {
+              get(bucketTarget, bucketProp, bucketReceiver) {
+                if (bucketProp === "upload") {
+                  return async (path: string, body: Uint8Array, options: { upsert?: boolean }) => {
+                    eventLog.push(`storage.upload:${options.upsert === false ? "upsert:false" : "other"}`);
+                    return Reflect.apply(
+                      Reflect.get(bucketTarget, bucketProp, bucketReceiver) as (...args: unknown[]) => unknown,
+                      bucketTarget,
+                      [path, body, options],
+                    );
+                  };
+                }
+                return Reflect.get(bucketTarget, bucketProp, bucketReceiver);
+              },
+            });
+          },
+        };
+      }
+      return Reflect.get(target, prop, receiver);
+    },
+  }) as TestServerClient;
 }
 
 /** Seed a REAL own-tenant frozen version (customer→calc→rows→version) for Tenant A. */
@@ -145,6 +216,7 @@ describe("generateQuotePdf — storage privacy (AC3, 6.3-INT-02)", () => {
     if (skipUnlessBoth(testCtx)) return;
     const versionId = await seedSnapshottedVersion(fixture.tenantA.id);
     const correlationId = crypto.randomUUID();
+    const dbClockBefore = Date.now();
     const gen = await runCommand(generateQuotePdf, {
       client: a as never,
       input: { quote_version_id: versionId },
@@ -162,6 +234,12 @@ describe("generateQuotePdf — storage privacy (AC3, 6.3-INT-02)", () => {
     expect(file?.bucket_id).toBe("tenant-files");
     expect(file?.object_path.startsWith(`${fixture.tenantA.id}/${fileId}/`)).toBe(true);
     expect(file?.tenant_id).toBe(fixture.tenantA.id);
+    expect(file?.artifact_kind).toBe("quote_pdf");
+    const storedBytes = await adminSelectStoredPdfBytes(versionId);
+    expect(storedBytes).not.toBeNull();
+    expect(file?.checksum).toBe(
+      createHash("sha256").update(storedBytes as Uint8Array).digest("hex"),
+    );
 
     // A `file_links` row — owner_type='quote_version', owner_id=version, purpose='quote_pdf'.
     const links = await adminSelectPdfFileLinks(versionId);
@@ -174,19 +252,82 @@ describe("generateQuotePdf — storage privacy (AC3, 6.3-INT-02)", () => {
     const events = await adminSelectQuoteEventsForVersion(versionId);
     expect(events.some((e) => e.event_type === "pdf_generated")).toBe(true);
 
-    // An `audit_events` row with allow-listed metadata ONLY ({ targetId }; no PII/money/URL).
+    // The start and completion lifecycle RPCs share one correlation and expose no sensitive
+    // metadata (no PII/money/object path/URL) through either audit row.
     const audits = await adminSelectAuditEvents({ correlationId });
-    expect(audits.length).toBe(1);
-    expect(audits[0].target_id).toBe(versionId);
-    const meta = JSON.stringify(audits[0].metadata ?? {});
-    expect(meta).not.toContain("http"); // no signed URL logged
-    expect(meta).not.toContain(file?.object_path ?? "OBJECT_PATH");
+    expect(audits).toHaveLength(2);
+    // Audit timestamps can tie, so normalize to the semantic lifecycle rather than
+    // treating the storage-read order as proof of the render sequence.
+    const lifecycleOrder = ["quote.pdf.render.start", "quote.pdf.render.complete"];
+    expect(
+      audits
+        .map((audit) => ({ command: audit.command, eventType: audit.event_type }))
+        .sort(
+          (left, right) =>
+            lifecycleOrder.indexOf(left.command) - lifecycleOrder.indexOf(right.command),
+        ),
+    )
+      .toEqual([
+        { command: "quote.pdf.render.start", eventType: "quote.pdf.render_started" },
+        { command: "quote.pdf.render.complete", eventType: "quote.pdf.generated" },
+      ]);
+    for (const audit of audits) {
+      expect(audit.target_id).toBe(versionId);
+      const meta = JSON.stringify(audit.metadata ?? {});
+      expect(meta).not.toContain("http"); // no signed URL logged
+      expect(meta).not.toContain(file?.object_path ?? "OBJECT_PATH");
+    }
 
     // The render columns: pdf_status='generated', pdf_file_id set, pdf_generated_at = injected.
     const cols = await adminSelectQuoteVersionPdfColumns(versionId);
     expect(cols?.pdf_status).toBe("generated");
     expect(cols?.pdf_file_id).toBe(fileId);
-    expect(cols?.pdf_generated_at).toBe(FIXED_ISO);
+    expect(cols?.pdf_generated_at).not.toBe(FIXED_ISO);
+    const generatedAt = Date.parse(cols?.pdf_generated_at ?? "");
+    expect(generatedAt).toBeGreaterThanOrEqual(dbClockBefore - 1_000);
+    expect(generatedAt).toBeLessThanOrEqual(Date.now() + 1_000);
+  });
+
+  it("[P0] reserves metadata before its first non-upserting Storage upload", async (testCtx) => {
+    if (skipUnlessBoth(testCtx)) return;
+    const versionId = await seedSnapshottedVersion(fixture.tenantA.id);
+    const eventLog: string[] = [];
+    const gen = await runCommand(generateQuotePdf, {
+      client: withPdfPipelineEventLog(a, eventLog) as never,
+      input: { quote_version_id: versionId },
+      clock: fixedClock,
+      correlationId: crypto.randomUUID(),
+    });
+    expect(gen.ok).toBe(true);
+    const reserveIndex = eventLog.indexOf("rpc:reserve_quote_pdf_file");
+    const firstUploadIndex = eventLog.findIndex((event) => event.startsWith("storage.upload:"));
+    expect(reserveIndex).toBeGreaterThanOrEqual(0);
+    expect(firstUploadIndex).toBeGreaterThan(reserveIndex);
+    expect(eventLog[firstUploadIndex]).toBe("storage.upload:upsert:false");
+  });
+
+  it("[P0] a lost completion response returns recovered success without archiving the current PDF", async (testCtx) => {
+    if (skipUnlessBoth(testCtx)) return;
+    const versionId = await seedSnapshottedVersion(fixture.tenantA.id);
+    const result = await runCommand(generateQuotePdf, {
+      client: withLostCompletionResponse(a) as never,
+      input: { quote_version_id: versionId },
+      clock: fixedClock,
+      correlationId: crypto.randomUUID(),
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+
+    const columns = await adminSelectQuoteVersionPdfColumns(versionId);
+    expect(columns?.pdf_status).toBe("generated");
+    expect(columns?.pdf_file_id).toBe(result.data.fileId);
+    expect(columns?.pdf_file_id).not.toBeNull();
+    const currentFile = await adminSelectFileById(columns?.pdf_file_id as string);
+    expect(currentFile?.lifecycle_state).toBe("linked");
+    expect(currentFile?.artifact_kind).toBe("quote_pdf");
+    expect(await adminSelectStoredPdfBytes(versionId)).not.toBeNull();
+    const events = await adminSelectQuoteEventsForVersion(versionId);
+    expect(events.some((event) => event.event_type === "pdf_failed")).toBe(false);
   });
 
   it("[P0] a CROSS-TENANT caller cannot read the PDF file/metadata (generic access-denied, no existence leak)", async (testCtx) => {

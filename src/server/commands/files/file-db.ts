@@ -27,6 +27,8 @@ export interface FileAccessRow {
   readonly bucket_id: string;
   readonly object_path: string;
   readonly lifecycle_state: FileLifecycleState;
+  /** Reserved derived artifacts may apply stricter access rules while still draft. */
+  readonly artifact_kind: string | null;
 }
 
 /**
@@ -45,7 +47,7 @@ export async function loadFileForAccess(
 ): Promise<FileAccessRow | null> {
   const { data, error } = await db
     .from("files")
-    .select("id, bucket_id, object_path, lifecycle_state")
+    .select("id, bucket_id, object_path, lifecycle_state, artifact_kind")
     .eq("id", id)
     .limit(1);
   if (error) {
@@ -70,6 +72,7 @@ export async function loadFileForAccess(
     bucket_id: row.bucket_id,
     object_path: row.object_path,
     lifecycle_state: lifecycle,
+    artifact_kind: typeof row.artifact_kind === "string" ? row.artifact_kind : null,
   };
 }
 
@@ -258,6 +261,10 @@ export function throwMappedFileWriteError(error: {
   readonly message?: string;
 }): never {
   switch (error.code) {
+    // Story 10.6: acceptance evidence is part of the immutable acceptance capture. A late
+    // append/relink therefore reports the accepted-record outcome, not a generic file lock.
+    case "AR704":
+      throw new CommandError("ACCEPTED_RECORD_LOCKED");
     // The Story 8.4 file-side lock RAISE — a distinguishable custom SQLSTATE the mapper
     // branches on FIRST, WITHOUT colliding with the standard classes or QV409/AR704.
     case "FL823":

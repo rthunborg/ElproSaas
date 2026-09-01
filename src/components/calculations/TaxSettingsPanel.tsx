@@ -397,25 +397,25 @@ function TaxSettingsForm({
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <TextField
               name="fixed_price_kronor"
-              label="Fastpris totalt (kr)"
+              label="Fastpris totalt (kr, inkl. moms (brutto, före 97 %))"
               defaultValue={v("fixed_price_kronor", oreValue(input.fixedPriceOre))}
               error={err("fixed_price_kronor")}
             />
             <TextField
               name="fixed_solar_kronor"
-              label="Sol (kr)"
+              label="Sol (kr, inkl. moms (brutto, före 97 %))"
               defaultValue={v("fixed_solar_kronor", oreValue(input.fixedPriceCategorySplitOre?.SOLAR))}
               error={err("fixed_solar_kronor")}
             />
             <TextField
               name="fixed_storage_kronor"
-              label="Lagring (kr)"
+              label="Lagring (kr, inkl. moms (brutto, före 97 %))"
               defaultValue={v("fixed_storage_kronor", oreValue(input.fixedPriceCategorySplitOre?.STORAGE))}
               error={err("fixed_storage_kronor")}
             />
             <TextField
               name="fixed_charging_kronor"
-              label="Laddning (kr)"
+              label="Laddning (kr, inkl. moms (brutto, före 97 %))"
               defaultValue={v("fixed_charging_kronor", oreValue(input.fixedPriceCategorySplitOre?.CHARGING))}
               error={err("fixed_charging_kronor")}
             />

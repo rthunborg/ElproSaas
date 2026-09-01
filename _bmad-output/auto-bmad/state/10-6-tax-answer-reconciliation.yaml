@@ -8,10 +8,10 @@ story_source: sprint
 spec_folder: null
 story_id: null
 branch: story/10-6-tax-answer-reconciliation
-status: done
-updated_at: "2026-08-31T11:04:23Z"
+status: review
+updated_at: "2026-09-01T08:56:41Z"
 started_at: "2026-07-29T10:02:59Z"
-completed_at: "2026-08-31T11:04:23Z"
+completed_at: null
 active_seconds: 124493
 timing_anchor: null
 is_first_in_epic: false
@@ -26,9 +26,14 @@ selected_effort: xhigh
 selected_host: codex
 selected_tier: subagents
 selected_route: subagent
-escalation_reason: Legacy v0.24 adoption requires authoritative final convergence.
+escalation_reason: "Dependency and story-file audit repairs are resolved; Round 3 final convergence must settle the remaining result."
 routing_ledger:
   - "{\"effort\":\"xhigh\",\"escalation_reason\":\"Legacy v0.24 adoption requires authoritative final convergence.\",\"host\":\"codex\",\"model\":\"gpt-5.6-sol\",\"phase\":\"final_convergence\",\"profile\":\"critical\",\"role\":\"final-convergence\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"high\",\"escalation_reason\":\"ADR-B008 follow-up stories produced Round 1 and Round 2 fixes before final convergence.\",\"host\":\"codex\",\"model\":\"gpt-5.6-terra\",\"phase\":\"followup_review\",\"profile\":\"standard\",\"role\":\"primary-reviewer\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"xhigh\",\"escalation_reason\":\"Round 2 security and independent-review findings plus migration replay fixes are resolved; final convergence is required to settle the remaining result.\",\"host\":\"codex\",\"model\":\"gpt-5.6-sol\",\"phase\":\"final_convergence\",\"profile\":\"critical\",\"role\":\"final-convergence\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"xhigh\",\"escalation_reason\":\"Blocking dependency audit found three high advisories while pnpm ignored the obsolete package.json override location.\",\"host\":\"codex\",\"model\":\"gpt-5.6-sol\",\"phase\":\"security_layer\",\"profile\":\"critical\",\"role\":\"security-reviewer\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"high\",\"escalation_reason\":\"Full lint traversed tracked Auto-BMAD skill resources and generated Supabase temp output outside the product lint surface.\",\"host\":\"codex\",\"model\":\"gpt-5.6-terra\",\"phase\":\"build\",\"profile\":\"standard\",\"role\":\"build-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"xhigh\",\"escalation_reason\":\"Dependency and story-file audit repairs are resolved; Round 3 final convergence must settle the remaining result.\",\"host\":\"codex\",\"model\":\"gpt-5.6-sol\",\"phase\":\"final_convergence\",\"profile\":\"critical\",\"role\":\"final-convergence\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
 tea_risk: high
 tea_selected: [atdd, automate]
 tea_rationale: "Legally consequential money/tax engine changes and golden-master recalculation require both ATDD and post-dev automation; trace advisory excluded because stories_after_in_epic=1 is below the skip threshold of 3."
@@ -40,13 +45,13 @@ spec_approved: false
 build:
   status: done
   blocking_condition: null
-  followup_review_recommended: true
-  review_loop_iteration: 0
-  deferred_count: 3
-  warnings: ["Adopted from the pre-v0.30 Auto-BMAD story/review artifact; legacy review counters remain state evidence only."]
+  followup_review_recommended: false
+  review_loop_iteration: 3
+  deferred_count: 0
+  warnings: ["Adopted from the pre-v0.30 Auto-BMAD story/review artifact; legacy review counters remain state evidence only. Round 3 of 3 follow-up convergence is verified; no further automatic review round is permitted. Browser E2E and remote demo provisioning remain unclaimed external gates."]
 followup_passes: 1
 hitl_halt: continued
-review_unverified: true
+review_unverified: false
 story_trace: null
 legacy_review_resume: false
 legacy_review_iteration: 6
@@ -78,19 +83,16 @@ pr_merged: false
 merge_method: null
 merge_commit: null
 branch_deleted: false
-open_questions:
-  - "Should TAX_SIGN_OFF_REQUIRED remain sendable, including known non-private eligibility, or hard-block pending human confirmation?"
-  - "Should insufficient declared ROT/green allowance block finalization or reduce the claim automatically?"
-  - "Confirm that each fixed-price green category input is gross including VAT and reconciles before applying the 97% rule."
-  - Confirm that disjoint ROT and green work may coexist on one quote.
-  - "Must reverse-charge construction VAT be mutually exclusive with ROT/green deductions?"
+open_questions: []
 deferred_work:
   - "Out of Story 10.6: e-invoice/Skatteverket submission, verified-customer reverse-charge defaults, payable-rounding UI, and the Phase C legal-disclaimer program."
-  - "Security follow-up: redesign quote lifecycle privileges/API to prevent valid same-tenant direct state transitions from bypassing command audit/event provenance."
+  - "RESOLVED INTO 10.8: ADR-B008 replaces the bypass question with server-enforced, one-time, 15-minute review authority and atomic audit."
   - "Hardening follow-up: make SQL tax-input/person-slot JSON validators reject unknown keys."
   - "Coverage follow-up: add a genuine pre-migration upgrade fixture, application-command V1 recovery coverage, and command-level review-token parity/staleness coverage."
   - "Optional follow-up: align inherited V1 presentation/PDF server paths with the recovery-only UI."
-  - "Review defer: correct PDF policy-window wording so exclusive validTo is not presented as inclusive on customer documents."
+  - "RESOLVED INTO 10.9: PDF currentness, attachment carry-forward, and exclusive validTo wording."
+  - "DEFERRED: physical Storage byte reclamation remains future Story 31.7 after E31's central retention-policy workflow; it is not implemented by Stories 10.8/10.9."
+  - "SETTLED: TAX_SIGN_OFF_REQUIRED remains a demo-only warning; real-customer use must re-score and block if sign-off is required. Insufficient allowance blocks; fixed-price green inputs are gross including VAT before 97%; disjoint ROT+green is allowed; reverse charge is mutually exclusive with deductions."
 blockers: []
 overrides:
   start_phase: 7
@@ -105,6 +107,7 @@ constraints:
   - "Owner-approved review decision: green 97% fixed-price scope is an explicit persisted canonical row-id set; every included green row must be scoped, unrelated disjoint ROT/NONE rows may remain outside, and fixed-price total/category splits reconcile exactly to the scope."
 needs_project_context_bootstrap: false
 code_review_iterations: 6
-code_review_loop_done: false
+code_review_loop_done: true
 external_review_iterations: 0
 convergence_unverified: false
+verification: "Round 3 final evidence: fixed final-send byte HMAC, draft-only first Storage insert, audit actor attribution, and the CI-parallel forced-audit harness; fresh reset; both 10.8/10.9 replays; focused DB/grant/behavior 48/48; rollback 7/7; all 28 changed integration files 388/388; TypeScript; full ESLint; Next build; full unit 94 suites/1,673 tests; DB lint; lock/source/bundle/HMAC containment; diff hygiene. Browser E2E and remote demo provisioning remain deliberately unclaimed."

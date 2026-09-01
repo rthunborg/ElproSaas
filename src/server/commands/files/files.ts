@@ -73,8 +73,9 @@ export interface SignedFileAccessResult {
  * Envelope gates: resolve user → active tenant_admin → validate → `verifyOwnership`
  * denies a cross-tenant/foreign/non-existent file id with TENANT_ACCESS_DENIED (zero
  * rows under RLS) BEFORE execute. In `execute`: load the file row under own-tenant RLS,
- * apply the LIFECYCLE gate (archived/deleted → FILE_ACCESS_DENIED) BEFORE any storage
- * call, then sign the SERVER-STORED object_path under the caller's RLS client. Returns
+ * apply the LIFECYCLE gate (archived/deleted, or a reserved quote-PDF draft →
+ * FILE_ACCESS_DENIED) BEFORE any storage call, then sign the SERVER-STORED object_path
+ * under the caller's RLS client. Returns
  * `{ targetId, signedUrl, expiresAt }`. Every failure returns a stable generic code.
  */
 export const createSignedFileAccess = defineCommand<
@@ -99,7 +100,10 @@ export const createSignedFileAccess = defineCommand<
     }
     // LIFECYCLE gate (AC5): an archived/deleted OWNED file is refused a signed URL —
     // a file-specific denial BEFORE any createSignedUrl call.
-    if (!isAccessEligibleLifecycle(file.lifecycle_state)) {
+    if (
+      !isAccessEligibleLifecycle(file.lifecycle_state) ||
+      (file.artifact_kind === "quote_pdf" && file.lifecycle_state === "draft")
+    ) {
       throw new CommandError("FILE_ACCESS_DENIED");
     }
     // Sign the SERVER-STORED object_path under the caller's request-bound RLS client

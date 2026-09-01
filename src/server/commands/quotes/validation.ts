@@ -289,7 +289,8 @@ const LIFECYCLE_TRANSITIONS = new Set(["rejected", "expired", "superseded"]);
  */
 export interface CreateNewQuoteVersionInput {
   readonly quote_version_id: string;
-  readonly attachment_file_ids: readonly string[];
+  /** Undefined means use the server-derived eligible carry-forward default. */
+  readonly attachment_file_ids?: readonly string[];
 }
 
 export function validateCreateNewQuoteVersion(
@@ -297,9 +298,10 @@ export function validateCreateNewQuoteVersion(
 ): ValidationResult<CreateNewQuoteVersionInput> {
   if (!isRecord(raw)) return fail;
   if (!isUuidLike(raw.quote_version_id)) return fail;
-  // attachment_file_ids is OPTIONAL. When present it must be a bounded UUID array; an
-  // absent/empty value means "keep no attachments" (an empty list — the admin re-selects).
-  let attachmentFileIds: string[] = [];
+  // attachment_file_ids is OPTIONAL. When present it must be a bounded UUID array;
+  // an explicit empty list means the admin deselected all. Absence requests the
+  // server-derived eligible carry-forward default.
+  let attachmentFileIds: string[] | undefined;
   if (raw.attachment_file_ids !== undefined && raw.attachment_file_ids !== null) {
     if (!isUuidArray(raw.attachment_file_ids)) return fail;
     attachmentFileIds = [...(raw.attachment_file_ids as string[])];
@@ -308,7 +310,9 @@ export function validateCreateNewQuoteVersion(
     ok: true,
     data: {
       quote_version_id: raw.quote_version_id as string,
-      attachment_file_ids: attachmentFileIds,
+      ...(attachmentFileIds !== undefined
+        ? { attachment_file_ids: attachmentFileIds }
+        : {}),
     },
   };
 }
@@ -451,6 +455,11 @@ function isOptionalAcceptanceText(v: unknown): v is string | null | undefined {
   return typeof v === "string" && v.length <= ACCEPTANCE_TEXT_MAX;
 }
 
+/** An acceptance has zero or one evidence form: an uploaded file OR an external reference. */
+function hasExclusiveAcceptanceEvidence(raw: Record<string, unknown>): boolean {
+  return !(raw.evidence_file_id != null && raw.evidence_reference != null);
+}
+
 /** A required non-empty ISO-8601 date/timestamp string (the accepted / planned instants). */
 function isIsoDateString(v: unknown): v is string {
   if (typeof v !== "string") return false;
@@ -519,6 +528,7 @@ export function validateCaptureQuoteAcceptance(
     if (!isUuidLike(raw.evidence_file_id)) return fail;
   }
   if (!isOptionalAcceptanceText(raw.evidence_reference)) return fail;
+  if (!hasExclusiveAcceptanceEvidence(raw)) return fail;
   if (!isOptionalAcceptanceText(raw.notes)) return fail;
   if (!isOptionalIsoDateString(raw.planned_start_date)) return fail;
   if (!isOptionalIsoDateString(raw.planned_end_date)) return fail;
@@ -617,6 +627,7 @@ export function validateAcceptQuoteAndCreateJob(
     if (!isUuidLike(raw.evidence_file_id)) return fail;
   }
   if (!isOptionalAcceptanceText(raw.evidence_reference)) return fail;
+  if (!hasExclusiveAcceptanceEvidence(raw)) return fail;
   if (!isOptionalAcceptanceText(raw.notes)) return fail;
   if (!isOptionalIsoDateString(raw.planned_start_date)) return fail;
   if (!isOptionalIsoDateString(raw.planned_end_date)) return fail;

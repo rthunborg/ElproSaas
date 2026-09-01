@@ -51,7 +51,7 @@ export const markQuoteVersionLost = defineCommand<
   MarkQuoteVersionLostResult
 >({
   command: "quote.version.lost",
-  auditable: true,
+  auditable: false,
   eventType: "quote.version.lost",
   targetType: "quote_version",
   validateInput: validateMarkQuoteVersionLost,
@@ -84,6 +84,8 @@ export const markQuoteVersionLost = defineCommand<
       p_category: ctx.input.category,
       p_note: ctx.input.note ?? null,
       p_occurred_at: ctx.clock.now().toISOString(),
+      p_actor_user_id: ctx.tenantContext.userId,
+      p_correlation_id: ctx.correlationId,
     });
     // Map the RPC's QV409 (a race past the command guard) → QUOTE_VERSION_LOCKED; a duplicate reason
     // (23505 on `unique (quote_version_id)`) → VALIDATION_FAILED; other codes per the mapper.
@@ -92,5 +94,4 @@ export const markQuoteVersionLost = defineCommand<
     return { targetId: versionId };
   },
   // Audit allow-list is `{ targetId }` ONLY — NO outcome/category/note (free text / possible PII).
-  auditFields: (ctx) => ({ targetId: ctx.input.quote_version_id }),
 });

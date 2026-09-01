@@ -5,7 +5,11 @@
     "whole-sek-truncation-99": "truncateClaimToWholeSekOre",
     "ordered-person-cap": "allocateWholeSekClaimByPerson",
     "explicit-reverse-charge": "aggregateDocumentVat",
-    "green-category-rates": "estimateClassifiedDeductions"
+    "green-category-rates": "estimateClassifiedDeductions",
+    "fixed-price-gross-before-97": "buildTaxAnswerSnapshotV2",
+    "disjoint-rot-and-green": "buildTaxAnswerSnapshotV2",
+    "insufficient-allowance-block": "buildTaxAnswerSnapshotV2",
+    "reverse-charge-deduction-reject": "buildTaxAnswerSnapshotV2"
   },
   "cases": [
     {
@@ -70,6 +74,78 @@
         ]
       },
       "expected": { "basisMethod": "ACTUAL_ELIGIBLE_COSTS", "greenSolarDeductionOre": 15000, "greenStorageDeductionOre": 50000, "greenChargingDeductionOre": 50000 }
+    },
+    {
+      "id": "fixed-price-gross-before-97",
+      "operation": "buildTaxAnswerSnapshotV2",
+      "input": {
+        "quoteCaptureDate": "2026-08-05",
+        "customerEligibilityPosture": "private",
+        "rows": [
+          { "id": "11111111-1111-4111-8111-111111111111", "netOre": 100000, "vatType": "STANDARD_VAT_25", "rateBp": 2500, "includedInInvoiceTotal": true, "deductionClassification": "GREEN_SOLAR_MATERIAL", "summaryCategory": "material" }
+        ],
+        "taxInput": {
+          "schemaVersion": 2, "documentVatType": "STANDARD_VAT_25", "buyerVatNumber": null,
+          "deductionChoice": "GREEN", "paymentDate": null, "finalPaymentDate": "2026-08-05",
+          "personAllowanceSlots": [{ "slot": "PERSON_1", "remainingGreenAllowanceOre": 5000000 }],
+          "greenBasisMethod": "FIXED_PRICE_97_PERCENT", "genuineFixedPrice": true,
+          "fixedPriceOre": 125000,
+          "fixedPriceCategorySplitOre": { "SOLAR": 125000, "STORAGE": 0, "CHARGING": 0 },
+          "fixedPriceRowIds": ["11111111-1111-4111-8111-111111111111"]
+        }
+      },
+      "expected": { "grossOre": 125000, "green": { "basisMethod": "FIXED_PRICE_97_PERCENT", "categories": { "SOLAR": { "basisOre": 121250, "calculatedOre": 18187, "claimOre": 18100 } } }, "claimDeductionOre": 18100, "payableOre": 106900 }
+    },
+    {
+      "id": "disjoint-rot-and-green",
+      "operation": "buildTaxAnswerSnapshotV2",
+      "input": {
+        "quoteCaptureDate": "2026-08-05", "customerEligibilityPosture": "private",
+        "rows": [
+          { "id": "rot-labor", "netOre": 100000, "vatType": "STANDARD_VAT_25", "rateBp": 2500, "includedInInvoiceTotal": true, "deductionClassification": "ROT_LABOR", "summaryCategory": "labor" },
+          { "id": "green-solar", "netOre": 200000, "vatType": "STANDARD_VAT_25", "rateBp": 2500, "includedInInvoiceTotal": true, "deductionClassification": "GREEN_SOLAR_MATERIAL", "summaryCategory": "material" }
+        ],
+        "taxInput": {
+          "schemaVersion": 2, "documentVatType": "STANDARD_VAT_25", "buyerVatNumber": null,
+          "deductionChoice": "ROT_AND_GREEN", "paymentDate": "2026-08-05", "finalPaymentDate": "2026-08-05",
+          "personAllowanceSlots": [{ "slot": "PERSON_1", "remainingRotAllowanceOre": 5000000, "remainingCombinedRotRutAllowanceOre": 7500000, "remainingGreenAllowanceOre": 5000000 }],
+          "greenBasisMethod": "ACTUAL_ELIGIBLE_COSTS", "genuineFixedPrice": false,
+          "fixedPriceOre": null, "fixedPriceCategorySplitOre": null, "fixedPriceRowIds": null
+        }
+      },
+      "expected": { "rot": { "claimOre": 37500 }, "green": { "claimOre": 37500 }, "claimDeductionOre": 75000, "payableOre": 300000 }
+    },
+    {
+      "id": "insufficient-allowance-block",
+      "operation": "buildTaxAnswerSnapshotV2",
+      "input": {
+        "quoteCaptureDate": "2026-08-05", "customerEligibilityPosture": "private",
+        "rows": [{ "id": "rot-labor", "netOre": 100000, "vatType": "STANDARD_VAT_25", "rateBp": 2500, "includedInInvoiceTotal": true, "deductionClassification": "ROT_LABOR", "summaryCategory": "labor" }],
+        "taxInput": {
+          "schemaVersion": 2, "documentVatType": "STANDARD_VAT_25", "buyerVatNumber": null,
+          "deductionChoice": "ROT", "paymentDate": "2026-08-05", "finalPaymentDate": null,
+          "personAllowanceSlots": [{ "slot": "PERSON_1", "remainingRotAllowanceOre": 1000, "remainingCombinedRotRutAllowanceOre": 1000 }],
+          "greenBasisMethod": "ACTUAL_ELIGIBLE_COSTS", "genuineFixedPrice": false,
+          "fixedPriceOre": null, "fixedPriceCategorySplitOre": null, "fixedPriceRowIds": null
+        }
+      },
+      "expectedFailureCode": "INSUFFICIENT_PERSON_ALLOWANCE"
+    },
+    {
+      "id": "reverse-charge-deduction-reject",
+      "operation": "buildTaxAnswerSnapshotV2",
+      "input": {
+        "quoteCaptureDate": "2026-08-05", "customerEligibilityPosture": "private",
+        "rows": [{ "id": "reverse-labor", "netOre": 100000, "vatType": "REVERSE_CHARGE_CONSTRUCTION", "rateBp": 2500, "includedInInvoiceTotal": true, "deductionClassification": "ROT_LABOR", "summaryCategory": "labor" }],
+        "taxInput": {
+          "schemaVersion": 2, "documentVatType": "REVERSE_CHARGE_CONSTRUCTION", "buyerVatNumber": "SE123456789012",
+          "deductionChoice": "ROT", "paymentDate": "2026-08-05", "finalPaymentDate": null,
+          "personAllowanceSlots": [{ "slot": "PERSON_1", "remainingRotAllowanceOre": 5000000, "remainingCombinedRotRutAllowanceOre": 7500000 }],
+          "greenBasisMethod": "ACTUAL_ELIGIBLE_COSTS", "genuineFixedPrice": false,
+          "fixedPriceOre": null, "fixedPriceCategorySplitOre": null, "fixedPriceRowIds": null
+        }
+      },
+      "expectedFailureCode": "INVALID_DEDUCTION_CLASSIFICATION"
     }
   ]
 }

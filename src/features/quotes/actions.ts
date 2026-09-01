@@ -300,11 +300,15 @@ export async function createNewQuoteVersionAction(
   const quoteId = form.get("quote_id");
   const input: Record<string, unknown> = { quote_version_id: quoteVersionId };
   // OPTIONAL re-selected attachment file ids (a repeated `attachment_file_ids` form field). An
-  // absent field means "no attachments re-selected" (the command validator defaults it to []).
+  // absent field requests the server-derived eligible carry-forward default.
   const attachmentFileIds = form
     .getAll("attachment_file_ids")
     .filter((v): v is string => typeof v === "string" && v.length > 0);
-  if (attachmentFileIds.length > 0) input.attachment_file_ids = attachmentFileIds;
+  // The marker distinguishes an intentional "deselect all" from the legacy/no-UI
+  // absence that requests the server-derived carry-forward default.
+  if (attachmentFileIds.length > 0 || form.get("attachment_selection_present") === "1") {
+    input.attachment_file_ids = attachmentFileIds;
+  }
 
   const client = (await createSupabaseServerClient()) as unknown as CommandDbClient;
   const result = await runCommand(createNewQuoteVersion, { client, input });

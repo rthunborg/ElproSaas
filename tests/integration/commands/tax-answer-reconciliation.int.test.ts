@@ -23,6 +23,7 @@ import {
 import { adminQuery, adminSession } from "../../factories/admin-sql";
 import { isLocalStackReachable } from "../../support/test-env";
 import { skipUnlessStack } from "../../support/stack-gate";
+import { LOCAL_TEST_QUOTE_PDF_KEY_ID } from "../../support/quote-pdf";
 
 const ROOT = process.cwd();
 const CAPTURED_AT = "2026-08-05T12:00:00.000Z";
@@ -254,15 +255,120 @@ function validLine(): Record<string, unknown> {
   };
 }
 
-function validReviewedProof(): Record<string, unknown> {
+function validReviewedProof(): {
+  reviewedQuoteCaptureDate: string;
+  reviewedCalculationStatus: string;
+  reviewedReadinessRows: Record<string, unknown>[];
+} {
   return {
-    p_reviewed_snapshot_digest: "0".repeat(64),
-    p_reviewed_quote_capture_date: "2026-08-05",
-    p_reviewed_calculation_status: "draft",
-    p_reviewed_readiness_rows: [
+    reviewedQuoteCaptureDate: "2026-08-05",
+    reviewedCalculationStatus: "draft",
+    reviewedReadinessRows: [
       { sourceRowId, unitCostOre: null, sourceKind: null },
     ],
   };
+}
+
+type QuoteReviewRpcResult = {
+  data: unknown;
+  error: { code?: string; message?: string } | null;
+};
+
+type QuoteReviewRpcClient = {
+  rpc(functionName: string, args: Record<string, unknown>): Promise<QuoteReviewRpcResult>;
+};
+
+type InitialReviewInput = {
+  tenantId: string;
+  calculationId: string;
+  capturedAt: string;
+  customerId: string;
+  facilityId: string | null;
+  contactId: string | null;
+  snapshot: Record<string, unknown>;
+  lines: Record<string, unknown>[];
+  attachments: Record<string, unknown>[];
+  reviewedQuoteCaptureDate: string;
+  reviewedCalculationStatus: string;
+  reviewedReadinessRows: Record<string, unknown>[];
+  actorUserId?: string;
+  correlationId?: string;
+};
+
+type SuccessorReviewInput = Omit<InitialReviewInput, "reviewedQuoteCaptureDate" | "reviewedCalculationStatus" | "reviewedReadinessRows"> & {
+  quoteId: string;
+  sourceQuoteVersionId: string;
+  supersedePrior: boolean | null;
+};
+
+function asQuoteReviewRpcClient(testClient: TestServerClient): QuoteReviewRpcClient {
+  return testClient as unknown as QuoteReviewRpcClient;
+}
+
+async function authorizeAndCreateInitial(
+  testClient: TestServerClient,
+  input: InitialReviewInput,
+): Promise<QuoteReviewRpcResult> {
+  const actorUserId = input.actorUserId ?? fixture.adminA.id;
+  const correlationId = input.correlationId ?? crypto.randomUUID();
+  const rpc = asQuoteReviewRpcClient(testClient);
+  const authorization = await rpc.rpc("authorize_quote_initial_review", {
+    p_tenant_id: input.tenantId,
+    p_calculation_id: input.calculationId,
+    p_captured_at: input.capturedAt,
+    p_customer_id: input.customerId,
+    p_facility_id: input.facilityId,
+    p_contact_id: input.contactId,
+    p_snapshot: input.snapshot,
+    p_lines: input.lines,
+    p_attachments: input.attachments,
+    p_reviewed_quote_capture_date: input.reviewedQuoteCaptureDate,
+    p_reviewed_calculation_status: input.reviewedCalculationStatus,
+    p_reviewed_readiness_rows: input.reviewedReadinessRows,
+    p_actor_user_id: actorUserId,
+    p_correlation_id: correlationId,
+  });
+  if (authorization.error || typeof authorization.data !== "string") return authorization;
+  return rpc.rpc("create_quote_version_from_calculation", {
+    p_tenant_id: input.tenantId,
+    p_authorization_id: authorization.data,
+    p_captured_at: input.capturedAt,
+    p_actor_user_id: actorUserId,
+    p_correlation_id: correlationId,
+  });
+}
+
+async function authorizeAndCreateSuccessor(
+  testClient: TestServerClient,
+  input: SuccessorReviewInput,
+): Promise<QuoteReviewRpcResult> {
+  const actorUserId = input.actorUserId ?? fixture.adminA.id;
+  const correlationId = input.correlationId ?? crypto.randomUUID();
+  const rpc = asQuoteReviewRpcClient(testClient);
+  const authorization = await rpc.rpc("authorize_quote_successor_review", {
+    p_tenant_id: input.tenantId,
+    p_quote_id: input.quoteId,
+    p_source_quote_version_id: input.sourceQuoteVersionId,
+    p_calculation_id: input.calculationId,
+    p_captured_at: input.capturedAt,
+    p_customer_id: input.customerId,
+    p_facility_id: input.facilityId,
+    p_contact_id: input.contactId,
+    p_snapshot: input.snapshot,
+    p_lines: input.lines,
+    p_attachments: input.attachments,
+    p_supersede_prior: input.supersedePrior,
+    p_actor_user_id: actorUserId,
+    p_correlation_id: correlationId,
+  });
+  if (authorization.error || typeof authorization.data !== "string") return authorization;
+  return rpc.rpc("create_new_quote_version", {
+    p_tenant_id: input.tenantId,
+    p_authorization_id: authorization.data,
+    p_captured_at: input.capturedAt,
+    p_actor_user_id: actorUserId,
+    p_correlation_id: correlationId,
+  });
 }
 
 type JsonPathPart = string | number;
@@ -297,16 +403,16 @@ async function createFreshV2(): Promise<{
   versionId: string;
 }> {
   await setCalculationTaxInput();
-  const { data, error } = await client.rpc("create_quote_version_from_calculation", {
-    p_tenant_id: fixture.tenantA.id,
-    p_calculation_id: calculationId,
-    p_captured_at: CAPTURED_AT,
-    p_customer_id: customerId,
-    p_facility_id: null,
-    p_contact_id: null,
-    p_snapshot: validSnapshot(),
-    p_lines: [validLine()],
-    p_attachments: [],
+  const { data, error } = await authorizeAndCreateInitial(client, {
+    tenantId: fixture.tenantA.id,
+    calculationId,
+    capturedAt: CAPTURED_AT,
+    customerId,
+    facilityId: null,
+    contactId: null,
+    snapshot: validSnapshot(),
+    lines: [validLine()],
+    attachments: [],
     ...validReviewedProof(),
   });
   if (error) throw new Error(`valid V2 RPC failed: ${error.code} ${error.message}`);
@@ -1593,32 +1699,32 @@ describe("Story 10.6 — local Supabase behavior", () => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     await setCalculationTaxInput();
     const v1 = { ...validSnapshot(), snapshotSchemaVersion: 1 };
-    const initialV1 = await client.rpc("create_quote_version_from_calculation", {
-      p_tenant_id: fixture.tenantA.id,
-      p_calculation_id: calculationId,
-      p_captured_at: CAPTURED_AT,
-      p_customer_id: customerId,
-      p_facility_id: null,
-      p_contact_id: null,
-      p_snapshot: v1,
-      p_lines: [validLine()],
-      p_attachments: [],
+    const initialV1 = await authorizeAndCreateInitial(client, {
+      tenantId: fixture.tenantA.id,
+      calculationId,
+      capturedAt: CAPTURED_AT,
+      customerId,
+      facilityId: null,
+      contactId: null,
+      snapshot: v1,
+      lines: [validLine()],
+      attachments: [],
       ...validReviewedProof(),
     });
     expect(initialV1.error?.code).toBe("23514");
 
     const incompleteLine = { ...validLine() };
     delete incompleteLine.vatType;
-    const initialLine = await client.rpc("create_quote_version_from_calculation", {
-      p_tenant_id: fixture.tenantA.id,
-      p_calculation_id: calculationId,
-      p_captured_at: CAPTURED_AT,
-      p_customer_id: customerId,
-      p_facility_id: null,
-      p_contact_id: null,
-      p_snapshot: validSnapshot(),
-      p_lines: [incompleteLine],
-      p_attachments: [],
+    const initialLine = await authorizeAndCreateInitial(client, {
+      tenantId: fixture.tenantA.id,
+      calculationId,
+      capturedAt: CAPTURED_AT,
+      customerId,
+      facilityId: null,
+      contactId: null,
+      snapshot: validSnapshot(),
+      lines: [incompleteLine],
+      attachments: [],
       ...validReviewedProof(),
     });
     expect(initialLine.error?.code).toBe("23514");
@@ -1652,16 +1758,16 @@ describe("Story 10.6 — local Supabase behavior", () => {
       acceptedPriceOre: 12_000,
       payableOre: 12_000,
     };
-    const initialFalseMath = await client.rpc("create_quote_version_from_calculation", {
-      p_tenant_id: fixture.tenantA.id,
-      p_calculation_id: calculationId,
-      p_captured_at: CAPTURED_AT,
-      p_customer_id: customerId,
-      p_facility_id: null,
-      p_contact_id: null,
-      p_snapshot: falseMathSnapshot,
-      p_lines: [validLine()],
-      p_attachments: [],
+    const initialFalseMath = await authorizeAndCreateInitial(client, {
+      tenantId: fixture.tenantA.id,
+      calculationId,
+      capturedAt: CAPTURED_AT,
+      customerId,
+      facilityId: null,
+      contactId: null,
+      snapshot: falseMathSnapshot,
+      lines: [validLine()],
+      attachments: [],
       ...validReviewedProof(),
     });
     expect(initialFalseMath.error?.code).toBe("23514");
@@ -1669,35 +1775,35 @@ describe("Story 10.6 — local Supabase behavior", () => {
     const created = await createFreshV2();
     const partialAnswer = validTaxAnswer();
     delete partialAnswer.summaries;
-    const newVersion = await client.rpc("create_new_quote_version", {
-      p_tenant_id: fixture.tenantA.id,
-      p_quote_id: created.quoteId,
-      p_source_quote_version_id: created.versionId,
-      p_calculation_id: calculationId,
-      p_captured_at: CAPTURED_AT,
-      p_customer_id: customerId,
-      p_facility_id: null,
-      p_contact_id: null,
-      p_snapshot: { ...validSnapshot(), taxAnswerSnapshot: partialAnswer },
-      p_lines: [validLine()],
-      p_attachments: [],
-      p_supersede_prior: false,
+    const newVersion = await authorizeAndCreateSuccessor(client, {
+      tenantId: fixture.tenantA.id,
+      quoteId: created.quoteId,
+      sourceQuoteVersionId: created.versionId,
+      calculationId,
+      capturedAt: CAPTURED_AT,
+      customerId,
+      facilityId: null,
+      contactId: null,
+      snapshot: { ...validSnapshot(), taxAnswerSnapshot: partialAnswer },
+      lines: [validLine()],
+      attachments: [],
+      supersedePrior: false,
     });
     expect(newVersion.error?.code).toBe("23514");
 
-    const falseMathNewVersion = await client.rpc("create_new_quote_version", {
-      p_tenant_id: fixture.tenantA.id,
-      p_quote_id: created.quoteId,
-      p_source_quote_version_id: created.versionId,
-      p_calculation_id: calculationId,
-      p_captured_at: CAPTURED_AT,
-      p_customer_id: customerId,
-      p_facility_id: null,
-      p_contact_id: null,
-      p_snapshot: falseMathSnapshot,
-      p_lines: [validLine()],
-      p_attachments: [],
-      p_supersede_prior: false,
+    const falseMathNewVersion = await authorizeAndCreateSuccessor(client, {
+      tenantId: fixture.tenantA.id,
+      quoteId: created.quoteId,
+      sourceQuoteVersionId: created.versionId,
+      calculationId,
+      capturedAt: CAPTURED_AT,
+      customerId,
+      facilityId: null,
+      contactId: null,
+      snapshot: falseMathSnapshot,
+      lines: [validLine()],
+      attachments: [],
+      supersedePrior: false,
     });
     expect(falseMathNewVersion.error?.code).toBe("23514");
 
@@ -1708,55 +1814,49 @@ describe("Story 10.6 — local Supabase behavior", () => {
     expect(Number(count[0]?.count)).toBe(1);
   });
 
-  it("[10.6-INT-05A][P0] initial RPC requires a current reviewed proof and locked source facts", async (testCtx) => {
+  it("[10.6-INT-05A][P0] initial authorization requires current reviewed facts; obsolete payload RPC is absent", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     await setCalculationTaxInput();
     const oldOverload = await adminQuery<{ old_signature: string | null }>(
       `select to_regprocedure(
-         'public.create_quote_version_from_calculation(uuid,uuid,timestamptz,uuid,uuid,uuid,jsonb,jsonb,jsonb)'
+         'public.create_quote_version_from_calculation(uuid,uuid,timestamptz,uuid,uuid,uuid,jsonb,jsonb,jsonb,text,date,text,jsonb)'
        )::text as old_signature`,
     );
     expect(oldOverload[0]?.old_signature).toBeNull();
 
     const attempt = (
-      proof: Record<string, unknown>,
+      proof: ReturnType<typeof validReviewedProof>,
       line = validLine(),
       snapshot = validSnapshot(),
     ) =>
-      client.rpc("create_quote_version_from_calculation", {
-        p_tenant_id: fixture.tenantA.id,
-        p_calculation_id: calculationId,
-        p_captured_at: CAPTURED_AT,
-        p_customer_id: customerId,
-        p_facility_id: null,
-        p_contact_id: null,
-        p_snapshot: snapshot,
-        p_lines: [line],
-        p_attachments: [],
+      authorizeAndCreateInitial(client, {
+        tenantId: fixture.tenantA.id,
+        calculationId,
+        capturedAt: CAPTURED_AT,
+        customerId,
+        facilityId: null,
+        contactId: null,
+        snapshot,
+        lines: [line],
+        attachments: [],
         ...proof,
       });
 
-    const malformedDigest = await attempt({
-      ...validReviewedProof(),
-      p_reviewed_snapshot_digest: "A".repeat(64),
-    });
-    expect(malformedDigest.error?.code).toBe("23514");
-
     const staleDate = await attempt({
       ...validReviewedProof(),
-      p_reviewed_quote_capture_date: "2026-08-04",
+      reviewedQuoteCaptureDate: "2026-08-04",
     });
     expect(staleDate.error?.code).toBe("23514");
 
     const staleStatus = await attempt({
       ...validReviewedProof(),
-      p_reviewed_calculation_status: "ready",
+      reviewedCalculationStatus: "ready",
     });
     expect(staleStatus.error?.code).toBe("23514");
 
     const staleReadiness = await attempt({
       ...validReviewedProof(),
-      p_reviewed_readiness_rows: [
+      reviewedReadinessRows: [
         { sourceRowId, unitCostOre: 1, sourceKind: null },
       ],
     });
@@ -2495,16 +2595,16 @@ describe("Story 10.6 — local Supabase behavior", () => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     await setCalculationTaxInput();
     const stockholmMidnightBoundary = "2026-08-04T22:30:00.000Z";
-    const initial = await client.rpc("create_quote_version_from_calculation", {
-      p_tenant_id: fixture.tenantA.id,
-      p_calculation_id: calculationId,
-      p_captured_at: stockholmMidnightBoundary,
-      p_customer_id: customerId,
-      p_facility_id: null,
-      p_contact_id: null,
-      p_snapshot: validSnapshot(),
-      p_lines: [validLine()],
-      p_attachments: [],
+    const initial = await authorizeAndCreateInitial(client, {
+      tenantId: fixture.tenantA.id,
+      calculationId,
+      capturedAt: stockholmMidnightBoundary,
+      customerId,
+      facilityId: null,
+      contactId: null,
+      snapshot: validSnapshot(),
+      lines: [validLine()],
+      attachments: [],
       ...validReviewedProof(),
     });
     expect(initial.error).toBeNull();
@@ -2514,19 +2614,19 @@ describe("Story 10.6 — local Supabase behavior", () => {
       (initialRow as Record<string, unknown>).quote_version_id,
     );
 
-    const successor = await client.rpc("create_new_quote_version", {
-      p_tenant_id: fixture.tenantA.id,
-      p_quote_id: quoteId,
-      p_source_quote_version_id: initialVersionId,
-      p_calculation_id: calculationId,
-      p_captured_at: stockholmMidnightBoundary,
-      p_customer_id: customerId,
-      p_facility_id: null,
-      p_contact_id: null,
-      p_snapshot: validSnapshot(),
-      p_lines: [validLine()],
-      p_attachments: [],
-      p_supersede_prior: false,
+    const successor = await authorizeAndCreateSuccessor(client, {
+      tenantId: fixture.tenantA.id,
+      quoteId,
+      sourceQuoteVersionId: initialVersionId,
+      calculationId,
+      capturedAt: stockholmMidnightBoundary,
+      customerId,
+      facilityId: null,
+      contactId: null,
+      snapshot: validSnapshot(),
+      lines: [validLine()],
+      attachments: [],
+      supersedePrior: false,
     });
     expect(successor.error).toBeNull();
   });
@@ -2535,64 +2635,70 @@ describe("Story 10.6 — local Supabase behavior", () => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     const created = await createFreshV2();
 
-    const missingSupersedeDecision = await client.rpc("create_new_quote_version", {
-      p_tenant_id: fixture.tenantA.id,
-      p_quote_id: created.quoteId,
-      p_source_quote_version_id: created.versionId,
-      p_calculation_id: calculationId,
-      p_captured_at: CAPTURED_AT,
-      p_customer_id: customerId,
-      p_facility_id: null,
-      p_contact_id: null,
-      p_snapshot: validSnapshot(),
-      p_lines: [validLine()],
-      p_attachments: [],
-      p_supersede_prior: null as never,
+    const missingSupersedeDecision = await authorizeAndCreateSuccessor(client, {
+      tenantId: fixture.tenantA.id,
+      quoteId: created.quoteId,
+      sourceQuoteVersionId: created.versionId,
+      calculationId,
+      capturedAt: CAPTURED_AT,
+      customerId,
+      facilityId: null,
+      contactId: null,
+      snapshot: validSnapshot(),
+      lines: [validLine()],
+      attachments: [],
+      supersedePrior: null,
     });
-    expect(missingSupersedeDecision.error?.code).toBe("QV409");
+    // Story 10.8 stores this authorization first: a missing successor decision
+    // violates the authorization row's purpose-shape CHECK before the legacy
+    // successor RPC can apply its QV409 business-rule guard.
+    expect(missingSupersedeDecision.error?.code).toBe("23514");
 
     const unrelatedCustomerId = await adminInsertCustomer({
       tenant_id: fixture.tenantA.id,
       display_name: "Unrelated Story 10.6 customer",
       customer_type: "private",
     });
-    const wrongCustomerSource = await client.rpc("create_new_quote_version", {
-      p_tenant_id: fixture.tenantA.id,
-      p_quote_id: created.quoteId,
-      p_source_quote_version_id: created.versionId,
-      p_calculation_id: calculationId,
-      p_captured_at: CAPTURED_AT,
-      p_customer_id: unrelatedCustomerId,
-      p_facility_id: null,
-      p_contact_id: null,
-      p_snapshot: validSnapshot(),
-      p_lines: [validLine()],
-      p_attachments: [],
-      p_supersede_prior: false,
+    const wrongCustomerSource = await authorizeAndCreateSuccessor(client, {
+      tenantId: fixture.tenantA.id,
+      quoteId: created.quoteId,
+      sourceQuoteVersionId: created.versionId,
+      calculationId,
+      capturedAt: CAPTURED_AT,
+      customerId: unrelatedCustomerId,
+      facilityId: null,
+      contactId: null,
+      snapshot: validSnapshot(),
+      lines: [validLine()],
+      attachments: [],
+      supersedePrior: false,
     });
-    expect(wrongCustomerSource.error?.code).toBe("QV409");
+    // Story 10.8 authorizes the supplied snapshot source first. Its deterministic
+    // calculation/customer identity check rejects this mismatched customer before
+    // the legacy successor RPC can reach its QV409 lineage guard.
+    expect(wrongCustomerSource.error?.code).toBe("23514");
 
     await adminQuery(
       "update public.calculations set customer_id = $2 where id = $1",
       [calculationId, unrelatedCustomerId],
     );
     try {
-      const reassignedCalculationSource = await client.rpc("create_new_quote_version", {
-        p_tenant_id: fixture.tenantA.id,
-        p_quote_id: created.quoteId,
-        p_source_quote_version_id: created.versionId,
-        p_calculation_id: calculationId,
-        p_captured_at: CAPTURED_AT,
-        p_customer_id: unrelatedCustomerId,
-        p_facility_id: null,
-        p_contact_id: null,
-        p_snapshot: {
+      const reassignedCalculationSource = await authorizeAndCreateSuccessor(client, {
+        tenantId: fixture.tenantA.id,
+        quoteId: created.quoteId,
+        sourceQuoteVersionId: created.versionId,
+        calculationId,
+        capturedAt: CAPTURED_AT,
+        customerId: unrelatedCustomerId,
+        facilityId: null,
+        contactId: null,
+        snapshot: {
           ...validSnapshot(),
           customerDisplayName: "Unrelated Story 10.6 customer",
         },
-        p_lines: [validLine()],
-        p_attachments: [],
-        p_supersede_prior: false,
+        lines: [validLine()],
+        attachments: [],
+        supersedePrior: false,
       });
       expect(reassignedCalculationSource.error?.code).toBe("QV409");
     } finally {
@@ -2613,23 +2719,23 @@ describe("Story 10.6 — local Supabase behavior", () => {
       owner_id: calculationId,
       purpose: "calculation_attachment",
     });
-    const staleAttachmentSource = await client.rpc("create_new_quote_version", {
-      p_tenant_id: fixture.tenantA.id,
-      p_quote_id: created.quoteId,
-      p_source_quote_version_id: created.versionId,
-      p_calculation_id: calculationId,
-      p_captured_at: CAPTURED_AT,
-      p_customer_id: customerId,
-      p_facility_id: null,
-      p_contact_id: null,
-      p_snapshot: validSnapshot(),
-      p_lines: [validLine()],
-      p_attachments: [{
+    const staleAttachmentSource = await authorizeAndCreateSuccessor(client, {
+      tenantId: fixture.tenantA.id,
+      quoteId: created.quoteId,
+      sourceQuoteVersionId: created.versionId,
+      calculationId,
+      capturedAt: CAPTURED_AT,
+      customerId,
+      facilityId: null,
+      contactId: null,
+      snapshot: validSnapshot(),
+      lines: [validLine()],
+      attachments: [{
         fileId: attachmentFileId,
         displayName: "fabricated-name.pdf",
         sortOrder: 0,
       }],
-      p_supersede_prior: false,
+      supersedePrior: false,
     });
     expect(staleAttachmentSource.error?.code).toBe("23514");
 
@@ -2637,23 +2743,23 @@ describe("Story 10.6 — local Supabase behavior", () => {
       tenant_id: fixture.tenantA.id,
       display_name: "unrelated-source.pdf",
     });
-    const unrelatedAttachmentSource = await client.rpc("create_new_quote_version", {
-      p_tenant_id: fixture.tenantA.id,
-      p_quote_id: created.quoteId,
-      p_source_quote_version_id: created.versionId,
-      p_calculation_id: calculationId,
-      p_captured_at: CAPTURED_AT,
-      p_customer_id: customerId,
-      p_facility_id: null,
-      p_contact_id: null,
-      p_snapshot: validSnapshot(),
-      p_lines: [validLine()],
-      p_attachments: [{
+    const unrelatedAttachmentSource = await authorizeAndCreateSuccessor(client, {
+      tenantId: fixture.tenantA.id,
+      quoteId: created.quoteId,
+      sourceQuoteVersionId: created.versionId,
+      calculationId,
+      capturedAt: CAPTURED_AT,
+      customerId,
+      facilityId: null,
+      contactId: null,
+      snapshot: validSnapshot(),
+      lines: [validLine()],
+      attachments: [{
         fileId: unrelatedFileId,
         displayName: "unrelated-source.pdf",
         sortOrder: 0,
       }],
-      p_supersede_prior: false,
+      supersedePrior: false,
     });
     expect(unrelatedAttachmentSource.error?.code).toBe("23514");
 
@@ -2672,43 +2778,43 @@ describe("Story 10.6 — local Supabase behavior", () => {
       "update public.files set lifecycle_state = 'archived', archived_at = now() where id = $1",
       [archivedFileId],
     );
-    const archivedAttachmentSource = await client.rpc("create_new_quote_version", {
-      p_tenant_id: fixture.tenantA.id,
-      p_quote_id: created.quoteId,
-      p_source_quote_version_id: created.versionId,
-      p_calculation_id: calculationId,
-      p_captured_at: CAPTURED_AT,
-      p_customer_id: customerId,
-      p_facility_id: null,
-      p_contact_id: null,
-      p_snapshot: validSnapshot(),
-      p_lines: [validLine()],
-      p_attachments: [{
+    const archivedAttachmentSource = await authorizeAndCreateSuccessor(client, {
+      tenantId: fixture.tenantA.id,
+      quoteId: created.quoteId,
+      sourceQuoteVersionId: created.versionId,
+      calculationId,
+      capturedAt: CAPTURED_AT,
+      customerId,
+      facilityId: null,
+      contactId: null,
+      snapshot: validSnapshot(),
+      lines: [validLine()],
+      attachments: [{
         fileId: archivedFileId,
         displayName: "archived-source.pdf",
         sortOrder: 0,
       }],
-      p_supersede_prior: false,
+      supersedePrior: false,
     });
     expect(archivedAttachmentSource.error?.code).toBe("23514");
 
-    const firstSuccessor = await client.rpc("create_new_quote_version", {
-      p_tenant_id: fixture.tenantA.id,
-      p_quote_id: created.quoteId,
-      p_source_quote_version_id: created.versionId,
-      p_calculation_id: calculationId,
-      p_captured_at: CAPTURED_AT,
-      p_customer_id: customerId,
-      p_facility_id: null,
-      p_contact_id: null,
-      p_snapshot: validSnapshot(),
-      p_lines: [validLine()],
-      p_attachments: [{
+    const firstSuccessor = await authorizeAndCreateSuccessor(client, {
+      tenantId: fixture.tenantA.id,
+      quoteId: created.quoteId,
+      sourceQuoteVersionId: created.versionId,
+      calculationId,
+      capturedAt: CAPTURED_AT,
+      customerId,
+      facilityId: null,
+      contactId: null,
+      snapshot: validSnapshot(),
+      lines: [validLine()],
+      attachments: [{
         fileId: attachmentFileId,
         displayName: "bound-source.pdf",
         sortOrder: 0,
       }],
-      p_supersede_prior: false,
+      supersedePrior: false,
     });
     expect(firstSuccessor.error).toBeNull();
     const successorRow = Array.isArray(firstSuccessor.data)
@@ -2718,19 +2824,19 @@ describe("Story 10.6 — local Supabase behavior", () => {
       (successorRow as Record<string, unknown>).quote_version_id,
     );
 
-    const staleSource = await client.rpc("create_new_quote_version", {
-      p_tenant_id: fixture.tenantA.id,
-      p_quote_id: created.quoteId,
-      p_source_quote_version_id: created.versionId,
-      p_calculation_id: calculationId,
-      p_captured_at: CAPTURED_AT,
-      p_customer_id: customerId,
-      p_facility_id: null,
-      p_contact_id: null,
-      p_snapshot: validSnapshot(),
-      p_lines: [validLine()],
-      p_attachments: [],
-      p_supersede_prior: false,
+    const staleSource = await authorizeAndCreateSuccessor(client, {
+      tenantId: fixture.tenantA.id,
+      quoteId: created.quoteId,
+      sourceQuoteVersionId: created.versionId,
+      calculationId,
+      capturedAt: CAPTURED_AT,
+      customerId,
+      facilityId: null,
+      contactId: null,
+      snapshot: validSnapshot(),
+      lines: [validLine()],
+      attachments: [],
+      supersedePrior: false,
     });
     expect(staleSource.error?.code).toBe("QV409");
 
@@ -2740,21 +2846,23 @@ describe("Story 10.6 — local Supabase behavior", () => {
       title: "Unrelated Story 10.6 calculation",
       tax_input_snapshot: validTaxInput(),
     });
-    const wrongCalculation = await client.rpc("create_new_quote_version", {
-      p_tenant_id: fixture.tenantA.id,
-      p_quote_id: created.quoteId,
-      p_source_quote_version_id: latestVersionId,
-      p_calculation_id: unrelatedCalculationId,
-      p_captured_at: CAPTURED_AT,
-      p_customer_id: customerId,
-      p_facility_id: null,
-      p_contact_id: null,
-      p_snapshot: validSnapshot(),
-      p_lines: [validLine()],
-      p_attachments: [],
-      p_supersede_prior: false,
+    const wrongCalculation = await authorizeAndCreateSuccessor(client, {
+      tenantId: fixture.tenantA.id,
+      quoteId: created.quoteId,
+      sourceQuoteVersionId: latestVersionId,
+      calculationId: unrelatedCalculationId,
+      capturedAt: CAPTURED_AT,
+      customerId,
+      facilityId: null,
+      contactId: null,
+      snapshot: validSnapshot(),
+      lines: [validLine()],
+      attachments: [],
+      supersedePrior: false,
     });
-    expect(wrongCalculation.error?.code).toBe("QV409");
+    // Story 10.8 validates the authorization's source calculation identity before
+    // the legacy successor-lineage guard is entered.
+    expect(wrongCalculation.error?.code).toBe("23514");
   });
 
   it("[10.6-INT-05E][P0] successor RPC rejects mixed-tenant source rows and attachment files", async (testCtx) => {
@@ -2795,39 +2903,39 @@ describe("Story 10.6 — local Supabase behavior", () => {
     });
     const created = await createFreshV2();
 
-    const foreignRowSource = await client.rpc("create_new_quote_version", {
-      p_tenant_id: fixture.tenantA.id,
-      p_quote_id: created.quoteId,
-      p_source_quote_version_id: created.versionId,
-      p_calculation_id: calculationId,
-      p_captured_at: CAPTURED_AT,
-      p_customer_id: customerId,
-      p_facility_id: null,
-      p_contact_id: null,
-      p_snapshot: validSnapshot(),
-      p_lines: [{ ...validLine(), sourceRowId: tenantBRowId }],
-      p_attachments: [],
-      p_supersede_prior: false,
+    const foreignRowSource = await authorizeAndCreateSuccessor(client, {
+      tenantId: fixture.tenantA.id,
+      quoteId: created.quoteId,
+      sourceQuoteVersionId: created.versionId,
+      calculationId,
+      capturedAt: CAPTURED_AT,
+      customerId,
+      facilityId: null,
+      contactId: null,
+      snapshot: validSnapshot(),
+      lines: [{ ...validLine(), sourceRowId: tenantBRowId }],
+      attachments: [],
+      supersedePrior: false,
     });
     expect(foreignRowSource.error?.code).toBe("23514");
 
-    const foreignAttachmentSource = await client.rpc("create_new_quote_version", {
-      p_tenant_id: fixture.tenantA.id,
-      p_quote_id: created.quoteId,
-      p_source_quote_version_id: created.versionId,
-      p_calculation_id: calculationId,
-      p_captured_at: CAPTURED_AT,
-      p_customer_id: customerId,
-      p_facility_id: null,
-      p_contact_id: null,
-      p_snapshot: validSnapshot(),
-      p_lines: [validLine()],
-      p_attachments: [{
+    const foreignAttachmentSource = await authorizeAndCreateSuccessor(client, {
+      tenantId: fixture.tenantA.id,
+      quoteId: created.quoteId,
+      sourceQuoteVersionId: created.versionId,
+      calculationId,
+      capturedAt: CAPTURED_AT,
+      customerId,
+      facilityId: null,
+      contactId: null,
+      snapshot: validSnapshot(),
+      lines: [validLine()],
+      attachments: [{
         fileId: tenantBFileId,
         displayName: "tenant-b-source.pdf",
         sortOrder: 0,
       }],
-      p_supersede_prior: false,
+      supersedePrior: false,
     });
     expect(foreignAttachmentSource.error?.code).toBe("23514");
 
@@ -2925,34 +3033,36 @@ describe("Story 10.6 — local Supabase behavior", () => {
     const beforeFootprint = await readFootprint();
     const beforeState = await readExistingState();
 
-    const deniedInitial = await tenantBClient.rpc("create_quote_version_from_calculation", {
-      p_tenant_id: fixture.tenantA.id,
-      p_calculation_id: calculationId,
-      p_captured_at: CAPTURED_AT,
-      p_customer_id: customerId,
-      p_facility_id: null,
-      p_contact_id: null,
-      p_snapshot: validSnapshot(),
-      p_lines: [validLine()],
-      p_attachments: [],
+    const deniedInitial = await authorizeAndCreateInitial(tenantBClient, {
+      tenantId: fixture.tenantA.id,
+      calculationId,
+      capturedAt: CAPTURED_AT,
+      customerId,
+      facilityId: null,
+      contactId: null,
+      snapshot: validSnapshot(),
+      lines: [validLine()],
+      attachments: [],
       ...validReviewedProof(),
+      actorUserId: fixture.adminB.id,
     });
     expect(deniedInitial.data).toBeNull();
     expect(deniedInitial.error).not.toBeNull();
 
-    const deniedNewVersion = await tenantBClient.rpc("create_new_quote_version", {
-      p_tenant_id: fixture.tenantA.id,
-      p_quote_id: existing.quoteId,
-      p_source_quote_version_id: existing.versionId,
-      p_calculation_id: calculationId,
-      p_captured_at: CAPTURED_AT,
-      p_customer_id: customerId,
-      p_facility_id: null,
-      p_contact_id: null,
-      p_snapshot: validSnapshot(),
-      p_lines: [validLine()],
-      p_attachments: [],
-      p_supersede_prior: true,
+    const deniedNewVersion = await authorizeAndCreateSuccessor(tenantBClient, {
+      tenantId: fixture.tenantA.id,
+      quoteId: existing.quoteId,
+      sourceQuoteVersionId: existing.versionId,
+      calculationId,
+      capturedAt: CAPTURED_AT,
+      customerId,
+      facilityId: null,
+      contactId: null,
+      snapshot: validSnapshot(),
+      lines: [validLine()],
+      attachments: [],
+      supersedePrior: true,
+      actorUserId: fixture.adminB.id,
     });
     expect(deniedNewVersion.data).toBeNull();
     expect(deniedNewVersion.error).not.toBeNull();
@@ -3035,19 +3145,19 @@ describe("Story 10.6 — local Supabase behavior", () => {
     );
     expect(Number(inventory[0]?.count)).toBeGreaterThanOrEqual(1);
 
-    const recovered = await client.rpc("create_new_quote_version", {
-      p_tenant_id: fixture.tenantA.id,
-      p_quote_id: quote[0]!.id,
-      p_source_quote_version_id: version[0]!.id,
-      p_calculation_id: calculationId,
-      p_captured_at: CAPTURED_AT,
-      p_customer_id: customerId,
-      p_facility_id: null,
-      p_contact_id: null,
-      p_snapshot: validSnapshot(),
-      p_lines: [validLine()],
-      p_attachments: [],
-      p_supersede_prior: false,
+    const recovered = await authorizeAndCreateSuccessor(client, {
+      tenantId: fixture.tenantA.id,
+      quoteId: quote[0]!.id,
+      sourceQuoteVersionId: version[0]!.id,
+      calculationId,
+      capturedAt: CAPTURED_AT,
+      customerId,
+      facilityId: null,
+      contactId: null,
+      snapshot: validSnapshot(),
+      lines: [validLine()],
+      attachments: [],
+      supersedePrior: false,
     });
     expect(recovered.error).toBeNull();
     const recoveredRow = Array.isArray(recovered.data) ? recovered.data[0] : recovered.data;
@@ -3098,11 +3208,17 @@ describe("Story 10.6 — local Supabase behavior", () => {
         [frozen.versionId, "2026-09-01T00:00:00.000Z"],
       ),
     ).resolves.toBeDefined();
-    await expect(
-      adminQuery(`update public.quote_versions set pdf_status = 'generating' where id = $1`, [
-        frozen.versionId,
-      ]),
-    ).resolves.toBeDefined();
+    // Story 10.9 derived-PDF state remains mutable only through the attributable
+    // render RPC, which supplies the DB-issued identity required by the bind trigger.
+    const renderStarted = await client.rpc("start_quote_pdf_render", {
+      p_tenant_id: fixture.tenantA.id,
+      p_quote_version_id: frozen.versionId,
+      p_actor_user_id: fixture.adminA.id,
+      p_correlation_id: crypto.randomUUID(),
+      p_started_at: CAPTURED_AT,
+      p_attestation_key_id: LOCAL_TEST_QUOTE_PDF_KEY_ID,
+    });
+    expect(renderStarted.error).toBeNull();
     await expect(
       adminQuery(`update public.quote_versions set vat_total_ore = 2400 where id = $1`, [
         frozen.versionId,
@@ -3382,19 +3498,19 @@ describe("Story 10.6 — local Supabase behavior", () => {
     await adminQuery(`update public.quote_versions set status = 'accepted' where id = $1`, [
       created.versionId,
     ]);
-    const acceptedSuccessor = await client.rpc("create_new_quote_version", {
-      p_tenant_id: fixture.tenantA.id,
-      p_quote_id: created.quoteId,
-      p_source_quote_version_id: created.versionId,
-      p_calculation_id: calculationId,
-      p_captured_at: CAPTURED_AT,
-      p_customer_id: customerId,
-      p_facility_id: null,
-      p_contact_id: null,
-      p_snapshot: validSnapshot(),
-      p_lines: [validLine()],
-      p_attachments: [],
-      p_supersede_prior: true,
+    const acceptedSuccessor = await authorizeAndCreateSuccessor(client, {
+      tenantId: fixture.tenantA.id,
+      quoteId: created.quoteId,
+      sourceQuoteVersionId: created.versionId,
+      calculationId,
+      capturedAt: CAPTURED_AT,
+      customerId,
+      facilityId: null,
+      contactId: null,
+      snapshot: validSnapshot(),
+      lines: [validLine()],
+      attachments: [],
+      supersedePrior: true,
     });
     expect(acceptedSuccessor.error?.code).toBe("QV409");
   });

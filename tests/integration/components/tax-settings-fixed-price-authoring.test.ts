@@ -43,6 +43,7 @@ describe("TaxSettingsPanel — 97% fixed-price authoring surface", () => {
     );
 
     expect(html).toContain("Fastprisunderlag (endast vid 97 %)");
+    expect(html).toContain("inkl. moms (brutto, före 97 %)");
     expect(html).toMatch(
       /<input(?=[^>]*name="genuine_fixed_price")(?=[^>]*value="true")(?=[^>]*checked)[^>]*>/,
     );

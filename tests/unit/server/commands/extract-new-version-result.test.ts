@@ -22,6 +22,7 @@ import assert from "node:assert/strict";
 import {
   extractNewVersionResult,
   isRecoverableLegacyDraftParent,
+  resolveCarryForwardAttachmentFileIds,
 } from "@/server/commands/quotes/new-version";
 
 const VERSION_ID = "33333333-3333-3333-3333-333333333333";
@@ -32,6 +33,32 @@ test("10.6 recovery: only a literal V1/null-schema draft may branch from a draft
   assert.equal(isRecoverableLegacyDraftParent("draft", 1), false);
   assert.equal(isRecoverableLegacyDraftParent("sent", null), false);
   assert.equal(isRecoverableLegacyDraftParent("accepted", null), false);
+});
+
+test("10.9: absent selection defaults to the eligible predecessor intersection and de-duplicates", () => {
+  assert.deepEqual(
+    resolveCarryForwardAttachmentFileIds(
+      undefined,
+      ["file-a", "file-b", "file-a", "file-c"],
+      ["file-c", "file-a"],
+    ),
+    ["file-a", "file-c"],
+  );
+});
+
+test("10.9: explicit selection is filtered to eligible ids, de-duplicated, and permits copy none", () => {
+  assert.deepEqual(
+    resolveCarryForwardAttachmentFileIds(
+      ["file-b", "file-a", "file-a", "file-c"],
+      ["file-a"],
+      ["file-a", "file-c"],
+    ),
+    ["file-a", "file-c"],
+  );
+  assert.deepEqual(
+    resolveCarryForwardAttachmentFileIds([], ["file-a"], ["file-a"]),
+    [],
+  );
 });
 
 test("6.5-INT-01 (unit): a single-object row with a numeric version_number is normalized", () => {

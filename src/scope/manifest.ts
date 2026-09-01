@@ -10,15 +10,17 @@
  * `READINESS_CODES` single-source pattern) AND is validated for coherence by
  * `validateManifestCoherence` (unit suite `tests/unit/scope/manifest-coherence.test.ts`).
  *
- * PHASE A ACTIVE SET (AC2): Phase A's shipped surface is the initial `active` set under wave `A` —
- * exactly 7 nav items, 24 tenant tables, 7 file owner types (Persistent Facts baseline). Every Phase
- * B module is `pending` (no live surface) until its epic's first story flips it `active` in the same
- * PR as the module's first schema/nav change (§5.5). The `quotes` active module is modelled so
- * Stories 10.2/10.3 can enrol `quote_lost_reasons` / `quote_follow_ups` into it in the SAME PR as
- * their schema change (epic-10 activation seam) — keep its boundary clean and obvious.
+ * PHASE A ACTIVE SET (AC2): Phase A originally shipped 7 nav items, 24 tenant tables, and 7 file
+ * owner types (Persistent Facts baseline). The current active union is 7 nav items, 27 tenant tables,
+ * and 7 file owner types after Epic 10 deepened the active `quotes` module. Every Phase B module is
+ * `pending` (no live surface) until its epic's first story flips it `active` in the same PR as the
+ * module's first schema/nav change (§5.5). Stories 10.2/10.3/10.8 enrol quote tables into the
+ * already-active `quotes` module in the SAME PR as their schema changes — keep its boundary clean
+ * and obvious.
  *
- * PARTITION NOTE: module boundaries partition the Phase A surface exactly (unions must equal the
- * authored 24/7/7 — the coherence + derivation tests enforce this). `tenant_counters` (quote
+ * PARTITION NOTE: module boundaries partition the current active surface exactly (unions must equal
+ * the authored 27/7/7; the original Phase A baseline was 24/7/7 — coherence + derivation tests
+ * enforce the current partition). `tenant_counters` (quote
  * numbering) is the easy-to-forget quote table; `work_roles`/`articles` (pricing) live under the
  * `/settings/pricing` sub-route so they sit in the `settings` module.
  *
@@ -28,7 +30,7 @@
  *
  * [Source: architecture-phase-b.md §5.2 (schema + Phase A baseline), §5.3 (derivations), §5.5
  *  (activation); epics-phase-b.md (Epic 10–34 wave/activation mapping — module ids/waves/tokens);
- *  story 10.1 AC2/AC3, Tasks 2/4/5/6, Dev Notes (RECOMMENDED 24/7/7 partition; deny-list nuance).]
+ *  story 10.1 AC2/AC3, Tasks 2/4/5/6, Dev Notes (initial 24/7/7 partition; deny-list nuance).]
  */
 import type { ScopeManifest } from "./manifest-schema";
 
@@ -49,8 +51,9 @@ const PHASE_A = {
 export const SCOPE_MANIFEST: ScopeManifest = {
   modules: [
     // ═══════════════════════════════════════════════════════════════════════════
-    // PHASE A — the initial `active` set (wave A). 7 nav / 24 tenant tables / 7
-    // file owner types. Unions MUST equal the authored Phase A values (tests enforce).
+    // PHASE A — the initial `active` modules (wave A). Original baseline: 7 nav / 24 tenant tables /
+    // 7 file owner types; current active union: 7 nav / 27 tenant tables / 7 file owner types. Tests
+    // enforce the current manifest-derived partition.
     // ═══════════════════════════════════════════════════════════════════════════
     {
       id: "foundation",
@@ -131,10 +134,10 @@ export const SCOPE_MANIFEST: ScopeManifest = {
       epic: "E6",
       activatedAt: PHASE_A.E6,
       navItems: [{ route: "/quotes", group: "primary" }],
-      // The quote-family tables. Story 10.2 enrolled quote_lost_reasons HERE, in the same PR as its
-      // schema change (epic-10 activation seam, ADR-B003 §5.5 / FR129); Story 10.3 adds
-      // quote_follow_ups similarly — keep this boundary clean. tenant_counters is the quote-numbering
-      // table (the easy-to-forget one).
+      // The quote-family tables. Stories 10.2/10.3 enrolled quote_lost_reasons/quote_follow_ups HERE
+      // in the same PRs as their schema changes; Story 10.8 similarly enrolled
+      // quote_review_authorizations (ADR-B003 §5.5 / FR129). Keep this boundary clean.
+      // tenant_counters is the easy-to-forget quote-numbering table.
       tenantTables: [
         "tenant_counters",
         "quotes",
@@ -142,6 +145,7 @@ export const SCOPE_MANIFEST: ScopeManifest = {
         "quote_version_lines",
         "quote_version_attachments",
         "quote_events",
+        "quote_review_authorizations",
         "quote_acceptances",
         "quote_lost_reasons",
         "quote_follow_ups",

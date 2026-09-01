@@ -26,6 +26,7 @@ import { adminQuery } from "../../factories/admin-sql";
 import { isLocalStackReachable } from "../../support/test-env";
 import { skipUnlessStack } from "../../support/stack-gate";
 import { buildQuoteReviewProof } from "../../support/quote-review-proof";
+import { establishCurrentQuotePdf } from "../../support/quote-pdf";
 import { readJobDetail, type JobReadClient } from "@/features/jobs/read";
 import type { CommandClock } from "@/server/commands/clock";
 import { runCommand } from "@/server/commands/envelope";
@@ -197,6 +198,13 @@ async function seedSentV2(
   const quoteId = created.data.quoteId;
   const versionId = created.data.targetId;
 
+  await establishCurrentQuotePdf({
+    client,
+    tenantId,
+    quoteVersionId: versionId,
+    actorUserId: tenantId === fixture.tenantA.id ? fixture.adminA.id : fixture.adminB.id,
+    occurredAt: golden.commandAt,
+  });
   const sent = await runCommand(markQuoteVersionSent, {
     client: client as never,
     input: { quote_version_id: versionId },
@@ -424,7 +432,7 @@ describe("Story 10.6 V2 acceptance -> job frozen-payable boundary", () => {
     expect(immutableJob[0]).toEqual(job);
   });
 
-  it("[10.6-INT-11][P0] denies a concrete foreign V2 version at both the command boundary and the SECURITY INVOKER RPC", async (testCtx) => {
+  it("[10.6-INT-11][P0] denies a concrete foreign V2 version at both the command boundary and the checked RPC", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     const foreign = await seedSentV2(fixture.tenantB.id, clientB, "tenant-b");
 
@@ -441,7 +449,7 @@ describe("Story 10.6 V2 acceptance -> job frozen-payable boundary", () => {
     }
 
     // Bypass the envelope deliberately and try the same concrete Tenant-B id as
-    // Tenant A. SECURITY INVOKER + RLS must still make the row unreachable.
+    // Tenant A. The request-bound reviewer predicate must reject the wrong tenant.
     const directRpc = await clientA.rpc("accept_quote_and_create_job", {
       p_tenant_id: fixture.tenantB.id,
       p_quote_version_id: foreign.versionId,
@@ -457,9 +465,11 @@ describe("Story 10.6 V2 acceptance -> job frozen-payable boundary", () => {
       p_planned_end_date: null,
       p_title: golden.acceptance.jobTitle,
       p_fault_inject: null,
+      p_actor_user_id: fixture.adminA.id,
+      p_correlation_id: crypto.randomUUID(),
     });
     expect(directRpc.data).toBeNull();
-    expect(directRpc.error?.code).toBe("QV409");
+    expect(directRpc.error?.code).toBe("42501");
 
     const untouched = await adminQuery<{
       status: string;

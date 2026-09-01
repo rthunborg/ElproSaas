@@ -5,7 +5,7 @@
  * (resolve user → resolve active tenant_admin → validate typed input → verify ownership
  * of the source calculation → in execute: RE-CAPTURE the FROZEN composite snapshot from the
  * CURRENT source rows via the SHARED `buildFreshQuoteSnapshot` helper, then call the narrow
- * atomic RPC on the RLS client → append-only audit → typed Result). No bespoke auth/error/
+ * authority issuance + atomic mutation/audit RPC on the RLS client → typed Result). No bespoke auth/error/
  * audit mechanism.
  *
  * - The resolved tenant (`ctx.tenantContext.tenantId`) is the ONLY authority for every
@@ -14,8 +14,9 @@
  *   the resolved tenant (a Tenant-B calculation_id → invisible under A's RLS →
  *   TENANT_ACCESS_DENIED BEFORE execute). Every selected attachment file id is ALSO
  *   re-validated for ownership inside the shared helper.
- * - Signing/writing runs under the CALLER's request-bound RLS client (`ctx.db`) —
- *   NEVER a service-role key. The narrow SECURITY INVOKER RPC owns the transaction.
+ * - Issuance/writing runs through the CALLER's request-bound RLS client (`ctx.db`) —
+ *   NEVER a service-role key. The checked SECURITY DEFINER RPC owns mutation, one-time authority
+ *   consumption, lifecycle event, and audit in one transaction.
  * - The snapshot is built by the PURE `buildQuoteVersionSnapshot` — copy-by-value +
  *   deep Object.freeze + INJECTED capturedAt (the single command clock, never
  *   Date.now()); it CAPTURES state and computes nothing (R-505). Story 6.5's
@@ -26,7 +27,9 @@
  */
 import { defineCommand } from "../envelope";
 import {
+  asQuoteReviewAuthorizationRpcClient,
   asQuoteRpcClient,
+  extractQuoteReviewAuthorizationId,
   throwMappedQuoteWriteError,
 } from "./quote-db";
 import {
@@ -52,7 +55,7 @@ export const createQuoteVersionFromCalculation = defineCommand<
   CreateQuoteVersionResult
 >({
   command: "quote.version.create",
-  auditable: true,
+  auditable: false,
   eventType: "quote.version.created",
   targetType: "quote_version",
   validateInput: validateCreateReviewedQuoteVersionFromCalculation,
@@ -83,23 +86,41 @@ export const createQuoteVersionFromCalculation = defineCommand<
       });
 
     // ── Call the narrow atomic RPC on the RLS client (never service-role). ──
+    const snapshotPayload = snapshotToPayload(snapshot);
+    const linesPayload = linesToPayload(snapshot);
+    const attachmentsPayload = attachmentsToPayload(snapshot);
+    const authorityRpc = asQuoteReviewAuthorizationRpcClient(db);
+    const authorization = await authorityRpc.rpc("authorize_quote_initial_review", {
+      p_tenant_id: tenantId,
+      p_calculation_id: ctx.input.calculation_id,
+      p_captured_at: capturedAt,
+      p_customer_id: customerId,
+      p_facility_id: facilityId,
+      p_contact_id: contactId,
+      p_snapshot: snapshotPayload,
+      p_lines: linesPayload,
+      p_attachments: attachmentsPayload,
+      p_reviewed_quote_capture_date: ctx.input.reviewed_quote_capture_date,
+      p_reviewed_calculation_status: reviewedCalculationStatus,
+      p_reviewed_readiness_rows: reviewedReadinessRows,
+      p_actor_user_id: ctx.tenantContext.userId,
+      p_correlation_id: ctx.correlationId,
+    });
+    if (authorization.error) throwMappedQuoteWriteError(authorization.error);
+    const authorizationId = extractQuoteReviewAuthorizationId(authorization.data);
+    if (authorizationId === null) {
+      throw new Error("authorizeQuoteInitialReview: RPC returned no authorization id");
+    }
+
     const rpc = asQuoteRpcClient(db);
     const { data, error } = await rpc.rpc(
       "create_quote_version_from_calculation",
       {
         p_tenant_id: tenantId, // resolved tenant, never client id
-        p_calculation_id: ctx.input.calculation_id,
+        p_authorization_id: authorizationId,
         p_captured_at: capturedAt,
-        p_customer_id: customerId,
-        p_facility_id: facilityId,
-        p_contact_id: contactId,
-        p_snapshot: snapshotToPayload(snapshot),
-        p_lines: linesToPayload(snapshot),
-        p_attachments: attachmentsToPayload(snapshot),
-        p_reviewed_snapshot_digest: ctx.input.reviewed_snapshot_digest,
-        p_reviewed_quote_capture_date: ctx.input.reviewed_quote_capture_date,
-        p_reviewed_readiness_rows: reviewedReadinessRows,
-        p_reviewed_calculation_status: reviewedCalculationStatus,
+        p_actor_user_id: ctx.tenantContext.userId,
+        p_correlation_id: ctx.correlationId,
       },
     );
     if (error) throwMappedQuoteWriteError(error);
@@ -114,7 +135,6 @@ export const createQuoteVersionFromCalculation = defineCommand<
       quoteNumber: parsed.quoteNumber,
     };
   },
-  auditFields: (_ctx, result) => ({ targetId: result.targetId }),
 });
 
 /** Extract the RPC result (row array or single object) into a typed shape. */

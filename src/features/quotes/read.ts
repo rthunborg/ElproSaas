@@ -31,6 +31,7 @@ import {
   type VatType,
 } from "@/lib/money";
 import { adaptQuoteTaxSnapshot } from "@/lib/quote-snapshot";
+import { isAccessEligibleLifecycle } from "@/server/storage/lifecycle";
 import type { QuoteVersionStatus } from "./timeline";
 import { LATEST_DECIDED_STATUSES } from "./terminal-status";
 import { classifyFollowUp } from "./follow-up-dates";
@@ -338,6 +339,16 @@ export interface QuoteVersionAttachmentRow {
 }
 
 /**
+ * A predecessor attachment which is still linked to the selected version's calculation and whose
+ * file lifecycle permits access. This is a carry-forward affordance projection, not a replacement
+ * for the immutable attachment snapshot above.
+ */
+export interface QuoteCarryForwardAttachmentRow {
+  readonly file_id: string;
+  readonly display_name: string | null;
+}
+
+/**
  * Story 10.3: a follow-up workflow row for the quote (the detail-header chip + the completion sheet).
  * `note`/`outcome` are free text; at most ONE open per quote (the one-open partial unique index).
  */
@@ -372,6 +383,14 @@ export interface QuoteDetail {
   readonly selectedLines: readonly QuoteVersionLineRow[];
   /** The selected version's frozen selected-attachment metadata (ordered by sort_order). */
   readonly selectedAttachments: readonly QuoteVersionAttachmentRow[];
+  /**
+   * The safe carry-forward subset: predecessor snapshot attachments which remain currently linked
+   * to this calculation and access-eligible. A read error fails the whole detail read closed, so
+   * the UI can never imply that an unverified attachment will be copied.
+   */
+  readonly eligibleCarryForwardAttachments: readonly QuoteCarryForwardAttachmentRow[];
+  /** Number of frozen predecessor attachment rows omitted because they are no longer eligible. */
+  readonly omittedCarryForwardAttachmentCount: number;
   /** The quote's lifecycle events (ordered occurred_at asc). */
   readonly events: readonly QuoteEventRow[];
   /**
@@ -617,6 +636,7 @@ export async function readQuoteDetail(
       acceptancesRes,
       lostRes,
       followUpsRes,
+      carryForwardEligibilityRes,
     ] = await Promise.all([
       client
         .from("quote_version_lines")
@@ -660,11 +680,25 @@ export async function readQuoteDetail(
         .select("id, quote_version_id, status, due_date, note, outcome, completed_at")
         .eq("quote_id", quoteId)
         .order("created_at", { ascending: true }),
+      // Story 10.9: current calculation attachment eligibility for a potential successor. The
+      // frozen predecessor list alone is deliberately insufficient: archived/deleted/unlinked
+      // files must not be preselected for a new draft. This RLS-scoped join mirrors the command
+      // backstop; any error fails closed below rather than showing a misleading selection.
+      client
+        .from("file_links")
+        .select("file_id, files!inner(lifecycle_state, archived_at)")
+        .eq("owner_type", "calculation")
+        .eq("owner_id", selected.calculation_id)
+        .eq("purpose", "calculation_attachment")
+        .is("archived_at", null),
     ]);
 
     if (linesRes.error) return { detail: null, error: GENERIC_READ_ERROR };
     if (attachmentsRes.error) return { detail: null, error: GENERIC_READ_ERROR };
     if (eventsRes.error) return { detail: null, error: GENERIC_READ_ERROR };
+    if (carryForwardEligibilityRes.error) {
+      return { detail: null, error: GENERIC_READ_ERROR };
+    }
     // A jobs read error is NON-FATAL to the quote detail — the deep link is a convenience, not the
     // quote's core data. Degrade to an empty map rather than fail the whole quote read.
     const versionIdSet = new Set(versions.map((v) => v.id));
@@ -742,6 +776,39 @@ export async function readQuoteDetail(
       display_name: (raw.display_name as string | null) ?? null,
       sort_order: Number(raw.sort_order ?? 0),
     }));
+    const eligibleCalculationAttachmentIds = new Set<string>();
+    for (const raw of (carryForwardEligibilityRes.data ?? []) as Record<string, unknown>[]) {
+      const joinedFile = Array.isArray(raw.files) ? raw.files[0] : raw.files;
+      const joinedFileRecord =
+        joinedFile && typeof joinedFile === "object"
+          ? (joinedFile as { lifecycle_state?: unknown; archived_at?: unknown })
+          : undefined;
+      if (
+        typeof raw.file_id === "string" &&
+        joinedFileRecord !== undefined &&
+        joinedFileRecord.archived_at == null &&
+        isAccessEligibleLifecycle(String(joinedFileRecord.lifecycle_state ?? ""))
+      ) {
+        eligibleCalculationAttachmentIds.add(raw.file_id);
+      }
+    }
+    const seenCarryForwardAttachmentIds = new Set<string>();
+    const eligibleCarryForwardAttachments: QuoteCarryForwardAttachmentRow[] = [];
+    let omittedCarryForwardAttachmentCount = 0;
+    for (const attachment of selectedAttachments) {
+      if (!eligibleCalculationAttachmentIds.has(attachment.file_id)) {
+        omittedCarryForwardAttachmentCount += 1;
+        continue;
+      }
+      // A malformed/legacy duplicate snapshot should never render duplicate form controls. The
+      // command also de-duplicates before snapshot insertion, so this remains a UI convenience.
+      if (seenCarryForwardAttachmentIds.has(attachment.file_id)) continue;
+      seenCarryForwardAttachmentIds.add(attachment.file_id);
+      eligibleCarryForwardAttachments.push({
+        file_id: attachment.file_id,
+        display_name: attachment.display_name,
+      });
+    }
     const events = ((eventsRes.data ?? []) as Record<string, unknown>[]).map(
       (raw) => ({
         id: String(raw.id),
@@ -778,6 +845,8 @@ export async function readQuoteDetail(
         selectedVersionId: selectedId,
         selectedLines,
         selectedAttachments,
+        eligibleCarryForwardAttachments,
+        omittedCarryForwardAttachmentCount,
         events,
         selectedLostReason,
         followUps,

@@ -8,22 +8,12 @@
  * DETAIL is the heart of this story. NO deferred-workflow label; NO new nav item (Offerter
  * already exists in the seven-item shell).
  *
- * Since 2026-07-14 (owner decision — list-page create entry points) the header carries the
- * "Skapa ny offert" create affordance (the `CalculationList` "Ny kalkyl" inline-expanding form
- * pattern): a required calculation picker wired to `createQuoteVersionFromCalculationAction` →
- * the EXISTING 6.1 command (the full snapshot is re-captured server-side; the picker is a UX
- * nicety, never the guarantee). On success it navigates to the new quote's detail. An empty
- * picker points the admin at `/calculations` (a quote is always born from a calculation).
+ * Story 10.6 requires quote creation to start from the reviewed calculation preview. The old
+ * list-page quick-create form could not carry that review authority, so this page links to the
+ * calculation workflow instead of exposing a submission that is guaranteed to fail.
  */
-import { useActionState, useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { FormErrorSummary, SelectField } from "@/components/crm/FormField";
-import { createQuoteVersionFromCalculationAction } from "@/features/quotes/actions";
-import {
-  CREATE_QUOTE_ACTION_INITIAL,
-  isRetryableCreateQuoteError,
-} from "@/features/quotes/create-quote-action-state";
 import { StatusBadge } from "./StatusBadge";
 import {
   lostOutcomeLabel,
@@ -46,47 +36,18 @@ const STATUS_FILTER_OPTIONS: ReadonlyArray<{ value: string; label: string }> = [
   { value: "lost", label: "Förlorad/Avböjd" },
 ];
 
-export interface QuoteCalculationOption {
-  readonly id: string;
-  readonly label: string;
-}
-
 export function QuoteList({
   rows,
   loadError,
-  calculationOptions,
-  optionsLoadError = false,
 }: {
   readonly rows: readonly QuoteListRow[];
   readonly loadError: string | null;
-  /** The tenant's ACTIVE calculations — the create form's required source picker options. */
-  readonly calculationOptions: readonly QuoteCalculationOption[];
-  /** True when the calculation-options read FAILED — an empty picker then means "unknown",
-   * NOT "no calculations exist", so the form shows a neutral retry message instead of the
-   * misleading create-a-calculation hint (submit stays disabled). */
-  readonly optionsLoadError?: boolean;
 }) {
-  const router = useRouter();
-  const [showCreate, setShowCreate] = useState(false);
   // Story 10.2 (AC4): the status filter. Empty = all; "lost" surfaces the Förlustorsak column view.
   const [statusFilter, setStatusFilter] = useState<string>("");
   // Story 10.3 (AC2): the follow-up attribute filter. "" = all; "has" = quotes with an open follow-up;
   // "overdue" = quotes whose open follow-up is overdue (Europe/Stockholm boundary, computed server-side).
   const [followUpFilter, setFollowUpFilter] = useState<"" | "has" | "overdue">("");
-  const [state, formAction, pending] = useActionState(
-    createQuoteVersionFromCalculationAction,
-    CREATE_QUOTE_ACTION_INITIAL,
-  );
-
-  // On a successful create, navigate to the new quote's detail.
-  useEffect(() => {
-    if (state.status === "success" && state.quoteId) {
-      router.push(`/quotes/${state.quoteId}`);
-    }
-  }, [state.status, state.quoteId, router]);
-
-  const retryable = isRetryableCreateQuoteError(state);
-
   return (
     <section
       data-testid="quote-list"
@@ -97,15 +58,13 @@ export function QuoteList({
         <h1 id="quotes-heading" className="text-2xl font-semibold text-zinc-900">
           Offerter
         </h1>
-        <button
-          type="button"
+        <Link
+          href="/calculations"
           data-testid="new-quote-button"
-          onClick={() => setShowCreate((s) => !s)}
-          aria-expanded={showCreate}
           className="rounded-md bg-blue-700 px-4 py-2 text-sm font-medium text-white hover:bg-blue-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
         >
-          Skapa ny offert
-        </button>
+          Skapa offert från kalkyl
+        </Link>
       </div>
 
       {loadError && (
@@ -176,69 +135,6 @@ export function QuoteList({
           </div>
         </div>
       </div>
-
-      {showCreate && (
-        <form
-          action={formAction}
-          data-testid="new-quote-form"
-          className="flex max-w-xl flex-col gap-4 rounded-lg border border-zinc-200 bg-white p-4"
-          noValidate
-        >
-          <FormErrorSummary message={state.formError} />
-          {retryable && (
-            <p role="status" className="text-sm text-amber-800">
-              Försök igen.
-            </p>
-          )}
-          {optionsLoadError ? (
-            <p
-              role="alert"
-              data-testid="new-quote-options-error"
-              className="text-sm text-red-800"
-            >
-              Kalkylerna kunde inte läsas — försök igen om en stund.
-            </p>
-          ) : calculationOptions.length === 0 ? (
-            <p className="text-sm text-zinc-600" data-testid="new-quote-empty-hint">
-              Skapa en{" "}
-              <Link
-                href="/calculations"
-                className="text-blue-700 underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
-              >
-                kalkyl
-              </Link>{" "}
-              först — en offert skapas alltid från en kalkyl.
-            </p>
-          ) : (
-            <SelectField
-              name="calculation_id"
-              label="Kalkyl"
-              required
-              defaultValue={state.values.calculation_id ?? ""}
-              options={[
-                { value: "", label: "Välj kalkyl…" },
-                ...calculationOptions.map((c) => ({ value: c.id, label: c.label })),
-              ]}
-            />
-          )}
-          <div className="flex justify-end">
-            {/* Disabled AFTER success too — the router.push is in flight; a second submit
-                would create a duplicate quote (double-submit guard). */}
-            <button
-              type="submit"
-              disabled={
-                pending ||
-                state.status === "success" ||
-                optionsLoadError ||
-                calculationOptions.length === 0
-              }
-              className="rounded-md bg-blue-700 px-4 py-2 text-sm font-medium text-white hover:bg-blue-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 disabled:opacity-60"
-            >
-              {pending ? "Skapar…" : "Skapa offert"}
-            </button>
-          </div>
-        </form>
-      )}
 
       {(() => {
         // Filter by the selected status (empty = all). A quote's filterable status is its LATEST
@@ -322,7 +218,7 @@ export function QuoteList({
           return (
             <p data-testid="quote-list-empty" className="text-sm text-zinc-600">
               {rows.length === 0
-                ? "Inga offerter ännu. Skapa din första offert med “Skapa ny offert” — den utgår från en kalkyl."
+                ? "Inga offerter ännu. Öppna en kalkyl, granska underlaget och skapa offerten därifrån."
                 : "Inga offerter matchar det valda statusfiltret."}
             </p>
           );

@@ -134,6 +134,15 @@ function joinParts(parts: readonly (string | null)[], sep = " "): string {
   return parts.filter((p): p is string => typeof p === "string" && p.length > 0).join(sep);
 }
 
+/** `validTo` policies are exclusive: customer wording must name the final included day. */
+function exclusiveValidToLabel(validTo: string | null): string {
+  if (!validTo) return "";
+  const date = new Date(`${validTo}T00:00:00.000Z`);
+  if (!Number.isFinite(date.getTime())) return ` till före ${validTo}`;
+  date.setUTCDate(date.getUTCDate() - 1);
+  return ` till och med ${date.toISOString().slice(0, 10)}`;
+}
+
 /**
  * Render the quote PDF from the view model. DETERMINISTIC: pinned renderer + embedded base-14
  * Helvetica + explicit sv-SE date formatting + the INJECTED render instant on the InfoDict dates
@@ -281,7 +290,7 @@ export async function renderQuotePdf(
         cursor.text(`Beräknat: ${rot.calculatedKronor} kr. Begärt: ${rot.claimKronor} kr.`);
         if (rot.policy) {
           cursor.text(
-            `Regelverk ${rot.policy.id}, betalningsdatum ${rot.policy.resolvingDate}, giltigt från ${rot.policy.validFrom}${rot.policy.validTo ? ` till ${rot.policy.validTo}` : ""}.`,
+            `Regelverk ${rot.policy.id}, betalningsdatum ${rot.policy.resolvingDate}, giltigt från ${rot.policy.validFrom}${exclusiveValidToLabel(rot.policy.validTo)}.`,
           );
         }
         for (const allocation of rot.allocations) {
@@ -305,6 +314,9 @@ export async function renderQuotePdf(
         const basisLabel = basisLabels[green.basisMethod as keyof typeof basisLabels]
           ?? "Okänd underlagsmetod";
         cursor.text(`Underlagsmetod: ${basisLabel}`);
+        if (green.basisMethod === "FIXED_PRICE_97_PERCENT") {
+          cursor.text("Fastprisets kategoriandelar: inkl. moms (brutto, före 97 %).");
+        }
         for (const category of ["SOLAR", "STORAGE", "CHARGING"] as const) {
           const values = green.categories[category];
           cursor.text(
@@ -314,7 +326,7 @@ export async function renderQuotePdf(
         cursor.text(`Beräknat: ${green.calculatedKronor} kr. Begärt: ${green.claimKronor} kr.`);
         if (green.policy) {
           cursor.text(
-            `Regelverk ${green.policy.id}, slutbetalningsdatum ${green.policy.resolvingDate}, giltigt från ${green.policy.validFrom}${green.policy.validTo ? ` till ${green.policy.validTo}` : ""}.`,
+            `Regelverk ${green.policy.id}, slutbetalningsdatum ${green.policy.resolvingDate}, giltigt från ${green.policy.validFrom}${exclusiveValidToLabel(green.policy.validTo)}.`,
           );
         }
         for (const allocation of green.allocations) {

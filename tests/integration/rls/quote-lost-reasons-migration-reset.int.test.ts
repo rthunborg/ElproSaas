@@ -18,8 +18,8 @@
  *   - DB LAYERS 1-3 of the widening: `quote_versions.status` CHECK + `quote_events.event_type` CHECK
  *     now BOTH include `'lost'` (and still include the legacy set); the sent-lock trigger's allowed
  *     forward-status set now includes `'lost'` while the immutability tuple is UNWEAKENED;
- *   - DB LAYER 4: the `mark_quote_version_lost` RPC EXISTS (SECURITY INVOKER, EXECUTE revoked from
- *     public, granted to authenticated + service_role) — §14 widening.
+ *   - DB LAYER 4: the `mark_quote_version_lost` RPC EXISTS as a checked SECURITY DEFINER function;
+ *     EXECUTE is revoked from public/anon/service_role and granted only to authenticated.
  *   - SCOPE GUARD: NO supplier/Fortnox/sync/portal column, NO float/numeric money column, NO
  *     `updated_at` column on quote_lost_reasons.
  *
@@ -160,7 +160,7 @@ describe("quote_lost_reasons migration reset — insert-only reason table + lost
     expect(rows.map((r) => r.cmd).sort()).toEqual(["INSERT", "SELECT"]);
   });
 
-  it("[P0] INSERT-ONLY: the authenticated DML GRANT is SELECT+INSERT only (NO update/delete privilege)", async (testCtx) => {
+  it("[P0/10.8] authenticated has SELECT only; lost reason writes are RPC-owned", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     // The Supabase local baseline grants `authenticated` the STRUCTURAL privileges REFERENCES /
     // TRIGGER / TRUNCATE (and SELECT) on EVERY public table; migrations ADD the DML privileges. The
@@ -173,7 +173,7 @@ describe("quote_lost_reasons migration reset — insert-only reason table + lost
            and privilege_type in ('SELECT', 'INSERT', 'UPDATE', 'DELETE')`,
       [TABLE],
     );
-    expect(rows.map((r) => r.privilege_type).sort()).toEqual(["INSERT", "SELECT"]);
+    expect(rows.map((r) => r.privilege_type).sort()).toEqual(["SELECT"]);
   });
 
   it("[P0/scope] NO forbidden column (supplier/Fortnox/sync/portal/invoice) AND NO updated_at + NO float money", async (testCtx) => {
@@ -218,14 +218,14 @@ describe("quote_lost_reasons migration reset — insert-only reason table + lost
     expect(evCheck?.def).toMatch(/'lost'/);
   });
 
-  // ── DB layer 4: the narrow RPC exists (SECURITY INVOKER; §14 widening) ──────────────────────
-  it("[P0] the mark_quote_version_lost RPC exists (SECURITY INVOKER, EXECUTE not granted to public)", async (testCtx) => {
+  // ── DB layer 4: the narrow RPC exists (hardened by Story 10.8) ───────────────────────────────
+  it("[P0] mark_quote_version_lost is SECURITY DEFINER with PUBLIC denied", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     const rpc = await adminQuery<{ prosecdef: boolean }>(
       `select prosecdef from pg_proc where proname = 'mark_quote_version_lost'`,
     );
     expect(rpc.length).toBe(1);
-    expect(rpc[0]?.prosecdef).toBe(false); // SECURITY INVOKER (not DEFINER)
+    expect(rpc[0]?.prosecdef).toBe(true);
     const publicExec = await adminQuery<{ has: boolean }>(
       `select has_function_privilege('public', p.oid, 'execute') as has
          from pg_proc p where p.proname = 'mark_quote_version_lost'`,

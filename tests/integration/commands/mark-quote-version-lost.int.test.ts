@@ -6,7 +6,8 @@
  *   - 10.2-INT-02 (P0, AC2): confirming a lost flip on a SENT version executes the narrow RPC in ONE
  *     transaction that (a) flips `quote_versions.status` → `lost` (the ONLY column touched on the
  *     version row), (b) appends exactly one `quote_events` row (`event_type='lost'`,
- *     `occurred_at` = the INJECTED clock — NO wall-clock), (c) inserts exactly one `quote_lost_reasons`
+ *     `occurred_at` = the database-owned transaction timestamp; the injected command clock is
+ *     deliberately ignored), (c) inserts exactly one `quote_lost_reasons`
  *     row (outcome/category/note), and (d) writes exactly one `audit_events` row via the envelope with
  *     allow-listed `{ targetId }` metadata ONLY — NO outcome/category/note (free text / possible PII).
  *   - 10.2-INT-01 (P0, AC3, closes the [6-5] gap): a BEFORE/AFTER read of ALL customer-visible + PDF
@@ -32,8 +33,9 @@
  * weaken them.
  *
  * Mirrors `mark-quote-version-sent.int.test.ts` (6.4): per-run `crypto.randomUUID()` ids, raw pg
- * readback via BYPASSRLS admin helpers, deterministic injected clock, runs against the LOCAL Supabase
- * stack only + visibly skips when unreachable. CI (`SUPABASE_TEST_REQUIRED=1`) hard-fails.
+ * readback via BYPASSRLS admin helpers, a fixed injected command clock used to prove it cannot set
+ * lifecycle evidence, runs against the LOCAL Supabase stack only + visibly skips when unreachable.
+ * CI (`SUPABASE_TEST_REQUIRED=1`) hard-fails.
  *
  * [Source: story 10.2 AC1/AC2/AC3/AC5 + Tasks 1.6/4 + Dev Notes "The mark_quote_version_lost RPC" /
  *  "Reuse — do NOT reinvent"; test-design-epic-10.md#10.2-INT-01/02/03/05/06, R-1010..R-1013;
@@ -56,14 +58,40 @@ import {
   type TestServerClient,
 } from "../../factories/tenants";
 import { adminSelectAuditEvents } from "../../factories/audit-events";
+import { adminQuery } from "../../factories/admin-sql";
 import { isLocalStackReachable } from "../../support/test-env";
 import { skipUnlessStack } from "../../support/stack-gate";
+import { establishCurrentQuotePdf } from "../../support/quote-pdf";
 import { runCommand } from "@/server/commands/envelope";
 import { markQuoteVersionSent, markQuoteVersionLost } from "@/server/commands/quotes";
 import type { CommandClock } from "@/server/commands/clock";
 
 const FIXED_ISO = "2026-07-19T09:00:00.000Z";
 const fixedClock: CommandClock = { now: () => new Date(FIXED_ISO) };
+
+async function readDatabaseNow(): Promise<Date> {
+  const rows = await adminQuery<{ database_now: string | Date }>(
+    `select statement_timestamp() as database_now`,
+  );
+  const value = rows[0]?.database_now;
+  const timestamp = new Date(value instanceof Date ? value.toISOString() : String(value));
+  expect(Number.isNaN(timestamp.getTime())).toBe(false);
+  return timestamp;
+}
+
+function expectDatabaseOwnedTimestamp(
+  value: unknown,
+  before: Date,
+  after: Date,
+): void {
+  const timestamp = new Date(value instanceof Date ? value.toISOString() : String(value));
+  expect(Number.isNaN(timestamp.getTime())).toBe(false);
+  // Both bounds come from Postgres, avoiding a host-clock dependency. Allow a small scheduling
+  // margin around the two separate readback statements while still proving the mutation happened now.
+  expect(timestamp.getTime()).toBeGreaterThanOrEqual(before.getTime() - 5_000);
+  expect(timestamp.getTime()).toBeLessThanOrEqual(after.getTime() + 5_000);
+  expect(timestamp.toISOString()).not.toBe(FIXED_ISO);
+}
 
 let stackUp = false;
 let fixture: TwoTenantFixture;
@@ -108,6 +136,13 @@ async function seedQuoteVersion(
 /** Mark a freshly-seeded draft SENT via the real command (the legal precondition for a lost flip). */
 async function seedSentVersion(tenantId: string): Promise<string> {
   const { versionId } = await seedQuoteVersion(tenantId, "draft");
+  await establishCurrentQuotePdf({
+    client: a,
+    tenantId,
+    quoteVersionId: versionId,
+    actorUserId: fixture.adminA.id,
+    occurredAt: FIXED_ISO,
+  });
   const sent = await runCommand(markQuoteVersionSent, {
     client: a as never,
     input: { quote_version_id: versionId },
@@ -125,6 +160,7 @@ describe("markQuoteVersionLost — the lost flip (GREEN — Story 10.2 implement
     if (skipUnlessStack(testCtx, stackUp)) return;
     const versionId = await seedSentVersion(fixture.tenantA.id);
     const correlationId = crypto.randomUUID();
+    const databaseBefore = await readDatabaseNow();
 
     const res = await runCommand(markQuoteVersionLost, {
       client: a as never,
@@ -132,6 +168,7 @@ describe("markQuoteVersionLost — the lost flip (GREEN — Story 10.2 implement
       clock: fixedClock,
       correlationId,
     });
+    const databaseAfter = await readDatabaseNow();
     expect(res.ok).toBe(true);
     if (!res.ok) return;
     // RED-PHASE cast: the `never` command placeholder widens res.data to unknown. GREEN phase (real
@@ -142,11 +179,12 @@ describe("markQuoteVersionLost — the lost flip (GREEN — Story 10.2 implement
     const row = await adminSelectQuoteVersionRow(versionId);
     expect(row?.status).toBe("lost");
 
-    // exactly one appended `lost` event, occurred_at = the injected clock.
+    // Exactly one appended `lost` event. The command's injected clock is deliberately ignored:
+    // lifecycle evidence is owned by the database transaction.
     const events = await adminSelectQuoteEventsForVersion(versionId);
     const lostEvents = events.filter((e) => e.event_type === "lost");
     expect(lostEvents.length).toBe(1);
-    expect(lostEvents[0]?.occurred_at).toBe(FIXED_ISO);
+    expectDatabaseOwnedTimestamp(lostEvents[0]?.occurred_at, databaseBefore, databaseAfter);
 
     // exactly one reason row carrying the outcome/category/note.
     const reasons = await adminSelectLostReasons(versionId);
@@ -158,6 +196,7 @@ describe("markQuoteVersionLost — the lost flip (GREEN — Story 10.2 implement
     const audits = await adminSelectAuditEvents({ correlationId });
     expect(audits.length).toBe(1);
     expect(audits[0]?.target_id).toBe(versionId);
+    expectDatabaseOwnedTimestamp(audits[0]?.created_at, databaseBefore, databaseAfter);
     expect(audits[0]?.metadata).toEqual({});
     expect(JSON.stringify(audits[0]?.metadata)).not.toMatch(/forlorad|pris|för dyrt/i);
   });

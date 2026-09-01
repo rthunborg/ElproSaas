@@ -17,6 +17,12 @@
 import { isLocalStackReachable, STACK_REQUIRED } from "./test-env";
 
 export default async function globalSetup(): Promise<void> {
+  // Test-runner-only counterpart to the idempotent local Vault fixture in seed.sql.
+  // Production never receives a fallback: generateQuotePdf fails closed when either
+  // non-public attestation variable is absent.
+  process.env.QUOTE_PDF_ATTESTATION_KEY_ID ??= "test_v1";
+  process.env.QUOTE_PDF_ATTESTATION_HMAC_SECRET ??=
+    "local-test-only-quote-pdf-attestation-secret-v1";
   const reachable = await isLocalStackReachable();
 
   if (!reachable && STACK_REQUIRED) {

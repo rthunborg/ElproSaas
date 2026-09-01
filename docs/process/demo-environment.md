@@ -10,7 +10,7 @@ target. It exists so the owner can demo the product and pilot users can try it.
 | --- | --- |
 | Hosting | Vercel project [`elpro-saas`](https://vercel.com/enhancior/elpro-saas) (Enhancior team), auto-deploys from `main` on GitHub `rthunborg/ElproSaas`. |
 | Database | Supabase project **`elprosaas-demo`** — ref `wmqmzznmwpheswjjozhq`, region `eu-north-1` (Stockholm), **Enhancior** org (`oykbutypisxdgifmrxid`), free tier. [Dashboard](https://supabase.com/dashboard/project/wmqmzznmwpheswjjozhq). |
-| App env vars (Vercel) | `NEXT_PUBLIC_SUPABASE_URL=https://wmqmzznmwpheswjjozhq.supabase.co` + `NEXT_PUBLIC_SUPABASE_ANON_KEY` (from the project's API settings). No service-role key anywhere in the app — anon + RLS only, enforced by the CI containment gates. |
+| App env vars (Vercel) | `NEXT_PUBLIC_SUPABASE_URL=https://wmqmzznmwpheswjjozhq.supabase.co` + `NEXT_PUBLIC_SUPABASE_ANON_KEY` (from the project's API settings) + `ELPRO_QUOTE_SEND_TRACK=demo`. The last value is an explicit disposable-demo opt-in: application default is fail-closed `real_customer`, which blocks unresolved `TAX_SIGN_OFF_REQUIRED` before send. No service-role key anywhere in the app — anon + RLS only, enforced by the CI containment gates. |
 | Accounts | Two Supabase CLI/dashboard identities exist: the **Enhancior** company account (owns this project — the CLI on the dev machine is logged into it) and a private `rthunborg` account (owns unrelated projects; the Claude Code Supabase MCP connector is currently bound to it — prefer the CLI for this project). |
 
 ## Supabase CLI profile (per-project isolation)
@@ -88,6 +88,16 @@ without the DB password via `supabase db query --linked` (Management API).
   not persist it in the repo or any committed file.
 - The demo project is NOT a stop-condition violation: the CI "no shared
   dev/staging/prod project" rule constrains CI, which remains local-stack only.
+
+## Quote-PDF attestation provisioning and rotation (ADR-B008)
+
+**IN:** Production/demo PDF-byte activation uses a server-side HMAC secret identified by a key ID: Vercel environment variables `QUOTE_PDF_ATTESTATION_KEY_ID` and `QUOTE_PDF_ATTESTATION_HMAC_SECRET`, plus a matching Supabase Vault secret named `quote_pdf_attestation_<key-id>`. The secret is never committed, displayed in logs, or supplied to clients. Local/test setup may use the clearly test-only key ID `test_v1` and a disposable test-only secret; it is not a deployable secret.
+
+Provision a new key in this order: create `quote_pdf_attestation_<key-id>` in Vault first; set the matching server-only Vercel variables; then deploy. Verify with the approved fresh database/application evidence before relying on the key.
+
+For rotation, create and deploy the new matching key before removing the old Vault secret. Retain the old secret through old-deployment drainage plus the maximum five-minute in-flight render lease, then retire it with an audited owner-approved operational change. This is a deployment runbook, not a new retention or deletion workflow.
+
+**Current operational state / manual setup:** matching demo Vault and Vercel secrets have not been attested as provisioned. The repository-scoped Supabase profile is not authenticated and remains pending owner login. After merge, an owner may authenticate the profile (for example, `supabase login --profile supabase/cli-profile.yaml` if supported by the installed CLI) or use the Supabase dashboard, then provision the matching secrets through Supabase Vault and Vercel. Confirm installed CLI syntax/version before any secret operation; the example syntax is intentionally not verified here.
 
 ## Post-epic routine (for future epic runs)
 

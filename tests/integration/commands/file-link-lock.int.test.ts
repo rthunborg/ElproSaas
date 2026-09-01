@@ -77,6 +77,7 @@ import {
 import { adminSelectAuditEvents } from "../../factories/audit-events";
 import { isLocalStackReachable } from "../../support/test-env";
 import { skipUnlessStack } from "../../support/stack-gate";
+import { establishCurrentQuotePdf } from "../../support/quote-pdf";
 import { runCommand } from "@/server/commands/envelope";
 import {
   markQuoteVersionSent,
@@ -171,7 +172,14 @@ describe("8.4-INT-01: the sent-version PDF link is LOCKED by construction at the
 
   it("[P0] 8.4-INT-01: after markQuoteVersionSent the quote_pdf link is is_locked=true / locked_at set and files.lifecycle_state='locked'", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
-    const { versionId, fileId } = await seedDraftVersionWithPdfLink(fx.tenantA);
+    const { versionId, fileId: obsoletePdfFileId } = await seedDraftVersionWithPdfLink(fx.tenantA);
+    const currentPdf = await establishCurrentQuotePdf({
+      client: clientA,
+      tenantId: fx.tenantA.id,
+      quoteVersionId: versionId,
+      actorUserId: fx.adminA.id,
+      occurredAt: FIXED_ISO,
+    });
 
     const sent = await runCommand(markQuoteVersionSent, {
       client: clientA as never,
@@ -181,13 +189,25 @@ describe("8.4-INT-01: the sent-version PDF link is LOCKED by construction at the
     });
     expect(sent.ok).toBe(true);
 
-    // The parent-state-keyed lock apply flipped the child link + its file to locked at the send moment.
+    // Story 10.9 preserves a superseded PDF link as archived history. The active commitment remains
+    // singular: exactly one non-archived quote_pdf link, pointing at the current generated PDF.
     const links = await adminSelectPdfFileLinks(versionId);
-    expect(links.length).toBe(1);
-    const file = await adminSelectFileById(fileId);
+    const activeLinks = links.filter((link) => link.archived_at === null);
+    expect(activeLinks).toHaveLength(1);
+    expect(activeLinks[0]?.file_id).toBe(currentPdf.fileId);
+    expect(activeLinks[0]?.is_locked).toBe(true);
+    expect(activeLinks[0]?.locked_at).not.toBeNull();
+
+    const historicalLinks = links.filter((link) => link.archived_at !== null);
+    expect(historicalLinks).toHaveLength(1);
+    expect(historicalLinks[0]?.file_id).toBe(obsoletePdfFileId);
+    // Every historical quote-PDF link is backed by archived file metadata.
+    for (const link of historicalLinks) {
+      const file = await adminSelectFileById(link.file_id);
+      expect(file?.lifecycle_state).toBe("archived");
+    }
+    const file = await adminSelectFileById(currentPdf.fileId);
     expect(file?.lifecycle_state).toBe("locked");
-    // (is_locked=true / locked_at set is read back through the link-level BYPASSRLS helper the sibling
-    // RLS suite already exercises; the file lifecycle flip is the command-observable half here.)
   });
 });
 
@@ -215,6 +235,13 @@ describe("8.4-INT-02: the acceptance-evidence link is LOCKED by construction onc
       calculation_id: calcId,
       status: "draft",
       accepted_price_ore: SOURCE_SENT_TOTAL_ORE,
+    });
+    await establishCurrentQuotePdf({
+      client: clientA,
+      tenantId: fx.tenantA.id,
+      quoteVersionId: versionId,
+      actorUserId: fx.adminA.id,
+      occurredAt: FIXED_ISO,
     });
     const sent = await runCommand(markQuoteVersionSent, {
       client: clientA as never,
@@ -261,7 +288,14 @@ describe("8.4-INT-02: the acceptance-evidence link is LOCKED by construction onc
 describe("8.4-INT-03: archive-only-delete of a locked file (never a hard delete) + one clean audit row (AC3, §15, R-813)", () => {
   it("[P0] 8.4-INT-03: archiveFile on a locked file SUCCEEDS (soft-delete: archived_at + lifecycle_state='archived', not a hard DELETE)", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
-    const { versionId, fileId } = await seedDraftVersionWithPdfLink(fx.tenantA);
+    const { versionId } = await seedDraftVersionWithPdfLink(fx.tenantA);
+    const currentPdf = await establishCurrentQuotePdf({
+      client: clientA,
+      tenantId: fx.tenantA.id,
+      quoteVersionId: versionId,
+      actorUserId: fx.adminA.id,
+      occurredAt: FIXED_ISO,
+    });
     const sent = await runCommand(markQuoteVersionSent, {
       client: clientA as never,
       clock: fixedClock,
@@ -274,19 +308,26 @@ describe("8.4-INT-03: archive-only-delete of a locked file (never a hard delete)
       client: clientA as never,
       clock: fixedClock,
       correlationId: crypto.randomUUID(),
-      input: { id: fileId, reason: "superseded by a new version" },
+      input: { id: currentPdf.fileId, reason: "superseded by a new version" },
     });
 
     expect(res.ok).toBe(true);
     // Archive-over-delete: the row still EXISTS (never a bytes/metadata hard delete), flipped to archived.
-    const after = await adminSelectFileById(fileId);
+    const after = await adminSelectFileById(currentPdf.fileId);
     expect(after).not.toBeNull();
     expect(after?.lifecycle_state).toBe("archived");
   });
 
   it("[P0] 8.4-INT-03: the archive writes EXACTLY ONE audit_events row with allow-listed metadata ONLY (no bucket/object path, no PII, no file contents)", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
-    const { versionId, fileId } = await seedDraftVersionWithPdfLink(fx.tenantA);
+    const { versionId } = await seedDraftVersionWithPdfLink(fx.tenantA);
+    const currentPdf = await establishCurrentQuotePdf({
+      client: clientA,
+      tenantId: fx.tenantA.id,
+      quoteVersionId: versionId,
+      actorUserId: fx.adminA.id,
+      occurredAt: FIXED_ISO,
+    });
     const sent = await runCommand(markQuoteVersionSent, {
       client: clientA as never,
       clock: fixedClock,
@@ -300,7 +341,7 @@ describe("8.4-INT-03: archive-only-delete of a locked file (never a hard delete)
       client: clientA as never,
       clock: fixedClock,
       correlationId,
-      input: { id: fileId, reason: "superseded by a new version" },
+      input: { id: currentPdf.fileId, reason: "superseded by a new version" },
     });
     expect(res.ok).toBe(true);
 
@@ -319,7 +360,14 @@ describe("8.4-INT-03: archive-only-delete of a locked file (never a hard delete)
 describe("8.4-INT-04: a command-path mutation/re-point of a locked link ⇒ stable FILE_LINK_LOCKED (mapped from FL823, never SERVER_ERROR) (AC1/AC2)", () => {
   it("[P0] 8.4-INT-04: attempting a hard-delete of a locked file through the app path surfaces FILE_LINK_LOCKED (archive-only)", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
-    const { versionId, fileId } = await seedDraftVersionWithPdfLink(fx.tenantA);
+    const { versionId } = await seedDraftVersionWithPdfLink(fx.tenantA);
+    const currentPdf = await establishCurrentQuotePdf({
+      client: clientA,
+      tenantId: fx.tenantA.id,
+      quoteVersionId: versionId,
+      actorUserId: fx.adminA.id,
+      occurredAt: FIXED_ISO,
+    });
     const sent = await runCommand(markQuoteVersionSent, {
       client: clientA as never,
       clock: fixedClock,
@@ -337,7 +385,7 @@ describe("8.4-INT-04: a command-path mutation/re-point of a locked link ⇒ stab
       clock: fixedClock,
       correlationId: crypto.randomUUID(),
       // A hard-delete intent (dev maps the FL823 DELETE-arm RAISE → FILE_LINK_LOCKED).
-      input: { id: fileId, hardDelete: true } as never,
+      input: { id: currentPdf.fileId, hardDelete: true } as never,
     });
 
     expect(res.ok).toBe(false);
@@ -354,8 +402,15 @@ describe("8.4-INT-04: a command-path mutation/re-point of a locked link ⇒ stab
 describe("8.4-RLS-01: cross-tenant locked-file archive/mutation ⇒ TENANT_ACCESS_DENIED (no existence disclosure); anon ⇒ UNAUTHENTICATED (AC5, R-809)", () => {
   it("[P0] 8.4-RLS-01: tenant A archiving a tenant B locked file ⇒ TENANT_ACCESS_DENIED (same generic shape as not-found)", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
-    const { fileId: bFileId, versionId: bVersionId } = await seedDraftVersionWithPdfLink(fx.tenantB);
+    const { versionId: bVersionId } = await seedDraftVersionWithPdfLink(fx.tenantB);
     const clientB = await makeAuthedServerClient(fx.adminB);
+    const currentPdf = await establishCurrentQuotePdf({
+      client: clientB,
+      tenantId: fx.tenantB.id,
+      quoteVersionId: bVersionId,
+      actorUserId: fx.adminB.id,
+      occurredAt: FIXED_ISO,
+    });
     const sentB = await runCommand(markQuoteVersionSent, {
       client: clientB as never,
       clock: fixedClock,
@@ -370,7 +425,7 @@ describe("8.4-RLS-01: cross-tenant locked-file archive/mutation ⇒ TENANT_ACCES
       client: clientA as never,
       clock: fixedClock,
       correlationId: crypto.randomUUID(),
-      input: { id: bFileId, reason: "cross-tenant attempt" },
+      input: { id: currentPdf.fileId, reason: "cross-tenant attempt" },
     });
 
     expect(res.ok).toBe(false);
@@ -400,7 +455,14 @@ describe("8.4-RLS-01: cross-tenant locked-file archive/mutation ⇒ TENANT_ACCES
 describe("8.4-INT-05: partial-lock / archive-delete consistency — a mid-flow fault leaves a consistent, retryable state (AC4, R-813)", () => {
   it("[P0] 8.4-INT-05: a re-run of the archive on an ALREADY-archived locked file is a clean idempotent no-op (no double audit, no half state)", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
-    const { versionId, fileId } = await seedDraftVersionWithPdfLink(fx.tenantA);
+    const { versionId } = await seedDraftVersionWithPdfLink(fx.tenantA);
+    const currentPdf = await establishCurrentQuotePdf({
+      client: clientA,
+      tenantId: fx.tenantA.id,
+      quoteVersionId: versionId,
+      actorUserId: fx.adminA.id,
+      occurredAt: FIXED_ISO,
+    });
     const sent = await runCommand(markQuoteVersionSent, {
       client: clientA as never,
       clock: fixedClock,
@@ -413,7 +475,7 @@ describe("8.4-INT-05: partial-lock / archive-delete consistency — a mid-flow f
       client: clientA as never,
       clock: fixedClock,
       correlationId: crypto.randomUUID(),
-      input: { id: fileId, reason: "first archive" },
+      input: { id: currentPdf.fileId, reason: "first archive" },
     });
     expect(first.ok).toBe(true);
     const correlationId = crypto.randomUUID();
@@ -421,12 +483,12 @@ describe("8.4-INT-05: partial-lock / archive-delete consistency — a mid-flow f
       client: clientA as never,
       clock: fixedClock,
       correlationId,
-      input: { id: fileId, reason: "retry archive" },
+      input: { id: currentPdf.fileId, reason: "retry archive" },
     });
 
     // The retry is a clean no-op (already archived) — no second write, no second audit row, no error.
     expect(retry.ok).toBe(true);
-    const after = await adminSelectFileById(fileId);
+    const after = await adminSelectFileById(currentPdf.fileId);
     expect(after?.lifecycle_state).toBe("archived");
     const audits = await adminSelectAuditEvents({ correlationId });
     expect(audits.filter((a) => a.event_type === "file.archived").length).toBe(0);
@@ -441,7 +503,14 @@ describe("8.4-INT-05: partial-lock / archive-delete consistency — a mid-flow f
     // write are one txn, so there is NO half-write to inject a fault into (the whole txn commits or
     // rolls back together). Hence no fault-injection path is fabricated here; the atomicity claim is
     // discharged by 8.4-RLS-04, and this test carries the orthogonal PRECISION guarantee.
-    const { versionId, fileId } = await seedDraftVersionWithPdfLink(fx.tenantA);
+    const { versionId } = await seedDraftVersionWithPdfLink(fx.tenantA);
+    const currentPdf = await establishCurrentQuotePdf({
+      client: clientA,
+      tenantId: fx.tenantA.id,
+      quoteVersionId: versionId,
+      actorUserId: fx.adminA.id,
+      occurredAt: FIXED_ISO,
+    });
     // Send the parent so its own PDF file locks by construction.
     const firstSend = await runCommand(markQuoteVersionSent, {
       client: clientA as never,
@@ -460,7 +529,7 @@ describe("8.4-INT-05: partial-lock / archive-delete consistency — a mid-flow f
     const stray = await adminSelectFileById(strayFileId);
     expect(stray?.lifecycle_state).not.toBe("locked");
     // And the genuinely-sent file IS locked (the boundary is precise, not a blanket flip).
-    const sentFile = await adminSelectFileById(fileId);
+    const sentFile = await adminSelectFileById(currentPdf.fileId);
     expect(sentFile?.lifecycle_state).toBe("locked");
   });
 });

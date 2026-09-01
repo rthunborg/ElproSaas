@@ -58,6 +58,17 @@ import type { CommandClock } from "@/server/commands/clock";
 const FIXED_ISO = "2026-07-05T12:00:00.000Z";
 const fixedClock: CommandClock = { now: () => new Date(FIXED_ISO) };
 
+type QuoteReviewRpcClient = {
+  rpc(functionName: string, args: Record<string, unknown>): Promise<{
+    data: unknown;
+    error: { code?: string; message?: string } | null;
+  }>;
+};
+
+function asQuoteReviewRpcClient(client: TestServerClient): QuoteReviewRpcClient {
+  return client as unknown as QuoteReviewRpcClient;
+}
+
 /** A REAL own-tenant calc + a full identity/terms/customer context, for the happy path. */
 interface SeededQuoteSource {
   readonly customerId: string;
@@ -505,7 +516,9 @@ describe("createQuoteVersionFromCalculation — numbering race-safety (AC3, 6.1-
       validUntil: "not-a-timestamp",
     };
 
-    const { error } = await a.rpc("create_quote_version_from_calculation", {
+    const correlationId = crypto.randomUUID();
+    const rpc = asQuoteReviewRpcClient(a);
+    const authorization = await rpc.rpc("authorize_quote_initial_review", {
       p_tenant_id: fixture.tenantA.id,
       p_calculation_id: src.calcId,
       p_captured_at: FIXED_ISO,
@@ -515,10 +528,22 @@ describe("createQuoteVersionFromCalculation — numbering race-safety (AC3, 6.1-
       p_snapshot: malformedSnapshot,
       p_lines: linesToPayload(reviewed.snapshot),
       p_attachments: attachmentsToPayload(reviewed.snapshot),
-      p_reviewed_snapshot_digest: reviewed.currentReviewDigest,
       p_reviewed_quote_capture_date: reviewed.quoteCaptureDate,
       p_reviewed_calculation_status: reviewed.reviewedCalculationStatus,
       p_reviewed_readiness_rows: reviewed.reviewedReadinessRows,
+      p_actor_user_id: fixture.adminA.id,
+      p_correlation_id: correlationId,
+    });
+    expect(authorization.error).toBeNull();
+    expect(typeof authorization.data).toBe("string");
+    if (typeof authorization.data !== "string") return;
+
+    const { error } = await rpc.rpc("create_quote_version_from_calculation", {
+      p_tenant_id: fixture.tenantA.id,
+      p_authorization_id: authorization.data,
+      p_captured_at: FIXED_ISO,
+      p_actor_user_id: fixture.adminA.id,
+      p_correlation_id: correlationId,
     });
     // The RPC reached the version insert and raised on its timestamptz cast.
     expect(error).not.toBeNull();

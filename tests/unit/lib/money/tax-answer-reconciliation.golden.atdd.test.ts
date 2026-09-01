@@ -84,8 +84,21 @@ describe("Story 10.6 — re-derived structured goldens", () => {
     const cases = value.cases as readonly JsonObject[];
     for (const entry of cases) {
       const operation = String(entry.operation);
-      const result = unwrap(requireFunction(operation)(entry.input));
-      assertExpectedSubset(result, entry.expected, String(entry.id));
+      const result = requireFunction(operation)(entry.input);
+      if (entry.expectedFailureCode !== undefined) {
+        assert.equal(
+          (result as { readonly ok?: unknown; readonly code?: unknown }).ok,
+          false,
+          `${entry.id} must reject instead of returning a partial answer`,
+        );
+        assert.equal(
+          (result as { readonly code?: unknown }).code,
+          entry.expectedFailureCode,
+          `${entry.id} must preserve its typed failure`,
+        );
+      } else {
+        assertExpectedSubset(unwrap(result), entry.expected, String(entry.id));
+      }
     }
   });
 

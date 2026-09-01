@@ -29,11 +29,20 @@ import {
 export interface CreateNewVersionButtonProps {
   readonly quoteId: string;
   readonly quoteVersionId: string;
+  /** Frozen predecessor attachments; the server keeps only currently eligible calc files. */
+  readonly predecessorAttachments?: readonly {
+    readonly fileId: string;
+    readonly displayName: string | null;
+  }[];
+  /** Count only: the UI deliberately does not reveal which predecessor attachments were omitted. */
+  readonly omittedPredecessorAttachmentCount?: number;
 }
 
 export function CreateNewVersionButton({
   quoteId,
   quoteVersionId,
+  predecessorAttachments = [],
+  omittedPredecessorAttachmentCount = 0,
 }: CreateNewVersionButtonProps) {
   const router = useRouter();
   const [state, formAction, pending] = useActionState(
@@ -84,6 +93,38 @@ export function CreateNewVersionButton({
 
       <input type="hidden" name="quote_id" value={quoteId} />
       <input type="hidden" name="quote_version_id" value={quoteVersionId} />
+      {predecessorAttachments.length > 0 && (
+        <input type="hidden" name="attachment_selection_present" value="1" />
+      )}
+
+      {predecessorAttachments.length > 0 && (
+        <fieldset className="rounded-md border border-zinc-200 p-3 text-sm">
+          <legend className="px-1 font-medium text-zinc-800">Bilagor till den nya versionen</legend>
+          <p className="mb-2 text-zinc-600">
+            Bilagor som fortfarande kan följa med är förvalda.
+          </p>
+          {predecessorAttachments.map((attachment) => (
+            <label key={attachment.fileId} className="flex items-center gap-2 py-1 text-zinc-800">
+              <input
+                type="checkbox"
+                name="attachment_file_ids"
+                value={attachment.fileId}
+                defaultChecked
+              />
+              {attachment.displayName ?? "Bilaga"}
+            </label>
+          ))}
+        </fieldset>
+      )}
+      {omittedPredecessorAttachmentCount > 0 && (
+        <p
+          data-testid="create-new-version-attachments-omitted"
+          role="note"
+          className="text-sm text-amber-800"
+        >
+          En eller flera tidigare bilagor är inte längre tillgängliga och följer inte med i den nya versionen.
+        </p>
+      )}
 
       <div>
         <button

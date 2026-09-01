@@ -173,6 +173,36 @@ describe("Story 6.3 — renderQuotePdf determinism + framing (fast-gate belt for
     assert.ok(text.includes("TAX_SIGN_OFF_REQUIRED"), "the REAL ReadinessCode warning must print verbatim");
   });
 
+  test("[10.9][P1] exclusive policy validTo renders its final included day, never the exclusive boundary", async () => {
+    const text = await extractPdfText(await renderQuotePdf({
+      viewModel: baseViewModel({
+        taxAnswer: {
+          source: "v2", deductionChoice: "ROT", netKronor: "1 000,00", vatKronor: "250,00",
+          grossKronor: "1 250,00", calculatedDeductionKronor: "300,00", claimDeductionKronor: "300,00",
+          deductionKronor: "300,00", payableKronor: "950,00", categories: [],
+          summaries: {
+            labor: { netKronor: "1 000,00", vatKronor: "250,00", grossKronor: "1 250,00" },
+            material: { netKronor: "0,00", vatKronor: "0,00", grossKronor: "0,00" },
+            other: { netKronor: "0,00", vatKronor: "0,00", grossKronor: "0,00" },
+          },
+          rot: {
+            policy: { id: "ROT-2026", validFrom: "2026-01-01", validTo: "2027-01-01", resolvingDate: "2026-06-01", resolvingFact: "payment" },
+            basisNetKronor: "1 000,00", allocatedVatKronor: "250,00", basisKronor: "1 250,00",
+            calculatedKronor: "300,00", claimKronor: "300,00", allocations: [],
+          },
+          green: { policy: null, basisMethod: "FIXED_PRICE_97_PERCENT", categories: {
+            SOLAR: { basisKronor: "0,00", calculatedKronor: "0,00", claimKronor: "0,00" },
+            STORAGE: { basisKronor: "0,00", calculatedKronor: "0,00", claimKronor: "0,00" },
+            CHARGING: { basisKronor: "0,00", calculatedKronor: "0,00", claimKronor: "0,00" },
+          }, calculatedKronor: "0,00", claimKronor: "0,00", allocations: [] },
+        },
+      }),
+      renderedAt: FIXED_ISO,
+    }));
+    assert.ok(text.includes("till och med 2026-12-31"));
+    assert.equal(text.includes("till 2027-01-01"), false);
+  });
+
   test("[10.6][P1] green fixed-price basis and category enums render only customer-facing Swedish labels", async () => {
     const text = await extractPdfText(await renderQuotePdf({
       viewModel: baseViewModel({
@@ -218,7 +248,13 @@ describe("Story 6.3 — renderQuotePdf determinism + framing (fast-gate belt for
       renderedAt: FIXED_ISO,
     }));
 
-    for (const label of ["97 % av äkta fastprisavtal", "Solceller", "Lagring", "Laddningspunkt"]) {
+    for (const label of [
+      "97 % av äkta fastprisavtal",
+      "inkl. moms (brutto, före 97 %)",
+      "Solceller",
+      "Lagring",
+      "Laddningspunkt",
+    ]) {
       assert.ok(text.includes(label), "the PDF must render the Swedish label: " + label);
     }
     for (const rawEnum of ["FIXED_PRICE_97_PERCENT", "SOLAR", "STORAGE", "CHARGING"]) {

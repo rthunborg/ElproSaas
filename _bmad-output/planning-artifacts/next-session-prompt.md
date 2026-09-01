@@ -1,5 +1,7 @@
 # Next-session kickoff prompt (copy everything below the line)
 
+> **Historical kickoff record — superseded 2026-08-31.** Do not execute its PR #41, ADR-B006, or merge instructions as current work; those decisions and tasks have since been completed. Consult `sprint-status.yaml`, Stories 10.8/10.9, and ADR-B008 for active follow-up planning. Before treating the follow-ups as complete, run fresh root-owned verification: historical test counts are superseded. Production/demo PDF-byte activation also requires matching server-only Vercel variables `QUOTE_PDF_ATTESTATION_KEY_ID` / `QUOTE_PDF_ATTESTATION_HMAC_SECRET` and Vault secret `quote_pdf_attestation_<key-id>`; follow `docs/process/demo-environment.md` for provisioning/rotation.
+
 ---
 
 You are picking up the ElproSaas project at `C:\ElproSaas` (Windows, PowerShell + Git Bash, pnpm). Read this whole brief before acting — you have no context from the previous session.

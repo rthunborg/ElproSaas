@@ -37,6 +37,7 @@ import {
   adminInsertWorkRole,
   adminUploadStorageObject,
   createTwoTenantFixture,
+  makeAuthedServerClient,
 } from "../factories/tenants";
 import { adminQuery } from "../factories/admin-sql";
 
@@ -76,6 +77,7 @@ function noDeductionTaxInput(
 
 export default async function globalSetup() {
   const base = await createTwoTenantFixture();
+  const adminAClient = await makeAuthedServerClient(base.adminA);
 
   // Seed CRM rows in tenantA via the privileged (BYPASSRLS) factory path. These are
   // read back through the app's RLS path at runtime as adminA.
@@ -544,31 +546,34 @@ export default async function globalSetup() {
     quote_version_id: acceptedJobVersionId,
     event_type: "created",
   });
-  // Drive the REAL 7.2 transaction directly (BYPASSRLS superuser passing the resolved tenant id).
-  // The RPC records the acceptance, flips sent → accepted, and creates the ONE job — the authentic
-  // source refs the 7.3 detail reads from. `p_accepted_at` is an EXPLICIT instant (H1). An external
-  // evidence reference exercises the detail's evidence surface without an uploaded file.
-  const acceptRpcRows = await adminQuery<{ acceptance_id: string; job_id: string }>(
-    `select acceptance_id, job_id from public.accept_quote_and_create_job(
-        $1::uuid, $2::uuid, $3::timestamptz, $4::bigint, $5::bigint,
-        $6::text, $7::text, $8::uuid, $9::text, $10::text, $11::date, $12::date, $13::text, $14::text)`,
-    [
-      base.tenantA.id,
-      acceptedJobVersionId,
-      "2026-07-10T08:30:00.000Z",
-      125000,
-      125000,
-      "verbal",
-      null,
-      null,
-      "Signerad orderbekräftelse (referens #A-7003)",
-      "Accepterat via telefon 2026-07-10",
-      "2026-08-01",
-      "2026-08-20",
-      "Jobb från accepterad offert 1006",
-      null,
-    ],
-  );
+  // Drive the REAL attributable 7.2/10.8 transaction through an authenticated tenant-admin
+  // session. The RPC records the acceptance, flips sent → accepted, creates the ONE job, and
+  // atomically records actor/correlation provenance. `p_accepted_at` is an EXPLICIT instant (H1).
+  const acceptRpc = await adminAClient.rpc("accept_quote_and_create_job", {
+    p_tenant_id: base.tenantA.id,
+    p_quote_version_id: acceptedJobVersionId,
+    p_accepted_at: "2026-07-10T08:30:00.000Z",
+    p_accepted_price_ore: 125000,
+    p_source_sent_total_ore: 125000,
+    p_channel: "verbal",
+    p_adjustment_reason: null,
+    p_evidence_file_id: null,
+    p_evidence_reference: "Signerad orderbekräftelse (referens #A-7003)",
+    p_notes: "Accepterat via telefon 2026-07-10",
+    p_planned_start_date: "2026-08-01",
+    p_planned_end_date: "2026-08-20",
+    p_title: "Jobb från accepterad offert 1006",
+    p_fault_inject: null,
+    p_actor_user_id: base.adminA.id,
+    p_correlation_id: crypto.randomUUID(),
+  });
+  if (acceptRpc.error) {
+    throw new Error(`globalSetup: accepted-job RPC failed (${acceptRpc.error.code ?? "?"})`);
+  }
+  const acceptRpcRows = (acceptRpc.data ?? []) as Array<{
+    acceptance_id: string;
+    job_id: string;
+  }>;
   const acceptedJobId = acceptRpcRows[0]?.job_id ?? null;
 
   // Story 10.2 — a DEDICATED quote whose ONLY version is a SENT v1, consumed by the Förlorad/Avböjd
@@ -822,27 +827,33 @@ export default async function globalSetup() {
     quote_version_id: evidenceVersionId,
     event_type: "created",
   });
-  const evidenceAcceptRpcRows = await adminQuery<{ acceptance_id: string; job_id: string }>(
-    `select acceptance_id, job_id from public.accept_quote_and_create_job(
-        $1::uuid, $2::uuid, $3::timestamptz, $4::bigint, $5::bigint,
-        $6::text, $7::text, $8::uuid, $9::text, $10::text, $11::date, $12::date, $13::text, $14::text)`,
-    [
-      base.tenantA.id,
-      evidenceVersionId,
-      "2026-07-11T08:30:00.000Z",
-      125000,
-      125000,
-      "verbal",
-      null,
-      null,
-      "Signerad orderbekräftelse (referens #A-8005)",
-      "Accepterat via telefon 2026-07-11",
-      "2026-08-01",
-      "2026-08-20",
-      "Jobb från accepterad offert 1008",
-      null,
-    ],
-  );
+  const evidenceAcceptRpc = await adminAClient.rpc("accept_quote_and_create_job", {
+    p_tenant_id: base.tenantA.id,
+    p_quote_version_id: evidenceVersionId,
+    p_accepted_at: "2026-07-11T08:30:00.000Z",
+    p_accepted_price_ore: 125000,
+    p_source_sent_total_ore: 125000,
+    p_channel: "verbal",
+    p_adjustment_reason: null,
+    p_evidence_file_id: null,
+    p_evidence_reference: "Signerad orderbekräftelse (referens #A-8005)",
+    p_notes: "Accepterat via telefon 2026-07-11",
+    p_planned_start_date: "2026-08-01",
+    p_planned_end_date: "2026-08-20",
+    p_title: "Jobb från accepterad offert 1008",
+    p_fault_inject: null,
+    p_actor_user_id: base.adminA.id,
+    p_correlation_id: crypto.randomUUID(),
+  });
+  if (evidenceAcceptRpc.error) {
+    throw new Error(
+      `globalSetup: evidence-acceptance RPC failed (${evidenceAcceptRpc.error.code ?? "?"})`,
+    );
+  }
+  const evidenceAcceptRpcRows = (evidenceAcceptRpc.data ?? []) as Array<{
+    acceptance_id: string;
+    job_id: string;
+  }>;
   const evidenceAcceptanceId = evidenceAcceptRpcRows[0]?.acceptance_id ?? null;
   const evidenceFileId = crypto.randomUUID();
   const evidenceObjectPath = `${base.tenantA.id}/${evidenceFileId}/underlag-1008.pdf`;
