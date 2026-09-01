@@ -39,6 +39,16 @@ export const LOCAL_SUPABASE_ANON_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0";
 
 /**
+ * Story 10.9 local-only quote-PDF attestation pair. These values must match the
+ * idempotent Vault fixture in `supabase/seed.sql`; they are deliberately not a
+ * production fallback. Vitest and Playwright import this one test authority so
+ * their server-side HMAC configuration cannot drift apart.
+ */
+export const LOCAL_TEST_QUOTE_PDF_KEY_ID = "test_v1";
+export const LOCAL_TEST_QUOTE_PDF_SECRET =
+  "local-test-only-quote-pdf-attestation-secret-v1";
+
+/**
  * The local stack's default legacy service-role JWT (CLI `SERVICE_ROLE_KEY`).
  * TEST-ONLY — bypasses RLS for fixture setup. Universal local-demo key. Override
  * only via `SUPABASE_TEST_SERVICE_ROLE_KEY` — NEVER the conventional

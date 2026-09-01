@@ -9,10 +9,15 @@ import { extractQuotePdfSendAttestationChallenge } from "@/server/commands/quote
 import {
   type TestServerClient,
 } from "../factories/tenants";
+import {
+  LOCAL_TEST_QUOTE_PDF_KEY_ID,
+  LOCAL_TEST_QUOTE_PDF_SECRET,
+} from "./test-env";
 
-/** Matches the idempotent local-only Vault fixture in supabase/seed.sql. */
-export const LOCAL_TEST_QUOTE_PDF_KEY_ID = "test_v1";
-export const LOCAL_TEST_QUOTE_PDF_SECRET = "local-test-only-quote-pdf-attestation-secret-v1";
+export {
+  LOCAL_TEST_QUOTE_PDF_KEY_ID,
+  LOCAL_TEST_QUOTE_PDF_SECRET,
+} from "./test-env";
 
 export interface QuotePdfRenderProvenance {
   readonly fileId: string;

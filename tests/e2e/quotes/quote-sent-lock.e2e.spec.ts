@@ -114,6 +114,14 @@ test.describe("Quote sent-lock + mark-sent UX (Story 6.4 E2E)", () => {
       `/quotes/${fixture.markSendQuote.id}/versions/${fixture.markSendQuote.draftVersionId}`,
     );
 
+    // Story 10.9: sending binds the exact generated PDF as commitment evidence.
+    // Generate it through the real UI before exercising the legacy mark-sent journey.
+    const pdfPanel = page.getByTestId("quote-pdf-status");
+    const generatePdf = pdfPanel.getByRole("button", { name: /generera pdf/i });
+    await waitForHydrated(generatePdf);
+    await generatePdf.click();
+    await expect(pdfPanel).toHaveAttribute("data-pdf-status", "generated");
+
     const markSent = page.getByTestId("mark-sent-button");
     await waitForHydrated(markSent);
     await markSent.click();
