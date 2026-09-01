@@ -9,7 +9,7 @@ spec_folder: null
 story_id: null
 branch: story/10-6-tax-answer-reconciliation
 status: review
-updated_at: "2026-09-01T08:56:41Z"
+updated_at: "2026-09-01T09:01:18Z"
 started_at: null
 completed_at: null
 active_seconds: 0
@@ -58,7 +58,7 @@ legacy_review_loop_done: false
 legacy_external_review_iterations: null
 legacy_convergence_unverified: false
 legacy_artifact_path: null
-commits: []
+commits: [063eb0d]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -74,7 +74,7 @@ retro:
   verdict: null
   open_action_items: 0
 bmad_status_flipped_at: null
-pr_url: null
+pr_url: "https://github.com/rthunborg/ElproSaas/pull/45"
 ci_run_url: null
 ci_status: unknown
 pr_merged: false
