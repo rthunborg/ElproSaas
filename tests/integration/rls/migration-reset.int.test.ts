@@ -32,6 +32,79 @@ describe("Migration reset green — tenant_foundation objects present (AC1 / R-0
     ]);
   });
 
+  it("[10.8][P0] the complete local audit-failure seed fixture exists after reset", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
+
+    const tables = await adminQuery<{ relkind: string }>(
+      `select c.relkind
+         from pg_catalog.pg_class c
+         join pg_catalog.pg_namespace n on n.oid = c.relnamespace
+        where n.nspname = 'test_support'
+          and c.relname = 'forced_audit_failures'`,
+    );
+    expect(tables).toEqual([{ relkind: "r" }]);
+
+    const functions = await adminQuery<{
+      prosecdef: boolean;
+      return_type: string;
+      proconfig: string[] | null;
+    }>(
+      `select
+         p.prosecdef,
+         p.prorettype::regtype::text as return_type,
+         p.proconfig
+       from pg_catalog.pg_proc p
+       join pg_catalog.pg_namespace n on n.oid = p.pronamespace
+      where n.nspname = 'test_support'
+        and p.proname = 'fail_requested_audit_event'
+        and p.pronargs = 0`,
+    );
+    expect(functions).toHaveLength(1);
+    expect(functions[0]?.prosecdef).toBe(true);
+    expect(functions[0]?.return_type).toBe("trigger");
+    assertSearchPathExactlyEmpty(
+      "test_support.fail_requested_audit_event",
+      functions[0]?.proconfig ?? null,
+    );
+
+    const triggers = await adminQuery<{
+      tgname: string;
+      tgenabled: string;
+      tgtype: number;
+      target_schema: string;
+      target_table: string;
+      function_schema: string;
+      function_name: string;
+    }>(
+      `select
+         t.tgname,
+         t.tgenabled,
+         t.tgtype,
+         target_namespace.nspname as target_schema,
+         target_class.relname as target_table,
+         function_namespace.nspname as function_schema,
+         trigger_function.proname as function_name
+       from pg_catalog.pg_trigger t
+       join pg_catalog.pg_class target_class on target_class.oid = t.tgrelid
+       join pg_catalog.pg_namespace target_namespace
+         on target_namespace.oid = target_class.relnamespace
+       join pg_catalog.pg_proc trigger_function on trigger_function.oid = t.tgfoid
+       join pg_catalog.pg_namespace function_namespace
+         on function_namespace.oid = trigger_function.pronamespace
+      where t.tgname = 'test_only_forced_audit_failure'
+        and not t.tgisinternal`,
+    );
+    expect(triggers).toEqual([{
+      tgname: "test_only_forced_audit_failure",
+      tgenabled: "O",
+      tgtype: 7,
+      target_schema: "public",
+      target_table: "audit_events",
+      function_schema: "test_support",
+      function_name: "fail_requested_audit_event",
+    }]);
+  });
+
   it("[P0] helper functions `is_active_tenant_member(uuid)` and `is_tenant_admin(uuid)` exist", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     const rows = await adminQuery<{ proname: string }>(

@@ -88,6 +88,9 @@ jobs:
       - name: Unit tests (pure logic, node --test)
         run: pnpm run test:unit
 
+      - name: BMAD focused concurrent memlog contracts
+        run: pnpm run test:bmad-focused
+
       - name: Auto-BMAD focused routing and process-API contracts
         run: pnpm run test:auto-bmad-focused
 

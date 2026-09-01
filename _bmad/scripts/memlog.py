@@ -69,13 +69,20 @@ Addressing: `--workspace` is the run folder, and the memlog is always {workspace
 from __future__ import annotations  # keep type-hint syntax lazy so the script runs on 3.8+
 
 import argparse
+import errno
 import json
 import os
 import sys
+import tempfile
+import time
+from contextlib import contextmanager
 from datetime import datetime
 from pathlib import Path
+from typing import Iterator
 
 MEMLOG = ".memlog.md"
+LOCK_TIMEOUT_SECONDS = 30.0
+LOCK_RETRY_SECONDS = 0.05
 
 
 def now() -> str:
@@ -119,14 +126,91 @@ def touch(meta: dict) -> None:
     meta["updated"] = now()
 
 
+def _open_lock_file(path: Path):
+    """Open the per-memlog lock file and ensure Windows has one byte to lock."""
+    lock_path = path.with_name(path.name + ".lock")
+    lock_path.parent.mkdir(parents=True, exist_ok=True)
+    fd = os.open(str(lock_path), os.O_RDWR | os.O_CREAT, 0o600)
+    try:
+        # `msvcrt.locking` locks a byte range from the current file position. Two
+        # first-openers may both write byte zero; that is harmless and still leaves
+        # every process contending on the same kernel-managed byte lock.
+        if os.fstat(fd).st_size == 0:
+            os.write(fd, b"\0")
+            os.fsync(fd)
+        return os.fdopen(fd, "r+b", buffering=0)
+    except Exception:
+        os.close(fd)
+        raise
+
+
+@contextmanager
+def transaction_lock(path: Path) -> Iterator[None]:
+    """Serialize a complete memlog transaction across processes.
+
+    The OS releases the advisory lock if a worker crashes, so there is no stale
+    PID/lockfile recovery path. Acquisition is bounded so a wedged writer fails
+    clearly instead of hanging a workflow forever.
+    """
+    lock_file = _open_lock_file(path)
+    acquired = False
+    deadline = time.monotonic() + LOCK_TIMEOUT_SECONDS
+    try:
+        while True:
+            try:
+                lock_file.seek(0)
+                if os.name == "nt":
+                    import msvcrt
+
+                    msvcrt.locking(lock_file.fileno(), msvcrt.LK_NBLCK, 1)
+                else:
+                    import fcntl
+
+                    fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+                acquired = True
+                break
+            except OSError as exc:
+                if exc.errno not in (errno.EACCES, errno.EAGAIN):
+                    raise
+                if time.monotonic() >= deadline:
+                    raise TimeoutError(
+                        f"timed out waiting for memlog lock: {path}"
+                    ) from exc
+                time.sleep(LOCK_RETRY_SECONDS)
+
+        yield
+    finally:
+        if acquired:
+            lock_file.seek(0)
+            if os.name == "nt":
+                import msvcrt
+
+                msvcrt.locking(lock_file.fileno(), msvcrt.LK_UNLCK, 1)
+            else:
+                import fcntl
+
+                fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
+        lock_file.close()
+
+
 def write_atomic(path: Path, text: str) -> None:
-    """Temp + flush + fsync + atomic rename, so a crash never half-writes an entry."""
-    tmp = path.with_suffix(path.suffix + ".tmp")
-    with open(tmp, "w", encoding="utf-8") as f:
-        f.write(text)
-        f.flush()
-        os.fsync(f.fileno())
-    os.replace(tmp, path)
+    """Unique same-directory temp + fsync + atomic rename."""
+    fd, tmp_name = tempfile.mkstemp(
+        dir=str(path.parent),
+        prefix=f".{path.name}.",
+        suffix=".tmp",
+    )
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            f.write(text)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(tmp_name, path)
+    finally:
+        try:
+            os.unlink(tmp_name)
+        except FileNotFoundError:
+            pass
 
 
 def entry_count(body: str) -> int:
@@ -144,45 +228,47 @@ def ack(path: Path, body: str) -> None:
 
 def cmd_init(args) -> int:
     path = resolve(args)
-    if path.exists():
-        print(f"error: {path} already exists; use append/set to update it", file=sys.stderr)
-        return 2
-    path.parent.mkdir(parents=True, exist_ok=True)
-    meta: dict[str, str] = {}
-    for pair in args.field or []:
-        if "=" not in pair:
-            print(f"error: --field expects key=value, got {pair!r}", file=sys.stderr)
+    with transaction_lock(path):
+        if path.exists():
+            print(f"error: {path} already exists; use append/set to update it", file=sys.stderr)
             return 2
-        k, v = pair.split("=", 1)
-        meta[k.strip()] = v.strip()
-    touch(meta)
-    write_atomic(path, render(meta, ""))
+        meta: dict[str, str] = {}
+        for pair in args.field or []:
+            if "=" not in pair:
+                print(f"error: --field expects key=value, got {pair!r}", file=sys.stderr)
+                return 2
+            k, v = pair.split("=", 1)
+            meta[k.strip()] = v.strip()
+        touch(meta)
+        write_atomic(path, render(meta, ""))
     ack(path, "")
     return 0
 
 
 def cmd_append(args) -> int:
     path = resolve(args)
-    meta, body = split(path.read_text(encoding="utf-8"))
-    text = " ".join(args.text.split())  # collapse newlines/runs → one-line entry, no prose bloat
-    label = args.type or ""
-    if args.by:
-        label = f"{label} by {args.by}".strip()  # attribution: "(idea by user)" / "(by coach)"
-    tag = f"({label}) " if label else ""
-    entry = f"- {tag}{text}"
-    body = (body.rstrip("\n") + "\n" + entry) if body.strip() else entry  # always at the end
-    touch(meta)
-    write_atomic(path, render(meta, body))
+    with transaction_lock(path):
+        meta, body = split(path.read_text(encoding="utf-8"))
+        text = " ".join(args.text.split())  # collapse newlines/runs → one-line entry, no prose bloat
+        label = args.type or ""
+        if args.by:
+            label = f"{label} by {args.by}".strip()  # attribution: "(idea by user)" / "(by coach)"
+        tag = f"({label}) " if label else ""
+        entry = f"- {tag}{text}"
+        body = (body.rstrip("\n") + "\n" + entry) if body.strip() else entry  # always at the end
+        touch(meta)
+        write_atomic(path, render(meta, body))
     ack(path, body)
     return 0
 
 
 def cmd_set(args) -> int:
     path = resolve(args)
-    meta, body = split(path.read_text(encoding="utf-8"))
-    meta[args.key] = args.value
-    touch(meta)
-    write_atomic(path, render(meta, body))
+    with transaction_lock(path):
+        meta, body = split(path.read_text(encoding="utf-8"))
+        meta[args.key] = args.value
+        touch(meta)
+        write_atomic(path, render(meta, body))
     ack(path, body)
     return 0
 

@@ -49,6 +49,7 @@ export const NON_FINAL_CUE =
 const PAGE_WIDTH = 595.28;
 const PAGE_HEIGHT = 841.89;
 const MARGIN = 48;
+const CONTENT_WIDTH = PAGE_WIDTH - 2 * MARGIN;
 const BODY_SIZE = 10;
 const HEADING_SIZE = 16;
 const SUBHEADING_SIZE = 12;
@@ -104,22 +105,69 @@ class PdfCursor {
     }
   }
 
-  /** Draw ONE text line at the given size/weight; advance the cursor. Empty strings still advance. */
+  /** Split one logical line into deterministic font-width-bounded physical lines. */
+  private wrapLine(value: string, font: PDFFont, size: number): readonly string[] {
+    if (value.length === 0 || font.widthOfTextAtSize(value, size) <= CONTENT_WIDTH) {
+      return [value];
+    }
+
+    const wrapped: string[] = [];
+    let current = "";
+
+    const pushToken = (token: string): void => {
+      const candidate = current.length > 0 ? `${current} ${token}` : token;
+      if (font.widthOfTextAtSize(candidate, size) <= CONTENT_WIDTH) {
+        current = candidate;
+        return;
+      }
+      if (current.length > 0) {
+        wrapped.push(current);
+        current = "";
+      }
+
+      // Customer-controlled prose can contain a single unbroken token. Split it
+      // by Unicode code point so even that case can never cross the right margin.
+      let fragment = "";
+      for (const codePoint of Array.from(token)) {
+        const next = fragment + codePoint;
+        if (fragment.length > 0 && font.widthOfTextAtSize(next, size) > CONTENT_WIDTH) {
+          wrapped.push(fragment);
+          fragment = codePoint;
+        } else {
+          fragment = next;
+        }
+      }
+      current = fragment;
+    };
+
+    for (const token of value.trim().split(/\s+/)) {
+      pushToken(token);
+    }
+    if (current.length > 0) wrapped.push(current);
+    return wrapped.length > 0 ? wrapped : [""];
+  }
+
+  /** Draw width-safe text at the given size/weight; paginate and advance per physical line. */
   text(value: string, opts?: { size?: number; bold?: boolean }): void {
     const size = opts?.size ?? BODY_SIZE;
     const lineHeight = size + LINE_GAP;
-    this.ensureSpace(lineHeight);
-    this.y -= size;
-    if (value.length > 0) {
-      this.page.drawText(value, {
-        x: MARGIN,
-        y: this.y,
-        size,
-        font: opts?.bold ? this.boldFont : this.font,
-        color: TEXT_COLOR,
-      });
+    const font = opts?.bold ? this.boldFont : this.font;
+    const logicalLines = value.split(/\r?\n/);
+    const physicalLines = logicalLines.flatMap((line) => this.wrapLine(line, font, size));
+    for (const line of physicalLines) {
+      this.ensureSpace(lineHeight);
+      this.y -= size;
+      if (line.length > 0) {
+        this.page.drawText(line, {
+          x: MARGIN,
+          y: this.y,
+          size,
+          font,
+          color: TEXT_COLOR,
+        });
+      }
+      this.y -= LINE_GAP;
     }
-    this.y -= LINE_GAP;
   }
 
   /** A blank spacer line. */

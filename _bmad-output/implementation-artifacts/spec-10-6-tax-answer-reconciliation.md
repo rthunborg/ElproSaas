@@ -597,9 +597,14 @@ GPT-5 Codex
 
 ### File List
 
+- `.github/workflows/ci.yml`
+- `_bmad/scripts/memlog.py`
+- `_bmad/scripts/tests/test_memlog.py`
 - `_bmad-output/implementation-artifacts/10-6-tax-answer-reconciliation.md`
 - `_bmad-output/implementation-artifacts/sprint-status.yaml`
 - `_bmad-output/test-artifacts/automation-summary.md`
+- `package.json`
+- `scripts/verify/check-local-supabase-reset.mjs`
 - `src/app/(app)/calculations/[calculationId]/page.tsx`
 - `src/components/calculations/CalculationEditor.tsx`
 - `src/components/calculations/PreQuotePreview.tsx`
@@ -674,6 +679,7 @@ GPT-5 Codex
 - `tests/integration/commands/quote-version.int.test.ts`
 - `tests/integration/components/legacy-draft-recovery.test.ts`
 - `tests/integration/rls/cross-tenant-isolation.rls.test.ts`
+- `tests/integration/rls/migration-reset.int.test.ts`
 - `tests/unit/features/calculations/allowance-editor.test.ts`
 - `tests/unit/features/calculations/calc-golden-pack-coverage.test.ts`
 - `tests/unit/features/calculations/calc-golden-pack.test.ts`
@@ -712,6 +718,7 @@ GPT-5 Codex
 - `tests/unit/server/commands/snapshot-payload-serializers.test.ts`
 - `tests/unit/server/commands/tax-input-validation.test.ts`
 - `tests/unit/server/quote-pdf/render.test.ts`
+- `tests/unit/scripts/verify/local-supabase-reset.test.ts`
 
 ### Change Log
 
@@ -879,10 +886,11 @@ GPT-5 Codex
 
 ## Current Verification Evidence
 
-- **IN — local database and migration evidence:** local Supabase reset completed successfully twice with the current migrations and seed. Real replay against an already-migrated database passes for both the 10.8 and 10.9 migrations. Focused migration/authority/PDF/audit contracts passed 48/48, the parallel-safe rollback contract passed 7/7, and the required full integration/RLS suite passed 85 files / 905 tests.
-- **IN — changed surface:** complete changed integration surface passed: 28 unique files / 388 tests. Changed unit surface passed, and the full unit suite passed 94 suites / 1,673 tests. `supabase db lint --local --level error --fail-on error` was clean.
+- **IN — local database and migration evidence:** local Supabase reset completed successfully twice with the current migrations and seed. Real replay against an already-migrated database passes for both the 10.8 and 10.9 migrations. Focused migration/authority/PDF/audit contracts passed 48/48, the parallel-safe rollback contract passed 7/7, and the post-PR-fix required full integration/RLS suite passed 85 files / 906 tests. The bounded recovery verifier passed while requiring the exact audit control table, SECURITY DEFINER trigger function, and enabled trigger bound to `public.audit_events`.
+- **IN — changed surface:** complete changed integration surface passed: 28 unique files / 388 tests. Changed unit surface passed, and the post-PR-fix full unit suite passed 94 suites / 1,675 tests. The 30-append/10-set memlog concurrency stress and eight-way init race passed; TypeScript, full ESLint, Next build, and the valid-extreme PDF right-margin geometry/visual check passed. `supabase db lint --local --level error --fail-on error` was clean.
 - **IN — static and containment gates:** TypeScript, changed-file ESLint, Next build, lockfile guard, service-role source/bundle containment, HMAC secret/bundle containment, tenant-table inventory (27), and `git diff --check` passed.
 - **Hosted browser gate:** GitHub Actions run [33495807115](https://github.com/rthunborg/ElproSaas/actions/runs/33495807115) passed verify, empty-DB reset plus the 85-file/905-test integration/RLS suite, and Playwright (121 passed, 1 skipped); the Playwright report uploaded successfully. Local Playwright was deliberately **NOT RUN** inside Codex because it would require a persistent app server. The prohibited Auto-BMAD self-test and broad wrappers were not run.
 - **Pending external gate:** remote demo Vault/Vercel secret provisioning is not attested. Per the demo process, migrations flow to demo only after merge; no pre-merge demo mutation was attempted.
 - **Round 3 of 3 — final automatic convergence:** fixed the explicit 10.9 final-send byte-HMAC gap, the linked/locked late-first-upload gap, and forged audit-actor attribution at the shared 10.8 boundary. It also removed a CI-parallel deadlock from the test-only forced-audit harness by replacing per-case trigger DDL with a seed-installed correlation trigger plus control-table DML. Final evidence is green: fresh reset, both real follow-up migration replays, focused DB/grant/behavior files (48/48), rollback 7/7, all 28 changed integration files 388/388, full integration/RLS 85 files/905 tests, TypeScript, full ESLint, Next build, full unit (94 suites / 1,673 tests), DB lint, lock/source/bundle/HMAC containment, diff hygiene, and hosted Playwright. No fourth automatic review is permitted; any new concern requires human triage.
+- **Human-triaged post-Round-3 PR comments — not a fourth automatic review:** serialized complete memlog read-modify-write transactions with OS-managed locks and unique same-directory temp files; added deterministic font-aware PDF wrapping with extracted right-edge geometry plus visual inspection; and made reset recovery require the complete audit table/function/trigger fixture. Current local totals are 94 suites / 1,675 unit tests and 85 files / 906 integration/RLS tests, all green.
 - **Still not run/claimed:** local Playwright inside Codex and remote demo Vault/Vercel provisioning. Hosted Playwright is green. Story 10.6 remains `review`, not done, only for the deliberate post-merge remote-demo gate.
