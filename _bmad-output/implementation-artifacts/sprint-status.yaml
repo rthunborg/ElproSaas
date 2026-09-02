@@ -60,7 +60,7 @@
 # use the current Epic 10 statuses and approved corrective-story entries below.
 
 generated: 2026-06-12
-last_updated: 09-02-2026 12:02  # ADR-B008 follow-ups are implemented but remain in-progress pending fresh root-run verification and final convergence; 10.6 remains review.
+last_updated: 09-02-2026 13:40  # ADR-B008 follow-ups are implemented but remain in-progress pending fresh root-run verification and final convergence; 10.6 remains review.
 project: ElproSaas
 project_key: NOKEY
 tracking_system: file-system
@@ -204,7 +204,7 @@ development_status:
   # items were consciously ledgered (deferred-work.md -> "Deferred from: Codex review of epic-10")
   # rather than bolted onto an already thrice-revised PR. All own-tenant integrity/scale — none is
   # cross-tenant. Deliberately NOT gating the Epic 10 PR; schedule after Epic 11 or as capacity allows.
-  10-5-quote-table-db-hardening-and-read-model-pagination: in-progress
+  10-5-quote-table-db-hardening-and-read-model-pagination: review
   # Added 2026-07-26 from the owner + accountant answers. 10.6 changes SHIPPED money behaviour
   # (VAT rounding scope, hidden-row deduction eligibility, reverse charge) and 10.7 supersedes the
   # "responsive web first" assumption with a PWA + offline requirement. Both are real scope, not

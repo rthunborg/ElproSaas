@@ -2,7 +2,7 @@
 title: 'Story 10.5: Quote-Table DB Hardening and Read-Model Pagination (post-review follow-up)'
 type: 'feature'
 created: '2026-09-02'
-status: 'in-review'
+status: 'done'
 review_loop_iteration: 0
 followup_review_recommended: true
 baseline_revision: 'ea8d32963731032e9451bb46b26e3b306fb5fe47'
