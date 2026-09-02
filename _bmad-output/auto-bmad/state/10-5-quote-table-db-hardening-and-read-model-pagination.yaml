@@ -9,11 +9,11 @@ spec_folder: null
 story_id: null
 branch: story/10-5-quote-table-db-hardening-and-read-model-pagination
 status: in-progress
-updated_at: "2026-09-02T09:44:55Z"
+updated_at: "2026-09-02T09:52:17Z"
 started_at: "2026-09-02T09:44:31Z"
 completed_at: null
-active_seconds: 0
-timing_anchor: 1788342295
+active_seconds: 400
+timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
 git_mode: remote
@@ -35,16 +35,16 @@ tea_selected: [atdd, automate, trace-advisory]
 tea_rationale: "High-risk data-integrity and schema changes, concurrency behavior, and money aggregation are explicitly in scope; long-epic policy adds the story trace advisory."
 epic_story_count: 9
 stories_after_in_epic: 4
-completed_phases: [0, 1, 2]
-spec_path: null
-spec_approved: false
+completed_phases: [0, 1, 2, 3]
+spec_path: "C:\\DEV\\ElproSaas\\_bmad-output\\implementation-artifacts\\spec-10-5-quote-table-db-hardening-and-read-model-pagination.md"
+spec_approved: true
 build:
-  status: null
+  status: ready-for-dev
   blocking_condition: null
   followup_review_recommended: false
   review_loop_iteration: 0
-  deferred_count: 0
-  warnings: []
+  deferred_count: 2
+  warnings: [oversized]
 followup_passes: 0
 hitl_halt: null
 review_unverified: false
@@ -55,7 +55,7 @@ legacy_review_loop_done: false
 legacy_external_review_iterations: null
 legacy_convergence_unverified: false
 legacy_artifact_path: null
-commits: []
+commits: [eca727a, ec2456a]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -79,7 +79,9 @@ merge_method: null
 merge_commit: null
 branch_deleted: false
 open_questions: []
-deferred_work: []
+deferred_work:
+  - "Manifest EpicRef closed-union/range validation is governance polish, not quote-table or pagination work."
+  - Reconciliation of stranded open follow-ups after accepted/lost transitions needs an explicit lifecycle product decision.
 blockers: []
 overrides:
   post_merge_reconciliation: "Treat merged PR 45 work as complete; do not restart Story 10.6 or repeat its completed review rounds."
