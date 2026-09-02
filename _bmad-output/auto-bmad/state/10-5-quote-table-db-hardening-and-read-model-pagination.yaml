@@ -9,11 +9,11 @@ spec_folder: null
 story_id: null
 branch: story/10-5-quote-table-db-hardening-and-read-model-pagination
 status: in-progress
-updated_at: "2026-09-02T09:52:17Z"
+updated_at: "2026-09-02T10:02:50Z"
 started_at: "2026-09-02T09:44:31Z"
 completed_at: null
-active_seconds: 400
-timing_anchor: null
+active_seconds: 980
+timing_anchor: 1788343370
 is_first_in_epic: false
 is_last_in_epic: false
 git_mode: remote
@@ -30,12 +30,14 @@ escalation_reason: null
 routing_ledger:
   - "{\"effort\":\"medium\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-luna\",\"phase\":\"tea_triage\",\"profile\":\"light\",\"role\":\"test-risk-triage\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
   - "{\"effort\":\"high\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-terra\",\"phase\":\"build\",\"profile\":\"standard\",\"role\":\"build-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"high\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-terra\",\"phase\":\"tea_per_story\",\"profile\":\"standard\",\"role\":\"tea-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"high\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-terra\",\"phase\":\"build\",\"profile\":\"standard\",\"role\":\"build-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
 tea_risk: high
 tea_selected: [atdd, automate, trace-advisory]
 tea_rationale: "High-risk data-integrity and schema changes, concurrency behavior, and money aggregation are explicitly in scope; long-epic policy adds the story trace advisory."
 epic_story_count: 9
 stories_after_in_epic: 4
-completed_phases: [0, 1, 2, 3]
+completed_phases: [0, 1, 2, 3, 4]
 spec_path: "C:\\DEV\\ElproSaas\\_bmad-output\\implementation-artifacts\\spec-10-5-quote-table-db-hardening-and-read-model-pagination.md"
 spec_approved: true
 build:
@@ -55,7 +57,7 @@ legacy_review_loop_done: false
 legacy_external_review_iterations: null
 legacy_convergence_unverified: false
 legacy_artifact_path: null
-commits: [eca727a, ec2456a]
+commits: [eca727a, ec2456a, 35d1b61]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -82,6 +84,8 @@ open_questions: []
 deferred_work:
   - "Manifest EpicRef closed-union/range validation is governance polish, not quote-table or pagination work."
   - Reconciliation of stranded open follow-ups after accepted/lost transitions needs an explicit lifecycle product decision.
+  - Greenify the database/race/pagination scaffolds with real local-Supabase fixtures when implementation lands.
+  - Seed per-Playwright-attempt lifecycle targets in global setup and migrate existing mutating E2E flows to testInfo.retry.
 blockers: []
 overrides:
   post_merge_reconciliation: "Treat merged PR 45 work as complete; do not restart Story 10.6 or repeat its completed review rounds."
