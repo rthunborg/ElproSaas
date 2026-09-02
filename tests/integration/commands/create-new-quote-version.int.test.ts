@@ -58,6 +58,7 @@ import {
   adminSelectQuoteVersionsForQuote,
   adminSelectQuoteVersionPdfColumns,
   adminSelectQuoteEventsForVersion,
+  adminSelectFollowUps,
   type TwoTenantFixture,
   type TestServerClient,
 } from "../../factories/tenants";
@@ -199,6 +200,14 @@ describe("createNewQuoteVersion — new version with an explicit parent relation
     const seed = await seedSentVersionWithChildren(fixture.tenantA.id);
     const correlationId = crypto.randomUUID();
     const v1Before = await adminSelectQuoteVersionRow(seed.sentVersionId);
+    const planned = await a.from("quote_follow_ups").insert({
+      tenant_id: fixture.tenantA.id,
+      quote_id: seed.quoteId,
+      quote_version_id: seed.sentVersionId,
+      due_date: new Date(Date.now() + 48 * 60 * 60 * 1_000).toISOString().slice(0, 10),
+      status: "open",
+    });
+    expect(planned.error).toBeNull();
 
     // Mutate the SOURCE calc so the fresh capture DIFFERS from v1's frozen totals/lines.
     await mutateSourceRowPrice(seed.sectionId, fixture.tenantA.id);
@@ -224,8 +233,13 @@ describe("createNewQuoteVersion — new version with an explicit parent relation
 
     // v2 captured the NEW customer-visible totals (the mutated source); v1 keeps the OLD.
     const v1After = await adminSelectQuoteVersionRow(seed.sentVersionId);
+    expect(v1After?.status).toBe("superseded");
     expect(String(v1After?.base_total_ore)).toBe(String(v1Before?.base_total_ore)); // v1 unchanged
     expect(String(v2?.base_total_ore)).not.toBe(String(v1Before?.base_total_ore)); // v2 re-captured
+    expect((await adminSelectFollowUps(seed.quoteId))[0]).toMatchObject({
+      status: "completed",
+      outcome: "superseded",
+    });
 
     // A `created` event for the NEW version + an audit row with `{ targetId }` metadata ONLY.
     const v2Events = await adminSelectQuoteEventsForVersion(v2Id);

@@ -2,9 +2,9 @@
 title: 'Story 10.5: Quote-Table DB Hardening and Read-Model Pagination (post-review follow-up)'
 type: 'feature'
 created: '2026-09-02'
-status: 'blocked'
-review_loop_iteration: 0
-followup_review_recommended: true
+status: 'done'
+review_loop_iteration: 1
+followup_review_recommended: false
 baseline_revision: 'ea8d32963731032e9451bb46b26e3b306fb5fe47'
 context:
   - 'AGENTS.md'
@@ -136,67 +136,48 @@ Pagination is a correctness boundary, not an optional performance tuning: pagina
   - `[high] [patch]` Replaced the blanket terminal-follow-up rejection with an atomic database closure for the existing authorised `accepted` and `superseded` transitions; transaction rollback preserves all-or-nothing behavior and direct client DML grants remain unchanged.
   - `[high] [patch]` Added an authorised acceptance regression that proves an anchored open follow-up is completed as the sent version becomes accepted.
 
+### 2026-09-02 — Round 2 local DB verification follow-up
+- intent_gap: 0
+- bad_spec: 0
+- patch: 0
+- defer: 0
+- reject: 0
+- addressed_findings:
+  - Added focused acceptance and successor/supersession transaction proofs, including audit-failure rollback coverage for anchored follow-ups.
+
 ## Auto Run Result
 
-Status: blocked
-Blocking condition: guarded local-Supabase recovery cannot start because this delegated actor has no injected resourceGuardContext, and Docker Desktop's Linux engine is unavailable at `npipe:////./pipe/dockerDesktopLinuxEngine`. The required local migration-reset integration/RLS verification therefore cannot run safely.
+Status: done
 
 ### Local-stack verification continuation — Round 2 overall
 
-Round 1 was completed in Phase 5. This is the interrupted Round 2 continuation begun in Phase 7 after the owner decision; it is not a new review round and it did not perform a broad review.
+Round 1 was completed in Phase 5. This is the completed Round 2 continuation in Phase 7 after the owner-approved terminal-transition rule; it is not a new review round and did not perform a broad review.
 
-The approved patch remains limited to the two high findings: authorised acceptance and successor/supersession transitions complete an anchored open follow-up before terminalising the sent version, with ordinary PostgreSQL transaction rollback preserving all-or-nothing behavior and existing direct client-DML denial unchanged.
+The approved additive migration closes an anchored open follow-up inside the same PostgreSQL transaction when the authorised acceptance command transitions a sent version to `accepted` or the authorised successor command transitions it to `superseded`. The normal terminal guard still rejects other terminal transitions with an open follow-up, and direct authenticated table DML remains denied.
 
-Verification checkpoint:
-- `supabase status --output json` — blocked: Docker Desktop Linux engine is unavailable at `npipe:////./pipe/dockerDesktopLinuxEngine`.
-- `SUPABASE_TEST_REQUIRED=1 pnpm run test:int -- …` — blocked in local-stack global setup before DB-backed test discovery; it confirms the required suites cannot run against an unreachable local stack.
-- A guarded `supabase start` / `supabase db reset` was not attempted: this delegated actor's PowerShell context contains no injected `resourceGuardContext`, so it cannot safely own or later clean a local Docker/Supabase resource.
-
-The next authorised recovery actor must receive its own trusted resource-guard context, start and reset only this repository's local Supabase stack, run the required DB-backed suites proving acceptance and successor/supersession closure, direct-DML denial, and rollback semantics, then stop and verify cleanup before resolving this Round 2 halt.
-
-### Resumed follow-up review result
-
-Status: blocked
-Blocking condition: patch verification failed — SUPABASE_TEST_REQUIRED=1 but the local Supabase stack is not reachable. Start it and reset the schema before the DB-backed suites:
-  supabase start && supabase db reset
+Focused local-stack evidence:
+- Acceptance succeeds with the source version `accepted` and its open follow-up `completed` with outcome `accepted`.
+- Authorised successor creation succeeds with the source version `superseded` and its open follow-up `completed` with outcome `superseded`.
+- Forced audit failures after each authorised transition leave the source version non-terminal and its follow-up open, proving the closure and terminal transition roll back together.
+- Existing RLS/hardening regressions confirm direct authenticated quote/follow-up/event/lost-reason DML denial remains intact.
 
 Summary: The owner-approved lifecycle rule is implemented as an additive database migration: authorised accepted and superseded transitions complete an anchored open follow-up in the same transaction, and the existing terminal guard continues to reject other terminal transitions with an open follow-up.
 
 Files changed:
 - `supabase/migrations/20260902123000_story_10_5_authorized_terminal_follow_up_closure.sql` — additive authorised acceptance/supersession closure backstop with transaction rollback semantics.
-- `tests/integration/commands/capture-quote-acceptance.int.test.ts` — authorised acceptance regression for the open-follow-up closure.
-- `_bmad-output/implementation-artifacts/spec-10-5-quote-table-db-hardening-and-read-model-pagination.md` — approved owner decision and this resumed triage/verification record.
+- `tests/integration/commands/capture-quote-acceptance.int.test.ts` — asserts successful acceptance terminal state as well as follow-up closure.
+- `tests/integration/commands/create-new-quote-version.int.test.ts` — adds authorised successor/supersession closure coverage.
+- `tests/integration/commands/quote-audit-rollback.int.test.ts` — includes anchored follow-ups in acceptance and successor forced-audit rollback snapshots.
+- `_bmad-output/implementation-artifacts/spec-10-5-quote-table-db-hardening-and-read-model-pagination.md` — records the completed Round 2 verification.
 
-Review findings breakdown: 2 patches applied (high 2); 0 deferred; 12 dismissed as prior-scope, already-covered, or non-regression concerns. The configured cross-model reviewer produced no output; the security reviewer reported no findings.
+Review findings breakdown: 0 new findings; 0 deferred; 0 dismissed. The focused pass verified only the approved fixes and their consequential regressions.
 
-Follow-up review recommendation: true — patched high-severity count: 2; medium: 0; low: 0; score: 0.
-
-Verification performed:
-- `pnpm run typecheck` — passed.
-- `pnpm run lint` — passed.
-- `pnpm run test:unit -- tests/unit/server/read-models/quote-pipeline-aggregate.test.ts` — passed (1,695 tests).
-- Required `SUPABASE_TEST_REQUIRED=1 pnpm run test:int -- …` — blocked before test discovery because the local Supabase stack is unreachable.
-
-Residual risks: The authorised acceptance regression and the existing successor/supersession transaction need the required fresh local-Supabase migration-reset run before this pass can be finalized or committed.
-
-Summary: Hardened quote-follow-up database invariants and terminal transitions, completed RLS read-model pagination, and made accepted commitment aggregation fail closed on unsafe öre totals.
-
-Files changed:
-- `supabase/migrations/20260902120000_story_10_5_quote_table_hardening_and_pagination.sql` — additive follow-up integrity, authorization, terminal-state, and detail-index backstops.
-- `src/server/read-models/pagination.ts`, `src/server/read-models/quote-pipeline.ts`, and `src/features/quotes/read.ts` — deterministic complete RLS pagination and bounded ID batching.
-- `src/server/read-models/quote-pipeline-aggregate.ts` — canonical guarded `sumOre` aggregation.
-- `src/features/quotes/actions.ts` — retry-safe completion-before-loss orchestration.
-- `tests/integration/**` and `tests/unit/**` Story 10.5 files — direct-write, race, multi-page, RLS, action, and safe-integer regression coverage.
-
-Review findings breakdown: 9 patches applied (high 1, medium 8); 0 deferred; 7 rejected as unsupported or already enforced. Independent cross-model review produced no readable output.
-
-Follow-up review recommendation: true — patched high-severity count: 1; medium: 8; low: 0; score: 24.
+Follow-up review recommendation: false — the approved fixes and their DB-backed proof obligations are complete.
 
 Verification performed:
+- `SUPABASE_TEST_REQUIRED=1 pnpm exec vitest run tests/integration/commands/capture-quote-acceptance.int.test.ts tests/integration/commands/create-new-quote-version.int.test.ts tests/integration/commands/quote-audit-rollback.int.test.ts tests/integration/rls/quote-table-db-hardening.atdd.int.test.ts tests/integration/rls/quote-review-authorization-migration-reset.int.test.ts --reporter=dot` — 5 files, 42 tests passed.
+- `pnpm exec eslint tests/integration/commands/capture-quote-acceptance.int.test.ts tests/integration/commands/create-new-quote-version.int.test.ts tests/integration/commands/quote-audit-rollback.int.test.ts` — passed.
 - `pnpm run typecheck` — passed.
-- `pnpm run lint` — passed.
-- `pnpm run test:unit -- tests/unit/server/read-models/quote-pipeline-aggregate.test.ts` — 1,693 passed, 0 skipped.
-- `SUPABASE_TEST_REQUIRED=1 pnpm run test:int -- …` — 87 files, 920 tests passed.
-- `pnpm run test:e2e -- tests/e2e/quotes/quote-lost-reason.e2e.spec.ts tests/e2e/quotes/quote-follow-up.e2e.spec.ts` — 7 passed.
+- `git diff --check` — passed.
 
-Residual risks: The two-command loss flow remains deliberately non-atomic under the existing command contract; after a post-completion loss failure it refreshes into a retryable state. A follow-up review is required because this review pass patched a high-severity tenant-isolation finding.
+Residual risks: none for the approved Round 2 terminal-follow-up fix; the existing two-command loss flow remains deliberately non-atomic under its established contract.

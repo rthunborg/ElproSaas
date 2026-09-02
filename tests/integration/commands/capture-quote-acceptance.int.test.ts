@@ -52,6 +52,7 @@ import {
   adminSelectAcceptancesForVersion,
   adminSelectJobsForAcceptance,
   adminSelectFollowUps,
+  adminSelectQuoteVersionRow,
   type TwoTenantFixture,
   type TestServerClient,
 } from "../../factories/tenants";
@@ -153,6 +154,7 @@ describe("captureQuoteAcceptance — sent-state gate (AC3)", () => {
       correlationId: crypto.randomUUID(),
     });
     expect(res.ok).toBe(true);
+    expect((await adminSelectQuoteVersionRow(versionId))?.status).toBe("accepted");
     expect((await adminSelectFollowUps(quoteId))[0]).toMatchObject({
       status: "completed",
       outcome: "accepted",
