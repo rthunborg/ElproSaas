@@ -9,11 +9,11 @@ spec_folder: null
 story_id: null
 branch: story/10-5-quote-table-db-hardening-and-read-model-pagination
 status: in-progress
-updated_at: "2026-09-02T14:44:32Z"
+updated_at: "2026-09-02T14:45:38Z"
 started_at: "2026-09-02T09:44:31Z"
 completed_at: null
 active_seconds: 7026
-timing_anchor: null
+timing_anchor: 1788360338
 is_first_in_epic: false
 is_last_in_epic: false
 git_mode: remote
@@ -43,8 +43,8 @@ completed_phases: [0, 1, 2, 3, 4, 5, 6]
 spec_path: "C:\\DEV\\ElproSaas\\_bmad-output\\implementation-artifacts\\spec-10-5-quote-table-db-hardening-and-read-model-pagination.md"
 spec_approved: true
 build:
-  status: blocked
-  blocking_condition: "patch verification failed â€” SUPABASE_TEST_REQUIRED=1 but the local Supabase stack is not reachable. Start it and reset the schema before the DB-backed suites: supabase start && supabase db reset"
+  status: in-progress
+  blocking_condition: null
   followup_review_recommended: true
   review_loop_iteration: 0
   deferred_count: 2
@@ -59,7 +59,7 @@ legacy_review_loop_done: false
 legacy_external_review_iterations: null
 legacy_convergence_unverified: false
 legacy_artifact_path: null
-commits: [eca727a, ec2456a, 35d1b61, ef6e2e5, ea8d329, 01f5aff, a182715, 2e0dcc3, 7d96f66, d36f5a5, 9481b26, 524bf41, 8eb01c2, 4d967fc]
+commits: [eca727a, ec2456a, 35d1b61, ef6e2e5, ea8d329, 01f5aff, a182715, 2e0dcc3, 7d96f66, d36f5a5, 9481b26, 524bf41, 8eb01c2, 4d967fc, 71a4725]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -88,14 +88,14 @@ deferred_work:
   - Reconciliation of stranded open follow-ups after accepted/lost transitions needs an explicit lifecycle product decision.
   - Greenify the database/race/pagination scaffolds with real local-Supabase fixtures when implementation lands.
   - Seed per-Playwright-attempt lifecycle targets in global setup and migrate existing mutating E2E flows to testInfo.retry.
-blockers:
-  - "Local Supabase test stack is unavailable; the approved transactional follow-up closure requires DB-backed integration/RLS verification before Round 2 can complete."
+blockers: []
 overrides:
   post_merge_reconciliation: "Treat merged PR 45 work as complete; do not restart Story 10.6 or repeat its completed review rounds."
   demo_push: "User explicitly authorized the post-merge demo push on 2026-09-02; migrations 20260805120000, 20260831124310, and 20260831124312 were applied and verified; Vault was untouched."
   review_scope: "Respect the three-round cap; assess prior work only for consequential unresolved findings or regressions from new fixes."
   wsl_uv_repair: "User authorized a user-scoped WSL uv repair; official uv 0.12.9 is installed at /home/rasmus/.local/bin/uv and verified."
   lifecycle_decision: "Owner approved: authorised acceptance and successor/supersession commands atomically close any open follow-up before terminalising the sent quote version; preserve command success, keep direct client DML blocked, and roll back the whole transition on failure."
+  local_stack_recovery: "A fresh delegated actor will start, reset, verify, and stop only the local Supabase test stack; never touch the linked demo project."
 constraints:
   - Preserve deterministic Auto-BMAD routing and project-scoped Codex configuration.
   - Do not change the primary task model or global user configuration.
