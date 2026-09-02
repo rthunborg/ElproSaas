@@ -9,11 +9,11 @@ spec_folder: null
 story_id: null
 branch: story/10-5-quote-table-db-hardening-and-read-model-pagination
 status: in-progress
-updated_at: "2026-09-02T13:47:52Z"
+updated_at: "2026-09-02T14:00:20Z"
 started_at: "2026-09-02T09:44:31Z"
 completed_at: null
-active_seconds: 5458
-timing_anchor: 1788356872
+active_seconds: 6170
+timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
 git_mode: remote
@@ -43,13 +43,13 @@ completed_phases: [0, 1, 2, 3, 4, 5, 6]
 spec_path: "C:\\DEV\\ElproSaas\\_bmad-output\\implementation-artifacts\\spec-10-5-quote-table-db-hardening-and-read-model-pagination.md"
 spec_approved: true
 build:
-  status: done
-  blocking_condition: null
+  status: blocked
+  blocking_condition: "intent gap â€” decide the required lifecycle resolution for an open follow-up when an authorised acceptance or successor/supersession transition makes its sent quote version terminal."
   followup_review_recommended: true
   review_loop_iteration: 0
   deferred_count: 2
   warnings: [oversized]
-followup_passes: 0
+followup_passes: 1
 hitl_halt: null
 review_unverified: false
 story_trace: null
@@ -59,7 +59,7 @@ legacy_review_loop_done: false
 legacy_external_review_iterations: null
 legacy_convergence_unverified: false
 legacy_artifact_path: null
-commits: [eca727a, ec2456a, 35d1b61, ef6e2e5, ea8d329, 01f5aff, a182715, 2e0dcc3, 7d96f66]
+commits: [eca727a, ec2456a, 35d1b61, ef6e2e5, ea8d329, 01f5aff, a182715, 2e0dcc3, 7d96f66, d36f5a5, 9481b26, 524bf41]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -82,13 +82,15 @@ pr_merged: false
 merge_method: null
 merge_commit: null
 branch_deleted: false
-open_questions: []
+open_questions:
+  - "Should acceptance and successor/supersession automatically complete an open follow-up, reject the transition, or use another explicit lifecycle resolution?"
 deferred_work:
   - "Manifest EpicRef closed-union/range validation is governance polish, not quote-table or pagination work."
   - Reconciliation of stranded open follow-ups after accepted/lost transitions needs an explicit lifecycle product decision.
   - Greenify the database/race/pagination scaffolds with real local-Supabase fixtures when implementation lands.
   - Seed per-Playwright-attempt lifecycle targets in global setup and migrate existing mutating E2E flows to testInfo.retry.
-blockers: []
+blockers:
+  - "Owner decision required: define how an open follow-up is resolved when acceptance or successor/supersession makes its sent quote version terminal."
 overrides:
   post_merge_reconciliation: "Treat merged PR 45 work as complete; do not restart Story 10.6 or repeat its completed review rounds."
   demo_push: "User explicitly authorized the post-merge demo push on 2026-09-02; migrations 20260805120000, 20260831124310, and 20260831124312 were applied and verified; Vault was untouched."

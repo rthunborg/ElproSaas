@@ -2,7 +2,7 @@
 title: 'Story 10.5: Quote-Table DB Hardening and Read-Model Pagination (post-review follow-up)'
 type: 'feature'
 created: '2026-09-02'
-status: 'done'
+status: 'blocked'
 review_loop_iteration: 0
 followup_review_recommended: true
 baseline_revision: 'ea8d32963731032e9451bb46b26e3b306fb5fe47'
@@ -112,10 +112,19 @@ Pagination is a correctness boundary, not an optional performance tuning: pagina
   - `[medium] [patch]` Added stable paginated ordering, conservative ID batches, archived-version filtering, and comprehensive large-data read-model coverage.
   - `[medium] [patch]` Completed direct-write state-machine and Story 10.8 boundary regressions, including terminal-race coverage.
 
+### 2026-09-02 — Follow-up review pass
+- intent_gap: 1 (high 1)
+- bad_spec: 0
+- patch: 0
+- defer: 0
+- reject: 0
+- addressed_findings:
+  - none — the new terminal-state trigger prevents an open follow-up from reaching a terminal version, but the intent does not define whether authorised acceptance and successor flows must automatically complete the open follow-up, reject the business action, or use another lifecycle resolution. The existing Story 10.5 diff was preserved pending that product decision; `story-10-5-review-intent-gap-2026-09-02.patch` records the reviewed change set.
+
 ## Auto Run Result
 
-Status: done
-Blocking condition: none
+Status: blocked
+Blocking condition: intent gap — decide the required lifecycle resolution for an open follow-up when an authorised acceptance or successor/supersession transition makes its sent quote version terminal.
 
 Summary: Hardened quote-follow-up database invariants and terminal transitions, completed RLS read-model pagination, and made accepted commitment aggregation fail closed on unsafe öre totals.
 
