@@ -75,3 +75,39 @@ none
 1. Set the spec frontmatter status to a terminal done state through the governed build-auto flow, then rerun /auto-bmad --story 10-5-quote-table-db-hardening-and-read-model-pagination.
 
 **Next:** Resolve the terminal spec status, then resume this story pipeline.
+
+## Report — 2026-09-02T14:00:47Z (halted â€” needs-human)
+
+**Story:** `10-5-quote-table-db-hardening-and-read-model-pagination` (epic 10, story 5) — mid-epic.
+**Spec:** `C:\DEV\ElproSaas\_bmad-output\implementation-artifacts\spec-10-5-quote-table-db-hardening-and-read-model-pagination.md`
+**Branch:** `story/10-5-quote-table-db-hardening-and-read-model-pagination` (HEAD `8eb01c2`).
+**Pipeline status:** halted at Phase 7 (needs-human: lifecycle intent gap for open follow-ups on authorised terminal transitions)
+**Continues:** 2026-09-02T11:36:15Z (halted â€” needs-human)
+
+**Timing:** started 2026-09-02T09:44:31Z; completed in progress — elapsed 4h 16m (≈1h 42m AI-run, ≈2h 33m human/idle wait); resumed 2×.
+
+**Phases run:** Phase 6 (testarch-automate, standard/gpt-5.6-terra/high), Phase 7 follow-up review pass 1 (standard/gpt-5.6-terra/high)
+**Skipped:** Phase 8 and Phase 9 (blocked before completion)
+
+**Overrides:** Resumed after computer reboot; preserve PR 45 completion and deterministic project routing; enforce the three-round review cap and restrict follow-up assessment to consequential unresolved findings or regressions from new fixes.
+
+**TEA:** Phase 6 completed: pagination helper unit coverage and retry-safe Playwright lifecycle fixtures; unit suite, typecheck, lint, and E2E discovery passed. Local-Supabase integration/RLS and browser execution remain deliberately unclaimed in this phase.
+
+**Build:** Story implementation remains committed at 01f5aff; spec warning oversized; deferred 2; database/RLS hardening, paginated read models, safe Ã¶re aggregation, and regression coverage implemented.
+
+**Review:** Follow-up passes 1 (Terra/high); pass blocked on 1 high intent gap before patching; followup_review_recommended remains true; review round 2 overall, no third round started.
+
+**Retrospective:** (none â€” Story 10.5 is mid-epic)
+
+**Open questions:**
+1. Should acceptance and successor/supersession automatically complete an open follow-up, reject the transition, or use another explicit lifecycle resolution?
+
+**Deferred work:**
+1. Manifest EpicRef closed-union/range validation remains governance polish outside Story 10.5.
+2. Reconciliation of stranded open follow-ups after accepted/lost transitions still requires an explicit lifecycle product decision.
+
+**⚠️ Needs human:**
+1. Choose the lifecycle rule for an open follow-up when acceptance or successor/supersession makes its sent quote version terminal.
+2. Optional: run /bmad-project-context setup to add the missing AGENTS.md context block.
+
+**Next:** After the lifecycle decision, resume /auto-bmad --story 10-5-quote-table-db-hardening-and-read-model-pagination; human review remains /bmad-checkpoint-preview story/10-5-quote-table-db-hardening-and-read-model-pagination.
