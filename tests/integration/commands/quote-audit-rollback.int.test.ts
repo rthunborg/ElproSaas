@@ -144,6 +144,8 @@ async function quoteState(versionId: string): Promise<{
     lost_reasons: string;
     acceptances: string;
     jobs: string;
+    open_follow_ups: string;
+    completed_follow_ups: string;
   }>(
     `select qv.status,
        (select count(*)::text from public.quote_events qe where qe.quote_version_id = qv.id) as quote_events,
