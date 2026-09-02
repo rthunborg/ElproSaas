@@ -30,7 +30,7 @@ deferred:
 
 ## Boundaries & Constraints
 
-**Always:** Keep all reads RLS-client scoped; preserve `quote_versions` sent-lock and deferred lost-reason coherence triggers; use Europe/Stockholm calendar semantics for a follow-up due-date backstop; preserve the one-open-per-quote rule and command contracts. New migration work is additive, replay-safe, force-RLS/least-privilege compatible, and must not add a table, dependency, nav item, widget, RPC, money/VAT computation, or service-role app path. `sumOre`/its failure semantics remain the sole safe-integer authority.
+**Always:** Keep all reads RLS-client scoped; preserve `quote_versions` sent-lock and deferred lost-reason coherence triggers; use Europe/Stockholm calendar semantics for a follow-up due-date backstop; preserve the one-open-per-quote rule and command contracts. An authorised acceptance or successor/supersession command must atomically close any open follow-up before making its sent quote version terminal, while preserving that authorised transition's successful outcome. Direct client DML remains blocked. If either the follow-up closure or terminal transition fails, the entire authorised transition rolls back. New migration work is additive, replay-safe, force-RLS/least-privilege compatible, and must not add a table, dependency, nav item, widget, RPC, money/VAT computation, or service-role app path. `sumOre`/its failure semantics remain the sole safe-integer authority.
 
 **Block If:** A database constraint/trigger cannot keep the sanctioned follow-up commands and Story 10.8 hardened quote wrappers working; enforcing an invariant would weaken an existing Epic-10 guard; or pagination/filter requirements require a changed list API or customer-visible product choice not defined here.
 
@@ -42,6 +42,7 @@ deferred:
 |----------|---------------|----------------------------|----------------|
 | Direct follow-up write | Same-tenant draft/mismatched anchor, past Stockholm date, completed-row reopen, or prefilled completion fields | DB rejects it; only an open row on its own sent version may be created, and only open → completed or open-note edit is legal | Stable SQL failure; command maps its expected paths without exposing internals |
 | Concurrent terminal transition | Plan has loaded a sent anchor while acceptance/loss races | Insert cannot leave an open follow-up on a terminal version | Transaction rolls back/rejects atomically |
+| Authorised terminal transition with open follow-up | Acceptance or successor/supersession command targets a sent version with an open follow-up | The command closes the follow-up and makes the version terminal in one transaction, retaining the authorised transition's success | A failure in either operation rolls back both; direct client DML remains denied |
 | Large tenant read | More than 1,000 events, versions, quotes, lost reasons, or follow-ups | Pipeline counts/value and quote-list/detail status, lost reason, filters, badges and open row are complete | Query faults retain existing generic-error posture; no partial-success result |
 | Extreme commitment sum | Valid accepted prices exceed `Number.MAX_SAFE_INTEGER` in aggregate | No rounded number is returned | Canonical guarded öre failure is surfaced/fails closed |
 
@@ -78,6 +79,7 @@ deferred:
 
 - Given an authenticated same-tenant caller bypasses commands, when it writes a lost reason or follow-up with a mismatched/draft/non-sent anchor, invalid Stockholm due date, completion shape, identity mutation, or reopen, then the database rejects it and cannot consume a legitimate lifecycle slot.
 - Given planning races an authoritative transition away from `sent`, when both transactions resolve, then no open stranded follow-up is committed on that terminal quote.
+- Given an authorised acceptance or successor/supersession command targets a sent version with an open follow-up, when it succeeds, then the follow-up is closed and the version is terminal atomically; when either operation fails, neither change commits, and direct client DML remains denied.
 - Given any relevant tenant dataset exceeds 1,000 rows, when pipeline, list, or detail reads execute, then their metrics and displayed/filterable lifecycle facts are complete rather than a silently truncated prefix.
 - Given accepted commitments overflow the safe JavaScript öre range, when aggregation executes, then it fails closed using the canonical money guard and never returns rounded money.
 - Given the Story 10.8 lifecycle boundary, when a direct authenticated event/lost-reason mutation or an audit-write fault is attempted, then direct mutation remains denied and a committed checked transition includes its audit evidence atomically.
@@ -121,10 +123,48 @@ Pagination is a correctness boundary, not an optional performance tuning: pagina
 - addressed_findings:
   - none — the new terminal-state trigger prevents an open follow-up from reaching a terminal version, but the intent does not define whether authorised acceptance and successor flows must automatically complete the open follow-up, reject the business action, or use another lifecycle resolution. The existing Story 10.5 diff was preserved pending that product decision; `story-10-5-review-intent-gap-2026-09-02.patch` records the reviewed change set.
 
+### 2026-09-02 — Owner decision
+- Resolved the prior intent gap: authorised acceptance and successor/supersession commands atomically close an open follow-up before making the sent quote version terminal; the authorised transition remains successful, direct client DML stays blocked, and failure of either operation rolls back the entire transition.
+
+### 2026-09-02 — Resumed follow-up review pass
+- intent_gap: 0
+- bad_spec: 0
+- patch: 2 (high 2)
+- defer: 0
+- reject: 12
+- addressed_findings:
+  - `[high] [patch]` Replaced the blanket terminal-follow-up rejection with an atomic database closure for the existing authorised `accepted` and `superseded` transitions; transaction rollback preserves all-or-nothing behavior and direct client DML grants remain unchanged.
+  - `[high] [patch]` Added an authorised acceptance regression that proves an anchored open follow-up is completed as the sent version becomes accepted.
+
 ## Auto Run Result
 
 Status: blocked
 Blocking condition: intent gap — decide the required lifecycle resolution for an open follow-up when an authorised acceptance or successor/supersession transition makes its sent quote version terminal.
+
+### Resumed follow-up review result
+
+Status: blocked
+Blocking condition: patch verification failed — SUPABASE_TEST_REQUIRED=1 but the local Supabase stack is not reachable. Start it and reset the schema before the DB-backed suites:
+  supabase start && supabase db reset
+
+Summary: The owner-approved lifecycle rule is implemented as an additive database migration: authorised accepted and superseded transitions complete an anchored open follow-up in the same transaction, and the existing terminal guard continues to reject other terminal transitions with an open follow-up.
+
+Files changed:
+- `supabase/migrations/20260902123000_story_10_5_authorized_terminal_follow_up_closure.sql` — additive authorised acceptance/supersession closure backstop with transaction rollback semantics.
+- `tests/integration/commands/capture-quote-acceptance.int.test.ts` — authorised acceptance regression for the open-follow-up closure.
+- `_bmad-output/implementation-artifacts/spec-10-5-quote-table-db-hardening-and-read-model-pagination.md` — approved owner decision and this resumed triage/verification record.
+
+Review findings breakdown: 2 patches applied (high 2); 0 deferred; 12 dismissed as prior-scope, already-covered, or non-regression concerns. The configured cross-model reviewer produced no output; the security reviewer reported no findings.
+
+Follow-up review recommendation: true — patched high-severity count: 2; medium: 0; low: 0; score: 0.
+
+Verification performed:
+- `pnpm run typecheck` — passed.
+- `pnpm run lint` — passed.
+- `pnpm run test:unit -- tests/unit/server/read-models/quote-pipeline-aggregate.test.ts` — passed (1,695 tests).
+- Required `SUPABASE_TEST_REQUIRED=1 pnpm run test:int -- …` — blocked before test discovery because the local Supabase stack is unreachable.
+
+Residual risks: The authorised acceptance regression and the existing successor/supersession transaction need the required fresh local-Supabase migration-reset run before this pass can be finalized or committed.
 
 Summary: Hardened quote-follow-up database invariants and terminal transitions, completed RLS read-model pagination, and made accepted commitment aggregation fail closed on unsafe öre totals.
 
