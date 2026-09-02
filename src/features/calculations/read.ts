@@ -20,6 +20,11 @@
  * the FROZEN row columns, NEVER a live re-read of the mutable work_role/article source.
  */
 import { createSupabaseServerClient } from "@/server/db/supabase-server-client";
+import type {
+  DeductionClassification,
+  TaxInputSnapshotV2,
+  VatType,
+} from "@/lib/money";
 
 const GENERIC_READ_ERROR =
   "Ett tillfälligt fel inträffade. Försök igen om en stund.";
@@ -94,6 +99,7 @@ export interface CalculationHeaderRow {
   readonly archived_at: string | null;
   readonly created_at: string;
   readonly updated_at: string;
+  readonly tax_input_snapshot: TaxInputSnapshotV2 | null;
 }
 
 /** A calc row (line) for the editor — the 1:1 mapping of the 5.1 row input fields. */
@@ -107,6 +113,9 @@ export interface CalculationRowRow {
   readonly unit_sell_ore: number | null;
   readonly markup_bp: number | null;
   readonly vat_rate_bp: number | null;
+  readonly included_in_invoice_total: boolean;
+  readonly deduction_classification: DeductionClassification;
+  readonly vat_type: VatType | null;
   readonly is_hidden: boolean;
   readonly is_optional: boolean;
   readonly is_selected: boolean | null;
@@ -166,12 +175,12 @@ export interface CalculationDetailReadResult {
 }
 
 const HEADER_COLUMNS =
-  "id, title, status, customer_id, facility_id, contact_id, archived_at, created_at, updated_at";
+  "id, title, status, customer_id, facility_id, contact_id, archived_at, created_at, updated_at, tax_input_snapshot";
 
 const SECTION_COLUMNS = "id, title, display_mode, sort_order";
 
 const ROW_COLUMNS =
-  "id, section_id, row_type, quantity, unit, unit_cost_ore, unit_sell_ore, markup_bp, vat_rate_bp, is_hidden, is_optional, is_selected, label, description, internal_note, quote_note, sort_order, source_kind, source_id, source_name, source_price_ore, source_cost_ore, source_updated_at, source_captured_at, source_sku, source_unit";
+  "id, section_id, row_type, quantity, unit, unit_cost_ore, unit_sell_ore, markup_bp, vat_rate_bp, included_in_invoice_total, deduction_classification, vat_type, is_hidden, is_optional, is_selected, label, description, internal_note, quote_note, sort_order, source_kind, source_id, source_name, source_price_ore, source_cost_ore, source_updated_at, source_captured_at, source_sku, source_unit";
 
 /**
  * Read one calculation by id with its ACTIVE sections (ordered by `sort_order`), each

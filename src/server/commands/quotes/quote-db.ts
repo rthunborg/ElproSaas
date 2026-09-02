@@ -18,6 +18,8 @@
  */
 import type { CommandDbClient } from "../envelope";
 import { CommandError } from "../command-errors";
+import { isAccessEligibleLifecycle } from "@/server/storage/lifecycle";
+import { adaptQuoteTaxSnapshot } from "@/lib/quote-snapshot";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Snapshot-source row shapes (read under the caller's RLS).
@@ -31,6 +33,8 @@ export interface CalcHeaderRow {
   readonly contact_id: string | null;
   readonly title: string;
   readonly status: string;
+  /** Untrusted calculation JSONB; fresh quote creation validates it through the money domain. */
+  readonly tax_input_snapshot: unknown;
 }
 
 /** A calc section (with its display mode + ordering) for the snapshot. */
@@ -41,15 +45,22 @@ export interface CalcSectionRow {
   readonly sort_order: number;
 }
 
-/** A calc row — the CUSTOMER-VISIBLE fields (NO internal_note/unit_cost_ore/markup_bp read). */
+/**
+ * A calc row used to build the customer-visible snapshot. Cost/source-kind are read only
+ * for reviewed-readiness parity and are never copied into the frozen line payload.
+ */
 export interface CalcRowRow {
   readonly id: string;
   readonly section_id: string;
   readonly row_type: string;
   readonly quantity: number;
   readonly unit: string;
+  readonly unit_cost_ore: number | null;
   readonly unit_sell_ore: number | null;
   readonly vat_rate_bp: number | null;
+  readonly included_in_invoice_total: boolean;
+  readonly deduction_classification: string;
+  readonly vat_type: string;
   readonly is_hidden: boolean;
   readonly is_optional: boolean;
   readonly is_selected: boolean | null;
@@ -57,6 +68,7 @@ export interface CalcRowRow {
   readonly description: string | null;
   readonly quote_note: string | null;
   readonly sort_order: number;
+  readonly source_kind: string | null;
 }
 
 /** The FULL company identity row (all PDF fields — the identity-FULL capture). */
@@ -90,16 +102,25 @@ export interface CustomerContextRow {
 }
 
 const CALC_HEADER_COLUMNS =
-  "id, customer_id, facility_id, contact_id, title, status";
+  "id, customer_id, facility_id, contact_id, title, status, tax_input_snapshot";
 const CALC_SECTION_COLUMNS = "id, title, display_mode, sort_order";
-// CUSTOMER-VISIBLE fields only — NO internal_note, NO unit_cost_ore, NO markup_bp (R-607).
+// unit_cost/source_kind affect customer-visible readiness warnings but are never snapshotted.
+// internal_note and markup_bp remain excluded (R-607).
 const CALC_ROW_COLUMNS =
-  "id, section_id, row_type, quantity, unit, unit_sell_ore, vat_rate_bp, is_hidden, is_optional, is_selected, label, description, quote_note, sort_order";
+  "id, section_id, row_type, quantity, unit, unit_cost_ore, unit_sell_ore, vat_rate_bp, included_in_invoice_total, deduction_classification, vat_type, is_hidden, is_optional, is_selected, label, description, quote_note, sort_order, source_kind";
 const COMPANY_IDENTITY_COLUMNS =
   "company_name, org_nr, address_line1, address_line2, postal_code, city, email, phone, logo_url, default_vat_display, vat_rate_bp";
 const QUOTE_TERMS_COLUMNS = "terms_text, approved_at, approved_by";
 
 /** The minimal read surface (`.from().select()` chain) the source reads drive. */
+type ReadResult = { data: unknown[] | null; error: unknown };
+type OrderedReadQuery = Promise<ReadResult> & {
+  order(
+    column: string,
+    opts: { ascending: boolean },
+  ): OrderedReadQuery;
+};
+
 type ReadClient = {
   from(table: string): {
     select(columns: string): {
@@ -111,7 +132,7 @@ type ReadClient = {
         order(
           column: string,
           opts: { ascending: boolean },
-        ): Promise<{ data: unknown[] | null; error: unknown }>;
+        ): OrderedReadQuery;
         is(
           column: string,
           value: null,
@@ -119,7 +140,7 @@ type ReadClient = {
           order(
             column: string,
             opts: { ascending: boolean },
-          ): Promise<{ data: unknown[] | null; error: unknown }>;
+          ): OrderedReadQuery;
         };
       };
       in(
@@ -133,7 +154,7 @@ type ReadClient = {
           order(
             column: string,
             opts: { ascending: boolean },
-          ): Promise<{ data: unknown[] | null; error: unknown }>;
+          ): OrderedReadQuery;
         };
       };
       limit(n: number): Promise<{ data: unknown[] | null; error: unknown }>;
@@ -285,20 +306,23 @@ export async function loadQuoteVersionStatus(
  * The frozen fields the acceptance-capture command reads off the target version row (under the
  * caller's RLS): the lifecycle `status` (the sent-state gate — acceptance is legal ONLY on
  * `status = 'sent'`), the parent `quote_id` (the acceptance's parent-quote FK), and the frozen
- * customer-commitment gross the version snapshot froze (`accepted_price_ore` — the SOURCE SENT
- * TOTAL the adjusted-price delta is measured against; captured, never re-derived).
+ * customer-commitment gross the version snapshot froze (Story 10.6 V2 `payable_ore`, falling back
+ * to V1 `accepted_price_ore` — the SOURCE SENT TOTAL the adjusted-price delta is measured against;
+ * captured, never re-derived).
  */
 export interface QuoteVersionAcceptanceSourceRow {
   readonly status: string;
   readonly quote_id: string;
+  readonly snapshot_schema_version: number | null;
+  readonly payable_ore: number | null;
   readonly source_sent_total_ore: number;
 }
 
 /**
  * Load the acceptance-capture source fields for the target version under the caller's RLS
  * (ownership already proved it visible). Returns null when the row is not visible (a race → the
- * command denies). The `source_sent_total_ore` reads the frozen `accepted_price_ore` (the
- * customer-commitment gross the version froze) — bigint öre may arrive as a STRING, coerced here.
+ * command denies). The `source_sent_total_ore` reads the frozen V2 `payable_ore` when present, and
+ * falls back to V1 `accepted_price_ore`; bigint öre may arrive as a STRING, coerced here.
  */
 export async function loadQuoteVersionAcceptanceSource(
   db: CommandDbClient,
@@ -306,37 +330,39 @@ export async function loadQuoteVersionAcceptanceSource(
 ): Promise<QuoteVersionAcceptanceSourceRow | null> {
   const { data, error } = await asReadClient(db)
     .from("quote_versions")
-    .select("status, quote_id, accepted_price_ore")
+    .select("status, quote_id, snapshot_schema_version, tax_rule_version, tax_answer_snapshot, buyer_vat_number, calculated_deduction_ore, claim_deduction_ore, payable_ore, vat_total_ore, deduction_total_ore, accepted_price_ore")
     .eq("id", quoteVersionId)
     .limit(1);
   throwOnReadError("loadQuoteVersionAcceptanceSource", error);
   const raw = (data?.[0] ?? null) as Record<string, unknown> | null;
   if (raw === null) return null;
-  const total = Number(raw.accepted_price_ore);
+  const payableOre = oreOf(raw.payable_ore);
+  const acceptedPriceOre = oreOf(raw.accepted_price_ore);
+  const vatOre = oreOf(raw.vat_total_ore);
+  const deductionOre = oreOf(raw.deduction_total_ore);
+  if (acceptedPriceOre === null || vatOre === null || deductionOre === null) {
+    throw new CommandError("VALIDATION_FAILED");
+  }
+  const tax = adaptQuoteTaxSnapshot({
+    snapshotSchemaVersion: numOf(raw.snapshot_schema_version),
+    taxRuleVersion: (raw.tax_rule_version as string | null) ?? null,
+    taxAnswerSnapshot: raw.tax_answer_snapshot,
+    buyerVatNumber: (raw.buyer_vat_number as string | null) ?? null,
+    calculatedDeductionOre: oreOf(raw.calculated_deduction_ore),
+    claimDeductionOre: oreOf(raw.claim_deduction_ore),
+    payableOre,
+    vatOre,
+    deductionOre,
+    acceptedPriceOre,
+  });
+  if (!tax.ok) throw new CommandError("VALIDATION_FAILED");
   return {
     status: String(raw.status),
     quote_id: String(raw.quote_id),
-    source_sent_total_ore: Number.isFinite(total) ? total : 0,
+    snapshot_schema_version: numOf(raw.snapshot_schema_version),
+    payable_ore: payableOre,
+    source_sent_total_ore: tax.value.payableOre,
   };
-}
-
-/** The minimal quote_acceptances INSERT surface of the request-bound RLS client. */
-export type QuoteAcceptanceWriteClient = {
-  from(table: "quote_acceptances"): {
-    insert(values: Record<string, unknown>): {
-      select(columns: string): Promise<{
-        data: unknown[] | null;
-        error: { code?: string; message?: string } | null;
-      }>;
-    };
-  };
-};
-
-/** Narrow the envelope client to the quote-acceptance write surface (single documented cast). */
-export function asQuoteAcceptanceWriteClient(
-  db: CommandDbClient,
-): QuoteAcceptanceWriteClient {
-  return db as unknown as QuoteAcceptanceWriteClient;
 }
 
 /** The minimal quote_versions UPDATE surface of the request-bound RLS client. */
@@ -361,6 +387,26 @@ export function asQuoteWriteClient(db: CommandDbClient): QuoteWriteClient {
   return db as unknown as QuoteWriteClient;
 }
 
+export type UpdateDraftQuoteVersionRpcClient = {
+  rpc(
+    fn: "update_draft_quote_version",
+    args: {
+      readonly p_tenant_id: string;
+      readonly p_quote_version_id: string;
+      readonly p_patch: Record<string, unknown>;
+      readonly p_occurred_at: string;
+      readonly p_actor_user_id: string;
+      readonly p_correlation_id: string;
+    },
+  ): Promise<{ data: unknown; error: { code?: string; message?: string } | null }>;
+};
+
+export function asUpdateDraftQuoteVersionRpcClient(
+  db: CommandDbClient,
+): UpdateDraftQuoteVersionRpcClient {
+  return db as unknown as UpdateDraftQuoteVersionRpcClient;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Story 6.4 — the send-gate read + the narrow mark_quote_version_sent RPC surface.
 // ─────────────────────────────────────────────────────────────────────────────
@@ -375,6 +421,10 @@ export function asQuoteWriteClient(db: CommandDbClient): QuoteWriteClient {
  */
 export interface QuoteVersionSendGateRow {
   readonly status: string;
+  /** Current-PDF proof persisted only after a fingerprint-matched render. */
+  readonly pdf_status: string;
+  readonly pdf_file_id: string | null;
+  readonly pdf_content_fingerprint: string | null;
   readonly requires_sign_off: boolean;
   readonly terms_approved_at: string | null;
   readonly warnings_snapshot: readonly {
@@ -396,7 +446,7 @@ export async function loadQuoteVersionSendGate(
 ): Promise<QuoteVersionSendGateRow | null> {
   const { data, error } = await asReadClient(db)
     .from("quote_versions")
-    .select("status, requires_sign_off, terms_approved_at, warnings_snapshot")
+    .select("status, pdf_status, pdf_file_id, pdf_content_fingerprint, requires_sign_off, terms_approved_at, warnings_snapshot")
     .eq("id", quoteVersionId)
     .limit(1);
   throwOnReadError("loadQuoteVersionSendGate", error);
@@ -414,22 +464,109 @@ export async function loadQuoteVersionSendGate(
     : [];
   return {
     status: String(raw.status),
+    pdf_status: String(raw.pdf_status ?? "not_generated"),
+    pdf_file_id: (raw.pdf_file_id as string | null) ?? null,
+    pdf_content_fingerprint:
+      (raw.pdf_content_fingerprint as string | null) ?? null,
     requires_sign_off: raw.requires_sign_off === true,
     terms_approved_at: (raw.terms_approved_at as string | null) ?? null,
     warnings_snapshot: warnings,
   };
 }
 
-/** The minimal RPC surface for the narrow `mark_quote_version_sent` call. */
+/** Database-issued current-PDF fields that the server must hash and sign before final send. */
+export interface QuotePdfSendAttestationChallenge {
+  readonly fileId: string;
+  readonly contentFingerprint: string;
+  readonly bucketId: string;
+  readonly objectPath: string;
+  readonly checksumSha256: string;
+  readonly sizeBytes: number;
+  readonly mimeType: string;
+  readonly keyId: string;
+  readonly issuedAt: string;
+  readonly expiresAt: string;
+  readonly generationStartedAt: string;
+}
+
+/** Extract and strictly validate the one-row send-attestation challenge. */
+export function extractQuotePdfSendAttestationChallenge(
+  data: unknown,
+): QuotePdfSendAttestationChallenge | null {
+  const value = Array.isArray(data) ? data[0] : data;
+  if (!value || typeof value !== "object") return null;
+  const row = value as Record<string, unknown>;
+  const sizeBytes = Number(row.size_bytes);
+  if (
+    typeof row.file_id !== "string" ||
+    typeof row.content_fingerprint !== "string" ||
+    row.bucket_id !== "tenant-files" ||
+    typeof row.object_path !== "string" ||
+    typeof row.checksum_sha256 !== "string" ||
+    !/^[0-9a-f]{64}$/.test(row.checksum_sha256) ||
+    !Number.isSafeInteger(sizeBytes) ||
+    sizeBytes <= 0 ||
+    row.mime_type !== "application/pdf" ||
+    typeof row.attestation_key_id !== "string" ||
+    typeof row.attestation_issued_at !== "string" ||
+    typeof row.attestation_expires_at !== "string" ||
+    typeof row.generation_started_at !== "string"
+  ) {
+    return null;
+  }
+  return {
+    fileId: row.file_id,
+    contentFingerprint: row.content_fingerprint,
+    bucketId: row.bucket_id,
+    objectPath: row.object_path,
+    checksumSha256: row.checksum_sha256,
+    sizeBytes,
+    mimeType: row.mime_type,
+    keyId: row.attestation_key_id,
+    issuedAt: row.attestation_issued_at,
+    expiresAt: row.attestation_expires_at,
+    generationStartedAt: row.generation_started_at,
+  };
+}
+
+/** The minimal RPC/Storage surface for the attested `mark_quote_version_sent` call. */
 export type MarkQuoteVersionSentRpcClient = {
+  storage: {
+    from(bucket: string): {
+      download(path: string): Promise<{
+        data: Blob | null;
+        error: { message?: string } | null;
+      }>;
+    };
+  };
+  rpc(
+    fn: "prepare_quote_pdf_send_attestation",
+    args: {
+      readonly p_tenant_id: string;
+      readonly p_quote_version_id: string;
+      readonly p_actor_user_id: string;
+      readonly p_correlation_id: string;
+      readonly p_attestation_key_id: string;
+    },
+  ): Promise<{
+    data: unknown;
+    error: { code?: string; message?: string } | null;
+  }>;
   rpc(
     fn: "mark_quote_version_sent",
     args: {
       readonly p_tenant_id: string;
       readonly p_quote_version_id: string;
+      readonly p_authorization_id: string;
       readonly p_sent_at: string;
       readonly p_channel: string | null;
       readonly p_reference: string | null;
+      readonly p_actor_user_id: string;
+      readonly p_correlation_id: string;
+      readonly p_attestation_key_id: string;
+      readonly p_attestation_issued_at: string;
+      readonly p_attestation_expires_at: string;
+      readonly p_attestation_signature: string;
     },
   ): Promise<{
     data: unknown;
@@ -461,11 +598,87 @@ export async function loadOwnedAttachmentFile(
 ): Promise<AttachmentFileRow | null> {
   const { data, error } = await asReadClient(db)
     .from("files")
-    .select("id, display_name")
+    .select("id, display_name, lifecycle_state")
     .eq("id", fileId)
     .limit(1);
   throwOnReadError("loadOwnedAttachmentFile", error);
-  return (data?.[0] ?? null) as AttachmentFileRow | null;
+  const row = (data?.[0] ?? null) as (AttachmentFileRow & {
+    lifecycle_state?: string;
+  }) | null;
+  // A predecessor may keep an archived attachment frozen, but it cannot be carried
+  // into a fresh draft. This is also the server-side backstop for crafted selection.
+  if (row === null || !isAccessEligibleLifecycle(row.lifecycle_state ?? "")) return null;
+  return row;
+}
+
+/**
+ * Presence-only own-tenant check for an explicitly requested carry-forward file.
+ * It deliberately does not apply lifecycle/link eligibility: callers must deny a
+ * foreign/nonexistent id, while quietly omitting an owned but obsolete selection.
+ */
+export async function loadVisibleAttachmentFileId(
+  db: CommandDbClient,
+  fileId: string,
+): Promise<string | null> {
+  const { data, error } = await asReadClient(db)
+    .from("files")
+    .select("id")
+    .eq("id", fileId)
+    .limit(1);
+  throwOnReadError("loadVisibleAttachmentFileId", error);
+  const raw = (data?.[0] ?? null) as { id?: unknown } | null;
+  return typeof raw?.id === "string" ? raw.id : null;
+}
+
+/** Active, eligible file ids currently attached to a calculation (RLS-scoped). */
+export async function loadEligibleCalculationAttachmentFileIds(
+  db: CommandDbClient,
+  calculationId: string,
+): Promise<readonly string[]> {
+  const { data, error } = await (
+    db as unknown as {
+      from(table: "file_links"): {
+        select(columns: string): {
+          eq(column: string, value: string): {
+            eq(column: string, value: string): {
+              eq(column: string, value: string): {
+                is(column: string, value: null): Promise<{
+                  data: unknown[] | null;
+                  error: unknown;
+                }>;
+              };
+            };
+          };
+        };
+      };
+    }
+  )
+    .from("file_links")
+    .select("file_id, files!inner(lifecycle_state, archived_at)")
+    .eq("owner_type", "calculation")
+    .eq("owner_id", calculationId)
+    .eq("purpose", "calculation_attachment")
+    .is("archived_at", null);
+  throwOnReadError("loadEligibleCalculationAttachmentFileIds", error);
+  const result: string[] = [];
+  for (const raw of (data ?? []) as Record<string, unknown>[]) {
+    // PostgREST can represent an embedded relationship as either one object or a one-row array,
+    // depending on relation cardinality metadata. Normalize both shapes and fail closed otherwise.
+    const joinedFile = Array.isArray(raw.files) ? raw.files[0] : raw.files;
+    const joinedFileRecord =
+      joinedFile && typeof joinedFile === "object"
+        ? (joinedFile as { lifecycle_state?: unknown; archived_at?: unknown })
+        : undefined;
+    if (
+      typeof raw.file_id === "string" &&
+      joinedFileRecord !== undefined &&
+      joinedFileRecord.archived_at == null &&
+      isAccessEligibleLifecycle(String(joinedFileRecord.lifecycle_state ?? ""))
+    ) {
+      result.push(raw.file_id);
+    }
+  }
+  return result;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -478,14 +691,10 @@ export type QuoteRpcClient = {
     fn: "create_quote_version_from_calculation",
     args: {
       readonly p_tenant_id: string;
-      readonly p_calculation_id: string;
+      readonly p_authorization_id: string;
       readonly p_captured_at: string;
-      readonly p_customer_id: string;
-      readonly p_facility_id: string | null;
-      readonly p_contact_id: string | null;
-      readonly p_snapshot: unknown;
-      readonly p_lines: unknown;
-      readonly p_attachments: unknown;
+      readonly p_actor_user_id: string;
+      readonly p_correlation_id: string;
     },
   ): Promise<{
     data: unknown;
@@ -509,15 +718,16 @@ export interface QuoteVersionParentRow {
   readonly calculation_id: string;
   readonly status: string;
   readonly quote_number: number | null;
+  readonly snapshot_schema_version: number | null;
 }
 
 const PARENT_VERSION_COLUMNS =
-  "id, quote_id, calculation_id, status, quote_number";
+  "id, quote_id, calculation_id, status, quote_number, snapshot_schema_version";
 
 /**
  * Load the PARENT quote-version's identity fields under the caller's RLS (ownership already proved
- * it visible). Returns the quote_id / calculation_id / status / quote_number the new-version
- * command threads into the RPC, or null when the row is not visible (a race → the command denies).
+ * it visible). Returns the quote_id / calculation_id / status / quote_number / snapshot schema the
+ * new-version command uses, or null when the row is not visible (a race → the command denies).
  */
 export async function loadQuoteVersionParent(
   db: CommandDbClient,
@@ -537,6 +747,7 @@ export async function loadQuoteVersionParent(
     calculation_id: String(raw.calculation_id),
     status: String(raw.status),
     quote_number: numOf(raw.quote_number),
+    snapshot_schema_version: numOf(raw.snapshot_schema_version),
   };
 }
 
@@ -546,16 +757,10 @@ export type NewQuoteVersionRpcClient = {
     fn: "create_new_quote_version",
     args: {
       readonly p_tenant_id: string;
-      readonly p_quote_id: string;
-      readonly p_calculation_id: string;
+      readonly p_authorization_id: string;
       readonly p_captured_at: string;
-      readonly p_customer_id: string;
-      readonly p_facility_id: string | null;
-      readonly p_contact_id: string | null;
-      readonly p_snapshot: unknown;
-      readonly p_lines: unknown;
-      readonly p_attachments: unknown;
-      readonly p_supersede_prior: boolean;
+      readonly p_actor_user_id: string;
+      readonly p_correlation_id: string;
     },
   ): Promise<{
     data: unknown;
@@ -579,6 +784,8 @@ export type QuoteLifecycleRpcClient = {
       readonly p_quote_version_id: string;
       readonly p_transition: string;
       readonly p_occurred_at: string;
+      readonly p_actor_user_id: string;
+      readonly p_correlation_id: string;
     },
   ): Promise<{
     data: unknown;
@@ -608,6 +815,8 @@ export type QuoteLostRpcClient = {
       readonly p_category: string;
       readonly p_note: string | null;
       readonly p_occurred_at: string;
+      readonly p_actor_user_id: string;
+      readonly p_correlation_id: string;
     },
   ): Promise<{
     data: unknown;
@@ -708,11 +917,76 @@ export interface AcceptAndCreateJobRpcArgs {
   readonly p_fault_inject: string | null;
 }
 
+/** Issuance is the attributable self-attestation; mutation consumes its UUID once. */
+export type QuoteReviewAuthorizationRpcClient = {
+  rpc(
+    fn: "authorize_quote_initial_review",
+    args: {
+      readonly p_tenant_id: string;
+      readonly p_calculation_id: string;
+      readonly p_captured_at: string;
+      readonly p_customer_id: string;
+      readonly p_facility_id: string | null;
+      readonly p_contact_id: string | null;
+      readonly p_snapshot: unknown;
+      readonly p_lines: unknown;
+      readonly p_attachments: unknown;
+      readonly p_reviewed_quote_capture_date: string;
+      readonly p_reviewed_calculation_status: string;
+      readonly p_reviewed_readiness_rows: unknown;
+      readonly p_actor_user_id: string;
+      readonly p_correlation_id: string;
+    },
+  ): Promise<{ data: unknown; error: { code?: string; message?: string } | null }>;
+  rpc(
+    fn: "authorize_quote_successor_review",
+    args: {
+      readonly p_tenant_id: string;
+      readonly p_quote_id: string;
+      readonly p_source_quote_version_id: string;
+      readonly p_calculation_id: string;
+      readonly p_captured_at: string;
+      readonly p_customer_id: string;
+      readonly p_facility_id: string | null;
+      readonly p_contact_id: string | null;
+      readonly p_snapshot: unknown;
+      readonly p_lines: unknown;
+      readonly p_attachments: unknown;
+      readonly p_supersede_prior: boolean;
+      readonly p_actor_user_id: string;
+      readonly p_correlation_id: string;
+    },
+  ): Promise<{ data: unknown; error: { code?: string; message?: string } | null }>;
+  rpc(
+    fn: "authorize_quote_final_send",
+    args: {
+      readonly p_tenant_id: string;
+      readonly p_quote_version_id: string;
+      readonly p_actor_user_id: string;
+      readonly p_correlation_id: string;
+    },
+  ): Promise<{ data: unknown; error: { code?: string; message?: string } | null }>;
+};
+
+export function asQuoteReviewAuthorizationRpcClient(
+  db: CommandDbClient,
+): QuoteReviewAuthorizationRpcClient {
+  return db as unknown as QuoteReviewAuthorizationRpcClient;
+}
+
+export function extractQuoteReviewAuthorizationId(data: unknown): string | null {
+  const value = Array.isArray(data) ? data[0] : data;
+  return typeof value === "string" ? value : null;
+}
+
 /** The minimal RPC surface for the narrow `accept_quote_and_create_job` call. */
 export type AcceptAndCreateJobRpcClient = {
   rpc(
     fn: "accept_quote_and_create_job",
-    args: AcceptAndCreateJobRpcArgs,
+    args: AcceptAndCreateJobRpcArgs & {
+      readonly p_actor_user_id: string;
+      readonly p_correlation_id: string;
+    },
   ): Promise<{
     data: unknown;
     error: { code?: string; message?: string } | null;
@@ -792,6 +1066,9 @@ export function throwMappedQuoteWriteError(error: {
     // custom SQLSTATE the mapper branches on WITHOUT colliding with the standard classes.
     case "QV409":
       throw new CommandError("QUOTE_VERSION_LOCKED");
+    case "QV401":
+    case "PFD10":
+      throw new CommandError("VALIDATION_FAILED");
     // The Story 7.2 accept-RPC test-only fault-injection RAISE — a deliberately-injected
     // mid-transaction failure that rolled the whole txn back (no partial state). Surface as
     // a transient SERVER_ERROR (the command did not succeed; nothing committed).
@@ -853,6 +1130,14 @@ export interface QuoteVersionSnapshotRow {
   readonly vat_total_ore: number;
   readonly deduction_total_ore: number;
   readonly accepted_price_ore: number;
+  readonly snapshot_schema_version: number | null;
+  readonly tax_rule_version: string | null;
+  /** Untrusted JSONB at the DB boundary; downstream must parse it fail-closed before use. */
+  readonly tax_answer_snapshot: unknown;
+  readonly buyer_vat_number: string | null;
+  readonly calculated_deduction_ore: number | null;
+  readonly claim_deduction_ore: number | null;
+  readonly payable_ore: number | null;
   readonly vat_rate_bp: number | null;
   readonly vat_display: string | null;
   readonly deduction_type: string | null;
@@ -870,6 +1155,8 @@ export interface QuoteVersionSnapshotRow {
 
 /** A frozen quote_version_lines snapshot row (NO cost/margin/internal — R-607). */
 export interface QuoteVersionLineSnapshotRow {
+  readonly id: string;
+  readonly source_calculation_row_id: string | null;
   readonly row_type: string;
   readonly sort_order: number;
   readonly label: string | null;
@@ -880,6 +1167,9 @@ export interface QuoteVersionLineSnapshotRow {
   readonly unit_sell_ore: number | null;
   readonly line_net_ore: number | null;
   readonly vat_rate_bp: number | null;
+  readonly included_in_invoice_total: boolean | null;
+  readonly deduction_classification: string | null;
+  readonly vat_type: string | null;
   readonly is_hidden: boolean;
   readonly is_optional: boolean;
   readonly is_selected: boolean | null;
@@ -887,18 +1177,19 @@ export interface QuoteVersionLineSnapshotRow {
 
 /** A frozen quote_version_attachments snapshot row (display name by value). */
 export interface QuoteVersionAttachmentSnapshotRow {
+  readonly id: string;
   readonly file_id: string;
   readonly display_name: string | null;
   readonly sort_order: number;
 }
 
 const VERSION_SNAPSHOT_COLUMNS =
-  "id, quote_id, status, calculation_id, captured_at, company_name, company_org_nr, company_address_line1, company_address_line2, company_postal_code, company_city, company_email, company_phone, company_logo_url, customer_display_name, customer_type, facility_name, contact_name, quote_number, quote_number_display, valid_until, intro_text, customer_notes, terms_text, terms_approved_at, terms_approved_by, base_total_ore, option_total_ore, vat_total_ore, deduction_total_ore, accepted_price_ore, vat_rate_bp, vat_display, deduction_type, deduction_rate_bp, deduction_cap_ore, deduction_persons, requires_sign_off, display_mode, warnings_snapshot";
+  "id, quote_id, status, calculation_id, captured_at, company_name, company_org_nr, company_address_line1, company_address_line2, company_postal_code, company_city, company_email, company_phone, company_logo_url, customer_display_name, customer_type, facility_name, contact_name, quote_number, quote_number_display, valid_until, intro_text, customer_notes, terms_text, terms_approved_at, terms_approved_by, base_total_ore, option_total_ore, vat_total_ore, deduction_total_ore, accepted_price_ore, snapshot_schema_version, tax_rule_version, tax_answer_snapshot, buyer_vat_number, calculated_deduction_ore, claim_deduction_ore, payable_ore, vat_rate_bp, vat_display, deduction_type, deduction_rate_bp, deduction_cap_ore, deduction_persons, requires_sign_off, display_mode, warnings_snapshot";
 
 const LINE_SNAPSHOT_COLUMNS =
-  "row_type, sort_order, label, description, quote_note, quantity, unit, unit_sell_ore, line_net_ore, vat_rate_bp, is_hidden, is_optional, is_selected";
+  "id, source_calculation_row_id, row_type, sort_order, label, description, quote_note, quantity, unit, unit_sell_ore, line_net_ore, vat_rate_bp, included_in_invoice_total, deduction_classification, vat_type, is_hidden, is_optional, is_selected";
 
-const ATTACHMENT_SNAPSHOT_COLUMNS = "file_id, display_name, sort_order";
+const ATTACHMENT_SNAPSHOT_COLUMNS = "id, file_id, display_name, sort_order";
 
 /** Coerce a `bigint` öre (may return as a STRING) into a JS number, or null. */
 function oreOf(v: unknown): number | null {
@@ -969,6 +1260,13 @@ export async function loadQuoteVersionSnapshot(
     vat_total_ore: oreOf(raw.vat_total_ore) ?? 0,
     deduction_total_ore: oreOf(raw.deduction_total_ore) ?? 0,
     accepted_price_ore: oreOf(raw.accepted_price_ore) ?? 0,
+    snapshot_schema_version: numOf(raw.snapshot_schema_version),
+    tax_rule_version: (raw.tax_rule_version as string | null) ?? null,
+    tax_answer_snapshot: raw.tax_answer_snapshot ?? null,
+    buyer_vat_number: (raw.buyer_vat_number as string | null) ?? null,
+    calculated_deduction_ore: oreOf(raw.calculated_deduction_ore),
+    claim_deduction_ore: oreOf(raw.claim_deduction_ore),
+    payable_ore: oreOf(raw.payable_ore),
     vat_rate_bp: numOf(raw.vat_rate_bp),
     vat_display: (raw.vat_display as string | null) ?? null,
     deduction_type: (raw.deduction_type as string | null) ?? null,
@@ -981,7 +1279,7 @@ export async function loadQuoteVersionSnapshot(
   };
 }
 
-/** Load the FROZEN customer-visible line snapshot rows (ordered by sort_order) under RLS. */
+/** Load frozen line rows in the exact deterministic order fingerprinted by PostgreSQL. */
 export async function loadQuoteVersionLineSnapshots(
   db: CommandDbClient,
   quoteVersionId: string,
@@ -990,9 +1288,13 @@ export async function loadQuoteVersionLineSnapshots(
     .from("quote_version_lines")
     .select(LINE_SNAPSHOT_COLUMNS)
     .eq("quote_version_id", quoteVersionId)
-    .order("sort_order", { ascending: true });
+    .order("sort_order", { ascending: true })
+    .order("id", { ascending: true });
   throwOnReadError("loadQuoteVersionLineSnapshots", error);
   return ((data ?? []) as Record<string, unknown>[]).map((raw) => ({
+    id: String(raw.id),
+    source_calculation_row_id:
+      (raw.source_calculation_row_id as string | null) ?? null,
     row_type: String(raw.row_type),
     sort_order: Number(raw.sort_order ?? 0),
     label: (raw.label as string | null) ?? null,
@@ -1003,6 +1305,13 @@ export async function loadQuoteVersionLineSnapshots(
     unit_sell_ore: oreOf(raw.unit_sell_ore),
     line_net_ore: oreOf(raw.line_net_ore),
     vat_rate_bp: numOf(raw.vat_rate_bp),
+    included_in_invoice_total:
+      raw.included_in_invoice_total === null || raw.included_in_invoice_total === undefined
+        ? null
+        : raw.included_in_invoice_total === true,
+    deduction_classification:
+      (raw.deduction_classification as string | null) ?? null,
+    vat_type: (raw.vat_type as string | null) ?? null,
     is_hidden: raw.is_hidden === true,
     is_optional: raw.is_optional === true,
     is_selected:
@@ -1012,7 +1321,7 @@ export async function loadQuoteVersionLineSnapshots(
   }));
 }
 
-/** Load the FROZEN selected-attachment snapshot rows (ordered by sort_order) under RLS. */
+/** Load frozen attachment rows in the exact deterministic order fingerprinted by PostgreSQL. */
 export async function loadQuoteVersionAttachmentSnapshots(
   db: CommandDbClient,
   quoteVersionId: string,
@@ -1021,9 +1330,11 @@ export async function loadQuoteVersionAttachmentSnapshots(
     .from("quote_version_attachments")
     .select(ATTACHMENT_SNAPSHOT_COLUMNS)
     .eq("quote_version_id", quoteVersionId)
-    .order("sort_order", { ascending: true });
+    .order("sort_order", { ascending: true })
+    .order("id", { ascending: true });
   throwOnReadError("loadQuoteVersionAttachmentSnapshots", error);
   return ((data ?? []) as Record<string, unknown>[]).map((raw) => ({
+    id: String(raw.id),
     file_id: String(raw.file_id),
     display_name: (raw.display_name as string | null) ?? null,
     sort_order: Number(raw.sort_order ?? 0),
@@ -1031,9 +1342,10 @@ export async function loadQuoteVersionAttachmentSnapshots(
 }
 
 /**
- * The storage + files/file_links + events write surface the PDF pipeline drives on the
- * caller's request-bound RLS client (anon key — NEVER service-role). storage.objects RLS +
- * the composite same-tenant FKs enforce that no cross-tenant object/metadata is reachable.
+ * The tiny request-bound surface the PDF pipeline drives directly: Storage upload only.
+ * Reservation, activation, and failure compensation are narrow authenticated RPCs;
+ * metadata/file-link/event/lifecycle writes are never direct client DML. This is always the
+ * caller's RLS client (anon key — NEVER service-role).
  */
 export type QuotePdfWriteClient = {
   storage: {
@@ -1045,59 +1357,102 @@ export type QuotePdfWriteClient = {
       ): Promise<{ data: unknown; error: { message?: string } | null }>;
     };
   };
-  from(table: "files"): {
-    insert(values: Record<string, unknown>): {
-      select(columns: string): Promise<{
-        data: unknown[] | null;
-        error: { code?: string; message?: string } | null;
-      }>;
-    };
-  };
-  from(table: "file_links"): {
-    insert(values: Record<string, unknown>): {
-      select(columns: string): Promise<{
-        data: unknown[] | null;
-        error: { code?: string; message?: string } | null;
-      }>;
-    };
-    update(values: Record<string, unknown>): {
-      eq(
-        column: string,
-        value: string,
-      ): {
-        select(columns: string): Promise<{
-          data: unknown[] | null;
-          error: { code?: string; message?: string } | null;
-        }>;
-      };
-    };
-  };
-  from(table: "quote_versions"): {
-    update(values: Record<string, unknown>): {
-      eq(
-        column: string,
-        value: string,
-      ): {
-        select(columns: string): Promise<{
-          data: unknown[] | null;
-          error: { code?: string; message?: string } | null;
-        }>;
-      };
-    };
-  };
-  from(table: "quote_events"): {
-    insert(values: Record<string, unknown>): {
-      select(columns: string): Promise<{
-        data: unknown[] | null;
-        error: { code?: string; message?: string } | null;
-      }>;
-    };
-  };
 };
 
 /** Narrow the envelope client to the PDF write surface (single documented cast). */
 export function asQuotePdfWriteClient(db: CommandDbClient): QuotePdfWriteClient {
   return db as unknown as QuotePdfWriteClient;
+}
+
+/** The only PDF-completion RPC surface; it atomically proves freshness before activation. */
+export type QuotePdfCompleteRpcClient = {
+  rpc(
+    fn: "complete_quote_pdf_render",
+    args: {
+      readonly p_tenant_id: string;
+      readonly p_quote_version_id: string;
+      readonly p_file_id: string;
+      readonly p_generated_at: string;
+      readonly p_actor_user_id: string;
+      readonly p_correlation_id: string;
+      readonly p_attestation_key_id: string;
+      readonly p_attestation_issued_at: string;
+      readonly p_attestation_expires_at: string;
+      readonly p_attestation_signature: string;
+    },
+  ): Promise<{ data: unknown; error: { code?: string; message?: string } | null }>;
+};
+
+export type QuotePdfRenderRpcClient = QuotePdfCompleteRpcClient & {
+  rpc(
+    fn: "reserve_quote_pdf_file",
+    args: {
+      readonly p_tenant_id: string;
+      readonly p_quote_version_id: string;
+      readonly p_file_id: string;
+      readonly p_object_path: string;
+      readonly p_display_name: string;
+      readonly p_size_bytes: number;
+      readonly p_checksum: string;
+      readonly p_actor_user_id: string;
+    },
+  ): Promise<{ data: unknown; error: { code?: string; message?: string } | null }>;
+  rpc(
+    fn: "start_quote_pdf_render",
+    args: {
+      readonly p_tenant_id: string;
+      readonly p_quote_version_id: string;
+      readonly p_actor_user_id: string;
+      readonly p_correlation_id: string;
+      readonly p_started_at: string;
+      readonly p_attestation_key_id: string;
+    },
+  ): Promise<{ data: unknown; error: { code?: string; message?: string } | null }>;
+  rpc(
+    fn: "fail_quote_pdf_render",
+    args: {
+      readonly p_tenant_id: string;
+      readonly p_quote_version_id: string;
+      readonly p_expected_file_id: string;
+      readonly p_failed_at: string;
+      readonly p_actor_user_id: string;
+      readonly p_correlation_id: string;
+    },
+  ): Promise<{ data: unknown; error: { code?: string; message?: string } | null }>;
+};
+
+/** Minimal authoritative state read used to make start/completion response loss safe. */
+export interface QuotePdfLifecycleStateRow {
+  readonly pdf_status: string;
+  readonly pdf_file_id: string | null;
+  readonly pdf_render_file_id: string | null;
+  readonly pdf_render_correlation_id: string | null;
+}
+
+export async function loadQuotePdfLifecycleState(
+  db: CommandDbClient,
+  quoteVersionId: string,
+): Promise<QuotePdfLifecycleStateRow | null> {
+  const { data, error } = await asReadClient(db)
+    .from("quote_versions")
+    .select("pdf_status, pdf_file_id, pdf_render_file_id, pdf_render_correlation_id")
+    .eq("id", quoteVersionId)
+    .limit(1);
+  throwOnReadError("loadQuotePdfLifecycleState", error);
+  const row = (data?.[0] ?? null) as Record<string, unknown> | null;
+  if (row === null) return null;
+  return {
+    pdf_status: String(row.pdf_status ?? "not_generated"),
+    pdf_file_id: (row.pdf_file_id as string | null) ?? null,
+    pdf_render_file_id: (row.pdf_render_file_id as string | null) ?? null,
+    pdf_render_correlation_id: (row.pdf_render_correlation_id as string | null) ?? null,
+  };
+}
+
+export function asQuotePdfRenderRpcClient(
+  db: CommandDbClient,
+): QuotePdfRenderRpcClient {
+  return db as unknown as QuotePdfRenderRpcClient;
 }
 
 /** An existing PDF file_link row (for the find-or-create-or-repoint retry semantics — R-814). */

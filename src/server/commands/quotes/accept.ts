@@ -7,9 +7,11 @@
  * → in execute: LOAD the version's real status + parent quote + frozen source sent total on the RLS
  * client → re-assert `status='sent'` (reject a non-sent with VALIDATION_FAILED) → re-validate the
  * adjusted-price + reason/evidence gate server-side via the PURE Task-3 `evaluateAcceptancePriceGate`
- * authority → persist the `quote_acceptances` row via an own-tenant RLS INSERT (a single-row
- * write — NOT the 7.2 RPC) → optionally link the evidence file → append-only audit `{ targetId }`).
- * No bespoke auth/error/audit mechanism. Patterned EXACTLY on `mark-sent.ts`.
+ * authority → call the same narrow, attributable `accept_quote_and_create_job` SECURITY DEFINER
+ * RPC as the live acceptance action. That one atomic transaction persists the acceptance, flips
+ * `sent → accepted`, creates the authoritative job, links evidence, and writes its single audit row.
+ * This compatibility command intentionally preserves the historic `{ targetId }` result shape while
+ * it no longer offers a direct-table-write bypass.
  *
  * ── THE SENT-STATE GATE (AC3, R-706) ──────────────────────────────────────────────────────────
  * Acceptance is legal ONLY on `status = 'sent'` (matrix FINALIZED against the landed Epic 6 state
@@ -30,37 +32,30 @@
  *
  * ── ÖRE DISCIPLINE + PERSISTENCE (AC5, 7.1 Decision (a)) ───────────────────────────────────────
  * `accepted_price_ore` (validated `isOreAmount`) + `source_sent_total_ore` (the frozen commitment
- * gross) persist as integer öre. 7.1 persists via a plain own-tenant RLS INSERT (a single-row
- * write does not need the RPC — ADR-A009's narrow RPC is for the multi-record 7.2 transaction).
- * `accepted_at` is an EXPLICIT input (H1 determinism — the accepted moment is never a wall-clock
- * read); the injected `ctx.clock.now()` anchors only the command instant. The resolved
- * `ctx.tenantContext.tenantId` is the ONLY tenant authority (a client tenant id is never read).
+ * gross) persist as integer öre in the atomic RPC. `accepted_at` is an EXPLICIT input (H1
+ * determinism — the accepted moment is never a wall-clock read). The resolved tenant, actor, and
+ * correlation id are the ONLY authorities threaded to the RPC (never client supplied).
  *
  * ── EVIDENCE-LINK ACTIVATION (AC6, R-709/R-814) ───────────────────────────────────────────────
- * An OPTIONAL uploaded evidence file id activates the `quote_acceptance` owner type +
- * `acceptance_evidence` purpose on the EXISTING 8.1 file model (find-or-create is NOT needed — 7.1
- * capture is single-shot, so exactly ONE link row is created). A foreign evidence file id ⇒
- * `TENANT_ACCESS_DENIED` (own-tenant RLS + the composite same-tenant FK). An EXTERNAL reference
- * (free text) goes into `quote_acceptances.evidence_reference` with NO file link (the two evidence
- * shapes are exclusive per capture). NO competing evidence-storage model is invented (R-814).
+ * An OPTIONAL uploaded evidence file id is re-validated as own-tenant-visible here; the atomic RPC
+ * then creates and locks the `quote_acceptance`/`acceptance_evidence` link together with its parent
+ * rows. An EXTERNAL reference persists without a link (the two evidence shapes are exclusive).
  *
  * ── AUDIT ALLOW-LIST (AC5) ────────────────────────────────────────────────────────────────────
- * A SINGLE audit row with `{ targetId }` ONLY — NO accepted price / channel / customer / evidence
- * PII in the metadata.
+ * The RPC writes a SINGLE audit row with `{ targetId }` ONLY — NO accepted price / channel /
+ * customer / evidence PII in metadata. This command is deliberately not envelope-auditable, so it
+ * cannot add a second audit row after the atomic transaction commits.
  */
 import { defineCommand } from "../envelope";
 import { CommandError } from "../command-errors";
 import { evaluateAcceptancePriceGate } from "@/features/quotes/acceptance-price";
 import {
-  asQuoteAcceptanceWriteClient,
+  asAcceptAndCreateJobRpcClient,
+  extractAcceptAndCreateJobResult,
   loadQuoteVersionAcceptanceSource,
   throwMappedQuoteWriteError,
 } from "./quote-db";
-import {
-  asFileRpcClient,
-  ownerRecordVisible,
-  throwMappedFileWriteError,
-} from "../files/file-db";
+import { ownerRecordVisible } from "../files/file-db";
 import {
   validateCaptureQuoteAcceptance,
   type CaptureQuoteAcceptanceInput,
@@ -76,7 +71,9 @@ export const captureQuoteAcceptance = defineCommand<
   CaptureQuoteAcceptanceResult
 >({
   command: "quote.acceptance.capture",
-  auditable: true,
+  // The hardened RPC records the one audit row atomically on a fresh acceptance. Enabling the
+  // envelope audit here would create a duplicate row after the transaction.
+  auditable: false,
   eventType: "quote.acceptance.captured",
   targetType: "quote_acceptance",
   validateInput: validateCaptureQuoteAcceptance,
@@ -95,6 +92,8 @@ export const captureQuoteAcceptance = defineCommand<
     // Acceptance is legal ONLY on a SENT version — a generic VALIDATION_FAILED (no leaked status).
     if (source.status !== "sent") throw new CommandError("VALIDATION_FAILED");
 
+    // Story 10.6: for snapshotSchemaVersion=2, loadQuoteVersionAcceptanceSource normalizes the
+    // frozen payableOre into source_sent_total_ore; V1 rows still fall back to acceptedPriceOre.
     // ── THE ADJUSTED-PRICE GATE (AC2) — the SINGLE authority `evaluateAcceptancePriceGate` folds the
     // ── PURE delta computation (never ad hoc), the REASON_REQUIRED rule, and the `hasReason` (reason
     // ── OR evidence) presence into one OK/typed-failure the command RE-VALIDATES server-side (the
@@ -121,62 +120,35 @@ export const captureQuoteAcceptance = defineCommand<
       if (!visible) throw new CommandError("TENANT_ACCESS_DENIED");
     }
 
-    // ── PERSIST the acceptance via an own-tenant RLS INSERT (a single-row write — NOT the 7.2 RPC).
-    // ── The resolved tenant is the ONLY tenant authority; `accepted_at` is the EXPLICIT input (H1).
-    const writer = asQuoteAcceptanceWriteClient(db);
-    const { data, error } = await writer
-      .from("quote_acceptances")
-      .insert({
-        tenant_id: ctx.tenantContext.tenantId, // resolved tenant, never a client id
-        quote_id: source.quote_id,
-        quote_version_id: versionId,
-        channel: input.channel ?? null,
-        accepted_at: input.accepted_at, // explicit input instant (H1)
-        accepted_price_ore: input.accepted_price_ore,
-        source_sent_total_ore: source.source_sent_total_ore,
-        adjustment_reason: input.adjustment_reason ?? null,
-        evidence_file_id: input.evidence_file_id ?? null,
-        evidence_reference: input.evidence_reference ?? null,
-        notes: input.notes ?? null,
-        planned_start_date: input.planned_start_date ?? null,
-        planned_end_date: input.planned_end_date ?? null,
-      })
-      .select("id");
-    // A duplicate capture of the same version raises 23505 → VALIDATION_FAILED (the sent-state gate
-    // already blocks the common already-accepted case); a cross-tenant/FK/RLS reject → the mapper.
+    // The historic capture symbol is now a compatibility facade over the exact same atomic RPC as
+    // `acceptQuoteAndCreateJob`. It deliberately supplies no title/fault injection; those are not
+    // part of the old capture contract. The actor and correlation are explicit, trusted envelope
+    // values, never form fields.
+    const rpc = asAcceptAndCreateJobRpcClient(db);
+    const { data, error } = await rpc.rpc("accept_quote_and_create_job", {
+      p_tenant_id: ctx.tenantContext.tenantId,
+      p_quote_version_id: versionId,
+      p_accepted_at: input.accepted_at,
+      p_accepted_price_ore: input.accepted_price_ore,
+      p_source_sent_total_ore: source.source_sent_total_ore,
+      p_channel: input.channel ?? null,
+      p_adjustment_reason: input.adjustment_reason ?? null,
+      p_evidence_file_id: input.evidence_file_id ?? null,
+      p_evidence_reference: input.evidence_reference ?? null,
+      p_notes: input.notes ?? null,
+      p_planned_start_date: input.planned_start_date ?? null,
+      p_planned_end_date: input.planned_end_date ?? null,
+      p_title: null,
+      p_fault_inject: null,
+      p_actor_user_id: ctx.tenantContext.userId,
+      p_correlation_id: ctx.correlationId,
+    });
     if (error) throwMappedQuoteWriteError(error);
-    const acceptanceId = extractAcceptanceId(data);
-    if (acceptanceId === null) {
-      throw new Error("captureQuoteAcceptance: INSERT returned no acceptance id");
+    const result = extractAcceptAndCreateJobResult(data);
+    if (result === null) {
+      throw new Error("captureQuoteAcceptance: RPC returned no result");
     }
 
-    // ── EVIDENCE LINK (AC6) — for an uploaded evidence file, materialize the 8.1 file_links row
-    // ── (owner_type='quote_acceptance', purpose='acceptance_evidence') via the narrow RPC. Capture
-    // ── is single-shot, so exactly ONE link is created (no find-or-create needed — R-814 reuse).
-    if (typeof input.evidence_file_id === "string" && input.evidence_file_id.length > 0) {
-      const rpc = asFileRpcClient(db);
-      const { error: linkError } = await rpc.rpc("link_existing_file", {
-        p_tenant_id: ctx.tenantContext.tenantId,
-        p_file_id: input.evidence_file_id,
-        p_owner_type: "quote_acceptance",
-        p_owner_id: acceptanceId,
-        p_purpose: "acceptance_evidence",
-      });
-      if (linkError) throwMappedFileWriteError(linkError);
-    }
-
-    return { targetId: acceptanceId };
+    return { targetId: result.acceptanceId };
   },
-  // Audit allow-list is `{ targetId }` ONLY — NO price/channel/customer/evidence value.
-  auditFields: (_ctx, result) => ({ targetId: result.targetId }),
 });
-
-/** Extract the created acceptance id from the INSERT result (row array or single object). */
-function extractAcceptanceId(data: unknown): string | null {
-  const row = Array.isArray(data) ? data[0] : data;
-  if (row && typeof row === "object" && "id" in row) {
-    const id = (row as { id: unknown }).id;
-    if (typeof id === "string") return id;
-  }
-  return null;
-}

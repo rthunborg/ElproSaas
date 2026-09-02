@@ -45,6 +45,8 @@ function isUuidArray(v: unknown): v is string[] {
 export interface CreateQuoteVersionInput {
   readonly calculation_id: string;
   readonly attachment_file_ids: readonly string[];
+  readonly reviewed_snapshot_digest: string | null;
+  readonly reviewed_quote_capture_date: string | null;
 }
 
 export function validateCreateQuoteVersionFromCalculation(
@@ -59,11 +61,57 @@ export function validateCreateQuoteVersionFromCalculation(
     if (!isUuidArray(raw.attachment_file_ids)) return fail;
     attachmentFileIds = [...(raw.attachment_file_ids as string[])];
   }
+  const reviewedDigest = raw.reviewed_snapshot_digest;
+  const reviewedDate = raw.reviewed_quote_capture_date;
+  const hasReviewedDigest = reviewedDigest !== undefined && reviewedDigest !== null;
+  const hasReviewedDate = reviewedDate !== undefined && reviewedDate !== null;
+  if (hasReviewedDigest !== hasReviewedDate) return fail;
+  if (
+    hasReviewedDigest &&
+    (typeof reviewedDigest !== "string" ||
+      !/^[a-f0-9]{64}$/.test(reviewedDigest) ||
+      typeof reviewedDate !== "string" ||
+      !isIsoCalendarDate(reviewedDate))
+  ) {
+    return fail;
+  }
   return {
     ok: true,
     data: {
       calculation_id: raw.calculation_id as string,
       attachment_file_ids: attachmentFileIds,
+      reviewed_snapshot_digest: hasReviewedDigest ? reviewedDigest as string : null,
+      reviewed_quote_capture_date: hasReviewedDate ? reviewedDate as string : null,
+    },
+  };
+}
+
+/** Preview-confirmation input: unlike list-page direct creation, proof is mandatory. */
+export type CreateReviewedQuoteVersionInput = Omit<
+  CreateQuoteVersionInput,
+  "reviewed_snapshot_digest" | "reviewed_quote_capture_date"
+> & {
+  readonly reviewed_snapshot_digest: string;
+  readonly reviewed_quote_capture_date: string;
+};
+
+export function validateCreateReviewedQuoteVersionFromCalculation(
+  raw: unknown,
+): ValidationResult<CreateReviewedQuoteVersionInput> {
+  const validated = validateCreateQuoteVersionFromCalculation(raw);
+  if (
+    !validated.ok ||
+    validated.data.reviewed_snapshot_digest === null ||
+    validated.data.reviewed_quote_capture_date === null
+  ) {
+    return fail;
+  }
+  return {
+    ok: true,
+    data: {
+      ...validated.data,
+      reviewed_snapshot_digest: validated.data.reviewed_snapshot_digest,
+      reviewed_quote_capture_date: validated.data.reviewed_quote_capture_date,
     },
   };
 }
@@ -241,7 +289,8 @@ const LIFECYCLE_TRANSITIONS = new Set(["rejected", "expired", "superseded"]);
  */
 export interface CreateNewQuoteVersionInput {
   readonly quote_version_id: string;
-  readonly attachment_file_ids: readonly string[];
+  /** Undefined means use the server-derived eligible carry-forward default. */
+  readonly attachment_file_ids?: readonly string[];
 }
 
 export function validateCreateNewQuoteVersion(
@@ -249,9 +298,10 @@ export function validateCreateNewQuoteVersion(
 ): ValidationResult<CreateNewQuoteVersionInput> {
   if (!isRecord(raw)) return fail;
   if (!isUuidLike(raw.quote_version_id)) return fail;
-  // attachment_file_ids is OPTIONAL. When present it must be a bounded UUID array; an
-  // absent/empty value means "keep no attachments" (an empty list — the admin re-selects).
-  let attachmentFileIds: string[] = [];
+  // attachment_file_ids is OPTIONAL. When present it must be a bounded UUID array;
+  // an explicit empty list means the admin deselected all. Absence requests the
+  // server-derived eligible carry-forward default.
+  let attachmentFileIds: string[] | undefined;
   if (raw.attachment_file_ids !== undefined && raw.attachment_file_ids !== null) {
     if (!isUuidArray(raw.attachment_file_ids)) return fail;
     attachmentFileIds = [...(raw.attachment_file_ids as string[])];
@@ -260,7 +310,9 @@ export function validateCreateNewQuoteVersion(
     ok: true,
     data: {
       quote_version_id: raw.quote_version_id as string,
-      attachment_file_ids: attachmentFileIds,
+      ...(attachmentFileIds !== undefined
+        ? { attachment_file_ids: attachmentFileIds }
+        : {}),
     },
   };
 }
@@ -403,6 +455,11 @@ function isOptionalAcceptanceText(v: unknown): v is string | null | undefined {
   return typeof v === "string" && v.length <= ACCEPTANCE_TEXT_MAX;
 }
 
+/** An acceptance has zero or one evidence form: an uploaded file OR an external reference. */
+function hasExclusiveAcceptanceEvidence(raw: Record<string, unknown>): boolean {
+  return !(raw.evidence_file_id != null && raw.evidence_reference != null);
+}
+
 /** A required non-empty ISO-8601 date/timestamp string (the accepted / planned instants). */
 function isIsoDateString(v: unknown): v is string {
   if (typeof v !== "string") return false;
@@ -471,6 +528,7 @@ export function validateCaptureQuoteAcceptance(
     if (!isUuidLike(raw.evidence_file_id)) return fail;
   }
   if (!isOptionalAcceptanceText(raw.evidence_reference)) return fail;
+  if (!hasExclusiveAcceptanceEvidence(raw)) return fail;
   if (!isOptionalAcceptanceText(raw.notes)) return fail;
   if (!isOptionalIsoDateString(raw.planned_start_date)) return fail;
   if (!isOptionalIsoDateString(raw.planned_end_date)) return fail;
@@ -569,6 +627,7 @@ export function validateAcceptQuoteAndCreateJob(
     if (!isUuidLike(raw.evidence_file_id)) return fail;
   }
   if (!isOptionalAcceptanceText(raw.evidence_reference)) return fail;
+  if (!hasExclusiveAcceptanceEvidence(raw)) return fail;
   if (!isOptionalAcceptanceText(raw.notes)) return fail;
   if (!isOptionalIsoDateString(raw.planned_start_date)) return fail;
   if (!isOptionalIsoDateString(raw.planned_end_date)) return fail;

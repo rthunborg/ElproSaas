@@ -18,13 +18,15 @@
  * never inline). Kronor/percent at the input boundary; öre/rounding wording only in the totals
  * summary (AC6).
  */
-import { useActionState, useState, type ReactNode } from "react";
+import { useActionState, useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { FormErrorSummary, TextField } from "@/components/crm/FormField";
 import { SectionEditor } from "./SectionEditor";
 import { TotalsSummary } from "./TotalsSummary";
 import { ReadinessSummary } from "./ReadinessSummary";
 import { PreQuotePreview, type PreQuoteTerms } from "./PreQuotePreview";
+import { TaxSettingsPanel } from "./TaxSettingsPanel";
 import {
   archiveCalculationAction,
   createSectionAction,
@@ -38,18 +40,36 @@ import {
 import { moveDown, moveUp, toOrderedIds } from "@/features/calculations/ordering";
 import {
   computeCalcTotal,
+  computeLineTotal,
   resolveTotalDisplay,
 } from "@/features/calculations/totals";
 import { classifyReadiness } from "@/features/calculations/readiness";
+import { canAddCalculationRow, MAX_CALCULATION_ROWS } from "@/features/calculations/limits";
+import { resolveTaxReadiness } from "@/features/calculations/tax-readiness";
 import { resolveVatDisplayPosture } from "@/features/calculations/vat-posture";
 import type { CalculationDetail } from "@/features/calculations/read";
 import type { RowSourceLists } from "@/features/calculations/source-options";
-import type { VatDisplayMode, VatDisplayPosture } from "@/lib/money";
+import type {
+  DeductionClassification,
+  VatDisplayMode,
+  VatDisplayPosture,
+} from "@/lib/money";
 
 const STATUS_LABELS: Record<string, string> = {
   draft: "Utkast",
   ready: "Klar",
   archived: "Arkiverad",
+};
+
+const GREEN_SCOPE_CLASSIFICATION_LABELS: Partial<
+  Record<DeductionClassification, string>
+> = {
+  GREEN_SOLAR_LABOR: "Sol – arbete",
+  GREEN_SOLAR_MATERIAL: "Sol – material",
+  GREEN_STORAGE_LABOR: "Lagring – arbete",
+  GREEN_STORAGE_MATERIAL: "Lagring – material",
+  GREEN_CHARGING_LABOR: "Laddning – arbete",
+  GREEN_CHARGING_MATERIAL: "Laddning – material",
 };
 
 export function CalculationEditor({
@@ -58,6 +78,8 @@ export function CalculationEditor({
   defaultVatDisplay,
   vatPostureResolved,
   quoteTerms,
+  previewQuoteCaptureDate,
+  reviewedSnapshotDigest,
   filesPanel,
 }: {
   readonly detail: CalculationDetail;
@@ -69,6 +91,10 @@ export function CalculationEditor({
   readonly vatPostureResolved: boolean;
   /** The tenant's quote-terms for the pre-quote preview (null when none/unread). */
   readonly quoteTerms: PreQuoteTerms | null;
+  /** Server-rendered quote-capture date used by both preview policy and review token. */
+  readonly previewQuoteCaptureDate: string;
+  /** Server-generated digest of all customer-visible source semantics. */
+  readonly reviewedSnapshotDigest: string;
   /** The Story 8.2 entity file panel (calculation_attachment upload + list), when provided. */
   readonly filesPanel?: ReactNode;
 }) {
@@ -91,8 +117,25 @@ export function CalculationEditor({
     CALC_ACTION_INITIAL,
   );
   const [showAddSection, setShowAddSection] = useState(false);
+  const router = useRouter();
 
   const titleMine = titleState.form === "calculation";
+  useEffect(() => {
+    if (
+      titleState.status === "success" ||
+      sectionState.status === "success" ||
+      archiveState.status === "success" ||
+      sectionReorderState.status === "success"
+    ) {
+      router.refresh();
+    }
+  }, [
+    archiveState.status,
+    router,
+    sectionReorderState.status,
+    sectionState.status,
+    titleState.status,
+  ]);
 
   // Story 5.4 — RESOLVE the VAT display posture from the tenant setting (the inherited 5.2
   // Med deferral) via the PURE helper: a `private` customer → the always-incl invariant; a
@@ -106,14 +149,19 @@ export function CalculationEditor({
   const calcTotal = computeCalcTotal(
     sections.map((s) => ({
       rows: s.rows.map((r) => ({
+        row_type: r.row_type,
         quantity: r.quantity,
         unit_sell_ore: r.unit_sell_ore,
         vat_rate_bp: r.vat_rate_bp,
+        vat_type: r.vat_type,
+        included_in_invoice_total: r.included_in_invoice_total,
+        deduction_classification: r.deduction_classification,
         is_hidden: r.is_hidden,
         is_optional: r.is_optional,
         is_selected: r.is_selected,
       })),
     })),
+    previewQuoteCaptureDate,
   );
   // NEVER fabricate a plausible-looking zero when the engine fails (the AC4 money-display
   // risk): surface a failed-total state instead. `TotalsSummary` renders only when the
@@ -121,6 +169,75 @@ export function CalculationEditor({
   const view = calcTotal.ok
     ? resolveTotalDisplay(calcTotal.value, posture)
     : null;
+
+  const taxRows = sections.flatMap((section) =>
+    section.rows.map((row) => {
+      const line = computeLineTotal({
+        row_type: row.row_type,
+        quantity: row.quantity,
+        unit_sell_ore: row.unit_sell_ore,
+        vat_rate_bp: row.vat_rate_bp,
+        vat_type: row.vat_type,
+        included_in_invoice_total: row.included_in_invoice_total,
+        deduction_classification: row.deduction_classification,
+        is_hidden: row.is_hidden,
+        is_optional: row.is_optional,
+        is_selected: row.is_selected,
+      }, previewQuoteCaptureDate);
+      return {
+        id: row.id,
+        computationFailed: !line.ok,
+        netOre: line.ok ? line.value.netOre : 0,
+        vatType: row.vat_type,
+        rateBp: row.vat_rate_bp,
+        includedInInvoiceTotal: row.included_in_invoice_total,
+        deductionClassification: row.deduction_classification,
+        summaryCategory:
+          row.row_type === "labor"
+            ? "labor" as const
+            : row.row_type === "material"
+              ? "material" as const
+              : "other" as const,
+      };
+    }),
+  );
+  const taxResolution = resolveTaxReadiness({
+    taxInput: header.tax_input_snapshot,
+    rows: taxRows,
+    // Header revision is the server-projected calculation capture fact used for
+    // this preview. Payment dates resolve only ROT/green policy, never VAT.
+    quoteCaptureDate: previewQuoteCaptureDate,
+    customerEligibilityPosture:
+      customer.customer_type === "private" ||
+      customer.customer_type === "company" ||
+      customer.customer_type === "brf" ||
+      customer.customer_type === "public"
+        ? customer.customer_type
+        : "public",
+    hasInvalidRow: taxRows.some((row) => row.computationFailed),
+  });
+  const deductionChoice = header.tax_input_snapshot?.deductionChoice ?? "NONE";
+  const activeRowCount = sections.reduce(
+    (count, section) => count + section.rows.length,
+    0,
+  );
+  const canAddRow = canAddCalculationRow(activeRowCount);
+  const fixedPriceScopeRows = sections.flatMap((section) =>
+    section.rows
+      .filter(
+        (row) =>
+          row.included_in_invoice_total &&
+          GREEN_SCOPE_CLASSIFICATION_LABELS[row.deduction_classification] !== undefined,
+      )
+      .map((row) => ({
+        id: row.id,
+        label: [
+          section.title ?? "Namnlös sektion",
+          row.label ?? row.description ?? (row.row_type === "labor" ? "Arbetsrad" : "Materialrad"),
+          GREEN_SCOPE_CLASSIFICATION_LABELS[row.deduction_classification],
+        ].join(" · "),
+      })),
+  );
 
   // Story 5.4 — the PURE readiness report (blockers vs warnings). The classification lives in
   // fast-gate-protected `readiness.ts`; this island only DISPLAYS it and GATES the create-quote
@@ -141,6 +258,9 @@ export function CalculationEditor({
         unit_sell_ore: r.unit_sell_ore,
         unit_cost_ore: r.unit_cost_ore,
         vat_rate_bp: r.vat_rate_bp,
+        vat_type: r.vat_type,
+        included_in_invoice_total: r.included_in_invoice_total,
+        deduction_classification: r.deduction_classification,
         is_hidden: r.is_hidden,
         is_optional: r.is_optional,
         is_selected: r.is_selected,
@@ -149,7 +269,25 @@ export function CalculationEditor({
       })),
     })),
     vatPostureResolved,
-    tax: { hasDeductionAssumption: false },
+    tax: {
+      hasDeductionAssumption: deductionChoice !== "NONE",
+      deductionType:
+        deductionChoice === "ROT"
+          ? "rot"
+          : deductionChoice === "GREEN"
+            ? "gron_teknik"
+            : deductionChoice === "ROT_AND_GREEN"
+              ? "rot_and_gron_teknik"
+              : undefined,
+      eligibilityPosture:
+        customer.customer_type === "private" ||
+        customer.customer_type === "company" ||
+        customer.customer_type === "brf" ||
+        customer.customer_type === "public"
+          ? customer.customer_type
+          : undefined,
+      blockingCodes: taxResolution.blockingCodes,
+    },
   });
 
   // Server-owned section ordering (R-503): move-up/down computes the new ordered-id array
@@ -246,6 +384,12 @@ export function CalculationEditor({
         </form>
       </header>
 
+      <TaxSettingsPanel
+        calculationId={header.id}
+        value={header.tax_input_snapshot}
+        fixedPriceScopeRows={fixedPriceScopeRows}
+      />
+
       {/* Workspace: sections (left/center) + totals summary (right on desktop). */}
       <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
         <div className="flex flex-1 flex-col gap-4">
@@ -259,6 +403,17 @@ export function CalculationEditor({
               {sectionReorderRetryable ? " Försök igen." : ""}
             </p>
           )}
+
+          {!canAddRow ? (
+            <p
+              role="status"
+              data-testid="calculation-row-limit"
+              className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900"
+            >
+              Kalkylen har nått gränsen på {MAX_CALCULATION_ROWS} aktiva rader. Ta bort en rad
+              innan du lägger till en ny.
+            </p>
+          ) : null}
 
           {sections.length === 0 ? (
             <p data-testid="sections-empty" className="text-sm text-zinc-600">
@@ -316,6 +471,8 @@ export function CalculationEditor({
                   calculationId={header.id}
                   sources={sources}
                   posture={posture}
+                  policyEffectiveDate={previewQuoteCaptureDate}
+                  canAddRow={canAddRow}
                 />
               </div>
             ))
@@ -380,6 +537,9 @@ export function CalculationEditor({
             total={calcTotal.ok ? calcTotal.value : null}
             view={view}
             quoteTerms={quoteTerms}
+            taxAnswer={taxResolution.answer}
+            quoteCaptureDate={previewQuoteCaptureDate}
+            reviewedSnapshotDigest={reviewedSnapshotDigest}
           />
         </div>
       </div>
@@ -398,6 +558,9 @@ export function CalculationEditor({
           total={calcTotal.ok ? calcTotal.value : null}
           view={view}
           quoteTerms={quoteTerms}
+          taxAnswer={taxResolution.answer}
+          quoteCaptureDate={previewQuoteCaptureDate}
+          reviewedSnapshotDigest={reviewedSnapshotDigest}
         />
       </div>
 

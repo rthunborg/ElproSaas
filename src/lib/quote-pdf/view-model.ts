@@ -41,13 +41,14 @@
  *  src/features/quotes/view-model.ts (the 6.2 leakage-by-construction precedent);
  *  src/features/calculations/readiness.ts (the REAL ReadinessCode union)]
  */
-import { formatOreAsKronor } from "@/lib/money";
+import { formatOreAsKronor, type GreenCategory } from "@/lib/money";
 import type {
   QuoteVersionAttachmentSnapshot,
   QuoteVersionLineSnapshot,
   QuoteVersionSnapshot,
   QuoteVersionWarningSnapshot,
 } from "@/lib/quote-snapshot";
+import { adaptQuoteTaxSnapshot } from "@/lib/quote-snapshot";
 
 /**
  * A customer-visible PDF line — the ONLY line fields the PDF renders. Money is PRE-FORMATTED to
@@ -70,6 +71,9 @@ export interface QuotePdfLine {
   readonly lineNetKronor: string | null;
   /** The row VAT rate as a percent string (from the frozen basis points). */
   readonly vatRatePercent: string | null;
+  readonly includedInInvoiceTotal?: boolean | null;
+  readonly deductionClassification?: string | null;
+  readonly vatType?: string | null;
   readonly isHidden: boolean;
   readonly isOptional: boolean;
   readonly isSelected: boolean | null;
@@ -103,6 +107,91 @@ export interface QuotePdfTaxAssumptions {
    */
   readonly deductionPersons: number | null;
 }
+
+export interface QuotePdfTaxCategory {
+  readonly vatType: string;
+  readonly label: string;
+  readonly ratePercent: string;
+  readonly netKronor: string;
+  readonly vatKronor: string;
+  readonly grossKronor: string;
+}
+
+export interface QuotePdfTaxSummary {
+  readonly netKronor: string;
+  readonly vatKronor: string;
+  readonly grossKronor: string;
+}
+
+export interface QuotePdfResolvedPolicy {
+  readonly id: string;
+  readonly validFrom: string;
+  readonly validTo: string | null;
+  readonly resolvingDate: string;
+  readonly resolvingFact: string;
+}
+
+export interface QuotePdfPersonAllocation {
+  readonly slot: string;
+  readonly kronor: string;
+}
+
+type QuotePdfTaxAnswerCommon = Readonly<{
+  vatKronor: string;
+  deductionKronor: string;
+  payableKronor: string;
+}>;
+
+/** V1 exposes only scalars that were literally frozen; unavailable derived facts stay null. */
+export type QuotePdfTaxAnswer = QuotePdfTaxAnswerCommon & (
+  | Readonly<{
+      source: "legacy-v1";
+      deductionChoice: null;
+      netKronor: null;
+      grossKronor: null;
+      calculatedDeductionKronor: null;
+      claimDeductionKronor: null;
+      categories: readonly [];
+      summaries: null;
+      rot: null;
+      green: null;
+    }>
+  | Readonly<{
+      source: "v2";
+      deductionChoice: string;
+      netKronor: string;
+      grossKronor: string;
+      calculatedDeductionKronor: string;
+      claimDeductionKronor: string;
+      categories: readonly QuotePdfTaxCategory[];
+      summaries: Readonly<{
+        labor: QuotePdfTaxSummary;
+        material: QuotePdfTaxSummary;
+        other: QuotePdfTaxSummary;
+      }>;
+      rot: Readonly<{
+        policy: QuotePdfResolvedPolicy | null;
+        basisNetKronor: string;
+        allocatedVatKronor: string;
+        basisKronor: string;
+        calculatedKronor: string;
+        claimKronor: string;
+        allocations: readonly QuotePdfPersonAllocation[];
+      }>;
+      green: Readonly<{
+        policy: QuotePdfResolvedPolicy | null;
+        basisMethod: string;
+        categories: Readonly<Record<GreenCategory, Readonly<{
+          basisKronor: string;
+          calculatedKronor: string;
+          claimKronor: string;
+        }>>>;
+        calculatedKronor: string;
+        claimKronor: string;
+        allocations: readonly QuotePdfPersonAllocation[];
+      }>;
+    }>
+);
 
 /** A customer-visible warning DISPLAYED verbatim (the REAL ReadinessCode codes; no PII). */
 export interface QuotePdfWarning {
@@ -159,6 +248,11 @@ export interface QuotePdfViewModel {
   // ── Totals + VAT/tax assumptions (read verbatim; non-final framing). ──
   readonly totals: QuotePdfTotals;
   readonly taxAssumptions: QuotePdfTaxAssumptions;
+  readonly snapshotSchemaVersion?: number | null;
+  readonly buyerVatNumber?: string | null;
+  readonly payableOre?: number | null;
+  readonly reverseChargeText?: string | null;
+  readonly taxAnswer?: QuotePdfTaxAnswer;
 
   // ── Selected attachment metadata list. ──
   readonly attachments: readonly QuotePdfAttachment[];
@@ -181,6 +275,40 @@ export interface QuotePdfViewModel {
 function kronorOrNull(ore: number | null | undefined): string | null {
   if (ore === null || ore === undefined) return null;
   return formatOreAsKronor(ore);
+}
+
+function groupedKronor(ore: number): string {
+  const formatted = formatOreAsKronor(ore);
+  const [kronor, fraction] = formatted.split(",");
+  const grouped = kronor.replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+  return `${grouped},${fraction ?? "00"}`;
+}
+
+function taxSummaryOf(summary: {
+  readonly netOre: number;
+  readonly vatOre: number;
+  readonly grossOre: number;
+}): QuotePdfTaxSummary {
+  return {
+    netKronor: groupedKronor(summary.netOre),
+    vatKronor: groupedKronor(summary.vatOre),
+    grossKronor: groupedKronor(summary.grossOre),
+  };
+}
+
+function vatTypeLabel(vatType: string): string {
+  switch (vatType) {
+    case "STANDARD_VAT_25":
+      return "Standardmoms";
+    case "REDUCED_VAT":
+      return "Reducerad moms";
+    case "ZERO_RATED":
+      return "Momsfri omsättning";
+    case "REVERSE_CHARGE_CONSTRUCTION":
+      return "Omvänd betalningsskyldighet";
+    default:
+      return vatType;
+  }
 }
 
 /**
@@ -211,6 +339,9 @@ function toPdfLine(line: QuoteVersionLineSnapshot): QuotePdfLine {
     unitSellKronor: kronorOrNull(line.unitSellOre),
     lineNetKronor: kronorOrNull(line.lineNetOre),
     vatRatePercent: bpToPercentOrNull(line.vatRateBp),
+    includedInInvoiceTotal: line.includedInInvoiceTotal,
+    deductionClassification: line.deductionClassification,
+    vatType: line.vatType,
     isHidden: line.isHidden,
     isOptional: line.isOptional,
     isSelected: line.isSelected,
@@ -251,6 +382,99 @@ export function buildQuotePdfViewModel(
     .sort((a, b) => a.sortOrder - b.sortOrder)
     .map(toPdfAttachment);
   const warnings = snapshot.warnings.map(toPdfWarning);
+  const tax = adaptQuoteTaxSnapshot({
+    snapshotSchemaVersion: snapshot.snapshotSchemaVersion,
+    taxRuleVersion: snapshot.taxRuleVersion,
+    taxAnswerSnapshot: snapshot.taxAnswerSnapshot,
+    buyerVatNumber: snapshot.buyerVatNumber,
+    calculatedDeductionOre: snapshot.calculatedDeductionOre,
+    claimDeductionOre: snapshot.claimDeductionOre,
+    payableOre: snapshot.payableOre,
+    vatOre: snapshot.vatTotalOre,
+    deductionOre: snapshot.deductionTotalOre,
+    acceptedPriceOre: snapshot.acceptedPriceOre,
+  });
+  if (!tax.ok) throw new TypeError("Invalid V2 quote tax snapshot");
+  const frozen = tax.value;
+  const pdfTaxAnswer: QuotePdfTaxAnswer = frozen.source === "legacy-v1"
+    ? {
+        source: "legacy-v1",
+        deductionChoice: null,
+        netKronor: null,
+        vatKronor: groupedKronor(frozen.vatOre),
+        grossKronor: null,
+        calculatedDeductionKronor: null,
+        claimDeductionKronor: null,
+        deductionKronor: groupedKronor(frozen.deductionOre),
+        payableKronor: groupedKronor(frozen.payableOre),
+        categories: [],
+        summaries: null,
+        rot: null,
+        green: null,
+      }
+    : {
+        source: "v2",
+        deductionChoice: frozen.taxAnswer.deductionChoice,
+        netKronor: groupedKronor(frozen.netOre),
+        vatKronor: groupedKronor(frozen.vatOre),
+        grossKronor: groupedKronor(frozen.grossOre),
+        calculatedDeductionKronor: groupedKronor(frozen.calculatedDeductionOre),
+        claimDeductionKronor: groupedKronor(frozen.claimDeductionOre),
+        deductionKronor: groupedKronor(frozen.deductionOre),
+        payableKronor: groupedKronor(frozen.payableOre),
+        categories: frozen.categories.map((category) => ({
+          vatType: category.vatType,
+          label: vatTypeLabel(category.vatType),
+          ratePercent: bpToPercentOrNull(category.rateBp) ?? "0",
+          netKronor: groupedKronor(category.netOre),
+          vatKronor: groupedKronor(category.vatOre),
+          grossKronor: groupedKronor(category.grossOre),
+        })),
+        summaries: {
+          labor: taxSummaryOf(frozen.summaries.labor),
+          material: taxSummaryOf(frozen.summaries.material),
+          other: taxSummaryOf(frozen.summaries.other),
+        },
+        rot: {
+          policy: frozen.taxAnswer.rot.policy,
+          basisNetKronor: groupedKronor(frozen.taxAnswer.rot.basisNetOre),
+          allocatedVatKronor: groupedKronor(frozen.taxAnswer.rot.allocatedVatOre),
+          basisKronor: groupedKronor(frozen.taxAnswer.rot.basisOre),
+          calculatedKronor: groupedKronor(frozen.taxAnswer.rot.calculatedOre),
+          claimKronor: groupedKronor(frozen.taxAnswer.rot.claimOre),
+          allocations: frozen.taxAnswer.rot.allocations.map((allocation) => ({
+            slot: allocation.slot,
+            kronor: groupedKronor(allocation.ore),
+          })),
+        },
+        green: {
+          policy: frozen.taxAnswer.green.policy,
+          basisMethod: frozen.taxAnswer.green.basisMethod,
+          categories: {
+            SOLAR: {
+              basisKronor: groupedKronor(frozen.taxAnswer.green.categories.SOLAR.basisOre),
+              calculatedKronor: groupedKronor(frozen.taxAnswer.green.categories.SOLAR.calculatedOre),
+              claimKronor: groupedKronor(frozen.taxAnswer.green.categories.SOLAR.claimOre),
+            },
+            STORAGE: {
+              basisKronor: groupedKronor(frozen.taxAnswer.green.categories.STORAGE.basisOre),
+              calculatedKronor: groupedKronor(frozen.taxAnswer.green.categories.STORAGE.calculatedOre),
+              claimKronor: groupedKronor(frozen.taxAnswer.green.categories.STORAGE.claimOre),
+            },
+            CHARGING: {
+              basisKronor: groupedKronor(frozen.taxAnswer.green.categories.CHARGING.basisOre),
+              calculatedKronor: groupedKronor(frozen.taxAnswer.green.categories.CHARGING.calculatedOre),
+              claimKronor: groupedKronor(frozen.taxAnswer.green.categories.CHARGING.claimOre),
+            },
+          },
+          calculatedKronor: groupedKronor(frozen.taxAnswer.green.calculatedOre),
+          claimKronor: groupedKronor(frozen.taxAnswer.green.claimOre),
+          allocations: frozen.taxAnswer.green.allocations.map((allocation) => ({
+            slot: allocation.slot,
+            kronor: groupedKronor(allocation.ore),
+          })),
+        },
+      };
 
   return {
     companyName: snapshot.companyName,
@@ -281,19 +505,26 @@ export function buildQuotePdfViewModel(
     totals: {
       baseKronor: formatOreAsKronor(snapshot.baseTotalOre),
       optionKronor: formatOreAsKronor(snapshot.optionTotalOre),
-      vatKronor: formatOreAsKronor(snapshot.vatTotalOre),
-      deductionKronor: formatOreAsKronor(snapshot.deductionTotalOre),
-      acceptedPriceKronor: formatOreAsKronor(snapshot.acceptedPriceOre),
+      vatKronor: formatOreAsKronor(frozen.vatOre),
+      deductionKronor: formatOreAsKronor(frozen.deductionOre),
+      acceptedPriceKronor: formatOreAsKronor(frozen.payableOre),
     },
 
     taxAssumptions: {
-      vatRatePercent: bpToPercentOrNull(snapshot.vatRateBp),
+      // V2 VAT truth is the frozen category list. A scalar tenant standard rate is misleading
+      // for pure reverse-charge/non-standard documents and redundant for mixed documents.
+      vatRatePercent: frozen.source === "v2" ? null : bpToPercentOrNull(snapshot.vatRateBp),
       vatDisplay: snapshot.vatDisplay,
       deductionType: snapshot.deductionType,
       deductionRatePercent: bpToPercentOrNull(snapshot.deductionRateBp),
       deductionCapKronor: kronorOrNull(snapshot.deductionCapOre),
       deductionPersons: snapshot.deductionPersons,
     },
+    snapshotSchemaVersion: snapshot.snapshotSchemaVersion ?? null,
+    buyerVatNumber: frozen.buyerVatNumber,
+    payableOre: frozen.payableOre,
+    reverseChargeText: frozen.reverseChargeApplied ? "Omvänd betalningsskyldighet" : null,
+    taxAnswer: pdfTaxAnswer,
 
     attachments,
     warnings,
@@ -314,6 +545,9 @@ export const QUOTE_PDF_LINE_KEYS: readonly (keyof QuotePdfLine)[] = [
   "unitSellKronor",
   "lineNetKronor",
   "vatRatePercent",
+  "includedInInvoiceTotal",
+  "deductionClassification",
+  "vatType",
   "isHidden",
   "isOptional",
   "isSelected",

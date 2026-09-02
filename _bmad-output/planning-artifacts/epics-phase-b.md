@@ -284,10 +284,10 @@ Epic identity and wave membership are ratified (session §2/§4/§6); goals rest
 
 Säljare close the quote loop: Förlorad/Avböjd with reasons, follow-up workflow, and pipeline visibility — after Story 10.1 delivers the one-time Phase B governance re-baseline (scope manifest per ADR-B003) before any module story.
 
-**FRs covered:** FR62, FR63, FR64, FR65 (+FR129/FR130 anchored by Story 10.1)
-**Primary NFR coverage:** NFR51; carried NFR11 (sent immutability) untouched
+**FRs covered:** FR62, FR63, FR64, FR65, FR65A, FR65B (+FR129/FR130 anchored by Story 10.1)
+**Primary NFR coverage:** NFR51, NFR56; carried NFR11 (sent immutability) untouched
 **Natural dependencies:** None (deliberately small first epic, PB-D3). Story 10.1 precedes every other Phase B story.
-**Activation:** No new module — quotes are Phase A-active; Story 10.1 introduces the manifest itself with Phase A as the initial active set; 10.2/10.3 enroll the new quote tables under the active quotes module in the same PRs.
+**Activation:** No new module — quotes are Phase A-active; Story 10.1 introduces the manifest itself with Phase A as the initial active set; Stories 10.2/10.3/10.8 enroll their new quote tables (`quote_lost_reasons`, `quote_follow_ups`, and `quote_review_authorizations`) under the active quotes module, H4, and exact-policy enumeration in the same PRs.
 **Oracle checks:** Förlorad vs Avböjd distinction; lost-reason category list (UXB-A5).
 
 #### Story 10.6: Tax-Answer Reconciliation — VAT rounding scope, deduction classification, reverse charge (owner/accountant answers 2026-07-26)
@@ -345,6 +345,72 @@ so that losing connectivity does not lose my time, materials, photos, or checkli
 ### AC7 — Local storage is **scoped** (assigned/selected jobs only, never the tenant database), minimised, time-boxed, purged on logout where feasible, and under the same permission checks as online reads. Admin/economy/settings surfaces may require connectivity.
 
 **Security/RLS Impact:** HIGH — tenant data at rest on devices; scoping and purge are security properties. **Dependencies:** E14-E16 field surfaces. **Stop Conditions:** stop if offline scope would require caching data the user lacks permission to read online. Likely warrants its own ADR.
+
+### Story 10.8: Quote Review Provenance, Authority, and Audit (ADR-B008)
+
+As an authenticated tenant business user,
+I want a bounded attestation to exact server-validated quote content,
+so that quote creation, successor creation, and send have accountable authority without claiming that a UI proves attention.
+
+### AC1 — Authenticated, content-bound attestation
+**Given** a user performs initial creation, successor creation, final review, or send
+**When** review authority is required
+**Then** the server validates the exact content and records the authenticated actor's explicit attestation
+**And** the system neither treats a browser interaction as proof of attention nor requires a second reviewer.
+
+### AC2 — One-time authority with change invalidation
+**Given** a review authorization was issued
+**When** it is reused, older than 15 minutes, or source/attachment/customer-visible content changes
+**Then** it is rejected and a fresh review is required.
+
+### AC3 — Server boundary and atomic audit
+**Given** a quote lifecycle mutation succeeds
+**When** the mutation commits
+**Then** actor and correlation audit evidence commits atomically with it
+**And** authenticated direct DML/bypass and the obsolete digest overload cannot substitute for this authority.
+
+**Technical Notes:** Until Epic 11 activates, `tenant_admin` is the authority. **SEAM (supporting infrastructure, final task):** Epic 11 maps `Quotes.Create`, `Quotes.Approve`, and `Quotes.Send`; the same user may hold all three. Narrow, hardened `SECURITY DEFINER` functions are permitted only if needed to enforce this review-authority boundary. Review authority is explicitly non-HMAC. The separate server-side HMAC byte attestation is owned by Story 10.9 as a PDF-byte activation prerequisite/consumer, not as 10.8 authority. Service-role authority/access remains forbidden.
+
+**Test Requirements:** Unit/command/integration/RLS negatives for expiry, reuse, altered content, cross-tenant attempts, removed bypasses, and atomic audit rollback.
+
+**Security/RLS Impact:** High. **Dependencies:** Stories 10.1–10.6. **Stop Conditions:** stop if a proposed solution needs UI-attention inference, client service-role access, or unauthenticated privilege.
+
+### Story 10.9: Quote PDF Validity and Attachment Carry-Forward (ADR-B008)
+
+As a quote user,
+I want every sent quote to use a current PDF and successors to start with eligible predecessor attachments,
+so that customer-visible material is coherent across draft edits and versioning.
+
+### AC1 — Current PDF is a send precondition
+**Given** customer-visible draft content changes
+**When** the edit is saved
+**Then** the active PDF is invalidated
+**And** send rejects missing, stale, or fingerprint-mismatched PDF output until a current PDF is generated.
+
+### AC2 — Obsolete PDF reference is archived, not deleted
+**Given** a current PDF is superseded
+**When** it is invalidated or replaced
+**Then** its active reference is archived/unlinked, bytes are retained, and normal signed access refuses the archived file.
+
+### AC3 — Eligible attachment carry-forward
+**Given** a successor is created
+**When** predecessor attachments are evaluated against the current calculation
+**Then** all active eligible attachments are preselected, may be deselected/reselected, and reuse immutable bytes without copying
+**And** archived or ineligible attachments are omitted with a warning.
+
+### AC4 — Customer-facing tax/PDF wording correction
+**Given** a policy window has exclusive `validTo`
+**When** rendered to a customer
+**Then** wording does not present that boundary as inclusive
+**And** fixed-price green inputs are gross including VAT before 97%; ROT+green uses disjoint allowance, insufficient allowance blocks, and reverse charge is mutually exclusive with deductions.
+
+**Technical Notes (superseded for current activation):** the historic reservation/checksum wording is replaced by ADR-B008. Option A's database-issued render/file ID and immutable `files.artifact_kind='quote_pdf'` reservation remain, but completion/send now require the separate server-only HMAC-SHA256 attestation verified in PostgreSQL/`pgcrypto` against matching Vault secret `quote_pdf_attestation_<key-id>`. The HMAC binds the ADR-B008 identity/content/storage/correlation/key/time-window fields, is never returned/logged/persisted, and fails closed; review authority is separate and non-HMAC. No Edge Function, service role/elevated Storage credential, or client bypass.
+
+**DEFERRED:** physical byte reclamation, legal retention periods, and deletion workflows remain E31 / B2→B3 work; carry-forward is not a retention implementation commitment.
+
+**Test Requirements:** Command/integration/RLS proof for PDF invalidation/send gate, archive access denial, attachment eligibility/reselection/reuse, and tax/PDF wording edges.
+
+**Security/RLS Impact:** High. **Dependencies:** Stories 10.6 and 10.8. **Stop Conditions:** stop if the change would hard-delete bytes or broaden normal signed access to archived files.
 
 ## Epic 11 [Wave B1a]: RBAC Mechanism and Admin User Management
 
@@ -584,9 +650,9 @@ Export customers, articles, and invoice bases to Fortnox with per-record status,
 
 **Epic goal:** Warm up the Phase B pipeline on a deliberately small epic (PB-D3): land the one-time governance re-baseline first, then complete the owner-confirmed quote status set with lost/declined lifecycle, follow-ups, and pipeline surfacing.
 
-**Scope:** Story 10.1 re-baseline (AGENTS.md/docs/process/phase-scope-reviewer + scope manifest + derivations + coherence validator); Förlorad/Avböjd with reasons; follow-up workflow; quote-list and read-model surfacing for the dashboard.
+**Scope:** Story 10.1 re-baseline (AGENTS.md/docs/process/phase-scope-reviewer + scope manifest + derivations + coherence validator); Förlorad/Avböjd with reasons; follow-up workflow; quote-list and read-model surfacing for the dashboard; the approved 10.8/10.9 provenance/authority/audit, current-PDF, and attachment carry-forward correction (ADR-B008).
 
-**Explicit non-scope:** Any mutation of sent snapshots; a separate analytics page (PB-D7); email reminders (E13 registers the producer; sending activates per N-6); dashboard widget rendering (E19).
+**Explicit non-scope:** Any mutation of sent snapshots; a separate analytics page (PB-D7); email reminders (E13 registers the producer; sending activates per N-6); dashboard widget rendering (E19); global physical file reclamation/legal retention (E31 / B2→B3).
 
 **Dependencies:** None. Story 10.1 precedes every other Phase B story.
 
@@ -851,6 +917,68 @@ so that a direct table-API call cannot forge or corrupt follow-up/lost state, an
 **Dependencies:** Stories 10.1–10.4 (the tables and read-model it hardens).
 
 **Stop Conditions Requiring Human Approval:** Stop if enforcing an AC would require weakening an existing Epic-10 guard, or if a constraint would break the shipped RPC paths (the RPC must remain the sanctioned way to reach these states).
+
+### Story 10.8: Quote Review Provenance, Authority, and Audit (ADR-B008)
+
+As an authenticated tenant business user, I want a bounded attestation to exact server-validated quote content, so that quote creation, successor creation, and send have accountable authority without claiming that a UI proves attention.
+
+**Acceptance Criteria:**
+
+### AC1 — Authenticated, content-bound attestation
+**Given** a user performs initial creation, successor creation, final review, or send
+**When** review authority is required
+**Then** the server validates the exact content and records the authenticated actor's explicit attestation
+**And** the system neither treats a browser interaction as proof of attention nor requires a second reviewer.
+
+### AC2 — One-time authority with change invalidation
+**Given** a review authorization was issued
+**When** it is reused, older than 15 minutes, or source/attachment/customer-visible content changes
+**Then** it is rejected and a fresh review is required.
+
+### AC3 — Server boundary and atomic audit
+**Given** a quote lifecycle mutation succeeds
+**When** the mutation commits
+**Then** actor and correlation audit evidence commits atomically with it
+**And** authenticated direct DML/bypass and the obsolete digest overload cannot substitute for this authority.
+
+**Technical Notes:** `tenant_admin` is temporary authority until Epic 11. **SEAM:** `Quotes.Create`, `Quotes.Approve`, `Quotes.Send`; one user may hold all. A narrowly hardened `SECURITY DEFINER` function is permitted only where needed for this boundary. Review authority is non-HMAC; the separate server-only HMAC is required only for Story 10.9 PDF-byte activation. Service-role authority is not.
+**Test Requirements:** Unit, command, integration, and RLS negatives for expiry, reuse, changed content, tenant isolation, bypass removal, and atomic-audit rollback.
+**Security/RLS Impact:** High. **Dependencies:** Stories 10.1–10.6. **Stop Conditions:** UI-attention inference, client service-role access, or unauthenticated privilege.
+
+### Story 10.9: Quote PDF Validity and Attachment Carry-Forward (ADR-B008)
+
+As a quote user, I want every sent quote to use a current PDF and successors to start with eligible predecessor attachments, so that customer-visible material is coherent across edits and versions.
+
+**Acceptance Criteria:**
+
+### AC1 — Current PDF is a send precondition
+**Given** customer-visible draft content changes
+**When** the edit is saved
+**Then** the active PDF is invalidated
+**And** send rejects missing, stale, or fingerprint-mismatched PDF output until a current PDF is generated.
+
+### AC2 — Obsolete PDF reference is archived, not deleted
+**Given** a current PDF is superseded
+**When** it is invalidated or replaced
+**Then** its active reference is archived/unlinked, bytes are retained, and normal signed access refuses the archived file.
+
+### AC3 — Eligible attachment carry-forward
+**Given** a successor is created
+**When** predecessor attachments are evaluated against the current calculation
+**Then** all active eligible attachments are preselected, may be deselected/reselected, and reuse immutable bytes without copying
+**And** archived or ineligible attachments are omitted with a warning.
+
+### AC4 — Customer-facing tax/PDF wording correction
+**Given** a policy window has exclusive `validTo`
+**When** rendered to a customer
+**Then** wording does not present that boundary as inclusive
+**And** fixed-price green inputs are gross including VAT before 97%; ROT+green uses disjoint allowance, insufficient allowance blocks, and reverse charge is mutually exclusive with deductions.
+
+**Technical Notes:** `start_quote_pdf_render` issues the sole render/file ID. The narrow authenticated `reserve_quote_pdf_file` RPC reserves immutable metadata before the first non-upsert Storage upload and is the only authenticated route that may set nullable `files.artifact_kind='quote_pdf'`; generic files remain `NULL`. A reserved draft quote PDF is not signable. Completion/send verify Storage existence/system MIME/size and a separate server-only short-lived HMAC-SHA256 byte attestation in PostgreSQL/`pgcrypto` against matching Vault secret `quote_pdf_attestation_<key-id>`. The HMAC binds tenant, actor, version, render/file, current fingerprint, bucket/path, checksum, size, MIME, correlation, key, and time window; it is never returned/logged/persisted and fails closed. Review authorization is non-HMAC. Render start is correlation-idempotent with a five-minute lease and response-loss reconciliation preserves a current generated PDF. No Edge Function, service role/elevated Storage credential, or client bypass.
+
+**DEFERRED:** physical reclamation, legal retention periods, and deletion workflow remain E31 / B2→B3; carry-forward is not a retention implementation commitment.
+**Test Requirements:** Command/integration/RLS proof for invalidation, send gate, archive denial, eligibility/reselection/reuse, and tax/PDF wording edges.
+**Security/RLS Impact:** High. **Dependencies:** Stories 10.6 and 10.8. **Stop Conditions:** hard deletion or broadened signed access to archived files.
 
 ## Epic 11 [Wave B1a]: RBAC Mechanism and Admin User Management
 
@@ -1593,6 +1721,7 @@ AC sketch: exactly six widgets on live B1 data (PB-A11): `Offertpipeline` (E10 r
 - Story 31.4 (candidate): `Min sida` — employee self-service (own profile, bookings, assigned assets, documents, authenticated suggestion box).
 - Story 31.5 (candidate): GDPR deletion-request workflow — formal request → status tracker, authenticated + audited processing via ADR-B002, over the N-10 states `Received → IdentityVerificationRequired → UnderAssessment → PartiallyApproved | Approved | Rejected → Executed → Closed`, honouring `LegalHold` and the central versioned retention policy (architecture §12B).
 - Story 31.6 (candidate): HR data migration — **VOID (owner decision 2026-07-20: no Lovable→app data migration; parallel-run cutover). Do not create this story.**
+- Story 31.7 (candidate): Retention enforcement + physical Storage reclamation — after 31.5 establishes the central versioned policy, implement tenant-scoped dry-run/execute batches that delete only policy-expired, unlinked bytes with no `LegalHold`; re-authorize every batch, make retries idempotent, record per-object audit outcomes, and prove cross-tenant/held/current/linked files cannot be reclaimed. This is technical enforcement only; legal retention periods and customer-facing legal wording remain owner-approved inputs, not application guesses.
 
 ## Epic 32 [Wave B3]: Notes and CRM Completions — candidates
 
@@ -1626,7 +1755,7 @@ AC sketch: exactly six widgets on live B1 data (PB-A11): `Offertpipeline` (E10 r
 ## Validation Summary
 
 - **FR coverage:** FR62–FR130 all mapped (FR Coverage Map above); FR129/FR130 anchored in Story 10.1 and re-exercised by every activation story. No FR is uncovered; B2/B3 coarse FRs map to candidate epics and are re-verified when expanded at their checkpoint.
-- **Depth per PB-D10:** B1a = 15 full stories with complete acceptance criteria (Epic 10: 4, Epic 11: 4, Epic 12: 3, Epic 13: 4); B1b = 25 sketched stories (Epic 14: 4, Epic 15: 6, Epic 16: 5, Epic 17: 4, Epic 18: 4, Epic 19: 2); B2 = 32 candidates (Epics 20–26); B3 = 30 candidates (Epics 27–34). Total 102 story slots across 25 epics.
+- **Depth per PB-D10:** B1a = 20 full stories with complete acceptance criteria (Epic 10: 9, including corrective Stories 10.8/10.9; Epic 11: 4, Epic 12: 3, Epic 13: 4); B1b = 25 sketched stories (Epic 14: 4, Epic 15: 6, Epic 16: 5, Epic 17: 4, Epic 18: 4, Epic 19: 2); B2 = 32 candidates (Epics 20–26); B3 = 31 candidates (Epics 27–34, including retention-enforcement Story 31.7). Total 108 story slots across 25 epics.
 - **Sequencing:** Story 10.1 first overall; within B1a: E10 → E11 → E12 → E13; RBAC precedes all of B1b (PB-D2); scheduling does not wait for jobs depth (PB-D12); E26 closes B2 (PB-D11); Fortnox spike during B2 (26.5); no forward dependencies inside any epic (stories build only on previous stories or previous epics; cross-epic seams — follow-up producer in 13.2, Mina jobb section in 15.6, warranty/DoU consumers — are explicitly one-directional).
 - **Gate banners placed:** ADR-B006 banner on Epics 16–18 (stories finalized at gate close); N-4 on Story 11.2 and the Roles surface; N-2 on Story 12.3/FR76; N-6 on Story 13.4 (dark); N-3 on E14/E15 field-UX stories; N-9 on conflict-rule fixtures (14.3/15.1); N-5 + tax gates on E26; N-7 on E29; N-8 on E27/E28; N-10 on 31.5; N-1 on every B2/B3 migration story; ADR-B004 on 15.5/22.4/13.4; ADR-B005-final on E33/E34.
 - **Epic independence:** each epic delivers complete functionality for its slice using only earlier epics; gated epics (16–18, 33–34) block only themselves; no epic requires a later epic to function.
@@ -1655,6 +1784,7 @@ Judgment calls made in this non-interactive run. None re-litigates a ratified de
 | EB-A15 | Data-migration candidate stories are placed only on B2/B3 module epics (N-1 round-2 scope per session §9.3); B1a/B1b modules (quotes delta, scheduling, jobs depth) take migration decisions through the same N-1 lens at their wave checkpoints if legacy data exists (e.g. legacy bookings/time data is explicitly in the N-1 list — hooks noted, stories added at the checkpoint). | accepted; checkpoint item |
 
 ## Open Items for Sprint Planning
+
 
 1. **Sequence Story 10.1 as the first pipeline story** and block every other Phase B story behind it (AC-B1a-6). The `project-context.md` refresh (document plan item 10) should follow immediately after 10.1 merges.
 2. **ADR-B006 recording:** schedule the ADR write-up immediately after the owner möte (`7.1`/`7.3`); then finalize E16–E18 stories from the sketches (architecture §8.1 options table is the hand-out). Until then, plan B1b around E14/E15/E19.

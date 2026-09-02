@@ -35,6 +35,7 @@ import {
 } from "@/server/commands/quotes";
 import { createSignedFileAccess } from "@/server/commands/files";
 import { loadQuoteVersionAnchor } from "@/server/commands/quotes/quote-db";
+import { validateCreateReviewedQuoteVersionFromCalculation } from "@/server/commands/quotes/validation";
 import { kronorStringToOre } from "@/features/calculations/money-input";
 import {
   ACCEPTANCE_ACTION_INITIAL,
@@ -299,11 +300,15 @@ export async function createNewQuoteVersionAction(
   const quoteId = form.get("quote_id");
   const input: Record<string, unknown> = { quote_version_id: quoteVersionId };
   // OPTIONAL re-selected attachment file ids (a repeated `attachment_file_ids` form field). An
-  // absent field means "no attachments re-selected" (the command validator defaults it to []).
+  // absent field requests the server-derived eligible carry-forward default.
   const attachmentFileIds = form
     .getAll("attachment_file_ids")
     .filter((v): v is string => typeof v === "string" && v.length > 0);
-  if (attachmentFileIds.length > 0) input.attachment_file_ids = attachmentFileIds;
+  // The marker distinguishes an intentional "deselect all" from the legacy/no-UI
+  // absence that requests the server-derived carry-forward default.
+  if (attachmentFileIds.length > 0 || form.get("attachment_selection_present") === "1") {
+    input.attachment_file_ids = attachmentFileIds;
+  }
 
   const client = (await createSupabaseServerClient()) as unknown as CommandDbClient;
   const result = await runCommand(createNewQuoteVersion, { client, input });
@@ -728,15 +733,10 @@ export async function captureQuoteAcceptanceAction(
  * offert" calc picker to `createQuoteVersionFromCalculation`. Only the calculation id is read;
  * the server command is the authority.
  */
-export async function createQuoteVersionFromCalculationAction(
-  _prev: CreateQuoteActionState,
-  form: FormData,
+async function runCreateQuoteVersionAction(
+  input: unknown,
+  values: Record<string, string>,
 ): Promise<CreateQuoteActionState> {
-  const calculationId = form.get("calculation_id");
-  const values: Record<string, string> = {};
-  if (typeof calculationId === "string") values.calculation_id = calculationId;
-  const input: Record<string, unknown> = { calculation_id: calculationId };
-
   const client = (await createSupabaseServerClient()) as unknown as CommandDbClient;
   const result = await runCommand(createQuoteVersionFromCalculation, {
     client,
@@ -761,6 +761,50 @@ export async function createQuoteVersionFromCalculationAction(
     formError: result.message || COMMAND_MESSAGES[result.code],
     values,
   };
+}
+
+export async function createQuoteVersionFromCalculationAction(
+  _prev: CreateQuoteActionState,
+  form: FormData,
+): Promise<CreateQuoteActionState> {
+  const calculationId = form.get("calculation_id");
+  const values: Record<string, string> = {};
+  if (typeof calculationId === "string") values.calculation_id = calculationId;
+  return {
+    ...CREATE_QUOTE_ACTION_INITIAL,
+    status: "error",
+    code: "VALIDATION_FAILED",
+    formError: "Skapa offertversion från kalkylens förhandsvisning så att den granskade versionen kan verifieras.",
+    values,
+  };
+}
+
+/**
+ * Preview-only create path. The reviewed digest/date pair is mandatory here so stripping
+ * either hidden field cannot silently fall through to the list-page direct-create contract.
+ */
+export async function createReviewedQuoteVersionFromCalculationAction(
+  _prev: CreateQuoteActionState,
+  form: FormData,
+): Promise<CreateQuoteActionState> {
+  const calculationId = form.get("calculation_id");
+  const values: Record<string, string> = {};
+  if (typeof calculationId === "string") values.calculation_id = calculationId;
+  const validated = validateCreateReviewedQuoteVersionFromCalculation({
+    calculation_id: calculationId,
+    reviewed_snapshot_digest: form.get("reviewed_snapshot_digest"),
+    reviewed_quote_capture_date: form.get("reviewed_quote_capture_date"),
+  });
+  if (!validated.ok) {
+    return {
+      ...CREATE_QUOTE_ACTION_INITIAL,
+      status: "error",
+      code: "VALIDATION_FAILED",
+      formError: "Öppna och granska en ny förhandsvisning innan offertversionen skapas.",
+      values,
+    };
+  }
+  return runCreateQuoteVersionAction(validated.data, values);
 }
 
 /**

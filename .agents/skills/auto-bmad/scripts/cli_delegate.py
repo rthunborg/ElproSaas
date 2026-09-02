@@ -1,25 +1,31 @@
 #!/usr/bin/env python3
-"""Resolve an external-CLI delegation for one auto-bmad pipeline phase.
+"""Resolve an external-CLI delegation for one auto-bmad pipeline phase, and build the
+cross-model review layer's command.
 
-Most auto-bmad steps run in an *in-tool* sub-agent (the three tiers in
-``delegation-runtime.md``). As an **opt-in, per-phase** alternative, a phase can
-instead be delegated to an **external CLI** — ``claude -p``, ``codex exec`` or
+Most auto-bmad steps run in an *in-tool* subagent (the two tiers in
+``delegation-runtime.md``: ``subagents`` — a generic host subagent spawned with the phase
+profile's model — and the ``inline`` last resort). As an **opt-in, per-phase** alternative, a
+phase can instead be delegated to an **external CLI** — ``claude -p``, ``codex exec`` or
 ``opencode run`` — chosen by the ``delegation.cli_phases`` map in the runtime config::
 
     delegation:
       cli_phases:
-        code_review_review_secondary: codex      # run this phase on `codex exec`
-        retrospective: opencode                  # ...or on `opencode run` (any provider/model)
+        followup_review: codex      # run the Phase 7 follow-up review pass on `codex exec`
+        retrospective: opencode     # ...or on `opencode run` (any provider/model)
 
-The value names the *tool* (``claude`` | ``codex`` | ``opencode``); model + effort come
-from that tool's block of the phase's profile (``phase_profiles[phase]`` ->
-``profiles[<profile>][<tool>]``), exactly the same values ``render-agents.py``
-bakes into the in-tool delegate files. opencode is the exception: its ``model`` and
-reasoning ``variant`` are BOTH optional (blank => inherit the user's opencode defaults).
-Nothing here changes the profiles or the three existing tiers — a phase absent from
-``cli_phases`` is reported ``routed: false`` and the orchestrator uses its normal tier.
+The keys are the ``phase_profiles`` keys (``build``, ``followup_review``, ``security_layer``,
+``cross_model_layer``, ``tea_triage``, ``tea_per_story``, ``tea_epic``, ``tea_epic_audit``,
+``retrospective``, ``deferred_reconcile``); the value names the *tool* (``claude`` | ``codex`` |
+``opencode``). Model + effort come from that tool's block of the phase's profile
+(``phase_profiles[phase]`` -> ``profiles[<profile>][<tool>]``): ``claude.model`` + ``claude.effort``,
+``codex.model`` + ``codex.reasoning_effort``, ``opencode.model`` + ``opencode.variant`` — opencode's
+two are BOTH optional (blank => inherit the user's opencode defaults). Nothing here changes the
+profiles or the in-tool tiers — a phase absent from ``cli_phases`` is reported ``routed: false``
+and the orchestrator uses its normal tier. Resolution is key-agnostic: any ``phase_profiles`` key
+can be routed, and NO phase gets a wall-clock cap (``--idle-timeout`` is the only watchdog; a
+``build`` run legitimately takes hours).
 
-This script does three things and prints ONE JSON object on stdout:
+This script does four things and prints ONE JSON object on stdout:
 
   * ``resolve()`` — PURE (no subprocess, no filesystem): from the config text it
     builds the tool, model, effort, the **argv** (without the prompt), the ``cwd``,
@@ -35,10 +41,21 @@ This script does three things and prints ONE JSON object on stdout:
     completion **sentinel**) — so the orchestrator never hand-rolls a redirect/sentinel
     that breaks under a non-bash host shell (zsh/fish). The per-tool divergence lives
     here, in tested code, not in orchestrator prose.
+  * ``resolve_layer()`` (``--layer-argv``) — PURE builder for the **auto-bmad-cross-model review
+    layer**: the ONE shell line that ``build_auto_custom.py`` bakes into the managed region of
+    ``_bmad/custom/bmad-build-auto.toml`` and that bmad-build-auto's parent runs itself during its
+    review step (the orchestrator never runs it). Tool = ``code_review.cross_model_layer``
+    (``codex`` | ``claude`` | ``opencode`` | ``""`` = disabled) unless ``--tool`` overrides; profile =
+    ``phase_profiles.cross_model_layer``; model/effort from that profile's tool block (same rules
+    as ``resolve()``). The command carries the literal token ``<DIFF_FILE>`` (the parent replaces
+    it with the temp file it wrote the diff to) and the ABSOLUTE project root inlined; the review
+    prompt is the constant ``CROSS_MODEL_REVIEW_PROMPT``. When GNU ``timeout``/``gtimeout`` is on
+    PATH at bake time the command is wrapped in ``<timeout> -k 30 1200`` (a wedged external
+    reviewer must not hang build-auto's review step); otherwise it runs unwrapped.
   * ``observe_once()`` / ``wait_for_delegate()`` (``--once`` / ``--wait``) — watch a
     DETACHED delegate to completion. **Process exit is the completion signal and total
-    runtime is UNBOUNDED** (a ``dev_story`` / lens can run hours — never killed on a
-    clock). Completion = the ``exit_file`` sentinel lands. The only wedge triggers are a
+    runtime is UNBOUNDED** (a ``build`` run can take hours — never killed on a clock).
+    Completion = the ``exit_file`` sentinel lands. The only wedge triggers are a
     crash (``--pid`` gone with no sentinel) and — **only when no ``--pid`` is given** —
     an idle backstop (``capture_log`` silent past ``--idle-timeout``: a *no-new-output*
     allowance, NOT a runtime cap). With a ``--pid`` a live process is never idle-wedged
@@ -55,14 +72,36 @@ This script does three things and prints ONE JSON object on stdout:
     is LENIENT — it supports keyless/local/config providers, so a clean
     ``opencode auth list`` exit passes and "0 credentials" never hard-stops).
 
-Command shapes are spike-confirmed (see the plan / delegation-runtime.md):
-  claude:   claude -p --model M --effort E --output-format json --dangerously-skip-permissions
-  codex:    codex exec -m M -c model_reasoning_effort=E --dangerously-bypass-approvals-and-sandbox -C ROOT -o LASTMSG --ephemeral
-  opencode: opencode run [-m M] [--variant V] --format json --dir ROOT --dangerously-skip-permissions <prompt-arg>
+Command shapes — every flag VERIFIED LIVE against ``claude --help`` (Claude Code 2.1.232),
+``codex exec --help`` (codex-cli 0.147.0) and ``opencode run --help`` (opencode 1.18.15), plus one
+real run per tool of the layer command shape:
+
+  routed phase (``resolve()``; prompt via stdin for claude/codex, positional arg for opencode):
+    claude:   claude -p --model M --effort E --output-format json --dangerously-skip-permissions
+    codex:    codex exec -m M -c model_reasoning_effort=E --dangerously-bypass-approvals-and-sandbox -C ROOT -o LASTMSG --ephemeral
+    opencode: opencode run [-m M] [--variant V] --format json --dir ROOT --auto <prompt-arg>
+              (``--auto`` = auto-approve permissions; ``--dangerously-skip-permissions`` is a hidden alias no longer shown in --help)
+
+  cross-model layer (``resolve_layer()``; ROOT absolute, PROMPT = CROSS_MODEL_REVIEW_PROMPT, TIMEOUT =
+  ``timeout -k 30 1200 `` / ``gtimeout -k 30 1200 `` when on PATH at bake time, else empty):
+    claude:   cd "ROOT" && TIMEOUT claude -p "PROMPT" --model M --effort E --output-format text --allowedTools "Read,Grep,Glob" </dev/null
+    codex:    cd "ROOT" && TIMEOUT codex exec -m M -c model_reasoning_effort=E -c approval_policy=never -s read-only -C "ROOT" --ephemeral -o "<DIFF_FILE>.review" "PROMPT" </dev/null >/dev/null 2>&1 && cat "<DIFF_FILE>.review"
+    opencode: cd "ROOT" && TIMEOUT opencode run [-m M] [--variant V] --dir "ROOT" --auto "PROMPT" </dev/null
+  Verified adaptations of the spec'd shapes: ``codex exec`` REJECTS ``-a never`` (``--ask-for-approval``
+  is a top-level ``codex`` flag only — ``error: unexpected argument '-a'``), so approvals are pinned with
+  the config override ``-c approval_policy=never`` (accepted; the read-only sandbox then simply fails any
+  write). Every command closes stdin (``</dev/null``): with a non-TTY stdin ``codex exec`` reads it as
+  an extra ``<stdin>`` block ("Reading additional input from stdin...") and would block on an open pipe;
+  ``claude -p`` likewise accepts piped input. ``opencode run`` (default format) prints ONLY the final
+  assistant text on stdout — the session header and tool traces go to stderr — so its stdout is the
+  layer result as-is; ``claude -p --output-format text`` and codex's ``-o`` file are plain text too.
+  ``--allowedTools`` (alias ``--allowed-tools``) auto-approves exactly those tools in print mode; any
+  other tool call is denied non-interactively, which keeps the reviewer read-only.
 
 Usage:
     cli_delegate.py --phase PHASE --config FILE --project-root DIR \\
-        [--story-key KEY] [--host claude-code|codex|opencode] [--no-auth-probe]
+        [--story-key KEY] [--label L] [--host claude-code|codex|opencode] [--no-auth-probe] [--mkdir]
+    cli_delegate.py --layer-argv --config FILE --project-root DIR [--tool codex|claude|opencode]
     cli_delegate.py --once --capture-log LOG [--exit-file F] [--pid N]
     cli_delegate.py --wait --capture-log LOG [--exit-file F] [--pid N] \\
         [--idle-timeout S] [--poll-interval S] [--max-wait S]   # MUST be backgrounded
@@ -72,6 +111,8 @@ Exit codes (resolve/validate): 0 = routed and all validations passed (or
 routed:false, a clean "use the normal tier" answer); 1 = routed but a validation
 failed (hard-stop); 2 = usage / resolution error (bad config, unknown phase,
 missing profile block).
+Exit codes (--layer-argv): 0 = ok (``enabled`` true with a command, or ``enabled`` false when the
+layer is off); 2 = usage / resolution error (``ok: false`` + ``errors``).
 Exit codes (--once / --wait): 0 = the delegate exited (status ``exited`` — read
 ``result_source`` and apply the normal result-block check); 1 = a non-``exited``
 verdict (``dead-no-sentinel`` / ``wedged-idle`` / ``max-wait`` = failed delegation
@@ -102,10 +143,34 @@ _AUTH_PROBE_TIMEOUT = 20  # seconds — keep short so a wedged probe can't hang 
 # opencode CLI surface (flags/dirs) AND the `run --format json` event schema are verified against
 # this version: extract_opencode_result() targets the verified shape (top-level type=="text" events,
 # part.text concatenated) with defensive fallbacks for any future schema drift.
-_OPENCODE_CLI_VERSION = "1.16.2"
+_OPENCODE_CLI_VERSION = "1.18.15"
+
+# --- cross-model review layer (baked into _bmad/custom/bmad-build-auto.toml by build_auto_custom.py) ---
+
+# The literal token build-auto's parent replaces with the temp file it wrote the diff to (§10.4).
+DIFF_FILE_TOKEN = "<DIFF_FILE>"
+# Wall-clock cap for the external reviewer (a wedged CLI must not hang build-auto's review step);
+# applied only when GNU timeout/gtimeout is on PATH at bake time (stock macOS has neither).
+_LAYER_TIMEOUT_SECS = 1200
+_LAYER_TIMEOUT_KILL_GRACE = 30
+# claude -p print mode: auto-approve exactly the read-only tools; everything else is denied.
+_LAYER_CLAUDE_TOOLS = "Read,Grep,Glob"
+# The review prompt (verbatim contract, spec §9.8). Embedded in ONE double-quoted shell argument, so it
+# must stay free of `"`, `$`, backticks and backslashes — and of `'''`, the TOML literal-string fence
+# build_auto_custom.py wraps the instruction in. _check_prompt_shell_safe() enforces this.
+CROSS_MODEL_REVIEW_PROMPT = (
+    "You are an independent code reviewer using the configured diverse-review model/profile. Read the unified diff at "
+    "<DIFF_FILE> completely - it is the full change under review - and review it; you may read files "
+    "in the current repository that the diff references, read-only. Look for what is missing, not "
+    "only what is wrong: correctness bugs, unhandled edge cases, regressions, missing or weak tests, "
+    "security-relevant mistakes, and places where the change contradicts its own intent. Output a "
+    "Markdown list of findings only - each with file and line, what is wrong, why it matters, and the "
+    "fix. No severity, priority, or ranking. Do not modify any file. If you find nothing after "
+    "checking twice, output exactly: No findings."
+)
 
 
-# --- dependency-free YAML-ish parsing (same style as config_plan.py / render-agents.py) ---
+# --- dependency-free YAML-ish parsing (same style as config_plan.py / build_auto_custom.py) ---
 
 def _strip_comment(s: str) -> str:
     """Drop a trailing ` # comment` (must be preceded by whitespace)."""
@@ -160,12 +225,36 @@ def _parse_inline_map(body: str) -> dict:
     return out
 
 
-def parse_phase_profiles(lines: Sequence[str]) -> dict:
-    """Parse the top-level ``phase_profiles:`` ``key: value`` map (indent 2)."""
-    span = find_block(lines, "phase_profiles")
+def _find_top_level_inline_map(lines: Sequence[str], name: str) -> dict | None:
+    """A top-level ``name: {k: v, ...}`` flow map -> dict (``{}`` for ``name: {}``), else None."""
+    for line in lines:
+        if _is_blank_or_comment(line) or _indent(line) != 0:
+            continue
+        stripped = _strip_comment(line.strip())
+        if not stripped.startswith(f"{name}:"):
+            continue
+        _, _, rest = stripped.partition(":")
+        rest = rest.strip()
+        if rest.startswith("{"):
+            inner = rest[1:-1] if rest.endswith("}") else rest[1:]
+            return _parse_inline_map(inner)
+        return None
+    return None
+
+
+def parse_block_scalars(lines: Sequence[str], name: str) -> dict:
+    """Parse the indent-2 ``key: value`` scalars of a top-level ``name:`` block.
+
+    Nested sub-blocks (deeper indent) are skipped; a ``key:`` with no scalar maps to ``""``.
+    Used for ``phase_profiles`` (``phase: profile``) and ``code_review`` (``cross_model_layer: tool``).
+    The inline flow form (``code_review: {cross_model_layer: codex}``) is accepted too — it is valid
+    YAML the interview never writes but a hand-edited config may.
+    """
+    span = find_block(lines, name)
     out: dict = {}
     if span is None:
-        return out
+        inline = _find_top_level_inline_map(lines, name)
+        return inline if inline is not None else out
     header, end = span
     for i in range(header + 1, end):
         line = lines[i]
@@ -178,11 +267,16 @@ def parse_phase_profiles(lines: Sequence[str]) -> dict:
     return out
 
 
+def parse_phase_profiles(lines: Sequence[str]) -> dict:
+    """Parse the top-level ``phase_profiles:`` ``key: value`` map (indent 2)."""
+    return parse_block_scalars(lines, "phase_profiles")
+
+
 def parse_profiles(text: str) -> dict:
     """Extract the ``profiles:`` block (block or inline tool maps), dependency-free.
 
     Returns ``{profile: {scalar_key: value | tool: {key: value}}}``. Other
-    top-level keys are ignored. Mirrors ``render-agents.py``'s parser so the two
+    top-level keys are ignored. Mirrors ``config_plan.py``'s parser so the two
     read the shipped/config profiles identically.
     """
     profiles: dict = {}
@@ -231,9 +325,9 @@ def parse_cli_phases(lines: Sequence[str]) -> dict:
 
         delegation:
           cli_phases:
-            dev_story: codex
+            followup_review: codex
 
-    and the inline form ``cli_phases: { dev_story: codex }`` / ``cli_phases: {}``.
+    and the inline form ``cli_phases: { followup_review: codex }`` / ``cli_phases: {}``.
     """
     span = find_block(lines, "delegation")
     if span is None:
@@ -281,6 +375,57 @@ def _capture_dir() -> Path:
     return Path(tempfile.gettempdir()) / "auto-bmad-cli"
 
 
+def _normalize_tool(tool_raw: str) -> str:
+    """``claude-code`` is accepted as an alias of ``claude`` (the delegation.host spelling)."""
+    return "claude" if tool_raw == "claude-code" else tool_raw
+
+
+def _model_effort(profiles: dict, profile: str, tool: str) -> tuple[str | None, str | None, list[str]]:
+    """Model + effort for ``profile``'s ``tool`` block, with the per-tool rules shared by
+    ``resolve()`` and ``resolve_layer()``: claude needs ``model`` + ``effort``, codex ``model`` +
+    ``reasoning_effort``; opencode's ``model`` and ``variant`` are BOTH optional (blank => None,
+    inherit the user's opencode defaults) — a missing value is NOT an error there.
+    """
+    errors: list[str] = []
+    prof = profiles.get(profile)
+    if not prof:
+        return None, None, [f"profile '{profile}' not found in profiles block"]
+    tool_block = prof.get(tool)
+    if tool == "opencode" and isinstance(tool_block, dict):
+        # opencode is MULTI-PROVIDER and MODEL-ONLY: a blank model => the routed `opencode run`
+        # inherits the user's opencode default model; a blank variant => the model's default
+        # reasoning. Both keys are OPTIONAL, so a PRESENT-BUT-EMPTY block (`opencode: {}` inline or
+        # a bare `opencode:` header) is legitimate and means "inherit both" — not a missing block.
+        return (tool_block.get("model") or None), (tool_block.get("variant") or None), errors
+    if not tool_block or not isinstance(tool_block, dict):
+        return None, None, [f"profile '{profile}' has no '{tool}' block"]
+    model = tool_block.get("model")
+    # claude uses `effort`; codex uses `reasoning_effort`.
+    effort_key = "effort" if tool == "claude" else "reasoning_effort"
+    effort = tool_block.get(effort_key)
+    if not model:
+        errors.append(f"profile '{profile}.{tool}.model' missing")
+    if not effort:
+        errors.append(f"profile '{profile}.{tool}.{effort_key}' missing")
+    return model, effort, errors
+
+
+def _portable_project_root(project_root: str) -> tuple[str, bool]:
+    """Return a shell/CLI-safe root plus a cross-platform absolute-path verdict.
+
+    On Windows, ``Path.as_posix()`` converts ``C:\\repo`` to ``C:/repo`` so the
+    generated bash command does not embed backslashes. A leading-slash POSIX
+    fixture remains absolute when these pure builders are tested on Windows.
+    """
+    raw = str(project_root)
+    path = Path(raw)
+    if path.is_absolute():
+        return path.as_posix(), True
+    if raw.startswith("/"):
+        return raw, True
+    return str(path), False
+
+
 def resolve(
     phase: str,
     config_text: str,
@@ -295,6 +440,7 @@ def resolve(
     full plan dict (tool/model/effort/argv/cwd/capture/result-source) when it is.
     On a resolution error (unknown phase, bad tool, missing profile block) the
     dict carries a non-empty ``errors`` list and ``routed`` reflects the intent.
+    Key-agnostic: no phase is treated specially (no wall-clock cap for any phase).
     """
     lines = config_text.splitlines()
     cli_phases = parse_cli_phases(lines)
@@ -303,7 +449,7 @@ def resolve(
 
     errors: list[str] = []
     tool_raw = cli_phases[phase].strip()
-    tool = "claude" if tool_raw == "claude-code" else tool_raw
+    tool = _normalize_tool(tool_raw)
     if tool not in TOOL_BINARY:
         errors.append(f"cli_phases[{phase}] = {tool_raw!r}; expected 'claude', 'codex' or 'opencode'")
 
@@ -315,34 +461,13 @@ def resolve(
     profiles = parse_profiles(config_text)
     model = effort = None
     if profile and tool in TOOL_BINARY:
-        prof = profiles.get(profile)
-        if not prof:
-            errors.append(f"profile '{profile}' not found in profiles block")
-        else:
-            tool_block = prof.get(tool)
-            if not tool_block:
-                errors.append(f"profile '{profile}' has no '{tool}' block")
-            elif tool == "opencode":
-                # opencode is MULTI-PROVIDER and MODEL-ONLY: both the model and the reasoning
-                # `variant` are OPTIONAL. A blank model => the routed `opencode run` inherits the
-                # user's opencode default model; a blank variant => the model's default reasoning.
-                # So — unlike claude/codex — a missing value is NOT an error here.
-                model = tool_block.get("model") or None
-                effort = tool_block.get("variant") or None  # opencode's `--variant` knob
-            else:
-                model = tool_block.get("model")
-                # claude uses `effort`; codex uses `reasoning_effort`.
-                effort_key = "effort" if tool == "claude" else "reasoning_effort"
-                effort = tool_block.get(effort_key)
-                if not model:
-                    errors.append(f"profile '{profile}.{tool}.model' missing")
-                if not effort:
-                    errors.append(f"profile '{profile}.{tool}.{effort_key}' missing")
+        model, effort, errs = _model_effort(profiles, profile, tool)
+        errors.extend(errs)
 
-    root = str(Path(project_root))
+    root, _ = _portable_project_root(project_root)
     cap_dir = _capture_dir()
-    # `label` keeps capture paths distinct when one phase spawns several delegates
-    # (the code-review fan-out: 3 lenses + triage all share phase + story_key).
+    # `label` keeps capture paths distinct when one phase spawns several delegates over the same
+    # story (e.g. successive follow-up review passes: label them pass-1, pass-2, ...).
     base = f"{_safe_name(story_key)}-{_safe_name(phase)}"
     if label:
         base += f"-{_safe_name(label)}"
@@ -392,8 +517,8 @@ def resolve(
             "-m", model,
             "-c", f"model_reasoning_effort={effort}",
             # Full bypass: no inner OS sandbox, no approval prompts — parity with the claude/opencode
-            # delegates' --dangerously-skip-permissions, and REQUIRED in a nested container, where
-            # codex's workspace-write sandbox spawns bubblewrap and can't create a namespace.
+            # delegates' skip-permissions flags, and REQUIRED in a nested container, where codex's
+            # workspace-write sandbox spawns bubblewrap and can't create a namespace.
             "--dangerously-bypass-approvals-and-sandbox",
             "-C", root,
             "-o", last_msg,
@@ -410,12 +535,13 @@ def resolve(
         # working tree, so no `cd` is needed (unlike `claude -p`). `--variant` is opencode's
         # provider-specific reasoning-effort knob; BOTH `-m` and `--variant` are omitted when blank,
         # so the run falls back to the user's opencode default model / the model's default reasoning.
+        # `--auto` auto-approves permissions (the flag that replaced --dangerously-skip-permissions).
         argv = ["opencode", "run"]
         if model:
             argv += ["-m", model]
         if effort:
             argv += ["--variant", effort]
-        argv += ["--format", "json", "--dir", root, "--dangerously-skip-permissions"]
+        argv += ["--format", "json", "--dir", root, "--auto"]
         plan["argv"] = argv
         plan["prompt_via"] = "arg"
         # `--format json` streams newline-delimited JSON events to stdout (capture_log). The event
@@ -428,7 +554,7 @@ def resolve(
         plan["error_field"] = None
 
     plan["launch_cmd"] = _build_launch_cmd(
-        plan["argv"], root, capture_log, exit_file, prompt_file, plan["prompt_via"]
+        plan["argv"], root, capture_log, exit_file, prompt_file, plan["prompt_via"],
     )
     return plan
 
@@ -449,7 +575,9 @@ def _build_launch_cmd(
     sentinel ``--wait``/``--once`` watch for. Emitted HERE, in tested code (every token
     ``shlex.quote``d), so the sentinel mechanism never rides the host's interactive shell:
     ``( … ) & pid=$!`` / ``$?`` are bash/zsh-isms that break under fish, so the orchestrator
-    just runs ``bash -c "$launch_cmd"`` (backgrounded) regardless of host shell.
+    just runs ``bash -c "$launch_cmd"`` (backgrounded) regardless of host shell. No wall-clock
+    wrapper: a routed delegate is bounded only by ``--wait``'s watchdog (and the optional
+    ``--max-wait``), never by a per-phase cap.
     """
     q = shlex.quote
     cmd = " ".join(q(a) for a in argv)
@@ -461,6 +589,201 @@ def _build_launch_cmd(
         inner = f"cd {q(cwd)} && {cmd} < {q(prompt_file)}"
     # `echo $?` captures the brace-group's status (the delegate's), AFTER its redirect closes.
     return f"{{ {inner} ; }} > {q(capture_log)} 2>&1 ; echo $? > {q(exit_file)}"
+
+
+# --- cross-model review layer command (PURE builder; baked into the TOML by build_auto_custom.py) ---
+
+def _check_prompt_shell_safe(prompt: str) -> str | None:
+    """The layer prompt rides inside ONE double-quoted shell argument that is itself inside a TOML
+    ``'''`` literal string: reject anything that would break either container."""
+    for bad, why in (
+        ('"', "a double quote"), ("$", "a dollar sign"), ("`", "a backtick"),
+        ("\\", "a backslash"), ("'''", "a TOML literal-string fence"),
+        ("\n", "a newline"), ("\r", "a carriage return"),
+    ):
+        if bad in prompt:
+            return f"review prompt contains {why} ({bad!r}); it must be safe inside one double-quoted shell argument"
+    return None
+
+
+def _check_root_shell_safe(root: str) -> str | None:
+    """The absolute project root is inlined as ``"ROOT"`` — reject characters that break that."""
+    for bad in ('"', "$", "`", "\\", "\n", "\r"):
+        if bad in root:
+            return f"project root {root!r} contains {bad!r}, which cannot be inlined in a double-quoted shell argument"
+    return None
+
+
+def _timeout_prefix(timeout_bin: str | None) -> str:
+    """``<timeout> -k 30 1200 `` (basename of the resolved GNU timeout/gtimeout) or ``""``."""
+    if not timeout_bin:
+        return ""
+    return f"{Path(timeout_bin).name} -k {_LAYER_TIMEOUT_KILL_GRACE} {_LAYER_TIMEOUT_SECS} "
+
+
+def _powershell_single_quoted(value: str) -> str:
+    """Return one PowerShell single-quoted argument, preserving literal cmd syntax.
+
+    The cross-model layer is rendered as a shell command which Windows hosts run through
+    PowerShell.  A stop-parsing token cannot protect redirection following ``cmd /c``:
+    PowerShell still sees ``< NUL`` / ``> NUL`` as part of its own command line.  Passing the
+    complete cmd payload as one single-quoted PowerShell argument keeps those tokens for cmd.exe.
+    In PowerShell a literal apostrophe is represented by two apostrophes.
+    """
+    return "'" + value.replace("'", "''") + "'"
+
+
+def _windows_cmd_command(payload: str) -> str:
+    """Wrap a complete cmd.exe payload so outer PowerShell cannot parse its metacharacters."""
+    return f"cmd.exe /d /s /c {_powershell_single_quoted(payload)}"
+
+
+def build_layer_command(
+    tool: str, root: str, model: str | None, effort: str | None,
+    timeout_bin: str | None, prompt: str = CROSS_MODEL_REVIEW_PROMPT,
+    platform: str | None = None,
+) -> str:
+    """The ONE shell line for the cross-model layer (verified shapes — see the module docstring).
+
+    ``<DIFF_FILE>`` stays literal (build-auto's parent substitutes its temp-file path); ``root`` is
+    inlined absolute; model/effort are ``shlex.quote``d (a plain model name stays bare); stdin is
+    closed on every tool (a non-TTY stdin is otherwise read as extra prompt input by codex/claude).
+    """
+    platform = os.name if platform is None else platform
+    if platform == "nt":
+        # This string is launched from Windows PowerShell.  Keep the ENTIRE cmd
+        # payload in one single-quoted PowerShell argument: ``--%`` does not
+        # reliably shield ``< NUL`` / ``> NUL`` after ``cmd /c`` from outer
+        # PowerShell parsing.  cmd.exe therefore owns every redirection.  Keep
+        # the Codex transcript silent and emit only its final message, just like
+        # the POSIX command. ``&& type`` preserves failure: the result file is
+        # printed only after a successful reviewer exit.
+        prefix = 'cd /d "{}" && '.format(root)
+        if tool == "claude":
+            payload = (
+                f'{prefix}claude -p "{prompt}" --model "{model}" --effort "{effort}" '
+                f'--output-format text --allowedTools "{_LAYER_CLAUDE_TOOLS}" < NUL'
+            )
+            return _windows_cmd_command(payload)
+        if tool == "codex":
+            review = f"{DIFF_FILE_TOKEN}.review"
+            payload = (
+                f'{prefix}codex exec -m "{model}" -c model_reasoning_effort="{effort}" '
+                f'-c approval_policy=never -s read-only -C "{root}" --ephemeral -o "{review}" '
+                f'"{prompt}" < NUL > NUL 2>&1 && type "{review}"'
+            )
+            return _windows_cmd_command(payload)
+        parts = ["opencode", "run"]
+        if model:
+            parts += ["-m", f'"{model}"']
+        if effort:
+            parts += ["--variant", f'"{effort}"']
+        payload = f'{prefix}{" ".join(parts)} --dir "{root}" --auto "{prompt}" < NUL'
+        return _windows_cmd_command(payload)
+
+    q = shlex.quote
+    tp = _timeout_prefix(timeout_bin)
+    diff = DIFF_FILE_TOKEN
+    if tool == "claude":
+        return (
+            f'cd "{root}" && {tp}claude -p "{prompt}" --model {q(model)} --effort {q(effort)} '
+            f'--output-format text --allowedTools "{_LAYER_CLAUDE_TOOLS}" </dev/null'
+        )
+    if tool == "codex":
+        review = f"{diff}.review"
+        # `-a never` is NOT accepted by `codex exec` (verified: "unexpected argument '-a'") — the
+        # equivalent config override `-c approval_policy=never` is. `-s read-only` keeps the reviewer
+        # from writing; the transcript is discarded and only the `-o` last-message file is returned.
+        return (
+            f'cd "{root}" && {tp}codex exec -m {q(model)} -c model_reasoning_effort={q(effort)} '
+            f'-c approval_policy=never -s read-only -C "{root}" --ephemeral -o "{review}" "{prompt}" '
+            f'</dev/null >/dev/null 2>&1 && cat "{review}"'
+        )
+    # opencode: `-m` / `--variant` only when set (blank => inherit the user's defaults); default
+    # output format prints ONLY the final assistant text on stdout (traces go to stderr).
+    parts = ["opencode", "run"]
+    if model:
+        parts += ["-m", q(model)]
+    if effort:
+        parts += ["--variant", q(effort)]
+    return f'cd "{root}" && {tp}{" ".join(parts)} --dir "{root}" --auto "{prompt}" </dev/null'
+
+
+def resolve_layer(
+    config_text: str,
+    project_root: str,
+    tool: str | None = None,
+    timeout_bin: str | None = None,
+    platform: str | None = None,
+) -> dict:
+    """Build the auto-bmad-cross-model review layer's command from the runtime config. Pure.
+
+    ``tool`` overrides ``code_review.cross_model_layer`` (``codex`` | ``claude`` | ``opencode`` |
+    ``""``); ``""``/absent => ``{ok: True, enabled: False}``. Profile = ``phase_profiles.cross_model_layer``;
+    model/effort from that profile's tool block (same rules as ``resolve()``). ``timeout_bin``: ``None``
+    => detect GNU ``timeout``/``gtimeout`` on PATH; ``""`` => no wrapper; a path => use it (basename baked).
+    ``platform`` is an injectable platform selector for deterministic command-shape tests; production
+    callers omit it and use ``os.name``.
+    Returns ``{ok, enabled, tool, profile, model, effort, timeout_bin, command, prompt, errors}``.
+    """
+    lines = config_text.splitlines()
+    out: dict = {
+        "ok": True, "enabled": False, "tool": None, "profile": None, "model": None,
+        "effort": None, "timeout_bin": None, "command": None, "prompt": None, "errors": [],
+    }
+    tool_raw = tool if tool is not None else parse_block_scalars(lines, "code_review").get("cross_model_layer", "")
+    tool_raw = (tool_raw or "").strip()
+    if not tool_raw:
+        return out  # layer disabled: nothing to bake
+
+    errors: list[str] = []
+    tool_name = _normalize_tool(tool_raw)
+    if tool_name not in TOOL_BINARY:
+        errors.append(f"code_review.cross_model_layer = {tool_raw!r}; expected 'codex', 'claude', 'opencode' or ''")
+    out["enabled"] = True
+    out["tool"] = tool_name if tool_name in TOOL_BINARY else tool_raw
+
+    profile = parse_phase_profiles(lines).get("cross_model_layer")
+    if not profile:
+        errors.append("no phase_profiles mapping for 'cross_model_layer'")
+    out["profile"] = profile
+
+    if profile and tool_name in TOOL_BINARY:
+        model, effort, errs = _model_effort(parse_profiles(config_text), profile, tool_name)
+        errors.extend(errs)
+        out["model"], out["effort"] = model, effort
+
+    root, root_is_absolute = _portable_project_root(project_root)
+    if not root_is_absolute:
+        errors.append(f"project root must be absolute (got {root!r})")
+    bad_root = _check_root_shell_safe(root)
+    if bad_root:
+        errors.append(bad_root)
+    bad_prompt = _check_prompt_shell_safe(CROSS_MODEL_REVIEW_PROMPT)
+    if bad_prompt:
+        errors.append(bad_prompt)
+
+    effective_platform = os.name if platform is None else platform
+    if timeout_bin is None:
+        # `timeout(1)` is GNU coreutils — absent on stock macOS (Homebrew ships it as `gtimeout`).
+        # Windows' built-in timeout.exe is a different command and rejects GNU's -k flag; never
+        # select it. No GNU wrapper => run unwrapped rather than bake a command that dies with 127.
+        timeout_bin = None if effective_platform == "nt" else (
+            shutil.which("gtimeout") or shutil.which("timeout")
+        )
+    out["timeout_bin"] = timeout_bin or None
+
+    if errors:
+        out["ok"] = False
+        out["errors"] = errors
+        return out
+
+    out["prompt"] = CROSS_MODEL_REVIEW_PROMPT
+    out["command"] = build_layer_command(
+        tool_name, root, out["model"], out["effort"], timeout_bin or None,
+        platform=effective_platform,
+    )
+    return out
 
 
 # --- opencode result extraction (defensive; the JSON event schema is undocumented) ---
@@ -488,12 +811,12 @@ def _collect_opencode_text(node, acc: list) -> None:
 def extract_opencode_result(raw: str) -> tuple[str | None, str | None]:
     """Pull the final assistant message out of ``opencode run`` output. Returns ``(message, error)``.
 
-    Schema-aware, verified against opencode 1.16.2 ``run --format json``: the output is newline-
-    delimited JSON events (JSONL); the assistant's reply arrives as events with top-level
-    ``type == "text"`` whose ``part.text`` holds a COMPLETE text segment (``part.time.start/end``
-    mark it done — it is NOT a streamed delta). A multi-part / multi-step reply yields several such
-    events; we concatenate their ``part.text`` in order to reconstruct the full message. Non-text
-    events (``step_start`` / ``step_finish`` / tool calls) are ignored.
+    Schema-aware, verified against opencode 1.16.2 and re-verified on 1.18.15 ``run --format json``:
+    the output is newline-delimited JSON events (JSONL); the assistant's reply arrives as events with
+    top-level ``type == "text"`` whose ``part.text`` holds a COMPLETE text segment
+    (``part.time.start/end`` mark it done — it is NOT a streamed delta). A multi-part / multi-step
+    reply yields several such events; we concatenate their ``part.text`` in order to reconstruct the
+    full message. Non-text events (``step_start`` / ``step_finish`` / tool calls) are ignored.
 
     Degrades gracefully: if no ``type:"text"`` event is found (a future schema shift, or a single
     whole-JSON value) it falls back to collecting any ``text``/``content`` leaf; if the output isn't
@@ -562,6 +885,8 @@ def _skills_dirs(tool: str, project_root: Path) -> list[Path]:
         # singular `agent/` dir). Some BMAD opencode installs instead expose the skills as
         # slash-command files (`command*/bmad-*.md`) — a working route, so accept that layout too
         # (docs use singular `command/`; real installs have been seen with plural `commands/`).
+        # opencode also discovers the cross-tool skill dirs `.claude/skills` and `.agents/skills`
+        # in the project — a BMAD install targeting Claude Code / Codex is usable from opencode.
         return [
             project_root / ".opencode" / "skills",
             Path.home() / ".config" / "opencode" / "skills",
@@ -569,6 +894,8 @@ def _skills_dirs(tool: str, project_root: Path) -> list[Path]:
             project_root / ".opencode" / "commands",
             Path.home() / ".config" / "opencode" / "command",
             Path.home() / ".config" / "opencode" / "commands",
+            project_root / ".claude" / "skills",
+            project_root / ".agents" / "skills",
         ]
     # codex skills can live in either project layout, or the user-global dir.
     return [
@@ -714,8 +1041,86 @@ _WAIT_REASON = {
 }
 
 
+_PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
+_SYNCHRONIZE = 0x00100000
+_STILL_ACTIVE = 259
+_ERROR_ACCESS_DENIED = 5
+_WAIT_OBJECT_0 = 0
+_WAIT_TIMEOUT = 258
+
+
+def _windows_pid_alive(pid: int, *, _kernel32=None, _get_last_error=None) -> bool:
+    """Query Windows process state without signalling it.
+
+    ``OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION | SYNCHRONIZE)`` gives us a
+    query-only waitable handle. ``GetExitCodeProcess`` normally reports whether the
+    process exited, but ``STILL_ACTIVE`` (259) is also a possible real exit code. A
+    zero-timeout ``WaitForSingleObject`` disambiguates that value without signalling:
+    timeout means running; object-signalled means exited. ``ERROR_ACCESS_DENIED``
+    still proves the PID exists, while an invalid/nonexistent PID cannot be opened.
+    The optional seams keep the Windows API calls fully mockable on non-Windows hosts.
+    """
+    if pid <= 0:
+        return False
+
+    import ctypes
+    from ctypes import wintypes
+
+    kernel32 = _kernel32 or ctypes.WinDLL("kernel32", use_last_error=True)
+    get_last_error = _get_last_error or ctypes.get_last_error
+
+    open_process = kernel32.OpenProcess
+    open_process.argtypes = [wintypes.DWORD, wintypes.BOOL, wintypes.DWORD]
+    open_process.restype = wintypes.HANDLE
+    get_exit_code_process = kernel32.GetExitCodeProcess
+    get_exit_code_process.argtypes = [wintypes.HANDLE, ctypes.POINTER(wintypes.DWORD)]
+    get_exit_code_process.restype = wintypes.BOOL
+    wait_for_single_object = kernel32.WaitForSingleObject
+    wait_for_single_object.argtypes = [wintypes.HANDLE, wintypes.DWORD]
+    wait_for_single_object.restype = wintypes.DWORD
+    close_handle = kernel32.CloseHandle
+    close_handle.argtypes = [wintypes.HANDLE]
+    close_handle.restype = wintypes.BOOL
+
+    handle = open_process(_PROCESS_QUERY_LIMITED_INFORMATION | _SYNCHRONIZE, False, pid)
+    if not handle:
+        # Access denied means the process exists but belongs to another security
+        # boundary. All other open failures cannot establish a live process.
+        return get_last_error() == _ERROR_ACCESS_DENIED
+
+    try:
+        exit_code = wintypes.DWORD()
+        if not get_exit_code_process(handle, ctypes.byref(exit_code)):
+            # Fall through to the non-signalling wait-state query. If it fails too,
+            # retain the conservative "alive" answer from the valid process handle.
+            wait_state = wait_for_single_object(handle, 0)
+            if wait_state == _WAIT_OBJECT_0:
+                return False
+            return True
+        if exit_code.value != _STILL_ACTIVE:
+            return False
+
+        # GetExitCodeProcess documents 259 as "still active", but a process may
+        # legitimately exit with 259. Only the wait state settles that ambiguity.
+        wait_state = wait_for_single_object(handle, 0)
+        if wait_state == _WAIT_TIMEOUT:
+            return True
+        if wait_state == _WAIT_OBJECT_0:
+            return False
+        # A valid process handle remains evidence of liveness when the wait query
+        # itself cannot determine a state (for example, WAIT_FAILED).
+        return True
+    finally:
+        close_handle(handle)
+
+
 def _pid_alive(pid: int) -> bool:
-    """True iff a process with this PID currently exists (POSIX signal-0 probe)."""
+    """True iff a process with this PID currently exists.
+
+    Windows uses a query-only Win32 handle; POSIX retains signal 0 semantics.
+    """
+    if os.name == "nt":
+        return _windows_pid_alive(pid)
     try:
         os.kill(pid, 0)
     except ProcessLookupError:
@@ -796,7 +1201,7 @@ def _verdict(
     }
 
 
-def _snapshot(cap: Path, sentinel: Path, pid: int | None, started: float, now: float):
+def _snapshot(cap: Path, sentinel: Path, pid: int | None, started: float, now: float, _pid_probe=None):
     """Observe the delegate once: (sentinel_ready, code, pid_supplied, pid_alive, idle_seconds)."""
     code = _read_exit_code(sentinel)
     sentinel_ready = code is not None
@@ -808,12 +1213,13 @@ def _snapshot(cap: Path, sentinel: Path, pid: int | None, started: float, now: f
     idle_ref = mtime if mtime is not None else started
     idle_seconds = max(0.0, now - idle_ref)
     pid_supplied = pid is not None
-    pid_alive = _pid_alive(pid) if (pid_supplied and pid is not None) else False
+    pid_probe = _pid_alive if _pid_probe is None else _pid_probe
+    pid_alive = pid_probe(pid) if (pid_supplied and pid is not None) else False
     return sentinel_ready, code, pid_supplied, pid_alive, idle_seconds
 
 
 def observe_once(
-    capture_log: str, exit_file: str | None = None, pid: int | None = None, _clock=None,
+    capture_log: str, exit_file: str | None = None, pid: int | None = None, _clock=None, _pid_probe=None,
 ) -> dict:
     """Classify a delegate in a SINGLE shot (no loop): exited / dead-no-sentinel / running.
 
@@ -824,7 +1230,7 @@ def observe_once(
     cap = Path(capture_log)
     sentinel = Path(exit_file) if exit_file else Path(capture_log + ".exit")
     now = clock()
-    sr, code, ps, pa, idle = _snapshot(cap, sentinel, pid, now, now)
+    sr, code, ps, pa, idle = _snapshot(cap, sentinel, pid, now, now, _pid_probe)
     if sr:
         status, dcode = "exited", code
     elif ps and not pa:
@@ -843,6 +1249,7 @@ def wait_for_delegate(
     max_wait: float = 0.0,
     _clock=None,
     _sleep=None,
+    _pid_probe=None,
 ) -> dict:
     """Block in a poll loop until the delegate exits (or wedges), then return a verdict dict.
 
@@ -857,7 +1264,7 @@ def wait_for_delegate(
     started = clock()
     while True:
         now = clock()
-        sr, code, ps, pa, idle = _snapshot(cap, sentinel, pid, started, now)
+        sr, code, ps, pa, idle = _snapshot(cap, sentinel, pid, started, now, _pid_probe)
         decision, dcode = _wait_decision(
             sr, code, ps, pa, idle, idle_timeout, now - started, max_wait
         )
@@ -867,26 +1274,28 @@ def wait_for_delegate(
 
 
 def _run_self_test() -> int:
-    # A representative config: two profiles, a phase map, and a cli_phases route
-    # in BLOCK form. claude-routed + codex-routed phases exercise both arms.
+    # A representative runtime config: block-style profiles, the phase map, a cli_phases route in
+    # BLOCK form and the code_review block. codex-, claude- and opencode-routed phases exercise all arms.
     cfg = (
         "version: 1\n"
         "delegation:\n"
         "  host: auto\n"
         "  mode: auto\n"
-        "  target_tools:\n"
-        "    - claude-code\n"
-        "    - codex\n"
         "  cli_phases:\n"
-        "    dev_story: codex\n"
-        "    create_story: claude\n"
+        "    build: codex\n"
+        "    followup_review: claude\n"
         "    tea_triage: opencode\n"        # opencode arm: model + variant set (via ab-deep)
         "    tea_per_story: opencode\n"     # opencode arm: blank model + variant (via ab-blank)
         "tea:\n"
         "  enabled: true\n"
+        "code_review:\n"
+        "  followup: recommended\n"
+        "  security_layer: true\n"
+        "  cross_model_layer: codex\n"
+        "build:\n"
+        "  spec_approval: false\n"
         "profiles:\n"
         "  ab-deep:\n"
-        "    description: \"big\"\n"
         "    claude:\n"
         "      model: opus\n"
         "      effort: xhigh\n"
@@ -896,29 +1305,42 @@ def _run_self_test() -> int:
         "    opencode:\n"
         "      model: anthropic/claude-opus-4-5\n"
         "      variant: high\n"
+        "  ab-alt-deep:\n"
+        "    claude: {model: sonnet, effort: xhigh}\n"     # inline tool maps (config.yaml style)
+        "    codex: {model: gpt-5.4, reasoning_effort: xhigh}\n"
+        "    opencode: {model: \"\", variant: \"\"}\n"
         "  ab-blank:\n"
-        "    description: \"inherit\"\n"
         "    opencode:\n"
         "      model: \"\"\n"
         "      variant: \"\"\n"
         "phase_profiles:\n"
-        "  create_story: ab-deep\n"
-        "  dev_story: ab-deep\n"
+        "  build: ab-deep\n"
+        "  followup_review: ab-alt-deep\n"
+        "  cross_model_layer: ab-alt-deep\n"
         "  retrospective: ab-deep\n"
         "  tea_triage: ab-deep\n"
         "  tea_per_story: ab-blank\n"
     )
 
-    # cli_phases / phase_profiles parsing.
+    # cli_phases / phase_profiles / code_review parsing.
     lines = cfg.splitlines()
     assert parse_cli_phases(lines) == {
-        "dev_story": "codex", "create_story": "claude",
+        "build": "codex", "followup_review": "claude",
         "tea_triage": "opencode", "tea_per_story": "opencode",
     }
-    assert parse_phase_profiles(lines)["dev_story"] == "ab-deep"
+    assert parse_phase_profiles(lines)["build"] == "ab-deep"
+    assert parse_block_scalars(lines, "code_review") == {
+        "followup": "recommended", "security_layer": "true", "cross_model_layer": "codex",
+    }
+    assert parse_block_scalars(lines, "nope") == {}
+    # A nested sub-block under a scalar block is skipped (only indent-2 scalars are read).
+    nested = "tea:\n  enabled: true\n  story_trace_advisory:\n    enabled: true\n  framework_ci: prompt\n"
+    assert parse_block_scalars(nested.splitlines(), "tea") == {
+        "enabled": "true", "story_trace_advisory": "", "framework_ci": "prompt",
+    }
 
     # --- codex arm ---
-    cx = resolve("dev_story", cfg, "/proj", story_key="1-2-auth")
+    cx = resolve("build", cfg, "/proj", story_key="1-2-auth")
     assert cx["routed"] and not cx["errors"], cx
     assert cx["tool"] == "codex" and cx["model"] == "gpt-5.5" and cx["effort"] == "xhigh", cx
     a = cx["argv"]
@@ -935,12 +1357,13 @@ def _run_self_test() -> int:
     assert "-o" in a and "--ephemeral" in a, a
     assert cx["result_source"].endswith(".lastmsg") and cx["result_format"] == "text", cx
 
-    # --- claude arm ---
-    cl = resolve("create_story", cfg, "/proj", story_key="1-2-auth")
-    assert cl["tool"] == "claude" and cl["model"] == "opus" and cl["effort"] == "xhigh", cl
+    # --- claude arm (profile with INLINE tool maps) ---
+    cl = resolve("followup_review", cfg, "/proj", story_key="1-2-auth")
+    assert cl["routed"] and not cl["errors"], cl
+    assert cl["tool"] == "claude" and cl["model"] == "sonnet" and cl["effort"] == "xhigh", cl
     a = cl["argv"]
     assert a[:2] == ["claude", "-p"], a
-    assert "--model" in a and a[a.index("--model") + 1] == "opus", a
+    assert "--model" in a and a[a.index("--model") + 1] == "sonnet", a
     # claude effort is `--effort`, NEVER codex's `-c model_reasoning_effort=`.
     assert "--effort" in a and a[a.index("--effort") + 1] == "xhigh", a
     assert not any(str(x).startswith("model_reasoning_effort=") for x in a), a
@@ -961,7 +1384,9 @@ def _run_self_test() -> int:
     assert "--effort" not in a, a
     assert not any(str(x).startswith("model_reasoning_effort=") for x in a), a
     assert "--dir" in a and a[a.index("--dir") + 1] == "/proj", a
-    assert "--format" in a and "json" in a and "--dangerously-skip-permissions" in a, a
+    # `--auto` (opencode >= 1.18) is the visible flag; `--dangerously-skip-permissions` survives only as a hidden alias.
+    assert "--format" in a and "json" in a and "--auto" in a, a
+    assert "--dangerously-skip-permissions" not in a, a
     # opencode does NOT read stdin — the prompt is appended as a positional arg.
     assert oc["prompt_via"] == "arg", oc
     assert oc["result_format"] == "opencode-json" and oc["result_source"] == oc["capture_log"], oc
@@ -973,7 +1398,7 @@ def _run_self_test() -> int:
     assert ocb["tool"] == "opencode" and ocb["model"] is None and ocb["effort"] is None, ocb
     assert "-m" not in ocb["argv"] and "--variant" not in ocb["argv"], ocb["argv"]
     assert ocb["argv"][:2] == ["opencode", "run"], ocb["argv"]
-    assert "--dir" in ocb["argv"] and ocb["prompt_via"] == "arg", ocb
+    assert "--dir" in ocb["argv"] and "--auto" in ocb["argv"] and ocb["prompt_via"] == "arg", ocb
 
     # --- sentinel paths + launch_cmd (the bash -c body the orchestrator backgrounds) ---
     tmp = str(_capture_dir())
@@ -985,17 +1410,20 @@ def _run_self_test() -> int:
         # cd into the repo, redirect both streams to capture_log, write $? to the sentinel.
         assert lc.startswith("{ cd ") and "; } > " in lc and "2>&1 ; echo $? > " in lc, lc
         assert p["capture_log"] in lc and p["exit_file"] in lc and p["prompt_file"] in lc, lc
+        # No wall-clock cap for ANY routed phase (the review timeout gate is gone).
+        assert "timeout" not in lc and "-k 30" not in lc, lc
+        assert "timeout_secs" not in p and "timeout_bin" not in p, p
     # claude/codex deliver the prompt on STDIN (`< prompt_file`); opencode as a positional arg.
     assert f"< {shlex.quote(cx['prompt_file'])}" in cx["launch_cmd"], cx["launch_cmd"]
     assert f"< {shlex.quote(cl['prompt_file'])}" in cl["launch_cmd"], cl["launch_cmd"]
     assert "cat " in oc["launch_cmd"] and " < " not in oc["launch_cmd"], oc["launch_cmd"]
     # A space in the cwd is shell-quoted, not split, so the cd survives.
-    spaced = resolve("dev_story", cfg, "/tmp/my proj", story_key="k")
+    spaced = resolve("build", cfg, "/tmp/my proj", story_key="k")
     assert "cd '/tmp/my proj'" in spaced["launch_cmd"], spaced["launch_cmd"]
 
-    # --- extract_opencode_result: validated against a REAL opencode 1.16.2 `run --format json`
-    # capture (OpenCode Zen / MiMo V2.5; opaque IDs abbreviated, structure verbatim). Assistant
-    # text = part.text of the top-level type=="text" event(s); step_start/step_finish are ignored.
+    # --- extract_opencode_result: validated against a REAL opencode `run --format json` capture
+    # (1.16.2, re-verified byte-shape-identical on 1.18.15; opaque IDs abbreviated, structure verbatim).
+    # Assistant text = part.text of the top-level type=="text" event(s); step_start/step_finish ignored.
     real = (
         '{"type":"step_start","sessionID":"ses_x","part":{"id":"prt_a","messageID":"msg_1","sessionID":"ses_x","snapshot":"f1c4","type":"step-start"}}\n'
         '{"type":"text","timestamp":1781014936653,"sessionID":"ses_x","part":{"id":"prt_b","messageID":"msg_1","sessionID":"ses_x","type":"text","text":"PONG","time":{"start":1781014936622,"end":1781014936650}}}\n'
@@ -1039,44 +1467,224 @@ def _run_self_test() -> int:
     assert cx["capture_log"] != cl["capture_log"]
     assert cx["result_source"] != cx["capture_log"]  # codex parses the -o file, not stdout
 
-    # `label` keeps fan-out delegates' capture paths distinct (same phase + story).
-    l1 = resolve("create_story", cfg, "/proj", story_key="k", label="blind-hunter")
-    l2 = resolve("create_story", cfg, "/proj", story_key="k", label="edge-case")
+    # `label` keeps repeated delegates' capture paths distinct (same phase + story — e.g. the
+    # follow-up review passes of one story).
+    l1 = resolve("followup_review", cfg, "/proj", story_key="k", label="pass-1")
+    l2 = resolve("followup_review", cfg, "/proj", story_key="k", label="pass-2")
     assert l1["capture_log"] != l2["capture_log"], (l1["capture_log"], l2["capture_log"])
-    assert "blind-hunter" in l1["capture_log"], l1["capture_log"]
+    assert "pass-1" in l1["capture_log"], l1["capture_log"]
 
     # Unrouted phase -> use the normal tier.
     assert resolve("retrospective", cfg, "/proj") == {"routed": False, "phase": "retrospective"}
 
     # Inline cli_phases form, including empty.
-    inline = "delegation:\n  cli_phases: { dev_story: claude, retrospective: codex }\n"
-    assert parse_cli_phases(inline.splitlines()) == {"dev_story": "claude", "retrospective": "codex"}
+    inline = "delegation:\n  cli_phases: { build: claude, retrospective: codex }\n"
+    assert parse_cli_phases(inline.splitlines()) == {"build": "claude", "retrospective": "codex"}
     assert parse_cli_phases("delegation:\n  cli_phases: {}\n".splitlines()) == {}
     assert parse_cli_phases("delegation:\n  host: auto\n".splitlines()) == {}  # no cli_phases key
+    # `claude-code` (the delegation.host spelling) is accepted as an alias of `claude`.
+    alias = resolve("build", cfg.replace("build: codex", "build: claude-code"), "/proj")
+    assert alias["tool"] == "claude" and not alias["errors"], alias
 
     # Resolution errors: bad tool, missing profile block, unknown phase mapping.
-    bad_tool = cfg.replace("dev_story: codex", "dev_story: gpt5")
-    r = resolve("dev_story", bad_tool, "/proj")
+    bad_tool = cfg.replace("build: codex", "build: gpt5")
+    r = resolve("build", bad_tool, "/proj")
     assert r["routed"] and r["ok"] is False and any("expected 'claude', 'codex' or 'opencode'" in e for e in r["errors"]), r
 
     no_block = (
-        "delegation:\n  cli_phases:\n    dev_story: codex\n"
+        "delegation:\n  cli_phases:\n    build: codex\n"
         "profiles:\n  ab-deep:\n    claude:\n      model: opus\n      effort: xhigh\n"
-        "phase_profiles:\n  dev_story: ab-deep\n"
+        "phase_profiles:\n  build: ab-deep\n"
     )  # ab-deep has no codex block
-    r = resolve("dev_story", no_block, "/proj")
+    r = resolve("build", no_block, "/proj")
     assert r["ok"] is False and any("no 'codex' block" in e for e in r["errors"]), r
 
-    no_map = "delegation:\n  cli_phases:\n    dev_story: codex\nprofiles:\n  ab-deep:\n    codex:\n      model: m\n      reasoning_effort: high\n"
-    r = resolve("dev_story", no_map, "/proj")  # no phase_profiles mapping
+    no_map = "delegation:\n  cli_phases:\n    build: codex\nprofiles:\n  ab-deep:\n    codex:\n      model: m\n      reasoning_effort: high\n"
+    r = resolve("build", no_map, "/proj")  # no phase_profiles mapping
     assert r["ok"] is False and any("no phase_profiles mapping" in e for e in r["errors"]), r
+
+    no_prof = "delegation:\n  cli_phases:\n    build: codex\nprofiles:\n  ab-x:\n    codex:\n      model: m\n      reasoning_effort: high\nphase_profiles:\n  build: ab-deep\n"
+    r = resolve("build", no_prof, "/proj")  # mapped profile absent from profiles
+    assert r["ok"] is False and any("not found in profiles block" in e for e in r["errors"]), r
+
+    no_effort = "delegation:\n  cli_phases:\n    build: claude\nprofiles:\n  ab-deep:\n    claude:\n      model: opus\nphase_profiles:\n  build: ab-deep\n"
+    r = resolve("build", no_effort, "/proj")  # claude block without effort
+    assert r["ok"] is False and any("claude.effort' missing" in e for e in r["errors"]), r
+
+    # --- resolve_layer(): the cross-model review layer command (PURE; timeout_bin injected) ---
+    # The prompt is embeddable in one double-quoted shell argument and in a TOML ''' literal.
+    assert _check_prompt_shell_safe(CROSS_MODEL_REVIEW_PROMPT) is None
+    assert DIFF_FILE_TOKEN in CROSS_MODEL_REVIEW_PROMPT
+    assert CROSS_MODEL_REVIEW_PROMPT.endswith("output exactly: No findings.")
+    assert _check_prompt_shell_safe('say "hi"') and _check_prompt_shell_safe("a $b") and _check_prompt_shell_safe("x'''y")
+    assert _check_prompt_shell_safe("a `b`") and _check_prompt_shell_safe("a\\b") and _check_prompt_shell_safe("a\nb")
+
+    # codex (from code_review.cross_model_layer: codex; profile ab-alt-deep, inline codex map).
+    ly = resolve_layer(cfg, "/proj", timeout_bin="", platform="posix")
+    assert ly["ok"] and ly["enabled"] and ly["tool"] == "codex" and ly["profile"] == "ab-alt-deep", ly
+    assert ly["model"] == "gpt-5.4" and ly["effort"] == "xhigh" and ly["timeout_bin"] is None, ly
+    assert ly["prompt"] == CROSS_MODEL_REVIEW_PROMPT and not ly["errors"], ly
+    cmd = ly["command"]
+    assert "\n" not in cmd, cmd  # ONE shell line
+    assert cmd.startswith('cd "/proj" && codex exec -m gpt-5.4 -c model_reasoning_effort=xhigh '), cmd
+    assert "-c approval_policy=never -s read-only" in cmd, cmd     # `-a never` is rejected by codex exec
+    assert " -a never" not in cmd and "--dangerously" not in cmd, cmd
+    assert '-C "/proj" --ephemeral -o "<DIFF_FILE>.review" "' + CROSS_MODEL_REVIEW_PROMPT + '" </dev/null >/dev/null 2>&1 && cat "<DIFF_FILE>.review"' in cmd, cmd
+    assert cmd.count(DIFF_FILE_TOKEN) == 3, cmd  # prompt + -o + cat
+    assert "timeout" not in cmd, cmd  # no GNU timeout on PATH at bake time => unwrapped
+
+    # claude via --tool override (ignores code_review.cross_model_layer); timeout wrapper baked by
+    # BASENAME (gtimeout on a Homebrew macOS, timeout on Linux) — never an absolute bake-host path.
+    lc_ = resolve_layer(
+        cfg, "/proj", tool="claude", timeout_bin="/opt/homebrew/bin/gtimeout", platform="posix")
+    assert lc_["ok"] and lc_["tool"] == "claude" and lc_["model"] == "sonnet" and lc_["effort"] == "xhigh", lc_
+    assert lc_["timeout_bin"] == "/opt/homebrew/bin/gtimeout", lc_
+    cmd = lc_["command"]
+    assert cmd == (
+        'cd "/proj" && gtimeout -k 30 1200 claude -p "' + CROSS_MODEL_REVIEW_PROMPT + '" --model sonnet '
+        '--effort xhigh --output-format text --allowedTools "Read,Grep,Glob" </dev/null'
+    ), cmd
+    assert "--dangerously-skip-permissions" not in cmd and "--output-format json" not in cmd, cmd
+    lt = resolve_layer(
+        cfg, "/proj", tool="claude-code", timeout_bin="/usr/bin/timeout", platform="posix")
+    assert lt["tool"] == "claude" and lt["command"].startswith('cd "/proj" && timeout -k 30 1200 claude -p "'), lt
+
+    # opencode with model + variant (ab-deep) and BLANK model/variant (ab-alt-deep => inherit).
+    cfg_oc = cfg.replace("cross_model_layer: ab-alt-deep", "cross_model_layer: ab-deep")
+    lo = resolve_layer(cfg_oc, "/proj", tool="opencode", timeout_bin="", platform="posix")
+    assert lo["ok"] and lo["model"] == "anthropic/claude-opus-4-5" and lo["effort"] == "high", lo
+    assert lo["command"] == (
+        'cd "/proj" && opencode run -m anthropic/claude-opus-4-5 --variant high --dir "/proj" --auto "'
+        + CROSS_MODEL_REVIEW_PROMPT + '" </dev/null'
+    ), lo["command"]
+    lob = resolve_layer(cfg, "/proj", tool="opencode", timeout_bin="", platform="posix")
+    assert lob["ok"] and lob["model"] is None and lob["effort"] is None and not lob["errors"], lob
+    assert lob["command"] == 'cd "/proj" && opencode run --dir "/proj" --auto "' + CROSS_MODEL_REVIEW_PROMPT + '" </dev/null', lob["command"]
+    assert "--format" not in lob["command"] and "--dangerously-skip-permissions" not in lob["command"], lob["command"]
+
+    # Disabled: `""` value, and an absent code_review block / key => ok, enabled false, no command.
+    for off in (cfg.replace("cross_model_layer: codex", 'cross_model_layer: ""'),
+                cfg.replace("  cross_model_layer: codex\n", ""),
+                "profiles:\n  ab-deep:\n    codex: {model: m, reasoning_effort: high}\n"):
+        d = resolve_layer(off, "/proj", timeout_bin="")
+        assert d == {"ok": True, "enabled": False, "tool": None, "profile": None, "model": None,
+                     "effort": None, "timeout_bin": None, "command": None, "prompt": None, "errors": []}, d
+    assert resolve_layer(cfg, "/proj", tool="", timeout_bin="")["enabled"] is False  # explicit off
+
+    # Errors: bad tool value; missing phase_profiles mapping; missing profile; missing tool block;
+    # a relative or shell-unsafe project root.
+    e = resolve_layer(cfg.replace("cross_model_layer: codex", "cross_model_layer: gemini"), "/proj", timeout_bin="")
+    assert e["ok"] is False and e["enabled"] and e["command"] is None and any("expected 'codex', 'claude', 'opencode' or ''" in x for x in e["errors"]), e
+    e = resolve_layer(cfg.replace("  cross_model_layer: ab-alt-deep\n", ""), "/proj", timeout_bin="")
+    assert e["ok"] is False and any("no phase_profiles mapping for 'cross_model_layer'" in x for x in e["errors"]), e
+    e = resolve_layer(cfg.replace("cross_model_layer: ab-alt-deep", "cross_model_layer: ab-missing"), "/proj", timeout_bin="")
+    assert e["ok"] is False and any("'ab-missing' not found" in x for x in e["errors"]), e
+    e = resolve_layer(cfg.replace("cross_model_layer: ab-alt-deep", "cross_model_layer: ab-blank"), "/proj", timeout_bin="")
+    assert e["ok"] is False and any("has no 'codex' block" in x for x in e["errors"]), e   # ab-blank: opencode only
+
+    # A PRESENT-BUT-EMPTY opencode block means "inherit model AND variant", NOT a missing block —
+    # both spellings (inline `{}` and a bare `opencode:` header) resolve with no errors.
+    for empty in ("  ab-empty:\n    opencode: {}\n", "  ab-empty:\n    opencode:\n"):
+        pe = parse_profiles("profiles:\n" + empty)
+        assert _model_effort(pe, "ab-empty", "opencode") == (None, None, []), (empty, pe)
+        le = resolve_layer(
+            "code_review:\n  cross_model_layer: opencode\n"
+            "phase_profiles:\n  cross_model_layer: ab-empty\nprofiles:\n" + empty,
+            "/proj", timeout_bin="", platform="posix")
+        assert le["ok"] and not le["errors"] and le["model"] is None and le["effort"] is None, (empty, le)
+        assert le["command"] == 'cd "/proj" && opencode run --dir "/proj" --auto "' + CROSS_MODEL_REVIEW_PROMPT + '" </dev/null', le
+    # claude/codex still REQUIRE their two keys: an empty block there stays an error.
+    assert _model_effort(parse_profiles("profiles:\n  ab-empty:\n    codex: {}\n"), "ab-empty", "codex")[2] == [
+        "profile 'ab-empty' has no 'codex' block"]
+
+    # code_review written as an INLINE flow map resolves identically to the block form.
+    inline_cfg = cfg.replace(
+        "code_review:\n  followup: recommended\n  security_layer: true\n  cross_model_layer: codex\n",
+        "code_review: {followup: recommended, security_layer: true, cross_model_layer: codex}\n")
+    assert "code_review: {" in inline_cfg
+    assert parse_block_scalars(inline_cfg.splitlines(), "code_review") == {
+        "followup": "recommended", "security_layer": "true", "cross_model_layer": "codex",
+    }
+    li = resolve_layer(inline_cfg, "/proj", timeout_bin="", platform="posix")
+    assert li["ok"] and li["enabled"] and li["tool"] == "codex" and li["command"] == ly["command"], li
+    # An empty inline map (and an inline map without the key) leaves the layer disabled.
+    assert resolve_layer(cfg.replace(
+        "code_review:\n  followup: recommended\n  security_layer: true\n  cross_model_layer: codex\n",
+        "code_review: {}\n"), "/proj", timeout_bin="")["enabled"] is False
+    assert parse_block_scalars(["code_review: {}"], "code_review") == {}
+    e = resolve_layer(cfg, "relative/dir", timeout_bin="")
+    assert e["ok"] is False and any("must be absolute" in x for x in e["errors"]), e
+    e = resolve_layer(cfg, '/pro"j', timeout_bin="")
+    assert e["ok"] is False and any("double-quoted shell argument" in x for x in e["errors"]), e
+    # A root with a space is fine (it rides inside the double quotes).
+    sp = resolve_layer(cfg, "/my proj", timeout_bin="", platform="posix")
+    assert sp["ok"] and 'cd "/my proj" && ' in sp["command"] and '-C "/my proj"' in sp["command"], sp
+    # timeout_bin=None => live PATH detection (result is env-dependent; only its shape is asserted).
+    live = resolve_layer(cfg, "/proj")
+    assert live["ok"] and (live["timeout_bin"] is None or Path(live["timeout_bin"]).name in ("timeout", "gtimeout")), live
+    if live["timeout_bin"]:
+        assert f'&& {Path(live["timeout_bin"]).name} -k 30 1200 codex exec' in live["command"], live
+    else:
+        assert "&& codex exec" in live["command"], live
+
+    # --- the CLI surface of --layer-argv (JSON on stdout + exit codes) via a subprocess ---
+    with tempfile.TemporaryDirectory() as ld:
+        cfg_file = Path(ld) / "config.yaml"
+        cfg_file.write_text(cfg, encoding="utf-8")
+        me = str(Path(__file__).resolve())
+        p = subprocess.run([sys.executable, me, "--layer-argv", "--config", str(cfg_file), "--project-root", ld],
+                           capture_output=True, text=True, timeout=60)
+        assert p.returncode == 0, (p.returncode, p.stdout, p.stderr)
+        j = json.loads(p.stdout)
+        expected_root, _ = _portable_project_root(os.path.abspath(ld))
+        escaped_root = expected_root.replace("'", "''")
+        expected_prefix = (
+            f'cmd.exe /d /s /c \'cd /d "{escaped_root}" && '
+            if os.name == "nt" else f'cd "{expected_root}" && '
+        )
+        assert j["ok"] and j["enabled"] and j["tool"] == "codex" and j["command"].startswith(expected_prefix), j
+        p = subprocess.run([sys.executable, me, "--layer-argv", "--config", str(cfg_file), "--project-root", ld, "--tool", "opencode"],
+                           capture_output=True, text=True, timeout=60)
+        j = json.loads(p.stdout)
+        assert p.returncode == 0 and j["tool"] == "opencode" and "--auto" in j["command"], (p.returncode, j)
+        p = subprocess.run([sys.executable, me, "--layer-argv", "--config", str(cfg_file), "--project-root", ld, "--tool", "gemini"],
+                           capture_output=True, text=True, timeout=60)
+        j = json.loads(p.stdout)
+        assert p.returncode == 2 and j["ok"] is False and j["errors"], (p.returncode, j)
+        cfg_file.write_text(cfg.replace("cross_model_layer: codex", 'cross_model_layer: ""'), encoding="utf-8")
+        p = subprocess.run([sys.executable, me, "--layer-argv", "--config", str(cfg_file), "--project-root", ld],
+                           capture_output=True, text=True, timeout=60)
+        j = json.loads(p.stdout)
+        assert p.returncode == 0 and j["ok"] and j["enabled"] is False and j["command"] is None, (p.returncode, j)
+        # Missing args / missing config file => usage error, exit 2.
+        p = subprocess.run([sys.executable, me, "--layer-argv", "--config", str(cfg_file)],
+                           capture_output=True, text=True, timeout=60)
+        assert p.returncode == 2 and json.loads(p.stdout)["status"] == "error", (p.returncode, p.stdout)
+        p = subprocess.run([sys.executable, me, "--layer-argv", "--config", str(Path(ld) / "nope.yaml"), "--project-root", ld],
+                           capture_output=True, text=True, timeout=60)
+        assert p.returncode == 2 and "config not found" in json.loads(p.stdout)["message"], (p.returncode, p.stdout)
+        # An unreadable config (here: not valid UTF-8) => ONE json error object, exit 2, NO traceback
+        # — on both entry points.
+        bad_cfg = Path(ld) / "binary.yaml"
+        bad_cfg.write_bytes(b"version: 1\ncode_review:\n  cross_model_layer: \xff\xfe codex\n")
+        for extra in (["--layer-argv"], ["--phase", "build"]):
+            p = subprocess.run([sys.executable, me, *extra, "--config", str(bad_cfg), "--project-root", ld],
+                               capture_output=True, text=True, timeout=60)
+            j = json.loads(p.stdout)
+            assert p.returncode == 2 and j["status"] == "error", (extra, p.returncode, p.stdout)
+            assert j["message"].startswith("config unreadable: "), (extra, j)
+            assert "Traceback" not in p.stderr, (extra, p.stderr)
+        # The routed-phase CLI still answers `routed: false` (exit 0) for an unrouted phase.
+        p = subprocess.run([sys.executable, me, "--phase", "retrospective", "--config", str(cfg_file), "--project-root", ld],
+                           capture_output=True, text=True, timeout=60)
+        assert p.returncode == 0 and json.loads(p.stdout) == {"routed": False, "phase": "retrospective"}, (p.returncode, p.stdout)
 
     # --- validate(): offline-deterministic paths (no real auth probe) ---
     with tempfile.TemporaryDirectory() as td:
         root = Path(td)
-        (root / ".agents" / "skills" / "bmad-create-story").mkdir(parents=True)
+        (root / ".agents" / "skills" / "bmad-build-auto").mkdir(parents=True)
         # Host-tool route skips the auth probe; codex skills found in .agents/skills.
-        plan = resolve("dev_story", cfg, str(root), story_key="k")
+        plan = resolve("build", cfg, str(root), story_key="k")
         v = validate(plan, str(root), host="codex", run_auth_probe=False)
         assert v["validation"]["skills_present"] is True, v
         assert v["validation"]["auth"] == "skipped (host tool)", v
@@ -1084,15 +1692,15 @@ def _run_self_test() -> int:
 
         # Missing skills dir -> error.
         with tempfile.TemporaryDirectory() as td2:
-            plan2 = resolve("dev_story", cfg, td2, story_key="k")
+            plan2 = resolve("build", cfg, td2, story_key="k")
             v2 = validate(plan2, td2, host="codex", run_auth_probe=False)
             assert v2["validation"]["skills_present"] is False, v2
             assert any("no BMAD skills" in e for e in v2["errors"]), v2
             assert v2["ok"] is False
 
         # Non-host tool with probe disabled -> auth reported as skipped, not failed.
-        plan3 = resolve("create_story", cfg, str(root), story_key="k")
-        (root / ".claude" / "skills" / "bmad-create-story").mkdir(parents=True)
+        plan3 = resolve("followup_review", cfg, str(root), story_key="k")
+        (root / ".claude" / "skills" / "bmad-build-auto").mkdir(parents=True)
         v3 = validate(plan3, str(root), host="codex", run_auth_probe=False)
         assert v3["validation"]["auth"] == "skipped (probe disabled)", v3
 
@@ -1103,18 +1711,30 @@ def _run_self_test() -> int:
         v_oc = validate(plan_oc, str(root), host="opencode", run_auth_probe=False)
         assert v_oc["validation"]["skills_present"] is True, v_oc
         assert v_oc["validation"]["auth"] == "skipped (host tool)", v_oc
-        assert any(str(d).endswith(".opencode/skills") for d in v_oc["validation"]["skills_dirs_checked"]), v_oc
+        checked = v_oc["validation"]["skills_dirs_checked"]
+        assert any(Path(d).parts[-2:] == (".opencode", "skills") for d in checked), v_oc
+        # opencode also reads the cross-tool project skill dirs.
+        assert any(Path(d).parts[-2:] == (".claude", "skills") for d in checked), checked
+        assert any(Path(d).parts[-2:] == (".agents", "skills") for d in checked), checked
 
         # opencode commands-based BMAD install (no skills dir): `command(s)/bmad-*.md` files
         # also count as present — a miss here would hard-stop a working route.
         with tempfile.TemporaryDirectory() as td3:
             cmd_dir = Path(td3) / ".opencode" / "commands"
             cmd_dir.mkdir(parents=True)
-            (cmd_dir / "bmad-review-adversarial-general.md").write_text("# cmd", encoding="utf-8")
+            (cmd_dir / "bmad-build-auto.md").write_text("# cmd", encoding="utf-8")
             plan_cmd = resolve("tea_triage", cfg, td3, story_key="k")
             v_cmd = validate(plan_cmd, td3, host="opencode", run_auth_probe=False)
             assert v_cmd["validation"]["skills_present"] is True, v_cmd
-            assert any(str(d).endswith(".opencode/commands") for d in v_cmd["validation"]["skills_dirs_found"]), v_cmd
+            assert any(Path(d).parts[-2:] == (".opencode", "commands") for d in v_cmd["validation"]["skills_dirs_found"]), v_cmd
+
+        # opencode with ONLY a Claude-Code-style install (`.claude/skills/bmad-*`) => present.
+        with tempfile.TemporaryDirectory() as td4:
+            (Path(td4) / ".claude" / "skills" / "bmad-build-auto").mkdir(parents=True)
+            plan_x = resolve("tea_triage", cfg, td4, story_key="k")
+            v_x = validate(plan_x, td4, host="opencode", run_auth_probe=False)
+            assert v_x["validation"]["skills_present"] is True, v_x
+            assert any(Path(d).parts[-2:] == (".claude", "skills") for d in v_x["validation"]["skills_dirs_found"]), v_x
 
     # --- watch logic: _wait_decision (pure) + observe_once/wait_for_delegate (injected clock) ---
     # Sentinel wins over everything — even a 'dead' pid reads as a clean exit, not a crash.
@@ -1147,6 +1767,12 @@ def _run_self_test() -> int:
         assert r["status"] == "exited" and r["exit_code"] == 7 and r["ok"] is True, r
         # default exit_file = <capture_log>.exit when not passed (fresh basename, no sentinel yet).
         assert observe_once(str(Path(wd) / "fresh"))["status"] == "running"  # fresh.exit absent
+        # A mocked dead PID with no sentinel -> dead-no-sentinel (never probe a real PID here).
+        r = observe_once(
+            str(Path(wd) / "gone"), exit_file=str(Path(wd) / "gone.exit"), pid=4242,
+            _pid_probe=lambda _: False,
+        )
+        assert r["status"] == "dead-no-sentinel", r
 
         # wait_for_delegate happy path: sentinel lands on the 2nd poll. Injected clock+sleep (no real
         # sleeping); capture_log absent => idle is clock-driven, huge idle_timeout => never trips.
@@ -1173,6 +1799,15 @@ def _run_self_test() -> int:
         )
         assert r["status"] == "wedged-idle" and not r["ok"], r
 
+        # wait_for_delegate max-wait: mocked live PID, no sentinel, cap reached.
+        ticks4 = iter([0.0, 30.0, 61.0])
+        r = wait_for_delegate(
+            str(Path(wd) / "m.log"), exit_file=str(Path(wd) / "m.exit"), pid=4242,
+            idle_timeout=1.0, poll_interval=0.0, max_wait=60.0,
+            _clock=lambda: next(ticks4), _sleep=lambda _: None, _pid_probe=lambda _: True,
+        )
+        assert r["status"] == "max-wait" and not r["ok"], r
+
     # _read_exit_code: empty/half-written sentinel reads as "not exited" (None), not a clean 0.
     with tempfile.TemporaryDirectory() as rd:
         empty = Path(rd) / "e.exit"
@@ -1181,6 +1816,8 @@ def _run_self_test() -> int:
         assert _read_exit_code(Path(rd) / "missing.exit") is None
         (Path(rd) / "ok.exit").write_text("0\n", encoding="utf-8")
         assert _read_exit_code(Path(rd) / "ok.exit") == 0
+        (Path(rd) / "junk.exit").write_text("abc\n", encoding="utf-8")
+        assert _read_exit_code(Path(rd) / "junk.exit") is None
 
     print("SELF-TEST PASSED (all assertions)")
     return 0
@@ -1188,9 +1825,11 @@ def _run_self_test() -> int:
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Resolve an external-CLI delegation for one auto-bmad phase."
+        description="Resolve an external-CLI delegation for one auto-bmad phase, or build the cross-model review layer command."
     )
     parser.add_argument("--self-test", action="store_true", help="Run internal tests and exit.")
+    parser.add_argument("--layer-argv", action="store_true", help="Build the auto-bmad-cross-model review layer's shell command (baked into _bmad/custom/bmad-build-auto.toml by build_auto_custom.py) from code_review.cross_model_layer + phase_profiles.cross_model_layer. Needs --config and --project-root; --tool overrides the config value.")
+    parser.add_argument("--tool", help="--layer-argv only: force the external tool (codex|claude|opencode; '' = disabled) instead of reading code_review.cross_model_layer.")
     parser.add_argument("--wait", action="store_true", help="Block until a detached routed delegate exits, then print a verdict JSON. MUST be launched BACKGROUNDED (a foreground wait hits the host's ~10-min shell cap). Prefer --once on a host that re-invokes you when a background task exits.")
     parser.add_argument("--once", action="store_true", help="Classify a delegate ONCE and exit immediately (no loop): exited / dead-no-sentinel / running. For notify-capable hosts — background the delegate itself, then call --once on wake.")
     parser.add_argument("--capture-log", help="Delegate capture-log path (from resolve()); required by --wait/--once.")
@@ -1199,11 +1838,11 @@ def main() -> int:
     parser.add_argument("--idle-timeout", type=float, default=1800.0, help="NO-pid fallback only: declare 'wedged-idle' after this many seconds of NO new capture-log output. A SILENCE allowance, NOT a runtime cap. Ignored when --pid is given. Default 1800 (30 min).")
     parser.add_argument("--poll-interval", type=float, default=5.0, help="--wait poll cadence in seconds (default 5).")
     parser.add_argument("--max-wait", type=float, default=0.0, help="Optional absolute safety cap in seconds (0 = unbounded — the default, so a multi-hour delegate is never killed on a clock). Set a generous value (hours) as a final backstop against a truly hung delegate.")
-    parser.add_argument("--phase", help="Pipeline phase key (e.g. dev_story, code_review_review).")
+    parser.add_argument("--phase", help="Pipeline phase key — a phase_profiles key (e.g. build, followup_review, retrospective).")
     parser.add_argument("--config", help="Path to the runtime config.yaml.")
-    parser.add_argument("--project-root", help="Project root (cwd for the child; codex -C).")
+    parser.add_argument("--project-root", help="Project root (cwd for the child; codex -C / opencode --dir; inlined absolute into the layer command).")
     parser.add_argument("--story-key", default="story", help="Story key, for unique capture filenames.")
-    parser.add_argument("--label", help="Extra capture-filename suffix; use a distinct one per fan-out delegate (e.g. blind-hunter) so their capture logs don't collide.")
+    parser.add_argument("--label", help="Extra capture-filename suffix; use a distinct one per repeated delegate of the same phase (e.g. pass-2 for a second follow-up review) so their capture logs don't collide.")
     parser.add_argument("--host", help="Resolved host (claude-code|codex|opencode); skips the auth probe for the host tool. Any other value (e.g. 'auto') ⇒ probe always.")
     parser.add_argument("--no-auth-probe", action="store_true", help="Skip the live auth probe (resolution + binary/skills only).")
     parser.add_argument("--mkdir", action="store_true", help="Create the temp capture dir so the orchestrator's redirect succeeds.")
@@ -1227,7 +1866,8 @@ def main() -> int:
         print(json.dumps(result, indent=2))
         return 0 if result["ok"] else 1
 
-    missing = [n for n in ("phase", "config", "project_root") if not getattr(args, n)]
+    required = ("config", "project_root") if args.layer_argv else ("phase", "config", "project_root")
+    missing = [n for n in required if not getattr(args, n)]
     if missing:
         print(json.dumps({"status": "error", "message": f"missing required: {missing}"}))
         return 2
@@ -1236,8 +1876,21 @@ def main() -> int:
     if not cfg_path.is_file():
         print(json.dumps({"status": "error", "message": f"config not found: {cfg_path}"}))
         return 2
+    try:
+        config_text = cfg_path.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError) as exc:
+        # A directory, a permission denial or a non-UTF-8 blob must be ONE json object, never a
+        # traceback (both --phase and --layer-argv reach this line).
+        print(json.dumps({"status": "error", "message": f"config unreadable: {cfg_path}: {exc}"}))
+        return 2
 
-    plan = resolve(args.phase, cfg_path.read_text(encoding="utf-8"), args.project_root, args.story_key, args.label)
+    if args.layer_argv:
+        # abspath (not resolve): absolute as the user spelled it, symlinks untouched.
+        layer = resolve_layer(config_text, os.path.abspath(args.project_root), tool=args.tool)
+        print(json.dumps(layer, indent=2))
+        return 0 if layer["ok"] else 2
+
+    plan = resolve(args.phase, config_text, args.project_root, args.story_key, args.label)
     if not plan.get("routed"):
         print(json.dumps(plan, indent=2))
         return 0

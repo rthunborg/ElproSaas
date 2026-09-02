@@ -54,7 +54,16 @@ import {
 } from "@/features/calculations/source-select";
 import type { CalculationRowRow } from "@/features/calculations/read";
 import type { RowSourceLists } from "@/features/calculations/source-options";
-import type { VatDisplayPosture } from "@/lib/money";
+import {
+  DEDUCTION_CLASSIFICATIONS,
+  VAT_TYPES,
+  isDeductionClassification,
+  isDeductionClassificationCompatibleWithSummaryCategory,
+  type DeductionClassification,
+  type TaxSummaryCategory,
+  type VatDisplayPosture,
+  type VatType,
+} from "@/lib/money";
 
 const ROW_TYPE_OPTIONS = [
   { value: "labor", label: "Arbete" },
@@ -64,15 +73,51 @@ const ROW_TYPE_OPTIONS = [
   { value: "other", label: "Övrigt" },
 ] as const;
 
+const VAT_TYPE_LABELS: Record<VatType, string> = {
+  STANDARD_VAT_25: "Standardmoms",
+  REDUCED_VAT: "Reducerad moms",
+  ZERO_RATED: "Momsfri (0 %)",
+  REVERSE_CHARGE_CONSTRUCTION: "Omvänd betalningsskyldighet, bygg",
+};
+const VAT_TYPE_OPTIONS = VAT_TYPES.map((value) => ({
+  value,
+  label: VAT_TYPE_LABELS[value],
+}));
+
+const DEDUCTION_CLASSIFICATION_LABELS: Record<DeductionClassification, string> = {
+  NONE: "Ingen",
+  ROT_LABOR: "ROT – arbete",
+  GREEN_SOLAR_LABOR: "Grön teknik – sol, arbete",
+  GREEN_SOLAR_MATERIAL: "Grön teknik – sol, material",
+  GREEN_STORAGE_LABOR: "Grön teknik – lagring, arbete",
+  GREEN_STORAGE_MATERIAL: "Grön teknik – lagring, material",
+  GREEN_CHARGING_LABOR: "Grön teknik – laddning, arbete",
+  GREEN_CHARGING_MATERIAL: "Grön teknik – laddning, material",
+};
+const DEDUCTION_CLASSIFICATION_OPTIONS = DEDUCTION_CLASSIFICATIONS.map((value) => ({
+  value,
+  label: DEDUCTION_CLASSIFICATION_LABELS[value],
+}));
+
+function summaryCategoryForRowType(rowType: string): TaxSummaryCategory {
+  if (rowType === "labor") return "labor";
+  if (rowType === "material") return "material";
+  return "other";
+}
+
 /** A hidden `false` companion + a checkbox for a row flag (turn-OFF safe). */
 function FlagField({
   name,
   label,
   defaultChecked,
+  checked,
+  onChange,
 }: {
   readonly name: string;
   readonly label: string;
-  readonly defaultChecked: boolean;
+  readonly defaultChecked?: boolean;
+  readonly checked?: boolean;
+  readonly onChange?: (checked: boolean) => void;
 }) {
   return (
     <label className="flex items-center gap-2 text-sm text-zinc-800">
@@ -83,7 +128,8 @@ function FlagField({
         type="checkbox"
         name={name}
         value="true"
-        defaultChecked={defaultChecked}
+        {...(checked === undefined ? { defaultChecked } : { checked })}
+        onChange={(event) => onChange?.(event.target.checked)}
         className="size-4 rounded border-zinc-300 text-blue-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
       />
       {label}
@@ -97,6 +143,7 @@ export function RowEditor({
   row,
   sources,
   posture,
+  policyEffectiveDate,
   onArchive,
 }: {
   readonly sectionId: string;
@@ -107,6 +154,8 @@ export function RowEditor({
   readonly sources: RowSourceLists;
   /** The resolved VAT display posture (Story 5.4 — drives the posture-aware line-total label). */
   readonly posture: VatDisplayPosture;
+  /** Swedish quote-capture date used to resolve the applicable live VAT policy. */
+  readonly policyEffectiveDate: string;
   /** Render the archive/delete control for an existing row (direct — a single row). */
   readonly onArchive?: (row: CalculationRowRow) => void;
 }) {
@@ -122,6 +171,8 @@ export function RowEditor({
     (isUpdate ? state.targetId === row?.id || state.status === "error" : true);
   const v = (field: string, fallback: string): string =>
     (mine && state.values[field]) || fallback;
+  const checked = (field: string, fallback: boolean): boolean =>
+    v(field, String(fallback)) === "true";
   const err = (field: string): string | undefined =>
     mine ? state.fieldErrors[field] : undefined;
   const retryable = mine && isRetryableCalcError(state);
@@ -150,10 +201,44 @@ export function RowEditor({
   // preservation) wins; otherwise the current prefill. Never inline math — just a string pick.
   const priceFieldValue = v("unit_sell_kronor", prefillValue);
 
+  // Selection and invoice inclusion are independent persisted facts, with one explicit
+  // transition affordance: changing selection on an effective option carries the same intent to
+  // inclusion. Keep that pair controlled so the form visibly represents the atomic write; a
+  // later inclusion-only edit remains independent.
+  const [isOptional, setIsOptional] = useState(() =>
+    checked("is_optional", row?.is_optional ?? false),
+  );
+  const [isSelected, setIsSelected] = useState(() =>
+    checked("is_selected", row?.is_selected ?? false),
+  );
+  const [includedInInvoiceTotal, setIncludedInInvoiceTotal] = useState(() =>
+    checked("included_in_invoice_total", row?.included_in_invoice_total ?? true),
+  );
+
   const offeredSources = useMemo(
     () => sourcesForRowType(rowType, sources),
     [rowType, sources],
   );
+  const deductionClassificationOptions = DEDUCTION_CLASSIFICATION_OPTIONS.filter((option) =>
+    isDeductionClassificationCompatibleWithSummaryCategory(
+      option.value,
+      summaryCategoryForRowType(rowType),
+    ),
+  );
+  const echoedDeductionClassification = v(
+    "deduction_classification",
+    row?.deduction_classification ?? "NONE",
+  );
+  const needsExplicitDeductionClassification = !(
+    isDeductionClassification(echoedDeductionClassification) &&
+    isDeductionClassificationCompatibleWithSummaryCategory(
+      echoedDeductionClassification,
+      summaryCategoryForRowType(rowType),
+    )
+  );
+  const deductionClassificationValue = needsExplicitDeductionClassification
+    ? ""
+    : echoedDeductionClassification;
 
   // The decoded current source pair (null = manual).
   const selectedPair = decodeSourceValue(sourceValue);
@@ -223,13 +308,17 @@ export function RowEditor({
   // The LINE TOTAL — computed by the PURE totals engine (never inline math here).
   const lineTotal = row
     ? computeLineTotal({
+        row_type: row.row_type,
         quantity: row.quantity,
         unit_sell_ore: row.unit_sell_ore,
         vat_rate_bp: row.vat_rate_bp,
+        vat_type: row.vat_type,
+        included_in_invoice_total: row.included_in_invoice_total,
+        deduction_classification: row.deduction_classification,
         is_hidden: row.is_hidden,
         is_optional: row.is_optional,
         is_selected: row.is_selected,
-      })
+      }, policyEffectiveDate)
     : null;
 
   // Story 5.4 (the paired 5.2 Low deferral) — the line-total qualifier is now POSTURE-AWARE.
@@ -251,6 +340,31 @@ export function RowEditor({
       {isUpdate && <input type="hidden" name="id" value={row!.id} />}
       {!isUpdate && <input type="hidden" name="section_id" value={sectionId} />}
       <input type="hidden" name="calculation_id" value={calculationId} />
+      {isUpdate ? (
+        <>
+          <input
+            type="hidden"
+            name="original_vat_percent"
+            value={row?.vat_rate_bp != null ? bpToPercentString(row.vat_rate_bp) : ""}
+          />
+          <input type="hidden" name="original_vat_type" value={row?.vat_type ?? ""} />
+          <input
+            type="hidden"
+            name="original_deduction_classification"
+            value={row?.deduction_classification ?? ""}
+          />
+          <input
+            type="hidden"
+            name="original_is_optional"
+            value={String(row?.is_optional ?? false)}
+          />
+          <input
+            type="hidden"
+            name="original_is_selected"
+            value={row?.is_selected == null ? "" : String(row.is_selected)}
+          />
+        </>
+      ) : null}
 
       <FormErrorSummary message={mine ? state.formError : null} />
       {mine && state.status === "success" && (
@@ -333,9 +447,34 @@ export function RowEditor({
           required
           defaultValue={v(
             "vat_percent",
-            row?.vat_rate_bp != null ? bpToPercentString(row.vat_rate_bp) : "25",
+            row?.vat_rate_bp != null ? bpToPercentString(row.vat_rate_bp) : isUpdate ? "" : "25",
           )}
           error={err("vat_percent")}
+        />
+        <SelectField
+          name="vat_type"
+          label="Momstyp"
+          defaultValue={v("vat_type", row?.vat_type ?? (isUpdate ? "" : "STANDARD_VAT_25"))}
+          error={err("vat_type")}
+          options={[
+            ...(isUpdate && row?.vat_type == null
+              ? [{ value: "", label: "Välj momstyp för att rätta äldre rad" }]
+              : []),
+            ...VAT_TYPE_OPTIONS,
+          ]}
+        />
+        <SelectField
+          key={`deduction-classification-${rowType}`}
+          name="deduction_classification"
+          label="Avdragsklassificering"
+          defaultValue={deductionClassificationValue}
+          error={err("deduction_classification")}
+          options={[
+            ...(needsExplicitDeductionClassification
+              ? [{ value: "", label: "Välj avdragsklassificering" }]
+              : []),
+            ...deductionClassificationOptions,
+          ]}
         />
       </div>
 
@@ -373,17 +512,28 @@ export function RowEditor({
       )}
 
       <fieldset className="flex flex-wrap gap-4">
-        <legend className="sr-only">Synlighet och tillval</legend>
-        <FlagField name="is_hidden" label="Dold rad" defaultChecked={row?.is_hidden ?? false} />
+        <legend className="sr-only">Synlighet, fakturainkludering och tillval</legend>
+        <FlagField name="is_hidden" label="Dold rad" defaultChecked={checked("is_hidden", row?.is_hidden ?? false)} />
+        <FlagField
+          name="included_in_invoice_total"
+          label="Ingår i fakturasumman"
+          checked={includedInInvoiceTotal}
+          onChange={setIncludedInInvoiceTotal}
+        />
         <FlagField
           name="is_optional"
           label="Tillval (valfri)"
-          defaultChecked={row?.is_optional ?? false}
+          checked={isOptional}
+          onChange={setIsOptional}
         />
         <FlagField
           name="is_selected"
           label="Vald (tillval)"
-          defaultChecked={row?.is_selected ?? false}
+          checked={isSelected}
+          onChange={(nextSelected) => {
+            setIsSelected(nextSelected);
+            if (isOptional) setIncludedInInvoiceTotal(nextSelected);
+          }}
         />
       </fieldset>
 

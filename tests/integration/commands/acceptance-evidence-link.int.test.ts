@@ -4,10 +4,9 @@
  * it does NOT invent a competing evidence store.
  *
  * The proofs:
- *   - An already-uploaded, own-tenant evidence `file_id` links to a `quote_acceptance` owner via
- *     `createFileLink({ owner_type: "quote_acceptance", owner_id: <acceptance id>,
- *     purpose: "acceptance_evidence" })` — the owner-side R-802 check resolves the acceptance under
- *     own-tenant RLS (Task 5.2 registers `quote_acceptance → quote_acceptances` in `ownerTableFor`).
+ *   - An already-uploaded, own-tenant evidence `file_id` is captured by the acceptance command,
+ *     which atomically creates the locked `quote_acceptance` / `acceptance_evidence` link. A later
+ *     append or relink cannot replace that immutable capture.
  *   - A FOREIGN (cross-tenant / non-existent) evidence file id ⇒ TENANT_ACCESS_DENIED (no existence
  *     disclosure); a FOREIGN owner (acceptance) id ⇒ TENANT_ACCESS_DENIED (the both-side gate).
  *   - Cross-tenant + anon access to the evidence FILE itself is rejected via the 8.1 signed-access
@@ -88,6 +87,7 @@ async function seedSentVersion(
 async function captureAcceptance(
   client: TestServerClient,
   versionId: string,
+  evidenceFileId?: string,
 ): Promise<string> {
   const res = await runCommand(captureQuoteAcceptance, {
     client: client as never,
@@ -95,6 +95,7 @@ async function captureAcceptance(
       quote_version_id: versionId,
       accepted_price_ore: SOURCE_SENT_TOTAL_ORE,
       accepted_at: "2026-07-09T08:30:00.000Z",
+      ...(evidenceFileId ? { evidence_file_id: evidenceFileId } : {}),
     },
     clock: fixedClock,
     correlationId: crypto.randomUUID(),
@@ -120,28 +121,15 @@ afterAll(async () => {
 });
 
 describe("acceptance-evidence link — quote_acceptance owner activation on the 8.1 model (AC6)", () => {
-  it("[P0] 7.1-INT-04: an own-tenant evidence file links to a quote_acceptance owner (acceptance_evidence purpose)", async (testCtx) => {
+  it("[P0] 7.1-INT-04: the acceptance atomically captures and locks its own-tenant evidence file", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     const { versionId } = await seedSentVersion(fixture.tenantA.id);
-    const acceptanceId = await captureAcceptance(a, versionId);
     const fileId = await adminInsertFile({
       tenant_id: fixture.tenantA.id,
       display_name: "evidence-a.pdf",
       lifecycle_state: "linked",
     });
-
-    const res = await runCommand(createFileLink, {
-      client: a as never,
-      input: {
-        file_id: fileId,
-        owner_type: "quote_acceptance",
-        owner_id: acceptanceId,
-        purpose: "acceptance_evidence",
-      },
-      clock: fixedClock,
-      correlationId: crypto.randomUUID(),
-    });
-    expect(res.ok).toBe(true);
+    const acceptanceId = await captureAcceptance(a, versionId, fileId);
 
     // Exactly ONE file_links row for the (acceptance, evidence file) pair.
     const links = await adminSelectAcceptanceEvidenceLinks(acceptanceId);
@@ -149,6 +137,61 @@ describe("acceptance-evidence link — quote_acceptance owner activation on the 
     expect(links[0]?.file_id).toBe(fileId);
     expect(links[0]?.owner_type).toBe("quote_acceptance");
     expect(links[0]?.purpose).toBe("acceptance_evidence");
+    expect(links[0]?.is_locked).toBe(true);
+    expect(links[0]?.locked_at).not.toBeNull();
+  });
+
+  it("[P0] concurrent evidence-link creation serializes to exactly one immutable link", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
+    const { quoteId, versionId } = await seedSentVersion(fixture.tenantA.id);
+    const fileId = await adminInsertFile({
+      tenant_id: fixture.tenantA.id,
+      display_name: "concurrent-evidence.pdf",
+      lifecycle_state: "linked",
+    });
+    // Seed the already-captured immutable evidence reference without materializing its link so two
+    // independent authenticated requests can contend for the one allowed link.
+    const acceptanceId = await adminInsertQuoteAcceptance({
+      tenant_id: fixture.tenantA.id,
+      quote_id: quoteId,
+      quote_version_id: versionId,
+      accepted_price_ore: SOURCE_SENT_TOTAL_ORE,
+      source_sent_total_ore: SOURCE_SENT_TOTAL_ORE,
+      evidence_file_id: fileId,
+    });
+    const secondClient = await makeAuthedServerClient(fixture.adminA);
+    const input = {
+      file_id: fileId,
+      owner_type: "quote_acceptance" as const,
+      owner_id: acceptanceId,
+      purpose: "acceptance_evidence" as const,
+    };
+
+    const results = await Promise.all([
+      runCommand(createFileLink, {
+        client: a as never,
+        input,
+        clock: fixedClock,
+        correlationId: crypto.randomUUID(),
+      }),
+      runCommand(createFileLink, {
+        client: secondClient as never,
+        input,
+        clock: fixedClock,
+        correlationId: crypto.randomUUID(),
+      }),
+    ]);
+
+    expect(
+      results.filter((result) => result.ok),
+      JSON.stringify(results),
+    ).toHaveLength(1);
+    const rejected = results.find((result) => !result.ok);
+    expect(rejected).toBeDefined();
+    if (rejected?.ok === false) expect(rejected.code).toBe("ACCEPTED_RECORD_LOCKED");
+    const links = await adminSelectAcceptanceEvidenceLinks(acceptanceId);
+    expect(links).toHaveLength(1);
+    expect(links[0]?.file_id).toBe(fileId);
   });
 
   it("[P0] 7.1-INT-04: a FOREIGN (cross-tenant) evidence file id ⇒ TENANT_ACCESS_DENIED (no existence leak)", async (testCtx) => {

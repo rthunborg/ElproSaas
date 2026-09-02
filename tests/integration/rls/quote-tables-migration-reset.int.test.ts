@@ -372,7 +372,7 @@ describe("Quote migration reset green — six new tenant-owned tables (AC1)", ()
     }
   });
 
-  it("[P0] GRANTs: authenticated SELECT/INSERT/UPDATE (no DELETE); anon NOTHING", async (testCtx) => {
+  it("[P0/10.8] GRANTs: authenticated SELECT only; quote mutations use narrow RPCs", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     const rows = await adminQuery<{ grantee: string; privilege_type: string }>(
       `select grantee, privilege_type from information_schema.role_table_grants
@@ -383,8 +383,8 @@ describe("Quote migration reset green — six new tenant-owned tables (AC1)", ()
       .filter((r) => r.grantee === "authenticated")
       .map((r) => r.privilege_type);
     expect(authed).toContain("SELECT");
-    expect(authed).toContain("INSERT");
-    expect(authed).toContain("UPDATE");
+    expect(authed).not.toContain("INSERT");
+    expect(authed).not.toContain("UPDATE");
     expect(authed).not.toContain("DELETE");
     // anon holds NONE of the four DML privileges (Supabase's default non-DML
     // REFERENCES/TRIGGER/TRUNCATE on new public tables is fine — assert DML-empty).
@@ -427,7 +427,7 @@ describe("Quote migration reset green — six new tenant-owned tables (AC1)", ()
     expect(cols).toContain("vat_rate_bp");
   });
 
-  it("[P0/AC2] create_quote_version_from_calculation RPC is SECURITY INVOKER, empty search_path, revoke-from-public", async (testCtx) => {
+  it("[P0/10.8] create_quote_version_from_calculation is the sole hardened authorization consumer", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     const rows = await adminQuery<{
       prosecdef: boolean;
@@ -437,25 +437,24 @@ describe("Quote migration reset green — six new tenant-owned tables (AC1)", ()
          where proname = 'create_quote_version_from_calculation'`,
     );
     expect(rows).toHaveLength(1);
-    // SECURITY INVOKER (ADR-A009 default) — runs under the caller's RLS, NOT definer.
-    expect(rows[0]?.prosecdef).toBe(false);
+    expect(rows[0]?.prosecdef).toBe(true);
     // Fixed EXACTLY-EMPTY search_path (defensive hardening).
     assertSearchPathExactlyEmpty(
       "create_quote_version_from_calculation",
       rows[0]?.proconfig ?? null,
     );
-    // anon has NO EXECUTE (revoke-from-public + grant-to-authenticated/service_role only).
+    // Only the request-bound authenticated app role may consume an authority.
     const grants = await adminQuery<{ grantee: string }>(
       `select grantee from information_schema.role_routine_grants
          where routine_name = 'create_quote_version_from_calculation'`,
     );
     const grantees = grants.map((g) => g.grantee);
     expect(grantees).toContain("authenticated");
-    expect(grantees).toContain("service_role");
+    expect(grantees).not.toContain("service_role");
     expect(grantees).not.toContain("anon");
   });
 
-  it("[P0/AC1] Story 6.5 create_new_quote_version + mark_quote_version_lifecycle RPCs are SECURITY INVOKER, empty search_path, revoke-from-public (anon NO EXECUTE)", async (testCtx) => {
+  it("[P0/10.8] new-version + lifecycle RPCs are checked SECURITY DEFINER functions", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     for (const fn of [
       "create_new_quote_version",
@@ -466,8 +465,7 @@ describe("Quote migration reset green — six new tenant-owned tables (AC1)", ()
         proconfig: string[] | null;
       }>(`select prosecdef, proconfig from pg_proc where proname = '${fn}'`);
       expect(rows).toHaveLength(1);
-      // SECURITY INVOKER (ADR-A009 default) — under the caller's RLS, NOT definer.
-      expect(rows[0]?.prosecdef).toBe(false);
+      expect(rows[0]?.prosecdef).toBe(true);
       // Fixed EXACTLY-EMPTY search_path (the 6.1/6.4 RPC hardening shape).
       assertSearchPathExactlyEmpty(fn, rows[0]?.proconfig ?? null);
       // anon has NO EXECUTE (revoke-from-public + grant-to-authenticated/service_role only).
@@ -477,7 +475,7 @@ describe("Quote migration reset green — six new tenant-owned tables (AC1)", ()
       );
       const grantees = grants.map((g) => g.grantee);
       expect(grantees).toContain("authenticated");
-      expect(grantees).toContain("service_role");
+      expect(grantees).not.toContain("service_role");
       expect(grantees).not.toContain("anon");
     }
   });

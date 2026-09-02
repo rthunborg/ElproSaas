@@ -17,10 +17,11 @@
  *      incl-VAT invariant) — NOT the old "company_excl" — regardless of the tenant setting. The
  *      new-side oracle genuinely diverges from the recorded old classification value.
  *   2. quotes.json#quote-total-rounding-documented-delta (NUMERIC arm, R-912): the fixture pins
- *      vatOre=16666 (Phase-A per-line sum-of-rounded) and oldLovableWouldGive=16667 (round-of-sum).
- *      DRIVE the real `computeSectionTotal` over the two 33333@25% lines and prove the engine emits
- *      16666 (== the pinned new value) and NOT 16667 (== the recorded old value). Routes every öre op
- *      through the real engine — NO inline `*0.25`.
+ *      vatOre=16667 (Story 10.6 document-category VAT) and oldLovableWouldGive=16666 (the synthetic
+ *      prior per-line sum-of-rounded comparison value). DRIVE the real `computeSectionTotal` over
+ *      the two 33333@25% lines and prove the engine emits 16667 (== the pinned new value) and NOT
+ *      16666 (== the recorded old value). Routes every öre op through the real engine — NO inline
+ *      `*0.25`.
  *   3. accepted-quote-to-job.json#job-initial-status-classification-delta (CLASSIFICATION arm): the
  *      fixture records status="created" (new) and oldLovableValue="open" (old). Assert the new-side
  *      status is the recorded new value and diverges from the recorded old classification code.
@@ -99,7 +100,7 @@ describe("Story 9.3 — CLASSIFICATION-DELTA live-drive: VAT posture (9.3-CMP-01
     // private (incl-VAT) posture — the re-exported resolver the base suites never assert. Proves the
     // customer-facing display path is exercised end-to-end through the real engine (no inline math).
     const section = computeSectionTotal([
-      { quantity: 1, unit_sell_ore: 100000, vat_rate_bp: 2500, is_hidden: false, is_optional: false, is_selected: null },
+      { quantity: 1, unit_sell_ore: 100000, vat_rate_bp: 2500, vat_type: "STANDARD_VAT_25", is_hidden: false, is_optional: false, is_selected: null },
     ]);
     assert.ok(section.ok, "the section must resolve through the real engine");
 
@@ -116,8 +117,8 @@ describe("Story 9.3 — CLASSIFICATION-DELTA live-drive: VAT posture (9.3-CMP-01
   });
 });
 
-describe("Story 9.3 — NUMERIC-DELTA live-drive: quote-total rounding (9.3-CMP-02, R-912 numeric arm)", () => {
-  test("[P0] quote-total-rounding-documented-delta — the REAL engine emits the per-line sum-of-rounded VAT (16666), diverging from the recorded round-of-sum old value (16667)", () => {
+describe("Story 9.3/10.6 — NUMERIC-DELTA live-drive: quote-total rounding (R-912 numeric arm)", () => {
+  test("[P0] quote-total-rounding-documented-delta — the REAL engine emits document-category VAT (16667), diverging from the recorded Phase A per-line value (16666)", () => {
     const fx = loadLovableFixture("quotes");
     const c = (fx.cases ?? []).find(
       (x) => (x as Record<string, unknown>).id === "quote-total-rounding-documented-delta",
@@ -132,51 +133,51 @@ describe("Story 9.3 — NUMERIC-DELTA live-drive: quote-total rounding (9.3-CMP-
     assert.ok(c, "quotes.json must carry the quote-total-rounding-documented-delta case");
     assert.equal(c!.origin, "documented-delta", "this case is a numeric documented delta");
 
-    // The recorded OLD value the harness LABELLING guard requires (R-913 numeric arm).
+    // The recorded legacy-Lovable value the harness LABELLING guard requires (R-913 numeric arm).
     const oldValue = divergentOldValue(c as unknown as Record<string, unknown>);
-    assert.equal(oldValue, 16667, "the divergent old value is the numeric round-of-sum VAT (16667)");
+    assert.equal(oldValue, 16667, "the divergent old Lovable value is document-category VAT (16667)");
     assert.equal(typeof oldValue, "number", "the numeric arm carries a number, not a classification code");
-    // The fixture's pinned NEW value (per-line sum-of-rounded) the delta documents.
-    assert.equal(c!.totals.vatOre, 16666, "the fixture pins the Phase-A per-line sum-of-rounded VAT (16666)");
+    // The fixture remains the historical Phase A per-line oracle; the engine proves the new result.
+    assert.equal(c!.totals.vatOre, 16666, "the fixture pins Phase A per-line VAT (16666)");
 
     // DRIVE the REAL engine at the exact ROUNDING SCENARIO the numeric delta documents: two lines of
     // net 33333 öre each @ 25% VAT. The fixture's `note` states the divergence explicitly —
-    //   Phase A (per-line sum-of-rounded): round(33333*0.25)=round(8333.25)=8333 per line, summed = 16666
-    //   old Lovable (round-of-sum at document level): round(66666*0.25)=round(16666.5)=16667
+    //   Story 10.6 (document-category VAT): round((33333+33333)*0.25)=round(16666.5)=16667
+    //   recorded old comparison (per-line): round(33333*0.25)=round(8333.25)=8333 per line, summed = 16666
     // (the fixture's representative LINES carry quantity 3, a captured SHAPE — the totals block is NOT
     // a re-pin of those lines; the documented rounding DELTA is the note's net-33333-per-line scenario.
     // We drive the real engine at that scenario, routing every öre op through computeSectionTotal —
-    // NO inline `*0.25`.) The engine's per-line rounding MUST reproduce the fixture's pinned 16666 and
-    // DIVERGE from the old round-of-sum 16667 — the golden-master signal for the numeric documented delta.
+    // NO inline `*0.25`.) The engine's document-category VAT MUST reproduce the recorded
+    // legacy document-level result 16667 and diverge from the Phase A per-line 16666.
     const section = computeSectionTotal([
-      { quantity: 1, unit_sell_ore: 33333, vat_rate_bp: 2500, is_hidden: false, is_optional: false, is_selected: null },
-      { quantity: 1, unit_sell_ore: 33333, vat_rate_bp: 2500, is_hidden: false, is_optional: false, is_selected: null },
+      { quantity: 1, unit_sell_ore: 33333, vat_rate_bp: 2500, vat_type: "STANDARD_VAT_25", is_hidden: false, is_optional: false, is_selected: null },
+      { quantity: 1, unit_sell_ore: 33333, vat_rate_bp: 2500, vat_type: "STANDARD_VAT_25", is_hidden: false, is_optional: false, is_selected: null },
     ]);
     assert.ok(section.ok, "the rounding section must resolve through the real engine");
 
-    // The engine REPRODUCES the fixture's pinned NEW value (per-line sum-of-rounded = 16666)...
+    // The engine reproduces the legacy document-category value (16667)...
     assert.equal(
       section.value.vatOre,
-      c!.totals.vatOre,
-      "the real engine (per-line sum-of-rounded) must reproduce the fixture's pinned VAT (16666)",
+      oldValue,
+      "the real engine (document-category VAT) must reproduce the recorded Lovable VAT (16667)",
     );
-    // ...and DIVERGES from the recorded OLD round-of-sum value (16667) — the golden-master signal.
+    // ...and diverges from the historical Phase A per-line value (16666) — the golden-master signal.
     assert.notEqual(
       section.value.vatOre,
-      oldValue,
-      "the real engine's per-line sum-of-rounded VAT (16666) must DIVERGE from the old round-of-sum value (16667) — the documented 1-öre delta",
+      c!.totals.vatOre,
+      "the real engine's document-category VAT (16667) must diverge from the Phase A per-line value (16666) — the documented 1-öre delta",
     );
-    // The delta is exactly the recorded 1-öre divergence (never fabricated). Prove the OLD round-of-sum
-    // value equals round((33333+33333)*0.25) so the documented delta direction is real, not asserted.
+    // The delta is exactly the recorded 1-öre divergence (never fabricated). Prove the NEW
+    // document-category value equals round((33333+33333)*0.25) so the direction is real.
     assert.equal(
       Math.round((33333 + 33333) * 0.25),
-      oldValue,
-      "the recorded old value must equal the document-level round-of-sum (16667) — the delta direction is real",
+      section.value.vatOre,
+      "the new value must equal the document-level category VAT (16667) — the delta direction is real",
     );
     assert.equal(
-      Math.abs((oldValue as number) - section.value.vatOre),
+      Math.abs(c!.totals.vatOre - section.value.vatOre),
       1,
-      "the documented rounding delta must be exactly 1 öre (round-of-sum vs per-line sum-of-rounded)",
+      "the documented rounding delta must be exactly 1 öre (document-category vs per-line)",
     );
   });
 });

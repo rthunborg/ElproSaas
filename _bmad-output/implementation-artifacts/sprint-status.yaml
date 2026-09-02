@@ -56,11 +56,11 @@
 # EXECUTION ORDER NOTE (PHASE B, added 2026-07-18): Phase A epics 1-9 are COMPLETE —
 # the WAVE 1 / Story 8.1 notes above are historical record. Phase B epics 10-34 are
 # appended below (see the PHASE B header inside development_status for wave order,
-# checkpoints, and owner gates). NEXT ACTIONABLE: Epic 10, Story 10-1 — the first
-# `backlog` story in file order.
+# checkpoints, and owner gates). This historical note does not select current work;
+# use the current Epic 10 statuses and approved corrective-story entries below.
 
 generated: 2026-06-12
-last_updated: 2026-07-26  # Epic 10 stories 10-1..10-4 flipped to done post-merge (PR #38)
+last_updated: 2026-08-31  # ADR-B008 follow-ups are implemented but remain in-progress pending fresh root-run verification and final convergence; 10.6 remains review.
 project: ElproSaas
 project_key: NOKEY
 tracking_system: file-system
@@ -185,9 +185,9 @@ development_status:
 
   # WAVE B1a — full stories, build-ready. Epic 10 / Story 10-1 is NEXT.
   # DELIVERED SCOPE IS SHIPPED: stories 10-1..10-4 are done and merged to main (PR #38), and the
-  # retrospective is done. Deliberately left `in-progress` rather than `done` because 10-5/10-6/10-7
-  # are still open — marking the epic done would be inaccurate.
-  # HOW TO RUN THE REMAINING THREE: use PER-STORY mode, e.g.
+  # retrospective is done. Deliberately left `in-progress` rather than `done` because Stories
+  # 10.5–10.9 are still open — marking the epic done would be inaccurate.
+  # HOW TO RUN THE REMAINING FIVE: use PER-STORY mode, e.g.
   #   /auto-bmad --story 10-6-tax-answer-reconciliation
   # NOT `/auto-bmad epic --epic 10`. The epic anchor
   # (_bmad-output/auto-bmad/state/epic/epic-10.yaml) is already `status: done`, and the epic
@@ -209,8 +209,15 @@ development_status:
   # (VAT rounding scope, hidden-row deduction eligibility, reverse charge) and 10.7 supersedes the
   # "responsive web first" assumption with a PWA + offline requirement. Both are real scope, not
   # register entries — schedule 10.6 BEFORE any real ROT/gron quote leaves the system.
-  10-6-tax-answer-reconciliation: backlog
+  10-6-tax-answer-reconciliation: review
   10-7-pwa-offline-field-capability: backlog
+  # Approved corrective follow-ups from the 2026-08-31 Story 10.6 review. Stories 10.8/10.9
+  # implement ADR-B008 provenance/authority/audit, HMAC PDF-byte attestation, and
+  # PDF-validity/attachment carry-forward. Final local verification and hosted verify/db/Playwright
+  # CI are green; 10.6/10.8/10.9 remain in review pending post-merge demo secret/migration
+  # attestation. Physical Storage byte reclamation remains deferred to future Story 31.7 after E31.
+  10-8-quote-review-provenance-authority-and-audit: review
+  10-9-quote-pdf-validity-and-attachment-carry-forward: review
   epic-10-retrospective: done
 
   epic-11: backlog
@@ -341,7 +348,7 @@ development_status:
   epic-29-retrospective: optional
   epic-30: backlog  # KNX manual tables — 2 candidates; migration [gated: N-1]
   epic-30-retrospective: optional
-  epic-31: backlog  # HR + personnel depth — 6 candidates; [deletion posture gated: N-10]; salary-adjacent fields [N-4]; migration [gated: N-1]
+  epic-31: backlog  # HR + personnel depth — 7 candidates incl. 31.7 retention enforcement/reclamation; [deletion posture gated: N-10]; salary-adjacent fields [N-4]; migration [gated: N-1]
   epic-31-retrospective: optional
   epic-32: backlog  # Notes + CRM completions — 4 candidates; migration [gated: N-1]
   epic-32-retrospective: optional

@@ -19,10 +19,17 @@ import { defineCommand } from "../envelope";
 import { CommandError } from "../command-errors";
 import {
   asCalcWriteClient,
+  loadActiveCalculationRowCountForSection,
+  loadRowOptionState,
+  loadRowTaxClassificationState,
   loadRowType,
+  loadRowVatState,
   throwMappedWriteError,
 } from "./calc-db";
-import { kindForRowType } from "./validation";
+import {
+  kindForRowType,
+  taxSummaryCategoryForRowType,
+} from "./validation";
 import { nextSortOrder } from "./sort-order";
 import { resolveSnapshotSource } from "@/server/snapshots/resolve-source";
 import {
@@ -33,6 +40,13 @@ import {
 } from "@/lib/snapshots/build";
 import type { CommandExecuteContext } from "../envelope-core";
 import type { CommandDbClient } from "../envelope";
+import { isDeductionClassificationCompatibleWithSummaryCategory } from "@/lib/money";
+import { canAddCalculationRow } from "@/features/calculations/limits";
+import {
+  invoiceInclusionForNewRow,
+  invoiceInclusionForOptionSelectionTransition,
+} from "@/features/calculations/row-option-transition";
+import { isEffectiveRowVatPairCoherent } from "@/features/calculations/row-vat-transition";
 import type { CalcCommandResult } from "./calculations";
 import {
   validateArchiveRow,
@@ -162,6 +176,13 @@ function rowInsertValues(
   input: CreateRowInput,
   source: RowSourceColumns,
 ): Record<string, unknown> {
+  const isOptional = input.is_optional ?? false;
+  const isSelected = input.is_selected ?? null;
+  const includedInInvoiceTotal = invoiceInclusionForNewRow({
+    isOptional,
+    isSelected: isSelected ?? undefined,
+    includedInInvoiceTotal: input.included_in_invoice_total ?? undefined,
+  });
   return {
     tenant_id: tenantId, // resolved tenant — NEVER a client-supplied id
     section_id: input.section_id,
@@ -172,9 +193,12 @@ function rowInsertValues(
     unit_sell_ore: input.unit_sell_ore ?? null,
     markup_bp: input.markup_bp ?? null,
     vat_rate_bp: input.vat_rate_bp,
+    included_in_invoice_total: includedInInvoiceTotal,
+    deduction_classification: input.deduction_classification ?? "NONE",
+    vat_type: input.vat_type ?? "STANDARD_VAT_25",
     is_hidden: input.is_hidden ?? false,
-    is_optional: input.is_optional ?? false,
-    is_selected: input.is_selected ?? null,
+    is_optional: isOptional,
+    is_selected: isSelected,
     label: input.label ?? null,
     description: input.description ?? null,
     internal_note: input.internal_note ?? null,
@@ -195,6 +219,15 @@ export const createRow = defineCommand<CreateRowInput, CalcCommandResult>({
   // Parent ownership: the section must be visible under the caller's RLS.
   ownership: (input) => ({ table: "calculation_sections", id: input.section_id }),
   execute: async (ctx) => {
+    const activeRowCount = await loadActiveCalculationRowCountForSection(
+      ctx.db,
+      ctx.input.section_id,
+    );
+    if (activeRowCount === null) throw new CommandError("TENANT_ACCESS_DENIED");
+    if (!canAddCalculationRow(activeRowCount)) {
+      throw new CommandError("VALIDATION_FAILED");
+    }
+
     // Resolve + freeze the chosen pricing source (Story 5.3) BEFORE the insert, on the
     // SAME per-request RLS client (`ctx.db`). A foreign/nonexistent source → the resolver
     // throws TENANT_ACCESS_DENIED (no row inserted). A manual row → all-null source cols.
@@ -250,6 +283,13 @@ function buildRowPatch(
   if (input.unit_sell_ore !== undefined) patch.unit_sell_ore = input.unit_sell_ore;
   if (input.markup_bp !== undefined) patch.markup_bp = input.markup_bp;
   if (input.vat_rate_bp !== undefined) patch.vat_rate_bp = input.vat_rate_bp;
+  if (input.included_in_invoice_total !== undefined) {
+    patch.included_in_invoice_total = input.included_in_invoice_total;
+  }
+  if (input.deduction_classification !== undefined) {
+    patch.deduction_classification = input.deduction_classification;
+  }
+  if (input.vat_type !== undefined) patch.vat_type = input.vat_type;
   if (input.is_hidden !== undefined) patch.is_hidden = input.is_hidden;
   if (input.is_optional !== undefined) patch.is_optional = input.is_optional;
   if (input.is_selected !== undefined) patch.is_selected = input.is_selected;
@@ -269,6 +309,61 @@ export const updateRow = defineCommand<UpdateRowInput, CalcCommandResult>({
   validateInput: validateUpdateRow,
   ownership: (input) => ({ table: "calculation_rows", id: input.id }),
   execute: async (ctx) => {
+    const changesRowType = ctx.input.row_type !== undefined;
+    const changesClassification = ctx.input.deduction_classification !== undefined;
+    if (changesRowType !== changesClassification) {
+      const persisted = await loadRowTaxClassificationState(ctx.db, ctx.input.id);
+      if (persisted === null) throw new CommandError("TENANT_ACCESS_DENIED");
+      const effectiveRowType = ctx.input.row_type ?? persisted.rowType;
+      const effectiveClassification =
+        ctx.input.deduction_classification ?? persisted.deductionClassification;
+      if (
+        !isDeductionClassificationCompatibleWithSummaryCategory(
+          effectiveClassification,
+          taxSummaryCategoryForRowType(effectiveRowType),
+        )
+      ) {
+        throw new CommandError("VALIDATION_FAILED");
+      }
+    }
+
+    const changesVatType = ctx.input.vat_type !== undefined;
+    const changesVatRate = ctx.input.vat_rate_bp !== undefined;
+    if (changesVatType !== changesVatRate) {
+      const persisted = await loadRowVatState(ctx.db, ctx.input.id);
+      if (persisted === null) throw new CommandError("TENANT_ACCESS_DENIED");
+      if (persisted.reconciliationRequired) {
+        // Quarantined legacy ambiguity may be resolved only by an explicit complete pair; do not
+        // silently treat its old numeric rate as an owner classification decision.
+        throw new CommandError("VALIDATION_FAILED");
+      }
+      if (
+        !isEffectiveRowVatPairCoherent(
+          {
+            vatType: ctx.input.vat_type,
+            vatRateBp: ctx.input.vat_rate_bp,
+          },
+          persisted,
+        )
+      ) {
+        throw new CommandError("VALIDATION_FAILED");
+      }
+    }
+
+    let inclusionFromSelectionTransition: boolean | undefined;
+    if (ctx.input.is_selected !== undefined) {
+      const persisted = await loadRowOptionState(ctx.db, ctx.input.id);
+      if (persisted === null) throw new CommandError("TENANT_ACCESS_DENIED");
+      inclusionFromSelectionTransition = invoiceInclusionForOptionSelectionTransition(
+        {
+          isOptional: ctx.input.is_optional,
+          isSelected: ctx.input.is_selected,
+          includedInInvoiceTotal: ctx.input.included_in_invoice_total,
+        },
+        persisted,
+      );
+    }
+
     // Resolve the pricing-source change (Story 5.3), if any, on the SAME per-request RLS
     // client. A source pair → resolve + freeze the captured columns (a foreign source →
     // TENANT_ACCESS_DENIED, no write). An explicit clear (`source_clear`) → all-null
@@ -303,6 +398,18 @@ export const updateRow = defineCommand<UpdateRowInput, CalcCommandResult>({
     }
 
     const patch = buildRowPatch(ctx.input, source);
+    if (changesVatType && changesVatRate) {
+      // An explicit, validator-approved complete pair is the owner remediation action for a
+      // quarantined legacy VAT row. Clear both closed metadata halves atomically with the pair.
+      patch.tax_reconciliation_required = false;
+      patch.tax_reconciliation_reason = null;
+    }
+    if (
+      inclusionFromSelectionTransition !== undefined &&
+      ctx.input.included_in_invoice_total === undefined
+    ) {
+      patch.included_in_invoice_total = inclusionFromSelectionTransition;
+    }
     // Empty-patch guard (Task 3.5): id-only update is a no-op — no `.update({})`.
     if (Object.keys(patch).length === 0) {
       return { targetId: ctx.input.id };

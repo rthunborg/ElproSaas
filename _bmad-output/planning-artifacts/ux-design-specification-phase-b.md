@@ -516,6 +516,8 @@ Rules: one breakpoint system (Tailwind defaults) app-wide; sidebar → icon rail
 
 **Platform posture (N-3, answered 2026-07-26 — ADR-B007):** the app is an **installable PWA**. Installed and browser-tab use render the same app; installation adds a home-screen entry point and the offline capability of §4.8A, not a different UI. **No native app** is designed or planned as a separate delivery phase.
 
+**Quote correction delta (ADR-B008; Stories 10.8/10.9):** review confirmation states that the authenticated user attests to the server-validated content; it must not imply that a click proves attention. The confirmation expires after 15 minutes and becomes stale after source, attachment, or customer-visible changes. Customer-visible draft edits mark the PDF outdated and send is unavailable until a current PDF is generated. PDF-byte attestation is a separate server-only security boundary, with no extra user secret, token, or client bypass. A successor starts with eligible predecessor attachments preselected; archived/ineligible attachments are omitted with a warning and selection remains editable. Green fixed-price entry states “gross including VAT before 97%”; mixed ROT/green requires separate allowances, insufficient allowance blocks, and reverse charge clears/disables deductions.
+
 | Capability | Offline | Requires connectivity |
 | --- | --- | --- |
 | Field surfaces (`Min dag`, job field shape, capture, time filing, checklists/egenkontroller, deviations, photos) | **Yes**, for the user's assigned jobs (§4.8A) | — |

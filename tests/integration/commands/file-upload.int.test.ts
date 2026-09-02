@@ -149,13 +149,11 @@ interface OwnerTypeCase {
   readonly ownId: () => string;
   readonly foreignId: () => string;
   /**
-   * The lifecycle_state the uploaded file lands in. Story 8.4 CHANGE: an `acceptance_evidence`
-   * upload to a COMMITTED acceptance (the parent already exists — AR704 has no draft state) is
-   * LOCKED by the parent-state-keyed lock apply (`apply_file_link_lock`), so its file lands
-   * `locked`, not `linked`. Every OTHER active owner/purpose (crm_document / calculation_attachment
-   * / job_evidence) is NOT a lock-family member, so it stays `linked` (8.2's draft→linked transition).
+   * Generic upload remains available only for mutable owner/purpose pairs, so these files land
+   * linked. Acceptance evidence is captured atomically by the acceptance command and is tested
+   * separately below; a late generic upload is rejected as an accepted-record mutation.
    */
-  readonly expectedLifecycle: "linked" | "locked";
+  readonly expectedLifecycle: "linked";
 }
 
 let stackUp = false;
@@ -194,6 +192,7 @@ async function seedAcceptanceAndJob(
     quote_id: quoteId,
     calculation_id: calculationId,
     status: "sent",
+    accepted_price_ore: 125000,
   });
   const acceptanceId = await adminInsertQuoteAcceptance({
     tenant_id: tenantId,
@@ -288,8 +287,6 @@ const ownerTypeCases: OwnerTypeCase[] = [
   { ownerType: "facility", purpose: "crm_document", ownId: () => ownFacilityId, foreignId: () => bFacilityId, expectedLifecycle: "linked" },
   { ownerType: "contact", purpose: "crm_document", ownId: () => ownContactId, foreignId: () => bContactId, expectedLifecycle: "linked" },
   { ownerType: "calculation", purpose: "calculation_attachment", ownId: () => ownCalculationId, foreignId: () => bCalculationId, expectedLifecycle: "linked" },
-  // Story 8.4: acceptance evidence uploaded to a committed acceptance locks by construction.
-  { ownerType: "quote_acceptance", purpose: "acceptance_evidence", ownId: () => ownAcceptanceId, foreignId: () => bAcceptanceId, expectedLifecycle: "locked" },
   { ownerType: "job", purpose: "job_evidence", ownId: () => ownJobId, foreignId: () => bJobId, expectedLifecycle: "linked" },
 ];
 
@@ -308,8 +305,7 @@ describe("uploadFile — server-side gate + storage↔DB compensation (AC2/AC4/A
         expect(result.ok).toBe(true);
         if (!result.ok) return;
         const fileId = (result.data as { fileId: string }).fileId;
-        // The files row landed lifecycle_state='linked' (8.2's draft→linked transition) — OR 'locked'
-        // for acceptance_evidence on a committed acceptance (Story 8.4 parent-state-keyed lock apply).
+        // The files row landed lifecycle_state='linked' (8.2's draft→linked transition).
         const fileRows = await adminQuery<{ lifecycle_state: string; object_path: string }>(
           `select lifecycle_state, object_path from public.files where id = $1`,
           [fileId],
@@ -339,6 +335,38 @@ describe("uploadFile — server-side gate + storage↔DB compensation (AC2/AC4/A
       });
     },
   );
+
+  it("[10.8][P0] acceptance evidence cannot be appended after immutable acceptance capture", async (testCtx) => {
+    if (skipUnlessBoth(testCtx)) return;
+    const result = await runCommand(uploadFile as never, {
+      client: a as never,
+      input: uploadInput({
+        owner_type: "quote_acceptance",
+        owner_id: ownAcceptanceId,
+        purpose: "acceptance_evidence",
+      }),
+      clock: fixedClock,
+      correlationId: crypto.randomUUID(),
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.code).toBe("ACCEPTED_RECORD_LOCKED");
+  });
+
+  it("[10.8][P0/R-802] a foreign quote_acceptance remains tenant-denied before immutable-link evaluation", async (testCtx) => {
+    if (skipUnlessBoth(testCtx)) return;
+    const result = await runCommand(uploadFile as never, {
+      client: a as never,
+      input: uploadInput({
+        owner_type: "quote_acceptance",
+        owner_id: bAcceptanceId,
+        purpose: "acceptance_evidence",
+      }),
+      clock: fixedClock,
+      correlationId: crypto.randomUUID(),
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.code).toBe("TENANT_ACCESS_DENIED");
+  });
 
   it("[8.2-INT-02][P0/AC2/R-808] a BLOCKED MIME is rejected VALIDATION_FAILED server-side (client bypassed)", async (testCtx) => {
     if (skipUnlessBoth(testCtx)) return;

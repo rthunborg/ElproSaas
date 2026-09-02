@@ -28,6 +28,7 @@ export type CalcActionStatus = "idle" | "success" | "error";
  */
 export type CalcFormKind =
   | "calculation"
+  | "tax_input"
   | "section"
   | "row"
   | "reorder_sections"

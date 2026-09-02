@@ -72,7 +72,11 @@ test.describe("Quote detail + timeline UX (Story 6.2 E2E)", () => {
     await page.goto("/quotes");
     await expect(page.getByRole("heading", { name: "Offerter", level: 1 })).toBeVisible();
     await expect(page.getByTestId("quote-list")).toBeVisible();
-    const row = page.getByTestId("quote-list-row").first();
+    // Other serial E2E journeys legitimately create newer quotes. Select this
+    // fixture by identity instead of relying on list order.
+    const row = page.locator(
+      `[data-testid="quote-list-row"][href="/quotes/${fixture.quote.id}"]`,
+    );
     await expect(row).toBeVisible();
     await row.click();
     await expect(page).toHaveURL(new RegExp(`/quotes/${fixture.quote.id}`));

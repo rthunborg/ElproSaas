@@ -478,3 +478,28 @@ existing AC, recorded so it is not re-triaged a third time.
 - [DUPLICATE — already Story 10.5 AC1] `quote_lost_reasons` composite parent: independent same-tenant FKs let `quote_id` name quote A while `quote_version_id` names a version of quote B, occupying B's unique reason slot and blocking the legitimate RPC. AC1 already requires exactly this ("rejects a reason whose quote_version_id does not belong to the supplied quote_id"). No new work — same fix.
 - [Med] `quote_follow_ups.due_date` has NO database backstop for the command's "due_date >= today in Europe/Stockholm" rule, so a direct insert can create an already-overdue follow-up that immediately inflates the overdue list and pipeline counts — bypassing the FOLLOW_UP_DUE_DATE_IN_PAST validation the command explicitly performs. Same "table API bypasses a command-layer invariant" theme as AC1-AC3 → Story 10.5 (fold into AC2/AC3's trigger work).
 - [Low] `EpicRef` is the open template type `E${number}`, so a mistyped `E0`/`E35`/`E999` is accepted and the validator checks only presence — the manifest gate reports coherent activation provenance for an epic outside the documented E1-E34 range. Add a closed union or a runtime range check (with the usual biting negative). → Story 10.5 (governance polish, alongside the activatedAt date validation).
+
+## Deferred from: code review of 10-6-tax-answer-reconciliation (2026-08-06)
+
+- [x] [Review][Defer][High] Same-tenant direct quote RPC authority can create internally inconsistent commitments [supabase/migrations/20260805120000_tax_answer_reconciliation.sql:1956] — deferred, pre-existing SECURITY INVOKER/table-grant architecture requiring the already-identified owner-approved privilege/API redesign; Sources: Blind Hunter primary.
+
+## Deferred from: code review of 10-6-tax-answer-reconciliation (2026-08-07)
+
+- [x] [Review][Defer][Low] PDF policy-window wording treats exclusive `validTo` as inclusive [src/server/quote-pdf/render.ts:275] — deferred, customer documents say the rule is valid “till” the exclusive boundary date, overstating the frozen window by one day; render the inclusive previous date or state that validity ends before `validTo`. Sources: Blind Hunter primary; Edge Case Hunter primary.
+
+## Deferred from: build-auto review of 10-6-tax-answer-reconciliation (2026-08-31)
+
+**ASSIGNED/IMPLEMENTED AND VERIFIED IN STORIES 10.8/10.9 (2026-09-01, ADR-B008; remote demo provisioning pending):** the provenance/authority/audit, stale-PDF validity, and successor attachment carry-forward deferrals below are implemented by Stories 10.8 and 10.9. Final local verification and hosted verify/database/Playwright CI are green; the stories remain `review` only until the post-merge remote-demo secret/migration step is attested. The durable Option-A marker remains: a database-issued render ID is reserved by the narrow authenticated `reserve_quote_pdf_file` RPC before non-upsert Storage upload; only that RPC may set immutable `files.artifact_kind='quote_pdf'`. Activation/send additionally require the separate server-only short-lived HMAC-SHA256 byte attestation, verified in PostgreSQL/`pgcrypto` against matching Vault secret `quote_pdf_attestation_<key-id>`. It binds the ADR-B008 identity/content/storage/correlation/key/time-window fields, is never returned/logged/persisted, and fails closed. Review authority remains non-HMAC. Render start is correlation-idempotent with a five-minute lease; response-loss reconciliation must preserve the current generated PDF. No Edge Function, service role/elevated Storage credential, or client bypass is authorized. Failed, invalidated, completed-unsent, and historical PDF metadata stays protected and bytes stay retained. This does not resolve global file deletion, physical reclamation, or legal retention: future Story 31.7 follows E31's central retention-policy workflow and remains dry-run-first, tenant-scoped, legal-hold-aware, and audited; legal periods remain owner-approved inputs.
+
+- source_spec: `spec-10-6-tax-answer-reconciliation.md`
+  summary: Historical finding: same-tenant authenticated administrators could invoke create_quote_version_from_calculation with an arbitrary SHA-256-shaped digest, bypassing the browser's reviewed-preview click as provenance. The resolution is the non-HMAC persisted review authority in Story 10.8; the separate HMAC boundary applies only to PDF-byte activation.
+  evidence: Architecture follow-up: changing this trust boundary safely is broader than the finished reconciliation story and must not weaken the existing safeguards merely to close review.
+  severity: high
+- source_spec: `spec-10-6-tax-answer-reconciliation.md`
+  summary: Editing a draft quote's introduction, customer notes, validity date, or display mode can leave an already-generated PDF marked ready, while the send gate does not require a newly rendered PDF.
+  evidence: Pre-existing quote lifecycle issue outside the tax-answer reconciliation change; address with explicit PDF invalidation/regeneration semantics.
+  severity: high
+- source_spec: `spec-10-6-tax-answer-reconciliation.md`
+  summary: The create-new-version UI does not submit attachment identifiers even though the successor command supports them, so successor versions can omit attachments.
+  evidence: Pre-existing attachment-retention/UI workflow issue outside this story's no-attachment initial reviewed-creation path.
+  severity: medium

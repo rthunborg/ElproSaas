@@ -52,8 +52,6 @@ import {
   adminInsertCalculation,
   adminInsertQuote,
   adminInsertQuoteVersion,
-  adminInsertFile,
-  adminInsertFileLink,
   adminSelectFileById,
   type TwoTenantFixture,
   type TestServerClient,
@@ -62,6 +60,7 @@ import {
 import { adminSelectAuditEvents } from "../../factories/audit-events";
 import { isLocalStackReachable } from "../../support/test-env";
 import { skipUnlessStack } from "../../support/stack-gate";
+import { establishCurrentQuotePdf } from "../../support/quote-pdf";
 import { runCommand } from "@/server/commands/envelope";
 import { markQuoteVersionSent } from "@/server/commands/quotes";
 import { archiveFile } from "@/server/commands/files";
@@ -70,8 +69,6 @@ import type { CommandClock } from "@/server/commands/clock";
 const FIXED_ISO = "2026-07-13T09:00:00.000Z";
 const fixedClock: CommandClock = { now: () => new Date(FIXED_ISO) };
 const SOURCE_SENT_TOTAL_ORE = 125_000;
-/** Anonymized metadata-shape only — the audit metadata must NEVER echo this file name (§15). */
-const PDF_DISPLAY_NAME = "offert-8-5.pdf";
 
 /** The §15 closed file-event set — REUSED verbatim (no new event type, no new audit model). */
 const EXPECTED_FILE_EVENT_TYPES = [
@@ -118,20 +115,14 @@ async function seedSentVersionWithLockedPdf(
     status: "draft",
     accepted_price_ore: SOURCE_SENT_TOTAL_ORE,
   });
-  const fileId = await adminInsertFile({
-    tenant_id: tenant.id,
-    display_name: PDF_DISPLAY_NAME,
-    mime_type: "application/pdf",
-    lifecycle_state: "draft",
-  });
-  await adminInsertFileLink({
-    tenant_id: tenant.id,
-    file_id: fileId,
-    owner_type: "quote_version",
-    owner_id: versionId,
-    purpose: "quote_pdf",
-  });
   const client = tenant.id === fx.tenantA.id ? clientA : await makeAuthedServerClient(fx.adminB);
+  const currentPdf = await establishCurrentQuotePdf({
+    client,
+    tenantId: tenant.id,
+    quoteVersionId: versionId,
+    actorUserId: tenant.id === fx.tenantA.id ? fx.adminA.id : fx.adminB.id,
+    occurredAt: FIXED_ISO,
+  });
   const sent = await runCommand(markQuoteVersionSent, {
     client: client as never,
     clock: fixedClock,
@@ -139,7 +130,7 @@ async function seedSentVersionWithLockedPdf(
     input: { quote_version_id: versionId },
   });
   expect(sent.ok).toBe(true);
-  return { versionId, fileId };
+  return { versionId, fileId: currentPdf.fileId };
 }
 
 // ══════════════════════════════════════════════════════════════════════════════════════════════

@@ -23,6 +23,15 @@
  * personnummer (the 6.1 snapshot carries display fields only; no pnr is ever selected here).
  */
 import { createSupabaseServerClient } from "@/server/db/supabase-server-client";
+import {
+  isDeductionClassification,
+  isVatType,
+  type DeductionClassification,
+  type TaxAnswerSnapshotV2,
+  type VatType,
+} from "@/lib/money";
+import { adaptQuoteTaxSnapshot } from "@/lib/quote-snapshot";
+import { isAccessEligibleLifecycle } from "@/server/storage/lifecycle";
 import type { QuoteVersionStatus } from "./timeline";
 import { LATEST_DECIDED_STATUSES } from "./terminal-status";
 import { classifyFollowUp } from "./follow-up-dates";
@@ -271,6 +280,14 @@ export interface QuoteVersionRow {
   readonly vat_total_ore: number;
   readonly deduction_total_ore: number;
   readonly accepted_price_ore: number;
+  readonly snapshot_schema_version: number | null;
+  readonly tax_rule_version: string | null;
+  readonly tax_answer_snapshot: TaxAnswerSnapshotV2 | null;
+  readonly buyer_vat_number: string | null;
+  /** Null on literal V1 snapshots, which froze only one undifferentiated deduction scalar. */
+  readonly calculated_deduction_ore: number | null;
+  readonly claim_deduction_ore: number | null;
+  readonly payable_ore: number;
   // VAT / tax assumptions (basis points / flags), frozen at snapshot time.
   readonly vat_rate_bp: number | null;
   readonly vat_display: string | null;
@@ -305,6 +322,9 @@ export interface QuoteVersionLineRow {
   readonly unit_sell_ore: number | null;
   readonly line_net_ore: number | null;
   readonly vat_rate_bp: number | null;
+  readonly included_in_invoice_total: boolean | null;
+  readonly deduction_classification: DeductionClassification | null;
+  readonly vat_type: VatType | null;
   readonly is_hidden: boolean;
   readonly is_optional: boolean;
   readonly is_selected: boolean | null;
@@ -316,6 +336,16 @@ export interface QuoteVersionAttachmentRow {
   readonly file_id: string;
   readonly display_name: string | null;
   readonly sort_order: number;
+}
+
+/**
+ * A predecessor attachment which is still linked to the selected version's calculation and whose
+ * file lifecycle permits access. This is a carry-forward affordance projection, not a replacement
+ * for the immutable attachment snapshot above.
+ */
+export interface QuoteCarryForwardAttachmentRow {
+  readonly file_id: string;
+  readonly display_name: string | null;
 }
 
 /**
@@ -353,6 +383,14 @@ export interface QuoteDetail {
   readonly selectedLines: readonly QuoteVersionLineRow[];
   /** The selected version's frozen selected-attachment metadata (ordered by sort_order). */
   readonly selectedAttachments: readonly QuoteVersionAttachmentRow[];
+  /**
+   * The safe carry-forward subset: predecessor snapshot attachments which remain currently linked
+   * to this calculation and access-eligible. A read error fails the whole detail read closed, so
+   * the UI can never imply that an unverified attachment will be copied.
+   */
+  readonly eligibleCarryForwardAttachments: readonly QuoteCarryForwardAttachmentRow[];
+  /** Number of frozen predecessor attachment rows omitted because they are no longer eligible. */
+  readonly omittedCarryForwardAttachmentCount: number;
   /** The quote's lifecycle events (ordered occurred_at asc). */
   readonly events: readonly QuoteEventRow[];
   /**
@@ -397,10 +435,10 @@ const QUOTE_HEADER_COLUMNS =
 
 // SELECT ONLY the frozen snapshot columns (no cost/margin/internal — none exist on the row).
 const VERSION_COLUMNS =
-  "id, version_number, quote_number, quote_number_display, status, calculation_id, customer_display_name, customer_type, facility_name, contact_name, valid_until, intro_text, customer_notes, terms_text, terms_approved_at, display_mode, base_total_ore, option_total_ore, vat_total_ore, deduction_total_ore, accepted_price_ore, vat_rate_bp, vat_display, deduction_type, deduction_rate_bp, deduction_cap_ore, deduction_persons, requires_sign_off, pdf_file_id, pdf_generated_at, pdf_status, warnings_snapshot, created_at";
+  "id, version_number, quote_number, quote_number_display, status, calculation_id, customer_display_name, customer_type, facility_name, contact_name, valid_until, intro_text, customer_notes, terms_text, terms_approved_at, display_mode, base_total_ore, option_total_ore, vat_total_ore, deduction_total_ore, accepted_price_ore, snapshot_schema_version, tax_rule_version, tax_answer_snapshot, buyer_vat_number, calculated_deduction_ore, claim_deduction_ore, payable_ore, vat_rate_bp, vat_display, deduction_type, deduction_rate_bp, deduction_cap_ore, deduction_persons, requires_sign_off, pdf_file_id, pdf_generated_at, pdf_status, warnings_snapshot, created_at";
 
 const LINE_COLUMNS =
-  "id, row_type, sort_order, label, description, quote_note, quantity, unit, unit_sell_ore, line_net_ore, vat_rate_bp, is_hidden, is_optional, is_selected";
+  "id, row_type, sort_order, label, description, quote_note, quantity, unit, unit_sell_ore, line_net_ore, vat_rate_bp, included_in_invoice_total, deduction_classification, vat_type, is_hidden, is_optional, is_selected";
 
 const ATTACHMENT_COLUMNS = "id, file_id, display_name, sort_order";
 
@@ -419,6 +457,22 @@ function toVersionRow(raw: Record<string, unknown>): QuoteVersionRow {
         };
       })
     : [];
+  const acceptedPriceOre = oreNumber(raw.accepted_price_ore) ?? 0;
+  const vatTotalOre = oreNumber(raw.vat_total_ore) ?? 0;
+  const deductionTotalOre = oreNumber(raw.deduction_total_ore) ?? 0;
+  const tax = adaptQuoteTaxSnapshot({
+    snapshotSchemaVersion: num(raw.snapshot_schema_version),
+    taxRuleVersion: (raw.tax_rule_version as string | null) ?? null,
+    taxAnswerSnapshot: raw.tax_answer_snapshot,
+    buyerVatNumber: (raw.buyer_vat_number as string | null) ?? null,
+    calculatedDeductionOre: oreNumber(raw.calculated_deduction_ore),
+    claimDeductionOre: oreNumber(raw.claim_deduction_ore),
+    payableOre: oreNumber(raw.payable_ore),
+    vatOre: vatTotalOre,
+    deductionOre: deductionTotalOre,
+    acceptedPriceOre,
+  });
+  if (!tax.ok) throw new Error("Malformed frozen V2 quote tax snapshot");
   return {
     id: String(raw.id),
     version_number: Number(raw.version_number),
@@ -438,9 +492,16 @@ function toVersionRow(raw: Record<string, unknown>): QuoteVersionRow {
     display_mode: (raw.display_mode as string | null) ?? null,
     base_total_ore: oreNumber(raw.base_total_ore) ?? 0,
     option_total_ore: oreNumber(raw.option_total_ore) ?? 0,
-    vat_total_ore: oreNumber(raw.vat_total_ore) ?? 0,
-    deduction_total_ore: oreNumber(raw.deduction_total_ore) ?? 0,
-    accepted_price_ore: oreNumber(raw.accepted_price_ore) ?? 0,
+    vat_total_ore: vatTotalOre,
+    deduction_total_ore: deductionTotalOre,
+    accepted_price_ore: acceptedPriceOre,
+    snapshot_schema_version: num(raw.snapshot_schema_version),
+    tax_rule_version: (raw.tax_rule_version as string | null) ?? null,
+    tax_answer_snapshot: tax.value.taxAnswer,
+    buyer_vat_number: tax.value.buyerVatNumber,
+    calculated_deduction_ore: tax.value.calculatedDeductionOre,
+    claim_deduction_ore: tax.value.claimDeductionOre,
+    payable_ore: tax.value.payableOre,
     vat_rate_bp: num(raw.vat_rate_bp),
     vat_display: (raw.vat_display as string | null) ?? null,
     deduction_type: (raw.deduction_type as string | null) ?? null,
@@ -458,6 +519,14 @@ function toVersionRow(raw: Record<string, unknown>): QuoteVersionRow {
 
 /** Normalise a raw line row (coerce öre/quantity; snake_case in the type). */
 function toLineRow(raw: Record<string, unknown>): QuoteVersionLineRow {
+  const deductionClassification = raw.deduction_classification ?? null;
+  const vatType = raw.vat_type ?? null;
+  if (
+    (deductionClassification !== null && !isDeductionClassification(deductionClassification)) ||
+    (vatType !== null && !isVatType(vatType))
+  ) {
+    throw new Error("Malformed frozen V2 quote line tax facts");
+  }
   return {
     id: String(raw.id),
     row_type: String(raw.row_type),
@@ -470,6 +539,12 @@ function toLineRow(raw: Record<string, unknown>): QuoteVersionLineRow {
     unit_sell_ore: oreNumber(raw.unit_sell_ore),
     line_net_ore: oreNumber(raw.line_net_ore),
     vat_rate_bp: num(raw.vat_rate_bp),
+    included_in_invoice_total:
+      raw.included_in_invoice_total === null || raw.included_in_invoice_total === undefined
+        ? null
+        : raw.included_in_invoice_total === true,
+    deduction_classification: deductionClassification,
+    vat_type: vatType,
     is_hidden: raw.is_hidden === true,
     is_optional: raw.is_optional === true,
     is_selected: raw.is_selected === null || raw.is_selected === undefined
@@ -561,6 +636,7 @@ export async function readQuoteDetail(
       acceptancesRes,
       lostRes,
       followUpsRes,
+      carryForwardEligibilityRes,
     ] = await Promise.all([
       client
         .from("quote_version_lines")
@@ -604,11 +680,25 @@ export async function readQuoteDetail(
         .select("id, quote_version_id, status, due_date, note, outcome, completed_at")
         .eq("quote_id", quoteId)
         .order("created_at", { ascending: true }),
+      // Story 10.9: current calculation attachment eligibility for a potential successor. The
+      // frozen predecessor list alone is deliberately insufficient: archived/deleted/unlinked
+      // files must not be preselected for a new draft. This RLS-scoped join mirrors the command
+      // backstop; any error fails closed below rather than showing a misleading selection.
+      client
+        .from("file_links")
+        .select("file_id, files!inner(lifecycle_state, archived_at)")
+        .eq("owner_type", "calculation")
+        .eq("owner_id", selected.calculation_id)
+        .eq("purpose", "calculation_attachment")
+        .is("archived_at", null),
     ]);
 
     if (linesRes.error) return { detail: null, error: GENERIC_READ_ERROR };
     if (attachmentsRes.error) return { detail: null, error: GENERIC_READ_ERROR };
     if (eventsRes.error) return { detail: null, error: GENERIC_READ_ERROR };
+    if (carryForwardEligibilityRes.error) {
+      return { detail: null, error: GENERIC_READ_ERROR };
+    }
     // A jobs read error is NON-FATAL to the quote detail — the deep link is a convenience, not the
     // quote's core data. Degrade to an empty map rather than fail the whole quote read.
     const versionIdSet = new Set(versions.map((v) => v.id));
@@ -686,6 +776,39 @@ export async function readQuoteDetail(
       display_name: (raw.display_name as string | null) ?? null,
       sort_order: Number(raw.sort_order ?? 0),
     }));
+    const eligibleCalculationAttachmentIds = new Set<string>();
+    for (const raw of (carryForwardEligibilityRes.data ?? []) as Record<string, unknown>[]) {
+      const joinedFile = Array.isArray(raw.files) ? raw.files[0] : raw.files;
+      const joinedFileRecord =
+        joinedFile && typeof joinedFile === "object"
+          ? (joinedFile as { lifecycle_state?: unknown; archived_at?: unknown })
+          : undefined;
+      if (
+        typeof raw.file_id === "string" &&
+        joinedFileRecord !== undefined &&
+        joinedFileRecord.archived_at == null &&
+        isAccessEligibleLifecycle(String(joinedFileRecord.lifecycle_state ?? ""))
+      ) {
+        eligibleCalculationAttachmentIds.add(raw.file_id);
+      }
+    }
+    const seenCarryForwardAttachmentIds = new Set<string>();
+    const eligibleCarryForwardAttachments: QuoteCarryForwardAttachmentRow[] = [];
+    let omittedCarryForwardAttachmentCount = 0;
+    for (const attachment of selectedAttachments) {
+      if (!eligibleCalculationAttachmentIds.has(attachment.file_id)) {
+        omittedCarryForwardAttachmentCount += 1;
+        continue;
+      }
+      // A malformed/legacy duplicate snapshot should never render duplicate form controls. The
+      // command also de-duplicates before snapshot insertion, so this remains a UI convenience.
+      if (seenCarryForwardAttachmentIds.has(attachment.file_id)) continue;
+      seenCarryForwardAttachmentIds.add(attachment.file_id);
+      eligibleCarryForwardAttachments.push({
+        file_id: attachment.file_id,
+        display_name: attachment.display_name,
+      });
+    }
     const events = ((eventsRes.data ?? []) as Record<string, unknown>[]).map(
       (raw) => ({
         id: String(raw.id),
@@ -722,6 +845,8 @@ export async function readQuoteDetail(
         selectedVersionId: selectedId,
         selectedLines,
         selectedAttachments,
+        eligibleCarryForwardAttachments,
+        omittedCarryForwardAttachmentCount,
         events,
         selectedLostReason,
         followUps,

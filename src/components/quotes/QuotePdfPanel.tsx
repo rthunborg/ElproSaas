@@ -36,6 +36,8 @@ import {
 export interface QuotePdfPanelProps {
   readonly quoteId: string;
   readonly quoteVersionId: string;
+  /** Draft-only mutation gate. Sent versions retain status and signed read/download access. */
+  readonly allowGeneration: boolean;
   /** not_generated | generating | generated | failed (the DB render state). */
   readonly pdfStatus: string;
   readonly pdfFileId: string | null;
@@ -94,19 +96,19 @@ export function QuotePdfPanel(props: QuotePdfPanelProps) {
       </p>
 
       {/* Generate/retry error + retryable banners (announced). */}
-      {genState.status === "error" && genState.formError && (
+      {props.allowGeneration && genState.status === "error" && genState.formError && (
         <p role="alert" data-testid="quote-pdf-error" className="mt-1 text-red-800">
           {genState.formError}
         </p>
       )}
-      {retryableGen && (
+      {props.allowGeneration && retryableGen && (
         <p role="status" className="mt-1 text-amber-800">
           Försök igen.
         </p>
       )}
 
       {/* ── not_generated → a "Generera PDF" action. ── */}
-      {isNotGenerated && (
+      {props.allowGeneration && isNotGenerated && (
         <form action={genAction} className="mt-2">
           <input type="hidden" name="quote_id" value={props.quoteId} />
           <input type="hidden" name="quote_version_id" value={props.quoteVersionId} />
@@ -129,7 +131,7 @@ export function QuotePdfPanel(props: QuotePdfPanelProps) {
       )}
 
       {/* ── failed → a retry action (regenerates from the same frozen snapshot). ── */}
-      {isFailed && (
+      {props.allowGeneration && isFailed && (
         <form action={genAction} className="mt-2">
           <input type="hidden" name="quote_id" value={props.quoteId} />
           <input type="hidden" name="quote_version_id" value={props.quoteVersionId} />

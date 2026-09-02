@@ -52,6 +52,14 @@ const SUPPLIER_FORBIDDEN = [
   "mapping",
 ];
 
+function carriesForbiddenSupplierToken(key: string, forbidden: string): boolean {
+  // Story 10.6 adds the legitimate tax field `includedInInvoiceTotal`; its normalized key
+  // contains the short substring "edi" across a word boundary. Keep the supplier-scope guard
+  // focused on real integration keys rather than that incidental spelling.
+  if (forbidden === "edi" && key === "includedininvoicetotal") return false;
+  return key.includes(forbidden);
+}
+
 /** A fully-populated in-memory input fixture (no DB, no PII). */
 function makeInput(over: Partial<QuoteVersionSnapshotInput> = {}): QuoteVersionSnapshotInput {
   return {
@@ -135,6 +143,22 @@ function collectKeys(value: unknown, acc: Set<string>): void {
 }
 
 describe("Story 6.1 — pure QuoteVersionSnapshot builder purity + öre + internal-exclusion", () => {
+  test("legacy V1 builds keep every V2-only tax fact explicitly null", () => {
+    const snap = buildQuoteVersionSnapshot(makeInput(), { capturedAt: CAPTURED_AT });
+
+    assert.equal(snap.snapshotSchemaVersion, null);
+    assert.equal(snap.taxRuleVersion, null);
+    assert.equal(snap.taxAnswerSnapshot, null);
+    assert.equal(snap.buyerVatNumber, null);
+    assert.equal(snap.calculatedDeductionOre, null);
+    assert.equal(snap.claimDeductionOre, null);
+    assert.equal(snap.payableOre, null);
+    assert.equal(snap.netOre, null);
+    assert.equal(snap.vatOre, null);
+    assert.equal(snap.grossOre, null);
+    assert.equal(snap.deductionOre, null);
+  });
+
   test("[P0] copy-by-value: mutating the source after build does not change the snapshot (6.1-UNIT-01)", () => {
     const input = makeInput();
     const snap = buildQuoteVersionSnapshot(input, { capturedAt: CAPTURED_AT });
@@ -276,7 +300,7 @@ describe("Story 6.1 — pure QuoteVersionSnapshot builder purity + öre + intern
     for (const forbidden of SUPPLIER_FORBIDDEN) {
       for (const key of keys) {
         assert.ok(
-          !key.includes(forbidden),
+          !carriesForbiddenSupplierToken(key, forbidden),
           `no snapshot key may contain the supplier/integration token '${forbidden}' (got '${key}')`,
         );
       }

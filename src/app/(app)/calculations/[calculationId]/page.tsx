@@ -22,6 +22,8 @@ import {
 } from "@/features/settings/read";
 import { toSourceOptions } from "@/features/calculations/source-options";
 import { DEFAULT_TENANT_VAT_DISPLAY } from "@/features/calculations/vat-posture";
+import { buildQuoteReviewDigest } from "@/server/commands/quotes/review-token";
+import { stockholmBusinessDate } from "@/lib/datetime/business-date";
 
 export const dynamic = "force-dynamic";
 
@@ -126,6 +128,74 @@ export default async function CalculationEditorPage({
     ownerId: calculationId,
   });
 
+  // The reviewed token covers every semantic source that can enter the fresh
+  // customer-visible quote. Confirmation re-reads the same sources and rejects
+  // when any child/customer/settings/tax fact changed after this render.
+  const previewQuoteCaptureDate = stockholmBusinessDate(new Date());
+  const reviewedSnapshotDigest = buildQuoteReviewDigest({
+    quoteCaptureDate: previewQuoteCaptureDate,
+    calculation: {
+      id: detail.header.id,
+      status: detail.header.status,
+      customerId: detail.header.customer_id,
+      facilityId: detail.header.facility_id,
+      contactId: detail.header.contact_id,
+      taxInput: detail.header.tax_input_snapshot,
+    },
+    sections: detail.sections.map((section) => ({
+      id: section.id,
+      title: section.title,
+      displayMode: section.display_mode,
+      sortOrder: section.sort_order,
+    })),
+    rows: detail.sections.flatMap((section) => section.rows.map((row) => ({
+      id: row.id,
+      sectionId: row.section_id,
+      rowType: row.row_type,
+      quantity: row.quantity,
+      unit: row.unit,
+      unitCostOre: row.unit_cost_ore,
+      sourceKind: row.source_kind,
+      unitSellOre: row.unit_sell_ore,
+      vatRateBp: row.vat_rate_bp,
+      includedInInvoiceTotal: row.included_in_invoice_total,
+      deductionClassification: row.deduction_classification,
+      vatType: row.vat_type,
+      isHidden: row.is_hidden,
+      isOptional: row.is_optional,
+      isSelected: row.is_selected,
+      label: row.label,
+      description: row.description,
+      quoteNote: row.quote_note,
+      sortOrder: row.sort_order,
+    }))),
+    customer: {
+      displayName: detail.customer.customer_display_name,
+      customerType: detail.customer.customer_type,
+      facilityName: detail.customer.facility_name,
+      contactName: detail.customer.contact_name,
+    },
+    company: settingsRes.settings === null ? null : {
+      companyName: settingsRes.settings.company_name,
+      orgNr: settingsRes.settings.org_nr,
+      addressLine1: settingsRes.settings.address_line1,
+      addressLine2: settingsRes.settings.address_line2,
+      postalCode: settingsRes.settings.postal_code,
+      city: settingsRes.settings.city,
+      email: settingsRes.settings.email,
+      phone: settingsRes.settings.phone,
+      logoUrl: settingsRes.settings.logo_url,
+      defaultVatDisplay: settingsRes.settings.default_vat_display,
+      vatRateBp: settingsRes.settings.vat_rate_bp,
+    },
+    terms: termsRes.terms === null ? null : {
+      text: termsRes.terms.terms_text,
+      approvedAt: termsRes.terms.approved_at,
+      approvedBy: termsRes.terms.approved_by,
+    },
+    attachments: [],
+  });
+
   return (
     <CalculationEditor
       detail={detail}
@@ -133,6 +203,8 @@ export default async function CalculationEditorPage({
       defaultVatDisplay={defaultVatDisplay}
       vatPostureResolved={vatPostureResolved}
       quoteTerms={quoteTerms}
+      previewQuoteCaptureDate={previewQuoteCaptureDate}
+      reviewedSnapshotDigest={reviewedSnapshotDigest}
       filesPanel={
         <EntityFilePanel
           ownerType="calculation"

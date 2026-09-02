@@ -3,13 +3,13 @@
  *
  * 5.2-UNIT-01 (P0, AC4): the editor totals EQUAL the `@/lib/money` engine totals for
  * representative rows (line net, section subtotal, VAT, gross) — asserting byte-equality
- * with a DIRECT engine call, proving there is NO inline math and NO forked öre/VAT rule.
+ * with DIRECT engine calls, proving there is NO inline math and NO forked öre/VAT rule.
  *
  * 5.2-UNIT-04 (P2, AC4): `resolveTotalDisplay` (via `selectVatDisplay`) is presentation-only
  * — the source totals are unchanged by the excl/incl/both selection.
  *
- * Inclusion pin (Task 2.2): a SELECTED option + a HIDDEN row COUNT toward totals; an
- * UNSELECTED option does NOT — matching the frozen 2026-06-18 rule. Runs under `node --test`.
+ * Story 10.6 inclusion: `included_in_invoice_total` is the sole authority; option
+ * commands write it coherently with selection. Runs under `node --test`.
  */
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -22,27 +22,32 @@ import {
   rowCountsTowardTotal,
 } from "@/features/calculations/totals";
 import {
+  aggregateDocumentVat,
   lineNetOre,
   lineVatOre,
-  sumOre,
-  sumVatOre,
   vatBreakdown,
   selectVatDisplay,
   ORE_AMOUNT_MAX,
 } from "@/lib/money";
 
 function row(overrides: Partial<{
+  row_type: "labor" | "material" | "subcontractor" | "machinery" | "other";
   quantity: number;
   unit_sell_ore: number | null;
   vat_rate_bp: number | null;
+  vat_type: "STANDARD_VAT_25" | "REDUCED_VAT" | "ZERO_RATED" | "REVERSE_CHARGE_CONSTRUCTION" | null;
+  included_in_invoice_total: boolean;
   is_hidden: boolean;
   is_optional: boolean;
   is_selected: boolean | null;
 }> = {}) {
   return {
+    row_type: overrides.row_type ?? "other",
     quantity: overrides.quantity ?? 1,
     unit_sell_ore: overrides.unit_sell_ore ?? 0,
     vat_rate_bp: overrides.vat_rate_bp ?? 2500,
+    vat_type: overrides.vat_type ?? "STANDARD_VAT_25",
+    included_in_invoice_total: overrides.included_in_invoice_total ?? true,
     is_hidden: overrides.is_hidden ?? false,
     is_optional: overrides.is_optional ?? false,
     is_selected: overrides.is_selected ?? null,
@@ -71,43 +76,48 @@ test("5.2-UNIT-01: a line total equals a DIRECT lineNetOre + vatBreakdown engine
   }
 });
 
-test("5.2-UNIT-01: a section total equals sumOre/sumVatOre of the engine per-line values", () => {
+test("5.2-UNIT-01: a section total equals the engine document-category VAT aggregate", () => {
   const rows = [
     row({ quantity: 2, unit_sell_ore: 12345, vat_rate_bp: 2500 }),
-    row({ quantity: 1, unit_sell_ore: 99999, vat_rate_bp: 1200 }),
-    row({ quantity: 3.5, unit_sell_ore: 5000, vat_rate_bp: 600 }),
+    row({ quantity: 1, unit_sell_ore: 99999, vat_rate_bp: 1200, vat_type: "REDUCED_VAT" }),
+    row({ quantity: 3.5, unit_sell_ore: 5000, vat_rate_bp: 600, vat_type: "REDUCED_VAT" }),
   ];
 
   const section = computeSectionTotal(rows);
   assert.equal(section.ok, true);
 
-  // Build the engine's per-line rounded nets + VATs and sum via the engine directly.
-  const nets: number[] = [];
-  const vats: number[] = [];
+  // Build the engine's rounded line nets, then aggregate VAT once per document category.
+  const aggregateRows: {
+    readonly netOre: number;
+    readonly vatType: "STANDARD_VAT_25" | "REDUCED_VAT";
+    readonly rateBp: number;
+    readonly summaryCategory: "other";
+  }[] = [];
   for (const r of rows) {
     const net = lineNetOre(r.quantity, r.unit_sell_ore ?? 0);
     assert.equal(net.ok, true);
     if (!net.ok) return;
-    nets.push(net.value);
-    const vat = lineVatOre(net.value, r.vat_rate_bp ?? 0);
-    assert.equal(vat.ok, true);
-    if (!vat.ok) return;
-    vats.push(vat.value);
+    aggregateRows.push({
+      netOre: net.value,
+      vatType: r.vat_rate_bp === 600 || r.vat_rate_bp === 1200
+        ? "REDUCED_VAT"
+        : "STANDARD_VAT_25",
+      rateBp: r.vat_rate_bp ?? 0,
+      summaryCategory: "other",
+    });
   }
-  const engineNet = sumOre(nets);
-  const engineVat = sumVatOre(vats);
-  assert.equal(engineNet.ok, true);
-  assert.equal(engineVat.ok, true);
-  if (section.ok && engineNet.ok && engineVat.ok) {
-    assert.equal(section.value.netOre, engineNet.value);
-    assert.equal(section.value.vatOre, engineVat.value);
-    assert.equal(section.value.grossOre, engineNet.value + engineVat.value);
+  const aggregate = aggregateDocumentVat({ rows: aggregateRows, standardRateBp: 2500 });
+  assert.equal(aggregate.ok, true);
+  if (section.ok && aggregate.ok) {
+    assert.equal(section.value.netOre, aggregate.value.netOre);
+    assert.equal(section.value.vatOre, aggregate.value.vatOre);
+    assert.equal(section.value.grossOre, aggregate.value.grossOre);
   }
 });
 
-test("5.2-UNIT-01: sum-of-rounded ≠ round-of-sum is preserved (engine parity, not a fork)", () => {
-  // Two lines whose per-line rounding diverges from a round-of-sum — the engine's
-  // sum-of-rounded is authoritative and the editor must match it byte-for-byte.
+test("5.2-UNIT-01: same-category VAT is rounded once at document-category level", () => {
+  // Two lines whose per-line VAT would total 50 öre. Story 10.6 makes the document-category
+  // VAT authority round the combined STANDARD_VAT_25 net once, yielding 51 öre.
   const rows = [
     row({ quantity: 1, unit_sell_ore: 101, vat_rate_bp: 2500 }), // VAT of 101 = 25.25 → 25
     row({ quantity: 1, unit_sell_ore: 101, vat_rate_bp: 2500 }),
@@ -117,16 +127,26 @@ test("5.2-UNIT-01: sum-of-rounded ≠ round-of-sum is preserved (engine parity, 
   const v1 = lineVatOre(101, 2500);
   assert.equal(v1.ok, true);
   const perLine = v1.ok ? v1.value : -1;
-  const engineVat = sumVatOre([perLine, perLine]);
-  assert.equal(engineVat.ok, true);
-  if (section.ok && engineVat.ok) {
-    assert.equal(section.value.vatOre, engineVat.value);
+  const aggregate = aggregateDocumentVat({
+    standardRateBp: 2500,
+    rows: rows.map((r) => ({
+      netOre: r.unit_sell_ore ?? 0,
+      vatType: "STANDARD_VAT_25" as const,
+      rateBp: r.vat_rate_bp ?? 0,
+      summaryCategory: "other" as const,
+    })),
+  });
+  assert.equal(aggregate.ok, true);
+  if (section.ok && aggregate.ok) {
+    assert.equal(perLine * 2, 50);
+    assert.equal(section.value.vatOre, aggregate.value.vatOre);
+    assert.equal(section.value.vatOre, 51);
   }
 });
 
 test("5.2-UNIT-01: computeCalcTotal flattens sections and matches a single section sum", () => {
   const rowsA = [row({ quantity: 2, unit_sell_ore: 10000, vat_rate_bp: 2500 })];
-  const rowsB = [row({ quantity: 1, unit_sell_ore: 20000, vat_rate_bp: 1200 })];
+  const rowsB = [row({ quantity: 1, unit_sell_ore: 20000, vat_rate_bp: 1200, vat_type: "REDUCED_VAT" })];
   const calc = computeCalcTotal([{ rows: rowsA }, { rows: rowsB }]);
   const flat = computeSectionTotal([...rowsA, ...rowsB]);
   assert.equal(calc.ok, true);
@@ -138,16 +158,16 @@ test("5.2-UNIT-01: computeCalcTotal flattens sections and matches a single secti
 
 // ── Inclusion pin: hidden + selected COUNT; unselected option does NOT ────────────
 
-test("inclusion: a plain row and a HIDDEN row both count toward the total", () => {
-  assert.equal(rowCountsTowardTotal({ is_optional: false, is_selected: null }), true);
-  assert.equal(rowCountsTowardTotal({ is_optional: false, is_selected: false }), true);
+test("inclusion: a plain row and a HIDDEN row both count when explicitly included", () => {
+  assert.equal(rowCountsTowardTotal({ included_in_invoice_total: true, is_optional: false, is_selected: null }), true);
+  assert.equal(rowCountsTowardTotal({ included_in_invoice_total: true, is_optional: false, is_selected: false }), true);
   // A hidden row is not optional → it counts (hidden ≠ excluded).
 });
 
-test("inclusion: a SELECTED option counts; an UNSELECTED option does NOT", () => {
-  assert.equal(rowCountsTowardTotal({ is_optional: true, is_selected: true }), true);
-  assert.equal(rowCountsTowardTotal({ is_optional: true, is_selected: false }), false);
-  assert.equal(rowCountsTowardTotal({ is_optional: true, is_selected: null }), false);
+test("inclusion: explicit invoice inclusion, not option state, is authoritative", () => {
+  assert.equal(rowCountsTowardTotal({ included_in_invoice_total: true, is_optional: true, is_selected: true }), true);
+  assert.equal(rowCountsTowardTotal({ included_in_invoice_total: false, is_optional: true, is_selected: false }), false);
+  assert.equal(rowCountsTowardTotal({ included_in_invoice_total: false, is_optional: true, is_selected: null }), false);
 });
 
 test("inclusion: an UNSELECTED option is excluded from BOTH net and VAT sums", () => {
@@ -158,6 +178,7 @@ test("inclusion: an UNSELECTED option is excluded from BOTH net and VAT sums", (
     vat_rate_bp: 2500,
     is_optional: true,
     is_selected: false,
+    included_in_invoice_total: false,
   });
   const withOption = computeSectionTotal([included, excludedOption]);
   const withoutOption = computeSectionTotal([included]);
@@ -177,6 +198,7 @@ test("inclusion: a SELECTED option DOES contribute to the total", () => {
     vat_rate_bp: 2500,
     is_optional: true,
     is_selected: true,
+    included_in_invoice_total: true,
   });
   const total = computeSectionTotal([included, selectedOption]);
   const baseline = computeSectionTotal([included]);
@@ -269,6 +291,7 @@ test("computeSectionTotal SKIPS an unselected-option overflow (excluded rows nev
     vat_rate_bp: 2500,
     is_optional: true,
     is_selected: false,
+    included_in_invoice_total: false,
   });
   const section = computeSectionTotal([good, excludedOverflow]);
   assert.equal(section.ok, true);
@@ -326,4 +349,16 @@ test("computeLineVat equals a direct lineVatOre engine call and propagates its f
   // A malformed VAT rate is a typed failure, not a NaN.
   const bad = computeLineVat(10000, -1);
   assert.equal(bad.ok, false);
+});
+
+test("live totals resolve the injected policy date and fail loud outside ratified windows", () => {
+  const current = computeSectionTotal([
+    row({ unit_sell_ore: 10_000, vat_rate_bp: 2_500 }),
+  ], "2026-08-18");
+  assert.equal(current.ok, true);
+
+  const unresolved = computeSectionTotal([
+    row({ unit_sell_ore: 10_000, vat_rate_bp: 2_500 }),
+  ], "2027-01-01");
+  assert.deepEqual(unresolved, { ok: false, code: "TAX_POLICY_NO_MATCH" });
 });

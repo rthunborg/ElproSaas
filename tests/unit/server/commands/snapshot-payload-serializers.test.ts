@@ -110,18 +110,21 @@ test("6.5-INT-01 (unit): snapshotToPayload emits the full frozen header/totals/t
     "quoteNumberDisplay", "validUntil", "introText", "customerNotes",
     "termsText", "termsApprovedAt", "termsApprovedBy",
     "baseTotalOre", "optionTotalOre", "vatTotalOre", "deductionTotalOre", "acceptedPriceOre",
+    "snapshotSchemaVersion", "taxRuleVersion", "taxAnswerSnapshot", "buyerVatNumber",
+    "calculatedDeductionOre", "claimDeductionOre", "payableOre",
     "vatRateBp", "vatDisplay", "deductionType", "deductionRateBp", "deductionCapOre",
     "deductionPersons", "requiresSignOff", "displayMode", "warnings",
   ].sort();
   assert.deepEqual(Object.keys(payload).sort(), expectedKeys);
 });
 
-test("6.5-INT-01 (unit): snapshotToPayload copies values verbatim + preserves integer öre / basis-points", () => {
+test("6.5-INT-01 (unit): snapshotToPayload copies literal V1 values without inventing V2 tax scalars", () => {
   const payload = snapshotToPayload(buildFixtureSnapshot());
   assert.equal(payload.companyName, "Elpro Test AB");
   assert.equal(payload.baseTotalOre, 120000);
   assert.equal(payload.vatTotalOre, 30000);
   assert.equal(payload.acceptedPriceOre, 150000);
+  assert.equal(payload.payableOre, null);
   assert.equal(payload.vatRateBp, 2500);
   assert.equal(payload.requiresSignOff, true);
   // öre stay integers (never a float/kr conversion).
@@ -146,7 +149,8 @@ test("6.5-INT-01 (unit): linesToPayload emits exactly the customer-visible line 
   const expected = [
     "rowType", "sortOrder", "label", "description", "quoteNote",
     "quantity", "unit", "unitSellOre", "lineNetOre", "vatRateBp",
-    "isHidden", "isOptional", "isSelected",
+    "includedInInvoiceTotal", "deductionClassification", "vatType",
+    "isHidden", "isOptional", "isSelected", "sourceRowId",
   ].sort();
   const keys = Object.keys(lines[0] as Record<string, unknown>).sort();
   assert.deepEqual(keys, expected);
@@ -167,6 +171,7 @@ test("6.5-INT-01 (unit): linesToPayload preserves the customer-visible values + 
   assert.equal(line.unitSellOre, 120000);
   assert.equal(line.lineNetOre, 120000);
   assert.equal(line.vatRateBp, 2500);
+  assert.equal(line.sourceRowId, null);
 });
 
 test("6.5-INT-01 (unit): linesToPayload maps an empty snapshot to an empty array (never null)", () => {

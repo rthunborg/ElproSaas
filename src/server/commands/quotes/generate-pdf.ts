@@ -5,9 +5,10 @@
  * A `defineCommand` through the EXISTING envelope (resolve user → resolve active tenant_admin →
  * validate typed input → envelope `ownership` verifies the quote_version id is own-tenant-visible
  * → in execute: READ the FROZEN snapshot rows under the caller's RLS → build the PURE
- * `QuotePdfViewModel` → render the PDF bytes deterministically (injected timestamp) → upload the
- * private object on the RLS-client storage surface → persist files/file_links (find-or-create the
- * PDF link) → write a quote_events row → update the PDF-render columns → append-only audit
+ * `QuotePdfViewModel` → render the PDF bytes deterministically (injected timestamp) → reserve the
+ * exact draft `files` metadata row on the RLS client → upload the private object to that reserved
+ * path without replacement → activate its files/file_links record → write a quote_events row →
+ * update the PDF-render columns → append-only audit
  * `{ targetId }`). No bespoke auth/error/audit mechanism.
  *
  * ── THE CANONICAL SOURCE-OF-TRUTH RULE (R-606; AC1 Money/Tax HIGH) ────────────────────────
@@ -29,34 +30,45 @@
  * bucket on the RLS client (NEVER service-role — the containment guard). 6.3 is the FIRST story
  * to write actual object BYTES (8.1 was metadata-first; the general upload path is Story 8.2 —
  * recorded as an 8.2-reconcile deferral). Because the object path must contain the SAME file id
- * as the `files` row, the file id is server-generated up front and the `files` row is inserted
- * with that explicit id on the RLS client (own-tenant WITH CHECK) — `create_file_with_link`
- * self-allocates the id and cannot bind the path, so it is not used here.
+ * as the `files` row, the file id is database-issued up front and the complete metadata row
+ * (checksum, size, MIME, uploader, draft lifecycle) is reserved with that explicit id BEFORE any
+ * Storage write. `create_file_with_link` self-allocates the id and cannot bind the path, so it is
+ * not used here. A failed upload is compensated by archiving that reserved draft row.
  *
  * ── CONSISTENCY + RETRY (R-613) ───────────────────────────────────────────────────────────
  * `pdf_status` transitions: not_generated → generating → generated (success) / failed (fault).
  * A mid-pipeline failure sets `pdf_status='failed'` (retryable) — NEVER `generated` over a
  * missing file — and returns a generic retryable SERVER_ERROR (an infra fault is NOT conflated
  * with a not-authorized denial). Retry regenerates from the SAME immutable snapshot (retry is
- * allowed on draft AND sent versions — the PDF is DERIVED, not commitment data; 6.3 introduces
- * NO sent-lock trigger). A double-submit retry does NOT duplicate the `file_links` row: the ONE
- * `quote_pdf` link per version is FOUND and RE-POINTED to the new file (find-or-create, R-814);
- * the superseded prior object is left/archived (archive-over-delete — 8.1 has no reclamation).
+ * allowed only while the version is draft. Once sent, the exact current PDF is commitment
+ * evidence and regeneration requires the new-version flow. A draft retry creates one fresh active
+ * `quote_pdf` link while archiving the superseded link/file metadata; bytes remain retained
+ * (archive-over-delete — physical reclamation is deferred).
  *
  * Audit metadata is `{ targetId }` ONLY (no PII/money/customer/URL — §15).
  */
+import { createHash } from "node:crypto";
+
 import { defineCommand } from "../envelope";
 import { CommandError } from "../command-errors";
-import { deriveObjectPath } from "@/server/storage/object-path";
+import { deriveObjectPath, sanitizeNameSegment } from "@/server/storage/object-path";
 import { renderQuotePdf } from "@/server/quote-pdf/render";
+import {
+  quotePdfAttestationSecretFromEnv,
+  signQuotePdfAttestation,
+  type QuotePdfAttestationPayload,
+} from "@/server/quote-pdf/attestation";
 import { buildQuotePdfViewModel } from "@/lib/quote-pdf";
+import { isDeductionClassification, isVatType } from "@/lib/money";
 import type {
   QuoteDeductionType,
   QuoteVersionSnapshot,
 } from "@/lib/quote-snapshot";
+import { adaptQuoteTaxSnapshot } from "@/lib/quote-snapshot";
 import {
   asQuotePdfWriteClient,
-  findExistingPdfLink,
+  asQuotePdfRenderRpcClient,
+  loadQuotePdfLifecycleState,
   loadQuoteVersionAttachmentSnapshots,
   loadQuoteVersionLineSnapshots,
   loadQuoteVersionSnapshot,
@@ -71,6 +83,27 @@ import {
 /** The private bucket every Phase A file lives in (single private bucket). */
 const TENANT_FILES_BUCKET = "tenant-files";
 
+/**
+ * The server-only attestation binds the exact persisted SHA-256 to the render.
+ * Story 10.8 reviewer authorization remains a separate authorization decision;
+ * Storage is the authority for object existence and size/MIME metadata.
+ */
+function sha256Hex(bytes: Uint8Array): string {
+  return createHash("sha256").update(bytes).digest("hex");
+}
+
+/**
+ * Keep the persisted display name identical to the sanitized final Storage path
+ * segment while preserving the required `.pdf` suffix inside the 128-code-unit
+ * path bound.
+ */
+export function quotePdfDisplayName(quoteNumber: string | number | null): string {
+  const safeStem = sanitizeNameSegment(`offert-${quoteNumber ?? "utkast"}`)
+    .slice(0, 124)
+    .replace(/[\uD800-\uDBFF]$/, "");
+  return `${safeStem}.pdf`;
+}
+
 /** Result of `generateQuotePdf` — the version id (targetId) + the generated file id. */
 export interface GenerateQuotePdfResult {
   readonly targetId: string;
@@ -79,14 +112,24 @@ export interface GenerateQuotePdfResult {
 
 /** A deduction type narrowed to the closed snapshot union (else null). */
 function deductionTypeOf(v: string | null): QuoteDeductionType | null {
-  return v === "rot" || v === "gron_teknik" ? v : null;
+  return v === "rot" || v === "gron_teknik" || v === "rot_and_green" ? v : null;
 }
 
 /** Map a frozen line-snapshot DB row into the pure snapshot line shape. */
 function lineSnapshotOf(
   row: QuoteVersionLineSnapshotRow,
 ): QuoteVersionSnapshot["lines"][number] {
+  if (
+    row.deduction_classification !== null &&
+    !isDeductionClassification(row.deduction_classification)
+  ) {
+    throw new CommandError("VALIDATION_FAILED");
+  }
+  if (row.vat_type !== null && !isVatType(row.vat_type)) {
+    throw new CommandError("VALIDATION_FAILED");
+  }
   return {
+    sourceRowId: row.source_calculation_row_id,
     rowType: row.row_type,
     sortOrder: row.sort_order,
     label: row.label,
@@ -97,6 +140,9 @@ function lineSnapshotOf(
     unitSellOre: row.unit_sell_ore,
     lineNetOre: row.line_net_ore,
     vatRateBp: row.vat_rate_bp,
+    includedInInvoiceTotal: row.included_in_invoice_total,
+    deductionClassification: row.deduction_classification,
+    vatType: row.vat_type,
     isHidden: row.is_hidden,
     isOptional: row.is_optional,
     isSelected: row.is_selected,
@@ -117,6 +163,19 @@ function snapshotFromRows(
   const quoteNumberDisplay =
     version.quote_number_display ??
     (version.quote_number !== null ? String(version.quote_number) : null);
+  const tax = adaptQuoteTaxSnapshot({
+    snapshotSchemaVersion: version.snapshot_schema_version,
+    taxRuleVersion: version.tax_rule_version,
+    taxAnswerSnapshot: version.tax_answer_snapshot,
+    buyerVatNumber: version.buyer_vat_number,
+    calculatedDeductionOre: version.calculated_deduction_ore,
+    claimDeductionOre: version.claim_deduction_ore,
+    payableOre: version.payable_ore,
+    vatOre: version.vat_total_ore,
+    deductionOre: version.deduction_total_ore,
+    acceptedPriceOre: version.accepted_price_ore,
+  });
+  if (!tax.ok) throw new CommandError("VALIDATION_FAILED");
   return {
     calculationId: version.calculation_id,
     capturedAt: version.captured_at ?? "", // the frozen snapshot instant (view model ignores it)
@@ -145,6 +204,17 @@ function snapshotFromRows(
     vatTotalOre: version.vat_total_ore,
     deductionTotalOre: version.deduction_total_ore,
     acceptedPriceOre: version.accepted_price_ore,
+    snapshotSchemaVersion: version.snapshot_schema_version,
+    taxRuleVersion: version.tax_rule_version,
+    taxAnswerSnapshot: tax.value.taxAnswer,
+    buyerVatNumber: tax.value.buyerVatNumber,
+    calculatedDeductionOre: tax.value.calculatedDeductionOre,
+    claimDeductionOre: tax.value.claimDeductionOre,
+    payableOre: tax.value.payableOre,
+    netOre: tax.value.netOre,
+    vatOre: tax.value.vatOre,
+    grossOre: tax.value.grossOre,
+    deductionOre: tax.value.deductionOre,
     vatRateBp: version.vat_rate_bp,
     vatDisplay: version.vat_display,
     deductionType: deductionTypeOf(version.deduction_type),
@@ -172,7 +242,9 @@ export const generateQuotePdf = defineCommand<
   GenerateQuotePdfResult
 >({
   command: "quote.pdf.generate",
-  auditable: true,
+  // PDF lifecycle RPCs atomically record the actor/correlation audit.  Do not add a
+  // second, post-transaction envelope audit that could survive a failed lifecycle.
+  auditable: false,
   eventType: "quote.pdf.generated",
   targetType: "quote_version",
   validateInput: validateGenerateQuotePdf,
@@ -187,131 +259,206 @@ export const generateQuotePdf = defineCommand<
     // The SINGLE injected command instant (no wall-clock read anywhere in the pipeline).
     const nowIso = ctx.clock.now().toISOString();
     const writer = asQuotePdfWriteClient(db);
-
-    // ── Read the FROZEN snapshot rows under the caller's RLS (ownership proved visibility). ──
-    const version = await loadQuoteVersionSnapshot(db, versionId);
-    if (version === null) throw new CommandError("TENANT_ACCESS_DENIED");
-    // ── LIFECYCLE GATE (Story 7.2, Task 5 / architecture §12) — PDF retry is scoped to draft/sent.
-    // ── An `accepted` (or any terminal: rejected/expired/superseded) version offers NO PDF-retry
-    // ── affordance (the UI gates the panel off too). Reject with a generic VALIDATION_FAILED (no
-    // ── leaked status). 7.2 makes `accepted` reachable, so it owns closing this command-side gap.
-    if (version.status !== "draft" && version.status !== "sent") {
-      throw new CommandError("VALIDATION_FAILED");
+    const renderRpc = asQuotePdfRenderRpcClient(db);
+    // Resolve this before reserving any metadata so a missing server secret fails
+    // before a render can be left in flight. The DB independently requires the
+    // matching Vault entry for this public key id.
+    const attestationConfig = quotePdfAttestationSecretFromEnv();
+    // Bind this render to the exact draft state BEFORE reading its snapshot. A later
+    // customer-visible edit clears that binding; completion then refuses activation.
+    // The database, rather than a caller-provided id, allocates the sole file UUID
+    // that this render may ever activate or compensate.
+    const startArgs: PdfRenderStartArgs = {
+      p_tenant_id: tenantId,
+      p_quote_version_id: versionId,
+      p_actor_user_id: ctx.tenantContext.userId,
+      p_correlation_id: ctx.correlationId,
+      p_started_at: nowIso,
+      p_attestation_key_id: attestationConfig.keyId,
+    };
+    let render: PdfRenderStart;
+    try {
+      // A committed start is idempotently recoverable with the SAME correlation.
+      // Replay once when the first response is lost or malformed; a different
+      // correlation would collide with the still-active five-minute lease.
+      render = await startQuotePdfRenderWithRecovery(renderRpc, startArgs);
+    } catch (error) {
+      // If both response attempts were ambiguous, recover only this command's
+      // database-issued identity and fail-compensate it. Never disturb a render
+      // owned by another correlation, and preserve the original start failure.
+      let compensationError: Error | null = null;
+      try {
+        const recovered = await loadQuotePdfLifecycleState(db, versionId);
+        if (
+          recovered?.pdf_status === "generating" &&
+          recovered.pdf_render_file_id !== null &&
+          recovered.pdf_render_correlation_id === ctx.correlationId
+        ) {
+          compensationError = await tryCompensateFailed(
+            renderRpc, tenantId, versionId, recovered.pdf_render_file_id, nowIso,
+            ctx.tenantContext.userId, ctx.correlationId,
+          );
+        }
+      } catch (recoveryError) {
+        compensationError = recoveryError instanceof Error
+          ? recoveryError
+          : new Error("PDF start-response recovery failed");
+      }
+      if (compensationError) {
+        console.error("quote PDF render start-response compensation failed", {
+          compensationError: compensationError.message,
+        });
+      }
+      throw error;
     }
-    const lines = await loadQuoteVersionLineSnapshots(db, versionId);
-    const attachments = await loadQuoteVersionAttachmentSnapshots(db, versionId);
-
-    // ── Mark generating (intermediate persist so the UI can show the `generating` state). ──
-    // A failure here is a transient fault → SERVER_ERROR (nothing to compensate yet).
-    await setPdfStatus(writer, versionId, "generating");
+    if (render.completedFileId !== null) {
+      return { targetId: versionId, fileId: render.completedFileId };
+    }
+    const generatedFileId = render.expectedFileId;
 
     try {
+      // Everything after a successful start is under compensation, including all
+      // snapshot reads. This ensures no retryable fault leaves `generating` behind.
+      const version = await loadQuoteVersionSnapshot(db, versionId);
+      if (version === null) throw new CommandError("TENANT_ACCESS_DENIED");
+      if (version.status !== "draft") {
+        throw new CommandError("VALIDATION_FAILED");
+      }
+      const lines = await loadQuoteVersionLineSnapshots(db, versionId);
+      const attachments = await loadQuoteVersionAttachmentSnapshots(db, versionId);
       // ── Build the PURE view model (snapshot-only) + render deterministically. ──
       const viewModel = buildQuotePdfViewModel(
         snapshotFromRows(version, lines, attachments),
       );
       const bytes = await renderQuotePdf({ viewModel, renderedAt: nowIso });
+      const checksum = sha256Hex(bytes);
 
-      // ── Server-generate the file id UP FRONT so the object path binds to the same id. ──
-      const fileId = crypto.randomUUID();
-      const displayName = `offert-${version.quote_number_display ?? version.quote_number ?? "utkast"}.pdf`;
+      const fileId = generatedFileId;
+      const displayName = quotePdfDisplayName(
+        version.quote_number_display ?? version.quote_number,
+      );
       const objectPath = deriveObjectPath({ tenantId, fileId, displayName });
 
-      // ── Upload the private object on the RLS client (NEVER service-role). storage.objects ──
-      // ── RLS re-checks the tenant path prefix; a cross-tenant/spoof path is denied at the DB. ──
+      // ── Reserve exact DRAFT metadata through the narrow authenticated RPC FIRST. ──
+      // It validates the database-issued render id, tenant/version binding, derived path, display,
+      // byte size, SHA-256, fixed PDF MIME type, and uploader. No service-role or direct client
+      // INSERT is involved; Storage only sees a path after its compensable draft row exists.
+      const reservation = await renderRpc.rpc("reserve_quote_pdf_file", {
+        p_tenant_id: tenantId,
+        p_quote_version_id: versionId,
+        p_file_id: fileId,
+        p_object_path: objectPath,
+        p_display_name: displayName,
+        p_size_bytes: bytes.byteLength,
+        p_checksum: checksum,
+        p_actor_user_id: ctx.tenantContext.userId,
+      });
+      if (reservation.error) throwMappedPdfWriteError(reservation.error);
+      const reservedFileId = extractReservedPdfFileId(reservation.data);
+      if (reservedFileId !== fileId) {
+        throw new Error("reserveQuotePdfFile: RPC did not return the expected file id");
+      }
+
+      // The private key is server-only and is never persisted, returned, or logged.
+      // All provenance fields used below were issued/recomputed by the database or
+      // reserved into the immutable metadata row before this signature is created.
+      const { keyId, secret } = attestationConfig;
+      if (keyId !== render.keyId) {
+        throw new Error("quote PDF attestation key id changed during render");
+      }
+      const attestation: QuotePdfAttestationPayload = {
+        tenantId,
+        actorUserId: ctx.tenantContext.userId,
+        quoteVersionId: versionId,
+        renderFileId: fileId,
+        contentFingerprint: render.contentFingerprint,
+        bucketId: TENANT_FILES_BUCKET,
+        objectPath,
+        checksumSha256: checksum,
+        sizeBytes: bytes.byteLength,
+        mimeType: "application/pdf",
+        correlationId: ctx.correlationId,
+        keyId,
+        issuedAt: render.issuedAt,
+        expiresAt: render.expiresAt,
+        generationStartedAt: render.generationStartedAt,
+      };
+      const signature = signQuotePdfAttestation(attestation, secret);
+
+      // ── Upload the private object to the reserved path (NEVER service-role). ──
+      // ── Storage RLS re-checks the tenant path prefix; a cross-tenant/spoof path is denied. ──
       const upload = await writer.storage
         .from(TENANT_FILES_BUCKET)
         .upload(objectPath, bytes, {
           contentType: "application/pdf",
-          // upsert so a retry re-writing the same (fresh-id) path is idempotent.
-          upsert: true,
+          // Every render receives a database-issued fresh id/path. Never replace an object: the
+          // draft metadata reservation makes its identity immutable before this upload begins.
+          upsert: false,
         });
       if (upload.error) {
-        // A storage fault is transient — surface as SERVER_ERROR (retryable), never a denial.
+        // The catch below calls the atomic failure RPC, which archives this reserved draft metadata
+        // (and a stale binding if present) before surfacing a retryable SERVER_ERROR.
         throw new Error(`quote pdf upload failed: ${upload.error.message ?? "?"}`);
       }
 
-      // ── Insert the `files` metadata row (explicit id = the object-path segment). RLS ──
-      // ── WITH CHECK narrows to own tenant; a forged tenant_id fails 42501. ──
-      const fileInsert = await writer
-        .from("files")
-        .insert({
-          id: fileId,
-          tenant_id: tenantId,
-          bucket_id: TENANT_FILES_BUCKET,
-          object_path: objectPath,
-          display_name: displayName,
-          mime_type: "application/pdf",
-          size_bytes: bytes.byteLength,
-          uploaded_by: ctx.tenantContext.userId,
-          lifecycle_state: "linked",
-        })
-        .select("id");
-      if (fileInsert.error) throwMappedPdfWriteError(fileInsert.error);
-
-      // ── Find-or-create-or-repoint the ONE `quote_pdf` file_link for the version (R-814). ──
-      const existingLink = await findExistingPdfLink(db, versionId);
-      if (existingLink === null) {
-        const linkInsert = await writer
-          .from("file_links")
-          .insert({
-            tenant_id: tenantId,
-            file_id: fileId,
-            owner_type: "quote_version",
-            owner_id: versionId,
-            purpose: "quote_pdf",
-          })
-          .select("id");
-        if (linkInsert.error) throwMappedPdfWriteError(linkInsert.error);
-      } else {
-        // Retry: RE-POINT the existing link to the new file (one link per version+purpose).
-        // The superseded prior object is left/archived (archive-over-delete — 8.1 has no
-        // object-reclamation path; a storage-retention story owns that).
-        const linkUpdate = await writer
-          .from("file_links")
-          .update({ file_id: fileId })
-          .eq("id", existingLink.id)
-          .select("id");
-        if (linkUpdate.error) throwMappedPdfWriteError(linkUpdate.error);
+      // Atomically prove that the render binding still equals current draft content,
+      // then archive/unlink the prior active PDF and activate this metadata/link.
+      let completionError: { readonly code?: string; readonly message?: string } | null = null;
+      try {
+        const completion = await renderRpc.rpc(
+          "complete_quote_pdf_render",
+          {
+            p_tenant_id: tenantId,
+            p_quote_version_id: versionId,
+            p_file_id: fileId,
+            p_generated_at: nowIso,
+            p_actor_user_id: ctx.tenantContext.userId,
+            p_correlation_id: ctx.correlationId,
+            p_attestation_key_id: keyId,
+            p_attestation_issued_at: render.issuedAt,
+            p_attestation_expires_at: render.expiresAt,
+            p_attestation_signature: signature,
+          },
+        );
+        completionError = completion.error;
+      } catch (error) {
+        // A network/response loss after the DB commit is not a failed render. Read
+        // the authoritative state before compensating so we never archive the PDF
+        // that is already current/generated.
+        const recovered = await loadQuotePdfLifecycleState(db, versionId);
+        if (recovered?.pdf_status === "generated" && recovered.pdf_file_id === fileId) {
+          return { targetId: versionId, fileId };
+        }
+        throw error;
       }
-
-      // ── Append a quote_events lifecycle row (pdf_generated). ──
-      const eventInsert = await writer
-        .from("quote_events")
-        .insert({
-          tenant_id: tenantId,
-          quote_id: version.quote_id,
-          quote_version_id: versionId,
-          event_type: "pdf_generated",
-          occurred_at: nowIso,
-        })
-        .select("id");
-      if (eventInsert.error) throwMappedPdfWriteError(eventInsert.error);
-
-      // ── Update the PDF-render columns to `generated` (pdf_file_id + injected timestamp). ──
-      const versionUpdate = await writer
-        .from("quote_versions")
-        .update({
-          pdf_file_id: fileId,
-          pdf_generated_at: nowIso,
-          pdf_status: "generated",
-        })
-        .eq("id", versionId)
-        .select("id");
-      if (versionUpdate.error) throwMappedPdfWriteError(versionUpdate.error);
-      if (!versionUpdate.data || versionUpdate.data.length === 0) {
-        // Visible under ownership but gone now (race) → deny rather than a false-generated.
-        throw new CommandError("TENANT_ACCESS_DENIED");
+      if (completionError) {
+        const recovered = await loadQuotePdfLifecycleState(db, versionId);
+        if (recovered?.pdf_status === "generated" && recovered.pdf_file_id === fileId) {
+          return { targetId: versionId, fileId };
+        }
+        throwMappedPdfWriteError(completionError);
       }
 
       return { targetId: versionId, fileId };
     } catch (error) {
       // ── VERIFIED-COMPENSATED CONSISTENCY: any mid-pipeline fault leaves a RETRYABLE state. ──
-      // Set pdf_status='failed' so the version is never left `generated` over a missing file
-      // (nor a stored object with no metadata), and append a `pdf_failed` quote_events row where
-      // meaningful. A best-effort compensation write; if it also fails, the surfaced error is
-      // still the original one (never a false success).
-      await tryCompensateFailed(writer, tenantId, versionId, version.quote_id, nowIso);
+      // The failure RPC atomically archives any expected metadata/link, sets the retryable state,
+      // appends the lifecycle event, and records actor/correlation provenance. If the render was
+      // invalidated concurrently, that checked RPC rejects its now-stale identity. Do not perform
+      // a direct archive fallback: the failure may instead be a lost response AFTER completion,
+      // in which case the current PDF must remain linked. A reserved quote-PDF draft is never
+      // signable, so a stale failed reservation remains protected without a second writer.
+      const compensationError = await tryCompensateFailed(
+        renderRpc, tenantId, versionId, generatedFileId, nowIso,
+        ctx.tenantContext.userId, ctx.correlationId,
+      );
+      // Preserve the primary failure, but never silently pretend cleanup succeeded.
+      // Attach secondary diagnostics without changing the stable command mapping.
+      if (compensationError) {
+        console.error("quote PDF render compensation failed", {
+          compensationError: compensationError?.message,
+        });
+      }
       // A CommandError (a deterministic authorization outcome) crosses as its stable code; a
       // plain Error (a transient render/upload/DB fault) maps to a retryable SERVER_ERROR at
       // the envelope — an infra fault is NEVER conflated with a not-authorized denial.
@@ -321,61 +468,145 @@ export const generateQuotePdf = defineCommand<
   auditFields: (ctx, result) => ({ targetId: result.targetId ?? ctx.input.quote_version_id }),
 });
 
-/** UPDATE the PDF render-state column under the caller's RLS. */
-async function setPdfStatus(
-  writer: ReturnType<typeof asQuotePdfWriteClient>,
-  versionId: string,
-  status: "generating" | "generated" | "failed",
-): Promise<void> {
-  const { error } = await writer
-    .from("quote_versions")
-    .update({ pdf_status: status })
-    .eq("id", versionId)
-    .select("id");
-  if (error) throwMappedPdfWriteError(error);
-}
-
 /**
  * Best-effort compensation: set pdf_status='failed' + append a `pdf_failed` quote_events row
  * (the failed→retryable transition). Swallows a secondary fault — the ORIGINAL error is what the
  * caller must see (never a false success). NEVER leaves `generated` over a missing file.
  */
 async function tryCompensateFailed(
-  writer: ReturnType<typeof asQuotePdfWriteClient>,
+  rpc: ReturnType<typeof asQuotePdfRenderRpcClient>,
   tenantId: string,
   versionId: string,
-  quoteId: string,
+  expectedFileId: string,
   nowIso: string,
-): Promise<void> {
+  actorUserId: string,
+  correlationId: string,
+): Promise<Error | null> {
   try {
-    await writer
-      .from("quote_versions")
-      .update({ pdf_status: "failed" })
-      .eq("id", versionId)
-      .select("id");
-    await writer
-      .from("quote_events")
-      .insert({
-        tenant_id: tenantId,
-        quote_id: quoteId,
-        quote_version_id: versionId,
-        event_type: "pdf_failed",
-        occurred_at: nowIso,
-      })
-      .select("id");
-  } catch {
-    // Swallow: the original error is what the caller must see (never a false success).
+    const result = await rpc.rpc("fail_quote_pdf_render", {
+      p_tenant_id: tenantId,
+      p_quote_version_id: versionId,
+      p_expected_file_id: expectedFileId,
+      p_failed_at: nowIso,
+      p_actor_user_id: actorUserId,
+      p_correlation_id: correlationId,
+    });
+    return result.error ? new Error(result.error.message ?? "PDF failure compensation rejected") : null;
+  } catch (error) {
+    return error instanceof Error ? error : new Error("PDF failure compensation failed");
   }
+}
+
+interface PdfRenderStart {
+  readonly expectedFileId: string;
+  readonly completedFileId: string | null;
+  readonly contentFingerprint: string;
+  readonly keyId: string;
+  readonly issuedAt: string;
+  readonly expiresAt: string;
+  readonly generationStartedAt: string;
+}
+
+interface PdfRenderStartArgs {
+  readonly p_tenant_id: string;
+  readonly p_quote_version_id: string;
+  readonly p_actor_user_id: string;
+  readonly p_correlation_id: string;
+  readonly p_started_at: string;
+  readonly p_attestation_key_id: string;
+}
+
+/**
+ * Recover an ambiguous start response by replaying the idempotent RPC once with
+ * the exact same correlation. A successful first commit returns the existing
+ * render identity; a first call that never committed safely starts it on replay.
+ */
+export async function startQuotePdfRenderWithRecovery(
+  rpc: ReturnType<typeof asQuotePdfRenderRpcClient>,
+  args: PdfRenderStartArgs,
+): Promise<PdfRenderStart> {
+  let lastFailure: Error = new Error("startQuotePdfRender: RPC returned no expected file id");
+
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    let start: Awaited<ReturnType<typeof rpc.rpc>>;
+    try {
+      start = await rpc.rpc("start_quote_pdf_render", args);
+    } catch (error) {
+      lastFailure = error instanceof Error
+        ? error
+        : new Error("startQuotePdfRender: RPC response was lost");
+      continue;
+    }
+
+    if (start.error) {
+      // Postgres-coded denials are deterministic and cannot have committed.
+      // A code-less transport/PostgREST response is ambiguous and safe to replay
+      // because the same correlation is idempotent inside the start RPC.
+      if (attempt === 0 && !start.error.code) {
+        lastFailure = new Error(start.error.message ?? "startQuotePdfRender: RPC failed");
+        continue;
+      }
+      throwMappedPdfWriteError(start.error);
+    }
+
+    const render = extractPdfRenderStart(start.data);
+    if (render !== null) return render;
+    lastFailure = new Error("startQuotePdfRender: RPC returned no expected file id");
+  }
+
+  throw lastFailure;
+}
+
+function extractPdfRenderStart(data: unknown): PdfRenderStart | null {
+  const row = Array.isArray(data) ? data[0] : data;
+  if (!row || typeof row !== "object") return null;
+  const value = row as Record<string, unknown>;
+  const expectedFileId = value.expected_file_id;
+  const completedFileId = value.completed_file_id;
+  if (typeof completedFileId === "string") {
+    return {
+      expectedFileId: typeof expectedFileId === "string" ? expectedFileId : completedFileId,
+      completedFileId,
+      contentFingerprint: "",
+      keyId: "",
+      issuedAt: "",
+      expiresAt: "",
+      generationStartedAt: "",
+    };
+  }
+  const values = [
+    value.render_fingerprint,
+    value.attestation_key_id,
+    value.attestation_issued_at,
+    value.attestation_expires_at,
+    value.generation_started_at,
+  ];
+  if (typeof expectedFileId !== "string" || values.some((item) => typeof item !== "string")) {
+    return null;
+  }
+  return {
+    expectedFileId,
+    completedFileId: null,
+    contentFingerprint: value.render_fingerprint as string,
+    keyId: value.attestation_key_id as string,
+    issuedAt: value.attestation_issued_at as string,
+    expiresAt: value.attestation_expires_at as string,
+    generationStartedAt: value.generation_started_at as string,
+  };
+}
+
+/** The reservation RPC returns its persisted file UUID as a scalar (PostgREST may wrap it once). */
+function extractReservedPdfFileId(data: unknown): string | null {
+  const value = Array.isArray(data) ? data[0] : data;
+  return typeof value === "string" ? value : null;
 }
 
 /**
  * Map a Postgres error from a PDF-pipeline write to a stable command code (mirrors
  * `throwMappedQuoteWriteError`): the Story 8.4 file-lock RAISE (`FL823`) is a stable
- * FILE_LINK_LOCKED outcome — a POST-SEND `quote_pdf` link re-point is rejected because the
- * sent version's PDF file-link carries commitment identity (a regenerate then needs a new-
- * version flow, 6.5, not an in-place re-point; the sent-lock EXEMPTS the version's derived
- * pdf_* columns so a first generation on a sent version still succeeds, but a re-point of an
- * ALREADY-LOCKED link does not); a same-tenant FK / RLS WITH CHECK violation is an
+ * FILE_LINK_LOCKED outcome — a protected `quote_pdf` link cannot be repointed. Story 10.9 makes
+ * generation draft-only because the exact PDF becomes commitment evidence at send; subsequent
+ * changes use the new-version flow. A same-tenant FK / RLS WITH CHECK violation is an
  * authorization outcome (TENANT_ACCESS_DENIED); a unique/check/malformed-uuid violation is
  * VALIDATION_FAILED; anything else is a transient fault → SERVER_ERROR (retryable). Throw the
  * CODE only — never the raw Postgres message (which can embed the object_path / tenant_id).
@@ -385,10 +616,12 @@ function throwMappedPdfWriteError(error: {
   readonly message?: string;
 }): never {
   switch (error.code) {
-    // The Story 8.4 file-side lock RAISE — a post-send quote_pdf link re-point surfaces the
+    // The Story 8.4 file-side lock RAISE — a protected quote_pdf link re-point surfaces the
     // stable FILE_LINK_LOCKED code (the shared family), not an opaque SERVER_ERROR.
     case "FL823":
       throw new CommandError("FILE_LINK_LOCKED");
+    case "PFD10":
+      throw new CommandError("VALIDATION_FAILED");
     case "23503":
     case "42501":
       throw new CommandError("TENANT_ACCESS_DENIED");

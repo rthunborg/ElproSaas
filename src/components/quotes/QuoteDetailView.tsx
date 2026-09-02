@@ -15,9 +15,9 @@
  *       `requiresSignOff` framing, the selected attachments/files list, the PDF status, an
  *       acceptance-state PLACEHOLDER (Epic 7 owns real acceptance), and the events list.
  *
- * A DRAFT selected version shows the `DraftQuoteEditor` (customer-visible presentational edit);
- * a SENT/ACCEPTED (or other non-draft) version renders READ-ONLY with a "Skapa ny version"
- * affordance directing to the Story 6.5 new-version path (6.2 surfaces the message only).
+ * A current V2 DRAFT selected version shows the `DraftQuoteEditor` (customer-visible
+ * presentational edit). A legacy V1/null-schema draft is read-only and offers only the explicit
+ * recovery path to a fresh V2 version. SENT/ACCEPTED (or other non-draft) versions stay read-only.
  *
  * Version selection is a client-side URL param change (the version subroute) — the page re-reads
  * the selected version. The ordering / current-commitment / selection logic is the PURE
@@ -51,6 +51,7 @@ import { FollowUpPanel } from "./FollowUpPanel";
 import { QuotePdfPanel } from "./QuotePdfPanel";
 import { isLatestDecidedStatus } from "@/features/quotes/terminal-status";
 import { AcceptanceCaptureForm } from "./AcceptanceCaptureForm";
+import { BuyerVatNumberFact } from "./BuyerVatNumberFact";
 
 /** The Swedish label for the (frozen) VAT display posture, for the assumptions block. */
 function vatDisplayLabel(posture: string | null): string {
@@ -84,6 +85,14 @@ const EVENT_LABELS: Record<string, string> = {
   lost: "Förlorad/Avböjd",
 };
 
+/** Literal V1 quote rows predate the complete frozen tax answer and use a null schema marker. */
+export function isLegacyDraftVersion(
+  status: string,
+  snapshotSchemaVersion: number | null,
+): boolean {
+  return status === "draft" && snapshotSchemaVersion === null;
+}
+
 export function QuoteDetailView({
   detail,
   acceptanceFilesPanel,
@@ -101,6 +110,8 @@ export function QuoteDetailView({
     selectedVersionId,
     selectedLines,
     selectedAttachments,
+    eligibleCarryForwardAttachments,
+    omittedCarryForwardAttachmentCount,
     events,
     selectedLostReason,
     followUps,
@@ -141,6 +152,10 @@ export function QuoteDetailView({
   );
   const latest = ordered[ordered.length - 1];
   const isDraft = selected.status === "draft";
+  const isLegacyDraft = isLegacyDraftVersion(
+    selected.status,
+    selected.snapshot_schema_version,
+  );
   // Story 7.2, Task 5 (epic-6 gate carry): once a version reaches `accepted`, the PDF-retry +
   // new-version affordances are GATED OFF (architecture §12 scopes PDF retry + new-version to
   // draft/sent, NEVER accepted). 7.2 is the first story that makes `accepted` reachable, so 7.2 owns
@@ -151,11 +166,10 @@ export function QuoteDetailView({
   // from the joined `selectedLostReason`. The mark-lost affordance is offered ONLY on a sent version.
   const isLost = selected.status === "lost";
   const isSent = selected.status === "sent";
-  // Integration review F4: PDF generate/retry is scoped to draft/sent (architecture §12;
-  // generateQuotePdf rejects every other status with VALIDATION_FAILED). Gate the panel POSITIVELY on
-  // draft/sent so a `lost` (or rejected/expired/superseded) version is never offered an action the
-  // command always refuses — the previous `!isAccepted` gate leaked the affordance onto a lost version.
-  const canGeneratePdf = isDraft || isSent;
+  // Rendering is draft-only in the DB. Sent versions still show their frozen PDF status and signed
+  // preview/download, but must never receive Generate/Retry controls that deterministically fail.
+  const canShowPdfPanel = (isDraft && !isLegacyDraft) || isSent;
+  const canGeneratePdf = isDraft && !isLegacyDraft;
   // Integration review F3: the header follow-up chip must stop escalating once the LATEST version is
   // decided (accepted/lost/rejected/expired) — the follow-up panel that could clear the row only renders
   // on a sent version, so a decided quote would otherwise show an unclearable "Försenad uppföljning".
@@ -443,6 +457,12 @@ export function QuoteDetailView({
               </p>
             </dl>
 
+            <BuyerVatNumberFact
+              value={selected.buyer_vat_number}
+              testId="quote-buyer-vat-number"
+              className="text-sm text-zinc-700"
+            />
+
             {/* Tax / deduction assumption with the NON-FINAL / requiresSignOff framing. */}
             {selected.requires_sign_off && (
               <p
@@ -488,15 +508,14 @@ export function QuoteDetailView({
               )}
             </section>
 
-            {/* PDF render-state panel (Story 6.3) — the six states + preview/download via a
-                short-lived signed URL. Wires to the generateQuotePdf / createSignedFileAccess
-                commands (never a bespoke path). GATED OFF an `accepted` version (Story 7.2, Task 5):
-                PDF retry is scoped to draft/sent (architecture §12) — an accepted commitment offers
-                no PDF-retry affordance. */}
-            {canGeneratePdf && (
+            {/* PDF render-state panel (Story 6.3) — preview/download use a short-lived signed URL.
+                Generation is draft-only; sent versions retain read-only PDF history. Accepted and
+                other terminal versions remain gated off as established by Story 7.2. */}
+            {canShowPdfPanel && (
               <QuotePdfPanel
                 quoteId={header.id}
                 quoteVersionId={selected.id}
+                allowGeneration={canGeneratePdf}
                 pdfStatus={selected.pdf_status}
                 pdfFileId={selected.pdf_file_id}
                 pdfGeneratedAt={selected.pdf_generated_at}
@@ -588,8 +607,35 @@ export function QuoteDetailView({
             </section>
           </div>
 
-          {/* ── Draft edit + mark-sent OR read-only + "create new version" ────── */}
-          {isDraft ? (
+          {/* ── Legacy recovery OR current draft edit/send OR immutable version ────── */}
+          {isLegacyDraft ? (
+            <div
+              data-testid="legacy-draft-recovery"
+              role="note"
+              className="flex flex-col gap-3 rounded-lg border border-amber-300 bg-amber-50 p-4"
+            >
+              <h3 className="text-sm font-semibold text-amber-950">
+                Äldre utkast – kan inte skickas
+              </h3>
+              <p className="text-sm text-amber-950">
+                Det här äldre utkastet saknar en fullständig fryst skatteberäkning. Det kan
+                granskas här, men det kan inte markeras som skickat.
+              </p>
+              <p className="text-sm text-amber-950">
+                Skapa en ny version för att hämta aktuella uppgifter och skatteregler från
+                beräkningen. Det äldre utkastet bevaras oförändrat.
+              </p>
+              <CreateNewVersionButton
+                quoteId={header.id}
+                quoteVersionId={selected.id}
+                predecessorAttachments={eligibleCarryForwardAttachments.map((attachment) => ({
+                  fileId: attachment.file_id,
+                  displayName: attachment.display_name,
+                }))}
+                omittedPredecessorAttachmentCount={omittedCarryForwardAttachmentCount}
+              />
+            </div>
+          ) : isDraft ? (
             <>
               <DraftQuoteEditor
                 values={{
@@ -632,6 +678,11 @@ export function QuoteDetailView({
                 <CreateNewVersionButton
                   quoteId={header.id}
                   quoteVersionId={selected.id}
+                  predecessorAttachments={eligibleCarryForwardAttachments.map((attachment) => ({
+                    fileId: attachment.file_id,
+                    displayName: attachment.display_name,
+                  }))}
+                  omittedPredecessorAttachmentCount={omittedCarryForwardAttachmentCount}
                 />
               )}
             </div>

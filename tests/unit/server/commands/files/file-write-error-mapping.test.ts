@@ -93,6 +93,12 @@ test(
   },
 );
 
+test("10.6: AR704 from late acceptance-evidence append/relink → ACCEPTED_RECORD_LOCKED", () => {
+  const e = catchMapped({ code: "AR704", message: "acceptance evidence is immutable" });
+  assert.ok(e instanceof CommandError);
+  assert.equal((e as CommandError).code, "ACCEPTED_RECORD_LOCKED");
+});
+
 test(
   "8.4: the FILE_LINK_LOCKED mapping never surfaces the raw SQLSTATE or pg message (no leak / no existence disclosure)",
   () => {

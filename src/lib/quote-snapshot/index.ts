@@ -6,6 +6,14 @@
  * full module documentation.
  */
 export { buildQuoteVersionSnapshot } from "./build";
+export {
+  adaptQuoteTaxSnapshot,
+  parseTaxAnswerSnapshotV2,
+  type QuoteTaxCompatibilityResult,
+  type QuoteTaxCompatibilitySource,
+  type QuoteTaxCompatibilityView,
+  type TaxAnswerSnapshotParseResult,
+} from "./tax-compat";
 export type {
   CompanyIdentitySource,
   QuoteCustomerContextSource,

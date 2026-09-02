@@ -1,6 +1,6 @@
 /**
  * Story 8.4 — file-link LOCK ENFORCEMENT at the DB layer (the load-bearing direct-SQL half) +
- * FAMILY AGREEMENT with QV409/AR704 (R-812/R-822).
+ * FAMILY AGREEMENT with direct-DML denial and file-lock enforcement (R-812/R-822).
  *
  * ════════════════════════════════════════════════════════════════════════════════════════════════
  * GREEN (Story 8.4 dev) — the additive migration `20260712120000_file_link_lock.sql` has landed (the
@@ -29,10 +29,10 @@
  *     re-point AFTER the parent is sent is REJECTED (`FL823`). Locking activates exactly at the
  *     parent's lock moment.
  *   - 8.4-RLS-06 (P0, AC1/AC2 — FAMILY AGREEMENT, R-822, the load-bearing "not a fork" proof): on a
- *     SENT version both the version's own `QV409` lock and the PDF-link's `FL823` lock are in force
- *     (mutate the version → `QV409`; re-point the PDF link → `FL823`). On an ACCEPTED acceptance both
- *     `AR704` and the evidence-link `FL823` are in force. The three SQLSTATEs (`QV409`/`AR704`/`FL823`)
- *     are DISTINCT and none collide.
+ *     SENT version direct DML is denied and the PDF-link's `FL823` lock is in force. On an ACCEPTED
+ *     acceptance, authenticated direct DML is likewise denied before its accepted-lock trigger can
+ *     run; a direct evidence-link mutation is rejected by the accepted-record parent lock (`AR704`),
+ *     while its protected underlying `files` row remains independently enforced by `FL823`.
  *   - 8.4-RLS-07 (P0, AC5): a cross-tenant direct UPDATE of a tenant B locked link/file ⇒ zero rows
  *     affected (RLS-invisible, the trigger never sees it) — no error, no existence disclosure
  *     (R-809), row untouched. The `FL823` RAISE message is generic (like `QV409`/`AR704`).
@@ -66,6 +66,8 @@ import {
   adminInsertFileLink,
   adminUpdateQuoteVersionStatus,
   adminInsertQuoteAcceptance,
+  adminSelectQuoteAcceptanceRow,
+  adminSelectAcceptanceEvidenceLinks,
   adminSelectFileById,
   adminSelectPdfFileLinks,
   type TwoTenantFixture,
@@ -78,10 +80,11 @@ import { skipUnlessStack } from "../../support/stack-gate";
 const SOURCE_SENT_TOTAL_ORE = 125_000;
 const FIXED_ISO = "2026-07-12T09:00:00.000Z";
 
-/** The custom SQLSTATEs the frozen family + the new 8.4 trigger RAISE (all DISTINCT). */
+/** Authenticated DML denials plus the distinct file-lock trigger SQLSTATE. */
 const FILE_LINK_LOCK_SQLSTATE = "FL823"; // 8.4 — FILE_LINK_LOCKED (assumed value; align with the migration)
-const SENT_LOCK_SQLSTATE = "QV409"; // 6.4 — QUOTE_VERSION_LOCKED (frozen)
-const ACCEPTED_LOCK_SQLSTATE = "AR704"; // 7.4 — ACCEPTED_RECORD_LOCKED (frozen)
+const SENT_LOCK_SQLSTATE = "42501"; // 10.8 — direct quote-version DML is denied
+const ACCEPTANCE_DML_DENIED_SQLSTATE = "42501"; // 10.8 — direct quote-acceptance DML is denied
+const ACCEPTED_RECORD_LOCK_SQLSTATE = "AR704"; // 7.4 — accepted-record parent lock
 
 let stackUp = false;
 let fx: TwoTenantFixture;
@@ -359,10 +362,10 @@ describe("8.4-RLS-05: pre-send DRAFT PDF link is re-pointable; the SAME re-point
 });
 
 // ══════════════════════════════════════════════════════════════════════════════════════════════
-// 8.4-RLS-06 (P0, AC1/AC2) — FAMILY AGREEMENT (R-822): the file-side lock AGREES with QV409/AR704
+// 8.4-RLS-06 (P0, AC1/AC2) — family agreement with direct-DML denial + file locks
 // ══════════════════════════════════════════════════════════════════════════════════════════════
-describe("8.4-RLS-06: FAMILY AGREEMENT (R-822) — on a sent version both QV409 and FL823 are in force; on an accepted acceptance both AR704 and FL823; the three SQLSTATEs are DISTINCT (AC1/AC2)", () => {
-  it("[P0] 8.4-RLS-06: on a SENT version, mutating the version RAISEs QV409 AND re-pointing its PDF link RAISEs FL823 (both locks in force, distinct codes)", async (testCtx) => {
+describe("8.4-RLS-06: family agreement (R-822) — direct sent-version DML is denied and file locks remain enforced (AC1/AC2)", () => {
+  it("[P0] 8.4-RLS-06: on a SENT version, direct mutation is denied and re-pointing its PDF link RAISEs FL823", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     const { versionId, linkId } = await seedSentVersionWithLockedPdfLink(fx.tenantA);
     const newFileId = await adminInsertFile({
@@ -371,12 +374,13 @@ describe("8.4-RLS-06: FAMILY AGREEMENT (R-822) — on a sent version both QV409 
       lifecycle_state: "draft",
     });
 
-    // (a) The version's own sent-lock (QV409) is in force — a commitment-column mutation is rejected.
+    // (a) Story 10.8 revokes direct quote-version DML before the older sent-lock trigger can run.
     const versionRes = await clientA
       .from("quote_versions")
       .update({ accepted_price_ore: 1 })
       .eq("id", versionId)
       .select();
+    expect(versionRes.error).not.toBeNull();
     expect(versionRes.error?.code).toBe(SENT_LOCK_SQLSTATE);
 
     // (b) The PDF link's file-side lock (FL823) is in force — a re-point is rejected.
@@ -387,32 +391,55 @@ describe("8.4-RLS-06: FAMILY AGREEMENT (R-822) — on a sent version both QV409 
       .select();
     expect(linkRes.error?.code).toBe(FILE_LINK_LOCK_SQLSTATE);
 
-    // The two SQLSTATEs are DISTINCT — the file-side lock is a sibling, not a reuse (R-822).
+    // The file-side lock remains a distinct enforcement boundary (R-822).
     expect(SENT_LOCK_SQLSTATE).not.toBe(FILE_LINK_LOCK_SQLSTATE);
   });
 
-  it("[P0] 8.4-RLS-06: on an ACCEPTED acceptance, mutating the acceptance RAISEs AR704 AND mutating its evidence link RAISEs FL823 (both in force, distinct)", async (testCtx) => {
+  it("[P0] 8.4-RLS-06: on an ACCEPTED acceptance, authenticated DML ⇒ 42501; evidence link ⇒ AR704; protected file ⇒ FL823", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
-    const { acceptanceId, linkId } = await seedAcceptedWithLockedEvidenceLink(fx.tenantA);
+    const { acceptanceId, evidenceFileId, linkId } = await seedAcceptedWithLockedEvidenceLink(fx.tenantA);
+    const acceptanceBefore = await adminSelectQuoteAcceptanceRow(acceptanceId);
+    const evidenceLinkBefore = await adminSelectAcceptanceEvidenceLinks(acceptanceId);
+    const evidenceFileBefore = await adminSelectFileById(evidenceFileId);
 
-    // (a) The acceptance's own accepted-lock (AR704) is in force.
+    // (a) Story 10.8 revokes direct quote-acceptance DML before the accepted-lock
+    // trigger can run. Read back through the privileged test helper to prove the
+    // accepted value remains unchanged despite the denied authenticated attack.
     const acceptanceRes = await clientA
       .from("quote_acceptances")
       .update({ accepted_price_ore: 1 })
       .eq("id", acceptanceId)
       .select();
-    expect(acceptanceRes.error?.code).toBe(ACCEPTED_LOCK_SQLSTATE);
+    expect(acceptanceRes.error).not.toBeNull();
+    expect(acceptanceRes.error?.code).toBe(ACCEPTANCE_DML_DENIED_SQLSTATE);
+    const acceptanceAfter = await adminSelectQuoteAcceptanceRow(acceptanceId);
+    expect(String(acceptanceAfter?.accepted_price_ore)).toBe(String(acceptanceBefore?.accepted_price_ore));
 
-    // (b) The evidence link's file-side lock (FL823) is in force.
+    // (b) The accepted-record parent lock fires first for its evidence link.
     const linkRes = await clientA
       .from("file_links")
       .update({ file_id: crypto.randomUUID() })
       .eq("id", linkId)
       .select();
-    expect(linkRes.error?.code).toBe(FILE_LINK_LOCK_SQLSTATE);
+    expect(linkRes.error).not.toBeNull();
+    expect(linkRes.error?.code).toBe(ACCEPTED_RECORD_LOCK_SQLSTATE);
+    const evidenceLinkAfter = await adminSelectAcceptanceEvidenceLinks(acceptanceId);
+    expect(evidenceLinkAfter).toEqual(evidenceLinkBefore);
 
-    // All three family SQLSTATEs are DISTINCT and none collide.
-    expect(new Set([SENT_LOCK_SQLSTATE, ACCEPTED_LOCK_SQLSTATE, FILE_LINK_LOCK_SQLSTATE]).size).toBe(3);
+    // (c) The protected underlying file is separately immutable at the file-lock layer.
+    const fileRes = await clientA
+      .from("files")
+      .update({ display_name: "tampered-acceptance-evidence.pdf" })
+      .eq("id", evidenceFileId)
+      .select();
+    expect(fileRes.error).not.toBeNull();
+    expect(fileRes.error?.code).toBe(FILE_LINK_LOCK_SQLSTATE);
+    const evidenceFileAfter = await adminSelectFileById(evidenceFileId);
+    expect(evidenceFileAfter?.display_name).toBe(evidenceFileBefore?.display_name);
+
+    // The RLS, accepted-record, and file-lock boundaries remain intentionally distinct.
+    expect(ACCEPTANCE_DML_DENIED_SQLSTATE).not.toBe(ACCEPTED_RECORD_LOCK_SQLSTATE);
+    expect(ACCEPTED_RECORD_LOCK_SQLSTATE).not.toBe(FILE_LINK_LOCK_SQLSTATE);
   });
 });
 

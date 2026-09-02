@@ -90,6 +90,9 @@ function buildCalculationPatch(
   const patch: Record<string, unknown> = {};
   if (input.title !== undefined) patch.title = input.title;
   if (input.status !== undefined) patch.status = input.status;
+  if (input.tax_input_snapshot !== undefined) {
+    patch.tax_input_snapshot = input.tax_input_snapshot;
+  }
   return patch;
 }
 

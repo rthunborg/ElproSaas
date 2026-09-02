@@ -1,0 +1,89 @@
+# Default delegate profiles for auto-bmad — model + effort ONLY (no persona text: every prompt in
+# references/delegation.md is self-contained). Five purpose-specific profiles keep routing explicit:
+# `default` (unspecified/read-heavy), `light` (cheap repeatable triage), `standard` (primary build /
+# review/fix), `critical` (security/architecture/conflict/final convergence), and `diverse_review`
+# (independent leaf review on a different 5.6 variant). A profile is how
+# the orchestrator picks the model for a phase's delegate subagent:
+#   - Claude Code -> Agent tool `model:` = claude.model (the Agent tool has no per-call effort: claude.effort is
+#                    used ONLY when a phase is routed to `claude -p` via delegation.cli_phases, or by the
+#                    cross-model review layer);
+#   - Codex       -> spawn_agent per-call `model` + `reasoning_effort` = codex.model / codex.reasoning_effort
+#                    (also `codex exec -m … -c model_reasoning_effort=…` on the CLI route);
+#   - opencode    -> the default subagent, which inherits your opencode model; opencode.model / opencode.variant
+#                    are used ONLY by the CLI route (`opencode run -m … --variant …`) and the cross-model layer.
+# To retune: edit the `profiles` copy in {output_folder}/auto-bmad/config.yaml (first run copies this file in);
+# `/auto-bmad reset-defaults` re-seeds it; `/auto-bmad reprovision` re-syncs the review-layers TOML that bakes
+# the security / cross-model models from these profiles. You may add custom profiles (any name, same field set)
+# and point phase_profiles entries at them.
+#
+# These shipped Codex profiles deliberately stay within low | medium | high | xhigh; current 5.6 variants may
+# expose higher levels, but xhigh is the common review ceiling used here. Claude effort (CLI route only):
+# low | medium | high | xhigh | max. Model names are environment-specific — retune if your install differs.
+# opencode is multi-provider: `provider/model` strings; ships BLANK (inherit).
+profiles:
+  default:                 # unspecified work, exploration, repository mapping, document scanning
+    claude:
+      model: sonnet
+      effort: medium
+    codex:
+      model: gpt-5.6-terra
+      reasoning_effort: medium
+    opencode:
+      model: ""
+      variant: ""
+  light:                   # mechanical / classification / advisory work
+    claude:
+      model: sonnet
+      effort: xhigh         # CLI route / cross-model layer only (in-tool Claude Code effort inherits the session)
+    codex:
+      model: gpt-5.6-luna
+      reasoning_effort: medium
+    opencode:
+      model: ""            # provider/model; BLANK => inherit (CLI route / cross-model layer only)
+      variant: ""          # OPTIONAL, CLI route only: --variant high|max|minimal
+  standard:                # the default tier
+    claude:
+      model: opus
+      effort: high
+    codex:
+      model: gpt-5.6-terra
+      reasoning_effort: high
+    opencode:
+      model: ""
+      variant: ""
+  critical:                # rare, high-stakes: security, architecture, conflict resolution, convergence
+    claude:
+      model: fable
+      effort: high
+    codex:
+      model: gpt-5.6-sol
+      reasoning_effort: xhigh
+    opencode:
+      model: ""
+      variant: ""
+  diverse_review:          # independent leaf reviewer: fast model diversity at full review depth
+    claude:
+      model: sonnet
+      effort: xhigh
+    codex:
+      model: gpt-5.6-luna
+      reasoning_effort: xhigh
+    opencode:
+      model: ""
+      variant: ""
+
+# Phase -> profile mapping. This is the SINGLE source of the phase->profile binding: pipeline.md /
+# delegation.md name these keys, never raw profile names. Copied alongside `profiles` into config.yaml
+# at first run; retune there. delegation.cli_phases keys are exactly these keys.
+phase_profiles:
+  build: standard                   # Phase 3 plan run + Phase 5 build run of bmad-build-auto (the coding step)
+  followup_review: standard         # Phase 7 primary/follow-up review + review-fix stays Terra/high
+  final_convergence: critical       # explicit conflict resolution / legacy adoption / final convergence only
+  security_layer: critical          # high-stakes security lens: Sol/xhigh on Codex; baked into auto-bmad-security (gated by code_review.security_layer)
+  cross_model_layer: diverse_review # independent read-only leaf reviewer: Luna/xhigh on Codex; external CLI tool is code_review.cross_model_layer
+  tea_triage: light                 # Phase 0 story-risk classification (cheap)
+  tea_per_story: standard           # Phase 4 ATDD, Phase 6 automate, Phase 7 tail trace advisory
+  tea_epic: critical                # Phase 2 epic test design, Phase 8 blocking trace gate (+ its remediation)
+  tea_epic_audit: standard          # Phase 8 advisory gates (nfr + test-review) — one tier below the blocking trace gate
+  retrospective: default            # Phase 8 headless retrospective (-H {e}); read-heavy synthesis
+  deferred_reconcile: standard      # Phase 8 (epic-end, pre-archive): verify-against-code which unmarked/partial deferred items are now fully resolved and mark them

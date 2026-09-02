@@ -50,6 +50,7 @@ import {
   type SkippableTestContext,
 } from "../../support/stack-gate";
 import { extractPdfText } from "../../support/pdf-text";
+import { buildQuoteReviewProof } from "../../support/quote-review-proof";
 import { runCommand } from "@/server/commands/envelope";
 import {
   createQuoteVersionFromCalculation,
@@ -123,9 +124,13 @@ async function seedSnapshottedVersion(tenantId: string): Promise<string> {
     vat_rate_bp: 2500,
     sort_order: 0,
   });
+  const reviewProof = await buildQuoteReviewProof(a, {
+    calculationId: calcId,
+    capturedAt: FIXED_ISO,
+  });
   const created = await runCommand(createQuoteVersionFromCalculation, {
     client: a as never,
-    input: { calculation_id: calcId },
+    input: { calculation_id: calcId, ...reviewProof },
     clock: fixedClock,
     correlationId: crypto.randomUUID(),
   });

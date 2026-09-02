@@ -12,7 +12,8 @@
  * The load-bearing rules (kept in lockstep with `src/server/commands/quotes/validation.ts`):
  *   - `quote_version_id` (the PARENT version) is REQUIRED and UUID-shaped;
  *   - `attachment_file_ids` is an OPTIONAL bounded UUID array (re-validated for ownership in the
- *     command execute); an absent/empty value normalizes to `[]`;
+ *     command execute); absence requests the server-derived carry-forward default while an
+ *     explicit empty list means "copy none";
  *   - a client-supplied `tenant_id` / `status` / totals / lines are NEVER read (the tenant is the
  *     RESOLVED tenant; the fresh snapshot is RE-CAPTURED server-side), so smuggled keys must not
  *     appear on the validated data.
@@ -30,12 +31,12 @@ import { validateCreateNewQuoteVersion } from "@/server/commands/quotes/validati
 const UUID_A = "11111111-1111-1111-1111-111111111111";
 const UUID_B = "22222222-2222-2222-2222-222222222222";
 
-test("6.5-INT-01: accepts a UUID parent version id with no attachments (normalized to [])", () => {
+test("10.9: an absent attachment selection preserves the server-derived carry-forward default", () => {
   const res = validateCreateNewQuoteVersion({ quote_version_id: UUID_A });
   assert.equal(res.ok, true);
   if (res.ok) {
     assert.equal(res.data.quote_version_id, UUID_A);
-    assert.deepEqual(res.data.attachment_file_ids, []);
+    assert.equal("attachment_file_ids" in res.data, false);
   }
 });
 
@@ -46,6 +47,18 @@ test("6.5-INT-01: accepts an optional bounded UUID array of re-selected attachme
   });
   assert.equal(res.ok, true);
   if (res.ok) assert.deepEqual(res.data.attachment_file_ids, [UUID_B]);
+});
+
+test("10.9: an explicit empty attachment selection means copy none", () => {
+  const res = validateCreateNewQuoteVersion({
+    quote_version_id: UUID_A,
+    attachment_file_ids: [],
+  });
+  assert.equal(res.ok, true);
+  if (res.ok) {
+    assert.equal("attachment_file_ids" in res.data, true);
+    assert.deepEqual(res.data.attachment_file_ids, []);
+  }
 });
 
 test("6.5-INT-01: REJECTS a missing / malformed parent version id (a value the DB would 22P02)", () => {

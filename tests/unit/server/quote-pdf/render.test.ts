@@ -112,6 +112,45 @@ function bytesEqual(a: Uint8Array, b: Uint8Array): boolean {
   return Buffer.from(a).equals(Buffer.from(b));
 }
 
+interface PdfLayoutRun {
+  readonly text: string;
+  readonly x: number;
+  readonly width: number;
+}
+
+async function extractPdfLayoutRuns(bytes: Uint8Array): Promise<readonly PdfLayoutRun[]> {
+  const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
+  const loadingTask = pdfjs.getDocument({
+    data: bytes,
+    useSystemFonts: false,
+    isEvalSupported: false,
+    verbosity: 0,
+  });
+  const doc = await loadingTask.promise;
+  const runs: PdfLayoutRun[] = [];
+  for (let pageNumber = 1; pageNumber <= doc.numPages; pageNumber += 1) {
+    const page = await doc.getPage(pageNumber);
+    const content = await page.getTextContent();
+    for (const item of content.items) {
+      const candidate = item as {
+        readonly str?: unknown;
+        readonly width?: unknown;
+        readonly transform?: readonly number[];
+      };
+      if (
+        typeof candidate.str === "string" &&
+        typeof candidate.width === "number" &&
+        Array.isArray(candidate.transform) &&
+        typeof candidate.transform[4] === "number"
+      ) {
+        runs.push({ text: candidate.str, x: candidate.transform[4], width: candidate.width });
+      }
+    }
+  }
+  await doc.destroy();
+  return runs;
+}
+
 describe("Story 6.3 — renderQuotePdf determinism + framing (fast-gate belt for 6.3-INT-03)", () => {
   test("[P1] BYTE-DETERMINISM: same view model + same renderedAt → byte-identical output (H3/R-612)", async () => {
     const vm = baseViewModel();
@@ -171,6 +210,174 @@ describe("Story 6.3 — renderQuotePdf determinism + framing (fast-gate belt for
     assert.ok(text.includes("425,00"), "the VAT total must print");
     assert.ok(text.includes("Ritning.pdf"), "the selected attachment name must print");
     assert.ok(text.includes("TAX_SIGN_OFF_REQUIRED"), "the REAL ReadinessCode warning must print verbatim");
+  });
+
+  test("[10.6][P1] valid extreme V2 reconciliation values wrap inside the A4 right margin", async () => {
+    const maximumGross = "90 071 992 547 409,90";
+    const bytes = await renderQuotePdf({
+      viewModel: baseViewModel({
+        taxAnswer: {
+          source: "v2",
+          deductionChoice: "NONE",
+          netKronor: "72 057 594 037 927,92",
+          vatKronor: "18 014 398 509 481,98",
+          grossKronor: maximumGross,
+          calculatedDeductionKronor: "0,00",
+          claimDeductionKronor: "0,00",
+          deductionKronor: "0,00",
+          payableKronor: maximumGross,
+          categories: [{
+            vatType: "STANDARD",
+            label: "Standardmoms",
+            ratePercent: "25",
+            netKronor: "72 057 594 037 927,92",
+            vatKronor: "18 014 398 509 481,98",
+            grossKronor: maximumGross,
+          }],
+          summaries: {
+            labor: {
+              netKronor: "72 057 594 037 927,92",
+              vatKronor: "18 014 398 509 481,98",
+              grossKronor: maximumGross,
+            },
+            material: { netKronor: "0,00", vatKronor: "0,00", grossKronor: "0,00" },
+            other: { netKronor: "0,00", vatKronor: "0,00", grossKronor: "0,00" },
+          },
+          rot: {
+            policy: null,
+            basisNetKronor: "0,00",
+            allocatedVatKronor: "0,00",
+            basisKronor: "0,00",
+            calculatedKronor: "0,00",
+            claimKronor: "0,00",
+            allocations: [],
+          },
+          green: {
+            policy: null,
+            basisMethod: "FIXED_PRICE_97_PERCENT",
+            categories: {
+              SOLAR: { basisKronor: "0,00", calculatedKronor: "0,00", claimKronor: "0,00" },
+              STORAGE: { basisKronor: "0,00", calculatedKronor: "0,00", claimKronor: "0,00" },
+              CHARGING: { basisKronor: "0,00", calculatedKronor: "0,00", claimKronor: "0,00" },
+            },
+            calculatedKronor: "0,00",
+            claimKronor: "0,00",
+            allocations: [],
+          },
+        },
+      }),
+      renderedAt: FIXED_ISO,
+    });
+
+    // pdfjs transfers the backing buffer into its worker, so each independent
+    // inspection receives its own byte copy.
+    const text = await extractPdfText(Uint8Array.from(bytes));
+    for (const expected of [
+      "Standardmoms (25 %)",
+      "72 057 594 037 927,92",
+      "18 014 398 509 481,98",
+      maximumGross,
+    ]) {
+      assert.ok(text.includes(expected), `wrapped PDF text must retain ${expected}`);
+    }
+
+    const pageRightEdge = 595.28 - 48;
+    const runs = await extractPdfLayoutRuns(Uint8Array.from(bytes));
+    const overflowing = runs.filter((run) => run.x + run.width > pageRightEdge + 0.01);
+    assert.deepEqual(
+      overflowing,
+      [],
+      `every selectable text run must stay inside the right margin: ${JSON.stringify(overflowing)}`,
+    );
+  });
+
+  test("[10.9][P1] exclusive policy validTo renders its final included day, never the exclusive boundary", async () => {
+    const text = await extractPdfText(await renderQuotePdf({
+      viewModel: baseViewModel({
+        taxAnswer: {
+          source: "v2", deductionChoice: "ROT", netKronor: "1 000,00", vatKronor: "250,00",
+          grossKronor: "1 250,00", calculatedDeductionKronor: "300,00", claimDeductionKronor: "300,00",
+          deductionKronor: "300,00", payableKronor: "950,00", categories: [],
+          summaries: {
+            labor: { netKronor: "1 000,00", vatKronor: "250,00", grossKronor: "1 250,00" },
+            material: { netKronor: "0,00", vatKronor: "0,00", grossKronor: "0,00" },
+            other: { netKronor: "0,00", vatKronor: "0,00", grossKronor: "0,00" },
+          },
+          rot: {
+            policy: { id: "ROT-2026", validFrom: "2026-01-01", validTo: "2027-01-01", resolvingDate: "2026-06-01", resolvingFact: "payment" },
+            basisNetKronor: "1 000,00", allocatedVatKronor: "250,00", basisKronor: "1 250,00",
+            calculatedKronor: "300,00", claimKronor: "300,00", allocations: [],
+          },
+          green: { policy: null, basisMethod: "FIXED_PRICE_97_PERCENT", categories: {
+            SOLAR: { basisKronor: "0,00", calculatedKronor: "0,00", claimKronor: "0,00" },
+            STORAGE: { basisKronor: "0,00", calculatedKronor: "0,00", claimKronor: "0,00" },
+            CHARGING: { basisKronor: "0,00", calculatedKronor: "0,00", claimKronor: "0,00" },
+          }, calculatedKronor: "0,00", claimKronor: "0,00", allocations: [] },
+        },
+      }),
+      renderedAt: FIXED_ISO,
+    }));
+    assert.ok(text.includes("till och med 2026-12-31"));
+    assert.equal(text.includes("till 2027-01-01"), false);
+  });
+
+  test("[10.6][P1] green fixed-price basis and category enums render only customer-facing Swedish labels", async () => {
+    const text = await extractPdfText(await renderQuotePdf({
+      viewModel: baseViewModel({
+        taxAnswer: {
+          source: "v2",
+          deductionChoice: "GREEN",
+          netKronor: "1 000,00",
+          vatKronor: "250,00",
+          grossKronor: "1 250,00",
+          calculatedDeductionKronor: "181,87",
+          claimDeductionKronor: "181,00",
+          deductionKronor: "181,00",
+          payableKronor: "1 069,00",
+          categories: [],
+          summaries: {
+            labor: { netKronor: "0,00", vatKronor: "0,00", grossKronor: "0,00" },
+            material: { netKronor: "1 000,00", vatKronor: "250,00", grossKronor: "1 250,00" },
+            other: { netKronor: "0,00", vatKronor: "0,00", grossKronor: "0,00" },
+          },
+          rot: {
+            policy: null,
+            basisNetKronor: "0,00",
+            allocatedVatKronor: "0,00",
+            basisKronor: "0,00",
+            calculatedKronor: "0,00",
+            claimKronor: "0,00",
+            allocations: [],
+          },
+          green: {
+            policy: null,
+            basisMethod: "FIXED_PRICE_97_PERCENT",
+            categories: {
+              SOLAR: { basisKronor: "1 212,50", calculatedKronor: "181,87", claimKronor: "181,00" },
+              STORAGE: { basisKronor: "0,00", calculatedKronor: "0,00", claimKronor: "0,00" },
+              CHARGING: { basisKronor: "0,00", calculatedKronor: "0,00", claimKronor: "0,00" },
+            },
+            calculatedKronor: "181,87",
+            claimKronor: "181,00",
+            allocations: [],
+          },
+        },
+      }),
+      renderedAt: FIXED_ISO,
+    }));
+
+    for (const label of [
+      "97 % av äkta fastprisavtal",
+      "inkl. moms (brutto, före 97 %)",
+      "Solceller",
+      "Lagring",
+      "Laddningspunkt",
+    ]) {
+      assert.ok(text.includes(label), "the PDF must render the Swedish label: " + label);
+    }
+    for (const rawEnum of ["FIXED_PRICE_97_PERCENT", "SOLAR", "STORAGE", "CHARGING"]) {
+      assert.equal(text.includes(rawEnum), false, "the PDF must not expose the enum: " + rawEnum);
+    }
   });
 });
 
@@ -254,6 +461,7 @@ describe("Story 6.3 — renderQuotePdf branch coverage (empty/absent-field paths
           unitSellKronor: "500,00",
           lineNetKronor: "500,00",
           vatRatePercent: "25",
+          includedInInvoiceTotal: true,
           isHidden: false,
           isOptional: true,
           isSelected: true,
@@ -262,5 +470,7 @@ describe("Story 6.3 — renderQuotePdf branch coverage (empty/absent-field paths
     });
     const text = await extractPdfText(await renderQuotePdf({ viewModel: vm, renderedAt: FIXED_ISO }));
     assert.ok(text.includes("tillval"), "an optional line must be marked '(tillval)' in the PDF text");
+    assert.ok(text.includes("ingår i totalsumman"), "invoice inclusion must be stated independently from selection");
+    assert.ok(text.includes("Tillval som ingår (netto)"), "the subtotal label must describe inclusion, not selection");
   });
 });

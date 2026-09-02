@@ -7,7 +7,8 @@
  * → in execute: LOAD the version's status + frozen send-gate fields on the RLS client → re-assert
  * `status='draft'` (reject a non-draft with QUOTE_VERSION_LOCKED) → evaluate the SEND GATE from the
  * SAME 5.4 classifier (reject a blocked version with VALIDATION_FAILED) → call the narrow atomic
- * `mark_quote_version_sent` RPC on the RLS client with the INJECTED sent timestamp → append-only
+ * download/hash/sign the current private PDF under the request-bound RLS client → call the
+ * attested `mark_quote_version_sent` RPC (the caller timestamp is compatibility-only) → append-only
  * audit `{ targetId }`). No bespoke auth/error/audit mechanism.
  *
  * ── THE LOAD-BEARING ENFORCEMENT (a UI-only lock is a STOP CONDITION; R-605) ──────────────────
@@ -27,17 +28,27 @@
  *
  * ── THE NARROW ATOMIC RPC (ADR-A009) ──────────────────────────────────────────────────────────
  * The transition (status flip + `sent` event) is a transaction-sensitive multi-write and goes
- * through `mark_quote_version_sent` (SECURITY INVOKER — under the caller's RLS, own-tenant only, NO
- * service-role; empty search_path). The sent timestamp is the SINGLE injected `ctx.clock.now()` (no
- * wall-clock — the RPC's explicit parameter). The resolved `ctx.tenantContext.tenantId` is the ONLY
- * tenant authority (a client tenant id is never read). Audit metadata is `{ targetId }` ONLY — NO
- * PII/money/customer/channel value.
+ * through `mark_quote_version_sent` (checked SECURITY DEFINER, own-tenant tenant-admin only, no
+ * service-role client, empty search_path). It consumes the one-time review authority and commits
+ * the transition/event/audit atomically. Lifecycle/audit timestamps are database-owned; the
+ * legacy caller timestamp is ignored as evidence. The resolved tenant is the only tenant
+ * authority. Audit metadata is `{ targetId }` only — no PII/money/customer/channel value.
  */
+import { createHash } from "node:crypto";
+
 import { defineCommand } from "../envelope";
 import { CommandError } from "../command-errors";
 import { evaluateSendGate } from "@/features/quotes/send-gate";
 import {
+  quotePdfAttestationSecretFromEnv,
+  signQuotePdfAttestation,
+  type QuotePdfAttestationPayload,
+} from "@/server/quote-pdf/attestation";
+import {
   asMarkSentRpcClient,
+  asQuoteReviewAuthorizationRpcClient,
+  extractQuotePdfSendAttestationChallenge,
+  extractQuoteReviewAuthorizationId,
   loadQuoteVersionSendGate,
   loadQuoteVersionStatus,
   throwMappedQuoteWriteError,
@@ -46,6 +57,15 @@ import {
   validateMarkQuoteVersionSent,
   type MarkQuoteVersionSentInput,
 } from "./validation";
+
+/**
+ * Sending a commitment defaults to the real-customer track. Disposable demo deployments must
+ * opt in explicitly; an absent or malformed environment value therefore cannot accidentally
+ * weaken the tax sign-off gate in production.
+ */
+function quoteSendCustomerDataTrack(): "demo" | "real_customer" {
+  return process.env.ELPRO_QUOTE_SEND_TRACK === "demo" ? "demo" : "real_customer";
+}
 
 /** Result of the mark-sent command — the sent version id under `targetId`. */
 export interface MarkQuoteVersionSentResult {
@@ -57,7 +77,7 @@ export const markQuoteVersionSent = defineCommand<
   MarkQuoteVersionSentResult
 >({
   command: "quote.version.mark_sent",
-  auditable: true,
+  auditable: false,
   eventType: "quote.version.sent",
   targetType: "quote_version",
   validateInput: validateMarkQuoteVersionSent,
@@ -85,20 +105,109 @@ export const markQuoteVersionSent = defineCommand<
       signOff: {
         requiresSignOff: gateRow.requires_sign_off,
         termsApprovedAt: gateRow.terms_approved_at,
+        customerDataTrack: quoteSendCustomerDataTrack(),
       },
     });
     // A blocked draft cannot be sent — a generic VALIDATION_FAILED (no leaked blocker detail).
     if (!gate.canSend) throw new CommandError("VALIDATION_FAILED");
 
-    // ── The narrow atomic transition on the RLS client (never service-role). The sent timestamp ──
-    // ── is the SINGLE injected command clock (no wall-clock); the tenant is the RESOLVED tenant. ──
+    // A governed draft may only become a customer commitment with the PDF that was
+    // rendered from its current customer-visible content. The matching DB invariant
+    // in Story 10.9 is the race-safe authority; this preflight gives normal callers
+    // the stable validation result before invoking the lifecycle RPC. Historical
+    // already-sent versions are never routed through this draft-only command.
+    if (
+      gateRow.pdf_status !== "generated" ||
+      gateRow.pdf_file_id === null ||
+      gateRow.pdf_content_fingerprint === null
+    ) {
+      throw new CommandError("VALIDATION_FAILED");
+    }
+
+    // Obtain a short-lived, database-issued description of the exact current PDF. The
+    // server then downloads those bytes through the SAME request-bound RLS client and
+    // independently checks the immutable size/SHA-256 metadata before signing. Neither
+    // the Vault secret nor the resulting HMAC is review authority; the separate one-time
+    // Story 10.8 authorization below remains the human-review decision.
     const rpc = asMarkSentRpcClient(db);
+    const attestationConfig = quotePdfAttestationSecretFromEnv();
+    const prepared = await rpc.rpc("prepare_quote_pdf_send_attestation", {
+      p_tenant_id: ctx.tenantContext.tenantId,
+      p_quote_version_id: versionId,
+      p_actor_user_id: ctx.tenantContext.userId,
+      p_correlation_id: ctx.correlationId,
+      p_attestation_key_id: attestationConfig.keyId,
+    });
+    if (prepared.error) throwMappedQuoteWriteError(prepared.error);
+    const challenge = extractQuotePdfSendAttestationChallenge(prepared.data);
+    if (
+      challenge === null ||
+      challenge.fileId !== gateRow.pdf_file_id ||
+      challenge.contentFingerprint !== gateRow.pdf_content_fingerprint ||
+      challenge.keyId !== attestationConfig.keyId
+    ) {
+      throw new CommandError("VALIDATION_FAILED");
+    }
+    const downloaded = await rpc.storage
+      .from(challenge.bucketId)
+      .download(challenge.objectPath);
+    if (downloaded.error || downloaded.data === null) {
+      throw new Error("quote PDF download failed before final send");
+    }
+    const pdfBytes = new Uint8Array(await downloaded.data.arrayBuffer());
+    if (
+      pdfBytes.byteLength !== challenge.sizeBytes ||
+      createHash("sha256").update(pdfBytes).digest("hex") !== challenge.checksumSha256
+    ) {
+      throw new CommandError("VALIDATION_FAILED");
+    }
+    const attestation: QuotePdfAttestationPayload = {
+      tenantId: ctx.tenantContext.tenantId,
+      actorUserId: ctx.tenantContext.userId,
+      quoteVersionId: versionId,
+      renderFileId: challenge.fileId,
+      contentFingerprint: challenge.contentFingerprint,
+      bucketId: challenge.bucketId,
+      objectPath: challenge.objectPath,
+      checksumSha256: challenge.checksumSha256,
+      sizeBytes: challenge.sizeBytes,
+      mimeType: challenge.mimeType,
+      correlationId: ctx.correlationId,
+      keyId: challenge.keyId,
+      issuedAt: challenge.issuedAt,
+      expiresAt: challenge.expiresAt,
+      generationStartedAt: challenge.generationStartedAt,
+    };
+    const signature = signQuotePdfAttestation(attestation, attestationConfig.secret);
+
+    // Issue the distinct one-time reviewer authority only after byte verification,
+    // then consume both proofs in the same database transaction as the commitment.
+    const authorityRpc = asQuoteReviewAuthorizationRpcClient(db);
+    const authorization = await authorityRpc.rpc("authorize_quote_final_send", {
+      p_tenant_id: ctx.tenantContext.tenantId,
+      p_quote_version_id: versionId,
+      p_actor_user_id: ctx.tenantContext.userId,
+      p_correlation_id: ctx.correlationId,
+    });
+    if (authorization.error) throwMappedQuoteWriteError(authorization.error);
+    const authorizationId = extractQuoteReviewAuthorizationId(authorization.data);
+    if (authorizationId === null) {
+      throw new Error("authorizeQuoteFinalSend: RPC returned no authorization id");
+    }
+
     const { error } = await rpc.rpc("mark_quote_version_sent", {
       p_tenant_id: ctx.tenantContext.tenantId, // resolved tenant, never a client id
       p_quote_version_id: versionId,
+      p_authorization_id: authorizationId,
       p_sent_at: ctx.clock.now().toISOString(),
       p_channel: ctx.input.channel ?? null,
       p_reference: ctx.input.reference ?? null,
+      p_actor_user_id: ctx.tenantContext.userId,
+      p_correlation_id: ctx.correlationId,
+      p_attestation_key_id: challenge.keyId,
+      p_attestation_issued_at: challenge.issuedAt,
+      p_attestation_expires_at: challenge.expiresAt,
+      p_attestation_signature: signature,
     });
     // Map the RPC's not-draft assertion (a race) → QUOTE_VERSION_LOCKED; other codes per the mapper.
     if (error) throwMappedQuoteWriteError(error);
@@ -106,5 +215,4 @@ export const markQuoteVersionSent = defineCommand<
     return { targetId: versionId };
   },
   // Audit allow-list is `{ targetId }` ONLY — NO channel/reference/customer/money value.
-  auditFields: (ctx) => ({ targetId: ctx.input.quote_version_id }),
 });

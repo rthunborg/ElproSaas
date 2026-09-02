@@ -54,6 +54,11 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
 
+      - name: Setup Python for focused Auto-BMAD contracts
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
@@ -82,6 +87,12 @@ jobs:
 
       - name: Unit tests (pure logic, node --test)
         run: pnpm run test:unit
+
+      - name: BMAD focused concurrent memlog contracts
+        run: pnpm run test:bmad-focused
+
+      - name: Auto-BMAD focused routing and process-API contracts
+        run: pnpm run test:auto-bmad-focused
 
       - name: Build
         run: pnpm build
@@ -144,11 +155,10 @@ jobs:
       - name: Migration reset (empty DB → migrate → seed)
         # Bounded retry (added 2026-07-26): `supabase db reset` intermittently fails with
         # "Error status 502: An invalid response was received from the upstream server" during its
-        # FINAL "Restarting containers..." step — i.e. AFTER every migration applied and seed.sql ran
-        # (four occurrences on one branch; two cleared on a plain re-run). That is CLI/container
-        # health-check flakiness, not a migration error. `db reset` is idempotent (it rebuilds from an
-        # empty DB every time), so retrying is safe and does NOT mask a real failure: a genuinely
-        # broken migration fails all three attempts and still reds the gate.
+        # FINAL "Restarting containers..." step — i.e. AFTER every migration applied and seed.sql ran.
+        # After a non-zero exit, the bounded verifier accepts recovery ONLY when the exact repository
+        # migration ledger, local seed fixtures, and auth health all prove completion. Otherwise the
+        # idempotent reset is retried; a genuinely broken migration still reds the gate.
         run: |
           for attempt in 1 2 3; do
             echo "::group::supabase db reset (attempt $attempt/3)"
@@ -158,6 +168,10 @@ jobs:
             fi
             echo "::endgroup::"
             echo "db reset attempt $attempt failed"
+            if node scripts/verify/check-local-supabase-reset.mjs; then
+              echo "db reset completed; recovered from the CLI's final restart error"
+              exit 0
+            fi
             if [ "$attempt" -lt 3 ]; then
               sleep 15
             fi
@@ -210,11 +224,9 @@ jobs:
       - name: Migration reset (empty DB → migrate → seed)
         # Bounded retry (added 2026-07-26): `supabase db reset` intermittently fails with
         # "Error status 502: An invalid response was received from the upstream server" during its
-        # FINAL "Restarting containers..." step — i.e. AFTER every migration applied and seed.sql ran
-        # (four occurrences on one branch; two cleared on a plain re-run). That is CLI/container
-        # health-check flakiness, not a migration error. `db reset` is idempotent (it rebuilds from an
-        # empty DB every time), so retrying is safe and does NOT mask a real failure: a genuinely
-        # broken migration fails all three attempts and still reds the gate.
+        # FINAL "Restarting containers..." step — i.e. AFTER every migration applied and seed.sql ran.
+        # The same exact-ledger + seed + auth verifier used by `db` distinguishes completed recovery
+        # from a real migration/seed failure before any retry or Playwright execution.
         run: |
           for attempt in 1 2 3; do
             echo "::group::supabase db reset (attempt $attempt/3)"
@@ -224,6 +236,10 @@ jobs:
             fi
             echo "::endgroup::"
             echo "db reset attempt $attempt failed"
+            if node scripts/verify/check-local-supabase-reset.mjs; then
+              echo "db reset completed; recovered from the CLI's final restart error"
+              exit 0
+            fi
             if [ "$attempt" -lt 3 ]; then
               sleep 15
             fi

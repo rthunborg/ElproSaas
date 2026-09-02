@@ -72,6 +72,15 @@ test("[6.1] 23505 (unique) / 23514 (check) / 22P02 (invalid text repr) → VALID
   }
 });
 
+test("[10.8/10.9] expired/replayed/stale authority and stale PDF map to VALIDATION_FAILED", () => {
+  for (const code of ["QV401", "PFD10"] as const) {
+    assert.throws(
+      () => throwMappedQuoteWriteError({ code, message: "must not leak" }),
+      (error: unknown) => error instanceof CommandError && error.code === "VALIDATION_FAILED",
+    );
+  }
+});
+
 // ── Story 7.2 additions (test-design-epic-7.md#7.2-INT-04, R-703 / NFR20) ────────────────────────
 // The 7.2 accept RPC adds a TEST-ONLY injected-fault RAISE with the custom SQLSTATE `QV703`. The
 // DB-backed INT suite proves the BEHAVIORAL rollback (no partial state) end-to-end, but the mapper's
@@ -99,6 +108,18 @@ test("[7.2] the QV703 mapping never surfaces the raw injected-fault pg text / ro
   assert.ok(e instanceof Error);
   // The derived message references only the injected-fault CODE placeholder — never the leaky body.
   assert.doesNotMatch((e as Error).message, /Anna|19800101|customer|9999/);
+});
+
+test("[10.8] P0001 forced audit-trigger failure remains a retryable SERVER_ERROR-shaped fault", () => {
+  const e = catchMapped({
+    code: "P0001",
+    message: "test-only forced audit failure for customer Anna Andersson",
+  });
+  // The transaction has rolled back, so a test-only audit failure is never a
+  // user-input validation outcome. The envelope maps this plain Error to SERVER_ERROR.
+  assert.ok(e instanceof Error);
+  assert.equal(isCommandError(e), false);
+  assert.doesNotMatch((e as Error).message, /Anna|customer/);
 });
 
 test("[6.4] an UNMAPPED code throws a generic non-CommandError (never a stable code, never the raw message)", () => {

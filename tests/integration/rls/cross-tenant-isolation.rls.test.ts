@@ -16,8 +16,9 @@
  * has NO INSERT grant (writes go via the record_audit_event DEFINER), so the
  * spoof-INSERT is denied at the privilege layer (42501) exactly like the others.
  *
- * The denial-MECHANISM assertions (42501 + independent re-read) are UNCHANGED from
- * the original suite — Story 2.4 only points the iteration at the shared inventory.
+ * Denial assertions pin the actual fail-closed layer: normally RLS/privilege `42501`,
+ * with generic `QV409` for Story 10.6 quote-family triggers that must resolve a parent
+ * before RLS WITH CHECK. Independent re-reads still prove every foreign row is unchanged.
  *
  * Runs against the LOCAL Supabase stack only; skips when unreachable.
  */
@@ -41,9 +42,9 @@ import {
   adminInsertTenantCounter,
   adminInsertQuote,
   adminInsertQuoteVersion,
-  adminInsertQuoteVersionLine,
   adminInsertQuoteVersionAttachment,
   adminInsertQuoteEvent,
+  adminInsertQuoteReviewAuthorization,
   adminInsertQuoteAcceptance,
   adminInsertQuoteLostReason,
   adminInsertQuoteFollowUp,
@@ -57,6 +58,7 @@ import {
   adminSelectFileLabel,
   adminSelectQuoteLabel,
   adminSelectAcceptanceLabel,
+  adminSelectQuoteVersionLines,
   type TwoTenantFixture,
   type TestServerClient,
 } from "../../factories/tenants";
@@ -96,6 +98,7 @@ let tenantBQuoteVersionId: string; // a seeded Tenant B version (6.1 target + li
 let tenantBQuoteVersionLineId: string; // a seeded Tenant B line (6.1 target)
 let tenantBQuoteVersionAttachmentId: string; // a seeded Tenant B attachment (6.1 target)
 let tenantBQuoteEventId: string; // a seeded Tenant B event (6.1 target)
+let tenantBQuoteReviewAuthorizationId: string; // a seeded Tenant B review authority (10.8 target)
 let tenantBQuoteAcceptanceId: string; // a seeded Tenant B acceptance (7.1 target + job parent)
 let tenantBJobId: string; // a seeded Tenant B job (7.1 target + job_event parent)
 let tenantBJobEventId: string; // a seeded Tenant B job event (7.1 target)
@@ -232,12 +235,13 @@ beforeAll(async () => {
     quote_id: tenantBQuoteId,
     calculation_id: tenantBQuoteSourceCalcId,
     company_name: "tenant-b-version-seed",
+    accepted_price_ore: 125000,
   });
-  tenantBQuoteVersionLineId = await adminInsertQuoteVersionLine({
-    tenant_id: fixture.tenantB.id,
-    quote_version_id: tenantBQuoteVersionId,
-    label: "tenant-b-line-seed",
-  });
+  const tenantBVersionLines = await adminSelectQuoteVersionLines(tenantBQuoteVersionId);
+  tenantBQuoteVersionLineId = String(tenantBVersionLines[0]?.id ?? "");
+  if (!tenantBQuoteVersionLineId) {
+    throw new Error("cross-tenant fixture: canonical V2 quote line missing");
+  }
   tenantBQuoteVersionAttachmentId = await adminInsertQuoteVersionAttachment({
     tenant_id: fixture.tenantB.id,
     quote_version_id: tenantBQuoteVersionId,
@@ -249,6 +253,12 @@ beforeAll(async () => {
     quote_id: tenantBQuoteId,
     quote_version_id: tenantBQuoteVersionId,
     event_type: "created",
+  });
+  tenantBQuoteReviewAuthorizationId = await adminInsertQuoteReviewAuthorization({
+    tenant_id: fixture.tenantB.id,
+    actor_user_id: fixture.adminB.id,
+    quote_id: tenantBQuoteId,
+    quote_version_id: tenantBQuoteVersionId,
   });
   // Seed a REAL Tenant B ACCEPTANCE → JOB → JOB_EVENT chain (Story 7.1) so the three new
   // commitment-table cross-tenant negatives target a CONCRETE Tenant B row (never a
@@ -357,7 +367,8 @@ beforeAll(async () => {
     !tenantBQuoteVersionId ||
     !tenantBQuoteVersionLineId ||
     !tenantBQuoteVersionAttachmentId ||
-    !tenantBQuoteEventId
+    !tenantBQuoteEventId ||
+    !tenantBQuoteReviewAuthorizationId
   ) {
     throw new Error(
       "cross-tenant quote seed produced no id (tenant_counters/quotes/quote_versions/" +
@@ -405,6 +416,7 @@ beforeAll(async () => {
     tenantBQuoteVersionLineId,
     tenantBQuoteVersionAttachmentId,
     tenantBQuoteEventId,
+    tenantBQuoteReviewAuthorizationId,
     tenantBQuoteAcceptanceId,
     tenantBJobId,
     tenantBJobEventId,
@@ -418,6 +430,13 @@ afterAll(async () => {
 });
 
 describe("Cross-tenant RLS isolation — data-driven over the shared inventory (AC2 / R-001)", () => {
+  // Story 10.8 intentionally removes every authenticated direct-DML path for
+  // quote_acceptances. Keep this explicit instead of treating its 42501 as an
+  // RLS-invisible result or the older quote-family trigger's QV409.
+  const directDmlRevokedTables = new Set([
+    "quote_acceptances",
+  ]);
+
   for (const table of TENANT_TABLES) {
     describe(`table: ${table}`, () => {
       it(`[P0] SELECT: Tenant A admin reads ZERO ${table} rows belonging to Tenant B (no error leak)`, async (testCtx) => {
@@ -432,11 +451,11 @@ describe("Cross-tenant RLS isolation — data-driven over the shared inventory (
       it(`[P0] INSERT: Tenant A admin cannot INSERT a ${table} row carrying Tenant B ownership (no spoof)`, async (testCtx) => {
         if (skipUnlessStack(testCtx, stackUp)) return;
         const { error } = await a.from(table).insert(spoofedRowFor(table, ctx));
-        // Assert the DENIAL MECHANISM, not a bare non-null error. `authenticated` has
-        // NO INSERT GRANT on these tables, so the write is denied at the privilege
-        // layer with `42501` (permission denied) — NOT a `23505` PK collision (the
-        // spoof row uses a fresh id / non-conflicting key, review fix 2026-06-26).
-        // This proves the privilege/RLS layer is doing the work, not a unique key.
+        // Assert the DENIAL MECHANISM, not a bare non-null error. This includes
+        // quote_acceptances: Story 10.8 deliberately revokes its authenticated
+        // direct-DML grant, so the spoof is rejected at the privilege layer before
+        // any quote-family trigger can run. This is neither a PK/FK collision nor an
+        // existence disclosure.
         expect(error).not.toBeNull();
         expect(error?.code).toBe("42501");
       });
@@ -462,10 +481,18 @@ describe("Cross-tenant RLS isolation — data-driven over the shared inventory (
         //     NO error (empty set, not null). The denial is proven by zero-rows-affected
         //     PLUS an INDEPENDENT BYPASSRLS re-read showing the Tenant B row is UNCHANGED
         //     (its label was NOT overwritten with the hijack value).
-        if (updateDenialKind(table) === "privilege") {
+        if (directDmlRevokedTables.has(table) || updateDenialKind(table) === "privilege") {
           expect(error).not.toBeNull();
           expect(error?.code).toBe("42501");
           expect(affected).toBeNull();
+          if (table === "quote_acceptances") {
+            // Privilege denial is deliberate (Story 10.8), but still prove the real
+            // foreign acceptance exists and its immutable channel was not overwritten.
+            const labelColumn = rlsInvisibleLabelColumn(table);
+            const row = await adminSelectAcceptanceLabel(table, labelColumn, value);
+            expect(row).not.toBeNull();
+            expect(row?.label).toBeNull();
+          }
         } else {
           // rls-invisible (customers/facilities/contacts/company_settings/quote_terms).
           expect(error).toBeNull();

@@ -45,6 +45,8 @@ export function SectionEditor({
   calculationId,
   sources,
   posture,
+  policyEffectiveDate,
+  canAddRow,
 }: {
   readonly section: CalculationSectionRow;
   readonly calculationId: string;
@@ -52,6 +54,10 @@ export function SectionEditor({
   readonly sources: RowSourceLists;
   /** The resolved VAT display posture (Story 5.4 — drives the posture-aware line-total label). */
   readonly posture: VatDisplayPosture;
+  /** Swedish quote-capture date used to resolve the applicable live VAT policy. */
+  readonly policyEffectiveDate: string;
+  /** Whole-calculation row cap; the server and DB independently enforce the same invariant. */
+  readonly canAddRow: boolean;
 }) {
   const [renameState, renameAction, renamePending] = useActionState(
     updateSectionAction,
@@ -92,13 +98,18 @@ export function SectionEditor({
 
   const sectionTotal = computeSectionTotal(
     section.rows.map((r) => ({
+      row_type: r.row_type,
       quantity: r.quantity,
       unit_sell_ore: r.unit_sell_ore,
       vat_rate_bp: r.vat_rate_bp,
+      vat_type: r.vat_type,
+      included_in_invoice_total: r.included_in_invoice_total,
+      deduction_classification: r.deduction_classification,
       is_hidden: r.is_hidden,
       is_optional: r.is_optional,
       is_selected: r.is_selected,
     })),
+    policyEffectiveDate,
   );
 
   const orderedIds = toOrderedIds(section.rows as CalculationRowRow[]);
@@ -213,6 +224,7 @@ export function SectionEditor({
                   row={row}
                   sources={sources}
                   posture={posture}
+                  policyEffectiveDate={policyEffectiveDate}
                   onArchive={(r) => {
                     const fd = new FormData();
                     fd.set("id", r.id);
@@ -234,19 +246,21 @@ export function SectionEditor({
           </p>
         )}
 
-        {showAddRow ? (
+        {showAddRow && canAddRow ? (
           <RowEditor
             sectionId={section.id}
             calculationId={calculationId}
             sources={sources}
             posture={posture}
+            policyEffectiveDate={policyEffectiveDate}
           />
         ) : (
           <button
             type="button"
             data-testid="add-row"
+            disabled={!canAddRow}
             onClick={() => setShowAddRow(true)}
-            className="self-start rounded-md border border-dashed border-zinc-300 px-3 py-2 text-sm text-zinc-700 hover:bg-zinc-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+            className="self-start rounded-md border border-dashed border-zinc-300 px-3 py-2 text-sm text-zinc-700 hover:bg-zinc-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 disabled:cursor-not-allowed disabled:opacity-40"
           >
             Lägg till rad
           </button>

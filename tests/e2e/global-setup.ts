@@ -37,6 +37,7 @@ import {
   adminInsertWorkRole,
   adminUploadStorageObject,
   createTwoTenantFixture,
+  makeAuthedServerClient,
 } from "../factories/tenants";
 import { adminQuery } from "../factories/admin-sql";
 
@@ -53,8 +54,30 @@ function token(): string {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 }
 
+/** Complete no-deduction V2 input used by quote-capable E2E calculations. */
+function noDeductionTaxInput(
+  documentVatType: "STANDARD_VAT_25" | "REVERSE_CHARGE_CONSTRUCTION" = "STANDARD_VAT_25",
+  buyerVatNumber: string | null = null,
+): Readonly<Record<string, unknown>> {
+  return {
+    schemaVersion: 2,
+    documentVatType,
+    buyerVatNumber,
+    deductionChoice: "NONE",
+    paymentDate: null,
+    finalPaymentDate: null,
+    personAllowanceSlots: [],
+    greenBasisMethod: "ACTUAL_ELIGIBLE_COSTS",
+    genuineFixedPrice: false,
+    fixedPriceOre: null,
+    fixedPriceCategorySplitOre: null,
+    fixedPriceRowIds: null,
+  };
+}
+
 export default async function globalSetup() {
   const base = await createTwoTenantFixture();
+  const adminAClient = await makeAuthedServerClient(base.adminA);
 
   // Seed CRM rows in tenantA via the privileged (BYPASSRLS) factory path. These are
   // read back through the app's RLS path at runtime as adminA.
@@ -130,6 +153,9 @@ export default async function globalSetup() {
     facility_id: facilityId,
     title: calcTitle,
     status: "draft",
+    // Story 10.6 makes a complete V2 tax input mandatory for fresh quote capture. Keep the
+    // long-lived healthy baseline quote-capable without changing its historic money facts.
+    tax_input_snapshot: noDeductionTaxInput(),
   });
   const sectionId = await adminInsertSection({
     tenant_id: base.tenantA.id,
@@ -157,6 +183,111 @@ export default async function globalSetup() {
     unit: "st",
     unit_sell_ore: 50000,
     vat_rate_bp: 2500,
+    sort_order: 1,
+  });
+
+  // Story 10.6: dedicated, order-independent fixtures. The first calculation carries TWO
+  // explicit VAT categories: 1 000,00 kr standard (250,00 kr VAT) + 2 000,00 kr reverse charge
+  // (0,00 kr seller VAT) = net 3 000,00, VAT 250,00, gross/payable 3 250,00. The document has
+  // explicitly selected reverse charge with the required buyer VAT number. The database rejects
+  // incomplete VAT/document postures, while the E2E journey proves the form rejects clearing it.
+  const reverseChargeBuyerVatNumber = "SE556677889901";
+  const reverseChargeCalcTitle = `Kalkyl omvänd moms ${token()}`;
+  const reverseChargeCalcId = await adminInsertCalculation({
+    tenant_id: base.tenantA.id,
+    customer_id: companyId,
+    facility_id: facilityId,
+    title: reverseChargeCalcTitle,
+    status: "draft",
+    tax_input_snapshot: noDeductionTaxInput(
+      "REVERSE_CHARGE_CONSTRUCTION",
+      reverseChargeBuyerVatNumber,
+    ),
+  });
+  const reverseChargeSectionId = await adminInsertSection({
+    tenant_id: base.tenantA.id,
+    calculation_id: reverseChargeCalcId,
+    title: `Standard och omvänd moms ${token()}`,
+    display_mode: "detailed",
+    sort_order: 0,
+  });
+  const reverseChargeStandardRowId = await adminInsertRow({
+    tenant_id: base.tenantA.id,
+    section_id: reverseChargeSectionId,
+    row_type: "material",
+    quantity: 1,
+    unit: "st",
+    unit_sell_ore: 100000,
+    vat_rate_bp: 2500,
+    vat_type: "STANDARD_VAT_25",
+    deduction_classification: "NONE",
+    included_in_invoice_total: true,
+    label: "Standardmomsarbete E2E",
+    sort_order: 0,
+  });
+  const reverseChargeConstructionRowId = await adminInsertRow({
+    tenant_id: base.tenantA.id,
+    section_id: reverseChargeSectionId,
+    row_type: "subcontractor",
+    quantity: 1,
+    unit: "st",
+    unit_sell_ore: 200000,
+    vat_rate_bp: 2500,
+    vat_type: "REVERSE_CHARGE_CONSTRUCTION",
+    deduction_classification: "NONE",
+    included_in_invoice_total: true,
+    label: "Byggtjänst med omvänd moms E2E",
+    sort_order: 1,
+  });
+
+  // The second calculation pins the three independent row facts. Its subject row is hidden,
+  // economically included, and ROT-classified at the same time. A separate 500,00 kr standard
+  // row remains included, so toggling ONLY the subject's inclusion moves gross from 1 875,00 kr
+  // to 625,00 kr while visibility/classification stay untouched.
+  const independentPropertiesCalcTitle = `Kalkyl oberoende radfakta ${token()}`;
+  const independentPropertiesCalcId = await adminInsertCalculation({
+    tenant_id: base.tenantA.id,
+    customer_id: companyId,
+    facility_id: facilityId,
+    title: independentPropertiesCalcTitle,
+    status: "draft",
+    tax_input_snapshot: noDeductionTaxInput(),
+  });
+  const independentPropertiesSectionId = await adminInsertSection({
+    tenant_id: base.tenantA.id,
+    calculation_id: independentPropertiesCalcId,
+    title: `Oberoende radfakta ${token()}`,
+    display_mode: "detailed",
+    sort_order: 0,
+  });
+  const independentPropertiesSubjectRowId = await adminInsertRow({
+    tenant_id: base.tenantA.id,
+    section_id: independentPropertiesSectionId,
+    row_type: "labor",
+    quantity: 1,
+    unit: "h",
+    unit_sell_ore: 100000,
+    vat_rate_bp: 2500,
+    vat_type: "STANDARD_VAT_25",
+    deduction_classification: "ROT_LABOR",
+    included_in_invoice_total: true,
+    is_hidden: true,
+    label: "Dold men inkluderad ROT-rad E2E",
+    sort_order: 0,
+  });
+  const independentPropertiesControlRowId = await adminInsertRow({
+    tenant_id: base.tenantA.id,
+    section_id: independentPropertiesSectionId,
+    row_type: "material",
+    quantity: 1,
+    unit: "st",
+    unit_sell_ore: 50000,
+    vat_rate_bp: 2500,
+    vat_type: "STANDARD_VAT_25",
+    deduction_classification: "NONE",
+    included_in_invoice_total: true,
+    is_hidden: false,
+    label: "Synlig kontrollrad E2E",
     sort_order: 1,
   });
 
@@ -370,14 +501,6 @@ export default async function globalSetup() {
     intro_text: "Skickad version för accept-och-skapa-jobb-flödet",
     accepted_price_ore: 125000,
   });
-  await adminInsertQuoteVersionLine({
-    tenant_id: base.tenantA.id,
-    quote_version_id: acceptSentVersionId,
-    label: `Accept-rad ${token()}`,
-    unit_sell_ore: 85000,
-    vat_rate_bp: 2500,
-    sort_order: 0,
-  });
   await adminQuery(
     `update public.quote_versions set status = 'sent' where id = $1`,
     [acceptSentVersionId],
@@ -413,14 +536,6 @@ export default async function globalSetup() {
     intro_text: "Accepterad version för jobb-traceability-flödet (7.3)",
     accepted_price_ore: 125000,
   });
-  await adminInsertQuoteVersionLine({
-    tenant_id: base.tenantA.id,
-    quote_version_id: acceptedJobVersionId,
-    label: `Jobbrad ${token()}`,
-    unit_sell_ore: 85000,
-    vat_rate_bp: 2500,
-    sort_order: 0,
-  });
   await adminQuery(
     `update public.quote_versions set status = 'sent' where id = $1`,
     [acceptedJobVersionId],
@@ -431,31 +546,34 @@ export default async function globalSetup() {
     quote_version_id: acceptedJobVersionId,
     event_type: "created",
   });
-  // Drive the REAL 7.2 transaction directly (BYPASSRLS superuser passing the resolved tenant id).
-  // The RPC records the acceptance, flips sent → accepted, and creates the ONE job — the authentic
-  // source refs the 7.3 detail reads from. `p_accepted_at` is an EXPLICIT instant (H1). An external
-  // evidence reference exercises the detail's evidence surface without an uploaded file.
-  const acceptRpcRows = await adminQuery<{ acceptance_id: string; job_id: string }>(
-    `select acceptance_id, job_id from public.accept_quote_and_create_job(
-        $1::uuid, $2::uuid, $3::timestamptz, $4::bigint, $5::bigint,
-        $6::text, $7::text, $8::uuid, $9::text, $10::text, $11::date, $12::date, $13::text, $14::text)`,
-    [
-      base.tenantA.id,
-      acceptedJobVersionId,
-      "2026-07-10T08:30:00.000Z",
-      125000,
-      125000,
-      "verbal",
-      null,
-      null,
-      "Signerad orderbekräftelse (referens #A-7003)",
-      "Accepterat via telefon 2026-07-10",
-      "2026-08-01",
-      "2026-08-20",
-      "Jobb från accepterad offert 1006",
-      null,
-    ],
-  );
+  // Drive the REAL attributable 7.2/10.8 transaction through an authenticated tenant-admin
+  // session. The RPC records the acceptance, flips sent → accepted, creates the ONE job, and
+  // atomically records actor/correlation provenance. `p_accepted_at` is an EXPLICIT instant (H1).
+  const acceptRpc = await adminAClient.rpc("accept_quote_and_create_job", {
+    p_tenant_id: base.tenantA.id,
+    p_quote_version_id: acceptedJobVersionId,
+    p_accepted_at: "2026-07-10T08:30:00.000Z",
+    p_accepted_price_ore: 125000,
+    p_source_sent_total_ore: 125000,
+    p_channel: "verbal",
+    p_adjustment_reason: null,
+    p_evidence_file_id: null,
+    p_evidence_reference: "Signerad orderbekräftelse (referens #A-7003)",
+    p_notes: "Accepterat via telefon 2026-07-10",
+    p_planned_start_date: "2026-08-01",
+    p_planned_end_date: "2026-08-20",
+    p_title: "Jobb från accepterad offert 1006",
+    p_fault_inject: null,
+    p_actor_user_id: base.adminA.id,
+    p_correlation_id: crypto.randomUUID(),
+  });
+  if (acceptRpc.error) {
+    throw new Error(`globalSetup: accepted-job RPC failed (${acceptRpc.error.code ?? "?"})`);
+  }
+  const acceptRpcRows = (acceptRpc.data ?? []) as Array<{
+    acceptance_id: string;
+    job_id: string;
+  }>;
   const acceptedJobId = acceptRpcRows[0]?.job_id ?? null;
 
   // Story 10.2 — a DEDICATED quote whose ONLY version is a SENT v1, consumed by the Förlorad/Avböjd
@@ -679,9 +797,9 @@ export default async function globalSetup() {
 
   // Story 8.5 — a DEDICATED ACCEPTED quote whose acceptance carries a LOCKED acceptance_evidence
   // file, so the file-lock-panel E2E can assert the evidence lock notice on the accepted section.
-  // Seed a sent version, drive the REAL accept transaction (creating the acceptance), then link an
-  // evidence file to the acceptance — `apply_file_link_lock` locks the evidence link+file the moment
-  // the acceptance exists (AR704 has no draft state).
+  // Seed a sent version and its evidence file, then drive the REAL accept transaction with that
+  // exact file captured immutably. The RPC creates the acceptance_evidence link atomically;
+  // `apply_file_link_lock` locks the link+file immediately (AR704 has no draft state).
   const evidenceQuoteId = await adminInsertQuote({
     tenant_id: base.tenantA.id,
     customer_id: companyId,
@@ -699,14 +817,6 @@ export default async function globalSetup() {
     intro_text: "Accepterad version med låst underlag (8.5 file-lock-panel)",
     accepted_price_ore: 125000,
   });
-  await adminInsertQuoteVersionLine({
-    tenant_id: base.tenantA.id,
-    quote_version_id: evidenceVersionId,
-    label: `Underlagsrad ${token()}`,
-    unit_sell_ore: 85000,
-    vat_rate_bp: 2500,
-    sort_order: 0,
-  });
   await adminQuery(
     `update public.quote_versions set status = 'sent' where id = $1`,
     [evidenceVersionId],
@@ -717,28 +827,6 @@ export default async function globalSetup() {
     quote_version_id: evidenceVersionId,
     event_type: "created",
   });
-  const evidenceAcceptRpcRows = await adminQuery<{ acceptance_id: string; job_id: string }>(
-    `select acceptance_id, job_id from public.accept_quote_and_create_job(
-        $1::uuid, $2::uuid, $3::timestamptz, $4::bigint, $5::bigint,
-        $6::text, $7::text, $8::uuid, $9::text, $10::text, $11::date, $12::date, $13::text, $14::text)`,
-    [
-      base.tenantA.id,
-      evidenceVersionId,
-      "2026-07-11T08:30:00.000Z",
-      125000,
-      125000,
-      "verbal",
-      null,
-      null,
-      "Signerad orderbekräftelse (referens #A-8005)",
-      "Accepterat via telefon 2026-07-11",
-      "2026-08-01",
-      "2026-08-20",
-      "Jobb från accepterad offert 1008",
-      null,
-    ],
-  );
-  const evidenceAcceptanceId = evidenceAcceptRpcRows[0]?.acceptance_id ?? null;
   const evidenceFileId = crypto.randomUUID();
   const evidenceObjectPath = `${base.tenantA.id}/${evidenceFileId}/underlag-1008.pdf`;
   await adminUploadStorageObject({
@@ -755,15 +843,34 @@ export default async function globalSetup() {
     mime_type: "application/pdf",
     lifecycle_state: "linked",
   });
-  if (evidenceAcceptanceId) {
-    await adminInsertFileLink({
-      tenant_id: base.tenantA.id,
-      file_id: evidenceFileId,
-      owner_type: "quote_acceptance",
-      owner_id: evidenceAcceptanceId,
-      purpose: "acceptance_evidence",
-    });
+  const evidenceAcceptRpc = await adminAClient.rpc("accept_quote_and_create_job", {
+    p_tenant_id: base.tenantA.id,
+    p_quote_version_id: evidenceVersionId,
+    p_accepted_at: "2026-07-11T08:30:00.000Z",
+    p_accepted_price_ore: 125000,
+    p_source_sent_total_ore: 125000,
+    p_channel: "verbal",
+    p_adjustment_reason: null,
+    p_evidence_file_id: evidenceFileId,
+    p_evidence_reference: null,
+    p_notes: "Accepterat via telefon 2026-07-11",
+    p_planned_start_date: "2026-08-01",
+    p_planned_end_date: "2026-08-20",
+    p_title: "Jobb från accepterad offert 1008",
+    p_fault_inject: null,
+    p_actor_user_id: base.adminA.id,
+    p_correlation_id: crypto.randomUUID(),
+  });
+  if (evidenceAcceptRpc.error) {
+    throw new Error(
+      `globalSetup: evidence-acceptance RPC failed (${evidenceAcceptRpc.error.code ?? "?"})`,
+    );
   }
+  const evidenceAcceptRpcRows = (evidenceAcceptRpc.data ?? []) as Array<{
+    acceptance_id: string;
+    job_id: string;
+  }>;
+  const evidenceAcceptanceId = evidenceAcceptRpcRows[0]?.acceptance_id ?? null;
 
   // PDF render-state seed (Story 6.3): a SEPARATE quote (so the 6.2 quote above keeps EXACTLY
   // two versions) with THREE versions exercising the render states DETERMINISTICALLY without a
@@ -894,6 +1001,25 @@ export default async function globalSetup() {
       title: blockerCalcTitle,
       sectionId: blockerSectionId,
       rowId: blockerRowId,
+    },
+    // Story 10.6 — the two dedicated tax-answer journeys and their deterministic frozen facts.
+    taxAnswer: {
+      reverseChargeCalc: {
+        id: reverseChargeCalcId,
+        title: reverseChargeCalcTitle,
+        sectionId: reverseChargeSectionId,
+        rowIds: [reverseChargeStandardRowId, reverseChargeConstructionRowId],
+        buyerVatNumber: reverseChargeBuyerVatNumber,
+        expectedOre: { net: 300000, vat: 25000, gross: 325000 },
+      },
+      independentPropertiesCalc: {
+        id: independentPropertiesCalcId,
+        title: independentPropertiesCalcTitle,
+        sectionId: independentPropertiesSectionId,
+        subjectRowId: independentPropertiesSubjectRowId,
+        controlRowId: independentPropertiesControlRowId,
+        expectedGrossOre: { bothIncluded: 187500, controlOnly: 62500 },
+      },
     },
     workRole: { id: workRoleId, displayName: workRoleName },
     article: { id: articleId, name: articleName },

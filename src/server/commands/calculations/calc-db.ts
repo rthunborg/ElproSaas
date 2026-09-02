@@ -17,6 +17,14 @@
  */
 import type { CommandDbClient } from "../envelope";
 import { CommandError } from "../command-errors";
+import {
+  isDeductionClassification,
+  isVatRateBp,
+  isVatType,
+  type DeductionClassification,
+  type VatType,
+} from "@/lib/money";
+import { MAX_CALCULATION_ROWS } from "@/features/calculations/limits";
 import { isCalcStatus, isRowType, type CalcStatus, type RowType } from "./validation";
 
 /** A PostgREST result envelope for a write returning the inserted/updated rows. */
@@ -151,6 +159,174 @@ export async function loadRowType(
       ? (row as { row_type?: unknown }).row_type
       : undefined;
   return isRowType(rowType) ? rowType : null;
+}
+
+export interface RowTaxClassificationState {
+  readonly rowType: RowType;
+  readonly deductionClassification: DeductionClassification;
+}
+
+/**
+ * Load both persisted halves of the row-kind/classification invariant for a partial update.
+ * Returning null is fail-closed for a gone, cross-tenant, or malformed row.
+ */
+export async function loadRowTaxClassificationState(
+  db: CommandDbClient,
+  id: string,
+): Promise<RowTaxClassificationState | null> {
+  const { data, error } = await db
+    .from("calculation_rows")
+    .select("row_type, deduction_classification")
+    .eq("id", id)
+    .limit(1);
+  if (error) {
+    throw new Error(
+      `loadRowTaxClassificationState failed: ${(error as { code?: string }).code ?? "?"}`,
+    );
+  }
+  if (!data || data.length === 0) return null;
+  const row = data[0] as { row_type?: unknown; deduction_classification?: unknown } | undefined;
+  if (!row || !isRowType(row.row_type) || !isDeductionClassification(row.deduction_classification)) {
+    return null;
+  }
+  return {
+    rowType: row.row_type,
+    deductionClassification: row.deduction_classification,
+  };
+}
+
+export interface RowOptionState {
+  readonly isOptional: boolean;
+  readonly isSelected: boolean | null;
+  readonly includedInInvoiceTotal: boolean;
+}
+
+/** Load the persisted option state needed to keep selection and inclusion atomic. */
+export async function loadRowOptionState(
+  db: CommandDbClient,
+  id: string,
+): Promise<RowOptionState | null> {
+  const { data, error } = await db
+    .from("calculation_rows")
+    .select("is_optional, is_selected, included_in_invoice_total")
+    .eq("id", id)
+    .limit(1);
+  if (error) {
+    throw new Error(
+      `loadRowOptionState failed: ${(error as { code?: string }).code ?? "?"}`,
+    );
+  }
+  if (!data || data.length === 0) return null;
+  const row = data[0] as {
+    is_optional?: unknown;
+    is_selected?: unknown;
+    included_in_invoice_total?: unknown;
+  };
+  if (
+    typeof row.is_optional !== "boolean" ||
+    (row.is_selected !== null && typeof row.is_selected !== "boolean") ||
+    typeof row.included_in_invoice_total !== "boolean"
+  ) {
+    throw new Error("loadRowOptionState returned an invalid persisted row");
+  }
+  return {
+    isOptional: row.is_optional,
+    isSelected: row.is_selected,
+    includedInInvoiceTotal: row.included_in_invoice_total,
+  };
+}
+
+export interface RowVatState {
+  readonly vatType: VatType | null;
+  readonly vatRateBp: number | null;
+  readonly reconciliationRequired: boolean;
+}
+
+/** Load both persisted VAT halves so a one-sided update can validate the effective pair. */
+export async function loadRowVatState(
+  db: CommandDbClient,
+  id: string,
+): Promise<RowVatState | null> {
+  const { data, error } = await db
+    .from("calculation_rows")
+    .select("vat_type, vat_rate_bp, tax_reconciliation_required")
+    .eq("id", id)
+    .limit(1);
+  if (error) {
+    throw new Error(
+      `loadRowVatState failed: ${(error as { code?: string }).code ?? "?"}`,
+    );
+  }
+  if (!data || data.length === 0) return null;
+  const row = data[0] as {
+    vat_type?: unknown;
+    vat_rate_bp?: unknown;
+    tax_reconciliation_required?: unknown;
+  } | undefined;
+  if (!row) return null;
+  return {
+    vatType: isVatType(row.vat_type) ? row.vat_type : null,
+    vatRateBp: isVatRateBp(row.vat_rate_bp) ? row.vat_rate_bp : null,
+    // Malformed/legacy metadata fails closed as requiring an explicit complete-pair repair.
+    reconciliationRequired: row.tax_reconciliation_required !== false,
+  };
+}
+
+type BoundedReadResult = {
+  readonly data: unknown[] | null;
+  readonly error: { readonly code?: string } | null;
+};
+
+type BoundedReadQuery = PromiseLike<BoundedReadResult> & {
+  eq(column: string, value: string): BoundedReadQuery;
+  is(column: string, value: null): BoundedReadQuery;
+  limit(value: number): BoundedReadQuery;
+};
+
+type BoundedReadClient = {
+  from(table: string): {
+    select(columns: string): BoundedReadQuery;
+  };
+};
+
+/**
+ * Count active rows in the target section's whole calculation, bounded at 501. The read uses the
+ * request-bound RLS client; the database trigger remains the atomic race-proof authority.
+ */
+export async function loadActiveCalculationRowCountForSection(
+  db: CommandDbClient,
+  sectionId: string,
+): Promise<number | null> {
+  const sectionResult = await db
+    .from("calculation_sections")
+    .select("calculation_id")
+    .eq("id", sectionId)
+    .limit(1);
+  if (sectionResult.error) {
+    throw new Error(
+      `loadActiveCalculationRowCountForSection(section) failed: ${
+        (sectionResult.error as { code?: string }).code ?? "?"
+      }`,
+    );
+  }
+  if (!sectionResult.data || sectionResult.data.length === 0) return null;
+  const section = sectionResult.data[0] as { calculation_id?: unknown } | undefined;
+  if (!section || typeof section.calculation_id !== "string") return null;
+
+  const readDb = db as unknown as BoundedReadClient;
+  const { data, error } = await readDb
+    .from("calculation_rows")
+    .select("id, calculation_sections!inner(calculation_id, archived_at)")
+    .eq("calculation_sections.calculation_id", section.calculation_id)
+    .is("calculation_sections.archived_at", null)
+    .is("archived_at", null)
+    .limit(MAX_CALCULATION_ROWS + 1);
+  if (error) {
+    throw new Error(
+      `loadActiveCalculationRowCountForSection(rows) failed: ${error.code ?? "?"}`,
+    );
+  }
+  return data?.length ?? 0;
 }
 
 /**

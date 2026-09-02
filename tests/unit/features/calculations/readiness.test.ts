@@ -44,6 +44,12 @@ function row(overrides: Partial<ReadinessRowInput> = {}): ReadinessRowInput {
     unit_sell_ore: "unit_sell_ore" in overrides ? (overrides.unit_sell_ore as number | null) : 100000, // 1000,00 kr
     unit_cost_ore: "unit_cost_ore" in overrides ? (overrides.unit_cost_ore as number | null) : 50000, // 500,00 kr → TB% 50%
     vat_rate_bp: "vat_rate_bp" in overrides ? (overrides.vat_rate_bp as number | null) : 2500,
+    vat_type: overrides.vat_type ?? "STANDARD_VAT_25",
+    included_in_invoice_total:
+      "included_in_invoice_total" in overrides
+        ? (overrides.included_in_invoice_total as boolean)
+        : true,
+    deduction_classification: overrides.deduction_classification ?? "NONE",
     is_hidden: overrides.is_hidden ?? false,
     is_optional: overrides.is_optional ?? false,
     is_selected: "is_selected" in overrides ? (overrides.is_selected as boolean | null) : null,
@@ -275,7 +281,11 @@ test("5.4-UNIT-02: NO deduction assumption → NO tax warning", () => {
 
 test("5.4-UNIT-04: an all-EXCLUDED section (only unselected options) classifies as EMPTY_SECTION", () => {
   // The only row is an unselected option → it does NOT count → the section is empty.
-  const unselected = row({ is_optional: true, is_selected: false });
+  const unselected = row({
+    is_optional: true,
+    is_selected: false,
+    included_in_invoice_total: false,
+  });
   const input = baseInput({ sections: [{ rows: [unselected] }] });
   const codes = warningCodes(input);
   assert.ok(codes.includes("EMPTY_SECTION"), "an all-unselected section is empty");
@@ -499,7 +509,13 @@ test("EXPANDED: an UNSELECTED-option labor row without a work_role is excluded a
     sections: [
       {
         rows: [
-          row({ row_type: "labor", source_kind: null, is_optional: true, is_selected: false }),
+          row({
+            row_type: "labor",
+            source_kind: null,
+            is_optional: true,
+            is_selected: false,
+            included_in_invoice_total: false,
+          }),
           row(), // a counted material row keeps the section non-empty
         ],
       },
@@ -515,7 +531,12 @@ test("EXPANDED: a HIDDEN but UNSELECTED-option row is excluded → NO hidden-row
     sections: [
       {
         rows: [
-          row({ is_hidden: true, is_optional: true, is_selected: false }), // excluded → not counted
+          row({
+            is_hidden: true,
+            is_optional: true,
+            is_selected: false,
+            included_in_invoice_total: false,
+          }), // excluded → not counted
           row(), // a counted, visible row
         ],
       },
@@ -574,4 +595,63 @@ test("EXPANDED: no tax message implies a per-person-scaled cap for ANY deduction
     assert.ok(tax);
     assert.doesNotMatch(tax!.message, /per person|per capita|antal personer/i);
   }
+});
+
+test("a calculation with more than 500 active rows is blocked before quote creation", () => {
+  const input = baseInput({
+    sections: [{ rows: Array.from({ length: 501 }, () => row()) }],
+  });
+  const report = classifyReadiness(input);
+  assert.ok(
+    report.blockers.some(
+      (issue) => issue.code === "CALCULATION_ROW_LIMIT_EXCEEDED" && issue.severity === "blocker",
+    ),
+  );
+  assert.equal(report.canCreateQuote, false);
+});
+
+test("10.6-UNIT: every tax-answer failure category is a quote-creation blocker", () => {
+  const codes = [
+    "MISSING_TAX_INPUT",
+    "MISSING_BUYER_VAT_NUMBER",
+    "MISSING_TAX_RESOLVING_DATE",
+    "MISSING_TAX_RESOLVING_PROFILE",
+    "INVALID_DEDUCTION_CLASSIFICATION",
+    "INSUFFICIENT_PERSON_ALLOWANCE",
+    "INCOMPLETE_FIXED_PRICE_CATEGORY_SPLIT",
+    "INVALID_FIXED_PRICE_SCHABLON",
+    "INCOMPLETE_VAT_INPUT",
+  ] as const;
+  const report = classifyReadiness(
+    baseInput({
+      tax: { hasDeductionAssumption: true, blockingCodes: codes },
+    }),
+  );
+  assert.deepEqual(report.blockers.map((issue) => issue.code), codes);
+  assert.equal(report.canCreateQuote, false);
+  assert.ok(report.blockers.every((issue) => issue.severity === "blocker"));
+});
+
+test("10.6-UNIT: an explicitly excluded overflow row cannot poison readiness totals", () => {
+  const report = classifyReadiness(
+    baseInput({
+      sections: [
+        {
+          rows: [
+            row({
+              quantity: Number.MAX_SAFE_INTEGER,
+              unit_sell_ore: Number.MAX_SAFE_INTEGER,
+              included_in_invoice_total: false,
+              is_optional: false,
+              is_selected: null,
+            }),
+          ],
+        },
+      ],
+    }),
+  );
+  assert.equal(
+    report.blockers.some((issue) => issue.code === "TOTAL_UNCOMPUTABLE"),
+    false,
+  );
 });

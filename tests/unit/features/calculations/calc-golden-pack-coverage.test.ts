@@ -93,10 +93,20 @@ function readJson(name: string): unknown {
 
 // ── Row builders — drive the REAL engine, never re-derive a total (mirrors the pack) ─────────────
 function plainRow(sellOre: number, vatBp: number, quantity = 1): TotalsRowInput {
+  const vatType =
+    vatBp === 2_500
+      ? "STANDARD_VAT_25"
+      : vatBp === 600 || vatBp === 1_200
+        ? "REDUCED_VAT"
+        : vatBp === 0
+          ? "ZERO_RATED"
+          : null;
+  assert.notEqual(vatType, null, "test fixture must name a canonical VAT pair for " + vatBp + " bp");
   return {
     quantity,
     unit_sell_ore: sellOre,
     vat_rate_bp: vatBp,
+    vat_type: vatType!,
     is_hidden: false,
     is_optional: false,
     is_selected: null,
@@ -108,6 +118,7 @@ function readinessRow(over: Partial<ReadinessRowInput>): ReadinessRowInput {
     unit_cost_ore: 0,
     unit_sell_ore: 8000,
     vat_rate_bp: 2500,
+    vat_type: "STANDARD_VAT_25",
     is_hidden: false,
     is_optional: false,
     is_selected: null,
@@ -137,8 +148,8 @@ function readinessInput(
 
 describe("Story 5.5 — EXPANDED calc golden PACK coverage (gap-closing live oracles, R-505/R-508/R-509/R-513)", () => {
   // ────────────────────────────────────────────────────────────────────────────────────────────
-  // GAP-A — section INCLUSION negative oracle: computeSectionTotal DROPS an unselected option even
-  //   when composed with a HIDDEN row (counts) + a SELECTED option (counts). The pack's section
+  // GAP-A — section INCLUSION negative oracle: the migrated explicit inclusion fact DROPS the
+  //   legacy-unselected option even when composed with a HIDDEN included row + an included option. The pack's section
   //   guards only ever feed plain visible rows — this exercises the exclusion branch at the SECTION
   //   layer through the real engine, on the options-tillval.json pinned öre (R-508, no re-pin).
   // ────────────────────────────────────────────────────────────────────────────────────────────
@@ -163,19 +174,21 @@ describe("Story 5.5 — EXPANDED calc golden PACK coverage (gap-closing live ora
       "the options authority must carry an unselected-option case (the öre that must NOT be summed)",
     );
 
-    // Compose {base rows (first HIDDEN — counts) + a SELECTED option (counts) + an UNSELECTED option
-    // (dropped)}. VAT bp = 0 so the net is a clean inclusion oracle. Only the pinned öre are used.
+    // Compose {base rows (first HIDDEN + included) + included selected option + explicitly excluded
+    // unselected option}. VAT bp = 0 so the net is a clean inclusion oracle.
     const rows: TotalsRowInput[] = [
       ...selected!.baseLinesOre!.map((ore, i) => ({
         quantity: 1,
         unit_sell_ore: ore,
         vat_rate_bp: 0,
+        vat_type: "ZERO_RATED" as const,
+        included_in_invoice_total: true,
         is_hidden: i === 0, // HIDDEN base row — still counts (frozen 2026-06-18 pin)
         is_optional: false,
         is_selected: null,
       })),
-      { quantity: 1, unit_sell_ore: selected!.selectedOptionOre!, vat_rate_bp: 0, is_hidden: false, is_optional: true, is_selected: true }, // SELECTED → counts
-      { quantity: 1, unit_sell_ore: unselected!.unselectedOptionOre!, vat_rate_bp: 0, is_hidden: false, is_optional: true, is_selected: false }, // UNSELECTED → dropped
+      { quantity: 1, unit_sell_ore: selected!.selectedOptionOre!, vat_rate_bp: 0, vat_type: "ZERO_RATED" as const, included_in_invoice_total: true, is_hidden: false, is_optional: true, is_selected: true }, // persisted inclusion → counts
+      { quantity: 1, unit_sell_ore: unselected!.unselectedOptionOre!, vat_rate_bp: 0, vat_type: "ZERO_RATED" as const, included_in_invoice_total: false, is_hidden: false, is_optional: true, is_selected: false }, // persisted exclusion → dropped
     ];
     const total = computeSectionTotal(rows);
     assert.ok(total.ok, "the composed section must resolve");
@@ -189,7 +202,11 @@ describe("Story 5.5 — EXPANDED calc golden PACK coverage (gap-closing live ora
     // …and is STRICTLY LESS than the total the engine would give if the unselected option WRONGLY
     // counted — so this is a LIVE negative oracle, not a static field.
     const wronglyIncluded = computeSectionTotal(
-      rows.map((r) => (r.is_optional && r.is_selected === false ? { ...r, is_selected: true } : r)),
+      rows.map((r) =>
+        r.is_optional && r.is_selected === false
+          ? { ...r, included_in_invoice_total: true }
+          : r,
+      ),
     );
     assert.ok(wronglyIncluded.ok);
     assert.notEqual(

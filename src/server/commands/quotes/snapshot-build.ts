@@ -30,11 +30,26 @@
  */
 import { CommandError } from "../command-errors";
 import {
+  computeLineTotal,
   computeSectionTotal,
   type TotalsRowInput,
 } from "@/features/calculations/totals";
 import { classifyReadiness } from "@/features/calculations/readiness";
 import { resolveVatDisplayPosture } from "@/features/calculations/vat-posture";
+import { stockholmBusinessDate } from "@/lib/datetime/business-date";
+import {
+  isRowType,
+  taxSummaryCategoryForRowType,
+} from "@/server/commands/calculations/validation";
+import {
+  buildTaxAnswerSnapshotV2,
+  isDeductionClassification,
+  isCustomerEligibilityPosture,
+  isVatType,
+  parseTaxInputSnapshot,
+  type DeductionClassification,
+  type VatType,
+} from "@/lib/money";
 import {
   buildQuoteVersionSnapshot,
   type QuoteAttachmentSource,
@@ -53,22 +68,51 @@ import {
   loadQuoteTerms,
   type CalcRowRow,
 } from "./quote-db";
+import {
+  buildQuoteReviewDigest,
+  quoteReviewDigestsEqual,
+} from "./review-token";
 
 /** The totals-engine row shape from a customer-visible calc row. */
 function totalsRowOf(row: CalcRowRow): TotalsRowInput {
   return {
+    row_type: rowTypeOf(row.row_type),
     quantity: row.quantity,
     unit_sell_ore: row.unit_sell_ore,
     vat_rate_bp: row.vat_rate_bp,
+    vat_type: vatTypeOf(row.vat_type),
+    included_in_invoice_total: row.included_in_invoice_total,
+    deduction_classification: deductionClassificationOf(row.deduction_classification),
     is_hidden: row.is_hidden,
     is_optional: row.is_optional,
     is_selected: row.is_selected,
   };
 }
 
+function rowTypeOf(value: string): "labor" | "material" | "subcontractor" | "machinery" | "other" {
+  if (!isRowType(value)) throw new CommandError("VALIDATION_FAILED");
+  return value;
+}
+
+function vatTypeOf(value: string): VatType {
+  if (!isVatType(value)) throw new CommandError("VALIDATION_FAILED");
+  return value;
+}
+
+function deductionClassificationOf(value: string): DeductionClassification {
+  if (!isDeductionClassification(value)) throw new CommandError("VALIDATION_FAILED");
+  return value;
+}
+
+function summaryCategoryOf(rowType: string): "labor" | "material" | "other" {
+  if (!isRowType(rowType)) throw new CommandError("VALIDATION_FAILED");
+  return taxSummaryCategoryForRowType(rowType);
+}
+
 /** The frozen line-snapshot SOURCE from a customer-visible calc row (NO cost/internal). */
 function lineSourceOf(row: CalcRowRow, lineNetOre: number | null): QuoteLineSource {
   return {
+    sourceRowId: row.id,
     rowType: row.row_type,
     sortOrder: row.sort_order,
     label: row.label,
@@ -80,6 +124,9 @@ function lineSourceOf(row: CalcRowRow, lineNetOre: number | null): QuoteLineSour
     unitSellOre: row.unit_sell_ore,
     lineNetOre,
     vatRateBp: row.vat_rate_bp,
+    includedInInvoiceTotal: row.included_in_invoice_total,
+    deductionClassification: deductionClassificationOf(row.deduction_classification),
+    vatType: vatTypeOf(row.vat_type),
     isHidden: row.is_hidden,
     isOptional: row.is_optional,
     isSelected: row.is_selected,
@@ -93,6 +140,8 @@ export interface QuoteSnapshotBuildParams {
   readonly attachmentFileIds: readonly string[];
   /** The build instant — the SINGLE injected command clock (ISO string), never Date.now(). */
   readonly capturedAt: string;
+  readonly reviewedSnapshotDigest?: string | null;
+  readonly reviewedQuoteCaptureDate?: string | null;
 }
 
 /** The resolved snapshot + the header ids the RPC needs (customer/facility/contact). */
@@ -101,6 +150,16 @@ export interface QuoteSnapshotBuildResult {
   readonly customerId: string;
   readonly facilityId: string | null;
   readonly contactId: string | null;
+  /** UI stale-preview detector; never a database authorization or signature. */
+  readonly currentReviewDigest: string;
+  readonly quoteCaptureDate: string;
+  readonly reviewedCalculationStatus: string;
+  /** Internal-only warning inputs bound inside the create RPC; never frozen or rendered. */
+  readonly reviewedReadinessRows: readonly Readonly<{
+    sourceRowId: string;
+    unitCostOre: number | null;
+    sourceKind: string | null;
+  }>[];
 }
 
 /**
@@ -147,17 +206,90 @@ export async function buildFreshQuoteSnapshot(
     attachmentOrder += 1;
   }
 
+  const quoteCaptureDate = stockholmBusinessDate(params.capturedAt);
+  const currentReviewDigest = buildQuoteReviewDigest({
+    quoteCaptureDate,
+    calculation: {
+      id: header.id,
+      status: header.status,
+      customerId: header.customer_id,
+      facilityId: header.facility_id,
+      contactId: header.contact_id,
+      taxInput: header.tax_input_snapshot,
+    },
+    sections: sections.map((section) => ({
+      id: section.id,
+      title: section.title,
+      displayMode: section.display_mode,
+      sortOrder: section.sort_order,
+    })),
+    rows: rows.map((row) => ({
+      id: row.id,
+      sectionId: row.section_id,
+      rowType: row.row_type,
+      quantity: row.quantity,
+      unit: row.unit,
+      unitCostOre: row.unit_cost_ore,
+      sourceKind: row.source_kind,
+      unitSellOre: row.unit_sell_ore,
+      vatRateBp: row.vat_rate_bp,
+      includedInInvoiceTotal: row.included_in_invoice_total,
+      deductionClassification: row.deduction_classification,
+      vatType: row.vat_type,
+      isHidden: row.is_hidden,
+      isOptional: row.is_optional,
+      isSelected: row.is_selected,
+      label: row.label,
+      description: row.description,
+      quoteNote: row.quote_note,
+      sortOrder: row.sort_order,
+    })),
+    customer: {
+      displayName: customer?.display_name ?? null,
+      customerType: customer?.customer_type ?? null,
+      facilityName,
+      contactName,
+    },
+    company: identity === null ? null : {
+      companyName: identity.company_name,
+      orgNr: identity.org_nr,
+      addressLine1: identity.address_line1,
+      addressLine2: identity.address_line2,
+      postalCode: identity.postal_code,
+      city: identity.city,
+      email: identity.email,
+      phone: identity.phone,
+      logoUrl: identity.logo_url,
+      defaultVatDisplay: identity.default_vat_display,
+      vatRateBp: identity.vat_rate_bp,
+    },
+    terms: terms === null ? null : {
+      text: terms.terms_text,
+      approvedAt: terms.approved_at,
+      approvedBy: terms.approved_by,
+    },
+    attachments,
+  });
+  const reviewedDigest = params.reviewedSnapshotDigest ?? null;
+  const reviewedDate = params.reviewedQuoteCaptureDate ?? null;
+  if (
+    (reviewedDigest !== null || reviewedDate !== null) &&
+    (reviewedDigest === null ||
+      reviewedDate !== quoteCaptureDate ||
+      !quoteReviewDigestsEqual(reviewedDigest, currentReviewDigest))
+  ) {
+    throw new CommandError(
+      "VALIDATION_FAILED",
+      "Kalkylen har ändrats – öppna och granska en ny förhandsvisning.",
+    );
+  }
+
   // ── Compute the totals via the frozen engine (CAPTURE — never re-derive; R-505). ──
   const totalsRows = rows.map(totalsRowOf);
-  const total = computeSectionTotal(totalsRows);
-  if (!total.ok) throw new CommandError("VALIDATION_FAILED");
-
   const baseRows = totalsRows.filter((r) => !r.is_optional);
-  const optionRows = totalsRows.filter(
-    (r) => r.is_optional && r.is_selected === true,
-  );
-  const baseTotal = computeSectionTotal(baseRows);
-  const optionTotal = computeSectionTotal(optionRows);
+  const optionRows = totalsRows.filter((r) => r.is_optional);
+  const baseTotal = computeSectionTotal(baseRows, quoteCaptureDate);
+  const optionTotal = computeSectionTotal(optionRows, quoteCaptureDate);
   if (!baseTotal.ok || !optionTotal.ok) {
     throw new CommandError("VALIDATION_FAILED");
   }
@@ -165,9 +297,34 @@ export async function buildFreshQuoteSnapshot(
   // Per-row line nets (for the frozen line snapshots) — CAPTURED from the engine.
   const lineNetByRowId = new Map<string, number | null>();
   for (const row of rows) {
-    const line = computeSectionTotal([totalsRowOf(row)]);
-    lineNetByRowId.set(row.id, line.ok ? line.value.netOre : null);
+    const line = computeLineTotal(totalsRowOf(row), quoteCaptureDate);
+    if (!line.ok) {
+      throw new CommandError("VALIDATION_FAILED");
+    }
+    lineNetByRowId.set(row.id, line.value.netOre);
   }
+
+  const parsedTaxInput = parseTaxInputSnapshot(header.tax_input_snapshot);
+  if (!parsedTaxInput.ok) throw new CommandError("VALIDATION_FAILED");
+  const taxAnswer = buildTaxAnswerSnapshotV2({
+    rows: rows.map((row) => ({
+      id: row.id,
+      netOre: lineNetByRowId.get(row.id) ?? 0,
+      vatType: vatTypeOf(row.vat_type),
+      rateBp: row.vat_rate_bp ?? 0,
+      includedInInvoiceTotal: row.included_in_invoice_total,
+      deductionClassification: deductionClassificationOf(row.deduction_classification),
+      summaryCategory: summaryCategoryOf(row.row_type),
+    })),
+    taxInput: parsedTaxInput.value,
+    quoteCaptureDate,
+    customerEligibilityPosture: isCustomerEligibilityPosture(customer?.customer_type)
+      ? customer.customer_type
+      : (() => {
+          throw new CommandError("VALIDATION_FAILED");
+        })(),
+  });
+  if (!taxAnswer.ok) throw new CommandError("VALIDATION_FAILED");
 
   // ── Resolve the VAT display posture (presentation-only) + warnings (readiness). ──
   const vatPosture = resolveVatDisplayPosture(
@@ -190,8 +347,12 @@ export async function buildFreshQuoteSnapshot(
         .filter((r) => r.section_id === s.id)
         .map((r) => ({
           quantity: r.quantity,
+          unit_cost_ore: r.unit_cost_ore,
           unit_sell_ore: r.unit_sell_ore,
           vat_rate_bp: r.vat_rate_bp,
+          vat_type: vatTypeOf(r.vat_type),
+          included_in_invoice_total: r.included_in_invoice_total,
+          deduction_classification: deductionClassificationOf(r.deduction_classification),
           is_hidden: r.is_hidden,
           is_optional: r.is_optional,
           is_selected: r.is_selected,
@@ -201,12 +362,24 @@ export async function buildFreshQuoteSnapshot(
             | "subcontractor"
             | "machinery"
             | "other",
-          unit_cost_ore: null,
-          source_kind: null,
+          source_kind: r.source_kind as "work_role" | "article" | null,
         })),
     })),
     vatPostureResolved: identity !== null,
-    tax: { hasDeductionAssumption: false },
+    tax: {
+      hasDeductionAssumption: parsedTaxInput.value.deductionChoice !== "NONE",
+      deductionType:
+        parsedTaxInput.value.deductionChoice === "ROT"
+          ? "rot"
+          : parsedTaxInput.value.deductionChoice === "GREEN"
+            ? "gron_teknik"
+            : parsedTaxInput.value.deductionChoice === "ROT_AND_GREEN"
+              ? "rot_and_gron_teknik"
+              : undefined,
+      eligibilityPosture: isCustomerEligibilityPosture(customer?.customer_type)
+        ? customer.customer_type
+        : undefined,
+    },
   });
   const warnings = [...readiness.blockers, ...readiness.warnings].map((w) => ({
     code: w.code,
@@ -245,19 +418,26 @@ export async function buildFreshQuoteSnapshot(
       totals: {
         baseTotalOre: baseTotal.value.netOre,
         optionTotalOre: optionTotal.value.netOre,
-        vatTotalOre: total.value.vatOre,
-        deductionTotalOre: 0,
-        acceptedPriceOre: total.value.grossOre,
+        vatTotalOre: taxAnswer.value.vatOre,
+        deductionTotalOre: taxAnswer.value.deductionOre,
+        acceptedPriceOre: taxAnswer.value.payableOre,
       },
       assumptions: {
         vatRateBp: identity?.vat_rate_bp ?? null,
         vatDisplay: vatPosture,
-        deductionType: null,
+        deductionType:
+          parsedTaxInput.value.deductionChoice === "ROT"
+            ? "rot"
+            : parsedTaxInput.value.deductionChoice === "GREEN"
+              ? "gron_teknik"
+              : parsedTaxInput.value.deductionChoice === "ROT_AND_GREEN"
+                ? "rot_and_green"
+                : null,
         deductionRateBp: null,
         deductionCapOre: null,
         deductionPersons: null,
-        // The standing UNAPPROVED-estimate marker (demo-data-only accept) — the new version
-        // carries the SAME inert deduction/VAT + requires_sign_off framing as 6.1.
+        // Customer-declared applicability/allowance facts remain preliminary until externally
+        // verified; the complete reconciled answer above is nevertheless frozen verbatim.
         requiresSignOff: true,
       },
       header: {
@@ -271,6 +451,17 @@ export async function buildFreshQuoteSnapshot(
       lines: rows.map((r) => lineSourceOf(r, lineNetByRowId.get(r.id) ?? null)),
       attachments,
       warnings,
+      snapshotSchemaVersion: 2,
+      taxRuleVersion: taxAnswer.value.taxRuleVersions.join("+"),
+      taxAnswerSnapshot: taxAnswer.value,
+      buyerVatNumber: taxAnswer.value.buyerVatNumber,
+      calculatedDeductionOre: taxAnswer.value.calculatedDeductionOre,
+      claimDeductionOre: taxAnswer.value.claimDeductionOre,
+      payableOre: taxAnswer.value.payableOre,
+      netOre: taxAnswer.value.netOre,
+      vatOre: taxAnswer.value.vatOre,
+      grossOre: taxAnswer.value.grossOre,
+      deductionOre: taxAnswer.value.deductionOre,
     },
     { capturedAt: params.capturedAt },
   );
@@ -280,6 +471,14 @@ export async function buildFreshQuoteSnapshot(
     customerId: header.customer_id,
     facilityId: header.facility_id,
     contactId: header.contact_id,
+    currentReviewDigest,
+    quoteCaptureDate,
+    reviewedCalculationStatus: header.status,
+    reviewedReadinessRows: Object.freeze(rows.map((row) => Object.freeze({
+      sourceRowId: row.id,
+      unitCostOre: row.unit_cost_ore,
+      sourceKind: row.source_kind,
+    }))),
   };
 }
 
@@ -313,6 +512,13 @@ export function snapshotToPayload(
     vatTotalOre: s.vatTotalOre,
     deductionTotalOre: s.deductionTotalOre,
     acceptedPriceOre: s.acceptedPriceOre,
+    snapshotSchemaVersion: s.snapshotSchemaVersion,
+    taxRuleVersion: s.taxRuleVersion,
+    taxAnswerSnapshot: s.taxAnswerSnapshot,
+    buyerVatNumber: s.buyerVatNumber,
+    calculatedDeductionOre: s.calculatedDeductionOre,
+    claimDeductionOre: s.claimDeductionOre,
+    payableOre: s.payableOre,
     vatRateBp: s.vatRateBp,
     vatDisplay: s.vatDisplay,
     deductionType: s.deductionType,
@@ -328,6 +534,7 @@ export function snapshotToPayload(
 /** The line payload array the RPC reads (camelCase; NO cost/internal fields — R-607). */
 export function linesToPayload(s: QuoteVersionSnapshot): unknown[] {
   return s.lines.map((l) => ({
+    sourceRowId: l.sourceRowId,
     rowType: l.rowType,
     sortOrder: l.sortOrder,
     label: l.label,
@@ -338,6 +545,9 @@ export function linesToPayload(s: QuoteVersionSnapshot): unknown[] {
     unitSellOre: l.unitSellOre,
     lineNetOre: l.lineNetOre,
     vatRateBp: l.vatRateBp,
+    includedInInvoiceTotal: l.includedInInvoiceTotal,
+    deductionClassification: l.deductionClassification,
+    vatType: l.vatType,
     isHidden: l.isHidden,
     isOptional: l.isOptional,
     isSelected: l.isSelected,

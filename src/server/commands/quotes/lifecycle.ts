@@ -49,7 +49,7 @@ export const markQuoteVersionLifecycle = defineCommand<
   MarkQuoteVersionLifecycleResult
 >({
   command: "quote.version.lifecycle",
-  auditable: true,
+  auditable: false,
   eventType: "quote.version.lifecycle",
   targetType: "quote_version",
   validateInput: validateMarkQuoteVersionLifecycle,
@@ -82,6 +82,8 @@ export const markQuoteVersionLifecycle = defineCommand<
       p_quote_version_id: versionId,
       p_transition: transition,
       p_occurred_at: ctx.clock.now().toISOString(),
+      p_actor_user_id: ctx.tenantContext.userId,
+      p_correlation_id: ctx.correlationId,
     });
     // Map the RPC's QV409 (an illegal transition slipped past the command guard, a race) →
     // QUOTE_VERSION_LOCKED; other codes per the mapper.
@@ -90,5 +92,4 @@ export const markQuoteVersionLifecycle = defineCommand<
     return { targetId: versionId };
   },
   // Audit allow-list is `{ targetId }` ONLY — NO transition/status/customer/money value.
-  auditFields: (ctx) => ({ targetId: ctx.input.quote_version_id }),
 });

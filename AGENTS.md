@@ -25,3 +25,9 @@ Mandatory rules:
 - No service-role access from client paths. No unauthenticated privileged functions. Unauthenticated surfaces are limited to the ADR-B004 closed set of three (calendar feed, asset QR, email unsubscribe), each carrying no privileged capability.
 - Use the deeper docs in `docs/process`, `docs/quality`, `docs/security`, and `_bmad-output/project-context.md`.
 - A live demo deployment exists (Vercel `enhancior/elpro-saas` + Supabase `elprosaas-demo`): see [docs/process/demo-environment.md](docs/process/demo-environment.md). Migrations flow repo→demo via `supabase db push` after merge; CI and tests never target the demo project.
+
+## Code Review Rules
+
+- Report concrete, production-reachable defects introduced by the PR that affect correctness, security, tenant isolation, data integrity, or customer-visible output. Before reporting a missing guard, verify whether an enforced downstream validator, database constraint, trigger, or authorized wrapper already blocks the path; if it does, report only an identified bypass.
+- On follow-up commits, prioritize regressions in changed lines and unresolved consequential findings. After three completed review rounds, do not start another broad pass; limit follow-up review to regressions in the latest fixes and unresolved serious findings. Distinguish a reachable defect from optional defense-in-depth by naming the caller, authorization level, and invariant bypass.
+- Leave deterministic formatting, lint, and schema-shape checks to CI. Do not restate them as review findings unless the PR disables or bypasses the check.

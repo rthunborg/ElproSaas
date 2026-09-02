@@ -12,7 +12,7 @@
  * ── VAT RATE IS BASIS POINTS ONLY — NO HIDDEN 25% CONSTANT (R-404, epic blocker) ──
  * The VAT rate ALWAYS flows in as an INTEGER BASIS-POINT value (2500 = 25.00%) from tenant
  * `company_settings.vat_rate_bp` / a snapshot. The engine invents NO rate and holds NO
- * percent constant: VAT = `roundToOre(lineNetOre * vatRateBp / 10000)`. There is NO
+ * percent constant: VAT uses the supplied basis-point rate. There is NO
  * `0.25`/`25`/`1.25` gross-shortcut literal in the VAT path — that would be a NON-NEGOTIABLE
  * epic blocker (test-design Non-Negotiable) and is exactly the divergence-from-Lovable this
  * story documents (Lovable hardcoded 25%). The `/ 10000` basis-point denominator is the ONLY
@@ -24,15 +24,10 @@
  * re-exports them — mirroring the Story 4.1 `isOreAmount` move). There is exactly ONE
  * implementation in the codebase; the settings command layer and this VAT engine share it.
  *
- * ── VAT ROUNDING POLICY (R-403, golden-PINNED conservative pilot assumption) ─────
- * VAT is rounded PER LINE via the SINGLE Story 4.1 `roundToOre` (the SAME half-away-from-zero
- * mode 4.1 golden-pinned — NOT a second/different mode), and section/quote VAT totals SUM the
- * already-rounded per-line VAT values (`sumOre` = SUM-OF-ROUNDED, never round-of-sum). The
- * load-bearing golden case is the one where sum-of-rounded ≠ round-of-sum so an accidental
- * round-at-end fails loud. THIS VAT ROUNDING POLICY IS A CONSERVATIVE PILOT ASSUMPTION PENDING
- * OWNER/ACCOUNTING SIGN-OFF (architecture.md#10 Rounding; test-design Sign-Off Q1) — recorded
- * as an assumption, NOT hard-coded as accounting-final. If accounting requires DOCUMENT-LEVEL
- * VAT rounding instead of per-line, that is a STOP CONDITION (report `needs-human`).
+ * ── VAT ROUNDING POLICY ─────────────────────────────────────────────────────────
+ * `lineVatOre` remains a one-amount display/legacy helper. Fresh document totals do not sum
+ * its results: Story 10.6's `aggregateDocumentVat` groups rounded line nets by
+ * `(VatType, rateBp)` and rounds VAT exactly once per category.
  *
  * ── DISPLAY VIEWS ARE PRESENTATION-ONLY (AC2) ────────────────────────────────────
  * `vatBreakdown` yields `{ netOre, vatOre, grossOre }` where `grossOre = netOre + vatOre` is
@@ -56,7 +51,6 @@
  */
 import {
   isOreAmount,
-  roundToOre,
   sumOre,
   type MoneyErrorCode,
   type OreResult,
@@ -121,16 +115,18 @@ export type VatDisplayMode = "company_togglable" | "company_excl";
  * a `NaN` / throw / raw-value echo): a bad net → `INVALID_ORE_AMOUNT`, a bad rate →
  * `INVALID_VAT_RATE_BP`.
  *
- * The rounding is LINE-LEVEL — it happens per line via the SINGLE Story 4.1 `roundToOre`
- * (half-away-from-zero), NEVER a `* 1.25` gross shortcut. The rounded VAT is re-checked with
- * `isOreAmount` so an overflowing product is a typed `ORE_OVERFLOW`, never a silently-unsafe
- * integer. `vatRateBp = 0` yields VAT `0` cleanly — VAT-exempt is the same formula, not a
- * special-case bug.
+ * This is a display/compatibility primitive for ONE net amount. Story 10.6 document VAT
+ * MUST use `aggregateDocumentVat`, which rounds once per `(VatType, rateBp)` category.
+ * Exact integer intermediates prevent safe input operands from losing öre precision.
  */
 export function lineVatOre(lineNetOre: number, vatRateBp: number): OreResult {
   if (!isOreAmount(lineNetOre)) return { ok: false, code: "INVALID_ORE_AMOUNT" };
   if (!isVatRateBp(vatRateBp)) return { ok: false, code: "INVALID_VAT_RATE_BP" };
-  const vat = roundToOre((lineNetOre * vatRateBp) / VAT_BP_PER_UNIT);
+  const denominator = BigInt(VAT_BP_PER_UNIT);
+  const exact =
+    (BigInt(lineNetOre) * BigInt(vatRateBp) + denominator / BigInt(2)) /
+    denominator;
+  const vat = Number(exact);
   // Guard the OUTPUT: a large net × a large rate can exceed the safe-integer ceiling even when
   // both inputs are individually valid. An overflow is a typed failure, never an unsafe integer.
   if (!isOreAmount(vat)) return { ok: false, code: "ORE_OVERFLOW" };
@@ -138,10 +134,8 @@ export function lineVatOre(lineNetOre: number, vatRateBp: number): OreResult {
 }
 
 /**
- * Sum an array of ALREADY-ROUNDED per-line VAT values (integer öre) into an exact section/quote
- * VAT total. This is SUM-OF-ROUNDED, never round-of-sum: section/quote VAT totals SUM the
- * rounded line VAT values (delegating to the Story 4.1 `sumOre` primitive) — the divergence from
- * round-of-summed-VAT is the INTENDED conservative pilot behaviour and is golden-pinned (R-403).
+ * Sum already-rounded VAT values for legacy/display callers. It is NOT the document
+ * VAT authority; fresh calculations use category aggregation via `aggregateDocumentVat`.
  *
  * A thin wrapper over `sumOre` so the VAT-total intent reads at the call site while the
  * per-element `isOreAmount` validation and the `ORE_AMOUNT_MAX` accumulator guard come for free.

@@ -112,6 +112,7 @@ test.describe("adjusted-price flow (AC2)", () => {
     page,
   }) => {
     await openSentVersion(page);
+    await page.getByTestId("acceptance-accepted-at").fill("2026-07-10T08:30");
     const price = page.getByTestId("acceptance-price-ore");
     // Enter a price different from the pre-filled sent total (Swedish comma input).
     await price.fill("1,00");
@@ -128,9 +129,29 @@ test.describe("adjusted-price flow (AC2)", () => {
     page,
   }) => {
     await openSentVersion(page);
+    await page.getByTestId("acceptance-accepted-at").fill("2026-07-10T08:30");
     // The price input is pre-filled with the sent total → no delta, the reason field is absent.
     await expect(page.getByTestId("acceptance-adjustment-reason")).toHaveCount(0);
     await expect(page.getByTestId("acceptance-price-delta")).toHaveCount(0);
+    await expect(page.getByTestId("acceptance-confirm")).toBeEnabled();
+  });
+});
+
+test.describe("ambiguous local acceptance time", () => {
+  test.use({ timezoneId: "Europe/Stockholm" });
+
+  test("[P1] a repeated fall-back time requires an explicit occurrence", async ({ page }) => {
+    await openSentVersion(page);
+    await page.getByTestId("acceptance-accepted-at").fill("2026-10-25T02:30");
+
+    await expect(page.getByTestId("acceptance-accepted-at-overlap")).toBeVisible();
+    await expect(page.getByTestId("acceptance-confirm")).toBeDisabled();
+    await expect(page.locator('input[name="accepted_at"]')).toHaveValue("");
+
+    await page.getByLabel(/Andra tillfället/).check();
+    await expect(page.locator('input[name="accepted_at"]')).toHaveValue(
+      "2026-10-25T01:30:00.000Z",
+    );
     await expect(page.getByTestId("acceptance-confirm")).toBeEnabled();
   });
 });

@@ -84,7 +84,7 @@ export const TENANT_ROOT_TABLE = "tenants" as const;
  * carry a literal union. This type is NOT a second copy of the expected SET — it is the switch
  * contract: a FUTURE active table added to the manifest without a branch here fails the switch
  * typecheck (correct fail-loud, matching the standing enrollment contract), and Story 10.1 changes
- * none of the 24 so every switch compiles unchanged.
+ * none of the original 24 so every switch compiles unchanged.
  *
  * Ordering by domain (foundation, CRM, settings, pricing, calc, files, quotes, acceptance/job) —
  * union member order is irrelevant; the runtime `TENANT_TABLES` order follows the manifest.
@@ -120,6 +120,7 @@ export type TenantTableName =
   | "quote_version_lines"
   | "quote_version_attachments"
   | "quote_events"
+  | "quote_review_authorizations"
   // Story 7.1 acceptance/job commitment tables (öre values kept < 10 digits — the orgnr-scan
   // boundary, R-717). `job_events` is the easy-to-forget event table (retro epic-8).
   | "quote_acceptances"
@@ -139,11 +140,11 @@ export type TenantTableName =
  * `tenantTables`, collapsing one of the four independently-authored scope copies into the single
  * manifest source (the Epic 9 retro drift theme). Non-circular by construction: the H4 gate
  * (`rls-inventory-gate.int.test.ts`) independently introspects the LIVE DB schema and asserts this
- * derived set equals the real 24 enrolled tables — the DB itself is the ground truth, not another
+ * derived set equals the real 27 enrolled tables — the DB itself is the ground truth, not another
  * authored copy. A unit check (`tests/unit/scope/manifest-derivations.test.ts`) additionally pins
- * the derivation to the 24 authored table names (a fast, stack-free equality).
+ * the derivation to the 27 authored table names (a fast, stack-free equality).
  *
- * The manifest lists exactly the same 24 tables, so the cast to `readonly TenantTableName[]` is
+ * The manifest lists exactly the same 27 tables, so the cast to `readonly TenantTableName[]` is
  * exact; a manifest change that added an unknown table would surface at runtime through the
  * per-table metadata switches' `default: assertNever(table)` (fail-loud), and through the H4 gate.
  * Only `TENANT_TABLES` re-sources; the introspection (`introspectTenantOwnedTables`) and every
@@ -237,6 +238,7 @@ export interface InventoryContext {
   readonly tenantBQuoteVersionLineId?: string;
   readonly tenantBQuoteVersionAttachmentId?: string;
   readonly tenantBQuoteEventId?: string;
+  readonly tenantBQuoteReviewAuthorizationId?: string;
   /** The Tenant B source calculation the quote_versions spoof references (composite FK). */
   readonly tenantBQuoteSourceCalcId?: string;
   /**
@@ -293,6 +295,13 @@ export function updateDenialKind(table: TenantTableName): MutationDenialKind {
     case "tenants":
     case "tenant_memberships":
     case "audit_events":
+    case "quote_review_authorizations":
+    case "tenant_counters":
+    case "quotes":
+    case "quote_versions":
+    case "quote_version_lines":
+    case "quote_version_attachments":
+    case "quote_events":
     // Story 10.2 quote_lost_reasons is INSERT-ONLY — `authenticated` has NO UPDATE grant, so a
     // cross-tenant (AND own-tenant) UPDATE is denied at the privilege layer (42501), like the
     // append-only foundation tables. This is the load-bearing insert-only enforcement.
@@ -310,12 +319,6 @@ export function updateDenialKind(table: TenantTableName): MutationDenialKind {
     case "calculation_rows":
     case "files":
     case "file_links":
-    case "tenant_counters":
-    case "quotes":
-    case "quote_versions":
-    case "quote_version_lines":
-    case "quote_version_attachments":
-    case "quote_events":
     case "quote_acceptances":
     case "jobs":
     case "job_events":
@@ -387,6 +390,23 @@ export function spoofedRowFor(
         target_id: fixture.tenantB.id,
         correlation_id: crypto.randomUUID(),
         metadata: {},
+      };
+    case "quote_review_authorizations":
+      return {
+        id: crypto.randomUUID(),
+        tenant_id: fixture.tenantB.id,
+        actor_user_id: fixture.adminA.id,
+        purpose: "final_send",
+        quote_id: requireCrmId(ctx.tenantBQuoteId, "tenantBQuoteId", table),
+        target_quote_version_id: requireCrmId(
+          ctx.tenantBQuoteVersionId,
+          "tenantBQuoteVersionId",
+          table,
+        ),
+        source_revision: {},
+        correlation_id: crypto.randomUUID(),
+        issued_at: "2026-08-31T10:00:00.000Z",
+        expires_at: "2026-08-31T10:15:00.000Z",
       };
     case "tenant_memberships":
       // A membership row carrying Tenant B's tenant_id == self-grant into Tenant B. Uses
@@ -622,6 +642,23 @@ export function spoofedRowFor(
         tenant_id: fixture.tenantB.id,
         quote_id: requireCrmId(ctx.tenantBQuoteId, "tenantBQuoteId", table),
         event_type: "created",
+      };
+    case "quote_review_authorizations":
+      return {
+        id: crypto.randomUUID(),
+        tenant_id: fixture.tenantB.id,
+        actor_user_id: fixture.adminA.id,
+        purpose: "final_send",
+        quote_id: requireCrmId(ctx.tenantBQuoteId, "tenantBQuoteId", table),
+        target_quote_version_id: requireCrmId(
+          ctx.tenantBQuoteVersionId,
+          "tenantBQuoteVersionId",
+          table,
+        ),
+        source_revision: {},
+        correlation_id: crypto.randomUUID(),
+        issued_at: "2026-08-31T10:00:00.000Z",
+        expires_at: "2026-08-31T10:15:00.000Z",
       };
     case "quote_acceptances":
       // An acceptance forging Tenant B ownership, pointing at REAL Tenant B quote + version
@@ -907,6 +944,15 @@ export function tenantBFilter(
           table,
         ),
       };
+    case "quote_review_authorizations":
+      return {
+        column: "id",
+        value: requireCrmId(
+          ctx.tenantBQuoteReviewAuthorizationId,
+          "tenantBQuoteReviewAuthorizationId",
+          table,
+        ),
+      };
     case "quote_acceptances":
       return {
         column: "id",
@@ -965,6 +1011,8 @@ export function hijackMutationFor(
       return { name: "hijacked-by-tenant-a" };
     case "audit_events":
       return { metadata: { hijacked: true } };
+    case "quote_review_authorizations":
+      return { source_revision: { hijacked: true } };
     case "tenant_memberships":
       return { status: "disabled" };
     case "customers":
@@ -1106,6 +1154,8 @@ export function rlsInvisibleLabelColumn(table: TenantTableName): string {
       return "name";
     case "audit_events":
       return "command";
+    case "quote_review_authorizations":
+      return "source_revision";
     case "tenant_memberships":
       return "status";
     // quote_lost_reasons is a "privilege"-denial (insert-only) table — the unchanged-re-read branch
@@ -1150,6 +1200,19 @@ export function anonRowFor(
         target_id: fixture.tenantA.id,
         correlation_id: crypto.randomUUID(),
         metadata: {},
+      };
+    case "quote_review_authorizations":
+      return {
+        id: crypto.randomUUID(),
+        tenant_id: fixture.tenantA.id,
+        actor_user_id: fixture.adminA.id,
+        purpose: "final_send",
+        quote_id: crypto.randomUUID(),
+        target_quote_version_id: crypto.randomUUID(),
+        source_revision: {},
+        correlation_id: crypto.randomUUID(),
+        issued_at: "2026-08-31T10:00:00.000Z",
+        expires_at: "2026-08-31T10:15:00.000Z",
       };
     case "tenant_memberships":
       return {
@@ -1402,6 +1465,7 @@ export function anonFilterFor(
     // it stayed unchanged on independent re-read); the anon path has no such re-read,
     // so `tenant_id` suffices. Hence one shared branch, not a per-table copy.
     case "audit_events":
+    case "quote_review_authorizations":
     case "tenant_memberships":
     case "customers":
     case "facilities":
@@ -1441,6 +1505,8 @@ export function anonMutationFor(
       return { name: "anon-hijack" };
     case "audit_events":
       return { metadata: { hijacked: true } };
+    case "quote_review_authorizations":
+      return { source_revision: { hijacked: true } };
     case "tenant_memberships":
       return { status: "disabled" };
     case "customers":

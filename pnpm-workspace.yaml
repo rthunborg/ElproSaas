@@ -1,3 +1,11 @@
+overrides:
+  postcss: ^8.5.23
+  sharp: ^0.35.3
+  brace-expansion: ^5.0.9
+  '@eslint/config-array': ^0.23.5
+  js-yaml: 4.3.1
+  nanoid: 3.3.18
+
 ignoredBuiltDependencies:
   - sharp
   - unrs-resolver

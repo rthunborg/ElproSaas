@@ -1,0 +1,151 @@
+{
+  "policyVersion": "SE-TAX-2026-v1",
+  "coverageManifest": {
+    "category-vat-split-invariance": "aggregateDocumentVat",
+    "whole-sek-truncation-99": "truncateClaimToWholeSekOre",
+    "ordered-person-cap": "allocateWholeSekClaimByPerson",
+    "explicit-reverse-charge": "aggregateDocumentVat",
+    "green-category-rates": "estimateClassifiedDeductions",
+    "fixed-price-gross-before-97": "buildTaxAnswerSnapshotV2",
+    "disjoint-rot-and-green": "buildTaxAnswerSnapshotV2",
+    "insufficient-allowance-block": "buildTaxAnswerSnapshotV2",
+    "reverse-charge-deduction-reject": "buildTaxAnswerSnapshotV2"
+  },
+  "cases": [
+    {
+      "id": "category-vat-split-invariance",
+      "operation": "aggregateDocumentVat",
+      "input": {
+        "standardRateBp": 2500,
+        "rows": [
+          { "id": "a", "netOre": 1, "vatType": "STANDARD_VAT_25", "rateBp": 2500, "includedInInvoiceTotal": true, "deductionClassification": "NONE", "summaryCategory": "other" },
+          { "id": "b", "netOre": 1, "vatType": "STANDARD_VAT_25", "rateBp": 2500, "includedInInvoiceTotal": true, "deductionClassification": "NONE", "summaryCategory": "other" }
+        ]
+      },
+      "expected": { "netOre": 2, "vatOre": 1, "grossOre": 3 }
+    },
+    {
+      "id": "whole-sek-truncation-99",
+      "operation": "truncateClaimToWholeSekOre",
+      "input": 12399,
+      "expected": 12300
+    },
+    {
+      "id": "ordered-person-cap",
+      "operation": "allocateWholeSekClaimByPerson",
+      "input": {
+        "candidateClaimOre": 6000099,
+        "perPersonCapOre": 5000000,
+        "combinedRotRutCapOre": 7500000,
+        "persons": [
+          { "slot": "PERSON_1", "remainingAllowanceOre": 4000000 },
+          { "slot": "PERSON_2", "remainingAllowanceOre": 2000000 }
+        ]
+      },
+      "expected": {
+        "appliedOre": 6000000,
+        "allocations": [
+          { "slot": "PERSON_1", "ore": 4000000 },
+          { "slot": "PERSON_2", "ore": 2000000 }
+        ]
+      }
+    },
+    {
+      "id": "explicit-reverse-charge",
+      "operation": "aggregateDocumentVat",
+      "input": {
+        "standardRateBp": 2500,
+        "rows": [
+          { "id": "standard", "netOre": 100000, "vatType": "STANDARD_VAT_25", "rateBp": 2500, "includedInInvoiceTotal": true, "deductionClassification": "NONE", "summaryCategory": "material" },
+          { "id": "reverse", "netOre": 200000, "vatType": "REVERSE_CHARGE_CONSTRUCTION", "rateBp": 2500, "includedInInvoiceTotal": true, "deductionClassification": "NONE", "summaryCategory": "other" }
+        ]
+      },
+      "expected": { "netOre": 300000, "vatOre": 25000, "grossOre": 325000 }
+    },
+    {
+      "id": "green-category-rates",
+      "operation": "estimateClassifiedDeductions",
+      "input": {
+        "effectiveDate": "2026-08-05",
+        "parts": [
+          { "id": "solar", "classification": "GREEN_SOLAR_MATERIAL", "eligibleCostOre": 100000 },
+          { "id": "storage", "classification": "GREEN_STORAGE_MATERIAL", "eligibleCostOre": 100000 },
+          { "id": "charging", "classification": "GREEN_CHARGING_LABOR", "eligibleCostOre": 100000 }
+        ]
+      },
+      "expected": { "basisMethod": "ACTUAL_ELIGIBLE_COSTS", "greenSolarDeductionOre": 15000, "greenStorageDeductionOre": 50000, "greenChargingDeductionOre": 50000 }
+    },
+    {
+      "id": "fixed-price-gross-before-97",
+      "operation": "buildTaxAnswerSnapshotV2",
+      "input": {
+        "quoteCaptureDate": "2026-08-05",
+        "customerEligibilityPosture": "private",
+        "rows": [
+          { "id": "11111111-1111-4111-8111-111111111111", "netOre": 100000, "vatType": "STANDARD_VAT_25", "rateBp": 2500, "includedInInvoiceTotal": true, "deductionClassification": "GREEN_SOLAR_MATERIAL", "summaryCategory": "material" }
+        ],
+        "taxInput": {
+          "schemaVersion": 2, "documentVatType": "STANDARD_VAT_25", "buyerVatNumber": null,
+          "deductionChoice": "GREEN", "paymentDate": null, "finalPaymentDate": "2026-08-05",
+          "personAllowanceSlots": [{ "slot": "PERSON_1", "remainingGreenAllowanceOre": 5000000 }],
+          "greenBasisMethod": "FIXED_PRICE_97_PERCENT", "genuineFixedPrice": true,
+          "fixedPriceOre": 125000,
+          "fixedPriceCategorySplitOre": { "SOLAR": 125000, "STORAGE": 0, "CHARGING": 0 },
+          "fixedPriceRowIds": ["11111111-1111-4111-8111-111111111111"]
+        }
+      },
+      "expected": { "grossOre": 125000, "green": { "basisMethod": "FIXED_PRICE_97_PERCENT", "categories": { "SOLAR": { "basisOre": 121250, "calculatedOre": 18187, "claimOre": 18100 } } }, "claimDeductionOre": 18100, "payableOre": 106900 }
+    },
+    {
+      "id": "disjoint-rot-and-green",
+      "operation": "buildTaxAnswerSnapshotV2",
+      "input": {
+        "quoteCaptureDate": "2026-08-05", "customerEligibilityPosture": "private",
+        "rows": [
+          { "id": "rot-labor", "netOre": 100000, "vatType": "STANDARD_VAT_25", "rateBp": 2500, "includedInInvoiceTotal": true, "deductionClassification": "ROT_LABOR", "summaryCategory": "labor" },
+          { "id": "green-solar", "netOre": 200000, "vatType": "STANDARD_VAT_25", "rateBp": 2500, "includedInInvoiceTotal": true, "deductionClassification": "GREEN_SOLAR_MATERIAL", "summaryCategory": "material" }
+        ],
+        "taxInput": {
+          "schemaVersion": 2, "documentVatType": "STANDARD_VAT_25", "buyerVatNumber": null,
+          "deductionChoice": "ROT_AND_GREEN", "paymentDate": "2026-08-05", "finalPaymentDate": "2026-08-05",
+          "personAllowanceSlots": [{ "slot": "PERSON_1", "remainingRotAllowanceOre": 5000000, "remainingCombinedRotRutAllowanceOre": 7500000, "remainingGreenAllowanceOre": 5000000 }],
+          "greenBasisMethod": "ACTUAL_ELIGIBLE_COSTS", "genuineFixedPrice": false,
+          "fixedPriceOre": null, "fixedPriceCategorySplitOre": null, "fixedPriceRowIds": null
+        }
+      },
+      "expected": { "rot": { "claimOre": 37500 }, "green": { "claimOre": 37500 }, "claimDeductionOre": 75000, "payableOre": 300000 }
+    },
+    {
+      "id": "insufficient-allowance-block",
+      "operation": "buildTaxAnswerSnapshotV2",
+      "input": {
+        "quoteCaptureDate": "2026-08-05", "customerEligibilityPosture": "private",
+        "rows": [{ "id": "rot-labor", "netOre": 100000, "vatType": "STANDARD_VAT_25", "rateBp": 2500, "includedInInvoiceTotal": true, "deductionClassification": "ROT_LABOR", "summaryCategory": "labor" }],
+        "taxInput": {
+          "schemaVersion": 2, "documentVatType": "STANDARD_VAT_25", "buyerVatNumber": null,
+          "deductionChoice": "ROT", "paymentDate": "2026-08-05", "finalPaymentDate": null,
+          "personAllowanceSlots": [{ "slot": "PERSON_1", "remainingRotAllowanceOre": 1000, "remainingCombinedRotRutAllowanceOre": 1000 }],
+          "greenBasisMethod": "ACTUAL_ELIGIBLE_COSTS", "genuineFixedPrice": false,
+          "fixedPriceOre": null, "fixedPriceCategorySplitOre": null, "fixedPriceRowIds": null
+        }
+      },
+      "expectedFailureCode": "INSUFFICIENT_PERSON_ALLOWANCE"
+    },
+    {
+      "id": "reverse-charge-deduction-reject",
+      "operation": "buildTaxAnswerSnapshotV2",
+      "input": {
+        "quoteCaptureDate": "2026-08-05", "customerEligibilityPosture": "private",
+        "rows": [{ "id": "reverse-labor", "netOre": 100000, "vatType": "REVERSE_CHARGE_CONSTRUCTION", "rateBp": 2500, "includedInInvoiceTotal": true, "deductionClassification": "ROT_LABOR", "summaryCategory": "labor" }],
+        "taxInput": {
+          "schemaVersion": 2, "documentVatType": "REVERSE_CHARGE_CONSTRUCTION", "buyerVatNumber": "SE123456789012",
+          "deductionChoice": "ROT", "paymentDate": "2026-08-05", "finalPaymentDate": null,
+          "personAllowanceSlots": [{ "slot": "PERSON_1", "remainingRotAllowanceOre": 5000000, "remainingCombinedRotRutAllowanceOre": 7500000 }],
+          "greenBasisMethod": "ACTUAL_ELIGIBLE_COSTS", "genuineFixedPrice": false,
+          "fixedPriceOre": null, "fixedPriceCategorySplitOre": null, "fixedPriceRowIds": null
+        }
+      },
+      "expectedFailureCode": "INVALID_DEDUCTION_CLASSIFICATION"
+    }
+  ]
+}

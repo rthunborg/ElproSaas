@@ -113,6 +113,27 @@ test("validateCreateRow accepts every approved row_type", () => {
   }
 });
 
+test("validateCreateRow preserves omitted invoice inclusion for command-owned option defaults", () => {
+  const { validateCreateRow } = notYetImplemented();
+  const data = assertAccepted<{ readonly included_in_invoice_total?: boolean }>(
+    validateCreateRow(baseRow({ is_optional: true, is_selected: false })),
+    "optional unselected row with omitted inclusion",
+  );
+  assert.equal(data.included_in_invoice_total, undefined);
+
+  const explicit = assertAccepted<{ readonly included_in_invoice_total?: boolean }>(
+    validateCreateRow(
+      baseRow({
+        is_optional: true,
+        is_selected: false,
+        included_in_invoice_total: true,
+      }),
+    ),
+    "explicit independent inclusion",
+  );
+  assert.equal(explicit.included_in_invoice_total, true);
+});
+
 test("validateCreateRow rejects a row_type outside the closed union", () => {
   const { validateCreateRow } = notYetImplemented();
   assertRejected(validateCreateRow(baseRow({ row_type: "consulting" })), "bad row_type");
@@ -191,6 +212,23 @@ test("validateCreateRow rejects a missing or non-integer VAT assumption", () => 
   assertRejected(validateCreateRow(baseRow({ vat_rate_bp: undefined })), "missing vat");
   assertRejected(validateCreateRow(baseRow({ vat_rate_bp: 25.5 })), "float vat");
   assertRejected(validateCreateRow(baseRow({ vat_rate_bp: "2500" })), "string vat");
+});
+
+test("validateCreateRow rejects policy-incoherent fresh VAT type/rate pairs", () => {
+  const { validateCreateRow } = notYetImplemented();
+  assertRejected(validateCreateRow(baseRow({ vat_rate_bp: 0 })), "default standard at 0 bp");
+  assertRejected(
+    validateCreateRow(baseRow({ vat_type: "STANDARD_VAT_25", vat_rate_bp: 0 })),
+    "explicit standard at 0 bp",
+  );
+  assertRejected(
+    validateCreateRow(baseRow({ vat_type: "REVERSE_CHARGE_CONSTRUCTION", vat_rate_bp: 0 })),
+    "reverse charge with erased category rate",
+  );
+  assertAccepted(
+    validateCreateRow(baseRow({ vat_type: "REVERSE_CHARGE_CONSTRUCTION", vat_rate_bp: 2500 })),
+    "reverse charge with policy category rate",
+  );
 });
 
 // ─────────────────────────────────────────────────────────────────────────────

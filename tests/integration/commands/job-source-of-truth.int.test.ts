@@ -39,6 +39,7 @@ import {
 } from "../../factories/tenants";
 import { isLocalStackReachable } from "../../support/test-env";
 import { skipUnlessStack } from "../../support/stack-gate";
+import { establishCurrentQuotePdf } from "../../support/quote-pdf";
 import { runCommand } from "@/server/commands/envelope";
 import {
   markQuoteVersionSent,
@@ -48,7 +49,8 @@ import { readJobDetail, type JobReadClient } from "@/features/jobs/read";
 import type { CommandClock } from "@/server/commands/clock";
 
 const ACCEPTED_ISO = "2026-07-10T08:30:00.000Z"; // the EXPLICIT accepted moment (H1 determinism)
-const fixedClock: CommandClock = { now: () => new Date("2026-07-10T09:00:00.000Z") };
+const FIXED_ISO = "2026-07-10T09:00:00.000Z";
+const fixedClock: CommandClock = { now: () => new Date(FIXED_ISO) };
 
 /** The frozen source sent total (öre) the seeded sent version carries (< 10 digits — R-717). */
 const SOURCE_SENT_TOTAL_ORE = 125_000;
@@ -105,6 +107,13 @@ describe("7.3-INT-01: job detail reads from IMMUTABLE acceptance/version refs, n
       accepted_price_ore: SOURCE_SENT_TOTAL_ORE,
     });
     // Flip draft → sent via the REAL command (freezes the snapshot the job later references).
+    await establishCurrentQuotePdf({
+      client: clientA,
+      tenantId: fx.tenantA.id,
+      quoteVersionId: versionId,
+      actorUserId: fx.adminA.id,
+      occurredAt: FIXED_ISO,
+    });
     const sent = await runCommand(markQuoteVersionSent, {
       client: clientA as never,
       clock: fixedClock,
@@ -210,6 +219,13 @@ describe("7.3-INT-01: job detail reads from IMMUTABLE acceptance/version refs, n
       status: "draft",
       customer_display_name: "Tenant B kund",
       accepted_price_ore: SOURCE_SENT_TOTAL_ORE,
+    });
+    await establishCurrentQuotePdf({
+      client: clientB,
+      tenantId: fx.tenantB.id,
+      quoteVersionId: versionId,
+      actorUserId: fx.adminB.id,
+      occurredAt: FIXED_ISO,
     });
     const sent = await runCommand(markQuoteVersionSent, {
       client: clientB as never,

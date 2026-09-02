@@ -8,14 +8,15 @@
  * `fileOwnerTypesFromManifest(m)`) are landed; the suite imports the REAL modules, is unskipped, and
  * runs green. The assertions are the CONTRACT — do not weaken them.
  *
- * These assertions encode AC2's concrete numbers (7 nav / 24 tenant tables / 7 file owner types as
- * the Phase A `active` set under wave `A`, every Phase B module `pending`) + the per-module field
+ * These assertions encode AC2's concrete numbers (7 nav / 27 tenant tables / 7 file owner types in
+ * the current active set, every Phase B module `pending`) + the per-module field
  * shape + the cross-module uniqueness invariant (Task 1.3 — the `READINESS_CODES` uniqueness gap
  * the manifest must NOT repeat). Grounded against PINNED Phase-A literals (non-circular per Dev
  * Notes), never against another manifest-derived value.
  *
  * [Source: story 10.1 AC2, Task 1.1/1.3, Task 2; architecture-phase-b.md §5.2; Persistent Facts
- *  (7/24/7 baseline); Constraints (READINESS_CODES uniqueness gap → add uniqueness assertion).]
+ *  (7/24/7 baseline, plus the governed Epic 10 enrollments); Constraints
+ *  (READINESS_CODES uniqueness gap → add uniqueness assertion).]
  */
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -68,6 +69,8 @@ const PINNED_TENANT_TABLES = [
   // Story 10.3 enrols the follow-up workflow table into the same ACTIVE quotes module (epic-10
   // activation seam) — the active set grows 25 → 26 in the same PR as its migration.
   "quote_follow_ups",
+  // Story 10.8 enrols one-time quote review authority into that same already-active module.
+  "quote_review_authorizations",
   "jobs",
   "job_events",
 ];
@@ -138,15 +141,15 @@ test("10.1-UNIT-SHAPE-03 (AC2): the `active` set reproduces exactly the 7 Phase-
   assert.deepEqual(sortedUnique(routes), sortedUnique(PINNED_NAV_ROUTES));
 });
 
-test("10.1-UNIT-SHAPE-04 (AC2): the `active` set reproduces exactly the 26 tenant tables (pinned, non-circular)", async () => {
+test("10.1-UNIT-SHAPE-04 (AC2): the `active` set reproduces exactly the 27 tenant tables (pinned, non-circular)", async () => {
   // Baseline was 24 (Phase A); Story 10.2 enrolled quote_lost_reasons (→ 25) and Story 10.3 enrols
-  // quote_follow_ups (→ 26) into the active quotes module, each in the same PR as its migration
-  // (ADR-B003 §5.5 activation seam), so the active union is now 26.
+  // quote_follow_ups (→ 26); Story 10.8 adds quote_review_authorizations (→ 27) to the same active
+  // quotes module, each in the same PR as its migration (ADR-B003 §5.5 activation seam).
   const manifest = await loadManifest();
   const tables = manifest.modules
     .filter((m) => m.status === "active")
     .flatMap((m) => m.tenantTables);
-  assert.equal(tables.length, 26, "the active tenant-table union must total exactly 26 (no dup, no gap)");
+  assert.equal(tables.length, 27, "the active tenant-table union must total exactly 27 (no dup, no gap)");
   assert.deepEqual(sortedUnique(tables), sortedUnique(PINNED_TENANT_TABLES));
 });
 

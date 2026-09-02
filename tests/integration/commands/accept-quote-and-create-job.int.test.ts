@@ -76,6 +76,7 @@ import {
 import { adminSelectAuditEvents } from "../../factories/audit-events";
 import { isLocalStackReachable } from "../../support/test-env";
 import { skipUnlessStack } from "../../support/stack-gate";
+import { establishCurrentQuotePdf } from "../../support/quote-pdf";
 import { runCommand } from "@/server/commands/envelope";
 import { acceptQuoteAndCreateJob, markQuoteVersionSent } from "@/server/commands/quotes";
 import type { CommandClock } from "@/server/commands/clock";
@@ -113,6 +114,13 @@ async function seedSentVersion(
     calculation_id: calcId,
     status: "draft",
     accepted_price_ore: SOURCE_SENT_TOTAL_ORE,
+  });
+  await establishCurrentQuotePdf({
+    client,
+    tenantId,
+    quoteVersionId: versionId,
+    actorUserId: tenantId === fixture.tenantA.id ? fixture.adminA.id : fixture.adminB.id,
+    occurredAt: FIXED_ISO,
   });
   const sent = await runCommand(markQuoteVersionSent, {
     client: client as never,

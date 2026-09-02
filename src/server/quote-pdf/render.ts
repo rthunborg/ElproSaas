@@ -49,6 +49,7 @@ export const NON_FINAL_CUE =
 const PAGE_WIDTH = 595.28;
 const PAGE_HEIGHT = 841.89;
 const MARGIN = 48;
+const CONTENT_WIDTH = PAGE_WIDTH - 2 * MARGIN;
 const BODY_SIZE = 10;
 const HEADING_SIZE = 16;
 const SUBHEADING_SIZE = 12;
@@ -104,22 +105,69 @@ class PdfCursor {
     }
   }
 
-  /** Draw ONE text line at the given size/weight; advance the cursor. Empty strings still advance. */
+  /** Split one logical line into deterministic font-width-bounded physical lines. */
+  private wrapLine(value: string, font: PDFFont, size: number): readonly string[] {
+    if (value.length === 0 || font.widthOfTextAtSize(value, size) <= CONTENT_WIDTH) {
+      return [value];
+    }
+
+    const wrapped: string[] = [];
+    let current = "";
+
+    const pushToken = (token: string): void => {
+      const candidate = current.length > 0 ? `${current} ${token}` : token;
+      if (font.widthOfTextAtSize(candidate, size) <= CONTENT_WIDTH) {
+        current = candidate;
+        return;
+      }
+      if (current.length > 0) {
+        wrapped.push(current);
+        current = "";
+      }
+
+      // Customer-controlled prose can contain a single unbroken token. Split it
+      // by Unicode code point so even that case can never cross the right margin.
+      let fragment = "";
+      for (const codePoint of Array.from(token)) {
+        const next = fragment + codePoint;
+        if (fragment.length > 0 && font.widthOfTextAtSize(next, size) > CONTENT_WIDTH) {
+          wrapped.push(fragment);
+          fragment = codePoint;
+        } else {
+          fragment = next;
+        }
+      }
+      current = fragment;
+    };
+
+    for (const token of value.trim().split(/\s+/)) {
+      pushToken(token);
+    }
+    if (current.length > 0) wrapped.push(current);
+    return wrapped.length > 0 ? wrapped : [""];
+  }
+
+  /** Draw width-safe text at the given size/weight; paginate and advance per physical line. */
   text(value: string, opts?: { size?: number; bold?: boolean }): void {
     const size = opts?.size ?? BODY_SIZE;
     const lineHeight = size + LINE_GAP;
-    this.ensureSpace(lineHeight);
-    this.y -= size;
-    if (value.length > 0) {
-      this.page.drawText(value, {
-        x: MARGIN,
-        y: this.y,
-        size,
-        font: opts?.bold ? this.boldFont : this.font,
-        color: TEXT_COLOR,
-      });
+    const font = opts?.bold ? this.boldFont : this.font;
+    const logicalLines = value.split(/\r?\n/);
+    const physicalLines = logicalLines.flatMap((line) => this.wrapLine(line, font, size));
+    for (const line of physicalLines) {
+      this.ensureSpace(lineHeight);
+      this.y -= size;
+      if (line.length > 0) {
+        this.page.drawText(line, {
+          x: MARGIN,
+          y: this.y,
+          size,
+          font,
+          color: TEXT_COLOR,
+        });
+      }
+      this.y -= LINE_GAP;
     }
-    this.y -= LINE_GAP;
   }
 
   /** A blank spacer line. */
@@ -132,6 +180,15 @@ class PdfCursor {
 /** Join non-empty parts with a separator (skips nulls/blanks) for a compact identity line. */
 function joinParts(parts: readonly (string | null)[], sep = " "): string {
   return parts.filter((p): p is string => typeof p === "string" && p.length > 0).join(sep);
+}
+
+/** `validTo` policies are exclusive: customer wording must name the final included day. */
+function exclusiveValidToLabel(validTo: string | null): string {
+  if (!validTo) return "";
+  const date = new Date(`${validTo}T00:00:00.000Z`);
+  if (!Number.isFinite(date.getTime())) return ` till före ${validTo}`;
+  date.setUTCDate(date.getUTCDate() - 1);
+  return ` till och med ${date.toISOString().slice(0, 10)}`;
 }
 
 /**
@@ -206,12 +263,21 @@ export async function renderQuotePdf(
   } else {
     for (const line of visibleLines) {
       const label = line.label ?? line.description ?? "—";
-      const tillval = line.isOptional ? " (tillval)" : "";
+      const tillval = line.isOptional
+        ? line.isSelected
+          ? " (tillval, valt)"
+          : " (tillval, inte valt)"
+        : "";
+      const inclusion = line.includedInInvoiceTotal === false
+        ? " (ingår inte i totalsumman)"
+        : line.isOptional
+          ? " (ingår i totalsumman)"
+          : "";
       const qty = line.quantity !== null ? `${line.quantity} ${line.unit ?? ""}`.trim() : "";
       const unitSell = line.unitSellKronor !== null ? `${line.unitSellKronor} kr` : "";
       const net = line.lineNetKronor !== null ? `${line.lineNetKronor} kr` : "";
       const segments = joinParts([qty, unitSell ? `à ${unitSell}` : "", net ? `= ${net}` : ""], "  ");
-      cursor.text(joinParts([`${label}${tillval}`, segments], "  —  "));
+      cursor.text(joinParts([`${label}${tillval}${inclusion}`, segments], "  —  "));
       if (line.quoteNote) cursor.text(`  ${line.quoteNote}`);
     }
   }
@@ -220,20 +286,115 @@ export async function renderQuotePdf(
   // ── Totals (READ VERBATIM from the frozen row — the renderer does NO money math). ──
   cursor.text("Summering", { size: SUBHEADING_SIZE, bold: true });
   cursor.text(`Grundbelopp (netto): ${vm.totals.baseKronor} kr`);
-  cursor.text(`Tillval (valda): ${vm.totals.optionKronor} kr`);
+  cursor.text(`Tillval som ingår (netto): ${vm.totals.optionKronor} kr`);
   cursor.text(`Moms: ${vm.totals.vatKronor} kr`);
-  if (vm.taxAssumptions.deductionType) {
+  if (
+    vm.taxAnswer?.source === "v2" &&
+    vm.taxAnswer.deductionChoice !== null &&
+    vm.taxAnswer.deductionChoice !== "NONE"
+  ) {
+    cursor.text(`Beräknat avdrag: ${vm.taxAnswer.calculatedDeductionKronor} kr`);
+    cursor.text(`Begärt avdrag: ${vm.taxAnswer.claimDeductionKronor} kr`);
+  } else if (vm.taxAssumptions.deductionType) {
     cursor.text(`Avdrag (uppskattning): ${vm.totals.deductionKronor} kr`);
   }
-  cursor.text(`Att betala (inkl. moms): ${vm.totals.acceptedPriceKronor} kr`, { bold: true });
+  cursor.text(
+    vm.taxAnswer?.source === "v2" || vm.reverseChargeText
+      ? `Att betala: ${vm.taxAnswer?.payableKronor ?? vm.totals.acceptedPriceKronor} kr`
+      : `Att betala (inkl. moms): ${vm.totals.acceptedPriceKronor} kr`,
+    { bold: true },
+  );
   cursor.gap();
+
+  if (vm.taxAnswer?.source === "v2") {
+    cursor.text("Moms per kategori", { size: SUBHEADING_SIZE, bold: true });
+    for (const category of vm.taxAnswer.categories) {
+      const label = category.vatType === "REVERSE_CHARGE_CONSTRUCTION"
+        ? category.label
+        : `${category.label} (${category.ratePercent} %)`;
+      cursor.text(
+        `${label}: netto ${category.netKronor} kr, moms ${category.vatKronor} kr, brutto ${category.grossKronor} kr`,
+      );
+    }
+    if (vm.taxAnswer.summaries) {
+      cursor.text("Arbete, material och övrigt", { bold: true });
+      cursor.text(
+        `Arbete: netto ${vm.taxAnswer.summaries.labor.netKronor} kr, moms ${vm.taxAnswer.summaries.labor.vatKronor} kr, brutto ${vm.taxAnswer.summaries.labor.grossKronor} kr`,
+      );
+      cursor.text(
+        `Material: netto ${vm.taxAnswer.summaries.material.netKronor} kr, moms ${vm.taxAnswer.summaries.material.vatKronor} kr, brutto ${vm.taxAnswer.summaries.material.grossKronor} kr`,
+      );
+      cursor.text(
+        `Övrigt: netto ${vm.taxAnswer.summaries.other.netKronor} kr, moms ${vm.taxAnswer.summaries.other.vatKronor} kr, brutto ${vm.taxAnswer.summaries.other.grossKronor} kr`,
+      );
+    }
+    if (vm.taxAnswer.deductionChoice === "ROT" || vm.taxAnswer.deductionChoice === "ROT_AND_GREEN") {
+      const rot = vm.taxAnswer.rot;
+      if (rot) {
+        cursor.text("ROT-avdrag", { bold: true });
+        cursor.text(
+          `Underlag: ${rot.basisKronor} kr (arbete ${rot.basisNetKronor} kr, fördelad moms ${rot.allocatedVatKronor} kr)`,
+        );
+        cursor.text(`Beräknat: ${rot.calculatedKronor} kr. Begärt: ${rot.claimKronor} kr.`);
+        if (rot.policy) {
+          cursor.text(
+            `Regelverk ${rot.policy.id}, betalningsdatum ${rot.policy.resolvingDate}, giltigt från ${rot.policy.validFrom}${exclusiveValidToLabel(rot.policy.validTo)}.`,
+          );
+        }
+        for (const allocation of rot.allocations) {
+          cursor.text(`Fördelning ${allocation.slot}: ${allocation.kronor} kr`);
+        }
+      }
+    }
+    if (vm.taxAnswer.deductionChoice === "GREEN" || vm.taxAnswer.deductionChoice === "ROT_AND_GREEN") {
+      const green = vm.taxAnswer.green;
+      if (green) {
+        const basisLabels = {
+          ACTUAL_ELIGIBLE_COSTS: "Faktiska stödberättigade kostnader",
+          FIXED_PRICE_97_PERCENT: "97 % av äkta fastprisavtal",
+        } as const;
+        const categoryLabels = {
+          SOLAR: "Solceller",
+          STORAGE: "Lagring",
+          CHARGING: "Laddningspunkt",
+        } as const;
+        cursor.text("Grön teknik", { bold: true });
+        const basisLabel = basisLabels[green.basisMethod as keyof typeof basisLabels]
+          ?? "Okänd underlagsmetod";
+        cursor.text(`Underlagsmetod: ${basisLabel}`);
+        if (green.basisMethod === "FIXED_PRICE_97_PERCENT") {
+          cursor.text("Fastprisets kategoriandelar: inkl. moms (brutto, före 97 %).");
+        }
+        for (const category of ["SOLAR", "STORAGE", "CHARGING"] as const) {
+          const values = green.categories[category];
+          cursor.text(
+            `${categoryLabels[category]}: underlag ${values.basisKronor} kr, beräknat ${values.calculatedKronor} kr, begärt ${values.claimKronor} kr`,
+          );
+        }
+        cursor.text(`Beräknat: ${green.calculatedKronor} kr. Begärt: ${green.claimKronor} kr.`);
+        if (green.policy) {
+          cursor.text(
+            `Regelverk ${green.policy.id}, slutbetalningsdatum ${green.policy.resolvingDate}, giltigt från ${green.policy.validFrom}${exclusiveValidToLabel(green.policy.validTo)}.`,
+          );
+        }
+        for (const allocation of green.allocations) {
+          cursor.text(`Fördelning ${allocation.slot}: ${allocation.kronor} kr`);
+        }
+      }
+    }
+    cursor.gap();
+  }
 
   // ── VAT / tax assumptions (with the non-final ROT/grön framing). ──
   cursor.text("Moms- och skatteantaganden", { size: SUBHEADING_SIZE, bold: true });
   if (vm.taxAssumptions.vatRatePercent) {
     cursor.text(`Momssats: ${vm.taxAssumptions.vatRatePercent} %`);
   }
-  if (vm.taxAssumptions.deductionType) {
+  if (vm.reverseChargeText) {
+    cursor.text(vm.reverseChargeText, { bold: true });
+    if (vm.buyerVatNumber) cursor.text(`Köparens momsregistreringsnummer: ${vm.buyerVatNumber}`);
+  }
+  if (vm.taxAssumptions.deductionType && vm.taxAnswer?.source !== "v2") {
     const dType = vm.taxAssumptions.deductionType === "rot" ? "ROT-avdrag" : "Grön teknik";
     const rate = vm.taxAssumptions.deductionRatePercent
       ? ` (${vm.taxAssumptions.deductionRatePercent} %)`

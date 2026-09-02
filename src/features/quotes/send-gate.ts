@@ -63,6 +63,11 @@ export interface SendGateSignOffPosture {
   readonly requiresSignOff: boolean;
   /** The persisted terms sign-off instant (NULL = not-approved), captured verbatim. */
   readonly termsApprovedAt: string | null;
+  /**
+   * A server-selected delivery track. A disposable demo may display the unresolved estimate
+   * warning; a real customer commitment must not be sent while that warning remains.
+   */
+  readonly customerDataTrack?: "demo" | "real_customer";
 }
 
 /** The pure send-gate input: the frozen classifier output + the re-derivable posture. */
@@ -97,10 +102,21 @@ export function evaluateSendGate(input: SendGateInput): SendGateResult {
   const blockers = input.warningsSnapshot.filter(
     (issue) => issue.severity === BLOCKER,
   );
-  // Demo-data-only accept (Task 4.3 / R-610): the sign-off posture is re-derived from the
-  // demo default and does NOT hard-block the send. It is read here (not ignored) so the seam
-  // exists for a future real-customer hard gate; today it never turns a warning into a blocker.
-  void input.signOff;
+  const hasUnresolvedTaxSignOff =
+    input.signOff.requiresSignOff &&
+    input.warningsSnapshot.some((issue) => issue.code === "TAX_SIGN_OFF_REQUIRED");
+  // The omitted value remains the historical demo-only posture so frozen legacy callers retain
+  // their valid behavior. The real customer path is explicit and fail-closed in mark-sent.
+  if (
+    input.signOff.customerDataTrack === "real_customer" &&
+    hasUnresolvedTaxSignOff
+  ) {
+    blockers.push({
+      code: "TAX_SIGN_OFF_REQUIRED",
+      severity: BLOCKER,
+      message: "Skatteantaganden måste godkännas innan en offert skickas till en verklig kund.",
+    });
+  }
   return {
     canSend: blockers.length === 0,
     blockers,

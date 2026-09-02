@@ -20,14 +20,11 @@
  *     proven by 7.4-INT-02's direct-SQL path (the command cannot smuggle the field, so the command
  *     path returns VALIDATION_FAILED; the trigger is the backstop for the below-the-command attack).
  *     BOTH codes asserted across the two-INT pair.
- *   - 7.4-INT-02 (P0, AC1, R-704 — THE load-bearing DB proof, mirrors 6.4-INT-03): a DIRECT own-tenant
- *     AUTHENTICATED (anon-key RLS `makeAuthedServerClient`, NEVER the BYPASSRLS admin pool) UPDATE of
- *     EACH immutable field on `quote_acceptances` (accepted_price_ore, accepted_at, evidence_reference,
- *     channel, source_sent_total_ore, quote_version_id) and on `jobs` (quote_acceptance_id,
- *     quote_version_id, customer_id) ⇒ REJECTED by the trigger. AND the EXEMPT paths STILL work on the
- *     authenticated RLS client: an `archived_at` soft-delete flip on `quote_acceptances` SUCCEEDS; an
- *     `updateJob`-shaped title/status/planned-date UPDATE on `jobs` SUCCEEDS (the allowed edit is not
- *     fought by the lock).
+ *   - 7.4-INT-02 (P0, AC1, R-704 — THE load-bearing DB proof, mirrors 6.4-INT-03): Story 10.8
+ *     deliberately revoked authenticated `quote_acceptances` DML, so every app-path UPDATE is denied
+ *     with 42501 and leaves the row untouched. The same immutable acceptance probes are repeated via
+ *     privileged admin SQL, which bypasses grants/RLS but invokes triggers and therefore proves AR704.
+ *     The precise archival exemption is privileged-only; `jobs` remains writable on its allowed fields.
  *   - 7.4-INT-03 (P0, AC2, R-704/R-714): accidental-update regression — an id-only/empty-patch
  *     `updateJob` is a clean no-op (no false TENANT_ACCESS_DENIED, no write, no audit row, immutable
  *     fields byte-unchanged); a status-change appends EXACTLY ONE `job_events` row and never silently
@@ -37,9 +34,9 @@
  *     the short-circuit — it performs NO immutable-field UPDATE). This is the explicit "7.4 immutability
  *     preserves the relaxed sent-state retry path" retro constraint.
  *   - 7.4-RLS-01 (P0, AC3, R-701/R-704): cross-tenant — tenant A reads a tenant B
- *     `quote_acceptances`/`jobs` row ⇒ zero rows / not-found; tenant A's direct own-RLS-client UPDATE
- *     of an immutable field on a tenant B row ⇒ zero rows affected (RLS makes it invisible, the trigger
- *     never sees it) — no existence disclosure; anon ⇒ UNAUTHENTICATED on the LIVE command path.
+ *     `quote_acceptances`/`jobs` row ⇒ zero rows / not-found; tenant A's authenticated acceptance
+ *     UPDATE ⇒ 42501 before RLS/trigger evaluation and leaves the row untouched; anon ⇒
+ *     UNAUTHENTICATED on the LIVE command path.
  *
  * Harness conventions mirror `mark-quote-version-sent.int.test.ts` (6.4-INT-03 — the direct-SQL
  * UPDATE-rejected-by-trigger structure) + `accept-quote-and-create-job.int.test.ts` (the REAL
@@ -86,8 +83,10 @@ import {
   type FixtureTenant,
 } from "../../factories/tenants";
 import { adminSelectAuditEvents } from "../../factories/audit-events";
+import { adminQuery } from "../../factories/admin-sql";
 import { isLocalStackReachable } from "../../support/test-env";
 import { skipUnlessStack } from "../../support/stack-gate";
+import { establishCurrentQuotePdf } from "../../support/quote-pdf";
 import { runCommand } from "@/server/commands/envelope";
 import {
   markQuoteVersionSent,
@@ -103,6 +102,8 @@ const SOURCE_SENT_TOTAL_ORE = 125_000;
 
 /** The custom SQLSTATE the 7.4 trigger RAISEs (mapped → command ACCEPTED_RECORD_LOCKED). */
 const ACCEPTED_LOCK_SQLSTATE = "AR704";
+/** Authenticated roles deliberately have no quote_acceptances UPDATE grant (Story 10.8). */
+const QUOTE_ACCEPTANCE_DML_REVOKED_SQLSTATE = "42501";
 
 let stackUp = false;
 let fx: TwoTenantFixture;
@@ -145,6 +146,11 @@ async function seedAcceptedChain(
     calculation_id: calcId,
     status: "draft",
     accepted_price_ore: SOURCE_SENT_TOTAL_ORE, // NON-ZERO frozen source sent total (R-717 seed)
+  });
+  await establishCurrentQuotePdf({
+    client, tenantId: tenant.id, quoteVersionId: versionId,
+    actorUserId: tenant.id === fx.tenantA.id ? fx.adminA.id : fx.adminB.id,
+    occurredAt: fixedClock.now().toISOString(),
   });
   const sent = await runCommand(markQuoteVersionSent, {
     client: client as never,
@@ -220,6 +226,11 @@ async function seedAcceptedChainWithFacility(
     status: "draft",
     accepted_price_ore: SOURCE_SENT_TOTAL_ORE,
   });
+  await establishCurrentQuotePdf({
+    client, tenantId: tenant.id, quoteVersionId: versionId,
+    actorUserId: tenant.id === fx.tenantA.id ? fx.adminA.id : fx.adminB.id,
+    occurredAt: fixedClock.now().toISOString(),
+  });
   const sent = await runCommand(markQuoteVersionSent, {
     client: client as never,
     clock: fixedClock,
@@ -254,6 +265,24 @@ async function seedAcceptedChainWithFacility(
     name: `Kontakt ${crypto.randomUUID().slice(0, 8)}`,
   });
   return { jobId: String(jobs[0]?.id), altFacilityId, altContactId };
+}
+
+/**
+ * Execute the below-app acceptance-lock probe as postgres. This deliberately bypasses table grants
+ * and RLS, but does not disable triggers: it is the load-bearing AR704 evidence after Story 10.8
+ * revoked authenticated quote_acceptances DML.
+ */
+async function expectPrivilegedAcceptanceUpdateLocked(
+  acceptanceId: string,
+  field: string,
+  value: unknown,
+): Promise<void> {
+  await expect(
+    adminQuery(
+      `update public.quote_acceptances set ${field} = $2 where id = $1 returning id`,
+      [acceptanceId, value],
+    ),
+  ).rejects.toMatchObject({ code: ACCEPTED_LOCK_SQLSTATE });
 }
 
 // ══════════════════════════════════════════════════════════════════════════════════════════════
@@ -300,13 +329,12 @@ describe("7.4-INT-01: accepted-record immutability at the COMMAND layer (AC1, R-
 });
 
 // ══════════════════════════════════════════════════════════════════════════════════════════════
-// 7.4-INT-02 (P0, AC1) — THE load-bearing DB proof: a DIRECT own-tenant authenticated UPDATE ⇒ rejected
+// 7.4-INT-02 (P0, AC1) — authenticated denial plus privileged trigger proof
 // ══════════════════════════════════════════════════════════════════════════════════════════════
 describe("7.4-INT-02: accepted-record immutability BELOW the command — the DB trigger (AC1, R-704)", () => {
-  // The DIRECT own-tenant AUTHENTICATED (anon-key RLS client, NEVER BYPASSRLS) UPDATE the trigger
-  // must block (architecture §9). It targets an immutable column on an OWN-TENANT (RLS-visible)
-  // accepted row, so the trigger RAISE — not RLS invisibility — is what rejects it. A test that only
-  // proves the UI disables a control is NOT evidence.
+  // Story 10.8 revoked authenticated quote_acceptances DML. The app path must therefore fail at the
+  // table privilege boundary (42501), while the privileged SQL probe below still invokes the trigger
+  // and proves AR704. Keeping both assertions prevents a grant change from masking a weak trigger.
 
   const IMMUTABLE_ACCEPTANCE_UPDATES: readonly { field: string; value: unknown }[] = [
     { field: "accepted_price_ore", value: 999_999 },
@@ -318,7 +346,7 @@ describe("7.4-INT-02: accepted-record immutability BELOW the command — the DB 
   ];
 
   for (const { field, value } of IMMUTABLE_ACCEPTANCE_UPDATES) {
-    it(`[P0] 7.4-INT-02: a DIRECT own-tenant UPDATE of quote_acceptances.\`${field}\` is REJECTED by the trigger (AR704 → ACCEPTED_RECORD_LOCKED)`, async (testCtx) => {
+    it(`[P0] 7.4-INT-02: an authenticated UPDATE of quote_acceptances.\`${field}\` is denied (42501), while privileged SQL proves AR704`, async (testCtx) => {
       if (skipUnlessStack(testCtx, stackUp)) return;
       const { acceptanceId } = await seedAcceptedChain(fx.tenantA, clientA);
       const before = await adminSelectQuoteAcceptanceRow(acceptanceId);
@@ -329,12 +357,17 @@ describe("7.4-INT-02: accepted-record immutability BELOW the command — the DB 
         .eq("id", acceptanceId)
         .select();
 
-      // The trigger RAISEs the custom SQLSTATE → the UPDATE fails; the row is byte-unchanged.
+      // Authenticated application paths cannot mutate acceptances at all.
       expect(error).not.toBeNull();
-      expect(error?.code).toBe(ACCEPTED_LOCK_SQLSTATE);
-      const after = await adminSelectQuoteAcceptanceRow(acceptanceId);
+      expect(error?.code).toBe(QUOTE_ACCEPTANCE_DML_REVOKED_SQLSTATE);
+      const afterAppAttempt = await adminSelectQuoteAcceptanceRow(acceptanceId);
       // bigint öre reads back as a STRING via raw pg — compare by representation.
-      expect(String(after?.[field])).toBe(String(before?.[field]));
+      expect(String(afterAppAttempt?.[field])).toBe(String(before?.[field]));
+
+      // postgres bypasses the revoked grant/RLS but still runs the BEFORE UPDATE trigger.
+      await expectPrivilegedAcceptanceUpdateLocked(acceptanceId, field, value);
+      const afterTriggerAttempt = await adminSelectQuoteAcceptanceRow(acceptanceId);
+      expect(String(afterTriggerAttempt?.[field])).toBe(String(before?.[field]));
     });
   }
 
@@ -365,19 +398,28 @@ describe("7.4-INT-02: accepted-record immutability BELOW the command — the DB 
 
   // ── EXEMPT paths STILL work (the lock is precise, not a blanket freeze) ─────────────────────────
 
-  it("[P0] 7.4-INT-02: an `archived_at` soft-delete flip on quote_acceptances SUCCEEDS (the exempt archival path)", async (testCtx) => {
+  it("[P0] 7.4-INT-02: an authenticated `archived_at` soft-delete is denied (42501); the precise privileged archival exemption succeeds", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     const { acceptanceId } = await seedAcceptedChain(fx.tenantA, clientA);
 
+    const before = await adminSelectQuoteAcceptanceRow(acceptanceId);
+    const archivedAt = fixedClock.now().toISOString();
     const { error } = await clientA
       .from("quote_acceptances")
-      .update({ archived_at: fixedClock.now().toISOString() })
+      .update({ archived_at: archivedAt })
       .eq("id", acceptanceId)
       .select();
 
-    expect(error).toBeNull();
-    const after = await adminSelectQuoteAcceptanceRow(acceptanceId);
-    expect(after?.archived_at).not.toBeNull();
+    expect(error?.code).toBe(QUOTE_ACCEPTANCE_DML_REVOKED_SQLSTATE);
+    const afterAppAttempt = await adminSelectQuoteAcceptanceRow(acceptanceId);
+    expect(afterAppAttempt?.archived_at ?? null).toBe(before?.archived_at ?? null);
+
+    const rows = await adminQuery<{ archived_at: string }>(
+      "update public.quote_acceptances set archived_at = $2 where id = $1 returning archived_at",
+      [acceptanceId, archivedAt],
+    );
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.archived_at).not.toBeNull();
   });
 
   it("[P0] 7.4-INT-02: an updateJob-shaped title/status/planned-date UPDATE on jobs SUCCEEDS (the 7.3 allowed edit is not fought by the lock)", async (testCtx) => {
@@ -416,7 +458,8 @@ describe("7.4-INT-02: accepted-record immutability BELOW the command — the DB 
 // path of enforce_quote_acceptance_lock); (3) jobs.created_at (the one job identity column INT-02
 // omits); (4) the exempt PRECISION on jobs — facility_id/contact_id are deliberately UNLOCKED (ON
 // DELETE SET NULL), so a direct own-tenant re-point of them SUCCEEDS (the lock is precise, not a
-// blanket freeze). All via the anon-key RLS client (NEVER BYPASSRLS) against a REAL accepted chain.
+// blanket freeze). Acceptance app-path attempts use the anon-key RLS client and assert 42501; their
+// AR704 trigger probes use privileged admin SQL. All run against a REAL accepted chain.
 // ══════════════════════════════════════════════════════════════════════════════════════════════
 describe("7.4-INT-02b: the FULL fail-closed DB surface — every locked column + the exempt precision (AC1, R-704)", () => {
   // (1) The remaining LOCKED quote_acceptances columns beyond the AC-named subset in 7.4-INT-02.
@@ -432,7 +475,7 @@ describe("7.4-INT-02b: the FULL fail-closed DB surface — every locked column +
   ];
 
   for (const { field, value } of REMAINING_LOCKED_ACCEPTANCE_UPDATES) {
-    it(`[P0] 7.4-INT-02b: a DIRECT own-tenant UPDATE of quote_acceptances.\`${field}\` is REJECTED by the trigger (locked-by-default ⇒ AR704)`, async (testCtx) => {
+    it(`[P0] 7.4-INT-02b: an authenticated UPDATE of quote_acceptances.\`${field}\` is denied (42501), while privileged SQL proves locked-by-default AR704`, async (testCtx) => {
       if (skipUnlessStack(testCtx, stackUp)) return;
       const { acceptanceId } = await seedAcceptedChain(fx.tenantA, clientA);
       const before = await adminSelectQuoteAcceptanceRow(acceptanceId);
@@ -444,9 +487,13 @@ describe("7.4-INT-02b: the FULL fail-closed DB surface — every locked column +
         .select();
 
       expect(error).not.toBeNull();
-      expect(error?.code).toBe(ACCEPTED_LOCK_SQLSTATE);
-      const after = await adminSelectQuoteAcceptanceRow(acceptanceId);
-      expect(String(after?.[field])).toBe(String(before?.[field]));
+      expect(error?.code).toBe(QUOTE_ACCEPTANCE_DML_REVOKED_SQLSTATE);
+      const afterAppAttempt = await adminSelectQuoteAcceptanceRow(acceptanceId);
+      expect(String(afterAppAttempt?.[field])).toBe(String(before?.[field]));
+
+      await expectPrivilegedAcceptanceUpdateLocked(acceptanceId, field, value);
+      const afterTriggerAttempt = await adminSelectQuoteAcceptanceRow(acceptanceId);
+      expect(String(afterTriggerAttempt?.[field])).toBe(String(before?.[field]));
     });
   }
 
@@ -465,13 +512,24 @@ describe("7.4-INT-02b: the FULL fail-closed DB surface — every locked column +
       .eq("id", acceptanceId)
       .select();
 
-    // The exempt (archived_at) column co-mutated with a locked (accepted_price_ore) column ⇒ RAISE.
+    // Authenticated code is denied before trigger/RLS; no part of the mutation is written.
     expect(error).not.toBeNull();
-    expect(error?.code).toBe(ACCEPTED_LOCK_SQLSTATE);
-    const after = await adminSelectQuoteAcceptanceRow(acceptanceId);
+    expect(error?.code).toBe(QUOTE_ACCEPTANCE_DML_REVOKED_SQLSTATE);
+    const afterAppAttempt = await adminSelectQuoteAcceptanceRow(acceptanceId);
     // The whole row is byte-unchanged — neither the exempt NOR the locked column was written.
-    expect(after?.archived_at ?? null).toBe(before?.archived_at ?? null);
-    expect(String(after?.accepted_price_ore)).toBe(String(before?.accepted_price_ore));
+    expect(afterAppAttempt?.archived_at ?? null).toBe(before?.archived_at ?? null);
+    expect(String(afterAppAttempt?.accepted_price_ore)).toBe(String(before?.accepted_price_ore));
+
+    // The privileged path is the precise trigger proof: an archive flip cannot smuggle a lock change.
+    await expect(
+      adminQuery(
+        "update public.quote_acceptances set archived_at = $2, accepted_price_ore = $3 where id = $1",
+        [acceptanceId, fixedClock.now().toISOString(), 999_999],
+      ),
+    ).rejects.toMatchObject({ code: ACCEPTED_LOCK_SQLSTATE });
+    const afterTriggerAttempt = await adminSelectQuoteAcceptanceRow(acceptanceId);
+    expect(afterTriggerAttempt?.archived_at ?? null).toBe(before?.archived_at ?? null);
+    expect(String(afterTriggerAttempt?.accepted_price_ore)).toBe(String(before?.accepted_price_ore));
   });
 
   // (3) jobs.created_at — the one job identity column 7.4-INT-02 omits — is in the locked tuple.
@@ -618,7 +676,7 @@ describe("7.4-INT-03: accidental-update regression + retry-path preservation (AC
 });
 
 // ══════════════════════════════════════════════════════════════════════════════════════════════
-// 7.4-RLS-01 (P0, AC3) — cross-tenant attack on the accepted record (read + immutable-field update)
+// 7.4-RLS-01 (P0, AC3) — cross-tenant attack on the accepted record (read + denied mutation)
 // ══════════════════════════════════════════════════════════════════════════════════════════════
 describe("7.4-RLS-01: cross-tenant attack on accepted records (AC3, R-701/R-704)", () => {
   it("[P0] 7.4-RLS-01: tenant A reading a tenant B quote_acceptances/jobs row via its own RLS client ⇒ zero rows (no existence disclosure)", async (testCtx) => {
@@ -637,22 +695,20 @@ describe("7.4-RLS-01: cross-tenant attack on accepted records (AC3, R-701/R-704)
     expect(job).toEqual([]);
   });
 
-  it("[P0] 7.4-RLS-01: tenant A's direct UPDATE of an immutable field on a tenant B accepted row ⇒ zero rows affected (RLS-invisible, the trigger never sees it), row untouched", async (testCtx) => {
+  it("[P0] 7.4-RLS-01: tenant A's authenticated UPDATE of a tenant B acceptance is denied (42501 before RLS), row untouched", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     const clientB = await makeAuthedServerClient(fx.adminB);
     const { acceptanceId: bAcceptanceId } = await seedAcceptedChain(fx.tenantB, clientB);
     const before = await adminSelectQuoteAcceptanceRow(bAcceptanceId);
 
-    // A foreign row is invisible under RLS ⇒ the UPDATE matches zero rows (the trigger never fires —
-    // it never sees the row). No error, no existence disclosure; the tenant-B row is untouched.
-    const { data, error } = await clientA
+    // UPDATE privilege is revoked before RLS can apply. The foreign row remains untouched.
+    const { error } = await clientA
       .from("quote_acceptances")
       .update({ accepted_price_ore: 1 })
       .eq("id", bAcceptanceId)
       .select();
 
-    expect(error).toBeNull();
-    expect(data).toEqual([]);
+    expect(error?.code).toBe(QUOTE_ACCEPTANCE_DML_REVOKED_SQLSTATE);
     const after = await adminSelectQuoteAcceptanceRow(bAcceptanceId);
     expect(String(after?.accepted_price_ore)).toBe(String(before?.accepted_price_ore));
   });

@@ -10,15 +10,16 @@
  * client → re-assert `status='sent'` (reject a non-sent with VALIDATION_FAILED) → compute the
  * adjusted-price delta via the PURE 7.1 module and re-validate the reason/evidence gate server-side →
  * re-validate an evidence file id own-tenant → call the narrow atomic `accept_quote_and_create_job`
- * RPC on the RLS client with the INJECTED clock + the resolved tenant → write ONE append-only audit
- * row IFF the transaction produced a FRESH accept). No bespoke auth/error/audit mechanism. Fuses
+ * RPC with the INJECTED clock, resolved tenant, actor, and correlation id; the database writes ONE
+ * append-only audit row in the same transaction IFF it produced a FRESH accept). Fuses
  * `mark-sent.ts`'s command→narrow-RPC shape with `accept.ts`'s 7.1 sent-state + adjusted-price +
  * evidence-ownership gates.
  *
  * ── THE TRANSACTION IS ONE RPC (ADR-A009 / §13 steps 1-10) ────────────────────────────────────────
  * The acceptance INSERT + `sent → accepted` lifecycle flip + job INSERT + quote/job events + the
- * evidence file_links row are ALL inside the narrow `accept_quote_and_create_job` RPC (SECURITY
- * INVOKER — under the caller's RLS, own-tenant only, NO service-role app path). The RPC row-locks the
+ * evidence file_links row and audit are ALL inside the narrow `accept_quote_and_create_job` RPC
+ * (checked SECURITY DEFINER: request-bound actor + active tenant-admin, fixed empty search path,
+ * authenticated only, NO service-role app path). The RPC row-locks the
  * version + parent quote, returns the EXISTING (acceptance, job) idempotently on a retry / concurrent
  * loser (the DB uniqueness constraints are the backstop), and rolls the whole txn back on any
  * failure. The acceptance write MOVED into the RPC (7.2 Decision (a)) so the multi-record write is
@@ -28,7 +29,7 @@
  * A FRESH accept (`was_existing = false`) writes exactly ONE append-only audit row (`{ targetId }`
  * only — NO accepted price / channel / customer / evidence PII). An idempotent RE-ENTRY
  * (`was_existing = true`) produced NO state change, so it writes NO audit row (the command is NOT
- * envelope-auditable; it writes the row itself only on a fresh accept). Both paths still return ok
+ * envelope-auditable; the RPC writes the row itself only on a fresh accept). Both paths still return ok
  * with the same (acceptanceId, jobId) — the retry is a success, not an error (AC2's primary behavior).
  *
  * ── DETERMINISM (H1, R-715) ───────────────────────────────────────────────────────────────────────
@@ -39,9 +40,6 @@
  */
 import { defineCommand } from "../envelope";
 import { CommandError } from "../command-errors";
-import { writeAuditEvent } from "../audit";
-import type { CommandExecuteContext } from "../envelope-core";
-import type { CommandDbClient } from "../envelope";
 import { evaluateAcceptancePriceGate } from "@/features/quotes/acceptance-price";
 import {
   asAcceptAndCreateJobRpcClient,
@@ -112,8 +110,8 @@ export const acceptQuoteAndCreateJob = defineCommand<
   AcceptQuoteAndCreateJobResult
 >({
   command: ACCEPT_COMMAND,
-  // NOT envelope-auditable: the command writes the audit row ITSELF, and ONLY on a fresh accept — an
-  // idempotent re-entry (was_existing) produced no state change and must write NO audit row (R-710).
+  // NOT envelope-auditable: the RPC writes the audit row atomically, and ONLY on a fresh accept —
+  // an idempotent re-entry (was_existing) produced no state change and writes NO audit row (R-710).
   auditable: false,
   eventType: ACCEPT_EVENT_TYPE,
   targetType: ACCEPT_TARGET_TYPE,
@@ -141,6 +139,8 @@ export const acceptQuoteAndCreateJob = defineCommand<
       throw new CommandError("VALIDATION_FAILED");
     }
 
+    // Story 10.6: for snapshotSchemaVersion=2, loadQuoteVersionAcceptanceSource normalizes the
+    // frozen payableOre into source_sent_total_ore; V1 rows still fall back to acceptedPriceOre.
     // ── THE ADJUSTED-PRICE GATE (AC5) — the SINGLE authority `evaluateAcceptancePriceGate` (the 7.1
     // ── engine) folds the PURE delta computation, the REASON_REQUIRED rule, and the `hasReason`
     // ── (reason OR evidence) presence into one OK/typed-failure the command RE-VALIDATES server-side
@@ -189,6 +189,8 @@ export const acceptQuoteAndCreateJob = defineCommand<
       p_planned_end_date: args.p_planned_end_date,
       p_title: args.p_title,
       p_fault_inject: args.p_fault_inject,
+      p_actor_user_id: ctx.tenantContext.userId,
+      p_correlation_id: ctx.correlationId,
     });
     // Map the RPC error. The 7.2 transaction's row lock + existing-record short-circuit resolves a
     // concurrent accept into an idempotent RETURN (AC2's primary behavior), so a raced 23505 on the
@@ -211,17 +213,6 @@ export const acceptQuoteAndCreateJob = defineCommand<
     const result = extractAcceptAndCreateJobResult(data);
     if (result === null) {
       throw new Error("acceptQuoteAndCreateJob: RPC returned no result");
-    }
-
-    // ── IDEMPOTENT AUDIT (R-710) — write ONE append-only audit row ONLY on a FRESH accept. A retry /
-    // ── concurrent loser (`wasExisting`) produced no state change → NO audit row. `{ targetId }` only.
-    if (!result.wasExisting) {
-      await writeAuditEvent(ctx as CommandExecuteContext<unknown, CommandDbClient>, ACCEPT_COMMAND, {
-        eventType: ACCEPT_EVENT_TYPE,
-        targetType: ACCEPT_TARGET_TYPE,
-        targetId: result.acceptanceId,
-        metadata: {},
-      });
     }
 
     return {

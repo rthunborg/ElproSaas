@@ -14,9 +14,19 @@
  * (`pnpm test:db` locally, the CI job step). Keeping reset out of the runner means
  * the suites never assume they may wipe a database out from under a developer.
  */
-import { isLocalStackReachable, STACK_REQUIRED } from "./test-env";
+import {
+  isLocalStackReachable,
+  LOCAL_TEST_QUOTE_PDF_KEY_ID,
+  LOCAL_TEST_QUOTE_PDF_SECRET,
+  STACK_REQUIRED,
+} from "./test-env";
 
 export default async function globalSetup(): Promise<void> {
+  // Test-runner-only counterpart to the idempotent local Vault fixture in seed.sql.
+  // Production never receives a fallback: generateQuotePdf fails closed when either
+  // non-public attestation variable is absent.
+  process.env.QUOTE_PDF_ATTESTATION_KEY_ID ??= LOCAL_TEST_QUOTE_PDF_KEY_ID;
+  process.env.QUOTE_PDF_ATTESTATION_HMAC_SECRET ??= LOCAL_TEST_QUOTE_PDF_SECRET;
   const reachable = await isLocalStackReachable();
 
   if (!reachable && STACK_REQUIRED) {

@@ -5,42 +5,47 @@
  * in a `"use client"` component.
  *
  * MONEY DISCIPLINE (architecture §10; R-505): every öre arithmetic op DELEGATES to the
- * frozen `@/lib/money` engine — `lineNetOre` / `lineVatOre` / `sumOre` / `sumVatOre` /
- * `vatBreakdown` / `selectVatDisplay`. There is NO inline `+`/`*`/`0.25`/`Number(x)*rate`
- * and NO forked öre/rounding/VAT rule in this module. Epic 4 PINNED the numbers; this
- * story asserts ROUTING, and the 5.2-UNIT-01 test proves byte-equality with a direct
- * engine call.
+ * frozen `@/lib/money` engine — line nets via `lineNetOre`, document/category VAT via
+ * `aggregateDocumentVat`, and display via `selectVatDisplay`.
+ * There is NO inline `+`/`*`/`0.25`/`Number(x)*rate` and NO forked öre/rounding/VAT rule in
+ * this module. Epic 4 PINNED the original numbers; Story 10.6 moved section VAT to the
+ * reconciled document-category authority while preserving rounded line nets.
  *
- * INCLUSION posture (Task 2.2): this story SHOWS totals and PERSISTS the flags, but the
- * owner-pinned totals-INCLUSION rule is Epic 4's frozen pin (2026-06-18) — do NOT
- * re-decide it. When summing, apply the ALREADY-PINNED rule: a SELECTED option
- * (`is_selected === true`) and a HIDDEN row (`is_hidden === true`) COUNT toward
- * basis/net/VAT; an UNSELECTED option (`is_optional === true && is_selected !== true`)
- * does NOT. A row that is neither optional nor selected always counts. If a DIFFERENT
- * inclusion rule is ever required, that is a STOP (needs-human), not a local invention.
+ * INCLUSION posture: `included_in_invoice_total` is the sole runtime authority. The migration
+ * converted legacy option selection once; option commands keep the two fields coherent.
  *
  * PURE / I/O-free so it runs on the `node --test` fast gate. It computes öre only; the
  * öre→kronor DISPLAY is the single `formatOreAsKronor` at the presentation boundary
  * (never a second formatter here).
  */
 import {
+  aggregateDocumentVat,
+  TAX_POLICY_REGISTRY,
+  resolveTaxPolicy,
   lineNetOre,
   lineVatOre,
   selectVatDisplay,
-  sumOre,
-  sumVatOre,
-  vatBreakdown,
+  type DeductionClassification,
+  type TaxSummaryCategory,
+  type VatType,
   type VatDisplayPosture,
   type VatDisplayView,
 } from "@/lib/money";
 
 /** The minimal row shape the totals engine needs (a subset of the read/row model). */
 export interface TotalsRowInput {
+  /** Authoritative economic kind used for labor/material/other reconciliation. */
+  readonly row_type?: "labor" | "material" | "subcontractor" | "machinery" | "other";
   readonly quantity: number;
   /** The customer-facing sell price per unit, in integer öre (null → treated as 0). */
   readonly unit_sell_ore: number | null;
   /** The row VAT assumption in basis points (null → treated as 0, i.e. VAT-exempt). */
   readonly vat_rate_bp: number | null;
+  /** Story 10.6 explicit VAT category type. Defaults to standard for legacy rows. */
+  readonly vat_type?: VatType | null;
+  /** Story 10.6 sole economic-inclusion authority. */
+  readonly included_in_invoice_total?: boolean | null;
+  readonly deduction_classification?: DeductionClassification | null;
   readonly is_hidden: boolean;
   readonly is_optional: boolean;
   readonly is_selected: boolean | null;
@@ -65,34 +70,76 @@ export type TotalsResult<T> =
   | { readonly ok: true; readonly value: T }
   | { readonly ok: false; readonly code: string };
 
-/**
- * The frozen 2026-06-18 INCLUSION rule (Task 2.2): a row COUNTS toward the total unless it
- * is an UNSELECTED option. A hidden row still counts; a selected option counts; a plain
- * row counts. This is applied identically to net and VAT so a row never contributes to one
- * total but not the other.
- */
-export function rowCountsTowardTotal(row: {
-  readonly is_optional: boolean;
-  readonly is_selected: boolean | null;
-}): boolean {
-  if (row.is_optional) {
-    return row.is_selected === true;
-  }
-  return true;
+function standardRateForDate(effectiveDate?: string): TotalsResult<number> {
+  // Omitted dates remain a compatibility seam for historical pure fixtures only. Every live
+  // editor/snapshot caller injects its Stockholm quote-capture date.
+  const date = effectiveDate ?? TAX_POLICY_REGISTRY[0]?.validFrom;
+  if (date === undefined) return { ok: false, code: "TAX_POLICY_NO_MATCH" };
+  const resolved = resolveTaxPolicy({
+    registry: TAX_POLICY_REGISTRY,
+    effectiveDate: date,
+  });
+  return resolved.ok
+    ? { ok: true, value: resolved.value.vat.standardRateBp }
+    : { ok: false, code: resolved.code };
 }
 
 /**
- * Compute a single row's line total (net → rounded, VAT from the rounded net + bp → rounded,
- * gross = net + VAT). Delegates every öre op to the engine (`lineNetOre` + `vatBreakdown`).
+ * A quarantined legacy row deliberately has no VAT type. Runtime totals never
+ * infer a legal category from its numeric rate; an admin must remediate the
+ * explicit type/rate pair first.
+ */
+function vatTypeForTotal(row: TotalsRowInput): VatType | null {
+  if (row.vat_type !== null && row.vat_type !== undefined) return row.vat_type;
+  return null;
+}
+
+function summaryCategoryForTotal(row: TotalsRowInput): TaxSummaryCategory {
+  if (row.row_type === "labor") return "labor";
+  if (row.row_type === "material") return "material";
+  return "other";
+}
+
+/**
+ * Story 10.6 sole inclusion rule. Legacy optional state was converted once by the
+ * migration; runtime totals never re-infer inclusion from option or visibility flags.
+ */
+export function rowCountsTowardTotal(row: {
+  readonly included_in_invoice_total?: boolean | null;
+  readonly is_optional: boolean;
+  readonly is_selected: boolean | null;
+}): boolean {
+  return row.included_in_invoice_total !== false;
+}
+
+/**
+ * Compute a single row's display total through a one-row category aggregation. Document totals
+ * still re-aggregate all included row nets by category and never sum these displayed VAT values.
  * A null sell/VAT is treated as 0 (a draft row without a price contributes 0). Returns a
  * typed failure if the engine rejects an input (e.g. overflow) — never a NaN.
  */
-export function computeLineTotal(row: TotalsRowInput): TotalsResult<LineTotal> {
+export function computeLineTotal(
+  row: TotalsRowInput,
+  effectiveDate?: string,
+): TotalsResult<LineTotal> {
   const sellOre = row.unit_sell_ore ?? 0;
-  const vatBp = row.vat_rate_bp ?? 0;
   const net = lineNetOre(row.quantity, sellOre);
   if (!net.ok) return { ok: false, code: net.code };
-  const breakdown = vatBreakdown(net.value, vatBp);
+  const vatType = vatTypeForTotal(row);
+  if (vatType === null) return { ok: false, code: "INCOMPLETE_VAT_INPUT" };
+  const standardRate = standardRateForDate(effectiveDate);
+  if (!standardRate.ok) return standardRate;
+  const breakdown = aggregateDocumentVat({
+    standardRateBp: standardRate.value,
+    rows: [{
+      netOre: net.value,
+      vatType,
+      rateBp: row.vat_rate_bp,
+      includedInInvoiceTotal: true,
+      deductionClassification: row.deduction_classification ?? "NONE",
+      summaryCategory: summaryCategoryForTotal(row),
+    }],
+  });
   if (!breakdown.ok) return { ok: false, code: breakdown.code };
   return {
     ok: true,
@@ -105,29 +152,52 @@ export function computeLineTotal(row: TotalsRowInput): TotalsResult<LineTotal> {
 }
 
 /**
- * Compute a section (or whole-calc) total over the INCLUDED rows only (the 2026-06-18
- * inclusion pin). Net = `sumOre` of the rounded line nets; VAT = `sumVatOre` of the rounded
- * line VATs; gross = net + VAT (derived). Uses the engine's sum-of-rounded primitives —
- * NEVER a round-of-sum. An UNSELECTED option is excluded from BOTH sums.
+ * Compute a section (or whole-calc) total over the INCLUDED rows only. Net is the sum of
+ * rounded line nets; VAT is rounded once per `(VatType, rateBp)` document category through
+ * the Story 10.6 tax authority; gross is derived. An excluded row contributes to none of them.
  */
 export function computeSectionTotal(
   rows: readonly TotalsRowInput[],
+  effectiveDate?: string,
 ): TotalsResult<SectionTotal> {
-  const includedNets: number[] = [];
-  const includedVats: number[] = [];
+  const standardRate = standardRateForDate(effectiveDate);
+  if (!standardRate.ok) return standardRate;
+  const includedRows: {
+    readonly netOre: number;
+    readonly vatType: VatType;
+    readonly rateBp: number;
+    readonly includedInInvoiceTotal: true;
+    readonly deductionClassification: DeductionClassification;
+    readonly summaryCategory: TaxSummaryCategory;
+  }[] = [];
   for (const row of rows) {
     if (!rowCountsTowardTotal(row)) continue;
-    const line = computeLineTotal(row);
+    const line = computeLineTotal(row, effectiveDate);
     if (!line.ok) return { ok: false, code: line.code };
-    includedNets.push(line.value.netOre);
-    includedVats.push(line.value.vatOre);
+    const vatType = vatTypeForTotal(row);
+    if (vatType === null) return { ok: false, code: "INCOMPLETE_VAT_INPUT" };
+    includedRows.push({
+      netOre: line.value.netOre,
+      vatType,
+      rateBp: row.vat_rate_bp ?? 0,
+      includedInInvoiceTotal: true,
+      deductionClassification: row.deduction_classification ?? "NONE",
+      summaryCategory: summaryCategoryForTotal(row),
+    });
   }
-  const net = sumOre(includedNets);
-  if (!net.ok) return { ok: false, code: net.code };
-  const vat = sumVatOre(includedVats);
-  if (!vat.ok) return { ok: false, code: vat.code };
-  const grossOre = net.value + vat.value;
-  return { ok: true, value: { netOre: net.value, vatOre: vat.value, grossOre } };
+  const aggregate = aggregateDocumentVat({
+    rows: includedRows,
+    standardRateBp: standardRate.value,
+  });
+  if (!aggregate.ok) return { ok: false, code: aggregate.code };
+  return {
+    ok: true,
+    value: {
+      netOre: aggregate.value.netOre,
+      vatOre: aggregate.value.vatOre,
+      grossOre: aggregate.value.grossOre,
+    },
+  };
 }
 
 /**
@@ -137,12 +207,13 @@ export function computeSectionTotal(
  */
 export function computeCalcTotal(
   sections: ReadonlyArray<{ readonly rows: readonly TotalsRowInput[] }>,
+  effectiveDate?: string,
 ): TotalsResult<SectionTotal> {
   const allRows: TotalsRowInput[] = [];
   for (const section of sections) {
     for (const row of section.rows) allRows.push(row);
   }
-  return computeSectionTotal(allRows);
+  return computeSectionTotal(allRows, effectiveDate);
 }
 
 /**

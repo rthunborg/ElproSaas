@@ -3,9 +3,9 @@
  *
  * A `defineCommand` through the EXISTING envelope (resolve user → resolve active tenant_admin →
  * validate typed input → envelope `ownership` verifies the quote_version id is own-tenant-visible
- * → in execute LOAD the version and RE-ASSERT `status === 'draft'` → UPDATE ONLY the allowed
- * customer-visible PRESENTATIONAL fields on the RLS client → append-only audit `{ targetId }`).
- * No bespoke auth/error/audit mechanism.
+ * → in execute LOAD the version and RE-ASSERT `status === 'draft'` → call the narrow checked RPC
+ * with ONLY the allowed customer-visible PRESENTATIONAL patch + actor/correlation). The RPC owns
+ * the update and append-only audit atomically; authenticated direct quote-version DML is revoked.
  *
  * ── THE LOAD-BEARING ENFORCEMENT (a UI-only lock is a STOP CONDITION) ─────────────────────
  * The `status === 'draft'` re-assert runs SERVER-SIDE against the REAL row BEFORE any write.
@@ -22,15 +22,15 @@
  * Story 6.5 RPC, surfaced as the "Create new version" affordance instead. tenant_id/status/
  * totals are never accepted from the client.
  *
- * The resolved `ctx.tenantContext.tenantId` is the ONLY tenant authority; the RLS client
- * (`ctx.db`, anon key — NEVER service-role) does the write. An id-only edit short-circuits to a
+ * The resolved `ctx.tenantContext.tenantId` is the ONLY tenant authority; the request-bound
+ * authenticated client invokes a checked SECURITY DEFINER function (NEVER service-role). An id-only edit short-circuits to a
  * no-op returning the id (the empty-patch guard) so it does not produce a false
  * TENANT_ACCESS_DENIED on an owned, visible draft.
  */
 import { defineCommand } from "../envelope";
 import { CommandError } from "../command-errors";
 import {
-  asQuoteWriteClient,
+  asUpdateDraftQuoteVersionRpcClient,
   loadQuoteVersionStatus,
   throwMappedQuoteWriteError,
 } from "./quote-db";
@@ -61,7 +61,7 @@ export const updateDraftQuoteVersion = defineCommand<
   UpdateDraftQuoteVersionResult
 >({
   command: "quote.version.update_draft",
-  auditable: true,
+  auditable: false,
   eventType: "quote.version.draft_updated",
   targetType: "quote_version",
   validateInput: validateUpdateDraftQuoteVersion,
@@ -83,19 +83,16 @@ export const updateDraftQuoteVersion = defineCommand<
       return { targetId: ctx.input.quote_version_id };
     }
 
-    const db = asQuoteWriteClient(ctx.db);
-    const { data, error } = await db
-      .from("quote_versions")
-      .update(patch)
-      .eq("id", ctx.input.quote_version_id)
-      .select("id");
+    const db = asUpdateDraftQuoteVersionRpcClient(ctx.db);
+    const { error } = await db.rpc("update_draft_quote_version", {
+      p_tenant_id: ctx.tenantContext.tenantId,
+      p_quote_version_id: ctx.input.quote_version_id,
+      p_patch: patch,
+      p_occurred_at: ctx.clock.now().toISOString(),
+      p_actor_user_id: ctx.tenantContext.userId,
+      p_correlation_id: ctx.correlationId,
+    });
     if (error) throwMappedQuoteWriteError(error);
-    // Ownership + the draft re-assert proved the row is a visible draft; a zero-row update here
-    // would be a race (archived/removed between checks) → deny rather than 500.
-    if (!data || data.length === 0) {
-      throw new CommandError("TENANT_ACCESS_DENIED");
-    }
     return { targetId: ctx.input.quote_version_id };
   },
-  auditFields: (ctx) => ({ targetId: ctx.input.quote_version_id }),
 });

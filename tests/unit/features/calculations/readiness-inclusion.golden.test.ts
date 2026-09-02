@@ -1,8 +1,8 @@
 /**
  * Story 5.4 — GOLDEN inclusion at the CALC-ROW level (5.4-GOLDEN-01, R-508).
  *
- * The frozen 2026-06-18 inclusion pin: hidden rows + SELECTED tillval COUNT toward basis / net /
- * VAT; an UNSELECTED option is NEVER summed. This test EXTENDS the existing money-golden fixture
+ * The frozen 2026-06-18 legacy pin is migrated onto Story 10.6's explicit inclusion fact: hidden
+ * included rows and included tillval count; an explicitly excluded option is never summed. This test EXTENDS the existing money-golden fixture
  * (`tests/fixtures/golden/money/options-tillval.json`) to the CALC-ROW shape — it drives the REAL
  * `totals.ts` (`rowCountsTowardTotal` + `computeSectionTotal`, which delegate every öre op to
  * `@/lib/money`) against the SAME pinned öre the Story 4.4 pack drives through the raw engine.
@@ -67,6 +67,8 @@ function plainRow(sellOre: number, vatBp: number): TotalsRowInput {
     quantity: 1,
     unit_sell_ore: sellOre,
     vat_rate_bp: vatBp,
+    vat_type: vatBp === 0 ? "ZERO_RATED" : "STANDARD_VAT_25",
+    included_in_invoice_total: true,
     is_hidden: false,
     is_optional: false,
     is_selected: null,
@@ -83,6 +85,8 @@ test("5.4-GOLDEN-01: a SELECTED option COUNTS toward the calc-row section net (m
       quantity: 1,
       unit_sell_ore: c.selectedOptionOre!,
       vat_rate_bp: 0,
+      vat_type: "ZERO_RATED",
+      included_in_invoice_total: true,
       is_hidden: false,
       is_optional: true,
       is_selected: true, // SELECTED → counts
@@ -104,11 +108,13 @@ test("5.4-GOLDEN-01: an UNSELECTED option is NEVER summed into the calc-row net 
     quantity: 1,
     unit_sell_ore: c.unselectedOptionOre!,
     vat_rate_bp: 0,
+    vat_type: "ZERO_RATED",
+    included_in_invoice_total: false,
     is_hidden: false,
     is_optional: true,
     is_selected: false, // NOT selected → excluded
   };
-  // The inclusion predicate itself excludes it.
+  // The independent persisted inclusion fact itself excludes it; option state is descriptive here.
   assert.equal(rowCountsTowardTotal(unselectedOption), false);
   const rows: TotalsRowInput[] = [
     ...c.baseLinesOre!.map((ore) => plainRow(ore, 0)),
@@ -150,6 +156,8 @@ test("5.4-GOLDEN-01: a HIDDEN row COUNTS toward the calc-row section total (hidd
     quantity: 1,
     unit_sell_ore: ore,
     vat_rate_bp: 0,
+    vat_type: "ZERO_RATED",
+    included_in_invoice_total: true,
     is_hidden: i === c.includedLinesOre!.length - 1, // mark the LAST row hidden
     is_optional: false,
     is_selected: null,

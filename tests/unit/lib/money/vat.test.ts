@@ -1,22 +1,12 @@
 /**
- * Story 4.2 — ATDD RED-PHASE scaffold: PURE-LOGIC unit tests for the VAT + quote-total
+ * Story 4.2 — standing PURE-LOGIC unit tests for the VAT + quote-total
  * primitives that EXTEND the Story 4.1 `@/lib/money` engine (architecture §22). This is the
  * FIRST VAT computation in the repo. Money is INTEGER ÖRE end-to-end; the VAT rate is INTEGER
  * BASIS POINTS (2500 = 25.00%) — there is NO hidden 25% (0.25/25/1.25) constant. Runs under
  * `node --test` (`pnpm run test:unit`) — pure, NO DB, NO browser, NO network, NO clock read.
  *
- * 🔴 RED PHASE — the VAT surface (`lineVatOre`, `sumVatOre`, `vatBreakdown`, the display-mode
- * selector, `buildVatAssumptionSnapshot`) does NOT exist yet in `@/lib/money` (Story 4.2 dev,
- * Tasks 1-3). The `@/lib/money` BARREL already exists (Story 4.1), so a top-level
- * `import * as money from "@/lib/money"` RESOLVES today — but the new VAT exports are
- * `undefined`. To keep the green `test:unit` baseline UNPERTURBED, the whole suite is gated
- * behind `VAT_SURFACE_PRESENT` via `describe.skip` (mirroring the epic-4 pattern: red-gate on
- * the ABSENCE of the not-yet-implemented module surface, so the baseline suite stays green and
- * the runner does not error). The dev's GREEN phase:
- *   1. adds `src/lib/money/vat.ts` and re-exports the VAT surface from `src/lib/money/index.ts`;
- *   2. FLIPS the gate — `VAT_SURFACE_PRESENT` becomes true automatically once the exports land,
- *      so the whole suite runs; NO test edit is needed (delete the gate comment when green);
- *   3. leaves the assertions BELOW UNCHANGED — they ARE the contract.
+ * Story 10.6 standing-control repair: the landed VAT exports are hard preconditions. Dropping an
+ * export fails this file at load time; the suite can never silently self-disable.
  *
  * Expected engine surface (the dev implements this; names may be re-exported from `@/lib/money`):
  *   - lineVatOre(lineNetOre: number, vatRateBp: number): OreResult
@@ -116,17 +106,10 @@ type VatEngine = {
 
 const engine = money as unknown as VatEngine & Record<string, unknown>;
 
-// 🔴 RED-PHASE GATE — true only once the dev adds the VAT surface to `@/lib/money`. While the
-// surface is absent, `describe.skip` keeps the whole suite out of the green baseline (no runner
-// error, no false failure). GREEN: the exports land, the gate flips true automatically, the
-// UNCHANGED assertions below run and must pass. This mirrors the epic-4 pure-library ATDD pattern.
-const VAT_SURFACE_PRESENT =
-  typeof engine.lineVatOre === "function" && typeof engine.vatBreakdown === "function";
-const suite = VAT_SURFACE_PRESENT ? describe : describe.skip;
+assert.equal(typeof engine.lineVatOre, "function", "lineVatOre export is a hard standing precondition");
+assert.equal(typeof engine.vatBreakdown, "function", "vatBreakdown export is a hard standing precondition");
 
-const ORE_AMOUNT_MAX = Number.MAX_SAFE_INTEGER; // mirrors @/lib/money ORE_AMOUNT_MAX
-
-suite("Story 4.2 — @/lib/money VAT + quote-total primitives (RED → GREEN)", () => {
+describe("Story 4.2 — @/lib/money VAT + quote-total primitives (standing regression)", () => {
   // ── 4.2-UNIT-01: per-line VAT rounded; section totals SUM rounded line VAT (AC1, R-403) ──
   describe("4.2-UNIT-01 — per-line VAT rounding + sum-of-rounded totals (R-403, R-404)", () => {
     test("lineVatOre computes roundToOre(net * vatRateBp / 10000) at standard 25% (2500 bp)", () => {

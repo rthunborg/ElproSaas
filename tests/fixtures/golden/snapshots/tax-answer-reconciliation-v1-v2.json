@@ -1,0 +1,156 @@
+{
+  "coverageManifest": {
+    "legacyV1": "compatibility-reader-only",
+    "freshV2": "buildFreshQuoteSnapshot"
+  },
+  "legacyV1": {
+    "source": {
+      "snapshotSchemaVersion": 1,
+      "vatOre": 25000,
+      "deductionOre": 6700,
+      "acceptedPriceOre": 118300
+    },
+    "expected": {
+      "source": "legacy-v1",
+      "schemaVersion": 1,
+      "netOre": null,
+      "vatOre": 25000,
+      "grossOre": null,
+      "calculatedDeductionOre": null,
+      "claimDeductionOre": null,
+      "deductionOre": 6700,
+      "payableOre": 118300,
+      "taxAnswer": null
+    }
+  },
+  "freshV2": {
+    "capturedAt": "2026-08-05T09:00:00.000Z",
+    "taxInput": {
+      "schemaVersion": 2,
+      "documentVatType": "REVERSE_CHARGE_CONSTRUCTION",
+      "buyerVatNumber": "SE556677889901",
+      "deductionChoice": "NONE",
+      "paymentDate": null,
+      "finalPaymentDate": null,
+      "personAllowanceSlots": [],
+      "greenBasisMethod": "ACTUAL_ELIGIBLE_COSTS",
+      "genuineFixedPrice": false,
+      "fixedPriceOre": null,
+      "fixedPriceCategorySplitOre": null,
+      "fixedPriceRowIds": null
+    },
+    "source": {
+      "calculationId": "calc-tax-answer-v2",
+      "company": {
+        "company_name": "Example El AB",
+        "org_nr": "XXXXXX-XXXX",
+        "address_line1": "Exempelvägen 1",
+        "address_line2": null,
+        "postal_code": "111 11",
+        "city": "Teststad",
+        "email": "info@example.test",
+        "phone": null,
+        "logo_url": null
+      },
+      "customer": {
+        "customer_display_name": "Example Customer",
+        "customer_type": "company",
+        "facility_name": "Example Facility",
+        "contact_name": "Example Contact"
+      },
+      "terms": {
+        "terms_text": "Betalning 30 dagar.",
+        "approved_at": null,
+        "approved_by": null
+      },
+      "totals": {
+        "baseTotalOre": 300000,
+        "optionTotalOre": 0,
+        "vatTotalOre": 25000,
+        "deductionTotalOre": 0,
+        "acceptedPriceOre": 325000
+      },
+      "assumptions": {
+        "vatRateBp": 2500,
+        "vatDisplay": "company_excl",
+        "deductionType": null,
+        "deductionRateBp": null,
+        "deductionCapOre": null,
+        "deductionPersons": null,
+        "requiresSignOff": true
+      },
+      "header": {
+        "quoteNumberDisplay": null,
+        "validUntil": "2026-09-05",
+        "introText": null,
+        "customerNotes": null,
+        "displayMode": "detailed"
+      },
+      "lines": [
+        {
+          "rowType": "material",
+          "sortOrder": 0,
+          "label": "Standardrad",
+          "description": null,
+          "quoteNote": null,
+          "quantity": 1,
+          "unit": "st",
+          "unitSellOre": 100000,
+          "lineNetOre": 100000,
+          "vatRateBp": 2500,
+          "isHidden": false,
+          "isOptional": false,
+          "isSelected": null,
+          "includedInInvoiceTotal": true,
+          "deductionClassification": "NONE",
+          "vatType": "STANDARD_VAT_25"
+        },
+        {
+          "rowType": "labor",
+          "sortOrder": 1,
+          "label": "Omvänd rad",
+          "description": null,
+          "quoteNote": null,
+          "quantity": 1,
+          "unit": "st",
+          "unitSellOre": 200000,
+          "lineNetOre": 200000,
+          "vatRateBp": 2500,
+          "isHidden": false,
+          "isOptional": false,
+          "isSelected": null,
+          "includedInInvoiceTotal": true,
+          "deductionClassification": "NONE",
+          "vatType": "REVERSE_CHARGE_CONSTRUCTION"
+        }
+      ],
+      "attachments": [],
+      "warnings": [],
+      "snapshotSchemaVersion": 2,
+      "taxRuleVersion": "SE-TAX-2026-v1",
+      "buyerVatNumber": "SE556677889901"
+    },
+    "expected": {
+      "snapshotSchemaVersion": 2,
+      "taxRuleVersion": "SE-TAX-2026-v1",
+      "netOre": 300000,
+      "vatOre": 25000,
+      "grossOre": 325000,
+      "deductionOre": 0,
+      "payableOre": 325000,
+      "buyerVatNumber": "SE556677889901",
+      "calculatedDeductionOre": 0,
+      "claimDeductionOre": 0,
+      "taxAnswerSnapshot": {
+        "schemaVersion": 2,
+        "reverseChargeApplied": true,
+        "deductionChoice": "NONE",
+        "netOre": 300000,
+        "vatOre": 25000,
+        "grossOre": 325000,
+        "deductionOre": 0,
+        "payableOre": 325000
+      }
+    }
+  }
+}

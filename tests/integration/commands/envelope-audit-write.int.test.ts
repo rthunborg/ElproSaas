@@ -23,6 +23,10 @@ import { isLocalStackReachable } from "../../support/test-env";
 import { skipUnlessStack } from "../../support/stack-gate";
 import { defineCommand, runCommand } from "@/server/commands/envelope";
 import { adminSelectAuditEvents } from "../../factories/audit-events";
+import {
+  expectDatabaseOwnedTimestamp,
+  readDatabaseNow,
+} from "../../support/database-time";
 import type { CommandClock } from "@/server/commands/clock";
 
 const FIXED_ISO = "2026-06-29T12:00:00.000Z";
@@ -94,6 +98,7 @@ describe("Command envelope happy path + audit fields (AC1/AC3/AC6)", () => {
     // hardcoded correlation_id accumulates rows across repeated non-reset runs and
     // breaks the exact `toBe(1)` count below. A fresh UUID scopes the query to THIS run.
     const correlationId = crypto.randomUUID();
+    const databaseBefore = await readDatabaseNow();
 
     await runCommand(command, {
       client: a as never,
@@ -101,6 +106,7 @@ describe("Command envelope happy path + audit fields (AC1/AC3/AC6)", () => {
       clock: fixedClock,
       correlationId,
     });
+    const databaseAfter = await readDatabaseNow();
 
     // Introspect via the privileged TEST-ONLY read (BYPASSRLS) to assert the stored row.
     const rows = await adminSelectAuditEvents({ correlationId });
@@ -115,8 +121,8 @@ describe("Command envelope happy path + audit fields (AC1/AC3/AC6)", () => {
     expect(row.target_type).toBe("tenant");
     expect(row.target_id).toBe(fixture.tenantA.id);
     expect(row.correlation_id).toBe(correlationId);
-    // AC6: created_at equals the single injected command timestamp, no drift.
-    expect(new Date(row.created_at).toISOString()).toBe(FIXED_ISO);
+    // The shared audit boundary owns created_at; the caller's command clock cannot backdate it.
+    expectDatabaseOwnedTimestamp(row.created_at, databaseBefore, databaseAfter, FIXED_ISO);
     // metadata is the sanitized narrow object (never raw input pass-through).
     expect(typeof row.metadata).toBe("object");
   });

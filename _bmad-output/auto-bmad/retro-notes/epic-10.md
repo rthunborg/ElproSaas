@@ -35,3 +35,28 @@
 - [Tier A â€” review] THIRD hollow-assertion instance this epic (Array.isArray masqueraded as a cross-tenant proof; earlier: 10-2 skipped scaffolds claimed unskipped, 10-2 standing-control glob untouched) â€” 'unskipped and green' can be literally true while proving nothing; needs a mechanical non-vacuity gate, not more discipline.
 - [Tier A â€” review] Tier-A High found-and-fixed => epic convergence_unverified sticky per E5f; epic PR will ship as DRAFT for human review even if Tier B converges clean â€” expected, by design.
 - [Tier A â€” review] resolvePipelinePeriod setUTCMonth overflow (month-end/leap anchors) â€” date windows built with setUTCMonth need day-clamping; boundary tests now pin it.
+
+## Story 10-6-tax-answer-reconciliation
+- [Phase 3 - create-story] Carry forward two-runner test discipline, non-vacuous golden/scanner assertions, warning-code alignment, union drift guards, and the count-only person-cap seam.
+- [Phase 4] Active-RED scaffolds must override generic skip templates; current-shape fixtures execute existing builders so intended failures stay assertion-level, never harness TypeErrors.
+- [Phase 5 â€” dev-story] Managed in-tool delegates could create new files but not edit existing src files; the external CLI recovery integrated partial work but failed its exit-sentinel/silence guard and must be resumed from the preserved worktree.
+- Decision: fresh quote versions freeze a complete by-value V2 tax policy and answer; historical V1 remains literal/read-only and is never recomputed.
+- Accepted limitation: keep quote RPCs SECURITY INVOKER; same-tenant valid direct lifecycle DML can bypass command audit provenance until a broader privilege/API redesign.
+- Verification gap: Docker/Supabase was unavailable locally, so CI must execute 10 DB-backed assertions and Story 10.6 E2E before release.
+- Owner/accounting sign-off remains on 2026 policy validity, sign-off blocking, allowance behavior, 97% gross semantics, mixed ROT+green, and reverse-charge coexistence.
+- Coverage decision: add direct authenticated cross-tenant negatives for both quote-creation RPCs alongside generic table RLS coverage.
+- Test-evidence rule: pair skip-aware integration output with required-stack fail-closed evidence whenever local Supabase is unavailable.
+- [Phase 7 â€” code review] Owner approved fixes: expire SE-TAX-2026-v1 on 2026-12-31, make document VAT standard/reverse-only while preserving mixed rows, and stage the migration for low-lock rollout.
+- [Phase 7 â€” code review] Iteration 1 persisted and fixed 19 non-deferred findings (9 High, 10 Medium); one pre-existing SECURITY INVOKER/table-grant architecture issue remains logged as deferred.
+- [Phase 7 â€” code review] Owner approved fail-safe legacy handling: quarantine ambiguous VAT rows and require fresh V2 regeneration for readable-but-unsendable V1 drafts.
+- [Phase 7 â€” code review] Shared integration factories must track database commitment invariants; permissive legacy seeds caused broad false failures after V2-only triggers.
+- [Phase 7 â€” code review] React server-action HTTP 200 is transport success, not business success; E2E must assert rendered action state.
+- [Phase 7 â€” code review] Canonical summary buckets follow row-type projections (for example subcontractor maps to other).
+- [Phase 7 â€” code review] Iteration 2 fixed 23 non-deferred findings (14 High, 9 Medium); full reset, 816 integration tests, 1635 unit tests, and 2 browser journeys passed, but the iteration cap leaves final fixes unreviewed.
+- [Phase 7 â€” code review] GrÃ¶n category claims must stay exact through category reconciliation, then aggregate before the single document-level whole-SEK truncation across TS, SQL, snapshot, and PDF paths.
+- [Phase 7 â€” code review] Authoritative summary categories derive from row_type; browser fixtures must persist canonical reverse-charge facts and exercise invalid clearing as an edit, not seed an impossible DB state.
+- [Phase 7 â€” code review] Reviewed-preview proof must be mandatory outside list-page shortcuts and must stale on digest, applicability, or Stockholm business-date changes.
+- [Phase 7 â€” code review] Windows sandbox-helper failures caused an apply_patch-contract deviation during iteration 4; require the next full six-lens plus security pass before accepting the diff.
+- Iteration-5 review exposed that transaction-bound quote proofs need a single cross-resource lock order plus parent-chain re-scans; independent SQL re-audit caught phantom/deadlock and lineage gaps after focused tests were already green.
+- Shared integration and E2E factories must seed the complete canonical V2 row-lineage and green-scope contract; otherwise stricter persistence guards create broad fixture-only cascades.
+- Cross-machine pause occurred after iteration-6 primary review analysis began but before a complete six-lens fan-out or triage; no iteration-6 findings were persisted, so resume must rerun iteration 6 from step 1.

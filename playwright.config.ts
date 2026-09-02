@@ -13,7 +13,12 @@
  * - Serial (`workers: 1`) — the specs share one seeded fixture and exercise login/logout.
  */
 import { defineConfig, devices } from "@playwright/test";
-import { LOCAL_SUPABASE_URL, LOCAL_SUPABASE_ANON_KEY } from "./tests/support/test-env";
+import {
+  LOCAL_SUPABASE_URL,
+  LOCAL_SUPABASE_ANON_KEY,
+  LOCAL_TEST_QUOTE_PDF_KEY_ID,
+  LOCAL_TEST_QUOTE_PDF_SECRET,
+} from "./tests/support/test-env";
 
 const PORT = Number(process.env.E2E_PORT ?? 3100);
 const BASE_URL = `http://127.0.0.1:${PORT}`;
@@ -54,6 +59,10 @@ export default defineConfig({
     env: {
       NEXT_PUBLIC_SUPABASE_URL: LOCAL_SUPABASE_URL,
       NEXT_PUBLIC_SUPABASE_ANON_KEY: LOCAL_SUPABASE_ANON_KEY,
+      // Server-only local fixture values. Production has no fallback and must
+      // provision its own matching Vault + environment configuration.
+      QUOTE_PDF_ATTESTATION_KEY_ID: LOCAL_TEST_QUOTE_PDF_KEY_ID,
+      QUOTE_PDF_ATTESTATION_HMAC_SECRET: LOCAL_TEST_QUOTE_PDF_SECRET,
     },
   },
 });

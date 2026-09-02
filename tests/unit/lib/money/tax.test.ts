@@ -1,24 +1,13 @@
 /**
- * Story 4.3 — ATDD RED-PHASE scaffold: PURE-LOGIC unit tests for the ROT / grön-teknik
+ * Story 4.3 — standing PURE-LOGIC unit tests for the ROT / grön-teknik
  * ESTIMATE ENGINE that EXTENDS the Story 4.1/4.2 `@/lib/money` engine (architecture §22). This
  * is the FIRST ROT / grön-teknik deduction math in the repo. Money is INTEGER ÖRE end-to-end;
  * the deduction rate is INTEGER BASIS POINTS (3000 = 30.00%) — there is NO hidden 0.30/30/0.50/
  * 50/1.3 percent constant in the deduction path (R-404 generalized to tax rates). Runs under
  * `node --test` (`pnpm run test:unit`) — pure, NO DB, NO browser, NO network, NO clock read.
  *
- * 🔴 RED PHASE — the tax surface (`estimateDeduction`, `buildTaxAssumptionSnapshot`, the named
- * `ROT_PROFILE_UNAPPROVED` / `GRON_TEKNIK_PROFILE_UNAPPROVED` profiles) does NOT exist yet in
- * `@/lib/money` (Story 4.3 dev, Tasks 1-4). The `@/lib/money` BARREL already resolves (Story
- * 4.1's alias-hook fix makes a bare-directory import work under `node --test`), so a top-level
- * `import * as money from "@/lib/money"` RESOLVES today — but the new tax exports are `undefined`.
- * To keep the green `test:unit` baseline UNPERTURBED, the whole suite is gated behind
- * `TAX_SURFACE_PRESENT` via `describe.skip` (mirroring the epic-4 pure-library ATDD pattern:
- * red-gate on the ABSENCE of the not-yet-implemented module surface, so the baseline suite stays
- * green and the runner does not error). The dev's GREEN phase:
- *   1. adds `src/lib/money/tax.ts` and re-exports the tax surface from `src/lib/money/index.ts`;
- *   2. FLIPS the gate — `TAX_SURFACE_PRESENT` becomes true automatically once the exports land,
- *      so the whole suite runs; NO test edit is needed (delete the gate comment when green);
- *   3. leaves the assertions BELOW UNCHANGED — they ARE the contract.
+ * Story 10.6 standing-control repair: the landed tax surface is a hard precondition. Dropping
+ * `estimateDeduction` now fails at load time, so this contract can never silently self-disable.
  *
  * Expected engine surface (the dev implements this; names re-exported from `@/lib/money`):
  *   - estimateDeduction(input): a typed result carrying, on success,
@@ -151,12 +140,8 @@ type TaxEngine = {
 
 const engine = money as unknown as TaxEngine & Record<string, unknown>;
 
-// 🔴 RED-PHASE GATE — true only once the dev adds the tax surface to `@/lib/money`. While the
-// surface is absent, `describe.skip` keeps the whole suite out of the green baseline (no runner
-// error, no false failure). GREEN: the exports land, the gate flips true automatically, the
-// UNCHANGED assertions below run and must pass. This mirrors the epic-4 pure-library ATDD pattern.
-const TAX_SURFACE_PRESENT = typeof engine.estimateDeduction === "function";
-const suite = TAX_SURFACE_PRESENT ? describe : describe.skip;
+// Story 10.6 standing-control repair: a missing landed export is a failure, never a skipped suite.
+assert.equal(typeof engine.estimateDeduction, "function", "estimateDeduction export is a hard standing precondition");
 
 const CAPTURED_AT = "2026-07-02T00:00:00.000Z";
 
@@ -169,7 +154,7 @@ const CAPTURED_AT = "2026-07-02T00:00:00.000Z";
 const ROT_BP_PLACEHOLDER = 3000;
 const ROT_CAP_ORE_PLACEHOLDER = 5_000_000;
 
-suite("Story 4.3 — @/lib/money ROT / grön-teknik estimate engine (RED → GREEN)", () => {
+describe("Story 4.3 — @/lib/money ROT / grön-teknik estimate engine (standing regression)", () => {
   // ── 4.3-UNIT-01: engine outputs deduction + eligible basis + warnings + snapshot (AC1) ──
   describe("4.3-UNIT-01 — estimate shape + values; assumptions captured, nothing approved (R-405, R-407)", () => {
     test("estimateDeduction returns { deductionOre, eligibleBasisOre, warnings, assumptionSnapshot, requiresSignOff }", () => {

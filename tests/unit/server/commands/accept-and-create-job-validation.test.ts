@@ -58,14 +58,13 @@ test("[7.2] accepts the required-fields-only input (all optional fields absent, 
   );
 });
 
-test("[7.2] accepts a fully-populated accept (title + channel/reason/evidence/notes/planned dates)", () => {
+test("[7.2] accepts a fully-populated accept with one evidence form (title + channel/reason/notes/planned dates)", () => {
   const r = validateAcceptQuoteAndCreateJob({
     ...base(),
     title: "Jobb från accepterad offert",
     channel: "email",
     adjustment_reason: "kundrabatt",
     evidence_file_id: UUID_FILE,
-    evidence_reference: "kundmail 4711",
     notes: "kundens bekräftelse",
     planned_start_date: "2026-07-15T00:00:00.000Z",
     planned_end_date: "2026-07-20T00:00:00.000Z",
@@ -75,6 +74,21 @@ test("[7.2] accepts a fully-populated accept (title + channel/reason/evidence/no
   assert.equal(r.data.title, "Jobb från accepterad offert");
   assert.equal(r.data.channel, "email");
   assert.equal(r.data.evidence_file_id, UUID_FILE);
+});
+
+test("[10.6 VALIDATION_FAILED] file evidence and external evidence are mutually exclusive", () => {
+  assert.equal(
+    validateAcceptQuoteAndCreateJob({
+      ...base(),
+      evidence_file_id: UUID_FILE,
+      evidence_reference: "kundmail 4711",
+    }).ok,
+    false,
+  );
+  assert.equal(
+    validateAcceptQuoteAndCreateJob({ ...base(), evidence_file_id: null, evidence_reference: null }).ok,
+    true,
+  );
 });
 
 test("[7.2] accepts accepted_price_ore at 0 and at exactly ORE_AMOUNT_MAX (the öre boundaries)", () => {
