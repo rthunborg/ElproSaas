@@ -31,6 +31,8 @@ export interface LostActionState {
   readonly formError: string | null;
   /** The affected version id on success. */
   readonly targetId: string | null;
+  /** The optional follow-up was completed before a later lost transition failed. */
+  readonly followUpCompleted: boolean;
 }
 
 /** The initial, pristine mark-lost state. */
@@ -39,6 +41,7 @@ export const LOST_ACTION_INITIAL: LostActionState = {
   code: null,
   formError: null,
   targetId: null,
+  followUpCompleted: false,
 };
 
 /** True iff the mark-lost result is a transient, retryable failure. */

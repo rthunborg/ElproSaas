@@ -65,8 +65,14 @@
  * introspection runs the loopback-gated `pg` superuser pool (admin-sql.ts).
  */
 import type { TwoTenantFixture } from "../../factories/tenants";
+import { calendarDayIn } from "@/features/quotes/follow-up-dates";
 import { SCOPE_MANIFEST } from "@/scope/manifest";
 import { tenantTablesFromManifest } from "@/scope/manifest-schema";
+
+/** A valid future date for write-shape fixtures, evaluated in the DB's Stockholm calendar. */
+function futureStockholmDay(): string {
+  return calendarDayIn(new Date(Date.now() + 48 * 60 * 60 * 1_000).toISOString(), "Europe/Stockholm");
+}
 
 /**
  * The `tenants` ROOT table — tenant-owned despite carrying NO `tenant_id` column
@@ -745,7 +751,7 @@ export function spoofedRowFor(
           "tenantBQuoteVersionId",
           table,
         ),
-        due_date: "2026-08-01",
+        due_date: futureStockholmDay(),
         status: "open",
       };
     default:
@@ -1436,7 +1442,7 @@ export function anonRowFor(
         tenant_id: fixture.tenantA.id,
         quote_id: crypto.randomUUID(),
         quote_version_id: crypto.randomUUID(),
-        due_date: "2026-08-01",
+        due_date: futureStockholmDay(),
         status: "open",
       };
     default:

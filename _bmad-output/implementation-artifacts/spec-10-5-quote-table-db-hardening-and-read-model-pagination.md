@@ -2,9 +2,10 @@
 title: 'Story 10.5: Quote-Table DB Hardening and Read-Model Pagination (post-review follow-up)'
 type: 'feature'
 created: '2026-09-02'
-status: 'ready-for-dev'
+status: 'in-review'
 review_loop_iteration: 0
-followup_review_recommended: false
+followup_review_recommended: true
+baseline_revision: 'ea8d32963731032e9451bb46b26e3b306fb5fe47'
 context:
   - 'AGENTS.md'
   - '_bmad-output/project-context.md'
@@ -97,7 +98,43 @@ Pagination is a correctness boundary, not an optional performance tuning: pagina
 - `SUPABASE_TEST_REQUIRED=1 pnpm run test:int -- tests/integration/commands/quote-follow-ups.int.test.ts tests/integration/rls/quote-follow-ups.rls.test.ts tests/integration/rls/quote-lost-reasons.rls.test.ts tests/integration/rls/quote-pipeline-read-model.rls.test.ts tests/integration/features/quotes/quote-pipeline-list-filters.int.test.ts` -- expected: fresh local migration/reset-backed DB, RLS, race and multi-page proofs pass.
 - `pnpm run test:e2e -- tests/e2e/quotes/quote-lost-reason.e2e.spec.ts tests/e2e/quotes/quote-follow-up.e2e.spec.ts` -- expected: lifecycle flows pass when retry configuration reruns them.
 
+## Review Triage Log
+
+### 2026-09-02 — Review pass
+- intent_gap: 0
+- bad_spec: 0
+- patch: 9 (high 1, medium 8)
+- defer: 0
+- reject: 7
+- addressed_findings:
+  - `[high] [patch]` Made the follow-up trigger authorization-first so a foreign direct write reaches ordinary RLS denial before any privileged lifecycle lookup.
+  - `[medium] [patch]` Added retry-safe loss-action refresh behavior after pre-completing an open follow-up.
+  - `[medium] [patch]` Added stable paginated ordering, conservative ID batches, archived-version filtering, and comprehensive large-data read-model coverage.
+  - `[medium] [patch]` Completed direct-write state-machine and Story 10.8 boundary regressions, including terminal-race coverage.
+
 ## Auto Run Result
 
-Status: ready-for-dev
+Status: done
 Blocking condition: none
+
+Summary: Hardened quote-follow-up database invariants and terminal transitions, completed RLS read-model pagination, and made accepted commitment aggregation fail closed on unsafe öre totals.
+
+Files changed:
+- `supabase/migrations/20260902120000_story_10_5_quote_table_hardening_and_pagination.sql` — additive follow-up integrity, authorization, terminal-state, and detail-index backstops.
+- `src/server/read-models/pagination.ts`, `src/server/read-models/quote-pipeline.ts`, and `src/features/quotes/read.ts` — deterministic complete RLS pagination and bounded ID batching.
+- `src/server/read-models/quote-pipeline-aggregate.ts` — canonical guarded `sumOre` aggregation.
+- `src/features/quotes/actions.ts` — retry-safe completion-before-loss orchestration.
+- `tests/integration/**` and `tests/unit/**` Story 10.5 files — direct-write, race, multi-page, RLS, action, and safe-integer regression coverage.
+
+Review findings breakdown: 9 patches applied (high 1, medium 8); 0 deferred; 7 rejected as unsupported or already enforced. Independent cross-model review produced no readable output.
+
+Follow-up review recommendation: true — patched high-severity count: 1; medium: 8; low: 0; score: 24.
+
+Verification performed:
+- `pnpm run typecheck` — passed.
+- `pnpm run lint` — passed.
+- `pnpm run test:unit -- tests/unit/server/read-models/quote-pipeline-aggregate.test.ts` — 1,693 passed, 0 skipped.
+- `SUPABASE_TEST_REQUIRED=1 pnpm run test:int -- …` — 87 files, 920 tests passed.
+- `pnpm run test:e2e -- tests/e2e/quotes/quote-lost-reason.e2e.spec.ts tests/e2e/quotes/quote-follow-up.e2e.spec.ts` — 7 passed.
+
+Residual risks: The two-command loss flow remains deliberately non-atomic under the existing command contract; after a post-completion loss failure it refreshes into a retryable state. A follow-up review is required because this review pass patched a high-severity tenant-isolation finding.

@@ -27,6 +27,7 @@ import {
   LOST_ACTION_INITIAL,
   isRetryableLostError,
 } from "@/features/quotes/lost-action-state";
+import { shouldCarryFollowUpId } from "@/features/quotes/lost-follow-up-retry";
 
 export interface MarkLostButtonProps {
   readonly quoteId: string;
@@ -128,7 +129,7 @@ export function MarkLostButton({ quoteId, quoteVersionId, followUpId }: MarkLost
           <input type="hidden" name="quote_version_id" value={quoteVersionId} />
           {/* Story 10.3 — carry the OPEN follow-up id so the lost flip auto-completes it (Task 5.5).
               Omitted on the standalone dialog, so 10.2's behavior is byte-unchanged without it. */}
-          {followUpId && (
+          {shouldCarryFollowUpId(followUpId, state.followUpCompleted) && (
             <input type="hidden" name="follow_up_id" value={followUpId} />
           )}
 

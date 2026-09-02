@@ -51,6 +51,7 @@ import { adminSelectAuditEvents } from "../../factories/audit-events";
 import { isLocalStackReachable } from "../../support/test-env";
 import { skipUnlessStack } from "../../support/stack-gate";
 import { runCommand } from "@/server/commands/envelope";
+import { calendarDayIn } from "@/features/quotes/follow-up-dates";
 import {
   markQuoteVersionLost,
   planQuoteFollowUp,
@@ -59,8 +60,16 @@ import {
 } from "@/server/commands/quotes";
 import type { CommandClock } from "@/server/commands/clock";
 
-const FIXED_ISO = "2026-07-19T09:00:00.000Z";
+// The Story 10.5 database backstop owns the Stockholm calendar date. Keep the injected command
+// clock on that same real calendar day so this command contract is exercised after a fresh reset.
+const FIXED_ISO = new Date().toISOString();
 const fixedClock: CommandClock = { now: () => new Date(FIXED_ISO) };
+const TODAY_STOCKHOLM = calendarDayIn(FIXED_ISO, "Europe/Stockholm");
+function stockholmDayOffset(days: number): string {
+  const date = new Date(`${TODAY_STOCKHOLM}T12:00:00.000Z`);
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+}
 
 let stackUp = false;
 let fixture: TwoTenantFixture;
@@ -125,7 +134,7 @@ async function seedDraftQuoteVersion(tenantId: string): Promise<{ quoteId: strin
 function plan(versionId: string, over: { due_date?: string; note?: string | null } = {}) {
   return runCommand(planQuoteFollowUp, {
     client: a as never,
-    input: { quote_version_id: versionId, due_date: over.due_date ?? "2026-08-01", note: over.note },
+    input: { quote_version_id: versionId, due_date: over.due_date ?? stockholmDayOffset(14), note: over.note },
     clock: fixedClock,
     correlationId: crypto.randomUUID(),
   });
@@ -178,7 +187,7 @@ describe("quote follow-up commands — plan/complete/annotate + one-open + auto-
 
     const res = await runCommand(planQuoteFollowUp, {
       client: a as never,
-      input: { quote_version_id: versionId, due_date: "2026-08-01", note: "ring kund om beslut" },
+      input: { quote_version_id: versionId, due_date: stockholmDayOffset(14), note: "ring kund om beslut" },
       clock: fixedClock,
       correlationId,
     });
@@ -219,9 +228,9 @@ describe("quote follow-up commands — plan/complete/annotate + one-open + auto-
   it("10.4-review: planning a follow-up with a PAST due_date is rejected with FOLLOW_UP_DUE_DATE_IN_PAST", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     const { quoteId, versionId } = await seedSentQuoteVersion(fixture.tenantA.id);
-    // The injected clock is 2026-07-19 (Europe/Stockholm). A due date before today would surface as an
+    // The injected clock follows today's Stockholm date. A due date before today would surface as an
     // instantly-overdue "Försenad uppföljning" — the plan command rejects it with a NEW, DISTINCT code.
-    const past = await plan(versionId, { due_date: "2026-07-01" });
+    const past = await plan(versionId, { due_date: stockholmDayOffset(-1) });
     expect(past.ok).toBe(false);
     if (past.ok) return;
     expect(past.code).toBe("FOLLOW_UP_DUE_DATE_IN_PAST");
@@ -229,7 +238,7 @@ describe("quote follow-up commands — plan/complete/annotate + one-open + auto-
     expect((await adminSelectFollowUps(quoteId)).length).toBe(0);
 
     // The boundary is strict: a due date EQUAL to today (Stockholm) is accepted (not overdue).
-    const today = await plan(versionId, { due_date: "2026-07-19" });
+    const today = await plan(versionId, { due_date: TODAY_STOCKHOLM });
     expect(today.ok).toBe(true);
   });
 
@@ -318,18 +327,8 @@ describe("quote follow-up commands — plan/complete/annotate + one-open + auto-
     expect(planned.ok).toBe(true);
     if (!planned.ok) return;
 
-    // The action-layer orchestration: lost-flip FIRST (the irreversible commitment), then complete the
-    // follow-up with the chosen förlorad/avböjd outcome. Both are individually audited (SETTLED DESIGN
-    // DECISION 5). This INT models the two-command effect the extended action performs.
-    const lostCorr = crypto.randomUUID();
-    const lost = await runCommand(markQuoteVersionLost, {
-      client: a as never,
-      input: { quote_version_id: versionId, outcome: "forlorad", category: "pris" },
-      clock: fixedClock,
-      correlationId: lostCorr,
-    });
-    expect(lost.ok).toBe(true);
-
+    // Story 10.5's terminal guard requires the open follow-up to complete before the irreversible
+    // lost transition. Both single-row commands remain individually audited.
     const completeCorr = crypto.randomUUID();
     const complete = await runCommand(completeQuoteFollowUp, {
       client: a as never,
@@ -338,6 +337,15 @@ describe("quote follow-up commands — plan/complete/annotate + one-open + auto-
       correlationId: completeCorr,
     });
     expect(complete.ok).toBe(true);
+
+    const lostCorr = crypto.randomUUID();
+    const lost = await runCommand(markQuoteVersionLost, {
+      client: a as never,
+      input: { quote_version_id: versionId, outcome: "forlorad", category: "pris" },
+      clock: fixedClock,
+      correlationId: lostCorr,
+    });
+    expect(lost.ok).toBe(true);
 
     // No open follow-up survives a lost flip taken from this surface.
     const open = (await adminSelectFollowUps(quoteId)).filter((r) => r.status === "open");
@@ -404,8 +412,8 @@ describe("quote follow-up commands — plan/complete/annotate + one-open + auto-
     const { quoteId: bQuoteId, versionId: bVersionId } = await seedSentQuoteVersion(fixture.tenantB.id);
     const bRows = await adminQuery<{ id: string }>(
       `insert into public.quote_follow_ups (tenant_id, quote_id, quote_version_id, due_date, status)
-         values ($1, $2, $3, '2026-08-01', 'open') returning id`,
-      [fixture.tenantB.id, bQuoteId, bVersionId],
+         values ($1, $2, $3, $4, 'open') returning id`,
+      [fixture.tenantB.id, bQuoteId, bVersionId, stockholmDayOffset(14)],
     );
     const bFollowUpId = bRows[0]!.id;
 

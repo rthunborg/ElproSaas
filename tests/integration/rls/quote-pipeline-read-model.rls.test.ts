@@ -50,6 +50,7 @@ import {
   type TwoTenantFixture,
   type TestServerClient,
 } from "../../factories/tenants";
+import { adminExec } from "../../factories/admin-sql";
 import { isLocalStackReachable } from "../../support/test-env";
 import { skipUnlessStack } from "../../support/stack-gate";
 import { readQuotePipeline } from "@/server/read-models/quote-pipeline";
@@ -214,4 +215,49 @@ describe("10.4-INT-01: pipeline read-model isolation floor (RLS-client-only, cro
     expect(Object.prototype.hasOwnProperty.call(result.data, "acceptedValueOre")).toBe(false);
     expect(result.entitlements.withheld).toContain("acceptedValueOre");
   });
+
+  it("multi-page: an event after PostgREST's first 1,000 RLS-visible rows still changes the pipeline", async (ctx) => {
+    if (skipUnlessStack(ctx, stackUp)) return;
+    const tenantId = fixture.tenantA.id;
+    const customerId = await adminInsertCustomer({ tenant_id: tenantId, customer_type: "company", display_name: `page-${crypto.randomUUID()}` });
+    const calculationId = await adminInsertCalculation({ tenant_id: tenantId, customer_id: customerId });
+    const quoteId = await adminInsertQuote({ tenant_id: tenantId, customer_id: customerId });
+    const versionId = await adminInsertQuoteVersion({ tenant_id: tenantId, quote_id: quoteId, calculation_id: calculationId, status: "sent" });
+    const before = await readQuotePipeline(WINDOW, { roles: ["tenant_admin"] }, { client: a });
+
+    await adminExec(
+      "insert into public.quote_events (tenant_id, quote_id, quote_version_id, event_type, occurred_at) select $1, $2, $3, 'sent', $4::timestamptz from generate_series(1, 1001)",
+      [tenantId, quoteId, versionId, SEED_INSTANT],
+    );
+    // This is row 1,002. A capped prefix gives a false zero for this new loss.
+    await adminExec(
+      "insert into public.quote_events (tenant_id, quote_id, quote_version_id, event_type, occurred_at) values ($1, $2, $3, 'lost', $4::timestamptz)",
+      [tenantId, quoteId, versionId, SEED_INSTANT],
+    );
+
+    const after = await readQuotePipeline(WINDOW, { roles: ["tenant_admin"] }, { client: a });
+    expect(after.data.sentCount).toBe(before.data.sentCount + 1);
+    expect(after.data.lostCount).toBe(before.data.lostCount + 1);
+  });
+
+  it("multi-ID batch: accepted commitments beyond one conservative ID batch remain complete", async (ctx) => {
+    if (skipUnlessStack(ctx, stackUp)) return;
+    const tenantId = fixture.tenantA.id;
+    const customerId = await adminInsertCustomer({ tenant_id: tenantId, customer_type: "company", display_name: `batch-${crypto.randomUUID()}` });
+    const calculationId = await adminInsertCalculation({ tenant_id: tenantId, customer_id: customerId });
+    const before = await readQuotePipeline(WINDOW, { roles: ["tenant_admin"] }, { client: a });
+    const acceptedPriceOre = 10_000;
+    const batchCount = 101; // deliberately one more than RLS_ID_BATCH_SIZE
+
+    for (let index = 0; index < batchCount; index += 1) {
+      const quoteId = await adminInsertQuote({ tenant_id: tenantId, customer_id: customerId });
+      const versionId = await adminInsertQuoteVersion({ tenant_id: tenantId, quote_id: quoteId, calculation_id: calculationId, status: "accepted", accepted_price_ore: acceptedPriceOre });
+      await adminInsertQuoteEvent({ tenant_id: tenantId, quote_id: quoteId, quote_version_id: versionId, event_type: "accepted", occurred_at: SEED_INSTANT });
+      await adminInsertQuoteAcceptance({ tenant_id: tenantId, quote_id: quoteId, quote_version_id: versionId, accepted_price_ore: acceptedPriceOre, source_sent_total_ore: acceptedPriceOre, accepted_at: SEED_INSTANT });
+    }
+
+    const after = await readQuotePipeline(WINDOW, { roles: ["tenant_admin"] }, { client: a });
+    expect(after.data.acceptedCount).toBe(before.data.acceptedCount + batchCount);
+    expect(after.data.acceptedValueOre).toBe((before.data.acceptedValueOre ?? 0) + batchCount * acceptedPriceOre);
+  }, 30_000);
 });

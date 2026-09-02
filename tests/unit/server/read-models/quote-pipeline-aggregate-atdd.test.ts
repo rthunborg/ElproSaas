@@ -1,7 +1,6 @@
 /**
  * Story 10.5 ATDD RED scaffolds — guarded accepted-value aggregation.
- * Remove the skips only with the implementation that replaces raw number addition
- * with the canonical `sumOre` failure semantics.
+ * The implementation replaces raw number addition with the canonical `sumOre` failure semantics.
  */
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -14,7 +13,7 @@ import {
 const PERIOD: PipelinePeriod = { from: "2026-07-01", to: "2026-07-31" };
 const NOW = "2026-07-20T12:00:00.000Z";
 
-test.skip("[P0][10.5-UNIT-01] accepted commitments sum exactly at Number.MAX_SAFE_INTEGER", () => {
+test("[P0][10.5-UNIT-01] accepted commitments sum exactly at Number.MAX_SAFE_INTEGER", () => {
   const events: PipelineEventRow[] = [
     { quote_version_id: "max", event_type: "accepted", occurred_at: "2026-07-10T09:00:00.000Z" },
   ];
@@ -33,7 +32,7 @@ test.skip("[P0][10.5-UNIT-01] accepted commitments sum exactly at Number.MAX_SAF
   assert.ok(Number.isSafeInteger(result.acceptedValueOre));
 });
 
-test.skip("[P0][10.5-UNIT-02] overflow of accepted commitments fails closed and never returns rounded ore", () => {
+test("[P0][10.5-UNIT-02] overflow of accepted commitments fails closed and never returns rounded ore", () => {
   const events: PipelineEventRow[] = [
     { quote_version_id: "a", event_type: "accepted", occurred_at: "2026-07-10T09:00:00.000Z" },
     { quote_version_id: "b", event_type: "accepted", occurred_at: "2026-07-11T09:00:00.000Z" },

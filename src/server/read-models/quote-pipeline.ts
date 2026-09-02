@@ -41,6 +41,7 @@ import {
   type EntitlementInput,
   type PipelineDescriptor,
 } from "./entitlements";
+import { chunkValues, readAllPages } from "./pagination";
 
 /** The request-bound RLS client type (the ONLY client this read-model queries). */
 type PipelineServerClient = Awaited<ReturnType<typeof createSupabaseServerClient>>;
@@ -59,14 +60,45 @@ export interface QuotePipelineDeps {
  * `.in`/`.eq` filter — all RLS-scoped.
  */
 type PipelineReadResult = { data: unknown[] | null; error: unknown };
+type PipelineReadQuery = {
+  in(column: string, values: readonly string[]): PipelineReadQuery;
+  eq(column: string, value: string): PipelineReadQuery;
+  gte(column: string, value: string): PipelineReadQuery;
+  lt(column: string, value: string): PipelineReadQuery;
+  order(column: string, options?: { ascending?: boolean }): PipelineReadQuery;
+  range(from: number, to: number): Promise<PipelineReadResult>;
+};
 type PipelineReadClient = {
   from(table: string): {
-    select(columns: string): {
-      in(column: string, values: readonly string[]): Promise<PipelineReadResult>;
-      eq(column: string, value: string): Promise<PipelineReadResult>;
-    };
+    select(columns: string): PipelineReadQuery;
   };
 };
+
+async function readPipelinePages(
+  query: PipelineReadQuery,
+): Promise<PipelineReadResult> {
+  const result = await readAllPages((from, to) => query.range(from, to));
+  return { data: [...result.data], error: result.error };
+}
+
+async function readPipelineBatches(
+  ids: readonly string[],
+  queryForIds: (ids: readonly string[]) => PipelineReadQuery,
+): Promise<PipelineReadResult> {
+  const rows: unknown[] = [];
+  for (const idsPage of chunkValues(ids)) {
+    const result = await readPipelinePages(queryForIds(idsPage));
+    if (result.error) return result;
+    rows.push(...(result.data ?? []));
+  }
+  return { data: rows, error: null };
+}
+
+function nextCalendarDay(day: string): string {
+  const date = new Date(`${day}T12:00:00.000Z`);
+  date.setUTCDate(date.getUTCDate() + 1);
+  return date.toISOString().slice(0, 10);
+}
 
 /** Coerce a `bigint` öre that PostgREST may return as a STRING into a JS number (0 when absent/invalid). */
 function oreNumber(v: unknown): number {
@@ -116,10 +148,19 @@ export async function readQuotePipeline(
     // ── Lifecycle events (the count source of truth — never the live status). RLS scopes to tenant. ──
     // Read ALL sent/accepted/lost events and let the PURE aggregate window-filter them on the
     // Stockholm calendar boundary (ONE date convention; no second DB-side date rule).
-    const eventsRes = await client
-      .from("quote_events")
-      .select("quote_version_id, event_type, occurred_at")
-      .in("event_type", ["sent", "accepted", "lost"]);
+    // The fixed +02/+01 bounds safely cover either Stockholm DST offset; the pure aggregate makes
+    // the final Stockholm-calendar inclusion decision. The database still eliminates the vast
+    // majority of out-of-period rows before bounded pagination.
+    const eventsRes = await readPipelinePages(
+      client
+        .from("quote_events")
+        .select("quote_version_id, event_type, occurred_at")
+        .in("event_type", ["sent", "accepted", "lost"])
+        .gte("occurred_at", `${resolvedPeriod.from}T00:00:00+02:00`)
+        .lt("occurred_at", `${nextCalendarDay(resolvedPeriod.to)}T00:00:00+01:00`)
+        .order("occurred_at", { ascending: true })
+        .order("id", { ascending: true }),
+    );
     if (eventsRes.error) return projectWithEntitlements(emptyAggregate(resolvedPeriod), entitlementInput);
 
     const events: PipelineEventRow[] = [];
@@ -143,10 +184,15 @@ export async function readQuotePipeline(
     // against). Only the versions with an accepted event are read; skip the query when none exist. ──
     const acceptedVersions: AcceptedVersionRow[] = [];
     if (acceptedVersionIds.size > 0) {
-      const acceptancesRes = await client
-        .from("quote_acceptances")
-        .select("quote_version_id, accepted_price_ore")
-        .in("quote_version_id", [...acceptedVersionIds]);
+      const acceptancesRes = await readPipelineBatches(
+        [...acceptedVersionIds],
+        (ids) => client
+          .from("quote_acceptances")
+          .select("quote_version_id, accepted_price_ore")
+          .in("quote_version_id", ids)
+          .order("quote_version_id", { ascending: true })
+          .order("id", { ascending: true }),
+      );
       if (acceptancesRes.error) return projectWithEntitlements(emptyAggregate(resolvedPeriod), entitlementInput);
       for (const raw of (acceptancesRes.data ?? []) as Record<string, unknown>[]) {
         const vId = raw.quote_version_id;
@@ -163,10 +209,14 @@ export async function readQuotePipeline(
     // is EXCLUDED from the counts — a decided deal must not keep escalating a stale follow-up (10.4 +
     // iteration-2 review). The overdue subset is derived in the pure aggregate via classifyFollowUp on
     // the Stockholm boundary. ──
-    const followUpsRes = await client
-      .from("quote_follow_ups")
-      .select("id, status, due_date, quote_id")
-      .eq("status", "open");
+    const followUpsRes = await readPipelinePages(
+      client
+        .from("quote_follow_ups")
+        .select("id, status, due_date, quote_id")
+        .eq("status", "open")
+        .order("due_date", { ascending: true })
+        .order("id", { ascending: true }),
+    );
     if (followUpsRes.error) return projectWithEntitlements(emptyAggregate(resolvedPeriod), entitlementInput);
 
     const rawFollowUps = (followUpsRes.data ?? []) as Record<string, unknown>[];
@@ -179,10 +229,16 @@ export async function readQuotePipeline(
     }
     const latestStatusByQuoteId = new Map<string, { versionNumber: number; status: string }>();
     if (followUpQuoteIds.size > 0) {
-      const versionsRes = await client
-        .from("quote_versions")
-        .select("quote_id, version_number, status")
-        .in("quote_id", [...followUpQuoteIds]);
+      const versionsRes = await readPipelineBatches(
+        [...followUpQuoteIds],
+        (ids) => client
+          .from("quote_versions")
+          .select("quote_id, version_number, status")
+          .in("quote_id", ids)
+          .order("quote_id", { ascending: true })
+          .order("version_number", { ascending: true })
+          .order("id", { ascending: true }),
+      );
       if (versionsRes.error) return projectWithEntitlements(emptyAggregate(resolvedPeriod), entitlementInput);
       for (const raw of (versionsRes.data ?? []) as Record<string, unknown>[]) {
         const quoteId = raw.quote_id;
