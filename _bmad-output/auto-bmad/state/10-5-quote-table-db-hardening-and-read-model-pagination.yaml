@@ -9,11 +9,11 @@ spec_folder: null
 story_id: null
 branch: story/10-5-quote-table-db-hardening-and-read-model-pagination
 status: in-progress
-updated_at: "2026-09-02T10:31:22Z"
+updated_at: "2026-09-02T11:35:53Z"
 started_at: "2026-09-02T09:44:31Z"
 completed_at: null
-active_seconds: 1241
-timing_anchor: 1788345082
+active_seconds: 5081
+timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
 git_mode: remote
@@ -42,8 +42,8 @@ spec_path: "C:\\DEV\\ElproSaas\\_bmad-output\\implementation-artifacts\\spec-10-
 spec_approved: true
 build:
   status: blocked
-  blocking_condition: "/bin/bash: line 1: uv: command not found"
-  followup_review_recommended: false
+  blocking_condition: "no terminal HALT (status in-review)"
+  followup_review_recommended: true
   review_loop_iteration: 0
   deferred_count: 2
   warnings: [oversized]
