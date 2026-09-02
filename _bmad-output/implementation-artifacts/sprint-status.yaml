@@ -60,7 +60,7 @@
 # use the current Epic 10 statuses and approved corrective-story entries below.
 
 generated: 2026-06-12
-last_updated: 2026-08-31  # ADR-B008 follow-ups are implemented but remain in-progress pending fresh root-run verification and final convergence; 10.6 remains review.
+last_updated: 09-02-2026 11:39  # ADR-B008 follow-ups are implemented but remain in-progress pending fresh root-run verification and final convergence; 10.6 remains review.
 project: ElproSaas
 project_key: NOKEY
 tracking_system: file-system
@@ -209,15 +209,15 @@ development_status:
   # (VAT rounding scope, hidden-row deduction eligibility, reverse charge) and 10.7 supersedes the
   # "responsive web first" assumption with a PWA + offline requirement. Both are real scope, not
   # register entries — schedule 10.6 BEFORE any real ROT/gron quote leaves the system.
-  10-6-tax-answer-reconciliation: review
+  10-6-tax-answer-reconciliation: done
   10-7-pwa-offline-field-capability: backlog
   # Approved corrective follow-ups from the 2026-08-31 Story 10.6 review. Stories 10.8/10.9
   # implement ADR-B008 provenance/authority/audit, HMAC PDF-byte attestation, and
   # PDF-validity/attachment carry-forward. Final local verification and hosted verify/db/Playwright
   # CI are green; 10.6/10.8/10.9 remain in review pending post-merge demo secret/migration
   # attestation. Physical Storage byte reclamation remains deferred to future Story 31.7 after E31.
-  10-8-quote-review-provenance-authority-and-audit: review
-  10-9-quote-pdf-validity-and-attachment-carry-forward: review
+  10-8-quote-review-provenance-authority-and-audit: done
+  10-9-quote-pdf-validity-and-attachment-carry-forward: done
   epic-10-retrospective: done
 
   epic-11: backlog
