@@ -181,3 +181,37 @@ No deferred items archived during this halted continuation.
 1. Provide a fresh recovery actor with its own trusted resourceGuardContext and an available Docker Desktop Linux engine, then start/reset only this repository's local Supabase stack and rerun the required DB-backed suites.
 
 **Next:** Resume the same Phase 7 Round 2 continuation after guarded local-stack recovery; do not start a new broad review.
+
+## Report — 2026-09-02T17:45:52Z (final)
+
+**Story:** `10-5-quote-table-db-hardening-and-read-model-pagination` (epic 10, story 5) — mid-epic.
+**Spec:** `C:\DEV\ElproSaas\_bmad-output\implementation-artifacts\spec-10-5-quote-table-db-hardening-and-read-model-pagination.md`
+**Branch:** `story/10-5-quote-table-db-hardening-and-read-model-pagination` (HEAD `25fc5f9`).
+**Pipeline status:** clean pre-CI completion; ready for remote finalize
+**Continues:** 2026-09-02T14:45:18Z (halted â€” needs-human)
+
+**Timing:** started 2026-09-02T09:44:31Z; completed in progress — elapsed 8h 01m (≈2h 01m AI-run, ≈5h 59m human/idle wait); resumed 5×.
+
+**Phases run:** Phase 7 Round 2 completion and story trace advisory; Phase 8 mid-epic skip; Phase 9 preparation
+**Skipped:** Round 3 by owner choice; epic-end trace gate, NFR audit, test review, deferred reconcile/archive, and retrospective because Story 10.5 is mid-epic
+
+**Overrides:** Owner approved atomic follow-up closure for authorised acceptance and successor/supersession; owner continued after clean Round 2 without the optional final Round 3.
+
+**TEA:** High risk; ATDD and automation completed. Story trace advisory PASS: P0 5/5 (100%), P1 1/1 (100%), overall 6/6 (100%); uncovered ACs: none; gate NOT_EVALUATED because the blocking gate remains at epic end.
+
+**Build:** done; follow-up review passes 1; deferred 2; warning oversized. Delivered quote-table database/RLS hardening, deterministic paginated read models, safe Ã¶re aggregation, retry-safe test fixtures, and authorised atomic follow-up closure.
+
+**Review:** Round 1 completed in Phase 5; Round 2 completed after the owner decision and local DB verification. Latest result recommends no further pass; review_unverified false; Round 3 deliberately not run.
+
+**Retrospective:** (none â€” Story 10.5 is mid-epic)
+
+**Open questions:** (none)
+
+**Deferred work:**
+1. Manifest EpicRef closed-union/range validation remains governance polish outside Story 10.5.
+2. Reconciliation of stranded open follow-ups after accepted/lost transitions remains an explicit later lifecycle decision; the accepted/superseded rule is resolved.
+Harvested 2 Story 10.5 items into the active deferred-work ledger; archived 0.
+
+**⚠️ Needs human:** (none)
+
+**Next:** Human review: /bmad-checkpoint-preview story/10-5-quote-table-db-hardening-and-read-model-pagination

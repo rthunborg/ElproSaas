@@ -9,7 +9,7 @@ spec_folder: null
 story_id: null
 branch: story/10-5-quote-table-db-hardening-and-read-model-pagination
 status: in-progress
-updated_at: "2026-09-02T17:45:02Z"
+updated_at: "2026-09-02T17:45:52Z"
 started_at: "2026-09-02T09:44:31Z"
 completed_at: null
 active_seconds: 7294
@@ -40,7 +40,7 @@ tea_selected: [atdd, automate, trace-advisory]
 tea_rationale: "High-risk data-integrity and schema changes, concurrency behavior, and money aggregation are explicitly in scope; long-epic policy adds the story trace advisory."
 epic_story_count: 9
 stories_after_in_epic: 4
-completed_phases: [0, 1, 2, 3, 4, 5, 6, 7]
+completed_phases: [0, 1, 2, 3, 4, 5, 6, 7, 8]
 spec_path: "C:\\DEV\\ElproSaas\\_bmad-output\\implementation-artifacts\\spec-10-5-quote-table-db-hardening-and-read-model-pagination.md"
 spec_approved: true
 build:
@@ -67,14 +67,14 @@ legacy_review_loop_done: false
 legacy_external_review_iterations: null
 legacy_convergence_unverified: false
 legacy_artifact_path: null
-commits: [eca727a, ec2456a, 35d1b61, ef6e2e5, ea8d329, 01f5aff, a182715, 2e0dcc3, 7d96f66, d36f5a5, 9481b26, 524bf41, 8eb01c2, 4d967fc, 71a4725, 996135a, d343695, 5c63679]
+commits: [eca727a, ec2456a, 35d1b61, ef6e2e5, ea8d329, 01f5aff, a182715, 2e0dcc3, 7d96f66, d36f5a5, 9481b26, 524bf41, 8eb01c2, 4d967fc, 71a4725, 996135a, d343695, 5c63679, 25fc5f9, c544c9c]
 phase8_steps:
-  trace_gate: null
-  nfr: null
-  test_review: null
-  reconcile: null
-  archive: null
-  retro: null
+  trace_gate: done
+  nfr: done
+  test_review: done
+  reconcile: done
+  archive: done
+  retro: done
 gate_decision: null
 gate_iterations: 0
 deferred_work_archived: 0
