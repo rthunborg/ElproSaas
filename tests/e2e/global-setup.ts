@@ -695,6 +695,42 @@ export default async function globalSetup() {
     status: "open",
   });
 
+  // Story 10.5 — mutating E2E journeys can retry in CI. Seed an untouched record for each
+  // `testInfo.retry` value so retrying preserves the business assertion instead of accepting
+  // previously-mutated singleton state. Existing singleton records stay available to read-only tests.
+  const e2eAttemptCount = 2; // initial run plus the one CI retry in playwright.config.ts
+  const markLostQuoteAttempts: Array<{ id: string; sentVersionId: string }> = [];
+  const followUpQuoteAttempts: Array<{ id: string; sentVersionId: string }> = [];
+  const completeFollowUpQuoteAttempts: Array<{ id: string; sentVersionId: string }> = [];
+  const retryDueDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  for (let attempt = 0; attempt < e2eAttemptCount; attempt += 1) {
+    const markLost = await seedSentFollowUpQuote(
+      1050 + attempt,
+      `Retry-isolated sent version for mark-lost attempt ${attempt} (10.5)`,
+    );
+    markLostQuoteAttempts.push({ id: markLost.quoteId, sentVersionId: markLost.sentVersionId });
+
+    const planned = await seedSentFollowUpQuote(
+      1060 + attempt,
+      `Retry-isolated sent version for plan-follow-up attempt ${attempt} (10.5)`,
+    );
+    followUpQuoteAttempts.push({ id: planned.quoteId, sentVersionId: planned.sentVersionId });
+
+    const complete = await seedSentFollowUpQuote(
+      1070 + attempt,
+      `Retry-isolated sent version for complete-follow-up attempt ${attempt} (10.5)`,
+    );
+    await adminInsertQuoteFollowUp({
+      tenant_id: base.tenantA.id,
+      quote_id: complete.quoteId,
+      quote_version_id: complete.sentVersionId,
+      due_date: retryDueDate,
+      note: "retry-isolated completion fixture",
+      status: "open",
+    });
+    completeFollowUpQuoteAttempts.push({ id: complete.quoteId, sentVersionId: complete.sentVersionId });
+  }
+
   // Story 10.4 — a DEDICATED already-LOST quote (latest version status='lost' + a Förlorad reason), so
   // the pipeline render-consistency E2E (10.4-E2E-01) has a DETERMINISTIC lost row in the list
   // (Förlorad/Avböjd filter → quote-list-lost-row + the Förlustorsak column) independent of the 10.2
@@ -1047,6 +1083,7 @@ export default async function globalSetup() {
       id: markLostQuoteId,
       sentVersionId: markLostSentVersionId,
     },
+    markLostQuoteAttempts,
     // Story 10.4 — a dedicated already-LOST quote (latest version status='lost' + a Förlorad reason)
     // so the pipeline render-consistency E2E has a deterministic lost row + Förlustorsak column cell.
     pipelineLostQuote: {
@@ -1059,6 +1096,7 @@ export default async function globalSetup() {
       id: planFollowUp.quoteId,
       sentVersionId: planFollowUp.sentVersionId,
     },
+    followUpQuoteAttempts,
     overdueFollowUpQuote: {
       id: overdueFollowUp.quoteId,
       sentVersionId: overdueFollowUp.sentVersionId,
@@ -1069,6 +1107,7 @@ export default async function globalSetup() {
       sentVersionId: completeFollowUp.sentVersionId,
       followUpId: completeFollowUpId,
     },
+    completeFollowUpQuoteAttempts,
     // Story 7.2 — a dedicated single-SENT-version quote the accept-and-create-job FLOW E2E consumes
     // (confirming acceptance permanently flips it to `accepted` + creates a job), kept off the
     // shared 6.2/7.1 quote whose sent version the acceptance-FORM tests need to stay `sent`.

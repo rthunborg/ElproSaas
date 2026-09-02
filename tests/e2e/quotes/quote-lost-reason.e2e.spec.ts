@@ -47,6 +47,11 @@ interface QuoteFixture {
     readonly id: string;
     readonly sentVersionId: string;
   };
+  /** One untouched sent quote per Playwright attempt for the mutating journey. */
+  readonly markLostQuoteAttempts?: ReadonlyArray<{
+    readonly id: string;
+    readonly sentVersionId: string;
+  }>;
 }
 
 // Guarded read — an absent/legacy fixture (RED phase, before global-setup seeds markLostQuote) must
@@ -112,9 +117,11 @@ test.describe("Quote Förlorad/Avböjd dialog + terminal badge (Story 10.2 E2E)"
 
   test("10.2-E2E-01: after confirm, the terminal Förlorad/Avböjd badge is DISTINCT from Accepterad and the reason shows on the card + in Händelser", async ({
     page,
-  }) => {
+  }, testInfo) => {
+    const quote = fixture.markLostQuoteAttempts?.[testInfo.retry];
+    expect(quote, "global setup must seed one untouched sent quote per Playwright attempt").toBeTruthy();
     await signIn(page, fixture.adminA.email, fixture.adminA.password);
-    await page.goto(`/quotes/${fixture.markLostQuote!.id}/versions/${fixture.markLostQuote!.sentVersionId}`);
+    await page.goto(`/quotes/${quote!.id}/versions/${quote!.sentVersionId}`);
 
     const markLost = page.getByRole("button", { name: /Markera som förlorad\/avböjd/i });
     await waitForHydrated(markLost);
