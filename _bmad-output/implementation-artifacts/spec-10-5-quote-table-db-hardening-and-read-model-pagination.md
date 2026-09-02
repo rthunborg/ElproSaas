@@ -139,7 +139,20 @@ Pagination is a correctness boundary, not an optional performance tuning: pagina
 ## Auto Run Result
 
 Status: blocked
-Blocking condition: intent gap — decide the required lifecycle resolution for an open follow-up when an authorised acceptance or successor/supersession transition makes its sent quote version terminal.
+Blocking condition: guarded local-Supabase recovery cannot start because this delegated actor has no injected resourceGuardContext, and Docker Desktop's Linux engine is unavailable at `npipe:////./pipe/dockerDesktopLinuxEngine`. The required local migration-reset integration/RLS verification therefore cannot run safely.
+
+### Local-stack verification continuation — Round 2 overall
+
+Round 1 was completed in Phase 5. This is the interrupted Round 2 continuation begun in Phase 7 after the owner decision; it is not a new review round and it did not perform a broad review.
+
+The approved patch remains limited to the two high findings: authorised acceptance and successor/supersession transitions complete an anchored open follow-up before terminalising the sent version, with ordinary PostgreSQL transaction rollback preserving all-or-nothing behavior and existing direct client-DML denial unchanged.
+
+Verification checkpoint:
+- `supabase status --output json` — blocked: Docker Desktop Linux engine is unavailable at `npipe:////./pipe/dockerDesktopLinuxEngine`.
+- `SUPABASE_TEST_REQUIRED=1 pnpm run test:int -- …` — blocked in local-stack global setup before DB-backed test discovery; it confirms the required suites cannot run against an unreachable local stack.
+- A guarded `supabase start` / `supabase db reset` was not attempted: this delegated actor's PowerShell context contains no injected `resourceGuardContext`, so it cannot safely own or later clean a local Docker/Supabase resource.
+
+The next authorised recovery actor must receive its own trusted resource-guard context, start and reset only this repository's local Supabase stack, run the required DB-backed suites proving acceptance and successor/supersession closure, direct-DML denial, and rollback semantics, then stop and verify cleanup before resolving this Round 2 halt.
 
 ### Resumed follow-up review result
 
