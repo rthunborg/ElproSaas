@@ -9,11 +9,11 @@ spec_folder: null
 story_id: null
 branch: story/10-5-quote-table-db-hardening-and-read-model-pagination
 status: in-progress
-updated_at: "2026-09-02T10:07:11Z"
+updated_at: "2026-09-02T10:28:05Z"
 started_at: "2026-09-02T09:44:31Z"
 completed_at: null
 active_seconds: 1241
-timing_anchor: null
+timing_anchor: 1788344885
 is_first_in_epic: false
 is_last_in_epic: false
 git_mode: remote
@@ -90,8 +90,9 @@ blockers:
   - WSL exposes uv.exe at /mnt/c/Users/Rasmus/.local/bin/uv.exe but has no uv command required by the governed BMAD renderer.
 overrides:
   post_merge_reconciliation: "Treat merged PR 45 work as complete; do not restart Story 10.6 or repeat its completed review rounds."
-  demo_push: No demo change without explicit user confirmation.
+  demo_push: "User explicitly authorized the post-merge demo push on 2026-09-02; migrations 20260805120000, 20260831124310, and 20260831124312 were applied and verified; Vault was untouched."
   review_scope: "Respect the three-round cap; assess prior work only for consequential unresolved findings or regressions from new fixes."
+  wsl_uv_repair: "User authorized a user-scoped WSL uv repair; official uv 0.12.9 is installed at /home/rasmus/.local/bin/uv and verified."
 constraints:
   - Preserve deterministic Auto-BMAD routing and project-scoped Codex configuration.
   - Do not change the primary task model or global user configuration.
