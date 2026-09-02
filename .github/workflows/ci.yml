@@ -144,7 +144,7 @@ jobs:
           # Pin an EXPLICIT CLI version — `latest` lets a Supabase release silently
           # change `db reset` behavior and break the gate non-deterministically
           # (review fix 2026-06-26). Matches the version used to author the stack.
-          version: 2.106.0
+          version: 2.115.0
 
       # Stage 6: empty DB → migrate → seed. `supabase start` boots the local stack
       # (Docker is available on ubuntu-latest); `db reset` then applies the
@@ -216,7 +216,7 @@ jobs:
         uses: supabase/setup-cli@v1
         with:
           # Pin the same explicit version as the `db` job (see its note).
-          version: 2.106.0
+          version: 2.115.0
 
       - name: Start local Supabase stack
         run: supabase start
