@@ -97,3 +97,69 @@
 1. Install or expose Python 3.11+ as python3 in the planning delegate environment, then rerun the planning invocation.
 
 **Next:** Repair python3 command resolution, then rerun /auto-bmad --story 10-7-pwa-offline-field-capability; do not begin implementation.
+
+## Report — 2026-09-03T11:43:50Z (halted â€” needs-human)
+
+**Story:** `10-7-pwa-offline-field-capability` (epic 10, story 7) — mid-epic.
+**Spec:** (none)
+**Branch:** `story/10-7-pwa-offline-field-capability` (HEAD `2248287`).
+**Pipeline status:** halted at Phase 3 (needs-human: build-auto blocked on dirty working tree)
+**Continues:** 2026-09-03T11:37:37Z (halted â€” needs-human)
+
+**Timing:** started 2026-09-03T10:12:49Z; completed in progress — elapsed 1h 31m (≈22m AI-run, ≈1h 08m human/idle wait); resumed 3×.
+
+**Phases run:** Phase 3 (build / gpt-5.6-terra high; blocked)
+**Skipped:** Phases 4â€“9 (halt after planning; no ready-for-dev spec)
+
+**Overrides:** Halt after planning; do not implement anything. Auto-BMAD/BMAD scripts invoked with py -3.14.
+
+**TEA:** Phase 0 triage reused: high risk; selected atdd, automate.
+
+**Build:** Planning HALT: blocked â€” dirty working tree. No spec was written; result artifact recorded.
+
+**Review:** skipped
+
+**Retrospective:** (none)
+
+**Open questions:**
+1. The prior Story 10.6 artifact contains a directive not to treat its historical verification counts as current evidence.
+
+**Deferred work:** (none)
+
+**⚠️ Needs human:**
+1. Restore a clean working tree, then rerun the planning delegate.
+
+**Next:** Restore a clean working tree, then rerun /auto-bmad --story 10-7-pwa-offline-field-capability; do not begin implementation.
+
+## Report — 2026-09-03T11:46:25Z (halted - needs-human)
+
+**Story:** `10-7-pwa-offline-field-capability` (epic 10, story 7) — mid-epic.
+**Spec:** (none)
+**Branch:** `story/10-7-pwa-offline-field-capability` (HEAD `2248287`).
+**Pipeline status:** Halted at Phase 3 - the launcher retry produced and committed its own blocked artifacts, so Auto-BMAD requires a fresh resume before planning can run on a clean tree.
+**Continues:** (none — first run)
+
+**Timing:** started 2026-09-03T10:12:49Z; completed in progress — elapsed 1h 33m (≈22m AI-run, ≈1h 11m human/idle wait); resumed 4×.
+
+**Phases run:** Authorized Story 10.6 continuity repair; Phase 3 planning retry (build / standard / gpt-5.6-terra high) - blocked before spec generation.
+**Skipped:** Phases 4-9 (not reached because Phase 3 blocked).
+
+**Overrides:** Owner authorized a metadata-only Story 10.6 status correction based on merged PR, passing CI, completed state, and completed sprint status; no fourth Story 10.6 review. Preserve prior Phase 3 blockers until planning succeeds.
+
+**TEA:** High risk; ATDD and automate remain selected but did not run. Trace advisory remains unselected because Story 10.7 is among the final three epic stories.
+
+**Build:** No Story 10.7 spec was written. The first nested attempt hit the known python3 alias; the py -3.14 retry then halted at build-auto's clean-tree gate after the failed attempt wrote blocked-run artifacts.
+
+**Review:** Skipped - implementation was not reached; Story 10.7 review rounds remain 0.
+
+**Retrospective:** (none - Story 10.7 is not the last story in epic 10).
+
+**Open questions:**
+1. A prior Story 10.6 artifact directs readers not to treat historical verification counts as current evidence; this run relied on current merged-state, sprint-status, PR, and CI evidence instead.
+
+**Deferred work:** (none)
+
+**⚠️ Needs human:**
+1. Start a fresh `/auto-bmad --story 10-7-pwa-offline-field-capability` resume. The blocked artifacts are committed; the remaining Auto-BMAD fallback report/state will fold into the next clean-tree checkpoint.
+
+**Next:** Re-run `/auto-bmad --story 10-7-pwa-offline-field-capability`; Phase 3 will retry without repeating Phases 0-2 or any Story 10.6 review.
