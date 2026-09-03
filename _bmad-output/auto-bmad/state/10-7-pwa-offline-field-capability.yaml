@@ -9,11 +9,11 @@ spec_folder: null
 story_id: null
 branch: story/10-7-pwa-offline-field-capability
 status: in-progress
-updated_at: "2026-09-03T11:31:45Z"
+updated_at: "2026-09-03T11:37:22Z"
 started_at: "2026-09-03T10:12:49Z"
 completed_at: null
-active_seconds: 851
-timing_anchor: 1788435105
+active_seconds: 1158
+timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
 git_mode: remote
@@ -40,7 +40,7 @@ spec_path: null
 spec_approved: false
 build:
   status: blocked
-  blocking_condition: missing previous-story continuity decision
+  blocking_condition: "Python was not found; run without arguments to install from the Microsoft Store, or disable this shortcut from Settings > Apps > Advanced app settings > App execution aliases."
   followup_review_recommended: false
   review_loop_iteration: 0
   deferred_count: 0
@@ -81,8 +81,7 @@ branch_deleted: false
 open_questions: []
 deferred_work: []
 blockers:
-  - "Planning blocked by generated epic-10-context.md dirtying the tree; result: C:\\DEV\\ElproSaas\\_bmad-output\\implementation-artifacts\\bmad-build-auto-result-10-7-pwa-offline-field-capability.md"
-  - "Planning blocked: missing previous-story continuity decision; Story 10.6 state/sprint are done but its build-auto spec reads review."
+  - "Planning blocked: Python was not found; run without arguments to install from the Microsoft Store, or disable this shortcut from Settings > Apps > Advanced app settings > App execution aliases."
 overrides:
   run_instruction: "Continue from merged PR 46; do not reopen Story 10.5; proceed through the next deterministic story."
   continuity_authorized: "Owner-authorized metadata-only Story 10.6 status correction; no fourth review round."
