@@ -65,3 +65,35 @@
 1. Choose how to reconcile Story 10.6 continuity: Auto-BMAD state and sprint status say done and PR 45 is recorded merged, but its build-auto spec currently reads review.
 
 **Next:** Resolve the Story 10.6 continuity mismatch, then re-run `/auto-bmad --story 10-7-pwa-offline-field-capability`; planning will retry at Phase 3 without redoing Phases 0â€“2.
+
+## Report — 2026-09-03T11:37:37Z (halted â€” needs-human)
+
+**Story:** `10-7-pwa-offline-field-capability` (epic 10, story 7) — mid-epic.
+**Spec:** (none)
+**Branch:** `story/10-7-pwa-offline-field-capability` (HEAD `b15f58d`).
+**Pipeline status:** halted at Phase 3 (needs-human: planning delegate could not resolve python3)
+**Continues:** prior planning attempts recorded in pipeline state
+
+**Timing:** started 2026-09-03T10:12:49Z; completed in progress — elapsed 1h 24m (≈19m AI-run, ≈1h 05m human/idle wait); resumed 2×.
+
+**Phases run:** Phase 3 (build / gpt-5.6-terra high; blocked)
+**Skipped:** Phases 4â€“9 (halt after planning; planning did not reach ready-for-dev)
+
+**Overrides:** Halt after planning; do not implement anything.
+
+**TEA:** Phase 0 triage reused: high risk; selected atdd, automate.
+
+**Build:** Planning HALT: blocked; no spec or bmad-build-auto-result artifact written because python3 could not be resolved by the delegate.
+
+**Review:** skipped
+
+**Retrospective:** (none)
+
+**Open questions:** (none)
+
+**Deferred work:** (none)
+
+**⚠️ Needs human:**
+1. Install or expose Python 3.11+ as python3 in the planning delegate environment, then rerun the planning invocation.
+
+**Next:** Repair python3 command resolution, then rerun /auto-bmad --story 10-7-pwa-offline-field-capability; do not begin implementation.
