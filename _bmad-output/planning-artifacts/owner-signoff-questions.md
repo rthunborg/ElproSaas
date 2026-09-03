@@ -3,6 +3,7 @@ created: 2026-06-14
 project: ElproSaas
 phase: Phase A - Internal Pilot MVP
 status: prio1-2-answered-working-session-pending
+last_updated: 2026-09-03
 purpose: >
   Living tracker for the owner / accounting decisions that gate Phase A. Question
   IDs are kept identical to the Swedish email so answers map 1:1. Resolves the open
@@ -211,11 +212,13 @@ the session doc §9.2); tax blocks `A`–`C` additionally bound billing-basis (E
 correctness sign-off; `8.1`/`8.2` gain a per-module classification round 2 (N-1).
 One working session can clear both sets.
 
+**Current amendment (2026-09-03):** the 2026-07-26 N-3 answer and its consequence analysis are preserved below as historical evidence. The owner has since superseded that Phase B PWA/offline direction: Phase B now delivers connected responsive field workflows at 360×640 under ADR-B009, while the complete PWA/offline package is deferred to Phase C.
+
 | ID | Question | Gates |
 | --- | --- | --- |
 | ~~N-1~~ | ~~Migration classification round 2 per B module~~ — **withdrawn 2026-07-20**: owner decided there is no data migration ever (new work starts in the new app; existing jobs finish in Lovable in parallel). No per-module classification is needed. | resolved (no-migration) |
 | N-2 | Business model / per-company pricing / provisioning flow (Roadmap 7) | Self-serve signup scope in E12 (admin provisioning proceeds regardless) |
-| N-3 | Mobile posture for field workers (team rec: responsive web first; native = Phase C option) | B1b field UX (E14-E16) |
+| N-3 | **Resolved, then superseded:** 2026-07-26 selected PWA/offline; 2026-09-03 selects connected responsive web at 360×640 (ADR-B009) | No technical gate for E14-E18; PWA/offline is Phase C |
 | N-4 | Confirm role set as RBAC seed: Admin, Projektledare, Montör, Säljare, Ekonomi + per-job Arbetsledare — incl. per-role money/sensitive-field visibility | E11 permission-matrix seed |
 | N-5 | Fortnox prerequisites: account/licenses, API access, first flows, and the content definition of a faktureringsunderlag | E26 shape; E33/E34 |
 | N-6 | Email sending activation: domain, from-address, which flows email first | E13 |
@@ -233,6 +236,8 @@ received **2026-06-18**. The Swedish email lives in
 outgoing artifact; this list stays the system of record for assumption sign-off.
 
 ## Svar mottagna 2026-07-26 — N-2…N-10 + skatteblocket (källfiler: owner_questions_response.md, accountant_questions_response.md)
+
+> **Historiknotering 2026-09-03:** Tabellen nedan bevarar svaren som mottogs 2026-07-26. N-3-raden är inte längre den aktuella Fas B-inriktningen; den har ersatts av ägarbeslutet 2026-09-03 och ADR-B009. Övriga svar påverkas inte.
 
 **Alla tidigare öppna möte-punkter är nu besvarade utom `8.1`/`8.2`, som är UTGÅNGNA
 (ingen datamigrering — ägarbeslut 2026-07-20). Fas B har därmed inga kvarvarande
@@ -265,10 +270,21 @@ hårda ägargrindar.** Svaren nedan är dock inte enbart bekräftelser — tre a
    debiterbar; avdragsunderlag = **endast om kostnadstypen är avdragsgrundande**
    (material ⇒ ej ROT). Kräver tre separata egenskaper och en
    `DeductionClassification`-uppsättning per rad.
-3. **N-3 PWA + offline är en VÄSENTLIG scope-utökning** mot den ledgerade gissningen
+3. **Historisk konsekvens per 2026-07-26: N-3 PWA + offline var en VÄSENTLIG scope-utökning** mot den ledgerade gissningen
    ("responsiv webb först"). Offline-kö, synkstatusar, idempotenta skrivningar och
    konflikthantering är arkitektur, inte finish — påverkar B1b:s fältflöden och
-   förmodligen ADR-nivå.
+   förmodligen ADR-nivå. **Detta ersattes 2026-09-03 av ADR-B009; utökningen ingår nu i Fas C.**
+
+## Course correction received 2026-09-03 — current N-3 disposition
+
+Owner approval: **“Approve all four increments.”** The current decision is:
+
+- Phase B remains a responsive web application with connected field workflows usable at the 360×640 viewport floor.
+- Phase B does not include a PWA manifest/installability, service workers/caching, durable offline storage, offline reads or writes, local queues, replay/synchronization/conflict states, or background/reconnect-driven offline synchronization.
+- Suitable unsent form state may survive transient failures through component state, `sessionStorage`, or in-memory photo retention where appropriate. The product must show connection/failure/retry honestly and may show “submitted” only after server persistence is confirmed.
+- E14–E18 retain scheduling, time, jobs, materials, diary, deviation, photo, checklist, and completion scope as connected workflows. Story 10.7 is now documentation/governance alignment, not their technical prerequisite.
+- ADR-B009 is current. ADR-B007 and the exact 2026-07-26 answer remain historical evidence.
+- The complete PWA/offline capability and unresolved retention, attachment, signature/legal, authorization, concrete write-surface, conflict, platform, security, and testing questions are deferred to Phase C.
 
 Dessutom NYTT: **omvänd betalningsskyldighet** (A.2) som egen momstyp, **ROT/grön-belopp
 trunkeras till hela kronor**, **ROT+RUT-gemensamt tak 75 000**, och satser/tak ska lagras

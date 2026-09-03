@@ -2,7 +2,7 @@
 title: "UX Design Specification: ElproSaas — Phase B (Legacy Parity Release)"
 status: final
 created: 2026-07-18
-updated: 2026-07-18
+updated: 2026-09-03
 author: "Rasmus (via autonomous /bmad-ux run)"
 mode: "headless create — non-interactive; all choices resolved against the Phase B PRD and the ratified party-session record (PB-D1..PB-D14); judgment calls logged in the Assumptions Register (§15)"
 governedBy:
@@ -34,9 +34,9 @@ Boundary rules:
 
 - **The Phase A UX spec is frozen.** Carried tenant-admin surfaces (CRM, settings/pricing, calculation editor, quote versions/PDF/acceptance, basic job record, entity file panels, states, workflow) are specified there and are **referenced, never restated and never edited**. Where Phase B extends a carried surface (e.g. the quote detail gains Förlorad/Avböjd), only the delta is specified here.
 - **Depth follows the ratified wave-checkpoint model (PB-D10).** Wave B1a/B1b surfaces are specified in detail (§4). Wave B2/B3 surfaces are specified at pattern level only (§5) — interaction patterns, list/detail conventions, and how they inherit the B1 system — and are deepened at their wave-boundary checkpoint before build.
-- ~~**Owner gates stay open.**~~ **UPDATED 2026-07-26 — the gates are CLOSED.** This spec was written with `[gated: X]` markers (7.1/7.3, N-2, N-3, N-4, N-6, N-9, N-5, N-7, N-8) around decisions it deliberately did not resolve. The owner answered all of them on 2026-07-26; the markers below have been replaced with the answered content, and §13 records each gate's disposition. **Two answers changed this spec rather than merely filling it in:** N-3 (installable PWA with offline capture, §1/§4.8A/§11) and the money rules behind the correctness banner (`architecture-phase-b.md` §12A).
+- ~~**Owner gates stay open.**~~ **UPDATED 2026-07-26 — the gates are CLOSED.** This spec was written with `[gated: X]` markers around decisions it deliberately did not resolve. The owner answered all of them on 2026-07-26. **COURSE-CORRECTED 2026-09-03:** the N-3 installable-PWA/offline answer is preserved in the dated owner record and ADR-B007 but no longer governs Phase B. ADR-B009 defines connected responsive field UX at 360×640, transient unsent-input protection, explicit retry, and server-confirmed success; the complete PWA/offline package is Phase C. The money correction remains governed by `architecture-phase-b.md` §12A.
 - **The legacy Lovable app is the behavioral and terminology oracle, not a visual template.** Nothing here copies legacy layout or code; legacy terms are adopted where they are the words users already use (§9), and uncertain labels carry an explicit `[oracle-check]` marker to be verified against the legacy app before build.
-- **Phase C surfaces are unreachable** (PRD FR130): no AI affordances, no customer portal, no supplier-API UI, no placeholder screens or nav items for anything not manifest-active.
+- **Phase C surfaces are unreachable** (PRD FR130): no AI affordances, no customer portal, no supplier-API UI, and no PWA install prompt/manifest, offline mode, pending-sync center, replay/conflict UI, or other placeholder for the deferred PWA/offline package. No placeholder screen or nav item exists for anything not manifest-active.
 
 Reading order for downstream consumers: this spec → Phase B architecture extension (which owns ADR-B001..B006 and answers §14) → Phase B epics.
 
@@ -44,7 +44,7 @@ Reading order for downstream consumers: this spec → Phase B architecture exten
 
 ### Form factor and posture
 
-- **One installable app (PWA), responsive across desktop, tablet, and phone.** Desktop/laptop remains the primary posture for Företagsadmin, Projektledare, Säljare, and Ekonomi (the Phase A shell). Field-worker (Montör) surfaces are designed phone-first. **Owner answer N-3 (2026-07-26) superseded the team's "responsive web first, no offline" recommendation: the app is an installable PWA with genuine offline capture** for assigned jobs — see §4.8A for the offline UX contract and ADR-B007 (`architecture-phase-b.md` §8A) for the decision. **No native app** is designed in Phase B, and the owner has confirmed none is planned as a separate delivery phase.
+- **One responsive web application across desktop, tablet, and phone.** Desktop/laptop remains the primary posture for Företagsadmin, Projektledare, Säljare, and Ekonomi (the Phase A shell). Field-worker (Montör) surfaces are phone-first and usable from the 360×640 floor, but require connectivity. ADR-B009 supersedes the 2026-07-26 PWA/offline direction in ADR-B007; there is no installability, service-worker, durable offline, local queue, or synchronization UX in Phase B. **No native app** is designed in Phase B.
 - **One codebase, role-shaped surfaces.** There is no separate "field app" URL space: the same routes render role- and viewport-appropriate layouts. Least privilege shapes what exists on screen (§3), the server enforces it (FR67).
 
 ### UI system
@@ -276,7 +276,7 @@ All five views read the same booking data and the same filter model; they are pr
 - Reported time flows onward without re-entry (FR92): visible in the job Ekonomi tab (hours × role rates — **valued amounts render only for entitled roles per the N-4 seed; a Montör's own time report shows hours, never money**) and later billing basis (E26).
 - Phone posture: filing must be a ≤30-second, one-hand interaction (§4.8); the review surface is desktop-weighted.
 
-### 4.8 The field-worker experience (Montör on a phone) — **installable PWA with offline capture (N-3 answered 2026-07-26)**
+### 4.8 The field-worker experience (Montör on a phone) — **connected responsive web (ADR-B009, 2026-09-03)**
 
 **`Min dag` (`/my-day`) — the Montör landing:**
 
@@ -297,33 +297,32 @@ All five views read the same booking data and the same filter model; they are pr
   - `Material`: quick usage logging — search own articles, quantity steppers (big +/- targets), unit displayed; requests (`Materialförfrågan`) as a separate small form routed to the responsible role (FR100).
   - Time reporting per §4.7 — reachable from the job and from `Min dag`.
 - **Daylight/contrast:** field surfaces respect the AA floor with preference for high-contrast pairings on primary actions and status text (§10); no information carried by thin color differences alone.
-- **Connectivity honesty — now offline-capable (supersedes the no-offline-promise posture):** capture works without a connection and the user is never left guessing about it. The transient-failure retention above remains the online path; §4.8A is the offline contract.
+- **Connectivity honesty:** capture requires a connection. A failed or disconnected attempt retains suitable unsent input where practical, explains that it has **not** been submitted, and offers explicit retry. §4.8A is the connected-field contract.
 - Least-privilege reminder: everything above is served scoped to the user (my bookings, my jobs, my reports); the server rejects out-of-scope reads regardless of UI (FR72; Journey B1's "the server, not the UI, stops him").
 
-#### 4.8A Offline UX contract (ADR-B007)
+#### 4.8A Connected field UX contract (ADR-B009; supersedes ADR-B007)
 
-**Installability.** The app is installable to the home screen from the browser; installed and browser-tab use are the same app, not two experiences.
+**Connection required.** Every field read and write requires connectivity. If content is unavailable because a request cannot reach the server, the page says `Anslutning krävs` and provides a useful next action; it does not silently substitute stale content or imply that work can continue offline.
 
-**What works offline** (for the user's assigned jobs only): previously downloaded jobs plus their basic customer and site information, time reporting, work notes, material usage, checklists/egenkontroller, deviations, photos within size limits, marking work items started or completed, and signature/confirmation capture where legally sound. **Administration, economy, company settings, and user administration honestly require connectivity** — they show a "kräver anslutning" state, never a silently stale read.
+**Transient protection, not submission.** Active edits stay in component state. Suitable non-secret text/number drafts may also be retained in `sessionStorage` for the current tenant, user, entity, and form. Pending photo bytes may remain in memory while the page is alive. These mechanisms protect against a failed request or accidental in-session navigation; they do not create a durable device record, queue, or promise across tab close, logout, browser eviction, or device restart. The UI calls retained input an **unsent draft**.
 
-**Per-change status is visible, never inferred.** Every captured change carries one of six states, and the UI names them in plain Swedish rather than showing a spinner and hoping:
+**Current state vocabulary:**
 
-| State | What the user is told |
+| State | User-facing meaning |
 | --- | --- |
-| `SavedLocally` | Saved on the device; not yet sent. |
-| `WaitingForSync` | Queued; will send when there is a connection. |
-| `Syncing` | Sending now. |
-| `Synced` | Safely stored in the system. |
-| `Conflict` | Someone else changed the same thing — needs a decision. |
-| `Failed` | Could not be sent, with the reason and a retry action. |
+| `Editing / Utkast ej skickat` | Input exists only in the form/session; it is not stored in the system. |
+| `Connection required / Anslutning krävs` | The server cannot currently be reached; no submission occurred. |
+| `Submitting / Skickar` | A live request is in progress; prevent accidental duplicate clicks. |
+| `Submission failed / Kunde inte skickas` | The request was not confirmed; keep suitable input and offer `Försök igen`. |
+| `Uploading / Laddar upp` | Photo/file transfer is in progress; the record is not complete until confirmed. |
+| `Upload failed / Kunde inte laddas upp` | Keep the in-memory selection where practical and offer retry while stating its lifecycle limits. |
+| `Submitted / Sparad i systemet` | The server confirmed persistence. This is the only success state. |
 
-**Sync moments** are shown, not hidden: on reconnect, on opening the app, on returning to the foreground, and on an explicit manual retry the user can always reach. A per-screen or global indicator shows how many changes are still waiting, so "did my time report go in?" is answerable at a glance.
+The superseded ADR-B007 taxonomy (`SavedLocally`, `WaitingForSync`, `Syncing`, `Synced`, `Conflict`, `Failed`) is historical and must not appear as an active Phase B field-state model.
 
-**Failure never loses data.** A failed transfer keeps the change queued and explains itself. The word to avoid in these states is "error" without a next action.
+**Retry behavior.** Retry is always explicit. It resubmits through the ordinary authenticated server command, which re-checks membership, permissions, validation, RLS, and current record state. There is no local queue, automatic reconnect replay, app-open/foreground replay, background synchronization, or global “changes waiting” counter.
 
-**Conflicts.** Time rows, material lines, and photos are separate append-only records, so two people working the same job simply produce two records — no conflict UI at all, which is the common case. Only shared objects (job header, work-order status, checklist item state) can conflict, and then the user is shown both values and chooses. **The UI never silently overwrites another person's change.**
-
-**What is on the device.** Only assigned or explicitly selected jobs — never the company's whole database. Cached data is minimised, time-boxed, and cleared on logout. An unentitled role's device holds no money value, because the cached projection is the same entitlement projection the screen would receive online (§3.2).
+**Honest lifecycle limits.** When a photo selection or suitable draft cannot survive a reload/close, warn before destructive navigation where feasible and explain what remains unsent. Clear retained drafts after server-confirmed success and on logout where controlled. Never store access tokens, secrets, signature evidence, or server-only/withheld values in client draft storage.
 
 ### 4.9 The job workspace (E16–E18) — **model resolved by ADR-B006 (2026-07-26)**
 
@@ -500,7 +499,7 @@ The Phase A floor (frozen spec §10; NFR30) carries in full: keyboard operabilit
 - **Camera/photo flows:** capture and review operable with SR; captions attachable; photo grids expose meaningful alt/labels (date, job, author).
 - **Forms in the field:** large inputs, numeric keyboards for quantities/hours, no time-entry that requires precision sliders.
 - **Public pages** (QR, unsubscribe): same floor applies; minimal, language-clear, no login walls for their single purpose.
-- **Viewport floor:** field-worker flows usable at 360×640 upward (NFR53, as restated for the PWA posture); desktop surfaces usable from common laptop widths (carried); scheduling views degrade gracefully (Schema → agenda list on phone; Beläggning is desktop-weighted with a phone summary).
+- **Viewport floor:** connected field-worker flows are usable at 360×640 upward (NFR31/NFR53, ADR-B009); desktop surfaces are usable from common laptop widths (carried); scheduling views degrade gracefully (Schema → agenda list on phone; Beläggning is desktop-weighted with a phone summary).
 
 ## 11. Responsive and Platform Strategy
 
@@ -514,20 +513,20 @@ The Phase A floor (frozen spec §10; NFR30) carries in full: keyboard operabilit
 
 Rules: one breakpoint system (Tailwind defaults) app-wide; sidebar → icon rail → drawer (carried); tables switch to cards only when genuinely necessary (carried); sticky summaries become inline blocks on narrow (carried). No user-agent branching — viewport + capability only.
 
-**Platform posture (N-3, answered 2026-07-26 — ADR-B007):** the app is an **installable PWA**. Installed and browser-tab use render the same app; installation adds a home-screen entry point and the offline capability of §4.8A, not a different UI. **No native app** is designed or planned as a separate delivery phase.
+**Platform posture (owner course correction 2026-09-03 — ADR-B009):** Phase B is a browser-delivered responsive web application. Field surfaces are phone-first at 360×640 and require connectivity. Phase B provides no PWA installation/manifest, service worker, durable offline store, offline read/write, local operation queue, replay/synchronization/offline-conflict model, or background/reconnect-driven synchronization. The 2026-07-26 N-3 answer and ADR-B007 remain historical; **no native app** is designed in Phase B.
 
 **Quote correction delta (ADR-B008; Stories 10.8/10.9):** review confirmation states that the authenticated user attests to the server-validated content; it must not imply that a click proves attention. The confirmation expires after 15 minutes and becomes stale after source, attachment, or customer-visible changes. Customer-visible draft edits mark the PDF outdated and send is unavailable until a current PDF is generated. PDF-byte attestation is a separate server-only security boundary, with no extra user secret, token, or client bypass. A successor starts with eligible predecessor attachments preselected; archived/ineligible attachments are omitted with a warning and selection remains editable. Green fixed-price entry states “gross including VAT before 97%”; mixed ROT/green requires separate allowances, insufficient allowance blocks, and reverse charge clears/disables deductions.
 
-| Capability | Offline | Requires connectivity |
+| Capability | Phase B posture | Failure protection |
 | --- | --- | --- |
-| Field surfaces (`Min dag`, job field shape, capture, time filing, checklists/egenkontroller, deviations, photos) | **Yes**, for the user's assigned jobs (§4.8A) | — |
-| Everything else — dashboard, scheduling planning views, admin, provisioning, economy, billing workbench, imports, Fortnox, settings, user administration | — | **Yes**, and they say so honestly rather than showing stale data |
+| Field surfaces (`Min dag`, job field shape, capture, time filing, checklists/egenkontroller, deviations, photos) | **Connectivity required**, responsive from 360×640 (§4.8A) | Suitable unsent form/session state, in-memory photos where appropriate, explicit failure/retry, server-confirmed success |
+| Everything else — dashboard, scheduling planning views, admin, provisioning, economy, billing workbench, imports, Fortnox, settings, user administration | **Connectivity required** | Existing request failure/retry patterns; never silently show stale content as current |
 
-Two rules that fall out of the posture and apply app-wide: **connection state is never guessed from the UI** (a change's state comes from the sync queue, §4.8A), and **an offline-capable surface never shows an unqualified success message** for something that has only been saved locally — `SavedLocally` and `Synced` are different words for a reason.
+Two rules apply app-wide: browser/network hints may improve messaging but **only the request result establishes persistence**, and a locally retained draft never receives an unqualified success message. `Sparad i systemet` appears only after server confirmation.
 
 ## 12. Key Flows (protagonists per PRD §4 journeys; climax beats marked)
 
-**Flow 1 — Emil (Montör) runs his day from the phone (Journey B1).** 1) Emil signs in on his phone `[posture: N-3]`; lands on `Min dag` — two bookings today. 2) Opens the 07:00 booking → `Öppna jobbet`; the job opens in field shape (Översikt/Dagbok/Foton/Avvikelser/Material). 3) Logs material usage with quantity steppers. 4) **Climax:** the panel on site differs from the drawing — Emil files an `Avvikelse` with two photos in under a minute, gloves on: sticky capture button → camera → caption → save; the Arbetsledare is notified. 5) Writes a short dagbok entry. 6) Back on `Min dag`, taps `Rapportera tid` — prefilled 07:00–15:30, adjusts to 15:00, submits. 7) Nowhere did Emil see a price, another montör's hours, or a settings page — and a crafted URL gets the generic denial (FR72).
+**Flow 1 — Emil (Montör) runs his connected day from the phone (Journey B1).** 1) Emil signs in on his phone `[posture: ADR-B009]`; lands on `Min dag` — two bookings today. 2) Opens the 07:00 booking → `Öppna jobbet`; the job opens in field shape (Översikt/Dagbok/Foton/Avvikelser/Material). 3) Logs material usage with quantity steppers; `Sparad i systemet` appears only after confirmation. 4) **Climax:** the panel differs from the drawing — Emil files an `Avvikelse` with two photos in under a minute. Connectivity drops during submission: the form remains an `Utkast ej skickat`, says `Anslutning krävs`, retains suitable text and in-memory photos while the page remains alive, and offers `Försök igen`; it does not notify the Arbetsledare yet. 5) Connectivity returns and Emil explicitly retries; the server confirms persistence, then the UI shows success and the notification is produced. 6) He writes a dagbok entry and files prefilled time from `Min dag`. 7) Nowhere did Emil see a price, another montör's hours, or a settings page — and a crafted URL gets the generic denial (FR72).
 
 **Flow 2 — Sara (Projektledare) books a crew and resolves the collision (Journey B2).** 1) Sara opens `Planering → Resurser`, next week. 2) Drags across Tuesday for montör #1 → booking sheet pre-filled; adds montör #2, work role `Installatör`, connects the jobb. 3) **The sheet warns live:** montör #2 is double-booked Tuesday, and montör #1 would exceed capacity `[rules: N-9]`. 4) Saves with `Boka ändå` for the capacity case (reason: "kort vecka, OK enligt Emil") — recorded; the double-booking she takes to the resolver. 5) **Climax — the resolver:** conflict selected, both colliding bookings on the mini-timeline; `Flytta` suggests Thursday 08–12 as free; she accepts. Outcome recorded; montör #2 gets "din bokning har flyttats". 6) Sets a recurring service round (every other Friday, ends after 10) — the preview shows all 10 occurrences, one flagged red on v.44; she adjusts before saving. 7) Her calendar app follows her tokenized feed `[ADR-B004]`.
 
@@ -545,7 +544,7 @@ Two rules that fall out of the posture and apply app-wide: **connection state is
 | --- | --- | --- | --- |
 | `7.1`/`7.3` → ADR-B006 | Job workspace (§4.9), jobs nav label, job create form | ✅ **Closed 2026-07-26.** Shell confirmed unchanged; nav label is **`Jobb`** (a projekt is an upgraded jobb, not a sibling entity); upgrade is a one-way audited action with an announce-before-commit dialog; job-card fields per arch §8.4. E16–E18 build detail is unblocked. |
 | N-2 | Provisioning/onboarding (§4.3) | ✅ **Closed 2026-07-26.** Operator wizard + entry-point-agnostic onboarding confirmed; the wizard gains a **preview-then-approve** step (the agent shows exactly what will be created before an authorised person approves). **No public signup surface is designed — ever.** |
-| N-3 | All §4.8 field surfaces, NFR53 viewport floor | ⚠ **Closed 2026-07-26 — the answer differed from the recommendation.** Installable PWA with offline capture; §4.8A adds the offline UX contract (six per-change states, sync-moment visibility, conflict presentation, on-device scoping). No native app. |
+| N-3 | All §4.8 field surfaces, NFR31/NFR53 viewport floor | **Superseded 2026-09-03.** The 2026-07-26 answer selected PWA/offline and remains historical in ADR-B007. Current ADR-B009: connected responsive web at 360×640, transient unsent-draft protection, explicit retry, and server-confirmed success. PWA/offline is Phase C; no native app. |
 | N-4 | Every money/sensitive element (§3.2, §4.7, §4.9 Ekonomi, §4.10, HR) | ✅ **Closed 2026-07-26.** Seed supplied: Montör sees no price/cost/margin; Säljare sees sales prices but not contribution margin by default; Arbetsledare defaults to Montör's money posture; Projektledare/Ekonomi/Företagsadmin see all. Also new UX work: a **below-margin warning for Säljare that reveals no cost figures** (arch §3.3A). |
 | N-5 | Billing workbench candidate-line model (§5.2 E26) | ✅ **Closed 2026-07-26.** Line content defined per source kind (time/material/fixed price/payment plan/other); the lock flow becomes a **versioned status flow** `Draft → UnderReview → Approved → Exported → PartiallyInvoiced → Invoiced → Cancelled`, with Approved locked against edits (arch §7.3). |
 | N-6 | Notification preferences e-mail column, email touchpoints (§4.4) | ✅ **Closed 2026-07-26.** Sender shows as `[Företagsnamn] via [Systemnamn]` with the tenant's own Reply-To; flow priority and the five automatic reminder-stop conditions defined; invoices come from Fortnox, not from us (arch §4.6). |
@@ -570,7 +569,7 @@ Two rules that fall out of the posture and apply app-wide: **connection state is
 10. **Calendar-feed token UX mechanics** (§4.5): create/rotate/revoke affordances bound to ADR-B004's entropy/rate-limit/revocation rules.
 11. **Public QR page isolation** (§5.2 E22): layout/app-shell separation for unauthenticated surfaces, no tenant enumeration (ADR-B004).
 12. **Job-workspace tab data contracts** — ✅ resolved: ADR-B006 landed the typed single container, the §4.9 shell contract holds unchanged, and Option B's `Ingående jobb` aggregate is not built.
-13. **Field capture persistence** (§4.8/§4.8A) — ✅ re-answered by ADR-B007: durable, scoped, purgeable on-device storage plus a sync queue, with sessionStorage retention remaining the online transient-failure path (arch §8A.6).
+13. **Field capture persistence** (§4.8/§4.8A) — ✅ current ADR-B009: component state, suitable minimized `sessionStorage` drafts, and in-memory photo retention protect transient failures; explicit retry and server confirmation govern success. No durable store/queue/replay exists in Phase B; ADR-B007 is history and the full capability is Phase C.
 14. **Oracle terminology pass:** resolve every `[oracle-check]` label against the legacy app (legacy-oracle-explorer task) before the relevant epic's first story.
 
 ## 15. Assumptions Register (autonomous run record)
@@ -587,7 +586,7 @@ Two rules that fall out of the posture and apply app-wide: **connection state is
 | UXB-A8 | Montör's landing is `Min dag`, not the dashboard; dashboard remains one surface with role-default widget layouts, no v1 user customization (PB-A11/PB-D7 alignment). | accepted |
 | UXB-A9 | Team view groups by arbetsroll in B1 (no named-teams entity in the PRD); named teams only if the oracle demands them. | needs oracle check |
 | UXB-A10 | Conflicts warn-and-allow with explicit `Boka ändå` + accepted-conflict state, rather than hard-blocking — matches field reality and FR85/FR89's "surface for resolution"; override shape is an architecture item (§14.3). | assumption for architecture |
-| UXB-A11 | No offline capture promise in Phase B: transient-failure retention + explicit retry only. Revisit at a wave checkpoint if pilot field use demands more. | **SUPERSEDED 2026-07-26 by owner answer N-3 / ADR-B007** — genuine offline capture is required. The named revisit signal fired earlier than a wave checkpoint: the owner asked directly. §4.8A is the replacement contract. |
+| UXB-A11 | Original posture: no offline capture promise in Phase B; transient-failure retention + explicit retry only. | **Decision chain:** superseded 2026-07-26 by N-3/ADR-B007, then reinstated and tightened 2026-09-03 by ADR-B009. Current contract: connected 360×640 field UX, suitable unsent-draft protection, honest lifecycle limits, and server-confirmed success. Full PWA/offline package is Phase C. |
 | UXB-A12 | Dashboard v1 widget set per PB-A11's minimal B1 list; widgets are registry-driven and manifest-traceable. | accepted |
 | UXB-A13 | Documents center is filter/search-shaped (no folder tree) since it aggregates entity-scoped files (PB-D6); folders exist only where the domain has them (DoU, tenders). | assumption |
 | UXB-A14 | All `[oracle-check]` labels (§9) must be resolved via the legacy-oracle terminology pass before the owning epic's first story — labels are cheap to change now, expensive after users learn them. | open item (§14.14) |
