@@ -4,6 +4,8 @@ Date: 2026-07-08
 Status: owner-directed (this document records the owner's 2026-07-08 direction); Phase B shaping pending ratification in a `/bmad-party-mode` working session (agenda + kickoff prompt in Appendix A).
 Supersedes nothing; extends [saas-rebuild-phased-plan-2026-06-07.md](saas-rebuild-phased-plan-2026-06-07.md) past Phase A.
 
+**Amended 2026-09-03:** the later 2026-07-26 N-3 choice of Phase B PWA/offline capability is preserved in its dated answer and ADR-B007, but has been superseded by ADR-B009. Phase B field workflows are responsive and usable at 360×640 with connectivity; the complete PWA/installability and genuine offline-operation package is deferred to Phase C. Story 10.7 records this governance alignment and is not a technical prerequisite for E14–E18.
+
 ---
 
 ## 1. Where we stand
@@ -53,6 +55,7 @@ Full inventory: [initial-system-audit-2026-06-01.md](../oracle/initial-system-au
 - **Goal:** feature parity with the legacy Lovable app — "basically everything it did, but better" — on the Phase A architecture (tenant isolation + RLS, integer-öre money, immutable snapshots, server-side audited commands, golden/regression test discipline).
 - **Emphasis:** Jobs & Projects depth and Time planning & scheduling for available employees/teams are the headline capabilities.
 - **Connectivity:** modules must be built inter-connected (jobs ↔ scheduling ↔ people ↔ materials ↔ economy ↔ documents), not as siloed pages.
+- **Field connectivity posture (owner amendment 2026-09-03):** field workflows require connectivity. Protect suitable unsent input from transient failures with component state, `sessionStorage`, in-memory photo retention where appropriate, clear connection/failure messaging, and explicit retry. A local draft is not submitted; success requires server-confirmed persistence. No PWA manifest/installability, service worker, durable offline storage, offline reads/writes, local queue, replay/synchronization/offline conflict state, or background/reconnect-driven offline synchronization is in Phase B.
 - **Fortnox integration is IN Phase B** (billing basis precedes it — owner: "faktureringsunderlag före Fortnox: ja, behövs").
 - **Multi-company delivery:** the product must remain deliverable to many independent companies (multi-tenant SaaS); Phase B must cover tenant provisioning/onboarding and full RBAC.
 - **AI flows are OUT of Phase B** → Phase C. For AI-entangled legacy modules, Phase B builds the manual/deterministic core only (see §5.3).
@@ -91,6 +94,7 @@ Phase A scope is **actively enforced in code and docs**; Phase B begins by consc
 Each module Phase B activates must be removed from the deny-list/guardrails in the same change that introduces it, with the guardrail tests updated to the new approved surface (fail-loud remains the design).
 
 ## 6. Phase C — outline (not now)
+- The complete PWA/installability and genuine offline-field package: service-worker/application/data caching, durable device storage, offline reads/writes, local record and attachment queues, synchronization/replay/idempotency/conflict UX, reconnect/foreground/app-open/background behavior, retention/purge/device-loss posture, authorization after access change, attachment limits, signature/legal implications, browser/platform support, and offline security/recovery testing. Exact Phase C surfaces and architecture remain undecided until these questions are resolved.
 - All AI flows (§5.3 right column) across DoU, self-inspections, tenders/FKU, panels, KNX + AI job/document features.
 - Bookkeeping integrations beyond Fortnox.
 - Live supplier vendor APIs (Ahlsell, Rexel, Solar, Sonepar — roadmap item; legacy had file import only).
@@ -115,7 +119,7 @@ Each module Phase B activates must be removed from the deny-list/guardrails in t
 1. Ratify or amend the wave structure (§5.1) and the RBAC/field-access front-loading (§5.2).
 2. Per-module manual-vs-AI split boundaries (§5.3) — anything that can't ship a useful manual core in B?
 3. Where dashboards land (B1 single dashboard vs per-module analytics later).
-4. Mobile posture for field workers in B1: responsive web vs dedicated mobile UX (legacy was web; roadmap dreamed bigger). **(owner)**
+4. ~~Mobile posture for field workers in B1~~ — **resolved 2026-07-26, then superseded 2026-09-03:** connected responsive web at 360×640 is the current Phase B posture (ADR-B009); PWA/offline is Phase C.
 5. Business model / per-company pricing & provisioning flow (Roadmap 7 — "gemensamt beslut efter möte"). **(owner)**
 6. Whether quote lifecycle completion (declined/lost, follow-up) ships as a small pre-B interstitial or inside B1.
 7. Job model structure `7.1`/`7.3` — already on the owner email; party session should prepare the *options* to present. **(owner)**
@@ -141,7 +145,7 @@ Start a fresh session in `C:\ElproSaas` and paste:
 
 Topic: ratify and shape Phase B. Read docs/planning/post-phase-a-plan-2026-07-08.md first — §4 is decided owner direction (treat as fixed), §5 is a proposal to challenge, §8 lists the open questions. Also load for context: docs/oracle/initial-system-audit-2026-06-01.md (full legacy feature inventory), docs/discovery/e0-domain-oracle-report.md (reusable-vs-forbidden analysis), _bmad-output/implementation-artifacts/epic-9-retro-2026-07-08.md (current state + carried debt), and the Phase A prd.md/architecture.md/epics.md in _bmad-output/planning-artifacts/ (the baseline Phase B supersedes).
 
-Decided context (owner, 2026-07-08): stakeholders accept the pilot; Phase B is green-lit. Phase B = feature parity with the legacy Lovable app ("everything it did, but better") on the Phase A architecture; headline emphasis on Jobs & Projects depth and Time planning & scheduling for employees/teams; modules built inter-connected, not siloed; Fortnox integration included (billing basis first); product stays deliverable to many independent companies (multi-tenant SaaS). Phase C (excluded from B): all AI flows, bookkeeping integrations beyond Fortnox, live supplier APIs, customer portal, net-new features.
+Decided context (owner, 2026-07-08; field posture amended 2026-09-03): stakeholders accept the pilot; Phase B is green-lit. Phase B = feature parity with the legacy Lovable app ("everything it did, but better") on the Phase A architecture; headline emphasis on Jobs & Projects depth and Time planning & scheduling for employees/teams; modules built inter-connected, not siloed; field workflows are responsive at 360×640 and require connectivity; Fortnox integration included (billing basis first); product stays deliverable to many independent companies (multi-tenant SaaS). Phase C (excluded from B): the complete PWA/offline package, all AI flows, bookkeeping integrations beyond Fortnox, live supplier APIs, customer portal, net-new features.
 
 Have the full team (PM, architect, UX, dev, QA/test-architect, analyst, SM) debate and settle:
 1. The wave structure (B1 operational core / B2 asset & service / B3 content, compliance & Fortnox) — resequence, split, or merge as argued.

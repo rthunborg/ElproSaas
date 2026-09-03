@@ -2,7 +2,7 @@
 title: "Product Brief: ElproSaas — Phase B (Legacy Parity Release)"
 status: "complete"
 created: "2026-07-18"
-updated: "2026-07-18"
+updated: "2026-09-03"
 author: "Rasmus (via autonomous /bmad-product-brief run)"
 mode: "autonomous — non-interactive; all choices resolved against the ratified party-session record; judgment calls logged in the final section"
 governedBy: "_bmad-output/planning-artifacts/phase-b-party-session-2026-07-18.md (decisions PB-D1..PB-D14 are binding on this brief)"
@@ -30,6 +30,8 @@ Phase B is the parity release: **everything the legacy app did, but better, on t
 
 The work is one phase — one PRD, one architecture extension, one epics doc — internally sequenced into four waves (B1a foundations, B1b operational core, B2 asset & service operations, B3 content/compliance/money-out), sized honestly at **21-25 candidate epics, roughly 2.5× Phase A** (PB-D1, PB-D10). All AI flows and other net-new surface are hard-excluded to Phase C.
 
+**Course-correction amendment (2026-09-03):** Phase B field workflows are responsive and phone-usable at the 360×640 viewport floor, but require connectivity. PWA installation/manifest, service-worker caching, durable offline storage, offline reads/writes, local queues, synchronization/replay/conflict states, and background/reconnect-driven offline synchronization are deferred together to Phase C. ADR-B009 is current; the 2026-07-26 N-3 answer and ADR-B007 remain historical evidence.
+
 ## The Problem
 
 The pilot proved the new foundation — but the company still runs its business on the legacy app. Scheduling crews, running jobs day to day, rentals, assets, service and warranties, DoU packages, self-inspections, HR records, notifications: all of it lives in the old system. Until the new system covers that ground, every working day splits data and habits across two systems, and the rebuild's value stays capped at the quote-to-accepted-job slice.
@@ -43,7 +45,7 @@ The cost of the status quo is concrete: field workers cannot even log in to the 
 Build the remaining legacy surface on the proven Phase A foundation, in four ratified waves (§Scope), keeping the modules inter-connected from the schema up:
 
 - **B1a — Access & platform foundations:** quote lifecycle completion (Förlorad/Avböjd + follow-up workflow); full RBAC mechanism + roles + admin user management; tenant provisioning & onboarding (admin/operator-driven); notifications + email infrastructure — the first sanctioned background-execution path, designed so the legacy forged-JWT P0 can never be reproduced (ADR-B002).
-- **B1b — Operational core (the emphasis):** the minimal bookable person/resource model; bookings with conflict detection; schedule/resource/team/capacity/personal views, recurring bookings, time reports, calendar feeds; Jobs & Projects core (my-jobs, members/roles incl. per-job Arbetsledare, work orders, order→projekt upgrade); jobs economy & material; jobs field depth (diary, deviations, photos, chat, risks, reports, completion event); operational dashboard v1.
+- **B1b — Operational core (the emphasis):** the minimal bookable person/resource model; bookings with conflict detection; schedule/resource/team/capacity/personal views, recurring bookings, time reports, calendar feeds; Jobs & Projects core (my-jobs, members/roles incl. per-job Arbetsledare, work orders, order→projekt upgrade); jobs economy & material; jobs field depth (diary, deviations, photos, chat, risks, reports, completion event); operational dashboard v1. Field use is connected, responsive, connectivity-honest, and protected against transient form-data loss; it is not PWA/offline delivery.
 - **B2 — Asset & service operations:** global documents center aggregating the entity-scoped file model (B1 modules emit index-compatible file metadata from the start — PB-D6); rentals; assets (+public QR); service & warranties; electrical panels (manual core); supplier master data + price-list file imports; **billing basis (faktureringsunderlag)** across jobs/rentals/service.
 - **B3 — Content, compliance & money-out:** DoU manual core; self-inspections manual core; tenders/FKU thin manual core; KNX manual tables; HR & personnel depth (extending the B1 resource model — no parallel employee table); notes/notice board + CRM & calc completions; **Fortnox** foundation and billing flows (after a B2 spike).
 
@@ -72,7 +74,7 @@ Two owner-directed additions go beyond parity: **Fortnox integration** (the lega
 
 **Users (the roles):** Phase B ends the `tenant_admin`-only era. The working role set — pending owner confirmation as the RBAC seed, including per-role money/sensitive-field visibility (N-4) — is **Admin, Projektledare, Montör, Säljare, Ekonomi, plus per-job Arbetsledare**:
 
-- **Montör / field workers become first-class users** — my-jobs, bookings, time reporting, diary/deviations/photos/chat from the field. Team recommendation: responsive web first, native app as a Phase C option (owner-gated, N-3).
+- **Montör / field workers become first-class users** — connected my-jobs, bookings, time reporting, diary/deviations/photos/chat from the field in a responsive web application usable at 360×640. Suitable unsent input may be retained through transient failures, but the UI must require connectivity and never describe a local draft as submitted (ADR-B009). No native app.
 - **Projektledare** — jobs & projects depth, scheduling views, capacity and conflict resolution, job economy.
 - **Säljare** — the completed quote lifecycle (Förlorad/Avböjd + follow-ups), CRM completions (customer 360, favorites, duplicate-calculation).
 - **Ekonomi** — billing basis review/export, Fortnox flows, economy rollups.
@@ -89,20 +91,20 @@ Ratified structure and epic candidates (E10-E34; ~21 after plausible merges — 
 | B2 | Asset & service operations | E20 documents center; E21 rentals; E22 assets + QR; E23 service + warranties; E24 electrical panels; E25 supplier data + imports; E26 billing basis |
 | B3 | Content, compliance & money-out | E27 DoU manual core; E28 self-inspections; E29 tenders/FKU thin core; E30 KNX; E31 HR depth; E32 notes + CRM completions; E33 Fortnox foundation; E34 Fortnox billing flows |
 
-**Sizing & horizon (stated honestly, not committed):** ~2.5× Phase A's 9 epics. Phase A delivered 9 epics in ~4.5 pipeline-weeks; linear extrapolation puts Phase B at roughly 11-13 pipeline-weeks — an October-2026-ish horizon — with two caveats ratified in the session: E14-E18 are the least certain sizings and sit behind owner gate `7.1`/`7.3`, and **owner-gate latency, not engineering throughput, was Phase A's long pole and is again on the critical path**.
+**Sizing & horizon (stated honestly, not committed):** ~2.5× Phase A's 9 epics. Phase A delivered 9 epics in ~4.5 pipeline-weeks; linear extrapolation puts Phase B at roughly 11-13 pipeline-weeks — an October-2026-ish horizon. E14-E18 remain substantial connected workflows, but the 2026-09-03 course correction removes the PWA/offline technical package and Story 10.7 dependency from their Phase B scope.
 
 **Key sequencing facts:** RBAC (E11) precedes all of B1b and feeds matrix rows to every later module; notifications/email (E13) precede scheduling reminders, service scanning, and expiry alerts; billing basis (E26) needs job economy and rentals/service billing records and precedes Fortnox (E33/E34); warranties hang off the job completion event; DoU seeds hang off jobs; a Fortnox **spike runs during B2** so B3 integrates something already understood (PB-D11).
 
 **Top risks (acknowledged, with standing mitigations):**
 
-- **Owner-gate latency on the critical path** (Phase A's proven long pole): mitigated by decoupling — B1a proceeds ungated, scheduling binds to basic jobs meanwhile (PB-D12), and one working session can clear the carried möte items and the N-list together.
+- **Connectivity loss during field entry:** mitigated by suitable component/session draft retention, in-memory photo retention where appropriate, explicit connection and retry states, and success only after server confirmation. This is transient-failure protection, not offline operation.
 - **E14-E18 sizing uncertainty** (scheduling + jobs are the least-certain epics and sit behind `7.1`/`7.3`): mitigated by the wave-boundary re-scope checkpoints (PB-D10).
 - **Parity-scope ambiguity** ("everything it did" invites drift in both directions): mitigated by the scope manifest (ADR-B003) and by treating the legacy-inventory parity checklist as the acceptance surface — every capability lands, is consciously thinned, or is ledgered to Phase C.
 - **New attack surface** (first background execution paths, first public token surfaces, non-admin access): mitigated by ADR-B002/ADR-B004 as ship-blocking preconditions and the per-module RLS negative-test gate.
 
 ### Explicitly Out — Phase C (hard exclusions)
 
-No exceptions without a new owner decision: **all AI flows** (DoU classification/generation, self-inspection generation, tender analysis/OCR/RAG, panel image import, KNX ETS parsing); **bookkeeping integrations beyond Fortnox**; **live supplier vendor APIs** (Ahlsell/Rexel/Solar/Sonepar — file import only in B); **customer portal / online acceptance** (BankID/portal signing); **net-new features** beyond the parity inventory and the two sanctioned additions; and the **full-release legal/GDPR program** (disclaimer wording, retention, authoritative tax-number ownership). Self-serve tenant signup stays out until the owner's business-model decision (N-2).
+No exceptions without a new owner decision: **all AI flows** (DoU classification/generation, self-inspection generation, tender analysis/OCR/RAG, panel image import, KNX ETS parsing); **bookkeeping integrations beyond Fortnox**; **live supplier vendor APIs** (Ahlsell/Rexel/Solar/Sonepar — file import only in B); **customer portal / online acceptance** (BankID/portal signing); **net-new features** beyond the parity inventory and the two sanctioned additions; and the **full-release legal/GDPR program** (disclaimer wording, retention, authoritative tax-number ownership). Self-serve tenant signup remains excluded. The ledger also contains the complete **PWA installability and genuine offline field package**: manifest/installability, service-worker and application/data caching, durable device storage, offline reads/writes, local record/attachment queues, synchronization/replay/idempotency/conflict states, reconnect/foreground/app-open/background synchronization, device retention/purge, authorization after access changes, attachment-size limits, signature/legal implications, platform support, and offline security/recovery testing. Phase C must resolve those surfaces and constraints before architecture is selected.
 
 ## Open Owner Gates (presented, deliberately unresolved)
 
@@ -115,7 +117,7 @@ These are decision inputs, not blockers to starting B1a — but they sit on the 
 | `8.1`/`8.2` (carried) | Migration classification round 1 + golden examples | Real-pilot cutover |
 | N-1 | Migration classification round 2 (per B module) | Each B2/B3 module's migration story |
 | N-2 | Business model / pricing / provisioning flow | Self-serve signup scope in E12 (admin provisioning proceeds regardless) |
-| N-3 | Mobile posture for field workers | B1b field UX approach (E14-E16) |
+| N-3 | **Superseded decision chain:** the 2026-07-26 PWA/offline answer remains historical; the 2026-09-03 owner decision selects connected responsive web at 360×640 under ADR-B009 | No technical gate: E14-E18 proceed as connected workflows; PWA/offline is Phase C |
 | N-4 | Role-set confirmation + per-role money visibility | E11 permission-matrix seed |
 | N-5 | Fortnox prerequisites + faktureringsunderlag content definition | E26 shape; E33/E34 |
 | N-6 | Email activation (domain, from-address, first flows) | E13 |
@@ -129,7 +131,7 @@ These are decision inputs, not blockers to starting B1a — but they sit on the 
 **Per wave:**
 
 - **B1a:** An operator can provision and onboard a new tenant without engineering work; non-admin users sign in with server-enforced, RLS-tested role scoping; admins manage users end-to-end; the notification/email path runs as an authenticated background job (ADR-B002 satisfied); quotes carry the full legacy lifecycle including Förlorad/Avböjd and follow-ups.
-- **B1b:** Employees/teams are schedulable with conflict detection and capacity views; field workers sign in and file their own time reports (via the field UX approach the owner confirms in N-3); jobs carry members/roles (incl. per-job Arbetsledare), work orders, economy rollup, and field depth; the operational dashboard v1 reads live B1 data.
+- **B1b:** Employees/teams are schedulable with conflict detection and capacity views; at 360×640 and with connectivity, field workers sign in and file their own time reports; transient request failure preserves suitable unsent input and offers retry without false success; jobs carry members/roles (incl. per-job Arbetsledare), work orders, economy rollup, and field depth; the operational dashboard v1 reads live B1 data.
 - **B2:** Rentals, assets (+QR), service/warranties, panels, and supplier imports run as tenant-isolated modules; the documents center aggregates files across modules; **billing bases are produced across jobs/rentals/service** — the "behövs" deliverable.
 - **B3:** DoU, self-inspections, tenders (thin), KNX, HR depth, and notes/CRM completions are live; **Fortnox is connected per tenant and exports the billing flows** with status/error/retry UX.
 
@@ -138,6 +140,7 @@ These are decision inputs, not blockers to starting B1a — but they sit on the 
 - **Parity, audited:** every module/capability in the legacy inventory (`initial-system-audit-2026-06-01.md`) is either live in Phase B, consciously thinned with owner visibility (tenders/FKU, N-7), or on the explicit Phase C ledger — no silent drops. This checklist is the Phase B acceptance surface.
 - **Real work:** the pilot company runs day-to-day operations — scheduling, jobs, time, materials, service, billing bases — in the new system across activated modules, with legacy data brought over per module per the N-1 classification, until the owner's cutover criterion ("everything the Lovable app has") is met and the legacy app can be retired.
 - **Deliverable product:** provisioning and onboarding a second, independent tenant is proven end-to-end as an admin-driven flow requiring no engineering work, with zero cross-tenant leakage in negative tests. (Actually signing commercial customers, pricing, and self-serve signup are business outcomes gated on N-2, not Phase B engineering criteria.)
+- **Scope-honest field release:** no authoritative Phase B artifact or shipped surface promises PWA installation or offline operation; retained unsent input is labelled as a draft, submitted states require server confirmation, and the complete deferred package is traceable in Phase C.
 - **The bar holds:** every new module lands tenant-isolated (RLS negative tests), integer-öre, snapshot-immutable where customer-visible, server-side audited; the unit gate stays green and grows from its 1378 baseline; the golden/regression discipline — including the Epic-9 live-driven comparison-harness pattern — extends to scheduling and jobs money paths; no public surface ships before ADR-B004; every wave boundary executes its re-scope checkpoint.
 
 ## Delivery & Governance Notes
@@ -146,12 +149,12 @@ Delivery continues via the established per-epic auto-bmad pipeline, epic numberi
 
 ## Vision
 
-Phase B ends with one product two kinds of customers can trust: the pilot company running everything on it, and independent contractors able to onboard onto it. Phase C then layers the differentiators the legacy app only gestured at — governed AI across DoU, self-inspections, tenders/FKU, panels, and KNX; live supplier APIs; a customer portal with online acceptance; further bookkeeping integrations — on top of a foundation that, unlike the legacy app, can carry them safely. The long-term product is the system its domain insight always deserved: the workflow breadth that made the legacy app remarkable, on engineering that makes it licensable.
+Phase B ends with one connected, responsive product two kinds of customers can trust: the pilot company running everything on it, and independent contractors able to onboard onto it. Phase C then considers the deferred PWA/installability and genuine offline-field package alongside the differentiators the legacy app only gestured at — governed AI across DoU, self-inspections, tenders/FKU, panels, and KNX; live supplier APIs; a customer portal with online acceptance; further bookkeeping integrations — on top of a foundation that can carry them safely. Detailed offline architecture remains deliberately undecided until Phase C resolves its write surfaces, storage/retention, attachment, legal/signature, authorization, conflict, platform, security, and test questions.
 
 ## Assumptions & Judgment Calls (autonomous run record)
 
 1. **The party-session record is binding.** All shaping choices (waves, epic candidates, splits, placements) restate PB-D1..PB-D14; nothing was re-litigated. Where this brief compresses, the session record and its §4 dependency map govern.
-2. **Owner gates were left open by design.** No gate (carried möte items, N-1..N-10) is resolved here; team recommendations (responsive web first, "present A implement as C") are labeled as recommendations only.
+2. **Decision-history amendment.** This brief originally left N-1..N-10 open and later inherited the 2026-07-26 owner answers. The 2026-09-03 owner course correction supersedes only N-3's Phase B PWA/offline direction; it does not rewrite the original answer or ADR-B007 out of history. ADR-B009 is the current field posture.
 3. **No market/web research was performed.** The direction is owner-fixed and the parity target is the in-repo legacy inventory; competitive analysis would not change this brief's content. Revisit at Phase C scoping (licensing/pricing) alongside N-2.
 4. **File-layout decision exercised:** the party session left Phase B artifact layout "to be decided when the brief is created" — this brief establishes flat `-phase-b`-suffixed siblings in `_bmad-output/planning-artifacts/` (matches BMAD folder discovery; keeps Phase A files untouched).
 5. **No separate distillate file was produced** (single-artifact constraint for this run). The PRD stage should read the party-session record §2-§9 directly as the detail pack; this brief deliberately does not duplicate its dependency map or decision rationales.

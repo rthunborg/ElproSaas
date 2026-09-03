@@ -4,6 +4,8 @@ Date: 2026-06-07
 Status: planning artifact  
 Reference posture: the existing Lovable app is a behavioral oracle and requirements reference only.
 
+**Phase B course-correction amendment (2026-09-03):** Phase B delivers responsive, phone-usable connected field workflows at the 360×640 viewport floor. It does not deliver PWA installation/manifest, service-worker caching, durable offline storage, offline reads/writes, local queues, replay/synchronization/conflict states, or background/reconnect-driven offline synchronization. ADR-B009 is current; the 2026-07-26 N-3/ADR-B007 direction remains historical. The complete PWA/offline package and its unresolved storage, retention, attachment, signature/legal, authorization, surface, conflict, platform, security, and test decisions move to Phase C. Native mobile remains outside Phase B.
+
 ## Decision Summary
 
 | Decision | Current plan |
@@ -58,7 +60,7 @@ Goal: validate the SaaS operating model with a small number of external companie
 | Area | Status | External Beta scope |
 | --- | --- | --- |
 | Minimal roles | IN | Introduce validated roles only, likely admin plus limited field/project roles. |
-| Mobile field workflow | IN if validated | Assigned jobs, time, material, deviations, photos, self-inspection basics. |
+| Connected mobile-width field workflow | IN | Responsive assigned jobs, time, material, deviations, photos, self-inspection basics at 360×640; connectivity required, transient form protection and honest retry, no PWA/offline promise. |
 | Invoice/billing basis | IN if needed | Manual billing-basis review/export without Fortnox sync unless re-approved. |
 | Observability | IN | Production logging, alerts, job/error dashboards, audit expansion. |
 | Tenant operations | IN | Onboarding/offboarding, backup/restore runbooks, support process. |
@@ -79,6 +81,7 @@ Goal: production SaaS for multiple Swedish electrician firms.
 | AI governance | IN when epic active | Async jobs, cost limits, audit, human review, golden extraction tests. |
 | DoU/tender/HR/rentals/assets | Optional | Implement only as separate commercially justified epics. |
 | Enterprise dedicated instances | Optional | Separate deployment model for large customers only. |
+| PWA installability + genuine offline field capability | Deferred package | Manifest/installability, service-worker/data caching, durable device storage, offline reads/writes, local operation/attachment queues, sync/replay/conflicts, reconnect/background behavior, retention/purge, authorization changes, attachment limits, signature/legal posture, platform support, and offline security/recovery tests; concrete design waits for Phase C decisions. |
 
 ## 2. Revised Product Assumptions and Open Questions
 
@@ -419,7 +422,7 @@ Decision: use Next.js/Node API routes as the primary command layer for Internal 
 | E6 Basic job/order creation from accepted quote | A | Minimal job/order from accepted quote version. | Acceptance command creates auditable job source record transactionally. |
 | E7 Documents/files needed for the above | A | Private file storage, metadata, signed URLs, quote attachments. | Cross-tenant file access denied. |
 | E8 Internal pilot migration/coexistence | A | Shadow mode, selective migration, fallback process, cutover plan. | Old system remains fallback; comparison report documented. |
-| E9 External beta hardening | B | Minimal roles, mobile workflow, observability, runbooks, audit/data retention. | Beta readiness checklist green. |
+| E9 External beta hardening | B | Minimal roles, connected responsive field workflow, observability, runbooks, audit/data retention. | Beta readiness checklist green; field flows pass at 360×640 and never imply offline submission. |
 | E10 Fortnox integration | C or re-approved B | OAuth, outbox, idempotency, retries, error UI, external mappings. | Sync failures visible/retryable; no duplicate external records. |
 | E11 Supplier/AI/DoU/tender expansions | C+ | Separate epics only after commercial justification. | Each has its own schema, tests, governance, rollout plan. |
 
@@ -447,7 +450,7 @@ Required before using the new system for real pilot work:
 Required before onboarding external companies:
 
 - Role matrix tests for implemented roles.
-- Mobile workflow tests for implemented field-user flows.
+- Connected field-workflow tests at the 360×640 viewport floor, including connection-required, transient-failure retention, explicit retry, and server-confirmed success states.
 - Production observability: errors, logs, uptime, command metrics.
 - Backup and restore runbooks tested.
 - Tenant onboarding/offboarding process.

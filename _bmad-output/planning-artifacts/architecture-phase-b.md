@@ -7,7 +7,7 @@ project_name: ElproSaas
 user_name: Rasmus
 date: 2026-07-18
 completedAt: 2026-07-18
-amendedAt: 2026-07-26   # owner + accountant answers folded in: ADR-B006 recorded, ADR-B007 + §12A/§12B added, N-2/N-4/N-5/N-6/N-8/N-9/N-10 dispositions (see §24)
+amendedAt: 2026-09-03   # ADR-B009 supersedes ADR-B007 for active Phase B field scope; history retained; PWA/offline moves to Phase C (see §25)
 phase: Phase B - Legacy Parity Release
 mode: "extend-by-supersession — headless create; non-interactive; all choices resolved against the ratified party-session record (PB-D1..PB-D14), the Phase B PRD, and the Phase B UX spec; judgment calls logged in the Assumptions Register (§21)"
 supersedes: "_bmad-output/planning-artifacts/architecture.md as the forward architecture baseline. The Phase A architecture is FROZEN as the pilot record: it is never edited, ADR-A001..A009 carry forward unchanged and stay citable, and this document restates only deltas."
@@ -40,7 +40,7 @@ Rules of this document:
 
 - **The Phase A architecture (`architecture.md`) is frozen.** ADR-A001..A009 are carried forward **unchanged** — they are cited in §2 with only their Phase B deltas restated. Where this document is silent, the Phase A architecture and the implemented conventions in `project-context.md` govern.
 - **Decision precedence:** party-session decisions PB-D1..PB-D14 and PRD FR62–FR130 / NFR42–54 are binding inputs; this document mechanizes them, it does not re-decide them. Judgment calls made in this autonomous run are logged in §21 (AB-A#).
-- **Owner gates: closed as of 2026-07-26.** The owner and accountant answers of 2026-07-26 (`docs/discovery/phase-b-owner-answers-2026-07-26.md`, `docs/discovery/phase-b-accountant-answers-2026-07-26.md`) closed every remaining hard Phase B gate. ADR-B006 is now **DECIDED** (§8); ADR-B007 (§8A) and the ADR-A004 money amendment (§12A) are new decisions recorded from those answers. ADR-B005 remains **boundary-only** by design (final design after the B2 spike) — that is a sequencing choice, not an owner gate. Residual `[gated: X]` markers survive only where the source answer genuinely left a detail open; §24 is the reconciliation ledger.
+- **Owner gates: closed as of 2026-07-26; field posture course-corrected 2026-09-03.** The owner and accountant answers of 2026-07-26 (`docs/discovery/phase-b-owner-answers-2026-07-26.md`, `docs/discovery/phase-b-accountant-answers-2026-07-26.md`) closed every remaining hard Phase B gate. ADR-B006 is **DECIDED** (§8). ADR-B007 (§8A) preserves the N-3 decision made that day, but ADR-B009 (§8B) now supersedes it for active Phase B scope: connected responsive field web, with PWA/offline deferred to Phase C. ADR-B005 remains **boundary-only** by design (final design after the B2 spike) — that is a sequencing choice, not an owner gate. §24 retains the 2026-07-26 reconciliation; §25 records the current course correction.
 - **Docs-only:** this artifact creates no code, migrations, or dependencies. Story 10.1 (§5) delivers the first implementation.
 
 Reading order for downstream consumers: PRD → UX spec → this document → Phase B epics doc. §19 maps every UX §14 handoff item and every PRD §15 architecture item to its section here.
@@ -56,11 +56,12 @@ Phase B keeps the entire Phase A spine — pooled tenancy with forced RLS, the s
 5. **ADR-B005 (boundary only):** Fortnox is an outbox/mapping-shaped integration layer sketched here and finalized only after the B2 spike; no credentials, tables, or routes before its epic.
 6. **ADR-B006 (decided 2026-07-26):** the job model is **Jobb-as-container (Option A) implemented as one typed entity (Option C)** — a single `jobs` table with `type ∈ {order, projekt}`, `arbetsorder` as child work items, and "upgrade to projekt" as an audited single-row type change. It extends the Phase A `jobs` table additively; there is no `projects` table. E16–E18 are unblocked.
 
-Two further decisions were recorded from the 2026-07-26 answers and are numbered outside the B001–B006 sequence to avoid renumbering this document:
+Subsequent decisions are numbered without renumbering the original B001–B006 sections:
 
-7. **ADR-B007 (decided 2026-07-26, §8A):** the field posture is an **installable PWA with genuine offline capture** — not "responsive web first". A local queue with idempotent, operation-id-keyed writes, per-change sync states, append-only field records, and scoped/minimised/purgeable local storage under the same permission checks as online reads. No native app.
+7. **ADR-B007 (decided 2026-07-26; historical/superseded, §8A):** selected an installable PWA with genuine offline capture. It is preserved as decision history but no longer governs Phase B after ADR-B009.
 8. **ADR-A004 amendment (decided 2026-07-26, §12A):** VAT rounds **per VAT category at document level** (Peppol/EN 16931 BR-CO-17), not per line; row visibility does not drive economic inclusion; construction reverse charge is a VAT **type**, not a 0 % rate; Skatteverket claim amounts truncate to whole SEK. This **corrects shipped behaviour** and is owned by Story 10.6.
 9. **ADR-B008 (decided 2026-08-31):** quote review is an authenticated user attestation to exact server-validated content, not proof of UI attention. A one-time 15-minute non-HMAC authorization, invalidated by relevant changes, governs creation/review/send; lifecycle mutations atomically audit actor/correlation. For quote PDFs, a database-issued render ID is durably reserved before upload through the narrow authenticated `reserve_quote_pdf_file` RPC; it alone may set immutable `files.artifact_kind='quote_pdf'`, and an unlinked reserved draft is not signable. PDF-byte activation/send additionally require a short-lived server-only HMAC-SHA256 attestation verified in PostgreSQL with `pgcrypto` against matching Vault secret `quote_pdf_attestation_<key-id>`. It binds tenant/actor/version/render-file/current fingerprint/bucket/path/checksum/size/MIME/correlation/key/time window, is never returned/logged/persisted, and fails closed. Start is correlation-idempotent with a five-minute lease; response-loss reconciliation preserves a current generated PDF. No Edge Function, service-role/elevated Storage credential, or client bypass. This retains Option A and does not claim final convergence or DB-test completion. Current-PDF send validity and eligible immutable attachment carry-forward are Stories 10.8/10.9. Global retention/reclamation remains deferred to E31 / B2→B3.
+10. **ADR-B009 (decided 2026-09-03, §8B):** Phase B field workflows are connected responsive web at the 360×640 viewport floor. Transient failures may retain suitable unsent form state and in-memory photos, but server confirmation is required before success. The complete PWA/installability and genuine offline-operation package moves to Phase C. Story 10.7 records governance alignment only and is not an E14–E18 technical prerequisite.
 
 The highest-risk Phase B surfaces are (a) per-role authorization correctness at 2.5× the module surface, (b) the two new attack-surface classes (background execution, public tokens), (c) scheduling correctness across recurrence and DST, and (d) money-out immutability. The test strategy (§16) scales the Phase A negative-test discipline along exactly those axes.
 
@@ -509,11 +510,13 @@ These were written to survive whichever option won. They are retained because th
 - **The completion event is container-level:** `markJobComplete` emits the audited completion event on the container (§14), whatever its `type`.
 - **Type never widens silently:** the `type` CHECK is a closed set. A third kind of container requires an ADR amendment, not a migration.
 
-## 8A. ADR-B007 — Installable PWA and Offline Field Capture (DECIDED)
+## 8A. ADR-B007 — Installable PWA and Offline Field Capture (HISTORICAL — SUPERSEDED)
 
 **Trigger:** owner gate N-3 (field posture), answered 2026-07-26; **before the E14/E15/E16–E18 field-surface stories**.
-**Status:** **DECIDED 2026-07-26.** Numbered `B007` and placed here (rather than renumbering §9–§23) so the ADR block stays contiguous.
-**Authority:** owner answer 2026-07-26 §N-3; NFR53 (as amended below); PRD §9.1 NFR31 amendment. **Owned by Story 10.7.**
+**Status:** **DECIDED 2026-07-26; SUPERSEDED FOR ACTIVE PHASE B SCOPE BY ADR-B009 ON 2026-09-03.** Retained without deletion as the historical decision that drove the halted implementation plan.
+**Authority at the time:** owner answer 2026-07-26 §N-3 and the then-current NFR31/NFR53 wording. The original implementation Story 10.7 halted before implementation; the repurposed Story 10.7 records the later governance alignment.
+
+> **Current-reader warning:** §§8A.1–8A.8 below describe the superseded 2026-07-26 decision. They are historical evidence, not Phase B requirements or implementation guidance. Use ADR-B009 (§8B), the restated NFR31/NFR53, and the Phase C ledger for current scope.
 
 ### 8A.1 Why this is an ADR and not a UX refinement
 
@@ -582,7 +585,85 @@ The Phase A/B posture "sessionStorage only, nothing long-lived on shared devices
 - **§15.5 (field transient-failure retention)** is superseded by §8A.6. The sessionStorage-plus-in-memory-blobs mechanism remains valid as the *online* transient-failure path; it is no longer the whole story.
 - **NFR53** is restated in the PRD from "usable on the confirmed posture" to the PWA + offline requirement.
 - **E14/E15/E16–E18 field stories** gain offline acceptance criteria; Story 10.7 owns the platform-level capability (installability, queue, sync engine, states, storage lifecycle) so the module epics consume it rather than each inventing one.
-- **AB-A9 is superseded**; see §21.
+- **AB-A9 was superseded at this point in the decision history**; ADR-B009 later restored its transient-only posture with tighter success semantics. See §21.
+
+## 8B. ADR-B009 — Connected Phase B Field Web; PWA and Offline Deferred to Phase C (DECIDED — CURRENT)
+
+**Trigger:** Story 10.7's Auto-BMAD planning halt (`blocked`, condition `intent gap`) exposed unresolved device-retention, attachment-size, signature/legal, authorization, concrete offline-write-surface, synchronization, and conflict decisions. No implementation started. The owner chose on 2026-09-03 to defer the capability rather than resolve those questions in Phase B.
+
+**Status:** **DECIDED 2026-09-03; CURRENT.** This ADR supersedes ADR-B007 for active Phase B scope without deleting or rewriting the earlier decision.
+
+**Authority:** owner course-correction decision and approval of all four increments on 2026-09-03; restated PRD NFR31/NFR53; Sprint Change Proposal `sprint-change-proposal-2026-09-03.md`.
+
+### 8B.1 Decision
+
+Phase B delivers **one responsive, connected web application**, including field experiences usable at the existing **360×640 viewport floor**. The substantive E14–E18 workflows remain: scheduling, time reporting, jobs, material usage, diary entries, deviations, photos, checklists/egenkontroller, and completion. Reads and writes require connectivity.
+
+Phase B does **not** include:
+
+- PWA installation or a PWA manifest;
+- a service worker, application-shell caching, or data caching for offline use;
+- durable offline device storage;
+- offline reads or writes;
+- local operation or attachment queues;
+- synchronization, replay, or offline-conflict domain states; or
+- background-, reconnect-, foreground-, or app-open-driven offline synchronization.
+
+Native mobile remains out of scope. Connectivity is a runtime prerequisite for Phase B field work, not merely an administration-only limitation.
+
+### 8B.2 Connected transient-failure contract
+
+Field forms protect users against **transient request failures**, not loss of connectivity as a supported operating mode:
+
+1. Keep active edits in component state by default.
+2. Use `sessionStorage` for suitable unsent, non-secret form drafts when preserving the tab-session draft materially reduces loss; key drafts by tenant, actor, entity, and form so state cannot bleed between contexts.
+3. Hold pending photo bytes in memory/object URLs where appropriate until upload succeeds; disclose honestly that reload, tab close, logout, or device/browser eviction can remove that in-memory selection.
+4. Show explicit `Connection required`, `Submitting`, `Submission failed — retry`, `Uploading`, and `Upload failed — retry` states.
+5. Show `Submitted`/`Saved` only after the server confirms persistence. Locally retained input is an **unsent draft**, never a successfully submitted record.
+6. On retry, use the normal authenticated command path, current authorization, validation, RLS, and any domain idempotency already required by the command. No client draft is pre-authorized.
+
+The application makes no promise that users can continue reading or writing without connectivity. It must not silently display stale data as current or convert a browser draft into a server-domain status.
+
+### 8B.3 Storage and security boundary
+
+Phase B introduces no `localStorage`, IndexedDB, Cache API, service-worker store, persistent attachment cache, sync ledger, or queue schema for field operation. `sessionStorage` drafts must be minimized, must never contain credentials, access tokens, signature/legal evidence, or server-only fields, and must be cleared on confirmed submission and logout where the application controls the lifecycle. Every retry re-resolves current membership and permissions server-side.
+
+This posture avoids creating a new device data-at-rest or replay authorization boundary in Phase B. Existing private-file, tenant-isolation, capability, audit, and command-envelope rules remain unchanged.
+
+### 8B.4 E14–E18 and Story 10.7 sequencing
+
+E14–E18 remain Phase B epics and retain their connected business workflows. None depends technically on Story 10.7, ADR-B007, a PWA shell, an offline store, or a sync engine. Each field-facing story instead consumes the connected transient-failure contract in §8B.2 and the 360×640 UX floor.
+
+Story 10.7 is repurposed as a **documentation/governance alignment story**. Completing it means the planning corpus, decision history, Phase C ledger, and sprint/Auto-BMAD records are coherent; it does not mean PWA/offline functionality was implemented.
+
+PWA/offline is a cross-cutting capability, not a manifest module. No `src/scope/manifest.ts` entry or status changes because of this ADR, and no new manifest module may be invented for it.
+
+### 8B.5 Durable seams and Phase C deferred questions
+
+Phase B keeps only neutral seams that are useful with or without a future offline client: stable entity identifiers; server-authoritative, tenant-scoped read models; explicit command results; current authorization on every write; domain idempotency where the business operation already demands it; private attachment metadata; and honest UI state boundaries. Phase B creates no speculative offline tables, client stores, queue protocol, conflict model, or service-worker layout.
+
+The complete PWA/offline package is ledgered to Phase C. Before implementation, Phase C must decide at least:
+
+- the exact offline read and write surfaces and their business priority;
+- device retention, purge, logout, shared-device, browser-eviction, and lost-device behavior;
+- photo/attachment type, byte-size, quota, resumability, and transfer constraints;
+- whether signatures or confirmations may be captured offline and the legal/evidence implications;
+- authorization and disclosure behavior when tenant membership, job assignment, or capability changes before replay;
+- operation identity, ordering, dependencies, retries, partial failures, and conflict resolution per data shape;
+- supported browsers/platforms, installability expectations, and background execution limitations; and
+- the security, privacy, offline/reconnect, recovery, quota, eviction, and no-data-loss test matrix.
+
+Those questions are recorded without selecting a Phase C implementation architecture.
+
+### 8B.6 Verification obligations
+
+- Responsive field paths are exercised at 360×640.
+- A request failure retains suitable unsent input and offers explicit retry.
+- A disconnected submission reports that connectivity is required and does not show success.
+- `Submitted`/`Saved` appears only after a server-confirmed result.
+- Photo upload failure preserves the in-memory selection while the page remains alive where technically feasible and communicates lifecycle limits honestly.
+- Source and planning-scope checks reject accidental Phase B PWA manifests, service workers, durable offline stores, local queues, sync engines, and offline domain-state vocabulary.
+- E14–E18 dependency checks contain no Story 10.7 or ADR-B007 technical prerequisite.
 
 ## 9. Schema v1 Delta — New Tenant-Owned Tables Per Wave
 
@@ -978,11 +1059,11 @@ TrialEndDate  BillingReference  CommercialOverrides
 
 `CommercialOverrides` exists so **manually agreed prices, discounts, and special terms can be recorded without shipping a new build**. A hardcoded price anywhere is a review-reject.
 
-### 15.5 Field transient-failure retention (UX §14.13) — **partly superseded by ADR-B007 §8A.6**
+### 15.5 Connected field transient-failure retention (UX §14.13; ADR-B009)
 
-**Still valid as the ONLINE transient-failure path:** capture forms (diary, deviation, photo caption, time report) keep state in **component state + `sessionStorage`** keyed per form+entity, so an accidental in-session navigation or a failed request never loses typed input; photos pending upload are held as in-memory blobs/object URLs until upload confirms; failures render the retained state + explicit `Försök igen`.
+Capture forms (diary, deviation, photo caption, time report, material, and checklist input) keep active edits in component state. Suitable unsent, non-secret drafts may additionally use **`sessionStorage`** keyed by tenant+actor+form+entity to protect against accidental in-session navigation or a failed request. Photos pending upload may be held as in-memory blobs/object URLs until upload confirms; the UI must disclose that reload, tab close, logout, or browser/device eviction can remove them.
 
-**Superseded:** the clauses "nothing long-lived on shared devices — deliberately not `localStorage`" (AB-A9) and "no service worker, no background sync in Phase B". ADR-B007 (§8A) introduces durable, **scoped and purgeable** local storage plus a service worker for installability and offline reads. The shared-device concern is now answered by §8A.6's scope + minimisation + time-box + purge, not by refusing to persist. Read §8A.6 as the authority wherever the two sections disagree.
+Failures render the retained **unsent draft** with an explicit connection-required or failure state and `Försök igen`. The UI renders `Submitted`/`Saved` only after a server-confirmed write. Phase B deliberately uses no `localStorage`, IndexedDB, Cache API, service worker, durable attachment cache, local operation queue, replay engine, or background/reconnect synchronization for field operation. Read ADR-B009 §8B as the authority; ADR-B007 §8A is historical only.
 
 ## 16. Test Strategy Extension
 
@@ -1023,9 +1104,9 @@ Empty-DB reset must succeed at every migration state; the exact-policy enumerati
 - **Golden fixtures are re-derived, not patched** — the money/tax packs (Stories 4.4, 5.5) get new expected values, and the diff is the evidence of the rule change.
 - **Immutability negative:** recomputing an already-SENT quote version's snapshot under the new rules is rejected (ADR-A005 carried; §12A.7).
 
-### 16.7 Offline sync obligations (ADR-B007, Story 10.7)
+### 16.7 Connected field resilience obligations (ADR-B009; E14–E18)
 
-The §8A.7 suite is part of the standing gate: replay idempotency per offline-capable write type; authorisation-on-sync (a queued operation against a since-revoked resource is rejected with no partial write); offline-store scope containment (no non-assigned job data present); entitlement containment (no withheld money field on the device); purge on logout and on expiry; no-data-loss on failed transfer; and proof that the reprocess-on-open path works with no background-sync API available.
+The standing gate covers field paths at 360×640; explicit connection-required behavior; retention of suitable unsent form input after a request failure; explicit retry through the normal authenticated command; server-confirmed success before any `Submitted`/`Saved` state; current authorization on every retry; and honest photo-memory lifecycle messaging. Scope scans also prove that Phase B introduces no PWA manifest, service worker, durable offline store, operation queue, replay/sync engine, or offline conflict taxonomy. Story 10.7 verifies governance and traceability only; the field epics own their connected behavior tests.
 
 ## 17. Repo Structure Delta
 
@@ -1051,10 +1132,8 @@ src/
       provider.ts          # adapter seam (implementation lands at N-6 activation)
       queue.ts             # outbox claim/process, suppression, delivery events
     notifications/         # emit helpers, category taxonomy types
-    sync/                  # ADR-B007 server side: operation-id ledger, replay guards (§8A.4)
   features/
     scheduling/            # pure engines: conflicts.ts, recurrence.ts, capacity.ts
-    offline/               # ADR-B007 client side: local queue, sync engine, per-change states
     <module>/              # per-module pure logic per the Phase A convention
   app/
     (public)/              # ADR-B004 surfaces — isolated minimal layout (§6.5)
@@ -1065,12 +1144,12 @@ tests/
   integration/authz/       # per-role matrix suites (§16.1)
   integration/jobs/        # runner auth negatives, producer idempotency
   integration/public/      # token-surface abuse suites
-  integration/sync/        # ADR-B007 replay idempotency + authorisation-on-sync (§16.7)
+  integration/field/       # ADR-B009 connected retry + server-confirmed-success tests (§16.7)
   fixtures/golden/scheduling/  # DST/recurrence/conflict packs (§16.4)
   fixtures/golden/jobs-money/  # economy/billing golden packs
 ```
 
-The PWA manifest and service worker land with Story 10.7 under the Next.js app conventions; the service worker's cache scope is bound to the §8A.6 rules and is reviewed as security surface, not as build config.
+No PWA manifest, service-worker file, offline feature directory, server sync/replay directory, or durable client-store module lands in Phase B. Connected draft protection stays with the owning field feature and reuses ordinary form/command patterns; a future Phase C design may choose different boundaries after its deferred questions are resolved.
 
 Naming, data-format, and process conventions from Phase A §22 apply unchanged (snake_case SQL / camelCase TS / `_ore` money suffixes / stable error codes / blocking-vs-warning separation / lifecycle locks at DB level).
 
@@ -1086,8 +1165,8 @@ Naming, data-format, and process conventions from Phase A §22 apply unchanged (
 | Scheduling correctness drift (missed/phantom conflicts, DST) | One pure engine shared by preview and command; golden DST/recurrence packs; conflicts as persisted, audited workflow records. |
 | Money-out mutation after commitment | Billing-basis lock joins the DB-trigger lock family (reversal + identity tests); copy-by-value line snapshots; audited corrections only; tax-gate binding blocks real invoicing use. |
 | Scope creep past the manifest | ADR-B003: any unlisted surface fails CI; per-epic same-PR activation; coherence validator; `phase-scope-reviewer` reviews against the manifest. |
-| Tenant data at rest on field devices (ADR-B007) | Scoped to assigned jobs only (never a tenant mirror); cached projection is the §11 entitlement projection, so withheld money never reaches the device; time-boxed with purge on expiry and on logout; negative tests prove non-assigned and unentitled data are absent. |
-| Offline replay creating duplicate or unauthorised writes (ADR-B007) | Operation-id-keyed idempotent sync endpoints (replay proofs per write type); the full command envelope — capability gate + RLS — runs on sync, so a queued write is never a pre-authorised write; append-only field records plus optimistic locking on shared objects; last-write-wins is a review-reject. |
+| Field connectivity loss causes draft loss or ambiguous state (ADR-B009) | Keep suitable unsent input in component/session state and pending photos in memory where appropriate; state lifecycle limits honestly; retain explicit retry; test at 360×640 and across request-failure paths. |
+| False success or stale authorization after a failed field request (ADR-B009) | A browser draft has no server-domain status; show success only after server confirmation; every retry enters the ordinary authenticated command path and re-resolves current capability/RLS. No local queue or replay authorization exists in Phase B. |
 | Money-rule drift between the shipped engine and the ratified rules (§12A) | Story 10.6 is the single owner of the correction; §13's real-invoicing block stays in force until it lands; golden fixtures are re-derived, not patched; the split-invariance test (§16.6) makes a regression to per-line VAT rounding fail loud. |
 | Notification/email data leakage or duplicate sends | Entitlement-projected content; suppression enforcement; dedupe keys + idempotent claims; delivery log append-only. |
 | Fortnox credential exposure (B3) | ADR-B005 boundary: server-side-only encrypted tokens, no client path, no tables/routes before the final ADR + epic activation. |
@@ -1110,7 +1189,7 @@ Every UX §14 item (U1–U14) and every PRD §15.2 architecture item (P1–P10) 
 | U10 | Calendar-feed token UX mechanics | Answered: self-serve create/rotate/revoke commands over hashed tokens; live-generated feed; last-used visibility | §6.3, §6.2 |
 | U11 | Public QR page shell isolation | Answered: `(public)` route group, minimal layout, no shell/context imports (guardrail-tested), no enumeration | §6.5, §6.4 |
 | U12 | Job-workspace tab data contracts under ADR-B006 | Answered and now model-final: one container id, per-tab read-models on stable keys (job_id / owner_type='job'); the Option B `Ingående jobb` read-model is **not built** | §8.6, §8.5 |
-| U13 | Field transient-failure retention | Answered, then **re-answered by ADR-B007**: sessionStorage + in-memory blobs remain the online transient path; durable scoped offline storage + a sync queue supersede the no-offline-promise clause | §8A.6, §15.5 |
+| U13 | Field transient-failure retention | **Current ADR-B009:** component state + suitable `sessionStorage` drafts + in-memory photos; explicit connection/failure/retry; success only after server confirmation. ADR-B007's durable store/queue is historical and Phase C-deferred. | §8B.2–§8B.3, §15.5 |
 | U14 | Oracle terminology pass hook | Process disposition: every `[oracle-check]` label resolves via a `legacy-oracle-explorer` terminology task **before the owning epic's first story**; the epics stage must carry this as a story-template gate | §22 item 4 |
 | P1 | ADR-B001..B006 sequence | Answered: §3–§8 with PRD §12 trigger points restated per ADR | §3–§8 |
 | P2 | Permission-matrix representation + RLS integration | Answered: code-level matrix; three-tier predicates; policy↔matrix tests | §3.3–§3.5, §16.1 |
@@ -1140,13 +1219,15 @@ Every UX §14 item (U1–U14) and every PRD §15.2 architecture item (P1–P10) 
 | B3 coarse groups (FR119–128) | §9.4, §12, ADR-B005 (§7) |
 | Governance (FR129–130, NFR51) | ADR-B003 (§5), §15.1–15.2 |
 | Migration/golden discipline (NFR52) | §16.4–16.5 |
-| Field posture (NFR53) | ADR-B007 (§8A): installable PWA with offline capture; §15.5 is superseded by §8A.6 |
+| Field posture (NFR53) | ADR-B009 (§8B): connected responsive web at 360×640; transient unsent-draft protection and server-confirmed success; PWA/offline deferred to Phase C. ADR-B007 (§8A) is historical. |
 | Money/VAT/deduction correctness (NFR49; FR25 hidden rows carried) | ADR-A004 amendment (§12A); Story 10.6 owns the code change |
-| Carried NFR1–41 spine | §2 (no delta weakens an invariant; the four PRD §9.1 amendments are honored: NFR5 via §6.1, NFR29/NFR51 via §5, NFR31/NFR53 via §15.5, NFR33 via §7) |
+| Carried NFR1–41 spine | §2 (no delta weakens an invariant; the four PRD §9.1 amendments are honored: NFR5 via §6.1, NFR29/NFR51 via §5, NFR31/NFR53 via ADR-B009 + §15.5, NFR33 via §7) |
 
 **Validation result (2026-07-18):** READY FOR THE PHASE B EPICS STAGE — with the deliberate exceptions: ADR-B006 gated (E16–E18 design blocked until recorded), ADR-B005 final design post-spike, and the owner gates of PRD §11 open by design. No gate blocks starting B1a.
 
 **Re-validation (2026-07-26, after the owner + accountant answers):** ADR-B006 is recorded (§8) — **E16–E18 are unblocked**. ADR-B007 (§8A) and the ADR-A004 amendment (§12A) are recorded. **No hard owner gate remains open in Phase B.** ADR-B005's final design still waits on the B2 spike by design (sequencing, not a gate). One reconciliation debt is carried and owned: the §12A money rules **correct shipped behaviour** and land through Story 10.6, which must precede any real ROT/grön-teknik quote leaving the system (§13, §24).
+
+**Re-validation (2026-09-03, owner-approved course correction):** ADR-B009 (§8B) supersedes ADR-B007 for active Phase B scope. E14–E18 remain unblocked connected workflows and no longer carry an offline/PWA or Story 10.7 technical dependency. The complete PWA/offline package and unresolved questions are ledgered to Phase C; Story 10.7 is documentation/governance alignment only. No manifest change is required because PWA/offline is not a manifest module.
 
 ## 21. Assumptions Register (autonomous run record — AB-A#)
 
@@ -1160,18 +1241,19 @@ Every UX §14 item (U1–U14) and every PRD §15.2 architecture item (P1–P10) 
 | AB-A6 | Manifest format TS over YAML; located `src/scope/manifest.ts` (runtime-importable; session's `docs/scope/…` was an example, not binding). | accepted |
 | AB-A7 | Conflicts are deterministic-derived but **materialized** as workflow records (`booking_conflicts`) because accept/resolve states, reasons, and outcomes must persist and be auditable — this validates-and-amends UXB-A10. | accepted for architecture |
 | AB-A8 | Operator console lives in the same Next.js deployment (route-territory isolation + operator allow-list) for Phase B; separate-deployment hardening is a named Phase C option. | accepted |
-| AB-A9 | Field transient retention uses sessionStorage (not localStorage) to avoid long-lived capture data on shared devices; photos in-memory until upload. | **SUPERSEDED 2026-07-26 by ADR-B007 §8A.6** — offline capture requires durable local storage. The sessionStorage path survives as the *online* transient-failure mechanism; the shared-device concern is now answered by scoping + minimisation + time-box + purge. |
+| AB-A9 | Field transient retention uses `sessionStorage` (not `localStorage`) to avoid long-lived capture data on shared devices; photos stay in memory until upload. | **Current again, refined by ADR-B009 on 2026-09-03.** ADR-B007 superseded this on 2026-07-26, but is now historical. Use component state first, suitable minimized `sessionStorage` drafts second, in-memory photos where appropriate, honest lifecycle limits, and server-confirmed success. No durable offline store. |
 | AB-A10 | Time-report hard approval state deliberately not shipped in B1b; re-decided at the B1b→B2 checkpoint with E26/N-5 (resolves PB-A9 for now; additive enum widening if introduced). | accepted; checkpoint item |
 | AB-A11 | Materialized-occurrence recurrence (bounded series, mandatory end condition) chosen over virtual expansion — conflict identity, resolver actions, exceptions, and feed stability all key on real rows. | accepted |
 | AB-A12 | DST edge policy: spring-forward → first valid instant; fall-back → earlier instant; golden-pinned. | accepted (test-pinned at E14/E15) |
 | AB-A13 | B2/B3 schema rows are outline-level by design (PB-D10); counts are indicative and finalized at wave-boundary checkpoints — they bound scope, they are not migrations. | accepted |
 | AB-A14 | `job_runs` and `platform_operators` are the enumerated non-tenant-owned exceptions (ops log / platform identity), documented in §9.1 with their own RLS posture; everything else stays direct-`tenant_id`. | accepted |
 | AB-A15 | The completion-event consumer flags are computed by the command layer from the manifest and passed explicitly to the RPC — SQL never encodes scope knowledge. | accepted |
-| AB-A16 | ADR-B007 and the §12A money amendment are numbered/placed outside the B001–B006 sequence (as `8A` and `12A`) rather than renumbering §9–§23, so every existing inbound cross-reference — including the ones in shipped test-file headers — stays valid. | accepted (2026-07-26) |
+| AB-A16 | ADR-B007 and the §12A money amendment were numbered/placed outside the B001–B006 sequence (as `8A` and `12A`) rather than renumbering §9–§23, so existing inbound cross-references stayed valid. | accepted historical placement (2026-07-26); ADR-B009 follows as §8B without erasing B007 |
 | AB-A17 | The `order → projekt` upgrade is **one-way** in Phase B (ADR-B006 §8.3). A downgrade would have to decide the fate of payment-plan rows and project-scope data an order cannot hold; that is an owner decision, not an implementation detail. Reversal requires an ADR amendment. | accepted (2026-07-26) |
 | AB-A18 | The two set-valued §8.4 job-card fields (dependencies, access/time windows) are **child tables, not JSON columns**, so the scheduling engine can query them and the database can constrain them. | accepted (2026-07-26) |
 | AB-A19 | The N-2 provisioning **AI agent is an orchestrator with no database access** — it fills and validates the structured onboarding template and calls the deterministic provisioning service. No general DB access, no arbitrary SQL in production, no secrets in prompts (§15.4A). | accepted (2026-07-26; owner-stated, recorded as binding) |
 | AB-A20 | §12A introduces **three distinct rounding rules** (line net → öre; VAT → öre per category at document level; Skatteverket claim → truncated whole SEK). They get three named primitives and are never collapsed into one helper, so a call site cannot silently use the wrong one. | accepted (2026-07-26) |
+| AB-A21 | PWA/offline is a cross-cutting deferred capability rather than a manifest module. The manifest governs product modules, so the course correction changes no manifest entry and introduces no placeholder module. | accepted (2026-09-03; ADR-B009) |
 
 ## 22. Open Items for the Epics Stage
 
@@ -1181,13 +1263,13 @@ Every UX §14 item (U1–U14) and every PRD §15.2 architecture item (P1–P10) 
 4. **Oracle terminology pass (U14):** a `legacy-oracle-explorer` terminology task per epic with `[oracle-check]` labels, before that epic's first story — encode as a story-gate in the epics doc.
 5. **Wave-boundary checkpoints** own: coarse-FR expansion (PRD), B2/B3 schema finalization (§9.3–9.4), the time-report approval decision (§10.6/AB-A10), and any N-9-driven capacity-rule fixtures.
 6. **B2 Fortnox spike story** (during B2, not B3): produce the spike report answering §7's questions; it feeds ADR-B005-final and the N-5 owner conversation (AC-B2-6).
-7. **Owner-gate watchlist for sequencing:** ✅ **all closed 2026-07-26.** N-3 → ADR-B007 (§8A); N-4 → §3.2A/§3.3A; N-9 → §10.5A; N-6 → §4.6; N-2 → §15.4A; N-5 → §7.1/§7.3; N-8 → §9.4 template contract; N-10 → §12B; the tax blocks + `2.2` → §12A. What replaces the watchlist is a **sequencing debt**, not a gate: Story 10.6 (money correction) must precede any real ROT/grön-teknik document leaving the system, and Story 10.7 (PWA/offline) must precede or accompany the E14–E18 field stories that assume offline states.
+7. **Owner-decision watchlist for sequencing:** ✅ **all gates closed 2026-07-26; N-3 superseded 2026-09-03.** Current N-3 → ADR-B009 (§8B), with ADR-B007 (§8A) retained as history; N-4 → §3.2A/§3.3A; N-9 → §10.5A; N-6 → §4.6; N-2 → §15.4A; N-5 → §7.1/§7.3; N-8 → §9.4 template contract; N-10 → §12B; tax blocks + `2.2` → §12A. Story 10.6 remains a money-correction prerequisite. Story 10.7 is governance alignment only and is not a prerequisite for E14–E18.
 
 ## 23. Handoff Guidance
 
 Implementation proceeds through the Phase B epics doc (Epic 10+, wave-tagged) via the established per-epic pipeline. Before any Phase B implementation PR merges, confirm: the touched module is manifest-`active` (or the PR is its activation), matrix rows + per-role negatives land with activation, no background path exists outside ADR-B002, no public surface outside ADR-B004's closed set, no Fortnox artifact before ADR-B005-final, money is integer öre through `@/lib/money`, new tables are H4-enrolled with the exact-policy enumeration extended, and the Phase C ledger (PRD §14) stays untouched.
 
-Added by the 2026-07-26 decisions: E16–E18 schema follows **ADR-B006 §8.3** (typed container, no `projects` table); any offline-capable write is **operation-id idempotent and re-authorised on sync** (ADR-B007 §8A.4); any new money path uses the **§12A** rules (per-category document-level VAT, `DeductionClassification`, `VatType`, truncated claims) and never the frozen Phase A Rounding section; any table holding identifiable-person data carries the **§12B** retention fields; and no price, rate, cap, or retention period is hardcoded — they are time-versioned data (§12A.6, §12B, §15.4A).
+Current handoff after the 2026-09-03 course correction: E16–E18 schema follows **ADR-B006 §8.3** (typed container, no `projects` table); all E14–E18 field reads/writes require connectivity and follow **ADR-B009 §8B** (transient unsent-draft protection, explicit retry, server-confirmed success, no offline queue/replay); any new money path uses the **§12A** rules (per-category document-level VAT, `DeductionClassification`, `VatType`, truncated claims) and never the frozen Phase A Rounding section; any table holding identifiable-person data carries the **§12B** retention fields; and no price, rate, cap, or retention period is hardcoded — they are time-versioned data (§12A.6, §12B, §15.4A).
 
 ## 24. Reconciliation Ledger — 2026-07-26 Answers
 
@@ -1202,7 +1284,7 @@ What each answer changed in this document and its siblings. `owner-signoff-quest
 | **A.2 reverse charge** | New VAT **type**, never a 0 % rate; explicit choice required. | §12A.5, §7.3 |
 | **B/C rates, caps, schablon** | Mostly confirmations; new: ROT+RUT combined 75 000, claim truncation, payment-date tax year, `ValidFrom`/`ValidTo`. | §12A.6 |
 | **N-2 provisioning** | No self-serve ever; deterministic service with the agent as orchestrator only; subscription data never hardcoded. | §15.4A, AB-A19 |
-| **N-3 mobile** ⚠ | **Supersedes "responsive web first".** ADR-B007: installable PWA + offline capture. | §8A (new), §15.5, §17, §16.7, §18, §20, AB-A9 superseded |
+| **N-3 mobile** ⚠ | **Historical 2026-07-26 disposition:** superseded "responsive web first" with ADR-B007 installable PWA + offline capture. This row records what was decided then; ADR-B009 later supersedes it for active Phase B scope. | §8A historical; current change in §8B/§25 |
 | **N-4 RBAC** | Matrix seed filled — the "conservative default" placeholder is retired. Multi-role required, not reserved. **Epic 11 consumes this directly.** | §3.2, §3.2A, §3.3, §3.3A, AB-A2/AB-A3 revised |
 | **N-5 Fortnox** | Auth, scopes, mastership split, invoice-basis line content and status flow settled; spike narrowed. | §7.1, §7.3, §13 |
 | **N-6 email** | Sender identity, flow priority, reminder stop conditions, delivery-log fields. | §4.6, §4.5 |
@@ -1211,6 +1293,19 @@ What each answer changed in this document and its siblings. `owner-signoff-quest
 | **N-9 scheduling** | Capacity from the actual weekly schedule, not employment percentage; `tenant_calendar_days` is built, not reserved. | §10.1, §10.5A, §9.2 |
 | **N-10 GDPR** | Phase B technical foundation: retention fields, deletion-request states, `LegalHold`, central versioned policy. | §12B, §9.4 (E31 row) |
 
-⚠ = changes behaviour that is already shipped or already assumed. These three are owned by Stories 10.6 (money) and 10.7 (PWA/offline); they are the reason this reconciliation exists as work rather than as a note.
+⚠ = changed behaviour that was already shipped or assumed at the time of this 2026-07-26 reconciliation. Story 10.6 continues to own the money correction. The PWA/offline implementation Story 10.7 halted before implementation and was repurposed by the later owner decision; see §25.
+
+## 25. Course-Correction Ledger — 2026-09-03
+
+| Item | Superseded position | Current position | Consequence |
+| --- | --- | --- | --- |
+| Decision chain | N-3 answer (2026-07-26) + ADR-B007 required an installable PWA and genuine offline capture in Phase B | ADR-B009 requires connected responsive web at 360×640; ADR-B007 and the exact N-3 answer remain historical | Current planning and delivery follow §8B; historical records point forward rather than being rewritten |
+| Field data state | Durable local store, operation/attachment queue, replay and offline conflict states | Component state, suitable `sessionStorage` drafts, in-memory photos, explicit connection/failure/retry; success only after server confirmation | No Phase B device data-at-rest, replay, or offline authorization boundary |
+| E14–E18 | Consumed Story 10.7 platform capability and offline states | Retain all substantive scheduling/time/jobs/material/diary/deviation/photo/checklist/completion workflows as connected experiences | Story 10.7 dependency removed; 360×640 and transient-failure behavior remain acceptance concerns |
+| Story 10.7 | Blocked implementation story for PWA/offline platform capability | Documentation/governance alignment story; old spec/report/state remain traceable as halted/superseded | Completion must not claim functionality was implemented |
+| Scope manifest | No dedicated PWA/offline module existed | Unchanged; PWA/offline remains a cross-cutting Phase C package | No invented manifest entry or module activation |
+| Phase C | Other hard-exclusion ledger items; native mobile remains separately out of scope | Adds the complete PWA/installability/offline package and deferred questions listed in §8B.5 | No speculative implementation architecture selected in Phase B; native is not implied by this package |
+
+**Handoff:** PM/Architect own PRD, UX, architecture, epics, brief, and Phase C ledger alignment; PO/Developer own Story 10.7 disposition plus sprint/Auto-BMAD coherence. Product code, migrations, dependencies, lockfiles, environment files, commits, PRs, and deployments are outside this change.
 
 — End of Phase B architecture. Downstream: Phase B epics & stories (Epic 10+), then `project-context.md` refresh, per the ratified document plan (session §7).

@@ -79,6 +79,8 @@ Manuellt överenskomna priser, rabatter och specialvillkor ska kunna registreras
 
 ---
 
+> **Ersättningsnotering 2026-09-03:** N-3-svaret nedan bevaras ordagrant som historiskt beslutsunderlag. Ägaren har därefter beslutat att Fas B ska leverera en responsiv, mobilanvändbar webbapplikation som kräver anslutning. PWA-installation, service worker, beständig offlinelagring, offline-läsning/-skrivning, lokala köer samt synk/replay/konflikthantering har flyttats samlat till Fas C. ADR-B009 är nuvarande beslut och ersätter ADR-B007 för aktiv Fas B-scope; native-app är fortsatt utanför Fas B.
+
 ## N-3 — Mobilstrategi och offlinearbete
 
 Systemet ska byggas som en responsiv och installerbar **Progressive Web App, PWA**. En native-app ingår inte i nuvarande scope och ska inte planeras som en separat leveransfas.

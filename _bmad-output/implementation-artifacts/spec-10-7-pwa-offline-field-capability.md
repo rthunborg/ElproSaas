@@ -12,6 +12,8 @@ warnings: []
 deferred: []
 ---
 
+> **COURSE-CORRECTION DISPOSITION — 2026-09-03:** This file is the historical blocked implementation contract produced by the halted Auto-BMAD run. No product implementation started. The owner has superseded its Phase B PWA/offline premise through ADR-B009: Phase B field workflows are connected responsive web at 360×640, and the complete PWA/offline package is deferred to Phase C. This specification intentionally remains `status: blocked`; do not resume it or mark it implemented. The replacement Story 10.7 is `10-7-phase-b-connected-field-posture-and-phase-c-pwa-offline-deferral.md`, a documentation/governance alignment story. The original text below is preserved as evidence of the intent gap and the questions that Phase C must resolve.
+
 <intent-contract>
 
 ## Intent

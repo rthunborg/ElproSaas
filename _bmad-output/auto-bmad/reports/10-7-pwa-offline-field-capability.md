@@ -163,3 +163,62 @@
 1. Start a fresh `/auto-bmad --story 10-7-pwa-offline-field-capability` resume. The blocked artifacts are committed; the remaining Auto-BMAD fallback report/state will fold into the next clean-tree checkpoint.
 
 **Next:** Re-run `/auto-bmad --story 10-7-pwa-offline-field-capability`; Phase 3 will retry without repeating Phases 0-2 or any Story 10.6 review.
+
+## Report — 2026-09-03T12:35:18Z (halted - needs-human)
+
+**Story:** `10-7-pwa-offline-field-capability` (epic 10, story 7) — mid-epic.
+**Spec:** `C:\DEV\ElproSaas\_bmad-output\implementation-artifacts\spec-10-7-pwa-offline-field-capability.md`
+**Branch:** `story/10-7-pwa-offline-field-capability` (HEAD `158460b`).
+**Pipeline status:** Halted at Phase 3 (needs-human: build-auto blocked on intent gap).
+**Continues:** 2026-09-03T11:46:25Z (halted - needs-human)
+
+**Timing:** started 2026-09-03T10:12:49Z; completed in progress — elapsed 2h 22m (≈31m AI-run, ≈1h 50m human/idle wait); resumed 5×.
+
+**Phases run:** Phase 3 planning (build-delegate / standard / gpt-5.6-terra high; blocked)
+**Skipped:** Phases 4-9 (not reached because planning did not produce an implementable spec)
+
+**Overrides:** None for this invocation; explicit target was Story 10.7.
+
+**TEA:** Phase 0 triage reused: high risk; ATDD and automate remain selected but did not run.
+
+**Build:** Planning HALT: blocked - intent gap. Blocked spec written; implementation did not start; no build-auto commits.
+
+**Review:** Skipped - implementation was not reached; follow-up passes 0.
+
+**Retrospective:** (none - Story 10.7 is mid-epic)
+
+**Open questions:**
+1. Which first concrete offline write type and active manifest-owned data/command surface must Story 10.7 implement?
+2. What retention duration and photo/attachment size limit govern durable device storage?
+3. What offline signature/confirmation payload and legal criterion are permitted?
+4. Is Story 10.7 platform-only, with concrete field-operation evidence delivered by E14-E18, or is it authorized to introduce/activate the missing field surfaces now?
+5. The prior Story 10.6 artifact contains a directive not to treat its historical verification counts as current evidence.
+
+**Deferred work:** (none)
+
+**⚠️ Needs human:**
+1. Product owner must resolve the four scope and policy questions recorded in the blocked spec before implementation can begin.
+2. After resolving them, edit the spec frontmatter status to draft and rerun /auto-bmad --story 10-7-pwa-offline-field-capability.
+3. Optional project follow-up: AGENTS.md has no bmad:context block; run /bmad-project-context setup so implementers inherit repository conventions.
+
+**Next:** Resolve the intent gap; edit the spec frontmatter status to draft; then rerun /auto-bmad --story 10-7-pwa-offline-field-capability. Human review: /bmad-checkpoint-preview story/10-7-pwa-offline-field-capability (spec: C:\DEV\ElproSaas\_bmad-output\implementation-artifacts\spec-10-7-pwa-offline-field-capability.md).
+
+## Course-correction disposition record — 2026-09-03 (owner-approved; not an Auto-BMAD completion)
+
+**Decision:** The owner approved all four increments of `sprint-change-proposal-2026-09-03.md`. ADR-B009 now defines Phase B field delivery as connected responsive web at the 360×640 viewport floor. PWA installation/manifest, service-worker caching, durable offline device storage, offline reads/writes, local queues, synchronization/replay/offline-conflict states, and background/reconnect-driven offline synchronization are deferred as a complete Phase C package. Native mobile remains out of scope.
+
+**Historical run disposition:** This Auto-BMAD run remains a truthful planning halt: `blocked`, blocking condition `intent gap`, no implementation started, no review, no PWA/offline functionality delivered. The blocked spec remains `status: blocked` and has a forward disposition note; it must not be resumed under the superseded Phase B premise.
+
+**State preservation:** The exact 4,419-byte state file was moved unchanged from the active state root to `state/superseded/10-7-pwa-offline-field-capability.yaml` (SHA-256 `7D92A2923A5B1F157AF03D444513EC1D82709819186CF66833B31671C177424C`). The active-state scanner therefore does not treat this superseded run as resumable, while the original machine history remains available verbatim.
+
+**Replacement story:** Story number 10.7 is retained as `10-7-phase-b-connected-field-posture-and-phase-c-pwa-offline-deferral`, a documentation/governance alignment story. Its completion means the planning corpus, Phase C ledger, sprint bookkeeping, and decision history are coherent. It is not an implementation completion and is not a technical prerequisite for E14–E18.
+
+**Superseded next step:** Do not follow the earlier instruction to edit this spec back to draft or resume this Auto-BMAD state. Any future PWA/offline implementation requires Phase C scoping and decisions for concrete read/write surfaces, retention/purge, attachment constraints, signature/legal posture, authorization after access changes, replay/conflicts, platforms, security, and testing.
+
+## Course-correction verification — 2026-09-03
+
+The approved four-increment documentation/governance correction passed 106 final assertions and the required repository-wide term review. E14–E18 remain connected Phase B workflows; the complete PWA/offline package is in Phase C; ADR-B009 is current; and ADR-B007 plus the 2026-07-26 N-3 answer remain labelled historical evidence.
+
+The scope manifest and schema hashes are unchanged. Runtime scans found no PWA manifest, service-worker caching, offline store, operation queue, or superseded offline state taxonomy. The active Auto-BMAD scanner reports zero in-flight stories and does not select this obsolete key. Only the replacement documentation/governance Story 10.7 is complete; this report still records a blocked planning run with no PWA/offline implementation delivered.
+
+After verification, the owner separately authorized a local course-correction commit with “Proceed with that.” This subsequent authorization did not include a push, PR, merge, deployment, demo mutation, or other external action.

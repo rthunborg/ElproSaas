@@ -15,6 +15,8 @@
 > omvänd betalningsskyldighet) och **10.7** (PWA + offline).
 >
 > Detta blad behålls som historiskt underlag — ställ inte frågorna igen.
+>
+> **ERSATT 2026-09-03 (endast N-3):** Hänvisningen till Story 10.7 som PWA/offline-leverans beskriver beslutsläget 2026-07-26 och bevaras som historik. Ägaren har flyttat hela PWA/offline-paketet till Fas C. Fas B:s fältflöden är responsiva och mobilanvändbara vid 360×640 men kräver anslutning enligt ADR-B009; Story 10.7 är nu dokumentations-/governance-anpassning och ingen teknisk förutsättning för E14–E18.
 
 
 Fas B är igång. **Första epiken** (offertens livscykel — Förlorad/Avböjd-status,

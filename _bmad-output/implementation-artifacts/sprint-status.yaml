@@ -1,5 +1,5 @@
 # generated: 2026-06-12
-# last_updated: 2026-07-18  # Phase B sprint planning: epics 10-34 appended (next: Story 10-1)
+# last_updated: 2026-09-03  # ADR-B009 course correction verified; governance Story 10.7 done, no PWA/offline functionality delivered
 # project: ElproSaas
 # project_key: NOKEY
 # tracking_system: file-system
@@ -60,7 +60,7 @@
 # use the current Epic 10 statuses and approved corrective-story entries below.
 
 generated: 2026-06-12
-last_updated: 09-02-2026 20:08  # ADR-B008 follow-ups are implemented but remain in-progress pending fresh root-run verification and final convergence; 10.6 remains review.
+last_updated: 09-03-2026  # ADR-B009 connected-field course correction verified; governance Story 10.7 done, no PWA/offline functionality delivered.
 project: ElproSaas
 project_key: NOKEY
 tracking_system: file-system
@@ -164,13 +164,11 @@ development_status:
   #   B2→B3: author full B3 stories + PRD coarse-FR expansion + B3 schema
   #     finalization + E29/E30 adjacency + E32 bundle decisions.
   #
-  # OWNER-GATE WATCHLIST (epics doc, Open Items for Sprint Planning #3):
-  #   N-3 (field posture) before E14/E15 UX stories (14-4, 15-1, 15-6);
-  #   N-4 before the 11-2 entitlement seed is treated as confirmed (mechanism
-  #     proceeds ungated);
-  #   N-9 before conflict/capacity rule fixtures harden (14-3, 15-1);
-  #   N-6 before Story 13-4 is scheduled (story stays DARK until then);
-  #   ADR-B006 (owner 7.1/7.3) before ANY E16-E18 design/schema/story work.
+  # OWNER-DECISION STATUS (current 2026-09-03): all former gates are closed.
+  #   N-3 was answered 2026-07-26, then superseded by ADR-B009: Phase B field
+  #     workflows are connected responsive web at 360x640. The full PWA/offline
+  #     package is Phase C. Story 10.7 is governance only and does not block E14-E18.
+  #   ADR-B006 is recorded; E16-E18 are unblocked. N-4/N-6/N-9 are answered.
   # Oracle terminology task (legacy-oracle-explorer) runs before the first story
   # of every epic carrying [oracle-check] labels: E10, E13, E15-E18, E20-E25,
   # E27-E32 (Cross-Epic Rule 2). AC-PH-3 second-tenant proof: verification run
@@ -183,18 +181,11 @@ development_status:
   # committed, so no story rows exist for the picker until a checkpoint authors
   # them.
 
-  # WAVE B1a — full stories, build-ready. Epic 10 / Story 10-1 is NEXT.
-  # DELIVERED SCOPE IS SHIPPED: stories 10-1..10-4 are done and merged to main (PR #38), and the
-  # retrospective is done. Deliberately left `in-progress` rather than `done` because Stories
-  # 10.5–10.9 are still open — marking the epic done would be inaccurate.
-  # HOW TO RUN THE REMAINING FIVE: use PER-STORY mode, e.g.
-  #   /auto-bmad --story 10-6-tax-answer-reconciliation
-  # NOT `/auto-bmad epic --epic 10`. The epic anchor
-  # (_bmad-output/auto-bmad/state/epic/epic-10.yaml) is already `status: done`, and the epic
-  # pipeline's E1 `init` REFUSES to overwrite an existing anchor — so an epic-mode rerun cannot
-  # start. Per-story mode needs no anchor, and the epic-ownership guard only blocks when an
-  # IN-FLIGHT anchor owns the story, which this one is not.
-  epic-10: in-progress
+  # WAVE B1a — full stories. The original 10-7 PWA/offline Auto-BMAD run halted
+  # `blocked` on an intent gap before implementation. Its spec/report/state remain
+  # historical evidence. The replacement 10-7 key below tracks only the approved
+  # documentation/governance alignment and must not be read as functionality delivered.
+  epic-10: done
   10-1-phase-b-governance-re-baseline-and-scope-manifest: done
   10-2-forlorad-avbojd-status-and-lost-reason-lifecycle: done
   10-3-quote-follow-up-workflow: done
@@ -205,12 +196,10 @@ development_status:
   # rather than bolted onto an already thrice-revised PR. All own-tenant integrity/scale — none is
   # cross-tenant. Deliberately NOT gating the Epic 10 PR; schedule after Epic 11 or as capacity allows.
   10-5-quote-table-db-hardening-and-read-model-pagination: done
-  # Added 2026-07-26 from the owner + accountant answers. 10.6 changes SHIPPED money behaviour
-  # (VAT rounding scope, hidden-row deduction eligibility, reverse charge) and 10.7 supersedes the
-  # "responsive web first" assumption with a PWA + offline requirement. Both are real scope, not
-  # register entries — schedule 10.6 BEFORE any real ROT/gron quote leaves the system.
+  # 10.6 changes shipped money behavior. The 2026-07-26 10.7 PWA/offline decision
+  # is historical and superseded by ADR-B009 (2026-09-03); PWA/offline moves to Phase C.
   10-6-tax-answer-reconciliation: done
-  10-7-pwa-offline-field-capability: backlog
+  10-7-phase-b-connected-field-posture-and-phase-c-pwa-offline-deferral: done
   # Approved corrective follow-ups from the 2026-08-31 Story 10.6 review. Stories 10.8/10.9
   # implement ADR-B008 provenance/authority/audit, HMAC PDF-byte attestation, and
   # PDF-validity/attachment carry-forward. Final local verification and hosted verify/db/Playwright
@@ -251,9 +240,8 @@ development_status:
 
   # WAVE B1b — story titles + AC sketches (EB-A11: keys provisional until
   # finalized at the checkpoint / gate close).
-  # E14 gates: [N-3] before the editor/phone UX story 14-4; [N-9] before the
-  # conflict/capacity rule fixtures harden in 14-3 (engine ships injectable
-  # strawman config until gate close).
+  # E14: N-3 is resolved by ADR-B009 (connected 360x640 field UX; no Story 10.7
+  # technical prerequisite). N-9 is answered; conflict/capacity fixtures can harden.
   epic-14: backlog
   14-1-scheduling-activation-person-profiles-and-work-hours: backlog
   14-2-bookings-and-assignees-schema-and-transactional-commands: backlog
@@ -261,9 +249,9 @@ development_status:
   14-4-booking-editor-with-live-conflict-warnings-and-audited-override: backlog
   epic-14-retrospective: optional
 
-  # E15 gates: 15-5 is public token surface #1 — ships only with the ADR-B004
-  # abuse suite green (AC-B1b-7); [N-3] before 15-1/15-6 phone-shape work;
-  # [N-9] capacity-view rules in 15-1.
+  # E15: 15-5 is public token surface #1 — ships only with the ADR-B004 abuse
+  # suite green (AC-B1b-7). Phone-shape work follows ADR-B009 and requires
+  # connectivity; N-9 capacity-view rules are answered.
   epic-15: backlog
   15-1-the-five-scheduling-views: backlog
   15-2-recurring-bookings-series-materialized-occurrences-exceptions: backlog
@@ -273,12 +261,9 @@ development_status:
   15-6-min-dag-the-field-landing: backlog
   epic-15-retrospective: optional
 
-  # ======= GATE BANNER (E16-E18) [gated: owner 7.1/7.3 → ADR-B006] =======
-  # Per AC-B1b-6, NO design, schema, or story work on epics 16-18 may start
-  # before ADR-B006 is recorded. Entries below are model-agnostic sketch
-  # placeholders, finalized (and possibly re-cut, e.g. Option B variants) at
-  # gate close. Do NOT run create-story/auto-bmad against epics 16-18 while
-  # the gate is open; plan B1b around E14/E15/E19 until then.
+  # ======= E16-E18 GATE CLOSED =======
+  # ADR-B006 is recorded. E16-E18 remain Phase B and may be finalized/built as
+  # connected workflows under ADR-B009, with no PWA/offline or Story 10.7 dependency.
   epic-16: backlog
   16-1-jobs-depth-activation-container-evolution-and-my-jobs: backlog
   16-2-job-members-and-per-job-roles-arbetsledare: backlog
@@ -287,8 +272,7 @@ development_status:
   16-5-job-workspace-shell: backlog
   epic-16-retrospective: optional
 
-  # E17 inherits the E16 ADR-B006 gate banner (economy separation is
-  # model-independent; 17-2 payment-plan attachment is itself [gated: 7.1/7.3]).
+  # E17 proceeds under recorded ADR-B006; connected material reporting follows ADR-B009.
   epic-17: backlog
   17-1-material-usage-and-material-requests: backlog
   17-2-payment-plan-on-projekt-scope: backlog
@@ -296,8 +280,7 @@ development_status:
   17-4-jobs-money-golden-coverage-and-billing-seam: backlog
   epic-17-retrospective: optional
 
-  # E18 inherits the E16 ADR-B006 gate banner (field-capture UX and the
-  # completion-event contract are model-independent).
+  # E18 remains connected Phase B field depth + completion under ADR-B009.
   epic-18: backlog
   18-1-diary-and-photos-field-capture-core: backlog
   18-2-deviations-risks-and-job-chat: backlog
