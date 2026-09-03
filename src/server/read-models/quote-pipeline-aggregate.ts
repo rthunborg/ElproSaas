@@ -42,6 +42,7 @@
  */
 import { classifyFollowUp, calendarDayIn } from "@/features/quotes/follow-up-dates";
 import { isLatestDecidedStatus } from "@/features/quotes/terminal-status";
+import { sumOre } from "@/lib/money";
 
 /** The Europe/Stockholm zone — the ONE tz the whole pipeline period + overdue boundary reasons on. */
 const STOCKHOLM_TZ = "Europe/Stockholm";
@@ -160,10 +161,13 @@ export function aggregateQuotePipeline(
   for (const v of input.acceptedVersions) {
     priceByVersion.set(v.quote_version_id, v.accepted_price_ore);
   }
-  let acceptedValueOre = 0;
-  for (const versionId of acceptedVersions) {
-    acceptedValueOre += priceByVersion.get(versionId) ?? 0;
-  }
+  const acceptedValue = sumOre(
+    [...acceptedVersions].map((versionId) => priceByVersion.get(versionId) ?? 0),
+  );
+  // A report must never round an unsafe bigint/number aggregate. The DB read-model catches this
+  // fixed failure and returns its ordinary generic empty descriptor, without exposing a money value.
+  if (!acceptedValue.ok) throw new Error("Quote pipeline accepted-value aggregate overflow or unsafe input");
+  const acceptedValueOre = acceptedValue.value;
 
   // ── Follow-up counts: open only, AND the follow-up's quote is NOT already decided (its latest
   // version is not a terminal status: accepted/lost/rejected/expired) — a decided quote's stale open

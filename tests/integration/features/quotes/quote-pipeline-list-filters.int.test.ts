@@ -234,4 +234,20 @@ describe("10.4-INT-02: list-filter consistency over a mixed lifecycle fixture", 
     expect(rowIds.has(aSeed.lostQuoteId)).toBe(true);
     expect(rowIds.has(aSeed.fuQuoteId)).toBe(true);
   });
+
+  it("multi-page: every current quote and latest status survives a page boundary", async (ctx) => {
+    if (skipUnlessStack(ctx, stackUp)) return;
+    const tenantId = fixture.tenantA.id;
+    const customerId = await adminInsertCustomer({ tenant_id: tenantId, customer_type: "company", display_name: `list-page-${crypto.randomUUID()}` });
+    const calculationId = await adminInsertCalculation({ tenant_id: tenantId, customer_id: customerId });
+    const quoteIds: string[] = [];
+    for (let index = 0; index < 501; index += 1) { // one more than RLS_PAGE_SIZE
+      const quoteId = await adminInsertQuote({ tenant_id: tenantId, customer_id: customerId });
+      await adminInsertQuoteVersion({ tenant_id: tenantId, quote_id: quoteId, calculation_id: calculationId, status: "sent" });
+      quoteIds.push(quoteId);
+    }
+    const rows = await readQuoteListAs(a);
+    const byId = new Map(rows.map((row) => [row.id, row]));
+    expect(quoteIds.every((id) => byId.get(id)?.latest_status === "sent")).toBe(true);
+  }, 60_000);
 });

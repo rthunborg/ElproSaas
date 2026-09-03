@@ -51,6 +51,8 @@ import {
   adminSelectQuoteAcceptanceRow,
   adminSelectAcceptancesForVersion,
   adminSelectJobsForAcceptance,
+  adminSelectFollowUps,
+  adminSelectQuoteVersionRow,
   type TwoTenantFixture,
   type TestServerClient,
 } from "../../factories/tenants";
@@ -128,6 +130,37 @@ afterAll(async () => {
 });
 
 describe("captureQuoteAcceptance — sent-state gate (AC3)", () => {
+  it("[P0] 10.5: acceptance atomically closes an anchored open follow-up before terminalizing the sent version", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
+    const { quoteId, versionId } = await seedVersion(fixture.tenantA.id, "sent");
+    const dueDate = new Date(Date.now() + 48 * 60 * 60 * 1_000).toISOString().slice(0, 10);
+    const planned = await a.from("quote_follow_ups").insert({
+      tenant_id: fixture.tenantA.id,
+      quote_id: quoteId,
+      quote_version_id: versionId,
+      due_date: dueDate,
+      status: "open",
+    }).select("id");
+    expect(planned.error).toBeNull();
+
+    const res = await runCommand(captureQuoteAcceptance, {
+      client: a as never,
+      input: {
+        quote_version_id: versionId,
+        accepted_price_ore: SOURCE_SENT_TOTAL_ORE,
+        accepted_at: ACCEPTED_ISO,
+      },
+      clock: fixedClock,
+      correlationId: crypto.randomUUID(),
+    });
+    expect(res.ok).toBe(true);
+    expect((await adminSelectQuoteVersionRow(versionId))?.status).toBe("accepted");
+    expect((await adminSelectFollowUps(quoteId))[0]).toMatchObject({
+      status: "completed",
+      outcome: "accepted",
+    });
+  });
+
   for (const state of NON_SENT_STATES) {
     it(`[P0] 7.1-INT-02: a '${state}' (non-sent) version is rejected with a user-safe lifecycle error that does NOT leak the exact status`, async (testCtx) => {
       if (skipUnlessStack(testCtx, stackUp)) return;

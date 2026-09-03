@@ -59,6 +59,7 @@ import {
   LOST_ACTION_INITIAL,
   type LostActionState,
 } from "./lost-action-state";
+import { followUpIdForLossAttempt } from "./lost-follow-up-retry";
 import {
   FOLLOW_UP_ACTION_INITIAL,
   type FollowUpActionState,
@@ -385,9 +386,8 @@ export async function markQuoteVersionLostAction(
   // planning a replacement — a user-visible dead-end. Refusing here costs nothing (nothing has
   // committed) and the user can simply retry. The standalone lost dialog carries no follow_up_id and
   // is unaffected.
-  const wantsAutoComplete =
-    typeof form.get("follow_up_id") === "string" &&
-    String(form.get("follow_up_id")).length > 0;
+  const carriedFollowUpId = followUpIdForLossAttempt(form.get("follow_up_id"), false);
+  const wantsAutoComplete = carriedFollowUpId !== null;
   if (wantsAutoComplete && !preResolvedQuoteId) {
     return {
       ...LOST_ACTION_INITIAL,
@@ -397,55 +397,37 @@ export async function markQuoteVersionLostAction(
     };
   }
 
+  // Story 10.5's terminal guard makes this intentionally non-atomic orchestration complete first:
+  // a terminal transition may never commit over an open follow-up. The anchor was resolved before
+  // either mutation, so a forged follow-up id remains scoped to its actual quote and fails safely.
+  if (wantsAutoComplete) {
+    const followUpId = carriedFollowUpId;
+    const outcome = form.get("outcome");
+    if (
+      followUpId === null ||
+      typeof outcome !== "string" ||
+      outcome.length === 0 ||
+      !preResolvedQuoteId
+    ) {
+      return { ...LOST_ACTION_INITIAL, status: "error", code: "VALIDATION_FAILED", formError: COMMAND_MESSAGES.VALIDATION_FAILED };
+    }
+    const completeResult = await runCommand(completeQuoteFollowUp, {
+      client,
+      input: { follow_up_id: followUpId, outcome, expected_quote_id: preResolvedQuoteId },
+    });
+    if (!completeResult.ok) {
+      return {
+        ...LOST_ACTION_INITIAL,
+        status: "error",
+        code: completeResult.code,
+        formError: completeResult.message || COMMAND_MESSAGES[completeResult.code],
+      };
+    }
+  }
+
   const result = await runCommand(markQuoteVersionLost, { client, input });
 
   if (result.ok) {
-    // Story 10.3 — the auto-complete-on-lost seam (Task 5.5, SETTLED DESIGN DECISION 5). When the
-    // lost path is taken FROM the follow-up surface, the dialog carries a hidden `follow_up_id`. On a
-    // successful lost flip (the irreversible commitment, done FIRST), auto-complete the open follow-up
-    // with the chosen förlorad/avböjd outcome — so no open follow-up survives a lost flip taken from
-    // this surface. TWO-command orchestration (NOT a widened RPC — the frozen mark_quote_version_lost
-    // RPC is untouched). Non-atomicity residual: a rare transient failure of the completion AFTER a
-    // successful lost flip leaves an OPEN follow-up row on the now-lost quote. This is NON-CORRUPTING but
-    // NOT self-healing via the UI — once the version leaves `sent` the follow-up sheet UNMOUNTS, so the
-    // user CANNOT Klarmarkera it manually (the earlier "the sheet stays available" claim was false). The
-    // stranded row is harmless because the 10.4 read paths now EXCLUDE follow-ups on decided (accepted/
-    // lost) quotes from the /quotes list flags AND the pipeline open/overdue counts — so it never
-    // escalates. We still capture + log the completion Result on failure so the orphan has telemetry (no
-    // silent swallow). The standalone (non-follow-up) lost dialog omits the field, so 10.2's behavior is
-    // byte-unchanged when no follow-up id is carried.
-    const followUpId = form.get("follow_up_id");
-    const outcome = form.get("outcome");
-    // F5 (integration review): derive the just-lost version's REAL quote id from the DB (NEVER the
-    // form's `quote_id`, which is untrusted) and scope the auto-completion to it. A crafted/stale form
-    // carrying the `follow_up_id` of ANOTHER own-tenant quote then completes zero rows instead of
-    // silently completing the wrong quote's follow-up with the lost outcome. If the quote id cannot be
-    // derived, we skip the auto-complete — the orphan open row is harmless (the 10.4 read paths
-    // already exclude follow-ups on decided quotes). Uses the PRE-resolved id (read before the
-    // mutation), so no fallible read runs after the transition has committed.
-    const expectedQuoteId = preResolvedQuoteId;
-    if (
-      typeof followUpId === "string" &&
-      followUpId.length > 0 &&
-      typeof outcome === "string" &&
-      outcome.length > 0 &&
-      typeof expectedQuoteId === "string" &&
-      expectedQuoteId.length > 0
-    ) {
-      const completeResult = await runCommand(completeQuoteFollowUp, {
-        client,
-        input: { follow_up_id: followUpId, outcome, expected_quote_id: expectedQuoteId },
-      });
-      if (!completeResult.ok) {
-        // Surface the stranded-open-follow-up residual: the lost flip already committed, so the flip
-        // still succeeds, but the auto-complete failed and left an orphaned open row (excluded from the
-        // 10.4 read paths, so non-escalating). Log for telemetry — never swallow silently.
-        console.error(
-          "markQuoteVersionLostAction: auto-complete-on-lost failed after a successful lost flip",
-          { followUpId, code: completeResult.code },
-        );
-      }
-    }
     if (typeof quoteId === "string" && quoteId.length > 0) {
       revalidatePath(`/quotes/${quoteId}`);
       // Revalidate the version subroute too so the lost version re-renders the terminal state there.
@@ -460,11 +442,22 @@ export async function markQuoteVersionLostAction(
     };
   }
 
+  // Completion is necessarily first under the Story 10.5 terminal DB guard. If the later loss
+  // rejects (for example a competing terminal transition), refresh both routes immediately and
+  // carry a retry marker: the client omits its now-stale hidden follow-up id on the next submit,
+  // so the user can retry the still-sent loss transition rather than being blocked by "completed".
+  if (wantsAutoComplete && typeof quoteId === "string" && quoteId.length > 0) {
+    revalidatePath(`/quotes/${quoteId}`);
+    if (typeof quoteVersionId === "string" && quoteVersionId.length > 0) {
+      revalidatePath(`/quotes/${quoteId}/versions/${quoteVersionId}`);
+    }
+  }
   return {
     ...LOST_ACTION_INITIAL,
     status: "error",
     code: result.code,
     formError: result.message || COMMAND_MESSAGES[result.code],
+    followUpCompleted: wantsAutoComplete,
   };
 }
 

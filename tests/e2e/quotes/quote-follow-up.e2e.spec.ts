@@ -25,6 +25,11 @@ interface QuoteFixture {
   readonly adminA: { readonly email: string; readonly password: string };
   /** A sent quote with NO follow-up — the plan flow. */
   readonly followUpQuote?: { readonly id: string; readonly sentVersionId: string };
+  /** One untouched no-follow-up sent quote per Playwright attempt for the plan mutation. */
+  readonly followUpQuoteAttempts?: ReadonlyArray<{
+    readonly id: string;
+    readonly sentVersionId: string;
+  }>;
   /** A sent quote with an OVERDUE open follow-up — the overdue chip + the list badge. */
   readonly overdueFollowUpQuote?: {
     readonly id: string;
@@ -37,6 +42,11 @@ interface QuoteFixture {
     readonly sentVersionId: string;
     readonly followUpId: string;
   };
+  /** One untouched open-follow-up sent quote per Playwright attempt for completion. */
+  readonly completeFollowUpQuoteAttempts?: ReadonlyArray<{
+    readonly id: string;
+    readonly sentVersionId: string;
+  }>;
 }
 
 // Guarded read — an absent fixture (before global-setup seeds the follow-up quotes) must not throw at
@@ -71,10 +81,12 @@ async function signIn(page: Page, email: string, password: string): Promise<void
 test.describe("Quote follow-up dialog + chip + completion sheet (Story 10.3 E2E)", () => {
   test("10.3-E2E-01: Planera uppföljning takes a due date + note and renders the next-follow-up chip", async ({
     page,
-  }) => {
+  }, testInfo) => {
+    const quote = fixture.followUpQuoteAttempts?.[testInfo.retry];
+    expect(quote, "global setup must seed one no-follow-up quote per Playwright attempt").toBeTruthy();
     await signIn(page, fixture.adminA.email, fixture.adminA.password);
     await page.goto(
-      `/quotes/${fixture.followUpQuote!.id}/versions/${fixture.followUpQuote!.sentVersionId}`,
+      `/quotes/${quote!.id}/versions/${quote!.sentVersionId}`,
     );
 
     const planBtn = page.getByRole("button", { name: /Planera uppföljning/i });
@@ -116,10 +128,12 @@ test.describe("Quote follow-up dialog + chip + completion sheet (Story 10.3 E2E)
 
   test("10.3-E2E-01: Klarmarkera records an outcome and the sheet offers planera nästa + the decide-here jumps", async ({
     page,
-  }) => {
+  }, testInfo) => {
+    const quote = fixture.completeFollowUpQuoteAttempts?.[testInfo.retry];
+    expect(quote, "global setup must seed one open follow-up quote per Playwright attempt").toBeTruthy();
     await signIn(page, fixture.adminA.email, fixture.adminA.password);
     await page.goto(
-      `/quotes/${fixture.completeFollowUpQuote!.id}/versions/${fixture.completeFollowUpQuote!.sentVersionId}`,
+      `/quotes/${quote!.id}/versions/${quote!.sentVersionId}`,
     );
 
     const klarBtn = page.getByRole("button", { name: /Klarmarkera/i });

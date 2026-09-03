@@ -35,6 +35,7 @@ import { isAccessEligibleLifecycle } from "@/server/storage/lifecycle";
 import type { QuoteVersionStatus } from "./timeline";
 import { LATEST_DECIDED_STATUSES } from "./terminal-status";
 import { classifyFollowUp } from "./follow-up-dates";
+import { chunkValues, readAllPages } from "@/server/read-models/pagination";
 
 const GENERIC_READ_ERROR =
   "Ett tillfälligt fel inträffade. Försök igen om en stund.";
@@ -112,6 +113,28 @@ export interface QuoteListReadDeps {
   readonly client?: QuoteReadServerClient;
 }
 
+/** Test-only RLS-client seam for the detail projection; production resolves the request client. */
+export interface QuoteDetailReadDeps {
+  readonly client?: QuoteReadServerClient;
+  readonly now?: Date;
+}
+
+async function readAllIdBatches<T>(
+  ids: readonly string[],
+  readPage: (ids: readonly string[], from: number, to: number) => PromiseLike<{
+    data: T[] | null;
+    error: unknown | null;
+  }>,
+): Promise<{ data: T[]; error: unknown | null }> {
+  const rows: T[] = [];
+  for (const idBatch of chunkValues(ids)) {
+    const result = await readAllPages((from, to) => readPage(idBatch, from, to));
+    if (result.error) return { data: [], error: result.error };
+    rows.push(...result.data);
+  }
+  return { data: rows, error: null };
+}
+
 /**
  * Read the ACTIVE quote list (`archived_at is null`), ordered by `updated_at` desc. RLS scopes
  * to the caller's tenant. The customer display_name is joined via the embedded
@@ -125,80 +148,128 @@ export async function readQuoteList(
 ): Promise<QuoteListReadResult> {
   try {
     const client = deps.client ?? (await createSupabaseServerClient());
-    // Read the quotes + their versions (incl. the version id so a lost version's joined reason can
-    // be matched below), plus the tenant's lost reasons (RLS-scoped; own-tenant only) mapped by
-    // version id — mirroring the readQuoteDetail jobs/acceptances secondary-read pattern.
+    // Read quote roots first, then all related rows in bounded RLS pages. PostgREST caps each
+    // response, including embedded relationships, so an apparently unbounded joined list silently
+    // loses lifecycle facts after max_rows. Secondary queries over selected ids are complete.
     // The injected render instant for the Europe/Stockholm due/overdue classification (captured ONCE
     // here — never `Date.now()` on the pure classification path). Story 10.4 reuses this discipline.
     const nowInstant = new Date();
-    const [quotesRes, lostRes, followUpsRes] = await Promise.all([
+    const quotesRes = await readAllPages((from, to) =>
       client
         .from("quotes")
-        .select(
-          "id, updated_at, customers(display_name), quote_versions(id, version_number, status, quote_number)",
-        )
+        .select("id, updated_at, customers(display_name)")
         .is("archived_at", null)
-        .order("updated_at", { ascending: false }),
-      client
-        .from("quote_lost_reasons")
-        .select("quote_version_id, outcome, category"),
-      // Story 10.3 (AC2): the tenant's OPEN follow-ups (RLS-scoped; own-tenant only), mapped by
-      // quote_id. At most one open per quote (the one-open partial unique index). This is the
-      // UI-level surfacing of the open/overdue flags — the read-model/aggregation is Story 10.4.
-      client
-        .from("quote_follow_ups")
-        .select("quote_id, due_date, status")
-        .eq("status", "open"),
-    ]);
+        .order("updated_at", { ascending: false })
+        .order("id", { ascending: false })
+        .range(from, to),
+    );
     if (quotesRes.error) return { rows: [], error: GENERIC_READ_ERROR };
+    const quoteRows = (quotesRes.data ?? []) as Record<string, unknown>[];
+    const quoteIds = quoteRows
+      .map((raw) => raw.id)
+      .filter((id): id is string => typeof id === "string");
+
+    const versions: Record<string, unknown>[] = [];
+    const openFollowUps: Record<string, unknown>[] = [];
+    for (const ids of chunkValues(quoteIds)) {
+      const [versionsRes, followUpsRes] = await Promise.all([
+        readAllPages((from, to) =>
+          client
+            .from("quote_versions")
+            .select("id, quote_id, version_number, status, quote_number")
+            .in("quote_id", ids)
+            .is("archived_at", null)
+            .order("quote_id", { ascending: true })
+            .order("version_number", { ascending: true })
+            .order("id", { ascending: true })
+            .range(from, to),
+        ),
+        readAllPages((from, to) =>
+          client
+            .from("quote_follow_ups")
+            .select("quote_id, due_date, status")
+            .in("quote_id", ids)
+            .eq("status", "open")
+            .order("quote_id", { ascending: true })
+            .order("due_date", { ascending: true })
+            .order("id", { ascending: true })
+            .range(from, to),
+        ),
+      ]);
+      if (versionsRes.error) return { rows: [], error: GENERIC_READ_ERROR };
+      versions.push(...(versionsRes.data as Record<string, unknown>[]));
+      // Follow-up flags remain a convenience surface: retain their established non-fatal degradation.
+      if (!followUpsRes.error) openFollowUps.push(...(followUpsRes.data as Record<string, unknown>[]));
+    }
+    const versionIds = versions
+      .map((raw) => raw.id)
+      .filter((id): id is string => typeof id === "string");
+    const lostReasons: Record<string, unknown>[] = [];
+    for (const ids of chunkValues(versionIds)) {
+      const lostRes = await readAllPages((from, to) =>
+        client
+          .from("quote_lost_reasons")
+        .select("quote_version_id, outcome, category")
+        .in("quote_version_id", ids)
+        .order("quote_version_id", { ascending: true })
+        .order("id", { ascending: true })
+          .range(from, to),
+      );
+      if (!lostRes.error) lostReasons.push(...(lostRes.data as Record<string, unknown>[]));
+    }
     // An open-follow-up read fault is NON-FATAL to the list (the flags degrade to false — no badge).
     const openFollowUpByQuoteId: Record<string, { due_date: string }> = {};
-    if (!followUpsRes.error) {
-      for (const raw of (followUpsRes.data ?? []) as Record<string, unknown>[]) {
-        const qId = raw.quote_id;
-        const dueDate = raw.due_date;
-        if (typeof qId === "string" && typeof dueDate === "string") {
-          openFollowUpByQuoteId[qId] = { due_date: dueDate };
-        }
+    for (const raw of openFollowUps) {
+      const qId = raw.quote_id;
+      const dueDate = raw.due_date;
+      if (typeof qId === "string" && typeof dueDate === "string") {
+        openFollowUpByQuoteId[qId] = { due_date: dueDate };
       }
     }
     // A lost-reason read fault is NON-FATAL to the list (the Förlustorsak column degrades to "—").
     const lostByVersionId: Record<string, { outcome: string; category: string }> = {};
-    if (!lostRes.error) {
-      for (const raw of (lostRes.data ?? []) as Record<string, unknown>[]) {
-        const vId = raw.quote_version_id;
-        if (typeof vId === "string") {
-          lostByVersionId[vId] = {
-            outcome: String(raw.outcome ?? ""),
-            category: String(raw.category ?? ""),
-          };
-        }
+    for (const raw of lostReasons) {
+      const vId = raw.quote_version_id;
+      if (typeof vId === "string") {
+        lostByVersionId[vId] = {
+          outcome: String(raw.outcome ?? ""),
+          category: String(raw.category ?? ""),
+        };
       }
     }
-    const rows: QuoteListRow[] = (quotesRes.data ?? []).map((r) => {
-      const rec = r as unknown as {
+    const versionsByQuoteId = new Map<string, {
+      id: string;
+      version_number: number | string;
+      status: QuoteVersionStatus;
+      quote_number: number | string | null;
+    }[]>();
+    for (const raw of versions) {
+      if (typeof raw.quote_id !== "string" || typeof raw.id !== "string") continue;
+      const group = versionsByQuoteId.get(raw.quote_id) ?? [];
+      group.push({
+        id: raw.id,
+        version_number: raw.version_number as number | string,
+        status: raw.status as QuoteVersionStatus,
+        quote_number: (raw.quote_number as number | string | null) ?? null,
+      });
+      versionsByQuoteId.set(raw.quote_id, group);
+    }
+    const rows: QuoteListRow[] = quoteRows.map((r) => {
+      const rec = r as {
         id: string;
         updated_at: string;
         customers:
           | { display_name: string | null }
           | { display_name: string | null }[]
           | null;
-        quote_versions:
-          | {
-              id: string;
-              version_number: number | string;
-              status: QuoteVersionStatus;
-              quote_number: number | string | null;
-            }[]
-          | null;
       };
       const customer = Array.isArray(rec.customers)
         ? rec.customers[0]
         : rec.customers;
-      const versions = rec.quote_versions ?? [];
+      const quoteVersions = versionsByQuoteId.get(rec.id) ?? [];
       // The LATEST version = the highest version_number (never a live recompute).
-      let latest: (typeof versions)[number] | null = null;
-      for (const v of versions) {
+      let latest: (typeof quoteVersions)[number] | null = null;
+      for (const v of quoteVersions) {
         if (latest === null || Number(v.version_number) > Number(latest.version_number)) {
           latest = v;
         }
@@ -227,7 +298,7 @@ export async function readQuoteList(
         customer_display_name: customer?.display_name ?? null,
         latest_status: latest?.status ?? null,
         latest_quote_number: latest ? num(latest.quote_number) : null,
-        version_count: versions.length,
+        version_count: quoteVersions.length,
         lost_reason: lostReason,
         has_open_follow_up: hasOpenFollowUp,
         overdue_follow_up: overdueFollowUp,
@@ -565,9 +636,10 @@ function toLineRow(raw: Record<string, unknown>): QuoteVersionLineRow {
 export async function readQuoteDetail(
   quoteId: string,
   selectedVersionId?: string,
+  deps: QuoteDetailReadDeps = {},
 ): Promise<QuoteDetailReadResult> {
   try {
-    const client = await createSupabaseServerClient();
+    const client = deps.client ?? (await createSupabaseServerClient());
 
     // ── The quote header (own-tenant RLS; customer display via the embedded relationship). ──
     const { data: quoteRows, error: quoteError } = await client
@@ -591,12 +663,16 @@ export async function readQuoteDetail(
     }
 
     // ── ALL versions for the quote (the timeline; ordered by version_number asc). ──
-    const { data: versionData, error: versionError } = await client
-      .from("quote_versions")
-      .select(VERSION_COLUMNS)
-      .eq("quote_id", quoteId)
-      .is("archived_at", null)
-      .order("version_number", { ascending: true });
+    const { data: versionData, error: versionError } = await readAllPages((from, to) =>
+      client
+        .from("quote_versions")
+        .select(VERSION_COLUMNS)
+        .eq("quote_id", quoteId)
+        .is("archived_at", null)
+        .order("version_number", { ascending: true })
+        .order("id", { ascending: true })
+        .range(from, to),
+    );
     if (versionError) return { detail: null, error: GENERIC_READ_ERROR };
     const versions = ((versionData ?? []) as Record<string, unknown>[]).map(
       toVersionRow,
@@ -625,6 +701,7 @@ export async function readQuoteDetail(
     // snapshot-verbatim (never recomputed). Facility/contact for the header context come from
     // the LATEST version's frozen display.
     const latest = versions[versions.length - 1];
+    const versionIdSet = new Set(versions.map((v) => v.id));
 
     // ── The selected version's frozen children + the quote events (parallel, own-tenant RLS). ──
     // Plus (Story 7.3, AC5 seam) the jobs created off this quote's versions — the deep-link target.
@@ -638,35 +715,49 @@ export async function readQuoteDetail(
       followUpsRes,
       carryForwardEligibilityRes,
     ] = await Promise.all([
-      client
+      readAllPages((from, to) => client
         .from("quote_version_lines")
         .select(LINE_COLUMNS)
         .eq("quote_version_id", selectedId)
-        .order("sort_order", { ascending: true }),
-      client
+        .order("sort_order", { ascending: true })
+        .order("id", { ascending: true })
+        .range(from, to)),
+      readAllPages((from, to) => client
         .from("quote_version_attachments")
         .select(ATTACHMENT_COLUMNS)
         .eq("quote_version_id", selectedId)
-        .order("sort_order", { ascending: true }),
-      client
+        .order("sort_order", { ascending: true })
+        .order("id", { ascending: true })
+        .range(from, to)),
+      readAllPages((from, to) => client
         .from("quote_events")
         .select(EVENT_COLUMNS)
         .eq("quote_id", quoteId)
-        .order("occurred_at", { ascending: true }),
+        .order("occurred_at", { ascending: true })
+        .order("id", { ascending: true })
+        .range(from, to)),
       // The job(s) created off any version of THIS quote (RLS-scoped; own-tenant only). `jobs` has
       // NO quote_id column (it links via quote_version_id + quote_acceptance_id), so read the
       // tenant's active jobs and filter to THIS quote's version ids in memory. One job per accepted
       // version — the 7.2 transaction's `unique (quote_acceptance_id)` guarantees exactly one.
-      client
+      readAllIdBatches([...versionIdSet], (ids, from, to) => client
         .from("jobs")
         .select("id, quote_version_id")
-        .is("archived_at", null),
+        .in("quote_version_id", ids)
+        .is("archived_at", null)
+        .order("quote_version_id", { ascending: true })
+        .order("id", { ascending: true })
+        .range(from, to)),
       // The acceptance(s) recorded off any version of THIS quote (RLS-scoped; own-tenant only).
       // Story 8.2 (AC5): the acceptance-evidence file panel needs the acceptance id per accepted
       // version. `unique (quote_version_id)` guarantees at most one acceptance per version.
-      client
+      readAllIdBatches([...versionIdSet], (ids, from, to) => client
         .from("quote_acceptances")
-        .select("id, quote_version_id"),
+        .select("id, quote_version_id")
+        .in("quote_version_id", ids)
+        .order("quote_version_id", { ascending: true })
+        .order("id", { ascending: true })
+        .range(from, to)),
       // Story 10.2 (AC2): the selected version's Förlorad/Avböjd reason (own-tenant RLS). At most one
       // per version (unique (quote_version_id)). A read fault is NON-FATAL (the card degrades).
       client
@@ -675,22 +766,26 @@ export async function readQuoteDetail(
         .eq("quote_version_id", selectedId),
       // Story 10.3 (AC1/AC2/AC3): ALL follow-ups for THIS quote (own-tenant RLS) — the header chip +
       // the completion sheet. A read fault is NON-FATAL (the chip/sheet degrade to absent).
-      client
+      readAllPages((from, to) => client
         .from("quote_follow_ups")
         .select("id, quote_version_id, status, due_date, note, outcome, completed_at")
         .eq("quote_id", quoteId)
-        .order("created_at", { ascending: true }),
+        .order("created_at", { ascending: true })
+        .order("id", { ascending: true })
+        .range(from, to)),
       // Story 10.9: current calculation attachment eligibility for a potential successor. The
       // frozen predecessor list alone is deliberately insufficient: archived/deleted/unlinked
       // files must not be preselected for a new draft. This RLS-scoped join mirrors the command
       // backstop; any error fails closed below rather than showing a misleading selection.
-      client
+      readAllPages((from, to) => client
         .from("file_links")
         .select("file_id, files!inner(lifecycle_state, archived_at)")
         .eq("owner_type", "calculation")
         .eq("owner_id", selected.calculation_id)
         .eq("purpose", "calculation_attachment")
-        .is("archived_at", null),
+        .is("archived_at", null)
+        .order("id", { ascending: true })
+        .range(from, to)),
     ]);
 
     if (linesRes.error) return { detail: null, error: GENERIC_READ_ERROR };
@@ -701,7 +796,6 @@ export async function readQuoteDetail(
     }
     // A jobs read error is NON-FATAL to the quote detail — the deep link is a convenience, not the
     // quote's core data. Degrade to an empty map rather than fail the whole quote read.
-    const versionIdSet = new Set(versions.map((v) => v.id));
     const acceptedJobIdByVersionId: Record<string, string> = {};
     if (!jobsRes.error) {
       for (const raw of (jobsRes.data ?? []) as Record<string, unknown>[]) {
@@ -850,7 +944,7 @@ export async function readQuoteDetail(
         events,
         selectedLostReason,
         followUps,
-        nowISO: new Date().toISOString(),
+        nowISO: (deps.now ?? new Date()).toISOString(),
         acceptedJobIdByVersionId,
         acceptanceIdByVersionId,
       },

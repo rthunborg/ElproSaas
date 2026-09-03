@@ -503,3 +503,14 @@ existing AC, recorded so it is not re-triaged a third time.
   summary: The create-new-version UI does not submit attachment identifiers even though the successor command supports them, so successor versions can omit attachments.
   evidence: Pre-existing attachment-retention/UI workflow issue outside this story's no-attachment initial reviewed-creation path.
   severity: medium
+
+## Deferred from: build-auto review of 10-5-quote-table-db-hardening-and-read-model-pagination (2026-09-02)
+
+- source_spec: `spec-10-5-quote-table-db-hardening-and-read-model-pagination.md`
+  summary: Manifest EpicRef closed-union/range validation is governance polish, not quote-table or pagination work.
+  evidence: _bmad-output/implementation-artifacts/deferred-work.md:480
+  severity: low
+- source_spec: `spec-10-5-quote-table-db-hardening-and-read-model-pagination.md`
+  summary: Reconciliation of stranded open follow-ups after accepted/lost transitions needs an explicit lifecycle product decision.
+  evidence: _bmad-output/implementation-artifacts/deferred-work.md:469
+  severity: medium

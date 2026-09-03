@@ -135,6 +135,8 @@ async function quoteState(versionId: string): Promise<{
   lostReasons: number;
   acceptances: number;
   jobs: number;
+  openFollowUps: number;
+  completedFollowUps: number;
 }> {
   const rows = await adminQuery<{
     status: string;
@@ -142,12 +144,18 @@ async function quoteState(versionId: string): Promise<{
     lost_reasons: string;
     acceptances: string;
     jobs: string;
+    open_follow_ups: string;
+    completed_follow_ups: string;
   }>(
     `select qv.status,
        (select count(*)::text from public.quote_events qe where qe.quote_version_id = qv.id) as quote_events,
        (select count(*)::text from public.quote_lost_reasons qlr where qlr.quote_version_id = qv.id) as lost_reasons,
        (select count(*)::text from public.quote_acceptances qa where qa.quote_version_id = qv.id) as acceptances,
-       (select count(*)::text from public.jobs j where j.quote_version_id = qv.id) as jobs
+       (select count(*)::text from public.jobs j where j.quote_version_id = qv.id) as jobs,
+       (select count(*) filter (where qfu.status = 'open')::text
+          from public.quote_follow_ups qfu where qfu.quote_version_id = qv.id) as open_follow_ups,
+       (select count(*) filter (where qfu.status = 'completed')::text
+          from public.quote_follow_ups qfu where qfu.quote_version_id = qv.id) as completed_follow_ups
        from public.quote_versions qv where qv.id = $1`,
     [versionId],
   );
@@ -159,6 +167,8 @@ async function quoteState(versionId: string): Promise<{
     lostReasons: Number(row.lost_reasons),
     acceptances: Number(row.acceptances),
     jobs: Number(row.jobs),
+    openFollowUps: Number(row.open_follow_ups),
+    completedFollowUps: Number(row.completed_follow_ups),
   };
 }
 
@@ -390,6 +400,14 @@ describe("Story 10.8 audit failure rolls back lifecycle transactions", () => {
     await adminQuery(`update public.quote_versions set status = 'sent' where id = $1`, [
       predecessor.versionId,
     ]);
+    const successorFollowUp = await clientA.from("quote_follow_ups").insert({
+      tenant_id: fixture.tenantA.id,
+      quote_id: predecessor.quoteId,
+      quote_version_id: predecessor.versionId,
+      due_date: new Date(Date.now() + 48 * 60 * 60 * 1_000).toISOString().slice(0, 10),
+      status: "open",
+    });
+    expect(successorFollowUp.error).toBeNull();
     const successorCorrelationId = crypto.randomUUID();
     const beforeSuccessor = await quoteState(predecessor.versionId);
     const beforeSuccessorEvents = await tenantEventCounts();
@@ -597,6 +615,14 @@ describe("Story 10.8 audit failure rolls back lifecycle transactions", () => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     const sent = await seedSource(`audit-accept-${crypto.randomUUID()}`);
     await adminQuery(`update public.quote_versions set status = 'sent' where id = $1`, [sent.versionId]);
+    const acceptanceFollowUp = await clientA.from("quote_follow_ups").insert({
+      tenant_id: fixture.tenantA.id,
+      quote_id: sent.quoteId,
+      quote_version_id: sent.versionId,
+      due_date: new Date(Date.now() + 48 * 60 * 60 * 1_000).toISOString().slice(0, 10),
+      status: "open",
+    });
+    expect(acceptanceFollowUp.error).toBeNull();
     const payable = await adminQuery<{ payable_ore: string }>(
       `select payable_ore::text from public.quote_versions where id = $1`,
       [sent.versionId],

@@ -35,7 +35,7 @@
  */
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { formatOreAsKronor } from "@/lib/money/ore";
+import { formatOreAsKronor, ORE_AMOUNT_MAX } from "@/lib/money/ore";
 import {
   aggregateQuotePipeline,
   resolvePipelinePeriod,
@@ -116,6 +116,40 @@ test("10.4-UNIT-02: acceptedValueOre is the INTEGER öre sum of frozen accepted 
   const agg = aggregateQuotePipeline({ events, acceptedVersions: accepted, followUps: [] }, JULY, NOW);
   assert.equal(agg.acceptedValueOre, 12_500_00 + 749_950);
   assert.ok(Number.isInteger(agg.acceptedValueOre), "öre aggregate is a plain integer sum");
+});
+
+test("10.5: accepted commitment sum permits the exact MAX_SAFE_INTEGER boundary", () => {
+  const events: PipelineEventRow[] = [
+    { quote_version_id: "v-max", event_type: "accepted", occurred_at: "2026-07-10T09:00:00.000Z" },
+  ];
+  const agg = aggregateQuotePipeline(
+    { events, acceptedVersions: [{ quote_version_id: "v-max", accepted_price_ore: ORE_AMOUNT_MAX }], followUps: [] },
+    JULY,
+    NOW,
+  );
+  assert.equal(agg.acceptedValueOre, ORE_AMOUNT_MAX);
+});
+
+test("10.5: an unsafe accepted commitment aggregate fails closed instead of returning rounded öre", () => {
+  const events: PipelineEventRow[] = [
+    { quote_version_id: "v-1", event_type: "accepted", occurred_at: "2026-07-10T09:00:00.000Z" },
+    { quote_version_id: "v-2", event_type: "accepted", occurred_at: "2026-07-11T09:00:00.000Z" },
+  ];
+  assert.throws(
+    () => aggregateQuotePipeline(
+      {
+        events,
+        acceptedVersions: [
+          { quote_version_id: "v-1", accepted_price_ore: ORE_AMOUNT_MAX },
+          { quote_version_id: "v-2", accepted_price_ore: 1 },
+        ],
+        followUps: [],
+      },
+      JULY,
+      NOW,
+    ),
+    /unsafe/i,
+  );
 });
 
 test("10.4-UNIT-02: the accepted value formats for display via the single @/lib/money authority only", () => {

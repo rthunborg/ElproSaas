@@ -1,0 +1,113 @@
+# auto-bmad per-story state — written by scripts/state_update.py (full stable schema;
+# see references/state-and-resume.md). Prose belongs in reports/{key}.md, not here.
+story_key: 10-5-quote-table-db-hardening-and-read-model-pagination
+epic_num: 10
+story_num: 5
+story_suffix: ""
+story_source: sprint
+spec_folder: null
+story_id: null
+branch: story/10-5-quote-table-db-hardening-and-read-model-pagination
+status: done
+updated_at: "2026-09-02T18:08:58Z"
+started_at: "2026-09-02T09:44:31Z"
+completed_at: "2026-09-02T18:08:58Z"
+active_seconds: 7294
+timing_anchor: 1788370650
+is_first_in_epic: false
+is_last_in_epic: false
+git_mode: remote
+base_branch: main
+selected_phase: tea_per_story
+selected_role: tea-delegate
+selected_profile: standard
+selected_model: gpt-5.6-terra
+selected_effort: high
+selected_host: codex
+selected_tier: subagents
+selected_route: subagent
+escalation_reason: null
+routing_ledger:
+  - "{\"effort\":\"medium\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-luna\",\"phase\":\"tea_triage\",\"profile\":\"light\",\"role\":\"test-risk-triage\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"high\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-terra\",\"phase\":\"build\",\"profile\":\"standard\",\"role\":\"build-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"high\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-terra\",\"phase\":\"tea_per_story\",\"profile\":\"standard\",\"role\":\"tea-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"high\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-terra\",\"phase\":\"build\",\"profile\":\"standard\",\"role\":\"build-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"high\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-terra\",\"phase\":\"tea_per_story\",\"profile\":\"standard\",\"role\":\"tea-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"high\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-terra\",\"phase\":\"followup_review\",\"profile\":\"standard\",\"role\":\"primary-reviewer\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"high\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-terra\",\"phase\":\"tea_per_story\",\"profile\":\"standard\",\"role\":\"tea-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+tea_risk: high
+tea_selected: [atdd, automate, trace-advisory]
+tea_rationale: "High-risk data-integrity and schema changes, concurrency behavior, and money aggregation are explicitly in scope; long-epic policy adds the story trace advisory."
+epic_story_count: 9
+stories_after_in_epic: 4
+completed_phases: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+spec_path: "C:\\DEV\\ElproSaas\\_bmad-output\\implementation-artifacts\\spec-10-5-quote-table-db-hardening-and-read-model-pagination.md"
+spec_approved: true
+build:
+  status: done
+  blocking_condition: null
+  followup_review_recommended: false
+  review_loop_iteration: 1
+  deferred_count: 2
+  warnings: [oversized]
+followup_passes: 1
+hitl_halt: continued
+review_unverified: false
+story_trace:
+  verdict: PASS
+  p0_coverage: "5/5 (100%)"
+  p1_coverage: "1/1 (100%)"
+  overall_coverage: "6/6 (100%)"
+  uncovered: []
+  ran: true
+  gate_status: NOT_EVALUATED
+legacy_review_resume: false
+legacy_review_iteration: null
+legacy_review_loop_done: false
+legacy_external_review_iterations: null
+legacy_convergence_unverified: false
+legacy_artifact_path: null
+commits: [eca727a, ec2456a, 35d1b61, ef6e2e5, ea8d329, 01f5aff, a182715, 2e0dcc3, 7d96f66, d36f5a5, 9481b26, 524bf41, 8eb01c2, 4d967fc, 71a4725, 996135a, d343695, 5c63679, 25fc5f9, c544c9c, 4d98fee, a99084f, c527b5a, ac0a894]
+phase8_steps:
+  trace_gate: done
+  nfr: done
+  test_review: done
+  reconcile: done
+  archive: done
+  retro: done
+gate_decision: null
+gate_iterations: 0
+deferred_work_archived: 0
+retro:
+  doc: null
+  verdict: null
+  open_action_items: 0
+bmad_status_flipped_at: 9
+pr_url: "https://github.com/rthunborg/ElproSaas/pull/46"
+ci_run_url: "https://github.com/rthunborg/ElproSaas/actions/runs/33664298808"
+ci_status: passed
+pr_merged: false
+merge_method: null
+merge_commit: null
+branch_deleted: false
+open_questions: []
+deferred_work:
+  - "Manifest EpicRef closed-union/range validation is governance polish, not quote-table or pagination work."
+  - Reconciliation of stranded open follow-ups after accepted/lost transitions needs an explicit lifecycle product decision.
+  - Greenify the database/race/pagination scaffolds with real local-Supabase fixtures when implementation lands.
+  - Seed per-Playwright-attempt lifecycle targets in global setup and migrate existing mutating E2E flows to testInfo.retry.
+blockers: []
+overrides:
+  post_merge_reconciliation: "Treat merged PR 45 work as complete; do not restart Story 10.6 or repeat its completed review rounds."
+  demo_push: "User explicitly authorized the post-merge demo push on 2026-09-02; migrations 20260805120000, 20260831124310, and 20260831124312 were applied and verified; Vault was untouched."
+  review_scope: "Respect the three-round cap; assess prior work only for consequential unresolved findings or regressions from new fixes."
+  wsl_uv_repair: "User authorized a user-scoped WSL uv repair; official uv 0.12.9 is installed at /home/rasmus/.local/bin/uv and verified."
+  lifecycle_decision: "Owner approved: authorised acceptance and successor/supersession commands atomically close any open follow-up before terminalising the sent quote version; preserve command success, keep direct client DML blocked, and roll back the whole transition on failure."
+  local_stack_recovery: "A fresh delegated actor will start, reset, verify, and stop only the local Supabase test stack; never touch the linked demo project."
+constraints:
+  - Preserve deterministic Auto-BMAD routing and project-scoped Codex configuration.
+  - Do not change the primary task model or global user configuration.
+  - Do not change the demo Supabase environment without explicit confirmation.
+commits_append:
+  - 8eb01c2
+  - 4d967fc
