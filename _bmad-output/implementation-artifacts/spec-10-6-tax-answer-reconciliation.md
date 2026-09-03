@@ -2,7 +2,7 @@
 title: "Tax Answer Reconciliation"
 type: feature
 created: "2026-08-31"
-status: review
+status: done
 review_loop_iteration: 3
 followup_review_recommended: false
 baseline_revision: "aab9fc0e38ae022d009967f3ebcd2a93e7ca723b"

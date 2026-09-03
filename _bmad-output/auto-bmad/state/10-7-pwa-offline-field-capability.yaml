@@ -9,11 +9,11 @@ spec_folder: null
 story_id: null
 branch: story/10-7-pwa-offline-field-capability
 status: in-progress
-updated_at: "2026-09-03T11:22:00Z"
+updated_at: "2026-09-03T11:29:08Z"
 started_at: "2026-09-03T10:12:49Z"
 completed_at: null
 active_seconds: 851
-timing_anchor: null
+timing_anchor: 1788434948
 is_first_in_epic: false
 is_last_in_epic: false
 git_mode: remote
@@ -55,7 +55,7 @@ legacy_review_loop_done: false
 legacy_external_review_iterations: null
 legacy_convergence_unverified: false
 legacy_artifact_path: null
-commits: ["7829904", 361cc99, eeca79f]
+commits: ["7829904", 361cc99, eeca79f, 849ec3c]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -85,6 +85,7 @@ blockers:
   - "Planning blocked: missing previous-story continuity decision; Story 10.6 state/sprint are done but its build-auto spec reads review."
 overrides:
   run_instruction: "Continue from merged PR 46; do not reopen Story 10.5; proceed through the next deterministic story."
+  continuity_authorized: "Owner-authorized metadata-only Story 10.6 status correction; no fourth review round."
 constraints:
   - Respect the three-round review cap.
   - Do not alter the primary task model or global user configuration.
