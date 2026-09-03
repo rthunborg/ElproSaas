@@ -1,49 +1,35 @@
 # Epic 10 Context: Quote Lifecycle Completion (+ Phase B Governance Re-Baseline)
-
-<!-- Compiled from planning artifacts. Edit freely. Regenerate with compile-epic-context if planning docs change. -->
-
+<!-- Generated from planning artifacts. Regenerate with compile-epic-context if planning docs change. -->
 ## Goal
-
-Complete the quote lifecycle on the existing Phase A quote surface while establishing the Phase B scope-governance baseline. The epic adds lost/declined outcomes, follow-up and pipeline visibility, reconciles the accountant-approved tax rules, and hardens review authority and PDF validity so customer-visible commitments are reproducible, current, tenant-authorized, and auditable.
-
+Establish Phase B's manifest-governed delivery baseline, then complete the existing quote lifecycle so Säljare can record lost or declined sent versions with reasons, manage follow-ups, and expose trustworthy pipeline data while preserving immutable customer commitments, correct money rules, tenant isolation, and auditable authority.
 ## Stories
-
 - Story 10.1: Phase B Governance Re-Baseline and Scope Manifest
 - Story 10.2: Förlorad/Avböjd Status and Lost-Reason Lifecycle
 - Story 10.3: Quote Follow-Up Workflow
 - Story 10.4: Pipeline Surfacing and Dashboard Read-Model
 - Story 10.5: Quote-Table DB Hardening and Read-Model Pagination
-- Story 10.6: Tax-Answer Reconciliation
+- Story 10.6: Tax-Answer Reconciliation — VAT rounding scope, deduction classification, reverse charge
 - Story 10.7: PWA + Offline Field Capability
 - Story 10.8: Quote Review Provenance, Authority, and Audit
 - Story 10.9: Quote PDF Validity and Attachment Carry-Forward
-
 ## Requirements & Constraints
-
-- The scope manifest is the machine-readable authority for active and pending product surface. Quote changes stay inside the already-active quotes module; new tenant-owned tables must be enrolled in RLS, H4 tenant inventory, exact-policy checks, and manifest-derived guardrails in the same change.
-- Tenant ownership and authorization must be enforced server-side. Browser paths may not receive service-role capabilities, and privileged quote mutations must authenticate the actor, validate tenant membership and object ownership, reject direct-DML bypasses, and commit audit evidence atomically.
-- Money remains integer öre. VAT is rounded once per VAT category at document level; customer visibility, invoice-total inclusion, and deduction classification are independent; tax-reduction claims truncate to whole SEK; reverse charge is a distinct VAT type and requires the buyer VAT registration number on customer-visible output.
-- Sent and accepted quote snapshots remain immutable. Corrected tax rules apply only to new versions, never by recomputing an existing sent commitment.
-- A current generated PDF is a send precondition. Customer-visible draft edits invalidate the active PDF; obsolete references are archived without deleting bytes; normal signed access refuses archived files. Successors carry forward only eligible immutable attachments.
-- Global physical file reclamation, legal retention periods, and deletion workflows remain deferred. This epic must not broaden archived-file access or introduce a hard-delete path.
-- Quote and file failures must preserve coherent lifecycle state, tenant isolation, and retryability. Tests must cover money/tax edges, authorization expiry and reuse, cross-tenant attempts, current-PDF gating, archive denial, attachment eligibility, and audit rollback.
-
+- Scope governance is fail-loud: live nav, tenant tables, widgets, notification categories, public surfaces, file owner types, deferred-file enforcement, and scope scans must derive from the typed manifest. Phase A is its initial active set; Phase B modules remain pending until their activation. The closed set of public token surfaces must not expand, and the Phase C ledger remains excluded.
+- A sent quote version may become Förlorad or Avböjd only with a required structured reason; the lifecycle transition is append-only and must not alter the sent snapshot, its customer-visible data, attachment selection, or PDF source. The final outcome terms and reason categories require the legacy-oracle terminology check before the applicable work starts.
+- Follow-ups belong to sent quotes, support due/overdue visibility, completion and annotation, and have no more than one open item per quote. Pipeline reads provide sent, accepted, lost/declined, open/overdue follow-up, and hit-rate metrics for later dashboard consumption; no separate analytics surface is introduced here.
+- Every tenant-owned read and mutation remains RLS-protected, command-authorized, and audited. Database constraints or triggers must preserve quote/follow-up anchoring and legal lifecycle transitions even through direct table API attempts; critical lifecycle mutations and their audit evidence cannot diverge. Read-model queries must remain complete above PostgREST row limits and money aggregation must fail loudly rather than lose öre precision.
+- Money changes apply the accountant-ratified rules: calculate and round VAT per VAT category on the document-level basis; separate customer visibility, invoice inclusion, and deduction classification; model construction reverse charge as a distinct VAT type; truncate claim amounts to whole SEK; and store rates/caps as time-versioned data. New rules never mutate a sent snapshot and real ROT/grön-teknik output depends on their implementation.
+- Quote review authority is an authenticated, server-validated attestation to exact content, not evidence of UI attention or a compulsory second reviewer. It is one-time, expires after 15 minutes, and is invalidated by source, attachment, or customer-visible changes. Current PDF output and the separate server-only byte attestation are send prerequisites; stale or missing PDFs are rejected. Superseded PDF references are archived rather than hard-deleted, and eligible immutable predecessor attachments may be preselected for successor drafts.
+- The PWA work is an installable web app rather than a native app. Offline field capture uses scoped, minimized local storage, visible sync states, operation-id idempotency, reauthorization on sync, append-only field records where applicable, optimistic locking for shared objects, and no silent data loss or overwrite. It must never cache data unavailable online.
 ## Technical Decisions
-
-- Sensitive quote workflows use narrow authenticated server commands backed by hardened PostgreSQL functions. Security-definer functions use an empty search path, explicit schema qualification, caller-derived identity, and least-privilege grants.
-- Quote review is a one-time, 15-minute authorization over exact server-validated content. It is invalidated by relevant content changes and is authority evidence, not proof that the user visually inspected a screen.
-- PDF rendering uses a database-issued render/file identifier and an immutable quote-PDF reservation before storage upload. Activation and send require matching storage metadata plus a short-lived server-only HMAC attestation verified in PostgreSQL; the attestation is never returned, logged, or persisted.
-- Render start is correlation-idempotent and lease-bounded so a lost response can be reconciled without creating a second active render. Generated-PDF validity binds the quote version, current content fingerprint, reserved file identity, storage path, checksum, size, MIME type, correlation, and signing-key window.
-- Audit records are append-only operational evidence and retain actor/correlation context without storing secrets, raw file bytes, or broad personal data.
-
+- ADR-B003 makes `src/scope/manifest.ts` the typed source of truth. The coherence validator retains existing Phase A guardrail expectations and rejects untraceable or prematurely live surface; permission-matrix-row coherence begins when Epic 11 provides the matrix source.
+- Retain the Phase A spine: pooled tenancy with forced RLS, server command envelope, SECURITY INVOKER transaction-sensitive RPCs by default, integer-öre calculations through `@/lib/money`, immutable sent-version locks, append-only audit, and golden-master regression discipline. `markQuoteVersionLost` extends the lifecycle RPC to atomically append the event and record its reason; no client service-role path is permitted.
+- The quote read model establishes the phase-wide `{ data, entitlements }` pattern, uses RLS-client reads, projects sensitive amounts by entitlement, and tests deterministic Europe/Stockholm period boundaries. Epic 19 owns the widget rendering; Epic 10 owns the read model.
+- ADR-A004's amended money rules supersede prior per-line VAT rounding. ADR-B008 separates user review authority from PDF-byte activation: only a narrow authenticated path may reserve a quote-PDF file; the HMAC-SHA256 byte attestation is server-only, verified in PostgreSQL with `pgcrypto`, fails closed, and is never returned, logged, or persisted. No Edge Function, elevated Storage credential, or service-role bypass is allowed.
+- New quote tables are enrolled under the already-active `quotes` module, the tenant-table inventory, and exact-policy enumeration in their introducing changes. No new module activation or new quote navigation item is authorized.
 ## UX & Interaction Patterns
-
-- Quote detail shows lifecycle status, selected immutable version, totals and tax assumptions, terms, attachments, PDF state and metadata, and lifecycle events.
-- Pre-creation review separates blocking issues from warnings and shows the exact customer-visible snapshot, including VAT/tax treatment, reverse-charge buyer VAT number, terms, and selected attachments.
-- PDF states distinguish not generated, generating, generated, failed, and stale/invalidation conditions. Failure and retry must not silently change quote lifecycle state.
-- Acceptance captures explicit evidence and time, presents field-level validation in plain language, and preserves entered data when validation fails.
-- Linked lifecycle files require confirmation before archive/delete operations, and archive state is visible without revealing cross-tenant object existence.
-
+- On sent quote versions, use a required confirmation dialog for `Markera som förlorad/avböjd`; make its append-only, snapshot-preserving effect clear. Show a terminal status badge, the reason on the version and `Händelser`, and the latest state in the quote thread.
+- Present follow-ups from quote detail, quote-list filters, and later dashboard data: date and note at planning, a next-follow-up chip, visually escalated overdue state, and completion with an outcome note plus next-step choices. Use shared `StatusBadge` and `ConnectionChip` contracts.
+- Do not add an analytics page or dashboard widget in this epic. PDF and attachment flows must plainly distinguish current, archived, eligible, and ineligible states; archived material is unavailable through ordinary signed access.
 ## Cross-Story Dependencies
-
-Story 10.1 precedes all Phase B work. Stories 10.2–10.5 establish and harden the quote lifecycle/read model. Story 10.6 supplies the tax and money semantics consumed by later quote/PDF work. Story 10.8 establishes review authorization and atomic audit authority; Story 10.9 consumes that authority and the Story 10.6 snapshot to enforce current PDF output and attachment carry-forward. Epic 11 later replaces the temporary tenant-admin authority with named quote permissions without changing these invariants.
+- Story 10.1 is the first Phase B story and blocks every other Phase B story. Stories 10.2–10.4 build the lifecycle, follow-up, and pipeline sequence; Story 10.5 hardens those surfaces. Story 10.6 depends on the existing money/tax primitives; Stories 10.8 and 10.9 follow the governance and tax/lifecycle work, with PDF validity depending on review authority.
+- Epic 13 later consumes follow-up data for its first due-reminder producer; this epic remains functional without notifications. Epic 11 later replaces the temporary `tenant_admin` authority with quote capability mappings. Epic 19 consumes the pipeline read model without reimplementing it. The offline capability must precede or accompany field-work epics that rely on offline states.
