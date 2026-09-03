@@ -9,11 +9,11 @@ spec_folder: null
 story_id: null
 branch: story/10-7-pwa-offline-field-capability
 status: in-progress
-updated_at: "2026-09-03T11:38:44Z"
+updated_at: "2026-09-03T11:43:35Z"
 started_at: "2026-09-03T10:12:49Z"
 completed_at: null
-active_seconds: 1158
-timing_anchor: 1788435524
+active_seconds: 1334
+timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
 git_mode: remote
@@ -40,7 +40,7 @@ spec_path: null
 spec_approved: false
 build:
   status: blocked
-  blocking_condition: "Python was not found; run without arguments to install from the Microsoft Store, or disable this shortcut from Settings > Apps > Advanced app settings > App execution aliases."
+  blocking_condition: dirty working tree
   followup_review_recommended: false
   review_loop_iteration: 0
   deferred_count: 0
@@ -78,10 +78,11 @@ pr_merged: false
 merge_method: null
 merge_commit: null
 branch_deleted: false
-open_questions: []
+open_questions:
+  - The prior Story 10.6 artifact contains a directive not to treat its historical verification counts as current evidence.
 deferred_work: []
 blockers:
-  - "Planning blocked: Python was not found; run without arguments to install from the Microsoft Store, or disable this shortcut from Settings > Apps > Advanced app settings > App execution aliases."
+  - "Planning blocked: dirty working tree; result: C:\\DEV\\ElproSaas\\_bmad-output\\implementation-artifacts\\bmad-build-auto-result-10-7-pwa-offline-field-capability.md"
 overrides:
   run_instruction: "Continue from merged PR 46; do not reopen Story 10.5; proceed through the next deterministic story."
   continuity_authorized: "Owner-authorized metadata-only Story 10.6 status correction; no fourth review round."
