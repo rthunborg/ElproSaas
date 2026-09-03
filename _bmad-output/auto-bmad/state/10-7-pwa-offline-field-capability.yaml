@@ -9,11 +9,11 @@ spec_folder: null
 story_id: null
 branch: story/10-7-pwa-offline-field-capability
 status: in-progress
-updated_at: "2026-09-03T11:29:08Z"
+updated_at: "2026-09-03T11:31:45Z"
 started_at: "2026-09-03T10:12:49Z"
 completed_at: null
 active_seconds: 851
-timing_anchor: 1788434948
+timing_anchor: 1788435105
 is_first_in_epic: false
 is_last_in_epic: false
 git_mode: remote
