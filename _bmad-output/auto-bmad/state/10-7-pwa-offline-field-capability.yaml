@@ -9,11 +9,11 @@ spec_folder: null
 story_id: null
 branch: story/10-7-pwa-offline-field-capability
 status: in-progress
-updated_at: "2026-09-03T10:22:24Z"
+updated_at: "2026-09-03T11:16:17Z"
 started_at: "2026-09-03T10:12:49Z"
 completed_at: null
 active_seconds: 575
-timing_anchor: null
+timing_anchor: 1788434177
 is_first_in_epic: false
 is_last_in_epic: false
 git_mode: remote
@@ -55,7 +55,7 @@ legacy_review_loop_done: false
 legacy_external_review_iterations: null
 legacy_convergence_unverified: false
 legacy_artifact_path: null
-commits: ["7829904"]
+commits: ["7829904", 361cc99]
 phase8_steps:
   trace_gate: null
   nfr: null
