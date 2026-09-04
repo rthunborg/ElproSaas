@@ -9,32 +9,33 @@ spec_folder: null
 story_id: null
 branch: story/11-1-role-storage-and-permission-matrix-mechanism
 status: in-progress
-updated_at: "2026-09-04T09:14:38Z"
+updated_at: "2026-09-04T09:35:57Z"
 started_at: "2026-09-04T09:14:31Z"
 completed_at: null
-active_seconds: 0
-timing_anchor: null
+active_seconds: 1219
+timing_anchor: 1788514557
 is_first_in_epic: true
 is_last_in_epic: false
 git_mode: local
 base_branch: main
-selected_phase: tea_triage
-selected_role: test-risk-triage
-selected_profile: light
-selected_model: gpt-5.6-luna
-selected_effort: medium
+selected_phase: tea_epic
+selected_role: tea-delegate
+selected_profile: critical
+selected_model: gpt-5.6-sol
+selected_effort: xhigh
 selected_host: codex
 selected_tier: subagents
 selected_route: subagent
 escalation_reason: null
 routing_ledger:
   - "{\"effort\":\"medium\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-luna\",\"phase\":\"tea_triage\",\"profile\":\"light\",\"role\":\"test-risk-triage\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"xhigh\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-sol\",\"phase\":\"tea_epic\",\"profile\":\"critical\",\"role\":\"tea-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
 tea_risk: high
 tea_selected: [atdd, automate]
 tea_rationale: "authorization/permissions and data-integrity signals are explicit, with schema migration and RLS security impact"
 epic_story_count: 4
 stories_after_in_epic: 3
-completed_phases: [0, 1]
+completed_phases: [0, 1, 2]
 spec_path: null
 spec_approved: false
 build:
@@ -54,7 +55,7 @@ legacy_review_loop_done: false
 legacy_external_review_iterations: null
 legacy_convergence_unverified: false
 legacy_artifact_path: null
-commits: []
+commits: [cfe7ded]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -77,8 +78,14 @@ pr_merged: false
 merge_method: null
 merge_commit: null
 branch_deleted: false
-open_questions: []
-deferred_work: []
+open_questions:
+  - "Define invitation expiry, resend throttling/deduplication, and Auth/database compensation semantics."
+  - Define pilot-scale performance thresholds if performance should become release-gating.
+deferred_work:
+  - Run /bmad-testarch-atdd explicitly for P0 acceptance tests.
+  - Run /bmad-testarch-automate after implementation exists.
+  - Run /bmad-testarch-nfr when implementation evidence is available.
+  - Correct the stale single-role and placeholder prose through the owning planning workflow.
 blockers: []
 overrides: {}
 constraints: []
