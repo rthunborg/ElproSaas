@@ -368,3 +368,17 @@ test("Task 7.2: when NO row is active, the resolver denies (TENANT_MEMBERSHIP_RE
   assert.equal(result.ok, false);
   if (!result.ok) assert.equal(result.code, "TENANT_MEMBERSHIP_REQUIRED");
 });
+
+test.skip("[P0] 11.1 resolver: active context includes legacy tenant_admin plus de-duplicated active child roles", async () => {
+  const result = await resolveTenantContext({
+    client: makeFakeSupabase({
+      user: { id: USER_ID },
+      membership: ACTIVE_ADMIN,
+      membershipRoles: ["projektledare", "saljare", "saljare"],
+    }),
+  });
+  assert.equal(result.ok, true);
+  if (result.ok) {
+    assert.deepEqual(new Set(result.data.roles), new Set(["tenant_admin", "projektledare", "saljare"]));
+  }
+});

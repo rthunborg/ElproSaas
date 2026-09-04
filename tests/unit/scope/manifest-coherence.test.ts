@@ -294,3 +294,13 @@ test("10.1-UNIT-COH-06 (EB-A5 carve-out): the validator does NOT implement the p
     "the matrix-row rule must not be implemented in 10.1 (EB-A5 → 11.1)",
   );
 });
+
+test.skip("[P0] 11.1 coherence: missing matrix coverage for an active module emits the dedicated violation while the real matrix remains green", async () => {
+  const validate = await loadValidator();
+  const { PERMISSION_MATRIX } = await import("@/server/authz/permission-matrix");
+  const missing = { modules: [makeModule({ id: "foundation" })] };
+  assert.ok(
+    rules(validate(missing, { permissionMatrix: {} })).has("active-module-missing-permission-matrix"),
+  );
+  assert.deepEqual(validate(await loadRealManifest(), { permissionMatrix: PERMISSION_MATRIX }), []);
+});

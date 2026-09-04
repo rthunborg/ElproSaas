@@ -7,7 +7,7 @@
  * cleanly when the stack is unreachable (CI sets SUPABASE_TEST_REQUIRED=1 to make
  * a missing stack a hard failure).
  */
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { describe, it, test, expect, beforeAll, afterAll } from "vitest";
 import { adminQuery, closeAdminPool } from "../../factories/admin-sql";
 import { isLocalStackReachable } from "../../support/test-env";
 import { skipUnlessStack } from "../../support/stack-gate";
@@ -465,4 +465,16 @@ describe("Migration reset green — tenant_foundation objects present (AC1 / R-0
 // Close this file's admin pool once all migration-reset assertions are done.
 afterAll(async () => {
   await closeAdminPool();
+});
+
+test.skip("[P0] 11.1 reset: membership_roles is present, H4-enrolled, and has_tenant_role is a hardened DEFINER helper", async () => {
+  const tables = await adminQuery<{ table_name: string }>(
+    "select table_name from information_schema.tables where table_schema = 'public' and table_name = 'membership_roles'",
+  );
+  expect(tables).toEqual([{ table_name: "membership_roles" }]);
+  const functions = await adminQuery<{ prosecdef: boolean; proconfig: string[] | null }>(
+    "select prosecdef, proconfig from pg_proc where oid = 'public.has_tenant_role(uuid,text[])'::regprocedure",
+  );
+  expect(functions[0]?.prosecdef).toBe(true);
+  assertSearchPathExactlyEmpty("has_tenant_role", functions[0]?.proconfig ?? null);
 });

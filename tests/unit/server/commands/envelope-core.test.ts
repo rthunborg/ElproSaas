@@ -31,6 +31,21 @@ async function load() {
   return { runCommandCore, COMMAND_MESSAGES };
 }
 
+test.skip("[P0] 11.1 envelope: declared capability denial occurs before validation, ownership, execute, and audit", async () => {
+  const { runCommandCore: run } = await load();
+  const calls: string[] = [];
+  const result = await run({
+    resolveContext: async () => ({ ok: true, data: { roles: ["montor"] } }),
+    requiredCapability: { module: "foundation", capability: "Memberships.Manage" },
+    validate: async () => { calls.push("validate"); return { ok: true, data: {} }; },
+    ownership: async () => { calls.push("ownership"); return { ok: true }; },
+    execute: async () => { calls.push("execute"); return { ok: true, data: {} }; },
+    audit: async () => { calls.push("audit"); },
+  });
+  assert.deepEqual(result, { ok: false, code: "PERMISSION_DENIED" });
+  assert.deepEqual(calls, []);
+});
+
 /** The input shape these tests build (a result carrying `{ id }` or a lifecycle field). */
 type TestInput = RunCommandCoreInput<unknown, Record<string, unknown>, unknown>;
 
