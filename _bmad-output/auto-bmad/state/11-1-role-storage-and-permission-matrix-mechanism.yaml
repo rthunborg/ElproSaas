@@ -9,11 +9,11 @@ spec_folder: null
 story_id: null
 branch: story/11-1-role-storage-and-permission-matrix-mechanism
 status: in-progress
-updated_at: "2026-09-04T14:48:29Z"
+updated_at: "2026-09-04T14:57:57Z"
 started_at: "2026-09-04T09:14:31Z"
 completed_at: null
-active_seconds: 1606
-timing_anchor: 1788533301
+active_seconds: 2156
+timing_anchor: null
 is_first_in_epic: true
 is_last_in_epic: false
 git_mode: local
@@ -36,12 +36,12 @@ tea_selected: [atdd, automate]
 tea_rationale: "authorization/permissions and data-integrity signals are explicit, with schema migration and RLS security impact"
 epic_story_count: 4
 stories_after_in_epic: 3
-completed_phases: [0, 1, 2]
-spec_path: null
-spec_approved: false
+completed_phases: [0, 1, 2, 3]
+spec_path: "C:\\DEV\\ElproSaas\\_bmad-output\\implementation-artifacts\\spec-11-1-role-storage-and-permission-matrix-mechanism.md"
+spec_approved: true
 build:
-  status: blocked
-  blocking_condition: dirty working tree
+  status: ready-for-dev
+  blocking_condition: null
   followup_review_recommended: false
   review_loop_iteration: 0
   deferred_count: 0
@@ -56,7 +56,7 @@ legacy_review_loop_done: false
 legacy_external_review_iterations: null
 legacy_convergence_unverified: false
 legacy_artifact_path: null
-commits: [cfe7ded, 27d71b9, 71a5a8c, 18d494c]
+commits: [cfe7ded, 27d71b9, 71a5a8c, 18d494c, 96116a9]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -87,9 +87,9 @@ deferred_work:
   - Run /bmad-testarch-automate after implementation exists.
   - Run /bmad-testarch-nfr when implementation evidence is available.
   - Correct the stale single-role and placeholder prose through the owning planning workflow.
-  - Story 11.1 specification generation.
-blockers:
-  - "Planning-time build-auto result: C:\\DEV\\ElproSaas\\_bmad-output\\implementation-artifacts\\bmad-build-auto-result-11-1-role-storage-and-permission-matrix-mechanism.md â€” dirty working tree."
+  - "Phase-A per-role RLS, command rollout, navigation, and landing behavior remain Story 11.2."
+  - "Admin user-management flows and Roles UI remain Stories 11.3â€“11.4."
+blockers: []
 overrides:
   resume_autonomously: true
 constraints: []
