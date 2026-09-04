@@ -9,7 +9,7 @@ spec_folder: null
 story_id: null
 branch: story/11-1-role-storage-and-permission-matrix-mechanism
 status: in-progress
-updated_at: "2026-09-04T09:35:57Z"
+updated_at: "2026-09-04T09:37:12Z"
 started_at: "2026-09-04T09:14:31Z"
 completed_at: null
 active_seconds: 1219
@@ -18,11 +18,11 @@ is_first_in_epic: true
 is_last_in_epic: false
 git_mode: local
 base_branch: main
-selected_phase: tea_epic
-selected_role: tea-delegate
-selected_profile: critical
-selected_model: gpt-5.6-sol
-selected_effort: xhigh
+selected_phase: build
+selected_role: build-delegate
+selected_profile: standard
+selected_model: gpt-5.6-terra
+selected_effort: high
 selected_host: codex
 selected_tier: subagents
 selected_route: subagent
@@ -30,6 +30,7 @@ escalation_reason: null
 routing_ledger:
   - "{\"effort\":\"medium\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-luna\",\"phase\":\"tea_triage\",\"profile\":\"light\",\"role\":\"test-risk-triage\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
   - "{\"effort\":\"xhigh\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-sol\",\"phase\":\"tea_epic\",\"profile\":\"critical\",\"role\":\"tea-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"high\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-terra\",\"phase\":\"build\",\"profile\":\"standard\",\"role\":\"build-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
 tea_risk: high
 tea_selected: [atdd, automate]
 tea_rationale: "authorization/permissions and data-integrity signals are explicit, with schema migration and RLS security impact"
@@ -55,7 +56,7 @@ legacy_review_loop_done: false
 legacy_external_review_iterations: null
 legacy_convergence_unverified: false
 legacy_artifact_path: null
-commits: [cfe7ded]
+commits: [cfe7ded, 27d71b9]
 phase8_steps:
   trace_gate: null
   nfr: null
