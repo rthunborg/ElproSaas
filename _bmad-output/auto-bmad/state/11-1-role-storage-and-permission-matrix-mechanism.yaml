@@ -9,11 +9,11 @@ spec_folder: null
 story_id: null
 branch: story/11-1-role-storage-and-permission-matrix-mechanism
 status: in-progress
-updated_at: "2026-09-04T09:37:12Z"
+updated_at: "2026-09-04T09:42:45Z"
 started_at: "2026-09-04T09:14:31Z"
 completed_at: null
-active_seconds: 1219
-timing_anchor: 1788514557
+active_seconds: 1606
+timing_anchor: null
 is_first_in_epic: true
 is_last_in_epic: false
 git_mode: local
@@ -40,8 +40,8 @@ completed_phases: [0, 1, 2]
 spec_path: null
 spec_approved: false
 build:
-  status: null
-  blocking_condition: null
+  status: blocked
+  blocking_condition: dirty working tree
   followup_review_recommended: false
   review_loop_iteration: 0
   deferred_count: 0
@@ -56,7 +56,7 @@ legacy_review_loop_done: false
 legacy_external_review_iterations: null
 legacy_convergence_unverified: false
 legacy_artifact_path: null
-commits: [cfe7ded, 27d71b9]
+commits: [cfe7ded, 27d71b9, 71a5a8c]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -87,6 +87,8 @@ deferred_work:
   - Run /bmad-testarch-automate after implementation exists.
   - Run /bmad-testarch-nfr when implementation evidence is available.
   - Correct the stale single-role and placeholder prose through the owning planning workflow.
-blockers: []
+  - Story 11.1 specification generation.
+blockers:
+  - "Planning-time build-auto result: C:\\DEV\\ElproSaas\\_bmad-output\\implementation-artifacts\\bmad-build-auto-result-11-1-role-storage-and-permission-matrix-mechanism.md â€” dirty working tree."
 overrides: {}
 constraints: []
