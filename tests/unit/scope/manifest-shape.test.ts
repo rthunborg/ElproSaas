@@ -43,6 +43,7 @@ const PINNED_OWNER_TYPES = [
 const PINNED_TENANT_TABLES = [
   "tenants",
   "tenant_memberships",
+  "membership_roles",
   "audit_events",
   "customers",
   "facilities",
@@ -141,15 +142,15 @@ test("10.1-UNIT-SHAPE-03 (AC2): the `active` set reproduces exactly the 7 Phase-
   assert.deepEqual(sortedUnique(routes), sortedUnique(PINNED_NAV_ROUTES));
 });
 
-test("10.1-UNIT-SHAPE-04 (AC2): the `active` set reproduces exactly the 27 tenant tables (pinned, non-circular)", async () => {
+test("10.1-UNIT-SHAPE-04 (AC2): the `active` set reproduces exactly the 28 tenant tables (pinned, non-circular)", async () => {
   // Baseline was 24 (Phase A); Story 10.2 enrolled quote_lost_reasons (→ 25) and Story 10.3 enrols
-  // quote_follow_ups (→ 26); Story 10.8 adds quote_review_authorizations (→ 27) to the same active
-  // quotes module, each in the same PR as its migration (ADR-B003 §5.5 activation seam).
+  // quote_follow_ups (→ 26); Story 10.8 adds quote_review_authorizations (→ 27), and Story 11.1
+  // enrolls membership_roles under the active foundation module (→ 28), each with its migration.
   const manifest = await loadManifest();
   const tables = manifest.modules
     .filter((m) => m.status === "active")
     .flatMap((m) => m.tenantTables);
-  assert.equal(tables.length, 27, "the active tenant-table union must total exactly 27 (no dup, no gap)");
+  assert.equal(tables.length, 28, "the active tenant-table union must total exactly 28 (no dup, no gap)");
   assert.deepEqual(sortedUnique(tables), sortedUnique(PINNED_TENANT_TABLES));
 });
 

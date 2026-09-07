@@ -14,8 +14,10 @@ create table public.membership_roles (
   membership_id uuid not null references public.tenant_memberships(id) on delete cascade,
   role text not null check (role in ('tenant_admin', 'projektledare', 'montor', 'saljare', 'ekonomi')),
   created_at timestamptz not null default now(),
-  constraint membership_roles_membership_role_unique unique (membership_id, role),
-  constraint membership_roles_tenant_membership_unique unique (tenant_id, membership_id)
+  -- A membership can hold MORE THAN ONE additional role.  The tenant/membership
+  -- relationship is enforced by the trigger below; only an identical role may not
+  -- be assigned twice.
+  constraint membership_roles_membership_role_unique unique (membership_id, role)
 );
 
 create or replace function public.enforce_membership_role_tenant_match()
@@ -42,7 +44,7 @@ grant select on public.membership_roles to authenticated;
 grant select, insert, update, delete on public.membership_roles to service_role;
 
 create policy membership_roles_select_own on public.membership_roles
-  for select to authenticated using (public.is_tenant_admin(tenant_id));
+  for select to authenticated using (public.is_active_tenant_member(tenant_id));
 
 create or replace function public.has_tenant_role(target_tenant_id uuid, allowed_roles text[])
 returns boolean language sql stable security definer set search_path = '' as $$

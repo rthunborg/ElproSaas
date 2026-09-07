@@ -70,11 +70,11 @@ describe("10.4-INT-03: non-scope guard — no new analytics surface / no email-s
     expect(widgets).toEqual([]);
   });
 
-  it("the governed tenant-table inventory stays at the current manifest count of 27", () => {
+  it("the governed tenant-table inventory stays at the current manifest count of 28", () => {
     const tenantTables = SCOPE_MANIFEST.modules
       .filter((m) => m.status === "active")
       .flatMap((m) => m.tenantTables);
-    expect(new Set(tenantTables).size).toBe(27);
+    expect(new Set(tenantTables).size).toBe(28);
   });
 
   it("the read-model source path imports NO email/notification send path (Epic 13 owns reminders)", () => {

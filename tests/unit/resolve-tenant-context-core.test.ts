@@ -96,6 +96,7 @@ test("AC1: active tenant_admin -> Ok with membership-derived tenant + presentati
       userId: "user-1",
       tenantId: "tenant-A",
       role: "tenant_admin",
+      roles: ["tenant_admin"],
       status: "active",
       userEmail: "admin@example.test",
       tenantName: "Acme Elektro AB",

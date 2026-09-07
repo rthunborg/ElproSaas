@@ -24,9 +24,10 @@ describe("Migration reset green — tenant_foundation objects present (AC1 / R-0
     const rows = await adminQuery<{ table_name: string }>(
       `select table_name from information_schema.tables
          where table_schema = 'public'
-           and table_name in ('tenants', 'tenant_memberships')`,
+           and table_name in ('tenants', 'tenant_memberships', 'membership_roles')`,
     );
     expect(rows.map((r) => r.table_name).sort()).toEqual([
+      "membership_roles",
       "tenant_memberships",
       "tenants",
     ]);
@@ -139,18 +140,18 @@ describe("Migration reset green — tenant_foundation objects present (AC1 / R-0
     }
   });
 
-  it("[P0] `tenant_memberships.role` CHECK = 'tenant_admin' and `status` CHECK in (active,invited,disabled)", async (testCtx) => {
+  it("[P0] `tenant_memberships.role` CHECK admits the closed five-role set and `status` remains closed", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     const rows = await adminQuery<{ def: string }>(
       `select pg_get_constraintdef(oid) as def from pg_constraint
          where conrelid = 'public.tenant_memberships'::regclass and contype = 'c'`,
     );
     const defs = rows.map((r) => r.def).join("\n");
-    expect(defs).toMatch(/role\s*=\s*'tenant_admin'/i);
+    expect(defs).toMatch(/role[\s\S]*'tenant_admin'[\s\S]*'projektledare'[\s\S]*'montor'[\s\S]*'saljare'[\s\S]*'ekonomi'/i);
     expect(defs).toMatch(/status[\s\S]*'active'[\s\S]*'invited'[\s\S]*'disabled'/i);
   });
 
-  it("[P0] RLS is ENABLED and FORCED on both public tables", async (testCtx) => {
+  it("[P0] RLS is ENABLED and FORCED on foundation authorization tables", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     // Schema-qualify: an internal `_realtime.tenants` exists too — match only public.
     const rows = await adminQuery<{
@@ -162,10 +163,10 @@ describe("Migration reset green — tenant_foundation objects present (AC1 / R-0
          from pg_class c
          join pg_namespace n on n.oid = c.relnamespace
         where n.nspname = 'public'
-          and c.relname in ('tenants', 'tenant_memberships')
+          and c.relname in ('tenants', 'tenant_memberships', 'membership_roles')
           and c.relkind = 'r'`,
     );
-    expect(rows).toHaveLength(2);
+    expect(rows).toHaveLength(3);
     for (const row of rows) {
       expect(row.relrowsecurity).toBe(true);
       expect(row.relforcerowsecurity).toBe(true);
@@ -282,6 +283,7 @@ describe("Migration reset green — tenant_foundation objects present (AC1 / R-0
       "jobs.INSERT",
       "jobs.SELECT",
       "jobs.UPDATE",
+      "membership_roles.SELECT",
       "quote_acceptances.INSERT",
       "quote_acceptances.SELECT",
       "quote_acceptances.UPDATE",
@@ -328,6 +330,7 @@ describe("Migration reset green — tenant_foundation objects present (AC1 / R-0
     const selectOnly = [
       "tenants",
       "tenant_memberships",
+      "membership_roles",
       "audit_events",
       "quote_review_authorizations",
     ];
@@ -460,21 +463,23 @@ describe("Migration reset green — tenant_foundation objects present (AC1 / R-0
       assertSearchPathExactlyEmpty(fn.proname, fn.proconfig);
     }
   });
+
+  it("[P0] 11.1 reset: membership_roles is present, H4-enrolled, and has_tenant_role is a hardened DEFINER helper", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
+    const tables = await adminQuery<{ table_name: string }>(
+      "select table_name from information_schema.tables where table_schema = 'public' and table_name = 'membership_roles'",
+    );
+    expect(tables).toEqual([{ table_name: "membership_roles" }]);
+    const functions = await adminQuery<{ prosecdef: boolean; proconfig: string[] | null }>(
+      "select prosecdef, proconfig from pg_proc where oid = 'public.has_tenant_role(uuid,text[])'::regprocedure",
+    );
+    expect(functions).toHaveLength(1);
+    expect(functions[0]?.prosecdef).toBe(true);
+    assertSearchPathExactlyEmpty("has_tenant_role", functions[0]?.proconfig ?? null);
+  });
 });
 
 // Close this file's admin pool once all migration-reset assertions are done.
 afterAll(async () => {
   await closeAdminPool();
-});
-
-test.skip("[P0] 11.1 reset: membership_roles is present, H4-enrolled, and has_tenant_role is a hardened DEFINER helper", async () => {
-  const tables = await adminQuery<{ table_name: string }>(
-    "select table_name from information_schema.tables where table_schema = 'public' and table_name = 'membership_roles'",
-  );
-  expect(tables).toEqual([{ table_name: "membership_roles" }]);
-  const functions = await adminQuery<{ prosecdef: boolean; proconfig: string[] | null }>(
-    "select prosecdef, proconfig from pg_proc where oid = 'public.has_tenant_role(uuid,text[])'::regprocedure",
-  );
-  expect(functions[0]?.prosecdef).toBe(true);
-  assertSearchPathExactlyEmpty("has_tenant_role", functions[0]?.proconfig ?? null);
 });

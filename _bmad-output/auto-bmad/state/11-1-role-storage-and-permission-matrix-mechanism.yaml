@@ -9,14 +9,14 @@ spec_folder: null
 story_id: null
 branch: story/11-1-role-storage-and-permission-matrix-mechanism
 status: in-progress
-updated_at: "2026-09-07T08:49:17Z"
+updated_at: "2026-09-07T09:09:25Z"
 started_at: "2026-09-04T09:14:31Z"
 completed_at: null
-active_seconds: 3032
-timing_anchor: 1788770957
+active_seconds: 4239
+timing_anchor: null
 is_first_in_epic: true
 is_last_in_epic: false
-git_mode: local
+git_mode: remote
 base_branch: main
 selected_phase: build
 selected_role: build-delegate
@@ -42,8 +42,8 @@ completed_phases: [0, 1, 2, 3, 4]
 spec_path: "C:\\DEV\\ElproSaas\\_bmad-output\\implementation-artifacts\\spec-11-1-role-storage-and-permission-matrix-mechanism.md"
 spec_approved: true
 build:
-  status: ready-for-dev
-  blocking_condition: null
+  status: blocked
+  blocking_condition: implementation verification failed
   followup_review_recommended: false
   review_loop_iteration: 0
   deferred_count: 0
@@ -58,7 +58,7 @@ legacy_review_loop_done: false
 legacy_external_review_iterations: null
 legacy_convergence_unverified: false
 legacy_artifact_path: null
-commits: [cfe7ded, 27d71b9, 71a5a8c, 18d494c, 96116a9, 4f6032c]
+commits: [cfe7ded, 27d71b9, 71a5a8c, 18d494c, 96116a9, 4f6032c, 4189d8c, 9267b18, d5d9d52]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -91,7 +91,9 @@ deferred_work:
   - "Implement the additive migration, roles/matrix/capability modules, context/envelope/coherence wiring, and H4/factory extensions."
   - "Remove ATDD skips incrementally and run typecheck, unit, reset, integration, and lint gates."
   - "Keep UI, Phase-A role rollout, admin user-management flows, and Roles UI for Stories 11.2â€“11.4."
-blockers: []
+blockers:
+  - "DB reset/RLS verification pending CI; local Docker Desktop unavailable."
 overrides:
   resume_autonomously: true
+  verification_via_ci: true
 constraints: []
