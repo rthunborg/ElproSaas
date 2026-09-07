@@ -9,11 +9,11 @@ spec_folder: null
 story_id: null
 branch: codex/11-2-non-admin-access-to-the-phase-a-surface-matrix-seed-role-aware-rls-nav-and-landing
 status: in-progress
-updated_at: "2026-09-07T16:40:42Z"
+updated_at: "2026-09-07T16:50:52Z"
 started_at: "2026-09-07T16:40:40Z"
 completed_at: null
-active_seconds: 0
-timing_anchor: 1788799242
+active_seconds: 592
+timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
 git_mode: remote
@@ -34,16 +34,16 @@ tea_selected: [atdd, automate]
 tea_rationale: "Authorization and role-aware RLS enforce least privilege, money-field withholding and server-side denial across the Phase A surface."
 epic_story_count: 4
 stories_after_in_epic: 2
-completed_phases: [0, 1, 2]
-spec_path: null
-spec_approved: false
+completed_phases: [0, 1, 2, 3]
+spec_path: "C:/DEV/ElproSaas/_bmad-output/implementation-artifacts/spec-11-2-non-admin-access-to-the-phase-a-surface-matrix-seed-role-aware-rls-nav-and-landing.md"
+spec_approved: true
 build:
-  status: null
+  status: ready-for-dev
   blocking_condition: null
   followup_review_recommended: false
   review_loop_iteration: 0
   deferred_count: 0
-  warnings: []
+  warnings: [oversized]
 followup_passes: 0
 hitl_halt: null
 review_unverified: false
@@ -54,7 +54,7 @@ legacy_review_loop_done: false
 legacy_external_review_iterations: null
 legacy_convergence_unverified: false
 legacy_artifact_path: null
-commits: []
+commits: [454ba58]
 phase8_steps:
   trace_gate: null
   nfr: null
