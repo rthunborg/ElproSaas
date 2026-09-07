@@ -292,11 +292,11 @@ export function validateManifestCoherence(
       : null;
 
   if (matrixModules) {
-    for (const module of modules) {
-      if (module.status === "active" && !matrixModules.has(module.id)) {
+    for (const scopeModule of modules) {
+      if (scopeModule.status === "active" && !matrixModules.has(scopeModule.id)) {
         violations.push({
           rule: "active-module-missing-permission-matrix",
-          detail: `active module "${module.id}" has no permission-matrix rows`,
+          detail: `active module "${scopeModule.id}" has no permission-matrix rows`,
         });
       }
     }

@@ -39,9 +39,9 @@ export function resolveCapability(input: {
   if (typeof input.module !== "string" || typeof input.capability !== "string") return { granted: false };
   const matrix = input.matrix === undefined ? PERMISSION_MATRIX : input.matrix;
   if (!matrix || typeof matrix !== "object") return { granted: false };
-  const module = (matrix as Record<string, unknown>)[input.module];
-  if (!module || typeof module !== "object") return { granted: false };
-  const row = (module as Record<string, unknown>)[input.capability];
+  const matrixModule = (matrix as Record<string, unknown>)[input.module];
+  if (!matrixModule || typeof matrixModule !== "object") return { granted: false };
+  const row = (matrixModule as Record<string, unknown>)[input.capability];
   if (!row || typeof row !== "object" || !Array.isArray((row as { roles?: unknown }).roles)) return { granted: false };
   const allowed = (row as { roles: unknown[] }).roles;
   if (!allowed.every(isTenantRole)) return { granted: false };

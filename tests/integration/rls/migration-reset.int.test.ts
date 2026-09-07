@@ -7,7 +7,7 @@
  * cleanly when the stack is unreachable (CI sets SUPABASE_TEST_REQUIRED=1 to make
  * a missing stack a hard failure).
  */
-import { describe, it, test, expect, beforeAll, afterAll } from "vitest";
+import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { adminQuery, closeAdminPool } from "../../factories/admin-sql";
 import { isLocalStackReachable } from "../../support/test-env";
 import { skipUnlessStack } from "../../support/stack-gate";
