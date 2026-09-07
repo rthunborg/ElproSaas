@@ -2,7 +2,7 @@
 title: 'Story 11.1: Role Storage and Permission-Matrix Mechanism'
 type: 'feature'
 created: '2026-09-04'
-status: 'done'
+status: 'blocked'
 baseline_revision: '4189d8c59da27b61f4e92c8463431a31a68e8639'
 review_loop_iteration: 0
 followup_review_recommended: true
@@ -90,12 +90,21 @@ The scalar `tenant_memberships.role` is retained as the compatibility role; `mem
 
 ## Auto Run Result
 
-Status: done
-Blocking condition: none
+Status: blocked
+Blocking condition: external-review export approval
 
 Verification detail: CI run https://github.com/rthunborg/ElproSaas/actions/runs/34105099398 on `bc634ab` reports `verify=success`, `db=success`, and `e2e=success`. The `db` job executed the clean Supabase reset plus the required integration/RLS tests, resolving the local-only Docker blocker.
 
 Fresh verification: CI run https://github.com/rthunborg/ElproSaas/actions/runs/34121027063 on `396c446f1aed74cb1a5c556640f8cd2477f46f42` reports `verify=success`, `db=success`, and `e2e=success`; `ci_wait` also passed in 649 seconds. The `db` job performed a clean Supabase migration reset and the required integration/RLS gates. This supersedes the earlier code evidence because the review pass changed the database migration.
+
+### 2026-09-07 — Follow-up review blocked
+
+Status: blocked
+Blocking condition: explicit approval is required to provide the private repository diff and referenced files to the configured external Luna/xhigh reviewer.
+
+Completed fresh layers: Blind Hunter, Edge Case Hunter, Verification Gap Reviewer, Intent Alignment Auditor, and Sol/xhigh Security Reviewer (`No findings`). The external reviewer was not counted as completed: its default read-only invocation failed with `Error finding codex home: Could not find home directory`; the scoped escalated retry was policy-rejected because it could export private repository material. No alternate invocation was attempted.
+
+Triage to date found no verified new patch, bad-spec, intent-gap, or deferred item. The proposed scalar/non-admin access concerns are not reachable in the current Phase-A surface: `tenant_memberships_select_own` remains guarded by `is_tenant_admin(tenant_id)`, so a non-admin cannot obtain a membership row before the resolver, child-role query, or protected app shell. Existing CI evidence remains the exact successful run above; no local DB/service was started and no production code changed during this follow-up pass.
 
 ## Review Triage Log
 
@@ -113,3 +122,14 @@ Fresh verification: CI run https://github.com/rthunborg/ElproSaas/actions/runs/3
   - `[low]` `[patch]` Added a child-role domain-check regression test.
   - `[high]` `[patch]` Luna/xhigh cross-model review found that newly-valid non-admin scalar roles could directly forge same-tenant audit records through `record_audit_event`; the Story migration now retains the Phase-A `is_tenant_admin` boundary and the RLS regression asserts `42501`.
   - `[reject]` Luna/xhigh also reported that manifest coherence did not fail loudly at import. The downstream invariant is the mandatory real-manifest unit case, which calls `validate(real, { permissionMatrix: PERMISSION_MATRIX })` and asserts an empty violation set; a missing active-module matrix row therefore fails CI. The export comment is imprecise but there is no reachable bypass.
+
+### 2026-09-07 — Review pass
+- intent_gap: 0
+- bad_spec: 0
+- patch: 0
+- defer: 0
+- reject: 16
+- addressed_findings:
+  - none
+
+External Luna/xhigh review was not completed because the required scoped escalation was policy-rejected pending explicit approval to provide the private diff and referenced repository files. The completed local layers' proposed non-admin role-resolution and Phase-A shell concerns were rejected after checking the existing `tenant_memberships_select_own` RLS predicate: it requires `is_tenant_admin(tenant_id)`, so a scalar non-admin cannot reach the resolver or shell in the current release.
