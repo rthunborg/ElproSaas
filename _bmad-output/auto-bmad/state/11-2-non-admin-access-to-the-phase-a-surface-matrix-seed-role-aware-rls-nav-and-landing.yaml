@@ -9,11 +9,11 @@ spec_folder: null
 story_id: null
 branch: codex/11-2-non-admin-access-to-the-phase-a-surface-matrix-seed-role-aware-rls-nav-and-landing
 status: in-progress
-updated_at: "2026-09-07T18:07:45Z"
+updated_at: "2026-09-07T18:15:49Z"
 started_at: "2026-09-07T16:40:40Z"
 completed_at: null
-active_seconds: 2022
-timing_anchor: 1788804465
+active_seconds: 2487
+timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
 git_mode: remote
@@ -40,8 +40,8 @@ completed_phases: [0, 1, 2, 3, 4]
 spec_path: "C:/DEV/ElproSaas/_bmad-output/implementation-artifacts/spec-11-2-non-admin-access-to-the-phase-a-surface-matrix-seed-role-aware-rls-nav-and-landing.md"
 spec_approved: true
 build:
-  status: in-progress
-  blocking_condition: null
+  status: blocked
+  blocking_condition: "no trusted resource-guard hook context is available for the mandatory isolated local Supabase reset, fixture mutation, authenticated RLS verification, or Playwright web-server lifecycle."
   followup_review_recommended: false
   review_loop_iteration: 0
   deferred_count: 0
@@ -56,7 +56,7 @@ legacy_review_loop_done: false
 legacy_external_review_iterations: null
 legacy_convergence_unverified: false
 legacy_artifact_path: null
-commits: [454ba58, 1b6c563, efd8d73, b725092, 39f2b9c]
+commits: [454ba58, 1b6c563, efd8d73, b725092, 39f2b9c, 2d4c68d]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -82,7 +82,7 @@ branch_deleted: false
 open_questions: []
 deferred_work: []
 blockers:
-  - "Full runtime verification requires the current actor's trusted resource-guard hook context and a verified isolated local test target; no context was injected in the preparation session. Docker and local Supabase are now reachable."
+  - "no trusted resource-guard hook context is available for the mandatory isolated local Supabase reset, fixture mutation, authenticated RLS verification, or Playwright web-server lifecycle."
 overrides:
   branch_prefix: "codex/ (host instruction)"
   recovery_preparation: "User requested specification and requirements repair; resume Phase 5 implementation with unchanged acceptance gates."

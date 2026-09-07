@@ -2,10 +2,10 @@
 title: 'Story 11.2: Non-Admin Access to the Phase A Surface (Matrix Seed, Role-Aware RLS, Nav and Landing)'
 type: 'feature'
 created: '2026-09-07'
-status: 'in-progress'
+status: 'blocked'
 review_loop_iteration: 0
 followup_review_recommended: false
-baseline_revision: 'efd8d73d53479ba737a09456c7d740cdaa6e028b'
+baseline_revision: '2d4c68d587f8e980135abb321992698087745d51'
 context:
   - 'docs/process/story-11-2-resume.md'
   - '_bmad-output/implementation-artifacts/epic-11-context.md'
@@ -93,10 +93,10 @@ The matrix is the server authority; client nav keeps only authored label/icon me
 
 ## Auto Run Result
 
-Status: in-progress
-Blocking condition: none
+Status: blocked
+Blocking condition: no trusted resource-guard hook context is available for the mandatory isolated local Supabase reset, fixture mutation, authenticated RLS verification, or Playwright web-server lifecycle.
 
-The user requested specification and prerequisite repair. The story is reopened for Phase 5 implementation; no implementation or acceptance gate was completed during that repair. Full automated verification remains pending the lifecycle prerequisite above.
+The resumed implementation pass added focused server-authority coverage for role-filtered navigation, landing, the Montör dashboard fallback, direct-route denial, and role-union route access. It passed `pnpm run typecheck`, focused ESLint, and the registered `pnpm run test:unit -- --test-name-pattern='11.2-UNIT'` runner (1,710 passing, 0 failed/skipped/todo); that runner executes the full unit suite. The core implementation remains incomplete: the required role-aware policy migration is empty; command capabilities, direct-route enforcement, read projections, fixtures, and all ten ATDD scenarios remain incomplete or skipped. Full automated verification remains pending the lifecycle prerequisite above.
 
 ## Recovery History
 
