@@ -69,9 +69,9 @@ function makeModule(over: Partial<FixtureModule> = {}): FixtureModule {
   };
 }
 
-async function loadValidator(): Promise<(m: { modules: FixtureModule[] }) => Violation[]> {
+async function loadValidator(): Promise<(m: { modules: FixtureModule[] }, options?: { permissionMatrix?: unknown }) => Violation[]> {
   const mod = (await import("@/scope/manifest-schema")) as {
-    validateManifestCoherence: (m: { modules: FixtureModule[] }) => Violation[];
+    validateManifestCoherence: (m: { modules: FixtureModule[] }, options?: { permissionMatrix?: unknown }) => Violation[];
   };
   return mod.validateManifestCoherence;
 }
@@ -295,7 +295,7 @@ test("10.1-UNIT-COH-06 (EB-A5 carve-out): the validator does NOT implement the p
   );
 });
 
-test.skip("[P0] 11.1 coherence: missing matrix coverage for an active module emits the dedicated violation while the real matrix remains green", async () => {
+test("[P0] 11.1 coherence: missing matrix coverage for an active module emits the dedicated violation while the real matrix remains green", async () => {
   const validate = await loadValidator();
   const { PERMISSION_MATRIX } = await import("@/server/authz/permission-matrix");
   const missing = { modules: [makeModule({ id: "foundation" })] };

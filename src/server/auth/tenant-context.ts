@@ -1,3 +1,5 @@
+import type { TenantRole } from "@/server/authz/roles";
+
 /**
  * Types for server-resolved tenant context (Story 2.1, architecture §5/§8).
  *
@@ -10,7 +12,7 @@
 
 /** Phase A is `tenant_admin` only (architecture §6, §8). */
 export const TENANT_ADMIN_ROLE = "tenant_admin" as const;
-export type TenantRole = typeof TENANT_ADMIN_ROLE;
+export type { TenantRole } from "@/server/authz/roles";
 
 /** Membership lifecycle status (architecture §8). ONLY `active` grants access. */
 export type MembershipStatus = "active" | "invited" | "disabled";
@@ -20,6 +22,8 @@ export type TenantContext = {
   readonly userId: string;
   readonly tenantId: string;
   readonly role: TenantRole;
+  /** Server-derived legacy plus child assignments; never client supplied. */
+  readonly roles?: readonly TenantRole[];
   readonly status: Extract<MembershipStatus, "active">;
   /** Presentational only — display value for the top bar. Not an authority input. */
   readonly userEmail: string | null;

@@ -98,6 +98,7 @@ import {
 export type CommandErrorCode =
   | TenantContextErrorCode // UNAUTHENTICATED | TENANT_MEMBERSHIP_REQUIRED | SERVER_ERROR
   | "VALIDATION_FAILED"
+  | "PERMISSION_DENIED"
   | "TENANT_ACCESS_DENIED"
   | "FILE_ACCESS_DENIED"
   | "COMMAND_CONFLICT"
@@ -166,6 +167,7 @@ export const COMMAND_MESSAGES: Record<CommandErrorCode, string> = {
   // New envelope codes.
   VALIDATION_FAILED:
     "Begäran kunde inte behandlas eftersom indata var ogiltiga. Kontrollera och försök igen.",
+  PERMISSION_DENIED: "Du har inte behörighet att utföra åtgärden.",
   TENANT_ACCESS_DENIED:
     "Du har inte behörighet till den begärda resursen.",
   // File-specific denial (lifecycle-ineligible / signing failed) on an OWNED file.

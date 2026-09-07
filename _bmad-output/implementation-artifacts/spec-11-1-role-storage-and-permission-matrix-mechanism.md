@@ -2,7 +2,8 @@
 title: 'Story 11.1: Role Storage and Permission-Matrix Mechanism'
 type: 'feature'
 created: '2026-09-04'
-status: 'ready-for-dev'
+status: 'in-progress'
+baseline_revision: '4189d8c59da27b61f4e92c8463431a31a68e8639'
 review_loop_iteration: 0
 followup_review_recommended: false
 context:

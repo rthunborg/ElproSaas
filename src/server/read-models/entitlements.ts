@@ -33,6 +33,7 @@
  *  §3.6 / §3.1 ADR-B001; test-design-epic-10.md#10.4-UNIT-01, R-1040/R-1046]
  */
 import type { PipelineAggregate } from "./quote-pipeline-aggregate";
+import { resolveSensitiveFieldEntitlement } from "@/server/authz/permission-matrix";
 
 /** A stable field-path string the UI resolves to "mask/omit this column" (never a role name/sentinel). */
 export type FieldPath = string;
@@ -90,7 +91,13 @@ const MONEY_FIELD_PATHS: readonly FieldPath[] = ["acceptedValueOre"];
  */
 function resolveMoneyEntitled(input?: EntitlementInput): boolean {
   if (input?.moneyEntitled !== undefined) return input.moneyEntitled;
-  if (input?.roles !== undefined) return input.roles.includes("tenant_admin");
+  if (input?.roles !== undefined) {
+    return !resolveSensitiveFieldEntitlement({
+      roles: input.roles,
+      module: "quotes",
+      field: "acceptedValueOre",
+    }).withheld;
+  }
   return false;
 }
 

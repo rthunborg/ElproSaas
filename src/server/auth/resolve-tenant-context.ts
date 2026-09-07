@@ -28,11 +28,7 @@ import {
   type ResolveTenantContextResult,
   type ResolvedUser,
 } from "./resolve-tenant-context-core";
-import {
-  TENANT_ADMIN_ROLE,
-  TENANT_CONTEXT_MESSAGES,
-  type MembershipStatus,
-} from "./tenant-context";
+import { TENANT_CONTEXT_MESSAGES, type MembershipStatus } from "./tenant-context";
 
 /** The minimal slice of the Supabase server client the resolver depends on. */
 type SupabaseAuthClient = Awaited<
@@ -138,9 +134,8 @@ async function resolveTenantContextInner(
   const baseQuery = () =>
     supabase
       .from("tenant_memberships")
-      .select("tenant_id, role, status, created_at, tenants(name)")
-      .eq("user_id", user.id)
-      .eq("role", TENANT_ADMIN_ROLE);
+      .select("id, tenant_id, role, status, created_at, tenants(name)")
+      .eq("user_id", user.id);
 
   // (b1) Active rows first — filtered, so the user's active membership is NEVER capped out.
   const { data: activeRows, error: activeError } = await baseQuery()
@@ -169,6 +164,15 @@ async function resolveTenantContextInner(
   }
 
   const membership = selectPreferredMembership(membershipRows);
+  if (membership?.id) {
+    const { data: roleRows, error: rolesError } = await supabase
+      .from("membership_roles")
+      .select("role")
+      .eq("tenant_id", membership.tenant_id)
+      .eq("membership_id", membership.id);
+    if (rolesError) return err("SERVER_ERROR", TENANT_CONTEXT_MESSAGES.SERVER_ERROR);
+    membership.roles = (roleRows ?? []).map((row: { role?: unknown }) => row.role);
+  }
 
   // (c) Pure decision (active + role; client-tenant-id is ignored, never the authority).
   return resolveTenantContextCore({
@@ -180,6 +184,7 @@ async function resolveTenantContextInner(
 
 /** The raw shape PostgREST returns for the membership query (pre-normalization). */
 type RawMembershipRow = {
+  readonly id?: unknown;
   readonly tenant_id?: unknown;
   readonly role?: unknown;
   readonly status?: unknown;
@@ -217,6 +222,7 @@ function selectPreferredMembership(
     // smell so an unexpected role can never be silently carried forward.
     if (typeof raw.role !== "string" || raw.role === "") continue;
     normalized.push({
+      id: typeof raw.id === "string" && raw.id !== "" ? raw.id : undefined,
       tenant_id: raw.tenant_id,
       role: raw.role,
       // Coerce the raw DB string to the union at the edge — unknown values fail closed to

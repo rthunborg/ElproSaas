@@ -33,6 +33,8 @@
  *  story 10.1 AC2/AC3, Tasks 2/4/5/6, Dev Notes (initial 24/7/7 partition; deny-list nuance).]
  */
 import type { ScopeManifest } from "./manifest-schema";
+import { PERMISSION_MATRIX } from "@/server/authz/permission-matrix";
+import { validateManifestCoherence } from "./manifest-schema";
 
 /**
  * Phase A baseline activation dates per delivering epic (Open Question 1 default). Grounded in the
@@ -63,7 +65,7 @@ export const SCOPE_MANIFEST: ScopeManifest = {
       epic: "E2",
       activatedAt: PHASE_A.E2,
       navItems: [], // nav-less — the tenancy/audit spine, not a user-facing module
-      tenantTables: ["tenants", "tenant_memberships", "audit_events"],
+      tenantTables: ["tenants", "tenant_memberships", "membership_roles", "audit_events"],
       widgets: [],
       notificationCategories: [],
       publicSurfaces: [],
@@ -464,3 +466,8 @@ export const SCOPE_MANIFEST: ScopeManifest = {
     },
   ],
 } satisfies ScopeManifest;
+
+/** Fail loud during module import when active-surface and authorization sources drift. */
+export const MANIFEST_COHERENCE_VIOLATIONS = validateManifestCoherence(SCOPE_MANIFEST, {
+  permissionMatrix: PERMISSION_MATRIX,
+});

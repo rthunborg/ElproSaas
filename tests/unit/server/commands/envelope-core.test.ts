@@ -31,18 +31,23 @@ async function load() {
   return { runCommandCore, COMMAND_MESSAGES };
 }
 
-test.skip("[P0] 11.1 envelope: declared capability denial occurs before validation, ownership, execute, and audit", async () => {
+test("[P0] 11.1 envelope: declared capability denial occurs before validation, ownership, execute, and audit", async () => {
   const { runCommandCore: run } = await load();
   const calls: string[] = [];
   const result = await run({
-    resolveContext: async () => ({ ok: true, data: { roles: ["montor"] } }),
-    requiredCapability: { module: "foundation", capability: "Memberships.Manage" },
-    validate: async () => { calls.push("validate"); return { ok: true, data: {} }; },
-    ownership: async () => { calls.push("ownership"); return { ok: true }; },
-    execute: async () => { calls.push("execute"); return { ok: true, data: {} }; },
-    audit: async () => { calls.push("audit"); },
+    tenantContextResult: { ok: true, data: { ...ACTIVE_CTX, roles: ["montor"] } },
+    capability: { module: "foundation", capability: "Memberships.Manage" },
+    rawInput: {},
+    validate: () => { calls.push("validate"); return { ok: true, data: {} }; },
+    verifyOwnership: () => { calls.push("ownership"); return { ok: true }; },
+    execute: () => { calls.push("execute"); return {}; },
+    recordAudit: () => { calls.push("audit"); },
+    auditable: true,
+    command: "test",
+    eventType: "test",
   });
-  assert.deepEqual(result, { ok: false, code: "PERMISSION_DENIED" });
+  assert.equal(result.ok, false);
+  if (!result.ok) assert.equal(result.code, "PERMISSION_DENIED");
   assert.deepEqual(calls, []);
 });
 
@@ -58,6 +63,7 @@ const ACTIVE_CTX = {
   userId: USER_ID,
   tenantId: TENANT_A,
   role: "tenant_admin",
+  roles: ["tenant_admin"],
   status: "active",
   userEmail: "admin@example.test",
   tenantName: "Acme Elektro AB",
