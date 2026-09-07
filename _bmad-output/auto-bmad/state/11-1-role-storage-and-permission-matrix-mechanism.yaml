@@ -9,11 +9,11 @@ spec_folder: null
 story_id: null
 branch: story/11-1-role-storage-and-permission-matrix-mechanism
 status: in-progress
-updated_at: "2026-09-07T09:09:25Z"
+updated_at: "2026-09-07T09:26:26Z"
 started_at: "2026-09-04T09:14:31Z"
 completed_at: null
 active_seconds: 4239
-timing_anchor: null
+timing_anchor: 1788773186
 is_first_in_epic: true
 is_last_in_epic: false
 git_mode: remote
@@ -42,8 +42,8 @@ completed_phases: [0, 1, 2, 3, 4]
 spec_path: "C:\\DEV\\ElproSaas\\_bmad-output\\implementation-artifacts\\spec-11-1-role-storage-and-permission-matrix-mechanism.md"
 spec_approved: true
 build:
-  status: blocked
-  blocking_condition: implementation verification failed
+  status: in-review
+  blocking_condition: null
   followup_review_recommended: false
   review_loop_iteration: 0
   deferred_count: 0
@@ -58,7 +58,7 @@ legacy_review_loop_done: false
 legacy_external_review_iterations: null
 legacy_convergence_unverified: false
 legacy_artifact_path: null
-commits: [cfe7ded, 27d71b9, 71a5a8c, 18d494c, 96116a9, 4f6032c, 4189d8c, 9267b18, d5d9d52]
+commits: [cfe7ded, 27d71b9, 71a5a8c, 18d494c, 96116a9, 4f6032c, 4189d8c, 9267b18, d5d9d52, "5686850", bc634ab]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -74,8 +74,8 @@ retro:
   verdict: null
   open_action_items: 0
 bmad_status_flipped_at: null
-pr_url: null
-ci_run_url: null
+pr_url: "https://github.com/rthunborg/ElproSaas/pull/49"
+ci_run_url: "https://github.com/rthunborg/ElproSaas/actions/runs/34105099398"
 ci_status: unknown
 pr_merged: false
 merge_method: null
@@ -91,8 +91,7 @@ deferred_work:
   - "Implement the additive migration, roles/matrix/capability modules, context/envelope/coherence wiring, and H4/factory extensions."
   - "Remove ATDD skips incrementally and run typecheck, unit, reset, integration, and lint gates."
   - "Keep UI, Phase-A role rollout, admin user-management flows, and Roles UI for Stories 11.2â€“11.4."
-blockers:
-  - "DB reset/RLS verification pending CI; local Docker Desktop unavailable."
+blockers: []
 overrides:
   resume_autonomously: true
   verification_via_ci: true

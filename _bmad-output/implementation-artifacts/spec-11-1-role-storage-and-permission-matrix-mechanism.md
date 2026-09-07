@@ -2,7 +2,7 @@
 title: 'Story 11.1: Role Storage and Permission-Matrix Mechanism'
 type: 'feature'
 created: '2026-09-04'
-status: 'blocked'
+status: 'in-review'
 baseline_revision: '4189d8c59da27b61f4e92c8463431a31a68e8639'
 review_loop_iteration: 0
 followup_review_recommended: false
@@ -90,7 +90,7 @@ The scalar `tenant_memberships.role` is retained as the compatibility role; `mem
 
 ## Auto Run Result
 
-Status: blocked
-Blocking condition: implementation verification failed
+Status: in-review
+Blocking condition: none
 
-Verification detail: `supabase db reset` could not connect to Docker Desktop's `dockerDesktopLinuxEngine` pipe. `pnpm run test:int` therefore ran its non-DB guards (87 files / 46 tests passed) but dynamically skipped the 890 DB-backed integration/RLS tests, including the Story 11.1 matrix coverage. CI's `db` job remains the configured environment for the required `supabase start` → migration reset → `pnpm run test:int` path.
+Verification detail: CI run https://github.com/rthunborg/ElproSaas/actions/runs/34105099398 on `bc634ab` reports `verify=success` and `db=success`. The `db` job executed the clean Supabase reset plus the required integration/RLS tests, resolving the local-only Docker blocker. The e2e job remains in progress and is not claimed as completion evidence.
