@@ -8,34 +8,30 @@ alter table public.tenant_memberships
   add constraint tenant_memberships_role_check
   check (role in ('tenant_admin', 'projektledare', 'montor', 'saljare', 'ekonomi'));
 
+-- The composite parent key is the concurrency-safe tenancy authority for child
+-- assignments.  A child FK check takes a KEY SHARE lock on this key, which
+-- conflicts with a concurrent parent update that changes `tenant_id`.
+alter table public.tenant_memberships
+  add constraint tenant_memberships_id_tenant_unique unique (id, tenant_id);
+
 create table public.membership_roles (
   id uuid primary key default gen_random_uuid(),
   tenant_id uuid not null references public.tenants(id) on delete cascade,
-  membership_id uuid not null references public.tenant_memberships(id) on delete cascade,
+  membership_id uuid not null,
   role text not null check (role in ('tenant_admin', 'projektledare', 'montor', 'saljare', 'ekonomi')),
   created_at timestamptz not null default now(),
-  -- A membership can hold MORE THAN ONE additional role.  The tenant/membership
-  -- relationship is enforced by the trigger below; only an identical role may not
-  -- be assigned twice.
-  constraint membership_roles_membership_role_unique unique (membership_id, role)
+  -- A membership can hold MORE THAN ONE additional role; only an identical role
+  -- may not be assigned twice.
+  constraint membership_roles_membership_role_unique unique (membership_id, role),
+  -- One declarative constraint enforces the tenant match and serializes a child
+  -- write against any parent tenant move.  Trigger-only existence checks leave a
+  -- READ COMMITTED write-skew race; the FK's key locks close that gap.
+  constraint membership_roles_membership_tenant_fk
+    foreign key (membership_id, tenant_id)
+    references public.tenant_memberships (id, tenant_id)
+    on update restrict
+    on delete cascade
 );
-
-create or replace function public.enforce_membership_role_tenant_match()
-returns trigger language plpgsql security definer set search_path = '' as $$
-begin
-  if not exists (
-    select 1 from public.tenant_memberships m
-    where m.id = new.membership_id and m.tenant_id = new.tenant_id
-  ) then
-    raise exception using errcode = '23503', message = 'membership role tenant mismatch';
-  end if;
-  return new;
-end;
-$$;
-
-create trigger membership_roles_tenant_match
-  before insert or update of tenant_id, membership_id on public.membership_roles
-  for each row execute function public.enforce_membership_role_tenant_match();
 
 alter table public.membership_roles enable row level security;
 alter table public.membership_roles force row level security;
@@ -45,24 +41,6 @@ grant select, insert, update, delete on public.membership_roles to service_role;
 
 create policy membership_roles_select_own on public.membership_roles
   for select to authenticated using (public.is_tenant_admin(tenant_id));
-
--- `membership_roles.tenant_id` is constrained to its parent membership by the child trigger.
--- Prevent a privileged provisioning/migration path from moving that parent to another tenant and
--- leaving existing child rows stale under the old tenant.
-create or replace function public.prevent_membership_tenant_move_with_roles()
-returns trigger language plpgsql security definer set search_path = '' as $$
-begin
-  if new.tenant_id is distinct from old.tenant_id
-     and exists (select 1 from public.membership_roles where membership_id = old.id) then
-    raise exception using errcode = '23503', message = 'membership tenant cannot change while role assignments exist';
-  end if;
-  return new;
-end;
-$$;
-
-create trigger tenant_memberships_prevent_role_tenant_move
-  before update of tenant_id on public.tenant_memberships
-  for each row execute function public.prevent_membership_tenant_move_with_roles();
 
 create or replace function public.has_tenant_role(target_tenant_id uuid, allowed_roles text[])
 returns boolean language sql stable security definer set search_path = '' as $$

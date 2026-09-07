@@ -73,6 +73,13 @@ async function saveRow(page: Page, calculationId: string, form: Locator): Promis
   await button.click();
   expect((await response).ok()).toBeTruthy();
   await expect(form.getByTestId("row-saved")).toBeVisible();
+  // `row-saved` is the local action-state acknowledgement.  It does not prove
+  // that the page-level totals have consumed the newly revalidated server
+  // snapshot, and CI retries exposed stale form/totals combinations.  Reload
+  // after persistence so every following assertion reads one coherent render.
+  await page.reload();
+  await expect(form).toHaveCount(1);
+  await expect(page.getByTestId("totals-summary").first()).toBeVisible();
 }
 
 async function saveTaxSettings(

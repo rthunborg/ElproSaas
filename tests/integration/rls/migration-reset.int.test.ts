@@ -464,18 +464,43 @@ describe("Migration reset green — tenant_foundation objects present (AC1 / R-0
     }
   });
 
-  it("[P0] 11.1 reset: membership_roles is present, H4-enrolled, and has_tenant_role is a hardened DEFINER helper", async (testCtx) => {
+  it("[P0] 11.1 reset: membership_roles has a composite tenant FK and has_tenant_role is a hardened DEFINER helper", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     const tables = await adminQuery<{ table_name: string }>(
       "select table_name from information_schema.tables where table_schema = 'public' and table_name = 'membership_roles'",
     );
     expect(tables).toEqual([{ table_name: "membership_roles" }]);
-    const functions = await adminQuery<{ prosecdef: boolean; proconfig: string[] | null }>(
-      "select prosecdef, proconfig from pg_proc where oid = 'public.has_tenant_role(uuid,text[])'::regprocedure",
+    const foreignKeys = await adminQuery<{ definition: string }>(
+      `select pg_get_constraintdef(oid) as definition
+         from pg_constraint
+        where conrelid = 'public.membership_roles'::regclass
+          and contype = 'f'`,
+    );
+    expect(foreignKeys.some(({ definition }) =>
+      /FOREIGN KEY \(membership_id, tenant_id\) REFERENCES tenant_memberships\(id, tenant_id\) ON UPDATE RESTRICT ON DELETE CASCADE/i.test(definition),
+    )).toBe(true);
+
+    const functions = await adminQuery<{
+      prosecdef: boolean;
+      proconfig: string[] | null;
+      anon_can_execute: boolean;
+      authenticated_can_execute: boolean;
+      service_role_can_execute: boolean;
+    }>(
+      `select prosecdef,
+              proconfig,
+              has_function_privilege('anon', oid, 'EXECUTE') as anon_can_execute,
+              has_function_privilege('authenticated', oid, 'EXECUTE') as authenticated_can_execute,
+              has_function_privilege('service_role', oid, 'EXECUTE') as service_role_can_execute
+         from pg_proc
+        where oid = 'public.has_tenant_role(uuid,text[])'::regprocedure`,
     );
     expect(functions).toHaveLength(1);
     expect(functions[0]?.prosecdef).toBe(true);
     assertSearchPathExactlyEmpty("has_tenant_role", functions[0]?.proconfig ?? null);
+    expect(functions[0]?.anon_can_execute).toBe(false);
+    expect(functions[0]?.authenticated_can_execute).toBe(true);
+    expect(functions[0]?.service_role_can_execute).toBe(true);
   });
 });
 
