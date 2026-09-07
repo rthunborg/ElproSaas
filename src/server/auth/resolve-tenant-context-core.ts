@@ -24,12 +24,12 @@
  */
 import { err, ok, type Result } from "@/lib/result/result";
 import {
-  TENANT_ADMIN_ROLE,
   TENANT_CONTEXT_MESSAGES,
   type MembershipStatus,
   type TenantContext,
   type TenantContextErrorCode,
 } from "./tenant-context";
+import { isTenantRole, normalizeRoles } from "@/server/authz/roles";
 
 /** The minimal shape of a re-validated user (from `getClaims()`/`getUser()`). */
 export type ResolvedUser = {
@@ -48,8 +48,10 @@ export type ResolvedUser = {
  * never sneak through as `active`, and the union here is authoritative.
  */
 export type MembershipRow = {
+  readonly id?: string;
   readonly tenant_id: string;
   readonly role: string;
+  roles?: readonly unknown[];
   readonly status: MembershipStatus;
   /** Optional joined tenant display name (presentational only). */
   readonly tenant_name?: string | null;
@@ -101,8 +103,8 @@ export function resolveTenantContextCore(
     );
   }
 
-  // 4. Role must be 'tenant_admin' (Phase A only role). Any other role is rejected.
-  if (membership.role !== TENANT_ADMIN_ROLE) {
+  // 4. An unknown stored role never grants a tenant context.
+  if (!isTenantRole(membership.role)) {
     return err(
       "TENANT_MEMBERSHIP_REQUIRED",
       TENANT_CONTEXT_MESSAGES.TENANT_MEMBERSHIP_REQUIRED,
@@ -124,7 +126,8 @@ export function resolveTenantContextCore(
   return ok({
     userId: user.id,
     tenantId: membership.tenant_id,
-    role: TENANT_ADMIN_ROLE,
+    role: membership.role,
+    roles: normalizeRoles([membership.role, ...(membership.roles ?? [])]),
     status: "active",
     userEmail: user.email,
     tenantName: membership.tenant_name ?? null,

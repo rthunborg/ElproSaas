@@ -96,10 +96,22 @@ test("AC1: active tenant_admin -> Ok with membership-derived tenant + presentati
       userId: "user-1",
       tenantId: "tenant-A",
       role: "tenant_admin",
+      roles: ["tenant_admin"],
       status: "active",
       userEmail: "admin@example.test",
       tenantName: "Acme Elektro AB",
     });
+  }
+});
+
+test("11.1: every closed non-admin scalar role resolves to its normalized singleton role set", () => {
+  for (const role of ["projektledare", "montor", "saljare", "ekonomi"]) {
+    const result = resolveTenantContextCore({
+      user: USER,
+      membership: { ...ACTIVE_ADMIN, role },
+    });
+    assert.equal(result.ok, true, `${role} must remain a recognized scalar role`);
+    if (result.ok) assert.deepEqual(result.data.roles, [role]);
   }
 });
 

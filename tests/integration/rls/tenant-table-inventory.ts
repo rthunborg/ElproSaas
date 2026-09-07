@@ -99,6 +99,7 @@ export type TenantTableName =
   // foundation
   | "tenants"
   | "tenant_memberships"
+  | "membership_roles"
   | "audit_events"
   // Story 3.1 CRM — `authenticated` HAS an INSERT/UPDATE grant → cross-tenant UPDATE denial is
   // RLS-USING invisibility (zero rows + unchanged re-read), NOT a missing-grant 42501.
@@ -300,6 +301,7 @@ export function updateDenialKind(table: TenantTableName): MutationDenialKind {
   switch (table) {
     case "tenants":
     case "tenant_memberships":
+    case "membership_roles":
     case "audit_events":
     case "quote_review_authorizations":
     case "tenant_counters":
@@ -423,6 +425,12 @@ export function spoofedRowFor(
         user_id: fixture.adminA.id,
         role: "tenant_admin",
         status: "active",
+      };
+    case "membership_roles":
+      return {
+        tenant_id: fixture.tenantB.id,
+        membership_id: crypto.randomUUID(),
+        role: "montor",
       };
     case "customers":
       // A customer row forging Tenant B ownership. `authenticated` HAS an INSERT
@@ -754,6 +762,8 @@ export function spoofedRowFor(
         due_date: futureStockholmDay(),
         status: "open",
       };
+    case "membership_roles":
+      return { column: "tenant_id", value: ctx.fixture.tenantB.id };
     default:
       return assertNever(table);
   }
@@ -996,6 +1006,8 @@ export function tenantBFilter(
           table,
         ),
       };
+    case "membership_roles":
+      return { column: "tenant_id", value: ctx.fixture.tenantB.id };
     default:
       return assertNever(table);
   }
@@ -1081,6 +1093,8 @@ export function hijackMutationFor(
       // `note` is a real column so the statement parses (the denial is the missing grant, not a
       // bad column reference).
       return { note: "hijacked-by-tenant-a" };
+    case "membership_roles":
+      return { role: "montor" };
     case "quote_follow_ups":
       // UPDATE-able ("rls-invisible"): the cross-tenant UPDATE matches ZERO rows under RLS USING —
       // the hijack sets `note` (a mutable free-text column) to a value DIFFERENT from the seed's
@@ -1172,6 +1186,8 @@ export function rlsInvisibleLabelColumn(table: TenantTableName): string {
     // sets — re-read it to prove the seed value ("tenant-b-followup-seed") was NOT overwritten.
     case "quote_follow_ups":
       return "note";
+    case "membership_roles":
+      return "role";
     default:
       return assertNever(table);
   }
@@ -1445,6 +1461,8 @@ export function anonRowFor(
         due_date: futureStockholmDay(),
         status: "open",
       };
+    case "membership_roles":
+      return { tenant_id: fixture.tenantB.id, membership_id: crypto.randomUUID(), role: "montor" };
     default:
       return assertNever(table);
   }
@@ -1473,6 +1491,7 @@ export function anonFilterFor(
     case "audit_events":
     case "quote_review_authorizations":
     case "tenant_memberships":
+    case "membership_roles":
     case "customers":
     case "facilities":
     case "contacts":
@@ -1559,6 +1578,8 @@ export function anonMutationFor(
       return { note: "anon-hijack" };
     case "quote_follow_ups":
       return { note: "anon-hijack" };
+    case "membership_roles":
+      return { role: "montor" };
     default:
       return assertNever(table);
   }

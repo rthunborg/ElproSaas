@@ -1,0 +1,11 @@
+{
+  "story_id": "11-1",
+  "tdd_phase": "RED",
+  "total_scenarios": 15,
+  "unit_and_integration_scenarios": 15,
+  "e2e_scenarios": 0,
+  "all_scenarios_skipped": true,
+  "red_failure_evidence": "tests/unit/server/authz/permission-matrix.test.ts fails before implementation because the permission-matrix authority module does not exist.",
+  "e2e_reason": "Story 11.1 expressly excludes RBAC UI, navigation, landing, and lifecycle surfaces.",
+  "execution_mode": "subagent"
+}

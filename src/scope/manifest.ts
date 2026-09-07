@@ -63,7 +63,7 @@ export const SCOPE_MANIFEST: ScopeManifest = {
       epic: "E2",
       activatedAt: PHASE_A.E2,
       navItems: [], // nav-less — the tenancy/audit spine, not a user-facing module
-      tenantTables: ["tenants", "tenant_memberships", "audit_events"],
+      tenantTables: ["tenants", "tenant_memberships", "membership_roles", "audit_events"],
       widgets: [],
       notificationCategories: [],
       publicSurfaces: [],

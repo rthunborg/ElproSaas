@@ -31,6 +31,26 @@ async function load() {
   return { runCommandCore, COMMAND_MESSAGES };
 }
 
+test("[P0] 11.1 envelope: declared capability denial occurs before validation, ownership, execute, and audit", async () => {
+  const { runCommandCore: run } = await load();
+  const calls: string[] = [];
+  const result = await run({
+    tenantContextResult: { ok: true, data: { ...ACTIVE_CTX, roles: ["montor"] } },
+    capability: { module: "foundation", capability: "Memberships.Manage" },
+    rawInput: {},
+    validate: () => { calls.push("validate"); return { ok: true, data: {} }; },
+    verifyOwnership: () => { calls.push("ownership"); return { ok: true }; },
+    execute: () => { calls.push("execute"); return {}; },
+    recordAudit: () => { calls.push("audit"); },
+    auditable: true,
+    command: "test",
+    eventType: "test",
+  });
+  assert.equal(result.ok, false);
+  if (!result.ok) assert.equal(result.code, "PERMISSION_DENIED");
+  assert.deepEqual(calls, []);
+});
+
 /** The input shape these tests build (a result carrying `{ id }` or a lifecycle field). */
 type TestInput = RunCommandCoreInput<unknown, Record<string, unknown>, unknown>;
 
@@ -43,6 +63,7 @@ const ACTIVE_CTX = {
   userId: USER_ID,
   tenantId: TENANT_A,
   role: "tenant_admin",
+  roles: ["tenant_admin"],
   status: "active",
   userEmail: "admin@example.test",
   tenantName: "Acme Elektro AB",

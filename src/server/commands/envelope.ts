@@ -67,6 +67,8 @@ export type OwnershipTarget = {
 export type CommandConfig<I, R> = {
   /** Stable command name (audit `command`). */
   readonly command: string;
+  /** Explicit server-only capability gate, evaluated before validation/ownership/audit. */
+  readonly capability?: { readonly module: string; readonly capability: string };
   /** Whether a successful run writes an audit row. */
   readonly auditable: boolean;
   /** Lifecycle event type (audit `event_type`). */
@@ -150,6 +152,7 @@ export async function runCommand<I, R>(
 
     return await runCommandCore<I, R, CommandDbClient>({
       tenantContextResult: tenantContextResult as never,
+      capability: config.capability,
       validate: config.validateInput,
       rawInput: input,
       verifyOwnership: (ctx) => verifyOwnership(config, ctx),

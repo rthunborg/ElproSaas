@@ -30,6 +30,8 @@
  */
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 
 type NavSpec = { route: string; group?: string; requiredCapability?: string };
 type FixtureModule = {
@@ -69,9 +71,9 @@ function makeModule(over: Partial<FixtureModule> = {}): FixtureModule {
   };
 }
 
-async function loadValidator(): Promise<(m: { modules: FixtureModule[] }) => Violation[]> {
+async function loadValidator(): Promise<(m: { modules: FixtureModule[] }, options?: { permissionMatrix?: unknown }) => Violation[]> {
   const mod = (await import("@/scope/manifest-schema")) as {
-    validateManifestCoherence: (m: { modules: FixtureModule[] }) => Violation[];
+    validateManifestCoherence: (m: { modules: FixtureModule[] }, options?: { permissionMatrix?: unknown }) => Violation[];
   };
   return mod.validateManifestCoherence;
 }
@@ -293,4 +295,20 @@ test("10.1-UNIT-COH-06 (EB-A5 carve-out): the validator does NOT implement the p
     !flagged.has("active-module-missing-permission-matrix"),
     "the matrix-row rule must not be implemented in 10.1 (EB-A5 → 11.1)",
   );
+});
+
+test("[P0] 11.1 coherence: missing matrix coverage for an active module emits the dedicated violation while the real matrix remains green", async () => {
+  const validate = await loadValidator();
+  const { PERMISSION_MATRIX } = await import("@/server/authz/permission-matrix");
+  const missing = { modules: [makeModule({ id: "foundation" })] };
+  assert.ok(
+    rules(validate(missing, { permissionMatrix: {} })).has("active-module-missing-permission-matrix"),
+  );
+  assert.deepEqual(validate(await loadRealManifest(), { permissionMatrix: PERMISSION_MATRIX }), []);
+});
+
+test("[P0] 11.1 coherence keeps the permission matrix out of client-reachable manifest imports", () => {
+  const manifestSource = readFileSync(resolve(process.cwd(), "src/scope/manifest.ts"), "utf8");
+  assert.ok(!manifestSource.includes("permission-matrix"));
+  assert.ok(!manifestSource.includes("MANIFEST_COHERENCE_VIOLATIONS"));
 });

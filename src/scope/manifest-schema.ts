@@ -215,6 +215,8 @@ export function deferredFileTokensFromManifest(manifest: ManifestInput): string[
 export type CoherenceRule =
   /** An `active` module without an `epic` reference (§5.4 rule 1). */
   | "active-module-missing-epic"
+  /** An active manifest module lacks a code-owned permission-matrix row. */
+  | "active-module-missing-permission-matrix"
   /** An `active` module without an `activatedAt` date (§5.2 — an active module went live on a date). */
   | "missing-activation-date"
   /** An `active` module RETAINING a `deferredFileToken` — pending-only governance metadata that
@@ -275,9 +277,30 @@ function isCalendarDate(v: string): boolean {
 
 export function validateManifestCoherence(
   manifest: ScopeManifest,
+  options: { readonly permissionMatrix?: unknown } = {},
 ): CoherenceViolation[] {
   const violations: CoherenceViolation[] = [];
   const modules = manifest.modules ?? [];
+  const matrix = options.permissionMatrix;
+  const matrixModules =
+    matrix && typeof matrix === "object"
+      ? new Set(
+          Object.entries(matrix as Record<string, unknown>)
+            .filter(([, rows]) => rows && typeof rows === "object" && Object.keys(rows).length > 0)
+            .map(([id]) => id),
+        )
+      : null;
+
+  if (matrixModules) {
+    for (const scopeModule of modules) {
+      if (scopeModule.status === "active" && !matrixModules.has(scopeModule.id)) {
+        violations.push({
+          rule: "active-module-missing-permission-matrix",
+          detail: `active module "${scopeModule.id}" has no permission-matrix rows`,
+        });
+      }
+    }
+  }
 
   // ── Rule 1: an `active` module must carry an `epic` reference (§5.4 rule 1) AND an activation
   // date (§5.2 — an active module went live on a specific date; a missing date is an incoherent

@@ -26,6 +26,7 @@ const USER_ID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
 
 type FakeUser = { id: string; email?: string | null } | null;
 type FakeMembership = {
+  id?: string;
   tenant_id: string;
   role: string;
   status: string;
@@ -41,6 +42,8 @@ type FakeScript = {
   /** The full candidate set when a test needs to exercise multi-row selection. */
   memberships?: NonNullable<FakeMembership>[];
   membershipError?: boolean;
+  membershipRoles?: string[];
+  membershipRolesError?: boolean;
 };
 
 /**
@@ -95,13 +98,28 @@ function makeFakeSupabase(script: FakeScript) {
         error: script.authError ? { message: "invalid jwt" } : null,
       }),
     },
-    from: () => makeBuilder(),
+    from: (table: string) => {
+      if (table === "membership_roles") {
+        const roleBuilder = {
+          select: () => roleBuilder,
+          eq: () => roleBuilder,
+          then: (resolve: (value: { data: unknown; error: unknown }) => unknown) =>
+            resolve({
+              data: script.membershipRolesError ? null : (script.membershipRoles ?? []).map((role) => ({ role })),
+              error: script.membershipRolesError ? { message: "role lookup failed" } : null,
+            }),
+        };
+        return roleBuilder;
+      }
+      return makeBuilder();
+    },
   } as unknown as NonNullable<
     Parameters<typeof resolveTenantContext>[0]
   >["client"];
 }
 
 const ACTIVE_ADMIN: FakeMembership = {
+  id: "cccccccc-cccc-cccc-cccc-cccccccccccc",
   tenant_id: TENANT_A,
   role: "tenant_admin",
   status: "active",
@@ -367,4 +385,30 @@ test("Task 7.2: when NO row is active, the resolver denies (TENANT_MEMBERSHIP_RE
 
   assert.equal(result.ok, false);
   if (!result.ok) assert.equal(result.code, "TENANT_MEMBERSHIP_REQUIRED");
+});
+
+test("[P0] 11.1 resolver: active context includes legacy tenant_admin plus de-duplicated active child roles", async () => {
+  const result = await resolveTenantContext({
+    client: makeFakeSupabase({
+      user: { id: USER_ID },
+      membership: ACTIVE_ADMIN,
+      membershipRoles: ["projektledare", "saljare", "saljare"],
+    }),
+  });
+  assert.equal(result.ok, true);
+  if (result.ok) {
+    assert.deepEqual(new Set(result.data.roles), new Set(["tenant_admin", "projektledare", "saljare"]));
+  }
+});
+
+test("[P0] 11.1 resolver: a child-role lookup failure is a generic server failure", async () => {
+  const result = await resolveTenantContext({
+    client: makeFakeSupabase({
+      user: { id: USER_ID },
+      membership: ACTIVE_ADMIN,
+      membershipRolesError: true,
+    }),
+  });
+  assert.equal(result.ok, false);
+  if (!result.ok) assert.equal(result.code, "SERVER_ERROR");
 });

@@ -1,0 +1,99 @@
+# auto-bmad per-story state — written by scripts/state_update.py (full stable schema;
+# see references/state-and-resume.md). Prose belongs in reports/{key}.md, not here.
+story_key: 11-1-role-storage-and-permission-matrix-mechanism
+epic_num: 11
+story_num: 1
+story_suffix: ""
+story_source: sprint
+spec_folder: null
+story_id: null
+branch: story/11-1-role-storage-and-permission-matrix-mechanism
+status: done
+updated_at: "2026-09-07T14:28:45Z"
+started_at: "2026-09-04T09:14:31Z"
+completed_at: "2026-09-07T14:28:45Z"
+active_seconds: 20524
+timing_anchor: null
+is_first_in_epic: true
+is_last_in_epic: false
+git_mode: remote
+base_branch: main
+selected_phase: final_convergence
+selected_role: final-convergence
+selected_profile: critical
+selected_model: gpt-5.6-sol
+selected_effort: xhigh
+selected_host: codex
+selected_tier: subagents
+selected_route: subagent
+escalation_reason: "Meaningful follow-up produced three scoped patches and still recommends review; settle the result under the user-requested autonomous continuation, within the three-round cap."
+routing_ledger:
+  - "{\"effort\":\"medium\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-luna\",\"phase\":\"tea_triage\",\"profile\":\"light\",\"role\":\"test-risk-triage\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"xhigh\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-sol\",\"phase\":\"tea_epic\",\"profile\":\"critical\",\"role\":\"tea-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"high\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-terra\",\"phase\":\"build\",\"profile\":\"standard\",\"role\":\"build-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"high\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-terra\",\"phase\":\"tea_per_story\",\"profile\":\"standard\",\"role\":\"tea-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"high\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-terra\",\"phase\":\"build\",\"profile\":\"standard\",\"role\":\"build-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"high\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-terra\",\"phase\":\"tea_per_story\",\"profile\":\"standard\",\"role\":\"tea-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"high\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-terra\",\"phase\":\"followup_review\",\"profile\":\"standard\",\"role\":\"primary-reviewer\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"xhigh\",\"escalation_reason\":\"Meaningful follow-up produced three scoped patches and still recommends review; settle the result under the user-requested autonomous continuation, within the three-round cap.\",\"host\":\"codex\",\"model\":\"gpt-5.6-sol\",\"phase\":\"final_convergence\",\"profile\":\"critical\",\"role\":\"final-convergence\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+tea_risk: high
+tea_selected: [atdd, automate]
+tea_rationale: "authorization/permissions and data-integrity signals are explicit, with schema migration and RLS security impact"
+epic_story_count: 4
+stories_after_in_epic: 3
+completed_phases: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+spec_path: "C:\\DEV\\ElproSaas\\_bmad-output\\implementation-artifacts\\spec-11-1-role-storage-and-permission-matrix-mechanism.md"
+spec_approved: true
+build:
+  status: done
+  blocking_condition: null
+  followup_review_recommended: false
+  review_loop_iteration: 0
+  deferred_count: 0
+  warnings: []
+followup_passes: 3
+hitl_halt: continued
+review_unverified: false
+story_trace: null
+legacy_review_resume: false
+legacy_review_iteration: null
+legacy_review_loop_done: false
+legacy_external_review_iterations: null
+legacy_convergence_unverified: false
+legacy_artifact_path: null
+commits: [cfe7ded, 27d71b9, 71a5a8c, 18d494c, 96116a9, 4f6032c, 4189d8c, 9267b18, d5d9d52, "5686850", bc634ab, c3688f1, 1ac358b, 1e816c7, 396c446, 359f667, 39bfc50, 8b54fd0, 8fedfcc, cbe748d, d53e73a, a7738a2, 51bb142, 43d8068, ed1d439, 22b65a1]
+phase8_steps:
+  trace_gate: done
+  nfr: done
+  test_review: done
+  reconcile: done
+  archive: done
+  retro: done
+gate_decision: null
+gate_iterations: 0
+deferred_work_archived: 0
+retro:
+  doc: null
+  verdict: null
+  open_action_items: 0
+bmad_status_flipped_at: 9
+pr_url: "https://github.com/rthunborg/ElproSaas/pull/49"
+ci_run_url: "https://github.com/rthunborg/ElproSaas/actions/runs/34132172953"
+ci_status: passed
+pr_merged: false
+merge_method: null
+merge_commit: null
+branch_deleted: false
+open_questions:
+  - "Define invitation expiry, resend throttling/deduplication, and Auth/database compensation semantics."
+  - Define pilot-scale performance thresholds if performance should become release-gating.
+deferred_work:
+  - Epic-end NFR assessment remains scheduled for the last story of Epic 11.
+  - "Keep UI, Phase-A role rollout, admin user-management flows, and Roles UI for Stories 11.2-11.4."
+blockers: []
+overrides:
+  resume_autonomously: true
+  verification_via_ci: true
+  external_review_export_approved: true
+  autonomous_final_convergence: "Settle three meaningful follow-up patches under user-requested autonomous continuation; cap at three completed broad review rounds."
+constraints: []

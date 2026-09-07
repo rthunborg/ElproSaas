@@ -34,6 +34,7 @@ import {
 } from "./command-errors";
 import { systemClock, type CommandClock } from "./clock";
 import type { TenantContext } from "@/server/auth/tenant-context";
+import { requireCapability } from "@/server/authz/require-capability";
 
 /** Outcome of the input validator (step 4). Generic on the validated value. */
 export type ValidationResult<I> =
@@ -92,6 +93,8 @@ export type TenantContextResultLike =
 export type RunCommandCoreInput<I, R, DB = unknown> = {
   /** Step 1-3: the resolved auth+membership Result (reuses resolveTenantContext). */
   readonly tenantContextResult: TenantContextResultLike;
+  /** Optional server-side declaration; legacy commands remain unchanged until Story 11.2. */
+  readonly capability?: { readonly module: string; readonly capability: string };
   /** Step 4: typed input validator. */
   readonly validate: (raw: unknown) => ValidationResult<I>;
   /** The raw, untrusted command input. */
@@ -149,6 +152,7 @@ export async function runCommandCore<I, R, DB = unknown>(
 ): Promise<RunCommandResult<R>> {
   const {
     tenantContextResult,
+    capability,
     validate,
     rawInput,
     verifyOwnership,
@@ -170,6 +174,15 @@ export async function runCommandCore<I, R, DB = unknown>(
     return err(code, COMMAND_MESSAGES[code]);
   }
   const tenantContext = tenantContextResult.data;
+
+  if (capability) {
+    const permitted = requireCapability({
+      roles: tenantContext.roles,
+      module: capability.module,
+      capability: capability.capability,
+    });
+    if (!permitted.ok) return permitted as RunCommandResult<R>;
+  }
 
   // ── Gate 4: typed input validation. Generic message — NEVER echo the raw value. ─
   // A THROWING validator is still a validation failure at the core boundary (the
