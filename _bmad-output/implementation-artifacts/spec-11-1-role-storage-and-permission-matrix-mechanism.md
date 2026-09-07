@@ -2,7 +2,7 @@
 title: 'Story 11.1: Role Storage and Permission-Matrix Mechanism'
 type: 'feature'
 created: '2026-09-04'
-status: 'in-review'
+status: 'done'
 baseline_revision: '4189d8c59da27b61f4e92c8463431a31a68e8639'
 review_loop_iteration: 0
 followup_review_recommended: true
@@ -90,22 +90,26 @@ The scalar `tenant_memberships.role` is retained as the compatibility role; `mem
 
 ## Auto Run Result
 
-Status: in-review
+Status: done
 Blocking condition: none
 
 Verification detail: CI run https://github.com/rthunborg/ElproSaas/actions/runs/34105099398 on `bc634ab` reports `verify=success`, `db=success`, and `e2e=success`. The `db` job executed the clean Supabase reset plus the required integration/RLS tests, resolving the local-only Docker blocker.
+
+Fresh verification: CI run https://github.com/rthunborg/ElproSaas/actions/runs/34121027063 on `396c446f1aed74cb1a5c556640f8cd2477f46f42` reports `verify=success`, `db=success`, and `e2e=success`; `ci_wait` also passed in 649 seconds. The `db` job performed a clean Supabase migration reset and the required integration/RLS gates. This supersedes the earlier code evidence because the review pass changed the database migration.
 
 ## Review Triage Log
 
 ### 2026-09-07 — Review pass
 - intent_gap: 0
 - bad_spec: 0
-- patch: 5 (high 1, medium 3, low 1)
+- patch: 6 (high 2, medium 3, low 1)
 - defer: 0
-- reject: 12
+- reject: 13
 - addressed_findings:
   - `[high]` `[patch]` Restricted `membership_roles` SELECT to active tenant admins and added a non-admin enumeration regression test.
   - `[medium]` `[patch]` Added a database-backed resolver assertion that child roles from another membership never enter the selected context.
   - `[medium]` `[patch]` Added matrix-authorized `projektledare` and `ekonomi` entitlement-projection assertions.
   - `[medium]` `[patch]` Added the generic `SERVER_ERROR` resolver path for a failed child-role query.
   - `[low]` `[patch]` Added a child-role domain-check regression test.
+  - `[high]` `[patch]` Luna/xhigh cross-model review found that newly-valid non-admin scalar roles could directly forge same-tenant audit records through `record_audit_event`; the Story migration now retains the Phase-A `is_tenant_admin` boundary and the RLS regression asserts `42501`.
+  - `[reject]` Luna/xhigh also reported that manifest coherence did not fail loudly at import. The downstream invariant is the mandatory real-manifest unit case, which calls `validate(real, { permissionMatrix: PERMISSION_MATRIX })` and asserts an empty violation set; a missing active-module matrix row therefore fails CI. The export comment is imprecise but there is no reachable bypass.
