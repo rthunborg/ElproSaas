@@ -9,11 +9,11 @@ spec_folder: null
 story_id: null
 branch: story/11-1-role-storage-and-permission-matrix-mechanism
 status: in-progress
-updated_at: "2026-09-07T09:26:26Z"
+updated_at: "2026-09-07T12:30:27Z"
 started_at: "2026-09-04T09:14:31Z"
 completed_at: null
-active_seconds: 4239
-timing_anchor: 1788773186
+active_seconds: 15256
+timing_anchor: null
 is_first_in_epic: true
 is_last_in_epic: false
 git_mode: remote
@@ -38,13 +38,13 @@ tea_selected: [atdd, automate]
 tea_rationale: "authorization/permissions and data-integrity signals are explicit, with schema migration and RLS security impact"
 epic_story_count: 4
 stories_after_in_epic: 3
-completed_phases: [0, 1, 2, 3, 4]
+completed_phases: [0, 1, 2, 3, 4, 5]
 spec_path: "C:\\DEV\\ElproSaas\\_bmad-output\\implementation-artifacts\\spec-11-1-role-storage-and-permission-matrix-mechanism.md"
 spec_approved: true
 build:
-  status: in-review
+  status: done
   blocking_condition: null
-  followup_review_recommended: false
+  followup_review_recommended: true
   review_loop_iteration: 0
   deferred_count: 0
   warnings: []
@@ -58,7 +58,7 @@ legacy_review_loop_done: false
 legacy_external_review_iterations: null
 legacy_convergence_unverified: false
 legacy_artifact_path: null
-commits: [cfe7ded, 27d71b9, 71a5a8c, 18d494c, 96116a9, 4f6032c, 4189d8c, 9267b18, d5d9d52, "5686850", bc634ab]
+commits: [cfe7ded, 27d71b9, 71a5a8c, 18d494c, 96116a9, 4f6032c, 4189d8c, 9267b18, d5d9d52, "5686850", bc634ab, c3688f1, 1ac358b, 1e816c7, 396c446, 359f667]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -75,8 +75,8 @@ retro:
   open_action_items: 0
 bmad_status_flipped_at: null
 pr_url: "https://github.com/rthunborg/ElproSaas/pull/49"
-ci_run_url: "https://github.com/rthunborg/ElproSaas/actions/runs/34105099398"
-ci_status: unknown
+ci_run_url: "https://github.com/rthunborg/ElproSaas/actions/runs/34121027063"
+ci_status: passed
 pr_merged: false
 merge_method: null
 merge_commit: null
@@ -86,11 +86,8 @@ open_questions:
   - Define pilot-scale performance thresholds if performance should become release-gating.
 deferred_work:
   - Run /bmad-testarch-automate after implementation exists.
-  - Run /bmad-testarch-nfr when implementation evidence is available.
-  - Correct the stale single-role and placeholder prose through the owning planning workflow.
-  - "Implement the additive migration, roles/matrix/capability modules, context/envelope/coherence wiring, and H4/factory extensions."
-  - "Remove ATDD skips incrementally and run typecheck, unit, reset, integration, and lint gates."
-  - "Keep UI, Phase-A role rollout, admin user-management flows, and Roles UI for Stories 11.2â€“11.4."
+  - Epic-end NFR assessment remains scheduled for the last story of Epic 11.
+  - "Keep UI, Phase-A role rollout, admin user-management flows, and Roles UI for Stories 11.2-11.4."
 blockers: []
 overrides:
   resume_autonomously: true
