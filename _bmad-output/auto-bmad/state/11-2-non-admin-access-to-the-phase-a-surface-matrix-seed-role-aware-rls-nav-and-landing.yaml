@@ -9,11 +9,11 @@ spec_folder: null
 story_id: null
 branch: codex/11-2-non-admin-access-to-the-phase-a-surface-matrix-seed-role-aware-rls-nav-and-landing
 status: in-progress
-updated_at: "2026-09-07T16:50:52Z"
+updated_at: "2026-09-07T17:05:12Z"
 started_at: "2026-09-07T16:40:40Z"
 completed_at: null
-active_seconds: 592
-timing_anchor: null
+active_seconds: 1432
+timing_anchor: 1788800712
 is_first_in_epic: false
 is_last_in_epic: false
 git_mode: remote
@@ -29,12 +29,14 @@ selected_route: subagent
 escalation_reason: null
 routing_ledger:
   - "{\"effort\":\"high\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-terra\",\"phase\":\"build\",\"profile\":\"standard\",\"role\":\"build-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"high\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-terra\",\"phase\":\"tea_per_story\",\"profile\":\"standard\",\"role\":\"tea-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"high\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-terra\",\"phase\":\"build\",\"profile\":\"standard\",\"role\":\"build-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
 tea_risk: high
 tea_selected: [atdd, automate]
 tea_rationale: "Authorization and role-aware RLS enforce least privilege, money-field withholding and server-side denial across the Phase A surface."
 epic_story_count: 4
 stories_after_in_epic: 2
-completed_phases: [0, 1, 2, 3]
+completed_phases: [0, 1, 2, 3, 4]
 spec_path: "C:/DEV/ElproSaas/_bmad-output/implementation-artifacts/spec-11-2-non-admin-access-to-the-phase-a-surface-matrix-seed-role-aware-rls-nav-and-landing.md"
 spec_approved: true
 build:
@@ -54,7 +56,7 @@ legacy_review_loop_done: false
 legacy_external_review_iterations: null
 legacy_convergence_unverified: false
 legacy_artifact_path: null
-commits: [454ba58]
+commits: [454ba58, 1b6c563]
 phase8_steps:
   trace_gate: null
   nfr: null
