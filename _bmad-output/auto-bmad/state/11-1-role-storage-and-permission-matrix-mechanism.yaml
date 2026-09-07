@@ -9,11 +9,11 @@ spec_folder: null
 story_id: null
 branch: story/11-1-role-storage-and-permission-matrix-mechanism
 status: in-progress
-updated_at: "2026-09-07T12:53:39Z"
+updated_at: "2026-09-07T13:12:52Z"
 started_at: "2026-09-04T09:14:31Z"
 completed_at: null
 active_seconds: 16631
-timing_anchor: null
+timing_anchor: 1788786681
 is_first_in_epic: true
 is_last_in_epic: false
 git_mode: remote
@@ -44,8 +44,8 @@ completed_phases: [0, 1, 2, 3, 4, 5, 6]
 spec_path: "C:\\DEV\\ElproSaas\\_bmad-output\\implementation-artifacts\\spec-11-1-role-storage-and-permission-matrix-mechanism.md"
 spec_approved: true
 build:
-  status: blocked
-  blocking_condition: external-review export approval
+  status: in-review
+  blocking_condition: null
   followup_review_recommended: true
   review_loop_iteration: 0
   deferred_count: 0
@@ -60,7 +60,7 @@ legacy_review_loop_done: false
 legacy_external_review_iterations: null
 legacy_convergence_unverified: false
 legacy_artifact_path: null
-commits: [cfe7ded, 27d71b9, 71a5a8c, 18d494c, 96116a9, 4f6032c, 4189d8c, 9267b18, d5d9d52, "5686850", bc634ab, c3688f1, 1ac358b, 1e816c7, 396c446, 359f667, 39bfc50, 8b54fd0, 8fedfcc]
+commits: [cfe7ded, 27d71b9, 71a5a8c, 18d494c, 96116a9, 4f6032c, 4189d8c, 9267b18, d5d9d52, "5686850", bc634ab, c3688f1, 1ac358b, 1e816c7, 396c446, 359f667, 39bfc50, 8b54fd0, 8fedfcc, cbe748d]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -89,9 +89,9 @@ open_questions:
 deferred_work:
   - Epic-end NFR assessment remains scheduled for the last story of Epic 11.
   - "Keep UI, Phase-A role rollout, admin user-management flows, and Roles UI for Stories 11.2-11.4."
-blockers:
-  - Explicit approval is required to provide the private story diff and referenced repository files to the configured external Luna/xhigh Codex reviewer.
+blockers: []
 overrides:
   resume_autonomously: true
   verification_via_ci: true
+  external_review_export_approved: true
 constraints: []

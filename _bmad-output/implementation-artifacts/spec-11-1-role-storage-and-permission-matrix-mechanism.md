@@ -2,7 +2,7 @@
 title: 'Story 11.1: Role Storage and Permission-Matrix Mechanism'
 type: 'feature'
 created: '2026-09-04'
-status: 'blocked'
+status: 'in-review'
 baseline_revision: '4189d8c59da27b61f4e92c8463431a31a68e8639'
 review_loop_iteration: 0
 followup_review_recommended: true
@@ -90,8 +90,8 @@ The scalar `tenant_memberships.role` is retained as the compatibility role; `mem
 
 ## Auto Run Result
 
-Status: blocked
-Blocking condition: external-review export approval
+Status: in-review
+Blocking condition: none
 
 Verification detail: CI run https://github.com/rthunborg/ElproSaas/actions/runs/34105099398 on `bc634ab` reports `verify=success`, `db=success`, and `e2e=success`. The `db` job executed the clean Supabase reset plus the required integration/RLS tests, resolving the local-only Docker blocker.
 
@@ -99,12 +99,16 @@ Fresh verification: CI run https://github.com/rthunborg/ElproSaas/actions/runs/3
 
 ### 2026-09-07 — Follow-up review blocked
 
-Status: blocked
-Blocking condition: explicit approval is required to provide the private repository diff and referenced files to the configured external Luna/xhigh reviewer.
+Prior status: blocked
+Prior blocking condition: explicit approval was required to provide the private repository diff and referenced files to the configured external Luna/xhigh reviewer.
 
 Completed fresh layers: Blind Hunter, Edge Case Hunter, Verification Gap Reviewer, Intent Alignment Auditor, and Sol/xhigh Security Reviewer (`No findings`). The external reviewer was not counted as completed: its default read-only invocation failed with `Error finding codex home: Could not find home directory`; the scoped escalated retry was policy-rejected because it could export private repository material. No alternate invocation was attempted.
 
 Triage to date found no verified new patch, bad-spec, intent-gap, or deferred item. The proposed scalar/non-admin access concerns are not reachable in the current Phase-A surface: `tenant_memberships_select_own` remains guarded by `is_tenant_admin(tenant_id)`, so a non-admin cannot obtain a membership row before the resolver, child-role query, or protected app shell. Existing CI evidence remains the exact successful run above; no local DB/service was started and no production code changed during this follow-up pass.
+
+### 2026-09-07 — Resume authorization
+
+The user explicitly approved providing this private story's diff and referenced repository files to the configured OpenAI Codex reviewer. This authorization is limited to the previously blocked external Luna/xhigh review layer; it does not broaden task or repository authority.
 
 ## Review Triage Log
 
