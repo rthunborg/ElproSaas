@@ -5,7 +5,7 @@ created: '2026-09-04'
 status: 'done'
 baseline_revision: '4189d8c59da27b61f4e92c8463431a31a68e8639'
 review_loop_iteration: 0
-followup_review_recommended: true
+followup_review_recommended: false
 context:
   - '_bmad-output/implementation-artifacts/epic-11-context.md'
   - '_bmad-output/project-context.md'
@@ -130,6 +130,26 @@ Verification performed: focused resolver/coherence unit tests passed (29 tests);
 
 Residual risks: no known code issue from this pass; the new migration regression requires the fresh isolated CI database job.
 
+### 2026-09-07 — Third and final broad review completion
+
+Summary: completed the third and final broad review over the full baseline diff and configured reviewer roster. The pass replaced the trigger-only parent/child tenancy checks with a composite foreign key that serializes concurrent child assignment against parent tenant moves, added catalog proof for the hardened helper's exact EXECUTE grants, isolated the shared database fixtures exposed by exact-head CI, and made the pre-existing Story 10.6 browser journey reload only after its durable save response and local save acknowledgement so persisted fields and totals are asserted from one coherent server snapshot.
+
+Files changed:
+
+- `supabase/migrations/20260904120000_role_storage_and_permission_matrix.sql` — enforce membership/role same-tenancy with a composite foreign key whose PostgreSQL key locks close the READ COMMITTED write-skew race.
+- `tests/integration/rls/membership-roles.rls.test.ts` — add deterministic two-session insert/retarget concurrency proofs and isolate every shared-fixture child role with cleanup.
+- `tests/integration/rls/migration-reset.int.test.ts` — assert the composite foreign key and exact hardened-helper EXECUTE grants from database catalogs.
+- `tests/e2e/calculations/tax-answer-reconciliation.e2e.spec.ts` — reload after confirmed durable row save before reusing the existing persisted classification, visibility, inclusion, and totals assertions; no product behavior changed.
+- `_bmad-output/implementation-artifacts/spec-11-1-role-storage-and-permission-matrix-mechanism.md` — record final triage, verification, and convergence status without changing the original baseline revision.
+
+Review findings breakdown: patches applied 2 (high 1, medium 0, low 1); items deferred 0; items rejected 11. Four review layers independently identified the same concurrency invariant bypass and were deduplicated into the one high finding. The shared-fixture cleanup and Story 10.6 test synchronization were exact-head verification repairs, not additional broad-review findings.
+
+Follow-up review recommendation: false after targeted closure. The broad-pass formula initially triggered follow-up because the patched counts were high 1, medium 0, low 1 (`1 × low = 1`, with any high patch forcing `true`). The required follow-up was completed within this run as a targeted Sol/xhigh regression review of exact commit `43d80688d0878be3b901993aa35ddd24ca2c79de` (`No findings`) plus exact-SHA full CI. This is evidence-based closure rather than a waiver caused by the three-round cap; no further broad review should begin.
+
+Verification performed: the configured Blind Hunter, Edge Case Hunter, Verification Gap, Intent Alignment, Sol/xhigh Security, and explicitly authorized external Luna/xhigh layers all completed. The external reviewer exited successfully and independently confirmed the concurrency defect. `pnpm run typecheck`, full `pnpm run lint`, focused changed-test lint, `pnpm run test:unit` (94 suites; 1,708 passed; 0 failed/skipped/todo), and `git diff --check` passed locally. Root-managed CI run https://github.com/rthunborg/ElproSaas/actions/runs/34130585041 on exact commit `43d80688d0878be3b901993aa35ddd24ca2c79de` passed `verify`, `db`, and `e2e`: 1,708 unit tests passed, 942 integration/RLS tests passed across 89 files, and 122 E2E tests passed with 4 skipped and no failures. The authoritative CI wait completed in 701 seconds over 34 polls. No local Supabase, Docker, database, or browser service was started.
+
+Residual risks: none known within Story 11.1. Existing Phase-A scalar non-admin reachability remains blocked by the enforced `tenant_memberships_select_own`/`is_tenant_admin` boundary and the intended per-role application rollout remains reserved for Story 11.2. No further broad review is authorized; future attention is limited to a targeted regression if new evidence appears.
+
 ## Review Triage Log
 
 ### 2026-09-07 — Review pass
@@ -168,3 +188,13 @@ External Luna/xhigh review was not completed because the required scoped escalat
   - `[medium]` `[patch]` Removed the permission matrix from the client-reachable manifest import chain while retaining mandatory real-matrix CI validation.
   - `[medium]` `[patch]` Prevented a service-role parent membership tenant move from stranding child roles under the old tenant, with an integration regression.
   - `[low]` `[patch]` Added table-driven coverage for all newly accepted non-admin scalar roles.
+
+### 2026-09-07 — Review pass
+- intent_gap: 0
+- bad_spec: 0
+- patch: 2 (high 1, medium 0, low 1)
+- defer: 0
+- reject: 11
+- addressed_findings:
+  - `[high]` `[patch]` Replaced unlocked trigger-only tenant-match checks with a composite membership/tenant foreign key and two-session regressions so a concurrent child insert or retarget cannot race a parent tenant move into a stale cross-tenant assignment.
+  - `[low]` `[patch]` Added database-catalog coverage proving `has_tenant_role(uuid, text[])` is not executable by `public`/`anon` and remains executable only by the intended `authenticated` and `service_role` roles.
