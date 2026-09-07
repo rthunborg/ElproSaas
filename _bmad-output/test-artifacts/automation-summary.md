@@ -5,9 +5,9 @@ stepsCompleted:
   - 'step-03c-aggregate'
   - 'step-04-validate-and-summarize'
 lastStep: 'step-04-validate-and-summarize'
-lastSaved: '2026-08-06'
+lastSaved: '2026-09-07'
 workflowType: testarch-automate
-story: 10.6 Tax-Answer Reconciliation
+story: 10.6 Tax-Answer Reconciliation; 11.1 Role Storage and Permission-Matrix Mechanism (latest)
 detectedStack: fullstack
 executionMode: BMad-integrated (post-implementation risk-based coverage expansion)
 inputDocuments:
@@ -39,6 +39,9 @@ inputDocuments:
   - .agents/skills/bmad-testarch-automate/resources/knowledge/network-error-monitor.md
   - .agents/skills/bmad-testarch-automate/resources/knowledge/fixtures-composition.md
   - .agents/skills/bmad-testarch-automate/resources/knowledge/playwright-cli.md
+  - _bmad-output/implementation-artifacts/spec-11-1-role-storage-and-permission-matrix-mechanism.md
+  - _bmad-output/test-artifacts/atdd-checklist-11-1-role-storage-and-permission-matrix-mechanism.md
+  - _bmad-output/test-artifacts/test-design-epic-11.md
 ---
 
 # Test Automation Expansion — Story 10.6 (Tax-Answer Reconciliation)
@@ -156,3 +159,69 @@ negative RPC paths only, using the existing two-tenant factory and exact before/
   tests/integration/commands/tax-answer-reconciliation.int.test.ts`.
 - Recommended next workflow after that real DB run: `bmad-testarch-test-review`; use
   `bmad-testarch-trace` if Story 10.6 AC-to-test traceability needs formal refresh.
+
+---
+
+# Test Automation Expansion — Story 11.1 (Role Storage and Permission-Matrix Mechanism)
+
+## Step 1 — Preflight & Context
+
+- **Stack and mode:** full-stack Next.js/React plus Supabase; BMad-integrated Create workflow.
+  `node --test` owns pure TypeScript behavior, Vitest owns local Supabase/RLS evidence, and
+  Playwright is available for user journeys. The supplied Story 11.1 specification, completed
+  ATDD checklist, and Epic 11 design were loaded.
+- **Framework/utility posture:** required runners are present. Playwright Utils and Pact.js Utils
+  are configured but their packages are not installed; no imports were invented. SmartBear Pact
+  MCP tools are unavailable. There is no Story 11.1 HTTP consumer/provider contract, so Pact is
+  not applicable. `playwright-cli` was not used: the story deliberately has no UI surface.
+- **Database boundary:** local Supabase/Docker is unavailable by authorized constraint. DB/RLS
+  coverage is therefore retained for the CI route and is never reported as locally passed.
+
+## Step 2 — Identify Targets
+
+The ATDD and implementation suite already map the six acceptance criteria at the lowest
+trustworthy levels: legacy Admin compatibility and role normalization (unit/context), role-union
+and sensitive-field entitlement (unit), generic pre-audit capability denial (unit/envelope),
+matrix-manifest coherence (unit), and storage/RLS/helper/H4/search-path behavior (integration).
+No API or browser journey belongs to this server/database-only mechanism story.
+
+| Target | Level | Priority | Acceptance/risk link | Reason |
+| --- | --- | --- | --- | --- |
+| Malformed injected permission-matrix rows (`null`, non-object, missing/non-array/unknown role list) deny a known Admin | Unit | P0 | AC3 fail-closed malformed authorization data | `resolveCapability` accepts an injected matrix seam; existing tests covered unknown caller/module/capability inputs but not malformed matrix rows. |
+
+No duplicate integration or E2E coverage was selected. The remaining database tests continue to
+prove the schema and authorization boundary with a real local/CI stack; a pure test cannot replace
+those facts.
+
+## Step 3 — Generate and Aggregate Tests
+
+- **Execution:** capability-probed worker dispatch. API and E2E workers returned zero tests because
+  Story 11.1 has no HTTP or UI scope. The backend worker generated one P0 unit scenario.
+- **Coverage added:** `11.1-UNIT-006` passes five malformed injected matrices to a known Admin and
+  asserts each denies. This guards `resolveCapability`'s runtime boundary against malformed source
+  data rather than asserting only the happy typed matrix.
+- **Fixtures:** none. The scenario is pure, deterministic, and reuses no mutable state.
+- **Files changed:** `tests/unit/server/authz/permission-matrix.test.ts` and this workflow record.
+- **Playwright Utils deviations:** None — no Playwright-runner tests were generated and the package
+  is absent.
+- **Pact.js Utils deviations:** None — no contract artifacts were in scope. Pact broker: unreachable
+  (SmartBear MCP tools not available); no provider-state lookup was needed.
+
+## Step 4 — Validation and Final Summary
+
+- The new test is P0, uses the existing Node test dialect, makes fail-able assertions against the
+  system under test, has no hard wait/skip/focus/conditional assertion path, and adds no fixture or
+  external-service dependency.
+- `pnpm -C C:\DEV\ElproSaas exec node --experimental-strip-types --import
+  ./tests/support/register.mjs --test tests/unit/server/authz/permission-matrix.test.ts` — **PASS**
+  (5 tests).
+- `pnpm -C C:\DEV\ElproSaas exec eslint tests/unit/server/authz/permission-matrix.test.ts` —
+  **PASS**.
+- `pnpm -C C:\DEV\ElproSaas run typecheck` — **PASS**.
+- `pnpm -C C:\DEV\ElproSaas run test:unit` — **PASS** (1,706 tests; 0 failed, skipped, or todo).
+- DB/RLS tests are intentionally not claimed as locally executed; the supplied CI run
+  `34121027063` passed the clean reset and DB/E2E gates before this pure test addition. A fresh CI
+  run remains the required authoritative execution route for the updated branch.
+
+**Recommended next workflow:** `bmad-testarch-test-review` for independent test-quality review, or
+`bmad-testarch-trace` if formal Story 11.1 AC-to-test traceability is required.

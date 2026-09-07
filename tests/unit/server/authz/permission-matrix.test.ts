@@ -29,6 +29,26 @@ test("[P0] 11.1-UNIT-003 omitted, empty, unknown, or malformed matrix inputs den
   ]) assert.equal(resolveCapability(input).granted, false);
 });
 
+test("[P0] 11.1-UNIT-006 malformed injected permission matrices deny fail-closed", () => {
+  for (const matrix of [
+    null,
+    "not-a-matrix",
+    { foundation: { "Memberships.Manage": {} } },
+    { foundation: { "Memberships.Manage": { roles: "tenant_admin" } } },
+    { foundation: { "Memberships.Manage": { roles: ["unknown_role"] } } },
+  ]) {
+    assert.equal(
+      resolveCapability({
+        roles: ["tenant_admin"],
+        module: "foundation",
+        capability: "Memberships.Manage",
+        matrix,
+      }).granted,
+      false,
+    );
+  }
+});
+
 test("[P0] 11.1-UNIT-004 a sensitive field is withheld only when no held role grants it", () => {
   assert.equal(resolveSensitiveFieldEntitlement({ roles: ["montor", "projektledare"], module: "quotes", field: "cost_price_ore" }).withheld, false);
   assert.equal(resolveSensitiveFieldEntitlement({ roles: ["montor", "saljare"], module: "quotes", field: "cost_price_ore" }).withheld, true);
