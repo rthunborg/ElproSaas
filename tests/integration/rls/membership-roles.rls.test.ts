@@ -105,7 +105,7 @@ describe("11.1 membership_roles RLS", () => {
     });
     const membershipA = await membershipFor(fixture.adminA.id);
     await adminQuery(
-      "insert into public.membership_roles (tenant_id, membership_id, role) values ($1, $2, 'projektledare')",
+      "insert into public.membership_roles (tenant_id, membership_id, role) values ($1, $2, 'ekonomi')",
       [fixture.tenantA.id, membershipA.id],
     );
 
