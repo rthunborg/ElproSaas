@@ -4,29 +4,66 @@ type PermissionRow = { readonly roles: readonly TenantRole[] };
 type ModulePermissions = Record<string, PermissionRow>;
 
 /**
- * Server-only, versioned authorization source.  The deliberately conservative
- * seed preserves existing Admin access; Story 11.2 expands Phase-A access.
+ * Server-only, versioned authorization source. The Phase A seed is the
+ * owner-approved N-4 matrix. It deliberately names stable business operations
+ * instead of pages or widgets so command and RLS policies can share it.
  */
 export const PERMISSION_MATRIX = {
   foundation: { "Memberships.Manage": { roles: ["tenant_admin"] } },
-  dashboard: { "Dashboard.View": { roles: ["tenant_admin"] } },
-  crm: { "Customers.View": { roles: ["tenant_admin"] } },
-  settings: { "Settings.View": { roles: ["tenant_admin"] } },
-  calculations: { "Calculations.View": { roles: ["tenant_admin"] } },
-  quotes: {
-    "Quotes.View": { roles: ["tenant_admin"] },
-    "Quotes.ViewSalesPrice": { roles: ["tenant_admin", "saljare"] },
+  dashboard: { "Dashboard.View": { roles: ["tenant_admin", "projektledare", "montor", "saljare", "ekonomi"] } },
+  crm: {
+    "Customers.View": { roles: ["tenant_admin", "projektledare", "saljare"] },
+    "Customers.Create": { roles: ["tenant_admin", "projektledare", "saljare"] },
+    "Customers.Edit": { roles: ["tenant_admin", "projektledare", "saljare"] },
+    "Customers.Delete": { roles: ["tenant_admin"] },
   },
-  jobs: { "Jobs.ViewAssigned": { roles: ["tenant_admin"] } },
-  files: { "Files.View": { roles: ["tenant_admin"] } },
+  settings: {
+    "CompanySettings.View": { roles: ["tenant_admin"] },
+    "CompanySettings.Edit": { roles: ["tenant_admin"] },
+  },
+  calculations: {
+    "Calculations.View": { roles: ["tenant_admin", "projektledare", "saljare"] },
+    "Calculations.Create": { roles: ["tenant_admin", "projektledare", "saljare"] },
+    "Calculations.Edit": { roles: ["tenant_admin", "projektledare", "saljare"] },
+  },
+  quotes: {
+    "Quotes.View": { roles: ["tenant_admin", "projektledare", "saljare"] },
+    "Quotes.Create": { roles: ["tenant_admin", "projektledare", "saljare"] },
+    "Quotes.Edit": { roles: ["tenant_admin", "projektledare", "saljare"] },
+    "Quotes.Approve": { roles: ["tenant_admin", "projektledare"] },
+    "Quotes.Send": { roles: ["tenant_admin", "projektledare", "saljare"] },
+    "Quotes.Export": { roles: ["tenant_admin", "projektledare", "saljare"] },
+    // Compatibility key retained for Story 11.1's public capability contract.
+    // New Phase-A callers use the Economy.* vocabulary below.
+    "Quotes.ViewSalesPrice": { roles: ["tenant_admin", "projektledare", "saljare", "ekonomi"] },
+    "Economy.ViewSalesPrice": { roles: ["tenant_admin", "projektledare", "saljare", "ekonomi"] },
+    "Economy.EditSalesPrice": { roles: ["tenant_admin", "projektledare", "saljare"] },
+    "Economy.ViewCostPrice": { roles: ["tenant_admin", "projektledare", "ekonomi"] },
+    "Economy.EditCostPrice": { roles: ["tenant_admin", "projektledare", "ekonomi"] },
+    "Economy.ViewContributionMargin": { roles: ["tenant_admin", "projektledare", "ekonomi"] },
+  },
+  jobs: {
+    // `Jobs.ViewAssigned` is intentionally empty: job_members does not exist
+    // until E16, so granting it here would accidentally mean tenant-wide access.
+    "Jobs.ViewAssigned": { roles: [] },
+    "Jobs.ViewAll": { roles: ["tenant_admin", "projektledare"] },
+    "Jobs.Create": { roles: ["tenant_admin", "projektledare"] },
+    "Jobs.Edit": { roles: ["tenant_admin", "projektledare"] },
+    "Jobs.Delete": { roles: ["tenant_admin"] },
+    "Jobs.AssignUsers": { roles: [] },
+    "Jobs.ApproveCompletion": { roles: ["tenant_admin", "projektledare"] },
+  },
+  files: { "Files.View": { roles: ["tenant_admin", "projektledare", "montor", "saljare", "ekonomi"] } },
 } as const satisfies Record<string, ModulePermissions>;
 
-export const SENSITIVE_FIELD_MATRIX = {
+export const SENSITIVE_FIELD_MATRIX: Record<string, Record<string, PermissionRow>> = {
   quotes: {
+    sales_price_ore: { roles: ["tenant_admin", "projektledare", "saljare", "ekonomi"] },
     cost_price_ore: { roles: ["tenant_admin", "projektledare", "ekonomi"] },
+    contribution_margin_ore: { roles: ["tenant_admin", "projektledare", "ekonomi"] },
     acceptedValueOre: { roles: ["tenant_admin", "projektledare", "ekonomi"] },
   },
-} as const satisfies Record<string, Record<string, PermissionRow>>;
+};
 
 export type CapabilityResolution = { readonly granted: boolean };
 

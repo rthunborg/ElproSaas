@@ -2,9 +2,10 @@
 title: 'Story 11.2: Non-Admin Access to the Phase A Surface (Matrix Seed, Role-Aware RLS, Nav and Landing)'
 type: 'feature'
 created: '2026-09-07'
-status: 'ready-for-dev'
+status: 'blocked'
 review_loop_iteration: 0
 followup_review_recommended: false
+baseline_revision: 'efd8d73d53479ba737a09456c7d740cdaa6e028b'
 context:
   - '_bmad-output/implementation-artifacts/epic-11-context.md'
   - '_bmad-output/implementation-artifacts/spec-11-1-role-storage-and-permission-matrix-mechanism.md'
@@ -87,3 +88,10 @@ The matrix is the server authority; client nav keeps only authored label/icon me
 
 Status: ready-for-dev
 Blocking condition: none
+
+### 2026-09-07 — Build Auto HALT
+
+Status: blocked
+Blocking condition: matrix test audit failed
+
+The partial implementation establishes the N-4 matrix seed and server-derived navigation/landing DTO, but does not implement the required role-aware RLS policy evolution, command declarations, direct-route guards, sensitive read projections, or activated matrix tests. The ten Story 11.2 ATDD cases remain skipped, so no test covers each I/O matrix row as the workflow requires. `pnpm run typecheck`, `pnpm run lint`, and `pnpm run test:unit` passed (1,708 tests); local Supabase/Docker is unavailable (`dockerDesktopLinuxEngine` is absent), and no resource-guard context was supplied to start it.

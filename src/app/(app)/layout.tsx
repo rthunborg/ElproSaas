@@ -24,6 +24,7 @@ import { AppShell } from "@/components/app-shell/AppShell";
 import { NoTenantAccess } from "@/components/app-shell/NoTenantAccess";
 import { resolveTenantContext } from "@/server/auth/resolve-tenant-context";
 import { TENANT_CONTEXT_MESSAGES } from "@/server/auth/tenant-context";
+import { resolvePhaseANavigation } from "@/server/authz/phase-a-surface";
 
 /** Generic, user-safe fallback for an unexpected throw (no internal detail leaked). */
 const GENERIC_NO_ACCESS_MESSAGE = TENANT_CONTEXT_MESSAGES.TENANT_MEMBERSHIP_REQUIRED;
@@ -71,6 +72,7 @@ export default async function AppGroupLayout({
         tenantName: result.data.tenantName,
         userEmail: result.data.userEmail,
       }}
+      navigation={resolvePhaseANavigation(result.data.roles)}
     >
       {children}
     </AppShell>

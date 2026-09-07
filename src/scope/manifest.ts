@@ -76,7 +76,7 @@ export const SCOPE_MANIFEST: ScopeManifest = {
       status: "active",
       epic: "E1",
       activatedAt: PHASE_A.E1,
-      navItems: [{ route: "/dashboard", group: "primary" }],
+      navItems: [{ route: "/dashboard", group: "primary", requiredCapability: "Dashboard.View" }],
       tenantTables: [], // no tenant tables in Phase A (widgets/read-models arrive at E19)
       widgets: [],
       notificationCategories: [],
@@ -90,7 +90,7 @@ export const SCOPE_MANIFEST: ScopeManifest = {
       status: "active",
       epic: "E3",
       activatedAt: PHASE_A.E3,
-      navItems: [{ route: "/customers", group: "primary" }],
+      navItems: [{ route: "/customers", group: "primary", requiredCapability: "Customers.View" }],
       tenantTables: ["customers", "facilities", "contacts"],
       widgets: [],
       notificationCategories: [],
@@ -105,7 +105,7 @@ export const SCOPE_MANIFEST: ScopeManifest = {
       epic: "E3",
       activatedAt: PHASE_A.E3,
       // work_roles/articles (pricing) live under the /settings/pricing sub-route → the settings module.
-      navItems: [{ route: "/settings", group: "secondary" }],
+      navItems: [{ route: "/settings", group: "secondary", requiredCapability: "CompanySettings.View" }],
       tenantTables: ["company_settings", "quote_terms", "work_roles", "articles"],
       widgets: [],
       notificationCategories: [],
@@ -119,7 +119,7 @@ export const SCOPE_MANIFEST: ScopeManifest = {
       status: "active",
       epic: "E5",
       activatedAt: PHASE_A.E5,
-      navItems: [{ route: "/calculations", group: "primary" }],
+      navItems: [{ route: "/calculations", group: "primary", requiredCapability: "Calculations.View" }],
       tenantTables: ["calculations", "calculation_sections", "calculation_rows"],
       widgets: [],
       notificationCategories: [],
@@ -133,7 +133,7 @@ export const SCOPE_MANIFEST: ScopeManifest = {
       status: "active",
       epic: "E6",
       activatedAt: PHASE_A.E6,
-      navItems: [{ route: "/quotes", group: "primary" }],
+      navItems: [{ route: "/quotes", group: "primary", requiredCapability: "Quotes.View" }],
       // The quote-family tables. Stories 10.2/10.3 enrolled quote_lost_reasons/quote_follow_ups HERE
       // in the same PRs as their schema changes; Story 10.8 similarly enrolled
       // quote_review_authorizations (ADR-B003 §5.5 / FR129). Keep this boundary clean.
@@ -162,7 +162,7 @@ export const SCOPE_MANIFEST: ScopeManifest = {
       status: "active",
       epic: "E7",
       activatedAt: PHASE_A.E7,
-      navItems: [{ route: "/jobs", group: "primary" }],
+      navItems: [{ route: "/jobs", group: "primary", requiredCapability: "Jobs.ViewAll" }],
       tenantTables: ["jobs", "job_events"],
       widgets: [],
       notificationCategories: [],
@@ -176,7 +176,7 @@ export const SCOPE_MANIFEST: ScopeManifest = {
       status: "active",
       epic: "E8",
       activatedAt: PHASE_A.E8,
-      navItems: [{ route: "/files", group: "primary" }],
+      navItems: [{ route: "/files", group: "primary", requiredCapability: "Files.View" }],
       tenantTables: ["files", "file_links"],
       widgets: [],
       notificationCategories: [],
