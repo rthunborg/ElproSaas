@@ -68,3 +68,53 @@ $$;
 
 revoke execute on function public.has_tenant_role(uuid, text[]) from public;
 grant execute on function public.has_tenant_role(uuid, text[]) to authenticated, service_role;
+
+-- Phase A's existing command/write surface remains tenant-admin-only until Story
+-- 11.2 deliberately declares per-role capabilities.  `record_audit_event` is a
+-- directly executable SECURITY DEFINER RPC, so its former active-member check
+-- would otherwise let a newly-valid non-admin scalar membership forge same-tenant
+-- audit records outside the command envelope.
+create or replace function public.record_audit_event(
+  p_tenant_id uuid,
+  p_actor_user_id uuid,
+  p_command text,
+  p_event_type text,
+  p_target_type text,
+  p_target_id uuid,
+  p_correlation_id uuid,
+  p_metadata jsonb,
+  p_created_at timestamptz
+)
+returns uuid
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_id uuid;
+  v_created_at timestamptz := statement_timestamp();
+begin
+  if auth.uid() is null or auth.uid() <> p_actor_user_id then
+    raise exception 'record_audit_event: actor must match the authenticated caller'
+      using errcode = 'insufficient_privilege';
+  end if;
+
+  if not public.is_tenant_admin(p_tenant_id) then
+    raise exception 'record_audit_event: caller is not an active tenant admin of the target tenant'
+      using errcode = 'insufficient_privilege';
+  end if;
+
+  insert into public.audit_events (
+    tenant_id, actor_user_id, command, event_type, target_type, target_id,
+    correlation_id, metadata, created_at
+  ) values (
+    p_tenant_id, p_actor_user_id, p_command, p_event_type, p_target_type, p_target_id,
+    p_correlation_id, coalesce(p_metadata, '{}'::jsonb), v_created_at
+  ) returning id into v_id;
+
+  return v_id;
+end;
+$$;
+
+comment on function public.record_audit_event(uuid, uuid, text, text, text, uuid, uuid, jsonb, timestamptz) is
+  'Privileged append-only audit write. The actor must equal auth.uid() and be an active tenant admin of the target tenant until Story 11.2 declares role capabilities. The legacy p_created_at parameter is retained for RPC compatibility but deliberately ignored: audit creation time is database-owned via statement_timestamp(). SECURITY DEFINER with fixed empty search_path.';

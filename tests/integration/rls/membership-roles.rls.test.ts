@@ -95,7 +95,7 @@ describe("11.1 membership_roles RLS", () => {
     expect(thrown?.code).toBe("23514");
   });
 
-  it("[P0] a non-admin active member cannot enumerate tenant-wide role assignments", async (testCtx) => {
+  it("[P0] a non-admin active member cannot enumerate tenant-wide role assignments or forge audit records", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     await adminInsertMembership({
       tenant_id: fixture.tenantA.id,
@@ -113,5 +113,19 @@ describe("11.1 membership_roles RLS", () => {
     const { data, error } = await caller.from("membership_roles").select("id, membership_id, role");
     expect(error).toBeNull();
     expect(data).toEqual([]);
+
+    const auditAttempt = await caller.rpc("record_audit_event", {
+      p_tenant_id: fixture.tenantA.id,
+      p_actor_user_id: fixture.orphanUser.id,
+      p_command: "role.audit.forge",
+      p_event_type: "role.audit.forged",
+      p_target_type: "tenant",
+      p_target_id: fixture.tenantA.id,
+      p_correlation_id: crypto.randomUUID(),
+      p_metadata: {},
+      p_created_at: new Date().toISOString(),
+    });
+    expect(auditAttempt.data).toBeNull();
+    expect(auditAttempt.error?.code).toBe("42501");
   });
 });
