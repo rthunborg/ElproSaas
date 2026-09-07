@@ -2,11 +2,12 @@
 title: 'Story 11.2: Non-Admin Access to the Phase A Surface (Matrix Seed, Role-Aware RLS, Nav and Landing)'
 type: 'feature'
 created: '2026-09-07'
-status: 'blocked'
+status: 'in-progress'
 review_loop_iteration: 0
 followup_review_recommended: false
 baseline_revision: 'efd8d73d53479ba737a09456c7d740cdaa6e028b'
 context:
+  - 'docs/process/story-11-2-resume.md'
   - '_bmad-output/implementation-artifacts/epic-11-context.md'
   - '_bmad-output/implementation-artifacts/spec-11-1-role-storage-and-permission-matrix-mechanism.md'
   - '_bmad-output/project-context.md'
@@ -54,10 +55,12 @@ deferred: []
 
 ## Tasks & Acceptance
 
+**Resume contract (2026-09-07):** This is an unfinished implementation, not a fresh plan or a finished story awaiting review. Read [the recovery requirements](../../docs/process/story-11-2-resume.md) and [the ATDD handoff](../test-artifacts/atdd-checklist-spec-11-2-non-admin-access-to-the-phase-a-surface-matrix-seed-role-aware-rls-nav-and-landing.md). Preserve the existing baseline and partial work; audit its decisions against ADR-B001 rather than treating the current seed as owner-approved simply because it compiles. Complete every execution item before the matrix-test audit. A partial worker result is a handoff to continue implementation, not evidence that the story is ready for review.
+
 **Execution:**
 
 - `src/server/authz/permission-matrix.ts` and focused authz/entitlement unit tests -- replace the transitional Admin-only seed with the owner-approved N-4 capabilities, sensitive-field entitlements, and explicit role arrays for all active manifest modules; retain deny-by-default, union semantics, the Säljare non-invertible margin warning seam, and no fabricated page-named authority.
-- `supabase/migrations/` -- generate `role_aware_phase_a_policy_evolution` with `supabase migration new`, then evolve membership/child-role self-read and all active Phase A module policies from Admin-only to the matrix-authored role arrays using `has_tenant_role`; preserve active membership, self/cross-tenant, row-scope, `WITH CHECK`, Storage, lifecycle-lock, direct-DML, and explicit-grant invariants. Keep module-level closure for carried inline-rate tables when a role cannot safely receive their fields.
+- `supabase/migrations/20260907171252_role_aware_phase_a_policy_evolution.sql` -- the previous run created this empty file. Complete this existing migration after checking its application history; do not generate a duplicate or rewrite a migration already applied outside the disposable test stack. Evolve membership/child-role self-read and all active Phase A module policies from Admin-only to the matrix-authored role arrays using `has_tenant_role`; preserve active membership, self/cross-tenant, row-scope, `WITH CHECK`, Storage, lifecycle-lock, direct-DML, and explicit-grant invariants. Keep module-level closure for carried inline-rate tables when a role cannot safely receive their fields.
 - `src/server/commands/{crm,calculations,pricing,settings,quotes,jobs,files}/**` with shared command tests -- declare the precise stable business capability for every exported Phase A mutation so denial occurs before validation, target lookup, execute, or audit; do not relax raw audit/RPC authority or create multi-write client paths.
 - `src/server/auth/resolve-tenant-context.ts`, `src/scope/{manifest,manifest-schema,nav-registry}.ts`, `src/components/app-shell/{nav-items,AppShell}.tsx`, `src/app/(app)/layout.tsx`, `src/app/page.tsx`, and route/read guards -- derive a safe presentational nav DTO and deterministic server `resolveLandingRoute(roleSet)` from active manifest × matrix; hide inaccessible links, send dashboard-entitled roles (including the current Montör fallback) to `/dashboard` with money withheld, switch Montör to `/my-day` only in E15, and render generic direct-route denial without client role evaluation.
 - `src/features/*/read.ts`, read-model projections, and UI components using `MaskedValue`/table columns -- enforce role-safe Phase A reads and cross-module labels; omit withheld fields/columns and aggregates rather than substituting values, and keep exports/PDF/serialized payloads on the same recipient-specific projection contract.
@@ -77,21 +80,30 @@ The matrix is the server authority; client nav keeps only authored label/icon me
 
 ## Verification
 
+**Execution prerequisite:** Docker and the local Supabase stack were reachable during the recovery check; that does not establish migration, fixture, or lifecycle readiness. Before starting/resetting test services or running Playwright's `webServer`, require the current actor's trusted resource-guard hook context and verify an isolated local test target under the standing lifecycle rules. No context was injected in the recovery session. Do not reuse another actor's context, reset a borrowed stack, use the demo project, or treat a skipped suite as a pass. See the recovery requirements for the remaining readiness gate.
+
+**Coverage evidence:** The ten existing ATDD cases are skipped scaffolds, not passing acceptance coverage. Replace their unimplemented fixture contracts and incorrect generic assumptions as specified in the checklist. Record a named, executed, passing test for every I/O matrix row (Legacy Admin, Seeded role union, Crafted denial, Jobs assignment seam), plus all five acceptance criteria. Real RLS evidence must come from authenticated database operations and independent catalog inspection; a helper returning the expected grant is insufficient. Any filtered, skipped, or unregistered covering test leaves the audit unsatisfied.
+
 **Commands:**
 
 - `pnpm run typecheck` -- expected: exhaustive matrix, command declarations, navigation DTOs, and tenant inventory compile.
 - `pnpm run lint` and `pnpm run test:unit` -- expected: authz, entitlement, manifest/nav, landing, and serialization boundaries pass.
-- `supabase db reset` then `pnpm run test:int` -- expected: additive migration resets cleanly and policy/matrix, RLS, tenant isolation, Storage, denied-DML/no-audit, and H4 tests pass on the required local stack.
+- On the verified disposable local stack, `supabase db reset --local`, then set `$env:SUPABASE_TEST_REQUIRED = '1'` in the test process and run `pnpm run test:int` -- expected: additive migration resets cleanly and policy/matrix, RLS, tenant isolation, Storage, denied-DML/no-audit, and H4 tests execute and pass. A missing stack must fail rather than silently skip. Preserve and restore any prior process environment setting after the run.
 - `pnpm run test:e2e` -- expected: role-appropriate server landing/nav plus a granted route pass without browser-visible protected values.
 
 ## Auto Run Result
 
-Status: ready-for-dev
+Status: in-progress
 Blocking condition: none
 
-### 2026-09-07 — Build Auto HALT
+The user requested specification and prerequisite repair. The story is reopened for Phase 5 implementation; no implementation or acceptance gate was completed during that repair. Full automated verification remains pending the lifecycle prerequisite above.
 
-Status: blocked
-Blocking condition: matrix test audit failed
+## Recovery History
+
+### 2026-09-07 — Previous Build Auto HALT
+
+Previous outcome: blocked (`matrix test audit failed`). This is historical evidence, not the current dispatch status.
 
 The partial implementation establishes the N-4 matrix seed and server-derived navigation/landing DTO, but does not implement the required role-aware RLS policy evolution, command declarations, direct-route guards, sensitive read projections, or activated matrix tests. The ten Story 11.2 ATDD cases remain skipped, so no test covers each I/O matrix row as the workflow requires. `pnpm run typecheck`, `pnpm run lint`, and `pnpm run test:unit` passed (1,708 tests); local Supabase/Docker is unavailable (`dockerDesktopLinuxEngine` is absent), and no resource-guard context was supplied to start it.
+
+Recovery check: Docker server 29.7.2 and local Supabase at `http://127.0.0.1:54321` now respond. The migration above remains empty. No reset, fixture mutation, service startup, or runtime acceptance test was performed. The earlier passing checks are historical and must be rerun after implementation.

@@ -43,9 +43,9 @@ the actual scripts in [`package.json`](../../package.json) are `verify:lockfiles
 2. `pnpm run verify:lockfiles` — enforces pnpm-only; rejects stray/empty lockfiles.
 3. `pnpm typecheck` — `tsc --noEmit`.
 4. `pnpm lint` — `eslint`.
-5. `pnpm test` — **placeholder.** No unit suite exists yet; the script prints why
-   and exits 0 so the CI gate stays wired. The real harness arrives with Epic 2
-   (TEA `testarch-framework`). See [`ci.md`](../quality/ci.md#unit-test-gate-placeholder-by-decision).
+5. `pnpm test` — runs the real Node unit and Vitest integration suites through
+   `scripts/run-tests.mjs`. `pnpm run test:unit` needs no Docker;
+   `pnpm run test:int` needs local Supabase for execution evidence.
 6. `pnpm build` — `next build`. **Note:** `next build` fetches the Geist Google
    font over the network, so a fresh or network-restricted machine needs
    internet for the build to succeed (a known, intentionally-deferred non-hermetic
@@ -110,6 +110,14 @@ live in the repo (architecture §3, §7, §8, §9).
 
 ### Commands
 
+These CLI commands describe the developer-operated lifecycle. Automated agents
+must first satisfy the user's standing resource-guard instructions: their own
+trusted hook context, a supported guarded lifecycle, an isolated project target,
+and verified cleanup. Docker/Supabase availability does not prove ownership.
+Do not reset or stop another actor's stack or use raw startup to work around a
+missing context. Playwright's `webServer` also starts a server and has the same
+requirement.
+
 ```bash
 supabase start        # boot the local stack (Auth + Postgres + Storage) in Docker
 supabase db reset     # recreate the DB from EMPTY: apply migrations, then seed.sql
@@ -136,7 +144,11 @@ pnpm test             # both, in order
 suites against the **local Supabase stack only — never a shared dev/staging/prod
 project** (architecture §18). If the stack is not reachable it **skips** those
 suites locally; CI sets `SUPABASE_TEST_REQUIRED=1` so a missing stack is a hard
-failure there. Always `supabase db reset` first for a clean baseline.
+failure there. For required story-completion runs set `SUPABASE_TEST_REQUIRED=1`
+even locally, and inspect executed/skipped counts. Explicit `test.skip()` cases
+remain skipped regardless of that setting and cannot satisfy acceptance coverage.
+Restore any prior process environment setting afterward. Reset only a verified
+disposable local stack owned by the run for a clean baseline.
 
 - `seed.sql` stays a minimal deterministic baseline; business/tenant fixtures come
   from the per-worker test-only factories (`tests/factories/`), not the seed.
@@ -191,7 +203,7 @@ needed and never paste sensitive records into docs or fixtures (see
 ## References
 
 - [README](../../README.md) — quickstart.
-- [`docs/quality/ci.md`](../quality/ci.md) — CI gates, the placeholder test gate,
+- [`docs/quality/ci.md`](../quality/ci.md) — CI gates, test requirements,
   and the local-Supabase-only test rule.
 - [`docs/quality/quality-gates.md`](../quality/quality-gates.md) — Gate 2 (Static
   Quality) and the docs/config-only convention.

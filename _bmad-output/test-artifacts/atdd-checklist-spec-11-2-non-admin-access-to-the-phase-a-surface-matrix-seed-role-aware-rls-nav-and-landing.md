@@ -40,7 +40,7 @@ inputDocuments:
 ## Preflight and context
 
 - **Stack:** frontend (Next.js/React), with Playwright browser tests and Vitest integration/RLS tests against the local Supabase stack.
-- **Story status:** ready-for-dev; its five acceptance criteria are clear and testable.
+- **Story status:** reopened as `in-progress` for implementation recovery on 2026-09-07; all five acceptance criteria remain required. See [recovery requirements](../../docs/process/story-11-2-resume.md).
 - **Existing test patterns:** Node `node:test` for pure units, Vitest for local-Supabase RLS/integration suites, and serial Playwright for production-build browser journeys.
 - **Generation prerequisite:** satisfied. The test stack and development environment definitions exist; no local service was started for scaffold generation.
 - **Playwright Utils:** `tea_use_playwright_utils` is true, but `@seontechnologies/playwright-utils` is absent from `package.json` and the lockfile. Its dependency gate is therefore unmet; use the existing project Playwright pattern and do not add a dependency in this ATDD-only task.
@@ -66,7 +66,7 @@ The acceptance criteria define role, capability, tenant-isolation, projection, a
 ### Red-phase requirements
 
 - The integration scaffold is made entirely of `test.skip()` cases, so the current green baseline remains executable and activation exposes the missing role-aware migration and fixture as real RED failures.
-- Browser scaffold is `describe.skip` because global setup currently creates only the Admin fixture. Its activation requires the new isolated non-admin browser credentials and server-derived UI contracts.
+- Browser scenarios use `test.skip()` because global setup currently creates only the Admin fixture. Activation requires isolated non-admin browser credentials and server-derived UI contracts.
 - No component scaffold is emitted: this repository has no configured component-test runner and the story's presentation behavior is covered by pure server DTO tests plus one browser journey.
 
 ## Story integration metadata
@@ -77,9 +77,9 @@ The acceptance criteria define role, capability, tenant-isolation, projection, a
 - **RLS scaffold:** `C:/DEV/ElproSaas/tests/integration/rls/role-aware-phase-a-surface.atdd.int.test.ts`
 - **Browser scaffold:** `C:/DEV/ElproSaas/tests/e2e/auth/role-aware-phase-a-surface.atdd.e2e.spec.ts`
 
-The Story 11.2 specification was intentionally not edited. These artifact paths are recorded here for the build workflow to link during its own bookkeeping.
+The original ATDD generation did not edit the specification. The user-authorized recovery updated the specification and this checklist together; the scaffold files remain unchanged and skipped.
 
-## Acceptance criteria coverage
+## Planned acceptance criteria coverage (not execution evidence)
 
 | Acceptance criterion | Red-phase coverage |
 | --- | --- |
@@ -134,6 +134,38 @@ No fixture file was created, because a standalone placeholder would either inven
 
 `tea_use_playwright_utils` is enabled in TEA config, but `@seontechnologies/playwright-utils` is absent from both `package.json` and the lockfile. The library mandate's dependency gate is unmet, so the browser scaffold follows the established `@playwright/test` pattern. No dependency or merged-fixture infrastructure was added in this ATDD-only task.
 
+## Corrections required before scaffold activation
+
+Structural/lint checks did not validate fixture semantics. Repair these assumptions
+during implementation; the scaffold is not a binding production API contract:
+
+- Replace the declared-but-unimplemented fixture with isolated data and real
+  production adapters. Constant-return permission/error helpers are not evidence.
+- Enumerate active manifest modules, closed roles, business capabilities and actual
+  table operations. Membership self-read is separate from navigation; `foundation`
+  is not an eighth nav module. Do not invent a dashboard mutation to fill a matrix.
+- Replace module-wide `canWrite` with operation-specific SELECT/INSERT/UPDATE and
+  supported DELETE expectations, including row scope. Assert a complete nonempty
+  case set; empty/omitted loops must fail. Broad-grant roles still need real
+  cross-tenant or forbidden-operation negatives, not fabricated same-tenant denial.
+- Assert native RLS outcomes: denied SELECT may return empty rows without error;
+  UPDATE may affect zero rows; INSERT/CHECK can error. Independently verify no
+  protected data returned and no write occurred. Do not require an invented raw
+  `RLS_DENIED` response. App command denial uses its real `PERMISSION_DENIED` result.
+- Independently inspect database policies/grants and compare them with the matrix
+  and row scope. Add deliberate-drift and missing-case failure proofs; a test name
+  or expected-results-only catalog does not establish agreement.
+- Replace the fabricated command `{ targetFound: false }` response with its actual
+  envelope result, an independent lookup spy, and before/after audit assertions.
+  Test existing, missing and cross-tenant targets without exposing their existence.
+- Exercise invalid membership cases separately, plus scalar-only Admin and role
+  union order/duplicates. One opaque invalid fixture is not complete coverage.
+- Test forbidden job reads without inventing a job_members API or accepting schema
+  error details as the security contract. Prove no tenant-wide assignment inference.
+- Cover nested financial snapshots, aggregates, file/PDF access and exports, not
+  only top-level quote keys. Preserve allowed sales prices and legitimate empty
+  values while structurally withholding unentitled fields and dependent aggregates.
+
 ## Implementation checklist
 
 1. Activate the RLS catalog test first. Add the role-aware migration/policy catalog and the isolated fixture; prove it fails before policy evolution, then make the catalog and real RLS outcomes agree.
@@ -144,18 +176,22 @@ No fixture file was created, because a standalone placeholder would either inven
 
 ## Running tests
 
+Run only after satisfying the lifecycle and isolated-target gates in the recovery
+requirements. Preserve and restore any prior `SUPABASE_TEST_REQUIRED` process value.
+
 ```powershell
-# After activating a selected red scenario and starting the local stack:
-supabase db reset
+# Reset only the verified disposable local stack owned by this run:
+supabase db reset --local
+$env:SUPABASE_TEST_REQUIRED = '1'
 pnpm run test:int -- tests/integration/rls/role-aware-phase-a-surface.atdd.int.test.ts
 
-# After role-aware Playwright setup is implemented:
+# After role-aware fixtures and guarded Playwright server startup are ready:
 pnpm run test:e2e -- tests/e2e/auth/role-aware-phase-a-surface.atdd.e2e.spec.ts
 ```
 
 ## Red-green-refactor handoff
 
-All ten tests are authored scaffolds and remain skipped. They have not been activated or executed against a local Supabase stack or browser; structural red-phase verification has passed. Remove one `test.skip()` at a time, observe the intended failure, implement the smallest safe change, then run the focused suite before advancing to the next scenario.
+All ten tests are authored scaffolds and remain skipped. They have not been activated or executed against a local Supabase stack or browser; only structural/lint checks passed. Repair the contracts above, remove one `test.skip()` at a time, observe the intended behavioral failure, implement the change, then run the focused suite. A missing fixture symbol or unavailable service is not the intended RED behavior. Finish with the full required suites and a named executed/passing test for each of the spec's four I/O matrix rows and five acceptance criteria. No skipped covering test counts as completion evidence.
 
 ## Validation evidence
 
