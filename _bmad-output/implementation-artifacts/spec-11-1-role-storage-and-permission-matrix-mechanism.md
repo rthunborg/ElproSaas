@@ -5,7 +5,7 @@ created: '2026-09-04'
 status: 'in-review'
 baseline_revision: '4189d8c59da27b61f4e92c8463431a31a68e8639'
 review_loop_iteration: 0
-followup_review_recommended: false
+followup_review_recommended: true
 context:
   - '_bmad-output/implementation-artifacts/epic-11-context.md'
   - '_bmad-output/project-context.md'
@@ -93,4 +93,19 @@ The scalar `tenant_memberships.role` is retained as the compatibility role; `mem
 Status: in-review
 Blocking condition: none
 
-Verification detail: CI run https://github.com/rthunborg/ElproSaas/actions/runs/34105099398 on `bc634ab` reports `verify=success` and `db=success`. The `db` job executed the clean Supabase reset plus the required integration/RLS tests, resolving the local-only Docker blocker. The e2e job remains in progress and is not claimed as completion evidence.
+Verification detail: CI run https://github.com/rthunborg/ElproSaas/actions/runs/34105099398 on `bc634ab` reports `verify=success`, `db=success`, and `e2e=success`. The `db` job executed the clean Supabase reset plus the required integration/RLS tests, resolving the local-only Docker blocker.
+
+## Review Triage Log
+
+### 2026-09-07 — Review pass
+- intent_gap: 0
+- bad_spec: 0
+- patch: 5 (high 1, medium 3, low 1)
+- defer: 0
+- reject: 12
+- addressed_findings:
+  - `[high]` `[patch]` Restricted `membership_roles` SELECT to active tenant admins and added a non-admin enumeration regression test.
+  - `[medium]` `[patch]` Added a database-backed resolver assertion that child roles from another membership never enter the selected context.
+  - `[medium]` `[patch]` Added matrix-authorized `projektledare` and `ekonomi` entitlement-projection assertions.
+  - `[medium]` `[patch]` Added the generic `SERVER_ERROR` resolver path for a failed child-role query.
+  - `[low]` `[patch]` Added a child-role domain-check regression test.

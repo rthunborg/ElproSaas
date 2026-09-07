@@ -44,7 +44,7 @@ grant select on public.membership_roles to authenticated;
 grant select, insert, update, delete on public.membership_roles to service_role;
 
 create policy membership_roles_select_own on public.membership_roles
-  for select to authenticated using (public.is_active_tenant_member(tenant_id));
+  for select to authenticated using (public.is_tenant_admin(tenant_id));
 
 create or replace function public.has_tenant_role(target_tenant_id uuid, allowed_roles text[])
 returns boolean language sql stable security definer set search_path = '' as $$

@@ -28,6 +28,7 @@ import {
 } from "../../../factories/tenants";
 import { isLocalStackReachable } from "../../../support/test-env";
 import { skipUnlessStack } from "../../../support/stack-gate";
+import { adminQuery } from "../../../factories/admin-sql";
 
 // The factory returns a `@supabase/supabase-js` client; the resolver expects the
 // structurally-compatible `@supabase/ssr` server client (it only uses
@@ -67,6 +68,26 @@ describe("resolveTenantContext — DB-backed (Story 2.1 AC1-AC4, un-gated in 2.2
       // The joined tenant name resolves (NOT NULL constraint guarantees it).
       expect(result.data.tenantName).toBe(fixture.tenantA.name);
     }
+  });
+
+  it("11.1: resolver returns only the selected membership's child roles", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
+    const memberships = await adminQuery<{ id: string; tenant_id: string; user_id: string }>(
+      "select id, tenant_id, user_id from public.tenant_memberships where user_id = any($1::uuid[])",
+      [[fixture.adminA.id, fixture.adminB.id]],
+    );
+    const membershipA = memberships.find((membership) => membership.user_id === fixture.adminA.id);
+    const membershipB = memberships.find((membership) => membership.user_id === fixture.adminB.id);
+    if (!membershipA || !membershipB) throw new Error("fixture memberships were not created");
+    await adminQuery(
+      "insert into public.membership_roles (tenant_id, membership_id, role) values ($1, $2, 'projektledare'), ($3, $4, 'ekonomi')",
+      [membershipA.tenant_id, membershipA.id, membershipB.tenant_id, membershipB.id],
+    );
+
+    const client = (await makeAuthedServerClient(fixture.adminA)) as unknown as ResolverClient;
+    const result = await resolveTenantContext({ client });
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.data.roles).toEqual(["tenant_admin", "projektledare"]);
   });
 
   it("AC2: an authenticated user with no membership is denied and reads ZERO tenant rows", async (testCtx) => {

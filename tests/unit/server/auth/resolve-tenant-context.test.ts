@@ -43,6 +43,7 @@ type FakeScript = {
   memberships?: NonNullable<FakeMembership>[];
   membershipError?: boolean;
   membershipRoles?: string[];
+  membershipRolesError?: boolean;
 };
 
 /**
@@ -103,7 +104,10 @@ function makeFakeSupabase(script: FakeScript) {
           select: () => roleBuilder,
           eq: () => roleBuilder,
           then: (resolve: (value: { data: unknown; error: unknown }) => unknown) =>
-            resolve({ data: (script.membershipRoles ?? []).map((role) => ({ role })), error: null }),
+            resolve({
+              data: script.membershipRolesError ? null : (script.membershipRoles ?? []).map((role) => ({ role })),
+              error: script.membershipRolesError ? { message: "role lookup failed" } : null,
+            }),
         };
         return roleBuilder;
       }
@@ -395,4 +399,16 @@ test("[P0] 11.1 resolver: active context includes legacy tenant_admin plus de-du
   if (result.ok) {
     assert.deepEqual(new Set(result.data.roles), new Set(["tenant_admin", "projektledare", "saljare"]));
   }
+});
+
+test("[P0] 11.1 resolver: a child-role lookup failure is a generic server failure", async () => {
+  const result = await resolveTenantContext({
+    client: makeFakeSupabase({
+      user: { id: USER_ID },
+      membership: ACTIVE_ADMIN,
+      membershipRolesError: true,
+    }),
+  });
+  assert.equal(result.ok, false);
+  if (!result.ok) assert.equal(result.code, "SERVER_ERROR");
 });

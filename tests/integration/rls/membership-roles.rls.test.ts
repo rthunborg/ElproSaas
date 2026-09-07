@@ -1,6 +1,7 @@
 /** Story 11.1 — membership_roles database authority proofs. */
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
+  adminInsertMembership,
   cleanupFixture,
   createTwoTenantFixture,
   makeAuthedServerClient,
@@ -81,5 +82,36 @@ describe("11.1 membership_roles RLS", () => {
     ).then(() => null, (error: Error & { code?: string }) => error);
     expect(thrown).not.toBeNull();
     expect(thrown?.code).toBe("23505");
+  });
+
+  it("[P0] rejects an unknown child role at the database boundary", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
+    const membershipA = await membershipFor(fixture.adminA.id);
+    const thrown = await adminQuery(
+      "insert into public.membership_roles (tenant_id, membership_id, role) values ($1, $2, 'unknown_role')",
+      [fixture.tenantA.id, membershipA.id],
+    ).then(() => null, (error: Error & { code?: string }) => error);
+    expect(thrown).not.toBeNull();
+    expect(thrown?.code).toBe("23514");
+  });
+
+  it("[P0] a non-admin active member cannot enumerate tenant-wide role assignments", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
+    await adminInsertMembership({
+      tenant_id: fixture.tenantA.id,
+      user_id: fixture.orphanUser.id,
+      role: "montor",
+      status: "active",
+    });
+    const membershipA = await membershipFor(fixture.adminA.id);
+    await adminQuery(
+      "insert into public.membership_roles (tenant_id, membership_id, role) values ($1, $2, 'projektledare')",
+      [fixture.tenantA.id, membershipA.id],
+    );
+
+    const caller = await makeAuthedServerClient(fixture.orphanUser);
+    const { data, error } = await caller.from("membership_roles").select("id, membership_id, role");
+    expect(error).toBeNull();
+    expect(data).toEqual([]);
   });
 });

@@ -176,6 +176,17 @@ test(
 );
 
 test(
+  "11.1: every matrix-authorized money role receives the projected field without a withheld marker",
+  () => {
+    for (const role of ["projektledare", "ekonomi"]) {
+      const { data, entitlements } = projectWithEntitlements(FULL_AGGREGATE, { roles: [role] });
+      assert.equal(data.acceptedValueOre, FULL_AGGREGATE.acceptedValueOre);
+      assert.deepEqual([...entitlements.withheld], []);
+    }
+  },
+);
+
+test(
   "10.4-UNIT-01: an EMPTY role set is unentitled (conservative — no role grants money ⇒ withheld)",
   () => {
     const { data, entitlements } = projectWithEntitlements(FULL_AGGREGATE, { roles: [] });
