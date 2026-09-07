@@ -46,6 +46,24 @@ grant select, insert, update, delete on public.membership_roles to service_role;
 create policy membership_roles_select_own on public.membership_roles
   for select to authenticated using (public.is_tenant_admin(tenant_id));
 
+-- `membership_roles.tenant_id` is constrained to its parent membership by the child trigger.
+-- Prevent a privileged provisioning/migration path from moving that parent to another tenant and
+-- leaving existing child rows stale under the old tenant.
+create or replace function public.prevent_membership_tenant_move_with_roles()
+returns trigger language plpgsql security definer set search_path = '' as $$
+begin
+  if new.tenant_id is distinct from old.tenant_id
+     and exists (select 1 from public.membership_roles where membership_id = old.id) then
+    raise exception using errcode = '23503', message = 'membership tenant cannot change while role assignments exist';
+  end if;
+  return new;
+end;
+$$;
+
+create trigger tenant_memberships_prevent_role_tenant_move
+  before update of tenant_id on public.tenant_memberships
+  for each row execute function public.prevent_membership_tenant_move_with_roles();
+
 create or replace function public.has_tenant_role(target_tenant_id uuid, allowed_roles text[])
 returns boolean language sql stable security definer set search_path = '' as $$
   select coalesce(array_length(allowed_roles, 1), 0) > 0 and exists (

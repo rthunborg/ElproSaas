@@ -30,6 +30,8 @@
  */
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 
 type NavSpec = { route: string; group?: string; requiredCapability?: string };
 type FixtureModule = {
@@ -303,4 +305,10 @@ test("[P0] 11.1 coherence: missing matrix coverage for an active module emits th
     rules(validate(missing, { permissionMatrix: {} })).has("active-module-missing-permission-matrix"),
   );
   assert.deepEqual(validate(await loadRealManifest(), { permissionMatrix: PERMISSION_MATRIX }), []);
+});
+
+test("[P0] 11.1 coherence keeps the permission matrix out of client-reachable manifest imports", () => {
+  const manifestSource = readFileSync(resolve(process.cwd(), "src/scope/manifest.ts"), "utf8");
+  assert.ok(!manifestSource.includes("permission-matrix"));
+  assert.ok(!manifestSource.includes("MANIFEST_COHERENCE_VIOLATIONS"));
 });

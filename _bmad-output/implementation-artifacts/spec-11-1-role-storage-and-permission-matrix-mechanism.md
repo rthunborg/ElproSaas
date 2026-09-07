@@ -2,7 +2,7 @@
 title: 'Story 11.1: Role Storage and Permission-Matrix Mechanism'
 type: 'feature'
 created: '2026-09-04'
-status: 'in-review'
+status: 'done'
 baseline_revision: '4189d8c59da27b61f4e92c8463431a31a68e8639'
 review_loop_iteration: 0
 followup_review_recommended: true
@@ -90,7 +90,7 @@ The scalar `tenant_memberships.role` is retained as the compatibility role; `mem
 
 ## Auto Run Result
 
-Status: in-review
+Status: done
 Blocking condition: none
 
 Verification detail: CI run https://github.com/rthunborg/ElproSaas/actions/runs/34105099398 on `bc634ab` reports `verify=success`, `db=success`, and `e2e=success`. The `db` job executed the clean Supabase reset plus the required integration/RLS tests, resolving the local-only Docker blocker.
@@ -109,6 +109,26 @@ Triage to date found no verified new patch, bad-spec, intent-gap, or deferred it
 ### 2026-09-07 — Resume authorization
 
 The user explicitly approved providing this private story's diff and referenced repository files to the configured OpenAI Codex reviewer. This authorization is limited to the previously blocked external Luna/xhigh review layer; it does not broaden task or repository authority.
+
+### 2026-09-07 — Follow-up review completion
+
+Summary: completed the authorized second broad review pass and corrected the client-authority boundary, the database same-tenant integrity backstop, and scalar-role regression coverage.
+
+Files changed:
+
+- `src/scope/manifest.ts` — remove the server permission-matrix runtime import from the client-reachable scope-manifest path; real-matrix coherence remains asserted by the mandatory unit guard.
+- `supabase/migrations/20260904120000_role_storage_and_permission_matrix.sql` — reject a parent membership tenant move while it has child role assignments.
+- `tests/integration/rls/membership-roles.rls.test.ts` — add the privileged parent-move integrity regression.
+- `tests/unit/resolve-tenant-context-core.test.ts` — pin all four closed non-admin scalar roles as normalized resolved contexts.
+- `tests/unit/scope/manifest-coherence.test.ts` — guard against reintroducing a client-reachable permission-matrix import.
+
+Review findings breakdown: patches applied 3 (high 0, medium 2, low 1); items deferred 0; items rejected 14. The two Luna/xhigh reviews completed after explicit user approval; one found the parent-move integrity gap and the other independently confirmed the client-bundle authority exposure.
+
+Follow-up review recommendation: true. Score = `3 × medium 2 + 1 × low 1 = 7` (threshold 5).
+
+Verification performed: focused resolver/coherence unit tests passed (29 tests); `pnpm run typecheck` passed; `pnpm run test:unit` passed (1,708 tests, 0 failed/skipped/todo); `pnpm run lint` passed; `git diff --check` passed. Local Supabase/Docker was not started. The earlier full CI run `34121027063` on `396c446f1aed74cb1a5c556640f8cd2477f46f42` predates this migration correction, so fresh root-managed CI database/browser verification remains required.
+
+Residual risks: no known code issue from this pass; the new migration regression requires the fresh isolated CI database job.
 
 ## Review Triage Log
 
@@ -137,3 +157,14 @@ The user explicitly approved providing this private story's diff and referenced 
   - none
 
 External Luna/xhigh review was not completed because the required scoped escalation was policy-rejected pending explicit approval to provide the private diff and referenced repository files. The completed local layers' proposed non-admin role-resolution and Phase-A shell concerns were rejected after checking the existing `tenant_memberships_select_own` RLS predicate: it requires `is_tenant_admin(tenant_id)`, so a scalar non-admin cannot reach the resolver or shell in the current release.
+
+### 2026-09-07 — Review pass
+- intent_gap: 0
+- bad_spec: 0
+- patch: 3 (high 0, medium 2, low 1)
+- defer: 0
+- reject: 14
+- addressed_findings:
+  - `[medium]` `[patch]` Removed the permission matrix from the client-reachable manifest import chain while retaining mandatory real-matrix CI validation.
+  - `[medium]` `[patch]` Prevented a service-role parent membership tenant move from stranding child roles under the old tenant, with an integration regression.
+  - `[low]` `[patch]` Added table-driven coverage for all newly accepted non-admin scalar roles.

@@ -48,6 +48,21 @@ describe("11.1 membership_roles RLS", () => {
     expect(thrown?.code).toBe("23503");
   });
 
+  it("[P0] prevents a parent tenant move from leaving existing child roles under the old tenant", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
+    const membershipA = await membershipFor(fixture.adminA.id);
+    await adminQuery(
+      "insert into public.membership_roles (tenant_id, membership_id, role) values ($1, $2, 'projektledare')",
+      [fixture.tenantA.id, membershipA.id],
+    );
+    const thrown = await adminQuery(
+      "update public.tenant_memberships set tenant_id = $1 where id = $2",
+      [fixture.tenantB.id, membershipA.id],
+    ).then(() => null, (error: Error & { code?: string }) => error);
+    expect(thrown).not.toBeNull();
+    expect(thrown?.code).toBe("23503");
+  });
+
   it("[P0] an authenticated caller cannot forge its own or another tenant's child role and independent readback is unchanged", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     const [membershipA, membershipB] = await Promise.all([
