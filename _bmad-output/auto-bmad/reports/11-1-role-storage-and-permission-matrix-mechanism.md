@@ -79,3 +79,40 @@
 2. Optional environment follow-up: /bmad-project-context setup for the missing AGENTS.md bmad:context block.
 
 **Next:** After explicit external-review approval, resume the spec at in-review and continue /auto-bmad --story 11-1-role-storage-and-permission-matrix-mechanism. Preserve completed build/test evidence and the original baseline. PR: https://github.com/rthunborg/ElproSaas/pull/49. No merge or demo deployment has occurred.
+
+## Report — 2026-09-07T14:17:21Z (final)
+
+**Story:** `11-1-role-storage-and-permission-matrix-mechanism` (epic 11, story 1) — first-in-epic.
+**Spec:** `C:\DEV\ElproSaas\_bmad-output\implementation-artifacts\spec-11-1-role-storage-and-permission-matrix-mechanism.md`
+**Branch:** `story/11-1-role-storage-and-permission-matrix-mechanism` (HEAD `ed1d439`).
+**Pipeline status:** Review and story verification are clean; final PR CI follows this pre-push report.
+**Continues:** 2026-09-07T12:54:25Z (halted — external review export approval required)
+
+**Timing:** started 2026-09-04T09:14:31Z; completed in progress — elapsed 77h 02m (≈5h 42m AI-run, ≈71h 20m human/idle wait); resumed 2×.
+
+**Phases run:** Phase 7 follow-up (Terra/high) and final convergence (Sol/xhigh); Phase 9 finalization.
+**Skipped:** Phase 7 trace advisory (four-story epic below threshold); Phase 8 epic-end work (not the last story). Earlier completed phases were preserved.
+
+**Overrides:** User approved private diff/referenced-source export to the configured OpenAI Codex reviewer and autonomous continuation through routine review/fix/CI checkpoints. Isolated CI substitutes for unavailable local DB verification. Three completed broad review rounds maximum; later checks targeted fixes only. No merge or deployment authorized.
+
+**TEA:** Prior ATDD and post-build automation preserved. Final verification: 1,708 unit tests, 942 integration/RLS tests, and 122 E2E tests passed; four E2E tests skipped. No local DB/services were started.
+
+**Build:** Spec done; original baseline 4189d8c preserved; review_loop_iteration 0; deferred 0; warnings none. Follow-up checkpoint a7738a2; concurrency/fixture/test-synchronization fixes 43d8068; final review evidence ed1d439.
+
+**Review:** Two completed Phase 7 passes in this resume; three recorded Phase 7 attempts including the earlier approval-blocked attempt. Latest triage: patch 2 (high 1, low 1), intent_gap 0, bad_spec 0, defer 0, reject 11. Targeted Sol/xhigh fix review: no findings. followup_review_recommended false; review_unverified false; HITL continued under user authorization. Earlier failed CI evidence retained in the spec; final code checkpoint passed all checks.
+
+**Retrospective:** Not due: Story 11.1 is not the last story of Epic 11.
+
+**Open questions:**
+1. Later stories: define invitation expiry, resend throttling/deduplication, and Auth/database compensation semantics.
+2. Later epic assessment: define pilot-scale performance thresholds if performance becomes release-gating.
+
+**Deferred work:**
+1. No deferred fixes from this story; harvest added zero items.
+2. Phase-A role rollout, user-management flows, and Roles UI remain assigned to Stories 11.2–11.4; epic-end NFR assessment remains due at the last story.
+
+**⚠️ Needs human:**
+1. Optional: review and merge the open PR; merging is not automatic.
+2. Optional environment follow-up: refresh the missing BMAD context block in AGENTS.md.
+
+**Next:** Human review: /bmad-checkpoint-preview https://github.com/rthunborg/ElproSaas/pull/49; then /auto-bmad to select the next story. No next story was started.
