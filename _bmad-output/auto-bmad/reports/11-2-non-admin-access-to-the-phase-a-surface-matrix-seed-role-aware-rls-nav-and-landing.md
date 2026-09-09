@@ -174,3 +174,37 @@
 4. Lifecycle cleanup verified via CloseActor and List; zero unresolved owned resources. No managed resource was launched.
 
 **Next:** Resolve the recorded blockers, then rerun /auto-bmad --story 11-2. Human review: /bmad-checkpoint-preview codex/11-2-non-admin-access-to-the-phase-a-surface-matrix-seed-role-aware-rls-nav-and-landing. Story 11-3 is next; not started.
+
+## Report — 2026-09-09T09:16:55Z (halted - runtime authorization pending)
+
+**Story:** `11-2-non-admin-access-to-the-phase-a-surface-matrix-seed-role-aware-rls-nav-and-landing` (epic 11, story 2) — mid-epic.
+**Spec:** `C:/DEV/ElproSaas/_bmad-output/implementation-artifacts/spec-11-2-non-admin-access-to-the-phase-a-surface-matrix-seed-role-aware-rls-nav-and-landing.md`
+**Branch:** `codex/11-2-non-admin-access-to-the-phase-a-surface-matrix-seed-role-aware-rls-nav-and-landing` (HEAD `91b4380`).
+**Pipeline status:** Recovery committed at 91b4380; architecture resolved and spec in-progress. Runtime authorization pending before Phase 5 resume.
+**Continues:** 2026-09-09T08:50:32Z (halted - needs-human)
+
+**Timing:** started 2026-09-07T16:40:40Z; completed in progress — elapsed 40h 36m (≈1h 05m AI-run, ≈39h 30m human/idle wait); resumed 5×.
+
+**Phases run:** User-authorized recovery pass (Sol/xhigh security delegate), local infrastructure investigation, and guarded E2E runner preparation.
+**Skipped:** Auto-bmad Phases 5-9 not resumed; saved Phases 0-4 retained.
+
+**Overrides:** User authorized audit repair and test setup before resuming normal pipeline; no acceptance gate waived.
+
+**TEA:** No TEA step ran. Five focused DB tests authored, zero executed.
+
+**Build:** Atomic customer.create wrapper/caller and private audit writer added; raw audit RPC remains Admin-only. One of 33 audited paths migrated; 32 remain. Typecheck, full lint and 1,710 unit tests passed. DB/browser tests not run.
+
+**Review:** Focused audit recovery only; full build-auto review not reached.
+
+**Retrospective:** Not applicable.
+
+**Open questions:**
+1. Is the local ElproSaas Supabase stack on ports 54321/54322 exclusively disposable, with no data to preserve or other tasks using it?
+
+**Deferred work:**
+1. Remaining 32 audited command paths and full story acceptance remain required Phase 5 scope, not waived or deferred to another release.
+
+**⚠️ Needs human:**
+1. Confirm disposable/exclusive local database use before destructive reset or fixture mutation. Current guard cannot create an independent Supabase stack; no borrowed services were changed.
+
+**Next:** Confirm local database ownership/authorization, execute the five audit integration proofs, then resume /auto-bmad --story 11-2. Human review: /bmad-checkpoint-preview codex/11-2-non-admin-access-to-the-phase-a-surface-matrix-seed-role-aware-rls-nav-and-landing.

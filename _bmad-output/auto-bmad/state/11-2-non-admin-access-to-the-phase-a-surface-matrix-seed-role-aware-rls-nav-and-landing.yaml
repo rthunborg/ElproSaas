@@ -9,11 +9,11 @@ spec_folder: null
 story_id: null
 branch: codex/11-2-non-admin-access-to-the-phase-a-surface-matrix-seed-role-aware-rls-nav-and-landing
 status: in-progress
-updated_at: "2026-09-09T09:16:30Z"
+updated_at: "2026-09-09T11:08:11Z"
 started_at: "2026-09-07T16:40:40Z"
 completed_at: null
 active_seconds: 3953
-timing_anchor: null
+timing_anchor: 1788952091
 is_first_in_epic: false
 is_last_in_epic: false
 git_mode: remote
@@ -41,7 +41,7 @@ spec_path: "C:/DEV/ElproSaas/_bmad-output/implementation-artifacts/spec-11-2-non
 spec_approved: true
 build:
   status: in-progress
-  blocking_condition: Database verification pending confirmation that the existing local ElproSaas stack is exclusively disposable and authorized for reset/fixture mutation.
+  blocking_condition: null
   followup_review_recommended: false
   review_loop_iteration: 0
   deferred_count: 0
@@ -56,7 +56,7 @@ legacy_review_loop_done: false
 legacy_external_review_iterations: null
 legacy_convergence_unverified: false
 legacy_artifact_path: null
-commits: [454ba58, 1b6c563, efd8d73, b725092, 39f2b9c, 2d4c68d, 26c8a4a, 88d7676]
+commits: [454ba58, 1b6c563, efd8d73, b725092, 39f2b9c, 2d4c68d, 26c8a4a, 88d7676, 91b4380]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -79,12 +79,11 @@ pr_merged: false
 merge_method: null
 merge_commit: null
 branch_deleted: false
-open_questions:
-  - "Is the local ElproSaas stack on 54321/54322 exclusively disposable for this run?"
+open_questions: []
 deferred_work: []
-blockers:
-  - Database verification pending confirmation that the existing local ElproSaas stack is exclusively disposable and authorized for reset/fixture mutation.
+blockers: []
 overrides:
   branch_prefix: "codex/ (host instruction)"
   recovery_preparation: "User authorized audit-authority repair, isolated runtime verification and Phase 5 resume; preserve acceptance gates."
+  local_database_authorization: "Owner confirmed local ElproSaas data disposable; reset and fixtures permitted without re-asking. Standing permission recorded in docs/process/local-setup.md."
 constraints: []

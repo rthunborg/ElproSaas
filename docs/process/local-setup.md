@@ -110,13 +110,39 @@ live in the repo (architecture §3, §7, §8, §9).
 
 ### Commands
 
-These CLI commands describe the developer-operated lifecycle. Automated agents
-must first satisfy the user's standing resource-guard instructions: their own
-trusted hook context, a supported guarded lifecycle, an isolated project target,
-and verified cleanup. Docker/Supabase availability does not prove ownership.
+**Standing owner permission (2026-09-09):** the local `ElproSaas` Supabase
+database used by this checkout (API `http://127.0.0.1:54321`, PostgreSQL
+`127.0.0.1:54322/postgres`) contains disposable data. Agents may reset/reseed
+that database, apply repository migrations, and create/remove test fixtures
+when needed for development or verification, without asking again. This
+permission persists across sessions. Confirm the command targets these local
+endpoints and coordinate overlapping test runs before a reset. It does not
+cover another project's stack, a hosted/demo database, or a changed target.
+
+Database permission does not transfer ownership of existing service processes
+or containers for cleanup. New managed servers/browser processes still require
+their own supported guard lifecycle and verified cleanup. Run the authorized
+database reset with an explicit local target from this repository:
+
+```powershell
+supabase db reset --local --yes
+```
+
+The CLI's local reset rebuilds the database and restarts dependent services as
+part of that operation. The owner authorized this reset; it is not permission
+for unrelated service shutdown or broad Docker cleanup. Do not assume
+`--db-url` with a loopback URL provides a SQL-only alternative: CLI 2.115.0
+recognizes that target as local and still uses its local reset path.
+
+The start/stop commands below describe the developer-operated lifecycle.
+For new managed resources, automated agents must satisfy the user's standing
+resource-guard instructions: their own trusted hook context, a supported
+guarded lifecycle, an isolated project target, and verified cleanup.
+Docker/Supabase availability alone does not prove ownership; the explicit
+database authorization above supplies permission for this local reset.
 Do not reset or stop another actor's stack or use raw startup to work around a
-missing context. Playwright's `webServer` also starts a server and has the same
-requirement.
+missing context. Playwright's `webServer` starts a new server and therefore
+requires the guarded lifecycle.
 
 ```bash
 supabase start        # boot the local stack (Auth + Postgres + Storage) in Docker
@@ -148,7 +174,9 @@ failure there. For required story-completion runs set `SUPABASE_TEST_REQUIRED=1`
 even locally, and inspect executed/skipped counts. Explicit `test.skip()` cases
 remain skipped regardless of that setting and cannot satisfy acceptance coverage.
 Restore any prior process environment setting afterward. Reset only a verified
-disposable local stack owned by the run for a clean baseline.
+disposable local database: either one owned by the run or the owner-authorized
+ElproSaas target above. Record whether verification used a SQL-only schema
+reset or a complete local-stack rebuild; do not claim the latter from the former.
 
 - `seed.sql` stays a minimal deterministic baseline; business/tenant fixtures come
   from the per-worker test-only factories (`tests/factories/`), not the seed.
