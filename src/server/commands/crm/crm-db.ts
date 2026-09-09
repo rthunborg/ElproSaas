@@ -3,14 +3,14 @@
  *
  * The envelope's `CommandDbClient` declares only the read/ownership/audit surface
  * (`.from().select().eq().limit()` + `.rpc()`). The CRM `execute` bodies also need
- * the WRITE surface (`.insert()` / `.update()`) of the SAME request-bound,
- * RLS-protected client. This module narrows the real `@supabase/supabase-js` client
- * to a small, typed write view (`asCrmWriteClient`) so the command bodies never
- * cast inline, and maps Postgres/PostgREST error codes to the stable command codes.
+ * the WRITE surface (`.insert()` / `.update()` / checked RPC) of the SAME
+ * request-bound client. This module narrows the real `@supabase/supabase-js`
+ * client to small typed views so command bodies never cast inline, and maps
+ * Postgres/PostgREST error codes to the stable command codes.
  *
- * NO service-role client and NO direct table INSERT into `audit_events` are used —
- * mutations run through the request-bound RLS client (`ctx.db`), and audit goes
- * through the envelope's `writeAuditEvent` DEFINER path.
+ * NO service-role client and NO direct table INSERT into `audit_events` are used.
+ * Mutations run through the request-bound client (`ctx.db`); audited writes use
+ * either the envelope audit path or a checked command RPC that binds its audit row.
  */
 import type { CommandDbClient } from "../envelope";
 import { CommandError } from "../command-errors";
@@ -50,6 +50,42 @@ export type CrmWriteClient = {
  */
 export function asCrmWriteClient(db: CommandDbClient): CrmWriteClient {
   return db as unknown as CrmWriteClient;
+}
+
+/**
+ * Story 11.2's first checked non-admin mutation wrapper. It performs customer
+ * creation and the bound audit insert in one PostgreSQL transaction; the caller
+ * cannot supply the audit command/event/target fields.
+ */
+export type CreateCustomerWithAuditRpcClient = {
+  rpc(
+    fn: "create_customer_with_audit",
+    args: {
+      readonly p_tenant_id: string;
+      readonly p_actor_user_id: string;
+      readonly p_correlation_id: string;
+      readonly p_customer_type: string;
+      readonly p_display_name: string;
+      readonly p_personnummer: string | null;
+      readonly p_org_nr: string | null;
+      readonly p_contact_name: string | null;
+      readonly p_email: string | null;
+      readonly p_phone: string | null;
+      readonly p_address_line1: string | null;
+      readonly p_address_line2: string | null;
+      readonly p_postal_code: string | null;
+      readonly p_city: string | null;
+    },
+  ): Promise<{
+    readonly data: unknown;
+    readonly error: { readonly code?: string; readonly message?: string } | null;
+  }>;
+};
+
+export function asCreateCustomerWithAuditRpcClient(
+  db: CommandDbClient,
+): CreateCustomerWithAuditRpcClient {
+  return db as unknown as CreateCustomerWithAuditRpcClient;
 }
 
 /**

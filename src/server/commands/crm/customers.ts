@@ -2,22 +2,28 @@
  * CRM customer commands (Story 3.1, Task 2; architecture §5 command table).
  *
  * `createCustomer` / `updateCustomer` / `archiveCustomer` — each a `defineCommand`
- * through the EXISTING envelope (resolve user → resolve active tenant_admin →
- * validate typed input → verify ownership → execute via the RLS client → append-only
- * audit → typed Result). No bespoke auth/error/audit mechanism.
+ * through the existing envelope (resolve user → resolve active membership →
+ * capability gate → validate typed input → verify ownership → execute → typed
+ * Result). Audited operations persist their audit event through either the envelope
+ * or a checked, transaction-atomic command RPC.
  *
  * - The resolved tenant (`ctx.tenantContext.tenantId`) is the ONLY authority for the
  *   row's `tenant_id`; a client-supplied tenant_id is ignored (the validators never
  *   read it, and execute writes the resolved tenant).
- * - Mutations run on the request-bound RLS client (`ctx.db`); the own-tenant
- *   INSERT/UPDATE policies + the `is_tenant_admin` WITH CHECK keep them in-tenant.
+ * - Mutations run on the request-bound client (`ctx.db`). `customer.create` uses a
+ *   role-checked RPC that binds the resolved tenant and actor; remaining customer
+ *   writes continue through RLS while their Story 11.2 wrappers are migrated.
  * - Audit metadata carries NO PII (personnummer / org_nr / name / email / address):
  *   the command passes only the narrow SAFE_FIELDS allow-list shape ({} here), and
  *   `sanitizeAuditMetadata` drops anything else by construction.
  */
 import { defineCommand } from "../envelope";
 import { CommandError } from "../command-errors";
-import { asCrmWriteClient, throwMappedWriteError } from "./crm-db";
+import {
+  asCreateCustomerWithAuditRpcClient,
+  asCrmWriteClient,
+  throwMappedWriteError,
+} from "./crm-db";
 import {
   validateArchive,
   validateCreateCustomer,
@@ -32,50 +38,42 @@ export interface CrmCommandResult {
   readonly targetId: string;
 }
 
-/** Build the INSERT payload for a customer, scoped to the resolved tenant. */
-function customerInsertValues(
-  tenantId: string,
-  input: CreateCustomerInput,
-): Record<string, unknown> {
-  return {
-    tenant_id: tenantId, // resolved tenant — NEVER a client-supplied id
-    customer_type: input.customer_type,
-    display_name: input.display_name,
-    personnummer: input.personnummer ?? null,
-    org_nr: input.org_nr ?? null,
-    contact_name: input.contact_name ?? null,
-    email: input.email ?? null,
-    phone: input.phone ?? null,
-    address_line1: input.address_line1 ?? null,
-    address_line2: input.address_line2 ?? null,
-    postal_code: input.postal_code ?? null,
-    city: input.city ?? null,
-  };
-}
-
 export const createCustomer = defineCommand<CreateCustomerInput, CrmCommandResult>({
   command: "customer.create",
-  auditable: true,
+  // The checked RPC owns the customer INSERT and audit INSERT in one database
+  // transaction. A second envelope audit would duplicate the event and would
+  // reintroduce the non-admin raw-audit authority conflict.
+  auditable: false,
   eventType: "customer.created",
   targetType: "customer",
   validateInput: validateCreateCustomer,
-  // No ownership target — a create has no pre-existing row; the INSERT WITH CHECK
-  // (is_tenant_admin on the resolved tenant) keeps the new row in-tenant.
+  // No ownership target — a create has no pre-existing row. The checked RPC binds
+  // the resolved tenant/actor and enforces the Customers.Create role set itself.
   execute: async (ctx) => {
-    const db = asCrmWriteClient(ctx.db);
-    const { data, error } = await db
-      .from("customers")
-      .insert(customerInsertValues(ctx.tenantContext.tenantId, ctx.input))
-      .select("id")
-      .single();
+    const db = asCreateCustomerWithAuditRpcClient(ctx.db);
+    const { data, error } = await db.rpc("create_customer_with_audit", {
+      p_tenant_id: ctx.tenantContext.tenantId,
+      p_actor_user_id: ctx.tenantContext.userId,
+      p_correlation_id: ctx.correlationId,
+      p_customer_type: ctx.input.customer_type,
+      p_display_name: ctx.input.display_name,
+      p_personnummer: ctx.input.personnummer ?? null,
+      p_org_nr: ctx.input.org_nr ?? null,
+      p_contact_name: ctx.input.contact_name ?? null,
+      p_email: ctx.input.email ?? null,
+      p_phone: ctx.input.phone ?? null,
+      p_address_line1: ctx.input.address_line1 ?? null,
+      p_address_line2: ctx.input.address_line2 ?? null,
+      p_postal_code: ctx.input.postal_code ?? null,
+      p_city: ctx.input.city ?? null,
+    });
     if (error) throwMappedWriteError(error);
-    const id = data?.id;
+    const id = typeof data === "string" ? data : null;
     if (typeof id !== "string") {
       throw new Error("createCustomer: no id returned");
     }
     return { targetId: id };
   },
-  auditFields: (_ctx, result) => ({ targetId: result.targetId }),
 });
 
 export const updateCustomer = defineCommand<UpdateCustomerInput, CrmCommandResult>({

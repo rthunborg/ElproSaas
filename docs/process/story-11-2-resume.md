@@ -16,14 +16,52 @@ It changes the execution handoff, not the owner-approved product scope or accept
 - Docker server 29.7.2 and project-local Supabase status responded during this
   preparation pass. No database reset, migration application, fixture write,
   application startup, or acceptance-test execution was performed.
-- **Full execution prerequisite still unmet:** this agent session has no trusted
-  resource-guard context. A session with a working SessionStart/UserPromptSubmit
-  hook (and SubagentStart for delegates) must supply each actor's own context.
-  Never copy identifiers into this document or recover them from another actor.
+- The 2026-09-09 recovery session and its delegate received their own trusted
+  hook contexts. That establishes lifecycle identity, but it does not transfer
+  ownership of the already-running local Supabase stack or make it disposable.
+  Existing-stack ownership/reset authorization remains pending; no database write,
+  reset, service start, or service stop was performed during the audit recovery.
 
 Use `/auto-bmad --story 11-2` after that prerequisite is established. The resume
 must recheck local readiness; status observations here are not a lease or proof
 of migration/fixture readiness. The story is not ready to ship.
+
+## Audit authority recovery decision
+
+Status: `in-progress`. The conflict recorded by the 2026-09-09 build halt is
+resolved architecturally without widening the generic audit RPC:
+
+- `public.record_audit_event` remains authenticated and Admin-only. It is not a
+  non-admin envelope escape hatch because its caller controls command, event,
+  target, and metadata.
+- Each audited non-admin mutation moves behind an authenticated-only,
+  command-specific `SECURITY DEFINER` wrapper with an empty `search_path`. The
+  wrapper verifies `auth.uid()`, tenant membership and the exact matrix-authored
+  role set, owns target lookup/generation, binds the audit action and target, and
+  commits the mutation plus audit row in one transaction.
+- The shared internal audit primitive owns the database timestamp and repeats
+  actor/active-membership checks. It has no execute grant for `PUBLIC`, `anon`,
+  `authenticated`, or `service_role`; it is reachable only from checked wrappers.
+- Revoke the corresponding direct authenticated DML grant as each command is
+  migrated. Otherwise an entitled caller could bypass both the command capability
+  and its audit record through PostgREST.
+
+`customer.create` is the reference implementation in migration
+`20260907171252_role_aware_phase_a_policy_evolution.sql`. Its focused integration
+suite proves entitled Seller success with exactly one trustworthy audit row,
+cross-tenant and unentitled denial, raw audit forgery denial, direct customer
+INSERT denial, function ACL/search-path hardening, and mutation rollback when the
+audit insert fails. Static checks pass; the database suite is authored but remains
+unexecuted until the existing local stack is confirmed disposable and reset.
+
+The recovery inventory found 33 audited paths capable of being granted to a
+non-admin role: CRM 6, pricing/settings 6, calculation-level 3, quotes 12, jobs 2,
+and files 4. The reference migration closes one path; Phase 5 must migrate the
+remaining 32. The nine existing atomic quote/provenance/PDF wrappers need their
+internal Admin assertion evolved to their declared role capabilities, while the
+other paths need command-specific atomic wrappers and direct-DML bypass closure.
+High-churn calculation row/section/reorder commands are intentionally unaudited
+and are outside this recovery inventory.
 
 ## Runtime requirements
 

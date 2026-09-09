@@ -138,3 +138,39 @@
 3. Optional: AGENTS.md has no <!-- bmad:context --> block â€” run /bmad-project-context setup so build-auto implementers inherit repository conventions.
 
 **Next:** Recover the blocked spec, then rerun /auto-bmad --story 11-2. Human review: /bmad-checkpoint-preview codex/11-2-non-admin-access-to-the-phase-a-surface-matrix-seed-role-aware-rls-nav-and-landing
+
+## Report — 2026-09-09T08:50:32Z (halted â€” needs-human)
+
+**Story:** `11-2-non-admin-access-to-the-phase-a-surface-matrix-seed-role-aware-rls-nav-and-landing` (epic 11, story 2) — mid-epic.
+**Spec:** `C:/DEV/ElproSaas/_bmad-output/implementation-artifacts/spec-11-2-non-admin-access-to-the-phase-a-surface-matrix-seed-role-aware-rls-nav-and-landing.md`
+**Branch:** `codex/11-2-non-admin-access-to-the-phase-a-surface-matrix-seed-role-aware-rls-nav-and-landing` (HEAD `88d7676`).
+**Pipeline status:** Phase 5 blocked; partial work committed at 88d7676. Story remains in-progress.
+**Continues:** 2026-09-08T19:04:33Z (halted â€” needs-human)
+
+**Timing:** started 2026-09-07T16:40:40Z; completed in progress — elapsed 40h 09m (≈50m AI-run, ≈39h 19m human/idle wait); resumed 4×.
+
+**Phases run:** Phase 0 resume preflight; Phase 5 build attempt (Codex subagents, Terra/high).
+**Skipped:** Phases 1â€“4 reused; Phases 6â€“9 not reached. Epic-end work does not apply.
+
+**Overrides:** none this run; preserved saved recovery settings.
+
+**TEA:** Prior ATDD retained. No new TEA step ran.
+
+**Build:** Blocked. Partial module closures, role-aware policies, command capability declarations and route gates saved. Delegate reports typecheck, focused lint and 1,710 unit tests passed. Integration/browser verification not run. Oversized warning retained; zero deferred items.
+
+**Review:** Not reached.
+
+**Retrospective:** Not applicable: mid-epic story.
+
+**Open questions:**
+1. How should authorized non-admin commands write transaction-bound, non-forgeable audit records?
+
+**Deferred work:** (none)
+
+**⚠️ Needs human:**
+1. Required non-admin envelope mutations cannot retain the existing non-forgeable admin-only audit authority: `public.record_audit_event` requires `is_tenant_admin(tenant_id)`, while widening its raw authenticated RPC would enable forged audit rows.
+2. Establish an authorized isolated local test setup for required database/fixture/browser verification; the observed existing Supabase stack was partial and its isolation was unestablished.
+3. Resolve the cause, then set the spec frontmatter to in-progress to resume implementation, or in-review only if implementation is complete. Auto-bmad requires stopping on a blocked delegate result.
+4. Lifecycle cleanup verified via CloseActor and List; zero unresolved owned resources. No managed resource was launched.
+
+**Next:** Resolve the recorded blockers, then rerun /auto-bmad --story 11-2. Human review: /bmad-checkpoint-preview codex/11-2-non-admin-access-to-the-phase-a-surface-matrix-seed-role-aware-rls-nav-and-landing. Story 11-3 is next; not started.

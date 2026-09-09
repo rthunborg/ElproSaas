@@ -2,7 +2,7 @@
 title: 'Story 11.2: Non-Admin Access to the Phase A Surface (Matrix Seed, Role-Aware RLS, Nav and Landing)'
 type: 'feature'
 created: '2026-09-07'
-status: 'blocked'
+status: 'in-progress'
 review_loop_iteration: 0
 followup_review_recommended: false
 baseline_revision: '26c8a4a977989ac35e44d8e78192b45f943fc3b7'
@@ -93,16 +93,28 @@ The matrix is the server authority; client nav keeps only authored label/icon me
 
 ## Auto Run Result
 
-### 2026-09-09 — Current Build Auto HALT
+### 2026-09-09 — Audit Authority Recovery
 
-Status: blocked
+Status: in-progress
 
-Blocking condition: Required non-admin envelope mutations cannot retain the existing non-forgeable admin-only audit authority: `public.record_audit_event` requires `is_tenant_admin(tenant_id)`, while widening its raw authenticated RPC would enable forged audit rows.
+Blocking condition: no unresolved audit-architecture decision; database acceptance verification remains pending confirmation that the existing local Supabase stack is disposable for this run.
+
+The audit authority conflict has an approved implementation path. The raw authenticated `public.record_audit_event` RPC remains Admin-only so a non-admin cannot forge actor/action/target audit records. Required non-admin mutations move behind authenticated-only, command-specific `SECURITY DEFINER` wrappers with an empty `search_path`; each wrapper checks the resolved actor, tenant and matrix-authored role set, binds the audit command/event/target internally, and commits the domain mutation plus database-timestamped audit row atomically. Its shared internal audit primitive has no `PUBLIC`, `anon`, `authenticated`, or `service_role` execute grant.
+
+`customer.create` is the first reference migration. Direct authenticated `customers` INSERT is revoked with that migration so the wrapper has no unaudited same-tenant bypass. Focused coverage has been authored for entitled Seller success, exact audit attribution, cross-tenant and unentitled denial, forged raw-audit denial, direct-DML denial, function hardening, and audit-failure rollback. Typecheck and focused ESLint pass. The local database migration and five focused integration tests remain unexecuted until the existing local Supabase stack is confirmed disposable for this run.
+
+The audited non-admin mutation inventory contains 33 paths. This reference migration closes one; the remaining 32 wrapper/caller migrations are Phase 5 implementation work and must retain the same authorization, non-forgeability, bypass-closure, and atomicity invariants. The story remains in progress; route/read projection, full RLS/Storage, ten ATDD scenario, and browser acceptance work also remains.
+
+### 2026-09-09 — Previous Build Auto HALT
+
+Historical outcome: blocked
+
+Historical issue: Required non-admin envelope mutations could not retain the existing non-forgeable admin-only audit authority: `public.record_audit_event` requires `is_tenant_admin(tenant_id)`, while widening its raw authenticated RPC would enable forged audit rows.
 
 Safe partial implementation preserved: the matrix closes Säljare out of carried inline-cost calculations and Montör out of tenant-wide Files/Jobs; the role-aware policy evolution, command capability registry, and server direct-route gates are present. Typecheck, focused ESLint, and the full unit suite passed (1,710 tests, 0 failed/skipped/todo). Integration, migration-reset, and browser evidence remain unrun because the existing local Supabase instance is a partially stopped, ownership-unestablished stack and was not reset, mutated, started, or stopped by this run.
 
-Status: blocked
-Blocking condition: no trusted resource-guard hook context is available for the mandatory isolated local Supabase reset, fixture mutation, authenticated RLS verification, or Playwright web-server lifecycle.
+Historical outcome: blocked
+Historical issue: no trusted resource-guard hook context was available for the mandatory isolated local Supabase reset, fixture mutation, authenticated RLS verification, or Playwright web-server lifecycle.
 
 The resumed implementation pass added focused server-authority coverage for role-filtered navigation, landing, the Montör dashboard fallback, direct-route denial, and role-union route access. It passed `pnpm run typecheck`, focused ESLint, and the registered `pnpm run test:unit -- --test-name-pattern='11.2-UNIT'` runner (1,710 passing, 0 failed/skipped/todo); that runner executes the full unit suite. The core implementation remains incomplete: the required role-aware policy migration is empty; command capabilities, direct-route enforcement, read projections, fixtures, and all ten ATDD scenarios remain incomplete or skipped. Full automated verification remains pending the lifecycle prerequisite above.
 
