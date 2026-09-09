@@ -9,11 +9,11 @@ spec_folder: null
 story_id: null
 branch: codex/11-2-non-admin-access-to-the-phase-a-surface-matrix-seed-role-aware-rls-nav-and-landing
 status: in-progress
-updated_at: "2026-09-09T08:40:16Z"
+updated_at: "2026-09-09T08:49:52Z"
 started_at: "2026-09-07T16:40:40Z"
 completed_at: null
-active_seconds: 2487
-timing_anchor: 1788943216
+active_seconds: 3052
+timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
 git_mode: remote
@@ -41,7 +41,7 @@ spec_path: "C:/DEV/ElproSaas/_bmad-output/implementation-artifacts/spec-11-2-non
 spec_approved: true
 build:
   status: blocked
-  blocking_condition: "no trusted resource-guard hook context is available for the mandatory isolated local Supabase reset, fixture mutation, authenticated RLS verification, or Playwright web-server lifecycle."
+  blocking_condition: "Required non-admin envelope mutations cannot retain the existing non-forgeable admin-only audit authority: `public.record_audit_event` requires `is_tenant_admin(tenant_id)`, while widening its raw authenticated RPC would enable forged audit rows."
   followup_review_recommended: false
   review_loop_iteration: 0
   deferred_count: 0
@@ -56,7 +56,7 @@ legacy_review_loop_done: false
 legacy_external_review_iterations: null
 legacy_convergence_unverified: false
 legacy_artifact_path: null
-commits: [454ba58, 1b6c563, efd8d73, b725092, 39f2b9c, 2d4c68d]
+commits: [454ba58, 1b6c563, efd8d73, b725092, 39f2b9c, 2d4c68d, 26c8a4a]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -79,10 +79,12 @@ pr_merged: false
 merge_method: null
 merge_commit: null
 branch_deleted: false
-open_questions: []
+open_questions:
+  - "Resolve transaction-bound, non-forgeable audit authority for authorized non-admin commands."
 deferred_work: []
 blockers:
-  - "no trusted resource-guard hook context is available for the mandatory isolated local Supabase reset, fixture mutation, authenticated RLS verification, or Playwright web-server lifecycle."
+  - "Required non-admin envelope mutations cannot retain the existing non-forgeable admin-only audit authority: `public.record_audit_event` requires `is_tenant_admin(tenant_id)`, while widening its raw authenticated RPC would enable forged audit rows."
+  - "Required integration and browser verification remains unexecuted; the observed pre-existing partial local Supabase stack has no established ownership/isolation for reset and fixture mutation."
 overrides:
   branch_prefix: "codex/ (host instruction)"
   recovery_preparation: "User requested specification and requirements repair; resume Phase 5 implementation with unchanged acceptance gates."

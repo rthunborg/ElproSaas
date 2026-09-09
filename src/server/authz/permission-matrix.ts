@@ -20,11 +20,14 @@ export const PERMISSION_MATRIX = {
   settings: {
     "CompanySettings.View": { roles: ["tenant_admin"] },
     "CompanySettings.Edit": { roles: ["tenant_admin"] },
+    "Pricing.Edit": { roles: ["tenant_admin", "projektledare"] },
   },
   calculations: {
-    "Calculations.View": { roles: ["tenant_admin", "projektledare", "saljare"] },
-    "Calculations.Create": { roles: ["tenant_admin", "projektledare", "saljare"] },
-    "Calculations.Edit": { roles: ["tenant_admin", "projektledare", "saljare"] },
+    // Calculation rows carry inline costs and markup. Until their economy data is
+    // split out, Säljare is deliberately closed at module level (ADR-B001 §3.6).
+    "Calculations.View": { roles: ["tenant_admin", "projektledare"] },
+    "Calculations.Create": { roles: ["tenant_admin", "projektledare"] },
+    "Calculations.Edit": { roles: ["tenant_admin", "projektledare"] },
   },
   quotes: {
     "Quotes.View": { roles: ["tenant_admin", "projektledare", "saljare"] },
@@ -53,7 +56,13 @@ export const PERMISSION_MATRIX = {
     "Jobs.AssignUsers": { roles: [] },
     "Jobs.ApproveCompletion": { roles: ["tenant_admin", "projektledare"] },
   },
-  files: { "Files.View": { roles: ["tenant_admin", "projektledare", "montor", "saljare", "ekonomi"] } },
+  files: {
+    // Phase A has neither job_members nor file-owner assignment scope. Montör
+    // access therefore stays closed rather than becoming a tenant-wide grant.
+    "Files.View": { roles: ["tenant_admin", "projektledare"] },
+    "Files.Create": { roles: ["tenant_admin", "projektledare"] },
+    "Files.Edit": { roles: ["tenant_admin", "projektledare"] },
+  },
 } as const satisfies Record<string, ModulePermissions>;
 
 export const SENSITIVE_FIELD_MATRIX: Record<string, Record<string, PermissionRow>> = {

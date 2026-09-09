@@ -2,10 +2,10 @@
 title: 'Story 11.2: Non-Admin Access to the Phase A Surface (Matrix Seed, Role-Aware RLS, Nav and Landing)'
 type: 'feature'
 created: '2026-09-07'
-status: 'in-progress'
+status: 'blocked'
 review_loop_iteration: 0
 followup_review_recommended: false
-baseline_revision: '2d4c68d587f8e980135abb321992698087745d51'
+baseline_revision: '26c8a4a977989ac35e44d8e78192b45f943fc3b7'
 context:
   - 'docs/process/story-11-2-resume.md'
   - '_bmad-output/implementation-artifacts/epic-11-context.md'
@@ -92,6 +92,14 @@ The matrix is the server authority; client nav keeps only authored label/icon me
 - `pnpm run test:e2e` -- expected: role-appropriate server landing/nav plus a granted route pass without browser-visible protected values.
 
 ## Auto Run Result
+
+### 2026-09-09 — Current Build Auto HALT
+
+Status: blocked
+
+Blocking condition: Required non-admin envelope mutations cannot retain the existing non-forgeable admin-only audit authority: `public.record_audit_event` requires `is_tenant_admin(tenant_id)`, while widening its raw authenticated RPC would enable forged audit rows.
+
+Safe partial implementation preserved: the matrix closes Säljare out of carried inline-cost calculations and Montör out of tenant-wide Files/Jobs; the role-aware policy evolution, command capability registry, and server direct-route gates are present. Typecheck, focused ESLint, and the full unit suite passed (1,710 tests, 0 failed/skipped/todo). Integration, migration-reset, and browser evidence remain unrun because the existing local Supabase instance is a partially stopped, ownership-unestablished stack and was not reset, mutated, started, or stopped by this run.
 
 Status: blocked
 Blocking condition: no trusted resource-guard hook context is available for the mandatory isolated local Supabase reset, fixture mutation, authenticated RLS verification, or Playwright web-server lifecycle.
