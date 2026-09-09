@@ -5,7 +5,7 @@ baseline_plan: docs/planning/saas-rebuild-phased-plan-2026-06-07.md
 phase: B - Legacy Parity Release (Phase A Internal Pilot MVP shipped)
 project_name: ElproSaas
 user_name: Rasmus
-last_updated: 2026-09-03 (ADR-B009 connected-field course correction)
+last_updated: 2026-09-08 (agent-context setup and workflow alignment)
 sections_completed:
   ['product_boundary', 'scope_manifest_rules', 'architecture_rules', 'money_tax_rules', 'quote_lifecycle_rules', 'read_model_rules', 'lovable_oracle', 'technology_stack', 'language_rules', 'framework_rules', 'testing_rules', 'security_harness_rules', 'quality_rules', 'workflow_rules', 'anti_patterns', 'bmad_output_discipline', 'migration_coexistence_rules']
 optimized_for_llm: true
@@ -174,7 +174,7 @@ Epic 9 built the Phase-A cutover-readiness scaffold as DOCS + TESTS (one additiv
 - **A cross-story STATUS-coherence gap is the epic's hardest-won lesson: the no-drift guards assert ID PRESENCE but never per-ID status COHERENCE.** The one genuine cross-story defect (an ID carrying BOTH `signed-off` and `blocking` in the register) was invisible to all five per-story reviews AND to CI. When touching the register, check each ID has ONE coherent status, not merely that it is present.
 - **Adversarial reviews can HALLUCINATE PII-regex evidence on privacy-critical work.** During the epic-9 review, two lens outputs invented personnummer/orgnr regex shapes not in the diff to support a false "scanners diverged" claim; triage caught it only by grepping the diff. The docs-side PII validators and the shared `anonymization-scan.ts` fixture scanner are byte-IDENTICAL today but NOT single-sourced (drift risk on the same zero-real-PII epic-blocker) — owner: a future scan-consolidation pass extracting one shared PII-regex module both import.
 
-Versions are pinned exactly (no caret ranges) — match them; do not silently bump. Adding or upgrading any dependency is a gated action requiring explicit approval (see Workflow Rules).
+Versions are pinned exactly (no caret ranges) — match them; do not silently bump. Dependency changes must be within the authorized implementation scope (see Development Workflow Rules); do not request repeated approval for that authorized work.
 
 - **Package manager:** pnpm `10.24.0`, pinned via `package.json` `packageManager` and provisioned through Corepack. pnpm is the ONLY package manager — never use or reference `npm`, `yarn`, or `bun` in code, docs, scripts, or CI. A `verify:lockfiles` guard enforces a single lockfile.
 - **Runtime:** Node `>=20.9.0`, version pinned in `.nvmrc` (CI reads it via `node-version-file`).
@@ -253,10 +253,10 @@ These are AUTOMATED, fail-closed gates that protect every later tenant-owned tab
 
 ### Development Workflow Rules
 
-- **Operating modes:** before editing, state whether you are in read-only, docs/config-only, or implementation mode. Implementation mode requires an approved Phase A story or ADR-backed task.
+- **Operating modes:** before editing, state whether you are in read-only, docs/config-only, or implementation mode. Implementation mode requires an approved story or ADR-backed task within Phase B manifest governance.
 - **Branch types:** `docs/<topic>`, `chore/<topic>`, `feature/<approved-story-id>`, `fix/<approved-issue-id>`, `spike/<topic>`. Feature branches require an approved story.
-- **Gated actions (require explicit approval before running):** dependency installs/upgrades, edits to `.env*`, database migrations, edits to product code (`app/**`, `src/**`, `components/**`, `supabase/migrations/**`, `package.json`, `pnpm-lock.yaml`), and network/destructive/prod commands. Do not run `git` operations on behalf of an orchestrated workflow — the orchestrator owns git/PR.
-- **CI quality gate (`.github/workflows/ci.yml`):** a `verify` job — `pnpm install --frozen-lockfile` -> `verify:lockfiles` -> `verify:service-role-containment` -> `typecheck` -> `lint` -> `test:unit` -> `build` -> `verify:bundle-containment` (AFTER build, load-bearing order) — and a `db` job (gated behind `verify`) — `supabase start` -> `supabase db reset` (empty DB -> migrate -> seed) -> `test:int` (DB-backed integration + RLS negatives + H4 gate) against the LOCAL stack only. Never weaken, skip, or reorder. docs/config-only PRs must state which product gates were skipped.
+- **Authorization:** Implementation requires an approved story or ADR-backed task. Within authorized scope, code, migrations, dependencies, and necessary network actions do not require repeated approval. Docs/process-only work excludes product code, migrations, dependencies, and `.env`. Preserve current secret, destructive-action, merge, and Phase C owner-decision gates. In an orchestrated workflow, the orchestrator owns git/PR operations; delegates commit only when their workflow contract requires it.
+- **CI quality gates:** read `.github/workflows/ci.yml` for the authoritative jobs, commands, and ordering. Do not weaken or bypass required checks. CI and tests target the local stack only; docs/config-only PRs must state which product gates were skipped.
 - **PR requirements:** scope statement + phase, link to approved story/ADR/process task, changed-files list, tests/checks run, security/RLS impact statement, data-migration impact statement, deferred-scope confirmation. Accepted RLS design deferrals (e.g. Phase A co-member own-tenant audit/membership read) are DISCLOSED in the PR Security/RLS impact statement, not buried in a code comment.
 - **Demo environment (live since 2026-07-03, post-Epic-5):** the app is deployed at the Vercel project `enhancior/elpro-saas` (auto-deploys `main`) against the Supabase demo project `elprosaas-demo` (ref `wmqmzznmwpheswjjozhq`, eu-north-1, Enhancior org) — the full contract is `docs/process/demo-environment.md`. Rules that affect epic work: migrations flow repo→demo via `supabase db push` AFTER the epic PR merges (the repo is already `supabase link`ed; sanctioned by the 2026-07-03 guardrail decision); CI and tests stay LOCAL-stack only and must never target the demo project; demo data is disposable and obviously fake; the two `tenant_admin` demo users are listed in that doc (no signup flow exists — users are provisioned manually).
 - Deeper governance: `AGENTS.md` (shared source of truth), `CLAUDE.md`, and `docs/process`, `docs/quality`, `docs/security`, `docs/decisions`. Local dev setup: `docs/process/local-setup.md`.
@@ -267,7 +267,7 @@ These are AUTOMATED, fail-closed gates that protect every later tenant-owned tab
 - **RLS-by-default + GRANTs:** a new tenant-owned table is not done until it has (a) `tenant_id` scoping (or is the `tenants` root), (b) enable+`force` RLS with own-tenant policies built on the DEFINER helpers, (c) explicit role GRANTs (`anon -> none`), and (d) enrollment in `TENANT_TABLES`. Missing any one is a tenant-isolation or availability defect.
 - **Secrets never get committed.** `.env` and `.env.*` are gitignored; ONLY `.env.example` is whitelisted, and it holds PLACEHOLDERS ONLY — never real project refs, keys, URLs, or PII. Only `NEXT_PUBLIC_`-prefixed vars are exposed to the browser. Do not echo `.env*` contents into prompts.
 - **Do not copy from the Lovable app by default** (see Lovable Oracle Policy) — it is a behavioral oracle, not a code source.
-- **Stay in Phase A scope.** Do not create migrations, add dependencies, edit `.env`, or modify app code for process-only tasks. If a change touches a deferred module, stop unless there is explicit re-approval in the PR description and a linked planning artifact.
+- **Stay within Phase B manifest governance.** Do not create migrations, add dependencies, edit `.env`, or modify app code for process-only tasks. A pending module gains live surface only through its approved same-PR activation; Phase C hard exclusions require a new owner decision and linked planning artifact.
 - **CI `pnpm build` is non-hermetic** (the Next scaffold fetches a Google font over the network). Acceptable on networked GitHub runners; revisit (switch to `next/font/local`) only when CI must run network-restricted.
 
 ## BMAD Output Discipline

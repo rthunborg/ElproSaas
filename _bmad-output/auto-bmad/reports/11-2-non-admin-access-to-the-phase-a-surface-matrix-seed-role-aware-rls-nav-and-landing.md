@@ -68,3 +68,73 @@
 1. Use a session whose trusted hooks inject each actor's resource-guard context before managed test infrastructure work. Docker 29.7.2 and local Supabase status now respond; ownership, migration and fixture readiness still need verification.
 
 **Next:** After lifecycle readiness is established, run /auto-bmad --story 11-2. No further spec status edit is needed. See docs/process/story-11-2-resume.md.
+
+## Report — 2026-09-07T18:16:14Z (halted - needs-human)
+
+**Story:** `11-2-non-admin-access-to-the-phase-a-surface-matrix-seed-role-aware-rls-nav-and-landing` (epic 11, story 2) — mid-epic.
+**Spec:** `C:/DEV/ElproSaas/_bmad-output/implementation-artifacts/spec-11-2-non-admin-access-to-the-phase-a-surface-matrix-seed-role-aware-rls-nav-and-landing.md`
+**Branch:** `codex/11-2-non-admin-access-to-the-phase-a-surface-matrix-seed-role-aware-rls-nav-and-landing` (HEAD `db2100a`).
+**Pipeline status:** Phase 5 blocked again: trusted resource-guard context missing; implementation and runtime acceptance verification incomplete.
+**Continues:** 2026-09-07T18:03:17Z (halted - runtime prerequisite pending)
+
+**Timing:** started 2026-09-07T16:40:40Z; completed in progress — elapsed 1h 35m (≈41m AI-run, ≈54m human/idle wait); resumed 2×.
+
+**Phases run:** Resume preflight; Phase 5 build attempt (Codex subagents, Terra/high).
+**Skipped:** Phases 1-4 reused from saved state; 6-9 not reached; epic-end work not applicable.
+
+**Overrides:** No new overrides. Reused repaired spec and persisted build route.
+
+**TEA:** Existing ATDD retained. All ten integration/browser scenarios remain skipped; no runtime acceptance test ran.
+
+**Build:** Blocked; added navigation/landing helper unit tests. Typecheck, focused ESLint and unit run passed (1,710 tests, zero failed/skipped/todo). The delegate's name-pattern invocation ran the full unit suite. Migration, command/route rollout, safe projections and fixtures remain incomplete. Saved at db2100a; oversized warning retained.
+
+**Review:** Not reached; no review pass or completion claim.
+
+**Retrospective:** Not applicable.
+
+**Open questions:** (none)
+
+**Deferred work:**
+1. No frontmatter deferred items. Incomplete Story 11.2 implementation remains required scope.
+
+**⚠️ Needs human:**
+1. no trusted resource-guard hook context is available for the mandatory isolated local Supabase reset, fixture mutation, authenticated RLS verification, or Playwright web-server lifecycle.
+2. Repair trusted hook context injection for the running actor/delegates, then establish an owned isolated local test stack. Merely rerunning auto-bmad in the same context does not fix this prerequisite. No resource-guard cleanup verification was possible without the context; this run did not start managed test services.
+3. After the prerequisite is fixed, set spec frontmatter status to in-progress and rerun /auto-bmad --story 11-2.
+4. Optional preflight warning: AGENTS.md lacks the bmad:context block.
+
+**Next:** Human review: /bmad-checkpoint-preview codex/11-2-non-admin-access-to-the-phase-a-surface-matrix-seed-role-aware-rls-nav-and-landing. Repair lifecycle context before resuming Phase 5. Nothing pushed; no PR or CI run.
+
+## Report — 2026-09-08T19:04:33Z (halted â€” needs-human)
+
+**Story:** `11-2-non-admin-access-to-the-phase-a-surface-matrix-seed-role-aware-rls-nav-and-landing` (epic 11, story 2) — mid-epic.
+**Spec:** `C:/DEV/ElproSaas/_bmad-output/implementation-artifacts/spec-11-2-non-admin-access-to-the-phase-a-surface-matrix-seed-role-aware-rls-nav-and-landing.md`
+**Branch:** `codex/11-2-non-admin-access-to-the-phase-a-surface-matrix-seed-role-aware-rls-nav-and-landing` (HEAD `db2100a`).
+**Pipeline status:** Halted before Phase 5: the saved spec remains blocked; resume requires recovery of the spec status.
+**Continues:** 2026-09-07T18:16:14Z (halted - needs-human)
+
+**Timing:** started 2026-09-07T16:40:40Z; completed in progress — elapsed 26h 23m (≈41m AI-run, ≈25h 42m human/idle wait); resumed 3×.
+
+**Phases run:** Phase 0 resume preflight (Codex/subagents; passed)
+**Skipped:** Phases 1â€“4 already recorded complete; Phases 5â€“9 not entered
+
+**Overrides:** none
+
+**TEA:** Prior high-risk classification reused; no TEA step ran this session.
+
+**Build:** Not run this session; saved spec status blocked.
+
+**Review:** Not run this session.
+
+**Retrospective:** Not applicable: mid-epic story.
+
+**Open questions:** (none)
+
+**Deferred work:** (none)
+
+**⚠️ Needs human:**
+1. Recorded blocker: no trusted resource-guard hook context is available for the mandatory isolated local Supabase reset, fixture mutation, authenticated RLS verification, or Playwright web-server lifecycle.
+2. The current root session has trusted lifecycle context, but infrastructure readiness is unverified. Resolve the cause and set the spec status to in-progress for implementation, or in-review only if implementation is complete, then rerun /auto-bmad --story 11-2.
+3. Optional: AGENTS.md has no <!-- bmad:context --> block â€” run /bmad-project-context setup so build-auto implementers inherit repository conventions.
+
+**Next:** Recover the blocked spec, then rerun /auto-bmad --story 11-2. Human review: /bmad-checkpoint-preview codex/11-2-non-admin-access-to-the-phase-a-surface-matrix-seed-role-aware-rls-nav-and-landing

@@ -3,6 +3,10 @@
 Status: Accepted  
 Date: 2026-06-08
 
+## Supersession note — 2026-09-08
+
+The Phase A scope and blanket per-action approval requirements below are historical. Current scope is governed by `AGENTS.md` and the Phase B manifest. The owner-approved authorization alignment in [Agent Workflow](../process/agent-workflow.md#authorization-and-remaining-gates) supersedes the original approval list: approved implementation proceeds within its authorized scope without repeated code, migration, dependency, or network approvals. Secret, destructive-action, merge, and Phase C owner-decision gates remain in force. The original decision is preserved below as history.
+
 ## Context
 
 The repository contains a Lovable-generated internal app with valuable domain coverage but known production-readiness risks. The rebuild is not starting with product implementation. The first need is an operating layer that lets BMAD and Codex collaborate safely without expanding scope beyond Phase A.

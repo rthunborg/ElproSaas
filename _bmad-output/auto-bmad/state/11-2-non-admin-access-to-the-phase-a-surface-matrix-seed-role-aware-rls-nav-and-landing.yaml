@@ -9,11 +9,11 @@ spec_folder: null
 story_id: null
 branch: codex/11-2-non-admin-access-to-the-phase-a-surface-matrix-seed-role-aware-rls-nav-and-landing
 status: in-progress
-updated_at: "2026-09-07T18:15:49Z"
+updated_at: "2026-09-09T08:40:16Z"
 started_at: "2026-09-07T16:40:40Z"
 completed_at: null
 active_seconds: 2487
-timing_anchor: null
+timing_anchor: 1788943216
 is_first_in_epic: false
 is_last_in_epic: false
 git_mode: remote
