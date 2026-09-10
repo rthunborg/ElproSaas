@@ -27,7 +27,8 @@
 import { defineCommand } from "../envelope";
 import { CommandError } from "../command-errors";
 import {
-  asCalcWriteClient,
+  asCalcLifecycleRpcClient,
+  extractCalculationLifecycleId,
   loadCalcStatus,
   throwMappedWriteError,
 } from "./calc-db";
@@ -51,7 +52,10 @@ export const createCalculation = defineCommand<
   CalcCommandResult
 >({
   command: "calculation.create",
-  auditable: true,
+  // The checked RPC owns the calculation insert and its audit row in one
+  // transaction. The generic audit RPC remains Admin-only and must not become
+  // a non-admin escape hatch.
+  auditable: false,
   eventType: "calculation.created",
   targetType: "calculation",
   validateInput: validateCreateCalculation,
@@ -60,21 +64,18 @@ export const createCalculation = defineCommand<
   // facility/contact links are enforced by the composite same-tenant FKs at INSERT.
   ownership: (input) => ({ table: "customers", id: input.customer_id }),
   execute: async (ctx) => {
-    const db = asCalcWriteClient(ctx.db);
-    const { data, error } = await db
-      .from("calculations")
-      .insert({
-        tenant_id: ctx.tenantContext.tenantId, // resolved tenant, never client id
-        customer_id: ctx.input.customer_id,
-        facility_id: ctx.input.facility_id ?? null,
-        contact_id: ctx.input.contact_id ?? null,
-        title: ctx.input.title,
-        // status defaults to 'draft' at the DB.
-      })
-      .select("id")
-      .single();
+    const rpc = asCalcLifecycleRpcClient(ctx.db);
+    const { data, error } = await rpc.rpc("create_calculation_with_audit", {
+      p_tenant_id: ctx.tenantContext.tenantId,
+      p_actor_user_id: ctx.tenantContext.userId,
+      p_correlation_id: ctx.correlationId,
+      p_customer_id: ctx.input.customer_id,
+      p_facility_id: ctx.input.facility_id ?? null,
+      p_contact_id: ctx.input.contact_id ?? null,
+      p_title: ctx.input.title,
+    });
     if (error) throwMappedWriteError(error);
-    const id = data?.id;
+    const id = extractCalculationLifecycleId(data);
     if (typeof id !== "string") {
       throw new Error("createCalculation: no id returned");
     }
@@ -101,7 +102,8 @@ export const updateCalculation = defineCommand<
   CalcCommandResult
 >({
   command: "calculation.update",
-  auditable: true,
+  // See createCalculation: the checked RPC atomically owns this audit write.
+  auditable: false,
   eventType: "calculation.updated",
   targetType: "calculation",
   validateInput: validateUpdateCalculation,
@@ -133,16 +135,18 @@ export const updateCalculation = defineCommand<
     if (Object.keys(patch).length === 0) {
       return { targetId: ctx.input.id };
     }
-    const db = asCalcWriteClient(ctx.db);
-    const { data, error } = await db
-      .from("calculations")
-      .update(patch)
-      .eq("id", ctx.input.id)
-      .select("id");
+    const rpc = asCalcLifecycleRpcClient(ctx.db);
+    const { data, error } = await rpc.rpc("update_calculation_with_audit", {
+      p_tenant_id: ctx.tenantContext.tenantId,
+      p_actor_user_id: ctx.tenantContext.userId,
+      p_correlation_id: ctx.correlationId,
+      p_calculation_id: ctx.input.id,
+      p_patch: patch,
+    });
     if (error) throwMappedWriteError(error);
     // Ownership already proved the row is visible; a zero-row update here would be a
     // race (row archived/removed between verify and update) → deny rather than 500.
-    if (!data || data.length === 0) {
+    if (extractCalculationLifecycleId(data) === null) {
       throw new CommandError("TENANT_ACCESS_DENIED");
     }
     return { targetId: ctx.input.id };
@@ -155,24 +159,27 @@ export const archiveCalculation = defineCommand<
   CalcCommandResult
 >({
   command: "calculation.archive",
-  auditable: true,
+  // See createCalculation: the checked RPC atomically owns this audit write.
+  auditable: false,
   eventType: "calculation.archived",
   targetType: "calculation",
   validateInput: validateArchiveCalc,
   ownership: (input) => ({ table: "calculations", id: input.id }),
   execute: async (ctx) => {
-    const db = asCalcWriteClient(ctx.db);
     // Soft-delete: set archived_at to the SINGLE command instant (deterministic,
     // injected clock — never Date.now()). Never a hard DELETE. Also flip status to
     // 'archived' so the lifecycle field and the soft-delete timestamp agree.
     const archivedAt = ctx.clock.now().toISOString();
-    const { data, error } = await db
-      .from("calculations")
-      .update({ archived_at: archivedAt, status: "archived" })
-      .eq("id", ctx.input.id)
-      .select("id");
+    const rpc = asCalcLifecycleRpcClient(ctx.db);
+    const { data, error } = await rpc.rpc("archive_calculation_with_audit", {
+      p_tenant_id: ctx.tenantContext.tenantId,
+      p_actor_user_id: ctx.tenantContext.userId,
+      p_correlation_id: ctx.correlationId,
+      p_calculation_id: ctx.input.id,
+      p_archived_at: archivedAt,
+    });
     if (error) throwMappedWriteError(error);
-    if (!data || data.length === 0) {
+    if (extractCalculationLifecycleId(data) === null) {
       throw new CommandError("TENANT_ACCESS_DENIED");
     }
     return { targetId: ctx.input.id };

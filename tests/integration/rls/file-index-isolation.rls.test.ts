@@ -55,6 +55,7 @@ import {
   type TestServerClient,
   type FixtureTenant,
 } from "../../factories/tenants";
+import { adminQuery } from "../../factories/admin-sql";
 import { isLocalStackReachable } from "../../support/test-env";
 import { skipUnlessStack } from "../../support/stack-gate";
 // GREEN (Story 8.5 dev): the ACTIVE owner set is the single source of truth for the index read filter.
@@ -228,13 +229,10 @@ describe("8.5-RLS-04: an ARCHIVED file/link is DROPPED from the index (the .is('
     if (skipUnlessStack(testCtx, stackUp)) return;
     const { fileId, linkId } = await seedCustomerFile(fx.tenantA);
 
-    // Mark the file archived (the sanctioned soft-delete state the index must exclude).
-    const { error: upErr } = await clientA
-      .from("files")
-      .update({ lifecycle_state: "archived" })
-      .eq("id", fileId)
-      .select();
-    expect(upErr).toBeNull();
+    // Story 11.2 closes direct authenticated file UPDATE so an archive must use
+    // its checked command wrapper. This read-focused fixture uses the local-only
+    // postgres helper to establish the archived state without bypassing that rule.
+    await adminQuery("update public.files set lifecycle_state = 'archived' where id = $1", [fileId]);
 
     // Exercise the REAL read: the index drops an archived FILE via the JS lifecycle-state filter
     // (the file's link has no archived_at, so only the read's lifecycle-drop excludes it).

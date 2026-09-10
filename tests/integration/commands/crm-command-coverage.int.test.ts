@@ -39,6 +39,10 @@ import { adminQuery } from "../../factories/admin-sql";
 import { adminSelectAuditEvents } from "../../factories/audit-events";
 import { isLocalStackReachable } from "../../support/test-env";
 import { skipUnlessStack } from "../../support/stack-gate";
+import {
+  expectDatabaseOwnedTimestamp,
+  readDatabaseNow,
+} from "../../support/database-time";
 import { runCommand } from "@/server/commands/envelope";
 import {
   createCustomer,
@@ -207,18 +211,25 @@ describe("CRM facility lifecycle via the envelope (AC3)", () => {
     if (!created.ok) return;
     const facilityId = (created.data as { targetId: string }).targetId;
 
+    const databaseBefore = await readDatabaseNow();
     const archived = await runCommand(archiveFacility, {
       client: a as never,
       input: { id: facilityId },
       clock: fixedClock,
       correlationId: crypto.randomUUID(),
     });
+    const databaseAfter = await readDatabaseNow();
     expect(archived.ok).toBe(true);
 
     const row = await adminSelectCrmRowById("facilities", facilityId);
     expect(row).not.toBeNull();
     expect(row?.archived_at).not.toBeNull();
-    expect(new Date(row?.archived_at as string).toISOString()).toBe(FIXED_ISO);
+    expectDatabaseOwnedTimestamp(
+      row?.archived_at as string,
+      databaseBefore,
+      databaseAfter,
+      FIXED_ISO,
+    );
   });
 });
 

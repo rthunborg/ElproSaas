@@ -121,8 +121,10 @@ cover another project's stack, a hosted/demo database, or a changed target.
 
 Database permission does not transfer ownership of existing service processes
 or containers for cleanup. New managed servers/browser processes still require
-their own supported guard lifecycle and verified cleanup. Run the authorized
-database reset with an explicit local target from this repository:
+their own supported guard lifecycle. Request Stop when finished; an accepted
+`stop_requested` acknowledgment is not confirmed shutdown, and agents must not
+poll for verified shutdown as a completion gate. The developer-operated reset
+uses an explicit local target from this repository:
 
 ```powershell
 supabase db reset --local --yes
@@ -132,12 +134,16 @@ The CLI's local reset rebuilds the database and restarts dependent services as
 part of that operation. The owner authorized this reset; it is not permission
 for unrelated service shutdown or broad Docker cleanup. Do not assume
 `--db-url` with a loopback URL provides a SQL-only alternative: CLI 2.115.0
-recognizes that target as local and still uses its local reset path.
+recognizes that target as local and still uses its local reset path. Under the
+current agent resource contract, native Supabase CLI lifecycle management is
+outside the guard adapter: use the supported Compose path for managed services
+and SQL-only migration/reset operations against an already available authorized
+database. Never use a database reset as resource teardown; Stop preserves data.
 
 The start/stop commands below describe the developer-operated lifecycle.
 For new managed resources, automated agents must satisfy the user's standing
 resource-guard instructions: their own trusted hook context, a supported
-guarded lifecycle, an isolated project target, and verified cleanup.
+guarded lifecycle, an isolated project target, and a checked Stop request.
 Docker/Supabase availability alone does not prove ownership; the explicit
 database authorization above supplies permission for this local reset.
 Do not reset or stop another actor's stack or use raw startup to work around a

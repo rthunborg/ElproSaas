@@ -41,9 +41,11 @@ import {
 import {
   attachmentsToPayload,
   buildFreshQuoteSnapshot,
+  buildFreshQuoteSnapshotFromCustomerVisibleSource,
   linesToPayload,
   snapshotToPayload,
 } from "./snapshot-build";
+import { loadQuoteSuccessorCustomerVisibleSource } from "./quote-successor-source-db";
 import {
   validateCreateNewQuoteVersion,
   type CreateNewQuoteVersionInput,
@@ -106,6 +108,10 @@ export const createNewQuoteVersion = defineCommand<
     const db = ctx.db;
     const tenantId = ctx.tenantContext.tenantId;
     const capturedAt = ctx.clock.now().toISOString();
+    const roles = ctx.tenantContext.roles ?? [ctx.tenantContext.role];
+    const sellerOnly = roles.includes("saljare")
+      && !roles.includes("tenant_admin")
+      && !roles.includes("projektledare");
 
     // ── LOAD the parent version (ownership proved it visible; null = race → deny). ──
     const parent = await loadQuoteVersionParent(db, ctx.input.quote_version_id);
@@ -126,39 +132,58 @@ export const createNewQuoteVersion = defineCommand<
     // ── reachable, so it owns closing this command-side gap. Reject with a generic VALIDATION_FAILED.
     if (parent.status === "accepted") throw new CommandError("VALIDATION_FAILED");
 
-    // Carry-forward defaults to the intersection of the predecessor's frozen attachments
-    // and currently active/eligible calculation attachments. An explicit UI selection is
-    // still intersected with the same current eligible set, so stale predecessor bytes are
-    // never copied into a successor.
-    const [predecessorAttachments, currentCalculationAttachmentIds] = await Promise.all([
-      loadQuoteVersionAttachmentSnapshots(db, parent.id),
-      loadEligibleCalculationAttachmentFileIds(db, parent.calculation_id),
-    ]);
-    // Explicit ids are an authorization-bearing request: a foreign or nonexistent
-    // id must be denied, not silently treated as an unavailable attachment. Owned
-    // archived/unlinked/ineligible files remain safe to omit below.
-    if (ctx.input.attachment_file_ids !== undefined) {
-      const visible = await Promise.all(
-        ctx.input.attachment_file_ids.map((fileId) => loadVisibleAttachmentFileId(db, fileId)),
-      );
-      if (visible.some((fileId) => fileId === null)) {
-        throw new CommandError("TENANT_ACCESS_DENIED");
-      }
-    }
-    const attachmentFileIds = resolveCarryForwardAttachmentFileIds(
-      ctx.input.attachment_file_ids,
-      predecessorAttachments.map((attachment) => attachment.file_id),
-      currentCalculationAttachmentIds,
-    );
-
-    // ── RE-CAPTURE the FRESH composite snapshot from the CURRENT source calc (source (a)). The
-    // ── shared helper re-validates each selected attachment file own-tenant (a foreign id → denied).
-    const { snapshot, customerId, facilityId, contactId } =
-      await buildFreshQuoteSnapshot(db, {
-        calculationId: parent.calculation_id,
-        attachmentFileIds,
-        capturedAt,
-      });
+    // A Säljare may create quotes but deliberately has no direct calculation-row RLS.
+    // The checked projection recomputes this same fresh snapshot from current source facts;
+    // it never clones the predecessor or grants a reusable calculations/files reader.
+    const built = sellerOnly
+      ? await (async () => {
+          const projected = await loadQuoteSuccessorCustomerVisibleSource(db, {
+            p_tenant_id: tenantId,
+            p_source_quote_version_id: parent.id,
+            p_requested_attachment_ids: ctx.input.attachment_file_ids ?? null,
+            p_actor_user_id: ctx.tenantContext.userId,
+          });
+          return buildFreshQuoteSnapshotFromCustomerVisibleSource(projected.source, {
+            calculationId: parent.calculation_id,
+            capturedAt,
+          });
+        })()
+      : await (async () => {
+          // Carry-forward defaults to the intersection of predecessor attachments and
+          // currently eligible calculation files. An explicit selection is authoritative:
+          // preserve its order, and reject duplicate, foreign, missing, or ineligible ids.
+          const [predecessorAttachments, currentCalculationAttachmentIds] = await Promise.all([
+            loadQuoteVersionAttachmentSnapshots(db, parent.id),
+            loadEligibleCalculationAttachmentFileIds(db, parent.calculation_id),
+          ]);
+          if (ctx.input.attachment_file_ids !== undefined) {
+            const requested = ctx.input.attachment_file_ids;
+            if (new Set(requested).size !== requested.length) {
+              throw new CommandError("VALIDATION_FAILED");
+            }
+            const visible = await Promise.all(
+              requested.map((fileId) => loadVisibleAttachmentFileId(db, fileId)),
+            );
+            if (visible.some((fileId) => fileId === null)) {
+              throw new CommandError("TENANT_ACCESS_DENIED");
+            }
+            const eligible = new Set(currentCalculationAttachmentIds);
+            if (requested.some((fileId) => !eligible.has(fileId))) {
+              throw new CommandError("VALIDATION_FAILED");
+            }
+          }
+          const attachmentFileIds = resolveCarryForwardAttachmentFileIds(
+            ctx.input.attachment_file_ids,
+            predecessorAttachments.map((attachment) => attachment.file_id),
+            currentCalculationAttachmentIds,
+          );
+          return buildFreshQuoteSnapshot(db, {
+            calculationId: parent.calculation_id,
+            attachmentFileIds,
+            capturedAt,
+          });
+        })();
+    const { snapshot, customerId, facilityId, contactId } = built;
 
     const snapshotPayload = snapshotToPayload(snapshot);
     const linesPayload = linesToPayload(snapshot);

@@ -78,3 +78,8 @@ export {
   validateAcceptQuoteAndCreateJob,
   type AcceptQuoteAndCreateJobInput,
 } from "./validation";
+
+export {
+  createQuotePdfSignedAccess,
+  type QuotePdfSignedAccessResult,
+} from "./quote-pdf-signed-access";

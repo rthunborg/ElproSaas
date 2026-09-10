@@ -22,6 +22,14 @@ import { assertSearchPathExactlyEmpty } from "../../support/search-path";
 import { skipUnlessStack } from "../../support/stack-gate";
 import { runCommand } from "@/server/commands/envelope";
 import { createCustomer } from "@/server/commands/crm/customers";
+import { upsertWorkRole } from "@/server/commands/pricing/work-roles";
+import { upsertArticle } from "@/server/commands/pricing/articles";
+import {
+  archiveFacility,
+  createFacility,
+  updateFacility,
+} from "@/server/commands/crm/facilities";
+import { createContact, updateContact } from "@/server/commands/crm/contacts";
 
 let stackUp = false;
 let fixture: TwoTenantFixture;
@@ -98,11 +106,19 @@ describe("Story 11.2 checked non-admin audit authority", () => {
         where n.nspname = 'public'
           and p.proname in (
             'create_customer_with_audit',
+            'update_customer_with_audit',
+            'archive_customer_with_audit',
+            'create_facility_with_audit',
+            'update_facility_with_audit',
+            'archive_facility_with_audit',
+            'create_contact_with_audit',
+            'update_contact_with_audit',
+            'archive_contact_with_audit',
             'story_11_2_record_audit_event_internal'
           )
         order by p.proname`,
     );
-    expect(rows).toHaveLength(2);
+    expect(rows).toHaveLength(10);
 
     const wrapper = rows.find((row) => row.proname === "create_customer_with_audit");
     const internal = rows.find(
@@ -130,11 +146,94 @@ describe("Story 11.2 checked non-admin audit authority", () => {
     ]);
     assertSearchPathExactlyEmpty(wrapper?.proname ?? "missing wrapper", wrapper?.proconfig ?? null);
 
+    for (const name of [
+      "update_customer_with_audit",
+      "archive_customer_with_audit",
+      "create_facility_with_audit",
+      "update_facility_with_audit",
+      "archive_facility_with_audit",
+      "create_contact_with_audit",
+      "update_contact_with_audit",
+      "archive_contact_with_audit",
+    ]) {
+      const commandWrapper = rows.find((row) => row.proname === name);
+      expect(commandWrapper?.prosecdef).toBe(true);
+      expect(commandWrapper?.anon_exec).toBe(false);
+      expect(commandWrapper?.authenticated_exec).toBe(true);
+      expect(commandWrapper?.service_exec).toBe(false);
+      assertSearchPathExactlyEmpty(name, commandWrapper?.proconfig ?? null);
+    }
+
     expect(internal?.prosecdef).toBe(false);
     expect(internal?.anon_exec).toBe(false);
     expect(internal?.authenticated_exec).toBe(false);
     expect(internal?.service_exec).toBe(false);
     assertSearchPathExactlyEmpty(internal?.proname ?? "missing internal", internal?.proconfig ?? null);
+  });
+
+  it("[P0] lets a Seller perform CRM create/edit through bound audit wrappers, but denies archive", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
+    const customer = await runCommand(createCustomer, {
+      client: seller as never,
+      input: {
+        customer_type: "company",
+        display_name: `11.2 CRM parent ${crypto.randomUUID()}`,
+        org_nr: "556677-8899",
+      },
+      correlationId: crypto.randomUUID(),
+    });
+    expect(customer.ok).toBe(true);
+    if (!customer.ok) return;
+
+    const facilityCorrelationId = crypto.randomUUID();
+    const facility = await runCommand(createFacility, {
+      client: seller as never,
+      input: { customer_id: customer.data.targetId, name: "Seller facility" },
+      correlationId: facilityCorrelationId,
+    });
+    expect(facility.ok).toBe(true);
+    if (!facility.ok) return;
+    expect(await adminSelectAuditEvents({ correlationId: facilityCorrelationId })).toHaveLength(1);
+
+    const facilityUpdateCorrelationId = crypto.randomUUID();
+    const facilityUpdate = await runCommand(updateFacility, {
+      client: seller as never,
+      input: { id: facility.data.targetId, name: "Seller facility updated" },
+      correlationId: facilityUpdateCorrelationId,
+    });
+    expect(facilityUpdate.ok).toBe(true);
+    expect(await adminSelectAuditEvents({ correlationId: facilityUpdateCorrelationId })).toHaveLength(1);
+
+    const contactCorrelationId = crypto.randomUUID();
+    const contact = await runCommand(createContact, {
+      client: seller as never,
+      input: { customer_id: customer.data.targetId, facility_id: facility.data.targetId, name: "Seller contact" },
+      correlationId: contactCorrelationId,
+    });
+    expect(contact.ok).toBe(true);
+    if (!contact.ok) return;
+    expect(await adminSelectAuditEvents({ correlationId: contactCorrelationId })).toHaveLength(1);
+
+    const contactUpdateCorrelationId = crypto.randomUUID();
+    const contactUpdate = await runCommand(updateContact, {
+      client: seller as never,
+      input: { id: contact.data.targetId, role_label: "arbetsledare" },
+      correlationId: contactUpdateCorrelationId,
+    });
+    expect(contactUpdate.ok).toBe(true);
+    expect(await adminSelectAuditEvents({ correlationId: contactUpdateCorrelationId })).toHaveLength(1);
+
+    const archiveCorrelationId = crypto.randomUUID();
+    const archive = await runCommand(archiveFacility, {
+      client: seller as never,
+      input: { id: facility.data.targetId },
+      correlationId: archiveCorrelationId,
+    });
+    expect(archive.ok).toBe(false);
+    // The declared capability gate runs before target lookup, so Seller gets
+    // the generic command denial without an ownership/existence signal.
+    if (!archive.ok) expect(archive.code).toBe("PERMISSION_DENIED");
+    expect(await adminSelectAuditEvents({ correlationId: archiveCorrelationId })).toEqual([]);
   });
 
   it("[P0] lets an entitled Seller create a customer with exactly one trustworthy audit row", async (testCtx) => {
@@ -289,6 +388,84 @@ describe("Story 11.2 checked non-admin audit authority", () => {
         `delete from test_support.forced_audit_failures
           where correlation_id = $1::uuid`,
         [correlationId],
+      );
+    }
+  });
+
+  it("[P0] lets Projektledare mutate pricing only through bound audited wrappers", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
+    await adminQuery(
+      `update public.tenant_memberships
+          set role = 'projektledare'
+        where tenant_id = $1 and user_id = $2`,
+      [fixture.tenantA.id, fixture.orphanUser.id],
+    );
+    try {
+      const workRoleCorrelation = crypto.randomUUID();
+      const workRole = await runCommand(upsertWorkRole, {
+        client: seller as never,
+        input: {
+          display_name: `11.2 PM role ${crypto.randomUUID()}`,
+          cost_rate_ore: 45000,
+          sell_rate_ore: 85000,
+        },
+        correlationId: workRoleCorrelation,
+      });
+      expect(workRole.ok).toBe(true);
+      if (!workRole.ok) return;
+      const workRoleAudit = await adminSelectAuditEvents({
+        correlationId: workRoleCorrelation,
+      });
+      expect(workRoleAudit).toHaveLength(1);
+      expect(workRoleAudit[0]).toMatchObject({
+        tenant_id: fixture.tenantA.id,
+        actor_user_id: fixture.orphanUser.id,
+        command: "work_role.upsert",
+        event_type: "work_role.upserted",
+        target_type: "work_role",
+        target_id: workRole.data.targetId,
+        metadata: {},
+      });
+
+      const articleCorrelation = crypto.randomUUID();
+      const article = await runCommand(upsertArticle, {
+        client: seller as never,
+        input: { name: `11.2 PM article ${crypto.randomUUID()}`, unit_price_ore: 1250 },
+        correlationId: articleCorrelation,
+      });
+      expect(article.ok).toBe(true);
+      if (!article.ok) return;
+      const articleAudit = await adminSelectAuditEvents({
+        correlationId: articleCorrelation,
+      });
+      expect(articleAudit).toHaveLength(1);
+      expect(articleAudit[0]).toMatchObject({
+        tenant_id: fixture.tenantA.id,
+        actor_user_id: fixture.orphanUser.id,
+        command: "article.upsert",
+        event_type: "article.upserted",
+        target_type: "article",
+        target_id: article.data.targetId,
+        metadata: {},
+      });
+
+      const direct = await seller
+        .from("work_roles")
+        .insert({
+          tenant_id: fixture.tenantA.id,
+          display_name: `11.2 direct pricing ${crypto.randomUUID()}`,
+          cost_rate_ore: 1,
+          sell_rate_ore: 1,
+        })
+        .select("id");
+      expect(direct.data).toBeNull();
+      expect(direct.error?.code).toBe("42501");
+    } finally {
+      await adminQuery(
+        `update public.tenant_memberships
+            set role = 'saljare'
+          where tenant_id = $1 and user_id = $2`,
+        [fixture.tenantA.id, fixture.orphanUser.id],
       );
     }
   });

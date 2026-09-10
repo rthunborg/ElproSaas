@@ -38,6 +38,7 @@ import {
   adminUploadStorageObject,
   createTwoTenantFixture,
   makeAuthedServerClient,
+  seedRoleAwarePhaseAUsers,
 } from "../factories/tenants";
 import { adminQuery } from "../factories/admin-sql";
 
@@ -77,6 +78,10 @@ function noDeductionTaxInput(
 
 export default async function globalSetup() {
   const base = await createTwoTenantFixture();
+  // Story 11.2 ATDD runs the real app as two non-admin members of the same
+  // tenant that owns every existing browser seed. Their credentials are written
+  // only to the gitignored per-run fixture file below and cleaned with the base.
+  const roleAware = await seedRoleAwarePhaseAUsers(base);
   const adminAClient = await makeAuthedServerClient(base.adminA);
 
   // Seed CRM rows in tenantA via the privileged (BYPASSRLS) factory path. These are
@@ -1016,6 +1021,11 @@ export default async function globalSetup() {
 
   const fixture = {
     ...base,
+    extraUsers: roleAware.extraUsers,
+    roleAware: {
+      saljare: roleAware.users.saljare,
+      montor: roleAware.users.montor,
+    },
     crm: {
       company: { id: companyId, displayName: companyName, orgNr: companyOrgNr },
       private: { id: privateId, displayName: privateName, personnummer: privatePnr },

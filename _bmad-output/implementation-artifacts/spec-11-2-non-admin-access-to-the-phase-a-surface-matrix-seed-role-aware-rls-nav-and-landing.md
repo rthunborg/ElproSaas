@@ -2,10 +2,11 @@
 title: 'Story 11.2: Non-Admin Access to the Phase A Surface (Matrix Seed, Role-Aware RLS, Nav and Landing)'
 type: 'feature'
 created: '2026-09-07'
-status: 'in-progress'
+status: 'in-review'
 review_loop_iteration: 0
 followup_review_recommended: false
-baseline_revision: '26c8a4a977989ac35e44d8e78192b45f943fc3b7'
+baseline_revision: 'ce5fd40bedba450a2d4bbfa1f184d091564cc7e3'
+baseline_commit: 'ce5fd40bedba450a2d4bbfa1f184d091564cc7e3'
 context:
   - 'docs/process/story-11-2-resume.md'
   - '_bmad-output/implementation-artifacts/epic-11-context.md'
@@ -92,6 +93,14 @@ The matrix is the server authority; client nav keeps only authored label/icon me
 - `pnpm run test:e2e` -- expected: role-appropriate server landing/nav plus a granted route pass without browser-visible protected values.
 
 ## Auto Run Result
+
+### 2026-09-09 — Current Build Auto HALT
+
+Status: blocked
+
+Blocking condition: incomplete required implementation and matrix evidence: 29 audited non-admin mutation paths remain unmigrated and all six integration plus four browser Story 11.2 ATDD cases remain skipped.
+
+This run preserved the approved audit-authority boundary, added role-aware settings/pricing policy evolution and server landing resolution, and migrated four quote wrappers (`mark_quote_version_lifecycle`, `mark_quote_version_lost`, `update_draft_quote_version`, and `authorize_quote_final_send`) to command-specific authorization with the private atomic audit writer. The authorized local reset applied the migration; targeted evidence passed (86/86 policy regressions, 17/17 role helper/context, 5/5 non-admin audit reference, 22/22 quote review/rollback, 20/20 draft-update/review authorization, and 15/15 final-send/review authorization). The full matrix audit is unsatisfied because the required remaining paths and ATDD cases were not implemented or executed.
 
 ### 2026-09-09 — Audit Authority Recovery
 

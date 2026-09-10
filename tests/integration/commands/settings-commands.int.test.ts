@@ -38,7 +38,7 @@ import {
   type TwoTenantFixture,
   type TestServerClient,
 } from "../../factories/tenants";
-import { adminQuery } from "../../factories/admin-sql";
+import { adminExec, adminQuery } from "../../factories/admin-sql";
 import { adminSelectAuditEvents } from "../../factories/audit-events";
 import { isLocalStackReachable } from "../../support/test-env";
 import { skipUnlessStack } from "../../support/stack-gate";
@@ -439,5 +439,62 @@ describe("quote_terms SIGN-OFF — never silently approved (Story 3.3 AC2, HARD 
       expect(row.approved_at).toBeNull();
       expect(row.approved_by).toBeNull();
     }
+  });
+});
+
+// Story 11.2: settings changes are audited lifecycle mutations. The checked
+// wrapper, rather than the envelope's post-write audit, owns the transaction.
+describe("settings checked audit wrappers (Story 11.2)", () => {
+  it("[P0] rolls a company-settings write back when its bound audit insert fails", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
+    const correlationId = crypto.randomUUID();
+    await adminExec(
+      `insert into test_support.forced_audit_failures (correlation_id) values ($1::uuid)`,
+      [correlationId],
+    );
+    try {
+      const before = await readCompanySettings(fixture.tenantA.id);
+      const result = await runCommand(updateCompanySettings, {
+        client: a as never,
+        input: {
+          company_name: `Rollback settings ${crypto.randomUUID()}`,
+          default_vat_display: "company_togglable",
+          vat_rate_bp: 2500,
+        },
+        clock: fixedClock,
+        correlationId,
+      });
+      expect(result.ok).toBe(false);
+      if (!result.ok) expect(result.code).toBe("SERVER_ERROR");
+      expect(await readCompanySettings(fixture.tenantA.id)).toEqual(before);
+      expect(await adminSelectAuditEvents({ correlationId })).toEqual([]);
+    } finally {
+      await adminExec(
+        `delete from test_support.forced_audit_failures where correlation_id = $1::uuid`,
+        [correlationId],
+      );
+    }
+  });
+
+  it("[P0] denies raw company-settings and quote-terms DML after wrapper hardening", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
+    const rawCompany = await a
+      .from("company_settings")
+      .insert({
+        tenant_id: fixture.tenantA.id,
+        company_name: `Raw bypass ${crypto.randomUUID()}`,
+        default_vat_display: "company_togglable",
+        vat_rate_bp: 2500,
+      })
+      .select("id");
+    expect(rawCompany.data).toBeNull();
+    expect(rawCompany.error?.code).toBe("42501");
+
+    const rawTerms = await a
+      .from("quote_terms")
+      .insert({ tenant_id: fixture.tenantA.id, terms_text: "Raw bypass terms" })
+      .select("id");
+    expect(rawTerms.data).toBeNull();
+    expect(rawTerms.error?.code).toBe("42501");
   });
 });

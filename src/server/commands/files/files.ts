@@ -23,8 +23,6 @@
  */
 import { defineCommand } from "../envelope";
 import { CommandError } from "../command-errors";
-import { writeAuditEvent } from "../audit";
-import type { CommandExecuteContext } from "../envelope-core";
 import type { CommandDbClient } from "../envelope";
 import { isAccessEligibleLifecycle } from "@/server/storage/lifecycle";
 import {
@@ -32,17 +30,26 @@ import {
   type StorageSigningClient,
 } from "@/server/storage/signed-access";
 import {
+  fileSignedAccessAttestorFromEnv,
+  parseFileSignedAccessAuditChallenge,
+  validateSignedStorageUrl,
+} from "@/server/storage/signed-access-attestation";
+import {
   uploadObjectWithMetadata,
   type UploadStorageClient,
 } from "@/server/storage/upload-object";
 import {
-  asFileRpcClient,
+  archiveFileWithAudit,
+  createUploadedFileWithAudit,
+  linkFileWithAudit,
   asFileWriteClient,
   isGenericFileArchiveForbidden,
   loadFileForAccess,
   loadFileForArchive,
   ownerRecordVisible,
   ownerTableFor,
+  prepareFileSignedAccessAuditAttestation,
+  recordFileSignedAccessAuditAttested,
   throwMappedFileWriteError,
   type FileWriteClient,
 } from "./file-db";
@@ -84,7 +91,9 @@ export const createSignedFileAccess = defineCommand<
   SignedFileAccessResult
 >({
   command: "file.signedAccess.create",
-  auditable: true,
+  // Storage cannot participate in a DB transaction. The post-signing attested RPC
+  // writes the fixed audit event, and the URL is returned only after it succeeds.
+  auditable: false,
   eventType: "file.signed_access.created",
   targetType: "file",
   validateInput: validateSignedAccess,
@@ -107,28 +116,85 @@ export const createSignedFileAccess = defineCommand<
     ) {
       throw new CommandError("FILE_ACCESS_DENIED");
     }
+
+    // Reuse the existing quote-PDF HMAC/Vault root through a file-specific derived
+    // subkey. Missing server material fails before Storage can issue a URL.
+    const attestor = fileSignedAccessAttestorFromEnv();
+    const challengeData = await prepareFileSignedAccessAuditAttestation(ctx.db, {
+      p_tenant_id: ctx.tenantContext.tenantId,
+      p_actor_user_id: ctx.tenantContext.userId,
+      p_file_id: file.id,
+      p_correlation_id: ctx.correlationId,
+      p_attestation_key_id: attestor.keyId,
+    });
+    const challenge = parseFileSignedAccessAuditChallenge(challengeData, {
+      tenantId: ctx.tenantContext.tenantId,
+      fileId: file.id,
+      bucketId: file.bucket_id || TENANT_FILES_BUCKET,
+      objectPath: file.object_path,
+      keyId: attestor.keyId,
+    });
+
     // Sign the SERVER-STORED object_path under the caller's request-bound RLS client
     // (NEVER service-role). storage.objects RLS re-checks the tenant path prefix.
     const signed = await createSignedFileUrl({
       client: ctx.db as unknown as StorageSigningClient,
-      bucket: file.bucket_id || TENANT_FILES_BUCKET,
-      objectPath: file.object_path,
-      nowIso: ctx.clock.now().toISOString(),
+      bucket: challenge.bucketId,
+      objectPath: challenge.objectPath,
+      // DB time is the common authority for challenge and returned expiry. The URL's
+      // actual JWT expiry is parsed and checked below before it is attested.
+      nowIso: challenge.issuedAt,
     });
     // A storage failure (RLS denial, missing object) is a file-specific denial — never
     // a raw storage error across the boundary, never a signed URL in a failure Result.
     if (signed === null) {
       throw new CommandError("FILE_ACCESS_DENIED");
     }
+
+    const validatedUrl = validateSignedStorageUrl(signed.signedUrl, {
+      bucketId: challenge.bucketId,
+      objectPath: challenge.objectPath,
+      challengeIssuedAt: challenge.issuedAt,
+      computedExpiresAt: signed.expiresAt,
+    });
+    const attestation = {
+      tenantId: ctx.tenantContext.tenantId,
+      actorUserId: ctx.tenantContext.userId,
+      fileId: file.id,
+      bucketId: challenge.bucketId,
+      objectPath: challenge.objectPath,
+      correlationId: ctx.correlationId,
+      signedUrlSha256: validatedUrl.signedUrlSha256,
+      signedUrlExpiresAt: validatedUrl.expiresAt,
+      keyId: challenge.keyId,
+      issuedAt: challenge.issuedAt,
+      expiresAt: challenge.expiresAt,
+    } as const;
+    const signature = attestor.sign(attestation);
+
+    // The proof and URL never cross the client boundary together. If this checked
+    // audit write fails, throw before constructing any success Result, so callers
+    // cannot receive an unaudited signed URL.
+    await recordFileSignedAccessAuditAttested(ctx.db, {
+      p_tenant_id: attestation.tenantId,
+      p_actor_user_id: attestation.actorUserId,
+      p_file_id: attestation.fileId,
+      p_bucket_id: attestation.bucketId,
+      p_object_path: attestation.objectPath,
+      p_correlation_id: attestation.correlationId,
+      p_signed_url_sha256: attestation.signedUrlSha256,
+      p_signed_url_expires_at: attestation.signedUrlExpiresAt,
+      p_attestation_key_id: attestation.keyId,
+      p_attestation_issued_at: attestation.issuedAt,
+      p_attestation_expires_at: attestation.expiresAt,
+      p_attestation_signature: signature,
+    });
     return {
       targetId: file.id,
       signedUrl: signed.signedUrl,
-      expiresAt: signed.expiresAt,
+      expiresAt: validatedUrl.expiresAt,
     };
   },
-  // Audit metadata is EMPTY-shaped ({}): the sanitizer drops everything not on the
-  // allow-list anyway, so NO bucket/object path, NO signed URL, NO PII can reach the row.
-  auditFields: (_ctx, result) => ({ targetId: result.targetId }),
 });
 
 /** Result of `createFileLink` — the created link id (as targetId) + the file id. */
@@ -178,7 +244,8 @@ export const createFileLink = defineCommand<
   CreateFileLinkResult
 >({
   command: "file.link.create",
-  auditable: true,
+  // The checked wrapper owns the link insert and fixed audit event atomically.
+  auditable: false,
   eventType: "file.linked",
   targetType: "file_link",
   validateInput: validateCreateFileLink,
@@ -194,37 +261,16 @@ export const createFileLink = defineCommand<
     // writes EXACTLY ONE file_links row pointing at the real file — no phantom files row,
     // no synthetic object_path. The composite same-tenant FK re-enforces the same-tenant
     // file binding at the DB (a cross-tenant file/tenant fails 23503/42501).
-    const rpc = asFileRpcClient(ctx.db);
-    const { data, error } = await rpc.rpc("link_existing_file", {
-      p_tenant_id: ctx.tenantContext.tenantId,
-      p_file_id: ctx.input.file_id,
-      p_owner_type: ctx.input.owner_type,
-      p_owner_id: ctx.input.owner_id,
-      p_purpose: ctx.input.purpose,
+    const linkId = await linkFileWithAudit(ctx.db, {
+      p_tenant_id: ctx.tenantContext.tenantId, p_actor_user_id: ctx.tenantContext.userId,
+      p_correlation_id: ctx.correlationId, p_file_id: ctx.input.file_id,
+      p_owner_type: ctx.input.owner_type, p_owner_id: ctx.input.owner_id, p_purpose: ctx.input.purpose,
     });
-    if (error) throwMappedFileWriteError(error);
-    // The RPC returns rows of { file_id, link_id } (or a single object depending on the
-    // PostgREST shape). Extract the link id defensively.
-    const linkId = extractLinkId(data);
-    if (linkId === null) {
-      throw new Error("createFileLink: RPC returned no link id");
-    }
     // The link points at the VERIFIED, caller-supplied file id — result.fileId agrees
     // with file_links.file_id (no phantom-file divergence).
     return { targetId: linkId, fileId: ctx.input.file_id };
   },
-  auditFields: (_ctx, result) => ({ targetId: result.targetId }),
 });
-
-/** Extract the created link id from the RPC result (row array or single object). */
-function extractLinkId(data: unknown): string | null {
-  const row = Array.isArray(data) ? data[0] : data;
-  if (row && typeof row === "object" && "link_id" in row) {
-    const id = (row as { link_id: unknown }).link_id;
-    if (typeof id === "string") return id;
-  }
-  return null;
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // uploadFile (Story 8.2, Task 3) — the generic user-facing upload path.
@@ -273,7 +319,8 @@ async function assertUploadOwnerVisibleOrThrow(
  */
 export const uploadFile = defineCommand<UploadFileInput, UploadFileResult>({
   command: "file.upload",
-  auditable: true,
+  // The post-Storage metadata/link wrapper writes the fixed audit row atomically.
+  auditable: false,
   eventType: "file.uploaded",
   targetType: "file",
   validateInput: validateUploadFile,
@@ -330,6 +377,13 @@ export const uploadFile = defineCommand<UploadFileInput, UploadFileResult>({
           .single();
         if (error) throwMappedFileWriteError(error);
       },
+      persistMetadataAndLink: (objectPath) => createUploadedFileWithAudit(db, {
+        p_tenant_id: tenantId, p_actor_user_id: ctx.tenantContext.userId,
+        p_correlation_id: ctx.correlationId, p_file_id: fileId, p_object_path: objectPath,
+        p_display_name: input.display_name, p_mime_type: input.mime_type,
+        p_size_bytes: input.size_bytes, p_owner_type: input.owner_type,
+        p_owner_id: input.owner_id, p_purpose: input.purpose,
+      }),
       // (e) INSERT the file_links row pointing at the verified file (owner already checked).
       insertLinkRow: async (linkedFileId: string) => {
         const { data, error } = await writer
@@ -434,7 +488,6 @@ export const archiveFile = defineCommand<ArchiveFileInput, ArchiveFileResult>({
   execute: async (ctx): Promise<ArchiveFileResult> => {
     const db = ctx.db;
     const fileId = ctx.input.id;
-    const writer = asFileWriteClient(db);
 
     // Load the file's current lifecycle (ownership proved visibility; a null here is a race → deny).
     const file = await loadFileForArchive(db, fileId);
@@ -466,32 +519,10 @@ export const archiveFile = defineCommand<ArchiveFileInput, ArchiveFileResult>({
 
     // Flip to archived via an UPDATE (NEVER a DELETE). The `enforce_file_lock` trigger PERMITS the
     // sanctioned `locked → archived` transition; a `draft`/`linked` file archives freely too.
-    const { data, error } = await writer
-      .from("files")
-      .update({
-        lifecycle_state: "archived",
-        archived_at: ctx.clock.now().toISOString(),
-      })
-      .eq("id", fileId)
-      .select("id");
-    if (error) throwMappedFileWriteError(error);
-    if (!data || data.length === 0) {
-      // Visible under ownership but gone now (race) → deny rather than a false success.
-      throw new CommandError("TENANT_ACCESS_DENIED");
-    }
-
-    // Write EXACTLY ONE append-only audit row on the FRESH archive. `{ reason? }` allow-listed ONLY
-    // (the sanitizer drops everything not on the allow-list — NO bucket/object path / PII / contents).
-    await writeAuditEvent(
-      ctx as CommandExecuteContext<unknown, CommandDbClient>,
-      ARCHIVE_FILE_COMMAND,
-      {
-        eventType: ARCHIVE_FILE_EVENT_TYPE,
-        targetType: ARCHIVE_FILE_TARGET_TYPE,
-        targetId: fileId,
-        metadata: ctx.input.reason !== undefined ? { reason: ctx.input.reason } : {},
-      },
-    );
+    await archiveFileWithAudit(db, {
+      p_tenant_id: ctx.tenantContext.tenantId, p_actor_user_id: ctx.tenantContext.userId,
+      p_correlation_id: ctx.correlationId, p_file_id: fileId, p_reason: ctx.input.reason ?? null,
+    });
 
     return { targetId: fileId, archived: true };
   },

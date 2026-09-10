@@ -2,17 +2,12 @@
  * CRM contact commands (Story 3.1, Task 2; architecture §5 command table).
  *
  * `createContact` / `updateContact` / `archiveContact`. A contact references BOTH a
- * customer (always) and OPTIONALLY a facility. Per Task 2.3 the envelope `ownership`
- * verifies the CUSTOMER (always present): a Tenant-B `customer_id` is invisible
- * under A's RLS → TENANT_ACCESS_DENIED. The OPTIONAL facility link is verified at the
- * DB layer: the INSERT/UPDATE writes the RESOLVED `tenant_id`, so the composite
- * same-tenant FK `contacts(facility_id, tenant_id) -> facilities(id, tenant_id)`
- * rejects a cross-tenant (or wrong-tenant) facility with `23503`, which
- * `throwMappedWriteError` maps to TENANT_ACCESS_DENIED — never a raw throw / 500.
+ * customer (always) and OPTIONALLY a facility. The checked database wrappers bind
+ * the resolved tenant and verify parent ownership; their composite same-tenant FKs
+ * remain a second guard against cross-tenant links.
  */
 import { defineCommand } from "../envelope";
-import { CommandError } from "../command-errors";
-import { asCrmWriteClient, throwMappedWriteError } from "./crm-db";
+import { executeCrmAuditedMutation } from "./crm-db";
 import type { CrmCommandResult } from "./customers";
 import {
   validateArchive,
@@ -25,38 +20,25 @@ import {
 
 export const createContact = defineCommand<CreateContactInput, CrmCommandResult>({
   command: "contact.create",
-  auditable: true,
+  auditable: false,
   eventType: "contact.created",
   targetType: "contact",
   validateInput: validateCreateContact,
-  // Parent ownership: the customer must be visible under the caller's RLS. A
-  // Tenant-B customer_id → zero rows → TENANT_ACCESS_DENIED. The optional facility
-  // link is enforced by the composite same-tenant FK at INSERT (see file header).
-  ownership: (input) => ({ table: "customers", id: input.customer_id }),
   execute: async (ctx) => {
-    const db = asCrmWriteClient(ctx.db);
-    const { data, error } = await db
-      .from("contacts")
-      .insert({
-        tenant_id: ctx.tenantContext.tenantId, // resolved tenant, never client id
-        customer_id: ctx.input.customer_id,
-        facility_id: ctx.input.facility_id ?? null,
-        name: ctx.input.name,
-        email: ctx.input.email ?? null,
-        phone: ctx.input.phone ?? null,
-        role_label: ctx.input.role_label ?? null,
-        is_primary: ctx.input.is_primary ?? false,
-      })
-      .select("id")
-      .single();
-    if (error) throwMappedWriteError(error);
-    const id = data?.id;
-    if (typeof id !== "string") {
-      throw new Error("createContact: no id returned");
-    }
-    return { targetId: id };
+    const targetId = await executeCrmAuditedMutation(ctx.db, "create_contact_with_audit", {
+      p_tenant_id: ctx.tenantContext.tenantId,
+      p_actor_user_id: ctx.tenantContext.userId,
+      p_correlation_id: ctx.correlationId,
+      p_customer_id: ctx.input.customer_id,
+      p_facility_id: ctx.input.facility_id ?? null,
+      p_name: ctx.input.name,
+      p_email: ctx.input.email ?? null,
+      p_phone: ctx.input.phone ?? null,
+      p_role_label: ctx.input.role_label ?? null,
+      p_is_primary: ctx.input.is_primary ?? false,
+    });
+    return { targetId };
   },
-  auditFields: (_ctx, result) => ({ targetId: result.targetId }),
 });
 
 function buildContactPatch(input: UpdateContactInput): Record<string, unknown> {
@@ -72,47 +54,35 @@ function buildContactPatch(input: UpdateContactInput): Record<string, unknown> {
 
 export const updateContact = defineCommand<UpdateContactInput, CrmCommandResult>({
   command: "contact.update",
-  auditable: true,
+  auditable: false,
   eventType: "contact.updated",
   targetType: "contact",
   validateInput: validateUpdateContact,
-  ownership: (input) => ({ table: "contacts", id: input.id }),
   execute: async (ctx) => {
-    const db = asCrmWriteClient(ctx.db);
-    const { data, error } = await db
-      .from("contacts")
-      .update(buildContactPatch(ctx.input))
-      .eq("id", ctx.input.id)
-      .select("id");
-    if (error) throwMappedWriteError(error);
-    if (!data || data.length === 0) {
-      throw new CommandError("TENANT_ACCESS_DENIED");
-    }
-    return { targetId: ctx.input.id };
+    const targetId = await executeCrmAuditedMutation(ctx.db, "update_contact_with_audit", {
+      p_tenant_id: ctx.tenantContext.tenantId,
+      p_actor_user_id: ctx.tenantContext.userId,
+      p_correlation_id: ctx.correlationId,
+      p_contact_id: ctx.input.id,
+      p_patch: buildContactPatch(ctx.input),
+    });
+    return { targetId };
   },
-  auditFields: (ctx) => ({ targetId: ctx.input.id }),
 });
 
 export const archiveContact = defineCommand<ArchiveInput, CrmCommandResult>({
   command: "contact.archive",
-  auditable: true,
+  auditable: false,
   eventType: "contact.archived",
   targetType: "contact",
   validateInput: validateArchive,
-  ownership: (input) => ({ table: "contacts", id: input.id }),
   execute: async (ctx) => {
-    const db = asCrmWriteClient(ctx.db);
-    const archivedAt = ctx.clock.now().toISOString();
-    const { data, error } = await db
-      .from("contacts")
-      .update({ archived_at: archivedAt })
-      .eq("id", ctx.input.id)
-      .select("id");
-    if (error) throwMappedWriteError(error);
-    if (!data || data.length === 0) {
-      throw new CommandError("TENANT_ACCESS_DENIED");
-    }
-    return { targetId: ctx.input.id };
+    const targetId = await executeCrmAuditedMutation(ctx.db, "archive_contact_with_audit", {
+      p_tenant_id: ctx.tenantContext.tenantId,
+      p_actor_user_id: ctx.tenantContext.userId,
+      p_correlation_id: ctx.correlationId,
+      p_contact_id: ctx.input.id,
+    });
+    return { targetId };
   },
-  auditFields: (ctx) => ({ targetId: ctx.input.id }),
 });

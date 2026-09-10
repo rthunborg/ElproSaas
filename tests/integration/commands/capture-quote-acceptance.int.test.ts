@@ -59,7 +59,7 @@ import {
 import { adminSelectAuditEvents } from "../../factories/audit-events";
 import { isLocalStackReachable } from "../../support/test-env";
 import { skipUnlessStack } from "../../support/stack-gate";
-import { captureQuoteAcceptance } from "@/server/commands/quotes";
+import { captureQuoteAcceptance, planQuoteFollowUp } from "@/server/commands/quotes";
 import { runCommand } from "@/server/commands/envelope";
 import type { CommandClock } from "@/server/commands/clock";
 
@@ -134,14 +134,13 @@ describe("captureQuoteAcceptance — sent-state gate (AC3)", () => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     const { quoteId, versionId } = await seedVersion(fixture.tenantA.id, "sent");
     const dueDate = new Date(Date.now() + 48 * 60 * 60 * 1_000).toISOString().slice(0, 10);
-    const planned = await a.from("quote_follow_ups").insert({
-      tenant_id: fixture.tenantA.id,
-      quote_id: quoteId,
-      quote_version_id: versionId,
-      due_date: dueDate,
-      status: "open",
-    }).select("id");
-    expect(planned.error).toBeNull();
+    const planned = await runCommand(planQuoteFollowUp, {
+      client: a as never,
+      input: { quote_version_id: versionId, due_date: dueDate },
+      clock: fixedClock,
+      correlationId: crypto.randomUUID(),
+    });
+    expect(planned.ok).toBe(true);
 
     const res = await runCommand(captureQuoteAcceptance, {
       client: a as never,

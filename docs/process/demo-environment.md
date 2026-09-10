@@ -89,9 +89,9 @@ without the DB password via `supabase db query --linked` (Management API).
 - The demo project is NOT a stop-condition violation: the CI "no shared
   dev/staging/prod project" rule constrains CI, which remains local-stack only.
 
-## Quote-PDF attestation provisioning and rotation (ADR-B008)
+## Server attestation provisioning and rotation (ADR-B008)
 
-**IN:** Production/demo PDF-byte activation uses a server-side HMAC secret identified by a key ID: Vercel environment variables `QUOTE_PDF_ATTESTATION_KEY_ID` and `QUOTE_PDF_ATTESTATION_HMAC_SECRET`, plus a matching Supabase Vault secret named `quote_pdf_attestation_<key-id>`. The secret is never committed, displayed in logs, or supplied to clients. Local/test setup may use the clearly test-only key ID `test_v1` and a disposable test-only secret; it is not a deployable secret.
+**IN:** Production/demo PDF-byte activation and successful signed-file-access audit finalization use a server-side HMAC secret identified by a key ID: Vercel environment variables `QUOTE_PDF_ATTESTATION_KEY_ID` and `QUOTE_PDF_ATTESTATION_HMAC_SECRET`, plus a matching Supabase Vault secret named `quote_pdf_attestation_<key-id>`. Signed-file access derives a domain-separated file-specific subkey from this approved root; it does not add another production credential. The secret is never committed, displayed in logs, or supplied to clients. Local/test setup may use the clearly test-only key ID `test_v1` and a disposable test-only secret; it is not a deployable secret.
 
 Provision a new key in this order: create `quote_pdf_attestation_<key-id>` in Vault first; set the matching server-only Vercel variables; then deploy. Verify with the approved fresh database/application evidence before relying on the key.
 

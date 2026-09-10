@@ -20,8 +20,7 @@
  *   reusable integer-öre price only.
  */
 import { defineCommand } from "../envelope";
-import { CommandError } from "../command-errors";
-import { asCrmWriteClient, throwMappedWriteError } from "../crm/crm-db";
+import { asPricingAuditRpcClient, throwMappedWriteError } from "./pricing-db";
 import {
   validateArchive,
   validateUpsertArticle,
@@ -35,77 +34,56 @@ export const upsertArticle = defineCommand<
   PricingCommandResult
 >({
   command: "article.upsert",
-  auditable: true,
+  auditable: false,
   eventType: "article.upserted",
   targetType: "article",
   validateInput: validateUpsertArticle,
   ownership: (input) =>
     input.id ? { table: "articles", id: input.id } : null,
   execute: async (ctx) => {
-    const db = asCrmWriteClient(ctx.db);
+    const db = asPricingAuditRpcClient(ctx.db);
     const { input } = ctx;
 
-    if (!input.id) {
-      // CREATE — INSERT a new MINIMAL MANUAL row scoped to the resolved tenant. NO
-      // supplier column is written (none exists; the validated shape carries none).
-      const { data, error } = await db
-        .from("articles")
-        .insert({
-          tenant_id: ctx.tenantContext.tenantId, // resolved tenant — NEVER client-supplied
-          name: input.name,
-          sku: input.sku ?? null,
-          unit: input.unit ?? null,
-          unit_price_ore: input.unit_price_ore, // integer öre — never a float
-        })
-        .select("id")
-        .single();
-      if (error) throwMappedWriteError(error);
-      const id = data?.id;
-      if (typeof id !== "string") {
-        throw new Error("upsertArticle: no id returned");
-      }
-      return { targetId: id };
-    }
-
-    // UPDATE — edit the article by id (ownership already verified).
-    const { data, error } = await db
-      .from("articles")
-      .update({
-        name: input.name,
-        sku: input.sku ?? null,
-        unit: input.unit ?? null,
-        unit_price_ore: input.unit_price_ore,
-      })
-      .eq("id", input.id)
-      .select("id");
+    const { data, error } = await db.rpc("upsert_article_with_audit", {
+      p_tenant_id: ctx.tenantContext.tenantId,
+      p_actor_user_id: ctx.tenantContext.userId,
+      p_correlation_id: ctx.correlationId,
+      p_article_id: input.id ?? null,
+      p_name: input.name,
+      p_sku: input.sku ?? null,
+      p_unit: input.unit ?? null,
+      p_unit_price_ore: input.unit_price_ore,
+    });
     if (error) throwMappedWriteError(error);
-    if (!data || data.length === 0) {
-      throw new CommandError("TENANT_ACCESS_DENIED");
+    if (typeof data !== "string") {
+      throw new Error("upsertArticle: no id returned");
     }
-    return { targetId: input.id };
+    return { targetId: data };
   },
   auditFields: (_ctx, result) => ({ targetId: result.targetId }),
 });
 
 export const archiveArticle = defineCommand<ArchiveInput, PricingCommandResult>({
   command: "article.archive",
-  auditable: true,
+  auditable: false,
   eventType: "article.archived",
   targetType: "article",
   validateInput: validateArchive,
   ownership: (input) => ({ table: "articles", id: input.id }),
   execute: async (ctx) => {
-    const db = asCrmWriteClient(ctx.db);
-    const { data, error } = await db
-      .from("articles")
-      .update({ is_active: false })
-      .eq("id", ctx.input.id)
-      .select("id");
+    const db = asPricingAuditRpcClient(ctx.db);
+    const { data, error } = await db.rpc("set_article_active_with_audit", {
+      p_tenant_id: ctx.tenantContext.tenantId,
+      p_actor_user_id: ctx.tenantContext.userId,
+      p_correlation_id: ctx.correlationId,
+      p_article_id: ctx.input.id,
+      p_is_active: false,
+    });
     if (error) throwMappedWriteError(error);
-    if (!data || data.length === 0) {
-      throw new CommandError("TENANT_ACCESS_DENIED");
+    if (typeof data !== "string") {
+      throw new Error("archiveArticle: no id returned");
     }
-    return { targetId: ctx.input.id };
+    return { targetId: data };
   },
   auditFields: (ctx) => ({ targetId: ctx.input.id }),
 });
@@ -121,23 +99,25 @@ export const reactivateArticle = defineCommand<
   PricingCommandResult
 >({
   command: "article.reactivate",
-  auditable: true,
+  auditable: false,
   eventType: "article.reactivated",
   targetType: "article",
   validateInput: validateArchive,
   ownership: (input) => ({ table: "articles", id: input.id }),
   execute: async (ctx) => {
-    const db = asCrmWriteClient(ctx.db);
-    const { data, error } = await db
-      .from("articles")
-      .update({ is_active: true })
-      .eq("id", ctx.input.id)
-      .select("id");
+    const db = asPricingAuditRpcClient(ctx.db);
+    const { data, error } = await db.rpc("set_article_active_with_audit", {
+      p_tenant_id: ctx.tenantContext.tenantId,
+      p_actor_user_id: ctx.tenantContext.userId,
+      p_correlation_id: ctx.correlationId,
+      p_article_id: ctx.input.id,
+      p_is_active: true,
+    });
     if (error) throwMappedWriteError(error);
-    if (!data || data.length === 0) {
-      throw new CommandError("TENANT_ACCESS_DENIED");
+    if (typeof data !== "string") {
+      throw new Error("reactivateArticle: no id returned");
     }
-    return { targetId: ctx.input.id };
+    return { targetId: data };
   },
   auditFields: (ctx) => ({ targetId: ctx.input.id }),
 });

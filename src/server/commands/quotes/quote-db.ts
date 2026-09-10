@@ -830,12 +830,12 @@ export function asQuoteLostRpcClient(db: CommandDbClient): QuoteLostRpcClient {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Story 10.3 — the follow-up anchor read + the direct quote_follow_ups write surfaces.
+// Story 10.3 — the follow-up anchor read + audited lifecycle RPC surface.
 //
-// The plan/complete/annotate commands are single-row ENVELOPE commands (architecture-phase-b §14 —
-// NO RPC): they issue direct RLS-client table writes on quote_follow_ups. The anchor read loads the
-// version's status + quote_id so the plan command can (a) assert the anchor is `sent` and (b) DERIVE
-// quote_id from the loaded row (never trust a client-supplied quote_id — SETTLED DESIGN DECISION 3).
+// Follow-up plan/complete/annotate are low-churn audited mutations.  Their checked RPCs bind
+// authorization, domain write, and audit insert in one transaction; authenticated table DML is
+// revoked once these callers are migrated.  The anchor read remains useful before plan so the
+// command can preserve its stable sent-version and Stockholm-date validation behaviour.
 // ─────────────────────────────────────────────────────────────────────────────
 
 /** The anchor-version fields the plan command reads: the lifecycle `status` + the parent `quote_id`. */
@@ -864,35 +864,65 @@ export async function loadQuoteVersionAnchor(
   return { status: String(raw.status), quote_id: String(raw.quote_id) };
 }
 
-/** A chainable RLS UPDATE filter (multiple `.eq()` then a terminal `.select()`). */
-type FollowUpUpdateFilter = {
-  eq(column: string, value: string): FollowUpUpdateFilter;
-  select(columns: string): Promise<{
-    data: unknown[] | null;
-    error: { code?: string; message?: string } | null;
-  }>;
+/** Checked follow-up lifecycle RPCs.  Each returns the affected follow-up UUID. */
+export type QuoteFollowUpLifecycleRpcClient = {
+  rpc(
+    fn: "plan_quote_follow_up_with_audit",
+    args: {
+      readonly p_tenant_id: string;
+      readonly p_actor_user_id: string;
+      readonly p_correlation_id: string;
+      readonly p_quote_version_id: string;
+      readonly p_due_date: string;
+      readonly p_note: string | null;
+    },
+  ): Promise<{ data: unknown; error: { code?: string; message?: string } | null }>;
+  rpc(
+    fn: "complete_quote_follow_up_with_audit",
+    args: {
+      readonly p_tenant_id: string;
+      readonly p_actor_user_id: string;
+      readonly p_correlation_id: string;
+      readonly p_follow_up_id: string;
+      readonly p_outcome: string;
+      readonly p_completed_at: string;
+      readonly p_expected_quote_id: string | null;
+    },
+  ): Promise<{ data: unknown; error: { code?: string; message?: string } | null }>;
+  rpc(
+    fn: "annotate_quote_follow_up_with_audit",
+    args: {
+      readonly p_tenant_id: string;
+      readonly p_actor_user_id: string;
+      readonly p_correlation_id: string;
+      readonly p_follow_up_id: string;
+      readonly p_note: string | null;
+    },
+  ): Promise<{ data: unknown; error: { code?: string; message?: string } | null }>;
 };
 
-/** The minimal quote_follow_ups INSERT + UPDATE surface of the request-bound RLS client. */
-export type QuoteFollowUpWriteClient = {
-  from(table: "quote_follow_ups"): {
-    insert(values: Record<string, unknown>): {
-      select(columns: string): Promise<{
-        data: unknown[] | null;
-        error: { code?: string; message?: string } | null;
-      }>;
-    };
-    update(values: Record<string, unknown>): {
-      eq(column: string, value: string): FollowUpUpdateFilter;
-    };
-  };
-};
-
-/** Narrow the envelope client to the quote-follow-up write surface (single documented cast). */
-export function asQuoteFollowUpWriteClient(
+/** Narrow the envelope client to the checked quote-follow-up RPC surface. */
+export function asQuoteFollowUpLifecycleRpcClient(
   db: CommandDbClient,
-): QuoteFollowUpWriteClient {
-  return db as unknown as QuoteFollowUpWriteClient;
+): QuoteFollowUpLifecycleRpcClient {
+  return db as unknown as QuoteFollowUpLifecycleRpcClient;
+}
+
+export type QuoteSuccessorSourceRpcClient = { rpc(fn: "read_quote_successor_source", args: { readonly p_tenant_id: string; readonly p_source_quote_version_id: string; readonly p_requested_attachment_ids: readonly string[] | null; readonly p_actor_user_id: string }): Promise<{ data: unknown; error: { code?: string; message?: string } | null }> };
+export function asQuoteSuccessorSourceRpcClient(db: CommandDbClient): QuoteSuccessorSourceRpcClient { return db as unknown as QuoteSuccessorSourceRpcClient; }
+
+/** Extract a scalar UUID from PostgREST's RPC result shape. */
+export function extractQuoteFollowUpLifecycleId(data: unknown): string | null {
+  if (typeof data === "string") return data;
+  if (Array.isArray(data) && data.length === 1) {
+    const row = data[0];
+    if (row && typeof row === "object") {
+      const id = (row as { id?: unknown; quote_follow_up_id?: unknown }).id
+        ?? (row as { quote_follow_up_id?: unknown }).quote_follow_up_id;
+      return typeof id === "string" ? id : null;
+    }
+  }
+  return null;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

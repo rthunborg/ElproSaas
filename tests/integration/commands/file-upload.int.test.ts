@@ -114,6 +114,14 @@ function uploadInput(overrides: Record<string, unknown>): Record<string, unknown
 function withFailingMetadataInsert(client: TestServerClient): TestServerClient {
   return new Proxy(client, {
     get(target, prop, receiver) {
+      if (prop === "rpc") {
+        return (name: string, args: unknown) => {
+          if (name === "create_uploaded_file_with_audit") {
+            return Promise.resolve({ data: null, error: { message: "injected metadata insert fault", code: "XX000" } });
+          }
+          return (target as never as { rpc: (n: string, a: unknown) => unknown }).rpc(name, args);
+        };
+      }
       if (prop === "from") {
         return (table: string) => {
           const realBuilder = (target as never as { from: (t: string) => unknown }).from(table);
@@ -335,6 +343,36 @@ describe("uploadFile — server-side gate + storage↔DB compensation (AC2/AC4/A
       });
     },
   );
+
+  it("[P0][11.2] raw file wrappers reject mismatched owner/purpose pairs before an acceptance lock can be bypassed", async (testCtx) => {
+    if (skipUnlessBoth(testCtx)) return;
+    const malformedCreate = await (a as never as {
+      rpc(name: string, args: Record<string, unknown>): Promise<{ error: { code?: string } | null }>;
+    }).rpc("create_uploaded_file_with_audit", {
+      p_tenant_id: fixture.tenantA.id, p_actor_user_id: fixture.adminA.id, p_correlation_id: crypto.randomUUID(),
+      p_file_id: crypto.randomUUID(), p_object_path: "not-used-before-pair-validation", p_display_name: "ignored.pdf",
+      p_mime_type: "application/pdf", p_size_bytes: 1, p_owner_type: "quote_acceptance", p_owner_id: ownAcceptanceId,
+      p_purpose: "crm_document",
+    });
+    expect(malformedCreate.error?.code).toBe("23514");
+
+    const uploaded = await runCommand(uploadFile as never, {
+      client: a as never,
+      input: uploadInput({ owner_type: "customer", owner_id: ownCustomerId, purpose: "crm_document" }),
+      clock: fixedClock,
+      correlationId: crypto.randomUUID(),
+    });
+    expect(uploaded.ok).toBe(true);
+    if (!uploaded.ok) return;
+    const malformedLink = await (a as never as {
+      rpc(name: string, args: Record<string, unknown>): Promise<{ error: { code?: string } | null }>;
+    }).rpc("link_file_with_audit", {
+      p_tenant_id: fixture.tenantA.id, p_actor_user_id: fixture.adminA.id, p_correlation_id: crypto.randomUUID(),
+      p_file_id: (uploaded.data as { fileId: string }).fileId, p_owner_type: "quote_acceptance", p_owner_id: ownAcceptanceId,
+      p_purpose: "crm_document",
+    });
+    expect(malformedLink.error?.code).toBe("23514");
+  });
 
   it("[10.8][P0] acceptance evidence cannot be appended after immutable acceptance capture", async (testCtx) => {
     if (skipUnlessBoth(testCtx)) return;

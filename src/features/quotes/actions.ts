@@ -27,13 +27,13 @@ import {
   completeQuoteFollowUp,
   createNewQuoteVersion,
   createQuoteVersionFromCalculation,
+  createQuotePdfSignedAccess,
   generateQuotePdf,
   markQuoteVersionLost,
   markQuoteVersionSent,
   planQuoteFollowUp,
   updateDraftQuoteVersion,
 } from "@/server/commands/quotes";
-import { createSignedFileAccess } from "@/server/commands/files";
 import { loadQuoteVersionAnchor } from "@/server/commands/quotes/quote-db";
 import { validateCreateReviewedQuoteVersionFromCalculation } from "@/server/commands/quotes/validation";
 import { kronorStringToOre } from "@/features/calculations/money-input";
@@ -811,10 +811,11 @@ export async function previewQuotePdfAction(
   form: FormData,
 ): Promise<QuotePdfPreviewState> {
   const fileId = form.get("file_id");
-  const input: Record<string, unknown> = { file_id: fileId };
+  const quoteVersionId = form.get("quote_version_id");
+  const input: Record<string, unknown> = { file_id: fileId, quote_version_id: quoteVersionId };
 
   const client = (await createSupabaseServerClient()) as unknown as CommandDbClient;
-  const result = await runCommand(createSignedFileAccess, { client, input });
+  const result = await runCommand(createQuotePdfSignedAccess, { client, input });
 
   if (result.ok) {
     return {

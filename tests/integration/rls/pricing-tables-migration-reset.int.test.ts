@@ -6,8 +6,9 @@
  * columns (bigint) + their non-negative CHECKs, an `is_active` lifecycle column,
  * timestamps + the EXISTING `set_updated_at` trigger, RLS ENABLE+FORCE, helper-scoped
  * own-tenant SELECT/INSERT/UPDATE policies (NO DELETE — archive over hard delete),
- * explicit role GRANTs (authenticated SELECT/INSERT/UPDATE; service_role full DML;
- * anon NONE of the four DML privileges), the COLLECTION shape (NO unique(tenant_id)),
+ * explicit role GRANTs (authenticated SELECT only; checked audited wrappers own mutation;
+ * service_role full DML; anon NONE of the four DML privileges), the COLLECTION shape
+ * (NO unique(tenant_id)),
  * and the HARD no-supplier-scope column-name guard.
  *
  * ── WHY `describe.skip` (RED PHASE) ──────────────────────────────────────────────
@@ -200,7 +201,7 @@ describe("Pricing migration reset green — work_roles/articles (AC1/AC2/AC3)", 
     }
   });
 
-  it("[P0/AC4] GRANTs: authenticated SELECT/INSERT/UPDATE (no DELETE); anon holds NONE of the four DML privileges", async (testCtx) => {
+  it("[P0/AC4] GRANTs: authenticated SELECT only; direct pricing INSERT/UPDATE/DELETE are closed to audited wrappers; anon has no DML", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     const rows = await adminQuery<{ grantee: string; privilege_type: string }>(
       `select grantee, privilege_type from information_schema.role_table_grants
@@ -209,8 +210,8 @@ describe("Pricing migration reset green — work_roles/articles (AC1/AC2/AC3)", 
     );
     const authed = rows.filter((r) => r.grantee === "authenticated").map((r) => r.privilege_type);
     expect(authed).toContain("SELECT");
-    expect(authed).toContain("INSERT");
-    expect(authed).toContain("UPDATE");
+    expect(authed).not.toContain("INSERT");
+    expect(authed).not.toContain("UPDATE");
     expect(authed).not.toContain("DELETE");
     // anon-DML-empty (NOT anon-grant-empty): Supabase grants every role the non-DML
     // REFERENCES/TRIGGER/TRUNCATE by default, so assert anon holds NONE of the four

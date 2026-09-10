@@ -85,6 +85,63 @@ export function asCalcWriteClient(db: CommandDbClient): CalcWriteClient {
 }
 
 /**
+ * Checked, command-specific lifecycle RPCs. These are intentionally separate
+ * from `CalcWriteClient`: calculation headers are audited mutations and must
+ * commit their domain write and audit record atomically for Projektledare.
+ * High-churn rows/sections/reorders remain ordinary RLS operations by design.
+ */
+export type CalcLifecycleRpcClient = {
+  rpc(
+    fn: "create_calculation_with_audit",
+    args: {
+      readonly p_tenant_id: string;
+      readonly p_actor_user_id: string;
+      readonly p_correlation_id: string;
+      readonly p_customer_id: string;
+      readonly p_facility_id: string | null;
+      readonly p_contact_id: string | null;
+      readonly p_title: string;
+    },
+  ): Promise<{ data: unknown; error: { code?: string; message?: string } | null }>;
+  rpc(
+    fn: "update_calculation_with_audit",
+    args: {
+      readonly p_tenant_id: string;
+      readonly p_actor_user_id: string;
+      readonly p_correlation_id: string;
+      readonly p_calculation_id: string;
+      readonly p_patch: Record<string, unknown>;
+    },
+  ): Promise<{ data: unknown; error: { code?: string; message?: string } | null }>;
+  rpc(
+    fn: "archive_calculation_with_audit",
+    args: {
+      readonly p_tenant_id: string;
+      readonly p_actor_user_id: string;
+      readonly p_correlation_id: string;
+      readonly p_calculation_id: string;
+      readonly p_archived_at: string;
+    },
+  ): Promise<{ data: unknown; error: { code?: string; message?: string } | null }>;
+};
+
+export function asCalcLifecycleRpcClient(db: CommandDbClient): CalcLifecycleRpcClient {
+  return db as unknown as CalcLifecycleRpcClient;
+}
+
+/** Extract the UUID scalar returned by a checked calculation lifecycle RPC. */
+export function extractCalculationLifecycleId(data: unknown): string | null {
+  if (typeof data === "string") return data;
+  if (Array.isArray(data) && data.length === 1) {
+    const row = data[0];
+    if (row && typeof row === "object" && typeof (row as { id?: unknown }).id === "string") {
+      return (row as { id: string }).id;
+    }
+  }
+  return null;
+}
+
+/**
  * Load the target calculation's REAL current lifecycle `status` from the DB, under the
  * caller's request-bound RLS client (findings 1 & 2). Returns the `CalcStatus` when the
  * row is visible, or `null` when the row is not visible under the caller's RLS (gone /

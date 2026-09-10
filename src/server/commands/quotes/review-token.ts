@@ -174,6 +174,51 @@ export function buildQuoteReviewDigest(source: QuoteReviewSource): string {
     .digest("hex");
 }
 
+/** Sales-safe stale-preview digest.  It deliberately has a separate domain and
+ * omits cost/source-kind facts; LOW_MARGIN is represented only by its canonical
+ * visible warning, never by an invertible pricing signal. */
+export function buildCustomerVisibleQuoteReviewDigest(
+  source: QuoteReviewSource,
+  warnings: readonly Readonly<{ code: string; severity: string; message: string }>[],
+): string {
+  const sections = [...source.sections].sort(
+    (left, right) => left.sortOrder - right.sortOrder || left.id.localeCompare(right.id),
+  );
+  const sectionOrder = new Map(sections.map((section, index) => [section.id, index]));
+  const rows = [...source.rows]
+    .sort((left, right) =>
+      (sectionOrder.get(left.sectionId) ?? Number.MAX_SAFE_INTEGER) -
+        (sectionOrder.get(right.sectionId) ?? Number.MAX_SAFE_INTEGER) ||
+      left.sortOrder - right.sortOrder ||
+      left.id.localeCompare(right.id))
+    .map((row) => {
+      const { unitCostOre, sourceKind, ...customerVisibleRow } = row;
+      // Deliberately retain neither private fact in the Sales digest domain.
+      void unitCostOre;
+      void sourceKind;
+      return customerVisibleRow;
+    });
+  const attachments = [...source.attachments].sort(
+    (left, right) => left.sortOrder - right.sortOrder || left.fileId.localeCompare(right.fileId),
+  );
+  const canonicalWarnings = [...warnings].sort((left, right) =>
+    left.code.localeCompare(right.code) ||
+    left.severity.localeCompare(right.severity) ||
+    left.message.localeCompare(right.message));
+  const normalized = {
+    ...source,
+    sections,
+    rows,
+    attachments,
+    warnings: canonicalWarnings,
+    applicableTaxPolicies: resolvedTaxPolicyDigestFacts(source),
+  };
+  return createHash("sha256")
+    .update("quote-review-visible-v1\n")
+    .update(stableJson(normalized))
+    .digest("hex");
+}
+
 export function quoteReviewDigestsEqual(left: string, right: string): boolean {
   if (!/^[a-f0-9]{64}$/.test(left) || !/^[a-f0-9]{64}$/.test(right)) return false;
   return timingSafeEqual(Buffer.from(left, "hex"), Buffer.from(right, "hex"));

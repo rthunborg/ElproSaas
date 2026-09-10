@@ -430,11 +430,24 @@ afterAll(async () => {
 });
 
 describe("Cross-tenant RLS isolation — data-driven over the shared inventory (AC2 / R-001)", () => {
-  // Story 10.8 intentionally removes every authenticated direct-DML path for
-  // quote_acceptances. Keep this explicit instead of treating its 42501 as an
-  // RLS-invisible result or the older quote-family trigger's QV409.
+  // Story 11.2 moves audited Phase A mutations behind checked transactional
+  // wrappers and revokes their direct authenticated DML grants. Keep that
+  // closure explicit instead of mistaking its 42501 for RLS invisibility. The
+  // SELECT cases above still prove the concrete Tenant B rows remain invisible.
   const directDmlRevokedTables = new Set([
+    "customers",
+    "facilities",
+    "contacts",
+    "company_settings",
+    "quote_terms",
+    "work_roles",
+    "articles",
+    "files",
+    "file_links",
     "quote_acceptances",
+    "jobs",
+    "job_events",
+    "quote_follow_ups",
   ]);
 
   for (const table of TENANT_TABLES) {
@@ -476,11 +489,11 @@ describe("Cross-tenant RLS isolation — data-driven over the shared inventory (
         //     layer (42501). A future regression that GRANTed UPDATE against a
         //     zero-matching USING clause would still produce an empty set and MUST NOT
         //     pass here. `error` is non-null and `data` is null on a denied write.
-        //   - "rls-invisible": the CRM tables DO grant `authenticated` UPDATE, so the
-        //     foreign row is hidden by RLS USING — the statement matches ZERO rows with
-        //     NO error (empty set, not null). The denial is proven by zero-rows-affected
-        //     PLUS an INDEPENDENT BYPASSRLS re-read showing the Tenant B row is UNCHANGED
-        //     (its label was NOT overwritten with the hijack value).
+        //   - "rls-invisible": direct UPDATE remains available only for the
+        //     high-churn calculation edit tables. Their foreign rows are hidden by
+        //     RLS USING, so the statement matches ZERO rows with NO error (empty
+        //     set, not null). The denial is proven by zero-rows-affected PLUS an
+        //     INDEPENDENT BYPASSRLS re-read showing the Tenant B row is UNCHANGED.
         if (directDmlRevokedTables.has(table) || updateDenialKind(table) === "privilege") {
           expect(error).not.toBeNull();
           expect(error?.code).toBe("42501");
@@ -494,7 +507,7 @@ describe("Cross-tenant RLS isolation — data-driven over the shared inventory (
             expect(row?.label).toBeNull();
           }
         } else {
-          // rls-invisible (customers/facilities/contacts/company_settings/quote_terms).
+          // rls-invisible calculation editing rows.
           expect(error).toBeNull();
           expect(affected).toEqual([]); // zero rows affected — the foreign row is hidden
           // Independent re-read proves the row exists and its label is UNCHANGED (the

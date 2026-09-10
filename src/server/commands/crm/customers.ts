@@ -10,18 +10,16 @@
  * - The resolved tenant (`ctx.tenantContext.tenantId`) is the ONLY authority for the
  *   row's `tenant_id`; a client-supplied tenant_id is ignored (the validators never
  *   read it, and execute writes the resolved tenant).
- * - Mutations run on the request-bound client (`ctx.db`). `customer.create` uses a
- *   role-checked RPC that binds the resolved tenant and actor; remaining customer
- *   writes continue through RLS while their Story 11.2 wrappers are migrated.
+ * - Mutations run on the request-bound client (`ctx.db`) through role-checked RPCs
+ *   that bind the resolved tenant, actor, domain write, and audit insert together.
  * - Audit metadata carries NO PII (personnummer / org_nr / name / email / address):
  *   the command passes only the narrow SAFE_FIELDS allow-list shape ({} here), and
  *   `sanitizeAuditMetadata` drops anything else by construction.
  */
 import { defineCommand } from "../envelope";
-import { CommandError } from "../command-errors";
 import {
   asCreateCustomerWithAuditRpcClient,
-  asCrmWriteClient,
+  executeCrmAuditedMutation,
   throwMappedWriteError,
 } from "./crm-db";
 import {
@@ -78,30 +76,24 @@ export const createCustomer = defineCommand<CreateCustomerInput, CrmCommandResul
 
 export const updateCustomer = defineCommand<UpdateCustomerInput, CrmCommandResult>({
   command: "customer.update",
-  auditable: true,
+  auditable: false,
   eventType: "customer.updated",
   targetType: "customer",
   validateInput: validateUpdateCustomer,
-  // Ownership: the target customer must be visible under the caller's RLS (own
-  // tenant). A foreign id → zero rows → TENANT_ACCESS_DENIED (envelope verify).
-  ownership: (input) => ({ table: "customers", id: input.id }),
   execute: async (ctx) => {
-    const db = asCrmWriteClient(ctx.db);
-    const patch = buildCustomerPatch(ctx.input);
-    const { data, error } = await db
-      .from("customers")
-      .update(patch)
-      .eq("id", ctx.input.id)
-      .select("id");
-    if (error) throwMappedWriteError(error);
-    // Ownership already proved the row is visible; a zero-row update here would be a
-    // race (row archived/removed between verify and update) → deny rather than 500.
-    if (!data || data.length === 0) {
-      throw new CommandError("TENANT_ACCESS_DENIED");
-    }
-    return { targetId: ctx.input.id };
+    const targetId = await executeCrmAuditedMutation(
+      ctx.db,
+      "update_customer_with_audit",
+      {
+        p_tenant_id: ctx.tenantContext.tenantId,
+        p_actor_user_id: ctx.tenantContext.userId,
+        p_correlation_id: ctx.correlationId,
+        p_customer_id: ctx.input.id,
+        p_patch: buildCustomerPatch(ctx.input),
+      },
+    );
+    return { targetId };
   },
-  auditFields: (ctx) => ({ targetId: ctx.input.id }),
 });
 
 /** Build the UPDATE patch for a customer (only the supplied fields). */
@@ -122,26 +114,21 @@ function buildCustomerPatch(input: UpdateCustomerInput): Record<string, unknown>
 
 export const archiveCustomer = defineCommand<ArchiveInput, CrmCommandResult>({
   command: "customer.archive",
-  auditable: true,
+  auditable: false,
   eventType: "customer.archived",
   targetType: "customer",
   validateInput: validateArchive,
-  ownership: (input) => ({ table: "customers", id: input.id }),
   execute: async (ctx) => {
-    const db = asCrmWriteClient(ctx.db);
-    // Soft-delete: set archived_at to the SINGLE command instant (deterministic,
-    // injected clock — never Date.now()). Never a hard DELETE.
-    const archivedAt = ctx.clock.now().toISOString();
-    const { data, error } = await db
-      .from("customers")
-      .update({ archived_at: archivedAt })
-      .eq("id", ctx.input.id)
-      .select("id");
-    if (error) throwMappedWriteError(error);
-    if (!data || data.length === 0) {
-      throw new CommandError("TENANT_ACCESS_DENIED");
-    }
-    return { targetId: ctx.input.id };
+    const targetId = await executeCrmAuditedMutation(
+      ctx.db,
+      "archive_customer_with_audit",
+      {
+        p_tenant_id: ctx.tenantContext.tenantId,
+        p_actor_user_id: ctx.tenantContext.userId,
+        p_correlation_id: ctx.correlationId,
+        p_customer_id: ctx.input.id,
+      },
+    );
+    return { targetId };
   },
-  auditFields: (ctx) => ({ targetId: ctx.input.id }),
 });

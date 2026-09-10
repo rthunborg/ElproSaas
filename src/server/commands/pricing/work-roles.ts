@@ -4,10 +4,10 @@
  *
  * `upsertWorkRole` / `archiveWorkRole` — each a `defineCommand` through the EXISTING
  * envelope (resolve user → resolve active tenant_admin → validate typed input → verify
- * ownership → execute via the RLS client → append-only audit → typed Result). No
- * bespoke auth/error/audit mechanism. Reuses the CRM write surface (`asCrmWriteClient`)
- * and error mapping (`throwMappedWriteError`) — INSERT+select-single and UPDATE-by-id
- * are identical to the CRM collection commands.
+ * ownership → execute through a checked database wrapper → atomic audit → typed Result). No
+ * bespoke auth/error/audit mechanism. Reuses the shared mapped write errors and
+ * uses a command-specific checked RPC so the pricing mutation and audit insert
+ * are one transaction for Projektledare as well as Admin.
  *
  * COLLECTION shape (NOT the settings singleton): work_roles are MANY-per-tenant, so
  * `upsertWorkRole` BRANCHES on `id` — CREATE (no id) INSERTs a NEW row; UPDATE (id
@@ -17,16 +17,19 @@
  * - The resolved tenant (`ctx.tenantContext.tenantId`) is the ONLY authority for the
  *   row's `tenant_id`; a client-supplied tenant_id is ignored (the validator never
  *   reads it, and execute writes the resolved tenant).
- * - Mutations run on the request-bound RLS client (`ctx.db`); the own-tenant
- *   INSERT/UPDATE policies + the `is_tenant_admin` WITH CHECK keep them in-tenant.
+ * - Mutations use the request-bound client to invoke an authenticated-only,
+ *   command-specific wrapper. The wrapper rechecks tenant/actor role authority and
+ *   owns target scope plus the mutation/audit transaction.
  * - Audit metadata carries NO PII / rate value / name — the command passes only
  *   `{ targetId }`, and `sanitizeAuditMetadata` drops anything else by construction.
  * - NO calculation is performed on the rates (Epic 4 owns the money/VAT engine) — they
  *   are STORED as reusable integer-öre prices only.
  */
 import { defineCommand } from "../envelope";
-import { CommandError } from "../command-errors";
-import { asCrmWriteClient, throwMappedWriteError } from "../crm/crm-db";
+import {
+  asPricingAuditRpcClient,
+  throwMappedWriteError,
+} from "./pricing-db";
 import {
   validateArchive,
   validateUpsertWorkRole,
@@ -44,7 +47,10 @@ export const upsertWorkRole = defineCommand<
   PricingCommandResult
 >({
   command: "work_role.upsert",
-  auditable: true,
+  // The checked RPC owns both the write and its bound audit event in one DB
+  // transaction. Keeping this false prevents the generic, Admin-only audit RPC
+  // from duplicating the event after the RPC commits.
+  auditable: false,
   eventType: "work_role.upserted",
   targetType: "work_role",
   validateInput: validateUpsertWorkRole,
@@ -55,47 +61,23 @@ export const upsertWorkRole = defineCommand<
   ownership: (input) =>
     input.id ? { table: "work_roles", id: input.id } : null,
   execute: async (ctx) => {
-    const db = asCrmWriteClient(ctx.db);
+    const db = asPricingAuditRpcClient(ctx.db);
     const { input } = ctx;
 
-    if (!input.id) {
-      // CREATE — INSERT a new row scoped to the resolved tenant.
-      const { data, error } = await db
-        .from("work_roles")
-        .insert({
-          tenant_id: ctx.tenantContext.tenantId, // resolved tenant — NEVER client-supplied
-          display_name: input.display_name,
-          cost_rate_ore: input.cost_rate_ore, // integer öre — never a float
-          sell_rate_ore: input.sell_rate_ore,
-        })
-        .select("id")
-        .single();
-      if (error) throwMappedWriteError(error);
-      const id = data?.id;
-      if (typeof id !== "string") {
-        throw new Error("upsertWorkRole: no id returned");
-      }
-      return { targetId: id };
-    }
-
-    // UPDATE — edit the role by id (ownership already verified). Only the editable
-    // fields are written; the lifecycle flag is owned by the archive command.
-    const { data, error } = await db
-      .from("work_roles")
-      .update({
-        display_name: input.display_name,
-        cost_rate_ore: input.cost_rate_ore,
-        sell_rate_ore: input.sell_rate_ore,
-      })
-      .eq("id", input.id)
-      .select("id");
+    const { data, error } = await db.rpc("upsert_work_role_with_audit", {
+      p_tenant_id: ctx.tenantContext.tenantId,
+      p_actor_user_id: ctx.tenantContext.userId,
+      p_correlation_id: ctx.correlationId,
+      p_work_role_id: input.id ?? null,
+      p_display_name: input.display_name,
+      p_cost_rate_ore: input.cost_rate_ore,
+      p_sell_rate_ore: input.sell_rate_ore,
+    });
     if (error) throwMappedWriteError(error);
-    // Ownership already proved the row is visible; a zero-row update here would be a
-    // race (row removed between verify and update) → deny rather than 500.
-    if (!data || data.length === 0) {
-      throw new CommandError("TENANT_ACCESS_DENIED");
+    if (typeof data !== "string") {
+      throw new Error("upsertWorkRole: no id returned");
     }
-    return { targetId: input.id };
+    return { targetId: data };
   },
   // Allow-listed audit metadata — ONLY the target id, NEVER the rate values / name.
   auditFields: (_ctx, result) => ({ targetId: result.targetId }),
@@ -103,26 +85,25 @@ export const upsertWorkRole = defineCommand<
 
 export const archiveWorkRole = defineCommand<ArchiveInput, PricingCommandResult>({
   command: "work_role.archive",
-  auditable: true,
+  auditable: false,
   eventType: "work_role.archived",
   targetType: "work_role",
   validateInput: validateArchive,
   ownership: (input) => ({ table: "work_roles", id: input.id }),
   execute: async (ctx) => {
-    const db = asCrmWriteClient(ctx.db);
-    // Soft archive: flip is_active=false (the row STILL EXISTS). Never a hard DELETE.
-    // The set_updated_at trigger stamps updated_at; the injected clock is used by the
-    // audit row, never Date.now().
-    const { data, error } = await db
-      .from("work_roles")
-      .update({ is_active: false })
-      .eq("id", ctx.input.id)
-      .select("id");
+    const db = asPricingAuditRpcClient(ctx.db);
+    const { data, error } = await db.rpc("set_work_role_active_with_audit", {
+      p_tenant_id: ctx.tenantContext.tenantId,
+      p_actor_user_id: ctx.tenantContext.userId,
+      p_correlation_id: ctx.correlationId,
+      p_work_role_id: ctx.input.id,
+      p_is_active: false,
+    });
     if (error) throwMappedWriteError(error);
-    if (!data || data.length === 0) {
-      throw new CommandError("TENANT_ACCESS_DENIED");
+    if (typeof data !== "string") {
+      throw new Error("archiveWorkRole: no id returned");
     }
-    return { targetId: ctx.input.id };
+    return { targetId: data };
   },
   auditFields: (ctx) => ({ targetId: ctx.input.id }),
 });
@@ -138,24 +119,25 @@ export const reactivateWorkRole = defineCommand<
   PricingCommandResult
 >({
   command: "work_role.reactivate",
-  auditable: true,
+  auditable: false,
   eventType: "work_role.reactivated",
   targetType: "work_role",
   validateInput: validateArchive,
   ownership: (input) => ({ table: "work_roles", id: input.id }),
   execute: async (ctx) => {
-    const db = asCrmWriteClient(ctx.db);
-    // Un-archive: flip is_active=true (the row is the SAME row — this reverses archive).
-    const { data, error } = await db
-      .from("work_roles")
-      .update({ is_active: true })
-      .eq("id", ctx.input.id)
-      .select("id");
+    const db = asPricingAuditRpcClient(ctx.db);
+    const { data, error } = await db.rpc("set_work_role_active_with_audit", {
+      p_tenant_id: ctx.tenantContext.tenantId,
+      p_actor_user_id: ctx.tenantContext.userId,
+      p_correlation_id: ctx.correlationId,
+      p_work_role_id: ctx.input.id,
+      p_is_active: true,
+    });
     if (error) throwMappedWriteError(error);
-    if (!data || data.length === 0) {
-      throw new CommandError("TENANT_ACCESS_DENIED");
+    if (typeof data !== "string") {
+      throw new Error("reactivateWorkRole: no id returned");
     }
-    return { targetId: ctx.input.id };
+    return { targetId: data };
   },
   auditFields: (ctx) => ({ targetId: ctx.input.id }),
 });

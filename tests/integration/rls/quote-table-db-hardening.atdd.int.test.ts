@@ -29,21 +29,24 @@ async function seedVersion(status: "draft" | "sent" = "sent") {
 }
 
 describe("[P0][10.5] quote-table hardening and paginated read-model contracts", () => {
-  it("10.5-INT-01/02 rejects direct bad anchors and permits only sanctioned follow-up state shapes", async (ctx) => {
+  it("10.5-INT-01/02 closes authenticated follow-up DML while the checked command derives the only valid anchor", async (ctx) => {
     if (skipUnlessStack(ctx, stackUp)) return;
-    const sent = await seedVersion(); const other = await seedVersion(); const draft = await seedVersion("draft");
-    const insert = (quoteId: string, versionId: string, dueDate: string) => a.from("quote_follow_ups").insert({ tenant_id: sent.tenantId, quote_id: quoteId, quote_version_id: versionId, due_date: dueDate, status: "open" }).select("id");
-    expect((await insert(other.quoteId, sent.versionId, dayOffset(1))).error).not.toBeNull();
-    expect((await insert(draft.quoteId, draft.versionId, dayOffset(1))).error).not.toBeNull();
-    expect((await insert(sent.quoteId, sent.versionId, dayOffset(-1))).error).not.toBeNull();
-    const valid = await insert(sent.quoteId, sent.versionId, dayOffset(1)); expect(valid.error).toBeNull();
-    const id = valid.data?.[0]?.id; expect(typeof id).toBe("string"); if (typeof id !== "string") return;
-    expect((await a.from("quote_follow_ups").delete().eq("id", id).select()).error?.code).toBe("42501");
-    expect((await a.from("quote_follow_ups").update({ due_date: dayOffset(2) }).eq("id", id).select()).error).not.toBeNull();
-    expect((await a.from("quote_follow_ups").update({ status: "completed" }).eq("id", id).select()).error).not.toBeNull();
-    expect((await a.from("quote_follow_ups").update({ status: "completed", outcome: "x".repeat(4001), completed_at: NOW }).eq("id", id).select()).error).not.toBeNull();
-    expect((await a.from("quote_follow_ups").update({ status: "completed", outcome: "klart", completed_at: NOW }).eq("id", id).select()).error).toBeNull();
-    expect((await a.from("quote_follow_ups").update({ status: "open", outcome: null, completed_at: null }).eq("id", id).select()).error).not.toBeNull();
+    const sent = await seedVersion();
+    const planned = await runCommand(planQuoteFollowUp, {
+      client: a as never,
+      input: { quote_version_id: sent.versionId, due_date: dayOffset(1) },
+      correlationId: crypto.randomUUID(),
+    });
+    expect(planned.ok).toBe(true); if (!planned.ok) return;
+    const rawInsert = await a.from("quote_follow_ups").insert({
+      tenant_id: sent.tenantId, quote_id: sent.quoteId, quote_version_id: sent.versionId,
+      due_date: dayOffset(2), status: "open",
+    }).select("id");
+    expect(rawInsert.error?.code).toBe("42501");
+    const rawUpdate = await a.from("quote_follow_ups").update({ note: "bypass" })
+      .eq("id", planned.data.targetId).select();
+    expect(rawUpdate.error?.code).toBe("42501");
+    expect((await a.from("quote_follow_ups").delete().eq("id", planned.data.targetId).select()).error?.code).toBe("42501");
   });
 
   it("10.5-INT-05 preserves the Story 10.8 direct event/lost-reason DML denial boundary", async (ctx) => {
@@ -61,8 +64,9 @@ describe("[P0][10.5] quote-table hardening and paginated read-model contracts", 
   it("10.5-INT-03 blocks a terminal transition while an open follow-up anchors the sent version", async (ctx) => {
     if (skipUnlessStack(ctx, stackUp)) return;
     const seeded = await seedVersion();
-    const planned = await a.from("quote_follow_ups").insert({ tenant_id: seeded.tenantId, quote_id: seeded.quoteId, quote_version_id: seeded.versionId, due_date: dayOffset(1), status: "open" }).select("id");
-    const followUpId = planned.data?.[0]?.id; expect(typeof followUpId).toBe("string");
+    const planned = await runCommand(planQuoteFollowUp, { client: a as never, input: { quote_version_id: seeded.versionId, due_date: dayOffset(1) }, correlationId: crypto.randomUUID() });
+    expect(planned.ok).toBe(true); if (!planned.ok) return;
+    const followUpId = planned.data.targetId;
     expect((await runCommand(markQuoteVersionLost, { client: a as never, input: { quote_version_id: seeded.versionId, outcome: "forlorad", category: "pris" }, correlationId: crypto.randomUUID() })).ok).toBe(false);
     expect((await adminQuery<{ status: string }>("select status from public.quote_versions where id = $1", [seeded.versionId]))[0]?.status).toBe("sent");
     if (typeof followUpId !== "string") return;

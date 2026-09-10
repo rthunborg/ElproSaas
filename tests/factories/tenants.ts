@@ -24,6 +24,7 @@
  *   five — the forward-compat smoke in factory-isolation.int.test.ts pins that.
  */
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import type { TenantRole } from "@/server/authz/roles";
 import {
   assertLocalStack,
   LOCAL_SUPABASE_ANON_KEY,
@@ -248,6 +249,85 @@ export async function createTwoTenantFixture(): Promise<TwoTenantFixture> {
 }
 
 /**
+ * Story 11.2's role-aware fixture.  It keeps the long-lived two-tenant shape
+ * intact while adding one real authenticated member for every closed role, a
+ * legacy-admin child-role union, and two non-active memberships.  All identities
+ * are created through the local-only auth admin path and are removed by the paired
+ * cleanup helper below.
+ */
+export interface RoleAwarePhaseAFixture {
+  readonly base: TwoTenantFixture;
+  readonly users: Readonly<Record<TenantRole, FixtureUser>>;
+  readonly roleUnionUser: FixtureUser;
+  readonly invitedUser: FixtureUser;
+  readonly disabledUser: FixtureUser;
+  readonly extraUsers: readonly FixtureUser[];
+}
+
+export type RoleAwarePhaseAUsers = Omit<RoleAwarePhaseAFixture, "base">;
+
+/** Add real N-4 memberships to an existing isolated tenant fixture (also used by E2E setup). */
+export async function seedRoleAwarePhaseAUsers(
+  base: TwoTenantFixture,
+): Promise<RoleAwarePhaseAUsers> {
+  const [projektledare, montor, saljare, ekonomi, roleUnionUser, invitedUser, disabledUser] =
+    await Promise.all([
+      createAuthUser("role-projektledare"),
+      createAuthUser("role-montor"),
+      createAuthUser("role-saljare"),
+      createAuthUser("role-ekonomi"),
+      createAuthUser("role-union"),
+      createAuthUser("role-invited"),
+      createAuthUser("role-disabled"),
+    ]);
+
+  await Promise.all([
+    adminInsertMembership({ tenant_id: base.tenantA.id, user_id: projektledare.id, role: "projektledare", status: "active" }),
+    adminInsertMembership({ tenant_id: base.tenantA.id, user_id: montor.id, role: "montor", status: "active" }),
+    adminInsertMembership({ tenant_id: base.tenantA.id, user_id: saljare.id, role: "saljare", status: "active" }),
+    adminInsertMembership({ tenant_id: base.tenantA.id, user_id: ekonomi.id, role: "ekonomi", status: "active" }),
+    adminInsertMembership({ tenant_id: base.tenantA.id, user_id: roleUnionUser.id, role: "tenant_admin", status: "active" }),
+    adminInsertMembership({ tenant_id: base.tenantA.id, user_id: invitedUser.id, role: "saljare", status: "invited" }),
+    adminInsertMembership({ tenant_id: base.tenantA.id, user_id: disabledUser.id, role: "montor", status: "disabled" }),
+  ]);
+
+  const membershipRows = await adminQuery<{ id: string }>(
+    "select id from public.tenant_memberships where tenant_id = $1 and user_id = $2",
+    [base.tenantA.id, roleUnionUser.id],
+  );
+  const membershipId = membershipRows[0]?.id;
+  if (!membershipId) throw new Error("role-aware fixture: union membership was not created");
+  await adminQuery(
+    `insert into public.membership_roles (tenant_id, membership_id, role)
+     values ($1, $2, 'projektledare'), ($1, $2, 'saljare')`,
+    [base.tenantA.id, membershipId],
+  );
+
+  return {
+    users: { tenant_admin: base.adminA, projektledare, montor, saljare, ekonomi },
+    roleUnionUser,
+    invitedUser,
+    disabledUser,
+    extraUsers: [projektledare, montor, saljare, ekonomi, roleUnionUser, invitedUser, disabledUser],
+  };
+}
+
+export async function createRoleAwarePhaseAFixture(): Promise<RoleAwarePhaseAFixture> {
+  const base = await createTwoTenantFixture();
+  return { base, ...(await seedRoleAwarePhaseAUsers(base)) };
+}
+
+export async function cleanupRoleAwarePhaseAFixture(
+  fixture: RoleAwarePhaseAFixture,
+): Promise<void> {
+  await cleanupFixture(
+    { ...fixture.base, extraUsers: fixture.extraUsers } as TwoTenantFixture & {
+      readonly extraUsers: readonly FixtureUser[];
+    },
+  );
+}
+
+/**
  * Build a real per-request anon-key Supabase client bound to `user`'s
  * authenticated session (the same anon key + RLS path the app runtime uses).
  * Signs in with the user's password so `getClaims()` re-validates a real JWT.
@@ -304,7 +384,8 @@ export async function makeAnonServerClient(): Promise<TestServerClient> {
  * keeps a long-lived local DB from accumulating fixtures.
  */
 export async function cleanupFixture(fixture: TwoTenantFixture): Promise<void> {
-  const userIds = [fixture.adminA.id, fixture.adminB.id, fixture.orphanUser.id];
+  const extraUsers = (fixture as TwoTenantFixture & { extraUsers?: readonly FixtureUser[] }).extraUsers ?? [];
+  const userIds = [fixture.adminA.id, fixture.adminB.id, fixture.orphanUser.id, ...extraUsers.map((user) => user.id)];
   for (const id of userIds) {
     try {
       await admin().auth.admin.deleteUser(id);

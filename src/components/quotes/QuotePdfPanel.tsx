@@ -151,6 +151,7 @@ export function QuotePdfPanel(props: QuotePdfPanelProps) {
         <div className="mt-2 flex flex-col gap-2">
           <form action={previewAction} className="flex flex-wrap items-center gap-3">
             <input type="hidden" name="file_id" value={props.pdfFileId ?? ""} />
+            <input type="hidden" name="quote_version_id" value={props.quoteVersionId} />
             <button
               type="submit"
               disabled={previewPending}

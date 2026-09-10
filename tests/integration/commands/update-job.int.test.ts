@@ -52,6 +52,7 @@ import {
 import { adminSelectAuditEvents } from "../../factories/audit-events";
 import { isLocalStackReachable } from "../../support/test-env";
 import { skipUnlessStack } from "../../support/stack-gate";
+import { expectDatabaseOwnedTimestamp, readDatabaseNow } from "../../support/database-time";
 import { establishCurrentQuotePdf } from "../../support/quote-pdf";
 import { runCommand } from "@/server/commands/envelope";
 import {
@@ -69,12 +70,16 @@ describe("7.3-INT-02 + AC3: updateJob â€” allowed edits audited, immutable refs 
   let stackUp = false;
   let fx: TwoTenantFixture;
   let clientA: TestServerClient;
+  let projectManager: TestServerClient;
 
   beforeAll(async () => {
     stackUp = await isLocalStackReachable();
     if (!stackUp) return;
     fx = await createTwoTenantFixture();
     clientA = await makeAuthedServerClient(fx.adminA);
+    const { adminInsertMembership } = await import("../../factories/tenants");
+    await adminInsertMembership({ tenant_id: fx.tenantA.id, user_id: fx.orphanUser.id, role: "projektledare", status: "active" });
+    projectManager = await makeAuthedServerClient(fx.orphanUser);
   });
 
   afterAll(async () => {
@@ -248,30 +253,61 @@ describe("7.3-INT-02 + AC3: updateJob â€” allowed edits audited, immutable refs 
     expect(eventsAfter.length).toBe(eventsBefore.length);
   });
 
-  it("[P1] 7.3-INT-02: a status change persists, is audited, AND appends ONE job_events lifecycle row with occurred_at = the injected clock", async (testCtx) => {
+  it("[P0][11.2] Projektledare can mutate a Phase A job only through the checked command", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
+    const jobId = await seedJob(fx.tenantA, clientA, "556100-0006");
+    const correlationId = crypto.randomUUID();
+    const result = await runCommand(updateJob, {
+      client: projectManager as never,
+      clock: fixedClock,
+      correlationId,
+      input: { id: jobId, title: "Projektledarens ändring" },
+    });
+    expect(result.ok).toBe(true);
+    expect((await adminSelectJobRow(jobId))?.title).toBe("Projektledarens ändring");
+    expect(await adminSelectAuditEvents({ correlationId })).toHaveLength(1);
+  });
+
+  it("[P1] 7.3-INT-02: a status change persists, is audited, AND appends ONE database-timestamped job_events lifecycle row", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     const jobId = await seedJob(fx.tenantA, clientA, "556100-0007");
     const eventsBefore = await adminSelectJobEventsForJob(jobId);
 
+    const databaseBefore = await readDatabaseNow();
     const result = await runCommand(updateJob, {
       client: clientA as never,
       clock: fixedClock,
       correlationId: crypto.randomUUID(),
       input: { id: jobId, status: "in_progress" },
     });
+    const databaseAfter = await readDatabaseNow();
     expect(result.ok).toBe(true);
 
     const row = await adminSelectJobRow(jobId);
     expect(row?.status).toBe("in_progress");
 
-    // A lifecycle row is appended for the new status, timestamped by the INJECTED clock (H1).
+    // The checked RPC owns the event timestamp; the caller-controlled clock cannot backdate it.
     const eventsAfter = await adminSelectJobEventsForJob(jobId);
     expect(eventsAfter.length).toBe(eventsBefore.length + 1);
     const newest = eventsAfter[eventsAfter.length - 1];
     expect(newest?.event_type).toBe("in_progress");
-    expect(new Date(newest!.occurred_at).toISOString()).toBe(
-      fixedClock.now().toISOString(),
-    );
+    expectDatabaseOwnedTimestamp(newest!.occurred_at, databaseBefore, databaseAfter, fixedClock.now().toISOString());
+  });
+
+  it("[P1][11.2] checked job updates preserve explicit JSON null clears", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
+    const jobId = await seedJob(fx.tenantA, clientA, "556100-0010");
+    const result = await runCommand(updateJob, {
+      client: clientA as never,
+      clock: fixedClock,
+      correlationId: crypto.randomUUID(),
+      input: { id: jobId, title: null, planned_start_date: null, planned_end_date: null },
+    });
+    expect(result.ok).toBe(true);
+    const row = await adminSelectJobRow(jobId);
+    expect(row?.title).toBeNull();
+    expect(row?.planned_start_date).toBeNull();
+    expect(row?.planned_end_date).toBeNull();
   });
 
   it("[P1] 7.3-INT-02: an empty patch (id only, no editable fields) short-circuits â€” no false TENANT_ACCESS_DENIED, no audit row", async (testCtx) => {

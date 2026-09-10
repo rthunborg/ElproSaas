@@ -254,6 +254,83 @@ export function asFileRpcClient(db: CommandDbClient): FileRpcClient {
   return db as unknown as FileRpcClient;
 }
 
+type FileSignedAccessAuditRpcClient = {
+  rpc(
+    name:
+      | "prepare_file_signed_access_audit_attestation"
+      | "record_file_signed_access_audit_attested",
+    values: Record<string, unknown>,
+  ): Promise<{
+    data: unknown;
+    error: { code?: string; message?: string } | null;
+  }>;
+};
+
+/**
+ * Ask the checked DB boundary for a short-lived, canonical pre-signing challenge.
+ * The RPC rechecks actor/role/file/object and confirms the Vault key exists before
+ * Storage can issue a URL. Only the opaque row is returned for strict parsing by
+ * the server-only attestation module.
+ */
+export async function prepareFileSignedAccessAuditAttestation(
+  db: CommandDbClient,
+  args: Record<string, unknown>,
+): Promise<unknown> {
+  const { data, error } = await (
+    db as unknown as FileSignedAccessAuditRpcClient
+  ).rpc("prepare_file_signed_access_audit_attestation", args);
+  if (error) {
+    if (error.code === "42501") {
+      throw new CommandError("TENANT_ACCESS_DENIED");
+    }
+    if (error.code === "FSA10") {
+      throw new CommandError("FILE_ACCESS_DENIED");
+    }
+    throw new Error(`file signed-access challenge failed: ${error.code ?? "?"}`);
+  }
+  return data;
+}
+
+/**
+ * Consume the post-signing proof and append the fixed audit row. Any failure is a
+ * server failure: the command must never return the already-created URL unless the
+ * audit finalizer confirms persistence.
+ */
+export async function recordFileSignedAccessAuditAttested(
+  db: CommandDbClient,
+  args: Record<string, unknown>,
+): Promise<string> {
+  const { data, error } = await (
+    db as unknown as FileSignedAccessAuditRpcClient
+  ).rpc("record_file_signed_access_audit_attested", args);
+  if (error) {
+    throw new Error(`file signed-access audit failed: ${error.code ?? "?"}`);
+  }
+  if (typeof data !== "string") {
+    throw new Error("file signed-access audit returned no id");
+  }
+  return data;
+}
+
+export async function archiveFileWithAudit(db: CommandDbClient, args: Record<string, unknown>): Promise<void> {
+  const { error } = await (db as unknown as { rpc(name: string, values: Record<string, unknown>): Promise<{ error: { code?: string; message?: string } | null }> }).rpc("archive_file_with_audit", args);
+  if (error) throwMappedFileWriteError(error);
+}
+
+export async function createUploadedFileWithAudit(db: CommandDbClient, args: Record<string, unknown>): Promise<string> {
+  const { data, error } = await (db as unknown as { rpc(name: string, values: Record<string, unknown>): Promise<{ data: unknown; error: { code?: string; message?: string } | null }> }).rpc("create_uploaded_file_with_audit", args);
+  if (error) throwMappedFileWriteError(error);
+  if (typeof data !== "string") throw new Error("uploaded file wrapper returned no link id");
+  return data;
+}
+
+export async function linkFileWithAudit(db: CommandDbClient, args: Record<string, unknown>): Promise<string> {
+  const { data, error } = await (db as unknown as { rpc(name: string, values: Record<string, unknown>): Promise<{ data: unknown; error: { code?: string; message?: string } | null }> }).rpc("link_file_with_audit", args);
+  if (error) throwMappedFileWriteError(error);
+  if (typeof data !== "string") throw new Error("file link wrapper returned no id");
+  return data;
+}
+
 /**
  * Postgres error codes the file mutations can surface that are DETERMINISTIC outcomes
  * (not transient infra faults):

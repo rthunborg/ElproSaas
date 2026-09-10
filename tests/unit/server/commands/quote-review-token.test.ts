@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import {
+  buildCustomerVisibleQuoteReviewDigest,
   buildQuoteReviewDigest,
   quoteReviewDigestsEqual,
   type QuoteReviewSource,
@@ -168,6 +169,36 @@ test("quote review digest changes for customer-visible, tax, and capture-date ch
   assert.notEqual(
     buildQuoteReviewDigest({ ...source, quoteCaptureDate: "2026-08-08" }),
     original,
+  );
+});
+
+test("customer-visible review digest omits cost/source provenance and canonicalizes visible ordering", () => {
+  const source = reviewedSource();
+  const warnings = [
+    { code: "LOW_MARGIN", severity: "warning", message: "Kontrollera marginalen." },
+    { code: "MISSING_CONTACT", severity: "warning", message: "Kontakt saknas." },
+  ] as const;
+  const digest = buildCustomerVisibleQuoteReviewDigest(source, warnings);
+  const reordered: QuoteReviewSource = {
+    ...source,
+    sections: [...source.sections].reverse(),
+    rows: [...source.rows].reverse().map((row) => ({
+      ...row,
+      unitCostOre: row.unitCostOre === null ? 777 : row.unitCostOre + 777,
+      sourceKind: row.sourceKind === "article" ? "work_role" : "article",
+    })),
+    attachments: [...source.attachments].reverse(),
+  };
+  assert.equal(
+    buildCustomerVisibleQuoteReviewDigest(reordered, [...warnings].reverse()),
+    digest,
+  );
+  assert.notEqual(
+    buildCustomerVisibleQuoteReviewDigest(
+      { ...source, rows: source.rows.map((row) => row.id === "row-a" ? { ...row, unitSellOre: 11_000 } : row) },
+      warnings,
+    ),
+    digest,
   );
 });
 

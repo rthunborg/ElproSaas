@@ -14,9 +14,9 @@
  *       update); re-run `createSignedFileAccess` for the SAME file_id → now FILE_ACCESS_DENIED.
  *       Proves the refresh re-runs the FULL lifecycle gate, NOT a bare re-sign — a file whose
  *       lifecycle changed between the first sign and the retry is NOT re-signed.
- *   (b) [AC2] sign an own-tenant file TWICE under the SAME fixed clock → two valid results with
- *       identical deterministic `expiresAt`. A refresh is a genuine re-authorization (a second
- *       full pass), not a no-op replay of the first URL.
+ *   (b) [AC2] sign an own-tenant file TWICE → two valid results whose Storage-token expiries are
+ *       live and bounded. A refresh is a genuine re-authorization (a second full pass), not a
+ *       no-op replay of the first URL.
  *   (c) [AC3/R-809] a foreign file_id submitted on the "retry" → TENANT_ACCESS_DENIED — the SAME
  *       generic shape as not-found (no "exists but not yours" leak), and NO signedUrl payload.
  *   (d) [R-810] the failure Result (archived / foreign) carries NO signedUrl / object_path /
@@ -65,11 +65,8 @@ const FIXED_ISO = "2026-07-04T12:00:00.000Z";
 const fixedClock: CommandClock = { now: () => new Date(FIXED_ISO) };
 const BUCKET = "tenant-files";
 // SUPABASE_SIGNED_URL_TTL_SECONDS is unset in the test env → the command resolves the 300s
-// default. Under the fixed clock, `expiresAt` is a FULLY DETERMINISTIC instant.
+// default. The command returns the actual second-precision expiry from the Storage JWT.
 const DEFAULT_TTL_SECONDS = 300;
-const EXPECTED_EXPIRES_AT = new Date(
-  new Date(FIXED_ISO).getTime() + DEFAULT_TTL_SECONDS * 1000,
-).toISOString();
 
 let stackUp = false;
 let storageUp = false;
@@ -223,8 +220,9 @@ describe("createSignedFileAccess expiry→refresh reauthorization (Story 8.3, AC
     }
   });
 
-  it("[8.3-INT-01b][P1/AC2] signing the SAME eligible file twice re-authorizes (two valid results, identical deterministic expiresAt)", async (testCtx) => {
+  it("[8.3-INT-01b][P1/AC2] signing the SAME eligible file twice re-authorizes with two live bounded expiries", async (testCtx) => {
     if (skipUnlessBoth(testCtx)) return;
+    const startedAt = Date.now();
     const first = await runCommand(createSignedFileAccess as never, {
       client: a as never,
       input: { file_id: refreshFileId },
@@ -242,13 +240,18 @@ describe("createSignedFileAccess expiry→refresh reauthorization (Story 8.3, AC
     if (first.ok && second.ok) {
       const d1 = first.data as { signedUrl: string; expiresAt: string };
       const d2 = second.data as { signedUrl: string; expiresAt: string };
-      // A refresh is a genuine second full authorization — both mint a valid URL, and under the
-      // fixed clock the deterministic expiry is identical (proves the TTL is re-applied, not a
-      // no-op replay of the first result).
+      // A refresh is a genuine second full authorization. Each result carries the actual
+      // second-precision expiry from its Storage JWT, bounded by the configured TTL.
       expect(d1.signedUrl.length).toBeGreaterThan(0);
       expect(d2.signedUrl.length).toBeGreaterThan(0);
-      expect(d1.expiresAt).toBe(EXPECTED_EXPIRES_AT);
-      expect(d2.expiresAt).toBe(EXPECTED_EXPIRES_AT);
+      for (const expiresAt of [d1.expiresAt, d2.expiresAt]) {
+        const expiry = Date.parse(expiresAt);
+        expect(expiry).toBeGreaterThan(Date.now());
+        expect(expiry).toBeLessThanOrEqual(
+          startedAt + (DEFAULT_TTL_SECONDS + 60) * 1000,
+        );
+        expect(expiry % 1000).toBe(0);
+      }
     }
   });
 

@@ -42,11 +42,12 @@ import {
   adminInsertCalculation,
   adminInsertQuote,
   adminInsertQuoteVersion,
+  adminInsertMembership,
   adminSelectFollowUps,
   type TwoTenantFixture,
   type TestServerClient,
 } from "../../factories/tenants";
-import { adminQuery } from "../../factories/admin-sql";
+import { adminExec, adminQuery } from "../../factories/admin-sql";
 import { adminSelectAuditEvents } from "../../factories/audit-events";
 import { isLocalStackReachable } from "../../support/test-env";
 import { skipUnlessStack } from "../../support/stack-gate";
@@ -74,12 +75,20 @@ function stockholmDayOffset(days: number): string {
 let stackUp = false;
 let fixture: TwoTenantFixture;
 let a: TestServerClient;
+let projectManager: TestServerClient;
 
 beforeAll(async () => {
   stackUp = await isLocalStackReachable();
   if (!stackUp) return;
   fixture = await createTwoTenantFixture();
   a = await makeAuthedServerClient(fixture.adminA);
+  await adminInsertMembership({
+    tenant_id: fixture.tenantA.id,
+    user_id: fixture.orphanUser.id,
+    role: "projektledare",
+    status: "active",
+  });
+  projectManager = await makeAuthedServerClient(fixture.orphanUser);
 });
 afterAll(async () => {
   if (stackUp && fixture) await cleanupFixture(fixture);
@@ -141,6 +150,96 @@ function plan(versionId: string, over: { due_date?: string; note?: string | null
 }
 
 describe("quote follow-up commands — plan/complete/annotate + one-open + auto-complete-on-lost (AC1/AC3/AC4)", () => {
+  it("[P0][11.2] Projektledare can plan, annotate, and complete only through the checked audited wrappers", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
+    const { quoteId, versionId } = await seedSentQuoteVersion(fixture.tenantA.id);
+
+    const planCorrelationId = crypto.randomUUID();
+    const planned = await runCommand(planQuoteFollowUp, {
+      client: projectManager as never,
+      input: { quote_version_id: versionId, due_date: stockholmDayOffset(14), note: "PM plan" },
+      clock: fixedClock,
+      correlationId: planCorrelationId,
+    });
+    expect(planned.ok).toBe(true);
+    if (!planned.ok) return;
+
+    const annotateCorrelationId = crypto.randomUUID();
+    const annotated = await runCommand(annotateQuoteFollowUp, {
+      client: projectManager as never,
+      input: { follow_up_id: planned.data.targetId, note: "PM annotation" },
+      clock: fixedClock,
+      correlationId: annotateCorrelationId,
+    });
+    expect(annotated.ok).toBe(true);
+
+    const completeCorrelationId = crypto.randomUUID();
+    const completed = await runCommand(completeQuoteFollowUp, {
+      client: projectManager as never,
+      input: { follow_up_id: planned.data.targetId, outcome: "PM outcome" },
+      clock: fixedClock,
+      correlationId: completeCorrelationId,
+    });
+    expect(completed.ok).toBe(true);
+    expect((await adminSelectFollowUps(quoteId))[0]).toMatchObject({
+      status: "completed",
+      note: "PM annotation",
+      outcome: "PM outcome",
+    });
+
+    for (const correlationId of [planCorrelationId, annotateCorrelationId, completeCorrelationId]) {
+      const audits = await adminSelectAuditEvents({ correlationId });
+      expect(audits).toHaveLength(1);
+      expect(audits[0]).toMatchObject({
+        tenant_id: fixture.tenantA.id,
+        actor_user_id: fixture.orphanUser.id,
+        target_id: planned.data.targetId,
+        metadata: {},
+      });
+    }
+  });
+
+  it("[P0][11.2] rolls a planned follow-up back when its bound audit write fails", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
+    const { quoteId, versionId } = await seedSentQuoteVersion(fixture.tenantA.id);
+    const correlationId = crypto.randomUUID();
+    await adminExec(
+      `insert into test_support.forced_audit_failures (correlation_id) values ($1::uuid)`,
+      [correlationId],
+    );
+    try {
+      const result = await runCommand(planQuoteFollowUp, {
+        client: projectManager as never,
+        input: { quote_version_id: versionId, due_date: stockholmDayOffset(14), note: "must roll back" },
+        clock: fixedClock,
+        correlationId,
+      });
+      expect(result.ok).toBe(false);
+      if (!result.ok) expect(result.code).toBe("SERVER_ERROR");
+      expect(await adminSelectFollowUps(quoteId)).toEqual([]);
+      expect(await adminSelectAuditEvents({ correlationId })).toEqual([]);
+    } finally {
+      await adminExec(
+        `delete from test_support.forced_audit_failures where correlation_id = $1::uuid`,
+        [correlationId],
+      );
+    }
+  });
+
+  it("[P0][11.2] denies authenticated raw quote_follow_ups DML after wrapper hardening", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
+    const { versionId } = await seedSentQuoteVersion(fixture.tenantA.id);
+    const raw = await projectManager.from("quote_follow_ups").insert({
+      tenant_id: fixture.tenantA.id,
+      quote_id: crypto.randomUUID(),
+      quote_version_id: versionId,
+      due_date: stockholmDayOffset(14),
+      status: "open",
+    });
+    expect(raw.data).toBeNull();
+    expect(raw.error?.code).toBe("42501");
+  });
+
   it("[P0] F5: completing with an expected_quote_id that does NOT own the follow-up is REJECTED; the other quote's follow-up stays open", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     // Two own-tenant quotes, each with an OPEN follow-up. The auto-complete-on-lost path derives the

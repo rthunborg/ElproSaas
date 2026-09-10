@@ -8,6 +8,7 @@ import {
   adminInsertCustomer,
   adminInsertFile,
   adminInsertFileLink,
+  adminInsertMembership,
   adminInsertQuote,
   adminInsertQuoteVersion,
   adminInsertQuoteVersionLine,
@@ -35,7 +36,7 @@ import {
 } from "../../support/quote-pdf";
 import { runCommand } from "@/server/commands/envelope";
 import { createSignedFileAccess } from "@/server/commands/files";
-import { generateQuotePdf, updateDraftQuoteVersion } from "@/server/commands/quotes";
+import { createQuotePdfSignedAccess, generateQuotePdf, updateDraftQuoteVersion } from "@/server/commands/quotes";
 import type { CommandClock } from "@/server/commands/clock";
 
 const STARTED_AT = "2026-08-31T12:00:00.000Z";
@@ -48,6 +49,7 @@ let storageUp = false;
 let fixture: TwoTenantFixture;
 let adminA: TestServerClient;
 let adminB: TestServerClient;
+let sellerA: TestServerClient;
 let serviceStorage: TestServerClient;
 const renderProvenance = new Map<string, QuotePdfRenderProvenance>();
 
@@ -381,6 +383,13 @@ beforeAll(async () => {
   fixture = await createTwoTenantFixture();
   adminA = await makeAuthedServerClient(fixture.adminA);
   adminB = await makeAuthedServerClient(fixture.adminB);
+  await adminInsertMembership({
+    tenant_id: fixture.tenantA.id,
+    user_id: fixture.orphanUser.id,
+    role: "saljare",
+    status: "active",
+  });
+  sellerA = await makeAuthedServerClient(fixture.orphanUser);
   serviceStorage = createClient(LOCAL_SUPABASE_URL, LOCAL_SUPABASE_SERVICE_ROLE_KEY, {
     auth: { autoRefreshToken: false, persistSession: false },
   }) as TestServerClient;
@@ -397,6 +406,59 @@ function skipUnlessBoth(testCtx: SkippableTestContext): boolean {
 }
 
 describe("Story 10.9 quote PDF validity RPCs", () => {
+  it("[P0][11.2] a Säljare can generate only through the attested reserved-PDF path; arbitrary tenant-prefix upload and foreign render remain denied", async (testCtx) => {
+    if (skipUnlessBoth(testCtx)) return;
+    const draft = await seedDraft(fixture.tenantA.id, "seller-export");
+    const generated = await runCommand(generateQuotePdf, {
+      client: sellerA as never,
+      input: { quote_version_id: draft.versionId },
+      clock: fixedClock,
+      correlationId: crypto.randomUUID(),
+    });
+    expect(generated.ok).toBe(true);
+    if (!generated.ok) return;
+
+    // Quotes.Export gives the active generated quote artifact only. The generic file
+    // command remains behind Files.View and therefore cannot widen seller access.
+    const genericFileAccess = await runCommand(createSignedFileAccess, {
+      client: sellerA as never,
+      input: { file_id: generated.data.fileId },
+      clock: fixedClock,
+      correlationId: crypto.randomUUID(),
+    });
+    expect(genericFileAccess.ok).toBe(false);
+    if (!genericFileAccess.ok) expect(genericFileAccess.code).toBe("PERMISSION_DENIED");
+
+    const quotePdfAccess = await runCommand(createQuotePdfSignedAccess, {
+      client: sellerA as never,
+      input: { quote_version_id: draft.versionId, file_id: generated.data.fileId },
+      clock: fixedClock,
+      correlationId: crypto.randomUUID(),
+    });
+    expect(quotePdfAccess.ok).toBe(true);
+    if (!quotePdfAccess.ok) return;
+    const obtained = await fetch(quotePdfAccess.data.signedUrl);
+    expect(obtained.ok).toBe(true);
+    expect((await obtained.arrayBuffer()).byteLength).toBeGreaterThan(0);
+
+    const arbitrary = await sellerA.storage.from("tenant-files").upload(
+      `${fixture.tenantA.id}/${crypto.randomUUID()}/unreserved.pdf`,
+      new TextEncoder().encode("not a reserved PDF"),
+      { contentType: "application/pdf", upsert: false },
+    );
+    expect(arbitrary.error).not.toBeNull();
+
+    const foreign = await adminB.rpc("start_quote_pdf_render", {
+      p_tenant_id: fixture.tenantA.id,
+      p_quote_version_id: draft.versionId,
+      p_actor_user_id: fixture.adminB.id,
+      p_correlation_id: crypto.randomUUID(),
+      p_started_at: STARTED_AT,
+      p_attestation_key_id: TEST_KEY_ID,
+    });
+    expect(foreign.error?.code).toBe("42501");
+  });
+
   it("[P0] DB issues a fresh render identity and rejects arbitrary, foreign, prelinked, wrong-path, and wrong-uploader completions", async (testCtx) => {
     if (skipUnlessBoth(testCtx)) return;
 
@@ -670,7 +732,7 @@ describe("Story 10.9 quote PDF validity RPCs", () => {
       .update({ artifact_kind: "quote_pdf" })
       .eq("id", ordinaryId)
       .select("id");
-    expect(retag.error?.code).toBe("FL823");
+    expect(retag.error?.code).toBe("42501");
   });
 
   it("[P0] current completion supersedes by archiving the old file and retaining an archived historical link", async (testCtx) => {
@@ -1049,13 +1111,13 @@ describe("Story 10.9 quote PDF validity RPCs", () => {
       .update({ object_path: `${fixture.tenantA.id}/${expectedFileId}/tampered.pdf` })
       .eq("id", expectedFileId)
       .select();
-    expect(identityMutation.error?.code).toBe("FL823");
+    expect(identityMutation.error?.code).toBe("42501");
     const revival = await adminA
       .from("files")
       .update({ lifecycle_state: "draft", archived_at: null })
       .eq("id", expectedFileId)
       .select();
-    expect(revival.error?.code).toBe("FL823");
+    expect(revival.error?.code).toBe("42501");
     const after = await adminQuery<{
       artifact_kind: string | null;
       lifecycle_state: string;
@@ -1094,13 +1156,13 @@ describe("Story 10.9 quote PDF validity RPCs", () => {
       .update({ checksum: "a".repeat(64) })
       .eq("id", expectedFileId)
       .select();
-    expect(identityMutation.error?.code).toBe("FL823");
+    expect(identityMutation.error?.code).toBe("42501");
     const revival = await adminA
       .from("files")
       .update({ lifecycle_state: "linked", archived_at: null })
       .eq("id", expectedFileId)
       .select();
-    expect(revival.error?.code).toBe("FL823");
+    expect(revival.error?.code).toBe("42501");
     const objectPath = `${fixture.tenantA.id}/${expectedFileId}/quote.pdf`;
     const original = await adminA.storage.from("tenant-files").download(objectPath);
     expect(original.error).toBeNull();
@@ -1333,21 +1395,21 @@ describe("Story 10.9 quote PDF validity RPCs", () => {
       .update({ object_path: `${fixture.tenantA.id}/${draft.fileId}/tampered.pdf` })
       .eq("id", draft.fileId)
       .select();
-    expect(objectPathMutation.error?.code).toBe("FL823");
+    expect(objectPathMutation.error?.code).toBe("42501");
 
     const checksumMutation = await adminA
       .from("files")
       .update({ checksum: "a".repeat(64) })
       .eq("id", draft.fileId)
       .select();
-    expect(checksumMutation.error?.code).toBe("FL823");
+    expect(checksumMutation.error?.code).toBe("42501");
 
     const artifactKindMutation = await adminA
       .from("files")
       .update({ artifact_kind: null })
       .eq("id", draft.fileId)
       .select();
-    expect(artifactKindMutation.error?.code).toBe("FL823");
+    expect(artifactKindMutation.error?.code).toBe("42501");
 
     // The privileged SQL path bypasses app RLS, so this proves the BEFORE DELETE trigger
     // itself (rather than only the authenticated no-DELETE policy) rejects hard deletion.

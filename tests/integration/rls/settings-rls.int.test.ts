@@ -24,11 +24,9 @@
  *   - Migration-reset EXACT-policy enumeration EXTENDED, not loosened (P0, AC3): the
  *     public policy set grows by the 6 new entries (company_settings.SELECT/INSERT/
  *     UPDATE + quote_terms.SELECT/INSERT/UPDATE); NO DELETE policy anywhere.
- *   - Cross-tenant denial is "rls-invisible" (P0, AC3): both tables grant
- *     `authenticated` SELECT/INSERT/UPDATE, so a cross-tenant UPDATE matches ZERO rows
- *     (RLS USING) and an independent BYPASSRLS re-read proves Tenant B's row UNCHANGED;
- *     a cross-tenant INSERT spoofing B's tenant_id fails the WITH CHECK with 42501; no
- *     DELETE grant exists on the app path.
+ *   - Story 11.2 closes direct authenticated INSERT/UPDATE as an unaudited bypass.
+ *     The checked, audited settings RPCs are the only mutation path, while RLS keeps
+ *     cross-tenant reads invisible and privileged fixture setup proves stored state.
  *   - Anon-DML-empty (P0, AC3): anon SELECT/INSERT/UPDATE/DELETE on both tables denied
  *     (anon-DML-empty, NOT anon-grant-empty — Supabase grants every role non-DML
  *     REFERENCES/TRIGGER by default).
@@ -187,6 +185,21 @@ describe("Story 3.3 — migration-reset exact-policy enumeration extension (AC3)
     }
   });
 
+  it("[P0] authenticated retains SELECT only; audited RPCs own every settings mutation", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
+    const rows = await adminQuery<{ table_name: string; privilege_type: string }>(
+      `select table_name, privilege_type from information_schema.role_table_grants
+         where table_schema = 'public' and table_name in ('company_settings', 'quote_terms')
+           and grantee = 'authenticated'
+           and privilege_type in ('SELECT', 'INSERT', 'UPDATE', 'DELETE')
+         order by table_name, privilege_type`,
+    );
+    expect(rows).toEqual([
+      { table_name: "company_settings", privilege_type: "SELECT" },
+      { table_name: "quote_terms", privilege_type: "SELECT" },
+    ]);
+  });
+
   it("[P0] vat_rate_bp is an INTEGER column with a [0,10000] CHECK (basis points, never float)", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     const cols = await adminQuery<{ data_type: string }>(
@@ -234,7 +247,7 @@ describe("Story 3.3 — migration-reset exact-policy enumeration extension (AC3)
 // this block makes the per-table mechanism explicit for the new tables.
 // ─────────────────────────────────────────────────────────────────────────────
 
-describe("Story 3.3 — cross-tenant denial for company_settings + quote_terms (AC3)", () => {
+describe("Story 3.3 — tenant read isolation and audited mutation boundary (AC3)", () => {
   it("[P0] SELECT: Tenant A reads ZERO of Tenant B's company_settings / quote_terms (no error leak)", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     await adminInsertCompanySettings(fixture.tenantB.id);
@@ -249,15 +262,27 @@ describe("Story 3.3 — cross-tenant denial for company_settings + quote_terms (
     }
   });
 
-  it("[P0] INSERT spoofing Tenant B's tenant_id fails the WITH CHECK (42501)", async (testCtx) => {
+  it("[P0] direct authenticated INSERT is denied for both own-tenant and forged-tenant payloads (42501)", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
+    const ownCompany = await a.from("company_settings").insert({
+      tenant_id: fixture.tenantA.id,
+      company_name: "own-tenant-direct-write",
+      default_vat_display: "company_togglable",
+      vat_rate_bp: 2500,
+    });
+    expect(ownCompany.error?.code).toBe("42501");
     const spoofCompany = await a.from("company_settings").insert({
-      tenant_id: fixture.tenantB.id, // forged ownership
+      tenant_id: fixture.tenantB.id,
       company_name: "spoof-by-a",
       default_vat_display: "company_togglable",
       vat_rate_bp: 2500,
     });
     expect(spoofCompany.error?.code).toBe("42501");
+    const ownTerms = await a.from("quote_terms").insert({
+      tenant_id: fixture.tenantA.id,
+      terms_text: "own-tenant direct terms",
+    });
+    expect(ownTerms.error?.code).toBe("42501");
     const spoofTerms = await a.from("quote_terms").insert({
       tenant_id: fixture.tenantB.id,
       terms_text: "spoof terms by a",
@@ -265,25 +290,34 @@ describe("Story 3.3 — cross-tenant denial for company_settings + quote_terms (
     expect(spoofTerms.error?.code).toBe("42501");
   });
 
-  it("[P0] UPDATE: Tenant A's cross-tenant UPDATE affects ZERO rows; B's row is UNCHANGED (independent re-read)", async (testCtx) => {
+  it("[P0] direct authenticated UPDATE is denied and privileged setup proves both tenant rows remain unchanged", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
+    const aCompanyId = await adminInsertCompanySettings(fixture.tenantA.id);
     const bCompanyId = await adminInsertCompanySettings(fixture.tenantB.id);
 
-    const { data: affected, error } = await a
+    const own = await a
+      .from("company_settings")
+      .update({ company_name: "hijacked-own-tenant" })
+      .eq("id", aCompanyId)
+      .select();
+    expect(own.error?.code).toBe("42501");
+
+    const foreign = await a
       .from("company_settings")
       .update({ company_name: "hijacked-by-a" })
       .eq("id", bCompanyId)
       .select();
-    // rls-invisible: zero rows affected, NO error (foreign row hidden by RLS USING).
-    expect(error).toBeNull();
-    expect(affected).toEqual([]);
+    expect(foreign.error?.code).toBe("42501");
 
-    // Independent BYPASSRLS re-read proves Tenant B's row was NOT overwritten.
+    // Privileged fixture reads prove the revoked direct DML grant did not mutate either row.
     const rows = await adminQuery<{ company_name: string }>(
-      `select company_name from public.company_settings where id = $1`,
-      [bCompanyId],
+      `select company_name from public.company_settings where id = any($1::uuid[]) order by id`,
+      [[aCompanyId, bCompanyId]],
     );
-    expect(rows[0].company_name).toBe("tenant-b-company-seed");
+    expect(rows.map((row) => row.company_name)).toEqual([
+      "tenant-b-company-seed",
+      "tenant-b-company-seed",
+    ]);
   });
 
   it("[P0] DELETE: there is NO app-path DELETE grant — Tenant A's DELETE is denied at the privilege layer (42501)", async (testCtx) => {

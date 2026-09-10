@@ -206,7 +206,7 @@ describe("CRM migration reset green — customers/facilities/contacts (AC1/AC5)"
     }
   });
 
-  it("[P0] GRANTs: authenticated SELECT/INSERT/UPDATE (no DELETE); anon NOTHING", async (testCtx) => {
+  it("[P0][11.2] GRANTs: authenticated SELECT only; audited wrappers own writes; anon NOTHING", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     const rows = await adminQuery<{ grantee: string; privilege_type: string }>(
       `select grantee, privilege_type from information_schema.role_table_grants
@@ -217,8 +217,8 @@ describe("CRM migration reset green — customers/facilities/contacts (AC1/AC5)"
       .filter((r) => r.grantee === "authenticated")
       .map((r) => r.privilege_type);
     expect(authed).toContain("SELECT");
-    expect(authed).toContain("INSERT");
-    expect(authed).toContain("UPDATE");
+    expect(authed).not.toContain("INSERT");
+    expect(authed).not.toContain("UPDATE");
     expect(authed).not.toContain("DELETE");
     // anon has NO DML grant (SELECT/INSERT/UPDATE/DELETE) on the CRM tables — the
     // load-bearing isolation contract. NOTE: Supabase's default privileges grant

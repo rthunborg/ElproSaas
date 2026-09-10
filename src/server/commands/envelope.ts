@@ -86,6 +86,7 @@ const COMMAND_CAPABILITIES: Readonly<Record<string, CommandCapability>> = {
   "quote.follow_up.complete": { module: "quotes", capability: "Quotes.Edit" },
   "quote.follow_up.annotate": { module: "quotes", capability: "Quotes.Edit" },
   "quote.pdf.generate": { module: "quotes", capability: "Quotes.Export" },
+  "quote.pdf.signedAccess.create": { module: "quotes", capability: "Quotes.Export" },
   "job.create": { module: "jobs", capability: "Jobs.Create" },
   "job.update": { module: "jobs", capability: "Jobs.Edit" },
   "file.signedAccess.create": { module: "files", capability: "Files.View" },
