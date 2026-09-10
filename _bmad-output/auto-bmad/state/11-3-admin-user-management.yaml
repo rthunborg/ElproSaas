@@ -9,11 +9,11 @@ spec_folder: null
 story_id: null
 branch: story/11-3-admin-user-management
 status: in-progress
-updated_at: "2026-09-10T14:47:44Z"
+updated_at: "2026-09-10T14:54:49Z"
 started_at: "2026-09-10T14:47:43Z"
 completed_at: null
-active_seconds: 0
-timing_anchor: 1789051664
+active_seconds: 425
+timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
 git_mode: remote
@@ -38,8 +38,8 @@ completed_phases: [0, 1, 2]
 spec_path: null
 spec_approved: false
 build:
-  status: null
-  blocking_condition: null
+  status: blocked
+  blocking_condition: intent gap
   followup_review_recommended: false
   review_loop_iteration: 0
   deferred_count: 0
@@ -54,7 +54,7 @@ legacy_review_loop_done: false
 legacy_external_review_iterations: null
 legacy_convergence_unverified: false
 legacy_artifact_path: null
-commits: []
+commits: [52df91e]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -77,8 +77,12 @@ pr_merged: false
 merge_method: null
 merge_commit: null
 branch_deleted: false
-open_questions: []
+open_questions:
+  - "Select the durable representation for revoked, expired, and ended memberships, including re-invitation behavior."
+  - "Select the idempotency, reconciliation, and compensation contract for Supabase Auth actions versus audited database mutations."
 deferred_work: []
-blockers: []
+blockers:
+  - "Owner decision on membership lifecycle and history preservation; result: C:/DEV/ElproSaas/_bmad-output/implementation-artifacts/bmad-build-auto-result-11-3-admin-user-management.md"
+  - Owner decision on Auth/DB failure and retry authority.
 overrides: {}
 constraints: []
