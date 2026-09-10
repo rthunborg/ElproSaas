@@ -9,11 +9,11 @@ spec_folder: null
 story_id: null
 branch: story/11-3-admin-user-management
 status: in-progress
-updated_at: "2026-09-10T14:54:49Z"
+updated_at: "2026-09-10T16:25:03Z"
 started_at: "2026-09-10T14:47:43Z"
 completed_at: null
 active_seconds: 425
-timing_anchor: null
+timing_anchor: 1789057503
 is_first_in_epic: false
 is_last_in_epic: false
 git_mode: remote
@@ -54,7 +54,7 @@ legacy_review_loop_done: false
 legacy_external_review_iterations: null
 legacy_convergence_unverified: false
 legacy_artifact_path: null
-commits: [52df91e]
+commits: [52df91e, 9a894c6]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -84,5 +84,6 @@ deferred_work: []
 blockers:
   - "Owner decision on membership lifecycle and history preservation; result: C:/DEV/ElproSaas/_bmad-output/implementation-artifacts/bmad-build-auto-result-11-3-admin-user-management.md"
   - Owner decision on Auth/DB failure and retry authority.
-overrides: {}
+overrides:
+  owner_decisions: "Approved in this task: explicit membership lifecycle states and timestamps; preserve history; returning former members require fresh invitations and explicit roles; resend supersedes prior attempt; tenant-scoped deactivation/removal must not globally ban/delete shared Auth accounts. Database is tenant-access authority. Record operation and audit transactionally before Auth; track success/failure/uncertainty; explicit retry/reconciliation; no exactly-once email promise; access removal remains effective on Auth failure. Narrow operation record, no general background-job system. Planner may choose schema and commands."
 constraints: []
