@@ -505,6 +505,43 @@ describe("Story 10.9 quote PDF validity RPCs", () => {
     expect(foreign.error?.code).toBe("42501");
   });
 
+  it("[P0][11.2] a Säljare cannot bind one generated quote PDF to a different same-tenant quote version", async (testCtx) => {
+    if (skipUnlessBoth(testCtx)) return;
+    const firstDraft = await seedDraft(fixture.tenantA.id, "seller-bound-source");
+    const secondDraft = await seedDraft(fixture.tenantA.id, "seller-bound-target");
+    const firstGenerated = await runCommand(generateQuotePdf, {
+      client: sellerA as never,
+      input: { quote_version_id: firstDraft.versionId },
+      clock: fixedClock,
+      correlationId: crypto.randomUUID(),
+    });
+    const secondGenerated = await runCommand(generateQuotePdf, {
+      client: sellerA as never,
+      input: { quote_version_id: secondDraft.versionId },
+      clock: fixedClock,
+      correlationId: crypto.randomUUID(),
+    });
+    expect(firstGenerated.ok).toBe(true);
+    expect(secondGenerated.ok).toBe(true);
+    if (!firstGenerated.ok || !secondGenerated.ok) return;
+
+    const correlationId = crypto.randomUUID();
+    const mismatchedAccess = await runCommand(createQuotePdfSignedAccess, {
+      client: sellerA as never,
+      input: { quote_version_id: firstDraft.versionId, file_id: secondGenerated.data.fileId },
+      clock: fixedClock,
+      correlationId,
+    });
+
+    expect(mismatchedAccess.ok).toBe(false);
+    if (!mismatchedAccess.ok) expect(mismatchedAccess.code).toBe("TENANT_ACCESS_DENIED");
+    const audit = await adminQuery<{ id: string }>(
+      `select id::text from public.audit_events where correlation_id = $1::uuid`,
+      [correlationId],
+    );
+    expect(audit).toEqual([]);
+  });
+
   it("[P0] DB issues a fresh render identity and rejects arbitrary, foreign, prelinked, wrong-path, and wrong-uploader completions", async (testCtx) => {
     if (skipUnlessBoth(testCtx)) return;
 

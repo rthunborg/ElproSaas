@@ -5,9 +5,9 @@ stepsCompleted:
   - 'step-03c-aggregate'
   - 'step-04-validate-and-summarize'
 lastStep: 'step-04-validate-and-summarize'
-lastSaved: '2026-09-07'
+lastSaved: '2026-09-10'
 workflowType: testarch-automate
-story: 10.6 Tax-Answer Reconciliation; 11.1 Role Storage and Permission-Matrix Mechanism (latest)
+story: 10.6 Tax-Answer Reconciliation; 11.1 Role Storage and Permission-Matrix Mechanism; 11.2 Non-Admin Access to the Phase A Surface (latest)
 detectedStack: fullstack
 executionMode: BMad-integrated (post-implementation risk-based coverage expansion)
 inputDocuments:
@@ -225,3 +225,82 @@ those facts.
 
 **Recommended next workflow:** `bmad-testarch-test-review` for independent test-quality review, or
 `bmad-testarch-trace` if formal Story 11.1 AC-to-test traceability is required.
+
+---
+
+# Test Automation Expansion — Story 11.2: Non-Admin Access to the Phase A Surface
+
+## Step 1 — Preflight & Context
+
+- **Stack and mode:** full-stack Next.js/React plus local Supabase. This was a BMad-integrated
+  Create run against the completed Story 11.2 specification, its ATDD checklist, Epic 11 test
+  design, Vitest configuration, Playwright configuration, and existing test suite.
+- **Framework readiness:** `package.json`, `vitest.config.ts`, and `playwright.config.ts` confirm
+  the established Node unit, Vitest integration/RLS, and production-server Playwright lanes.
+- **Utility and contract posture:** Playwright Utils and Pact.js Utils are configured but their
+  packages are not installed, so no dependency or substitute test pattern was introduced. There
+  is no independently deployed provider boundary in this story, therefore Pact is not relevant.
+  Pact broker: unreachable (SmartBear MCP tools not available). Provider states were not needed.
+- **Existing acceptance evidence loaded:** six activated Story 11.2 integration/RLS ATDD cases
+  and four activated browser cases already cover the role matrix, catalog agreement, permitted
+  and denied RLS paths, command denial without audit, context fail-closed behavior, sensitive
+  projections, the jobs-assignment seam, navigation, landing, and generic direct-route denial.
+
+## Step 2 — Identify Targets
+
+The coverage audit deliberately avoided re-adding the already executed role matrix, raw Storage
+list/download/sign denials, generic `Files.View` denial, or the Säljare quote-PDF broker success
+and audit proof. The final server-only signer change did leave one P0 boundary unproven: two valid
+same-tenant generated PDFs must not be interchangeable between quote versions.
+
+| Target | Level | Priority | Acceptance/risk link | Reason |
+| --- | --- | --- | --- | --- |
+| Säljare requests signed access for quote version A with quote version B's valid generated PDF file ID; access denies with no audit | Integration/command/RPC | P0 | Crafted denial, exact quote-PDF target binding, no target/audit signal | This crosses the new checked-RPC → server-only signer → attested-audit boundary. A unit test cannot verify the generated-file/link/version relationship or the real audit result. |
+
+No browser test was added. A browser preview would only repeat the existing broker-success
+integration coverage without adding authorization evidence, while the four Story 11.2 browser
+tests remain the thin user-visible acceptance layer.
+
+## Step 3 — Generate and Aggregate Tests
+
+- **Execution mode:** capability-probed subagent dispatch. API, browser, and backend audits ran
+  in parallel and their findings were aggregated before editing.
+- **Coverage added:** one P0 Vitest integration test in
+  `tests/integration/commands/quote-pdf-validity.int.test.ts`. It generates two real Säljare
+  quote-PDF artifacts, submits the second file ID for the first version, expects the same generic
+  `TENANT_ACCESS_DENIED` response used by the checked RPC, and independently proves that its
+  correlation ID wrote no audit event.
+- **Fixtures and helpers:** none. The test reuses the existing isolated two-tenant fixture,
+  Säljare client, deterministic command clock, quote-PDF generation command, and admin SQL reader.
+- **Generated counts:** API 0; browser 0; backend integration 1; fixtures 0. Priority totals:
+  P0 1, P1/P2/P3 0.
+
+## Step 4 — Validation and Final Summary
+
+- `SUPABASE_TEST_REQUIRED=1 pnpm exec vitest run --maxWorkers=1
+  tests/integration/commands/quote-pdf-validity.int.test.ts` — **PASS:** 1 file, 27 tests passed,
+  0 failed, 0 skipped. The serial worker setting was retained for the shared local fixture.
+- `pnpm exec eslint tests/integration/commands/quote-pdf-validity.int.test.ts` — **PASS**.
+- `git diff --check` — **PASS**.
+- The preceding focused confirmation of the Story 11.2 RLS ATDD plus quote-PDF suite passed:
+  2 files, 32 tests passed, 0 skipped. The supplied final full-suite evidence remains 94
+  integration files / 991 tests, 94 unit suites / 1,717 tests, and 126 Playwright passes with
+  four historical skips outside this story; those broad suites were not rerun after this focused
+  addition.
+
+### Playwright Utils deviations
+
+None. No Playwright test was generated, and the configured package is not installed.
+
+### Pact.js Utils deviations
+
+None. No contract artifact belongs to this in-process application and database boundary.
+
+**Files changed:**
+
+- `C:/DEV/ElproSaas/tests/integration/commands/quote-pdf-validity.int.test.ts`
+- `C:/DEV/ElproSaas/_bmad-output/test-artifacts/automation-summary.md`
+
+**Residual risk and next workflow:** the exact binding and no-audit failure path now execute on
+the local authenticated stack. The independent full-diff review caveat recorded by the story
+remains unchanged; use `bmad-testarch-test-review` only if a new review round is requested.
