@@ -53,4 +53,21 @@ test.describe("Story 11.3 administrativ användarhantering", () => {
     await expect(page.getByRole("heading", { name: "Ingen åtkomst" })).toBeVisible();
     await expect(page.getByRole("link", { name: "Användare & roller" })).toHaveCount(0);
   });
+
+  test("[P1] Admin invite dialog validates the email before an invitation can be sent", async ({ page }) => {
+    const fixture = getFixture();
+    await logIn(page, fixture.adminUserManagement.tenantAdmin);
+    await page.goto("/admin/users");
+    await page.getByRole("button", { name: "Bjud in användare" }).click();
+
+    const dialog = page.getByRole("dialog", { name: "Bjud in användare" });
+    const email = dialog.getByLabel("E-post");
+    await expect(dialog.getByLabel("Företagsadmin")).toBeVisible();
+    await expect(dialog.getByLabel("Projektledare")).toBeVisible();
+
+    await email.fill("not-an-email");
+    await dialog.getByRole("button", { name: "Skicka inbjudan" }).click();
+    expect(await email.evaluate((element) => (element as HTMLInputElement).checkValidity())).toBe(false);
+    await expect(dialog).toBeVisible();
+  });
 });
