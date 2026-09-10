@@ -961,6 +961,9 @@ export default async function globalSetup() {
     bucket_id: "tenant-files",
     object_path: pdfObjectPath,
     mime_type: "application/pdf",
+    // The quote-specific signed-access binding requires the generated artifact marker in
+    // addition to the current version/file/link/object identity proof.
+    artifact_kind: "quote_pdf",
     lifecycle_state: "linked",
   });
   const generatedVersionId = await adminInsertQuoteVersion({

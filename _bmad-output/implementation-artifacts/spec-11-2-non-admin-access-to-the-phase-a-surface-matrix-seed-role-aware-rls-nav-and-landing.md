@@ -2,11 +2,11 @@
 title: 'Story 11.2: Non-Admin Access to the Phase A Surface (Matrix Seed, Role-Aware RLS, Nav and Landing)'
 type: 'feature'
 created: '2026-09-07'
-status: 'in-review'
+status: 'done'
 review_loop_iteration: 0
-followup_review_recommended: false
-baseline_revision: 'ce5fd40bedba450a2d4bbfa1f184d091564cc7e3'
-baseline_commit: 'ce5fd40bedba450a2d4bbfa1f184d091564cc7e3'
+followup_review_recommended: true
+baseline_revision: 'efd8d73d53479ba737a09456c7d740cdaa6e028b'
+baseline_commit: 'efd8d73d53479ba737a09456c7d740cdaa6e028b'
 context:
   - 'docs/process/story-11-2-resume.md'
   - '_bmad-output/implementation-artifacts/epic-11-context.md'
@@ -93,6 +93,31 @@ The matrix is the server authority; client nav keeps only authored label/icon me
 - `pnpm run test:e2e` -- expected: role-appropriate server landing/nav plus a granted route pass without browser-visible protected values.
 
 ## Auto Run Result
+
+### 2026-09-10 — Completed recovery
+
+Status: done
+
+Story 11.2 now seeds and enforces the approved role matrix across active Phase A modules, including RLS, command capabilities, entitlement-safe reads, server-derived navigation/landing, direct-route denial, and audited non-admin mutations. The final repair removes Säljare's persistent raw `storage.objects` read policy and uses a server-only, quote-specific signing broker only after the exact generated-PDF binding validates; its fixed audit is committed before the URL is returned. Generic `Files.View` remains limited to Företagsadmin/Projektledare.
+
+Key files changed: `src/server/storage/quote-pdf-signer.ts` adds the constrained server broker; `src/server/commands/quotes/quote-pdf-signed-access.ts` uses it after the checked RPC challenge; `supabase/migrations/20260907171252_role_aware_phase_a_policy_evolution.sql` restores raw Storage SELECT to Företagsadmin/Projektledare; `playwright.config.ts` supplies the documented local server-only credential to the production web server; `tests/integration/commands/quote-pdf-validity.int.test.ts` proves broker success/audit plus raw Säljare list/download/sign denial; `tests/e2e/global-setup.ts` seeds the required `quote_pdf` artifact marker.
+
+Review findings: one high security patch applied (persistent Säljare Storage SELECT bypassed the quote audit funnel); no deferred item; final targeted Sol/xhigh security review returned no findings. The independent Luna/xhigh full-diff review received the complete 672 KB original-baseline diff over stdin, remained silent for its bounded 30-minute run, and was stopped with no result; this is an unavailable review layer, not a passing result.
+
+Verification: `pnpm typecheck`; targeted ESLint; `pnpm verify:service-role-containment`; `git diff --check`; `pnpm test:unit` (94 suites, 1,717 tests); required `vitest run --maxWorkers=1` (94 files, 991 tests, zero skipped); final Playwright production-web-server run (126 passed, 4 historical skips, zero failed/retried). The two initial parallel integration fixture collisions passed in a 35/35 serial rerun; the final serial suite was fully green. The server-only broker initially exposed a missing Playwright environment value; the canonical test web-server config now supplies it, and both affected focused browser flows passed before the final full run.
+
+Residual risk: production deployments must provide the documented server-only `SUPABASE_SERVICE_ROLE_KEY`; absence fails closed without returning a signed URL. The independent full cross-model layer timed out without output. A high patch was applied in this review pass, so `followup_review_recommended` is true despite the targeted final security pass finding no regression.
+
+## Review Triage Log
+
+### 2026-09-10 — Review pass
+- intent_gap: 0
+- bad_spec: 0
+- patch: 1 (high 1)
+- defer: 0
+- reject: 0
+- addressed_findings:
+  - `[high] [patch]` Removed persistent Säljare `storage.objects` SELECT and routed the exact quote-PDF target through a server-only signer after database validation and before the fixed audit; added raw Storage negatives and audited positive proof.
 
 ### 2026-09-09 — Current Build Auto HALT
 

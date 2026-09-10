@@ -3224,10 +3224,5 @@ alter policy tenant_files_objects_select_own on storage.objects
     and (
       public.is_tenant_admin(((storage.foldername(name))[1])::uuid)
       or public.has_tenant_role(((storage.foldername(name))[1])::uuid, array['tenant_admin','projektledare']::text[])
-      or public.story_11_2_can_read_generated_quote_pdf(
-        ((storage.foldername(name))[1])::uuid,
-        ((storage.foldername(name))[2])::uuid,
-        name
-      )
     )
   );

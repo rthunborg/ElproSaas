@@ -16,6 +16,7 @@ import { defineConfig, devices } from "@playwright/test";
 import {
   LOCAL_SUPABASE_URL,
   LOCAL_SUPABASE_ANON_KEY,
+  LOCAL_SUPABASE_SERVICE_ROLE_KEY,
   LOCAL_TEST_QUOTE_PDF_KEY_ID,
   LOCAL_TEST_QUOTE_PDF_SECRET,
 } from "./tests/support/test-env";
@@ -59,6 +60,11 @@ export default defineConfig({
     env: {
       NEXT_PUBLIC_SUPABASE_URL: LOCAL_SUPABASE_URL,
       NEXT_PUBLIC_SUPABASE_ANON_KEY: LOCAL_SUPABASE_ANON_KEY,
+      // The server-only quote-PDF broker is deliberately the sole app path that
+      // needs this local credential. It is not NEXT_PUBLIC_ and Next does not
+      // inline it into browser bundles; tests prove Säljare still has no raw
+      // Storage SELECT/list/download/sign capability.
+      SUPABASE_SERVICE_ROLE_KEY: LOCAL_SUPABASE_SERVICE_ROLE_KEY,
       // Server-only local fixture values. Production has no fallback and must
       // provision its own matching Vault + environment configuration.
       QUOTE_PDF_ATTESTATION_KEY_ID: LOCAL_TEST_QUOTE_PDF_KEY_ID,

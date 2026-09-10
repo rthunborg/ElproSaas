@@ -23,6 +23,7 @@ import { adminQuery, adminSession, closeAdminPool } from "../../factories/admin-
 import {
   isLocalStackReachable,
   isLocalStorageReachable,
+  LOCAL_SUPABASE_ANON_KEY,
   LOCAL_SUPABASE_SERVICE_ROLE_KEY,
   LOCAL_SUPABASE_URL,
 } from "../../support/test-env";
@@ -52,6 +53,11 @@ let adminB: TestServerClient;
 let sellerA: TestServerClient;
 let serviceStorage: TestServerClient;
 const renderProvenance = new Map<string, QuotePdfRenderProvenance>();
+const originalRuntimeSigningEnv = {
+  url: process.env.NEXT_PUBLIC_SUPABASE_URL,
+  anonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+  serviceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY,
+};
 
 type Draft = { quoteId: string; versionId: string };
 
@@ -376,6 +382,12 @@ function expectStorageImmutabilityDenied(error: unknown): void {
 }
 
 beforeAll(async () => {
+  // The production-only broker intentionally reads the normal server env names. Bind
+  // those names to the loopback test stack for this process only; the imported test
+  // constants are fixed local demo credentials and never a hosted-project credential.
+  process.env.NEXT_PUBLIC_SUPABASE_URL = LOCAL_SUPABASE_URL;
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = LOCAL_SUPABASE_ANON_KEY;
+  process.env.SUPABASE_SERVICE_ROLE_KEY = LOCAL_SUPABASE_SERVICE_ROLE_KEY;
   stackUp = await isLocalStackReachable();
   if (!stackUp) return;
   storageUp = await isLocalStorageReachable();
@@ -396,6 +408,12 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
+  if (originalRuntimeSigningEnv.url === undefined) delete process.env.NEXT_PUBLIC_SUPABASE_URL;
+  else process.env.NEXT_PUBLIC_SUPABASE_URL = originalRuntimeSigningEnv.url;
+  if (originalRuntimeSigningEnv.anonKey === undefined) delete process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  else process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = originalRuntimeSigningEnv.anonKey;
+  if (originalRuntimeSigningEnv.serviceRoleKey === undefined) delete process.env.SUPABASE_SERVICE_ROLE_KEY;
+  else process.env.SUPABASE_SERVICE_ROLE_KEY = originalRuntimeSigningEnv.serviceRoleKey;
   if (fixture) await cleanupFixture(fixture);
   await closeAdminPool();
 });
@@ -429,17 +447,45 @@ describe("Story 10.9 quote PDF validity RPCs", () => {
     expect(genericFileAccess.ok).toBe(false);
     if (!genericFileAccess.ok) expect(genericFileAccess.code).toBe("PERMISSION_DENIED");
 
+    const correlationId = crypto.randomUUID();
     const quotePdfAccess = await runCommand(createQuotePdfSignedAccess, {
       client: sellerA as never,
       input: { quote_version_id: draft.versionId, file_id: generated.data.fileId },
       clock: fixedClock,
-      correlationId: crypto.randomUUID(),
+      correlationId,
     });
     expect(quotePdfAccess.ok).toBe(true);
     if (!quotePdfAccess.ok) return;
     const obtained = await fetch(quotePdfAccess.data.signedUrl);
     expect(obtained.ok).toBe(true);
     expect((await obtained.arrayBuffer()).byteLength).toBeGreaterThan(0);
+    const audit = await adminQuery<{
+      command: string; event_type: string; target_type: string; target_id: string; actor_user_id: string;
+    }>(
+      `select command, event_type, target_type, target_id::text, actor_user_id::text
+         from public.audit_events where correlation_id = $1::uuid`,
+      [correlationId],
+    );
+    expect(audit).toEqual([{
+      command: "quote.pdf.signedAccess.create", event_type: "quote.pdf.signed_access.created",
+      target_type: "quote_version", target_id: draft.versionId, actor_user_id: fixture.orphanUser.id,
+    }]);
+
+    // No persistent Storage SELECT is granted to Säljare. These raw SDK operations
+    // exercise the same policy that list/download/createSignedUrl would otherwise use;
+    // only the narrow, audited quote broker above may return this exact PDF URL.
+    const objectPath = `${fixture.tenantA.id}/${generated.data.fileId}/quote.pdf`;
+    const rawList = await sellerA.storage.from("tenant-files").list(
+      `${fixture.tenantA.id}/${generated.data.fileId}`,
+    );
+    expect(rawList.error).toBeNull();
+    expect(rawList.data ?? []).toEqual([]);
+    const rawDownload = await sellerA.storage.from("tenant-files").download(objectPath);
+    expect(rawDownload.data).toBeNull();
+    expect(rawDownload.error).not.toBeNull();
+    const rawSign = await sellerA.storage.from("tenant-files").createSignedUrl(objectPath, 60);
+    expect(rawSign.data).toBeNull();
+    expect(rawSign.error).not.toBeNull();
 
     const arbitrary = await sellerA.storage.from("tenant-files").upload(
       `${fixture.tenantA.id}/${crypto.randomUUID()}/unreserved.pdf`,

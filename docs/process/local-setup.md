@@ -89,8 +89,14 @@ Rules (see [`docs/security/security-guardrails.md`](../security/security-guardra
 - **Only `NEXT_PUBLIC_`-prefixed variables reach the browser.** Everything else is
   server-side.
 - **The service-role key is server-only.** It bypasses RLS and must never be
-  exposed to the client. Any service-role use must be documented with file path,
-  purpose, and test coverage.
+  exposed to the client. Its sole application use is
+  `src/server/storage/quote-pdf-signer.ts`: the quote-specific broker creates a
+  short-lived URL only after the request-bound SQL target validator binds an active
+  generated PDF, and before the second validator writes its fixed audit event. It does
+  not authorize generic files or expose raw Storage access. The positive audited broker
+  and raw Säljare list/download/sign denial are proven in
+  `tests/integration/commands/quote-pdf-validity.int.test.ts`. Any additional use must
+  be documented with file path, purpose, and test coverage.
 
 ## Local Supabase (wired)
 

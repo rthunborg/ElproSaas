@@ -1,8 +1,8 @@
 /** Quote-scoped signed access preserves generic Files.View boundaries. */
 import { defineCommand, type CommandDbClient } from "../envelope";
 import { CommandError } from "../command-errors";
-import { createSignedFileUrl, type StorageSigningClient } from "@/server/storage/signed-access";
 import { fileSignedAccessAttestorFromEnv, parseFileSignedAccessAuditChallenge, validateSignedStorageUrl } from "@/server/storage/signed-access-attestation";
+import { signValidatedQuotePdfForAccess } from "@/server/storage/quote-pdf-signer";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -49,9 +49,12 @@ export const createQuotePdfSignedAccess = defineCommand<QuotePdfSignedAccessInpu
       tenantId: ctx.tenantContext.tenantId, fileId: ctx.input.file_id,
       bucketId: "tenant-files", objectPath, keyId: attestor.keyId,
     });
-    const signed = await createSignedFileUrl({
-      client: ctx.db as unknown as StorageSigningClient, bucket: challenge.bucketId,
-      objectPath: challenge.objectPath, nowIso: challenge.issuedAt,
+    // This is intentionally not the request-bound generic file signer. The database
+    // challenge has already bound this exact generated, linked, non-archived quote PDF
+    // to the caller; the server-only broker avoids granting Säljare persistent raw
+    // storage SELECT/list/download/sign capability.
+    const signed = await signValidatedQuotePdfForAccess({
+      bucket: "tenant-files", objectPath: challenge.objectPath, nowIso: challenge.issuedAt,
     });
     if (signed === null) throw new CommandError("FILE_ACCESS_DENIED");
     const validatedUrl = validateSignedStorageUrl(signed.signedUrl, {
