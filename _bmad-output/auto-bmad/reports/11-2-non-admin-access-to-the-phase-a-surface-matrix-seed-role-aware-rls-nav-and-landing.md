@@ -208,3 +208,36 @@
 1. Confirm disposable/exclusive local database use before destructive reset or fixture mutation. Current guard cannot create an independent Supabase stack; no borrowed services were changed.
 
 **Next:** Confirm local database ownership/authorization, execute the five audit integration proofs, then resume /auto-bmad --story 11-2. Human review: /bmad-checkpoint-preview codex/11-2-non-admin-access-to-the-phase-a-surface-matrix-seed-role-aware-rls-nav-and-landing.
+
+## Report — 2026-09-10T09:27:50Z (final â€” caveated)
+
+**Story:** `11-2-non-admin-access-to-the-phase-a-surface-matrix-seed-role-aware-rls-nav-and-landing` (epic 11, story 2) — mid-epic.
+**Spec:** `C:/DEV/ElproSaas/_bmad-output/implementation-artifacts/spec-11-2-non-admin-access-to-the-phase-a-surface-matrix-seed-role-aware-rls-nav-and-landing.md`
+**Branch:** `codex/11-2-non-admin-access-to-the-phase-a-surface-matrix-seed-role-aware-rls-nav-and-landing` (HEAD `90a2a6e`).
+**Pipeline status:** Implementation and verification complete; draft PR because follow-up review remains recommended. Sprint story stays at review.
+**Continues:** 2026-09-09T09:16:55Z (halted â€” runtime authorization pending)
+
+**Timing:** started 2026-09-07T16:40:40Z; completed in progress — elapsed 64h 47m (≈2h 19m AI-run, ≈62h 27m human/idle wait); resumed 6×.
+
+**Phases run:** 5 build completion (Terra/high), 6 TEA automate (Terra/high), 7 follow-up review (Terra/high; independent Luna/xhigh), 9 report and PR
+**Skipped:** Phase 8 epic gates and retrospective (mid-epic); story trace advisory (four-story epic; not selected)
+
+**Overrides:** codex/ branch prefix; standing permission for disposable local database resets recorded in local-setup; user Continue carries through to draft PR without waiving review caveats; three-round cap retained.
+
+**TEA:** ATDD coverage activated; automate added quote-version mismatch coverage. Full required integration baseline: 991 passed, 0 skipped; subsequent focused PDF/ATDD confirmation: 32 passed, 0 skipped. Latest PDF integration: 27 passed, 0 skipped. Final unit: 1,720 passed, 0 skipped; production E2E: 126 passed, 4 historical skips, 0 failures/retries. Build, typecheck, lint, source and bundle containment, lockfile and high-severity dependency audit passed; 2 moderate advisories remain.
+
+**Build:** done; review_loop_iteration 0; deferred 0 (harvested 0); warning oversized. Build commit 023ba656; follow-up fixes d506f74; triage metadata 90a2a6e. Role matrix, audited RPCs, private-cost withholding and server-only audited Seller PDF access verified.
+
+**Review:** One Phase 7 pass; last triage patch 4, bad_spec 0, defer 0, reject 0. All findings repaired. Limited independent review completed; original 672 KB full-diff Luna review timed out without output. followup_review_recommended true; review_unverified true; continued under existing user authorization. Further review limited to latest-fix regressions and unresolved serious findings.
+
+**Retrospective:** Not due: story 2 of 4 in epic 11.
+
+**Open questions:** (none)
+
+**Deferred work:** (none)
+
+**⚠️ Needs human:**
+1. Resolve or explicitly accept the remaining review caveat before making the PR ready and marking the sprint story done.
+2. Before hosted Seller PDF preview is enabled, provision the documented server-only Vercel secret; no hosted environment was changed.
+
+**Next:** Human review: /bmad-checkpoint-preview codex/11-2-non-admin-access-to-the-phase-a-surface-matrix-seed-role-aware-rls-nav-and-landing. Keep any additional review within the three-round cap. Then continue with story 11-3; do not start it in this run.
