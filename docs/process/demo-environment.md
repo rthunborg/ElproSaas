@@ -99,6 +99,134 @@ For rotation, create and deploy the new matching key before removing the old Vau
 
 **Current operational state / manual setup:** the owner reports that `SUPABASE_SERVICE_ROLE_KEY` was provisioned in Vercel and a deployment was triggered; repository work did not inspect hosted configuration or verify the running deployment. Matching quote-PDF HMAC/Vault attestation secrets remain unconfirmed. The repository-scoped Supabase profile is not authenticated and remains pending owner login. After merge, an owner may authenticate the profile (for example, `supabase login --profile supabase/cli-profile.yaml` if supported by the installed CLI) or use the Supabase dashboard, then provision the matching attestation secrets through Supabase Vault and Vercel. Confirm installed CLI syntax/version before any secret operation; the example syntax is intentionally not verified here.
 
+## Hosted PDF runtime verification (manual, post-merge)
+
+**Decision — IN:** prove the production Vercel deployment and the
+`elprosaas-demo` database together, only after the merged migration has been
+applied with `supabase db push`. This procedure verifies merged `main` and its
+matching committed migrations; automated tests never use the shared demo
+database. This run is a controlled demo-data mutation, not CI.
+
+### 1. Provisioning presence (necessary, not runtime proof)
+
+1. Confirm the Vercel **Production** target for `enhancior/elpro-saas` is
+   built from merged `main` and its `NEXT_PUBLIC_SUPABASE_URL` targets ref
+   `wmqmzznmwpheswjjozhq`.
+2. Create exactly one non-empty Vault secret in the same demo project named
+   `quote_pdf_attestation_<key-id>`, where `<key-id>` is the intended Vercel
+   key ID, and set its value to the intended HMAC secret. Keep both values out
+   of terminals, logs, commits, browser clients, and audit metadata.
+3. In that deployment's server-only environment, set
+   `SUPABASE_SERVICE_ROLE_KEY`, `QUOTE_PDF_ATTESTATION_KEY_ID`, and
+   `QUOTE_PDF_ATTESTATION_HMAC_SECRET`. The latter two are required by
+   `src/server/quote-pdf/attestation.ts`; a missing value fails closed. The key
+   ID must match `^[A-Za-z0-9_-]{1,64}$`; the implementation imposes no other
+   documented production-secret format requirement. The HMAC secret is only
+   checked for non-emptiness in code; use a cryptographically generated,
+   high-entropy value as an operational requirement, but do not present an
+   entropy or format threshold as code-enforced. Never use the local
+   `test_v1`/test-only fixture secret in a hosted environment.
+4. Deploy or redeploy after all Vercel variable changes, then select that
+   resulting Production deployment for the runtime check.
+5. A database owner may establish **presence only** without decrypting or
+   displaying a secret:
+
+   ```sql
+   select exists (
+     select 1
+     from vault.secrets
+     where name = 'quote_pdf_attestation_<key-id>'
+   ) as quote_pdf_attestation_secret_present;
+   ```
+
+   `true` does not prove that the Vault and Vercel values match, that the
+   deployment received its variables, or that runtime signing works. Do not
+   query `vault.decrypted_secrets` for this check.
+
+### 2. Runtime proof
+
+1. Sign in to the matching hosted deployment as a demo `Säljare` and use a
+   disposable draft quote. Generate a **fresh** PDF with `Generera PDF`; wait
+   for `PDF genererad`, then use `Förhandsgranska`. A successful preview proves
+   the server-only signer can use `SUPABASE_SERVICE_ROLE_KEY` after the
+   database has bound the exact file target.
+2. Verify durable, metadata-only evidence for that newly generated version as
+   a database owner. The generated row must have `pdf_status = 'generated'`, a
+   non-null `pdf_file_id`, an active `quote_pdf` link to that same file, and a
+   `quote.pdf.generated` audit event for the same version. After the successful
+   preview, it must also have a `quote.pdf.signedAccess.create` /
+   `quote.pdf.signed_access.created` audit event for that version. Substitute
+   the known disposable version UUID; this query returns identifiers/statuses
+   only, never customer content, a signed URL, or secret material:
+
+   ```sql
+   select qv.id, qv.pdf_status, qv.pdf_file_id is not null as has_pdf_file,
+          exists (
+            select 1 from public.file_links fl
+            where fl.owner_type = 'quote_version'
+              and fl.owner_id = qv.id
+              and fl.file_id = qv.pdf_file_id
+              and fl.purpose = 'quote_pdf'
+              and fl.archived_at is null
+          ) as has_active_pdf_link,
+          exists (
+            select 1 from public.audit_events ae
+            where ae.target_id = qv.id
+              and ae.command = 'quote.pdf.render.complete'
+              and ae.event_type = 'quote.pdf.generated'
+          ) as has_pdf_generated_audit,
+          exists (
+            select 1 from public.audit_events ae
+            where ae.target_id = qv.id
+              and ae.command = 'quote.pdf.signedAccess.create'
+              and ae.event_type = 'quote.pdf.signed_access.created'
+          ) as has_signed_preview_audit
+   from public.quote_versions qv
+   where qv.id = '<disposable-quote-version-uuid>';
+   ```
+
+   This is the proof that the server HMAC and the matching Vault secret passed
+   `complete_quote_pdf_render`; configuration presence alone cannot establish
+   it. A successful preview additionally proves the server-only signer and the
+   post-signing HMAC audit finalizer completed for the bound file/version. If
+   generation evidence is present but `has_signed_preview_audit` is false,
+   preview did not complete successfully (or this is not the newly previewed
+   disposable version); investigate the preview stage rather than treating
+   generation as signed-access proof.
+3. For the optional technical negative-role check, use the same authenticated
+   `Säljare` session and the disposable PDF's object path. Confirm the normal
+   quote-page preview still works, then verify that raw persistent Storage
+   browse, download, and URL-signing operations are denied. Do not use or share
+   a service-role key or signed URL. Record only pass/fail and the disposable
+   version identifier; remove or archive the demo fixture according to the
+   owner's normal demo-data practice.
+
+### Troubleshooting by stage
+
+| Stage | Evidence / likely boundary | Next check |
+| --- | --- | --- |
+| Provisioning | Variable or Vault-presence check is absent | Confirm the Production deployment/database pairing, exact key-ID spelling, and the one Vault name. Redeploy after Vercel changes. |
+| PDF generation | `Generera PDF` fails or remains failed | Inspect the hosted server error without exposing secrets. A missing, malformed, duplicate, empty, or mismatched HMAC/Vault key fails closed before activation. |
+| Preview | PDF is generated but `Förhandsgranska` fails | Confirm the same deployment has `SUPABASE_SERVICE_ROLE_KEY`; the preview signer is the only service-role exception and runs after a checked database target binding. |
+| Durable proof | UI result has no generated state/audit row | Check that the post-merge migration was applied to the demo project and query the exact disposable version ID. Do not repair rows manually. |
+| Role boundary | A raw Storage operation succeeds for `Säljare` | Stop the rollout check and investigate the Storage/RLS policy; do not compensate with a client service-role credential. |
+
+**Assumptions / questions:** this guide records code and migration contracts,
+not an independent inspection of Vercel, Vault, or the deployed runtime. The
+installed Supabase CLI syntax for Vault secret creation remains unverified;
+use the dashboard or confirm the local CLI's version and help output before
+performing that owner-controlled operation.
+
+**Source evidence:** `src/server/quote-pdf/attestation.ts` (environment key-ID
+validation); `src/server/storage/quote-pdf-signer.ts` (server-only preview
+signer); `src/components/quotes/QuotePdfPanel.tsx` (hosted UI actions);
+`supabase/migrations/20260831124312_story_10_9_quote_pdf_attachment_validity.sql`
+(Vault lookup, HMAC verification, generated state, audit event);
+`supabase/migrations/20260907171252_role_aware_phase_a_policy_evolution.sql`
+(signed-preview attested audit finalizer); and
+`tests/integration/commands/quote-pdf-validity.int.test.ts` (Säljare raw
+Storage denial contract).
+
 ## Post-epic routine (for future epic runs)
 
 After an epic's PR merges to `main`:

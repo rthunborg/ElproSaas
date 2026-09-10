@@ -303,3 +303,34 @@
 **⚠️ Needs human:** (none)
 
 **Next:** Review the updated PR after CI. Merge remains an owner decision. Hosted PDF attestation/Vault provisioning and actual Seller PDF preview remain unverified; see demo-environment.md.
+
+## Report — 2026-09-10T12:20:18Z (final)
+
+**Story:** `11-2-non-admin-access-to-the-phase-a-surface-matrix-seed-role-aware-rls-nav-and-landing` (epic 11, story 2) — mid-epic.
+**Spec:** `C:/DEV/ElproSaas/_bmad-output/implementation-artifacts/spec-11-2-non-admin-access-to-the-phase-a-surface-matrix-seed-role-aware-rls-nav-and-landing.md`
+**Branch:** `codex/11-2-non-admin-access-to-the-phase-a-surface-matrix-seed-role-aware-rls-nav-and-landing` (HEAD `8f608e0`).
+**Pipeline status:** Seller acceptance-value exposure fixed with focused verification and security review clear; full CI will validate the pushed revision before restoring PR readiness.
+**Continues:** 2026-09-10T11:47:08Z (final)
+
+**Timing:** started 2026-09-07T16:40:40Z; completed in progress — elapsed 67h 39m (≈3h 21m AI-run, ≈64h 18m human/idle wait); resumed 9×.
+
+**Phases run:** Phase 7 targeted acceptance SELECT remediation (Terra/high; Sol/xhigh exact security review), Phase 9 hosted PDF runbook and CI verification
+**Skipped:** No broad review (cap retained); no epic gates/retrospective (mid-epic); no hosted configuration or runtime mutations.
+
+**Overrides:** Owner-supplied specific accepted-value finding addressed. Owner requested hosted PDF/attestation verification instructions; added safe manual post-merge procedure.
+
+**TEA:** No new TEA phase. Required focused role-aware integration: 7 passed, zero skips. Direct and nested Seller amount reads blocked; safe id/version projection, quote-detail evidence linkage, cross-tenant denial and PM amount access verified. Unit: 1,720 passed, 94 suites, zero skips. Typecheck, focused lint, source containment and diff check passed; full CI follows.
+
+**Build:** done; commit 8f608e0; deferred 0 (harvested 0); baseline efd8d73 retained; warning oversized. Seller acceptance base-table SELECT replaced by checked column-safe reference projection.
+
+**Review:** Third pipeline follow-up/remediation pass, restricted to the owner-supplied finding; last triage patch 1 (high), bad_spec 0, defer 0, reject 0. Final exact-scope Sol/xhigh review: no findings. followup_review_recommended false; review_unverified false. Earlier full-diff Luna timeout remains unavailable evidence, not full-diff approval.
+
+**Retrospective:** Not due: story 2 of 4 in epic 11.
+
+**Open questions:** (none)
+
+**Deferred work:** (none)
+
+**⚠️ Needs human:** (none)
+
+**Next:** Review PR after CI; merge remains an owner decision. Follow docs/process/demo-environment.md Hosted PDF runtime verification after merge and matching migrations: Vault first, matching Vercel env, redeploy, fresh generation/preview and metadata-only audit proof. No secret values need to be shared.
