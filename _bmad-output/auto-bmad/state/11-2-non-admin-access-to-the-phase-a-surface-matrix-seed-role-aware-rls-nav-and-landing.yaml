@@ -8,12 +8,12 @@ story_source: sprint
 spec_folder: null
 story_id: null
 branch: codex/11-2-non-admin-access-to-the-phase-a-surface-matrix-seed-role-aware-rls-nav-and-landing
-status: in-progress
-updated_at: "2026-09-10T09:27:50Z"
+status: done
+updated_at: "2026-09-10T09:28:36Z"
 started_at: "2026-09-07T16:40:40Z"
-completed_at: null
-active_seconds: 8373
-timing_anchor: 1789031162
+completed_at: "2026-09-10T09:28:36Z"
+active_seconds: 9727
+timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
 git_mode: remote
@@ -38,7 +38,7 @@ tea_selected: [atdd, automate]
 tea_rationale: "Authorization and role-aware RLS enforce least privilege, money-field withholding and server-side denial across the Phase A surface."
 epic_story_count: 4
 stories_after_in_epic: 2
-completed_phases: [0, 1, 2, 3, 4, 5, 6, 7, 8]
+completed_phases: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
 spec_path: "C:/DEV/ElproSaas/_bmad-output/implementation-artifacts/spec-11-2-non-admin-access-to-the-phase-a-surface-matrix-seed-role-aware-rls-nav-and-landing.md"
 spec_approved: true
 build:
@@ -58,7 +58,7 @@ legacy_review_loop_done: false
 legacy_external_review_iterations: null
 legacy_convergence_unverified: false
 legacy_artifact_path: null
-commits: [454ba58, 1b6c563, efd8d73, b725092, 39f2b9c, 2d4c68d, 26c8a4a, 88d7676, 91b4380, ce5fd40, 5d367d8, 023ba656, 1e9798d, f03dfb0, d506f74, 90a2a6e]
+commits: [454ba58, 1b6c563, efd8d73, b725092, 39f2b9c, 2d4c68d, 26c8a4a, 88d7676, 91b4380, ce5fd40, 5d367d8, 023ba656, 1e9798d, f03dfb0, d506f74, 90a2a6e, 77576af]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -74,8 +74,8 @@ retro:
   verdict: null
   open_action_items: 0
 bmad_status_flipped_at: null
-pr_url: null
-ci_run_url: null
+pr_url: "https://github.com/rthunborg/ElproSaas/pull/51"
+ci_run_url: "https://github.com/rthunborg/ElproSaas/actions/runs/34460797505"
 ci_status: unknown
 pr_merged: false
 merge_method: null
