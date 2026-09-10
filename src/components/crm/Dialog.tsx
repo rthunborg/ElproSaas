@@ -16,6 +16,9 @@
  */
 import { useCallback, useEffect, useId, useRef } from "react";
 
+const FOCUSABLE =
+  'a[href], button:not([disabled]), input:not([type="hidden"]):not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
 export function Dialog({
   open,
   onClose,
@@ -60,8 +63,6 @@ export function Dialog({
   useEffect(() => {
     if (!open) return;
     returnFocusRef.current = document.activeElement as HTMLElement | null;
-    const FOCUSABLE =
-      'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
     const target =
       initialFocusRef?.current ??
       contentRef.current?.querySelector<HTMLElement>(FOCUSABLE) ??
@@ -96,7 +97,7 @@ export function Dialog({
       const panel = panelRef.current;
       if (!panel) return;
       const focusables = panel.querySelectorAll<HTMLElement>(
-        'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        FOCUSABLE,
       );
       if (focusables.length === 0) return;
       const first = focusables[0];

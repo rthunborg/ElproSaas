@@ -62,6 +62,7 @@ test.describe("Story 11.3 administrativ användarhantering", () => {
 
     const dialog = page.getByRole("dialog", { name: "Bjud in användare" });
     const email = dialog.getByLabel("E-post");
+    await expect(email).toBeFocused();
     await expect(dialog.getByLabel("Företagsadmin")).toBeVisible();
     await expect(dialog.getByLabel("Projektledare")).toBeVisible();
 

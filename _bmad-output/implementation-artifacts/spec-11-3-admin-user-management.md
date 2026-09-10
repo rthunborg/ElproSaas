@@ -4,7 +4,7 @@ type: 'feature'
 created: '2026-09-10'
 status: 'done'
 review_loop_iteration: 0
-followup_review_recommended: true
+followup_review_recommended: false
 baseline_revision: '03b3c7568942ac984f0bfdd0f09d31f449b12cb8'
 baseline_commit: '0f50cfe3b0f54dcdb0882e22db3321695fde5179'
 context:
@@ -84,6 +84,15 @@ deferred: []
   - `[high] [patch]` Preserved and displayed all membership roles when editing a user.
   - `[medium] [patch]` Projected and persisted expired invitations, required a configured production app origin, and exposed password setup from invitation acceptance.
 
+### 2026-09-10 — Follow-up review
+- intent_gap: 0
+- bad_spec: 0
+- patch: 1 (medium 1)
+- defer: 0
+- reject: 0
+- addressed_findings:
+  - `[medium] [patch]` Excluded hidden controls from the shared dialog focus and tab selectors, so the invite dialog focuses its visible email field rather than retaining focus on the trigger; restored the browser focus assertion.
+
 ## Auto Run Result
 
 Story implementation is complete: the RBAC module is activated with tenant-scoped membership lifecycle records, an Admin-only Users surface, an Auth-bound invitation acceptance flow, and RLS inventory coverage. The Auth adapter delivers standard invites or an existing-account magic link only after the durable operation/audit boundary; reset operations, callbacks, role unions, and replay outcomes are guarded server-side.
@@ -95,6 +104,22 @@ Review findings: 9 patches applied, 0 deferred, 0 rejected. The independent Luna
 Verification performed: typecheck and lint passed; unit tests passed 1,724/1,724; required local integration passed 1,011/1,011 with 0 skips; focused Story RLS/command suite passed 123/123; service-role and built-bundle containment passed; final guarded-production browser smoke passed 2/2.
 
 Residual risk: browser evidence covers Admin list/detail and non-Admin denial. Lifecycle buttons retain command/RLS coverage but no end-to-end Auth-email delivery test, because the disposable local SMTP is not a user mailbox assertion harness.
+
+### Follow-up review — 2026-09-10
+
+The shared dialog now excludes hidden inputs from both its initial-focus and Tab-trap selectors. The invite dialog therefore lands on the visible `E-post` field after opening, while its operation identity remains a submitted hidden input.
+
+Files changed:
+
+- `src/components/crm/Dialog.tsx` — use one hidden-input-safe focus selector for open and keyboard trapping.
+- `tests/e2e/auth/admin-user-management.atdd.e2e.spec.ts` — assert the invite email field receives focus when the dialog opens.
+- `_bmad-output/implementation-artifacts/spec-11-3-admin-user-management.md` — record this follow-up review and its verification.
+
+Review findings: 1 patch applied (medium 1); 0 deferred; 0 rejected. Follow-up review recommendation: `false` (score 3 from one medium patch).
+
+Verification performed: `pnpm run typecheck`, targeted ESLint for the dialog and browser spec, and `git diff --check` passed. After the root-owned guarded production server was rebuilt, `pnpm exec playwright test tests/e2e/auth/admin-user-management.atdd.e2e.spec.ts --workers=1` passed 3/3. This change does not add browser evidence of actual Auth-email delivery; that remains outside the local browser harness.
+
+Residual risk: none introduced by this focused accessibility correction. Existing Story 11.3 coverage remains the authority for invitation delivery, reconciliation, and membership lifecycle behavior.
 
 ## Design Notes
 
