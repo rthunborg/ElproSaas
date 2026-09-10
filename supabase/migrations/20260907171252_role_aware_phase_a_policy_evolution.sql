@@ -3209,7 +3209,6 @@ $$;
 revoke execute on function public.story_11_2_quote_pdf_signed_access_target(uuid,uuid,uuid,uuid),
   public.story_11_2_can_read_generated_quote_pdf(uuid,uuid,text)
 from public, anon, authenticated, service_role;
-grant execute on function public.story_11_2_can_read_generated_quote_pdf(uuid,uuid,text) to authenticated;
 revoke execute on function public.prepare_quote_pdf_signed_access_audit_attestation(uuid,uuid,uuid,uuid,uuid,text),
   public.record_quote_pdf_signed_access_audit_attested(uuid,uuid,uuid,uuid,text,text,uuid,text,text,text,text,text,text)
 from public, anon, service_role;

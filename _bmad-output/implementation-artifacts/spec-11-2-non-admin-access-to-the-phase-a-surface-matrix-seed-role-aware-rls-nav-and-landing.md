@@ -108,7 +108,33 @@ Verification: `pnpm typecheck`; targeted ESLint; `pnpm verify:service-role-conta
 
 Residual risk: production deployments must provide the documented server-only `SUPABASE_SERVICE_ROLE_KEY`; absence fails closed without returning a signed URL. The independent full cross-model layer timed out without output. A high patch was applied in this review pass, so `followup_review_recommended` is true despite the targeted final security pass finding no regression.
 
+### 2026-09-10 — Limited latest-fix follow-up review
+
+Status: in-review
+
+Scope: this was the review-cap-compliant regression pass over `5d367d8..f03dfb0` only, plus the minimal dependency security update and Next 16.3.3 locator repair introduced during final verification. It did not reopen the original `efd8d73d53479ba737a09456c7d740cdaa6e028b` baseline or any previously dismissed finding.
+
+Review: the configured Luna/xhigh CLI reviewer completed successfully against the 31,747-byte limited diff and reported four concrete findings. The prior original-baseline full Luna review remains an unavailable layer: it received the 672 KB diff, produced no output during its bounded 30-minute execution, and is not recorded as passing.
+
+Repairs: the built-bundle containment gate now permits only the documented quote-PDF signer's environment-variable name in an SSR server chunk carrying an exact signer marker; client chunks, route payloads, unmarked server artifacts, local-demo key values, and service-role JWTs remain fail-closed. The obsolete authenticated generated-PDF predicate RPC is revoked after its Storage-policy use was removed. The regression suite now proves that direct predicate invocation, raw Storage access, a cross-tenant broker request, and a same-tenant version/file mismatch return no URL and add no audit event. The demo-environment record now describes the server-only deployment secret prerequisite; no hosted secret was read or changed.
+
+Verification: focused built-bundle containment unit suite (17/17); `pnpm run verify:bundle-containment` against the existing production build; and `SUPABASE_TEST_REQUIRED=1 pnpm exec vitest run tests/integration/commands/quote-pdf-validity.int.test.ts --maxWorkers=1` (1 file, 27 tests, zero skipped) after SQL-only application of the changed local execute revocation to `127.0.0.1:54322`. Dependency repair evidence: `pnpm audit --audit-level=high`, frozen install, lockfile verification, typecheck, and lint passed. Final Next 16.3.3 production-web-server verification passed 126 tests with 4 historical skips and no failures or retries (2026-09-10T09:23:09.007Z); full unit passed 1,720 tests across 94 suites with zero skipped; post-build and source containment, typecheck, lint, and `git diff --check` passed.
+
+Residual risk: a deployment without the server-only `SUPABASE_SERVICE_ROLE_KEY` fails Seller quote-PDF preview closed. Provisioning a hosted secret remains an owner-controlled deployment operation, outside this repository review pass.
+
 ## Review Triage Log
+
+### 2026-09-10 — Review pass (limited latest-fix boundary)
+- intent_gap: 0
+- bad_spec: 0
+- patch: 4 (high 3, medium 1)
+- defer: 0
+- reject: 0
+- addressed_findings:
+  - `[high] [patch]` Bound the containment exception to the documented quote-PDF signer’s SSR artifact and exact marker; proved browser, route-payload, unmarked-server, and credential-value leaks still fail.
+  - `[medium] [patch]` Corrected the demo-environment record with the server-only quote-PDF signer secret prerequisite and its fail-closed behavior.
+  - `[high] [patch]` Revoked authenticated access to the obsolete generated-PDF predicate RPC and proved direct invocation is denied.
+  - `[high] [patch]` Added an explicit cross-tenant quote-PDF broker denial and zero-audit regression alongside the existing same-tenant mismatched-version proof.
 
 ### 2026-09-10 — Review pass
 - intent_gap: 0

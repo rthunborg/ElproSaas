@@ -486,6 +486,13 @@ describe("Story 10.9 quote PDF validity RPCs", () => {
     const rawSign = await sellerA.storage.from("tenant-files").createSignedUrl(objectPath, 60);
     expect(rawSign.data).toBeNull();
     expect(rawSign.error).not.toBeNull();
+    const rawTargetPredicate = await sellerA.rpc("story_11_2_can_read_generated_quote_pdf", {
+      p_tenant_id: fixture.tenantA.id,
+      p_file_id: generated.data.fileId,
+      p_object_path: objectPath,
+    });
+    expect(rawTargetPredicate.data).toBeNull();
+    expect(rawTargetPredicate.error?.code).toBe("42501");
 
     const arbitrary = await sellerA.storage.from("tenant-files").upload(
       `${fixture.tenantA.id}/${crypto.randomUUID()}/unreserved.pdf`,
@@ -503,6 +510,21 @@ describe("Story 10.9 quote PDF validity RPCs", () => {
       p_attestation_key_id: TEST_KEY_ID,
     });
     expect(foreign.error?.code).toBe("42501");
+
+    const foreignBrokerCorrelationId = crypto.randomUUID();
+    const foreignBrokerAccess = await runCommand(createQuotePdfSignedAccess, {
+      client: adminB as never,
+      input: { quote_version_id: draft.versionId, file_id: generated.data.fileId },
+      clock: fixedClock,
+      correlationId: foreignBrokerCorrelationId,
+    });
+    expect(foreignBrokerAccess.ok).toBe(false);
+    if (!foreignBrokerAccess.ok) expect(foreignBrokerAccess.code).toBe("TENANT_ACCESS_DENIED");
+    const foreignBrokerAudit = await adminQuery<{ id: string }>(
+      `select id::text from public.audit_events where correlation_id = $1::uuid`,
+      [foreignBrokerCorrelationId],
+    );
+    expect(foreignBrokerAudit).toEqual([]);
   });
 
   it("[P0][11.2] a Säljare cannot bind one generated quote PDF to a different same-tenant quote version", async (testCtx) => {
