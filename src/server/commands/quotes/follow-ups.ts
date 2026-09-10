@@ -19,7 +19,7 @@
  * ── complete / annotate (AC3) ─────────────────────────────────────────────────────────────────────
  * Ownership on `quote_follow_ups`. The RPC's locked open-row predicate makes complete/annotate a
  * clean no-op-reject on a non-open row. complete sets
- * status='completed' + outcome + completed_at (= the SINGLE injected command clock) on the same row;
+ * status='completed' + outcome + a database-derived completion time on the same row;
  * annotate updates an open row's note. Audit metadata is `{ targetId }` ONLY — never the note/outcome
  * free text (possible PII), matching the lost/lifecycle allow-list discipline.
  */
@@ -147,6 +147,9 @@ export const completeQuoteFollowUp = defineCommand<
       p_correlation_id: ctx.correlationId,
       p_follow_up_id: followUpId,
       p_outcome: ctx.input.outcome,
+      // The RPC accepts this compatibility argument but deliberately derives the persisted
+      // completion time from its own statement timestamp, so a direct Data API caller cannot
+      // backdate or future-date the lifecycle event.
       p_completed_at: ctx.clock.now().toISOString(),
       p_expected_quote_id: ctx.input.expected_quote_id ?? null,
     });

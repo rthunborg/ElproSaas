@@ -59,10 +59,12 @@ import {
   adminInsertQuoteVersion,
   adminInsertQuoteAcceptance,
   adminInsertJob,
+  adminInsertMembership,
   type TwoTenantFixture,
   type TestServerClient,
 } from "../../factories/tenants";
-import { adminQuery } from "../../factories/admin-sql";
+import { adminQuery, adminSession } from "../../factories/admin-sql";
+import { adminSelectAuditEvents } from "../../factories/audit-events";
 import { isLocalStackReachable, isLocalStorageReachable } from "../../support/test-env";
 import {
   skipUnlessStack,
@@ -168,6 +170,7 @@ let stackUp = false;
 let storageUp = false;
 let fixture: TwoTenantFixture;
 let a: TestServerClient;
+let projectManager: TestServerClient;
 
 // A's own owner records across every ACTIVE owner type + a matching Tenant-B foreign owner.
 let ownCustomerId: string;
@@ -222,6 +225,13 @@ beforeAll(async () => {
   if (!stackUp) return;
   fixture = await createTwoTenantFixture();
   a = await makeAuthedServerClient(fixture.adminA);
+  await adminInsertMembership({
+    tenant_id: fixture.tenantA.id,
+    user_id: fixture.orphanUser.id,
+    role: "projektledare",
+    status: "active",
+  });
+  projectManager = await makeAuthedServerClient(fixture.orphanUser);
 
   ownCustomerId = await adminInsertCustomer({
     tenant_id: fixture.tenantA.id,
@@ -372,6 +382,208 @@ describe("uploadFile — server-side gate + storage↔DB compensation (AC2/AC4/A
       p_purpose: "crm_document",
     });
     expect(malformedLink.error?.code).toBe("23514");
+  });
+
+  it("[P0][11.2] direct Projektledare upload RPC binds MIME/size to Storage metadata and keeps rejected writes unaudited", async (testCtx) => {
+    if (skipUnlessBoth(testCtx)) return;
+    const bytes = new TextEncoder().encode("direct-wrapper-metadata-proof");
+    const fileId = crypto.randomUUID();
+    const objectPath = `${fixture.tenantA.id}/${fileId}/metadata.txt`;
+    const upload = await projectManager.storage.from("tenant-files").upload(objectPath, bytes, {
+      contentType: "text/plain",
+      upsert: false,
+    });
+    expect(upload.error).toBeNull();
+
+    const mismatchCorrelationId = crypto.randomUUID();
+    const mismatch = await projectManager.rpc("create_uploaded_file_with_audit", {
+      p_tenant_id: fixture.tenantA.id,
+      p_actor_user_id: fixture.orphanUser.id,
+      p_correlation_id: mismatchCorrelationId,
+      p_file_id: fileId,
+      p_object_path: objectPath,
+      p_display_name: "metadata.txt",
+      p_mime_type: "application/pdf",
+      p_size_bytes: bytes.byteLength,
+      p_owner_type: "customer",
+      p_owner_id: ownCustomerId,
+      p_purpose: "crm_document",
+    });
+    expect(mismatch.data).toBeNull();
+    expect(mismatch.error?.code).toBe("42501");
+
+    const sizeMismatchCorrelationId = crypto.randomUUID();
+    const sizeMismatch = await projectManager.rpc("create_uploaded_file_with_audit", {
+      p_tenant_id: fixture.tenantA.id,
+      p_actor_user_id: fixture.orphanUser.id,
+      p_correlation_id: sizeMismatchCorrelationId,
+      p_file_id: fileId,
+      p_object_path: objectPath,
+      p_display_name: "metadata.txt",
+      p_mime_type: "text/plain",
+      p_size_bytes: bytes.byteLength + 1,
+      p_owner_type: "customer",
+      p_owner_id: ownCustomerId,
+      p_purpose: "crm_document",
+    });
+    expect(sizeMismatch.data).toBeNull();
+    expect(sizeMismatch.error?.code).toBe("42501");
+
+    const overLimitCorrelationId = crypto.randomUUID();
+    const overLimit = await projectManager.rpc("create_uploaded_file_with_audit", {
+      p_tenant_id: fixture.tenantA.id,
+      p_actor_user_id: fixture.orphanUser.id,
+      p_correlation_id: overLimitCorrelationId,
+      p_file_id: crypto.randomUUID(),
+      p_object_path: `${fixture.tenantA.id}/${crypto.randomUUID()}/too-large.pdf`,
+      p_display_name: "too-large.pdf",
+      p_mime_type: "application/pdf",
+      p_size_bytes: 25 * 1024 * 1024 + 1,
+      p_owner_type: "customer",
+      p_owner_id: ownCustomerId,
+      p_purpose: "crm_document",
+    });
+    expect(overLimit.data).toBeNull();
+    expect(overLimit.error?.code).toBe("23514");
+
+    expect(await adminSelectAuditEvents({ correlationId: mismatchCorrelationId })).toEqual([]);
+    expect(await adminSelectAuditEvents({ correlationId: sizeMismatchCorrelationId })).toEqual([]);
+    expect(await adminSelectAuditEvents({ correlationId: overLimitCorrelationId })).toEqual([]);
+    const files = await adminQuery<{ id: string }>(
+      "select id from public.files where id = $1",
+      [fileId],
+    );
+    expect(files).toEqual([]);
+  });
+
+  it("[P0][11.2] upload metadata verification locks the mutable Storage object before committing its link", async (testCtx) => {
+    if (skipUnlessBoth(testCtx)) return;
+    const bytes = new TextEncoder().encode("linked-object-cannot-be-replaced");
+    const fileId = crypto.randomUUID();
+    const objectPath = `${fixture.tenantA.id}/${fileId}/locked.txt`;
+    const upload = await projectManager.storage.from("tenant-files").upload(objectPath, bytes, {
+      contentType: "text/plain",
+      upsert: false,
+    });
+    expect(upload.error).toBeNull();
+    const unlinkedReplacement = await projectManager.storage.from("tenant-files").update(
+      objectPath,
+      new TextEncoder().encode("still-unlinked-and-replaceable"),
+      { contentType: "text/plain" },
+    );
+    expect(unlinkedReplacement.error).toBeNull();
+    const linkedBytes = new TextEncoder().encode("still-unlinked-and-replaceable");
+
+    await adminSession(async (holder) => {
+      await holder.query("begin");
+      try {
+        // Keep the unlinked object mutable while two authenticated callers queue behind it.
+        await holder.query(
+          "select 1 from storage.objects where bucket_id = 'tenant-files' and name = $1 for update",
+          [objectPath],
+        );
+
+        let signalRpcPid!: (pid: number) => void;
+        const rpcPidReady = new Promise<number>((resolve) => { signalRpcPid = resolve; });
+        const linkAttempt = adminSession(async (request) => {
+          await request.query("begin");
+          try {
+            // This is the same authenticated role/JWT context PostgREST supplies. A direct
+            // PostgreSQL session makes its PID observable without elevating the caller.
+            await request.query("set local role authenticated");
+            await request.query("select set_config('request.jwt.claim.sub', $1, true)", [fixture.orphanUser.id]);
+            const pid = await request.query<{ pid: number }>("select pg_backend_pid() as pid");
+            signalRpcPid(pid[0]!.pid);
+            const linked = await request.query<{ id: string }>(
+              `select public.create_uploaded_file_with_audit(
+                 $1::uuid, $2::uuid, $3::uuid, $4::uuid, $5::text, $6::text,
+                 $7::text, $8::bigint, $9::text, $10::uuid, $11::text
+               ) as id`,
+              [
+                fixture.tenantA.id, fixture.orphanUser.id, crypto.randomUUID(), fileId,
+                objectPath, "locked.txt", "text/plain", linkedBytes.byteLength,
+                "customer", ownCustomerId, "crm_document",
+              ],
+            );
+            await request.query("commit");
+            return linked;
+          } catch (error) {
+            await request.query("rollback").catch(() => undefined);
+            throw error;
+          }
+        });
+        const rpcPid = await rpcPidReady;
+
+        const waitForLock = async (pid: number, pending: Promise<unknown>, label: string) => {
+          for (let attempt = 0; attempt < 100; attempt += 1) {
+            const activity = await adminQuery<{ wait_event_type: string | null }>(
+              "select wait_event_type from pg_stat_activity where pid = $1", [pid],
+            );
+            if (activity[0]?.wait_event_type === "Lock") return;
+            const completed = await Promise.race([
+              pending.then(() => true, () => true),
+              new Promise<false>((resolve) => setTimeout(() => resolve(false), 10)),
+            ]);
+            if (completed) break;
+          }
+          throw new Error(`${label} did not wait on the locked Storage row`);
+        };
+        await waitForLock(rpcPid, linkAttempt, "upload/link RPC");
+
+        let signalUpdatePid!: (pid: number) => void;
+        const updatePidReady = new Promise<number>((resolve) => { signalUpdatePid = resolve; });
+        const replacementAttempt = adminSession(async (request) => {
+          await request.query("begin");
+          try {
+            await request.query("set local role authenticated");
+            await request.query("select set_config('request.jwt.claim.sub', $1, true)", [fixture.orphanUser.id]);
+            const pid = await request.query<{ pid: number }>("select pg_backend_pid() as pid");
+            signalUpdatePid(pid[0]!.pid);
+            const updated = await request.query<{ name: string }>(
+              `update storage.objects
+                  set metadata = jsonb_set(metadata, '{mimetype}', '"application/pdf"'::jsonb, true)
+                where bucket_id = 'tenant-files' and name = $1
+              returning name`,
+              [objectPath],
+            );
+            await request.query("commit");
+            return updated;
+          } catch (error) {
+            await request.query("rollback").catch(() => undefined);
+            throw error;
+          }
+        });
+        const updatePid = await updatePidReady;
+        await waitForLock(updatePid, replacementAttempt, "authenticated Storage metadata update");
+        await holder.query("commit");
+
+        await expect(linkAttempt).resolves.toEqual([expect.objectContaining({ id: expect.any(String) })]);
+        // The queued update observes the linked marker on the real locked tuple and is rejected.
+        await expect(replacementAttempt).rejects.toMatchObject({ code: "42501" });
+      } catch (error) {
+        await holder.query("rollback").catch(() => undefined);
+        throw error;
+      }
+    });
+
+    const bound = await adminQuery<{
+      mime_type: string;
+      size_bytes: string;
+      object_mime: string;
+      object_size: string;
+    }>(
+      `select f.mime_type, f.size_bytes::text, o.metadata->>'mimetype' as object_mime,
+              o.metadata->>'size' as object_size
+       from public.files f join storage.objects o on o.bucket_id = f.bucket_id and o.name = f.object_path
+       where f.id = $1`,
+      [fileId],
+    );
+    expect(bound).toEqual([{
+      mime_type: "text/plain",
+      size_bytes: String(linkedBytes.byteLength),
+      object_mime: "text/plain",
+      object_size: String(linkedBytes.byteLength),
+    }]);
   });
 
   it("[10.8][P0] acceptance evidence cannot be appended after immutable acceptance capture", async (testCtx) => {

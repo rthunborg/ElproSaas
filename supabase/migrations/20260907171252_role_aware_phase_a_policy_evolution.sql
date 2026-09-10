@@ -1708,16 +1708,45 @@ revoke execute on function public.archive_file_with_audit(uuid,uuid,uuid,uuid,te
 grant execute on function public.archive_file_with_audit(uuid,uuid,uuid,uuid,text) to authenticated;
 revoke update on table public.files from authenticated;
 
+-- A Storage UPDATE can begin before an upload links its metadata, then wait on the
+-- object row with an RLS snapshot that still allows it. The wrapper stamps the row
+-- as linked in the same transaction; this trigger reads the actual locked OLD tuple
+-- and rejects that stale queued mutation before it can replace checked bytes/metadata.
+create or replace function public.story_11_2_reject_linked_storage_object_mutation()
+returns trigger language plpgsql security definer set search_path='' as $$
+begin
+  if old.bucket_id='tenant-files' and coalesce(old.metadata, '{}'::jsonb) ? 'elpro_file_linked_at' then
+    raise exception 'linked file object is immutable' using errcode='42501';
+  end if;
+  return new;
+end;
+$$;
+revoke all on function public.story_11_2_reject_linked_storage_object_mutation() from public;
+drop trigger if exists story_11_2_reject_linked_storage_object_mutation on storage.objects;
+create trigger story_11_2_reject_linked_storage_object_mutation
+before update on storage.objects for each row execute function public.story_11_2_reject_linked_storage_object_mutation();
+
 create or replace function public.create_uploaded_file_with_audit(
  p_tenant_id uuid,p_actor_user_id uuid,p_correlation_id uuid,p_file_id uuid,p_object_path text,p_display_name text,p_mime_type text,p_size_bytes bigint,p_owner_type text,p_owner_id uuid,p_purpose text
-) returns uuid language plpgsql security definer set search_path='' as $$ declare v_link uuid;
+) returns uuid language plpgsql security definer set search_path='' as $$ declare v_link uuid; v_object_metadata jsonb; v_object_size text; v_object_mime text;
 begin
  perform public.story_11_2_assert_file_roles(p_tenant_id,p_actor_user_id);
- if p_correlation_id is null or p_file_id is null or p_object_path is null or p_display_name is null or p_mime_type is null or p_size_bytes is null or p_owner_id is null or p_owner_type not in ('customer','facility','contact','calculation','quote_acceptance','job') or p_purpose is null or not ((p_owner_type in ('customer','facility','contact') and p_purpose='crm_document') or (p_owner_type='calculation' and p_purpose='calculation_attachment') or (p_owner_type='quote_acceptance' and p_purpose='acceptance_evidence') or (p_owner_type='job' and p_purpose='job_evidence')) then raise exception 'invalid file upload payload' using errcode='23514'; end if;
- if p_object_path !~ ('^' || p_tenant_id::text || '/' || p_file_id::text || '/[^/]+$') or not exists(select 1 from storage.objects so where so.bucket_id='tenant-files' and so.name=p_object_path) then raise exception 'file object missing' using errcode='42501'; end if;
+ if p_correlation_id is null or p_file_id is null or p_object_path is null or p_display_name is null or p_mime_type is null or p_size_bytes is null or p_size_bytes < 0 or p_size_bytes > 26214400 or p_mime_type not in ('application/pdf','image/png','image/jpeg','image/webp','image/gif','text/plain','text/csv','application/msword','application/vnd.openxmlformats-officedocument.wordprocessingml.document','application/vnd.ms-excel','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') or p_owner_id is null or p_owner_type not in ('customer','facility','contact','calculation','quote_acceptance','job') or p_purpose is null or not ((p_owner_type in ('customer','facility','contact') and p_purpose='crm_document') or (p_owner_type='calculation' and p_purpose='calculation_attachment') or (p_owner_type='quote_acceptance' and p_purpose='acceptance_evidence') or (p_owner_type='job' and p_purpose='job_evidence')) then raise exception 'invalid file upload payload' using errcode='23514'; end if;
+ if p_object_path !~ ('^' || p_tenant_id::text || '/' || p_file_id::text || '/[^/]+$') then raise exception 'file object missing' using errcode='42501'; end if;
+ -- Lock the still-unlinked Storage row before checking its metadata. The linked marker
+ -- written below makes the actual tuple immutable for any queued stale-snapshot updater.
+ select so.metadata into v_object_metadata from storage.objects so where so.bucket_id='tenant-files' and so.name=p_object_path for update;
+ if not found then raise exception 'file object missing' using errcode='42501'; end if;
+ v_object_size := v_object_metadata->>'size';
+ v_object_mime := v_object_metadata->>'mimetype';
+ if v_object_size is null or v_object_size !~ '^[0-9]{1,8}$' or v_object_size::bigint is distinct from p_size_bytes or v_object_mime is distinct from p_mime_type then raise exception 'file object metadata mismatch' using errcode='42501'; end if;
  if not ((p_owner_type='customer' and exists(select 1 from public.customers where tenant_id=p_tenant_id and id=p_owner_id)) or (p_owner_type='facility' and exists(select 1 from public.facilities where tenant_id=p_tenant_id and id=p_owner_id)) or (p_owner_type='contact' and exists(select 1 from public.contacts where tenant_id=p_tenant_id and id=p_owner_id)) or (p_owner_type='calculation' and exists(select 1 from public.calculations where tenant_id=p_tenant_id and id=p_owner_id)) or (p_owner_type='quote_acceptance' and exists(select 1 from public.quote_acceptances where tenant_id=p_tenant_id and id=p_owner_id)) or (p_owner_type='job' and exists(select 1 from public.jobs where tenant_id=p_tenant_id and id=p_owner_id))) then raise exception 'file owner missing' using errcode='42501'; end if;
  insert into public.files(id,tenant_id,bucket_id,object_path,display_name,mime_type,size_bytes,uploaded_by,lifecycle_state) values(p_file_id,p_tenant_id,'tenant-files',p_object_path,p_display_name,p_mime_type,p_size_bytes,p_actor_user_id,'linked');
  insert into public.file_links(tenant_id,file_id,owner_type,owner_id,purpose) values(p_tenant_id,p_file_id,p_owner_type,p_owner_id,p_purpose) returning id into v_link;
+ -- Mark the Storage tuple in this transaction. The trigger blocks a queued UPDATE whose
+ -- RLS predicate was evaluated before this file/link insert became visible.
+ update storage.objects set metadata=coalesce(metadata,'{}'::jsonb)||jsonb_build_object('elpro_file_linked_at',statement_timestamp()),updated_at=statement_timestamp() where bucket_id='tenant-files' and name=p_object_path;
+ if not found then raise exception 'file object missing' using errcode='42501'; end if;
  perform public.story_11_2_record_audit_event_internal(p_tenant_id,p_actor_user_id,'file.upload','file.uploaded','file',p_file_id,p_correlation_id,'{}'::jsonb);
  return v_link;
 end; $$;
@@ -1887,7 +1916,7 @@ begin
     p_tenant_id, p_actor_user_id,
     array['tenant_admin', 'projektledare', 'saljare']::text[]
   );
-  if p_correlation_id is null or p_follow_up_id is null or p_completed_at is null
+  if p_correlation_id is null or p_follow_up_id is null
      or p_outcome is null or btrim(p_outcome) = '' or length(p_outcome) > 4000 then
     raise exception 'invalid quote follow-up completion payload' using errcode = '23514';
   end if;
@@ -1903,7 +1932,7 @@ begin
     raise exception 'quote follow-up is no longer eligible' using errcode = 'QFU10';
   end if;
   update public.quote_follow_ups
-     set status = 'completed', outcome = p_outcome, completed_at = p_completed_at
+     set status = 'completed', outcome = p_outcome, completed_at = statement_timestamp()
    where id = v_id;
   perform public.story_11_2_record_audit_event_internal(
     p_tenant_id, p_actor_user_id, 'quote.follow_up.complete', 'quote.follow_up.complete',

@@ -39,9 +39,12 @@ const STATUS_FILTER_OPTIONS: ReadonlyArray<{ value: string; label: string }> = [
 export function QuoteList({
   rows,
   loadError,
+  canStartQuoteFromCalculation,
 }: {
   readonly rows: readonly QuoteListRow[];
   readonly loadError: string | null;
+  /** Server-derived route entitlement; never client-side authorization. */
+  readonly canStartQuoteFromCalculation: boolean;
 }) {
   // Story 10.2 (AC4): the status filter. Empty = all; "lost" surfaces the Förlustorsak column view.
   const [statusFilter, setStatusFilter] = useState<string>("");
@@ -58,13 +61,15 @@ export function QuoteList({
         <h1 id="quotes-heading" className="text-2xl font-semibold text-zinc-900">
           Offerter
         </h1>
-        <Link
-          href="/calculations"
-          data-testid="new-quote-button"
-          className="rounded-md bg-blue-700 px-4 py-2 text-sm font-medium text-white hover:bg-blue-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
-        >
-          Skapa offert från kalkyl
-        </Link>
+        {canStartQuoteFromCalculation && (
+          <Link
+            href="/calculations"
+            data-testid="new-quote-button"
+            className="rounded-md bg-blue-700 px-4 py-2 text-sm font-medium text-white hover:bg-blue-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+          >
+            Skapa offert från kalkyl
+          </Link>
+        )}
       </div>
 
       {loadError && (

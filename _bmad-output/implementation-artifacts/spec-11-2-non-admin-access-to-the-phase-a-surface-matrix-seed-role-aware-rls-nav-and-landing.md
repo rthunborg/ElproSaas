@@ -130,6 +130,20 @@ Review attribution: the user supplied an independent review of `f03dfb0c1a3d095e
 
 Result: the latest-fix follow-up caveat is cleared. The earlier 672 KB original-baseline Luna review remains documented as unavailable after its bounded run produced no output. Root independently verified PR #51 at local HEAD `cdac1891627ea5da33d3066c4dc4cbb612bf2d50` and CI run `34460849654` with all required jobs and Vercel successful.
 
+### 2026-09-10 — Targeted remediation of user-supplied Reviewbot findings
+
+Status: done
+
+Scope and attribution: the user supplied five specific Reviewbot findings against PR #51 at `4763176847fb31547423eddd5c057f8f464a62ca`. This was a finding-driven remediation pass within the completed-review cap, not another broad Story 11.2 review. The original baseline `efd8d73d53479ba737a09456c7d740cdaa6e028b` and the unavailable 672 KB Luna full-diff layer remain unchanged.
+
+Resolved: the authenticated `create_uploaded_file_with_audit` wrapper now repeats the closed 25 MiB/MIME policy and binds submitted MIME/size to the stored `storage.objects.metadata` values before any file/link/audit write. It finalizes the linked Storage tuple with a marker guarded by a `BEFORE UPDATE` trigger, so a metadata update queued with a pre-link RLS snapshot is rejected after the link commits. `complete_quote_follow_up_with_audit` now derives the persisted completion time from database `statement_timestamp()`; its retained compatibility argument cannot control that value. The quote-list calculation-origin link is now server-derived from `Calculations.View`, so Säljare is not offered a route the server denies. This does not remove the approved Säljare successor-version path: the existing quote-detail `CreateNewVersionButton` reaches the customer-visible successor projection, which withholds costs and margins.
+
+Rejected with downstream evidence: `/settings/pricing` remains outside the approved Admin-only settings surface; `Pricing.Edit` does not authorize a new PM route or navigation entry. `tenant_counters` receives role-aware RLS policies for read consistency, but Story 10.8's authenticated INSERT/UPDATE/DELETE revoke remains effective; direct Projektledare and Säljare mutation attempts return `42501` and leave the counter unchanged.
+
+Verification: SQL-only application to the existing disposable loopback stack followed by `SUPABASE_TEST_REQUIRED=1 pnpm exec vitest run tests/integration/commands/file-upload.int.test.ts tests/integration/commands/quote-follow-ups.int.test.ts tests/integration/commands/quote-successor-non-admin-audit.int.test.ts tests/integration/rls/quote-review-authorization-migration-reset.int.test.ts --maxWorkers=1` passed 48 tests across 4 files with zero skips. The direct-RPC tests prove metadata mismatch and oversized file rejects before audit/file rows, forged follow-up completion time is replaced by database time with one fixed audit, and both non-admin quote-counter mutations are denied. A bounded two-connection test proves a legitimate unlinked PM replacement succeeds; then an upload/link RPC and authenticated Storage metadata update queue behind the same row, the RPC commits the link marker, and the queued update is rejected with `42501` while stored MIME/size remain bound. Targeted Sol/xhigh regression review of this exact closure returned no findings. Earlier root-run evidence remains: production Playwright 127 passed with 4 historical skips and zero failures/retries, plus source and post-build bundle containment; full unit/typecheck/lint had passed before this SQL-only finalization.
+
+Deployment record: the owner reports that the server-only `SUPABASE_SERVICE_ROLE_KEY` was added to Vercel and redeployed. This is owner-reported provisioning, not repository-side hosted-runtime verification. Quote-PDF HMAC/Vault attestation remains unconfirmed. Hosted secret provisioning is deployment setup, not deferred Story 11.2 implementation.
+
 ## Review Triage Log
 
 ### 2026-09-10 — Review pass
@@ -194,6 +208,33 @@ The resumed implementation pass added focused server-authority coverage for role
 - reject: 0
 - addressed_findings:
   - none
+
+### 2026-09-10 — Review pass
+- intent_gap: 0
+- bad_spec: 0
+- patch: 3 (high 2, medium 1)
+- defer: 0
+- reject: 2
+- addressed_findings:
+  - `[high] [patch]` Bound the authenticated upload RPC to the same closed MIME/25 MiB policy and the exact stored Storage metadata before it can write linked file metadata or audit.
+  - `[high] [patch]` Removed the Säljare-visible calculation-origin quote link while retaining the approved cost-withholding successor-version path on quote detail.
+  - `[medium] [patch]` Made follow-up completion timestamps database-derived so direct authenticated RPC calls cannot backdate or future-date completion.
+  - `[reject]` Kept `/settings/pricing` Admin-only because the approved settings surface does not include a PM route.
+  - `[reject]` Confirmed authenticated table grants still deny direct `tenant_counters` DML despite the read policy evolution.
+
+
+### 2026-09-10 — Review pass
+- intent_gap: 0
+- bad_spec: 0
+- patch: 4 (high 3, medium 1)
+- defer: 0
+- reject: 2
+- addressed_findings:
+  - `[high] [patch]` Bound direct upload metadata and byte-size claims to the exact stored object, then closed the queued stale-snapshot replacement race with a linked-object marker and immutable-update trigger proven by a two-connection authenticated regression.
+  - `[high] [patch]` Removed the Säljare calculation-origin quote affordance while preserving the approved customer-visible successor-version flow and its cost/margin withholding.
+  - `[medium] [patch]` Derived follow-up completion time in PostgreSQL so a raw authenticated RPC caller cannot supply it.
+  - `[reject]` Kept `/settings/pricing` Admin-only because no approved PM settings surface exists.
+  - `[reject]` Confirmed Story 10.8 grants continue to deny PM/Säljare direct `tenant_counters` INSERT/UPDATE/DELETE.
 
 ## Recovery History
 

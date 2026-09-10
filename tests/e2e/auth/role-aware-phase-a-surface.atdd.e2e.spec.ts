@@ -92,4 +92,15 @@ test.describe("Story 11.2 rollstyrda Phase A-ytor", () => {
     await expect(main).toBeVisible();
     await expect(main.getByText(/självkostnad|täckningsbidrag|marginal/i)).toHaveCount(0);
   });
+
+  test("[P0] Säljare is never offered calculation-origin quote creation", async ({ page }) => {
+    await logIn(page, fixture.roleAware.saljare);
+    await page.goto("/quotes");
+
+    await expect(page).toHaveURL(/\/quotes$/);
+    await expect(page.getByTestId("new-quote-button")).toHaveCount(0);
+    // The existing quote detail keeps the approved customer-visible successor flow;
+    // this only removes the forbidden calculation-route affordance.
+    await expect(page.getByRole("link", { name: /kalkyler/i })).toHaveCount(0);
+  });
 });

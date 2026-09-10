@@ -251,6 +251,42 @@ describe("Story 11.2 successor quote review and creation", () => {
     }
   });
 
+  it("[P0][11.2] Projektledare and Säljare cannot directly mutate the quote-number counter", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
+    const source = await seedSentSource(`11.2-counter-dml-${crypto.randomUUID()}`);
+    // The fixture bypasses the allocator while seeding immutable source rows, so create the
+    // concrete counter target as the privileged fixture owner before exercising Data API DML.
+    await adminExec(
+      `insert into public.tenant_counters (tenant_id, counter_name, current_value)
+       values ($1, 'quote_number', 0)
+       on conflict (tenant_id, counter_name) do nothing`,
+      [fixture.base.tenantA.id],
+    );
+    const counters = await adminQuery<{ id: string; current_value: string }>(
+      `select id, current_value::text from public.tenant_counters
+       where tenant_id = $1 and counter_name = 'quote_number'`,
+      [fixture.base.tenantA.id],
+    );
+    expect(counters).toHaveLength(1);
+    const counter = counters[0];
+    if (!counter) return;
+    for (const client of [projektledare, seller]) {
+      const attempted = await client
+        .from("tenant_counters")
+        .update({ current_value: Number(counter.current_value) + 1 })
+        .eq("id", counter.id)
+        .select("id");
+      expect(attempted.data).toBeNull();
+      expect(attempted.error?.code).toBe("42501");
+    }
+    const unchanged = await adminQuery<{ current_value: string }>(
+      "select current_value::text from public.tenant_counters where id = $1",
+      [counter.id],
+    );
+    expect(unchanged).toEqual([{ current_value: counter.current_value }]);
+    expect(source.quoteId).toEqual(expect.any(String));
+  });
+
   it("[P0] gives Säljare only the checked current successor projection and recaptures its current sales price", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     const source = await seedSentSource(`11.2-successor-sales-source-${crypto.randomUUID()}`);
