@@ -43,9 +43,9 @@ the actual scripts in [`package.json`](../../package.json) are `verify:lockfiles
 2. `pnpm run verify:lockfiles` — enforces pnpm-only; rejects stray/empty lockfiles.
 3. `pnpm typecheck` — `tsc --noEmit`.
 4. `pnpm lint` — `eslint`.
-5. `pnpm test` — **placeholder.** No unit suite exists yet; the script prints why
-   and exits 0 so the CI gate stays wired. The real harness arrives with Epic 2
-   (TEA `testarch-framework`). See [`ci.md`](../quality/ci.md#unit-test-gate-placeholder-by-decision).
+5. `pnpm test` — runs the real Node unit and Vitest integration suites through
+   `scripts/run-tests.mjs`. `pnpm run test:unit` needs no Docker;
+   `pnpm run test:int` needs local Supabase for execution evidence.
 6. `pnpm build` — `next build`. **Note:** `next build` fetches the Geist Google
    font over the network, so a fresh or network-restricted machine needs
    internet for the build to succeed (a known, intentionally-deferred non-hermetic
@@ -89,8 +89,14 @@ Rules (see [`docs/security/security-guardrails.md`](../security/security-guardra
 - **Only `NEXT_PUBLIC_`-prefixed variables reach the browser.** Everything else is
   server-side.
 - **The service-role key is server-only.** It bypasses RLS and must never be
-  exposed to the client. Any service-role use must be documented with file path,
-  purpose, and test coverage.
+  exposed to the client. Its sole application use is
+  `src/server/storage/quote-pdf-signer.ts`: the quote-specific broker creates a
+  short-lived URL only after the request-bound SQL target validator binds an active
+  generated PDF, and before the second validator writes its fixed audit event. It does
+  not authorize generic files or expose raw Storage access. The positive audited broker
+  and raw Säljare list/download/sign denial are proven in
+  `tests/integration/commands/quote-pdf-validity.int.test.ts`. Any additional use must
+  be documented with file path, purpose, and test coverage.
 
 ## Local Supabase (wired)
 
@@ -109,6 +115,46 @@ live in the repo (architecture §3, §7, §8, §9).
   pinned CI action. Pin the version you use; do not add it as an npm dependency.
 
 ### Commands
+
+**Standing owner permission (2026-09-09):** the local `ElproSaas` Supabase
+database used by this checkout (API `http://127.0.0.1:54321`, PostgreSQL
+`127.0.0.1:54322/postgres`) contains disposable data. Agents may reset/reseed
+that database, apply repository migrations, and create/remove test fixtures
+when needed for development or verification, without asking again. This
+permission persists across sessions. Confirm the command targets these local
+endpoints and coordinate overlapping test runs before a reset. It does not
+cover another project's stack, a hosted/demo database, or a changed target.
+
+Database permission does not transfer ownership of existing service processes
+or containers for cleanup. New managed servers/browser processes still require
+their own supported guard lifecycle. Request Stop when finished; an accepted
+`stop_requested` acknowledgment is not confirmed shutdown, and agents must not
+poll for verified shutdown as a completion gate. The developer-operated reset
+uses an explicit local target from this repository:
+
+```powershell
+supabase db reset --local --yes
+```
+
+The CLI's local reset rebuilds the database and restarts dependent services as
+part of that operation. The owner authorized this reset; it is not permission
+for unrelated service shutdown or broad Docker cleanup. Do not assume
+`--db-url` with a loopback URL provides a SQL-only alternative: CLI 2.115.0
+recognizes that target as local and still uses its local reset path. Under the
+current agent resource contract, native Supabase CLI lifecycle management is
+outside the guard adapter: use the supported Compose path for managed services
+and SQL-only migration/reset operations against an already available authorized
+database. Never use a database reset as resource teardown; Stop preserves data.
+
+The start/stop commands below describe the developer-operated lifecycle.
+For new managed resources, automated agents must satisfy the user's standing
+resource-guard instructions: their own trusted hook context, a supported
+guarded lifecycle, an isolated project target, and a checked Stop request.
+Docker/Supabase availability alone does not prove ownership; the explicit
+database authorization above supplies permission for this local reset.
+Do not reset or stop another actor's stack or use raw startup to work around a
+missing context. Playwright's `webServer` starts a new server and therefore
+requires the guarded lifecycle.
 
 ```bash
 supabase start        # boot the local stack (Auth + Postgres + Storage) in Docker
@@ -136,7 +182,13 @@ pnpm test             # both, in order
 suites against the **local Supabase stack only — never a shared dev/staging/prod
 project** (architecture §18). If the stack is not reachable it **skips** those
 suites locally; CI sets `SUPABASE_TEST_REQUIRED=1` so a missing stack is a hard
-failure there. Always `supabase db reset` first for a clean baseline.
+failure there. For required story-completion runs set `SUPABASE_TEST_REQUIRED=1`
+even locally, and inspect executed/skipped counts. Explicit `test.skip()` cases
+remain skipped regardless of that setting and cannot satisfy acceptance coverage.
+Restore any prior process environment setting afterward. Reset only a verified
+disposable local database: either one owned by the run or the owner-authorized
+ElproSaas target above. Record whether verification used a SQL-only schema
+reset or a complete local-stack rebuild; do not claim the latter from the former.
 
 - `seed.sql` stays a minimal deterministic baseline; business/tenant fixtures come
   from the per-worker test-only factories (`tests/factories/`), not the seed.
@@ -191,7 +243,7 @@ needed and never paste sensitive records into docs or fixtures (see
 ## References
 
 - [README](../../README.md) — quickstart.
-- [`docs/quality/ci.md`](../quality/ci.md) — CI gates, the placeholder test gate,
+- [`docs/quality/ci.md`](../quality/ci.md) — CI gates, test requirements,
   and the local-Supabase-only test rule.
 - [`docs/quality/quality-gates.md`](../quality/quality-gates.md) — Gate 2 (Static
   Quality) and the docs/config-only convention.

@@ -13,10 +13,9 @@
  *   - the fail-closed shape CHECK `status <> 'completed' or completed_at is not null`;
  *   - the PARTIAL UNIQUE INDEX `quote_follow_ups_one_open_per_quote on (quote_id) where status='open'`
  *     — the UXB-A6 one-open-per-quote rule (R-1030) — plus a `tenant_id` index;
- *   - UPDATE-able (NOT insert-only): RLS ENABLE + FORCE; EXACTLY the own-tenant SELECT + INSERT + UPDATE
- *     policies (NO DELETE policy — archive-over-delete); the `authenticated` DML GRANT is
- *     SELECT+INSERT+UPDATE only (NO delete). This is the load-bearing contrast with 10.2's insert-only
- *     `quote_lost_reasons` and is what makes the `rls-invisible` cross-tenant UPDATE profile correct;
+ *   - the schema retains its SELECT + INSERT + UPDATE policies for the checked lifecycle functions, but
+ *     Story 11.2 grants `authenticated` SELECT only. Raw INSERT/UPDATE would bypass the atomic audit
+ *     transaction, so plan/complete/annotate are authenticated RPC-only; DELETE remains absent;
  *   - NO `updated_at` / `set_updated_at` trigger (the completion UPDATE is explicit; nothing derives);
  *   - SCOPE GUARD: NO money/öre column (no numeric/float), NO supplier/Fortnox/sync/portal column, NO
  *     notification/reminder/email column (Epic 13 owns reminders — the ⚑ scope boundary).
@@ -158,17 +157,17 @@ describe("quote_follow_ups migration reset — updatable one-open-per-quote tabl
     expect(rows.map((r) => r.cmd).sort()).toEqual(["INSERT", "SELECT", "UPDATE"]);
   });
 
-  it("[P0] the authenticated DML GRANT is SELECT+INSERT+UPDATE only (NO delete privilege)", async (testCtx) => {
+  it("[P0] authenticated has SELECT only; lifecycle INSERT/UPDATE are checked audited RPC-only", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
-    // Scope to the DML privileges {SELECT, INSERT, UPDATE, DELETE} and prove they are EXACTLY
-    // {INSERT, SELECT, UPDATE} — the archive-over-delete rule (no app-path DELETE grant).
+    // Raw writes would bypass the command-specific audit transaction, so only the
+    // read privilege remains on the table. DELETE is also absent (archive-over-delete).
     const rows = await adminQuery<{ privilege_type: string }>(
       `select privilege_type from information_schema.role_table_grants
          where table_schema = 'public' and table_name = $1 and grantee = 'authenticated'
            and privilege_type in ('SELECT', 'INSERT', 'UPDATE', 'DELETE')`,
       [TABLE],
     );
-    expect(rows.map((r) => r.privilege_type).sort()).toEqual(["INSERT", "SELECT", "UPDATE"]);
+    expect(rows.map((r) => r.privilege_type).sort()).toEqual(["SELECT"]);
   });
 
   it("[P0] anon has NO privileges on quote_follow_ups", async (testCtx) => {

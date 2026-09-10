@@ -26,8 +26,7 @@
  *   the allow-listed `{ targetId }` — NO PII / customer / title (audit-hygiene, R-710).
  */
 import { defineCommand } from "../envelope";
-import { CommandError } from "../command-errors";
-import { asJobWriteClient, throwMappedJobWriteError } from "./jobs-db";
+import { executeJobAuditedMutation } from "./jobs-audit-db";
 import { validateCreateJob, type CreateJobInput } from "./validation";
 import type { JobCommandResult } from "./jobs";
 
@@ -37,9 +36,8 @@ const JOB_TARGET_TYPE = "job";
 
 export const createJob = defineCommand<CreateJobInput, JobCommandResult>({
   command: JOB_CREATE_COMMAND,
-  // Envelope-auditable: a create is always a real mutation (no empty-patch no-op exists here),
-  // so the envelope's single audit write is exact — no conditional self-audit needed.
-  auditable: true,
+  // The checked RPC owns the insert, lifecycle event, and fixed audit row atomically.
+  auditable: false,
   eventType: JOB_CREATE_EVENT,
   targetType: JOB_TARGET_TYPE,
   validateInput: validateCreateJob,
@@ -47,9 +45,16 @@ export const createJob = defineCommand<CreateJobInput, JobCommandResult>({
   // foreign / non-existent id → zero rows → TENANT_ACCESS_DENIED (envelope verify), BEFORE execute.
   ownership: (input) => ({ table: "customers", id: input.customer_id }),
   execute: async (ctx): Promise<JobCommandResult> => {
-    const client = asJobWriteClient(ctx.db);
+    const jobId = await executeJobAuditedMutation(ctx.db, "create_job_with_audit", {
+      p_tenant_id: ctx.tenantContext.tenantId, p_actor_user_id: ctx.tenantContext.userId,
+      p_correlation_id: ctx.correlationId, p_customer_id: ctx.input.customer_id,
+      p_title: ctx.input.title ?? null, p_planned_start_date: ctx.input.planned_start_date ?? null,
+      p_planned_end_date: ctx.input.planned_end_date ?? null, p_occurred_at: ctx.clock.now().toISOString(),
+    });
 
-    // INSERT the standalone jobs row on the request-bound RLS client. tenant_id = the RESOLVED
+    /* Legacy direct-RLS implementation retained below only while this migration is
+       being composed; the audited RPC above is the live path. */
+    /*
     // tenant (never client-supplied); the own-tenant INSERT WITH CHECK + the composite same-tenant
     // customer FK keep it in-tenant. Source refs are OMITTED (born NULL — standalone).
     const { data, error } = await client
@@ -86,6 +91,7 @@ export const createJob = defineCommand<CreateJobInput, JobCommandResult>({
     });
     if (eventError) throwMappedJobWriteError(eventError);
 
+    */
     return { targetId: jobId };
   },
   auditFields: (_ctx, result) => ({ targetId: result.targetId }),

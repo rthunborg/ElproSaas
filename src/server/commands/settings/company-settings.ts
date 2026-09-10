@@ -20,7 +20,7 @@
  *   the validated VAT defaults (display mode + vat_rate_bp basis points) only.
  */
 import { defineCommand } from "../envelope";
-import { asSettingsWriteClient, throwMappedWriteError } from "./settings-db";
+import { asSettingsAuditRpcClient, throwMappedWriteError } from "./settings-db";
 import {
   validateUpdateCompanySettings,
   type UpdateCompanySettingsInput,
@@ -42,25 +42,14 @@ export interface SettingsCommandResult {
  * value IS provided it is written verbatim. The other identity fields ARE rendered by the
  * form and submitted on every save, so their `?? null` (explicit clear) is intentional.
  */
-function companySettingsUpsertValues(
-  tenantId: string,
-  input: UpdateCompanySettingsInput,
-): Record<string, unknown> {
+function companySettingsRpcValues(input: UpdateCompanySettingsInput) {
   return {
-    tenant_id: tenantId, // resolved tenant — NEVER a client-supplied id
-    company_name: input.company_name ?? null,
-    org_nr: input.org_nr ?? null,
-    address_line1: input.address_line1 ?? null,
-    address_line2: input.address_line2 ?? null,
-    postal_code: input.postal_code ?? null,
-    city: input.city ?? null,
-    email: input.email ?? null,
-    phone: input.phone ?? null,
-    // Omitted (undefined) → not in the payload → UPDATE preserves the existing logo,
-    // INSERT uses the column default. Provided → written verbatim.
-    ...(input.logo_url !== undefined ? { logo_url: input.logo_url } : {}),
-    default_vat_display: input.default_vat_display,
-    vat_rate_bp: input.vat_rate_bp, // integer basis points — never a float
+    p_company_name: input.company_name, p_org_nr: input.org_nr ?? null,
+    p_address_line1: input.address_line1 ?? null, p_address_line2: input.address_line2 ?? null,
+    p_postal_code: input.postal_code ?? null, p_city: input.city ?? null,
+    p_email: input.email ?? null, p_phone: input.phone ?? null,
+    p_logo_url: input.logo_url ?? null, p_logo_url_present: input.logo_url !== undefined,
+    p_default_vat_display: input.default_vat_display, p_vat_rate_bp: input.vat_rate_bp,
   };
 }
 
@@ -69,7 +58,7 @@ export const updateCompanySettings = defineCommand<
   SettingsCommandResult
 >({
   command: "company_settings.update",
-  auditable: true,
+  auditable: false,
   eventType: "company_settings.updated",
   targetType: "company_settings",
   validateInput: validateUpdateCompanySettings,
@@ -78,20 +67,16 @@ export const updateCompanySettings = defineCommand<
   // settings row is invisible under RLS, so the upsert can only ever touch the
   // caller's own row.
   execute: async (ctx) => {
-    const db = asSettingsWriteClient(ctx.db);
-    const { data, error } = await db
-      .from("company_settings")
-      .upsert(
-        companySettingsUpsertValues(ctx.tenantContext.tenantId, ctx.input),
-        { onConflict: "tenant_id" },
-      )
-      .select("id");
+    const db = asSettingsAuditRpcClient(ctx.db);
+    const { data, error } = await db.rpc("upsert_company_settings_with_audit", {
+      p_tenant_id: ctx.tenantContext.tenantId, p_actor_user_id: ctx.tenantContext.userId,
+      p_correlation_id: ctx.correlationId, ...companySettingsRpcValues(ctx.input),
+    });
     if (error) throwMappedWriteError(error);
-    const id = data?.[0]?.id;
-    if (typeof id !== "string") {
+    if (typeof data !== "string") {
       throw new Error("updateCompanySettings: no id returned");
     }
-    return { targetId: id };
+    return { targetId: data };
   },
   // Allow-listed audit metadata — ONLY the target id, NEVER the org_nr / address /
   // company name / VAT rate (sanitizeAuditMetadata drops anything else anyway).

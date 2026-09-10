@@ -2,24 +2,24 @@
  * The Story 10.3 follow-up workflow commands — `planQuoteFollowUp` / `completeQuoteFollowUp` /
  * `annotateQuoteFollowUp` (architecture-phase-b §9.1, §14; UXB-A6; R-1030/R-1032).
  *
- * Three SINGLE-ROW ENVELOPE commands (NO RPC — architecture §14). Each is a `defineCommand`
+ * Three single-row envelope commands backed by checked, command-specific RPCs. Each is a `defineCommand`
  * through the EXISTING envelope (resolve user → resolve active tenant_admin → validate typed input →
- * envelope `ownership` verifies the target is own-tenant-visible → in execute a direct RLS-client
- * table write with the RESOLVED tenant_id → append-only audit `{ targetId }` ONLY). No bespoke
- * auth/error/audit mechanism; no service-role app path.
+ * envelope `ownership` verifies the target is own-tenant-visible → in execute the checked RPC binds
+ * its write and fixed audit event in one transaction). The generic audit RPC remains Admin-only;
+ * no service-role app path is introduced.
  *
  * ── plan (AC1) ────────────────────────────────────────────────────────────────────────────────────
  * Ownership on `quote_versions`. Loads the anchor version's status + quote_id; asserts the anchor is
  * `sent` (a follow-up is for an OPEN deal); DERIVES quote_id from the LOADED row (never a client
  * value — a mismatched own-tenant quote_id would satisfy its own composite FK yet point the follow-up
- * at the wrong quote); INSERTs the open row with the resolved tenant_id. The one-open rule is
+ * at the wrong quote); the RPC inserts the open row with the resolved tenant id. The one-open rule is
  * DB-enforced by the partial unique index `(quote_id) WHERE status='open'` → a 23505 is mapped to a
  * CLEAR VALIDATION_FAILED ("En öppen uppföljning finns redan för offerten."), never a raw DB error.
  *
  * ── complete / annotate (AC3) ─────────────────────────────────────────────────────────────────────
- * Ownership on `quote_follow_ups`. The `where … and status='open'` predicate makes complete/annotate
- * a clean no-op-reject on a non-open row (zero rows → VALIDATION_FAILED). complete sets
- * status='completed' + outcome + completed_at (= the SINGLE injected command clock) on the same row;
+ * Ownership on `quote_follow_ups`. The RPC's locked open-row predicate makes complete/annotate a
+ * clean no-op-reject on a non-open row. complete sets
+ * status='completed' + outcome + a database-derived completion time on the same row;
  * annotate updates an open row's note. Audit metadata is `{ targetId }` ONLY — never the note/outcome
  * free text (possible PII), matching the lost/lifecycle allow-list discipline.
  */
@@ -27,7 +27,8 @@ import { defineCommand } from "../envelope";
 import { CommandError } from "../command-errors";
 import { calendarDayIn } from "@/features/quotes/follow-up-dates";
 import {
-  asQuoteFollowUpWriteClient,
+  asQuoteFollowUpLifecycleRpcClient,
+  extractQuoteFollowUpLifecycleId,
   loadQuoteVersionAnchor,
   throwMappedQuoteWriteError,
 } from "./quote-db";
@@ -63,7 +64,9 @@ export const planQuoteFollowUp = defineCommand<
   PlanQuoteFollowUpResult
 >({
   command: "quote.follow_up.plan",
-  auditable: true,
+  // The checked RPC owns the write and one audit row atomically.  Do not invoke the Admin-only
+  // generic audit RPC afterwards, which would both duplicate the event and reject Projektledare.
+  auditable: false,
   eventType: "quote.follow_up.plan",
   targetType: "quote_follow_up",
   validateInput: validatePlanQuoteFollowUp,
@@ -90,19 +93,17 @@ export const planQuoteFollowUp = defineCommand<
       throw new CommandError("FOLLOW_UP_DUE_DATE_IN_PAST");
     }
 
-    // ── INSERT the open row on the RLS client (never service-role). tenant_id from the resolved ──
-    // ── context; quote_id DERIVED from the loaded anchor row (never a client value).            ──
-    const w = asQuoteFollowUpWriteClient(db);
-    const { data, error } = await w
-      .from("quote_follow_ups")
-      .insert({
-        tenant_id: ctx.tenantContext.tenantId,
-        quote_id: anchor.quote_id,
-        quote_version_id: versionId,
-        due_date: ctx.input.due_date,
-        note: ctx.input.note ?? null,
-      })
-      .select("id");
+    // The checked RPC repeats the anchor checks under its row lock, inserts the follow-up, and
+    // records its fixed audit event atomically.  `quote_id` remains server-derived there.
+    const rpc = asQuoteFollowUpLifecycleRpcClient(db);
+    const { data, error } = await rpc.rpc("plan_quote_follow_up_with_audit", {
+      p_tenant_id: ctx.tenantContext.tenantId,
+      p_actor_user_id: ctx.tenantContext.userId,
+      p_correlation_id: ctx.correlationId,
+      p_quote_version_id: versionId,
+      p_due_date: ctx.input.due_date,
+      p_note: ctx.input.note ?? null,
+    });
     if (error) {
       // The one-open partial unique index (23505) → a CLEAR VALIDATION_FAILED, never a raw DB error.
       if (error.code === "23505") {
@@ -110,7 +111,7 @@ export const planQuoteFollowUp = defineCommand<
       }
       throwMappedQuoteWriteError(error);
     }
-    const newId = (data?.[0] as { id?: string } | undefined)?.id;
+    const newId = extractQuoteFollowUpLifecycleId(data);
     if (typeof newId !== "string") {
       throw new Error("planQuoteFollowUp: insert returned no id");
     }
@@ -125,7 +126,8 @@ export const completeQuoteFollowUp = defineCommand<
   CompleteQuoteFollowUpResult
 >({
   command: "quote.follow_up.complete",
-  auditable: true,
+  // See planQuoteFollowUp: the checked RPC owns the bound audit write.
+  auditable: false,
   eventType: "quote.follow_up.complete",
   targetType: "quote_follow_up",
   validateInput: validateCompleteQuoteFollowUp,
@@ -136,30 +138,28 @@ export const completeQuoteFollowUp = defineCommand<
     const db = ctx.db;
     const followUpId = ctx.input.follow_up_id;
 
-    // ── UPDATE the open row → completed on the RLS client. completed_at = the SINGLE injected ──
-    // ── command clock. The `status='open'` predicate makes an already-completed row a no-op.   ──
-    const w = asQuoteFollowUpWriteClient(db);
-    let q = w
-      .from("quote_follow_ups")
-      .update({
-        status: "completed",
-        outcome: ctx.input.outcome,
-        completed_at: ctx.clock.now().toISOString(),
-      })
-      .eq("id", followUpId)
-      .eq("tenant_id", ctx.tenantContext.tenantId)
-      .eq("status", "open");
-    // F5 (integration review): when the caller carries a SERVER-DERIVED expected quote id (the
-    // auto-complete-on-lost path derives it from the just-lost version, never the client), scope the
-    // completion to that quote too — so a forged/stale `follow_up_id` from a DIFFERENT own-tenant quote
-    // updates zero rows (clean reject) instead of silently completing the wrong quote's follow-up.
-    if (ctx.input.expected_quote_id !== undefined) {
-      q = q.eq("quote_id", ctx.input.expected_quote_id);
+    // The RPC locks and scopes the open row, writes its completion, and inserts the audit row in the
+    // same transaction.  The optional expected quote id retains F5's forged/stale-id defense.
+    const rpc = asQuoteFollowUpLifecycleRpcClient(db);
+    const { data, error } = await rpc.rpc("complete_quote_follow_up_with_audit", {
+      p_tenant_id: ctx.tenantContext.tenantId,
+      p_actor_user_id: ctx.tenantContext.userId,
+      p_correlation_id: ctx.correlationId,
+      p_follow_up_id: followUpId,
+      p_outcome: ctx.input.outcome,
+      // The RPC accepts this compatibility argument but deliberately derives the persisted
+      // completion time from its own statement timestamp, so a direct Data API caller cannot
+      // backdate or future-date the lifecycle event.
+      p_completed_at: ctx.clock.now().toISOString(),
+      p_expected_quote_id: ctx.input.expected_quote_id ?? null,
+    });
+    // QFU10 deliberately covers both an already-completed row and the server-derived F5 quote
+    // scope mismatch.  Neither state is disclosed; both preserve the established clean message.
+    if (error?.code === "QFU10") {
+      throw new CommandError("VALIDATION_FAILED", ALREADY_COMPLETED_MESSAGE);
     }
-    const { data, error } = await q.select("id");
     if (error) throwMappedQuoteWriteError(error);
-    // Zero rows: the follow-up is not open (already completed) → a clean no-op-reject.
-    if (!data || data.length === 0) {
+    if (extractQuoteFollowUpLifecycleId(data) === null) {
       throw new CommandError("VALIDATION_FAILED", ALREADY_COMPLETED_MESSAGE);
     }
     return { targetId: followUpId };
@@ -173,7 +173,8 @@ export const annotateQuoteFollowUp = defineCommand<
   AnnotateQuoteFollowUpResult
 >({
   command: "quote.follow_up.annotate",
-  auditable: true,
+  // See planQuoteFollowUp: the checked RPC owns the bound audit write.
+  auditable: false,
   eventType: "quote.follow_up.annotate",
   targetType: "quote_follow_up",
   validateInput: validateAnnotateQuoteFollowUp,
@@ -184,17 +185,19 @@ export const annotateQuoteFollowUp = defineCommand<
     const db = ctx.db;
     const followUpId = ctx.input.follow_up_id;
 
-    const w = asQuoteFollowUpWriteClient(db);
-    const { data, error } = await w
-      .from("quote_follow_ups")
-      .update({ note: ctx.input.note ?? null })
-      .eq("id", followUpId)
-      .eq("tenant_id", ctx.tenantContext.tenantId)
-      .eq("status", "open")
-      .select("id");
+    const rpc = asQuoteFollowUpLifecycleRpcClient(db);
+    const { data, error } = await rpc.rpc("annotate_quote_follow_up_with_audit", {
+      p_tenant_id: ctx.tenantContext.tenantId,
+      p_actor_user_id: ctx.tenantContext.userId,
+      p_correlation_id: ctx.correlationId,
+      p_follow_up_id: followUpId,
+      p_note: ctx.input.note ?? null,
+    });
+    if (error?.code === "QFU10") {
+      throw new CommandError("VALIDATION_FAILED", ALREADY_COMPLETED_MESSAGE);
+    }
     if (error) throwMappedQuoteWriteError(error);
-    // Zero rows: the follow-up is not open (annotate is open-only) → a clean no-op-reject.
-    if (!data || data.length === 0) {
+    if (extractQuoteFollowUpLifecycleId(data) === null) {
       throw new CommandError("VALIDATION_FAILED", ALREADY_COMPLETED_MESSAGE);
     }
     return { targetId: followUpId };

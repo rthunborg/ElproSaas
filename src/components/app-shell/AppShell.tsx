@@ -17,7 +17,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { navItems } from "./nav-items";
+import type { NavItem } from "./nav-items";
 import { NavIcon } from "./NavIcon";
 import { SignOutButton } from "./SignOutButton";
 
@@ -43,15 +43,17 @@ function isActive(pathname: string | null, href: string): boolean {
 function NavLinks({
   variant,
   pathname,
+  navigation,
   onNavigate,
 }: {
   variant: "sidebar" | "drawer";
   pathname: string | null;
+  navigation: readonly NavItem[];
   onNavigate?: () => void;
 }) {
   return (
     <ul className="flex flex-col gap-1">
-      {navItems.map((item) => {
+      {navigation.map((item) => {
         const active = isActive(pathname, item.href);
         return (
           <li key={item.href} className="relative">
@@ -102,6 +104,7 @@ function NavLinks({
 export function AppShell({
   children,
   context,
+  navigation,
 }: {
   children: React.ReactNode;
   /**
@@ -112,6 +115,8 @@ export function AppShell({
    * it (review fix: AppShell context was optional and failed open).
    */
   context: AppShellContext;
+  /** Server-derived, role-filtered presentation DTO. */
+  navigation: readonly NavItem[];
 }) {
   const pathname = usePathname();
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -120,7 +125,7 @@ export function AppShell({
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const drawerRef = useRef<HTMLDivElement>(null);
 
-  const activeItem = navItems.find((item) => isActive(pathname, item.href));
+  const activeItem = navigation.find((item) => isActive(pathname, item.href));
   const pageTitle = activeItem?.label ?? "ElproSaas";
 
   // Explicit close (Escape / overlay / close button): return focus to the toggle (UX-DR35).
@@ -225,7 +230,7 @@ export function AppShell({
               `left-full` (outside the 64px rail), and a scroll container would clip it
               (CSS coerces overflow-x to auto). Scroll is only needed at lg (labels). */}
           <nav aria-label="Huvudnavigation" className="flex-1 p-2 lg:overflow-y-auto">
-            <NavLinks variant="sidebar" pathname={pathname} />
+            <NavLinks variant="sidebar" pathname={pathname} navigation={navigation} />
           </nav>
         </aside>
 
@@ -348,7 +353,7 @@ export function AppShell({
               </button>
             </div>
             <nav aria-label="Huvudnavigation" className="flex-1 overflow-y-auto p-2">
-              <NavLinks variant="drawer" pathname={pathname} onNavigate={handleDrawerNavigate} />
+              <NavLinks variant="drawer" pathname={pathname} navigation={navigation} onNavigate={handleDrawerNavigate} />
             </nav>
           </div>
         </div>

@@ -9,21 +9,18 @@
  * `rls-inventory-gate.int.test.ts`), NOT a hand-written parallel suite (Task 2.3; standing enrolment
  * contract, architecture §18). This file pins only the ONE profile-specific proof that is DIFFERENT
  * from 10.2's insert-only table: `quote_follow_ups` is UPDATE-able, so its mutation-denial profile is
- * `"rls-invisible"` (SETTLED DESIGN DECISION 1, mirror `quote_acceptances`) — meaning:
- *   - an OWN-TENANT authenticated UPDATE of a follow-up row is ALLOWED (open → completed / annotate is
- *     an UPDATE) — the load-bearing contrast with the insert-only `quote_lost_reasons`;
- *   - a CROSS-TENANT authenticated UPDATE matches ZERO rows under RLS `USING` (the foreign row is
- *     invisible) and leaves the target row byte-UNCHANGED — asserted via zero-rows-affected PLUS a
- *     BYPASSRLS re-read (never a vacuous empty set);
- *   - an OWN-TENANT authenticated DELETE is REJECTED (no DELETE grant/policy — archive-over-delete).
+ * `"rls-invisible"` for reads, while Story 11.2 closes authenticated raw INSERT/UPDATE as an
+ * unaudited bypass. Plan/complete/annotate now run through checked transactional RPCs that bind
+ * their audit events. This suite keeps the schema and tenant-state proof at the database layer and
+ * asserts that both own- and cross-tenant direct updates are denied.
  *
- * Getting the profile wrong (using `"privilege"` as for 10.2) would make the cross-tenant UPDATE assert
- * the WRONG mechanism — hence this focused readability aid alongside the shared mutation suite.
+ * The table policies still express the lifecycle shape, but their raw authenticated
+ * DML grants are deliberately closed. The shared command suite proves the checked
+ * RPC behavior; this focused suite proves direct DML cannot bypass it.
  *
  * ── GREEN (Story 10.3 implemented) ────────────────────────────────────────────────────────────────
- * The `quote_follow_ups` table + its `TENANT_TABLES` enrolment (mutation profile `"rls-invisible"`) are
- * landed; this suite is unskipped and green, and the shared cross-tenant/anon suites also cover this
- * table via enrolment.
+ * The `quote_follow_ups` table and its `TENANT_TABLES` enrolment are landed. This
+ * suite is unskipped and the shared cross-tenant/anon suites retain read coverage.
  *
  * Runs against the LOCAL Supabase stack only; skips visibly when unreachable. Mirrors the authed-client
  * mutation pattern in `quote-lost-reasons.rls.test.ts` (10.2) — inverted for the UPDATE-allowed profile.
@@ -89,27 +86,26 @@ async function seedOpenFollowUp(tenantId: string): Promise<string> {
   return rows[0]!.id;
 }
 
-describe("quote_follow_ups UPDATABLE RLS profile (rls-invisible) — own-tenant UPDATE allowed, cross-tenant hidden (AC4)", () => {
-  it("[P0] 10.3-RLS-01: an OWN-TENANT authenticated UPDATE of a follow-up note is ALLOWED (updatable table)", async (testCtx) => {
+describe("quote_follow_ups audited lifecycle boundary — direct mutation denied (AC4)", () => {
+  it("[P0] 10.3-RLS-01: an OWN-TENANT authenticated raw UPDATE is denied before it can bypass the audit transaction", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     const followUpId = await seedOpenFollowUp(fixture.tenantA.id);
 
-    // adminA is the OWN tenant of this row (RLS-visible + UPDATE grant + UPDATE policy).
     const { error } = await a
       .from("quote_follow_ups")
       .update({ note: "annoterad av ägaren" })
       .eq("id", followUpId)
       .select();
-    expect(error).toBeNull();
+    expect(error?.code).toBe("42501");
 
     const after = await adminQuery<{ note: string | null }>(
       `select note from public.quote_follow_ups where id = $1`,
       [followUpId],
     );
-    expect(after[0]?.note).toBe("annoterad av ägaren");
+    expect(after[0]?.note).toBe("ursprunglig notering");
   });
 
-  it("[P0] 10.3-RLS-01: a CROSS-TENANT authenticated UPDATE matches ZERO rows and leaves the row UNCHANGED (rls-invisible)", async (testCtx) => {
+  it("[P0] 10.3-RLS-01: a CROSS-TENANT authenticated raw UPDATE is denied and leaves the row unchanged", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     // A REAL Tenant-B follow-up (existing but A-invisible under RLS USING).
     const bFollowUpId = await seedOpenFollowUp(fixture.tenantB.id);
@@ -119,9 +115,8 @@ describe("quote_follow_ups UPDATABLE RLS profile (rls-invisible) — own-tenant 
       .update({ note: "tampered-by-a" })
       .eq("id", bFollowUpId)
       .select();
-    // UPDATE grant EXISTS, so no privilege error; RLS USING hides the foreign row → zero rows affected.
-    expect(error).toBeNull();
-    expect(data ?? []).toEqual([]);
+    expect(error?.code).toBe("42501");
+    expect(data).toBeNull();
 
     // BYPASSRLS re-read proves the Tenant-B row is byte-UNCHANGED (never a vacuous empty set).
     const after = await adminQuery<{ note: string | null }>(

@@ -22,8 +22,8 @@
  *   - `set_updated_at` BEFORE UPDATE trigger on both tables (REUSED helper);
  *   - RLS ENABLE + FORCE; own-tenant SELECT/INSERT/UPDATE policies (NO DELETE policy —
  *     archive over hard delete);
- *   - explicit role GRANTs (authenticated SELECT/INSERT/UPDATE; service_role full DML;
- *     anon NONE);
+ *   - explicit role GRANTs (authenticated SELECT only; checked audited wrappers own
+ *     mutation; service_role full DML; anon NONE);
  *   - NO broad deferred file-index / document-center table (AC1 guardrail).
  *
  * ── GREEN as of Story 8.1 dev ───────────────────────────────────────────────────
@@ -312,7 +312,7 @@ describe("File migration reset — files/file_links (AC1/AC4/AC8)", () => {
     }
   });
 
-  it("[P0] GRANTs: authenticated SELECT/INSERT/UPDATE (no DELETE); anon NOTHING", async (testCtx) => {
+  it("[P0] GRANTs: authenticated SELECT only; direct file INSERT/UPDATE/DELETE are closed to audited wrappers; anon has no DML", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     const rows = await adminQuery<{ grantee: string; privilege_type: string }>(
       `select grantee, privilege_type from information_schema.role_table_grants
@@ -323,9 +323,9 @@ describe("File migration reset — files/file_links (AC1/AC4/AC8)", () => {
       .filter((r) => r.grantee === "authenticated")
       .map((r) => r.privilege_type);
     expect(authed).toContain("SELECT");
-    expect(authed).toContain("INSERT");
-    expect(authed).toContain("UPDATE");
-    expect(authed).not.toContain("DELETE"); // DELETE not granted — archive via archived_at
+    expect(authed).not.toContain("INSERT");
+    expect(authed).not.toContain("UPDATE");
+    expect(authed).not.toContain("DELETE");
     // anon holds NONE of the four DATA-access privileges (Supabase's default schema
     // privileges still hand anon the non-DML REFERENCES/TRIGGER/TRUNCATE — assert on
     // DML only, mirroring calc-tables-migration-reset.int.test.ts).

@@ -73,6 +73,7 @@ import { runCommand } from "@/server/commands/envelope";
 import {
   createNewQuoteVersion,
   markQuoteVersionLifecycle,
+  planQuoteFollowUp,
 } from "@/server/commands/quotes";
 import type { CommandClock } from "@/server/commands/clock";
 
@@ -200,14 +201,19 @@ describe("createNewQuoteVersion — new version with an explicit parent relation
     const seed = await seedSentVersionWithChildren(fixture.tenantA.id);
     const correlationId = crypto.randomUUID();
     const v1Before = await adminSelectQuoteVersionRow(seed.sentVersionId);
-    const planned = await a.from("quote_follow_ups").insert({
-      tenant_id: fixture.tenantA.id,
-      quote_id: seed.quoteId,
-      quote_version_id: seed.sentVersionId,
-      due_date: new Date(Date.now() + 48 * 60 * 60 * 1_000).toISOString().slice(0, 10),
-      status: "open",
+    // Quote-follow-up writes are deliberately closed to direct authenticated DML. Seed the
+    // open follow-up through its checked, audited lifecycle command so the successor proof
+    // continues to cover preservation rather than bypassing the production write boundary.
+    const planned = await runCommand(planQuoteFollowUp, {
+      client: a as never,
+      input: {
+        quote_version_id: seed.sentVersionId,
+        due_date: new Date(Date.now() + 48 * 60 * 60 * 1_000).toISOString().slice(0, 10),
+      },
+      clock: fixedClock,
+      correlationId: crypto.randomUUID(),
     });
-    expect(planned.error).toBeNull();
+    expect(planned.ok).toBe(true);
 
     // Mutate the SOURCE calc so the fresh capture DIFFERS from v1's frozen totals/lines.
     await mutateSourceRowPrice(seed.sectionId, fixture.tenantA.id);

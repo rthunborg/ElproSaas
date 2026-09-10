@@ -31,3 +31,29 @@ Mandatory rules:
 - Report concrete, production-reachable defects introduced by the PR that affect correctness, security, tenant isolation, data integrity, or customer-visible output. Before reporting a missing guard, verify whether an enforced downstream validator, database constraint, trigger, or authorized wrapper already blocks the path; if it does, report only an identified bypass.
 - On follow-up commits, prioritize regressions in changed lines and unresolved consequential findings. After three completed review rounds, do not start another broad pass; limit follow-up review to regressions in the latest fixes and unresolved serious findings. Distinguish a reachable defect from optional defense-in-depth by naming the caller, authorization level, and invariant bypass.
 - Leave deterministic formatting, lint, and schema-shape checks to CI. Do not restate them as review findings unless the PR disables or bypasses the check.
+
+<!-- bmad:context -->
+<!-- Verified 2026-09-08 against db2100af8401de4a336027463086fae5302f5a04. Managed by bmad-project-context; edits inside this block are replaced on refresh. Keep anything you want preserved outside the markers. -->
+
+## ElproSaas
+
+ElPro is a multi-tenant application for electrical contractors, built with Next.js, TypeScript, and Supabase. Planning lives under `_bmad-output/planning-artifacts/`; shared governance lives in this file and `docs/`.
+
+## Where things are
+
+- For Phase B architecture changes, read `_bmad-output/planning-artifacts/architecture-phase-b.md`; current amendments supersede historical Phase A guidance.
+- For money/tax changes, follow architecture-phase-b §12A and the shared `src/lib/money/` implementation.
+- For quote lifecycle or PDF-provenance changes, read `docs/decisions/ADR-B008-quote-review-authority-and-derived-artifact-validity.md`.
+- For deeper domain and implementation conventions, read `_bmad-output/project-context.md`; retain its recorded lessons while checking historical claims against current decisions.
+- For local database or browser verification, read `docs/process/local-setup.md`, including resource ownership and cleanup requirements.
+
+## Running and verifying
+
+- For required integration/RLS evidence, set `SUPABASE_TEST_REQUIRED=1` and inspect executed/skipped counts; unavailable services can otherwise skip suites. Explicitly skipped tests are not coverage.
+- Use Playwright's configured production web server; do not substitute `next dev`, whose HMR socket prevents hydration in headless Chromium.
+
+## Conventions that differ from defaults
+
+- Follow ADR-B009 for field workflows: connected responsive web at 360×640, explicit failure/retry, and success only after server-confirmed persistence. PWA installation, durable offline storage, queues, and synchronization remain Phase C.
+
+<!-- /bmad:context -->

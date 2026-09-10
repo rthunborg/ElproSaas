@@ -47,10 +47,10 @@ Codex should:
 - State whether it is operating in read-only, docs/config-only, or implementation mode before making changes.
 - Edit files in the repo.
 - Avoid destructive commands.
-- Avoid network commands unless explicitly approved.
+- Run necessary network actions within the authorized task scope and current host permissions; do not request repeated approval for that authorized work.
 - Avoid touching `.env`.
-- Avoid adding dependencies unless explicitly approved.
-- Verify changes locally with available non-network commands.
+- Add or upgrade dependencies only within authorized implementation scope; docs/process-only work adds none.
+- Verify changes locally with appropriate checks, within the authorized scope and resource lifecycle requirements.
 - Report exact files changed and checks run.
 
 ## Lovable Oracle Workflow
@@ -70,14 +70,11 @@ Forbidden outputs by default:
 - Recreated insecure service-role patterns.
 - Deferred module expansion.
 
-## Hard Approval Gates
+## Authorization and Remaining Gates
 
-Manual approval is required before:
+Implementation requires an approved story or ADR-backed task. Within authorized scope, code, migrations, dependencies, and necessary network actions do not require repeated approval. Docs/process-only work excludes product code, migrations, dependencies, and `.env`. Preserve current secret, destructive-action, merge, and Phase C owner-decision gates.
 
-- Product feature implementation starts.
-- Database migrations are created.
-- Dependencies are added or upgraded.
-- Network commands are run.
-- `.env` or secrets handling changes.
-- A scope-manifest module is flipped `pending → active` (per-epic activation — must land in the same PR as the module's first schema/nav change, with its H4 enrollment and deny-list token removal).
-- Any Phase C hard-exclusion (all AI flows, live supplier vendor APIs, customer portal / BankID online acceptance, bookkeeping beyond Fortnox, the public anonymous suggestion endpoint, the full-release legal/GDPR program, a native mobile app, self-serve tenant signup) is brought into active scope.
+- Obtain story or ADR approval before starting product work; that authorization covers its required implementation actions within the agreed scope.
+- Activate a pending module only within an approved activation story, in the same PR as its first schema/nav change, H4 enrollment, and deferred-token removal.
+- Keep explicit approval for PR merge and for changes to `.env` or secrets handling; current host prohibitions and destructive-action safeguards still apply.
+- Bringing any Phase C hard exclusion into active scope requires a new owner decision and linked planning artifact.

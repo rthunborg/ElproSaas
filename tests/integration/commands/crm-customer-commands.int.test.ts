@@ -229,12 +229,14 @@ describe("CRM customer commands via the envelope (AC3 / R-001,R-010)", () => {
     if (!created.ok) return;
     const customerId = (created.data as { targetId: string }).targetId;
 
+    const databaseBefore = await readDatabaseNow();
     const archived = await runCommand(archiveCustomer, {
       client: a as never,
       input: { id: customerId },
       clock: fixedClock,
       correlationId: crypto.randomUUID(),
     });
+    const databaseAfter = await readDatabaseNow();
     expect(archived.ok).toBe(true);
 
     // Independent BYPASSRLS read proves the row still EXISTS with archived_at set —
@@ -242,7 +244,12 @@ describe("CRM customer commands via the envelope (AC3 / R-001,R-010)", () => {
     const row = await adminSelectCrmRowById("customers", customerId);
     expect(row).not.toBeNull();
     expect(row?.archived_at).not.toBeNull();
-    expect(new Date(row?.archived_at as string).toISOString()).toBe(FIXED_ISO);
+    expectDatabaseOwnedTimestamp(
+      row?.archived_at as string,
+      databaseBefore,
+      databaseAfter,
+      FIXED_ISO,
+    );
   });
 
   it("[P1] updateCustomer on a foreign-tenant id returns TENANT_ACCESS_DENIED (RLS invisible)", async (testCtx) => {

@@ -41,6 +41,7 @@ import { adminQuery } from "../../factories/admin-sql";
 import { adminSelectAuditEvents } from "../../factories/audit-events";
 import { isLocalStackReachable } from "../../support/test-env";
 import { skipUnlessStack } from "../../support/stack-gate";
+import { expectDatabaseOwnedTimestamp, readDatabaseNow } from "../../support/database-time";
 import { runCommand } from "@/server/commands/envelope";
 import { createJob } from "@/server/commands/jobs";
 import type { CommandClock } from "@/server/commands/clock";
@@ -167,6 +168,7 @@ describe("createJob — standalone creation: NULL source refs, created event, au
       org_nr: "556200-0004",
     });
     const correlationId = crypto.randomUUID();
+    const databaseBefore = await readDatabaseNow();
 
     const result = await runCommand(createJob, {
       client: clientA as never,
@@ -179,6 +181,7 @@ describe("createJob — standalone creation: NULL source refs, created event, au
         planned_end_date: "2026-08-15",
       },
     });
+    const databaseAfter = await readDatabaseNow();
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     const jobId = result.data.targetId;
@@ -197,7 +200,7 @@ describe("createJob — standalone creation: NULL source refs, created event, au
     const events = await adminSelectJobEventsForJob(jobId);
     expect(events).toHaveLength(1);
     expect(events[0]?.event_type).toBe("created");
-    expect(new Date(events[0]!.occurred_at).toISOString()).toBe(FIXED_ISO);
+    expectDatabaseOwnedTimestamp(events[0]!.occurred_at, databaseBefore, databaseAfter, FIXED_ISO);
 
     // EXACTLY ONE envelope audit row: job.created, target on the target_id COLUMN, metadata {}
     // after the allow-list sanitizer (NO PII / customer / title — R-710).

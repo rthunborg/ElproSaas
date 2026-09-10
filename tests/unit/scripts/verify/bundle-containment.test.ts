@@ -55,6 +55,11 @@ function makeNextTree(root: string, chunkContents: string): void {
   writeFileSync(join(root, ".next", "static", "chunks", "app.js"), chunkContents);
 }
 
+function makeQuotePdfSignerServerChunk(root: string, chunkContents: string): void {
+  mkdirSync(join(root, ".next", "server", "chunks", "ssr"), { recursive: true });
+  writeFileSync(join(root, ".next", "server", "chunks", "ssr", "signer.js"), chunkContents);
+}
+
 test("[P0] GREEN: a clean built bundle (no service-role anything) yields ZERO violations", () => {
   withTempRoot((root) => {
     makeNextTree(root, "export const x = 1; // no secrets here\n");
@@ -68,6 +73,38 @@ test("[P0] RED: a service-role key NAME planted in a chunk is flagged", () => {
     makeNextTree(root, 'const k="SUPABASE_SERVICE_ROLE_KEY";\n');
     const { violations } = scanBuiltBundle(root);
     assert.ok(violations.length > 0, "expected at least one violation");
+    assert.match(violations.join("\n"), /SUPABASE_SERVICE_ROLE_KEY/);
+  });
+});
+
+test("[P0] GREEN: the documented quote-PDF signer server chunk may retain only its env-var name", () => {
+  withTempRoot((root) => {
+    makeQuotePdfSignerServerChunk(
+      root,
+      'const k=process.env.SUPABASE_SERVICE_ROLE_KEY; throw Error("Quote PDF signing is not configured");\n',
+    );
+    const { violations } = scanBuiltBundle(root);
+    assert.deepEqual(violations, []);
+  });
+});
+
+test("[P0] RED: the signer env-var name in a browser chunk is still flagged", () => {
+  withTempRoot((root) => {
+    makeNextTree(
+      root,
+      'const k="SUPABASE_SERVICE_ROLE_KEY"; const marker="Quote PDF signing is not configured";\n',
+    );
+    const { violations } = scanBuiltBundle(root);
+    assert.ok(violations.length > 0, "browser output must never use the signer exception");
+    assert.match(violations.join("\n"), /SUPABASE_SERVICE_ROLE_KEY/);
+  });
+});
+
+test("[P0] RED: the signer env-var name in an unmarked server artifact is flagged", () => {
+  withTempRoot((root) => {
+    makeQuotePdfSignerServerChunk(root, 'const k="SUPABASE_SERVICE_ROLE_KEY";\n');
+    const { violations } = scanBuiltBundle(root);
+    assert.ok(violations.length > 0, "only the documented signer module may retain the name");
     assert.match(violations.join("\n"), /SUPABASE_SERVICE_ROLE_KEY/);
   });
 });

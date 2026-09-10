@@ -26,18 +26,26 @@
  * - NO personnummer enters the snapshot or the RPC (display/posture only).
  */
 import { defineCommand } from "../envelope";
+import { CommandError } from "../command-errors";
 import {
   asQuoteReviewAuthorizationRpcClient,
   asQuoteRpcClient,
   extractQuoteReviewAuthorizationId,
   throwMappedQuoteWriteError,
+  loadCalcHeader,
 } from "./quote-db";
 import {
   attachmentsToPayload,
   buildFreshQuoteSnapshot,
+  buildFreshQuoteSnapshotFromCustomerVisibleSource,
   linesToPayload,
   snapshotToPayload,
 } from "./snapshot-build";
+import {
+  asQuoteInitialCustomerVisibleAuthorizationRpcClient,
+  buildQuoteInitialCustomerVisibleReviewDigest,
+  loadQuoteInitialCustomerVisibleSource,
+} from "./quote-initial-source-db";
 import {
   validateCreateReviewedQuoteVersionFromCalculation,
   type CreateReviewedQuoteVersionInput,
@@ -59,16 +67,46 @@ export const createQuoteVersionFromCalculation = defineCommand<
   eventType: "quote.version.created",
   targetType: "quote_version",
   validateInput: validateCreateReviewedQuoteVersionFromCalculation,
-  // Envelope ownership: the SOURCE calculation must be visible under the caller's RLS
-  // (own tenant). A foreign / non-existent calc id → zero rows → TENANT_ACCESS_DENIED,
-  // BEFORE execute.
-  ownership: (input) => ({ table: "calculations", id: input.calculation_id }),
   execute: async (ctx): Promise<CreateQuoteVersionResult> => {
     const db = ctx.db;
     const tenantId = ctx.tenantContext.tenantId;
     const capturedAt = ctx.clock.now().toISOString();
+    const roles = ctx.tenantContext.roles ?? [ctx.tenantContext.role];
+    const sellerOnly = roles.includes("saljare")
+      && !roles.includes("tenant_admin")
+      && !roles.includes("projektledare");
+
+    // The generic envelope cannot branch ownership on resolved roles. Admin/PM
+    // retain the identical caller-RLS preflight before the established snapshot read.
+    if (!sellerOnly && await loadCalcHeader(db, ctx.input.calculation_id) === null) {
+      throw new CommandError("TENANT_ACCESS_DENIED");
+    }
 
     // ── RE-CAPTURE the FROZEN composite snapshot from the CURRENT source rows (shared helper). ──
+    const built = sellerOnly
+      ? await (async () => {
+          const projected = await loadQuoteInitialCustomerVisibleSource(db, {
+            p_tenant_id: tenantId,
+            p_calculation_id: ctx.input.calculation_id,
+            p_requested_attachment_ids: ctx.input.attachment_file_ids,
+            p_actor_user_id: ctx.tenantContext.userId,
+          });
+          const built = buildFreshQuoteSnapshotFromCustomerVisibleSource(projected.source, {
+            calculationId: ctx.input.calculation_id,
+            capturedAt,
+          });
+          if (ctx.input.reviewed_quote_capture_date !== built.quoteCaptureDate || ctx.input.reviewed_snapshot_digest !== buildQuoteInitialCustomerVisibleReviewDigest(projected.source, built)) {
+            throw new CommandError("VALIDATION_FAILED", "Kalkylen har ändrats – öppna och granska en ny förhandsvisning.");
+          }
+          return built;
+        })()
+      : await buildFreshQuoteSnapshot(db, {
+          calculationId: ctx.input.calculation_id,
+          attachmentFileIds: ctx.input.attachment_file_ids,
+          capturedAt,
+          reviewedSnapshotDigest: ctx.input.reviewed_snapshot_digest,
+          reviewedQuoteCaptureDate: ctx.input.reviewed_quote_capture_date,
+        });
     const {
       snapshot,
       customerId,
@@ -76,21 +114,29 @@ export const createQuoteVersionFromCalculation = defineCommand<
       contactId,
       reviewedReadinessRows,
       reviewedCalculationStatus,
-    } =
-      await buildFreshQuoteSnapshot(db, {
-        calculationId: ctx.input.calculation_id,
-        attachmentFileIds: ctx.input.attachment_file_ids,
-        capturedAt,
-        reviewedSnapshotDigest: ctx.input.reviewed_snapshot_digest,
-        reviewedQuoteCaptureDate: ctx.input.reviewed_quote_capture_date,
-      });
+    } = built;
 
     // ── Call the narrow atomic RPC on the RLS client (never service-role). ──
     const snapshotPayload = snapshotToPayload(snapshot);
     const linesPayload = linesToPayload(snapshot);
     const attachmentsPayload = attachmentsToPayload(snapshot);
-    const authorityRpc = asQuoteReviewAuthorizationRpcClient(db);
-    const authorization = await authorityRpc.rpc("authorize_quote_initial_review", {
+    const authorization = sellerOnly
+      ? await asQuoteInitialCustomerVisibleAuthorizationRpcClient(db).rpc("authorize_quote_initial_customer_visible_review", {
+          p_tenant_id: tenantId,
+          p_calculation_id: ctx.input.calculation_id,
+          p_captured_at: capturedAt,
+          p_customer_id: customerId,
+          p_facility_id: facilityId,
+          p_contact_id: contactId,
+          p_snapshot: snapshotPayload,
+          p_lines: linesPayload,
+          p_attachments: attachmentsPayload,
+          p_reviewed_quote_capture_date: ctx.input.reviewed_quote_capture_date,
+          p_reviewed_calculation_status: reviewedCalculationStatus,
+          p_actor_user_id: ctx.tenantContext.userId,
+          p_correlation_id: ctx.correlationId,
+        })
+      : await asQuoteReviewAuthorizationRpcClient(db).rpc("authorize_quote_initial_review", {
       p_tenant_id: tenantId,
       p_calculation_id: ctx.input.calculation_id,
       p_captured_at: capturedAt,
@@ -105,7 +151,7 @@ export const createQuoteVersionFromCalculation = defineCommand<
       p_reviewed_readiness_rows: reviewedReadinessRows,
       p_actor_user_id: ctx.tenantContext.userId,
       p_correlation_id: ctx.correlationId,
-    });
+        });
     if (authorization.error) throwMappedQuoteWriteError(authorization.error);
     const authorizationId = extractQuoteReviewAuthorizationId(authorization.data);
     if (authorizationId === null) {

@@ -29,15 +29,7 @@
  *   (audit-hygiene, R-710).
  */
 import { defineCommand } from "../envelope";
-import { CommandError } from "../command-errors";
-import { writeAuditEvent } from "../audit";
-import type { CommandExecuteContext } from "../envelope-core";
-import type { CommandDbClient } from "../envelope";
-import {
-  asJobWriteClient,
-  loadJobStatus,
-  throwMappedJobWriteError,
-} from "./jobs-db";
+import { executeJobAuditedMutation } from "./jobs-audit-db";
 import { validateUpdateJob, type UpdateJobInput } from "./validation";
 
 /** Every job command returns the affected row id under `targetId`. */
@@ -83,6 +75,14 @@ export const updateJob = defineCommand<UpdateJobInput, JobCommandResult>({
       return { targetId: ctx.input.id };
     }
 
+    await executeJobAuditedMutation(db, "update_job_with_audit", {
+      p_tenant_id: ctx.tenantContext.tenantId, p_actor_user_id: ctx.tenantContext.userId,
+      p_correlation_id: ctx.correlationId, p_job_id: ctx.input.id, p_patch: patch, p_occurred_at: ctx.clock.now().toISOString(),
+    });
+    return { targetId: ctx.input.id };
+
+    /* Legacy direct-RLS implementation retained below only while this migration is
+       being composed; the audited RPC above is the live path.
     // Detect a status change (to decide whether to append a job_events lifecycle row). Read the
     // CURRENT status under the caller's RLS BEFORE the update. Ownership already proved visibility;
     // a null here is a race → deny.
@@ -135,5 +135,6 @@ export const updateJob = defineCommand<UpdateJobInput, JobCommandResult>({
     );
 
     return { targetId: ctx.input.id };
+    */
   },
 });

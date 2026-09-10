@@ -136,6 +136,26 @@ async function readAllIdBatches<T>(
 }
 
 /**
+ * Säljare cannot read `quote_acceptances` directly because it carries protected accepted
+ * amounts. The checked RPC deliberately exposes only the ID pair needed by the existing
+ * quote-detail evidence panel; Admin/Projektledare use the same safe projection here.
+ */
+async function readQuoteAcceptanceRefs(
+  client: QuoteReadServerClient,
+  versionIds: readonly string[],
+): Promise<{ data: Record<string, unknown>[]; error: unknown | null }> {
+  const rows: Record<string, unknown>[] = [];
+  for (const idBatch of chunkValues(versionIds)) {
+    const result = await client.rpc("read_quote_acceptance_refs", {
+      p_quote_version_ids: idBatch,
+    });
+    if (result.error) return { data: [], error: result.error };
+    rows.push(...((result.data ?? []) as Record<string, unknown>[]));
+  }
+  return { data: rows, error: null };
+}
+
+/**
  * Read the ACTIVE quote list (`archived_at is null`), ordered by `updated_at` desc. RLS scopes
  * to the caller's tenant. The customer display_name is joined via the embedded
  * `customers(display_name)` relationship (RLS restricts the join to own-tenant customers). The
@@ -748,16 +768,9 @@ export async function readQuoteDetail(
         .order("quote_version_id", { ascending: true })
         .order("id", { ascending: true })
         .range(from, to)),
-      // The acceptance(s) recorded off any version of THIS quote (RLS-scoped; own-tenant only).
-      // Story 8.2 (AC5): the acceptance-evidence file panel needs the acceptance id per accepted
-      // version. `unique (quote_version_id)` guarantees at most one acceptance per version.
-      readAllIdBatches([...versionIdSet], (ids, from, to) => client
-        .from("quote_acceptances")
-        .select("id, quote_version_id")
-        .in("quote_version_id", ids)
-        .order("quote_version_id", { ascending: true })
-        .order("id", { ascending: true })
-        .range(from, to)),
+      // The acceptance-evidence panel needs only the id per accepted version. This checked
+      // projection deliberately excludes the table's accepted amounts for Säljare.
+      readQuoteAcceptanceRefs(client, [...versionIdSet]),
       // Story 10.2 (AC2): the selected version's Förlorad/Avböjd reason (own-tenant RLS). At most one
       // per version (unique (quote_version_id)). A read fault is NON-FATAL (the card degrades).
       client

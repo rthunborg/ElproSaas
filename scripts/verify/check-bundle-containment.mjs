@@ -9,11 +9,14 @@
 // transitively-bundled server module, and any `*SERVICE_ROLE*` token that survived
 // minification. [architecture §9, §20; test-design-epic-2.md R-002]
 //
-// Today the app uses NO service-role key (anon key + RLS), so a clean `.next` build
-// MUST yield ZERO violations. The check FAILS RED when a service-role reference is
-// planted in any built artifact, and FAILS LOUD when `.next` is absent (never a
-// vacuous green on an empty scan — an un-built tree is an operator error, not a
-// pass).
+// The app has one documented server-only exception: the quote-PDF signer at
+// `src/server/storage/quote-pdf-signer.ts` uses the service-role key to sign the
+// exact target already bound by the checked database workflow. Its server chunk and
+// source map may retain the *environment-variable name*, never its value. Every
+// browser chunk, route/RSC payload, arbitrary server artifact, JWT value, and any
+// other `*SERVICE_ROLE*` token still fails closed. The check also FAILS LOUD when
+// `.next` is absent (never a vacuous green on an empty scan — an un-built tree is an
+// operator error, not a pass).
 //
 // Dependency-free bare-Node `.mjs`, mirroring
 // `scripts/verify/check-service-role-containment.mjs` and `check-lockfiles.mjs`. It
@@ -33,9 +36,32 @@ const BUILD_DIR = ".next";
 // 1. ANY `*SERVICE_ROLE*` token. Covers the canonical `SUPABASE_SERVICE_ROLE_KEY`,
 //    a `NEXT_PUBLIC_*SERVICE_ROLE*` name (browser-inlined), AND the Story 2.2
 //    re-export symbol `LOCAL_SUPABASE_SERVICE_ROLE_KEY` the source guard misses by
-//    symbol. The app's `src/` never references a service-role key (anon + RLS), so
-//    no `SERVICE_ROLE` token should survive into the bundle.
+//    symbol. The lone, path-and-content-bound quote-PDF server exception is checked
+//    by `isDocumentedQuotePdfSignerEnvironmentReference` below.
 const SERVICE_ROLE_TOKEN_RE = /[A-Z0-9_]*SERVICE_ROLE[A-Z0-9_]*/g;
+
+const QUOTE_PDF_SIGNER_ENV_NAME = "SUPABASE_SERVICE_ROLE_KEY";
+const QUOTE_PDF_SIGNER_SOURCE_MARKER = "src/server/storage/quote-pdf-signer.ts";
+const QUOTE_PDF_SIGNER_RUNTIME_MARKER = "Quote PDF signing is not configured";
+const QUOTE_PDF_SIGNER_SERVER_CHUNK_RE =
+  /^\.next\/server\/chunks\/ssr\/[^/]+\.(?:js|map)$/;
+
+/**
+ * The documented signer is the only application use of this environment variable.
+ * Next retains a source-map path in `.map` files and the fail-closed runtime message
+ * in the matching server JS chunk, so accept the name only with one of those exact
+ * markers and only below the SSR server-chunk directory. This is intentionally not
+ * a token allowlist: the same name in client/static, route/RSC, or another server
+ * artifact remains a violation, as do every key value and service-role JWT.
+ */
+function isDocumentedQuotePdfSignerEnvironmentReference(rel, contents, token) {
+  if (token !== QUOTE_PDF_SIGNER_ENV_NAME) return false;
+  if (!QUOTE_PDF_SIGNER_SERVER_CHUNK_RE.test(rel)) return false;
+  return (
+    contents.includes(QUOTE_PDF_SIGNER_SOURCE_MARKER) ||
+    contents.includes(QUOTE_PDF_SIGNER_RUNTIME_MARKER)
+  );
+}
 
 // Known-BENIGN vendor `*SERVICE_ROLE*` substrings — a tight, EXPLICITLY DOCUMENTED
 // allowlist. Rule 1 fires fail-closed on ANY `*SERVICE_ROLE*` token, so a future
@@ -200,11 +226,13 @@ export function scanBuiltBundle(rootDir, opts = {}) {
     }
 
     // 1. Any `*SERVICE_ROLE*` token (key name / NEXT_PUBLIC_ name / re-export symbol),
-    //    EXCEPT a documented known-benign vendor string in ALLOWLISTED_VENDOR_TOKENS.
+    //    EXCEPT a documented known-benign vendor string or the narrow quote-PDF
+    //    signer's server-only env-name retention described above.
     const tokenMatches = contents.match(SERVICE_ROLE_TOKEN_RE);
     if (tokenMatches) {
       for (const match of new Set(tokenMatches)) {
         if (ALLOWLISTED_VENDOR_TOKENS.has(match)) continue;
+        if (isDocumentedQuotePdfSignerEnvironmentReference(rel, contents, match)) continue;
         violations.push(
           `${rel}: service-role token \`${match}\` present in a built artifact ` +
             `— the service-role key/name must never ship to the browser or a route payload. ` +
@@ -267,7 +295,8 @@ if (invokedDirectly) {
     process.exit(1);
   }
   console.log(
-    `✅ Built-bundle containment passed: no service-role key name, JWT value, or ` +
-      `NEXT_PUBLIC_ service-role var in any \`${BUILD_DIR}\` artifact.`,
+    `✅ Built-bundle containment passed: no service-role key value, service-role JWT, ` +
+      `NEXT_PUBLIC_ service-role var, or unauthorized service-role name in any ` +
+      `\`${BUILD_DIR}\` artifact.`,
   );
 }

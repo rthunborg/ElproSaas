@@ -66,7 +66,11 @@ import {
   loadNameById,
   loadOwnedAttachmentFile,
   loadQuoteTerms,
+  type CalcHeaderRow,
   type CalcRowRow,
+  type CalcSectionRow,
+  type CompanyIdentityRow,
+  type QuoteTermsRow,
 } from "./quote-db";
 import {
   buildQuoteReviewDigest,
@@ -163,6 +167,49 @@ export interface QuoteSnapshotBuildResult {
 }
 
 /**
+ * A command-specific, customer-visible source projection.  Its row type deliberately
+ * has no cost, markup, or internal-note field, so a checked database projection can
+ * serve a Säljare quote command without widening calculation-table RLS.
+ */
+export interface CustomerVisibleQuoteSnapshotSource {
+  readonly header: CalcHeaderRow;
+  readonly sections: readonly CalcSectionRow[];
+  readonly rows: readonly Omit<CalcRowRow, "unit_cost_ore">[];
+  readonly identity: CompanyIdentityRow | null;
+  readonly terms: QuoteTermsRow | null;
+  readonly customer: SnapshotCustomerSource | null;
+  readonly attachments: readonly QuoteAttachmentSource[];
+  /** Approved non-invertible sales seam; never a cost, row id, count, or delta. */
+  readonly lowMarginWarning: { readonly present: boolean; readonly thresholdPercent: number | null };
+}
+
+export interface SnapshotCustomerSource {
+  readonly display_name: string | null;
+  readonly customer_type: string | null;
+  readonly facility_name: string | null;
+  readonly contact_name: string | null;
+}
+
+/** Build the same frozen snapshot from an already checked customer-visible projection. */
+export function buildFreshQuoteSnapshotFromCustomerVisibleSource(
+  source: CustomerVisibleQuoteSnapshotSource,
+  params: Pick<QuoteSnapshotBuildParams, "calculationId" | "capturedAt" | "reviewedSnapshotDigest" | "reviewedQuoteCaptureDate">,
+): QuoteSnapshotBuildResult {
+  const result = buildFreshQuoteSnapshotFromLoadedSource({
+    ...source,
+    rows: source.rows.map((row) => ({ ...row, unit_cost_ore: null })),
+  }, params);
+  if (!source.lowMarginWarning.present) return result;
+  const threshold = source.lowMarginWarning.thresholdPercent;
+  if (threshold === null || !Number.isInteger(threshold) || threshold < 0 || threshold > 100) {
+    throw new CommandError("VALIDATION_FAILED");
+  }
+  const warning = { code: "LOW_MARGIN", severity: "warning", message: `En eller flera rader har ett täckningsbidrag under ${threshold} %. Kontrollera marginalen innan du skapar en offert.` };
+  const snapshot = Object.freeze({ ...result.snapshot, warnings: Object.freeze([...result.snapshot.warnings.filter((item) => item.code !== "LOW_MARGIN"), warning]) });
+  return { ...result, snapshot };
+}
+
+/**
  * RE-CAPTURE the FRESH composite snapshot from the CURRENT source calc + settings + terms rows
  * under the caller's RLS client, EXACTLY as the 6.1 create path does. Throws a typed `CommandError`
  * on a null source (race → TENANT_ACCESS_DENIED), a foreign attachment (TENANT_ACCESS_DENIED), or
@@ -206,6 +253,32 @@ export async function buildFreshQuoteSnapshot(
     attachmentOrder += 1;
   }
 
+  return buildFreshQuoteSnapshotFromLoadedSource({
+    header, sections, rows, identity, terms,
+    customer: customer === null ? null : {
+      ...customer,
+      facility_name: facilityName,
+      contact_name: contactName,
+    },
+    attachments,
+  }, params);
+}
+
+function buildFreshQuoteSnapshotFromLoadedSource(
+  source: {
+    readonly header: CalcHeaderRow;
+    readonly sections: readonly CalcSectionRow[];
+    readonly rows: readonly CalcRowRow[];
+    readonly identity: CompanyIdentityRow | null;
+    readonly terms: QuoteTermsRow | null;
+    readonly customer: SnapshotCustomerSource | null;
+    readonly attachments: readonly QuoteAttachmentSource[];
+  },
+  params: Pick<QuoteSnapshotBuildParams, "calculationId" | "capturedAt" | "reviewedSnapshotDigest" | "reviewedQuoteCaptureDate">,
+): QuoteSnapshotBuildResult {
+  const { header, sections, rows, identity, terms, customer, attachments } = source;
+  const facilityName = customer?.facility_name ?? null;
+  const contactName = customer?.contact_name ?? null;
   const quoteCaptureDate = stockholmBusinessDate(params.capturedAt);
   const currentReviewDigest = buildQuoteReviewDigest({
     quoteCaptureDate,

@@ -283,7 +283,7 @@ describe("createFileLink both-side ownership + atomic rollback (AC3/AC7)", () =>
             file_id: ownFileId,
             owner_type: ownerType,
             owner_id: ownId(),
-            purpose: "crm_document",
+            purpose: ownerType === "calculation" ? "calculation_attachment" : "crm_document",
           },
           clock: fixedClock,
           correlationId: crypto.randomUUID(),

@@ -27,13 +27,13 @@ import {
   completeQuoteFollowUp,
   createNewQuoteVersion,
   createQuoteVersionFromCalculation,
+  createQuotePdfSignedAccess,
   generateQuotePdf,
   markQuoteVersionLost,
   markQuoteVersionSent,
   planQuoteFollowUp,
   updateDraftQuoteVersion,
 } from "@/server/commands/quotes";
-import { createSignedFileAccess } from "@/server/commands/files";
 import { loadQuoteVersionAnchor } from "@/server/commands/quotes/quote-db";
 import { validateCreateReviewedQuoteVersionFromCalculation } from "@/server/commands/quotes/validation";
 import { kronorStringToOre } from "@/features/calculations/money-input";
@@ -802,19 +802,21 @@ export async function createReviewedQuoteVersionFromCalculationAction(
 
 /**
  * The preview/download action (React `useActionState` signature). Mints a SHORT-LIVED SIGNED URL
- * for the version's `quote_pdf` file via `createSignedFileAccess` (RLS-scoped signing — a
- * cross-tenant/anon caller is denied at the DB; never a public URL). Only shown for a `generated`
- * version. The signed URL lives only in the returned state (never logged).
+ * for the version's `quote_pdf` file through its quote-scoped signer. The checked database
+ * target binds the active artifact before the server-only broker signs, then the fixed audit
+ * is written before a URL can return; raw Storage access remains RLS-denied for Säljare. Only
+ * shown for a `generated` version. The signed URL lives only in the returned state (never logged).
  */
 export async function previewQuotePdfAction(
   _prev: QuotePdfPreviewState,
   form: FormData,
 ): Promise<QuotePdfPreviewState> {
   const fileId = form.get("file_id");
-  const input: Record<string, unknown> = { file_id: fileId };
+  const quoteVersionId = form.get("quote_version_id");
+  const input: Record<string, unknown> = { file_id: fileId, quote_version_id: quoteVersionId };
 
   const client = (await createSupabaseServerClient()) as unknown as CommandDbClient;
-  const result = await runCommand(createSignedFileAccess, { client, input });
+  const result = await runCommand(createQuotePdfSignedAccess, { client, input });
 
   if (result.ok) {
     return {

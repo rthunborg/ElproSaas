@@ -95,11 +95,11 @@ test.describe("Login + tenant-context display (Story 2.1 E2E — G-2/G-3)", () =
     await signIn(page, fixture.orphanUser.email, fixture.orphanUser.password);
     // Authenticated-but-no-membership renders NoTenantAccess (role="alert") INSTEAD of
     // the shell — a generic denial that never reveals whether a tenant/user exists.
-    // Scope to the alert that carries the denial text: after a client navigation Next
-    // injects an empty `#__next-route-announcer__` (also role="alert"), so an unscoped
-    // getByRole("alert") is a strict-mode 2-match.
+    // Scope to user-facing application content: after a client navigation, Next injects
+    // `#__next-route-announcer__` (also role="alert") beside the application root and
+    // gives it the route title, so denial text alone is no longer unique.
     await expect(
-      page.getByRole("alert").filter({ hasText: "Ingen åtkomst" }),
+      page.locator("main").getByRole("alert").filter({ hasText: "Ingen åtkomst" }),
     ).toBeVisible();
     // ZERO tenant data: the shell's tenant-context anchor must not be present at all.
     await expect(page.getByTestId("tenant-context")).toHaveCount(0);

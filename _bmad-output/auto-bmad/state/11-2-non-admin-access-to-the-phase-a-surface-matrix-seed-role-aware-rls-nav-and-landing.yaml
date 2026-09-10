@@ -1,0 +1,94 @@
+# auto-bmad per-story state — written by scripts/state_update.py (full stable schema;
+# see references/state-and-resume.md). Prose belongs in reports/{key}.md, not here.
+story_key: 11-2-non-admin-access-to-the-phase-a-surface-matrix-seed-role-aware-rls-nav-and-landing
+epic_num: 11
+story_num: 2
+story_suffix: ""
+story_source: sprint
+spec_folder: null
+story_id: null
+branch: codex/11-2-non-admin-access-to-the-phase-a-surface-matrix-seed-role-aware-rls-nav-and-landing
+status: done
+updated_at: "2026-09-10T12:33:37Z"
+started_at: "2026-09-07T16:40:40Z"
+completed_at: "2026-09-10T12:33:37Z"
+active_seconds: 13255
+timing_anchor: null
+is_first_in_epic: false
+is_last_in_epic: false
+git_mode: remote
+base_branch: main
+selected_phase: followup_review
+selected_role: primary-reviewer
+selected_profile: standard
+selected_model: gpt-5.6-terra
+selected_effort: high
+selected_host: codex
+selected_tier: subagents
+selected_route: subagent
+escalation_reason: "Targeted owner-supplied Seller acceptance-value read exposure; no broad review."
+routing_ledger:
+  - "{\"effort\":\"high\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-terra\",\"phase\":\"build\",\"profile\":\"standard\",\"role\":\"build-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"high\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-terra\",\"phase\":\"tea_per_story\",\"profile\":\"standard\",\"role\":\"tea-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"high\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-terra\",\"phase\":\"build\",\"profile\":\"standard\",\"role\":\"build-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"high\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-terra\",\"phase\":\"tea_per_story\",\"profile\":\"standard\",\"role\":\"tea-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"high\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-terra\",\"phase\":\"followup_review\",\"profile\":\"standard\",\"role\":\"primary-reviewer\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"high\",\"escalation_reason\":\"Targeted remediation of owner-supplied Reviewbot findings; no additional broad review.\",\"host\":\"codex\",\"model\":\"gpt-5.6-terra\",\"phase\":\"followup_review\",\"profile\":\"standard\",\"role\":\"primary-reviewer\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"high\",\"escalation_reason\":\"Targeted owner-supplied Seller acceptance-value read exposure; no broad review.\",\"host\":\"codex\",\"model\":\"gpt-5.6-terra\",\"phase\":\"followup_review\",\"profile\":\"standard\",\"role\":\"primary-reviewer\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+tea_risk: high
+tea_selected: [atdd, automate]
+tea_rationale: "Authorization and role-aware RLS enforce least privilege, money-field withholding and server-side denial across the Phase A surface."
+epic_story_count: 4
+stories_after_in_epic: 2
+completed_phases: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+spec_path: "C:/DEV/ElproSaas/_bmad-output/implementation-artifacts/spec-11-2-non-admin-access-to-the-phase-a-surface-matrix-seed-role-aware-rls-nav-and-landing.md"
+spec_approved: true
+build:
+  status: done
+  blocking_condition: null
+  followup_review_recommended: false
+  review_loop_iteration: 0
+  deferred_count: 0
+  warnings: [oversized]
+followup_passes: 3
+hitl_halt: continued
+review_unverified: false
+story_trace: null
+legacy_review_resume: false
+legacy_review_iteration: null
+legacy_review_loop_done: false
+legacy_external_review_iterations: null
+legacy_convergence_unverified: false
+legacy_artifact_path: null
+commits: [454ba58, 1b6c563, efd8d73, b725092, 39f2b9c, 2d4c68d, 26c8a4a, 88d7676, 91b4380, ce5fd40, 5d367d8, 023ba656, 1e9798d, f03dfb0, d506f74, 90a2a6e, 77576af, cdac189, "4763176", cafcd95, bd30204, bab683e, 8f608e0, a301de8]
+phase8_steps:
+  trace_gate: null
+  nfr: null
+  test_review: null
+  reconcile: null
+  archive: null
+  retro: null
+gate_decision: null
+gate_iterations: 0
+deferred_work_archived: 0
+retro:
+  doc: null
+  verdict: null
+  open_action_items: 0
+bmad_status_flipped_at: 9
+pr_url: "https://github.com/rthunborg/ElproSaas/pull/51"
+ci_run_url: "https://github.com/rthunborg/ElproSaas/actions/runs/34476172123"
+ci_status: passed
+pr_merged: false
+merge_method: null
+merge_commit: null
+branch_deleted: false
+open_questions: []
+deferred_work: []
+blockers: []
+overrides:
+  branch_prefix: "codex/ (host instruction)"
+  recovery_preparation: "User authorized audit-authority repair, isolated runtime verification and Phase 5 resume; preserve acceptance gates."
+  local_database_authorization: "Owner confirmed local ElproSaas data disposable; reset and fixtures permitted without re-asking. Standing permission recorded in docs/process/local-setup.md."
+  review_continuation: "User repeatedly instructed Continue; proceed to a draft PR without waiving review caveats. Three-round cap limits future review to latest-fix regressions and unresolved serious findings."
+constraints: []

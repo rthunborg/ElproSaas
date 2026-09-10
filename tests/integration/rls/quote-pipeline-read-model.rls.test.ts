@@ -47,6 +47,7 @@ import {
   adminInsertQuoteEvent,
   adminInsertQuoteAcceptance,
   adminInsertQuoteFollowUp,
+  adminInsertMembership,
   type TwoTenantFixture,
   type TestServerClient,
 } from "../../factories/tenants";
@@ -77,12 +78,31 @@ const WINDOW: PipelinePeriod = resolvePipelinePeriod(SEED_INSTANT);
 let stackUp = false;
 let fixture: TwoTenantFixture;
 let a: TestServerClient;
+let seller: TestServerClient;
+let installer: TestServerClient;
 
 beforeAll(async () => {
   stackUp = await isLocalStackReachable();
   if (!stackUp) return;
   fixture = await createTwoTenantFixture();
   a = await makeAuthedServerClient(fixture.adminA);
+  await adminInsertMembership({
+    tenant_id: fixture.tenantA.id,
+    user_id: fixture.orphanUser.id,
+    role: "saljare",
+    status: "active",
+  });
+  seller = await makeAuthedServerClient(fixture.orphanUser);
+  await adminInsertMembership({
+    tenant_id: fixture.tenantA.id,
+    // adminB is deliberately an Admin only in tenant B. Granting it a distinct
+    // active Montör membership in A proves the RLS predicate evaluates the row's
+    // tenant, rather than treating a role held in another tenant as authority.
+    user_id: fixture.adminB.id,
+    role: "montor",
+    status: "active",
+  });
+  installer = await makeAuthedServerClient(fixture.adminB);
 });
 
 afterAll(async () => {
@@ -214,6 +234,65 @@ describe("10.4-INT-01: pipeline read-model isolation floor (RLS-client-only, cro
     const result = await readQuotePipeline(WINDOW, undefined, { client: a });
     expect(Object.prototype.hasOwnProperty.call(result.data, "acceptedValueOre")).toBe(false);
     expect(result.entitlements.withheld).toContain("acceptedValueOre");
+  });
+
+  it("Story 11.2: seller retains pipeline counts but never receives the accepted-value aggregate; installer receives neither quote rows nor money", async (ctx) => {
+    if (skipUnlessStack(ctx, stackUp)) return;
+
+    const sellerResult = await readQuotePipeline(
+      WINDOW,
+      { roles: ["saljare"] },
+      { client: seller },
+    );
+    // Quotes are a granted module for Säljare, so the already-seeded lifecycle
+    // rows remain visible. The aggregate derived from accepted prices is a
+    // protected Economy field and must be structurally absent, never zero/null.
+    expect(sellerResult.data.sentCount).toBeGreaterThan(0);
+    expect(Object.prototype.hasOwnProperty.call(sellerResult.data, "acceptedValueOre")).toBe(false);
+    expect(sellerResult.entitlements.withheld).toContain("acceptedValueOre");
+
+    const installerBefore = await readQuotePipeline(
+      WINDOW,
+      { roles: ["montor"] },
+      { client: installer },
+    );
+    // This user is still Admin of tenant B, so its pre-existing B-only rows can
+    // legitimately remain visible. Add a fresh tenant-A quote and prove that the
+    // tenant-A Montör role does not make that new row visible.
+    const customer = await adminInsertCustomer({
+      tenant_id: fixture.tenantA.id,
+      customer_type: "company",
+      display_name: `montor-denied-${crypto.randomUUID()}`,
+    });
+    const calculation = await adminInsertCalculation({
+      tenant_id: fixture.tenantA.id,
+      customer_id: customer,
+    });
+    const quote = await adminInsertQuote({
+      tenant_id: fixture.tenantA.id,
+      customer_id: customer,
+    });
+    const version = await adminInsertQuoteVersion({
+      tenant_id: fixture.tenantA.id,
+      quote_id: quote,
+      calculation_id: calculation,
+      status: "sent",
+    });
+    await adminInsertQuoteEvent({
+      tenant_id: fixture.tenantA.id,
+      quote_id: quote,
+      quote_version_id: version,
+      event_type: "sent",
+      occurred_at: SEED_INSTANT,
+    });
+    const installerAfter = await readQuotePipeline(
+      WINDOW,
+      { roles: ["montor"] },
+      { client: installer },
+    );
+    expect(installerAfter.data.sentCount).toBe(installerBefore.data.sentCount);
+    expect(Object.prototype.hasOwnProperty.call(installerAfter.data, "acceptedValueOre")).toBe(false);
+    expect(installerAfter.entitlements.withheld).toContain("acceptedValueOre");
   });
 
   it("multi-page: an event after PostgREST's first 1,000 RLS-visible rows still changes the pipeline", async (ctx) => {

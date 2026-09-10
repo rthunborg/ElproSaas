@@ -24,7 +24,7 @@
  *     deliberately revoked authenticated `quote_acceptances` DML, so every app-path UPDATE is denied
  *     with 42501 and leaves the row untouched. The same immutable acceptance probes are repeated via
  *     privileged admin SQL, which bypasses grants/RLS but invokes triggers and therefore proves AR704.
- *     The precise archival exemption is privileged-only; `jobs` remains writable on its allowed fields.
+ *     The precise archival exemption is privileged-only; allowed `jobs` edits use the audited command.
  *   - 7.4-INT-03 (P0, AC2, R-704/R-714): accidental-update regression — an id-only/empty-patch
  *     `updateJob` is a clean no-op (no false TENANT_ACCESS_DENIED, no write, no audit row, immutable
  *     fields byte-unchanged); a status-change appends EXACTLY ONE `job_events` row and never silently
@@ -102,8 +102,8 @@ const SOURCE_SENT_TOTAL_ORE = 125_000;
 
 /** The custom SQLSTATE the 7.4 trigger RAISEs (mapped → command ACCEPTED_RECORD_LOCKED). */
 const ACCEPTED_LOCK_SQLSTATE = "AR704";
-/** Authenticated roles deliberately have no quote_acceptances UPDATE grant (Story 10.8). */
-const QUOTE_ACCEPTANCE_DML_REVOKED_SQLSTATE = "42501";
+/** Authenticated roles deliberately have no raw-DML UPDATE grant on audited command tables. */
+const AUTHENTICATED_DML_DENIED_SQLSTATE = "42501";
 
 let stackUp = false;
 let fx: TwoTenantFixture;
@@ -184,7 +184,7 @@ async function seedAcceptedChain(
  * Like `seedAcceptedChain`, but the parent quote also carries a facility + contact so the 7.2 accept
  * RPC copies them onto the created `jobs` row. Needed for the 7.4-INT-02b exempt-precision proof: the
  * lock deliberately LEAVES `facility_id`/`contact_id` UNLOCKED (they are ON DELETE SET NULL and NOT
- * AC-named commitment fields), so a direct own-tenant UPDATE of them must SUCCEED — which can only be
+ * AC-named commitment fields), so a privileged lower-layer UPDATE of them must SUCCEED — which can only be
  * proven against a job that actually HAS a facility/contact to re-point. Returns the two alternate
  * own-tenant facility/contact ids the exempt UPDATE re-points to.
  */
@@ -285,6 +285,24 @@ async function expectPrivilegedAcceptanceUpdateLocked(
   ).rejects.toMatchObject({ code: ACCEPTED_LOCK_SQLSTATE });
 }
 
+/**
+ * Like the acceptance probe above, this deliberately bypasses application table grants while
+ * retaining trigger execution. Story 11.2 closes authenticated raw job DML behind audited RPCs,
+ * so the trigger itself must be exercised through the privileged fixture path.
+ */
+async function expectPrivilegedJobUpdateLocked(
+  jobId: string,
+  field: string,
+  value: unknown,
+): Promise<void> {
+  await expect(
+    adminQuery(
+      `update public.jobs set ${field} = $2 where id = $1 returning id`,
+      [jobId, value],
+    ),
+  ).rejects.toMatchObject({ code: ACCEPTED_LOCK_SQLSTATE });
+}
+
 // ══════════════════════════════════════════════════════════════════════════════════════════════
 // 7.4-INT-01 (P0, AC1) — the COMMAND layer: a smuggled immutable field ⇒ VALIDATION_FAILED, byte-unchanged
 // ══════════════════════════════════════════════════════════════════════════════════════════════
@@ -332,9 +350,10 @@ describe("7.4-INT-01: accepted-record immutability at the COMMAND layer (AC1, R-
 // 7.4-INT-02 (P0, AC1) — authenticated denial plus privileged trigger proof
 // ══════════════════════════════════════════════════════════════════════════════════════════════
 describe("7.4-INT-02: accepted-record immutability BELOW the command — the DB trigger (AC1, R-704)", () => {
-  // Story 10.8 revoked authenticated quote_acceptances DML. The app path must therefore fail at the
-  // table privilege boundary (42501), while the privileged SQL probe below still invokes the trigger
-  // and proves AR704. Keeping both assertions prevents a grant change from masking a weak trigger.
+  // Story 10.8 revoked authenticated quote_acceptances DML and Story 11.2 closes raw job DML behind
+  // audited RPCs. The app path must therefore fail at the table privilege boundary (42501), while
+  // privileged SQL still invokes the triggers and proves AR704. Keeping both assertions prevents a
+  // grant change from masking a weak trigger.
 
   const IMMUTABLE_ACCEPTANCE_UPDATES: readonly { field: string; value: unknown }[] = [
     { field: "accepted_price_ore", value: 999_999 },
@@ -359,7 +378,7 @@ describe("7.4-INT-02: accepted-record immutability BELOW the command — the DB 
 
       // Authenticated application paths cannot mutate acceptances at all.
       expect(error).not.toBeNull();
-      expect(error?.code).toBe(QUOTE_ACCEPTANCE_DML_REVOKED_SQLSTATE);
+      expect(error?.code).toBe(AUTHENTICATED_DML_DENIED_SQLSTATE);
       const afterAppAttempt = await adminSelectQuoteAcceptanceRow(acceptanceId);
       // bigint öre reads back as a STRING via raw pg — compare by representation.
       expect(String(afterAppAttempt?.[field])).toBe(String(before?.[field]));
@@ -378,7 +397,7 @@ describe("7.4-INT-02: accepted-record immutability BELOW the command — the DB 
   ];
 
   for (const { field, value } of IMMUTABLE_JOB_UPDATES) {
-    it(`[P0] 7.4-INT-02: a DIRECT own-tenant UPDATE of jobs.\`${field}\` is REJECTED by the trigger (AR704)`, async (testCtx) => {
+    it(`[P0] 7.4-INT-02: an authenticated UPDATE of jobs.\`${field}\` is denied (42501), while privileged SQL proves AR704`, async (testCtx) => {
       if (skipUnlessStack(testCtx, stackUp)) return;
       const { jobId } = await seedAcceptedChain(fx.tenantA, clientA);
       const before = await adminSelectJobRow(jobId);
@@ -390,9 +409,13 @@ describe("7.4-INT-02: accepted-record immutability BELOW the command — the DB 
         .select();
 
       expect(error).not.toBeNull();
-      expect(error?.code).toBe(ACCEPTED_LOCK_SQLSTATE);
-      const after = await adminSelectJobRow(jobId);
-      expect(after?.[field]).toBe(before?.[field]);
+      expect(error?.code).toBe(AUTHENTICATED_DML_DENIED_SQLSTATE);
+      const afterAppAttempt = await adminSelectJobRow(jobId);
+      expect(afterAppAttempt?.[field]).toBe(before?.[field]);
+
+      await expectPrivilegedJobUpdateLocked(jobId, field, value);
+      const afterTriggerAttempt = await adminSelectJobRow(jobId);
+      expect(afterTriggerAttempt?.[field]).toBe(before?.[field]);
     });
   }
 
@@ -410,7 +433,7 @@ describe("7.4-INT-02: accepted-record immutability BELOW the command — the DB 
       .eq("id", acceptanceId)
       .select();
 
-    expect(error?.code).toBe(QUOTE_ACCEPTANCE_DML_REVOKED_SQLSTATE);
+    expect(error?.code).toBe(AUTHENTICATED_DML_DENIED_SQLSTATE);
     const afterAppAttempt = await adminSelectQuoteAcceptanceRow(acceptanceId);
     expect(afterAppAttempt?.archived_at ?? null).toBe(before?.archived_at ?? null);
 
@@ -422,23 +445,24 @@ describe("7.4-INT-02: accepted-record immutability BELOW the command — the DB 
     expect(rows[0]?.archived_at).not.toBeNull();
   });
 
-  it("[P0] 7.4-INT-02: an updateJob-shaped title/status/planned-date UPDATE on jobs SUCCEEDS (the 7.3 allowed edit is not fought by the lock)", async (testCtx) => {
+  it("[P0] 7.4-INT-02: an updateJob title/status/planned-date edit SUCCEEDS (the 7.3 allowed edit is not fought by the lock)", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     const { jobId } = await seedAcceptedChain(fx.tenantA, clientA);
 
-    // The four Phase-A-safe columns are EXEMPT — a direct own-tenant UPDATE of them still succeeds.
-    const { error } = await clientA
-      .from("jobs")
-      .update({
+    // These safe columns remain editable through the audited application command, not raw DML.
+    const res = await runCommand(updateJob, {
+      client: clientA as never,
+      clock: fixedClock,
+      correlationId: crypto.randomUUID(),
+      input: {
+        id: jobId,
         title: "Uppdaterad jobbtitel",
         status: "in_progress",
         planned_start_date: "2026-08-01",
         planned_end_date: "2026-08-15",
-      })
-      .eq("id", jobId)
-      .select();
-
-    expect(error).toBeNull();
+      },
+    });
+    expect(res.ok).toBe(true);
     const after = await adminSelectJobRow(jobId);
     expect(after?.title).toBe("Uppdaterad jobbtitel");
     expect(after?.status).toBe("in_progress");
@@ -457,9 +481,9 @@ describe("7.4-INT-02: accepted-record immutability BELOW the command — the DB 
 // ALSO touches a locked column must RAISE, not slip through the exempt short-circuit — the trickiest
 // path of enforce_quote_acceptance_lock); (3) jobs.created_at (the one job identity column INT-02
 // omits); (4) the exempt PRECISION on jobs — facility_id/contact_id are deliberately UNLOCKED (ON
-// DELETE SET NULL), so a direct own-tenant re-point of them SUCCEEDS (the lock is precise, not a
-// blanket freeze). Acceptance app-path attempts use the anon-key RLS client and assert 42501; their
-// AR704 trigger probes use privileged admin SQL. All run against a REAL accepted chain.
+// DELETE SET NULL), so privileged setup may re-point them (the lock is precise, not a blanket
+// freeze). Authenticated raw DML is still denied after Story 11.2; AR704 trigger probes and exempt
+// lower-layer setup use privileged admin SQL. All run against a REAL accepted chain.
 // ══════════════════════════════════════════════════════════════════════════════════════════════
 describe("7.4-INT-02b: the FULL fail-closed DB surface — every locked column + the exempt precision (AC1, R-704)", () => {
   // (1) The remaining LOCKED quote_acceptances columns beyond the AC-named subset in 7.4-INT-02.
@@ -487,7 +511,7 @@ describe("7.4-INT-02b: the FULL fail-closed DB surface — every locked column +
         .select();
 
       expect(error).not.toBeNull();
-      expect(error?.code).toBe(QUOTE_ACCEPTANCE_DML_REVOKED_SQLSTATE);
+      expect(error?.code).toBe(AUTHENTICATED_DML_DENIED_SQLSTATE);
       const afterAppAttempt = await adminSelectQuoteAcceptanceRow(acceptanceId);
       expect(String(afterAppAttempt?.[field])).toBe(String(before?.[field]));
 
@@ -514,7 +538,7 @@ describe("7.4-INT-02b: the FULL fail-closed DB surface — every locked column +
 
     // Authenticated code is denied before trigger/RLS; no part of the mutation is written.
     expect(error).not.toBeNull();
-    expect(error?.code).toBe(QUOTE_ACCEPTANCE_DML_REVOKED_SQLSTATE);
+    expect(error?.code).toBe(AUTHENTICATED_DML_DENIED_SQLSTATE);
     const afterAppAttempt = await adminSelectQuoteAcceptanceRow(acceptanceId);
     // The whole row is byte-unchanged — neither the exempt NOR the locked column was written.
     expect(afterAppAttempt?.archived_at ?? null).toBe(before?.archived_at ?? null);
@@ -533,7 +557,7 @@ describe("7.4-INT-02b: the FULL fail-closed DB surface — every locked column +
   });
 
   // (3) jobs.created_at — the one job identity column 7.4-INT-02 omits — is in the locked tuple.
-  it("[P0] 7.4-INT-02b: a DIRECT own-tenant UPDATE of jobs.`created_at` is REJECTED by the trigger (AR704)", async (testCtx) => {
+  it("[P0] 7.4-INT-02b: an authenticated UPDATE of jobs.`created_at` is denied (42501), while privileged SQL proves AR704", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     const { jobId } = await seedAcceptedChain(fx.tenantA, clientA);
     const before = await adminSelectJobRow(jobId);
@@ -545,15 +569,19 @@ describe("7.4-INT-02b: the FULL fail-closed DB surface — every locked column +
       .select();
 
     expect(error).not.toBeNull();
-    expect(error?.code).toBe(ACCEPTED_LOCK_SQLSTATE);
-    const after = await adminSelectJobRow(jobId);
-    expect(String(after?.created_at)).toBe(String(before?.created_at));
+    expect(error?.code).toBe(AUTHENTICATED_DML_DENIED_SQLSTATE);
+    const afterAppAttempt = await adminSelectJobRow(jobId);
+    expect(String(afterAppAttempt?.created_at)).toBe(String(before?.created_at));
+
+    await expectPrivilegedJobUpdateLocked(jobId, "created_at", "2020-01-01T00:00:00.000Z");
+    const afterTriggerAttempt = await adminSelectJobRow(jobId);
+    expect(String(afterTriggerAttempt?.created_at)).toBe(String(before?.created_at));
   });
 
   // (4) Exempt PRECISION on jobs: facility_id/contact_id are deliberately UNLOCKED (ON DELETE SET
-  // NULL, not AC-named commitment fields), so a direct own-tenant re-point SUCCEEDS. Proves the job
-  // lock is the source-ref tuple ONLY, not a blanket freeze — the migration's explicit decision.
-  it("[P0] 7.4-INT-02b: a DIRECT own-tenant UPDATE of jobs.`facility_id`/`contact_id` SUCCEEDS (deliberately UNLOCKED for the ON DELETE SET NULL cascade)", async (testCtx) => {
+  // NULL, not AC-named commitment fields), so the privileged lower-layer fixture can re-point them.
+  // Raw authenticated DML remains closed; this proves the trigger itself does not blanket-freeze jobs.
+  it("[P0] 7.4-INT-02b: authenticated facility/contact DML is denied (42501), while privileged re-pointing SUCCEEDS (deliberately UNLOCKED for SET NULL)", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     const { jobId, altFacilityId, altContactId } = await seedAcceptedChainWithFacility(
       fx.tenantA,
@@ -566,26 +594,33 @@ describe("7.4-INT-02b: the FULL fail-closed DB surface — every locked column +
       .eq("id", jobId)
       .select();
 
-    // The exempt SET-NULL columns are not in the locked tuple ⇒ the re-point is allowed.
-    expect(error).toBeNull();
+    expect(error?.code).toBe(AUTHENTICATED_DML_DENIED_SQLSTATE);
+    const afterAppAttempt = await adminSelectJobRow(jobId);
+    expect(afterAppAttempt?.facility_id).not.toBe(altFacilityId);
+    expect(afterAppAttempt?.contact_id).not.toBe(altContactId);
+
+    // The exempt SET-NULL columns are not in the locked tuple ⇒ privileged lower-layer setup works.
+    const rows = await adminQuery<{ facility_id: string; contact_id: string }>(
+      "update public.jobs set facility_id = $2, contact_id = $3 where id = $1 returning facility_id, contact_id",
+      [jobId, altFacilityId, altContactId],
+    );
+    expect(rows).toHaveLength(1);
     const after = await adminSelectJobRow(jobId);
     expect(after?.facility_id).toBe(altFacilityId);
     expect(after?.contact_id).toBe(altContactId);
   });
 
-  // Companion: nulling facility_id/contact_id (the actual ON DELETE SET NULL shape) also SUCCEEDS —
-  // the cascade the lock must never fight.
-  it("[P0] 7.4-INT-02b: a DIRECT own-tenant UPDATE nulling jobs.`facility_id`/`contact_id` SUCCEEDS (the SET NULL cascade is never fought)", async (testCtx) => {
+  // Companion: privileged nulling facility_id/contact_id (the actual ON DELETE SET NULL shape)
+  // succeeds — the cascade the lock must never fight.
+  it("[P0] 7.4-INT-02b: privileged nulling jobs.`facility_id`/`contact_id` SUCCEEDS (the SET NULL cascade is never fought)", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     const { jobId } = await seedAcceptedChainWithFacility(fx.tenantA, clientA);
 
-    const { error } = await clientA
-      .from("jobs")
-      .update({ facility_id: null, contact_id: null })
-      .eq("id", jobId)
-      .select();
-
-    expect(error).toBeNull();
+    const rows = await adminQuery<{ facility_id: string | null; contact_id: string | null }>(
+      "update public.jobs set facility_id = null, contact_id = null where id = $1 returning facility_id, contact_id",
+      [jobId],
+    );
+    expect(rows).toHaveLength(1);
     const after = await adminSelectJobRow(jobId);
     expect(after?.facility_id).toBeNull();
     expect(after?.contact_id).toBeNull();
@@ -708,7 +743,7 @@ describe("7.4-RLS-01: cross-tenant attack on accepted records (AC3, R-701/R-704)
       .eq("id", bAcceptanceId)
       .select();
 
-    expect(error?.code).toBe(QUOTE_ACCEPTANCE_DML_REVOKED_SQLSTATE);
+    expect(error?.code).toBe(AUTHENTICATED_DML_DENIED_SQLSTATE);
     const after = await adminSelectQuoteAcceptanceRow(bAcceptanceId);
     expect(String(after?.accepted_price_ore)).toBe(String(before?.accepted_price_ore));
   });

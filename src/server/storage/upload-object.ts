@@ -82,6 +82,8 @@ export interface UploadObjectInput<Client extends UploadStorageClient> {
    * the created/existing link id; THROWS on failure.
    */
   readonly insertLinkRow: (fileId: string) => Promise<string>;
+  /** Atomic post-Storage metadata/link persistence, when the database wrapper owns both. */
+  readonly persistMetadataAndLink?: (objectPath: string) => Promise<string>;
   /**
    * Best-effort ARCHIVE of a `files` row that WAS written before a LATER failure (so no
    * committed-usable row survives). Called only in the compensation path; must swallow its
@@ -128,10 +130,9 @@ export async function uploadObjectWithMetadata<Client extends UploadStorageClien
   let fileRowWritten = false;
   try {
     // (d) INSERT the files metadata row (explicit id = the object-path segment).
-    await input.insertFileRow(objectPath);
-    fileRowWritten = true;
-    // (e) INSERT (or find-or-create) the file_links row pointing at the verified file.
-    const linkId = await input.insertLinkRow(input.fileId);
+    const linkId = input.persistMetadataAndLink
+      ? await input.persistMetadataAndLink(objectPath)
+      : (await input.insertFileRow(objectPath), fileRowWritten = true, await input.insertLinkRow(input.fileId));
     return { fileId: input.fileId, objectPath, linkId };
   } catch (error) {
     // VERIFIED-COMPENSATED: the files row was written (link insert failed) → ARCHIVE it so

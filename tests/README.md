@@ -27,6 +27,13 @@ a green `test:unit`); CI sets `SUPABASE_TEST_REQUIRED=1` so a missing stack is a
 failure there. Connection/keys come from `tests/support/test-env.ts` (the universal
 local-demo defaults; overridable via `SUPABASE_TEST_*` — not real secrets).
 
+For required story-completion evidence, set `SUPABASE_TEST_REQUIRED=1` locally
+as well and restore the prior process setting afterward. Explicit skipped tests
+still do not execute: record actual executed/pass/skip counts. An ATDD scaffold
+is a test plan until its real fixtures and assertions run. Automated agents must
+follow the lifecycle/ownership requirements in [local setup](../docs/process/local-setup.md)
+before starting, resetting, or stopping test services.
+
 ## Test-only service-role usage
 
 The two-tenant factories (`tests/factories/`) create auth users and seed
@@ -49,13 +56,13 @@ a service-role or raw-superuser path.
 | `integration/rls/factory-isolation.int.test.ts` | INT (per-worker fixture isolation R-012 + 2.1 un-gate marker AC5) | **GREEN** (local stack) |
 | `factories/tenants.ts` | Two-tenant factory (B1) — `createTwoTenantFixture` / `makeAuthedServerClient` / `makeAnonServerClient` | **IMPLEMENTED** (real, local stack) |
 | `factories/admin-sql.ts` | Test-only admin SQL helper (`pg` superuser) for introspection + the R-006 hijack proof | **IMPLEMENTED** |
-| `e2e/auth/login-and-tenant-context.e2e.spec.ts` | E2E (browser) | **DEFERRED** (`.skip`, tsconfig-excluded) — Playwright is out of Story 2.2 scope (owner: a later E2E/Story-2.4 task) |
+| `e2e/**/*.e2e.spec.ts` | Playwright browser tests | Runner is configured in `playwright.config.ts`; `pnpm run test:e2e` needs local Supabase and production app startup. Individual ATDD scenarios may still be skipped. |
 
 ## Notes
 
-- The browser E2E scaffold stays `.skip`-ed and excluded from `tsconfig` until a
-  browser runner (Playwright) lands — that is a separate, gated step (deferred-work
-  ledger). The DB-backed INT scaffold, by contrast, now RUNS for real.
+- Playwright uses global setup/teardown and a production `webServer`. Verify each
+  story's role fixtures and executed tests; runner availability alone does not
+  turn skipped acceptance scaffolds into coverage.
 - Per-worker isolation: every `createTwoTenantFixture()` call provisions its own
   tenants/users with globally-unique ids + names (H5 / R-012) — no shared mutable
   fixture. CI also `supabase db reset`s once up-front for a clean baseline.

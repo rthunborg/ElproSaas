@@ -13,10 +13,23 @@
  */
 import { QuoteList } from "@/components/quotes/QuoteList";
 import { readQuoteList } from "@/features/quotes/read";
+import { resolveTenantContext } from "@/server/auth/resolve-tenant-context";
+import { resolveCapability } from "@/server/authz/permission-matrix";
 
 export const dynamic = "force-dynamic";
 
 export default async function QuotesPage() {
-  const { rows, error } = await readQuoteList();
-  return <QuoteList rows={rows} loadError={error} />;
+  const [{ rows, error }, context] = await Promise.all([
+    readQuoteList(),
+    resolveTenantContext(),
+  ]);
+  // Initial quote creation is intentionally calculation-preview-only. Säljare has a
+  // customer-visible successor path on existing quotes, but no calculation route because
+  // its rows carry private costs. Do not render a link that the server route gate denies.
+  const canStartQuoteFromCalculation = context.ok && resolveCapability({
+    roles: context.data.roles,
+    module: "calculations",
+    capability: "Calculations.View",
+  }).granted;
+  return <QuoteList rows={rows} loadError={error} canStartQuoteFromCalculation={canStartQuoteFromCalculation} />;
 }

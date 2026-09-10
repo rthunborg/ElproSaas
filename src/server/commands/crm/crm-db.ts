@@ -1,55 +1,98 @@
 /**
  * CRM write-surface helpers (Story 3.1, Task 2).
  *
- * The envelope's `CommandDbClient` declares only the read/ownership/audit surface
- * (`.from().select().eq().limit()` + `.rpc()`). The CRM `execute` bodies also need
- * the WRITE surface (`.insert()` / `.update()`) of the SAME request-bound,
- * RLS-protected client. This module narrows the real `@supabase/supabase-js` client
- * to a small, typed write view (`asCrmWriteClient`) so the command bodies never
- * cast inline, and maps Postgres/PostgREST error codes to the stable command codes.
+ * The envelope's `CommandDbClient` declares the read/ownership/audit surface plus
+ * `.rpc()`. Story 11.2 routes CRM mutations through command-specific checked RPCs
+ * on that same request-bound client, and this module narrows only those RPC views
+ * while mapping Postgres/PostgREST errors to stable command codes.
  *
- * NO service-role client and NO direct table INSERT into `audit_events` are used —
- * mutations run through the request-bound RLS client (`ctx.db`), and audit goes
- * through the envelope's `writeAuditEvent` DEFINER path.
+ * NO service-role client and NO direct table INSERT into `audit_events` are used.
+ * Mutations run through the request-bound client (`ctx.db`); each audited CRM
+ * write uses a checked command RPC that binds its audit row.
  */
 import type { CommandDbClient } from "../envelope";
 import { CommandError } from "../command-errors";
 
-/** A PostgREST result envelope for a write returning the inserted/updated rows. */
-export type WriteResult = {
-  readonly data: unknown[] | null;
-  readonly error: { readonly code?: string; readonly message?: string } | null;
+/**
+ * Story 11.2's first checked non-admin mutation wrapper. It performs customer
+ * creation and the bound audit insert in one PostgreSQL transaction; the caller
+ * cannot supply the audit command/event/target fields.
+ */
+export type CreateCustomerWithAuditRpcClient = {
+  rpc(
+    fn: "create_customer_with_audit",
+    args: {
+      readonly p_tenant_id: string;
+      readonly p_actor_user_id: string;
+      readonly p_correlation_id: string;
+      readonly p_customer_type: string;
+      readonly p_display_name: string;
+      readonly p_personnummer: string | null;
+      readonly p_org_nr: string | null;
+      readonly p_contact_name: string | null;
+      readonly p_email: string | null;
+      readonly p_phone: string | null;
+      readonly p_address_line1: string | null;
+      readonly p_address_line2: string | null;
+      readonly p_postal_code: string | null;
+      readonly p_city: string | null;
+    },
+  ): Promise<{
+    readonly data: unknown;
+    readonly error: { readonly code?: string; readonly message?: string } | null;
+  }>;
 };
 
-/** The minimal CRM write surface of the request-bound RLS client. */
-export type CrmWriteClient = {
-  from(table: string): {
-    insert(values: Record<string, unknown>): {
-      select(columns: string): {
-        single(): Promise<{
-          data: { id?: unknown } | null;
-          error: { code?: string; message?: string } | null;
-        }>;
-      };
-    };
-    update(values: Record<string, unknown>): {
-      eq(
-        column: string,
-        value: string,
-      ): {
-        select(columns: string): Promise<WriteResult>;
-      };
-    };
-  };
-};
+export function asCreateCustomerWithAuditRpcClient(
+  db: CommandDbClient,
+): CreateCustomerWithAuditRpcClient {
+  return db as unknown as CreateCustomerWithAuditRpcClient;
+}
 
 /**
- * Narrow the envelope's `CommandDbClient` to the CRM write surface. The real
- * Supabase client (and the test anon-key client) structurally satisfy this; the
- * cast is the single, documented place the write methods are surfaced.
+ * Story 11.2 CRM lifecycle wrappers. Each name identifies one domain mutation;
+ * the database wrapper fixes its command/event/target and appends its audit row
+ * in the same transaction as the write. `p_patch` is accepted only by the two
+ * matching update wrappers and is validated again by their SQL implementation.
  */
-export function asCrmWriteClient(db: CommandDbClient): CrmWriteClient {
-  return db as unknown as CrmWriteClient;
+export type CrmAuditedMutationRpcName =
+  | "update_customer_with_audit"
+  | "archive_customer_with_audit"
+  | "create_facility_with_audit"
+  | "update_facility_with_audit"
+  | "archive_facility_with_audit"
+  | "create_contact_with_audit"
+  | "update_contact_with_audit"
+  | "archive_contact_with_audit";
+
+export type CrmAuditedMutationRpcClient = {
+  rpc(
+    fn: CrmAuditedMutationRpcName,
+    args: Record<string, unknown>,
+  ): Promise<{
+    readonly data: unknown;
+    readonly error: { readonly code?: string; readonly message?: string } | null;
+  }>;
+};
+
+export function asCrmAuditedMutationRpcClient(
+  db: CommandDbClient,
+): CrmAuditedMutationRpcClient {
+  return db as unknown as CrmAuditedMutationRpcClient;
+}
+
+/** Execute a checked CRM write and require its UUID target result. */
+export async function executeCrmAuditedMutation(
+  db: CommandDbClient,
+  fn: CrmAuditedMutationRpcName,
+  args: Record<string, unknown>,
+): Promise<string> {
+  const { data, error } = await asCrmAuditedMutationRpcClient(db).rpc(fn, args);
+  if (error) throwMappedWriteError(error);
+  if (typeof data !== "string") {
+    throw new Error(`${fn}: no id returned`);
+  }
+  return data;
 }
 
 /**

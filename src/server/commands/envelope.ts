@@ -36,6 +36,65 @@ import type {
   ResolveTenantContextOptions,
 } from "@/server/auth/resolve-tenant-context";
 
+type CommandCapability = NonNullable<CommandConfig<unknown, unknown>["capability"]>;
+
+/**
+ * The Phase A command declaration bridge. Commands retain their local business
+ * names for audit compatibility while this closed map gives every exported
+ * mutation a matrix capability before validation, ownership lookup, execution,
+ * or audit. New commands must be added here or remain fail-closed.
+ */
+const COMMAND_CAPABILITIES: Readonly<Record<string, CommandCapability>> = {
+  "customer.create": { module: "crm", capability: "Customers.Create" },
+  "customer.update": { module: "crm", capability: "Customers.Edit" },
+  "customer.archive": { module: "crm", capability: "Customers.Delete" },
+  "facility.create": { module: "crm", capability: "Customers.Create" },
+  "facility.update": { module: "crm", capability: "Customers.Edit" },
+  "facility.archive": { module: "crm", capability: "Customers.Delete" },
+  "contact.create": { module: "crm", capability: "Customers.Create" },
+  "contact.update": { module: "crm", capability: "Customers.Edit" },
+  "contact.archive": { module: "crm", capability: "Customers.Delete" },
+  "company_settings.update": { module: "settings", capability: "CompanySettings.Edit" },
+  "quote_terms.update": { module: "settings", capability: "CompanySettings.Edit" },
+  "quote_terms.approve": { module: "settings", capability: "CompanySettings.Edit" },
+  "work_role.upsert": { module: "settings", capability: "Pricing.Edit" },
+  "work_role.archive": { module: "settings", capability: "Pricing.Edit" },
+  "work_role.reactivate": { module: "settings", capability: "Pricing.Edit" },
+  "article.upsert": { module: "settings", capability: "Pricing.Edit" },
+  "article.archive": { module: "settings", capability: "Pricing.Edit" },
+  "article.reactivate": { module: "settings", capability: "Pricing.Edit" },
+  "calculation.create": { module: "calculations", capability: "Calculations.Create" },
+  "calculation.update": { module: "calculations", capability: "Calculations.Edit" },
+  "calculation.archive": { module: "calculations", capability: "Calculations.Edit" },
+  "calculation.section.create": { module: "calculations", capability: "Calculations.Edit" },
+  "calculation.section.update": { module: "calculations", capability: "Calculations.Edit" },
+  "calculation.section.archive": { module: "calculations", capability: "Calculations.Edit" },
+  "calculation.row.create": { module: "calculations", capability: "Calculations.Edit" },
+  "calculation.row.update": { module: "calculations", capability: "Calculations.Edit" },
+  "calculation.row.archive": { module: "calculations", capability: "Calculations.Edit" },
+  "calculation.rows.reorder": { module: "calculations", capability: "Calculations.Edit" },
+  "calculation.sections.reorder": { module: "calculations", capability: "Calculations.Edit" },
+  "quote.version.create": { module: "quotes", capability: "Quotes.Create" },
+  "quote.version.new": { module: "quotes", capability: "Quotes.Create" },
+  "quote.version.update_draft": { module: "quotes", capability: "Quotes.Edit" },
+  "quote.version.mark_sent": { module: "quotes", capability: "Quotes.Send" },
+  "quote.version.lifecycle": { module: "quotes", capability: "Quotes.Edit" },
+  "quote.version.lost": { module: "quotes", capability: "Quotes.Edit" },
+  "quote.acceptance.capture": { module: "quotes", capability: "Quotes.Approve" },
+  "quote.acceptance.accept_and_create_job": { module: "quotes", capability: "Quotes.Approve" },
+  "quote.follow_up.plan": { module: "quotes", capability: "Quotes.Edit" },
+  "quote.follow_up.complete": { module: "quotes", capability: "Quotes.Edit" },
+  "quote.follow_up.annotate": { module: "quotes", capability: "Quotes.Edit" },
+  "quote.pdf.generate": { module: "quotes", capability: "Quotes.Export" },
+  "quote.pdf.signedAccess.create": { module: "quotes", capability: "Quotes.Export" },
+  "job.create": { module: "jobs", capability: "Jobs.Create" },
+  "job.update": { module: "jobs", capability: "Jobs.Edit" },
+  "file.signedAccess.create": { module: "files", capability: "Files.View" },
+  "file.link.create": { module: "files", capability: "Files.Create" },
+  "file.upload": { module: "files", capability: "Files.Create" },
+  "file.archive": { module: "files", capability: "Files.Edit" },
+};
+
 /**
  * The minimal Supabase client surface the envelope drives: the auth+membership
  * resolver client (`getClaims()` + `.from(...)`), the ownership SELECT, and the
@@ -117,7 +176,8 @@ export type RunCommandOptions = {
 
 /** Declare a reusable command. Pure — performs no I/O until `runCommand`. */
 export function defineCommand<I, R>(config: CommandConfig<I, R>): Command<I, R> {
-  return { config };
+  const capability = config.capability ?? COMMAND_CAPABILITIES[config.command];
+  return { config: { ...config, ...(capability ? { capability } : {}) } };
 }
 
 /**

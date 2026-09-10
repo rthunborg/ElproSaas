@@ -40,15 +40,18 @@ import {
   makeAnonServerClient,
   cleanupFixture,
   adminInsertFile,
+  adminInsertMembership,
   adminUploadStorageObject,
   type TwoTenantFixture,
   type TestServerClient,
 } from "../../factories/tenants";
 import { adminSelectAuditEvents } from "../../factories/audit-events";
-import { adminQuery } from "../../factories/admin-sql";
+import { adminExec, adminQuery } from "../../factories/admin-sql";
 import {
   isLocalStackReachable,
   isLocalStorageReachable,
+  LOCAL_TEST_QUOTE_PDF_KEY_ID,
+  LOCAL_TEST_QUOTE_PDF_SECRET,
 } from "../../support/test-env";
 import {
   skipUnlessStack,
@@ -58,22 +61,27 @@ import {
 import { runCommand } from "@/server/commands/envelope";
 import { createSignedFileAccess } from "@/server/commands/files";
 import type { CommandClock } from "@/server/commands/clock";
+import {
+  parseFileSignedAccessAuditChallenge,
+  signFileSignedAccessAttestation,
+  validateSignedStorageUrl,
+  type FileSignedAccessAttestationPayload,
+} from "@/server/storage/signed-access-attestation";
+import {
+  createSignedFileUrl,
+  type StorageSigningClient,
+} from "@/server/storage/signed-access";
 
 const FIXED_ISO = "2026-07-04T12:00:00.000Z";
 const fixedClock: CommandClock = { now: () => new Date(FIXED_ISO) };
 const BUCKET = "tenant-files";
-// The default signed-URL TTL (SUPABASE_SIGNED_URL_TTL_SECONDS is unset in the test env,
-// so the command resolves the safe 300s default). Under the fixed clock the expiry is a
-// FULLY DETERMINISTIC instant — assert it exactly (not just "is a string").
 const DEFAULT_TTL_SECONDS = 300;
-const EXPECTED_EXPIRES_AT = new Date(
-  new Date(FIXED_ISO).getTime() + DEFAULT_TTL_SECONDS * 1000,
-).toISOString();
 
 let stackUp = false;
 let storageUp = false;
 let fixture: TwoTenantFixture;
 let a: TestServerClient; // Tenant A admin's authenticated anon-key client
+let pm: TestServerClient; // Tenant A Project Manager's authenticated anon-key client
 let anon: TestServerClient; // unauthenticated client
 let ownFileId: string; // A's own draft/linked file (access-eligible)
 let archivedFileId: string; // A's own archived file (lifecycle-ineligible)
@@ -96,12 +104,123 @@ async function objectPathOf(fileId: string): Promise<string> {
   return path;
 }
 
+function withSigningFailure(client: TestServerClient): TestServerClient {
+  const failingStorage = {
+    from: () => ({
+      createSignedUrl: async () => ({
+        data: null,
+        error: { status: 404, code: "NoSuchKey" },
+      }),
+    }),
+  };
+  return new Proxy(client, {
+    get(target, property, receiver) {
+      if (property === "storage") return failingStorage;
+      const value = Reflect.get(target, property, receiver) as unknown;
+      return typeof value === "function" ? value.bind(target) : value;
+    },
+  }) as TestServerClient;
+}
+
+async function prepareRealSignedAccessProof(opts: {
+  readonly client: TestServerClient;
+  readonly tenantId: string;
+  readonly actorUserId: string;
+  readonly fileId: string;
+  readonly correlationId: string;
+}): Promise<{
+  readonly payload: FileSignedAccessAttestationPayload;
+  readonly signature: string;
+}> {
+  const objectPath = await objectPathOf(opts.fileId);
+  const prepared = await opts.client.rpc(
+    "prepare_file_signed_access_audit_attestation",
+    {
+      p_tenant_id: opts.tenantId,
+      p_actor_user_id: opts.actorUserId,
+      p_file_id: opts.fileId,
+      p_correlation_id: opts.correlationId,
+      p_attestation_key_id: LOCAL_TEST_QUOTE_PDF_KEY_ID,
+    },
+  );
+  if (prepared.error) {
+    throw new Error(`test prepare proof failed: ${prepared.error.code ?? "?"}`);
+  }
+  const challenge = parseFileSignedAccessAuditChallenge(prepared.data, {
+    tenantId: opts.tenantId,
+    fileId: opts.fileId,
+    bucketId: BUCKET,
+    objectPath,
+    keyId: LOCAL_TEST_QUOTE_PDF_KEY_ID,
+  });
+  const signed = await createSignedFileUrl({
+    client: opts.client as unknown as StorageSigningClient,
+    bucket: challenge.bucketId,
+    objectPath: challenge.objectPath,
+    nowIso: challenge.issuedAt,
+  });
+  if (!signed) throw new Error("test proof Storage signing was denied");
+  const url = validateSignedStorageUrl(signed.signedUrl, {
+    bucketId: challenge.bucketId,
+    objectPath: challenge.objectPath,
+    challengeIssuedAt: challenge.issuedAt,
+    computedExpiresAt: signed.expiresAt,
+  });
+  const payload: FileSignedAccessAttestationPayload = {
+    tenantId: opts.tenantId,
+    actorUserId: opts.actorUserId,
+    fileId: opts.fileId,
+    bucketId: challenge.bucketId,
+    objectPath: challenge.objectPath,
+    correlationId: opts.correlationId,
+    signedUrlSha256: url.signedUrlSha256,
+    signedUrlExpiresAt: url.expiresAt,
+    keyId: challenge.keyId,
+    issuedAt: challenge.issuedAt,
+    expiresAt: challenge.expiresAt,
+  };
+  return {
+    payload,
+    signature: signFileSignedAccessAttestation(
+      payload,
+      LOCAL_TEST_QUOTE_PDF_SECRET,
+    ),
+  };
+}
+
+function finalizerArgs(
+  payload: FileSignedAccessAttestationPayload,
+  signature: string,
+): Record<string, unknown> {
+  return {
+    p_tenant_id: payload.tenantId,
+    p_actor_user_id: payload.actorUserId,
+    p_file_id: payload.fileId,
+    p_bucket_id: payload.bucketId,
+    p_object_path: payload.objectPath,
+    p_correlation_id: payload.correlationId,
+    p_signed_url_sha256: payload.signedUrlSha256,
+    p_signed_url_expires_at: payload.signedUrlExpiresAt,
+    p_attestation_key_id: payload.keyId,
+    p_attestation_issued_at: payload.issuedAt,
+    p_attestation_expires_at: payload.expiresAt,
+    p_attestation_signature: signature,
+  };
+}
+
 beforeAll(async () => {
   stackUp = await isLocalStackReachable();
   if (!stackUp) return;
   storageUp = await isLocalStorageReachable();
   fixture = await createTwoTenantFixture();
+  await adminInsertMembership({
+    tenant_id: fixture.tenantA.id,
+    user_id: fixture.orphanUser.id,
+    role: "projektledare",
+    status: "active",
+  });
   a = await makeAuthedServerClient(fixture.adminA);
+  pm = await makeAuthedServerClient(fixture.orphanUser);
   anon = await makeAnonServerClient();
   ownFileId = await adminInsertFile({
     tenant_id: fixture.tenantA.id,
@@ -145,6 +264,7 @@ afterAll(async () => {
 describe("createSignedFileAccess authorization matrix (AC5/AC6/AC8)", () => {
   it("[P0] happy own-tenant sign SUCCEEDS → signedUrl + expiresAt", async (testCtx) => {
     if (skipUnlessBoth(testCtx)) return;
+    const startedAt = Date.now();
     const result = await runCommand(createSignedFileAccess as never, {
       client: a as never,
       input: { file_id: ownFileId },
@@ -156,9 +276,14 @@ describe("createSignedFileAccess authorization matrix (AC5/AC6/AC8)", () => {
       const data = result.data as { signedUrl: string; expiresAt: string };
       expect(typeof data.signedUrl).toBe("string");
       expect(data.signedUrl.length).toBeGreaterThan(0);
-      // expiresAt is DETERMINISTIC under the fixed clock: now + the resolved TTL. Assert
-      // the exact instant (not just the type) so a wrong/absent TTL application fails loud.
-      expect(data.expiresAt).toBe(EXPECTED_EXPIRES_AT);
+      // The returned expiry is the actual second-precision `exp` from the Storage JWT.
+      // It must be live and remain within the configured default TTL plus request skew.
+      const expiresAt = Date.parse(data.expiresAt);
+      expect(expiresAt).toBeGreaterThan(Date.now());
+      expect(expiresAt).toBeLessThanOrEqual(
+        startedAt + (DEFAULT_TTL_SECONDS + 60) * 1000,
+      );
+      expect(expiresAt % 1000).toBe(0);
     }
   });
 
@@ -185,6 +310,83 @@ describe("createSignedFileAccess authorization matrix (AC5/AC6/AC8)", () => {
     // Belt-and-braces blocklist: still assert no path/URL/PII substring leaked.
     const meta = JSON.stringify(metadata);
     expect(meta).not.toMatch(/tenant-files|object_path|bucket|signedUrl|https?:\/\//i);
+  });
+
+  it("[11.2][P0] Project Manager signs through caller RLS and receives a URL only after one fixed audit", async (testCtx) => {
+    if (skipUnlessBoth(testCtx)) return;
+    const correlationId = crypto.randomUUID();
+    const result = await runCommand(createSignedFileAccess as never, {
+      client: pm as never,
+      input: { file_id: ownFileId },
+      correlationId,
+    });
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      const data = result.data as {
+        targetId: string;
+        signedUrl: string;
+        expiresAt: string;
+      };
+      expect(data.targetId).toBe(ownFileId);
+      expect(data.signedUrl).toMatch(/\/storage\/v1\/object\/sign\//);
+      expect(Date.parse(data.expiresAt)).toBeGreaterThan(Date.now());
+    }
+    const events = await adminSelectAuditEvents({ correlationId });
+    expect(events).toHaveLength(1);
+    expect(events[0]).toMatchObject({
+      tenant_id: fixture.tenantA.id,
+      actor_user_id: fixture.orphanUser.id,
+      command: "file.signedAccess.create",
+      event_type: "file.signed_access.created",
+      target_type: "file",
+      target_id: ownFileId,
+      metadata: {},
+    });
+  });
+
+  it("[11.2][P0] a Storage signing failure writes no audit and exposes no URL", async (testCtx) => {
+    if (skipUnlessBoth(testCtx)) return;
+    const correlationId = crypto.randomUUID();
+    const result = await runCommand(createSignedFileAccess as never, {
+      client: withSigningFailure(pm) as never,
+      input: { file_id: ownFileId },
+      correlationId,
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.code).toBe("FILE_ACCESS_DENIED");
+      expect((result as { data?: unknown }).data).toBeUndefined();
+    }
+    expect(await adminSelectAuditEvents({ correlationId })).toEqual([]);
+  });
+
+  it("[11.2][P0] an audit failure after real Storage signing returns no URL and writes no audit", async (testCtx) => {
+    if (skipUnlessBoth(testCtx)) return;
+    const correlationId = crypto.randomUUID();
+    await adminExec(
+      `insert into test_support.forced_audit_failures (correlation_id)
+       values ($1::uuid)`,
+      [correlationId],
+    );
+    try {
+      const result = await runCommand(createSignedFileAccess as never, {
+        client: pm as never,
+        input: { file_id: ownFileId },
+        correlationId,
+      });
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.code).toBe("SERVER_ERROR");
+        expect((result as { data?: { signedUrl?: string } }).data?.signedUrl).toBeUndefined();
+      }
+      expect(await adminSelectAuditEvents({ correlationId })).toEqual([]);
+    } finally {
+      await adminExec(
+        `delete from test_support.forced_audit_failures
+          where correlation_id = $1::uuid`,
+        [correlationId],
+      );
+    }
   });
 
   it("[P0] anonymous sign is REJECTED (UNAUTHENTICATED)", async (testCtx) => {
@@ -255,5 +457,147 @@ describe("createSignedFileAccess authorization matrix (AC5/AC6/AC8)", () => {
     if (!result.ok) {
       expect((result as { data?: { signedUrl?: string } }).data?.signedUrl).toBeUndefined();
     }
+  });
+
+  it("[11.2][P0] direct RPC actor spoof and cross-tenant preparation are rejected before proof issuance", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
+    const spoofCorrelation = crypto.randomUUID();
+    const spoof = await pm.rpc(
+      "prepare_file_signed_access_audit_attestation",
+      {
+        p_tenant_id: fixture.tenantA.id,
+        p_actor_user_id: fixture.adminA.id,
+        p_file_id: ownFileId,
+        p_correlation_id: spoofCorrelation,
+        p_attestation_key_id: LOCAL_TEST_QUOTE_PDF_KEY_ID,
+      },
+    );
+    expect(spoof.data).toBeNull();
+    expect(spoof.error?.code).toBe("42501");
+    expect(await adminSelectAuditEvents({ correlationId: spoofCorrelation })).toEqual([]);
+
+    const crossTenantCorrelation = crypto.randomUUID();
+    const crossTenant = await pm.rpc(
+      "prepare_file_signed_access_audit_attestation",
+      {
+        p_tenant_id: fixture.tenantB.id,
+        p_actor_user_id: fixture.orphanUser.id,
+        p_file_id: tenantBFileId,
+        p_correlation_id: crossTenantCorrelation,
+        p_attestation_key_id: LOCAL_TEST_QUOTE_PDF_KEY_ID,
+      },
+    );
+    expect(crossTenant.data).toBeNull();
+    expect(crossTenant.error?.code).toBe("42501");
+    expect(
+      await adminSelectAuditEvents({ correlationId: crossTenantCorrelation }),
+    ).toEqual([]);
+  });
+
+  it("[11.2][P0] forged and tampered post-signing proofs cannot fabricate a success audit", async (testCtx) => {
+    if (skipUnlessBoth(testCtx)) return;
+    const correlationId = crypto.randomUUID();
+    const proof = await prepareRealSignedAccessProof({
+      client: pm,
+      tenantId: fixture.tenantA.id,
+      actorUserId: fixture.orphanUser.id,
+      fileId: ownFileId,
+      correlationId,
+    });
+
+    const attempts = [
+      finalizerArgs(proof.payload, "0".repeat(64)),
+      {
+        ...finalizerArgs(proof.payload, proof.signature),
+        p_signed_url_sha256: "b".repeat(64),
+      },
+      {
+        ...finalizerArgs(proof.payload, proof.signature),
+        p_object_path: `${fixture.tenantA.id}/${ownFileId}/spoof.pdf`,
+      },
+      {
+        ...finalizerArgs(proof.payload, proof.signature),
+        p_signed_url_expires_at: new Date(
+          Date.parse(proof.payload.signedUrlExpiresAt) + 1000,
+        ).toISOString(),
+      },
+    ];
+    for (const args of attempts) {
+      const rejected = await pm.rpc(
+        "record_file_signed_access_audit_attested",
+        args,
+      );
+      expect(rejected.data).toBeNull();
+      expect(rejected.error?.code).toBe("FSA10");
+    }
+    expect(await adminSelectAuditEvents({ correlationId })).toEqual([]);
+  });
+
+  it("[11.2][P0] expired attestation is rejected even when its HMAC is otherwise valid", async (testCtx) => {
+    if (skipUnlessBoth(testCtx)) return;
+    const correlationId = crypto.randomUUID();
+    const current = await prepareRealSignedAccessProof({
+      client: pm,
+      tenantId: fixture.tenantA.id,
+      actorUserId: fixture.orphanUser.id,
+      fileId: ownFileId,
+      correlationId,
+    });
+    const issuedAt = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+    const expiredPayload: FileSignedAccessAttestationPayload = {
+      ...current.payload,
+      issuedAt,
+      expiresAt: new Date(Date.parse(issuedAt) + 5 * 60 * 1000).toISOString(),
+    };
+    const expired = await pm.rpc(
+      "record_file_signed_access_audit_attested",
+      finalizerArgs(
+        expiredPayload,
+        signFileSignedAccessAttestation(
+          expiredPayload,
+          LOCAL_TEST_QUOTE_PDF_SECRET,
+        ),
+      ),
+    );
+    expect(expired.data).toBeNull();
+    expect(expired.error?.code).toBe("FSA10");
+    expect(await adminSelectAuditEvents({ correlationId })).toEqual([]);
+  });
+
+  it("[11.2][P0] a valid proof is consumed once and exact replay cannot add a second audit", async (testCtx) => {
+    if (skipUnlessBoth(testCtx)) return;
+    const correlationId = crypto.randomUUID();
+    const proof = await prepareRealSignedAccessProof({
+      client: pm,
+      tenantId: fixture.tenantA.id,
+      actorUserId: fixture.orphanUser.id,
+      fileId: ownFileId,
+      correlationId,
+    });
+    const args = finalizerArgs(proof.payload, proof.signature);
+    const first = await pm.rpc(
+      "record_file_signed_access_audit_attested",
+      args,
+    );
+    expect(first.error).toBeNull();
+    expect(typeof first.data).toBe("string");
+
+    const replay = await pm.rpc(
+      "record_file_signed_access_audit_attested",
+      args,
+    );
+    expect(replay.data).toBeNull();
+    expect(replay.error?.code).toBe("FSA10");
+    const events = await adminSelectAuditEvents({ correlationId });
+    expect(events).toHaveLength(1);
+    expect(events[0]).toMatchObject({
+      tenant_id: fixture.tenantA.id,
+      actor_user_id: fixture.orphanUser.id,
+      command: "file.signedAccess.create",
+      event_type: "file.signed_access.created",
+      target_type: "file",
+      target_id: ownFileId,
+      metadata: {},
+    });
   });
 });

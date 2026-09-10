@@ -30,6 +30,7 @@ import {
   adminInsertCalculation,
   adminInsertSection,
   adminInsertRow,
+  adminInsertMembership,
   type TwoTenantFixture,
   type TestServerClient,
 } from "../../factories/tenants";
@@ -106,12 +107,20 @@ async function seedTenantACalcWithSection(tenantId: string): Promise<SeededCalc>
 let stackUp = false;
 let fixture: TwoTenantFixture;
 let a: TestServerClient; // adminA's authenticated anon-key client
+let projectManager: TestServerClient;
 
 beforeAll(async () => {
   stackUp = await isLocalStackReachable();
   if (!stackUp) return;
   fixture = await createTwoTenantFixture();
   a = await makeAuthedServerClient(fixture.adminA);
+  await adminInsertMembership({
+    tenant_id: fixture.tenantA.id,
+    user_id: fixture.orphanUser.id,
+    role: "projektledare",
+    status: "active",
+  });
+  projectManager = await makeAuthedServerClient(fixture.orphanUser);
 });
 
 afterAll(async () => {
@@ -119,6 +128,46 @@ afterAll(async () => {
 });
 
 describe("Calc commands via the envelope (AC2/AC6/AC7 / 5.1-INT-03/04/05)", () => {
+  it("[P0][11.2] Projektledare calculation creation is atomic and direct calculation DML is closed", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
+    const customerId = await adminInsertCustomer({
+      tenant_id: fixture.tenantA.id,
+      customer_type: "company",
+      display_name: `pm-calculation-${crypto.randomUUID()}`,
+    });
+    const correlationId = crypto.randomUUID();
+    const result = await runCommand(createCalculation, {
+      client: projectManager as never,
+      input: { customer_id: customerId, title: "Projektledarens kalkyl" },
+      correlationId,
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const rows = await adminSelectAuditEvents({ correlationId });
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({
+      tenant_id: fixture.tenantA.id,
+      actor_user_id: fixture.orphanUser.id,
+      command: "calculation.create",
+      event_type: "calculation.created",
+      target_type: "calculation",
+      target_id: result.data.targetId,
+    });
+
+    // The policy can still select Projectledare's calculation rows, but table
+    // INSERT is intentionally unavailable: a raw PostgREST call cannot bypass
+    // the checked wrapper's actor-bound audit transaction.
+    const direct = await projectManager
+      .from("calculations")
+      .insert({
+        tenant_id: fixture.tenantA.id,
+        customer_id: customerId,
+        title: "unaudited bypass",
+      });
+    expect(direct.error).not.toBeNull();
+  });
+
   it("[P1] createCalculation persists the row and writes EXACTLY ONE audit_events row", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     const { customerId } = await seedTenantACalcWithSection(fixture.tenantA.id);
@@ -166,7 +215,6 @@ describe("Calc commands via the envelope (AC2/AC6/AC7 / 5.1-INT-03/04/05)", () =
   it("[P1] createRow persists under the correct parent with a server-owned sort_order", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     const { sectionId } = await seedTenantACalcWithSection(fixture.tenantA.id);
-
     const result = await runCommand(createRow, {
       client: a as never,
       input: {
@@ -423,6 +471,32 @@ describe("Calc commands via the envelope (AC2/AC6/AC7 / 5.1-INT-03/04/05)", () =
     expect(new Date(row[0].archived_at as string).toISOString()).toBe(FIXED_ISO);
     // status is flipped to 'archived' so the lifecycle field and the soft-delete agree.
     expect(row[0].status).toBe("archived");
+  });
+
+  it("[P0][11.2] the public audited calculation RPC cannot revive an archived calculation", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
+    const { calcId } = await seedTenantACalcWithSection(fixture.tenantA.id);
+    const archived = await runCommand(archiveCalculation, {
+      client: projectManager as never,
+      input: { id: calcId },
+      correlationId: crypto.randomUUID(),
+    });
+    expect(archived.ok).toBe(true);
+    const direct = await (projectManager as never as {
+      rpc(name: string, args: Record<string, unknown>): Promise<{ error: { code?: string } | null }>;
+    }).rpc("update_calculation_with_audit", {
+      p_tenant_id: fixture.tenantA.id,
+      p_actor_user_id: fixture.orphanUser.id,
+      p_correlation_id: crypto.randomUUID(),
+      p_calculation_id: calcId,
+      p_patch: { status: "ready" },
+    });
+    expect(direct.error?.code).toBe("23514");
+    const row = await adminQuery<{ status: string; archived_at: string | null }>(
+      "select status, archived_at from public.calculations where id = $1", [calcId],
+    );
+    expect(row[0]).toMatchObject({ status: "archived" });
+    expect(row[0]?.archived_at).not.toBeNull();
   });
 
   it("[P0/AC2] updateCalculation cannot revive an ARCHIVED calc — the state machine is authoritative against the real DB row (findings 1 & 2)", async (testCtx) => {
