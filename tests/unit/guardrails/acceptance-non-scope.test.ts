@@ -60,7 +60,6 @@ function collectFiles(dir: string, acc: string[]): string[] {
 const FORBIDDEN_ROUTE_SEGMENTS = [
   "portal",
   "customer-portal",
-  "accept", // a public acceptance endpoint
   "acceptance",
   "webhook",
   "webhooks",

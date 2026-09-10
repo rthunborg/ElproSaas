@@ -100,6 +100,7 @@ export type TenantTableName =
   | "tenants"
   | "tenant_memberships"
   | "membership_roles"
+  | "membership_admin_operations"
   | "audit_events"
   // Story 3.1 CRM — `authenticated` HAS an INSERT/UPDATE grant → cross-tenant UPDATE denial is
   // RLS-USING invisibility (zero rows + unchanged re-read), NOT a missing-grant 42501.
@@ -275,6 +276,8 @@ export interface InventoryContext {
    * unchanged re-read of `note`), NOT the insert-only privilege denial.
    */
   readonly tenantBQuoteFollowUpId?: string;
+  /** REAL Tenant B operation target; required by membership_admin_operations negatives. */
+  readonly tenantBAdminOperationId?: string;
 }
 
 /**
@@ -302,6 +305,7 @@ export function updateDenialKind(table: TenantTableName): MutationDenialKind {
     case "tenants":
     case "tenant_memberships":
     case "membership_roles":
+    case "membership_admin_operations":
     case "audit_events":
     case "quote_review_authorizations":
     case "tenant_counters":
@@ -431,6 +435,13 @@ export function spoofedRowFor(
         tenant_id: fixture.tenantB.id,
         membership_id: crypto.randomUUID(),
         role: "montor",
+      };
+    case "membership_admin_operations":
+      return {
+        id: crypto.randomUUID(),
+        tenant_id: fixture.tenantB.id,
+        actor_user_id: fixture.adminA.id,
+        action: "invite",
       };
     case "customers":
       // A customer row forging Tenant B ownership. `authenticated` HAS an INSERT
@@ -764,6 +775,10 @@ export function spoofedRowFor(
       };
     case "membership_roles":
       return { column: "tenant_id", value: ctx.fixture.tenantB.id };
+    case "membership_admin_operations":
+      return { column: "tenant_id", value: ctx.fixture.tenantB.id };
+    case "membership_admin_operations":
+      return { column: "tenant_id", value: ctx.fixture.tenantB.id };
     default:
       return assertNever(table);
   }
@@ -1008,6 +1023,11 @@ export function tenantBFilter(
       };
     case "membership_roles":
       return { column: "tenant_id", value: ctx.fixture.tenantB.id };
+    case "membership_admin_operations":
+      return {
+        column: "id",
+        value: requireCrmId(ctx.tenantBAdminOperationId, "tenantBAdminOperationId", table),
+      };
     default:
       return assertNever(table);
   }
@@ -1095,6 +1115,8 @@ export function hijackMutationFor(
       return { note: "hijacked-by-tenant-a" };
     case "membership_roles":
       return { role: "montor" };
+    case "membership_admin_operations":
+      return { outcome: "failed" };
     case "quote_follow_ups":
       // UPDATE-able ("rls-invisible"): the cross-tenant UPDATE matches ZERO rows under RLS USING —
       // the hijack sets `note` (a mutable free-text column) to a value DIFFERENT from the seed's
@@ -1188,6 +1210,8 @@ export function rlsInvisibleLabelColumn(table: TenantTableName): string {
       return "note";
     case "membership_roles":
       return "role";
+    case "membership_admin_operations":
+      return "outcome";
     default:
       return assertNever(table);
   }
@@ -1463,6 +1487,11 @@ export function anonRowFor(
       };
     case "membership_roles":
       return { tenant_id: fixture.tenantB.id, membership_id: crypto.randomUUID(), role: "montor" };
+    case "membership_admin_operations":
+      return {
+        id: crypto.randomUUID(), tenant_id: fixture.tenantA.id,
+        actor_user_id: fixture.adminA.id, action: "invite",
+      };
     default:
       return assertNever(table);
   }
@@ -1492,6 +1521,7 @@ export function anonFilterFor(
     case "quote_review_authorizations":
     case "tenant_memberships":
     case "membership_roles":
+    case "membership_admin_operations":
     case "customers":
     case "facilities":
     case "contacts":
@@ -1580,6 +1610,8 @@ export function anonMutationFor(
       return { note: "anon-hijack" };
     case "membership_roles":
       return { role: "montor" };
+    case "membership_admin_operations":
+      return { outcome: "failed" };
     default:
       return assertNever(table);
   }

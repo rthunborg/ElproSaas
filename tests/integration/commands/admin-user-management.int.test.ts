@@ -1,81 +1,79 @@
+import { createHash } from "node:crypto";
 import { describe, expect, test } from "vitest";
+import { isLocalStackReachable } from "../../support/test-env";
+import { skipUnlessStack } from "../../support/stack-gate";
 
-describe("Admin user management commands (Story 11.3 ATDD RED)", () => {
-  test.skip("[P0] serializes a last-active-Admin disable, rejects it, and preserves membership plus audit count", async () => {
-    const { createTwoTenantFixture, cleanupFixture } = await import("../../factories/tenants");
-    const { adminQuery } = await import("../../factories/admin-sql");
-    const { changeMembershipLifecycle } = await import("@/server/commands/admin-users/lifecycle");
-    const fixture = await createTwoTenantFixture();
+describe("Admin user management commands (Story 11.3)", () => {
+  test("[P0] serialized last-Admin lifecycle changes are rejected without audit side effects", async (testCtx) => {
+    const up = await isLocalStackReachable(); if (skipUnlessStack(testCtx, up)) return;
+    const { createTwoTenantFixture, cleanupFixture, makeAuthedServerClient } = await import("../../factories/tenants"); const { adminQuery } = await import("../../factories/admin-sql"); const fixture = await createTwoTenantFixture();
     try {
-      const before = await adminQuery<{ status: string; audit_count: number }>(
-        "select tm.status, (select count(*)::int from public.audit_events where tenant_id = tm.tenant_id) as audit_count from public.tenant_memberships tm where tm.tenant_id = $1 and tm.user_id = $2",
-        [fixture.tenantA.id, fixture.adminA.id],
-      );
-      const result = await changeMembershipLifecycle({
-        actorId: fixture.adminA.id,
-        tenantId: fixture.tenantA.id,
-        membershipUserId: fixture.adminA.id,
-        action: "disable",
-        operationId: crypto.randomUUID(),
-      });
-      const after = await adminQuery<{ status: string; audit_count: number }>(
-        "select tm.status, (select count(*)::int from public.audit_events where tenant_id = tm.tenant_id) as audit_count from public.tenant_memberships tm where tm.tenant_id = $1 and tm.user_id = $2",
-        [fixture.tenantA.id, fixture.adminA.id],
-      );
-      expect(result).toEqual({ ok: false, code: "ADMIN_USER_ACTION_DENIED" });
-      expect(after[0]).toEqual(before[0]);
-    } finally {
-      await cleanupFixture(fixture);
-    }
+      const [member] = await adminQuery<{ id: string }>("select id from public.tenant_memberships where tenant_id=$1 and user_id=$2", [fixture.tenantA.id, fixture.adminA.id]);
+      const [before] = await adminQuery<{ count: number }>("select count(*)::int as count from public.audit_events where tenant_id=$1", [fixture.tenantA.id]); const client = await makeAuthedServerClient(fixture.adminA);
+      for (const [action, roles] of [["disable", []], ["end", []], ["re_role", ["montor"]]] as const) {
+        const { error } = await client.rpc("admin_manage_membership", { p_tenant_id: fixture.tenantA.id, p_membership_id: member.id, p_action: action, p_roles: roles, p_reason: "test", p_operation_id: crypto.randomUUID() }); expect(error?.code).toBe("42501");
+      }
+      const [afterMember] = await adminQuery<{ status: string }>("select status from public.tenant_memberships where id=$1", [member.id]); const [after] = await adminQuery<{ count: number }>("select count(*)::int as count from public.audit_events where tenant_id=$1", [fixture.tenantA.id]);
+      expect(afterMember.status).toBe("active"); expect(after.count).toBe(before.count);
+    } finally { await cleanupFixture(fixture); }
   });
 
-  test.skip("[P0] rejects a last-active-Admin role downgrade and end through the same serialized DB boundary", async () => {
-    const { changeMembershipLifecycle } = await import("@/server/commands/admin-users/lifecycle");
-    const lastAdmin = { tenantId: "tenant-a", actorId: "admin-a", membershipId: "membership-a" };
-    for (const action of ["re-role", "end"] as const) {
-      const result = await changeMembershipLifecycle({ ...lastAdmin, action, operationId: crypto.randomUUID() });
-      expect(result).toEqual({ ok: false, code: "ADMIN_USER_ACTION_DENIED" });
-    }
-  });
-
-  test.skip("[P1] ends one shared Auth account only in the selected tenant and retains ended history for a fresh re-invite", async () => {
-    const { createTwoTenantFixture, cleanupFixture } = await import("../../factories/tenants");
-    const { adminQuery } = await import("../../factories/admin-sql");
-    const { inviteAdminUser } = await import("@/server/commands/admin-users/invite");
-    const { changeMembershipLifecycle } = await import("@/server/commands/admin-users/lifecycle");
-    const fixture = await createTwoTenantFixture();
+  test("[P1] ending a shared account removes only this tenant membership and preserves history", async (testCtx) => {
+    const up = await isLocalStackReachable(); if (skipUnlessStack(testCtx, up)) return;
+    const { createTwoTenantFixture, cleanupFixture, makeAuthedServerClient } = await import("../../factories/tenants"); const { adminQuery } = await import("../../factories/admin-sql"); const fixture = await createTwoTenantFixture();
     try {
-      const invite = await inviteAdminUser({
-        actorId: fixture.adminA.id,
-        tenantId: fixture.tenantA.id,
-        email: fixture.adminB.email,
-        roles: ["tenant_admin"],
-        operationId: crypto.randomUUID(),
-      });
-      await changeMembershipLifecycle({
-        actorId: fixture.adminA.id,
-        tenantId: fixture.tenantA.id,
-        membershipId: invite.membershipId,
-        action: "end",
-        operationId: crypto.randomUUID(),
-      });
-      const memberships = await adminQuery<{ tenant_id: string; status: string }>(
-        "select tenant_id, status from public.tenant_memberships where user_id = $1 order by tenant_id",
-        [fixture.adminB.id],
-      );
-      expect(memberships).toContainEqual({ tenant_id: fixture.tenantA.id, status: "ended" });
-      expect(memberships).toContainEqual({ tenant_id: fixture.tenantB.id, status: "active" });
-    } finally {
-      await cleanupFixture(fixture);
-    }
+      const membershipId = crypto.randomUUID(); await adminQuery("insert into public.tenant_memberships (id,tenant_id,user_id,role,status) values ($1,$2,$3,'montor','active')", [membershipId, fixture.tenantA.id, fixture.adminB.id]); await adminQuery("insert into public.membership_roles (tenant_id,membership_id,role) values ($1,$2,'montor')", [fixture.tenantA.id, membershipId]);
+      const client = await makeAuthedServerClient(fixture.adminA); const { error } = await client.rpc("admin_manage_membership", { p_tenant_id: fixture.tenantA.id, p_membership_id: membershipId, p_action: "end", p_roles: [], p_reason: null, p_operation_id: crypto.randomUUID() });
+      const rows = await adminQuery<{ tenant_id: string; status: string }>("select tenant_id,status from public.tenant_memberships where user_id=$1 order by tenant_id", [fixture.adminB.id]); expect(error).toBeNull(); expect(rows).toContainEqual({ tenant_id: fixture.tenantA.id, status: "ended" }); expect(rows).toContainEqual({ tenant_id: fixture.tenantB.id, status: "active" });
+    } finally { await cleanupFixture(fixture); }
   });
 
-  test.skip("[P0] reconciles a repeated failed or uncertain Auth operation as one membership effect with durable outcome", async () => {
-    const { reconcileAdminUserOperation } = await import("@/server/commands/admin-users/reconcile");
-    const operationId = "0ad1cd0c-fb67-4bf9-a0d4-ffac1cf53d93";
-    const first = await reconcileAdminUserOperation({ tenantId: "tenant-a", actorId: "admin-a", operationId });
-    const second = await reconcileAdminUserOperation({ tenantId: "tenant-a", actorId: "admin-a", operationId });
-    expect(second).toMatchObject({ operationId, membershipMutationCount: 1 });
-    expect(second).toEqual(first);
+  test("[P0] reconciliation reads one durable uncertain operation without mutation", async (testCtx) => {
+    const up = await isLocalStackReachable(); if (skipUnlessStack(testCtx, up)) return;
+    const { createTwoTenantFixture, cleanupFixture, makeAuthedServerClient } = await import("../../factories/tenants"); const { adminQuery } = await import("../../factories/admin-sql"); const fixture = await createTwoTenantFixture(); const operationId = crypto.randomUUID();
+    try {
+      await adminQuery("insert into public.membership_admin_operations (id,tenant_id,actor_user_id,action,outcome) values ($1,$2,$3,'invite','uncertain')", [operationId, fixture.tenantA.id, fixture.adminA.id]); const client = await makeAuthedServerClient(fixture.adminA);
+      const first = await client.rpc("admin_reconcile_membership_operation", { p_operation_id: operationId }); const second = await client.rpc("admin_reconcile_membership_operation", { p_operation_id: operationId }); expect(first.error).toBeNull(); expect(second.error).toBeNull(); expect(second.data).toEqual(first.data);
+    } finally { await cleanupFixture(fixture); }
+  });
+
+  test("[P0] real invitation acceptance permits only the exact current, unexpired, email-bound attempt", async (testCtx) => {
+    const up = await isLocalStackReachable(); if (skipUnlessStack(testCtx, up)) return;
+    const { createTwoTenantFixture, cleanupFixture, makeAuthedServerClient } = await import("../../factories/tenants"); const { adminQuery } = await import("../../factories/admin-sql"); const fixture = await createTwoTenantFixture();
+    const hash = (token: string) => createHash("sha256").update(token).digest("hex");
+    const seed = async (overrides: { email?: string; status?: string; expiry?: string; superseded?: boolean } = {}) => {
+      const membershipId = crypto.randomUUID(); const operationId = crypto.randomUUID(); const token = crypto.randomUUID();
+      await adminQuery(
+        `insert into public.tenant_memberships (id,tenant_id,user_id,role,status,invited_email,invited_at,invitation_expires_at)
+         values ($1,$2,null,'montor',$3,$4,statement_timestamp(),$5)`,
+        [membershipId, fixture.tenantA.id, overrides.status ?? "invited", overrides.email ?? fixture.orphanUser.email, overrides.expiry ?? new Date(Date.now() + 60_000).toISOString()],
+      );
+      await adminQuery("insert into public.membership_roles (tenant_id,membership_id,role) values ($1,$2,'montor')", [fixture.tenantA.id, membershipId]);
+      await adminQuery(
+        `insert into public.membership_admin_operations (id,tenant_id,actor_user_id,membership_id,action,outcome,invitation_token_hash,invitation_expires_at,superseded_at,completed_at)
+         values ($1,$2,$3,$4,'invite','succeeded',$5,$6,$7,statement_timestamp())`,
+        [operationId, fixture.tenantA.id, fixture.adminA.id, membershipId, hash(token), overrides.expiry ?? new Date(Date.now() + 60_000).toISOString(), overrides.superseded ? new Date().toISOString() : null],
+      );
+      return { membershipId, token };
+    };
+    try {
+      const client = await makeAuthedServerClient(fixture.orphanUser);
+      const current = await seed();
+      const accepted = await client.rpc("admin_accept_membership_invitation", { p_membership_id: current.membershipId, p_token_hash: hash(current.token), p_user_id: fixture.orphanUser.id, p_email: fixture.orphanUser.email });
+      expect(accepted.error).toBeNull(); expect(accepted.data).toBe(true);
+      const [active] = await adminQuery<{ status: string; user_id: string }>("select status,user_id from public.tenant_memberships where id=$1", [current.membershipId]); expect(active).toEqual({ status: "active", user_id: fixture.orphanUser.id });
+      for (const rejected of [
+        { expiry: new Date(Date.now() - 60_000).toISOString() },
+        { status: "revoked" },
+        { superseded: true },
+        { email: `wrong-${fixture.orphanUser.email}` },
+      ]) {
+        const attempt = await seed(rejected);
+        const result = await client.rpc("admin_accept_membership_invitation", { p_membership_id: attempt.membershipId, p_token_hash: hash(attempt.token), p_user_id: fixture.orphanUser.id, p_email: fixture.orphanUser.email });
+        expect(result.error).toBeNull(); expect(result.data).toBe(false);
+        const [unchanged] = await adminQuery<{ status: string; user_id: string | null }>("select status,user_id from public.tenant_memberships where id=$1", [attempt.membershipId]); expect(unchanged.status).not.toBe("active"); expect(unchanged.user_id).toBeNull();
+        await adminQuery("update public.tenant_memberships set status='expired' where id=$1 and status='invited'", [attempt.membershipId]);
+      }
+    } finally { await cleanupFixture(fixture); }
   });
 });

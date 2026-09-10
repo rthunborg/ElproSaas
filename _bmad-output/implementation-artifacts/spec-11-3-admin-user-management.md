@@ -2,10 +2,11 @@
 title: 'Story 11.3: Admin User Management'
 type: 'feature'
 created: '2026-09-10'
-status: 'ready-for-dev'
+status: 'done'
 review_loop_iteration: 0
-followup_review_recommended: false
+followup_review_recommended: true
 baseline_revision: '03b3c7568942ac984f0bfdd0f09d31f449b12cb8'
+baseline_commit: '0f50cfe3b0f54dcdb0882e22db3321695fde5179'
 context:
   - '_bmad-output/implementation-artifacts/epic-11-context.md'
   - '_bmad-output/implementation-artifacts/spec-11-2-non-admin-access-to-the-phase-a-surface-matrix-seed-role-aware-rls-nav-and-landing.md'
@@ -71,10 +72,29 @@ deferred: []
 
 ## Review Triage Log
 
+### 2026-09-10 — Review pass
+- intent_gap: 0
+- bad_spec: 0
+- patch: 9 (high 6, medium 3)
+- defer: 0
+- reject: 0
+- addressed_findings:
+  - `[high] [patch]` Added Auth callback support for both PKCE codes and GoTrue token-hash links, with recovery routed to password update.
+  - `[high] [patch]` Added the confirmed-account magic-link fallback, durable uncertain-outcome handling, lifecycle operation replay, and lock-then-authorize checks.
+  - `[high] [patch]` Preserved and displayed all membership roles when editing a user.
+  - `[medium] [patch]` Projected and persisted expired invitations, required a configured production app origin, and exposed password setup from invitation acceptance.
+
 ## Auto Run Result
 
-Status: ready-for-dev
-Blocking condition: none
+Story implementation is complete: the RBAC module is activated with tenant-scoped membership lifecycle records, an Admin-only Users surface, an Auth-bound invitation acceptance flow, and RLS inventory coverage. The Auth adapter delivers standard invites or an existing-account magic link only after the durable operation/audit boundary; reset operations, callbacks, role unions, and replay outcomes are guarded server-side.
+
+Implemented files include the admin-user migration, server commands/Auth adapter, callback and invitation/password routes, admin pages/components/read model, Auth templates/configuration, and Story 11.3 RLS, command, unit, inventory, and browser evidence. Scope/nav/permission and containment documentation/guards were updated for the active RBAC surface.
+
+Review findings: 9 patches applied, 0 deferred, 0 rejected. The independent Luna/xhigh full-diff review found nine concrete issues; all were repaired. Follow-up review recommendation: `true` (6 high, 3 medium; score 21). A later latest-fix regression check repaired reset-operation terminal replay without reopening broad review.
+
+Verification performed: typecheck and lint passed; unit tests passed 1,724/1,724; required local integration passed 1,011/1,011 with 0 skips; focused Story RLS/command suite passed 123/123; service-role and built-bundle containment passed; final guarded-production browser smoke passed 2/2.
+
+Residual risk: browser evidence covers Admin list/detail and non-Admin denial. Lifecycle buttons retain command/RLS coverage but no end-to-end Auth-email delivery test, because the disposable local SMTP is not a user mailbox assertion harness.
 
 ## Design Notes
 

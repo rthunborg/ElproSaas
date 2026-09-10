@@ -27,6 +27,11 @@ export type NavItem = {
 
 export const navItems: readonly NavItem[] = [
   {
+    label: "Användare & roller",
+    href: "/admin/users",
+    iconPaths: ["M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M12 12a3.375 3.375 0 1 0 0-6.75 3.375 3.375 0 0 0 0 6.75Z"],
+  },
+  {
     label: "Dashboard",
     href: "/dashboard",
     // squares-2x2

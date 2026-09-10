@@ -554,10 +554,10 @@ test("9.5-SCOPE-01: the deny-list MODULE itself is NOT treated as a scope violat
   );
 });
 
-test("9.5-SCOPE-01: the surface anchors match the Phase A gate report — exactly 7 nav items and the 24-table Phase A floor", async () => {
+test("9.5-SCOPE-01: the surface retains the Phase A anchors while active Phase B modules may extend them", async () => {
   const nav = await loadNavItems();
   const tables = await loadTenantTables();
-  assert.equal(nav.length, 7, `the nav must be EXACTLY seven items (the frozen Phase A shell) — found ${nav.length}`);
+  assert.ok(nav.length >= 7, `the nav must retain the seven-item Phase A floor — found ${nav.length}`);
   // The Phase A acceptance gate report froze the tenant-owned set at 24 tables. Phase B ONLY ADDS
   // tables to the ACTIVE modules (Story 10.2 enrols quote_lost_reasons → 25; later stories add more)
   // and NEVER removes one, so the live set is a FLOOR of the frozen Phase A anchor — assert `>= 24`

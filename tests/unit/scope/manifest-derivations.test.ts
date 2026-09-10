@@ -35,6 +35,7 @@ const PINNED_NAV_ROUTES = [
   "/jobs",
   "/files",
   "/settings",
+  "/admin/users",
 ];
 const PINNED_TENANT_TABLES = [
   "tenants",
@@ -67,6 +68,7 @@ const PINNED_TENANT_TABLES = [
   "quote_follow_ups",
   "jobs",
   "job_events",
+  "membership_admin_operations",
 ];
 
 type AnyModule = {
@@ -140,7 +142,7 @@ test("10.1-UNIT-DERIVE-05 (AC3): TENANT_TABLES derives as the union of active mo
   const { SCOPE_MANIFEST } = await loadManifest();
   const { tenantTablesFromManifest } = await loadSchema();
   const derived = tenantTablesFromManifest(SCOPE_MANIFEST);
-  assert.equal(derived.length, 28, "the derived tenant-table union must total exactly 28");
+  assert.equal(derived.length, 29, "the derived tenant-table union must total exactly 29");
   assert.deepEqual(
     sortedUnique(derived),
     sortedUnique(PINNED_TENANT_TABLES),

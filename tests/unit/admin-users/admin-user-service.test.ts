@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-test.skip("[P0] commits one durable invite operation and audit before invoking Supabase Auth", async () => {
+test("[P0] commits one durable invite operation and audit before invoking Supabase Auth", async () => {
     const { createAdminUserService } = await import("@/server/auth/admin-user-service");
     let prepared = false;
     let inviteArgs: unknown[] | undefined;
@@ -37,7 +37,7 @@ test.skip("[P0] commits one durable invite operation and audit before invoking S
     assert.match(String((inviteArgs?.[1] as { redirectTo?: string }).redirectTo), /opaque-current-attempt/);
   });
 
-test.skip("[P1] replays a known uncertain operation without a second membership mutation or duplicate-delivery claim", async () => {
+test("[P1] replays a known uncertain operation without a second membership mutation or duplicate-delivery claim", async () => {
     const { createAdminUserService } = await import("@/server/auth/admin-user-service");
     let reconciliationCalls = 0;
     const reconcileOperation = async () => {

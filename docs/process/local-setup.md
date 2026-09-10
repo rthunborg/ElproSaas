@@ -8,6 +8,14 @@ source of truth.
 
 Current phase: **Phase B / Legacy Parity Release**, manifest-governed (see [`AGENTS.md`](../../AGENTS.md) and `src/scope/manifest.ts`).
 
+## Admin invitation redirects
+
+Local Auth permits `http://127.0.0.1:3000/auth/invite/confirm`. The Supabase
+invite and magic-link templates use `{{ .ConfirmationURL }}` so the server-created
+per-attempt redirect is preserved. Before enabling invitations in a hosted project,
+add the corresponding callback URL to Supabase Auth Redirect URLs and install the
+same templates.
+
 ## Prerequisites
 
 This repo is **pnpm-only** (AR2). `npm`, `yarn`, and `bun` are not supported — a
@@ -89,14 +97,17 @@ Rules (see [`docs/security/security-guardrails.md`](../security/security-guardra
 - **Only `NEXT_PUBLIC_`-prefixed variables reach the browser.** Everything else is
   server-side.
 - **The service-role key is server-only.** It bypasses RLS and must never be
-  exposed to the client. Its sole application use is
-  `src/server/storage/quote-pdf-signer.ts`: the quote-specific broker creates a
+  exposed to the client. Its approved application uses are
+  `src/server/storage/quote-pdf-signer.ts`, which creates a
   short-lived URL only after the request-bound SQL target validator binds an active
   generated PDF, and before the second validator writes its fixed audit event. It does
-  not authorize generic files or expose raw Storage access. The positive audited broker
-  and raw Säljare list/download/sign denial are proven in
-  `tests/integration/commands/quote-pdf-validity.int.test.ts`. Any additional use must
-  be documented with file path, purpose, and test coverage.
+  not authorize generic files or expose raw Storage access; and
+  `src/server/auth/admin-user-service.ts`, which invokes Supabase Auth only after an
+  authorized tenant-scoped operation and audit record are committed. The positive
+  quote broker and raw Säljare list/download/sign denial are proven in
+  `tests/integration/commands/quote-pdf-validity.int.test.ts`; the admin-user service
+  test covers the Auth-operation boundary. Any additional use must be documented with
+  file path, purpose, and test coverage.
 
 ## Local Supabase (wired)
 

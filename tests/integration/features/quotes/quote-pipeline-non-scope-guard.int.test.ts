@@ -30,6 +30,7 @@ import path from "node:path";
 import { SCOPE_MANIFEST } from "@/scope/manifest";
 
 const PHASE_A_NAV_ROUTES = [
+  "/admin/users",
   "/dashboard",
   "/customers",
   "/calculations",
@@ -74,7 +75,7 @@ describe("10.4-INT-03: non-scope guard — no new analytics surface / no email-s
     const tenantTables = SCOPE_MANIFEST.modules
       .filter((m) => m.status === "active")
       .flatMap((m) => m.tenantTables);
-    expect(new Set(tenantTables).size).toBe(28);
+    expect(new Set(tenantTables).size).toBe(29);
   });
 
   it("the read-model source path imports NO email/notification send path (Epic 13 owns reminders)", () => {
