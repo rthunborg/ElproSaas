@@ -10,8 +10,8 @@ target. It exists so the owner can demo the product and pilot users can try it.
 | --- | --- |
 | Hosting | Vercel project [`elpro-saas`](https://vercel.com/enhancior/elpro-saas) (Enhancior team), auto-deploys from `main` on GitHub `rthunborg/ElproSaas`. |
 | Database | Supabase project **`elprosaas-demo`** — ref `wmqmzznmwpheswjjozhq`, region `eu-north-1` (Stockholm), **Enhancior** org (`oykbutypisxdgifmrxid`), free tier. [Dashboard](https://supabase.com/dashboard/project/wmqmzznmwpheswjjozhq). |
-| App env vars (Vercel) | `NEXT_PUBLIC_SUPABASE_URL=https://wmqmzznmwpheswjjozhq.supabase.co` + `NEXT_PUBLIC_SUPABASE_ANON_KEY` (from the project's API settings) + `ELPRO_QUOTE_SEND_TRACK=demo`. The last value is an explicit disposable-demo opt-in: application default is fail-closed `real_customer`, which blocks unresolved `TAX_SIGN_OFF_REQUIRED` before send. Seller quote-PDF preview additionally requires the server-only `SUPABASE_SERVICE_ROLE_KEY` Vercel secret. It is used only by `src/server/storage/quote-pdf-signer.ts` after the checked database target binding; never expose or commit it. If it is absent, preview fails closed. The owner reports that this secret was added in Vercel and redeployed; that provisioning is recorded here, not independently runtime-verified. |
-| Accounts | Two Supabase CLI/dashboard identities exist: the **Enhancior** company account (owns this project — the CLI on the dev machine is logged into it) and a private `rthunborg` account (owns unrelated projects; the Claude Code Supabase MCP connector is currently bound to it — prefer the CLI for this project). |
+| App env vars (Vercel) | The 2026-09-10 Production inventory contains `NEXT_PUBLIC_SUPABASE_URL=https://wmqmzznmwpheswjjozhq.supabase.co`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, server-only `SUPABASE_SERVICE_ROLE_KEY`, `QUOTE_PDF_ATTESTATION_KEY_ID`, and `QUOTE_PDF_ATTESTATION_HMAC_SECRET`. Seller quote-PDF preview uses the service-role secret only in `src/server/storage/quote-pdf-signer.ts` after the checked database target binding; never expose or commit it. `ELPRO_QUOTE_SEND_TRACK=demo` is a documented explicit disposable-demo opt-in for sending, but was absent from this inventory and was not provisioned for the PDF setup. The application default remains fail-closed `real_customer`, blocking unresolved `TAX_SIGN_OFF_REQUIRED` before send. |
+| Accounts | As of 2026-09-10, the Enhancior Supabase MCP connection and the default Supabase CLI independently reach the correct demo project. The committed named profile has not been rechecked; do not infer its current authentication state from this evidence. |
 
 ## Supabase CLI profile (per-project isolation)
 
@@ -79,13 +79,36 @@ inserting `auth.users` by SQL, set `confirmation_token`, `recovery_token`,
 sign-in with a 500 "Database error querying schema" otherwise. SQL can be run
 without the DB password via `supabase db query --linked` (Management API).
 
+### Controlled Seller verification account (2026-09-10)
+
+**IN:** `seller.pdf-verification@elpro.example.test` is a disposable hosted
+smoke-test account for the PDF verification runbook. Its auth user ID is
+`3a301cc2-cc48-4985-b63e-fcbd2c48df1d`, tenant ID is
+`f93c7922-f152-4c54-a60b-943bd6e1db7a`, and active membership ID is
+`cfc1c7e1-5064-4816-a992-9f917b6eded5`, with scalar role `saljare` and no
+`membership_roles` rows. The DPAPI credential was reloaded and used for a new
+password sign-in. The resulting Seller JWT plus the anon API key invoked the
+PostgREST `has_tenant_role` RPC and returned Seller true, Admin false, and
+Projektledare false. This is actual-session authorization evidence, not a
+service-role or database-session simulation.
+
+For same-Windows-user agents, the password is available only through the
+DPAPI-encrypted PSCredential at
+`%USERPROFILE%/.codex/private/elprosaas-demo/seller-pdf-verification.credential.xml`.
+Import it privately with `Import-Clixml`; never print the password or store a
+session token. This convention is a SEAM for the authorized controlled Seller
+smoke only, not a general credential-distribution mechanism.
+
 ## Guardrail posture (what agents may/may not do here)
 
 - **Allowed:** `supabase link`, `supabase db push` (committed migrations only),
   read-only inspection, demo-data seeding as above.
-- **Still hard-blocked** (deny-list + `guard.ps1`): `supabase projects delete`,
-  secret operations, edge-function deploys. The DB password is owner-held; do
-  not persist it in the repo or any committed file.
+- **Still hard-blocked** (deny-list + `guard.ps1`): `supabase projects delete`
+  and edge-function deploys. The DB password is owner-held; do not persist it
+  in the repo or any committed file. The owner specifically authorized the
+  2026-09-10 Vault/Vercel provisioning and the controlled Seller hosted smoke;
+  that narrow authorization does not generalize secret operations or hosted
+  mutations.
 - The demo project is NOT a stop-condition violation: the CI "no shared
   dev/staging/prod project" rule constrains CI, which remains local-stack only.
 
@@ -97,7 +120,23 @@ Provision a new key in this order: create `quote_pdf_attestation_<key-id>` in Va
 
 For rotation, create and deploy the new matching key before removing the old Vault secret. Retain the old secret through old-deployment drainage plus the maximum five-minute in-flight render lease, then retire it with an audited owner-approved operational change. This is a deployment runbook, not a new retention or deletion workflow.
 
-**Current operational state / manual setup:** the owner reports that `SUPABASE_SERVICE_ROLE_KEY` was provisioned in Vercel and a deployment was triggered; repository work did not inspect hosted configuration or verify the running deployment. Matching quote-PDF HMAC/Vault attestation secrets remain unconfirmed. The repository-scoped Supabase profile is not authenticated and remains pending owner login. After merge, an owner may authenticate the profile (for example, `supabase login --profile supabase/cli-profile.yaml` if supported by the installed CLI) or use the Supabase dashboard, then provision the matching attestation secrets through Supabase Vault and Vercel. Confirm installed CLI syntax/version before any secret operation; the example syntax is intentionally not verified here.
+**Dated provisioning evidence (2026-09-10):** the sensitive Production
+`SUPABASE_SERVICE_ROLE_KEY` existed in Vercel (its value was not inspected). A
+new 48-byte random HMAC was created in the demo Vault and transferred through
+in-memory stdin into the matching sensitive Production
+`QUOTE_PDF_ATTESTATION_HMAC_SECRET` and `QUOTE_PDF_ATTESTATION_KEY_ID` values;
+Vault metadata confirmed exactly one matching name. An individual Vercel
+public-environment read confirmed the exact demo Supabase URL. No secret value
+or key ID is recorded here. Deployment `dpl_AkQ7qeViPeUKu1LKQPLFpUE5scMv`
+(`https://elpro-saas-3z6064332-enhancior.vercel.app`) completed successfully
+from current `main` SHA `2e12d27f09af47686270f118b16fc2c4515bffe8`.
+
+**Runtime status — PENDING:** PR 51 head `15338f4` remains unmerged despite
+passing check run `34477419061`. The demo schema is applied only through
+`20260907161230`; no 11.2 migration is applied. Fresh hosted PDF generation,
+Seller preview, and durable audit proof must wait for the merge and committed
+migration push. The named CLI profile remains unverified; use the independently
+confirmed default CLI or MCP connection for owner-authorized work.
 
 ## Hosted PDF runtime verification (manual, post-merge)
 
