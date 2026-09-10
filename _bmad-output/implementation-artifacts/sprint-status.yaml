@@ -60,7 +60,7 @@
 # use the current Epic 10 statuses and approved corrective-story entries below.
 
 generated: 2026-06-12
-last_updated: 09-10-2026 20:03  # ADR-B009 connected-field course correction verified; governance Story 10.7 done, no PWA/offline functionality delivered.
+last_updated: 09-10-2026 21:15  # ADR-B009 connected-field course correction verified; governance Story 10.7 done, no PWA/offline functionality delivered.
 project: ElproSaas
 project_key: NOKEY
 tracking_system: file-system
@@ -214,7 +214,7 @@ development_status:
   # 11-2 ships the entitlement seed as a flagged conservative default
   # [gated: N-4 — confirmation is a config-level matrix edit; mechanism ungated].
   11-2-non-admin-access-to-the-phase-a-surface-matrix-seed-role-aware-rls-nav-and-landing: done
-  11-3-admin-user-management: review
+  11-3-admin-user-management: done
   11-4-roles-surface-effective-permissions-and-the-per-role-test-harness: backlog
   epic-11-retrospective: optional
 

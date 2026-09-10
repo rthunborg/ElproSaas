@@ -8,12 +8,12 @@ story_source: sprint
 spec_folder: null
 story_id: null
 branch: story/11-3-admin-user-management
-status: in-progress
-updated_at: "2026-09-10T18:44:17Z"
+status: done
+updated_at: "2026-09-10T19:15:44Z"
 started_at: "2026-09-10T14:47:43Z"
-completed_at: null
-active_seconds: 7116
-timing_anchor: 1789065857
+completed_at: "2026-09-10T19:15:44Z"
+active_seconds: 9003
+timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
 git_mode: remote
@@ -38,7 +38,7 @@ tea_selected: [atdd, automate]
 tea_rationale: "Authentication/authorization and tenant membership mutations affect audit, RLS, and last-admin invariants."
 epic_story_count: 4
 stories_after_in_epic: 1
-completed_phases: [0, 1, 2, 3, 4, 5, 6, 7, 8]
+completed_phases: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
 spec_path: "C:/DEV/ElproSaas/_bmad-output/implementation-artifacts/spec-11-3-admin-user-management.md"
 spec_approved: true
 build:
@@ -58,7 +58,7 @@ legacy_review_loop_done: false
 legacy_external_review_iterations: null
 legacy_convergence_unverified: false
 legacy_artifact_path: null
-commits: [52df91e, 9a894c6, 03b3c75, bae15ec, 0f50cfe, a2af554, 166bfe6, a76011c, 150108d, 5ad9f67]
+commits: [52df91e, 9a894c6, 03b3c75, bae15ec, 0f50cfe, a2af554, 166bfe6, a76011c, 150108d, 5ad9f67, d568d7c, 4b06a9e]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -73,10 +73,10 @@ retro:
   doc: null
   verdict: null
   open_action_items: 0
-bmad_status_flipped_at: null
-pr_url: null
-ci_run_url: null
-ci_status: unknown
+bmad_status_flipped_at: 9
+pr_url: "https://github.com/rthunborg/ElproSaas/pull/53"
+ci_run_url: "https://github.com/rthunborg/ElproSaas/actions/runs/34518170039"
+ci_status: passed
 pr_merged: false
 merge_method: null
 merge_commit: null
