@@ -272,3 +272,34 @@
 **⚠️ Needs human:** (none)
 
 **Next:** PR owner review and optional merge. Before enabling hosted Seller PDF preview, provision the documented server-only secret (deployment prerequisite; missing configuration fails closed). Story 11-3 can be selected next; not started in this run.
+
+## Report — 2026-09-10T11:47:08Z (final)
+
+**Story:** `11-2-non-admin-access-to-the-phase-a-surface-matrix-seed-role-aware-rls-nav-and-landing` (epic 11, story 2) — mid-epic.
+**Spec:** `C:/DEV/ElproSaas/_bmad-output/implementation-artifacts/spec-11-2-non-admin-access-to-the-phase-a-surface-matrix-seed-role-aware-rls-nav-and-landing.md`
+**Branch:** `codex/11-2-non-admin-access-to-the-phase-a-surface-matrix-seed-role-aware-rls-nav-and-landing` (HEAD `cafcd95`).
+**Pipeline status:** Targeted Reviewbot findings resolved with local verification and final security review clear; CI will validate the pushed revision before restoring PR readiness.
+**Continues:** 2026-09-10T10:12:46Z (final)
+
+**Timing:** started 2026-09-07T16:40:40Z; completed in progress — elapsed 67h 06m (≈2h 42m AI-run, ≈64h 23m human/idle wait); resumed 8×.
+
+**Phases run:** Phase 7 targeted remediation of owner-supplied findings (Terra/high; Sol/xhigh security regression), Phase 9 report and CI verification
+**Skipped:** No new broad review (three-round cap retained); no epic gates or retrospective (mid-epic).
+
+**Overrides:** Owner reports adding the Vercel service-role environment variable and redeploying; this is provisioning evidence, not hosted PDF runtime verification. Existing disposable local-data authorization retained.
+
+**TEA:** No new TEA phase. Local required integration: 4 files, 48 passed, zero skips, including direct upload policy/metadata cases, forged completion time, PM/Seller counter DML denials and a two-connection queued-update race. Unit: 1,720 passed. Production browser: 127 passed, four historical skips, before final storage-only race refinement; final race verified by focused database test. Build, typecheck, lint and source/bundle containment passed; full CI follows.
+
+**Build:** done; commit cafcd95; deferred 0 (harvested 0); original baseline retained; warning oversized. Uploaded metadata is checked and protected from queued mutation, completion time comes from DB, and Seller no longer sees the inaccessible calculation-origin creation link.
+
+**Review:** Second pipeline follow-up/remediation pass; last triage patch 4 (three bot fixes plus related upload-race closure), bad_spec 0, defer 0, reject 2. Pricing finding rejected against approved Admin-only settings surface; counter claim rejected with direct DML denial proof. Seller successor creation preserved. Final exact-scope Sol/xhigh review: no findings. followup_review_recommended false; review_unverified false. Earlier full-diff Luna timeout remains unavailable evidence, not full-diff approval.
+
+**Retrospective:** Not due: story 2 of 4 in epic 11.
+
+**Open questions:** (none)
+
+**Deferred work:** (none)
+
+**⚠️ Needs human:** (none)
+
+**Next:** Review the updated PR after CI. Merge remains an owner decision. Hosted PDF attestation/Vault provisioning and actual Seller PDF preview remain unverified; see demo-environment.md.
