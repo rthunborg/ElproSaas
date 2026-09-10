@@ -8,7 +8,7 @@
  * labels. This suite asserts the AC6 source-selection affordance: choosing a work role on a
  * labor row / an article on a material row PREFILLS the row price + shows a provenance line;
  * a manual (no-source) row still saves; NO supplier/import/API/deferred-workflow label
- * appears; the nav stays EXACTLY seven.
+ * appears; the nav stays exactly aligned with active manifest modules.
  *
  * The global-setup fixture seeds ONE active work role + ONE active article in adminA's tenant
  * and exposes their names (`fixture.workRole.displayName` / `fixture.article.name`) so the
@@ -19,6 +19,7 @@
 import { test, expect, type Page, type Locator } from "@playwright/test";
 import { readFileSync } from "node:fs";
 import path from "node:path";
+import { expectActiveAdminNavigation } from "../support/active-admin-navigation";
 
 interface CalcFixture {
   readonly adminA: { readonly email: string; readonly password: string };
@@ -162,22 +163,10 @@ test.describe("Calculation row pricing-source selection (Story 5.3 E2E / AC6)", 
     ).toHaveCount(0);
   });
 
-  test("5.3-E2E-05 (AC6): the nav stays EXACTLY the seven in-scope modules", async ({ page }) => {
+  test("5.3-E2E-05 (AC6): the nav stays EXACTLY aligned with active manifest modules", async ({ page }) => {
     await signIn(page, fixture.adminA.email, fixture.adminA.password);
     await page.goto(`/calculations/${fixture.calc.id}`);
     const nav = page.getByRole("navigation", { name: "Huvudnavigation" }).first();
-    const expectedSeven = [
-      "Dashboard",
-      "Kunder",
-      "Kalkyler",
-      "Offerter",
-      "Jobb/Order",
-      "Filer",
-      "Inställningar",
-    ];
-    for (const label of expectedSeven) {
-      await expect(nav.getByRole("link", { name: label })).toBeVisible();
-    }
-    await expect(nav.getByRole("link")).toHaveCount(expectedSeven.length);
+    await expectActiveAdminNavigation(nav);
   });
 });

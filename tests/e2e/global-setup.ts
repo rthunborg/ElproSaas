@@ -36,6 +36,7 @@ import {
   adminInsertSection,
   adminInsertWorkRole,
   adminUploadStorageObject,
+  adminInsertMembership,
   createTwoTenantFixture,
   makeAuthedServerClient,
   seedRoleAwarePhaseAUsers,
@@ -82,6 +83,14 @@ export default async function globalSetup() {
   // tenant that owns every existing browser seed. Their credentials are written
   // only to the gitignored per-run fixture file below and cleaned with the base.
   const roleAware = await seedRoleAwarePhaseAUsers(base);
+  // Story 11.3 browser fixture: a real non-admin in Tenant A and a shared
+  // account whose Tenant-B membership remains independent of Tenant-A changes.
+  await adminInsertMembership({
+    tenant_id: base.tenantA.id,
+    user_id: base.adminB.id,
+    role: "montor",
+    status: "active",
+  });
   const adminAClient = await makeAuthedServerClient(base.adminA);
 
   // Seed CRM rows in tenantA via the privileged (BYPASSRLS) factory path. These are
@@ -1028,6 +1037,11 @@ export default async function globalSetup() {
     roleAware: {
       saljare: roleAware.users.saljare,
       montor: roleAware.users.montor,
+    },
+    adminUserManagement: {
+      tenantAdmin: base.adminA,
+      nonAdmin: roleAware.users.montor,
+      sharedAccount: base.adminB,
     },
     crm: {
       company: { id: companyId, displayName: companyName, orgNr: companyOrgNr },

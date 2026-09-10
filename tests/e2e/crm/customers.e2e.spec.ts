@@ -7,7 +7,7 @@
  *   AC4 → creating a customer via the dialog persists (round-trips createCustomer 3.1).
  *   AC3 → a validation failure shows a FIELD-ASSOCIATED error + summary and PRESERVES input.
  *   AC3 → dialog open moves focus IN; Escape/close returns focus to the trigger.
- *   AC6 → the shell shows EXACTLY the seven nav labels and NONE of the deferred labels.
+ *   AC6 → the shell shows exactly the active manifest nav and none of the deferred labels.
  *   AC5 → anonymous /customers and /customers/<id> redirect to /login.
  *   P0  → the /customers LIST never contains a personnummer; the detail shows it masked.
  *
@@ -17,6 +17,7 @@
 import { test, expect, type Page, type Locator } from "@playwright/test";
 import { readFileSync } from "node:fs";
 import path from "node:path";
+import { expectActiveAdminNavigation } from "../support/active-admin-navigation";
 
 interface CrmFixture {
   readonly tenantA: { readonly name: string };
@@ -229,26 +230,14 @@ test.describe("CRM tenant-admin UX (Story 3.2 E2E)", () => {
     await expect(openBtn).toBeFocused();
   });
 
-  test("AC6: the shell shows EXACTLY the seven nav labels and NONE of the deferred labels", async ({
+  test("AC6: the shell shows EXACTLY the active manifest nav and NONE of the deferred labels", async ({
     page,
   }) => {
     await signIn(page, fixture.adminA.email, fixture.adminA.password);
     await page.goto("/customers");
 
     const nav = page.getByRole("navigation", { name: "Huvudnavigation" }).first();
-    const expectedSeven = [
-      "Dashboard",
-      "Kunder",
-      "Kalkyler",
-      "Offerter",
-      "Jobb/Order",
-      "Filer",
-      "Inställningar",
-    ];
-    for (const label of expectedSeven) {
-      await expect(nav.getByRole("link", { name: label })).toBeVisible();
-    }
-    await expect(nav.getByRole("link")).toHaveCount(expectedSeven.length);
+    await expectActiveAdminNavigation(nav);
 
     // No deferred-module label appears anywhere on the page (nav, body, or detail).
     const body = await page.locator("body").innerText();

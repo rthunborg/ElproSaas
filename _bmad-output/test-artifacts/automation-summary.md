@@ -7,7 +7,7 @@ stepsCompleted:
 lastStep: 'step-04-validate-and-summarize'
 lastSaved: '2026-09-10'
 workflowType: testarch-automate
-story: 10.6 Tax-Answer Reconciliation; 11.1 Role Storage and Permission-Matrix Mechanism; 11.2 Non-Admin Access to the Phase A Surface (latest)
+story: 10.6 Tax-Answer Reconciliation; 11.1 Role Storage and Permission-Matrix Mechanism; 11.2 Non-Admin Access to the Phase A Surface; 11.3 Admin User Management (latest)
 detectedStack: fullstack
 executionMode: BMad-integrated (post-implementation risk-based coverage expansion)
 inputDocuments:
@@ -42,6 +42,8 @@ inputDocuments:
   - _bmad-output/implementation-artifacts/spec-11-1-role-storage-and-permission-matrix-mechanism.md
   - _bmad-output/test-artifacts/atdd-checklist-11-1-role-storage-and-permission-matrix-mechanism.md
   - _bmad-output/test-artifacts/test-design-epic-11.md
+  - _bmad-output/implementation-artifacts/spec-11-3-admin-user-management.md
+  - _bmad-output/test-artifacts/atdd-checklist-11-3-admin-user-management.md
 ---
 
 # Test Automation Expansion — Story 10.6 (Tax-Answer Reconciliation)
@@ -304,3 +306,91 @@ None. No contract artifact belongs to this in-process application and database b
 **Residual risk and next workflow:** the exact binding and no-audit failure path now execute on
 the local authenticated stack. The independent full-diff review caveat recorded by the story
 remains unchanged; use `bmad-testarch-test-review` only if a new review round is requested.
+
+---
+
+# Test Automation Expansion — Story 11.3: Admin User Management
+
+## Step 1 — Preflight & Context
+
+- **Stack and mode:** full-stack Next.js/React plus local Supabase. This BMad-integrated Create
+  run used the completed Story 11.3 specification, its red-phase ATDD checklist, implemented
+  command and Auth service code, existing Node unit tests, integration/RLS tests, and Playwright
+  smoke tests.
+- **Framework readiness:** the established test lanes are Node `node:test` for service behavior,
+  Vitest for real database and RLS behavior, and Playwright against the configured production
+  server. Playwright Utils and Pact.js Utils are configured but neither package is installed, so
+  the repository's established raw Playwright and local mock conventions were retained.
+- **Existing evidence reused:** the real DB suite already covers valid, expired, revoked,
+  superseded, and wrong-email invitation acceptance; the last-active-Admin invariant; shared
+  account tenant-only removal; reconciliation idempotency; and direct RLS denials. The existing
+  browser suite covers Admin list/detail/history and direct non-Admin denial. No duplicate
+  database cases were generated.
+
+## Step 2 — Identify Targets
+
+| Target | Level | Priority | Acceptance/risk link | Reason |
+| --- | --- | --- | --- | --- |
+| Existing confirmed Auth account receives a magic link after durable invite preparation | Node unit | P0 | AC4, AC5; retry-safe delivery | Confirms the `already` provider response takes the selected-account path without a second membership mutation. |
+| Unrelated invite-provider failure finalizes uncertain and sends no fallback | Node unit | P0 | AC5; no duplicate delivery claim | Distinguishes a real provider failure from the only safe fallback condition. |
+| Password reset finalizes succeeded or uncertain without exposing provider detail | Node unit | P0 | AC1, AC5 | Covers both durable terminal outcomes at the Auth boundary. |
+| Admin opens invite form, sees role choices, and invalid email remains client-side invalid | Playwright | P1 | AC1 invite action | Adds a user-visible action flow without sending email or mutating a membership. |
+
+API and Pact coverage were not applicable: Story 11.3 has no independently deployed REST/provider
+contract boundary, and all command behavior is mediated by the in-process server and local
+Supabase RPCs.
+
+## Step 3 — Generate and Aggregate Tests
+
+- **Execution mode:** capability-probed BMad-integrated agent-team dispatch; API, browser, and
+  backend findings were aggregated before editing.
+- **Coverage added:** three P0 mock-only Node tests in
+  `tests/unit/admin-users/admin-user-service.test.ts`, and one P1 Playwright test in
+  `tests/e2e/auth/admin-user-management.atdd.e2e.spec.ts`.
+- **Fixtures and helpers:** none. The browser journey reuses the Story 11.3 tenant-admin fixture;
+  service tests use local dependency doubles and no network provider.
+- **Generated counts:** API 0; browser 1; backend unit 3; integration 0; fixtures 0. Priority
+  totals: P0 3, P1 1, P2/P3 0.
+
+### Playwright Utils deviations
+
+The configured package is absent. The one browser test uses the repository's current raw
+`@playwright/test` locators and assertions; no substitute utility or dependency was introduced.
+
+### Pact.js Utils deviations
+
+No contract artifact applies to this in-process command and database boundary; Pact packages and
+broker access are unavailable.
+
+## Step 4 — Validation and Final Summary
+
+- `node --experimental-strip-types --import ./tests/support/register.mjs --test
+  tests/unit/admin-users/admin-user-service.test.ts` — **PASS:** 5 tests passed, 0 failed,
+  0 skipped.
+- `pnpm exec playwright test tests/e2e/auth/admin-user-management.atdd.e2e.spec.ts --workers=1`
+  — **PASS:** 3 tests passed, 0 failed, 0 skipped, using the already-running root-owned server.
+- `SUPABASE_TEST_REQUIRED=1 pnpm exec vitest run
+  tests/integration/commands/admin-user-management.int.test.ts
+  tests/integration/rls/admin-user-management.rls.test.ts` — **PASS:** 2 files, 6 tests passed,
+  0 failed, 0 skipped.
+- `pnpm exec eslint tests/unit/admin-users/admin-user-service.test.ts
+  tests/e2e/auth/admin-user-management.atdd.e2e.spec.ts` — **PASS**.
+
+**Reachable Phase 7 repair:** the invite dialog's focus contract is broken after opening the form.
+`src/components/admin-users/UsersPage.tsx` renders hidden `operationId` before the email input;
+`src/components/crm/Dialog.tsx` treats every `input:not([disabled])` as focusable, calls
+`.focus()` on that hidden input, and leaves focus on the trigger rather than `E-post`. A browser
+assertion reproduced this deterministically. The active validation journey intentionally does not
+mask this defect; it records the remaining invite-form behavior while Phase 7 should exclude hidden
+controls from the Dialog focus selector and restore the focus assertion.
+
+**Files changed:**
+
+- `C:/DEV/ElproSaas/tests/unit/admin-users/admin-user-service.test.ts`
+- `C:/DEV/ElproSaas/tests/e2e/auth/admin-user-management.atdd.e2e.spec.ts`
+- `C:/DEV/ElproSaas/_bmad-output/test-artifacts/automation-summary.md`
+
+**Residual risk and next workflow:** Auth email delivery is intentionally not browser-automated.
+The local database acceptance, RLS, command, and service boundary evidence are green with no
+skips. Repair the dialog focus defect before claiming the invite dialog's documented initial-focus
+behavior; run `bmad-testarch-test-review` only if a further test-quality review is requested.

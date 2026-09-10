@@ -283,6 +283,7 @@ describe("Migration reset green — tenant_foundation objects present (AC1 / R-0
       "jobs.INSERT",
       "jobs.SELECT",
       "jobs.UPDATE",
+      "membership_admin_operations.SELECT",
       "membership_roles.SELECT",
       "quote_acceptances.INSERT",
       "quote_acceptances.SELECT",
@@ -331,6 +332,7 @@ describe("Migration reset green — tenant_foundation objects present (AC1 / R-0
       "tenants",
       "tenant_memberships",
       "membership_roles",
+      "membership_admin_operations",
       "audit_events",
       "quote_review_authorizations",
     ];

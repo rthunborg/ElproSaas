@@ -63,6 +63,7 @@ import {
   type TestServerClient,
 } from "../../factories/tenants";
 import { adminInsertAuditEvent } from "../../factories/audit-events";
+import { adminQuery } from "../../factories/admin-sql";
 import { isLocalStackReachable } from "../../support/test-env";
 import { skipUnlessStack } from "../../support/stack-gate";
 import {
@@ -104,6 +105,7 @@ let tenantBJobId: string; // a seeded Tenant B job (7.1 target + job_event paren
 let tenantBJobEventId: string; // a seeded Tenant B job event (7.1 target)
 let tenantBQuoteLostReasonId: string; // a seeded Tenant B lost reason (10.2 target)
 let tenantBQuoteFollowUpId: string; // a seeded Tenant B follow-up (10.3 target)
+let tenantBAdminOperationId: string; // a seeded Tenant B operation (11.3 target)
 let ctx: InventoryContext; // shared-inventory context (fixture + the seeded ids)
 
 beforeAll(async () => {
@@ -314,6 +316,21 @@ beforeAll(async () => {
     note: "tenant-b-followup-seed",
     status: "open",
   });
+  // Seed a concrete Tenant B operation so the membership_admin_operations
+  // cross-tenant SELECT/UPDATE/DELETE checks cannot pass against an empty table.
+  await adminQuery(
+    "insert into public.membership_admin_operations (id, tenant_id, actor_user_id, action, outcome) values ($1,$2,$3,'invite','succeeded')",
+    [crypto.randomUUID(), fixture.tenantB.id, fixture.adminB.id],
+  );
+  const operationSeed = await adminQuery<{ id: string }>(
+    `insert into public.membership_admin_operations
+       (id, tenant_id, actor_user_id, membership_id, action, outcome)
+     values (gen_random_uuid(), $1, $2,
+       (select id from public.tenant_memberships where tenant_id = $1 and user_id = $2),
+       'disable', 'succeeded') returning id`,
+    [fixture.tenantB.id, fixture.adminB.id],
+  );
+  tenantBAdminOperationId = String(operationSeed[0]?.id ?? "");
   // VACUITY GUARD (DX#4, epic-2 hardening): the audit_events cross-tenant negatives
   // filter Tenant B's row by `id = tenantBAuditId`. If the seed ever returned without
   // a real id, `.eq("id", undefined/null)` would match NOTHING and the SELECT/UPDATE/
@@ -394,6 +411,9 @@ beforeAll(async () => {
         "cross-tenant negative would pass VACUOUSLY against a non-existent row.",
     );
   }
+  if (!tenantBAdminOperationId) {
+    throw new Error("cross-tenant operation seed produced no id — membership_admin_operations negatives would pass VACUOUSLY.");
+  }
   ctx = {
     fixture,
     tenantBAuditId,
@@ -422,6 +442,7 @@ beforeAll(async () => {
     tenantBJobEventId,
     tenantBQuoteLostReasonId,
     tenantBQuoteFollowUpId,
+    tenantBAdminOperationId,
   };
 });
 

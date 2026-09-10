@@ -9,7 +9,9 @@
 // transitively-bundled server module, and any `*SERVICE_ROLE*` token that survived
 // minification. [architecture §9, §20; test-design-epic-2.md R-002]
 //
-// The app has one documented server-only exception: the quote-PDF signer at
+// The app has two documented server-only exceptions: the quote-PDF signer and
+// the tenant-bound Admin-user Auth adapter. Neither may leak a key value or a
+// reference into a browser, route, or RSC payload.
 // `src/server/storage/quote-pdf-signer.ts` uses the service-role key to sign the
 // exact target already bound by the checked database workflow. Its server chunk and
 // source map may retain the *environment-variable name*, never its value. Every
@@ -43,6 +45,8 @@ const SERVICE_ROLE_TOKEN_RE = /[A-Z0-9_]*SERVICE_ROLE[A-Z0-9_]*/g;
 const QUOTE_PDF_SIGNER_ENV_NAME = "SUPABASE_SERVICE_ROLE_KEY";
 const QUOTE_PDF_SIGNER_SOURCE_MARKER = "src/server/storage/quote-pdf-signer.ts";
 const QUOTE_PDF_SIGNER_RUNTIME_MARKER = "Quote PDF signing is not configured";
+const ADMIN_USER_SERVICE_SOURCE_MARKER = "src/server/auth/admin-user-service.ts";
+const ADMIN_USER_SERVICE_RUNTIME_MARKER = "admin user operation unavailable";
 const QUOTE_PDF_SIGNER_SERVER_CHUNK_RE =
   /^\.next\/server\/chunks\/ssr\/[^/]+\.(?:js|map)$/;
 
@@ -54,12 +58,14 @@ const QUOTE_PDF_SIGNER_SERVER_CHUNK_RE =
  * a token allowlist: the same name in client/static, route/RSC, or another server
  * artifact remains a violation, as do every key value and service-role JWT.
  */
-function isDocumentedQuotePdfSignerEnvironmentReference(rel, contents, token) {
+function isDocumentedServerEnvironmentReference(rel, contents, token) {
   if (token !== QUOTE_PDF_SIGNER_ENV_NAME) return false;
   if (!QUOTE_PDF_SIGNER_SERVER_CHUNK_RE.test(rel)) return false;
   return (
     contents.includes(QUOTE_PDF_SIGNER_SOURCE_MARKER) ||
-    contents.includes(QUOTE_PDF_SIGNER_RUNTIME_MARKER)
+    contents.includes(QUOTE_PDF_SIGNER_RUNTIME_MARKER) ||
+    contents.includes(ADMIN_USER_SERVICE_SOURCE_MARKER) ||
+    contents.includes(ADMIN_USER_SERVICE_RUNTIME_MARKER)
   );
 }
 
@@ -232,7 +238,7 @@ export function scanBuiltBundle(rootDir, opts = {}) {
     if (tokenMatches) {
       for (const match of new Set(tokenMatches)) {
         if (ALLOWLISTED_VENDOR_TOKENS.has(match)) continue;
-        if (isDocumentedQuotePdfSignerEnvironmentReference(rel, contents, match)) continue;
+        if (isDocumentedServerEnvironmentReference(rel, contents, match)) continue;
         violations.push(
           `${rel}: service-role token \`${match}\` present in a built artifact ` +
             `— the service-role key/name must never ship to the browser or a route payload. ` +

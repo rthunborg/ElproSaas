@@ -30,6 +30,7 @@ const PINNED_NAV_ROUTES = [
   "/jobs",
   "/files",
   "/settings",
+  "/admin/users",
 ];
 const PINNED_OWNER_TYPES = [
   "customer",
@@ -74,6 +75,7 @@ const PINNED_TENANT_TABLES = [
   "quote_review_authorizations",
   "jobs",
   "job_events",
+  "membership_admin_operations",
 ];
 const WAVES = new Set(["A", "B1a", "B1b", "B2", "B3"]);
 const PUBLIC_SURFACE_CLOSED_SET = new Set([
@@ -130,7 +132,7 @@ test("10.1-UNIT-SHAPE-02 (AC2): every `active` module has an epic reference + an
   for (const m of active) {
     assert.ok(m.epic && m.epic.length > 0, `active module ${m.id} must carry an epic reference`);
     assert.ok(m.activatedAt && m.activatedAt.length > 0, `active module ${m.id} must carry an activatedAt date`);
-    assert.equal(m.wave, "A", `Phase A active module ${m.id} must be wave A`);
+    assert.ok(m.wave === "A" || m.id === "rbac", `only the approved RBAC activation may be a Phase B active module (${m.id})`);
   }
 });
 
@@ -150,7 +152,7 @@ test("10.1-UNIT-SHAPE-04 (AC2): the `active` set reproduces exactly the 28 tenan
   const tables = manifest.modules
     .filter((m) => m.status === "active")
     .flatMap((m) => m.tenantTables);
-  assert.equal(tables.length, 28, "the active tenant-table union must total exactly 28 (no dup, no gap)");
+  assert.equal(tables.length, 29, "the active tenant-table union must total exactly 29 (no dup, no gap)");
   assert.deepEqual(sortedUnique(tables), sortedUnique(PINNED_TENANT_TABLES));
 });
 
@@ -167,6 +169,7 @@ test("10.1-UNIT-SHAPE-06 (AC2): every Phase B module is `pending` (no live Phase
   const phaseB = manifest.modules.filter((m) => m.wave !== "A");
   assert.ok(phaseB.length > 0, "expected Phase B pending modules to be modeled");
   for (const m of phaseB) {
+    if (m.id === "rbac") continue;
     assert.equal(m.status, "pending", `Phase B module ${m.id} must be pending in 10.1`);
     assert.equal(m.navItems.length, 0, `pending module ${m.id} must wire no nav route`);
     assert.equal(m.tenantTables.length, 0, `pending module ${m.id} must enroll no tenant table`);

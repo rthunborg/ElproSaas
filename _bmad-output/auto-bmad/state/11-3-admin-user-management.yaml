@@ -1,0 +1,89 @@
+# auto-bmad per-story state — written by scripts/state_update.py (full stable schema;
+# see references/state-and-resume.md). Prose belongs in reports/{key}.md, not here.
+story_key: 11-3-admin-user-management
+epic_num: 11
+story_num: 3
+story_suffix: ""
+story_source: sprint
+spec_folder: null
+story_id: null
+branch: story/11-3-admin-user-management
+status: done
+updated_at: "2026-09-10T19:15:44Z"
+started_at: "2026-09-10T14:47:43Z"
+completed_at: "2026-09-10T19:15:44Z"
+active_seconds: 9003
+timing_anchor: null
+is_first_in_epic: false
+is_last_in_epic: false
+git_mode: remote
+base_branch: main
+selected_phase: followup_review
+selected_role: primary-reviewer
+selected_profile: standard
+selected_model: gpt-5.6-terra
+selected_effort: high
+selected_host: codex
+selected_tier: subagents
+selected_route: subagent
+escalation_reason: null
+routing_ledger:
+  - "{\"effort\":\"high\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-terra\",\"phase\":\"build\",\"profile\":\"standard\",\"role\":\"build-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"high\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-terra\",\"phase\":\"tea_per_story\",\"profile\":\"standard\",\"role\":\"tea-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"high\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-terra\",\"phase\":\"build\",\"profile\":\"standard\",\"role\":\"build-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"high\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-terra\",\"phase\":\"tea_per_story\",\"profile\":\"standard\",\"role\":\"tea-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"high\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-terra\",\"phase\":\"followup_review\",\"profile\":\"standard\",\"role\":\"primary-reviewer\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+tea_risk: high
+tea_selected: [atdd, automate]
+tea_rationale: "Authentication/authorization and tenant membership mutations affect audit, RLS, and last-admin invariants."
+epic_story_count: 4
+stories_after_in_epic: 1
+completed_phases: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+spec_path: "C:/DEV/ElproSaas/_bmad-output/implementation-artifacts/spec-11-3-admin-user-management.md"
+spec_approved: true
+build:
+  status: done
+  blocking_condition: null
+  followup_review_recommended: false
+  review_loop_iteration: 0
+  deferred_count: 0
+  warnings: []
+followup_passes: 1
+hitl_halt: continued
+review_unverified: false
+story_trace: null
+legacy_review_resume: false
+legacy_review_iteration: null
+legacy_review_loop_done: false
+legacy_external_review_iterations: null
+legacy_convergence_unverified: false
+legacy_artifact_path: null
+commits: [52df91e, 9a894c6, 03b3c75, bae15ec, 0f50cfe, a2af554, 166bfe6, a76011c, 150108d, 5ad9f67, d568d7c, 4b06a9e]
+phase8_steps:
+  trace_gate: null
+  nfr: null
+  test_review: null
+  reconcile: null
+  archive: null
+  retro: null
+gate_decision: null
+gate_iterations: 0
+deferred_work_archived: 0
+retro:
+  doc: null
+  verdict: null
+  open_action_items: 0
+bmad_status_flipped_at: 9
+pr_url: "https://github.com/rthunborg/ElproSaas/pull/53"
+ci_run_url: "https://github.com/rthunborg/ElproSaas/actions/runs/34518170039"
+ci_status: passed
+pr_merged: false
+merge_method: null
+merge_commit: null
+branch_deleted: false
+open_questions: []
+deferred_work: []
+blockers: []
+overrides:
+  owner_decisions: "Approved in this task: explicit membership lifecycle states and timestamps; preserve history; returning former members require fresh invitations and explicit roles; resend supersedes prior attempt; tenant-scoped deactivation/removal must not globally ban/delete shared Auth accounts. Database is tenant-access authority. Record operation and audit transactionally before Auth; track success/failure/uncertainty; explicit retry/reconciliation; no exactly-once email promise; access removal remains effective on Auth failure. Narrow operation record, no general background-job system. Planner may choose schema and commands."
+constraints: []

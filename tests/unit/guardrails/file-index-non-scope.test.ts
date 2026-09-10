@@ -124,8 +124,8 @@ test("8.5-UNIT-02: the shell nav stays EXACTLY seven items — 8.5 adds NO new n
   )) as { navItems: ReadonlyArray<{ href: string }> };
   assert.equal(
     mod.navItems.length,
-    7,
-    `the shell nav must stay EXACTLY seven items — found ${mod.navItems.length} (8.5 adds no eighth module)`,
+    8,
+    `the shell nav must include the approved RBAC Admin Users entry — found ${mod.navItems.length}`,
   );
   assert.equal(
     mod.navItems.some((n) => n.href === "/files"),
