@@ -9,11 +9,11 @@ spec_folder: null
 story_id: null
 branch: story/11-3-admin-user-management
 status: in-progress
-updated_at: "2026-09-10T16:35:49Z"
+updated_at: "2026-09-10T16:47:39Z"
 started_at: "2026-09-10T14:47:43Z"
 completed_at: null
-active_seconds: 1070
-timing_anchor: null
+active_seconds: 1780
+timing_anchor: 1789058859
 is_first_in_epic: false
 is_last_in_epic: false
 git_mode: remote
@@ -29,12 +29,14 @@ selected_route: subagent
 escalation_reason: null
 routing_ledger:
   - "{\"effort\":\"high\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-terra\",\"phase\":\"build\",\"profile\":\"standard\",\"role\":\"build-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"high\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-terra\",\"phase\":\"tea_per_story\",\"profile\":\"standard\",\"role\":\"tea-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"high\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-terra\",\"phase\":\"build\",\"profile\":\"standard\",\"role\":\"build-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
 tea_risk: high
 tea_selected: [atdd, automate]
 tea_rationale: "Authentication/authorization and tenant membership mutations affect audit, RLS, and last-admin invariants."
 epic_story_count: 4
 stories_after_in_epic: 1
-completed_phases: [0, 1, 2, 3]
+completed_phases: [0, 1, 2, 3, 4]
 spec_path: "C:/DEV/ElproSaas/_bmad-output/implementation-artifacts/spec-11-3-admin-user-management.md"
 spec_approved: true
 build:
@@ -54,7 +56,7 @@ legacy_review_loop_done: false
 legacy_external_review_iterations: null
 legacy_convergence_unverified: false
 legacy_artifact_path: null
-commits: [52df91e, 9a894c6, 03b3c75]
+commits: [52df91e, 9a894c6, 03b3c75, bae15ec]
 phase8_steps:
   trace_gate: null
   nfr: null
