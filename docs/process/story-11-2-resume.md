@@ -1,3 +1,10 @@
+> **HISTORICAL / SUPERSEDED — do not use this as an execution handoff.** Story
+> 11.2 is complete and its hosted PDF evidence is in
+> [Story 11.2 hosted PDF verification](../quality/story-11-2-hosted-pdf-verification.md).
+> The Phase 5, pending-resource, and local-stack directions below describe the
+> 2026-09-07 recovery state only. Use
+> [Story 11.3 handoff](story-11-3-handoff.md) for the next story.
+
 # Story 11.2 implementation recovery
 
 Prepared 2026-09-07 at the user's request. This document supplements the

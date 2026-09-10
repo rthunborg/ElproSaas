@@ -334,3 +334,34 @@
 **⚠️ Needs human:** (none)
 
 **Next:** Review PR after CI; merge remains an owner decision. Follow docs/process/demo-environment.md Hosted PDF runtime verification after merge and matching migrations: Vault first, matching Vercel env, redeploy, fresh generation/preview and metadata-only audit proof. No secret values need to be shared.
+
+## Report — 2026-09-10T13:29:07Z (final)
+
+**Story:** `11-2-non-admin-access-to-the-phase-a-surface-matrix-seed-role-aware-rls-nav-and-landing` (epic 11, story 2) — mid-epic.
+**Spec:** `C:/DEV/ElproSaas/_bmad-output/implementation-artifacts/spec-11-2-non-admin-access-to-the-phase-a-surface-matrix-seed-role-aware-rls-nav-and-landing.md`
+**Branch:** `codex/11-2-non-admin-access-to-the-phase-a-surface-matrix-seed-role-aware-rls-nav-and-landing` (HEAD `a2fae85`).
+**Pipeline status:** Story 11.2 complete, merged and deployed; fresh hosted Seller PDF generation, preview and durable database evidence verified. Closeout preserves the historical review-layer limitation.
+**Continues:** 2026-09-10T12:20:18Z (final)
+
+**Timing:** started 2026-09-07T16:40:40Z; completed 2026-09-10T12:33:37Z — elapsed 67h 52m (≈3h 40m AI-run, ≈64h 12m human/idle wait); resumed 10×.
+
+**Phases run:** Post-completion owner-authorized merge, committed demo migration push, controlled hosted Seller smoke and documentation closeout.
+**Skipped:** No new application changes, broad code review, local regression rerun, Story 11.3 implementation, or epic-end gates.
+
+**Overrides:** Owner authorized hosted provisioning, dedicated Seller testing, PR merge with branch retained, and final closeout for a fresh Story 11.3 session.
+
+**TEA:** Existing full CI passed before merge and on the merged implementation. Hosted smoke used controlled disposable demo data only; no CI/regression suite targeted the shared demo. See docs/quality/story-11-2-hosted-pdf-verification.md for metadata-only evidence.
+
+**Build:** Done; original baseline efd8d73 retained; no deferred implementation. Seller generated a fresh one-page PDF and obtained an audited preview; direct Storage listing disclosed no objects and raw download/signing were denied for the existing object.
+
+**Review:** Prior targeted remediation remains complete. The earlier full-diff independent review timeout remains an unavailable layer; hosted runtime verification does not establish full-diff approval. No new broad review was started.
+
+**Retrospective:** Not due: Story 11.2 is mid-epic; Story 11.3 then 11.4 remain before Epic 11 completion.
+
+**Open questions:** (none)
+
+**Deferred work:** (none)
+
+**⚠️ Needs human:** (none)
+
+**Next:** Open a fresh session in C:/DEV/ElproSaas and run /auto-bmad --story 11-3. Read docs/process/story-11-3-handoff.md. Story 11.3 remains backlog with no spec or pipeline state; its planning/build must start normally. The old Story 11.2 recovery guide is historical.

@@ -9,7 +9,7 @@ spec_folder: null
 story_id: null
 branch: codex/11-2-non-admin-access-to-the-phase-a-surface-matrix-seed-role-aware-rls-nav-and-landing
 status: done
-updated_at: "2026-09-10T12:33:37Z"
+updated_at: "2026-09-10T13:28:26Z"
 started_at: "2026-09-07T16:40:40Z"
 completed_at: "2026-09-10T12:33:37Z"
 active_seconds: 13255
@@ -77,11 +77,11 @@ retro:
   open_action_items: 0
 bmad_status_flipped_at: 9
 pr_url: "https://github.com/rthunborg/ElproSaas/pull/51"
-ci_run_url: "https://github.com/rthunborg/ElproSaas/actions/runs/34476172123"
+ci_run_url: "https://github.com/rthunborg/ElproSaas/actions/runs/34480169710"
 ci_status: passed
-pr_merged: false
-merge_method: null
-merge_commit: null
+pr_merged: true
+merge_method: merge
+merge_commit: 8723a3b66e986e045655d114c7fafa7af9155f73
 branch_deleted: false
 open_questions: []
 deferred_work: []

@@ -131,12 +131,11 @@ or key ID is recorded here. Deployment `dpl_AkQ7qeViPeUKu1LKQPLFpUE5scMv`
 (`https://elpro-saas-3z6064332-enhancior.vercel.app`) completed successfully
 from current `main` SHA `2e12d27f09af47686270f118b16fc2c4515bffe8`.
 
-**Runtime status — PENDING:** PR 51 head `15338f4` remains unmerged despite
-passing check run `34477419061`. The demo schema is applied only through
-`20260907161230`; no 11.2 migration is applied. Fresh hosted PDF generation,
-Seller preview, and durable audit proof must wait for the merge and committed
-migration push. The named CLI profile remains unverified; use the independently
-confirmed default CLI or MCP connection for owner-authorized work.
+**Runtime status — VERIFIED (2026-09-10):** the merged main commit
+`8723a3b66e986e045655d114c7fafa7af9155f73`, migration `20260907171252`, and
+Production deployment `dpl_3LgNpc9NL3DpWY4C88nF2rFatoJe` were verified by the
+owner-authorized Seller smoke. The durable evidence, scope, and remaining
+limits are recorded in [Story 11.2 hosted PDF verification](../quality/story-11-2-hosted-pdf-verification.md).
 
 ## Hosted PDF runtime verification (manual, post-merge)
 
