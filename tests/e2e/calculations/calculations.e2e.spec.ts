@@ -17,11 +17,12 @@
  *   - 5.2-E2E-01 (AC2/AC3): keyboard row editing; a validation error PRESERVES input.
  *   - 5.2-E2E-02 (AC2): destructive delete of a POPULATED section requires confirmation.
  *   - 5.2-E2E-04 (AC1/AC4): totals summary reflects the engine output (net/VAT/gross).
- *   - 5.2-E2E-05 (AC5/AC6): no deferred-workflow labels; anon → /login; nav stays seven.
+ *   - 5.2-E2E-05 (AC5/AC6): no deferred-workflow labels; anon → /login; nav matches active manifest modules.
  */
 import { test, expect, type Page, type Locator } from "@playwright/test";
 import { readFileSync } from "node:fs";
 import path from "node:path";
+import { expectActiveAdminNavigation } from "../support/active-admin-navigation";
 
 interface CalcFixture {
   readonly adminA: { readonly email: string; readonly password: string };
@@ -181,23 +182,11 @@ test.describe("Calculation editor UX (Story 5.2 E2E)", () => {
     // superseded by 5.3; the deferred-label guard above continues to hold.
   });
 
-  test("5.2-E2E-05 (AC6): the nav stays EXACTLY the seven IN-scope modules", async ({ page }) => {
+  test("5.2-E2E-05 (AC6): the nav stays EXACTLY aligned with active manifest modules", async ({ page }) => {
     await signIn(page, fixture.adminA.email, fixture.adminA.password);
     await page.goto(`/calculations/${fixture.calc.id}`);
     const nav = page.getByRole("navigation", { name: "Huvudnavigation" }).first();
-    const expectedSeven = [
-      "Dashboard",
-      "Kunder",
-      "Kalkyler",
-      "Offerter",
-      "Jobb/Order",
-      "Filer",
-      "Inställningar",
-    ];
-    for (const label of expectedSeven) {
-      await expect(nav.getByRole("link", { name: label })).toBeVisible();
-    }
-    await expect(nav.getByRole("link")).toHaveCount(expectedSeven.length);
+    await expectActiveAdminNavigation(nav);
   });
 
   test("AC1: a foreign / nonexistent calc id renders a GENERIC not-found (no cross-tenant leak)", async ({

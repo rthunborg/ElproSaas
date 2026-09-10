@@ -22,13 +22,14 @@
  *     through the envelope command on reload.
  *   - No-supplier-scope in the UI (P0, AC3): NO supplier/sync/import control appears in
  *     the article editor.
- *   - Route auth + nav (P0, AC5): anon → /login; nav stays EXACTLY the seven IN-scope
+ *   - Route auth + nav (P0, AC5): anon → /login; nav stays exactly aligned with active manifest
  *     modules — pricing adds NO new nav item (it lives under the existing Inställningar
  *     hub), so "Prissättning" is reachable from /settings but is NOT a top-nav link.
  */
 import { test, expect, type Page, type Locator } from "@playwright/test";
 import { readFileSync } from "node:fs";
 import path from "node:path";
+import { expectActiveAdminNavigation } from "../support/active-admin-navigation";
 
 interface PricingFixture {
   readonly adminA: { readonly email: string; readonly password: string };
@@ -186,23 +187,11 @@ test.describe("Pricing UI — Work roles + Articles (Story 3.4 E2E)", () => {
     await expect(activeList.getByText(roleName)).toBeVisible();
   });
 
-  test("AC5: the nav stays EXACTLY the seven IN-scope modules — pricing adds NO new top-nav item", async ({ page }) => {
+  test("AC5: the nav stays EXACTLY aligned with active manifest modules — pricing adds NO new top-nav item", async ({ page }) => {
     await signIn(page, fixture.adminA.email, fixture.adminA.password);
     await page.goto("/settings/pricing");
     const nav = page.getByRole("navigation", { name: "Huvudnavigation" }).first();
-    const expectedSeven = [
-      "Dashboard",
-      "Kunder",
-      "Kalkyler",
-      "Offerter",
-      "Jobb/Order",
-      "Filer",
-      "Inställningar",
-    ];
-    for (const label of expectedSeven) {
-      await expect(nav.getByRole("link", { name: label })).toBeVisible();
-    }
-    await expect(nav.getByRole("link")).toHaveCount(expectedSeven.length);
+    await expectActiveAdminNavigation(nav);
     // Prissättning lives UNDER Inställningar — it is NOT a top-nav link.
     await expect(nav.getByRole("link", { name: "Prissättning" })).toHaveCount(0);
   });

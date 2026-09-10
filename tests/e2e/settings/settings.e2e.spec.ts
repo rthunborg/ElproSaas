@@ -22,12 +22,13 @@
  *     FIELD-ASSOCIATED error (aria-invalid + aria-describedby → error node) and the
  *     input is PRESERVED on failure. The rate displays as a percent but stores basis
  *     points; no VAT CALCULATION is performed (Epic 4).
- *   - Route auth + nav (P0, AC4): anon → /login; nav stays EXACTLY the seven IN-scope
+ *   - Route auth + nav (P0, AC4): anon → /login; nav stays exactly aligned with active manifest
  *     modules (no new settings nav item; no /settings/pricing — Story 3.4).
  */
 import { test, expect, type Page, type Locator } from "@playwright/test";
 import { readFileSync } from "node:fs";
 import path from "node:path";
+import { expectActiveAdminNavigation } from "../support/active-admin-navigation";
 
 interface SettingsFixture {
   readonly adminA: { readonly email: string; readonly password: string };
@@ -183,25 +184,13 @@ test.describe("Settings UI — Company + Quote terms (Story 3.3 E2E)", () => {
     await expect(page.getByTestId("quote-terms-signoff-warning")).toHaveCount(0);
   });
 
-  test("AC4: the nav stays EXACTLY the seven IN-scope modules — no new settings nav item, no /settings/pricing", async ({
+  test("AC4: the nav stays EXACTLY aligned with active manifest modules — no new settings nav item, no /settings/pricing", async ({
     page,
   }) => {
     await signIn(page, fixture.adminA.email, fixture.adminA.password);
     await page.goto("/settings/company");
     const nav = page.getByRole("navigation", { name: "Huvudnavigation" }).first();
-    const expectedSeven = [
-      "Dashboard",
-      "Kunder",
-      "Kalkyler",
-      "Offerter",
-      "Jobb/Order",
-      "Filer",
-      "Inställningar",
-    ];
-    for (const label of expectedSeven) {
-      await expect(nav.getByRole("link", { name: label })).toBeVisible();
-    }
-    await expect(nav.getByRole("link")).toHaveCount(expectedSeven.length);
+    await expectActiveAdminNavigation(nav);
     // /settings/pricing belongs to Story 3.4 — it must NOT be reachable/linked here.
     await expect(nav.getByRole("link", { name: "Prissättning" })).toHaveCount(0);
   });
