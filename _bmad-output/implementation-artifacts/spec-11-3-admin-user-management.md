@@ -84,7 +84,7 @@ deferred: []
   - `[high] [patch]` Preserved and displayed all membership roles when editing a user.
   - `[medium] [patch]` Projected and persisted expired invitations, required a configured production app origin, and exposed password setup from invitation acceptance.
 
-### 2026-09-10 — Follow-up review
+### 2026-09-10 — Review pass
 - intent_gap: 0
 - bad_spec: 0
 - patch: 1 (medium 1)
