@@ -9,10 +9,10 @@ spec_folder: null
 story_id: null
 branch: codex/11-2-non-admin-access-to-the-phase-a-surface-matrix-seed-role-aware-rls-nav-and-landing
 status: done
-updated_at: "2026-09-10T09:28:36Z"
+updated_at: "2026-09-10T10:12:46Z"
 started_at: "2026-09-07T16:40:40Z"
 completed_at: "2026-09-10T09:28:36Z"
-active_seconds: 9727
+active_seconds: 9779
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -44,13 +44,13 @@ spec_approved: true
 build:
   status: done
   blocking_condition: null
-  followup_review_recommended: true
+  followup_review_recommended: false
   review_loop_iteration: 0
   deferred_count: 0
   warnings: [oversized]
 followup_passes: 1
 hitl_halt: continued
-review_unverified: true
+review_unverified: false
 story_trace: null
 legacy_review_resume: false
 legacy_review_iteration: null
@@ -58,7 +58,7 @@ legacy_review_loop_done: false
 legacy_external_review_iterations: null
 legacy_convergence_unverified: false
 legacy_artifact_path: null
-commits: [454ba58, 1b6c563, efd8d73, b725092, 39f2b9c, 2d4c68d, 26c8a4a, 88d7676, 91b4380, ce5fd40, 5d367d8, 023ba656, 1e9798d, f03dfb0, d506f74, 90a2a6e, 77576af]
+commits: [454ba58, 1b6c563, efd8d73, b725092, 39f2b9c, 2d4c68d, 26c8a4a, 88d7676, 91b4380, ce5fd40, 5d367d8, 023ba656, 1e9798d, f03dfb0, d506f74, 90a2a6e, 77576af, cdac189]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -73,10 +73,10 @@ retro:
   doc: null
   verdict: null
   open_action_items: 0
-bmad_status_flipped_at: null
+bmad_status_flipped_at: 9
 pr_url: "https://github.com/rthunborg/ElproSaas/pull/51"
-ci_run_url: "https://github.com/rthunborg/ElproSaas/actions/runs/34460797505"
-ci_status: unknown
+ci_run_url: "https://github.com/rthunborg/ElproSaas/actions/runs/34460849654"
+ci_status: passed
 pr_merged: false
 merge_method: null
 merge_commit: null

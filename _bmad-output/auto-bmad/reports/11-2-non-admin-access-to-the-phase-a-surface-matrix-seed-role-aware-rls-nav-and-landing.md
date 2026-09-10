@@ -241,3 +241,34 @@
 2. Before hosted Seller PDF preview is enabled, provision the documented server-only Vercel secret; no hosted environment was changed.
 
 **Next:** Human review: /bmad-checkpoint-preview codex/11-2-non-admin-access-to-the-phase-a-surface-matrix-seed-role-aware-rls-nav-and-landing. Keep any additional review within the three-round cap. Then continue with story 11-3; do not start it in this run.
+
+## Report — 2026-09-10T10:12:46Z (final)
+
+**Story:** `11-2-non-admin-access-to-the-phase-a-surface-matrix-seed-role-aware-rls-nav-and-landing` (epic 11, story 2) — mid-epic.
+**Spec:** `C:/DEV/ElproSaas/_bmad-output/implementation-artifacts/spec-11-2-non-admin-access-to-the-phase-a-surface-matrix-seed-role-aware-rls-nav-and-landing.md`
+**Branch:** `codex/11-2-non-admin-access-to-the-phase-a-surface-matrix-seed-role-aware-rls-nav-and-landing` (HEAD `cdac189`).
+**Pipeline status:** Clean completion: external capped review clears the latest-fix follow-up caveat; CI passed on reviewed code cdac189. Story marked done; PR ready for owner review and merge decision.
+**Continues:** 2026-09-10T09:27:50Z (final â€” caveated)
+
+**Timing:** started 2026-09-07T16:40:40Z; completed 2026-09-10T09:28:36Z — elapsed 64h 47m (≈2h 42m AI-run, ≈62h 04m human/idle wait); resumed 7×.
+
+**Phases run:** Phase 7 external-review evidence reconciliation (metadata only), Phase 9 completion and PR readiness
+**Skipped:** No new implementation or review pass; no repeated tests (CI passed on unchanged code); Phase 8 not due (mid-epic).
+
+**Overrides:** No review waiver. Existing local disposable-data authorization and three-round review cap retained.
+
+**TEA:** No new TEA run. Verified CI evidence on cdac189: 1,720 unit tests; 992 integration/RLS tests including all 27 PDF tests with no skips; 126 browser tests passed with four historical skips; build, lint, typecheck, audit, containment and Vercel checks succeeded.
+
+**Build:** done; deferred 0; original baseline efd8d73 retained; warning oversized. This completion changes documentation and BMAD metadata only.
+
+**Review:** Owner supplied independent capped review of f03dfb0..cdac189: no actionable findings, no identified production-reachable regression in latest fixes, no unresolved recorded serious finding. Last triage patch 0, bad_spec 0, defer 0, reject 0. Latest-fix follow-up caveat cleared; followup_review_recommended false; review_unverified false. Original full-diff independent review timeout remains an unavailable layer; limited review does not establish full-diff approval.
+
+**Retrospective:** Not due: story 2 of 4 in epic 11.
+
+**Open questions:** (none)
+
+**Deferred work:** (none)
+
+**⚠️ Needs human:** (none)
+
+**Next:** PR owner review and optional merge. Before enabling hosted Seller PDF preview, provision the documented server-only secret (deployment prerequisite; missing configuration fails closed). Story 11-3 can be selected next; not started in this run.

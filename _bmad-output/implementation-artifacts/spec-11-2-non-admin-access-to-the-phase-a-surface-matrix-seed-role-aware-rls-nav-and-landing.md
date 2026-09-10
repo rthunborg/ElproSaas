@@ -4,7 +4,7 @@ type: 'feature'
 created: '2026-09-07'
 status: 'done'
 review_loop_iteration: 0
-followup_review_recommended: true
+followup_review_recommended: false
 baseline_revision: 'efd8d73d53479ba737a09456c7d740cdaa6e028b'
 baseline_commit: 'efd8d73d53479ba737a09456c7d740cdaa6e028b'
 context:
@@ -106,11 +106,11 @@ Review findings: one high security patch applied (persistent Säljare Storage SE
 
 Verification: `pnpm typecheck`; targeted ESLint; `pnpm verify:service-role-containment`; `git diff --check`; `pnpm test:unit` (94 suites, 1,717 tests); required `vitest run --maxWorkers=1` (94 files, 991 tests, zero skipped); final Playwright production-web-server run (126 passed, 4 historical skips, zero failed/retried). The two initial parallel integration fixture collisions passed in a 35/35 serial rerun; the final serial suite was fully green. The server-only broker initially exposed a missing Playwright environment value; the canonical test web-server config now supplies it, and both affected focused browser flows passed before the final full run.
 
-Residual risk: production deployments must provide the documented server-only `SUPABASE_SERVICE_ROLE_KEY`; absence fails closed without returning a signed URL. The independent full cross-model layer timed out without output. A high patch was applied in this review pass, so `followup_review_recommended` is true despite the targeted final security pass finding no regression.
+Residual risk: production deployments must provide the documented server-only `SUPABASE_SERVICE_ROLE_KEY`; absence fails closed without returning a signed URL. The independent original-baseline full cross-model layer timed out without output and remains an unavailable review layer. The user-supplied capped external review recorded below found no actionable latest-fix regression, so `followup_review_recommended` is false.
 
 ### 2026-09-10 — Limited latest-fix follow-up review
 
-Status: in-review
+Status: done
 
 Scope: this was the review-cap-compliant regression pass over `5d367d8..f03dfb0` only, plus the minimal dependency security update and Next 16.3.3 locator repair introduced during final verification. It did not reopen the original `efd8d73d53479ba737a09456c7d740cdaa6e028b` baseline or any previously dismissed finding.
 
@@ -120,7 +120,15 @@ Repairs: the built-bundle containment gate now permits only the documented quote
 
 Verification: focused built-bundle containment unit suite (17/17); `pnpm run verify:bundle-containment` against the existing production build; and `SUPABASE_TEST_REQUIRED=1 pnpm exec vitest run tests/integration/commands/quote-pdf-validity.int.test.ts --maxWorkers=1` (1 file, 27 tests, zero skipped) after SQL-only application of the changed local execute revocation to `127.0.0.1:54322`. Dependency repair evidence: `pnpm audit --audit-level=high`, frozen install, lockfile verification, typecheck, and lint passed. Final Next 16.3.3 production-web-server verification passed 126 tests with 4 historical skips and no failures or retries (2026-09-10T09:23:09.007Z); full unit passed 1,720 tests across 94 suites with zero skipped; post-build and source containment, typecheck, lint, and `git diff --check` passed.
 
-Residual risk: a deployment without the server-only `SUPABASE_SERVICE_ROLE_KEY` fails Seller quote-PDF preview closed. Provisioning a hosted secret remains an owner-controlled deployment operation, outside this repository review pass.
+Deployment prerequisite: a deployment without the server-only `SUPABASE_SERVICE_ROLE_KEY` fails Seller quote-PDF preview closed. Provisioning that hosted secret is owner-controlled deployment setup, not deferred implementation.
+
+### 2026-09-10 — Capped external latest-fix review
+
+Status: done
+
+Review attribution: the user supplied an independent review of `f03dfb0c1a3d095e91b3e5694e6239f93c057b97..cdac1891627ea5da33d3066c4dc4cbb612bf2d50`. Its result was: “No actionable findings in capped review”; it identified no production-reachable regression in the latest fixes and no unresolved recorded serious finding. This is limited latest-fix evidence, not full-diff approval.
+
+Result: the latest-fix follow-up caveat is cleared. The earlier 672 KB original-baseline Luna review remains documented as unavailable after its bounded run produced no output. Root independently verified PR #51 at local HEAD `cdac1891627ea5da33d3066c4dc4cbb612bf2d50` and CI run `34460849654` with all required jobs and Vercel successful.
 
 ## Review Triage Log
 
@@ -177,6 +185,15 @@ The resumed implementation pass added focused server-authority coverage for role
   - `[medium] [patch]` Corrected the demo-environment record with the server-only quote-PDF signer secret prerequisite and its fail-closed behavior; this is documented deployment setup, not deferred implementation.
   - `[high] [patch]` Revoked authenticated access to the obsolete generated-PDF predicate RPC and proved direct invocation is denied.
   - `[high] [patch]` Added an explicit cross-tenant quote-PDF broker denial and zero-audit regression alongside the existing same-tenant mismatched-version proof.
+
+### 2026-09-10 — Review pass
+- intent_gap: 0
+- bad_spec: 0
+- patch: 0
+- defer: 0
+- reject: 0
+- addressed_findings:
+  - none
 
 ## Recovery History
 
