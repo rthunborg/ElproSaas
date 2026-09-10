@@ -144,6 +144,16 @@ Verification: SQL-only application to the existing disposable loopback stack fol
 
 Deployment record: the owner reports that the server-only `SUPABASE_SERVICE_ROLE_KEY` was added to Vercel and redeployed. This is owner-reported provisioning, not repository-side hosted-runtime verification. Quote-PDF HMAC/Vault attestation remains unconfirmed. Hosted secret provisioning is deployment setup, not deferred Story 11.2 implementation.
 
+### 2026-09-10 — Targeted acceptance-amount remediation
+
+Status: done
+
+Scope and attribution: the owner supplied one concrete Reviewbot finding against PR #51 at `bab683e4b9923dc744ecccc4183000b20a0915a2`: the role-wide `quote_acceptances` SELECT policy exposed Säljare to `accepted_price_ore`, `source_sent_total_ore`, and adjustment data despite the approved `acceptedValueOre` withholding contract. This is a single finding-driven read-boundary repair within the review cap, not a broad review.
+
+Resolved: base-table `quote_acceptances` SELECT is now limited to Företagsadmin/Projektledare. The checked, tenant-bound `read_quote_acceptance_refs` RPC returns only `id` and `quote_version_id` for the existing quote-detail acceptance-evidence linkage; it neither returns nor computes protected amounts. `readQuoteDetail` uses this safe projection for every role, preserving Seller quote status, successor, and acceptance-evidence behavior while leaving Admin/PM amounts available through their existing table path.
+
+Verification: SQL-only local application followed by `SUPABASE_TEST_REQUIRED=1 pnpm exec vitest run tests/integration/rls/role-aware-phase-a-surface.atdd.int.test.ts --maxWorkers=1` passed 7 tests with zero skips. The new direct PostgREST test proves Seller base and nested acceptance selections return no protected row, the safe RPC returns the allowed reference, a foreign tenant receives no reference, and Projektledare retains the full amount row. The injected Seller quote-detail read retains the same evidence link. Targeted Sol/xhigh security regression review found no findings.
+
 ## Review Triage Log
 
 ### 2026-09-10 — Review pass
@@ -235,6 +245,16 @@ The resumed implementation pass added focused server-authority coverage for role
   - `[medium] [patch]` Derived follow-up completion time in PostgreSQL so a raw authenticated RPC caller cannot supply it.
   - `[reject]` Kept `/settings/pricing` Admin-only because no approved PM settings surface exists.
   - `[reject]` Confirmed Story 10.8 grants continue to deny PM/Säljare direct `tenant_counters` INSERT/UPDATE/DELETE.
+
+
+### 2026-09-10 — Review pass
+- intent_gap: 0
+- bad_spec: 0
+- patch: 1 (high 1)
+- defer: 0
+- reject: 0
+- addressed_findings:
+  - `[high] [patch]` Removed Säljare base-table access to accepted quote amounts and adjustments; retained only the tenant-bound acceptance-reference projection required by the existing evidence panel, with direct and nested Data API negatives plus Admin/PM continuity proof.
 
 ## Recovery History
 

@@ -10,6 +10,7 @@ import { runCommand } from "@/server/commands/envelope";
 import { archiveCustomer } from "@/server/commands/crm/customers";
 import { readQuotePipeline } from "@/server/read-models/quote-pipeline";
 import { resolvePipelinePeriod } from "@/server/read-models/quote-pipeline-aggregate";
+import { readQuoteDetail } from "@/features/quotes/read";
 import {
   adminInsertCalculation,
   adminInsertCompanySettings,
@@ -62,6 +63,8 @@ let invitedClient: TestServerClient;
 let disabledClient: TestServerClient;
 let tenantBAdmin: TestServerClient;
 let targetIds: Record<Exclude<ModuleId, "dashboard" | "foundation">, string>;
+let quoteVersionId: string;
+let acceptanceId: string;
 
 function granted(role: TenantRole, capability: Target["readCapability"] | Target["writeCapability"]): boolean {
   if (!capability) return false;
@@ -122,9 +125,9 @@ beforeAll(async () => {
   const customerId = await adminInsertCustomer({ tenant_id: fixture.base.tenantA.id, customer_type: "company", display_name: `role-aware customer ${crypto.randomUUID()}` });
   const calculationId = await adminInsertCalculation({ tenant_id: fixture.base.tenantA.id, customer_id: customerId });
   const quoteId = await adminInsertQuote({ tenant_id: fixture.base.tenantA.id, customer_id: customerId });
-  const quoteVersionId = await adminInsertQuoteVersion({ tenant_id: fixture.base.tenantA.id, quote_id: quoteId, calculation_id: calculationId, status: "accepted", accepted_price_ore: 125_000 });
+  quoteVersionId = await adminInsertQuoteVersion({ tenant_id: fixture.base.tenantA.id, quote_id: quoteId, calculation_id: calculationId, status: "accepted", accepted_price_ore: 125_000 });
   await adminInsertQuoteEvent({ tenant_id: fixture.base.tenantA.id, quote_id: quoteId, quote_version_id: quoteVersionId, event_type: "accepted", occurred_at: PIPELINE_INSTANT });
-  const acceptanceId = await adminInsertQuoteAcceptance({ tenant_id: fixture.base.tenantA.id, quote_id: quoteId, quote_version_id: quoteVersionId, accepted_price_ore: 125_000, source_sent_total_ore: 125_000, accepted_at: PIPELINE_INSTANT });
+  acceptanceId = await adminInsertQuoteAcceptance({ tenant_id: fixture.base.tenantA.id, quote_id: quoteId, quote_version_id: quoteVersionId, accepted_price_ore: 125_000, source_sent_total_ore: 125_000, accepted_at: PIPELINE_INSTANT });
   const [settingsId, jobId, fileId] = await Promise.all([
     adminInsertCompanySettings({ tenant_id: fixture.base.tenantA.id, company_name: `Role aware ${crypto.randomUUID()}` }),
     adminInsertJob({ tenant_id: fixture.base.tenantA.id, quote_acceptance_id: acceptanceId, quote_version_id: quoteVersionId, customer_id: customerId, title: "Role-aware job" }),
@@ -218,6 +221,45 @@ describe("Story 11.2 role-aware Phase A surface", () => {
     ]);
     expect(seller.data.acceptedCount).toBeGreaterThan(0); expect(Object.hasOwn(seller.data, "acceptedValueOre")).toBe(false); expect(seller.entitlements.withheld).toContain("acceptedValueOre");
     expect(installer.data.acceptedCount).toBe(0); expect(Object.hasOwn(installer.data, "acceptedValueOre")).toBe(false); expect(installer.entitlements.withheld).toContain("acceptedValueOre");
+  });
+
+  test("[P0] Säljare cannot query acceptance amounts through direct or nested Data API reads but retains the safe evidence reference", async (ctx) => {
+    if (skipUnlessStack(ctx, stackUp)) return;
+    const [sellerDirect, sellerNested, sellerRefs, foreignRefs, pmDirect] = await Promise.all([
+      clients.saljare.from("quote_acceptances")
+        .select("id, quote_version_id, accepted_price_ore, source_sent_total_ore, adjustment_reason")
+        .eq("id", acceptanceId),
+      clients.saljare.from("quote_versions")
+        .select("id, quote_acceptances(id, accepted_price_ore, source_sent_total_ore, adjustment_reason)")
+        .eq("id", quoteVersionId),
+      clients.saljare.rpc("read_quote_acceptance_refs", { p_quote_version_ids: [quoteVersionId] }),
+      tenantBAdmin.rpc("read_quote_acceptance_refs", { p_quote_version_ids: [quoteVersionId] }),
+      clients.projektledare.from("quote_acceptances")
+        .select("id, quote_version_id, accepted_price_ore, source_sent_total_ore, adjustment_reason")
+        .eq("id", acceptanceId),
+    ]);
+    expect(sellerDirect.error).toBeNull();
+    expect(sellerDirect.data ?? []).toEqual([]);
+    expect(sellerNested.error).toBeNull();
+    expect(sellerNested.data).toEqual([{ id: quoteVersionId, quote_acceptances: [] }]);
+    expect(sellerRefs.error).toBeNull();
+    expect(sellerRefs.data).toEqual([{ id: acceptanceId, quote_version_id: quoteVersionId }]);
+    expect(foreignRefs.error).toBeNull();
+    expect(foreignRefs.data ?? []).toEqual([]);
+    expect(pmDirect.error).toBeNull();
+    expect(pmDirect.data).toEqual([{
+      id: acceptanceId,
+      quote_version_id: quoteVersionId,
+      accepted_price_ore: 125_000,
+      source_sent_total_ore: 125_000,
+      adjustment_reason: null,
+    }]);
+
+    const sellerDetail = await readQuoteDetail(targetIds.quotes, quoteVersionId, {
+      client: clients.saljare as never,
+    });
+    expect(sellerDetail.error).toBeNull();
+    expect(sellerDetail.detail?.acceptanceIdByVersionId).toEqual({ [quoteVersionId]: acceptanceId });
   });
 
   test("[P1] Phase A does not infer job assignment access: only Jobs.ViewAll roles can read the seeded job", async (ctx) => {

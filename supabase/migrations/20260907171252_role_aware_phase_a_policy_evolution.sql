@@ -126,8 +126,8 @@ declare
 begin
   foreach tbl in array array[
     'tenant_counters', 'quotes', 'quote_versions', 'quote_version_lines',
-    'quote_version_attachments', 'quote_events', 'quote_acceptances',
-    'quote_lost_reasons', 'quote_follow_ups'
+    'quote_version_attachments', 'quote_events', 'quote_lost_reasons',
+    'quote_follow_ups'
   ] loop
     execute format(
       'alter policy %I on public.%I using (public.is_tenant_admin(tenant_id) or public.has_tenant_role(tenant_id, array[''tenant_admin'', ''projektledare'', ''saljare'']::text[]))',
@@ -146,6 +146,29 @@ begin
   end loop;
 end;
 $$;
+
+-- Accepted amounts are excluded from Säljare's sensitive-field entitlement. Base-table
+-- reads stay available to Företagsadmin/Projektledare; Säljare receives only this checked
+-- evidence-link projection, which cannot expose accepted totals or adjustment amounts.
+alter policy quote_acceptances_select_own on public.quote_acceptances
+  using (public.is_tenant_admin(tenant_id) or public.has_tenant_role(tenant_id, array['tenant_admin', 'projektledare']::text[]));
+create or replace function public.read_quote_acceptance_refs(p_quote_version_ids uuid[])
+returns table(id uuid, quote_version_id uuid)
+language plpgsql security definer set search_path='' as $$
+begin
+  if p_quote_version_ids is null or cardinality(p_quote_version_ids) > 1000 then
+    raise exception 'invalid acceptance reference request' using errcode='23514';
+  end if;
+  return query
+    select qa.id, qa.quote_version_id
+      from public.quote_acceptances qa
+     where qa.quote_version_id = any(p_quote_version_ids)
+       and (public.is_tenant_admin(qa.tenant_id) or public.has_tenant_role(qa.tenant_id, array['tenant_admin', 'projektledare', 'saljare']::text[]))
+     order by qa.quote_version_id, qa.id;
+end;
+$$;
+revoke execute on function public.read_quote_acceptance_refs(uuid[]) from public, anon, service_role;
+grant execute on function public.read_quote_acceptance_refs(uuid[]) to authenticated;
 
 -- No job_members exists in Phase A: only the explicit ViewAll roles can read
 -- or mutate jobs. Files have the same tenant-wide closure until owner scope is
