@@ -124,18 +124,6 @@ Residual risk: a deployment without the server-only `SUPABASE_SERVICE_ROLE_KEY` 
 
 ## Review Triage Log
 
-### 2026-09-10 — Review pass (limited latest-fix boundary)
-- intent_gap: 0
-- bad_spec: 0
-- patch: 4 (high 3, medium 1)
-- defer: 0
-- reject: 0
-- addressed_findings:
-  - `[high] [patch]` Bound the containment exception to the documented quote-PDF signer’s SSR artifact and exact marker; proved browser, route-payload, unmarked-server, and credential-value leaks still fail.
-  - `[medium] [patch]` Corrected the demo-environment record with the server-only quote-PDF signer secret prerequisite and its fail-closed behavior.
-  - `[high] [patch]` Revoked authenticated access to the obsolete generated-PDF predicate RPC and proved direct invocation is denied.
-  - `[high] [patch]` Added an explicit cross-tenant quote-PDF broker denial and zero-audit regression alongside the existing same-tenant mismatched-version proof.
-
 ### 2026-09-10 — Review pass
 - intent_gap: 0
 - bad_spec: 0
@@ -177,6 +165,18 @@ Historical outcome: blocked
 Historical issue: no trusted resource-guard hook context was available for the mandatory isolated local Supabase reset, fixture mutation, authenticated RLS verification, or Playwright web-server lifecycle.
 
 The resumed implementation pass added focused server-authority coverage for role-filtered navigation, landing, the Montör dashboard fallback, direct-route denial, and role-union route access. It passed `pnpm run typecheck`, focused ESLint, and the registered `pnpm run test:unit -- --test-name-pattern='11.2-UNIT'` runner (1,710 passing, 0 failed/skipped/todo); that runner executes the full unit suite. The core implementation remains incomplete: the required role-aware policy migration is empty; command capabilities, direct-route enforcement, read projections, fixtures, and all ten ATDD scenarios remain incomplete or skipped. Full automated verification remains pending the lifecycle prerequisite above.
+
+### 2026-09-10 — Review pass
+- intent_gap: 0
+- bad_spec: 0
+- patch: 4 (high 3, medium 1)
+- defer: 0
+- reject: 0
+- addressed_findings:
+  - `[high] [patch]` Bound the containment exception to the documented quote-PDF signer’s SSR artifact and exact marker; proved browser, route-payload, unmarked-server, and credential-value leaks still fail.
+  - `[medium] [patch]` Corrected the demo-environment record with the server-only quote-PDF signer secret prerequisite and its fail-closed behavior; this is documented deployment setup, not deferred implementation.
+  - `[high] [patch]` Revoked authenticated access to the obsolete generated-PDF predicate RPC and proved direct invocation is denied.
+  - `[high] [patch]` Added an explicit cross-tenant quote-PDF broker denial and zero-audit regression alongside the existing same-tenant mismatched-version proof.
 
 ## Recovery History
 
