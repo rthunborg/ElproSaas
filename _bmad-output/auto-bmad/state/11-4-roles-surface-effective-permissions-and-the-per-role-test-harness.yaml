@@ -8,10 +8,10 @@ story_source: sprint
 spec_folder: null
 story_id: null
 branch: codex/epic-11-wave-b1a-rbac-mechanism-and-admin-user-management
-status: in-progress
-updated_at: "2026-09-11T14:35:23Z"
+status: done
+updated_at: "2026-09-11T16:00:52Z"
 started_at: "2026-09-11T11:32:06Z"
-completed_at: null
+completed_at: "2026-09-11T16:00:52Z"
 active_seconds: 6693
 timing_anchor: null
 is_first_in_epic: false
@@ -74,7 +74,7 @@ retro:
   verdict: null
   open_action_items: 0
 bmad_status_flipped_at: null
-pr_url: null
+pr_url: "https://github.com/rthunborg/ElproSaas/pull/55"
 ci_run_url: null
 ci_status: unknown
 pr_merged: false

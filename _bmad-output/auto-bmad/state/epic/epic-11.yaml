@@ -8,10 +8,10 @@ story_source: sprint
 spec_folder: null
 story_id: null
 branch: codex/epic-11-wave-b1a-rbac-mechanism-and-admin-user-management
-status: in-progress
-updated_at: "2026-09-11T15:59:30Z"
+status: done
+updated_at: "2026-09-11T16:00:52Z"
 started_at: "2026-09-11T11:11:44Z"
-completed_at: null
+completed_at: "2026-09-11T16:00:52Z"
 active_seconds: 12923
 timing_anchor: null
 is_first_in_epic: false
@@ -39,7 +39,7 @@ tea_selected: []
 tea_rationale: null
 epic_story_count: 4
 stories_after_in_epic: null
-completed_phases: [0, 1, 2, 5, 81, 82]
+completed_phases: [0, 1, 2, 5, 9, 81, 82]
 spec_path: null
 spec_approved: false
 build:
@@ -59,7 +59,7 @@ legacy_review_loop_done: false
 legacy_external_review_iterations: null
 legacy_convergence_unverified: false
 legacy_artifact_path: null
-commits: [6b32303, f032fa6, 1ad3df8]
+commits: [6b32303, f032fa6, 1ad3df8, 77be952, 5d1cf53]
 phase8_steps:
   trace_gate: done
   nfr: done
@@ -75,8 +75,8 @@ retro:
   verdict: rejected
   open_action_items: 4
 bmad_status_flipped_at: null
-pr_url: null
-ci_run_url: null
+pr_url: "https://github.com/rthunborg/ElproSaas/pull/55"
+ci_run_url: "https://github.com/rthunborg/ElproSaas/actions/runs/34619468717"
 ci_status: unknown
 pr_merged: false
 merge_method: null
