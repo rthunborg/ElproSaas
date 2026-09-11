@@ -4,7 +4,7 @@
 
 ## Goal
 
-Replace the tenant-admin-only model with a mechanism-first, server-enforced authorization system and self-service tenant user administration. The epic establishes one auditable permission source, makes least privilege real across the active Phase A surface, prevents sensitive financial data from reaching unentitled users, and supplies reusable proof that role boundaries hold as later modules activate.
+Replace the tenant-admin-only model with enforceable, tenant-scoped roles and a single permission mechanism, then give admins audited user and role-management tools. This establishes least-privilege access for the active Phase A surface and a reusable authorization, RLS, and test foundation for every later module activation.
 
 ## Stories
 
@@ -15,34 +15,33 @@ Replace the tenant-admin-only model with a mechanism-first, server-enforced auth
 
 ## Requirements & Constraints
 
-- Support the tenant roles Företagsadmin (stored as `tenant_admin`), Projektledare, Montör, Säljare, and Ekonomi. A user may hold multiple tenant roles; permissions are the union of those roles. Arbetsledare is a job-scoped designation, never a tenant role.
-- Authorize every read and mutation on the server through both capability checks and RLS. UI visibility is convenience only. Deny by default, and return generic authorization failures with no data or existence signal.
-- Make the permission matrix a machine-readable, versioned source of truth. Each module activation must add its own matrix rows in the same change, and activation without them must fail validation.
-- Use the owner-approved money defaults: Montör receives no sales price, cost price, or contribution margin; Säljare receives sales prices but not cost or margin by default; Projektledare, Ekonomi, and Företagsadmin receive all three. A separately granted contribution-margin capability may extend Säljare access. A below-permitted-margin warning for Säljare may reveal only a server-computed boolean and threshold label, never a cost-derived amount.
-- An unentitled role must never receive a sensitive value in a response, export, or email. A withheld field is absent from data and declared as withheld; a partial aggregate that includes withheld components is also withheld.
-- Admins must be able to invite, resend or revoke invitations, reset passwords, activate/deactivate, change roles, and end memberships. Audit every action and role/permission change; role/permission changes require a reason. Do not permit deactivation, role downgrade, or removal of the tenant's last active Admin.
-- Preserve history when a membership is ended or deactivated; do not hard-delete it. Auth administration is server-only and must not be importable from client paths. Supabase Auth invitations are the sanctioned email path; custom invitation email waits for the notification/email posture.
-- CI must prove boundaries for every seeded role and active module: at least one denied-command test and one RLS read/write negative, plus policy-to-matrix agreement. The reusable harness must generate both allowed paths and denied cases.
-- Do not add DB permission tables, tenant-facing custom role building, tenant-runtime-mutable roles, or changes to `is_tenant_admin()` semantics.
+- Support the five tenant roles Företagsadmin (stored as `tenant_admin`), Projektledare, Montör, Säljare, and Ekonomi. A membership can hold multiple roles; authorization is the union of their grants. Arbetsledare is a job-scoped assignment delivered with jobs, never a tenant role.
+- Use the owner-supplied permission keys for customers, jobs, quotes, invoice basis, economy, users, roles, and company settings. Permissions cover resource/action, data scope, and sensitive-field groups; keys represent stable operations rather than pages. Deny by default.
+- Activate the Phase A matrix seed: Företagsadmin, Projektledare, and Ekonomi can see sales prices, cost, and contribution margin; Montör sees none; Säljare sees sales prices but cost and contribution margin are withheld unless explicitly entitled. A below-margin warning for Säljare may reveal only a server-computed boolean and threshold label, never cost-derived values.
+- Every command and read is server-authorized. Unauthorized navigation, commands, queries, and cross-tenant attempts return generic denials without existence signals. Client-side hiding is usability only.
+- Entitlement absence is distinct from null or zero. Sensitive values must be absent from payloads, exports, aggregates containing withheld data, and emails; the response exposes entitlement metadata so UI can omit table columns or render `Dold` in details.
+- Admins can invite, resend, revoke, reset, deactivate, reactivate, re-role, and end memberships. Audit every membership and role/permission change; role/permission changes require a reason. Preserve history, prevent removal/demotion/deactivation of the last active tenant admin, and never mutate a shared Auth account globally.
+- A removed membership is ended and returns only through a fresh invitation with explicit roles. Resends supersede prior attempts; revoked or superseded invitations cannot activate access. Tenant access remains database-authoritative.
+- No tenant-facing custom-role builder or DB permission-table model is in scope. Tenant-specific role compositions are controlled internally through a validated configuration or internal platform surface.
 
 ## Technical Decisions
 
-- Keep the existing `tenant_admin` literal and widen the role constraint additively. Store multi-role assignments in `membership_roles` keyed by tenant, membership, and role; authorization APIs accept role sets.
-- Define a typed, `satisfies`-guarded matrix in `src/server/authz/permission-matrix.ts`, mapping module and capability to allowed roles and declaring sensitive-field entitlements. Use the stable named business capability vocabulary (for example `Jobs.ViewAssigned`, `Jobs.ViewAll`, `Economy.ViewCostPrice`, and `InvoiceBasis.ExportToFortnox`), never page or widget names.
-- Add `requireCapability(ctx, moduleId, capability)` after membership resolution in the command envelope. It evaluates the role set and returns stable `PERMISSION_DENIED` on failure.
-- Use hardened `has_tenant_role(tenantId, allowedRoles)` RLS helpers: fixed empty search path, schema-qualified references, `STABLE`, PUBLIC access revoked, and standing negative tests. Policies combine active membership, matrix-derived role gate, and required row scope; generate role arrays from the matrix and fail loud on drift.
-- RLS is the sensitive-data floor: role-gate fully sensitive rows and use companion tables for sensitive columns on otherwise-readable Phase B rows. Server read models return `{ data, entitlements: { withheld } }`; the descriptor distinguishes withheld data from genuinely empty data. Exports and emails use the same recipient-specific projection.
-- Derive navigation, tab/widget visibility, landing redirects, the effective-permissions view, and test cases from the same matrix. Render the permissions viewer server-side; do not ship the matrix to the client as authority.
+- Keep `tenant_memberships` as the tenant/user authority and add `membership_roles` with tenant, membership, and role uniqueness. Widen the legacy role check additively while retaining the `tenant_admin` literal and `is_tenant_admin()` semantics.
+- Define a typed, version-controlled `permission-matrix.ts` mapping module, capability, roles, and sensitive-field entitlements. The manifest coherence validator rejects an activated module with no matrix rows. Derive command checks, nav/tabs, landing routes, the effective-permissions viewer, and negative tests from it.
+- Add `requireCapability` after membership resolution in the command envelope. It returns stable `PERMISSION_DENIED`; job-specific elevation is checked inside job commands when that module arrives.
+- Use hardened, non-public SECURITY DEFINER role helpers with fixed empty search paths and schema-qualified references. RLS combines active membership, the role gate, and applicable row scope. Generate policy role arrays from the matrix and prove policy-to-matrix agreement.
+- Enforce row-sensitive data with role-gated RLS. Put column-sensitive data in separately role-gated companion tables for new Phase B schemas; server read models still project data and return `{ data, entitlements }`.
+- Before calling Supabase Auth, validate actor and target and record the tenant-scoped operation plus audit event transactionally. Record success, failure, or uncertainty and provide retry/reconciliation without duplicate membership mutation. Do not add a general background-job or custom email system.
 
 ## UX & Interaction Patterns
 
-- Show only active-manifest modules for which the role has read access. Hide inaccessible items rather than disabling or teasing them; direct unauthorized navigation reaches a generic access experience.
-- The Admin-only `Användare & roller` area has `Användare` and `Roller` tabs. Users lists show identity, role set, invitation/active/deactivated status, and last sign-in; invite and lifecycle actions confirm their effects and expose an event history.
-- The user detail provides a read-only, server-derived effective-permissions grid grouped by module and annotated with the granting role. The Roles tab shows only seed roles, member counts, manifest-active module capabilities, and sensitive-field entitlements; explain that Arbetsledare is assigned within a job.
-- Render withheld values as an explicit masked state in details and omit wholly withheld columns in dense tables. Never substitute zero, null-like fallback, or a client-side role calculation; hide an entire feature area when masking would make it unusable.
+- Provide Admin-only `Användare & roller` with `Användare` and `Roller` tabs. Users show status, role set, invite/revoke/resend and lifecycle actions, an audit-event panel, and an effective-permissions grid grouped by module with the granting role.
+- Seed-role cards explain access; the Roles view shows only manifest-active module rows, sensitive-field entitlements, member counts, and that Arbetsledare is assigned within a job.
+- Show an immediate-effect warning for role edits. Describe deactivation and removal as tenant-scoped loss of company access while preserving history. Mark inactive people in retained records and leave future-booking reassignment as the scheduling seam.
+- Render withheld detail values with the `MaskedValue` treatment (`Dold` and accessible explanation), never as zero or blank; omit withheld table columns entirely.
 
 ## Cross-Story Dependencies
 
-- Story 11.1 depends on the Story 10.1 manifest/coherence groundwork. Stories 11.2, 11.3, and 11.4 build respectively on the role mechanism, Phase A role-aware enforcement, and the preceding administration surface.
-- This epic precedes B1b: every later module activation relies on its matrix, RLS, entitlement, navigation, and negative-test mechanisms.
-- Job-scoped Arbetsledare enforcement belongs with the later job-members model, while this epic must preserve the boundary. Custom email remains dependent on the notifications/email work; use the existing Auth invitation path here.
+- Story 10.1 supplies the scope manifest and is required before the matrix/coherence integration.
+- 11.1 establishes the role, matrix, helper, and envelope mechanisms; 11.2 applies them to the Phase A surface; 11.3 uses them for membership administration; 11.4 exposes the matrix and generalizes the harness.
+- This epic precedes B1b activations. Every future module activation must add matrix rows and per-role command/RLS evidence through the harness.
