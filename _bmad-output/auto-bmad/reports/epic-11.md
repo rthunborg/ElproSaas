@@ -72,3 +72,45 @@
 1. Answer the pending member-count question. No spec status edit is needed; no spec exists. Resume command: /auto-bmad epic --epic 11.
 
 **Next:** Resolve the count policy, then resume /auto-bmad epic --epic 11. Human review: /bmad-checkpoint-preview codex/epic-11-wave-b1a-rbac-mechanism-and-admin-user-management. Project context: /bmad-project-context refresh recommended after epic completion.
+
+## Report — 2026-09-11T15:59:48Z (final — caveated)
+
+**Epic:** `11` — 4 stories.
+**Branch:** `codex/epic-11-wave-b1a-rbac-mechanism-and-admin-user-management` (HEAD `77be952`).
+**Pipeline status:** Pipeline complete with caveats; draft PR required. Story 11.4 remains at review.
+**Continues:** 2026-09-11T11:56:49Z (halted — needs-human: active-member count policy)
+
+**Summary:** Delivered the Roles tab, active-member counts, effective permissions, and generated per-role RLS/command harness under the approved Phase B scope.
+
+**Timing:** started 2026-09-11T11:11:44Z; completed in progress — elapsed 4h 48m (≈3h 35m AI-run, ≈1h 12m human/idle wait); resumed 2×.
+
+**Stories:**
+1. 11.4: spec done; one follow-up pass (Terra/high), 7 patches, 0 bad-spec/intent-gap/deferred, 5 rejected findings; further review still recommended. Epic trace PASS. Spec: _bmad-output/implementation-artifacts/spec-11-4-roles-surface-effective-permissions-and-the-per-role-test-harness.md.
+
+**Skipped:**
+1. 11.1: already done.
+2. 11.2: already done.
+3. 11.3: already done.
+
+**Epic gate:** PASS: 21/21 requirements FULL (P0 18/18, P1 3/3), after one coverage-remediation iteration.
+
+**TEA:** Test design, ATDD, automation, trace/remediation, NFR and test-quality audits completed. Units: 94 suites/1,734 passed. Required integration: 97 files/1,016 passed, 0 skipped; additional direct-detail isolation: 2 passed, 0 skipped. Full browser run passed (138 started; exact final total not retained); focused Roles scenarios passed. Typecheck, lint, production build and containment passed. NFR: FAIL/high existing invitation identity-binding defect. Test quality: 75/100, Request Changes (advisory).
+
+**Retrospective:** Rejected; 4 open actions: bind invitation acceptance to authenticated email (RBAC/security owner); repair expiry recovery, acceptance confirmation, uncertain-delivery retry and finalization reconciliation (admin-user feature owner); finish verifiable 11.4 review (delivery owner); freeze fixture time, split support files and add readiness signals (QA owner). Document: _bmad-output/implementation-artifacts/epic-11-retro-2026-09-11.md.
+
+**Overrides:** Owner-approved Aktiva medlemmar: count only active current-tenant memberships, once per assigned role; exclude invited/expired/revoked/disabled/ended; cross-role totals can exceed unique people. Informational only. Branch prefix codex/ follows host instructions.
+
+**Open questions:**
+1. Performance/query/suite targets and operational availability, recovery and observability criteria remain undefined.
+2. Cross-model review returned no output in both passes; it provides no review evidence.
+
+**Deferred work:**
+1. Advisory test-quality improvements: live-clock fixture, readiness assertions, oversized support files and test organization. See _bmad-output/test-artifacts/test-reviews/test-review-epic-11-wave-b1a-rbac.md.
+Archived 37 verified completions to _bmad-output/implementation-artifacts/deferred-work-resolved.md. Evidence: company identity snapshot (quote-snapshot/build.ts); terms send gate (mark-sent.ts); PDF link deduplication (generate-pdf.ts, 6.3-INT-04); PDF subroute refresh (quotes/actions.ts); pipeline/list pagination (pagination.ts, quote-pipeline.ts, quotes/read.ts); completion outcome constraint (20260902120000); mark-lost parent check (expected_quote_id); lost PDF affordance (canShowPdfPanel); accepted follow-up closure (20260902120000); lost-reason integrity (20260831124310); follow-up insert anchor, composite parent, update immutability and terminal race (four entries, 20260902120000); pipeline event pagination (readAllPages); latest-status batching (readPipelineBatches); list lost-reason pagination (readAllPages); safe accepted-value sum (sumOre); event write authority and duplicate entry (two entries, 20260831124310); atomic audit wrappers and duplicate entry (two entries, 20260831124310); list follow-up bounds (quote-id reads); detail follow-up index (20260902120000); detail follow-up pagination (readAllPages); lost, plan-follow-up and complete-follow-up retry fixtures (three entries, global-setup.ts); duplicate accepted-follow-up closure (20260902120000); base quote-list pagination (readAllPages); duplicate lost-reason parent integrity (20260831124310); Stockholm due-date rule (20260902120000); direct quote-RPC authority (20260831124310); exclusive policy-window label (exclusiveValidToLabel); reviewed-preview provenance (20260831124310); stale PDF invalidation (20260831124312); successor attachments (new-version.ts).
+
+**⚠️ Needs human:**
+1. Release blocker: fix the existing Story 11.3 direct invitation-acceptance RPC to bind invitee email to authenticated identity, with a direct-RPC mismatch/no-side-effect regression. See _bmad-output/test-artifacts/nfr-assessment-epic-11.md.
+2. Close the remaining review recommendation; review_unverified remains true.
+3. Retrospective rejected; resolve its four tracked actions before accepting epic completion.
+
+**Next:** Human review: /bmad-checkpoint-preview codex/epic-11-wave-b1a-rbac-mechanism-and-admin-user-management. Project context: /bmad-project-context refresh (recommended after an epic).
