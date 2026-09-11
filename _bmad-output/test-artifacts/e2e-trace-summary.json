@@ -1,12 +1,12 @@
 {
   "schema_version": "0.2.0",
-  "snapshot_at": "2026-09-11T14:51:27.5805071Z",
+  "snapshot_at": "2026-09-11T15:14:13.5204330Z",
   "repo": "ElproSaas",
   "collection_mode": "contract_static",
   "collection_status": "COLLECTED",
   "inventory_basis": "acceptance_criteria",
   "gate_basis": "priority_thresholds",
-  "source_sha": "cc54a4584eacce7a307fc37d121f149e987ebdd7",
+  "source_sha": "1ad3df82ebbd04b8acd85ba3196e3c088e691858",
   "target": {
     "type": "epic",
     "id": "11",
@@ -29,15 +29,15 @@
   },
   "coverage": {
     "inventory": {
-      "covered": 20,
+      "covered": 21,
       "total": 21,
-      "pct": 95
+      "pct": 100
     },
     "priority_breakdown": {
       "P0": {
         "total": 18,
-        "covered": 17,
-        "pct": 94
+        "covered": 18,
+        "pct": 100
       },
       "P1": {
         "total": 3,
@@ -61,7 +61,7 @@
         "criteria_covered": 8
       },
       "api": {
-        "tests": 29,
+        "tests": 31,
         "criteria_covered": 17
       },
       "component": {
@@ -83,8 +83,8 @@
     }
   },
   "tests": {
-    "files": 24,
-    "cases": 77,
+    "files": 25,
+    "cases": 79,
     "skipped_cases": 0,
     "fixme_cases": 0,
     "pending_cases": 0
@@ -97,7 +97,7 @@
   },
   "heuristics": {
     "endpoint_gaps": 0,
-    "auth_negative_path_status": "partial",
+    "auth_negative_path_status": "present",
     "error_path_status": "present",
     "ui_journey_status": "not_applicable",
     "ui_state_status": "not_applicable"
@@ -107,7 +107,7 @@
     "results_file": "C:\\DEV\\ElproSaas\\_bmad-output\\test-artifacts\\live-verification-results.json",
     "freshness": "not_present",
     "recorded_source_sha": "",
-    "current_source_sha": "cc54a4584eacce7a307fc37d121f149e987ebdd7",
+    "current_source_sha": "1ad3df82ebbd04b8acd85ba3196e3c088e691858",
     "producer": "",
     "counted": 0,
     "stale": 0,
@@ -123,31 +123,13 @@
   "blockers": [],
   "recommendations": [
     {
-      "priority": "MEDIUM",
-      "action": "Complete direct no-existence-signal coverage for the missing/foreign effective-permissions read path",
-      "requirements": [
-        "11.4-AC4"
-      ]
-    },
-    {
-      "priority": "HIGH",
-      "action": "Add targeted E2E or component coverage for advisory lifecycle UI journeys when that broader scope is scheduled",
-      "requirements": [
-        "advisory-admin-lifecycle-ui-permutations",
-        "advisory-external-email-transport"
-      ]
-    },
-    {
-      "priority": "MEDIUM",
-      "action": "Add browser-state coverage for advisory retry/error and delivery states when that broader scope is scheduled",
-      "requirements": [
-        "advisory-admin-action-error-rendering",
-        "advisory-email-receipt"
-      ]
+      "priority": "LOW",
+      "action": "Run /bmad-testarch-test-review to assess test quality when a distinct audit is wanted",
+      "requirements": []
     },
     {
       "priority": "LOW",
-      "action": "Run /bmad-testarch-test-review to assess test quality",
+      "action": "Retain broader raw-write, selected real-command-body, browser lifecycle, and external email ideas as advisory defense-in-depth work",
       "requirements": []
     }
   ],
@@ -157,17 +139,17 @@
     "artifact_url": "",
     "journey_evidence_url": ""
   },
-  "gate_status": "FAIL",
+  "gate_status": "PASS",
   "gate_criteria": {
     "p0_coverage_required": "100%",
-    "p0_coverage_actual": "94%",
-    "p0_status": "NOT_MET",
+    "p0_coverage_actual": "100%",
+    "p0_status": "MET",
     "p1_coverage_target": "90%",
     "p1_coverage_minimum": "80%",
     "p1_coverage_actual": "100%",
     "p1_status": "MET",
     "overall_coverage_minimum": "80%",
-    "overall_coverage_actual": "95%",
+    "overall_coverage_actual": "100%",
     "overall_status": "MET"
   }
 }

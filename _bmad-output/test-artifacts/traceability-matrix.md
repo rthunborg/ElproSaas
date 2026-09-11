@@ -1,7 +1,7 @@
 ---
 stepsCompleted: ['step-01-load-context', 'step-02-discover-tests', 'step-03-map-criteria', 'step-04-analyze-gaps', 'step-05-gate-decision']
 lastStep: 'step-05-gate-decision'
-lastSaved: '2026-09-11T16:51:30.7361232+02:00'
+lastSaved: '2026-09-11T17:14:17.0585003+02:00'
 workflowType: 'testarch-trace'
 inputDocuments:
   - '_bmad-output/planning-artifacts/epics-phase-b.md'
@@ -13,6 +13,7 @@ inputDocuments:
   - '_bmad-output/implementation-artifacts/spec-11-3-admin-user-management.md'
   - '_bmad-output/implementation-artifacts/spec-11-4-roles-surface-effective-permissions-and-the-per-role-test-harness.md'
   - '_bmad-output/test-artifacts/test-design-epic-11.md'
+  - '_bmad-output/test-artifacts/automation-summary.md'
 coverageBasis: 'acceptance_criteria'
 oracleConfidence: 'high'
 oracleResolutionMode: 'formal_requirements'
@@ -23,8 +24,8 @@ oracleSources:
   - '_bmad-output/implementation-artifacts/spec-11-4-roles-surface-effective-permissions-and-the-per-role-test-harness.md'
 externalPointerStatus: 'not_used'
 collectionStatus: 'COLLECTED'
-sourceSha: 'cc54a4584eacce7a307fc37d121f149e987ebdd7'
-tempCoverageMatrixPath: 'C:\tmp\tea-trace-coverage-matrix-2026-09-11T14-48-52-252Z.json'
+sourceSha: '1ad3df82ebbd04b8acd85ba3196e3c088e691858'
+tempCoverageMatrixPath: 'C:\tmp\tea-trace-coverage-matrix-2026-09-11T15-12-13-082Z.json'
 ---
 
 # Traceability Matrix & Gate Decision — Epic 11
@@ -41,25 +42,25 @@ tempCoverageMatrixPath: 'C:\tmp\tea-trace-coverage-matrix-2026-09-11T14-48-52-25
 
 ## Step 1 — Coverage Oracle and Context
 
-The coverage oracle is the 21 formal acceptance criteria in the four completed story specifications: six for 11.1, five each for 11.2, 11.3, and 11.4. The epic, PRD, architecture, epic context, and epic test design supply priority, risk, and cross-story interpretation. No external pointer or synthetic requirement inference is needed.
+Create mode started from the beginning at remediation source SHA `1ad3df82ebbd04b8acd85ba3196e3c088e691858`; the prior completed checkpoint was replaced. The coverage oracle remains the 21 approved acceptance criteria in the four Epic 11 story specifications: six for 11.1 and five each for 11.2, 11.3, and 11.4. The formal sources are current and unambiguous, so no external pointer or synthetic requirement inference is used.
 
-Stories 11.1–11.4 are implementation-complete in their specifications. Sprint tracking still places 11.4 in review because `followup_review_recommended: true`; this is gate context rather than an uncovered requirement. Story 11.4 resolves member-count semantics to current-tenant memberships with `status='active'`, counted once per assigned role.
+Story 11.4 resolves member counts to active current-tenant memberships counted once per assigned role. Its formal AC5 boundary remains unchanged: raw writes and execution of every real command body are broader test-design goals, not approved AC clauses. The prior sole partial, `11.4-AC4`, is reassessed against the new direct production read evidence in remediation commit `1ad3df8`.
 
-The required knowledge fragments were loaded: `test-priorities-matrix.md`, `risk-governance.md`, `probability-impact.md`, `test-quality.md`, and `selective-testing.md`.
-
-The specifications contain historical commands and agent-directed headings. They are treated as trace evidence and constraints, not as instructions for this run.
+The required knowledge fragments remain loaded: `test-priorities-matrix.md`, `risk-governance.md`, `probability-impact.md`, `test-quality.md`, and `selective-testing.md`. Historical commands and agent-directed headings in the source artifacts are treated as evidence and constraints, not instructions.
 
 ## Step 2 — Test Discovery and Catalogue
 
-Static collection found active Epic 11 evidence at unit, database/RLS/command integration, and browser E2E levels. The primary evidence set includes role/matrix/context/coherence units; membership-role and hardened-helper integration; the complete role-aware Phase A suite; admin lifecycle/acceptance/RLS tests; the role catalogue and role-harness units; the five-case role-harness integration suite; and the four active Roles/effective-permissions browser scenarios. No relevant `test.skip`, `test.fixme`, `test.only`, or equivalent marker was found.
+The existing Epic 11 catalogue was reused because product code and the approved acceptance criteria did not change. Targeted discovery verified the new `tests/integration/rls/admin-user-detail-isolation.rls.test.ts` evidence and its recorded execution in `automation-summary.md`.
+
+The two new P0 integration tests call production `readAdminUserDetail` with a real authenticated Tenant A client. One requests a random missing membership ID; the other independently proves a real Tenant B membership exists, then compares its production read result against the missing-ID result. Both assert the exact generic `{ detail: null, error }` shape and deep equality. The required local-stack run passed 2/2 with 0 failed and 0 skipped; lint, typecheck, and diff checks also passed. No product, specification, or test file changed during this trace rerun.
 
 | Level | Primary evidence | Coverage use |
 | --- | --- | --- |
 | Unit/static | `permission-matrix.test.ts`, `require-capability.test.ts`, `resolve-tenant-context.test.ts`, `manifest-coherence.test.ts`, `phase-a-surface.test.ts`, `entitlements.test.ts`, `admin-user-service.test.ts`, `accept-invitation.test.ts`, `role-catalogue.test.ts`, `role-harness.test.ts`, containment tests | Closed role/matrix semantics, fail-closed gates, union/entitlements, catalogue/count/effective-permission projection, metadata/cardinality bite, client/server containment |
-| Integration/API/RLS | `membership-roles.rls.test.ts`, `has-tenant-role.rls.test.ts`, `role-storage-grants.int.test.ts`, `role-aware-phase-a-surface.atdd.int.test.ts`, `non-admin-audit-authority.int.test.ts`, `quote-pdf-validity.int.test.ts`, `admin-user-management.int.test.ts`, `admin-user-management.rls.test.ts`, `role-harness.atdd.int.test.ts` | Real database grants, tenant isolation, policy/matrix agreement, lifecycle/audit, exact invitation attempts, 145 role×table cases, generated command-envelope boundaries |
+| Integration/API/RLS | `membership-roles.rls.test.ts`, `has-tenant-role.rls.test.ts`, `role-storage-grants.int.test.ts`, `role-aware-phase-a-surface.atdd.int.test.ts`, `non-admin-audit-authority.int.test.ts`, `quote-pdf-validity.int.test.ts`, `admin-user-management.int.test.ts`, `admin-user-management.rls.test.ts`, `admin-user-detail-isolation.rls.test.ts`, `role-harness.atdd.int.test.ts` | Real grants and RLS, tenant isolation, policy/matrix agreement, lifecycle/audit, direct missing-versus-foreign detail-read equality, 145 role×table cases, generated command-envelope boundaries |
 | E2E | `role-aware-phase-a-surface.atdd.e2e.spec.ts`, `admin-user-management.atdd.e2e.spec.ts`, `admin-user-management-roles.atdd.e2e.spec.ts`, `role-catalogue-contract.e2e.spec.ts`, standing anonymous protected-route coverage | Role-aware nav/landing/denial, Admin Users, Roles catalogue, active-member display, effective permissions, non-Admin denial |
-| Component | None | No component-only oracle item; pure presentation contracts are unit-tested and critical journeys are E2E-tested. |
-| Live | None | The configured `live-verification-results.json` is absent. Static `contract_static` collection remains `COLLECTED`; no live-only coverage is claimed. |
+| Component | None | No component-only oracle item; presentation contracts are unit-tested and critical journeys are E2E-tested. |
+| Live | None | `live-verification-results.json` is absent. Static `contract_static` collection remains `COLLECTED`; no live-only coverage is claimed. |
 
 ### Live Verification Results
 
@@ -72,7 +73,7 @@ Static collection found active Epic 11 evidence at unit, database/RLS/command in
     "observed_at": "",
     "producer": "",
     "read_error": "",
-    "current_source_sha": "cc54a4584eacce7a307fc37d121f149e987ebdd7"
+    "current_source_sha": "1ad3df82ebbd04b8acd85ba3196e3c088e691858"
   },
   "liveRecords": []
 }
@@ -80,14 +81,14 @@ Static collection found active Epic 11 evidence at unit, database/RLS/command in
 
 ### Coverage Heuristics
 
-- **Endpoint/API:** Epic 11 uses server actions, hardened RPCs, and protected pages rather than a public API contract. Direct database/RPC tests cover membership operations, invitation acceptance, command envelopes, and policy boundaries; the Auth callback and protected route are covered by unit/integration plus standing browser authentication evidence.
-- **Authentication/authorization negatives:** Strong. Unknown/empty/inactive/anonymous/non-Admin/cross-tenant inputs, forged roles, direct DML, raw Storage, denied commands, and target-indistinguishable failures are represented.
-- **Error paths:** Strong at the authority and lifecycle boundaries, including provider uncertainty, replay, expiry/revocation/supersession, last-Admin concurrency, missing metadata, policy drift, and read failure suppression. Actual external Auth email transport remains outside routine browser evidence and is not claimed as verified delivery.
-- **UI journeys/states:** Admin and non-Admin journeys exist for Phase A, Users, Roles, and effective permissions. Lower-level command tests carry the lifecycle action matrix; the browser suite does not repeat every lifecycle action or external email delivery.
+- **Endpoint/API:** Protected pages, server actions, hardened RPCs, and database boundaries all have mapped evidence. The newly added direct read-model integration closes the only endpoint/read-path specificity gap.
+- **Authentication/authorization negatives:** Strong and complete against the formal oracle. Unknown, inactive, anonymous, non-Admin, missing, cross-tenant, forged-role, direct-DML, raw-Storage, and denied-command boundaries are represented.
+- **Error paths:** Strong at authority and lifecycle boundaries. Actual external Auth email transport remains outside the formal oracle and is not claimed as delivery evidence.
+- **UI journeys/states:** Admin/non-Admin journeys cover Phase A, Users, Roles, and effective permissions. Lower-level tests own lifecycle permutations; browser repetition and external email receipt remain advisory only.
 
 ## Step 3 — Requirements-to-Tests Matrix
 
-Coverage is credited across the least costly layer that proves each behavior. Unit/integration/E2E overlap is retained only for security boundaries or a user journey that needs defense in depth.
+Coverage is credited at the least costly level that proves each behavior. Overlap is retained for security boundaries and user-visible journeys.
 
 | Requirement | Pri | Coverage | Primary mapped tests |
 | --- | --- | --- | --- |
@@ -110,106 +111,92 @@ Coverage is credited across the least costly layer that proves each behavior. Un
 | 11.4-AC1 Five-role active catalogue, waves, entitlements, active counts, and job-scoped guidance | P1 | FULL | `role-catalogue.test.ts:8`; `admin-user-management-roles.atdd.e2e.spec.ts:38`; `role-catalogue-contract.e2e.spec.ts:36` |
 | 11.4-AC2 Counts use current-tenant active memberships once per assigned role and do not authorize | P1 | FULL | `role-harness.atdd.int.test.ts:162`; `role-catalogue.test.ts:8,39` |
 | 11.4-AC3 Effective-permission union is unique with deterministic granting roles | P0 | FULL | `role-catalogue.test.ts:20,39`; `role-harness.atdd.int.test.ts:162`; `admin-user-management-roles.atdd.e2e.spec.ts:49` |
-| 11.4-AC4 Roles/counts/effective permissions disclose nothing to non-Admin, anonymous, missing, or foreign membership | P0 | PARTIAL | `admin-user-management-roles.atdd.e2e.spec.ts:60`; `admin-user-management.rls.test.ts:30`; `login-and-tenant-context.e2e.spec.ts:65`; `resolve-tenant-context.int.test.ts:135,143`; `resolve-tenant-context.test.ts:148`. The non-Admin denial and shared anonymous/missing/cross-tenant controls are covered, but no direct foreign-target or missing-membership effective-permissions read-path test proves that the returned result carries no existence signal. |
-| 11.4-AC5 Generated exact unique role×table/capability obligations fail loud on enrollment/drift and denied commands stop before validation, lookup, or audit | P0 | FULL | `role-harness.test.ts:7,15,26,38`; `manifest-coherence.test.ts:300`; `role-harness.atdd.int.test.ts:111,120,139,150`; `envelope-core.test.ts:34`. The generated probes exercise every registered command boundary, while the production envelope ordering test proves capability denial precedes validation, ownership lookup, execution, and audit. Registration failure and override-rejection tests prevent command metadata from bypassing that ordering. |
+| 11.4-AC4 Roles/counts/effective permissions disclose nothing to non-Admin, anonymous, missing, or foreign membership | P0 | FULL | `admin-user-management-roles.atdd.e2e.spec.ts:60`; `admin-user-management.rls.test.ts:30`; `login-and-tenant-context.e2e.spec.ts:65`; `resolve-tenant-context.int.test.ts:135,143`; `resolve-tenant-context.test.ts:148`; `admin-user-detail-isolation.rls.test.ts:24,40`. The last two direct production-read cases prove missing and real foreign targets return the same generic no-data result. |
+| 11.4-AC5 Generated exact unique role×table/capability obligations fail loud on enrollment/drift and denied commands stop before validation, lookup, or audit | P0 | FULL | `role-harness.test.ts:7,15,26,38`; `manifest-coherence.test.ts:300`; `role-harness.atdd.int.test.ts:111,120,139,150`; `envelope-core.test.ts:34` |
 
 ### Mapping Summary
 
-- P0: 17/18 FULL (94%)
+- P0: 18/18 FULL (100%)
 - P1: 3/3 FULL (100%)
 - P2: 0 criteria
 - P3: 0 criteria
-- Overall: 20/21 FULL (95%); 1/21 PARTIAL
+- Overall: 21/21 FULL (100%); 0 PARTIAL; 0 NONE
 - Live-only requirements: 0
 - Unmatched or contradicted live records: 0
 
-The catalogue/read-model tests use pure units for complete projections, database integration for lifecycle and tenant scoping, and thin E2E for the user-visible route. Story 11.4 AC5's approved wording requires denial before validation, lookup, or audit; it does not require generated raw-write probes or execution of each real command body. Those broader checks remain useful test-design follow-up, but they do not reduce formal AC5 coverage. The sole formal partial is 11.4-AC4's no-existence-signal behavior through the effective-permissions read path.
+All approved criteria are fully covered. Story 11.4 AC4 now has direct missing-versus-foreign production-read equality evidence. Story 11.4 AC5 remains FULL because the approved clause requires denial before validation, lookup, or audit; shared envelope ordering and enforced registration/override rejection make that boundary binding for every generated registered-command probe. Raw-write probes and per-command real-body execution remain outside the formal AC5 contract.
 
 ## Step 4 — Gap Analysis and Recommendations
 
-Execution mode resolved from `tea_execution_mode: auto` with subagent capability available. Dependency-safe gap classification and heuristics/live roll-up ran in parallel; coverage statistics and deterministic merge completed locally after the third worker slot was unavailable.
+Execution mode resolved from `tea_execution_mode: auto` with subagent capability available. Gap classification and heuristics/live roll-up ran in parallel; coverage statistics merged locally because the third worker slot was unavailable. Both independent workers confirmed the new production-read evidence closes `11.4-AC4` without changing the approved oracle or the prior AC5 classification.
 
-### Formal Coverage Gaps
+### Formal Gap Analysis
 
-- **Uncovered:** none.
-- **Partial P0:** `11.4-AC4` only. Existing tests prove non-Admin Roles denial and the shared anonymous, missing-membership, and cross-tenant controls, but they do not call the effective-permissions read path for a missing or foreign membership and assert an indistinguishable no-existence-signal result.
-- **Unit-only status:** none. Three P0 requirements rely principally on appropriate pure/static proof (`11.1-AC2`, `11.1-AC4`, `11.1-AC6`) but remain `FULL`; none carries the workflow's `UNIT-ONLY` status.
+- Uncovered requirements: none.
+- Partially covered requirements: none.
+- Unit-only workflow status: none. `11.1-AC2`, `11.1-AC4`, and `11.1-AC6` rely principally on appropriate pure/static proof but remain `FULL` rather than `UNIT-ONLY`.
+- Critical/high/medium/low uncovered gaps: 0/0/0/0.
 
-### Exact AC5 Classification
-
-The approved AC5 clause requires the generated harness to fail CI for a denied command that reaches validation, lookup, or audit. `envelope-core.test.ts:34` proves that the shared production capability gate precedes validation, ownership lookup, execution, and audit. `role-harness.test.ts:15,26` proves unregistered commands and registered capability overrides fail closed, while `role-harness.atdd.int.test.ts:150` sends every generated registered command/role case through that envelope. Together these prevent a registered command from bypassing the tested ordering and satisfy the clause.
-
-Raw write probes and execution of each real business command body are broader objectives recorded in the Epic 11 test design. Neither appears in the formal AC5 text, so their absence is advisory test debt rather than a formal coverage gap. Current obligation uniqueness, duplicate/unknown metadata, enrollment, and policy drift are biting checks because the generated suites derive from active metadata and fail when their cardinality, registration, or actual database result diverges.
-
-### Heuristic Findings
+### Coverage Heuristics
 
 | Heuristic | Count | Finding |
 | --- | ---: | --- |
-| Endpoints without tests | 0 | Protected pages, server actions, RPCs, and database boundaries all have mapped evidence. |
-| Auth negative paths missing | 1 | The direct missing/foreign effective-permissions read path for `11.4-AC4`; this is the formal partial above. |
+| Endpoints without tests | 0 | All protected page, action, RPC, database, and effective-permissions read boundaries in the formal oracle are mapped. |
+| Auth negative paths missing | 0 | Missing and real foreign targets now traverse the production detail read and return deep-equal generic no-data results. |
 | Happy-path-only criteria | 0 | Every formal criterion has negative or boundary evidence. |
-| UI journeys without E2E | 2 | Per-action lifecycle retry/error permutations and external email transport are advisory; lower layers cover formal lifecycle behavior and delivery is not claimed. |
-| UI states missing | 2 | Per-action browser retry/error rendering and external email receipt are advisory, outside the formal coverage calculation. |
+| UI journeys without E2E | 2 | Per-action lifecycle retry/error permutations and external email receipt remain advisory and outside formal coverage. |
+| UI states missing | 2 | Per-action browser error rendering and external email delivery/receipt remain advisory and outside formal coverage. |
 
-Live evidence is not present. With `collection_mode: contract_static`, collection remains `COLLECTED`; zero requirements are live-only and there are no stale, failed, contradicted, blocked, skipped, unmatched, or invalid live records.
+Live evidence is absent. `contract_static` collection remains `COLLECTED`; zero requirements are live-only and there are no stale, unverifiable, failed, contradicted, blocked, skipped, unmatched, or invalid live records.
 
 ### Phase 1 Statistics
 
 - Total requirements: 21
-- Fully covered: 20 (95%)
-- Partially covered: 1
+- Fully covered: 21 (100%)
+- Partially covered: 0
 - Uncovered: 0
-- P0: 17/18 FULL (94%)
+- P0: 18/18 FULL (100%)
 - P1: 3/3 FULL (100%)
 - P2: 0/0 (100% by empty-bucket convention)
 - P3: 0/0 (100% by empty-bucket convention)
+- Deduplicated mapped evidence: 79 stable file+line references across 25 files (unit 36, API/integration 31, E2E 12; 0 component/live/other).
 
 ### Recommendations
 
-1. **Medium:** add direct missing-membership and Tenant A Admin → Tenant B membership tests through the effective-permissions read model; assert identical generic results with no data or existence signal (`11.4-AC4`).
-2. **Low:** run `/bmad-testarch-test-review` when a distinct test-quality audit is wanted.
-3. **Advisory:** retain generated raw-write and selected real-command-body coverage as future defense-in-depth work; it is outside the formal AC5 contract.
+1. **Low:** run `/bmad-testarch-test-review` only when a separate test-quality audit is wanted.
+2. **Advisory:** preserve raw-write and selected real-command-body ideas as future defense in depth; they are not formal AC5 requirements and do not affect this gate.
+3. **Advisory:** external Auth email receipt and exhaustive browser lifecycle permutations remain outside the formal Epic 11 oracle.
 
-The complete Phase 1 machine matrix is saved at `C:\tmp\tea-trace-coverage-matrix-2026-09-11T14-48-52-252Z.json` for deterministic Phase 2 input.
+The complete Phase 1 machine matrix is saved at `C:\tmp\tea-trace-coverage-matrix-2026-09-11T15-12-13-082Z.json` for deterministic Phase 2 input.
 
 ## Step 5 — Epic Quality Gate
 
-### Gate Decision: FAIL
+### Gate Decision: PASS
 
 **Gate eligibility:** Yes (`allow_gate=true`, `collection_status=COLLECTED`)
 
-**Deterministic rationale:** P0 coverage is 94% (required: 100%). 0 critical requirements are wholly uncovered; one P0 requirement remains partial.
+**Deterministic rationale:** P0 coverage is 100%, P1 coverage is 100% (target: 90%), and overall coverage is 100% (minimum: 80%).
 
 | Criterion | Required | Actual | Status |
 | --- | --- | --- | --- |
-| P0 oracle coverage | 100% | 17/18 (94%) | NOT_MET |
+| P0 oracle coverage | 100% | 18/18 (100%) | MET |
 | P1 oracle coverage | 90% target; 80% minimum | 3/3 (100%) | MET |
-| Overall oracle coverage | 80% minimum | 20/21 (95%) | MET |
+| Overall oracle coverage | 80% minimum | 21/21 (100%) | MET |
 
-There are no `NONE` requirements. The sole incomplete formal requirement is `11.4-AC4`, whose relevant clause says that when Roles, counts, or effective permissions are requested by the listed unauthorized/foreign contexts, "no data or existence signal is exposed." Existing evidence does not directly exercise a missing or foreign membership through the effective-permissions read model and assert that indistinguishable result.
+There are no uncovered or partially covered formal requirements. Story 11.4 AC4's no-data/no-existence-signal clause is now directly proven by `admin-user-detail-isolation.rls.test.ts:24,40`: a real authenticated Tenant A Admin receives the exact same generic no-data result for a random missing ID and an independently verified real Tenant B membership ID through production `readAdminUserDetail`.
 
-Story 11.4 AC5 is fully covered against the approved contract. Its exact boundary clause is "a denied command that reaches validation, lookup, or audit." The shared production envelope test proves none of those stages is called after denial. Command registration fail-closed behavior and capability-override rejection make that ordering binding for the generated registered-command probes. No approved AC5 clause requires raw database writes or execution of each real command body; those checks are broader defense-in-depth items from the epic test design.
+Story 11.4 AC5 remains fully covered against its approved boundary clause, "a denied command that reaches validation, lookup, or audit." Shared production-envelope ordering, enforced command registration, capability-override rejection, and generated registered-command probes prevent that reachability. No formal AC5 clause requires raw writes or execution of every real command body.
 
 ### Execution Evidence
 
-The gate reuses the latest completed evidence for the implementation and follow-up commits (`24ed579`, `b42899f`, `cc54a45`) at current source SHA `cc54a4584eacce7a307fc37d121f149e987ebdd7`:
+- Current remediation SHA: `1ad3df82ebbd04b8acd85ba3196e3c088e691858`.
+- Focused required local-stack integration: 1 file, 2 tests passed, 0 failed, 0 skipped in 1.21 seconds.
+- Remediation lint, typecheck, and scoped diff checks passed.
+- Existing Epic 11 baseline remains: 1,734 passing units; required integration/RLS 97 files and 1,016 passing tests with 0 skipped; full E2E 138 launched/passed with 0 failed.
+- The remediation commit changes only test/process/trace artifacts, so the existing product-code baseline remains applicable; the new P0 evidence executed separately at the current commit.
+- Both historical cross-model CLI review passes returned empty output and remain excluded from review evidence.
 
-- Unit: 1,734 passing tests.
-- Required integration/RLS: 97 files, 1,016 passing tests, 0 skipped.
-- Full E2E: 138 launched and passed, 0 failed; the supplied run summary did not state a separate skipped count.
-- Story 11.4: four active role scenarios, the active catalogue contract, 145 role×table RLS cases, and registered-command envelope boundaries.
-- Cross-model CLI review: both review passes returned empty output, so neither is counted as review evidence.
-
-No new test run was requested or performed during trace. NFR assessment, code-coverage percentages, and burn-in results were not supplied and are not inputs to this coverage-only deterministic gate. Story 11.4 remains in sprint review because `followup_review_recommended: true`; that process state does not change the coverage calculation.
-
-### Blocking Remediation
-
-- **P0 / owner: Story 11.4 implementation-test owner / due: before Epic 11 gate rerun.** Add direct tests through `readAdminUserDetail(membershipId)` (or the authoritative effective-permissions read boundary) for a missing membership and Tenant A Admin targeting Tenant B. Both cases must return the same generic result, disclose no data, and reveal no target existence. Re-run this trace after the focused evidence passes.
-
-Suggested test IDs:
-
-- `11.4-API-AC4-001`: Given a current-tenant Admin and a missing membership ID, when effective permissions are requested, then the generic response exposes neither data nor an existence signal.
-- `11.4-API-AC4-002`: Given a Tenant A Admin and a Tenant B membership ID, when effective permissions are requested, then the result is indistinguishable from the missing-ID case and exposes no data.
+No new test suite was run during this trace reassessment. NFR assessment, code-coverage percentages, and burn-in results were not supplied and are not inputs to this coverage-only deterministic gate. No live-only requirement caps the result.
 
 ### Machine Outputs
 
@@ -220,17 +207,17 @@ Suggested test IDs:
 target:
   type: epic
   id: '11'
-decision: FAIL
+decision: PASS
 date: '2026-09-11'
 evaluator: Rasmus
 criteria:
-  p0: { actual: '94%', required: '100%', status: NOT_MET }
+  p0: { actual: '100%', required: '100%', status: MET }
   p1: { actual: '100%', target: '90%', status: MET }
-  overall: { actual: '95%', minimum: '80%', status: MET }
+  overall: { actual: '100%', minimum: '80%', status: MET }
 evidence:
   trace_summary: 'C:\DEV\ElproSaas\_bmad-output\test-artifacts\e2e-trace-summary.json'
   gate_decision: 'C:\DEV\ElproSaas\_bmad-output\test-artifacts\gate-decision.json'
-next_step: 'Complete 11.4-AC4 direct no-existence-signal read-path tests and rerun the Epic 11 trace gate.'
+next_step: 'Proceed according to the Epic 11 orchestrator workflow.'
 ```
 
-The Epic 11 release gate remains blocked until P0 coverage reaches 100% or an authorized waiver with the required approval contract is supplied. No waiver was requested or inferred.
+The Epic 11 trace gate passes. Advisory browser-lifecycle, external-email, raw-write, and selected real-command-body ideas remain outside the formal oracle and do not qualify or cap this decision.

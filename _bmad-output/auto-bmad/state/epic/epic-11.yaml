@@ -9,20 +9,20 @@ spec_folder: null
 story_id: null
 branch: codex/epic-11-wave-b1a-rbac-mechanism-and-admin-user-management
 status: in-progress
-updated_at: "2026-09-11T15:07:39Z"
+updated_at: "2026-09-11T15:59:30Z"
 started_at: "2026-09-11T11:11:44Z"
 completed_at: null
-active_seconds: 9841
+active_seconds: 12923
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
 git_mode: remote
 base_branch: main
-selected_phase: tea_epic
-selected_role: tea-delegate
-selected_profile: critical
-selected_model: gpt-5.6-sol
-selected_effort: xhigh
+selected_phase: retrospective
+selected_role: retrospective-delegate
+selected_profile: default
+selected_model: gpt-5.6-terra
+selected_effort: medium
 selected_host: codex
 selected_tier: subagents
 selected_route: subagent
@@ -31,12 +31,15 @@ routing_ledger:
   - "{\"effort\":\"xhigh\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-sol\",\"phase\":\"tea_epic\",\"profile\":\"critical\",\"role\":\"tea-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
   - "{\"effort\":\"medium\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-luna\",\"phase\":\"tea_triage\",\"profile\":\"light\",\"role\":\"test-risk-triage\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
   - "{\"effort\":\"xhigh\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-sol\",\"phase\":\"tea_epic\",\"profile\":\"critical\",\"role\":\"tea-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"high\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-terra\",\"phase\":\"tea_epic_audit\",\"profile\":\"standard\",\"role\":\"tea-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"high\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-terra\",\"phase\":\"deferred_reconcile\",\"profile\":\"standard\",\"role\":\"deferred-reconciler\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"medium\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-terra\",\"phase\":\"retrospective\",\"profile\":\"default\",\"role\":\"retrospective-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
 tea_risk: null
 tea_selected: []
 tea_rationale: null
 epic_story_count: 4
 stories_after_in_epic: null
-completed_phases: [0, 1, 2, 5]
+completed_phases: [0, 1, 2, 5, 81, 82]
 spec_path: null
 spec_approved: false
 build:
@@ -56,21 +59,21 @@ legacy_review_loop_done: false
 legacy_external_review_iterations: null
 legacy_convergence_unverified: false
 legacy_artifact_path: null
-commits: [6b32303, f032fa6]
+commits: [6b32303, f032fa6, 1ad3df8]
 phase8_steps:
-  trace_gate: failed
-  nfr: null
-  test_review: null
-  reconcile: null
-  archive: null
-  retro: null
-gate_decision: FAIL
+  trace_gate: done
+  nfr: done
+  test_review: done
+  reconcile: done
+  archive: done
+  retro: done
+gate_decision: PASS
 gate_iterations: 1
-deferred_work_archived: 0
+deferred_work_archived: 37
 retro:
-  doc: null
-  verdict: null
-  open_action_items: 0
+  doc: "C:/DEV/ElproSaas/_bmad-output/implementation-artifacts/epic-11-retro-2026-09-11.md"
+  verdict: rejected
+  open_action_items: 4
 bmad_status_flipped_at: null
 pr_url: null
 ci_run_url: null
@@ -80,10 +83,12 @@ merge_method: null
 merge_commit: null
 branch_deleted: false
 open_questions:
-  - "Performance, query-count, dataset-size, and suite-duration thresholds remain UNKNOWN in epic design."
+  - Performance/query/suite targets and operational availability/DR/observability criteria are undefined.
   - "[11.4] Cross-model review command returned no output in build and follow-up; not counted as review evidence."
-deferred_work: []
-blockers: []
+deferred_work:
+  - "Advisory test quality: 75/100, Request Changes; address live-clock fixture, readiness gaps, oversized support files, and organization findings. See _bmad-output/test-artifacts/test-reviews/test-review-epic-11-wave-b1a-rbac.md."
+blockers:
+  - "HIGH security finding in prior Story 11.3: authenticated direct invitation-acceptance RPC trusts caller-supplied invitee email without binding it to authenticated identity. Resolve identity binding and add direct-RPC mismatch/no-side-effect regression before release. See _bmad-output/test-artifacts/nfr-assessment-epic-11.md."
 overrides:
   branch_prefix: "codex/ (host instruction)"
   role_count_policy: "Owner-approved: Label role counts Aktiva medlemmar. Count only current-tenant memberships with status active assigned the role. Exclude invited, expired, revoked, disabled, and ended. Count each member once per assigned role; totals across roles need not be unique people. Informational only; authorization unchanged."
