@@ -1,12 +1,13 @@
 "use client";
 
-import { useActionState, useRef, type RefObject } from "react";
+import { useActionState, useRef, useState, type RefObject } from "react";
 import { lifecycleAdminUserAction } from "@/features/admin-users/actions";
 import { ADMIN_USERS_INITIAL } from "@/features/admin-users/action-state";
 import type { AdminUserDetail } from "@/features/admin-users/read";
 
 export function UserDetailPanel({ detail }: { detail: AdminUserDetail }) {
   const [state, action, pending] = useActionState(lifecycleAdminUserAction, ADMIN_USERS_INITIAL);
+  const [showPermissions, setShowPermissions] = useState(false);
   const lifecycleOperation = useRef<HTMLInputElement>(null);
   const reRoleOperation = useRef<HTMLInputElement>(null);
   const prepareOperation = (input: RefObject<HTMLInputElement | null>, operationAction: string) => {
@@ -15,6 +16,8 @@ export function UserDetailPanel({ detail }: { detail: AdminUserDetail }) {
   return <section className="p-6" aria-labelledby="user-events-heading"><h1 id="user-events-heading" className="text-2xl font-semibold">Händelser</h1>
     <p className="mt-2">{detail.email ?? "Inbjuden användare"} · {detail.status} · {detail.roles.join(", ")}</p>
     <p className="mt-2 text-sm text-zinc-600">Inaktivering eller avslut tar bort åtkomsten för detta företag. E14/E15-omfördelning hanteras i ett senare steg.</p>
+    <button className="mt-3" onClick={() => setShowPermissions((visible) => !visible)} aria-expanded={showPermissions}>Effektiva behörigheter</button>
+    {showPermissions && <section className="mt-3 rounded border p-3" aria-labelledby="effective-permissions-heading"><h2 id="effective-permissions-heading" className="font-semibold">Effektiva behörigheter</h2>{detail.effectivePermissions.length === 0 ? <p>Inga aktiva behörigheter.</p> : <ul>{detail.effectivePermissions.map((grant) => <li key={`${grant.module}:${grant.capability}`}>{grant.moduleLabel} ({grant.wave}) · {grant.capability} — beviljas av {grant.grantingRoles.join(", ")}</li>)}</ul>}</section>}
     <form action={action} className="mt-4 flex flex-wrap gap-2"><input type="hidden" name="membershipId" value={detail.id}/><input ref={lifecycleOperation} type="hidden" name="operationId" />
       {detail.status === "active" && <><button name="action" value="reset" onClick={() => prepareOperation(lifecycleOperation, "reset")} disabled={pending}>Återställ inloggning</button><button name="action" value="disable" onClick={() => prepareOperation(lifecycleOperation, "disable")} disabled={pending}>Inaktivera</button><button name="action" value="end" onClick={() => prepareOperation(lifecycleOperation, "end")} disabled={pending}>Avsluta</button></>}
       {detail.status === "disabled" && <button name="action" value="reactivate" onClick={() => prepareOperation(lifecycleOperation, "reactivate")} disabled={pending}>Återaktivera</button>}

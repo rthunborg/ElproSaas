@@ -35,18 +35,18 @@ async function logIn(page: Page, credentials: RoleFixture): Promise<void> {
 }
 
 test.describe("Story 11.4 Roller och effektiva behörigheter (ATDD, RED)", () => {
-  test.skip("[P1] Admin can inspect the five role cards and active-member presentation", async ({ page }) => {
+  test("[P1] Admin can inspect the five role cards and active-member presentation", async ({ page }) => {
     const fixture = getFixture();
     await logIn(page, fixture.adminUserManagement.tenantAdmin);
     await page.goto("/admin/users");
 
     await page.getByRole("tab", { name: "Roller" }).click();
-    await expect(page.getByText("Aktiva medlemmar", { exact: true })).toHaveCount(5);
-    await expect(page.getByText(/Arbetsledare.*arbetsplats|arbetsplats.*Arbetsledare/i)).toBeVisible();
+    await expect(page.getByText(/^Aktiva medlemmar: \d+$/)).toHaveCount(5);
+    await expect(page.getByText(/Arbetsledare.*inom ett jobb|inom ett jobb.*Arbetsledare/i)).toBeVisible();
     await expect(page.getByText(/beslut.*ägare|ägare.*beslut/i)).toHaveCount(0);
   });
 
-  test.skip("[P1] Admin can open a multi-role member's effective permissions viewer", async ({ page }) => {
+  test("[P1] Admin can open a multi-role member's effective permissions viewer", async ({ page }) => {
     const fixture = getFixture();
     await logIn(page, fixture.adminUserManagement.tenantAdmin);
     await page.goto("/admin/users");
@@ -57,7 +57,7 @@ test.describe("Story 11.4 Roller och effektiva behörigheter (ATDD, RED)", () =>
     await expect(page.getByText(/beviljas av/i).first()).toBeVisible();
   });
 
-  test.skip("[P1] Non-Admin receives neither Roles UI nor the Admin users direct route", async ({ page }) => {
+  test("[P1] Non-Admin receives neither Roles UI nor the Admin users direct route", async ({ page }) => {
     const fixture = getFixture();
     await logIn(page, fixture.adminUserManagement.nonAdmin);
     await page.goto("/admin/users");

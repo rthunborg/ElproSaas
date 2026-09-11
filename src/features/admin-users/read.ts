@@ -1,8 +1,26 @@
 import { createSupabaseServerClient } from "@/server/db/supabase-server-client";
+import { buildEffectivePermissions, buildRoleCatalogue, type EffectivePermissionGrant, type RoleCatalogue } from "@/server/authz/role-catalogue";
+import { isTenantRole, type TenantRole } from "@/server/authz/roles";
 
 export type AdminUserRow = { id: string; email: string | null; status: string; role: string; roles: readonly string[]; createdAt: string };
 type MembershipReadRow = { id?: unknown; invited_email?: unknown; status?: unknown; role?: unknown; created_at?: unknown };
 const ERROR = "Användarna kunde inte läsas. Försök igen om en stund.";
+
+export type AdminUsersRoleSurface = { readonly catalogue: RoleCatalogue; readonly error: string | null };
+
+function activeRoleCounts(rows: readonly { status?: unknown; role?: unknown; roles?: readonly unknown[] }[]): Partial<Record<TenantRole, number>> {
+  const counts: Partial<Record<TenantRole, number>> = {};
+  for (const row of rows) {
+    if (row.status !== "active") continue;
+    for (const role of new Set([row.role, ...(row.roles ?? [])].filter(isTenantRole))) counts[role] = (counts[role] ?? 0) + 1;
+  }
+  return counts;
+}
+
+/** Reuses the already tenant-scoped member projection; no second page read is needed for role cards. */
+export function roleCatalogueForAdminUsers(rows: readonly AdminUserRow[]): RoleCatalogue {
+  return buildRoleCatalogue(activeRoleCounts(rows));
+}
 
 export async function readAdminUsers(): Promise<{ rows: AdminUserRow[]; error: string | null }> {
   try {
@@ -16,7 +34,14 @@ export async function readAdminUsers(): Promise<{ rows: AdminUserRow[]; error: s
   } catch { return { rows: [], error: ERROR }; }
 }
 
-export type AdminUserDetail = AdminUserRow & { events: readonly { id: string; eventType: string; createdAt: string }[] };
+/** Reads the role cards from tenant-scoped memberships; lifecycle states never affect authority. */
+export async function readAdminUsersRoleSurface(): Promise<AdminUsersRoleSurface> {
+  const users = await readAdminUsers();
+  if (users.error) return { catalogue: buildRoleCatalogue(), error: users.error };
+  return { catalogue: roleCatalogueForAdminUsers(users.rows), error: null };
+}
+
+export type AdminUserDetail = AdminUserRow & { events: readonly { id: string; eventType: string; createdAt: string }[]; effectivePermissions: readonly EffectivePermissionGrant[] };
 export async function readAdminUserDetail(membershipId: string): Promise<{ detail: AdminUserDetail | null; error: string | null }> {
   try {
     const client = await createSupabaseServerClient();
@@ -30,6 +55,7 @@ export async function readAdminUserDetail(membershipId: string): Promise<{ detai
     const row = membership as MembershipReadRow & { invitation_expires_at?: unknown }; const expires = typeof row.invitation_expires_at === "string" ? Date.parse(row.invitation_expires_at) : NaN; const status = String(row.status) === "invited" && Number.isFinite(expires) && expires <= Date.now() ? "expired" : String(row.status);
     return { detail: { id: String(row.id), email: typeof row.invited_email === "string" ? row.invited_email : null,
       status, role: String(row.role), roles: (roleRows ?? []).map((entry) => entry.role).filter((role): role is string => typeof role === "string"), createdAt: String(row.created_at),
-      events: (events ?? []).map((event: { id?: unknown; event_type?: unknown; created_at?: unknown }) => ({ id: String(event.id), eventType: String(event.event_type), createdAt: String(event.created_at) })) }, error: null };
+      events: (events ?? []).map((event: { id?: unknown; event_type?: unknown; created_at?: unknown }) => ({ id: String(event.id), eventType: String(event.event_type), createdAt: String(event.created_at) })),
+      effectivePermissions: buildEffectivePermissions((roleRows ?? []).map((entry) => entry.role).filter((role): role is string => typeof role === "string")) }, error: null };
   } catch { return { detail: null, error: ERROR }; }
 }

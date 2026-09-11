@@ -2,10 +2,11 @@
 title: 'Story 11.4: Roles Surface, Effective Permissions, and the Per-Role Test Harness'
 type: 'feature'
 created: '2026-09-11'
-status: 'ready-for-dev'
+status: 'done'
 review_loop_iteration: 0
-followup_review_recommended: false
-baseline_revision: '91886603bd112f3030c28ae946d7c3c0500c5e78'
+followup_review_recommended: true
+baseline_revision: 'd939a8e9f1b1618d1195abea4e7eda1c5a9efa5f'
+baseline_commit: 'NO_VCS'
 context:
   - '_bmad-output/implementation-artifacts/epic-11-context.md'
   - '_bmad-output/implementation-artifacts/spec-11-3-admin-user-management.md'
@@ -72,6 +73,18 @@ deferred: []
 
 ## Review Triage Log
 
+### 2026-09-11 — Review pass
+- intent_gap: 0
+- bad_spec: 0
+- patch: 4 (high 4)
+- defer: 0
+- reject: 10 (low 10)
+- addressed_findings:
+  - `[high]` `[patch]` Made command capability enrollment fail closed and added a bidirectional registry test.
+  - `[high]` `[patch]` Replaced module-wide table permission inference with explicit per-table projection capabilities.
+  - `[high]` `[patch]` Added generated role-by-command envelope probes with denied-result and no-audit checks.
+  - `[high]` `[patch]` Added lifecycle-aware role-card projection coverage and concrete table-by-role adapters. The first adapter failure was corrected after the current role-aware RLS policy established it as a deliberately all-role tenancy-context read rather than an admin-management capability.
+
 ## Design Notes
 
 The catalogue is a presentation projection, not an alternate authorization engine. A role card answers what a current active member of that role can do; invitation and history lifecycle states remain visible in the Users surface but do not inflate that operational count. The generated harness must use the manifest/matrix/command and RLS sources it checks, so future activation work cannot hand-author a smaller representative sample that leaves CI green.
@@ -85,3 +98,22 @@ The catalogue is a presentation projection, not an alternate authorization engin
 - `supabase db reset --local`; then `SUPABASE_TEST_REQUIRED=1 pnpm run test:int` -- generated RLS/command/policy agreement cases execute with zero skips and preserve anon/cross-tenant negatives.
 - `pnpm run test:e2e` -- Admin can use Roles/effective permissions and a non-Admin is denied the current Admin route.
 - `pnpm run verify:service-role-containment`; `pnpm build`; `pnpm run verify:bundle-containment` -- no server matrix/role authority or privileged credential reaches client output.
+
+## Auto Run Result
+
+Summary: Added a server-derived five-role catalogue and effective-permissions presentation to `/admin/users`, including active-only role counts, Swedish grant annotations, and job-scoped `Arbetsledare` guidance. Added a manifest/matrix/inventory/command-derived authorization harness with explicit direct-RLS exceptions for existing tenancy-context and sensitive-table contracts.
+
+Files changed:
+- `src/server/authz/role-catalogue.ts` -- server-only role-card, entitlement, and effective-union DTOs.
+- `src/features/admin-users/read.ts`, `src/app/(app)/admin/users/page.tsx`, and `src/components/admin-users/*` -- server-projected Roles and effective-permissions UI.
+- `src/server/commands/envelope.ts` -- fail-closed command capability enrollment.
+- `tests/support/authz/role-harness.ts` and role-harness tests -- derived command/table obligations, explicit operation semantics, and RLS/command boundary execution.
+- `tests/e2e/auth/admin-user-management-roles.atdd.e2e.spec.ts`, fixtures, and unit tests -- active Admin and non-Admin browser coverage plus deterministic lifecycle/count coverage.
+
+Review findings: 4 high-severity patches applied, 0 deferred, 10 low-severity findings rejected. The cross-model reviewer command exited successfully but produced no output, so it is not counted as review evidence.
+
+Follow-up review recommendation: true. Patched findings: high 4, medium 0, low 0; score is high-triggered.
+
+Verification: `pnpm run typecheck`, `pnpm run lint`, `pnpm run test:unit` (1,731 passed), `SUPABASE_TEST_REQUIRED=1 pnpm run test:int` (97 files, 1,016 passed, 0 skipped), focused role harness integration (5 passed, 0 skipped; 145 table-by-role cases), containment checks, build, and full guarded Playwright E2E (`test-results/.last-run.json` reports passed with no failed tests).
+
+Residual risks: command harness probes execute the real envelope authorization gate for each registered command name but deliberately do not invoke individual business mutation bodies; existing valid-payload command suites remain responsible for body behavior. Direct table read exceptions are explicitly tied to existing RLS policy contracts rather than broadened matrix grants.

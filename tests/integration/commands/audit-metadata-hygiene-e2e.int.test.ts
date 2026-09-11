@@ -73,6 +73,7 @@ function makeMetadataRoutingCommand() {
   type Input = { reason: string; payload: Record<string, unknown> };
   return defineCommand<Input, { targetId: string; payload: Record<string, unknown> }>({
     command: "tenant.metadata.route",
+    capability: { module: "foundation", capability: "Memberships.Manage" },
     auditable: true,
     eventType: "tenant.metadata.routed",
     targetType: "tenant",

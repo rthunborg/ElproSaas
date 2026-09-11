@@ -44,6 +44,7 @@ afterAll(async () => {
 function makeOwnershipCommand() {
   return defineCommand<{ targetId: string }, { ok: true; targetId: string }>({
     command: "tenant.touch",
+    capability: { module: "foundation", capability: "Memberships.Manage" },
     auditable: true,
     eventType: "tenant.touched",
     targetType: "tenant",

@@ -1041,7 +1041,7 @@ export default async function globalSetup() {
     adminUserManagement: {
       tenantAdmin: base.adminA,
       nonAdmin: roleAware.users.montor,
-      sharedAccount: base.adminB,
+      sharedAccount: roleAware.roleUnionUser,
     },
     crm: {
       company: { id: companyId, displayName: companyName, orgNr: companyOrgNr },
