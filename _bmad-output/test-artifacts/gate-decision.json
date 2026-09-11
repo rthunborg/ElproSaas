@@ -1,0 +1,24 @@
+{
+  "schema_version": "0.1.0",
+  "evaluated_at": "2026-09-11T14:51:27.5805071Z",
+  "repo": "ElproSaas",
+  "target": {
+    "type": "epic",
+    "id": "11",
+    "label": "Epic 11 — RBAC Mechanism and Admin User Management"
+  },
+  "collection_status": "COLLECTED",
+  "gate_basis": "priority_thresholds",
+  "gate_status": "FAIL",
+  "rationale": "P0 coverage is 94% (required: 100%). 0 critical requirements uncovered.",
+  "p0_status": "NOT_MET",
+  "p1_status": "MET",
+  "overall_status": "MET",
+  "critical_open": 0,
+  "links": {
+    "trace_report_path": "C:\\DEV\\ElproSaas\\_bmad-output\\test-artifacts\\traceability-matrix.md",
+    "trace_report_url": "",
+    "artifact_url": "",
+    "journey_evidence_url": ""
+  }
+}

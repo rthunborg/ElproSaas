@@ -9,11 +9,11 @@ spec_folder: null
 story_id: null
 branch: codex/epic-11-wave-b1a-rbac-mechanism-and-admin-user-management
 status: in-progress
-updated_at: "2026-09-11T14:16:30Z"
+updated_at: "2026-09-11T14:35:23Z"
 started_at: "2026-09-11T11:32:06Z"
 completed_at: null
-active_seconds: 5561
-timing_anchor: 1789136190
+active_seconds: 6693
+timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: true
 git_mode: remote
@@ -38,7 +38,7 @@ tea_selected: [atdd, automate]
 tea_rationale: Authorization/effective permissions and generated server-enforced per-role tests with a policy-matrix CI gate.
 epic_story_count: 4
 stories_after_in_epic: 0
-completed_phases: [0, 1, 2, 3, 4, 5, 6]
+completed_phases: [0, 1, 2, 3, 4, 5, 6, 7]
 spec_path: "C:/DEV/ElproSaas/_bmad-output/implementation-artifacts/spec-11-4-roles-surface-effective-permissions-and-the-per-role-test-harness.md"
 spec_approved: true
 build:
@@ -48,9 +48,9 @@ build:
   review_loop_iteration: 0
   deferred_count: 0
   warnings: [oversized]
-followup_passes: 0
-hitl_halt: null
-review_unverified: false
+followup_passes: 1
+hitl_halt: "auto-continued (epic — no halt)"
+review_unverified: true
 story_trace: null
 legacy_review_resume: false
 legacy_review_iteration: null
@@ -58,7 +58,7 @@ legacy_review_loop_done: false
 legacy_external_review_iterations: null
 legacy_convergence_unverified: false
 legacy_artifact_path: null
-commits: [1ac256f, 418d0aa, ecd46d1, a40e006, "9188660", f0b939a, d939a8e, 24ed579, c723fbb]
+commits: [1ac256f, 418d0aa, ecd46d1, a40e006, "9188660", f0b939a, d939a8e, 24ed579, c723fbb, b42899f, cc54a45]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -82,7 +82,7 @@ merge_method: null
 merge_commit: null
 branch_deleted: false
 open_questions:
-  - "Build cross-model review command exited 0 with no output; not counted as review evidence."
+  - "Cross-model review command returned no output in build and follow-up; not counted as review evidence."
 deferred_work: []
 blockers: []
 overrides:

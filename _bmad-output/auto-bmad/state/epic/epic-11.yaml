@@ -9,20 +9,20 @@ spec_folder: null
 story_id: null
 branch: codex/epic-11-wave-b1a-rbac-mechanism-and-admin-user-management
 status: in-progress
-updated_at: "2026-09-11T14:16:30Z"
+updated_at: "2026-09-11T15:07:39Z"
 started_at: "2026-09-11T11:11:44Z"
 completed_at: null
-active_seconds: 6774
-timing_anchor: 1789136190
+active_seconds: 9841
+timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
 git_mode: remote
 base_branch: main
-selected_phase: tea_triage
-selected_role: test-risk-triage
-selected_profile: light
-selected_model: gpt-5.6-luna
-selected_effort: medium
+selected_phase: tea_epic
+selected_role: tea-delegate
+selected_profile: critical
+selected_model: gpt-5.6-sol
+selected_effort: xhigh
 selected_host: codex
 selected_tier: subagents
 selected_route: subagent
@@ -30,12 +30,13 @@ escalation_reason: null
 routing_ledger:
   - "{\"effort\":\"xhigh\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-sol\",\"phase\":\"tea_epic\",\"profile\":\"critical\",\"role\":\"tea-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
   - "{\"effort\":\"medium\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-luna\",\"phase\":\"tea_triage\",\"profile\":\"light\",\"role\":\"test-risk-triage\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"xhigh\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-sol\",\"phase\":\"tea_epic\",\"profile\":\"critical\",\"role\":\"tea-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
 tea_risk: null
 tea_selected: []
 tea_rationale: null
 epic_story_count: 4
 stories_after_in_epic: null
-completed_phases: [0, 1, 2]
+completed_phases: [0, 1, 2, 5]
 spec_path: null
 spec_approved: false
 build:
@@ -47,7 +48,7 @@ build:
   warnings: []
 followup_passes: 0
 hitl_halt: null
-review_unverified: false
+review_unverified: true
 story_trace: null
 legacy_review_resume: false
 legacy_review_iteration: null
@@ -57,14 +58,14 @@ legacy_convergence_unverified: false
 legacy_artifact_path: null
 commits: [6b32303, f032fa6]
 phase8_steps:
-  trace_gate: null
+  trace_gate: failed
   nfr: null
   test_review: null
   reconcile: null
   archive: null
   retro: null
-gate_decision: null
-gate_iterations: 0
+gate_decision: FAIL
+gate_iterations: 1
 deferred_work_archived: 0
 retro:
   doc: null
@@ -80,6 +81,7 @@ merge_commit: null
 branch_deleted: false
 open_questions:
   - "Performance, query-count, dataset-size, and suite-duration thresholds remain UNKNOWN in epic design."
+  - "[11.4] Cross-model review command returned no output in build and follow-up; not counted as review evidence."
 deferred_work: []
 blockers: []
 overrides:
@@ -89,8 +91,9 @@ constraints:
   - "Owner-approved: Label role counts Aktiva medlemmar. Count only current-tenant memberships with status active assigned the role. Exclude invited, expired, revoked, disabled, and ended. Count each member once per assigned role; totals across roles need not be unique people. Informational only; authorization unchanged."
 batch_flip_done: false
 epic_slug: wave-b1a-rbac-mechanism-and-admin-user-management
-stories_landed: []
-active_story: 11-4-roles-surface-effective-permissions-and-the-per-role-test-harness
+stories_landed:
+  - 11-4-roles-surface-effective-permissions-and-the-per-role-test-harness
+active_story: null
 stories_skipped:
   - "11-1-role-storage-and-permission-matrix-mechanism â€” already done"
   - "11-2-non-admin-access-to-the-phase-a-surface-matrix-seed-role-aware-rls-nav-and-landing â€” already done"

@@ -5,9 +5,9 @@ stepsCompleted:
   - 'step-03c-aggregate'
   - 'step-04-validate-and-summarize'
 lastStep: 'step-04-validate-and-summarize'
-lastSaved: '2026-09-10'
+lastSaved: '2026-09-11'
 workflowType: testarch-automate
-story: 10.6 Tax-Answer Reconciliation; 11.1 Role Storage and Permission-Matrix Mechanism; 11.2 Non-Admin Access to the Phase A Surface; 11.3 Admin User Management (latest)
+story: 10.6 Tax-Answer Reconciliation; 11.1 Role Storage and Permission-Matrix Mechanism; 11.2 Non-Admin Access to the Phase A Surface; 11.3 Admin User Management; 11.4 Roles Surface, Effective Permissions, and the Per-Role Test Harness (latest)
 detectedStack: fullstack
 executionMode: BMad-integrated (post-implementation risk-based coverage expansion)
 inputDocuments:
@@ -44,6 +44,15 @@ inputDocuments:
   - _bmad-output/test-artifacts/test-design-epic-11.md
   - _bmad-output/implementation-artifacts/spec-11-3-admin-user-management.md
   - _bmad-output/test-artifacts/atdd-checklist-11-3-admin-user-management.md
+  - _bmad-output/test-artifacts/atdd-checklist-11-4-roles-surface-effective-permissions-and-the-per-role-test-harness.md
+  - _bmad-output/test-artifacts/automation-summary-11-4-roles-surface-effective-permissions-and-the-per-role-test-harness.md
+  - _bmad-output/implementation-artifacts/spec-11-4-roles-surface-effective-permissions-and-the-per-role-test-harness.md
+  - _bmad-output/test-artifacts/gate-decision.json
+  - _bmad-output/test-artifacts/traceability-matrix.md
+  - package.json
+  - src/features/admin-users/read.ts
+  - tests/integration/rls/admin-user-management.rls.test.ts
+  - tests/integration/rls/role-harness.atdd.int.test.ts
 ---
 
 # Test Automation Expansion — Story 10.6 (Tax-Answer Reconciliation)
@@ -394,3 +403,116 @@ controls from the Dialog focus selector and restore the focus assertion.
 The local database acceptance, RLS, command, and service boundary evidence are green with no
 skips. Repair the dialog focus defect before claiming the invite dialog's documented initial-focus
 behavior; run `bmad-testarch-test-review` only if a further test-quality review is requested.
+
+---
+
+# Test Automation Expansion — Story 11.4: Effective-Permissions No-Existence-Signal Remediation
+
+## Step 1 — Preflight & Context
+
+- **Stack and mode:** full-stack Next.js/React plus local Supabase; BMad-integrated Create run.
+  `package.json`, `vitest.config.ts`, and `playwright.config.ts` confirm the established Node,
+  Vitest, and Playwright framework lanes.
+- **Authorized scope:** the sole formal trace gap in `11.4-AC4`: direct missing-membership and
+  Tenant A Admin to Tenant B membership calls through `readAdminUserDetail`, with identical generic
+  no-data/no-existence-signal results. Production code, the approved spec, trace/gate artifacts,
+  sprint status, and broader AC5 raw-write/command-body probes are outside this run.
+- **Existing evidence:** pure role-catalogue tests already prove effective-permission union and
+  lifecycle behavior; RLS and browser tests already prove shared anonymous, missing-membership,
+  cross-tenant, and non-Admin controls. None directly calls the effective-permissions read model for
+  both missing and foreign target IDs.
+- **Framework and utility posture:** this direct database-backed server read belongs in Vitest.
+  Playwright Utils and Pact.js Utils are configured but their packages are absent; no Playwright or
+  provider contract test is selected. SmartBear Pact MCP tools are unavailable and provider states
+  are irrelevant to this in-process read boundary.
+- **Loaded workflow knowledge:** test levels, P0 authorization priority, isolated tenant factories,
+  selective execution, burn-in guidance, test quality, Playwright Utils mandate/profile, and Pact
+  MCP/browser automation fallback guidance.
+
+## Step 2 — Identify Targets
+
+| ID | Target | Level | Priority | Why this is the required evidence |
+| --- | --- | --- | --- | --- |
+| `11.4-INT-AC4-001` | A Tenant A Admin requests effective permissions for a missing membership UUID and receives the generic no-data result | Vitest integration / production read model | P0 | Calls `readAdminUserDetail` with a real authenticated RLS client; lower-level RLS or pure DTO tests cannot prove the server read contract. |
+| `11.4-INT-AC4-002` | The same Tenant A Admin requests Tenant B's real membership and receives a result exactly equal to the missing-ID result | Vitest integration / production read model | P0 | The independent admin query proves the foreign target exists, while exact result equality proves the read path exposes no target-existence distinction. |
+
+**Coverage decision:** add the two direct cases in one focused Story 11.4 integration file. Reuse the
+isolated two-tenant factory, inject its real Tenant A authenticated Supabase client only at the
+cookie-bound client factory seam, and keep all membership/audit/effective-permission reads inside
+the production `readAdminUserDetail` implementation. The existing role-harness, unit, RLS, and E2E
+tests remain unchanged because they cover different layers. Browser exploration was skipped after
+`playwright-cli` was not found: a browser cannot observe the missing-versus-foreign server result
+more directly than this boundary, and no UI behavior is missing. Pact/provider mapping is not
+applicable because the read is in-process and has no consumer-provider contract.
+
+## Step 3 — Generate and Aggregate Tests
+
+- **Execution mode:** capability-probed subagent mode. API and E2E workers ran in parallel; the
+  backend worker started as soon as the runtime's available worker slot was released. All three
+  returned valid `success: true` JSON at timestamp `2026-09-11T14-59-29-901Z`.
+- **API generation:** 0 tests. No HTTP route or consumer-provider contract owns this invariant.
+- **E2E generation:** 0 tests. Existing browser coverage already owns the Admin viewer and
+  non-Admin route; another journey cannot prove missing-versus-foreign read equality.
+- **Backend generation:** 2 P0 Vitest integration tests in
+  `tests/integration/rls/admin-user-detail-isolation.rls.test.ts`.
+- **Generated behavior:** the first case calls production `readAdminUserDetail` for a random missing
+  membership UUID. The second independently proves Tenant B's membership exists, calls the same
+  production read as Tenant A Admin for both missing and foreign IDs, and asserts exact result
+  equality plus the established generic `{ detail: null, error }` shape.
+- **Fixtures/helpers:** none added. The tests reuse the two-tenant factory, a real authenticated
+  Supabase client, admin readback, cleanup, and pool teardown. Only the cookie-bound
+  `createSupabaseServerClient` factory is mocked so the production read logic and real RLS execute.
+- **Totals:** 2 tests, 1 backend file, 0 API files, 0 E2E files, 0 fixtures; P0 2, P1/P2/P3 0.
+- **Playwright/Pact deviations:** none. No Playwright or Pact artifact was generated.
+
+## Step 4 — Validate and Summarize
+
+### Validation evidence
+
+- `SUPABASE_TEST_REQUIRED=1` with canonical Node
+  `C:/Users/Rasmus/AppData/Local/nvm/v22.23.2/node.exe`, running
+  `node_modules/vitest/vitest.mjs run
+  tests/integration/rls/admin-user-detail-isolation.rls.test.ts` — **PASS:** 1 file, 2 tests
+  passed, 0 failed, 0 skipped; 1.21 seconds. Both cases executed against the reachable local
+  Supabase stack.
+- Canonical Node running `node_modules/eslint/bin/eslint.js
+  tests/integration/rls/admin-user-detail-isolation.rls.test.ts` — **PASS**.
+- Canonical Node running `node_modules/typescript/bin/tsc --noEmit` — **PASS**.
+- `git diff --check` scoped to the generated test and this artifact — **PASS**; the only output is
+  Git's existing LF-to-CRLF working-copy warning for this markdown artifact.
+- Static scan of the generated test found no committed focus/skip, hard waits, or debug logging.
+
+### Definition of done
+
+- The two P0 scenarios call the production effective-permissions read boundary with a real Tenant A
+  authenticated client and real RLS; they do not mock the read result or database.
+- The missing target returns no detail and the established generic error. The independently proven
+  real Tenant B target returns a deeply equal result, so neither effective permissions nor a target
+  existence distinction is exposed.
+- Each test creates unique two-tenant data, cleans it in `finally`, resets its client-factory mock,
+  and closes the shared admin pool. There are no hard waits, external services, conditional
+  assertions, new fixtures, or test interdependencies.
+- Coverage expansion remains selective: 2 backend integration tests (P0 2; P1/P2/P3 0), with no
+  duplicate API, browser, contract, raw-write, or real-command-body cases.
+
+### Files changed
+
+- `C:/DEV/ElproSaas/tests/integration/rls/admin-user-detail-isolation.rls.test.ts`
+- `C:/DEV/ElproSaas/_bmad-output/test-artifacts/automation-summary.md`
+
+### Playwright Utils deviations
+
+None. No Playwright artifact was generated, and no Playwright utility capability applies to the
+Vitest server/database integration file.
+
+### Pact.js Utils deviations
+
+None. Story 11.4's effective-permissions read is an in-process application/database boundary, not a
+consumer-provider contract.
+
+### Coverage status and next workflow
+
+The specific `11.4-AC4` missing/foreign effective-permissions read-path gap is addressed by executed,
+zero-skip evidence. The existing `traceability-matrix.md` and `gate-decision.json` intentionally
+remain unchanged under this run's ownership boundary. Re-run `bmad-testarch-trace` for Epic 11 to
+fold this evidence into the formal 21/21, P0 18/18 gate decision.
