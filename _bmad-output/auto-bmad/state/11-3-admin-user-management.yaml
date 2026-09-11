@@ -9,7 +9,7 @@ spec_folder: null
 story_id: null
 branch: story/11-3-admin-user-management
 status: done
-updated_at: "2026-09-10T19:15:44Z"
+updated_at: "2026-09-10T19:33:40Z"
 started_at: "2026-09-10T14:47:43Z"
 completed_at: "2026-09-10T19:15:44Z"
 active_seconds: 9003
@@ -77,9 +77,9 @@ bmad_status_flipped_at: 9
 pr_url: "https://github.com/rthunborg/ElproSaas/pull/53"
 ci_run_url: "https://github.com/rthunborg/ElproSaas/actions/runs/34518170039"
 ci_status: passed
-pr_merged: false
-merge_method: null
-merge_commit: null
+pr_merged: true
+merge_method: merge
+merge_commit: b119048ae871549fe5af70cf189e1c8f9601956e
 branch_deleted: false
 open_questions: []
 deferred_work: []
