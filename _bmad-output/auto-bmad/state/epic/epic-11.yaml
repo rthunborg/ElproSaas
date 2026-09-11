@@ -9,31 +9,32 @@ spec_folder: null
 story_id: null
 branch: codex/epic-11-wave-b1a-rbac-mechanism-and-admin-user-management
 status: in-progress
-updated_at: "2026-09-11T11:11:44Z"
+updated_at: "2026-09-11T11:30:49Z"
 started_at: "2026-09-11T11:11:44Z"
 completed_at: null
-active_seconds: 0
+active_seconds: 1136
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
 git_mode: remote
 base_branch: main
-selected_phase: null
-selected_role: null
-selected_profile: null
-selected_model: null
-selected_effort: null
-selected_host: null
-selected_tier: null
-selected_route: null
+selected_phase: tea_epic
+selected_role: tea-delegate
+selected_profile: critical
+selected_model: gpt-5.6-sol
+selected_effort: xhigh
+selected_host: codex
+selected_tier: subagents
+selected_route: subagent
 escalation_reason: null
-routing_ledger: []
+routing_ledger:
+  - "{\"effort\":\"xhigh\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-sol\",\"phase\":\"tea_epic\",\"profile\":\"critical\",\"role\":\"tea-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
 tea_risk: null
 tea_selected: []
 tea_rationale: null
 epic_story_count: 4
 stories_after_in_epic: null
-completed_phases: [0, 1]
+completed_phases: [0, 1, 2]
 spec_path: null
 spec_approved: false
 build:
@@ -53,7 +54,7 @@ legacy_review_loop_done: false
 legacy_external_review_iterations: null
 legacy_convergence_unverified: false
 legacy_artifact_path: null
-commits: []
+commits: [6b32303]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -76,7 +77,9 @@ pr_merged: false
 merge_method: null
 merge_commit: null
 branch_deleted: false
-open_questions: []
+open_questions:
+  - Role member-count lifecycle semantics to resolve during story planning.
+  - "Performance, query-count, dataset-size, and suite-duration thresholds remain UNKNOWN in epic design."
 deferred_work: []
 blockers: []
 overrides:
