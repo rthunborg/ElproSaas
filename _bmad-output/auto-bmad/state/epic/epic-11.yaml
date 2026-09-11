@@ -9,11 +9,11 @@ spec_folder: null
 story_id: null
 branch: codex/epic-11-wave-b1a-rbac-mechanism-and-admin-user-management
 status: in-progress
-updated_at: "2026-09-11T11:56:32Z"
+updated_at: "2026-09-11T12:52:55Z"
 started_at: "2026-09-11T11:11:44Z"
 completed_at: null
 active_seconds: 1771
-timing_anchor: null
+timing_anchor: 1789131175
 is_first_in_epic: false
 is_last_in_epic: false
 git_mode: remote
@@ -79,13 +79,14 @@ merge_method: null
 merge_commit: null
 branch_deleted: false
 open_questions:
-  - Role member-count lifecycle semantics to resolve during story planning.
   - "Performance, query-count, dataset-size, and suite-duration thresholds remain UNKNOWN in epic design."
 deferred_work: []
 blockers: []
 overrides:
   branch_prefix: "codex/ (host instruction)"
-constraints: []
+  role_count_policy: "Owner-approved: Label role counts Aktiva medlemmar. Count only current-tenant memberships with status active assigned the role. Exclude invited, expired, revoked, disabled, and ended. Count each member once per assigned role; totals across roles need not be unique people. Informational only; authorization unchanged."
+constraints:
+  - "Owner-approved: Label role counts Aktiva medlemmar. Count only current-tenant memberships with status active assigned the role. Exclude invited, expired, revoked, disabled, and ended. Count each member once per assigned role; totals across roles need not be unique people. Informational only; authorization unchanged."
 batch_flip_done: false
 epic_slug: wave-b1a-rbac-mechanism-and-admin-user-management
 stories_landed: []

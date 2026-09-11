@@ -9,11 +9,11 @@ spec_folder: null
 story_id: null
 branch: codex/epic-11-wave-b1a-rbac-mechanism-and-admin-user-management
 status: in-progress
-updated_at: "2026-09-11T11:56:32Z"
+updated_at: "2026-09-11T12:52:55Z"
 started_at: "2026-09-11T11:32:06Z"
 completed_at: null
 active_seconds: 558
-timing_anchor: null
+timing_anchor: 1789131175
 is_first_in_epic: false
 is_last_in_epic: true
 git_mode: remote
@@ -84,4 +84,6 @@ blockers:
   - "Owner decision needed: which lifecycle states contribute to role member counts. Result: C:/DEV/ElproSaas/_bmad-output/implementation-artifacts/bmad-build-auto-result-11-4-roles-surface-effective-permissions-and-the-per-role-test-harness.md"
 overrides:
   branch_prefix: "codex/ (host instruction)"
-constraints: []
+  role_count_policy: "Owner-approved: Label role counts Aktiva medlemmar. Count only current-tenant memberships with status active assigned the role. Exclude invited, expired, revoked, disabled, and ended. Count each member once per assigned role; totals across roles need not be unique people. Informational only; authorization unchanged."
+constraints:
+  - "Owner-approved: Label role counts Aktiva medlemmar. Count only current-tenant memberships with status active assigned the role. Exclude invited, expired, revoked, disabled, and ended. Count each member once per assigned role; totals across roles need not be unique people. Informational only; authorization unchanged."

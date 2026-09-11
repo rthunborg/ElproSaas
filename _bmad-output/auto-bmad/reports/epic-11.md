@@ -37,3 +37,38 @@
 1. Resume /auto-bmad epic --epic 11. The generated context and blocked result are preserved in commit 418d0aa; no spec status edit is needed because no spec exists.
 
 **Next:** Resume: /auto-bmad epic --epic 11. Human review: /bmad-checkpoint-preview codex/epic-11-wave-b1a-rbac-mechanism-and-admin-user-management. Project context: run /bmad-project-context refresh after epic completion.
+
+## Report — 2026-09-11T11:56:49Z (halted - needs-human)
+
+**Epic:** `11` — 4 stories.
+**Branch:** `codex/epic-11-wave-b1a-rbac-mechanism-and-admin-user-management` (HEAD `a40e006`).
+**Pipeline status:** Halted during Story 11.4 planning: intent gap. Owner decision required on membership lifecycle states included in role counts.
+**Continues:** 2026-09-11T11:37:05Z (halted - needs-human)
+
+**Summary:** Resume passed preflight and the clean-tree gate. Story planning found no defined lifecycle policy for role member counts and halted before writing a spec.
+
+**Timing:** started 2026-09-11T11:11:44Z; completed in progress — elapsed 45m (≈29m AI-run, ≈15m human/idle wait); resumed 1×.
+
+**Stories:**
+1. 11.4: plan blocked (intent gap); no spec or implementation.
+
+**Skipped:**
+1. 11.1, 11.2, 11.3: already done; epic design and risk triage reused from previous run.
+
+**Epic gate:** Not run.
+
+**TEA:** No TEA phase rerun this session; prior high-risk selection remains ATDD and automate.
+
+**Retrospective:** Not run.
+
+**Overrides:** Confirmed unattended execution; codex/ branch prefix.
+
+**Open questions:**
+1. Which states count per role: active only, active plus invitations, or all including disabled and ended?
+
+**Deferred work:** (none)
+
+**⚠️ Needs human:**
+1. Answer the pending member-count question. No spec status edit is needed; no spec exists. Resume command: /auto-bmad epic --epic 11.
+
+**Next:** Resolve the count policy, then resume /auto-bmad epic --epic 11. Human review: /bmad-checkpoint-preview codex/epic-11-wave-b1a-rbac-mechanism-and-admin-user-management. Project context: /bmad-project-context refresh recommended after epic completion.
