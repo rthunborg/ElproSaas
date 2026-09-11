@@ -9,11 +9,11 @@ spec_folder: null
 story_id: null
 branch: codex/epic-11-wave-b1a-rbac-mechanism-and-admin-user-management
 status: in-progress
-updated_at: "2026-09-11T11:51:51Z"
+updated_at: "2026-09-11T11:56:32Z"
 started_at: "2026-09-11T11:32:06Z"
 completed_at: null
-active_seconds: 277
-timing_anchor: 1789127511
+active_seconds: 558
+timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: true
 git_mode: remote
@@ -39,7 +39,7 @@ spec_path: null
 spec_approved: false
 build:
   status: blocked
-  blocking_condition: dirty working tree
+  blocking_condition: intent gap
   followup_review_recommended: false
   review_loop_iteration: 0
   deferred_count: 0
@@ -54,7 +54,7 @@ legacy_review_loop_done: false
 legacy_external_review_iterations: null
 legacy_convergence_unverified: false
 legacy_artifact_path: null
-commits: [1ac256f, 418d0aa]
+commits: [1ac256f, 418d0aa, ecd46d1]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -77,10 +77,11 @@ pr_merged: false
 merge_method: null
 merge_commit: null
 branch_deleted: false
-open_questions: []
+open_questions:
+  - "Role counts: active only, active plus invitations, or all states including disabled/ended?"
 deferred_work: []
 blockers:
-  - "Planning halted: dirty working tree after required Epic 11 context refresh. Result: C:/DEV/ElproSaas/_bmad-output/implementation-artifacts/bmad-build-auto-result-11-4-roles-surface-effective-permissions-and-the-per-role-test-harness.md"
+  - "Owner decision needed: which lifecycle states contribute to role member counts. Result: C:/DEV/ElproSaas/_bmad-output/implementation-artifacts/bmad-build-auto-result-11-4-roles-surface-effective-permissions-and-the-per-role-test-harness.md"
 overrides:
   branch_prefix: "codex/ (host instruction)"
 constraints: []
