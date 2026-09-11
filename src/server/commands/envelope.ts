@@ -180,11 +180,15 @@ export type RunCommandOptions = {
 
 /** Declare a reusable command. Pure — performs no I/O until `runCommand`. */
 export function defineCommand<I, R>(config: CommandConfig<I, R>): Command<I, R> {
-  const capability = config.capability ?? COMMAND_CAPABILITIES[config.command];
-  if (!capability) {
+  const enrolled = COMMAND_CAPABILITIES[config.command];
+  if (!enrolled && !config.capability) {
     throw new Error(`command capability enrollment missing: ${config.command}`);
   }
-  return { config: { ...config, ...(capability ? { capability } : {}) } };
+  if (enrolled && config.capability && (config.capability.module !== enrolled.module || config.capability.capability !== enrolled.capability)) {
+    throw new Error(`command capability enrollment missing: ${config.command}`);
+  }
+  if (!enrolled) return { config };
+  return { config: { ...config, capability: enrolled } };
 }
 
 /**

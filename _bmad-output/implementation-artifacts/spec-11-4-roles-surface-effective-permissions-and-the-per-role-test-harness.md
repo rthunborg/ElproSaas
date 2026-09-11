@@ -85,6 +85,20 @@ deferred: []
   - `[high]` `[patch]` Added generated role-by-command envelope probes with denied-result and no-audit checks.
   - `[high]` `[patch]` Added lifecycle-aware role-card projection coverage and concrete table-by-role adapters. The first adapter failure was corrected after the current role-aware RLS policy established it as a deliberately all-role tenancy-context read rather than an admin-management capability.
 
+### 2026-09-11 — Review pass
+- intent_gap: 0
+- bad_spec: 0
+- patch: 7 (high 1, medium 5, low 1)
+- defer: 0
+- reject: 5 (low 5)
+- addressed_findings:
+  - `[high]` `[patch]` Registered production command declarations can no longer override the capability that the authorization harness validates, while explicit unregistered test commands retain their existing contract.
+  - `[medium]` `[patch]` Historical inactive memberships now project no effective grants, and legacy primary roles remain visible until normalized role rows exist.
+  - `[medium]` `[patch]` A failed member read suppresses the Roles authority display instead of rendering zero-count catalogue cards.
+  - `[low]` `[patch]` Sensitive-entitlement presentation is constrained to manifest-active modules.
+  - `[medium]` `[patch]` Role-harness metadata now rejects missing or stale table capability, direct-RLS, and projection-adapter entries.
+  - `[medium]` `[patch]` Effective-permission tests assert the complete active matrix union and its granting-role labels.
+
 ## Design Notes
 
 The catalogue is a presentation projection, not an alternate authorization engine. A role card answers what a current active member of that role can do; invitation and history lifecycle states remain visible in the Users surface but do not inflate that operational count. The generated harness must use the manifest/matrix/command and RLS sources it checks, so future activation work cannot hand-author a smaller representative sample that leaves CI green.
@@ -117,3 +131,21 @@ Follow-up review recommendation: true. Patched findings: high 4, medium 0, low 0
 Verification: `pnpm run typecheck`, `pnpm run lint`, `pnpm run test:unit` (1,731 passed), `SUPABASE_TEST_REQUIRED=1 pnpm run test:int` (97 files, 1,016 passed, 0 skipped), focused role harness integration (5 passed, 0 skipped; 145 table-by-role cases), containment checks, build, and full guarded Playwright E2E (`test-results/.last-run.json` reports passed with no failed tests).
 
 Residual risks: command harness probes execute the real envelope authorization gate for each registered command name but deliberately do not invoke individual business mutation bodies; existing valid-payload command suites remain responsible for body behavior. Direct table read exceptions are explicitly tied to existing RLS policy contracts rather than broadened matrix grants.
+
+### 2026-09-11 — Follow-up review result
+
+Summary: Corrected lifecycle-accurate effective permission presentation, legacy-role fallback, error-state authority suppression, active-only sensitive entitlements, and fail-loud authorization-harness metadata checks. Registered command declarations now cannot diverge from their harnessed capability metadata.
+
+Files changed:
+- `src/server/authz/role-catalogue.ts` and `src/features/admin-users/read.ts` — lifecycle-safe effective grants and normalized-role fallback.
+- `src/app/(app)/admin/users/page.tsx` and `src/components/admin-users/UsersPage.tsx` — suppress catalogue authority data on a failed Admin read.
+- `src/server/commands/envelope.ts` — reject capability overrides for registered commands.
+- `tests/support/authz/role-harness.ts` and unit tests — validate complete table metadata and exact effective-grant projection.
+
+Review findings: patches applied 7 (high 1, medium 5, low 1); deferred 0; rejected 5. The configured cross-model command was run once but produced no output artifact, so it is not review evidence.
+
+Follow-up review recommendation: true. Score: `3 × 5 + 1 × 1 = 16`.
+
+Verification: `pnpm run typecheck`; `pnpm run lint`; `pnpm run test:unit` (94 suites, 1,734 tests); `SUPABASE_TEST_REQUIRED=1 pnpm run test:int` (97 files, 1,016 tests, 0 skips); source containment; full Playwright (`test-results/.last-run.json`: passed, no failed tests); `pnpm run build`; built-bundle containment.
+
+Residual risks: the generated command harness intentionally proves the shared production envelope boundary rather than each individual business mutation body. Existing direct-RLS exceptions for tenant context and raw quote-review/acceptance tables remain intentional policy distinctions, verified outside generic matrix grants.

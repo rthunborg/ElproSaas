@@ -1,5 +1,5 @@
 import { SCOPE_MANIFEST } from "@/scope/manifest";
-import { normalizeRoles, TENANT_ROLES, type TenantRole } from "./roles";
+import { isTenantRole, normalizeRoles, TENANT_ROLES, type TenantRole } from "./roles";
 import { PERMISSION_MATRIX, SENSITIVE_FIELD_MATRIX } from "./permission-matrix";
 
 /** Presentation-only descriptions for the closed, code-owned role set. */
@@ -59,7 +59,9 @@ function grantsForRoles(roles: readonly TenantRole[]): RoleCatalogueGrant[] {
 }
 
 function sensitiveEntitlementsFor(role: TenantRole): string[] {
+  const activeModuleIds = new Set(activeModules().map((module) => module.id));
   return Object.entries(SENSITIVE_FIELD_MATRIX)
+    .filter(([module]) => activeModuleIds.has(module))
     .flatMap(([module, fields]) => Object.entries(fields)
       .filter(([, row]) => row.roles.includes(role))
       .map(([field]) => `${module}.${field}`))
@@ -98,4 +100,15 @@ export function buildEffectivePermissions(roles: readonly unknown[] | undefined)
       .sort(collator.compare);
     return { ...grant, grantingRoles };
   });
+}
+
+/** Uses the legacy primary role only until normalized role rows exist. */
+export function resolveMembershipRoles(primaryRole: unknown, roleRows: readonly unknown[]): TenantRole[] {
+  const normalized = roleRows.filter(isTenantRole);
+  return normalized.length > 0 ? normalized : [primaryRole].filter(isTenantRole);
+}
+
+/** Inactive lifecycle rows are historical only and have no effective access. */
+export function effectivePermissionsForMembership(status: string, roles: readonly TenantRole[]): readonly EffectivePermissionGrant[] {
+  return status === "active" ? buildEffectivePermissions(roles) : [];
 }

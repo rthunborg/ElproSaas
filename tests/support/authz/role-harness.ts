@@ -52,6 +52,33 @@ function activeModules() {
   return SCOPE_MANIFEST.modules.filter((module) => module.status === "active");
 }
 
+type RoleHarnessMetadata = {
+  readonly projectionCapabilities?: Readonly<Record<string, unknown>>;
+  readonly directRlsAllowedRoles?: Readonly<Record<string, unknown>>;
+  readonly rlsProjectionAdapters?: Readonly<Record<string, unknown>>;
+};
+
+/** Reject stale metadata as well as missing active-table enrollment. */
+export function validateRoleHarnessMetadata(metadata: RoleHarnessMetadata = {}): void {
+  const activeTables = new Set(activeModules().flatMap((module) => module.tenantTables));
+  const projectionCapabilities = metadata.projectionCapabilities ?? TABLE_PROJECTION_CAPABILITIES;
+  const directRlsAllowedRoles = metadata.directRlsAllowedRoles ?? TABLE_DIRECT_RLS_ALLOWED_ROLES;
+  const rlsProjectionAdapters = metadata.rlsProjectionAdapters ?? TABLE_RLS_PROJECTION_ADAPTERS;
+
+  for (const table of activeTables) {
+    if (!(table in projectionCapabilities)) throw new Error(`table capability enrollment missing for ${table}`);
+    if (!(table in rlsProjectionAdapters)) throw new Error(`table RLS projection adapter missing for ${table}`);
+  }
+  for (const [name, entries] of [
+    ["table capability", projectionCapabilities],
+    ["direct RLS", directRlsAllowedRoles],
+    ["table RLS projection adapter", rlsProjectionAdapters],
+  ] as const) {
+    const unknown = Object.keys(entries).filter((table) => !activeTables.has(table));
+    if (unknown.length > 0) throw new Error(`unknown ${name} metadata: ${unknown.sort().join(", ")}`);
+  }
+}
+
 /**
  * Derived enrollment snapshot. It deliberately has no hand-authored module/table
  * list: an activation missing a matrix row, table enrollment, or command mapping
@@ -59,6 +86,7 @@ function activeModules() {
  */
 export function activeRoleHarnessObligations(): RoleHarnessObligation[] {
   const active = activeModules();
+  validateRoleHarnessMetadata();
   const activeIds = new Set(active.map((module) => module.id));
   const enrolledTables = new Set(TENANT_TABLES);
   const cases: RoleHarnessObligation[] = [];
