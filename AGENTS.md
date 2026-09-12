@@ -28,6 +28,8 @@ Mandatory rules:
 
 ## Code Review Rules
 
+- Future completed implementation stories must contain one author-written `## Suggested Review Order`, following [the project convention](docs/process/review-order.md). The implementation/fix author refreshes rationale, verified stops and evidence after fixes; reviewers check it against the final change. Use the project BMAD hooks and section scaffold; do not backfill historical stories. The auto-bmad root delegates this work and never authors story code or spec content.
+
 - Report concrete, production-reachable defects introduced by the PR that affect correctness, security, tenant isolation, data integrity, or customer-visible output. Before reporting a missing guard, verify whether an enforced downstream validator, database constraint, trigger, or authorized wrapper already blocks the path; if it does, report only an identified bypass.
 - On follow-up commits, prioritize regressions in changed lines and unresolved consequential findings. After three completed review rounds, do not start another broad pass; limit follow-up review to regressions in the latest fixes and unresolved serious findings. Distinguish a reachable defect from optional defense-in-depth by naming the caller, authorization level, and invariant bypass.
 - Leave deterministic formatting, lint, and schema-shape checks to CI. Do not restate them as review findings unless the PR disables or bypasses the check.

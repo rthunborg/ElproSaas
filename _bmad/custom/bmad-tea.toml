@@ -1,0 +1,2 @@
+[agent]
+persistent_facts = ["file:{project-root}/docs/process/review-order.md"]

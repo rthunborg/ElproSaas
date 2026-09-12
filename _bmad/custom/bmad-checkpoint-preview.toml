@@ -1,0 +1,5 @@
+[workflow]
+persistent_facts = [
+  "file:{project-root}/docs/process/review-order.md",
+  "Use the explicit implementation story/spec supplied by the caller. A Suggested Review Order found there is a provided trail; preserve its stated author or reconstruction provenance. Resolve its repository-relative path:line stops against the current repo and final diff. Never relabel a fallback-generated trail as author-provided. Planning-only notes are not final evidence. This convention adds no checkpoint; follow the installed orientation and walkthrough.",
+]
