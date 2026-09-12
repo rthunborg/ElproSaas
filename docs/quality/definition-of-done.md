@@ -42,6 +42,7 @@ Phase A product work is not currently authorized by this task. When authorized l
 
 Review completion requires:
 
+- For future completed implementation stories, one [author-written Suggested Review Order](../process/review-order.md), refreshed after fixes, with verified review stops and explicit evidence limitations. This reading guide is not approval or proof of correctness; historical stories are not backfilled.
 - Findings listed by severity.
 - File and line references where possible.
 - Test gaps called out.
