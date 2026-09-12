@@ -1,0 +1,12 @@
+# Project-owned; survives BMAD reinstall. See docs/process/review-order.md.
+[workflow]
+persistent_facts = ["file:{project-root}/docs/process/review-order.md"]
+implementation_handoff = '''
+Launch a subagent with no prior conversation context, with this prompt:
+
+Read {spec_file} fully and implement it; the spec is the source of truth. Load every file in its context frontmatter before starting. Also read {project-root}/docs/process/review-order.md and {project-root}/_bmad/custom/review-order-template.md.
+You are the implementation author. Own and write exactly one Suggested Review Order after implementation and verification, before returning for review. Explain your recorded choices; verify repository-relative path:line stops and useful literal symbol anchors; map important ACs/invariants to tests and state evidence limits. Do not invent rationale. Refresh the same section after every review-fix batch or re-derivation, preserving frozen intent. Return what changed, verification, and anything incomplete or risky. Remain available for synchronous fix and final-trail reconciliation handoffs.
+'''
+on_complete = '''
+Read docs/process/review-order.md from the project root and follow its Completion-hook protocol using this run's already-resolved spec_file runtime variable; if it is absent or its file does not exist, report no reconciliation and preserve the original result. For a completed implementation, the implementation/fix author (the current implementer on one-shot) reconciles and validates exactly one final author section after all fixes, including any generated duplicate from Build presentation. Preserve non-done exits. Report final evidence and revision; do not ask for an extra owner confirmation. This hook runs within Build, never as auto-bmad root story work.
+'''

@@ -1,0 +1,5 @@
+[workflow]
+persistent_facts = [
+  "file:{project-root}/docs/process/review-order.md",
+  "Planning may identify provisional review concerns, but never fabricate a final Suggested Review Order, code locations or execution evidence. When needed downstream, reference the existing review-order convention as an adopted companion; do not copy it into the derived SPEC kernel. Final author trails belong in implementation story specs. Preserve current story checkpoint choices; this convention adds none.",
+]

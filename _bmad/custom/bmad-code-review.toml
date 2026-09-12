@@ -1,0 +1,5 @@
+[workflow]
+persistent_facts = ["file:{project-root}/docs/process/review-order.md"]
+on_complete = '''
+For an implementation story reviewed in this run, verify its Suggested Review Order matches the final diff and evidence under {project-root}/docs/process/review-order.md. If this run applied fixes, send the final trail refresh to the implementation/fix author and follow that document's Completion-hook protocol before returning. A read-only reviewer reports mismatches but does not invent or write author rationale. Do not backfill completed historical stories or add an owner-confirmation checkpoint.
+'''
