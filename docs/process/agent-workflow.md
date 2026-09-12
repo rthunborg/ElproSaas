@@ -28,7 +28,8 @@ Product implementation is scoped by the machine-readable scope manifest (`src/sc
 5. Use the Lovable app only to understand behavior or produce fixtures.
 6. Make narrowly scoped changes.
 7. Run the relevant quality gates.
-8. Summarize changed files, verification, remaining risks, and any manual setup.
+8. For implementation stories, have the implementation/fix author write or refresh the [Suggested Review Order](review-order.md), then verify its references and evidence against the final change. The Test Architect defines evidence expectations; the reviewer checks the trail. auto-bmad's root delegates this work.
+9. Summarize changed files, verification, remaining risks, and any manual setup.
 
 ## BMAD Responsibilities
 
