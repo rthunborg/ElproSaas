@@ -1,0 +1,4 @@
+[workflow]
+review_guidance = [
+  "For implementation story/code reviews, read {project-root}/docs/process/review-order.md. Verify the author trail against the final change and its AC/invariant-to-test evidence; report consequential mismatches and coverage limitations. Do not invent rationale, edit an author's trail during read-only review, or require backfilling historical stories. Refer any applied fixes back to their author for a trail refresh.",
+]
