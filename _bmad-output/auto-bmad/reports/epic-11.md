@@ -114,3 +114,17 @@ Archived 37 verified completions to _bmad-output/implementation-artifacts/deferr
 3. Retrospective rejected; resolve its four tracked actions before accepting epic completion.
 
 **Next:** Human review: /bmad-checkpoint-preview codex/epic-11-wave-b1a-rbac-mechanism-and-admin-user-management. Project context: /bmad-project-context refresh (recommended after an epic).
+
+## Focused review adjustments — 2026-09-12
+
+The owner requested three bounded corrections after independent review of PR #55 at `4738d5b`: current-tenant role-count scoping, complete membership/child-role pagination, and independent production command-enrollment verification. Registered capability enforcement and the named raw-table exceptions require no redesign. The confirmed pre-existing invitation RPC identity-binding defect remains a release blocker.
+
+The read path now resolves the current tenant before querying and explicitly scopes membership, child-role, and detail/history reads. Memberships and bounded batches of child roles use stable pagination; a later-page error returns no partial authority data. The enrollment check discovers actual production `defineCommand` declarations across `src` using the TypeScript AST and compares them independently with the registry. Negative controls cover omitted registration despite explicit capability, declarations outside the commands folder, duplicates, stale entries, and capability drift.
+
+The implementation author added one Suggested Review Order to Story 11.4, following the convention committed separately at `1e7ae7a`. A targeted follow-up review found no consequential defect in these fixes; it did not reopen the accepted raw-table exceptions or the pre-existing invitation finding.
+
+Local evidence on the follow-up working tree over `1e7ae7a`: 25 focused Node unit tests passed with zero failures/skips; one mocked production-read Vitest test passed; changed-file lint, source containment, and review-order reference validation (13 references) passed. Typechecking passed using a temporary configuration excluding only unrelated historical source snapshots under `tmp/private`; the repository configuration was preserved. The ordinary typecheck includes those snapshots and reports their stale component-prop errors.
+
+Required local database verification stopped at global setup because the authorized loopback Supabase endpoint was unavailable (zero database tests executed). The new real multi-tenant-admin RLS regression was skipped when invoked without required mode; this is not coverage. It is enrolled in the existing required database CI job. Historical runs and the independent review's reported 71 units/240 synthetic core cases do not substitute for execution of these new database cases.
+
+Disposition: retain the draft PR, Story 11.4 review status, rejected retrospective, and invitation identity-binding release blocker. Publish the focused fixes for CI and subsequent human review; no merge or release is authorized by this adjustment.

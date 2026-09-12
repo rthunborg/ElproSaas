@@ -103,6 +103,43 @@ deferred: []
 
 The catalogue is a presentation projection, not an alternate authorization engine. A role card answers what a current active member of that role can do; invitation and history lifecycle states remain visible in the Users surface but do not inflate that operational count. The generated harness must use the manifest/matrix/command and RLS sources it checks, so future activation work cannot hand-author a smaller representative sample that leaves CI green.
 
+## Suggested Review Order
+
+Author: Story 11.4 follow-up fix author.
+Refreshed against the PR #55 follow-up working tree after current-tenant scoping, complete Admin-read pagination, and independent command-enrollment verification.
+
+### Current-tenant roles presentation
+
+The Roles page and member detail now resolve the same membership-derived current tenant used by commands and route access before reading. This corrects the multi-tenant Admin case without changing the approved active-only count or effective-permission policy.
+
+- `src/features/admin-users/read.ts:32` — `resolveTenantContext`: derives the current tenant before the list/count projection.
+- `src/features/admin-users/read.ts:49` — `resolveTenantContext`: derives the same tenant before a direct member-detail read.
+- `src/features/admin-users/read.ts:52` — `tenant_id`: scopes the detail membership lookup, preserving generic no-data behavior for another tenant.
+
+### Complete membership and role projection
+
+The read model uses stable root ordering and bounded child-ID groups because PostgREST caps unbounded responses. Any late page error clears the whole projection, so the UI never presents partial authority data or partial counts.
+
+- `src/features/admin-users/read-model.ts:35` — `readAdminUsersForTenant`: owns the complete current-tenant projection.
+- `src/features/admin-users/read-model.ts:36` — `readAllPages`: paginates memberships with stable `created_at` and `id` ordering.
+- `src/features/admin-users/read-model.ts:48` — `membershipIdBatch`: bounds child-role reads and paginates every batch with stable role ordering.
+
+### Independent enrollment and focused evidence
+
+The command registry is independently cross-checked from source declarations rather than relying only on the envelope's registry-derived tests. The focused regression suites exercise tenant scoping, full root and child pages, and a late-page failure; they do not replace required live RLS validation.
+
+- `tests/support/authz/command-enrollment.ts:126` — `scanProductionCommandDeclarations`: parses all production source outside the envelope before registry comparison.
+- `tests/support/authz/command-enrollment.ts:138` — `validateProductionCommandEnrollment`: rejects missing, stale, duplicate, and explicit-capability drift.
+- `tests/unit/admin-users/read-pagination.test.ts:73` — `Admin role counts collect every membership`: proves roots and a full child-role page are collected.
+- `tests/unit/admin-users/read-pagination.test.ts:96` — `a later membership page failure`: proves a late root-page error returns no partial authority data.
+- `tests/unit/admin-users/read-pagination.test.ts:114` — `a later child-role page failure`: proves a late child-page error also returns no partial authority data.
+- `tests/integration/read-models/admin-users-current-tenant.test.ts:40` — `resolves the current tenant`: mocks the production entry point and checks both queries use its resolved tenant.
+- `tests/integration/rls/admin-users-current-tenant-counts.rls.test.ts:25` — `a multi-tenant Admin`: uses a real authenticated client to distinguish broad RLS visibility from the current-tenant projection.
+
+Evidence: focused pure read-model tests passed 4/4; focused mocked production-read Vitest test passed 1/1. The independent enrollment worker reports its focused suite passed 4/4. The prior focused review passed 71 distinct unit tests and 240 synthetic core cases.
+
+Limits: local Supabase was unavailable for this follow-up; the new real-client multi-tenant RLS regression skipped locally and remains for CI or a restored local stack. The invitation-acceptance RPC identity-binding defect is confirmed pre-existing to this PR and remains a release blocker. Generated command probes still establish the shared envelope boundary rather than every business mutation body.
+
 ## Verification
 
 **Commands:**
