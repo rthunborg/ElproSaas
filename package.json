@@ -17,6 +17,7 @@
     "test:int": "vitest run",
     "test:int:watch": "vitest",
     "test:e2e": "playwright test",
+    "test:pilot-performance": "node --experimental-strip-types --import ./tests/support/register.mjs scripts/nfr/epic-11-r1108-baseline.ts",
     "test:bmad-focused": "python _bmad/scripts/tests/test_memlog.py",
     "test:auto-bmad-focused": "python .agents/skills/auto-bmad/scripts/tests/test_routing_migration.py && python .agents/skills/auto-bmad/scripts/tests/test_cli_delegate_windows_pid.py",
     "verify:lockfiles": "node scripts/verify/check-lockfiles.mjs",
