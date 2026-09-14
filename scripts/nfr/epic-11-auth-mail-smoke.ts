@@ -10,6 +10,7 @@ import { assertLocalStack, isLocalStackReachable, LOCAL_SUPABASE_SERVICE_ROLE_KE
 const MAILPIT_URL = process.env.SUPABASE_TEST_MAILPIT_URL ?? "http://127.0.0.1:54324";
 const CALLBACK = "http://127.0.0.1:3000/auth/invite/confirm";
 const POLL_TIMEOUT_MS = 15_000;
+const CONTEXT_MARKERS = { nfrContextA: "alpha", nfrContextB: "bravo" } as const;
 
 type MailMessage = { ID?: string; To?: Array<{ Address?: string }> };
 
@@ -33,8 +34,11 @@ function stringsWithin(value: unknown): string[] {
   return [];
 }
 
-function decoded(value: string): string {
-  try { return decodeURIComponent(value).replaceAll("&amp;", "&"); } catch { return value.replaceAll("&amp;", "&"); }
+function decodeHtmlEntities(value: string): string {
+  // The confirmation URL contains a nested, percent-encoded redirect URL. Do
+  // not decode percent escapes here: doing so promotes nested query parameters
+  // into the outer Auth verification URL and changes what the browser receives.
+  return value.replaceAll("&amp;", "&");
 }
 
 async function messages(): Promise<MailMessage[]> {
@@ -51,10 +55,10 @@ async function confirmationUrl(address: string): Promise<string> {
     if (message?.ID) {
       const response = await fetch(`${MAILPIT_URL}/api/v1/message/${encodeURIComponent(message.ID)}`, { signal: AbortSignal.timeout(2_000) });
       if (!response.ok) throw new Error(`Mailpit detail failed: ${response.status}`);
-      const candidates = stringsWithin(await response.json()).flatMap((text) => [text, decoded(text)]);
+      const candidates = stringsWithin(await response.json()).flatMap((text) => [text, decodeHtmlEntities(text)]);
       for (const candidate of candidates) {
         const match = candidate.match(/https?:[^"'\s<>]+/);
-        if (match && decoded(match[0]).startsWith(`${LOCAL_SUPABASE_URL}/auth/v1/verify`)) return decoded(match[0]);
+        if (match && decodeHtmlEntities(match[0]).startsWith(`${LOCAL_SUPABASE_URL}/auth/v1/verify`)) return decodeHtmlEntities(match[0]);
       }
       throw new Error("Mailpit receipt did not contain a Supabase Auth verification URL.");
     }
@@ -69,9 +73,18 @@ async function verifyAuthRedirect(url: string, marker: string): Promise<Redirect
   const response = await fetch(url, { redirect: "manual", signal: AbortSignal.timeout(5_000) });
   const location = response.headers.get("location");
   if (response.status < 300 || response.status >= 400 || !location) throw new Error("Supabase Auth verification URL did not redirect.");
-  const target = decoded(location);
+  const target = decodeHtmlEntities(location);
   const parsed = new URL(target);
-  if (!target.startsWith(CALLBACK) || !target.includes(marker)) throw new Error("Supabase Auth redirect did not preserve the configured callback URL and smoke marker.");
+  const expected = new URL(CALLBACK);
+  if (
+    parsed.origin !== expected.origin
+    || parsed.pathname !== expected.pathname
+    || parsed.searchParams.get("nfrSmoke") !== marker
+    || parsed.searchParams.get("nfrContextA") !== CONTEXT_MARKERS.nfrContextA
+    || parsed.searchParams.get("nfrContextB") !== CONTEXT_MARKERS.nfrContextB
+  ) {
+    throw new Error("Supabase Auth redirect did not preserve the configured callback context.");
+  }
   // Return only non-secret redirect facts. A hash can carry an Auth token, so it
   // is never emitted; whether it exists distinguishes server-readable query
   // callbacks from implicit client-side callbacks.
@@ -87,14 +100,17 @@ async function main(): Promise<void> {
   const inviteEmail = `nfr-11-invite-${marker}@example.test`;
   const recoveryEmail = `nfr-11-recovery-${marker}@example.test`;
   const auth = createClient(LOCAL_SUPABASE_URL, LOCAL_SUPABASE_SERVICE_ROLE_KEY, { auth: { autoRefreshToken: false, persistSession: false } });
-  const redirectTo = `${CALLBACK}?nfrSmoke=${marker}`;
+  const redirect = new URL(CALLBACK);
+  redirect.searchParams.set("nfrSmoke", marker);
+  for (const [key, value] of Object.entries(CONTEXT_MARKERS)) redirect.searchParams.set(key, value);
+  const redirectTo = redirect.toString();
   const createdIds: string[] = [];
   try {
     const invite = await auth.auth.admin.inviteUserByEmail(inviteEmail, { redirectTo });
     if (invite.error) throw new Error(`Auth invite call failed: ${invite.error.message}`);
     if (invite.data.user?.id) createdIds.push(invite.data.user.id);
     const invitedUrl = await confirmationUrl(inviteEmail);
-    if (!decoded(invitedUrl).includes(marker)) throw new Error("Invite receipt does not carry the smoke marker.");
+    if (!invitedUrl.includes(marker)) throw new Error("Invite receipt does not carry the smoke marker.");
     const inviteRedirect = await verifyAuthRedirect(invitedUrl, marker);
 
     const recovery = await auth.auth.admin.createUser({ email: recoveryEmail, password: `Nfr-${marker}-Aa1!`, email_confirm: true });
@@ -103,7 +119,7 @@ async function main(): Promise<void> {
     const reset = await auth.auth.resetPasswordForEmail(recoveryEmail, { redirectTo });
     if (reset.error) throw new Error(`Auth recovery call failed: ${reset.error.message}`);
     const recoveryUrl = await confirmationUrl(recoveryEmail);
-    if (!decoded(recoveryUrl).includes(marker)) throw new Error("Recovery receipt does not carry the smoke marker.");
+    if (!recoveryUrl.includes(marker)) throw new Error("Recovery receipt does not carry the smoke marker.");
     const recoveryRedirect = await verifyAuthRedirect(recoveryUrl, marker);
     console.log(JSON.stringify({ status: "passed", target: "local Supabase Auth to Mailpit", flows: ["invite", "recovery"], authRedirects: { invite: inviteRedirect, recovery: recoveryRedirect }, appCallbackConsumed: false }));
   } finally {

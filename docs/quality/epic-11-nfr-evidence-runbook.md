@@ -41,7 +41,7 @@ Requirements are the existing local Supabase API, database, Auth, and Mailpit se
 
 This proves the local Auth-to-Mailpit path, project templates, and Auth callback construction. It does not consume the Next.js callback, establish its session cookie, or accept an application membership; those are separate browser/application proofs. It also does not prove third-party SMTP deliverability, recipient mailbox acceptance, production provider uptime, or exactly-once delivery. A hosted external-SMTP proof requires an approved non-demo Supabase project and controlled recipient mailbox; neither currently exists.
 
-Executed locally on 2026-09-14: both invite and recovery receipts arrived in Mailpit. Fresh manual verification showed an HTTP 303 to the expected local callback origin/path for both flows, but each redirect carried its Auth result in a fragment. A browser consumed a real invite link and reached `/login`, because the server callback receives neither `code` nor `token_hash` from a fragment and deliberately redirects to login in that case. Callback-consumption evidence is therefore **RED**: standard implicit-flow invitation and recovery links do not reach the intended application destination.
+Earlier 2026-09-14 receipt and 303 observations established local delivery, callback origin/path, and the implicit Auth fragment for invite and recovery. They did **not** safely establish preservation of nested percent-encoded callback context: the original helper decoded the complete verification URL and could promote nested fields into the outer query. The corrected helper decodes only HTML entities and requires two fixed, non-sensitive callback markers plus the run marker to survive each Auth 303. Its final local probe passed for both invite and recovery: `nfrContextA`, `nfrContextB`, and the unique run marker were each verified by parsed callback query parameters, while URLs and fragments remained unlogged. A browser consumed a real invite link and reached `/login`, because the server callback receives neither `code` nor `token_hash` from a fragment and deliberately redirects to login in that case. Callback-consumption evidence is therefore **RED**: standard implicit-flow invitation and recovery links do not reach the intended application destination.
 
 Read-only inspection also found local Auth allow-list drift: the running service contains only `https://127.0.0.1:3000`, while the committed local configuration also specifies `http://127.0.0.1:3000/auth/invite/confirm`. That drift must still be reconciled through the authorized local-stack workflow, but it did not cause the observed callback failure: Auth returned the intended callback origin/path before the browser reached the application. A focused application remediation must either handle the implicit fragment in a client-capable handoff or use an Auth flow that supplies a server-readable callback result; it needs direct regression coverage before this item can pass.
 
@@ -81,9 +81,9 @@ The R-1108 script rejects a missing required local stack, provisions real Auth a
 
 The delivery smoke calls real local Supabase Auth, waits for the local Mailpit receipt, and requires the rendered callback to preserve a unique marker for both invite and recovery flows.
 
-- `scripts/nfr/epic-11-auth-mail-smoke.ts:47` — `confirmationUrl`: polls the local SMTP sink rather than mocking a provider result.
-- `scripts/nfr/epic-11-auth-mail-smoke.ts:93` — `inviteUserByEmail`: drives an actual invitation template and callback.
-- `scripts/nfr/epic-11-auth-mail-smoke.ts:103` — `resetPasswordForEmail`: drives the recovery template and callback.
+- `scripts/nfr/epic-11-auth-mail-smoke.ts:51` — `confirmationUrl`: polls the local SMTP sink rather than mocking a provider result.
+- `scripts/nfr/epic-11-auth-mail-smoke.ts:109` — `inviteUserByEmail`: drives an actual invitation template and callback.
+- `scripts/nfr/epic-11-auth-mail-smoke.ts:119` — `resetPasswordForEmail`: drives the recovery template and callback.
 
 ### Preserve the evidence limits
 
