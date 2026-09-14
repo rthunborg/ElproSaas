@@ -32,13 +32,25 @@ async function logIn(page: Page, credentials: RoleFixture): Promise<void> {
   await expect(page).toHaveURL(/\/dashboard$/);
 }
 
+async function openAdminUsers(page: Page): Promise<void> {
+  const adminUsersDocument = page.waitForResponse((response) =>
+    response.request().resourceType() === "document"
+    && new URL(response.url()).pathname === "/admin/users"
+    && response.ok(),
+  );
+  await page.goto("/admin/users");
+  await adminUsersDocument;
+}
+
 test.describe("Story 11.4 rollkatalogens serverpresenterade kontrakt", () => {
   test("[P1] Admin can inspect every role's Swedish catalogue card, wave, and sensitive entitlement", async ({ page }) => {
     const fixture = getFixture();
     await logIn(page, fixture.adminUserManagement.tenantAdmin);
-    await page.goto("/admin/users");
+    await openAdminUsers(page);
 
-    await page.getByRole("tab", { name: "Roller" }).click();
+    const rolesTab = page.getByRole("tab", { name: "Roller" });
+    await waitForHydrated(rolesTab);
+    await rolesTab.click();
 
     for (const role of [
       ["Företagsadmin", "Administrerar företaget, användare och behörigheter."],
