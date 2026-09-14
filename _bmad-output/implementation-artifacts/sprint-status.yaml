@@ -60,7 +60,7 @@
 # use the current Epic 10 statuses and approved corrective-story entries below.
 
 generated: 2026-06-12
-last_updated: 09-14-2026 13:42  # ADR-B009 connected-field course correction verified; governance Story 10.7 done, no PWA/offline functionality delivered.
+last_updated: 09-14-2026 15:11  # ADR-B009 connected-field course correction verified; governance Story 10.7 done, no PWA/offline functionality delivered.
 project: ElproSaas
 project_key: NOKEY
 tracking_system: file-system
@@ -383,12 +383,20 @@ action_items:
     action: "Freeze retry-fixture time, split oversized support files, and add Roles-page
       readiness signals before rerunning the quality audit."
     owner: "QA/test owner"
-    status: open
+    status: done
     ref: "C:\\DEV\\ElproSaas\\_bmad-output\\implementation-artifacts\\epic-11-retro-2026-09-11.md"
   - id: "epic-11-retro-item-5-repair-reset-retry-command-action-seam"
     epic: 11
     action: "Repair and verify reset retry so provider/finalizer failure preserves
       a reconciliable outcome and a retry can redeliver when appropriate."
+    owner: "Admin-user feature owner"
+    status: done
+    ref: "C:\\DEV\\ElproSaas\\_bmad-output\\implementation-artifacts\\epic-11-retro-2026-09-11.md"
+  - id: "epic-11-retro-item-6-repair-and-verify-the-invitation-and-rec"
+    epic: 11
+    action: "Repair and verify the invitation and recovery Auth callback so a real
+      Auth email reaches the intended in-app flow; inspect hosted Auth redirect/template
+      configuration before closing the release blocker."
     owner: "Admin-user feature owner"
     status: open
     ref: "C:\\DEV\\ElproSaas\\_bmad-output\\implementation-artifacts\\epic-11-retro-2026-09-11.md"
