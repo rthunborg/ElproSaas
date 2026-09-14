@@ -10,11 +10,13 @@ Current phase: **Phase B / Legacy Parity Release**, manifest-governed (see [`AGE
 
 ## Admin invitation redirects
 
-Local Auth permits `http://127.0.0.1:3000/auth/invite/confirm`. The Supabase
-invite and magic-link templates use `{{ .ConfirmationURL }}` so the server-created
-per-attempt redirect is preserved. Before enabling invitations in a hosted project,
-add the corresponding callback URL to Supabase Auth Redirect URLs and install the
-same templates.
+Local Auth permits the exact callback paths
+`http://127.0.0.1:3000/auth/invite/confirm` and
+`http://127.0.0.1:3100/auth/invite/confirm`. The Supabase invite and magic-link
+templates use `{{ .ConfirmationURL }}` so the server-created opaque invitation
+state is preserved. Before enabling invitations in a hosted project, add the
+corresponding callback URL for its canonical app URL to Supabase Auth Redirect
+URLs and install the same templates.
 
 ## Prerequisites
 
