@@ -135,6 +135,14 @@ Required local database verification stopped at global setup because the authori
 
 **Status:** The historical NFR FAIL is retained; the candidate security and lifecycle findings are verified fixed, while candidate NFR remains **CONCERNS** for unresolved performance and operational evidence. `main` and demo remain blocked until human approval, merge, and migration deployment. Published-head PR checks are additional post-publication evidence. Reset retry is **SEAM**, separately tracked and not implemented product-correctness work. The clock-dependent retry fixture, oversized support files, and Roles readiness signals remain **DEFERRED**.
 
+## Post-release reconciliation — 2026-09-14
+
+PRs #57 (`9dd6e74`), #58 (`7b0b991`), and #55 (`5cc08d2`) merged in the approved order. The three relevant migrations were applied to the demo and the repeat dry run found no pending migration. Vercel Production deployed `5cc08d2` and the authenticated boundary inspection matched merged source; the identity release blocker is closed as verified and deployed.
+
+Actions 1–3 and Story 11.4 are done; Epic 11 is done in sprint status. The retrospective remains rejected because reset retry remains an unimplemented non-advisory correctness seam. Candidate NFR remains CONCERNS and advisory quality maintenance remains deferred. [Release verification](../../../docs/quality/epic-11-release-verification-2026-09-14.md) records deployment, hosted database, CI, and security-advisor evidence; post-merge main CI [34839174668](https://github.com/rthunborg/ElproSaas/actions/runs/34839174668) passed at `5cc08d2`.
+
+The completion statuses were reconciled after the owner-approved merges and deployment. No Auto-BMAD finalization phase performed that status flip, so `bmad_status_flipped_at` remains `null` in both the Story 11.4 state and Epic 11 anchor. The field records a pipeline phase identifier; the release timestamp does not establish phase provenance.
+
 ## Closure follow-up — 2026-09-14 (in progress)
 
 **Decision:** PR #60 is merged at `0e758310a802a63370e523086eca69f07e68503f`; its reset-retry correction is verified by CI run [34844914530](https://github.com/rthunborg/ElproSaas/actions/runs/34844914530) and a focused required local database run (12 passed, 0 skipped; six direct authenticated RPC cases and six mocked recovery seams). This completes the non-advisory reset-retry implementation, subject to action-ledger reconciliation.
