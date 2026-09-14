@@ -224,10 +224,83 @@ nfr_assessment:
 
 The NFR evidence audit is complete. Its next recommended workflow after remediation is a targeted required integration/RLS validation followed by a fresh NFR assessment; the existing trace gate remains a separate coverage result and does not validate this NFR finding.
 
-## 2026-09-14 final reassessment
+## 2026-09-14 pre-release reassessment (historical)
 
 **Decision.** The 2026-09-11 **FAIL / HIGH** result remains historical evidence for the vulnerable revision. At integrated checkpoint candidate `7af45c46054e0c4a54f15f2d2802055f304365c3`, the identity-binding finding is **fixed and verified**. Candidate security therefore **PASS**es for that finding. The candidate overall NFR result is **CONCERNS**, because performance/query/suite, availability/DR/observability, external delivery, and coverage/duplication targets or evidence remain unresolved.
 
 **Proposed dependent approval order and evidence.** PR [#57](https://github.com/rthunborg/ElproSaas/pull/57) targets `main` first for the focused security repair; source CI run [34828698510](https://github.com/rthunborg/ElproSaas/actions/runs/34828698510) passed 1,733 units with zero skips, 96 required DB files / 1,011 passed / 0 skipped, and 130 browser tests with four skipped (134 started). PR [#58](https://github.com/rthunborg/ElproSaas/pull/58) is reviewed atop the security branch; `f804a9573afacdac5df0842864bd610dbbaf425f` is its initial verified source revision, whose CI run [34829912153](https://github.com/rthunborg/ElproSaas/actions/runs/34829912153) passed 1,736 units with zero skips, 97 integration/RLS files / 1,014 passed / 0 skipped, and 132 browser tests with four skipped. PR #55 is reviewed atop the lifecycle branch. After each predecessor lands, retarget the dependent PR to `main` before merging it: PR #58 after #57, then #55 after #58. Live PR checks are authoritative for each latest published head. Integrated candidate `7af45c46054e0c4a54f15f2d2802055f304365c3` remains historical local code evidence: 1,751 units / 0 skipped, 101 required integration/RLS files / 1,023 passed / 0 skipped, including real mismatched-RPC and multi-tenant-admin regressions plus two mocked retry tests; its SQL-only verification did not perform an empty reset. The combined configured production-browser run completed at 2026-09-14T09:52:59Z: 14 passed / 0 skipped across `admin-user-management`, `admin-user-management-roles`, `role-catalogue-contract`, and `role-aware-phase-a-surface`. Typecheck, source and built-bundle service-role containment, and diff checks passed. Independent checkpoint review found no introduced issue in conflict-resolution scope and preserved the role/count/paging/enrollment plus invitation identity/lifecycle coverage. PR #55's earlier focused review at `49394f3c04b8cac6101d3ed007156fd546c3e51d` remains valid for its 13 review stops; historical cross-model CLI output remains unavailable evidence.
 
-**Release and follow-up state.** `main` and demo remain vulnerable until the security candidate is human-approved, merged, and its migration applied; that release blocker remains **IN**. Lifecycle implementation evidence is verified in the candidate; published-head PR checks remain the post-publication evidence source, and human approval/merge/deployment remain pending. The reset retry production-command/action seam is **SEAM**: separately tracked, not implemented product-correctness work, not test-maintenance debt. The clock-dependent retry fixture, oversized support files, and Roles readiness signals remain **DEFERRED** advisory quality work.
+**Release and follow-up state at that checkpoint.** `main` and demo remained vulnerable until the security candidate was human-approved, merged, and its migration applied; the release blocker was therefore **IN** at the time of this pre-release assessment. Lifecycle implementation evidence was verified in the candidate, while published-head checks and human approval/merge/deployment were still pending. The reset retry production-command/action seam was tracked separately from test-maintenance debt. The clock-dependent retry fixture, oversized support files, and Roles readiness signals remained deferred advisory quality work.
+
+## 2026-09-14 post-release evidence reassessment
+
+### Current decision
+
+The 2026-09-11 **FAIL / HIGH** result above remains the historical assessment of the vulnerable revision. The approved merge sequence landed as PR [#57](https://github.com/rthunborg/ElproSaas/pull/57), PR [#58](https://github.com/rthunborg/ElproSaas/pull/58), and PR [#55](https://github.com/rthunborg/ElproSaas/pull/55). Final `main` revision `5cc08d2b15b161e4742ddddc3283be4a3c03a059` passed [post-merge CI run 34839174668](https://github.com/rthunborg/ElproSaas/actions/runs/34839174668): 1,751 unit tests with zero skips, 101 required integration/RLS files / 1,023 tests passed / zero skips, and 136 browser tests passed with four explicit skips. The three approved migrations were applied to the demo project and the deployed invitation function was inspected against the merged corrective definition. The authenticated direct-RPC identity-binding release blocker is therefore **closed**; current security is **PASS** for that finding.
+
+The current aggregate NFR status is **FAIL**, with **HIGH** risk. There is no remaining critical or high security finding in this reassessment, but the real local Auth transport exposed a high, customer-reachable reliability defect in the application callback. Supabase Auth generated an allowed callback carrying the authenticated session in a URL fragment. Browsers do not send that fragment to the Next server route, while the route accepts only query `code` or `token_hash` plus `type`; the ordinary mailed-link journey therefore redirects to login before the invitation or recovery destination. A focused callback repair and a real mailed-link browser regression are required before this failure can close. Performance has a real local observation but no owner-approved target. Maintainability keeps strong deterministic trace/CI controls, but the recorded test-maintenance items and any quantitative coverage/duplication requirement remain open.
+
+| Domain | Current status | Evidence and limit |
+| --- | --- | --- |
+| Security | **PASS** | Identity acceptance is bound to the trusted confirmed Auth user at the database boundary. Required direct-RPC mismatch and legitimate-acceptance regressions executed with zero DB skips; deployed function inspection matched the merged correction. Broader security controls retain their existing evidence and advisory limitations. |
+| Performance | **CONCERNS** | R-1108 measured the production Admin-members tenant projection through an authenticated Tenant-A client at 120 active memberships, with a separate 24-member Tenant B. Across 25 samples after five warmups, list-read p95 was **45.85 ms**. A separate synthetic bulk effective-permissions calculation over all 120 rows had p95 **2.14 ms** for 2,224 resolved grants; the product computes one selected member's effective permissions rather than this bulk loop. The tenant projection used three authenticated RLS requests per iteration, excluding tenant-context resolution and rendering. These are local observations, not an approved SLO or capacity limit. |
+| Reliability | **FAIL** | Real local Supabase Auth produced invite and recovery receipts in Mailpit and generated the configured `/auth/invite/confirm` redirect. The real browser journey fails because the generated implicit-flow session fragment is unavailable to the server-only callback route, which redirects to login when query credentials are absent. The reset-delivery retry follow-up is also still open. External SMTP delivery, availability targets, and recovery proof remain unmeasured. |
+| Maintainability | **CONCERNS** | Final-main CI retained frozen install, dependency audit, typecheck, lint, build, containment, required zero-skip DB/RLS, and production-server browser gates. Clock-dependent retry fixtures, oversized support files, Roles-page readiness signals, and the owner decision on quantitative coverage/duplication remain tracked work. |
+
+### R-1108 evidence disposition
+
+The baseline supplies the tenant-projection part of the test design's requested pilot-shaped observation. It does not close R-1108 as a performance PASS until the owner approves the dataset and limits and comparable per-layer suite duration is recorded. The measured Tenant-A path returned all 120 current-tenant memberships and used one membership page plus two child-role batches. Its superuser-only `EXPLAIN (ANALYZE, BUFFERS)` returned 120 rows through a sequential scan, removed **1,350** rows belonging to the pre-existing local database background, and completed in **0.117 ms**. Accordingly, the run measured an added two-tenant profile inside a non-empty local database; it must not be described as an isolated database containing only those two tenants. The plan is evidence of this one local query shape and is not, by itself, an index recommendation or production-scale result.
+
+Candidate pilot acceptance limits proposed for owner review are: the documented 120-member Tenant A / 24-member Tenant B profile, Admin list p95 at or below **250 ms**, synthetic bulk effective-permissions computation p95 at or below **25 ms**, and no more than **three** authenticated RLS requests for this tenant projection. These values remain **proposed**, not accepted, in this assessment. The product Roles catalogue computation, selected-member detail path, tenant-context resolution, rendering, and test-design suite-duration target are outside these measurements.
+
+### R-1109 evidence disposition
+
+The local Mailpit run is meaningful transport evidence: it used real local Supabase Auth invite and recovery calls, inspected actual delivered messages, and followed each one-time Auth verification URL only as far as the generated application callback redirect. It used synthetic `example.test` recipients and did not print the URLs or token values. That manual redirect check did not exercise the application callback. The real browser attempt showed that Supabase placed the authenticated session in the redirect fragment; because fragments are client-side and the current callback is a server route, it receives neither query credential nor the fragment and redirects to login. This is a confirmed normal-flow defect, not missing evidence. R-1109 remains **FAIL** until the callback consumes a supported credential flow, persists the session, and reaches the intended invitation/recovery destination in a real browser regression. After that passes, the proof closes only the controlled local transport/callback boundary. External SMTP deliverability and recipient-mailbox acceptance require an approved non-demo Supabase project plus a controlled mailbox; no such evidence is claimed here.
+
+Before the evidence tools are accepted, the standalone transport script must enforce that `SUPABASE_TEST_MAILPIT_URL` is loopback, matching the browser test's fail-closed check. The Supabase mutation target is already constrained by `assertLocalStack()`, so this is a transport-target correctness gap rather than a hosted service-role mutation path. Because Playwright records a trace on first retry and CI uploads the report, the browser proof should also prevent a consumed one-time verification URL from being retained in an uploaded trace, or explicitly demonstrate that the generated report contains no such URL.
+
+### Availability, recovery, and operational limits
+
+The demo login probe and release-window error-log inspection are useful deployability observations, but no uptime, error-rate, MTTR, retention, or alert threshold is approved. They remain **CONCERNS**, not availability PASS evidence. The current demo backup inventory is empty and point-in-time recovery is disabled. The local logical restore rehearsal has no passing result and deliberately omits platform-owner/ACL equivalence. Its revised tool now requests `supabase_migrations` schema and data and refuses to pass unless that metadata is present and matches, but that revision has not yet produced a successful scoped restore. It therefore supplies neither a production recovery proof nor an RPO/RTO claim. A safe passing local data rehearsal may inform later recovery design, but production recovery remains open until backup policy, hosted recovery method, RPO, and RTO are approved and verified.
+
+### Current gate-ready YAML
+
+```yaml
+nfr_assessment:
+  date: '2026-09-14'
+  epic: '11'
+  assessed_revision: '5cc08d2b15b161e4742ddddc3283be4a3c03a059 plus uncommitted focused evidence tools'
+  mode: advisory
+  overall_status: 'FAIL'
+  overall_risk: 'HIGH'
+  domains:
+    security: 'PASS'
+    performance: 'CONCERNS'
+    reliability: 'FAIL'
+    maintainability: 'CONCERNS'
+  critical_issues: 0
+  high_priority_issues: 1
+  closed_release_blocker: 'Authenticated direct-RPC invitation identity binding bypass'
+  advisory_open_issue: 'Real Auth emailed-link callback drops the implicit-flow session fragment and redirects to login'
+  measured_evidence:
+    final_main_ci: '1751 unit / 0 skipped; 1023 required integration/RLS / 0 skipped; 136 browser passed / 4 skipped'
+    r1108_dataset: 'Tenant A 120 active; Tenant B 24 active; 1350 other membership rows observed by plan filter'
+    r1108_admin_read_p95_ms: 45.85
+    r1108_effective_permissions_p95_ms: 2.14
+    r1108_authenticated_requests_per_iteration: 3
+    r1109_local_transport: 'invite and recovery received; Auth verification redirected to configured callback'
+  proposed_not_approved_limits:
+    r1108_admin_read_p95_ms: 250
+    r1108_effective_permissions_p95_ms: 25
+    r1108_authenticated_requests_per_iteration: 3
+    r1108_dataset: 'Tenant A 120 active; Tenant B 24 active'
+  open_evidence:
+    - 'Focused callback repair plus real mailed-link browser proof of session persistence and invitation/recovery destination'
+    - 'Reset-delivery retry follow-up result'
+    - 'External SMTP delivery only if an approved non-demo environment is provided'
+    - 'Availability/error/MTTR targets, monitoring retention, and alert policy'
+    - 'Passing recovery rehearsal plus approved hosted backup policy, RPO, and RTO'
+    - 'Owner decision on quantitative coverage and duplication requirements'
+    - 'Clock fixture, support-file size, and Roles readiness maintenance items'
+  next_action: 'Correct the focused evidence-tool gaps, attach the pending callback/reset/recovery results, obtain owner decisions, then reassess remaining CONCERNS.'
+```
