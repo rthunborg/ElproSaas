@@ -16,9 +16,14 @@ const execFile = promisify(execFileCallback);
 const runId = crypto.randomUUID().replaceAll("-", "");
 const scratchDatabase = `epic11_dr_${runId}`;
 const outputDir = resolve(process.cwd(), "tmp/private", `epic-11-dr-${runId}`);
-const schemas = ["auth", "storage", "public", "supabase_migrations"] as const;
-const schemaDumps = Object.fromEntries(schemas.map((schema) => [schema, resolve(outputDir, `${schema}-schema.sql`)])) as Record<(typeof schemas)[number], string>;
-const dataDumps = Object.fromEntries(schemas.map((schema) => [schema, resolve(outputDir, `${schema}-data.sql`)])) as Record<(typeof schemas)[number], string>;
+const scratchRestoreRole = "supabase_admin";
+// `test_support` is seeded only in the local test profile. Its forced-audit
+// trigger is attached to `public.audit_events`, so the source profile must
+// include it for a faithful local logical restore.
+const schemas = ["auth", "storage", "public", "supabase_migrations", "test_support"] as const;
+const selectedSchemas = schemas.join(",");
+const schemaDump = resolve(outputDir, "application-schema.sql");
+const dataDump = resolve(outputDir, "application-data.sql");
 
 type Snapshot = {
   readonly migrations: number;
@@ -29,23 +34,68 @@ type Snapshot = {
   readonly membershipDigest: string | null;
 };
 
-function connectionFor(database: string): string {
+function connectionFor(database: string, username?: string): string {
   const url = new URL(LOCAL_SUPABASE_DB_URL);
   url.pathname = `/${database}`;
+  if (username) url.username = username;
   return url.toString();
 }
 
-async function dump(file: string, schema: (typeof schemas)[number], dataOnly: boolean): Promise<void> {
+async function assertScratchRestoreRole(): Promise<void> {
+  const client = new Client({ connectionString: connectionFor("postgres", scratchRestoreRole) });
+  try {
+    await client.connect();
+    const { rows } = await client.query<{ currentUser: string; isSuperuser: boolean }>(`
+      select
+        current_user as "currentUser",
+        (select rolsuper from pg_roles where rolname = current_user) as "isSuperuser"
+    `);
+    const role = rows[0];
+    if (role?.currentUser !== scratchRestoreRole || role.isSuperuser !== true) {
+      throw new Error("The local scratch restore role is not a usable Supabase superuser.");
+    }
+  } catch (error) {
+    if (error instanceof Error && error.message === "The local scratch restore role is not a usable Supabase superuser.") {
+      throw error;
+    }
+    throw new Error("The local scratch restore role is unavailable; refusing to alter dump ownership or privilege statements.");
+  } finally {
+    await client.end().catch(() => undefined);
+  }
+}
+
+async function assertSourceProfileSchemas(): Promise<void> {
+  const client = new Client({ connectionString: connectionFor("postgres") });
+  await client.connect();
+  try {
+    const { rows } = await client.query<{ schema: string }>(
+      `select nspname as schema from pg_namespace where nspname = any($1::text[])`,
+      [schemas],
+    );
+    const present = new Set(rows.map((row) => row.schema));
+    const missing = schemas.filter((schema) => !present.has(schema));
+    if (missing.length > 0) {
+      throw new Error(`The local source profile is missing required schemas: ${missing.join(", ")}.`);
+    }
+  } finally {
+    await client.end();
+  }
+}
+
+async function dump(file: string, dataOnly: boolean): Promise<void> {
   const args = ["db", "dump", "--local", "--file", file];
   if (dataOnly) args.push("--data-only");
-  args.push("--schema", schema);
+  // A single selected-schema dump lets pg_dump order cross-schema objects and
+  // data dependencies. Restoring separately dumped schemas can create a
+  // trigger before the public function it references exists.
+  args.push("--schema", selectedSchemas);
   await execFile("supabase", args, { cwd: process.cwd(), windowsHide: true, maxBuffer: 10 * 1024 * 1024 });
 }
 
 async function assertMigrationMetadataDumped(): Promise<void> {
   const [schema, data] = await Promise.all([
-    readFile(schemaDumps.supabase_migrations, "utf8"),
-    readFile(dataDumps.supabase_migrations, "utf8"),
+    readFile(schemaDump, "utf8"),
+    readFile(dataDump, "utf8"),
   ]);
   if (!schema.includes("schema_migrations") || !data.includes("schema_migrations")) {
     throw new Error("The local CLI dump omitted supabase_migrations.schema_migrations; refusing to claim a successful migration-aware restore.");
@@ -72,24 +122,15 @@ async function snapshot(database: string): Promise<Snapshot> {
 }
 
 async function restore(database: string, file: string): Promise<void> {
-  const client = new Client({ connectionString: connectionFor(database) });
+  const client = new Client({ connectionString: connectionFor(database, scratchRestoreRole) });
   await client.connect();
   try {
     // `supabase db dump` emits plain SQL with INSERT statements (not psql meta
     // commands) when --use-copy is absent. The CLI's own dump wrapper also sets
     // session_replication_role around data, preserving the source fixture shape.
-    const sql = (await readFile(file, "utf8"))
-      // The local `postgres` role is deliberately not allowed to SET ROLE to
-      // Supabase's platform-owner role. Ownership does not affect this isolated
-      // logical-data verification, so retain scratch ownership as `postgres`.
-      // This includes platform-owned types, domains, and views as well as
-      // tables/functions. Keeping any `OWNER TO supabase_*` statement would
-      // require recreating Supabase platform roles in a scratch database, which
-      // would turn this narrow application-data rehearsal into a platform ACL
-      // rehearsal. The restored objects stay owned by the scratch `postgres`
-      // role; their shape and the scoped application data are still compared.
-      .replace(/^ALTER [^\n]* OWNER TO [^;]+;\s*$/gm, "");
-    await client.query(sql);
+    // The local Supabase superuser applies the plain SQL intact, including
+    // platform ownership, grants, and default-privilege statements.
+    await client.query(await readFile(file, "utf8"));
   } finally {
     await client.end();
   }
@@ -127,23 +168,25 @@ async function main(): Promise<void> {
   if (process.env.SUPABASE_TEST_REQUIRED !== "1") throw new Error("Set SUPABASE_TEST_REQUIRED=1: this rehearsal must never silently skip.");
   assertLocalStack();
   if (!(await isLocalStackReachable())) throw new Error("Local Supabase Auth is unreachable.");
+  await assertScratchRestoreRole();
+  await assertSourceProfileSchemas();
   await mkdir(outputDir, { recursive: true });
   const source = await snapshot("postgres");
   const admin = new Client({ connectionString: connectionFor("postgres") });
   try {
-    for (const schema of schemas) await dump(schemaDumps[schema], schema, false);
-    for (const schema of schemas) await dump(dataDumps[schema], schema, true);
+    await dump(schemaDump, false);
+    await dump(dataDump, true);
     await assertMigrationMetadataDumped();
     await admin.connect();
     await admin.query(`create database "${scratchDatabase}"`);
     await bootstrapScratch(scratchDatabase);
-    for (const schema of schemas) await restore(scratchDatabase, schemaDumps[schema]);
-    for (const schema of schemas) await restore(scratchDatabase, dataDumps[schema]);
+    await restore(scratchDatabase, schemaDump);
+    await restore(scratchDatabase, dataDump);
     const restored = await snapshot(scratchDatabase);
     if (JSON.stringify(restored) !== JSON.stringify(source)) {
       throw new Error(`Scratch restore facts differ from source: ${JSON.stringify({ source, restored })}`);
     }
-    console.log(JSON.stringify({ status: "passed", sourceDatabase: "postgres", scratchDatabase, source, dumpFiles: { schemaDumps, dataDumps } }, null, 2));
+    console.log(JSON.stringify({ status: "passed", sourceDatabase: "postgres", scratchDatabase, source, dumpFiles: { schemaDump, dataDump } }, null, 2));
   } finally {
     await admin.end().catch(() => undefined);
     await dropScratch();

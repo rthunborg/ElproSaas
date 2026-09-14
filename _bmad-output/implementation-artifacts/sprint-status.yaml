@@ -395,8 +395,8 @@ action_items:
   - id: "epic-11-retro-item-6-repair-and-verify-the-invitation-and-rec"
     epic: 11
     action: "Repair and verify the invitation and recovery Auth callback so a real
-      Auth email reaches the intended in-app flow; inspect hosted Auth redirect/template
-      configuration before closing the release blocker."
+      Auth email reaches the intended in-app flow; hosted Auth redirect/template
+      configuration is recorded, while final CI, deployment, and hosted app proof remain."
     owner: "Admin-user feature owner"
     status: in-progress
     ref: "C:\\DEV\\ElproSaas\\_bmad-output\\implementation-artifacts\\epic-11-retro-2026-09-11.md"

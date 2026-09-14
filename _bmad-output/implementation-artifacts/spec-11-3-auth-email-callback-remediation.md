@@ -2,7 +2,7 @@
 title: 'Story 11.3 follow-up: Auth email callback remediation'
 type: 'security-and-correctness-follow-up'
 created: '2026-09-14'
-status: 'in-review'
+status: 'done'
 baseline_commit: '0314be056a44ccaafd1c20b640c9a4fcbd6a122c'
 context:
   - '_bmad-output/implementation-artifacts/spec-11-3-admin-user-management.md'
@@ -46,11 +46,11 @@ The active RBAC/Admin-user surface only: the existing callback route, an unauthe
 - An initial guarded browser run executed 2 tests: recovery passed and invitation failed before activation. It exposed a harness defect: globally URL-decoding the full email verification URL corrupted the nested `redirect_to` query. That run is not claimed as coverage. The helper now decodes HTML entities only, preserving the actual mailed URL.
 - `SUPABASE_TEST_REQUIRED=1 CI=1 E2E_PORT=3000 pnpm exec playwright test tests/e2e/auth/auth-mail-callback.e2e.spec.ts` — replacement root-owned guarded production-browser run passed 2/2 tests with 0 skips (12.4s): actual Auth invitation → Mailpit → browser session → database membership activation, and actual recovery email → browser recovery session → persisted password update. Tracing remained disabled and no callback URL/token was printed.
 - `.github/workflows/ci.yml` — the `e2e` job now sets `SUPABASE_TEST_REQUIRED=1`, matching its already-required local stack. CI run `34848411280`, before this publication correction, passed verify (1,756 executed, 0 skips) and database (1,028 executed, 0 skips), then reported browser 136 passed, 4 skipped, and 2 failed because the new mail-flow tests correctly required this missing variable. It is not passing evidence for this change. The next CI run must report its browser executed/skipped counts.
-- GitHub Actions run `34849927884`, after the workflow correction, passed verify (1,756 unit tests, 0 skips). GitHub account payment/spending limits prevented database and browser runners from starting, so neither job executed steps or supplies coverage; this is an infrastructure block, not a test failure or CI bypass.
+- GitHub Actions run `34849927884`, after the workflow correction, passed verify (1,756 unit tests, 0 skips). The then payment/spending-limit condition prevented database and browser runners from starting, so neither job executed steps or supplies coverage; this historical result is not a test failure or CI bypass. With the repository public, rerun `34851125570` for final head `2fb018a` passed: 1,756 units / 0 skips, 1,028 required database/RLS tests / 0 skips, and 138 browser tests passed / 4 explicit skips / 0 failed. PR #62 then merged as `a264b54d83471432bf867f403cb4ef1f3d23a44a`; Production deployment `dpl_B5hVF5UajFn9ynE5hCLVk7t3MRpU` was READY for that SHA at 2026-09-14T15:15:09.968Z. Bounded route probes confirmed the deployed canonical callback route and completion page, but hosted authenticated application proof remains pending.
 - A root-owned guarded combined production-mode Playwright run on the NFR branch, which contains the identical callback application, test, and CI-environment changes plus only NFR scripts/docs, ran from `2026-09-14T13:39:02.620Z` through `13:40:58.089Z` with `SUPABASE_TEST_REQUIRED=1` at port 3100. It passed 138/142 tests with 4 explicit skips and 0 failures, including both Auth-mail journeys. The guarded resource stop was accepted.
 - `node scripts/verify/check-review-order.mjs "_bmad-output/implementation-artifacts/spec-11-3-auth-email-callback-remediation.md"` — 14 references, 0 errors.
 
-Limits: the browser proof uses the local Auth/Mailpit stack only and does not send email through a hosted provider. Hosted Supabase Auth redirect and template settings remain an operational configuration check; the application change does not rewrite, fabricate, or log verification URLs.
+Limits: the browser proof uses the local Auth/Mailpit stack only and does not send email through a hosted provider. The hosted operational configuration was inspected and retained: Site URL `https://elpro-saas.vercel.app`, exactly one redirect URL `https://elpro-saas.vercel.app/auth/invite/confirm`, default invite/recovery previews containing `{{ .ConfirmationURL }}`, and custom SMTP off. This does not prove hosted application callback/login or external delivery. The application change does not rewrite, fabricate, or log verification URLs.
 
 ## Suggested Review Order
 
