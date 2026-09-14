@@ -60,14 +60,22 @@ export function createAdminUserService(deps: AdminUserServiceDependencies) {
     },
     async reset(input: { email: string; operationId: string }) {
       if (!deps.resetPasswordForEmail) throw new Error("admin user operation unavailable");
+      let deliveryOutcome: "succeeded" | "uncertain" = "uncertain";
       try {
         await deps.resetPasswordForEmail(input.email, { redirectTo: deps.invitationRedirectBase ?? "/auth/invite/confirm" });
-        await deps.finalizeOperation?.({ operationId: input.operationId, outcome: "succeeded" });
-        return { outcome: "succeeded" as const };
+        deliveryOutcome = "succeeded";
       } catch {
-        await deps.finalizeOperation?.({ operationId: input.operationId, outcome: "uncertain" });
+        // The durable operation remains the recovery boundary. A provider
+        // response can be unavailable without disclosing its details.
+      }
+      try {
+        await deps.finalizeOperation?.({ operationId: input.operationId, outcome: deliveryOutcome });
+      } catch {
+        // Do not attempt a contradictory second finalization after the first
+        // outcome write is unavailable; replay reconciliation owns recovery.
         return { outcome: "uncertain" as const };
       }
+      return { outcome: deliveryOutcome };
     },
   };
 }

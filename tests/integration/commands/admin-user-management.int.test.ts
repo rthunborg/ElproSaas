@@ -43,6 +43,35 @@ describe("Admin user management commands (Story 11.3)", () => {
     } finally { await cleanupFixture(fixture); }
   });
 
+  test("[P0] only the reset tenant Admin can create, reconcile, and finalize its durable operation", async (testCtx) => {
+    const up = await isLocalStackReachable(); if (skipUnlessStack(testCtx, up)) return;
+    const { createTwoTenantFixture, cleanupFixture, makeAuthedServerClient } = await import("../../factories/tenants"); const { adminQuery } = await import("../../factories/admin-sql"); const fixture = await createTwoTenantFixture();
+    const operationId = crypto.randomUUID();
+    try {
+      const [membership] = await adminQuery<{ id: string }>("select id from public.tenant_memberships where tenant_id=$1 and user_id=$2 and status='active'", [fixture.tenantA.id, fixture.adminA.id]);
+      const tenantAAdmin = await makeAuthedServerClient(fixture.adminA);
+      const tenantBAdmin = await makeAuthedServerClient(fixture.adminB);
+      const [auditBefore] = await adminQuery<{ count: number }>("select count(*)::int as count from public.audit_events where tenant_id=$1", [fixture.tenantA.id]);
+
+      const deniedCreate = await tenantBAdmin.rpc("admin_manage_membership", { p_tenant_id: fixture.tenantA.id, p_membership_id: membership.id, p_action: "reset", p_roles: [], p_reason: null, p_operation_id: crypto.randomUUID() });
+      expect(deniedCreate.error?.code).toBe("42501");
+      const created = await tenantAAdmin.rpc("admin_manage_membership", { p_tenant_id: fixture.tenantA.id, p_membership_id: membership.id, p_action: "reset", p_roles: [], p_reason: null, p_operation_id: operationId });
+      expect(created.error).toBeNull(); expect(created.data).toMatchObject({ membershipId: membership.id, outcome: "pending" });
+
+      const deniedReconcile = await tenantBAdmin.rpc("admin_reconcile_membership_operation", { p_operation_id: operationId });
+      const deniedFinalize = await tenantBAdmin.rpc("admin_finalize_membership_operation", { p_operation_id: operationId, p_outcome: "succeeded" });
+      expect(deniedReconcile.error?.code).toBe("42501"); expect(deniedFinalize.error?.code).toBe("42501");
+      const [beforeFinalize] = await adminQuery<{ outcome: string; completed_at: string | null }>("select outcome,completed_at from public.membership_admin_operations where id=$1", [operationId]);
+      expect(beforeFinalize).toEqual({ outcome: "pending", completed_at: null });
+      const reconciled = await tenantAAdmin.rpc("admin_reconcile_membership_operation", { p_operation_id: operationId });
+      const finalized = await tenantAAdmin.rpc("admin_finalize_membership_operation", { p_operation_id: operationId, p_outcome: "uncertain" });
+      expect(reconciled.data).toMatchObject({ operationId, outcome: "pending" }); expect(finalized.error).toBeNull();
+      const [after] = await adminQuery<{ outcome: string; completed_at: string | null }>("select outcome,completed_at from public.membership_admin_operations where id=$1", [operationId]);
+      const [auditAfter] = await adminQuery<{ count: number }>("select count(*)::int as count from public.audit_events where tenant_id=$1", [fixture.tenantA.id]);
+      expect(after.outcome).toBe("uncertain"); expect(after.completed_at).not.toBeNull(); expect(auditAfter.count).toBe(auditBefore.count + 1);
+    } finally { await cleanupFixture(fixture); }
+  });
+
   test("[P0] an expired invitation can be superseded by a fresh attempt or terminally revoked only by its tenant Admin", async (testCtx) => {
     const up = await isLocalStackReachable(); if (skipUnlessStack(testCtx, up)) return;
     const { createTwoTenantFixture, cleanupFixture, makeAuthedServerClient } = await import("../../factories/tenants"); const { adminQuery } = await import("../../factories/admin-sql"); const fixture = await createTwoTenantFixture();

@@ -178,3 +178,20 @@ test("[P0] finalizes password-reset delivery as succeeded or uncertain without s
     { operationId: "uncertain-reset", outcome: "uncertain" },
   ]);
 });
+
+test("[P0] keeps a reset operation reconcilable when the success finalizer response is lost", async () => {
+  const { createAdminUserService } = await import("@/server/auth/admin-user-service");
+  let deliveries = 0;
+  const finalized: unknown[] = [];
+  const service = createAdminUserService({
+    inviteUserByEmail: async () => undefined,
+    resetPasswordForEmail: async () => { deliveries += 1; },
+    finalizeOperation: async (input) => { finalized.push(input); throw new Error("database response lost"); },
+  });
+
+  const result = await service.reset({ email: "reset@example.test", operationId: "reset-finalizer-loss" });
+
+  assert.deepEqual(result, { outcome: "uncertain" });
+  assert.equal(deliveries, 1);
+  assert.deepEqual(finalized, [{ operationId: "reset-finalizer-loss", outcome: "succeeded" }]);
+});
