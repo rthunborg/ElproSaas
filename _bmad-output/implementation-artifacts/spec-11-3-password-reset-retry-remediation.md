@@ -94,20 +94,24 @@ Reset delivery now separates the Auth call from recording its outcome, matching 
 
 ### Reconcile every reset replay before delivery
 
-Only a newly created pending reset may call Auth. A replay first reads its durable state: stored success is acknowledged delivery-free, observed uncertainty enables a deliberate fresh identity, and unavailable or pending reconciliation retains the existing identity.
+Only a newly created pending reset may call Auth. The first unconfirmed delivery reaches the action as recoverable uncertainty with its original operation ID; a replay then reads durable state, where stored success is acknowledged delivery-free and an observed non-successful state, including an unrecorded pending finalization, enables a deliberate fresh identity. Unavailable reconciliation retains the existing identity.
 
 - `src/server/commands/admin-users/lifecycle.ts:42` — `replayed`: distinguishes an operation replay from a fresh pending reset.
 - `src/server/commands/admin-users/lifecycle.ts:49` — `admin_reconcile_membership_operation`: resolves a replay before any provider call.
+- `src/server/commands/admin-users/lifecycle.ts:53` — `reconciledOutcome === "pending"`: treats an observed, unrecorded finalizer failure as recoverable uncertainty only after the delivery-free replay.
+- `src/server/commands/admin-users/lifecycle.ts:64` — `uncertain(operationId, "not_attempted")`: preserves the original ID while surfacing first-attempt reset uncertainty to the action.
 - `src/features/admin-users/actions.ts:33` — `retryWithNewOperation`: permits a new reset identity only after observed uncertainty and presents reset-specific safe recovery text.
 - `tests/integration/commands/admin-invitation-retry-flow.test.ts:162` — `reconciles a failed reset`: exercises provider failure → observed uncertainty → one fresh delivery, then a no-send success replay.
+- `tests/integration/commands/admin-invitation-retry-flow.test.ts:189` — `unrecorded reset finalizer failure`: proves observed pending reconciliation makes no second Auth call before one deliberate fresh retry.
 
 ### Prove reset authorization and recovery boundaries
 
 The direct-RPC regression covers the database-authoritative tenant boundary and audit state; the mocked command/action seam covers provider response-loss paths that the local Auth transport cannot prove.
 
-- `tests/integration/commands/admin-invitation-retry-flow.test.ts:188` — `finalizer response was lost`: proves reconciliation acknowledges stored success with no second Auth reset request.
-- `tests/integration/commands/admin-invitation-retry-flow.test.ts:204` — `reconciliation is unavailable`: proves no delivery and no fresh identity while the read is unavailable.
+- `tests/integration/commands/admin-invitation-retry-flow.test.ts:212` — `finalizer response was lost`: proves reconciliation acknowledges stored success with no second Auth reset request.
+- `tests/integration/commands/admin-invitation-retry-flow.test.ts:228` — `reconciliation is unavailable`: proves no delivery and no fresh identity while the read is unavailable.
 - `tests/integration/commands/admin-user-management.int.test.ts:46` — `only the reset tenant Admin`: proves create/reconcile/finalize authorization, cross-tenant denial, durable outcome, and the single authorized audit event.
 
-Evidence: `node --experimental-strip-types --import ./tests/support/register.mjs --test tests/unit/admin-users/admin-user-service.test.ts` passed 8/8; `pnpm exec vitest run tests/integration/commands/admin-invitation-retry-flow.test.ts` passed 5/5; `SUPABASE_TEST_REQUIRED=1 pnpm exec vitest run tests/integration/commands/admin-user-management.int.test.ts` passed 6/6 with zero skips; `pnpm run typecheck` and changed-file ESLint passed in this worktree.
+Evidence: root's final combined required verification at 12:40:38 UTC ran `SUPABASE_TEST_REQUIRED=1 pnpm exec vitest run tests/integration/commands/admin-user-management.int.test.ts tests/integration/commands/admin-invitation-retry-flow.test.ts`: 2 files, 12/12 passed, zero skips, Vitest duration 3.16 seconds. This includes six real authenticated local-RPC tests and six mocked action/command recovery tests. The preceding recovery-result follow-up passed `node --experimental-strip-types --import ./tests/support/register.mjs --test tests/unit/admin-users/admin-user-service.test.ts` 8/8 and `pnpm run typecheck`; changed-file ESLint passed earlier in this working tree.
+Independent focused review: both reset recovery findings are fixed. Fresh delivery uncertainty reaches the action while retaining its operation ID, and a replay that observes a pending outcome after a pre-recording finalizer failure permits one later deliberate fresh ID without delivery during reconciliation. No remaining findings were reported.
 Limits: provider and finalizer response-loss tests use mocked Auth/RPC transport; the required local integration suite proves the authenticated database wrappers and tenant isolation, not external Auth email receipt or exactly-once delivery. No browser test was run for this focused server-action recovery change.

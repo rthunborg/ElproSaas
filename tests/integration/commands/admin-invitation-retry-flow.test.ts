@@ -166,8 +166,9 @@ describe("admin invitation delivery recovery", () => {
     harness.failNextResetDelivery();
 
     const first = await lifecycleAdminUserAction(ADMIN_USERS_INITIAL, resetForm(originalId));
-    expect(first).toMatchObject({ status: "error" });
+    expect(first).toMatchObject({ status: "error", message: "Återställningen är oklar. Försök igen för att kontrollera den tidigare åtgärden." });
     expect(first.retryWithNewOperation).toBeUndefined();
+    expect(operationIdForAdminUsersSubmit(first, originalId, () => "must-retain-original")).toBe(originalId);
     expect(harness.resetPasswordForEmail).toHaveBeenCalledTimes(1);
 
     const observed = await lifecycleAdminUserAction(first, resetForm(originalId));
@@ -182,6 +183,29 @@ describe("admin invitation delivery recovery", () => {
 
     const successReplay = await lifecycleAdminUserAction(delivered, resetForm(freshId));
     expect(successReplay).toMatchObject({ status: "success" });
+    expect(harness.resetPasswordForEmail).toHaveBeenCalledTimes(2);
+  });
+
+  it("observes an unrecorded reset finalizer failure before allowing one fresh delivery", async () => {
+    harness.reset();
+    process.env.SUPABASE_SERVICE_ROLE_KEY = "test-service-role";
+    const originalId = "reset-finalizer-not-recorded";
+    harness.failFinalizeOnce();
+
+    const first = await lifecycleAdminUserAction(ADMIN_USERS_INITIAL, resetForm(originalId));
+    expect(first).toMatchObject({ status: "error" });
+    expect(first.retryWithNewOperation).toBeUndefined();
+    expect(harness.resetPasswordForEmail).toHaveBeenCalledTimes(1);
+
+    const observedPending = await lifecycleAdminUserAction(first, resetForm(originalId));
+    expect(observedPending).toMatchObject({ status: "error", retryWithNewOperation: true });
+    expect(harness.rpc).toHaveBeenCalledWith("admin_reconcile_membership_operation", { p_operation_id: originalId });
+    expect(harness.resetPasswordForEmail).toHaveBeenCalledTimes(1);
+
+    const freshId = operationIdForAdminUsersSubmit(observedPending, originalId, () => "reset-after-pending");
+    expect(freshId).toBe("reset-after-pending");
+    const delivered = await lifecycleAdminUserAction(observedPending, resetForm(freshId));
+    expect(delivered).toMatchObject({ status: "success" });
     expect(harness.resetPasswordForEmail).toHaveBeenCalledTimes(2);
   });
 

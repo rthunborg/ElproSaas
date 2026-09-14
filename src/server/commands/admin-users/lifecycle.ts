@@ -50,7 +50,7 @@ export async function changeMembershipLifecycle(input: {
       const reconciledOutcome = !reconcileError && reconciled && typeof reconciled === "object" && "outcome" in reconciled && typeof (reconciled as { outcome?: unknown }).outcome === "string"
         ? (reconciled as { outcome: string }).outcome : "";
       if (reconciledOutcome === "succeeded") return { ok: true as const };
-      return uncertain(operationId, reconcileError ? "unavailable" : "observed", reconciledOutcome === "uncertain");
+      return uncertain(operationId, reconcileError ? "unavailable" : "observed", reconciledOutcome === "uncertain" || reconciledOutcome === "pending");
     }
     if (outcome !== "pending") return denied;
     const { data: member, error: memberError } = await client.from("tenant_memberships")
@@ -61,6 +61,6 @@ export async function changeMembershipLifecycle(input: {
       invitationRedirectBase: redirect,
       finalizeOperation: async ({ outcome }) => { const { error: finalizeError } = await client.rpc("admin_finalize_membership_operation", { p_operation_id: operationId, p_outcome: outcome }); if (finalizeError) throw finalizeError; },
     }).reset({ email: member.invited_email, operationId });
-    return reset.outcome === "succeeded" ? { ok: true as const } : denied;
+    return reset.outcome === "succeeded" ? { ok: true as const } : uncertain(operationId, "not_attempted");
   } catch { return denied; }
 }
