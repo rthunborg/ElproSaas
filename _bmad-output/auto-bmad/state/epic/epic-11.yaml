@@ -9,7 +9,7 @@ spec_folder: null
 story_id: null
 branch: codex/epic-11-wave-b1a-rbac-mechanism-and-admin-user-management
 status: done
-updated_at: "2026-09-11T16:00:52Z"
+updated_at: "2026-09-14T09:49:16Z"
 started_at: "2026-09-11T11:11:44Z"
 completed_at: "2026-09-11T16:00:52Z"
 active_seconds: 12923
@@ -51,7 +51,7 @@ build:
   warnings: []
 followup_passes: 0
 hitl_halt: null
-review_unverified: true
+review_unverified: false
 story_trace: null
 legacy_review_resume: false
 legacy_review_iteration: null
@@ -73,11 +73,11 @@ deferred_work_archived: 37
 retro:
   doc: "C:/DEV/ElproSaas/_bmad-output/implementation-artifacts/epic-11-retro-2026-09-11.md"
   verdict: rejected
-  open_action_items: 4
+  open_action_items: 5
 bmad_status_flipped_at: null
 pr_url: "https://github.com/rthunborg/ElproSaas/pull/55"
-ci_run_url: "https://github.com/rthunborg/ElproSaas/actions/runs/34619468717"
-ci_status: unknown
+ci_run_url: "https://github.com/rthunborg/ElproSaas/actions/runs/34712355388"
+ci_status: passed
 pr_merged: false
 merge_method: null
 merge_commit: null
@@ -85,10 +85,13 @@ branch_deleted: false
 open_questions:
   - Performance/query/suite targets and operational availability/DR/observability criteria are undefined.
   - "[11.4] Cross-model review command returned no output in build and follow-up; not counted as review evidence."
+  - "[11.3] Identity-binding candidate is verified at PR #57 / fc2a85e; main/demo remain blocked until approved merge and migration deployment."
 deferred_work:
   - "Advisory test quality: 75/100, Request Changes; address live-clock fixture, readiness gaps, oversized support files, and organization findings. See _bmad-output/test-artifacts/test-reviews/test-review-epic-11-wave-b1a-rbac.md."
 blockers:
-  - "HIGH security finding in prior Story 11.3: authenticated direct invitation-acceptance RPC trusts caller-supplied invitee email without binding it to authenticated identity. Resolve identity binding and add direct-RPC mismatch/no-side-effect regression before release. See _bmad-output/test-artifacts/nfr-assessment-epic-11.md."
+  - "HIGH release blocker in prior Story 11.3: identity binding and the direct-RPC mismatch/no-side-effect regression are fixed and verified in PR #57 and the integrated candidate. Human approval, merge, and migration deployment remain required before the main/demo blocker can close. See _bmad-output/test-artifacts/nfr-assessment-epic-11.md."
+  - "Human checkpoint pending: Story 11.4 remains review and Epic 11 remains in-progress; focused review evidence is recorded but is not approval, merge, or deployment."
+  - "Lifecycle PR #58 implementation evidence is verified in the candidate; published-head checks are the post-publication evidence source. The reset retry production-command/action seam is separately tracked, not implemented, bounded correctness work."
 overrides:
   branch_prefix: "codex/ (host instruction)"
   role_count_policy: "Owner-approved: Label role counts Aktiva medlemmar. Count only current-tenant memberships with status active assigned the role. Exclude invited, expired, revoked, disabled, and ended. Count each member once per assigned role; totals across roles need not be unique people. Informational only; authorization unchanged."

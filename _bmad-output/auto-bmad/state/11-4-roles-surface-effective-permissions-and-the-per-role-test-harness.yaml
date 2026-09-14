@@ -9,7 +9,7 @@ spec_folder: null
 story_id: null
 branch: codex/epic-11-wave-b1a-rbac-mechanism-and-admin-user-management
 status: done
-updated_at: "2026-09-11T16:00:52Z"
+updated_at: "2026-09-14T09:49:16Z"
 started_at: "2026-09-11T11:32:06Z"
 completed_at: "2026-09-11T16:00:52Z"
 active_seconds: 6693
@@ -50,7 +50,7 @@ build:
   warnings: [oversized]
 followup_passes: 1
 hitl_halt: "auto-continued (epic — no halt)"
-review_unverified: true
+review_unverified: false
 story_trace: null
 legacy_review_resume: false
 legacy_review_iteration: null
@@ -75,14 +75,15 @@ retro:
   open_action_items: 0
 bmad_status_flipped_at: null
 pr_url: "https://github.com/rthunborg/ElproSaas/pull/55"
-ci_run_url: null
-ci_status: unknown
+ci_run_url: "https://github.com/rthunborg/ElproSaas/actions/runs/34712355388"
+ci_status: passed
 pr_merged: false
 merge_method: null
 merge_commit: null
 branch_deleted: false
 open_questions:
   - "Cross-model review command returned no output in build and follow-up; not counted as review evidence."
+  - "Human checkpoint remains required; sprint status is review despite the focused review result."
 deferred_work: []
 blockers: []
 overrides:
