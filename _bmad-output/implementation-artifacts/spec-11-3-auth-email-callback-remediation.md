@@ -38,14 +38,14 @@ The active RBAC/Admin-user surface only: the existing callback route, an unauthe
 
 ## Verification
 
-- `node --experimental-strip-types --import ./tests/support/register.mjs --test tests/unit/admin-users/auth-email-callback.test.ts` — 2 passed, 0 failed.
+- `node --experimental-strip-types --import ./tests/support/register.mjs --test tests/unit/admin-users/auth-email-callback.test.ts` — 3 passed, 0 failed.
 - `pnpm exec tsc --noEmit --pretty false` — passed.
 - `pnpm build` — passed; the new completion page is included as a static route.
 - `pnpm exec eslint src/app/auth/invite/confirm/route.ts src/app/auth/invite/complete/page.tsx src/features/admin-users/auth-email-callback.ts tests/unit/admin-users/auth-email-callback.test.ts tests/e2e/auth/auth-mail-callback.e2e.spec.ts playwright.config.ts` — passed.
 - A bounded Auth-to-Mailpit transport probe sent a disposable local invite using the production test callback shape, then recorded only origin/path/query-key names. Auth returned HTTP 303 from `/auth/v1/verify` to `/auth/invite/confirm` with both `membershipId` and `attempt` present. The probe deleted its created Auth user. This confirms the exact callback allow-list accepts the opaque query state.
 - An initial guarded browser run executed 2 tests: recovery passed and invitation failed before activation. It exposed a harness defect: globally URL-decoding the full email verification URL corrupted the nested `redirect_to` query. That run is not claimed as coverage. The helper now decodes HTML entities only, preserving the actual mailed URL.
 - `SUPABASE_TEST_REQUIRED=1 CI=1 E2E_PORT=3000 pnpm exec playwright test tests/e2e/auth/auth-mail-callback.e2e.spec.ts` — replacement root-owned guarded production-browser run passed 2/2 tests with 0 skips (12.4s): actual Auth invitation → Mailpit → browser session → database membership activation, and actual recovery email → browser recovery session → persisted password update. Tracing remained disabled and no callback URL/token was printed.
-- `node scripts/verify/check-review-order.mjs "_bmad-output/implementation-artifacts/spec-11-3-auth-email-callback-remediation.md"` — run after the final review-order stops are refreshed.
+- `node scripts/verify/check-review-order.mjs "_bmad-output/implementation-artifacts/spec-11-3-auth-email-callback-remediation.md"` — 13 references, 0 errors.
 
 Limits: the browser proof uses the local Auth/Mailpit stack only and does not send email through a hosted provider. Hosted Supabase Auth redirect and template settings remain an operational configuration check; the application change does not rewrite, fabricate, or log verification URLs.
 
