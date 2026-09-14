@@ -9,7 +9,7 @@ spec_folder: null
 story_id: null
 branch: codex/epic-11-wave-b1a-rbac-mechanism-and-admin-user-management
 status: done
-updated_at: "2026-09-14T11:43:20Z"
+updated_at: "2026-09-14T12:23:43Z"
 started_at: "2026-09-11T11:11:44Z"
 completed_at: "2026-09-11T16:00:52Z"
 active_seconds: 12923
@@ -74,7 +74,7 @@ retro:
   doc: "C:/DEV/ElproSaas/_bmad-output/implementation-artifacts/epic-11-retro-2026-09-11.md"
   verdict: rejected
   open_action_items: 2
-bmad_status_flipped_at: 1789385865
+bmad_status_flipped_at: null
 pr_url: "https://github.com/rthunborg/ElproSaas/pull/55"
 ci_run_url: null
 ci_status: unknown
