@@ -109,7 +109,7 @@ describe("Disabled/inactive membership → no-access (Gap G-1 / P1-2 / R-004)", 
         if (stackUp && fixture) await cleanupFixture(fixture);
       });
 
-      it(`[P1] resolveTenantContext treats a live '${status}' membership as no-access (TENANT_MEMBERSHIP_REQUIRED, distinct from no-row)`, async (testCtx) => {
+      it(`[P1] an inactive '${status}' membership resolves to TENANT_MEMBERSHIP_REQUIRED`, async (testCtx) => {
         if (skipUnlessStack(testCtx, stackUp)) return;
         const client = (await makeAuthedServerClient(
           fixture.orphanUser,
@@ -138,7 +138,7 @@ describe("Disabled/inactive membership → no-access (Gap G-1 / P1-2 / R-004)", 
         expect(memberships ?? []).toEqual([]);
       });
 
-      it(`[P1] the command envelope rejects a '${status}' member at the membership gate and writes NO audit row`, async (testCtx) => {
+      it(`[P1] an inactive '${status}' membership is denied with TENANT_MEMBERSHIP_REQUIRED and writes no audit row`, async (testCtx) => {
         if (skipUnlessStack(testCtx, stackUp)) return;
         const client = await makeAuthedServerClient(fixture.orphanUser);
         const before = await adminCountAuditEvents({

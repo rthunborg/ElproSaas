@@ -34,13 +34,25 @@ async function logIn(page: Page, credentials: RoleFixture): Promise<void> {
   await expect(page).toHaveURL(/\/dashboard$/);
 }
 
+async function openAdminUsers(page: Page): Promise<void> {
+  const adminUsersDocument = page.waitForResponse((response) =>
+    response.request().resourceType() === "document"
+    && new URL(response.url()).pathname === "/admin/users"
+    && response.ok(),
+  );
+  await page.goto("/admin/users");
+  await adminUsersDocument;
+}
+
 test.describe("Story 11.4 Roller och effektiva behörigheter (ATDD, RED)", () => {
   test("[P1] Admin can inspect the five role cards and active-member presentation", async ({ page }) => {
     const fixture = getFixture();
     await logIn(page, fixture.adminUserManagement.tenantAdmin);
-    await page.goto("/admin/users");
+    await openAdminUsers(page);
 
-    await page.getByRole("tab", { name: "Roller" }).click();
+    const rolesTab = page.getByRole("tab", { name: "Roller" });
+    await waitForHydrated(rolesTab);
+    await rolesTab.click();
     await expect(page.getByText(/^Aktiva medlemmar: \d+$/)).toHaveCount(5);
     await expect(page.getByText(/Arbetsledare.*inom ett jobb|inom ett jobb.*Arbetsledare/i)).toBeVisible();
     await expect(page.getByText(/beslut.*ägare|ägare.*beslut/i)).toHaveCount(0);
@@ -49,10 +61,14 @@ test.describe("Story 11.4 Roller och effektiva behörigheter (ATDD, RED)", () =>
   test("[P1] Admin can open a multi-role member's effective permissions viewer", async ({ page }) => {
     const fixture = getFixture();
     await logIn(page, fixture.adminUserManagement.tenantAdmin);
-    await page.goto("/admin/users");
+    await openAdminUsers(page);
 
-    await page.getByText(fixture.adminUserManagement.sharedAccount.email, { exact: true }).click();
-    await page.getByRole("button", { name: "Effektiva behörigheter" }).click();
+    const sharedAccount = page.getByText(fixture.adminUserManagement.sharedAccount.email, { exact: true });
+    await waitForHydrated(sharedAccount);
+    await sharedAccount.click();
+    const effectivePermissions = page.getByRole("button", { name: "Effektiva behörigheter" });
+    await waitForHydrated(effectivePermissions);
+    await effectivePermissions.click();
     await expect(page.getByRole("heading", { name: "Effektiva behörigheter" })).toBeVisible();
     await expect(page.getByText(/beviljas av/i).first()).toBeVisible();
   });
@@ -60,7 +76,7 @@ test.describe("Story 11.4 Roller och effektiva behörigheter (ATDD, RED)", () =>
   test("[P1] Non-Admin receives neither Roles UI nor the Admin users direct route", async ({ page }) => {
     const fixture = getFixture();
     await logIn(page, fixture.adminUserManagement.nonAdmin);
-    await page.goto("/admin/users");
+    await openAdminUsers(page);
 
     await expect(page.getByRole("heading", { name: "Ingen åtkomst" })).toBeVisible();
     await expect(page.getByRole("tab", { name: "Roller" })).toHaveCount(0);
