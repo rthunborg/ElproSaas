@@ -37,6 +37,59 @@ describe("Admin user management commands (Story 11.3)", () => {
     } finally { await cleanupFixture(fixture); }
   });
 
+  test("[P0] an expired invitation can be superseded by a fresh attempt or terminally revoked only by its tenant Admin", async (testCtx) => {
+    const up = await isLocalStackReachable(); if (skipUnlessStack(testCtx, up)) return;
+    const { createTwoTenantFixture, cleanupFixture, makeAuthedServerClient } = await import("../../factories/tenants"); const { adminQuery } = await import("../../factories/admin-sql"); const fixture = await createTwoTenantFixture();
+    const seedExpired = async (email: string) => {
+      const membershipId = crypto.randomUUID();
+      await adminQuery(
+        `insert into public.tenant_memberships (id,tenant_id,user_id,role,status,invited_email,invited_at,invitation_expires_at)
+         values ($1,$2,null,'montor','expired',$3,statement_timestamp() - interval '2 hours',statement_timestamp() - interval '1 hour')`,
+        [membershipId, fixture.tenantA.id, email],
+      );
+      await adminQuery("insert into public.membership_roles (tenant_id,membership_id,role) values ($1,$2,'montor')", [fixture.tenantA.id, membershipId]);
+      return membershipId;
+    };
+    try {
+      const tenantAAdmin = await makeAuthedServerClient(fixture.adminA);
+      const tenantBAdmin = await makeAuthedServerClient(fixture.adminB);
+      const email = `expired-${crypto.randomUUID()}@example.test`;
+      const expiredForResend = await seedExpired(email);
+      const fresh = await tenantAAdmin.rpc("admin_prepare_membership_invitation", {
+        p_tenant_id: fixture.tenantA.id, p_email: email, p_roles: ["montor"], p_operation_id: crypto.randomUUID(), p_token_hash: crypto.randomUUID().replaceAll("-", ""), p_expiry: new Date(Date.now() + 60_000).toISOString(),
+      });
+      expect(fresh.error).toBeNull(); expect((fresh.data as { fresh?: boolean }).fresh).toBe(true);
+      const replacementId = (fresh.data as { membershipId?: string }).membershipId;
+      const replaced = await adminQuery<{ id: string; status: string }>("select id,status from public.tenant_memberships where id = any($1::uuid[]) order by id", [[expiredForResend, replacementId]]);
+      expect(replaced).toContainEqual({ id: expiredForResend, status: "expired" }); expect(replaced).toContainEqual({ id: replacementId, status: "invited" });
+
+      const uncertainOperationId = crypto.randomUUID();
+      const uncertainEmail = `uncertain-${crypto.randomUUID()}@example.test`;
+      const uncertain = await tenantAAdmin.rpc("admin_prepare_membership_invitation", {
+        p_tenant_id: fixture.tenantA.id, p_email: uncertainEmail, p_roles: ["montor"], p_operation_id: uncertainOperationId, p_token_hash: crypto.randomUUID().replaceAll("-", ""), p_expiry: new Date(Date.now() + 60_000).toISOString(),
+      });
+      const uncertainMembershipId = (uncertain.data as { membershipId?: string }).membershipId;
+      await tenantAAdmin.rpc("admin_finalize_membership_operation", { p_operation_id: uncertainOperationId, p_outcome: "uncertain" });
+      const replay = await tenantAAdmin.rpc("admin_prepare_membership_invitation", {
+        p_tenant_id: fixture.tenantA.id, p_email: uncertainEmail, p_roles: ["montor"], p_operation_id: uncertainOperationId, p_token_hash: crypto.randomUUID().replaceAll("-", ""), p_expiry: new Date(Date.now() + 60_000).toISOString(),
+      });
+      expect(replay.error).toBeNull(); expect(replay.data).toMatchObject({ membershipId: uncertainMembershipId, outcome: "uncertain", fresh: false });
+      const observed = await tenantAAdmin.rpc("admin_reconcile_membership_operation", { p_operation_id: uncertainOperationId });
+      expect(observed.data).toMatchObject({ operationId: uncertainOperationId, outcome: "uncertain" });
+      const freshRetry = await tenantAAdmin.rpc("admin_prepare_membership_invitation", {
+        p_tenant_id: fixture.tenantA.id, p_email: uncertainEmail, p_roles: ["montor"], p_operation_id: crypto.randomUUID(), p_token_hash: crypto.randomUUID().replaceAll("-", ""), p_expiry: new Date(Date.now() + 60_000).toISOString(),
+      });
+      expect(freshRetry.data).toMatchObject({ outcome: "pending", fresh: true }); expect((freshRetry.data as { membershipId?: string }).membershipId).not.toBe(uncertainMembershipId);
+
+      const expiredForRevoke = await seedExpired(`revoke-${crypto.randomUUID()}@example.test`);
+      const crossTenant = await tenantBAdmin.rpc("admin_manage_membership", { p_tenant_id: fixture.tenantA.id, p_membership_id: expiredForRevoke, p_action: "revoke", p_roles: [], p_reason: null, p_operation_id: crypto.randomUUID() });
+      expect(crossTenant.error?.code).toBe("42501");
+      const revoked = await tenantAAdmin.rpc("admin_manage_membership", { p_tenant_id: fixture.tenantA.id, p_membership_id: expiredForRevoke, p_action: "revoke", p_roles: [], p_reason: null, p_operation_id: crypto.randomUUID() });
+      expect(revoked.error).toBeNull();
+      const [afterRevoke] = await adminQuery<{ status: string }>("select status from public.tenant_memberships where id=$1", [expiredForRevoke]); expect(afterRevoke).toEqual({ status: "revoked" });
+    } finally { await cleanupFixture(fixture); }
+  });
+
   test("[P0] real invitation acceptance permits only the exact current, unexpired, email-bound attempt", async (testCtx) => {
     const up = await isLocalStackReachable(); if (skipUnlessStack(testCtx, up)) return;
     const { createTwoTenantFixture, cleanupFixture, makeAuthedServerClient } = await import("../../factories/tenants"); const { adminQuery } = await import("../../factories/admin-sql"); const fixture = await createTwoTenantFixture();
@@ -62,6 +115,9 @@ describe("Admin user management commands (Story 11.3)", () => {
       const accepted = await client.rpc("admin_accept_membership_invitation", { p_membership_id: current.membershipId, p_token_hash: hash(current.token), p_user_id: fixture.orphanUser.id, p_email: fixture.orphanUser.email });
       expect(accepted.error).toBeNull(); expect(accepted.data).toBe(true);
       const [active] = await adminQuery<{ status: string; user_id: string }>("select status,user_id from public.tenant_memberships where id=$1", [current.membershipId]); expect(active).toEqual({ status: "active", user_id: fixture.orphanUser.id });
+      const replay = await client.rpc("admin_accept_membership_invitation", { p_membership_id: current.membershipId, p_token_hash: hash(current.token), p_user_id: fixture.orphanUser.id, p_email: fixture.orphanUser.email });
+      expect(replay.error).toBeNull(); expect(replay.data).toBe(false);
+      const events = await adminQuery<{ count: number }>("select count(*)::int as count from public.audit_events where target_id=$1 and event_type='membership_activated'", [current.membershipId]); expect(events[0]?.count).toBe(1);
       for (const rejected of [
         { expiry: new Date(Date.now() - 60_000).toISOString() },
         { status: "revoked" },

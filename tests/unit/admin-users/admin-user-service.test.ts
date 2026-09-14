@@ -101,7 +101,7 @@ test("[P0] sends an existing Auth account a magic link after its durable invite 
 test("[P0] records an unrelated invite-provider failure as uncertain without issuing a second delivery", async () => {
   const { createAdminUserService } = await import("@/server/auth/admin-user-service");
   const finalized: unknown[] = [];
-  let magicLinkCalls = 0;
+  let inviteCalls = 0; let magicLinkCalls = 0;
   const service = createAdminUserService({
     prepareInvite: async () => ({
       operationId: "operation-id",
@@ -110,6 +110,7 @@ test("[P0] records an unrelated invite-provider failure as uncertain without iss
       delivery: "invite",
     }),
     inviteUserByEmail: async () => {
+      inviteCalls += 1;
       throw new Error("provider temporarily unavailable");
     },
     signInWithOtp: async () => {
@@ -123,8 +124,37 @@ test("[P0] records an unrelated invite-provider failure as uncertain without iss
   const result = await service.invite({ email: "existing@example.test" });
 
   assert.equal(result.outcome, "uncertain");
+  assert.equal(inviteCalls, 1);
   assert.equal(magicLinkCalls, 0);
   assert.deepEqual(finalized, [{ operationId: "operation-id", outcome: "uncertain" }]);
+});
+
+test("[P0] keeps a prepared invitation reconcilable when recording delivery success fails", async () => {
+  const { createAdminUserService } = await import("@/server/auth/admin-user-service");
+  const finalized: unknown[] = [];
+  const service = createAdminUserService({
+    prepareInvite: async () => ({ operationId: "prepared-operation", membershipId: "prepared-membership", attemptToken: "current", delivery: "invite" }),
+    inviteUserByEmail: async () => undefined,
+    finalizeOperation: async (input) => { finalized.push(input); throw new Error("database response lost"); },
+  });
+
+  const result = await service.invite({ email: "prepared@example.test" });
+
+  assert.deepEqual(result, { operationId: "prepared-operation", membershipId: "prepared-membership", outcome: "uncertain" });
+  assert.deepEqual(finalized, [{ operationId: "prepared-operation", outcome: "succeeded" }]);
+});
+
+test("[P0] keeps prepared context without throwing when both provider delivery and outcome recording fail", async () => {
+  const { createAdminUserService } = await import("@/server/auth/admin-user-service");
+  const finalized: unknown[] = [];
+  const service = createAdminUserService({
+    prepareInvite: async () => ({ operationId: "double-failure-operation", membershipId: "double-failure-membership", attemptToken: "current", delivery: "invite" }),
+    inviteUserByEmail: async () => { throw new Error("provider unavailable"); },
+    finalizeOperation: async (input) => { finalized.push(input); throw new Error("database response lost"); },
+  });
+
+  assert.deepEqual(await service.invite({ email: "prepared@example.test" }), { operationId: "double-failure-operation", membershipId: "double-failure-membership", outcome: "uncertain" });
+  assert.deepEqual(finalized, [{ operationId: "double-failure-operation", outcome: "uncertain" }]);
 });
 
 test("[P0] finalizes password-reset delivery as succeeded or uncertain without surfacing provider details", async () => {

@@ -1,0 +1,10 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "git": {
+    "deploymentEnabled": {
+      "codex/story-11-3-invitation-identity-binding": false,
+      "codex/story-11-3-invitation-lifecycle": false,
+      "codex/epic-11-wave-b1a-rbac-mechanism-and-admin-user-management": false
+    }
+  }
+}
