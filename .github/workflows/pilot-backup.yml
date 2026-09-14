@@ -1,0 +1,104 @@
+name: Pilot encrypted backup
+
+# This workflow never uploads raw database or Storage bytes to GitHub. It creates
+# a logical DB dump and a Storage export on the ephemeral runner, checksums and
+# encrypts the archive, then uploads only the encrypted archive to the owner-set
+# Google Drive folder. See docs/process/pilot-operations-runbook.md.
+on:
+  schedule:
+    - cron: '23 1 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pilot-encrypted-backup
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    if: github.ref == 'refs/heads/main' && (github.event_name != 'schedule' || vars.PILOT_BACKUP_ENABLED == 'true')
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install application dependencies for the Storage export
+        run: pnpm install --frozen-lockfile
+
+      - name: Install pinned Supabase CLI
+        uses: supabase/setup-cli@ad077b4817fff9ecc3c1fd20d271ec351e2d7244 # v1.7.0
+        with:
+          version: 2.115.0
+
+      - name: Capture pre-dump Storage inventory
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          set -euo pipefail
+          test "$SUPABASE_URL" = 'https://wmqmzznmwpheswjjozhq.supabase.co' || { echo 'SUPABASE_URL does not target the approved demo project.' >&2; exit 1; }
+          mkdir -p backup-workspace/storage
+          node scripts/ops/export-supabase-storage.mjs --inventory backup-workspace/storage/pre-dump-inventory.json
+
+      - name: Create logical database dumps
+        env:
+          SUPABASE_BACKUP_DB_URL: ${{ secrets.SUPABASE_BACKUP_DB_URL }}
+        run: |
+          set -euo pipefail
+          test -n "$SUPABASE_BACKUP_DB_URL" || { echo 'Missing required repository secret: SUPABASE_BACKUP_DB_URL' >&2; exit 1; }
+          printf '%s' "$SUPABASE_BACKUP_DB_URL" | node scripts/ops/validate-backup-db-url.mjs
+          mkdir -p backup-workspace/database backup-workspace/storage
+          supabase db dump --db-url "$SUPABASE_BACKUP_DB_URL" --file backup-workspace/database/roles.sql --role-only
+          # Managed auth/storage schemas are excluded by the CLI default. Include
+          # them and migration history explicitly so users, Storage metadata and
+          # the ledger can be restored with the public schema and role profile.
+          schema_args=(--schema public --schema auth --schema storage --schema supabase_migrations)
+          supabase db dump --db-url "$SUPABASE_BACKUP_DB_URL" --file backup-workspace/database/schema.sql "${schema_args[@]}"
+          supabase db dump --db-url "$SUPABASE_BACKUP_DB_URL" --file backup-workspace/database/data.sql --use-copy --data-only "${schema_args[@]}"
+
+      - name: Export a stable Storage inventory's private bytes and manifest
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          BACKUP_MAX_STORAGE_BYTES: ${{ vars.BACKUP_MAX_STORAGE_BYTES }}
+        run: |
+          test "$SUPABASE_URL" = 'https://wmqmzznmwpheswjjozhq.supabase.co' || { echo 'SUPABASE_URL does not target the approved demo project.' >&2; exit 1; }
+          node scripts/ops/export-supabase-storage.mjs --output backup-workspace/storage --expect-inventory backup-workspace/storage/pre-dump-inventory.json
+          rm backup-workspace/storage/pre-dump-inventory.json
+
+      - name: Checksum, archive and encrypt backup locally on the runner
+        id: encrypt
+        env:
+          BACKUP_GPG_PASSPHRASE: ${{ secrets.BACKUP_GPG_PASSPHRASE }}
+        run: |
+          set -euo pipefail
+          test -n "$BACKUP_GPG_PASSPHRASE" || { echo 'Missing required repository secret: BACKUP_GPG_PASSPHRASE' >&2; exit 1; }
+          backup_stamp="$(date -u +%Y%m%dT%H%M%SZ)"
+          node scripts/ops/write-backup-checksums.mjs backup-workspace
+          tar --create --gzip --file "elpro-pilot-$backup_stamp.tar.gz" backup-workspace
+          gpg --batch --yes --pinentry-mode loopback --symmetric --cipher-algo AES256 \
+            --s2k-mode 3 --s2k-digest-algo SHA512 --s2k-count 65011712 \
+            --passphrase "$BACKUP_GPG_PASSPHRASE" \
+            --output "elpro-pilot-$backup_stamp.tar.gz.gpg" "elpro-pilot-$backup_stamp.tar.gz"
+          echo "archive=elpro-pilot-$backup_stamp.tar.gz.gpg" >> "$GITHUB_OUTPUT"
+
+      - name: Upload encrypted archive and retain seven newest copies
+        env:
+          BACKUP_DRIVE_FOLDER_ID: ${{ secrets.BACKUP_DRIVE_FOLDER_ID }}
+          GOOGLE_DRIVE_CLIENT_ID: ${{ secrets.GOOGLE_DRIVE_CLIENT_ID }}
+          GOOGLE_DRIVE_CLIENT_SECRET: ${{ secrets.GOOGLE_DRIVE_CLIENT_SECRET }}
+          GOOGLE_DRIVE_REFRESH_TOKEN: ${{ secrets.GOOGLE_DRIVE_REFRESH_TOKEN }}
+        run: node scripts/ops/google-drive-backup.mjs "${{ steps.encrypt.outputs.archive }}"
+
+      - name: Remove runner-local plaintext and ciphertext
+        if: always()
+        run: rm -rf backup-workspace elpro-pilot-*.tar.gz elpro-pilot-*.tar.gz.gpg
