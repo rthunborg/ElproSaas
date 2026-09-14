@@ -1,8 +1,8 @@
 /**
  * Epic 11 R-1108 pilot baseline. This is deliberately an explicit, local-only
- * measurement command, not a CI threshold: the owner has not approved a capacity
- * or latency target yet. It exercises the production read-model through a real
- * authenticated Supabase client and writes the measured facts to an ignored file.
+ * performance gate. It exercises the production read-model through a real
+ * authenticated Supabase client, writes the measured facts to an ignored file,
+ * and fails when the approved local-pilot ceiling regresses.
  *
  * Run after a fresh local migration reset:
  *   $env:SUPABASE_TEST_REQUIRED='1'
@@ -16,12 +16,13 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { readAdminUsersForTenant, type AdminUsersReadClient } from "@/features/admin-users/read-model";
 import { effectivePermissionsForMembership, resolveMembershipRoles } from "@/server/authz/role-catalogue";
 import { TENANT_ROLES } from "@/server/authz/roles";
+import { EPIC11_PILOT_LIMITS, assessEpic11PilotFixtureProfile, assessEpic11PilotMeasurements } from "./epic-11-pilot-limits";
 import { closeAdminPool, adminQuery } from "../../tests/factories/admin-sql";
-import { cleanupFixture, createTwoTenantFixture, makeAuthedServerClient, type FixtureUser } from "../../tests/factories/tenants";
+import { cleanupFixture, createTwoTenantFixture, makeAuthedServerClient, type FixtureUser } from "../../tests/factories/tenants/core";
 import { assertLocalStack, isLocalStackReachable, LOCAL_SUPABASE_SERVICE_ROLE_KEY, LOCAL_SUPABASE_URL } from "../../tests/support/test-env";
 
-const ACTIVE_A = 120;
-const ACTIVE_B = 24;
+const ACTIVE_A = EPIC11_PILOT_LIMITS.tenantAActiveMemberships;
+const ACTIVE_B = EPIC11_PILOT_LIMITS.tenantBActiveMemberships;
 const ITERATIONS = 25;
 const WARMUP = 5;
 const OUTPUT = resolve(process.cwd(), process.env.EPIC11_NFR_OUTPUT ?? "tmp/private/epic-11-r1108-baseline.json");
@@ -105,6 +106,56 @@ async function addMembership(tenantId: string, user: FixtureUser, index: number)
   );
 }
 
+async function seedAdminSecondaryRole(tenantId: string, userId: string): Promise<void> {
+  const [{ id: membershipId }] = await adminQuery<{ id: string }>(
+    "select id from public.tenant_memberships where tenant_id = $1 and user_id = $2",
+    [tenantId, userId],
+  );
+  if (!membershipId) throw new Error("Pilot fixture Tenant A admin membership was not created.");
+  await adminQuery(
+    `insert into public.membership_roles (tenant_id, membership_id, role)
+     values ($1, $2, $3), ($1, $2, $4)`,
+    [tenantId, membershipId, TENANT_ROLES[0], TENANT_ROLES[1]],
+  );
+}
+
+async function assertExactPilotFixture(tenantAId: string, tenantBId: string): Promise<void> {
+  const [counts] = await adminQuery<{
+    tenant_a_active_memberships: number;
+    tenant_b_active_memberships: number;
+    tenant_a_extra_role_memberships: number;
+    tenant_a_role_assignments: number;
+  }>(
+    `with tenant_a_active as (
+       select id from public.tenant_memberships where tenant_id = $1 and status = 'active'
+     ), role_counts as (
+       select membership_id, count(*)::int as role_count
+       from public.membership_roles where tenant_id = $1 group by membership_id
+     )
+     select
+       (select count(*)::int from tenant_a_active) as tenant_a_active_memberships,
+       (select count(*)::int from public.tenant_memberships where tenant_id = $2 and status = 'active') as tenant_b_active_memberships,
+       (select count(*)::int from role_counts where role_count = 2) as tenant_a_extra_role_memberships,
+       (select count(*)::int from public.membership_roles where tenant_id = $1) as tenant_a_role_assignments`,
+    [tenantAId, tenantBId],
+  );
+  const roleCounts = await adminQuery<{ role: string; count: number }>(
+    `select role, count(*)::int as count
+     from public.tenant_memberships
+     where tenant_id = $1 and status = 'active'
+     group by role`,
+    [tenantAId],
+  );
+  const assessment = assessEpic11PilotFixtureProfile({
+    tenantAActiveMemberships: counts?.tenant_a_active_memberships ?? Number.NaN,
+    tenantBActiveMemberships: counts?.tenant_b_active_memberships ?? Number.NaN,
+    tenantAPrimaryRoleCounts: Object.fromEntries(roleCounts.map(({ role, count }) => [role, count])),
+    tenantAExtraRoleMemberships: counts?.tenant_a_extra_role_memberships ?? Number.NaN,
+    tenantARoleAssignments: counts?.tenant_a_role_assignments ?? Number.NaN,
+  });
+  if (!assessment.passed) throw new Error(`Pilot fixture does not match the approved profile: ${assessment.violations.join(" ")}`);
+}
+
 async function main(): Promise<void> {
   const startedAt = performance.now();
   if (process.env.SUPABASE_TEST_REQUIRED !== "1") {
@@ -120,8 +171,10 @@ async function main(): Promise<void> {
       auth: { autoRefreshToken: false, persistSession: false },
     });
     const additions = await createTrackedUsers(admin, Array.from({ length: ACTIVE_A - 1 }, (_, index) => `a-${index}`), created);
+    await seedAdminSecondaryRole(fixture.tenantA.id, fixture.adminA.id);
     await inBatches(additions, (user, index) => addMembership(fixture.tenantA.id, user, index + 1));
     await inBatches(additions.slice(0, ACTIVE_B - 1), (user, index) => addMembership(fixture.tenantB.id, user, index + 10_000));
+    await assertExactPilotFixture(fixture.tenantA.id, fixture.tenantB.id);
 
     const client = await makeAuthedServerClient(fixture.adminA);
     const warmupCounter: QueryCounter = { reads: 0, membershipPages: 0, rolePages: 0 };
@@ -148,10 +201,12 @@ async function main(): Promise<void> {
       ).length, 0);
       syntheticBulkEffectivePermissionSamples.push(performance.now() - effectiveStart);
     }
-    const expectedReadsPerIteration = 3; // one 120-row membership page + 100/20 child-role batches
-    if (measuredCounter.reads !== ITERATIONS * expectedReadsPerIteration) {
-      throw new Error(`Expected ${expectedReadsPerIteration} RLS reads per iteration; observed ${measuredCounter.reads / ITERATIONS}.`);
-    }
+    const rlsRequestsPerRead = measuredCounter.reads / ITERATIONS;
+    const assessment = assessEpic11PilotMeasurements({
+      readP95Ms: summarize(readSamples).p95Ms,
+      syntheticBulkEffectivePermissionsP95Ms: summarize(syntheticBulkEffectivePermissionSamples).p95Ms,
+      authenticatedRlsRequestsPerRead: rlsRequestsPerRead,
+    });
 
     const planRows = await adminQuery<{ "QUERY PLAN": unknown }>(
       `explain (analyze, buffers, format json)
@@ -163,7 +218,7 @@ async function main(): Promise<void> {
     );
     const report = {
       schemaVersion: 1,
-      status: "measured",
+      status: assessment.passed ? "passed" : "failed",
       measuredAt: new Date().toISOString(),
       environment: {
         target: "local Supabase only",
@@ -186,22 +241,25 @@ async function main(): Promise<void> {
         measuredIterations: ITERATIONS,
         readStats: summarize(readSamples),
         syntheticBulkEffectivePermissionsStats: summarize(syntheticBulkEffectivePermissionSamples),
-        rlsRequestCount: { total: measuredCounter.reads, perIteration: measuredCounter.reads / ITERATIONS, membershipPages: measuredCounter.membershipPages, rolePages: measuredCounter.rolePages },
+        rlsRequestCount: { total: measuredCounter.reads, perIteration: rlsRequestsPerRead, membershipPages: measuredCounter.membershipPages, rolePages: measuredCounter.rolePages },
         effectivePermissionGrantCount,
       },
+      approvedPilotLimits: EPIC11_PILOT_LIMITS,
+      assessment,
       membershipQueryPlan: planRows[0]?.["QUERY PLAN"] ?? null,
       harnessElapsedMs: performance.now() - startedAt,
       limits: [
-        "This is a local baseline, not a production load test or approved SLO.",
+        "This is a local pilot gate, not a production load test or full-page SLO.",
         "The plan is obtained through the local test-only superuser solely to document the actual query shape; application reads use the authenticated RLS client.",
         "The timed read is the tenant-scoped Admin-users projection only; it excludes tenant context, routing, rendering, and other full-page work.",
         "The synthetic bulk effective-permissions metric is CPU-only over all returned rows, not a Roles-page interaction measurement.",
-        "No latency, query-count, dataset, or suite-duration threshold is asserted here.",
+        "The approved ceilings apply only to this exact local two-tenant profile and measured functions.",
       ],
     };
     await mkdir(dirname(OUTPUT), { recursive: true });
     await writeFile(OUTPUT, `${JSON.stringify(report, null, 2)}\n`, "utf8");
     console.log(JSON.stringify({ output: OUTPUT, dataset: report.dataset, read: report.read }, null, 2));
+    if (!assessment.passed) throw new Error(`Epic 11 pilot performance gate failed: ${assessment.violations.join(" ")}`);
   } finally {
     const admin = createClient(LOCAL_SUPABASE_URL, LOCAL_SUPABASE_SERVICE_ROLE_KEY, { auth: { autoRefreshToken: false, persistSession: false } });
     await inBatches(created, async (user) => {

@@ -1,0 +1,136 @@
+name: Pilot availability monitor
+
+# This is a best-effort synthetic probe. GitHub documents that scheduled workflows
+# can be delayed or dropped under load, so it is deliberately not evidence of a
+# hard five-minute availability SLO. See docs/process/pilot-operations-runbook.md.
+on:
+  schedule:
+    # Five-minute cadence, offset from the top of the hour where GitHub reports
+    # the greatest scheduling load.
+    - cron: '2,7,12,17,22,27,32,37,42,47,52,57 * * * *'
+  workflow_dispatch:
+    inputs:
+      alert_test:
+        description: Simulate three failed samples and intentionally fail only the test job to verify GitHub Actions email delivery.
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: pilot-availability-monitor
+  cancel-in-progress: false
+
+jobs:
+  probe:
+    if: github.ref == 'refs/heads/main' && !(github.event_name == 'workflow_dispatch' && inputs.alert_test)
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    env:
+      ELPRO_MONITOR_URL: ${{ vars.ELPRO_MONITOR_URL }}
+      ELPRO_MONITOR_EXPECTED_STATUS: '200'
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Probe the login route
+        id: probe
+        continue-on-error: true
+        run: node scripts/ops/probe-availability.mjs --output monitor-result.json
+
+      # The JSON has only timestamp, latency and HTTP status. It contains neither
+      # customer data nor credentials and remains available for 30 days to support
+      # the pilot's sampled availability history.
+      - name: Retain sampled result for 30 days
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: pilot-availability-${{ github.event_name }}
+          path: monitor-result.json
+          retention-days: 30
+          if-no-files-found: error
+
+      # The current failed probe counts as one. Read the two immediately preceding
+      # scheduled-probe artifacts, rather than failing and alerting on a transient
+      # single network error. Manual runs never affect scheduled failure history.
+      - name: Count consecutive scheduled failures
+        id: history
+        if: steps.probe.outcome == 'failure' && github.event_name == 'schedule'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          scratch_dir="$(mktemp -d)"
+          trap 'rm -rf "$scratch_dir"' EXIT
+          gh api --paginate --slurp "repos/${GITHUB_REPOSITORY}/actions/artifacts?name=pilot-availability-schedule&per_page=100" > "$scratch_dir/artifact-pages.json"
+          mapfile -t archive_urls < <(
+            node scripts/ops/availability-history.mjs --select-artifacts "$scratch_dir/artifact-pages.json" "$GITHUB_RUN_ID" | jq -r '.[]'
+          )
+          : > "$scratch_dir/prior-statuses.txt"
+          for index in "${!archive_urls[@]}"; do
+            curl --fail --silent --show-error --location --proto '=https' \
+              --header "Authorization: Bearer ${GH_TOKEN}" \
+              "${archive_urls[$index]}" --output "$scratch_dir/result-$index.zip"
+            probe_status="$(unzip -p "$scratch_dir/result-$index.zip" monitor-result.json | jq -r '.status')"
+            printf '%s\n' "$probe_status" >> "$scratch_dir/prior-statuses.txt"
+          done
+          jq -R . "$scratch_dir/prior-statuses.txt" | jq -s . > "$scratch_dir/prior-statuses.json"
+          assessment="$(node scripts/ops/availability-history.mjs failed "$scratch_dir/prior-statuses.json")"
+          consecutive="$(printf '%s' "$assessment" | jq -r '.consecutiveFailures')"
+          echo "consecutive=$consecutive" >> "$GITHUB_OUTPUT"
+          echo "Consecutive failed sampled probes: $consecutive"
+
+      - name: Keep first and second scheduled failures visible without alerting
+        if: steps.probe.outcome == 'failure' && github.event_name == 'schedule' && steps.history.outputs.consecutive < 3
+        run: echo "Probe failed, but fewer than three consecutive sampled failures were found."
+
+      # A scheduled-workflow failure notifies the GitHub account that owns the
+      # schedule. The owner must configure that GitHub notification to their
+      # controlled Gmail mailbox during rollout.
+      - name: Fail after three sampled failures
+        if: steps.probe.outcome == 'failure' && (github.event_name != 'schedule' || steps.history.outputs.consecutive >= 3)
+        run: exit 1
+
+  alert-test:
+    # This is deliberately isolated from the monitor: it makes no HTTP request
+    # and writes no pilot-availability-schedule artifact, so it cannot alter
+    # live history or the public route being monitored.
+    if: github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' && inputs.alert_test
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Simulate first, second, and third failed samples with the production evaluator
+        run: |
+          set -euo pipefail
+          scratch_dir="$(mktemp -d)"
+          trap 'rm -rf "$scratch_dir"' EXIT
+          declare -a histories=('[]' '["failed"]' '["failed", "failed"]')
+          : > alert-test-result.jsonl
+          for index in "${!histories[@]}"; do
+            printf '%s' "${histories[$index]}" > "$scratch_dir/prior-statuses.json"
+            assessment="$(node scripts/ops/availability-history.mjs failed "$scratch_dir/prior-statuses.json")"
+            expected_consecutive=$((index + 1))
+            test "$(printf '%s' "$assessment" | jq -r '.consecutiveFailures')" = "$expected_consecutive"
+            if [ "$expected_consecutive" -lt 3 ]; then
+              test "$(printf '%s' "$assessment" | jq -r '.alert')" = false
+            else
+              test "$(printf '%s' "$assessment" | jq -r '.alert')" = true
+            fi
+            printf '%s\n' "$assessment" >> alert-test-result.jsonl
+          done
+          jq -s . alert-test-result.jsonl > alert-test-result.json
+
+      - name: Retain isolated alert-test evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: pilot-availability-alert-test-${{ github.run_id }}
+          path: alert-test-result.json
+          retention-days: 30
+          if-no-files-found: error
+
+      - name: Fail after the simulated third sample to trigger the configured notification
+        run: exit 1

@@ -91,7 +91,9 @@ jobs:
         run: pnpm lint
 
       - name: Unit tests (pure logic, node --test)
-        run: pnpm run test:unit
+        # Test execution only: dependency installation and the later build are
+        # deliberately outside the approved 180-second unit ceiling.
+        run: node scripts/verify/run-with-time-budget.mjs --label "Unit tests" --max-seconds 180 -- pnpm run test:unit
 
       - name: BMAD focused concurrent memlog contracts
         run: pnpm run test:bmad-focused
@@ -185,8 +187,15 @@ jobs:
           exit 1
 
       # Stage 8: DB-backed integration + cross-tenant RLS-negative suites.
-      - name: Integration + RLS negative tests (local stack)
-        run: pnpm run test:int
+      - name: Integration, RLS, and Epic 11 pilot performance gates (local stack)
+        # Starts after the stack/reset work, so the approved five-minute DB
+        # budget measures the existing test:int command and the explicit NFR
+        # probe, rather than installs or Supabase startup/migration time. Keep
+        # test:int visible as the historic Phase A gate; this Epic 11 probe is
+        # deliberately not represented as a Phase A package-script result.
+        run: >-
+          node scripts/verify/run-with-time-budget.mjs --label "Database, RLS, and pilot performance tests" --max-seconds 300 -- bash -c
+          'pnpm run test:int && node --experimental-strip-types --import ./tests/support/register.mjs scripts/nfr/epic-11-r1108-baseline.ts'
 
       - name: Stop local Supabase stack
         if: always()
@@ -260,6 +269,9 @@ jobs:
       # (NEXT_PUBLIC_* are inlined from playwright.config.ts), globalSetup seeds the
       # two-tenant fixture, and the specs drive the real browser journeys (G-2/G-3).
       - name: E2E tests (Playwright)
+        # The configured reporter sums Playwright test attempts only. Its own
+        # production build/web-server bootstrap remains outside the approved
+        # five-minute browser execution budget.
         run: pnpm run test:e2e
 
       - name: Upload Playwright report
