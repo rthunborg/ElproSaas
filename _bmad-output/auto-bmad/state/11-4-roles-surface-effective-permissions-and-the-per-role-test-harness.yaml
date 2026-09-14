@@ -8,6 +8,8 @@ story_source: sprint
 spec_folder: null
 story_id: null
 branch: codex/epic-11-wave-b1a-rbac-mechanism-and-admin-user-management
+# Historical Auto-BMAD execution completion only. Sprint status is authoritative:
+# Story 11.4 remains review, Epic 11 remains in-progress, and the retrospective is rejected.
 status: done
 updated_at: "2026-09-14T09:49:16Z"
 started_at: "2026-09-11T11:32:06Z"
@@ -75,8 +77,10 @@ retro:
   open_action_items: 0
 bmad_status_flipped_at: null
 pr_url: "https://github.com/rthunborg/ElproSaas/pull/55"
-ci_run_url: "https://github.com/rthunborg/ElproSaas/actions/runs/34712355388"
-ci_status: passed
+# No current-head CI is asserted here. Historical dcb718c run 34712355388 is retained
+# in reports/spec evidence; refresh PR #55 checks on resume before setting these fields.
+ci_run_url: null
+ci_status: unknown
 pr_merged: false
 merge_method: null
 merge_commit: null
