@@ -197,6 +197,10 @@ jobs:
     # Same gate as `db`: only spin up the stack + browser after the fast `verify` job
     # is green. Runs in parallel with `db` (each boots its own local stack).
     needs: [verify]
+    env:
+      # Auth-mail E2E must fail loudly if its required local Auth/Mailpit stack is
+      # unavailable; this matches the database integration gate.
+      SUPABASE_TEST_REQUIRED: "1"
     steps:
       - name: Checkout
         uses: actions/checkout@v4

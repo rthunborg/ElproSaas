@@ -45,7 +45,8 @@ The active RBAC/Admin-user surface only: the existing callback route, an unauthe
 - A bounded Auth-to-Mailpit transport probe sent a disposable local invite using the production test callback shape, then recorded only origin/path/query-key names. Auth returned HTTP 303 from `/auth/v1/verify` to `/auth/invite/confirm` with both `membershipId` and `attempt` present. The probe deleted its created Auth user. This confirms the exact callback allow-list accepts the opaque query state.
 - An initial guarded browser run executed 2 tests: recovery passed and invitation failed before activation. It exposed a harness defect: globally URL-decoding the full email verification URL corrupted the nested `redirect_to` query. That run is not claimed as coverage. The helper now decodes HTML entities only, preserving the actual mailed URL.
 - `SUPABASE_TEST_REQUIRED=1 CI=1 E2E_PORT=3000 pnpm exec playwright test tests/e2e/auth/auth-mail-callback.e2e.spec.ts` — replacement root-owned guarded production-browser run passed 2/2 tests with 0 skips (12.4s): actual Auth invitation → Mailpit → browser session → database membership activation, and actual recovery email → browser recovery session → persisted password update. Tracing remained disabled and no callback URL/token was printed.
-- `node scripts/verify/check-review-order.mjs "_bmad-output/implementation-artifacts/spec-11-3-auth-email-callback-remediation.md"` — 13 references, 0 errors.
+- `.github/workflows/ci.yml` — the `e2e` job now sets `SUPABASE_TEST_REQUIRED=1`, matching its already-required local stack. CI run `34848411280`, before this publication correction, passed verify (1,756 executed, 0 skips) and database (1,028 executed, 0 skips), then reported browser 136 passed, 4 skipped, and 2 failed because the new mail-flow tests correctly required this missing variable. It is not passing evidence for this change. The next CI run must report its browser executed/skipped counts.
+- `node scripts/verify/check-review-order.mjs "_bmad-output/implementation-artifacts/spec-11-3-auth-email-callback-remediation.md"` — 14 references, 0 errors.
 
 Limits: the browser proof uses the local Auth/Mailpit stack only and does not send email through a hosted provider. Hosted Supabase Auth redirect and template settings remain an operational configuration check; the application change does not rewrite, fabricate, or log verification URLs.
 
@@ -81,3 +82,4 @@ The Playwright web server declares its own public app URL, and the local Auth al
 
 - `playwright.config.ts:65` — passes the current test host as `NEXT_PUBLIC_APP_URL`.
 - `supabase/config.toml:190` — permits only the two exact local callback URLs used by the documented runner configurations.
+- `.github/workflows/ci.yml:201` — supplies `SUPABASE_TEST_REQUIRED=1` to the `e2e` job so browser verification executes the required Auth-mail proof rather than failing before the test runner starts.
