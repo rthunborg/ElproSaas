@@ -37,7 +37,7 @@ The migration permits only a tenant Admin to terminally revoke a persisted expir
 
 - `supabase/migrations/20260914092850_story_11_3_invitation_lifecycle_remediation.sql:33` — `v_member.status not in ('invited','expired')`: allows only terminal revoke of an expired invitation.
 - `src/server/commands/admin-users/invite.ts:63` — `includes(data.status)`: admits expired state only for replacement delivery preparation.
-- `tests/integration/commands/admin-user-management.int.test.ts:40` — `expired invitation can be superseded`: proves replacement history, terminal revoke, and cross-tenant denial.
+- `tests/integration/commands/admin-user-management.int.test.ts:46` — `expired invitation can be superseded`: proves replacement history, terminal revoke, and cross-tenant denial.
 
 ### Preserve a reconcilable delivery boundary
 
