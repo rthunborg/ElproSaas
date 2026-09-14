@@ -8,10 +8,8 @@ story_source: sprint
 spec_folder: null
 story_id: null
 branch: codex/epic-11-wave-b1a-rbac-mechanism-and-admin-user-management
-# Historical Auto-BMAD execution completion only. Sprint status is authoritative:
-# Epic 11 remains in-progress, Story 11.4 remains review, and the retrospective is rejected.
 status: done
-updated_at: "2026-09-14T09:49:16Z"
+updated_at: "2026-09-14T11:43:20Z"
 started_at: "2026-09-11T11:11:44Z"
 completed_at: "2026-09-11T16:00:52Z"
 active_seconds: 12923
@@ -61,7 +59,7 @@ legacy_review_loop_done: false
 legacy_external_review_iterations: null
 legacy_convergence_unverified: false
 legacy_artifact_path: null
-commits: [6b32303, f032fa6, 1ad3df8, 77be952, 5d1cf53]
+commits: [6b32303, f032fa6, 1ad3df8, 77be952, 5d1cf53, 9dd6e74a10f87e6bb1961f70ad02a8fcf2bc4a54, 7b0b991817d75e3f85247c115e12e6830943d9e9, 5cc08d2b15b161e4742ddddc3283be4a3c03a059]
 phase8_steps:
   trace_gate: done
   nfr: done
@@ -75,27 +73,23 @@ deferred_work_archived: 37
 retro:
   doc: "C:/DEV/ElproSaas/_bmad-output/implementation-artifacts/epic-11-retro-2026-09-11.md"
   verdict: rejected
-  open_action_items: 5
-bmad_status_flipped_at: null
+  open_action_items: 2
+bmad_status_flipped_at: 1789385865
 pr_url: "https://github.com/rthunborg/ElproSaas/pull/55"
-# No current-head CI is asserted here. Historical dcb718c run 34712355388 is retained
-# in reports/spec evidence; refresh PR #55 checks on resume before setting these fields.
 ci_run_url: null
 ci_status: unknown
-pr_merged: false
-merge_method: null
-merge_commit: null
+pr_merged: true
+merge_method: merge_commit
+merge_commit: 5cc08d2b15b161e4742ddddc3283be4a3c03a059
 branch_deleted: false
 open_questions:
   - Performance/query/suite targets and operational availability/DR/observability criteria are undefined.
-  - "[11.4] Cross-model review command returned no output in build and follow-up; not counted as review evidence."
-  - "[11.3] Identity-binding candidate is verified at PR #57 / fc2a85e; main/demo remain blocked until approved merge and migration deployment."
+  - Historical cross-model review command returned no output and remains excluded as evidence.
 deferred_work:
   - "Advisory test quality: 75/100, Request Changes; address live-clock fixture, readiness gaps, oversized support files, and organization findings. See _bmad-output/test-artifacts/test-reviews/test-review-epic-11-wave-b1a-rbac.md."
 blockers:
-  - "HIGH release blocker in prior Story 11.3: identity binding and the direct-RPC mismatch/no-side-effect regression are fixed and verified in PR #57 and the integrated candidate. Human approval, merge, and migration deployment remain required before the main/demo blocker can close. See _bmad-output/test-artifacts/nfr-assessment-epic-11.md."
-  - "Human checkpoint pending: Story 11.4 remains review and Epic 11 remains in-progress; focused review evidence is recorded but is not approval, merge, or deployment."
-  - "Lifecycle PR #58 implementation evidence is verified in the candidate; published-head checks are the post-publication evidence source. The reset retry production-command/action seam is separately tracked, not implemented, bounded correctness work."
+  - Retrospective remains rejected until the separately tracked reset-retry production-command/action seam is implemented and verified.
+  - "Candidate NFR remains CONCERNS because performance, operational, and quality evidence targets remain unresolved."
 overrides:
   branch_prefix: "codex/ (host instruction)"
   role_count_policy: "Owner-approved: Label role counts Aktiva medlemmar. Count only current-tenant memberships with status active assigned the role. Exclude invited, expired, revoked, disabled, and ended. Count each member once per assigned role; totals across roles need not be unique people. Informational only; authorization unchanged."
