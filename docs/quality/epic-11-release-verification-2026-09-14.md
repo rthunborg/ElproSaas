@@ -41,7 +41,7 @@ Approved PR-head CI is green:
 | #58 | [34831789727](https://github.com/rthunborg/ElproSaas/actions/runs/34831789727) | 1,736 units with zero skips, 97 integration/RLS files with 1,014 passed and zero skips, 132 browser tests passed with four skipped |
 | #55 | [34831828500](https://github.com/rthunborg/ElproSaas/actions/runs/34831828500) | 1,751 units, 101 integration/RLS files with 1,023 passed and zero skips, 136 browser tests passed with four skipped |
 
-Post-merge main CI [34839174668](https://github.com/rthunborg/ElproSaas/actions/runs/34839174668) is queued/running at this record and is not claimed as passed.
+Post-merge main CI [34839174668](https://github.com/rthunborg/ElproSaas/actions/runs/34839174668) passed at `5cc08d2`: 1,751 units / 0 skipped, 101 required `SUPABASE_TEST_REQUIRED=1` integration/RLS files / 1,023 passed / 0 skipped, and 136 browser tests passed with four skipped. All checks and teardown passed.
 
 ## Security advisor limitation
 
