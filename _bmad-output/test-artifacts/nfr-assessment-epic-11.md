@@ -240,14 +240,14 @@ The NFR evidence audit is complete. Its next recommended workflow after remediat
 
 The 2026-09-11 **FAIL / HIGH** result above remains the historical assessment of the vulnerable revision. The approved merge sequence landed as PR [#57](https://github.com/rthunborg/ElproSaas/pull/57), PR [#58](https://github.com/rthunborg/ElproSaas/pull/58), and PR [#55](https://github.com/rthunborg/ElproSaas/pull/55). Epic merge checkpoint `5cc08d2b15b161e4742ddddc3283be4a3c03a059` passed [post-merge CI run 34839174668](https://github.com/rthunborg/ElproSaas/actions/runs/34839174668): 1,751 unit tests with zero skips, 101 required integration/RLS files / 1,023 tests passed / zero skips, and 136 browser tests passed with four explicit skips. The three approved migrations were applied to the demo project and the deployed invitation function was inspected against the merged corrective definition. The authenticated direct-RPC identity-binding release blocker is therefore **closed**; current security is **PASS** for that finding.
 
-The currently released application remains **FAIL / HIGH** for reliability until the callback repair is merged and deployed: its server-only callback cannot consume Supabase Auth's implicit session fragment. Candidate PR [#62](https://github.com/rthunborg/ElproSaas/pull/62) at `12bb90b908412d1d7e6abcd080d77eab961cb90f` corrects that path and has a passing real local Auth-to-Mailpit-to-browser proof plus independent focused security review. The candidate aggregate NFR result is therefore **CONCERNS**, with **MEDIUM** risk; it is not release evidence while PR #62 CI, merge, deployment, and hosted Auth configuration remain pending. Performance has a real local observation but no owner-approved target. PR #61 closed all nine recorded test-maintenance findings; maintainability retains only the separate owner decision on whether quantitative coverage/duplication targets are required.
+The currently released application remains **FAIL / HIGH** for reliability until the callback repair is merged and deployed: its server-only callback cannot consume Supabase Auth's implicit session fragment. Candidate PR [#62](https://github.com/rthunborg/ElproSaas/pull/62) at `b9d533d` corrects that path and has a passing real local Auth-to-Mailpit-to-browser proof plus independent focused security review. The candidate aggregate NFR result is therefore **CONCERNS**, with **MEDIUM** risk; it is not release evidence while PR #62 and dependent NFR PR [#63](https://github.com/rthunborg/ElproSaas/pull/63) remain unmerged, required CI cannot run, deployment is pending, and hosted Auth configuration is unverified. GitHub currently refuses to start required runners because of a billing, payment, or spending-limit condition. No required check is bypassed. Performance has a real local observation but no owner-approved target. PR #61 closed all nine recorded test-maintenance findings; maintainability retains only the separate owner decision on whether quantitative coverage/duplication targets are required.
 
 | Domain | Candidate status | Evidence and limit |
 | --- | --- | --- |
 | Security | **PASS** | Identity acceptance is bound to the trusted confirmed Auth user at the database boundary. Required direct-RPC mismatch and legitimate-acceptance regressions executed with zero DB skips; deployed function inspection matched the merged correction. Broader security controls retain their existing evidence and advisory limitations. |
 | Performance | **CONCERNS** | R-1108 measured the production Admin-members tenant projection through an authenticated Tenant-A client at 120 active memberships, with a separate 24-member Tenant B. Across 25 samples after five warmups, list-read p95 was **45.72 ms**. A separate synthetic bulk effective-permissions calculation over all 120 rows had p95 **2.58 ms** for 2,224 resolved grants; the product computes one selected member's effective permissions rather than this bulk loop. The tenant projection used three authenticated RLS requests per iteration, excluding tenant-context resolution and rendering. These are local observations, not an approved SLO or capacity limit. |
 | Reliability | **CONCERNS** | The corrected local transport smoke preserved multiple callback markers for invite and recovery. PR #62 then passed two real production-server browser journeys with zero skips: invitation session to database membership activation, and recovery session to persisted password update plus fresh sign-in. The previously tracked reset-retry command/action seam landed separately in PR #60. PR #62 is not merged or deployed, hosted Supabase Auth settings are not inspected, external SMTP is unproved, and availability/recovery targets remain open. |
-| Maintainability | **CONCERNS** | PR #61 was merged and deployed at `3dd292a`; CI run 34846239517 passed 1,753 units / 0 skipped, 1,028 required integration/RLS tests / 0 skipped, and 136 browser tests with four explicit skips. Independent focused review scored 100/100 and closed all nine recorded clock, support-file, hydration/readiness, naming, and grouping findings. The callback candidate separately passed three focused units, typecheck, build, focused lint, a 13-reference review-order check, and independent focused review; its full branch CI remains pending. Only the owner decision on quantitative coverage/duplication targets remains in this category. |
+| Maintainability | **CONCERNS** | PR #61 was merged and deployed at `3dd292a`; CI run 34846239517 passed 1,753 units / 0 skipped, 1,028 required integration/RLS tests / 0 skipped, and 136 browser tests with four explicit skips. Independent focused review scored 100/100 and closed all nine recorded clock, support-file, hydration/readiness, naming, and grouping findings. The callback candidate separately passed three focused units, typecheck, build, focused lint, a 14-reference review-order check, independent focused review, and the complete configured local production-browser suite at its current code head: 138 passed / four explicit skips / zero failed. Required GitHub CI is externally blocked: PR #62 run [34849927884](https://github.com/rthunborg/ElproSaas/actions/runs/34849927884) completed only `verify` (1,756 units / 0 skipped), while its `db` and `e2e` jobs received no runner and executed no steps; PR #63 run [34849940369](https://github.com/rthunborg/ElproSaas/actions/runs/34849940369) received no runner for `verify`, so dependent jobs were job-skipped rather than test-executed. Only the billing unblock, full required rerun, and the owner decision on quantitative coverage/duplication targets remain in this category. |
 
 ### R-1108 evidence disposition
 
@@ -259,9 +259,11 @@ Candidate pilot acceptance limits proposed for owner review are: the documented 
 
 The first local Mailpit and browser observations remain useful historical RED evidence for the released route: Supabase generated implicit session fragments that the server callback could not read, so ordinary invite and recovery journeys reached login. The original transport helper did not safely prove nested callback-query preservation because it decoded the complete verification URL. The corrected helper decodes HTML entities only, enforces local Supabase and loopback Mailpit before mutation, and verified the actual 303 origin/path plus two fixed context fields and a unique run marker for both flows without logging URLs, tokens, or fragments.
 
-PR #62 moves only the implicit-fragment handoff to a browser completion page. It strips the fragment from history before creating the public Supabase client, persists the explicit access/refresh pair through `setSession`, revalidates the user through `getUser`, and routes only to fixed application destinations. The server callback uses the deployment-owned application origin and fails closed when that origin is absent in production. Independent focused review found no remaining security, identity-binding, same-origin, session-persistence, or privileged-client defect. The replacement guarded Playwright run at 2026-09-14T13:16:05Z–13:16:18Z executed **2/2 passed, 0 skipped** in 12.4 seconds: the invite journey activated the exact membership for the mailed Auth user, while recovery persisted a new password and a fresh anon-client sign-in returned the same user. Tracing was disabled for the token-bearing flow.
+PR #62 moves only the implicit-fragment handoff to a browser completion page. It strips the fragment from history before creating the public Supabase client, persists the explicit access/refresh pair through `setSession`, revalidates the user through `getUser`, and routes only to fixed application destinations. The server callback uses the deployment-owned application origin and fails closed when that origin is absent in production. Independent focused review found no remaining security, identity-binding, same-origin, session-persistence, or privileged-client defect. The replacement guarded Playwright run at 2026-09-14T13:16:05Z–13:16:18Z executed **2/2 passed, 0 skipped** in 12.4 seconds against the earlier candidate: the invite journey activated the exact membership for the mailed Auth user, while recovery persisted a new password and a fresh anon-client sign-in returned the same user. Tracing was disabled for the token-bearing flow. Candidate `b9d533d` adds only the reviewed CI environment requirement needed for those tests to execute in GitHub.
 
-Accordingly, the controlled local R-1109 transport-and-callback boundary is **PASS for the PR #62 candidate**. The currently deployed route remains FAIL until that candidate passes CI, merges, and deploys. Vercel Production has the canonical `NEXT_PUBLIC_APP_URL`, but hosted Supabase Auth site URL, exact redirect allow-list, and templates have not been inspected. External SMTP deliverability and recipient-mailbox acceptance still require an approved non-demo Supabase project plus a controlled mailbox; no hosted delivery evidence is claimed here.
+The complete configured local production-browser suite then ran against NFR code head `d94c593907e33c235a7bb7b6165c62a93ddc6055` with only documentation changes uncommitted. From 2026-09-14T13:39:02.620Z to 13:40:58.089Z, at the CI-equivalent port 3100 with `SUPABASE_TEST_REQUIRED=1` and `NEXT_PUBLIC_APP_URL=http://127.0.0.1:3100`, Playwright executed **142 total: 138 passed, four explicitly skipped, zero failed** in 1.9 minutes. This includes both real Auth-mail journeys and all 136 previously passing browser cases. The guarded resource stop was accepted. The ignored raw log and result JSON remain under `tmp/private/`.
+
+Accordingly, the controlled local R-1109 transport-and-callback boundary is **PASS for the reviewed PR #62 code candidate**. The current-head full local browser result is strong corroborating evidence, but it does not substitute for the required GitHub checks and does not authorize a merge. The currently deployed route remains FAIL until required CI runs, the candidate merges, and it deploys. Vercel Production has the canonical `NEXT_PUBLIC_APP_URL`, but hosted Supabase Auth site URL, exact redirect allow-list, and templates have not been inspected. External SMTP deliverability and recipient-mailbox acceptance still require an approved non-demo Supabase project plus a controlled mailbox; no hosted delivery evidence is claimed here.
 
 ### Availability, recovery, and operational limits
 
@@ -273,11 +275,11 @@ The demo login probe and release-window error-log inspection are useful deployab
 nfr_assessment:
   date: '2026-09-14'
   epic: '11'
-  assessed_revision: 'PR #62 candidate 12bb90b908412d1d7e6abcd080d77eab961cb90f plus NFR evidence c0ba50d'
+  assessed_revision: 'PR #62 candidate b9d533d plus dependent NFR PR #63 code head d94c593907e33c235a7bb7b6165c62a93ddc6055'
   mode: advisory
   overall_status: 'CONCERNS'
   overall_risk: 'MEDIUM'
-  released_application_status: 'FAIL/HIGH until PR #62 is merged, deployed, and its hosted callback configuration is verified'
+  released_application_status: 'FAIL/HIGH until required CI runs, PR #62 is merged/deployed, and hosted callback configuration is verified'
   domains:
     security: 'PASS'
     performance: 'CONCERNS'
@@ -287,7 +289,7 @@ nfr_assessment:
   high_priority_issues: 0
   closed_release_blocker: 'Authenticated direct-RPC invitation identity binding bypass'
   candidate_closed_issue: 'Local Auth emailed-link callback persists the implicit-flow session and completes invite/recovery journeys'
-  advisory_open_issue: 'Candidate release/hosted Auth configuration plus performance, recovery, operational, and coverage/duplication owner decisions'
+  advisory_open_issue: 'GitHub billing blocks required CI; candidate release/hosted Auth configuration plus performance, recovery, operational, and coverage/duplication owner decisions remain'
   measured_evidence:
     latest_released_ci: 'PR #61 at 3dd292a; run 34846239517; 1753 unit / 0 skipped; 1028 required integration/RLS / 0 skipped; 136 browser passed / 4 skipped'
     test_maintenance_closure: '9/9 recorded rows closed; independent focused review 100/100'
@@ -297,18 +299,23 @@ nfr_assessment:
     r1108_authenticated_requests_per_iteration: 3
     r1109_local_transport: 'invite and recovery received; Auth verification redirected to configured callback'
     r1109_local_browser: '2 passed / 0 skipped; invitation activated matching membership; recovery persisted password and fresh sign-in'
-    callback_candidate_checks: '3 unit passed; typecheck/build/focused lint passed; review order 13 references/0 errors; independent focused review clear'
+    callback_candidate_checks: '3 unit passed; typecheck/build/focused lint passed; review order 14 references/0 errors; independent focused review clear'
+    prior_pr62_ci: 'https://github.com/rthunborg/ElproSaas/actions/runs/34848411280 — verify 1756 unit / 0 skipped; DB 1028 / 0 skipped; browser 136 passed / 4 skipped / 2 failed at the missing-required-env guard'
+    current_pr62_ci: 'https://github.com/rthunborg/ElproSaas/actions/runs/34849927884 — verify passed 1756 unit / 0 skipped; db and e2e received no runner and executed no steps because of GitHub billing/payment/spending limit'
+    current_pr63_ci: 'https://github.com/rthunborg/ElproSaas/actions/runs/34849940369 — verify received no runner because of GitHub billing/payment/spending limit; dependent db/e2e job-skips are not executed test coverage'
+    current_head_local_browser: '2026-09-14T13:39:02.620Z–13:40:58.089Z; CI-equivalent port 3100; SUPABASE_TEST_REQUIRED=1; 142 total / 138 passed / 4 explicit skips / 0 failed; both real Auth-mail journeys passed'
   proposed_not_approved_limits:
     r1108_admin_read_p95_ms: 250
     r1108_effective_permissions_p95_ms: 25
     r1108_authenticated_requests_per_iteration: 3
     r1108_dataset: 'Tenant A 120 active; Tenant B 24 active'
   open_evidence:
-    - 'PR #62 full CI, merge, deployment, and post-deploy callback verification'
+    - 'Manual GitHub billing/payment/spending-limit resolution, then full required PR #62 and PR #63 CI without bypass'
+    - 'PR #62/#63 merge, deployment, and post-deploy callback verification after required CI passes'
     - 'Hosted Supabase Auth site URL, exact redirect allow-list, and template inspection'
     - 'External SMTP delivery only if an approved non-demo environment is provided'
     - 'Availability/error/MTTR targets, monitoring retention, and alert policy'
     - 'Passing recovery rehearsal plus approved hosted backup policy, RPO, and RTO'
     - 'Owner decision on quantitative coverage and duplication requirements'
-  next_action: 'Complete PR #62 CI/merge/deployment and hosted Auth verification, then obtain the remaining owner decisions and reassess CONCERNS.'
+  next_action: 'Resolve the GitHub account billing block, rerun all required PR #62/#63 checks, then merge/deploy and verify hosted Auth before reassessing CONCERNS.'
 ```
