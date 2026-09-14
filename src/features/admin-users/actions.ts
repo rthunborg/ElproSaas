@@ -30,9 +30,9 @@ export async function lifecycleAdminUserAction(_: AdminUsersActionState, form: F
     ? await resendAdminUserInvitation({ membershipId, operationId: form.get("operationId") })
     : await changeMembershipLifecycle({ action, membershipId, roles, reason: form.get("reason"), operationId: form.get("operationId") });
   if (!result.ok) return result.code === "ADMIN_USER_ACTION_UNCERTAIN"
-    ? result.reconciliation === "observed"
-      ? { status: "error", message: "Leveransen är fortfarande oklar efter kontroll. Du kan nu skicka en ny inbjudan.", retryWithNewOperation: true }
-      : { status: "error", message: result.reconciliation === "unavailable" ? "Leveransen är oklar och kunde inte kontrolleras. Försök igen för att kontrollera den tidigare åtgärden." : "Leveransen är oklar. Försök igen för att kontrollera den tidigare åtgärden." }
+    ? "retryWithNewOperation" in result && result.retryWithNewOperation === true
+      ? { status: "error", message: action === "reset" ? "Återställningen är fortfarande oklar efter kontroll. Du kan nu skicka en ny återställning." : "Leveransen är fortfarande oklar efter kontroll. Du kan nu skicka en ny inbjudan.", retryWithNewOperation: true }
+      : { status: "error", message: action === "reset" ? (result.reconciliation === "unavailable" ? "Återställningen är oklar och kunde inte kontrolleras. Försök igen för att kontrollera den tidigare åtgärden." : "Återställningen är oklar. Försök igen för att kontrollera den tidigare åtgärden.") : (result.reconciliation === "unavailable" ? "Leveransen är oklar och kunde inte kontrolleras. Försök igen för att kontrollera den tidigare åtgärden." : "Leveransen är oklar. Försök igen för att kontrollera den tidigare åtgärden.") }
     : { status: "error", message: "Ändringen kunde inte genomföras." };
   revalidatePath(`/admin/users/${membershipId}`); revalidatePath("/admin/users");
   return { status: "success", message: "Ändringen har bekräftats." };

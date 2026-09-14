@@ -4,6 +4,13 @@ import { resolveTenantContext } from "@/server/auth/resolve-tenant-context";
 import { createRuntimeAdminUserService } from "@/server/auth/admin-user-service";
 
 const denied = { ok: false as const, code: "ADMIN_USER_ACTION_DENIED" as const };
+const uncertain = (operationId: string, reconciliation: "not_attempted" | "observed" | "unavailable", retryWithNewOperation = false) => ({
+  ok: false as const,
+  code: "ADMIN_USER_ACTION_UNCERTAIN" as const,
+  operationId,
+  reconciliation,
+  retryWithNewOperation,
+});
 const actions = new Set(["revoke", "reset", "disable", "reactivate", "re_role", "end"]);
 const roles = new Set(["tenant_admin", "projektledare", "montor", "saljare", "ekonomi"]);
 function redirectBase() {
@@ -32,11 +39,20 @@ export async function changeMembershipLifecycle(input: {
       p_operation_id: operationId,
     });
     const outcome = data && typeof data === "object" && "outcome" in data && typeof (data as { outcome?: unknown }).outcome === "string" ? (data as { outcome: string }).outcome : "";
+    const replayed = data && typeof data === "object" && "replayed" in data && (data as { replayed?: unknown }).replayed === true;
     if (error || !data || !outcome) return denied;
     if (input.action !== "reset") return { ok: true as const };
-    // A replay must never send another reset email after the operation became
-    // terminal. Pending is the sole state allowed to perform delivery.
-    if (outcome !== "pending") return outcome === "succeeded" ? { ok: true as const } : denied;
+    // A replay is always reconciliation-only. Only a newly-created pending
+    // operation can reach the provider, so repeated browser submissions never
+    // duplicate a reset delivery.
+    if (replayed) {
+      const { data: reconciled, error: reconcileError } = await client.rpc("admin_reconcile_membership_operation", { p_operation_id: operationId });
+      const reconciledOutcome = !reconcileError && reconciled && typeof reconciled === "object" && "outcome" in reconciled && typeof (reconciled as { outcome?: unknown }).outcome === "string"
+        ? (reconciled as { outcome: string }).outcome : "";
+      if (reconciledOutcome === "succeeded") return { ok: true as const };
+      return uncertain(operationId, reconcileError ? "unavailable" : "observed", reconciledOutcome === "uncertain");
+    }
+    if (outcome !== "pending") return denied;
     const { data: member, error: memberError } = await client.from("tenant_memberships")
       .select("invited_email").eq("id", input.membershipId).maybeSingle();
     if (memberError || !member || typeof member.invited_email !== "string") return denied;
