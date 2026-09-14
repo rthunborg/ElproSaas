@@ -4,7 +4,7 @@ type: 'feature'
 created: '2026-09-11'
 status: 'done'
 review_loop_iteration: 0
-followup_review_recommended: true
+followup_review_recommended: false
 baseline_revision: 'd939a8e9f1b1618d1195abea4e7eda1c5a9efa5f'
 baseline_commit: 'NO_VCS'
 context:
@@ -106,7 +106,7 @@ The catalogue is a presentation projection, not an alternate authorization engin
 ## Suggested Review Order
 
 Author: Story 11.4 follow-up fix author.
-Refreshed against the PR #55 follow-up working tree after current-tenant scoping, complete Admin-read pagination, and independent command-enrollment verification.
+Current-tenant scoping, complete Admin-read pagination, and independent command-enrollment verification were delivered in PR #55. The PR #59 documentation fix author refreshed the evidence and completion metadata against merged source `5cc08d2b15b161e4742ddddc3283be4a3c03a059`, preserving the implementation author's rationale and review stops below.
 
 ### Current-tenant roles presentation
 
@@ -136,9 +136,11 @@ The command registry is independently cross-checked from source declarations rat
 - `tests/integration/read-models/admin-users-current-tenant.test.ts:40` — `resolves the current tenant`: mocks the production entry point and checks both queries use its resolved tenant.
 - `tests/integration/rls/admin-users-current-tenant-counts.rls.test.ts:25` — `a multi-tenant Admin`: uses a real authenticated client to distinguish broad RLS visibility from the current-tenant projection.
 
-Evidence: focused pure read-model tests passed 4/4; focused mocked production-read Vitest test passed 1/1. The independent enrollment worker reports its focused suite passed 4/4. The prior focused review passed 71 distinct unit tests and 240 synthetic core cases.
+Historical focused evidence: pure read-model tests passed 4/4; mocked production-read Vitest test passed 1/1. The independent enrollment worker reported its focused suite passed 4/4. The prior focused review passed 71 distinct unit tests and 240 synthetic core cases.
 
-Limits: local Supabase was unavailable for this follow-up; the new real-client multi-tenant RLS regression skipped locally and remains for CI or a restored local stack. The invitation-acceptance RPC identity-binding defect is confirmed pre-existing to this PR and remains a release blocker. Generated command probes still establish the shared envelope boundary rather than every business mutation body.
+Release evidence: post-merge main CI [34839174668](https://github.com/rthunborg/ElproSaas/actions/runs/34839174668) passed at `5cc08d2`: 1,751 unit tests / 0 skipped; 101 required integration/RLS files / 1,023 passed / 0 skipped, including the real authenticated multi-tenant count and invitation-identity regressions; 136 browser tests passed / 4 skipped. Typecheck, lint, build, and containment checks passed. This is recorded CI execution, not a new application test run for the documentation fix. [Release verification](../../docs/quality/epic-11-release-verification-2026-09-14.md) records the deployed revision and evidence limits.
+
+Limits: the earlier local Supabase outage and skipped regression remain historical non-coverage; the required CI run above supplies executed database evidence. The invitation-identity release blocker is closed as fixed, verified, and deployed. Generated command probes still establish the shared envelope boundary rather than every business mutation body. NFR remains CONCERNS; the retrospective remains rejected for the separate unimplemented reset-retry seam, and advisory test maintenance remains open.
 
 ## Verification
 
@@ -152,6 +154,8 @@ Limits: local Supabase was unavailable for this follow-up; the new real-client m
 
 ## Auto Run Result
 
+The initial run and follow-up results below are historical. The post-release reconciliation at the end of this section records the current completion status and review recommendation.
+
 Summary: Added a server-derived five-role catalogue and effective-permissions presentation to `/admin/users`, including active-only role counts, Swedish grant annotations, and job-scoped `Arbetsledare` guidance. Added a manifest/matrix/inventory/command-derived authorization harness with explicit direct-RLS exceptions for existing tenancy-context and sensitive-table contracts.
 
 Files changed:
@@ -163,7 +167,7 @@ Files changed:
 
 Review findings: 4 high-severity patches applied, 0 deferred, 10 low-severity findings rejected. The cross-model reviewer command exited successfully but produced no output, so it is not counted as review evidence.
 
-Follow-up review recommendation: true. Patched findings: high 4, medium 0, low 0; score is high-triggered.
+Historical follow-up review recommendation: true. Patched findings: high 4, medium 0, low 0; score is high-triggered.
 
 Verification: `pnpm run typecheck`, `pnpm run lint`, `pnpm run test:unit` (1,731 passed), `SUPABASE_TEST_REQUIRED=1 pnpm run test:int` (97 files, 1,016 passed, 0 skipped), focused role harness integration (5 passed, 0 skipped; 145 table-by-role cases), containment checks, build, and full guarded Playwright E2E (`test-results/.last-run.json` reports passed with no failed tests).
 
@@ -181,14 +185,22 @@ Files changed:
 
 Review findings: patches applied 7 (high 1, medium 5, low 1); deferred 0; rejected 5. The configured cross-model command was run once but produced no output artifact, so it is not review evidence.
 
-Follow-up review recommendation: true. Score: `3 × 5 + 1 × 1 = 16`.
+Historical follow-up review recommendation: true. Score: `3 × 5 + 1 × 1 = 16`.
 
 Verification: `pnpm run typecheck`; `pnpm run lint`; `pnpm run test:unit` (94 suites, 1,734 tests); `SUPABASE_TEST_REQUIRED=1 pnpm run test:int` (97 files, 1,016 tests, 0 skips); source containment; full Playwright (`test-results/.last-run.json`: passed, no failed tests); `pnpm run build`; built-bundle containment.
 
 Residual risks: the generated command harness intentionally proves the shared production envelope boundary rather than each individual business mutation body. Existing direct-RLS exceptions for tenant context and raw quote-review/acceptance tables remain intentional policy distinctions, verified outside generic matrix grants.
 
-### 2026-09-14 — Checkpoint metadata (outside author review order)
+### 2026-09-14 — Pre-approval checkpoint metadata (historical)
 
 Focused review at `49394f3c04b8cac6101d3ed007156fd546c3e51d` reviewed the PR #55 bounded corrections at `dcb718c53d8aab7245d9d3e24776d2a33581bf1b`: current-tenant role-count scoping, complete membership/child-role pagination, and independent production command enrollment. Result: no new consequential defect; all 13 author review stops were valid. The reviewer ran no new commands. Recorded CI run `34712355388` passed 1,748 units, 1,020 required integration/RLS tests with zero skips, and 134 browser tests with four skips.
 
-This metadata records a focused review result only. Story 11.4 remains `review` pending the human checkpoint; it does not change approval, merge, deployment, or the separate invitation-identity security finding. The prior cross-model CLI's empty output remains historical unavailable evidence.
+At this checkpoint, Story 11.4 remained `review` pending human approval; the focused review alone did not authorize approval, merge, deployment, or closure of the separate invitation-identity security finding. The post-release reconciliation below supersedes that pending status. The prior cross-model CLI's empty output remains historical unavailable evidence.
+
+### 2026-09-14 — Post-release reconciliation
+
+Current status: `done`; `followup_review_recommended: false`, matching the Story 11.4 execution state and sprint tracker. The owner-approved sequence merged PR #57 (`9dd6e74`), PR #58 (`7b0b991`), and PR #55 (`5cc08d2`) and deployed the merged migrations and application. The recorded focused reviews, completed human checkpoint, and release evidence close the Story 11.4 follow-up recommendation and retrospective actions 1–3. The earlier no-output cross-model invocations are still excluded from review evidence.
+
+The Suggested Review Order above links the passing CI and release verification for the merged revision. Story delivery and Epic 11 are complete in sprint status; the separate reset-retry correctness seam keeps the retrospective rejected, NFR remains CONCERNS, and advisory test maintenance remains open. Completion was reconciled after release without a sanctioned Auto-BMAD phase flip, so both execution records retain `bmad_status_flipped_at: null`.
+
+Documentation-fix verification: the review-order reference checker validated all 13 stops. Targeted state readback, tracker/metadata consistency, relative-link resolution, unchanged intent-contract comparison, and `git diff --check` passed. Application tests were not rerun for this documentation-only correction.
