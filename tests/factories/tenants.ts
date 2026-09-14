@@ -85,6 +85,8 @@ export interface MembershipSeed {
   readonly user_id: string;
   readonly role: string;
   readonly status: string;
+  /** Canonical tenant-scoped identity displayed by the Admin users read model. */
+  readonly invited_email?: string;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -286,7 +288,7 @@ export async function seedRoleAwarePhaseAUsers(
     adminInsertMembership({ tenant_id: base.tenantA.id, user_id: montor.id, role: "montor", status: "active" }),
     adminInsertMembership({ tenant_id: base.tenantA.id, user_id: saljare.id, role: "saljare", status: "active" }),
     adminInsertMembership({ tenant_id: base.tenantA.id, user_id: ekonomi.id, role: "ekonomi", status: "active" }),
-    adminInsertMembership({ tenant_id: base.tenantA.id, user_id: roleUnionUser.id, role: "tenant_admin", status: "active" }),
+    adminInsertMembership({ tenant_id: base.tenantA.id, user_id: roleUnionUser.id, role: "tenant_admin", status: "active", invited_email: roleUnionUser.email }),
     adminInsertMembership({ tenant_id: base.tenantA.id, user_id: invitedUser.id, role: "saljare", status: "invited" }),
     adminInsertMembership({ tenant_id: base.tenantA.id, user_id: disabledUser.id, role: "montor", status: "disabled" }),
   ]);

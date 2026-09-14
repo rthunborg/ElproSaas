@@ -60,7 +60,7 @@
 # use the current Epic 10 statuses and approved corrective-story entries below.
 
 generated: 2026-06-12
-last_updated: 09-10-2026 21:15  # ADR-B009 connected-field course correction verified; governance Story 10.7 done, no PWA/offline functionality delivered.
+last_updated: 09-11-2026 18:00  # ADR-B009 connected-field course correction verified; governance Story 10.7 done, no PWA/offline functionality delivered.
 project: ElproSaas
 project_key: NOKEY
 tracking_system: file-system
@@ -108,7 +108,8 @@ development_status:
   # so the auto-bmad picker (first `backlog` in file order) selects it before Epic 6.
   # It is a hard dependency for Epic 6 stories 6.1 and 6.3 (see execution-order note above).
   # The rest of Epic 8 (8.2-8.5) stays in the epic-8 block below.
-  8-1-file-storage-foundation-private-bucket-metadata-links-rls-and-signed-access-command: done
+  8-1-file-storage-foundation-private-bucket-metadata-links-rls-and-signed-access-command: 
+    done
 
   epic-6: done
   6-1-quote-snapshot-schema-and-server-side-version-creation: done
@@ -213,10 +214,11 @@ development_status:
   11-1-role-storage-and-permission-matrix-mechanism: done
   # 11-2 ships the entitlement seed as a flagged conservative default
   # [gated: N-4 — confirmation is a config-level matrix edit; mechanism ungated].
-  11-2-non-admin-access-to-the-phase-a-surface-matrix-seed-role-aware-rls-nav-and-landing: done
+  11-2-non-admin-access-to-the-phase-a-surface-matrix-seed-role-aware-rls-nav-and-landing: 
+    done
   11-3-admin-user-management: done
-  11-4-roles-surface-effective-permissions-and-the-per-role-test-harness: backlog
-  epic-11-retrospective: optional
+  11-4-roles-surface-effective-permissions-and-the-per-role-test-harness: review
+  epic-11-retrospective: done
 
   epic-12: backlog
   12-1-platform-operator-identity-and-the-provision-tenant-command: backlog
@@ -354,3 +356,39 @@ development_status:
 # - Phase A entries (epics 1-9) preserved byte-for-byte; epics 7/8/9 remain
 #   `in-progress` because the epic→done transition is manual per this file's
 #   conventions and flipping them is not this run's call.
+action_items:
+  - id: "epic-11-retro-item-1-bind-invitation-acceptance-to-authentica"
+    epic: 11
+    action: "Carry the verified identity-binding candidate through human approval, merge,
+      and migration deployment before closing the main/demo release blocker."
+    owner: "RBAC/security owner"
+    status: in-progress
+    ref: "C:\\DEV\\ElproSaas\\_bmad-output\\implementation-artifacts\\epic-11-retro-2026-09-11.md"
+  - id: "epic-11-retro-item-2-complete-expired-invitation-recovery-acc"
+    epic: 11
+    action: "Carry the verified lifecycle candidate through published-head checks, human approval,
+      merge, and deployment; retain the separate reset-retry seam."
+    owner: "Admin-user feature owner"
+    status: in-progress
+    ref: "C:\\DEV\\ElproSaas\\_bmad-output\\implementation-artifacts\\epic-11-retro-2026-09-11.md"
+  - id: "epic-11-retro-item-3-complete-story-11-4-follow-up-review-wit"
+    epic: 11
+    action: "Prepare the Story 11.4 human checkpoint from the recorded focused review
+      evidence; retain review status until that authorized decision."
+    owner: "Epic 11 delivery owner"
+    status: in-progress
+    ref: "C:\\DEV\\ElproSaas\\_bmad-output\\implementation-artifacts\\epic-11-retro-2026-09-11.md"
+  - id: "epic-11-retro-item-4-freeze-retry-fixture-time-split-oversize"
+    epic: 11
+    action: "Freeze retry-fixture time, split oversized support files, and add Roles-page
+      readiness signals before rerunning the quality audit."
+    owner: "QA/test owner"
+    status: open
+    ref: "C:\\DEV\\ElproSaas\\_bmad-output\\implementation-artifacts\\epic-11-retro-2026-09-11.md"
+  - id: "epic-11-retro-item-5-repair-reset-retry-command-action-seam"
+    epic: 11
+    action: "Repair and verify reset retry so provider/finalizer failure preserves a reconciliable
+      outcome and a retry can redeliver when appropriate."
+    owner: "Admin-user feature owner"
+    status: open
+    ref: "C:\\DEV\\ElproSaas\\_bmad-output\\implementation-artifacts\\epic-11-retro-2026-09-11.md"

@@ -1,0 +1,20 @@
+{
+  "story_id": "11.4",
+  "tdd_phase": "RED",
+  "total_tests": 7,
+  "integration_tests": 4,
+  "e2e_tests": 3,
+  "all_tests_skipped": true,
+  "expected_to_fail_when_activated": true,
+  "fixture_implementation_created": false,
+  "fixture_handoff": "tests/support/authz/role-harness.ts and an isolated local-Supabase role fixture are implementation-stage test seams.",
+  "generated_test_files": [
+    "C:\\DEV\\ElproSaas\\tests\\integration\\rls\\role-harness.atdd.int.test.ts",
+    "C:\\DEV\\ElproSaas\\tests\\e2e\\auth\\admin-user-management-roles.atdd.e2e.spec.ts"
+  ],
+  "validation": {
+    "vitest_collection": "passed: 4 skipped",
+    "playwright_collection": "passed: 3 discovered",
+    "typecheck": "passed"
+  }
+}

@@ -1069,7 +1069,7 @@ export default async function globalSetup() {
     adminUserManagement: {
       tenantAdmin: base.adminA,
       nonAdmin: roleAware.users.montor,
-      sharedAccount: base.adminB,
+      sharedAccount: roleAware.roleUnionUser,
       expiredMembershipId,
       invitationAcceptance: { user: roleAware.invitedUser, membershipId: acceptanceMembership.id, attemptToken: acceptanceAttemptToken },
     },

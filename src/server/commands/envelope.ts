@@ -44,7 +44,11 @@ type CommandCapability = NonNullable<CommandConfig<unknown, unknown>["capability
  * mutation a matrix capability before validation, ownership lookup, execution,
  * or audit. New commands must be added here or remain fail-closed.
  */
-const COMMAND_CAPABILITIES: Readonly<Record<string, CommandCapability>> = {
+/**
+ * Closed command-to-capability metadata, exported for the authorization harness.
+ * It remains server-only and is validated against the active matrix by tests.
+ */
+export const COMMAND_CAPABILITIES: Readonly<Record<string, CommandCapability>> = {
   "customer.create": { module: "crm", capability: "Customers.Create" },
   "customer.update": { module: "crm", capability: "Customers.Edit" },
   "customer.archive": { module: "crm", capability: "Customers.Delete" },
@@ -176,8 +180,15 @@ export type RunCommandOptions = {
 
 /** Declare a reusable command. Pure — performs no I/O until `runCommand`. */
 export function defineCommand<I, R>(config: CommandConfig<I, R>): Command<I, R> {
-  const capability = config.capability ?? COMMAND_CAPABILITIES[config.command];
-  return { config: { ...config, ...(capability ? { capability } : {}) } };
+  const enrolled = COMMAND_CAPABILITIES[config.command];
+  if (!enrolled && !config.capability) {
+    throw new Error(`command capability enrollment missing: ${config.command}`);
+  }
+  if (enrolled && config.capability && (config.capability.module !== enrolled.module || config.capability.capability !== enrolled.capability)) {
+    throw new Error(`command capability enrollment missing: ${config.command}`);
+  }
+  if (!enrolled) return { config };
+  return { config: { ...config, capability: enrolled } };
 }
 
 /**

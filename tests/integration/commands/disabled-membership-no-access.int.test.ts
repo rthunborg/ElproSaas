@@ -66,6 +66,7 @@ beforeAll(async () => {
 function makeNoopCommand() {
   return defineCommand<{ note: string }, { targetId: string; note: string }>({
     command: "tenant.noop",
+    capability: { module: "foundation", capability: "Memberships.Manage" },
     auditable: true,
     eventType: "tenant.noop.executed",
     targetType: "tenant",

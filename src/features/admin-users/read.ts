@@ -1,35 +1,65 @@
 import { createSupabaseServerClient } from "@/server/db/supabase-server-client";
+import { resolveTenantContext } from "@/server/auth/resolve-tenant-context";
+import { buildRoleCatalogue, effectivePermissionsForMembership, resolveMembershipRoles, type EffectivePermissionGrant, type RoleCatalogue } from "@/server/authz/role-catalogue";
+import { isTenantRole, type TenantRole } from "@/server/authz/roles";
+import { readAdminUsersForTenant, type AdminUserRow, type AdminUsersReadClient } from "./read-model";
 
-export type AdminUserRow = { id: string; email: string | null; status: string; role: string; roles: readonly string[]; createdAt: string };
+export type { AdminUserRow } from "./read-model";
 type MembershipReadRow = { id?: unknown; invited_email?: unknown; status?: unknown; role?: unknown; created_at?: unknown };
 const ERROR = "Användarna kunde inte läsas. Försök igen om en stund.";
+
+export type AdminUsersRoleSurface = { readonly catalogue: RoleCatalogue | null; readonly error: string | null };
+
+function activeRoleCounts(rows: readonly { status?: unknown; role?: unknown; roles?: readonly unknown[] }[]): Partial<Record<TenantRole, number>> {
+  const counts: Partial<Record<TenantRole, number>> = {};
+  for (const row of rows) {
+    if (row.status !== "active") continue;
+    for (const role of new Set([row.role, ...(row.roles ?? [])].filter(isTenantRole))) counts[role] = (counts[role] ?? 0) + 1;
+  }
+  return counts;
+}
+
+/** Reuses the current-tenant member projection; no second page read is needed for role cards. */
+export function roleCatalogueForAdminUsers(rows: readonly AdminUserRow[]): RoleCatalogue {
+  return buildRoleCatalogue(activeRoleCounts(rows));
+}
 
 export async function readAdminUsers(): Promise<{ rows: AdminUserRow[]; error: string | null }> {
   try {
     const client = await createSupabaseServerClient();
-    const { data, error } = await client.from("tenant_memberships").select("id, invited_email, status, role, created_at, invitation_expires_at").order("created_at", { ascending: false });
-    if (error) return { rows: [], error: ERROR };
-    const ids = (data ?? []).map((row: MembershipReadRow) => String(row.id)); const { data: roleRows, error: roleError } = await client.from("membership_roles").select("membership_id, role").in("membership_id", ids);
-    if (roleError) return { rows: [], error: ERROR };
-    const byMembership = new Map<string, string[]>(); for (const row of roleRows ?? []) { const id = String((row as { membership_id?: unknown }).membership_id); const role = (row as { role?: unknown }).role; if (typeof role === "string") byMembership.set(id, [...(byMembership.get(id) ?? []), role]); }
-    return { rows: (data ?? []).map((row: MembershipReadRow & { invitation_expires_at?: unknown }) => { const expires = typeof row.invitation_expires_at === "string" ? Date.parse(row.invitation_expires_at) : NaN; const status = String(row.status) === "invited" && Number.isFinite(expires) && expires <= Date.now() ? "expired" : String(row.status); return { id: String(row.id), email: typeof row.invited_email === "string" ? row.invited_email : null, status, role: String(row.role), roles: byMembership.get(String(row.id)) ?? [String(row.role)], createdAt: String(row.created_at) }; }), error: null };
+    // An Admin can have visible memberships in more than one tenant. Bind this view to the
+    // same membership-derived current tenant as commands and route access.
+    const context = await resolveTenantContext({ client });
+    if (!context.ok) return { rows: [], error: ERROR };
+    return await readAdminUsersForTenant(client as unknown as AdminUsersReadClient, context.data.tenantId);
   } catch { return { rows: [], error: ERROR }; }
 }
 
-export type AdminUserDetail = AdminUserRow & { events: readonly { id: string; eventType: string; createdAt: string }[] };
+/** Reads the role cards from tenant-scoped memberships; lifecycle states never affect authority. */
+export async function readAdminUsersRoleSurface(): Promise<AdminUsersRoleSurface> {
+  const users = await readAdminUsers();
+  if (users.error) return { catalogue: null, error: users.error };
+  return { catalogue: roleCatalogueForAdminUsers(users.rows), error: null };
+}
+
+export type AdminUserDetail = AdminUserRow & { events: readonly { id: string; eventType: string; createdAt: string }[]; effectivePermissions: readonly EffectivePermissionGrant[] };
 export async function readAdminUserDetail(membershipId: string): Promise<{ detail: AdminUserDetail | null; error: string | null }> {
   try {
     const client = await createSupabaseServerClient();
+    const context = await resolveTenantContext({ client });
+    if (!context.ok) return { detail: null, error: ERROR };
     const { data: membership, error: membershipError } = await client.from("tenant_memberships")
-      .select("id, invited_email, status, role, created_at, invitation_expires_at").eq("id", membershipId).maybeSingle();
+      .select("id, invited_email, status, role, created_at, invitation_expires_at").eq("tenant_id", context.data.tenantId).eq("id", membershipId).maybeSingle();
     if (membershipError || !membership) return { detail: null, error: ERROR };
     const { data: events, error: eventError } = await client.from("audit_events")
-      .select("id, event_type, created_at").eq("target_id", membershipId).order("created_at", { ascending: false });
+      .select("id, event_type, created_at").eq("tenant_id", context.data.tenantId).eq("target_id", membershipId).order("created_at", { ascending: false });
     if (eventError) return { detail: null, error: ERROR };
-    const { data: roleRows, error: roleError } = await client.from("membership_roles").select("role").eq("membership_id", membershipId); if (roleError) return { detail: null, error: ERROR };
+    const { data: roleRows, error: roleError } = await client.from("membership_roles").select("role").eq("tenant_id", context.data.tenantId).eq("membership_id", membershipId); if (roleError) return { detail: null, error: ERROR };
     const row = membership as MembershipReadRow & { invitation_expires_at?: unknown }; const expires = typeof row.invitation_expires_at === "string" ? Date.parse(row.invitation_expires_at) : NaN; const status = String(row.status) === "invited" && Number.isFinite(expires) && expires <= Date.now() ? "expired" : String(row.status);
+    const roles = resolveMembershipRoles(row.role, (roleRows ?? []).map((entry) => entry.role));
     return { detail: { id: String(row.id), email: typeof row.invited_email === "string" ? row.invited_email : null,
-      status, role: String(row.role), roles: (roleRows ?? []).map((entry) => entry.role).filter((role): role is string => typeof role === "string"), createdAt: String(row.created_at),
-      events: (events ?? []).map((event: { id?: unknown; event_type?: unknown; created_at?: unknown }) => ({ id: String(event.id), eventType: String(event.event_type), createdAt: String(event.created_at) })) }, error: null };
+      status, role: String(row.role), roles, createdAt: String(row.created_at),
+      events: (events ?? []).map((event: { id?: unknown; event_type?: unknown; created_at?: unknown }) => ({ id: String(event.id), eventType: String(event.event_type), createdAt: String(event.created_at) })),
+      effectivePermissions: effectivePermissionsForMembership(status, roles) }, error: null };
   } catch { return { detail: null, error: ERROR }; }
 }

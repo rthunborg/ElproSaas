@@ -6,30 +6,46 @@ totalSteps: 5
 stepsCompleted: ['step-01-detect-mode', 'step-02-load-context', 'step-03-risk-and-testability', 'step-04-coverage-plan', 'step-05-generate-output']
 lastStep: 'step-05-generate-output'
 nextStep: ''
-lastSaved: '2026-09-04T09:34:14.7815272Z'
+lastSaved: '2026-09-11T13:29:38.9087737+02:00'
 detectedStack: 'frontend'
 pact_mcp_reachable: false
 inputDocuments:
   - '_bmad/tea/config.yaml'
-  - '_bmad-output/planning-artifacts/epics-phase-b.md'
-  - '_bmad-output/planning-artifacts/prd-phase-b.md'
-  - '_bmad-output/planning-artifacts/architecture-phase-b.md'
-  - '_bmad-output/test-artifacts/test-design-architecture.md'
-  - '_bmad-output/auto-bmad/state/11-1-role-storage-and-permission-matrix-mechanism.yaml'
   - 'package.json'
   - 'playwright.config.ts'
   - 'vitest.config.ts'
   - 'tests/README.md'
-  - 'tests/factories/tenants.ts'
+  - '_bmad-output/planning-artifacts/epics-phase-b.md'
+  - '_bmad-output/planning-artifacts/prd-phase-b.md'
+  - '_bmad-output/planning-artifacts/architecture-phase-b.md'
+  - '_bmad-output/implementation-artifacts/epic-11-context.md'
+  - '_bmad-output/implementation-artifacts/spec-11-1-role-storage-and-permission-matrix-mechanism.md'
+  - '_bmad-output/implementation-artifacts/spec-11-2-non-admin-access-to-the-phase-a-surface-matrix-seed-role-aware-rls-nav-and-landing.md'
+  - '_bmad-output/implementation-artifacts/spec-11-3-admin-user-management.md'
+  - '_bmad-output/implementation-artifacts/sprint-status.yaml'
+  - '_bmad-output/planning-artifacts/owner-decisions-applied-2026-09-10-story-11-3-admin-user-management.md'
+  - '_bmad-output/test-artifacts/test-design-architecture.md'
+  - '_bmad-output/test-artifacts/test-design-epic-11.md'
+  - 'docs/security/story-11-1-hosted-grants-followup.md'
+  - 'docs/quality/story-11-2-hosted-pdf-verification.md'
+  - 'docs/process/story-11-3-handoff.md'
+  - 'src/server/authz/permission-matrix.ts'
+  - 'src/server/authz/phase-a-surface.ts'
+  - 'src/scope/manifest.ts'
   - 'tests/integration/rls/tenant-table-inventory.ts'
-  - 'tests/unit/server/read-models/entitlements.test.ts'
-  - 'src/server/read-models/entitlements.ts'
-  - 'src/server/auth/tenant-context.ts'
-  - 'src/server/auth/resolve-tenant-context-core.ts'
-  - 'src/scope/nav-registry.ts'
+  - 'tests/integration/rls/role-aware-phase-a-surface.atdd.int.test.ts'
+  - 'tests/e2e/auth/role-aware-phase-a-surface.atdd.e2e.spec.ts'
+  - 'tests/integration/commands/admin-user-management.int.test.ts'
+  - 'tests/integration/rls/admin-user-management.rls.test.ts'
+  - 'tests/e2e/auth/admin-user-management.atdd.e2e.spec.ts'
   - '.agents/skills/bmad-testarch-test-design/resources/tea-index.csv'
   - '.agents/skills/bmad-testarch-test-design/resources/knowledge/library-integration-mandate.md'
   - '.agents/skills/bmad-testarch-test-design/resources/knowledge/playwright-utils-mandate.md'
+  - '.agents/skills/bmad-testarch-test-design/resources/knowledge/overview.md'
+  - '.agents/skills/bmad-testarch-test-design/resources/knowledge/api-request.md'
+  - '.agents/skills/bmad-testarch-test-design/resources/knowledge/auth-session.md'
+  - '.agents/skills/bmad-testarch-test-design/resources/knowledge/network-first.md'
+  - '.agents/skills/bmad-testarch-test-design/resources/knowledge/fixture-architecture.md'
   - '.agents/skills/bmad-testarch-test-design/resources/knowledge/risk-governance.md'
   - '.agents/skills/bmad-testarch-test-design/resources/knowledge/probability-impact.md'
   - '.agents/skills/bmad-testarch-test-design/resources/knowledge/test-levels-framework.md'
@@ -43,222 +59,179 @@ inputDocuments:
 
 ## Mode and run identity
 
-- Mode: Epic-level test design
-- Named scope: epic 11
-- Run key: `epic-11`
-- Selection basis: the invocation explicitly requests the epic and its stories.
+- Mode: Epic-level test design.
+- Named scope: epic 11 and stories 11.1–11.4.
+- Run key: `epic-11`.
+- Selection basis: the invocation explicitly requests epic 11 in epic-level mode.
 
 ## Prerequisites
 
-- Epic requirements and acceptance criteria: available in `_bmad-output/planning-artifacts/epics-phase-b.md`.
-- Stories in scope: 11.1 through 11.4.
-- Architecture context: available in `_bmad-output/planning-artifacts/architecture-phase-b.md` and `_bmad-output/planning-artifacts/architecture.md`.
-- Existing checkpoint: none; this is a fresh run.
+- Epic requirements and acceptance criteria are available in `C:\DEV\ElproSaas\_bmad-output\planning-artifacts\epics-phase-b.md` and the epic 11 implementation artifacts.
+- Architecture context is available in `C:\DEV\ElproSaas\_bmad-output\planning-artifacts\architecture-phase-b.md` and `C:\DEV\ElproSaas\_bmad-output\implementation-artifacts\epic-11-context.md`.
+- Stories 11.1–11.3 have implementation evidence; story 11.4 remains backlog.
+- A completed checkpoint for the same run existed and is replaced for this requested create-mode run.
 
 ## Loaded context and current coverage
 
-- Configuration: Playwright-utils and Pact.js-utils preferences are enabled; browser automation is `auto`; the test stack is `auto`; test artifacts resolve to `C:\DEV\ElproSaas\_bmad-output\test-artifacts`.
-- Detected stack: frontend (`next`, React, `playwright.config.ts`). The repository also uses Supabase/Postgres through server modules and DB-backed integration tests, but no separate backend-language manifest matched the workflow's stack detector.
-- Epic inputs: the complete epic 11 requirements (stories 11.1–11.4), FR66–FR72, NFR42–NFR44, AC-B1a-2/3, ADR-B001, the entitlement field-presence contract, and the per-role test-strategy extension.
-- Existing lower-level seams: two-tenant factories, active/invited/disabled membership coverage, hardened `is_tenant_admin` helper tests, the manifest-derived H4 tenant-table inventory, generic entitlement projection tests, and the current manifest-only nav registry.
-- Principal gaps: no `src/server/authz` matrix/capability implementation; tenant context remains single-role and admin-only; factories do not yet create seeded multi-role users; H4 has no role dimension; current RLS expectations are largely `is_tenant_admin`; no epic 11 admin-user-management or roles/effective-permissions UI tests exist.
-- Known migration burden: existing unit/integration tests explicitly assert that only `tenant_admin` is accepted, non-admin memberships are denied, and the matrix coherence rule is absent. Epic 11 must replace those Phase A assertions without weakening tenant, anonymous, or service-role containment coverage.
-- Test execution patterns: fast pure logic uses Node's test runner; DB/RLS integration uses Vitest against local Supabase with per-test unique fixtures; E2E uses Playwright against a production build and a serial shared fixture.
-- Flakiness/feedback concerns: local DB suites skip when Supabase is unavailable unless `SUPABASE_TEST_REQUIRED=1`; Playwright is serial and rebuilds the application; therefore authorization proof belongs primarily in unit and DB/RLS suites, with thin E2E role journeys only.
-- Browser exploration: skipped because neither `playwright-cli` nor Playwright MCP browser tools are available in this run. No session was opened.
-- Playwright Utils: configuration intent is enabled, but `@seontechnologies/playwright-utils` is not installed. Its mandate therefore does not bind generated tests; this design does not invent imports. Framework adoption is deferred to a dedicated framework change if desired.
-- Contract testing: no Pact package, pact directory, contract-test directory, Pact files, broker environment markers, OpenAPI/Swagger spec, or microservice boundary was found; contract tests are not relevant to epic 11.
-- Pact broker: unreachable (SmartBear MCP tools not available). Provider states would be derived from readable server command/route source if a future contract surface is introduced; no provider states are required by this plan.
+- Configuration: Playwright Utils and Pact.js Utils intent flags are enabled; browser automation and stack selection are `auto`; test artifacts resolve to `C:\DEV\ElproSaas\_bmad-output\test-artifacts`.
+- Detected stack: `frontend` under the workflow detector (`next`, React, and Playwright). Supabase/Postgres server modules and DB-backed Vitest suites remain material integration seams.
+- Requirements: epic 11 stories 11.1–11.4, FR66–FR72, NFR42–NFR44, AC-B1a-2/3, ADR-B001, the field-presence contract, and architecture §16.1's generated role dimension.
+- Current delivery state: stories 11.1–11.3 are `done`; story 11.4 is `backlog`. The older `docs/process/story-11-3-handoff.md` says 11.3 is unstarted and is superseded by sprint status plus the completed story artifact.
+- Existing evidence: 11.1 has matrix/union/fail-closed units, hardened role-helper and multi-role RLS tests, migration/grant evidence, and exact-head CI. 11.2 has a representative five-role × active-module policy/RLS agreement suite, command denials, field withholding, nav/landing, and browser paths. 11.3 has operation, invitation-token, last-Admin, cross-tenant, audit, containment, and Admin/non-Admin browser evidence.
+- Principal gap: story 11.4 has no source or tests. `TENANT_TABLES` is manifest-derived but still a table-name array without `moduleId` or role metadata; the 11.2 suite covers one representative table/capability per active module rather than generating the complete role × table × capability obligation; no Roles route, role catalogue, member counts, `EffectivePermissions` viewer, granting-role annotation, test-manifest enrollment, harness cardinality self-test, or deliberate-drift red/green demonstration exists.
+- Browser exploration: skipped. `playwright-cli` is not installed and no Playwright MCP browser tools are available in this run.
+- Playwright Utils: the flag is enabled but `@seontechnologies/playwright-utils` is not installed, so its mandate does not bind. This design will not invent imports; any later adoption belongs to the framework workflow.
+- Contract testing: no Pact dependency/artifact, contract directory, broker marker, OpenAPI document, or microservice boundary was found, so Pact tests are not relevant to epic 11.
+- Pact broker: unreachable (SmartBear MCP tools not available). No provider states are required because contract testing is out of scope.
 
-## Context reconciliation
+## Context reconciliation and uncertainty
 
-- The epic header's older `Explicit non-scope` paragraph says `membership_roles` is reserved and N-4 unresolved, while the story acceptance criteria, PRD, ADR-B001, and current project instructions say N-4 is resolved and multi-role storage ships in story 11.1. This run follows the later, repeated N-4 contract and treats the stale paragraph as documentation drift.
-- Story 11.4 still mentions displaying `väntar på ägarbeslut`; the current architecture and story 11.2 prohibit that placeholder because the entitlement seed is resolved. Tests should assert the concrete seed instead.
+- The epic header's older explicit non-scope text says multi-role is reserved and N-4 unresolved; the story AC, PRD, architecture, and implemented evidence supersede it: multi-role ships in 11.1 and the owner seed is binding.
+- Story 11.4 still asks for `väntar på ägarbeslut`; N-4 is resolved, so the plan must assert concrete entitlement rows and forbid that placeholder.
+- Story 11.3's local browser evidence does not validate actual Auth email delivery. Its command/reconciliation/token evidence is authoritative for local automation, while email transport remains a known harness limit.
+- Story 11.2's hosted PDF smoke now verifies the previously uncertain deployment attestation/signing path; it remains runtime evidence, not a regression suite.
 
 ## Risk assessment
 
-Scoring uses Probability × Impact on a 1–3 scale. Scores 6–8 require mitigation; score 9 blocks release until mitigated or formally waived.
+Scoring uses Probability × Impact on a 1–3 scale. Scores 6–8 require mitigation; score 9 blocks epic completion until mitigated or formally waived. Existing story evidence lowers probability where the control is already proven; it does not substitute for story 11.4's missing harness and surface.
 
 | ID | Category | Risk | P | I | Score | Action | Mitigation | Owner | Timeline |
 | --- | --- | --- | ---: | ---: | ---: | --- | --- | --- | --- |
-| R-1101 | SEC | Existing Phase A table policies and commands remain admin-only or are converted inconsistently, creating policy↔matrix drift that either over-grants a non-admin or silently blocks a granted role. | 3 | 3 | 9 | BLOCK | Generate role×table RLS positives/negatives and role×capability command denials from one matrix; add a policy↔matrix agreement gate and prove it fails against a deliberately drifted fixture. | Dev + QA | Stories 11.1–11.2, before each merge |
-| R-1102 | SEC/DATA | Multi-role resolution is not union-correct or fail-closed: duplicate/cross-tenant child roles, inactive memberships, empty sets, or order-dependent role evaluation can grant authority incorrectly. | 2 | 3 | 6 | MITIGATE | Add schema constraints and composite tenant ownership; parameterize empty/single/multiple/duplicate/order permutations; prove a field is withheld only when no held role grants it and that inactive parent membership grants nothing. | Dev + QA | Story 11.1 |
-| R-1103 | SEC | Prices, costs, margins, or derived aggregates leak to Montör/Säljare through a read-model, direct PostgREST query, export/PDF/email payload, error body, or client-shipped matrix. | 3 | 3 | 9 | BLOCK | Use RLS/module closure as the security floor, server projection for absent+listed fields, aggregate-honesty tests, crafted-query negatives, serialized-payload scans, and tests that the margin warning is non-invertible. | Dev + QA + Security reviewer | Story 11.2, before non-admin activation |
-| R-1104 | SEC | Role downgrade, deactivation, invite revocation, or membership removal is not effective on the next authorized operation because a stale session/context/cache retains permissions. | 2 | 3 | 6 | MITIGATE | Exercise a session before and after mutation; assert the next command/read re-resolves current membership roles and returns the same generic denial without requiring re-login. | Dev + QA | Stories 11.2–11.3 |
-| R-1105 | SEC | Supabase Auth admin/service authority becomes client-reachable, targets the wrong tenant/user, or exposes whether a foreign user exists. | 2 | 3 | 6 | MITIGATE | Keep Auth admin access in a server-only adapter; extend import/bundle containment checks; run cross-tenant and unauthenticated command negatives and compare generic error shapes. | Dev + QA + Security reviewer | Story 11.3 |
-| R-1106 | DATA | Concurrent deactivate/downgrade/remove commands both pass a pre-check and leave a tenant without an active Företagsadmin. | 2 | 3 | 6 | MITIGATE | Enforce the invariant transactionally at the database boundary; run two concurrent conflicting commands and prove one fails with no partial membership or audit state. | Dev + QA | Story 11.3 |
-| R-1107 | DATA/OPS | Invite, resend, revoke, reset, role-change, deactivate/reactivate, or removal commits without the required atomic audit evidence, or role/permission changes omit before/after values and required reason. | 2 | 3 | 6 | MITIGATE | Assert success+audit and injected-failure rollback for every action; validate ChangedBy/ChangedAt/CompanyId/RoleId/PreviousPermissions/NewPermissions/Reason and preserve correlation identifiers. | Dev + QA | Stories 11.2–11.3 |
-| R-1108 | TECH | The reusable per-role generator or manifest coherence rule is incomplete, so future module activation can omit matrix rows/tests while CI remains green. | 2 | 3 | 6 | MITIGATE | Self-test generator cardinality and identity, derive from the manifest/matrix, reject unknown/unlisted surfaces, and include red/green fixtures for missing matrix row, missing test manifest entry, and drifted policy. | Dev + QA | Stories 11.1 and 11.4 |
-| R-1109 | BUS/SEC | Stale contradictory planning prose is implemented instead of the ratified N-4 model (single role, conservative placeholder, or `väntar på ägarbeslut`), yielding the wrong production entitlements. | 2 | 3 | 6 | MITIGATE | Pin owner-confirmed role literals, multi-role union behavior, named capabilities, and money visibility in executable matrix fixtures; treat PRD/ADR/story AC as the current contract and fail snapshots on placeholder text. | Product + Dev + QA | Story 11.1 before seed freeze; Story 11.4 UI |
-| R-1110 | OPS | The role×module×table×capability matrix expands the DB suite enough to become slow/flaky or silently skipped when local Supabase is unavailable, weakening feedback. | 2 | 2 | 4 | MONITOR | Keep pure lookup/cardinality logic in Node tests, DB facts in Vitest, and only thin role journeys in Playwright; require `SUPABASE_TEST_REQUIRED=1` in CI and publish per-layer duration/skips. | QA + DevOps | Story 11.4 / CI integration |
-| R-1111 | PERF | Matrix-driven nav, landing, entitlements, and effective-permissions rendering regress at realistic tenant/user/module sizes; no epic-specific latency or volume threshold is defined. | 2 | 2 | 4 | MONITOR | Capture a deterministic pilot-scale baseline for matrix lookup and server render/query count; avoid making an invented latency a release gate until an owner threshold exists. | Architect + QA | Before epic 11 NFR assessment |
-| R-1112 | REL/OPS | The membership/Auth invitation state machine diverges during partial Auth or database failure, or resend/revoke/reset retries create duplicate/ambiguous states. | 2 | 3 | 6 | MITIGATE | Specify command ordering/compensation, inject failures on both sides of the boundary, assert retry-safe terminal states and audit visibility, and use only local/test Auth identities. | Architect + Dev + QA | Story 11.3 before implementation sign-off |
+| R-1101 | SEC/TECH | The H4 inventory remains table-only and the 11.2 agreement suite samples one table/capability per active module, so future activations can omit a seeded role, table, capability, or row-scope case while CI remains green. | 3 | 3 | 9 | BLOCK | Story 11.4 must add manifest-traceable `moduleId`/role metadata, generate the complete role × active table/capability case set, preserve anon/cross-tenant arms, and require same-PR test-manifest enrollment. | Dev + QA | Story 11.4 before epic completion |
+| R-1102 | TECH/SEC | A harness can appear complete while emitting duplicate, missing, or vacuous cases, or while its deliberate-drift fixture never proves the agreement assertion bites. | 3 | 3 | 9 | BLOCK | Self-test stable unique identities and exact cardinality; assert each case targets a real seeded row/command; demonstrate red on missing matrix row, missing test enrollment, and drifted policy before the aligned fixture turns green. | Dev + QA | Story 11.4 before merge |
+| R-1103 | SEC | The Roles/effective-permissions implementation could ship the server permission matrix or role names as client authority, widening the attack surface and allowing UI logic to diverge from server authorization. | 2 | 3 | 6 | MITIGATE | Produce a server-derived presentation DTO only; extend source and built-bundle containment checks; verify direct command/RLS denial remains authoritative regardless of rendered controls. | Dev + Security reviewer | Story 11.4 |
+| R-1104 | SEC/DATA | A non-Admin, anonymous actor, or Tenant A Admin could reach another user's effective permissions, membership counts, or role details and receive an existence signal or cross-tenant data. | 2 | 3 | 6 | MITIGATE | Add Admin capability, route/read-model, RLS, anonymous, and cross-tenant negatives with indistinguishable denials and independent zero-side-effect readback. | Dev + QA | Story 11.4 |
+| R-1105 | BUS/TECH | The Roles view could render pending modules or the stale `väntar på ägarbeslut` placeholder, misrepresenting the ratified N-4 seed and current manifest scope. | 3 | 2 | 6 | MITIGATE | Derive rows from manifest-active modules × the current matrix; pin the five seed roles, concrete sensitive-field entitlements, wave labels, and absence of stale placeholder text. | Product + Dev + QA | Story 11.4 |
+| R-1106 | DATA/BUS | Member counts and granting-role annotations can mishandle multi-role users or count invited, disabled, ended, duplicate, or foreign-tenant membership state incorrectly. | 2 | 3 | 6 | MITIGATE | Define count semantics from current membership states; use one tenant-scoped server query; cover zero/one/multi-role, state transitions, deduplication, union grants, and Tenant B isolation. | Product + Dev + QA | Story 11.4 |
+| R-1107 | OPS | DB/RLS authorization suites can silently skip without local Supabase, creating hollow green evidence for the new generator. | 2 | 2 | 4 | MONITOR | Register 11.4 suites under existing Vitest discovery; require `SUPABASE_TEST_REQUIRED=1` in CI and record executed/passed/skipped counts with zero skips. | QA + DevOps | Story 11.4 CI |
+| R-1108 | PERF/OPS | No measurable latency, query-count, dataset-size, or suite-duration threshold exists for role/member-count/effective-permissions reads or the expanded matrix harness. | 2 | 2 | 4 | MONITOR | Capture deterministic pilot-scale baseline and query count; label thresholds UNKNOWN and obtain owner targets before making a release gate. Keep pure cardinality/lookup checks in Node and DB facts in Vitest. | Architect + QA | Before epic NFR assessment |
+| R-1109 | REL/OPS | Supabase Auth email transport is not exercised by the local browser harness; a template/redirect/provider regression could escape while command and database tests remain green. | 2 | 2 | 4 | MONITOR | Retain operation/token/callback tests and add a bounded local Inbucket transport smoke or documented hosted smoke when the email boundary changes; do not claim exactly-once delivery. | Dev + QA | Regression follow-up when Auth config changes |
+| R-1110 | SEC | Protected price, cost, margin, accepted-value, or PDF bytes could regress into a Säljare/Montör payload through a newly activated surface. | 1 | 3 | 3 | DOCUMENT | Carry forward structural absence-plus-listed assertions, direct/nested Data API negatives, raw Storage negatives, recipient-specific PDF/export checks, and bundle containment for every activation. | Dev + QA + Security reviewer | Every activation |
+| R-1111 | DATA | Concurrent last-Admin mutations or role-set updates could violate tenant access invariants. | 1 | 3 | 3 | DOCUMENT | Retain serialized database command tests, multi-session concurrency proof, atomic audit assertions, and same-session immediate revocation coverage. | Dev + QA | Standing regression |
+| R-1112 | OPS | Stale planning and handoff text can direct future implementation toward single-role storage, unresolved N-4, or an unstarted 11.3 state. | 2 | 2 | 4 | MONITOR | State source precedence in the plan: current story artifacts/sprint status plus PRD/architecture override historical handoff and superseded epic header prose. | PM + QA | Story 11.4 kickoff |
 
 ### Highest-risk summary
 
-- R-1101 and R-1103 are release-blocking because epic 11 changes the authorization boundary of every active Phase A module and turns existing sensitive-money seams on for non-admin roles.
-- The next mitigation tier is multi-role correctness, immediate revocation, server-only Auth administration, last-admin concurrency, audit atomicity, and fail-loud generator governance.
-- No risk is accepted or waived by this design. Scores must be reassessed after implementation evidence exists.
+- R-1101 and R-1102 are release-blocking because the reusable story 11.4 enforcement mechanism does not yet exist; existing 11.2 samples prove the seed rollout but not the complete future-activation obligation.
+- The next mitigation tier is keeping matrix authority server-only, enforcing Admin/tenant containment on the viewer, rendering only active concrete seed rows, and making multi-role/member-count semantics explicit.
+- Existing 11.1–11.3 evidence is preserved as regression coverage. No risk is accepted or waived by this design.
 
 ## NFR planning assessment
 
-| NFR category | In-scope requirement / threshold | Planned evidence | Gap / linked risk |
+| NFR category | Requirement / measurable threshold | Planned evidence | Gap / linked risk |
 | --- | --- | --- | --- |
-| Security / tenant isolation | Every decision is server-enforced by command capability gate plus RLS. For every seeded role and active module: at least one denied command and one RLS negative. No unauthorized read/write or existence signal is permitted. | Matrix lookup units; command integration negatives; role×table RLS suite; anon/cross-tenant regressions; generic-error comparison; policy↔matrix agreement gate. | R-1101, R-1102, R-1104, R-1105, R-1108. |
-| Sensitive-data confidentiality | Unentitled roles receive no protected value in any payload: field absent from data and listed in `entitlements.withheld`; aggregates with withheld components are also absent/listed. | Projection units; DB/RLS crafted-query negatives; serialized read-model/export payload assertions; browser checks for omitted/masked columns without client role lookup; non-invertible warning cases. | R-1103; export/email coverage applies when those recipient payloads exist. |
-| Data integrity | A user holds at least one valid tenant role; held-role permissions form an order-independent union; `membership_roles` is unique per membership×role and tenant-consistent; at least one active admin remains. | Migration/constraint tests; property/table-driven union tests; disabled-parent tests; concurrent last-admin integration test; clean reset. | R-1102, R-1106. |
-| Auditability / compliance | Every listed user-management action emits audit evidence; role/permission changes require ChangedBy, ChangedAt, CompanyId, RoleId, PreviousPermissions, NewPermissions, and non-empty Reason; success and audit commit atomically. | Per-command audit assertions; required-reason validation; fault-injection rollback; append-only audit regressions; UI Events-panel E2E smoke. | R-1107. Audit-retention duration is outside this epic and remains governed by the deferred full retention program. |
-| Reliability | Deactivation/removal/role changes take effect immediately on the next server authorization decision; retry/failure behavior must not create contradictory membership/Auth states. | Same-session before/after integration tests; fault injection around Auth/database boundary; retry/resend/revoke state-machine tests. | Invitation expiry duration, resend rate/limit policy, and compensation semantics are **UNKNOWN** in the loaded requirements; R-1104/R-1112 track clarification and evidence. |
-| Performance | Carried pilot-scale posture applies, but no epic-specific response-time, role-count, user-count, or query-count target is specified. | Non-gating baseline for matrix lookup, nav/landing derivation, effective-permissions render, and query count using a deterministic seeded tenant. | Thresholds are **UNKNOWN**; R-1111. Do not invent k6/SLA gates for this epic. |
-| Scalability | New modules must add matrix rows and generated tests without respecifying existing modules; current seed is five tenant roles plus job-scoped Arbetsledare later. | Generator cardinality/identity self-tests; fixture with an added sample module; manifest activation red/green proof. | Maximum tenant-specific role compositions and long-term matrix size are **UNKNOWN**; structural growth is testable without a guessed volume target. |
-| Maintainability / governance | Permission matrix is the single machine-readable source; same-change activation/rows/tests fail loud; no focused/skipped P0/P1 authorization cases in CI. | Type-level exhaustiveness; manifest coherence units; policy agreement; generator self-tests; suite discovery/skips report; scope scans. | R-1108/R-1110. |
-| Accessibility / usability | Role-appropriate nav is hidden rather than disabled; direct routes remain protected; admin confirmations and warnings remain keyboard/role accessible under carried NFR30/31. | Thin Playwright journeys using accessible roles/names; deterministic server-level authority proof remains below UI. | No epic-specific accessibility conformance threshold is stated; use existing project quality gate rather than inventing one. |
+| Security and tenant isolation | Every permission decision is server-enforced. For every seeded role and active module: at least one denied command and one RLS negative. Unauthorized routes/queries reveal no data or existence signal. | Matrix units; generated command/RLS cases; policy-catalog agreement; Admin/non-Admin/anon/cross-tenant route and read-model tests; source/bundle containment. | Story 11.4 complete generation is absent (R-1101–R-1104). |
+| Sensitive-data confidentiality | An unentitled role receives no protected value in any payload; field/aggregate is absent and listed in `entitlements.withheld`; raw Storage stays denied. | Existing 11.2 projection, direct/nested Data API, quote-PDF broker/raw-Storage, and browser evidence; activation-time regression cases. | No new numeric threshold; standing closure obligation (R-1110). |
+| Data integrity and audit | Multi-role union is order-independent; every lifecycle mutation and role change is atomic with required audit data/reason; one active Admin remains under concurrency. | Existing matrix and DB/RLS tests; operation/audit reconciliation; multi-session last-Admin proof; new viewer count/state fixtures. | Member-count state semantics must be explicit in 11.4 (R-1106). |
+| Reliability | Invitation acceptance binds the current unexpired attempt; retries remain single-effect; no exactly-once email claim. | Existing unit/integration token, operation, callback, retry, and hosted/runtime evidence; bounded email transport smoke on config changes. | Actual email delivery is outside the local browser harness (R-1109). |
+| Maintainability | Matrix is the machine-readable source; every active module has matrix rows; harness produces stable unique cases with exact expected cardinality and a biting drift proof. | Manifest coherence tests; generator units; deliberate red/green fixtures; registered CI suite and test-manifest check. | Story 11.4 implementation absent (R-1101/R-1102). |
+| Performance and scalability | Latency, query-count, representative tenant/member/module size, and harness-duration thresholds are **UNKNOWN**. | Pilot-scale baseline for Roles/effective-permissions reads and per-layer suite duration; keep pure expansion outside DB/browser loops where possible. | Owner thresholds unavailable; do not invent them (R-1108). |
+| Operational evidence | Required DB/RLS runs execute with `SUPABASE_TEST_REQUIRED=1`, zero skipped tests, and production-build Playwright. | CI logs with executed/pass/skip counts; migration reset; focused story 11.4 suites; thin browser journey. | Guard against runtime skip and suite expansion cost (R-1107/R-1108). |
+| Scope governance | Only manifest-active modules appear; no custom role builder, DB permission table, tenant-wide Arbetsledare, or Phase C surface lands. | Manifest coherence and scope scans; Roles-view active-module assertions; source/bundle checks. | Stale prose must not reintroduce superseded or deferred behavior (R-1105/R-1112). |
 
-## Clarification items carried into implementation
-
-1. Define invitation expiry, resend throttling/deduplication, and the exact compensation/reconciliation behavior when Supabase Auth succeeds but the membership/audit transaction fails (or vice versa).
-2. Define a pilot-scale dataset and observable latency/query-count target if epic 11 performance is intended to be release-gating; otherwise retain non-gating regression baselines.
-3. Remove or supersede the stale epic-level non-scope/placeholder prose so future agents cannot select the pre-N-4 model.
+This workflow plans later NFR validation; it does not assign implementation PASS/CONCERNS/FAIL status.
 
 ## Coverage plan
 
-The rows below are atomic scenario families. Generated role×module/table/capability families expand into many concrete cases but remain one design row because they share setup, oracle, and failure meaning. Test IDs follow `{epic}.{story}-{level}-{sequence}`.
+Status labels distinguish evidence already delivered by stories 11.1–11.3 from the new coverage story 11.4 must add. Existing rows remain standing regressions; they are not requests to duplicate tests at another level.
 
 ### Story 11.1 — Role Storage and Permission-Matrix Mechanism
 
-| Test ID | Priority | Level | Scenario / expected evidence | Requirement / risk |
-| --- | --- | --- | --- | --- |
-| 11.1-INT-001 | P0 | DB integration | Widen the `tenant_memberships.role` CHECK to exactly `tenant_admin`, `projektledare`, `montor`, `saljare`, `ekonomi`; reject unknown/job-scoped values; prove existing admin rows survive unchanged. | FR66; R-1102/R-1109 |
-| 11.1-INT-002 | P0 | DB/RLS integration | `membership_roles` enforces one role per membership×role, composite same-tenant ownership, valid role literals, no cross-tenant child attachment, and no authenticated self-grant. | FR66; R-1102 |
-| 11.1-UNIT-001 | P0 | Unit | Role-set permission evaluation is a union, order/duplicate invariant, and fail-closed for empty/unknown sets; every authorization API consumes `roles: Role[]`. | FR66–67; R-1102 |
-| 11.1-UNIT-002 | P0 | Unit | Typed matrix contains the owner-named capability keys and seed roles exactly, has sensitive-field rows, and denies absent module/capability/role entries by default. | FR67–68; NFR43–44; R-1108/R-1109 |
-| 11.1-UNIT-003 | P0 | Unit | `requireCapability` allows a union-granted action and rejects an ungranted/unknown action with stable `PERMISSION_DENIED`, identical safe messaging, and no existence detail. | FR67/72; R-1101/R-1102 |
-| 11.1-INT-003 | P0 | DB integration | `has_tenant_role` returns correct results for active single/multi-role members and false for invited, disabled, no-row, cross-tenant, empty-allowed-role, and Arbetsledare-as-tenant-role probes. | FR66–67; NFR42–43; R-1101/R-1102 |
-| 11.1-INT-004 | P0 | Security integration | `has_tenant_role` retains the hardened DEFINER shape: empty fixed search path, schema-qualified refs, `STABLE`, no PUBLIC/anon execute, and search-path hijack negative. | NFR42; R-1101 |
-| 11.1-UNIT-004 | P0 | Unit | Manifest coherence rejects an active module with missing/incomplete matrix rows and preserves the existing fail-loud unlisted-surface behavior. | FR68/129; NFR43/51; R-1108 |
-| 11.1-UNIT-005 | P0 | Unit | Tenant-context resolution returns membership-derived tenant plus full active role set, ignores client tenant IDs as authority, and no longer rejects valid non-admin roles. | FR66–67/72; R-1102/R-1104 |
-| 11.1-INT-005 | P1 | Migration integration | Clean reset succeeds; legacy `is_tenant_admin()` semantics and its standing positives/negatives remain unchanged while new helpers/tables exist. | Story 11.1 coexistence; R-1101 |
+| Test ID | Priority | Level | Atomic scenario | Status | Requirements / risks |
+| --- | --- | --- | --- | --- | --- |
+| 11.1-UNIT-001 | P0 | Unit | Closed five-role vocabulary, legacy Admin compatibility, de-duplicated order-independent role union, unknown/empty fail-closed lookup, and sensitive-field grant when any held role permits it. | Existing | FR66–68; R-1111 |
+| 11.1-UNIT-002 | P0 | Unit | `requireCapability` denies absent/unknown/ungranted inputs with stable `PERMISSION_DENIED` before validation, lookup, execute, or audit. | Existing | FR67/72; NFR42 |
+| 11.1-UNIT-003 | P0 | Unit/CI | Real manifest is coherent; an active module missing matrix coverage fails; client-reachable manifest code cannot import the server matrix. | Existing | FR68/129; NFR43; R-1103 |
+| 11.1-INT-001 | P0 | DB integration | Additive migration preserves legacy Admin rows, enforces closed/unique same-tenant child roles, exact grants, RLS, and clean reset. | Existing | FR66–67; R-1111 |
+| 11.1-INT-002 | P0 | DB/RLS integration | `has_tenant_role` grants legacy/child roles and denies inactive, cross-tenant, unknown, empty, forged, and search-path-shadowed inputs with exact EXECUTE grants. | Existing | NFR42–43 |
+| 11.1-INT-003 | P0 | Concurrency integration | Parent tenant moves and concurrent child insert/retarget cannot split membership-role tenancy; failed attempts leave independent readback unchanged. | Existing | FR66–67; R-1111 |
 
-### Story 11.2 — Non-Admin Access to the Phase A Surface
+### Story 11.2 — Role-Aware Phase A Surface
 
-| Test ID | Priority | Level | Scenario / expected evidence | Requirement / risk |
-| --- | --- | --- | --- | --- |
-| 11.2-UNIT-001 | P1 | Unit | Manifest-active nav intersected with the matrix yields only role-granted items, hides denied items rather than disabling them, and never shows pending-module rows. | FR68/72; R-1109 |
-| 11.2-UNIT-002 | P1 | Unit | `resolveLandingRoute(roleSet)` deterministically chooses an entitled route; Montör uses the current appropriate start seam and multi-role users get a valid union-derived landing. | FR72; Story 11.2 landing AC |
-| 11.2-INT-001 | P0 | Command integration | Generated per-role×active-module×capability cases prove every denied boundary returns `PERMISSION_DENIED`, causes zero mutation/audit side effect, and does not reveal target existence. | NFR42; AC-B1a-2; R-1101 |
-| 11.2-INT-002 | P0 | DB/RLS integration | Generated per-role×active-table cases prove allowed-path positives and denied SELECT/INSERT/UPDATE/DELETE beyond matrix and row scope; cross-tenant and anon arms remain green. | NFR42; AC-B1a-2; R-1101 |
-| 11.2-INT-003 | P0 | DB/schema integration | Policy↔matrix agreement passes for the real schema and fails against a deliberately drifted policy/role-array fixture with a named mismatch. | NFR43; R-1101/R-1108 |
-| 11.2-INT-004 | P0 | API/route integration | For each non-admin role, direct-route, crafted-command, and crafted-query attempts at a denied resource produce generic indistinguishable denials and zero foreign/hidden data. | FR67/72; R-1101 |
-| 11.2-UNIT-003 | P0 | Unit | Exact role seed projects sensitive fields: Montör gets no sales/cost/margin; Säljare gets sales but no contribution margin by default; Projektledare/Ekonomi/Admin get full; Arbetsledare posture is reserved for job-scoped E16 use. | FR71; NFR44; R-1103/R-1109 |
-| 11.2-UNIT-004 | P0 | Unit | Withheld fields are absent (not `null`/`0`) and listed; absent-unlisted remains genuinely empty; wholly withheld columns are omitted. | FR71; NFR44; R-1103 |
-| 11.2-UNIT-005 | P0 | Unit | Any aggregate depending on a withheld component is itself absent+listed; counts/non-money values remain present and stored source input is not mutated. | NFR44; R-1103 |
-| 11.2-RLS-001 | P0 | DB/RLS integration | Montör/Säljare cannot fetch protected Phase A rate/cost rows directly through PostgREST/RLS, even when bypassing the read-model; entitled roles can read only their tenant. | FR67/71; NFR42/44; R-1103 |
-| 11.2-UNIT-006 | P0 | Unit | Multi-role sensitive-field evaluation grants a field if any held role is entitled and withholds it if none is; order/duplicates do not change the result. | FR66/71; R-1102/R-1103 |
-| 11.2-INT-005 | P0 | Read-model integration | The same tenant data projected for entitled and unentitled roles changes only field presence/descriptor, never persisted öre values, counts, hit rate, or calculations. | FR71; Story 11.2 money impact; R-1103 |
-| 11.2-UNIT-007 | P0 | Unit | Säljare low-margin protection returns only a server-computed boolean plus approved threshold label; varying inputs cannot reveal cost, margin amount, or an invertible derived value. | ADR-B001 §3.3A; R-1103 |
-| 11.2-INT-006 | P0 | Serialization integration | Existing read-model, quote PDF/export, and any activated recipient-payload builder use the recipient projection; serialized payloads contain no withheld path/value or hidden aggregate. | FR71; NFR44/47; R-1103 |
-| 11.2-E2E-001 | P1 | E2E | Each seeded tenant role signs in and sees its expected landing/nav and one representative granted surface; denied nav is absent. This proves UX wiring only, not authority. | FR72; AC-B1a-2 |
-| 11.2-INT-007 | P0 | Auth integration | Invited/disabled/no-membership/empty-role users cannot enter the app or regain a prior role surface; denial text is indistinguishable and safe. | FR66/72; R-1102/R-1104 |
-| 11.2-STATIC-001 | P0 | CI/static | Client-reachable modules do not import the permission matrix as authority or receive protected values for display math; service-role containment remains green. | FR67/71; R-1103/R-1105 |
+| Test ID | Priority | Level | Atomic scenario | Status | Requirements / risks |
+| --- | --- | --- | --- | --- | --- |
+| 11.2-UNIT-001 | P0 | Unit | Active manifest × matrix derives server navigation, landing, and direct-route authority for each role and role union; pending/unknown routes remain absent. | Existing | FR67/72; NFR42–43 |
+| 11.2-INT-001 | P0 | DB/RLS integration | Each seeded role's real navigation and representative active-module RLS read agree with catalog policy roles; exact case cardinality is asserted. | Existing seed proof; generalized by 11.4 | AC-B1a-2; R-1101 |
+| 11.2-INT-002 | P0 | DB/RLS integration | Every ungranted representative path has authenticated read and direct-write denial with no audit side effect; existing/missing/foreign command targets return indistinguishable denial. | Existing | FR67/72; NFR42 |
+| 11.2-INT-003 | P0 | Auth integration | Legacy Admin and real multi-role child union resolve; invited, disabled, malformed, empty, and foreign contexts fail closed and re-resolve after membership change. | Existing | FR66–67/72 |
+| 11.2-INT-004 | P0 | Read-model/RLS integration | Montör/Säljare never receive protected price, cost, margin, accepted-value, or dependent aggregate; fields are absent plus listed, while entitled roles retain exact stored öre. | Existing | FR71; NFR44; R-1110 |
+| 11.2-INT-005 | P0 | Storage/read integration | Säljare has safe quote acceptance/PDF references and audited broker access only; direct/nested amount reads, raw Storage list/download/sign, mismatched version, and cross-tenant requests return no protected output or audit. | Existing + hosted smoke | FR67/71–72; R-1110 |
+| 11.2-E2E-001 | P0 | E2E | Säljare and Montör land on server-selected routes, see only granted navigation, are denied a direct ungranted route generically, and never render protected money. | Existing | AC-B1a-2; NFR42/44 |
+| 11.2-STATIC-001 | P0 | CI/static | Service-role credentials and server authorization matrix remain absent from client source/bundles; only the documented server PDF broker exception survives. | Existing | Project security rules; R-1103/R-1110 |
 
 ### Story 11.3 — Admin User Management
 
-| Test ID | Priority | Level | Scenario / expected evidence | Requirement / risk |
-| --- | --- | --- | --- | --- |
-| 11.3-INT-001 | P0 | Command/Auth integration | Admin invite validates tenant and role set, creates one `invited` membership plus role children, invokes the server-only local Auth adapter, and commits a correlated audit event. | FR69; AC-B1a-3; R-1105/R-1107/R-1112 |
-| 11.3-INT-002 | P1 | Command/Auth integration | Resend targets only a valid outstanding invite, creates no duplicate membership/role rows, records audit, and returns a deterministic state on retry. | FR69; R-1107/R-1112 |
-| 11.3-INT-003 | P1 | Command/Auth integration | Revoke moves an outstanding invite to the sanctioned terminal state, blocks later activation/resend as specified, and audits the transition. | FR69; R-1107/R-1112 |
-| 11.3-INT-004 | P1 | Command/Auth integration | Password reset is server-only, targets an own-tenant active/invited user as allowed, does not expose Auth lookup detail, and records audit. | FR69; R-1105/R-1107 |
-| 11.3-INT-005 | P0 | Command/Auth integration | Deactivation preserves domain history, marks membership disabled, and makes the existing session fail on its very next protected read/command. | FR69/72; R-1104/R-1107 |
-| 11.3-INT-006 | P1 | Command/Auth integration | Reactivation restores only the stored sanctioned role set, does not resurrect removed roles, and records a before/after audit event. | FR69–70; R-1102/R-1107 |
-| 11.3-INT-007 | P0 | Command integration | Role change requires a non-empty reason, atomically updates the role set, writes complete previous/new permissions, and affects the next authorization decision. | FR69–70; NFR42; R-1104/R-1107 |
-| 11.3-INT-008 | P0 | Command/DB integration | Membership removal uses archive/end semantics, preserves historical references and events, denies future access, and performs no hard delete of history. | FR69; R-1104/R-1107 |
-| 11.3-INT-009 | P0 | Command/DB integration | Deactivate, downgrade, and remove each reject when targeting the last active Admin, leaving membership roles and audit state unchanged. | Story 11.3 last-admin AC; R-1106 |
-| 11.3-INT-010 | P0 | Concurrency integration | Two concurrent operations against two remaining Admins cannot both commit; exactly one invariant-preserving outcome and its matching audit evidence survives. | Story 11.3 last-admin AC; R-1106 |
-| 11.3-INT-011 | P0 | Generated command integration | Tenant A admin cannot invite/reset/deactivate/reactivate/re-role/remove Tenant B users; all actions return a generic denial with zero Auth, membership, or audit side effects. | FR67/69/72; R-1105 |
-| 11.3-INT-012 | P0 | Fault-injection integration | Failure before/after Auth or membership/audit boundaries produces a specified recoverable state; retry does not duplicate membership, roles, external action, or audit. | Reliability; R-1112 |
-| 11.3-STATIC-001 | P0 | CI/static | Auth admin/service-role adapter is server-only and cannot be imported from client paths or emitted in the client bundle; no privileged unauthenticated route is added. | Project security rules; R-1105 |
-| 11.3-E2E-001 | P1 | E2E | Admin completes invite→status/action display→role edit/deactivate/reactivate/remove journey and sees each correlated entry in `Händelser`. | FR69–70; AC-B1a-3 |
-| 11.3-COMP-001 | P2 | Component | Immediate-effect confirmations, `Inbjuden`/`Inaktiverad` markers, resend/revoke actions, history-preserved copy, and keyboard-accessible dialogs render from command state. | Story 11.3 UX AC |
-| 11.3-INT-013 | P1 | State-machine integration | Once expiry/throttle semantics are clarified, boundary-time invite expiry and resend/revoke/reset retry cases follow the documented state machine without wall-clock sleeps. | R-1112; UNKNOWN threshold |
+| Test ID | Priority | Level | Atomic scenario | Status | Requirements / risks |
+| --- | --- | --- | --- | --- | --- |
+| 11.3-UNIT-001 | P0 | Unit | Invite/reset operation and audit commit before Auth; known/failed/uncertain retries reuse operation identity, keep membership mutation single-effect, and expose no provider detail. | Existing | FR69; reliability |
+| 11.3-UNIT-002 | P0 | Unit | Only the current unexpired token bound to the authenticated invited email activates; expired, revoked, superseded, wrong-user, and wrong-email attempts deny. | Existing | FR69/72 |
+| 11.3-INT-001 | P0 | Command/DB integration | Invite, resend, revoke, reset, disable, reactivate, re-role with required reason, and end each enforce valid transition and write the complete tenant-scoped audit/outcome atomically. | Existing | FR69–70; AC-B1a-3 |
+| 11.3-INT-002 | P0 | Concurrency integration | Disable/end/downgrade of the last active Admin rejects under concurrent attempts and leaves one Admin plus matching audit state. | Existing | FR69; R-1111 |
+| 11.3-INT-003 | P0 | RLS/command integration | Non-Admin, anonymous, direct-DML, and Tenant A→Tenant B lifecycle attempts return generic denial with no Auth, membership, role, operation, or audit side effect. | Existing | FR67/69/72 |
+| 11.3-STATIC-001 | P0 | CI/static | Auth-admin adapter and service credentials are server-only and no privileged unauthenticated capability is introduced. | Existing | Project security rules |
+| 11.3-E2E-001 | P1 | E2E | Admin reaches Users list/detail/history and invite validation; non-Admin sees no navigation and cannot use the direct route. | Existing | FR69–70/72; AC-B1a-3 |
+| 11.3-OPS-001 | P2 | Integration smoke | On Auth template/redirect changes, a local Inbucket or controlled hosted smoke proves delivery carries the valid current callback/attempt without claiming exactly-once delivery. | Residual/conditional | R-1109 |
 
-### Story 11.4 — Roles Surface, Effective Permissions, and Harness
+### Story 11.4 — Roles Surface, Effective Permissions, and Generated Harness
 
-| Test ID | Priority | Level | Scenario / expected evidence | Requirement / risk |
-| --- | --- | --- | --- | --- |
-| 11.4-COMP-001 | P1 | Component | Admin Roles view lists the five tenant roles with descriptions/member counts, shows only manifest-active module rows and concrete sensitive-field entitlements, and contains no unresolved placeholder text. | FR70; R-1109 |
-| 11.4-COMP-002 | P1 | Component | Roles view explains Arbetsledare as a job-scoped designation and offers no tenant-wide assignment control. | FR66; NFR43; R-1102/R-1109 |
-| 11.4-INT-001 | P0 | Read-model/component integration | Effective-permissions grid is server-derived, shows module×capability plus granting role(s), handles multi-role union, and omits pending modules. | FR70; R-1102/R-1108 |
-| 11.4-INT-002 | P0 | Route/command integration | Every non-admin role is denied the Users/Roles surfaces and effective-permissions queries directly, regardless of hidden nav. | FR67/72; R-1101 |
-| 11.4-UNIT-001 | P0 | Unit | Harness generator emits stable, unique cases with exact expected cardinality per seeded role×active table/capability and preserves anon/cross-tenant arms. | NFR42–43; R-1108/R-1110 |
-| 11.4-UNIT-002 | P0 | Unit | A sample module activation fails for missing matrix rows or test-manifest enrollment and passes only when manifest, matrix, table metadata, policies, and generated tests are coherent. | FR68/129; NFR43/51; R-1108 |
-| 11.4-INT-003 | P0 | DB/schema integration | Agreement suite demonstrably fails red on a deliberately drifted fixture and returns green after the policy/matrix fixture is aligned. | Story 11.4 harness AC; R-1101/R-1108 |
-| 11.4-E2E-001 | P1 | E2E | Admin opens Roles and a user's Effective permissions, sees granting-role annotations and active-module rows; a non-admin cannot reach the route. | FR70/72 |
-
-### Cross-cutting NFR and governance scenarios
-
-| Test ID | Priority | Level | Scenario / expected evidence | Requirement / risk |
-| --- | --- | --- | --- | --- |
-| 11-X-CI-001 | P0 | CI gate | CI requires the local Supabase substrate (`SUPABASE_TEST_REQUIRED=1`), reports zero skipped/focused P0/P1 authorization cases, and fails if generated-case counts shrink unexpectedly. | NFR42; R-1110 |
-| 11-X-STATIC-001 | P1 | CI/static | Scope scans prove no custom tenant role builder, DB permission tables, tenant-wide Arbetsledare, client service-role access, customer portal, self-serve signup, AI flow, or other Phase C surface lands. | Epic 11 non-scope; FR129–130 |
-| 11-X-PERF-001 | P3 | Benchmark | Record non-gating pilot-scale baseline for matrix lookup, nav/landing derivation, effective-permissions rendering, and DB query count; compare against future runs. | R-1111; threshold UNKNOWN |
-| 11-X-A11Y-001 | P2 | E2E/component | Users/Roles tables, dialogs, tabs, warnings, and status markers are keyboard reachable and expose stable accessible names/states at supported desktop and responsive widths. | Carried NFR30–31 |
-
-### Duplicate-coverage guard
-
-- Unit tests own deterministic matrix/union/projection/generator logic.
-- DB/API integration owns constraints, RLS, command authority, audit atomicity, stale-session behavior, concurrency, and Auth-boundary failure modes.
-- Component tests own rendered state/copy/accessibility without asserting server authority.
-- E2E is intentionally thin: it proves role-specific wiring and the admin journey, while all authorization claims are made below the UI.
+| Test ID | Priority | Level | Atomic scenario | Status | Requirements / risks |
+| --- | --- | --- | --- | --- | --- |
+| 11.4-UNIT-001 | P1 | Unit/read-model | Role catalogue returns exactly five tenant roles with stable labels/descriptions, manifest-active module rows and waves, concrete sensitive-field entitlements, and no unresolved placeholder or tenant-wide Arbetsledare role. | Planned | FR66/70; R-1105 |
+| 11.4-UNIT-002 | P0 | Unit/read-model | Effective-permissions DTO computes role-set union, lists each module/capability once, annotates every granting role deterministically, excludes pending modules, and fails closed for unknown/empty roles. | Planned | FR66/68/70; R-1103/R-1105 |
+| 11.4-UNIT-003 | P1 | Unit/read-model | Member counts obey the decided active/invited/disabled/ended semantics, count a multi-role member once per listed role, and never include foreign-tenant rows. | Planned; count semantics to pin | FR70; R-1106 |
+| 11.4-UNIT-004 | P0 | Unit | Harness generator emits stable unique case IDs and exact cardinality for seeded role × active table/capability; duplicate/missing/unknown module, table, role, or capability metadata fails loud. | Planned | NFR42–43; R-1101/R-1102 |
+| 11.4-UNIT-005 | P0 | Unit/CI | A sample activation fails for missing matrix row or test-manifest enrollment and passes only when manifest, matrix, tenant-table metadata, command registry, and generated-test obligations are coherent. | Planned | FR68/129; R-1101/R-1102 |
+| 11.4-INT-001 | P0 | Generated DB/RLS integration | For every seeded role × every active tenant table, execute allowed positives where applicable and denied read/write paths beyond the matrix; preserve non-vacuous seeded targets plus existing anon/cross-tenant arms. | Planned | NFR42; AC-B1a-2; R-1101 |
+| 11.4-INT-002 | P0 | Generated command integration | For every seeded role × active capability boundary, execute at least one real denied command before validation/lookup/audit and prove no side effect. | Planned | NFR42; AC-B1a-2; R-1101/R-1102 |
+| 11.4-INT-003 | P0 | DB/catalog integration | Agreement gate demonstrably fails on a deliberately drifted policy/matrix fixture and returns green only after alignment; real catalog rows match generated expectations. | Planned | NFR43; R-1101/R-1102 |
+| 11.4-INT-004 | P0 | Route/read integration | Admin alone can query Roles/member counts/effective permissions; non-Admin, anonymous, missing target, and Tenant A→Tenant B requests are indistinguishable and reveal no data. | Planned | FR67/70/72; R-1104/R-1106 |
+| 11.4-STATIC-001 | P0 | CI/static | Roles UI receives presentation DTOs only; server matrix/role authority cannot be imported by client paths or emitted in browser bundles. | Planned | FR67; R-1103 |
+| 11.4-E2E-001 | P1 | E2E | Admin opens Roles and a multi-role user's Effective permissions, sees active-module rows, concrete entitlements, granting-role annotations and member counts; non-Admin cannot reach the route. | Planned | FR70/72; R-1104–R-1106 |
+| 11.X-STATIC-001 | P1 | CI/static | Scope scans prove no custom role builder, DB permission table, tenant-wide Arbetsledare, client service-role path, public privileged endpoint, or Phase C surface lands with epic 11. | Planned/standing | FR129–130; project scope |
 
 ## NFR coverage and evidence plan
 
-| Category | Planned validation | Evidence for later `nfr-assess` | Missing input treatment |
-| --- | --- | --- | --- |
-| Security / confidentiality | P0 matrix, command, RLS, generic-denial, direct-query, service-containment, and serialized-payload tests. | CI JUnit/results for generated role families; policy-agreement output; static containment logs; Playwright traces only for failed thin journeys. | None for the core authorization threshold; zero bypass/leak is explicit. |
-| Data integrity / audit | Multi-role constraints, union properties, last-admin concurrency, archive-over-delete, success+audit and rollback cases. | Migration-reset log; Vitest results; captured audit rows/correlation IDs; concurrency outcome record. | Compensation ordering for Auth/database partial failure must be specified before 11.3-INT-012 can turn green. |
-| Reliability | Same-session immediate revocation plus invite lifecycle retry/fault injection. | Deterministic injected-failure results and state-transition/audit snapshots. | Invite expiry/throttle durations are UNKNOWN; keep 11.3-INT-013 pending, do not guess. |
-| Performance / scalability | Non-gating deterministic benchmark and generator cardinality test. | Baseline JSON/CI timing trend and query-count output. | No release SLO or volume target exists; treat as monitored R-1111 until clarified. |
-| Maintainability / governance | Matrix/manifest/test-manifest coherence, stable generated IDs/counts, no skipped/focused security tests, hard-exclusion scans. | Unit/CI gate reports and deliberate red-fixture proof. | Playwright-utils flag is intent-only because the package is absent; this epic does not add the dependency. |
-| Accessibility / usability | Role-oriented locators, keyboard/dialog/table/tab checks, correct hidden-vs-denied behavior. | Playwright/component results and failure trace/screenshots. | Use existing carried gate; no new numerical accessibility threshold is invented. |
+| NFR | Planned validation | Evidence for later `nfr-assess` |
+| --- | --- | --- |
+| Authorization / isolation | 11.4-UNIT-004/005, 11.4-INT-001/002/003/004, 11.4-STATIC-001; retain 11.1–11.3 security regressions. | Exact case manifest/cardinality; required Vitest report with zero skips; policy-catalog snapshot; containment output; Playwright report. |
+| Sensitive-field confidentiality | Retain 11.2-INT-004/005 and extend generated enrollment when money-bearing modules activate. | Serialized payload assertions, direct/nested Data API and Storage negatives, recipient projection evidence, hosted smoke record where relevant. |
+| Data integrity / audit | Retain multi-role FK/concurrency and admin lifecycle/audit tests; add 11.4-UNIT-003 count-state fixtures. | Migration reset, DB test logs, audit rows/correlation IDs, concurrent outcome record, count fixture snapshots. |
+| Reliability | Retain operation replay/token tests; run 11.3-OPS-001 only when Auth email config changes. | Focused unit/DB results and Inbucket/controlled-smoke record; no exactly-once claim. |
+| Maintainability / governance | Generated harness self-tests, sample activation bite proof, manifest/matrix/test enrollment coherence. | Unit/CI output showing red fixtures fail and real configuration passes. |
+| Performance / scalability | Capture a pilot-scale query-count/latency and suite-duration baseline; thresholds remain **UNKNOWN**. | Baseline artifact with dataset shape, query count, duration, and environment; later owner threshold decision. |
 
 ## Execution strategy
 
-- **PR:** all unit tests, migration/reset schema checks, all generated command/RLS authorization families, audit/last-admin/fault-injection tests, static containment/scope gates, and the two thin role/admin E2E journeys while total functional execution remains under 15 minutes. P0 authorization families may not be deferred merely because the matrix is large; optimize fixtures or shard them if the budget is exceeded.
-- **Nightly:** full browser regression across every seeded role, repeat the generated authorization matrix with retry/flake reporting, and run broader serialization/leak scans.
-- **Weekly:** clean-install/reset verification plus the non-gating pilot-scale performance/query-count baseline and suite-duration trend.
+- **PR:** Run P0 then P1 units/static checks; required DB/RLS/command suites with `SUPABASE_TEST_REQUIRED=1` and zero skips; focused Roles/effective-permissions Playwright against the configured production server. Keep the full registered functional suite on PR while total wall time remains under 15 minutes.
+- **Nightly:** Run a larger deterministic role/member/module dataset baseline and full browser regression if PR duration grows beyond the target. Release-blocking generated authorization cases remain on PR.
+- **Weekly or configuration-triggered:** Run the Auth email template/redirect transport smoke and dependency/security scans when their relevant configuration changes; do not turn a live mailbox into a routine test dependency.
 
-## Resource estimate
+## Remaining test-automation estimates
 
-Generated matrix families expand the concrete case count beyond the 55 scenario rows; estimates include fixtures, local-Supabase data setup, and red/green harness demonstrations.
-
-| Priority | Scenario rows | Estimate |
-| --- | ---: | ---: |
-| P0 | 38 | ~85–125 hours |
-| P1 | 14 | ~35–55 hours |
-| P2 | 2 | ~8–16 hours |
-| P3 | 1 | ~3–6 hours |
-| **Total** | **55** | **~131–202 hours** |
-
-Expected delivery: roughly 3–5 engineer-weeks for one test engineer/developer, or 2–3 calendar weeks with disciplined parallel story ownership and shared fixtures. Estimates exclude fixing production defects exposed by the suites and resolving the unknown invitation/performance thresholds.
+| Priority | Estimate | Scope |
+| --- | --- | --- |
+| P0 | ~28–45 hours | Generator/cardinality/coherence, complete role × table/capability DB and command cases, drift bite proof, route/tenant security, client containment. |
+| P1 | ~14–24 hours | Role catalogue, counts/effective-permissions presentation, thin Admin/non-Admin E2E, scope regression. |
+| P2 | ~4–10 hours | Conditional email transport smoke and secondary state/presentation cases. |
+| P3 | ~2–5 hours | Pilot-scale performance/query-count baseline. |
+| **Total** | **~48–84 hours** | Roughly 1–2 engineer/QA weeks depending on reuse of the existing 11.2 fixtures and review findings. |
 
 ## Quality gates
 
-- P0 pass rate: **100%**; no skip, quarantine, retry-only green, or waiver without named owner/expiry.
-- P1 pass rate: **≥95%**, with every failure triaged and no security/tenant-isolation failure counted as an acceptable 5%.
-- Requirement traceability: **100% of FR66–FR72, every story acceptance criterion, AC-B1a-2, and AC-B1a-3 mapped**; automation covers at least **80% of all planned scenario rows** and all P0/P1 rows.
-- NFR42 gate: for every seeded tenant role and every active module, at least one denied command and one RLS negative, plus required allowed-path positives and unchanged cross-tenant/anon arms.
-- R-1101 and R-1103 score-9 mitigations complete before any non-admin production activation; all score≥6 risks have executed evidence and an owner.
-- Clean migration reset, matrix/manifest/policy/test-manifest agreement, last-admin concurrency, audit atomicity, service-role containment, and Phase C hard-exclusion scans are mandatory green gates.
-- NFR evidence source is identified for every in-scope category. Final NFR PASS/CONCERNS/FAIL remains deferred to `nfr-assess` after implementation evidence exists.
+- P0 pass rate = 100%; P1 pass rate ≥95%; committed skips/todos/only markers in planned P0/P1 coverage count as failures.
+- R-1101 and R-1102 must be mitigated before epic completion; every score ≥6 risk requires implemented mitigation, owner, and evidence.
+- FR66–FR72, NFR42–NFR44, and AC-B1a-2/3 require 100% mapped automated scenario coverage; overall epic requirement coverage must be ≥80%.
+- Generated case count must equal the independently computed expected role × active table/capability cardinality with unique non-vacuous identities; every active module/table/capability must trace to matrix and test enrollment.
+- Required DB/RLS evidence runs with `SUPABASE_TEST_REQUIRED=1`, executes with zero skips, and includes a clean migration reset. Browser evidence uses the configured production web server.
+- Roles/effective-permissions output contains active modules only, concrete N-4 entitlements, granting-role annotations, correct tenant-scoped counts, and no client authority import/bundle exposure.
+- An evidence source is identified for every in-scope NFR category. Final NFR PASS/CONCERNS/FAIL remains deferred to `nfr-assess` after story 11.4 evidence exists.
 
-## Completion report
+## Step 5 — Output and Validation
 
-- Mode: Create; epic-level; named scope `epic 11`; run key `epic-11`.
-- Execution mode: the configured `auto` mode resolved to the current subagent worker. Epic-level generation remained single-worker by design, so no nested worker was launched.
+- Mode: Create, epic-level, epic 11 (`epic-11`).
+- Execution: Config `auto` resolved with subagent capability available; epic-level mode has one artifact and remained single-worker as required by the workflow.
 - Output: `C:\DEV\ElproSaas\_bmad-output\test-artifacts\test-design-epic-11.md`.
-- Risk outcome: 12 risks, including 10 score≥6 risks and two release-blocking score-9 risks (R-1101 policy↔matrix drift and R-1103 sensitive-money leakage). No risk was accepted or waived.
-- Coverage outcome: 55 scenario families (38 P0, 14 P1, 2 P2, 1 P3), with range-based effort of ~131–202 hours.
-- Gate outcome: P0 100%, P1 ≥95%, P2/P3 ≥90%; complete FR/AC traceability; ≥80% planned automation with all P0/P1 automated; all score≥6 risks mitigated or formally waived; score-9 risks closed before non-admin activation.
-- Open assumptions: invitation expiry/throttle/compensation and epic-specific performance thresholds remain owner inputs; the design records them without inventing values.
-- Validation: output path, template sections, risk IDs/scores, priority totals, NFR evidence plan, PR/Nightly/Weekly execution strategy, range estimates, quality gates, interworking, and placeholder removal were checked. No browser session or temporary artifact required cleanup.
+- Risk result: 12 unique, correctly scored risks; R-1101 and R-1102 score 9 and block epic completion until mitigated.
+- Gate result: P0 requires 100%, P1 at least 95%, zero required DB/RLS skips, and complete independently counted generated authorization coverage.
+- Open assumptions: product must define membership states included in role member counts; performance/query/suite thresholds remain UNKNOWN.
+- Validation: required epic-level sections present; 12 unique risk IDs with correct probability × impact; 35 unique prioritized scenario groups (28 P0, 5 P1, 1 P2, 1 P3); no template placeholders or trailing whitespace; no browser or managed-resource cleanup required.

@@ -1,0 +1,112 @@
+# auto-bmad per-story state — written by scripts/state_update.py (full stable schema;
+# see references/state-and-resume.md). Prose belongs in reports/{key}.md, not here.
+story_key: epic-11
+epic_num: 11
+story_num: null
+story_suffix: ""
+story_source: sprint
+spec_folder: null
+story_id: null
+branch: codex/epic-11-wave-b1a-rbac-mechanism-and-admin-user-management
+# Historical Auto-BMAD execution completion only. Sprint status is authoritative:
+# Epic 11 remains in-progress, Story 11.4 remains review, and the retrospective is rejected.
+status: done
+updated_at: "2026-09-14T09:49:16Z"
+started_at: "2026-09-11T11:11:44Z"
+completed_at: "2026-09-11T16:00:52Z"
+active_seconds: 12923
+timing_anchor: null
+is_first_in_epic: false
+is_last_in_epic: false
+git_mode: remote
+base_branch: main
+selected_phase: retrospective
+selected_role: retrospective-delegate
+selected_profile: default
+selected_model: gpt-5.6-terra
+selected_effort: medium
+selected_host: codex
+selected_tier: subagents
+selected_route: subagent
+escalation_reason: null
+routing_ledger:
+  - "{\"effort\":\"xhigh\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-sol\",\"phase\":\"tea_epic\",\"profile\":\"critical\",\"role\":\"tea-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"medium\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-luna\",\"phase\":\"tea_triage\",\"profile\":\"light\",\"role\":\"test-risk-triage\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"xhigh\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-sol\",\"phase\":\"tea_epic\",\"profile\":\"critical\",\"role\":\"tea-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"high\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-terra\",\"phase\":\"tea_epic_audit\",\"profile\":\"standard\",\"role\":\"tea-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"high\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-terra\",\"phase\":\"deferred_reconcile\",\"profile\":\"standard\",\"role\":\"deferred-reconciler\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"medium\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-terra\",\"phase\":\"retrospective\",\"profile\":\"default\",\"role\":\"retrospective-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+tea_risk: null
+tea_selected: []
+tea_rationale: null
+epic_story_count: 4
+stories_after_in_epic: null
+completed_phases: [0, 1, 2, 5, 9, 81, 82]
+spec_path: null
+spec_approved: false
+build:
+  status: null
+  blocking_condition: null
+  followup_review_recommended: false
+  review_loop_iteration: 0
+  deferred_count: 0
+  warnings: []
+followup_passes: 0
+hitl_halt: null
+review_unverified: false
+story_trace: null
+legacy_review_resume: false
+legacy_review_iteration: null
+legacy_review_loop_done: false
+legacy_external_review_iterations: null
+legacy_convergence_unverified: false
+legacy_artifact_path: null
+commits: [6b32303, f032fa6, 1ad3df8, 77be952, 5d1cf53]
+phase8_steps:
+  trace_gate: done
+  nfr: done
+  test_review: done
+  reconcile: done
+  archive: done
+  retro: done
+gate_decision: PASS
+gate_iterations: 1
+deferred_work_archived: 37
+retro:
+  doc: "C:/DEV/ElproSaas/_bmad-output/implementation-artifacts/epic-11-retro-2026-09-11.md"
+  verdict: rejected
+  open_action_items: 5
+bmad_status_flipped_at: null
+pr_url: "https://github.com/rthunborg/ElproSaas/pull/55"
+# No current-head CI is asserted here. Historical dcb718c run 34712355388 is retained
+# in reports/spec evidence; refresh PR #55 checks on resume before setting these fields.
+ci_run_url: null
+ci_status: unknown
+pr_merged: false
+merge_method: null
+merge_commit: null
+branch_deleted: false
+open_questions:
+  - Performance/query/suite targets and operational availability/DR/observability criteria are undefined.
+  - "[11.4] Cross-model review command returned no output in build and follow-up; not counted as review evidence."
+  - "[11.3] Identity-binding candidate is verified at PR #57 / fc2a85e; main/demo remain blocked until approved merge and migration deployment."
+deferred_work:
+  - "Advisory test quality: 75/100, Request Changes; address live-clock fixture, readiness gaps, oversized support files, and organization findings. See _bmad-output/test-artifacts/test-reviews/test-review-epic-11-wave-b1a-rbac.md."
+blockers:
+  - "HIGH release blocker in prior Story 11.3: identity binding and the direct-RPC mismatch/no-side-effect regression are fixed and verified in PR #57 and the integrated candidate. Human approval, merge, and migration deployment remain required before the main/demo blocker can close. See _bmad-output/test-artifacts/nfr-assessment-epic-11.md."
+  - "Human checkpoint pending: Story 11.4 remains review and Epic 11 remains in-progress; focused review evidence is recorded but is not approval, merge, or deployment."
+  - "Lifecycle PR #58 implementation evidence is verified in the candidate; published-head checks are the post-publication evidence source. The reset retry production-command/action seam is separately tracked, not implemented, bounded correctness work."
+overrides:
+  branch_prefix: "codex/ (host instruction)"
+  role_count_policy: "Owner-approved: Label role counts Aktiva medlemmar. Count only current-tenant memberships with status active assigned the role. Exclude invited, expired, revoked, disabled, and ended. Count each member once per assigned role; totals across roles need not be unique people. Informational only; authorization unchanged."
+constraints:
+  - "Owner-approved: Label role counts Aktiva medlemmar. Count only current-tenant memberships with status active assigned the role. Exclude invited, expired, revoked, disabled, and ended. Count each member once per assigned role; totals across roles need not be unique people. Informational only; authorization unchanged."
+batch_flip_done: false
+epic_slug: wave-b1a-rbac-mechanism-and-admin-user-management
+stories_landed:
+  - 11-4-roles-surface-effective-permissions-and-the-per-role-test-harness
+active_story: null
+stories_skipped:
+  - "11-1-role-storage-and-permission-matrix-mechanism â€” already done"
+  - "11-2-non-admin-access-to-the-phase-a-surface-matrix-seed-role-aware-rls-nav-and-landing â€” already done"
+  - "11-3-admin-user-management â€” already done"

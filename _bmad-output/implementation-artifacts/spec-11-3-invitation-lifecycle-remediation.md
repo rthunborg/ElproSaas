@@ -45,7 +45,7 @@ Auth delivery remains after the durable preparation. A finalizer failure returns
 
 - `src/server/auth/admin-user-service.ts:49` — `deliveryOutcome`: separates provider execution from operation finalization.
 - `src/server/commands/admin-users/invite.ts:39` — `admin_reconcile_membership_operation`: reads the prior durable outcome before exposing a retry.
-- `src/components/admin-users/UsersPage.tsx:11` — `form.set("operationId"`: replaces an already reconciled uncertain operation id only on the next user submission.
+- `src/components/admin-users/UsersPage.tsx:12` — `form.set("operationId"`: replaces an already reconciled uncertain operation id only on the next user submission.
 - `tests/unit/admin-users/admin-user-service.test.ts:132` — `keeps a prepared invitation reconcilable`: verifies a finalizer failure neither throws away the prepared context nor writes a conflicting outcome.
 - `tests/integration/commands/admin-invitation-retry-flow.test.ts:79` — `keeps an uncertain durable operation`: exercises the real action and command through mocked I/O: same-id reconciliation makes no second delivery, an observed outcome enables one fresh attempt, and a success replay is delivery-free.
 
@@ -54,7 +54,7 @@ Auth delivery remains after the durable preparation. A finalizer failure returns
 The invite acceptance form shows confirmation only after its authenticated command reports database success. The detail page exposes recovery actions for the explicit expired projection.
 
 - `src/components/admin-users/InviteAcceptanceForm.tsx:11` — `state.status === "success"`: presents the server-confirmed activation result.
-- `src/components/admin-users/UserDetailPanel.tsx:23` — `detail.status === "expired"`: renders fresh-send and revoke controls.
+- `src/components/admin-users/UserDetailPanel.tsx:26` — `detail.status === "expired"`: renders fresh-send and revoke controls.
 - `tests/e2e/auth/admin-user-management.atdd.e2e.spec.ts:86` — `authenticated acceptance shows confirmation`: browser proof uses a deterministic local database fixture and makes no email-receipt claim.
 
 Evidence: final validation ran three focused files: seven real authenticated database tests and two mocked-I/O action/command recovery tests passed with zero skips. The full unit suite passed 1,736/1,736 with zero skips; changed-file ESLint, typecheck, source containment, bundle containment, and the guarded production browser rerun (5/5, zero skips) passed.
