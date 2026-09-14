@@ -17,7 +17,11 @@ name: CI
 
 on:
   pull_request:
-    branches: [main]
+    # Verify the dependent Epic 11 repair PRs before their approved retarget to main.
+    branches:
+      - main
+      - codex/story-11-3-invitation-identity-binding
+      - codex/story-11-3-invitation-lifecycle
   push:
     branches: [main]
 
