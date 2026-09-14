@@ -8,6 +8,8 @@ type Fixture = {
     readonly tenantAdmin: RoleFixture;
     readonly nonAdmin: RoleFixture;
     readonly sharedAccount: RoleFixture;
+    readonly expiredMembershipId: string;
+    readonly invitationAcceptance: { readonly user: RoleFixture; readonly membershipId: string; readonly attemptToken: string };
   };
 };
 
@@ -70,5 +72,25 @@ test.describe("Story 11.3 administrativ användarhantering", () => {
     await dialog.getByRole("button", { name: "Skicka inbjudan" }).click();
     expect(await email.evaluate((element) => (element as HTMLInputElement).checkValidity())).toBe(false);
     await expect(dialog).toBeVisible();
+  });
+
+  test("[P0] Admin sees fresh-send and revoke actions for an expired invitation", async ({ page }) => {
+    const fixture = getFixture();
+    await logIn(page, fixture.adminUserManagement.tenantAdmin);
+    await page.goto(`/admin/users/${fixture.adminUserManagement.expiredMembershipId}`);
+    await expect(page.getByText(/expired/i)).toBeVisible();
+    await expect(page.getByRole("button", { name: "Skicka ny inbjudan" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Återkalla inbjudan" })).toBeVisible();
+  });
+
+  test("[P0] authenticated acceptance shows confirmation only after the database result", async ({ page }) => {
+    const fixture = getFixture();
+    await logIn(page, fixture.adminUserManagement.invitationAcceptance.user);
+    const { membershipId, attemptToken } = fixture.adminUserManagement.invitationAcceptance;
+    await page.goto(`/invite/accept?membershipId=${membershipId}&attempt=${attemptToken}`);
+    await page.getByRole("button", { name: "Aktivera åtkomst" }).click();
+    await expect(page.getByRole("status")).toHaveText("Åtkomsten är aktiverad.");
+    await page.getByRole("link", { name: "Fortsätt" }).click();
+    await expect(page).toHaveURL(/\/dashboard$/);
   });
 });

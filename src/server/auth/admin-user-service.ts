@@ -21,6 +21,7 @@ export function createAdminUserService(deps: AdminUserServiceDependencies) {
       const prepared = await deps.prepareInvite(input);
       const email = String(input.email ?? "");
       const redirectTo = redirect(prepared);
+      let deliveryOutcome: "succeeded" | "uncertain" = "uncertain";
       try {
         if (prepared.delivery === "magic_link") {
           if (!deps.signInWithOtp) throw new Error("admin user operation unavailable");
@@ -38,15 +39,20 @@ export function createAdminUserService(deps: AdminUserServiceDependencies) {
             await deps.signInWithOtp({ email, options: { shouldCreateUser: false, emailRedirectTo: redirectTo } });
           }
         }
-        await deps.finalizeOperation?.({ operationId: prepared.operationId, outcome: "succeeded" });
-        return { operationId: prepared.operationId, membershipId: prepared.membershipId, outcome: "succeeded" as const };
+        deliveryOutcome = "succeeded";
       } catch {
         // The durable operation already exists. A response loss is deliberately
         // distinguishable from a later successful reconciliation, while callers
         // still receive no Auth-provider detail or delivery guarantee.
-        await deps.finalizeOperation?.({ operationId: prepared.operationId, outcome: "uncertain" });
+      }
+      try {
+        await deps.finalizeOperation?.({ operationId: prepared.operationId, outcome: deliveryOutcome });
+      } catch {
+        // Do not overwrite a failed finalization with a second outcome. The
+        // prepared operation is still durable and must remain reconcilable.
         return { operationId: prepared.operationId, membershipId: prepared.membershipId, outcome: "uncertain" as const };
       }
+      return { operationId: prepared.operationId, membershipId: prepared.membershipId, outcome: deliveryOutcome };
     },
     async reconcile(input: Record<string, unknown>): Promise<ReconciledAdminUserOperation> {
       if (!deps.reconcileOperation) throw new Error("admin user operation unavailable");

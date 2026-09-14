@@ -17,6 +17,7 @@
  * the detail sub-sections are populated.
  */
 import { mkdirSync, writeFileSync } from "node:fs";
+import { createHash } from "node:crypto";
 import path from "node:path";
 import {
   adminInsertArticle,
@@ -83,6 +84,24 @@ export default async function globalSetup() {
   // tenant that owns every existing browser seed. Their credentials are written
   // only to the gitignored per-run fixture file below and cleaned with the base.
   const roleAware = await seedRoleAwarePhaseAUsers(base);
+  // A real authenticated acceptance fixture: it is deliberately seeded at the
+  // database boundary, not through a mailbox, so the browser proves only the
+  // server-confirmed membership activation and navigation contract.
+  const [acceptanceMembership] = await adminQuery<{ id: string }>(
+    "select id from public.tenant_memberships where tenant_id=$1 and user_id=$2",
+    [base.tenantA.id, roleAware.invitedUser.id],
+  );
+  if (!acceptanceMembership) throw new Error("Story 11.3 acceptance fixture has no invited membership");
+  const acceptanceAttemptToken = crypto.randomUUID();
+  await adminQuery(
+    "update public.tenant_memberships set invited_email=$2, invited_at=statement_timestamp(), invitation_expires_at=statement_timestamp() + interval '1 hour' where id=$1",
+    [acceptanceMembership.id, roleAware.invitedUser.email],
+  );
+  await adminQuery(
+    `insert into public.membership_admin_operations (id,tenant_id,actor_user_id,membership_id,action,outcome,invitation_token_hash,invitation_expires_at,completed_at)
+     values ($1,$2,$3,$4,'invite','succeeded',$5,statement_timestamp() + interval '1 hour',statement_timestamp())`,
+    [crypto.randomUUID(), base.tenantA.id, base.adminA.id, acceptanceMembership.id, createHash("sha256").update(acceptanceAttemptToken).digest("hex")],
+  );
   // Story 11.3 browser fixture: a real non-admin in Tenant A and a shared
   // account whose Tenant-B membership remains independent of Tenant-A changes.
   await adminInsertMembership({
@@ -91,6 +110,15 @@ export default async function globalSetup() {
     role: "montor",
     status: "active",
   });
+  // An expired unaffiliated record makes the recovery affordance deterministic
+  // without treating an email inbox as a browser assertion harness.
+  const expiredMembershipId = crypto.randomUUID();
+  await adminQuery(
+    `insert into public.tenant_memberships
+       (id, tenant_id, user_id, role, status, invited_email, invited_at, invitation_expires_at)
+     values ($1, $2, null, 'montor', 'expired', $3, statement_timestamp() - interval '2 hours', statement_timestamp() - interval '1 hour')`,
+    [expiredMembershipId, base.tenantA.id, `expired-${token()}@example.test`],
+  );
   const adminAClient = await makeAuthedServerClient(base.adminA);
 
   // Seed CRM rows in tenantA via the privileged (BYPASSRLS) factory path. These are
@@ -1042,6 +1070,8 @@ export default async function globalSetup() {
       tenantAdmin: base.adminA,
       nonAdmin: roleAware.users.montor,
       sharedAccount: base.adminB,
+      expiredMembershipId,
+      invitationAcceptance: { user: roleAware.invitedUser, membershipId: acceptanceMembership.id, attemptToken: acceptanceAttemptToken },
     },
     crm: {
       company: { id: companyId, displayName: companyName, orgNr: companyOrgNr },
