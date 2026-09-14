@@ -22,6 +22,7 @@ on:
       - main
       - codex/story-11-3-invitation-identity-binding
       - codex/story-11-3-invitation-lifecycle
+      - codex/story-11-3-auth-callback
   push:
     branches: [main]
 

@@ -97,4 +97,10 @@ The runbook separates observed local facts from owner decisions and does not cla
 - `scripts/nfr/epic-11-local-dr-rehearsal.ts:115` — `dropScratch`: removes only the generated scratch database after the comparison.
 - `docs/quality/epic-11-nfr-evidence-runbook.md:61` — `## Existing operational evidence and remaining decisions`: confines operational follow-up to owner-approved targets and safe environments.
 
+### Verify the dependent callback repair
+
+The stacked callback repair needs the same required CI evidence before it can be retargeted to `main`. The trigger remains an explicit named repair-branch allowlist; it does not widen verification to a branch pattern or alter CI jobs, permissions, guards, or concurrency.
+
+- `.github/workflows/ci.yml:25` — `codex/story-11-3-auth-callback`: enables the existing CI pipeline for the dependent callback repair base only.
+
 The R-1108 and R-1109 commands executed with `SUPABASE_TEST_REQUIRED=1`; their raw output remains under ignored `tmp/private/`. The restore rehearsal remains pending a passing scoped restore. The historical browser callback proof was RED; the remediated candidate journey is locally GREEN pending PR #62 CI, merge, deployment, and hosted-configuration verification. A skipped or mocked result is not evidence.
