@@ -132,7 +132,7 @@ function makeNoopCommand() {
 }
 
 describe("SERVER_ERROR vs no-access at the integration level (Gap G-4 / R-014)", () => {
-  it("[P2] resolveTenantContext maps a transient membership-read I/O error to SERVER_ERROR (NOT TENANT_MEMBERSHIP_REQUIRED)", async (testCtx) => {
+  it("[P2] a transient membership read error returns SERVER_ERROR instead of a no-access code", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     const client = withFailingMembershipRead(realAuthed);
     const result = await resolveTenantContext({ client });
