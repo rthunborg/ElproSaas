@@ -60,6 +60,9 @@ export default defineConfig({
     env: {
       NEXT_PUBLIC_SUPABASE_URL: LOCAL_SUPABASE_URL,
       NEXT_PUBLIC_SUPABASE_ANON_KEY: LOCAL_SUPABASE_ANON_KEY,
+      // Admin email links must return to this actual production-mode test host.
+      // The local Auth redirect allow-list has matching 3000 and 3100 entries.
+      NEXT_PUBLIC_APP_URL: BASE_URL,
       // The server-only quote-PDF broker is deliberately the sole app path that
       // needs this local credential. It is not NEXT_PUBLIC_ and Next does not
       // inline it into browser bundles; tests prove Säljare still has no raw
