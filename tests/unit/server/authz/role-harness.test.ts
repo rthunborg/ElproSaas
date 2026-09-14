@@ -1,9 +1,10 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { describe, test } from "node:test";
 import { TENANT_ROLES } from "@/server/authz/roles";
 import { TABLE_PROJECTION_CAPABILITIES, activeRoleHarnessObligations, buildRoleHarnessCases, validateRoleHarnessMetadata } from "../../../support/authz/role-harness";
 import { defineCommand } from "@/server/commands/envelope";
 
+describe("role harness", () => {
 test("[P0] role harness generates exactly one case per seed role and active obligation", () => {
   const obligations = activeRoleHarnessObligations();
   const cases = buildRoleHarnessCases();
@@ -41,4 +42,5 @@ test("[P0] table metadata fails loud for missing and unknown entries", () => {
   assert.throws(() => validateRoleHarnessMetadata({ projectionCapabilities: missingCustomers }), /table capability enrollment missing for customers/);
   assert.throws(() => validateRoleHarnessMetadata({ projectionCapabilities: { ...TABLE_PROJECTION_CAPABILITIES, stale_table: "Customers.View" } }), /unknown table capability metadata: stale_table/);
   assert.throws(() => validateRoleHarnessMetadata({ directRlsAllowedRoles: { stale_table: [] } }), /unknown direct RLS metadata: stale_table/);
+});
 });

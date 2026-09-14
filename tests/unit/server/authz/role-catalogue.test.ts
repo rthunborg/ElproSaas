@@ -1,10 +1,11 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { describe, test } from "node:test";
 import { buildEffectivePermissions, buildRoleCatalogue, effectivePermissionsForMembership, resolveMembershipRoles } from "@/server/authz/role-catalogue";
 import { PERMISSION_MATRIX } from "@/server/authz/permission-matrix";
 import type { TenantRole } from "@/server/authz/roles";
 import { SCOPE_MANIFEST } from "@/scope/manifest";
 
+describe("role catalogue", () => {
 test("[P0] role catalogue contains the five stored roles and only active manifest modules", () => {
   const catalogue = buildRoleCatalogue({ tenant_admin: 2, saljare: 1 });
   assert.equal(catalogue.roles.length, 5);
@@ -41,4 +42,5 @@ test("[P0] inactive and legacy memberships project truthful effective permission
   assert.deepEqual(resolveMembershipRoles("projektledare", ["saljare"]), ["saljare"]);
   assert.deepEqual(effectivePermissionsForMembership("disabled", ["projektledare"]), []);
   assert.ok(effectivePermissionsForMembership("active", ["projektledare"]).length > 0);
+});
 });
