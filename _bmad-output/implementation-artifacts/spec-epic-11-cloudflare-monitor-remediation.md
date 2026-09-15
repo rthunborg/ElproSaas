@@ -73,7 +73,8 @@ The monitor measures an unauthenticated synthetic route. It may support a sample
 **Commands:**
 - `pnpm --dir workers/cloudflare-monitor test` — expected: focused model tests pass.
 - `pnpm --dir workers/cloudflare-monitor typecheck` — expected: Worker type check passes.
-- `pnpm --dir workers/cloudflare-monitor exec wrangler deploy --dry-run` — expected: valid pinned Worker configuration without deployment.
+- `pnpm --dir workers/cloudflare-monitor test:runtime` — expected: a guarded local-only run writes an ignored result JSON with `status: "passed"` after the first SQLite Durable Object sample write.
+- From `workers/cloudflare-monitor`, `pnpm run render:private-config` followed by `pnpm exec wrangler deploy --dry-run --config wrangler.private.jsonc` — expected: valid pinned Worker configuration without deployment.
 - `node scripts/verify/check-review-order.mjs "_bmad-output/implementation-artifacts/spec-epic-11-cloudflare-monitor-remediation.md"` — expected: final author trail has valid references.
 
 ## Suggested Review Order
@@ -111,11 +112,11 @@ Focused model tests exercise the exact URL, private-address explicitness, event 
 - `workers/cloudflare-monitor/test/model.test.ts:46` — `opens only one outage`: proves the third ungapped failed sample opens exactly one incident.
 - `workers/cloudflare-monitor/test/model.test.ts:57` — `a gap resets`: proves a pre-gap incident cannot turn the first post-gap failure into a continued outage.
 - `workers/cloudflare-monitor/test/model.test.ts:95` — `a failed alert delivery remains eligible`: proves pending delivery survives recovery/gap while delivered incidents do not retry.
-- `workers/cloudflare-monitor/scripts/verify-local-bootstrap.mjs:72` — `--persist-to`: gives each local bootstrap run an isolated retained Durable Object state.
-- `workers/cloudflare-monitor/scripts/verify-local-bootstrap.mjs:87` — `monitor_sample_recorded`: requires the first local Cron event to complete the post-write log after safe empty-state read.
+- `workers/cloudflare-monitor/scripts/verify-local-bootstrap.mjs:80` — `--persist-to`: gives each local bootstrap run an isolated retained Durable Object state.
+- `workers/cloudflare-monitor/scripts/verify-local-bootstrap.mjs:98` — `monitor_sample_recorded`: requires the first local Cron event to complete the post-write log after safe empty-state read.
 - `.github/workflows/cloudflare-monitor-verify.yml:34` — `pnpm test:runtime`: keeps the Cloudflare runtime bootstrap check independent of the Next.js suite and platform state.
 - `docs/process/pilot-operations-runbook.md:76` — `Prepare the Cloudflare monitor`: gives the owner private CLI configuration, local isolated test, and sender-platform stop.
 
-Evidence: focused model tests passed 9/9; Worker and root type checks passed; the root Next build passed after explicitly excluding the standalone Worker type project; the repository lockfile guard passed; and a fake-only private render completed `wrangler deploy --dry-run` with a 10.98 KiB bundle and no deployment. The root owns the separately guarded local runtime execution and will append its actual result before merge.
+Evidence: focused model tests passed 9/9; Worker and root type checks passed; the root Next build passed after explicitly excluding the standalone Worker type project; the repository lockfile guard passed; and a fake-only private render completed `wrangler deploy --dry-run` with an 11.11 KiB bundle and no deployment. The earlier guarded Windows runtime attempt recorded an ignored JSON result with `status: "failed"` and `failureClass: "AssertionError"`; its diagnostic rerun and the path-scoped Linux CI are pending. Do not treat the local runtime bootstrap as passed until a retained result artifact records `status: "passed"`.
 
 Limits: local runtime coverage uses a simulated first failed probe and email binding, so it does not prove inbox delivery. A thirty-day gap-free history, real inbox delivery, current Free/Paid account capability, and Vercel all-request error rate remain operational evidence, not completed verification. As of this change, the proposed `ops.enhancior.se` Email Sending route requires a separate paid-plan decision; deployment waits for the owner's sender choice.
