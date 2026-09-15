@@ -396,7 +396,8 @@ action_items:
     epic: 11
     action: "Repair and verify the invitation and recovery Auth callback so a real
       Auth email reaches the intended in-app flow; required CI covers the recovery
-      password update and fresh sign-in, and hosted Gmail delivery reached password update."
+      password update and fresh sign-in, and hosted Gmail delivery reached password update.
+      R-1106 is separately closed by the mapped role-count and granting-role suites."
     owner: "Admin-user feature owner"
     status: done
     ref: "C:\\DEV\\ElproSaas\\_bmad-output\\implementation-artifacts\\epic-11-retro-2026-09-11.md"
