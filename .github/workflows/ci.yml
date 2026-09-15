@@ -242,7 +242,9 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p recovery/source
-          supabase db dump --local --schema public,auth,storage,supabase_migrations --file recovery/source/schema.sql
+          # supabase db reset seeds a test_support trigger on public.audit_events;
+          # include its schema so the selected public schema restores faithfully.
+          supabase db dump --local --schema public,auth,storage,supabase_migrations,test_support --file recovery/source/schema.sql
           supabase db dump --local --data-only --schema storage --exclude storage.objects --file recovery/source/storage-data.sql
 
       - name: Create isolated recovery runtime configuration

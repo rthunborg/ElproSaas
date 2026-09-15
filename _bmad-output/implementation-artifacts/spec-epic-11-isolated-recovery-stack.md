@@ -46,9 +46,9 @@ Logical recovery restores the complete `storage.objects` rows first. A pinned, n
 The runbook supplies the guard request fields without embedding actor context or credentials. A separate no-secret PR job restores current schemas into a fresh recovery Compose target and runs a synthetic absent-byte fixture through the exact loader and Storage API.
 
 - `.github/workflows/ci.yml:208` — `recovery-storage-loader`: executes the no-secret PR gate only after fast verification succeeds.
-- `.github/workflows/ci.yml:241` — `Dump synthetic recovery schema source`: takes only the local CI schema plus Storage bucket seed, never a hosted database or backup archive.
-- `.github/workflows/ci.yml:251` — `Start database-only isolated recovery target`: prints bounded, credential-redacted Postgres startup diagnostics only for the fresh synthetic CI target before any restore input exists.
-- `.github/workflows/ci.yml:279` — `Prove physical Storage loader preserves protected rows`: snapshots complete seeded logical rows before bytes exist, invokes the exact pinned loader, then runs the real API/trigger proof.
+- `.github/workflows/ci.yml:241` — `Dump synthetic recovery schema source`: takes the local CI application schemas plus the declared `test_support` dependency of the local-only audit trigger and Storage bucket seed, never a hosted database or backup archive.
+- `.github/workflows/ci.yml:253` — `Start database-only isolated recovery target`: prints bounded, credential-redacted Postgres startup diagnostics only for the fresh synthetic CI target before any restore input exists.
+- `.github/workflows/ci.yml:281` — `Prove physical Storage loader preserves protected rows`: snapshots complete seeded logical rows before bytes exist, invokes the exact pinned loader, then runs the real API/trigger proof.
 - `.github/workflows/pilot-isolated-recovery-rehearsal.yml:15` — main-only manual dispatch prevents scheduled or branch secret execution for the owner backup drill.
 - `.github/workflows/pilot-isolated-recovery-rehearsal.yml:100` — derives the exact archive restore plan and full-row digest before loader materialization.
 - `scripts/ops/write-isolated-recovery-storage-fixture.mjs:23` — `writeIsolatedRecoveryStorageFixture`: generates only two randomized synthetic linked/quote-PDF logical rows and absent backend bytes.

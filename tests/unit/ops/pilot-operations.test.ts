@@ -243,6 +243,7 @@ test('recovery Compose sources leave per-drill values in ignored static private 
     assert.doesNotMatch(restoreEntryPoint, /-U postgres -d postgres/);
   }
   assert.match(recoveryCi, /RECOVERY_TEST_DB_URL=\"postgresql:\/\/supabase_storage_admin:/);
+  assert.match(recoveryCi, /--schema public,auth,storage,supabase_migrations,test_support/);
   assert.match(bootstrap, /command: \["postgres", "-D", "\/etc\/postgresql"/);
   assert.match(base, /command: \["postgres", "-D", "\/etc\/postgresql"/);
   assert.match(base, /cron\.launch_active_jobs=off/);
