@@ -236,7 +236,7 @@ database with no connection to the demo database.
    {
      "operation": "ComposeUp",
      "workingDirectory": "C:\\path\\to\\elpro-recovery-worktree",
-    "composeFiles": [
+     "composeFiles": [
       "ops/recovery/compose.db-bootstrap.yaml",
       "ops/recovery/.private.db-bootstrap.compose.yaml"
     ]
@@ -253,9 +253,16 @@ database with no connection to the demo database.
    confirm every target URL still resolves to loopback.
 3. Follow Supabase's current logical restore procedure for the selected target:
    restore roles/schema/data in the required order, account for custom
-   `auth`/`storage` schema changes, then stop the database guard resource while
-   retaining its project-scoped named volumes. Start the full runtime with the
-   same private project name:
+   `auth`/`storage` schema changes, then reapply the recovery runtime bootstrap
+   before Auth, REST, or Storage starts. The source role dump can replace the
+   image-init passwords and database JWT settings, so this is mandatory:
+
+   ```powershell
+   docker compose -f ops/recovery/compose.db-bootstrap.yaml -f ops/recovery/.private.db-bootstrap.compose.yaml exec -T db psql -v ON_ERROR_STOP=1 -U postgres -d postgres -f /docker-entrypoint-initdb.d/init-scripts/99-recovery-roles.sql
+   ```
+
+   Stop the database guard resource while retaining its project-scoped named
+   volumes. Start the full runtime with the same private project name:
 
    ```json
    {
@@ -303,6 +310,17 @@ The existing local rehearsal in
 is useful evidence for a dependency-ordered logical database restore. It does
 not prove hosted backup recovery, platform-role bootstrap, Storage byte
 recovery, or this RPO/RTO target.
+
+The main-only manual
+[`pilot-isolated-recovery-rehearsal.yml`](../../.github/workflows/pilot-isolated-recovery-rehearsal.yml)
+performs this sequence on an ephemeral GitHub runner. It retrieves only the
+newest Drive-owned, tagged encrypted archive from the approved Drive folder,
+writes new recovery-only runtime values on that runner, and removes archive,
+plaintext, and Compose state at the end. Its Compose network is internal, and
+PostgreSQL starts with `cron.launch_active_jobs=off` and `pg_net.batch_size=0`
+so restored scheduled jobs and queued HTTP requests cannot execute. Its logs
+contain only status and aggregate recovery facts; it creates no workflow
+artifact.
 
 ## Suggested Review Order
 

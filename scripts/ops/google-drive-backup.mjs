@@ -1,7 +1,9 @@
 import { stat } from 'node:fs/promises';
-import { createReadStream } from 'node:fs';
+import { createReadStream, createWriteStream } from 'node:fs';
 import { basename, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { Readable } from 'node:stream';
+import { pipeline } from 'node:stream/promises';
 
 const TOKEN_URL = 'https://oauth2.googleapis.com/token';
 const DRIVE_API = 'https://www.googleapis.com/drive/v3';
@@ -117,7 +119,7 @@ export async function listBackups({ token, folderId, fetchImpl = fetch }) {
     url.searchParams.set('q', query);
     url.searchParams.set('orderBy', 'createdTime desc');
     url.searchParams.set('pageSize', '100');
-    url.searchParams.set('fields', 'nextPageToken,files(id,name,createdTime,parents,appProperties)');
+    url.searchParams.set('fields', 'nextPageToken,files(id,name,createdTime,parents,appProperties,ownedByMe)');
     url.searchParams.set('spaces', 'drive');
     if (pageToken) url.searchParams.set('pageToken', pageToken);
     const response = await fetchImpl(url, { headers: { authorization: `Bearer ${token}` } });
@@ -126,6 +128,29 @@ export async function listBackups({ token, folderId, fetchImpl = fetch }) {
     pageToken = page.nextPageToken;
   } while (pageToken);
   return results;
+}
+
+export async function downloadNewest({ token, folderId, outputPath, fetchImpl = fetch }) {
+  const [backup] = await listBackups({ token, folderId, fetchImpl });
+  if (!backup || !backup.id || backup.ownedByMe !== true || !backup.parents?.includes(folderId) || backup.appProperties?.elpro_pilot_backup !== 'v1') {
+    throw new Error('No owned encrypted pilot backup is available in the approved Drive folder');
+  }
+  let response;
+  try {
+    response = await fetchImpl(`${DRIVE_API}/files/${encodeURIComponent(backup.id)}?alt=media`, {
+      headers: { authorization: `Bearer ${token}` },
+      redirect: 'error',
+    });
+  } catch {
+    throw new Error('Google Drive encrypted backup download failed');
+  }
+  if (!response.ok || !response.body) throw new Error('Google Drive encrypted backup download failed');
+  try {
+    await pipeline(Readable.fromWeb(response.body), createWriteStream(resolve(outputPath), { flags: 'wx', mode: 0o600 }));
+  } catch {
+    throw new Error('Google Drive encrypted backup download failed');
+  }
+  return { createdTime: backup.createdTime };
 }
 
 export async function prune({ token, folderId, fetchImpl = fetch }) {

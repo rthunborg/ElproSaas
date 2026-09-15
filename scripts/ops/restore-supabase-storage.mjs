@@ -1,5 +1,6 @@
 import { createReadStream } from 'node:fs';
 import { lstat, readFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
 import { Readable } from 'node:stream';
 import { relative, resolve, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -122,6 +123,34 @@ async function readRestoredObjectMetadata(target, object, serviceRoleKey, fetchI
   return { contentType, cacheControl };
 }
 
+async function checksumStream(stream) {
+  const hash = createHash('sha256');
+  for await (const chunk of stream) hash.update(chunk);
+  return hash.digest('hex');
+}
+
+async function verifyRestoredObject(target, object, localPath, metadata, serviceRoleKey, fetchImpl) {
+  const endpoint = new URL(`storage/v1/object/${encodeURIComponent(object.bucket)}/${object.segments.map(encodeURIComponent).join('/')}`, target);
+  let response;
+  try {
+    response = await fetchImpl(endpoint, {
+      headers: { apikey: serviceRoleKey, authorization: `Bearer ${serviceRoleKey}` },
+      redirect: 'error',
+    });
+  } catch {
+    throw new Error('Isolated Storage object verification failed');
+  }
+  if (!response.ok || !response.body) throw new Error('Isolated Storage object verification failed');
+  const [sourceChecksum, restoredChecksum, restoredMetadata] = await Promise.all([
+    checksumStream(createReadStream(localPath)),
+    checksumStream(Readable.fromWeb(response.body)),
+    readRestoredObjectMetadata(target, object, serviceRoleKey, fetchImpl),
+  ]);
+  if (sourceChecksum !== restoredChecksum || restoredMetadata.contentType !== metadata.contentType || restoredMetadata.cacheControl !== metadata.cacheControl) {
+    throw new Error('Isolated Storage object verification failed');
+  }
+}
+
 export async function restoreStorageManifest({ root, recoveryUrl, serviceRoleKey, fetchImpl = fetch }) {
   const target = assertIsolatedRecoveryUrl(recoveryUrl);
   if (typeof serviceRoleKey !== 'string' || !serviceRoleKey) throw new Error('RECOVERY_SUPABASE_SERVICE_ROLE_KEY is required');
@@ -162,6 +191,7 @@ export async function restoreStorageManifest({ root, recoveryUrl, serviceRoleKey
       throw new Error('Isolated Storage object restore failed');
     }
     if (!response.ok) throw new Error('Isolated Storage object restore failed');
+    await verifyRestoredObject(target, object, localPath, metadata, serviceRoleKey, fetchImpl);
     restoredBytes += object.bytes;
   }
   return { objects: objects.length, bytes: restoredBytes };
