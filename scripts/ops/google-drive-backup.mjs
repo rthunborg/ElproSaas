@@ -160,7 +160,7 @@ export function backupAge({ createdTime, now = Date.now(), maxAgeMs = MAX_RECOVE
   return ageMs;
 }
 
-export async function downloadNewest({ token, folderId, outputPath, fetchImpl = fetch, maxAgeMs, now }) {
+export async function downloadNewest({ token, folderId, outputPath, fetchImpl = fetch, maxAgeMs = undefined, now = undefined }) {
   const backups = await listBackups({ token, folderId, fetchImpl });
   const backup = newestEligibleBackup(backups, folderId);
   if (!backup) {
