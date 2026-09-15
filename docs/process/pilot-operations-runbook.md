@@ -219,14 +219,72 @@ database with no connection to the demo database.
    decrypted archive parent. Run `node scripts/ops/verify-backup-checksums.mjs
    backup-workspace` from the repository checkout; it fails for a missing,
    malformed, escaped, or corrupted archive member.
-2. Provision and verify an isolated target. Record its project/ref separately;
-   do not place it in the repository or these workflows. Confirm its database
-   URL points to the isolated target before each restore command.
+2. Provision and verify an isolated target. For the controlled local rehearsal,
+   in the dedicated recovery worktree copy
+   `ops/recovery/recovery.env.example` to the ignored `ops/recovery/.env`, and
+   copy both private Compose examples to their dot-file names. Replace every
+   placeholder with recovery-only literal values. Use one new project name in
+   both private Compose files and unused high loopback ports. The guard rejects
+   Compose interpolation and does not accept an environment or env-file request
+   field; do not use `${...}` in either private Compose file. First have the
+   resource guard start **only PostgreSQL**. Its request names the worktree and
+   both Compose files; the current actor's injected `resourceGuardContext` is
+   supplied by the caller and is never written to a command line or repository
+   file:
+
+   ```json
+   {
+     "operation": "ComposeUp",
+     "workingDirectory": "C:\\path\\to\\elpro-recovery-worktree",
+    "composeFiles": [
+      "ops/recovery/compose.db-bootstrap.yaml",
+      "ops/recovery/.private.db-bootstrap.compose.yaml"
+    ]
+   }
+   ```
+
+   The base file has no project-name or port override. The private files supply
+   a fresh project name and bind PostgreSQL and the later gateway only to their
+   selected loopback ports (the examples use database `55432` and API `58000`).
+   The database bootstrap applies recovery-only passwords to the Auth, REST,
+   and Storage login roles on its first empty-volume initialization. This is not
+   a replacement for a managed hosted recovery target. Restore the database
+   roles/schema/data into this empty target before starting Auth or Storage, and
+   confirm every target URL still resolves to loopback.
 3. Follow Supabase's current logical restore procedure for the selected target:
    restore roles/schema/data in the required order, account for custom
-   `auth`/`storage` schema changes, and restore Storage object bytes from
-   `backup-workspace/storage/manifest.json` with an owner-authorized recovery
-   credential. Restore only configuration and secrets that are explicitly
+   `auth`/`storage` schema changes, then stop the database guard resource while
+   retaining its project-scoped named volumes. Start the full runtime with the
+   same private project name:
+
+   ```json
+   {
+     "operation": "ComposeUp",
+     "workingDirectory": "C:\\path\\to\\elpro-recovery-worktree",
+     "composeFiles": [
+       "ops/recovery/compose.yaml",
+       "ops/recovery/.private.runtime.compose.yaml"
+     ]
+   }
+   ```
+
+   Restore Storage object bytes from `backup-workspace/storage/manifest.json`
+   with the recovery-only service key:
+
+   ```powershell
+   $env:RECOVERY_SUPABASE_URL = 'http://127.0.0.1:58000'
+   $env:RECOVERY_SUPABASE_SERVICE_ROLE_KEY = Read-Host 'Recovery-only service-role key'
+   node scripts/ops/restore-supabase-storage.mjs backup-workspace
+   Remove-Item Env:RECOVERY_SUPABASE_URL
+   Remove-Item Env:RECOVERY_SUPABASE_SERVICE_ROLE_KEY
+   ```
+
+   The helper verifies archive-wide `SHA256SUMS`, accepts only the exported
+   `{ exported_at, objects }` manifest format, and refuses a non-loopback URL
+   before it reads backup contents. Bucket metadata comes from the database
+   restore; it uploads only listed object bytes at the restored bucket/path and
+   reuses each restored object's MIME type and cache-control metadata.
+   Restore only configuration and secrets that are explicitly
    approved for the recovery target; a database dump does not make a copied
    Vercel deployment, Auth provider configuration, or encryption-root setup
    usable by itself.

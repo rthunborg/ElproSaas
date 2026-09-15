@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -10,6 +10,7 @@ import { assessAvailabilityFailure, newestArtifactUrls } from '../../../scripts/
 import { exportStoragePlan, planStorageExport, safeSegment, destination, assertPlanWithinStorageLimit, assertStorageInventoryUnchanged, readStorageInventory } from '../../../scripts/ops/export-supabase-storage.mjs';
 import { prune, runBackup, upload } from '../../../scripts/ops/google-drive-backup.mjs';
 import { probeAvailability } from '../../../scripts/ops/probe-availability.mjs';
+import { assertIsolatedRecoveryUrl, restoreStorageManifest } from '../../../scripts/ops/restore-supabase-storage.mjs';
 import { verifyBackupChecksums } from '../../../scripts/ops/verify-backup-checksums.mjs';
 import { assertApprovedBackupDbUrl } from '../../../scripts/ops/validate-backup-db-url.mjs';
 import { writeBackupChecksums } from '../../../scripts/ops/write-backup-checksums.mjs';
@@ -149,6 +150,84 @@ test('backup database URL validator rejects forbidden URL parameters through its
   assert.equal(result.signal, null);
   assert.equal(result.stdout, '');
   assert.equal(result.stderr, 'SUPABASE_BACKUP_DB_URL must target the approved demo database with TLS\n');
+});
+
+test('Storage restore uploads only checksummed manifest objects to a loopback recovery API', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'elpro-storage-restore-'));
+  const object = join(root, 'storage', 'tenant-files', 'tenant-a', 'document.pdf');
+  try {
+    await mkdir(join(root, 'storage', 'tenant-files', 'tenant-a'), { recursive: true });
+    await writeFile(object, 'restored bytes');
+    await writeFile(join(root, 'storage', 'manifest.json'), `${JSON.stringify({ exported_at: '2026-09-15T00:00:00.000Z', objects: [{ bucket: 'tenant-files', path: 'tenant-a/document.pdf', bytes: 14, last_modified: null }] })}\n`);
+    await writeBackupChecksums(root);
+    const calls: Array<{ url: string; init: RequestInit }> = [];
+    const result = await restoreStorageManifest({
+      root,
+      recoveryUrl: 'http://127.0.0.1:58000',
+      serviceRoleKey: 'test-service-role',
+      fetchImpl: async (url, init) => {
+        calls.push({ url: String(url), init: init! });
+        if (init?.method !== 'POST') return new Response(JSON.stringify({ contentType: 'application/pdf', cacheControl: 'max-age=7200' }), { status: 200 });
+        assert.equal(Buffer.from(await new Response(init!.body).arrayBuffer()).toString(), 'restored bytes');
+        return new Response('{}', { status: 200 });
+      },
+    });
+    assert.deepEqual(result, { objects: 1, bytes: 14 });
+    assert.equal(calls[0]!.url, 'http://127.0.0.1:58000/storage/v1/object/info/tenant-files/tenant-a/document.pdf');
+    assert.equal(calls[0]!.init.redirect, 'error');
+    assert.equal(calls[1]!.url, 'http://127.0.0.1:58000/storage/v1/object/tenant-files/tenant-a/document.pdf');
+    assert.deepEqual(calls[1]!.init.headers, {
+      apikey: 'test-service-role', authorization: 'Bearer test-service-role', 'cache-control': 'max-age=7200', 'content-length': '14', 'content-type': 'application/pdf', 'x-upsert': 'true',
+    });
+    assert.equal(calls[1]!.init.redirect, 'error');
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('Storage restore refuses external or demo targets before reading backup contents', () => {
+  assert.throws(() => assertIsolatedRecoveryUrl('https://wmqmzznmwpheswjjozhq.supabase.co'), /high loopback/);
+  assert.throws(() => assertIsolatedRecoveryUrl('http://localhost:80'), /high loopback/);
+  assert.doesNotThrow(() => assertIsolatedRecoveryUrl('http://localhost:58000'));
+});
+
+test('Storage restore refuses a manifest object missing from SHA256SUMS before upload', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'elpro-storage-restore-'));
+  try {
+    await mkdir(join(root, 'storage', 'tenant-files'), { recursive: true });
+    await writeFile(join(root, 'storage', 'tenant-files', 'document.pdf'), 'restored bytes');
+    await writeFile(join(root, 'storage', 'manifest.json'), `${JSON.stringify({ exported_at: '2026-09-15T00:00:00.000Z', objects: [{ bucket: 'tenant-files', path: 'document.pdf', bytes: 14, last_modified: null }] })}\n`);
+    await writeBackupChecksums(root);
+    const checksumRows = (await readFile(join(root, 'SHA256SUMS'), 'utf8')).split('\n').filter((row) => !row.endsWith('storage/tenant-files/document.pdf'));
+    await writeFile(join(root, 'SHA256SUMS'), `${checksumRows.join('\n')}\n`);
+    await assert.rejects(
+      restoreStorageManifest({ root, recoveryUrl: 'http://127.0.0.1:58000', serviceRoleKey: 'test-service-role', fetchImpl: async () => { throw new Error('upload must not begin'); } }),
+      /does not exactly match/,
+    );
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('recovery Compose sources leave per-drill values in ignored static private files', async () => {
+  const recoveryDir = fileURLToPath(new URL('../../../ops/recovery/', import.meta.url));
+  const [base, bootstrap, dbOverride, runtimeOverride, envExample] = await Promise.all([
+    readFile(join(recoveryDir, 'compose.yaml'), 'utf8'),
+    readFile(join(recoveryDir, 'compose.db-bootstrap.yaml'), 'utf8'),
+    readFile(join(recoveryDir, 'db-bootstrap.private.compose.example.yaml'), 'utf8'),
+    readFile(join(recoveryDir, 'runtime.private.compose.example.yaml'), 'utf8'),
+    readFile(join(recoveryDir, 'recovery.env.example'), 'utf8'),
+  ]);
+  assert.doesNotMatch(base, /\$\{/);
+  assert.doesNotMatch(bootstrap, /\$\{/);
+  assert.match(base, /env_file: \.env/);
+  assert.match(bootstrap, /99-recovery-roles\.sql:ro/);
+  assert.match(dbOverride, /^name: elpro-isolated-recovery-/m);
+  assert.match(dbOverride, /127\.0\.0\.1:55432:5432/);
+  assert.match(runtimeOverride, /^name: elpro-isolated-recovery-/m);
+  assert.match(runtimeOverride, /127\.0\.0\.1:58000:8000/);
+  assert.match(envExample, /^POSTGRES_PASSWORD=/m);
+  assert.match(envExample, /^GOTRUE_DB_DATABASE_URL=postgres:\/\/supabase_auth_admin:/m);
 });
 
 test('Storage export refuses an object whose downloaded bytes changed after the no-transfer preflight', async () => {
