@@ -38,8 +38,9 @@ test('versioned file-backend restore preserves the DB-owned identity and refuses
 
     const first = await runPython([workspace, plan, backend]);
     assert.equal(first.stdout.trim(), '{"objects":1,"bytes":13}');
-    const restored = join(backend, 'tenant-files', 'tenant-a', `document.pdf-$v-${version}`);
+    const restored = join(backend, 'stub', 'stub', 'tenant-files', 'tenant-a', `document.pdf-$v-${version}`);
     assert.equal(await readFile(restored, 'utf8'), 'fixture bytes');
+    await assert.rejects(readFile(join(backend, 'tenant-files', 'tenant-a', `document.pdf-$v-${version}`), 'utf8'), /ENOENT/);
     const attrs = await execFileAsync('python3', ['-c', 'import os,sys; print(os.getxattr(sys.argv[1], "user.supabase.content-type").decode()); print(os.getxattr(sys.argv[1], "user.supabase.cache-control").decode())', restored], { windowsHide: true });
     assert.equal(attrs.stdout, 'application/pdf\nmax-age=7200\n');
 

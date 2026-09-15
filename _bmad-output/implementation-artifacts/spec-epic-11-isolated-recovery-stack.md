@@ -33,11 +33,12 @@ The Compose target pins upstream Supabase-compatible images, keeps restored stat
 
 ### Manifest-driven immutable byte recovery
 
-Logical recovery restores the complete `storage.objects` rows first. A pinned, no-network loader then validates a database-derived plan against the archive and writes only absent version-addressed backend bytes/xattrs. It never invokes an API upsert or modifies row metadata, identifiers, versions, owners, or immutable file markers.
+Logical recovery restores the complete `storage.objects` rows first. A pinned, no-network loader then validates a database-derived plan against the archive and writes only absent version-addressed backend bytes/xattrs below the fixed Storage runtime `stub/stub` prefix. It never invokes an API upsert or modifies row metadata, identifiers, versions, owners, or immutable file markers.
 
 - `ops/recovery/compose.storage-loader.yaml:2` — `storage-loader`: pins the short-lived loader to the same project-scoped Storage volume and mounts only its checked-in script.
-- `ops/recovery/restore-storage-file-backend.py:112` — `copy_exclusive`: uses `O_EXCL`, expected byte counts, and `fsync`, refusing an occupied backend key.
-- `ops/recovery/restore-storage-file-backend.py:160` — `os.setxattr`: writes the v1.74.0 Linux MIME/cache attributes without a database/API update.
+- `ops/recovery/restore-storage-file-backend.py:31` — `recovery_runtime_prefix`: validates the fixed `stub/stub` Storage tenant location used by the isolated runtime, never an application tenant UUID.
+- `ops/recovery/restore-storage-file-backend.py:122` — `copy_exclusive`: uses `O_EXCL`, expected byte counts, and `fsync`, refusing an occupied backend key.
+- `ops/recovery/restore-storage-file-backend.py:170` — `os.setxattr`: writes the v1.74.0 Linux MIME/cache attributes without a database/API update.
 - `ops/recovery/compose.yaml:62` — `TUS_USE_FILE_VERSION_SEPARATOR`: fixes the physical key convention to `-$v-<storage.objects.version>` for loader and Storage API agreement.
 - `scripts/ops/restore-supabase-storage.mjs:97` — `readRestoredObjectMetadata`: reads the API’s top-level `content_type`/`cache_control`; nested `metadata` is preserved user metadata.
 - `scripts/ops/restore-supabase-storage.mjs:192` — `restoreStorageManifest`: verifies checksummed local bytes by downloading from a loopback-only API and performs no mutation.
@@ -57,8 +58,8 @@ The runbook supplies the guard request fields without embedding actor context or
 - `.github/workflows/pilot-isolated-recovery-rehearsal.yml:100` — derives the exact archive restore plan and full-row digest before loader materialization.
 - `.github/workflows/pilot-isolated-recovery-rehearsal.yml:120` — discovers the configured loopback gateway port and requires its Storage status route before private-key API verification.
 - `scripts/ops/write-isolated-recovery-storage-fixture.mjs:23` — `writeIsolatedRecoveryStorageFixture`: generates only two randomized synthetic linked/quote-PDF logical rows and absent backend bytes.
-- `tests/integration/ops/recovery-storage-immutability.int.test.ts:114` — `isolated recovery Storage physical-loader proof`: compares the pre-loader full-row snapshot after loader readback and after each rejected ordinary upsert, with real MIME/cache/user metadata and bytes for both linked generic and quote-PDF objects.
-- `tests/unit/ops/isolated-recovery-storage.test.ts:16` — pins the exact `-$v-<version>` filename, both Linux xattrs, and exclusive no-overwrite behavior.
+- `tests/integration/ops/recovery-storage-immutability.int.test.ts:114` — `isolated recovery Storage physical-loader proof`: compares the pre-loader full-row snapshot after loader GET readback and after each rejected ordinary upsert, with real MIME/cache/user metadata and bytes for both linked generic and quote-PDF objects. The pinned info route confirms DB metadata; GET confirms backend bytes.
+- `tests/unit/ops/isolated-recovery-storage.test.ts:16` — pins the exact `stub/stub/<bucket>/...-$v-<version>` filename, both Linux xattrs, and exclusive no-overwrite behavior.
 - `scripts/ops/write-recovery-runtime-config.mjs:14` — writes per-run private literal credentials and project configuration without logging secrets.
 - `scripts/ops/verify-isolated-recovery-copy-counts.mjs:33` — compares required archive COPY totals against restored aggregates.
 - `scripts/ops/verify-isolated-platform-migration-ledgers.mjs:10` — rejects missing, empty, or mismatched Auth/Storage migration ledgers without disclosing migration rows.

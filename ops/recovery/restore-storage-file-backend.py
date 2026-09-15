@@ -22,6 +22,16 @@ def safe_bucket(value: object) -> str:
     return value
 
 
+# The pinned recovery Compose runtime fixes both Storage tenant location segments to
+# `stub`; these are backend routing segments, never an application tenant UUID.
+RECOVERY_RUNTIME_TENANT = "stub"
+RECOVERY_RUNTIME_GLOBAL_BUCKET = "stub"
+
+
+def recovery_runtime_prefix() -> tuple[str, str]:
+    return (safe_bucket(RECOVERY_RUNTIME_TENANT), safe_bucket(RECOVERY_RUNTIME_GLOBAL_BUCKET))
+
+
 def safe_path(value: object) -> list[str]:
     if not isinstance(value, str) or not value:
         fail("Storage restore plan has an invalid object path")
@@ -148,12 +158,13 @@ def restore(workspace: Path, plan_path: Path, backend_root: Path) -> dict[str, i
     backend_root = backend_root.resolve()
     manifest = manifest_objects(workspace)
     planned = plan_objects(plan_path, manifest)
+    runtime_tenant, runtime_global_bucket = recovery_runtime_prefix()
     restored_bytes = 0
     for entry in planned:
         source = contained(workspace, "storage", entry["bucket"], *entry["segments"])
         if not source.is_file() or source.is_symlink():
             fail("Storage backup object is missing or invalid")
-        target = contained(backend_root, entry["bucket"], *entry["segments"][:-1], f"{entry['segments'][-1]}-$v-{entry['version']}")
+        target = contained(backend_root, runtime_tenant, runtime_global_bucket, entry["bucket"], *entry["segments"][:-1], f"{entry['segments'][-1]}-$v-{entry['version']}")
         copied, _checksum = copy_exclusive(source, target, entry["bytes"])
         try:
             os.setxattr(target, "user.supabase.content-type", entry["content_type"].encode("utf-8"))
