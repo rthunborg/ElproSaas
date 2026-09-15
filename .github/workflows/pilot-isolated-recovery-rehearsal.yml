@@ -118,7 +118,30 @@ jobs:
           docker compose -f ops/recovery/compose.yaml -f ops/recovery/.private.runtime.compose.yaml -f ops/recovery/compose.storage-loader.yaml exec -T storage-loader python /opt/recovery/restore-storage-file-backend.py /input/backup-workspace /input/restore-plan.json /var/lib/storage > recovery/storage-loader-evidence.json
 
       - name: Start full isolated Supabase runtime
-        run: docker compose -f ops/recovery/compose.yaml -f ops/recovery/.private.runtime.compose.yaml up --detach --wait --wait-timeout 120
+        run: |
+          set -euo pipefail
+          runtime=(docker compose -f ops/recovery/compose.yaml -f ops/recovery/.private.runtime.compose.yaml)
+          "${runtime[@]}" up --detach --wait --wait-timeout 120
+          gateway_port="$("${runtime[@]}" port gateway 8000 2>/dev/null | sed -nE 's/.*:([0-9]+)$/\1/p' | head -n 1)"
+          if ! [[ "$gateway_port" =~ ^[0-9]+$ ]] || ((10#$gateway_port < 1024 || 10#$gateway_port > 65535)); then
+            "${runtime[@]}" ps --format 'table {{.Service}}\t{{.State}}\t{{.ExitCode}}' || true
+            "${runtime[@]}" port gateway 8000 || true
+            echo 'Isolated recovery gateway has no high loopback port mapping.' >&2
+            exit 1
+          fi
+          for attempt in {1..20}; do
+            if curl --fail --silent --show-error --connect-timeout 2 --max-time 5 "http://127.0.0.1:${gateway_port}/storage/v1/status" > /dev/null 2>&1; then
+              printf '%s\n' "$gateway_port" > recovery/gateway-port.txt
+              break
+            fi
+            if [ "$attempt" -eq 20 ]; then
+              "${runtime[@]}" ps --format 'table {{.Service}}\t{{.State}}\t{{.ExitCode}}' || true
+              "${runtime[@]}" port gateway 8000 || true
+              echo 'Isolated recovery gateway did not accept Storage status requests.' >&2
+              exit 1
+            fi
+            sleep 1
+          done
 
       - name: Verify Storage bytes and emit aggregate recovery evidence
         run: |
@@ -126,15 +149,16 @@ jobs:
           set -a
           source ops/recovery/.env
           set +a
-          RECOVERY_SUPABASE_URL="http://127.0.0.1:58000" RECOVERY_SUPABASE_SERVICE_ROLE_KEY="$SERVICE_ROLE_KEY" RECOVERY_STORAGE_RESTORE_PLAN=recovery/storage-restore-plan.json node scripts/ops/restore-supabase-storage.mjs recovery/extracted/backup-workspace
+          gateway_port="$(cat recovery/gateway-port.txt)"
+          RECOVERY_SUPABASE_URL="http://127.0.0.1:${gateway_port}" RECOVERY_SUPABASE_SERVICE_ROLE_KEY="$SERVICE_ROLE_KEY" RECOVERY_STORAGE_RESTORE_PLAN=recovery/storage-restore-plan.json node scripts/ops/restore-supabase-storage.mjs recovery/extracted/backup-workspace
           db=(docker compose -f ops/recovery/compose.yaml -f ops/recovery/.private.runtime.compose.yaml exec -T db psql -At -v ON_ERROR_STOP=1 -U supabase_admin -d postgres)
           "${db[@]}" -c "select md5(coalesce(string_agg(to_jsonb(o)::text, E'\\n' order by bucket_id, name, id), '')) from storage.objects o;" > recovery/storage-rows-after.txt
           cmp --silent recovery/storage-rows-before.txt recovery/storage-rows-after.txt || { echo 'Storage restore changed a restored storage.objects row.' >&2; exit 1; }
           "${db[@]}" -c "select json_build_object('archive_checksums_verified', true, 'migrations', (select count(*) from supabase_migrations.schema_migrations), 'tenants', (select count(*) from public.tenants), 'memberships', (select count(*) from public.tenant_memberships), 'auth_users', (select count(*) from auth.users), 'storage_objects', (select count(*) from storage.objects), 'storage_bytes', (select coalesce(sum(nullif(metadata->>'size','')::bigint), 0) from storage.objects), 'membership_checksum', (select md5(coalesce(string_agg(id::text || ':' || tenant_id::text || ':' || coalesce(user_id::text,'') || ':' || status || ':' || role, ',' order by id), '')) from public.tenant_memberships), 'storage_checksum', (select md5(coalesce(string_agg(bucket_id || ':' || name || ':' || coalesce(metadata->>'size',''), ',' order by bucket_id, name), '')) from storage.objects), 'storage_row_checksum', (select md5(coalesce(string_agg(to_jsonb(o)::text, E'\\n' order by bucket_id, name, id), '')) from storage.objects o))::text;" > recovery/aggregate-evidence.json
           node scripts/ops/verify-isolated-recovery-copy-counts.mjs recovery/extracted/backup-workspace/database/data.sql recovery/aggregate-evidence.json
-          RECOVERY_SUPABASE_URL="http://127.0.0.1:58000" RECOVERY_SUPABASE_SERVICE_ROLE_KEY="$SERVICE_ROLE_KEY" node scripts/ops/verify-isolated-auth-rls.mjs
+          RECOVERY_SUPABASE_URL="http://127.0.0.1:${gateway_port}" RECOVERY_SUPABASE_SERVICE_ROLE_KEY="$SERVICE_ROLE_KEY" node scripts/ops/verify-isolated-auth-rls.mjs
           cat recovery/storage-loader-evidence.json recovery/aggregate-evidence.json
-          rm -f recovery/storage-loader-evidence.json recovery/storage-restore-plan.json recovery/storage-rows-before.txt recovery/storage-rows-after.txt recovery/aggregate-evidence.json
+          rm -f recovery/storage-loader-evidence.json recovery/storage-restore-plan.json recovery/storage-rows-before.txt recovery/storage-rows-after.txt recovery/aggregate-evidence.json recovery/gateway-port.txt
           unset SERVICE_ROLE_KEY ANON_KEY JWT_SECRET POSTGRES_PASSWORD
 
       - name: Remove runner-local recovery material

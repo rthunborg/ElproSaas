@@ -297,6 +297,27 @@ jobs:
             echo 'Synthetic isolated recovery runtime failed to start.' >&2
             exit 1
           fi
+          gateway_port="$("${runtime[@]}" port gateway 8000 2>/dev/null | sed -nE 's/.*:([0-9]+)$/\1/p' | head -n 1)"
+          if ! [[ "$gateway_port" =~ ^[0-9]+$ ]] || ((10#$gateway_port < 1024 || 10#$gateway_port > 65535)); then
+            "${runtime[@]}" ps --format 'table {{.Service}}\t{{.State}}\t{{.ExitCode}}' || true
+            "${runtime[@]}" port gateway 8000 || true
+            echo 'Synthetic isolated recovery gateway has no high loopback port mapping.' >&2
+            exit 1
+          fi
+          for attempt in {1..20}; do
+            if curl --fail --silent --show-error --connect-timeout 2 --max-time 5 "http://127.0.0.1:${gateway_port}/storage/v1/status" > /dev/null 2>&1; then
+              printf '%s\n' "$gateway_port" > recovery/source/gateway-port.txt
+              break
+            fi
+            if [ "$attempt" -eq 20 ]; then
+              "${runtime[@]}" ps --format 'table {{.Service}}\t{{.State}}\t{{.ExitCode}}' || true
+              "${runtime[@]}" port gateway 8000 || true
+              "${runtime[@]}" logs --no-color --tail=80 auth rest storage gateway 2>&1 | grep -Ei 'fatal|error|panic|migration|database|permission denied|could not|invalid|role|auth' | sed -E -e 's#(postgres(ql)?://)[^[:space:]@]+@#\1[redacted]@#Ig' -e 's#((password|secret|token|key|authorization)[=:])[^[:space:]]+#\1[redacted]#Ig' || true
+              echo 'Synthetic isolated recovery gateway did not accept Storage status requests.' >&2
+              exit 1
+            fi
+            sleep 1
+          done
 
       - name: Prove physical Storage loader preserves protected rows
         run: |
@@ -313,7 +334,8 @@ jobs:
           set -a
           source ops/recovery/.env
           set +a
-          ISOLATED_RECOVERY_STORAGE_PROOF=1 RECOVERY_SUPABASE_URL=http://127.0.0.1:58000 RECOVERY_SUPABASE_SERVICE_ROLE_KEY="$SERVICE_ROLE_KEY" RECOVERY_TEST_DB_URL="postgresql://supabase_storage_admin:${POSTGRES_PASSWORD}@127.0.0.1:55432/postgres" RECOVERY_STORAGE_PROOF_FIXTURE=recovery/synthetic-storage/storage-fixture.json RECOVERY_STORAGE_PROOF_BEFORE_ROWS=recovery/synthetic-storage/rows-before-loader.json pnpm exec vitest run tests/integration/ops/recovery-storage-immutability.int.test.ts
+          gateway_port="$(cat recovery/source/gateway-port.txt)"
+          ISOLATED_RECOVERY_STORAGE_PROOF=1 RECOVERY_SUPABASE_URL="http://127.0.0.1:${gateway_port}" RECOVERY_SUPABASE_SERVICE_ROLE_KEY="$SERVICE_ROLE_KEY" RECOVERY_TEST_DB_URL="postgresql://supabase_storage_admin:${POSTGRES_PASSWORD}@127.0.0.1:55432/postgres" RECOVERY_STORAGE_PROOF_FIXTURE=recovery/synthetic-storage/storage-fixture.json RECOVERY_STORAGE_PROOF_BEFORE_ROWS=recovery/synthetic-storage/rows-before-loader.json pnpm exec vitest run tests/integration/ops/recovery-storage-immutability.int.test.ts
           unset SERVICE_ROLE_KEY ANON_KEY JWT_SECRET POSTGRES_PASSWORD
 
       - name: Remove synthetic recovery resources

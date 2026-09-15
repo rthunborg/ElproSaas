@@ -300,6 +300,18 @@ test('ephemeral recovery runtime configuration writes literal isolated values ou
   }
 });
 
+test('recovery workflows resolve the configured gateway port and wait for its Storage route', async () => {
+  const [ciWorkflow, rehearsalWorkflow] = await Promise.all([
+    readFile(new URL('../../../.github/workflows/ci.yml', import.meta.url), 'utf8'),
+    readFile(new URL('../../../.github/workflows/pilot-isolated-recovery-rehearsal.yml', import.meta.url), 'utf8'),
+  ]);
+  for (const workflow of [ciWorkflow, rehearsalWorkflow]) {
+    assert.match(workflow, /port gateway 8000/);
+    assert.match(workflow, /storage\/v1\/status/);
+    assert.match(workflow, /gateway-port\.txt/);
+  }
+});
+
 test('Drive rehearsal download accepts only the newest Drive-owned marked file and writes ciphertext without redirects', async () => {
   const root = await mkdtemp(join(tmpdir(), 'elpro-drive-download-'));
   const output = join(root, 'backup.gpg');
