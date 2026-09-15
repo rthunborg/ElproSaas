@@ -64,6 +64,15 @@ jobs:
           schema_args=(--schema public --schema auth --schema storage --schema supabase_migrations)
           supabase db dump --db-url "$SUPABASE_BACKUP_DB_URL" --file backup-workspace/database/schema.sql "${schema_args[@]}"
           supabase db dump --db-url "$SUPABASE_BACKUP_DB_URL" --file backup-workspace/database/data.sql --use-copy --data-only "${schema_args[@]}"
+          # The CLI deliberately excludes Auth and Storage migration ledgers from
+          # data dumps. Use the exact pinned PostgreSQL 17 client rather than a
+          # runner-provided client that may be older than the server.
+          postgres_dump=(docker run --rm --entrypoint pg_dump supabase/postgres:17.6.1.136)
+          "${postgres_dump[@]}" --dbname="$SUPABASE_BACKUP_DB_URL" --data-only --no-owner --no-privileges --table=auth.schema_migrations --table=storage.migrations > backup-workspace/database/platform-migration-ledgers.sql
+          ledger_query="select json_build_object('auth', (select json_build_object('count', count(*), 'digest', md5(coalesce(string_agg(to_jsonb(m)::text, E'\\n' order by to_jsonb(m)::text), ''))) from auth.schema_migrations m), 'storage', (select json_build_object('count', count(*), 'digest', md5(coalesce(string_agg(to_jsonb(m)::text, E'\\n' order by to_jsonb(m)::text), ''))) from storage.migrations m))::text;"
+          postgres_sql=(docker run --rm --entrypoint psql supabase/postgres:17.6.1.136)
+          "${postgres_sql[@]}" --no-psqlrc --tuples-only --no-align --set=ON_ERROR_STOP=1 --dbname="$SUPABASE_BACKUP_DB_URL" --command="$ledger_query" > backup-workspace/database/platform-migration-ledgers.json
+          node scripts/ops/verify-isolated-platform-migration-ledgers.mjs backup-workspace/database/platform-migration-ledgers.json backup-workspace/database/platform-migration-ledgers.json
 
       - name: Export a stable Storage inventory's private bytes and manifest
         env:

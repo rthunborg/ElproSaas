@@ -201,6 +201,162 @@ jobs:
         if: always()
         run: supabase stop
 
+  # Synthetic, no-secret proof of the recovery Storage loader against the exact
+  # pinned Compose Storage service. It derives a fresh schema-only source from
+  # the local CI stack, restores it into a separate recovery volume, then proves
+  # absent bytes can be materialized without changing protected logical rows.
+  recovery-storage-loader:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: [verify]
+    env:
+      SUPABASE_TEST_REQUIRED: "1"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: 2.115.0
+
+      - name: Start local schema source
+        run: supabase start
+
+      - name: Reset local schema source
+        run: supabase db reset
+
+      - name: Dump synthetic recovery schema source
+        run: |
+          set -euo pipefail
+          mkdir -p recovery/source
+          # supabase db reset seeds a test_support trigger on public.audit_events;
+          # include its schema so the selected public schema restores faithfully.
+          supabase db dump --local --schema public,auth,storage,supabase_migrations,test_support --file recovery/source/schema.sql
+          # CLI data dumps always exclude these managed ledgers, including when
+          # their schemas are selected. Use the local database's native pg_dump.
+          source_db='supabase_db_ElproSaas'
+          docker inspect "$source_db" > /dev/null
+          docker exec --user postgres "$source_db" pg_dump -U postgres -d postgres --data-only --no-owner --no-privileges --table=auth.schema_migrations --table=storage.migrations > recovery/source/platform-migration-ledgers.sql
+          ledger_query="select json_build_object('auth', (select json_build_object('count', count(*), 'digest', md5(coalesce(string_agg(to_jsonb(m)::text, E'\\n' order by to_jsonb(m)::text), ''))) from auth.schema_migrations m), 'storage', (select json_build_object('count', count(*), 'digest', md5(coalesce(string_agg(to_jsonb(m)::text, E'\\n' order by to_jsonb(m)::text), ''))) from storage.migrations m))::text;"
+          docker exec --user postgres "$source_db" psql -U postgres -d postgres -At -v ON_ERROR_STOP=1 -c "$ledger_query" > recovery/source/platform-migration-ledgers.json
+          node scripts/ops/verify-isolated-platform-migration-ledgers.mjs recovery/source/platform-migration-ledgers.json recovery/source/platform-migration-ledgers.json
+          supabase db dump --local --data-only --schema storage --exclude storage.objects --file recovery/source/storage-data.sql
+
+      - name: Create isolated recovery runtime configuration
+        run: node scripts/ops/write-recovery-runtime-config.mjs ops/recovery
+
+      - name: Start database-only isolated recovery target
+        run: |
+          set -euo pipefail
+          compose=(docker compose -f ops/recovery/compose.db-bootstrap.yaml -f ops/recovery/.private.db-bootstrap.compose.yaml)
+          if ! "${compose[@]}" up --detach --wait --wait-timeout 120; then
+            # This runner has generated synthetic-only credentials and no archive. Limit
+            # output to database startup diagnostics and redact credential-shaped values.
+            "${compose[@]}" ps --format 'table {{.Service}}\t{{.State}}\t{{.ExitCode}}' || true
+            "${compose[@]}" logs --no-color --tail=80 db 2>&1 | grep -Ei 'fatal|error|panic|initdb|postgres|database system|permission denied|could not|invalid|role' | sed -E -e 's#(postgres(ql)?://)[^[:space:]@]+@#\1[redacted]@#Ig' -e 's#((password|secret|token|key)[=:])[^[:space:]]+#\1[redacted]#Ig' || true
+            echo 'Synthetic isolated database-only target failed to start.' >&2
+            exit 1
+          fi
+
+      - name: Restore synthetic schema source
+        run: |
+          set -euo pipefail
+          db=(docker compose -f ops/recovery/compose.db-bootstrap.yaml -f ops/recovery/.private.db-bootstrap.compose.yaml exec -T db psql -v ON_ERROR_STOP=1 -U supabase_admin -d postgres)
+          "${db[@]}" -f /dev/stdin < ops/recovery/prepare-empty-restore-target.sql
+          "${db[@]}" -f /dev/stdin < recovery/source/schema.sql
+          "${db[@]}" -f /dev/stdin < recovery/source/storage-data.sql
+          "${db[@]}" -f /dev/stdin < recovery/source/platform-migration-ledgers.sql
+          "${db[@]}" -f /docker-entrypoint-initdb.d/init-scripts/99-recovery-roles.sql
+          ledger_query="select json_build_object('auth', (select json_build_object('count', count(*), 'digest', md5(coalesce(string_agg(to_jsonb(m)::text, E'\\n' order by to_jsonb(m)::text), ''))) from auth.schema_migrations m), 'storage', (select json_build_object('count', count(*), 'digest', md5(coalesce(string_agg(to_jsonb(m)::text, E'\\n' order by to_jsonb(m)::text), ''))) from storage.migrations m))::text;"
+          "${db[@]}" -At -c "$ledger_query" > recovery/source/platform-migration-ledgers-target.json
+          node scripts/ops/verify-isolated-platform-migration-ledgers.mjs recovery/source/platform-migration-ledgers.json recovery/source/platform-migration-ledgers-target.json
+
+      - name: Start pinned isolated Storage loader and runtime
+        run: |
+          set -euo pipefail
+          docker compose -f ops/recovery/compose.yaml -f ops/recovery/.private.runtime.compose.yaml -f ops/recovery/compose.storage-loader.yaml --profile recovery-loader up --detach storage-loader
+          runtime=(docker compose -f ops/recovery/compose.yaml -f ops/recovery/.private.runtime.compose.yaml)
+          if ! "${runtime[@]}" up --detach --wait --wait-timeout 120; then
+            # This runner has restored only schema-source data from `supabase db reset`.
+            # Emit bounded, redacted service diagnostics without an archive or credentials.
+            "${runtime[@]}" ps --format 'table {{.Service}}\t{{.State}}\t{{.ExitCode}}' || true
+            "${runtime[@]}" logs --no-color --tail=80 auth rest storage gateway 2>&1 | grep -Ei 'fatal|error|panic|migration|database|permission denied|could not|invalid|role|auth' | sed -E -e 's#(postgres(ql)?://)[^[:space:]@]+@#\1[redacted]@#Ig' -e 's#((password|secret|token|key|authorization)[=:])[^[:space:]]+#\1[redacted]#Ig' || true
+            echo 'Synthetic isolated recovery runtime failed to start.' >&2
+            exit 1
+          fi
+          gateway_port_output="$("${runtime[@]}" port gateway 8000 2>&1 || true)"
+          gateway_port="$(printf '%s\n' "$gateway_port_output" | sed -nE 's/.*:([0-9]+)$/\1/p' | tail -n 1)"
+          gateway_id="$("${runtime[@]}" ps -q gateway 2>/dev/null || true)"
+          inspect_gateway_ports() {
+            printf 'Gateway port query output: %s\n' "$gateway_port_output"
+            if [ -n "$gateway_id" ]; then
+              docker inspect --format '{{range $port, $bindings := .NetworkSettings.Ports}}{{printf "%s=%v\n" $port $bindings}}{{end}}' "$gateway_id" || true
+            fi
+          }
+          if ! [[ "$gateway_port" =~ ^[0-9]+$ ]] || ((10#$gateway_port < 1024 || 10#$gateway_port > 65535)); then
+            "${runtime[@]}" ps --format 'table {{.Service}}\t{{.State}}\t{{.ExitCode}}' || true
+            inspect_gateway_ports
+            echo 'Synthetic isolated recovery gateway has no high loopback port mapping.' >&2
+            exit 1
+          fi
+          for attempt in {1..20}; do
+            if curl --fail --silent --show-error --connect-timeout 2 --max-time 5 "http://127.0.0.1:${gateway_port}/storage/v1/status" > /dev/null 2>&1; then
+              printf '%s\n' "$gateway_port" > recovery/source/gateway-port.txt
+              break
+            fi
+            if [ "$attempt" -eq 20 ]; then
+              "${runtime[@]}" ps --format 'table {{.Service}}\t{{.State}}\t{{.ExitCode}}' || true
+              inspect_gateway_ports
+              "${runtime[@]}" logs --no-color --tail=80 auth rest storage gateway 2>&1 | grep -Ei 'fatal|error|panic|migration|database|permission denied|could not|invalid|role|auth' | sed -E -e 's#(postgres(ql)?://)[^[:space:]@]+@#\1[redacted]@#Ig' -e 's#((password|secret|token|key|authorization)[=:])[^[:space:]]+#\1[redacted]#Ig' || true
+              echo 'Synthetic isolated recovery gateway did not accept Storage status requests.' >&2
+              exit 1
+            fi
+            sleep 1
+          done
+
+      - name: Prove physical Storage loader preserves protected rows
+        run: |
+          set -euo pipefail
+          node scripts/ops/write-isolated-recovery-storage-fixture.mjs recovery/synthetic-storage
+          db=(docker compose -f ops/recovery/compose.yaml -f ops/recovery/.private.runtime.compose.yaml exec -T db psql -v ON_ERROR_STOP=1 -U supabase_admin -d postgres)
+          "${db[@]}" -f /dev/stdin < recovery/synthetic-storage/storage-seed.sql
+          "${db[@]}" -At -c "select coalesce(jsonb_agg(to_jsonb(o) order by bucket_id, name, id), '[]'::jsonb)::text from storage.objects o;" > recovery/synthetic-storage/rows-before-loader.json
+          loader=$(docker compose -f ops/recovery/compose.yaml -f ops/recovery/.private.runtime.compose.yaml -f ops/recovery/compose.storage-loader.yaml ps -q storage-loader)
+          test -n "$loader"
+          docker cp recovery/synthetic-storage/backup-workspace "$loader:/input/backup-workspace"
+          docker cp recovery/synthetic-storage/storage-restore-plan.json "$loader:/input/storage-restore-plan.json"
+          docker compose -f ops/recovery/compose.yaml -f ops/recovery/.private.runtime.compose.yaml -f ops/recovery/compose.storage-loader.yaml exec -T storage-loader python /opt/recovery/restore-storage-file-backend.py /input/backup-workspace /input/storage-restore-plan.json /var/lib/storage
+          # Synthetic-only diagnostics: prove the loader wrote version-addressed keys into
+          # the same named volume before API readback. The fixture has no customer data.
+          docker compose -f ops/recovery/compose.yaml -f ops/recovery/.private.runtime.compose.yaml -f ops/recovery/compose.storage-loader.yaml exec -T storage-loader python -c 'from pathlib import Path; root = Path("/var/lib/storage"); print("\n".join(f"{path.relative_to(root)} {path.stat().st_size}" for path in sorted(root.rglob("*")) if path.is_file()))'
+          set -a
+          source ops/recovery/.env
+          set +a
+          gateway_port="$(cat recovery/source/gateway-port.txt)"
+          ISOLATED_RECOVERY_STORAGE_PROOF=1 RECOVERY_SUPABASE_URL="http://127.0.0.1:${gateway_port}" RECOVERY_SUPABASE_SERVICE_ROLE_KEY="$SERVICE_ROLE_KEY" RECOVERY_STORAGE_PROOF_FIXTURE=recovery/synthetic-storage/storage-fixture.json RECOVERY_STORAGE_PROOF_BEFORE_ROWS=recovery/synthetic-storage/rows-before-loader.json pnpm exec vitest run tests/integration/ops/recovery-storage-immutability.int.test.ts
+          unset SERVICE_ROLE_KEY ANON_KEY JWT_SECRET POSTGRES_PASSWORD
+
+      - name: Remove synthetic recovery resources
+        if: always()
+        run: |
+          docker compose -f ops/recovery/compose.yaml -f ops/recovery/.private.runtime.compose.yaml -f ops/recovery/compose.storage-loader.yaml --profile recovery-loader down --volumes --remove-orphans > /dev/null 2>&1 || true
+          docker compose -f ops/recovery/compose.db-bootstrap.yaml -f ops/recovery/.private.db-bootstrap.compose.yaml down --volumes --remove-orphans > /dev/null 2>&1 || true
+          supabase stop > /dev/null 2>&1 || true
+          rm -rf recovery/source recovery/synthetic-storage
+          rm -f ops/recovery/.env ops/recovery/.private.db-bootstrap.compose.yaml ops/recovery/.private.runtime.compose.yaml
   e2e:
     runs-on: ubuntu-latest
     timeout-minutes: 25

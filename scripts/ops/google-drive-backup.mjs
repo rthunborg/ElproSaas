@@ -1,7 +1,9 @@
 import { stat } from 'node:fs/promises';
-import { createReadStream } from 'node:fs';
+import { createReadStream, createWriteStream } from 'node:fs';
 import { basename, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { Readable } from 'node:stream';
+import { pipeline } from 'node:stream/promises';
 
 const TOKEN_URL = 'https://oauth2.googleapis.com/token';
 const DRIVE_API = 'https://www.googleapis.com/drive/v3';
@@ -9,6 +11,7 @@ const DRIVE_UPLOAD_API = 'https://www.googleapis.com/upload/drive/v3/files?uploa
 const BACKUP_MARKER = { elpro_pilot_backup: 'v1' };
 const UPLOAD_CHUNK_BYTES = 8 * 1024 * 1024;
 const MAX_STALLED_RESUME_ATTEMPTS = 3;
+export const MAX_RECOVERY_BACKUP_AGE_MS = 24 * 60 * 60 * 1000;
 
 function required(name) {
   const value = process.env[name];
@@ -117,7 +120,7 @@ export async function listBackups({ token, folderId, fetchImpl = fetch }) {
     url.searchParams.set('q', query);
     url.searchParams.set('orderBy', 'createdTime desc');
     url.searchParams.set('pageSize', '100');
-    url.searchParams.set('fields', 'nextPageToken,files(id,name,createdTime,parents,appProperties)');
+    url.searchParams.set('fields', 'nextPageToken,files(id,name,createdTime,parents,appProperties,ownedByMe)');
     url.searchParams.set('spaces', 'drive');
     if (pageToken) url.searchParams.set('pageToken', pageToken);
     const response = await fetchImpl(url, { headers: { authorization: `Bearer ${token}` } });
@@ -126,6 +129,60 @@ export async function listBackups({ token, folderId, fetchImpl = fetch }) {
     pageToken = page.nextPageToken;
   } while (pageToken);
   return results;
+}
+
+function isEligibleBackup(backup, folderId) {
+  return Boolean(
+    backup?.id
+    && backup.ownedByMe === true
+    && backup.parents?.includes(folderId)
+    && backup.appProperties?.elpro_pilot_backup === 'v1',
+  );
+}
+
+function newestEligibleBackup(backups, folderId) {
+  return backups
+    .filter((backup) => isEligibleBackup(backup, folderId))
+    .sort((left, right) => Date.parse(right.createdTime ?? '') - Date.parse(left.createdTime ?? ''))[0];
+}
+
+export function backupAge({ createdTime, now = Date.now(), maxAgeMs = MAX_RECOVERY_BACKUP_AGE_MS }) {
+  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$/.test(createdTime ?? '')) {
+    throw new Error('Newest owned encrypted pilot backup has an invalid creation time');
+  }
+  const createdAtMs = Date.parse(createdTime);
+  if (!Number.isSafeInteger(createdAtMs) || !Number.isSafeInteger(now) || !Number.isSafeInteger(maxAgeMs) || maxAgeMs < 0) {
+    throw new Error('Newest owned encrypted pilot backup age cannot be verified');
+  }
+  if (createdAtMs > now) throw new Error('Newest owned encrypted pilot backup has a future creation time');
+  const ageMs = now - createdAtMs;
+  if (ageMs > maxAgeMs) throw new Error('Newest owned encrypted pilot backup is older than the 24-hour RPO');
+  return ageMs;
+}
+
+export async function downloadNewest({ token, folderId, outputPath, fetchImpl = fetch, maxAgeMs = undefined, now = undefined }) {
+  const backups = await listBackups({ token, folderId, fetchImpl });
+  const backup = newestEligibleBackup(backups, folderId);
+  if (!backup) {
+    throw new Error('No owned encrypted pilot backup is available in the approved Drive folder');
+  }
+  const ageMs = maxAgeMs === undefined ? undefined : backupAge({ createdTime: backup.createdTime, now, maxAgeMs });
+  let response;
+  try {
+    response = await fetchImpl(`${DRIVE_API}/files/${encodeURIComponent(backup.id)}?alt=media`, {
+      headers: { authorization: `Bearer ${token}` },
+      redirect: 'error',
+    });
+  } catch {
+    throw new Error('Google Drive encrypted backup download failed');
+  }
+  if (!response.ok || !response.body) throw new Error('Google Drive encrypted backup download failed');
+  try {
+    await pipeline(Readable.fromWeb(response.body), createWriteStream(resolve(outputPath), { flags: 'wx', mode: 0o600 }));
+  } catch {
+    throw new Error('Google Drive encrypted backup download failed');
+  }
+  return { createdTime: backup.createdTime, ...(ageMs === undefined ? {} : { ageMs }) };
 }
 
 export async function prune({ token, folderId, fetchImpl = fetch }) {
