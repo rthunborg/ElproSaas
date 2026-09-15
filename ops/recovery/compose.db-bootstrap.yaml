@@ -5,7 +5,7 @@ services:
     environment:
       POSTGRES_DB: postgres
       JWT_EXP: 3600
-    command: ["postgres", "-c", "log_min_messages=fatal", "-c", "cron.launch_active_jobs=off", "-c", "pg_net.batch_size=0"]
+    command: ["postgres", "-D", "/etc/postgresql", "-c", "log_min_messages=fatal", "-c", "cron.launch_active_jobs=off", "-c", "pg_net.batch_size=0"]
     volumes:
       - recovery-db-data:/var/lib/postgresql/data
       - ./bootstrap-roles.sql:/docker-entrypoint-initdb.d/init-scripts/99-recovery-roles.sql:ro

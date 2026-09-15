@@ -21,7 +21,7 @@ baseline_commit: '6396894c268667ed32177283d21c8b8818f73f1f'
 
 The Compose target pins upstream Supabase-compatible images, keeps restored state in a fresh project-scoped named volume set, disables restored cron and HTTP queue dispatch, and places the project name, ports, and credentials only in ignored literal private files because the guard rejects Compose interpolation.
 
-- `ops/recovery/compose.db-bootstrap.yaml:1` — database-only source prevents Auth and Storage migrations before the logical restore.
+- `ops/recovery/compose.db-bootstrap.yaml:1` — database-only source preserves the pinned image required `/etc/postgresql` config directory and prevents Auth and Storage migrations before the logical restore.
 - `ops/recovery/bootstrap-roles.sql:4` — supplies the local password bootstrap and database JWT settings required by Auth, REST, and Storage; the workflow reapplies it after the role dump.
 - `ops/recovery/prepare-empty-restore-target.sql:4` — verifies the target has no user, Storage, or tenant rows before removing only image-provided schemas that would collide with the full source dump.
 - `ops/recovery/compose.yaml:1` — full Auth, REST, Storage, and gateway runtime uses the restored database volume, disables `pg_cron`/`pg_net` dispatch, is Docker-internal, and has no fixed project name or port.
@@ -47,7 +47,8 @@ The runbook supplies the guard request fields without embedding actor context or
 
 - `.github/workflows/ci.yml:208` — `recovery-storage-loader`: executes the no-secret PR gate only after fast verification succeeds.
 - `.github/workflows/ci.yml:241` — `Dump synthetic recovery schema source`: takes only the local CI schema plus Storage bucket seed, never a hosted database or backup archive.
-- `.github/workflows/ci.yml:269` — `Prove physical Storage loader preserves protected rows`: snapshots complete seeded logical rows before bytes exist, invokes the exact pinned loader, then runs the real API/trigger proof.
+- `.github/workflows/ci.yml:251` — `Start database-only isolated recovery target`: prints bounded, credential-redacted Postgres startup diagnostics only for the fresh synthetic CI target before any restore input exists.
+- `.github/workflows/ci.yml:279` — `Prove physical Storage loader preserves protected rows`: snapshots complete seeded logical rows before bytes exist, invokes the exact pinned loader, then runs the real API/trigger proof.
 - `.github/workflows/pilot-isolated-recovery-rehearsal.yml:15` — main-only manual dispatch prevents scheduled or branch secret execution for the owner backup drill.
 - `.github/workflows/pilot-isolated-recovery-rehearsal.yml:100` — derives the exact archive restore plan and full-row digest before loader materialization.
 - `scripts/ops/write-isolated-recovery-storage-fixture.mjs:23` — `writeIsolatedRecoveryStorageFixture`: generates only two randomized synthetic linked/quote-PDF logical rows and absent backend bytes.

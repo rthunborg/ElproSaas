@@ -249,7 +249,17 @@ jobs:
         run: node scripts/ops/write-recovery-runtime-config.mjs ops/recovery
 
       - name: Start database-only isolated recovery target
-        run: docker compose -f ops/recovery/compose.db-bootstrap.yaml -f ops/recovery/.private.db-bootstrap.compose.yaml up --detach --wait --wait-timeout 120
+        run: |
+          set -euo pipefail
+          compose=(docker compose -f ops/recovery/compose.db-bootstrap.yaml -f ops/recovery/.private.db-bootstrap.compose.yaml)
+          if ! "${compose[@]}" up --detach --wait --wait-timeout 120; then
+            # This runner has generated synthetic-only credentials and no archive. Limit
+            # output to database startup diagnostics and redact credential-shaped values.
+            "${compose[@]}" ps --format 'table {{.Service}}\t{{.State}}\t{{.ExitCode}}' || true
+            "${compose[@]}" logs --no-color --tail=80 db 2>&1 | grep -Ei 'fatal|error|panic|initdb|postgres|database system|permission denied|could not|invalid|role' | sed -E -e 's#(postgres(ql)?://)[^[:space:]@]+@#\1[redacted]@#Ig' -e 's#((password|secret|token|key)[=:])[^[:space:]]+#\1[redacted]#Ig' || true
+            echo 'Synthetic isolated database-only target failed to start.' >&2
+            exit 1
+          fi
 
       - name: Restore synthetic schema source
         run: |

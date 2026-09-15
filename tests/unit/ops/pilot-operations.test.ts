@@ -229,6 +229,8 @@ test('recovery Compose sources leave per-drill values in ignored static private 
   assert.doesNotMatch(bootstrap, /\$\{/);
   assert.match(base, /env_file: \.env/);
   assert.match(bootstrap, /99-recovery-roles\.sql:ro/);
+  assert.match(bootstrap, /command: \["postgres", "-D", "\/etc\/postgresql"/);
+  assert.match(base, /command: \["postgres", "-D", "\/etc\/postgresql"/);
   assert.match(base, /cron\.launch_active_jobs=off/);
   assert.match(base, /pg_net\.batch_size=0/);
   assert.match(base, /internal: true/);
