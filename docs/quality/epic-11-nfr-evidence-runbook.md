@@ -93,9 +93,9 @@ At 2026-09-14T19:40:46Z, the owner-approved mailbox received the GitHub failure 
 
 The R-1108 script rejects a missing required local stack, provisions real Auth accounts and memberships in two tenants, uses an authenticated RLS client for the production read model, records measured distributions, and deletes the disposable accounts.
 
-- `scripts/nfr/epic-11-r1108-baseline.ts:92` — `addMembership`: produces the documented five-role, multi-role profile.
-- `scripts/nfr/epic-11-r1108-baseline.ts:139` — `readAdminUsersForTenant`: measures the current-tenant production projection through RLS.
-- `scripts/nfr/epic-11-r1108-baseline.ts:157` — `explain`: retains the local query plan as evidence without using it for app authorization.
+- `scripts/nfr/epic-11-r1108-baseline.ts:93` — `addMembership`: produces the documented five-role, multi-role profile.
+- `scripts/nfr/epic-11-r1108-baseline.ts:192` — `readAdminUsersForTenant`: measures the current-tenant production projection through RLS.
+- `scripts/nfr/epic-11-r1108-baseline.ts:212` — `explain`: retains the local query plan as evidence without using it for app authorization.
 
 ### Prove the controlled Auth transport boundary
 
@@ -110,10 +110,10 @@ The delivery smoke calls real local Supabase Auth, waits for the local Mailpit r
 The runbook separates automated local facts, the bounded controlled hosted-mail proof, and owner decisions. The hosted proof establishes one Gmail delivery sample and the recovery callback to the password-update page; it does not establish production availability, backups, coverage, duplication, deliverability, or any SLO.
 
 - `docs/quality/epic-11-nfr-evidence-runbook.md:7` — `## R-1108 pilot baseline`: records the profile and command without inventing a threshold.
-- `docs/quality/epic-11-nfr-evidence-runbook.md:31` — `## R-1109 controlled Auth delivery proof`: names the exact local requirements, bounded hosted proof, and external-delivery limit.
+- `docs/quality/epic-11-nfr-evidence-runbook.md:33` — `## R-1109 controlled Auth delivery proof`: names the exact local requirements, bounded hosted proof, and external-delivery limit.
 - `scripts/nfr/epic-11-local-dr-rehearsal.ts:124` — `restore`: restores the intact dependency-ordered selected-profile dumps using the preflighted existing local restoration role.
 - `scripts/nfr/epic-11-local-dr-rehearsal.ts:156` — `dropScratch`: removes only the generated scratch database after the comparison.
-- `docs/quality/epic-11-nfr-evidence-runbook.md:63` — `## Existing operational evidence and remaining decisions`: confines operational follow-up to owner-approved targets and safe environments.
+- `docs/quality/epic-11-nfr-evidence-runbook.md:71` — `## Existing operational evidence and remaining decisions`: confines operational follow-up to owner-approved targets and safe environments.
 
 ### Verify the dependent callback repair
 
@@ -122,3 +122,11 @@ Historical context: the stacked callback repair needed the same required CI evid
 - `.github/workflows/ci.yml:25` — `codex/story-11-3-auth-callback`: enables the existing CI pipeline for the dependent callback repair base only.
 
 The R-1108 and R-1109 commands executed with `SUPABASE_TEST_REQUIRED=1`; their raw output remains under ignored `tmp/private/`. The scoped local restore rehearsal passed with the preflighted role and intact combined profile; its hosted recovery limits remain open. The historical browser callback proof was RED; the remediated journey is locally GREEN, with the final combined local production-build run passing 138/142 and four explicit skips. PR #62 and PR #63 are deployed, and their required CI completed; PR #65 CI [34925739157](https://github.com/rthunborg/ElproSaas/actions/runs/34925739157) passed at `141d3df`, followed by post-merge main CI [34926333592](https://github.com/rthunborg/ElproSaas/actions/runs/34926333592) at `93d4901`. The controlled hosted proof established Gmail receipt, invitation acceptance, and the recovery callback to password update. Those are bounded delivery/application observations, not availability, deliverability-SLO, backup, or recovery-objective evidence. A skipped or mocked result is not evidence.
+
+## 2026-09-15 backup and monitoring update
+
+**IN — backup delivery proof:** PR #67 merged as `6396894`; CI [34974280415](https://github.com/rthunborg/ElproSaas/actions/runs/34974280415) and main CI [34975165329](https://github.com/rthunborg/ElproSaas/actions/runs/34975165329) passed, and Production deployment `dpl_6SY3bJeY7syS4LKG3HqocmJm1th4` is READY for the exact merge. All eight backup secrets are configured and owner recovery-key escrow is confirmed. First hosted encrypted backup run [34975181883](https://github.com/rthunborg/ElproSaas/actions/runs/34975181883) captured, encrypted, and privately uploaded 298,442 bytes. A separate local verification downloaded, decrypted, and checksum-verified the uploaded archive. The archive inventory was two tenants, seven memberships, seven Auth users, 31 migration records, and one 4,228-byte Storage object. This proves encrypted backup delivery and archive integrity, not a restore or RPO/RTO claim.
+
+**SEAM — recovery and monitoring:** A new guard-owned local restore launch timed out and then returned `RESOURCE_UNCERTAIN`; stop requests were submitted; no scoped container was observed and no restore executed. PR #68 head `db07e6a18aff0717aff57cc5935082a893351021` was reviewed clear and its CI [34980283973](https://github.com/rthunborg/ElproSaas/actions/runs/34980283973) passed, but automatic execution policy blocked its merge despite user authorization. Main remains `6396894`; the hosted recovery and daily enablement remain pending a user merge or policy change. Cloudflare Production worker version `bcf49ba2-63e9-4fce-bc29-5e4ce4607e12` is deployed with a five-minute Cron. After unchanged schedules were reapplied at about 13:56, no observable events or inbox delivery have yet been evidenced; monitor controls remain open. The controlled delivery-rehearsal Cron was disabled through an official Wrangler-trigger deploy at about 14:24 UTC; its worker/DO data were preserved and the UI subsequently confirmed that no rehearsal Cron triggers remain. An independently reviewed Vercel `allProductionEdgeRequests` window from 2026-09-14T13:00Z to 2026-09-15T13:00Z recorded 176 requests and zero server 5xx responses: an observed server-5xx rate of 0/176 (0%) for that bounded Vercel measurement window. It does not establish the required 30-day availability SLO, a full-month or SLO error-rate result, retention, or alert evidence.
+
+Post-merge main CI `34975165329` executed 1,782 units / zero skipped, 101 required integration/RLS files / 1,028 tests / zero skipped with `SUPABASE_TEST_REQUIRED=1`, and 138 browser tests / four explicit skips.
