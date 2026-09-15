@@ -55,11 +55,26 @@ async function objectRow(object: FixtureObject): Promise<Record<string, unknown>
   return result.rows[0]!.row;
 }
 
+function safeResponseDetail(value: string): string {
+  return value
+    .replace(/Bearer\s+[A-Za-z0-9._-]+/gi, "Bearer [redacted]")
+    .replace(/eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/g, "[redacted-jwt]")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 500);
+}
+
+async function requireSuccessfulResponse(response: Response, operation: string, object: FixtureObject): Promise<void> {
+  if (response.ok) return;
+  const detail = safeResponseDetail(await response.text());
+  throw new Error(`Synthetic Storage ${operation} failed for ${object.bucket}/${object.path}: HTTP ${response.status} ${response.statusText}; ${detail || "empty response"}`);
+}
+
 async function readInfo(base: URL, object: FixtureObject): Promise<Record<string, unknown>> {
   const response = await fetch(new URL(`storage/v1/object/info/${object.bucket}/${object.path}`, base), {
     headers: { apikey: serviceRoleKey!, authorization: `Bearer ${serviceRoleKey!}` },
   });
-  expect(response.ok).toBe(true);
+  await requireSuccessfulResponse(response, "object-info", object);
   return response.json() as Promise<Record<string, unknown>>;
 }
 
@@ -67,7 +82,7 @@ async function readBytes(base: URL, object: FixtureObject): Promise<Uint8Array> 
   const response = await fetch(new URL(`storage/v1/object/${object.bucket}/${object.path}`, base), {
     headers: { apikey: serviceRoleKey!, authorization: `Bearer ${serviceRoleKey!}` },
   });
-  expect(response.ok).toBe(true);
+  await requireSuccessfulResponse(response, "object-read", object);
   return new Uint8Array(await response.arrayBuffer());
 }
 

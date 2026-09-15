@@ -339,6 +339,9 @@ jobs:
           docker cp recovery/synthetic-storage/backup-workspace "$loader:/input/backup-workspace"
           docker cp recovery/synthetic-storage/storage-restore-plan.json "$loader:/input/storage-restore-plan.json"
           docker compose -f ops/recovery/compose.yaml -f ops/recovery/.private.runtime.compose.yaml -f ops/recovery/compose.storage-loader.yaml exec -T storage-loader python /opt/recovery/restore-storage-file-backend.py /input/backup-workspace /input/storage-restore-plan.json /var/lib/storage
+          # Synthetic-only diagnostics: prove the loader wrote version-addressed keys into
+          # the same named volume before API readback. The fixture has no customer data.
+          docker compose -f ops/recovery/compose.yaml -f ops/recovery/.private.runtime.compose.yaml -f ops/recovery/compose.storage-loader.yaml exec -T storage-loader find /var/lib/storage -type f -printf '%P %s\n' | sort
           set -a
           source ops/recovery/.env
           set +a
