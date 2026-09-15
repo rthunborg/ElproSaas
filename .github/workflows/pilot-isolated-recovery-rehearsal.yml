@@ -122,10 +122,18 @@ jobs:
           set -euo pipefail
           runtime=(docker compose -f ops/recovery/compose.yaml -f ops/recovery/.private.runtime.compose.yaml)
           "${runtime[@]}" up --detach --wait --wait-timeout 120
-          gateway_port="$("${runtime[@]}" port gateway 8000 2>/dev/null | sed -nE 's/.*:([0-9]+)$/\1/p' | head -n 1)"
+          gateway_port_output="$("${runtime[@]}" port gateway 8000 2>&1 || true)"
+          gateway_port="$(printf '%s\n' "$gateway_port_output" | sed -nE 's/.*:([0-9]+)$/\1/p' | tail -n 1)"
+          gateway_id="$("${runtime[@]}" ps -q gateway 2>/dev/null || true)"
+          inspect_gateway_ports() {
+            printf 'Gateway port query output: %s\n' "$gateway_port_output"
+            if [ -n "$gateway_id" ]; then
+              docker inspect --format '{{range $port, $bindings := .NetworkSettings.Ports}}{{printf "%s=%v\n" $port $bindings}}{{end}}' "$gateway_id" || true
+            fi
+          }
           if ! [[ "$gateway_port" =~ ^[0-9]+$ ]] || ((10#$gateway_port < 1024 || 10#$gateway_port > 65535)); then
             "${runtime[@]}" ps --format 'table {{.Service}}\t{{.State}}\t{{.ExitCode}}' || true
-            "${runtime[@]}" port gateway 8000 || true
+            inspect_gateway_ports
             echo 'Isolated recovery gateway has no high loopback port mapping.' >&2
             exit 1
           fi
@@ -136,7 +144,7 @@ jobs:
             fi
             if [ "$attempt" -eq 20 ]; then
               "${runtime[@]}" ps --format 'table {{.Service}}\t{{.State}}\t{{.ExitCode}}' || true
-              "${runtime[@]}" port gateway 8000 || true
+              inspect_gateway_ports
               echo 'Isolated recovery gateway did not accept Storage status requests.' >&2
               exit 1
             fi

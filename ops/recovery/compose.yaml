@@ -87,6 +87,9 @@ services:
       KONG_ADMIN_LISTEN: 127.0.0.1:8001
     volumes:
       - ./kong.yml:/usr/local/kong/declarative/kong.yml:ro
+    networks:
+      - default
+      - gateway-ingress
     healthcheck:
       test: ["CMD", "kong", "health"]
       interval: 5s
@@ -100,3 +103,5 @@ volumes:
 networks:
   default:
     internal: true
+  gateway-ingress:
+    internal: false

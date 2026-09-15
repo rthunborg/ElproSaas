@@ -261,7 +261,10 @@ test('recovery Compose sources leave per-drill values in ignored static private 
   assert.match(base, /command: \["postgres", "-D", "\/etc\/postgresql"/);
   assert.match(base, /cron\.launch_active_jobs=off/);
   assert.match(base, /pg_net\.batch_size=0/);
-  assert.match(base, /internal: true/);
+  const normalizedBase = base.replace(/\r\n/g, '\n');
+  assert.match(normalizedBase, /default:\n    internal: true/);
+  assert.match(normalizedBase, /gateway:\n[\s\S]*?networks:\n      - default\n      - gateway-ingress/);
+  assert.match(normalizedBase, /gateway-ingress:\n    internal: false/);
   assert.match(dbOverride, /^name: elpro-isolated-recovery-/m);
   assert.match(dbOverride, /127\.0\.0\.1:55432:5432/);
   assert.match(runtimeOverride, /^name: elpro-isolated-recovery-/m);
@@ -306,7 +309,8 @@ test('recovery workflows resolve the configured gateway port and wait for its St
     readFile(new URL('../../../.github/workflows/pilot-isolated-recovery-rehearsal.yml', import.meta.url), 'utf8'),
   ]);
   for (const workflow of [ciWorkflow, rehearsalWorkflow]) {
-    assert.match(workflow, /port gateway 8000/);
+    assert.match(workflow, /port gateway 8000 2>&1 \|\| true/);
+    assert.match(workflow, /docker inspect --format/);
     assert.match(workflow, /storage\/v1\/status/);
     assert.match(workflow, /gateway-port\.txt/);
   }
