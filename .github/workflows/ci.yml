@@ -245,6 +245,10 @@ jobs:
           # supabase db reset seeds a test_support trigger on public.audit_events;
           # include its schema so the selected public schema restores faithfully.
           supabase db dump --local --schema public,auth,storage,supabase_migrations,test_support --file recovery/source/schema.sql
+          # GoTrue runs its embedded migrations at startup. Restore the synthetic
+          # Auth migration ledger with the Auth schema so it does not replay them
+          # against the already-restored tables.
+          supabase db dump --local --data-only --schema auth --file recovery/source/auth-data.sql
           supabase db dump --local --data-only --schema storage --exclude storage.objects --file recovery/source/storage-data.sql
 
       - name: Create isolated recovery runtime configuration
@@ -269,6 +273,7 @@ jobs:
           db=(docker compose -f ops/recovery/compose.db-bootstrap.yaml -f ops/recovery/.private.db-bootstrap.compose.yaml exec -T db psql -v ON_ERROR_STOP=1 -U supabase_admin -d postgres)
           "${db[@]}" -f /dev/stdin < ops/recovery/prepare-empty-restore-target.sql
           "${db[@]}" -f /dev/stdin < recovery/source/schema.sql
+          "${db[@]}" -f /dev/stdin < recovery/source/auth-data.sql
           "${db[@]}" -f /dev/stdin < recovery/source/storage-data.sql
           "${db[@]}" -f /docker-entrypoint-initdb.d/init-scripts/99-recovery-roles.sql
 
@@ -276,7 +281,15 @@ jobs:
         run: |
           set -euo pipefail
           docker compose -f ops/recovery/compose.yaml -f ops/recovery/.private.runtime.compose.yaml -f ops/recovery/compose.storage-loader.yaml --profile recovery-loader up --detach storage-loader
-          docker compose -f ops/recovery/compose.yaml -f ops/recovery/.private.runtime.compose.yaml up --detach --wait --wait-timeout 120
+          runtime=(docker compose -f ops/recovery/compose.yaml -f ops/recovery/.private.runtime.compose.yaml)
+          if ! "${runtime[@]}" up --detach --wait --wait-timeout 120; then
+            # This runner has restored only schema-source data from `supabase db reset`.
+            # Emit bounded, redacted service diagnostics without an archive or credentials.
+            "${runtime[@]}" ps --format 'table {{.Service}}\t{{.State}}\t{{.ExitCode}}' || true
+            "${runtime[@]}" logs --no-color --tail=80 auth rest storage gateway 2>&1 | grep -Ei 'fatal|error|panic|migration|database|permission denied|could not|invalid|role|auth' | sed -E -e 's#(postgres(ql)?://)[^[:space:]@]+@#\1[redacted]@#Ig' -e 's#((password|secret|token|key|authorization)[=:])[^[:space:]]+#\1[redacted]#Ig' || true
+            echo 'Synthetic isolated recovery runtime failed to start.' >&2
+            exit 1
+          fi
 
       - name: Prove physical Storage loader preserves protected rows
         run: |

@@ -244,6 +244,9 @@ test('recovery Compose sources leave per-drill values in ignored static private 
   }
   assert.match(recoveryCi, /RECOVERY_TEST_DB_URL=\"postgresql:\/\/supabase_storage_admin:/);
   assert.match(recoveryCi, /--schema public,auth,storage,supabase_migrations,test_support/);
+  assert.match(recoveryCi, /--data-only --schema auth --file recovery\/source\/auth-data\.sql/);
+  assert.match(recoveryCi, /< recovery\/source\/auth-data\.sql/);
+  assert.match(recoveryCi, /logs --no-color --tail=80 auth rest storage gateway/);
   assert.match(bootstrap, /command: \["postgres", "-D", "\/etc\/postgresql"/);
   assert.match(base, /command: \["postgres", "-D", "\/etc\/postgresql"/);
   assert.match(base, /cron\.launch_active_jobs=off/);
@@ -255,6 +258,9 @@ test('recovery Compose sources leave per-drill values in ignored static private 
   assert.match(runtimeOverride, /127\.0\.0\.1:58000:8000/);
   assert.match(envExample, /^POSTGRES_PASSWORD=/m);
   assert.match(envExample, /^GOTRUE_DB_DATABASE_URL=postgres:\/\/supabase_auth_admin:/m);
+  assert.match(envExample, /^GOTRUE_SITE_URL=http:\/\/127\.0\.0\.1:58000/m);
+  assert.match(envExample, /^API_EXTERNAL_URL=http:\/\/127\.0\.0\.1:58000\/auth\/v1/m);
+  assert.match(envExample, /^GOTRUE_JWT_SECRET=/m);
 });
 
 test('ephemeral recovery runtime configuration writes literal isolated values outside source files', async () => {
@@ -270,6 +276,10 @@ test('ephemeral recovery runtime configuration writes literal isolated values ou
     assert.match(env, /^POSTGRES_PASSWORD=[a-f0-9]{64}$/m);
     assert.match(env, /^SERVICE_KEY=.+$/m);
     assert.match(env, /^SERVICE_ROLE_KEY=.+$/m);
+    assert.match(env, /^GOTRUE_DB_DATABASE_URL=postgres:\/\/supabase_auth_admin:[a-f0-9]{64}@db:5432\/postgres$/m);
+    assert.match(env, /^GOTRUE_SITE_URL=http:\/\/127\.0\.0\.1:58001$/m);
+    assert.match(env, /^API_EXTERNAL_URL=http:\/\/127\.0\.0\.1:58001\/auth\/v1$/m);
+    assert.match(env, /^GOTRUE_JWT_SECRET=[A-Za-z0-9_-]{43}$/m);
     assert.match(dbOverride, /^name: elpro-isolated-recovery-fixture$/m);
     assert.match(dbOverride, /127\.0\.0\.1:55433:5432/);
     assert.match(runtimeOverride, /127\.0\.0\.1:58001:8000/);
