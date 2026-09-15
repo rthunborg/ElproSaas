@@ -11,6 +11,7 @@ const DRIVE_UPLOAD_API = 'https://www.googleapis.com/upload/drive/v3/files?uploa
 const BACKUP_MARKER = { elpro_pilot_backup: 'v1' };
 const UPLOAD_CHUNK_BYTES = 8 * 1024 * 1024;
 const MAX_STALLED_RESUME_ATTEMPTS = 3;
+export const MAX_RECOVERY_BACKUP_AGE_MS = 24 * 60 * 60 * 1000;
 
 function required(name) {
   const value = process.env[name];
@@ -130,11 +131,42 @@ export async function listBackups({ token, folderId, fetchImpl = fetch }) {
   return results;
 }
 
-export async function downloadNewest({ token, folderId, outputPath, fetchImpl = fetch }) {
-  const [backup] = await listBackups({ token, folderId, fetchImpl });
-  if (!backup || !backup.id || backup.ownedByMe !== true || !backup.parents?.includes(folderId) || backup.appProperties?.elpro_pilot_backup !== 'v1') {
+function isEligibleBackup(backup, folderId) {
+  return Boolean(
+    backup?.id
+    && backup.ownedByMe === true
+    && backup.parents?.includes(folderId)
+    && backup.appProperties?.elpro_pilot_backup === 'v1',
+  );
+}
+
+function newestEligibleBackup(backups, folderId) {
+  return backups
+    .filter((backup) => isEligibleBackup(backup, folderId))
+    .sort((left, right) => Date.parse(right.createdTime ?? '') - Date.parse(left.createdTime ?? ''))[0];
+}
+
+export function backupAge({ createdTime, now = Date.now(), maxAgeMs = MAX_RECOVERY_BACKUP_AGE_MS }) {
+  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$/.test(createdTime ?? '')) {
+    throw new Error('Newest owned encrypted pilot backup has an invalid creation time');
+  }
+  const createdAtMs = Date.parse(createdTime);
+  if (!Number.isSafeInteger(createdAtMs) || !Number.isSafeInteger(now) || !Number.isSafeInteger(maxAgeMs) || maxAgeMs < 0) {
+    throw new Error('Newest owned encrypted pilot backup age cannot be verified');
+  }
+  if (createdAtMs > now) throw new Error('Newest owned encrypted pilot backup has a future creation time');
+  const ageMs = now - createdAtMs;
+  if (ageMs > maxAgeMs) throw new Error('Newest owned encrypted pilot backup is older than the 24-hour RPO');
+  return ageMs;
+}
+
+export async function downloadNewest({ token, folderId, outputPath, fetchImpl = fetch, maxAgeMs, now }) {
+  const backups = await listBackups({ token, folderId, fetchImpl });
+  const backup = newestEligibleBackup(backups, folderId);
+  if (!backup) {
     throw new Error('No owned encrypted pilot backup is available in the approved Drive folder');
   }
+  const ageMs = maxAgeMs === undefined ? undefined : backupAge({ createdTime: backup.createdTime, now, maxAgeMs });
   let response;
   try {
     response = await fetchImpl(`${DRIVE_API}/files/${encodeURIComponent(backup.id)}?alt=media`, {
@@ -150,7 +182,7 @@ export async function downloadNewest({ token, folderId, outputPath, fetchImpl = 
   } catch {
     throw new Error('Google Drive encrypted backup download failed');
   }
-  return { createdTime: backup.createdTime };
+  return { createdTime: backup.createdTime, ...(ageMs === undefined ? {} : { ageMs }) };
 }
 
 export async function prune({ token, folderId, fetchImpl = fetch }) {
