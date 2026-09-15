@@ -155,7 +155,7 @@ test('backup database URL validator rejects forbidden URL parameters through its
   assert.equal(result.stderr, 'SUPABASE_BACKUP_DB_URL must target the approved demo database with TLS\n');
 });
 
-test('Storage restore uploads only checksummed manifest objects to a loopback recovery API', async () => {
+test('Storage restore verifies only checksummed manifest objects through a loopback recovery API', async () => {
   const root = await mkdtemp(join(tmpdir(), 'elpro-storage-restore-'));
   const object = join(root, 'storage', 'tenant-files', 'tenant-a', 'document.pdf');
   try {
@@ -170,23 +170,23 @@ test('Storage restore uploads only checksummed manifest objects to a loopback re
       serviceRoleKey: 'test-service-role',
       fetchImpl: async (url, init) => {
         calls.push({ url: String(url), init: init! });
-        if (String(url).includes('/object/info/')) return new Response(JSON.stringify({ contentType: 'application/pdf', cacheControl: 'max-age=7200' }), { status: 200 });
-        if (init?.method !== 'POST') return new Response('restored bytes', { status: 200 });
-        assert.equal(Buffer.from(await new Response(init!.body).arrayBuffer()).toString(), 'restored bytes');
-        return new Response('{}', { status: 200 });
+        if (String(url).includes('/object/info/')) {
+          return new Response(JSON.stringify({
+            content_type: 'application/pdf', cache_control: 'max-age=7200', metadata: { elpro_file_linked_at: 'preserved-user-metadata' },
+          }), { status: 200 });
+        }
+        return new Response('restored bytes', { status: 200 });
       },
     });
     assert.deepEqual(result, { objects: 1, bytes: 14 });
-    assert.equal(calls[0]!.url, 'http://127.0.0.1:58000/storage/v1/object/info/tenant-files/tenant-a/document.pdf');
-    assert.equal(calls[0]!.init.redirect, 'error');
-    assert.equal(calls[1]!.url, 'http://127.0.0.1:58000/storage/v1/object/tenant-files/tenant-a/document.pdf');
-    assert.deepEqual(calls[1]!.init.headers, {
-      apikey: 'test-service-role', authorization: 'Bearer test-service-role', 'cache-control': 'max-age=7200', 'content-length': '14', 'content-type': 'application/pdf', 'x-upsert': 'true',
-    });
-    assert.equal(calls[1]!.init.redirect, 'error');
-    assert.equal(calls[2]!.url, 'http://127.0.0.1:58000/storage/v1/object/tenant-files/tenant-a/document.pdf');
-    assert.equal(calls[2]!.init.redirect, 'error');
-    assert.equal(calls[3]!.url, 'http://127.0.0.1:58000/storage/v1/object/info/tenant-files/tenant-a/document.pdf');
+    assert.equal(calls.length, 2);
+    assert.equal(calls[0]!.url, 'http://127.0.0.1:58000/storage/v1/object/tenant-files/tenant-a/document.pdf');
+    assert.equal(calls[1]!.url, 'http://127.0.0.1:58000/storage/v1/object/info/tenant-files/tenant-a/document.pdf');
+    for (const call of calls) {
+      assert.equal(call.init.method, undefined);
+      assert.deepEqual(call.init.headers, { apikey: 'test-service-role', authorization: 'Bearer test-service-role' });
+      assert.equal(call.init.redirect, 'error');
+    }
   } finally {
     await rm(root, { recursive: true, force: true });
   }

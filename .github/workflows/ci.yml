@@ -201,6 +201,96 @@ jobs:
         if: always()
         run: supabase stop
 
+  # Synthetic, no-secret proof of the recovery Storage loader against the exact
+  # pinned Compose Storage service. It derives a fresh schema-only source from
+  # the local CI stack, restores it into a separate recovery volume, then proves
+  # absent bytes can be materialized without changing protected logical rows.
+  recovery-storage-loader:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: [verify]
+    env:
+      SUPABASE_TEST_REQUIRED: "1"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: 2.115.0
+
+      - name: Start local schema source
+        run: supabase start
+
+      - name: Reset local schema source
+        run: supabase db reset
+
+      - name: Dump synthetic recovery schema source
+        run: |
+          set -euo pipefail
+          mkdir -p recovery/source
+          supabase db dump --local --schema public,auth,storage,supabase_migrations --file recovery/source/schema.sql
+          supabase db dump --local --data-only --schema storage --exclude storage.objects --file recovery/source/storage-data.sql
+
+      - name: Create isolated recovery runtime configuration
+        run: node scripts/ops/write-recovery-runtime-config.mjs ops/recovery
+
+      - name: Start database-only isolated recovery target
+        run: docker compose -f ops/recovery/compose.db-bootstrap.yaml -f ops/recovery/.private.db-bootstrap.compose.yaml up --detach --wait --wait-timeout 120
+
+      - name: Restore synthetic schema source
+        run: |
+          set -euo pipefail
+          db=(docker compose -f ops/recovery/compose.db-bootstrap.yaml -f ops/recovery/.private.db-bootstrap.compose.yaml exec -T db psql -v ON_ERROR_STOP=1 -U postgres -d postgres)
+          "${db[@]}" -f /dev/stdin < ops/recovery/prepare-empty-restore-target.sql
+          "${db[@]}" -f /dev/stdin < recovery/source/schema.sql
+          "${db[@]}" -f /dev/stdin < recovery/source/storage-data.sql
+          "${db[@]}" -f /docker-entrypoint-initdb.d/init-scripts/99-recovery-roles.sql
+
+      - name: Start pinned isolated Storage loader and runtime
+        run: |
+          set -euo pipefail
+          docker compose -f ops/recovery/compose.yaml -f ops/recovery/.private.runtime.compose.yaml -f ops/recovery/compose.storage-loader.yaml --profile recovery-loader up --detach storage-loader
+          docker compose -f ops/recovery/compose.yaml -f ops/recovery/.private.runtime.compose.yaml up --detach --wait --wait-timeout 120
+
+      - name: Prove physical Storage loader preserves protected rows
+        run: |
+          set -euo pipefail
+          node scripts/ops/write-isolated-recovery-storage-fixture.mjs recovery/synthetic-storage
+          db=(docker compose -f ops/recovery/compose.yaml -f ops/recovery/.private.runtime.compose.yaml exec -T db psql -v ON_ERROR_STOP=1 -U postgres -d postgres)
+          "${db[@]}" -f /dev/stdin < recovery/synthetic-storage/storage-seed.sql
+          loader=$(docker compose -f ops/recovery/compose.yaml -f ops/recovery/.private.runtime.compose.yaml -f ops/recovery/compose.storage-loader.yaml ps -q storage-loader)
+          test -n "$loader"
+          docker cp recovery/synthetic-storage/backup-workspace "$loader:/input/backup-workspace"
+          docker cp recovery/synthetic-storage/storage-restore-plan.json "$loader:/input/storage-restore-plan.json"
+          docker compose -f ops/recovery/compose.yaml -f ops/recovery/.private.runtime.compose.yaml -f ops/recovery/compose.storage-loader.yaml exec -T storage-loader python /opt/recovery/restore-storage-file-backend.py /input/backup-workspace /input/storage-restore-plan.json /var/lib/storage
+          set -a
+          source ops/recovery/.env
+          set +a
+          ISOLATED_RECOVERY_STORAGE_PROOF=1 RECOVERY_SUPABASE_URL=http://127.0.0.1:58000 RECOVERY_SUPABASE_SERVICE_ROLE_KEY="$SERVICE_ROLE_KEY" RECOVERY_TEST_DB_URL="postgresql://postgres:${POSTGRES_PASSWORD}@127.0.0.1:55432/postgres" RECOVERY_STORAGE_PROOF_FIXTURE=recovery/synthetic-storage/storage-fixture.json pnpm exec vitest run tests/integration/ops/recovery-storage-immutability.int.test.ts
+          unset SERVICE_ROLE_KEY ANON_KEY JWT_SECRET POSTGRES_PASSWORD
+
+      - name: Remove synthetic recovery resources
+        if: always()
+        run: |
+          docker compose -f ops/recovery/compose.yaml -f ops/recovery/.private.runtime.compose.yaml -f ops/recovery/compose.storage-loader.yaml --profile recovery-loader down --volumes --remove-orphans > /dev/null 2>&1 || true
+          docker compose -f ops/recovery/compose.db-bootstrap.yaml -f ops/recovery/.private.db-bootstrap.compose.yaml down --volumes --remove-orphans > /dev/null 2>&1 || true
+          supabase stop > /dev/null 2>&1 || true
+          rm -rf recovery/source recovery/synthetic-storage
+          rm -f ops/recovery/.env ops/recovery/.private.db-bootstrap.compose.yaml ops/recovery/.private.runtime.compose.yaml
   e2e:
     runs-on: ubuntu-latest
     timeout-minutes: 25

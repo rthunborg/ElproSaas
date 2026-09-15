@@ -97,28 +97,43 @@ jobs:
           rm -f recovery/restore-command.log
           echo 'Isolated database restore completed.'
 
+      - name: Materialize versioned Storage backend without Storage API writes
+        run: |
+          set -euo pipefail
+          db=(docker compose -f ops/recovery/compose.db-bootstrap.yaml -f ops/recovery/.private.db-bootstrap.compose.yaml exec -T db psql -At -v ON_ERROR_STOP=1 -U postgres -d postgres)
+          "${db[@]}" -c "select jsonb_build_object('objects', coalesce(jsonb_agg(jsonb_build_object('bucket', bucket_id, 'path', name, 'version', version, 'bytes', nullif(metadata->>'size','')::bigint, 'content_type', metadata->>'mimetype', 'cache_control', metadata->>'cacheControl') order by bucket_id, name, id), '[]'::jsonb))::text from storage.objects;" > recovery/storage-restore-plan.json
+          "${db[@]}" -c "select md5(coalesce(string_agg(to_jsonb(o)::text, E'\\n' order by bucket_id, name, id), '')) from storage.objects o;" > recovery/storage-rows-before.txt
+          docker compose -f ops/recovery/compose.yaml -f ops/recovery/.private.runtime.compose.yaml -f ops/recovery/compose.storage-loader.yaml --profile recovery-loader up --detach storage-loader
+          loader=$(docker compose -f ops/recovery/compose.yaml -f ops/recovery/.private.runtime.compose.yaml -f ops/recovery/compose.storage-loader.yaml ps -q storage-loader)
+          test -n "$loader"
+          docker cp recovery/extracted/backup-workspace "$loader:/input/backup-workspace"
+          docker cp recovery/storage-restore-plan.json "$loader:/input/restore-plan.json"
+          docker compose -f ops/recovery/compose.yaml -f ops/recovery/.private.runtime.compose.yaml -f ops/recovery/compose.storage-loader.yaml exec -T storage-loader python /opt/recovery/restore-storage-file-backend.py /input/backup-workspace /input/restore-plan.json /var/lib/storage > recovery/storage-loader-evidence.json
+
       - name: Start full isolated Supabase runtime
         run: docker compose -f ops/recovery/compose.yaml -f ops/recovery/.private.runtime.compose.yaml up --detach --wait --wait-timeout 120
 
-      - name: Restore Storage bytes and emit aggregate recovery evidence
+      - name: Verify Storage bytes and emit aggregate recovery evidence
         run: |
           set -euo pipefail
           set -a
           source ops/recovery/.env
           set +a
-          RECOVERY_SUPABASE_URL="http://127.0.0.1:58000" RECOVERY_SUPABASE_SERVICE_ROLE_KEY="$SERVICE_ROLE_KEY" node scripts/ops/restore-supabase-storage.mjs recovery/extracted/backup-workspace
+          RECOVERY_SUPABASE_URL="http://127.0.0.1:58000" RECOVERY_SUPABASE_SERVICE_ROLE_KEY="$SERVICE_ROLE_KEY" RECOVERY_STORAGE_RESTORE_PLAN=recovery/storage-restore-plan.json node scripts/ops/restore-supabase-storage.mjs recovery/extracted/backup-workspace
           db=(docker compose -f ops/recovery/compose.yaml -f ops/recovery/.private.runtime.compose.yaml exec -T db psql -At -v ON_ERROR_STOP=1 -U postgres -d postgres)
-          "${db[@]}" -c "select json_build_object('archive_checksums_verified', true, 'migrations', (select count(*) from supabase_migrations.schema_migrations), 'tenants', (select count(*) from public.tenants), 'memberships', (select count(*) from public.tenant_memberships), 'auth_users', (select count(*) from auth.users), 'storage_objects', (select count(*) from storage.objects), 'storage_bytes', (select coalesce(sum(nullif(metadata->>'size','')::bigint), 0) from storage.objects), 'membership_checksum', (select md5(coalesce(string_agg(id::text || ':' || tenant_id::text || ':' || coalesce(user_id::text,'') || ':' || status || ':' || role, ',' order by id), '')) from public.tenant_memberships), 'storage_checksum', (select md5(coalesce(string_agg(bucket_id || ':' || name || ':' || coalesce(metadata->>'size',''), ',' order by bucket_id, name), '')) from storage.objects))::text;" > recovery/aggregate-evidence.json
+          "${db[@]}" -c "select md5(coalesce(string_agg(to_jsonb(o)::text, E'\\n' order by bucket_id, name, id), '')) from storage.objects o;" > recovery/storage-rows-after.txt
+          cmp --silent recovery/storage-rows-before.txt recovery/storage-rows-after.txt || { echo 'Storage restore changed a restored storage.objects row.' >&2; exit 1; }
+          "${db[@]}" -c "select json_build_object('archive_checksums_verified', true, 'migrations', (select count(*) from supabase_migrations.schema_migrations), 'tenants', (select count(*) from public.tenants), 'memberships', (select count(*) from public.tenant_memberships), 'auth_users', (select count(*) from auth.users), 'storage_objects', (select count(*) from storage.objects), 'storage_bytes', (select coalesce(sum(nullif(metadata->>'size','')::bigint), 0) from storage.objects), 'membership_checksum', (select md5(coalesce(string_agg(id::text || ':' || tenant_id::text || ':' || coalesce(user_id::text,'') || ':' || status || ':' || role, ',' order by id), '')) from public.tenant_memberships), 'storage_checksum', (select md5(coalesce(string_agg(bucket_id || ':' || name || ':' || coalesce(metadata->>'size',''), ',' order by bucket_id, name), '')) from storage.objects), 'storage_row_checksum', (select md5(coalesce(string_agg(to_jsonb(o)::text, E'\\n' order by bucket_id, name, id), '')) from storage.objects o))::text;" > recovery/aggregate-evidence.json
           node scripts/ops/verify-isolated-recovery-copy-counts.mjs recovery/extracted/backup-workspace/database/data.sql recovery/aggregate-evidence.json
           RECOVERY_SUPABASE_URL="http://127.0.0.1:58000" RECOVERY_SUPABASE_SERVICE_ROLE_KEY="$SERVICE_ROLE_KEY" node scripts/ops/verify-isolated-auth-rls.mjs
-          cat recovery/aggregate-evidence.json
-          rm -f recovery/aggregate-evidence.json
+          cat recovery/storage-loader-evidence.json recovery/aggregate-evidence.json
+          rm -f recovery/storage-loader-evidence.json recovery/storage-restore-plan.json recovery/storage-rows-before.txt recovery/storage-rows-after.txt recovery/aggregate-evidence.json
           unset SERVICE_ROLE_KEY ANON_KEY JWT_SECRET POSTGRES_PASSWORD
 
       - name: Remove runner-local recovery material
         if: always()
         run: |
-          docker compose -f ops/recovery/compose.yaml -f ops/recovery/.private.runtime.compose.yaml down --volumes --remove-orphans > /dev/null 2>&1 || true
+          docker compose -f ops/recovery/compose.yaml -f ops/recovery/.private.runtime.compose.yaml -f ops/recovery/compose.storage-loader.yaml --profile recovery-loader down --volumes --remove-orphans > /dev/null 2>&1 || true
           docker compose -f ops/recovery/compose.db-bootstrap.yaml -f ops/recovery/.private.db-bootstrap.compose.yaml down --volumes --remove-orphans > /dev/null 2>&1 || true
           rm -rf recovery
           rm -f ops/recovery/.env ops/recovery/.private.db-bootstrap.compose.yaml ops/recovery/.private.runtime.compose.yaml

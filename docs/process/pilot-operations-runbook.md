@@ -275,8 +275,20 @@ database with no connection to the demo database.
    }
    ```
 
-   Restore Storage object bytes from `backup-workspace/storage/manifest.json`
-   with the recovery-only service key:
+   Materialize Storage bytes only after the logical restore has supplied every
+   `storage.objects` row. The recovery loader derives a private plan from those
+   restored rows, validates it against `backup-workspace/storage/manifest.json`,
+   and writes the exact version-addressed file-backend keys plus Linux MIME/cache
+   xattrs in the isolated named volume. It uses exclusive file creation and does
+   not call a Storage upload/upsert endpoint, so it cannot replace an object row,
+   its user metadata (including `elpro_file_linked_at`), id, version, owner, or
+   application immutability state. The pinned loader service is
+   `ops/recovery/compose.storage-loader.yaml`; managed local drills must start it
+   only through the current actor's resource-guard Compose request, alongside the
+   matching private runtime override. Do not run raw Docker lifecycle commands.
+
+   After that materialization, use the recovery-only service key only for
+   loopback verification:
 
    ```powershell
    $env:RECOVERY_SUPABASE_URL = 'http://127.0.0.1:58000'
@@ -286,11 +298,12 @@ database with no connection to the demo database.
    Remove-Item Env:RECOVERY_SUPABASE_SERVICE_ROLE_KEY
    ```
 
-   The helper verifies archive-wide `SHA256SUMS`, accepts only the exported
-   `{ exported_at, objects }` manifest format, and refuses a non-loopback URL
-   before it reads backup contents. Bucket metadata comes from the database
-   restore; it uploads only listed object bytes at the restored bucket/path and
-   reuses each restored object's MIME type and cache-control metadata.
+   The verifier checks archive-wide `SHA256SUMS`, accepts only the exported
+   `{ exported_at, objects }` manifest format, refuses a non-loopback URL before
+   it reads backup contents, and downloads every object through the isolated API
+   to compare bytes and read its top-level MIME/cache response fields. The
+   workflow also compares a hash of complete `storage.objects` rows before and
+   after materialization. It records aggregate counts/checksums only.
    Restore only configuration and secrets that are explicitly
    approved for the recovery target; a database dump does not make a copied
    Vercel deployment, Auth provider configuration, or encryption-root setup

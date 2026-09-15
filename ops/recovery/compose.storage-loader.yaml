@@ -1,0 +1,8 @@
+services:
+  storage-loader:
+    image: python:3.13.7-alpine3.21
+    profiles: ["recovery-loader"]
+    command: ["sh", "-c", "mkdir -p /input && while :; do sleep 3600; done"]
+    volumes:
+      - recovery-storage-data:/var/lib/storage
+      - ./restore-storage-file-backend.py:/opt/recovery/restore-storage-file-backend.py:ro

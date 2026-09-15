@@ -59,6 +59,7 @@ services:
       STORAGE_BACKEND: file
       GLOBAL_S3_BUCKET: stub
       FILE_STORAGE_BACKEND_PATH: /var/lib/storage
+      TUS_USE_FILE_VERSION_SEPARATOR: "true"
       TENANT_ID: stub
       REGION: local
       ENABLE_IMAGE_TRANSFORMATION: "false"
