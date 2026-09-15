@@ -4,17 +4,20 @@
  * materializes bytes without a Storage API write, so real Storage API readback works while the
  * restored rows stay byte-for-byte identical and ordinary x-upserts remain rejected.
  */
+import { execFile } from "node:child_process";
 import { readFile } from "node:fs/promises";
+import { promisify } from "node:util";
 
-import { Pool } from "pg";
-import { afterAll, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 
 const enabled = process.env.ISOLATED_RECOVERY_STORAGE_PROOF === "1";
 const recoveryUrl = process.env.RECOVERY_SUPABASE_URL;
 const serviceRoleKey = process.env.RECOVERY_SUPABASE_SERVICE_ROLE_KEY;
-const dbUrl = process.env.RECOVERY_TEST_DB_URL;
 const fixturePath = process.env.RECOVERY_STORAGE_PROOF_FIXTURE;
 const beforeRowsPath = process.env.RECOVERY_STORAGE_PROOF_BEFORE_ROWS;
+const execFileAsync = promisify(execFile);
+const recoveryComposeFiles = ["-f", "ops/recovery/compose.yaml", "-f", "ops/recovery/.private.runtime.compose.yaml"];
+const storageRowsQuery = "select coalesce(jsonb_agg(to_jsonb(o) order by bucket_id, name, id), '[]'::jsonb)::text from storage.objects o;";
 
 function requireLoopbackUrl(value: string | undefined): URL {
   if (!value) throw new Error("RECOVERY_SUPABASE_URL is required for the isolated recovery Storage proof");
@@ -23,13 +26,6 @@ function requireLoopbackUrl(value: string | undefined): URL {
     throw new Error("isolated recovery Storage proof requires a loopback API URL");
   }
   return url;
-}
-
-function requireLoopbackDatabase(value: string | undefined): string {
-  if (!value || !/(?:127\.0\.0\.1|localhost|\[::1\]|::1)/i.test(value)) {
-    throw new Error("isolated recovery Storage proof requires a loopback database URL");
-  }
-  return value;
 }
 
 interface FixtureObject {
@@ -44,15 +40,16 @@ interface Fixture {
 }
 
 const suite = enabled ? describe : describe.skip;
-let pool: Pool | undefined;
 
-async function objectRow(object: FixtureObject): Promise<Record<string, unknown>> {
-  const result = await pool!.query<{ row: Record<string, unknown> }>(
-    "select to_jsonb(o) as row from storage.objects o where o.bucket_id = $1 and o.name = $2",
-    [object.bucket, object.path],
-  );
-  expect(result.rows).toHaveLength(1);
-  return result.rows[0]!.row;
+async function storageRows(): Promise<Record<string, unknown>[]> {
+  const result = await execFileAsync("docker", [
+    "compose", ...recoveryComposeFiles, "exec", "-T", "db", "psql",
+    "-At", "-v", "ON_ERROR_STOP=1", "-U", "supabase_admin", "-d", "postgres",
+    "-c", storageRowsQuery,
+  ], { windowsHide: true, maxBuffer: 1024 * 1024 });
+  const rows = JSON.parse(result.stdout.trim()) as unknown;
+  if (!Array.isArray(rows)) throw new Error("isolated recovery Storage proof database snapshot is invalid");
+  return rows as Record<string, unknown>[];
 }
 
 function safeResponseDetail(value: string): string {
@@ -125,17 +122,12 @@ suite("isolated recovery Storage physical-loader proof", () => {
     if (!Array.isArray(before) || before.length !== fixture.objects.length) {
       throw new Error("isolated recovery Storage proof pre-loader row snapshot is invalid");
     }
-    pool = new Pool({ connectionString: requireLoopbackDatabase(dbUrl), max: 1 });
     await assertApiObjects(base, fixture.objects);
-    expect(await Promise.all(fixture.objects.map(objectRow))).toEqual(before);
+    expect(await storageRows()).toEqual(before);
     for (const object of fixture.objects) {
       expect((await ordinaryUpsert(base, object)).ok).toBe(false);
       await assertApiObjects(base, fixture.objects);
-      expect(await Promise.all(fixture.objects.map(objectRow))).toEqual(before);
+      expect(await storageRows()).toEqual(before);
     }
   });
-});
-
-afterAll(async () => {
-  if (pool) await pool.end();
 });

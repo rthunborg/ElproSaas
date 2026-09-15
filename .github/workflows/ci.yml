@@ -346,7 +346,7 @@ jobs:
           source ops/recovery/.env
           set +a
           gateway_port="$(cat recovery/source/gateway-port.txt)"
-          ISOLATED_RECOVERY_STORAGE_PROOF=1 RECOVERY_SUPABASE_URL="http://127.0.0.1:${gateway_port}" RECOVERY_SUPABASE_SERVICE_ROLE_KEY="$SERVICE_ROLE_KEY" RECOVERY_TEST_DB_URL="postgresql://supabase_storage_admin:${POSTGRES_PASSWORD}@127.0.0.1:55432/postgres" RECOVERY_STORAGE_PROOF_FIXTURE=recovery/synthetic-storage/storage-fixture.json RECOVERY_STORAGE_PROOF_BEFORE_ROWS=recovery/synthetic-storage/rows-before-loader.json pnpm exec vitest run tests/integration/ops/recovery-storage-immutability.int.test.ts
+          ISOLATED_RECOVERY_STORAGE_PROOF=1 RECOVERY_SUPABASE_URL="http://127.0.0.1:${gateway_port}" RECOVERY_SUPABASE_SERVICE_ROLE_KEY="$SERVICE_ROLE_KEY" RECOVERY_STORAGE_PROOF_FIXTURE=recovery/synthetic-storage/storage-fixture.json RECOVERY_STORAGE_PROOF_BEFORE_ROWS=recovery/synthetic-storage/rows-before-loader.json pnpm exec vitest run tests/integration/ops/recovery-storage-immutability.int.test.ts
           unset SERVICE_ROLE_KEY ANON_KEY JWT_SECRET POSTGRES_PASSWORD
 
       - name: Remove synthetic recovery resources
