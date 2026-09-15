@@ -16,7 +16,7 @@ let output = '';
 
 function waitForReady() {
   return new Promise((resolve, reject) => {
-    const timeout = setTimeout(() => reject(new Error(`Timed out waiting for local Worker:\n${output}`)), 20_000);
+    const timeout = setTimeout(() => reject(new Error(`Timed out waiting for local Worker:\n${sanitizedRuntimeOutput(output)}`)), 20_000);
     const check = () => {
       if (childError) {
         clearTimeout(timeout);
@@ -34,7 +34,7 @@ function waitForReady() {
     });
     child.once('exit', (code) => {
       clearTimeout(timeout);
-      reject(new Error(`Local Worker exited before ready (${code}):\n${output}`));
+      reject(new Error(`Local Worker exited before ready (${code}):\n${sanitizedRuntimeOutput(output)}`));
     });
     check();
   });
@@ -42,7 +42,7 @@ function waitForReady() {
 
 function waitForOutput(pattern, description) {
   return new Promise((resolve, reject) => {
-    const timeout = setTimeout(() => reject(new Error(`Timed out waiting for ${description}:\n${output}`)), 10_000);
+    const timeout = setTimeout(() => reject(new Error(`Timed out waiting for ${description}:\n${sanitizedRuntimeOutput(output)}`)), 10_000);
     const check = () => {
       if (pattern.test(output)) {
         clearTimeout(timeout);
@@ -65,13 +65,23 @@ async function stop() {
   if (child.exitCode === null) child.kill('SIGKILL');
 }
 
-let result = { runId, status: 'failed', stage: 'initializing', scheduledAt: null, persistenceDir, runtimeLogRequired: 'monitor_sample_recorded', failureClass: null, failureMessage: null, runtimeOutput: null };
+let result = { runId, status: 'failed', stage: 'initializing', scheduledAt: null, persistenceDir, runtimeLogRequired: 'monitor_sample_recorded', scheduledResponseStatus: null, scheduledResponseBody: null, failureClass: null, failureMessage: null, runtimeOutput: null };
 
 function sanitizedRuntimeOutput(value) {
   return value
     .replaceAll(process.cwd(), '<workdir>')
     .replace(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g, '<email>')
     .slice(-16_000);
+}
+
+function sanitizedError(error) {
+  const safe = new Error(sanitizedRuntimeOutput(error instanceof Error ? error.message : 'Unknown runtime failure.'));
+  safe.name = error instanceof Error ? error.name : 'Error';
+  return safe;
+}
+
+async function drainRuntimeOutput() {
+  await new Promise((resolveDrain) => setTimeout(resolveDrain, 750));
 }
 
 try {
@@ -89,9 +99,17 @@ try {
   result = { ...result, stage: 'dispatching local scheduled event' };
   const scheduledAt = 1_800_000_000_000;
   const response = await fetch(`http://127.0.0.1:${port}/cdn-cgi/local/scheduled?format=json&cron=*/5+*+*+*+*&time=${scheduledAt}`);
-  result = { ...result, stage: 'verifying scheduled response', scheduledAt };
+  const responseBody = await response.text();
+  result = {
+    ...result,
+    stage: 'verifying scheduled response',
+    scheduledAt,
+    scheduledResponseStatus: response.status,
+    scheduledResponseBody: sanitizedRuntimeOutput(responseBody),
+  };
+  await drainRuntimeOutput();
   assert.equal(response.status, 200);
-  const outcome = await response.json();
+  const outcome = JSON.parse(responseBody);
   assert.equal(outcome.outcome, 'ok');
   assert.equal(outcome.noRetry, false);
   result = { ...result, stage: 'verifying Durable Object sample write', scheduledAt };
@@ -102,10 +120,10 @@ try {
   result = {
     ...result,
     failureClass: error instanceof Error ? error.name : 'UnknownError',
-    failureMessage: error instanceof Error ? error.message : 'Unknown runtime failure.',
+    failureMessage: sanitizedRuntimeOutput(error instanceof Error ? error.message : 'Unknown runtime failure.'),
     runtimeOutput: sanitizedRuntimeOutput(output),
   };
-  throw error;
+  throw sanitizedError(error);
 } finally {
   await stop();
   await mkdir(join('.wrangler', 'test-results'), { recursive: true });

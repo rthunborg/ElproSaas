@@ -108,7 +108,11 @@ Enhancior Workspace backup folder, so it must not be used for pilot data.
    forces the first probe to fail without calling the production URL or Email
    Service, invokes its local scheduled-event endpoint once, and removes its
    child process. It proves an empty SQLite Durable Object can accept its first
-   Cron event. For an isolated local alert-path check, keep the production URL
+   Cron event. GitHub Actions run `34955185275` passed this runtime assertion on
+   Ubuntu. A root-guarded Windows local run returned an opaque Wrangler/workerd
+   internal HTTP 500 before application logging; use the ignored
+   `.wrangler/test-results/` JSON for that platform diagnostic and rely on the
+   Ubuntu CI result for the local runtime proof. For an isolated local alert-path check, keep the production URL
    unchanged and use local simulated bindings/state only. Render a private
    config with example addresses, create an ignored `.dev.vars` containing only
    `MONITOR_TEST_OUTCOME=failed`, then in one terminal run
