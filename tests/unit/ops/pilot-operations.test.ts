@@ -218,9 +218,10 @@ test('Storage restore refuses a manifest object missing from SHA256SUMS before u
 
 test('recovery Compose sources leave per-drill values in ignored static private files', async () => {
   const recoveryDir = fileURLToPath(new URL('../../../ops/recovery/', import.meta.url));
-  const [base, bootstrap, dbOverride, runtimeOverride, envExample] = await Promise.all([
+  const [base, bootstrap, roles, dbOverride, runtimeOverride, envExample] = await Promise.all([
     readFile(join(recoveryDir, 'compose.yaml'), 'utf8'),
     readFile(join(recoveryDir, 'compose.db-bootstrap.yaml'), 'utf8'),
+    readFile(join(recoveryDir, 'bootstrap-roles.sql'), 'utf8'),
     readFile(join(recoveryDir, 'db-bootstrap.private.compose.example.yaml'), 'utf8'),
     readFile(join(recoveryDir, 'runtime.private.compose.example.yaml'), 'utf8'),
     readFile(join(recoveryDir, 'recovery.env.example'), 'utf8'),
@@ -229,6 +230,11 @@ test('recovery Compose sources leave per-drill values in ignored static private 
   assert.doesNotMatch(bootstrap, /\$\{/);
   assert.match(base, /env_file: \.env/);
   assert.match(bootstrap, /99-recovery-roles\.sql:ro/);
+  assert.match(roles, /ARRAY\['authenticator', 'supabase_auth_admin', 'supabase_storage_admin'\]/);
+  assert.match(roles, /ALTER USER authenticator WITH PASSWORD/);
+  assert.match(roles, /ALTER USER supabase_auth_admin WITH PASSWORD/);
+  assert.match(roles, /ALTER USER supabase_storage_admin WITH PASSWORD/);
+  assert.doesNotMatch(roles, /ALTER USER pgbouncer|ALTER USER supabase_functions_admin/);
   assert.match(bootstrap, /command: \["postgres", "-D", "\/etc\/postgresql"/);
   assert.match(base, /command: \["postgres", "-D", "\/etc\/postgresql"/);
   assert.match(base, /cron\.launch_active_jobs=off/);
