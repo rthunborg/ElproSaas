@@ -1,4 +1,3 @@
-import { readFile } from 'node:fs/promises';
 import { pathToFileURL } from 'node:url';
 
 const PROJECT_REF = 'wmqmzznmwpheswjjozhq';
@@ -27,7 +26,11 @@ export function assertApprovedBackupDbUrl(value) {
 }
 
 async function main() {
-  assertApprovedBackupDbUrl((await readFile(0, 'utf8')).trim());
+  let input = '';
+  // GitHub Actions supplies this secret-derived value through a stdin pipe; fs.readFile does not accept raw descriptor 0 on Node 22.
+  process.stdin.setEncoding('utf8');
+  for await (const chunk of process.stdin) input += chunk;
+  assertApprovedBackupDbUrl(input.trim());
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
