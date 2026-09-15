@@ -9,30 +9,28 @@ delivery, and records a successful isolated restore rehearsal.
 
 | Target | Implemented control | Evidence / limit |
 | --- | --- | --- |
-| 99.5% monthly availability | `pilot-availability.yml` probes the public login route every five minutes and keeps each sample for 30 days. | This is a sampled synthetic check, not a complete availability measurement. |
+| 99.5% monthly availability | The independent Cloudflare Worker in `workers/cloudflare-monitor/` schedules a five-minute canonical-login probe and stores thirty days of samples in one SQLite-backed Durable Object. | This is a sampled synthetic check. A retained gap makes the availability percentage unknown; a passing 99.5% result needs thirty days of gap-free observation. |
 | Server errors below 1% | Each probe records a 5xx response as failed. | A single `/login` sample cannot calculate the error rate across all requests or authenticated commands. Review Vercel runtime logs separately before reporting this target as met. |
-| Alert after three consecutive failures | The workflow turns red only after the current plus two immediately preceding scheduled samples failed. | GitHub may notify the account that owns the schedule according to its notification settings. Delivery to the owner-controlled Gmail mailbox remains unverified until the owner performs a controlled three-failure test. |
+| Alert after three consecutive failures | The Durable Object opens one outage after three in-order, ungapped failed samples and retries a failed restricted-email delivery without a duplicate outage alert. A pending alert remains eligible after later recovery or a scheduler gap, and expires with its retained history after 30 days. | A delayed retry names the observed incident time and current recovered/unknown/failing state. Verify the sender domain, recipient binding, and delivery separately. A synthetic route probe does not establish a provider SLA or alert latency. |
 | Daily encrypted backup, seven daily copies | `pilot-backup.yml` captures a Storage inventory before the database dump, requires it to match before and after byte export, then creates a relative-path checksum manifest, encrypts the archive on the runner, uploads it to the configured private Drive folder, and deletes tagged copies older than the newest seven. | A concurrent Storage object or metadata change fails the run rather than creating a mixed database/byte backup. No database dump, Storage object, access token, or encrypted backup is uploaded to GitHub Actions artifacts. |
 | RPO 24 hours / RTO 4 hours | The backup schedule is daily and a monthly isolated restore is required. | Neither RPO nor RTO is certified until a successful monthly restore measures both the newest backup age and restore time. |
-| Additional spend at most 100 SEK/month | The implementation uses standard GitHub-hosted Linux runners, existing Supabase Free resources, and existing Workspace Drive capacity. | Recheck usage and quotas before activation. An oversize database/Storage export, Free-plan egress, or a Drive storage upgrade can invalidate the cost assumption. |
+| Additional spend at most 100 SEK/month | The monitor's SQLite Durable Object is configured for Workers Free limits; backup uses standard GitHub-hosted Linux runners, existing Supabase Free resources, and existing Workspace Drive capacity. | Recheck usage and quotas before activation. An oversize database/Storage export, Free-plan egress, a Drive storage upgrade, or an approved paid Email Sending sender can invalidate the cost assumption. |
 
-GitHub's shortest supported schedule interval is five minutes, but it also warns
-that scheduled jobs can be delayed or dropped under load. The monitor therefore
-uses an offset cadence (minutes 2, 7, 12, ...) to avoid the top of the hour and
-is explicitly a best-effort pilot monitor. It cannot prove a hard five-minute
-check interval or independently certify the 99.5% target. Vercel Hobby cannot
-replace it: its cron jobs are limited to once daily and can be invoked anywhere
-within the selected hour.
+The Cloudflare cron is independent from GitHub Actions. Its Durable Object
+accepts only strictly newer scheduled timestamps: duplicate and stale events do
+not create a sample, and any missed five-minute slots are retained as a gap that
+resets failure counting. This prevents an out-of-order scheduler event from
+manufacturing healthy history or accidentally creating a third failure. It does
+not prove an exact platform schedule, a service-level agreement, or the 99.5%
+target before the required observation window.
 
-GitHub also automatically disables scheduled workflows in public repositories
-after 60 days without repository activity. A disabled scheduler cannot report
-its own absence. Before treating either workflow as an operational control, the
-owner must create an independently maintained monthly calendar reminder outside
-GitHub. On that reminder, verify in the Actions UI that both workflows remain
-enabled on `main`, that the latest availability run is recent, and that the
-latest backup run completed within the last 24 hours. Record the check date,
-run URLs, and any remediation in the pilot operations evidence; do not record
-customer data or secrets. This owner check is required even in a quiet month.
+`pilot-availability.yml` remains an advisory monitor while this remediation is
+rolled out. Its Action artifacts and GitHub notification are separate from the
+Worker's SQLite history and email delivery. Keep the existing independent monthly
+owner reminder: verify recent Cloudflare Cron events and Worker logs, the
+advisory Actions run, backup freshness, and accumulated cost. Record only times,
+outcomes, run links, and remediation; never record customer data, tokens, or the
+alert address.
 
 ## One-time owner setup
 
@@ -75,21 +73,69 @@ Enhancior Workspace backup folder, so it must not be used for pilot data.
    - `BACKUP_GPG_PASSPHRASE`: an independently stored, high-entropy recovery
      passphrase. Give recovery operators an escrowed copy separate from the
      Drive account; a Drive account alone must not decrypt a backup.
-4. Add these repository variables:
+4. Prepare the Cloudflare monitor before treating it as an operational control.
+   The repository pins Wrangler in `workers/cloudflare-monitor/package.json` and
+   contains neither the recipient nor sender address. Authenticate through the
+   owner's normal Wrangler CLI login; do not create or commit an API token. Set
+   the recipient and an approved Email Service sender only in the current shell,
+   render the ignored private configuration, inspect its binding summary, and
+   deploy from that directory:
+
+   ```powershell
+   Set-Location workers/cloudflare-monitor
+   $env:CLOUDFLARE_MONITOR_ALERT_DESTINATION = Read-Host 'Verified Cloudflare destination address'
+   $env:CLOUDFLARE_MONITOR_SENDER = Read-Host 'Approved Email Service sender address'
+   pnpm install --ignore-workspace
+   pnpm test
+   pnpm typecheck
+   pnpm test:runtime
+   pnpm run render:private-config
+   pnpm exec wrangler deploy --config wrangler.private.jsonc
+   Remove-Item -LiteralPath wrangler.private.jsonc
+   Remove-Item Env:CLOUDFLARE_MONITOR_ALERT_DESTINATION
+   Remove-Item Env:CLOUDFLARE_MONITOR_SENDER
+   ```
+
+   The generated configuration binds exactly that sender and one verified
+   destination, uses no public Worker route (`workers_dev: false`), and deploys
+   a single SQLite Durable Object with the `*/5 * * * *` production trigger.
+   Use the owner-approved sender choice. Do not enable apex Email Routing or
+   modify the Google Workspace apex MX/SPF records. The `ops.enhancior.se`
+   sender proposal requires a separate Email Sending subscription decision; do
+   not deploy it on a Free-only account.
+
+   `pnpm test:runtime` starts a local-only Worker with `wrangler.test.jsonc`,
+   forces the first probe to fail without calling the production URL or Email
+   Service, invokes its local scheduled-event endpoint once, and removes its
+   child process. It proves an empty SQLite Durable Object can accept its first
+   Cron event. GitHub Actions run `34955185275` passed this runtime assertion on
+   Ubuntu. A root-guarded Windows local run returned an opaque Wrangler/workerd
+   internal HTTP 500 before application logging; use the ignored
+   `.wrangler/test-results/` JSON for that platform diagnostic and rely on the
+   Ubuntu CI result for the local runtime proof. For an isolated local alert-path check, keep the production URL
+   unchanged and use local simulated bindings/state only. Render a private
+   config with example addresses, create an ignored `.dev.vars` containing only
+   `MONITOR_TEST_OUTCOME=failed`, then in one terminal run
+   `pnpm exec wrangler dev --test-scheduled --local --config wrangler.private.jsonc`.
+   In another terminal invoke
+   `http://localhost:8787/cdn-cgi/local/scheduled?cron=*/5+*+*+*+*&time=<milliseconds>`
+   three times with strictly increasing five-minute timestamps. Remove both
+   ignored files when finished. This verifies threshold, retry, and safe content
+   without probing production, changing production history, or exposing a
+   deployed test endpoint. Local Email Service simulation does not prove inbox
+   delivery.
+5. Add these repository variables:
 
    - `BACKUP_MAX_STORAGE_BYTES`: a deliberately conservative integer ceiling
      for one full Storage export. The backup lists object metadata and fails
      before downloading any object when this ceiling would be exceeded. It must
      leave room for 30 daily exports, database traffic, and Drive retention.
-   - `ELPRO_MONITOR_URL`: the deployed public HTTPS login URL, for example
-     `https://elpro-saas.vercel.app/login`. The monitored route must return 200
-     without authenticating or changing data.
    - `PILOT_BACKUP_ENABLED`: leave unset while the backup destination and
      credentials are being prepared. Scheduled runs execute only when this is
      exactly `true`; a manual **Pilot encrypted backup** dispatch remains
      available for setup and fails loudly if a required secret is missing.
-5. Configure GitHub Actions failure notifications for the account that owns
-   the workflow schedule so they arrive at the owner-controlled Gmail mailbox.
+6. Keep GitHub Actions failure notifications configured for the account that owns
+   the advisory workflow schedule so they arrive at the owner-controlled mailbox.
    GitHub associates scheduled-workflow notifications with the account that
    last changes the cron syntax, subject to that account's notification
    settings. After merge, have that owner manually dispatch **Pilot availability
@@ -99,19 +145,19 @@ Enhancior Workspace backup folder, so it must not be used for pilot data.
    after the simulated third sample. It neither calls the monitored URL nor
    writes scheduled-history artifacts. Verify mailbox receipt before recording
    the alert as delivered.
-   No SMTP, Vercel environment variable, or arbitrary webhook is required or
-   configured by this repository.
-6. Run **Pilot encrypted backup** manually on `main`. Confirm that the Drive
+   This remains advisory evidence and does not replace the Cloudflare monitor's
+   separately configured restricted Email Service binding.
+7. Run **Pilot encrypted backup** manually on `main`. Confirm that the Drive
    folder contains one `.tar.gz.gpg` file, no unencrypted archive, and the
    GitHub run contains no secrets or object names. The workflow fails loudly
    when any required secret is missing, the dump/export fails, encryption
    fails, or Drive upload fails.
-7. Complete the isolated restore rehearsal below using that backup and record
+8. Complete the isolated restore rehearsal below using that backup and record
    its duration and backup age. Only then set `PILOT_BACKUP_ENABLED` to `true`
    to enable the daily schedule. Do not enable it merely because secrets have
-   been entered: the owner must also have completed the controlled
-   three-failure notification test in step 5 and verified mailbox delivery.
-8. Create the independent monthly scheduler-freshness calendar reminder
+   been entered: the owner must also have completed the controlled alert-path
+   test in step 4 and verified mailbox delivery after selecting a supported sender.
+9. Create the independent monthly scheduler-freshness calendar reminder
    described above. Its owner must have access to both the Actions UI and the
    controlled pilot operations evidence record.
 
@@ -274,3 +320,14 @@ Limits: tests use mock Storage and HTTP transports; no Drive folder/OAuth creden
   lists the Free plan's current database, Storage, and egress allowances.
 - [Google Drive uploads](https://developers.google.com/workspace/drive/api/guides/manage-uploads)
   documents the resumable upload session used for encrypted archives of any size.
+- [Cloudflare Cron Triggers](https://developers.cloudflare.com/workers/configuration/cron-triggers/)
+  documents Wrangler-managed UTC cron schedules and the local scheduled-event
+  test endpoint.
+- [Cloudflare Durable Object SQLite storage](https://developers.cloudflare.com/durable-objects/api/sqlite-storage-api/)
+  documents transactional, strongly consistent SQLite-backed object storage.
+- [Cloudflare send-email bindings](https://developers.cloudflare.com/email-service/configuration/send-bindings/)
+  documents exact recipient and sender restrictions for a Worker binding.
+- [Cloudflare Email Service subdomains](https://developers.cloudflare.com/email-service/configuration/subdomains/)
+  distinguishes zone-level Email Routing from per-domain Email Sending.
+- [Cloudflare Email Service pricing](https://developers.cloudflare.com/email-service/platform/pricing/)
+  is the current source to recheck before choosing a Free or paid sender route.
