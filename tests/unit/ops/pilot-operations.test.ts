@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict';
+import { spawn } from 'node:child_process';
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { test } from 'node:test';
 
 import { assessAvailabilityFailure, newestArtifactUrls } from '../../../scripts/ops/availability-history.mjs';
@@ -11,6 +13,23 @@ import { probeAvailability } from '../../../scripts/ops/probe-availability.mjs';
 import { verifyBackupChecksums } from '../../../scripts/ops/verify-backup-checksums.mjs';
 import { assertApprovedBackupDbUrl } from '../../../scripts/ops/validate-backup-db-url.mjs';
 import { writeBackupChecksums } from '../../../scripts/ops/write-backup-checksums.mjs';
+
+function runBackupDbUrlValidator(chunks: string[]): Promise<{ code: number | null; signal: NodeJS.Signals | null; stdout: string; stderr: string }> {
+  const script = fileURLToPath(new URL('../../../scripts/ops/validate-backup-db-url.mjs', import.meta.url));
+  const child = spawn(process.execPath, [script], { stdio: ['pipe', 'pipe', 'pipe'], timeout: 5_000, killSignal: 'SIGTERM' });
+  let stdout = '';
+  let stderr = '';
+  child.stdout.setEncoding('utf8');
+  child.stdout.on('data', (chunk) => { stdout += chunk; });
+  child.stderr.setEncoding('utf8');
+  child.stderr.on('data', (chunk) => { stderr += chunk; });
+  for (const chunk of chunks) child.stdin.write(chunk);
+  child.stdin.end();
+  return new Promise((resolveResult, rejectResult) => {
+    child.once('error', rejectResult);
+    child.once('close', (code, signal) => resolveResult({ code, signal, stdout, stderr }));
+  });
+}
 
 test('pilot probe records a failed HTTP response and a transport failure without treating either as available', async () => {
   const failedHttp = await probeAvailability({
@@ -108,6 +127,28 @@ test('backup database URL accepts only exact TLS direct or shared-pooler demo ta
   assert.throws(() => assertApprovedBackupDbUrl('postgresql://postgres:secret@unrelated.example/wmqmzznmwpheswjjozhq?sslmode=require'), /approved demo database/);
   assert.throws(() => assertApprovedBackupDbUrl('postgresql://postgres.wrong-project:secret@aws-0-eu-north-1.pooler.supabase.com:5432/postgres?sslmode=require'), /approved demo database/);
   assert.throws(() => assertApprovedBackupDbUrl('postgresql://postgres:secret@db.wmqmzznmwpheswjjozhq.supabase.co:5432/postgres?sslmode=require&host=attacker.example'), /approved demo database/);
+});
+
+test('backup database URL validator accepts approved URLs through its streamed stdin CLI path', async () => {
+  for (const input of [
+    'postgresql://postgres:secret@db.wmqmzznmwpheswjjozhq.supabase.co:5432/postgres?sslmode=require',
+    'postgresql://postgres.wmqmzznmwpheswjjozhq:secret@aws-0-eu-north-1.pooler.supabase.com:5432/postgres?sslmode=verify-full',
+  ]) {
+    const middle = Math.floor(input.length / 2);
+    const result = await runBackupDbUrlValidator([input.slice(0, middle), input.slice(middle)]);
+    assert.equal(result.code, 0);
+    assert.equal(result.signal, null);
+    assert.equal(result.stdout, '');
+    assert.equal(result.stderr, '');
+  }
+});
+
+test('backup database URL validator rejects forbidden URL parameters through its stdin CLI path', async () => {
+  const result = await runBackupDbUrlValidator(['postgresql://postgres:secret@db.wmqmzznmwpheswjjozhq.supabase.co:5432/postgres?sslmode=require&host=attacker.example']);
+  assert.equal(result.code, 1);
+  assert.equal(result.signal, null);
+  assert.equal(result.stdout, '');
+  assert.equal(result.stderr, 'SUPABASE_BACKUP_DB_URL must target the approved demo database with TLS\n');
 });
 
 test('Storage export refuses an object whose downloaded bytes changed after the no-transfer preflight', async () => {
