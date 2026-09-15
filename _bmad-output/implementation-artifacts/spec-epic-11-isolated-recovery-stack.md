@@ -21,7 +21,7 @@ baseline_commit: '6396894c268667ed32177283d21c8b8818f73f1f'
 
 The Compose target pins upstream Supabase-compatible images, keeps restored state in a fresh project-scoped named volume set, disables restored cron and HTTP queue dispatch, and places the project name, ports, and credentials only in ignored literal private files because the guard rejects Compose interpolation.
 
-- `ops/recovery/compose.db-bootstrap.yaml:1` — database-only source preserves the pinned image required `/etc/postgresql` config directory and prevents Auth and Storage migrations before the logical restore.
+- `ops/recovery/compose.db-bootstrap.yaml:1` — database-only source preserves the pinned image required `/etc/postgresql` config directory; the pinned `supabase_admin` administrative principal owns the image schemas used by logical restore.
 - `ops/recovery/bootstrap-roles.sql:5` — fails if any of the exact pinned-image login roles used by Auth, REST, and Storage is absent, then idempotently resets only those generated recovery passwords; the workflow reapplies it after the role dump.
 - `ops/recovery/prepare-empty-restore-target.sql:4` — verifies the target has no user, Storage, or tenant rows before removing only image-provided schemas that would collide with the full source dump.
 - `ops/recovery/compose.yaml:1` — full Auth, REST, Storage, and gateway runtime uses the restored database volume, disables `pg_cron`/`pg_net` dispatch, is Docker-internal, and has no fixed project name or port.

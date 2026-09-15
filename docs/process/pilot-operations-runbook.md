@@ -252,13 +252,13 @@ database with no connection to the demo database.
    roles/schema/data into this empty target before starting Auth or Storage, and
    confirm every target URL still resolves to loopback.
 3. Follow Supabase's current logical restore procedure for the selected target:
-   restore roles/schema/data in the required order, account for custom
-   `auth`/`storage` schema changes, then reapply the recovery runtime bootstrap
+   restore roles/schema/data as the pinned image’s `supabase_admin` administrative
+   principal, account for custom `auth`/`storage` schema changes, then reapply the recovery runtime bootstrap
    before Auth, REST, or Storage starts. The source role dump can replace the
    image-init passwords and database JWT settings, so this is mandatory:
 
    ```powershell
-   docker compose -f ops/recovery/compose.db-bootstrap.yaml -f ops/recovery/.private.db-bootstrap.compose.yaml exec -T db psql -v ON_ERROR_STOP=1 -U postgres -d postgres -f /docker-entrypoint-initdb.d/init-scripts/99-recovery-roles.sql
+   docker compose -f ops/recovery/compose.db-bootstrap.yaml -f ops/recovery/.private.db-bootstrap.compose.yaml exec -T db psql -v ON_ERROR_STOP=1 -U supabase_admin -d postgres -f /docker-entrypoint-initdb.d/init-scripts/99-recovery-roles.sql
    ```
 
    Stop the database guard resource while retaining its project-scoped named

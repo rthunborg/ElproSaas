@@ -218,10 +218,13 @@ test('Storage restore refuses a manifest object missing from SHA256SUMS before u
 
 test('recovery Compose sources leave per-drill values in ignored static private files', async () => {
   const recoveryDir = fileURLToPath(new URL('../../../ops/recovery/', import.meta.url));
-  const [base, bootstrap, roles, dbOverride, runtimeOverride, envExample] = await Promise.all([
+  const [base, bootstrap, roles, recoveryCi, rehearsalWorkflow, runbook, dbOverride, runtimeOverride, envExample] = await Promise.all([
     readFile(join(recoveryDir, 'compose.yaml'), 'utf8'),
     readFile(join(recoveryDir, 'compose.db-bootstrap.yaml'), 'utf8'),
     readFile(join(recoveryDir, 'bootstrap-roles.sql'), 'utf8'),
+    readFile(fileURLToPath(new URL('../../../.github/workflows/ci.yml', import.meta.url)), 'utf8'),
+    readFile(fileURLToPath(new URL('../../../.github/workflows/pilot-isolated-recovery-rehearsal.yml', import.meta.url)), 'utf8'),
+    readFile(fileURLToPath(new URL('../../../docs/process/pilot-operations-runbook.md', import.meta.url)), 'utf8'),
     readFile(join(recoveryDir, 'db-bootstrap.private.compose.example.yaml'), 'utf8'),
     readFile(join(recoveryDir, 'runtime.private.compose.example.yaml'), 'utf8'),
     readFile(join(recoveryDir, 'recovery.env.example'), 'utf8'),
@@ -235,6 +238,11 @@ test('recovery Compose sources leave per-drill values in ignored static private 
   assert.match(roles, /ALTER USER supabase_auth_admin WITH PASSWORD/);
   assert.match(roles, /ALTER USER supabase_storage_admin WITH PASSWORD/);
   assert.doesNotMatch(roles, /ALTER USER pgbouncer|ALTER USER supabase_functions_admin/);
+  for (const restoreEntryPoint of [recoveryCi, rehearsalWorkflow, runbook]) {
+    assert.match(restoreEntryPoint, /-U supabase_admin -d postgres/);
+    assert.doesNotMatch(restoreEntryPoint, /-U postgres -d postgres/);
+  }
+  assert.match(recoveryCi, /RECOVERY_TEST_DB_URL=\"postgresql:\/\/supabase_storage_admin:/);
   assert.match(bootstrap, /command: \["postgres", "-D", "\/etc\/postgresql"/);
   assert.match(base, /command: \["postgres", "-D", "\/etc\/postgresql"/);
   assert.match(base, /cron\.launch_active_jobs=off/);

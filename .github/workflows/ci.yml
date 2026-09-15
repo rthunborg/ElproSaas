@@ -264,7 +264,7 @@ jobs:
       - name: Restore synthetic schema source
         run: |
           set -euo pipefail
-          db=(docker compose -f ops/recovery/compose.db-bootstrap.yaml -f ops/recovery/.private.db-bootstrap.compose.yaml exec -T db psql -v ON_ERROR_STOP=1 -U postgres -d postgres)
+          db=(docker compose -f ops/recovery/compose.db-bootstrap.yaml -f ops/recovery/.private.db-bootstrap.compose.yaml exec -T db psql -v ON_ERROR_STOP=1 -U supabase_admin -d postgres)
           "${db[@]}" -f /dev/stdin < ops/recovery/prepare-empty-restore-target.sql
           "${db[@]}" -f /dev/stdin < recovery/source/schema.sql
           "${db[@]}" -f /dev/stdin < recovery/source/storage-data.sql
@@ -280,7 +280,7 @@ jobs:
         run: |
           set -euo pipefail
           node scripts/ops/write-isolated-recovery-storage-fixture.mjs recovery/synthetic-storage
-          db=(docker compose -f ops/recovery/compose.yaml -f ops/recovery/.private.runtime.compose.yaml exec -T db psql -v ON_ERROR_STOP=1 -U postgres -d postgres)
+          db=(docker compose -f ops/recovery/compose.yaml -f ops/recovery/.private.runtime.compose.yaml exec -T db psql -v ON_ERROR_STOP=1 -U supabase_admin -d postgres)
           "${db[@]}" -f /dev/stdin < recovery/synthetic-storage/storage-seed.sql
           "${db[@]}" -At -c "select coalesce(jsonb_agg(to_jsonb(o) order by bucket_id, name, id), '[]'::jsonb)::text from storage.objects o;" > recovery/synthetic-storage/rows-before-loader.json
           loader=$(docker compose -f ops/recovery/compose.yaml -f ops/recovery/.private.runtime.compose.yaml -f ops/recovery/compose.storage-loader.yaml ps -q storage-loader)
@@ -291,7 +291,7 @@ jobs:
           set -a
           source ops/recovery/.env
           set +a
-          ISOLATED_RECOVERY_STORAGE_PROOF=1 RECOVERY_SUPABASE_URL=http://127.0.0.1:58000 RECOVERY_SUPABASE_SERVICE_ROLE_KEY="$SERVICE_ROLE_KEY" RECOVERY_TEST_DB_URL="postgresql://postgres:${POSTGRES_PASSWORD}@127.0.0.1:55432/postgres" RECOVERY_STORAGE_PROOF_FIXTURE=recovery/synthetic-storage/storage-fixture.json RECOVERY_STORAGE_PROOF_BEFORE_ROWS=recovery/synthetic-storage/rows-before-loader.json pnpm exec vitest run tests/integration/ops/recovery-storage-immutability.int.test.ts
+          ISOLATED_RECOVERY_STORAGE_PROOF=1 RECOVERY_SUPABASE_URL=http://127.0.0.1:58000 RECOVERY_SUPABASE_SERVICE_ROLE_KEY="$SERVICE_ROLE_KEY" RECOVERY_TEST_DB_URL="postgresql://supabase_storage_admin:${POSTGRES_PASSWORD}@127.0.0.1:55432/postgres" RECOVERY_STORAGE_PROOF_FIXTURE=recovery/synthetic-storage/storage-fixture.json RECOVERY_STORAGE_PROOF_BEFORE_ROWS=recovery/synthetic-storage/rows-before-loader.json pnpm exec vitest run tests/integration/ops/recovery-storage-immutability.int.test.ts
           unset SERVICE_ROLE_KEY ANON_KEY JWT_SECRET POSTGRES_PASSWORD
 
       - name: Remove synthetic recovery resources
