@@ -64,6 +64,8 @@ jobs:
           test -f recovery/extracted/backup-workspace/database/roles.sql
           test -f recovery/extracted/backup-workspace/database/schema.sql
           test -f recovery/extracted/backup-workspace/database/data.sql
+          test -f recovery/extracted/backup-workspace/database/platform-migration-ledgers.sql
+          test -f recovery/extracted/backup-workspace/database/platform-migration-ledgers.json
           test -f recovery/extracted/backup-workspace/storage/manifest.json
           test -f recovery/extracted/backup-workspace/SHA256SUMS
           node scripts/ops/verify-backup-checksums.mjs recovery/extracted/backup-workspace
@@ -91,9 +93,14 @@ jobs:
             echo 'Isolated database restore failed.' >&2
             exit 1
           fi
+          run_quiet "${db[@]}" -f /dev/stdin < recovery/extracted/backup-workspace/database/platform-migration-ledgers.sql
           # Role restore may replace service login passwords. Reapply recovery-only
           # credentials before Auth, PostgREST, or Storage are allowed to start.
           run_quiet "${db[@]}" -f /docker-entrypoint-initdb.d/init-scripts/99-recovery-roles.sql
+          ledger_query="select json_build_object('auth', (select json_build_object('count', count(*), 'digest', md5(coalesce(string_agg(to_jsonb(m)::text, E'\\n' order by to_jsonb(m)::text), ''))) from auth.schema_migrations m), 'storage', (select json_build_object('count', count(*), 'digest', md5(coalesce(string_agg(to_jsonb(m)::text, E'\\n' order by to_jsonb(m)::text), ''))) from storage.migrations m))::text;"
+          "${db[@]}" -At -c "$ledger_query" > recovery/platform-migration-ledgers-target.json
+          node scripts/ops/verify-isolated-platform-migration-ledgers.mjs recovery/extracted/backup-workspace/database/platform-migration-ledgers.json recovery/platform-migration-ledgers-target.json
+          rm -f recovery/platform-migration-ledgers-target.json
           rm -f recovery/restore-command.log
           echo 'Isolated database restore completed.'
 

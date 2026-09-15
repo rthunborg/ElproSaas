@@ -12,6 +12,7 @@ import { downloadNewest, prune, runBackup, upload } from '../../../scripts/ops/g
 import { probeAvailability } from '../../../scripts/ops/probe-availability.mjs';
 import { assertIsolatedRecoveryUrl, restoreStorageManifest } from '../../../scripts/ops/restore-supabase-storage.mjs';
 import { copyCounts, verifyRestoredCopyCounts } from '../../../scripts/ops/verify-isolated-recovery-copy-counts.mjs';
+import { assertMatchingPlatformMigrationLedgers, verifyPlatformMigrationLedgers } from '../../../scripts/ops/verify-isolated-platform-migration-ledgers.mjs';
 import { verifyIsolatedAuthRls } from '../../../scripts/ops/verify-isolated-auth-rls.mjs';
 import { verifyBackupChecksums } from '../../../scripts/ops/verify-backup-checksums.mjs';
 import { assertApprovedBackupDbUrl } from '../../../scripts/ops/validate-backup-db-url.mjs';
@@ -218,11 +219,12 @@ test('Storage restore refuses a manifest object missing from SHA256SUMS before u
 
 test('recovery Compose sources leave per-drill values in ignored static private files', async () => {
   const recoveryDir = fileURLToPath(new URL('../../../ops/recovery/', import.meta.url));
-  const [base, bootstrap, roles, recoveryCi, rehearsalWorkflow, runbook, dbOverride, runtimeOverride, envExample] = await Promise.all([
+  const [base, bootstrap, roles, recoveryCi, backupWorkflow, rehearsalWorkflow, runbook, dbOverride, runtimeOverride, envExample] = await Promise.all([
     readFile(join(recoveryDir, 'compose.yaml'), 'utf8'),
     readFile(join(recoveryDir, 'compose.db-bootstrap.yaml'), 'utf8'),
     readFile(join(recoveryDir, 'bootstrap-roles.sql'), 'utf8'),
     readFile(fileURLToPath(new URL('../../../.github/workflows/ci.yml', import.meta.url)), 'utf8'),
+    readFile(fileURLToPath(new URL('../../../.github/workflows/pilot-backup.yml', import.meta.url)), 'utf8'),
     readFile(fileURLToPath(new URL('../../../.github/workflows/pilot-isolated-recovery-rehearsal.yml', import.meta.url)), 'utf8'),
     readFile(fileURLToPath(new URL('../../../docs/process/pilot-operations-runbook.md', import.meta.url)), 'utf8'),
     readFile(join(recoveryDir, 'db-bootstrap.private.compose.example.yaml'), 'utf8'),
@@ -238,14 +240,22 @@ test('recovery Compose sources leave per-drill values in ignored static private 
   assert.match(roles, /ALTER USER supabase_auth_admin WITH PASSWORD/);
   assert.match(roles, /ALTER USER supabase_storage_admin WITH PASSWORD/);
   assert.doesNotMatch(roles, /ALTER USER pgbouncer|ALTER USER supabase_functions_admin/);
-  for (const restoreEntryPoint of [recoveryCi, rehearsalWorkflow, runbook]) {
+  for (const restoreEntryPoint of [rehearsalWorkflow, runbook]) {
     assert.match(restoreEntryPoint, /-U supabase_admin -d postgres/);
     assert.doesNotMatch(restoreEntryPoint, /-U postgres -d postgres/);
   }
+  assert.match(recoveryCi, /-U supabase_admin -d postgres/);
   assert.match(recoveryCi, /RECOVERY_TEST_DB_URL=\"postgresql:\/\/supabase_storage_admin:/);
   assert.match(recoveryCi, /--schema public,auth,storage,supabase_migrations,test_support/);
-  assert.match(recoveryCi, /--data-only --schema auth --file recovery\/source\/auth-data\.sql/);
-  assert.match(recoveryCi, /< recovery\/source\/auth-data\.sql/);
+  assert.match(recoveryCi, /docker exec --user postgres "\$source_db" pg_dump/);
+  assert.match(recoveryCi, /--table=auth\.schema_migrations --table=storage\.migrations/);
+  assert.match(recoveryCi, /platform-migration-ledgers\.sql/);
+  assert.match(recoveryCi, /verify-isolated-platform-migration-ledgers\.mjs/);
+  assert.match(backupWorkflow, /docker run --rm --entrypoint pg_dump supabase\/postgres:17\.6\.1\.136/);
+  assert.match(backupWorkflow, /--table=auth\.schema_migrations --table=storage\.migrations/);
+  assert.match(backupWorkflow, /platform-migration-ledgers\.json/);
+  assert.match(rehearsalWorkflow, /platform-migration-ledgers\.sql/);
+  assert.match(rehearsalWorkflow, /verify-isolated-platform-migration-ledgers\.mjs/);
   assert.match(recoveryCi, /logs --no-color --tail=80 auth rest storage gateway/);
   assert.match(bootstrap, /command: \["postgres", "-D", "\/etc\/postgresql"/);
   assert.match(base, /command: \["postgres", "-D", "\/etc\/postgresql"/);
@@ -329,6 +339,25 @@ test('isolated recovery requires archive COPY totals to match restored database 
     await verifyRestoredCopyCounts({ dataPath, targetFactsPath: factsPath });
     await writeFile(factsPath, JSON.stringify({ tenants: 1, memberships: 1, auth_users: 1, storage_objects: 1, migrations: 1 }));
     await assert.rejects(verifyRestoredCopyCounts({ dataPath, targetFactsPath: factsPath }), /aggregate verification failed/);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('isolated recovery requires nonempty matching Auth and Storage migration ledgers', async () => {
+  const source = {
+    auth: { count: 87, digest: 'a'.repeat(32) },
+    storage: { count: 19, digest: 'b'.repeat(32) },
+  };
+  assert.doesNotThrow(() => assertMatchingPlatformMigrationLedgers(source, structuredClone(source)));
+  assert.throws(() => assertMatchingPlatformMigrationLedgers(source, { ...source, auth: { count: 86, digest: 'a'.repeat(32) } }), /migration-ledger verification failed/);
+  assert.throws(() => assertMatchingPlatformMigrationLedgers(source, { ...source, storage: { count: 0, digest: 'b'.repeat(32) } }), /migration-ledger verification failed/);
+  const root = await mkdtemp(join(tmpdir(), 'elpro-recovery-ledgers-'));
+  try {
+    const sourcePath = join(root, 'source.json');
+    const targetPath = join(root, 'target.json');
+    await Promise.all([writeFile(sourcePath, JSON.stringify(source)), writeFile(targetPath, JSON.stringify(source))]);
+    await verifyPlatformMigrationLedgers({ sourcePath, targetPath });
   } finally {
     await rm(root, { recursive: true, force: true });
   }

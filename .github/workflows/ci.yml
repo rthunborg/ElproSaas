@@ -245,10 +245,14 @@ jobs:
           # supabase db reset seeds a test_support trigger on public.audit_events;
           # include its schema so the selected public schema restores faithfully.
           supabase db dump --local --schema public,auth,storage,supabase_migrations,test_support --file recovery/source/schema.sql
-          # GoTrue runs its embedded migrations at startup. Restore the synthetic
-          # Auth migration ledger with the Auth schema so it does not replay them
-          # against the already-restored tables.
-          supabase db dump --local --data-only --schema auth --file recovery/source/auth-data.sql
+          # CLI data dumps always exclude these managed ledgers, including when
+          # their schemas are selected. Use the local database's native pg_dump.
+          source_db='supabase_db_ElproSaas'
+          docker inspect "$source_db" > /dev/null
+          docker exec --user postgres "$source_db" pg_dump -U postgres -d postgres --data-only --no-owner --no-privileges --table=auth.schema_migrations --table=storage.migrations > recovery/source/platform-migration-ledgers.sql
+          ledger_query="select json_build_object('auth', (select json_build_object('count', count(*), 'digest', md5(coalesce(string_agg(to_jsonb(m)::text, E'\\n' order by to_jsonb(m)::text), ''))) from auth.schema_migrations m), 'storage', (select json_build_object('count', count(*), 'digest', md5(coalesce(string_agg(to_jsonb(m)::text, E'\\n' order by to_jsonb(m)::text), ''))) from storage.migrations m))::text;"
+          docker exec --user postgres "$source_db" psql -U postgres -d postgres -At -v ON_ERROR_STOP=1 -c "$ledger_query" > recovery/source/platform-migration-ledgers.json
+          node scripts/ops/verify-isolated-platform-migration-ledgers.mjs recovery/source/platform-migration-ledgers.json recovery/source/platform-migration-ledgers.json
           supabase db dump --local --data-only --schema storage --exclude storage.objects --file recovery/source/storage-data.sql
 
       - name: Create isolated recovery runtime configuration
@@ -273,9 +277,12 @@ jobs:
           db=(docker compose -f ops/recovery/compose.db-bootstrap.yaml -f ops/recovery/.private.db-bootstrap.compose.yaml exec -T db psql -v ON_ERROR_STOP=1 -U supabase_admin -d postgres)
           "${db[@]}" -f /dev/stdin < ops/recovery/prepare-empty-restore-target.sql
           "${db[@]}" -f /dev/stdin < recovery/source/schema.sql
-          "${db[@]}" -f /dev/stdin < recovery/source/auth-data.sql
           "${db[@]}" -f /dev/stdin < recovery/source/storage-data.sql
+          "${db[@]}" -f /dev/stdin < recovery/source/platform-migration-ledgers.sql
           "${db[@]}" -f /docker-entrypoint-initdb.d/init-scripts/99-recovery-roles.sql
+          ledger_query="select json_build_object('auth', (select json_build_object('count', count(*), 'digest', md5(coalesce(string_agg(to_jsonb(m)::text, E'\\n' order by to_jsonb(m)::text), ''))) from auth.schema_migrations m), 'storage', (select json_build_object('count', count(*), 'digest', md5(coalesce(string_agg(to_jsonb(m)::text, E'\\n' order by to_jsonb(m)::text), ''))) from storage.migrations m))::text;"
+          "${db[@]}" -At -c "$ledger_query" > recovery/source/platform-migration-ledgers-target.json
+          node scripts/ops/verify-isolated-platform-migration-ledgers.mjs recovery/source/platform-migration-ledgers.json recovery/source/platform-migration-ledgers-target.json
 
       - name: Start pinned isolated Storage loader and runtime
         run: |
