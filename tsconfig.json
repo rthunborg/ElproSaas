@@ -34,7 +34,10 @@
     "scripts/**/*.mjs"
   ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    // The scheduled Cloudflare Worker has a standalone, pinned Wrangler/types
+    // project and is checked by its own path-scoped CI workflow.
+    "workers/cloudflare-monitor/**"
     // tests/integration/** is re-enrolled in typecheck by Story 2.2 (Task 6.6):
     // the Vitest runner + DB-backed suites now exist, so they are type-checked.
     // tests/e2e/** is RE-ENROLLED now that the Playwright runner landed (TEA

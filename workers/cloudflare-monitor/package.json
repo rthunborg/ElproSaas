@@ -1,0 +1,24 @@
+{
+  "name": "elpro-cloudflare-monitor",
+  "private": true,
+  "type": "module",
+  "version": "1.0.0",
+  "packageManager": "pnpm@10.24.0",
+  "engines": {
+    "node": ">=20.9.0"
+  },
+  "scripts": {
+    "test": "node --experimental-strip-types --test \"test/**/*.test.ts\"",
+    "test:runtime": "node scripts/verify-local-bootstrap.mjs",
+    "typecheck": "tsc --noEmit",
+    "generate:types": "wrangler types --experimental-include-runtime --config wrangler.jsonc",
+    "render:private-config": "node scripts/render-private-config.mjs",
+    "deploy": "pnpm run render:private-config && wrangler deploy --config wrangler.private.jsonc",
+    "dry-run": "wrangler deploy --dry-run --config wrangler.jsonc"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "5.20260915.1",
+    "typescript": "5.9.3",
+    "wrangler": "4.131.2"
+  }
+}

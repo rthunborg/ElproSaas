@@ -1,0 +1,40 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "elpro-pilot-availability-monitor",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-09-15",
+  "workers_dev": false,
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1
+  },
+  "vars": {
+    "MONITOR_URL": "https://elpro-saas.vercel.app/login",
+    "MONITOR_SENDER": "__REPLACE_WITH_APPROVED_SENDER__",
+    "MONITOR_DESTINATION": "__REPLACE_WITH_OWNER_VERIFIED_RECIPIENT__"
+  },
+  "triggers": {
+    "crons": ["*/5 * * * *"]
+  },
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "MONITOR",
+        "class_name": "AvailabilityMonitor"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["AvailabilityMonitor"]
+    }
+  ],
+  "send_email": [
+    {
+      "name": "ALERT_EMAIL",
+      "destination_address": "__REPLACE_WITH_OWNER_VERIFIED_RECIPIENT__",
+      "allowed_sender_addresses": ["__REPLACE_WITH_APPROVED_SENDER__"]
+    }
+  ]
+}
