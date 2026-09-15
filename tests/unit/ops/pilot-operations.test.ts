@@ -219,7 +219,7 @@ test('Storage restore refuses a manifest object missing from SHA256SUMS before u
 
 test('recovery Compose sources leave per-drill values in ignored static private files', async () => {
   const recoveryDir = fileURLToPath(new URL('../../../ops/recovery/', import.meta.url));
-  const [base, bootstrap, roles, recoveryCi, backupWorkflow, rehearsalWorkflow, runbook, dbOverride, runtimeOverride, envExample] = await Promise.all([
+  const [base, bootstrap, roles, recoveryCi, backupWorkflow, rehearsalWorkflow, runbook, dbOverride, runtimeOverride, envExample, recoveryStorageProof] = await Promise.all([
     readFile(join(recoveryDir, 'compose.yaml'), 'utf8'),
     readFile(join(recoveryDir, 'compose.db-bootstrap.yaml'), 'utf8'),
     readFile(join(recoveryDir, 'bootstrap-roles.sql'), 'utf8'),
@@ -230,6 +230,7 @@ test('recovery Compose sources leave per-drill values in ignored static private 
     readFile(join(recoveryDir, 'db-bootstrap.private.compose.example.yaml'), 'utf8'),
     readFile(join(recoveryDir, 'runtime.private.compose.example.yaml'), 'utf8'),
     readFile(join(recoveryDir, 'recovery.env.example'), 'utf8'),
+    readFile(fileURLToPath(new URL('../../integration/ops/recovery-storage-immutability.int.test.ts', import.meta.url)), 'utf8'),
   ]);
   assert.doesNotMatch(base, /\$\{/);
   assert.doesNotMatch(bootstrap, /\$\{/);
@@ -245,7 +246,11 @@ test('recovery Compose sources leave per-drill values in ignored static private 
     assert.doesNotMatch(restoreEntryPoint, /-U postgres -d postgres/);
   }
   assert.match(recoveryCi, /-U supabase_admin -d postgres/);
-  assert.match(recoveryCi, /RECOVERY_TEST_DB_URL=\"postgresql:\/\/supabase_storage_admin:/);
+  assert.match(recoveryStorageProof, /"compose", \.\.\.recoveryComposeFiles, "exec", "-T", "db", "psql"/);
+  assert.match(recoveryStorageProof, /select coalesce\(jsonb_agg\(to_jsonb\(o\) order by bucket_id, name, id\)/);
+  assert.equal(recoveryStorageProof.match(/expect\(await storageRows\(\)\)\.toEqual\(before\);/g)?.length, 2);
+  assert.doesNotMatch(recoveryCi, /RECOVERY_TEST_DB_URL|127\.0\.0\.1:55432/);
+  assert.doesNotMatch(recoveryStorageProof, /RECOVERY_TEST_DB_URL|new Pool|127\.0\.0\.1:55432/);
   assert.match(recoveryCi, /--schema public,auth,storage,supabase_migrations,test_support/);
   assert.match(recoveryCi, /docker exec --user postgres "\$source_db" pg_dump/);
   assert.match(recoveryCi, /--table=auth\.schema_migrations --table=storage\.migrations/);
