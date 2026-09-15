@@ -14,6 +14,7 @@ const recoveryUrl = process.env.RECOVERY_SUPABASE_URL;
 const serviceRoleKey = process.env.RECOVERY_SUPABASE_SERVICE_ROLE_KEY;
 const dbUrl = process.env.RECOVERY_TEST_DB_URL;
 const fixturePath = process.env.RECOVERY_STORAGE_PROOF_FIXTURE;
+const beforeRowsPath = process.env.RECOVERY_STORAGE_PROOF_BEFORE_ROWS;
 
 function requireLoopbackUrl(value: string | undefined): URL {
   if (!value) throw new Error("RECOVERY_SUPABASE_URL is required for the isolated recovery Storage proof");
@@ -70,6 +71,18 @@ async function readBytes(base: URL, object: FixtureObject): Promise<Uint8Array> 
   return new Uint8Array(await response.arrayBuffer());
 }
 
+async function assertApiObject(base: URL, object: FixtureObject): Promise<void> {
+  const info = await readInfo(base, object);
+  expect(info.content_type).toBe("application/pdf");
+  expect(info.cache_control).toBe("max-age=3600");
+  expect(info.metadata).toMatchObject({ recovery_regression: "user-metadata" });
+  expect(new TextDecoder().decode(await readBytes(base, object))).toBe(object.bytes);
+}
+
+async function assertApiObjects(base: URL, objects: readonly FixtureObject[]): Promise<void> {
+  for (const object of objects) await assertApiObject(base, object);
+}
+
 async function ordinaryUpsert(base: URL, object: FixtureObject): Promise<Response> {
   const bytes = new TextEncoder().encode("synthetic overwrite must be rejected");
   return fetch(new URL(`storage/v1/object/${object.bucket}/${object.path}`, base), {
@@ -88,21 +101,23 @@ suite("isolated recovery Storage physical-loader proof", () => {
     const base = requireLoopbackUrl(recoveryUrl);
     if (!serviceRoleKey) throw new Error("RECOVERY_SUPABASE_SERVICE_ROLE_KEY is required for the isolated recovery Storage proof");
     if (!fixturePath) throw new Error("RECOVERY_STORAGE_PROOF_FIXTURE is required for the isolated recovery Storage proof");
+    if (!beforeRowsPath) throw new Error("RECOVERY_STORAGE_PROOF_BEFORE_ROWS is required for the isolated recovery Storage proof");
     const fixture = JSON.parse(await readFile(fixturePath, "utf8")) as Fixture;
     if (!Array.isArray(fixture.objects) || fixture.objects.length !== 2 || !fixture.objects.some((object) => object.quotePdf) || !fixture.objects.some((object) => !object.quotePdf)) {
       throw new Error("isolated recovery Storage proof fixture is invalid");
     }
-    pool = new Pool({ connectionString: requireLoopbackDatabase(dbUrl), max: 1 });
-    const before = await Promise.all(fixture.objects.map(objectRow));
-    for (const object of fixture.objects) {
-      const info = await readInfo(base, object);
-      expect(info.content_type).toBe("application/pdf");
-      expect(info.cache_control).toBe("max-age=3600");
-      expect(info.metadata).toMatchObject({ recovery_regression: "user-metadata" });
-      expect(new TextDecoder().decode(await readBytes(base, object))).toBe(object.bytes);
+    const before = JSON.parse(await readFile(beforeRowsPath, "utf8")) as Record<string, unknown>[];
+    if (!Array.isArray(before) || before.length !== fixture.objects.length) {
+      throw new Error("isolated recovery Storage proof pre-loader row snapshot is invalid");
     }
-    for (const object of fixture.objects) expect((await ordinaryUpsert(base, object)).ok).toBe(false);
+    pool = new Pool({ connectionString: requireLoopbackDatabase(dbUrl), max: 1 });
+    await assertApiObjects(base, fixture.objects);
     expect(await Promise.all(fixture.objects.map(objectRow))).toEqual(before);
+    for (const object of fixture.objects) {
+      expect((await ordinaryUpsert(base, object)).ok).toBe(false);
+      await assertApiObjects(base, fixture.objects);
+      expect(await Promise.all(fixture.objects.map(objectRow))).toEqual(before);
+    }
   });
 });
 

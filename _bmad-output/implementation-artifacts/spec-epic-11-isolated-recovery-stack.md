@@ -47,11 +47,11 @@ The runbook supplies the guard request fields without embedding actor context or
 
 - `.github/workflows/ci.yml:208` — `recovery-storage-loader`: executes the no-secret PR gate only after fast verification succeeds.
 - `.github/workflows/ci.yml:241` — `Dump synthetic recovery schema source`: takes only the local CI schema plus Storage bucket seed, never a hosted database or backup archive.
-- `.github/workflows/ci.yml:269` — `Prove physical Storage loader preserves protected rows`: seeds logical rows whose bytes are absent, invokes the exact pinned loader, and runs the real API/trigger proof.
+- `.github/workflows/ci.yml:269` — `Prove physical Storage loader preserves protected rows`: snapshots complete seeded logical rows before bytes exist, invokes the exact pinned loader, then runs the real API/trigger proof.
 - `.github/workflows/pilot-isolated-recovery-rehearsal.yml:15` — main-only manual dispatch prevents scheduled or branch secret execution for the owner backup drill.
 - `.github/workflows/pilot-isolated-recovery-rehearsal.yml:100` — derives the exact archive restore plan and full-row digest before loader materialization.
 - `scripts/ops/write-isolated-recovery-storage-fixture.mjs:23` — `writeIsolatedRecoveryStorageFixture`: generates only two randomized synthetic linked/quote-PDF logical rows and absent backend bytes.
-- `tests/integration/ops/recovery-storage-immutability.int.test.ts:86` — `isolated recovery Storage physical-loader proof`: requires explicit CI recovery variables, reads back MIME/cache/user metadata and bytes, rejects ordinary upserts, and compares full DB row snapshots.
+- `tests/integration/ops/recovery-storage-immutability.int.test.ts:99` — `isolated recovery Storage physical-loader proof`: compares the pre-loader full-row snapshot after loader readback and after each rejected ordinary upsert, with real MIME/cache/user metadata and bytes for both linked generic and quote-PDF objects.
 - `tests/unit/ops/isolated-recovery-storage.test.ts:16` — pins the exact `-$v-<version>` filename, both Linux xattrs, and exclusive no-overwrite behavior.
 - `scripts/ops/write-recovery-runtime-config.mjs:14` — writes per-run private literal credentials and project configuration without logging secrets.
 - `scripts/ops/verify-isolated-recovery-copy-counts.mjs:33` — compares required archive COPY totals against restored aggregates.
