@@ -21,6 +21,10 @@ target. It exists so the owner can demo the product and pilot users can try it.
 
 **SEAM — scheduled operational checks:** the backup workflow is disabled pending an approved destination and uses bounded Storage inventory/checksum controls with exact pooler-target validation. Monthly heartbeat `elpro-monthly-recovery-check` is configured for the first day at 09:00 local to inspect backup freshness, recovery evidence, monitoring gaps, and the 100 SEK/month cap; it has not yet executed. These controls do not prove a hosted restore, alert delivery, retention, or availability.
 
+**IN — 2026-09-14 pilot verification release evidence:** PR #64 merged after required CI passed 1,780 units with zero skips, 1,028 required DB/RLS tests with zero skips and `SUPABASE_TEST_REQUIRED=1`, plus 138 browser tests with four existing explicit skips. Production deployment `dpl_zt1Xqkvqd9SeB5AqY4fkALNHrYPr` became READY for `efd87fa` with the canonical alias; post-merge CI 34888266259 passed. A post-deployment manual monitor sample returned HTTP 200 in 417 ms at 19:44:49.911Z. The isolated alert simulation recorded `[false, false, true]`; its GitHub failure notification was received in the owner-approved mailbox at 19:40:46Z. This proves the bounded alert-delivery checkpoint only, not availability or a monitoring history. Only two scheduled runs occurred over about 7 hours 50 minutes after activation, so the approved five-minute cadence is not met.
+
+**SEAM — backup prerequisites:** the repository has server-only `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` secrets for this exact demo project. Database URL, Drive OAuth/folder, and GPG credentials are absent; `PILOT_BACKUP_ENABLED` remains false and no backup has run.
+
 ## Supabase CLI profile (per-project isolation)
 
 Added 2026-07-14 after another project on the dev machine overwrote the global
