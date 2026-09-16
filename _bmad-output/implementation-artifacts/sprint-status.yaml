@@ -60,7 +60,7 @@
 # use the current Epic 10 statuses and approved corrective-story entries below.
 
 generated: 2026-06-12
-last_updated: 09-14-2026 15:19  # ADR-B009 connected-field course correction verified; governance Story 10.7 done, no PWA/offline functionality delivered.
+last_updated: 09-16-2026 16:10  # ADR-B009 connected-field course correction verified; governance Story 10.7 done, no PWA/offline functionality delivered.
 project: ElproSaas
 project_key: NOKEY
 tracking_system: file-system
@@ -383,7 +383,7 @@ action_items:
     action: "Freeze retry-fixture time, split oversized support files, and add Roles-page
       readiness signals before rerunning the quality audit."
     owner: "QA/test owner"
-    status: done
+    status: open
     ref: "C:\\DEV\\ElproSaas\\_bmad-output\\implementation-artifacts\\epic-11-retro-2026-09-11.md"
   - id: "epic-11-retro-item-5-repair-reset-retry-command-action-seam"
     epic: 11
@@ -396,8 +396,32 @@ action_items:
     epic: 11
     action: "Repair and verify the invitation and recovery Auth callback so a real
       Auth email reaches the intended in-app flow; required CI covers the recovery
-      password update and fresh sign-in, and hosted Gmail delivery reached password update.
-      R-1106 is separately closed by the mapped role-count and granting-role suites."
+      password update and fresh sign-in, and hosted Gmail delivery reached password
+      update. R-1106 is separately closed by the mapped role-count and granting-role
+      suites."
     owner: "Admin-user feature owner"
     status: done
     ref: "C:\\DEV\\ElproSaas\\_bmad-output\\implementation-artifacts\\epic-11-retro-2026-09-11.md"
+  - id: "epic-11-retro-item-7-verify-scheduled-daily-backup-and-monthly-recovery"
+    epic: 11
+    action: "Collect evidence from the enabled daily backup schedule: first successful
+      scheduled run, seven valid daily recovery points, and a repeated monthly recovery
+      check."
+    owner: "Operations owner"
+    status: open
+    ref: "_bmad-output/implementation-artifacts/epic-11-retro-2026-09-11.md"
+  - id: "epic-11-retro-item-8-collect-30-day-monitoring-and-server-error-evidence"
+    epic: 11
+    action: "Collect 30 days of gap-aware monitoring history and a full server-error
+      denominator; reassess availability and error-rate criteria only from that record."
+    owner: "Operations owner"
+    status: open
+    ref: "_bmad-output/implementation-artifacts/epic-11-retro-2026-09-11.md"
+  - id: "epic-11-retro-item-9-fix-story-plan-multiline-yaml-enumeration"
+    epic: 11
+    action: "Fix story_plan.py epic enumeration so a multiline YAML status value still
+      counts its story; add a regression fixture matching Epic 11, where canonical
+      detect-epic reports four done stories and no pending stories."
+    owner: "BMAD tooling owner"
+    status: open
+    ref: "_bmad-output/implementation-artifacts/epic-11-retro-2026-09-11.md"
