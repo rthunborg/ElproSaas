@@ -204,3 +204,7 @@ Current status: `done`; `followup_review_recommended: false`, matching the Story
 The Suggested Review Order above links the passing CI and release verification for the merged revision. Story delivery and Epic 11 are complete in sprint status; the separate reset-retry correctness seam keeps the retrospective rejected, NFR remains CONCERNS, and advisory test maintenance remains open. Completion was reconciled after release without a sanctioned Auto-BMAD phase flip, so both execution records retain `bmad_status_flipped_at: null`.
 
 Documentation-fix verification: the review-order reference checker validated all 13 stops. Targeted state readback, tracker/metadata consistency, relative-link resolution, unchanged intent-contract comparison, and `git diff --check` passed. Application tests were not rerun for this documentation-only correction.
+
+### Final closure reconciliation — 2026-09-16
+
+Story 11.4 remains `done` with `followup_review_recommended: false`; no status change is needed. The Epic 11 closure supersedes the historical reset-retry statement. The role/RBAC delivery is complete; separate operational observation and advisory-maintenance items remain NFR concerns and are tracked by the Epic retrospective.
