@@ -219,14 +219,92 @@ database with no connection to the demo database.
    decrypted archive parent. Run `node scripts/ops/verify-backup-checksums.mjs
    backup-workspace` from the repository checkout; it fails for a missing,
    malformed, escaped, or corrupted archive member.
-2. Provision and verify an isolated target. Record its project/ref separately;
-   do not place it in the repository or these workflows. Confirm its database
-   URL points to the isolated target before each restore command.
+2. Provision and verify an isolated target. For the controlled local rehearsal,
+   in the dedicated recovery worktree copy
+   `ops/recovery/recovery.env.example` to the ignored `ops/recovery/.env`, and
+   copy both private Compose examples to their dot-file names. Replace every
+   placeholder with recovery-only literal values. Use one new project name in
+   both private Compose files and unused high loopback ports. The guard rejects
+   Compose interpolation and does not accept an environment or env-file request
+   field; do not use `${...}` in either private Compose file. First have the
+   resource guard start **only PostgreSQL**. Its request names the worktree and
+   both Compose files; the current actor's injected `resourceGuardContext` is
+   supplied by the caller and is never written to a command line or repository
+   file:
+
+   ```json
+   {
+     "operation": "ComposeUp",
+     "workingDirectory": "C:\\path\\to\\elpro-recovery-worktree",
+     "composeFiles": [
+      "ops/recovery/compose.db-bootstrap.yaml",
+      "ops/recovery/.private.db-bootstrap.compose.yaml"
+    ]
+   }
+   ```
+
+   The base file has no project-name or port override. The private files supply
+   a fresh project name and bind PostgreSQL and the later gateway only to their
+   selected loopback ports (the examples use database `55432` and API `58000`).
+   The database bootstrap applies recovery-only passwords to the Auth, REST,
+   and Storage login roles on its first empty-volume initialization. This is not
+   a replacement for a managed hosted recovery target. Restore the database
+   roles/schema/data into this empty target before starting Auth or Storage, and
+   confirm every target URL still resolves to loopback.
 3. Follow Supabase's current logical restore procedure for the selected target:
-   restore roles/schema/data in the required order, account for custom
-   `auth`/`storage` schema changes, and restore Storage object bytes from
-   `backup-workspace/storage/manifest.json` with an owner-authorized recovery
-   credential. Restore only configuration and secrets that are explicitly
+   restore roles/schema/data as the pinned image’s `supabase_admin` administrative
+   principal, account for custom `auth`/`storage` schema changes, then reapply the recovery runtime bootstrap
+   before Auth, REST, or Storage starts. The source role dump can replace the
+   image-init passwords and database JWT settings, so this is mandatory:
+
+   ```powershell
+   docker compose -f ops/recovery/compose.db-bootstrap.yaml -f ops/recovery/.private.db-bootstrap.compose.yaml exec -T db psql -v ON_ERROR_STOP=1 -U supabase_admin -d postgres -f /docker-entrypoint-initdb.d/init-scripts/99-recovery-roles.sql
+   ```
+
+   Stop the database guard resource while retaining its project-scoped named
+   volumes. Start the full runtime with the same private project name:
+
+   ```json
+   {
+     "operation": "ComposeUp",
+     "workingDirectory": "C:\\path\\to\\elpro-recovery-worktree",
+     "composeFiles": [
+       "ops/recovery/compose.yaml",
+       "ops/recovery/.private.runtime.compose.yaml"
+     ]
+   }
+   ```
+
+   Materialize Storage bytes only after the logical restore has supplied every
+   `storage.objects` row. The recovery loader derives a private plan from those
+   restored rows, validates it against `backup-workspace/storage/manifest.json`,
+   and writes the exact version-addressed file-backend keys plus Linux MIME/cache
+   xattrs in the isolated named volume. It uses exclusive file creation and does
+   not call a Storage upload/upsert endpoint, so it cannot replace an object row,
+   its user metadata (including `elpro_file_linked_at`), id, version, owner, or
+   application immutability state. The pinned loader service is
+   `ops/recovery/compose.storage-loader.yaml`; managed local drills must start it
+   only through the current actor's resource-guard Compose request, alongside the
+   matching private runtime override. Do not run raw Docker lifecycle commands.
+
+   After that materialization, use the recovery-only service key only for
+   loopback verification:
+
+   ```powershell
+   $env:RECOVERY_SUPABASE_URL = 'http://127.0.0.1:58000'
+   $env:RECOVERY_SUPABASE_SERVICE_ROLE_KEY = Read-Host 'Recovery-only service-role key'
+   node scripts/ops/restore-supabase-storage.mjs backup-workspace
+   Remove-Item Env:RECOVERY_SUPABASE_URL
+   Remove-Item Env:RECOVERY_SUPABASE_SERVICE_ROLE_KEY
+   ```
+
+   The verifier checks archive-wide `SHA256SUMS`, accepts only the exported
+   `{ exported_at, objects }` manifest format, refuses a non-loopback URL before
+   it reads backup contents, and downloads every object through the isolated API
+   to compare bytes and read its top-level MIME/cache response fields. The
+   workflow also compares a hash of complete `storage.objects` rows before and
+   after materialization. It records aggregate counts/checksums only.
+   Restore only configuration and secrets that are explicitly
    approved for the recovery target; a database dump does not make a copied
    Vercel deployment, Auth provider configuration, or encryption-root setup
    usable by itself.
@@ -245,6 +323,17 @@ The existing local rehearsal in
 is useful evidence for a dependency-ordered logical database restore. It does
 not prove hosted backup recovery, platform-role bootstrap, Storage byte
 recovery, or this RPO/RTO target.
+
+The main-only manual
+[`pilot-isolated-recovery-rehearsal.yml`](../../.github/workflows/pilot-isolated-recovery-rehearsal.yml)
+performs this sequence on an ephemeral GitHub runner. It retrieves only the
+newest Drive-owned, tagged encrypted archive from the approved Drive folder,
+writes new recovery-only runtime values on that runner, and removes archive,
+plaintext, and Compose state at the end. Its Compose network is internal, and
+PostgreSQL starts with `cron.launch_active_jobs=off` and `pg_net.batch_size=0`
+so restored scheduled jobs and queued HTTP requests cannot execute. Its logs
+contain only status and aggregate recovery facts; it creates no workflow
+artifact.
 
 ## Suggested Review Order
 

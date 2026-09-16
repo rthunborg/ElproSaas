@@ -1,0 +1,9 @@
+# Copy this file to `ops/recovery/.private.db-bootstrap.compose.yaml` in the
+# dedicated recovery worktree. The name must be unique per drill. Pick an unused
+# high loopback database port.
+name: elpro-isolated-recovery-replace-with-a-fresh-drill-id
+
+services:
+  db:
+    ports:
+      - "127.0.0.1:55432:5432"

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -8,11 +8,16 @@ import { test } from 'node:test';
 
 import { assessAvailabilityFailure, newestArtifactUrls } from '../../../scripts/ops/availability-history.mjs';
 import { exportStoragePlan, planStorageExport, safeSegment, destination, assertPlanWithinStorageLimit, assertStorageInventoryUnchanged, readStorageInventory } from '../../../scripts/ops/export-supabase-storage.mjs';
-import { prune, runBackup, upload } from '../../../scripts/ops/google-drive-backup.mjs';
+import { downloadNewest, prune, runBackup, upload } from '../../../scripts/ops/google-drive-backup.mjs';
 import { probeAvailability } from '../../../scripts/ops/probe-availability.mjs';
+import { assertIsolatedRecoveryUrl, restoreStorageManifest } from '../../../scripts/ops/restore-supabase-storage.mjs';
+import { copyCounts, verifyRestoredCopyCounts } from '../../../scripts/ops/verify-isolated-recovery-copy-counts.mjs';
+import { assertMatchingPlatformMigrationLedgers, verifyPlatformMigrationLedgers } from '../../../scripts/ops/verify-isolated-platform-migration-ledgers.mjs';
+import { verifyIsolatedAuthRls } from '../../../scripts/ops/verify-isolated-auth-rls.mjs';
 import { verifyBackupChecksums } from '../../../scripts/ops/verify-backup-checksums.mjs';
 import { assertApprovedBackupDbUrl } from '../../../scripts/ops/validate-backup-db-url.mjs';
 import { writeBackupChecksums } from '../../../scripts/ops/write-backup-checksums.mjs';
+import { writeRecoveryRuntimeConfig } from '../../../scripts/ops/write-recovery-runtime-config.mjs';
 
 function runBackupDbUrlValidator(chunks: string[]): Promise<{ code: number | null; signal: NodeJS.Signals | null; stdout: string; stderr: string }> {
   const script = fileURLToPath(new URL('../../../scripts/ops/validate-backup-db-url.mjs', import.meta.url));
@@ -149,6 +154,255 @@ test('backup database URL validator rejects forbidden URL parameters through its
   assert.equal(result.signal, null);
   assert.equal(result.stdout, '');
   assert.equal(result.stderr, 'SUPABASE_BACKUP_DB_URL must target the approved demo database with TLS\n');
+});
+
+test('Storage restore verifies only checksummed manifest objects through a loopback recovery API', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'elpro-storage-restore-'));
+  const object = join(root, 'storage', 'tenant-files', 'tenant-a', 'document.pdf');
+  try {
+    await mkdir(join(root, 'storage', 'tenant-files', 'tenant-a'), { recursive: true });
+    await writeFile(object, 'restored bytes');
+    await writeFile(join(root, 'storage', 'manifest.json'), `${JSON.stringify({ exported_at: '2026-09-15T00:00:00.000Z', objects: [{ bucket: 'tenant-files', path: 'tenant-a/document.pdf', bytes: 14, last_modified: null }] })}\n`);
+    await writeBackupChecksums(root);
+    const calls: Array<{ url: string; init: RequestInit }> = [];
+    const result = await restoreStorageManifest({
+      root,
+      recoveryUrl: 'http://127.0.0.1:58000',
+      serviceRoleKey: 'test-service-role',
+      fetchImpl: async (url, init) => {
+        calls.push({ url: String(url), init: init! });
+        if (String(url).includes('/object/info/')) {
+          return new Response(JSON.stringify({
+            content_type: 'application/pdf', cache_control: 'max-age=7200', metadata: { elpro_file_linked_at: 'preserved-user-metadata' },
+          }), { status: 200 });
+        }
+        return new Response('restored bytes', { status: 200 });
+      },
+    });
+    assert.deepEqual(result, { objects: 1, bytes: 14 });
+    assert.equal(calls.length, 2);
+    assert.equal(calls[0]!.url, 'http://127.0.0.1:58000/storage/v1/object/tenant-files/tenant-a/document.pdf');
+    assert.equal(calls[1]!.url, 'http://127.0.0.1:58000/storage/v1/object/info/tenant-files/tenant-a/document.pdf');
+    for (const call of calls) {
+      assert.equal(call.init.method, undefined);
+      assert.deepEqual(call.init.headers, { apikey: 'test-service-role', authorization: 'Bearer test-service-role' });
+      assert.equal(call.init.redirect, 'error');
+    }
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('Storage restore refuses external or demo targets before reading backup contents', () => {
+  assert.throws(() => assertIsolatedRecoveryUrl('https://wmqmzznmwpheswjjozhq.supabase.co'), /high loopback/);
+  assert.throws(() => assertIsolatedRecoveryUrl('http://localhost:80'), /high loopback/);
+  assert.doesNotThrow(() => assertIsolatedRecoveryUrl('http://localhost:58000'));
+});
+
+test('Storage restore refuses a manifest object missing from SHA256SUMS before upload', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'elpro-storage-restore-'));
+  try {
+    await mkdir(join(root, 'storage', 'tenant-files'), { recursive: true });
+    await writeFile(join(root, 'storage', 'tenant-files', 'document.pdf'), 'restored bytes');
+    await writeFile(join(root, 'storage', 'manifest.json'), `${JSON.stringify({ exported_at: '2026-09-15T00:00:00.000Z', objects: [{ bucket: 'tenant-files', path: 'document.pdf', bytes: 14, last_modified: null }] })}\n`);
+    await writeBackupChecksums(root);
+    const checksumRows = (await readFile(join(root, 'SHA256SUMS'), 'utf8')).split('\n').filter((row) => !row.endsWith('storage/tenant-files/document.pdf'));
+    await writeFile(join(root, 'SHA256SUMS'), `${checksumRows.join('\n')}\n`);
+    await assert.rejects(
+      restoreStorageManifest({ root, recoveryUrl: 'http://127.0.0.1:58000', serviceRoleKey: 'test-service-role', fetchImpl: async () => { throw new Error('upload must not begin'); } }),
+      /does not exactly match/,
+    );
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('recovery Compose sources leave per-drill values in ignored static private files', async () => {
+  const recoveryDir = fileURLToPath(new URL('../../../ops/recovery/', import.meta.url));
+  const [base, bootstrap, roles, recoveryCi, backupWorkflow, rehearsalWorkflow, runbook, dbOverride, runtimeOverride, envExample, recoveryStorageProof] = await Promise.all([
+    readFile(join(recoveryDir, 'compose.yaml'), 'utf8'),
+    readFile(join(recoveryDir, 'compose.db-bootstrap.yaml'), 'utf8'),
+    readFile(join(recoveryDir, 'bootstrap-roles.sql'), 'utf8'),
+    readFile(fileURLToPath(new URL('../../../.github/workflows/ci.yml', import.meta.url)), 'utf8'),
+    readFile(fileURLToPath(new URL('../../../.github/workflows/pilot-backup.yml', import.meta.url)), 'utf8'),
+    readFile(fileURLToPath(new URL('../../../.github/workflows/pilot-isolated-recovery-rehearsal.yml', import.meta.url)), 'utf8'),
+    readFile(fileURLToPath(new URL('../../../docs/process/pilot-operations-runbook.md', import.meta.url)), 'utf8'),
+    readFile(join(recoveryDir, 'db-bootstrap.private.compose.example.yaml'), 'utf8'),
+    readFile(join(recoveryDir, 'runtime.private.compose.example.yaml'), 'utf8'),
+    readFile(join(recoveryDir, 'recovery.env.example'), 'utf8'),
+    readFile(fileURLToPath(new URL('../../integration/ops/recovery-storage-immutability.int.test.ts', import.meta.url)), 'utf8'),
+  ]);
+  assert.doesNotMatch(base, /\$\{/);
+  assert.doesNotMatch(bootstrap, /\$\{/);
+  assert.match(base, /env_file: \.env/);
+  assert.match(bootstrap, /99-recovery-roles\.sql:ro/);
+  assert.match(roles, /ARRAY\['authenticator', 'supabase_auth_admin', 'supabase_storage_admin'\]/);
+  assert.match(roles, /ALTER USER authenticator WITH PASSWORD/);
+  assert.match(roles, /ALTER USER supabase_auth_admin WITH PASSWORD/);
+  assert.match(roles, /ALTER USER supabase_storage_admin WITH PASSWORD/);
+  assert.doesNotMatch(roles, /ALTER USER pgbouncer|ALTER USER supabase_functions_admin/);
+  for (const restoreEntryPoint of [rehearsalWorkflow, runbook]) {
+    assert.match(restoreEntryPoint, /-U supabase_admin -d postgres/);
+    assert.doesNotMatch(restoreEntryPoint, /-U postgres -d postgres/);
+  }
+  assert.match(recoveryCi, /-U supabase_admin -d postgres/);
+  assert.match(recoveryStorageProof, /"compose", \.\.\.recoveryComposeFiles, "exec", "-T", "db", "psql"/);
+  assert.match(recoveryStorageProof, /select coalesce\(jsonb_agg\(to_jsonb\(o\) order by bucket_id, name, id\)/);
+  assert.equal(recoveryStorageProof.match(/expect\(await storageRows\(\)\)\.toEqual\(before\);/g)?.length, 2);
+  assert.doesNotMatch(recoveryCi, /RECOVERY_TEST_DB_URL|127\.0\.0\.1:55432/);
+  assert.doesNotMatch(recoveryStorageProof, /RECOVERY_TEST_DB_URL|new Pool|127\.0\.0\.1:55432/);
+  assert.match(recoveryCi, /--schema public,auth,storage,supabase_migrations,test_support/);
+  assert.match(recoveryCi, /docker exec --user postgres "\$source_db" pg_dump/);
+  assert.match(recoveryCi, /--table=auth\.schema_migrations --table=storage\.migrations/);
+  assert.match(recoveryCi, /platform-migration-ledgers\.sql/);
+  assert.match(recoveryCi, /verify-isolated-platform-migration-ledgers\.mjs/);
+  assert.match(backupWorkflow, /docker run --rm --entrypoint pg_dump supabase\/postgres:17\.6\.1\.136/);
+  assert.match(backupWorkflow, /--table=auth\.schema_migrations --table=storage\.migrations/);
+  assert.match(backupWorkflow, /platform-migration-ledgers\.json/);
+  assert.match(rehearsalWorkflow, /platform-migration-ledgers\.sql/);
+  assert.match(rehearsalWorkflow, /verify-isolated-platform-migration-ledgers\.mjs/);
+  assert.match(recoveryCi, /logs --no-color --tail=80 auth rest storage gateway/);
+  assert.match(bootstrap, /command: \["postgres", "-D", "\/etc\/postgresql"/);
+  assert.match(base, /command: \["postgres", "-D", "\/etc\/postgresql"/);
+  assert.match(base, /cron\.launch_active_jobs=off/);
+  assert.match(base, /pg_net\.batch_size=0/);
+  const normalizedBase = base.replace(/\r\n/g, '\n');
+  assert.match(normalizedBase, /default:\n    internal: true/);
+  assert.match(normalizedBase, /gateway:\n[\s\S]*?networks:\n      - default\n      - gateway-ingress/);
+  assert.match(normalizedBase, /gateway-ingress:\n    internal: false/);
+  assert.match(dbOverride, /^name: elpro-isolated-recovery-/m);
+  assert.match(dbOverride, /127\.0\.0\.1:55432:5432/);
+  assert.match(runtimeOverride, /^name: elpro-isolated-recovery-/m);
+  assert.match(runtimeOverride, /127\.0\.0\.1:58000:8000/);
+  assert.match(envExample, /^POSTGRES_PASSWORD=/m);
+  assert.match(envExample, /^GOTRUE_DB_DATABASE_URL=postgres:\/\/supabase_auth_admin:/m);
+  assert.match(envExample, /^GOTRUE_SITE_URL=http:\/\/127\.0\.0\.1:58000/m);
+  assert.match(envExample, /^API_EXTERNAL_URL=http:\/\/127\.0\.0\.1:58000\/auth\/v1/m);
+  assert.match(envExample, /^GOTRUE_JWT_SECRET=/m);
+});
+
+test('ephemeral recovery runtime configuration writes literal isolated values outside source files', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'elpro-recovery-runtime-config-'));
+  try {
+    await writeRecoveryRuntimeConfig(root, { instance: 'fixture', dbPort: 55433, apiPort: 58001 });
+    const [env, dbOverride, runtimeOverride] = await Promise.all([
+      readFile(join(root, '.env'), 'utf8'),
+      readFile(join(root, '.private.db-bootstrap.compose.yaml'), 'utf8'),
+      readFile(join(root, '.private.runtime.compose.yaml'), 'utf8'),
+    ]);
+    assert.doesNotMatch(env, /\$\{/);
+    assert.match(env, /^POSTGRES_PASSWORD=[a-f0-9]{64}$/m);
+    assert.match(env, /^SERVICE_KEY=.+$/m);
+    assert.match(env, /^SERVICE_ROLE_KEY=.+$/m);
+    assert.match(env, /^GOTRUE_DB_DATABASE_URL=postgres:\/\/supabase_auth_admin:[a-f0-9]{64}@db:5432\/postgres$/m);
+    assert.match(env, /^GOTRUE_SITE_URL=http:\/\/127\.0\.0\.1:58001$/m);
+    assert.match(env, /^API_EXTERNAL_URL=http:\/\/127\.0\.0\.1:58001\/auth\/v1$/m);
+    assert.match(env, /^GOTRUE_JWT_SECRET=[A-Za-z0-9_-]{43}$/m);
+    assert.match(dbOverride, /^name: elpro-isolated-recovery-fixture$/m);
+    assert.match(dbOverride, /127\.0\.0\.1:55433:5432/);
+    assert.match(runtimeOverride, /127\.0\.0\.1:58001:8000/);
+    await assert.rejects(writeRecoveryRuntimeConfig(root, { instance: 'fixture', dbPort: 55433, apiPort: 58001 }), /EEXIST/);
+    await assert.rejects(writeRecoveryRuntimeConfig(join(root, 'invalid'), { instance: 'fixture', dbPort: 80, apiPort: 58001 }), /configuration is invalid/);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('recovery workflows resolve the configured gateway port and wait for its Storage route', async () => {
+  const [ciWorkflow, rehearsalWorkflow] = await Promise.all([
+    readFile(new URL('../../../.github/workflows/ci.yml', import.meta.url), 'utf8'),
+    readFile(new URL('../../../.github/workflows/pilot-isolated-recovery-rehearsal.yml', import.meta.url), 'utf8'),
+  ]);
+  for (const workflow of [ciWorkflow, rehearsalWorkflow]) {
+    assert.match(workflow, /port gateway 8000 2>&1 \|\| true/);
+    assert.match(workflow, /docker inspect --format/);
+    assert.match(workflow, /storage\/v1\/status/);
+    assert.match(workflow, /gateway-port\.txt/);
+  }
+});
+
+test('Drive rehearsal download accepts only the newest Drive-owned marked file and writes ciphertext without redirects', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'elpro-drive-download-'));
+  const output = join(root, 'backup.gpg');
+  try {
+    const calls: Array<{ url: string; init: RequestInit }> = [];
+    const result = await downloadNewest({
+      token: 'test-token', folderId: 'approvedFolder123', outputPath: output,
+      fetchImpl: async (url, init) => {
+        calls.push({ url: String(url), init: init! });
+        if (calls.length === 1) return new Response(JSON.stringify({ files: [{ id: 'owned-file', createdTime: '2026-09-15T00:00:00Z', ownedByMe: true, parents: ['approvedFolder123'], appProperties: { elpro_pilot_backup: 'v1' } }] }), { status: 200 });
+        return new Response('ciphertext', { status: 200 });
+      },
+    });
+    assert.deepEqual(result, { createdTime: '2026-09-15T00:00:00Z' });
+    assert.equal(await readFile(output, 'utf8'), 'ciphertext');
+    assert.match(calls[0]!.url, /appProperties/);
+    assert.equal(calls[1]!.url, 'https://www.googleapis.com/drive/v3/files/owned-file?alt=media');
+    assert.equal(calls[1]!.init.redirect, 'error');
+    await assert.rejects(downloadNewest({
+      token: 'test-token', folderId: 'approvedFolder123', outputPath: join(root, 'not-owned.gpg'),
+      fetchImpl: async () => new Response(JSON.stringify({ files: [{ id: 'shared-file', parents: ['approvedFolder123'], appProperties: { elpro_pilot_backup: 'v1' } }] }), { status: 200 }),
+    }), /No owned encrypted pilot backup/);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('isolated recovery requires archive COPY totals to match restored database aggregates', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'elpro-recovery-facts-'));
+  try {
+    const data = ['COPY public.tenants (id) FROM stdin;', 'a', '\\.', 'COPY public.tenant_memberships (id) FROM stdin;', 'a', 'b', '\\.', 'COPY auth.users (id) FROM stdin;', 'a', '\\.', 'COPY storage.objects (id) FROM stdin;', 'a', '\\.', 'COPY supabase_migrations.schema_migrations (version) FROM stdin;', 'a', '\\.'].join('\n');
+    assert.equal(copyCounts(data).get('public.tenant_memberships'), 2);
+    const dataPath = join(root, 'data.sql');
+    const factsPath = join(root, 'facts.json');
+    await writeFile(dataPath, data);
+    await writeFile(factsPath, JSON.stringify({ tenants: 1, memberships: 2, auth_users: 1, storage_objects: 1, migrations: 1 }));
+    await verifyRestoredCopyCounts({ dataPath, targetFactsPath: factsPath });
+    await writeFile(factsPath, JSON.stringify({ tenants: 1, memberships: 1, auth_users: 1, storage_objects: 1, migrations: 1 }));
+    await assert.rejects(verifyRestoredCopyCounts({ dataPath, targetFactsPath: factsPath }), /aggregate verification failed/);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('isolated recovery requires nonempty matching Auth and Storage migration ledgers', async () => {
+  const source = {
+    auth: { count: 87, digest: 'a'.repeat(32) },
+    storage: { count: 19, digest: 'b'.repeat(32) },
+  };
+  assert.doesNotThrow(() => assertMatchingPlatformMigrationLedgers(source, structuredClone(source)));
+  assert.throws(() => assertMatchingPlatformMigrationLedgers(source, { ...source, auth: { count: 86, digest: 'a'.repeat(32) } }), /migration-ledger verification failed/);
+  assert.throws(() => assertMatchingPlatformMigrationLedgers(source, { ...source, storage: { count: 0, digest: 'b'.repeat(32) } }), /migration-ledger verification failed/);
+  const root = await mkdtemp(join(tmpdir(), 'elpro-recovery-ledgers-'));
+  try {
+    const sourcePath = join(root, 'source.json');
+    const targetPath = join(root, 'target.json');
+    await Promise.all([writeFile(sourcePath, JSON.stringify(source)), writeFile(targetPath, JSON.stringify(source))]);
+    await verifyPlatformMigrationLedgers({ sourcePath, targetPath });
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('isolated Auth verification uses a disposable user and requires empty tenant REST access', async () => {
+  const calls: Array<{ url: string; init: RequestInit }> = [];
+  await verifyIsolatedAuthRls({
+    recoveryUrl: 'http://127.0.0.1:58000', serviceRoleKey: 'test-service-role',
+    fetchImpl: async (url, init) => {
+      calls.push({ url: String(url), init: init! });
+      if (String(url).endsWith('/admin/users') && init?.method === 'POST') return new Response(JSON.stringify({ id: 'synthetic-user' }), { status: 200 });
+      if (String(url).includes('/token?grant_type=password')) return new Response(JSON.stringify({ access_token: 'synthetic-token' }), { status: 200 });
+      if (String(url).includes('/rest/v1/tenants')) return new Response('[]', { status: 200, headers: { 'content-range': '*/0' } });
+      if (String(url).includes('/rest/v1/rpc/is_active_tenant_member')) return new Response('false', { status: 200 });
+      if (String(url).endsWith('/admin/users/synthetic-user') && init?.method === 'DELETE') return new Response(null, { status: 204 });
+      throw new Error('unexpected request');
+    },
+  });
+  assert.equal(calls.length, 5);
+  assert.equal((calls[2]!.init.headers as Record<string, string>).authorization, 'Bearer synthetic-token');
+  assert.equal((calls[3]!.init.headers as Record<string, string>).authorization, 'Bearer synthetic-token');
+  assert.match(String(calls[3]!.init.body), /^\{"target_tenant_id":"[0-9a-f-]{36}"\}$/);
+  assert.equal(calls[4]!.init.redirect, 'error');
 });
 
 test('Storage export refuses an object whose downloaded bytes changed after the no-transfer preflight', async () => {

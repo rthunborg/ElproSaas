@@ -64,3 +64,8 @@ tests/e2e/.auth/
 # Python bytecode cache (created when scripts are imported as modules)
 __pycache__/
 *.pyc
+
+# Recovery-only Docker configuration created in a dedicated worktree.
+/ops/recovery/.env
+/ops/recovery/.private.db-bootstrap.compose.yaml
+/ops/recovery/.private.runtime.compose.yaml
