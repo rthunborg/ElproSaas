@@ -9,11 +9,11 @@ spec_folder: null
 story_id: null
 branch: codex/epic-12-wave-b1a-tenant-provisioning-and-onboarding
 status: in-progress
-updated_at: "2026-09-17T15:08:44Z"
+updated_at: "2026-09-17T15:12:17Z"
 started_at: "2026-09-17T13:40:05Z"
 completed_at: null
-active_seconds: 604
-timing_anchor: 1789657724
+active_seconds: 817
+timing_anchor: null
 is_first_in_epic: true
 is_last_in_epic: false
 git_mode: remote
@@ -43,7 +43,7 @@ build:
   followup_review_recommended: false
   review_loop_iteration: 0
   deferred_count: 0
-  warnings: [intent-gap]
+  warnings: []
 followup_passes: 0
 hitl_halt: null
 review_unverified: false
@@ -54,7 +54,7 @@ legacy_review_loop_done: false
 legacy_external_review_iterations: null
 legacy_convergence_unverified: false
 legacy_artifact_path: null
-commits: [5309d8a, 29f5799, 6c00013, 073bdec, 7ccaf71]
+commits: [5309d8a, 29f5799, 6c00013, 073bdec, 7ccaf71, 7d8d9a7]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -78,13 +78,15 @@ merge_method: null
 merge_commit: null
 branch_deleted: false
 open_questions:
-  - "Define the normalized organisation identity, equivalence rules, durable uniqueness constraint, and replay key."
-  - "Define the durable provisioning and Auth-invite handoff state machine, including post-commit Auth failure and lost-response reconciliation under the one-write-RPC/two-DEFINER constraint."
-  - "Define the dry-run preview response, approval input, and approving-person identity."
-  - Define the supported v1 request/baseline fields and the rejection or deferral behavior for future template fields.
+  - "Which operations of the sole provision_tenant authority may persist and audit post-provider outcome, reconciliation, and first-Admin readiness without a new DEFINER surface?"
+  - "How are opaque invite tokens generated, kept server-only, reused or replaced on retry, and bound to existing invitation acceptance?"
+  - "Is same-request-id replay reconciliation-only or permitted to initiate provider work; what result and attempt policy applies?"
+  - "What authoritative baseline catalogue/version drives preview hashing and PREVIEW_STALE?"
+  - "What exact email/VAT canonicalisation and ready predicate apply?"
+  - "How should platform-module activation add a non-granting permission-matrix row while excluding platform infrastructure from tenant entitlement selection?"
 deferred_work: []
 blockers:
-  - "Phase 3 planning blocked: intent gap. A human owner must resolve the four provisioning-contract decisions recorded in the spec."
+  - "Phase 3 planning blocked: intent gap. A human owner must resolve six remaining provisioning-contract decisions recorded in the spec."
 overrides:
   branch_prefix: "codex/ (host instruction)"
 constraints: []
