@@ -57,7 +57,7 @@ Full inventory: [initial-system-audit-2026-06-01.md](../oracle/initial-system-au
 - **Connectivity:** modules must be built inter-connected (jobs ↔ scheduling ↔ people ↔ materials ↔ economy ↔ documents), not as siloed pages.
 - **Field connectivity posture (owner amendment 2026-09-03):** field workflows require connectivity. Protect suitable unsent input from transient failures with component state, `sessionStorage`, in-memory photo retention where appropriate, clear connection/failure messaging, and explicit retry. A local draft is not submitted; success requires server-confirmed persistence. No PWA manifest/installability, service worker, durable offline storage, offline reads/writes, local queue, replay/synchronization/offline conflict state, or background/reconnect-driven offline synchronization is in Phase B.
 - **Fortnox integration is IN Phase B** (billing basis precedes it — owner: "faktureringsunderlag före Fortnox: ja, behövs").
-- **Multi-company delivery:** the product must remain deliverable to many independent companies (multi-tenant SaaS); Phase B must cover tenant provisioning/onboarding and full RBAC.
+- **Multi-company delivery:** the product must remain deliverable to many independent eligible companies (multi-tenant SaaS); Phase B must cover tenant provisioning/onboarding and full RBAC. Story 12.1's 2026-09-17 owner contract limits provisioning v1 to Swedish non-personal legal entities (no individuals or `enskild firma`) while leaving CRM end customers unrestricted.
 - **AI flows are OUT of Phase B** → Phase C. For AI-entangled legacy modules, Phase B builds the manual/deterministic core only (see §5.3).
 
 ## 5. Proposed Phase B shaping (to be challenged/ratified in the party session)
@@ -120,7 +120,7 @@ Each module Phase B activates must be removed from the deny-list/guardrails in t
 2. Per-module manual-vs-AI split boundaries (§5.3) — anything that can't ship a useful manual core in B?
 3. Where dashboards land (B1 single dashboard vs per-module analytics later).
 4. ~~Mobile posture for field workers in B1~~ — **resolved 2026-07-26, then superseded 2026-09-03:** connected responsive web at 360×640 is the current Phase B posture (ADR-B009); PWA/offline is Phase C.
-5. Business model / per-company pricing & provisioning flow (Roadmap 7 — "gemensamt beslut efter möte"). **(owner)**
+5. ~~Business model / per-company pricing & provisioning flow (Roadmap 7 — "gemensamt beslut efter möte").~~ **Resolved:** N-2 (2026-07-26) fixes internal operator provisioning/no self-serve and subscription terms as data; the Story 12.1 owner contract (2026-09-17) fixes strict-v1 identity/schema, stateless hash-bound approval, dual idempotency, and DB-first/Auth-second reconciliation. **(owner)**
 6. Whether quote lifecycle completion (declined/lost, follow-up) ships as a small pre-B interstitial or inside B1.
 7. Job model structure `7.1`/`7.3` — already on the owner email; party session should prepare the *options* to present. **(owner)**
 8. Migration expansion: legacy tables for B modules (rentals, assets, service…) were classified archive-only/deferred in `docs/migration/legacy-record-classification.md` — Phase B needs a classification round 2. 

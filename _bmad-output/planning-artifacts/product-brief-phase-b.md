@@ -70,7 +70,7 @@ Two owner-directed additions go beyond parity: **Fortnox integration** (the lega
 
 ## Who This Serves
 
-**Tenant companies (the buyers):** Swedish electrical contracting firms. The pilot company first; independent companies once provisioning/onboarding is proven. **End customers still do not log in** — the customer portal remains Phase C.
+**Tenant companies (the buyers):** Swedish electrical contracting firms that are non-personal legal entities. Provisioning v1 does not support individuals or `enskild firma`; the latter uses the proprietor's personnummer as organisation identity. The pilot company comes first; independent eligible companies follow once provisioning/onboarding is proven. This tenant boundary does not restrict CRM end customers, which may be companies or private individuals without personnummer capture. **End customers still do not log in** — the customer portal remains Phase C.
 
 **Users (the roles):** Phase B ends the `tenant_admin`-only era. The working role set — pending owner confirmation as the RBAC seed, including per-role money/sensitive-field visibility (N-4) — is **Admin, Projektledare, Montör, Säljare, Ekonomi, plus per-job Arbetsledare**:
 
@@ -116,7 +116,7 @@ These are decision inputs, not blockers to starting B1a — but they sit on the 
 | Tax blocks `A`/`B`/`C` + `2.2` (carried) | Rounding, VAT rate, ROT/grön teknik rates/caps/schablon; hidden-row mechanics | Real-pilot cutover + billing-basis (E26) correctness sign-off |
 | `8.1`/`8.2` (carried) | Migration classification round 1 + golden examples | Real-pilot cutover |
 | N-1 | Migration classification round 2 (per B module) | Each B2/B3 module's migration story |
-| N-2 | Business model / pricing / provisioning flow | Self-serve signup scope in E12 (admin provisioning proceeds regardless) |
+| N-2 | ✅ Closed 2026-07-26 and detailed 2026-09-17: internal operator provisioning only; no self-serve; strict-v1 Swedish legal-entity identity, stateless hash-bound approval, dual idempotency, DB-first/Auth-second reconciliation | E12 implements the approved contract; pricing values remain tenant data, never hardcoded |
 | N-3 | **Superseded decision chain:** the 2026-07-26 PWA/offline answer remains historical; the 2026-09-03 owner decision selects connected responsive web at 360×640 under ADR-B009 | No technical gate: E14-E18 proceed as connected workflows; PWA/offline is Phase C |
 | N-4 | Role-set confirmation + per-role money visibility | E11 permission-matrix seed |
 | N-5 | Fortnox prerequisites + faktureringsunderlag content definition | E26 shape; E33/E34 |
@@ -139,7 +139,7 @@ These are decision inputs, not blockers to starting B1a — but they sit on the 
 
 - **Parity, audited:** every module/capability in the legacy inventory (`initial-system-audit-2026-06-01.md`) is either live in Phase B, consciously thinned with owner visibility (tenders/FKU, N-7), or on the explicit Phase C ledger — no silent drops. This checklist is the Phase B acceptance surface.
 - **Real work:** the pilot company runs day-to-day operations — scheduling, jobs, time, materials, service, billing bases — in the new system across activated modules, with legacy data brought over per module per the N-1 classification, until the owner's cutover criterion ("everything the Lovable app has") is met and the legacy app can be retired.
-- **Deliverable product:** provisioning and onboarding a second, independent tenant is proven end-to-end as an admin-driven flow requiring no engineering work, with zero cross-tenant leakage in negative tests. (Actually signing commercial customers, pricing, and self-serve signup are business outcomes gated on N-2, not Phase B engineering criteria.)
+- **Deliverable product:** provisioning and onboarding a second, independent eligible tenant is proven end-to-end as an internal operator flow requiring no engineering work, with strict preview/approval, duplicate-safe Auth handoff, and zero cross-tenant leakage in negative tests. Signing commercial customers and setting prices remain business outcomes; self-serve signup is not a future Phase B outcome and remains excluded.
 - **Scope-honest field release:** no authoritative Phase B artifact or shipped surface promises PWA installation or offline operation; retained unsent input is labelled as a draft, submitted states require server confirmation, and the complete deferred package is traceable in Phase C.
 - **The bar holds:** every new module lands tenant-isolated (RLS negative tests), integer-öre, snapshot-immutable where customer-visible, server-side audited; the unit gate stays green and grows from its 1378 baseline; the golden/regression discipline — including the Epic-9 live-driven comparison-harness pattern — extends to scheduling and jobs money paths; no public surface ships before ADR-B004; every wave boundary executes its re-scope checkpoint.
 

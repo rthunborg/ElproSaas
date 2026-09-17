@@ -214,10 +214,12 @@ One working session can clear both sets.
 
 **Current amendment (2026-09-03):** the 2026-07-26 N-3 answer and its consequence analysis are preserved below as historical evidence. The owner has since superseded that Phase B PWA/offline direction: Phase B now delivers connected responsive field workflows at 360×640 under ADR-B009, while the complete PWA/offline package is deferred to Phase C.
 
+**Provisioning amendment (2026-09-17):** the owner closed Story 12.1's remaining N-2 contract gaps. Provisioning v1 is internal-only and limited to Swedish non-personal legal entities; it uses strict schema/baseline allow-lists, canonical organisation identity plus request-hash idempotency, a stateless hash-bound preview/approval, and a DB-first/Auth-second reconciled handoff. Phase B ships no AI provisioning flow.
+
 | ID | Question | Gates |
 | --- | --- | --- |
 | ~~N-1~~ | ~~Migration classification round 2 per B module~~ — **withdrawn 2026-07-20**: owner decided there is no data migration ever (new work starts in the new app; existing jobs finish in Lovable in parallel). No per-module classification is needed. | resolved (no-migration) |
-| N-2 | Business model / per-company pricing / provisioning flow (Roadmap 7) | Self-serve signup scope in E12 (admin provisioning proceeds regardless) |
+| ~~N-2~~ | ~~Business model / per-company pricing / provisioning flow (Roadmap 7)~~ — **resolved 2026-07-26; detailed 2026-09-17:** no self-serve; allow-listed operator only; Swedish non-personal legal entities; strict v1; write-nothing hash-bound preview/approval; dual idempotency; DB-first/Auth-second reconciliation; commercial terms remain tenant data | resolved; E12 implements the approved contract |
 | N-3 | **Resolved, then superseded:** 2026-07-26 selected PWA/offline; 2026-09-03 selects connected responsive web at 360×640 (ADR-B009) | No technical gate for E14-E18; PWA/offline is Phase C |
 | N-4 | Confirm role set as RBAC seed: Admin, Projektledare, Montör, Säljare, Ekonomi + per-job Arbetsledare — incl. per-role money/sensitive-field visibility | E11 permission-matrix seed |
 | N-5 | Fortnox prerequisites: account/licenses, API access, first flows, and the content definition of a faktureringsunderlag | E26 shape; E33/E34 |

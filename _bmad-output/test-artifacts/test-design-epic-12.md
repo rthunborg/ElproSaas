@@ -37,7 +37,7 @@ The plan treats provisioning as a privileged product boundary, not ordinary CRUD
 
 - Total risks identified: 13
 - High-priority risks (score ≥6): 9
-- One blocker (score 9): recovery across the database-commit/Supabase-Auth-invite boundary
+- One score-9 release risk requiring green evidence: recovery across the owner-defined database-commit/Supabase-Auth-invite boundary
 - Critical categories: security, data integrity, business-state truthfulness
 
 **Coverage Summary:**
@@ -58,7 +58,7 @@ The high P0 proportion is deliberate: most Epic 12 behavior is privileged creati
 | --- | --- | --- |
 | Public/self-serve tenant signup | Permanently excluded by FR76/N-2; operator provisioning is the only Phase B entry. | Fail-loud route, copy, nav, and API scope scans. |
 | Separate operator deployment | Explicit Phase C hardening option; Phase B uses isolated route territory in the same app. | Import/shell-isolation checks and route-level authorization on every server entry. |
-| AI-authored SQL or general AI database access | Architecture requires deterministic bounded provisioning; an agent may orchestrate only. | Request-schema tests, no-generated-SQL guard, single write-path/catalog inventory. |
+| AI provisioning, AI-authored SQL, or general AI database access | Phase B provisioning is a deterministic bounded operator service; free-text agent instructions and AI product flow are excluded. | Strict request-schema tests, no-generated-SQL/free-text guard, single write-path/catalog inventory. |
 | Additional SECURITY DEFINER write surfaces | Story 12.1 sanctions only `provision_tenant`; any additional write helper requires a new decision. | Catalog inventory fails on unexpected DEFINER surfaces. |
 | Commercial price/packaging logic | Subscription terms and overrides are tenant data, never hardcoded application decisions. | Persistence assertions and hardcoded-commercial-value scan. |
 | New onboarding settings schema/table | Checklist derives from existing Phase A settings, pricing, and membership state. | Schema/table inventory and migration reset checks. |
@@ -76,8 +76,8 @@ Risk score is probability × impact on a 1–3 scale. Scores 6–8 require mitig
 | Risk ID | Category | Description | Probability | Impact | Score | Mitigation | Owner | Timeline |
 | --- | --- | --- | ---: | ---: | ---: | --- | --- | --- |
 | R-1201 | SEC | `provision_tenant` or `is_platform_operator()` is mis-hardened, enabling escalation through search-path, grants, caller claims, or a missing internal gate. | 2 | 3 | 6 | Pin catalog/grant/search-path shape; prove forged/absent/non-operator denial and zero side effects. | Dev + QA + Security reviewer | Story 12.1 before merge |
-| R-1202 | DATA | DB creation succeeds while the Auth invite fails or its response is lost, leaving a tenant that cannot be resumed safely. | 3 | 3 | 9 | Define durable provisioning states and retry/reconciliation; inject failures at each boundary and prove no duplicate DB/Auth outcome. | Dev + QA | Story 12.1 before Story 12.2 depends on it |
-| R-1203 | DATA | Repeated or concurrent same-organization requests create duplicate tenants, memberships, or invite intents. | 2 | 3 | 6 | Normalize a durable identity/idempotency key; enforce uniqueness; test sequential, concurrent, and response-loss replay. | Dev + QA | Story 12.1 before merge |
+| R-1202 | DATA | DB creation succeeds while the Auth invite fails or its response is lost, leaving a tenant that cannot be resumed safely. | 3 | 3 | 9 | Enforce `pending`/`unknown`/`requested`/`failed`/`ready`, normalized-email reconciliation, usable-invitation reuse, and send-only-if-absent; inject failures at each boundary and prove no duplicate DB/Auth outcome. | Dev + QA | Story 12.1 before Story 12.2 depends on it |
+| R-1203 | DATA | Repeated or concurrent same-organization requests create duplicate tenants, memberships, or invite intents. | 2 | 3 | 6 | Enforce all-status uniqueness on `(country_code, normalized_organization_number)` plus independent request UUID/hash idempotency; test every replay/conflict/race branch. | Dev + QA | Story 12.1 before merge |
 | R-1204 | SEC | Operator console/read models expose customer, quote, file, money, or other tenant business data. | 2 | 3 | 6 | Exact allow-listed projection plus field/value absence tests through every read entry. | Dev + QA + Security reviewer | Story 12.2 before merge |
 | R-1205 | SEC | Authorization is enforced only by layout/navigation, allowing direct server-route/action access. | 2 | 3 | 6 | Independently gate every server entry and enumerate operator, tenant-role, orphan, and anonymous callers. | Dev + QA | Story 12.2 before merge |
 | R-1206 | SEC | Auth-admin/service credentials or invite capability become client-reachable, RPC-reachable, or unauthenticated. | 2 | 3 | 6 | Server-only adapter plus source/bundle/service-role containment bite proofs. | Dev + Security reviewer | Story 12.1 before merge |
@@ -122,25 +122,25 @@ This section plans validation and evidence for later `nfr-assess`; it does not a
 | --- | --- | --- | --- | --- |
 | Security / tenant isolation | NFR54: zero cross-tenant leakage; generic denial for non-operators/forged/absent claims; console exposes identity/status/first-Admin state only. | R-1201, R-1204–R-1206, R-1208 | DB/RLS/catalog negatives, direct-route authorization, exact field absence, containment scans, two-tenant E2E. | Vitest executed/pass/skip report, catalog/grant snapshot, scan logs, Playwright report/trace, canary absence/digest assertions. |
 | Security / privileged DB | Exactly one sanctioned Epic 12 DEFINER write surface, with empty `search_path`, schema-qualified refs, internal operator check, and PUBLIC revocation. | R-1201 | Catalog/grant inspection, hijack bite proof, direct RPC negatives, DEFINER inventory. | Catalog query output and integration test report. |
-| Reliability / recovery | Atomic DB creation, idempotent replay, zero-write dry run, partial-failure recovery, and success only after persisted confirmation. | R-1202, R-1203, R-1211 | Fault injection, concurrency, response-loss replay, state-machine units, before/after snapshots. | Failure-point matrix, row counts/digests, attempt correlation, retry/burn-in report. |
-| Data integrity | One tenant/first-Admin membership per normalized organization identity; no foreign mutation; subscription terms persisted as request data. | R-1202, R-1203, R-1208 | Constraint/concurrency tests, normalization boundaries, exact persistence and cross-tenant digests. | Constraint/catalog evidence, fixture/result snapshots, concurrency output. |
-| Audit/compliance | Each action records tenant, actor/approver, request correlation, outcome, and deviations without credentials/secrets. | R-1210 | Success/failure/retry/rollback audit assertions and secret/token scans. | Audit-event evidence keyed by correlation and tenant; scan output. |
+| Reliability / recovery | Atomic DB creation, request-plus-identity idempotency, stateless zero-write preview, hash/baseline binding, and exact pending/unknown/requested/failed/ready post-commit recovery. | R-1202, R-1203, R-1211 | Fault injection, concurrency, response-loss replay, state-machine units, baseline-drift and before/after snapshots. | Failure-point matrix, row counts/digests, attempt correlation, retry/burn-in report. |
+| Data integrity | One tenant/first-Admin membership per all-status canonical `SE` organization identity; request UUID/hash conflicts never update; no foreign mutation; subscription terms persist exactly. | R-1202, R-1203, R-1208 | Checksum/personnummer/VAT/normalization cases, constraint/concurrency tests, exact persistence and cross-tenant digests. | Constraint/catalog evidence, fixture/result snapshots, concurrency output. |
+| Audit/compliance | Execution and every handoff transition record tenant, authenticated operator-derived approver, approval time, request ID, preview hash, baseline version, outcome, and sanitized failure facts without credentials/secrets; dry run records nothing. | R-1210 | Preview non-write, success/failure/unknown/requested/ready/retry/rollback audit assertions and secret/token scans. | Audit-event evidence keyed by request/tenant plus before/after dry-run snapshot and scan output. |
 | User journey / truthfulness | AC-B1a-1 and AC-PH-3: create → baseline → invite → onboarding working state with zero engineering steps and no false-green checklist state. | R-1207 | Predicate units, tenant-scoped read integration, one full persisted-state E2E. | Unit/integration reports and production-server Playwright trace/report. |
 | Maintainability / scope | Operator shell isolation; no public signup, extra DEFINER, onboarding table/new settings schema, or hardcoded commercial values. | R-1206, R-1209 | Import, route/copy, catalog, manifest, schema, bundle, and commercial-value guardrails. | CI scan logs, manifest coherence output, migration-reset/catalog report. |
 | Performance / scalability | Numeric latency, throughput, tenant count, and concurrency threshold: **UNKNOWN**. | R-1213 | Record non-gating elapsed/query-count baseline on a documented pilot dataset. | Versioned baseline with dataset size, environment, and query counts. |
 
-**Unknown thresholds and contracts:**
+**Unknown thresholds and out-of-scope operational policy:**
 
 - Performance/scalability release thresholds are UNKNOWN; no value may be invented.
-- Organization-identity normalization rules must be explicit in Story 12.1 before equivalence tests can be finalized.
-- The durable DB/Auth reconciliation state machine must be explicit before fault-injection tests can turn green.
 - Audit retention duration/operational SLO is outside this epic; this plan validates content, binding, and atomicity only.
+
+The 2026-09-17 owner contract resolves the earlier identity, preview/approval, strict-schema, and DB/Auth state-machine gaps; the scenarios below are bound to that contract.
 
 ---
 
 ## Entry Criteria
 
-- [ ] Story 12.1 defines normalized organization identity, durable provisioning states, dry-run response, approval identity, and Auth invite reconciliation.
+- [x] Story 12.1 defines normalized organization identity, dual idempotency, durable provisioning states, strict-v1/write-nothing preview response, authenticated-operator approval, and Auth invite reconciliation (owner decision 2026-09-17).
 - [ ] Epic 11 role, invitation, callback, and Admin-user lifecycle seams are green.
 - [ ] Disposable local Supabase resets from empty and required DB suites run with `SUPABASE_TEST_REQUIRED=1`.
 - [ ] Operator/two-tenant/first-Admin factories are unique, cleanup-aware, and local-only.
@@ -170,21 +170,21 @@ This section plans validation and evidence for later `nfr-assess`; it does not a
 
 | Test ID | Requirement / Atomic Scenario | Test Level | Risk Link | Owner | Notes |
 | --- | --- | --- | --- | --- | --- |
-| 12.1-UNIT-001 | Structured request rejects missing/contradictory values and generated SQL/free-text authority. | Unit | R-1201 | Dev + QA | Boundary logic only; no DB duplication. |
-| 12.1-UNIT-002 | Organization identity normalization distinguishes documented equivalent and non-equivalent inputs. | Unit | R-1203 | Dev + QA | Final cases depend on explicit story contract. |
-| 12.1-UNIT-003 | Provisioning/reconciliation state transitions cannot express false terminal success. | Unit | R-1202 | Dev + QA | Covers invite-pending/failed/sent and replay. |
+| 12.1-UNIT-001 | Strict schema v1 enforces every required/optional/server-owned/rejected field, returns `UNSUPPORTED_FIELD`/`UNSUPPORTED_SCHEMA_VERSION`, and rejects generated SQL, free text, secrets, pending modules, raw rates, and other v1 exclusions. | Unit | R-1201 | Dev + QA | Unknown/recognized-deferred fields block execution and are never retained. |
+| 12.1-UNIT-002 | Identity normalization removes spaces/hyphens, validates ten-digit checksum, distinguishes equivalence/name changes from a different organisation, rejects non-SE/personnummer/sole-proprietor shapes, and validates VAT consistency without treating VAT as identity. | Unit | R-1203 | Dev + QA | Include active, inactive, and archived collision cases. |
+| 12.1-UNIT-003 | Provisioning/reconciliation transitions permit only `pending_first_admin_invite`, `first_admin_invite_unknown`, `first_admin_invite_requested`, `first_admin_invite_failed`, and `ready`, and cannot equate provider acceptance with email delivery. | Unit | R-1202 | Dev + QA | Timeout → unknown; definitive failure → sanitized failed; reconciliation gates resend/ready. |
 | 12.1-INT-001 | Operator self-read works; tenant roles/orphan/anonymous cannot enumerate `platform_operators`. | DB/RLS | R-1201 | Dev + QA | Real local identities. |
 | 12.1-INT-002 | Helper/RPC catalog, grants, owner, empty `search_path`, PUBLIC revocation, and hijack negative match the hardened contract. | DB/catalog | R-1201 | Dev + QA + Security | Must demonstrate the negative bites. |
-| 12.1-INT-003 | Approved operator request atomically creates tenant, baseline/subscription data, invited membership, status, and tenant-bound audit. | Command/DB | R-1202 | Dev + QA | Exact persisted values, not response-only. |
+| 12.1-INT-003 | Approved operator request atomically creates canonical identity/request facts, tenant, exact baseline/subscription data, invited membership, `pending_first_admin_invite`, and tenant-bound approval audit before any Auth call. | Command/DB | R-1202 | Dev + QA | Exact persisted values plus call-order evidence, not response-only. |
 | 12.1-INT-004 | Injected failure at every in-transaction write point leaves no partial DB/audit state. | Fault-injection integration | R-1202, R-1210 | Dev + QA | Before/after counts and keys. |
-| 12.1-INT-005 | Dry run returns the complete deterministic preview and makes zero DB/Auth/audit writes; approval is required for real execution. | Command/DB | R-1202 | Dev + QA | Preview and execution share validated input. |
-| 12.1-INT-006 | Sequential same-identity replay returns `ALREADY_PROVISIONED` without duplicate tenant/settings/membership/completion audit. | Command/DB | R-1203 | Dev + QA | Stable existing identity returned. |
+| 12.1-INT-005 | Dry run returns every owner-required preview field/hash and makes zero DB/Auth/audit/preview-table writes; execution requires original request + ID + hash + explicit approval, rejects mismatch, and returns `PREVIEW_STALE` on baseline change. | Command/DB | R-1202 | Dev + QA | Approver is authenticated allow-listed `auth.uid()`; same-person preview/approval is allowed. |
+| 12.1-INT-006 | Same request UUID/hash returns the original result; same UUID/different content returns `IDEMPOTENCY_CONFLICT`; different UUID for the same active/inactive/archived canonical identity returns `ALREADY_PROVISIONED` without duplicate or silent update. | Command/DB | R-1203 | Dev + QA | Stable existing identity/status returned. |
 | 12.1-INT-007 | Concurrent same-identity requests yield one tenant and one effective first-Admin invite intent. | Concurrency integration | R-1203 | Dev + QA | One winner, one reconciled result. |
-| 12.1-INT-008 | Auth invite failure after DB commit leaves recoverable state; retry completes at most once without duplicate DB state. | Command/Auth boundary | R-1202 | Dev + QA | Highest-risk scenario. |
-| 12.1-INT-009 | Lost response plus replay reconciles the persisted outcome without a second invite or terminal audit. | Command/Auth boundary | R-1202, R-1210 | Dev + QA | Response-loss evidence. |
+| 12.1-INT-008 | Provider acceptance/definitive failure after DB commit persists requested/failed truthfully; failed keeps only a sanitized code and explicit operator retry, with no duplicate DB state. | Command/Auth boundary | R-1202 | Dev + QA | `requested` never asserts delivery. |
+| 12.1-INT-009 | Timeout/lost response persists `unknown`; retry reconciles membership/invitation/Auth identity by normalized email, reuses a usable Epic 11 invitation, and sends anew only when none exists. | Command/Auth boundary | R-1202, R-1210 | Dev + QA | Prove no blind resend or duplicate terminal audit. |
 | 12.1-INT-010 | Tenant roles, orphan, anonymous, forged/absent claims, and direct RPC callers receive generic pre-validation denial with zero side effects. | Authorization integration | R-1201, R-1205, R-1208 | Dev + QA | Enumerate every seeded role. |
 | 12.1-INT-011 | Provisioning tenant X cannot read or mutate tenant Y; foreign row digests stay unchanged and no existence signal leaks. | Tenant-isolation integration | R-1208 | Dev + QA + Security | Covers AC-PH-3 path itself. |
-| 12.1-INT-012 | Audit records correlate actor, approver, request, tenant, and terminal/recoverable outcome without secrets. | Audit integration | R-1210 | Dev + QA | Success, replay, failure, recovery. |
+| 12.1-INT-012 | Audit records correlate tenant, operator-derived approver/time, request ID, preview hash, baseline version, and every handoff transition without secrets; preview leaves no row. | Audit integration | R-1210 | Dev + QA | Success, replay, unknown, requested, failed, ready, recovery. |
 | 12.1-STATIC-001 | Only sanctioned DEFINER surfaces exist; Auth-admin/service-role imports remain server-only and no unauthenticated privileged handler ships. | CI/static/catalog | R-1201, R-1206 | Dev + Security | Include red/green canary fixtures. |
 | 12.1-INT-013 | Empty DB reset yields exact platform objects, constraints, indexes, grants, and provisioning columns/inventories. | Migration/catalog | R-1201, R-1203 | Dev + QA | Required local stack, zero skip. |
 | 12.2-UNIT-001 | Console projection emits only tenant identity/status/created/first-Admin fields and rejects/discards injected business fields. | Unit/read-model | R-1204 | Dev + QA | Exact-key assertion. |
@@ -222,7 +222,7 @@ This section plans validation and evidence for later `nfr-assess`; it does not a
 
 | Test ID | Requirement / Atomic Scenario | Test Level | Risk Link | Owner | Notes |
 | --- | --- | --- | --- | --- | --- |
-| 12.2-E2E-003 | Three-step wizard has semantic headings/labels, validation summary, focus movement, keyboard completion, and deterministic submitting state. | E2E/accessibility | — | QA + Dev | Use resilient semantic selectors from implemented UI. |
+| 12.2-E2E-003 | Three data-entry steps plus preview/approval have semantic headings/labels, field-level unsupported summaries, focus movement, keyboard completion, truthful invite-state copy, and deterministic submitting state. | E2E/accessibility | — | QA + Dev | Use resilient semantic selectors from implemented UI. |
 
 **Total P2:** 1 group, ~4–8 hours.
 
@@ -264,7 +264,7 @@ Ranges include fixture extension, fault-injection controls, test implementation,
 **Test data:**
 
 - Extend the existing per-call two-tenant factory with platform operator, new tenant request, first-Admin, subscription/baseline, and cleanup handles.
-- Create normalized-identity equivalence/collision fixtures and independently seeded tenant-business canaries.
+- Create Swedish checksum/personnummer/VAT/equivalence fixtures plus active/inactive/archived identity collisions, request UUID/hash conflicts, and independently seeded tenant-business canaries.
 - Provide deterministic fault points before/after tenant, baseline, membership, audit, Auth invite, and terminal-status transitions.
 - Keep service-role/Auth-admin use in test-only factories/support; never use the hosted demo.
 
@@ -334,10 +334,10 @@ Ranges include fixture extension, fault-injection controls, test implementation,
 
 **Strategy:**
 
-1. Define durable states that distinguish DB-created, invite-pending, invite-failed/recoverable, invite-sent, and completed.
-2. Inject failure and response loss at every DB/Auth/status boundary.
-3. Replay each state through the same command identity and prove one tenant, one membership, at most one effective invite, and one terminal outcome.
-4. Keep false terminal success structurally impossible.
+1. Enforce the owner-defined `pending_first_admin_invite → unknown | requested | failed → ready` state space; timeout is unknown, provider acceptance is requested, and neither asserts delivery.
+2. Inject failure and response loss at every DB/Auth/status boundary after proving the DB commit precedes the Auth call.
+3. On retry, reconcile membership/invitation/Auth identity by normalized email, reuse a usable Epic 11 invitation, and send anew only when absent.
+4. Replay each state and prove one tenant, one membership, at most one effective invitation, sanitized failure data, audited transitions, and no false terminal success.
 
 **Owner:** Dev + QA  
 **Timeline:** Story 12.1 before Story 12.2 depends on the command  
@@ -348,9 +348,9 @@ Ranges include fixture extension, fault-injection controls, test implementation,
 
 **Strategy:**
 
-1. Normalize organization identity in one testable function and persist a durable uniqueness/idempotency key.
-2. Drive sequential replay, concurrent requests, and response-loss replay with independently generated callers.
-3. Assert one durable tenant/settings/membership identity and deterministic `ALREADY_PROVISIONED` semantics.
+1. Normalize `SE` organisation identity in one testable function, reject personnummer/sole-proprietor shapes, and enforce all-status uniqueness on country + normalized organisation number.
+2. Persist independent request UUID + canonical request hash semantics and drive same-ID/same-content, same-ID/different-content, different-ID/same-identity, archive/inactive, concurrent, and response-loss cases.
+3. Assert one durable tenant/settings/membership identity and deterministic original-result / `IDEMPOTENCY_CONFLICT` / `ALREADY_PROVISIONED` semantics with no silent update.
 
 **Owner:** Dev + QA  
 **Timeline:** Story 12.1 before merge  
