@@ -34,6 +34,10 @@ import {
   FORBIDDEN_DEFERRED_CATEGORIES,
   isForbiddenDeferredCategory,
 } from "@/features/files/deferred-categories";
+import {
+  PERMISSION_MATRIX,
+  resolveCapability,
+} from "@/server/authz/permission-matrix";
 
 const PINNED_OWNER_TYPES = [
   "customer",
@@ -128,6 +132,44 @@ test("10.1-UNIT-INV-07: isForbiddenDeferredCategory rejects active Phase-A categ
       isForbiddenDeferredCategory(allowed),
       false,
       `"${allowed}" is not a deferred-module deny token and must not be forbidden`,
+    );
+  }
+});
+
+test.skip("[P0] 12.1-STATIC-001 provisioning activates only as a platform module and its metadata is non-granting to every tenant role", () => {
+  const provisioning = SCOPE_MANIFEST.modules.find(
+    (module) => module.id === "provisioning",
+  );
+  assert.equal(provisioning?.status, "active");
+  assert.equal(provisioning?.scope, "platform");
+
+  const platformRow = (
+    PERMISSION_MATRIX as unknown as Record<
+      string,
+      Record<string, Record<string, unknown>>
+    >
+  ).provisioning?.["Platform.Operator.Access"];
+  assert.deepEqual(platformRow, {
+    scope: "platform",
+    tenantGrantable: false,
+    tenantRoles: [],
+  });
+
+  for (const role of [
+    "tenant_admin",
+    "projektledare",
+    "montor",
+    "saljare",
+    "ekonomi",
+  ]) {
+    assert.equal(
+      resolveCapability({
+        roles: [role],
+        module: "provisioning",
+        capability: "Platform.Operator.Access",
+      }).granted,
+      false,
+      `${role} must not receive platform authority from tenant RBAC`,
     );
   }
 });

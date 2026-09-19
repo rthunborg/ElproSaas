@@ -1,0 +1,37 @@
+{
+  "success": true,
+  "story_id": "12.1",
+  "story_key": "spec-12-1-platform-operator-identity-and-the-provision-tenant-command",
+  "primary_level": "command-database-integration",
+  "test_counts": {
+    "unit": 3,
+    "integration": 13,
+    "static": 1,
+    "e2e": 0,
+    "component": 0,
+    "total": 17
+  },
+  "generated_test_files": [
+    "tests/unit/provisioning/provisioning-contract.test.ts",
+    "tests/integration/commands/provision-tenant.int.test.ts",
+    "tests/integration/rls/platform-operators.rls.test.ts",
+    "tests/integration/rls/provisioning-migration-reset.int.test.ts",
+    "tests/integration/rls/security-definer-search-path.rls.test.ts",
+    "tests/unit/scope/manifest-invariants.test.ts"
+  ],
+  "factory_files": [
+    "tests/factories/platform-operators.ts"
+  ],
+  "checklist": "_bmad-output/test-artifacts/atdd-checklist-spec-12-1-platform-operator-identity-and-the-provision-tenant-command.md",
+  "red_phase": "All 17 acceptance scaffolds are marked test.skip(); activate one task at a time and confirm RED before implementation.",
+  "e2e_applicability": "Not applicable: Story 12.1 has no UI acceptance surface.",
+  "story_file_modified": false,
+  "validation": {
+    "eslint": "passed",
+    "vitest_scaffolds_skipped": 16,
+    "node_test_scaffolds_skipped": 1,
+    "mechanical_id_gate": "passed",
+    "story_sha256_unchanged": true,
+    "full_typecheck": "generated files clean; command remains nonzero only for unrelated pre-existing tmp/private and tmp/worktrees files"
+  }
+}

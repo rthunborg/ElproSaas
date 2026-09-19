@@ -24,7 +24,7 @@
  *
  * Runs against the LOCAL Supabase stack only; skips when unreachable.
  */
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { describe, it, test, expect, beforeAll, afterAll } from "vitest";
 import {
   createTwoTenantFixture,
   cleanupFixture,
@@ -119,5 +119,54 @@ describe("SECURITY DEFINER helpers resist search_path hijack (AC4 / R-006)", () 
     //   - the Story 2.2 Dev Agent Record (Completion Notes).
     // Helpers: SECURITY DEFINER, `set search_path = ''`, schema-qualified refs.
     expect(true).toBe(true);
+  });
+});
+
+describe("Story 12.1 platform authority hardening", () => {
+  test.skip("[P0] 12.1-INT-002 hostile search_path cannot forge operator authority and only the allow-listed hardened provisioning functions exist", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
+
+    const helperResult = await adminSession(async ({ query }) => {
+      await query("select set_config('request.jwt.claim.sub', $1, false)", [
+        fixture.orphanUser.id,
+      ]);
+      await query("create schema if not exists evil");
+      await query("drop table if exists evil.platform_operators");
+      await query("create table evil.platform_operators (user_id uuid)");
+      await query("insert into evil.platform_operators (user_id) values ($1)", [
+        fixture.orphanUser.id,
+      ]);
+      await query("set search_path = evil, public");
+      const rows = await query<{ ok: boolean }>(
+        "select public.is_platform_operator() as ok",
+      );
+      return rows[0]?.ok;
+    });
+    expect(helperResult).toBe(false);
+
+    const functions = await adminSession(async ({ query }) =>
+      query<{
+        proname: string;
+        prosecdef: boolean;
+        proconfig: string[] | null;
+        public_execute: boolean;
+      }>(
+        `select p.proname, p.prosecdef, p.proconfig,
+                has_function_privilege('public', p.oid, 'execute') as public_execute
+           from pg_proc p
+          where p.pronamespace = 'public'::regnamespace
+            and p.proname in ('is_platform_operator', 'provision_tenant')
+          order by p.proname`,
+      ),
+    );
+    expect(functions.map((fn) => fn.proname)).toEqual([
+      "is_platform_operator",
+      "provision_tenant",
+    ]);
+    for (const fn of functions) {
+      expect(fn.prosecdef).toBe(true);
+      expect(fn.proconfig).toContain("search_path=");
+      expect(fn.public_execute).toBe(false);
+    }
   });
 });
