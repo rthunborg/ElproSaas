@@ -1,8 +1,8 @@
 ---
 title: 'Story 12.1: Platform Operator Identity and the Provision-Tenant Command'
 type: 'feature'
-created: '2026-09-17'
-status: 'draft'
+created: '2026-09-19'
+status: 'ready-for-dev'
 review_loop_iteration: 0
 followup_review_recommended: false
 context:
@@ -10,7 +10,8 @@ context:
   - '_bmad-output/implementation-artifacts/epic-12-context.md'
   - '_bmad-output/planning-artifacts/architecture-phase-b.md'
   - 'docs/process/review-order.md'
-warnings: []
+warnings:
+  - oversized
 deferred: []
 ---
 
@@ -92,26 +93,22 @@ deferred: []
 
 ## Code Map
 
-- `src/scope/manifest.ts:213` -- pending, platform-scoped `provisioning` module; this story's first schema change activates it without nav or tenant-table enrollment.
-- `src/scope/manifest-schema.ts:66` -- platform-scope validation and manifest-derived table invariants to preserve when activating the module.
-- `src/server/authz/permission-matrix.ts` -- add the non-granting `Platform.Operator.Access` classification row and keep platform scope out of every tenant-role consumer.
-- `supabase/migrations/20260625122433_tenant_foundation.sql:45` -- tenant/membership baseline and hardened tenant-membership DEFINER helper/grant pattern.
-- `supabase/migrations/20260910165124_admin_user_management.sql:90` -- durable invited-membership and replay pattern; its tenant-admin-gated invitation RPC cannot bootstrap the first Admin directly.
-- `src/server/commands/envelope.ts:202` and `src/server/commands/envelope-core.ts:171` -- tenant-context envelope must remain tenant-only; a parallel server-only platform boundary is required.
-- `src/server/auth/admin-user-service.ts:16` -- existing durable database-preparation versus server-side Auth invitation delivery/reconciliation seam.
-- `src/server/auth/resolve-tenant-context.ts:83` -- request-bound `getClaims()` revalidation convention; never trust a client-supplied platform role.
-- `supabase/migrations/20260629121136_audit_events.sql:150` -- ordinary audit writer requires an active tenant member, so the sanctioned provisioning transaction must create its own tenant-bound audit row.
-- `tests/integration/rls/security-definer-search-path.rls.test.ts:56` -- hostile schema/search-path control and successful-control proof to extend.
-- `tests/integration/commands/admin-user-management.int.test.ts:46` and `tests/unit/admin-users/admin-user-service.test.ts:68` -- invitation replay, provider uncertainty, and cross-tenant test precedents.
-- `_bmad-output/test-artifacts/test-design-epic-12.md:173` -- required 12.1 atomicity, idempotency, Auth-boundary, isolation, audit-hygiene, and reset/catalog evidence.
+- `supabase/migrations/20260625122433_tenant_foundation.sql:45` -- extend the established tenant/membership security foundation; do not create an ungoverned tenant surface.
+- `supabase/migrations/20260910165124_admin_user_management.sql:29` and `supabase/migrations/20260914092606_admin_accept_membership_invitation_identity_binding.sql:7` -- compatible invited-membership, hashed-token, and acceptance/activation seams.
+- `src/server/commands/envelope.ts:202` and `src/server/commands/envelope-core.ts:171` -- tenant envelope resolves membership first and is not a platform-command boundary.
+- `src/server/auth/resolve-tenant-context.ts:83`, `src/server/auth/admin-user-service.ts:16`, `src/server/commands/admin-users/invite.ts:19`, `src/server/commands/admin-users/lifecycle.ts:45`, and `src/server/commands/admin-users/accept-invitation.ts:20` -- request-bound identity, server-only provider dispatch, token callback, reconciliation, and acceptance precedents.
+- `src/scope/manifest.ts:213`, `src/scope/manifest-schema.ts:178`, `src/server/authz/permission-matrix.ts:11`, `src/server/authz/role-catalogue.ts:48`, and `tests/support/authz/role-harness.ts:95` -- activate the platform module and prevent its classification from becoming a tenant entitlement.
+- `tests/integration/rls/security-definer-search-path.rls.test.ts:56`, `tests/integration/commands/admin-user-management.int.test.ts:46`, and `_bmad-output/test-artifacts/test-design-epic-12.md:173` -- P0 hardening, retry, and required 12.1 evidence anchors.
 
 ## Tasks & Acceptance
 
-**Execution (draft implementation plan):**
-- `supabase/migrations/<new-e12-migration>.sql` -- add only the owner-approved platform allow-list, additive provisioning/attempt schema, constrained identity/idempotency storage, hardened predicate, and narrowly actioned sole provisioning RPC -- establish the bounded database authority without a general service-role mutation path.
-- `src/server/commands/provisioning/<new-platform-command>.ts` -- implement baseline-catalogue lookup, canonical email/VAT handling, explicit reconciliation/retry orchestration, hashed Epic 11 invitation-token lifecycle, and exact readiness -- keep raw tokens, service credentials, and Auth administration out of clients, logs, audits, and RPC results.
-- `src/scope/manifest.ts`, `src/server/authz/permission-matrix.ts`, and `tests/unit/scope/*.test.ts` -- activate the platform provisioning module with the non-granting platform capability and prove tenant consumers exclude it while operator registry/coherence checks include it -- prevent an unlisted or tenant-grantable platform surface.
-- `tests/integration/**` and `tests/unit/**` -- encode the approved I/O matrix and E12 test-design identifiers -- prove atomicity, zero-write dry run, exact replay, generic denial, isolation, audit hygiene, catalog hardening, and reset behavior.
+**Execution:**
+- `supabase/migrations/20260919090000_tenant_provisioning.sql` -- add the platform allow-list, hardened operator helper, sole action-allow-listed `provision_tenant` RPC, and additive identity, baseline, request, commercial, handoff, and attempt facts; create compatible Epic 11 invitation records and acceptance-to-`ready` projection with exact RLS, constraints, indexes, grants, and audit writes.
+- `src/server/provisioning/baselines.ts` and `src/server/commands/provisioning/validation.ts` -- make the immutable baseline catalogue, strict v1 decoder, canonicalisers, request/preview hashing, transition table, and readiness predicate pure authorities.
+- `src/server/commands/provisioning/provision-tenant.ts` and `src/server/commands/provisioning/provisioning-db.ts` -- implement the request-bound platform command for preview, approved initial provision, replay reconciliation, and explicit bounded retry; invoke Auth only after commit and never expose raw tokens, credentials, provider detail, or business data.
+- `src/server/auth/admin-user-service.ts`, `src/server/commands/admin-users/accept-invitation.ts`, and `supabase/migrations/20260914092606_admin_accept_membership_invitation_identity_binding.sql` -- preserve the protected callback token flow and make existing acceptance complete the `ready` transition without a new DEFINER function.
+- `src/scope/manifest.ts`, `src/server/authz/permission-matrix.ts`, `src/server/authz/role-catalogue.ts`, `tests/support/authz/role-harness.ts`, `tests/unit/scope/manifest-invariants.test.ts`, `tests/unit/scope/manifest-coherence.test.ts`, and `tests/unit/scope/manifest-derivations.test.ts` -- activate the platform module with non-granting metadata and prove every tenant consumer excludes it.
+- `tests/unit/provisioning/provisioning-contract.test.ts`, `tests/integration/commands/provision-tenant.int.test.ts`, `tests/integration/rls/platform-operators.rls.test.ts`, `tests/integration/rls/provisioning-migration-reset.int.test.ts`, and `tests/integration/rls/security-definer-search-path.rls.test.ts` -- implement 12.1-UNIT-001..003 and INT-001..013, including faults, races, zero-write, raw-token absence, catalog, and reset canaries.
 
 **Acceptance Criteria:**
 - Given a strict v1 request, when an allow-listed platform operator previews it, then the response contains every required preview field and server-calculated hash while DB, audit, preview storage, and Auth remain byte-for-byte unchanged.
@@ -125,18 +122,27 @@ deferred: []
 - Given a non-operator, forged/absent claim, hostile search path, or cross-tenant probe, when it attempts provisioning or reads the allow-list, then it receives only a generic denial and observes no tenant business data or side effects.
 - Given the migration is reset and integration/RLS suites run with `SUPABASE_TEST_REQUIRED=1`, when catalog, grants, owner, search path, PUBLIC execution, audit metadata, and manifest-derived inventory are checked, then the sole approved provisioning authority and platform-only exception are enforced with zero skipped required suites.
 
+## Spec Change Log
+
+- 2026-09-19: Re-derived after supplemental owner decisions. Replaced placeholder task paths with concrete migration, server, scope, and test targets while preserving the binding intent contract and historical halt evidence.
+
+## Review Triage Log
+
+No review pass has run.
+
 ## Design Notes
 
-The 2026-09-17 owner decisions and the 2026-09-19 supplemental decisions above close both recorded intent gaps. Tenant eligibility/identity, dual idempotency, DB-first/Auth-second authority, hashed Epic 11 invitation tokens, reconciliation-first bounded attempts, immutable baseline catalogue, exact email/VAT canonicalization and readiness, stateless hash-bound preview/approval, strict v1 schema, and the non-granting platform capability are now binding. Implementation remains a draft until the ordinary story approval/build workflow proceeds; no product code is authorised by this documentation repair alone.
+The database is deliberately DB-first and provider-second: a provider outcome cannot create a false database claim. Only the action allow-list and existing acceptance function may mutate provision state after initial provisioning; the parallel command module is server orchestration, never a client privilege path.
 
 Epic 11 retrospective actions on retry-fixture clocks, support-file size, Roles readiness signals, backup evidence, monitoring evidence, and `story_plan.py` YAML parsing remain context only. They do not add a Story 12.1 surface or implementation task.
 
 ## Verification
 
 **Commands:**
-- `SUPABASE_TEST_REQUIRED=1 pnpm vitest run tests/integration/rls/security-definer-search-path.rls.test.ts` -- expected: required suite executes with no skips and proves hardened function/catalog controls.
-- `SUPABASE_TEST_REQUIRED=1 pnpm vitest run tests/integration/commands/admin-user-management.int.test.ts` -- expected: existing invitation lifecycle remains compatible with the first-Admin handoff.
-- `pnpm vitest run tests/unit/admin-users/admin-user-service.test.ts` -- expected: provider uncertainty/retry semantics remain covered after approved orchestration changes.
+- `pnpm vitest run tests/unit/provisioning/provisioning-contract.test.ts tests/unit/server/authz/permission-matrix.test.ts` -- expected: strict-schema, canonicalisation, state, baseline, and non-granting metadata cases pass.
+- `SUPABASE_TEST_REQUIRED=1 pnpm vitest run tests/integration/commands/provision-tenant.int.test.ts tests/integration/rls/platform-operators.rls.test.ts tests/integration/rls/provisioning-migration-reset.int.test.ts tests/integration/rls/security-definer-search-path.rls.test.ts` -- expected: required suites execute with zero skips and prove 12.1-INT-001..013.
+- `pnpm vitest run tests/unit/admin-users/admin-user-service.test.ts tests/integration/commands/admin-user-management.int.test.ts` -- expected: existing callback, retry, and acceptance semantics remain compatible.
+- `pnpm lint && pnpm typecheck` -- expected: platform metadata cannot leak into tenant-only consumers.
 
 ## Auto Run Result
 
@@ -153,4 +159,4 @@ Blocking condition: intent gap
 Evidence gathered: Existing Epic 11 invitation prepare/finalize/reconcile RPCs require an active tenant administrator, so they cannot write the first-Admin handoff state for a platform operator who is not a tenant member. The draft also does not define the opaque invitation-token lifecycle required by the existing acceptance binding, the exact retry versus replay behavior, the baseline catalogue/version authority, email and VAT canonicalisation, the `ready` predicate, or the platform-module activation changes required by manifest/permission coherence.
 Unanswered questions: Which operation(s) of the sole `provision_tenant` authority persist and audit post-provider outcomes, reconciliation, and first-Admin readiness without adding another SECURITY DEFINER surface; how are opaque invite attempt tokens generated, held only server-side, reused or replaced on reconciliation, and bound to redirect/acceptance; whether a same request-id replay may initiate provider work or is reconciliation-only, including its result/attempt policy; what authoritative baseline catalogue/version and persisted projection define `PREVIEW_STALE`; what email and VAT canonicalisation/validation contract applies; what durable invitation/Auth facts make `ready`; and how platform activation supplies a non-granting permission-matrix row while preventing the active platform module from being selected as a tenant entitlement.
 
-Current planning status: draft — the 2026-09-17 and 2026-09-19 owner-approved contract in this document resolves both historical intent-gap blockers; no live planning question remains for Story 12.1.
+Current planning status: ready-for-dev — the owner-approved contract resolves both historical intent gaps and the implementation/test map has concrete targets. Halted after planning; no implementation was run.
