@@ -148,7 +148,7 @@ deferred: []
 - addressed_findings:
   - none — the high-severity authority-boundary finding requires an owner-approved replacement of the caller-controlled legacy `provision` protocol; preserving the current shared implementation is required while that decision is pending.
 
-### 2026-09-19 — Final repair pass
+### 2026-09-19 — Review pass
 - intent_gap: 0
 - bad_spec: 0
 - patch: 10 (high 6, medium 4, low 0)
