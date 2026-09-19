@@ -9,6 +9,12 @@ import {
   decodeProvisioningRequest,
 } from "@/server/commands/provisioning/validation";
 import { PERMISSION_MATRIX } from "@/server/authz/permission-matrix";
+import {
+  canonicalProvisioningAttestationBytes,
+  signProvisioningAttestation,
+  verifyProvisioningAttestation,
+} from "@/server/provisioning/attestation";
+import { provisioningCommandTestHooks } from "@/server/commands/provisioning/provision-tenant";
 
 function validRequest() {
   return {
@@ -69,4 +75,51 @@ test("[P0] 12.1-UNIT-003 classifies Platform.Operator.Access without making it t
   assert.deepEqual(PERMISSION_MATRIX.provisioning["Platform.Operator.Access"], {
     roles: [], scope: "platform", tenantGrantable: false, tenantRoles: [],
   });
+});
+
+test("[P0] 12.1-UNIT-003 binds the provisioning attestation to actor, action, generation, and expiry", () => {
+  const proof = {
+    action: "reserve_dispatch", actorUserId: "00000000-0000-0000-0000-000000000001",
+    requestId: "00000000-0000-0000-0000-000000000002", requestHash: "a".repeat(64), organizationNumber: "5561234567",
+    previewHash: "b".repeat(64), baselineId: "standard-se", baselineVersion: 1, baselineContentHash: "c".repeat(64),
+    tokenHash: "d".repeat(64), reservationId: "00000000-0000-0000-0000-000000000003", dispatchGeneration: 2,
+    approvalGeneration: 1, outcome: "", keyId: "test_v1", issuedAt: "2026-09-19T10:00:00.000Z", expiresAt: "2026-09-19T10:02:00.000Z",
+  } as const;
+  const secret = "local-test-only-provisioning-attestation-secret-v1";
+  const signature = signProvisioningAttestation(proof, secret);
+  assert.ok(verifyProvisioningAttestation(proof, secret, signature));
+  assert.ok(!verifyProvisioningAttestation({ ...proof, dispatchGeneration: 3 }, secret, signature));
+  assert.notDeepEqual(canonicalProvisioningAttestationBytes(proof), canonicalProvisioningAttestationBytes({ ...proof, outcome: "unknown" }));
+});
+
+test("[P0] 12.1-UNIT-003 maps only documented RPC errors and rejects malformed durable retry facts", () => {
+  assert.deepEqual(provisioningCommandTestHooks.documentedRpcFailure({ message: "PREVIEW_STALE" }), { ok: false, code: "PREVIEW_STALE" });
+  assert.deepEqual(provisioningCommandTestHooks.documentedRpcFailure({ message: "database internals" }), { ok: false, code: "PROVISIONING_DENIED" });
+
+  const tenantId = "00000000-0000-4000-8000-000000000001";
+  const facts = {
+    tenantId, requestId: "00000000-0000-4000-8000-000000000002", requestHash: "a".repeat(64),
+    organizationNumber: "5561234567", previewHash: "b".repeat(64), baselineId: "standard-se",
+    baselineVersion: 1, baselineContentHash: "c".repeat(64), approvalGeneration: 1, dispatchGeneration: 1,
+  };
+  assert.deepEqual(provisioningCommandTestHooks.durableRetryFacts(facts, tenantId), facts);
+  assert.equal(provisioningCommandTestHooks.durableRetryFacts({ ...facts, requestHash: "not-a-hash" }, tenantId), null);
+});
+
+test("[P0] 12.1-UNIT-003 recognizes only a complete outstanding reservation for unknown reconciliation", () => {
+  const tenantId = "00000000-0000-4000-8000-000000000001";
+  const facts = {
+    tenantId, requestId: "00000000-0000-4000-8000-000000000002", requestHash: "a".repeat(64),
+    organizationNumber: "5561234567", previewHash: "b".repeat(64), baselineId: "standard-se",
+    baselineVersion: 1, baselineContentHash: "c".repeat(64), approvalGeneration: 1, dispatchGeneration: 1,
+  };
+  const outstanding = {
+    ...facts, reservationId: "00000000-0000-4000-8000-000000000003", reservationOutcome: null,
+    reservationDispatchGeneration: 1, reservationApprovalGeneration: 1, tokenHash: "d".repeat(64),
+  };
+  assert.deepEqual(provisioningCommandTestHooks.outstandingReservation(outstanding, facts), {
+    reservationId: outstanding.reservationId, dispatchGeneration: 1, approvalGeneration: 1, tokenHash: outstanding.tokenHash,
+  });
+  assert.equal(provisioningCommandTestHooks.outstandingReservation({ ...outstanding, tokenHash: "bad" }, facts), null);
+  assert.equal(provisioningCommandTestHooks.outstandingReservation({ ...outstanding, reservationOutcome: "requested" }, facts), null);
 });

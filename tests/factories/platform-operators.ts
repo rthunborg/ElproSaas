@@ -7,7 +7,9 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { createHash, randomBytes } from "node:crypto";
 import { canonicalizeProvisioningRequest, createProvisioningPreview } from "@/server/commands/provisioning/validation";
 import { findProvisioningBaseline } from "@/server/provisioning/baselines";
-import { adminExec, adminSession } from "./admin-sql";
+import { signProvisioningAttestation, type ProvisioningAttestation } from "@/server/provisioning/attestation";
+import { LOCAL_TEST_PROVISIONING_ATTESTATION_KEY_ID, LOCAL_TEST_PROVISIONING_ATTESTATION_SECRET } from "../support/test-env";
+import { adminExec, adminQuery, adminSession } from "./admin-sql";
 import {
   admin,
   cleanupFixture,
@@ -95,8 +97,7 @@ function prepared(input: StrictProvisioningRequest) {
   const baseline = findProvisioningBaseline(input.baseline_profile_id, input.baseline_profile_version);
   if (!baseline) failure("PREVIEW_STALE");
   const preview = createProvisioningPreview(input, baseline);
-  const token = randomBytes(32).toString("base64url");
-  return { baseline, preview, token, tokenHash: createHash("sha256").update(token).digest("hex") };
+  return { baseline, preview };
 }
 
 const FAULT_TABLES = {
@@ -150,6 +151,7 @@ export async function cleanupPlatformOperatorFixture(
 ): Promise<void> {
   await admin().from("platform_operators").delete().eq("user_id", fixture.operator.id);
   await cleanupFixture(fixture.base);
+  localInvitationTokens.clear();
   if (current === fixture) current = null;
 }
 
@@ -211,16 +213,26 @@ export async function executeApprovedProvisioning(
   options: Record<string, unknown> = {},
 ): Promise<ProvisioningResult> {
   const fixture = await activeFixture();
-  const { baseline, preview, token, tokenHash } = prepared(input);
+  const { baseline, preview } = prepared(input);
   if (options.previewHash && options.previewHash !== preview.preview_hash) failure("PREVIEW_HASH_MISMATCH", { residualRows: 0 });
   if (options.baselineDrift) failure("PREVIEW_STALE", { residualRows: 0 });
   const client = await makePlatformOperatorClient(fixture.operator);
+  const operatorCheck = await client.rpc("is_platform_operator");
+  if (operatorCheck.error || operatorCheck.data !== true) failure("OPERATOR_FIXTURE_DENIED");
+  const canonical = canonicalizeProvisioningRequest(input);
+  const issuedAt = new Date().toISOString();
+  const attestation: ProvisioningAttestation = {
+    action: "provision", actorUserId: fixture.operator.id, requestId: String(input.request_id), requestHash: canonical.canonicalRequestHash,
+    organizationNumber: canonical.normalizedOrganizationNumber, previewHash: preview.preview_hash,
+    baselineId: baseline.id, baselineVersion: baseline.version, baselineContentHash: baseline.contentHash,
+    tokenHash: "0".repeat(64), reservationId: "", dispatchGeneration: 0, approvalGeneration: 1, outcome: "",
+    keyId: LOCAL_TEST_PROVISIONING_ATTESTATION_KEY_ID, issuedAt, expiresAt: new Date(Date.parse(issuedAt) + 120_000).toISOString(),
+  };
   const invoke = async () => await client.rpc("provision_tenant", {
     p_action: "provision",
     p_request: {
-      ...input, normalized_organization_number: input.organization_number.replace(/[\s-]/g, ""),
-      canonical_request_hash: createHash("sha256").update(JSON.stringify(Object.fromEntries(Object.keys(input).sort().map((key) => [key, input[key as keyof StrictProvisioningRequest]])))).digest("hex"),
-      preview_hash: preview.preview_hash, baseline_content_hash: baseline.contentHash, invitation_token_hash: tokenHash,
+      request: input, preview_hash: preview.preview_hash, explicit_approval: true,
+      attestation, attestation_signature: signProvisioningAttestation(attestation, LOCAL_TEST_PROVISIONING_ATTESTATION_SECRET),
     },
   });
   const failAt = options.failAt;
@@ -243,8 +255,6 @@ export async function executeApprovedProvisioning(
   const result = data as { tenantId?: string; provisioningState?: string };
   if (!result?.tenantId) failure("PROVISIONING_DENIED");
   lastProvisionedTenantId = result.tenantId;
-  // Test-process-only capability retention; never returned by an RPC or logged.
-  localInvitationTokens.set(result.tenantId, token);
   const [memberships, audits] = await Promise.all([
     admin().from("tenant_memberships").select("id", { count: "exact", head: true }).eq("tenant_id", result.tenantId).eq("status", "invited"),
     admin().from("audit_events").select("id", { count: "exact", head: true }).eq("tenant_id", result.tenantId).eq("command", "provisioning.approve"),
@@ -256,6 +266,61 @@ export async function executeApprovedProvisioning(
     databaseCommitObservedBeforeProvider: true, fixtureId: result.tenantId, reconciliationAction: (data as { replayed?: boolean }).replayed ? "observed" : "created",
     cleanup: async () => cleanupPlatformOperatorFixture(fixture),
   };
+}
+
+type DispatchReservation = {
+  readonly tokenHash: string;
+  readonly data: Record<string, unknown>;
+};
+
+/**
+ * Mirrors the server's initial provider handoff: the raw token remains in the
+ * test process, while the signed RPC receives only its hash and returns the
+ * authoritative binding for the provider/acceptance path.
+ */
+async function reserveFirstDispatchForTest(
+  fixture: PlatformOperatorFixture,
+  tenantId: string,
+  rawToken: string,
+): Promise<DispatchReservation> {
+  const [request] = await adminQuery<{
+    request_id: string;
+    canonical_request_hash: string;
+    preview_hash: string;
+    approval_generation: number;
+    normalized_organization_number: string;
+    provisioning_baseline_id: string;
+    provisioning_baseline_version: number;
+    provisioning_baseline_content_hash: string;
+  }>(
+    `select r.request_id,r.canonical_request_hash,r.preview_hash,r.approval_generation,t.normalized_organization_number,t.provisioning_baseline_id,t.provisioning_baseline_version,t.provisioning_baseline_content_hash from public.tenant_provisioning_requests r join public.tenants t on t.id=r.tenant_id where r.tenant_id=$1`,
+    [tenantId],
+  );
+  if (!request) failure("PROVISIONING_DENIED");
+  const issuedAt = new Date().toISOString();
+  const tokenHash = createHash("sha256").update(rawToken).digest("hex");
+  const attestation: ProvisioningAttestation = {
+    action: "reserve_dispatch", actorUserId: fixture.operator.id,
+    requestId: request.request_id, requestHash: request.canonical_request_hash,
+    organizationNumber: request.normalized_organization_number, previewHash: request.preview_hash,
+    baselineId: request.provisioning_baseline_id, baselineVersion: request.provisioning_baseline_version,
+    baselineContentHash: request.provisioning_baseline_content_hash, tokenHash, reservationId: "",
+    dispatchGeneration: 0, approvalGeneration: request.approval_generation, outcome: "",
+    keyId: LOCAL_TEST_PROVISIONING_ATTESTATION_KEY_ID, issuedAt,
+    expiresAt: new Date(Date.parse(issuedAt) + 120_000).toISOString(),
+  };
+  const client = await makePlatformOperatorClient(fixture.operator);
+  const { data, error } = await client.rpc("provision_tenant", {
+    p_action: "reserve_dispatch",
+    p_request: {
+      tenant_id: tenantId,
+      token_hash: tokenHash,
+      attestation,
+      attestation_signature: signProvisioningAttestation(attestation, LOCAL_TEST_PROVISIONING_ATTESTATION_SECRET),
+    },
+  });
+  if (error || !data || typeof data !== "object") failure(error?.code ?? "PROVISIONING_DENIED");
+  return { tokenHash, data: data as Record<string, unknown> };
 }
 
 export async function previewProvisioningForTest(
@@ -309,37 +374,98 @@ export async function retryFirstAdminInviteForTest(
   options: Record<string, unknown>,
 ): Promise<RetryResult> {
   const fixture = await activeFixture();
-  const provisioned = await executeApprovedProvisioning(await createStrictProvisioningRequest(), { preserveFixture: true });
+  const input = await createStrictProvisioningRequest();
+  const provisioned = await executeApprovedProvisioning(input, { preserveFixture: true });
   const providerOutcome = options.providerOutcome === "failed" ? "failed" : options.providerOutcome === "timeout" ? "unknown" : "requested";
   const client = await makePlatformOperatorClient(fixture.operator);
-  const reserve = async (freshApproval = false) => {
-    const preview = await admin().from("tenant_provisioning_requests").select("preview_hash").eq("tenant_id", provisioned.tenantId).single();
+  const requestFacts = async () => {
+    const rows = await adminQuery<{ request_id: string; canonical_request_hash: string; preview_hash: string; approval_generation: number; normalized_organization_number: string; provisioning_baseline_id: string; provisioning_baseline_version: number; provisioning_baseline_content_hash: string }>(
+      `select r.request_id,r.canonical_request_hash,r.preview_hash,r.approval_generation,t.normalized_organization_number,t.provisioning_baseline_id,t.provisioning_baseline_version,t.provisioning_baseline_content_hash from public.tenant_provisioning_requests r join public.tenants t on t.id=r.tenant_id where r.tenant_id=$1`, [provisioned.tenantId],
+    );
+    const request = rows[0]; if (!request) failure("PROVISIONING_DENIED");
+    return {
+      requestId: request.request_id, requestHash: request.canonical_request_hash, organizationNumber: request.normalized_organization_number, previewHash: request.preview_hash, baselineId: request.provisioning_baseline_id, baselineVersion: request.provisioning_baseline_version, baselineContentHash: request.provisioning_baseline_content_hash, approvalGeneration: request.approval_generation,
+    };
+  };
+  const proof = (action: string, facts: Record<string, unknown>): { attestation: ProvisioningAttestation; signature: string } => {
+    const issuedAt = new Date().toISOString();
+    const attestation: ProvisioningAttestation = {
+      action, actorUserId: fixture.operator.id,
+      requestId: String(facts.requestId), requestHash: String(facts.requestHash), organizationNumber: String(facts.organizationNumber),
+      previewHash: String(facts.previewHash), baselineId: String(facts.baselineId), baselineVersion: Number(facts.baselineVersion),
+      baselineContentHash: String(facts.baselineContentHash), tokenHash: String(facts.tokenHash), reservationId: String(facts.reservationId ?? ""),
+      dispatchGeneration: Number(facts.dispatchGeneration ?? 0), approvalGeneration: Number(facts.approvalGeneration), outcome: String(facts.outcome ?? ""),
+      keyId: LOCAL_TEST_PROVISIONING_ATTESTATION_KEY_ID, issuedAt, expiresAt: new Date(Date.parse(issuedAt) + 120_000).toISOString(),
+    };
+    return { attestation, signature: signProvisioningAttestation(attestation, LOCAL_TEST_PROVISIONING_ATTESTATION_SECRET) };
+  };
+  const reserve = async (renewal = false) => {
+    const tokenHash = createHash("sha256").update(randomBytes(32)).digest("hex");
+    const facts = await requestFacts();
+    // Dispatch four is a new approval event. Re-run the stateless preview from
+    // the original immutable request and attest a generation newer than the
+    // persisted approval. The RPC treats the signed generation as authority;
+    // this flag only records the explicit UI confirmation required by the flow.
+    const approvalGeneration = renewal ? facts.approvalGeneration + 1 : facts.approvalGeneration;
+    const previewHash = renewal ? prepared(input).preview.preview_hash : facts.previewHash;
+    const attestation = proof("reserve_dispatch", {
+      ...facts,
+      previewHash,
+      approvalGeneration,
+      tokenHash,
+    });
     const response = await client.rpc("provision_tenant", { p_action: "reserve_dispatch", p_request: {
       tenant_id: provisioned.tenantId,
-      invitation_token_hash: createHash("sha256").update(randomBytes(32)).digest("hex"),
-      ...(freshApproval ? { fresh_approval: true, preview_hash: preview.data?.preview_hash } : {}),
+      token_hash: tokenHash,
+      preview_hash: previewHash,
+      explicit_approval: renewal,
+      attestation: attestation.attestation,
+      attestation_signature: attestation.signature,
     } });
-    return response;
+    return {
+      ...response,
+      data: response.data && typeof response.data === "object"
+        ? { ...response.data, tokenHash }
+        : response.data,
+    };
+  };
+  const record = async (action: "record_requested" | "record_unknown" | "record_failed", reservation: Record<string, unknown>) => {
+    const attestation = proof(action, {
+      ...await requestFacts(),
+      ...reservation,
+      tokenHash: String(reservation.tokenHash),
+      reservationId: reservation.reservationId,
+      dispatchGeneration: reservation.dispatchGeneration,
+      outcome: action.replace("record_", ""),
+    });
+    return client.rpc("provision_tenant", { p_action: action, p_request: {
+      tenant_id: provisioned.tenantId,
+      reservation_id: reservation.reservationId,
+      dispatch_generation: reservation.dispatchGeneration,
+      attestation: attestation.attestation,
+      attestation_signature: attestation.signature,
+    } });
   };
   if (options.attemptNumber === 4) {
     for (let index = 0; index < 3; index += 1) {
       const reserved = await reserve();
       if (reserved.error) failure(reserved.error.code ?? "PROVISIONING_DENIED");
-      await client.rpc("provision_tenant", { p_action: "record_unknown", p_request: { tenant_id: provisioned.tenantId } });
+      const outcome = await record("record_unknown", reserved.data as Record<string, unknown>);
+      if (outcome.error) failure(outcome.error.code ?? "PROVISIONING_DENIED");
     }
     if (!options.freshPreviewAndApproval) return { provisioningState: "first_admin_invite_unknown", providerCallCount: 0, attemptNumber: 3, deliveryClaimed: false, sanitizedOutcomePersisted: true, requiresFreshPreviewAndApproval: true, tokenRotated: false, previousTokenRevoked: false, automaticResendCount: 0, tokenReused: false, tokenHashPersisted: true, tokenBinding: {} };
   }
-  const previous = await admin().from("tenant_provisioning_invites").select("token_hash").eq("tenant_id", provisioned.tenantId).single();
-  const reservation = await reserve(options.freshPreviewAndApproval === true);
+  const [previous] = await adminQuery<{ token_hash: string }>("select token_hash from public.tenant_provisioning_invites where tenant_id=$1", [provisioned.tenantId]);
+  const reservation = await reserve(options.attemptNumber === 4 && options.freshPreviewAndApproval === true);
   if (reservation.error) failure(reservation.error.code ?? "PROVISIONING_DENIED");
   const action = providerOutcome === "requested" ? "record_requested" : providerOutcome === "unknown" ? "record_unknown" : "record_failed";
-  const { data, error } = await client.rpc("provision_tenant", { p_action: action, p_request: { tenant_id: provisioned.tenantId } });
+  const { data, error } = await record(action, reservation.data as Record<string, unknown>);
   if (error) failure(error.code ?? "PROVISIONING_DENIED");
   const result = data as { provisioningState?: string; attemptNumber?: number };
-  const rotated = await admin().from("tenant_provisioning_invites").select("token_hash,revoked_token_hash,membership_id,normalized_email,role,expires_at").eq("tenant_id", provisioned.tenantId).single();
-  const tokenRotated = rotated.data?.token_hash !== previous.data?.token_hash;
-  const previousTokenRevoked = rotated.data?.revoked_token_hash === previous.data?.token_hash;
-  return { provisioningState: result.provisioningState ?? "first_admin_invite_unknown", providerCallCount: 1, attemptNumber: result.attemptNumber ?? 1, deliveryClaimed: false, sanitizedOutcomePersisted: true, requiresFreshPreviewAndApproval: false, tokenRotated, previousTokenRevoked, automaticResendCount: 0, tokenReused: false, tokenHashPersisted: true, tokenBinding: { invitationId: provisioned.tenantId, tenantId: provisioned.tenantId, membershipId: rotated.data?.membership_id, normalizedEmail: rotated.data?.normalized_email, role: rotated.data?.role, expiresAt: rotated.data?.expires_at } };
+  const [rotated] = await adminQuery<{ token_hash: string; revoked_token_hash: string | null; membership_id: string; normalized_email: string; role: string; expires_at: Date | string }>("select token_hash,revoked_token_hash,membership_id,normalized_email,role,expires_at from public.tenant_provisioning_invites where tenant_id=$1", [provisioned.tenantId]);
+  const tokenRotated = rotated?.token_hash !== previous?.token_hash;
+  const previousTokenRevoked = rotated?.revoked_token_hash === previous?.token_hash;
+  return { provisioningState: result.provisioningState ?? "first_admin_invite_unknown", providerCallCount: 1, attemptNumber: result.attemptNumber ?? 1, deliveryClaimed: false, sanitizedOutcomePersisted: true, requiresFreshPreviewAndApproval: false, tokenRotated, previousTokenRevoked, automaticResendCount: 0, tokenReused: false, tokenHashPersisted: true, tokenBinding: { invitationId: provisioned.tenantId, tenantId: provisioned.tenantId, membershipId: rotated?.membership_id, normalizedEmail: rotated?.normalized_email, role: rotated?.role, expiresAt: rotated?.expires_at instanceof Date ? rotated.expires_at.toISOString() : rotated?.expires_at } };
 }
 
 export async function inspectProvisioningAuditForTest(): Promise<Record<string, unknown>> {
@@ -365,42 +491,58 @@ export async function acceptProvisionedFirstAdminForTest(): Promise<Record<strin
   });
   if (created.error || !created.data.user) failure("AUTH_FIXTURE_FAILED");
   const authUser = { id: created.data.user.id, email: input.first_admin_email, password };
+  let provisionedTenantId: string | null = null;
   try {
     const provisioned = await executeApprovedProvisioning(input, { preserveFixture: true });
-    const invitation = await admin().from("tenant_provisioning_invites")
-      .select("membership_id, token_hash, normalized_email, role, expires_at")
-      .eq("tenant_id", provisioned.tenantId).single();
-    if (invitation.error || !invitation.data) failure("INVITATION_NOT_FOUND");
+    provisionedTenantId = provisioned.tenantId;
+    // The initial provision only creates the pending invite intent. Reserve the
+    // first dispatch through the signed operator protocol so acceptance uses the
+    // currently bound token hash, exactly as the provider handoff would.
+    const rawToken = randomBytes(32).toString("base64url");
+    const reservation = await reserveFirstDispatchForTest(
+      await activeFixture(),
+      provisioned.tenantId,
+      rawToken,
+    );
+    // Capability retention is test-process-only and is consumed below. It is
+    // never returned from the reservation, persisted, logged, or audited.
+    localInvitationTokens.set(provisioned.tenantId, rawToken);
+    const [invitation] = await adminQuery<{ membership_id: string; token_hash: string; normalized_email: string; role: string; expires_at: string }>("select membership_id,token_hash,normalized_email,role,expires_at from public.tenant_provisioning_invites where tenant_id=$1", [provisioned.tenantId]);
+    if (!invitation) failure("INVITATION_NOT_FOUND");
+    if (invitation.token_hash !== reservation.tokenHash) failure("INVITATION_TOKEN_BINDING_MISMATCH");
     // Existing local stacks may predate this migration edit. This TEST-ONLY
     // compatibility row mirrors the migration's Epic-11 binding, allowing the
     // acceptance/projection assertion to run against the authorized stack.
     const operation = await admin().from("membership_admin_operations").insert({
       id: crypto.randomUUID(), tenant_id: provisioned.tenantId, actor_user_id: (await activeFixture()).operator.id,
-      membership_id: invitation.data.membership_id, action: "invite", outcome: "succeeded",
-      invitation_token_hash: invitation.data.token_hash, invitation_expires_at: invitation.data.expires_at,
+      membership_id: invitation.membership_id, action: "invite", outcome: "succeeded",
+      invitation_token_hash: invitation.token_hash, invitation_expires_at: invitation.expires_at,
       completed_at: new Date().toISOString(),
     });
     if (operation.error) failure(`INVITATION_OPERATION_FAILED:${operation.error.message}`);
-    const tokenHash = createHash("sha256").update(localInvitationTokens.get(provisioned.tenantId) ?? "").digest("hex");
+    const retainedRawToken = localInvitationTokens.get(provisioned.tenantId);
+    if (!retainedRawToken) failure("INVITATION_TOKEN_NOT_RETAINED");
+    const tokenHash = createHash("sha256").update(retainedRawToken).digest("hex");
     const accepted = await adminSession(async ({ query }) => {
       await query("select set_config('request.jwt.claim.sub', $1, false)", [authUser.id]);
       const rows = await query<{ accepted: boolean }>(
         "select public.admin_accept_membership_invitation($1::uuid,$2::text,$3::uuid,$4::text) as accepted",
-        [invitation.data.membership_id, tokenHash, authUser.id, input.first_admin_email],
+        [invitation.membership_id, tokenHash, authUser.id, input.first_admin_email],
       );
       return rows[0]?.accepted === true;
     });
     const tenant = await admin().from("tenants").select("provisioning_state").eq("id", provisioned.tenantId).single();
-    const membership = await admin().from("tenant_memberships").select("status,user_id").eq("id", invitation.data.membership_id).single();
+    const [membership] = await adminQuery<{ status: string; user_id: string | null }>("select status,user_id from public.tenant_memberships where id=$1", [invitation.membership_id]);
     return {
       accepted,
       provisioningState: tenant.data?.provisioning_state,
-      membershipStatus: membership.data?.status,
-      membershipUserId: membership.data?.user_id,
+      membershipStatus: membership?.status,
+      membershipUserId: membership?.user_id,
       expectedUserId: authUser.id,
-      tokenBinding: invitation.data,
+      tokenBinding: invitation,
     };
   } finally {
+    if (provisionedTenantId) localInvitationTokens.delete(provisionedTenantId);
     await admin().auth.admin.deleteUser(created.data.user.id);
   }
 }

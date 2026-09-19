@@ -2,8 +2,8 @@
 title: 'Story 12.1: Platform Operator Identity and the Provision-Tenant Command'
 type: 'feature'
 created: '2026-09-19'
-status: 'in-progress'
-baseline_revision: '6a21d4f29b46b9090850f715aa61d8ab1631e436'
+status: 'in-review'
+baseline_revision: 'ded8b928462ff25790fcc425582b09c89389ae05'
 baseline_commit: 'f1330d0319920d52120cabf9797288a6e46c4e9c'
 review_loop_iteration: 0
 followup_review_recommended: false
@@ -208,43 +208,37 @@ Current planning status: in-progress — Decision 8A closes the live authority/p
 ## Suggested Review Order
 
 Author: implementation author.
-Refreshed against the current shared working tree after the Decision 7C rotation migration.
+Refreshed against the current shared working tree after the Decision 8A authority replacement.
 
-### Platform authority and atomic provisioning
+### Operator-bound attestation boundary
 
-The platform allow-list is deliberately separate from tenant roles, and the one RPC checks it before accepting any action. Initial provisioning writes the tenant, first-admin invitation facts, idempotency record, and nonsecret audit event in one transaction.
+The server signs a fixed, length-prefixed envelope over the current Auth actor and every mutation-relevant fact. The migration accepts only that envelope at the sole normal-JWT RPC and removes runtime-table access from JWT and service roles.
 
-- `supabase/migrations/20260919090000_tenant_provisioning.sql:13` — `is_platform_operator`: hardened platform-only predicate.
-- `supabase/migrations/20260919090000_tenant_provisioning.sql:50` — `provision_tenant`: sole provisioning DEFINER command with an action allow-list.
-- `supabase/migrations/20260919090000_tenant_provisioning.sql:83` — `audit_events`: records the approval boundary without raw invitation material.
+- `src/server/provisioning/attestation.ts:4` — `PROVISIONING_ATTESTATION_DOMAIN`: separates provisioning HMAC bytes from other authorities.
+- `src/server/provisioning/attestation.ts:32` — `canonicalProvisioningAttestationBytes`: fixes the Node/Postgres length-prefixed signing protocol.
+- `supabase/migrations/20260919120000_provisioning_decision_8a_authority.sql:92` — `provision_tenant`: checks the live operator and attestation before every action.
+- `supabase/migrations/20260919120000_provisioning_decision_8a_authority.sql:150` — `revoke all on function public.provision_tenant`: removes service-role and public execution.
 
-### Stateless preview and bounded provider orchestration
+### Database-first invite reservation
 
-Preview construction is pure and performs no database or Auth work. The server command reuses that preview hash for the approved write and reconciles before its explicit, one-call provider retry path.
+The pure preview remains outside database construction. Provisioning commits before any provider work, while retry generates a token only in server memory and receives the email and membership identity from the durable reservation.
 
-- `src/server/commands/provisioning/validation.ts:79` — `createProvisioningPreview`: hash-bound zero-write preview authority.
-- `src/server/commands/provisioning/provision-tenant.ts:30` — `previewTenantProvisioning`: does not construct a database client.
-- `src/server/commands/provisioning/provision-tenant.ts:38` — `retryFirstAdminInvite`: reconciles before the provider attempt and records only a sanitized outcome.
+- `src/server/commands/provisioning/provision-tenant.ts:26` — `provisionTenant`: derives the proof from the normal authenticated server client.
+- `src/server/commands/provisioning/provision-tenant.ts:54` — `retryFirstAdminInvite`: uses reservation facts instead of caller-provided provider identity.
+- `supabase/migrations/20260919120000_provisioning_decision_8a_authority.sql:5` — `provisioning_function_owner`: confines the RPC to a non-login owner role.
 
-### Per-dispatch token rotation
+### Focused evidence and limits
 
-Decision 7C requires an explicit reservation before each provider call. The additive wrapper preserves the original RPC actions privately, while the public RPC atomically replaces a hash, supersedes the old Epic 11 capability, and records a new generation without exposing raw token material.
+The unit contract exercises the attestation byte protocol and mutation-relevant bindings alongside the existing strict request, state, and platform-classification checks.
 
-- `supabase/migrations/20260919100000_provisioning_dispatch_generation_rotation.sql:19` — `reserve_dispatch`: delegates unchanged actions and authorizes the bounded reservation action.
-- `supabase/migrations/20260919100000_provisioning_dispatch_generation_rotation.sql:45` — `superseded_at`: invalidates the prior Epic 11 capability before the fresh generation is inserted.
-- `supabase/migrations/20260919100100_provisioning_previous_token_hash.sql:6` — `capture_provisioning_revoked_token_hash`: retains only the superseded hash for durable revocation evidence.
-- `tests/integration/commands/provision-tenant.int.test.ts:146` — `12.1-INT-008`: verifies token rotation, bounded attempt four, and no delivery claim.
-- `tests/integration/commands/provision-tenant.int.test.ts:175` — `12.1-INT-009`: verifies timeout stays unknown and the callback binding contains no raw token.
+- `tests/unit/provisioning/provisioning-contract.test.ts:79` — `binds the provisioning attestation`: actor, action, generation, and payload tampering invalidate the proof.
 
-### Platform classification and executed boundaries
+Evidence: this run passed the Node provisioning contract suite (7/7), focused ESLint, `git diff --check`, and review-order validation. The migration applied SQL-only to the authorized local stack. Full `pnpm typecheck` ran but remains blocked by pre-existing `tmp/private/**` and `tmp/worktrees/**` errors.
+Limits: the required reset/reseed that installs the new local-only Vault key was rejected by approval review because it destructively recreates the database. The RLS, grant, rollback, and provider-boundary integration assertions need rerunning after that approved reset. Provider acceptance is not evidence of email delivery.
 
-The active provisioning module has a non-granting permission row, so no tenant role can obtain platform authority. The required RLS/reset tests exercise the migrated local stack, including the hardened database-object and grant canary.
+Current implementation result (2026-09-19):
 
-- `src/server/authz/permission-matrix.ts:21` — `Platform.Operator.Access`: explicit platform-only, non-granting row.
-- `tests/unit/provisioning/provisioning-contract.test.ts:23` — `12.1-UNIT-001`: strict v1 field and deferred-scope rejection.
-- `tests/integration/rls/platform-operators.rls.test.ts:13` — `12.1-INT-001`: own-row-only platform allow-list read.
-- `tests/integration/rls/provisioning-migration-reset.int.test.ts:7` — `12.1-INT-013`: hardened object/grant/reset canary.
-- `tests/factories/platform-operators.ts:112` — `withProvisioningWriteFault`: temporary local-test triggers induce each transactional write failure without expanding production RPC input.
-
-Evidence: this run passed the Node provisioning contracts (6/6), the required provisioning/RLS suite with `SUPABASE_TEST_REQUIRED=1` (18/18, zero skipped), and the existing admin-user integration suite (6/6). It applied the two additive migrations to the authorised local stack before the required suite. `git diff --check` passed.
-Limits: this is a local-stack provider-boundary simulation; provider acceptance is not evidence that email was delivered. A full repository typecheck remains affected by unrelated tracked temporary paths, so only focused TypeScript-bearing test execution is reported here.
+Status: blocked
+Blocking condition: implementation verification failed
+Evidence gathered: the Decision 8A server attestation module, command orchestration, authority migrations, additive local Vault fixture, and retry fixtures were updated. The provisioning contract unit suite passed 7/7; structural RLS/migration checks passed 9/9 with `SUPABASE_TEST_REQUIRED=1`; focused lint, diff, and review-order validation passed. The provisioning integration suite still failed 7/9 because the locally applied function body retains a direct `auth.uid()` dependency unavailable to the non-login function owner.
+Remaining required work: add and apply the additive `CREATE OR REPLACE provision_tenant` migration that derives the actor from the guarded normal-JWT request claim while retaining `is_platform_operator()` as the live `auth.uid()` allow-list check; implement the Decision 8A fresh-preview, monotonic approval-generation path for a fourth dispatch; then rerun the complete required provisioning integration suite. Full `pnpm typecheck` also remains blocked by pre-existing `tmp/**` errors.
