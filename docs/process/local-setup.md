@@ -91,6 +91,8 @@ tenant context). Nothing in the repo consumes these variables yet.
 | `SUPABASE_SERVICE_ROLE_KEY` | **Server-only** | Bypasses RLS. Never `NEXT_PUBLIC_`, never imported into browser/client code. |
 | `SUPABASE_SIGNED_URL_TTL_SECONDS` (optional, forthcoming) | Server-only | Signed-URL TTL in seconds (architecture §6 — env-configurable; keep low in test envs). Consumed by Epic 8. |
 
+Story 12.1 Decision 8A reserves two additional **server-only** configuration names for the implementation rollout: `TENANT_PROVISIONING_ATTESTATION_KEY_ID` and `TENANT_PROVISIONING_ATTESTATION_HMAC_SECRET`, with the matching Vault name `tenant_provisioning_attestation_<key-id>`. These are not evidence that provisioning is deployed and they are not added to an environment file by this documentation change. The secret must be a dedicated 256-bit value, separate from JWT, service-role, and quote-PDF material. Local tests may use an obviously test-only 32-byte value; hosted values never enter source, fixtures, commands, logs, audit, screenshots, or browser output.
+
 Rules (see [`docs/security/security-guardrails.md`](../security/security-guardrails.md), NFR18):
 
 - **No secrets in git.** `.env` and `.env.*` are gitignored; only `.env.example`
@@ -110,6 +112,17 @@ Rules (see [`docs/security/security-guardrails.md`](../security/security-guardra
   `tests/integration/commands/quote-pdf-validity.int.test.ts`; the admin-user service
   test covers the Auth-operation boundary. Any additional use must be documented with
   file path, purpose, and test coverage.
+- **Tenant provisioning never uses the service-role key for database calls.** The
+  server calls the sole `provision_tenant` RPC under the allow-listed operator's normal
+  JWT, and every mutation also carries a short-lived internal HMAC attestation. The
+  service-role-backed Auth Admin adapter may run only after signed `reserve_dispatch`
+  commits, and must derive email, membership, role, expiry, and reservation identity
+  only from that RPC result. It receives no provisioning-table DML authority.
+- Provisioning attestation uses the repository's length-prefixed Node/Postgres HMAC
+  encoding, explicit key IDs, fail-closed verification, a maximum two-minute TTL, and
+  current/previous overlap bounded to that TTL. Never persist, log, audit, or return the
+  attestation. Provision the app secret and filtered Vault secret before deploying the
+  compatible signer; apply the enforcement/removal migration only afterward.
 
 ## Local Supabase (wired)
 

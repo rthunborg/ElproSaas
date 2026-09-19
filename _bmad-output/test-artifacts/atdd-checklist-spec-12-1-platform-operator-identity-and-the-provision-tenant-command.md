@@ -68,7 +68,7 @@ Rationale: The story names the exact unit/integration/RLS scaffold paths and bin
 
 Unknowns:
 
-- Production exports and the provisioning migration do not exist yet, so red-phase unit scaffolds must import the contract's intended module paths and DB scaffolds must assert the planned catalog/RPC behavior.
+- Decision 8A production authority, signer, database catalogue, owner/grants, and enforcement migration do not exist yet. Existing Decision 7C code is historical/incomplete evidence; red-phase scaffolds must assert the superseding catalogue/RPC/attestation behavior and removal of legacy/service-role authority.
 - Local Supabase availability is not assumed during generation; required DB evidence is deferred to the implementation phase with `SUPABASE_TEST_REQUIRED=1`.
 
 ## Generation Mode
@@ -91,12 +91,13 @@ All Story 12.1 scenarios are P0 because they govern privileged tenant creation, 
 | AC8 — non-granting platform permission classification | 12.1-STATIC-001, existing manifest/authz guardrails | Static/unit/catalog | P0 | Scaffolds assert the explicit row and absence from tenant consumers without introducing UI coverage. |
 | AC9 — generic denial, hostile search path, no leakage/effects | 12.1-INT-001, 12.1-INT-002, 12.1-INT-010, 12.1-INT-011 | RLS/catalog/authorization integration | P0 | Separates allow-list visibility, DEFINER hardening, caller denial, and foreign-tenant invariance. |
 | AC10 — reset/catalog/grants/owner/search path/PUBLIC/audit/inventory | 12.1-INT-002, 12.1-INT-013 | Catalog + migration-reset integration | P0 | Catalog test owns function hardening; reset test owns empty-database shape and manifest inventory. |
+| AC11 — dual JWT/HMAC authority, DB catalogue, exact reservation/outcome | 12.1-INT-002, 12.1-INT-003, 12.1-INT-005, 12.1-INT-008..010, 12.1-INT-013 | Catalog + command/DB/Auth integration | P0 | Proves least-privilege owner/grants, full attestation negative matrix, DB/TypeScript catalogue coherence, durable-fact provider input, exact-generation outcomes, and zero legacy/service-role fallback. |
 
 ### Red-Phase Contract
 
 - Every acceptance scaffold is checked in as `test.skip()` so the repository remains runnable before Story 12.1 implementation.
 - To activate RED, remove `test.skip()` only for the implementation task currently being developed, run that focused test, and confirm the failure is caused by the missing production contract—not fixture setup—before writing implementation code.
-- Unit scaffolds dynamically resolve the owner-approved production module path when activated. Integration scaffolds assert the planned `platform_operators` table, `is_platform_operator()` helper, `provision_tenant` RPC, immutable baseline facts, and provisioning state.
+- Unit scaffolds dynamically resolve the owner-approved production module path when activated. Integration scaffolds assert `platform_operators`, the migration-owned insert-only baseline catalogue and TypeScript coherence mirror, `is_platform_operator()`, the sole normal-JWT/server-HMAC `provision_tenant` RPC, dedicated owner/grants/Vault filter, signed reservation/outcome, and provisioning state.
 - Assertions are behavior-bearing; none treats a mock call, optional result, or setup-only condition as acceptance evidence.
 
 ## Red-Phase Test Scaffolds Created
@@ -129,22 +130,24 @@ The command integration harness needs a deterministic server-side Auth Admin ada
 | accepted | One provider call, `first_admin_invite_requested`, no delivery claim. |
 | definitive failure | One provider call, sanitized outcome, `first_admin_invite_failed`. |
 | timeout/lost response | One provider call, `first_admin_invite_unknown`, no automatic resend. |
-| explicit retry after reconciliation | Replay/reconciliation never rotate or dispatch. Attempts 1–3 are distinct fresh-token dispatch generations under one approved snapshot; each resend atomically revokes the prior SHA-256 hash before one provider call, and attempt 4 needs fresh preview/approval plus a new invitation generation. |
+| explicit retry after reconciliation | Replay/reconciliation never rotate or dispatch. Signed `reserve_dispatch` installs the fresh SHA-256/current generation and returns the only permitted provider identity facts; one call follows, then a separately signed exact-reservation outcome. Attempts 1–3 share one signed approval generation; attempt 4 needs fresh preview/approval with a new monotonic generation. |
 
 ## Implementation Checklist
 
-- [ ] Publish the immutable `TENANT_PROVISIONING_BASELINES` entry and align the factory's ID/version with it.
+- [ ] Publish the migration-owned, insert-only database baseline row (ID/version/canonical content/hash), deny runtime DML, retain `TENANT_PROVISIONING_BASELINES` only as the preview/build-time mirror, and prove exact DB/TypeScript coherence.
 - [ ] Implement the strict v1 decoder, canonicalizers, request/preview hashing, transition table, and exact readiness predicate; activate UNIT-001..003 individually.
-- [ ] Add the Story 12.1 migration with `platform_operators`, all-status canonical identity uniqueness, persisted baseline/request/handoff facts, RLS, grants, owners, audit writes, and empty DEFINER search paths.
-- [ ] Implement the sole narrowly actioned `provision_tenant` RPC and prove every transactional fault rolls back.
-- [ ] Implement stateless preview and approved execution with original-request/hash/baseline revalidation and zero preview writes.
+- [ ] Add the Decision 8A enforcement migration with `platform_operators`, insert-only baseline catalogue, all-status identity uniqueness, persisted request/handoff/reservation/generation facts, dedicated least-privilege `NOLOGIN NOINHERIT` owner, filtered Vault read, exact authenticated EXECUTE, revoked PUBLIC/anon/authenticator/service_role execution/DML, audit writes, and empty DEFINER search paths.
+- [ ] Implement the sole narrowly actioned `provision_tenant` RPC under normal operator JWT plus server HMAC; remove the legacy delegate/fallback and broad service-role provisioning DML; prove every invalid proof/fault leaves zero writes.
+- [ ] Implement the dedicated 256-bit app/Vault key, length-prefixed Node/Postgres HMAC, key IDs, fail-closed ≤2-minute TTL/current+previous overlap, full bound projection, and absence of attestation/key material from storage/log/audit/browser. Do not commit a secret.
+- [ ] Implement stateless preview and approved execution with original-request/hash/database-baseline revalidation, server-minted attestation, signed monotonic approval generation, and zero preview writes; never trust `fresh_approval`.
 - [ ] Implement request-id reconciliation, canonical-identity conflict handling, and the equal-identity race path.
-- [ ] Wire server-only post-commit Auth dispatch, sanitized persistence, unknown-response reconciliation, bounded retries, and raw-token absence.
+- [ ] Wire DB commit → signed `reserve_dispatch` → one server-only Auth call using only durable RPC-returned identity facts → signed sanitized exact-reservation outcome; reject caller retry identity and stale/out-of-order/conflicting outcomes; preserve provider-free reconciliation and raw-token absence from the RPC.
 - [ ] Preserve the Epic 11 invitation-token binding and make acceptance project only the exact `ready` predicate.
 - [ ] Activate the manifest `provisioning` module and add `Platform.Operator.Access` as platform-scoped, non-tenant-grantable metadata; keep authorization solely in `is_platform_operator()`.
 - [ ] Replace each red command-driver seam with the real production boundary, remove that scenario's `test.skip()`, confirm RED, implement to GREEN, and retain fixture cleanup.
 - [ ] Run the required local Supabase integration suite with `SUPABASE_TEST_REQUIRED=1` and verify zero skipped required tests.
 - [ ] Run unit/regression, lint, and typecheck commands after all focused tests are green.
+- [ ] Roll out in order: provision app/Vault key, deploy compatible signer/server, apply enforcement/removal migration, verify bounded current/previous overlap; never commit secrets.
 
 Implementation sizing is intentionally left to the DEV workflow; TEA supplies coverage and activation order, not a delivery estimate.
 

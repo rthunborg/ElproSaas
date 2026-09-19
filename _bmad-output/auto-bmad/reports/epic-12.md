@@ -158,3 +158,41 @@ Not reached.
 2. An owner must select the secure token escrow/envelope option or approve a rotation-based retry lifecycle, then confirm the provider callback contract.
 
 **Next:** Record the retry-token decision, set the Story 12.1 spec frontmatter status to in-progress, then re-run /auto-bmad epic --epic 12.
+
+## Report — 2026-09-19T14:11:50Z (halted â€” needs-human)
+
+**Epic:** `12` — 3 stories.
+**Branch:** `codex/epic-12-wave-b1a-tenant-provisioning-and-onboarding` (HEAD `fa92bff`).
+**Pipeline status:** Halted at Story 12.1 Phase 5 â€” Build Auto found an intent gap in the public provisioning authority boundary.
+**Continues:** 2026-09-19T13:26:45Z (halted â€” needs-human)
+
+**Summary:** Decision 7C is locked and its additive token-rotation groundwork is preserved, but review proved that the authenticated public RPC can still bypass the approved server-calculated canonical request, baseline, preview, approval, and dispatch contract.
+
+**Timing:** started 2026-09-17T13:23:20Z; completed in progress — elapsed 48h 48m (≈2h 19m AI-run, ≈46h 29m human/idle wait); resumed 4×.
+
+**Stories:** (none)
+
+**Skipped:** (none)
+
+**Epic gate:** Not run â€” Story 12.1 stopped before the epic-end gates.
+
+**TEA:** Epic-level test design and Story 12.1 ATDD remain complete. Build Auto review recorded one intent gap, twelve patch findings, and five rejected out-of-scope/invalid findings before halting; post-dev TEA was not reached.
+
+**Retrospective:** Not run.
+
+**Overrides:** branch_prefix = codex/ (host instruction)
+
+**Open questions:**
+1. Approve the database authority/protocol that binds public provisioning execution to the server-calculated canonical request, immutable baseline, preview hash, explicit approval, dispatch-generation facts, and server-only token generation.
+2. Decide whether initial provider dispatch and retry commands must derive their operative identity and binding exclusively from durable authority facts rather than caller-supplied legacy RPC JSON.
+
+**Deferred work:**
+1. Complete Story 12.1 review repairs, production provider-boundary tests, final verification, and Build Auto commit after the authority decision.
+2. Stories 12.2 and 12.3 remain pending because epic mode is sequential.
+Not reached.
+
+**⚠️ Needs human:**
+1. build-auto stopped with status `blocked` â€” blocking condition: intent gap.
+2. An owner must approve a replacement provisioning-authority design that closes the direct authenticated-RPC bypass without adding a general privileged write path.
+
+**Next:** Record the provisioning-authority decision, set the Story 12.1 spec frontmatter status to in-progress, then re-run /auto-bmad epic --epic 12.

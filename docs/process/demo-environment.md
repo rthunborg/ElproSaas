@@ -10,7 +10,7 @@ target. It exists so the owner can demo the product and pilot users can try it.
 | --- | --- |
 | Hosting | Vercel project [`elpro-saas`](https://vercel.com/enhancior/elpro-saas) (Enhancior team), auto-deploys from `main` on GitHub `rthunborg/ElproSaas`. |
 | Database | Supabase project **`elprosaas-demo`** — ref `wmqmzznmwpheswjjozhq`, region `eu-north-1` (Stockholm), **Enhancior** org (`oykbutypisxdgifmrxid`), free tier. [Dashboard](https://supabase.com/dashboard/project/wmqmzznmwpheswjjozhq). |
-| App env vars (Vercel) | The 2026-09-10 Production inventory contains `NEXT_PUBLIC_SUPABASE_URL=https://wmqmzznmwpheswjjozhq.supabase.co`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, server-only `SUPABASE_SERVICE_ROLE_KEY`, `QUOTE_PDF_ATTESTATION_KEY_ID`, and `QUOTE_PDF_ATTESTATION_HMAC_SECRET`. On 2026-09-14, Production `NEXT_PUBLIC_APP_URL` was set to `https://elpro-saas.vercel.app`. Seller quote-PDF preview uses the service-role secret only in `src/server/storage/quote-pdf-signer.ts` after the checked database target binding; never expose or commit it. `ELPRO_QUOTE_SEND_TRACK=demo` is a documented explicit disposable-demo opt-in for sending, but was absent from this inventory and was not provisioned for the PDF setup. The application default remains fail-closed `real_customer`, blocking unresolved `TAX_SIGN_OFF_REQUIRED` before send. |
+| App env vars (Vercel) | The 2026-09-10 Production inventory contains `NEXT_PUBLIC_SUPABASE_URL=https://wmqmzznmwpheswjjozhq.supabase.co`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, server-only `SUPABASE_SERVICE_ROLE_KEY`, `QUOTE_PDF_ATTESTATION_KEY_ID`, and `QUOTE_PDF_ATTESTATION_HMAC_SECRET`. On 2026-09-14, Production `NEXT_PUBLIC_APP_URL` was set to `https://elpro-saas.vercel.app`. Seller quote-PDF preview uses the service-role secret only in `src/server/storage/quote-pdf-signer.ts` after the checked database target binding; never expose or commit it. `ELPRO_QUOTE_SEND_TRACK=demo` is a documented explicit disposable-demo opt-in for sending, but was absent from this inventory and was not provisioned for the PDF setup. The application default remains fail-closed `real_customer`, blocking unresolved `TAX_SIGN_OFF_REQUIRED` before send. Story 12.1's separate provisioning-attestation key is not part of this dated inventory and must not be inferred as provisioned. |
 | Accounts | As of 2026-09-10, the Enhancior Supabase MCP connection and the default Supabase CLI independently reach the correct demo project. The committed named profile has not been rechecked; do not infer its current authentication state from this evidence. |
 
 ## Auth callback configuration
@@ -131,6 +131,19 @@ smoke only, not a general credential-distribution mechanism.
   mutations.
 - The demo project is NOT a stop-condition violation: the CI "no shared
   dev/staging/prod project" rule constrains CI, which remains local-stack only.
+
+## Tenant-provisioning attestation rollout (Story 12.1 Decision 8A; planned)
+
+This section records the required coordinated rollout, not current deployment evidence. Story 12.1 is `in-progress`; do not enable provisioning or apply the enforcement migration until every preceding step has succeeded.
+
+1. Generate a dedicated 256-bit provisioning HMAC secret outside the repository. It is separate from JWT, `SUPABASE_SERVICE_ROLE_KEY`, and quote-PDF key material. Choose a non-secret key ID matching the implementation validator.
+2. Provision matching server-only `TENANT_PROVISIONING_ATTESTATION_KEY_ID` and `TENANT_PROVISIONING_ATTESTATION_HMAC_SECRET` values in the application secret store and exactly one filtered Vault secret named `tenant_provisioning_attestation_<key-id>`. Do not display, log, audit, screenshot, or commit the value.
+3. Deploy the compatible signer/server path. It must call the sole public authenticated `provision_tenant` RPC under the current allow-listed operator's normal Supabase Auth JWT and use the repository's length-prefixed, domain-separated Node/Postgres HMAC format. The attestation TTL is at most two minutes and it never reaches the browser.
+4. Only after the signer is compatible, apply the enforcement migration that installs the migration-owned insert-only baseline catalogue, dedicated least-privilege `NOLOGIN NOINHERIT` function owner, exact grants/filtered Vault access, and removal of the legacy delegate and broad service-role provisioning DML. Do not repair or bypass rows manually.
+5. Verify DB/TypeScript catalogue coherence; exact owner/grants; generic zero-write rejection of unsigned, forged, expired, wrong-domain, wrong-key, and tampered mutations; provider-free replay/reconciliation; and signed reservation → at-most-one Auth call → exact-generation outcome ordering. The service role may administer Auth only after reservation and never calls or writes the provisioning database surface.
+6. For rotation, provision current and previous matching app/Vault keys before deploy. Retain previous only through the maximum two-minute attestation TTL, then remove it through the normal owner-approved secret process. Longer overlap and accepting unknown key IDs fail the contract.
+
+No custom provisioning JWT, raw invitation token in the RPC, second callable DEFINER writer, recoverable token escrow, or second-person approval is introduced.
 
 ## Server attestation provisioning and rotation (ADR-B008)
 
