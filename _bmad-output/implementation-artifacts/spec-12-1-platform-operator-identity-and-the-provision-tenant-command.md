@@ -139,7 +139,7 @@ deferred: []
 
 ## Review Triage Log
 
-### Historical 2026-09-19 — Review pass
+#### Historical 2026-09-19 — Review pass
 - intent_gap: 1 (high 1)
 - bad_spec: 0
 - patch: 12 (high 9, medium 3)
@@ -181,14 +181,14 @@ Final result: Story 12.1 completed after final repair verification. See the fina
 
 Historical result (2026-09-17, before owner decisions):
 
-Status: blocked
-Blocking condition: intent gap
+Historical status: blocked
+Historical blocking condition: intent gap
 Unanswered questions: Define the organisation identity normalization and durable uniqueness/replay key; define the durable provisioning and invite-handoff state machine, including lost-response and post-commit Auth-failure reconciliation under the one-RPC/two-DEFINER limit; define the dry-run preview, approval input, and approver identity; define the supported v1 baseline/request schema and rejection or deferral of unsupported future template fields.
 
 Historical result (2026-09-17, before supplemental owner decisions):
 
-Status: blocked
-Blocking condition: intent gap
+Historical status: blocked
+Historical blocking condition: intent gap
 Evidence gathered: Existing Epic 11 invitation prepare/finalize/reconcile RPCs require an active tenant administrator, so they cannot write the first-Admin handoff state for a platform operator who is not a tenant member. The draft also does not define the opaque invitation-token lifecycle required by the existing acceptance binding, the exact retry versus replay behavior, the baseline catalogue/version authority, email and VAT canonicalisation, the `ready` predicate, or the platform-module activation changes required by manifest/permission coherence.
 Unanswered questions: Which operation(s) of the sole `provision_tenant` authority persist and audit post-provider outcomes, reconciliation, and first-Admin readiness without adding another SECURITY DEFINER surface; how are opaque invite attempt tokens generated, held only server-side, reused or replaced on reconciliation, and bound to redirect/acceptance; whether a same request-id replay may initiate provider work or is reconciliation-only, including its result/attempt policy; what authoritative baseline catalogue/version and persisted projection define `PREVIEW_STALE`; what email and VAT canonicalisation/validation contract applies; what durable invitation/Auth facts make `ready`; and how platform activation supplies a non-granting permission-matrix row while preventing the active platform module from being selected as a tenant entitlement.
 
@@ -196,16 +196,16 @@ Historical planning status (before implementation): ready-for-dev — the then-a
 
 Historical implementation result (2026-09-19, before recovery and Decision 7C):
 
-Status: blocked
-Blocking condition: implementation verification failed
+Historical status: blocked
+Historical blocking condition: implementation verification failed
 Verification failure: `SUPABASE_TEST_REQUIRED=1 pnpm exec vitest run --config vitest.config.ts tests/integration/rls/platform-operators.rls.test.ts tests/integration/rls/provisioning-migration-reset.int.test.ts` cannot execute Story 12.1 assertions because the existing user-owned local stack lacks the unapplied provisioning migration (`platform_operators`, `is_platform_operator`, and `provision_tenant` are absent). The repository has no isolated Compose path, and the resource policy forbids adopting or resetting that existing stack. `pnpm typecheck` also remains blocked by unrelated tracked `tmp/private/**` and `tmp/worktrees/**` errors.
 
 Historical implementation recovery (2026-09-19): the authorized local disposable stack received the pending repository migrations through SQL-only `pnpm exec supabase migration up --local`; the next run then resumed focused required-suite verification without resetting or otherwise managing the stack lifecycle.
 
 Historical implementation result (2026-09-19, recovery, before Decision 7C):
 
-Status: blocked
-Blocking condition: matrix ambiguity
+Historical status: blocked
+Historical blocking condition: matrix ambiguity
 Evidence gathered: focused Node contracts passed (10/10); the required `SUPABASE_TEST_REQUIRED=1` four-file provisioning command/RLS/reset/search-path suite passed (18/18, zero skipped); existing admin-user compatibility tests passed (14/14); focused ESLint, `git diff --check`, review-order validation, and a bounded 674-file TypeScript check excluding only unrelated `tmp/private/**` and `tmp/worktrees/**` paths passed. The platform authority, initial atomic write, zero-write preview, durable replay/race, hostile search-path, and acceptance-to-ready coverage were made executable against the migrated local stack.
 Resolved historical owner decision: this run exposed that a non-reversible stored hash cannot recover one raw token for reuse across provider attempts. Owner Decision 7C selected rotation: the initial dispatch and every explicit resend use a fresh in-memory token, the sole RPC atomically revokes/replaces the persisted hash, and no escrow, derivation, or provider/callback redesign is introduced.
 
@@ -213,8 +213,8 @@ Historical planning status (after Decision 7C, before Decision 8A review): in-pr
 
 Historical review result (2026-09-19, after Decision 7C and before Decision 8A):
 
-Status: blocked
-Blocking condition: intent gap
+Historical status: blocked
+Historical blocking condition: intent gap
 Evidence gathered: focused Node provisioning and permission-matrix contracts passed (11/11); the required `SUPABASE_TEST_REQUIRED=1` four-file provisioning/RLS suite passed (18/18, zero skipped). The Decision 7C additive migration reserves fresh token-hash generations and the local test stack applied that migration without reset.
 Resolved historical owner decision: Decision 8A selects normal operator-JWT invocation plus a server-minted, domain-separated HMAC attestation for every mutation; a migration-owned insert-only database catalogue; a dedicated least-privilege function owner; signed dispatch reservations and exact-generation outcomes; and removal of the legacy delegate, broad service-role provisioning-table DML, caller-supplied retry identity, and trusted `fresh_approval` booleans. Initial provider dispatch and retry production-command evidence must be re-derived from this authority design, not simulated by fixtures.
 
@@ -264,8 +264,8 @@ Limits: provider acceptance is not evidence of email delivery. The configured in
 
 Current implementation result (2026-09-19):
 
-Status: blocked
-Blocking condition: implementation verification failed
+Historical status: blocked
+Historical blocking condition: implementation verification failed
 Evidence gathered: the Decision 8A server attestation module, command orchestration, authority migrations, additive local Vault fixture, and retry fixtures were updated. The provisioning contract unit suite passed 7/7; structural RLS/migration checks passed 9/9 with `SUPABASE_TEST_REQUIRED=1`; focused lint, diff, and review-order validation passed. The provisioning integration suite still failed 7/9 because the locally applied function body retains a direct `auth.uid()` dependency unavailable to the non-login function owner.
 Remaining required work: add and apply the additive `CREATE OR REPLACE provision_tenant` migration that derives the actor from the guarded normal-JWT request claim while retaining `is_platform_operator()` as the live `auth.uid()` allow-list check; implement the Decision 8A fresh-preview, monotonic approval-generation path for a fourth dispatch; then rerun the complete required provisioning integration suite. Full `pnpm typecheck` also remains blocked by pre-existing `tmp/**` errors.
 
