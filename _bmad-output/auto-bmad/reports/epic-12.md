@@ -120,3 +120,41 @@ Not reached.
 2. A human owner must decide the six remaining provisioning contracts recorded in the Story 12.1 spec.
 
 **Next:** Resolve the decisions, set the spec frontmatter status to draft, then re-run /auto-bmad epic --epic 12.
+
+## Report — 2026-09-19T13:26:45Z (halted â€” needs-human)
+
+**Epic:** `12` — 3 stories.
+**Branch:** `codex/epic-12-wave-b1a-tenant-provisioning-and-onboarding` (HEAD `2a75993`).
+**Pipeline status:** Halted at Story 12.1 Phase 5 â€” Build Auto found an intent gap in the invitation retry-token lifecycle.
+**Continues:** 2026-09-17T15:12:38Z (halted â€” needs-human)
+
+**Summary:** Owner recommendations 1â€“6 are locked and Story 12.1 reached implementation with green focused verification, but review/finalization cannot proceed until the raw-token reuse contradiction is resolved.
+
+**Timing:** started 2026-09-17T13:23:20Z; completed in progress — elapsed 48h 03m (≈1h 51m AI-run, ≈46h 12m human/idle wait); resumed 3×.
+
+**Stories:** (none)
+
+**Skipped:** (none)
+
+**Epic gate:** Not run â€” Story 12.1 stopped before the epic-end gates.
+
+**TEA:** Epic-level test design complete. Story 12.1 high-risk ATDD scaffolds landed; focused units passed 10/10 and the required provisioning/RLS/reset/search-path suite passed 18/18 with zero skips. Post-dev automation was not reached.
+
+**Retrospective:** Not run.
+
+**Overrides:** branch_prefix = codex/ (host instruction)
+
+**Open questions:**
+1. Choose a secure server-side escrow/envelope that permits bounded reuse of the invitation token without exposing it in browser, logs, audits, or ordinary database columns, or approve a rotation-based retry/callback lifecycle that replaces the token on every explicit provider attempt.
+2. Confirm the supported Auth provider/callback contract for explicit retries because the configured provider cannot reconstruct or resend an application-owned callback token.
+
+**Deferred work:**
+1. Story 12.1 review/finalization and post-dev TEA remain pending until the owner decision is applied.
+2. Stories 12.2 and 12.3 remain pending because epic mode is sequential.
+Not reached.
+
+**⚠️ Needs human:**
+1. build-auto stopped with status `blocked` â€” blocking condition: intent gap.
+2. An owner must select the secure token escrow/envelope option or approve a rotation-based retry lifecycle, then confirm the provider callback contract.
+
+**Next:** Record the retry-token decision, set the Story 12.1 spec frontmatter status to in-progress, then re-run /auto-bmad epic --epic 12.

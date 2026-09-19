@@ -86,7 +86,7 @@ All Story 12.1 scenarios are P0 because they govern privileged tenant creation, 
 | AC3 — request/identity replay, archived collision, race | 12.1-INT-006, 12.1-INT-007 | Command/DB + concurrency integration | P0 | Proves durable uniqueness and exact replay/conflict outcomes against real constraints. |
 | AC4 — strict validation, canonical identity, stale preview, no writes | 12.1-UNIT-001, 12.1-UNIT-002, 12.1-INT-005 | Unit + command/DB integration | P0 | Units own the decision table; integration owns mismatch/staleness and zero-write effects. |
 | AC5 — truthful provider states, reconciliation, bounded retry | 12.1-UNIT-003, 12.1-INT-008, 12.1-INT-009 | Unit state machine + command/Auth integration | P0 | Unit owns legal transitions/readiness; integration owns call count, attempt persistence, and response-loss recovery. |
-| AC6 — hash-only bound invitation token lifecycle | 12.1-INT-009, 12.1-INT-012 | Command/Auth + audit integration | P0 | Proves reuse/rotation/acceptance and absence of raw token from persisted and outward surfaces. |
+| AC6 — hash-only bound invitation token lifecycle | 12.1-INT-009, 12.1-INT-012 | Command/Auth + audit integration | P0 | Proves fresh 32-byte token generation per dispatch, SHA-256-only persistence, atomic prior-hash revocation, old-link rejection, current-binding acceptance, and absence of raw token from persisted and outward surfaces. |
 | AC7 — exact readiness predicate | 12.1-UNIT-003, 12.1-INT-009 | Unit + command/Auth integration | P0 | Unit enumerates each predicate fact; integration proves the Epic 11 activation seam. |
 | AC8 — non-granting platform permission classification | 12.1-STATIC-001, existing manifest/authz guardrails | Static/unit/catalog | P0 | Scaffolds assert the explicit row and absence from tenant consumers without introducing UI coverage. |
 | AC9 — generic denial, hostile search path, no leakage/effects | 12.1-INT-001, 12.1-INT-002, 12.1-INT-010, 12.1-INT-011 | RLS/catalog/authorization integration | P0 | Separates allow-list visibility, DEFINER hardening, caller denial, and foreign-tenant invariance. |
@@ -129,7 +129,7 @@ The command integration harness needs a deterministic server-side Auth Admin ada
 | accepted | One provider call, `first_admin_invite_requested`, no delivery claim. |
 | definitive failure | One provider call, sanitized outcome, `first_admin_invite_failed`. |
 | timeout/lost response | One provider call, `first_admin_invite_unknown`, no automatic resend. |
-| explicit retry after reconciliation | Attempts 1–3 reuse the binding; attempt 4 needs fresh preview/approval and rotates/revokes the token. |
+| explicit retry after reconciliation | Replay/reconciliation never rotate or dispatch. Attempts 1–3 are distinct fresh-token dispatch generations under one approved snapshot; each resend atomically revokes the prior SHA-256 hash before one provider call, and attempt 4 needs fresh preview/approval plus a new invitation generation. |
 
 ## Implementation Checklist
 
