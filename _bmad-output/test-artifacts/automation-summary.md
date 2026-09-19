@@ -5,9 +5,9 @@ stepsCompleted:
   - 'step-03c-aggregate'
   - 'step-04-validate-and-summarize'
 lastStep: 'step-04-validate-and-summarize'
-lastSaved: '2026-09-11'
+lastSaved: '2026-09-19'
 workflowType: testarch-automate
-story: 10.6 Tax-Answer Reconciliation; 11.1 Role Storage and Permission-Matrix Mechanism; 11.2 Non-Admin Access to the Phase A Surface; 11.3 Admin User Management; 11.4 Roles Surface, Effective Permissions, and the Per-Role Test Harness (latest)
+story: 10.6 Tax-Answer Reconciliation; 11.1 Role Storage and Permission-Matrix Mechanism; 11.2 Non-Admin Access to the Phase A Surface; 11.3 Admin User Management; 11.4 Roles Surface, Effective Permissions, and the Per-Role Test Harness; 12.1 Platform Operator Identity and the Provision-Tenant Command (latest)
 detectedStack: fullstack
 executionMode: BMad-integrated (post-implementation risk-based coverage expansion)
 inputDocuments:
@@ -53,6 +53,21 @@ inputDocuments:
   - src/features/admin-users/read.ts
   - tests/integration/rls/admin-user-management.rls.test.ts
   - tests/integration/rls/role-harness.atdd.int.test.ts
+  - _bmad-output/implementation-artifacts/spec-12-1-platform-operator-identity-and-the-provision-tenant-command.md
+  - _bmad-output/test-artifacts/atdd-checklist-spec-12-1-platform-operator-identity-and-the-provision-tenant-command.md
+  - _bmad-output/test-artifacts/tea-atdd-summary-spec-12-1-2026-09-19.json
+  - _bmad-output/test-artifacts/tea-atdd-api-tests-2026-09-19T12-18-15-228Z.json
+  - _bmad-output/test-artifacts/tea-atdd-e2e-tests-2026-09-19T12-18-15-228Z.json
+  - _bmad-output/test-artifacts/test-design-epic-12.md
+  - src/server/commands/provisioning/provision-tenant.ts
+  - src/server/commands/provisioning/validation.ts
+  - src/server/provisioning/attestation.ts
+  - src/server/provisioning/baselines.ts
+  - tests/unit/provisioning/provisioning-contract.test.ts
+  - tests/unit/provisioning/baselines.test.ts
+  - tests/integration/commands/provision-tenant.int.test.ts
+  - tests/integration/rls/platform-operators.rls.test.ts
+  - tests/integration/rls/provisioning-migration-reset.int.test.ts
 ---
 
 # Test Automation Expansion — Story 10.6 (Tax-Answer Reconciliation)
@@ -516,3 +531,106 @@ The specific `11.4-AC4` missing/foreign effective-permissions read-path gap is a
 zero-skip evidence. The existing `traceability-matrix.md` and `gate-decision.json` intentionally
 remain unchanged under this run's ownership boundary. Re-run `bmad-testarch-trace` for Epic 11 to
 fold this evidence into the formal 21/21, P0 18/18 gate decision.
+
+---
+
+# Test Automation Expansion — Story 12.1: Platform Operator Identity and the Provision-Tenant Command
+
+## Step 1 — Preflight & Context
+
+- **Stack and mode:** detected as a full-stack Next.js/React and Supabase repository: the Next server
+  command layer and Supabase migrations are the backend alongside the browser application, with established
+  Node `node:test` unit, Vitest local-Supabase integration/RLS, and production-server
+  Playwright lanes. This is a BMad-integrated Create run using the supplied Story 12.1 specification.
+  `package.json`, `vitest.config.ts`, and `playwright.config.ts` confirm the required framework
+  scaffolding is present.
+- **Acceptance inputs:** the owner-approved Story 12.1 contract, its completed ATDD checklist and
+  generated API/E2E summaries, and the Epic 12 test design were loaded alongside the implementation,
+  migrations, existing unit tests, and integration/RLS suites. The ATDD artifacts already map the
+  privileged database authority, canonicalisation, idempotency, reservation/outcome, token, recovery,
+  audit, and scope cases; expansion will only select an uncovered, independently meaningful assertion.
+- **Utility posture:** Playwright Utils is configured but its package is absent, so its mandate does
+  not bind generated code. Pact.js is not relevant: this in-process server and Supabase RPC boundary
+  has no independent consumer/provider contract. Pact broker: unreachable (SmartBear MCP tools not
+  available). Provider states were not needed.
+- **Knowledge loaded:** test-level selection, priority matrix, data factories, selective execution,
+  CI/burn-in and quality guidance; the configured Playwright utility profile and traditional principles;
+  and Pact MCP fallback guidance. Browser tests are present elsewhere in the repository, but no Story
+  12.1 operator UI surface exists to justify a new browser journey.
+- **Scope:** tests and this TEA record only. The approved specification, implementation, migrations,
+  manifest, sprint/auto-BMAD state, environment configuration, and the existing ATDD output remain
+  outside this coverage-expansion run.
+
+## Step 2 — Identify Targets
+
+The ATDD output already covers all Story 12.1 acceptance groups at their authoritative levels:
+strict schema and canonicalisation; preview/approval; hardened function, grants, manifest and RLS;
+atomic transaction and all-status identity/idempotency; concurrent creation; token reservation and
+provider outcomes; audit; and Epic 11 readiness activation. Its integration helpers call the real
+RPC for retry behavior, but they do not directly exercise the production server command's
+fail-closed retry-orchestration branches. Browser coverage is inapplicable because Story 12.1 has
+no operator UI acceptance surface, and no HTTP/Pact boundary exists.
+
+| Target | Level | Priority | Acceptance/risk link | Reason |
+| --- | --- | --- | --- | --- |
+| An unfinalized durable reservation is recorded as `unknown` and returns before fresh reservation/provider invocation | Node unit (production command seam) | P0 | AC recovery, R-1202 | Proves the command cannot duplicate an uncertain provider attempt; the existing database test proves state, but not this server-side call ordering. |
+| The fourth dispatch rejects absent or content-mismatched fresh renewal data before reserve/provider work | Node unit (production command seam) | P0 | AC bounded retry/approval, R-1202 | Covers the fail-closed handoff gate between durable facts and the HMAC-backed reserve action without duplicating real RPC lifecycle assertions. |
+
+Coverage is selective: two P0 unit assertions in the existing provisioning-contract suite. They will
+reuse the existing dependency-injection hooks and fake authenticated client, make call ordering
+observable, and add no fixture, migration, browser, API, or provider contract artifact.
+
+## Step 3 — Generate and Aggregate Tests
+
+- **Execution:** agent-team worker dispatch completed with three workers. API and E2E workers
+  independently generated zero tests after confirming that this story exposes no HTTP contract or
+  browser route. The backend worker generated two P0 Node unit cases.
+- **Coverage added:** `12.1-UNIT-007` drives the production retry seam with a durable unfinished
+  reservation and proves its only calls are `reconcile` then `record_unknown`; delivery and a fresh
+  reservation cannot occur. `12.1-UNIT-008` sets the durable dispatch generation to three and proves
+  both missing and content-mismatched renewal evidence return `PREVIEW_STALE` after reconciliation,
+  before reserve or provider delivery.
+- **Fixtures:** none. The cases use the existing authenticated client/dependency injection seam and
+  restore their test-only attestation environment values in `finally`.
+- **Generation totals:** 2 P0 backend unit tests in one existing file; 0 API tests, 0 E2E tests,
+  0 fixture files, and no Playwright or Pact deviations.
+
+## Step 4 — Validation and Final Summary
+
+### Validation evidence
+
+- `pnpm exec node --experimental-strip-types --import ./tests/support/register.mjs --test
+  tests/unit/provisioning/provisioning-contract.test.ts` — **PASS:** 16 tests passed, 0 failed,
+  skipped, or todo. This includes the two generated retry-orchestration cases.
+- `pnpm exec eslint tests/unit/provisioning/provisioning-contract.test.ts` — **PASS**.
+- `SUPABASE_TEST_REQUIRED=1 pnpm exec vitest run tests/integration/commands/provision-tenant.int.test.ts
+  tests/integration/rls/platform-operators.rls.test.ts tests/integration/rls/provisioning-migration-reset.int.test.ts
+  tests/integration/rls/security-definer-search-path.rls.test.ts` — **PASS:** 4 files, 18 tests
+  passed, 0 failed, 0 skipped.
+- `git diff --check` on the test and workflow record — **PASS**. The working-copy LF-to-CRLF notices
+  are Git warnings only. Static quality scan found no focus/skip/fixme, hard waits, debug output, or
+  browser interception patterns in the generated Node tests.
+- The full repository typecheck was not rerun: the known unrelated `tmp/private/**` and
+  `tmp/worktrees/**` failures remain outside this scoped change. The focused test executes and lint
+  validates the edited file.
+
+### Definition of done
+
+- Two deterministic P0 tests execute the production command seam with an authenticated fake client;
+  neither mocks the decision under test nor depends on database or provider availability.
+- The outstanding-reservation path proves exact `reconcile` → `record_unknown` ordering and fails if
+  delivery or fresh reservation is attempted. The generation-three path proves both rejected renewal
+  variants stop before those actions.
+- No browser, API, contract, fixture, helper, production, migration, or specification file changed.
+  Worker temporary JSON files were removed after aggregation.
+
+### Playwright Utils deviations
+
+None. No Playwright-runner test was generated, and the configured package is not installed.
+
+### Pact.js Utils deviations
+
+None. Story 12.1 has no consumer-provider contract boundary, and no Pact artifact was generated.
+
+**Recommended next workflow:** `bmad-testarch-test-review` for independent review of the expanded
+unit coverage, or `bmad-testarch-trace` if formal Story 12.1 traceability must be refreshed.

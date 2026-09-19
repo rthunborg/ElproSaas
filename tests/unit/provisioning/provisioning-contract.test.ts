@@ -314,3 +314,90 @@ test("[P0] 12.1-UNIT-006 rejects unapproved or stale command envelopes before th
   );
   assert.equal(calls, 0);
 });
+
+test("[P0] 12.1-UNIT-007 records a durable outstanding reservation as unknown without a fresh reservation or provider delivery", async () => {
+  const tenantId = "00000000-0000-4000-8000-000000000020";
+  const calls: string[] = [];
+  const client = {
+    auth: { getUser: async () => ({ data: { user: { id: "00000000-0000-4000-8000-000000000021" } }, error: null }) },
+    rpc: async (_name: string, args: { p_action: string }) => {
+      calls.push(args.p_action);
+      if (args.p_action === "reconcile") {
+        return {
+          data: {
+            tenantId, requestId: "00000000-0000-4000-8000-000000000022", requestHash: "a".repeat(64),
+            organizationNumber: "5561234567", previewHash: "b".repeat(64), baselineId: "standard-se",
+            baselineVersion: 1, baselineContentHash: "c".repeat(64), approvalGeneration: 1, dispatchGeneration: 1,
+            reservationId: "00000000-0000-4000-8000-000000000023", reservationOutcome: null,
+            reservationDispatchGeneration: 1, reservationApprovalGeneration: 1, tokenHash: "d".repeat(64),
+          },
+          error: null,
+        };
+      }
+      if (args.p_action === "record_unknown") return { data: { provisioningState: "first_admin_invite_unknown" }, error: null };
+      throw new Error(`unexpected action ${args.p_action}`);
+    },
+  };
+
+  const previousKeyId = process.env.TENANT_PROVISIONING_ATTESTATION_KEY_ID;
+  const previousSecret = process.env.TENANT_PROVISIONING_ATTESTATION_HMAC_SECRET;
+  process.env.TENANT_PROVISIONING_ATTESTATION_KEY_ID = "test_v1";
+  process.env.TENANT_PROVISIONING_ATTESTATION_HMAC_SECRET = "local-test-only-provisioning-attestation-secret-v1";
+  try {
+    assert.deepEqual(
+      await provisioningCommandTestHooks.retryFirstAdminInviteWithDependencies(
+        { tenantId },
+        { client: client as never, deliverInvitation: async () => { throw new Error("must not deliver an outstanding reservation"); } },
+      ),
+      { ok: true, result: { provisioningState: "first_admin_invite_unknown" } },
+    );
+    assert.deepEqual(calls, ["reconcile", "record_unknown"]);
+  } finally {
+    if (previousKeyId === undefined) delete process.env.TENANT_PROVISIONING_ATTESTATION_KEY_ID;
+    else process.env.TENANT_PROVISIONING_ATTESTATION_KEY_ID = previousKeyId;
+    if (previousSecret === undefined) delete process.env.TENANT_PROVISIONING_ATTESTATION_HMAC_SECRET;
+    else process.env.TENANT_PROVISIONING_ATTESTATION_HMAC_SECRET = previousSecret;
+  }
+});
+
+test("[P0] 12.1-UNIT-008 rejects missing or content-mismatched fresh renewal at dispatch generation three before reservation or provider delivery", async () => {
+  const input = validRequest();
+  const canonical = canonicalizeProvisioningRequest(input);
+  const baseline = findProvisioningBaseline(input.baseline_profile_id, input.baseline_profile_version);
+  assert.ok(baseline);
+  const preview = createProvisioningPreview(input, baseline);
+  const tenantId = "00000000-0000-4000-8000-000000000024";
+  const calls: string[] = [];
+  const client = {
+    auth: { getUser: async () => ({ data: { user: { id: "00000000-0000-4000-8000-000000000025" } }, error: null }) },
+    rpc: async (_name: string, args: { p_action: string }) => {
+      calls.push(args.p_action);
+      if (args.p_action !== "reconcile") throw new Error(`unexpected action ${args.p_action}`);
+      return {
+        data: {
+          tenantId, requestId: canonical.request_id, requestHash: canonical.canonicalRequestHash,
+          organizationNumber: canonical.normalizedOrganizationNumber, previewHash: preview.preview_hash,
+          baselineId: baseline.id, baselineVersion: baseline.version, baselineContentHash: baseline.contentHash,
+          approvalGeneration: 1, dispatchGeneration: 3,
+        },
+        error: null,
+      };
+    },
+  };
+  const dependencies = {
+    client: client as never,
+    deliverInvitation: async () => { throw new Error("must not deliver before a fresh approved renewal"); },
+  };
+
+  const missing = await provisioningCommandTestHooks.retryFirstAdminInviteWithDependencies({ tenantId }, dependencies);
+  assert.deepEqual(missing, { ok: false, code: "PREVIEW_STALE" });
+  assert.deepEqual(calls, ["reconcile"]);
+
+  calls.length = 0;
+  const mismatched = await provisioningCommandTestHooks.retryFirstAdminInviteWithDependencies(
+    { tenantId, renewal: { request: { ...input, legal_name: "Changed legal name" }, previewHash: preview.preview_hash } },
+    dependencies,
+  );
+  assert.deepEqual(mismatched, { ok: false, code: "PREVIEW_STALE" });
+  assert.deepEqual(calls, ["reconcile"]);
+});

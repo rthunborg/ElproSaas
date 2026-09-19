@@ -9,17 +9,17 @@ spec_folder: null
 story_id: null
 branch: codex/epic-12-wave-b1a-tenant-provisioning-and-onboarding
 status: in-progress
-updated_at: "2026-09-19T19:49:37Z"
+updated_at: "2026-09-19T20:05:10Z"
 started_at: "2026-09-17T13:40:05Z"
 completed_at: null
-active_seconds: 17576
-timing_anchor: 1789847377
+active_seconds: 18508
+timing_anchor: 1789848310
 is_first_in_epic: true
 is_last_in_epic: false
 git_mode: remote
 base_branch: main
-selected_phase: tea_per_story
-selected_role: tea-delegate
+selected_phase: followup_review
+selected_role: primary-reviewer
 selected_profile: standard
 selected_model: gpt-5.6-terra
 selected_effort: high
@@ -32,12 +32,13 @@ routing_ledger:
   - "{\"effort\":\"high\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-terra\",\"phase\":\"tea_per_story\",\"profile\":\"standard\",\"role\":\"tea-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
   - "{\"effort\":\"high\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-terra\",\"phase\":\"build\",\"profile\":\"standard\",\"role\":\"build-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
   - "{\"effort\":\"high\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-terra\",\"phase\":\"tea_per_story\",\"profile\":\"standard\",\"role\":\"tea-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"high\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-terra\",\"phase\":\"followup_review\",\"profile\":\"standard\",\"role\":\"primary-reviewer\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
 tea_risk: high
 tea_selected: [atdd, automate]
 tea_rationale: Authentication/authorization and permissions plus atomic database mutation and cross-tenant security-sensitive behavior.
 epic_story_count: 3
 stories_after_in_epic: 2
-completed_phases: [0, 1, 2, 3, 4, 5]
+completed_phases: [0, 1, 2, 3, 4, 5, 6]
 spec_path: "C:\\DEV\\ElproSaas\\_bmad-output\\implementation-artifacts\\spec-12-1-platform-operator-identity-and-the-provision-tenant-command.md"
 spec_approved: true
 build:
@@ -57,7 +58,7 @@ legacy_review_loop_done: false
 legacy_external_review_iterations: null
 legacy_convergence_unverified: false
 legacy_artifact_path: null
-commits: [5309d8a, 29f5799, 6c00013, 073bdec, 7ccaf71, 7d8d9a7, 4d6451f, 2ad44c6, a1516e4, 9cb7def, 6a21d4f, 2a75993, f1330d0, fa92bff, 3869c62, 61da915, ded8b92, e8bbd4f, 4e1592d3, 4852b641, 712916cd, e235f3dd, ef3e02da]
+commits: [5309d8a, 29f5799, 6c00013, 073bdec, 7ccaf71, 7d8d9a7, 4d6451f, 2ad44c6, a1516e4, 9cb7def, 6a21d4f, 2a75993, f1330d0, fa92bff, 3869c62, 61da915, ded8b92, e8bbd4f, 4e1592d3, 4852b641, 712916cd, e235f3dd, ef3e02da, b8b840d9]
 phase8_steps:
   trace_gate: null
   nfr: null
