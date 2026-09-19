@@ -71,8 +71,8 @@ Restated (condensed, faithful) from the Phase B PRD §8; the PRD text governs. `
 - FR72: Non-admin users reach only role-appropriate modules/actions; unauthorized attempts are rejected server-side with no existence signals.
 - FR73: Allow-listed platform operators can provision an eligible Swedish non-personal legal-entity tenant (strict request → write-nothing preview → hash-bound approval → DB baseline → first-Admin handoff) with zero engineering steps.
 - FR74: The system guides a new tenant's first Admin through onboarding to a working state.
-- FR75: Provisioning is audited and fully tenant-isolated; it can neither read nor affect any other tenant, canonical organisation identity stays unique across every status, request/identity replay never silently updates, and DB/Auth partial state remains truthfully reconcilable.
-- FR76: Self-serve public tenant signup is **permanently out** (N-2 — no self-registration for customer companies, ever); operator-driven provisioning is the only path and must use strict schema v1, dual idempotency, a stateless write-nothing preview, authenticated-operator approval, and safe post-commit retry.
+- FR75: Provisioning is audited and fully tenant-isolated; it can neither read nor affect any other tenant, canonical organisation identity stays unique across every status, replay reconciles without silent update/provider work, the sole RPC remains narrowly bounded, Epic 11 tokens remain hash-only, provider attempts are explicit/bounded, and DB/Auth partial state and exact readiness remain truthfully reconcilable.
+- FR76: Self-serve public tenant signup is **permanently out** (N-2 — no self-registration for customer companies, ever); operator-driven provisioning is the only path and must use strict schema v1, an immutable baseline catalogue, dual idempotency, a stateless write-nothing preview, authenticated-operator approval, and the non-granting platform capability contract.
 - FR77: Users receive in-app notifications (bell + feed) with read/unread state and per-user preferences.
 - FR78: Modules register notification producers running under the sanctioned authenticated background path (ADR-B002); producers activate with their modules.
 - FR79: Outbound email is queued with delivery log, retries, suppression list, and unsubscribe handling.
@@ -145,7 +145,7 @@ The Phase A NFR spine **NFR1–NFR41 carries forward unchanged** (PRD §9.1) wit
 - NFR52: ~~Migration classification round 2 (N-1)~~ — void; there is no data migration (owner 2026-07-20). The golden/comparison discipline still extends to scheduling and jobs money paths.
 - NFR53 (restated 2026-09-03; supersedes the 2026-07-26 wording): Phase B field forms are connected and usable at the 360×640 viewport floor. Suitable unsent input is protected from transient request failures with component state, `sessionStorage`, and in-memory photo retention where appropriate; the UI shows connection-required/failure/retry explicitly and reports success only after server-confirmed persistence. A retained draft is not submitted. Phase B has no PWA manifest/installability, service worker, durable offline store, offline read/write, local operation queue, synchronization/replay/offline-conflict state, or background/reconnect-driven offline synchronization. No native app.
 - NFR55 (new): money and tax follow the ratified §12A rules — per-VAT-category document-level rounding, visibility decoupled from deduction eligibility, reverse charge as a VAT type, claim amounts truncated to whole SEK, rates/caps time-versioned. Corrects shipped behaviour; delivered by Story 10.6.
-- NFR54: Tenant provisioning proven leak-free — automated negatives on the provisioning path plus the end-to-end second-tenant proof (AC-PH-3).
+- NFR54: Tenant provisioning proven leak-/secret-/duplicate-safe — automated negatives cover the narrow RPC, platform capability exclusion, catalogue binding, replay/attempt/token/readiness paths, and identity/status-only console, plus the end-to-end second-tenant proof (AC-PH-3).
 
 ### Additional Requirements (from the Phase B architecture)
 
@@ -162,7 +162,7 @@ The Phase A NFR spine **NFR1–NFR41 carries forward unchanged** (PRD §9.1) wit
 - AR-B11: Conflicts persist as `booking_conflicts` workflow records (open/accepted/resolved, required reason on accept, outcome + actor) with natural-key identity across recurrence; `Boka ändå` = persisted accepted-conflict record, not a booking flag.
 - AR-B12: Time reports are own-row-scoped; the `status` column ships with the single value `submitted` (reserved approval seam); a hard approval state is decided at the B1b→B2 checkpoint with E26/N-5 and would be an additive enum widening.
 - AR-B13: Transaction-sensitive commands use SECURITY INVOKER RPCs per architecture §14 (`createBooking`/`updateBooking`, `createBookingSeries`/`updateBookingSeries`, `resolveConflict`, `markQuoteVersionLost`, `markJobComplete`, `lockBillingBasis`, `provisionTenant`, email-queue claim/process). The only DEFINER exceptions: `provision_tenant` (operator-gated, hardened, negative-tested) and the background service context (§4.3 containment).
-- AR-B14: Tenant provisioning: `platform_operators` allow-list (platform-scoped exception table) + `is_platform_operator()` hardened helper; `provisionTenant` idempotent (`ALREADY_PROVISIONED`); operator console in the same app at `src/app/operator/**` outside tenant shell/context, exposing tenant identity/status only (NFR54).
+- AR-B14: Tenant provisioning: `platform_operators` allow-list (platform-scoped exception table) + `is_platform_operator()` hardened helper; non-granting `Platform.Operator.Access` classification; narrow `provisionTenant` action variants with reconciliation-first idempotency (`ALREADY_PROVISIONED`); operator console in the same app at `src/app/operator/**` outside tenant shell/context, exposing tenant identity/status only (NFR54).
 - AR-B15: Person model (PB-D13): `person_profiles` 1:1 with `tenant_memberships`; default work role FKs the Phase A `work_roles` catalog (one catalog, pricing + scheduling consumers); `person_work_hours` normalized templates carrying the N-9 shape (weekly schedule, shift times, breaks, per-person exceptions, absence kinds) plus injectable rule config; `tenant_calendar_days` is **built**, not reserved (N-9 requires tenant closed days over a central Swedish holiday calendar); B3 HR extends the same record — a parallel employee table is forbidden.
 - AR-B16: Every B1+ module stores files per the Phase A model (`files` + polymorphic `file_links`); new owner types/purposes are manifest-declared per module and valid only on activation; the E20 documents center is an aggregation read-model adding zero storage tables (PB-D6).
 - AR-B17: Billing basis: `billing_basis_lines` are copy-by-value öre snapshots; `Utkast → Låst → Exporterad`; lock via the DB-trigger lock family (new SQLSTATE + `BILLING_BASIS_LOCKED`, reversal + identity tests); audited corrections only; no new rounding rule (ADR-A004 STOP condition carried).
@@ -174,7 +174,7 @@ The Phase A NFR spine **NFR1–NFR41 carries forward unchanged** (PRD §9.1) wit
 - AR-B24 (historical): **ADR-B007** recorded the 2026-07-26 installable-PWA/offline decision. It is retained for traceability but superseded for active Phase B scope by ADR-B009; no module epic consumes it.
 - AR-B25 (new): **§12A money amendment** — VAT rounds per VAT category at document level (BR-CO-17), not per line; `VisibleToCustomer` / `IncludedInInvoiceTotal` / `DeductionClassification` are three independent row properties; construction reverse charge is a VAT type; Skatteverket claims truncate to whole SEK; rates/caps carry `ValidFrom`/`ValidTo`. Three distinct rounding rules, three named primitives. Story 10.6 delivers it.
 - AR-B26 (new): **§12B retention groundwork** — retention fields, deletion-request states, `LegalHold`, and a central versioned retention policy, adopted per table as modules activate; applies to every identifiable person including contact persons, subcontractors, and people in photos.
-- AR-B27 (amended 2026-09-17): **§15.4A provisioning** — a deterministic strict-v1 platform-operator service; Phase B ships no AI provisioning flow and rejects free-text agent instructions. It enforces Swedish non-personal legal-entity identity, dual idempotency, stateless hash-bound approval, and a DB-first/Auth-second audited state machine. Subscription terms are tenant data, never hardcoded.
+- AR-B27 (amended 2026-09-19): **§15.4A provisioning** — a deterministic strict-v1 platform-operator service; Phase B ships no AI provisioning flow and rejects free-text agent instructions. It enforces Swedish non-personal legal-entity identity, exact email/VAT canonicalization, dual idempotency, an immutable baseline ID/version/hash catalogue, stateless hash-bound approval, and a DB-first/Auth-second audited state machine. The sole `provision_tenant` RPC owns narrowly validated post-provider recording/reconciliation variants; Epic 11 owns token acceptance/membership activation. Hashed invitation tokens, reconciliation-first replay, explicit bounded dispatch attempts, exact readiness, and non-granting `Platform.Operator.Access` metadata are binding. Subscription terms are tenant data, never hardcoded.
 - AR-B28 (new, current): **ADR-B009** — connected responsive Phase B field web at 360×640; suitable transient unsent-draft and in-memory photo retention, explicit retry, current server authorization, and server-confirmed success. PWA/installability and genuine offline operation are a complete Phase C package. Story 10.7 aligns governance only; E14–E18 have no technical dependency on it. PWA/offline is not a manifest module, so no manifest change is made or invented.
 - AR-B23: N-5 settled the Fortnox auth model, scopes, mastership split, and invoice-basis content (architecture §7.1/§7.3). The B2 spike narrows to: rate limits, Fortnox-side idempotency keys, the payload mapping from our line model to Fortnox invoice rows, token-refresh semantics, and sandbox availability. It feeds ADR-B005-final (AC-B2-6).
 
@@ -185,7 +185,7 @@ The Phase A NFR spine **NFR1–NFR41 carries forward unchanged** (PRD §9.1) wit
 - UX-BDR3: Per-role landings: Montör lands on `Min dag` (`/my-day`, B1b); dashboard-entitled roles land on `/dashboard` with role-weighted default widget layouts.
 - UX-BDR4: Quote lifecycle delta UX: `Markera som förlorad/avböjd` on sent versions with outcome + required structured reason (category strawman Pris/Konkurrent/Tidplan/Uteblivet svar/Annat + note); terminal badge distinct from `Accepterad`; list gains status filter + `Förlustorsak` column; follow-ups appear as dashboard widget, list filters, and detail header chip; one open follow-up per quote; completion offers plan-next and jump-to-lost/new-version.
 - UX-BDR5: `Användare & roller` (Admin-only): Användare tab (list, invite flow, user detail sheet with role editor/reset/deactivate/remove, audit panel) and Roller tab (seed roles with matrix rows grouped by module, growth-per-activation visible, N-4 entitlements seeded and shown concretely; role/permission edits capture a required reason and are audited); effective-permissions viewer per user; last-admin protection.
-- UX-BDR6: Operator console: three data-entry steps (Företagsuppgifter → Baslinje → Bjud in första Admin) followed by the complete server-hashed preview and explicit approval; re-entrant from durable server state; request/identity replay and invite handoff statuses are truthful and never claim email delivery; dry run writes nothing. First-Admin `Kom igång` checklist remains 5-item, server-derived, dismissable, pinned until done, and deep-linked; **N-2 rules out public signup permanently**.
+- UX-BDR6: Operator console: three data-entry steps (Företagsuppgifter → immutable Baslinje ID/version/hash → Bjud in första Admin) followed by the complete server-hashed preview and explicit approval; re-entrant from durable server state; replay reconciles before action and shows tenant/state/attempt/reconciliation result; provider dispatch is an explicit retry, never automatic on `unknown`, with one call per execution and fresh approval/token rotation after three attempts. Handoff statuses and exact readiness are truthful and never claim email delivery; dry run writes nothing. First-Admin `Kom igång` checklist remains 5-item, server-derived, dismissable, pinned until done, and deep-linked; **N-2 rules out public signup permanently**.
 - UX-BDR7: Notifications: top-bar bell + unread badge for every role; popover (latest ~10, mark-all-read, Visa alla); `/notifications` center with filters; per-user preferences matrix (categories × I appen/E-post) with the e-post column inactive-with-explainer until sending activates (sender identity and flow priority per N-6); essential categories non-disableable; every notification deep-links; producer-fed surfaces show last-scan recency.
 - UX-BDR8: Scheduling: five views (`Schema`, `Resurser`, `Team`, `Beläggning`, `Min kalender`) as projections of one booking/filter model; shared toolbar (date nav, granularity, filters, `Ny bokning`); persistent `Konflikter (n)` chip; per-user per-view filter/period persistence; capacity cells show number + color, never color alone.
 - UX-BDR9: Booking editor (side sheet desktop / full-screen phone): multi-assignee picker with availability hints, work role, time, all-optional connections, description, recurrence; live inline conflict panel per violation; conflicts warn-and-allow — saving requires explicit `Boka ändå` with required reason; series-vs-occurrence edit scope prompt; dirty-state guard.
@@ -426,12 +426,12 @@ The `tenant_admin`-only era ends: role storage, the code-level permission matrix
 
 ### Epic 12 [Wave B1a]: Tenant Provisioning and Onboarding
 
-An allow-listed operator provisions a Swedish non-personal legal-entity tenant end-to-end (strict request → validate → write-nothing preview → hash-bound approval → atomic DB baseline → reconciled first-Admin Auth handoff → onboarding checklist) with zero engineering steps. **N-2 (2026-07-26): self-serve signup is permanently out** — not a seam being built toward. The 2026-09-17 owner contract fixes canonical organisation identity, request-plus-identity idempotency, exact handoff states, and the strict v1 baseline/rejection list. Phase B ships no AI provisioning flow. Subscription terms (`SubscriptionPlan`, `IncludedUsers`, `AdditionalUserPrice`, `EnabledModules`, `CommercialOverrides`, …) are stored as **data** — no price is ever hardcoded (architecture §15.4A).
+An allow-listed operator provisions a Swedish non-personal legal-entity tenant end-to-end (strict request → immutable-catalogue write-nothing preview → hash-bound approval → atomic DB baseline → reconciliation-first bounded first-Admin Auth handoff → exact readiness → onboarding checklist) with zero engineering steps. **N-2 (2026-07-26): self-serve signup is permanently out** — not a seam being built toward. The 2026-09-17 and 2026-09-19 owner contract fixes canonical organisation identity, email/VAT canonicalization, request-plus-identity idempotency, sole-RPC authority, hashed Epic 11 tokens, provider attempts, exact states/readiness, non-granting platform permission metadata, and the strict v1 baseline/rejection list. Phase B ships no AI provisioning flow. Subscription terms (`SubscriptionPlan`, `IncludedUsers`, `AdditionalUserPrice`, `EnabledModules`, `CommercialOverrides`, …) are stored as **data** — no price is ever hardcoded (architecture §15.4A).
 
 **FRs covered:** FR73, FR74, FR75, FR76
 **Primary NFR coverage:** NFR54
 **Natural dependencies:** Epic 11 (roles/invites). Session-flagged merge candidate into E11 (provisioning→RBAC) — E-number kept stable.
-**Activation:** Platform surfaces (operator console, `platform_operators`, tenants provisioning columns) recorded in the manifest as platform-scoped entries; no tenant module flip.
+**Activation:** The manifest `provisioning` platform module becomes active with its platform surfaces and the non-granting `Platform.Operator.Access` row in the same change; tenant-module entitlement/nav/table derivations exclude it.
 **Oracle checks:** None (net-new productization surface; legacy `register_company` is the thinned P2 reference).
 
 ### Epic 13 [Wave B1a]: Notifications and Email Infrastructure
@@ -1168,13 +1168,13 @@ So that "why can/can't Emil see X" has a server-derived answer and every future 
 
 **Epic goal:** Make the product deliverable to independent companies: an operator provisions a tenant end-to-end and its first Admin onboards to a working state — zero engineering steps, zero cross-tenant leakage.
 
-**Scope:** `platform_operators` + `is_platform_operator()`; the strict-v1 `provisionTenant` DEFINER RPC (sanctioned exception); Swedish non-personal legal-entity identity and dual idempotency; stateless hash-bound preview/approval; DB-first/Auth-second invitation reconciliation; operator console at `/operator` (identity/status only); three-step provisioning wizard plus approval confirmation; `Kom igång` onboarding checklist; NFR54 negative suite.
+**Scope:** `platform_operators` + `is_platform_operator()`; non-granting `Platform.Operator.Access` classification; the strict-v1 `provisionTenant` DEFINER RPC (sanctioned exception, including narrow post-provider action variants); Swedish non-personal legal-entity identity and exact email/VAT canonicalization; dual idempotency; immutable baseline catalogue; stateless hash-bound preview/approval; DB-first/Auth-second invitation reconciliation with hash-only token lifecycle and bounded explicit dispatch attempts; exact readiness; operator console at `/operator` (identity/status only); three-step provisioning wizard plus approval confirmation; `Kom igång` onboarding checklist; NFR54 negative suite.
 
 **Explicit non-scope:** Public self-serve signup — **permanently out per N-2** (FR76), not a seam being built toward; individuals and Swedish sole proprietorships as tenants; a Phase B AI provisioning flow; separate-deployment operator isolation (Phase C hardening option, AB-A8); commercial pricing/packaging as application logic (N-2: these are tenant data — `SubscriptionPlan`, `IncludedUsers`, `AdditionalUserPrice`, `CommercialOverrides`, … — never hardcoded values, so that a manually agreed discount needs no new build); logo/file upload, Fortnox setup, schedules/calendar, users beyond first Admin, imports, pending modules, raw tax rates, final legal text, arbitrary flags, free-text instructions, and secrets in provisioning v1.
 
 **Dependencies:** Epic 11 (roles, invitations). Session-flagged merge candidate into E11 — number kept stable.
 
-**Risks:** DEFINER RPC misuse; operator console leaking tenant business data; request or identity replay creating duplicate/silently updated tenants; preview/baseline drift; post-commit Auth uncertainty misreported as failure or delivery; onboarding checklist claiming completion it cannot verify.
+**Risks:** DEFINER RPC/action-variant misuse; platform permission metadata accidentally becoming tenant-grantable; operator console leaking tenant business data or raw invite tokens; request/identity replay creating duplicate/silently updated tenants or provider calls; preview/catalogue drift; attempt-limit/token-rotation defects; post-commit Auth uncertainty misreported as failure/delivery/readiness; onboarding checklist claiming completion it cannot verify.
 
 **Wave acceptance tie:** AC-B1a-1; phase-level AC-PH-3 (the second-tenant proof re-runs this path).
 
@@ -1188,31 +1188,38 @@ So that new tenants are created safely without engineering and without any cross
 
 **Given** the `platform_operators` allow-list table (platform-scoped exception per AR-B19)
 **When** it is introduced
-**Then** it stores user_id + granted_at/by with operator-only self-read RLS, and `is_platform_operator()` follows the hardened DEFINER-helper shape with a standing negative test.
+**Then** it stores user_id + granted_at/by with operator-only self-read RLS, and `is_platform_operator()` follows the hardened DEFINER-helper shape with a standing negative test
+**And** activation adds `Platform.Operator.Access` as `scope: platform`, `tenantGrantable: false`, `tenantRoles: []`; the operator registry may consume it, but authorization remains exclusively `is_platform_operator()` and tenant roles, entitlements, nav, and module settings exclude it.
 
 **Given** an operator invokes `provisionTenant`
 **When** the command executes
-**Then** the `provision_tenant` SECURITY DEFINER RPC (the sanctioned ADR-A009 exception: fixed empty `search_path`, schema-qualified refs, explicit `is_platform_operator()` check inside, revoked from PUBLIC) creates the tenant, applies the exact versioned baseline, creates the first-Admin invited membership, stores identity/idempotency facts, and sets `pending_first_admin_invite` atomically
+**Then** the `provision_tenant` SECURITY DEFINER RPC (the sanctioned ADR-A009 exception: fixed empty `search_path`, schema-qualified refs, explicit `is_platform_operator()` check inside, revoked from PUBLIC) creates the tenant, applies the exact immutable-catalogue baseline, creates the first-Admin invited membership, stores identity/idempotency facts, and sets `pending_first_admin_invite` atomically
 **And** the transaction commits before the Supabase Auth Admin invitation runs server-side in the command, never in the RPC and never client-reachable
-**And** every provisioning action is audited with the new tenant's tenant_id.
+**And** the sole RPC's narrow action variants may only perform initial atomic provisioning, record invite requested/unknown/failed, record reconciliation results, and audit each transition; no general service-role DB mutation or second DEFINER is added
+**And** every provisioning action is audited with the new tenant's tenant_id, while the existing Epic 11 acceptance path may mark `ready` when it activates the first-Admin membership.
 
 **Given** a v1 tenant identity
 **When** the request is validated
-**Then** only `country_code = 'SE'` plus a normalized, checksum-valid ten-digit organisation number for a non-personal legal entity is accepted; spaces/hyphens are removed, personnummer-shaped identities and sole proprietorship tenants are rejected, and any supplied VAT number must match without becoming an alternate identity
+**Then** only `country_code = 'SE'` plus a normalized, checksum-valid ten-digit organisation number for a non-personal legal entity is accepted; spaces/hyphens are removed, personnummer-shaped identities and sole proprietorship tenants are rejected, and optional VAT is trimmed/uppercased/space-stripped and accepted only as `SE` + the same organisation number + `01`, without becoming an alternate identity
 **And** formatting or legal-name variation does not create a new identity, while inactive/archived tenants retain the durable `(country_code, normalized_organization_number)` reservation
 **And** this restriction does not change CRM end-customer eligibility: tenant customers may be companies or private individuals without personnummer capture.
 
+**Given** the first-Admin email
+**When** it is normalized
+**Then** the server trims and applies Unicode NFC, IDNA-normalizes and lowercases the domain, lowercases the local part by product policy, preserves plus-addressing, strips neither dots nor tags, and rejects display names, comments, malformed syntax, or multiple addresses.
+
 **Given** request and organisation identity replay
 **When** the command re-runs or races
-**Then** the same request UUID/hash returns the original result; the same UUID with different content returns `IDEMPOTENCY_CONFLICT`; a different UUID for the same canonical organisation returns `ALREADY_PROVISIONED` with identity/status; exactly one tenant exists and no path silently updates it.
+**Then** the same request UUID/hash reconciles membership/invitation/Auth identity first and returns tenant ID/current state/attempt/reconciliation action without implicit provider work; the same UUID with different content returns `IDEMPOTENCY_CONFLICT`; a different UUID for the same canonical organisation returns `ALREADY_PROVISIONED` with identity/status; exactly one tenant exists and no path silently updates it.
 
 **Given** an allow-listed operator requests a dry run
 **When** the server previews schema v1
-**Then** it writes no DB, audit, Auth, or preview row and returns schema/request identity, normalized identity, validations/warnings, `CREATE | ALREADY_PROVISIONED | CONFLICT`, exact baseline profile/version, every proposed tenant/company/commercial/module value, first-Admin name/normalized email, proposed audit events, unsupported/deferred fields, and a server-calculated `preview_hash`.
+**Then** it writes no DB, audit, Auth, or preview row and returns schema/request identity, normalized identity, validations/warnings, `CREATE | ALREADY_PROVISIONED | CONFLICT`, exact baseline ID/monotonic version/content hash, every proposed tenant/company/commercial/module value, first-Admin name/normalized email, proposed audit events, unsupported/deferred fields, and a server-calculated `preview_hash`.
 
 **Given** execution after preview
 **When** the operator resubmits the original request, same request ID and preview hash with explicit approval
-**Then** the server re-normalizes/re-hashes, derives the approver only from the authenticated allow-listed `auth.uid()`, rejects mismatch, returns `PREVIEW_STALE` if the baseline changed, and audits approver/time/request/hash/baseline; the same operator may preview and approve and no four-eyes rule applies.
+**Then** the server re-normalizes/re-hashes, derives the approver only from the authenticated allow-listed `auth.uid()`, reloads the exact `TENANT_PROVISIONING_BASELINES` entry and recalculates its content hash, rejects mismatch, returns `PREVIEW_STALE` if the entry is missing or changed, and audits approver/time/request/hash/baseline ID/version/hash; the same operator may preview and approve and no four-eyes rule applies
+**And** published catalogue entries are immutable, changes create a new monotonic version, and requests select ID/version rather than supply arbitrary baseline values.
 
 **Given** `schema_version = 1`
 **When** request fields are validated
@@ -1222,15 +1229,22 @@ So that new tenants are created safely without engineering and without any cross
 **Given** the database committed and first-Admin Auth handoff runs
 **When** the provider accepts, times out, definitively fails, or the operator retries
 **Then** state is one of `pending_first_admin_invite`, `first_admin_invite_unknown`, `first_admin_invite_requested`, `first_admin_invite_failed`, or `ready`; timeout uses `unknown`, provider acceptance uses `requested` without claiming delivery, definitive failure retains a sanitized code and retry action, and every transition is audited
-**And** retry reconciles membership/invitation/Auth identity by normalized email, reuses a usable Epic 11 invitation, and sends anew only when none exists, through existing authorised paths and without another DEFINER surface.
+**And** Epic 11 generates a cryptographically random invitation token server-side, stores only its hash, binds it to invitation/tenant/membership/normalized email/`tenant_admin`/expiry, and never exposes the raw token to the operator browser, logs, or audits
+**And** reconciliation reuses the active token; only explicit resend revokes and replaces it; Epic 11 acceptance validation activates the membership
+**And** provider work requires explicit `retry_first_admin_invite`, makes at most one provider call per command execution, persists attempt count and sanitized outcome, never auto-resends from `unknown`, and after three attempts requires fresh preview/approval that rotates the token
+**And** every result returns tenant ID, state, attempt number, and reconciliation action.
+
+**Given** the first-Admin membership is accepted
+**When** the system evaluates `ready`
+**Then** it requires completed atomic DB provisioning, recorded approved baseline ID/version/content hash, active first-Admin membership, non-null Auth user ID, matching normalized Auth email, and no unresolved definitive provisioning failure; provider acceptance alone is insufficient.
 
 **Given** NFR54 negatives
 **When** the suite runs
 **Then** non-operators are denied generically; provisioning for tenant X can neither read nor affect tenant Y (cross-tenant negatives on the provisioning path); forged/absent operator claims are rejected.
 
-**Technical Notes:** Architecture §14/§15.4/§9.1. Provisioning identity, request hash, baseline version, and handoff status live as durable additive facts/constraints; no preview table is introduced. The onboarding checklist is derived server-side, not stored (per architecture — per-admin dismissal is a small column). The strict v1 required fields, optional fields, server-owned baseline, and rejection list are binding from architecture §15.4A rather than repeated implementation discretion.
+**Technical Notes:** Architecture §3.3/§14/§15.4/§9.1. Provisioning identity, request hash, baseline ID/version/content hash, normalized first-Admin email, handoff status, attempt counter, and sanitized outcome live as durable additive facts/constraints; no preview table is introduced. The onboarding checklist is derived server-side, not stored (per architecture — per-admin dismissal is a small column). The strict v1 required fields, optional fields, immutable catalogue, and rejection list are binding from architecture §15.4A rather than repeated implementation discretion.
 
-**Test Requirements:** RPC integration tests (atomicity via induced-failure rollback, dual idempotency/concurrency, operator gate, durable identity uniqueness); strict schema/identity/checksum/VAT tests; write-nothing preview/hash/stale-baseline tests; DB/Auth state and normalized-email reconciliation fault injection; DEFINER hardening negatives; audit assertions; migration reset green.
+**Test Requirements:** RPC/action-variant integration tests (atomicity via induced-failure rollback, dual idempotency/concurrency, operator gate, narrow authority, durable identity uniqueness); strict schema/identity/checksum/exact VAT/email canonicalization tests; immutable-catalogue preview/hash/staleness tests; hashed-token binding/reuse/revoke/acceptance tests; DB/Auth state, readiness, reconciliation-first replay, explicit one-call retry, three-attempt cap, token rotation and response-loss fault injection; platform capability exclusion/coherence tests; DEFINER hardening negatives; audit/secret-absence assertions; migration reset green.
 
 **Security/RLS Impact:** Very high. The one new DEFINER surface of B1a; gets the full hardening + negative treatment.
 
@@ -1257,8 +1271,9 @@ So that provisioning is a guided flow with visible state — and nothing more th
 
 **Given** `Provisionera ny tenant`
 **When** the operator walks the wizard
-**Then** three data-entry steps execute — 1) Företagsuppgifter (legal name, SE organisation identity, optional consistent VAT/contact data), 2) Baslinje (exact server-owned profile/version and all proposed values displayed, not re-typed), 3) Bjud in första Admin (name + normalized email) — followed by the hash-bound preview and explicit approval confirmation
-**And** the wizard is re-entrant from durable server state: a dry run writes nothing, execution resubmits the original request/hash, an interrupted handoff displays the exact durable first-Admin state with truthful retry, and replay renders `ALREADY_PROVISIONED` instead of duplicate-create success
+**Then** three data-entry steps execute — 1) Företagsuppgifter (legal name, SE organisation identity, optional canonical matching VAT/contact data), 2) Baslinje (exact immutable server catalogue ID/version/content hash and all proposed values displayed, not re-typed), 3) Bjud in första Admin (name + normalized email) — followed by the hash-bound preview and explicit approval confirmation
+**And** the wizard is re-entrant from durable server state: a dry run writes nothing, execution resubmits the original request/hash, an interrupted handoff displays tenant/state/attempt/reconciliation action, and replay reconciles before rendering `ALREADY_PROVISIONED` instead of duplicate-create success
+**And** provider dispatch is an explicit `retry_first_admin_invite` action with at most one call; `unknown` never blind-resends; attempts 1–3 and sanitized outcome are visible; after attempt 3 the UI requires a fresh preview/approval and explains that the prior invitation is revoked and replaced
 **And** the finish view says the invitation request was accepted/unknown/failed/ready as recorded; it never claims email delivery.
 
 **Given** console read-models
@@ -1267,7 +1282,7 @@ So that provisioning is a guided flow with visible state — and nothing more th
 
 **Technical Notes:** `Wizard` component contract (UX-BDR6/UX-BDR17). Same Next.js deployment (AB-A8). Route-level authorization is `is_platform_operator()`-gated on every server entry, not just layout.
 
-**Test Requirements:** AuthZ tests (operator vs tenant user vs anonymous); strict field-level validation and unsupported-field presentation; write-nothing preview/hash/approval/stale-baseline tests; wizard resume/idempotent-state and handoff-retry tests; console data-exposure negative; shell-isolation check (no tenant-context imports in `operator/**`).
+**Test Requirements:** AuthZ tests (operator vs tenant user vs anonymous); platform-capability tenant-exclusion tests; strict field-level validation and unsupported-field presentation; write-nothing preview/hash/approval/stale-catalogue tests; wizard resume/reconciliation-first replay and explicit handoff-attempt/token-rotation tests; console raw-token/business-data exposure negatives; shell-isolation check (no tenant-context imports in `operator/**`).
 
 **Security/RLS Impact:** High. New privileged-but-narrow surface with its own negative suite.
 
@@ -1289,7 +1304,7 @@ So that a provisioned tenant becomes operational without engineering help — pr
 
 **Given** a first Admin's first sign-in to a fresh tenant
 **When** the app loads
-**Then** the `Kom igång` checklist renders (pinned on the dashboard until done, dismissable and resumable) with five items: Företagsinställningar, Moms & visning, Offertvillkor (carrying the Phase A sign-off warning posture), Arbetsroller & priser, Bjud in användare
+**Then** the tenant already satisfies Story 12.1's exact `ready` predicate, and the `Kom igång` checklist renders (pinned on the dashboard until done, dismissable and resumable) with five items: Företagsinställningar, Moms & visning, Offertvillkor (carrying the Phase A sign-off warning posture), Arbetsroller & priser, Bjud in användare
 **And** each item deep-links to the real settings surface and auto-checks from server-derived state (never click-tracking).
 
 **Given** all items reach green
