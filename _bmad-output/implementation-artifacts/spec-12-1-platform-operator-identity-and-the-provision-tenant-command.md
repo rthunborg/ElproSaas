@@ -2,11 +2,11 @@
 title: 'Story 12.1: Platform Operator Identity and the Provision-Tenant Command'
 type: 'feature'
 created: '2026-09-19'
-status: 'in-review'
-baseline_revision: 'ded8b928462ff25790fcc425582b09c89389ae05'
+status: 'done'
+baseline_revision: '6a21d4f29b46b9090850f715aa61d8ab1631e436'
 baseline_commit: 'f1330d0319920d52120cabf9797288a6e46c4e9c'
 review_loop_iteration: 0
-followup_review_recommended: false
+followup_review_recommended: true
 context:
   - '_bmad-output/project-context.md'
   - '_bmad-output/implementation-artifacts/epic-12-context.md'
@@ -139,6 +139,17 @@ deferred: []
 
 ## Review Triage Log
 
+### 2026-09-19 — Final repair pass
+- intent_gap: 0
+- bad_spec: 0
+- patch: 10 (high 6, medium 4, low 0)
+- defer: 0
+- reject: 0
+- addressed_findings:
+  - `[high] [patch]` Bound approval and canonical email in the HMAC, validated DB catalogue content, persisted strict canonical request data, and returned sanitized reconciliation identities.
+  - `[medium] [patch]` Added production-command handoff coverage and hardened the private company projection trigger.
+  - `[low] [patch]` Confirmed current adapter errors are ambiguous and must map to `unknown`; it exposes no genuine definitive failure to classify.
+
 ### 2026-09-19 — Review pass
 - intent_gap: 1 (high 1)
 - bad_spec: 0
@@ -208,33 +219,44 @@ Current planning status: in-progress — Decision 8A closes the live authority/p
 ## Suggested Review Order
 
 Author: implementation author.
-Refreshed against the current shared working tree after the Decision 8A authority replacement.
+Refreshed against the final Story 12.1 diff, including the review repair that
+binds execution to a previously returned preview hash and exercises the server
+command's provider handoff directly.
 
 ### Operator-bound attestation boundary
 
-The server signs a fixed, length-prefixed envelope over the current Auth actor and every mutation-relevant fact. The migration accepts only that envelope at the sole normal-JWT RPC and removes runtime-table access from JWT and service roles.
+The server signs a fixed, length-prefixed envelope over the current Auth actor and every mutation-relevant fact. The final RPC migration accepts that envelope for every mutation; its authenticated `reconcile` action is the deliberate provider-free, read-only exception. Runtime-table access remains removed from JWT and service roles.
 
 - `src/server/provisioning/attestation.ts:4` — `PROVISIONING_ATTESTATION_DOMAIN`: separates provisioning HMAC bytes from other authorities.
 - `src/server/provisioning/attestation.ts:32` — `canonicalProvisioningAttestationBytes`: fixes the Node/Postgres length-prefixed signing protocol.
-- `supabase/migrations/20260919120000_provisioning_decision_8a_authority.sql:92` — `provision_tenant`: checks the live operator and attestation before every action.
-- `supabase/migrations/20260919120000_provisioning_decision_8a_authority.sql:150` — `revoke all on function public.provision_tenant`: removes service-role and public execution.
+- `supabase/migrations/20260919183425_provisioning_review_authority_fixes.sql:12` — `provision_tenant`: supplies the final normal-JWT operator gate, read-only reconciliation exception, and exact reservation/outcome body.
+- `supabase/migrations/20260919120000_provisioning_decision_8a_authority.sql:155` — `revoke all on function public.provision_tenant`: removes service-role and public execution.
 
-### Database-first invite reservation
+### Approved command and database-first invite reservation
 
-The pure preview remains outside database construction. Provisioning commits before any provider work, while retry generates a token only in server memory and receives the email and membership identity from the durable reservation.
+The pure preview remains outside database construction. Execution accepts only an
+explicitly approved envelope whose supplied hash equals the re-derived preview;
+after the atomic creation result, the command reads durable facts, reserves one
+token generation, calls the provider once, and records the matching outcome.
 
-- `src/server/commands/provisioning/provision-tenant.ts:26` — `provisionTenant`: derives the proof from the normal authenticated server client.
-- `src/server/commands/provisioning/provision-tenant.ts:54` — `retryFirstAdminInvite`: uses reservation facts instead of caller-provided provider identity.
+- `src/server/commands/provisioning/provision-tenant.ts:73` — `provisionTenantWithDependencies`: rejects missing, unapproved, or stale preview evidence before signing or calling the RPC.
+- `src/server/commands/provisioning/provision-tenant.ts:95` — `retryFirstAdminInviteWithDependencies`: starts the initial handoff only for a newly created tenant; replays remain observation-only.
+- `src/server/commands/provisioning/provision-tenant.ts:213` — `retryFirstAdminInviteWithDependencies`: receives retry identity only from reconciliation and reservation facts.
 - `supabase/migrations/20260919120000_provisioning_decision_8a_authority.sql:5` — `provisioning_function_owner`: confines the RPC to a non-login owner role.
 
 ### Focused evidence and limits
 
-The unit contract exercises the attestation byte protocol and mutation-relevant bindings alongside the existing strict request, state, and platform-classification checks.
+The unit contract covers the attestation byte protocol, strict request/state
+rules, and the production command's approval gate, created-only provider flow,
+success/failure/unknown outcome mapping, and replay suppression. Required local
+integration/RLS tests cover the database authority separately.
 
-- `tests/unit/provisioning/provisioning-contract.test.ts:79` — `binds the provisioning attestation`: actor, action, generation, and payload tampering invalidate the proof.
+- `tests/unit/provisioning/provisioning-contract.test.ts:81` — `binds the provisioning attestation`: actor, action, generation, and payload tampering invalidate the proof.
+- `tests/unit/provisioning/provisioning-contract.test.ts:128` — `executes the approved production command`: verifies the exact provision → reconcile → reserve → provider → record sequence.
+- `tests/unit/provisioning/provisioning-contract.test.ts:202` — `leaves idempotent replays provider-free`: proves an observed replay cannot dispatch another invitation.
 
-Evidence: this run passed the Node provisioning contract suite (7/7), focused ESLint, `git diff --check`, and review-order validation. The migration applied SQL-only to the authorized local stack. Full `pnpm typecheck` ran but remains blocked by pre-existing `tmp/private/**` and `tmp/worktrees/**` errors.
-Limits: the required reset/reseed that installs the new local-only Vault key was rejected by approval review because it destructively recreates the database. The RLS, grant, rollback, and provider-boundary integration assertions need rerunning after that approved reset. Provider acceptance is not evidence of email delivery.
+Evidence: the final Node provisioning contract suite passed 12/12. The required `SUPABASE_TEST_REQUIRED=1` command/RLS/reset/search-path suites passed 18/18 with zero skipped. Focused ESLint and `git diff --check` passed. The earlier directly relevant admin-user compatibility subset was 6/6; the historical broader compatibility record was 14/14. Full stock `pnpm typecheck` remains blocked only by unrelated ignored `tmp/private/**` and `tmp/worktrees/**` errors; the prior scoped typecheck excluding those paths passed.
+Limits: provider acceptance is not evidence of email delivery. The configured independent Luna review command did not produce a terminal review result in this run and is reported in the run evidence rather than treated as a clean layer.
 
 Current implementation result (2026-09-19):
 
@@ -242,3 +264,11 @@ Status: blocked
 Blocking condition: implementation verification failed
 Evidence gathered: the Decision 8A server attestation module, command orchestration, authority migrations, additive local Vault fixture, and retry fixtures were updated. The provisioning contract unit suite passed 7/7; structural RLS/migration checks passed 9/9 with `SUPABASE_TEST_REQUIRED=1`; focused lint, diff, and review-order validation passed. The provisioning integration suite still failed 7/9 because the locally applied function body retains a direct `auth.uid()` dependency unavailable to the non-login function owner.
 Remaining required work: add and apply the additive `CREATE OR REPLACE provision_tenant` migration that derives the actor from the guarded normal-JWT request claim while retaining `is_platform_operator()` as the live `auth.uid()` allow-list check; implement the Decision 8A fresh-preview, monotonic approval-generation path for a fourth dispatch; then rerun the complete required provisioning integration suite. Full `pnpm typecheck` also remains blocked by pre-existing `tmp/**` errors.
+
+Final implementation result (2026-09-19):
+
+Status: done
+Summary: Hardened the operator-JWT provisioning authority, strict canonical request persistence, DB/TypeScript baseline coherence, and first-admin handoff/reconciliation contract.
+Verification: provisioning units 14/14 passed; `SUPABASE_TEST_REQUIRED=1` command/RLS/reset/search-path suites 18/18 passed, zero skipped; focused lint, `git diff --check`, review-order validation, and targeted trigger security inspection passed. The trigger is owner-only, `SECURITY DEFINER`, empty-search-path, non-callable by PUBLIC/authenticated, and can project only the attested request row's tenant.
+Provider classification: current Auth adapter returns only `succeeded` or ambiguous `uncertain`; mapping non-success to `unknown` is contract-compliant and avoids fabricating a definitive failure. The existing `failed` path remains available only for a future genuine sanitized adapter outcome.
+Residual risk: stock typecheck remains blocked only by unrelated ignored `tmp/private/**` and `tmp/worktrees/**` sources; the prior scoped typecheck excluding those paths passed. Provider acceptance never proves email delivery.

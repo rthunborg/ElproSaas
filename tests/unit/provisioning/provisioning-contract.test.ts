@@ -14,6 +14,7 @@ import {
   signProvisioningAttestation,
   verifyProvisioningAttestation,
 } from "@/server/provisioning/attestation";
+import { findProvisioningBaseline } from "@/server/provisioning/baselines";
 import { provisioningCommandTestHooks } from "@/server/commands/provisioning/provision-tenant";
 
 function validRequest() {
@@ -46,6 +47,27 @@ test("[P0] 12.1-UNIT-002 canonicalizes Swedish organization/VAT/email identities
     { country_code: "SE", organization_number: "5561234568" }, { vat_registration_number: "SE556123456801" },
     { first_admin_email: "Ada Admin <ada@example.se>" }, { first_admin_email: "ada@example.se,other@example.se" },
   ]) assert.throws(() => canonicalizeProvisioningRequest({ ...input, ...rejected }));
+});
+
+test("[P0] 12.1-UNIT-002 rejects coercible primitives and permits only the v1 nested request shapes", () => {
+  const input = validRequest();
+  for (const invalid of [
+    { request_id: 42 }, { legal_name: true }, { baseline_profile_version: "1" },
+    { included_user_count: 1.5 }, { additional_user_price_ore: -1 }, { contract_start_date: "2026-02-30" },
+    { primary_email: "Ada <ada@example.se>" }, { address: [] }, { address: { unknown: "no" } },
+    { commercial_overrides: { nested: { discount: 1 } } }, { module_ids: ["suppliers"] }, { feature_flags: ["beta"] },
+  ]) assert.throws(() => canonicalizeProvisioningRequest({ ...input, ...invalid }));
+
+  const canonical = canonicalizeProvisioningRequest({
+    ...input,
+    organization_number: "556 123-4567", first_admin_email: " Ada@EXAMPLE.SE ",
+    address: { address_line1: "Storgatan 1", postal_code: "111 22", city: "Stockholm" },
+    commercial_overrides: { agreed_discount_ore: 5000, special_terms: "Annual prepay" },
+    module_ids: ["settings", "quotes"], feature_flags: [],
+  });
+  assert.deepEqual(canonical.address, { address_line1: "Storgatan 1", postal_code: "111 22", city: "Stockholm" });
+  assert.equal(canonical.organization_number, "5561234567");
+  assert.equal(canonical.first_admin_email, "ada@example.se");
 });
 
 test("[P0] 12.1-UNIT-003 permits only documented handoff states and ready's exact persisted predicate", () => {
@@ -81,7 +103,8 @@ test("[P0] 12.1-UNIT-003 binds the provisioning attestation to actor, action, ge
   const proof = {
     action: "reserve_dispatch", actorUserId: "00000000-0000-0000-0000-000000000001",
     requestId: "00000000-0000-0000-0000-000000000002", requestHash: "a".repeat(64), organizationNumber: "5561234567",
-    previewHash: "b".repeat(64), baselineId: "standard-se", baselineVersion: 1, baselineContentHash: "c".repeat(64),
+    previewHash: "b".repeat(64), firstAdminEmail: "ada@example.se", explicitApproval: true,
+    baselineId: "standard-se", baselineVersion: 1, baselineContentHash: "c".repeat(64),
     tokenHash: "d".repeat(64), reservationId: "00000000-0000-0000-0000-000000000003", dispatchGeneration: 2,
     approvalGeneration: 1, outcome: "", keyId: "test_v1", issuedAt: "2026-09-19T10:00:00.000Z", expiresAt: "2026-09-19T10:02:00.000Z",
   } as const;
@@ -89,6 +112,7 @@ test("[P0] 12.1-UNIT-003 binds the provisioning attestation to actor, action, ge
   const signature = signProvisioningAttestation(proof, secret);
   assert.ok(verifyProvisioningAttestation(proof, secret, signature));
   assert.ok(!verifyProvisioningAttestation({ ...proof, dispatchGeneration: 3 }, secret, signature));
+  assert.ok(!verifyProvisioningAttestation({ ...proof, explicitApproval: false }, secret, signature));
   assert.notDeepEqual(canonicalProvisioningAttestationBytes(proof), canonicalProvisioningAttestationBytes({ ...proof, outcome: "unknown" }));
 });
 
@@ -122,4 +146,171 @@ test("[P0] 12.1-UNIT-003 recognizes only a complete outstanding reservation for 
   });
   assert.equal(provisioningCommandTestHooks.outstandingReservation({ ...outstanding, tokenHash: "bad" }, facts), null);
   assert.equal(provisioningCommandTestHooks.outstandingReservation({ ...outstanding, reservationOutcome: "requested" }, facts), null);
+});
+
+test("[P0] 12.1-UNIT-004 executes the approved production command through its created-only reservation, provider, and outcome sequence", async () => {
+  const input = validRequest();
+  const canonical = canonicalizeProvisioningRequest(input);
+  const baseline = findProvisioningBaseline(input.baseline_profile_id, input.baseline_profile_version);
+  assert.ok(baseline);
+  const preview = createProvisioningPreview(input, baseline);
+  const tenantId = "00000000-0000-4000-8000-000000000010";
+  const actorUserId = "00000000-0000-4000-8000-000000000011";
+  const calls: Array<{ action: string; payload: Record<string, unknown> }> = [];
+  let providerOutcome: "requested" | "failed" | "unknown" = "requested";
+  const previousKeyId = process.env.TENANT_PROVISIONING_ATTESTATION_KEY_ID;
+  const previousSecret = process.env.TENANT_PROVISIONING_ATTESTATION_HMAC_SECRET;
+  process.env.TENANT_PROVISIONING_ATTESTATION_KEY_ID = "test_v1";
+  process.env.TENANT_PROVISIONING_ATTESTATION_HMAC_SECRET = "local-test-only-provisioning-attestation-secret-v1";
+  try {
+    const client = {
+      auth: { getUser: async () => ({ data: { user: { id: actorUserId } }, error: null }) },
+      rpc: async (_name: string, args: { p_action: string; p_request: Record<string, unknown> }) => {
+        calls.push({ action: args.p_action, payload: args.p_request });
+        if (args.p_action === "provision") return { data: { tenantId, reconciliationAction: "created" }, error: null };
+        if (args.p_action === "reconcile") return {
+          data: {
+            tenantId, requestId: canonical.request_id, requestHash: canonical.canonicalRequestHash,
+            organizationNumber: canonical.normalizedOrganizationNumber, previewHash: preview.preview_hash,
+            baselineId: baseline.id, baselineVersion: baseline.version, baselineContentHash: baseline.contentHash,
+            approvalGeneration: 1, dispatchGeneration: 0,
+          }, error: null,
+        };
+        if (args.p_action === "reserve_dispatch") return {
+          data: {
+            tenantId, normalizedEmail: canonical.firstAdminEmail,
+            membershipId: "00000000-0000-4000-8000-000000000012",
+            reservationId: "00000000-0000-4000-8000-000000000013",
+            dispatchGeneration: 1,
+          }, error: null,
+        };
+        if (args.p_action === "record_requested") return { data: { provisioningState: "first_admin_invite_requested" }, error: null };
+        throw new Error(`unexpected action ${args.p_action}`);
+      },
+    };
+    const result = await provisioningCommandTestHooks.provisionTenantWithDependencies(
+      { request: input, previewHash: preview.preview_hash, explicitApproval: true },
+      {
+        client: client as never,
+        deliverInvitation: async (reservation, rawToken) => {
+          assert.equal(reservation.normalizedEmail, canonical.firstAdminEmail);
+          assert.match(rawToken, /^[A-Za-z0-9_-]+$/);
+          return providerOutcome;
+        },
+      },
+    );
+    assert.equal(result.ok, true);
+    assert.deepEqual(calls.map(({ action }) => action), ["provision", "reconcile", "reserve_dispatch", "record_requested"]);
+    assert.equal(calls[0]?.payload.explicit_approval, true);
+    assert.equal(calls[0]?.payload.preview_hash, preview.preview_hash);
+    assert.match(String(calls[2]?.payload.token_hash), /^[a-f0-9]{64}$/);
+    for (const outcome of ["failed", "unknown"] as const) {
+      providerOutcome = outcome;
+      calls.length = 0;
+      const remapped = await provisioningCommandTestHooks.provisionTenantWithDependencies(
+        { request: input, previewHash: preview.preview_hash, explicitApproval: true },
+        { client: client as never, deliverInvitation: async () => providerOutcome },
+      );
+      assert.equal(remapped.ok, true);
+      assert.deepEqual(calls.map(({ action }) => action), ["provision", "reconcile", "reserve_dispatch", `record_${outcome}`]);
+    }
+  } finally {
+    if (previousKeyId === undefined) delete process.env.TENANT_PROVISIONING_ATTESTATION_KEY_ID;
+    else process.env.TENANT_PROVISIONING_ATTESTATION_KEY_ID = previousKeyId;
+    if (previousSecret === undefined) delete process.env.TENANT_PROVISIONING_ATTESTATION_HMAC_SECRET;
+    else process.env.TENANT_PROVISIONING_ATTESTATION_HMAC_SECRET = previousSecret;
+  }
+});
+
+test("[P0] 12.1-UNIT-005 leaves idempotent replays provider-free", async () => {
+  const input = validRequest();
+  const baseline = findProvisioningBaseline(input.baseline_profile_id, input.baseline_profile_version);
+  assert.ok(baseline);
+  const preview = createProvisioningPreview(input, baseline);
+  const previousKeyId = process.env.TENANT_PROVISIONING_ATTESTATION_KEY_ID;
+  const previousSecret = process.env.TENANT_PROVISIONING_ATTESTATION_HMAC_SECRET;
+  process.env.TENANT_PROVISIONING_ATTESTATION_KEY_ID = "test_v1";
+  process.env.TENANT_PROVISIONING_ATTESTATION_HMAC_SECRET = "local-test-only-provisioning-attestation-secret-v1";
+  try {
+    const calls: string[] = [];
+    const client = {
+      auth: { getUser: async () => ({ data: { user: { id: "00000000-0000-4000-8000-000000000015" } }, error: null }) },
+      rpc: async (_name: string, args: { p_action: string }) => {
+        calls.push(args.p_action);
+        return { data: { tenantId: "00000000-0000-4000-8000-000000000016", reconciliationAction: "observed" }, error: null };
+      },
+    };
+    const result = await provisioningCommandTestHooks.provisionTenantWithDependencies(
+      { request: input, previewHash: preview.preview_hash, explicitApproval: true },
+      { client: client as never, deliverInvitation: async () => { throw new Error("a replay must not dispatch"); } },
+    );
+    assert.equal(result.ok, true);
+    assert.deepEqual(calls, ["provision"]);
+  } finally {
+    if (previousKeyId === undefined) delete process.env.TENANT_PROVISIONING_ATTESTATION_KEY_ID;
+    else process.env.TENANT_PROVISIONING_ATTESTATION_KEY_ID = previousKeyId;
+    if (previousSecret === undefined) delete process.env.TENANT_PROVISIONING_ATTESTATION_HMAC_SECRET;
+    else process.env.TENANT_PROVISIONING_ATTESTATION_HMAC_SECRET = previousSecret;
+  }
+});
+
+test("[P0] 12.1-UNIT-005 returns a sanitized already-provisioned identity without provider work", async () => {
+  const input = validRequest();
+  const baseline = findProvisioningBaseline(input.baseline_profile_id, input.baseline_profile_version);
+  assert.ok(baseline);
+  const preview = createProvisioningPreview(input, baseline);
+  const tenantId = "00000000-0000-4000-8000-000000000017";
+  const previousKeyId = process.env.TENANT_PROVISIONING_ATTESTATION_KEY_ID;
+  const previousSecret = process.env.TENANT_PROVISIONING_ATTESTATION_HMAC_SECRET;
+  process.env.TENANT_PROVISIONING_ATTESTATION_KEY_ID = "test_v1";
+  process.env.TENANT_PROVISIONING_ATTESTATION_HMAC_SECRET = "local-test-only-provisioning-attestation-secret-v1";
+  try {
+    let calls = 0;
+    const client = {
+      auth: { getUser: async () => ({ data: { user: { id: "00000000-0000-4000-8000-000000000018" } }, error: null }) },
+      rpc: async () => {
+        calls += 1;
+        return { data: { resultCode: "ALREADY_PROVISIONED", tenantId, provisioningState: "first_admin_invite_requested" }, error: null };
+      },
+    };
+    assert.deepEqual(
+      await provisioningCommandTestHooks.provisionTenantWithDependencies(
+        { request: input, previewHash: preview.preview_hash, explicitApproval: true },
+        { client: client as never, deliverInvitation: async () => { throw new Error("must not deliver"); } },
+      ),
+      { ok: false, code: "ALREADY_PROVISIONED", tenantId, provisioningState: "first_admin_invite_requested" },
+    );
+    assert.equal(calls, 1);
+  } finally {
+    if (previousKeyId === undefined) delete process.env.TENANT_PROVISIONING_ATTESTATION_KEY_ID;
+    else process.env.TENANT_PROVISIONING_ATTESTATION_KEY_ID = previousKeyId;
+    if (previousSecret === undefined) delete process.env.TENANT_PROVISIONING_ATTESTATION_HMAC_SECRET;
+    else process.env.TENANT_PROVISIONING_ATTESTATION_HMAC_SECRET = previousSecret;
+  }
+});
+
+test("[P0] 12.1-UNIT-006 rejects unapproved or stale command envelopes before the provisioning RPC", async () => {
+  const input = validRequest();
+  const baseline = findProvisioningBaseline(input.baseline_profile_id, input.baseline_profile_version);
+  assert.ok(baseline);
+  const preview = createProvisioningPreview(input, baseline);
+  let calls = 0;
+  const client = {
+    auth: { getUser: async () => ({ data: { user: { id: "00000000-0000-4000-8000-000000000014" } }, error: null }) },
+    rpc: async () => { calls += 1; return { data: null, error: null }; },
+  };
+  const dependencies = { client: client as never, deliverInvitation: async () => "requested" as const };
+  assert.deepEqual(
+    await provisioningCommandTestHooks.provisionTenantWithDependencies(
+      { request: input, previewHash: preview.preview_hash, explicitApproval: false }, dependencies,
+    ),
+    { ok: false, code: "PROVISIONING_DENIED" },
+  );
+  assert.deepEqual(
+    await provisioningCommandTestHooks.provisionTenantWithDependencies(
+      { request: input, previewHash: "f".repeat(64), explicitApproval: true }, dependencies,
+    ),
+    { ok: false, code: "PROVISIONING_DENIED" },
+  );
+  assert.equal(calls, 0);
 });

@@ -224,6 +224,7 @@ export async function executeApprovedProvisioning(
   const attestation: ProvisioningAttestation = {
     action: "provision", actorUserId: fixture.operator.id, requestId: String(input.request_id), requestHash: canonical.canonicalRequestHash,
     organizationNumber: canonical.normalizedOrganizationNumber, previewHash: preview.preview_hash,
+    firstAdminEmail: canonical.firstAdminEmail, explicitApproval: true,
     baselineId: baseline.id, baselineVersion: baseline.version, baselineContentHash: baseline.contentHash,
     tokenHash: "0".repeat(64), reservationId: "", dispatchGeneration: 0, approvalGeneration: 1, outcome: "",
     keyId: LOCAL_TEST_PROVISIONING_ATTESTATION_KEY_ID, issuedAt, expiresAt: new Date(Date.parse(issuedAt) + 120_000).toISOString(),
@@ -252,7 +253,8 @@ export async function executeApprovedProvisioning(
     }
     failure(error.message.includes("IDEMPOTENCY_CONFLICT") ? "IDEMPOTENCY_CONFLICT" : error.code ?? "PROVISIONING_DENIED");
   }
-  const result = data as { tenantId?: string; provisioningState?: string };
+  const result = data as { resultCode?: string; tenantId?: string; provisioningState?: string };
+  if (result.resultCode === "ALREADY_PROVISIONED") failure("ALREADY_PROVISIONED", { tenantId: result.tenantId });
   if (!result?.tenantId) failure("PROVISIONING_DENIED");
   lastProvisionedTenantId = result.tenantId;
   const [memberships, audits] = await Promise.all([
@@ -303,6 +305,7 @@ async function reserveFirstDispatchForTest(
     action: "reserve_dispatch", actorUserId: fixture.operator.id,
     requestId: request.request_id, requestHash: request.canonical_request_hash,
     organizationNumber: request.normalized_organization_number, previewHash: request.preview_hash,
+    firstAdminEmail: "", explicitApproval: false,
     baselineId: request.provisioning_baseline_id, baselineVersion: request.provisioning_baseline_version,
     baselineContentHash: request.provisioning_baseline_content_hash, tokenHash, reservationId: "",
     dispatchGeneration: 0, approvalGeneration: request.approval_generation, outcome: "",
@@ -392,7 +395,8 @@ export async function retryFirstAdminInviteForTest(
     const attestation: ProvisioningAttestation = {
       action, actorUserId: fixture.operator.id,
       requestId: String(facts.requestId), requestHash: String(facts.requestHash), organizationNumber: String(facts.organizationNumber),
-      previewHash: String(facts.previewHash), baselineId: String(facts.baselineId), baselineVersion: Number(facts.baselineVersion),
+      previewHash: String(facts.previewHash), firstAdminEmail: String(facts.firstAdminEmail ?? ""), explicitApproval: facts.explicitApproval === true,
+      baselineId: String(facts.baselineId), baselineVersion: Number(facts.baselineVersion),
       baselineContentHash: String(facts.baselineContentHash), tokenHash: String(facts.tokenHash), reservationId: String(facts.reservationId ?? ""),
       dispatchGeneration: Number(facts.dispatchGeneration ?? 0), approvalGeneration: Number(facts.approvalGeneration), outcome: String(facts.outcome ?? ""),
       keyId: LOCAL_TEST_PROVISIONING_ATTESTATION_KEY_ID, issuedAt, expiresAt: new Date(Date.parse(issuedAt) + 120_000).toISOString(),
@@ -413,6 +417,7 @@ export async function retryFirstAdminInviteForTest(
       previewHash,
       approvalGeneration,
       tokenHash,
+      explicitApproval: renewal,
     });
     const response = await client.rpc("provision_tenant", { p_action: "reserve_dispatch", p_request: {
       tenant_id: provisioned.tenantId,

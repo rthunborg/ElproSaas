@@ -23,7 +23,7 @@ function signed(action: string, actorUserId: string, facts: Record<string, unkno
   const { keyId, secret } = provisioningAttestationSecretFromEnv();
   const issuedAt = new Date().toISOString();
   const attestation: ProvisioningAttestation = {
-    action, actorUserId, requestId: String(facts.requestId ?? randomUUID()), requestHash: String(facts.requestHash ?? emptyHash), organizationNumber: String(facts.organizationNumber ?? ""), previewHash: String(facts.previewHash ?? emptyHash), baselineId: String(facts.baselineId ?? ""), baselineVersion: Number(facts.baselineVersion ?? 0), baselineContentHash: String(facts.baselineContentHash ?? emptyHash), tokenHash: String(facts.tokenHash ?? emptyHash), reservationId: String(facts.reservationId ?? ""), dispatchGeneration: Number(facts.dispatchGeneration ?? 0), approvalGeneration: Number(facts.approvalGeneration ?? 0), outcome: String(facts.outcome ?? ""), keyId, issuedAt, expiresAt: new Date(Date.parse(issuedAt) + 120_000).toISOString(),
+    action, actorUserId, requestId: String(facts.requestId ?? randomUUID()), requestHash: String(facts.requestHash ?? emptyHash), organizationNumber: String(facts.organizationNumber ?? ""), firstAdminEmail: String(facts.firstAdminEmail ?? ""), previewHash: String(facts.previewHash ?? emptyHash), explicitApproval: facts.explicitApproval === true, baselineId: String(facts.baselineId ?? ""), baselineVersion: Number(facts.baselineVersion ?? 0), baselineContentHash: String(facts.baselineContentHash ?? emptyHash), tokenHash: String(facts.tokenHash ?? emptyHash), reservationId: String(facts.reservationId ?? ""), dispatchGeneration: Number(facts.dispatchGeneration ?? 0), approvalGeneration: Number(facts.approvalGeneration ?? 0), outcome: String(facts.outcome ?? ""), keyId, issuedAt, expiresAt: new Date(Date.parse(issuedAt) + 120_000).toISOString(),
   };
   return { attestation, signature: signProvisioningAttestation(attestation, secret) };
 }
@@ -38,31 +38,77 @@ async function actor(client: SupabaseClient) {
   return error || !data.user ? null : data.user.id;
 }
 
+type CommandDependencies = {
+  readonly client: SupabaseClient;
+  readonly deliverInvitation: (reservation: Reservation, token: string) => Promise<"requested" | "unknown" | "failed">;
+};
+
+type ApprovedProvisioningInput = {
+  readonly request: unknown;
+  readonly previewHash: string;
+  readonly explicitApproval: boolean;
+};
+
+async function deliverInvitation(reservation: Reservation, token: string) {
+  const service = createRuntimeAdminUserService({
+    invitationRedirectBase: "/auth/invite/confirm",
+    prepareInvite: async () => ({
+      operationId: reservation.reservationId,
+      membershipId: reservation.membershipId,
+      attemptToken: token,
+      delivery: "invite",
+    }),
+  });
+  try {
+    const provider = await service.invite({ email: reservation.normalizedEmail }) as { outcome?: unknown };
+    // The adapter deliberately treats response loss as uncertain. It may
+    // explicitly surface a definitive, already-sanitized failure category.
+    return provider.outcome === "succeeded" ? "requested" : provider.outcome === "failed" ? "failed" : "unknown";
+  } catch {
+    return "unknown";
+  }
+}
+
 /** Platform-only command. Attestations and raw invitation tokens never leave server memory. */
-export async function provisionTenant(input: unknown) {
+async function provisionTenantWithDependencies(input: ApprovedProvisioningInput, dependencies: CommandDependencies) {
   let request;
-  try { request = canonicalizeProvisioningRequest(input); } catch { return denied; }
+  try { request = canonicalizeProvisioningRequest(input.request); } catch { return denied; }
+  if (input.explicitApproval !== true || !hashPattern.test(input.previewHash)) return denied;
   const baseline = findProvisioningBaseline(String(request.baseline_profile_id), Number(request.baseline_profile_version));
   if (!baseline) return { ok: false as const, code: "PREVIEW_STALE" as const };
-  const preview = createProvisioningPreview(input, baseline);
-  const client = await serverClient();
+  const preview = createProvisioningPreview(input.request, baseline);
+  if (input.previewHash !== preview.preview_hash) return denied;
+  const { client } = dependencies;
   const actorUserId = await actor(client);
   if (!actorUserId) return denied;
   try {
-    const proof = signed("provision", actorUserId, { requestId: request.request_id, requestHash: request.canonicalRequestHash, organizationNumber: request.normalizedOrganizationNumber, previewHash: preview.preview_hash, baselineId: baseline.id, baselineVersion: baseline.version, baselineContentHash: baseline.contentHash });
+    const proof = signed("provision", actorUserId, { requestId: request.request_id, requestHash: request.canonicalRequestHash, organizationNumber: request.normalizedOrganizationNumber, firstAdminEmail: request.firstAdminEmail, previewHash: preview.preview_hash, explicitApproval: true, baselineId: baseline.id, baselineVersion: baseline.version, baselineContentHash: baseline.contentHash });
     const { data, error } = await client.rpc("provision_tenant", { p_action: "provision", p_request: { request, preview_hash: preview.preview_hash, explicit_approval: true, attestation: proof.attestation, attestation_signature: proof.signature } });
     if (error) return documentedRpcFailure(error);
     if (!data || typeof data !== "object" || Array.isArray(data)) return denied;
     const result = data as Record<string, unknown>;
+    if (result.resultCode === "ALREADY_PROVISIONED") {
+      return typeof result.tenantId === "string"
+        ? { ok: false as const, code: "ALREADY_PROVISIONED" as const, tenantId: result.tenantId, provisioningState: result.provisioningState }
+        : denied;
+    }
     const tenantId = result.tenantId;
     // The provider handoff begins only once, immediately after the database
     // transaction reports a newly-created tenant. Replays remain observation
     // only and never rotate a token or make a provider request.
     const handoff = result.reconciliationAction === "created" && typeof tenantId === "string" && uuidPattern.test(tenantId)
-      ? await retryFirstAdminInvite({ tenantId })
+      ? await retryFirstAdminInviteWithDependencies({ tenantId }, dependencies)
       : undefined;
     return { ok: true as const, previewHash: preview.preview_hash, result: data, handoff };
   } catch { return denied; }
+}
+
+/** Platform-only command. Attestations and raw invitation tokens never leave server memory. */
+export async function provisionTenant(input: ApprovedProvisioningInput) {
+  return provisionTenantWithDependencies(input, {
+    client: await serverClient(),
+    deliverInvitation,
+  });
 }
 
 /** Pure dry run: no database/Auth client is initialized. */
@@ -169,9 +215,9 @@ function outstandingReservation(value: unknown, facts: DurableRetryFacts): Outst
 }
 
 /** Explicit post-commit resend. Provider identity comes only from the RPC reservation. */
-export async function retryFirstAdminInvite(input: { tenantId: string; renewal?: RetryRenewal }) {
+async function retryFirstAdminInviteWithDependencies(input: { tenantId: string; renewal?: RetryRenewal }, dependencies: CommandDependencies) {
   if (!uuidPattern.test(input.tenantId)) return denied;
-  const client = await serverClient();
+  const { client } = dependencies;
   const actorUserId = await actor(client);
   if (!actorUserId) return denied;
   try {
@@ -212,7 +258,7 @@ export async function retryFirstAdminInvite(input: { tenantId: string; renewal?:
 
     const token = randomBytes(32).toString("base64url");
     const tokenHash = createHash("sha256").update(token).digest("hex");
-    const reserve = signed("reserve_dispatch", actorUserId, { ...facts, tokenHash });
+    const reserve = signed("reserve_dispatch", actorUserId, { ...facts, tokenHash, explicitApproval: renewing });
     const reservation = await client.rpc("provision_tenant", { p_action: "reserve_dispatch", p_request: {
       tenant_id: input.tenantId,
       token_hash: tokenHash,
@@ -229,20 +275,19 @@ export async function retryFirstAdminInvite(input: { tenantId: string; renewal?:
       reserved.tenantId !== input.tenantId || typeof reserved.normalizedEmail !== "string" || typeof reserved.membershipId !== "string" ||
       typeof reserved.reservationId !== "string" || reserved.dispatchGeneration !== expectedDispatchGeneration
     ) return denied;
-    const service = createRuntimeAdminUserService({ invitationRedirectBase: "/auth/invite/confirm", prepareInvite: async () => ({ operationId: reserved.reservationId, membershipId: reserved.membershipId, attemptToken: token, delivery: "invite" }) });
-    let outcome: "requested" | "unknown" | "failed" = "unknown";
-    try {
-      const provider = await service.invite({ email: reserved.normalizedEmail }) as { outcome?: unknown };
-      // The adapter deliberately treats response loss as uncertain. It may
-      // explicitly surface a definitive, already-sanitized failure category.
-      outcome = provider.outcome === "succeeded" ? "requested" : provider.outcome === "failed" ? "failed" : "unknown";
-    } catch {
-      outcome = "unknown";
-    }
+    const outcome = await dependencies.deliverInvitation(reserved, token);
     const recorded = signed(`record_${outcome}`, actorUserId, { ...facts, tokenHash, reservationId: reserved.reservationId, dispatchGeneration: reserved.dispatchGeneration, outcome });
     const result = await client.rpc("provision_tenant", { p_action: `record_${outcome}`, p_request: { tenant_id: input.tenantId, reservation_id: reserved.reservationId, dispatch_generation: reserved.dispatchGeneration, attestation: recorded.attestation, attestation_signature: recorded.signature } });
     return result.error ? documentedRpcFailure(result.error) : { ok: true as const, result: result.data };
   } catch { return denied; }
+}
+
+/** Explicit post-commit resend. Provider identity comes only from the RPC reservation. */
+export async function retryFirstAdminInvite(input: { tenantId: string; renewal?: RetryRenewal }) {
+  return retryFirstAdminInviteWithDependencies(input, {
+    client: await serverClient(),
+    deliverInvitation,
+  });
 }
 
 /** Narrow test seam for guarded, non-I/O protocol parsing. */
@@ -250,4 +295,6 @@ export const provisioningCommandTestHooks = {
   documentedRpcFailure,
   durableRetryFacts,
   outstandingReservation,
+  provisionTenantWithDependencies,
+  retryFirstAdminInviteWithDependencies,
 };

@@ -10,6 +10,10 @@ export type ProvisioningAttestation = {
   readonly requestHash: string;
   readonly organizationNumber: string;
   readonly previewHash: string;
+  /** The server-derived canonical first-admin comparison key. */
+  readonly firstAdminEmail: string;
+  /** Execution/renewal approval is authority and must be HMAC-bound. */
+  readonly explicitApproval: boolean;
   readonly baselineId: string;
   readonly baselineVersion: number;
   readonly baselineContentHash: string;
@@ -32,7 +36,8 @@ function canonical(value: string): Uint8Array {
 export function canonicalProvisioningAttestationBytes(value: ProvisioningAttestation): Uint8Array {
   const fields = [
     PROVISIONING_ATTESTATION_DOMAIN, value.action, value.actorUserId, value.requestId,
-    value.requestHash, value.organizationNumber, value.previewHash, value.baselineId,
+    value.requestHash, value.organizationNumber, value.previewHash, value.firstAdminEmail,
+    String(value.explicitApproval), value.baselineId,
     String(value.baselineVersion), value.baselineContentHash, value.tokenHash,
     value.reservationId, String(value.dispatchGeneration), String(value.approvalGeneration),
     value.outcome, value.keyId, value.issuedAt, value.expiresAt,

@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { SCOPE_MANIFEST } from "@/scope/manifest";
 
 export const PROVISIONING_STATES = [
   "pending_first_admin_invite", "first_admin_invite_unknown", "first_admin_invite_requested", "first_admin_invite_failed", "ready",
@@ -10,8 +11,64 @@ type ProvisioningState = (typeof PROVISIONING_STATES)[number];
 const REQUIRED = ["schema_version", "request_id", "legal_name", "country_code", "organization_number", "first_admin_name", "first_admin_email", "baseline_profile_id", "baseline_profile_version", "subscription_plan_id", "subscription_status", "included_user_count", "additional_user_price_ore", "contract_start_date"] as const;
 const OPTIONAL = ["vat_registration_number", "address", "primary_email", "phone", "contract_end_date", "trial_end_date", "billing_reference", "commercial_overrides", "reply_to", "module_ids", "feature_flags"] as const;
 const ALLOWED = new Set([...REQUIRED, ...OPTIONAL]);
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const DATE = /^\d{4}-\d{2}-\d{2}$/;
+const PHONE = /^[+()\-\s\d]{5,32}$/;
+const MAX_TEXT = 512;
+const ACTIVE_TENANT_MODULE_IDS = new Set(
+  SCOPE_MANIFEST.modules
+    .filter((module) => module.status === "active" && (module.scope ?? "tenant") === "tenant")
+    .map((module) => module.id),
+);
 
 export type ProvisioningRequest = Record<string, unknown>;
+
+function text(value: unknown, max = MAX_TEXT): value is string {
+  return typeof value === "string" && value.trim().length > 0 && value.length <= max;
+}
+
+function date(value: unknown): value is string {
+  if (typeof value !== "string" || !DATE.test(value)) return false;
+  const parsed = new Date(`${value}T00:00:00.000Z`);
+  return !Number.isNaN(parsed.valueOf()) && parsed.toISOString().slice(0, 10) === value;
+}
+
+function plainRecord(value: unknown): value is Record<string, unknown> {
+  return !!value && typeof value === "object" && !Array.isArray(value) && Object.getPrototypeOf(value) === Object.prototype;
+}
+
+function scalar(value: unknown): boolean {
+  return value === null || typeof value === "string" || typeof value === "boolean" || (typeof value === "number" && Number.isFinite(value));
+}
+
+function optionalText(value: unknown, max = MAX_TEXT): boolean {
+  return value === undefined || text(value, max);
+}
+
+function validateOptionalShapes(request: ProvisioningRequest) {
+  if (request.vat_registration_number !== undefined && !text(request.vat_registration_number, 32)) throw new Error("INVALID_VAT_REGISTRATION_NUMBER");
+  if (request.primary_email !== undefined) email(request.primary_email);
+  if (request.reply_to !== undefined) email(request.reply_to);
+  if (request.phone !== undefined && (typeof request.phone !== "string" || !PHONE.test(request.phone))) throw new Error("INVALID_PHONE");
+  for (const field of ["contract_end_date", "trial_end_date"] as const) if (request[field] !== undefined && !date(request[field])) throw new Error("INVALID_DATE");
+  if (request.billing_reference !== undefined && !text(request.billing_reference)) throw new Error("INVALID_BILLING_REFERENCE");
+
+  if (request.address !== undefined) {
+    if (!plainRecord(request.address)) throw new Error("INVALID_ADDRESS");
+    const address = request.address;
+    const fields = new Set(["address_line1", "address_line2", "postal_code", "city"]);
+    if (Object.keys(address).length === 0 || Object.keys(address).some((key) => !fields.has(key)) || !Object.values(address).every((value) => optionalText(value))) throw new Error("INVALID_ADDRESS");
+  }
+  if (request.commercial_overrides !== undefined) {
+    if (!plainRecord(request.commercial_overrides) || Object.keys(request.commercial_overrides).length > 32 || Object.keys(request.commercial_overrides).some((key) => !text(key, 64)) || !Object.values(request.commercial_overrides).every(scalar)) throw new Error("INVALID_COMMERCIAL_OVERRIDES");
+  }
+  if (request.module_ids !== undefined) {
+    if (!Array.isArray(request.module_ids) || request.module_ids.some((value) => typeof value !== "string" || !ACTIVE_TENANT_MODULE_IDS.has(value)) || new Set(request.module_ids).size !== request.module_ids.length) throw new Error("INVALID_MODULE_IDS");
+  }
+  // There is no approved feature-flag registry in v1. An empty list is the only
+  // representable value; accepting names here would turn caller input into policy.
+  if (request.feature_flags !== undefined && (!Array.isArray(request.feature_flags) || request.feature_flags.length !== 0)) throw new Error("INVALID_FEATURE_FLAGS");
+}
 
 export type ProvisioningPreview = {
   readonly schema_version: 1;
@@ -32,11 +89,18 @@ export type ProvisioningPreview = {
 };
 
 export function decodeProvisioningRequest(input: unknown): ProvisioningRequest {
-  if (!input || typeof input !== "object" || Array.isArray(input)) throw new Error("UNSUPPORTED_FIELD");
+  if (!plainRecord(input)) throw new Error("UNSUPPORTED_FIELD");
   const request = input as Record<string, unknown>;
   if (request.schema_version !== 1) throw new Error("UNSUPPORTED_SCHEMA_VERSION");
   for (const key of Object.keys(request)) if (!ALLOWED.has(key as (typeof REQUIRED)[number] | (typeof OPTIONAL)[number])) throw new Error(`UNSUPPORTED_FIELD: ${key}`);
   for (const key of REQUIRED) if (request[key] === undefined || request[key] === "") throw new Error(`UNSUPPORTED_FIELD: ${key}`);
+  if (!UUID.test(String(request.request_id)) || typeof request.request_id !== "string") throw new Error("INVALID_REQUEST_ID");
+  for (const key of ["legal_name", "country_code", "organization_number", "first_admin_name", "first_admin_email", "baseline_profile_id", "subscription_plan_id", "subscription_status"] as const) if (!text(request[key])) throw new Error(`INVALID_${key.toUpperCase()}`);
+  if (!Number.isSafeInteger(request.baseline_profile_version) || (request.baseline_profile_version as number) <= 0) throw new Error("INVALID_BASELINE_PROFILE_VERSION");
+  if (!Number.isSafeInteger(request.included_user_count) || (request.included_user_count as number) < 0) throw new Error("INVALID_INCLUDED_USER_COUNT");
+  if (!Number.isSafeInteger(request.additional_user_price_ore) || (request.additional_user_price_ore as number) < 0) throw new Error("INVALID_ADDITIONAL_USER_PRICE_ORE");
+  if (!date(request.contract_start_date)) throw new Error("INVALID_CONTRACT_START_DATE");
+  validateOptionalShapes(request);
   return request;
 }
 
@@ -56,23 +120,33 @@ function email(value: unknown): string {
 export function canonicalizeProvisioningRequest(input: unknown): ProvisioningRequest & { normalizedOrganizationNumber: string; vatRegistrationNumber?: string; firstAdminEmail: string; canonicalRequestHash: string } {
   const request = decodeProvisioningRequest(input);
   if (request.country_code !== "SE") throw new Error("INVALID_ORGANIZATION_NUMBER");
-  const number = String(request.organization_number).replace(/[\s-]/g, "");
-  if (!/^\d{10}$/.test(number) || !luhn(number) || /^(?:\d{2})?(?:[0-3]\d|[4-9]\d)(?:0\d|1[0-2])/.test(number)) throw new Error("INVALID_ORGANIZATION_NUMBER");
+  const number = request.organization_number as string;
+  const normalizedNumber = number.replace(/[\s-]/g, "");
+  if (!/^\d{10}$/.test(normalizedNumber) || !luhn(normalizedNumber) || /^(?:\d{2})?(?:[0-3]\d|[4-9]\d)(?:0\d|1[0-2])/.test(normalizedNumber)) throw new Error("INVALID_ORGANIZATION_NUMBER");
   let vatRegistrationNumber: string | undefined;
   if (request.vat_registration_number !== undefined) {
-    vatRegistrationNumber = String(request.vat_registration_number).trim().toUpperCase().replace(/\s/g, "");
-    if (vatRegistrationNumber !== `SE${number}01`) throw new Error("INVALID_VAT_REGISTRATION_NUMBER");
+    vatRegistrationNumber = (request.vat_registration_number as string).trim().toUpperCase().replace(/\s/g, "");
+    if (vatRegistrationNumber !== `SE${normalizedNumber}01`) throw new Error("INVALID_VAT_REGISTRATION_NUMBER");
   }
   const firstAdminEmail = email(request.first_admin_email);
   // Hash a canonical key order and normalized values. JSON object insertion order is
   // not a business property and must not turn an otherwise identical retry into a
   // conflict.
   const canonical = Object.fromEntries(Object.keys(request).sort().map((key) => [key, request[key]]));
-  canonical.organization_number = number;
+  canonical.organization_number = normalizedNumber;
   canonical.country_code = "SE";
   canonical.first_admin_email = firstAdminEmail;
   if (vatRegistrationNumber) canonical.vat_registration_number = vatRegistrationNumber;
-  return { ...request, normalizedOrganizationNumber: number, vatRegistrationNumber, firstAdminEmail, canonicalRequestHash: createHash("sha256").update(JSON.stringify(canonical)).digest("hex") };
+  return {
+    ...request,
+    organization_number: normalizedNumber,
+    first_admin_email: firstAdminEmail,
+    ...(vatRegistrationNumber ? { vat_registration_number: vatRegistrationNumber } : {}),
+    normalizedOrganizationNumber: normalizedNumber,
+    vatRegistrationNumber,
+    firstAdminEmail,
+    canonicalRequestHash: createHash("sha256").update(JSON.stringify(canonical)).digest("hex"),
+  };
 }
 
 /** Pure/stateless dry-run authority. Callers must not persist this result. */
