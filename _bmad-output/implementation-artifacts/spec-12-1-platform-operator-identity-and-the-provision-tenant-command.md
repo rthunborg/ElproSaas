@@ -228,7 +228,7 @@ command's provider handoff directly.
 The server signs a fixed, length-prefixed envelope over the current Auth actor and every mutation-relevant fact. The final RPC migration accepts that envelope for every mutation; its authenticated `reconcile` action is the deliberate provider-free, read-only exception. Runtime-table access remains removed from JWT and service roles.
 
 - `src/server/provisioning/attestation.ts:4` — `PROVISIONING_ATTESTATION_DOMAIN`: separates provisioning HMAC bytes from other authorities.
-- `src/server/provisioning/attestation.ts:32` — `canonicalProvisioningAttestationBytes`: fixes the Node/Postgres length-prefixed signing protocol.
+- `src/server/provisioning/attestation.ts:36` — `canonicalProvisioningAttestationBytes`: fixes the Node/Postgres length-prefixed signing protocol.
 - `supabase/migrations/20260919183425_provisioning_review_authority_fixes.sql:12` — `provision_tenant`: supplies the final normal-JWT operator gate, read-only reconciliation exception, and exact reservation/outcome body.
 - `supabase/migrations/20260919120000_provisioning_decision_8a_authority.sql:155` — `revoke all on function public.provision_tenant`: removes service-role and public execution.
 
@@ -240,8 +240,8 @@ after the atomic creation result, the command reads durable facts, reserves one
 token generation, calls the provider once, and records the matching outcome.
 
 - `src/server/commands/provisioning/provision-tenant.ts:73` — `provisionTenantWithDependencies`: rejects missing, unapproved, or stale preview evidence before signing or calling the RPC.
-- `src/server/commands/provisioning/provision-tenant.ts:95` — `retryFirstAdminInviteWithDependencies`: starts the initial handoff only for a newly created tenant; replays remain observation-only.
-- `src/server/commands/provisioning/provision-tenant.ts:213` — `retryFirstAdminInviteWithDependencies`: receives retry identity only from reconciliation and reservation facts.
+- `src/server/commands/provisioning/provision-tenant.ts:100` — `retryFirstAdminInviteWithDependencies`: starts the initial handoff only for a newly created tenant; replays remain observation-only.
+- `src/server/commands/provisioning/provision-tenant.ts:218` — `retryFirstAdminInviteWithDependencies`: receives retry identity only from reconciliation and reservation facts.
 - `supabase/migrations/20260919120000_provisioning_decision_8a_authority.sql:5` — `provisioning_function_owner`: confines the RPC to a non-login owner role.
 
 ### Focused evidence and limits
@@ -251,9 +251,9 @@ rules, and the production command's approval gate, created-only provider flow,
 success/failure/unknown outcome mapping, and replay suppression. Required local
 integration/RLS tests cover the database authority separately.
 
-- `tests/unit/provisioning/provisioning-contract.test.ts:81` — `binds the provisioning attestation`: actor, action, generation, and payload tampering invalidate the proof.
-- `tests/unit/provisioning/provisioning-contract.test.ts:128` — `executes the approved production command`: verifies the exact provision → reconcile → reserve → provider → record sequence.
-- `tests/unit/provisioning/provisioning-contract.test.ts:202` — `leaves idempotent replays provider-free`: proves an observed replay cannot dispatch another invitation.
+- `tests/unit/provisioning/provisioning-contract.test.ts:102` — `binds the provisioning attestation`: actor, action, generation, and payload tampering invalidate the proof.
+- `tests/unit/provisioning/provisioning-contract.test.ts:151` — `executes the approved production command`: verifies the exact provision → reconcile → reserve → provider → record sequence.
+- `tests/unit/provisioning/provisioning-contract.test.ts:225` — `leaves idempotent replays provider-free`: proves an observed replay cannot dispatch another invitation.
 
 Evidence: the final Node provisioning contract suite passed 12/12. The required `SUPABASE_TEST_REQUIRED=1` command/RLS/reset/search-path suites passed 18/18 with zero skipped. Focused ESLint and `git diff --check` passed. The earlier directly relevant admin-user compatibility subset was 6/6; the historical broader compatibility record was 14/14. Full stock `pnpm typecheck` remains blocked only by unrelated ignored `tmp/private/**` and `tmp/worktrees/**` errors; the prior scoped typecheck excluding those paths passed.
 Limits: provider acceptance is not evidence of email delivery. The configured independent Luna review command did not produce a terminal review result in this run and is reported in the run evidence rather than treated as a clean layer.
