@@ -10,7 +10,7 @@ import { isLocalStackReachable } from "../../support/test-env";
 import { skipUnlessStack } from "../../support/stack-gate";
 
 describe("platform operator authority — Story 12.1 ATDD", () => {
-  test.skip("[P0] 12.1-INT-001 operator self-read succeeds while tenant roles, orphan, and anonymous identities cannot enumerate platform_operators", async (testCtx) => {
+  test("[P0] 12.1-INT-001 operator self-read succeeds while tenant roles, orphan, and anonymous identities cannot enumerate platform_operators", async (testCtx) => {
     if (skipUnlessStack(testCtx, await isLocalStackReachable())) return;
     const fixture = await createPlatformOperatorFixture();
     try {
@@ -30,14 +30,16 @@ describe("platform operator authority — Story 12.1 ATDD", () => {
         const denied = await deniedClient
           .from("platform_operators")
           .select("user_id");
-        expect(denied.data).toEqual([]);
+        // PostgREST returns either an empty projection (authenticated callers)
+        // or null with a generic privilege denial (anon); neither reveals rows.
+        expect(denied.data ?? []).toEqual([]);
       }
     } finally {
       await cleanupPlatformOperatorFixture(fixture);
     }
   });
 
-  test.skip("[P0] 12.1-INT-010 tenant roles, orphan, anonymous, absent/forged claims, and direct callers receive generic pre-validation denial with zero effects", async (testCtx) => {
+  test("[P0] 12.1-INT-010 tenant roles, orphan, anonymous, absent/forged claims, and direct callers receive generic pre-validation denial with zero effects", async (testCtx) => {
     if (skipUnlessStack(testCtx, await isLocalStackReachable())) return;
 
     for (const result of await attemptProvisioningAsEveryUnauthorizedIdentity()) {
@@ -51,7 +53,7 @@ describe("platform operator authority — Story 12.1 ATDD", () => {
     }
   });
 
-  test.skip("[P0] 12.1-INT-011 a provisioning command cannot read or mutate foreign tenant state or leak its existence", async (testCtx) => {
+  test("[P0] 12.1-INT-011 a provisioning command cannot read or mutate foreign tenant state or leak its existence", async (testCtx) => {
     if (skipUnlessStack(testCtx, await isLocalStackReachable())) return;
     expect(await assertProvisioningTenantIsolation()).toEqual({
       foreignDigestUnchanged: true,

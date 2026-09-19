@@ -4,7 +4,7 @@ import { isLocalStackReachable } from "../../support/test-env";
 import { skipUnlessStack } from "../../support/stack-gate";
 
 describe("tenant provisioning migration reset — Story 12.1 ATDD", () => {
-  test.skip("[P0] 12.1-INT-013 clean reset contains exact platform objects, durable all-status uniqueness, provisioning facts, hardened grants, and manifest inventory", async (testCtx) => {
+  test("[P0] 12.1-INT-013 clean reset contains exact platform objects, durable all-status uniqueness, provisioning facts, hardened grants, and manifest inventory", async (testCtx) => {
     if (skipUnlessStack(testCtx, await isLocalStackReachable())) return;
 
     const [objects] = await adminQuery<{
@@ -52,7 +52,7 @@ describe("tenant provisioning migration reset — Story 12.1 ATDD", () => {
     expect(functions).toHaveLength(2);
     for (const fn of functions) {
       expect(fn.prosecdef).toBe(true);
-      expect(fn.proconfig).toContain("search_path=");
+      expect(fn.proconfig?.some((setting) => setting.startsWith("search_path="))).toBe(true);
       expect(fn.public_execute).toBe(false);
     }
   });

@@ -123,7 +123,7 @@ describe("SECURITY DEFINER helpers resist search_path hijack (AC4 / R-006)", () 
 });
 
 describe("Story 12.1 platform authority hardening", () => {
-  test.skip("[P0] 12.1-INT-002 hostile search_path cannot forge operator authority and only the allow-listed hardened provisioning functions exist", async (testCtx) => {
+  test("[P0] 12.1-INT-002 hostile search_path cannot forge operator authority and only the allow-listed hardened provisioning functions exist", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
 
     const helperResult = await adminSession(async ({ query }) => {
@@ -165,7 +165,7 @@ describe("Story 12.1 platform authority hardening", () => {
     ]);
     for (const fn of functions) {
       expect(fn.prosecdef).toBe(true);
-      expect(fn.proconfig).toContain("search_path=");
+      expect(fn.proconfig?.some((setting) => setting.startsWith("search_path="))).toBe(true);
       expect(fn.public_execute).toBe(false);
     }
   });

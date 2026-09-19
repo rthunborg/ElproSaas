@@ -1,5 +1,6 @@
 import { describe, expect, test } from "vitest";
 import {
+  acceptProvisionedFirstAdminForTest,
   createStrictProvisioningRequest,
   executeApprovedProvisioning,
   executeConcurrentProvisioning,
@@ -11,7 +12,7 @@ import { isLocalStackReachable } from "../../support/test-env";
 import { skipUnlessStack } from "../../support/stack-gate";
 
 describe("provision_tenant command — Story 12.1 ATDD", () => {
-  test.skip("[P0] 12.1-INT-003 atomically persists canonical identity/request, exact baseline, tenant, invited first Admin, pending state, and audit before Auth", async (testCtx) => {
+  test("[P0] 12.1-INT-003 atomically persists canonical identity/request, exact baseline, tenant, invited first Admin, pending state, and audit before Auth", async (testCtx) => {
     if (skipUnlessStack(testCtx, await isLocalStackReachable())) return;
     const result = await executeApprovedProvisioning(
       await createStrictProvisioningRequest(),
@@ -33,7 +34,7 @@ describe("provision_tenant command — Story 12.1 ATDD", () => {
     });
   });
 
-  test.skip("[P0] 12.1-INT-004 injected failure at each transactional write point rolls back tenant, membership, idempotency, and audit", async (testCtx) => {
+  test("[P0] 12.1-INT-004 injected failure at each transactional write point rolls back tenant, membership, idempotency, and audit", async (testCtx) => {
     if (skipUnlessStack(testCtx, await isLocalStackReachable())) return;
 
     for (const failAt of [
@@ -54,7 +55,7 @@ describe("provision_tenant command — Story 12.1 ATDD", () => {
     }
   });
 
-  test.skip("[P0] 12.1-INT-005 dry run is complete and zero-write; execution requires original request, request ID, hash, approval, and an unchanged immutable baseline", async (testCtx) => {
+  test("[P0] 12.1-INT-005 dry run is complete and zero-write; execution requires original request, request ID, hash, approval, and an unchanged immutable baseline", async (testCtx) => {
     if (skipUnlessStack(testCtx, await isLocalStackReachable())) return;
     const input = await createStrictProvisioningRequest();
     const preview = await previewProvisioningForTest(input);
@@ -79,6 +80,7 @@ describe("provision_tenant command — Story 12.1 ATDD", () => {
       preview_hash: expect.any(String),
       writes: 0,
       authCalls: 0,
+      durableRowsUnchanged: true,
     });
 
     await expect(
@@ -91,7 +93,7 @@ describe("provision_tenant command — Story 12.1 ATDD", () => {
     ).rejects.toMatchObject({ code: "PREVIEW_STALE", residualRows: 0 });
   });
 
-  test.skip("[P0] 12.1-INT-006 same UUID/hash reconciles without provider work; conflicts and all-status same-identity replays cannot mutate or duplicate", async (testCtx) => {
+  test("[P0] 12.1-INT-006 same UUID/hash reconciles without provider work; conflicts and all-status same-identity replays cannot mutate or duplicate", async (testCtx) => {
     if (skipUnlessStack(testCtx, await isLocalStackReachable())) return;
     const input = await createStrictProvisioningRequest();
     const first = await executeApprovedProvisioning(input, {
@@ -126,7 +128,7 @@ describe("provision_tenant command — Story 12.1 ATDD", () => {
     await first.cleanup();
   });
 
-  test.skip("[P0] 12.1-INT-007 concurrent equal canonical identities produce one tenant and one effective invite intent", async (testCtx) => {
+  test("[P0] 12.1-INT-007 concurrent equal canonical identities produce one tenant and one effective invite intent", async (testCtx) => {
     if (skipUnlessStack(testCtx, await isLocalStackReachable())) return;
     const results = await executeConcurrentProvisioning(
       await createStrictProvisioningRequest(),
@@ -141,7 +143,7 @@ describe("provision_tenant command — Story 12.1 ATDD", () => {
     });
   });
 
-  test.skip("[P0] 12.1-INT-008 explicit retry records requested/failed truthfully, makes one provider call, preserves one invitation through attempt three, and limits attempt four", async (testCtx) => {
+  test("[P0] 12.1-INT-008 explicit retry records requested/failed truthfully, makes one provider call, preserves one invitation through attempt three, and limits attempt four", async (testCtx) => {
     if (skipUnlessStack(testCtx, await isLocalStackReachable())) return;
 
     expect(
@@ -168,7 +170,7 @@ describe("provision_tenant command — Story 12.1 ATDD", () => {
     );
   });
 
-  test.skip("[P0] 12.1-INT-009 timeout/lost response stays unknown, reconciliation reuses the bound token, and fresh approval after attempt three rotates it without exposing the raw token", async (testCtx) => {
+  test("[P0] 12.1-INT-009 timeout/lost response stays unknown, reconciliation reuses the bound token, and fresh approval after attempt three rotates it without exposing the raw token", async (testCtx) => {
     if (skipUnlessStack(testCtx, await isLocalStackReachable())) return;
     const rawTokenCanary = `raw-token-canary-${crypto.randomUUID()}`;
     const result = await retryFirstAdminInviteForTest({
@@ -205,7 +207,7 @@ describe("provision_tenant command — Story 12.1 ATDD", () => {
     });
   });
 
-  test.skip("[P0] 12.1-INT-012 writes correlated nonsecret audit transitions and leaves preview without any audit row", async (testCtx) => {
+  test("[P0] 12.1-INT-012 writes correlated nonsecret audit transitions and leaves preview without any audit row", async (testCtx) => {
     if (skipUnlessStack(testCtx, await isLocalStackReachable())) return;
     expect(await inspectProvisioningAuditForTest()).toMatchObject({
       approverFromAuthUid: true,
@@ -221,6 +223,20 @@ describe("provision_tenant command — Story 12.1 ATDD", () => {
       containsRawInvitationToken: false,
       containsSecret: false,
       previewAuditRows: 0,
+    });
+  });
+
+  test("[P0] 12.1-INT-010 real Epic 11 acceptance activates the bound first Admin and projects ready only after the exact identity predicate holds", async (testCtx) => {
+    if (skipUnlessStack(testCtx, await isLocalStackReachable())) return;
+    expect(await acceptProvisionedFirstAdminForTest()).toMatchObject({
+      accepted: true,
+      provisioningState: "ready",
+      membershipStatus: "active",
+      membershipUserId: expect.any(String),
+      expectedUserId: expect.any(String),
+      tokenBinding: {
+        normalized_email: expect.any(String), role: "tenant_admin", token_hash: expect.any(String),
+      },
     });
   });
 });

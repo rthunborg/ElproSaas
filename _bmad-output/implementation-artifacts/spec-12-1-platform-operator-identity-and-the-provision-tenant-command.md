@@ -2,7 +2,8 @@
 title: 'Story 12.1: Platform Operator Identity and the Provision-Tenant Command'
 type: 'feature'
 created: '2026-09-19'
-status: 'ready-for-dev'
+status: 'blocked'
+baseline_revision: '6a21d4f29b46b9090850f715aa61d8ab1631e436'
 review_loop_iteration: 0
 followup_review_recommended: false
 context:
@@ -160,3 +161,52 @@ Evidence gathered: Existing Epic 11 invitation prepare/finalize/reconcile RPCs r
 Unanswered questions: Which operation(s) of the sole `provision_tenant` authority persist and audit post-provider outcomes, reconciliation, and first-Admin readiness without adding another SECURITY DEFINER surface; how are opaque invite attempt tokens generated, held only server-side, reused or replaced on reconciliation, and bound to redirect/acceptance; whether a same request-id replay may initiate provider work or is reconciliation-only, including its result/attempt policy; what authoritative baseline catalogue/version and persisted projection define `PREVIEW_STALE`; what email and VAT canonicalisation/validation contract applies; what durable invitation/Auth facts make `ready`; and how platform activation supplies a non-granting permission-matrix row while preventing the active platform module from being selected as a tenant entitlement.
 
 Current planning status: ready-for-dev — the owner-approved contract resolves both historical intent gaps and the implementation/test map has concrete targets. Halted after planning; no implementation was run.
+
+Implementation result (2026-09-19):
+
+Status: blocked
+Blocking condition: implementation verification failed
+Verification failure: `SUPABASE_TEST_REQUIRED=1 pnpm exec vitest run --config vitest.config.ts tests/integration/rls/platform-operators.rls.test.ts tests/integration/rls/provisioning-migration-reset.int.test.ts` cannot execute Story 12.1 assertions because the existing user-owned local stack lacks the unapplied provisioning migration (`platform_operators`, `is_platform_operator`, and `provision_tenant` are absent). The repository has no isolated Compose path, and the resource policy forbids adopting or resetting that existing stack. `pnpm typecheck` also remains blocked by unrelated tracked `tmp/private/**` and `tmp/worktrees/**` errors.
+
+Implementation recovery (2026-09-19): the authorized local disposable stack has received the pending repository migrations through SQL-only `pnpm exec supabase migration up --local`; resume focused required-suite verification from this in-progress state without resetting or otherwise managing the stack lifecycle.
+
+Implementation result (2026-09-19, recovery):
+
+Status: blocked
+Blocking condition: matrix ambiguity
+Evidence gathered: focused Node contracts passed (10/10); the required `SUPABASE_TEST_REQUIRED=1` four-file provisioning command/RLS/reset/search-path suite passed (18/18, zero skipped); existing admin-user compatibility tests passed (14/14); focused ESLint, `git diff --check`, review-order validation, and a bounded 674-file TypeScript check excluding only unrelated `tmp/private/**` and `tmp/worktrees/**` paths passed. The platform authority, initial atomic write, zero-write preview, durable replay/race, hostile search-path, and acceptance-to-ready coverage were made executable against the migrated local stack.
+Unresolved owner decision: the intent requires the provider callback after the DB-first commit to reuse the active invitation token, while allowing only its non-reversible hash to persist. A later retry cannot recover that raw token from its hash, and the configured provider cannot resend an application-owned callback token. Choose either (1) an owner-approved secure server-side token escrow/envelope design that keeps the raw token out of all forbidden surfaces while permitting bounded reuse, or (2) an owner-approved rotation-based retry lifecycle and callback contract that replaces the token for every explicit provider attempt. The current implementation does not claim durable retry/token-rotation coverage.
+
+## Suggested Review Order
+
+Author: implementation author.
+Refreshed against the current shared working tree (uncommitted Story 12.1 changes).
+
+### Platform authority and atomic provisioning
+
+The platform allow-list is deliberately separate from tenant roles, and the one RPC checks it before accepting any action. Initial provisioning writes the tenant, first-admin invitation facts, idempotency record, and nonsecret audit event in one transaction.
+
+- `supabase/migrations/20260919090000_tenant_provisioning.sql:13` — `is_platform_operator`: hardened platform-only predicate.
+- `supabase/migrations/20260919090000_tenant_provisioning.sql:50` — `provision_tenant`: sole provisioning DEFINER command with an action allow-list.
+- `supabase/migrations/20260919090000_tenant_provisioning.sql:83` — `audit_events`: records the approval boundary without raw invitation material.
+
+### Stateless preview and bounded provider orchestration
+
+Preview construction is pure and performs no database or Auth work. The server command reuses that preview hash for the approved write and reconciles before its explicit, one-call provider retry path.
+
+- `src/server/commands/provisioning/validation.ts:77` — `createProvisioningPreview`: hash-bound zero-write preview authority.
+- `src/server/commands/provisioning/provision-tenant.ts:30` — `previewTenantProvisioning`: does not construct a database client.
+- `src/server/commands/provisioning/provision-tenant.ts:38` — `retryFirstAdminInvite`: reconciles before the provider attempt and records only a sanitized outcome.
+
+### Platform classification and executed boundaries
+
+The active provisioning module has a non-granting permission row, so no tenant role can obtain platform authority. The required RLS/reset tests exercise the migrated local stack, including the hardened database-object and grant canary.
+
+- `src/server/authz/permission-matrix.ts:21` — `Platform.Operator.Access`: explicit platform-only, non-granting row.
+- `tests/unit/provisioning/provisioning-contract.test.ts:22` — `12.1-UNIT-001`: strict v1 field and deferred-scope rejection.
+- `tests/integration/rls/platform-operators.rls.test.ts:13` — `12.1-INT-001`: own-row-only platform allow-list read.
+- `tests/integration/rls/provisioning-migration-reset.int.test.ts:7` — `12.1-INT-013`: hardened object/grant/reset canary.
+- `tests/factories/platform-operators.ts:112` — `withProvisioningWriteFault`: temporary local-test triggers induce each transactional write failure without expanding production RPC input.
+
+Evidence: this working tree passed the focused Node contracts (10/10: Story 12.1 plus permission-matrix regressions) and `SUPABASE_TEST_REQUIRED=1 pnpm exec vitest run tests/integration/commands/provision-tenant.int.test.ts tests/integration/rls/platform-operators.rls.test.ts tests/integration/rls/provisioning-migration-reset.int.test.ts tests/integration/rls/security-definer-search-path.rls.test.ts` (18 passed, zero skipped). The run now executes the hostile platform search-path negative, DB-counted preview zero-write probe, real concurrent-row count probe, and actual Epic 11 acceptance-to-ready projection. A prior temporary derived repository `tsc --noEmit` configuration excluded only the known `tmp/private/**` and `tmp/worktrees/**` additions. `git diff --check` passed and the review-order reference checker passed. The normal `pnpm typecheck` remains blocked by those unrelated tracked temporary paths.
+Limits: no local reset was performed; the suite ran against the authorized stack after its pending migrations were applied. One unrelated security-definer suite assertion was skipped by its existing gate. No provider acceptance is treated as evidence of actual email delivery.

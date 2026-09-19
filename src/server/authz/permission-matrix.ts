@@ -1,6 +1,13 @@
 import { isTenantRole, normalizeRoles, type TenantRole } from "./roles";
 
-type PermissionRow = { readonly roles: readonly TenantRole[] };
+type TenantPermissionRow = { readonly roles: readonly TenantRole[] };
+type PlatformPermissionRow = {
+  readonly roles: readonly [];
+  readonly scope: "platform";
+  readonly tenantGrantable: false;
+  readonly tenantRoles: readonly [];
+};
+type PermissionRow = TenantPermissionRow | PlatformPermissionRow;
 type ModulePermissions = Record<string, PermissionRow>;
 
 /**
@@ -9,6 +16,12 @@ type ModulePermissions = Record<string, PermissionRow>;
  * instead of pages or widgets so command and RLS policies can share it.
  */
 export const PERMISSION_MATRIX = {
+  // Classification only: platform authority is DB allow-list based, never a tenant role grant.
+  provisioning: {
+    "Platform.Operator.Access": {
+      roles: [], scope: "platform", tenantGrantable: false, tenantRoles: [],
+    },
+  },
   foundation: { "Memberships.Manage": { roles: ["tenant_admin"] } },
   rbac: { "Memberships.Manage": { roles: ["tenant_admin"] } },
   dashboard: { "Dashboard.View": { roles: ["tenant_admin", "projektledare", "montor", "saljare", "ekonomi"] } },
@@ -66,7 +79,9 @@ export const PERMISSION_MATRIX = {
   },
 } as const satisfies Record<string, ModulePermissions>;
 
-export const SENSITIVE_FIELD_MATRIX: Record<string, Record<string, PermissionRow>> = {
+// Sensitive fields are always tenant-scoped; platform classification rows never
+// enter this matrix or any tenant-role entitlement calculation.
+export const SENSITIVE_FIELD_MATRIX: Record<string, Record<string, TenantPermissionRow>> = {
   quotes: {
     sales_price_ore: { roles: ["tenant_admin", "projektledare", "saljare", "ekonomi"] },
     cost_price_ore: { roles: ["tenant_admin", "projektledare", "ekonomi"] },
@@ -102,7 +117,7 @@ export function resolveSensitiveFieldEntitlement(input: {
 }): { readonly withheld: boolean } {
   if (typeof input.module !== "string" || typeof input.field !== "string") return { withheld: true };
   const fields = SENSITIVE_FIELD_MATRIX[input.module as keyof typeof SENSITIVE_FIELD_MATRIX];
-  const row = fields && (fields as Record<string, PermissionRow>)[input.field];
+  const row = fields && (fields as Record<string, TenantPermissionRow>)[input.field];
   if (!row || !Array.isArray(row.roles) || !row.roles.every(isTenantRole)) return { withheld: true };
   return { withheld: !normalizeRoles(input.roles).some((role) => row.roles.includes(role)) };
 }
