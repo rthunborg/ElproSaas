@@ -139,6 +139,15 @@ deferred: []
 
 ## Review Triage Log
 
+### Historical 2026-09-19 — Review pass
+- intent_gap: 1 (high 1)
+- bad_spec: 0
+- patch: 12 (high 9, medium 3)
+- defer: 0
+- reject: 5 (low 5)
+- addressed_findings:
+  - none — the high-severity authority-boundary finding requires an owner-approved replacement of the caller-controlled legacy `provision` protocol; preserving the current shared implementation is required while that decision is pending.
+
 ### 2026-09-19 — Final repair pass
 - intent_gap: 0
 - bad_spec: 0
@@ -149,15 +158,6 @@ deferred: []
   - `[high] [patch]` Bound approval and canonical email in the HMAC, validated DB catalogue content, persisted strict canonical request data, and returned sanitized reconciliation identities.
   - `[medium] [patch]` Added production-command handoff coverage and hardened the private company projection trigger.
   - `[low] [patch]` Confirmed current adapter errors are ambiguous and must map to `unknown`; it exposes no genuine definitive failure to classify.
-
-### 2026-09-19 — Review pass
-- intent_gap: 1 (high 1)
-- bad_spec: 0
-- patch: 12 (high 9, medium 3)
-- defer: 0
-- reject: 5 (low 5)
-- addressed_findings:
-  - none — the high-severity authority-boundary finding requires an owner-approved replacement of the caller-controlled legacy `provision` protocol; preserving the current shared implementation is required while that decision is pending.
 
 ## Design Notes
 
@@ -174,6 +174,10 @@ Epic 11 retrospective actions on retry-fixture clocks, support-file size, Roles 
 - `pnpm lint && pnpm typecheck` -- expected: platform metadata cannot leak into tenant-only consumers.
 
 ## Auto Run Result
+
+Status: done
+Blocking condition: none
+Final result: Story 12.1 completed after final repair verification. See the final implementation result below for evidence and residual limits.
 
 Historical result (2026-09-17, before owner decisions):
 
