@@ -196,3 +196,39 @@ Not reached.
 2. An owner must approve a replacement provisioning-authority design that closes the direct authenticated-RPC bypass without adding a general privileged write path.
 
 **Next:** Record the provisioning-authority decision, set the Story 12.1 spec frontmatter status to in-progress, then re-run /auto-bmad epic --epic 12.
+
+## Report — 2026-09-19T15:45:48Z (halted â€” needs-human)
+
+**Epic:** `12` — 3 stories.
+**Branch:** `codex/epic-12-wave-b1a-tenant-provisioning-and-onboarding` (HEAD `6e4d5b4`).
+**Pipeline status:** Halted at Story 12.1 Phase 5 â€” Build Auto renderer permission denied before implementation began.
+**Continues:** 2026-09-19T14:11:50Z (halted â€” needs-human)
+
+**Summary:** Decision 8A is locked consistently across Story 12.1 and the related authority, security, test-design, and rollout documentation. The resumed build made no story changes because the delegate could not access the existing generated workflow manifest.
+
+**Timing:** started 2026-09-17T13:23:20Z; completed in progress — elapsed 50h 22m (≈2h 46m AI-run, ≈47h 35m human/idle wait); resumed 5×.
+
+**Stories:** (none)
+
+**Skipped:** (none)
+
+**Epic gate:** Not run â€” Story 12.1 stopped before the epic-end gates.
+
+**TEA:** No new TEA step ran. Decision 8A documentation/governance validation passed 69/69 and review-order validation passed before the renderer halt.
+
+**Retrospective:** Not run.
+
+**Overrides:** branch_prefix = codex/ (host instruction)
+
+**Open questions:** (none)
+
+**Deferred work:**
+1. Implement and verify Decision 8A application code, enforcement migration, HMAC vectors, exact dispatch/outcome tests, and coordinated key rollout after renderer access is restored.
+2. Stories 12.2 and 12.3 remain pending because epic mode is sequential.
+Not reached.
+
+**⚠️ Needs human:**
+1. Build Auto stopped before rendering because the delegate received permission denied for `_bmad/render/bmad-build-auto/elprosaas-feda3b3af1c9/5fafec26cd63e525e2d6/manifest.json`.
+2. Root diagnostics can read and open the manifest for write, so the remaining issue appears isolated to delegated access; restore that access or create a fresh accessible generated workflow, then resume.
+
+**Next:** Restore delegated manifest access, keep the Story 12.1 spec at in-progress, then re-run /auto-bmad epic --epic 12.
