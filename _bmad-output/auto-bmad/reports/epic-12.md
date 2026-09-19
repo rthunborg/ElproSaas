@@ -78,3 +78,45 @@ Not reached.
 2. A human owner must decide the four provisioning contracts recorded in the Story 12.1 spec before planning can continue.
 
 **Next:** Resolve the decisions, set the spec frontmatter status to draft, then re-run /auto-bmad epic --epic 12.
+
+## Report — 2026-09-17T15:12:38Z (halted â€” needs-human)
+
+**Epic:** `12` — 3 stories.
+**Branch:** `codex/epic-12-wave-b1a-tenant-provisioning-and-onboarding` (HEAD `4d6451f`).
+**Pipeline status:** Halted at Story 12.1 Phase 3 â€” build-auto found six remaining intent gaps after applying the first owner-decision package.
+**Continues:** (none — first run)
+
+**Summary:** The approved tenant-eligibility and provisioning decisions are documented, but detailed persistence, invite-token, replay, baseline-catalogue, canonicalisation/readiness, and platform-permission contracts remain unresolved.
+
+**Timing:** started 2026-09-17T13:23:20Z; completed in progress — elapsed 1h 49m (≈29m AI-run, ≈1h 19m human/idle wait); resumed 2×.
+
+**Stories:** (none)
+
+**Skipped:** (none)
+
+**Epic gate:** Not run â€” the story loop stopped before epic-end gates.
+
+**TEA:** Epic-level test design remains complete. Story 12.1 remains high risk with ATDD and automate selected once planning is approved.
+
+**Retrospective:** Not run.
+
+**Overrides:** branch_prefix = codex/ (host instruction)
+
+**Open questions:**
+1. Which operations of the sole provision_tenant authority may persist and audit post-provider outcome, reconciliation, and first-Admin readiness without a new DEFINER surface?
+2. How are opaque invite tokens generated, kept server-only, reused or replaced on retry, and bound to existing invitation acceptance?
+3. Is same-request-id replay reconciliation-only or permitted to initiate provider work; what result and attempt policy applies?
+4. What authoritative baseline catalogue/version drives preview hashing and PREVIEW_STALE?
+5. What exact email/VAT canonicalisation and ready predicate apply?
+6. How should platform-module activation add a non-granting permission-matrix row while excluding platform infrastructure from tenant entitlement selection?
+
+**Deferred work:**
+1. Ready-for-development planning, implementation, and verification for Story 12.1.
+2. Stories 12.2 and 12.3 remain pending because epic mode is sequential.
+Not reached.
+
+**⚠️ Needs human:**
+1. build-auto stopped with status `blocked` â€” blocking condition: intent gap.
+2. A human owner must decide the six remaining provisioning contracts recorded in the Story 12.1 spec.
+
+**Next:** Resolve the decisions, set the spec frontmatter status to draft, then re-run /auto-bmad epic --epic 12.
