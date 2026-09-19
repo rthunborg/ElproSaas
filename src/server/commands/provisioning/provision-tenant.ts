@@ -42,6 +42,14 @@ export async function retryFirstAdminInvite(input: { email: string; membershipId
   const reconciliation = await client.rpc("provision_tenant", { p_action: "reconcile", p_request: { tenant_id: input.tenantId } });
   if (reconciliation.error || !reconciliation.data) return denied;
   const token = randomBytes(32).toString("base64url");
+  const reservation = await client.rpc("provision_tenant", {
+    p_action: "reserve_dispatch",
+    p_request: {
+      tenant_id: input.tenantId,
+      invitation_token_hash: createHash("sha256").update(token).digest("hex"),
+    },
+  });
+  if (reservation.error || !reservation.data) return { ok: false as const, code: "PREVIEW_STALE" as const };
   const service = createRuntimeAdminUserService({
     invitationRedirectBase: "/auth/invite/confirm",
     prepareInvite: async () => ({ operationId: input.operationId, membershipId: input.membershipId, attemptToken: token, delivery: "invite" }),

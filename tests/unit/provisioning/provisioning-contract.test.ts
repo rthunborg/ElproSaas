@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
   canMarkTenantProvisioningReady,
+  canReserveProvisioningDispatch,
   canTransitionProvisioning,
   canonicalizeProvisioningRequest,
   createProvisioningPreview,
@@ -47,6 +48,13 @@ test("[P0] 12.1-UNIT-003 permits only documented handoff states and ready's exac
   const facts = { databaseCommitted: true, baselineRecorded: true, membershipActive: true, authUserId: crypto.randomUUID(), normalizedAuthEmail: "ada@example.se", normalizedInvitationEmail: "ada@example.se", unresolvedFailure: false };
   assert.equal(canMarkTenantProvisioningReady(facts), true);
   for (const incomplete of [{ databaseCommitted: false }, { baselineRecorded: false }, { membershipActive: false }, { authUserId: null }, { normalizedAuthEmail: "other@example.se" }, { unresolvedFailure: true }]) assert.equal(canMarkTenantProvisioningReady({ ...facts, ...incomplete }), false);
+});
+
+test("[P0] 12.1-UNIT-003 limits a preview approval to three dispatches and requires fresh approval for dispatch four", () => {
+  assert.equal(canReserveProvisioningDispatch(0, false), true);
+  assert.equal(canReserveProvisioningDispatch(2, false), true);
+  assert.equal(canReserveProvisioningDispatch(3, false), false);
+  assert.equal(canReserveProvisioningDispatch(3, true), true);
 });
 
 test("[P0] 12.1-UNIT-003 preview is hash-bound and declares its stateless zero-write boundary", () => {

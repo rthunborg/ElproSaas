@@ -9,11 +9,11 @@ spec_folder: null
 story_id: null
 branch: codex/epic-12-wave-b1a-tenant-provisioning-and-onboarding
 status: in-progress
-updated_at: "2026-09-19T13:52:00Z"
+updated_at: "2026-09-19T14:09:53Z"
 started_at: "2026-09-17T13:40:05Z"
 completed_at: null
-active_seconds: 5712
-timing_anchor: 1789825309
+active_seconds: 7396
+timing_anchor: null
 is_first_in_epic: true
 is_last_in_epic: false
 git_mode: remote
@@ -56,7 +56,7 @@ legacy_review_loop_done: false
 legacy_external_review_iterations: null
 legacy_convergence_unverified: false
 legacy_artifact_path: null
-commits: [5309d8a, 29f5799, 6c00013, 073bdec, 7ccaf71, 7d8d9a7, 4d6451f, 2ad44c6, a1516e4, 9cb7def, 6a21d4f, 2a75993]
+commits: [5309d8a, 29f5799, 6c00013, 073bdec, 7ccaf71, 7d8d9a7, 4d6451f, 2ad44c6, a1516e4, 9cb7def, 6a21d4f, 2a75993, f1330d0]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -80,11 +80,11 @@ merge_method: null
 merge_commit: null
 branch_deleted: false
 open_questions:
-  - "Choose a secure server-side escrow/envelope that permits bounded reuse of an invitation token without exposing or persistently storing it in forbidden surfaces, or approve a rotation-based retry/callback lifecycle that replaces the token on every explicit provider attempt."
-  - "The configured Auth provider cannot resend an application-owned callback token; confirm the approved provider/callback contract for retries."
+  - "Approve the database authority/protocol that binds public provisioning execution to the server-calculated canonical request, immutable baseline, preview hash, explicit approval, and dispatch-generation facts."
+  - Decide whether initial provider dispatch and retry commands must re-derive their operative identity and binding exclusively from that durable authority model rather than caller-supplied legacy RPC JSON.
 deferred_work: []
 blockers:
-  - An owner must select the secure token-escrow/envelope option or approve the rotation-based retry lifecycle.
+  - "An owner must approve the replacement provisioning-authority design; the current public RPC can be called directly by an allow-listed operator with caller-controlled legacy JSON."
 overrides:
   branch_prefix: "codex/ (host instruction)"
 constraints: []

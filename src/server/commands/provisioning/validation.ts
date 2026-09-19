@@ -3,6 +3,8 @@ import { createHash } from "node:crypto";
 export const PROVISIONING_STATES = [
   "pending_first_admin_invite", "first_admin_invite_unknown", "first_admin_invite_requested", "first_admin_invite_failed", "ready",
 ] as const;
+/** One approved preview snapshot authorises the initial dispatch plus two resends. */
+export const MAX_PROVIDER_DISPATCH_ATTEMPTS = 3;
 type ProvisioningState = (typeof PROVISIONING_STATES)[number];
 
 const REQUIRED = ["schema_version", "request_id", "legal_name", "country_code", "organization_number", "first_admin_name", "first_admin_email", "baseline_profile_id", "baseline_profile_version", "subscription_plan_id", "subscription_status", "included_user_count", "additional_user_price_ore", "contract_start_date"] as const;
@@ -97,4 +99,7 @@ const TRANSITIONS: Record<ProvisioningState, readonly ProvisioningState[]> = {
   first_admin_invite_failed: ["first_admin_invite_requested", "first_admin_invite_unknown"], ready: [],
 };
 export function canTransitionProvisioning(from: ProvisioningState, to: string) { return TRANSITIONS[from]?.includes(to as ProvisioningState) ?? false; }
+export function canReserveProvisioningDispatch(attemptCount: number, hasFreshPreviewApproval: boolean) {
+  return attemptCount < MAX_PROVIDER_DISPATCH_ATTEMPTS || hasFreshPreviewApproval;
+}
 export function canMarkTenantProvisioningReady(facts: { databaseCommitted: boolean; baselineRecorded: boolean; membershipActive: boolean; authUserId: string | null; normalizedAuthEmail: string | null; normalizedInvitationEmail: string; unresolvedFailure: boolean }) { return facts.databaseCommitted && facts.baselineRecorded && facts.membershipActive && !!facts.authUserId && facts.normalizedAuthEmail === facts.normalizedInvitationEmail && !facts.unresolvedFailure; }

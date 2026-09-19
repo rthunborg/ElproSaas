@@ -143,7 +143,7 @@ describe("provision_tenant command — Story 12.1 ATDD", () => {
     });
   });
 
-  test("[P0] 12.1-INT-008 explicit retry records requested/failed truthfully, makes one provider call, preserves one invitation through attempt three, and limits attempt four", async (testCtx) => {
+  test("[P0] 12.1-INT-008 explicit retry records requested/failed truthfully, rotates a fresh generation, and limits dispatch four", async (testCtx) => {
     if (skipUnlessStack(testCtx, await isLocalStackReachable())) return;
 
     expect(
@@ -153,6 +153,8 @@ describe("provision_tenant command — Story 12.1 ATDD", () => {
       providerCallCount: 1,
       attemptNumber: 1,
       deliveryClaimed: false,
+      tokenRotated: true,
+      previousTokenRevoked: true,
     });
     expect(
       await retryFirstAdminInviteForTest({ providerOutcome: "failed" }),
@@ -170,7 +172,7 @@ describe("provision_tenant command — Story 12.1 ATDD", () => {
     );
   });
 
-  test("[P0] 12.1-INT-009 timeout/lost response stays unknown, reconciliation reuses the bound token, and fresh approval after attempt three rotates it without exposing the raw token", async (testCtx) => {
+  test("[P0] 12.1-INT-009 timeout/lost response stays unknown, reconciliation never resends, and every explicit dispatch rotates a bound token", async (testCtx) => {
     if (skipUnlessStack(testCtx, await isLocalStackReachable())) return;
     const rawTokenCanary = `raw-token-canary-${crypto.randomUUID()}`;
     const result = await retryFirstAdminInviteForTest({
@@ -182,7 +184,9 @@ describe("provision_tenant command — Story 12.1 ATDD", () => {
       provisioningState: "first_admin_invite_unknown",
       providerCallCount: 1,
       automaticResendCount: 0,
-      tokenReused: true,
+      tokenReused: false,
+      tokenRotated: true,
+      previousTokenRevoked: true,
       tokenHashPersisted: true,
       tokenBinding: {
         invitationId: expect.any(String),

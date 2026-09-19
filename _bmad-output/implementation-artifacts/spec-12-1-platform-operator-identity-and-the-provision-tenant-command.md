@@ -2,8 +2,9 @@
 title: 'Story 12.1: Platform Operator Identity and the Provision-Tenant Command'
 type: 'feature'
 created: '2026-09-19'
-status: 'in-progress'
+status: 'blocked'
 baseline_revision: '6a21d4f29b46b9090850f715aa61d8ab1631e436'
+baseline_commit: 'f1330d0319920d52120cabf9797288a6e46c4e9c'
 review_loop_iteration: 0
 followup_review_recommended: false
 context:
@@ -131,7 +132,14 @@ deferred: []
 
 ## Review Triage Log
 
-No review pass has run.
+### 2026-09-19 — Review pass
+- intent_gap: 1 (high 1)
+- bad_spec: 0
+- patch: 12 (high 9, medium 3)
+- defer: 0
+- reject: 5 (low 5)
+- addressed_findings:
+  - none — the high-severity authority-boundary finding requires an owner-approved replacement of the caller-controlled legacy `provision` protocol; preserving the current shared implementation is required while that decision is pending.
 
 ## Design Notes
 
@@ -181,10 +189,17 @@ Resolved historical owner decision: this run exposed that a non-reversible store
 
 Current planning status: in-progress — Decision 7C closes the live matrix ambiguity and Auto-BMAD may resume Phase 5 against the superseding contract. The build is not complete; implementation and verification still must be updated to prove per-dispatch generation, atomic hash rotation, link invalidation, the three-dispatch snapshot budget, and fresh approval before a fourth dispatch.
 
+Review result (2026-09-19, after Decision 7C):
+
+Status: blocked
+Blocking condition: intent gap
+Evidence gathered: focused Node provisioning and permission-matrix contracts passed (11/11); the required `SUPABASE_TEST_REQUIRED=1` four-file provisioning/RLS suite passed (18/18, zero skipped). The Decision 7C additive migration reserves fresh token-hash generations and the local test stack applied that migration without reset.
+Unresolved owner decision: the public authenticated `provision_tenant` RPC still delegates `provision` to a legacy function that accepts caller-controlled JSON. The approved contract requires the execution to be bound to strict server-calculated canonical request, immutable baseline, current preview hash, and explicit approval facts. Safely correcting this requires an owner-approved database authority/protocol design for those facts (including current dispatch-generation and outcome binding), rather than widening the migration ad hoc. Review also found the initial provider dispatch and retry production-command evidence incomplete; these must be re-derived from that authority design, not simulated by fixtures.
+
 ## Suggested Review Order
 
 Author: implementation author.
-Refreshed against the current shared working tree (uncommitted Story 12.1 changes).
+Refreshed against the current shared working tree after the Decision 7C rotation migration.
 
 ### Platform authority and atomic provisioning
 
@@ -198,19 +213,29 @@ The platform allow-list is deliberately separate from tenant roles, and the one 
 
 Preview construction is pure and performs no database or Auth work. The server command reuses that preview hash for the approved write and reconciles before its explicit, one-call provider retry path.
 
-- `src/server/commands/provisioning/validation.ts:77` — `createProvisioningPreview`: hash-bound zero-write preview authority.
+- `src/server/commands/provisioning/validation.ts:79` — `createProvisioningPreview`: hash-bound zero-write preview authority.
 - `src/server/commands/provisioning/provision-tenant.ts:30` — `previewTenantProvisioning`: does not construct a database client.
 - `src/server/commands/provisioning/provision-tenant.ts:38` — `retryFirstAdminInvite`: reconciles before the provider attempt and records only a sanitized outcome.
+
+### Per-dispatch token rotation
+
+Decision 7C requires an explicit reservation before each provider call. The additive wrapper preserves the original RPC actions privately, while the public RPC atomically replaces a hash, supersedes the old Epic 11 capability, and records a new generation without exposing raw token material.
+
+- `supabase/migrations/20260919100000_provisioning_dispatch_generation_rotation.sql:19` — `reserve_dispatch`: delegates unchanged actions and authorizes the bounded reservation action.
+- `supabase/migrations/20260919100000_provisioning_dispatch_generation_rotation.sql:45` — `superseded_at`: invalidates the prior Epic 11 capability before the fresh generation is inserted.
+- `supabase/migrations/20260919100100_provisioning_previous_token_hash.sql:6` — `capture_provisioning_revoked_token_hash`: retains only the superseded hash for durable revocation evidence.
+- `tests/integration/commands/provision-tenant.int.test.ts:146` — `12.1-INT-008`: verifies token rotation, bounded attempt four, and no delivery claim.
+- `tests/integration/commands/provision-tenant.int.test.ts:175` — `12.1-INT-009`: verifies timeout stays unknown and the callback binding contains no raw token.
 
 ### Platform classification and executed boundaries
 
 The active provisioning module has a non-granting permission row, so no tenant role can obtain platform authority. The required RLS/reset tests exercise the migrated local stack, including the hardened database-object and grant canary.
 
 - `src/server/authz/permission-matrix.ts:21` — `Platform.Operator.Access`: explicit platform-only, non-granting row.
-- `tests/unit/provisioning/provisioning-contract.test.ts:22` — `12.1-UNIT-001`: strict v1 field and deferred-scope rejection.
+- `tests/unit/provisioning/provisioning-contract.test.ts:23` — `12.1-UNIT-001`: strict v1 field and deferred-scope rejection.
 - `tests/integration/rls/platform-operators.rls.test.ts:13` — `12.1-INT-001`: own-row-only platform allow-list read.
 - `tests/integration/rls/provisioning-migration-reset.int.test.ts:7` — `12.1-INT-013`: hardened object/grant/reset canary.
 - `tests/factories/platform-operators.ts:112` — `withProvisioningWriteFault`: temporary local-test triggers induce each transactional write failure without expanding production RPC input.
 
-Evidence: this working tree passed the focused Node contracts (10/10: Story 12.1 plus permission-matrix regressions) and `SUPABASE_TEST_REQUIRED=1 pnpm exec vitest run tests/integration/commands/provision-tenant.int.test.ts tests/integration/rls/platform-operators.rls.test.ts tests/integration/rls/provisioning-migration-reset.int.test.ts tests/integration/rls/security-definer-search-path.rls.test.ts` (18 passed, zero skipped). The run now executes the hostile platform search-path negative, DB-counted preview zero-write probe, real concurrent-row count probe, and actual Epic 11 acceptance-to-ready projection. A prior temporary derived repository `tsc --noEmit` configuration excluded only the known `tmp/private/**` and `tmp/worktrees/**` additions. `git diff --check` passed and the review-order reference checker passed. The normal `pnpm typecheck` remains blocked by those unrelated tracked temporary paths.
-Limits: no local reset was performed; the suite ran against the authorized stack after its pending migrations were applied. One unrelated security-definer suite assertion was skipped by its existing gate. No provider acceptance is treated as evidence of actual email delivery.
+Evidence: this run passed the Node provisioning contracts (6/6), the required provisioning/RLS suite with `SUPABASE_TEST_REQUIRED=1` (18/18, zero skipped), and the existing admin-user integration suite (6/6). It applied the two additive migrations to the authorised local stack before the required suite. `git diff --check` passed.
+Limits: this is a local-stack provider-boundary simulation; provider acceptance is not evidence that email was delivered. A full repository typecheck remains affected by unrelated tracked temporary paths, so only focused TypeScript-bearing test execution is reported here.

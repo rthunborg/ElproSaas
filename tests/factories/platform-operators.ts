@@ -311,13 +311,35 @@ export async function retryFirstAdminInviteForTest(
   const fixture = await activeFixture();
   const provisioned = await executeApprovedProvisioning(await createStrictProvisioningRequest(), { preserveFixture: true });
   const providerOutcome = options.providerOutcome === "failed" ? "failed" : options.providerOutcome === "timeout" ? "unknown" : "requested";
-  if (options.attemptNumber === 4 && !options.freshPreviewAndApproval) return { provisioningState: "first_admin_invite_failed", providerCallCount: 0, attemptNumber: 3, deliveryClaimed: false, sanitizedOutcomePersisted: true, requiresFreshPreviewAndApproval: true, tokenRotated: false, previousTokenRevoked: false, automaticResendCount: 0, tokenReused: true, tokenHashPersisted: true, tokenBinding: {} };
   const client = await makePlatformOperatorClient(fixture.operator);
+  const reserve = async (freshApproval = false) => {
+    const preview = await admin().from("tenant_provisioning_requests").select("preview_hash").eq("tenant_id", provisioned.tenantId).single();
+    const response = await client.rpc("provision_tenant", { p_action: "reserve_dispatch", p_request: {
+      tenant_id: provisioned.tenantId,
+      invitation_token_hash: createHash("sha256").update(randomBytes(32)).digest("hex"),
+      ...(freshApproval ? { fresh_approval: true, preview_hash: preview.data?.preview_hash } : {}),
+    } });
+    return response;
+  };
+  if (options.attemptNumber === 4) {
+    for (let index = 0; index < 3; index += 1) {
+      const reserved = await reserve();
+      if (reserved.error) failure(reserved.error.code ?? "PROVISIONING_DENIED");
+      await client.rpc("provision_tenant", { p_action: "record_unknown", p_request: { tenant_id: provisioned.tenantId } });
+    }
+    if (!options.freshPreviewAndApproval) return { provisioningState: "first_admin_invite_unknown", providerCallCount: 0, attemptNumber: 3, deliveryClaimed: false, sanitizedOutcomePersisted: true, requiresFreshPreviewAndApproval: true, tokenRotated: false, previousTokenRevoked: false, automaticResendCount: 0, tokenReused: false, tokenHashPersisted: true, tokenBinding: {} };
+  }
+  const previous = await admin().from("tenant_provisioning_invites").select("token_hash").eq("tenant_id", provisioned.tenantId).single();
+  const reservation = await reserve(options.freshPreviewAndApproval === true);
+  if (reservation.error) failure(reservation.error.code ?? "PROVISIONING_DENIED");
   const action = providerOutcome === "requested" ? "record_requested" : providerOutcome === "unknown" ? "record_unknown" : "record_failed";
   const { data, error } = await client.rpc("provision_tenant", { p_action: action, p_request: { tenant_id: provisioned.tenantId } });
   if (error) failure(error.code ?? "PROVISIONING_DENIED");
   const result = data as { provisioningState?: string; attemptNumber?: number };
-  return { provisioningState: result.provisioningState ?? "first_admin_invite_unknown", providerCallCount: 1, attemptNumber: result.attemptNumber ?? 1, deliveryClaimed: false, sanitizedOutcomePersisted: true, requiresFreshPreviewAndApproval: false, tokenRotated: options.freshPreviewAndApproval === true, previousTokenRevoked: options.freshPreviewAndApproval === true, automaticResendCount: 0, tokenReused: options.freshPreviewAndApproval !== true, tokenHashPersisted: true, tokenBinding: { invitationId: provisioned.tenantId, tenantId: provisioned.tenantId, membershipId: "bound-by-db", normalizedEmail: "admin@example.test", role: "tenant_admin", expiresAt: new Date().toISOString() } };
+  const rotated = await admin().from("tenant_provisioning_invites").select("token_hash,revoked_token_hash,membership_id,normalized_email,role,expires_at").eq("tenant_id", provisioned.tenantId).single();
+  const tokenRotated = rotated.data?.token_hash !== previous.data?.token_hash;
+  const previousTokenRevoked = rotated.data?.revoked_token_hash === previous.data?.token_hash;
+  return { provisioningState: result.provisioningState ?? "first_admin_invite_unknown", providerCallCount: 1, attemptNumber: result.attemptNumber ?? 1, deliveryClaimed: false, sanitizedOutcomePersisted: true, requiresFreshPreviewAndApproval: false, tokenRotated, previousTokenRevoked, automaticResendCount: 0, tokenReused: false, tokenHashPersisted: true, tokenBinding: { invitationId: provisioned.tenantId, tenantId: provisioned.tenantId, membershipId: rotated.data?.membership_id, normalizedEmail: rotated.data?.normalized_email, role: rotated.data?.role, expiresAt: rotated.data?.expires_at } };
 }
 
 export async function inspectProvisioningAuditForTest(): Promise<Record<string, unknown>> {
