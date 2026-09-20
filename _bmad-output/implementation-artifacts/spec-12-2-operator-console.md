@@ -98,15 +98,25 @@ The wizard has no client-authoritative state machine: preview is transient and w
 
 Status: done
 Blocking condition: none
-Final result: Implemented the isolated operator console, narrow platform projection, server-gated provisioning/recovery adapters, and durable resume routes. Required integration executed 16/16 with zero skips; the clean production browser suite executed 5/5 with zero skips. Security review returned no findings. The configured external Luna review invocation ended without output or its review artifact, so it is recorded as an unverified failed-to-return layer rather than no findings.
+Final result: Implemented the isolated operator console, narrow platform projection, server-gated provisioning/recovery adapters, and durable resume routes. Review triage recorded four patched findings (three high, one medium), no intent gaps, bad-spec findings, deferrals, or dismissals. Required integration executed 16/16 with zero skips; the clean production browser suite executed 5/5 with zero skips. Security review returned no findings. The configured external Luna review invocation ended without output or its review artifact, so it is recorded as an unverified failed-to-return layer rather than no findings.
 
 ## Review Triage Log
 
-- Corrected reviewer-confirmed resume gaps by adding a safe detail route, server-projected recovery state, explicit unknown reconciliation, and server-bound retry identity. The client never posts a tenant id for the bound recovery actions.
-- Corrected preview confirmation to show server-derived normalized identity, Admin email, baseline version/content hash, proposed action, and warnings while keeping request and preview hashes out of markup.
-- Corrected the browser fixture organisation generator after the real validator rejected a date-like generated identity before approval transport; UNIT-004 proves the exact closed wizard request has a valid zero-write preview.
-- Corrected a production-reachable opaque-grant replay: cookies were created at `/operator` but consumed with a root-path delete. Both grant consumers now delete at `/operator`; UNIT-005 and the production browser replay prove the second approval is denied without a second provision.
-- Security Sol/xhigh found no production-reachable issue. The exact external Luna/xhigh invocation did not return output or create its expected artifact; it was not retried and remains a review limitation.
+### 2026-09-20 — Review pass
+
+- intent_gap: 0
+- bad_spec: 0
+- patch: 4 (high 3, medium 1, low 0)
+- defer: 0
+- dismissed:
+  - none
+- addressed_findings:
+  - [high] [patch] Added the safe detail/resume projection, explicit unknown reconciliation, and server-bound retry identity; no browser form supplies a tenant id for recovery.
+  - [medium] [patch] Rendered server-derived normalized identity, Admin email, baseline version/content hash, proposed action, and warnings before approval while keeping request and preview hashes out of markup.
+  - [high] [patch] Corrected the generated browser fixture organisation number after the shared validator rejected a date-like identity; UNIT-004 now proves the exact closed request has a valid zero-write preview.
+  - [high] [patch] Corrected a one-use opaque-grant replay: cookies created at `/operator` now delete at `/operator`; UNIT-005 and production browser replay prove the second approval is denied without a second provision.
+
+Security Sol/xhigh found no production-reachable issue. The exact external Luna/xhigh invocation did not return output or create its expected artifact; it was not retried and remains a review limitation.
 
 ## Suggested Review Order
 
