@@ -92,7 +92,9 @@ export async function retryReconciledOperatorFirstAdminInviteAction(_: OperatorR
   if (!tenantId) return { status: "error", message: genericError };
   const result = await retryFirstAdminInvite({ tenantId });
   if (!result.ok) return { status: "error", message: result.code === "PREVIEW_STALE" ? "En ny förhandsgranskning och ett nytt godkännande krävs." : genericError };
-  revalidatePath("/operator"); revalidatePath(`/operator/${tenantId}`);
+  // Invalidating the detail route here unmounts this action-state component as
+  // soon as the durable state becomes requested, before its confirmed result
+  // can reach the operator. The next navigation reads the persisted state.
   return { status: "success", message: "Inbjudan har hanterats." };
 }
 
@@ -101,6 +103,7 @@ export async function retryOperatorFirstAdminInviteForTenantAction(tenantId: str
   if (!access.ok) return denied();
   const result = await retryFirstAdminInvite({ tenantId });
   if (!result.ok) return { status: "error", message: result.code === "PREVIEW_STALE" ? "En ny förhandsgranskning och ett nytt godkännande krävs." : genericError };
-  revalidatePath("/operator"); revalidatePath(`/operator/${tenantId}`);
+  // Keep the action component mounted until it presents the confirmed result;
+  // a fresh visit reconstructs the server-persisted handoff state.
   return { status: "success", message: "Inbjudan har hanterats." };
 }
