@@ -119,3 +119,52 @@ test("[P0] 12.2-UNIT-005 consumes both opaque grants at their /operator cookie p
     assert.match(source, /store\.delete\(\{ (?:name: cookieName|name), path: "\/operator" \}\)/);
   }
 });
+
+test("[P0] 12.2-UNIT-006 builds a closed request and ignores browser attempts to override server-owned fields", () => {
+  const clean = new FormData();
+  clean.set("legalName", "Closed Form El AB");
+  clean.set("organizationNumber", "5566778899");
+  clean.set("contractStartDate", "2026-10-01");
+  clean.set("firstAdminName", "Closed Admin");
+  clean.set("firstAdminEmail", "closed-admin@example.test");
+
+  const browserSupplied = new FormData();
+  for (const [key, value] of clean) browserSupplied.set(key, value);
+  browserSupplied.set("schema_version", "999");
+  browserSupplied.set("request_id", "browser-chosen-id");
+  browserSupplied.set("baseline_profile_id", "browser-baseline");
+  browserSupplied.set("baseline_profile_version", "99");
+  browserSupplied.set("subscription_plan_id", "enterprise");
+  browserSupplied.set("subscription_status", "suspended");
+  browserSupplied.set("included_user_count", "999");
+  browserSupplied.set("additional_user_price_ore", "1");
+  browserSupplied.set("country_code", "US");
+
+  assert.deepEqual(requestFromOperatorConsoleForm(browserSupplied), requestFromOperatorConsoleForm(clean));
+});
+
+test("[P1] 12.2-UNIT-007 gives equivalent organisation formatting one request identity and a distinct canonical organisation another", () => {
+  const request = (organizationNumber: string) => {
+    const form = new FormData();
+    form.set("legalName", "Identity El AB");
+    form.set("organizationNumber", organizationNumber);
+    form.set("contractStartDate", "2026-10-01");
+    form.set("firstAdminName", "Identity Admin");
+    form.set("firstAdminEmail", "identity-admin@example.test");
+    return requestFromOperatorConsoleForm(form);
+  };
+
+  const canonical = request("5566778899");
+  const formatted = request("5566-778899");
+  const different = request("5566778800");
+
+  assert.ok(canonical);
+  assert.ok(formatted);
+  assert.ok(different);
+  assert.equal(canonical.request_id, formatted.request_id);
+  assert.notEqual(canonical.request_id, different.request_id);
+});
+
+test("[P1] 12.2-UNIT-008 derives the complete wizard step from the durable ready state", () => {
+  assert.deepEqual(consoleTarget.deriveWizardState({ lifecycle: "ready" }), { step: "complete" });
+});

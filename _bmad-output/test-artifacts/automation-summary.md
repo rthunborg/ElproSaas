@@ -5,9 +5,9 @@ stepsCompleted:
   - 'step-03c-aggregate'
   - 'step-04-validate-and-summarize'
 lastStep: 'step-04-validate-and-summarize'
-lastSaved: '2026-09-19'
+lastSaved: '2026-09-20'
 workflowType: testarch-automate
-story: 10.6 Tax-Answer Reconciliation; 11.1 Role Storage and Permission-Matrix Mechanism; 11.2 Non-Admin Access to the Phase A Surface; 11.3 Admin User Management; 11.4 Roles Surface, Effective Permissions, and the Per-Role Test Harness; 12.1 Platform Operator Identity and the Provision-Tenant Command (latest)
+story: 10.6 Tax-Answer Reconciliation; 11.1 Role Storage and Permission-Matrix Mechanism; 11.2 Non-Admin Access to the Phase A Surface; 11.3 Admin User Management; 11.4 Roles Surface, Effective Permissions, and the Per-Role Test Harness; 12.1 Platform Operator Identity and the Provision-Tenant Command; 12.2 Operator Console (latest)
 detectedStack: fullstack
 executionMode: BMad-integrated (post-implementation risk-based coverage expansion)
 inputDocuments:
@@ -58,6 +58,15 @@ inputDocuments:
   - _bmad-output/test-artifacts/tea-atdd-summary-spec-12-1-2026-09-19.json
   - _bmad-output/test-artifacts/tea-atdd-api-tests-2026-09-19T12-18-15-228Z.json
   - _bmad-output/test-artifacts/tea-atdd-e2e-tests-2026-09-19T12-18-15-228Z.json
+  - _bmad-output/implementation-artifacts/spec-12-2-operator-console.md
+  - _bmad-output/test-artifacts/atdd-checklist-spec-12-2-operator-console.md
+  - _bmad-output/test-artifacts/test-design-progress-epic-12.md
+  - tests/unit/provisioning/operator-console.test.ts
+  - tests/integration/read-models/operator-console.int.test.ts
+  - tests/integration/rls/platform-operators.rls.test.ts
+  - tests/e2e/auth/operator-console.atdd.e2e.spec.ts
+  - scripts/verify/check-operator-console-isolation.mjs
+  - tests/unit/scripts/verify/check-operator-console-isolation.test.ts
   - _bmad-output/test-artifacts/test-design-epic-12.md
   - src/server/commands/provisioning/provision-tenant.ts
   - src/server/commands/provisioning/validation.ts
@@ -634,3 +643,95 @@ None. Story 12.1 has no consumer-provider contract boundary, and no Pact artifac
 
 **Recommended next workflow:** `bmad-testarch-test-review` for independent review of the expanded
 unit coverage, or `bmad-testarch-trace` if formal Story 12.1 traceability must be refreshed.
+
+# Test Automation Expansion — Story 12.2 (Operator Console)
+
+## Step 1 — Preflight & Context
+
+- **Stack:** fullstack. The repository has Next.js, Vitest DB-backed integration suites, Node
+  unit tests, and Playwright browser acceptance tests; `playwright.config.ts`, `vitest.config.ts`,
+  and package scripts are present, so the test framework is ready.
+- **Mode:** BMad-Integrated Create. Loaded the approved Story 12.2 specification, its ATDD
+  checklist, Epic 12 test design, relevant implementation, and the existing unit, integration,
+  static, and browser suites. The existing ATDD material already maps the full intended surface.
+- **Configuration:** `tea_use_playwright_utils=true`, but
+  `@seontechnologies/playwright-utils` is not a project dependency, so its mandate does not bind
+  generated tests. `tea_use_pactjs_utils=true`, but no Pact package/configuration or service
+  contract boundary exists, so no Pact suite is relevant. `tea_pact_mcp=mcp` and SmartBear tools
+  are unavailable in this session: **Pact broker: unreachable (SmartBear MCP tools not available).
+  Provider states derived from provider source.**
+- **Knowledge:** loaded the core test-level, priority, data-factory, selective-testing, CI/burn-in,
+  quality, Playwright utility, traditional fixture/network, CLI, and Pact MCP guidance. The
+  Playwright utility package is not installed; no utility-specific imports may be emitted.
+- **Scope:** Story 12.2 tests and this TEA record only. The specification remains unchanged.
+
+## Step 2 — Identify Targets
+
+The shipped ATDD material already gives every Story 12.2 acceptance criterion primary coverage:
+P0 projection/isolation through unit, required RLS/read-model, and static suites; P1 direct-route,
+wizard, approval/replay, and durable-reload coverage through production E2E; and P2 keyboard/focus
+coverage through production E2E. The implementation evidence reports 24 focused unit/static tests,
+16 required integration tests, and five production E2E cases, all passing with zero skips. Repeating
+those browser and database scenarios would be duplicate coverage.
+
+| Target | Level | Priority | Acceptance/risk link | Reason |
+| --- | --- | --- | --- | --- |
+| Closed wizard request ignores client-supplied authority, catalog, commercial, and request identity fields | Node unit | P0 | Preview/approval authority, R-1202/R-1204 | The existing valid-preview test proves zero writes but not that the narrow FormData adapter discards browser attempts to override server-owned facts. |
+| Equivalent formatted organisation identities produce the same request identity while a different identity does not | Node unit | P1 | Replay/idempotency, R-1203 | Pins the adapter contract needed for preview/replay to retain one server request identity without re-running the command protocol already covered by Story 12.1. |
+| Durable `ready` state derives the completed wizard view | Node unit | P1 | Resume/reload, R-1211 | Completes the missing successful durable-state branch of the existing state-derivation coverage. |
+
+Coverage is selective: three deterministic additions in the existing Node unit suite. No API/Pact
+target exists, and no new browser or DB case is warranted because those layers already exercise the
+same acceptance paths with required zero-skip evidence. The test body will use only public pure
+helpers, no fixtures, no mocks, no clock, and no production or specification change.
+
+## Step 3 — Generate and Aggregate Tests
+
+- **Execution:** capability probe resolved the configured `auto` mode to parallel subagents. The
+  API worker generated zero tests: Story 12.2 has no HTTP endpoint or consumer/provider boundary.
+  The E2E worker generated zero tests: the shipped production suite already covers all mapped
+  journeys with five passing zero-skip cases. The backend worker supplied one existing Node unit
+  file with three additions.
+- **Coverage added:** `12.2-UNIT-006` compares a clean request with a FormData payload that tries
+  to override server-owned request, catalogue, commercial, and country facts; both must result in
+  the same closed request. `12.2-UNIT-007` proves equivalent organisation formatting retains the
+  request identity while a different canonical organisation does not. `12.2-UNIT-008` covers the
+  durable `ready` state as the completed wizard step.
+- **Fixtures:** none. The additions use only FormData and the existing public pure helpers.
+- **Generation totals:** 3 tests in one existing backend/unit file (P0: 1, P1: 2); 0 API tests, 0
+  E2E tests, 0 fixture files, and no Playwright or Pact deviations. The aggregation summary is
+  retained in this document; all agent-created temporary worker outputs were removed after
+  aggregation.
+
+## Step 4 — Validation and Final Summary
+
+### Validation evidence
+
+- `pnpm exec node --experimental-strip-types --import ./tests/support/register.mjs --test
+  tests/unit/provisioning/operator-console.test.ts` — **PASS:** 8 tests passed, 0 failed,
+  cancelled, skipped, or todo. This includes all three generated cases.
+- `pnpm exec eslint tests/unit/provisioning/operator-console.test.ts` — **PASS with one existing
+  warning:** `ConsoleDto` at line 11 is unused. The generated test additions introduce no lint
+  errors or warnings.
+- `git diff --check` — **PASS.** Git reports only LF-to-CRLF working-copy notices.
+
+### Definition of done
+
+- Three focused deterministic Node tests close the remaining request-boundary and durable-state
+  gaps without duplicating the existing required RLS/read-model or production-browser evidence.
+- `12.2-UNIT-006` verifies browser FormData cannot override server-owned facts; `12.2-UNIT-007`
+  verifies the intended canonical-input/idempotency behavior; `12.2-UNIT-008` verifies the
+  completed state derived from durable `ready` data.
+- No fixture, helper, API, browser, contract, production, migration, environment, or specification
+  file changed. The temporary worker JSON documents were removed after aggregation.
+
+### Playwright Utils deviations
+
+None. The package is not installed and no Playwright test was generated.
+
+### Pact.js Utils deviations
+
+None. Story 12.2 has no consumer-provider boundary or Pact artifact.
+
+**Recommended next workflow:** `bmad-testarch-test-review` for the independent review already
+recommended by the story's follow-up review record.
