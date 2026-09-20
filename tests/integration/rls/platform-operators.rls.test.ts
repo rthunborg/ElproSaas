@@ -62,3 +62,43 @@ describe("platform operator authority — Story 12.1 ATDD", () => {
     });
   });
 });
+
+/**
+ * Story 12.2 RED scaffolds. The implementation task must extend the existing
+ * factory with a direct-entry probe; preserving the Story 12.1 suite avoids a
+ * duplicate provisioning-protocol test or an unresolved future import today.
+ */
+const operatorConsoleEntryProbe = undefined as unknown as (
+  input: { readonly identity: string; readonly entry: string },
+) => Promise<{ readonly code: string; readonly data: null; readonly effects: number; readonly validationReached: boolean; readonly auditWrites: number; readonly providerCalls: number; readonly databaseMutations: number; readonly existenceLeaked?: boolean }>;
+
+describe("platform operator authority — Story 12.2 console ATDD (RED)", () => {
+  test.skip("[P0] 12.2-INT-001 independently denies list, detail, preview, provision, reconcile, and retry before any side effect", async (testCtx) => {
+    if (skipUnlessStack(testCtx, await isLocalStackReachable())) return;
+
+    // Given every denied identity invokes each entry directly.
+    const outcomes = await Promise.all(
+      ["tenant_admin", "tenant_user", "orphan", "anonymous", "absent_claim", "forged_claim"].flatMap((identity) =>
+        ["list", "detail", "preview", "provision", "reconcile", "retry"].map((entry) => operatorConsoleEntryProbe({ identity, entry })),
+      ),
+    );
+
+    // Then all paths stop before validation, audit, provider, or mutation work.
+    expect(outcomes).toEqual(Array(36).fill({
+      code: "OPERATOR_ACCESS_DENIED", data: null, effects: 0, validationReached: false,
+      auditWrites: 0, providerCalls: 0, databaseMutations: 0,
+    }));
+  });
+
+  test.skip("[P0] 12.2-INT-002 denies direct base-table probes with no tenant or provisioning existence signal", async (testCtx) => {
+    if (skipUnlessStack(testCtx, await isLocalStackReachable())) return;
+
+    // Given a tenant identity tries the browser/RLS base-table path.
+    const result = await operatorConsoleEntryProbe({ identity: "tenant_admin", entry: "base_table_probe" });
+
+    // Then the same generic denial has no observable data or mutation.
+    expect(result).toMatchObject({
+      code: "OPERATOR_ACCESS_DENIED", data: null, effects: 0, databaseMutations: 0, existenceLeaked: false,
+    });
+  });
+});

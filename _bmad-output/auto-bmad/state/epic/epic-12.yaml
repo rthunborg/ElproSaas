@@ -9,11 +9,11 @@ spec_folder: null
 story_id: null
 branch: codex/epic-12-wave-b1a-tenant-provisioning-and-onboarding
 status: in-progress
-updated_at: "2026-09-20T13:07:52Z"
+updated_at: "2026-09-20T13:27:11Z"
 started_at: "2026-09-17T13:23:20Z"
 completed_at: null
-active_seconds: 80783
-timing_anchor: 1789909672
+active_seconds: 81941
+timing_anchor: 1789910831
 is_first_in_epic: false
 is_last_in_epic: false
 git_mode: remote
