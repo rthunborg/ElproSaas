@@ -121,7 +121,7 @@ Final result: Phase 7 completed a fresh follow-up review of the finished Story 1
 
 Security Sol/xhigh found no production-reachable issue. The exact external Luna/xhigh invocation did not return output or create its expected artifact; it was not retried and remains a review limitation.
 
-### 2026-09-20 — Follow-up review pass (Phase 7)
+### 2026-09-20 — Review pass
 
 - intent_gap: 0
 - bad_spec: 0
@@ -135,7 +135,7 @@ Security Sol/xhigh found no production-reachable issue. The exact external Luna/
   - The existing resume-state storage has no demonstrated caller that bypasses the server-gated detail/recovery path.
   - The reconciliation target is server-resolved and action-bound; it is not an independently browser-supplied identity.
   - The review did not identify a stale retry control after the final component lifecycle design; production E2E proves it is absent when the handoff advances.
-- dismissed: 1
+- dismissed:
   - Per-action direct HTTP invocation coverage was proposed without a reachable Server Action capability or a missing platform gate. Each action independently resolves the platform operator, so this is not a defect finding.
 - addressed_findings:
   - [high] [patch] Mounted unknown handoff recovery whenever reconciliation is required, rather than only when retry was already permitted.
