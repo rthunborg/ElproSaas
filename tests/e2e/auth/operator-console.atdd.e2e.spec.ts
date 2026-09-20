@@ -39,6 +39,11 @@ test.describe("Story 12.2 operator console", () => {
     // Then the platform surface has no tenant shell or navigation.
     await expect(page.getByRole("heading", { name: /operatörskonsol/i })).toBeVisible();
     await expect(page.getByRole("navigation")).toHaveCount(0);
+    const statusLink = page.getByRole("link", { name: "Öppna provisioneringsstatus" }).first();
+    await expect(statusLink).toHaveAttribute("href", /\/operator\/SE%3A[0-9]{10}$/);
+    await statusLink.click();
+    await expect(page).toHaveURL(/\/operator\/SE%3A[0-9]{10}$/);
+    await expect(page.getByRole("status")).toBeVisible();
 
     const membershiplessContext = await browser.newContext();
     try {
@@ -127,8 +132,10 @@ test.describe("Story 12.2 operator console", () => {
     await signIn(page);
     await page.goto(`/operator/${fixture.operatorConsole.handoffTenantId}`);
     await expect(page.getByRole("status")).toContainText(/okänd/i);
+    await expect(page.getByRole("button", { name: "Kontrollera status" })).toBeVisible();
     await page.reload();
     await expect(page.getByRole("status")).toContainText(/okänd/i);
+    await expect(page.getByRole("button", { name: "Kontrollera status" })).toBeVisible();
 
     const resumedContext = await browser.newContext();
     try {
@@ -136,10 +143,18 @@ test.describe("Story 12.2 operator console", () => {
       await signIn(resumedPage);
       await resumedPage.goto(page.url());
       await expect(resumedPage.getByRole("status")).toContainText(/okänd/i);
+      await expect(resumedPage.getByRole("button", { name: "Kontrollera status" })).toBeVisible();
       await expect(resumedPage.getByText(/email delivery/i)).toHaveCount(0);
     } finally {
       await resumedContext.close();
     }
+
+    // The unknown state must reconcile before a retry can become available.
+    await expect(page.getByRole("button", { name: "Försök igen" })).toHaveCount(0);
+    await page.getByRole("button", { name: "Kontrollera status" }).click();
+    await expect(page.getByText("Status har kontrollerats. Du kan nu begära ett nytt försök.", { exact: true })).toBeVisible();
+    await page.getByRole("button", { name: "Försök igen" }).click();
+    await expect(page.getByText("Inbjudan har hanterats.", { exact: true })).toBeVisible();
   });
 
   test("[P2] 12.2-E2E-003 provides semantic validation focus and keyboard progression", async ({ page }) => {

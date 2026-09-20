@@ -25,10 +25,6 @@ export type OperatorRecoveryState = OperatorConsoleActionState & { readonly reco
 
 const genericError = "Åtgärden kunde inte genomföras.";
 const denied = (): OperatorConsoleActionState => ({ status: "error", message: "Åtkomst saknas." });
-const string = (form: FormData, key: string): string | null => {
-  const value = form.get(key);
-  return typeof value === "string" ? value : null;
-};
 
 export async function previewOperatorProvisioningAction(_: OperatorPreviewState, form: FormData): Promise<OperatorPreviewState> {
   const access = await resolvePlatformOperator();
@@ -73,26 +69,6 @@ export async function approveOperatorProvisioningAction(_: OperatorPreviewState,
   revalidatePath("/operator");
   if (tenantId) revalidatePath(`/operator/${tenantId}`);
   return { status: "success", message: "Provisioneringen har bekräftats.", ...(tenantId ? { tenantId } : {}) };
-}
-
-export async function retryOperatorFirstAdminInviteAction(_: OperatorConsoleActionState, form: FormData): Promise<OperatorConsoleActionState> {
-  return retryOperatorFirstAdminInvite(form);
-}
-
-async function retryOperatorFirstAdminInvite(form: FormData): Promise<OperatorConsoleActionState> {
-  if (!(await resolvePlatformOperator()).ok) return denied();
-  const tenantId = string(form, "tenantId");
-  if (!tenantId) return { status: "error", message: genericError };
-  const result = await retryFirstAdminInvite({ tenantId });
-  if (!result.ok) return { status: "error", message: result.code === "PREVIEW_STALE" ? "En ny förhandsgranskning och ett nytt godkännande krävs." : genericError };
-  revalidatePath("/operator");
-  revalidatePath(`/operator/${tenantId}`);
-  return { status: "success", message: "Inbjudan har hanterats." };
-}
-
-/** Direct detail-form entry; it retains the same independent platform gate. */
-export async function retryOperatorFirstAdminInviteFormAction(form: FormData): Promise<void> {
-  await retryOperatorFirstAdminInvite(form);
 }
 
 /** Detail actions are server-bound to a resolved tenant. No browser FormData

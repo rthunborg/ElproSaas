@@ -168,3 +168,15 @@ test("[P1] 12.2-UNIT-007 gives equivalent organisation formatting one request id
 test("[P1] 12.2-UNIT-008 derives the complete wizard step from the durable ready state", () => {
   assert.deepEqual(consoleTarget.deriveWizardState({ lifecycle: "ready" }), { step: "complete" });
 });
+
+test("[P0] 12.2-UNIT-009 mounts the reconciliation control for a durable unknown handoff", () => {
+  const source = readFileSync(path.join(process.cwd(), "src", "app", "operator", "[tenantId]", "page.tsx"), "utf8");
+  assert.match(source, /state\.requiresReconciliation \|\| \(state\.canRetry/);
+  assert.match(source, /<HandoffRecovery tenantId=\{resume\.tenantId\} requiresReconciliation=\{Boolean\(state\.requiresReconciliation\)\}/);
+});
+
+test("[P0] 12.2-UNIT-010 exposes retry only through a server-bound detail action", () => {
+  const source = readFileSync(path.join(process.cwd(), "src", "features", "operator-console", "actions.ts"), "utf8");
+  assert.doesNotMatch(source, /retryOperatorFirstAdminInvite(?:Form)?Action/);
+  assert.doesNotMatch(source, /form\.get\("tenantId"\)/);
+});
