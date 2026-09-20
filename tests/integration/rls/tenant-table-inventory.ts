@@ -102,6 +102,9 @@ export type TenantTableName =
   | "membership_roles"
   | "membership_admin_operations"
   | "audit_events"
+  // Story 12.1 platform command state is durable tenant-keyed data.
+  | "tenant_provisioning_requests"
+  | "tenant_provisioning_invites"
   // Story 3.1 CRM — `authenticated` HAS an INSERT/UPDATE grant → cross-tenant UPDATE denial is
   // RLS-USING invisibility (zero rows + unchanged re-read), NOT a missing-grant 42501.
   | "customers"
@@ -148,11 +151,11 @@ export type TenantTableName =
  * `tenantTables`, collapsing one of the four independently-authored scope copies into the single
  * manifest source (the Epic 9 retro drift theme). Non-circular by construction: the H4 gate
  * (`rls-inventory-gate.int.test.ts`) independently introspects the LIVE DB schema and asserts this
- * derived set equals the real 27 enrolled tables — the DB itself is the ground truth, not another
+ * derived set equals the real 31 enrolled tables — the DB itself is the ground truth, not another
  * authored copy. A unit check (`tests/unit/scope/manifest-derivations.test.ts`) additionally pins
- * the derivation to the 27 authored table names (a fast, stack-free equality).
+ * the derivation to the 31 authored table names (a fast, stack-free equality).
  *
- * The manifest lists exactly the same 27 tables, so the cast to `readonly TenantTableName[]` is
+ * The manifest lists exactly the same 31 tables, so the cast to `readonly TenantTableName[]` is
  * exact; a manifest change that added an unknown table would surface at runtime through the
  * per-table metadata switches' `default: assertNever(table)` (fail-loud), and through the H4 gate.
  * Only `TENANT_TABLES` re-sources; the introspection (`introspectTenantOwnedTables`) and every
@@ -307,6 +310,8 @@ export function updateDenialKind(table: TenantTableName): MutationDenialKind {
     case "membership_roles":
     case "membership_admin_operations":
     case "audit_events":
+    case "tenant_provisioning_requests":
+    case "tenant_provisioning_invites":
     case "quote_review_authorizations":
     case "tenant_counters":
     case "quotes":
@@ -442,6 +447,15 @@ export function spoofedRowFor(
         tenant_id: fixture.tenantB.id,
         actor_user_id: fixture.adminA.id,
         action: "invite",
+      };
+    case "tenant_provisioning_requests":
+      return {
+        request_id: crypto.randomUUID(), canonical_request_hash: "a".repeat(64),
+        tenant_id: fixture.tenantB.id, actor_user_id: fixture.adminA.id, preview_hash: "b".repeat(64), request_payload: {},
+      };
+    case "tenant_provisioning_invites":
+      return {
+        tenant_id: fixture.tenantB.id, membership_id: crypto.randomUUID(), token_hash: "c".repeat(64), normalized_email: "spoof@example.se",
       };
     case "customers":
       // A customer row forging Tenant B ownership. `authenticated` HAS an INSERT
@@ -1028,6 +1042,9 @@ export function tenantBFilter(
         column: "id",
         value: requireCrmId(ctx.tenantBAdminOperationId, "tenantBAdminOperationId", table),
       };
+    case "tenant_provisioning_requests":
+    case "tenant_provisioning_invites":
+      return { column: "tenant_id", value: ctx.fixture.tenantB.id };
     default:
       return assertNever(table);
   }
@@ -1116,6 +1133,10 @@ export function hijackMutationFor(
     case "membership_roles":
       return { role: "montor" };
     case "membership_admin_operations":
+      return { outcome: "failed" };
+    case "tenant_provisioning_requests":
+      return { provisioning_state: "ready" };
+    case "tenant_provisioning_invites":
       return { outcome: "failed" };
     case "quote_follow_ups":
       // UPDATE-able ("rls-invisible"): the cross-tenant UPDATE matches ZERO rows under RLS USING —
@@ -1211,6 +1232,10 @@ export function rlsInvisibleLabelColumn(table: TenantTableName): string {
     case "membership_roles":
       return "role";
     case "membership_admin_operations":
+      return "outcome";
+    case "tenant_provisioning_requests":
+      return "provisioning_state";
+    case "tenant_provisioning_invites":
       return "outcome";
     default:
       return assertNever(table);
@@ -1492,6 +1517,15 @@ export function anonRowFor(
         id: crypto.randomUUID(), tenant_id: fixture.tenantA.id,
         actor_user_id: fixture.adminA.id, action: "invite",
       };
+    case "tenant_provisioning_requests":
+      return {
+        request_id: crypto.randomUUID(), canonical_request_hash: "a".repeat(64),
+        tenant_id: fixture.tenantA.id, actor_user_id: fixture.adminA.id, preview_hash: "b".repeat(64), request_payload: {},
+      };
+    case "tenant_provisioning_invites":
+      return {
+        tenant_id: fixture.tenantA.id, membership_id: crypto.randomUUID(), token_hash: "c".repeat(64), normalized_email: "anon@example.se",
+      };
     default:
       return assertNever(table);
   }
@@ -1522,6 +1556,8 @@ export function anonFilterFor(
     case "tenant_memberships":
     case "membership_roles":
     case "membership_admin_operations":
+    case "tenant_provisioning_requests":
+    case "tenant_provisioning_invites":
     case "customers":
     case "facilities":
     case "contacts":
@@ -1611,6 +1647,10 @@ export function anonMutationFor(
     case "membership_roles":
       return { role: "montor" };
     case "membership_admin_operations":
+      return { outcome: "failed" };
+    case "tenant_provisioning_requests":
+      return { provisioning_state: "ready" };
+    case "tenant_provisioning_invites":
       return { outcome: "failed" };
     default:
       return assertNever(table);

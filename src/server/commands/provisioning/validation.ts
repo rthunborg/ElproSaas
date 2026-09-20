@@ -114,7 +114,20 @@ function email(value: unknown): string {
   if (/[<>()\[\],;:\\"\s]/.test(normalized) || normalized.split("@").length !== 2) throw new Error("INVALID_EMAIL");
   const [local, domain] = normalized.split("@");
   if (!local || !domain || !/^[^@]+$/.test(local)) throw new Error("INVALID_EMAIL");
-  try { return `${local.toLowerCase()}@${new URL(`http://${domain}`).hostname.toLowerCase()}`; } catch { throw new Error("INVALID_EMAIL"); }
+  // URL is used only for IDNA normalization. Its URL syntax must not expand
+  // the email domain into a path, credential, query, fragment, or port.
+  if (/[:/?#]/.test(domain)) throw new Error("INVALID_EMAIL");
+  try {
+    const parsed = new URL(`http://${domain}`);
+    if (!parsed.hostname || parsed.pathname !== "/" || parsed.search || parsed.hash || parsed.username || parsed.password || parsed.port) throw new Error("INVALID_EMAIL");
+    return `${local.toLowerCase()}@${parsed.hostname.toLowerCase()}`;
+  } catch { throw new Error("INVALID_EMAIL"); }
+}
+
+function canonicalJsonValue(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(canonicalJsonValue);
+  if (plainRecord(value)) return Object.fromEntries(Object.keys(value).sort().map((key) => [key, canonicalJsonValue(value[key])]));
+  return value;
 }
 
 export function canonicalizeProvisioningRequest(input: unknown): ProvisioningRequest & { normalizedOrganizationNumber: string; vatRegistrationNumber?: string; firstAdminEmail: string; canonicalRequestHash: string } {
@@ -132,7 +145,7 @@ export function canonicalizeProvisioningRequest(input: unknown): ProvisioningReq
   // Hash a canonical key order and normalized values. JSON object insertion order is
   // not a business property and must not turn an otherwise identical retry into a
   // conflict.
-  const canonical = Object.fromEntries(Object.keys(request).sort().map((key) => [key, request[key]]));
+  const canonical = canonicalJsonValue(request) as Record<string, unknown>;
   canonical.organization_number = normalizedNumber;
   canonical.country_code = "SE";
   canonical.first_admin_email = firstAdminEmail;

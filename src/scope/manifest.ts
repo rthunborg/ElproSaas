@@ -221,7 +221,7 @@ export const SCOPE_MANIFEST: ScopeManifest = {
       scope: "platform",
       activatedAt: "2026-09-19",
       navItems: [],
-      tenantTables: [],
+      tenantTables: ["tenant_provisioning_requests", "tenant_provisioning_invites"],
       widgets: [],
       notificationCategories: [],
       publicSurfaces: [],

@@ -69,6 +69,8 @@ const PINNED_TENANT_TABLES = [
   "jobs",
   "job_events",
   "membership_admin_operations",
+  "tenant_provisioning_requests",
+  "tenant_provisioning_invites",
 ];
 
 type AnyModule = {
@@ -136,17 +138,19 @@ test("10.1-UNIT-DERIVE-04 (AC3): the manifest-derived nav routes equal the AUTHO
 });
 
 // ── Derivation 3: the H4 tenant-table inventory expectation (Task 6) ──────────────────────────
-test("10.1-UNIT-DERIVE-05 (AC3): TENANT_TABLES derives as the union of active modules' tenantTables == the pinned 28", async () => {
+test("10.1-UNIT-DERIVE-05 (AC3): TENANT_TABLES derives as the union of active modules' tenantTables == the pinned 31", async () => {
   // Baseline was 24; Story 10.2's quote_lost_reasons enrolment grew the active union to 25, and Story
-  // 10.3's quote_follow_ups enrolment grows it to 26; Story 10.8's review authority makes 27.
+  // 10.3's quote_follow_ups enrolment grows it to 26; Story 10.8's review authority makes 27;
+  // Story 11.1 adds membership_roles and membership_admin_operations (→ 29), and Story 12.1
+  // adds two provisioning tables.
   const { SCOPE_MANIFEST } = await loadManifest();
   const { tenantTablesFromManifest } = await loadSchema();
   const derived = tenantTablesFromManifest(SCOPE_MANIFEST);
-  assert.equal(derived.length, 29, "the derived tenant-table union must total exactly 29");
+  assert.equal(derived.length, 31, "the derived tenant-table union must total exactly 31");
   assert.deepEqual(
     sortedUnique(derived),
     sortedUnique(PINNED_TENANT_TABLES),
-    "the manifest-derived tenant tables must equal exactly the 28 authored H4-enrolled tables (no drift)",
+    "the manifest-derived tenant tables must equal exactly the 31 authored H4-enrolled tables (no drift)",
   );
 });
 

@@ -49,9 +49,33 @@ type ApprovedProvisioningInput = {
   readonly explicitApproval: boolean;
 };
 
-async function deliverInvitation(reservation: Reservation, token: string) {
-  const service = createRuntimeAdminUserService({
-    invitationRedirectBase: "/auth/invite/confirm",
+type InvitationService = {
+  invite(input: Record<string, unknown>): Promise<{ outcome?: unknown }>;
+};
+
+type InvitationServiceFactory = (dependencies: {
+  invitationRedirectBase: string;
+  prepareInvite: () => Promise<{ operationId: string; membershipId: string; attemptToken: string; delivery: string }>;
+}) => InvitationService;
+
+function invitationRedirectBase() {
+  const configured = process.env.NEXT_PUBLIC_APP_URL;
+  if (configured) return `${configured.replace(/\/$/, "")}/auth/invite/confirm`;
+  return process.env.NODE_ENV === "production" ? null : "http://127.0.0.1:3000/auth/invite/confirm";
+}
+
+async function deliverInvitation(
+  reservation: Reservation,
+  token: string,
+  createService: InvitationServiceFactory = createRuntimeAdminUserService,
+) {
+  const redirect = invitationRedirectBase();
+  // A production deployment without its configured public origin must not
+  // hand a relative callback to Auth. The reservation is reconciled as an
+  // uncertain delivery without calling the provider.
+  if (!redirect) return "unknown" as const;
+  const service = createService({
+    invitationRedirectBase: redirect,
     prepareInvite: async () => ({
       operationId: reservation.reservationId,
       membershipId: reservation.membershipId,
@@ -297,4 +321,5 @@ export const provisioningCommandTestHooks = {
   outstandingReservation,
   provisionTenantWithDependencies,
   retryFirstAdminInviteWithDependencies,
+  deliverInvitation,
 };

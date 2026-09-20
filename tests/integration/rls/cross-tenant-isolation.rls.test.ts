@@ -470,6 +470,13 @@ describe("Cross-tenant RLS isolation — data-driven over the shared inventory (
     "job_events",
     "quote_follow_ups",
   ]);
+  // Provisioning request and invitation facts are tenant-keyed for H4 coverage,
+  // but they are platform-command internals: normal tenant roles receive no direct
+  // SELECT privilege, so denial occurs before RLS row filtering.
+  const directReadRevokedTables = new Set([
+    "tenant_provisioning_requests",
+    "tenant_provisioning_invites",
+  ]);
 
   for (const table of TENANT_TABLES) {
     describe(`table: ${table}`, () => {
@@ -477,6 +484,11 @@ describe("Cross-tenant RLS isolation — data-driven over the shared inventory (
         if (skipUnlessStack(testCtx, stackUp)) return;
         const { column, value } = tenantBFilter(table, ctx);
         const { data, error } = await a.from(table).select("*").eq(column, value);
+        if (directReadRevokedTables.has(table)) {
+          expect(error?.code).toBe("42501");
+          expect(data).toBeNull();
+          return;
+        }
         // RLS yields an empty set, NOT an error that confirms existence.
         expect(error).toBeNull();
         expect(data).toEqual([]);

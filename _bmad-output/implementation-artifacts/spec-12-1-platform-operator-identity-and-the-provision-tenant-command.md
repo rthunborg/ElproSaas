@@ -159,6 +159,18 @@ deferred: []
   - `[medium] [patch]` Added production-command handoff coverage and hardened the private company projection trigger.
   - `[low] [patch]` Confirmed current adapter errors are ambiguous and must map to `unknown`; it exposes no genuine definitive failure to classify.
 
+### 2026-09-20 — Review pass
+- intent_gap: 0
+- bad_spec: 0
+- patch: 4 (high 3, medium 1, low 0)
+- defer: 0
+- reject: 13 (the remaining broad implementation claims were either contradicted by the attested RPC/request projection and existing grants, or reopened the documented `succeeded|uncertain` provider-adapter contract without a reachable bypass)
+- addressed_findings:
+  - `[high] [patch]` Supplied a trusted absolute Auth callback for first-admin delivery, preserving the reserved membership and attempt capability and failing provider-free when a production public origin is absent.
+  - `[high] [patch]` Canonicalized nested request records before hashing so semantically identical approved requests cannot conflict by insertion order.
+  - `[medium] [patch]` Rejected URL path and port syntax in first-Admin email domains before IDNA normalization.
+  - `[high] [patch]` Enrolled tenant-keyed provisioning request/invite facts in the manifest-derived H4 inventory and asserted their direct-read privilege boundary.
+
 ## Design Notes
 
 The database is deliberately DB-first and provider-second: a provider outcome cannot create a false database claim. The public RPC is callable under a normal authenticated operator session but cannot mutate without the second, server-only attestation proof. Only its attested action allow-list and the existing Epic 11 acceptance path may mutate provisioning state; the command module is signer/orchestrator, never a service-role database privilege path.
@@ -178,6 +190,12 @@ Epic 11 retrospective actions on retry-fixture clocks, support-file size, Roles 
 Status: done
 Blocking condition: none
 Final result: Story 12.1 completed after final repair verification. See the final implementation result below for evidence and residual limits.
+
+Current follow-up review result (2026-09-20): completed Round 2 of 3 with four patches. The independent Luna cross-model command was started exactly once but ended without terminal output or its requested result file after its host session became unavailable; it is unverified rather than a clean finding-free layer. Follow-up review remains recommended because this pass patched high-severity authority, idempotency, and H4 tenant-isolation defects.
+
+Files changed in this pass: `src/server/commands/provisioning/provision-tenant.ts` (trusted provider callback), `src/server/commands/provisioning/validation.ts` (canonical nested hashing and strict email domains), `src/scope/manifest.ts` plus H4 inventory/test metadata (provisioning-table enrollment), `tests/unit/provisioning/provisioning-contract.test.ts`, `tests/unit/scope/manifest-shape.test.ts`, `tests/unit/scope/manifest-derivations.test.ts`, and `tests/integration/rls/cross-tenant-isolation.rls.test.ts`.
+
+Verification in this pass: focused provisioning and permission-matrix Node tests 23/23 passed; manifest unit tests 14/14 passed; required provisioning command/RLS tests 18/18 passed with zero skips; H4 inventory, cross-tenant, and anonymous RLS tests 256/256 passed with zero skips; scoped ESLint and `git diff --check` passed. Full stock typecheck remains limited by pre-existing ignored `tmp/private/**` and `tmp/worktrees/**` errors.
 
 Historical result (2026-09-17, before owner decisions):
 
@@ -236,6 +254,15 @@ The server signs a fixed, length-prefixed envelope over the current Auth actor a
 - `supabase/migrations/20260919183425_provisioning_review_authority_fixes.sql:12` — `provision_tenant`: supplies the final normal-JWT operator gate, read-only reconciliation exception, and exact reservation/outcome body.
 - `supabase/migrations/20260919120000_provisioning_decision_8a_authority.sql:155` — `revoke all on function public.provision_tenant`: removes service-role and public execution.
 
+### Canonical request and callback capability
+
+The request hash now recursively canonicalizes approved nested objects, and email parsing uses URL machinery only for IDNA conversion after rejecting URL-only syntax. The server gives the Auth provider the established absolute invite callback, including the durable membership and one-time attempt capability.
+
+- `src/server/commands/provisioning/validation.ts:111` — `email`: rejects paths and ports that are not email domains before IDNA normalization.
+- `src/server/commands/provisioning/validation.ts:127` — `canonicalJsonValue`: makes nested object ordering irrelevant to idempotency hashes.
+- `src/server/commands/provisioning/provision-tenant.ts:61` — `invitationRedirectBase`: applies the trusted configured-origin policy and fails delivery safely in production without it.
+- `src/server/commands/provisioning/provision-tenant.ts:67` — `deliverInvitation`: preserves the reserved membership and attempt facts through the runtime Auth handoff.
+
 ### Approved command and database-first invite reservation
 
 The pure preview remains outside database construction. Execution accepts only an
@@ -243,10 +270,18 @@ explicitly approved envelope whose supplied hash equals the re-derived preview;
 after the atomic creation result, the command reads durable facts, reserves one
 token generation, calls the provider once, and records the matching outcome.
 
-- `src/server/commands/provisioning/provision-tenant.ts:73` — `provisionTenantWithDependencies`: rejects missing, unapproved, or stale preview evidence before signing or calling the RPC.
-- `src/server/commands/provisioning/provision-tenant.ts:100` — `retryFirstAdminInviteWithDependencies`: starts the initial handoff only for a newly created tenant; replays remain observation-only.
-- `src/server/commands/provisioning/provision-tenant.ts:218` — `retryFirstAdminInviteWithDependencies`: receives retry identity only from reconciliation and reservation facts.
+- `src/server/commands/provisioning/provision-tenant.ts:97` — `provisionTenantWithDependencies`: rejects missing, unapproved, or stale preview evidence before signing or calling the RPC.
+- `src/server/commands/provisioning/provision-tenant.ts:124` — `retryFirstAdminInviteWithDependencies`: starts the initial handoff only for a newly created tenant; replays remain observation-only.
+- `src/server/commands/provisioning/provision-tenant.ts:242` — `retryFirstAdminInviteWithDependencies`: receives retry identity only from reconciliation and reservation facts.
 - `supabase/migrations/20260919120000_provisioning_decision_8a_authority.sql:5` — `provisioning_function_owner`: confines the RPC to a non-login owner role.
+
+### Tenant inventory and direct-read boundary
+
+The command's durable request and invite facts are tenant-keyed and must remain enrolled in the manifest-derived H4 inventory. They deliberately have no authenticated direct `SELECT` grant; the cross-tenant suite therefore proves the privilege error rather than mistaking it for an RLS-empty result.
+
+- `src/scope/manifest.ts:224` — `tenantTables`: enrolls both durable provisioning tables with the active platform module.
+- `tests/integration/rls/tenant-table-inventory.ts:98` — `TenantTableName`: supplies fixture, spoof, mutation, and filter metadata for both provisioning tables.
+- `tests/integration/rls/cross-tenant-isolation.rls.test.ts:476` — `directReadRevokedTables`: verifies the intended authenticated direct-read denial.
 
 ### Focused evidence and limits
 
@@ -255,11 +290,13 @@ rules, and the production command's approval gate, created-only provider flow,
 success/failure/unknown outcome mapping, and replay suppression. Required local
 integration/RLS tests cover the database authority separately.
 
-- `tests/unit/provisioning/provisioning-contract.test.ts:102` — `binds the provisioning attestation`: actor, action, generation, and payload tampering invalidate the proof.
-- `tests/unit/provisioning/provisioning-contract.test.ts:151` — `executes the approved production command`: verifies the exact provision → reconcile → reserve → provider → record sequence.
-- `tests/unit/provisioning/provisioning-contract.test.ts:225` — `leaves idempotent replays provider-free`: proves an observed replay cannot dispatch another invitation.
+- `tests/unit/provisioning/provisioning-contract.test.ts:39` — `canonicalizes Swedish`: validates identity/email rejection and canonical nested request hashing.
+- `tests/unit/provisioning/provisioning-contract.test.ts:115` — `binds the provisioning attestation`: actor, action, generation, and payload tampering invalidate the proof.
+- `tests/unit/provisioning/provisioning-contract.test.ts:164` — `sends first-admin Auth callbacks`: proves the configured absolute callback retains membership and attempt capability.
+- `tests/unit/provisioning/provisioning-contract.test.ts:227` — `executes the approved production command`: verifies the exact provision → reconcile → reserve → provider → record sequence.
+- `tests/unit/provisioning/provisioning-contract.test.ts:301` — `leaves idempotent replays provider-free`: proves an observed replay cannot dispatch another invitation.
 
-Evidence: the final Node provisioning contract suite passed 12/12. The required `SUPABASE_TEST_REQUIRED=1` command/RLS/reset/search-path suites passed 18/18 with zero skipped. Focused ESLint and `git diff --check` passed. The earlier directly relevant admin-user compatibility subset was 6/6; the historical broader compatibility record was 14/14. Full stock `pnpm typecheck` remains blocked only by unrelated ignored `tmp/private/**` and `tmp/worktrees/**` errors; the prior scoped typecheck excluding those paths passed.
+Evidence: the final focused Node provisioning and permission-matrix suites passed 23/23; manifest derivation/shape units passed 14/14. The required `SUPABASE_TEST_REQUIRED=1` command/RLS/reset/search-path suites passed 18/18 with zero skipped, and the H4 inventory/cross-tenant/anonymous RLS suites passed 256/256 with zero skipped. Focused ESLint and `git diff --check` passed. The earlier directly relevant admin-user compatibility subset was 6/6; the historical broader compatibility record was 14/14. Full stock `pnpm typecheck` remains blocked only by unrelated ignored `tmp/private/**` and `tmp/worktrees/**` errors; the prior scoped typecheck excluding those paths passed.
 Limits: provider acceptance is not evidence of email delivery. The configured independent Luna review command did not produce a terminal review result in this run and is reported in the run evidence rather than treated as a clean layer.
 
 Current implementation result (2026-09-19):

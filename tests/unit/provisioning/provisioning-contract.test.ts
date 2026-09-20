@@ -46,6 +46,7 @@ test("[P0] 12.1-UNIT-002 canonicalizes Swedish organization/VAT/email identities
     { country_code: "NO", organization_number: "5561234567" }, { country_code: "SE", organization_number: "850101-1234" },
     { country_code: "SE", organization_number: "5561234568" }, { vat_registration_number: "SE556123456801" },
     { first_admin_email: "Ada Admin <ada@example.se>" }, { first_admin_email: "ada@example.se,other@example.se" },
+    { first_admin_email: "ada@example.se/path" }, { first_admin_email: "ada@example.se:443" },
   ]) assert.throws(() => canonicalizeProvisioningRequest({ ...input, ...rejected }));
 });
 
@@ -68,6 +69,18 @@ test("[P0] 12.1-UNIT-002 rejects coercible primitives and permits only the v1 ne
   assert.deepEqual(canonical.address, { address_line1: "Storgatan 1", postal_code: "111 22", city: "Stockholm" });
   assert.equal(canonical.organization_number, "5561234567");
   assert.equal(canonical.first_admin_email, "ada@example.se");
+
+  const first = canonicalizeProvisioningRequest({
+    ...input,
+    address: { city: "Stockholm", postal_code: "111 22", address_line1: "Storgatan 1" },
+    commercial_overrides: { special_terms: "Annual prepay", agreed_discount_ore: 5000 },
+  });
+  const second = canonicalizeProvisioningRequest({
+    ...input,
+    address: { address_line1: "Storgatan 1", postal_code: "111 22", city: "Stockholm" },
+    commercial_overrides: { agreed_discount_ore: 5000, special_terms: "Annual prepay" },
+  });
+  assert.equal(first.canonicalRequestHash, second.canonicalRequestHash);
 });
 
 test("[P0] 12.1-UNIT-003 permits only documented handoff states and ready's exact persisted predicate", () => {
@@ -146,6 +159,69 @@ test("[P0] 12.1-UNIT-003 recognizes only a complete outstanding reservation for 
   });
   assert.equal(provisioningCommandTestHooks.outstandingReservation({ ...outstanding, tokenHash: "bad" }, facts), null);
   assert.equal(provisioningCommandTestHooks.outstandingReservation({ ...outstanding, reservationOutcome: "requested" }, facts), null);
+});
+
+test("[P0] 12.1-UNIT-003 sends first-admin Auth callbacks to the configured public origin and retains the reserved membership attempt", async () => {
+  const environment = process.env as Record<string, string | undefined>;
+  const previousAppUrl = environment.NEXT_PUBLIC_APP_URL;
+  const previousNodeEnv = environment.NODE_ENV;
+  environment.NEXT_PUBLIC_APP_URL = "https://app.example.test/";
+  environment.NODE_ENV = "production";
+  const reservation = {
+    tenantId: "00000000-0000-4000-8000-000000000030", requestId: "00000000-0000-4000-8000-000000000031",
+    requestHash: "a".repeat(64), organizationNumber: "5561234567", previewHash: "b".repeat(64), baselineId: "standard-se",
+    baselineVersion: 1, baselineContentHash: "c".repeat(64), approvalGeneration: 1, dispatchGeneration: 1,
+    normalizedEmail: "ada@example.se", membershipId: "member id", reservationId: "00000000-0000-4000-8000-000000000032",
+  };
+  try {
+    let callbackUrl = "";
+    const outcome = await provisioningCommandTestHooks.deliverInvitation(reservation, "attempt/value", (dependencies) => ({
+      invite: async () => {
+        const prepared = await dependencies.prepareInvite();
+        const callback = new URL(dependencies.invitationRedirectBase);
+        callback.searchParams.set("membershipId", prepared.membershipId);
+        callback.searchParams.set("attempt", prepared.attemptToken);
+        callbackUrl = callback.toString();
+        return { outcome: "succeeded" };
+      },
+    }));
+    assert.equal(outcome, "requested");
+    const callback = new URL(callbackUrl);
+    assert.equal(callback.origin, "https://app.example.test");
+    assert.equal(callback.pathname, "/auth/invite/confirm");
+    assert.equal(callback.searchParams.get("membershipId"), reservation.membershipId);
+    assert.equal(callback.searchParams.get("attempt"), "attempt/value");
+  } finally {
+    if (previousAppUrl === undefined) delete environment.NEXT_PUBLIC_APP_URL;
+    else environment.NEXT_PUBLIC_APP_URL = previousAppUrl;
+    if (previousNodeEnv === undefined) delete environment.NODE_ENV;
+    else environment.NODE_ENV = previousNodeEnv;
+  }
+});
+
+test("[P0] 12.1-UNIT-003 refuses first-admin provider delivery without a production app origin", async () => {
+  const environment = process.env as Record<string, string | undefined>;
+  const previousAppUrl = environment.NEXT_PUBLIC_APP_URL;
+  const previousNodeEnv = environment.NODE_ENV;
+  delete environment.NEXT_PUBLIC_APP_URL;
+  environment.NODE_ENV = "production";
+  const reservation = {
+    tenantId: "00000000-0000-4000-8000-000000000040", requestId: "00000000-0000-4000-8000-000000000041",
+    requestHash: "a".repeat(64), organizationNumber: "5561234567", previewHash: "b".repeat(64), baselineId: "standard-se",
+    baselineVersion: 1, baselineContentHash: "c".repeat(64), approvalGeneration: 1, dispatchGeneration: 1,
+    normalizedEmail: "ada@example.se", membershipId: "00000000-0000-4000-8000-000000000042", reservationId: "00000000-0000-4000-8000-000000000043",
+  };
+  try {
+    const outcome = await provisioningCommandTestHooks.deliverInvitation(reservation, "attempt", () => {
+      throw new Error("the Auth provider must not be constructed");
+    });
+    assert.equal(outcome, "unknown");
+  } finally {
+    if (previousAppUrl === undefined) delete environment.NEXT_PUBLIC_APP_URL;
+    else environment.NEXT_PUBLIC_APP_URL = previousAppUrl;
+    if (previousNodeEnv === undefined) delete environment.NODE_ENV;
+    else environment.NODE_ENV = previousNodeEnv;
+  }
 });
 
 test("[P0] 12.1-UNIT-004 executes the approved production command through its created-only reservation, provider, and outcome sequence", async () => {
