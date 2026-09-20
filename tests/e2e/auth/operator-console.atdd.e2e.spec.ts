@@ -31,6 +31,16 @@ async function signIn(page: Page, credentials = fixture.operator): Promise<void>
   await expect(page).toHaveURL(/\/dashboard/);
 }
 
+function uniqueOrganisationNumber(): string {
+  const digits = crypto.randomUUID().replace(/\D/g, "").padEnd(6, "0").slice(0, 6);
+  const stem = `556${digits}`;
+  const sum = [...stem].reduce((total, digit, index) => {
+    const doubled = Number(digit) * (index % 2 === 0 ? 2 : 1);
+    return total + (doubled > 9 ? doubled - 9 : doubled);
+  }, 0);
+  return `${stem}${(10 - (sum % 10)) % 10}`;
+}
+
 test.describe("Story 12.2 operator console", () => {
   test("[P1] 12.2-E2E-001 allow-listed operators reach isolated /operator with no tenant navigation", async ({ browser, page }) => {
     // Given a cookie-bound session revalidated through is_platform_operator().
@@ -81,8 +91,9 @@ test.describe("Story 12.2 operator console", () => {
     // Given an allow-listed operator begins provisioning a new tenant.
     await signIn(page);
     await page.goto("/operator");
+    const organizationNumber = uniqueOrganisationNumber();
     await page.getByLabel("Företagsnamn").fill("E2E Operatör AB");
-    await page.getByLabel("Organisationsnummer").fill(fixture.operatorConsole.provisioningOrganisationNumber);
+    await page.getByLabel("Organisationsnummer").fill(organizationNumber);
 
     // Then the three specified semantic headings are presented in sequence.
     await expect(page.getByRole("heading", { name: "Företagsuppgifter" })).toBeVisible();
@@ -106,7 +117,7 @@ test.describe("Story 12.2 operator console", () => {
     try {
       await secondTab.goto("/operator");
       await secondTab.getByLabel("Företagsnamn").fill("E2E Andra fliken AB");
-      await secondTab.getByLabel("Organisationsnummer").fill(fixture.operatorConsole.provisioningOrganisationNumber);
+      await secondTab.getByLabel("Organisationsnummer").fill(organizationNumber);
       await secondTab.getByRole("button", { name: /fortsätt/i }).click();
       await secondTab.getByLabel("Avtalsstart").fill("2026-10-01");
       await secondTab.getByRole("button", { name: /fortsätt/i }).click();
@@ -124,7 +135,7 @@ test.describe("Story 12.2 operator console", () => {
     await page.getByRole("button", { name: "Godkänn provisionering" }).click();
     await expect(page.getByText("Åtgärden kunde inte genomföras.", { exact: true })).toBeVisible();
     await page.reload();
-    await expect(page.getByText(`SE:${fixture.operatorConsole.provisioningOrganisationNumber}`)).toBeVisible();
+    await expect(page.getByText(`SE:${organizationNumber}`)).toBeVisible();
   });
 
   test("[P1] 12.2-E2E-002 reload and a new context reconstruct durable handoff labels", async ({ browser, page }) => {
