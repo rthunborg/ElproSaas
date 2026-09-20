@@ -169,10 +169,9 @@ test("[P1] 12.2-UNIT-008 derives the complete wizard step from the durable ready
   assert.deepEqual(consoleTarget.deriveWizardState({ lifecycle: "ready" }), { step: "complete" });
 });
 
-test("[P0] 12.2-UNIT-009 mounts the reconciliation control for a durable unknown handoff", () => {
+test("[P0] 12.2-UNIT-009 retains recovery feedback while durable handoff state advances", () => {
   const source = readFileSync(path.join(process.cwd(), "src", "app", "operator", "[tenantId]", "page.tsx"), "utf8");
-  assert.match(source, /state\.requiresReconciliation \|\| \(state\.canRetry/);
-  assert.match(source, /<HandoffRecovery tenantId=\{resume\.tenantId\} requiresReconciliation=\{Boolean\(state\.requiresReconciliation\)\}/);
+  assert.match(source, /resume && <HandoffRecovery tenantId=\{resume\.tenantId\} requiresReconciliation=\{Boolean\(state\.requiresReconciliation\)\} canRetry=\{Boolean\(state\.canRetry && !state\.requiresFreshApprovalForAttempt\)\}/);
 });
 
 test("[P0] 12.2-UNIT-010 exposes retry only through a server-bound detail action", () => {
