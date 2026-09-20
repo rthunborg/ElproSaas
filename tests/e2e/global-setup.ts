@@ -104,20 +104,37 @@ export default async function globalSetup() {
   // Story 12.2 needs a durable, server-rendered handoff state. Keep it on the
   // existing fixture tenant so global teardown remains the sole scoped cleanup
   // owner. The browser receives only this safe route handle, never invite data.
-  const [operatorHandoffMembership] = await adminQuery<{ id: string }>(
-    "select id from public.tenant_memberships where tenant_id=$1 and user_id=$2 limit 1",
-    [base.tenantA.id, base.adminA.id],
-  );
-  if (!operatorHandoffMembership) throw new Error("Story 12.2 browser fixture has no tenant membership");
+  const operatorHandoffEmail = `operator-handoff-${token()}@example.test`;
+  const operatorHandoffMembershipId = crypto.randomUUID();
   await adminQuery(
-    "update public.tenants set country_code='SE', normalized_organization_number=$2, provisioning_state='first_admin_invite_unknown' where id=$1",
-    [base.tenantA.id, operatorHandoffOrganisationNumber],
+    `insert into public.tenant_memberships
+       (id,tenant_id,user_id,role,status,invited_email,invited_at,invitation_expires_at)
+     values ($1,$2,null,'tenant_admin','invited',$3,statement_timestamp(),statement_timestamp() + interval '24 hours')`,
+    [operatorHandoffMembershipId, base.tenantA.id, operatorHandoffEmail],
+  );
+  const [operatorHandoffBaseline] = await adminQuery<{ baseline_id: string; version: number; content_hash: string }>(
+    "select baseline_id,version,content_hash from public.tenant_provisioning_baselines where baseline_id='standard-se' order by version desc limit 1",
+  );
+  if (!operatorHandoffBaseline) throw new Error("Story 12.2 browser fixture has no provisioning baseline");
+  const operatorHandoffRequestId = crypto.randomUUID();
+  await adminQuery(
+    `update public.tenants
+     set country_code='SE', normalized_organization_number=$2, provisioning_state='first_admin_invite_unknown',
+         provisioning_baseline_id=$3, provisioning_baseline_version=$4, provisioning_baseline_content_hash=$5
+     where id=$1`,
+    [base.tenantA.id, operatorHandoffOrganisationNumber, operatorHandoffBaseline.baseline_id, operatorHandoffBaseline.version, operatorHandoffBaseline.content_hash],
   );
   await adminQuery(
     `insert into public.tenant_provisioning_invites
        (tenant_id,membership_id,token_hash,normalized_email,role,outcome)
      values ($1,$2,'', $3,'tenant_admin','unknown')`,
-    [base.tenantA.id, operatorHandoffMembership.id, base.adminA.email],
+    [base.tenantA.id, operatorHandoffMembershipId, operatorHandoffEmail],
+  );
+  await adminQuery(
+    `insert into public.tenant_provisioning_requests
+       (request_id,canonical_request_hash,tenant_id,actor_user_id,preview_hash,baseline_content_hash,provisioning_state,approval_generation)
+     values ($1,repeat('a',64),$2,$3,repeat('b',64),$4,'first_admin_invite_unknown',1)`,
+    [operatorHandoffRequestId, base.tenantA.id, base.adminB.id, operatorHandoffBaseline.content_hash],
   );
   // Story 11.2 ATDD runs the real app as two non-admin members of the same
   // tenant that owns every existing browser seed. Their credentials are written
