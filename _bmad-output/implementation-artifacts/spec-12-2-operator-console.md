@@ -2,10 +2,11 @@
 title: 'Story 12.2: Operator Console'
 type: 'feature'
 created: '2026-09-20'
-status: 'ready-for-dev'
+status: 'done'
 baseline_revision: 'ed7e5785f7a96422fb2251c6cc0431a4442b1cc8'
+baseline_commit: '661dfd33a2f9992254a521ac71b64ef885eda862'
 review_loop_iteration: 0
-followup_review_recommended: false
+followup_review_recommended: true
 context:
   - '_bmad-output/project-context.md'
   - '_bmad-output/implementation-artifacts/epic-12-context.md'
@@ -87,14 +88,56 @@ The wizard has no client-authoritative state machine: preview is transient and w
 
 ## Verification
 
-**Commands:**
-- `pnpm vitest run tests/unit/provisioning/operator-console.test.ts tests/unit/provisioning/provisioning-contract.test.ts` -- expected: exact projection, state derivation, strict preview/action mapping, and token/hash absence cases pass.
-- `SUPABASE_TEST_REQUIRED=1 pnpm vitest run tests/integration/rls/platform-operators.rls.test.ts tests/integration/commands/provision-tenant.int.test.ts tests/integration/read-models/operator-console.int.test.ts` -- expected: all operator/read/action negatives and Story 12.1 compatibility cases execute with zero skips.
-- `pnpm run test:e2e -- tests/e2e/auth/operator-console.atdd.e2e.spec.ts` -- expected: isolated authorization, resumable wizard, and accessibility flows run against the configured production web server.
-- `pnpm lint && pnpm typecheck && pnpm run verify:service-role-containment` -- expected: no tenant-shell or service-role boundary regression; report the established unrelated `tmp/private/**` and `tmp/worktrees/**` limitation separately if stock typecheck remains affected.
+- Focused unit/static suite: 24 passed, 0 failed, 0 skipped: `node --experimental-strip-types --import ./tests/support/register.mjs --test tests/unit/provisioning/operator-console.test.ts tests/unit/provisioning/provisioning-contract.test.ts tests/unit/scripts/verify/check-operator-console-isolation.test.ts`.
+- Required local RLS/command/read-model suite: 16 passed, 0 failed, 0 skipped with `SUPABASE_TEST_REQUIRED=1`; migrations were applied with additive `supabase db push --local` only.
+- Clean-checkout production build with the configured local environment passed compilation and TypeScript; `/operator` and `/operator/[tenantId]` were emitted.
+- Clean-checkout Playwright against the guard-owned production server on loopback port 33122: 5 passed, 0 failed, 0 skipped. It covers both positive operator identities (including no tenant membership), tenant-admin/anonymous generic denial, Swedish keyboard progression, hash-bound preview/approval, one-use replay denial, and reload/new-context durable handoff display.
+- `node scripts/verify/check-operator-console-isolation.mjs` passed. A fresh root `pnpm run verify:service-role-containment` invocation could not start because its bundled Node 20 pnpm resolver was denied `lstat C:\Users\Rasmus`; its earlier successful evidence is retained, but this invocation is unverified. Repository-root stock typecheck/lint remain limited by ignored `tmp/private/**` and `tmp/worktrees/**` material.
 
 ## Auto Run Result
 
-Status: ready-for-dev
+Status: done
 Blocking condition: none
-Final result: Planning completed at `ed7e5785f7a96422fb2251c6cc0431a4442b1cc8`. The spec records the isolated platform route, exact read projection, existing provisioning-command integration, and required authorization, data-exposure, recovery, and accessibility evidence. No implementation or runtime verification ran in this planning-only pass.
+Final result: Implemented the isolated operator console, narrow platform projection, server-gated provisioning/recovery adapters, and durable resume routes. Required integration executed 16/16 with zero skips; the clean production browser suite executed 5/5 with zero skips. Security review returned no findings. The configured external Luna review invocation ended without output or its review artifact, so it is recorded as an unverified failed-to-return layer rather than no findings.
+
+## Review Triage Log
+
+- Corrected reviewer-confirmed resume gaps by adding a safe detail route, server-projected recovery state, explicit unknown reconciliation, and server-bound retry identity. The client never posts a tenant id for the bound recovery actions.
+- Corrected preview confirmation to show server-derived normalized identity, Admin email, baseline version/content hash, proposed action, and warnings while keeping request and preview hashes out of markup.
+- Corrected the browser fixture organisation generator after the real validator rejected a date-like generated identity before approval transport; UNIT-004 proves the exact closed wizard request has a valid zero-write preview.
+- Corrected a production-reachable opaque-grant replay: cookies were created at `/operator` but consumed with a root-path delete. Both grant consumers now delete at `/operator`; UNIT-005 and the production browser replay prove the second approval is denied without a second provision.
+- Security Sol/xhigh found no production-reachable issue. The exact external Luna/xhigh invocation did not return output or create its expected artifact; it was not retried and remains a review limitation.
+
+## Suggested Review Order
+
+Author: implementation/fix author.
+Refreshed against the final Story 12.2 working tree from `661dfd33a2f9992254a521ac71b64ef885eda862`.
+
+### Isolated platform entry and read boundary
+
+Every console entry independently resolves the live allow-list and projects only the approved data shape. The route remains outside the tenant shell.
+
+- `src/server/auth/resolve-platform-operator.ts:13` — `resolvePlatformOperator`: revalidates the authenticated user and live operator status.
+- `src/app/operator/layout.tsx:7` — `resolvePlatformOperator`: denies before operator UI renders.
+- `src/server/read-models/operator-console.ts:16` — `resolvePlatformOperator`: independently gates projection reads.
+- `supabase/migrations/20260920100000_operator_console_projection.sql:2` — `operator_console_projection`: defines the fixed read-only projection.
+
+### Preview, approval, and durable recovery
+
+The browser submits a closed request for a zero-write preview, then carries only an opaque per-preview handle. Recovery paths stay server-bound and preserve the existing Story 12.1 writer.
+
+- `src/features/operator-console/provisioning-request.ts:20` — `requestFromOperatorConsoleForm`: fixes all catalogue/commercial facts on the server.
+- `src/features/operator-console/actions.ts:33` — `previewOperatorProvisioningAction`: gates before preview and writes only the opaque approval grant.
+- `src/server/provisioning/operator-preview-grant.ts:40` — `store.delete`: consumes the preview grant at its `/operator` path.
+- `src/server/provisioning/operator-reconciliation-grant.ts:34` — `store.delete`: applies the same one-use path rule to reconciliation retry grants.
+
+### Acceptance evidence and operational limits
+
+The tests exercise the disclosure boundary, closed preview, cookie consumption, required RLS suites, and a production browser journey. The external provider remains a local fixture boundary; browser assertions prove recorded state and never email delivery.
+
+- `tests/unit/provisioning/operator-console.test.ts:99` — `12.2-UNIT-004`: proves the exact E2E request previews without writes.
+- `tests/unit/provisioning/operator-console.test.ts:116` — `12.2-UNIT-005`: prevents path-mismatched grant deletion from regressing.
+- `tests/e2e/auth/operator-console.atdd.e2e.spec.ts:75` — `12.2-E2E-002`: proves opaque preview binding, confirmation, replay denial, and reload.
+
+Evidence: focused unit/static 24/24; required integration 16/16 with `SUPABASE_TEST_REQUIRED=1`; clean production build passed; production Playwright 5/5, all zero skipped.
+Limits: stock root lint/typecheck remain affected by ignored scratch/worktree files. The external Luna review failed to return an artifact, so follow-up review is recommended; it is not recorded as a clean review.

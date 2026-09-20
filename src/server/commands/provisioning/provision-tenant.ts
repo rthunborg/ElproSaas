@@ -314,6 +314,22 @@ export async function retryFirstAdminInvite(input: { tenantId: string; renewal?:
   });
 }
 
+/** Read-only server reconciliation for an explicit operator acknowledgement.
+ * Raw hashes and reservation identifiers remain inside this command boundary. */
+export async function reconcileFirstAdminInvite(input: { tenantId: string }) {
+  if (!uuidPattern.test(input.tenantId)) return denied;
+  const client = await serverClient();
+  if (!(await actor(client))) return denied;
+  try {
+    const { data, error } = await client.rpc("provision_tenant", { p_action: "reconcile", p_request: { tenant_id: input.tenantId } });
+    if (error || !data || typeof data !== "object" || Array.isArray(data)) return error ? documentedRpcFailure(error) : denied;
+    const result = data as Record<string, unknown>;
+    return typeof result.tenantId === "string" && result.tenantId === input.tenantId
+      ? { ok: true as const }
+      : denied;
+  } catch { return denied; }
+}
+
 /** Narrow test seam for guarded, non-I/O protocol parsing. */
 export const provisioningCommandTestHooks = {
   documentedRpcFailure,

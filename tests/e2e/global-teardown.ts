@@ -9,11 +9,36 @@
 import { readFileSync, rmSync } from "node:fs";
 import path from "node:path";
 import { cleanupFixture, type TwoTenantFixture } from "../factories/tenants";
+import { adminSession } from "../factories/admin-sql";
 import { FIXTURE_FILE } from "./global-setup";
 
 export default async function globalTeardown() {
   try {
-    const fixture = JSON.parse(readFileSync(FIXTURE_FILE, "utf8")) as TwoTenantFixture;
+    const fixture = JSON.parse(readFileSync(FIXTURE_FILE, "utf8")) as TwoTenantFixture & {
+      readonly operatorConsole?: { readonly provisioningOrganisationNumber?: string };
+    };
+    const provisionedOrganisationNumber = fixture.operatorConsole?.provisioningOrganisationNumber;
+    if (provisionedOrganisationNumber) {
+      // The approval E2E creates one uniquely-named tenant through the public
+      // command. Remove only that test identity through the existing local
+      // fixture teardown capability; no reset or broad cleanup is involved.
+      await adminSession(async ({ query }) => {
+        await query("begin");
+        try {
+          await query("set local session_replication_role = replica");
+          await query(
+            `delete from public.audit_events where tenant_id in
+               (select id from public.tenants where country_code='SE' and normalized_organization_number=$1)`,
+            [provisionedOrganisationNumber],
+          );
+          await query("delete from public.tenants where country_code='SE' and normalized_organization_number=$1", [provisionedOrganisationNumber]);
+          await query("commit");
+        } catch (error) {
+          await query("rollback");
+          throw error;
+        }
+      });
+    }
     await cleanupFixture(fixture);
   } catch (e) {
     console.warn(

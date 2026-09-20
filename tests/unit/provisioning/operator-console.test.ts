@@ -1,5 +1,12 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import { readFileSync } from "node:fs";
+import path from "node:path";
+import { projectConsoleRow } from "@/features/operator-console/projection";
+import { deriveWizardState } from "@/features/operator-console/wizard-state";
+import { operatorPreviewGrantCryptoTestHooks, samePreviewGrantActor } from "@/server/provisioning/operator-preview-grant-crypto";
+import { requestFromOperatorConsoleForm } from "@/features/operator-console/provisioning-request";
+import { previewTenantProvisioning } from "@/server/commands/provisioning/provision-tenant";
 
 type ConsoleDto = {
   readonly tenantName: string;
@@ -13,12 +20,9 @@ type ConsoleDto = {
  * Story 12.2 red-phase seam. Replace this typed placeholder with the public
  * read-model/wizard-state test hook as the named implementation task lands.
  */
-const consoleTarget = undefined as unknown as {
-  projectConsoleRow: (row: Record<string, unknown>) => ConsoleDto;
-  deriveWizardState: (state: Record<string, unknown>) => Record<string, unknown>;
-};
+const consoleTarget = { projectConsoleRow, deriveWizardState };
 
-test.skip("[P0] 12.2-UNIT-001 projects the exact safe console DTO and excludes nested, aliased, business, and protocol canaries", () => {
+test("[P0] 12.2-UNIT-001 projects the exact safe console DTO and excludes nested, aliased, business, and protocol canaries", () => {
   // Given a backing row that contains both allowed fields and forbidden facts.
   const dto = consoleTarget.projectConsoleRow({
     tenant_name: "Canary El AB",
@@ -56,7 +60,7 @@ test.skip("[P0] 12.2-UNIT-001 projects the exact safe console DTO and excludes n
   );
 });
 
-test.skip("[P1] 12.2-UNIT-002 derives every wizard/resume affordance from durable server state", () => {
+test("[P1] 12.2-UNIT-002 derives every wizard/resume affordance from durable server state", () => {
   // Given persisted states reconstructed in a fresh browser context.
   const fresh = consoleTarget.deriveWizardState({ lifecycle: "fresh" });
   const previewed = consoleTarget.deriveWizardState({ lifecycle: "preview_validated" });
@@ -70,4 +74,48 @@ test.skip("[P1] 12.2-UNIT-002 derives every wizard/resume affordance from durabl
   assert.deepEqual(unknown, { requiresReconciliation: true, canRetry: false });
   assert.deepEqual(failed, { canRetry: true, requiresFreshApprovalForAttempt: 4 });
   assert.deepEqual(replay, { duplicateCreateSuccess: false });
+  assert.deepEqual(consoleTarget.deriveWizardState({ lifecycle: "first_admin_invite_requested" }), { step: "first-admin", canApprove: false });
+});
+
+test("[P0] 12.2-UNIT-003 encrypts the short-lived approval grant so request and preview hashes never enter browser UI state", () => {
+  const encryptionKey = Buffer.alloc(32, 7);
+  const rawRequest = { request_id: "6bc018da-ff18-4796-b0d7-742a3f5e8445", legal_name: "Canary El AB", first_admin_email: "canary@example.test" };
+  const previewHash = "a".repeat(64);
+  const encoded = operatorPreviewGrantCryptoTestHooks.encode({ actorUserId: "a5a1a4d3-8ad9-4374-9228-92c6b6e1fb43", request: rawRequest, previewHash, expiresAt: Date.now() + 30_000 }, encryptionKey);
+
+  assert.ok(encoded);
+  assert.doesNotMatch(encoded, /Canary El|canary@example|a{32}/i);
+  assert.deepEqual(operatorPreviewGrantCryptoTestHooks.decode(encoded, encryptionKey), {
+    actorUserId: "a5a1a4d3-8ad9-4374-9228-92c6b6e1fb43",
+    request: rawRequest,
+    previewHash,
+    expiresAt: operatorPreviewGrantCryptoTestHooks.decode(encoded, encryptionKey)?.expiresAt,
+  });
+  assert.equal(operatorPreviewGrantCryptoTestHooks.decode(`${encoded}x`, encryptionKey), null);
+  assert.equal(operatorPreviewGrantCryptoTestHooks.decode(operatorPreviewGrantCryptoTestHooks.encode({ actorUserId: "other", request: rawRequest, previewHash, expiresAt: Date.now() - 1 }, encryptionKey)!, encryptionKey), null);
+  assert.equal(samePreviewGrantActor("operator-A", "operator-B"), false);
+});
+
+test("[P1] 12.2-UNIT-004 accepts the E2E console company identity through the closed zero-write preview request", () => {
+  const form = new FormData();
+  form.set("legalName", "E2E Operatör AB");
+  // This is a valid organisation number and deliberately cannot look like a
+  // Swedish personnummer to the shared provisioning validator.
+  form.set("organizationNumber", "5566778899");
+  form.set("contractStartDate", "2026-10-01");
+  form.set("firstAdminName", "E2E Admin");
+  form.set("firstAdminEmail", "e2e-admin@example.test");
+
+  const request = requestFromOperatorConsoleForm(form);
+  assert.ok(request);
+  const preview = previewTenantProvisioning(request);
+  assert.equal(preview.ok, true);
+  if (preview.ok) assert.equal(preview.preview.writes, 0);
+});
+
+test("[P0] 12.2-UNIT-005 consumes both opaque grants at their /operator cookie path", () => {
+  for (const file of ["operator-preview-grant.ts", "operator-reconciliation-grant.ts"]) {
+    const source = readFileSync(path.join(process.cwd(), "src", "server", "provisioning", file), "utf8");
+    assert.match(source, /store\.delete\(\{ (?:name: cookieName|name), path: "\/operator" \}\)/);
+  }
 });

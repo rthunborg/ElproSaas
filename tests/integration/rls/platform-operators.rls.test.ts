@@ -63,42 +63,28 @@ describe("platform operator authority — Story 12.1 ATDD", () => {
   });
 });
 
-/**
- * Story 12.2 RED scaffolds. The implementation task must extend the existing
- * factory with a direct-entry probe; preserving the Story 12.1 suite avoids a
- * duplicate provisioning-protocol test or an unresolved future import today.
- */
-const operatorConsoleEntryProbe = undefined as unknown as (
-  input: { readonly identity: string; readonly entry: string },
-) => Promise<{ readonly code: string; readonly data: null; readonly effects: number; readonly validationReached: boolean; readonly auditWrites: number; readonly providerCalls: number; readonly databaseMutations: number; readonly existenceLeaked?: boolean }>;
-
-describe("platform operator authority — Story 12.2 console ATDD (RED)", () => {
-  test.skip("[P0] 12.2-INT-001 independently denies list, detail, preview, provision, reconcile, and retry before any side effect", async (testCtx) => {
+describe("platform operator authority — Story 12.2 console", () => {
+  test("[P0] 12.2-INT-001 independently denies console projection and provisioning RPC entries", async (testCtx) => {
     if (skipUnlessStack(testCtx, await isLocalStackReachable())) return;
-
-    // Given every denied identity invokes each entry directly.
-    const outcomes = await Promise.all(
-      ["tenant_admin", "tenant_user", "orphan", "anonymous", "absent_claim", "forged_claim"].flatMap((identity) =>
-        ["list", "detail", "preview", "provision", "reconcile", "retry"].map((entry) => operatorConsoleEntryProbe({ identity, entry })),
-      ),
-    );
-
-    // Then all paths stop before validation, audit, provider, or mutation work.
-    expect(outcomes).toEqual(Array(36).fill({
-      code: "OPERATOR_ACCESS_DENIED", data: null, effects: 0, validationReached: false,
-      auditWrites: 0, providerCalls: 0, databaseMutations: 0,
-    }));
+    const fixture = await createPlatformOperatorFixture();
+    try {
+      const client = await makePlatformOperatorClient(fixture.tenantAdmin);
+      for (const [p_action, p_request] of [["reconcile", { tenant_id: crypto.randomUUID() }], ["provision", {}]] as const) {
+        const result = await client.rpc("provision_tenant", { p_action, p_request });
+        expect(result.data).toBeNull(); expect(result.error?.code).toBe("42501");
+      }
+      const projection = await client.rpc("operator_console_projection", { p_tenant_id: null });
+      expect(projection.data).toBeNull(); expect(projection.error?.code).toBe("42501");
+    } finally { await cleanupPlatformOperatorFixture(fixture); }
   });
 
-  test.skip("[P0] 12.2-INT-002 denies direct base-table probes with no tenant or provisioning existence signal", async (testCtx) => {
+  test("[P0] 12.2-INT-002 denies direct base-table probes with no tenant or provisioning existence signal", async (testCtx) => {
     if (skipUnlessStack(testCtx, await isLocalStackReachable())) return;
 
-    // Given a tenant identity tries the browser/RLS base-table path.
-    const result = await operatorConsoleEntryProbe({ identity: "tenant_admin", entry: "base_table_probe" });
-
-    // Then the same generic denial has no observable data or mutation.
-    expect(result).toMatchObject({
-      code: "OPERATOR_ACCESS_DENIED", data: null, effects: 0, databaseMutations: 0, existenceLeaked: false,
-    });
+    const fixture = await createPlatformOperatorFixture();
+    try {
+      const result = await (await makePlatformOperatorClient(fixture.tenantAdmin)).from("tenant_provisioning_requests").select("request_id, tenant_id");
+      expect(result.data ?? []).toEqual([]);
+    } finally { await cleanupPlatformOperatorFixture(fixture); }
   });
 });

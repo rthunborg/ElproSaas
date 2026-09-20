@@ -112,13 +112,22 @@ const FAULT_TABLES = {
 
 async function withProvisioningWriteFault<T>(
   point: keyof typeof FAULT_TABLES,
+  input: StrictProvisioningRequest,
   run: () => Promise<T>,
 ): Promise<T> {
   const suffix = crypto.randomUUID().replaceAll("-", "");
   const fn = `test_provisioning_fault_${suffix}`;
   const trigger = `test_provisioning_fault_trigger_${suffix}`;
   const table = FAULT_TABLES[point];
-  await adminExec(`create function public.${fn}() returns trigger language plpgsql as $$ begin raise exception 'test provisioning ${point} fault'; end $$`);
+  const organizationNumber = input.organization_number.replace(/[\s-]/g, "");
+  const target = point === "idempotency"
+    ? `new.request_id = '${input.request_id}'::uuid`
+    : point === "tenant" || point === "baseline"
+      ? `new.country_code = 'SE' and new.normalized_organization_number = '${organizationNumber}'`
+      : `exists (select 1 from public.tenants t where t.id = new.tenant_id and t.normalized_organization_number = '${organizationNumber}')`;
+  // The trigger is installed only to fault this generated request. A broad
+  // before-insert trigger races independent test files on the shared local DB.
+  await adminExec(`create function public.${fn}() returns trigger language plpgsql as $$ begin if ${target} then raise exception 'test provisioning ${point} fault'; end if; return new; end $$`);
   await adminExec(`create trigger ${trigger} before insert on public.${table} for each row execute function public.${fn}()`);
   try {
     return await run();
@@ -238,7 +247,7 @@ export async function executeApprovedProvisioning(
   });
   const failAt = options.failAt;
   const response = typeof failAt === "string" && failAt in FAULT_TABLES
-    ? await withProvisioningWriteFault(failAt as keyof typeof FAULT_TABLES, invoke)
+    ? await withProvisioningWriteFault(failAt as keyof typeof FAULT_TABLES, input, invoke)
     : await invoke();
   const { data, error } = response;
   if (error && typeof failAt === "string" && failAt in FAULT_TABLES) {
@@ -329,18 +338,25 @@ async function reserveFirstDispatchForTest(
 export async function previewProvisioningForTest(
   input: StrictProvisioningRequest,
 ): Promise<PreviewResult> {
-  const tables = ["tenants", "tenant_memberships", "tenant_provisioning_requests", "audit_events"] as const;
-  const before = await Promise.all(tables.map(async (table) => {
-    const result = await admin().from(table).select("id", { count: "exact", head: true });
-    return result.count ?? 0;
-  }));
+  const normalizedOrganisationNumber = input.organization_number.replace(/[\s-]/g, "");
+  // This assertion must be scoped to the preview's unique identity. Global row
+  // counts race unrelated integration files running against the shared stack.
+  const durableSnapshot = async () => adminQuery<{ tenant_count: string; request_count: string; membership_count: string; audit_count: string }>(
+    `with target_tenants as (
+       select id from public.tenants where country_code = 'SE' and normalized_organization_number = $1
+     )
+     select
+       (select count(*)::text from target_tenants) as tenant_count,
+       (select count(*)::text from public.tenant_provisioning_requests where request_id = $2::uuid) as request_count,
+       (select count(*)::text from public.tenant_memberships where tenant_id in (select id from target_tenants)) as membership_count,
+       (select count(*)::text from public.audit_events where tenant_id in (select id from target_tenants)) as audit_count`,
+    [normalizedOrganisationNumber, input.request_id],
+  );
+  const before = await durableSnapshot();
   const { previewTenantProvisioning } = await import("@/server/commands/provisioning/provision-tenant");
   const result = previewTenantProvisioning(input);
   if (!result.ok) failure(result.code);
-  const after = await Promise.all(tables.map(async (table) => {
-    const count = await admin().from(table).select("id", { count: "exact", head: true });
-    return count.count ?? 0;
-  }));
+  const after = await durableSnapshot();
   return { ...result.preview, durableRowsUnchanged: JSON.stringify(before) === JSON.stringify(after) };
 }
 

@@ -59,6 +59,19 @@ function token(): string {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 }
 
+function validOrganisationNumber(): string {
+  // Keep the changing suffix behind a fixed non-date-like company prefix.
+  // `556${timestamp}` can accidentally match the provisioning validator's
+  // personnummer guard, which makes the browser preview fail before it reaches
+  // the opaque approval transport.
+  const stem = `556677${Date.now().toString().slice(-3).padStart(3, "0")}`;
+  const sum = [...stem].reduce((total, digit, index) => {
+    const doubled = Number(digit) * (index % 2 === 0 ? 2 : 1);
+    return total + (doubled > 9 ? doubled - 9 : doubled);
+  }, 0);
+  return `${stem}${(10 - (sum % 10)) % 10}`;
+}
+
 /** Complete no-deduction V2 input used by quote-capable E2E calculations. */
 function noDeductionTaxInput(
   documentVatType: "STANDARD_VAT_25" | "REVERSE_CHARGE_CONSTRUCTION" = "STANDARD_VAT_25",
@@ -82,6 +95,30 @@ function noDeductionTaxInput(
 
 export default async function globalSetup() {
   const base = await createTwoTenantFixture();
+  const operatorHandoffOrganisationNumber = `990${Date.now().toString().slice(-7)}`;
+  const operatorProvisioningOrganisationNumber = validOrganisationNumber();
+  await adminQuery(
+    "insert into public.platform_operators (user_id, granted_by) values ($1, $2), ($3, $2)",
+    [base.adminB.id, base.adminA.id, base.orphanUser.id],
+  );
+  // Story 12.2 needs a durable, server-rendered handoff state. Keep it on the
+  // existing fixture tenant so global teardown remains the sole scoped cleanup
+  // owner. The browser receives only this safe route handle, never invite data.
+  const [operatorHandoffMembership] = await adminQuery<{ id: string }>(
+    "select id from public.tenant_memberships where tenant_id=$1 and user_id=$2 limit 1",
+    [base.tenantA.id, base.adminA.id],
+  );
+  if (!operatorHandoffMembership) throw new Error("Story 12.2 browser fixture has no tenant membership");
+  await adminQuery(
+    "update public.tenants set country_code='SE', normalized_organization_number=$2, provisioning_state='first_admin_invite_unknown' where id=$1",
+    [base.tenantA.id, operatorHandoffOrganisationNumber],
+  );
+  await adminQuery(
+    `insert into public.tenant_provisioning_invites
+       (tenant_id,membership_id,token_hash,normalized_email,role,outcome)
+     values ($1,$2,'', $3,'tenant_admin','unknown')`,
+    [base.tenantA.id, operatorHandoffMembership.id, base.adminA.email],
+  );
   // Story 11.2 ATDD runs the real app as two non-admin members of the same
   // tenant that owns every existing browser seed. Their credentials are written
   // only to the gitignored per-run fixture file below and cleaned with the base.
@@ -806,6 +843,9 @@ export default async function globalSetup() {
 
   const fixture = {
     ...base,
+    operator: base.adminB,
+    membershiplessOperator: base.orphanUser,
+    operatorConsole: { handoffTenantId: base.tenantA.id, provisioningOrganisationNumber: operatorProvisioningOrganisationNumber },
     extraUsers: roleAware.extraUsers,
     roleAware: {
       saljare: roleAware.users.saljare,

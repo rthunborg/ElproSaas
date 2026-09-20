@@ -12,6 +12,10 @@ import { TENANT_TABLES, type TenantTableName } from "../../integration/rls/tenan
  */
 export const TABLE_PROJECTION_CAPABILITIES: Readonly<Record<string, string>> = {
   tenants: "Memberships.Manage", tenant_memberships: "Memberships.Manage", membership_roles: "Memberships.Manage", audit_events: "Memberships.Manage", membership_admin_operations: "Memberships.Manage",
+  // The provisioning request/invite tables are platform protocol internals. No
+  // tenant role can project them; platform allow-list authorization is verified
+  // independently at the operator boundaries.
+  tenant_provisioning_requests: "Platform.Operator.Access", tenant_provisioning_invites: "Platform.Operator.Access",
   customers: "Customers.View", facilities: "Customers.View", contacts: "Customers.View",
   company_settings: "CompanySettings.View", quote_terms: "CompanySettings.View", work_roles: "Pricing.Edit", articles: "Pricing.Edit",
   calculations: "Calculations.View", calculation_sections: "Calculations.View", calculation_rows: "Calculations.View",
@@ -160,21 +164,26 @@ export async function runCommandHarnessProbe(input: {
  */
 type RlsReadClient = {
   from(table: string): {
-    select(columns: string): { eq(column: string, value: string): Promise<{ data: readonly { id: string }[] | null; error: unknown | null }> };
+    select(columns: string): { eq(column: string, value: string): Promise<{ data: readonly Record<string, unknown>[] | null; error: unknown | null }> };
   };
 };
 
 export type TableRlsProjectionAdapter = {
-  readonly projection: "id";
-  read(client: RlsReadClient, id: string): Promise<{ data: readonly { id: string }[] | null; error: unknown | null }>;
+  readonly projection: string;
+  /** Protocol tables intentionally have no authenticated SELECT grant. */
+  readonly directReadDenied?: true;
+  read(client: RlsReadClient, id: string): Promise<{ data: readonly Record<string, unknown>[] | null; error: unknown | null }>;
 };
 
-function idProjection(table: TenantTableName): TableRlsProjectionAdapter {
+function keyProjection(table: TenantTableName, key = "id", directReadDenied = false): TableRlsProjectionAdapter {
   return {
-    projection: "id",
-    read: (client, id) => client.from(table).select("id").eq("id", id),
+    projection: key,
+    ...(directReadDenied ? { directReadDenied: true as const } : {}),
+    read: (client, id) => client.from(table).select(key).eq(key, id),
   };
 }
+
+const idProjection = (table: TenantTableName) => keyProjection(table);
 
 export const TABLE_RLS_PROJECTION_ADAPTERS: Readonly<Record<TenantTableName, TableRlsProjectionAdapter>> = {
   tenants: idProjection("tenants"),
@@ -182,6 +191,8 @@ export const TABLE_RLS_PROJECTION_ADAPTERS: Readonly<Record<TenantTableName, Tab
   membership_roles: idProjection("membership_roles"),
   membership_admin_operations: idProjection("membership_admin_operations"),
   audit_events: idProjection("audit_events"),
+  tenant_provisioning_requests: keyProjection("tenant_provisioning_requests", "request_id", true),
+  tenant_provisioning_invites: keyProjection("tenant_provisioning_invites", "tenant_id", true),
   customers: idProjection("customers"),
   facilities: idProjection("facilities"),
   contacts: idProjection("contacts"),
