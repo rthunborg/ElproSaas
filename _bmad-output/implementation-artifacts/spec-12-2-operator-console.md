@@ -88,17 +88,20 @@ The wizard has no client-authoritative state machine: preview is transient and w
 
 ## Verification
 
-- Focused unit/static suite: 24 passed, 0 failed, 0 skipped: `node --experimental-strip-types --import ./tests/support/register.mjs --test tests/unit/provisioning/operator-console.test.ts tests/unit/provisioning/provisioning-contract.test.ts tests/unit/scripts/verify/check-operator-console-isolation.test.ts`.
-- Required local RLS/command/read-model suite: 16 passed, 0 failed, 0 skipped with `SUPABASE_TEST_REQUIRED=1`; migrations were applied with additive `supabase db push --local` only.
-- Clean-checkout production build with the configured local environment passed compilation and TypeScript; `/operator` and `/operator/[tenantId]` were emitted.
-- Clean-checkout Playwright against the guard-owned production server on loopback port 33122: 5 passed, 0 failed, 0 skipped. It covers both positive operator identities (including no tenant membership), tenant-admin/anonymous generic denial, Swedish keyboard progression, hash-bound preview/approval, one-use replay denial, and reload/new-context durable handoff display.
+- Final focused unit/static suite: 30 passed, 0 failed, 0 skipped: `node --experimental-strip-types --import ./tests/support/register.mjs --test tests/unit/provisioning/operator-console.test.ts tests/unit/provisioning/provisioning-contract.test.ts tests/unit/scripts/verify/check-operator-console-isolation.test.ts`.
+- Required local RLS/command/read-model suite: 22 passed, 0 failed, 0 skipped with `SUPABASE_TEST_REQUIRED=1`; migrations were applied with additive `supabase db push --local` only.
+- Scoped ESLint passed with 0 errors; the four unused Server Action parameter warnings in `actions.ts` are pre-existing. `git diff --check` passed.
+- Clean-checkout production build at `8185e681b338759e6bf846ba8f6421e03a7636c8` passed compilation and TypeScript; `/operator` and `/operator/[tenantId]` were emitted.
+- The final guarded production-server inventory at loopback port 33122 returned HTTP 200 for `/operator` and found 12 rendered assets with 0 absent from that exact `.next` build.
+- Final clean-checkout Playwright ran 5 tests with 5 passed, 0 failed, 0 skipped. It covers both positive operator identities (including no tenant membership), tenant-admin/anonymous generic denial, Swedish keyboard progression, hash-bound preview/approval, one-use replay denial, canonical list-link resolution, and reload/new-context unknown reconciliation followed by a confirmed retry.
+- An intermediate production run exposed a reachable confirmation-feedback regression: the retry persisted `first_admin_invite_requested`, then the Server Action refresh unmounted the action component before its success message rendered. The final lifecycle fix keeps recovery feedback mounted while suppressing stale retry controls; the final five-case browser run verifies the confirmed message and durable post-retry state.
 - `node scripts/verify/check-operator-console-isolation.mjs` passed. A fresh root `pnpm run verify:service-role-containment` invocation could not start because its bundled Node 20 pnpm resolver was denied `lstat C:\Users\Rasmus`; its earlier successful evidence is retained, but this invocation is unverified. Repository-root stock typecheck/lint remain limited by ignored `tmp/private/**` and `tmp/worktrees/**` material.
 
 ## Auto Run Result
 
 Status: done
 Blocking condition: none
-Final result: Implemented the isolated operator console, narrow platform projection, server-gated provisioning/recovery adapters, and durable resume routes. Review triage recorded four patched findings (three high, one medium), no intent gaps, bad-spec findings, deferrals, or dismissals. Required integration executed 16/16 with zero skips; the clean production browser suite executed 5/5 with zero skips. Security review returned no findings. The configured external Luna review invocation ended without output or its review artifact, so it is recorded as an unverified failed-to-return layer rather than no findings.
+Final result: Phase 7 completed a fresh follow-up review of the finished Story 12.2 change. It patched seven findings (four high, two medium, one low), rejected seven non-reachable claims and dismissed one test-only gap with no named bypass; no intent gaps, bad-spec findings, or deferrals remain. Final focused unit/static evidence is 30/30, required integration is 22/22 with zero skips, and the clean production browser suite is 5/5 with zero skips. Security review returned no findings. The configured external Luna review invocation ended without output, a session handle, or its expected artifact, so it remains an unverified failed-to-return layer rather than a no-findings result.
 
 ## Review Triage Log
 
@@ -118,10 +121,36 @@ Final result: Implemented the isolated operator console, narrow platform project
 
 Security Sol/xhigh found no production-reachable issue. The exact external Luna/xhigh invocation did not return output or create its expected artifact; it was not retried and remains a review limitation.
 
+### 2026-09-20 — Follow-up review pass (Phase 7)
+
+- intent_gap: 0
+- bad_spec: 0
+- patch: 7 (high 4, medium 2, low 1)
+- defer: 0
+- reject: 7
+  - Server-bound resolved detail identity is a non-secret route fact and does not accept browser FormData; no authorization or tenant-isolation bypass was identified.
+  - Durable unknown is derived from the lifecycle projection maintained by the provisioning RPC; no divergent persisted path was demonstrated.
+  - Request identity scoped to organization number is the established Story 12.1 canonical/idempotency protocol; the reviewer identified no collision bypass.
+  - The SE-only organization validator and single-invite-per-tenant primary key already enforce the two alleged input and multiplicity paths.
+  - The existing resume-state storage has no demonstrated caller that bypasses the server-gated detail/recovery path.
+  - The reconciliation target is server-resolved and action-bound; it is not an independently browser-supplied identity.
+  - The review did not identify a stale retry control after the final component lifecycle design; production E2E proves it is absent when the handoff advances.
+- dismissed: 1
+  - Per-action direct HTTP invocation coverage was proposed without a reachable Server Action capability or a missing platform gate. Each action independently resolves the platform operator, so this is not a defect finding.
+- addressed_findings:
+  - [high] [patch] Mounted unknown handoff recovery whenever reconciliation is required, rather than only when retry was already permitted.
+  - [high] [patch] Removed direct retry action variants that accepted browser FormData tenant identity; recovery now uses only server-bound detail identity or an opaque reconciliation grant.
+  - [medium] [patch] Strengthened the positive projection/identity integration evidence and a per-journey organization number so test setup cannot take an idempotent shortcut.
+  - [high] [patch] Decoded the canonical `SE:` list-link route identifier before its server read, retaining generic denial for malformed encoding.
+  - [medium] [patch] Made the unknown-handoff browser fixture protocol-complete and executed reconciliation before retry.
+  - [high] [patch] Retained confirmed recovery feedback through the Server Action refresh while withholding retry controls after durable state advances.
+
+Security Sol/xhigh found no production-reachable issue. The recovered edge-case and verification-gap layers completed against the frozen review snapshot. The exact external Luna/xhigh invocation returned no output, session handle, or artifact and remains unverified rather than a clean result.
+
 ## Suggested Review Order
 
 Author: implementation/fix author.
-Refreshed against the final Story 12.2 working tree from `661dfd33a2f9992254a521ac71b64ef885eda862`.
+Refreshed against the final Story 12.2 source tree from `399f8e59b94cfe17ad591df0a626c0aeae5dc487`.
 
 ### Isolated platform entry and read boundary
 
@@ -137,17 +166,19 @@ Every console entry independently resolves the live allow-list and projects only
 The browser submits a closed request for a zero-write preview, then carries only an opaque per-preview handle. Recovery paths stay server-bound and preserve the existing Story 12.1 writer.
 
 - `src/features/operator-console/provisioning-request.ts:20` — `requestFromOperatorConsoleForm`: fixes all catalogue/commercial facts on the server.
-- `src/features/operator-console/actions.ts:33` — `previewOperatorProvisioningAction`: gates before preview and writes only the opaque approval grant.
+- `src/features/operator-console/actions.ts:29` — `previewOperatorProvisioningAction`: gates before preview and writes only the opaque approval grant.
 - `src/server/provisioning/operator-preview-grant.ts:40` — `store.delete`: consumes the preview grant at its `/operator` path.
 - `src/server/provisioning/operator-reconciliation-grant.ts:34` — `store.delete`: applies the same one-use path rule to reconciliation retry grants.
+- `src/features/operator-console/actions.ts:88` — `retryReconciledOperatorFirstAdminInviteAction`: consumes the opaque retry grant and reports only after the persisted command result.
+- `src/app/operator/[tenantId]/page.tsx:30` and `src/components/operator-console/HandoffRecovery.tsx:12` — retain confirmed retry feedback across the Server Action refresh while rendering a retry control only for a currently actionable durable state.
 
 ### Acceptance evidence and operational limits
 
 The tests exercise the disclosure boundary, closed preview, cookie consumption, required RLS suites, and a production browser journey. The external provider remains a local fixture boundary; browser assertions prove recorded state and never email delivery.
 
-- `tests/unit/provisioning/operator-console.test.ts:99` — `12.2-UNIT-004`: proves the exact E2E request previews without writes.
-- `tests/unit/provisioning/operator-console.test.ts:116` — `12.2-UNIT-005`: prevents path-mismatched grant deletion from regressing.
-- `tests/e2e/auth/operator-console.atdd.e2e.spec.ts:75` — `12.2-E2E-002`: proves opaque preview binding, confirmation, replay denial, and reload.
+- `tests/unit/provisioning/operator-console.test.ts:172` — `12.2-UNIT-009`: retains recovery feedback while durable state advances.
+- `tests/integration/read-models/operator-console.int.test.ts:40` — exercises the exact safe list and canonical-identity projection path.
+- `tests/e2e/auth/operator-console.atdd.e2e.spec.ts:45` — follows the canonical list link and proves opaque approval, replay denial, reload/new-context recovery, reconciliation, retry confirmation, and keyboard behavior.
 
-Evidence: focused unit/static 24/24; required integration 16/16 with `SUPABASE_TEST_REQUIRED=1`; clean production build passed; production Playwright 5/5, all zero skipped.
-Limits: stock root lint/typecheck remain affected by ignored scratch/worktree files. The external Luna review failed to return an artifact, so follow-up review is recommended; it is not recorded as a clean review.
+Evidence: focused unit/static 30/30; required integration 22/22 with `SUPABASE_TEST_REQUIRED=1`; final clean production build passed; served inventory 12/12; final production Playwright 5/5, all zero skipped.
+Limits: stock root lint/typecheck remain affected by ignored scratch/worktree files. The external Luna review failed to return a session handle or artifact, so follow-up review remains recommended; it is not recorded as a clean review.
