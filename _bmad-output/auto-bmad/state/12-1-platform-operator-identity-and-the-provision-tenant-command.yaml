@@ -9,11 +9,11 @@ spec_folder: null
 story_id: null
 branch: codex/epic-12-wave-b1a-tenant-provisioning-and-onboarding
 status: in-progress
-updated_at: "2026-09-19T20:05:10Z"
+updated_at: "2026-09-20T12:48:31Z"
 started_at: "2026-09-17T13:40:05Z"
 completed_at: null
-active_seconds: 18508
-timing_anchor: 1789848310
+active_seconds: 78673
+timing_anchor: null
 is_first_in_epic: true
 is_last_in_epic: false
 git_mode: remote
@@ -38,7 +38,7 @@ tea_selected: [atdd, automate]
 tea_rationale: Authentication/authorization and permissions plus atomic database mutation and cross-tenant security-sensitive behavior.
 epic_story_count: 3
 stories_after_in_epic: 2
-completed_phases: [0, 1, 2, 3, 4, 5, 6]
+completed_phases: [0, 1, 2, 3, 4, 5, 6, 7]
 spec_path: "C:\\DEV\\ElproSaas\\_bmad-output\\implementation-artifacts\\spec-12-1-platform-operator-identity-and-the-provision-tenant-command.md"
 spec_approved: true
 build:
@@ -48,9 +48,9 @@ build:
   review_loop_iteration: 0
   deferred_count: 0
   warnings: [oversized]
-followup_passes: 0
-hitl_halt: null
-review_unverified: false
+followup_passes: 1
+hitl_halt: "auto-continued (epic â€” no halt)"
+review_unverified: true
 story_trace: null
 legacy_review_resume: false
 legacy_review_iteration: null
@@ -58,7 +58,7 @@ legacy_review_loop_done: false
 legacy_external_review_iterations: null
 legacy_convergence_unverified: false
 legacy_artifact_path: null
-commits: [5309d8a, 29f5799, 6c00013, 073bdec, 7ccaf71, 7d8d9a7, 4d6451f, 2ad44c6, a1516e4, 9cb7def, 6a21d4f, 2a75993, f1330d0, fa92bff, 3869c62, 61da915, ded8b92, e8bbd4f, 4e1592d3, 4852b641, 712916cd, e235f3dd, ef3e02da, b8b840d9]
+commits: [5309d8a, 29f5799, 6c00013, 073bdec, 7ccaf71, 7d8d9a7, 4d6451f, 2ad44c6, a1516e4, 9cb7def, 6a21d4f, 2a75993, f1330d0, fa92bff, 3869c62, 61da915, ded8b92, e8bbd4f, 4e1592d3, 4852b641, 712916cd, e235f3dd, ef3e02da, b8b840d9, 38aff7be, fe9b6fe4]
 phase8_steps:
   trace_gate: null
   nfr: null
