@@ -29,8 +29,18 @@ Implementation and audit work was delegated to separate Terra/high authors.
 - Performance: [local baseline](../../test-artifacts/epic-12-performance-baseline.md) executed 12 samples per RPC path. Provisioning P90: 16.65 ms; console list P90: 16.84 ms; console detail P90: 16.60 ms. List dataset: 456 observed rows (12 synthetic, 444 pre-existing). Each measured operation made one observed RPC; database-internal SQL query count was unobserved. Scoped cleanup was verified. Measurements exclude browser, hosted network and auth-provider work.
 - NFR amendment retains advisory CONCERNS / MEDIUM. Recommendation: keep the local baseline non-gating and obtain representative hosted pilot evidence before an owner sets numeric production targets.
 
-## Remaining verification
+## Verification and remaining review
 
-Clean-checkout verification is running against snapshot `ef1885a53f4aa00b56cde5be08430610cb3094e3`. The final independent Luna/xhigh review will cover the complete stable Epic 12 diff, delivered through an in-app subagent to recover the missing external-CLI evidence. Historical failures remain recorded. After this final automatic broad pass, review is limited to findings and fix regressions.
+Clean-checkout verification passed against snapshot `ef1885a53f4aa00b56cde5be08430610cb3094e3`: typecheck; lint across 50 changed TypeScript files (0 errors, 7 pre-existing warnings); five required Story 12.3 database suites (13 passed, 0 failed, 0 skipped); 14 static asset references (0 missing); and operator-console/onboarding browser tests (6 passed, 0 failed, 0 skipped). The managed production server was released after verification; its stop request was accepted.
+
+An independent focused test-quality audit closed both QA advisories, preserving the historical 96/A audit without inventing a rescore. The author refreshed each story's single Suggested Review Order; all three passed reference checks and canonical parsing.
+
+The final independent Luna/xhigh review covers the complete stable Epic 12 diff at `fa76fedea678bd0455fce15906eb4c127da5f848`, delivered through an in-app subagent to recover the missing external-CLI evidence. Historical failures remain recorded. After this final automatic broad pass, review is limited to findings and fix regressions.
+
+[CI run 35626408299](https://github.com/rthunborg/ElproSaas/actions/runs/35626408299) passed verification and the isolated recovery job. The full database suite reported 1,075 passes, one failure and one skip: fault-injection fixture DDL deadlocked under concurrent test execution. The browser suite reported 143 passes, one failure and four skips: the preview-success assertion failed. A demonstrable random organisation-number validation problem was found; the precise CI input/alert was not logged, so that rejection branch remains inferred.
+
+Two bounded test repairs followed. The database fixture now runs temporary trigger DDL and the authenticated production RPC in one rolled-back transaction, locking mutable relations in write order and rethrowing unexpected failures. The browser fixture preserves its six-digit random candidate space and Luhn checksum while validating candidates through the production organisation-number validator. No production code or migration changed. The local database became unavailable, so no new local runtime pass is claimed for these repairs; fresh isolated CI must supply that evidence.
+
+Clean snapshot `e59914f8b60e983a273a1ee23cd93c8a7245d203` passed typecheck and focused lint for the two repaired files. Playwright resolved the new validator import, then stopped at the absent generated auth fixture before test discovery; this is not a browser-test pass. The author refreshed and checked affected review-order references.
 
 Sprint/retrospective readiness and PR draft status will be refreshed only after accepted review and CI evidence. No production deployment or database reset is included.

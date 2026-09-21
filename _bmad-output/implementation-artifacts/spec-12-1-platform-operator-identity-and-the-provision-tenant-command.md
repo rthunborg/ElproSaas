@@ -258,8 +258,8 @@ The server signs a fixed, length-prefixed envelope over the current Auth actor a
 
 The request hash now recursively canonicalizes approved nested objects, and email parsing uses URL machinery only for IDNA conversion after rejecting URL-only syntax. The server gives the Auth provider the established absolute invite callback, including the durable membership and one-time attempt capability.
 
-- `src/server/commands/provisioning/validation.ts:111` — `email`: rejects paths and ports that are not email domains before IDNA normalization.
-- `src/server/commands/provisioning/validation.ts:127` — `canonicalJsonValue`: makes nested object ordering irrelevant to idempotency hashes.
+- `src/server/commands/provisioning/validation.ts:119` — `email`: rejects paths and ports that are not email domains before IDNA normalization.
+- `src/server/commands/provisioning/validation.ts:135` — `canonicalJsonValue`: makes nested object ordering irrelevant to idempotency hashes.
 - `src/server/commands/provisioning/provision-tenant.ts:61` — `invitationRedirectBase`: applies the trusted configured-origin policy and fails delivery safely in production without it.
 - `src/server/commands/provisioning/provision-tenant.ts:67` — `deliverInvitation`: preserves the reserved membership and attempt facts through the runtime Auth handoff.
 
@@ -295,8 +295,11 @@ integration/RLS tests cover the database authority separately.
 - `tests/unit/provisioning/provisioning-contract.test.ts:164` — `sends first-admin Auth callbacks`: proves the configured absolute callback retains membership and attempt capability.
 - `tests/unit/provisioning/provisioning-contract.test.ts:227` — `executes the approved production command`: verifies the exact provision → reconcile → reserve → provider → record sequence.
 - `tests/unit/provisioning/provisioning-contract.test.ts:301` — `leaves idempotent replays provider-free`: proves an observed replay cannot dispatch another invitation.
+- `tests/factories/platform-operators.ts:592` — `createAcceptedProvisionedFirstAdminFixture`: creates an accepted first-Admin fixture with scoped tenant, Auth-user, invitation-token, and platform-fixture cleanup.
 
 Evidence: the final focused Node provisioning and permission-matrix suites passed 23/23; manifest derivation/shape units passed 14/14. The required `SUPABASE_TEST_REQUIRED=1` command/RLS/reset/search-path suites passed 18/18 with zero skipped, and the H4 inventory/cross-tenant/anonymous RLS suites passed 256/256 with zero skipped. Focused ESLint and `git diff --check` passed. The earlier directly relevant admin-user compatibility subset was 6/6; the historical broader compatibility record was 14/14. Full stock `pnpm typecheck` remains blocked only by unrelated ignored `tmp/private/**` and `tmp/worktrees/**` errors; the prior scoped typecheck excluding those paths passed.
+Final maintenance evidence on clean checkout `ef1885a53f4aa00b56cde5be08430610cb3094e3`: the full unit suite passed 1,836/0/1, where the existing skip is excluded from coverage; clean typecheck passed; changed-TypeScript lint had 0 errors and 7 existing warnings; required local Story 12.3 DB suites passed 13/0/0; the CI-repair required-DB suite passed 17/0/0; and the shared operator/onboarding browser run passed 6/0/0. The existing production build had 14 HTML-referenced static assets with 0 missing. This maintenance changes no provisioning authority; it preserves the browser fixture boundary consumed by the operator flow.
+The final CI factory repair scopes fault-injection and accepted-first-Admin fixture state to its provisioned tenant instead of using global row counts or cross-connection trigger cleanup. Clean typecheck and focused lint passed after the repair; fresh CI remains the required runtime proof and is not recorded as completed here.
 Limits: provider acceptance is not evidence of email delivery. The configured independent Luna review command did not produce a terminal review result in this run and is reported in the run evidence rather than treated as a clean layer.
 
 Current implementation result (2026-09-19):

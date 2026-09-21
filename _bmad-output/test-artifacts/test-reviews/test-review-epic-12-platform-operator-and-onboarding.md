@@ -162,6 +162,52 @@ No coverage work is requested by this review. Route any coverage question to the
 
 **Rationale**: The runtime tests have strong deterministic, isolation, and assertion practices, and no critical reliability issue was found. The new global setup crosses an existing maintainability ceiling, and Story 12.3 title identifiers should match the established Epic 12 trace convention. Addressing those two items improves future diagnosis without changing product behavior.
 
+## Follow-up Resolution — 2026-09-21
+
+This is a narrow follow-up to the two advisories above. It does not replace the
+original 96/100 score, Request Changes recommendation, scope, or findings at
+the time of the original audit, and it does not rescore the suite.
+
+### Resolution evidence
+
+1. **Global setup length — resolved.** At frozen commit
+   `fa76fedea678bd0455fce15906eb4c127da5f848`, the Epic 12 browser seed moved
+   from `tests/e2e/global-setup.ts` into the focused
+   `tests/e2e/seed-epic-12-browser-fixtures.ts` helper. The coordinator is now
+   959 lines, below the 1,000-line support-file ceiling; the new helper is 88
+   lines. The coordinator imports and invokes the helper, while the existing
+   global fixture remains responsible for cleanup. This closes the P1
+   maintainability advisory without changing browser fixture ownership.
+
+2. **Story 12.3 stable IDs — resolved.** The affected Story 12.3 executable
+   tests now use the established stable format across all levels: eight
+   `12.3-UNIT-*`, eight `12.3-INT-*`, five `12.3-RLS-*`, and one
+   `12.3-E2E-*` identifier. The amended locations include the checklist unit,
+   action, read-model, journey, migration-reset, RLS, and browser suites. This
+   closes the P2 trace-navigation advisory; behavioral prose and priority
+   markers remain intact.
+
+### Follow-up verification
+
+- The implementation follow-up reported main units: 1,836 passed, zero failed,
+  and one existing explicit skip; focused lint: zero errors and two existing
+  warnings.
+- Clean-checkout verification at
+  `ef1885a53f4aa00b56cde5be08430610cb3094e3`, reported as the same code as the
+  frozen commit above apart from root report/state changes, passed typecheck;
+  lint for 50 changed TypeScript/TSX files with zero errors and seven existing
+  warnings; the required Story 12.3 DB group (five files, 13 passed, zero
+  failed, zero skipped); 14 static chunk references with zero missing; and the
+  operator-console/onboarding E2E group (six passed, zero failed, zero skipped).
+  The E2E resource-guard stop was requested after the run.
+
+### Current follow-up recommendation
+
+Both named test-quality advisories are closed. No further Request Changes item
+remains within this follow-up's limited scope. This resolution does not replace
+the independent trace, NFR, CI, or final full-diff review gates, and it makes no
+claim about checks outside the reported evidence.
+
 ## Appendix
 
 ### Violation Summary by Location
@@ -185,4 +231,3 @@ No coverage work is requested by this review. Route any coverage question to the
 **Review ID**: test-review-epic-12-20260921  
 **Timestamp**: 2026-09-21  
 **Version**: 1.0
-

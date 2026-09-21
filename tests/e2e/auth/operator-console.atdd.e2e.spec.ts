@@ -1,6 +1,7 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { readFileSync } from "node:fs";
 import path from "node:path";
+import { normalizeSwedishOrganizationNumber } from "@/server/commands/provisioning/validation";
 
 const fixture = JSON.parse(readFileSync(path.join(process.cwd(), "tests", "e2e", ".auth", "fixture.json"), "utf8")) as {
   operator: { email: string; password: string };
@@ -32,13 +33,20 @@ async function signIn(page: Page, credentials = fixture.operator): Promise<void>
 }
 
 function uniqueOrganisationNumber(): string {
-  const digits = crypto.randomUUID().replace(/\D/g, "").padEnd(6, "0").slice(0, 6);
-  const stem = `556${digits}`;
-  const sum = [...stem].reduce((total, digit, index) => {
-    const doubled = Number(digit) * (index % 2 === 0 ? 2 : 1);
-    return total + (doubled > 9 ? doubled - 9 : doubled);
-  }, 0);
-  return `${stem}${(10 - (sum % 10)) % 10}`;
+  // Preserve the six-digit candidate space so completed provisioning fixtures
+  // remain isolated across runs, but only return values accepted by the shared
+  // production validator (including its personnummer guard).
+  for (let attempt = 0; attempt < 20; attempt += 1) {
+    const digits = crypto.randomUUID().replace(/\D/g, "").padEnd(6, "0").slice(0, 6);
+    const stem = `556${digits}`;
+    const sum = [...stem].reduce((total, digit, index) => {
+      const doubled = Number(digit) * (index % 2 === 0 ? 2 : 1);
+      return total + (doubled > 9 ? doubled - 9 : doubled);
+    }, 0);
+    const candidate = `${stem}${(10 - (sum % 10)) % 10}`;
+    if (normalizeSwedishOrganizationNumber(candidate)) return candidate;
+  }
+  throw new Error("unable to create a valid organisation fixture");
 }
 
 test.describe("Story 12.2 operator console", () => {

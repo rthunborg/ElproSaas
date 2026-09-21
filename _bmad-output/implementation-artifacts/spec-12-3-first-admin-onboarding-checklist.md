@@ -152,15 +152,19 @@ Evidence: 8/8 focused units, 10/10 required local integration/RLS tests with zer
 
 ### Trace-gate remediation coverage
 
-The remediation composes the previously separate operator and onboarding proofs without seeding past their claimed transitions. It also drives the production denial boundaries directly and restores the provisioning manifest invariant to an executed P0 assertion.
+The remediation composes the previously separate operator and onboarding proofs without seeding past their claimed transitions. The final QA maintenance extracts the shared operator/onboarding seed without altering its ordering, fixture values, or cleanup owner, and gives every Story 12.3 test a stable level identifier. It also drives the production denial boundaries directly and restores the provisioning manifest invariant to an executed P0 assertion.
 
 - `tests/factories/platform-operators.ts:565` — `createAcceptedProvisionedFirstAdminFixture`: retains the authenticated first Admin only after real operator provisioning and invitation acceptance, with scoped teardown for the provisioned tenant.
+- `tests/e2e/seed-epic-12-browser-fixtures.ts:30` — `seedEpic12BrowserFixtures`: owns the ready tenant-B onboarding facts while retaining tenant-A operator handoff state in the original fixture.
+- `tests/e2e/global-setup.ts:86` — `seedEpic12BrowserFixtures`: calls the focused seed before the shared fixture is serialized for browser consumers.
 - `tests/integration/journeys/first-admin-onboarding-lifecycle.int.test.ts:40` — `12.3-INT-AC3`: captures the existing tenant before provisioning, executes five real configuration/user operations, reloads the production projection, and compares the protected rows afterward.
 - `tests/integration/read-models/onboarding-authorization-boundaries.int.test.ts:104` — `12.3-AC5`: exercises real active-non-admin and anonymous clients through read plus dismiss/restore, requiring indistinguishable no-data results and zero mutation.
+- `tests/e2e/onboarding/first-admin-checklist.e2e.spec.ts:8` — `12.3-E2E-001`: keeps the browser completion/dismiss/restore scenario traceable to Story 12.3.
 - `tests/unit/scope/manifest-invariants.test.ts:139` — `12.1-STATIC-001`: executes the combined active/platform/non-granting invariant for every tenant role.
 
-Evidence: `SUPABASE_TEST_REQUIRED=1` executed 2/2 new integration tests with 0 failures and 0 skips; the manifest suite executed 8/8 with 0 failures and 0 skips. Clean-checkout typecheck, focused lint, and diff check passed on `3a781267f407251f83283b6503acdca70eebc0e7`.
-Limits: no external email provider or browser server was needed because the missing proof sits at the real authenticated RPC, command, read-model, server-action, and database boundaries. The independent trace rerun is pending, so no post-remediation gate PASS is claimed here; the existing follow-up review recommendation remains unchanged.
+Earlier trace evidence: `SUPABASE_TEST_REQUIRED=1` executed 2/2 new integration tests with 0 failures and 0 skips; the manifest suite executed 8/8 with 0 failures and 0 skips. Clean-checkout typecheck, focused lint, and diff check passed on `3a781267f407251f83283b6503acdca70eebc0e7`.
+Final maintenance evidence on clean checkout `ef1885a53f4aa00b56cde5be08430610cb3094e3`: the full unit suite passed 1,836/0/1, where the existing skip is excluded from coverage; clean typecheck passed; changed-TypeScript lint had 0 errors and 7 existing warnings; required local Story 12.3 DB suites passed 13/0/0; the CI-repair required-DB suite passed 17/0/0; and the shared operator/onboarding browser run passed 6/0/0. The existing production build had 14 HTML-referenced static assets with 0 missing.
+Limits: no external email provider or browser server was needed because the missing proof sits at the real authenticated RPC, command, read-model, server-action, and database boundaries. The historical Luna failure remains unverified, and the current Luna review of frozen `fa76fedea678bd0455fce15906eb4c127da5f848` has no result; no post-remediation independent-review PASS is claimed and the existing follow-up recommendation remains unchanged.
 
 ## Review Triage Log
 

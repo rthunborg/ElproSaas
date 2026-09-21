@@ -9,7 +9,7 @@ import { canonicalizeProvisioningRequest, createProvisioningPreview } from "@/se
 import { findProvisioningBaseline } from "@/server/provisioning/baselines";
 import { signProvisioningAttestation, type ProvisioningAttestation } from "@/server/provisioning/attestation";
 import { LOCAL_TEST_PROVISIONING_ATTESTATION_KEY_ID, LOCAL_TEST_PROVISIONING_ATTESTATION_SECRET } from "../support/test-env";
-import { adminExec, adminQuery, adminSession } from "./admin-sql";
+import { adminQuery, adminSession } from "./admin-sql";
 import {
   admin,
   cleanupFixture,
@@ -110,11 +110,12 @@ const FAULT_TABLES = {
   audit: "audit_events",
 } as const;
 
-async function withProvisioningWriteFault<T>(
+async function withProvisioningWriteFault(
   point: keyof typeof FAULT_TABLES,
   input: StrictProvisioningRequest,
-  run: () => Promise<T>,
-): Promise<T> {
+  actorUserId: string,
+  request: Record<string, unknown>,
+): Promise<never> {
   const suffix = crypto.randomUUID().replaceAll("-", "");
   const fn = `test_provisioning_fault_${suffix}`;
   const trigger = `test_provisioning_fault_trigger_${suffix}`;
@@ -125,16 +126,45 @@ async function withProvisioningWriteFault<T>(
     : point === "tenant" || point === "baseline"
       ? `new.country_code = 'SE' and new.normalized_organization_number = '${organizationNumber}'`
       : `exists (select 1 from public.tenants t where t.id = new.tenant_id and t.normalized_organization_number = '${organizationNumber}')`;
-  // The trigger is installed only to fault this generated request. A broad
-  // before-insert trigger races independent test files on the shared local DB.
-  await adminExec(`create function public.${fn}() returns trigger language plpgsql as $$ begin if ${target} then raise exception 'test provisioning ${point} fault'; end if; return new; end $$`);
-  await adminExec(`create trigger ${trigger} before insert on public.${table} for each row execute function public.${fn}()`);
-  try {
-    return await run();
-  } finally {
-    await adminExec(`drop trigger if exists ${trigger} on public.${table}`);
-    await adminExec(`drop function if exists public.${fn}()`);
-  }
+  // The original cross-connection DDL installed/dropped a trigger while the
+  // full suite concurrently wrote these tables. Keep the controlled database
+  // fault, but contain its DDL and the authenticated RPC call in one rollback.
+  // Lock in the RPC's write order before acquiring a trigger lock, so this test
+  // never holds a later relation while waiting on an earlier writer.
+  await adminSession(async ({ query }) => {
+    await query("begin");
+    try {
+      for (const relation of [
+        "public.tenants",
+        "public.tenant_memberships",
+        "public.membership_roles",
+        "public.tenant_provisioning_invites",
+        "public.tenant_provisioning_requests",
+        "public.company_settings",
+        "public.audit_events",
+      ]) {
+        await query(`lock table ${relation} in access exclusive mode`);
+      }
+      await query(`create function public.${fn}() returns trigger language plpgsql as $$ begin if ${target} then raise exception 'test provisioning ${point} fault'; end if; return new; end $$`);
+      await query(`create trigger ${trigger} before insert on public.${table} for each row execute function public.${fn}()`);
+      await query("set local role authenticated");
+      await query("select set_config('request.jwt.claim.sub', $1, true)", [actorUserId]);
+      await query(
+        "select set_config('request.jwt.claims', json_build_object('sub', $1, 'role', 'authenticated')::text, true)",
+        [actorUserId],
+      );
+      await query("select public.provision_tenant('provision', $1::jsonb)", [JSON.stringify(request)]);
+      throw new Error(`test provisioning ${point} fault did not fire`);
+    } catch (error) {
+      await query("rollback");
+      const message = error instanceof Error ? error.message : String(error);
+      if (!message.includes(`test provisioning ${point} fault`)) throw error;
+    }
+  });
+
+  const count = await admin().from("tenants").select("id", { count: "exact", head: true })
+    .eq("country_code", "SE").eq("normalized_organization_number", organizationNumber);
+  failure("PROVISIONING_TRANSACTION_ROLLED_BACK", { rolledBack: true, residualRows: count.count ?? -1 });
 }
 
 export async function createPlatformOperatorFixture(): Promise<PlatformOperatorFixture> {
@@ -238,23 +268,20 @@ export async function executeApprovedProvisioning(
     tokenHash: "0".repeat(64), reservationId: "", dispatchGeneration: 0, approvalGeneration: 1, outcome: "",
     keyId: LOCAL_TEST_PROVISIONING_ATTESTATION_KEY_ID, issuedAt, expiresAt: new Date(Date.parse(issuedAt) + 120_000).toISOString(),
   };
+  const request = {
+    request: input, preview_hash: preview.preview_hash, explicit_approval: true,
+    attestation, attestation_signature: signProvisioningAttestation(attestation, LOCAL_TEST_PROVISIONING_ATTESTATION_SECRET),
+  };
   const invoke = async () => await client.rpc("provision_tenant", {
     p_action: "provision",
-    p_request: {
-      request: input, preview_hash: preview.preview_hash, explicit_approval: true,
-      attestation, attestation_signature: signProvisioningAttestation(attestation, LOCAL_TEST_PROVISIONING_ATTESTATION_SECRET),
-    },
+    p_request: request,
   });
   const failAt = options.failAt;
-  const response = typeof failAt === "string" && failAt in FAULT_TABLES
-    ? await withProvisioningWriteFault(failAt as keyof typeof FAULT_TABLES, input, invoke)
-    : await invoke();
-  const { data, error } = response;
-  if (error && typeof failAt === "string" && failAt in FAULT_TABLES) {
-    const count = await admin().from("tenants").select("id", { count: "exact", head: true })
-      .eq("country_code", "SE").eq("normalized_organization_number", input.organization_number.replace(/[\s-]/g, ""));
-    failure("PROVISIONING_TRANSACTION_ROLLED_BACK", { rolledBack: true, residualRows: count.count ?? -1 });
+  if (typeof failAt === "string" && failAt in FAULT_TABLES) {
+    await withProvisioningWriteFault(failAt as keyof typeof FAULT_TABLES, input, fixture.operator.id, request);
   }
+  const response = await invoke();
+  const { data, error } = response;
   if (error) {
     if (error.message.includes("ALREADY_PROVISIONED")) {
       const existing = await admin().from("tenants").select("id").eq("country_code", "SE").eq("normalized_organization_number", input.organization_number.replace(/[\s-]/g, "")).maybeSingle();

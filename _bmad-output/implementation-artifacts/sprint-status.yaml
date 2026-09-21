@@ -60,7 +60,7 @@
 # use the current Epic 10 statuses and approved corrective-story entries below.
 
 generated: 2026-06-12
-last_updated: 09-21-2026 16:54  # ADR-B009 connected-field course correction verified; governance Story 10.7 done, no PWA/offline functionality delivered.
+last_updated: 09-21-2026 18:36  # ADR-B009 connected-field course correction verified; governance Story 10.7 done, no PWA/offline functionality delivered.
 project: ElproSaas
 project_key: NOKEY
 tracking_system: file-system
@@ -439,14 +439,14 @@ action_items:
       tests/e2e/global-setup.ts into a focused helper and retain a coordinator below
       the 1,000-line support-file ceiling."
     owner: "QA/test owner"
-    status: open
+    status: done
     ref: "C:\\DEV\\ElproSaas\\_bmad-output\\implementation-artifacts\\epic-12-retro-2026-09-21.md"
   - id: "epic-12-retro-item-12-add-stable-12-3-level-and-sequence-ident"
     epic: 12
     action: "Add stable 12.3 level and sequence identifiers to the affected Story
       12.3 test titles while preserving their behavioural prose."
     owner: "QA/test owner"
-    status: open
+    status: done
     ref: "C:\\DEV\\ElproSaas\\_bmad-output\\implementation-artifacts\\epic-12-retro-2026-09-21.md"
   - id: "epic-12-retro-item-13-before-production-provisioning-enablemen"
     epic: 12
@@ -462,5 +462,5 @@ action_items:
       time and console query count/latency; establish a numeric gate only after an
       owner decision."
     owner: "QA + Architect/Product"
-    status: open
+    status: in-progress
     ref: "C:\\DEV\\ElproSaas\\_bmad-output\\implementation-artifacts\\epic-12-retro-2026-09-21.md"
