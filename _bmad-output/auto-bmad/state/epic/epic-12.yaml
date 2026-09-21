@@ -9,7 +9,7 @@ spec_folder: null
 story_id: null
 branch: codex/epic-12-wave-b1a-tenant-provisioning-and-onboarding
 status: in-progress
-updated_at: "2026-09-21T14:55:42Z"
+updated_at: "2026-09-21T14:56:45Z"
 started_at: "2026-09-17T13:23:20Z"
 completed_at: null
 active_seconds: 114905
@@ -59,7 +59,7 @@ legacy_review_loop_done: false
 legacy_external_review_iterations: null
 legacy_convergence_unverified: false
 legacy_artifact_path: null
-commits: [aa13f2c, d69215e, 2a021bf]
+commits: [aa13f2c, d69215e, 2a021bf, fc0f9bd]
 phase8_steps:
   trace_gate: done
   nfr: done

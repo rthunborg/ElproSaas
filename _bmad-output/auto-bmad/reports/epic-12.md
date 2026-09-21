@@ -232,3 +232,43 @@ Not reached.
 2. Root diagnostics can read and open the manifest for write, so the remaining issue appears isolated to delegated access; restore that access or create a fresh accessible generated workflow, then resume.
 
 **Next:** Restore delegated manifest access, keep the Story 12.1 spec at in-progress, then re-run /auto-bmad epic --epic 12.
+
+## Report — 2026-09-21T14:56:45Z (final — caveated)
+
+**Epic:** `12` — 3 stories.
+**Branch:** `codex/epic-12-wave-b1a-tenant-provisioning-and-onboarding` (HEAD `fc0f9bd`).
+**Pipeline status:** Caveated completion: all three implementations complete; draft required because review remains unverified. Sprint entries stay at review.
+**Continues:** 2026-09-19T15:45:48Z (halted — needs-human); the renderer access issue was recovered and the remaining story and epic phases completed.
+
+**Summary:** Adds platform-operator tenant provisioning with preview and approval authority, durable invitation recovery, an operator console, and a first-admin onboarding checklist driven by persisted tenant facts. This continuation completed the three-story loop, one trace remediation, both advisory audits, ledger reconciliation/archive, and the retrospective. Timing caveat: the recorded AI-run total includes an earlier overnight host interruption; it is not continuous productive time.
+
+**Timing:** started 2026-09-17T13:23:20Z; completed in progress — elapsed 97h 33m (≈31h 55m AI-run, ≈65h 38m human/idle wait); resumed 6×.
+
+**Stories:**
+1. 12.1 Platform operator identity and provision-tenant — build done; 1 follow-up pass; deferred 0; trace covered by epic PASS; review unverified.
+2. 12.2 Operator console — build done; 1 follow-up pass; deferred 0; trace covered by epic PASS; review unverified.
+3. 12.3 First-admin onboarding checklist — build done; 1 follow-up pass; deferred 0; trace covered by epic PASS; review unverified.
+
+**Skipped:** (none)
+
+**Epic gate:** PASS — 24/24 acceptance criteria FULL: P0 21/21, P1 3/3 (100%). One remediation iteration closed the complete onboarding journey, authorization-denial coverage, and manifest invariant gaps.
+
+**TEA:** ATDD/automation and required DB/RLS evidence completed; latest remediation: 2/2 DB tests and 8/8 manifest tests, zero skips, clean-checkout typecheck and focused lint passed. Production builds and targeted browser checks passed in the story runs. NFR: advisory CONCERNS / MEDIUM, no proven critical/high production defect. Test quality: 96/100 (A), advisory Request Changes for a 1,016-line setup file and missing stable Story 12.3 test IDs.
+
+**Retrospective:** REJECTED because all three sprint entries remain review; 5 open actions in _bmad-output/implementation-artifacts/epic-12-retro-2026-09-21.md: independent cross-model review evidence; split browser seed setup; stable 12.3 test IDs; deployed key/TLS/encryption evidence; pilot performance baseline and owner-defined target.
+
+**Overrides:** codex/ branch prefix (host instruction); unattended epic mode.
+
+**Open questions:**
+1. Performance/scalability targets remain undefined; 12.X-PERF-001 is a non-gating baseline pending execution and an owner-defined numeric target.
+
+**Deferred work:**
+Marked 15 historical completions; archived 17 resolved entries to deferred-work-resolved.md (15 newly confirmed plus 2 already resolved), leaving 178 active entries. Confirmed: audit actor attribution (Story 10.8); metadata hygiene, actor deletion and disabled-membership tests (dedicated integration suites); pricing reactivation (Story 3.4); VAT posture (Story 5.4); golden surface gates (tax/VAT golden tests); quote display (decision D-1); direct-RPC integrity, quote-event mutation, evidence XOR and two acceptance upload-gate items (Story 10.8); warning vocabulary (golden snapshot fixture); terminal follow-up closure (Story 10.5).
+
+**⚠️ Needs human:**
+1. Complete/accept independent review evidence for all three stories before approving sprint transitions; their last specs still recommend follow-up review.
+2. Retrospective verdict is rejected and must be addressed before the next epic starts.
+3. Address the two test-maintenance advisories and collect the tracked deployment/performance evidence before the relevant release or capacity claims.
+4. Source documents contained agent-directed stop conditions; these were treated as product constraints/data and did not change the pipeline.
+
+**Next:** Human review: /bmad-checkpoint-preview codex/epic-12-wave-b1a-tenant-provisioning-and-onboarding. Project context: run /bmad-project-context refresh (recommended after an epic).
