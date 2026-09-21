@@ -38,6 +38,23 @@ test("company identity fails closed for malformed or foreign organization number
   }
 });
 
+test("[P0] malformed persisted facts fail closed and never produce a working state", () => {
+  const malformedFacts: readonly [string, OnboardingChecklistFacts, "company" | "vat" | "pricing" | "users"][] = [
+    ["invalid resolved tenant organization identity", { ...completeFacts, tenantOrganizationNumber: "556677889" }, "company"],
+    ["unsupported VAT display mode", { ...completeFacts, vatDisplay: "individual" }, "vat"],
+    ["fractional VAT rate", { ...completeFacts, vatRateBasisPoints: 2500.5 }, "vat"],
+    ["string VAT rate", { ...completeFacts, vatRateBasisPoints: "2500" as unknown as number }, "vat"],
+    ["fractional active role count", { ...completeFacts, activeWorkRoles: 1.5 }, "pricing"],
+    ["fractional additional member count", { ...completeFacts, additionalRoleBearingMembers: 1.5 }, "users"],
+  ];
+
+  for (const [name, facts, incompleteItem] of malformedFacts) {
+    const state = evaluateOnboardingChecklist(facts);
+    assert.equal(state.items.find((item) => item.id === incompleteItem)?.complete, false, name);
+    assert.equal(state.workingState, false, name);
+  }
+});
+
 test("persisted terms complete configuration but a null approval remains a separate warning", () => {
   const warning = evaluateOnboardingChecklist(completeFacts);
   assert.equal(warning.items[2].complete, true);

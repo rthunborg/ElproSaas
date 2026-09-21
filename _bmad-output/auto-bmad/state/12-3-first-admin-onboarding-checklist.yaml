@@ -9,17 +9,17 @@ spec_folder: null
 story_id: null
 branch: codex/epic-12-wave-b1a-tenant-provisioning-and-onboarding
 status: in-progress
-updated_at: "2026-09-21T11:33:07Z"
+updated_at: "2026-09-21T11:51:29Z"
 started_at: "2026-09-20T18:17:22Z"
 completed_at: null
-active_seconds: 3413
-timing_anchor: 1789990387
+active_seconds: 4515
+timing_anchor: 1789991489
 is_first_in_epic: false
 is_last_in_epic: true
 git_mode: remote
 base_branch: main
-selected_phase: tea_per_story
-selected_role: tea-delegate
+selected_phase: followup_review
+selected_role: primary-reviewer
 selected_profile: standard
 selected_model: gpt-5.6-terra
 selected_effort: high
@@ -30,12 +30,13 @@ escalation_reason: null
 routing_ledger:
   - "{\"effort\":\"high\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-terra\",\"phase\":\"build\",\"profile\":\"standard\",\"role\":\"build-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
   - "{\"effort\":\"high\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-terra\",\"phase\":\"tea_per_story\",\"profile\":\"standard\",\"role\":\"tea-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"high\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-terra\",\"phase\":\"followup_review\",\"profile\":\"standard\",\"role\":\"primary-reviewer\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
 tea_risk: med
 tea_selected: [automate]
 tea_rationale: Stateful UI flow with non-trivial server-derived branching and multiple settings-surface integrations.
 epic_story_count: 3
 stories_after_in_epic: 0
-completed_phases: [0, 1, 2, 3, 4, 5]
+completed_phases: [0, 1, 2, 3, 4, 5, 6]
 spec_path: "C:/DEV/ElproSaas/_bmad-output/implementation-artifacts/spec-12-3-first-admin-onboarding-checklist.md"
 spec_approved: true
 build:
@@ -55,7 +56,7 @@ legacy_review_loop_done: false
 legacy_external_review_iterations: null
 legacy_convergence_unverified: false
 legacy_artifact_path: null
-commits: [e957460, 90bd401, c405f360, f99fa9f6]
+commits: [e957460, 90bd401, c405f360, f99fa9f6, 684b341]
 phase8_steps:
   trace_gate: null
   nfr: null

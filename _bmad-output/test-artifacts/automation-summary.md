@@ -5,9 +5,9 @@ stepsCompleted:
   - 'step-03c-aggregate'
   - 'step-04-validate-and-summarize'
 lastStep: 'step-04-validate-and-summarize'
-lastSaved: '2026-09-20'
+lastSaved: '2026-09-21'
 workflowType: testarch-automate
-story: 10.6 Tax-Answer Reconciliation; 11.1 Role Storage and Permission-Matrix Mechanism; 11.2 Non-Admin Access to the Phase A Surface; 11.3 Admin User Management; 11.4 Roles Surface, Effective Permissions, and the Per-Role Test Harness; 12.1 Platform Operator Identity and the Provision-Tenant Command; 12.2 Operator Console (latest)
+story: 10.6 Tax-Answer Reconciliation; 11.1 Role Storage and Permission-Matrix Mechanism; 11.2 Non-Admin Access to the Phase A Surface; 11.3 Admin User Management; 11.4 Roles Surface, Effective Permissions, and the Per-Role Test Harness; 12.1 Platform Operator Identity and the Provision-Tenant Command; 12.2 Operator Console; 12.3 First-Admin Onboarding Checklist (latest)
 detectedStack: fullstack
 executionMode: BMad-integrated (post-implementation risk-based coverage expansion)
 inputDocuments:
@@ -77,6 +77,20 @@ inputDocuments:
   - tests/integration/commands/provision-tenant.int.test.ts
   - tests/integration/rls/platform-operators.rls.test.ts
   - tests/integration/rls/provisioning-migration-reset.int.test.ts
+  - _bmad-output/implementation-artifacts/spec-12-3-first-admin-onboarding-checklist.md
+  - _bmad-output/test-artifacts/test-design-epic-12.md
+  - tests/unit/onboarding/checklist-state.test.ts
+  - tests/integration/read-models/onboarding-checklist.int.test.ts
+  - tests/integration/rls/onboarding-checklist.rls.test.ts
+  - tests/e2e/onboarding/first-admin-checklist.e2e.spec.ts
+  - src/features/onboarding/checklist-state.ts
+  - src/server/read-models/onboarding-checklist.ts
+  - src/features/onboarding/actions.ts
+  - .agents/skills/bmad-testarch-automate/resources/knowledge/playwright-utils-mandate.md
+  - .agents/skills/bmad-testarch-automate/resources/knowledge/fixture-architecture.md
+  - .agents/skills/bmad-testarch-automate/resources/knowledge/network-first.md
+  - .agents/skills/bmad-testarch-automate/resources/knowledge/pactjs-utils-mandate.md
+  - .agents/skills/bmad-testarch-automate/resources/knowledge/pact-mcp.md
 ---
 
 # Test Automation Expansion — Story 10.6 (Tax-Answer Reconciliation)
@@ -735,3 +749,97 @@ None. Story 12.2 has no consumer-provider boundary or Pact artifact.
 
 **Recommended next workflow:** `bmad-testarch-test-review` for the independent review already
 recommended by the story's follow-up review record.
+
+# Test Automation Expansion — Story 12.3 (First-Admin Onboarding Checklist)
+
+## Step 1 — Preflight & Context
+
+- **Stack:** fullstack. Next.js, Node's built-in unit runner, Vitest integration/RLS suites, and
+  Playwright browser acceptance tests are configured in `package.json`, `vitest.config.ts`, and
+  `playwright.config.ts`; the framework is ready.
+- **Mode:** BMad-Integrated Create. Loaded the approved Story 12.3 specification, Epic 12 test
+  design, onboarding implementation, and existing unit, integration/RLS, and browser evidence.
+  There is no Story 12.3 ATDD checklist artifact to reuse; the specification and test design map
+  its acceptance criteria directly.
+- **Configuration:** `tea_use_playwright_utils=true`, but
+  `@seontechnologies/playwright-utils` is not installed, so its code-level mandate does not bind
+  generated tests. `tea_use_pactjs_utils=true`, but no Pact dependency, broker configuration, or
+  consumer/provider contract boundary is present. Pact MCP tools are unavailable in this session;
+  provider states, if needed, would be derived from source. No Pact artifact is relevant here.
+- **Knowledge:** loaded the required test-level, priority, data-factory, selective-execution,
+  CI/burn-in, quality, Playwright utility, traditional fixture/network, CLI, and Pact guidance.
+- **Scope:** Story 12.3 test automation and this workflow record only. The specification is
+  immutable for this run.
+
+## Step 2 — Identify Targets
+
+The Story 12.3 specification and Epic 12 design map every primary acceptance path. No Story 12.3
+ATDD output exists. The shipped suites already cover the fixed ordered Swedish DTO, the five normal
+predicate red boundaries, all-green aggregate, terms-warning separation, canonical company identity,
+active/invited/expired role-bearing membership behavior, cross-tenant fact isolation, self-only
+dismissal privilege, ready-tenant persistence policy, two-Admin dismissal independence, static scope,
+and the browser dismissal/reload/reminder/deep-link journey. Repeating those browser or database
+scenarios would duplicate verified zero-skip evidence.
+
+| Target | Level | Priority | Acceptance/risk link | Reason |
+| --- | --- | --- | --- | --- |
+| Malformed persisted fact values cannot make the five-item projection green | Node unit | P0 | AC2/AC5; R-1207/R-1208 | The pure evaluator is the final fail-closed boundary for malformed database/read-model values. Existing units cover only a subset of malformed values; this focused decision table will pin invalid tenant identity, VAT display/rate, and non-integer count values without repeating the persisted integration paths. |
+
+Coverage is selective: one P0 Node unit test in the existing onboarding evaluator suite. There is no
+HTTP provider endpoint, OpenAPI contract, or Pact-relevant boundary. Browser exploration was skipped
+because `playwright-cli` is not installed and no managed test server is active; code, stable browser
+tests, and production E2E configuration provide the relevant surface evidence.
+
+## Step 3 — Generate and Aggregate Tests
+
+- **Execution mode:** requested `auto`; capability probe resolved to **subagent** because parallel
+  subagents are available and agent-team dispatch is not. API, browser, and backend workers completed
+  successfully and their required temporary JSON records were validated.
+- **Coverage added:** `12.3-UNIT-004` is a P0 decision-table test in the existing evaluator suite.
+  It proves malformed resolved tenant identity, unsupported or non-numeric VAT facts, and fractional
+  active-role/additional-member counts each leave their corresponding item incomplete and the aggregate
+  non-working.
+- **No duplicate artifacts:** API worker generated zero tests because the story has no application
+  HTTP/provider contract. E2E worker generated zero tests because the existing browser journey already
+  covers ready-admin login, fixed links, warning, dismissal, reload, reminder restore, and server truth.
+- **Fixtures and deviations:** no fixtures/helpers were needed. No Playwright Utils or Pact.js
+  deviations were produced; neither library is installed and neither test type was generated.
+- **Generation totals:** 1 P0 backend/unit test in one existing file; 0 API tests, 0 E2E tests, and
+  0 fixture files. Aggregated record: `C:/tmp/tea-automate-summary-2026-09-21T13-42-28-123.json`.
+
+## Step 4 — Validate and Summarize
+
+### Validation evidence
+
+- `node --experimental-strip-types --import ./tests/support/register.mjs --test
+  ./tests/unit/onboarding/checklist-state.test.ts` — **PASS:** 6 tests passed, 0 failed, 0 skipped,
+  cancelled, or todo. The one added P0 decision-table test is included.
+- `pnpm exec eslint tests/unit/onboarding/checklist-state.test.ts` — **PASS:** no lint output.
+- `git diff --check` — **PASS:** no whitespace errors. Git emitted only the workspace's LF-to-CRLF
+  notice for the edited Markdown and TypeScript files.
+- Focused quality scan found no committed focus/skip/fixme, debug logging, browser synchronization,
+  or network-interception patterns in the generated Node unit suite.
+
+### Definition of done
+
+- The added test is pure, deterministic, and isolated. It exercises malformed runtime fact values
+  at the projection boundary and asserts an observable false item plus false aggregate for every
+  case; it does not mock or restate the implementation internals.
+- Existing verified required integration/RLS and production browser evidence was retained rather
+  than rerun for this test-only delta. No service, browser session, fixture, factory, production
+  source, migration, or specification file changed.
+- The run leaves no unresolved Story 12.3 automation defect. The Node runner reports its existing
+  `MODULE_TYPELESS_PACKAGE_JSON` performance warning because the package lacks `"type": "module"`;
+  it is not introduced by this test and does not affect execution.
+
+### Playwright Utils deviations
+
+None. No Playwright test was generated, and `@seontechnologies/playwright-utils` is not installed.
+
+### Pact.js Utils deviations
+
+Not applicable. Story 12.3 has no consumer-provider contract boundary and no Pact artifact was
+generated.
+
+**Recommended next workflow:** `bmad-testarch-test-review` if an independent review of the final
+Story 12.3 test additions is required.
