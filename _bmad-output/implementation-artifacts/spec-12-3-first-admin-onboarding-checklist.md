@@ -2,9 +2,10 @@
 title: 'Story 12.3: First-Admin Onboarding Checklist'
 type: 'feature'
 created: '2026-09-20'
-status: 'ready-for-dev'
+status: 'done'
+baseline_revision: '90bd4018bad03056a3ac1a9191c3488352809b55'
 review_loop_iteration: 0
-followup_review_recommended: false
+followup_review_recommended: true
 context:
   - '_bmad-output/project-context.md'
   - '_bmad-output/implementation-artifacts/epic-12-context.md'
@@ -93,6 +94,47 @@ The checklist records only a user's choice to hide an incomplete guide. Completi
 
 ## Auto Run Result
 
-Status: ready-for-dev
-Blocking condition: none
-Final result: Planning resolved the five server-derived checklist predicates, tenant-admin visibility, per-membership dismissal, legal-warning separation, existing-surface deep links, scope boundaries, and required unit/integration/browser/static evidence. The implementation specification is ready for development; this run halted before implementation as requested.
+Status: done
+Blocking condition: null
+Summary: Delivered the ready-tenant, server-derived five-item dashboard checklist, self-only dismissal/restore persistence with attributable audit, tenant-bound read model, and existing-surface links.
+Files: dashboard/read-model/actions/components/pure evaluator; two additive membership-dismissal migrations; scoped unit, integration/RLS, static, and browser evidence.
+Evidence: units 23/23 passed; required `SUPABASE_TEST_REQUIRED=1` integration batch 10/10 passed; clean production build passed; served chunks 13/0 missing; combined serial operator-console plus onboarding E2E 6/0/0 passed.
+Review: review findings fixed the cross-tenant fact-query boundary, ready-state direct-write policy gate, malformed dismissal input, and persisted RLS/read-model/browser evidence gaps. Unsupported/noise claims were rejected. The configured Luna review command was attempted once but produced no verifiable output artifact, so `followup_review_recommended` remains true.
+Residual risks: no unresolved Story 12.3 defect is known; the unverified Luna review has no artifact to assess.
+
+## Suggested Review Order
+
+Author: implementation author.
+Refreshed against the current working tree based on `90bd4018bad03056a3ac1a9191c3488352809b55`.
+
+### Fresh, server-derived dashboard guidance
+
+The dashboard renders only the server projection and pins the card only while a ready tenant has unfinished facts. The fixed five-item DTO is kept pure so no browser interaction can create a green item.
+
+- `src/app/(app)/dashboard/page.tsx:10` — `showChecklist`: mounts the card only for visible, incomplete, non-dismissed server state.
+- `src/server/read-models/onboarding-checklist.ts:24` — `tenant_admin`: fails closed before exposing a projection.
+- `src/features/onboarding/checklist-state.ts:53` — `complete`: maps each fixed predicate without a client completion input.
+
+### Self-only dismissal boundary
+
+The sole persisted onboarding fact is a nullable timestamp on the current membership. Column-level privilege plus the RLS policy preserves role, status, and tenant identity while the trigger records attributable presentation changes.
+
+- `supabase/migrations/20260920110000_first_admin_onboarding_dismissal.sql:6` — `grant update`: limits authenticated updates to the dismissal column.
+- `supabase/migrations/20260920110000_first_admin_onboarding_dismissal.sql:13` — `user_id`: restricts the update policy to the authenticated active Admin.
+- `src/features/onboarding/actions.ts:22` — `onboarding_checklist_dismissed_at`: writes only the server-resolved current membership and revalidates after confirmed persistence.
+
+### Predicate and static-scope evidence
+
+The pure tests exercise fixed labels/links, each independent false boundary, malformed or foreign organization identities, the separate terms warning, and the all-green aggregate. The scope script checks the shipped sources for privileged/public-surface tokens and confirms the migration adds a column rather than an onboarding table.
+
+- `tests/unit/onboarding/checklist-state.test.ts:21` — `each server fact independently`: exercises the five predicate boundaries and non-working aggregate.
+- `tests/unit/onboarding/checklist-state.test.ts:41` — `persisted terms`: exercises configuration completion independently of the NULL approval warning.
+- `tests/integration/read-models/onboarding-checklist.int.test.ts:165` — `facts from another tenant`: exercises the multi-tenant fact-isolation invariant under the selected tenant context.
+- `scripts/verify/check-first-admin-onboarding-scope.mjs:20` — `onboarding_checklist_dismissed_at`: checks the only permitted schema addition.
+
+Evidence: 23/23 focused unit tests, 10/10 required local integration/RLS tests, clean production build, 13/0 served chunks, and 6/0/0 combined browser journeys passed.
+Limits: the configured Luna review was attempted once but produced no verifiable artifact; follow-up review remains recommended.
+
+## Review Triage Log
+
+Current pass: fixed two reachable boundary defects (cross-tenant fact selection and non-ready direct dismissal), malformed dismiss input handling, and the persisted/RLS/browser evidence gaps. Rejected unsupported or noise findings. Deferred count: 0. The configured Luna review command was attempted once without a verifiable output artifact; this is recorded as follow-up review, not a product defect.

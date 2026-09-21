@@ -108,6 +108,14 @@ function luhn(value: string) {
   return [...value].reduce((sum, char, index) => { const doubled = Number(char) * (index % 2 === 0 ? 2 : 1); return sum + (doubled > 9 ? doubled - 9 : doubled); }, 0) % 10 === 0;
 }
 
+/** Canonical organization-number authority reused by persisted provisioning projections. */
+export function normalizeSwedishOrganizationNumber(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const normalized = value.replace(/[\s-]/g, "");
+  return /^\d{10}$/.test(normalized) && luhn(normalized) && !/^(?:\d{2})?(?:[0-3]\d|[4-9]\d)(?:0\d|1[0-2])/.test(normalized)
+    ? normalized : null;
+}
+
 function email(value: unknown): string {
   if (typeof value !== "string") throw new Error("INVALID_EMAIL");
   const normalized = value.trim().normalize("NFC");
@@ -134,8 +142,8 @@ export function canonicalizeProvisioningRequest(input: unknown): ProvisioningReq
   const request = decodeProvisioningRequest(input);
   if (request.country_code !== "SE") throw new Error("INVALID_ORGANIZATION_NUMBER");
   const number = request.organization_number as string;
-  const normalizedNumber = number.replace(/[\s-]/g, "");
-  if (!/^\d{10}$/.test(normalizedNumber) || !luhn(normalizedNumber) || /^(?:\d{2})?(?:[0-3]\d|[4-9]\d)(?:0\d|1[0-2])/.test(normalizedNumber)) throw new Error("INVALID_ORGANIZATION_NUMBER");
+  const normalizedNumber = normalizeSwedishOrganizationNumber(number);
+  if (!normalizedNumber) throw new Error("INVALID_ORGANIZATION_NUMBER");
   let vatRegistrationNumber: string | undefined;
   if (request.vat_registration_number !== undefined) {
     vatRegistrationNumber = (request.vat_registration_number as string).trim().toUpperCase().replace(/\s/g, "");

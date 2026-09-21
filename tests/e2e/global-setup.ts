@@ -95,6 +95,11 @@ function noDeductionTaxInput(
 
 export default async function globalSetup() {
   const base = await createTwoTenantFixture();
+  // Story 12.3 owns a separate ready tenant so the operator handoff fixture on tenant A remains unchanged.
+  await adminQuery(`update public.tenants set country_code='SE', normalized_organization_number='5561234567', provisioning_state='ready' where id=$1`, [base.tenantB.id]);
+  await adminQuery(`insert into public.company_settings (tenant_id, company_name, org_nr, default_vat_display, vat_rate_bp) values ($1,'Onboarding E2E AB','556123-4567','company_togglable',2500)`, [base.tenantB.id]);
+  await adminQuery(`insert into public.quote_terms (tenant_id, terms_text) values ($1,'Onboarding fixture terms')`, [base.tenantB.id]);
+  await adminQuery(`insert into public.work_roles (tenant_id, display_name, cost_rate_ore, sell_rate_ore) values ($1,'Onboarding role',0,0)`, [base.tenantB.id]);
   const operatorHandoffOrganisationNumber = `990${Date.now().toString().slice(-7)}`;
   const operatorProvisioningOrganisationNumber = validOrganisationNumber();
   await adminQuery(
@@ -863,6 +868,7 @@ export default async function globalSetup() {
     operator: base.adminB,
     membershiplessOperator: base.orphanUser,
     operatorConsole: { handoffTenantId: base.tenantA.id, provisioningOrganisationNumber: operatorProvisioningOrganisationNumber },
+    onboarding: base.adminB,
     extraUsers: roleAware.extraUsers,
     roleAware: {
       saljare: roleAware.users.saljare,
