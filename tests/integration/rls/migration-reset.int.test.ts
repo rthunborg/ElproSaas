@@ -185,8 +185,14 @@ describe("Migration reset green — tenant_foundation objects present (AC1 / R-0
 
   it("[P0] the public policy set is EXACTLY the expected per-table enumeration", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
-    const rows = await adminQuery<{ tablename: string; cmd: string }>(
-      `select tablename, cmd from pg_policies where schemaname = 'public'`,
+    const rows = await adminQuery<{
+      tablename: string;
+      cmd: string;
+      roles: string;
+    }>(
+      `select tablename, cmd, array_to_string(roles, ',') as roles
+         from pg_policies
+        where schemaname = 'public'`,
     );
     // EXACT enumeration (NOT a loose superset) so a future STRAY policy on any table —
     // a write policy on the foundation tables, or a DELETE policy on a CRM table — is
@@ -245,10 +251,15 @@ describe("Migration reset green — tenant_foundation objects present (AC1 / R-0
     // open -> completed, so it carries an UPDATE policy — the load-bearing contrast with 10.2's
     // insert-only quote_lost_reasons that drives the "rls-invisible" cross-tenant UPDATE profile).
     // Placed alphabetically (between quote_events and quote_lost_reasons).
+    // Story 12 extends the closed inventory with the platform-operator
+    // self-read policy, onboarding's tenant-membership UPDATE policy, and the
+    // dedicated Decision 8A provisioning-owner policies. The owner policies
+    // remain explicit here so future authority broadening fails this check.
     expect(rows.map((r) => `${r.tablename}.${r.cmd}`).sort()).toEqual([
       "articles.INSERT",
       "articles.SELECT",
       "articles.UPDATE",
+      "audit_events.ALL",
       "audit_events.SELECT",
       "calculation_rows.INSERT",
       "calculation_rows.SELECT",
@@ -260,6 +271,8 @@ describe("Migration reset green — tenant_foundation objects present (AC1 / R-0
       "calculations.SELECT",
       "calculations.UPDATE",
       "company_settings.INSERT",
+      "company_settings.INSERT",
+      "company_settings.SELECT",
       "company_settings.SELECT",
       "company_settings.UPDATE",
       "contacts.INSERT",
@@ -283,8 +296,11 @@ describe("Migration reset green — tenant_foundation objects present (AC1 / R-0
       "jobs.INSERT",
       "jobs.SELECT",
       "jobs.UPDATE",
+      "membership_admin_operations.ALL",
       "membership_admin_operations.SELECT",
+      "membership_roles.ALL",
       "membership_roles.SELECT",
+      "platform_operators.SELECT",
       "quote_acceptances.INSERT",
       "quote_acceptances.SELECT",
       "quote_acceptances.UPDATE",
@@ -315,30 +331,62 @@ describe("Migration reset green — tenant_foundation objects present (AC1 / R-0
       "tenant_counters.INSERT",
       "tenant_counters.SELECT",
       "tenant_counters.UPDATE",
+      "tenant_memberships.ALL",
       "tenant_memberships.SELECT",
+      "tenant_memberships.UPDATE",
+      "tenant_provisioning_baselines.SELECT",
+      "tenant_provisioning_invites.ALL",
+      "tenant_provisioning_requests.ALL",
+      "tenants.ALL",
       "tenants.SELECT",
       "work_roles.INSERT",
       "work_roles.SELECT",
       "work_roles.UPDATE",
     ]);
-    // Per-table command expectation (replaces the blanket "every policy is SELECT"):
-    // the three foundation tables are SELECT-only; the three CRM tables are
+    const provisioningOwnerPolicies = rows
+      .filter((row) => row.roles === "provisioning_function_owner")
+      .map((row) => `${row.tablename}.${row.cmd}`)
+      .sort();
+    expect(provisioningOwnerPolicies).toEqual([
+      "audit_events.ALL",
+      "company_settings.INSERT",
+      "company_settings.SELECT",
+      "membership_admin_operations.ALL",
+      "membership_roles.ALL",
+      "tenant_memberships.ALL",
+      "tenant_provisioning_baselines.SELECT",
+      "tenant_provisioning_invites.ALL",
+      "tenant_provisioning_requests.ALL",
+      "tenants.ALL",
+    ]);
+    // Per-table command expectation for the tenant/user-visible app path.
+    // The Decision 8A policies stay in the exact inventory above but do not
+    // alter the tenant-admin command contract below.
+    const appRows = rows.filter(
+      (row) => row.roles !== "provisioning_function_owner",
+    );
+    // Foundation tables are SELECT-only except tenant_memberships, whose
+    // onboarding dismissal state has the sanctioned authenticated UPDATE. CRM tables are
     // SELECT/INSERT/UPDATE with NO DELETE policy on any table.
     const cmdsByTable = new Map<string, string[]>();
-    for (const r of rows) {
+    for (const r of appRows) {
       cmdsByTable.set(r.tablename, [...(cmdsByTable.get(r.tablename) ?? []), r.cmd]);
     }
     const selectOnly = [
       "tenants",
-      "tenant_memberships",
       "membership_roles",
       "membership_admin_operations",
       "audit_events",
       "quote_review_authorizations",
+      "platform_operators",
     ];
     for (const t of selectOnly) {
       expect((cmdsByTable.get(t) ?? []).sort()).toEqual(["SELECT"]);
     }
+    expect((cmdsByTable.get("tenant_memberships") ?? []).sort()).toEqual([
+      "SELECT",
+      "UPDATE",
+    ]);
     // The CRM tables (Story 3.1), the settings tables (Story 3.3), the pricing tables
     // (Story 3.4), and the calculation tables (Story 5.1) are all SELECT/INSERT/UPDATE
     // with NO DELETE policy (archive/upsert over hard delete).

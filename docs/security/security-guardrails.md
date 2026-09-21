@@ -38,6 +38,9 @@ Any service-role use must be documented with file path, purpose, and test covera
 - Provider flow is DB commit → signed `reserve_dispatch` returning durable provider identity facts → at most one server-only Auth call → separately signed sanitized outcome for that reservation/generation. Caller-supplied retry identity and stale/out-of-order/conflicting outcomes fail closed. Raw invitation tokens remain in server memory and never enter the RPC.
 - No legacy delegate/fallback, custom provisioning JWT, service-role database call, second callable DEFINER writer, trusted `fresh_approval` boolean, or second-person approval is allowed. Provision matching app/Vault key material and a compatible signer before applying the enforcement/removal migration.
 
+Production enablement requires the separate, redacted evidence and approval
+checkpoint in [Tenant Provisioning Production Readiness](tenant-provisioning-production-readiness.md).
+
 ## Server Commands
 
 Sensitive mutations must:

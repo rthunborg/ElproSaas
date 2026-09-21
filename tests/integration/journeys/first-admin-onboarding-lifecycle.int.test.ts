@@ -37,7 +37,7 @@ async function protectedRows(tenantId: string): Promise<ProtectedRows> {
 }
 
 describe("12.3 first-admin onboarding lifecycle", () => {
-  test("[P0] 12.3-INT-AC3 real operator approval through accepted first Admin reaches a reloaded working state without changing an existing tenant", async (testCtx) => {
+  test("[P0] 12.3-INT-006 12.3-INT-AC3 real operator approval through accepted first Admin reaches a reloaded working state without changing an existing tenant", async (testCtx) => {
     if (skipUnlessStack(testCtx, await isLocalStackReachable())) return;
 
     let existingTenantBefore: ProtectedRows | null = null;

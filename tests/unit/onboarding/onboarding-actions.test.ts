@@ -6,14 +6,14 @@ import {
   parseOnboardingDismissal,
 } from "@/features/onboarding/action-state";
 
-test("onboarding dismissal accepts only the two server-action values", () => {
+test("12.3-UNIT-007 onboarding dismissal accepts only the two server-action values", () => {
   assert.equal(parseOnboardingDismissal("true"), true);
   assert.equal(parseOnboardingDismissal("false"), false);
   assert.equal(parseOnboardingDismissal("yes"), null);
   assert.equal(parseOnboardingDismissal(null), null);
 });
 
-test("onboarding action errors keep input rejection distinct from retryable persistence feedback", () => {
+test("12.3-UNIT-008 onboarding action errors keep input rejection distinct from retryable persistence feedback", () => {
   assert.deepEqual(ONBOARDING_ACTION_INPUT_ERROR, {
     status: "error",
     message: "Åtgärden kunde inte genomföras.",

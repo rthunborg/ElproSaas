@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
 
 describe("Story 12.3 onboarding dismissal RLS", () => {
-  test("[P0] only the authenticated active member can update its own presentation timestamp", async () => {
+  test("[P0] 12.3-RLS-001 only the authenticated active member can update its own presentation timestamp", async () => {
     const { createTwoTenantFixture, cleanupFixture, makeAuthedServerClient } = await import("../../factories/tenants");
     const { adminQuery } = await import("../../factories/admin-sql");
     const fixture = await createTwoTenantFixture();
@@ -42,7 +42,7 @@ describe("Story 12.3 onboarding dismissal RLS", () => {
     } finally { await cleanupFixture(fixture); }
   });
 
-  test("[P0] column privilege rejects role and status mutation even for the current member", async () => {
+  test("[P0] 12.3-RLS-002 column privilege rejects role and status mutation even for the current member", async () => {
     const { createTwoTenantFixture, cleanupFixture, makeAuthedServerClient } = await import("../../factories/tenants");
     const fixture = await createTwoTenantFixture();
     try {
@@ -52,7 +52,7 @@ describe("Story 12.3 onboarding dismissal RLS", () => {
     } finally { await cleanupFixture(fixture); }
   });
 
-  test("[P0] non-ready tenants cannot persist a dismissal and no audit event is created", async () => {
+  test("[P0] 12.3-RLS-003 non-ready tenants cannot persist a dismissal and no audit event is created", async () => {
     const { createTwoTenantFixture, cleanupFixture, makeAuthedServerClient } = await import("../../factories/tenants");
     const { adminQuery } = await import("../../factories/admin-sql");
     const fixture = await createTwoTenantFixture();
@@ -66,7 +66,7 @@ describe("Story 12.3 onboarding dismissal RLS", () => {
     } finally { await cleanupFixture(fixture); }
   });
 
-  test("[P0] an additional active or unexpired invited member counts only with an assigned role", async () => {
+  test("[P0] 12.3-RLS-004 an additional active or unexpired invited member counts only with an assigned role", async () => {
     const { createTwoTenantFixture, cleanupFixture } = await import("../../factories/tenants");
     const { adminQuery } = await import("../../factories/admin-sql");
     const fixture = await createTwoTenantFixture();
@@ -82,7 +82,7 @@ describe("Story 12.3 onboarding dismissal RLS", () => {
     } finally { await cleanupFixture(fixture); }
   });
 
-  test("[P0] two active Admins in one tenant keep independent dismissal timestamps", async () => {
+  test("[P0] 12.3-RLS-005 two active Admins in one tenant keep independent dismissal timestamps", async () => {
     const { createTwoTenantFixture, cleanupFixture } = await import("../../factories/tenants");
     const { adminQuery } = await import("../../factories/admin-sql");
     const fixture = await createTwoTenantFixture();

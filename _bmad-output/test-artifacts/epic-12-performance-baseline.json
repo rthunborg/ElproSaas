@@ -1,0 +1,155 @@
+{
+  "schemaVersion": 1,
+  "benchmark": "12.X-PERF-001",
+  "measuredAt": "2026-09-21T16:26:01.413Z",
+  "status": "measured_non_gating",
+  "environment": {
+    "target": "local loopback Supabase only",
+    "apiUrl": "http://127.0.0.1:54321",
+    "databaseTarget": "127.0.0.1:54322/postgres",
+    "node": "v22.23.2",
+    "platform": "win32/x64",
+    "postgres": "17.6"
+  },
+  "dataset": {
+    "preexistingFixtureTenants": 2,
+    "platformOperators": 1,
+    "provisionedConsoleRows": 12,
+    "totalPilotTenantRows": 14,
+    "operatorConsoleListRowsBeforeSyntheticFixture": 444,
+    "operatorConsoleListRowsObservedDuringMeasurement": 456,
+    "syntheticConsoleListRowsObservedDuringMeasurement": 12,
+    "nonSyntheticConsoleListRowsObservedDuringMeasurement": 444,
+    "normalizedCountry": "SE",
+    "firstAdminState": "invited / pending_first_admin_invite"
+  },
+  "provisioning": {
+    "measuredLayer": "authenticated client to provision_tenant RPC local API/database round trip",
+    "coldCandidate": {
+      "sampleNumber": 1,
+      "elapsedMs": 17.16429999999997
+    },
+    "subsequentSamples": {
+      "sampleCount": 11,
+      "minMs": 5.807699999999954,
+      "medianMs": 14.669300000000021,
+      "p90Ms": 16.438499999999976,
+      "maxMs": 16.649799999999914,
+      "samplesMs": [
+        13.390899999999988,
+        11.70029999999997,
+        15.995499999999993,
+        15.241300000000024,
+        16.438499999999976,
+        13.44119999999998,
+        16.649799999999914,
+        14.669300000000021,
+        5.807699999999954,
+        9.109500000000025,
+        15.23969999999997
+      ]
+    },
+    "allSamples": {
+      "sampleCount": 12,
+      "minMs": 5.807699999999954,
+      "medianMs": 14.954499999999996,
+      "p90Ms": 16.649799999999914,
+      "maxMs": 17.16429999999997,
+      "samplesMs": [
+        17.16429999999997,
+        13.390899999999988,
+        11.70029999999997,
+        15.995499999999993,
+        15.241300000000024,
+        16.438499999999976,
+        13.44119999999998,
+        16.649799999999914,
+        14.669300000000021,
+        5.807699999999954,
+        9.109500000000025,
+        15.23969999999997
+      ]
+    },
+    "observedRequestsPerMeasuredProvision": {
+      "provisionTenantRpc": 1,
+      "serverPreviewRpc": 0,
+      "reservationRpc": 0,
+      "providerDeliveryRequests": 0,
+      "totalObservedRpcRequests": 1
+    }
+  },
+  "consoleListRead": {
+    "measuredLayer": "authenticated client to unfiltered operator_console_projection list RPC local API/database round trip",
+    "warmupRequests": 3,
+    "measuredSamples": {
+      "sampleCount": 12,
+      "minMs": 5.689200000000028,
+      "medianMs": 15.706849999999974,
+      "p90Ms": 16.83949999999993,
+      "maxMs": 17.614999999999895,
+      "samplesMs": [
+        16.030599999999936,
+        14.352300000000014,
+        16.83949999999993,
+        15.96309999999994,
+        16.313600000000065,
+        15.450600000000009,
+        5.689200000000028,
+        8.263599999999997,
+        17.614999999999895,
+        14.28819999999996,
+        16.31959999999981,
+        15.045000000000073
+      ]
+    },
+    "observedRequestsPerMeasuredRead": {
+      "operatorConsoleProjectionRpc": 1,
+      "totalObservedRpcRequests": 1
+    }
+  },
+  "consoleDetailRead": {
+    "measuredLayer": "authenticated client to operator_console_projection detail RPC local API/database round trip",
+    "warmupRequests": 3,
+    "measuredSamples": {
+      "sampleCount": 12,
+      "minMs": 2.4566999999999553,
+      "medianMs": 15.63614999999993,
+      "p90Ms": 16.59680000000003,
+      "maxMs": 17.719499999999925,
+      "samplesMs": [
+        15.527299999999968,
+        15.74499999999989,
+        2.4566999999999553,
+        12.949500000000171,
+        17.719499999999925,
+        16.126899999999978,
+        14.815800000000081,
+        15.862499999999955,
+        14.789099999999962,
+        15.843600000000151,
+        14.059099999999944,
+        16.59680000000003
+      ]
+    },
+    "observedRequestsPerMeasuredRead": {
+      "operatorConsoleProjectionRpc": 1,
+      "totalObservedRpcRequests": 1
+    }
+  },
+  "queryCountInterpretation": {
+    "applicationOrReadModelRequestCount": "Observed RPC dispatches above; this is an HTTP/API boundary count.",
+    "databaseInternalSqlStatementCount": "unobserved; no SQL count is inferred from RPC dispatches."
+  },
+  "validation": {
+    "provisioningNormalizedIdentityAndFinalState": "verified for every generated tenant",
+    "consoleRows": "verified as server-produced operator_console_projection results for every generated canonical identity"
+  },
+  "limitations": [
+    "The first provisioning sample is a cold candidate after fixture setup; no cache, process, or service restart was performed, so it is not a clean cold-start experiment.",
+    "This excludes Next.js route rendering, browser hydration, platform-operator action-wrapper authorization, and invitation-provider delivery.",
+    "The list metric contains the absolute observed local list shape, including any unrelated disposable rows; synthetic and non-synthetic row counts are recorded separately.",
+    "This is a sequential local pilot dataset, not a throughput, concurrency, capacity, hosted-environment, or production SLO measurement.",
+    "No numeric pass/fail threshold is asserted by this harness."
+  ],
+  "cleanup": "Scoped generated provisioning tenants, associated provisioning rows/audit rows, platform operator, base tenants, and test Auth users are removed in finally."
+}

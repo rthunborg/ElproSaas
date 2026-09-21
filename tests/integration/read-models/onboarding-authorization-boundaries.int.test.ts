@@ -101,7 +101,7 @@ async function invokeProductionBoundaries(client: TestServerClient) {
 }
 
 describe("Story 12.3 onboarding authorization boundaries", () => {
-  test("[P0] 12.3-AC5 active non-admin and anonymous callers receive identical no-data responses without mutation", async (testCtx) => {
+  test("[P0] 12.3-INT-007 12.3-AC5 active non-admin and anonymous callers receive identical no-data responses without mutation", async (testCtx) => {
     if (skipUnlessStack(testCtx, await isLocalStackReachable())) return;
     const fixture = await createRoleAwarePhaseAFixture();
     try {

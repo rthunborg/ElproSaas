@@ -240,3 +240,76 @@ nfr_assessment:
 
 **Generated:** 2026-09-21  
 **Workflow:** testarch-nfr v4.0
+
+## Post-assessment evidence amendment — 2026-09-21
+
+This amendment records evidence collected after the historical audit above. It
+does not revise the audit's original execution claims, assessed revision, or
+trace result.
+
+### Executed local performance evidence
+
+[`12.X-PERF-001`](epic-12-performance-baseline.md) has now executed against
+the authorized loopback Supabase stack. It recorded 12 authenticated
+`provision_tenant` RPC samples, 12 unfiltered
+`operator_console_projection` list samples after three warmups, and 12
+targeted detail samples after three warmups. The exact measurement record,
+dataset shape, full sample arrays, and cleanup result are in the linked
+redacted JSON companion.
+
+The list observed 456 rows at measurement time: 12 synthetic provisioned rows
+and 444 non-synthetic rows already present in the shared disposable local
+stack. The record counts one observable RPC/API dispatch per measured
+provisioning or console read. It deliberately records database-internal SQL
+statement count as unobserved rather than deriving it from that request count.
+
+This closes the historical gap that no documented pilot baseline had run. It
+does **not** establish a capacity result, production latency, a full
+command/preview/approval/invitation journey measure, browser/render timing,
+throughput, concurrent-operator behaviour, or an approved numeric target. The
+performance and scalability assessment therefore remains **CONCERNS / MEDIUM
+risk** as advisory evidence, with the baseline sub-gap now PARTIAL rather than
+absent.
+
+### Production-enablement evidence
+
+[`Tenant Provisioning Production Readiness`](../../docs/security/tenant-provisioning-production-readiness.md)
+now defines the redacted evidence and ownership needed before real production
+provisioning is enabled. It assigns platform/security ownership of rate-limit,
+CORS, and security-header policy and hosted evidence; the release operator,
+security owner, and release approver have separate enablement responsibilities.
+
+The procedure records required evidence only. It supplies no proof that a
+production secret pairing or rotation, TLS, encryption at rest, perimeter
+policy, hosted configuration, or release approval currently exists. Those
+items remain unresolved and keep real provisioning disabled until the stated
+pre-enablement checkpoint is completed.
+
+This is distinct from merge readiness: the procedure is a production
+enablement gate, not a new PR merge prerequisite. Existing independent review,
+CI, required DB/RLS evidence, scope governance, and the deterministic trace
+gate retain their normal roles. This amendment makes no broader PR-approval
+claim.
+
+### Current evidence ledger
+
+| Area | Current position | Remaining evidence |
+| --- | --- | --- |
+| Performance pilot | PARTIAL — one repeatable, local RPC/read-model baseline exists with documented data shape and request-count interpretation. | Representative hosted pilot measurements; larger controlled list and concurrent-operator evidence before scale or capacity claims. |
+| Numeric performance target | UNKNOWN — no owner has approved a threshold. | Owner decision on the measured operation(s), dataset, environment, statistic, repetition, and tolerance. |
+| Production provisioning enablement | NOT READY — the readiness procedure exists, but its hosted evidence is not yet collected. | Exact-deployment Decision 8A boundary, attestation pairing/rotation, TLS/encryption, platform/security perimeter evidence, and recorded approval. |
+| Availability, recovery, and observability | CONCERNS — unchanged from the historical audit. | The existing release-operations programme's availability, error-rate, telemetry, backup/recovery, and delivery evidence. |
+
+### Decision recommendation
+
+Retain `12.X-PERF-001` as non-gating local advisory evidence. The local results
+are useful for detecting large regressions in the narrow RPC/read-model scope,
+but their sequential loopback environment and shared-list shape cannot justify
+a production SLO or capacity gate.
+
+Before any numeric target is proposed, collect a representative hosted pilot
+for the owner-selected user journey and documented dataset sizes, with repeated
+runs and explicit separation of full workflow timing from individual RPC/read
+timing. The owner can then either continue threshold-less evidence collection
+or approve a target limited to that defined operation and environment. No
+numeric gate is created or approved by this amendment.

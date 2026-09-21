@@ -136,6 +136,12 @@ smoke only, not a general credential-distribution mechanism.
 
 This section records the required coordinated rollout, not current deployment evidence. Story 12.1 is `in-progress`; do not enable provisioning or apply the enforcement migration until every preceding step has succeeded.
 
+For real production provisioning, also complete the post-merge enablement gate
+in [Tenant Provisioning Production Readiness](../security/tenant-provisioning-production-readiness.md).
+It requires redacted hosted key-pairing, rotation, TLS/encryption, and perimeter
+evidence plus an explicit release approval; it is not a claim that this demo has
+that evidence or a replacement for normal merge gates.
+
 1. Generate a dedicated 256-bit provisioning HMAC secret outside the repository. It is separate from JWT, `SUPABASE_SERVICE_ROLE_KEY`, and quote-PDF key material. Choose a non-secret key ID matching the implementation validator.
 2. Provision matching server-only `TENANT_PROVISIONING_ATTESTATION_KEY_ID` and `TENANT_PROVISIONING_ATTESTATION_HMAC_SECRET` values in the application secret store and exactly one filtered Vault secret named `tenant_provisioning_attestation_<key-id>`. Do not display, log, audit, screenshot, or commit the value.
 3. Deploy the compatible signer/server path. It must call the sole public authenticated `provision_tenant` RPC under the current allow-listed operator's normal Supabase Auth JWT and use the repository's length-prefixed, domain-separated Node/Postgres HMAC format. The attestation TTL is at most two minutes and it never reaches the browser.

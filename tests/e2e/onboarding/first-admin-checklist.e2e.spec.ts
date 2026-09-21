@@ -5,7 +5,7 @@ import { adminQuery } from "../../factories/admin-sql";
 
 const fixture = JSON.parse(readFileSync(path.join(process.cwd(), "tests", "e2e", ".auth", "fixture.json"), "utf8")) as { onboarding: { id: string; email: string; password: string } };
 
-test("[P0] ready first Admin sees a server-derived checklist, can dismiss and restore it", async ({ page }) => {
+test("[P0] 12.3-E2E-001 ready first Admin sees a server-derived checklist, can dismiss and restore it", async ({ page }) => {
   await page.goto("/login");
   await page.getByLabel("E-post").fill(fixture.onboarding.email);
   await page.getByLabel("Lösenord").fill(fixture.onboarding.password);

@@ -106,7 +106,7 @@ async function readAsTenantAdmin(tenant: FixtureTenant, user: FixtureUser) {
 }
 
 describe("Story 12.3 onboarding checklist read model", () => {
-  test("[P0] a non-ready tenant Admin receives no onboarding projection", async (testCtx) => {
+  test("[P0] 12.3-INT-001 a non-ready tenant Admin receives no onboarding projection", async (testCtx) => {
     if (skipUnlessStack(testCtx, await isLocalStackReachable())) return;
     const fixture = await createTwoTenantFixture();
     try {
@@ -120,7 +120,7 @@ describe("Story 12.3 onboarding checklist read model", () => {
     }
   });
 
-  test("[P0] an additional active membership is incomplete until it has a membership_roles assignment", async (testCtx) => {
+  test("[P0] 12.3-INT-002 an additional active membership is incomplete until it has a membership_roles assignment", async (testCtx) => {
     if (skipUnlessStack(testCtx, await isLocalStackReachable())) return;
     const fixture = await createTwoTenantFixture();
     try {
@@ -136,7 +136,7 @@ describe("Story 12.3 onboarding checklist read model", () => {
     }
   });
 
-  test("[P0] a non-expired invited membership is incomplete until it has a membership_roles assignment", async (testCtx) => {
+  test("[P0] 12.3-INT-003 a non-expired invited membership is incomplete until it has a membership_roles assignment", async (testCtx) => {
     if (skipUnlessStack(testCtx, await isLocalStackReachable())) return;
     const fixture = await createTwoTenantFixture();
     try {
@@ -157,7 +157,7 @@ describe("Story 12.3 onboarding checklist read model", () => {
     }
   });
 
-  test("[P0] an expired invited membership does not complete users even when it retains a role assignment", async (testCtx) => {
+  test("[P0] 12.3-INT-004 an expired invited membership does not complete users even when it retains a role assignment", async (testCtx) => {
     if (skipUnlessStack(testCtx, await isLocalStackReachable())) return;
     const fixture = await createTwoTenantFixture();
     try {
@@ -176,7 +176,7 @@ describe("Story 12.3 onboarding checklist read model", () => {
     }
   });
 
-  test("[P0] facts from another tenant administered by the caller cannot complete the resolved tenant checklist", async (testCtx) => {
+  test("[P0] 12.3-INT-005 facts from another tenant administered by the caller cannot complete the resolved tenant checklist", async (testCtx) => {
     if (skipUnlessStack(testCtx, await isLocalStackReachable())) return;
     const fixture = await createTwoTenantFixture();
     try {

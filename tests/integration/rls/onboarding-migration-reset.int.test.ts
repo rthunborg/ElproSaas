@@ -4,7 +4,7 @@ import { isLocalStackReachable } from "../../support/test-env";
 import { skipUnlessStack } from "../../support/stack-gate";
 
 describe("Story 12.3 onboarding migration schema", () => {
-  test("[P0] local additive migration has only a nullable membership dismissal field and a self-only update policy", async (testCtx) => {
+  test("[P0] 12.3-INT-008 local additive migration has only a nullable membership dismissal field and a self-only update policy", async (testCtx) => {
     if (skipUnlessStack(testCtx, await isLocalStackReachable())) return;
     const [row] = await adminQuery<{ column_present: boolean; nullable: boolean; policy_present: boolean; column_grant: boolean; trigger_present: boolean }>(`select
       exists(select 1 from information_schema.columns where table_schema='public' and table_name='tenant_memberships' and column_name='onboarding_checklist_dismissed_at') as column_present,

@@ -15,6 +15,45 @@ BEGIN
 END
 $$;
 
+-- Logical schema restores retain `ALTER FUNCTION ... OWNER TO` statements for
+-- the Decision 8A owner, but role dumps deliberately stay out of this isolated
+-- recovery target. Create the exact production non-login owner before schema
+-- restore and permit only the target's restore principal to transfer ownership.
+-- The normal recovery runtime roles never receive this membership.
+DO $$
+DECLARE
+  provisioning_owner record;
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_roles WHERE rolname = 'provisioning_function_owner'
+  ) THEN
+    CREATE ROLE provisioning_function_owner
+      NOLOGIN NOINHERIT NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION;
+  END IF;
+
+  SELECT rolcanlogin, rolinherit, rolsuper, rolcreatedb, rolcreaterole, rolreplication
+    INTO provisioning_owner
+    FROM pg_roles
+   WHERE rolname = 'provisioning_function_owner';
+  IF provisioning_owner.rolcanlogin
+     OR provisioning_owner.rolinherit
+     OR provisioning_owner.rolsuper
+     OR provisioning_owner.rolcreatedb
+     OR provisioning_owner.rolcreaterole
+     OR provisioning_owner.rolreplication THEN
+    RAISE EXCEPTION 'provisioning_function_owner is not hardened for isolated recovery';
+  END IF;
+
+  IF NOT pg_has_role(
+    'supabase_admin',
+    'provisioning_function_owner',
+    'member'
+  ) THEN
+    GRANT provisioning_function_owner TO supabase_admin;
+  END IF;
+END
+$$;
+
 -- ALTER ROLE is repeatable and keeps the generated recovery credential out of logs.
 \set pgpass `echo "$POSTGRES_PASSWORD"`
 ALTER USER authenticator WITH PASSWORD :'pgpass';
