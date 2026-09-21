@@ -284,6 +284,36 @@ type DispatchReservation = {
   readonly data: Record<string, unknown>;
 };
 
+export interface AcceptedProvisionedFirstAdminFixture {
+  readonly tenantId: string;
+  readonly firstAdmin: FixtureUser;
+  readonly base: TwoTenantFixture;
+  readonly cleanup: () => Promise<void>;
+}
+
+/** Removes one test-provisioned tenant while retaining FK cascades for its child rows. */
+async function cleanupProvisionedTenantFixture(tenantId: string): Promise<void> {
+  await adminSession(async ({ query }) => {
+    await query("begin");
+    try {
+      // Audit immutability blocks the test-only tenant teardown. Disable triggers
+      // only while deleting those immutable rows, then restore them before the
+      // tenant delete so normal foreign-key cascades remove every child row.
+      await query("set local session_replication_role = replica");
+      await query("delete from public.audit_events where tenant_id=$1", [tenantId]);
+      await query("set local session_replication_role = origin");
+      // Provisioning requests deliberately retain their tenant FK in production
+      // (no ON DELETE CASCADE), so the scoped fixture must remove its own request.
+      await query("delete from public.tenant_provisioning_requests where tenant_id=$1", [tenantId]);
+      await query("delete from public.tenants where id=$1", [tenantId]);
+      await query("commit");
+    } catch (error) {
+      await query("rollback");
+      throw error;
+    }
+  });
+}
+
 /**
  * Mirrors the server's initial provider handoff: the raw token remains in the
  * test process, while the signed RPC receives only its hash and returns the
@@ -503,6 +533,38 @@ export async function inspectProvisioningAuditForTest(): Promise<Record<string, 
 
 /** Exercises Epic 11's real acceptance RPC and the provisioning-ready trigger. */
 export async function acceptProvisionedFirstAdminForTest(): Promise<Record<string, unknown>> {
+  const accepted = await createAcceptedProvisionedFirstAdminFixture();
+  try {
+    const [membership] = await adminQuery<{ status: string; user_id: string | null }>(
+      "select status,user_id from public.tenant_memberships where tenant_id=$1 and user_id=$2",
+      [accepted.tenantId, accepted.firstAdmin.id],
+    );
+    const [invitation] = await adminQuery<{ normalized_email: string; role: string; token_hash: string }>(
+      "select normalized_email,role,token_hash from public.tenant_provisioning_invites where tenant_id=$1",
+      [accepted.tenantId],
+    );
+    const tenant = await admin().from("tenants").select("provisioning_state").eq("id", accepted.tenantId).single();
+    return {
+      accepted: true,
+      provisioningState: tenant.data?.provisioning_state,
+      membershipStatus: membership?.status,
+      membershipUserId: membership?.user_id,
+      expectedUserId: accepted.firstAdmin.id,
+      tokenBinding: invitation ?? { tenantId: accepted.tenantId },
+    };
+  } finally {
+    await accepted.cleanup();
+  }
+}
+
+/**
+ * Retains a real accepted first-admin session for composed lifecycle tests. The
+ * raw invitation capability remains process-local and is consumed before this
+ * fixture returns; callers receive only the authenticated fixture identity.
+ */
+export async function createAcceptedProvisionedFirstAdminFixture(options: {
+  readonly beforeProvisioning?: (base: TwoTenantFixture) => Promise<void>;
+} = {}): Promise<AcceptedProvisionedFirstAdminFixture> {
   const input = await createStrictProvisioningRequest();
   const password = `Pw-${crypto.randomUUID()}-Aa1!`;
   const created = await admin().auth.admin.createUser({
@@ -513,7 +575,10 @@ export async function acceptProvisionedFirstAdminForTest(): Promise<Record<strin
   if (created.error || !created.data.user) failure("AUTH_FIXTURE_FAILED");
   const authUser = { id: created.data.user.id, email: input.first_admin_email, password };
   let provisionedTenantId: string | null = null;
+  let completed = false;
   try {
+    const platformFixture = await activeFixture();
+    await options.beforeProvisioning?.(platformFixture.base);
     const provisioned = await executeApprovedProvisioning(input, { preserveFixture: true });
     provisionedTenantId = provisioned.tenantId;
     // The initial provision only creates the pending invite intent. Reserve the
@@ -554,17 +619,38 @@ export async function acceptProvisionedFirstAdminForTest(): Promise<Record<strin
     });
     const tenant = await admin().from("tenants").select("provisioning_state").eq("id", provisioned.tenantId).single();
     const [membership] = await adminQuery<{ status: string; user_id: string | null }>("select status,user_id from public.tenant_memberships where id=$1", [invitation.membership_id]);
+    if (!accepted || tenant.data?.provisioning_state !== "ready" || membership?.status !== "active" || membership.user_id !== authUser.id) failure("FIRST_ADMIN_ACCEPTANCE_FAILED");
+    completed = true;
     return {
-      accepted,
-      provisioningState: tenant.data?.provisioning_state,
-      membershipStatus: membership?.status,
-      membershipUserId: membership?.user_id,
-      expectedUserId: authUser.id,
-      tokenBinding: invitation,
+      tenantId: provisioned.tenantId,
+      firstAdmin: authUser,
+      base: platformFixture.base,
+      cleanup: async () => {
+        localInvitationTokens.delete(provisioned.tenantId);
+        try {
+          await cleanupProvisionedTenantFixture(provisioned.tenantId);
+        } finally {
+          try {
+            await admin().auth.admin.deleteUser(authUser.id);
+          } finally {
+            if (current) await cleanupPlatformOperatorFixture(current);
+          }
+        }
+      },
     };
   } finally {
     if (provisionedTenantId) localInvitationTokens.delete(provisionedTenantId);
-    await admin().auth.admin.deleteUser(created.data.user.id);
+    if (!completed) {
+      try {
+        if (provisionedTenantId) await cleanupProvisionedTenantFixture(provisionedTenantId);
+      } finally {
+        try {
+          await admin().auth.admin.deleteUser(created.data.user.id);
+        } finally {
+          if (current) await cleanupPlatformOperatorFixture(current);
+        }
+      }
+    }
   }
 }
 

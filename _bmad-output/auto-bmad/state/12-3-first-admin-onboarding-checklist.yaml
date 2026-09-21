@@ -9,11 +9,11 @@ spec_folder: null
 story_id: null
 branch: codex/epic-12-wave-b1a-tenant-provisioning-and-onboarding
 status: in-progress
-updated_at: "2026-09-21T11:51:29Z"
+updated_at: "2026-09-21T12:35:18Z"
 started_at: "2026-09-20T18:17:22Z"
 completed_at: null
-active_seconds: 4515
-timing_anchor: 1789991489
+active_seconds: 7144
+timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: true
 git_mode: remote
@@ -36,7 +36,7 @@ tea_selected: [automate]
 tea_rationale: Stateful UI flow with non-trivial server-derived branching and multiple settings-surface integrations.
 epic_story_count: 3
 stories_after_in_epic: 0
-completed_phases: [0, 1, 2, 3, 4, 5, 6]
+completed_phases: [0, 1, 2, 3, 4, 5, 6, 7]
 spec_path: "C:/DEV/ElproSaas/_bmad-output/implementation-artifacts/spec-12-3-first-admin-onboarding-checklist.md"
 spec_approved: true
 build:
@@ -46,9 +46,9 @@ build:
   review_loop_iteration: 0
   deferred_count: 0
   warnings: [oversized]
-followup_passes: 0
-hitl_halt: null
-review_unverified: false
+followup_passes: 1
+hitl_halt: "auto-continued (epic â€” no halt)"
+review_unverified: true
 story_trace: null
 legacy_review_resume: false
 legacy_review_iteration: null
@@ -56,7 +56,7 @@ legacy_review_loop_done: false
 legacy_external_review_iterations: null
 legacy_convergence_unverified: false
 legacy_artifact_path: null
-commits: [e957460, 90bd401, c405f360, f99fa9f6, 684b341]
+commits: [e957460, 90bd401, c405f360, f99fa9f6, 684b341, e43a5cd, d3f66b2, 2d3c7e6]
 phase8_steps:
   trace_gate: null
   nfr: null

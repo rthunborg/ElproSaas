@@ -1,22 +1,18 @@
 {
   "schema_version": "0.1.0",
-  "evaluated_at": "2026-09-11T15:14:13.5204330Z",
+  "evaluated_at": "2026-09-21T13:02:04.7842093Z",
   "repo": "ElproSaas",
-  "target": {
-    "type": "epic",
-    "id": "11",
-    "label": "Epic 11 — RBAC Mechanism and Admin User Management"
-  },
+  "target": {"type": "epic", "id": "12", "label": "Epic 12 — Tenant Provisioning and Onboarding"},
   "collection_status": "COLLECTED",
   "gate_basis": "priority_thresholds",
-  "gate_status": "PASS",
-  "rationale": "P0 coverage is 100%, P1 coverage is 100% (target: 90%), and overall coverage is 100% (minimum: 80%).",
-  "p0_status": "MET",
+  "gate_status": "FAIL",
+  "rationale": "P0 coverage is 90% (required: 100%). 0 critical requirements uncovered.",
+  "p0_status": "NOT_MET",
   "p1_status": "MET",
   "overall_status": "MET",
   "critical_open": 0,
   "links": {
-    "trace_report_path": "C:\\DEV\\ElproSaas\\_bmad-output\\test-artifacts\\traceability-matrix.md",
+    "trace_report_path": "_bmad-output/test-artifacts/traceability-matrix.md",
     "trace_report_url": "",
     "artifact_url": "",
     "journey_evidence_url": ""

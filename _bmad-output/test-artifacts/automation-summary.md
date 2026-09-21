@@ -843,3 +843,136 @@ generated.
 
 **Recommended next workflow:** `bmad-testarch-test-review` if an independent review of the final
 Story 12.3 test additions is required.
+
+# Test Automation Expansion — Epic 12 Trace-Gate Remediation Iteration 1
+
+## Step 1 — Preflight & Context
+
+- **Mode:** BMad-Integrated Create. Loaded the final Story 12.3 specification, Epic 12 context,
+  Epic 12 test design, current traceability matrix and gate signal, existing Story 12.3 automation
+  record, framework configuration, implemented onboarding boundaries, and the directly relevant
+  unit, integration/RLS, and production-browser suites. Final specification files are read-only for
+  this run.
+- **Framework:** Next.js/TypeScript with Node test for pure unit/static suites, Vitest for required
+  local Supabase integration/RLS evidence, and Playwright against the configured production server.
+  Required framework scaffolding is present. The repository is treated as full-stack because the
+  Next.js server/read-model/action boundaries and the local database suites are both in scope.
+- **Configured libraries:** `tea_use_playwright_utils=true`, but
+  `@seontechnologies/playwright-utils` is absent from `package.json`; the two-gate mandate therefore
+  does not bind and this remediation preserves the established vanilla Playwright conventions.
+  Pact testing is irrelevant to this monolithic Next.js/Supabase boundary. One tool-list probe found
+  no SmartBear Pact MCP tools (`pact_mcp_reachable=false`); no broker call was made.
+- **Loaded guidance:** test levels, priorities, data factories, selective execution, CI/burn-in,
+  test quality, the Playwright-utils mandate and full UI/API profile, fixture/network principles,
+  Playwright CLI, and Pact MCP fallback guidance.
+- **Trace-gate scope:** only `12.3-AC3` composed same-tenant provisioning-to-working-state evidence,
+  `12.3-AC5` direct active-non-admin/anonymous production-boundary denial evidence, and the stale plus
+  skipped P0 provisioning manifest invariant. Existing separate operator/onboarding evidence will be
+  reused without duplicating its already-covered assertions.
+- **Execution constraints:** edits stay in tests, fixtures/support, and this TEA output. Root retains
+  ownership of specs, state files, git snapshots/commits, PR work, and the guarded production server.
+
+## Step 2 — Identify Targets
+
+The trace gate identifies three bounded P0 deficiencies. Existing operator-console tests, ready-tenant
+onboarding tests, predicate units, RLS isolation tests, and browser dismissal coverage remain valid but
+do not compose the missing evidence, so this run adds only the scenarios below.
+
+| Target | Level | Priority | Acceptance/risk link | Coverage intent |
+| --- | --- | --- | --- | --- |
+| Same newly provisioned tenant from operator approval through first-Admin acceptance, five real configuration/user operations, and a fresh working-state projection | Supabase-backed integration journey | P0 | 12.3-AC3; R-1201/R-1202/R-1204/R-1205 | Exercise production provisioning and invitation-acceptance RPCs, command-envelope settings/pricing writes, a real invited role-bearing membership, then reload the production checklist read model. Capture a separate existing tenant before and after and require identical protected-row state. |
+| Active non-admin and anonymous callers cross the production onboarding read and dismissal-action boundaries | Supabase-backed integration boundary | P0 | 12.3-AC5; R-1205/R-1206/R-1207 | Call the real tenant resolver, checklist read model, and dismiss/restore action using real local-stack clients; require identical generic/no-data responses, unchanged membership/checklist facts and audit rows, and no tenant-existence signal. |
+| Provisioning manifest activation and non-granting platform-only capability remain coherent | Node unit/static invariant | P0 | 12.1 static invariant cited by the Epic 12 gate | Replace the stale pending-state expectation with the active state and execute the currently skipped combined manifest/capability invariant. |
+
+No public HTTP/provider contract is introduced, so no HTTP or Pact contract artifact is added. The
+API/action worker covers AC5 directly at the production server-action/read-model boundary. No new browser
+scenario is needed: the missing composition and authorization proof sits at authenticated RPC,
+command-envelope, read-model, action, and database boundaries and can be verified deterministically on
+the required local Supabase stack. Browser exploration remains unavailable because `playwright-cli` is
+not installed and no guarded production server is active.
+
+## Step 3 — Generate and Aggregate Tests
+
+- **Execution mode:** requested `auto`; capability probing resolved to **subagent**. The runtime allowed
+  two parallel delegates for AC3 and AC5. A third backend launch hit the agent-thread limit, so the
+  bounded manifest worker contract was completed locally while the two delegates ran; all three required
+  worker JSON outputs are valid and contain the exact generated file contents.
+- **12.3-AC3:** one P0 local-Supabase integration journey now captures an existing tenant before operator
+  provisioning, provisions and activates a different tenant through the real signed RPC/invitation
+  boundaries, executes five successful production operations (company identity, VAT display, quote
+  terms, active work role, and role-bearing invitation), reloads through the production checklist read
+  model, and compares the existing tenant's protected rows byte-for-byte after the lifecycle.
+- **12.3-AC5:** one P0 integration boundary test injects real active-non-admin and anonymous clients while
+  retaining the real tenant resolver. Both callers cross the production read and dismiss/restore action
+  boundaries, receive indistinguishable generic/no-data results, produce no revalidation, and leave
+  membership presentation state, checklist facts, and onboarding audit counts unchanged.
+- **Manifest invariant:** the stale pending-provisioning expectation now pins the active platform module,
+  and the former skipped P0 combined permission invariant executes against the full current metadata,
+  including the empty global-role and tenant-role grants.
+- **Generated scope:** 4 P0 assertions/scenarios across 3 test files, plus one retained-first-admin fixture
+  extension. No production source, migration, specification, browser test, or Pact artifact changed.
+- **Aggregation record:** `C:/tmp/tea-automate-summary-2026-09-21T15-24-46-279Z.json`.
+
+## Step 4 — Validate and Summarize
+
+### Validation evidence
+
+- `SUPABASE_TEST_REQUIRED=1 pnpm exec vitest run
+  tests/integration/read-models/onboarding-authorization-boundaries.int.test.ts
+  tests/integration/journeys/first-admin-onboarding-lifecycle.int.test.ts` — **PASS** in the clean
+  verification checkout: 2 files passed, 2 tests executed, 2 passed, 0 failed, 0 skipped.
+- `node --experimental-strip-types --import ./tests/support/register.mjs --test
+  ./tests/unit/scope/manifest-invariants.test.ts` — **PASS:** 8 tests executed, 8 passed, 0 failed,
+  0 skipped, 0 cancelled, 0 todo. The runner emitted only the repository's existing typeless-package
+  performance warning.
+- `pnpm run typecheck` — **PASS** with no diagnostics in applied verification tree
+  `3a781267f407251f83283b6503acdca70eebc0e7`.
+- Focused ESLint over the factory and three test files — **PASS** with no output.
+- `git diff --check` in the clean verification checkout — **PASS** with no output.
+- Focused quality scan — **PASS:** no committed `skip`, `fixme`, focused test, debug logging, hard wait,
+  or Playwright network-interception pattern in the generated tests.
+
+### Files created or updated
+
+- `tests/integration/journeys/first-admin-onboarding-lifecycle.int.test.ts` — one P0 composed AC3
+  journey at real operator RPC, first-Admin acceptance, command, invitation, and fresh read-model
+  boundaries.
+- `tests/integration/read-models/onboarding-authorization-boundaries.int.test.ts` — one P0 AC5
+  production-boundary denial/non-mutation scenario for active non-admin and anonymous callers.
+- `tests/unit/scope/manifest-invariants.test.ts` — two executable P0 static/permission invariants; the
+  stale pending assertion and skip are removed.
+- `tests/factories/platform-operators.ts` — retained accepted-first-admin fixture with pre-provisioning
+  observation and scoped cleanup for its provisioned tenant, request, audit rows, Auth user, and platform
+  fixture.
+- `_bmad-output/test-artifacts/automation-summary.md` — durable TEA workflow output.
+
+### Definition of done
+
+- Both trace-gate gaps now have direct, deterministic production-boundary coverage without duplicating
+  the existing ready-tenant browser, predicate unit, operator-console, or RLS tests.
+- The AC3 test does not seed past any claimed transition: provisioning and first-Admin activation use
+  their real authenticated boundaries, all five checklist facts come from successful production writes,
+  and working state is read again from a fresh production projection.
+- The existing-tenant snapshot begins before provisioning and is compared after the complete lifecycle.
+  The fixture's teardown was executed by the green database run and preserves FK cascades.
+- AC5 uses real active-non-admin and anonymous clients plus the real tenant resolver. Both identities
+  receive the same generic results for read, dismiss, and restore and leave the independently queried
+  membership, checklist, and audit state unchanged.
+- No production source, migration, dependency, specification, browser suite, or external email path
+  changed. No browser or server resource was launched.
+
+### Playwright Utils deviations
+
+- `tests/integration/journeys/first-admin-onboarding-lifecycle.int.test.ts:1`: this required proof runs
+  under Vitest at local Supabase RPC/command/read-model boundaries; the Playwright utilities package is
+  not installed and no browser primitive is used.
+- `tests/integration/read-models/onboarding-authorization-boundaries.int.test.ts:1`: this is a Vitest
+  server-boundary authorization test; the Playwright utilities package is not installed and no HTTP or
+  browser request fixture is involved.
+
+### Pact.js Utils deviations
+
+None. No consumer-provider contract artifact exists in this scope.
+
+**Recommended next workflow:** rerun `bmad-testarch-trace` for Epic 12 against this executed evidence and
+refresh the deterministic gate decision.

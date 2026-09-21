@@ -92,6 +92,8 @@ The checklist records only a user's choice to hide an incomplete guide. Completi
 - `node scripts/verify/check-first-admin-onboarding-scope.mjs` -- expected: no forbidden signup, schema, table, or deferred-surface token is introduced.
 - `node scripts/verify/check-review-order.mjs "_bmad-output/implementation-artifacts/spec-12-3-first-admin-onboarding-checklist.md"` -- expected after implementation: one valid author-written review trail with verified stops.
 
+**Trace-gate remediation evidence:** Applied verification tree `3a781267f407251f83283b6503acdca70eebc0e7` executed the two new required-DB integration tests with `SUPABASE_TEST_REQUIRED=1`: 2/2 passed, 0 failed, 0 skipped. The repaired manifest suite executed 8/8 tests with 0 failed and 0 skipped. `pnpm run typecheck`, focused ESLint over the changed factory/tests, and `git diff --check` all passed in that tree. The independent trace rerun remains pending; this evidence does not claim a post-remediation gate verdict.
+
 ## Auto Run Result
 
 Status: done
@@ -107,7 +109,7 @@ Residual risks: the diverse Luna layer is unverified because its configured comm
 ## Suggested Review Order
 
 Author: implementation author (follow-up review-fix delegate).
-Refreshed against `d3f66b24970504e503b58c8aace1880c851b8b17` and the original baseline `90bd4018bad03056a3ac1a9191c3488352809b55`.
+Refreshed against applied verification tree `3a781267f407251f83283b6503acdca70eebc0e7` and the original baseline `90bd4018bad03056a3ac1a9191c3488352809b55`.
 
 ### Fresh, server-derived dashboard guidance
 
@@ -147,6 +149,18 @@ The follow-up fixes make the action’s accepted input and error states explicit
 - `tests/e2e/onboarding/first-admin-checklist.e2e.spec.ts:45` — `onboarding-complete`: completes the disposable tenant’s final invitation fact and verifies both onboarding affordances disappear.
 
 Evidence: 8/8 focused units, 10/10 required local integration/RLS tests with zero skips, clean production build, 14/0 missing HTML-referenced chunks, and 1/0/0 production onboarding E2E passed. The configured Luna reviewer exited 1 without an artifact; follow-up review remains recommended.
+
+### Trace-gate remediation coverage
+
+The remediation composes the previously separate operator and onboarding proofs without seeding past their claimed transitions. It also drives the production denial boundaries directly and restores the provisioning manifest invariant to an executed P0 assertion.
+
+- `tests/factories/platform-operators.ts:565` — `createAcceptedProvisionedFirstAdminFixture`: retains the authenticated first Admin only after real operator provisioning and invitation acceptance, with scoped teardown for the provisioned tenant.
+- `tests/integration/journeys/first-admin-onboarding-lifecycle.int.test.ts:40` — `12.3-INT-AC3`: captures the existing tenant before provisioning, executes five real configuration/user operations, reloads the production projection, and compares the protected rows afterward.
+- `tests/integration/read-models/onboarding-authorization-boundaries.int.test.ts:104` — `12.3-AC5`: exercises real active-non-admin and anonymous clients through read plus dismiss/restore, requiring indistinguishable no-data results and zero mutation.
+- `tests/unit/scope/manifest-invariants.test.ts:139` — `12.1-STATIC-001`: executes the combined active/platform/non-granting invariant for every tenant role.
+
+Evidence: `SUPABASE_TEST_REQUIRED=1` executed 2/2 new integration tests with 0 failures and 0 skips; the manifest suite executed 8/8 with 0 failures and 0 skips. Clean-checkout typecheck, focused lint, and diff check passed on `3a781267f407251f83283b6503acdca70eebc0e7`.
+Limits: no external email provider or browser server was needed because the missing proof sits at the real authenticated RPC, command, read-model, server-action, and database boundaries. The independent trace rerun is pending, so no post-remediation gate PASS is claimed here; the existing follow-up review recommendation remains unchanged.
 
 ## Review Triage Log
 
