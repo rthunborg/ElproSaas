@@ -60,7 +60,7 @@
 # use the current Epic 10 statuses and approved corrective-story entries below.
 
 generated: 2026-06-12
-last_updated: 09-20-2026 20:40  # ADR-B009 connected-field course correction verified; governance Story 10.7 done, no PWA/offline functionality delivered.
+last_updated: 09-21-2026 13:33  # ADR-B009 connected-field course correction verified; governance Story 10.7 done, no PWA/offline functionality delivered.
 project: ElproSaas
 project_key: NOKEY
 tracking_system: file-system
@@ -225,7 +225,7 @@ development_status:
   12-2-operator-console: review
   # 12-3 keeps the N-2 seam only: no public signup surface may exist (FR76);
   # admin/operator-driven provisioning proceeds regardless of N-2.
-  12-3-first-admin-onboarding-checklist: in-progress
+  12-3-first-admin-onboarding-checklist: review
   epic-12-retrospective: optional
 
   epic-13: backlog
