@@ -137,4 +137,13 @@ Limits: the configured Luna review was attempted once but produced no verifiable
 
 ## Review Triage Log
 
-Current pass: fixed two reachable boundary defects (cross-tenant fact selection and non-ready direct dismissal), malformed dismiss input handling, and the persisted/RLS/browser evidence gaps. Rejected unsupported or noise findings. Deferred count: 0. The configured Luna review command was attempted once without a verifiable output artifact; this is recorded as follow-up review, not a product defect.
+### 2026-09-21 — Review pass
+
+- intent_gap: 0
+- bad_spec: 0
+- patch: 6: (high 2, medium 4, low 0)
+- defer: 0
+- dismissed:
+  - Unsupported or noise claims: no concrete production-reachable invariant bypass was identified.
+
+Patched the two reachable boundary defects (cross-tenant fact selection and non-ready direct dismissal), malformed dismiss input handling, and the persisted RLS, read-model, and browser evidence gaps. The configured Luna review command was attempted once without a verifiable output artifact; follow-up review remains recommended and this is not a product defect.
