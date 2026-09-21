@@ -87,7 +87,7 @@ The checklist records only a user's choice to hide an incomplete guide. Completi
 
 **Commands:**
 - `node --experimental-strip-types --import ./tests/support/register.mjs --test tests/unit/onboarding/checklist-state.test.ts tests/unit/onboarding/onboarding-actions.test.ts` -- expected: all predicate, aggregate, warning, and presentation-only cases pass.
-- `SUPABASE_TEST_REQUIRED=1 node --experimental-strip-types --import ./tests/support/register.mjs --test tests/integration/read-models/onboarding-checklist.int.test.ts tests/integration/commands/onboarding-checklist.int.test.ts` -- expected: tenant/RLS and independent-dismissal cases execute with zero skips.
+- `SUPABASE_TEST_REQUIRED=1 pnpm exec vitest run tests/integration/read-models/onboarding-checklist.int.test.ts tests/integration/rls/onboarding-checklist.rls.test.ts` -- expected: tenant/RLS and independent-dismissal cases execute with zero skips.
 - `pnpm run test:e2e -- tests/e2e/onboarding/first-admin-checklist.e2e.spec.ts` -- expected: configured production web server proves the persisted first-Admin flow, reload/reminder, deep links, and no click-forged completion.
 - `node scripts/verify/check-first-admin-onboarding-scope.mjs` -- expected: no forbidden signup, schema, table, or deferred-surface token is introduced.
 - `node scripts/verify/check-review-order.mjs "_bmad-output/implementation-artifacts/spec-12-3-first-admin-onboarding-checklist.md"` -- expected after implementation: one valid author-written review trail with verified stops.
@@ -96,16 +96,18 @@ The checklist records only a user's choice to hide an incomplete guide. Completi
 
 Status: done
 Blocking condition: null
-Summary: Delivered the ready-tenant, server-derived five-item dashboard checklist, self-only dismissal/restore persistence with attributable audit, tenant-bound read model, and existing-surface links.
-Files: dashboard/read-model/actions/components/pure evaluator; two additive membership-dismissal migrations; scoped unit, integration/RLS, static, and browser evidence.
-Evidence: units 23/23 passed; required `SUPABASE_TEST_REQUIRED=1` integration batch 10/10 passed; clean production build passed; served chunks 13/0 missing; combined serial operator-console plus onboarding E2E 6/0/0 passed.
+Summary: The follow-up review added evidence for fail-closed non-ready reads, self-only attributable dismissal/restore, action input and retry states, and the completed-dashboard hide branch.
+Files: `src/features/onboarding/action-state.ts` and `actions.ts` expose and consume tested input/error authority; focused unit, RLS/read-model, and production-browser tests prove the repaired boundaries; this spec records the final review trail.
+Review findings: 4 medium patches, 0 deferred, 11 rejected after downstream schema/policy and reachability checks. The configured diverse Luna command ran once, stayed live until exit, and failed with exit code 1 (`The system cannot find the file specified.`) without an artifact.
+Follow-up review recommendation: true — patched counts high 0, medium 4, low 0; score 12.
+Verification: focused units 8/8 passed; required `SUPABASE_TEST_REQUIRED=1` RLS/read-model integration 10/10 passed with 0 skips; scope check passed; targeted ESLint passed; clean-checkout production build passed; exact-build HTML chunk validation 14/0 missing; production onboarding E2E 1/0/0 passed on port 33122.
 Review: review findings fixed the cross-tenant fact-query boundary, ready-state direct-write policy gate, malformed dismissal input, and persisted RLS/read-model/browser evidence gaps. Unsupported/noise claims were rejected. The configured Luna review command was attempted once but produced no verifiable output artifact, so `followup_review_recommended` remains true.
-Residual risks: no unresolved Story 12.3 defect is known; the unverified Luna review has no artifact to assess.
+Residual risks: the diverse Luna layer is unverified because its configured command produced no output artifact. The main worktree-wide TypeScript command remains noisy from pre-existing ignored `tmp/**` worktrees; the clean production build completed TypeScript successfully.
 
 ## Suggested Review Order
 
-Author: implementation author.
-Refreshed against the current working tree based on `90bd4018bad03056a3ac1a9191c3488352809b55`.
+Author: implementation author (follow-up review-fix delegate).
+Refreshed against `d3f66b24970504e503b58c8aace1880c851b8b17` and the original baseline `90bd4018bad03056a3ac1a9191c3488352809b55`.
 
 ### Fresh, server-derived dashboard guidance
 
@@ -121,19 +123,30 @@ The sole persisted onboarding fact is a nullable timestamp on the current member
 
 - `supabase/migrations/20260920110000_first_admin_onboarding_dismissal.sql:6` — `grant update`: limits authenticated updates to the dismissal column.
 - `supabase/migrations/20260920110000_first_admin_onboarding_dismissal.sql:13` — `user_id`: restricts the update policy to the authenticated active Admin.
-- `src/features/onboarding/actions.ts:22` — `onboarding_checklist_dismissed_at`: writes only the server-resolved current membership and revalidates after confirmed persistence.
+- `src/features/onboarding/actions.ts:26` — `onboarding_checklist_dismissed_at`: writes only the server-resolved current membership and revalidates after confirmed persistence.
 
 ### Predicate and static-scope evidence
 
 The pure tests exercise fixed labels/links, each independent false boundary, malformed or foreign organization identities, the separate terms warning, and the all-green aggregate. The scope script checks the shipped sources for privileged/public-surface tokens and confirms the migration adds a column rather than an onboarding table.
 
 - `tests/unit/onboarding/checklist-state.test.ts:21` — `each server fact independently`: exercises the five predicate boundaries and non-working aggregate.
-- `tests/unit/onboarding/checklist-state.test.ts:41` — `persisted terms`: exercises configuration completion independently of the NULL approval warning.
-- `tests/integration/read-models/onboarding-checklist.int.test.ts:165` — `facts from another tenant`: exercises the multi-tenant fact-isolation invariant under the selected tenant context.
+- `tests/unit/onboarding/checklist-state.test.ts:58` — `persisted terms`: exercises configuration completion independently of the NULL approval warning.
+- `tests/integration/read-models/onboarding-checklist.int.test.ts:179` — `facts from another tenant`: exercises the multi-tenant fact-isolation invariant under the selected tenant context.
 - `scripts/verify/check-first-admin-onboarding-scope.mjs:20` — `onboarding_checklist_dismissed_at`: checks the only permitted schema addition.
 
-Evidence: 23/23 focused unit tests, 10/10 required local integration/RLS tests, clean production build, 13/0 served chunks, and 6/0/0 combined browser journeys passed.
-Limits: the configured Luna review was attempted once but produced no verifiable artifact; follow-up review remains recommended.
+Earlier evidence: 23/23 focused units, 10/10 required local integration/RLS tests, clean production build, 13/0 served chunks, and 6/0/0 combined browser journeys passed.
+Current limits: the configured Luna review exited 1 without an artifact; follow-up review remains recommended.
+
+### Phase 7 completion and boundary evidence
+
+The follow-up fixes make the action’s accepted input and error states explicit, prove the non-ready read gate and attributable audit records, and drive the ready fixture to a complete dashboard state. The clean-checkout production build and browser run validate the same files that shipped.
+
+- `src/features/onboarding/action-state.ts:7` — `parseOnboardingDismissal`: accepts only the two browser values that the server action can persist.
+- `tests/integration/read-models/onboarding-checklist.int.test.ts:109` — `non-ready tenant Admin`: proves the projection fails closed before dashboard rendering.
+- `tests/integration/rls/onboarding-checklist.rls.test.ts:11` — `onboarding_checklist_dismissed_at`: proves an authenticated dismissal and restore create attributable audit metadata.
+- `tests/e2e/onboarding/first-admin-checklist.e2e.spec.ts:45` — `onboarding-complete`: completes the disposable tenant’s final invitation fact and verifies both onboarding affordances disappear.
+
+Evidence: 8/8 focused units, 10/10 required local integration/RLS tests with zero skips, clean production build, 14/0 missing HTML-referenced chunks, and 1/0/0 production onboarding E2E passed. The configured Luna reviewer exited 1 without an artifact; follow-up review remains recommended.
 
 ## Review Triage Log
 
@@ -147,3 +160,19 @@ Limits: the configured Luna review was attempted once but produced no verifiable
   - Unsupported or noise claims: no concrete production-reachable invariant bypass was identified.
 
 Patched the two reachable boundary defects (cross-tenant fact selection and non-ready direct dismissal), malformed dismiss input handling, and the persisted RLS, read-model, and browser evidence gaps. The configured Luna review command was attempted once without a verifiable output artifact; follow-up review remains recommended and this is not a product defect.
+### 2026-09-21 — Review pass
+
+- intent_gap: 0
+- bad_spec: 0
+- patch: 4: (high 0, medium 4, low 0)
+- defer: 0
+- reject: 11
+- addressed_findings:
+  - `[medium]` `[patch]` Added a non-ready tenant read-model assertion that returns no onboarding projection.
+  - `[medium]` `[patch]` Added authenticated dismissal/restore audit-event assertions, including actor, target, and dismissal metadata.
+  - `[medium]` `[patch]` Made the two accepted action values and distinct input/retry feedback explicit and unit-tested.
+  - `[medium]` `[patch]` Completed the disposable ready-tenant invitation fact in production E2E and asserted that both onboarding affordances disappear.
+- rejected_findings:
+  - Performance, clock-boundary, and completed-dismissal speculation had no demonstrated user-visible invariant bypass.
+  - Role and approval-value claims are already constrained by the persisted schema or authorized workflow.
+  - Redundant static/RLS test-form proposals and broader coverage requests did not identify an untested reachable Story 12.3 branch after the four patches.
