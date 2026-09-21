@@ -8,10 +8,10 @@ story_source: sprint
 spec_folder: null
 story_id: null
 branch: codex/epic-12-wave-b1a-tenant-provisioning-and-onboarding
-status: in-progress
-updated_at: "2026-09-21T16:00:34Z"
+status: done
+updated_at: "2026-09-21T16:03:45Z"
 started_at: "2026-09-17T13:23:20Z"
-completed_at: null
+completed_at: "2026-09-21T16:03:45Z"
 active_seconds: 114905
 timing_anchor: null
 is_first_in_epic: false
@@ -39,7 +39,7 @@ tea_selected: []
 tea_rationale: null
 epic_story_count: 3
 stories_after_in_epic: null
-completed_phases: [0, 1, 2, 5, 81, 82]
+completed_phases: [0, 1, 2, 5, 9, 81, 82]
 spec_path: null
 spec_approved: false
 build:
@@ -59,7 +59,7 @@ legacy_review_loop_done: false
 legacy_external_review_iterations: null
 legacy_convergence_unverified: false
 legacy_artifact_path: null
-commits: [aa13f2c, d69215e, 2a021bf, fc0f9bd, 327a091, 13f5439f]
+commits: [aa13f2c, d69215e, 2a021bf, fc0f9bd, 327a091, 13f5439f, 4fdd26f]
 phase8_steps:
   trace_gate: done
   nfr: done
@@ -75,8 +75,8 @@ retro:
   verdict: rejected
   open_action_items: 5
 bmad_status_flipped_at: null
-pr_url: null
-ci_run_url: null
+pr_url: "https://github.com/rthunborg/ElproSaas/pull/72"
+ci_run_url: "https://github.com/rthunborg/ElproSaas/actions/runs/35623013641"
 ci_status: unknown
 pr_merged: false
 merge_method: null

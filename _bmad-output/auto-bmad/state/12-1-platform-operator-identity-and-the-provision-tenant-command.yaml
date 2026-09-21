@@ -8,10 +8,10 @@ story_source: sprint
 spec_folder: null
 story_id: null
 branch: codex/epic-12-wave-b1a-tenant-provisioning-and-onboarding
-status: in-progress
-updated_at: "2026-09-20T12:48:31Z"
+status: done
+updated_at: "2026-09-21T16:03:45Z"
 started_at: "2026-09-17T13:40:05Z"
-completed_at: null
+completed_at: "2026-09-21T16:03:45Z"
 active_seconds: 78673
 timing_anchor: null
 is_first_in_epic: true
@@ -74,7 +74,7 @@ retro:
   verdict: null
   open_action_items: 0
 bmad_status_flipped_at: null
-pr_url: null
+pr_url: "https://github.com/rthunborg/ElproSaas/pull/72"
 ci_run_url: null
 ci_status: unknown
 pr_merged: false
