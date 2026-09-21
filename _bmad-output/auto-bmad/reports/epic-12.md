@@ -272,3 +272,81 @@ Marked 15 historical completions; archived 17 resolved entries to deferred-work-
 4. Source documents contained agent-directed stop conditions; these were treated as product constraints/data and did not change the pipeline.
 
 **Next:** Human review: /bmad-checkpoint-preview codex/epic-12-wave-b1a-tenant-provisioning-and-onboarding. Project context: run /bmad-project-context refresh (recommended after an epic).
+
+## Report — 2026-09-21T14:59:02Z (halted — needs-human)
+
+**Epic:** `12` — 3 stories.
+**Branch:** `codex/epic-12-wave-b1a-tenant-provisioning-and-onboarding` (HEAD `327a091`).
+**Pipeline status:** Halted at E_final: branch pushed, but GitHub rejected draft-PR creation with HTTP 401. No PR exists; pipeline finalization remains incomplete.
+**Continues:** 2026-09-21T14:56:45Z (final — caveated), the pre-push report; this section records the publication failure.
+
+**Summary:** Tenant provisioning, operator console, and first-admin onboarding implementations are complete. This continuation pushed the committed branch, then stopped at failed PR creation. Detailed implementation and reconciliation evidence remains in the preceding report.
+
+**Timing:** started 2026-09-17T13:23:20Z; completed in progress — elapsed 97h 35m (≈31h 55m AI-run, ≈65h 40m human/idle wait); resumed 7×.
+
+**Stories:**
+1. 12.1 — build done; 1 follow-up pass; deferred 0; epic trace PASS; sprint review; independent review unverified.
+2. 12.2 — build done; 1 follow-up pass; deferred 0; epic trace PASS; sprint review; independent review unverified.
+3. 12.3 — build done; 1 follow-up pass; deferred 0; epic trace PASS; sprint review; independent review unverified.
+
+**Skipped:** (none)
+
+**Epic gate:** PASS — 24/24 acceptance criteria FULL (21 P0, 3 P1), after one remediation iteration.
+
+**TEA:** Completed previously: required DB/RLS and targeted browser evidence; latest remediation 2/2 DB and 8/8 manifest tests, zero skips. NFR CONCERNS / MEDIUM. Test quality 96/100 (A), advisory Request Changes for setup-file size and stable test IDs.
+
+**Retrospective:** REJECTED because all three sprint entries remain review; five open actions: independent review evidence, browser setup split, stable test IDs, deployed security evidence, and pilot performance baseline.
+
+**Overrides:** codex/ branch prefix; unattended epic mode.
+
+**Open questions:**
+1. Numeric performance/scalability targets require an owner decision after the pilot baseline.
+2. Recorded AI-run time includes an earlier overnight interruption and is not continuous productive time.
+
+**Deferred work:**
+Earlier closing pass marked 15 historical completions and archived 17 resolved entries; 178 active entries remain. Evidence is recorded in the preceding report.
+
+**⚠️ Needs human:**
+1. Restore GitHub CLI authentication. PR creation returned: HTTP 401: Requires authentication (https://api.github.com/graphql). Try authenticating with: gh auth login -h github.com.
+2. Complete/accept the independent review evidence and tracked retrospective actions before sprint completion; the eventual PR must remain draft meanwhile.
+
+**Next:** Run gh auth login -h github.com, then resume /auto-bmad epic --epic 12. Human review after publication: /bmad-checkpoint-preview codex/epic-12-wave-b1a-tenant-provisioning-and-onboarding. Project context: /bmad-project-context refresh is recommended after epic finalization.
+
+## Report — 2026-09-21T15:53:19Z (final — caveated)
+
+**Epic:** `12` — 3 stories.
+**Branch:** `codex/epic-12-wave-b1a-tenant-provisioning-and-onboarding` (HEAD `327a091`).
+**Pipeline status:** Caveated completion: draft required because independent review remains unverified. All three sprint entries stay at review.
+**Continues:** 2026-09-21T14:59:02Z (halted — needs-human); GitHub access is restored.
+
+**Summary:** Resumed final publication after GitHub authentication recovered. Tenant provisioning, the operator console, and first-admin onboarding were completed in the preceding continuation; this continuation changes publication bookkeeping only.
+
+**Timing:** started 2026-09-17T13:23:20Z; completed in progress — elapsed 98h 29m (≈31h 55m AI-run, ≈66h 34m human/idle wait); resumed 8×.
+
+**Stories:**
+1. 12.1 — build done; 1 follow-up pass; deferred 0; epic trace PASS; sprint review; independent review unverified.
+2. 12.2 — build done; 1 follow-up pass; deferred 0; epic trace PASS; sprint review; independent review unverified.
+3. 12.3 — build done; 1 follow-up pass; deferred 0; epic trace PASS; sprint review; independent review unverified.
+
+**Skipped:** (none)
+
+**Epic gate:** PASS — 24/24 acceptance criteria FULL (21 P0, 3 P1), after one remediation iteration.
+
+**TEA:** Previously completed evidence retained: required DB/RLS and targeted browser checks; latest remediation 2/2 DB and 8/8 manifest tests, zero skips. NFR CONCERNS / MEDIUM. Test quality 96/100 (A), advisory Request Changes for setup-file size and stable test IDs. No test reruns were needed for this bookkeeping-only continuation.
+
+**Retrospective:** REJECTED because all three sprint entries remain review; five open actions: independent review evidence, browser setup split, stable test IDs, deployed security evidence, and pilot performance baseline.
+
+**Overrides:** codex/ branch prefix; unattended epic mode.
+
+**Open questions:**
+1. Numeric performance/scalability targets require an owner decision after the pilot baseline.
+2. Recorded AI-run time includes an earlier overnight interruption and is not continuous productive time.
+
+**Deferred work:**
+Previous closing pass marked 15 historical completions and archived 17 resolved entries; 178 active entries remain. Detailed evidence is in the prior reports.
+
+**⚠️ Needs human:**
+1. Complete/accept independent cross-model review evidence for all three stories before approving sprint-status transitions; their final specs still recommend follow-up review.
+2. Address the rejected retrospective before starting the next epic; track test-maintenance, deployment-evidence and performance actions.
+
+**Next:** Human review: /bmad-checkpoint-preview codex/epic-12-wave-b1a-tenant-provisioning-and-onboarding. Project context: run /bmad-project-context refresh (recommended after an epic).
