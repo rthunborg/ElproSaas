@@ -313,3 +313,39 @@ runs and explicit separation of full workflow timing from individual RPC/read
 timing. The owner can then either continue threshold-less evidence collection
 or approve a target limited to that defined operation and environment. No
 numeric gate is created or approved by this amendment.
+
+## Final follow-up amendment — 2026-09-21
+
+This closing amendment preserves the historical advisory assessment, its
+CONCERNS / MEDIUM risk, and all production-enablement evidence gaps. It records
+the later independent review and final CI only; it does not rescore NFRs or
+turn local baseline evidence into a production target.
+
+Independent in-app Luna/xhigh review of the complete frozen Epic 12 production
+diff identified four actionable findings: two production correctness findings
+(organisation-number validation and concurrent request-ID conflict handling)
+and two test-harness findings (browser fixture identity generation and
+provisioning cleanup). The focused closure found zero new findings or repair
+regressions. The validator finding was narrowed during adjudication: the
+concrete defect was false rejection of structurally valid legal-entity numbers,
+not the initially proposed admission of ordinary personnummer-shaped values.
+The repair now uses the ten-digit/Luhn rule and Swedish third-digit
+discriminator; the idempotency repair restores request-ID/hash precedence under
+the concurrent visibility race.
+
+Final CI run `35631411549` passed at source
+`6edbd2d9021310b202ab0e4fc828522d4bcf20b5`: 1,838 unit tests passed with zero
+skips; required local DB/RLS coverage passed 1,078 tests with one explicit
+skip excluded from coverage; browser coverage passed 144 tests with four
+explicit skips excluded from coverage; and the recovery storage-loader test
+passed 1/0/0. The new same-request-ID/different-content concurrency regression
+executed and passed with `IDEMPOTENCY_CONFLICT`; the scoped provisioning-cleanup
+regression also executed and passed. These are merge-readiness and functional
+closure records, not throughput, availability, hosted-security, or
+production-enablement evidence.
+
+The local `12.X-PERF-001` baseline remains executed, non-gating advisory
+evidence. The NFR assessment remains **CONCERNS / MEDIUM**: no owner-approved
+numeric target, representative hosted performance/capacity result, production
+key-rollout/TLS/encryption evidence, or operational availability/recovery/
+telemetry evidence is asserted by this closure.

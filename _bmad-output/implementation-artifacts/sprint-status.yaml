@@ -60,7 +60,7 @@
 # use the current Epic 10 statuses and approved corrective-story entries below.
 
 generated: 2026-06-12
-last_updated: 09-21-2026 18:36  # ADR-B009 connected-field course correction verified; governance Story 10.7 done, no PWA/offline functionality delivered.
+last_updated: 09-21-2026 19:39  # ADR-B009 connected-field course correction verified; governance Story 10.7 done, no PWA/offline functionality delivered.
 project: ElproSaas
 project_key: NOKEY
 tracking_system: file-system
@@ -220,12 +220,12 @@ development_status:
   11-4-roles-surface-effective-permissions-and-the-per-role-test-harness: done
   epic-11-retrospective: done
 
-  epic-12: in-progress
-  12-1-platform-operator-identity-and-the-provision-tenant-command: review
-  12-2-operator-console: review
+  epic-12: done
+  12-1-platform-operator-identity-and-the-provision-tenant-command: done
+  12-2-operator-console: done
   # 12-3 keeps the N-2 seam only: no public signup surface may exist (FR76);
   # admin/operator-driven provisioning proceeds regardless of N-2.
-  12-3-first-admin-onboarding-checklist: review
+  12-3-first-admin-onboarding-checklist: done
   epic-12-retrospective: done
 
   epic-13: backlog
@@ -431,7 +431,7 @@ action_items:
       stories, then make the authorized sprint-status transitions from review only
       when that evidence is accepted."
     owner: "Epic 12 delivery owner"
-    status: open
+    status: done
     ref: "C:\\DEV\\ElproSaas\\_bmad-output\\implementation-artifacts\\epic-12-retro-2026-09-21.md"
   - id: "epic-12-retro-item-11-extract-epic-12-operator-onboarding-brow"
     epic: 12

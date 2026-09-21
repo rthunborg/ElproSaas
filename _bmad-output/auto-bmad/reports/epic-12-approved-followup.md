@@ -61,3 +61,28 @@ These are focused findings/fix reviews after the third broad pass; no fourth bro
 The author completed the organisation-number structural repair and append-only request/hash race repair. A real concurrency regression reproduced the old incorrect ALREADY_PROVISIONED response on the pre-migration loopback database; no migration/reset was applied to that shared database. Green runtime evidence will come from isolated CI applying the new migration.
 
 Clean source snapshot `acf6625fc1a0073aba8396ed05cf57d584f7eaef` passed typecheck, focused lint across seven changed TypeScript files (0 errors/warnings), and the full unit suite (1,837 passed, 0 failed, 1 existing skip excluded from coverage). Independent focused review already closed the cleanup finding and SQL cast correction at tree `bf017460d4b8049d2c57925721cf47a121062726`, with zero regressions. The final focused production review is in progress against the stable source snapshot.
+
+## Accepted review and CI closure
+
+This closure supersedes the pending statuses in the historical checkpoints above. Final source commit: `6edbd2d9021310b202ab0e4fc828522d4bcf20b5`. Its eight production-fix, migration and test paths match the independently reviewed frozen tree `acf6625fc1a0073aba8396ed05cf57d584f7eaef`.
+
+The independent in-app Luna/xhigh review and its focused follow-ups closed all four findings (two P1, two P2). The final focused production review reported zero new findings and zero regressions. Historical failed external-CLI attempts remain recorded; they are not represented as completed reviews.
+
+[Final source CI](https://github.com/rthunborg/ElproSaas/actions/runs/35631411549) passed verification, database, browser and recovery jobs:
+
+| Suite | Passed | Failed | Skipped |
+| --- | ---: | ---: | ---: |
+| Unit | 1,838 | 0 | 0 |
+| Required database | 1,078 | 0 | 1 |
+| Browser | 144 | 0 | 4 |
+| Separate recovery-storage loader | 1 | 0 | 0 |
+
+Skipped cases are excluded from coverage. The database skip concerns recovery-storage immutability, exercised separately by the recovery job. The new deterministic request/hash concurrency regression and scoped fixture-cleanup regression both executed and passed. Browser runtime was 171.65 seconds against the 300-second limit.
+
+All three canonical spec parses are `done`, with `followup_review_recommended: false`, no blocking condition and no deferred entries. Each author refreshed the single Suggested Review Order: 25, 17 and 21 validated references respectively, with zero errors. Existing oversized-spec warnings remain recorded.
+
+The canonical finalize predicate reports clean completion, no draft clauses, PASS acceptance trace (24/24), and passing CI. Root advanced all three sprint stories and Epic 12 to `done`, closed the independent-review action, and retained the two already-completed QA actions. Two Epic 12 action items remain: production security evidence is open, and the performance action is in progress pending representative hosted pilot measurements and an owner decision on numeric targets. NFR assessment remains advisory CONCERNS / MEDIUM.
+
+Merge and production enablement remain separate decisions. The final metadata-only commit may trigger another CI run; the passing source evidence above is explicitly pinned to `6edbd2d`.
+
+The refreshed [retrospective](../../implementation-artifacts/epic-12-retro-2026-09-21.md) is `accepted-with-open-items` (headless, two open action items). Canonical detection found all three stories done with no pending stories; canonical verdict parsing returned no warnings or errors. The prior rejected verdict and its lifecycle reason remain in the historical record. All five approved follow-up recommendations have been carried out within their stated scope.

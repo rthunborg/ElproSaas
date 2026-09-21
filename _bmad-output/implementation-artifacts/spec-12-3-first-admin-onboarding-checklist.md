@@ -5,7 +5,7 @@ created: '2026-09-20'
 status: 'done'
 baseline_revision: '90bd4018bad03056a3ac1a9191c3488352809b55'
 review_loop_iteration: 0
-followup_review_recommended: true
+followup_review_recommended: false
 context:
   - '_bmad-output/project-context.md'
   - '_bmad-output/implementation-artifacts/epic-12-context.md'
@@ -109,7 +109,7 @@ Residual risks: the diverse Luna layer is unverified because its configured comm
 ## Suggested Review Order
 
 Author: implementation author (follow-up review-fix delegate).
-Refreshed against applied verification tree `3a781267f407251f83283b6503acdca70eebc0e7` and the original baseline `90bd4018bad03056a3ac1a9191c3488352809b55`.
+Refreshed against final source tree `acf6625fc1a0073aba8396ed05cf57d584f7eaef` and the original baseline `90bd4018bad03056a3ac1a9191c3488352809b55`.
 
 ### Fresh, server-derived dashboard guidance
 
@@ -148,13 +148,13 @@ The follow-up fixes make the action’s accepted input and error states explicit
 - `tests/integration/rls/onboarding-checklist.rls.test.ts:11` — `onboarding_checklist_dismissed_at`: proves an authenticated dismissal and restore create attributable audit metadata.
 - `tests/e2e/onboarding/first-admin-checklist.e2e.spec.ts:45` — `onboarding-complete`: completes the disposable tenant’s final invitation fact and verifies both onboarding affordances disappear.
 
-Evidence: 8/8 focused units, 10/10 required local integration/RLS tests with zero skips, clean production build, 14/0 missing HTML-referenced chunks, and 1/0/0 production onboarding E2E passed. The configured Luna reviewer exited 1 without an artifact; follow-up review remains recommended.
+Evidence: 8/8 focused units, 10/10 required local integration/RLS tests with zero skips, clean production build, 14/0 missing HTML-referenced chunks, and 1/0/0 production onboarding E2E passed. The historical configured Luna CLI exited 1 without an artifact; that historical record remains unverified.
 
 ### Trace-gate remediation coverage
 
 The remediation composes the previously separate operator and onboarding proofs without seeding past their claimed transitions. The final QA maintenance extracts the shared operator/onboarding seed without altering its ordering, fixture values, or cleanup owner, and gives every Story 12.3 test a stable level identifier. It also drives the production denial boundaries directly and restores the provisioning manifest invariant to an executed P0 assertion.
 
-- `tests/factories/platform-operators.ts:565` — `createAcceptedProvisionedFirstAdminFixture`: retains the authenticated first Admin only after real operator provisioning and invitation acceptance, with scoped teardown for the provisioned tenant.
+- `tests/factories/platform-operators.ts:592` — `createAcceptedProvisionedFirstAdminFixture`: retains the authenticated first Admin only after real operator provisioning and invitation acceptance, with scoped teardown for the provisioned tenant.
 - `tests/e2e/seed-epic-12-browser-fixtures.ts:30` — `seedEpic12BrowserFixtures`: owns the ready tenant-B onboarding facts while retaining tenant-A operator handoff state in the original fixture.
 - `tests/e2e/global-setup.ts:86` — `seedEpic12BrowserFixtures`: calls the focused seed before the shared fixture is serialized for browser consumers.
 - `tests/integration/journeys/first-admin-onboarding-lifecycle.int.test.ts:40` — `12.3-INT-AC3`: captures the existing tenant before provisioning, executes five real configuration/user operations, reloads the production projection, and compares the protected rows afterward.
@@ -164,7 +164,8 @@ The remediation composes the previously separate operator and onboarding proofs 
 
 Earlier trace evidence: `SUPABASE_TEST_REQUIRED=1` executed 2/2 new integration tests with 0 failures and 0 skips; the manifest suite executed 8/8 with 0 failures and 0 skips. Clean-checkout typecheck, focused lint, and diff check passed on `3a781267f407251f83283b6503acdca70eebc0e7`.
 Final maintenance evidence on clean checkout `ef1885a53f4aa00b56cde5be08430610cb3094e3`: the full unit suite passed 1,836/0/1, where the existing skip is excluded from coverage; clean typecheck passed; changed-TypeScript lint had 0 errors and 7 existing warnings; required local Story 12.3 DB suites passed 13/0/0; the CI-repair required-DB suite passed 17/0/0; and the shared operator/onboarding browser run passed 6/0/0. The existing production build had 14 HTML-referenced static assets with 0 missing.
-Limits: no external email provider or browser server was needed because the missing proof sits at the real authenticated RPC, command, read-model, server-action, and database boundaries. The historical Luna failure remains unverified, and the current Luna review of frozen `fa76fedea678bd0455fce15906eb4c127da5f848` has no result; no post-remediation independent-review PASS is claimed and the existing follow-up recommendation remains unchanged.
+Final closure: independent in-app Luna/xhigh reviewed the full frozen Epic 12 production diff, reported four actionable findings, and its focused closure found zero new findings or repair regressions. Final CI `35631411549` passed 1,838/0/0 units, required DB 1,078/0/1, and browser 144/0/4; all skips are explicit and excluded from coverage. The executed cleanup regression and full browser journey supply the final shared-fixture/onboarding evidence. This closes the follow-up recommendation for Story 12.3.
+Limits: no external email provider proof is claimed. The historical external Luna CLI failure remains an unverified historical record, separate from the completed in-app independent review and final CI closure.
 
 ## Review Triage Log
 

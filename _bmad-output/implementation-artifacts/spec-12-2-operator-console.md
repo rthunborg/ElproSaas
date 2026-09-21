@@ -6,7 +6,7 @@ status: 'done'
 baseline_revision: 'ed7e5785f7a96422fb2251c6cc0431a4442b1cc8'
 baseline_commit: '661dfd33a2f9992254a521ac71b64ef885eda862'
 review_loop_iteration: 0
-followup_review_recommended: true
+followup_review_recommended: false
 context:
   - '_bmad-output/project-context.md'
   - '_bmad-output/implementation-artifacts/epic-12-context.md'
@@ -150,7 +150,7 @@ Security Sol/xhigh found no production-reachable issue. The recovered edge-case 
 ## Suggested Review Order
 
 Author: implementation/fix author.
-Refreshed against the final Story 12.2 source tree from `399f8e59b94cfe17ad591df0a626c0aeae5dc487`.
+Refreshed against the final Story 12.2 source tree `acf6625fc1a0073aba8396ed05cf57d584f7eaef`.
 
 ### Isolated platform entry and read boundary
 
@@ -187,4 +187,5 @@ Earlier implementation evidence: focused unit/static 30/30; required integration
 Final maintenance evidence on clean checkout `ef1885a53f4aa00b56cde5be08430610cb3094e3`: the full unit suite passed 1,836/0/1, with the existing skip excluded from coverage; clean typecheck passed; changed-TypeScript lint had 0 errors and 7 existing warnings; required local Story 12.3 DB suites passed 13/0/0; the CI-repair required-DB suite passed 17/0/0; and the shared operator/onboarding browser run passed 6/0/0. The existing production build had 14 HTML-referenced static assets with 0 missing. The extracted helper preserves the operator browser fixture values and original teardown ownership.
 After full CI reported one 12.2 preview-status failure without emitting the submitted organisation number or rendered alert, the browser fixture generator retained its original six-digit UUID-derived candidate space and Luhn digit but accepts a candidate only through the shared production validator. The inferred invalid-input path is independently demonstrated by production-validator guard samples: Luhn-valid `5560000001` rejects and the established legal-entity sample `5566770003` accepts. Focused ESLint and `git diff --check` passed; clean typecheck and final CI remain pending, and the managed-server E2E rerun is not represented as completed evidence.
 Clean typecheck on snapshot `e59914f8b60e983a273a1ee23cd93c8a7245d203` and focused lint of this browser spec plus `tests/factories/platform-operators.ts` passed. Playwright spec discovery loaded the new production-validator import but then stopped at the expected absent generated `tests/e2e/.auth/fixture.json`; it did not launch global setup, a browser, or the web server, and is not runtime proof.
-Limits: stock root lint/typecheck remain affected by ignored scratch/worktree files. The historical external Luna review failed to return a session handle or artifact, and the current Luna review of frozen `fa76fedea678bd0455fce15906eb4c127da5f848` has no result yet; follow-up review remains recommended and neither is recorded as a clean review.
+Final closure: independent in-app Luna/xhigh reviewed the complete frozen Epic 12 production diff, found four actionable issues, and its focused closure reviewed the repairs with zero new findings or regressions. The final CI run `35631411549` passed: 1,838 unit tests, 1,078 required DB tests with one explicit skip excluded from coverage, and 144 browser tests with four explicit skips excluded from coverage. It executed the shared-validator browser path and the new provisioning cleanup regression; the full independent closure and green CI clear this story's follow-up recommendation.
+Limits: stock root lint/typecheck remain affected by ignored scratch/worktree files. Historical external Luna CLI attempts that failed to return a session handle or artifact remain unverified historical records; they are distinct from the completed in-app independent review and do not alter the final closure.

@@ -6,7 +6,7 @@ status: 'done'
 baseline_revision: '6a21d4f29b46b9090850f715aa61d8ab1631e436'
 baseline_commit: 'f1330d0319920d52120cabf9797288a6e46c4e9c'
 review_loop_iteration: 0
-followup_review_recommended: true
+followup_review_recommended: false
 context:
   - '_bmad-output/project-context.md'
   - '_bmad-output/implementation-artifacts/epic-12-context.md'
@@ -171,6 +171,18 @@ deferred: []
   - `[medium] [patch]` Rejected URL path and port syntax in first-Admin email domains before IDNA normalization.
   - `[high] [patch]` Enrolled tenant-keyed provisioning request/invite facts in the manifest-derived H4 inventory and asserted their direct-read privilege boundary.
 
+### 2026-09-21 — Focused independent-review resolution
+- intent_gap: 0
+- bad_spec: 0
+- patch: 2 (high 2, medium 0, low 0)
+- defer: 0
+- reject: 1 partial rationale (the reviewed regex did not admit ordinary `YYMMDD` personnummer, but its extra date window did reject valid legal-entity shapes)
+- addressed_findings:
+  - `[high] [patch]` Restored same-request ID/hash precedence in both concurrent RPC visibility windows so changed content returns `IDEMPOTENCY_CONFLICT`, never `ALREADY_PROVISIONED` or raw uniqueness.
+  - `[high] [patch]` Replaced the ambiguous date regex with Skatteverket's ten-digit, third-digit-at-least-2, Luhn-checked organisation-number structure.
+- resolution evidence: `_bmad-output/test-artifacts/reviews/epic-12-production-findings-resolution.md`.
+- closure: the independent in-app `gpt-5.6-luna` / `xhigh` focused P1 review at `_bmad-output/test-artifacts/reviews/epic-12-independent-review-2026-09-21.md` reviewed frozen tree `acf6625fc1a0073aba8396ed05cf57d584f7eaef`, accepted the narrower validator adjudication, and found zero new findings or fix regressions. Source commit `6edbd2d9021310b202ab0e4fc828522d4bcf20b5` has matching content, and [CI run 35631411549](https://github.com/rthunborg/ElproSaas/actions/runs/35631411549) passed verify, database, browser, and recovery jobs. The owner accepted both review and runtime evidence; no further Story 12.1 follow-up review is recommended.
+
 ## Design Notes
 
 The database is deliberately DB-first and provider-second: a provider outcome cannot create a false database claim. The public RPC is callable under a normal authenticated operator session but cannot mutate without the second, server-only attestation proof. Only its attested action allow-list and the existing Epic 11 acceptance path may mutate provisioning state; the command module is signer/orchestrator, never a service-role database privilege path.
@@ -191,11 +203,15 @@ Status: done
 Blocking condition: none
 Final result: Story 12.1 completed after final repair verification. See the final implementation result below for evidence and residual limits.
 
-Current follow-up review result (2026-09-20): completed Round 2 of 3 with four patches. The independent Luna cross-model command was started exactly once but ended without terminal output or its requested result file after its host session became unavailable; it is unverified rather than a clean finding-free layer. Follow-up review remains recommended because this pass patched high-severity authority, idempotency, and H4 tenant-isolation defects.
+Historical follow-up review result (2026-09-20): completed Round 2 of 3 with four patches. The independent Luna cross-model command was started exactly once but ended without terminal output or its requested result file after its host session became unavailable; it is unverified rather than a clean finding-free layer. Follow-up review remained recommended at that checkpoint because the pass patched high-severity authority, idempotency, and H4 tenant-isolation defects.
+
+Final focused closure (2026-09-21): the independent in-app `gpt-5.6-luna` / `xhigh` focused P1 review of frozen tree `acf6625fc1a0073aba8396ed05cf57d584f7eaef` found zero new findings or fix regressions, accepted the narrower false-rejection adjudication for the Swedish validator, and closed both production findings. The reviewed content matches source commit `6edbd2d9021310b202ab0e4fc828522d4bcf20b5`. [CI run 35631411549](https://github.com/rthunborg/ElproSaas/actions/runs/35631411549) passed verify, database, browser, and recovery jobs. The owner accepted the independent review and runtime evidence; `followup_review_recommended` is therefore false.
 
 Files changed in this pass: `src/server/commands/provisioning/provision-tenant.ts` (trusted provider callback), `src/server/commands/provisioning/validation.ts` (canonical nested hashing and strict email domains), `src/scope/manifest.ts` plus H4 inventory/test metadata (provisioning-table enrollment), `tests/unit/provisioning/provisioning-contract.test.ts`, `tests/unit/scope/manifest-shape.test.ts`, `tests/unit/scope/manifest-derivations.test.ts`, and `tests/integration/rls/cross-tenant-isolation.rls.test.ts`.
 
 Verification in this pass: focused provisioning and permission-matrix Node tests 23/23 passed; manifest unit tests 14/14 passed; required provisioning command/RLS tests 18/18 passed with zero skips; H4 inventory, cross-tenant, and anonymous RLS tests 256/256 passed with zero skips; scoped ESLint and `git diff --check` passed. Full stock typecheck remains limited by pre-existing ignored `tmp/private/**` and `tmp/worktrees/**` errors.
+
+Focused production-finding repair (2026-09-21): provisioning units passed 19/19, targeted ESLint and `git diff --check` passed, and the deterministic same-request/different-hash integration regression failed RED against the unchanged pre-migration loopback RPC with the reviewed `ALREADY_PROVISIONED` result. The additive migration and regression are frozen for isolated reset/CI verification; no local reset, hosted/demo write, or follow-up-review flag change was performed. See `_bmad-output/test-artifacts/reviews/epic-12-production-findings-resolution.md` for the narrower Swedish-identity adjudication and primary sources.
 
 Historical result (2026-09-17, before owner decisions):
 
@@ -241,9 +257,9 @@ Current planning status: in-progress — Decision 8A closes the live authority/p
 ## Suggested Review Order
 
 Author: implementation author.
-Refreshed against the final Story 12.1 diff, including the review repair that
-binds execution to a previously returned preview hash and exercises the server
-command's provider handoff directly.
+Refreshed against the final focused-fix working tree frozen for clean
+verification on 2026-09-21, including the Swedish legal-entity correction and
+concurrent request-ID conflict repair.
 
 ### Operator-bound attestation boundary
 
@@ -256,12 +272,21 @@ The server signs a fixed, length-prefixed envelope over the current Auth actor a
 
 ### Canonical request and callback capability
 
-The request hash now recursively canonicalizes approved nested objects, and email parsing uses URL machinery only for IDNA conversion after rejecting URL-only syntax. The server gives the Auth provider the established absolute invite callback, including the durable membership and one-time attempt capability.
+Organisation identity now follows Skatteverket's ten-digit, third-digit-at-least-2, checksum rule, which excludes personnummer without interpreting later legal-entity digits as a date. The request hash recursively canonicalizes approved nested objects, and email parsing uses URL machinery only for IDNA conversion after rejecting URL-only syntax. The server gives the Auth provider the established absolute invite callback, including the durable membership and one-time attempt capability.
 
-- `src/server/commands/provisioning/validation.ts:119` — `email`: rejects paths and ports that are not email domains before IDNA normalization.
-- `src/server/commands/provisioning/validation.ts:135` — `canonicalJsonValue`: makes nested object ordering irrelevant to idempotency hashes.
+- `src/server/commands/provisioning/validation.ts:112` — `normalizeSwedishOrganizationNumber`: applies the legal-entity structural discriminator and checksum.
+- `src/server/commands/provisioning/validation.ts:123` — `email`: rejects paths and ports that are not email domains before IDNA normalization.
+- `src/server/commands/provisioning/validation.ts:139` — `canonicalJsonValue`: makes nested object ordering irrelevant to idempotency hashes.
 - `src/server/commands/provisioning/provision-tenant.ts:61` — `invitationRedirectBase`: applies the trusted configured-origin policy and fails delivery safely in production without it.
 - `src/server/commands/provisioning/provision-tenant.ts:67` — `deliverInvitation`: preserves the reserved membership and attempt facts through the runtime Auth handoff.
+
+### Dual idempotency under concurrency
+
+The append-only repair preserves request ID/hash as the first idempotency key even when a competing transaction commits after the initial lookup. Canonical identity remains the independent second key and returns `ALREADY_PROVISIONED` only for a different request ID.
+
+- `supabase/migrations/20260921170545_repair_provisioning_idempotency_conflict.sql:10` — `v_identity_old`: patches the between-lookups visibility window without rewriting historical migrations.
+- `supabase/migrations/20260921170545_repair_provisioning_idempotency_conflict.sql:13` — `v_new`: resolves the post-insert unique-conflict window by request ID/hash before identity.
+- `tests/integration/commands/provision-tenant.int.test.ts:230` — `12.1-INT-006-R1`: holds the winner uncommitted and proves the loser blocks before checking the exact conflict result.
 
 ### Approved command and database-first invite reservation
 
@@ -290,17 +315,19 @@ rules, and the production command's approval gate, created-only provider flow,
 success/failure/unknown outcome mapping, and replay suppression. Required local
 integration/RLS tests cover the database authority separately.
 
-- `tests/unit/provisioning/provisioning-contract.test.ts:39` — `canonicalizes Swedish`: validates identity/email rejection and canonical nested request hashing.
-- `tests/unit/provisioning/provisioning-contract.test.ts:115` — `binds the provisioning attestation`: actor, action, generation, and payload tampering invalidate the proof.
-- `tests/unit/provisioning/provisioning-contract.test.ts:164` — `sends first-admin Auth callbacks`: proves the configured absolute callback retains membership and attempt capability.
-- `tests/unit/provisioning/provisioning-contract.test.ts:227` — `executes the approved production command`: verifies the exact provision → reconcile → reserve → provider → record sequence.
-- `tests/unit/provisioning/provisioning-contract.test.ts:301` — `leaves idempotent replays provider-free`: proves an observed replay cannot dispatch another invitation.
+- `tests/unit/provisioning/provisioning-contract.test.ts:54` — `uses the Swedish third-digit discriminator`: accepts valid legal-entity shapes and rejects checksum-valid personnummer shapes.
+- `tests/unit/provisioning/provisioning-contract.test.ts:123` — `binds the provisioning attestation`: actor, action, generation, and payload tampering invalidate the proof.
+- `tests/unit/provisioning/provisioning-contract.test.ts:172` — `sends first-admin Auth callbacks`: proves the configured absolute callback retains membership and attempt capability.
+- `tests/unit/provisioning/provisioning-contract.test.ts:235` — `executes the approved production command`: verifies the exact provision → reconcile → reserve → provider → record sequence.
+- `tests/unit/provisioning/provisioning-contract.test.ts:309` — `leaves idempotent replays provider-free`: proves an observed replay cannot dispatch another invitation.
 - `tests/factories/platform-operators.ts:592` — `createAcceptedProvisionedFirstAdminFixture`: creates an accepted first-Admin fixture with scoped tenant, Auth-user, invitation-token, and platform-fixture cleanup.
 
 Evidence: the final focused Node provisioning and permission-matrix suites passed 23/23; manifest derivation/shape units passed 14/14. The required `SUPABASE_TEST_REQUIRED=1` command/RLS/reset/search-path suites passed 18/18 with zero skipped, and the H4 inventory/cross-tenant/anonymous RLS suites passed 256/256 with zero skipped. Focused ESLint and `git diff --check` passed. The earlier directly relevant admin-user compatibility subset was 6/6; the historical broader compatibility record was 14/14. Full stock `pnpm typecheck` remains blocked only by unrelated ignored `tmp/private/**` and `tmp/worktrees/**` errors; the prior scoped typecheck excluding those paths passed.
+Focused 2026-09-21 repair evidence: provisioning units passed 19/19 and targeted ESLint/diff checks passed. The deterministic `12.1-INT-006-R1` case failed RED on the unchanged pre-migration loopback RPC by returning `ALREADY_PROVISIONED`; isolated reset/CI after applying the additive migration remains the required GREEN proof.
+Clean verification at source commit `6edbd2d9021310b202ab0e4fc828522d4bcf20b5`: typecheck and focused lint passed; the full unit suite passed 1,837/0/1, with the existing skip excluded from coverage. [CI run 35631411549](https://github.com/rthunborg/ElproSaas/actions/runs/35631411549) passed verify, database, browser, and recovery jobs, including the isolated migration/integration runtime gate.
 Final maintenance evidence on clean checkout `ef1885a53f4aa00b56cde5be08430610cb3094e3`: the full unit suite passed 1,836/0/1, where the existing skip is excluded from coverage; clean typecheck passed; changed-TypeScript lint had 0 errors and 7 existing warnings; required local Story 12.3 DB suites passed 13/0/0; the CI-repair required-DB suite passed 17/0/0; and the shared operator/onboarding browser run passed 6/0/0. The existing production build had 14 HTML-referenced static assets with 0 missing. This maintenance changes no provisioning authority; it preserves the browser fixture boundary consumed by the operator flow.
 The final CI factory repair scopes fault-injection and accepted-first-Admin fixture state to its provisioned tenant instead of using global row counts or cross-connection trigger cleanup. Clean typecheck and focused lint passed after the repair; fresh CI remains the required runtime proof and is not recorded as completed here.
-Limits: provider acceptance is not evidence of email delivery. The configured independent Luna review command did not produce a terminal review result in this run and is reported in the run evidence rather than treated as a clean layer.
+Limits: provider acceptance is not evidence of email delivery. An earlier configured Luna command produced no terminal artifact and remains historical unverified evidence; the separate 2026-09-21 in-app Luna/xhigh focused review is recorded in `_bmad-output/test-artifacts/reviews/epic-12-independent-review-2026-09-21.md` and found zero new findings or fix regressions. The owner accepted that review and the passing isolated CI runtime evidence.
 
 Current implementation result (2026-09-19):
 

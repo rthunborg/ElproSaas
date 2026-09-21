@@ -9,7 +9,7 @@ spec_folder: null
 story_id: null
 branch: codex/epic-12-wave-b1a-tenant-provisioning-and-onboarding
 status: done
-updated_at: "2026-09-21T16:03:45Z"
+updated_at: "2026-09-21T17:39:29Z"
 started_at: "2026-09-20T12:50:04Z"
 completed_at: "2026-09-21T16:03:45Z"
 active_seconds: 19550
@@ -44,13 +44,13 @@ spec_approved: true
 build:
   status: done
   blocking_condition: null
-  followup_review_recommended: true
+  followup_review_recommended: false
   review_loop_iteration: 0
   deferred_count: 0
   warnings: [oversized]
 followup_passes: 1
 hitl_halt: "auto-continued (epic â€” no halt)"
-review_unverified: true
+review_unverified: false
 story_trace: null
 legacy_review_resume: false
 legacy_review_iteration: null
@@ -73,10 +73,10 @@ retro:
   doc: null
   verdict: null
   open_action_items: 0
-bmad_status_flipped_at: null
+bmad_status_flipped_at: 9
 pr_url: "https://github.com/rthunborg/ElproSaas/pull/72"
-ci_run_url: null
-ci_status: unknown
+ci_run_url: "https://github.com/rthunborg/ElproSaas/actions/runs/35631411549"
+ci_status: passed
 pr_merged: false
 merge_method: null
 merge_commit: null

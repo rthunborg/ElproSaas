@@ -208,6 +208,36 @@ remains within this follow-up's limited scope. This resolution does not replace
 the independent trace, NFR, CI, or final full-diff review gates, and it makes no
 claim about checks outside the reported evidence.
 
+## Final follow-up amendment — 2026-09-21
+
+The original 96/100 score, advisory Request Changes recommendation, and
+historical findings are preserved. This amendment records final closure; it
+does not rescore the suite or restart a broad review.
+
+The two test-quality advisories are closed: the Epic 12 browser seed extraction
+keeps `global-setup.ts` below the 1,000-line ceiling while preserving fixture
+ordering and teardown ownership, and the Story 12.3 test titles now carry
+stable level IDs. The independent in-app Luna/xhigh full Epic 12 review found
+four separate actionable issues. Its focused closure reviewed the repairs with
+zero new findings or regressions. The two test-harness findings are closed by
+the validator-backed browser identity generator and tenant-scoped provisioning
+cleanup regression. The two production findings are closed by the
+organisation-number and concurrent idempotency repairs; the validator
+adjudication is intentionally narrower than the original claim, recording
+false rejection of valid legal-entity numbers rather than admission of ordinary
+personnummer-shaped values.
+
+Final CI run `35631411549` passed at source
+`6edbd2d9021310b202ab0e4fc828522d4bcf20b5`: units 1,838/0/0; required DB/RLS
+1,078/0/1; browser 144/0/4; and recovery storage-loader 1/0/0. Skips are
+explicit and excluded from coverage. CI executed the new concurrent
+same-request-ID/different-content `IDEMPOTENCY_CONFLICT` regression and the
+scoped provisioning-cleanup regression, both passing.
+
+The executed local `12.X-PERF-001` baseline remains non-gating NFR evidence.
+It neither changes this test-quality score nor supplies a production numeric
+target, capacity result, or production-enablement proof.
+
 ## Appendix
 
 ### Violation Summary by Location

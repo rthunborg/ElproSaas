@@ -428,3 +428,41 @@ Previous reconciliation retained: 15 completions marked, 17 entries archived, 17
 2. Address the five retrospective actions: review evidence, browser setup extraction, stable test IDs, deployed security evidence and pilot performance baseline. The rejected verdict must be addressed before the next epic.
 
 **Next:** Human review: /bmad-checkpoint-preview codex/epic-12-wave-b1a-tenant-provisioning-and-onboarding. Project context: run /bmad-project-context refresh (recommended after an epic).
+
+## Report — 2026-09-21T17:42:37Z (final)
+
+**Epic:** `12` — 3 stories.
+**Branch:** `codex/epic-12-wave-b1a-tenant-provisioning-and-onboarding` (HEAD `6edbd2d`).
+**Pipeline status:** Clean completion after the owner-approved follow-up: all three stories and Epic 12 are done; independent review accepted, all four findings resolved, acceptance trace PASS and source CI passed.
+**Continues:** Supersedes the earlier caveated completion and rejected retrospective after the owner accepted the five recommended follow-up options on 2026-09-21. Historical attempts and checkpoints remain recorded.
+
+**Summary:** Tenant provisioning, operator console and first-admin onboarding are complete. The final fixes repair concurrent request/hash conflict handling and valid organisation-number rejection, stabilize test fixtures, and scope synthetic cleanup. Historical timing includes idle/overnight intervals and is not a measure of continuous productive effort.
+
+**Timing:** started 2026-09-17T13:23:20Z; completed 2026-09-21T16:03:45Z — elapsed 98h 40m (≈31h 55m AI-run, ≈66h 45m human/idle wait); resumed 11×.
+
+**Stories:**
+1. `12-1-platform-operator-identity-and-the-provision-tenant-command`: build done; 1 primary follow-up pass; distinct independent review and focused fix review accepted; deferred 0; covered by epic trace PASS; sprint status done.
+2. `12-2-operator-console`: build done; 1 primary follow-up pass; distinct independent review and focused fix review accepted; deferred 0; covered by epic trace PASS; sprint status done.
+3. `12-3-first-admin-onboarding-checklist`: build done; 1 primary follow-up pass; distinct independent review and focused fix review accepted; deferred 0; covered by epic trace PASS; sprint status done.
+
+**Skipped:** (none)
+
+**Epic gate:** PASS: 24/24 criteria (21 P0, 3 P1); no waiver or unresolved blocker.
+
+**TEA:** Final source CI35631411549 at6edbd2d: unit1838 passed/0 failed/0 skipped; required DB1078/0/1; browser144/0/4; separate recovery1/0/0. Skips excluded from coverage. Concurrency and cleanup regressions executed/pass. Both QA advisories closed; original96/A audit retained. NFR remains advisory CONCERNS/MEDIUM. Local RPC pilot baseline complete; internal SQL query count unobserved.
+
+**Retrospective:** accepted-with-open-items; headless refresh in _bmad-output/implementation-artifacts/epic-12-retro-2026-09-21.md; two remaining actions (production security evidence and performance target ownership). Historical rejected verdict preserved.
+
+**Overrides:** Host-required codex/ branch prefix. Owner approved the five follow-up options; merge and production enablement remain separately unapproved.
+
+**Open questions:**
+1. Set numeric performance/scalability targets only after representative hosted pilot evidence and an owner decision.
+
+**Deferred work:**
+17 historical deferred entries remain archived; no live per-story deferred entries remain.
+
+**⚠️ Needs human:**
+1. Before production provisioning enablement, release/security owners must collect redacted key-rotation, TLS, encryption-at-rest and platform perimeter evidence and obtain explicit release approval.
+2. QA + Architect/Product retain the in-progress performance action for hosted pilot evidence and numeric-target ownership.
+
+**Next:** Human review of the prepared PR; optional merge is a separate owner decision. Project context: run /bmad-project-context refresh (recommended after an epic).
