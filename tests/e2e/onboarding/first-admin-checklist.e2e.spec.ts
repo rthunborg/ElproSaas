@@ -1,8 +1,9 @@
 import { expect, test } from "@playwright/test";
 import { readFileSync } from "node:fs";
 import path from "node:path";
+import { adminQuery } from "../../factories/admin-sql";
 
-const fixture = JSON.parse(readFileSync(path.join(process.cwd(), "tests", "e2e", ".auth", "fixture.json"), "utf8")) as { onboarding: { email: string; password: string } };
+const fixture = JSON.parse(readFileSync(path.join(process.cwd(), "tests", "e2e", ".auth", "fixture.json"), "utf8")) as { onboarding: { id: string; email: string; password: string } };
 
 test("[P0] ready first Admin sees a server-derived checklist, can dismiss and restore it", async ({ page }) => {
   await page.goto("/login");
@@ -25,4 +26,25 @@ test("[P0] ready first Admin sees a server-derived checklist, can dismiss and re
   await expect(page.getByRole("button", { name: "Visa checklistan igen" })).toBeVisible();
   await page.getByRole("button", { name: "Visa checklistan igen" }).click();
   await expect(page.getByRole("heading", { name: "Kom igång" })).toBeVisible();
+
+  // Complete the final existing user-invitation fact in the disposable ready-tenant fixture.
+  // This drives the same server projection used by the dashboard without changing shared Tenant A.
+  const [onboardingTenant] = await adminQuery<{ tenant_id: string }>(
+    "select tenant_id from public.tenant_memberships where user_id=$1 and role='tenant_admin' and status='active'",
+    [fixture.onboarding.id],
+  );
+  if (!onboardingTenant) throw new Error("missing onboarding tenant fixture");
+  await adminQuery(
+    `with membership as (
+       insert into public.tenant_memberships (id, tenant_id, role, status, invited_email, invitation_expires_at)
+       values ($1, $2, 'saljare', 'invited', $3, statement_timestamp() + interval '1 hour')
+       returning id
+     )
+     insert into public.membership_roles (tenant_id, membership_id, role)
+     select $2, id, 'saljare' from membership`,
+    [crypto.randomUUID(), onboardingTenant.tenant_id, `onboarding-complete-${crypto.randomUUID()}@example.test`],
+  );
+  await page.reload();
+  await expect(page.getByRole("heading", { name: "Kom igång" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Visa checklistan igen" })).toHaveCount(0);
 });

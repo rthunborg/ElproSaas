@@ -106,6 +106,20 @@ async function readAsTenantAdmin(tenant: FixtureTenant, user: FixtureUser) {
 }
 
 describe("Story 12.3 onboarding checklist read model", () => {
+  test("[P0] a non-ready tenant Admin receives no onboarding projection", async (testCtx) => {
+    if (skipUnlessStack(testCtx, await isLocalStackReachable())) return;
+    const fixture = await createTwoTenantFixture();
+    try {
+      await adminQuery(
+        "update public.tenants set provisioning_state='pending_first_admin_invite' where id=$1",
+        [fixture.tenantA.id],
+      );
+      await expect(readAsTenantAdmin(fixture.tenantA, fixture.adminA)).resolves.toEqual({ visible: false });
+    } finally {
+      await cleanupFixture(fixture);
+    }
+  });
+
   test("[P0] an additional active membership is incomplete until it has a membership_roles assignment", async (testCtx) => {
     if (skipUnlessStack(testCtx, await isLocalStackReachable())) return;
     const fixture = await createTwoTenantFixture();

@@ -6,9 +6,35 @@ describe("Story 12.3 onboarding dismissal RLS", () => {
     const { adminQuery } = await import("../../factories/admin-sql");
     const fixture = await createTwoTenantFixture();
     try {
+      await adminQuery("update public.tenants set provisioning_state='ready' where id=$1", [fixture.tenantA.id]);
       const caller = await makeAuthedServerClient(fixture.adminA);
       const own = await caller.from("tenant_memberships").update({ onboarding_checklist_dismissed_at: new Date().toISOString() }).eq("tenant_id", fixture.tenantA.id).eq("user_id", fixture.adminA.id);
       expect(own.error).toBeNull();
+      const events = await adminQuery<{
+        actor_user_id: string | null;
+        target_id: string;
+        metadata: { dismissed?: boolean };
+      }>(
+        `select actor_user_id, target_id, metadata
+           from public.audit_events
+          where tenant_id=$1 and event_type='onboarding_checklist_presentation_changed'
+          order by created_at asc`,
+        [fixture.tenantA.id],
+      );
+      const [ownMembership] = await adminQuery<{ id: string }>(
+        "select id from public.tenant_memberships where tenant_id=$1 and user_id=$2",
+        [fixture.tenantA.id, fixture.adminA.id],
+      );
+      expect(events).toEqual([{ actor_user_id: fixture.adminA.id, target_id: ownMembership?.id, metadata: { dismissed: true } }]);
+      const restored = await caller.from("tenant_memberships").update({ onboarding_checklist_dismissed_at: null }).eq("tenant_id", fixture.tenantA.id).eq("user_id", fixture.adminA.id);
+      expect(restored.error).toBeNull();
+      const restoredEvents = await adminQuery<{ metadata: { dismissed?: boolean } }>(
+        `select metadata from public.audit_events
+          where tenant_id=$1 and event_type='onboarding_checklist_presentation_changed'
+          order by created_at asc`,
+        [fixture.tenantA.id],
+      );
+      expect(restoredEvents).toEqual([{ metadata: { dismissed: true } }, { metadata: { dismissed: false } }]);
       const foreign = await caller.from("tenant_memberships").update({ onboarding_checklist_dismissed_at: new Date().toISOString() }).eq("tenant_id", fixture.tenantB.id).eq("user_id", fixture.adminB.id);
       expect(foreign.error).toBeNull();
       const [foreignRow] = await adminQuery<{ onboarding_checklist_dismissed_at: string | null }>("select onboarding_checklist_dismissed_at from public.tenant_memberships where tenant_id=$1 and user_id=$2", [fixture.tenantB.id, fixture.adminB.id]);
