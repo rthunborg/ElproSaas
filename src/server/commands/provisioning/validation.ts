@@ -112,7 +112,11 @@ function luhn(value: string) {
 export function normalizeSwedishOrganizationNumber(value: unknown): string | null {
   if (typeof value !== "string") return null;
   const normalized = value.replace(/[\s-]/g, "");
-  return /^\d{10}$/.test(normalized) && luhn(normalized) && !/^(?:\d{2})?(?:[0-3]\d|[4-9]\d)(?:0\d|1[0-2])/.test(normalized)
+  // Skatteverket's structural discriminator is that the third digit of an
+  // organisation number is at least 2. A personnummer's third digit begins its
+  // YYMMDD month and is therefore 0 or 1. This also avoids interpreting later
+  // organisation-number digits as a date and rejecting valid legal entities.
+  return /^\d{10}$/.test(normalized) && normalized.charCodeAt(2) >= 50 && luhn(normalized)
     ? normalized : null;
 }
 

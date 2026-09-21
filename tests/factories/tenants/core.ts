@@ -388,6 +388,40 @@ export async function makeAnonServerClient(): Promise<TestServerClient> {
 export async function cleanupFixture(fixture: TwoTenantFixture): Promise<void> {
   const extraUsers = (fixture as TwoTenantFixture & { extraUsers?: readonly FixtureUser[] }).extraUsers ?? [];
   const userIds = [fixture.adminA.id, fixture.adminB.id, fixture.orphanUser.id, ...extraUsers.map((user) => user.id)];
+  const tenantIds = [fixture.tenantA.id, fixture.tenantB.id];
+
+  // Remove the two rows that prevent the historical synthetic cleanup from
+  // deleting its actors: audit rows need the test-only trigger bypass, while
+  // provisioning requests deliberately retain a non-cascading tenant and actor
+  // FK. Restore normal enforcement only for that scoped request deletion.
+  try {
+    await adminSession(async ({ query }) => {
+      await query("begin");
+      try {
+        await query("set local session_replication_role = replica");
+        await query(
+          `delete from public.audit_events where tenant_id = any($1::uuid[])`,
+          [tenantIds],
+        );
+        await query("set local session_replication_role = origin");
+        await query(
+          `delete from public.tenant_provisioning_requests where tenant_id = any($1::uuid[])`,
+          [tenantIds],
+        );
+        await query("commit");
+      } catch (e) {
+        await query("rollback");
+        throw e;
+      }
+    });
+  } catch (e) {
+    console.warn(
+      `factory cleanup: failed to delete tenants ${fixture.tenantA.id}/${
+        fixture.tenantB.id
+      } protocol rows: ${e instanceof Error ? e.message : String(e)}`,
+    );
+  }
+
   for (const id of userIds) {
     try {
       await admin().auth.admin.deleteUser(id);
@@ -401,28 +435,17 @@ export async function cleanupFixture(fixture: TwoTenantFixture): Promise<void> {
       );
     }
   }
-  // Remove the tenant rows (memberships already cascaded with the users).
-  //
-  // `audit_events.tenant_id` is `ON DELETE CASCADE`, but the append-only guard
-  // (`audit_events_block_mutation`) blocks the cascade DELETE — by design: in
-  // production audit history is immutable, so a tenant that has audit rows cannot
-  // be hard-deleted (prod soft-deletes tenants). For TEST teardown that means a
-  // plain `delete from public.tenants` LEAKS any tenant that accrued audit rows.
-  // So purge audit + tenants on a single session with `session_replication_role =
-  // replica`, which disables the user trigger (and FK triggers) for THIS superuser
-  // session ONLY. Loopback-gated via the admin pool (`assertLocalStack`); never a
-  // production path. `set local` inside the txn auto-resets on commit, and
-  // `adminSession`'s `discard all` is a belt-and-braces reset.
-  const tenantIds = [fixture.tenantA.id, fixture.tenantB.id];
+
+  // Preserve the established replica-mode root delete. Shared fixtures can
+  // contain mutually-referencing quote/acceptance/job history whose child FKs
+  // intentionally use ON DELETE RESTRICT; normal root cascades can therefore
+  // depend on constraint-trigger ordering. The protocol rows above are the
+  // narrowly scoped exception needed before this legacy teardown step.
   try {
     await adminSession(async ({ query }) => {
       await query("begin");
       try {
         await query("set local session_replication_role = replica");
-        await query(
-          `delete from public.audit_events where tenant_id = any($1::uuid[])`,
-          [tenantIds],
-        );
         await query(`delete from public.tenants where id = any($1::uuid[])`, [
           tenantIds,
         ]);

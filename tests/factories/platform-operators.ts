@@ -150,7 +150,7 @@ async function withProvisioningWriteFault(
       await query("set local role authenticated");
       await query("select set_config('request.jwt.claim.sub', $1, true)", [actorUserId]);
       await query(
-        "select set_config('request.jwt.claims', json_build_object('sub', $1, 'role', 'authenticated')::text, true)",
+        "select set_config('request.jwt.claims', json_build_object('sub', $1::text, 'role', 'authenticated')::text, true)",
         [actorUserId],
       );
       await query("select public.provision_tenant('provision', $1::jsonb)", [JSON.stringify(request)]);

@@ -43,4 +43,21 @@ Two bounded test repairs followed. The database fixture now runs temporary trigg
 
 Clean snapshot `e59914f8b60e983a273a1ee23cd93c8a7245d203` passed typecheck and focused lint for the two repaired files. Playwright resolved the new validator import, then stopped at the absent generated auth fixture before test discovery; this is not a browser-test pass. The author refreshed and checked affected review-order references.
 
-Sprint/retrospective readiness and PR draft status will be refreshed only after accepted review and CI evidence. No production deployment or database reset is included.
+[CI run 35628727745](https://github.com/rthunborg/ElproSaas/actions/runs/35628727745), at `3a985fef5b11d47916cf0299cc5d397d85ef088e`, passed verification, all browser checks, and recovery. Database results were 1,075 passed, one failed, one skipped: the revised fault helper needed an explicit text cast in a polymorphic SQL argument. The author applied that narrowly scoped correction; runtime evidence for the corrected helper remains pending.
+
+## Independent review and focused remediation
+
+The [independent review](../../test-artifacts/reviews/epic-12-independent-review-2026-09-21.md) completed over all three stories: two P1 production findings and two P2 fixture findings. The original broad report and historical failed CLI attempts remain intact. A focused review of `fa76fed..3a985fe` found no regression in the first two fixture repairs.
+
+- Concurrent same-request/different-content handling: author confirmed that the unique-violation handler lacked request/hash precedence. An append-only migration and deterministic concurrency regression are being prepared.
+- Organisation-number validation: author confirmed false rejection of valid legal-entity identifiers. The original claim of accepting ordinary YYMMDD personal identities was overstated; the existing unprefixed alternative already rejected them. The repair follows the authoritative structural organisation-number rule and will retain personal-identity rejection coverage.
+- Browser fixture input: repaired at `3a985fe`, retaining the candidate space and validating generated identifiers; browser CI passed.
+- Synthetic cleanup: orphan provisioning requests were confirmed. The fix removes only the target tenant's protocol records and preserves established replica cleanup for complex financial fixture graphs. An isolated regression also checks that unrelated tenant/request data survives.
+
+These are focused findings/fix reviews after the third broad pass; no fourth broad pass is being opened. Sprint/retrospective readiness and PR draft status will be refreshed only after accepted closure and CI evidence. No production deployment or database reset is included.
+
+## Production-fix checkpoint
+
+The author completed the organisation-number structural repair and append-only request/hash race repair. A real concurrency regression reproduced the old incorrect ALREADY_PROVISIONED response on the pre-migration loopback database; no migration/reset was applied to that shared database. Green runtime evidence will come from isolated CI applying the new migration.
+
+Clean source snapshot `acf6625fc1a0073aba8396ed05cf57d584f7eaef` passed typecheck, focused lint across seven changed TypeScript files (0 errors/warnings), and the full unit suite (1,837 passed, 0 failed, 1 existing skip excluded from coverage). Independent focused review already closed the cleanup finding and SQL cast correction at tree `bf017460d4b8049d2c57925721cf47a121062726`, with zero regressions. The final focused production review is in progress against the stable source snapshot.

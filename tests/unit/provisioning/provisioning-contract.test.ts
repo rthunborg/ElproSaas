@@ -7,6 +7,7 @@ import {
   canonicalizeProvisioningRequest,
   createProvisioningPreview,
   decodeProvisioningRequest,
+  normalizeSwedishOrganizationNumber,
 } from "@/server/commands/provisioning/validation";
 import { PERMISSION_MATRIX } from "@/server/authz/permission-matrix";
 import {
@@ -43,11 +44,18 @@ test("[P0] 12.1-UNIT-002 canonicalizes Swedish organization/VAT/email identities
     { normalizedOrganizationNumber: "5561234567", vatRegistrationNumber: "SE556123456701", firstAdminEmail: "ada+ops@example.se" },
   );
   for (const rejected of [
-    { country_code: "NO", organization_number: "5561234567" }, { country_code: "SE", organization_number: "850101-1234" },
+    { country_code: "NO", organization_number: "5561234567" }, { country_code: "SE", organization_number: "850101-1236" },
     { country_code: "SE", organization_number: "5561234568" }, { vat_registration_number: "SE556123456801" },
     { first_admin_email: "Ada Admin <ada@example.se>" }, { first_admin_email: "ada@example.se,other@example.se" },
     { first_admin_email: "ada@example.se/path" }, { first_admin_email: "ada@example.se:443" },
   ]) assert.throws(() => canonicalizeProvisioningRequest({ ...input, ...rejected }));
+});
+
+test("[P0] 12.1-UNIT-002 uses the Swedish third-digit discriminator without treating later organisation digits as a date", () => {
+  assert.equal(normalizeSwedishOrganizationNumber("556 000-0001"), "5560000001");
+  assert.equal(normalizeSwedishOrganizationNumber("556 677-0003"), "5566770003");
+  assert.equal(normalizeSwedishOrganizationNumber("850101-1236"), null);
+  assert.equal(normalizeSwedishOrganizationNumber("850215-1239"), null);
 });
 
 test("[P0] 12.1-UNIT-002 rejects coercible primitives and permits only the v1 nested request shapes", () => {

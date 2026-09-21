@@ -31,6 +31,16 @@ export default async function globalTeardown() {
                (select id from public.tenants where country_code='SE' and normalized_organization_number=$1)`,
             [provisionedOrganisationNumber],
           );
+          // The protocol request deliberately has no tenant-delete cascade in
+          // production. Restore normal FK behaviour after the immutable-audit
+          // exception, remove only this generated request, then let cascades
+          // clear the remaining synthetic tenant graph.
+          await query("set local session_replication_role = origin");
+          await query(
+            `delete from public.tenant_provisioning_requests where tenant_id in
+               (select id from public.tenants where country_code='SE' and normalized_organization_number=$1)`,
+            [provisionedOrganisationNumber],
+          );
           await query("delete from public.tenants where country_code='SE' and normalized_organization_number=$1", [provisionedOrganisationNumber]);
           await query("commit");
         } catch (error) {

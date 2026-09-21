@@ -1,15 +1,99 @@
 import { describe, expect, test } from "vitest";
+import { canonicalizeProvisioningRequest, createProvisioningPreview } from "@/server/commands/provisioning/validation";
+import { signProvisioningAttestation, type ProvisioningAttestation } from "@/server/provisioning/attestation";
+import { findProvisioningBaseline } from "@/server/provisioning/baselines";
 import {
   acceptProvisionedFirstAdminForTest,
+  cleanupPlatformOperatorFixture,
+  createPlatformOperatorFixture,
   createStrictProvisioningRequest,
   executeApprovedProvisioning,
   executeConcurrentProvisioning,
   inspectProvisioningAuditForTest,
+  makePlatformOperatorClient,
   previewProvisioningForTest,
   retryFirstAdminInviteForTest,
+  type StrictProvisioningRequest,
 } from "../../factories/platform-operators";
-import { isLocalStackReachable } from "../../support/test-env";
+import { adminQuery, adminSession } from "../../factories/admin-sql";
+import {
+  isLocalStackReachable,
+  LOCAL_TEST_PROVISIONING_ATTESTATION_KEY_ID,
+  LOCAL_TEST_PROVISIONING_ATTESTATION_SECRET,
+} from "../../support/test-env";
 import { skipUnlessStack } from "../../support/stack-gate";
+
+function approvedProvisioningPayload(input: StrictProvisioningRequest, actorUserId: string) {
+  const canonical = canonicalizeProvisioningRequest(input);
+  const baseline = findProvisioningBaseline(input.baseline_profile_id, input.baseline_profile_version);
+  if (!baseline) throw new Error("missing provisioning baseline");
+  const preview = createProvisioningPreview(input, baseline);
+  const issuedAt = new Date().toISOString();
+  const attestation: ProvisioningAttestation = {
+    action: "provision",
+    actorUserId,
+    requestId: input.request_id,
+    requestHash: canonical.canonicalRequestHash,
+    organizationNumber: canonical.normalizedOrganizationNumber,
+    firstAdminEmail: canonical.firstAdminEmail,
+    previewHash: preview.preview_hash,
+    explicitApproval: true,
+    baselineId: baseline.id,
+    baselineVersion: baseline.version,
+    baselineContentHash: baseline.contentHash,
+    tokenHash: "0".repeat(64),
+    reservationId: "",
+    dispatchGeneration: 0,
+    approvalGeneration: 1,
+    outcome: "",
+    keyId: LOCAL_TEST_PROVISIONING_ATTESTATION_KEY_ID,
+    issuedAt,
+    expiresAt: new Date(Date.parse(issuedAt) + 120_000).toISOString(),
+  };
+  return {
+    request: input,
+    preview_hash: preview.preview_hash,
+    explicit_approval: true,
+    attestation,
+    attestation_signature: signProvisioningAttestation(attestation, LOCAL_TEST_PROVISIONING_ATTESTATION_SECRET),
+  };
+}
+
+async function cleanupProvisionedRequest(requestId: string) {
+  await adminSession(async ({ query }) => {
+    await query("begin");
+    try {
+      const rows = await query<{ tenant_id: string }>(
+        "select tenant_id from public.tenant_provisioning_requests where request_id=$1::uuid",
+        [requestId],
+      );
+      const tenantId = rows[0]?.tenant_id;
+      if (tenantId) {
+        await query("set local session_replication_role = replica");
+        await query("delete from public.audit_events where tenant_id=$1::uuid", [tenantId]);
+        await query("set local session_replication_role = origin");
+        await query("delete from public.tenant_provisioning_requests where request_id=$1::uuid", [requestId]);
+        await query("delete from public.tenants where id=$1::uuid", [tenantId]);
+      }
+      await query("commit");
+    } catch (error) {
+      await query("rollback");
+      throw error;
+    }
+  });
+}
+
+async function waitUntilBlockedBy(blockerPid: number) {
+  for (let attempt = 0; attempt < 100; attempt += 1) {
+    const [state] = await adminQuery<{ blocked: boolean }>(
+      "select exists(select 1 from pg_catalog.pg_stat_activity where $1::integer = any(pg_catalog.pg_blocking_pids(pid))) as blocked",
+      [blockerPid],
+    );
+    if (state?.blocked) return;
+    await new Promise((resolve) => setTimeout(resolve, 25));
+  }
+  throw new Error("concurrent provisioning request did not block on the uncommitted winner");
+}
 
 describe("provision_tenant command — Story 12.1 ATDD", () => {
   test("[P0] 12.1-INT-003 atomically persists canonical identity/request, exact baseline, tenant, invited first Admin, pending state, and audit before Auth", async (testCtx) => {
@@ -141,6 +225,62 @@ describe("provision_tenant command — Story 12.1 ATDD", () => {
       alreadyProvisionedCount: 1,
       providerCallCount: 0,
     });
+  });
+
+  test("[P0] 12.1-INT-006-R1 concurrent same request ID with changed canonical content returns IDEMPOTENCY_CONFLICT", async (testCtx) => {
+    if (skipUnlessStack(testCtx, await isLocalStackReachable())) return;
+    const fixture = await createPlatformOperatorFixture();
+    const input = await createStrictProvisioningRequest();
+    const changed = { ...input, legal_name: `${input.legal_name} changed` };
+
+    try {
+      const loserClient = await makePlatformOperatorClient(fixture.operator);
+      const winnerPayload = approvedProvisioningPayload(input, fixture.operator.id);
+      const loserPayload = approvedProvisioningPayload(changed, fixture.operator.id);
+      let winner: { tenantId?: string } | undefined;
+      let loserPromise: Promise<Awaited<ReturnType<typeof loserClient.rpc>>> | undefined;
+
+      await adminSession(async ({ query }) => {
+        await query("begin");
+        try {
+          const [backend] = await query<{ pid: number }>("select pg_catalog.pg_backend_pid() as pid");
+          await query("set local role authenticated");
+          await query("select set_config('request.jwt.claim.sub', $1, true)", [fixture.operator.id]);
+          await query(
+            "select set_config('request.jwt.claims', json_build_object('sub', $1::text, 'role', 'authenticated')::text, true)",
+            [fixture.operator.id],
+          );
+          const [created] = await query<{ result: { tenantId?: string } }>(
+            "select public.provision_tenant('provision', $1::jsonb) as result",
+            [JSON.stringify(winnerPayload)],
+          );
+          winner = created?.result;
+          loserPromise = Promise.resolve(
+            loserClient.rpc("provision_tenant", {
+              p_action: "provision",
+              p_request: loserPayload,
+            }),
+          );
+          if (!backend) throw new Error("missing provisioning blocker backend");
+          await waitUntilBlockedBy(backend.pid);
+          await query("commit");
+        } catch (error) {
+          await query("rollback");
+          throw error;
+        }
+      });
+
+      if (!loserPromise) throw new Error("concurrent provisioning request was not started");
+      const loser = await loserPromise;
+
+      expect(winner).toMatchObject({ tenantId: expect.any(String) });
+      expect(loser.data).toBeNull();
+      expect(loser.error?.message).toContain("IDEMPOTENCY_CONFLICT");
+      expect(loser.error?.message).not.toContain("ALREADY_PROVISIONED");
+    } finally {
+      await cleanupProvisionedRequest(input.request_id);
+      await cleanupPlatformOperatorFixture(fixture);
+    }
   });
 
   test("[P0] 12.1-INT-008 explicit retry records requested/failed truthfully, rotates a fresh generation, and limits dispatch four", async (testCtx) => {
