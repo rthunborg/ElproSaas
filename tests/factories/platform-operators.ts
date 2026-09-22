@@ -113,54 +113,23 @@ const FAULT_TABLES = {
 async function withProvisioningWriteFault(
   point: keyof typeof FAULT_TABLES,
   input: StrictProvisioningRequest,
-  actorUserId: string,
+  client: SupabaseClient,
   request: Record<string, unknown>,
 ): Promise<never> {
-  const suffix = crypto.randomUUID().replaceAll("-", "");
-  const fn = `test_provisioning_fault_${suffix}`;
-  const trigger = `test_provisioning_fault_trigger_${suffix}`;
-  const table = FAULT_TABLES[point];
   const organizationNumber = input.organization_number.replace(/[\s-]/g, "");
-  const target = point === "idempotency"
-    ? `new.request_id = '${input.request_id}'::uuid`
-    : point === "tenant" || point === "baseline"
-      ? `new.country_code = 'SE' and new.normalized_organization_number = '${organizationNumber}'`
-      : `exists (select 1 from public.tenants t where t.id = new.tenant_id and t.normalized_organization_number = '${organizationNumber}')`;
-  // The original cross-connection DDL installed/dropped a trigger while the
-  // full suite concurrently wrote these tables. Keep the controlled database
-  // fault, but contain its DDL and the authenticated RPC call in one rollback.
-  // Lock in the RPC's write order before acquiring a trigger lock, so this test
-  // never holds a later relation while waiting on an earlier writer.
-  await adminSession(async ({ query }) => {
-    await query("begin");
-    try {
-      for (const relation of [
-        "public.tenants",
-        "public.tenant_memberships",
-        "public.membership_roles",
-        "public.tenant_provisioning_invites",
-        "public.tenant_provisioning_requests",
-        "public.company_settings",
-        "public.audit_events",
-      ]) {
-        await query(`lock table ${relation} in access exclusive mode`);
-      }
-      await query(`create function public.${fn}() returns trigger language plpgsql as $$ begin if ${target} then raise exception 'test provisioning ${point} fault'; end if; return new; end $$`);
-      await query(`create trigger ${trigger} before insert on public.${table} for each row execute function public.${fn}()`);
-      await query("set local role authenticated");
-      await query("select set_config('request.jwt.claim.sub', $1, true)", [actorUserId]);
-      await query(
-        "select set_config('request.jwt.claims', json_build_object('sub', $1::text, 'role', 'authenticated')::text, true)",
-        [actorUserId],
-      );
-      await query("select public.provision_tenant('provision', $1::jsonb)", [JSON.stringify(request)]);
-      throw new Error(`test provisioning ${point} fault did not fire`);
-    } catch (error) {
-      await query("rollback");
-      const message = error instanceof Error ? error.message : String(error);
-      if (!message.includes(`test provisioning ${point} fault`)) throw error;
-    }
-  });
+  // Seed installs these private test triggers once. Per-case DML avoids DDL
+  // locks against parallel writers and lets the real RPC prove its rollback.
+  await adminQuery(
+    "insert into test_support.forced_provisioning_failures (request_id, normalized_organization_number, fault_point) values ($1::uuid, $2, $3)",
+    [input.request_id, organizationNumber, point],
+  );
+  try {
+    const { error } = await client.rpc("provision_tenant", { p_action: "provision", p_request: request });
+    if (!error) throw new Error(`provisioning fault injection did not fire at ${point}`);
+    if (error.code !== "P0001" || error.message !== `test provisioning ${point} fault`) throw error;
+  } finally {
+    await adminQuery("delete from test_support.forced_provisioning_failures where request_id = $1::uuid", [input.request_id]);
+  }
 
   const count = await admin().from("tenants").select("id", { count: "exact", head: true })
     .eq("country_code", "SE").eq("normalized_organization_number", organizationNumber);
@@ -278,7 +247,7 @@ export async function executeApprovedProvisioning(
   });
   const failAt = options.failAt;
   if (typeof failAt === "string" && failAt in FAULT_TABLES) {
-    await withProvisioningWriteFault(failAt as keyof typeof FAULT_TABLES, input, fixture.operator.id, request);
+    await withProvisioningWriteFault(failAt as keyof typeof FAULT_TABLES, input, client, request);
   }
   const response = await invoke();
   const { data, error } = response;

@@ -82,6 +82,64 @@ drop trigger if exists test_only_forced_audit_failure on public.audit_events;
 create trigger test_only_forced_audit_failure
   before insert on public.audit_events
   for each row execute function test_support.fail_requested_audit_event();
+
+-- Story 12.1 uses the same seed-only approach: never acquire runtime DDL locks
+-- across the provisioning tables while parallel tests write memberships/FKs.
+create table if not exists test_support.forced_provisioning_failures (
+  request_id uuid primary key,
+  normalized_organization_number text not null unique,
+  fault_point text not null check (fault_point in ('tenant', 'baseline', 'membership', 'idempotency', 'audit'))
+);
+revoke all on table test_support.forced_provisioning_failures
+  from public, anon, authenticated, service_role;
+
+create or replace function test_support.fail_requested_provisioning_write()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_point text;
+begin
+  if tg_table_name = 'tenants' then
+    select f.fault_point into v_point
+      from test_support.forced_provisioning_failures f
+     where new.country_code = 'SE'
+       and f.normalized_organization_number = new.normalized_organization_number
+       and f.fault_point in ('tenant', 'baseline');
+  elsif tg_table_name = 'tenant_provisioning_requests' then
+    select f.fault_point into v_point
+      from test_support.forced_provisioning_failures f
+     where f.request_id = new.request_id and f.fault_point = 'idempotency';
+  else
+    select f.fault_point into v_point
+      from test_support.forced_provisioning_failures f
+      join public.tenants t on t.normalized_organization_number = f.normalized_organization_number
+     where t.id = new.tenant_id and t.country_code = 'SE'
+       and f.fault_point = case tg_table_name
+         when 'tenant_memberships' then 'membership'
+         when 'audit_events' then 'audit'
+       end;
+  end if;
+  if v_point is not null then
+    raise exception 'test provisioning % fault', v_point using errcode = 'P0001';
+  end if;
+  return new;
+end;
+$$;
+revoke execute on function test_support.fail_requested_provisioning_write()
+  from public, anon, authenticated, service_role;
+
+do $$
+declare v_table text;
+begin
+  foreach v_table in array array['tenants', 'tenant_memberships', 'tenant_provisioning_requests', 'audit_events'] loop
+    execute format('drop trigger if exists test_only_forced_provisioning_failure on public.%I', v_table);
+    execute format('create trigger test_only_forced_provisioning_failure before insert on public.%I for each row execute function test_support.fail_requested_provisioning_write()', v_table);
+  end loop;
+end;
+$$;
 -- seed.sql — minimal deterministic baseline ONLY (architecture §18; test-design B1).
 --
 -- Loaded by `supabase db reset` AFTER migrations. Intentionally EMPTY of
