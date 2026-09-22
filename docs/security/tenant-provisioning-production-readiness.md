@@ -9,7 +9,9 @@ procedure has been completed and explicitly approved.
 It supplements the Story 12.1 Decision 8A contract in
 [Security Guardrails](security-guardrails.md) and the planned rollout in
 [Demo Environment](../process/demo-environment.md). It creates no deployment
-configuration, provider change, operational target, or evidence claim.
+provider change or hosted evidence claim. The repository controls and target
+perimeter policy are now specified by
+[ADR-B010](../decisions/ADR-B010-tenant-provisioning-production-enablement.md).
 
 ## Decision and ownership
 
@@ -17,7 +19,7 @@ configuration, provider change, operational target, or evidence claim.
 | --- | --- |
 | Release operator | Assembles the redacted evidence pack for the exact production deployment and records the enablement decision. Does not approve their own incomplete evidence. |
 | Security owner | Reviews the attestation-key, hosted-data-protection, and perimeter evidence against Decision 8A. Confirms that unresolved items are either proven or keep provisioning disabled. |
-| Platform/security programme | Owns the rate-limit, CORS, and security-header policy and its hosted evidence. It supplies the applicable policy/version and observed configuration; Epic 12 does not create a separate policy or silently choose values. |
+| Platform/security programme | Owns the ADR-B010 rate-limit, CORS, security-header policy, CSP exception and hosted verification. Supplies observed configuration and reviews changes before enablement. |
 | Release approver | Gives the recorded go/no-go approval after the release operator and security owner have completed their checks. |
 
 These are responsibilities, not person assignments. The normal PR review order,
@@ -34,6 +36,9 @@ the production deployment, application revision, database/project target, date,
 reviewing roles, and final approval or refusal. The PR or release description
 may link to that record and state its outcome, but must contain only redacted
 metadata.
+
+Use the [redacted release evidence template](tenant-provisioning-release-evidence-template.md)
+to assemble the record. Its unfilled fields are not evidence or approval.
 
 Never store in the repository, PR, screenshots, logs, audit events, or the
 release record itself: secret values, attestation values, raw invitation tokens,
@@ -55,6 +60,12 @@ catalogue result does not substitute for this hosted evidence.
   target.
 - Confirm the deployment contains the compatible server-only signer before the
   enforcement/removal migration is relied on.
+- Keep `TENANT_PROVISIONING_ENABLED=false` (or absent in production) until the
+  enablement approval. Only the exact value `true` enables the server operator
+  boundary; it never replaces identity or database allow-list authorization.
+  Verify disabled page/action access on the exact hosted deployment, retaining
+  only generic denial results. Playwright's local production-mode opt-in is not
+  hosted approval.
 - Confirm the only callable provisioning writer remains the authenticated
   `provision_tenant` RPC; its database owner, grants, filtered Vault access,
   search path, and fail-closed attestation checks match the approved Decision
@@ -111,21 +122,43 @@ accepts evidence for it.
 
 ### 4. API perimeter and browser policy
 
-The platform/security programme must supply the applicable current policy and
-redacted hosted verification for the operator and provisioning surfaces:
+The platform/security programme supplies redacted hosted verification of ADR-B010:
 
-- which rate-limit control and scope apply, including the provider/service
-  boundary that enforces it;
-- the CORS allow-list or equivalent browser-origin policy and the endpoints it
-  covers; and
-- the security-header policy actually delivered at the public boundary,
-  including any intentional exception and its owner.
+- Vercel WAF: production environment, exact `/operator` or path prefix
+  `/operator/`, all methods, per-IP fixed 60-second window, initial threshold
+  120 requests, excess action `rate_limit` returning **429** (not `deny`/403).
+  Keep automatic DDoS mitigation enabled. Include console GETs, RSC requests
+  and Server Action POSTs; exclude unrelated prefixes. Counters are regional,
+  so this is not a globally atomic quota. Inspect actual plan support and any
+  existing rules/bypasses before staging.
+- Rollout: stage with excess action `log`; inspect the rule and staged diff;
+  have the user publish and review matched traffic/shared-IP impact. Preserve
+  production logging while testing a separate preview-scoped 429 rule, again
+  inspected and published by the user. Confirm ordinary console navigation and
+  submission work and excess preview requests receive 429. Then stage the
+  production 429 rule, inspect its exact scope/diff, and have the user publish.
+  Record rule ID, publication, observation and final production configuration.
+  Watch the first 24 hours and keep a reviewed log-mode rollback available.
+  Agent work may stage rules, but publication remains user-owned under the
+  [Vercel firewall skill](https://github.com/vercel/vercel-plugin/blob/main/skills/vercel-firewall/SKILL.md).
+- App CORS: same-origin operator pages/Server Actions, Next Origin versus
+  Host/X-Forwarded-Host validation, no additional allowed origins or permissive
+  ACAO. One-use operator grant cookies are HttpOnly, SameSite=Strict, Secure
+  in production and scoped to `/operator`; these claims do not describe all
+  Supabase auth cookies. Hosted Supabase CORS is not authorization: operator
+  allow-list and Decision 8A HMAC checks remain mandatory for direct RPCs.
+- Headers: verify `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`,
+  `Referrer-Policy: no-referrer`, and
+  `Permissions-Policy: camera=(), microphone=(), geolocation=()` on hosted
+  application responses, plus Vercel-owned HSTS. CSP remains the explicit
+  platform/security-owned exception in ADR-B010, requiring owner acceptance;
+  a separate nonce/hydration implementation and verification task must address
+  it. Do not introduce an untested CSP to satisfy a checklist.
 
-The release operator verifies that this evidence covers the production operator
-surface and its provisioning requests, and that it does not expand the closed
-unauthenticated perimeter. No numeric rate, latency target, header value, or
-CORS origin is defined by this procedure. A missing shared policy or missing
-hosted proof is an unresolved release item, not permission to assume a default.
+The release operator verifies the final production policy covers provisioning
+requests without expanding the closed unauthenticated perimeter. Source config,
+an unpublished draft or log-only rule is not evidence of hosted enforcement.
+Missing policy evidence keeps real provisioning disabled.
 
 ## Release approval checkpoint
 
@@ -149,6 +182,18 @@ failure requires the relevant evidence to be refreshed before provisioning is
 enabled again. This checkpoint does not replace future independent PR review,
 CI, required database/RLS evidence, manifest governance, or Phase B scope
 constraints.
+
+## Containment
+
+Disable/remove the affected operator allow-list access through the approved
+database operational path for immediate denial on subsequent authorization.
+Set `TENANT_PROVISIONING_ENABLED=false` and deploy to every serving production
+instance to close new console entries. Vercel environment edits require a new
+deployment; verify its active revision and denial instead of assuming an edit
+changed already deployed code. Remove allow-list access when containing old
+deployments or direct RPC callers as well. Neither control cancels work already
+in flight or reverses completed provisioning. Preserve audit/provisioning data
+and reconcile uncertain invitation outcomes before a separately approved restart.
 
 ## Release evidence still to collect
 
