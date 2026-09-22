@@ -34,6 +34,10 @@ import {
   FORBIDDEN_DEFERRED_CATEGORIES,
   isForbiddenDeferredCategory,
 } from "@/features/files/deferred-categories";
+import {
+  PERMISSION_MATRIX,
+  resolveCapability,
+} from "@/server/authz/permission-matrix";
 
 const PINNED_OWNER_TYPES = [
   "customer",
@@ -83,10 +87,10 @@ test("10.1-UNIT-INV-03: fileOwnerTypesFromManifest(SCOPE_MANIFEST) equals the 7 
 });
 
 // ── EB-A10 platform scope: expressible + coherent, and only on the enumerated pending module ──
-test("10.1-UNIT-INV-04 (EB-A10): the ONLY platform-scoped module is `provisioning`, and it is pending in 10.1", () => {
+test("[P0] 12.1-STATIC-000 (EB-A10): the ONLY platform-scoped module is active `provisioning`", () => {
   const platform = SCOPE_MANIFEST.modules.filter((m) => (m as ScopeModule).scope === "platform");
   assert.deepEqual(platform.map((m) => m.id), ["provisioning"]);
-  assert.equal(platform[0].status, "pending", "the E12 operator console is not live in 10.1");
+  assert.equal(platform[0].status, "active", "the Epic 12 operator console must remain active");
 });
 
 test("10.1-UNIT-INV-05 (EB-A10): a platform-scoped ACTIVE module with surface validates coherent (scope class is expressible)", () => {
@@ -128,6 +132,45 @@ test("10.1-UNIT-INV-07: isForbiddenDeferredCategory rejects active Phase-A categ
       isForbiddenDeferredCategory(allowed),
       false,
       `"${allowed}" is not a deferred-module deny token and must not be forbidden`,
+    );
+  }
+});
+
+test("[P0] 12.1-STATIC-001 provisioning activates only as a platform module and its metadata is non-granting to every tenant role", () => {
+  const provisioning = SCOPE_MANIFEST.modules.find(
+    (module) => module.id === "provisioning",
+  );
+  assert.equal(provisioning?.status, "active");
+  assert.equal(provisioning?.scope, "platform");
+
+  const platformRow = (
+    PERMISSION_MATRIX as unknown as Record<
+      string,
+      Record<string, Record<string, unknown>>
+    >
+  ).provisioning?.["Platform.Operator.Access"];
+  assert.deepEqual(platformRow, {
+    roles: [],
+    scope: "platform",
+    tenantGrantable: false,
+    tenantRoles: [],
+  });
+
+  for (const role of [
+    "tenant_admin",
+    "projektledare",
+    "montor",
+    "saljare",
+    "ekonomi",
+  ]) {
+    assert.equal(
+      resolveCapability({
+        roles: [role],
+        module: "provisioning",
+        capability: "Platform.Operator.Access",
+      }).granted,
+      false,
+      `${role} must not receive platform authority from tenant RBAC`,
     );
   }
 });

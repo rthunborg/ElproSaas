@@ -29,6 +29,20 @@ begin
 end;
 $$;
 
+-- Story 12.1 local-only fixture. Deployment provisions this independently; it
+-- never supplies a fallback secret to application code.
+do $$
+declare v_secret_id uuid;
+begin
+  select id into v_secret_id from vault.secrets where name = 'tenant_provisioning_attestation_test_v1';
+  if v_secret_id is null then
+    perform vault.create_secret('local-test-only-provisioning-attestation-secret-v1', 'tenant_provisioning_attestation_test_v1', 'Story 12.1 local integration-test HMAC fixture only');
+  else
+    perform vault.update_secret(v_secret_id, 'local-test-only-provisioning-attestation-secret-v1', 'tenant_provisioning_attestation_test_v1', 'Story 12.1 local integration-test HMAC fixture only');
+  end if;
+end;
+$$;
+
 -- Story 10.8 local/integration-test fault-injection fixture. Keep the trigger
 -- installed once by the reset/seed phase so parallel Vitest files never execute
 -- CREATE/DROP TRIGGER against the shared audit_events table while other

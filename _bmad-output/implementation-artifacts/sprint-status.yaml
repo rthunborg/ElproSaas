@@ -60,7 +60,7 @@
 # use the current Epic 10 statuses and approved corrective-story entries below.
 
 generated: 2026-06-12
-last_updated: 09-16-2026 16:10  # ADR-B009 connected-field course correction verified; governance Story 10.7 done, no PWA/offline functionality delivered.
+last_updated: 09-21-2026 19:39  # ADR-B009 connected-field course correction verified; governance Story 10.7 done, no PWA/offline functionality delivered.
 project: ElproSaas
 project_key: NOKEY
 tracking_system: file-system
@@ -220,13 +220,13 @@ development_status:
   11-4-roles-surface-effective-permissions-and-the-per-role-test-harness: done
   epic-11-retrospective: done
 
-  epic-12: backlog
-  12-1-platform-operator-identity-and-the-provision-tenant-command: backlog
-  12-2-operator-console: backlog
+  epic-12: done
+  12-1-platform-operator-identity-and-the-provision-tenant-command: done
+  12-2-operator-console: done
   # 12-3 keeps the N-2 seam only: no public signup surface may exist (FR76);
   # admin/operator-driven provisioning proceeds regardless of N-2.
-  12-3-first-admin-onboarding-checklist: backlog
-  epic-12-retrospective: optional
+  12-3-first-admin-onboarding-checklist: done
+  epic-12-retrospective: done
 
   epic-13: backlog
   13-1-authenticated-background-runner-and-producer-registry: backlog
@@ -425,3 +425,42 @@ action_items:
     owner: "BMAD tooling owner"
     status: open
     ref: "_bmad-output/implementation-artifacts/epic-11-retro-2026-09-11.md"
+  - id: "epic-12-retro-item-10-complete-independent-cross-model-review"
+    epic: 12
+    action: "Complete independent cross-model review evidence for all three Epic 12
+      stories, then make the authorized sprint-status transitions from review only
+      when that evidence is accepted."
+    owner: "Epic 12 delivery owner"
+    status: done
+    ref: "C:\\DEV\\ElproSaas\\_bmad-output\\implementation-artifacts\\epic-12-retro-2026-09-21.md"
+  - id: "epic-12-retro-item-11-extract-epic-12-operator-onboarding-brow"
+    epic: 12
+    action: "Extract Epic 12 operator/onboarding browser seed responsibilities from
+      tests/e2e/global-setup.ts into a focused helper and retain a coordinator below
+      the 1,000-line support-file ceiling."
+    owner: "QA/test owner"
+    status: done
+    ref: "C:\\DEV\\ElproSaas\\_bmad-output\\implementation-artifacts\\epic-12-retro-2026-09-21.md"
+  - id: "epic-12-retro-item-12-add-stable-12-3-level-and-sequence-ident"
+    epic: 12
+    action: "Add stable 12.3 level and sequence identifiers to the affected Story
+      12.3 test titles while preserving their behavioural prose."
+    owner: "QA/test owner"
+    status: done
+    ref: "C:\\DEV\\ElproSaas\\_bmad-output\\implementation-artifacts\\epic-12-retro-2026-09-21.md"
+  - id: "epic-12-retro-item-13-before-production-provisioning-enablemen"
+    epic: 12
+    action: "Before production provisioning enablement, preserve redacted evidence
+      of attestation-key rollout and bounded rotation plus hosted TLS and encryption-at-rest
+      configuration."
+    owner: "Release operator/security owner"
+    status: open
+    ref: "C:\\DEV\\ElproSaas\\_bmad-output\\implementation-artifacts\\epic-12-retro-2026-09-21.md"
+  - id: "epic-12-retro-item-14-execute-12-x-perf-001-against-a-document"
+    epic: 12
+    action: "Execute 12.X-PERF-001 against a documented pilot dataset and record elapsed
+      time and console query count/latency; establish a numeric gate only after an
+      owner decision."
+    owner: "QA + Architect/Product"
+    status: in-progress
+    ref: "C:\\DEV\\ElproSaas\\_bmad-output\\implementation-artifacts\\epic-12-retro-2026-09-21.md"

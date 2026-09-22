@@ -44,6 +44,7 @@ import {
 } from "../factories/tenants";
 import { adminQuery } from "../factories/admin-sql";
 import { seedQuoteFileFixtures } from "./seed-quote-file-fixtures";
+import { seedEpic12BrowserFixtures } from "./seed-epic-12-browser-fixtures";
 import { RETRY_FIXTURE_DUE_DATE } from "./retry-fixture-clock";
 
 export const FIXTURE_FILE = path.join(
@@ -82,6 +83,7 @@ function noDeductionTaxInput(
 
 export default async function globalSetup() {
   const base = await createTwoTenantFixture();
+  const { operatorConsole } = await seedEpic12BrowserFixtures({ base, token });
   // Story 11.2 ATDD runs the real app as two non-admin members of the same
   // tenant that owns every existing browser seed. Their credentials are written
   // only to the gitignored per-run fixture file below and cleaned with the base.
@@ -806,6 +808,10 @@ export default async function globalSetup() {
 
   const fixture = {
     ...base,
+    operator: base.adminB,
+    membershiplessOperator: base.orphanUser,
+    operatorConsole,
+    onboarding: base.adminB,
     extraUsers: roleAware.extraUsers,
     roleAware: {
       saljare: roleAware.users.saljare,

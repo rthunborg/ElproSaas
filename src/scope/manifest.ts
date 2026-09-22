@@ -214,13 +214,14 @@ export const SCOPE_MANIFEST: ScopeManifest = {
       id: "provisioning",
       label: "Tenant Provisioning & Onboarding",
       wave: "B1a",
-      status: "pending",
+      status: "active",
       epic: "E12",
       // EB-A10: the E12 operator console + platform_operators are PLATFORM-scoped (an enumerated
       // exception class), not a tenant module. Marked here so the schema expresses it; not live in 10.1.
       scope: "platform",
+      activatedAt: "2026-09-19",
       navItems: [],
-      tenantTables: [],
+      tenantTables: ["tenant_provisioning_requests", "tenant_provisioning_invites"],
       widgets: [],
       notificationCategories: [],
       publicSurfaces: [],

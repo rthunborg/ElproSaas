@@ -62,7 +62,7 @@ function sensitiveEntitlementsFor(role: TenantRole): string[] {
   const activeModuleIds = new Set(activeModules().map((module) => module.id));
   return Object.entries(SENSITIVE_FIELD_MATRIX)
     .filter(([module]) => activeModuleIds.has(module))
-    .flatMap(([module, fields]) => Object.entries(fields)
+    .flatMap(([module, fields]) => (Object.entries(fields) as Array<[string, MatrixRow]>)
       .filter(([, row]) => row.roles.includes(role))
       .map(([field]) => `${module}.${field}`))
     .sort(collator.compare);

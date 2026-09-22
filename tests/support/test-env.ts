@@ -48,6 +48,11 @@ export const LOCAL_TEST_QUOTE_PDF_KEY_ID = "test_v1";
 export const LOCAL_TEST_QUOTE_PDF_SECRET =
   "local-test-only-quote-pdf-attestation-secret-v1";
 
+/** Story 12.1 local-only provisioning attestation pair; matches seed.sql. */
+export const LOCAL_TEST_PROVISIONING_ATTESTATION_KEY_ID = "test_v1";
+export const LOCAL_TEST_PROVISIONING_ATTESTATION_SECRET =
+  "local-test-only-provisioning-attestation-secret-v1";
+
 /**
  * The local stack's default legacy service-role JWT (CLI `SERVICE_ROLE_KEY`).
  * TEST-ONLY — bypasses RLS for fixture setup. Universal local-demo key. Override

@@ -93,6 +93,9 @@ async function seedEveryTenantTable(tenantId: string, actorId: string): Promise<
   if (!membershipRole) throw new Error("role harness seed: membership role missing");
   const membershipOperation = (await adminQuery<{ id: string }>("insert into public.membership_admin_operations (id, tenant_id, actor_user_id, membership_id, action, outcome) values (gen_random_uuid(), $1, $2, $3, 'invite', 'succeeded') returning id", [tenantId, actorId, membership]))[0]?.id;
   if (!membershipOperation) throw new Error("role harness seed: membership operation missing");
+  const provisioningRequest = (await adminQuery<{ request_id: string }>("insert into public.tenant_provisioning_requests (request_id, canonical_request_hash, tenant_id, actor_user_id, preview_hash) values (gen_random_uuid(), repeat('a',64), $1, $2, repeat('b',64)) returning request_id", [tenantId, actorId]))[0]?.request_id;
+  const provisioningInvite = (await adminQuery<{ tenant_id: string }>("insert into public.tenant_provisioning_invites (tenant_id, membership_id, token_hash, normalized_email) values ($1, $2, repeat('c',64), 'role-harness@example.test') returning tenant_id", [tenantId, membership]))[0]?.tenant_id;
+  if (!provisioningRequest || !provisioningInvite) throw new Error("role harness seed: provisioning rows missing");
   return {
     tenants: tenantId, tenant_memberships: membership, membership_roles: membershipRole,
     membership_admin_operations: membershipOperation, audit_events: auditEvent,
@@ -104,6 +107,7 @@ async function seedEveryTenantTable(tenantId: string, actorId: string): Promise<
     quote_events: quoteEvent, quote_review_authorizations: quoteReviewAuthorization,
     quote_acceptances: quoteAcceptance, quote_lost_reasons: quoteLostReason,
     quote_follow_ups: quoteFollowUp, jobs: job, job_events: jobEvent,
+    tenant_provisioning_requests: provisioningRequest, tenant_provisioning_invites: provisioningInvite,
   };
 }
 
@@ -128,6 +132,12 @@ describe("Story 11.4 role harness", () => {
         ? selfTableIds[obligation.role][table]
         : ownTableIds[table];
       const own = await adapter.read(clients[obligation.role] as never, ownId);
+      if (adapter.directReadDenied) {
+        expect(own.error, obligation.id).not.toBeNull();
+        const foreign = await adapter.read(clients[obligation.role] as never, foreignTableIds[table]);
+        expect(foreign.error, `${obligation.id}:foreign`).not.toBeNull();
+        continue;
+      }
       expect(own.error, obligation.id).toBeNull();
       expect((own.data ?? []).length > 0, obligation.id).toBe(obligation.expected === "allowed");
       const foreign = await adapter.read(clients[obligation.role] as never, foreignTableIds[table]);

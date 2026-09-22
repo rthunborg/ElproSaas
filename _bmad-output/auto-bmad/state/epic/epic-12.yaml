@@ -1,0 +1,102 @@
+# auto-bmad per-story state — written by scripts/state_update.py (full stable schema;
+# see references/state-and-resume.md). Prose belongs in reports/{key}.md, not here.
+story_key: epic-12
+epic_num: 12
+story_num: null
+story_suffix: ""
+story_source: sprint
+spec_folder: null
+story_id: null
+branch: codex/epic-12-wave-b1a-tenant-provisioning-and-onboarding
+status: done
+updated_at: "2026-09-21T17:42:34Z"
+started_at: "2026-09-17T13:23:20Z"
+completed_at: "2026-09-21T16:03:45Z"
+active_seconds: 114905
+timing_anchor: null
+is_first_in_epic: false
+is_last_in_epic: false
+git_mode: remote
+base_branch: main
+selected_phase: retrospective
+selected_role: retrospective-delegate
+selected_profile: default
+selected_model: gpt-5.6-terra
+selected_effort: medium
+selected_host: codex
+selected_tier: subagents
+selected_route: subagent
+escalation_reason: "Refresh the Epic12 retrospective after owner-approved independent review recovery, fixes, QA cleanup, advisory baseline and green CI."
+routing_ledger:
+  - "{\"effort\":\"xhigh\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-sol\",\"phase\":\"tea_epic\",\"profile\":\"critical\",\"role\":\"tea-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"medium\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-luna\",\"phase\":\"tea_triage\",\"profile\":\"light\",\"role\":\"test-risk-triage\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"xhigh\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-sol\",\"phase\":\"tea_epic\",\"profile\":\"critical\",\"role\":\"tea-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"high\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-terra\",\"phase\":\"tea_epic_audit\",\"profile\":\"standard\",\"role\":\"tea-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"high\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-terra\",\"phase\":\"deferred_reconcile\",\"profile\":\"standard\",\"role\":\"deferred-reconciler\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"medium\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-terra\",\"phase\":\"retrospective\",\"profile\":\"default\",\"role\":\"retrospective-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"xhigh\",\"escalation_reason\":\"Owner-approved independent review recovery via in-app subagent after historical external CLI failures; no historical evidence rewritten.\",\"host\":\"codex\",\"model\":\"gpt-5.6-luna\",\"phase\":\"cross_model_layer\",\"profile\":\"diverse_review\",\"role\":\"independent-reviewer\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"xhigh\",\"escalation_reason\":\"Final independent pass raised production idempotency and identity-validation candidates; adjudicate and repair those findings only, with no fourth broad review.\",\"host\":\"codex\",\"model\":\"gpt-5.6-sol\",\"phase\":\"conflict_resolution\",\"profile\":\"critical\",\"role\":\"focused-production-fix-author\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"medium\",\"escalation_reason\":\"Refresh the Epic12 retrospective after owner-approved independent review recovery, fixes, QA cleanup, advisory baseline and green CI.\",\"host\":\"codex\",\"model\":\"gpt-5.6-terra\",\"phase\":\"retrospective\",\"profile\":\"default\",\"role\":\"retrospective-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+tea_risk: null
+tea_selected: []
+tea_rationale: null
+epic_story_count: 3
+stories_after_in_epic: null
+completed_phases: [0, 1, 2, 5, 9, 81, 82]
+spec_path: null
+spec_approved: false
+build:
+  status: null
+  blocking_condition: null
+  followup_review_recommended: false
+  review_loop_iteration: 0
+  deferred_count: 0
+  warnings: []
+followup_passes: 0
+hitl_halt: null
+review_unverified: false
+story_trace: null
+legacy_review_resume: false
+legacy_review_iteration: null
+legacy_review_loop_done: false
+legacy_external_review_iterations: null
+legacy_convergence_unverified: false
+legacy_artifact_path: null
+commits: [aa13f2c, d69215e, 2a021bf, fc0f9bd, 327a091, 13f5439f, 4fdd26f, fa76fed, 3a985fe, 6edbd2d]
+phase8_steps:
+  trace_gate: done
+  nfr: done
+  test_review: done
+  reconcile: done
+  archive: done
+  retro: done
+gate_decision: PASS
+gate_iterations: 1
+deferred_work_archived: 17
+retro:
+  doc: "C:/DEV/ElproSaas/_bmad-output/implementation-artifacts/epic-12-retro-2026-09-21.md"
+  verdict: accepted-with-open-items
+  open_action_items: 2
+bmad_status_flipped_at: 9
+pr_url: "https://github.com/rthunborg/ElproSaas/pull/72"
+ci_run_url: "https://github.com/rthunborg/ElproSaas/actions/runs/35631411549"
+ci_status: passed
+pr_merged: false
+merge_method: null
+merge_commit: null
+branch_deleted: false
+open_questions:
+  - "Numeric performance and scalability targets require an owner decision after representative hosted pilot measurements; the completed local RPC baseline is advisory."
+deferred_work: []
+blockers: []
+overrides:
+  branch_prefix: "codex/ (host instruction)"
+constraints: []
+active_story: null
+stories_landed:
+  - 12-1-platform-operator-identity-and-the-provision-tenant-command
+  - 12-2-operator-console
+  - 12-3-first-admin-onboarding-checklist
+stories_skipped: []
+epic_slug: wave-b1a-tenant-provisioning-and-onboarding
+batch_flip_done: true

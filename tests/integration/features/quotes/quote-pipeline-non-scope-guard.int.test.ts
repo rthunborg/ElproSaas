@@ -10,8 +10,8 @@
  *   - the `quotes` module in `SCOPE_MANIFEST` keeps `widgets: []` and its SINGLE `navItems`
  *     `[{ route: "/quotes" }]` — unchanged by this story;
  *   - the derived active nav route set stays the 7 Phase-A routes (no new nav module directory);
- *   - the current governed `TENANT_TABLES` count stays 27. Story 10.4 added none; the later,
- *     explicitly governed Story 10.8 authorization table accounts for the sanctioned increment;
+ *   - the governed `TENANT_TABLES` set derives from active manifest modules. Story 10.4 added
+ *     none; later, explicitly governed activations change the manifest rather than this guard;
  *   - the read-model + list source path imports NO email/notification send path (Epic 13 owns reminders).
  *
  * ── GREEN (Story 10.4 implemented) ───────────────────────────────────────────────────────────────
@@ -28,6 +28,7 @@ import { describe, it, expect } from "vitest";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { SCOPE_MANIFEST } from "@/scope/manifest";
+import { TENANT_TABLES } from "../../rls/tenant-table-inventory";
 
 const PHASE_A_NAV_ROUTES = [
   "/admin/users",
@@ -71,11 +72,13 @@ describe("10.4-INT-03: non-scope guard — no new analytics surface / no email-s
     expect(widgets).toEqual([]);
   });
 
-  it("the governed tenant-table inventory stays at the current manifest count of 28", () => {
-    const tenantTables = SCOPE_MANIFEST.modules
+  it("the governed tenant-table inventory derives from the active manifest modules", () => {
+    const activeManifestTenantTables = SCOPE_MANIFEST.modules
       .filter((m) => m.status === "active")
       .flatMap((m) => m.tenantTables);
-    expect(new Set(tenantTables).size).toBe(29);
+    expect([...TENANT_TABLES].sort()).toEqual(
+      [...new Set(activeManifestTenantTables)].sort(),
+    );
   });
 
   it("the read-model source path imports NO email/notification send path (Epic 13 owns reminders)", () => {
