@@ -141,6 +141,42 @@ describe("provision_tenant command — Story 12.1 ATDD", () => {
     }
   });
 
+  test("[P0] 12.1-INT-004-R1 fault injection completes while a parallel membership writer retains its table lock", async (testCtx) => {
+    if (skipUnlessStack(testCtx, await isLocalStackReachable())) return;
+    const input = await createStrictProvisioningRequest();
+    await adminSession(async ({ query }) => {
+      await query("begin");
+      let pending: Promise<unknown> | undefined;
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      try {
+        // This is the lock an ordinary membership INSERT holds before checking
+        // its tenants FK. It must coexist with the harness, including audit faults.
+        await query("lock table public.tenant_memberships in row exclusive mode");
+        pending = executeApprovedProvisioning(input, { failAt: "audit" }).then(
+          () => { throw new Error("fault injection unexpectedly succeeded"); },
+          (error: unknown) => error,
+        );
+        const result = await Promise.race([
+          pending,
+          new Promise<never>((_, reject) => {
+            timer = setTimeout(() => reject(new Error("fault injection blocked a parallel membership writer")), 5_000);
+          }),
+        ]);
+        expect(result).toMatchObject({ rolledBack: true, residualRows: 0 });
+      } finally {
+        if (timer) clearTimeout(timer);
+        await query("rollback");
+        // Drain the request after releasing the blocker even on the timeout path.
+        await pending;
+      }
+    });
+    const controls = await adminQuery(
+      "select request_id from test_support.forced_provisioning_failures where request_id=$1::uuid",
+      [input.request_id],
+    );
+    expect(controls).toHaveLength(0);
+  });
+
   test("[P0] 12.1-INT-005 dry run is complete and zero-write; execution requires original request, request ID, hash, approval, and an unchanged immutable baseline", async (testCtx) => {
     if (skipUnlessStack(testCtx, await isLocalStackReachable())) return;
     const input = await createStrictProvisioningRequest();
