@@ -1,5 +1,6 @@
 "use client";
 
+import { ProvisioningConfirmation } from "./ProvisioningConfirmation";
 import { useActionState, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { approveOperatorProvisioningAction, previewOperatorProvisioningAction } from "@/features/operator-console/actions";
@@ -34,7 +35,7 @@ export function ProvisioningWizard() {
       {validationMessage && <p ref={validationRef} role="alert" tabIndex={-1}>{validationMessage}</p>}
       {preview.status === "error" && <p role="alert" tabIndex={-1}>{preview.message}</p>}
     </form>
-      {preview.status === "success" && preview.approvalHandle && preview.confirmation && <section aria-live="polite" className="mt-4 grid gap-2"><p role="status">{preview.message}</p><h3>Bekräfta förhandsgranskning</h3><p>Organisationsidentitet: {preview.confirmation.normalizedIdentity}</p><p>Första Admin: {preview.confirmation.firstAdminName} ({preview.confirmation.firstAdminEmail})</p><p>Baslinje: {preview.confirmation.baseline.id} v{preview.confirmation.baseline.version}</p><p>Innehållshash: {preview.confirmation.baseline.contentHash}</p><p>Föreslagen åtgärd: {preview.confirmation.proposedAction === "CREATE" ? "Skapa tenant" : preview.confirmation.proposedAction}</p><p>{preview.confirmation.warnings.length ? `Varningar: ${preview.confirmation.warnings.join(", ")}` : "Inga varningar."}</p><form action={approvalAction}><input type="hidden" name="approvalHandle" value={preview.approvalHandle} /><button disabled={approvalPending} name="explicitApproval" value="true">{approvalPending ? "Godkänner…" : "Godkänn provisionering"}</button></form></section>}
+      {preview.status === "success" && preview.approvalHandle && preview.confirmation && <section aria-live="polite" className="mt-4 grid gap-2"><p role="status">{preview.message}</p><h3>Bekräfta förhandsgranskning</h3><ProvisioningConfirmation confirmation={preview.confirmation} /><form action={approvalAction}><input type="hidden" name="approvalHandle" value={preview.approvalHandle} /><button disabled={approvalPending} name="explicitApproval" value="true">{approvalPending ? "Godkänner…" : "Godkänn provisionering"}</button></form></section>}
       {approval.status !== "idle" && <section className="mt-3" aria-live="polite"><p role={approval.status === "error" ? "alert" : "status"}>{approval.message}</p>{approval.status === "success" && approval.tenantId && <Link href={`/operator/${approval.tenantId}`}>Öppna provisioneringsstatus</Link>}</section>}
   </section>;
 }

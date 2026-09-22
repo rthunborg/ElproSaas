@@ -147,41 +147,74 @@ Security Sol/xhigh found no production-reachable issue. The exact external Luna/
 
 Security Sol/xhigh found no production-reachable issue. The recovered edge-case and verification-gap layers completed against the frozen review snapshot. The exact external Luna/xhigh invocation returned no output, session handle, or artifact and remains unverified rather than a clean result.
 
+### 2026-09-22 — PR #72 recovery and approval fixes
+
+- Fixed the committed-tenant/failed-handoff boundary: preserve tenant identity,
+  report recovery, and expose pending reconciliation/retry controls.
+- Added production fresh-preview and explicit-approval actions for exhausted
+  dispatch budgets, using the durable original request and encrypted actor-bound
+  grants with the observed approval generation.
+- Added an append-only migration renewing membership and provisioning invitation
+  expiry together, including membership already marked expired by Epic 11; old
+  operations/tokens are superseded before another provider dispatch. A second
+  append-only migration makes the existing readiness trigger return before
+  Auth-dependent SQL for non-active memberships and rejects concurrent renewal
+  replay as an ordinary resend; no broader owner privileges were added.
+- Shared a strict approval projection showing every required material company,
+  contract, subscription, baseline, and first-Admin value without protocol data.
+- Added focused unit, database, and browser regressions. The BMAD renderer failed
+  on cache permissions; root explicitly authorized direct implementation fallback.
+
 ## Suggested Review Order
 
-Author: implementation/fix author.
-Refreshed against the final Story 12.2 source tree `acf6625fc1a0073aba8396ed05cf57d584f7eaef`.
+Author: implementation/fix author (PR #72 follow-up).
+Refreshed against the final review-fix working tree on 2026-09-22. These stops
+cover the reviewed recovery and approval changes; earlier verification remains
+historical evidence below.
 
-### Isolated platform entry and read boundary
+### Approval presents the exact safe commercial facts
 
-Every console entry independently resolves the live allow-list and projects only the approved data shape. The route remains outside the tenant shell.
+The initial and renewal screens share a fixed projection. Legal name, canonical
+identity, contract date, subscription plan/status, included users, additional-user
+price, baseline, first Admin, action, and warnings are visible before approval.
 
-- `src/server/auth/resolve-platform-operator.ts:13` — `resolvePlatformOperator`: revalidates the authenticated user and live operator status.
-- `src/app/operator/layout.tsx:7` — `resolvePlatformOperator`: denies before operator UI renders.
-- `src/server/read-models/operator-console.ts:16` — `resolvePlatformOperator`: independently gates projection reads.
-- `supabase/migrations/20260920100000_operator_console_projection.sql:2` — `operator_console_projection`: defines the fixed read-only projection.
+- `src/components/operator-console/ProvisioningConfirmation.tsx:4` — `export function ProvisioningConfirmation`: renders the complete shared approval summary.
+- `src/features/operator-console/projection.ts:21` — `export function projectProvisioningConfirmation`: excludes canonical hashes and reservation protocol details.
+- `tests/unit/provisioning/operator-console.test.ts:191` — `approval projects every material`: asserts all visible values and excludes protocol canaries.
 
-### Preview, approval, and durable recovery
+### Durable recovery supplies fresh approval without browser identity
 
-The browser submits a closed request for a zero-write preview, then carries only an opaque per-preview handle. Recovery paths stay server-bound and preserve the existing Story 12.1 writer.
+Pending handoffs have reconciliation controls. Expiry and exhausted dispatch
+budgets expose a fresh preview of the durable original request and explicit
+approval, retaining the existing operator gate and single provisioning writer.
 
-- `src/features/operator-console/provisioning-request.ts:20` — `requestFromOperatorConsoleForm`: fixes all catalogue/commercial facts on the server.
-- `src/features/operator-console/actions.ts:29` — `previewOperatorProvisioningAction`: gates before preview and writes only the opaque approval grant.
-- `src/server/provisioning/operator-preview-grant.ts:40` — `store.delete`: consumes the preview grant at its `/operator` path.
-- `src/server/provisioning/operator-reconciliation-grant.ts:34` — `store.delete`: applies the same one-use path rule to reconciliation retry grants.
-- `src/features/operator-console/actions.ts:88` — `retryReconciledOperatorFirstAdminInviteAction`: consumes the opaque retry grant and reports only after the persisted command result.
-- `src/app/operator/[tenantId]/page.tsx:30` and `src/components/operator-console/HandoffRecovery.tsx:12` — retain confirmed retry feedback across the Server Action refresh while rendering a retry control only for a currently actionable durable state.
+- `src/features/operator-console/wizard-state.ts:17` — `state.invitationExpired === true`: derives renewal controls from durable expiry and lifecycle state.
+- `src/components/operator-console/HandoffRecovery.tsx:16` — `export function HandoffRecovery`: renders reconciliation, fresh preview, explicit approval, and confirmed feedback.
+- `src/features/operator-console/actions.ts:95` — `export async function previewOperatorInviteRenewalAction`: binds the preview to durable tenant and approval generation.
+- `src/features/operator-console/actions.ts:105` — `export async function approveOperatorInviteRenewalAction`: consumes the grant and supplies the validated renewal command.
+- `src/server/provisioning/operator-preview-grant.ts:32` — `export async function takeOperatorPreviewGrant`: consumes actor-bound encrypted authority at its original cookie path.
 
-### Acceptance evidence and operational limits
+### End-to-end approval and recovery evidence
 
-The tests exercise the disclosure boundary, closed preview, cookie consumption, required RLS suites, and a production browser journey. The external provider remains a local fixture boundary; browser assertions prove recorded state and never email delivery.
+Browser coverage exercises each new recovery path and grant reuse denial, while
+the database suite separately proves old-link invalidation and current-link
+acceptance. Provider responses prove recorded state, never actual email delivery.
 
-- `tests/e2e/seed-epic-12-browser-fixtures.ts:30` — `seedEpic12BrowserFixtures`: keeps the operator allow-list and durable handoff state in the original two-tenant fixture, whose teardown remains the cleanup owner.
-- `tests/e2e/global-setup.ts:86` — `seedEpic12BrowserFixtures`: serializes the unchanged safe operator route handle after the focused Epic 12 seed completes.
-- `tests/unit/provisioning/operator-console.test.ts:172` — `12.2-UNIT-009`: retains recovery feedback while durable state advances.
-- `tests/integration/read-models/operator-console.int.test.ts:40` — exercises the exact safe list and canonical-identity projection path.
-- `tests/e2e/auth/operator-console.atdd.e2e.spec.ts:35` — generates a fresh Luhn-valid organisation number from the original six-digit candidate space and accepts it only through the shared production validator, so the preview journey cannot accidentally supply a personnummer-shaped input or collide with a completed fixture.
-- `tests/e2e/auth/operator-console.atdd.e2e.spec.ts:48` — follows the canonical list link and proves opaque approval, replay denial, reload/new-context recovery, reconciliation, retry confirmation, and keyboard behavior.
+- `tests/e2e/auth/operator-console.atdd.e2e.spec.ts:120` — `const confirmation =`: checks every material value before initial approval.
+- `tests/e2e/auth/operator-console.atdd.e2e.spec.ts:200` — `test.describe("PR72 operator recovery"`: covers pending, fourth-dispatch, and expired-invitation flows.
+
+Current follow-up evidence: focused provisioning units passed 36/36; the full unit
+suite passed 1,843 with zero failures and one existing skip (excluded from
+coverage). Changed-path ESLint passed with zero errors and seven warnings;
+operator-console isolation passed. Stock typecheck reports unrelated ignored
+`tmp/private/**` and `tmp/worktrees/**` errors; a temporary project excluding
+`tmp/**` passed. Required local database verification passed 12/12 with
+`SUPABASE_TEST_REQUIRED=1` after both append-only migrations, including concurrent
+renewal and old-link invalidation. Browser follow-up execution remains pending
+root verification and is not claimed complete here. No external email delivery
+was verified.
+
+### Historical verification records
 
 Earlier implementation evidence: focused unit/static 30/30; required integration 22/22 with `SUPABASE_TEST_REQUIRED=1`; final clean production build passed; served inventory 12/12; final production Playwright 5/5, all zero skipped.
 Final maintenance evidence on clean checkout `ef1885a53f4aa00b56cde5be08430610cb3094e3`: the full unit suite passed 1,836/0/1, with the existing skip excluded from coverage; clean typecheck passed; changed-TypeScript lint had 0 errors and 7 existing warnings; required local Story 12.3 DB suites passed 13/0/0; the CI-repair required-DB suite passed 17/0/0; and the shared operator/onboarding browser run passed 6/0/0. The existing production build had 14 HTML-referenced static assets with 0 missing. The extracted helper preserves the operator browser fixture values and original teardown ownership.

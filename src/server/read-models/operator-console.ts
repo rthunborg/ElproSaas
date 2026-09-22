@@ -29,14 +29,17 @@ export async function readOperatorConsole(identifier?: string): Promise<Operator
 }
 
 /** Separate safe detail fact; the list DTO remains exactly five fields. */
-export async function readOperatorConsoleResumeState(identifier: string): Promise<{ readonly tenantId: string; readonly attempt: number } | null> {
+export async function readOperatorConsoleResumeState(identifier: string): Promise<{ readonly tenantId: string; readonly attempt: number; readonly invitationExpired: boolean } | null> {
   if (!(await resolvePlatformOperator()).ok || (!uuid.test(identifier) && !/^SE:[0-9]{10}$/.test(identifier))) return null;
   try {
     const client = await createSupabaseServerClient();
     const { data, error } = await client.rpc("operator_console_resume_target", { p_identity: identifier });
     const row = Array.isArray(data) ? data[0] : null;
+    if (error || !row) return null;
+    const recovery = await client.rpc("provision_tenant", { p_action: "reconcile", p_request: { tenant_id: row.tenant_id } });
+    if (recovery.error) return null;
     return !error && row && typeof row.tenant_id === "string" && uuid.test(row.tenant_id) && typeof row.first_admin_attempt === "number" && Number.isInteger(row.first_admin_attempt)
-      ? { tenantId: row.tenant_id, attempt: row.first_admin_attempt }
+      ? { tenantId: row.tenant_id, attempt: row.first_admin_attempt, invitationExpired: recovery.data?.invitationExpired === true }
       : null;
   } catch { return null; }
 }

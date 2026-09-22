@@ -1,6 +1,8 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { readFileSync } from "node:fs";
 import path from "node:path";
+import { adminQuery } from "../../factories/admin-sql";
+import { createStrictProvisioningRequest, executeApprovedProvisioning } from "../../factories/platform-operators";
 import { normalizeSwedishOrganizationNumber } from "@/server/commands/provisioning/validation";
 
 const fixture = JSON.parse(readFileSync(path.join(process.cwd(), "tests", "e2e", ".auth", "fixture.json"), "utf8")) as {
@@ -115,6 +117,9 @@ test.describe("Story 12.2 operator console", () => {
     await page.getByRole("button", { name: "Förhandsgranska" }).click();
     await expect(page.getByRole("status")).toContainText("Förhandsgranskningen är klar");
     await expect(page.getByRole("button", { name: "Godkänn provisionering" })).toBeVisible();
+    const confirmation = page.getByRole("heading", { name: "Bekräfta förhandsgranskning" }).locator("..");
+    for (const value of ["Företagsnamn: E2E Operatör AB", `Organisationsidentitet: SE:${organizationNumber}`, "Avtalsstart: 2026-10-01", "Abonnemangsplan: standard", "Abonnemangsstatus: active", "Inkluderade användare: 5", "Pris per extra användare:", "125,00", "Första Admin: E2E Admin (e2e-admin@example.test)", "Baslinje: standard-se v1", "Föreslagen åtgärd: Skapa tenant", "Inga varningar."]) await expect(confirmation).toContainText(value);
+
     await expect(page.locator("input[name=request], input[name=previewHash]")).toHaveCount(0);
     await expect(page.locator("input[name=approvalHandle]")).toHaveCount(1);
     const firstHandle = await page.locator("input[name=approvalHandle]").inputValue();
@@ -190,4 +195,46 @@ test.describe("Story 12.2 operator console", () => {
     await page.getByRole("button", { name: /fortsätt/i }).press("Enter");
     await expect(page.getByRole("heading", { name: "Baslinje" })).toBeVisible();
   });
+});
+
+test.describe("PR72 operator recovery", () => {
+  for (const scenario of ["pending", "fourth", "expired"] as const) {
+    test(`[P0] resumes ${scenario} handoff through the production operator UI`, async ({ page }) => {
+      const request = await createStrictProvisioningRequest();
+      const provisioned = await executeApprovedProvisioning(request, { preserveFixture: true });
+      try {
+        if (scenario === "fourth") {
+          await adminQuery("update public.tenant_provisioning_invites set dispatch_generation=3,outcome='failed' where tenant_id=$1", [provisioned.tenantId]);
+          await adminQuery("update public.tenants set provisioning_state='first_admin_invite_failed' where id=$1", [provisioned.tenantId]);
+          await adminQuery("update public.tenant_provisioning_requests set provisioning_state='first_admin_invite_failed' where tenant_id=$1", [provisioned.tenantId]);
+        }
+        if (scenario === "expired") {
+          await adminQuery("update public.tenant_memberships set invitation_expires_at=now()-interval '1 hour',status='expired' where tenant_id=$1", [provisioned.tenantId]);
+          await adminQuery("update public.tenant_provisioning_invites set expires_at=now()-interval '1 hour' where tenant_id=$1", [provisioned.tenantId]);
+        }
+        await signIn(page);
+        await page.goto(`/operator/${provisioned.tenantId}`);
+        if (scenario !== "fourth") await page.getByRole("button", { name: "Kontrollera status" }).click();
+        if (scenario === "pending") {
+          await page.getByRole("button", { name: "Försök igen" }).click();
+        } else {
+          await page.getByRole("button", { name: "Förhandsgranska ny inbjudan" }).click();
+          await expect(page.getByText(`Företagsnamn: ${request.legal_name}`, { exact: true })).toBeVisible();
+          await expect(page.getByText("Föreslagen åtgärd: Förnya inbjudan", { exact: true })).toBeVisible();
+          await expect(page.locator("input[name=request], input[name=previewHash], input[name=tenantId]")).toHaveCount(0);
+          await page.getByRole("button", { name: "Godkänn ny inbjudan" }).click();
+        }
+        await expect(page.getByText("Inbjudan har hanterats.", { exact: true })).toBeVisible();
+        const [state] = await adminQuery<{ approval_generation: number; dispatch_generation: number; operations: number }>(
+          `select i.approval_generation,i.dispatch_generation,(select count(*)::integer from public.membership_admin_operations o where o.membership_id=i.membership_id) as operations from public.tenant_provisioning_invites i where i.tenant_id=$1`, [provisioned.tenantId]);
+        expect(state).toEqual({ approval_generation: scenario === "pending" ? 1 : 2, dispatch_generation: 1, operations: 1 });
+        if (scenario !== "pending") {
+          await page.getByRole("button", { name: "Godkänn ny inbjudan" }).click();
+          await expect(page.getByText("Åtgärden kunde inte genomföras.", { exact: true })).toBeVisible();
+          const [count] = await adminQuery<{ operations: number }>("select count(*)::integer as operations from public.membership_admin_operations where tenant_id=$1", [provisioned.tenantId]);
+          expect(count.operations).toBe(1);
+        }
+      } finally { await provisioned.cleanup(); }
+    });
+  }
 });

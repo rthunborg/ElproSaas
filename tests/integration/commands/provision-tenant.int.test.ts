@@ -1,3 +1,5 @@
+import { provisioningCommandTestHooks } from "@/server/commands/provisioning/provision-tenant";
+import { createHash } from "node:crypto";
 import { describe, expect, test } from "vitest";
 import { canonicalizeProvisioningRequest, createProvisioningPreview } from "@/server/commands/provisioning/validation";
 import { signProvisioningAttestation, type ProvisioningAttestation } from "@/server/provisioning/attestation";
@@ -383,4 +385,70 @@ describe("provision_tenant command — Story 12.1 ATDD", () => {
       },
     });
   });
+});
+
+describe("PR72 approved invitation recovery", () => {
+  for (const scenario of ["dispatch four", "expired invitation"] as const) {
+    test(`[P0] ${scenario} renews once, invalidates old links and accepts the new invitation`, async (testCtx) => {
+      if (skipUnlessStack(testCtx, await isLocalStackReachable())) return;
+      const fixture = await createPlatformOperatorFixture();
+      const input = { ...await createStrictProvisioningRequest(), first_admin_email: fixture.orphan.email };
+      const client = await makePlatformOperatorClient(fixture.operator);
+      const firstAdmin = await makePlatformOperatorClient(fixture.orphan);
+      const proof = approvedProvisioningPayload(input, fixture.operator.id);
+      const previousKey = process.env.TENANT_PROVISIONING_ATTESTATION_KEY_ID;
+      const previousSecret = process.env.TENANT_PROVISIONING_ATTESTATION_HMAC_SECRET;
+      process.env.TENANT_PROVISIONING_ATTESTATION_KEY_ID = LOCAL_TEST_PROVISIONING_ATTESTATION_KEY_ID;
+      process.env.TENANT_PROVISIONING_ATTESTATION_HMAC_SECRET = LOCAL_TEST_PROVISIONING_ATTESTATION_SECRET;
+      try {
+        const created = await client.rpc("provision_tenant", { p_action: "provision", p_request: proof });
+        expect(created.error).toBeNull();
+        const tenantId = created.data.tenantId as string;
+        const tokens: string[] = [];
+        const dependencies = { client, deliverInvitation: async (_reservation: unknown, token: string) => { tokens.push(token); return scenario === "dispatch four" && tokens.length === 1 ? "failed" as const : "requested" as const; } };
+        // Initial committed-but-undispatched state remains recoverable through the production command.
+        expect((await provisioningCommandTestHooks.retryFirstAdminInviteWithDependencies({ tenantId }, dependencies)).ok).toBe(true);
+        const [original] = await adminQuery<{ membership_id: string; token_hash: string; reservation_id: string }>("select membership_id,token_hash,reservation_id from public.tenant_provisioning_invites where tenant_id=$1", [tenantId]);
+        const accept = (hash: string) => firstAdmin.rpc("admin_accept_membership_invitation", { p_membership_id: original.membership_id, p_token_hash: hash, p_user_id: fixture.orphan.id, p_email: fixture.orphan.email });
+        if (scenario === "dispatch four") {
+          // Three completed failed deliveries require a fresh approval for dispatch four.
+          const failed = { client, deliverInvitation: async (_reservation: unknown, token: string) => { tokens.push(token); return "failed" as const; } };
+          for (let index = 0; index < 2; index++) expect((await provisioningCommandTestHooks.retryFirstAdminInviteWithDependencies({ tenantId }, failed)).ok).toBe(true);
+        } else {
+          await adminQuery("update public.tenant_memberships set invitation_expires_at=now()-interval '1 hour' where id=$1", [original.membership_id]);
+          await adminQuery("update public.tenant_provisioning_invites set expires_at=now()-interval '1 hour' where tenant_id=$1", [tenantId]);
+          expect((await accept(original.token_hash)).data).toBe(false); // Epic 11 sets membership status=expired.
+        }
+        const before = tokens.length;
+        expect(await provisioningCommandTestHooks.retryFirstAdminInviteWithDependencies({ tenantId }, dependencies)).toMatchObject({ ok: false, code: "PREVIEW_STALE" });
+        expect(tokens).toHaveLength(before);
+        const observed = await client.rpc("provision_tenant", { p_action: "reconcile", p_request: { tenant_id: tenantId } });
+        expect(observed.error).toBeNull();
+        const preview = createProvisioningPreview(observed.data.originalRequest, findProvisioningBaseline(input.baseline_profile_id, input.baseline_profile_version)!);
+        const renewal = { request: observed.data.originalRequest, previewHash: preview.preview_hash, expectedApprovalGeneration: observed.data.approvalGeneration };
+        const concurrent = await Promise.all([
+          provisioningCommandTestHooks.retryFirstAdminInviteWithDependencies({ tenantId, renewal }, dependencies),
+          provisioningCommandTestHooks.retryFirstAdminInviteWithDependencies({ tenantId, renewal }, dependencies),
+        ]);
+        expect(concurrent.filter((result) => result.ok)).toHaveLength(1);
+        expect(tokens).toHaveLength(before + 1);
+        expect(await provisioningCommandTestHooks.retryFirstAdminInviteWithDependencies({ tenantId, renewal }, dependencies)).toMatchObject({ ok: false, code: "PREVIEW_STALE" });
+        expect(tokens).toHaveLength(before + 1);
+        const [renewed] = await adminQuery<{ token_hash: string; expires_match: boolean; unexpired: boolean; approval_generation: number; unsuperseded: number }>(
+          `select i.token_hash, i.expires_at=m.invitation_expires_at as expires_match,
+            i.expires_at>now() as unexpired, i.approval_generation,
+            (select count(*)::integer from public.membership_admin_operations o where o.membership_id=m.id and o.superseded_at is null and o.outcome in ('pending','succeeded','uncertain')) as unsuperseded
+            from public.tenant_provisioning_invites i join public.tenant_memberships m on m.id=i.membership_id where i.tenant_id=$1`, [tenantId]);
+        expect(renewed).toMatchObject({ expires_match: true, unexpired: true, approval_generation: 2, unsuperseded: 1 });
+        expect(renewed.token_hash).toBe(createHash("sha256").update(tokens.at(-1)!).digest("hex"));
+        expect((await accept(original.token_hash)).data).toBe(false);
+        expect((await accept(renewed.token_hash)).data).toBe(true);
+      } finally {
+        if (previousKey === undefined) delete process.env.TENANT_PROVISIONING_ATTESTATION_KEY_ID; else process.env.TENANT_PROVISIONING_ATTESTATION_KEY_ID = previousKey;
+        if (previousSecret === undefined) delete process.env.TENANT_PROVISIONING_ATTESTATION_HMAC_SECRET; else process.env.TENANT_PROVISIONING_ATTESTATION_HMAC_SECRET = previousSecret;
+        await cleanupProvisionedRequest(input.request_id);
+        await cleanupPlatformOperatorFixture(fixture);
+      }
+    });
+  }
 });

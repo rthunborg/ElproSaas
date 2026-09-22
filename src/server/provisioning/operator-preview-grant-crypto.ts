@@ -5,6 +5,7 @@ export type OperatorPreviewGrant = {
   readonly request: Record<string, unknown>;
   readonly previewHash: string;
   readonly expiresAt: number;
+  readonly renewal?: { readonly tenantId: string; readonly expectedApprovalGeneration: number };
 };
 
 export function encodeOperatorPreviewGrant(grant: OperatorPreviewGrant, encryptionKey: Buffer): string | null {
@@ -27,7 +28,9 @@ export function decodeOperatorPreviewGrant(value: string, encryptionKey: Buffer)
       typeof parsed.actorUserId !== "string" || !parsed.request || typeof parsed.request !== "object" || Array.isArray(parsed.request)
       || typeof parsed.previewHash !== "string" || typeof parsed.expiresAt !== "number" || parsed.expiresAt < Date.now()
     ) return null;
-    return { actorUserId: parsed.actorUserId, request: parsed.request as Record<string, unknown>, previewHash: parsed.previewHash, expiresAt: parsed.expiresAt };
+    const renewal = parsed.renewal as OperatorPreviewGrant["renewal"];
+    if (renewal !== undefined && (!renewal || typeof renewal.tenantId !== "string" || !Number.isSafeInteger(renewal.expectedApprovalGeneration) || renewal.expectedApprovalGeneration < 1)) return null;
+    return { ...(renewal ? { renewal } : {}), actorUserId: parsed.actorUserId, request: parsed.request as Record<string, unknown>, previewHash: parsed.previewHash, expiresAt: parsed.expiresAt };
   } catch { return null; }
 }
 

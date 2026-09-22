@@ -123,7 +123,7 @@ async function provisionTenantWithDependencies(input: ApprovedProvisioningInput,
     const handoff = result.reconciliationAction === "created" && typeof tenantId === "string" && uuidPattern.test(tenantId)
       ? await retryFirstAdminInviteWithDependencies({ tenantId }, dependencies)
       : undefined;
-    return { ok: true as const, previewHash: preview.preview_hash, result: data, handoff };
+    return { ok: true as const, previewHash: preview.preview_hash, result: data, handoff, handoffNeedsRecovery: handoff?.ok === false };
   } catch { return denied; }
 }
 
@@ -164,6 +164,8 @@ type Reservation = DurableRetryFacts & {
 };
 
 type RetryRenewal = {
+  /** Bound to the preview grant; a used approval cannot renew again. */
+  expectedApprovalGeneration: number;
   /** The original request is revalidated and re-previewed by this server command. */
   request: unknown;
   /** The preview hash the operator explicitly approved for the renewal. */
@@ -200,6 +202,7 @@ function approvedRenewalFacts(renewal: RetryRenewal, durable: DurableRetryFacts)
     if (!baseline) return null;
     const preview = createProvisioningPreview(renewal.request, baseline);
     if (
+      renewal.expectedApprovalGeneration !== durable.approvalGeneration ||
       renewal.previewHash !== preview.preview_hash ||
       request.request_id !== durable.requestId ||
       request.canonicalRequestHash !== durable.requestHash ||
@@ -242,15 +245,16 @@ function outstandingReservation(value: unknown, facts: DurableRetryFacts): Outst
 async function retryFirstAdminInviteWithDependencies(input: { tenantId: string; renewal?: RetryRenewal }, dependencies: CommandDependencies) {
   if (!uuidPattern.test(input.tenantId)) return denied;
   const { client } = dependencies;
-  const actorUserId = await actor(client);
-  if (!actorUserId) return denied;
   try {
+    const actorUserId = await actor(client);
+    if (!actorUserId) return denied;
     // Reconciliation is read-only and returns only durable, non-secret facts.
     // It is the sole source for request and approval-generation attestations.
     const reconciled = await client.rpc("provision_tenant", { p_action: "reconcile", p_request: { tenant_id: input.tenantId } });
     if (reconciled.error) return documentedRpcFailure(reconciled.error);
     const durable = durableRetryFacts(reconciled.data, input.tenantId);
     if (!durable) return denied;
+    if (input.renewal && input.renewal.expectedApprovalGeneration !== durable.approvalGeneration) return { ok: false as const, code: "PREVIEW_STALE" as const };
 
     const outstanding = outstandingReservation(reconciled.data, durable);
     if (outstanding) {
@@ -275,7 +279,7 @@ async function retryFirstAdminInviteWithDependencies(input: { tenantId: string; 
       return { ok: true as const, result: recorded.data };
     }
 
-    const renewing = durable.dispatchGeneration >= 3;
+    const renewing = durable.dispatchGeneration >= 3 || (reconciled.data as Record<string, unknown>).invitationExpired === true;
     if (renewing && !input.renewal) return { ok: false as const, code: "PREVIEW_STALE" as const };
     const facts = renewing ? approvedRenewalFacts(input.renewal!, durable) : durable;
     if (!facts) return { ok: false as const, code: "PREVIEW_STALE" as const };
@@ -304,6 +308,21 @@ async function retryFirstAdminInviteWithDependencies(input: { tenantId: string; 
     const result = await client.rpc("provision_tenant", { p_action: `record_${outcome}`, p_request: { tenant_id: input.tenantId, reservation_id: reserved.reservationId, dispatch_generation: reserved.dispatchGeneration, attestation: recorded.attestation, attestation_signature: recorded.signature } });
     return result.error ? documentedRpcFailure(result.error) : { ok: true as const, result: result.data };
   } catch { return denied; }
+}
+
+/** Server-only renewal preview from the immutable original request, never browser identity. */
+export async function previewFirstAdminInviteRenewal(tenantId: string) {
+  if (!uuidPattern.test(tenantId)) return null;
+  const client = await serverClient();
+  if (!(await actor(client))) return null;
+  const { data, error } = await client.rpc("provision_tenant", { p_action: "reconcile", p_request: { tenant_id: tenantId } });
+  if (error) return null;
+  const durable = durableRetryFacts(data, tenantId);
+  if (!durable || data.provisioningState === "ready") return null;
+  const request = data.originalRequest;
+  const preview = previewTenantProvisioning(request);
+  if (!preview.ok || !approvedRenewalFacts({ request, previewHash: preview.preview.preview_hash, expectedApprovalGeneration: durable.approvalGeneration }, durable)) return null;
+  return { request: request as Record<string, unknown>, preview: preview.preview, expectedApprovalGeneration: durable.approvalGeneration };
 }
 
 /** Explicit post-commit resend. Provider identity comes only from the RPC reservation. */

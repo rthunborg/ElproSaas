@@ -183,6 +183,24 @@ deferred: []
 - resolution evidence: `_bmad-output/test-artifacts/reviews/epic-12-production-findings-resolution.md`.
 - closure: the independent in-app `gpt-5.6-luna` / `xhigh` focused P1 review at `_bmad-output/test-artifacts/reviews/epic-12-independent-review-2026-09-21.md` reviewed frozen tree `acf6625fc1a0073aba8396ed05cf57d584f7eaef`, accepted the narrower validator adjudication, and found zero new findings or fix regressions. Source commit `6edbd2d9021310b202ab0e4fc828522d4bcf20b5` has matching content, and [CI run 35631411549](https://github.com/rthunborg/ElproSaas/actions/runs/35631411549) passed verify, database, browser, and recovery jobs. The owner accepted both review and runtime evidence; no further Story 12.1 follow-up review is recommended.
 
+### 2026-09-22 — PR #72 recovery and approval fixes
+
+- Fixed the committed-tenant/failed-handoff boundary: preserve tenant identity,
+  report recovery, and expose pending reconciliation/retry controls.
+- Added production fresh-preview and explicit-approval actions for exhausted
+  dispatch budgets, using the durable original request and encrypted actor-bound
+  grants with the observed approval generation.
+- Added an append-only migration renewing membership and provisioning invitation
+  expiry together, including membership already marked expired by Epic 11; old
+  operations/tokens are superseded before another provider dispatch. A second
+  append-only migration makes the existing readiness trigger return before
+  Auth-dependent SQL for non-active memberships and rejects concurrent renewal
+  replay as an ordinary resend; no broader owner privileges were added.
+- Shared a strict approval projection showing every required material company,
+  contract, subscription, baseline, and first-Admin value without protocol data.
+- Added focused unit, database, and browser regressions. The BMAD renderer failed
+  on cache permissions; root explicitly authorized direct implementation fallback.
+
 ## Design Notes
 
 The database is deliberately DB-first and provider-second: a provider outcome cannot create a false database claim. The public RPC is callable under a normal authenticated operator session but cannot mutate without the second, server-only attestation proof. Only its attested action allow-list and the existing Epic 11 acceptance path may mutate provisioning state; the command module is signer/orchestrator, never a service-role database privilege path.
@@ -256,71 +274,57 @@ Current planning status: in-progress — Decision 8A closes the live authority/p
 
 ## Suggested Review Order
 
-Author: implementation author.
-Refreshed against the final focused-fix working tree frozen for clean
-verification on 2026-09-21, including the Swedish legal-entity correction and
-concurrent request-ID conflict repair.
+Author: implementation/fix author (PR #72 follow-up).
+Refreshed against the final review-fix working tree on 2026-09-22. These stops
+cover the reviewed recovery and approval changes; earlier verification remains
+historical evidence below.
 
-### Operator-bound attestation boundary
+### Recover committed provisioning through the approved command
 
-The server signs a fixed, length-prefixed envelope over the current Auth actor and every mutation-relevant fact. The final RPC migration accepts that envelope for every mutation; its authenticated `reconcile` action is the deliberate provider-free, read-only exception. Runtime-table access remains removed from JWT and service roles.
+A committed tenant remains identifiable when its initial reservation fails. The
+operator sees a recovery notice and can reconcile before explicitly retrying.
 
-- `src/server/provisioning/attestation.ts:4` — `PROVISIONING_ATTESTATION_DOMAIN`: separates provisioning HMAC bytes from other authorities.
-- `src/server/provisioning/attestation.ts:36` — `canonicalProvisioningAttestationBytes`: fixes the Node/Postgres length-prefixed signing protocol.
-- `supabase/migrations/20260919183425_provisioning_review_authority_fixes.sql:12` — `provision_tenant`: supplies the final normal-JWT operator gate, read-only reconciliation exception, and exact reservation/outcome body.
-- `supabase/migrations/20260919120000_provisioning_decision_8a_authority.sql:155` — `revoke all on function public.provision_tenant`: removes service-role and public execution.
+- `src/features/operator-console/actions.ts:40` — `export async function approveOperatorProvisioningAction`: preserves tenant status navigation after handoff failure.
+- `src/server/commands/provisioning/provision-tenant.ts:97` — `async function provisionTenantWithDependencies`: separates successful database creation from invitation recovery.
+- `src/server/commands/provisioning/provision-tenant.ts:245` — `async function retryFirstAdminInviteWithDependencies`: reserves before provider work and reconciles outstanding operations.
 
-### Canonical request and callback capability
+### Fresh approval renews a bound invitation generation
 
-Organisation identity now follows Skatteverket's ten-digit, third-digit-at-least-2, checksum rule, which excludes personnummer without interpreting later legal-entity digits as a date. The request hash recursively canonicalizes approved nested objects, and email parsing uses URL machinery only for IDNA conversion after rejecting URL-only syntax. The server gives the Auth provider the established absolute invite callback, including the durable membership and one-time attempt capability.
+The original immutable request supplies the new preview. An encrypted grant binds
+the tenant and observed approval generation; a consumed generation cannot renew
+again. The append-only migration updates both expiry records under the existing
+membership lock and supersedes old capabilities before the provider call.
 
-- `src/server/commands/provisioning/validation.ts:112` — `normalizeSwedishOrganizationNumber`: applies the legal-entity structural discriminator and checksum.
-- `src/server/commands/provisioning/validation.ts:123` — `email`: rejects paths and ports that are not email domains before IDNA normalization.
-- `src/server/commands/provisioning/validation.ts:139` — `canonicalJsonValue`: makes nested object ordering irrelevant to idempotency hashes.
-- `src/server/commands/provisioning/provision-tenant.ts:61` — `invitationRedirectBase`: applies the trusted configured-origin policy and fails delivery safely in production without it.
-- `src/server/commands/provisioning/provision-tenant.ts:67` — `deliverInvitation`: preserves the reserved membership and attempt facts through the runtime Auth handoff.
+- `src/server/commands/provisioning/provision-tenant.ts:198` — `function approvedRenewalFacts`: validates the original request and observed approval generation.
+- `src/server/commands/provisioning/provision-tenant.ts:314` — `export async function previewFirstAdminInviteRenewal`: loads original request through operator-scoped reconciliation.
+- `supabase/migrations/20260922111215_provisioning_invite_recovery_approval.sql:2` — `grant update(invitation_expires_at)`: grants only the owner the additional expiry column capability.
+- `supabase/migrations/20260922111215_provisioning_invite_recovery_approval.sql:37` — `if v_is_renewal then`: renews both expiry records before allocating the next operation.
 
-### Dual idempotency under concurrency
+- `supabase/migrations/20260922112830_provisioning_renewal_trigger_and_replay_guard.sql:7` — `new.status is distinct`: avoids Auth-dependent readiness SQL for non-active memberships.
+- `supabase/migrations/20260922112830_provisioning_renewal_trigger_and_replay_guard.sql:31` — `explicitApproval`: rejects a stale concurrent renewal after the winning reservation.
 
-The append-only repair preserves request ID/hash as the first idempotency key even when a competing transaction commits after the initial lookup. Canonical identity remains the independent second key and returns `ALREADY_PROVISIONED` only for a different request ID.
+### Recovery and token invalidation evidence
 
-- `supabase/migrations/20260921170545_repair_provisioning_idempotency_conflict.sql:10` — `v_identity_old`: patches the between-lookups visibility window without rewriting historical migrations.
-- `supabase/migrations/20260921170545_repair_provisioning_idempotency_conflict.sql:13` — `v_new`: resolves the post-insert unique-conflict window by request ID/hash before identity.
-- `tests/integration/commands/provision-tenant.int.test.ts:230` — `12.1-INT-006-R1`: holds the winner uncommitted and proves the loser blocks before checking the exact conflict result.
+Unit tests exercise both valid approval paths and replay rejection. Database tests
+use the production command with a synthetic provider and real Epic 11 acceptance;
+browser tests exercise the server actions with opaque grants.
 
-### Approved command and database-first invite reservation
+- `tests/unit/provisioning/provisioning-contract.test.ts:539` — `post-commit handoff failure`: proves reservation failure retains the committed tenant and recovery signal.
+- `tests/integration/commands/provision-tenant.int.test.ts:390` — `describe("PR72 approved invitation recovery"`: covers expiry renewal, dispatch four, old-link rejection, and new-link acceptance.
+- `tests/e2e/auth/operator-console.atdd.e2e.spec.ts:200` — `test.describe("PR72 operator recovery"`: covers pending recovery and fresh approval in the production UI.
 
-The pure preview remains outside database construction. Execution accepts only an
-explicitly approved envelope whose supplied hash equals the re-derived preview;
-after the atomic creation result, the command reads durable facts, reserves one
-token generation, calls the provider once, and records the matching outcome.
+Current follow-up evidence: focused provisioning units passed 36/36; the full unit
+suite passed 1,843 with zero failures and one existing skip (excluded from
+coverage). Changed-path ESLint passed with zero errors and seven warnings;
+operator-console isolation passed. Stock typecheck reports unrelated ignored
+`tmp/private/**` and `tmp/worktrees/**` errors; a temporary project excluding
+`tmp/**` passed. Required local database verification passed 12/12 with
+`SUPABASE_TEST_REQUIRED=1` after both append-only migrations, including concurrent
+renewal and old-link invalidation. Browser follow-up execution remains pending
+root verification and is not claimed complete here. No external email delivery
+was verified.
 
-- `src/server/commands/provisioning/provision-tenant.ts:97` — `provisionTenantWithDependencies`: rejects missing, unapproved, or stale preview evidence before signing or calling the RPC.
-- `src/server/commands/provisioning/provision-tenant.ts:124` — `retryFirstAdminInviteWithDependencies`: starts the initial handoff only for a newly created tenant; replays remain observation-only.
-- `src/server/commands/provisioning/provision-tenant.ts:242` — `retryFirstAdminInviteWithDependencies`: receives retry identity only from reconciliation and reservation facts.
-- `supabase/migrations/20260919120000_provisioning_decision_8a_authority.sql:5` — `provisioning_function_owner`: confines the RPC to a non-login owner role.
-
-### Tenant inventory and direct-read boundary
-
-The command's durable request and invite facts are tenant-keyed and must remain enrolled in the manifest-derived H4 inventory. They deliberately have no authenticated direct `SELECT` grant; the cross-tenant suite therefore proves the privilege error rather than mistaking it for an RLS-empty result.
-
-- `src/scope/manifest.ts:224` — `tenantTables`: enrolls both durable provisioning tables with the active platform module.
-- `tests/integration/rls/tenant-table-inventory.ts:98` — `TenantTableName`: supplies fixture, spoof, mutation, and filter metadata for both provisioning tables.
-- `tests/integration/rls/cross-tenant-isolation.rls.test.ts:476` — `directReadRevokedTables`: verifies the intended authenticated direct-read denial.
-
-### Focused evidence and limits
-
-The unit contract covers the attestation byte protocol, strict request/state
-rules, and the production command's approval gate, created-only provider flow,
-success/failure/unknown outcome mapping, and replay suppression. Required local
-integration/RLS tests cover the database authority separately.
-
-- `tests/unit/provisioning/provisioning-contract.test.ts:54` — `uses the Swedish third-digit discriminator`: accepts valid legal-entity shapes and rejects checksum-valid personnummer shapes.
-- `tests/unit/provisioning/provisioning-contract.test.ts:123` — `binds the provisioning attestation`: actor, action, generation, and payload tampering invalidate the proof.
-- `tests/unit/provisioning/provisioning-contract.test.ts:172` — `sends first-admin Auth callbacks`: proves the configured absolute callback retains membership and attempt capability.
-- `tests/unit/provisioning/provisioning-contract.test.ts:235` — `executes the approved production command`: verifies the exact provision → reconcile → reserve → provider → record sequence.
-- `tests/unit/provisioning/provisioning-contract.test.ts:309` — `leaves idempotent replays provider-free`: proves an observed replay cannot dispatch another invitation.
-- `tests/factories/platform-operators.ts:592` — `createAcceptedProvisionedFirstAdminFixture`: creates an accepted first-Admin fixture with scoped tenant, Auth-user, invitation-token, and platform-fixture cleanup.
+### Historical verification records
 
 Evidence: the final focused Node provisioning and permission-matrix suites passed 23/23; manifest derivation/shape units passed 14/14. The required `SUPABASE_TEST_REQUIRED=1` command/RLS/reset/search-path suites passed 18/18 with zero skipped, and the H4 inventory/cross-tenant/anonymous RLS suites passed 256/256 with zero skipped. Focused ESLint and `git diff --check` passed. The earlier directly relevant admin-user compatibility subset was 6/6; the historical broader compatibility record was 14/14. Full stock `pnpm typecheck` remains blocked only by unrelated ignored `tmp/private/**` and `tmp/worktrees/**` errors; the prior scoped typecheck excluding those paths passed.
 Focused 2026-09-21 repair evidence: provisioning units passed 19/19 and targeted ESLint/diff checks passed. The deterministic `12.1-INT-006-R1` case failed RED on the unchanged pre-migration loopback RPC by returning `ALREADY_PROVISIONED`; isolated reset/CI after applying the additive migration remains the required GREEN proof.

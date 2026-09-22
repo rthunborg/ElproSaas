@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import { projectConsoleRow } from "@/features/operator-console/projection";
+import { projectConsoleRow, projectProvisioningConfirmation } from "@/features/operator-console/projection";
 import { deriveWizardState } from "@/features/operator-console/wizard-state";
 import { operatorPreviewGrantCryptoTestHooks, samePreviewGrantActor } from "@/server/provisioning/operator-preview-grant-crypto";
 import { requestFromOperatorConsoleForm } from "@/features/operator-console/provisioning-request";
@@ -178,4 +178,38 @@ test("[P0] 12.2-UNIT-010 exposes retry only through a server-bound detail action
   const source = readFileSync(path.join(process.cwd(), "src", "features", "operator-console", "actions.ts"), "utf8");
   assert.doesNotMatch(source, /retryOperatorFirstAdminInvite(?:Form)?Action/);
   assert.doesNotMatch(source, /form\.get\("tenantId"\)/);
+});
+
+test("[P0] PR72 pending handoff and expired invitations always expose recovery", () => {
+  assert.deepEqual(deriveWizardState({ lifecycle: "pending_first_admin_invite", attempt: 0 }), { requiresReconciliation: true, canRetry: false });
+  for (const lifecycle of ["pending_first_admin_invite", "first_admin_invite_requested", "first_admin_invite_failed", "first_admin_invite_unknown"]) {
+    assert.equal(deriveWizardState({ lifecycle, invitationExpired: true, attempt: 1 }).requiresFreshApproval, true);
+  }
+  assert.equal(deriveWizardState({ lifecycle: "first_admin_invite_unknown", attempt: 3 }).requiresFreshApprovalForAttempt, 4);
+});
+
+test("[P0] PR72 approval projects every material commercial value and excludes protocol canaries", () => {
+  const form = new FormData();
+  for (const [key, value] of Object.entries({ legalName: "Review AB", organizationNumber: "5566778899", contractStartDate: "2026-10-01", firstAdminName: "Admin", firstAdminEmail: "admin@example.test" })) form.set(key, value);
+  const result = previewTenantProvisioning(requestFromOperatorConsoleForm(form));
+  assert.ok(result.ok);
+  const preview = { ...result.preview, proposed_values: { ...result.preview.proposed_values, tokenHash: "TOKEN-CANARY", canonicalRequestHash: "REQUEST-CANARY" }, warnings: ["Review terms"] };
+  const projection = projectProvisioningConfirmation(preview);
+  assert.deepEqual(projection, {
+    legalName: "Review AB", normalizedIdentity: "SE:5566778899", contractStartDate: "2026-10-01",
+    subscriptionPlan: "standard", subscriptionStatus: "active", includedUsers: 5, additionalUserPriceOre: 12500,
+    firstAdminName: "Admin", firstAdminEmail: "admin@example.test",
+    baseline: { id: preview.baseline.id, version: preview.baseline.version, contentHash: preview.baseline.content_hash },
+    proposedAction: "CREATE", warnings: ["Review terms"],
+  });
+  assert.doesNotMatch(JSON.stringify(projection), /TOKEN-CANARY|REQUEST-CANARY|preview_hash|request_id/);
+  assert.equal(projectProvisioningConfirmation(preview, true).proposedAction, "RENEW_INVITATION");
+});
+
+test("[P0] PR72 encrypted renewal grant retains tenant and observed approval generation", () => {
+  const key = Buffer.alloc(32, 7);
+  const grant = { actorUserId: "operator", request: { legal_name: "Review AB" }, previewHash: "a".repeat(64), expiresAt: Date.now() + 30000, renewal: { tenantId: crypto.randomUUID(), expectedApprovalGeneration: 2 } };
+  const encoded = operatorPreviewGrantCryptoTestHooks.encode(grant, key)!;
+  assert.deepEqual(operatorPreviewGrantCryptoTestHooks.decode(encoded, key), grant);
+  assert.doesNotMatch(encoded, /tenantId|expectedApprovalGeneration|Review AB/);
 });

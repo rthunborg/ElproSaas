@@ -17,10 +17,10 @@ function key(): Buffer | null {
  * preview gets its own opaque handle and encrypted HttpOnly grant, so a second
  * tab cannot replace the specific preview being approved in the first tab.
  */
-export async function writeOperatorPreviewGrant(actorUserId: string, request: Record<string, unknown>, previewHash: string): Promise<string | null> {
+export async function writeOperatorPreviewGrant(actorUserId: string, request: Record<string, unknown>, previewHash: string, renewal?: OperatorPreviewGrant["renewal"]): Promise<string | null> {
   const encryptionKey = key();
   if (!encryptionKey) return null;
-  const value = encodeOperatorPreviewGrant({ actorUserId, request, previewHash, expiresAt: Date.now() + MAX_AGE_SECONDS * 1000 }, encryptionKey);
+  const value = encodeOperatorPreviewGrant({ actorUserId, request, previewHash, ...(renewal ? { renewal } : {}), expiresAt: Date.now() + MAX_AGE_SECONDS * 1000 }, encryptionKey);
   if (!value) return null;
   const handle = randomBytes(18).toString("base64url");
   const store = await cookies();
@@ -29,7 +29,7 @@ export async function writeOperatorPreviewGrant(actorUserId: string, request: Re
 }
 
 /** Consume on approval so a captured form submit cannot replay the same preview. */
-export async function takeOperatorPreviewGrant(actorUserId: string, handle: unknown): Promise<Pick<OperatorPreviewGrant, "request" | "previewHash"> | null> {
+export async function takeOperatorPreviewGrant(actorUserId: string, handle: unknown): Promise<Pick<OperatorPreviewGrant, "request" | "previewHash" | "renewal"> | null> {
   const encryptionKey = key();
   const store = await cookies();
   if (typeof handle !== "string" || !/^[A-Za-z0-9_-]{24}$/.test(handle)) return null;
@@ -41,5 +41,5 @@ export async function takeOperatorPreviewGrant(actorUserId: string, handle: unkn
   if (!encryptionKey || !encoded) return null;
   const grant = decodeOperatorPreviewGrant(encoded, encryptionKey);
   if (!grant || !samePreviewGrantActor(grant.actorUserId, actorUserId)) return null;
-  return { request: grant.request, previewHash: grant.previewHash };
+  return { request: grant.request, previewHash: grant.previewHash, ...(grant.renewal ? { renewal: grant.renewal } : {}) };
 }

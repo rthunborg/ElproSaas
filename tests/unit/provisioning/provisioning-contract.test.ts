@@ -479,9 +479,93 @@ test("[P0] 12.1-UNIT-008 rejects missing or content-mismatched fresh renewal at 
 
   calls.length = 0;
   const mismatched = await provisioningCommandTestHooks.retryFirstAdminInviteWithDependencies(
-    { tenantId, renewal: { request: { ...input, legal_name: "Changed legal name" }, previewHash: preview.preview_hash } },
+    { tenantId, renewal: { expectedApprovalGeneration: 1, request: { ...input, legal_name: "Changed legal name" }, previewHash: preview.preview_hash } },
     dependencies,
   );
   assert.deepEqual(mismatched, { ok: false, code: "PREVIEW_STALE" });
   assert.deepEqual(calls, ["reconcile"]);
+});
+
+for (const scenario of ["fourth dispatch", "expired invitation"] as const) {
+  test(`[P0] PR72 valid approved ${scenario} reserves once and rejects a consumed generation`, async () => {
+    const input = validRequest();
+    const canonical = canonicalizeProvisioningRequest(input);
+    const baseline = findProvisioningBaseline(input.baseline_profile_id, input.baseline_profile_version)!;
+    const preview = createProvisioningPreview(input, baseline);
+    const tenantId = crypto.randomUUID();
+    const calls: string[] = [];
+    let approvalGeneration = 1;
+    let providerCalls = 0;
+    const client = {
+      auth: { getUser: async () => ({ data: { user: { id: crypto.randomUUID() } }, error: null }) },
+      rpc: async (_name: string, args: { p_action: string; p_request: Record<string, unknown> }) => {
+        calls.push(args.p_action);
+        if (args.p_action === "reconcile") return { data: {
+          tenantId, requestId: input.request_id, requestHash: canonical.canonicalRequestHash, organizationNumber: canonical.normalizedOrganizationNumber,
+          previewHash: preview.preview_hash, baselineId: baseline.id, baselineVersion: baseline.version, baselineContentHash: baseline.contentHash,
+          approvalGeneration, dispatchGeneration: scenario === "fourth dispatch" ? 3 : 1, invitationExpired: scenario === "expired invitation",
+        }, error: null };
+        if (args.p_action === "reserve_dispatch") {
+          assert.equal(args.p_request.explicit_approval, true);
+          assert.equal((args.p_request.attestation as { approvalGeneration: number }).approvalGeneration, 2);
+          approvalGeneration = 2;
+          return { data: { tenantId, normalizedEmail: canonical.firstAdminEmail, membershipId: crypto.randomUUID(), reservationId: crypto.randomUUID(), dispatchGeneration: 1 }, error: null };
+        }
+        assert.equal(args.p_action, "record_requested");
+        return { data: { tenantId, provisioningState: "first_admin_invite_requested" }, error: null };
+      },
+    };
+    const oldKey = process.env.TENANT_PROVISIONING_ATTESTATION_KEY_ID;
+    const oldSecret = process.env.TENANT_PROVISIONING_ATTESTATION_HMAC_SECRET;
+    process.env.TENANT_PROVISIONING_ATTESTATION_KEY_ID = "test_v1";
+    process.env.TENANT_PROVISIONING_ATTESTATION_HMAC_SECRET = "local-test-only-provisioning-attestation-secret-v1";
+    try {
+      const dependencies = { client: client as never, deliverInvitation: async () => { providerCalls++; return "requested" as const; } };
+      assert.deepEqual(await provisioningCommandTestHooks.retryFirstAdminInviteWithDependencies({ tenantId }, dependencies), { ok: false, code: "PREVIEW_STALE" });
+      calls.length = 0;
+      const renewal = { request: input, previewHash: preview.preview_hash, expectedApprovalGeneration: 1 };
+      assert.equal((await provisioningCommandTestHooks.retryFirstAdminInviteWithDependencies({ tenantId, renewal }, dependencies)).ok, true);
+      assert.deepEqual(calls, ["reconcile", "reserve_dispatch", "record_requested"]);
+      assert.equal(providerCalls, 1);
+      assert.deepEqual(await provisioningCommandTestHooks.retryFirstAdminInviteWithDependencies({ tenantId, renewal }, dependencies), { ok: false, code: "PREVIEW_STALE" });
+      assert.equal(providerCalls, 1);
+    } finally {
+      if (oldKey === undefined) delete process.env.TENANT_PROVISIONING_ATTESTATION_KEY_ID; else process.env.TENANT_PROVISIONING_ATTESTATION_KEY_ID = oldKey;
+      if (oldSecret === undefined) delete process.env.TENANT_PROVISIONING_ATTESTATION_HMAC_SECRET; else process.env.TENANT_PROVISIONING_ATTESTATION_HMAC_SECRET = oldSecret;
+    }
+  });
+}
+
+test("[P0] PR72 post-commit handoff failure preserves created tenant and reports recovery", async () => {
+  const input = validRequest();
+  const baseline = findProvisioningBaseline(input.baseline_profile_id, input.baseline_profile_version)!;
+  const preview = createProvisioningPreview(input, baseline);
+  const canonical = canonicalizeProvisioningRequest(input);
+  const tenantId = crypto.randomUUID();
+  const oldKey = process.env.TENANT_PROVISIONING_ATTESTATION_KEY_ID;
+  const oldSecret = process.env.TENANT_PROVISIONING_ATTESTATION_HMAC_SECRET;
+  process.env.TENANT_PROVISIONING_ATTESTATION_KEY_ID = "test_v1";
+  process.env.TENANT_PROVISIONING_ATTESTATION_HMAC_SECRET = "local-test-only-provisioning-attestation-secret-v1";
+  try {
+    const client = {
+      auth: { getUser: async () => ({ data: { user: { id: crypto.randomUUID() } }, error: null }) },
+      rpc: async (_name: string, args: { p_action: string }) => {
+        if (args.p_action === "provision") return { data: { tenantId, reconciliationAction: "created", provisioningState: "pending_first_admin_invite" }, error: null };
+        if (args.p_action === "reconcile") return { data: {
+          tenantId, requestId: input.request_id, requestHash: canonical.canonicalRequestHash, organizationNumber: canonical.normalizedOrganizationNumber,
+          previewHash: preview.preview_hash, baselineId: baseline.id, baselineVersion: baseline.version, baselineContentHash: baseline.contentHash,
+          approvalGeneration: 1, dispatchGeneration: 0,
+        }, error: null };
+        assert.equal(args.p_action, "reserve_dispatch");
+        return { data: null, error: { message: "transient reservation failure" } };
+      },
+    };
+    const result = await provisioningCommandTestHooks.provisionTenantWithDependencies({ request: input, previewHash: preview.preview_hash, explicitApproval: true }, { client: client as never, deliverInvitation: async () => { throw new Error("provider must not run"); } });
+    assert.ok(result.ok);
+    assert.equal(result.handoffNeedsRecovery, true);
+    assert.equal((result.result as { tenantId: string }).tenantId, tenantId);
+  } finally {
+    if (oldKey === undefined) delete process.env.TENANT_PROVISIONING_ATTESTATION_KEY_ID; else process.env.TENANT_PROVISIONING_ATTESTATION_KEY_ID = oldKey;
+    if (oldSecret === undefined) delete process.env.TENANT_PROVISIONING_ATTESTATION_HMAC_SECRET; else process.env.TENANT_PROVISIONING_ATTESTATION_HMAC_SECRET = oldSecret;
+  }
 });
