@@ -320,9 +320,12 @@ operator-console isolation passed. Stock typecheck reports unrelated ignored
 `tmp/private/**` and `tmp/worktrees/**` errors; a temporary project excluding
 `tmp/**` passed. Required local database verification passed 12/12 with
 `SUPABASE_TEST_REQUIRED=1` after both append-only migrations, including concurrent
-renewal and old-link invalidation. Browser follow-up execution remains pending
-root verification and is not claimed complete here. No external email delivery
-was verified.
+renewal and old-link invalidation. The complete focused operator-console Playwright
+file passed 8/8 with zero skipped in a clean isolated checkout of `931ff85`, using
+a guard-owned production server with the local provisioning attestation settings
+inherited by its server process. This verifies initial approval, reconciliation,
+pending-handoff recovery, dispatch-four approval, and expired-invitation renewal.
+No external email delivery was verified.
 
 ### Historical verification records
 
