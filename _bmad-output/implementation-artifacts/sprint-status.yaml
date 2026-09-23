@@ -60,7 +60,7 @@
 # use the current Epic 10 statuses and approved corrective-story entries below.
 
 generated: 2026-06-12
-last_updated: 09-23-2026 16:45  # ADR-B009 connected-field course correction verified; governance Story 10.7 done, no PWA/offline functionality delivered.
+last_updated: 09-23-2026 18:43  # ADR-B009 connected-field course correction verified; governance Story 10.7 done, no PWA/offline functionality delivered.
 project: ElproSaas
 project_key: NOKEY
 tracking_system: file-system
@@ -230,7 +230,7 @@ development_status:
 
   epic-13: in-progress
   13-1-authenticated-background-runner-and-producer-registry: review
-  13-2-in-app-notifications-bell-center-and-preferences: in-progress
+  13-2-in-app-notifications-bell-center-and-preferences: review
   13-3-email-outbox-pipeline-queued-non-sending: backlog
   # N-6 was answered 2026-07-26: Story 13.4 is schedulable for implementation
   # and sandbox proof. ADR-B011 keeps real-recipient delivery default-off until
