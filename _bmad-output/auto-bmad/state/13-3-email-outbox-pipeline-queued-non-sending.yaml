@@ -9,17 +9,17 @@ spec_folder: null
 story_id: null
 branch: epic/13-wave-b1a-notifications-and-email-infrastructure
 status: in-progress
-updated_at: "2026-09-23T17:26:18Z"
+updated_at: "2026-09-23T17:34:37Z"
 started_at: "2026-09-23T17:26:18Z"
 completed_at: null
-active_seconds: 0
-timing_anchor: 1790184378
+active_seconds: 499
+timing_anchor: 1790184877
 is_first_in_epic: false
 is_last_in_epic: false
 git_mode: remote
 base_branch: main
-selected_phase: build
-selected_role: build-delegate
+selected_phase: tea_per_story
+selected_role: tea-delegate
 selected_profile: standard
 selected_model: gpt-5.6-terra
 selected_effort: high
@@ -29,20 +29,21 @@ selected_route: subagent
 escalation_reason: null
 routing_ledger:
   - "{\"effort\":\"high\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-terra\",\"phase\":\"build\",\"profile\":\"standard\",\"role\":\"build-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"high\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-terra\",\"phase\":\"tea_per_story\",\"profile\":\"standard\",\"role\":\"tea-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
 tea_risk: high
 tea_selected: [atdd, automate]
 tea_rationale: "Schema and concurrency-sensitive queue claiming, retries, and idempotency carry data-integrity risk."
 epic_story_count: 4
 stories_after_in_epic: 1
-completed_phases: [0, 1, 2]
-spec_path: null
-spec_approved: false
+completed_phases: [0, 1, 2, 3]
+spec_path: "C:\\DEV\\ElproSaas\\_bmad-output\\implementation-artifacts\\spec-13-3-email-outbox-pipeline-queued-non-sending.md"
+spec_approved: true
 build:
-  status: null
+  status: ready-for-dev
   blocking_condition: null
   followup_review_recommended: false
   review_loop_iteration: 0
-  deferred_count: 0
+  deferred_count: 1
   warnings: []
 followup_passes: 0
 hitl_halt: null
@@ -54,7 +55,7 @@ legacy_review_loop_done: false
 legacy_external_review_iterations: null
 legacy_convergence_unverified: false
 legacy_artifact_path: null
-commits: []
+commits: [110a202]
 phase8_steps:
   trace_gate: null
   nfr: null
