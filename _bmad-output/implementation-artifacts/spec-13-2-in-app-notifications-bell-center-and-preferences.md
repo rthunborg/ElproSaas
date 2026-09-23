@@ -2,7 +2,7 @@
 title: 'Story 13.2: In-App Notifications — Bell, Center, and Preferences'
 type: 'feature'
 created: '2026-09-23'
-status: 'blocked'
+status: 'in-progress'
 baseline_revision: '343245be72246ab034ff56b9b979a9c648e39a13'
 review_loop_iteration: 0
 followup_review_recommended: false
