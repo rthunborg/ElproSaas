@@ -1,53 +1,18 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { isAuthorizedCronRequest } from "@/server/jobs/auth";
 
-type RouteResponse = { status: number; text(): Promise<string> };
-type RouteHarness = {
-  post(authorization?: string): Promise<RouteResponse>;
-  dispatchCount(): number;
-  sideEffectCount(): number;
-};
+const current = "c".repeat(32);
+const previous = "p".repeat(32);
+const future = "2026-10-01T00:00:00.000Z";
 
-const redPhaseRouteHarness = (): RouteHarness => {
-  throw new Error("Story 13.1 route harness is not implemented yet.");
-};
-
-test.skip("[P0] rejects every invalid scheduler credential with one generic 401 before any side effect", async () => {
-  const route = redPhaseRouteHarness();
-  const responses = await Promise.all(
-    [undefined, "Bearer wrong", "Bearer eyJhbGciOiJub25lIn0.e30.", "Bearer forged.jwt.token"].map((value) =>
-      route.post(value),
-    ),
-  );
-
-  assert.deepEqual(responses.map((response) => response.status), [401, 401, 401, 401]);
-  assert.deepEqual(await Promise.all(responses.map((response) => response.text())), [
-    "Unauthorized",
-    "Unauthorized",
-    "Unauthorized",
-    "Unauthorized",
-  ]);
-  assert.equal(route.dispatchCount(), 0);
-  assert.equal(route.sideEffectCount(), 0);
+test("[P0] rejects every invalid scheduler credential before dispatch configuration is considered", () => {
+  const env = { CRON_SECRET: current, CRON_PREVIOUS_SECRET: previous, CRON_PREVIOUS_SECRET_EXPIRES_AT: "2020-01-01T00:00:00.000Z" };
+  for (const credential of [null, "", "Bearer wrong", "Bearer eyJhbGciOiJub25lIn0.e30.", "Bearer forged.jwt.token"]) assert.equal(isAuthorizedCronRequest(credential, env), false);
 });
-
-test.skip("[P0] dispatches once with the current CRON_SECRET and returns no secret material", async () => {
-  const route = redPhaseRouteHarness();
-  const response = await route.post(`Bearer ${"c".repeat(32)}`);
-
-  assert.equal(response.status, 200);
-  assert.equal(route.dispatchCount(), 1);
-  assert.doesNotMatch(await response.text(), /CRON_SECRET|secret/i);
-});
-
-test.skip("[P0] accepts an eligible previous rotation secret and rejects an expired one without effects", async () => {
-  const route = redPhaseRouteHarness();
-
-  assert.equal((await route.post(`Bearer ${"p".repeat(32)}`)).status, 200);
-  assert.equal(route.dispatchCount(), 1);
-
-  const expiredRoute = redPhaseRouteHarness();
-  assert.equal((await expiredRoute.post(`Bearer ${"p".repeat(32)}`)).status, 401);
-  assert.equal(expiredRoute.dispatchCount(), 0);
-  assert.equal(expiredRoute.sideEffectCount(), 0);
+test("[P0] accepts only a current or unexpired previous secret of sufficient length", () => {
+  assert.equal(isAuthorizedCronRequest(`Bearer ${current}`, { CRON_SECRET: current }), true);
+  assert.equal(isAuthorizedCronRequest(`Bearer ${previous}`, { CRON_SECRET: current, CRON_PREVIOUS_SECRET: previous, CRON_PREVIOUS_SECRET_EXPIRES_AT: future }), true);
+  assert.equal(isAuthorizedCronRequest("Bearer short", { CRON_SECRET: "short" }), false);
+  assert.equal(isAuthorizedCronRequest(`Bearer ${previous}`, { CRON_PREVIOUS_SECRET: previous, CRON_PREVIOUS_SECRET_EXPIRES_AT: future }), false);
 });

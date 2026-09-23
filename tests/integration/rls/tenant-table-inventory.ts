@@ -102,6 +102,7 @@ export type TenantTableName =
   | "membership_roles"
   | "membership_admin_operations"
   | "audit_events"
+  | "job_runs"
   // Story 12.1 platform command state is durable tenant-keyed data.
   | "tenant_provisioning_requests"
   | "tenant_provisioning_invites"
@@ -310,6 +311,7 @@ export function updateDenialKind(table: TenantTableName): MutationDenialKind {
     case "membership_roles":
     case "membership_admin_operations":
     case "audit_events":
+    case "job_runs":
     case "tenant_provisioning_requests":
     case "tenant_provisioning_invites":
     case "quote_review_authorizations":
@@ -408,6 +410,8 @@ export function spoofedRowFor(
         correlation_id: crypto.randomUUID(),
         metadata: {},
       };
+    case "job_runs":
+      return { id: crypto.randomUUID(), tenant_id: fixture.tenantB.id, producer: "notifications.reminder", window_started_at: "2026-09-23T00:00:00.000Z", started_at: "2026-09-23T00:00:00.000Z", outcome: "completed", correlation_id: crypto.randomUUID() };
     case "quote_review_authorizations":
       return {
         id: crypto.randomUUID(),
@@ -845,6 +849,7 @@ export function tenantBFilter(
       }
       return { column: "id", value: ctx.tenantBAuditId };
     case "tenant_memberships":
+    case "job_runs":
       return { column: "tenant_id", value: ctx.fixture.tenantB.id };
     case "customers":
       // Target the SPECIFIC seeded Tenant B customer by id — the cross-tenant
@@ -1065,6 +1070,7 @@ export function hijackMutationFor(
     case "tenants":
       return { name: "hijacked-by-tenant-a" };
     case "audit_events":
+    case "job_runs":
       return { metadata: { hijacked: true } };
     case "quote_review_authorizations":
       return { source_revision: { hijacked: true } };
@@ -1225,6 +1231,8 @@ export function rlsInvisibleLabelColumn(table: TenantTableName): string {
     // is never reached; `note` keeps the exhaustive switch compile-safe.
     case "quote_lost_reasons":
       return "note";
+    case "job_runs":
+      return "metadata";
     // Story 10.3 quote_follow_ups is UPDATE-able ("rls-invisible"): `note` is the column the hijack
     // sets — re-read it to prove the seed value ("tenant-b-followup-seed") was NOT overwritten.
     case "quote_follow_ups":
@@ -1272,6 +1280,8 @@ export function anonRowFor(
         correlation_id: crypto.randomUUID(),
         metadata: {},
       };
+    case "job_runs":
+      return { id: crypto.randomUUID(), tenant_id: fixture.tenantA.id, producer: "notifications.reminder", window_started_at: "2026-09-23T00:00:00.000Z", started_at: "2026-09-23T00:00:00.000Z", outcome: "completed", correlation_id: crypto.randomUUID() };
     case "quote_review_authorizations":
       return {
         id: crypto.randomUUID(),
@@ -1552,6 +1562,7 @@ export function anonFilterFor(
     // it stayed unchanged on independent re-read); the anon path has no such re-read,
     // so `tenant_id` suffices. Hence one shared branch, not a per-table copy.
     case "audit_events":
+    case "job_runs":
     case "quote_review_authorizations":
     case "tenant_memberships":
     case "membership_roles":
@@ -1595,6 +1606,7 @@ export function anonMutationFor(
     case "tenants":
       return { name: "anon-hijack" };
     case "audit_events":
+    case "job_runs":
       return { metadata: { hijacked: true } };
     case "quote_review_authorizations":
       return { source_revision: { hijacked: true } };

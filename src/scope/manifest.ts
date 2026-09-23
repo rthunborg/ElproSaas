@@ -231,10 +231,13 @@ export const SCOPE_MANIFEST: ScopeManifest = {
       id: "notifications",
       label: "Notifications & Email",
       wave: "B1a",
-      status: "pending",
+      // Story 13.1 activates only the operational runner log. Categories, notification
+      // rows, preferences, and email work remain inactive until their owning stories.
+      status: "active",
       epic: "E13",
+      activatedAt: "2026-09-23",
       navItems: [],
-      tenantTables: [],
+      tenantTables: ["job_runs"],
       widgets: [],
       notificationCategories: [],
       publicSurfaces: [],

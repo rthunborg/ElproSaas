@@ -84,6 +84,8 @@ async function seedEveryTenantTable(tenantId: string, actorId: string): Promise<
   const job = await adminInsertJob({ tenant_id: tenantId, quote_acceptance_id: quoteAcceptance, quote_version_id: quoteVersion, customer_id: customer, title: "Role harness job" });
   const jobEvent = await adminInsertJobEvent({ tenant_id: tenantId, job_id: job, event_type: "created" });
   const auditEvent = await adminInsertAuditEvent({ tenant_id: tenantId, actor_user_id: actorId, command: "role.harness.seed", event_type: "seeded", target_type: "tenant", target_id: tenantId, correlation_id: crypto.randomUUID(), metadata: {} });
+  const jobRun = (await adminQuery<{ id: string }>("insert into public.job_runs (tenant_id, producer, window_started_at, started_at, finished_at, outcome, correlation_id) values ($1, 'notifications.runner', now(), now(), now(), 'completed', gen_random_uuid()) returning id", [tenantId]))[0]?.id;
+  if (!jobRun) throw new Error("role harness seed: job run missing");
   const membership = (await adminQuery<{ id: string }>("select id from public.tenant_memberships where tenant_id = $1 and user_id = $2", [tenantId, actorId]))[0]?.id;
   if (!membership) throw new Error("role harness seed: actor membership missing");
   const membershipRole = (await adminQuery<{ id: string }>(
@@ -98,7 +100,7 @@ async function seedEveryTenantTable(tenantId: string, actorId: string): Promise<
   if (!provisioningRequest || !provisioningInvite) throw new Error("role harness seed: provisioning rows missing");
   return {
     tenants: tenantId, tenant_memberships: membership, membership_roles: membershipRole,
-    membership_admin_operations: membershipOperation, audit_events: auditEvent,
+    membership_admin_operations: membershipOperation, audit_events: auditEvent, job_runs: jobRun,
     customers: customer, facilities: facility, contacts: contact, company_settings: companySettings,
     quote_terms: quoteTerms, work_roles: workRole, articles: article, calculations: calculation,
     calculation_sections: calculationSection, calculation_rows: calculationRow, files: file,

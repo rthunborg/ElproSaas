@@ -2,9 +2,10 @@
 title: 'Story 13.1: Authenticated Background Runner and Producer Registry'
 type: 'feature'
 created: '2026-09-23'
-status: 'ready-for-dev'
-review_loop_iteration: 0
-followup_review_recommended: false
+status: 'done'
+baseline_revision: '3d49a6e5d8070c9f72498e5ad0048300a799e7c0'
+review_loop_iteration: 1
+followup_review_recommended: true
 context:
   - '_bmad-output/project-context.md'
   - '_bmad-output/implementation-artifacts/epic-13-context.md'
@@ -89,5 +90,69 @@ deferred:
 
 ## Auto Run Result
 
-Status: ready-for-dev
-Blocking condition: none
+Status: done
+
+Summary: implemented the contained authenticated scheduler lane and review repairs without adding notification, email, outbox, or category behavior.
+
+Changed files: `src/app/api/jobs/run/route.ts` shares the Vercel-compatible GET and existing POST front door, loads durable runner state, and persists correlated run/audit records; `src/server/jobs/auth.ts` requires a configured current secret for all rotation acceptance; `src/server/jobs/runner.ts` persists partial/terminal cursor outcomes, returns isolated failures truthfully, records execution timestamps, and redacts credentials; `tests/unit/server/jobs/route.test.ts`, `route-auth.test.ts`, and `runner.test.ts` cover the repaired route, composition, auth, resume, failure, and sanitization behavior. The existing migration/scope/containment/test files remain the original Story 13.1 delivery.
+
+Review breakdown: 7 patch findings applied (GET delivery compatibility; current-secret rotation guard; durable cursor/outcome log; truthful isolated-failure outcome; execution timestamps; credential redaction; route-level no-side-effect and composed persistence coverage). Rejected/deferred: no additional reachable Story 13.1 finding was established. Repository-wide `tmp/**` type/lint failures remain pre-existing sibling-worktree noise and are outside this story; the cross-model layer produced no output.
+
+Follow-up score: 7 applied operational/security patches; `followup_review_recommended: true`.
+
+Verification: jobs plus containment units 27/27 passed; targeted lint passed; Story 13.1 paths had no type diagnostics; `pnpm verify:service-role-containment` and `pnpm verify:bundle-containment` passed after production compilation; `SUPABASE_TEST_REQUIRED=1 pnpm test:int -- tests/integration/jobs tests/integration/rls` passed 529/529. Residual repository-wide limitation: `pnpm build`, `pnpm typecheck`, and broad lint still encounter pre-existing `tmp/**` sibling-worktree failures after the Story paths compile.
+
+## Review Triage Log
+
+### 2026-09-23
+
+- **patch** — Applied Vercel GET compatibility through the same authenticated handler as POST; no second path or execution lane was added.
+- **patch** — Required a configured, at-least-32-byte current `CRON_SECRET` before accepting either current or eligible previous rotation credentials.
+- **patch** — Persisted partial and terminal runner outcome/cursor records so a later invocation resumes only the latest partial state.
+- **patch** — Returned a failed run outcome after an isolated producer failure while continuing remaining tenant work and retaining durable records.
+- **patch** — Carried real window, work-start, and finish timestamps from the runner into `job_runs`.
+- **patch** — Redacted bearer credentials plus JSON-style, token, and URL credential forms before bounded error persistence.
+- **patch** — Added route-level generic-401/no-side-effect coverage and a composed injected-producer test for cursor resume, run persistence, null-actor audit, and correlation.
+- **rejected/deferred** — No other reviewer claim identified a reachable Story 13.1 bypass. `tmp/**` type/lint failures are pre-existing sibling-worktree noise; the cross-model layer produced no output.
+
+## Suggested Review Order
+
+Author: Story 13.1 implementation author.
+Refreshed against the current working tree (baseline `3d49a6e5d8070c9f72498e5ad0048300a799e7c0`).
+
+### Scheduler authentication and bounded dispatch
+
+GET and POST share the one authenticated scheduler front door. It authenticates before constructing the service client, resumes only the latest partial operational-log cursor, and keeps the registry empty until a later story activates a concrete category.
+
+- `src/app/api/jobs/run/route.ts:65` — `handleJobsRunRequest`: is the shared GET/POST boundary and rejects before any privileged side effect.
+- `src/app/api/jobs/run/route.ts:23` — `loadResumeCursor`: reads the latest terminal or partial runner log so only a current partial cursor resumes.
+- `src/app/api/jobs/run/route.ts:35` — `recordRun`: persists producer timestamps, bounded metadata, shared correlation ID, and matching null-actor audit records.
+- `src/server/jobs/auth.ts:8` — `isAuthorizedCronRequest`: timing-safe current and eligible previous-secret verification.
+- `src/server/jobs/runner.ts:37` — `runDueProducers`: resumes a deterministic tenant slice, records partial/terminal cursor state, and reports isolated failures truthfully.
+- `src/server/jobs/producers.ts:26` — `ACTIVE_PRODUCERS`: derives the currently empty active registry from the manifest.
+
+### Scope and database enrollment
+
+Notifications activation enrolls only the operational log. The migration forces RLS, limits write grants to the contained service context, and keeps the log append-only.
+
+- `src/scope/manifest.ts:231` — `id: "notifications"`: activates the module with only `job_runs`.
+- `supabase/migrations/20260923160000_authenticated_job_runner.sql:5` — `create table public.job_runs`: defines the bounded run-log contract.
+- `supabase/migrations/20260923160000_authenticated_job_runner.sql:33` — `force row level security`: preserves the forced-RLS database boundary.
+- `supabase/migrations/20260923161000_job_runs_authenticated_select_grant.sql:3` — `grant select`: repairs the matching authenticated privilege required for the tenant-admin RLS policy.
+
+### Evidence and containment
+
+AC credential negatives, registry activation, deterministic resume/fairness, sanitization, and forbidden runner patterns have executable unit coverage.
+
+- `tests/unit/server/jobs/route-auth.test.ts:9` — `rejects every invalid scheduler credential`: exercises malformed, forged, and expired-rotation negatives.
+- `tests/unit/server/jobs/route.test.ts:15` — `GET and POST reject`: proves generic 401 responses occur before client or runner side effects.
+- `tests/unit/server/jobs/route.test.ts:34` — `authenticated route loads`: composes an injected active producer with cursor resume, tenant-scoped run/audit persistence, and correlation evidence.
+- `tests/unit/server/jobs/runner.test.ts:5` — `persists a cursor`: exercises bounded resume and tenant order.
+- `tests/unit/server/jobs/runner.test.ts:13` — `isolates a producer failure`: exercises truthful failed outcome, continued execution, and bearer/JSON/query credential redaction.
+- `tests/unit/server/jobs/producer-registry.test.ts:5` — `derives a typed producer`: exercises active-module derivation and pending exclusion.
+- `tests/unit/scripts/verify/jobs-service-role-containment.test.ts:8` — `jobs containment rejects`: proves the scanner rejects forbidden runner patterns.
+- `tests/unit/scripts/verify/bundle-containment.test.ts:92` — `documented jobs service server chunk`: admits the environment-variable name only for the marked server artifact while browser and unmarked artifacts stay red.
+- `tests/integration/jobs/job-runs.int.test.ts:12` — `fresh schema`: verifies the migration catalog, RLS policy, grants, index, and H4 enrollment after a fresh reset.
+
+Evidence: the refreshed jobs plus containment unit run passed 27/27 and targeted lint passed; `pnpm verify:service-role-containment` and `pnpm verify:bundle-containment` passed against the produced `.next` tree; Story 13.1 paths produced no TypeScript diagnostics. The injected route test composes the otherwise empty registry with a test producer and proves cursor resume plus run/audit correlation persistence.
+Limits: the required `SUPABASE_TEST_REQUIRED=1 pnpm test:int -- tests/integration/jobs tests/integration/rls` run passed 529/529. `pnpm build` produces the optimized `.next` output, then its repository-wide TypeScript phase fails on pre-existing `tmp/**` sibling-worktree sources outside Story 13.1. The shipped registry remains intentionally empty, so no category-specific producer is live.

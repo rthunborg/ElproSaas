@@ -184,6 +184,21 @@ export function scanForServiceRoleLeak(rootDir) {
   return { violations };
 }
 
+/** Story 13.1 adds a narrower, fail-closed runner contract. */
+export function scanJobsContainment(rootDir) {
+  const violations = [];
+  const jobsRoot = join(rootDir, "src", "server", "jobs");
+  for (const file of walk(jobsRoot)) {
+    if (!shouldScanFile(file)) continue;
+    const rel = relative(rootDir, file).replace(/\\/g, "/");
+    const contents = readFileSync(file, "utf8");
+    if (/decodeJwt|verify_jwt\s*=\s*false|pg_cron|edge function/i.test(contents)) {
+      violations.push(`${rel}: forbidden alternate execution or unverified-JWT pattern in jobs runtime.`);
+    }
+  }
+  return { violations };
+}
+
 // CLI behavior: when run directly (not imported by a test), scan the repo root and exit
 // non-zero on any violation. Compare normalized paths so Windows back/forward slashes and
 // drive-letter casing don't break the main-module check.
@@ -197,6 +212,7 @@ const invokedDirectly =
 if (invokedDirectly) {
   const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
   const { violations } = scanForServiceRoleLeak(repoRoot);
+  violations.push(...scanJobsContainment(repoRoot).violations);
   if (violations.length > 0) {
     console.error(
       `❌ Service-role containment guard failed (${violations.length} violation(s)):\n` +

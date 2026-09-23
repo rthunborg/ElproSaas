@@ -1,30 +1,9 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-
-type Producer = { id: string; module: string; category: string; schedule: string; essential: boolean };
-const redPhaseRegistry = (): { fromManifest(input: unknown): Producer[] } => {
-  throw new Error("Story 13.1 producer registry is not implemented yet.");
-};
-
-test.skip("[P0] derives typed producer entries only from active manifest modules and rejects placeholders", () => {
-  const registry = redPhaseRegistry();
-  const entries = registry.fromManifest({
-    modules: [{ id: "notifications", status: "active", notificationCategories: [], tenantTables: ["job_runs"] }],
-  });
-
-  assert.deepEqual(entries, []);
-  assert.throws(() =>
-    registry.fromManifest({
-      modules: [{ id: "notifications", status: "active", notificationCategories: ["placeholder"] }],
-    }),
-  );
+import { producersFromManifest } from "@/server/jobs/producers";
+const producer = { id: "notifications.reminder", module: "notifications", category: "quote.reminder", schedule: "*/5 * * * *", essential: false };
+test("[P0] derives a typed producer only from an active module owning its category", () => {
+  assert.deepEqual(producersFromManifest({ modules: [{ id: "notifications", status: "active", notificationCategories: ["quote.reminder"] }] }, [producer]), [producer]);
+  assert.deepEqual(producersFromManifest({ modules: [{ id: "notifications", status: "pending", notificationCategories: ["quote.reminder"] }] }, [producer]), []);
 });
-
-test.skip("[P0] excludes pending-module producers and exposes no live category", () => {
-  const registry = redPhaseRegistry();
-  const entries = registry.fromManifest({
-    modules: [{ id: "notifications", status: "pending", notificationCategories: ["job.reminder"] }],
-  });
-
-  assert.deepEqual(entries, []);
-});
+test("[P0] rejects placeholder categories", () => assert.throws(() => producersFromManifest({ modules: [{ id: "notifications", status: "active", notificationCategories: ["placeholder"] }] }, [{ ...producer, category: "placeholder" }])));

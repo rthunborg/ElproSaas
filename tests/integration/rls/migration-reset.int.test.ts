@@ -293,6 +293,7 @@ describe("Migration reset green — tenant_foundation objects present (AC1 / R-0
       "job_events.INSERT",
       "job_events.SELECT",
       "job_events.UPDATE",
+      "job_runs.SELECT",
       "jobs.INSERT",
       "jobs.SELECT",
       "jobs.UPDATE",

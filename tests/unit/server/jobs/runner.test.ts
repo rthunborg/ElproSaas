@@ -1,47 +1,20 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-
-type RunResult = { outcome: "completed" | "partial" | "failed"; cursor?: string; errorSummary?: string };
-type RunnerHarness = {
-  run(input: Record<string, unknown>): Promise<RunResult>;
-  scopes(): string[];
-  writes(): unknown[];
-};
-const redPhaseRunnerHarness = (): RunnerHarness => {
-  throw new Error("Story 13.1 runner harness is not implemented yet.");
-};
-
-test.skip("[P0] persists a sanitized cursor at an injected chunk or deadline and resumes without a full scan", async () => {
-  const runner = redPhaseRunnerHarness();
-  const first = await runner.run({
-    now: new Date("2026-09-23T00:00:00.000Z"),
-    tenants: ["tenant-a", "tenant-b", "tenant-c"],
-    chunkSize: 2,
-    deadline: new Date("2026-09-23T00:00:01.000Z"),
-  });
-
-  assert.equal(first.outcome, "partial");
-  assert.ok(first.cursor);
-  const resumed = await runner.run({ cursor: first.cursor, tenants: ["tenant-a", "tenant-b", "tenant-c"], chunkSize: 2 });
-  assert.notEqual(resumed.cursor, first.cursor);
-  assert.ok(runner.writes().length > 0);
+import { runDueProducers, sanitizeJobError, type JobRunRecord } from "@/server/jobs/runner";
+const producer = { id: "notifications.reminder", module: "notifications", category: "quote.reminder", schedule: "*/5 * * * *", essential: false };
+test("[P0] persists a cursor at a deterministic chunk and resumes tenant order", async () => {
+  const writes: JobRunRecord[] = [];
+  const deps = { listTenantIds: async () => ["tenant-a", "tenant-b", "tenant-c"], execute: async () => undefined, record: async (record: JobRunRecord) => { writes.push(record); } };
+  const first = await runDueProducers(deps, { producers: [producer], chunkSize: 2 });
+  assert.equal(first.outcome, "partial"); assert.ok(first.cursor);
+  const second = await runDueProducers(deps, { producers: [producer], cursor: first.cursor, chunkSize: 2 });
+  assert.equal(second.outcome, "completed"); assert.deepEqual(writes.filter((write) => write.producer === producer.id).map((write) => write.tenantId), ["tenant-a", "tenant-b", "tenant-c"]);
 });
-
-test.skip("[P0] explicitly tenant-scopes every producer read and write and preserves round-robin fairness", async () => {
-  const runner = redPhaseRunnerHarness();
-  await runner.run({ tenants: ["tenant-a", "tenant-b"], chunkSize: 2 });
-
-  assert.deepEqual(runner.scopes(), ["tenant-a", "tenant-a", "tenant-b", "tenant-b"]);
-});
-
-test.skip("[P1] isolates producer failure into an attributable failed or partial run with bounded sanitized error", async () => {
-  const runner = redPhaseRunnerHarness();
-  const result = await runner.run({
-    tenants: ["tenant-a"],
-    producerFailure: new Error(`password=secret ${"x".repeat(2_000)}`),
-  });
-
-  assert.match(result.outcome, /failed|partial/);
-  assert.match(result.errorSummary ?? "", /\[redacted\]/);
-  assert.ok((result.errorSummary?.length ?? 0) <= 256);
+test("[P1] isolates a producer failure with a bounded sanitized summary", async () => {
+  const writes: JobRunRecord[] = [];
+  await runDueProducers({ listTenantIds: async () => ["tenant-a"], execute: async () => { throw new Error(`password=secret ${"x".repeat(400)}`); }, record: async (record) => { writes.push(record); } }, { producers: [producer] });
+  assert.equal(writes[0]?.outcome, "failed"); assert.match(writes[0]?.errorSummary ?? "", /password=\[redacted\]/); assert.ok((writes[0]?.errorSummary?.length ?? 0) <= 256);
+  assert.equal((await runDueProducers({ listTenantIds: async () => ["tenant-a", "tenant-b"], execute: async (_producer, tenantId) => { if (tenantId === "tenant-a") throw new Error("Authorization: Bearer secret-token token=raw https://x.test/?api_key=raw"); }, record: async (record) => { writes.push(record); } }, { producers: [producer] })).outcome, "failed");
+  assert.doesNotMatch(writes.findLast((write) => write.outcome === "failed")?.errorSummary ?? "", /secret-token|token=raw|api_key=raw/);
+  assert.equal(sanitizeJobError("secret=x"), "Background producer failed");
 });
