@@ -478,6 +478,9 @@ describe("Cross-tenant RLS isolation — data-driven over the shared inventory (
   const directReadRevokedTables = new Set([
     "tenant_provisioning_requests",
     "tenant_provisioning_invites",
+    "email_outbox",
+    "email_delivery_events",
+    "email_suppressions",
   ]);
 
   for (const table of TENANT_TABLES) {

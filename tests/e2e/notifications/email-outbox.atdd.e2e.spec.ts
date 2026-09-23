@@ -84,7 +84,8 @@ test.describe("Story 13.3 E-postutkö — Admin-projektion", () => {
     const retryRow = queue.getByRole("row").filter({ hasText: fixture().emailOutbox.queueReferences.retry });
     await expect(retryRow).toContainText(/nästa försök/i);
     const failedRow = queue.getByRole("row").filter({ hasText: fixture().emailOutbox.queueReferences.failed });
-    await expect(failedRow).toContainText(/försök/i);
+    await expect(failedRow).toContainText("Misslyckad — kunde inte levereras");
+    await expect(failedRow).not.toContainText(/nästa försök/i);
     await expect(queue.getByRole("button", { name: /skicka|aktivera|leverera/i })).toHaveCount(0);
     await expect(queue.getByRole("link", { name: /skicka|aktivera|leverera/i })).toHaveCount(0);
   });

@@ -115,7 +115,10 @@ test("[P0] default registered dark outbox producer reaches the scheduler suppres
   const client = {
     from(table: string) {
       if (table === "job_runs") { const query = { eq: () => query, order: () => query, limit: async () => ({ data: [], error: null }) }; return { select: () => query }; }
-      if (table === "email_outbox") return { select: () => ({ eq: () => ({ eq: async () => { queueReads += 1; return { data: [], error: null }; } }) }) };
+      if (table === "email_outbox") return { select: () => {
+        const query = { eq: () => query, order: () => query, limit: async () => { queueReads += 1; return { data: [], error: null }; } };
+        return query;
+      } };
       throw new Error(`unexpected table ${table}`);
     },
     rpc: async (name: string) => { assert.equal(name, "suppress_queued_email_outbox"); suppressions += 1; return { data: 0, error: null }; },

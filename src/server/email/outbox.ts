@@ -4,6 +4,7 @@ import { renderDarkTemplate, validateRecipientProjection, type EmailTemplate, ty
 
 export const EMAIL_RETRY_MINUTES = [5, 10, 20] as const;
 export const EMAIL_LEASE_MINUTES = 15;
+export const DARK_RENDER_BATCH_SIZE = 50;
 export type EmailOutboxState = "queued" | "sending" | "sent" | "failed" | "suppressed";
 export type EnqueueEmailOutboxInput = {
   readonly tenantId: string;
@@ -59,7 +60,14 @@ export async function recordSyntheticDeliveryOutcome(deps: OutboxDependencies, i
 export async function processDarkEmailOutbox(deps: OutboxDependencies, input: { readonly tenantId: string; readonly workerId?: string }): Promise<{ readonly suppressed: number; readonly rendered: number }> {
   const { data, error } = await deps.client.rpc("suppress_queued_email_outbox", { p_tenant_id: input.tenantId });
   if (error) throw new Error("Email suppression evaluation failed");
-  const { data: rows, error: queuedError } = await deps.client.from("email_outbox").select("template_params").eq("tenant_id", input.tenantId).eq("state", "queued");
+  const { data: rows, error: queuedError } = await deps.client
+    .from("email_outbox")
+    .select("template_params")
+    .eq("tenant_id", input.tenantId)
+    .eq("state", "queued")
+    .order("created_at", { ascending: true })
+    .order("id", { ascending: true })
+    .limit(DARK_RENDER_BATCH_SIZE);
   if (queuedError) throw new Error("Email outbox read failed");
   for (const row of rows ?? []) renderDarkTemplate({ key: "dark", version: 1, params: (row as { template_params: RecipientEntitlementProjection }).template_params });
   return { suppressed: typeof data === "number" ? data : 0, rendered: (rows ?? []).length };

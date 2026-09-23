@@ -27,8 +27,7 @@ deferred:
 
 ## Boundaries & Constraints
 
-**Always:** Enroll `email_outbox`, `email_delivery_events`, and `email_suppressions` in the active
-otifications` manifest module and the H4/RLS inventory in the same migration change. Deduplicate by tenant plus category, subject type/id, and period. Permit only `queued → sending → sent | failed | suppressed`; store immutable delivery events and sanitized failure detail. Model three delivery attempts, exponential retry delays of 5, 10, and 20 minutes, and a 15-minute sending lease; use an injected clock. Claims must use real PostgreSQL `FOR UPDATE SKIP LOCKED`, be tenant explicit, and recover one stale lease without another delivery attempt. Suppression is tenant + normalized recipient hash + category scoped, precedes any future delivery seam, and creates `suppressed` plus an event. Template input accepts only a recipient entitlement projection; raw source records and Admin-only data never enter params or audit metadata. Reuse the sole authenticated `/api/jobs/run` lane and the contained service client; add an operational producer kind that validates active manifest ownership without treating an outbox processor as a user-visible notification category.
+**Always:** Enroll `email_outbox`, `email_delivery_events`, and `email_suppressions` in the active `notifications` manifest module and the H4/RLS inventory in the same migration change. Deduplicate by tenant plus category, subject type/id, and period. Permit only `queued → sending → sent | failed | suppressed`; store immutable delivery events and sanitized failure detail. Model three delivery attempts, exponential retry delays of 5, 10, and 20 minutes, and a 15-minute sending lease; use an injected clock. Claims must use real PostgreSQL `FOR UPDATE SKIP LOCKED`, be tenant explicit, and recover one stale lease without another delivery attempt. Suppression is tenant + normalized recipient hash + category scoped, precedes any future delivery seam, and creates `suppressed` plus an event. Template input accepts only a recipient entitlement projection; raw source records and Admin-only data never enter params or audit metadata. Reuse the sole authenticated `/api/jobs/run` lane and the contained service client; add an operational producer kind that validates active manifest ownership without treating an outbox processor as a user-visible notification category.
 
 **Block If:** A provider SDK, SMTP/API credential, real-recipient call, provider result, public unsubscribe route, public quote route, client-reachable service context, second scheduler lane, or a pending-module producer is needed.
 
@@ -94,17 +93,17 @@ The delivery state machine is created now so the schema does not need reconstruc
 
 Status: done
 
-Summary: Implemented the tenant-isolated, queued non-sending email outbox, dark scheduler processor, redacted Admin queue projection, manifest/RLS enrollment, and provider-containment guard.
+Summary: Implemented the tenant-isolated, queued non-sending email outbox, dark scheduler processor, redacted Admin queue projection, manifest/RLS enrollment, and provider-containment guard. The follow-up review adds a deterministic 50-row bound to each dark tenant pass and prevents a terminal failure from advertising a future retry.
 
-Files changed: Added outbox migrations, server email/read-model/UI paths, job registration and containment checks, and focused unit, integration/RLS, role-harness, manifest, and browser coverage.
+Files changed: Added outbox migrations, server email/read-model/UI paths, job registration and containment checks, and focused unit, integration/RLS, role-harness, manifest, and browser coverage. The follow-up also updates the shared RLS negative to recognize the deliberate direct-read revocation.
 
-Review findings breakdown: 7 patches applied (high 1, medium 4, low 2); 1 item deferred; 7 findings rejected.
+Review findings breakdown: This follow-up applied 4 patches (high 0, medium 3, low 1); deferred 0; rejected 14. The external diverse-model layer produced no output and was recorded as a failed review layer rather than a clean result.
 
-Follow-up review recommendation: true (one high-severity patch was applied; patched score 14).
+Follow-up review recommendation: true (patched score 10: 3 × medium + 1 × low).
 
-Verification performed: typecheck passed; lint passed with existing warnings only; focused unit command passed 1,883 tests with 4 unrelated skips; targeted required integration passed 14 tests with 0 skips; browser notifications suite passed 21 tests; service-role and built-bundle containment passed; production build passed; review-order checker passed with 27 references.
+Verification performed: `pnpm typecheck` passed; `pnpm lint` passed; filtered unit suite passed 1,888 tests with 1 skipped and 0 failed; direct Story 13.3 unit/route/containment tests passed 15/15; required `SUPABASE_TEST_REQUIRED=1` integration/RLS/jobs run passed 578/578; Story 13.3 Playwright browser suite passed 4/4; service-role and built-bundle containment passed; production build passed.
 
-Residual risks: The dark processor performs no delivery. Holding a database claim through JavaScript-only template rendering is intentionally not modeled; a provider-era render reservation is deferred to Story 13.4.
+Residual risks: The dark processor performs no delivery. Suppression evaluation and real transport remain Story 13.4 concerns; no provider, credential, public unsubscribe, or real-recipient path is present or authorized.
 
 ## Review Triage Log
 
@@ -120,10 +119,22 @@ Residual risks: The dark processor performs no delivery. Holding a database clai
   - `[medium]` `[patch]` Added default scheduler-producer and provider-containment regression tests.
   - `[low]` `[patch]` Tightened recovery event selection and lease-field transition coverage.
 
+### 2026-09-23 — Follow-up review pass
+- intent_gap: 0
+- bad_spec: 0
+- patch: 4 (high 0, medium 3, low 1)
+- defer: 0
+- reject: 14
+- addressed_findings:
+  - `[medium]` `[patch]` Bounded each tenant's dark render pass to 50 rows with a stable `created_at, id` order, and updated the affected mocks.
+  - `[medium]` `[patch]` Omitted terminal `failed` and `suppressed` timestamps from the retry projection so the Admin UI never presents a terminal row as retryable.
+  - `[medium]` `[patch]` Recognized the deliberate direct-read revocation for all three outbox tables in the shared cross-tenant negative suite.
+  - `[low]` `[patch]` Restored the `notifications` module token in the intent contract.
+
 ## Suggested Review Order
 
 Author: Story 13.3 implementation author.
-Refreshed against the current working tree based on committed Story 13.3 diff `a76cdd479414e7706de8cb3af3ab827ba238a5d4`.
+Refreshed by the Story 13.3 follow-up fix author against the final reviewed diff from baseline `cb0fb4ae799fcb5b636a3f380aeff53bcdf5fd4f`.
 
 ### Durable dark queue and its authority boundary
 
@@ -132,7 +143,7 @@ The migration records the queue, delivery history, and suppression authority und
 - `supabase/migrations/20260923175035_email_outbox_pipeline.sql:3` — `create table public.email_outbox`: tenant-deduped queue and lifecycle state.
 - `supabase/migrations/20260923175035_email_outbox_pipeline.sql:91` — `claim_email_outbox`: tenant-explicit `FOR UPDATE SKIP LOCKED` lease claim.
 - `supabase/migrations/20260923175035_email_outbox_pipeline.sql:103` — `suppress_queued_email_outbox`: suppression precedes the dark rendering seam.
-- `src/server/email/outbox.ts:59` — `processDarkEmailOutbox`: leaves unsuppressed production rows queued.
+- `src/server/email/outbox.ts:60` — `processDarkEmailOutbox`: evaluates suppression, then reads at most 50 queued rows in a deterministic order while leaving them queued.
 
 ### Existing job lane and limited Administrator view
 
@@ -140,7 +151,7 @@ The outbox processor is an operational producer, so activation validates the man
 
 - `src/server/jobs/producers.ts:30` — `notifications.email-outbox-dark`: operational producer declaration.
 - `src/app/api/jobs/run/route.ts:91` — `notifications.email-outbox-dark`: sole authenticated scheduler dispatch.
-- `src/server/read-models/email-outbox.ts:8` — `readEmailOutboxQueue`: checks `Notifications.View` before returning a redacted projection.
+- `src/server/read-models/email-outbox.ts:8` — `readEmailOutboxQueue`: checks `Notifications.View` before returning a redacted projection that omits terminal retry deadlines.
 - `src/components/notifications/EmailOutboxQueue.tsx:4` — `EmailOutboxQueue`: renders states only, with no delivery action.
 
 ### Manifest, role-harness, and scheduler regression coverage
@@ -164,13 +175,13 @@ AC1–AC5 now have executable unit and real-PostgreSQL coverage: tenant dedupe, 
 - `tests/integration/email/outbox.atdd.int.test.ts:33` — asserts `sending` and one recovery event; `:48` rejects an outcome without the claim owner.
 - `tests/unit/server/jobs/route.test.ts:113` — default registered dark producer reaches suppression/evaluation.
 - `tests/unit/scripts/verify/email-provider-containment.atdd.test.ts:9` — executable provider, route, and client-import containment bites.
-- `tests/unit/server/email/outbox.test.ts:7` — `[P0][AC4]`: verifies dark rendering of the recipient projection without a transport seam.
-- `tests/unit/server/email/outbox.test.ts:18` — `[P0][AC3]`: verifies deterministic normalized recipient hashing.
+- `tests/unit/server/email/outbox.test.ts:7` — `[P0][AC4]`: verifies dark rendering uses the bounded deterministic query without a transport seam.
+- `tests/unit/server/email/outbox.test.ts:27` — `[P0][AC3]`: verifies deterministic normalized recipient hashing.
 - `scripts/verify/check-service-role-containment.mjs:225` — `scanEmailProviderContainment`: rejects provider SDKs, credentials, alternate email routes, and client outbox imports.
 - `tests/integration/rls/migration-reset.int.test.ts:284` — `email_delivery_events.SELECT`: keeps the new Admin-read policies in the exact migration inventory.
 - `tests/integration/rls/role-harness.atdd.int.test.ts:100` — `emailOutbox`: seeds isolated outbox, append-only event, and suppression rows for own-versus-foreign RLS projections.
 - `tests/e2e/global-setup.ts:840` — `insertOutbox`: creates only the five tenant-scoped dark-state fixtures needed for the browser scenarios.
 - `tests/e2e/notifications/email-outbox.atdd.e2e.spec.ts:69` — `Admin sees truthful queued`: verifies queued, retry, failed, and suppressed presentation without activation; the following three tests verify redaction, role denial, and cross-tenant isolation.
 
-Evidence: `node --experimental-strip-types --import ./tests/support/register.mjs --test tests/unit/server/email/outbox.atdd.test.ts` passed (4 tests, 0 failed, 0 skipped); `$env:SUPABASE_TEST_REQUIRED='1'; pnpm test:int -- tests/integration/email/outbox.atdd.int.test.ts tests/integration/rls/email-outbox.rls.atdd.int.test.ts` passed (9 tests, 0 failed, 0 skipped); `pnpm typecheck` passed. Latest review-fix evidence: required outbox/RLS/role-harness integration command passed (14 tests, 0 failed, 0 skipped); focused route plus provider-containment runner passed (8 tests, 0 failed, 0 skipped); containment guard passed. Earlier evidence: focused manifest and scheduler unit tests (18 passed); outbox/registry/containment tests (12 passed); required migration-reset and role-harness tests (16 passed); notification E2E (21 passed); service-role containment passed; lint passed with warnings and no errors.
-Limits: no provider is present, and no real-recipient path is tested or authorized. The synthetic outcome is a test-only state-machine seam; it does not invoke a transport or authorize a release path.
+Evidence: Follow-up review execution: `pnpm typecheck` and `pnpm lint` passed; filtered unit suite passed 1,888 tests (1 skipped); required integration/RLS/jobs passed 578/578; `pnpm test:e2e -- tests/e2e/notifications/email-outbox.atdd.e2e.spec.ts` passed 4/4; service-role and built-bundle containment passed; production build passed. Earlier Story 13.3 execution is recorded above.
+Limits: no provider is present, and no real-recipient path is tested or authorized. The synthetic outcome is a test-only state-machine seam; it does not invoke a transport or authorize a release path. The diverse external review process returned no output.

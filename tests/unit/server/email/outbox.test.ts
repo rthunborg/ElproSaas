@@ -1,18 +1,27 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { enqueueEmailOutbox, hashEmailRecipient, processDarkEmailOutbox } from "@/server/email/outbox";
+import { DARK_RENDER_BATCH_SIZE, enqueueEmailOutbox, hashEmailRecipient, processDarkEmailOutbox } from "@/server/email/outbox";
 
 const projection = { recipientUserId: "user-a", displayName: "Ada", locale: "sv-SE" };
 
 test("[P0][AC4] dark processing renders only the recipient projection and leaves queued work untouched", async () => {
   let suppressionCalled = false;
+  const orderCalls: string[] = [];
   const client = {
     rpc: async (name: string) => { suppressionCalled = name === "suppress_queued_email_outbox"; return { data: 0, error: null }; },
-    from: () => ({ select: () => ({ eq: () => ({ eq: async () => ({ data: [{ template_params: projection }], error: null }) }) }) }),
+    from: () => ({ select: () => {
+      const query = {
+        eq: () => query,
+        order: (column: string) => { orderCalls.push(column); return query; },
+        limit: async (limit: number) => ({ data: limit === DARK_RENDER_BATCH_SIZE ? [{ template_params: projection }] : [], error: null }),
+      };
+      return query;
+    } }),
   } as never;
   const result = await processDarkEmailOutbox({ client }, { tenantId: "tenant-a" });
   assert.deepEqual(result, { suppressed: 0, rendered: 1 });
   assert.equal(suppressionCalled, true);
+  assert.deepEqual(orderCalls, ["created_at", "id"]);
 });
 
 test("[P0][AC3] recipient hash is deterministic and never exposes the source projection", () => {

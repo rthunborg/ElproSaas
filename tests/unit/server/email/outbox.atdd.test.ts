@@ -43,7 +43,15 @@ function createOutboxMemoryHarness(options: Record<string, any> = {}): any {
       if (name === "suppress_queued_email_outbox") { let count = 0; for (const row of rows) if (row.tenant_id === params.p_tenant_id && row.state === "queued" && suppressions.some((s) => s.tenantId === row.tenant_id && s.recipientHash === row.recipient_hash && s.category === row.category)) { row.state = "suppressed"; events.get(row.id)!.push({ type: "suppressed" }); count++; } return { data: count, error: null }; }
       throw new Error(`Unexpected RPC ${name}`);
     },
-    from: () => ({ select: () => ({ eq: (_: string, tenantId: string) => ({ eq: () => ({ then: (resolve: any) => resolve({ data: rows.filter((row) => row.tenant_id === tenantId && row.state === "queued").map((row) => ({ template_params: row.template_params })), error: null }) }) }) }) }),
+    from: () => ({ select: () => {
+      let tenantId = "";
+      const query = {
+        eq: (column: string, value: string) => { if (column === "tenant_id") tenantId = value; return query; },
+        order: () => query,
+        limit: async () => ({ data: rows.filter((row) => row.tenant_id === tenantId && row.state === "queued").map((row) => ({ template_params: row.template_params })), error: null }),
+      };
+      return query;
+    } }),
   };
   return { client, clock, templateInputs: [], deliverySeamCalls: 0, enqueueEligibleRow: async (overrides: any = {}) => { const row = { id: `row-${++sequence}`, tenant_id: "tenant-a", recipient_hash: overrides.recipientHash ?? "c".repeat(64), category: overrides.category ?? "quote.follow_up_due", template_params: overrides.params ?? recipientProjection(), state: "queued", attempts: 0, next_attempt_at: iso(clock.now()) }; rows.push(row); events.set(row.id, [{ type: "queued" }]); return row; }, insertSuppression: async (value: any) => suppressions.push(value), row: byId, eventsFor: (id: string) => events.get(id), retrySchedule: (_id: string) => ["2026-09-23T10:05:00.000Z", "2026-09-23T10:15:00.000Z", "2026-09-23T10:35:00.000Z"], stateAfterThirdFailure: (_id: string) => "failed" };
 }
