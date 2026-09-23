@@ -232,9 +232,9 @@ development_status:
   13-1-authenticated-background-runner-and-producer-registry: backlog
   13-2-in-app-notifications-bell-center-and-preferences: backlog
   13-3-email-outbox-pipeline-queued-non-sending: backlog
-  # 13-4 is DARK [gated: N-6]: defined but MUST NOT be scheduled until the owner
-  # activates sending (domain, from-address, first flows) — scheduling it before
-  # N-6 resolves is a process violation (epics doc, Story 13.4 banner).
+  # N-6 was answered 2026-07-26: Story 13.4 is schedulable for implementation.
+  # Real-recipient delivery still requires the owner's separate go-live approval;
+  # keep real sending disabled until then (epics doc, Story 13.4 banner).
   13-4-email-sending-activation: backlog
   epic-13-retrospective: optional
 
@@ -347,8 +347,10 @@ development_status:
 # SPRINT-PLANNING JUDGMENT CALLS (2026-07-18 autonomous append run):
 # - Only existing status tokens are used (backlog/optional); gates are carried
 #   as comments because the schema has no blocked/gated status. Gated entries
-#   (13-4, epics 16-18, 33-34) therefore read `backlog` — the gate comments are
+#   (epics 16-18, 33-34) therefore read `backlog` — the gate comments are
 #   the guard; orchestrators must not start them while their gate is open.
+#   Story 13.4 is also `backlog`, but N-6 is answered; only real sending remains
+#   subject to a separate owner go-live approval.
 # - B2/B3 candidate stories intentionally have NO rows so the file-order picker
 #   cannot select uncommitted work; rows are added at each wave checkpoint.
 # - B1b story keys are derived from the epics doc sketch titles and may be
