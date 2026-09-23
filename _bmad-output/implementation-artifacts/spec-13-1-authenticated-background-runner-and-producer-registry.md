@@ -144,7 +144,7 @@ Notifications activation enrolls only the operational log. The migration forces 
 
 AC credential negatives, registry activation, deterministic resume/fairness, sanitization, and forbidden runner patterns have executable unit coverage.
 
-- `tests/unit/server/jobs/route-auth.test.ts:9` — `rejects every invalid scheduler credential`: exercises malformed, forged, and expired-rotation negatives.
+- `tests/unit/server/jobs/route-auth.test.ts:9` — `rejects every invalid scheduler credential`: exercises malformed and forged credentials under an expired-previous configuration; it does not invoke the previous secret against that expired environment.
 - `tests/unit/server/jobs/route.test.ts:15` — `GET and POST reject`: proves generic 401 responses occur before client or runner side effects.
 - `tests/unit/server/jobs/route.test.ts:34` — `authenticated route loads`: composes an injected active producer with cursor resume, tenant-scoped run/audit persistence, and correlation evidence.
 - `tests/unit/server/jobs/runner.test.ts:5` — `persists a cursor`: exercises bounded resume and tenant order.
@@ -152,7 +152,7 @@ AC credential negatives, registry activation, deterministic resume/fairness, san
 - `tests/unit/server/jobs/producer-registry.test.ts:5` — `derives a typed producer`: exercises active-module derivation and pending exclusion.
 - `tests/unit/scripts/verify/jobs-service-role-containment.test.ts:8` — `jobs containment rejects`: proves the scanner rejects forbidden runner patterns.
 - `tests/unit/scripts/verify/bundle-containment.test.ts:92` — `documented jobs service server chunk`: admits the environment-variable name only for the marked server artifact while browser and unmarked artifacts stay red.
-- `tests/integration/jobs/job-runs.int.test.ts:12` — `fresh schema`: verifies the migration catalog, RLS policy, grants, index, and H4 enrollment after a fresh reset.
+- `tests/integration/jobs/job-runs.int.test.ts:12` — `fresh schema`: inspects forced RLS, tenant-admin policy presence, index presence, absent authenticated/anon mutation grants, and H4 enrollment. It does not reset the schema or assert constraints or authenticated SELECT grant behavior.
 
 Evidence: the refreshed jobs plus containment unit run passed 27/27 and targeted lint passed; `pnpm verify:service-role-containment` and `pnpm verify:bundle-containment` passed against the produced `.next` tree; Story 13.1 paths produced no TypeScript diagnostics. The injected route test composes the otherwise empty registry with a test producer and proves cursor resume plus run/audit correlation persistence.
 Limits: the required `SUPABASE_TEST_REQUIRED=1 pnpm test:int -- tests/integration/jobs tests/integration/rls` run passed 529/529. `pnpm build` produces the optimized `.next` output, then its repository-wide TypeScript phase fails on pre-existing `tmp/**` sibling-worktree sources outside Story 13.1. The shipped registry remains intentionally empty, so no category-specific producer is live.
