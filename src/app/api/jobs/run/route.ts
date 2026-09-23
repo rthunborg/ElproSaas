@@ -5,6 +5,7 @@ import { ACTIVE_PRODUCERS, type ProducerDeclaration } from "@/server/jobs/produc
 import { runDueProducers, type JobRunRecord, type RunnerDependencies } from "@/server/jobs/runner";
 import { isAuthorizedCronRequest } from "@/server/jobs/auth";
 import { emitDueFollowUpNotifications } from "@/server/notifications/follow-up-producer";
+import { processDarkEmailOutbox } from "@/server/email/outbox";
 
 const unauthorized = () => new Response("Unauthorized", { status: 401 });
 const CURSOR_PRODUCER = "jobs.runner";
@@ -86,6 +87,9 @@ export async function handleJobsRunRequest(request: Request, dependencies: JobsR
     execute: dependencies.execute ?? (async (producer, tenantId) => {
       if (producer.id === "quotes.follow-up-reminders") {
         await emitDueFollowUpNotifications(client, tenantId, now().toISOString().slice(0, 10));
+      }
+      if (producer.id === "notifications.email-outbox-dark") {
+        await processDarkEmailOutbox({ client }, { tenantId });
       }
     }),
     record: recordRun(client, correlationId),

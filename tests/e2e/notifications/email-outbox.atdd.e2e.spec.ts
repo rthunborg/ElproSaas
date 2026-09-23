@@ -1,5 +1,5 @@
 /**
- * Story 13.3 browser acceptance coverage (ATDD RED).
+ * Story 13.3 browser acceptance coverage.
  *
  * This suite drives the existing authenticated notifications route. It introduces
  * no navigation expectation or delivery/release control: Story 13.3 is queued and
@@ -65,8 +65,8 @@ async function openNotifications(page: Page, credentials: Credentials): Promise<
   await expect(page.getByRole("heading", { name: "Notiser" })).toBeVisible();
 }
 
-test.describe("Story 13.3 E-postutkö — Admin-projektion (ATDD RED)", () => {
-  test.skip("[P0] Admin sees truthful queued, retry, failed, and suppressed outbox states without delivery activation", async ({ page }) => {
+test.describe("Story 13.3 E-postutkö — Admin-projektion", () => {
+  test("[P0] Admin sees truthful queued, retry, failed, and suppressed outbox states without delivery activation", async ({ page }) => {
     await openNotifications(page, fixture().emailOutbox.administrator);
     const queue = page.getByTestId("email-outbox-queue");
     await expect(queue).toBeVisible();
@@ -89,7 +89,7 @@ test.describe("Story 13.3 E-postutkö — Admin-projektion (ATDD RED)", () => {
     await expect(queue.getByRole("link", { name: /skicka|aktivera|leverera/i })).toHaveCount(0);
   });
 
-  test.skip("[P0] Admin queue projection withholds recipient, template body, and raw failure detail", async ({ page }) => {
+  test("[P0] Admin queue projection withholds recipient, template body, and raw failure detail", async ({ page }) => {
     await openNotifications(page, fixture().emailOutbox.administrator);
     const queue = page.getByTestId("email-outbox-queue");
     await expect(queue).toBeVisible();
@@ -100,14 +100,14 @@ test.describe("Story 13.3 E-postutkö — Admin-projektion (ATDD RED)", () => {
     await expect(failedRow).not.toContainText(/api[_ -]?key|authorization|recipient/i);
   });
 
-  test.skip("[P0] non-Admin cannot read the email outbox projection through the existing notifications route", async ({ page }) => {
+  test("[P0] non-Admin cannot read the email outbox projection through the existing notifications route", async ({ page }) => {
     await openNotifications(page, fixture().emailOutbox.nonAdmin);
     await expect(page.getByTestId("email-outbox-queue")).toHaveCount(0);
     await expect(page.getByText(fixture().emailOutbox.queueReferences.queued)).toHaveCount(0);
     await expect(page.getByText(fixture().emailOutbox.queueReferences.failed)).toHaveCount(0);
   });
 
-  test.skip("[P0] an Admin in another tenant never sees this tenant’s queue references", async ({ page }) => {
+  test("[P0] an Admin in another tenant never sees this tenant’s queue references", async ({ page }) => {
     await openNotifications(page, fixture().emailOutbox.otherTenantAdministrator);
     const queue = page.getByTestId("email-outbox-queue");
     await expect(queue).toBeVisible();

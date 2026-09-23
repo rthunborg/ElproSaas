@@ -61,7 +61,7 @@ test("[P0] Vercel's GET delivery accepts the current secret on the shared schedu
   const previous = process.env.CRON_SECRET;
   process.env.CRON_SECRET = current;
   try {
-    const response = await GET(request(current, "GET"));
+    const response = await handleJobsRunRequest(request(current, "GET"), { producers: [] });
     assert.equal(response.status, 200);
     assert.deepEqual(await response.json(), { outcome: "completed", cursor: null });
   } finally {
@@ -108,4 +108,27 @@ test("[P0] the authenticated route loads a persisted cursor and writes matching 
   assert.equal(inserts[0]?.row.finished_at, "2026-09-23T12:00:00.000Z");
   assert.equal(inserts[0]?.row.correlation_id, inserts[1]?.row.correlation_id);
   assert.equal(inserts[1]?.row.actor_user_id, null);
+});
+
+test("[P0] default registered dark outbox producer reaches the scheduler suppression/evaluation seam", async () => {
+  let suppressions = 0; let queueReads = 0;
+  const client = {
+    from(table: string) {
+      if (table === "job_runs") { const query = { eq: () => query, order: () => query, limit: async () => ({ data: [], error: null }) }; return { select: () => query }; }
+      if (table === "email_outbox") return { select: () => ({ eq: () => ({ eq: async () => { queueReads += 1; return { data: [], error: null }; } }) }) };
+      throw new Error(`unexpected table ${table}`);
+    },
+    rpc: async (name: string) => { assert.equal(name, "suppress_queued_email_outbox"); suppressions += 1; return { data: 0, error: null }; },
+  } as unknown as SupabaseClient;
+  const response = await handleJobsRunRequest(request(current), {
+    authorize: () => true,
+    createClient: () => client,
+    run: async (dependencies, options) => {
+      const dark = (options?.producers ?? []).find((candidate) => candidate.id === "notifications.email-outbox-dark");
+      assert.ok(dark);
+      await dependencies.execute(dark, "tenant-a");
+      return { outcome: "completed" as const };
+    },
+  });
+  assert.equal(response.status, 200); assert.equal(suppressions, 1); assert.equal(queueReads, 1);
 });

@@ -281,6 +281,9 @@ describe("Migration reset green — tenant_foundation objects present (AC1 / R-0
       "customers.INSERT",
       "customers.SELECT",
       "customers.UPDATE",
+      "email_delivery_events.SELECT",
+      "email_outbox.SELECT",
+      "email_suppressions.SELECT",
       "facilities.INSERT",
       "facilities.SELECT",
       "facilities.UPDATE",
@@ -385,6 +388,9 @@ describe("Migration reset green — tenant_foundation objects present (AC1 / R-0
       "audit_events",
       "quote_review_authorizations",
       "platform_operators",
+      "email_outbox",
+      "email_delivery_events",
+      "email_suppressions",
     ];
     for (const t of selectOnly) {
       expect((cmdsByTable.get(t) ?? []).sort()).toEqual(["SELECT"]);

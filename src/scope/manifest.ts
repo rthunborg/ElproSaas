@@ -231,13 +231,13 @@ export const SCOPE_MANIFEST: ScopeManifest = {
       id: "notifications",
       label: "Notifications & Email",
       wave: "B1a",
-      // Story 13.1 activates only the operational runner log. Categories, notification
-      // rows, preferences, and email work remain inactive until their owning stories.
+      // Story 13.3 adds a dark email outbox. The processor is operational metadata,
+      // deliberately distinct from user-visible notification categories.
       status: "active",
       epic: "E13",
       activatedAt: "2026-09-23",
       navItems: [],
-      tenantTables: ["job_runs", "notifications", "notification_preferences"],
+      tenantTables: ["job_runs", "notifications", "notification_preferences", "email_outbox", "email_delivery_events", "email_suppressions"],
       widgets: [],
       notificationCategories: [],
       publicSurfaces: [],

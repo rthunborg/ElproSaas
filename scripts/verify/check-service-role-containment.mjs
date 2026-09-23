@@ -221,6 +221,27 @@ export function scanJobsContainment(rootDir) {
   return { violations };
 }
 
+/** Story 13.3 has a deliberately dark queue: providers, credentials, and alternate routes are prohibited. */
+export function scanEmailProviderContainment(rootDir) {
+  const violations = [];
+  const sourceRoot = join(rootDir, "src");
+  for (const file of walk(sourceRoot)) {
+    if (!shouldScanFile(file)) continue;
+    const rel = relative(rootDir, file).replace(/\\/g, "/");
+    const contents = readFileSync(file, "utf8");
+    if (/(?:from\s+["'](?:resend|nodemailer|postmark|sendgrid)|RESEND_API_KEY|SENDGRID_API_KEY|POSTMARK_API_TOKEN|SMTP_(?:HOST|PASSWORD|URL))/i.test(contents)) {
+      violations.push(`${rel}: provider import or credential is forbidden before Story 13.4.`);
+    }
+    if (/^src\/app\/api\/(?!jobs\/run\/route\.ts$).*email/i.test(rel) && /outbox|email/i.test(contents)) {
+      violations.push(`${rel}: alternate email API route is not permitted.`);
+    }
+    if (USE_CLIENT_RE.test(contents) && /server\/email\/outbox|@\/server\/email\/outbox/.test(contents)) {
+      violations.push(`${rel}: email outbox is reachable from a client module.`);
+    }
+  }
+  return { violations };
+}
+
 // CLI behavior: when run directly (not imported by a test), scan the repo root and exit
 // non-zero on any violation. Compare normalized paths so Windows back/forward slashes and
 // drive-letter casing don't break the main-module check.
@@ -235,6 +256,7 @@ if (invokedDirectly) {
   const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
   const { violations } = scanForServiceRoleLeak(repoRoot);
   violations.push(...scanJobsContainment(repoRoot).violations);
+  violations.push(...scanEmailProviderContainment(repoRoot).violations);
   if (violations.length > 0) {
     console.error(
       `❌ Service-role containment guard failed (${violations.length} violation(s)):\n` +

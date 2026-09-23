@@ -828,6 +828,27 @@ export default async function globalSetup() {
     [base.tenantA.id, crypto.randomUUID()],
   );
 
+  // Story 13.3: keep the queue E2E fixtures tenant-scoped and dark. The rows are
+  // inserted directly by the trusted setup client; browser tests only inspect the
+  // redacted Admin projection and never invoke a delivery path.
+  const outboxPeriod = "2026-09-23";
+  const outboxSubjects = {
+    queued: crypto.randomUUID(), retry: crypto.randomUUID(), failed: crypto.randomUUID(),
+    suppressed: crypto.randomUUID(), otherTenant: crypto.randomUUID(),
+  };
+  const outboxReference = (type: string, id: string) => `${type}:${id}:${outboxPeriod}`;
+  const insertOutbox = async (tenantId: string, subjectType: string, subjectId: string, state: string, attempts: number, nextAttemptAt: string | null) => {
+    await adminQuery(
+      "insert into public.email_outbox (tenant_id,recipient_hash,category,subject_type,subject_id,logical_period,template_key,template_version,template_params,state,attempts,next_attempt_at) values ($1,repeat('e',64),'quote.follow_up_due',$2,$3,$4,'e2e-dark',1,'{\"recipientUserId\":\"fixture\",\"displayName\":\"Queue fixture\",\"locale\":\"sv-SE\"}'::jsonb,$5,$6,coalesce($7::timestamptz, now()))",
+      [tenantId, subjectType, subjectId, outboxPeriod, state, attempts, nextAttemptAt],
+    );
+  };
+  await insertOutbox(base.tenantA.id, "e2e_queued", outboxSubjects.queued, "queued", 0, null);
+  await insertOutbox(base.tenantA.id, "e2e_retry", outboxSubjects.retry, "queued", 1, "2026-09-23T12:05:00.000Z");
+  await insertOutbox(base.tenantA.id, "e2e_failed", outboxSubjects.failed, "failed", 3, null);
+  await insertOutbox(base.tenantA.id, "e2e_suppressed", outboxSubjects.suppressed, "suppressed", 0, null);
+  await insertOutbox(base.tenantB.id, "e2e_other_tenant", outboxSubjects.otherTenant, "queued", 0, null);
+
   const fixture = {
     ...base,
     operator: base.adminB,
@@ -847,6 +868,18 @@ export default async function globalSetup() {
       finance: roleAware.users.ekonomi,
       empty: base.adminB,
       storedRoute: `/quotes/${quoteId}`,
+    },
+    emailOutbox: {
+      administrator: base.adminA,
+      nonAdmin: roleAware.users.montor,
+      otherTenantAdministrator: base.adminB,
+      queueReferences: {
+        queued: outboxReference("e2e_queued", outboxSubjects.queued),
+        retry: outboxReference("e2e_retry", outboxSubjects.retry),
+        failed: outboxReference("e2e_failed", outboxSubjects.failed),
+        suppressed: outboxReference("e2e_suppressed", outboxSubjects.suppressed),
+        otherTenant: outboxReference("e2e_other_tenant", outboxSubjects.otherTenant),
+      },
     },
     adminUserManagement: {
       tenantAdmin: base.adminA,

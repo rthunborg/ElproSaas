@@ -2,9 +2,10 @@
 title: 'Story 13.3: Email Outbox Pipeline (Queued, Non-Sending)'
 type: 'feature'
 created: '2026-09-23'
-status: 'ready-for-dev'
+status: 'done'
+baseline_revision: 'cb0fb4ae799fcb5b636a3f380aeff53bcdf5fd4f'
 review_loop_iteration: 0
-followup_review_recommended: false
+followup_review_recommended: true
 context:
   - '_bmad-output/project-context.md'
   - '_bmad-output/implementation-artifacts/epic-13-context.md'
@@ -26,7 +27,8 @@ deferred:
 
 ## Boundaries & Constraints
 
-**Always:** Enroll `email_outbox`, `email_delivery_events`, and `email_suppressions` in the active `notifications` manifest module and the H4/RLS inventory in the same migration change. Deduplicate by tenant plus category, subject type/id, and period. Permit only `queued → sending → sent | failed | suppressed`; store immutable delivery events and sanitized failure detail. Model three delivery attempts, exponential retry delays of 5, 10, and 20 minutes, and a 15-minute sending lease; use an injected clock. Claims must use real PostgreSQL `FOR UPDATE SKIP LOCKED`, be tenant explicit, and recover one stale lease without another delivery attempt. Suppression is tenant + normalized recipient hash + category scoped, precedes any future delivery seam, and creates `suppressed` plus an event. Template input accepts only a recipient entitlement projection; raw source records and Admin-only data never enter params or audit metadata. Reuse the sole authenticated `/api/jobs/run` lane and the contained service client; add an operational producer kind that validates active manifest ownership without treating an outbox processor as a user-visible notification category.
+**Always:** Enroll `email_outbox`, `email_delivery_events`, and `email_suppressions` in the active
+otifications` manifest module and the H4/RLS inventory in the same migration change. Deduplicate by tenant plus category, subject type/id, and period. Permit only `queued → sending → sent | failed | suppressed`; store immutable delivery events and sanitized failure detail. Model three delivery attempts, exponential retry delays of 5, 10, and 20 minutes, and a 15-minute sending lease; use an injected clock. Claims must use real PostgreSQL `FOR UPDATE SKIP LOCKED`, be tenant explicit, and recover one stale lease without another delivery attempt. Suppression is tenant + normalized recipient hash + category scoped, precedes any future delivery seam, and creates `suppressed` plus an event. Template input accepts only a recipient entitlement projection; raw source records and Admin-only data never enter params or audit metadata. Reuse the sole authenticated `/api/jobs/run` lane and the contained service client; add an operational producer kind that validates active manifest ownership without treating an outbox processor as a user-visible notification category.
 
 **Block If:** A provider SDK, SMTP/API credential, real-recipient call, provider result, public unsubscribe route, public quote route, client-reachable service context, second scheduler lane, or a pending-module producer is needed.
 
@@ -90,6 +92,88 @@ The delivery state machine is created now so the schema does not need reconstruc
 
 ## Auto Run Result
 
-Status: ready-for-dev
+Status: done
 
-Summary: Planning completed for the queued, non-sending email outbox. The specification fixes the retry, lease, suppression, dark-processing, Admin visibility, entitlement-projection, manifest/RLS, and provider-exclusion contracts required before implementation.
+Summary: Implemented the tenant-isolated, queued non-sending email outbox, dark scheduler processor, redacted Admin queue projection, manifest/RLS enrollment, and provider-containment guard.
+
+Files changed: Added outbox migrations, server email/read-model/UI paths, job registration and containment checks, and focused unit, integration/RLS, role-harness, manifest, and browser coverage.
+
+Review findings breakdown: 7 patches applied (high 1, medium 4, low 2); 1 item deferred; 7 findings rejected.
+
+Follow-up review recommendation: true (one high-severity patch was applied; patched score 14).
+
+Verification performed: typecheck passed; lint passed with existing warnings only; focused unit command passed 1,883 tests with 4 unrelated skips; targeted required integration passed 14 tests with 0 skips; browser notifications suite passed 21 tests; service-role and built-bundle containment passed; production build passed; review-order checker passed with 27 references.
+
+Residual risks: The dark processor performs no delivery. Holding a database claim through JavaScript-only template rendering is intentionally not modeled; a provider-era render reservation is deferred to Story 13.4.
+
+## Review Triage Log
+
+### 2026-09-23 — Review pass
+- intent_gap: 0
+- bad_spec: 0
+- patch: 7 (high 1, medium 4, low 2)
+- defer: 1 (medium 1)
+- reject: 7
+- addressed_findings:
+  - `[high]` `[patch]` Revoked authenticated raw reads and routed Admin queue visibility through a redacted, capability-checked RPC.
+  - `[medium]` `[patch]` Added claim/recovery delivery events and bound synthetic failures to active tenant/worker leases.
+  - `[medium]` `[patch]` Added default scheduler-producer and provider-containment regression tests.
+  - `[low]` `[patch]` Tightened recovery event selection and lease-field transition coverage.
+
+## Suggested Review Order
+
+Author: Story 13.3 implementation author.
+Refreshed against the current working tree based on `cb0fb4ae799fcb5b636a3f380aeff53bcdf5fd4f`.
+
+### Durable dark queue and its authority boundary
+
+The migration records the queue, delivery history, and suppression authority under forced RLS. Its stored procedures are service-role-only because they support the sole jobs lane; the migration does not add a provider or public delivery surface.
+
+- `supabase/migrations/20260923175035_email_outbox_pipeline.sql:3` — `create table public.email_outbox`: tenant-deduped queue and lifecycle state.
+- `supabase/migrations/20260923175035_email_outbox_pipeline.sql:91` — `claim_email_outbox`: tenant-explicit `FOR UPDATE SKIP LOCKED` lease claim.
+- `supabase/migrations/20260923175035_email_outbox_pipeline.sql:103` — `suppress_queued_email_outbox`: suppression precedes the dark rendering seam.
+- `src/server/email/outbox.ts:59` — `processDarkEmailOutbox`: leaves unsuppressed production rows queued.
+
+### Existing job lane and limited Administrator view
+
+The outbox processor is an operational producer, so activation validates the manifest module without adding a notification-preference category. The queue projection emits only status, retries, and a subject reference for Administrators.
+
+- `src/server/jobs/producers.ts:30` —
+otifications.email-outbox-dark`: operational producer declaration.
+- `src/app/api/jobs/run/route.ts:91` —
+otifications.email-outbox-dark`: sole authenticated scheduler dispatch.
+- `src/server/read-models/email-outbox.ts:8` — `readEmailOutboxQueue`: checks `Notifications.View` before returning a redacted projection.
+- `src/components/notifications/EmailOutboxQueue.tsx:4` — `EmailOutboxQueue`: renders states only, with no delivery action.
+
+### Manifest, role-harness, and scheduler regression coverage
+
+Adding the three tenant tables expands the manifest-derived active/H4 set from 34 to 37. The role harness maps raw queue reads to the existing Administrator notification capability, while the scheduler-auth test supplies an empty producer set so it verifies only the shared GET authorization boundary without requiring a service credential.
+
+- `tests/unit/scope/manifest-derivations.test.ts:147` — `13.3-UNIT-DERIVE-05`: pins the 37-table manifest-derived inventory.
+- `tests/unit/scope/manifest-shape.test.ts:155` — `13.3-UNIT-SHAPE-04`: pins the non-circular active manifest table set.
+- `tests/support/authz/role-harness.ts:14` — `email_outbox`: maps queue tables to `Notifications.View`.
+- `tests/unit/server/jobs/route.test.ts:60` — `Vercel's GET delivery`: checks the authenticated scheduler boundary with no configured producer work.
+
+### Evidence and remaining execution boundary
+
+AC1–AC5 now have executable unit and real-PostgreSQL coverage: tenant dedupe, disjoint `SKIP LOCKED` claims and stale-lease recovery, fixed-clock retry/terminal event behavior, suppression scope, and the dark processor. The transition-guard correction permits a `sending` row's lease fields to be updated while retaining its state constraints. Browser scenarios still prove the Administrator projection, redaction, role denial, and tenant isolation without exposing a delivery control.
+
+- `supabase/migrations/20260923181728_email_outbox_transition_guard_fix.sql:3` — `email_outbox_transition_guard`: permits lease-field updates during `sending`, required for stale-lease recovery.
+- `supabase/migrations/20260923182954_email_outbox_security_and_state_fixes.sql:3` — revokes raw authenticated SELECT; `:5` defines the redacted queue RPC, `:17` records claim/recovery events, and `:38` binds synthetic failure to an active tenant/worker lease.
+- `tests/unit/server/email/outbox.atdd.test.ts:4` — `13.3-UNIT-001`: executable memory-RPC coverage for dedupe, fixed clock/lease, suppression-before-dark-render, and queued non-send behavior.
+- `tests/integration/email/outbox.atdd.int.test.ts:13` — `13.3-INT-001`: real PostgreSQL coverage for concurrent dedupe, `SKIP LOCKED`, stale recovery, retry/terminal event, suppression, and dark no-send behavior.
+- `tests/integration/rls/email-outbox.rls.atdd.int.test.ts:19` — raw PostgREST reads fail for authenticated Admin and non-Admin paths; `:30` verifies suppression scope.
+- `tests/integration/email/outbox.atdd.int.test.ts:33` — asserts `sending` and one recovery event; `:48` rejects an outcome without the claim owner.
+- `tests/unit/server/jobs/route.test.ts:113` — default registered dark producer reaches suppression/evaluation.
+- `tests/unit/scripts/verify/email-provider-containment.atdd.test.ts:9` — executable provider, route, and client-import containment bites.
+- `tests/unit/server/email/outbox.test.ts:7` — `[P0][AC4]`: verifies dark rendering of the recipient projection without a transport seam.
+- `tests/unit/server/email/outbox.test.ts:18` — `[P0][AC3]`: verifies deterministic normalized recipient hashing.
+- `scripts/verify/check-service-role-containment.mjs:225` — `scanEmailProviderContainment`: rejects provider SDKs, credentials, alternate email routes, and client outbox imports.
+- `tests/integration/rls/migration-reset.int.test.ts:284` — `email_delivery_events.SELECT`: keeps the new Admin-read policies in the exact migration inventory.
+- `tests/integration/rls/role-harness.atdd.int.test.ts:100` — `emailOutbox`: seeds isolated outbox, append-only event, and suppression rows for own-versus-foreign RLS projections.
+- `tests/e2e/global-setup.ts:840` — `insertOutbox`: creates only the five tenant-scoped dark-state fixtures needed for the browser scenarios.
+- `tests/e2e/notifications/email-outbox.atdd.e2e.spec.ts:69` — `Admin sees truthful queued`: verifies queued, retry, failed, and suppressed presentation without activation; the following three tests verify redaction, role denial, and cross-tenant isolation.
+
+Evidence:
+ode --experimental-strip-types --import ./tests/support/register.mjs --test tests/unit/server/email/outbox.atdd.test.ts` passed (4 tests, 0 failed, 0 skipped); `$env:SUPABASE_TEST_REQUIRED='1'; pnpm test:int -- tests/integration/email/outbox.atdd.int.test.ts tests/integration/rls/email-outbox.rls.atdd.int.test.ts` passed (9 tests, 0 failed, 0 skipped); `pnpm typecheck` passed. Latest review-fix evidence: required outbox/RLS/role-harness integration command passed (14 tests, 0 failed, 0 skipped); focused route plus provider-containment runner passed (8 tests, 0 failed, 0 skipped); containment guard passed. Earlier evidence: focused manifest and scheduler unit tests (18 passed); outbox/registry/containment tests (12 passed); required migration-reset and role-harness tests (16 passed); notification E2E (21 passed); service-role containment passed; lint passed with warnings and no errors.
+Limits: no provider is present, and no real-recipient path is tested or authorized. The synthetic outcome is a test-only state-machine seam; it does not invoke a transport or authorize a release path.

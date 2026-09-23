@@ -1,11 +1,12 @@
 import { test } from "node:test";
+/* eslint-disable @typescript-eslint/no-explicit-any -- dynamic test import is intentionally deferred with the RED containment fixture. */
 import assert from "node:assert/strict";
 import { mkdtempSync, mkdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-/** RED PHASE — provider SDKs, credentials, public paths, and client reachability are forbidden before Story 13.4. */
-test.skip("[P0][AC4][13.3-GUARD-001] rejects email-provider SDK imports and credential references in runtime source", async () => {
+/** Provider SDKs, credentials, public paths, and client reachability remain forbidden before Story 13.4. */
+test("[P0][AC4][13.3-GUARD-001] rejects email-provider SDK imports and credential references in runtime source", async () => {
   const { scanEmailProviderContainment } = await loadContainmentChecker();
   const root = mkdtempSync(join(tmpdir(), "elpro-email-provider-"));
   const server = join(root, "src", "server", "email");
@@ -15,7 +16,7 @@ test.skip("[P0][AC4][13.3-GUARD-001] rejects email-provider SDK imports and cred
   assert.ok(result.violations.some((violation: string) => /provider|credential|resend/i.test(violation)));
 });
 
-test.skip("[P0][AC4][13.3-GUARD-002] rejects any alternate email API route or a client-reachable outbox/service import", async () => {
+test("[P0][AC4][13.3-GUARD-002] rejects any alternate email API route or a client-reachable outbox/service import", async () => {
   const { scanEmailProviderContainment } = await loadContainmentChecker();
   const root = mkdtempSync(join(tmpdir(), "elpro-email-route-"));
   const route = join(root, "src", "app", "api", "email", "send");
@@ -26,7 +27,7 @@ test.skip("[P0][AC4][13.3-GUARD-002] rejects any alternate email API route or a 
   assert.equal(scanEmailProviderContainment(root).violations.length, 2);
 });
 
-test.skip("[P1][AC4][13.3-GUARD-003] allows the sole authenticated jobs route to import a server-only dark processor without a provider call path", async () => {
+test("[P1][AC4][13.3-GUARD-003] allows the sole authenticated jobs route to import a server-only dark processor without a provider call path", async () => {
   const { scanEmailProviderContainment } = await loadContainmentChecker();
   const root = mkdtempSync(join(tmpdir(), "elpro-email-jobs-"));
   const route = join(root, "src", "app", "api", "jobs", "run");

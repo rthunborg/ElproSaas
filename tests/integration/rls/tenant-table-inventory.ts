@@ -105,6 +105,9 @@ export type TenantTableName =
   | "job_runs"
   | "notifications"
   | "notification_preferences"
+  | "email_outbox"
+  | "email_delivery_events"
+  | "email_suppressions"
   // Story 12.1 platform command state is durable tenant-keyed data.
   | "tenant_provisioning_requests"
   | "tenant_provisioning_invites"
@@ -314,6 +317,9 @@ export function updateDenialKind(table: TenantTableName): MutationDenialKind {
     case "membership_admin_operations":
     case "audit_events":
     case "job_runs":
+    case "email_outbox":
+    case "email_delivery_events":
+    case "email_suppressions":
     case "tenant_provisioning_requests":
     case "tenant_provisioning_invites":
     case "quote_review_authorizations":
@@ -423,6 +429,12 @@ export function spoofedRowFor(
       return { id: crypto.randomUUID(), tenant_id: fixture.tenantB.id, recipient_user_id: fixture.adminB.id, category: "quote.follow_up_due", title: "spoof", body: "spoof", route: "/notifications" };
     case "notification_preferences":
       return { id: crypto.randomUUID(), tenant_id: fixture.tenantB.id, user_id: fixture.adminB.id, category: "quote.follow_up_due", channel: "in_app", enabled: true };
+    case "email_outbox":
+      return { id: crypto.randomUUID(), tenant_id: fixture.tenantB.id, recipient_hash: "a".repeat(64), category: "quote.follow_up_due", subject_type: "quote_follow_up", subject_id: crypto.randomUUID(), logical_period: "2026-09-23", template_key: "dark", template_version: 1, template_params: {} };
+    case "email_delivery_events":
+      return { id: crypto.randomUUID(), tenant_id: fixture.tenantB.id, outbox_id: crypto.randomUUID(), event_type: "queued" };
+    case "email_suppressions":
+      return { id: crypto.randomUUID(), tenant_id: fixture.tenantB.id, recipient_hash: "a".repeat(64), category: "quote.follow_up_due" };
     case "quote_review_authorizations":
       return {
         id: crypto.randomUUID(),
@@ -863,6 +875,9 @@ export function tenantBFilter(
     case "job_runs":
     case "notifications":
     case "notification_preferences":
+    case "email_outbox":
+    case "email_delivery_events":
+    case "email_suppressions":
       return { column: "tenant_id", value: ctx.fixture.tenantB.id };
     case "customers":
       // Target the SPECIFIC seeded Tenant B customer by id — the cross-tenant
@@ -1089,6 +1104,12 @@ export function hijackMutationFor(
       return { read_at: "2099-01-01T00:00:00.000Z" };
     case "notification_preferences":
       return { enabled: false };
+    case "email_outbox":
+      return { state: "failed" };
+    case "email_delivery_events":
+      return { event_type: "sent" };
+    case "email_suppressions":
+      return { category: "other" };
     case "quote_review_authorizations":
       return { source_revision: { hijacked: true } };
     case "tenant_memberships":
@@ -1254,6 +1275,12 @@ export function rlsInvisibleLabelColumn(table: TenantTableName): string {
       return "title";
     case "notification_preferences":
       return "enabled";
+    case "email_outbox":
+      return "state";
+    case "email_delivery_events":
+      return "event_type";
+    case "email_suppressions":
+      return "category";
     // Story 10.3 quote_follow_ups is UPDATE-able ("rls-invisible"): `note` is the column the hijack
     // sets — re-read it to prove the seed value ("tenant-b-followup-seed") was NOT overwritten.
     case "quote_follow_ups":
@@ -1307,6 +1334,12 @@ export function anonRowFor(
       return { id: crypto.randomUUID(), tenant_id: fixture.tenantA.id, recipient_user_id: fixture.adminA.id, category: "quote.follow_up_due", title: "anon", body: "anon", route: "/notifications" };
     case "notification_preferences":
       return { id: crypto.randomUUID(), tenant_id: fixture.tenantA.id, user_id: fixture.adminA.id, category: "quote.follow_up_due", channel: "in_app", enabled: true };
+    case "email_outbox":
+      return { id: crypto.randomUUID(), tenant_id: fixture.tenantA.id, recipient_hash: "a".repeat(64), category: "quote.follow_up_due", subject_type: "quote_follow_up", subject_id: crypto.randomUUID(), logical_period: "2026-09-23", template_key: "dark", template_version: 1, template_params: {} };
+    case "email_delivery_events":
+      return { id: crypto.randomUUID(), tenant_id: fixture.tenantA.id, outbox_id: crypto.randomUUID(), event_type: "queued" };
+    case "email_suppressions":
+      return { id: crypto.randomUUID(), tenant_id: fixture.tenantA.id, recipient_hash: "a".repeat(64), category: "quote.follow_up_due" };
     case "quote_review_authorizations":
       return {
         id: crypto.randomUUID(),
@@ -1590,6 +1623,9 @@ export function anonFilterFor(
     case "job_runs":
     case "notifications":
     case "notification_preferences":
+    case "email_outbox":
+    case "email_delivery_events":
+    case "email_suppressions":
     case "quote_review_authorizations":
     case "tenant_memberships":
     case "membership_roles":
@@ -1639,6 +1675,12 @@ export function anonMutationFor(
       return { read_at: "2099-01-01T00:00:00.000Z" };
     case "notification_preferences":
       return { enabled: false };
+    case "email_outbox":
+      return { state: "failed" };
+    case "email_delivery_events":
+      return { event_type: "sent" };
+    case "email_suppressions":
+      return { category: "other" };
     case "quote_review_authorizations":
       return { source_revision: { hijacked: true } };
     case "tenant_memberships":

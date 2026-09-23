@@ -97,6 +97,20 @@ async function seedEveryTenantTable(tenantId: string, actorId: string): Promise<
   const notification = (await adminQuery<{ id: string }>("insert into public.notifications (tenant_id, recipient_user_id, category, title, body, route) values ($1, $2, 'quote.follow_up_due', 'Role harness', 'Notification seed', '/notifications') returning id", [tenantId, actorId]))[0]?.id;
   const notificationPreference = (await adminQuery<{ id: string }>("insert into public.notification_preferences (tenant_id, user_id, category, channel, enabled) values ($1, $2, 'quote.follow_up_due', 'in_app', true) returning id", [tenantId, actorId]))[0]?.id;
   if (!notification || !notificationPreference) throw new Error("role harness seed: notification rows missing");
+  const emailOutbox = (await adminQuery<{ id: string }>(
+    "insert into public.email_outbox (tenant_id, recipient_hash, category, subject_type, subject_id, logical_period, template_key, template_version, template_params) values ($1, repeat('a', 64), 'quote.follow_up_due', 'quote_follow_up', gen_random_uuid(), current_date, 'role-harness', 1, '{\"recipientUserId\":\"system\",\"displayName\":\"Role harness\",\"locale\":\"sv-SE\"}'::jsonb) returning id",
+    [tenantId],
+  ))[0]?.id;
+  if (!emailOutbox) throw new Error("role harness seed: email outbox row missing");
+  const emailDeliveryEvent = (await adminQuery<{ id: string }>(
+    "insert into public.email_delivery_events (tenant_id, outbox_id, event_type) values ($1, $2, 'queued') returning id",
+    [tenantId, emailOutbox],
+  ))[0]?.id;
+  const emailSuppression = (await adminQuery<{ id: string }>(
+    "insert into public.email_suppressions (tenant_id, recipient_hash, category) values ($1, repeat('b', 64), 'quote.follow_up_due') returning id",
+    [tenantId],
+  ))[0]?.id;
+  if (!emailDeliveryEvent || !emailSuppression) throw new Error("role harness seed: email support rows missing");
   const membership = (await adminQuery<{ id: string }>("select id from public.tenant_memberships where tenant_id = $1 and user_id = $2", [tenantId, actorId]))[0]?.id;
   if (!membership) throw new Error("role harness seed: actor membership missing");
   const membershipRole = (await adminQuery<{ id: string }>(
@@ -113,6 +127,7 @@ async function seedEveryTenantTable(tenantId: string, actorId: string): Promise<
     tenants: tenantId, tenant_memberships: membership, membership_roles: membershipRole,
     membership_admin_operations: membershipOperation, audit_events: auditEvent, job_runs: jobRun,
     notifications: notification, notification_preferences: notificationPreference,
+    email_outbox: emailOutbox, email_delivery_events: emailDeliveryEvent, email_suppressions: emailSuppression,
     customers: customer, facilities: facility, contacts: contact, company_settings: companySettings,
     quote_terms: quoteTerms, work_roles: workRole, articles: article, calculations: calculation,
     calculation_sections: calculationSection, calculation_rows: calculationRow, files: file,
