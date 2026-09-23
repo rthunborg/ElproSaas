@@ -9,17 +9,17 @@ spec_folder: null
 story_id: null
 branch: epic/13-wave-b1a-notifications-and-email-infrastructure
 status: in-progress
-updated_at: "2026-09-23T13:04:29Z"
+updated_at: "2026-09-23T13:50:38Z"
 started_at: "2026-09-23T10:56:19Z"
 completed_at: null
-active_seconds: 1975
-timing_anchor: 1790168669
+active_seconds: 4743
+timing_anchor: 1790171438
 is_first_in_epic: true
 is_last_in_epic: false
 git_mode: remote
 base_branch: main
-selected_phase: build
-selected_role: build-delegate
+selected_phase: tea_per_story
+selected_role: tea-delegate
 selected_profile: standard
 selected_model: gpt-5.6-terra
 selected_effort: high
@@ -31,19 +31,20 @@ routing_ledger:
   - "{\"effort\":\"high\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-terra\",\"phase\":\"build\",\"profile\":\"standard\",\"role\":\"build-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
   - "{\"effort\":\"high\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-terra\",\"phase\":\"tea_per_story\",\"profile\":\"standard\",\"role\":\"tea-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
   - "{\"effort\":\"high\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-terra\",\"phase\":\"build\",\"profile\":\"standard\",\"role\":\"build-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"high\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-terra\",\"phase\":\"tea_per_story\",\"profile\":\"standard\",\"role\":\"tea-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
 tea_risk: high
 tea_selected: [atdd, automate]
 tea_rationale: "Authentication, secrets, and runner authorization, plus concurrency and tenant-scoped data integrity."
 epic_story_count: 4
 stories_after_in_epic: 3
-completed_phases: [0, 1, 2, 3, 4]
+completed_phases: [0, 1, 2, 3, 4, 5]
 spec_path: "C:\\DEV\\ElproSaas\\_bmad-output\\implementation-artifacts\\spec-13-1-authenticated-background-runner-and-producer-registry.md"
 spec_approved: true
 build:
-  status: ready-for-dev
+  status: done
   blocking_condition: null
-  followup_review_recommended: false
-  review_loop_iteration: 0
+  followup_review_recommended: true
+  review_loop_iteration: 1
   deferred_count: 1
   warnings: []
 followup_passes: 0
@@ -56,7 +57,7 @@ legacy_review_loop_done: false
 legacy_external_review_iterations: null
 legacy_convergence_unverified: false
 legacy_artifact_path: null
-commits: [c12a562, 72d77e7, d2081e1, 9b077dc, c40e12c]
+commits: [c12a562, 72d77e7, d2081e1, 9b077dc, c40e12c, 3d49a6e, f1ce5b7, e3cf34e]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -79,10 +80,10 @@ pr_merged: false
 merge_method: null
 merge_commit: null
 branch_deleted: false
-open_questions: []
+open_questions:
+  - "Local full typecheck/lint included ignored tmp worktree sources; the clean CI run must confirm repository-wide gates."
 deferred_work:
   - "Numeric runner SLA, batch-size, fairness, backlog-age, and freshness thresholds remain owner-pending NFR contracts; this story proves deterministic budget/cursor behavior without claiming a production performance target."
-blockers:
-  - "ATDD typecheck could not complete because pre-existing tmp/private and tmp/worktrees errors are included; recheck after implementation."
+blockers: []
 overrides: {}
 constraints: []
