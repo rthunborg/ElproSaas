@@ -401,3 +401,9 @@ existing AC, recorded so it is not re-triaged a third time.
 - source_spec: `spec-13-1-authenticated-background-runner-and-producer-registry.md`
   summary: Numeric runner SLA, batch-size, fairness, backlog-age, and freshness thresholds remain owner-pending NFR contracts; this story proves deterministic budget/cursor behavior without claiming a production performance target.
   evidence: (no evidence recorded)
+
+## Deferred from: build-auto review of 13-2-in-app-notifications-bell-center-and-preferences (2026-09-23)
+
+- source_spec: `spec-13-2-in-app-notifications-bell-center-and-preferences.md`
+  summary: Numeric runner SLA, batch-size, fairness, backlog-age, and freshness thresholds remain owner-pending. Show only honest elapsed-time/run-state information and do not claim a production target.
+  evidence: (no evidence recorded)

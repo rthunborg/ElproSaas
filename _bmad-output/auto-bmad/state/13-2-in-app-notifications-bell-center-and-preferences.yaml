@@ -9,11 +9,11 @@ spec_folder: null
 story_id: null
 branch: epic/13-wave-b1a-notifications-and-email-infrastructure
 status: in-progress
-updated_at: "2026-09-23T16:54:58Z"
+updated_at: "2026-09-23T17:24:39Z"
 started_at: "2026-09-23T14:26:19Z"
 completed_at: null
-active_seconds: 8506
-timing_anchor: 1790182498
+active_seconds: 10287
+timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
 git_mode: remote
@@ -38,7 +38,7 @@ tea_selected: [atdd, automate]
 tea_rationale: Schema and tenant-isolated RLS changes with stateful notification and preference flows.
 epic_story_count: 4
 stories_after_in_epic: 2
-completed_phases: [0, 1, 2, 3, 4, 5, 6]
+completed_phases: [0, 1, 2, 3, 4, 5, 6, 7]
 spec_path: "C:\\DEV\\ElproSaas\\_bmad-output\\implementation-artifacts\\spec-13-2-in-app-notifications-bell-center-and-preferences.md"
 spec_approved: true
 build:
@@ -48,9 +48,9 @@ build:
   review_loop_iteration: 0
   deferred_count: 1
   warnings: [oversized]
-followup_passes: 0
-hitl_halt: null
-review_unverified: false
+followup_passes: 1
+hitl_halt: "auto-continued (epic - no halt)"
+review_unverified: true
 story_trace: null
 legacy_review_resume: false
 legacy_review_iteration: null
@@ -58,7 +58,7 @@ legacy_review_loop_done: false
 legacy_external_review_iterations: null
 legacy_convergence_unverified: false
 legacy_artifact_path: null
-commits: [227845b, af94f21, df5d8ad, 343245b, b072c40, 344f00e, 06fda53]
+commits: [227845b, af94f21, df5d8ad, 343245b, b072c40, 344f00e, 06fda53, e656ee2, 5265a89, 5fcc650, 95e8eeb, 86926c2]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -81,8 +81,13 @@ pr_merged: false
 merge_method: null
 merge_commit: null
 branch_deleted: false
-open_questions: []
-deferred_work: []
+open_questions:
+  - "Story 13.2 follow-up still recommends another review pass; the epic PR remains draft."
+  - The configured cross-model review command produced no output during follow-up review.
+  - "The full unit suite remains environment-blocked by background-runner configuration; focused notification units and required integration/RLS passed."
+  - Reviewer capacity required sequential reuse of two review agents to complete all five lenses.
+deferred_work:
+  - "Numeric runner SLA, batch-size, fairness, backlog-age, and freshness thresholds remain owner-pending; only honest elapsed-time/run-state information is shown."
 blockers: []
 overrides:
   stop_after: Halt after planning.

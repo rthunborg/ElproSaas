@@ -9,11 +9,11 @@ spec_folder: null
 story_id: null
 branch: epic/13-wave-b1a-notifications-and-email-infrastructure
 status: in-progress
-updated_at: "2026-09-23T16:54:59Z"
+updated_at: "2026-09-23T17:24:53Z"
 started_at: "2026-09-23T10:29:03Z"
 completed_at: null
-active_seconds: 17279
-timing_anchor: 1790182499
+active_seconds: 19059
+timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
 git_mode: remote
@@ -84,15 +84,21 @@ open_questions:
   - "[13-1-authenticated-background-runner-and-producer-registry] Local full typecheck/lint included ignored tmp worktree sources; clean CI must confirm repository-wide gates."
   - "[13-1-authenticated-background-runner-and-producer-registry] Follow-up review still recommends another pass; the epic PR requires review before ready status."
   - "[13-1-authenticated-background-runner-and-producer-registry] Cross-model review layer returned no output in the follow-up pass."
+  - "[13-2-in-app-notifications-bell-center-and-preferences] Follow-up review still recommends another pass; the epic PR remains draft."
+  - "[13-2-in-app-notifications-bell-center-and-preferences] Cross-model review command produced no output."
+  - "[13-2-in-app-notifications-bell-center-and-preferences] Full unit suite remains environment-blocked by background-runner configuration; focused notification units and required integration/RLS passed."
+  - "[13-2-in-app-notifications-bell-center-and-preferences] Reviewer capacity required sequential reuse of two agents for five lenses."
 deferred_work:
   - Real-recipient go-live requires the separate ADR-B011 owner decision.
   - "[13-1-authenticated-background-runner-and-producer-registry] Numeric runner SLA, batch-size, fairness, backlog-age, and freshness thresholds remain owner-pending NFR contracts."
+  - "[13-2-in-app-notifications-bell-center-and-preferences] Numeric runner SLA, batch-size, fairness, backlog-age, and freshness thresholds remain owner-pending."
 blockers: []
 overrides: {}
 constraints: []
 epic_slug: wave-b1a-notifications-and-email-infrastructure
-active_story: 13-2-in-app-notifications-bell-center-and-preferences
+active_story: 13-3-email-outbox-pipeline-queued-non-sending
 stories_landed:
   - 13-1-authenticated-background-runner-and-producer-registry
+  - 13-2-in-app-notifications-bell-center-and-preferences
 stories_skipped: []
 batch_flip_done: false
