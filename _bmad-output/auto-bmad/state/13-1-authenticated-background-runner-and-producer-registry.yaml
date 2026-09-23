@@ -9,17 +9,17 @@ spec_folder: null
 story_id: null
 branch: epic/13-wave-b1a-notifications-and-email-infrastructure
 status: in-progress
-updated_at: "2026-09-23T12:44:22Z"
+updated_at: "2026-09-23T12:52:54Z"
 started_at: "2026-09-23T10:56:19Z"
 completed_at: null
-active_seconds: 769
-timing_anchor: 1790167462
+active_seconds: 1280
+timing_anchor: 1790167974
 is_first_in_epic: true
 is_last_in_epic: false
 git_mode: remote
 base_branch: main
-selected_phase: build
-selected_role: build-delegate
+selected_phase: tea_per_story
+selected_role: tea-delegate
 selected_profile: standard
 selected_model: gpt-5.6-terra
 selected_effort: high
@@ -29,20 +29,21 @@ selected_route: subagent
 escalation_reason: null
 routing_ledger:
   - "{\"effort\":\"high\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-terra\",\"phase\":\"build\",\"profile\":\"standard\",\"role\":\"build-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"high\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-terra\",\"phase\":\"tea_per_story\",\"profile\":\"standard\",\"role\":\"tea-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
 tea_risk: high
 tea_selected: [atdd, automate]
 tea_rationale: "Authentication, secrets, and runner authorization, plus concurrency and tenant-scoped data integrity."
 epic_story_count: 4
 stories_after_in_epic: 3
-completed_phases: [0, 1, 2]
-spec_path: null
-spec_approved: false
+completed_phases: [0, 1, 2, 3]
+spec_path: "C:\\DEV\\ElproSaas\\_bmad-output\\implementation-artifacts\\spec-13-1-authenticated-background-runner-and-producer-registry.md"
+spec_approved: true
 build:
-  status: blocked
-  blocking_condition: dirty working tree
+  status: ready-for-dev
+  blocking_condition: null
   followup_review_recommended: false
   review_loop_iteration: 0
-  deferred_count: 0
+  deferred_count: 1
   warnings: []
 followup_passes: 0
 hitl_halt: null
@@ -54,7 +55,7 @@ legacy_review_loop_done: false
 legacy_external_review_iterations: null
 legacy_convergence_unverified: false
 legacy_artifact_path: null
-commits: [c12a562]
+commits: [c12a562, 72d77e7, d2081e1, 9b077dc]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -78,8 +79,8 @@ merge_method: null
 merge_commit: null
 branch_deleted: false
 open_questions: []
-deferred_work: []
-blockers:
-  - "Planning blocked: dirty working tree. Result: C:\\DEV\\ElproSaas\\_bmad-output\\implementation-artifacts\\bmad-build-auto-result-13-1-authenticated-background-runner-and-producer-registry.md"
+deferred_work:
+  - "Numeric runner SLA, batch-size, fairness, backlog-age, and freshness thresholds remain owner-pending NFR contracts; this story proves deterministic budget/cursor behavior without claiming a production performance target."
+blockers: []
 overrides: {}
 constraints: []
