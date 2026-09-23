@@ -9,5 +9,9 @@ test("[P0] jobs containment rejects an unverified JWT or alternate scheduler lan
   const root = mkdtempSync(join(tmpdir(), "elpro-jobs-"));
   const dir = join(root, "src", "server", "jobs"); mkdirSync(dir, { recursive: true });
   writeFileSync(join(dir, "bad.ts"), "const x = decodeJwt(token); // pg_cron");
-  assert.equal(scanJobsContainment(root).violations.length, 1);
+  const apiDir = join(root, "src", "app", "api", "jobs", "alternate"); mkdirSync(apiDir, { recursive: true });
+  writeFileSync(join(apiDir, "route.ts"), 'import { runDueProducers } from "@/server/jobs/runner";');
+  const clientDir = join(root, "src", "components"); mkdirSync(clientDir, { recursive: true });
+  writeFileSync(join(clientDir, "bad.tsx"), '"use client"; import { createJobsServiceClient } from "@/server/jobs/service-client";');
+  assert.equal(scanJobsContainment(root).violations.length, 3);
 });

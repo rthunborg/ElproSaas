@@ -32,6 +32,27 @@ test("[P0] an injected deadline persists cursor zero before the first tenant wor
     finishedAt: "2026-09-23T12:00:00.000Z",
   }]);
 });
+test("[P0] a non-empty registry with no tenants completes without creating an invalid run record", async () => {
+  const writes: JobRunRecord[] = [];
+  const result = await runDueProducers({
+    listTenantIds: async () => [],
+    execute: async () => { throw new Error("must not execute"); },
+    record: async (record) => { writes.push(record); },
+  }, { producers: [producer] });
+  assert.deepEqual(result, { outcome: "completed" });
+  assert.deepEqual(writes, []);
+});
+test("[P0] a failed producer still returns a resumable partial cursor when work remains", async () => {
+  const writes: JobRunRecord[] = [];
+  const result = await runDueProducers({
+    listTenantIds: async () => ["tenant-a", "tenant-b"],
+    execute: async () => { throw new Error("producer failed"); },
+    record: async (record) => { writes.push(record); },
+  }, { producers: [producer], chunkSize: 1 });
+  assert.equal(result.outcome, "partial");
+  assert.ok(result.cursor);
+  assert.equal(writes.at(-1)?.outcome, "partial");
+});
 test("[P1] isolates a producer failure with a bounded sanitized summary", async () => {
   const writes: JobRunRecord[] = [];
   await runDueProducers({ listTenantIds: async () => ["tenant-a"], execute: async () => { throw new Error(`password=secret ${"x".repeat(400)}`); }, record: async (record) => { writes.push(record); } }, { producers: [producer] });
@@ -39,4 +60,5 @@ test("[P1] isolates a producer failure with a bounded sanitized summary", async 
   assert.equal((await runDueProducers({ listTenantIds: async () => ["tenant-a", "tenant-b"], execute: async (_producer, tenantId) => { if (tenantId === "tenant-a") throw new Error("Authorization: Bearer secret-token token=raw https://x.test/?api_key=raw"); }, record: async (record) => { writes.push(record); } }, { producers: [producer] })).outcome, "failed");
   assert.doesNotMatch(writes.findLast((write) => write.outcome === "failed")?.errorSummary ?? "", /secret-token|token=raw|api_key=raw/);
   assert.equal(sanitizeJobError("secret=x"), "Background producer failed");
+  assert.doesNotMatch(sanitizeJobError(new Error("postgres://user:password@example.test/db")), /user:password/);
 });

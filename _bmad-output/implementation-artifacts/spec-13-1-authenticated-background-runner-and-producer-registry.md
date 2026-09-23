@@ -4,7 +4,7 @@ type: 'feature'
 created: '2026-09-23'
 status: 'done'
 baseline_revision: '3d49a6e5d8070c9f72498e5ad0048300a799e7c0'
-review_loop_iteration: 1
+review_loop_iteration: 0
 followup_review_recommended: true
 context:
   - '_bmad-output/project-context.md'
@@ -102,6 +102,18 @@ Follow-up score: 7 applied operational/security patches; `followup_review_recomm
 
 Verification: jobs plus containment units 27/27 passed; targeted lint passed; Story 13.1 paths had no type diagnostics; `pnpm verify:service-role-containment` and `pnpm verify:bundle-containment` passed after production compilation; `SUPABASE_TEST_REQUIRED=1 pnpm test:int -- tests/integration/jobs tests/integration/rls` passed 529/529. Residual repository-wide limitation: `pnpm build`, `pnpm typecheck`, and broad lint still encounter pre-existing `tmp/**` sibling-worktree failures after the Story paths compile.
 
+### Follow-up review (2026-09-23)
+
+Summary: completed a fresh independent review pass and repaired concrete runner, containment, and schema-invariant gaps without adding a notification, preference, email, outbox, or live producer category.
+
+Files changed: `src/server/jobs/runner.ts` now completes safely when no tenants exist, retains a resumable partial cursor after an isolated producer failure, and redacts credentials in DSN-style errors; `scripts/verify/check-service-role-containment.mjs` rejects an alternate jobs API runner and client-reachable jobs service client; `supabase/migrations/20260923162000_job_runs_lifecycle_constraints.sql` makes persisted terminal timing and partial cursor state coherent. The matching unit and integration tests cover those repaired boundaries, including Vercel's authenticated GET delivery.
+
+Review breakdown: 6 patches applied (2 high, 2 medium, 2 low); 0 intent gaps; 0 bad-spec loopbacks; 0 deferred items; 9 rejected claims. The score is 10, so `followup_review_recommended: true`.
+
+Verification: `pnpm test:unit -- --test-name-pattern="jobs|service-role|manifest"` passed (1,871 passed, 1 skipped); `pnpm verify:service-role-containment` and targeted lint passed; `SUPABASE_TEST_REQUIRED=1 pnpm test:int -- tests/integration/jobs` passed 1/1 after applying the local follow-up migration. The wider required jobs/RLS invocation executed 510 passing tests, 18 explicit skips, and 1 failure caused by local Supabase connection-slot exhaustion while unrelated RLS fixtures created Auth users. `pnpm typecheck` has no Story 13.1 diagnostic but still fails on pre-existing `tmp/**` sibling-worktree sources.
+
+Residual risks: no active producer exists in 13.1, so overlap, producer schedule enforcement, and production deadline policy remain future producer concerns; the current empty registry intentionally performs no database work.
+
 ## Review Triage Log
 
 ### 2026-09-23
@@ -114,6 +126,21 @@ Verification: jobs plus containment units 27/27 passed; targeted lint passed; St
 - **patch** — Redacted bearer credentials plus JSON-style, token, and URL credential forms before bounded error persistence.
 - **patch** — Added route-level generic-401/no-side-effect coverage and a composed injected-producer test for cursor resume, run persistence, null-actor audit, and correlation.
 - **rejected/deferred** — No other reviewer claim identified a reachable Story 13.1 bypass. `tmp/**` type/lint failures are pre-existing sibling-worktree noise; the cross-model layer produced no output.
+
+### 2026-09-23 — Review pass
+
+- intent_gap: 0
+- bad_spec: 0
+- patch: 6 (high 2, medium 2, low 2)
+- defer: 0
+- reject: 9
+- addressed_findings:
+  - `[medium] [patch]` Avoided an invalid null tenant ID when a non-empty future registry sees no tenants; the runner now completes without a run record.
+  - `[high] [patch]` Preserved the cursor as `partial` after an isolated producer failure when tenant work remains, so the route can resume it.
+  - `[high] [patch]` Redacted DSN userinfo credentials before an error summary can be persisted in a tenant-visible run log.
+  - `[low] [patch]` Added an authenticated Vercel GET regression test for the shared scheduler entry point.
+  - `[medium] [patch]` Extended the containment guard and bite test to reject alternate jobs API runners and client-reachable service-client imports.
+  - `[low] [patch]` Added database lifecycle constraints for terminal timestamps and the partial-cursor invariant, with integration-catalogue coverage.
 
 ## Suggested Review Order
 
@@ -128,7 +155,7 @@ GET and POST share the one authenticated scheduler front door. It authenticates 
 - `src/app/api/jobs/run/route.ts:23` — `loadResumeCursor`: reads the latest terminal or partial runner log so only a current partial cursor resumes.
 - `src/app/api/jobs/run/route.ts:35` — `recordRun`: persists producer timestamps, bounded metadata, shared correlation ID, and matching null-actor audit records.
 - `src/server/jobs/auth.ts:8` — `isAuthorizedCronRequest`: timing-safe current and eligible previous-secret verification.
-- `src/server/jobs/runner.ts:37` — `runDueProducers`: resumes a deterministic tenant slice, records partial/terminal cursor state, and reports isolated failures truthfully.
+- `src/server/jobs/runner.ts:38` — `runDueProducers`: resumes a deterministic tenant slice, records partial/terminal cursor state, completes safely with no tenants, and reports isolated failures truthfully.
 - `src/server/jobs/producers.ts:26` — `ACTIVE_PRODUCERS`: derives the currently empty active registry from the manifest.
 
 ### Scope and database enrollment
@@ -139,6 +166,7 @@ Notifications activation enrolls only the operational log. The migration forces 
 - `supabase/migrations/20260923160000_authenticated_job_runner.sql:5` — `create table public.job_runs`: defines the bounded run-log contract.
 - `supabase/migrations/20260923160000_authenticated_job_runner.sql:33` — `force row level security`: preserves the forced-RLS database boundary.
 - `supabase/migrations/20260923161000_job_runs_authenticated_select_grant.sql:3` — `grant select`: repairs the matching authenticated privilege required for the tenant-admin RLS policy.
+- `supabase/migrations/20260923162000_job_runs_lifecycle_constraints.sql:4` — `job_runs_finished_after_started_check`: keeps terminal timestamps and partial cursors coherent for safe resume.
 
 ### Evidence and containment
 
@@ -146,9 +174,11 @@ AC credential negatives, registry activation, deterministic resume/fairness, san
 
 - `tests/unit/server/jobs/route-auth.test.ts:9` — `rejects every invalid scheduler credential`: exercises malformed and forged credentials under an expired-previous configuration; it does not invoke the previous secret against that expired environment.
 - `tests/unit/server/jobs/route.test.ts:15` — `GET and POST reject`: proves generic 401 responses occur before client or runner side effects.
-- `tests/unit/server/jobs/route.test.ts:34` — `authenticated route loads`: composes an injected active producer with cursor resume, tenant-scoped run/audit persistence, and correlation evidence.
+- `tests/unit/server/jobs/route.test.ts:60` — `Vercel's GET delivery`: verifies the authenticated deployment entry point returns the shared no-op result for the intentionally empty registry.
+- `tests/unit/server/jobs/route.test.ts:73` — `authenticated route loads`: composes an injected active producer with cursor resume, tenant-scoped run/audit persistence, and correlation evidence.
 - `tests/unit/server/jobs/runner.test.ts:5` — `persists a cursor`: exercises bounded resume and tenant order.
-- `tests/unit/server/jobs/runner.test.ts:13` — `isolates a producer failure`: exercises truthful failed outcome, continued execution, and bearer/JSON/query credential redaction.
+- `tests/unit/server/jobs/runner.test.ts:45` — `failed producer still`: proves a later scheduler call can resume after an isolated producer failure leaves work outstanding.
+- `tests/unit/server/jobs/runner.test.ts:56` — `isolates a producer failure`: exercises truthful failed outcome, continued execution, and bearer/JSON/query/DSN credential redaction.
 - `tests/unit/server/jobs/producer-registry.test.ts:5` — `derives a typed producer`: exercises active-module derivation and pending exclusion.
 - `tests/unit/scripts/verify/jobs-service-role-containment.test.ts:8` — `jobs containment rejects`: proves the scanner rejects forbidden runner patterns.
 - `tests/unit/scripts/verify/bundle-containment.test.ts:92` — `documented jobs service server chunk`: admits the environment-variable name only for the marked server artifact while browser and unmarked artifacts stay red.

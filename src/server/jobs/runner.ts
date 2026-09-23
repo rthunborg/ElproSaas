@@ -25,6 +25,7 @@ export function sanitizeJobError(error: unknown): string {
     .replace(/\bBearer\s+[^\s,;]+/gi, "Bearer [redacted]")
     .replace(/(["']?(?:password|secret|token|authorization|api[_-]?key)["']?\s*[=:]\s*["']?)[^\s,;"'}\]]+/gi, "$1[redacted]")
     .replace(/([?&](?:password|secret|token|authorization|api[_-]?key)=)[^&#\s]+/gi, "$1[redacted]")
+    .replace(/([a-z][a-z0-9+.-]*:\/\/)[^\s/@:]+:[^@\s/]+@/gi, "$1[redacted]@")
     .slice(0, ERROR_LIMIT);
 }
 export function encodeCursor(nextIndex: number): string { return Buffer.from(JSON.stringify({ nextIndex }), "utf8").toString("base64url"); }
@@ -38,6 +39,7 @@ export async function runDueProducers(deps: RunnerDependencies, options: { reado
   const producers = options.producers ?? ACTIVE_PRODUCERS;
   if (producers.length === 0) return { outcome: "completed" };
   const tenants = await deps.listTenantIds();
+  if (tenants.length === 0) return { outcome: "completed" };
   const start = decodeCursor(options.cursor);
   const max = Math.max(1, options.chunkSize ?? 25);
   const now = deps.now ?? (() => new Date());
@@ -70,7 +72,7 @@ export async function runDueProducers(deps: RunnerDependencies, options: { reado
   for (let i = start; i < tenants.length && completed < max; i += 1) {
     if (options.deadline && now() >= options.deadline) {
       await persistCursor(i);
-      return { outcome: hadFailure ? "failed" : "partial", cursor: encodeCursor(i) };
+      return { outcome: "partial", cursor: encodeCursor(i) };
     }
     for (const producer of producers) {
       const startedAt = now().toISOString();
@@ -87,7 +89,7 @@ export async function runDueProducers(deps: RunnerDependencies, options: { reado
   const next = start + completed;
   if (next < tenants.length) {
     await persistCursor(next);
-    return { outcome: hadFailure ? "failed" : "partial", cursor: encodeCursor(next) };
+    return { outcome: "partial", cursor: encodeCursor(next) };
   }
   const outcome = hadFailure ? "failed" : "completed";
   await persistTerminal(outcome);

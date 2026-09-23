@@ -29,15 +29,13 @@ describe("13.1 job_runs migration and system-audit contract", () => {
     const mutationGrants = rows[0]?.insert_grantees;
     expect(mutationGrants === "{}" ? [] : mutationGrants).toEqual([]);
     const checkConstraints = rows[0]?.check_constraints;
-    const constraintNames = Array.isArray(checkConstraints)
-      ? checkConstraints
-      : checkConstraints && checkConstraints !== "{}"
-        ? checkConstraints.slice(1, -1).split(",")
-        : [];
+    const constraintNames = Array.isArray(checkConstraints) ? checkConstraints : [];
     expect(constraintNames).toEqual([
       "job_runs_check",
       "job_runs_cursor_check",
+      "job_runs_cursor_outcome_check",
       "job_runs_error_summary_check",
+      "job_runs_finished_after_started_check",
       "job_runs_outcome_check",
       "job_runs_producer_check",
     ]);

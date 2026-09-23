@@ -196,6 +196,28 @@ export function scanJobsContainment(rootDir) {
       violations.push(`${rel}: forbidden alternate execution or unverified-JWT pattern in jobs runtime.`);
     }
   }
+  const jobsApiRoot = join(rootDir, "src", "app", "api", "jobs");
+  const sanctionedRoute = "src/app/api/jobs/run/route.ts";
+  for (const file of walk(jobsApiRoot)) {
+    if (!shouldScanFile(file)) continue;
+    const rel = relative(rootDir, file).replace(/\\/g, "/");
+    const contents = readFileSync(file, "utf8");
+    if (/decodeJwt|verify_jwt\s*=\s*false|pg_cron|edge function/i.test(contents)) {
+      violations.push(`${rel}: forbidden alternate execution or unverified-JWT pattern in jobs route.`);
+    }
+    if (rel !== sanctionedRoute && /@\/server\/jobs\/|runDueProducers|createJobsServiceClient/.test(contents)) {
+      violations.push(`${rel}: alternate jobs execution route is not permitted.`);
+    }
+  }
+  const sourceRoot = join(rootDir, "src");
+  for (const file of walk(sourceRoot)) {
+    if (!shouldScanFile(file)) continue;
+    const rel = relative(rootDir, file).replace(/\\/g, "/");
+    const contents = readFileSync(file, "utf8");
+    if (USE_CLIENT_RE.test(contents) && /(?:@\/server\/jobs\/service-client|server\/jobs\/service-client)/.test(contents)) {
+      violations.push(`${rel}: jobs service client is reachable from a "use client" module.`);
+    }
+  }
   return { violations };
 }
 

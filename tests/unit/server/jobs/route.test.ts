@@ -57,6 +57,19 @@ test("[P0] an expired previous CRON_SECRET is rejected before client or runner s
   assert.equal(runnerCalls, 0);
 });
 
+test("[P0] Vercel's GET delivery accepts the current secret on the shared scheduler boundary", async () => {
+  const previous = process.env.CRON_SECRET;
+  process.env.CRON_SECRET = current;
+  try {
+    const response = await GET(request(current, "GET"));
+    assert.equal(response.status, 200);
+    assert.deepEqual(await response.json(), { outcome: "completed", cursor: null });
+  } finally {
+    if (previous === undefined) delete process.env.CRON_SECRET;
+    else process.env.CRON_SECRET = previous;
+  }
+});
+
 test("[P0] the authenticated route loads a persisted cursor and writes matching run/audit records", async () => {
   const inserts: Array<{ table: string; row: Record<string, unknown> }> = [];
   const client = {
