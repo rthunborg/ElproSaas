@@ -10,6 +10,28 @@ test("[P0] persists a cursor at a deterministic chunk and resumes tenant order",
   const second = await runDueProducers(deps, { producers: [producer], cursor: first.cursor, chunkSize: 2 });
   assert.equal(second.outcome, "completed"); assert.deepEqual(writes.filter((write) => write.producer === producer.id).map((write) => write.tenantId), ["tenant-a", "tenant-b", "tenant-c"]);
 });
+test("[P0] an injected deadline persists cursor zero before the first tenant work", async () => {
+  const writes: JobRunRecord[] = [];
+  let executeCalls = 0;
+  const deadline = new Date("2026-09-23T12:00:00.000Z");
+  const result = await runDueProducers({
+    listTenantIds: async () => ["tenant-a", "tenant-b"],
+    execute: async () => { executeCalls += 1; },
+    record: async (record: JobRunRecord) => { writes.push(record); },
+    now: () => deadline,
+  }, { producers: [producer], deadline });
+  assert.deepEqual(result, { outcome: "partial", cursor: "eyJuZXh0SW5kZXgiOjB9" });
+  assert.equal(executeCalls, 0);
+  assert.deepEqual(writes, [{
+    tenantId: "tenant-a",
+    producer: "jobs.runner",
+    outcome: "partial",
+    cursor: "eyJuZXh0SW5kZXgiOjB9",
+    windowStartedAt: "2026-09-23T12:00:00.000Z",
+    startedAt: "2026-09-23T12:00:00.000Z",
+    finishedAt: "2026-09-23T12:00:00.000Z",
+  }]);
+});
 test("[P1] isolates a producer failure with a bounded sanitized summary", async () => {
   const writes: JobRunRecord[] = [];
   await runDueProducers({ listTenantIds: async () => ["tenant-a"], execute: async () => { throw new Error(`password=secret ${"x".repeat(400)}`); }, record: async (record) => { writes.push(record); } }, { producers: [producer] });

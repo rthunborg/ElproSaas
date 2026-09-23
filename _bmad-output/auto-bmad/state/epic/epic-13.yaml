@@ -9,11 +9,11 @@ spec_folder: null
 story_id: null
 branch: epic/13-wave-b1a-notifications-and-email-infrastructure
 status: in-progress
-updated_at: "2026-09-23T13:50:38Z"
+updated_at: "2026-09-23T14:02:11Z"
 started_at: "2026-09-23T10:29:03Z"
 completed_at: null
-active_seconds: 6345
-timing_anchor: 1790171438
+active_seconds: 7036
+timing_anchor: 1790172131
 is_first_in_epic: false
 is_last_in_epic: false
 git_mode: remote

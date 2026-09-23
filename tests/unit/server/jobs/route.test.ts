@@ -31,6 +31,32 @@ test("[P0] GET and POST reject every named invalid credential before client or r
   assert.equal(runnerCalls, 0);
 });
 
+test("[P0] an expired previous CRON_SECRET is rejected before client or runner side effects", async () => {
+  const previous = "p".repeat(32);
+  let clientCalls = 0;
+  let runnerCalls = 0;
+  const response = await handleJobsRunRequest(request(previous), {
+    authorize: (header) =>
+      isAuthorizedCronRequest(header, {
+        CRON_SECRET: current,
+        CRON_PREVIOUS_SECRET: previous,
+        CRON_PREVIOUS_SECRET_EXPIRES_AT: "2020-01-01T00:00:00.000Z",
+      }),
+    createClient: () => {
+      clientCalls += 1;
+      throw new Error("must not construct client");
+    },
+    run: async () => {
+      runnerCalls += 1;
+      return { outcome: "completed" as const };
+    },
+  });
+  assert.equal(response.status, 401);
+  assert.equal(await response.text(), "Unauthorized");
+  assert.equal(clientCalls, 0);
+  assert.equal(runnerCalls, 0);
+});
+
 test("[P0] the authenticated route loads a persisted cursor and writes matching run/audit records", async () => {
   const inserts: Array<{ table: string; row: Record<string, unknown> }> = [];
   const client = {
