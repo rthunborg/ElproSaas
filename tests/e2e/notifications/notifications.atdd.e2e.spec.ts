@@ -1,10 +1,9 @@
 /**
- * Story 13.2 browser acceptance scaffold (RED phase).
+ * Story 13.2 browser acceptance coverage.
  *
- * Every test remains individually skipped until the notification seed fixture and
- * the bell, center, and profile-preferences surfaces ship. The assertions define
- * the customer-visible contract; database authority and raw-write negatives belong
- * to the integration/RLS suite.
+ * The assertions drive the authenticated production-mode app against per-recipient
+ * local fixture rows. Database authority and raw-write negatives belong to the
+ * integration/RLS suite.
  */
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { readFileSync } from "node:fs";
@@ -17,6 +16,8 @@ type NotificationFixture = {
     readonly projectManager: Credentials;
     readonly salesperson: Credentials;
     readonly installer: Credentials;
+    readonly finance: Credentials;
+    readonly empty: Credentials;
     readonly storedRoute: string;
   };
 };
@@ -24,8 +25,11 @@ type NotificationRole = keyof Omit<NotificationFixture["notifications"], "stored
 
 const FIXTURE_PATH = path.join(process.cwd(), "tests", "e2e", ".auth", "fixture.json");
 
+let cachedFixture: NotificationFixture | undefined;
+
 function fixture(): NotificationFixture {
-  return JSON.parse(readFileSync(FIXTURE_PATH, "utf8")) as NotificationFixture;
+  cachedFixture ??= JSON.parse(readFileSync(FIXTURE_PATH, "utf8")) as NotificationFixture;
+  return cachedFixture;
 }
 
 async function waitForHydrated(locator: Locator): Promise<void> {
@@ -67,10 +71,11 @@ test.describe("Story 13.2 In-app-notiser — bell, center och inställningar (AT
     ["Projektledare", "projectManager"],
     ["Säljare", "salesperson"],
     ["Montör", "installer"],
+    ["Ekonomi", "finance"],
   ];
 
   for (const [roleName, role] of validRoles) {
-    test.skip(`[P0] ${roleName} sees the personal bell with a capped 9+ unread count`, async ({ page }) => {
+    test(`[P0] ${roleName} sees the personal bell with a capped 9+ unread count`, async ({ page }) => {
       await signIn(page, fixture().notifications[role]);
       const bell = page.getByRole("button", { name: /notiser.*9\+/i });
       await expect(bell).toBeVisible();
@@ -79,7 +84,7 @@ test.describe("Story 13.2 In-app-notiser — bell, center och inställningar (AT
     });
   }
 
-  test.skip("[P0] Bell popover lists the latest personal notifications and opens the personal center", async ({ page }) => {
+  test("[P0] Bell popover lists the latest personal notifications and opens the personal center", async ({ page }) => {
     await signIn(page, fixture().notifications.administrator);
     const popover = await openBell(page);
     await expect(popover.getByRole("list").getByRole("listitem")).toHaveCount(10);
@@ -89,7 +94,7 @@ test.describe("Story 13.2 In-app-notiser — bell, center och inställningar (AT
     await expect(page.getByRole("heading", { name: "Notiser" })).toBeVisible();
   });
 
-  test.skip("[P0] A stored notification link marks the item read and opens its entitled destination", async ({ page }) => {
+  test("[P0] A stored notification link marks the item read and opens its entitled destination", async ({ page }) => {
     const data = fixture().notifications;
     await signIn(page, data.administrator);
     const popover = await openBell(page);
@@ -100,7 +105,7 @@ test.describe("Story 13.2 In-app-notiser — bell, center och inställningar (AT
     await expect(page.getByRole("button", { name: /notiser.*olästa notiser/i })).not.toHaveAccessibleName(/9\+.*olästa notiser/i);
   });
 
-  test.skip("[P0] Notification center applies module/category, read-state, and date filters together", async ({ page }) => {
+  test("[P0] Notification center applies module/category, read-state, and date filters together", async ({ page }) => {
     await signIn(page, fixture().notifications.projectManager);
     await page.goto("/notifications");
     await page.getByLabel("Modul eller kategori").selectOption("quotes");
@@ -108,20 +113,23 @@ test.describe("Story 13.2 In-app-notiser — bell, center och inställningar (AT
     await page.getByLabel("Från datum").fill("2026-09-01");
     const rows = page.getByRole("main").getByRole("listitem");
     await expect(rows.first()).toContainText(/uppföljning/i);
-    await expect(rows).not.toContainText(/läst/i);
+    await expect(rows).toHaveCount(10);
+    for (let index = 0; index < 10; index += 1) {
+      await expect(rows.nth(index)).toHaveAccessibleName("oläst");
+    }
   });
 
-  test.skip("[P1] Marking one notification as read updates the bell and row state", async ({ page }) => {
+  test("[P1] Marking one notification as read updates the bell and row state", async ({ page }) => {
     await signIn(page, fixture().notifications.salesperson);
     await page.goto("/notifications");
-    const row = page.getByRole("listitem").filter({ hasText: /uppföljning/i }).first();
+    const row = page.getByRole("listitem", { name: "oläst", exact: true }).filter({ hasText: /uppföljning/i }).first();
     await row.getByRole("button", { name: "Markera som läst" }).click();
-    await expect(row).toHaveAccessibleName(/läst/i);
+    await expect(row).toHaveAccessibleName("läst");
     await expect(page.getByRole("button", { name: /notiser/i })).toHaveAccessibleName(/olästa notiser/i);
   });
 
-  test.skip("[P1] Mark all read updates the popover and persists after reload", async ({ page }) => {
-    await signIn(page, fixture().notifications.installer);
+  test("[P1] Mark all read updates the popover and persists after reload", async ({ page }) => {
+    await signIn(page, fixture().notifications.finance);
     const popover = await openBell(page);
     await popover.getByRole("button", { name: "Markera alla som lästa" }).click();
     await expect(popover.getByText("Inga olästa notiser")).toBeVisible();
@@ -129,35 +137,36 @@ test.describe("Story 13.2 In-app-notiser — bell, center och inställningar (AT
     await expect(page.getByRole("button", { name: /notiser/i })).not.toHaveAccessibleName(/olästa notiser/i);
   });
 
-  test.skip("[P1] Failed optimistic mark-read restores persisted state and offers recovery after reload", async ({ page }) => {
+  test("[P1] Failed optimistic mark-read restores persisted state and offers recovery after reload", async ({ page }) => {
     await signIn(page, fixture().notifications.administrator);
     await page.goto("/notifications");
     // Intentional fault injection: it must exercise rollback, never manufacture a successful UI response.
     await page.route("**/api/notifications/*/read", (route) => route.fulfill({ status: 500, body: "{}" }));
-    const row = page.getByRole("listitem").filter({ hasText: /uppföljning/i }).first();
+    const row = page.getByRole("listitem", { name: "oläst", exact: true }).filter({ hasText: /uppföljning/i }).first();
     await row.getByRole("button", { name: "Markera som läst" }).click();
-    await expect(page.getByRole("alert")).toContainText(/kunde inte markera.*försök igen/i);
+    await expect(page.getByRole("alert").filter({ hasText: /kunde inte markera.*försök igen/i })).toBeVisible();
     await expect(row).toHaveAccessibleName(/oläst/i);
     await page.unroute("**/api/notifications/*/read");
     await page.reload();
     await expect(row).toHaveAccessibleName(/oläst/i);
   });
 
-  test.skip("[P0] Profile preferences group active categories by module and persist an allowed in-app choice", async ({ page }) => {
+  test("[P0] Profile preferences group active categories by module and persist an allowed in-app choice", async ({ page }) => {
     await signIn(page, fixture().notifications.projectManager);
     await page.getByRole("button", { name: /profil/i }).click();
     await page.getByRole("link", { name: "Notisinställningar" }).click();
     await expect(page.getByRole("heading", { name: "Notisinställningar" })).toBeVisible();
     const quotesGroup = page.getByRole("group", { name: /offerter/i });
-    await expect(quotesGroup.getByText("Uppföljning av offert")).toBeVisible();
-    const toggle = quotesGroup.getByRole("switch", { name: /uppföljning av offert.*i appen/i });
+    await expect(quotesGroup.getByText("Offert accepterad", { exact: true })).toBeVisible();
+    const toggle = quotesGroup.getByRole("switch", { name: "Offert accepterad i appen", exact: true });
+    const initiallyEnabled = await toggle.isChecked();
     await toggle.click();
-    await expect(toggle).not.toBeChecked();
+    await expect(toggle).toBeChecked({ checked: !initiallyEnabled });
     await page.reload();
-    await expect(page.getByRole("switch", { name: /uppföljning av offert.*i appen/i })).not.toBeChecked();
+    await expect(page.getByRole("switch", { name: "Offert accepterad i appen", exact: true })).toBeChecked({ checked: !initiallyEnabled });
   });
 
-  test.skip("[P0] Essential in-app notification preference is visibly required and cannot be disabled", async ({ page }) => {
+  test("[P0] Essential in-app notification preference is visibly required and cannot be disabled", async ({ page }) => {
     await signIn(page, fixture().notifications.administrator);
     await page.goto("/settings/notifications");
     const essential = page.getByRole("switch", { name: /viktig.*i appen/i });
@@ -166,16 +175,16 @@ test.describe("Story 13.2 In-app-notiser — bell, center och inställningar (AT
     await expect(page.getByText(/obligatorisk notis/i)).toBeVisible();
   });
 
-  test.skip("[P1] Email preference controls are inactive with the Swedish future-delivery explanation", async ({ page }) => {
+  test("[P1] Email preference controls are inactive with the Swedish future-delivery explanation", async ({ page }) => {
     await signIn(page, fixture().notifications.salesperson);
     await page.goto("/settings/notifications");
     const emailColumn = page.getByRole("columnheader", { name: "E-post" });
     await expect(emailColumn).toBeVisible();
     await expect(page.getByText("e-postutskick aktiveras senare")).toBeVisible();
-    await expect(page.getByRole("switch", { name: /uppföljning av offert.*e-post/i })).toBeDisabled();
+    await expect(page.getByRole("switch", { name: "Offert accepterad e-post", exact: true })).toBeDisabled();
   });
 
-  test.skip("[P2] Bell popover supports keyboard activation, semantic labels, and focus return", async ({ page }) => {
+  test("[P2] Bell popover supports keyboard activation, semantic labels, and focus return", async ({ page }) => {
     await signIn(page, fixture().notifications.installer);
     const bell = page.getByRole("button", { name: /notiser/i });
     await bell.focus();
@@ -188,15 +197,15 @@ test.describe("Story 13.2 In-app-notiser — bell, center och inställningar (AT
     await expect(bell).toBeFocused();
   });
 
-  test.skip("[P2] Empty and never-run states are explicit and make no real-time delivery claim", async ({ page }) => {
-    await signIn(page, fixture().notifications.installer);
+  test("[P2] Empty and never-run states are explicit and make no real-time delivery claim", async ({ page }) => {
+    await signIn(page, fixture().notifications.empty);
     await page.goto("/notifications");
     await expect(page.getByText("Du har inga notiser ännu")).toBeVisible();
     await expect(page.getByText(/ingen tidigare skanning/i)).toBeVisible();
     await expect(page.getByText(/realtid/i)).toHaveCount(0);
   });
 
-  test.skip("[P2] Stale producer state exposes elapsed scan information without claiming current delivery", async ({ page }) => {
+  test("[P2] Stale producer state exposes elapsed scan information without claiming current delivery", async ({ page }) => {
     await signIn(page, fixture().notifications.administrator);
     await page.goto("/notifications");
     await expect(page.getByText(/skannad för \d+ tim sedan/i)).toBeVisible();

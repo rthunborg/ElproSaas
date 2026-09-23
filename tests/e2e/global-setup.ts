@@ -806,6 +806,28 @@ export default async function globalSetup() {
     quoteId,
   ]);
 
+  // Story 13.2: personal rows are deliberately seeded per recipient so browser
+  // checks exercise the RLS-scoped bell/center read rather than shared tenant data.
+  const notificationUsers = [
+    base.adminA,
+    roleAware.users.projektledare,
+    roleAware.users.saljare,
+    roleAware.users.montor,
+    roleAware.users.ekonomi,
+  ];
+  for (const user of notificationUsers) {
+    for (let index = 0; index < 10; index += 1) {
+      await adminQuery(
+        "insert into public.notifications (tenant_id,recipient_user_id,category,title,body,route,logical_subject_id,logical_period) values ($1,$2,'quote.follow_up_due',$3,'En offertuppföljning är förfallen.',$4,gen_random_uuid(),current_date)",
+        [base.tenantA.id, user.id, `Uppföljning behöver hanteras ${index + 1}`, `/quotes/${quoteId}`],
+      );
+    }
+  }
+  await adminQuery(
+    "insert into public.job_runs (tenant_id,producer,window_started_at,started_at,finished_at,outcome,correlation_id) values ($1,'quotes.follow-up-reminders',statement_timestamp() - interval '2 hours',statement_timestamp() - interval '2 hours',statement_timestamp() - interval '2 hours','completed',$2)",
+    [base.tenantA.id, crypto.randomUUID()],
+  );
+
   const fixture = {
     ...base,
     operator: base.adminB,
@@ -816,6 +838,15 @@ export default async function globalSetup() {
     roleAware: {
       saljare: roleAware.users.saljare,
       montor: roleAware.users.montor,
+    },
+    notifications: {
+      administrator: base.adminA,
+      projectManager: roleAware.users.projektledare,
+      salesperson: roleAware.users.saljare,
+      installer: roleAware.users.montor,
+      finance: roleAware.users.ekonomi,
+      empty: base.adminB,
+      storedRoute: `/quotes/${quoteId}`,
     },
     adminUserManagement: {
       tenantAdmin: base.adminA,

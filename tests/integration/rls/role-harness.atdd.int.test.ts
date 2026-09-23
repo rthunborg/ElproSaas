@@ -26,6 +26,7 @@ let clients: Record<TenantRole, TestServerClient>;
 let ownTableIds: Record<TenantTableName, string>;
 let foreignTableIds: Record<TenantTableName, string>;
 let selfTableIds: Record<TenantRole, Pick<Record<TenantTableName, string>, "tenant_memberships" | "membership_roles">>;
+let personalTableIds: Record<TenantRole, Pick<Record<TenantTableName, string>, "notifications" | "notification_preferences">>;
 
 beforeAll(async () => {
   stackUp = await isLocalStackReachable();
@@ -49,6 +50,13 @@ beforeAll(async () => {
   }))) as Record<TenantRole, Pick<Record<TenantTableName, string>, "tenant_memberships" | "membership_roles">>;
   ownTableIds = await seedEveryTenantTable(fixture.base.tenantA.id, fixture.base.adminA.id);
   foreignTableIds = await seedEveryTenantTable(fixture.base.tenantB.id, fixture.base.adminB.id);
+  personalTableIds = Object.fromEntries(await Promise.all(TENANT_ROLES.map(async (role) => {
+    const userId = fixture.users[role].id;
+    const notification = (await adminQuery<{ id: string }>("insert into public.notifications (tenant_id, recipient_user_id, category, title, body, route, logical_subject_id, logical_period) values ($1, $2, 'quote.follow_up_due', 'Role harness', 'Personal notification', '/notifications', gen_random_uuid(), current_date) returning id", [fixture.base.tenantA.id, userId]))[0]?.id;
+    const preference = (await adminQuery<{ id: string }>("insert into public.notification_preferences (tenant_id, user_id, category, channel, enabled) values ($1, $2, 'quote.follow_up_due', 'in_app', true) on conflict (tenant_id,user_id,category,channel) do update set enabled = excluded.enabled returning id", [fixture.base.tenantA.id, userId]))[0]?.id;
+    if (!notification || !preference) throw new Error(`role harness seed: personal notification rows missing for ${role}`);
+    return [role, { notifications: notification, notification_preferences: preference }] as const;
+  }))) as Record<TenantRole, Pick<Record<TenantTableName, string>, "notifications" | "notification_preferences">>;
 });
 afterAll(async () => {
   if (stackUp && fixture) await cleanupRoleAwarePhaseAFixture(fixture);
@@ -136,6 +144,8 @@ describe("Story 11.4 role harness", () => {
       const adapter = tableRlsProjectionAdapter(table);
       const ownId = table === "tenant_memberships" || table === "membership_roles"
         ? selfTableIds[obligation.role][table]
+        : table === "notifications" || table === "notification_preferences"
+          ? personalTableIds[obligation.role][table]
         : ownTableIds[table];
       const own = await adapter.read(clients[obligation.role] as never, ownId);
       if (adapter.directReadDenied) {

@@ -322,6 +322,8 @@ beforeAll(async () => {
     "insert into public.membership_admin_operations (id, tenant_id, actor_user_id, action, outcome) values ($1,$2,$3,'invite','succeeded')",
     [crypto.randomUUID(), fixture.tenantB.id, fixture.adminB.id],
   );
+  await adminQuery("insert into public.notifications (tenant_id, recipient_user_id, category, title, body, route) values ($1, $2, 'quote.follow_up_due', 'Tenant B notification', 'seed', '/notifications')", [fixture.tenantB.id, fixture.adminB.id]);
+  await adminQuery("insert into public.notification_preferences (tenant_id, user_id, category, channel, enabled) values ($1, $2, 'quote.follow_up_due', 'in_app', true)", [fixture.tenantB.id, fixture.adminB.id]);
   const operationSeed = await adminQuery<{ id: string }>(
     `insert into public.membership_admin_operations
        (id, tenant_id, actor_user_id, membership_id, action, outcome)
@@ -565,7 +567,17 @@ describe("Cross-tenant RLS isolation — data-driven over the shared inventory (
             const row = await adminSelectCalcLabel(table, labelColumn, value);
             expect(row).not.toBeNull();
             expect(row?.label).not.toBe("hijacked-by-tenant-a");
-          } else if (table === "files" || table === "file_links") {
+        } else if (table === "notifications" || table === "notification_preferences") {
+          const rows = await adminQuery<{ read_at: string | null; enabled: boolean | null }>(
+            table === "notifications"
+              ? "select read_at, null::boolean as enabled from public.notifications where tenant_id = $1"
+              : "select null::timestamptz::text as read_at, enabled from public.notification_preferences where tenant_id = $1",
+            [value],
+          );
+          expect(rows).toHaveLength(1);
+          if (table === "notifications") expect(rows[0]?.read_at).toBeNull();
+          else expect(rows[0]?.enabled).toBe(true);
+        } else if (table === "files" || table === "file_links") {
             // files hijack sets display_name = "hijacked-by-tenant-a"; file_links hijack
             // sets purpose = "job_evidence" (a DIFFERENT valid value than the seed's
             // "crm_document"). Prove the seed value was NOT overwritten.

@@ -2,10 +2,11 @@
 title: 'Story 13.2: In-App Notifications — Bell, Center, and Preferences'
 type: 'feature'
 created: '2026-09-23'
-status: 'in-progress'
-baseline_revision: '343245be72246ab034ff56b9b979a9c648e39a13'
+status: 'done'
+baseline_revision: '344f00e01ebd02191ee5c116ff28be15d1c1c604'
+baseline_commit: '344f00e01ebd02191ee5c116ff28be15d1c1c604'
 review_loop_iteration: 0
-followup_review_recommended: false
+followup_review_recommended: true
 context:
   - '_bmad-output/project-context.md'
   - '_bmad-output/implementation-artifacts/epic-13-context.md'
@@ -94,34 +95,73 @@ The notification module owns its tables and UI surface; event categories remain 
 
 ## Auto Run Result
 
-Status: blocked
+Status: done
 
-Summary: Implemented the in-app notification foundation, personal bell and center, preference controls, and contained follow-up producer; required database-backed integration/RLS and Playwright notification verification could not run.
+Summary: Implemented tenant-isolated in-app notifications: an accessible bell and personal center, stored-route acknowledgement, active quote notification producers, per-user in-app preferences, and database-backed RLS and mutation constraints.
 
-Blocking condition: The required local Supabase stack is stopped, and no supported guarded lifecycle is available in this repository to start it.
+Files changed: Added notification schema and compatibility migrations; activated the quotes notification categories; added notification server read/producer/registry code and job invocation; mounted bell, center, and profile settings surfaces; added deterministic E2E fixtures and integration/RLS coverage; excluded ignored `tmp/**` scratch files from TypeScript and ESLint discovery.
+
+Review findings: 11 patches applied (high 3, medium 5, low 3), 0 newly deferred, and 5 rejected as non-reachable or outside the captured intent. Patches cover existing-schema category compatibility, server-enforced essential preferences, producer opt-out handling, acknowledgement and preference failure recovery, failed-run copy, category labels/filters, deterministic preference assertions, and recipient primary-key immutability.
+
+Follow-up review recommendation: true (score 18: 3 × medium 5 + low 3). The recommendation reflects substantive hardening applied during this pass.
+
+Verification: `pnpm typecheck` passed. Focused ESLint passed for changed notification client/server and E2E files. `$env:SUPABASE_TEST_REQUIRED='1'; pnpm test:int -- tests/integration/notifications/notifications.atdd.int.test.ts` passed 1 file / 6 tests, including essential-preference and immutable-id negatives. The prior required aggregate passed 43 files / 551 tests. The configured notification Playwright suite passed 17/17 twice before this final hardening; post-fix focused Playwright checks passed for preference persistence and stored-link acknowledgement. `git diff --check` passed.
+
+Residual risk: numeric runner SLA, fairness, backlog-age, and freshness thresholds remain owner-pending as recorded in frontmatter; the center shows only run state/elapsed information.
+
+## Review Triage Log
+
+### 2026-09-23 — Review pass
+- intent_gap: 0
+- bad_spec: 0
+- patch: 11 (high 3, medium 5, low 3)
+- defer: 0
+- reject: 5 (medium 2, low 3)
+- addressed_findings:
+  - `[high] [patch]` Added an additive migration path for the active `quote.accepted` notification category and database enforcement that the essential category stays enabled.
+  - `[high] [patch]` Made the recipient acknowledgement guard reject primary-key changes and added an authenticated direct-write negative.
+  - `[medium] [patch]` Reconciled failed preference and acknowledgement commands, including rejected fetches, before retaining client state.
+  - `[medium] [patch]` Applied allowed in-app preference opt-outs to producer recipients and rendered failed producer runs truthfully.
+  - `[low] [patch]` Completed active category labels/filtering and made the browser preference assertion rerun-safe and exact.
 
 ## Suggested Review Order
 
 Author: implementation author.
-Refreshed against the current working tree based on `343245be72246ab034ff56b9b979a9c648e39a13`.
+Refreshed against the current working tree, based on `344f00e01ebd02191ee5c116ff28be15d1c1c604`, after final review hardening for preference enforcement, acknowledgement mutation authority, and retry-safe browser evidence.
 
 ### Personal notification entry and acknowledgement
 
 The shell loads a personal bell and the center consumes persisted routes. Read acknowledgements are optimistic only in the client and restore the prior state when the server rejects the write.
 
-- `src/components/app-shell/AppShell.tsx:275` — `NotificationBell`: mounts the personal entry point outside navigation.
-- `src/components/notifications/NotificationBell.tsx:7` — `NotificationBell`: caps the unread presentation and reconciles failed mark-all/read requests.
+- `src/components/app-shell/AppShell.tsx:276` — `NotificationBell`: mounts the personal entry point outside navigation.
+- `src/components/notifications/NotificationBell.tsx:8` — `NotificationBell`: caps the unread presentation and reconciles failed mark-all/read requests.
 - `src/app/api/notifications/[id]/read/route.ts:5` — `POST`: scopes acknowledgement to the resolved tenant and recipient.
 
 ### Stored data and producer boundary
 
-The migration gives recipients select and acknowledgement authority only; the job service client remains the producer writer. The producer stores a conservative route and content that carries no quote price or customer detail.
+The migration gives recipients select and acknowledgement authority only; the job service client remains the producer writer. The producer derives the latest quote state and emits the stored quote route only to recipients with `Quotes.View`; content carries no quote price or customer detail.
 
 - `supabase/migrations/20260923170000_in_app_notifications.sql:3` — `create table public.notifications`: declares recipient isolation, read state, and subject-period de-duplication.
-- `src/server/notifications/follow-up-producer.ts:4` — `emitDueFollowUpNotifications`: inserts a single logical follow-up reminder per recipient and period.
+- `src/server/notifications/follow-up-producer.ts:4` — `TERMINAL_QUOTE_STATUSES`: suppresses terminal follow-ups after resolving each quote's latest version.
+- `src/server/notifications/follow-up-producer.ts:13` — `resolveCapability`: prevents a notification from storing a quote route for an unentitled recipient.
 - `src/app/api/jobs/run/route.ts:88` — `emitDueFollowUpNotifications`: keeps the producer on Story 13.1's authenticated runner lane.
 
-### Category, preferences, and evidence
+### Browser acceptance coverage
+
+The Playwright fixture gives each seeded recipient ten distinct unread rows. This makes the capped-count and popover-list assertions personal and deterministic while leaving database authority to the integration/RLS suite.
+
+- `tests/e2e/global-setup.ts:811` — `notificationUsers`: seeds rows independently for each browser recipient.
+- `tests/e2e/global-setup.ts:819` — `index += 1`: supplies the unread cardinality required by AC3's capped `9+` presentation.
+- `tests/e2e/notifications/notifications.atdd.e2e.spec.ts:77` — `roleName`: exercises the all-valid-role personal bell and no-nav invariant from AC3.
+- `tests/e2e/notifications/notifications.atdd.e2e.spec.ts:97` — `stored notification link`: exercises AC4's persisted destination and acknowledgement journey.
+- `tests/e2e/notifications/notifications.atdd.e2e.spec.ts:108` — `filters together`: exercises AC4's category, read-state, and date narrowing.
+- `tests/e2e/notifications/notifications.atdd.e2e.spec.ts:140` — `Failed optimistic mark-read`: injects a failed acknowledgement to exercise AC4 rollback and retry presentation.
+- `tests/e2e/notifications/notifications.atdd.e2e.spec.ts:154` — `Profile preferences`: exercises AC5's category grouping and persisted in-app preference assertion.
+- `tests/e2e/notifications/notifications.atdd.e2e.spec.ts:187` — `keyboard activation`: exercises AC6's bell dialog semantics and focus-return expectation.
+- `tests/e2e/notifications/notifications.atdd.e2e.spec.ts:200` — `Empty and never-run states`: exercises AC6's truthful empty-state requirement without a real-time claim.
+- `tests/e2e/notifications/notifications.atdd.e2e.spec.ts:208` — `Stale producer state`: exercises AC6's elapsed-scan presentation without a current-delivery claim.
+
+### Category and preference authority
 
 The active quotes-owned category is the registry source for essential/default behavior. Preferences accept only the available in-app channel, and the UI states that email delivery remains unavailable.
 
@@ -130,5 +170,5 @@ The active quotes-owned category is the registry source for essential/default be
 - `tests/unit/server/notifications/registry.test.ts:5` — `13.2 notification category registry derives`: exercises AC5's active/default/essential derivation.
 - `tests/unit/scope/manifest-derivations.test.ts:144` — `13.2-UNIT-DERIVE-05`: exercises the manifest-derived H4 table enrollment change.
 
-Evidence: targeted manifest and registry tests passed (16 tests, 0 failures); service-role containment passed. `pnpm typecheck` reaches unrelated errors in tracked `tmp` worktrees, and `pnpm lint` cannot scan an inaccessible `tmp/private` directory.
-Limits: no local Supabase migration/RLS run or Playwright notification run was completed in this pass; their ATDD files remain skipped scaffolds, so they are not execution evidence. The center provides module/category, read-state, and date filters; the preference matrix only has the active essential category, leaving no non-essential preference path to exercise.
+Evidence: `pnpm typecheck` and focused ESLint pass. Required notification integration evidence passes 1 file / 6 tests after applying the additive migration to the authorized local database; the prior required aggregate passed 43 files / 551 tests. The configured notification Playwright suite passed 17/17 twice, and post-hardening focused preference-persistence and stored-link acknowledgement checks pass.
+Limits: Numeric runner SLA, batch-size, fairness, backlog-age, and freshness thresholds remain owner-pending; the surface reports only truthful run state and elapsed time.

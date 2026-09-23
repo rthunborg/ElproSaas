@@ -23,4 +23,7 @@ export function producersFromManifest(manifest: ManifestLike, declarations: read
   });
 }
 
-export const ACTIVE_PRODUCERS = producersFromManifest(SCOPE_MANIFEST, [{ id: "quotes.follow-up-reminders", module: "quotes", category: "quote.follow_up_due", schedule: "0 * * * *", essential: true }]);
+export const ACTIVE_PRODUCERS = producersFromManifest(SCOPE_MANIFEST, [
+  { id: "quotes.follow-up-reminders", module: "quotes", category: "quote.follow_up_due", schedule: "0 * * * *", essential: true },
+  { id: "quotes.accepted", module: "quotes", category: "quote.accepted", schedule: "0 * * * *", essential: false },
+]);

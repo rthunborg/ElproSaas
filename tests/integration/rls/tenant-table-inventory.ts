@@ -314,8 +314,6 @@ export function updateDenialKind(table: TenantTableName): MutationDenialKind {
     case "membership_admin_operations":
     case "audit_events":
     case "job_runs":
-    case "notifications":
-    case "notification_preferences":
     case "tenant_provisioning_requests":
     case "tenant_provisioning_invites":
     case "quote_review_authorizations":
@@ -349,6 +347,11 @@ export function updateDenialKind(table: TenantTableName): MutationDenialKind {
     // cross-tenant UPDATE is hidden by RLS USING (zero rows), NOT a missing-grant 42501. This is
     // the load-bearing contrast with 10.2's insert-only quote_lost_reasons ("privilege" above).
     case "quote_follow_ups":
+    // Personal acknowledgement and preference updates retain UPDATE grants. A foreign
+    // recipient/user row is hidden by the RLS USING predicate, rather than denied by
+    // table privilege, so the cross-tenant statement affects zero rows.
+    case "notifications":
+    case "notification_preferences":
       return "rls-invisible"; // UPDATE granted; RLS USING hides foreign rows
     default:
       return assertNever(table);

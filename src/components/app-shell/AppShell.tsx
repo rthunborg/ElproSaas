@@ -121,6 +121,7 @@ export function AppShell({
 }) {
   const pathname = usePathname();
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
   const [skipFocused, setSkipFocused] = useState(false);
   const hamburgerRef = useRef<HTMLButtonElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
@@ -273,7 +274,10 @@ export function AppShell({
                 attribute is preserved as the owning-module action mount point. */}
             <div data-slot="primary-action" className="flex items-center gap-3">
               <NotificationBell />
-              <Link href="/settings/notifications" className="text-sm text-zinc-700">Notisinställningar</Link>
+              <div className="relative">
+                <button type="button" aria-label="Profil" aria-expanded={profileOpen} onClick={() => setProfileOpen((current) => !current)} className="text-sm text-zinc-700">Profil</button>
+                {profileOpen && <div className="absolute right-0 z-50 mt-2 rounded border bg-white p-2 shadow"><Link href="/settings/notifications" onClick={() => setProfileOpen(false)}>Notisinställningar</Link></div>}
+              </div>
               {(context.tenantName || context.userEmail) && (
                 <div className="flex min-w-0 flex-col items-end leading-tight">
                   {/* AC1: the active tenant/company indicator is UNCONDITIONAL — it must be

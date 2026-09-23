@@ -4,7 +4,7 @@ create table public.notifications (
   id uuid primary key default gen_random_uuid(),
   tenant_id uuid not null references public.tenants(id) on delete cascade,
   recipient_user_id uuid not null references auth.users(id) on delete cascade,
-  category text not null check (category = 'quote.follow_up_due'),
+  category text not null check (category in ('quote.follow_up_due', 'quote.accepted')),
   title text not null check (length(title) between 1 and 180),
   body text not null check (length(body) between 1 and 1000),
   route text not null check (route ~ '^/[a-z0-9/_-]*$'),
@@ -23,7 +23,7 @@ create table public.notification_preferences (
   id uuid primary key default gen_random_uuid(),
   tenant_id uuid not null references public.tenants(id) on delete cascade,
   user_id uuid not null references auth.users(id) on delete cascade,
-  category text not null check (category = 'quote.follow_up_due'),
+  category text not null check (category in ('quote.follow_up_due', 'quote.accepted')),
   channel text not null check (channel in ('in_app', 'email')),
   enabled boolean not null,
   created_at timestamptz not null default now(),
@@ -56,10 +56,24 @@ create policy notification_preferences_update_own on public.notification_prefere
   using (user_id = auth.uid() and public.is_active_tenant_member(tenant_id))
   with check (user_id = auth.uid() and public.is_active_tenant_member(tenant_id));
 
+create or replace function public.notification_preferences_essential_guard()
+returns trigger language plpgsql set search_path = '' as $$
+begin
+  if new.category = 'quote.follow_up_due' and not new.enabled then
+    raise exception 'essential notification preferences cannot be disabled' using errcode = '23514';
+  end if;
+  return new;
+end;
+$$;
+create trigger notification_preferences_essential_guard
+  before insert or update on public.notification_preferences
+  for each row execute function public.notification_preferences_essential_guard();
+
 create or replace function public.notifications_recipient_update_guard()
 returns trigger language plpgsql set search_path = '' as $$
 begin
-  if new.tenant_id is distinct from old.tenant_id
+  if new.id is distinct from old.id
+     or new.tenant_id is distinct from old.tenant_id
      or new.recipient_user_id is distinct from old.recipient_user_id
      or new.category is distinct from old.category
      or new.title is distinct from old.title
