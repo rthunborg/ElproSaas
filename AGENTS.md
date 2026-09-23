@@ -35,7 +35,7 @@ Mandatory rules:
 - Leave deterministic formatting, lint, and schema-shape checks to CI. Do not restate them as review findings unless the PR disables or bypasses the check.
 
 <!-- bmad:context -->
-<!-- Verified 2026-09-08 against db2100af8401de4a336027463086fae5302f5a04. Managed by bmad-project-context; edits inside this block are replaced on refresh. Keep anything you want preserved outside the markers. -->
+<!-- Verified 2026-09-23 against f92e47c9f9e1ca82568c2bb3af1a8d0160a2e826. Managed by bmad-project-context; edits inside this block are replaced on refresh. Keep anything you want preserved outside the markers. -->
 
 ## ElproSaas
 
@@ -46,7 +46,9 @@ ElPro is a multi-tenant application for electrical contractors, built with Next.
 - For Phase B architecture changes, read `_bmad-output/planning-artifacts/architecture-phase-b.md`; current amendments supersede historical Phase A guidance.
 - For money/tax changes, follow architecture-phase-b §12A and the shared `src/lib/money/` implementation.
 - For quote lifecycle or PDF-provenance changes, read `docs/decisions/ADR-B008-quote-review-authority-and-derived-artifact-validity.md`.
-- For deeper domain and implementation conventions, read `_bmad-output/project-context.md`; retain its recorded lessons while checking historical claims against current decisions.
+- For role, permission, or operator-console changes, follow architecture-phase-b §§3.3 and 15.4; `Platform.Operator.Access` is non-granting platform metadata.
+- For hosted tenant provisioning, follow `docs/decisions/ADR-B010-tenant-provisioning-production-enablement.md` and `docs/security/tenant-provisioning-production-readiness.md`; require its recorded release approval before enablement.
+- For deeper domain and implementation conventions, read `_bmad-output/project-context.md`; retain its recorded lessons while checking historical claims against current decisions and the scope manifest.
 - For local database or browser verification, read `docs/process/local-setup.md`, including resource ownership and cleanup requirements.
 
 ## Running and verifying
