@@ -9,11 +9,11 @@ spec_folder: null
 story_id: null
 branch: epic/13-wave-b1a-notifications-and-email-infrastructure
 status: in-progress
-updated_at: "2026-09-23T14:24:23Z"
+updated_at: "2026-09-23T14:26:20Z"
 started_at: "2026-09-23T10:29:03Z"
 completed_at: null
-active_seconds: 8368
-timing_anchor: null
+active_seconds: 8450
+timing_anchor: 1790173580
 is_first_in_epic: false
 is_last_in_epic: false
 git_mode: remote
@@ -47,7 +47,7 @@ build:
   warnings: []
 followup_passes: 0
 hitl_halt: null
-review_unverified: false
+review_unverified: true
 story_trace: null
 legacy_review_resume: false
 legacy_review_iteration: null
@@ -81,13 +81,18 @@ branch_deleted: false
 open_questions:
   - "Numeric runner, batch, fairness, backlog, freshness, stale-claim lease, event-retention, and alert thresholds remain to be approved."
   - "The email provider outcome, idempotency, release-control, and synthetic-recipient contracts remain to be selected and recorded."
+  - "[13-1-authenticated-background-runner-and-producer-registry] Local full typecheck/lint included ignored tmp worktree sources; clean CI must confirm repository-wide gates."
+  - "[13-1-authenticated-background-runner-and-producer-registry] Follow-up review still recommends another pass; the epic PR requires review before ready status."
+  - "[13-1-authenticated-background-runner-and-producer-registry] Cross-model review layer returned no output in the follow-up pass."
 deferred_work:
   - Real-recipient go-live requires the separate ADR-B011 owner decision.
+  - "[13-1-authenticated-background-runner-and-producer-registry] Numeric runner SLA, batch-size, fairness, backlog-age, and freshness thresholds remain owner-pending NFR contracts."
 blockers: []
 overrides: {}
 constraints: []
 epic_slug: wave-b1a-notifications-and-email-infrastructure
-active_story: 13-1-authenticated-background-runner-and-producer-registry
-stories_landed: []
+active_story: 13-2-in-app-notifications-bell-center-and-preferences
+stories_landed:
+  - 13-1-authenticated-background-runner-and-producer-registry
 stories_skipped: []
 batch_flip_done: false
