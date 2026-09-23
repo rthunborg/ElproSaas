@@ -1505,7 +1505,7 @@ So that eligible queued flows can deliver in priority order after a separate go-
 
 **Money/Tax/Quote Impact:** Customer quote email uses the current valid snapshot-derived PDF under ADR-B008; no customer online acceptance path is added.
 
-**Migration/Coexistence Impact:** None.
+**Migration/Coexistence Impact:** If Story 13.3 did not add the hashed unsubscribe-token schema, Story 13.4 adds it under manifest governance before activating the public unsubscribe route. Existing Supabase Auth invitation mail keeps its current path until a deliberate non-duplicating handoff.
 
 **Dependencies:** Stories 13.1–13.3; ADR-B004; ADR-B011. The owner's go-live approval is required for real-recipient delivery, not sandbox implementation or story completion.
 
