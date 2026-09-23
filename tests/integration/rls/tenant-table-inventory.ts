@@ -103,6 +103,8 @@ export type TenantTableName =
   | "membership_admin_operations"
   | "audit_events"
   | "job_runs"
+  | "notifications"
+  | "notification_preferences"
   // Story 12.1 platform command state is durable tenant-keyed data.
   | "tenant_provisioning_requests"
   | "tenant_provisioning_invites"
@@ -312,6 +314,8 @@ export function updateDenialKind(table: TenantTableName): MutationDenialKind {
     case "membership_admin_operations":
     case "audit_events":
     case "job_runs":
+    case "notifications":
+    case "notification_preferences":
     case "tenant_provisioning_requests":
     case "tenant_provisioning_invites":
     case "quote_review_authorizations":
@@ -412,6 +416,10 @@ export function spoofedRowFor(
       };
     case "job_runs":
       return { id: crypto.randomUUID(), tenant_id: fixture.tenantB.id, producer: "notifications.reminder", window_started_at: "2026-09-23T00:00:00.000Z", started_at: "2026-09-23T00:00:00.000Z", outcome: "completed", correlation_id: crypto.randomUUID() };
+    case "notifications":
+      return { id: crypto.randomUUID(), tenant_id: fixture.tenantB.id, recipient_user_id: fixture.adminB.id, category: "quote.follow_up_due", title: "spoof", body: "spoof", route: "/notifications" };
+    case "notification_preferences":
+      return { id: crypto.randomUUID(), tenant_id: fixture.tenantB.id, user_id: fixture.adminB.id, category: "quote.follow_up_due", channel: "in_app", enabled: true };
     case "quote_review_authorizations":
       return {
         id: crypto.randomUUID(),
@@ -850,6 +858,8 @@ export function tenantBFilter(
       return { column: "id", value: ctx.tenantBAuditId };
     case "tenant_memberships":
     case "job_runs":
+    case "notifications":
+    case "notification_preferences":
       return { column: "tenant_id", value: ctx.fixture.tenantB.id };
     case "customers":
       // Target the SPECIFIC seeded Tenant B customer by id — the cross-tenant
@@ -1072,6 +1082,10 @@ export function hijackMutationFor(
     case "audit_events":
     case "job_runs":
       return { metadata: { hijacked: true } };
+    case "notifications":
+      return { read_at: "2099-01-01T00:00:00.000Z" };
+    case "notification_preferences":
+      return { enabled: false };
     case "quote_review_authorizations":
       return { source_revision: { hijacked: true } };
     case "tenant_memberships":
@@ -1233,6 +1247,10 @@ export function rlsInvisibleLabelColumn(table: TenantTableName): string {
       return "note";
     case "job_runs":
       return "metadata";
+    case "notifications":
+      return "title";
+    case "notification_preferences":
+      return "enabled";
     // Story 10.3 quote_follow_ups is UPDATE-able ("rls-invisible"): `note` is the column the hijack
     // sets — re-read it to prove the seed value ("tenant-b-followup-seed") was NOT overwritten.
     case "quote_follow_ups":
@@ -1282,6 +1300,10 @@ export function anonRowFor(
       };
     case "job_runs":
       return { id: crypto.randomUUID(), tenant_id: fixture.tenantA.id, producer: "notifications.reminder", window_started_at: "2026-09-23T00:00:00.000Z", started_at: "2026-09-23T00:00:00.000Z", outcome: "completed", correlation_id: crypto.randomUUID() };
+    case "notifications":
+      return { id: crypto.randomUUID(), tenant_id: fixture.tenantA.id, recipient_user_id: fixture.adminA.id, category: "quote.follow_up_due", title: "anon", body: "anon", route: "/notifications" };
+    case "notification_preferences":
+      return { id: crypto.randomUUID(), tenant_id: fixture.tenantA.id, user_id: fixture.adminA.id, category: "quote.follow_up_due", channel: "in_app", enabled: true };
     case "quote_review_authorizations":
       return {
         id: crypto.randomUUID(),
@@ -1563,6 +1585,8 @@ export function anonFilterFor(
     // so `tenant_id` suffices. Hence one shared branch, not a per-table copy.
     case "audit_events":
     case "job_runs":
+    case "notifications":
+    case "notification_preferences":
     case "quote_review_authorizations":
     case "tenant_memberships":
     case "membership_roles":
@@ -1608,6 +1632,10 @@ export function anonMutationFor(
     case "audit_events":
     case "job_runs":
       return { metadata: { hijacked: true } };
+    case "notifications":
+      return { read_at: "2099-01-01T00:00:00.000Z" };
+    case "notification_preferences":
+      return { enabled: false };
     case "quote_review_authorizations":
       return { source_revision: { hijacked: true } };
     case "tenant_memberships":

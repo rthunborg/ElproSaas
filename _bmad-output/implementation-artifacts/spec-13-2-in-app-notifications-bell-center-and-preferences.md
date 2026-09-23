@@ -2,7 +2,8 @@
 title: 'Story 13.2: In-App Notifications — Bell, Center, and Preferences'
 type: 'feature'
 created: '2026-09-23'
-status: 'ready-for-dev'
+status: 'blocked'
+baseline_revision: '343245be72246ab034ff56b9b979a9c648e39a13'
 review_loop_iteration: 0
 followup_review_recommended: false
 context:
@@ -93,6 +94,41 @@ The notification module owns its tables and UI surface; event categories remain 
 
 ## Auto Run Result
 
-Status: ready-for-dev
+Status: blocked
 
-Summary: planned the notifications, preferences, contained follow-up producer, and all-role personal surface without implementing any application change.
+Summary: Implemented the in-app notification foundation, personal bell and center, preference controls, and contained follow-up producer; required database-backed integration/RLS and Playwright notification verification could not run.
+
+Blocking condition: The required local Supabase stack is stopped, and no supported guarded lifecycle is available in this repository to start it.
+
+## Suggested Review Order
+
+Author: implementation author.
+Refreshed against the current working tree based on `343245be72246ab034ff56b9b979a9c648e39a13`.
+
+### Personal notification entry and acknowledgement
+
+The shell loads a personal bell and the center consumes persisted routes. Read acknowledgements are optimistic only in the client and restore the prior state when the server rejects the write.
+
+- `src/components/app-shell/AppShell.tsx:275` — `NotificationBell`: mounts the personal entry point outside navigation.
+- `src/components/notifications/NotificationBell.tsx:7` — `NotificationBell`: caps the unread presentation and reconciles failed mark-all/read requests.
+- `src/app/api/notifications/[id]/read/route.ts:5` — `POST`: scopes acknowledgement to the resolved tenant and recipient.
+
+### Stored data and producer boundary
+
+The migration gives recipients select and acknowledgement authority only; the job service client remains the producer writer. The producer stores a conservative route and content that carries no quote price or customer detail.
+
+- `supabase/migrations/20260923170000_in_app_notifications.sql:3` — `create table public.notifications`: declares recipient isolation, read state, and subject-period de-duplication.
+- `src/server/notifications/follow-up-producer.ts:4` — `emitDueFollowUpNotifications`: inserts a single logical follow-up reminder per recipient and period.
+- `src/app/api/jobs/run/route.ts:88` — `emitDueFollowUpNotifications`: keeps the producer on Story 13.1's authenticated runner lane.
+
+### Category, preferences, and evidence
+
+The active quotes-owned category is the registry source for essential/default behavior. Preferences accept only the available in-app channel, and the UI states that email delivery remains unavailable.
+
+- `src/server/notifications/registry.ts:3` — `NOTIFICATION_CATEGORIES`: derives active categories from the manifest and declares the essential default.
+- `src/app/api/notifications/preferences/route.ts:15` — `PUT`: rejects email and essential-disable attempts before persistence.
+- `tests/unit/server/notifications/registry.test.ts:5` — `13.2 notification category registry derives`: exercises AC5's active/default/essential derivation.
+- `tests/unit/scope/manifest-derivations.test.ts:144` — `13.2-UNIT-DERIVE-05`: exercises the manifest-derived H4 table enrollment change.
+
+Evidence: targeted manifest and registry tests passed (16 tests, 0 failures); service-role containment passed. `pnpm typecheck` reaches unrelated errors in tracked `tmp` worktrees, and `pnpm lint` cannot scan an inaccessible `tmp/private` directory.
+Limits: no local Supabase migration/RLS run or Playwright notification run was completed in this pass; their ATDD files remain skipped scaffolds, so they are not execution evidence. The center provides module/category, read-state, and date filters; the preference matrix only has the active essential category, leaving no non-essential preference path to exercise.

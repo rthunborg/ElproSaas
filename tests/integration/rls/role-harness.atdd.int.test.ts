@@ -86,6 +86,9 @@ async function seedEveryTenantTable(tenantId: string, actorId: string): Promise<
   const auditEvent = await adminInsertAuditEvent({ tenant_id: tenantId, actor_user_id: actorId, command: "role.harness.seed", event_type: "seeded", target_type: "tenant", target_id: tenantId, correlation_id: crypto.randomUUID(), metadata: {} });
   const jobRun = (await adminQuery<{ id: string }>("insert into public.job_runs (tenant_id, producer, window_started_at, started_at, finished_at, outcome, correlation_id) values ($1, 'notifications.runner', now(), now(), now(), 'completed', gen_random_uuid()) returning id", [tenantId]))[0]?.id;
   if (!jobRun) throw new Error("role harness seed: job run missing");
+  const notification = (await adminQuery<{ id: string }>("insert into public.notifications (tenant_id, recipient_user_id, category, title, body, route) values ($1, $2, 'quote.follow_up_due', 'Role harness', 'Notification seed', '/notifications') returning id", [tenantId, actorId]))[0]?.id;
+  const notificationPreference = (await adminQuery<{ id: string }>("insert into public.notification_preferences (tenant_id, user_id, category, channel, enabled) values ($1, $2, 'quote.follow_up_due', 'in_app', true) returning id", [tenantId, actorId]))[0]?.id;
+  if (!notification || !notificationPreference) throw new Error("role harness seed: notification rows missing");
   const membership = (await adminQuery<{ id: string }>("select id from public.tenant_memberships where tenant_id = $1 and user_id = $2", [tenantId, actorId]))[0]?.id;
   if (!membership) throw new Error("role harness seed: actor membership missing");
   const membershipRole = (await adminQuery<{ id: string }>(
@@ -101,6 +104,7 @@ async function seedEveryTenantTable(tenantId: string, actorId: string): Promise<
   return {
     tenants: tenantId, tenant_memberships: membership, membership_roles: membershipRole,
     membership_admin_operations: membershipOperation, audit_events: auditEvent, job_runs: jobRun,
+    notifications: notification, notification_preferences: notificationPreference,
     customers: customer, facilities: facility, contacts: contact, company_settings: companySettings,
     quote_terms: quoteTerms, work_roles: workRole, articles: article, calculations: calculation,
     calculation_sections: calculationSection, calculation_rows: calculationRow, files: file,

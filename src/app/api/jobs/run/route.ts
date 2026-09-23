@@ -4,6 +4,7 @@ import { createJobsServiceClient } from "@/server/jobs/service-client";
 import { ACTIVE_PRODUCERS, type ProducerDeclaration } from "@/server/jobs/producers";
 import { runDueProducers, type JobRunRecord, type RunnerDependencies } from "@/server/jobs/runner";
 import { isAuthorizedCronRequest } from "@/server/jobs/auth";
+import { emitDueFollowUpNotifications } from "@/server/notifications/follow-up-producer";
 
 const unauthorized = () => new Response("Unauthorized", { status: 401 });
 const CURSOR_PRODUCER = "jobs.runner";
@@ -82,7 +83,11 @@ export async function handleJobsRunRequest(request: Request, dependencies: JobsR
       if (error) throw new Error("Tenant enumeration failed");
       return (data ?? []).map((row) => row.id);
     },
-    execute: dependencies.execute ?? (async () => undefined),
+    execute: dependencies.execute ?? (async (producer, tenantId) => {
+      if (producer.id === "quotes.follow-up-reminders") {
+        await emitDueFollowUpNotifications(client, tenantId, now().toISOString().slice(0, 10));
+      }
+    }),
     record: recordRun(client, correlationId),
     now,
   }, { cursor, producers, chunkSize: dependencies.chunkSize, windowStartedAt: now() });

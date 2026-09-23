@@ -9,11 +9,11 @@ spec_folder: null
 story_id: null
 branch: epic/13-wave-b1a-notifications-and-email-infrastructure
 status: in-progress
-updated_at: "2026-09-23T14:45:41Z"
+updated_at: "2026-09-23T15:02:25Z"
 started_at: "2026-09-23T14:26:19Z"
 completed_at: null
-active_seconds: 837
-timing_anchor: 1790174741
+active_seconds: 1841
+timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
 git_mode: remote
@@ -40,8 +40,8 @@ completed_phases: [0, 1, 2, 3, 4]
 spec_path: "C:\\DEV\\ElproSaas\\_bmad-output\\implementation-artifacts\\spec-13-2-in-app-notifications-bell-center-and-preferences.md"
 spec_approved: true
 build:
-  status: ready-for-dev
-  blocking_condition: null
+  status: blocked
+  blocking_condition: "The required local Supabase stack is stopped, and no supported guarded lifecycle is available in this repository to start it."
   followup_review_recommended: false
   review_loop_iteration: 0
   deferred_count: 1
@@ -56,7 +56,7 @@ legacy_review_loop_done: false
 legacy_external_review_iterations: null
 legacy_convergence_unverified: false
 legacy_artifact_path: null
-commits: [227845b, af94f21, df5d8ad]
+commits: [227845b, af94f21, df5d8ad, 343245b]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -81,7 +81,8 @@ merge_commit: null
 branch_deleted: false
 open_questions: []
 deferred_work: []
-blockers: []
+blockers:
+  - "Story 13.2 verification blocked by a Supabase status interpretation; core API and database endpoints are available and require re-verification."
 overrides:
   stop_after: Halt after planning.
 constraints: []

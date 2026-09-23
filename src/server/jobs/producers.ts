@@ -23,4 +23,4 @@ export function producersFromManifest(manifest: ManifestLike, declarations: read
   });
 }
 
-export const ACTIVE_PRODUCERS = producersFromManifest(SCOPE_MANIFEST);
+export const ACTIVE_PRODUCERS = producersFromManifest(SCOPE_MANIFEST, [{ id: "quotes.follow-up-reminders", module: "quotes", category: "quote.follow_up_due", schedule: "0 * * * *", essential: true }]);

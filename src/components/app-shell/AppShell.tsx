@@ -20,6 +20,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { NavItem } from "./nav-items";
 import { NavIcon } from "./NavIcon";
 import { SignOutButton } from "./SignOutButton";
+import { NotificationBell } from "@/components/notifications/NotificationBell";
 
 /**
  * Server-resolved tenant/user context passed DOWN from the `(app)` server layout
@@ -271,6 +272,8 @@ export function AppShell({
                 (login-and-tenant-context.e2e.spec.ts). The `data-slot="primary-action"`
                 attribute is preserved as the owning-module action mount point. */}
             <div data-slot="primary-action" className="flex items-center gap-3">
+              <NotificationBell />
+              <Link href="/settings/notifications" className="text-sm text-zinc-700">Notisinställningar</Link>
               {(context.tenantName || context.userEmail) && (
                 <div className="flex min-w-0 flex-col items-end leading-tight">
                   {/* AC1: the active tenant/company indicator is UNCONDITIONAL — it must be

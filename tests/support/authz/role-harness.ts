@@ -11,7 +11,7 @@ import { TENANT_TABLES, type TenantTableName } from "../../integration/rls/tenan
  * economy and membership-history split privileges.
  */
 export const TABLE_PROJECTION_CAPABILITIES: Readonly<Record<string, string>> = {
-  tenants: "Memberships.Manage", tenant_memberships: "Memberships.Manage", membership_roles: "Memberships.Manage", audit_events: "Memberships.Manage", job_runs: "Notifications.View", membership_admin_operations: "Memberships.Manage",
+  tenants: "Memberships.Manage", tenant_memberships: "Memberships.Manage", membership_roles: "Memberships.Manage", audit_events: "Memberships.Manage", job_runs: "Notifications.View", notifications: "Notifications.Personal", notification_preferences: "Notifications.Personal", membership_admin_operations: "Memberships.Manage",
   // The provisioning request/invite tables are platform protocol internals. No
   // tenant role can project them; platform allow-list authorization is verified
   // independently at the operator boundaries.
@@ -192,6 +192,8 @@ export const TABLE_RLS_PROJECTION_ADAPTERS: Readonly<Record<TenantTableName, Tab
   membership_admin_operations: idProjection("membership_admin_operations"),
   audit_events: idProjection("audit_events"),
   job_runs: idProjection("job_runs"),
+  notifications: idProjection("notifications"),
+  notification_preferences: idProjection("notification_preferences"),
   tenant_provisioning_requests: keyProjection("tenant_provisioning_requests", "request_id", true),
   tenant_provisioning_invites: keyProjection("tenant_provisioning_invites", "tenant_id", true),
   customers: idProjection("customers"),
