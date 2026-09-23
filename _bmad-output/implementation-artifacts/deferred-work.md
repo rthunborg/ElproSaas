@@ -395,3 +395,9 @@ existing AC, recorded so it is not re-triaged a third time.
   summary: Manifest EpicRef closed-union/range validation is governance polish, not quote-table or pagination work.
   evidence: _bmad-output/implementation-artifacts/deferred-work.md:480
   severity: low
+
+## Deferred from: build-auto review of 13-1-authenticated-background-runner-and-producer-registry (2026-09-23)
+
+- source_spec: `spec-13-1-authenticated-background-runner-and-producer-registry.md`
+  summary: Numeric runner SLA, batch-size, fairness, backlog-age, and freshness thresholds remain owner-pending NFR contracts; this story proves deterministic budget/cursor behavior without claiming a production performance target.
+  evidence: (no evidence recorded)
