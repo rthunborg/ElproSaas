@@ -9,11 +9,11 @@ spec_folder: null
 story_id: null
 branch: epic/13-wave-b1a-notifications-and-email-infrastructure
 status: in-progress
-updated_at: "2026-09-23T14:29:39Z"
+updated_at: "2026-09-23T14:36:37Z"
 started_at: "2026-09-23T14:26:19Z"
 completed_at: null
-active_seconds: 0
-timing_anchor: 1790173779
+active_seconds: 379
+timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
 git_mode: remote
@@ -34,16 +34,16 @@ tea_selected: [atdd, automate]
 tea_rationale: Schema and tenant-isolated RLS changes with stateful notification and preference flows.
 epic_story_count: 4
 stories_after_in_epic: 2
-completed_phases: [0, 1, 2]
-spec_path: null
-spec_approved: false
+completed_phases: [0, 1, 2, 3]
+spec_path: "C:\\DEV\\ElproSaas\\_bmad-output\\implementation-artifacts\\spec-13-2-in-app-notifications-bell-center-and-preferences.md"
+spec_approved: true
 build:
-  status: null
+  status: ready-for-dev
   blocking_condition: null
   followup_review_recommended: false
   review_loop_iteration: 0
-  deferred_count: 0
-  warnings: []
+  deferred_count: 1
+  warnings: [oversized]
 followup_passes: 0
 hitl_halt: null
 review_unverified: false
@@ -54,7 +54,7 @@ legacy_review_loop_done: false
 legacy_external_review_iterations: null
 legacy_convergence_unverified: false
 legacy_artifact_path: null
-commits: []
+commits: [227845b]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -80,5 +80,6 @@ branch_deleted: false
 open_questions: []
 deferred_work: []
 blockers: []
-overrides: {}
+overrides:
+  stop_after: Halt after planning.
 constraints: []
