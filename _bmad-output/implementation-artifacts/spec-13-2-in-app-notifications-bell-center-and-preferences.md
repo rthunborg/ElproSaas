@@ -138,7 +138,7 @@ Residual risk: The required database-backed integration and browser suites were 
   - `[medium] [patch]` Applied allowed in-app preference opt-outs to producer recipients and rendered failed producer runs truthfully.
   - `[low] [patch]` Completed active category labels/filtering and made the browser preference assertion rerun-safe and exact.
 
-### 2026-09-23 — Follow-up review pass
+### 2026-09-23 — Review pass
 - intent_gap: 0
 - bad_spec: 0
 - patch: 7 (high 1, medium 5, low 1)
