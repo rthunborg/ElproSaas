@@ -123,11 +123,11 @@ Residual risks: The dark processor performs no delivery. Holding a database clai
 ## Suggested Review Order
 
 Author: Story 13.3 implementation author.
-Refreshed against the current working tree based on `cb0fb4ae799fcb5b636a3f380aeff53bcdf5fd4f`.
+Refreshed against the current working tree based on committed Story 13.3 diff `a76cdd479414e7706de8cb3af3ab827ba238a5d4`.
 
 ### Durable dark queue and its authority boundary
 
-The migration records the queue, delivery history, and suppression authority under forced RLS. Its stored procedures are service-role-only because they support the sole jobs lane; the migration does not add a provider or public delivery surface.
+The migration records the queue, delivery history, and suppression authority under forced RLS. Its write and state-machine procedures are service-role-only for the sole jobs lane; the separate authenticated projection procedure returns only redacted queue fields; the migration does not add a provider or public delivery surface.
 
 - `supabase/migrations/20260923175035_email_outbox_pipeline.sql:3` — `create table public.email_outbox`: tenant-deduped queue and lifecycle state.
 - `supabase/migrations/20260923175035_email_outbox_pipeline.sql:91` — `claim_email_outbox`: tenant-explicit `FOR UPDATE SKIP LOCKED` lease claim.
@@ -138,16 +138,14 @@ The migration records the queue, delivery history, and suppression authority und
 
 The outbox processor is an operational producer, so activation validates the manifest module without adding a notification-preference category. The queue projection emits only status, retries, and a subject reference for Administrators.
 
-- `src/server/jobs/producers.ts:30` —
-otifications.email-outbox-dark`: operational producer declaration.
-- `src/app/api/jobs/run/route.ts:91` —
-otifications.email-outbox-dark`: sole authenticated scheduler dispatch.
+- `src/server/jobs/producers.ts:30` — `notifications.email-outbox-dark`: operational producer declaration.
+- `src/app/api/jobs/run/route.ts:91` — `notifications.email-outbox-dark`: sole authenticated scheduler dispatch.
 - `src/server/read-models/email-outbox.ts:8` — `readEmailOutboxQueue`: checks `Notifications.View` before returning a redacted projection.
 - `src/components/notifications/EmailOutboxQueue.tsx:4` — `EmailOutboxQueue`: renders states only, with no delivery action.
 
 ### Manifest, role-harness, and scheduler regression coverage
 
-Adding the three tenant tables expands the manifest-derived active/H4 set from 34 to 37. The role harness maps raw queue reads to the existing Administrator notification capability, while the scheduler-auth test supplies an empty producer set so it verifies only the shared GET authorization boundary without requiring a service credential.
+Adding the three tenant tables expands the manifest-derived active/H4 set from 34 to 37. The role harness denies raw queue-table reads for every tenant role after authenticated SELECT revocation; the separate redacted server projection checks `Notifications.View`. The scheduler-auth test supplies an empty producer set so it verifies only the shared GET authorization boundary without requiring a service credential.
 
 - `tests/unit/scope/manifest-derivations.test.ts:147` — `13.3-UNIT-DERIVE-05`: pins the 37-table manifest-derived inventory.
 - `tests/unit/scope/manifest-shape.test.ts:155` — `13.3-UNIT-SHAPE-04`: pins the non-circular active manifest table set.
@@ -174,6 +172,5 @@ AC1–AC5 now have executable unit and real-PostgreSQL coverage: tenant dedupe, 
 - `tests/e2e/global-setup.ts:840` — `insertOutbox`: creates only the five tenant-scoped dark-state fixtures needed for the browser scenarios.
 - `tests/e2e/notifications/email-outbox.atdd.e2e.spec.ts:69` — `Admin sees truthful queued`: verifies queued, retry, failed, and suppressed presentation without activation; the following three tests verify redaction, role denial, and cross-tenant isolation.
 
-Evidence:
-ode --experimental-strip-types --import ./tests/support/register.mjs --test tests/unit/server/email/outbox.atdd.test.ts` passed (4 tests, 0 failed, 0 skipped); `$env:SUPABASE_TEST_REQUIRED='1'; pnpm test:int -- tests/integration/email/outbox.atdd.int.test.ts tests/integration/rls/email-outbox.rls.atdd.int.test.ts` passed (9 tests, 0 failed, 0 skipped); `pnpm typecheck` passed. Latest review-fix evidence: required outbox/RLS/role-harness integration command passed (14 tests, 0 failed, 0 skipped); focused route plus provider-containment runner passed (8 tests, 0 failed, 0 skipped); containment guard passed. Earlier evidence: focused manifest and scheduler unit tests (18 passed); outbox/registry/containment tests (12 passed); required migration-reset and role-harness tests (16 passed); notification E2E (21 passed); service-role containment passed; lint passed with warnings and no errors.
+Evidence: `node --experimental-strip-types --import ./tests/support/register.mjs --test tests/unit/server/email/outbox.atdd.test.ts` passed (4 tests, 0 failed, 0 skipped); `$env:SUPABASE_TEST_REQUIRED='1'; pnpm test:int -- tests/integration/email/outbox.atdd.int.test.ts tests/integration/rls/email-outbox.rls.atdd.int.test.ts` passed (9 tests, 0 failed, 0 skipped); `pnpm typecheck` passed. Latest review-fix evidence: required outbox/RLS/role-harness integration command passed (14 tests, 0 failed, 0 skipped); focused route plus provider-containment runner passed (8 tests, 0 failed, 0 skipped); containment guard passed. Earlier evidence: focused manifest and scheduler unit tests (18 passed); outbox/registry/containment tests (12 passed); required migration-reset and role-harness tests (16 passed); notification E2E (21 passed); service-role containment passed; lint passed with warnings and no errors.
 Limits: no provider is present, and no real-recipient path is tested or authorized. The synthetic outcome is a test-only state-machine seam; it does not invoke a transport or authorize a release path.
