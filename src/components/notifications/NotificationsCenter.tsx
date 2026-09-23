@@ -4,14 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import type { NotificationItem, NotificationScanStatus } from "@/server/notifications/read-model";
-
-function scanStatusCopy(status: NotificationScanStatus): string | null {
-  if (status.kind === "hidden") return null;
-  if (status.kind === "never") return "Ingen tidigare skanning.";
-  if (status.kind === "failed") return "Senaste skanning misslyckades. Försök igen senare.";
-  const hours = Math.max(1, Math.floor(status.elapsedMinutes / 60));
-  return `Senaste skanning: Skannad för ${hours} tim sedan.`;
-}
+import { filterNotificationItems, formatNotificationScanStatus, sortLatestNotificationItems } from "./notification-presentation";
 
 export function NotificationsCenter({ initialItems, unavailable, scanStatus }: { initialItems: NotificationItem[]; unavailable: boolean; scanStatus: NotificationScanStatus }) {
   const [items, setItems] = useState(initialItems);
@@ -20,11 +13,8 @@ export function NotificationsCenter({ initialItems, unavailable, scanStatus }: {
   const [from, setFrom] = useState("");
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
-  const rows = useMemo(() => items.filter((item) => {
-    const categoryPrefix = category === "quotes" ? "quote" : category;
-    return (category === "all" || item.category === categoryPrefix || item.category.startsWith(`${categoryPrefix}.`)) && (read === "all" || (read === "unread" ? !item.readAt : !!item.readAt)) && (!from || item.createdAt >= from);
-  }), [items, category, read, from]);
-  const statusCopy = scanStatusCopy(scanStatus);
+  const rows = useMemo(() => filterNotificationItems(sortLatestNotificationItems(items), { moduleOrCategory: category, readState: read as "all" | "unread" | "read", fromDate: from }), [items, category, read, from]);
+  const statusCopy = formatNotificationScanStatus(scanStatus);
   const mark = async (id: string): Promise<boolean> => {
     const before = items;
     setError(null);

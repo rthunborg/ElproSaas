@@ -5,9 +5,9 @@ stepsCompleted:
   - 'step-03c-aggregate'
   - 'step-04-validate-and-summarize'
 lastStep: 'step-04-validate-and-summarize'
-lastSaved: '2026-09-21'
+lastSaved: '2026-09-23'
 workflowType: testarch-automate
-story: 10.6 Tax-Answer Reconciliation; 11.1 Role Storage and Permission-Matrix Mechanism; 11.2 Non-Admin Access to the Phase A Surface; 11.3 Admin User Management; 11.4 Roles Surface, Effective Permissions, and the Per-Role Test Harness; 12.1 Platform Operator Identity and the Provision-Tenant Command; 12.2 Operator Console; 12.3 First-Admin Onboarding Checklist (latest)
+story: 10.6 Tax-Answer Reconciliation; 11.1 Role Storage and Permission-Matrix Mechanism; 11.2 Non-Admin Access to the Phase A Surface; 11.3 Admin User Management; 11.4 Roles Surface, Effective Permissions, and the Per-Role Test Harness; 12.1 Platform Operator Identity and the Provision-Tenant Command; 12.2 Operator Console; 12.3 First-Admin Onboarding Checklist; 13.2 In-App Notifications — Bell, Center, and Preferences (latest)
 detectedStack: fullstack
 executionMode: BMad-integrated (post-implementation risk-based coverage expansion)
 inputDocuments:
@@ -91,6 +91,19 @@ inputDocuments:
   - .agents/skills/bmad-testarch-automate/resources/knowledge/network-first.md
   - .agents/skills/bmad-testarch-automate/resources/knowledge/pactjs-utils-mandate.md
   - .agents/skills/bmad-testarch-automate/resources/knowledge/pact-mcp.md
+  - _bmad-output/implementation-artifacts/spec-13-2-in-app-notifications-bell-center-and-preferences.md
+  - _bmad-output/test-artifacts/atdd-checklist-13-2.md
+  - _bmad-output/test-artifacts/test-design-epic-13.md
+  - _bmad/tea/config.yaml
+  - tests/unit/server/notifications/registry.test.ts
+  - tests/integration/notifications/notifications.atdd.int.test.ts
+  - tests/e2e/notifications/notifications.atdd.e2e.spec.ts
+  - src/server/notifications/registry.ts
+  - src/server/notifications/read-model.ts
+  - src/server/notifications/follow-up-producer.ts
+  - src/components/notifications/NotificationBell.tsx
+  - src/components/notifications/NotificationsCenter.tsx
+  - src/components/notifications/NotificationPreferences.tsx
 ---
 
 # Test Automation Expansion — Story 10.6 (Tax-Answer Reconciliation)
@@ -976,3 +989,77 @@ None. No consumer-provider contract artifact exists in this scope.
 
 **Recommended next workflow:** rerun `bmad-testarch-trace` for Epic 12 against this executed evidence and
 refresh the deterministic gate decision.
+
+---
+
+# Test Automation Expansion — Story 13.2 (In-App Notifications — Bell, Center, and Preferences)
+
+## Step 1 — Preflight & Context
+
+- **Stack:** fullstack. `package.json`, `vitest.config.ts`, and `playwright.config.ts` establish the existing Node unit, Vitest integration/RLS, and Playwright browser lanes; framework scaffolding is present.
+- **Mode:** BMad-integrated Create. The supplied Story 13.2 specification, its completed ATDD checklist, and Epic 13 test design were loaded with the notification implementation and existing tests.
+- **ATDD duplicate check:** the checklist and implementation already cover the primary emission, dedupe, all-role bell, read/retry, filtering/deep link, preferences, keyboard/focus, empty, never-run, and stale-state scenarios. The target audit will select only a materially unproven boundary.
+- **TEA configuration:** Playwright Utils, Pact.js Utils, Pact MCP, and browser automation are enabled in configuration. Browser tests exist, so the full UI+API utility profile was loaded. The project has no Pact indicators or consumer/provider boundary for this same-deployment story, the configured utility packages are absent, and SmartBear Pact tools are unavailable; no dependency or contract artifact will be invented.
+- **Resource posture:** this workflow will not start, stop, reset, or adopt local services. DB-backed evidence remains executable only where an already-running authorized local stack is available; an unavailable required lane is recorded as skipped or blocked rather than passed.
+
+## Step 2 — Identify Targets
+
+### Acceptance-criteria audit
+
+| Acceptance criterion | Existing ATDD/implementation evidence | Target decision |
+| --- | --- | --- |
+| AC1 entitled projection and stored route | `13.2-INT-001` exercises emitted recipient rows, safe content, unread state, and stored routes. | Covered; no duplicate. |
+| AC2 retry/concurrency dedupe and terminal suppression | `13.2-INT-002` runs six concurrent scans and checks an accepted terminal quote. | Covered; no duplicate. |
+| AC3 all-role bell and personal RLS | Integration covers own/foreign/anonymous/raw-write negatives; five P0 browser role journeys prove `9+` bell behavior and no nav entry. | Covered at appropriate levels. |
+| AC4 personal read, persisted route, filters, rollback | Integration proves idempotent acknowledgement; browser coverage owns deep-link, combined filters, one/all read, and injected rollback. | Covered at appropriate levels. |
+| AC5 preferences | Integration owns database constraints; browser coverage owns grouping, persisted allowed preference, required essential control, and inactive Swedish email copy. | Covered at appropriate levels. |
+| AC6 schema, accessibility, and honest states | Integration asserts forced RLS; browser coverage covers keyboard/focus plus empty, never-run, and stale copy. | Covered except for the planned pure view-model allocation below. |
+
+### Selected coverage target
+
+| Target | Level | Priority | Acceptance/risk link | Why this level |
+| --- | --- | --- | --- | --- |
+| `13.2-UNIT-002`: deterministic notification presentation helpers cap unread display at `9+`, order latest rows, apply module/category/read/date filters, and format hidden/never/failed/elapsed scan status. | Unit | P1 | AC3, AC4, AC6; R-1315 | The Epic 13 test design allocates these pure view-model facts to a unit lane. Existing browser tests validate the journey but do not make deterministic sorting, filtering, or copy branches cheap to diagnose. |
+
+The test will introduce a small pure view-model module and consume it from the existing bell and center components. It will not duplicate database authority, RLS, producer dedupe, route persistence, preference enforcement, or browser accessibility assertions. No API/provider contract exists: the application and Supabase persistence form one deployment boundary, there is no OpenAPI/Pact configuration, and no Pact test is selected.
+
+### Exploration and source analysis
+
+- `playwright-cli` is not installed. Following the configured fallback, browser discovery was skipped and selectors/contracts were read from the green ATDD Playwright suite rather than guessed.
+- Source analysis found Next route handlers for personal reads, read-all, preference GET/PUT, and the authenticated job runner. The producer remains server-contained; no external consumer/provider or message-queue contract belongs to this story.
+
+## Step 3 — Generate and Aggregate Tests
+
+- **Execution mode:** requested `auto`; capability probe enabled; runtime supports subagents but has no agent-team capability; resolved to **subagent**. The API, E2E, and backend workers were dispatched and all returned valid successful JSON outputs.
+- **API worker:** 0 tests. Existing route and integration coverage owns the API/RLS surface; no Pact consumer/provider boundary or provider endpoint map applies.
+- **E2E worker:** 0 tests. The 16 existing browser scenarios cover the full personal bell/center/preferences journey, including the required failure and accessibility paths. Playwright CLI was unavailable, so no browser was launched.
+- **Backend worker:** generated one unit file containing four P1 assertions for `13.2-UNIT-002`. The aggregate added the pure `src/components/notifications/notification-presentation.ts` helper and adopted it in the bell and center, then wrote `tests/unit/components/notifications/notification-presentation.test.ts`.
+- **Fixtures:** 0. The new helper is deterministic and I/O-free, so no DB, HTTP, browser, or shared fixture was created.
+- **Coverage added:** unread count/cap, non-mutating latest-first ordering, combined module/category/read/date filtering, and hidden/never/failed/elapsed Swedish scan-status copy. Integration/RLS, producer, preference, stored-route, and browser coverage remain in their existing suites.
+- **Priority distribution:** P0 0; P1 4; P2 0; P3 0. Total generated: 4 assertions in 1 unit file.
+
+## Step 4 — Validation and Final Summary
+
+### Validation evidence
+
+- `pnpm exec node --experimental-strip-types --import ./tests/support/register.mjs --test tests/unit/server/notifications/registry.test.ts tests/unit/components/notifications/notification-presentation.test.ts` — **PASS:** 6 tests, 0 failed, skipped, todo, or cancelled. This includes all four new `13.2-UNIT-002` assertions and the existing category-registry guard.
+- `pnpm exec eslint src/components/notifications/notification-presentation.ts src/components/notifications/NotificationBell.tsx src/components/notifications/NotificationsCenter.tsx tests/unit/components/notifications/notification-presentation.test.ts` — **PASS.**
+- `pnpm typecheck` — **PASS.**
+- `git diff --check` — **PASS.**
+
+### Quality and checklist result
+
+- Framework readiness, BMad-integrated inputs, acceptance mapping, existing ATDD review, level/priority selection, and duplicate-coverage avoidance are complete.
+- The generated unit suite is deterministic, isolated, I/O-free, priority-tagged, and has no hard waits, network dependency, conditional assertions, or shared state. No fixture/factory/helper infrastructure was needed beyond the pure presentation module.
+- API, CDC/Pact, and new E2E generation are **N/A** for the selected unit target. No CLI browser session was created; the temporary subagent JSON records and aggregate summary were removed after successful aggregation.
+- The test plan deliberately does not claim a local DB/RLS or Playwright run. Those existing acceptance suites require the authorized local Supabase and production-mode browser environment; no service was started, stopped, reset, or adopted.
+
+### Files created or updated
+
+- `src/components/notifications/notification-presentation.ts` — shared pure presentation helpers.
+- `src/components/notifications/NotificationBell.tsx` — uses deterministic unread formatting and latest-first ordering.
+- `src/components/notifications/NotificationsCenter.tsx` — uses shared sorting, combined filtering, and honest scan-status copy.
+- `tests/unit/components/notifications/notification-presentation.test.ts` — four P1 `13.2-UNIT-002` assertions.
+- `_bmad-output/test-artifacts/automation-summary.md` — this completed workflow record.
+
+**Recommended next workflow:** `bmad-testarch-test-review` for an independent quality review, then `bmad-testarch-trace` if the Story 13.2 acceptance matrix needs refreshed evidence after the final required DB and browser lanes run.

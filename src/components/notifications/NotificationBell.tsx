@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import type { NotificationItem } from "@/server/notifications/read-model";
+import { formatUnreadNotificationCount, sortLatestNotificationItems } from "./notification-presentation";
 
 export function NotificationBell() {
   const [open, setOpen] = useState(false);
@@ -12,7 +13,7 @@ export function NotificationBell() {
   const bellRef = useRef<HTMLButtonElement>(null);
   const router = useRouter();
   const unread = items.filter((item) => !item.readAt).length;
-  const count = unread > 9 ? "9+" : String(unread);
+  const count = formatUnreadNotificationCount(items);
   const accessibleName = unread === 0 ? "Notiser" : `Notiser, ${count} olästa notiser`;
 
   useEffect(() => {
@@ -61,5 +62,5 @@ export function NotificationBell() {
     }
   };
 
-  return <div className="relative"><button ref={bellRef} type="button" aria-label={accessibleName} aria-expanded={open} onClick={() => setOpen((current) => !current)} className="rounded-md p-2 hover:bg-zinc-100 focus-visible:ring-2 focus-visible:ring-blue-600">🔔<span className="sr-only">{unread === 0 ? "" : ` ${count} olästa notiser`}</span></button>{open && <div role="dialog" aria-label="Notiser" className="absolute right-0 z-50 mt-2 w-80 rounded-md border bg-white p-3 shadow-lg"><div className="mb-2 flex items-center justify-between"><strong>Notiser</strong><button type="button" onClick={() => void markAll()} disabled={unread === 0} className="text-sm text-blue-700">Markera alla som lästa</button></div>{error && <p role="alert">{error}</p>}<ul className="space-y-2">{items.slice(0, 10).map((item) => <li key={item.id} aria-label={item.readAt ? "läst" : "oläst"} className={item.readAt ? "text-zinc-600" : "font-medium"}><Link href={item.route} onClick={async (event) => { event.preventDefault(); if (await markRead(item.id)) router.push(item.route); }}>{item.title}</Link><p className="text-sm">{item.body}</p></li>)}{(items.length === 0 || unread === 0) && <li>Inga olästa notiser</li>}</ul><Link href="/notifications" className="mt-3 block text-sm text-blue-700">Visa alla</Link></div>}</div>;
+  return <div className="relative"><button ref={bellRef} type="button" aria-label={accessibleName} aria-expanded={open} onClick={() => setOpen((current) => !current)} className="rounded-md p-2 hover:bg-zinc-100 focus-visible:ring-2 focus-visible:ring-blue-600">🔔<span className="sr-only">{unread === 0 ? "" : ` ${count} olästa notiser`}</span></button>{open && <div role="dialog" aria-label="Notiser" className="absolute right-0 z-50 mt-2 w-80 rounded-md border bg-white p-3 shadow-lg"><div className="mb-2 flex items-center justify-between"><strong>Notiser</strong><button type="button" onClick={() => void markAll()} disabled={unread === 0} className="text-sm text-blue-700">Markera alla som lästa</button></div>{error && <p role="alert">{error}</p>}<ul className="space-y-2">{sortLatestNotificationItems(items).slice(0, 10).map((item) => <li key={item.id} aria-label={item.readAt ? "läst" : "oläst"} className={item.readAt ? "text-zinc-600" : "font-medium"}><Link href={item.route} onClick={async (event) => { event.preventDefault(); if (await markRead(item.id)) router.push(item.route); }}>{item.title}</Link><p className="text-sm">{item.body}</p></li>)}{(items.length === 0 || unread === 0) && <li>Inga olästa notiser</li>}</ul><Link href="/notifications" className="mt-3 block text-sm text-blue-700">Visa alla</Link></div>}</div>;
 }
