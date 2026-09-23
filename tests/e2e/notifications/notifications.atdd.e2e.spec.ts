@@ -122,7 +122,8 @@ test.describe("Story 13.2 In-app-notiser — bell, center och inställningar (AT
   test("[P1] Marking one notification as read updates the bell and row state", async ({ page }) => {
     await signIn(page, fixture().notifications.salesperson);
     await page.goto("/notifications");
-    const row = page.getByRole("listitem", { name: "oläst", exact: true }).filter({ hasText: /uppföljning/i }).first();
+    const row = page.getByRole("listitem").filter({ hasText: /uppföljning/i }).first();
+    await expect(row).toHaveAccessibleName("oläst");
     await row.getByRole("button", { name: "Markera som läst" }).click();
     await expect(row).toHaveAccessibleName("läst");
     await expect(page.getByRole("button", { name: /notiser/i })).toHaveAccessibleName(/olästa notiser/i);
@@ -157,7 +158,7 @@ test.describe("Story 13.2 In-app-notiser — bell, center och inställningar (AT
     await page.getByRole("link", { name: "Notisinställningar" }).click();
     await expect(page.getByRole("heading", { name: "Notisinställningar" })).toBeVisible();
     const quotesGroup = page.getByRole("group", { name: /offerter/i });
-    await expect(quotesGroup.getByText("Viktig uppföljning av offert", { exact: true })).toBeVisible();
+    await expect(quotesGroup.getByRole("rowheader", { name: /viktig uppföljning av offert/i })).toBeVisible();
     await expect(quotesGroup.getByRole("switch", { name: "Viktig uppföljning av offert i appen", exact: true })).toBeDisabled();
   });
 

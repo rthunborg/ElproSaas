@@ -105,7 +105,7 @@ Review findings: 11 patches applied (high 3, medium 5, low 3), 0 newly deferred,
 
 Follow-up review recommendation: true (score 18: 3 × medium 5 + low 3). The recommendation reflects substantive hardening applied during this pass.
 
-Verification: `pnpm typecheck` passed. Focused ESLint passed for changed notification client/server and E2E files. `$env:SUPABASE_TEST_REQUIRED='1'; pnpm test:int -- tests/integration/notifications/notifications.atdd.int.test.ts` passed 1 file / 6 tests, including essential-preference and immutable-id negatives. The prior required aggregate passed 43 files / 551 tests. The configured notification Playwright suite passed 17/17 twice before this final hardening; post-fix focused Playwright checks passed for preference persistence and stored-link acknowledgement. `git diff --check` passed.
+Verification: `pnpm typecheck` passed. Focused ESLint passed for changed notification client/server and E2E files. `$env:SUPABASE_TEST_REQUIRED='1'; pnpm test:int -- tests/integration/notifications/notifications.atdd.int.test.ts` passed 1 file / 6 tests, including essential-preference and immutable-id negatives. The required aggregate passed 43 files / 551 tests with no skips. The configured notification Playwright suite passed all 17 cases in two non-overlapping subsets (11 + 6) after the final browser assertion fixes. `git diff --check` passed.
 
 Residual risk: numeric runner SLA, fairness, backlog-age, and freshness thresholds remain owner-pending as recorded in frontmatter; the center shows only run state/elapsed information.
 
@@ -155,7 +155,7 @@ Residual risk: The required database-backed integration and browser suites were 
 ## Suggested Review Order
 
 Author: implementation author.
-Refreshed against the current working tree, based on `344f00e01ebd02191ee5c116ff28be15d1c1c604`, after final review hardening for preference enforcement, acknowledgement mutation authority, and retry-safe browser evidence.
+Refreshed against the current working tree, based on `95e8eebf70193d8cacc933596453d524b8bbc879`, after final review hardening for preference enforcement, acknowledgement mutation authority, and retry-safe browser evidence.
 
 ### Personal notification entry and acknowledgement
 
@@ -183,11 +183,11 @@ The Playwright fixture gives each seeded recipient ten distinct unread rows. Thi
 - `tests/e2e/notifications/notifications.atdd.e2e.spec.ts:77` — `roleName`: exercises the all-valid-role personal bell and no-nav invariant from AC3.
 - `tests/e2e/notifications/notifications.atdd.e2e.spec.ts:97` — `stored notification link`: exercises AC4's persisted destination and acknowledgement journey.
 - `tests/e2e/notifications/notifications.atdd.e2e.spec.ts:108` — `filters together`: exercises AC4's category, read-state, and date narrowing.
-- `tests/e2e/notifications/notifications.atdd.e2e.spec.ts:140` — `Failed optimistic mark-read`: injects a failed acknowledgement to exercise AC4 rollback and retry presentation.
-- `tests/e2e/notifications/notifications.atdd.e2e.spec.ts:154` — `Profile preferences`: exercises AC5's category grouping and persisted in-app preference assertion.
-- `tests/e2e/notifications/notifications.atdd.e2e.spec.ts:182` — `keyboard activation`: exercises AC6's bell dialog semantics and focus-return expectation.
-- `tests/e2e/notifications/notifications.atdd.e2e.spec.ts:195` — `Empty and never-run states`: exercises AC6's truthful empty-state requirement without a real-time claim.
-- `tests/e2e/notifications/notifications.atdd.e2e.spec.ts:203` — `Stale producer state`: exercises AC6's elapsed-scan presentation without a current-delivery claim.
+- `tests/e2e/notifications/notifications.atdd.e2e.spec.ts:141` — `Failed optimistic mark-read`: injects a failed acknowledgement to exercise AC4 rollback and retry presentation.
+- `tests/e2e/notifications/notifications.atdd.e2e.spec.ts:155` — `Profile preferences`: exercises AC5's category grouping and persisted in-app preference assertion.
+- `tests/e2e/notifications/notifications.atdd.e2e.spec.ts:183` — `keyboard activation`: exercises AC6's bell dialog semantics and focus-return expectation.
+- `tests/e2e/notifications/notifications.atdd.e2e.spec.ts:196` — `Empty and never-run states`: exercises AC6's truthful empty-state requirement without a real-time claim.
+- `tests/e2e/notifications/notifications.atdd.e2e.spec.ts:204` — `Stale producer state`: exercises AC6's elapsed-scan presentation without a current-delivery claim.
 
 ### Category and preference authority
 
@@ -198,5 +198,5 @@ The active quotes-owned category is the registry source for essential/default be
 - `tests/unit/server/notifications/registry.test.ts:5` — `13.2 notification category registry derives`: exercises AC5's active/default/essential derivation.
 - `tests/unit/scope/manifest-derivations.test.ts:144` — `13.2-UNIT-DERIVE-05`: exercises the manifest-derived H4 table enrollment change.
 
-Evidence: `pnpm typecheck` and focused ESLint pass. Required notification integration evidence passes 1 file / 6 tests after applying the additive migration to the authorized local database; the prior required aggregate passed 43 files / 551 tests. The configured notification Playwright suite passed 17/17 twice, and post-hardening focused preference-persistence and stored-link acknowledgement checks pass.
+Evidence: `pnpm typecheck` and focused ESLint pass. Required notification integration evidence passes 1 file / 6 tests after applying the additive migration to the authorized local database; the required aggregate passed 43 files / 551 tests with no skips. The configured notification Playwright suite passed all 17 cases in two non-overlapping subsets after its acknowledgement and preference assertions were made state-stable.
 Limits: Numeric runner SLA, batch-size, fairness, backlog-age, and freshness thresholds remain owner-pending; the surface reports only truthful run state and elapsed time.
