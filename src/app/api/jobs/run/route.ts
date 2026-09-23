@@ -4,7 +4,7 @@ import { createJobsServiceClient } from "@/server/jobs/service-client";
 import { ACTIVE_PRODUCERS, type ProducerDeclaration } from "@/server/jobs/producers";
 import { runDueProducers, type JobRunRecord, type RunnerDependencies } from "@/server/jobs/runner";
 import { isAuthorizedCronRequest } from "@/server/jobs/auth";
-import { emitAcceptedQuoteNotifications, emitDueFollowUpNotifications } from "@/server/notifications/follow-up-producer";
+import { emitDueFollowUpNotifications } from "@/server/notifications/follow-up-producer";
 
 const unauthorized = () => new Response("Unauthorized", { status: 401 });
 const CURSOR_PRODUCER = "jobs.runner";
@@ -87,7 +87,6 @@ export async function handleJobsRunRequest(request: Request, dependencies: JobsR
       if (producer.id === "quotes.follow-up-reminders") {
         await emitDueFollowUpNotifications(client, tenantId, now().toISOString().slice(0, 10));
       }
-      if (producer.id === "quotes.accepted") await emitAcceptedQuoteNotifications(client, tenantId);
     }),
     record: recordRun(client, correlationId),
     now,

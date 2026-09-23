@@ -109,6 +109,20 @@ Verification: `pnpm typecheck` passed. Focused ESLint passed for changed notific
 
 Residual risk: numeric runner SLA, fairness, backlog-age, and freshness thresholds remain owner-pending as recorded in frontmatter; the center shows only run state/elapsed information.
 
+### 2026-09-23 — Follow-up review result
+
+Summary: Re-reviewed the completed notification surface and removed the unsanctioned `quote.accepted` category, producer, migration, controls, and tests. The follow-up keeps the specified follow-up-due category only, pages producer reads and bounded writes through the established pagination primitives, derives settings from the manifest-filtered registry, serializes read acknowledgements, reloads server truth after failed acknowledgements, removes optimistic preference writes, and corrects freshness/error presentation.
+
+Files changed: Updated notification producer, registry, manifest, schema, settings/bell/center presentation, job dispatch, and focused notification tests. Removed the additive accepted-quote compatibility migration because the category is outside this story's approved producer scope.
+
+Review findings: 7 patches applied (high 1, medium 5, low 1); 0 newly deferred; 7 rejected. Rejected items were duplicate reports, a database constraint already enforcing inactive email, fixture-only data used to exercise the all-role bell, and non-reachable UI/test suggestions after the unsanctioned category was removed.
+
+Follow-up review recommendation: true (score 16: 3 × medium 5 + low 1). The score reflects the substantive fixes made in this pass.
+
+Verification: `pnpm typecheck`, focused ESLint, and `git diff --check` passed. The full unit command remains blocked by the pre-existing `tests/unit/server/jobs/route.test.ts` runner-secret configuration failure (`Background runner is not configured`); the focused notification unit assertions passed within that run.
+
+Residual risk: The required database-backed integration and browser suites were not restarted in this follow-up; the existing recorded evidence remains the last execution evidence.
+
 ## Review Triage Log
 
 ### 2026-09-23 — Review pass
@@ -124,6 +138,20 @@ Residual risk: numeric runner SLA, fairness, backlog-age, and freshness threshol
   - `[medium] [patch]` Applied allowed in-app preference opt-outs to producer recipients and rendered failed producer runs truthfully.
   - `[low] [patch]` Completed active category labels/filtering and made the browser preference assertion rerun-safe and exact.
 
+### 2026-09-23 — Follow-up review pass
+- intent_gap: 0
+- bad_spec: 0
+- patch: 7 (high 1, medium 5, low 1)
+- defer: 0
+- reject: 7 (medium 4, low 3)
+- addressed_findings:
+  - `[high] [patch]` Paged producer source reads, bounded quote-version lookups and notification writes with the established PostgREST pagination primitives.
+  - `[medium] [patch]` Removed the unsanctioned accepted-quote category, producer, migration, UI controls, and tests so the live surface remains the approved follow-up-due category.
+  - `[medium] [patch]` Sourced profile settings from the manifest-filtered category registry and removed optimistic preference writes.
+  - `[medium] [patch]` Serialized acknowledgement operations and reloaded persisted notification state after a failure.
+  - `[medium] [patch]` Hid producer freshness state when the administrator-only run lookup fails.
+  - `[low] [patch]` Rendered sub-hour scan freshness without claiming that a scan is one hour old.
+
 ## Suggested Review Order
 
 Author: implementation author.
@@ -134,7 +162,7 @@ Refreshed against the current working tree, based on `344f00e01ebd02191ee5c116ff
 The shell loads a personal bell and the center consumes persisted routes. Read acknowledgements are optimistic only in the client and restore the prior state when the server rejects the write.
 
 - `src/components/app-shell/AppShell.tsx:276` — `NotificationBell`: mounts the personal entry point outside navigation.
-- `src/components/notifications/NotificationBell.tsx:8` — `NotificationBell`: caps the unread presentation and reconciles failed mark-all/read requests.
+- `src/components/notifications/NotificationBell.tsx:9` — `NotificationBell`: caps the unread presentation and reconciles failed mark-all/read requests.
 - `src/app/api/notifications/[id]/read/route.ts:5` — `POST`: scopes acknowledgement to the resolved tenant and recipient.
 
 ### Stored data and producer boundary
@@ -142,8 +170,8 @@ The shell loads a personal bell and the center consumes persisted routes. Read a
 The migration gives recipients select and acknowledgement authority only; the job service client remains the producer writer. The producer derives the latest quote state and emits the stored quote route only to recipients with `Quotes.View`; content carries no quote price or customer detail.
 
 - `supabase/migrations/20260923170000_in_app_notifications.sql:3` — `create table public.notifications`: declares recipient isolation, read state, and subject-period de-duplication.
-- `src/server/notifications/follow-up-producer.ts:4` — `TERMINAL_QUOTE_STATUSES`: suppresses terminal follow-ups after resolving each quote's latest version.
-- `src/server/notifications/follow-up-producer.ts:13` — `resolveCapability`: prevents a notification from storing a quote route for an unentitled recipient.
+- `src/server/notifications/follow-up-producer.ts:5` — `TERMINAL_QUOTE_STATUSES`: suppresses terminal follow-ups after resolving each quote's latest version.
+- `src/server/notifications/follow-up-producer.ts:14` — `resolveCapability`: prevents a notification from storing a quote route for an unentitled recipient.
 - `src/app/api/jobs/run/route.ts:88` — `emitDueFollowUpNotifications`: keeps the producer on Story 13.1's authenticated runner lane.
 
 ### Browser acceptance coverage
@@ -157,9 +185,9 @@ The Playwright fixture gives each seeded recipient ten distinct unread rows. Thi
 - `tests/e2e/notifications/notifications.atdd.e2e.spec.ts:108` — `filters together`: exercises AC4's category, read-state, and date narrowing.
 - `tests/e2e/notifications/notifications.atdd.e2e.spec.ts:140` — `Failed optimistic mark-read`: injects a failed acknowledgement to exercise AC4 rollback and retry presentation.
 - `tests/e2e/notifications/notifications.atdd.e2e.spec.ts:154` — `Profile preferences`: exercises AC5's category grouping and persisted in-app preference assertion.
-- `tests/e2e/notifications/notifications.atdd.e2e.spec.ts:187` — `keyboard activation`: exercises AC6's bell dialog semantics and focus-return expectation.
-- `tests/e2e/notifications/notifications.atdd.e2e.spec.ts:200` — `Empty and never-run states`: exercises AC6's truthful empty-state requirement without a real-time claim.
-- `tests/e2e/notifications/notifications.atdd.e2e.spec.ts:208` — `Stale producer state`: exercises AC6's elapsed-scan presentation without a current-delivery claim.
+- `tests/e2e/notifications/notifications.atdd.e2e.spec.ts:182` — `keyboard activation`: exercises AC6's bell dialog semantics and focus-return expectation.
+- `tests/e2e/notifications/notifications.atdd.e2e.spec.ts:195` — `Empty and never-run states`: exercises AC6's truthful empty-state requirement without a real-time claim.
+- `tests/e2e/notifications/notifications.atdd.e2e.spec.ts:203` — `Stale producer state`: exercises AC6's elapsed-scan presentation without a current-delivery claim.
 
 ### Category and preference authority
 

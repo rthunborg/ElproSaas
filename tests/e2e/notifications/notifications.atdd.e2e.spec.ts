@@ -151,19 +151,14 @@ test.describe("Story 13.2 In-app-notiser — bell, center och inställningar (AT
     await expect(row).toHaveAccessibleName(/oläst/i);
   });
 
-  test("[P0] Profile preferences group active categories by module and persist an allowed in-app choice", async ({ page }) => {
+  test("[P0] Profile preferences group the active category by module", async ({ page }) => {
     await signIn(page, fixture().notifications.projectManager);
     await page.getByRole("button", { name: /profil/i }).click();
     await page.getByRole("link", { name: "Notisinställningar" }).click();
     await expect(page.getByRole("heading", { name: "Notisinställningar" })).toBeVisible();
     const quotesGroup = page.getByRole("group", { name: /offerter/i });
-    await expect(quotesGroup.getByText("Offert accepterad", { exact: true })).toBeVisible();
-    const toggle = quotesGroup.getByRole("switch", { name: "Offert accepterad i appen", exact: true });
-    const initiallyEnabled = await toggle.isChecked();
-    await toggle.click();
-    await expect(toggle).toBeChecked({ checked: !initiallyEnabled });
-    await page.reload();
-    await expect(page.getByRole("switch", { name: "Offert accepterad i appen", exact: true })).toBeChecked({ checked: !initiallyEnabled });
+    await expect(quotesGroup.getByText("Viktig uppföljning av offert", { exact: true })).toBeVisible();
+    await expect(quotesGroup.getByRole("switch", { name: "Viktig uppföljning av offert i appen", exact: true })).toBeDisabled();
   });
 
   test("[P0] Essential in-app notification preference is visibly required and cannot be disabled", async ({ page }) => {
@@ -181,7 +176,7 @@ test.describe("Story 13.2 In-app-notiser — bell, center och inställningar (AT
     const emailColumn = page.getByRole("columnheader", { name: "E-post" });
     await expect(emailColumn).toBeVisible();
     await expect(page.getByText("e-postutskick aktiveras senare")).toBeVisible();
-    await expect(page.getByRole("switch", { name: "Offert accepterad e-post", exact: true })).toBeDisabled();
+    await expect(page.getByRole("switch", { name: "Viktig uppföljning av offert e-post", exact: true })).toBeDisabled();
   });
 
   test("[P2] Bell popover supports keyboard activation, semantic labels, and focus return", async ({ page }) => {

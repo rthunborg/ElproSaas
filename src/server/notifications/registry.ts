@@ -2,7 +2,6 @@ import { SCOPE_MANIFEST } from "@/scope/manifest";
 
 export const NOTIFICATION_CATEGORIES = [
   { category: "quote.follow_up_due", module: "quotes", defaultEnabled: true, essential: true },
-  { category: "quote.accepted", module: "quotes", defaultEnabled: true, essential: false },
 ] as const;
 
 export type NotificationCategory = (typeof NOTIFICATION_CATEGORIES)[number]["category"];

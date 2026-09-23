@@ -151,7 +151,7 @@ export const SCOPE_MANIFEST: ScopeManifest = {
         "quote_follow_ups",
       ],
       widgets: [],
-      notificationCategories: ["quote.follow_up_due", "quote.accepted"],
+      notificationCategories: ["quote.follow_up_due"],
       publicSurfaces: [],
       fileOwnerTypes: ["quote_version", "quote_acceptance"],
     },

@@ -45,6 +45,7 @@ export function formatNotificationScanStatus(status: NotificationScanPresentatio
   if (status.kind === "hidden") return null;
   if (status.kind === "never") return "Ingen tidigare skanning.";
   if (status.kind === "failed") return "Senaste skanning misslyckades. Försök igen senare.";
-  const hours = Math.max(1, Math.floor(status.elapsedMinutes / 60));
+  if (status.elapsedMinutes < 60) return "Senaste skanning: mindre än en timme sedan.";
+  const hours = Math.floor(status.elapsedMinutes / 60);
   return `Senaste skanning: Skannad för ${hours} tim sedan.`;
 }

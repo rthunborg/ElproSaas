@@ -41,7 +41,7 @@ test("[P1] 13.2-UNIT-002: latest rows sort descending by createdAt without chang
 test("[P1] 13.2-UNIT-002: module/category, read-state, and from-date filters combine deterministically", () => {
   const rows = [
     item({ id: "unread-match", category: "quote.follow_up_due", createdAt: "2026-09-23T09:00:00.000Z" }),
-    item({ id: "read-match", category: "quote.accepted", readAt: "2026-09-23T09:30:00.000Z", createdAt: "2026-09-23T09:00:00.000Z" }),
+    item({ id: "read-match", category: "quote.follow_up_due", readAt: "2026-09-23T09:30:00.000Z", createdAt: "2026-09-23T09:00:00.000Z" }),
     item({ id: "other-module", category: "jobs.assigned", createdAt: "2026-09-23T09:00:00.000Z" }),
     item({ id: "before-date", category: "quote.follow_up_due", createdAt: "2026-09-20T09:00:00.000Z" }),
   ];
@@ -50,7 +50,7 @@ test("[P1] 13.2-UNIT-002: module/category, read-state, and from-date filters com
     ["unread-match"],
   );
   assert.deepEqual(
-    filterNotificationItems(rows, { moduleOrCategory: "quote.accepted", readState: "read", fromDate: "" }).map((row) => row.id),
+    filterNotificationItems(rows, { moduleOrCategory: "quote.follow_up_due", readState: "read", fromDate: "" }).map((row) => row.id),
     ["read-match"],
   );
 });
@@ -59,6 +59,6 @@ test("[P1] 13.2-UNIT-002: scan-status copy is truthful for hidden, never, failed
   assert.equal(formatNotificationScanStatus({ kind: "hidden" }), null);
   assert.equal(formatNotificationScanStatus({ kind: "never" }), "Ingen tidigare skanning.");
   assert.equal(formatNotificationScanStatus({ kind: "failed" }), "Senaste skanning misslyckades. Försök igen senare.");
-  assert.equal(formatNotificationScanStatus({ kind: "elapsed", elapsedMinutes: 0 }), "Senaste skanning: Skannad för 1 tim sedan.");
+  assert.equal(formatNotificationScanStatus({ kind: "elapsed", elapsedMinutes: 0 }), "Senaste skanning: mindre än en timme sedan.");
   assert.equal(formatNotificationScanStatus({ kind: "elapsed", elapsedMinutes: 121 }), "Senaste skanning: Skannad för 2 tim sedan.");
 });
