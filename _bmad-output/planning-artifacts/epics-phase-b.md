@@ -77,7 +77,7 @@ Restated (condensed, faithful) from the Phase B PRD §8; the PRD text governs. `
 - FR78: Modules register notification producers running under the sanctioned authenticated background path (ADR-B002); producers activate with their modules.
 - FR79: Outbound email is queued with delivery log, retries, suppression list, and unsubscribe handling.
 - FR80: Users can unsubscribe from non-essential email via tokenized links governed by ADR-B004.
-- FR81: Email sending activation is specified by N-6 (central verified subdomain, `[Företag] via [System]`, tenant Reply-To, six-step flow priority, five automatic reminder-stop conditions, invoices from Fortnox); until the activation story lands, email paths run queued/non-sending.
+- FR81: N-6 specifies sender identity, flow priority, reminder-stop conditions, and Fortnox invoice ownership. Story 13.4 implements and sandbox-tests the provider, but ADR-B011 keeps real-recipient sending disabled until separate owner go-live; Phase B customer quote mail carries the valid PDF attachment without a public acceptance link.
 - FR82: Each schedulable person is the existing tenant user extended with work role, work hours, capacity basics (PB-D13); HR (E31) extends the same record.
 - FR83: Users with scheduling permissions can create/edit/cancel bookings with assignees, time range, work role, and optional job/customer/facility/contact connections.
 - FR84: Bookings exist standalone and can connect to Phase A basic jobs before jobs depth ships (PB-D12); later jobs epics deepen, never break, existing bookings.
@@ -156,7 +156,7 @@ The Phase A NFR spine **NFR1–NFR41 carries forward unchanged** (PRD §9.1) wit
 - AR-B5: RLS evolves in three predicate tiers: carried membership helpers; new `has_tenant_role(tenant_id, roles[])` (hardened DEFINER-helper shape); per-module row-scope predicates (own rows / job membership). Policy↔matrix agreement tests make drift fail loud.
 - AR-B6: Sensitive fields are withheld structurally — role-gated RLS for row-sensitive tables, companion-table separation for column-sensitive money (`<entity>_economy` pattern) — plus server read-models (`src/server/read-models/**`) returning `{ data, entitlements: { withheld } }` for deterministic UI masking. Emails/exports build from the recipient's projection.
 - AR-B7: Background execution has one sanctioned lane (ADR-B002): platform cron → `POST /api/jobs/run` authenticated by a timing-safe high-entropy `CRON_SECRET` (current+previous during rotation); typed producer registry (`src/server/jobs/producers.ts`) manifest-derived; runner-only service context confined to `src/server/jobs/**` with explicit per-tenant iteration; producer writes audited (`actor_user_id NULL` + producer command name); `job_runs` log powers freshness stamps and Admin failure visibility.
-- AR-B8: The email pipeline is outbox-shaped: `email_outbox` (unique dedupe key), claim with `FOR UPDATE SKIP LOCKED`, suppression enforcement before send, bounded retries with backoff, append-only `email_delivery_events`; queued/non-sending until N-6; provider behind a narrow adapter seam (`src/server/email/provider.ts`) with no provider dependency before activation.
+- AR-B8: The email pipeline is outbox-shaped: `email_outbox` (unique dedupe key), claim with `FOR UPDATE SKIP LOCKED`, suppression enforcement before send, bounded retries with backoff, append-only `email_delivery_events`; Story 13.3 stays queued/non-sending with no provider dependency, Story 13.4 implements the narrow provider adapter (`src/server/email/provider.ts`) with sandbox proof, and ADR-B011 gates real-recipient delivery separately.
 - AR-B9: Public token surfaces (ADR-B004): 256-bit random tokens stored hashed (SHA-256) in per-surface tables; rotation = issue new + revoke old (audited); immediate revocation; uniform generic responses (no enumeration oracle); per-token and per-IP-hash rate limits with 429; minimal data projections; public routes live in `src/app/(public)/**` with a guardrail test proving no authenticated-shell/context imports.
 - AR-B10: Scheduling correctness: one pure conflict engine (`src/features/scheduling/conflicts.ts`) shared by editor preview and server command (no I/O, no clock); recurrence as materialized occurrence rows from one pure expansion function (preset patterns, mandatory end condition); exceptions + cancelled tombstones + "this and following" series split; all instants `timestamptz` UTC evaluated in Europe/Stockholm; DST edge policy golden-pinned (spring-forward → first valid instant; fall-back → earlier instant).
 - AR-B11: Conflicts persist as `booking_conflicts` workflow records (open/accepted/resolved, required reason on accept, outcome + actor) with natural-key identity across recurrence; `Boka ändå` = persisted accepted-conflict record, not a booking flag.
@@ -224,7 +224,7 @@ FR77: Epic 13 - In-app notifications (bell + feed + preferences).
 FR78: Epic 13 - Producer registry on the sanctioned background path (consumers register per later epic).
 FR79: Epic 13 - Email queue, delivery log, retries, suppression, unsubscribe handling.
 FR80: Epic 13 - Tokenized unsubscribe under ADR-B004 (activates with sending).
-FR81: Epic 13 - Sending activation per N-6; queued/non-sending until the activation story.
+FR81: Epic 13 - N-6 sending implementation with sandbox proof; real-recipient delivery remains off pending separate owner go-live (ADR-B011).
 FR82: Epic 14 - Minimal bookable person on the existing user record (PB-D13).
 FR83: Epic 14 - Booking create/edit/cancel with assignees, work role, optional connections.
 FR84: Epic 14 - Standalone bookings + Phase A basic-job binding (PB-D12).
@@ -436,7 +436,7 @@ An allow-listed operator provisions a Swedish non-personal legal-entity tenant e
 
 ### Epic 13 [Wave B1a]: Notifications and Email Infrastructure
 
-The sanctioned background-execution path (ADR-B002 runner + producer registry), in-app notifications (bell/center/preferences), and the outbox-shaped email pipeline — queued/non-sending until the activation story. **N-6 (2026-07-26) specifies what activation looks like** (architecture §4.6): a central verified sending subdomain, display name `[Företagsnamn] via [Systemnamn]`, **Reply-To set to the tenant's own address**, the six-step flow priority (invitations/security → quote sending → accept/reject notification → job assignment → quote reminders → digests), **five automatic reminder-stop conditions** (accept, reject, withdrawal, new version, expiry), invoices sent from Fortnox rather than from us, and the full delivery-log field set.
+The sanctioned background-execution path (ADR-B002 runner + producer registry), in-app notifications (bell/center/preferences), and the outbox-shaped email pipeline — queued/non-sending through Story 13.3, with Story 13.4 sandbox-proving the provider while real delivery remains off until separate owner go-live (ADR-B011). **N-6 (2026-07-26) specifies the sender and priority contract** (architecture §4.6): a central verified sending subdomain, display name `[Företagsnamn] via [Systemnamn]`, **Reply-To set to the tenant's own address**, the six-step flow priority (invitations/security → customer quote PDF attachment → internal accept/reject notification → job assignment → quote reminders → digests), **five automatic reminder-stop conditions** (accept, reject, withdrawal, new version, expiry), invoices sent from Fortnox rather than from us, and the full delivery-log field set. Phase B adds no customer online-acceptance link.
 
 **FRs covered:** FR77, FR78, FR79, FR80, FR81
 **Primary NFR coverage:** NFR45, NFR47
@@ -654,7 +654,7 @@ Export customers, articles, and invoice bases to Fortnox with per-record status,
 
 **Scope:** Story 10.1 re-baseline (AGENTS.md/docs/process/phase-scope-reviewer + scope manifest + derivations + coherence validator); Förlorad/Avböjd with reasons; follow-up workflow; quote-list and read-model surfacing for the dashboard; the approved 10.8/10.9 provenance/authority/audit, current-PDF, and attachment carry-forward correction (ADR-B008).
 
-**Explicit non-scope:** Any mutation of sent snapshots; a separate analytics page (PB-D7); email reminders (E13 registers the producer; sending activates per N-6); dashboard widget rendering (E19); global physical file reclamation/legal retention (E31 / B2→B3).
+**Explicit non-scope:** Any mutation of sent snapshots; a separate analytics page (PB-D7); live email reminders before ADR-B011's separate owner go-live (E13 prepares the eligible producer); dashboard widget rendering (E19); global physical file reclamation/legal retention (E31 / B2→B3).
 
 **Dependencies:** None. Story 10.1 precedes every other Phase B story.
 
@@ -1344,11 +1344,11 @@ So that a provisioned tenant becomes operational without engineering help — pr
 
 ## Epic 13 [Wave B1a]: Notifications and Email Infrastructure
 
-**Epic goal:** Land Phase B's first background execution the right way (ADR-B002): an authenticated runner + producer registry, in-app notifications with preferences, and an outbox-shaped email pipeline that stays dark until N-6 — with the legacy forged-JWT P0 proven structurally impossible.
+**Epic goal:** Land Phase B's first background execution the right way (ADR-B002): an authenticated runner + producer registry, in-app notifications with preferences, and an outbox-shaped email pipeline whose provider path is sandbox-proven in Story 13.4 while real-recipient delivery stays off until separate owner go-live (ADR-B011) — with the legacy forged-JWT P0 proven structurally impossible.
 
-**Scope:** Runner endpoint + `CRON_SECRET` auth + `job_runs`; typed manifest-derived producer registry; `notifications`/`notification_preferences` + bell/popover/center/preferences UI; `email_outbox`/`email_delivery_events`/`email_suppressions` + queue processing (non-sending); the N-6 sending-activation story (defined, dark).
+**Scope:** Runner endpoint + `CRON_SECRET` auth + `job_runs`; typed manifest-derived producer registry; `notifications`/`notification_preferences` + bell/popover/center/preferences UI; `email_outbox`/`email_delivery_events`/`email_suppressions` + queued processing; Story 13.4's provider adapter, eligible active-module flows, sanctioned unsubscribe surface, and sandbox sending proof. Real-recipient delivery remains disabled until separate owner go-live.
 
-**Explicit non-scope:** Email provider dependency before N-6 (AB-A5); any producer for not-yet-active modules (registry is manifest-derived); pg_cron/Edge Functions (one lane, AB-A4); public unsubscribe page before sending activates.
+**Explicit non-scope:** Email provider dependency before Story 13.4 (AB-A5); any producer for not-yet-active modules (registry is manifest-derived); pg_cron/Edge Functions (one lane, AB-A4); public unsubscribe page before Story 13.4; customer portal or online quote acceptance (Phase C).
 
 **Dependencies:** Epic 10 (follow-up data for the first producer), Epic 11 (admin visibility surfaces).
 
@@ -1412,7 +1412,7 @@ So that reminders and events reach me inside the app with working read state and
 
 **Given** `Notisinställningar`
 **When** the user edits preferences
-**Then** the matrix (categories grouped by module × I appen / E-post) persists per user; the e-post column renders inactive-with-explainer ("e-postutskick aktiveras senare") until N-6; essential categories are non-disableable, enforced server-side and rendered as such.
+**Then** the matrix (categories grouped by module × I appen / E-post) persists per user; the e-post column renders inactive-with-explainer ("e-postutskick aktiveras senare") until sending is enabled in that deployment under ADR-B011; essential categories are non-disableable, enforced server-side and rendered as such.
 
 **Given** producer-fed surfaces
 **When** they render
@@ -1440,7 +1440,7 @@ So that reminders and events reach me inside the app with working read state and
 
 As an Ekonomi/Admin stakeholder in reliable communication,
 I want the full outbound email pipeline — queue, delivery log, suppression, retries, idempotency — running dark,
-So that when the owner activates sending (N-6), only the provider adapter and flows remain to switch on.
+So that Story 13.4 can add the provider adapter and eligible flows without reworking the queue, while real-recipient go-live remains a separate owner decision.
 
 **Acceptance Criteria:**
 
@@ -1453,7 +1453,7 @@ So that when the owner activates sending (N-6), only the provider adapter and fl
 **Then** it uses `FOR UPDATE SKIP LOCKED`, enforces the suppression list before send, applies bounded retries with backoff, and appends append-only delivery events
 **And** retried processing never duplicates a send (dedupe-key proof); the provider message id is recorded before `sent`.
 
-**Given** the pre-N-6 posture (FR81)
+**Given** the pre-Story-13.4 posture (FR81)
 **When** the pipeline runs
 **Then** rows reach `queued` and stop — no send occurs, no provider dependency exists (`src/server/email/provider.ts` is a seam only) — and Admin sees queue/failure state.
 
@@ -1473,41 +1473,43 @@ So that when the owner activates sending (N-6), only the provider adapter and fl
 
 **Dependencies:** Stories 13.1, 13.2.
 
-**Stop Conditions Requiring Human Approval:** Stop if any path would perform a real send before N-6, or if a provider dependency is proposed before activation.
+**Stop Conditions Requiring Human Approval:** Stop if any path would deliver to real recipients before ADR-B011's separate owner go-live, or if a provider dependency is proposed before Story 13.4.
 
 ### Story 13.4: Email Sending Activation
 
-> **N-6 ANSWERED 2026-07-26 — this story is unblocked.** Sender identity, priority order, and reminder-stop rules are settled (architecture §4.6). What remains a deliberate sequencing choice, not a gate, is the owner's go-ahead to actually start delivering mail to real recipients: **do not flip a flow to sending without it.**
+> **N-6 ANSWERED 2026-07-26 — this story is unblocked for implementation.** ADR-B011 (2026-09-23) requires sandbox proof and a fail-closed, default-off real-delivery control. Completing this story does not authorize delivery to real recipients; that requires a separate recorded owner go-live decision. Phase B quote email attaches the valid PDF without a public open/accept/reject link.
 
 As an Admin,
-I want email sending activated per the owner's N-6 decisions,
-So that the queued flows start delivering in the owner's priority order, with suppression and unsubscribe working.
+I want email sending ready for controlled activation per the owner's N-6 decisions,
+So that eligible queued flows can deliver in priority order after a separate go-live approval, with suppression and unsubscribe working.
 
 **Acceptance Criteria:**
 
-**Given** the N-6 decisions — a **central verified sending subdomain** (e.g. `notify.<system>.se`), display name **`[Företagsnamn] via [Systemnamn]`**, and **Reply-To set to the tenant's own chosen address** (e.g. `offert@kundforetag.se`) so customer replies reach the company, not us
-**When** activation lands
-**Then** the provider adapter is implemented behind the existing seam (dependency added only now), flows switch from queued to sending **in the owner's priority order** — (1) invitations and account-security messages, (2) quote sending to the customer incl. the open/accept/reject link, (3) internal accept/reject notification, (4) job-assignment or material-reschedule notice to the field worker, (5) configurable quote reminders, (6) daily/weekly digest — and every outbound mail carries tenant identity, a clear subject convention, and a deep link
+**Given** the N-6 sender contract — a centrally administered verified subdomain (e.g. `notify.<system>.se`), display name **`[Företagsnamn] via [Systemnamn]`**, and Reply-To set to the tenant's chosen address — and ADR-B011's separate real-delivery gate
+**When** Story 13.4 lands
+**Then** the provider adapter is implemented behind the existing seam (dependency added only now), and a server-side fail-closed release control defaults real-recipient delivery off in every deployment, including preview; missing/invalid release configuration makes no real-provider call and leaves work queued rather than marking it sent, while isolated sandbox/mock configuration with synthetic recipients proves queued→sent behavior
+**And** only flows backed by active manifest modules can call the provider, in N-6's priority order: (1) invitations/account security, (2) customer quote PDF delivery, (3) internal accept/reject notification, (4) job-assignment/material-reschedule notice, (5) configurable quote reminders, (6) daily/weekly digest; later-module producers wait for their module activation, and existing Supabase Auth invitation/security mail is not duplicated
+**And** customer quote email attaches the current valid snapshot-derived PDF through an authorized narrow byte-access path, with no service-role/elevated Storage bypass and no public quote-view or online accept/reject link; an invalidated or stale PDF fails closed; authenticated internal mail may carry an app deep link, and every outbound mail carries tenant identity and a clear subject convention
 **And** **quote reminders stop automatically** on accept, reject, withdrawal, supersession by a new version, and expiry — five conditions, each with its own test; an unstoppable reminder aimed at a customer is the failure mode this guards
 **And** **invoice emails are NOT sent from this system** — Fortnox sends them, so the recipient never gets two invoice mails (N-5/§7.1)
 **And** each send is logged with `MessageType`, `TemplateId`, `TemplateVersion`, `CompanyId`, `Recipient`, `FromAddress`, `ReplyToAddress`, `TriggeredBy`, `TriggeredAt`, `RelatedEntityType`, `RelatedEntityId`, `ProviderMessageId`, `DeliveryStatus`, `DeliveredAt`, `BouncedAt`, `FailureReason`
 **And** transactional and marketing classes are distinguishable in the model, with **no marketing path built** (out of the initial email capability)
 **And** non-essential mail carries a tokenized unsubscribe link; the public unsubscribe page (ADR-B004 rules: hashed token lookup, uniform responses, no tenant enumeration, re-subscribe offer) activates in the `(public)` route group with its abuse suite green
-**And** the preferences e-post column becomes live; suppression + unsubscribe are enforced end-to-end; delivery events show real provider outcomes.
+**And** the preferences e-post column becomes actionable only where sending is enabled; otherwise it explains that delivery is unavailable; suppression + unsubscribe are enforced end-to-end, and delivery events record sandbox/mock provider outcomes before real-delivery go-live.
 
-**Technical Notes:** ADR-B004 governs the unsubscribe surface (closed-set member 3). Architecture §4.6 carries the full N-6 contract. Per-tenant **verified sending domains are explicitly a later version** — the adapter must not assume a per-tenant domain, and must not make one hard to add.
+**Technical Notes:** ADR-B004 governs the unsubscribe surface (closed-set member 3). Architecture §4.6 carries N-6; ADR-B011 governs the release control and Phase B quote-PDF attachment. Per-tenant **verified sending domains are explicitly a later version** — the adapter must not assume a per-tenant domain, and must not make one hard to add. Provider selection is an implementation choice behind the adapter; production sender identity and credentials require the later go-live record.
 
-**Test Requirements:** Provider-adapter contract tests; unsubscribe token abuse suite (validity/revocation/uniform response/rate limit); end-to-end queued→sent path against a sandbox/mock; suppression + dedupe re-proof under real sending.
+**Test Requirements:** Provider-adapter contract tests; fail-closed/default-off and no-provider-call negatives; unsubscribe token abuse suite (validity/revocation/uniform response/rate limit); end-to-end queued→sent path against a sandbox/mock; suppression + dedupe re-proof on that path; authorized quote-PDF byte access, currentness/attachment and no-public-link proofs, including stale-PDF rejection; no future-module producer and no duplicate Auth mail proofs. Each of the five quote-reminder stop conditions has a test.
 
 **Security/RLS Impact:** High (first activated public token surface of the email family).
 
-**Money/Tax/Quote Impact:** None directly; outbound quote-send content remains snapshot-derived.
+**Money/Tax/Quote Impact:** Customer quote email uses the current valid snapshot-derived PDF under ADR-B008; no customer online acceptance path is added.
 
 **Migration/Coexistence Impact:** None.
 
-**Dependencies:** Stories 13.1–13.3; ADR-B004; the owner's go-live approval for real sending.
+**Dependencies:** Stories 13.1–13.3; ADR-B004; ADR-B011. The owner's go-live approval is required for real-recipient delivery, not sandbox implementation or story completion.
 
-**Stop Conditions Requiring Human Approval:** Stop before any flow begins delivering to real recipients without the owner's explicit go-ahead. Additionally stop if a flow outside the six-step priority order is proposed for activation, or if a design would send invoice mail from this system.
+**Stop Conditions Requiring Human Approval:** Stop before any flow begins delivering to real recipients without a separate recorded owner go-live decision. Stop if a design adds a public quote-view/accept/reject link, a producer for a pending module, duplicate Auth mail, a flow outside N-6's priority order, or invoice mail from this system; the Phase B scope exclusions require their own owner decision rather than implicit activation.
 
 ---
 
@@ -1808,7 +1810,7 @@ AC sketch: exactly six widgets on live B1 data (PB-A11): `Offertpipeline` (E10 r
 - **FR coverage:** FR62–FR130 all mapped (FR Coverage Map above); FR129/FR130 anchored in Story 10.1 and re-exercised by every activation story. No FR is uncovered; B2/B3 coarse FRs map to candidate epics and are re-verified when expanded at their checkpoint.
 - **Depth per PB-D10:** B1a = 20 full stories with complete acceptance criteria (Epic 10: 9, including corrective Stories 10.8/10.9; Epic 11: 4, Epic 12: 3, Epic 13: 4); B1b = 25 sketched stories (Epic 14: 4, Epic 15: 6, Epic 16: 5, Epic 17: 4, Epic 18: 4, Epic 19: 2); B2 = 32 candidates (Epics 20–26); B3 = 31 candidates (Epics 27–34, including retention-enforcement Story 31.7). Total 108 story slots across 25 epics.
 - **Sequencing:** Story 10.1 first overall; within B1a: E10 → E11 → E12 → E13; RBAC precedes all of B1b (PB-D2); scheduling does not wait for jobs depth (PB-D12); E26 closes B2 (PB-D11); Fortnox spike during B2 (26.5); no forward dependencies inside any epic. Repurposed Story 10.7 is governance alignment and creates no E14–E18 prerequisite.
-- **Gate banners placed:** ADR-B006 banner on Epics 16–18 (stories finalized at gate close); N-4 on Story 11.2 and the Roles surface; N-2 on Story 12.3/FR76; N-6 on Story 13.4 (dark); N-3 is resolved by current ADR-B009 and adds no technical prerequisite to E14–E18; N-9 on conflict-rule fixtures (14.3/15.1); N-5 + tax gates on E26; N-7 on E29; N-8 on E27/E28; N-10 on 31.5; N-1 on every B2/B3 migration story; ADR-B004 on 15.5/22.4/13.4; ADR-B005-final on E33/E34.
+- **Gate banners placed (2026-07-18 history):** ADR-B006 banner on Epics 16–18 (stories finalized at gate close); N-4 on Story 11.2 and the Roles surface; N-2 on Story 12.3/FR76; N-6 on Story 13.4 (superseded for implementation by the 2026-07-26 answer; ADR-B011 now gates only real-recipient go-live); N-3 is resolved by current ADR-B009 and adds no technical prerequisite to E14–E18; N-9 on conflict-rule fixtures (14.3/15.1); N-5 + tax gates on E26; N-7 on E29; N-8 on E27/E28; N-10 on 31.5; N-1 on every B2/B3 migration story; ADR-B004 on 15.5/22.4/13.4; ADR-B005-final on E33/E34.
 - **Epic independence:** each epic delivers complete functionality for its slice using only earlier epics; gated epics (16–18, 33–34) block only themselves; no epic requires a later epic to function.
 - **No Phase C runtime surface** appears in any story. Story 10.7 records the PWA/offline deferral in planning only; the manifest validator and scope scans enforce FR130 continuously.
 

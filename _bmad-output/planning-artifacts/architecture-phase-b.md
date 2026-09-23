@@ -62,6 +62,7 @@ Subsequent decisions are numbered without renumbering the original B001–B006 s
 8. **ADR-A004 amendment (decided 2026-07-26, §12A):** VAT rounds **per VAT category at document level** (Peppol/EN 16931 BR-CO-17), not per line; row visibility does not drive economic inclusion; construction reverse charge is a VAT **type**, not a 0 % rate; Skatteverket claim amounts truncate to whole SEK. This **corrects shipped behaviour** and is owned by Story 10.6.
 9. **ADR-B008 (decided 2026-08-31):** quote review is an authenticated user attestation to exact server-validated content, not proof of UI attention. A one-time 15-minute non-HMAC authorization, invalidated by relevant changes, governs creation/review/send; lifecycle mutations atomically audit actor/correlation. For quote PDFs, a database-issued render ID is durably reserved before upload through the narrow authenticated `reserve_quote_pdf_file` RPC; it alone may set immutable `files.artifact_kind='quote_pdf'`, and an unlinked reserved draft is not signable. PDF-byte activation/send additionally require a short-lived server-only HMAC-SHA256 attestation verified in PostgreSQL with `pgcrypto` against matching Vault secret `quote_pdf_attestation_<key-id>`. It binds tenant/actor/version/render-file/current fingerprint/bucket/path/checksum/size/MIME/correlation/key/time window, is never returned/logged/persisted, and fails closed. Start is correlation-idempotent with a five-minute lease; response-loss reconciliation preserves a current generated PDF. No Edge Function, service-role/elevated Storage credential, or client bypass. This retains Option A and does not claim final convergence or DB-test completion. Current-PDF send validity and eligible immutable attachment carry-forward are Stories 10.8/10.9. Global retention/reclamation remains deferred to E31 / B2→B3.
 10. **ADR-B009 (decided 2026-09-03, §8B):** Phase B field workflows are connected responsive web at the 360×640 viewport floor. Transient failures may retain suitable unsent form state and in-memory photos, but server confirmation is required before success. The complete PWA/installability and genuine offline-operation package moves to Phase C. Story 10.7 records governance alignment only and is not an E14–E18 technical prerequisite.
+11. **ADR-B011 (decided 2026-09-23):** Epic 13 implements Story 13.4 with sandbox proof while real-recipient sending stays disabled until a separate owner go-live. Customer quote email carries the valid PDF as an attachment and no public online-acceptance link; only active-module producers may send. The [decision record](../../docs/decisions/ADR-B011-epic-13-email-release-and-quote-delivery.md) governs this correction to the historical N-6 example.
 
 The highest-risk Phase B surfaces are (a) per-role authorization correctness at 2.5× the module surface, (b) the two new attack-surface classes (background execution, public tokens), (c) scheduling correctness across recurrence and DST, and (d) money-out immutability. The test strategy (§16) scales the Phase A negative-test discipline along exactly those axes.
 
@@ -231,7 +232,7 @@ Background work has no user session; scans span tenants. Containment rules:
 
 - **In-app:** producers/commands insert `notifications` rows (tenant, user, category, title/body, route, read_at). Read/unread flips are the sanctioned optimistic-UI case.
 - **Email:** emitters enqueue `email_outbox` rows (tenant, recipient, category, template key + params, dedupe key, status `queued → sending → sent | failed | suppressed`, attempts, next_attempt_at). A queue-processing producer claims rows with `FOR UPDATE SKIP LOCKED`, enforces the **suppression list** (`email_suppressions`) before send, applies bounded retries with backoff, and appends `email_delivery_events` (append-only log). **Idempotency (NFR47):** a unique dedupe key per (category, subject entity, period) prevents duplicate sends from retried processing; the send step records provider message id before marking sent.
-- **Sending activation:** the pipeline still ships **queued/non-sending** first (rows reach `queued` and stop; the preferences email column renders inactive-with-explainer) and the provider stays behind the narrow adapter interface (`src/server/email/provider.ts`, AB-A5). What is no longer open is *what activation looks like* — **N-6 answered it (§4.6)**. Every outbound mail carries tenant identity, deep link, and — for non-essential categories — an unsubscribe link governed by ADR-B004.
+- **Sending activation:** Story 13.3 ships **queued/non-sending** first (rows reach `queued` and stop; the preferences email column renders inactive-with-explainer). Story 13.4 implements the provider behind the narrow adapter interface (`src/server/email/provider.ts`, AB-A5) and proves sending in a sandbox, while a fail-closed server-side release control keeps real-recipient delivery off until separate owner go-live approval (ADR-B011). Outbound mail carries tenant identity; authenticated internal mail may carry an app deep link, customer quote mail carries the current valid PDF as an attachment without a public quote link, and non-essential mail carries an ADR-B004 unsubscribe link. Disabled delivery leaves rows queued rather than marking them sent.
 - Outbound content respects entitlements: an email body is built from the recipient's entitlement projection (§11), never from an Admin-shaped payload (NFR47 leakage clause).
 
 ### 4.6 Sender identity, flow priority, and delivery logging (N-6, answered 2026-07-26)
@@ -249,11 +250,13 @@ The technical sender stays constant and authenticable while replies reach the ri
 **Flow priority (the implementation order for E13 and its consumers):**
 
 1. user invitations and account-security messages;
-2. quote sending to the customer, including the link to open and accept or reject;
+2. quote sending to the customer with the current valid snapshot-derived PDF attached, without a public open/accept/reject link (ADR-B011; online acceptance remains Phase C);
 3. internal notification when a quote is accepted or rejected;
 4. notification to a field worker when a job is assigned or materially rescheduled;
 5. configurable quote reminders;
 6. daily or weekly digest for less urgent events.
+
+This is a priority order, not authorization to build producers for pending modules. Story 13.4 implements only flows backed by active manifest modules; later activation stories add their producers. Existing Supabase Auth invitation/security email remains the sanctioned path until a deliberate non-duplicating handoff. Real-recipient sending is separately owner-gated under ADR-B011 even after the provider code and sandbox tests pass.
 
 **Quote reminders stop automatically** when the quote is accepted, rejected, withdrawn, superseded by a new version, or expired. That is five distinct stop conditions and each needs a test — an unstoppable reminder loop pointed at a customer is the failure mode to design against.
 
@@ -1155,7 +1158,7 @@ src/
       producers.ts         # producer registry (manifest-derived)
       producers/<module>.ts
     email/
-      provider.ts          # adapter seam (implementation lands at N-6 activation)
+      provider.ts          # adapter seam (implementation lands in Story 13.4)
       queue.ts             # outbox claim/process, suppression, delivery events
     notifications/         # emit helpers, category taxonomy types
   features/
@@ -1263,7 +1266,7 @@ Every UX §14 item (U1–U14) and every PRD §15.2 architecture item (P1–P10) 
 | AB-A2 | B1a ships single-role-per-membership storage with a role-SET code contract; `membership_roles` is the reserved additive extension if N-4/operations require multi-role. `tenant_admin` literal retained as the Admin role (zero data migration; `is_tenant_admin` untouched). | **REVISED 2026-07-26 by N-4** — multi-role is required, not conditional: `membership_roles` is **built in E11**. The role-SET code contract and the retained `tenant_admin` literal stand; the UI label is **"Företagsadmin"**. |
 | AB-A3 | Permission matrix is code-level (no DB permission tables) because B1a is seed-roles-only with no custom role builder (UXB-A7); a future role builder would migrate it to data. | **CONFIRMED 2026-07-26 by N-4** — tenant-specific role compositions in v1 are authored by us via an internal surface or version-controlled validated configuration, never by direct production-DB edits; a git-versioned code matrix is exactly that. |
 | AB-A4 | One background-execution lane (platform cron → runner endpoint) rather than pg_cron/Edge Functions — one runtime, one front door, one negative-test surface. Adding a second lane requires amending ADR-B002. | accepted |
-| AB-A5 | Email provider selection deferred to the N-6 activation story behind the adapter seam; queue runs non-sending until then. No provider dependency in B1a. | accepted |
+| AB-A5 | Email provider selection belongs to Story 13.4 behind the adapter seam; Story 13.3 has no provider dependency and runs non-sending. ADR-B011 keeps real-recipient sending off until separate owner go-live. | accepted |
 | AB-A6 | Manifest format TS over YAML; located `src/scope/manifest.ts` (runtime-importable; session's `docs/scope/…` was an example, not binding). | accepted |
 | AB-A7 | Conflicts are deterministic-derived but **materialized** as workflow records (`booking_conflicts`) because accept/resolve states, reasons, and outcomes must persist and be auditable — this validates-and-amends UXB-A10. | accepted for architecture |
 | AB-A8 | Operator console lives in the same Next.js deployment (route-territory isolation + operator allow-list) for Phase B; separate-deployment hardening is a named Phase C option. | accepted |

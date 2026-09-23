@@ -402,6 +402,8 @@ En godkänd version ska inte kunna ändras utan att den öppnas igen eller ersä
 
 ## N-6 — E-postutskick
 
+> Current Phase B application (2026-09-23): [ADR-B011](../decisions/ADR-B011-epic-13-email-release-and-quote-delivery.md) keeps the sender and flow-priority answers below, but delivers customer quotes as PDF attachments without a public open/accept/reject link. Story 13.4 may be implemented and sandbox-tested; real-recipient sending requires a separate recorded owner go-live decision. The original answer is retained below as decision history.
+
 Systemet ska initialt använda en centralt administrerad och verifierad underdomän för transaktionell e-post, exempelvis:
 
 ```text
