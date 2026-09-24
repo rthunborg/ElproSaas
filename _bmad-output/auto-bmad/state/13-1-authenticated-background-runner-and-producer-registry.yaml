@@ -8,10 +8,10 @@ story_source: sprint
 spec_folder: null
 story_id: null
 branch: epic/13-wave-b1a-notifications-and-email-infrastructure
-status: in-progress
-updated_at: "2026-09-23T14:24:47Z"
+status: done
+updated_at: "2026-09-24T18:57:34Z"
 started_at: "2026-09-23T10:56:19Z"
-completed_at: null
+completed_at: "2026-09-24T18:57:34Z"
 active_seconds: 6765
 timing_anchor: null
 is_first_in_epic: true
@@ -74,7 +74,7 @@ retro:
   verdict: null
   open_action_items: 0
 bmad_status_flipped_at: null
-pr_url: null
+pr_url: "https://github.com/rthunborg/ElproSaas/pull/75"
 ci_run_url: null
 ci_status: unknown
 pr_merged: false

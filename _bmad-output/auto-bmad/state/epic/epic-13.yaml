@@ -8,10 +8,10 @@ story_source: sprint
 spec_folder: null
 story_id: null
 branch: epic/13-wave-b1a-notifications-and-email-infrastructure
-status: in-progress
-updated_at: "2026-09-24T18:53:49Z"
+status: done
+updated_at: "2026-09-24T18:57:39Z"
 started_at: "2026-09-23T10:29:03Z"
-completed_at: null
+completed_at: "2026-09-24T18:57:24Z"
 active_seconds: 44064
 timing_anchor: null
 is_first_in_epic: false
@@ -39,7 +39,7 @@ tea_selected: []
 tea_rationale: null
 epic_story_count: 4
 stories_after_in_epic: null
-completed_phases: [0, 1, 2, 5, 81, 82]
+completed_phases: [0, 1, 2, 5, 9, 81, 82]
 spec_path: null
 spec_approved: false
 build:
@@ -59,7 +59,7 @@ legacy_review_loop_done: false
 legacy_external_review_iterations: null
 legacy_convergence_unverified: false
 legacy_artifact_path: null
-commits: [cdbb68a, e996cde]
+commits: [cdbb68a, e996cde, 9650f72, 391624b, 211bf68, 24d0d19]
 phase8_steps:
   trace_gate: failed
   nfr: done
@@ -75,8 +75,8 @@ retro:
   verdict: rejected
   open_action_items: 5
 bmad_status_flipped_at: null
-pr_url: null
-ci_run_url: null
+pr_url: "https://github.com/rthunborg/ElproSaas/pull/75"
+ci_run_url: "https://github.com/rthunborg/ElproSaas/actions/runs/36044763211"
 ci_status: unknown
 pr_merged: false
 merge_method: null
