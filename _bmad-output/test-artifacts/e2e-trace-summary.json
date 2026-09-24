@@ -1,13 +1,17 @@
 {
   "schema_version": "0.2.0",
-  "snapshot_at": "2026-09-21T14:00:41.9707575Z",
+  "snapshot_at": "2026-09-24T17:48:29.844Z",
   "repo": "ElproSaas",
   "collection_mode": "contract_static",
   "collection_status": "COLLECTED",
   "inventory_basis": "acceptance_criteria",
   "gate_basis": "priority_thresholds",
-  "source_sha": "2a021bf12f2474bc01a369eba84e9bce67e31d3d",
-  "target": {"type": "epic", "id": "12", "label": "Epic 12 — Tenant Provisioning and Onboarding"},
+  "source_sha": "b5004cf00792e740af299af768035eee43af61c3",
+  "target": {
+    "type": "epic",
+    "id": "13",
+    "label": "Epic 13 — Notifications and Email Infrastructure"
+  },
   "decision_mode": "deterministic",
   "evaluator": "Rasmus",
   "confidence": "high",
@@ -15,36 +19,52 @@
     "resolution_mode": "formal_requirements",
     "confidence": "high",
     "sources": [
-      "_bmad-output/implementation-artifacts/spec-12-1-platform-operator-identity-and-the-provision-tenant-command.md",
-      "_bmad-output/implementation-artifacts/spec-12-2-operator-console.md",
-      "_bmad-output/implementation-artifacts/spec-12-3-first-admin-onboarding-checklist.md"
+      "_bmad-output/implementation-artifacts/spec-13-1-authenticated-background-runner-and-producer-registry.md",
+      "_bmad-output/implementation-artifacts/spec-13-2-in-app-notifications-bell-center-and-preferences.md",
+      "_bmad-output/implementation-artifacts/spec-13-3-email-outbox-pipeline-queued-non-sending.md",
+      "_bmad-output/implementation-artifacts/spec-13-4-email-sending-activation.md"
     ],
     "external_pointer_status": "not_used",
     "synthetic": false
   },
   "coverage": {
-    "inventory": {"covered": 24, "total": 24, "pct": 100},
+    "inventory": {
+      "covered": 23,
+      "total": 26,
+      "pct": 88
+    },
     "priority_breakdown": {
-      "P0": {"total": 21, "covered": 21, "pct": 100},
-      "P1": {"total": 3, "covered": 3, "pct": 100},
+      "P0": {"total": 26, "covered": 23, "pct": 88},
+      "P1": {"total": 0, "covered": 0, "pct": 100},
       "P2": {"total": 0, "covered": 0, "pct": 100},
       "P3": {"total": 0, "covered": 0, "pct": 100}
     },
     "by_level": {
-      "e2e": {"tests": 6, "criteria_covered": 14},
-      "api": {"tests": 40, "criteria_covered": 21},
+      "e2e": {"tests": 3, "criteria_covered": 3},
+      "api": {"tests": 20, "criteria_covered": 19},
       "component": {"tests": 0, "criteria_covered": 0},
-      "unit": {"tests": 86, "criteria_covered": 24},
+      "unit": {"tests": 6, "criteria_covered": 6},
       "live": {"tests": 0, "criteria_covered": 0},
-      "other": {"tests": 1, "criteria_covered": 1}
+      "other": {"tests": 0, "criteria_covered": 0}
     }
   },
-  "tests": {"files": 25, "cases": 133, "skipped_cases": 0, "fixme_cases": 0, "pending_cases": 0},
-  "risk_summary": {"critical_open": 0, "high_open": 0, "medium_open": 0, "low_open": 0},
+  "tests": {
+    "files": 17,
+    "cases": 29,
+    "skipped_cases": 0,
+    "fixme_cases": 0,
+    "pending_cases": 0
+  },
+  "risk_summary": {
+    "critical_open": 0,
+    "high_open": 0,
+    "medium_open": 0,
+    "low_open": 0
+  },
   "heuristics": {
     "endpoint_gaps": 0,
     "auth_negative_path_status": "present",
-    "error_path_status": "present",
+    "error_path_status": "none",
     "ui_journey_status": "not_applicable",
     "ui_state_status": "not_applicable"
   },
@@ -53,7 +73,7 @@
     "results_file": "C:\\DEV\\ElproSaas\\_bmad-output\\test-artifacts\\live-verification-results.json",
     "freshness": "not_present",
     "recorded_source_sha": "",
-    "current_source_sha": "2a021bf12f2474bc01a369eba84e9bce67e31d3d",
+    "current_source_sha": "b5004cf00792e740af299af768035eee43af61c3",
     "producer": "",
     "counted": 0,
     "stale": 0,
@@ -68,25 +88,44 @@
   },
   "blockers": [],
   "recommendations": [
-    {"priority": "low", "action": "Preserve the two remediation integrations and the repaired active provisioning invariants in the required Epic 12 regression set; rerun the trace gate if the acceptance contract or these boundaries change.", "requirements": []}
+    {
+      "priority": "MEDIUM",
+      "action": "Complete coverage for 3 partially covered requirements",
+      "requirements": ["13.4-AC6", "13.4-AC7", "13.4-AC8"]
+    },
+    {
+      "priority": "MEDIUM",
+      "action": "Add error and edge tests for the 3 partially covered acceptance criteria",
+      "requirements": ["13.4-AC6", "13.4-AC7", "13.4-AC8"]
+    },
+    {
+      "priority": "HIGH",
+      "action": "Add a quote-send browser journey from linked recipient selection through durable queued state",
+      "requirements": ["13.4-AC6", "13.4-AC8"]
+    },
+    {
+      "priority": "LOW",
+      "action": "Run /bmad-testarch-test-review to assess test quality",
+      "requirements": []
+    }
   ],
   "links": {
-    "trace_report_path": "_bmad-output/test-artifacts/traceability-matrix.md",
+    "trace_report_path": "_bmad-output/test-artifacts/traceability/epic-13-traceability-report.md",
     "trace_report_url": "",
     "artifact_url": "",
     "journey_evidence_url": ""
   },
-  "gate_status": "PASS",
+  "gate_status": "FAIL",
   "gate_criteria": {
     "p0_coverage_required": "100%",
-    "p0_coverage_actual": "100%",
-    "p0_status": "MET",
+    "p0_coverage_actual": "88%",
+    "p0_status": "NOT_MET",
     "p1_coverage_target": "90%",
     "p1_coverage_minimum": "80%",
     "p1_coverage_actual": "100%",
     "p1_status": "MET",
     "overall_coverage_minimum": "80%",
-    "overall_coverage_actual": "100%",
+    "overall_coverage_actual": "88%",
     "overall_status": "MET"
   }
 }

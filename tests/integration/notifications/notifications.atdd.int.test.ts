@@ -1,7 +1,7 @@
 /** Story 13.2 database and producer acceptance coverage. */
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { createClient } from "@supabase/supabase-js";
-import { adminInsertCalculation, adminInsertCustomer, adminInsertQuote, adminInsertQuoteFollowUp, adminInsertQuoteVersion, adminUpdateQuoteVersionStatus, cleanupFixture, createTwoTenantFixture, makeAuthedServerClient } from "../../factories/tenants";
+import { adminInsertCalculation, adminInsertCustomer, adminInsertQuote, adminInsertQuoteFollowUp, adminInsertQuoteLostReason, adminInsertQuoteVersion, adminUpdateQuoteVersionStatus, cleanupFixture, createTwoTenantFixture, makeAuthedServerClient } from "../../factories/tenants";
 import { adminQuery, closeAdminPool } from "../../factories/admin-sql";
 import { emitDueFollowUpNotifications } from "@/server/notifications/follow-up-producer";
 import { isLocalStackReachable, LOCAL_SUPABASE_ANON_KEY, LOCAL_SUPABASE_SERVICE_ROLE_KEY, LOCAL_SUPABASE_URL } from "../../support/test-env";
@@ -41,20 +41,59 @@ describe("Story 13.2 notification data, producer, and personal RLS contracts", (
     } finally { await cleanupFixture(fixture); }
   });
 
-  test("[P0][AC2][13.2-INT-002] concurrent due scans deduplicate and terminal work emits nothing", async (ctx) => {
+  test("[P0][AC2][13.2-INT-002] concurrent due scans deduplicate", async (ctx) => {
     if (skipUnlessStack(ctx, stackUp)) return;
     const fixture = await createTwoTenantFixture();
     try {
       const followUpId = await seedDueFollowUp(fixture.tenantA.id);
       await Promise.all(Array.from({ length: 6 }, () => emitDueFollowUpNotifications(serviceClient(), fixture.tenantA.id, "2026-09-23")));
       expect((await adminQuery<{ count: number }>("select count(*)::int as count from public.notifications where tenant_id=$1 and logical_subject_id=$2", [fixture.tenantA.id, followUpId]))[0]?.count).toBe(1);
-      const terminalFollowUpId = await seedDueFollowUp(fixture.tenantA.id);
-      const terminalVersion = await adminQuery<{ quote_version_id: string }>("select quote_version_id from public.quote_follow_ups where id=$1", [terminalFollowUpId]);
-      await adminUpdateQuoteVersionStatus(terminalVersion[0]!.quote_version_id, "accepted");
-      await emitDueFollowUpNotifications(serviceClient(), fixture.tenantA.id, "2026-09-23");
-      expect((await adminQuery<{ count: number }>("select count(*)::int as count from public.notifications where tenant_id=$1 and logical_subject_id=$2", [fixture.tenantA.id, terminalFollowUpId]))[0]?.count).toBe(0);
     } finally { await cleanupFixture(fixture); }
   });
+
+  for (const status of ["accepted", "rejected", "lost", "superseded", "expired"] as const) {
+    test(`[P0][AC7][13.4-INT-004] terminal quote state ${status} closes reminder work before the producer can enqueue`, async (ctx) => {
+      if (skipUnlessStack(ctx, stackUp)) return;
+      const fixture = await createTwoTenantFixture();
+      try {
+        const followUpId = await seedDueFollowUp(fixture.tenantA.id);
+        const [terminalVersion] = await adminQuery<{ quote_id: string; quote_version_id: string }>(
+          "select quote_id,quote_version_id from public.quote_follow_ups where id=$1",
+          [followUpId],
+        );
+        if (status !== "accepted" && status !== "superseded") {
+          await adminQuery(
+            "update public.quote_follow_ups set status='completed', outcome=$2, completed_at=statement_timestamp() where id=$1",
+            [followUpId, status],
+          );
+        }
+        if (status === "lost") {
+          await adminInsertQuoteLostReason({
+            tenant_id: fixture.tenantA.id,
+            quote_id: terminalVersion!.quote_id,
+            quote_version_id: terminalVersion!.quote_version_id,
+          });
+        }
+        await adminUpdateQuoteVersionStatus(terminalVersion!.quote_version_id, status);
+
+        expect(await adminQuery<{ version_status: string; follow_up_status: string; outcome: string }>(
+          `select qv.status as version_status, qfu.status as follow_up_status, qfu.outcome
+             from public.quote_versions qv
+             join public.quote_follow_ups qfu on qfu.quote_version_id=qv.id and qfu.tenant_id=qv.tenant_id
+            where qfu.id=$1`,
+          [followUpId],
+        )).toEqual([{ version_status: status, follow_up_status: "completed", outcome: status }]);
+
+        await emitDueFollowUpNotifications(serviceClient(), fixture.tenantA.id, "2026-09-23");
+        expect((await adminQuery<{ count: number }>(
+          "select count(*)::int as count from public.notifications where tenant_id=$1 and logical_subject_id=$2",
+          [fixture.tenantA.id, followUpId],
+        ))[0]?.count).toBe(0);
+      } finally {
+        await cleanupFixture(fixture);
+      }
+    });
+  }
 
   test("[P0][AC3][13.2-RLS-001] recipient reads and acknowledgements stay personal", async (ctx) => {
     if (skipUnlessStack(ctx, stackUp)) return;
