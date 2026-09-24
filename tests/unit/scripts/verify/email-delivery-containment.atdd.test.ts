@@ -6,14 +6,14 @@ async function loadContainmentChecker(): Promise<any> {
 }
 
 describe("Story 13.4 delivery and public-shell containment (ATDD RED)", () => {
-  test.skip("[P0][13.4-STATIC-001] allows the provider adapter only in server email modules and rejects credentials or adapter imports from client paths", async () => {
+  test("[P0][13.4-STATIC-001] allows the provider adapter only in server email modules and rejects credentials or adapter imports from client paths", async () => {
     const { verifyServiceRoleContainment } = await loadContainmentChecker();
     const result = await verifyServiceRoleContainment({ root: process.cwd(), allowlist: ["src/server/email/provider.ts"] });
     assert.deepEqual(result.violations, []);
     assert.deepEqual(result.allowedUsages, ["src/server/email/provider.ts"]);
   });
 
-  test.skip("[P1][13.4-STATIC-002] keeps the public unsubscribe route free of app shell, tenant context, session, navigation, and provider imports", async () => {
+  test("[P1][13.4-STATIC-002] keeps the public unsubscribe route free of app shell, tenant context, session, navigation, and provider imports", async () => {
     const { verifyPublicRouteImports } = await loadContainmentChecker();
     const result = await verifyPublicRouteImports({ root: process.cwd(), route: "src/app/(public)/unsubscribe" });
     assert.deepEqual(result.violations, []);

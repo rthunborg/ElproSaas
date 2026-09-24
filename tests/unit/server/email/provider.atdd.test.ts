@@ -6,7 +6,7 @@ async function loadProvider(): Promise<any> {
 }
 
 describe("Story 13.4 provider release control (ATDD RED)", () => {
-  test.skip("[P0][13.4-UNIT-001] permits only a synthetic sandbox envelope and persists one server-only provider outcome", async () => {
+  test("[P0][13.4-UNIT-001] permits only a synthetic sandbox envelope and persists one server-only provider outcome", async () => {
     const { createEmailDeliveryAdapter } = await loadProvider();
     const calls: unknown[] = [];
     const submit = async (envelope: unknown) => {
@@ -27,7 +27,7 @@ describe("Story 13.4 provider release control (ATDD RED)", () => {
     assert.doesNotMatch(JSON.stringify(result), /sandbox-recipient@example\.test|Offert/);
   });
 
-  test.skip("[P0][13.4-UNIT-002] treats missing, malformed, preview-only, and unapproved real-recipient release state as closed", async () => {
+  test("[P0][13.4-UNIT-002] treats missing, malformed, preview-only, and unapproved real-recipient release state as closed", async () => {
     const { evaluateEmailReleaseControl } = await loadProvider();
     for (const control of [undefined, { mode: "preview" }, { mode: "real", ownerApproval: false }, { mode: "real", ownerApproval: "malformed" }]) {
       const result = evaluateEmailReleaseControl(control);

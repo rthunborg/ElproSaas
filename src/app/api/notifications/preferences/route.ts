@@ -16,7 +16,7 @@ export async function PUT(request: Request) {
   const context = await resolveTenantContext();
   if (!context.ok) return NextResponse.json({ error: "Not authorized" }, { status: 403 });
   const input = await request.json().catch(() => null) as { category?: unknown; channel?: unknown; enabled?: unknown } | null;
-  if (!input || typeof input.category !== "string" || input.channel !== "in_app" || typeof input.enabled !== "boolean") return NextResponse.json({ error: "Invalid preference" }, { status: 400 });
+  if (!input || typeof input.category !== "string" || (input.channel !== "in_app" && input.channel !== "email") || typeof input.enabled !== "boolean") return NextResponse.json({ error: "Invalid preference" }, { status: 400 });
   const category = notificationCategory(input.category);
   if (!category || (category.essential && !input.enabled)) return NextResponse.json({ error: "Required notifications cannot be disabled" }, { status: 422 });
   const db = await createSupabaseServerClient();

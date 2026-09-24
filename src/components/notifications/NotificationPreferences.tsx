@@ -18,8 +18,8 @@ export function NotificationPreferences() {
       if (!response.ok) throw new Error("Could not load preferences");
       const data = await response.json();
       if (requestVersion !== loadVersion.current) return;
-      setEnabled(Object.fromEntries(data.preferences.map((preference: { category: string; enabled: boolean }) => [
-        preference.category,
+      setEnabled(Object.fromEntries(data.preferences.map((preference: { category: string; channel: string; enabled: boolean }) => [
+        `${preference.category}:${preference.channel}`,
         preference.enabled,
       ])));
     } catch {
@@ -36,8 +36,8 @@ export function NotificationPreferences() {
       })
       .then((data) => {
         if (requestVersion !== loadVersion.current) return;
-        setEnabled(Object.fromEntries(data.preferences.map((preference: { category: string; enabled: boolean }) => [
-          preference.category,
+        setEnabled(Object.fromEntries(data.preferences.map((preference: { category: string; channel: string; enabled: boolean }) => [
+          `${preference.category}:${preference.channel}`,
           preference.enabled,
         ])));
       })
@@ -49,7 +49,7 @@ export function NotificationPreferences() {
   return (
     <section>
       <h1 className="text-2xl font-semibold">Notisinställningar</h1>
-      <p>e-postutskick aktiveras senare</p>
+      <p>E-postinställningar är tillgängliga när leverans är aktiverad på servern.</p>
       <fieldset className="mt-4" aria-label="Offerter">
         <legend className="font-semibold">Offerter</legend>
         <table>
@@ -62,8 +62,9 @@ export function NotificationPreferences() {
           </thead>
           <tbody>
             {ACTIVE_CATEGORIES.map((category) => {
-              const label = "Viktig uppföljning av offert";
-              const value = enabled[category.category] ?? category.defaultEnabled;
+              const label = category.category === "quote.delivery" ? "Offertleverans" : "Viktig uppföljning av offert";
+              const value = enabled[`${category.category}:in_app`] ?? category.defaultEnabled;
+              const emailValue = enabled[`${category.category}:email`] ?? category.defaultEnabled;
 
               return (
                 <tr key={category.category}>
@@ -108,8 +109,24 @@ export function NotificationPreferences() {
                       role="switch"
                       aria-label={`${label} e-post`}
                       type="checkbox"
-                      disabled
-                      readOnly
+                      checked={emailValue}
+                      disabled={category.essential || savingCategory === `${category.category}:email`}
+                      onChange={async (event) => {
+                        const next = event.target.checked;
+                        setError(null);
+                        setSavingCategory(`${category.category}:email`);
+                        try {
+                          const response = await fetch("/api/notifications/preferences", {
+                            method: "PUT", headers: { "content-type": "application/json" },
+                            body: JSON.stringify({ category: category.category, channel: "email", enabled: next }),
+                          });
+                          if (!response.ok) throw new Error("Could not save preference");
+                          await loadPreferences();
+                        } catch {
+                          await loadPreferences();
+                          setError("Kunde inte spara inställningen. Försök igen.");
+                        } finally { setSavingCategory(null); }
+                      }}
                     />
                   </td>
                 </tr>

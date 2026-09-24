@@ -237,10 +237,10 @@ export const SCOPE_MANIFEST: ScopeManifest = {
       epic: "E13",
       activatedAt: "2026-09-23",
       navItems: [],
-      tenantTables: ["job_runs", "notifications", "notification_preferences", "email_outbox", "email_delivery_events", "email_suppressions"],
+      tenantTables: ["job_runs", "notifications", "notification_preferences", "email_outbox", "email_delivery_events", "email_suppressions", "email_unsubscribe_tokens", "email_unsubscribe_rate_limits"],
       widgets: [],
-      notificationCategories: [],
-      publicSurfaces: [],
+      notificationCategories: ["quote.delivery"],
+      publicSurfaces: ["unsubscribe"],
       fileOwnerTypes: [],
     },
 

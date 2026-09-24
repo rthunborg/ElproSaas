@@ -9,11 +9,11 @@ spec_folder: null
 story_id: null
 branch: epic/13-wave-b1a-notifications-and-email-infrastructure
 status: in-progress
-updated_at: "2026-09-24T08:34:38Z"
+updated_at: "2026-09-24T08:52:46Z"
 started_at: "2026-09-24T08:02:45Z"
 completed_at: null
-active_seconds: 1902
-timing_anchor: 1790238878
+active_seconds: 2987
+timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: true
 git_mode: remote
@@ -40,8 +40,8 @@ completed_phases: [0, 1, 2, 3, 4]
 spec_path: "C:\\DEV\\ElproSaas\\_bmad-output\\implementation-artifacts\\spec-13-4-email-sending-activation.md"
 spec_approved: true
 build:
-  status: ready-for-dev
-  blocking_condition: null
+  status: blocked
+  blocking_condition: "durable quote-delivery worker needs an ADR-B008/B011-approved authorized PDF attachment broker and immutable recipient snapshot semantics. The sole jobs runner has service-role access, while current PDF bytes require a request-bound authenticated RLS client and a non-persistable short-lived attestation; the current quote snapshot has no immutable recipient email. Implementing the producer would otherwise require prohibited service-role Storage access, persisted attestation, or a second execution lane."
   followup_review_recommended: false
   review_loop_iteration: 0
   deferred_count: 1
@@ -56,7 +56,7 @@ legacy_review_loop_done: false
 legacy_external_review_iterations: null
 legacy_convergence_unverified: false
 legacy_artifact_path: null
-commits: [502fd1e, f71ada9]
+commits: [502fd1e, f71ada9, 1fca11f, ecdfe7f]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -79,8 +79,10 @@ pr_merged: false
 merge_method: null
 merge_commit: null
 branch_deleted: false
-open_questions: []
+open_questions:
+  - Choose the ADR-B008/B011-authorized PDF-byte and immutable recipient snapshot design for Story 13.4.
 deferred_work: []
-blockers: []
+blockers:
+  - "Owner decision required: approve an authenticated enqueue-time durable PDF/recipient snapshot or a least-privilege worker PDF broker plus immutable recipient snapshot."
 overrides: {}
 constraints: []

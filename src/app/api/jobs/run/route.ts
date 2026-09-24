@@ -5,7 +5,7 @@ import { ACTIVE_PRODUCERS, type ProducerDeclaration } from "@/server/jobs/produc
 import { runDueProducers, type JobRunRecord, type RunnerDependencies } from "@/server/jobs/runner";
 import { isAuthorizedCronRequest } from "@/server/jobs/auth";
 import { emitDueFollowUpNotifications } from "@/server/notifications/follow-up-producer";
-import { processDarkEmailOutbox } from "@/server/email/outbox";
+import { processEmailOutbox } from "@/server/email/outbox";
 
 const unauthorized = () => new Response("Unauthorized", { status: 401 });
 const CURSOR_PRODUCER = "jobs.runner";
@@ -88,8 +88,11 @@ export async function handleJobsRunRequest(request: Request, dependencies: JobsR
       if (producer.id === "quotes.follow-up-reminders") {
         await emitDueFollowUpNotifications(client, tenantId, now().toISOString().slice(0, 10));
       }
-      if (producer.id === "notifications.email-outbox-dark") {
-        await processDarkEmailOutbox({ client }, { tenantId });
+      if (producer.id === "notifications.email-outbox-delivery") {
+        // ADR-B011 keeps the production release posture closed. A sandbox test
+        // injects its adapter directly; the authenticated runner never gains a
+        // second provider or configuration execution lane.
+        await processEmailOutbox({ client, deliveryAdapter: { submit: async () => { throw new Error("Email release control is closed"); } }, releaseControl: undefined }, { tenantId, workerId: `jobs:${correlationId}` });
       }
     }),
     record: recordRun(client, correlationId),

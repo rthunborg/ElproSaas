@@ -221,7 +221,7 @@ export function scanJobsContainment(rootDir) {
   return { violations };
 }
 
-/** Story 13.3 has a deliberately dark queue: providers, credentials, and alternate routes are prohibited. */
+/** Story 13.4 permits one server-only adapter seam; all credentials remain prohibited. */
 export function scanEmailProviderContainment(rootDir) {
   const violations = [];
   const sourceRoot = join(rootDir, "src");
@@ -240,6 +240,24 @@ export function scanEmailProviderContainment(rootDir) {
     }
   }
   return { violations };
+}
+
+export async function verifyServiceRoleContainment({ root, allowlist = [] }) {
+  const allowed = new Set(allowlist);
+  const violations = scanEmailProviderContainment(root).violations.filter((entry) => ![...allowed].some((path) => entry.startsWith(path)));
+  return { violations, allowedUsages: [...allowed].filter((path) => { try { return readFileSync(join(root, path), "utf8").length > 0; } catch { return false; } }) };
+}
+
+export async function verifyPublicRouteImports({ root, route }) {
+  const imports = [];
+  const violations = [];
+  for (const file of walk(join(root, route))) {
+    if (!shouldScanFile(file)) continue;
+    const contents = readFileSync(file, "utf8");
+    imports.push(...(contents.match(/from\s+["']([^"']+)["']/g) ?? []));
+    if (/(tenant-context|resolve-tenant-context|app-shell|navigation|server\/email\/provider)/i.test(contents)) violations.push(`${relative(root, file)}: public unsubscribe imports a privileged shell dependency.`);
+  }
+  return { violations, imports };
 }
 
 // CLI behavior: when run directly (not imported by a test), scan the repo root and exit

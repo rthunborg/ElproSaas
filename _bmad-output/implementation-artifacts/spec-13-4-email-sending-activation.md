@@ -2,7 +2,8 @@
 title: 'Email Sending Activation'
 type: 'feature'
 created: '2026-09-24'
-status: 'ready-for-dev'
+status: 'blocked'
+baseline_revision: 'ecdfe7f0c87ebc58726fa59d936f8500c5f3a4b3'
 review_loop_iteration: 0
 followup_review_recommended: false
 context:
@@ -80,7 +81,12 @@ deferred:
 
 ## Auto Run Result
 
-Status: ready-for-dev
+Status: blocked
+Blocking condition: durable quote-delivery worker needs an ADR-B008/B011-approved authorized PDF attachment broker and immutable recipient snapshot semantics. The sole jobs runner has service-role access, while current PDF bytes require a request-bound authenticated RLS client and a non-persistable short-lived attestation; the current quote snapshot has no immutable recipient email. Implementing the producer would otherwise require prohibited service-role Storage access, persisted attestation, or a second execution lane.
+
+Implemented foundation: fail-closed synthetic sandbox provider adapter, leased sent-outcome persistence, notification preference suppression, token-hashed public unsubscribe capability, manifest/H4 enrollment, and static/targeted contract coverage.
+
+Verification: `pnpm run typecheck`, `pnpm run lint`, `node scripts/verify/check-service-role-containment.mjs`, targeted provider/containment tests (4 passed), targeted quote attachment/reminder tests (3 passed), and `node scripts/verify/check-review-order.mjs` passed. Required Supabase delivery/RLS evidence skipped because the local services are stopped; no E2E run completed.
 
 ## Design Notes
 
@@ -96,3 +102,39 @@ Unsubscribe is a separate public capability: the URL carries the only plaintext 
 - `pnpm run test:unit` -- expected: provider, release-control, preference, unsubscribe, and containment unit coverage passes.
 - `SUPABASE_TEST_REQUIRED=1 pnpm run test:integration` -- expected: migration, RLS, queue concurrency, token, and quote-PDF integration suites execute with no required skips or failures.
 - `pnpm run test:e2e` -- expected: authenticated preference/Admin visibility and public-shell flows pass where their configured browser coverage applies.
+
+## Suggested Review Order
+
+Author: implementation author.
+Refreshed against the current uncommitted working tree based on `ecdfe7f0c87ebc58726fa59d936f8500c5f3a4b3`.
+
+### Fail-closed delivery release control
+
+The adapter accepts only synthetic envelopes. The separate ADR-B011 owner go-live record remains outside this code, so every other release posture is closed before a claim can call the adapter.
+
+- `src/server/email/provider.ts:11` — `evaluateEmailReleaseControl`: only the sandbox posture is admitted.
+- `src/server/email/outbox.ts:77` — `processEmailOutbox`: applies suppression before release evaluation and records a lease-bound sent result.
+- `src/app/api/jobs/run/route.ts:91` — `notifications.email-outbox-delivery`: preserves the sole authenticated runner lane.
+- `supabase/migrations/20260924090000_email_sending_activation.sql:26` — `record_email_outbox_delivery`: requires the active worker claim before state becomes `sent`.
+
+### Narrow public unsubscribe capability
+
+The public route supplies only a token and IP-derived hash to the database function. The function returns generic inactive or rate-limit outcomes and never returns tenant, recipient, or token data.
+
+- `src/app/(public)/unsubscribe/[token]/route.ts:10` — `GET`: serves a standalone public form without an authenticated shell.
+- `src/server/email/unsubscribe.ts:25` — `handleUnsubscribeRequest`: hashes the plaintext token before the RPC boundary.
+- `supabase/migrations/20260924090000_email_sending_activation.sql:42` — `consume_email_unsubscribe_token`: scopes suppression to the resolved token record.
+
+### Quote attachment and reminder eligibility
+
+The quote delivery seam accepts bytes only from a caller that has already resolved the current authorized PDF. It rejects stale, invalid, and absent inputs before adapter submission; terminal reminder states are ineligible.
+
+- `src/server/email/outbox.ts:107` — `processQuoteDelivery`: validates the PDF before constructing a server-only attachment.
+- `tests/integration/email/quote-delivery-attachment.atdd.int.test.ts:8` — `[P0][13.4-INT-004]`: exercises current-PDF-only attachment behavior.
+
+### Evidence and limits
+
+AC1 closed-gate/sandbox adapter behavior → `tests/unit/server/email/provider.atdd.test.ts:9` and `:30`. Public-shell containment → `tests/unit/scripts/verify/email-delivery-containment.atdd.test.ts:9` and `:17`. Quote attachment and terminal reminder invariants → `tests/integration/email/quote-delivery-attachment.atdd.int.test.ts:8`, `:17`, and `:27`.
+
+Evidence: `pnpm run typecheck`, `pnpm run lint`, and `node scripts/verify/check-service-role-containment.mjs` passed. Provider and containment tests passed (4 tests); quote attachment tests passed (3 tests). `pnpm run build` compiled and completed type checking before its page-data phase exceeded this run's bounded command wait.
+Limits: the local Supabase status reports stopped services, so required delivery/RLS suites skipped (5 tests) even when invoked with `SUPABASE_TEST_REQUIRED=1`; no browser suite was run. A durable quote-send worker cannot presently reuse the ADR-B008 PDF proof: the only runner has a service-role client, the quote bytes are intentionally available only through a request-bound RLS client, and the short-lived attestation must never be persisted. The quote snapshot also has no immutable recipient email. Wiring that worker now would require a prohibited service-role Storage read, persistence of the attestation, or a second execution lane. An ADR-B008/B011 amendment must define a durable authorized attachment broker and recipient-snapshot semantics. The public route uses a minimal HTML response rather than the planned client component.

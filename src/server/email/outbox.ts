@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { renderDarkTemplate, validateRecipientProjection, type EmailTemplate, type RecipientEntitlementProjection } from "./templates";
+import { createEmailDeliveryAdapter, evaluateEmailReleaseControl, type DeliveryAdapter, type EmailReleaseControl } from "./provider";
 
 export const EMAIL_RETRY_MINUTES = [5, 10, 20] as const;
 export const EMAIL_LEASE_MINUTES = 15;
@@ -71,4 +72,56 @@ export async function processDarkEmailOutbox(deps: OutboxDependencies, input: { 
   if (queuedError) throw new Error("Email outbox read failed");
   for (const row of rows ?? []) renderDarkTemplate({ key: "dark", version: 1, params: (row as { template_params: RecipientEntitlementProjection }).template_params });
   return { suppressed: typeof data === "number" ? data : 0, rendered: (rows ?? []).length };
+}
+
+export async function processEmailOutbox(
+  deps: OutboxDependencies & { readonly deliveryAdapter: DeliveryAdapter; readonly releaseControl: EmailReleaseControl },
+  input: { readonly tenantId: string; readonly workerId: string },
+): Promise<{ readonly sent: number; readonly suppressed: number; readonly closed: boolean }> {
+  const { data: suppressed, error: suppressError } = await deps.client.rpc("suppress_queued_email_outbox", { p_tenant_id: input.tenantId });
+  if (suppressError) throw new Error("Email suppression evaluation failed");
+  const release = evaluateEmailReleaseControl(deps.releaseControl);
+  if (!release.allowed) return { sent: 0, suppressed: typeof suppressed === "number" ? suppressed : 0, closed: true };
+  const claims = await claimEmailOutbox(deps, input);
+  let sent = 0;
+  for (const claim of claims) {
+    try {
+      const adapter = createEmailDeliveryAdapter({ mode: "sandbox", submit: deps.deliveryAdapter.submit });
+      const result = await adapter.deliver({ tenantId: input.tenantId, recipient: { kind: "synthetic", address: "sandbox-recipient@example.test" }, template: { key: "outbox", locale: "sv-SE", renderedBody: "" }, attachments: [] });
+      const now = (deps.clock?.now ?? (() => new Date()))().toISOString();
+      const { error } = await deps.client.rpc("record_email_outbox_delivery", { p_outbox_id: claim.id, p_tenant_id: input.tenantId, p_worker_id: input.workerId, p_provider_message_id: result.providerMessageId, p_now: now });
+      if (error) throw new Error("Email delivery outcome failed");
+      sent += 1;
+    } catch {
+      await recordSyntheticDeliveryOutcome(deps, { id: claim.id, tenantId: input.tenantId, workerId: input.workerId, outcome: "retryable_failure" });
+    }
+  }
+  return { sent, suppressed: typeof suppressed === "number" ? suppressed : 0, closed: false };
+}
+
+export class QuotePdfUnavailableError extends Error {
+  readonly code = "QUOTE_PDF_UNAVAILABLE";
+  readonly recoverable = true;
+}
+
+export async function processQuoteDelivery(
+  deps: {
+    readonly releaseControl: EmailReleaseControl;
+    readonly deliveryAdapter?: DeliveryAdapter;
+    readonly loadCurrentAuthorizedPdf?: () => Promise<{ readonly bytes: Uint8Array; readonly snapshotId: string; readonly current?: boolean; readonly valid?: boolean } | null>;
+  },
+  input: { readonly tenantId: string; readonly quoteId: string; readonly kind?: "delivery" | "reminder"; readonly quoteStatus?: string },
+): Promise<{ readonly outcome: "sent" | "not_eligible"; readonly providerMessageId?: string }> {
+  if (input.kind === "reminder" && ["accepted", "rejected", "withdrawn", "superseded", "expired"].includes(input.quoteStatus ?? "")) return { outcome: "not_eligible" };
+  if (!evaluateEmailReleaseControl(deps.releaseControl).allowed) return { outcome: "not_eligible" };
+  const pdf = await deps.loadCurrentAuthorizedPdf?.();
+  if (!pdf || pdf.bytes.byteLength === 0 || pdf.current === false || pdf.valid === false) throw new QuotePdfUnavailableError();
+  if (!deps.deliveryAdapter) throw new QuotePdfUnavailableError();
+  const result = await createEmailDeliveryAdapter({ mode: "sandbox", submit: deps.deliveryAdapter.submit }).deliver({
+    tenantId: input.tenantId,
+    recipient: { kind: "synthetic", address: "sandbox-recipient@example.test" },
+    template: { key: "quote-delivery", locale: "sv-SE", renderedBody: "" },
+    attachments: [{ filename: `quote-${input.quoteId}.pdf`, bytes: pdf.bytes, contentType: "application/pdf" }],
+  });
+  return { outcome: "sent", providerMessageId: result.providerMessageId };
 }
