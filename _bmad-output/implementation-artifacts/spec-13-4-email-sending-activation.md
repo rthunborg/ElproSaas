@@ -12,7 +12,18 @@ context:
   - 'docs/process/review-order.md'
 warnings: [oversized]
 deferred:
-  - 'Real-recipient delivery remains disabled until the separate ADR-B011 owner go-live record is approved.'
+  - summary: 'Keep real-recipient delivery disabled until the separate ADR-B011 owner go-live record is approved.'
+    evidence: 'ADR-B011 requires the owner go-live record; Story 13.4 verifies only the synthetic sandbox adapter.'
+    location: 'docs/decisions/ADR-B011-epic-13-email-release-and-quote-delivery.md'
+    severity: high
+  - summary: 'Add idempotent provider submission before enabling real-recipient delivery.'
+    evidence: 'If a provider accepts submission and the following outcome persistence fails, a retry cannot prove the earlier delivery and could duplicate real-recipient mail.'
+    location: 'src/server/email/outbox.ts'
+    severity: medium
+  - summary: 'Include a scoped unsubscribe URL in every non-essential real-provider-rendered message.'
+    evidence: 'Sandbox delivery uses a synthetic body; a real provider template must issue and include the public token URL while preserving its narrow capability and privacy boundary.'
+    location: 'src/server/email/templates.ts'
+    severity: medium
 ---
 
 <intent-contract>
@@ -114,7 +125,7 @@ Review caveat: the bounded cross-model reviewer command exited `1` with no outpu
   - `[high] [patch]` Removed anonymous token reactivation; the retained compatibility parameter always creates or preserves suppression.
   - `[low] [patch]` Added an altered-checksum rejection assertion after successful quote-currentness validation.
 
-Deferred: provider idempotency after accepted submission but failed outcome persistence, and unsubscribe-link delivery in a real provider-rendered body. Both require the deferred real-provider contract; sandbox-only delivery remains the authorized Story 13.4 surface.
+Deferred: the frontmatter records the two medium findings from this pass: idempotent provider submission after accepted submission but failed outcome persistence, and a scoped unsubscribe URL in every non-essential real provider-rendered body. Both require the deferred real-provider contract; sandbox-only delivery remains the authorized Story 13.4 surface.
 
 ## Auto Run Result
 
@@ -248,4 +259,4 @@ The quote form loads only linked customer/contact candidates and requires a sele
 AC1 sandbox success, closed release, suppression, missing-artifact recovery, and consumed artifact state → `tests/integration/email/email-delivery-activation.atdd.int.test.ts:29`, `:46`, `:60`, and `:74`. Public unknown/revoked uniformity and active rate limits → `tests/integration/rls/email-unsubscribe.atdd.rls.test.ts:30`. The activated email preference false-to-true reversal and essential enabled-only invariant → `tests/integration/notifications/notifications.atdd.int.test.ts:87`, `:95`, `:97`, and `:99`. The updated lifecycle fixtures preserve their accepted-record and source-of-truth assertions while selecting a valid linked recipient → `tests/integration/commands/accepted-record-lock.int.test.ts:160` and `tests/integration/commands/job-source-of-truth.int.test.ts:123`.
 
 Evidence: clean local reset completed. The required serialized `SUPABASE_TEST_REQUIRED=1` Vitest run passed 119 files / 1 skipped file and 1,181 tests / 1 skipped test; the explicit skip is the separately configured CI-only recovery-storage proof. `pnpm run typecheck` passed; `pnpm run lint` had 0 errors and 13 existing warnings; unit tests passed 1,894 / 1 skipped; the E2E production build passed; final Playwright passed 173 / 4 explicit skips / 0 failures (177 discovered). Earlier focused evidence also passed: email/unsubscribe/preference integration 3 files / 12 tests, accepted-record/job-source fixtures 2 files / 35 tests, and the validated-Vercel-IP unit 1 test.
-Limits: real-recipient delivery remains closed pending the ADR-B011 owner go-live record. The provider boundary is synthetic, so it does not prove production sender configuration or an external provider response. The bounded cross-model reviewer command exited `1` with no output, leaving that layer unavailable rather than clean. `followup_review_recommended` is true because the review-fix batch crosses the workflow score threshold.
+Limits: the deferred frontmatter records three harvestable follow-ups: ADR-B011 owner go-live approval, idempotent provider submission after an accepted submission whose outcome persistence fails, and a scoped unsubscribe URL in every non-essential real provider-rendered body. The provider boundary is synthetic, so it does not prove production sender configuration or an external provider response. The bounded cross-model reviewer command exited `1` with no output, leaving that layer unavailable rather than clean. `followup_review_recommended` is true because the review-fix batch crosses the workflow score threshold.
