@@ -113,3 +113,38 @@ No epic-end deferred reconciliation or archive has run.
 1. Repair prior migration 20260919192439_provisioning_rpc_attestation_coherence.sql so local reset succeeds, then rerun required DB/RLS/browser verification and resume Story 13.4.
 
 **Next:** Repair the migration-chain failure and rerun /auto-bmad epic --epic 13; then Human review: /bmad-checkpoint-preview epic/13-wave-b1a-notifications-and-email-infrastructure. Project context: run /bmad-project-context refresh after epic completion.
+
+## Report — 2026-09-24T15:01:59Z (halted â€” needs-human)
+
+**Epic:** `13` — 4 stories.
+**Branch:** `epic/13-wave-b1a-notifications-and-email-infrastructure` (HEAD `5367915`).
+**Pipeline status:** Halted at Story 13.4 Phase 5: required DB/RLS verification passed, but the build delegate could not start the guarded E2E server.
+**Continues:** 2026-09-24T14:33:15Z (halted â€” needs-human)
+
+**Summary:** The prior provisioning migration replay was repaired. Story 13.4 migrations reset cleanly and serialized required DB/RLS tests passed; browser verification awaits a production-mode E2E server.
+
+**Timing:** started 2026-09-23T10:29:03Z; completed in progress — elapsed 28h 32m (≈8h 33m AI-run, ≈19h 59m human/idle wait); resumed 3×.
+
+**Stories:**
+1. 13.1â€“13.3: landed in earlier sessions; see prior report sections.
+2. 13.4: Phase 5 build blocked only on managed E2E server context; follow-up review not run.
+
+**Skipped:** (none)
+
+**Epic gate:** Not reached.
+
+**TEA:** Post-development automation and epic gates not reached.
+
+**Retrospective:** Not reached.
+
+**Overrides:** none
+
+**Open questions:** (none)
+
+**Deferred work:**
+1. Real-recipient delivery remains disabled pending a separate ADR-B011 owner go-live record.
+
+**⚠️ Needs human:**
+1. Supply an authorized production-mode E2E server at 127.0.0.1:3100, run pnpm run test:e2e, then resume Story 13.4 Phase 5.
+
+**Next:** Run /auto-bmad epic --epic 13 after guarded E2E server is available. Human review: /bmad-checkpoint-preview epic/13-wave-b1a-notifications-and-email-infrastructure. Project context: run /bmad-project-context refresh after epic completion.

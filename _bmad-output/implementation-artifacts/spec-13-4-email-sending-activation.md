@@ -2,7 +2,7 @@
 title: 'Email Sending Activation'
 type: 'feature'
 created: '2026-09-24'
-status: 'blocked'
+status: 'in-progress'
 baseline_revision: '136ec78e26d5fb073494b54680ee84750e0afd21'
 review_loop_iteration: 0
 followup_review_recommended: false
@@ -85,9 +85,15 @@ deferred:
 
 ## Auto Run Result
 
+Status: in-progress
+
+## Historical E2E Context Halt Evidence
+
 Status: blocked
 
 Blocking condition: implementation verification failed — browser evidence cannot run because the managed production-mode E2E server could not be started: the resource guard returned `HOOK_CONTEXT_UNAVAILABLE` (`The explicit subagent lifecycle context is not registered.`), and no server is listening on `127.0.0.1:3100`. Typecheck, lint, unit tests, clean local migration reset, and required serialized integration/RLS verification passed.
+
+**Resolved 2026-09-24:** An authorized production Next.js server is now running under the trusted resource guard at `http://127.0.0.1:3100`; HTTP 200 is confirmed. Resume browser verification with that guarded server.
 
 ## Historical Migration Reset Halt Evidence
 
