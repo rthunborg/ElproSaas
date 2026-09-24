@@ -407,3 +407,9 @@ existing AC, recorded so it is not re-triaged a third time.
 - source_spec: `spec-13-2-in-app-notifications-bell-center-and-preferences.md`
   summary: Numeric runner SLA, batch-size, fairness, backlog-age, and freshness thresholds remain owner-pending. Show only honest elapsed-time/run-state information and do not claim a production target.
   evidence: (no evidence recorded)
+
+## Deferred from: build-auto review of 13-3-email-outbox-pipeline-queued-non-sending (2026-09-24)
+
+- source_spec: `spec-13-3-email-outbox-pipeline-queued-non-sending.md`
+  summary: Story 13.4 owns the provider adapter, sandbox/mock queued-to-sent proof, release control, eligible live emitters, and all public unsubscribe capability. Real-recipient delivery remains separately owner-gated by ADR-B011.
+  evidence: (no evidence recorded)

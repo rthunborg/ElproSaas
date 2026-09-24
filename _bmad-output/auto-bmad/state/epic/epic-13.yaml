@@ -9,11 +9,11 @@ spec_folder: null
 story_id: null
 branch: epic/13-wave-b1a-notifications-and-email-infrastructure
 status: in-progress
-updated_at: "2026-09-23T18:47:02Z"
+updated_at: "2026-09-24T08:00:57Z"
 started_at: "2026-09-23T10:29:03Z"
 completed_at: null
-active_seconds: 23955
-timing_anchor: 1790189222
+active_seconds: 25090
+timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
 git_mode: remote
@@ -88,17 +88,22 @@ open_questions:
   - "[13-2-in-app-notifications-bell-center-and-preferences] Cross-model review command produced no output."
   - "[13-2-in-app-notifications-bell-center-and-preferences] Full unit suite remains environment-blocked by background-runner configuration; focused notification units and required integration/RLS passed."
   - "[13-2-in-app-notifications-bell-center-and-preferences] Reviewer capacity required sequential reuse of two agents for five lenses."
+  - "[13-3-email-outbox-pipeline-queued-non-sending] Follow-up review still recommends another pass; the epic PR remains draft."
+  - "[13-3-email-outbox-pipeline-queued-non-sending] Cross-model review command produced no output."
+  - "[13-3-email-outbox-pipeline-queued-non-sending] Reviewer capacity required staged launches for five review lenses."
 deferred_work:
   - Real-recipient go-live requires the separate ADR-B011 owner decision.
   - "[13-1-authenticated-background-runner-and-producer-registry] Numeric runner SLA, batch-size, fairness, backlog-age, and freshness thresholds remain owner-pending NFR contracts."
   - "[13-2-in-app-notifications-bell-center-and-preferences] Numeric runner SLA, batch-size, fairness, backlog-age, and freshness thresholds remain owner-pending."
+  - "[13-3-email-outbox-pipeline-queued-non-sending] Story 13.4 owns provider delivery, sandbox proof, release control, eligible emitters, public unsubscribe, and owner-gated real-recipient delivery."
 blockers: []
 overrides: {}
 constraints: []
 epic_slug: wave-b1a-notifications-and-email-infrastructure
-active_story: 13-3-email-outbox-pipeline-queued-non-sending
+active_story: 13-4-email-sending-activation
 stories_landed:
   - 13-1-authenticated-background-runner-and-producer-registry
   - 13-2-in-app-notifications-bell-center-and-preferences
+  - 13-3-email-outbox-pipeline-queued-non-sending
 stories_skipped: []
 batch_flip_done: false

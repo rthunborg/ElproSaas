@@ -119,7 +119,9 @@ Residual risks: The dark processor performs no delivery. Suppression evaluation 
   - `[medium]` `[patch]` Added default scheduler-producer and provider-containment regression tests.
   - `[low]` `[patch]` Tightened recovery event selection and lease-field transition coverage.
 
-### 2026-09-23 — Follow-up review pass
+### 2026-09-23 — Review pass
+
+Pass: follow-up
 - intent_gap: 0
 - bad_spec: 0
 - patch: 4 (high 0, medium 3, low 1)
