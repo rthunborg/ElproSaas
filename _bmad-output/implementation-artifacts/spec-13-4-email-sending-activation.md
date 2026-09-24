@@ -207,7 +207,7 @@ The public route supplies only a token and IP-derived hash to the database funct
 - `src/app/(public)/unsubscribe/[token]/route.ts:17` — `POST`: never trusts arbitrary `x-forwarded-for`; the completed page has no dead reactivation control.
 - `supabase/migrations/20260924090000_email_sending_activation.sql:42` — `notification_preferences_channel_check1`: removes the inherited `channel <> 'email'` check that blocked the activated email preference write.
 - `supabase/migrations/20260924090000_email_sending_activation.sql:44` — `notification_preferences_category_check`: admits the active non-essential `quote.delivery` email preference.
-- `supabase/migrations/20260924090000_email_sending_activation.sql:46` — `consume_email_unsubscribe_token`: scopes suppression to the resolved token record.
+- `supabase/migrations/20260924120000_email_delivery_followup_fixes.sql:49` — `consume_email_unsubscribe_token`: preserves the public signature but always adds suppression, so a token cannot reactivate delivery.
 - `tests/e2e/global-setup.ts:879` — rate-limit fixture seeds the current and next UTC hour for every observed loopback/unknown IP representation, so the late public journey retains its intended 429 outcome when the full suite crosses an hour boundary.
 
 ### Quote attachment and reminder eligibility
@@ -225,12 +225,13 @@ ADR-B011 requires a delivery worker to receive an exact private copy, rather tha
 - `src/server/email/quote-delivery.ts:31` — `assertQuoteDeliveryArtifact`: verifies the artifact bytes against their distinct PDF checksum.
 - `src/server/email/outbox.ts:141` — `Quote delivery artifact is required`: fails closed before the adapter is called.
 - `src/server/email/outbox.ts:58` — `loadClaimedDeliveryAttachment`: treats a missing claimed artifact as a recoverable failure and decodes the database bytea representation before checksum verification.
-- `supabase/migrations/20260924110000_quote_email_delivery_artifacts.sql:41` — `record_email_outbox_delivery`: consumes only the prepared artifact bound to the active sent outbox transition.
+- `supabase/migrations/20260924120000_email_delivery_followup_fixes.sql:4` — `record_email_outbox_delivery`: locks the active claim and consumes its exact prepared artifact before committing `sent`.
 - `supabase/migrations/20260924110000_quote_email_delivery_artifacts.sql:2` — `email_delivery_artifacts`: stores the outbox-bound private artifact and revokes direct table access.
 - `supabase/migrations/20260924110000_quote_email_delivery_artifacts.sql:14` — `unique (id, tenant_id)`: makes the tenant-binding foreign key valid during clean migration replay.
 - `supabase/migrations/20260924110000_quote_email_delivery_artifacts.sql:58` — `read_claimed_email_delivery_artifact`: limits worker reads to its active claim.
 - `src/server/commands/quotes/mark-sent.ts:213` — `finalize_quote_email_delivery`: atomically finalizes the quote and queues the prepared delivery.
 - `supabase/migrations/20260924110000_quote_email_delivery_artifacts.sql:71` — `validate_claimed_quote_email_delivery`: rechecks the claimed artifact against the current sent quote before submission.
+- `supabase/migrations/20260924120000_email_delivery_followup_fixes.sql:26` — `claim_email_outbox`: returns the claimed category, letting the worker demand an artifact only for quote delivery.
 
 ### Confirmed CRM recipient and transaction boundary
 
