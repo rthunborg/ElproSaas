@@ -10,7 +10,10 @@ export type QuoteDeliveryArtifact = {
   readonly outboxId: string;
   readonly tenantId: string;
   readonly quoteVersionId: string;
+  /** Current quote snapshot fingerprint, used for the worker's eligibility recheck. */
   readonly contentFingerprint: string;
+  /** SHA-256 of the frozen private PDF bytes. */
+  readonly pdfChecksumSha256: string;
   readonly bytes: Uint8Array;
 };
 
@@ -28,5 +31,5 @@ export function normalizeQuoteDeliveryRecipient(input: QuoteDeliveryRecipient): 
 export function assertQuoteDeliveryArtifact(input: QuoteDeliveryArtifact): void {
   if (input.bytes.byteLength === 0) throw new Error("Quote delivery artifact is empty");
   const actual = createHash("sha256").update(input.bytes).digest("hex");
-  if (actual !== input.contentFingerprint) throw new Error("Quote delivery artifact fingerprint mismatch");
+  if (actual !== input.pdfChecksumSha256) throw new Error("Quote delivery artifact checksum mismatch");
 }

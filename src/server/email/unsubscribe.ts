@@ -1,7 +1,9 @@
 import { createHash, randomBytes } from "node:crypto";
 import { createSupabaseServerClient } from "@/server/db/supabase-server-client";
+export { trustedUnsubscribeIp } from "./unsubscribe-ip";
 
 const hash = (value: string) => createHash("sha256").update(value, "utf8").digest("hex");
+
 
 export function createUnsubscribeToken(entropyBytes = 32): { readonly plaintextToken: string; readonly tokenHash: string } {
   const plaintextToken = randomBytes(entropyBytes).toString("hex");

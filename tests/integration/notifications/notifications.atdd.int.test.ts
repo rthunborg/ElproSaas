@@ -84,7 +84,7 @@ describe("Story 13.2 notification data, producer, and personal RLS contracts", (
     } finally { await cleanupFixture(fixture); }
   });
 
-  test("[P0][AC5][13.2-INT-003] essential preferences remain enabled and email remains database-disabled", async (ctx) => {
+  test("[P0][AC5][13.2-INT-003] essential preferences remain enabled while the activated delivery email preference is permitted", async (ctx) => {
     if (skipUnlessStack(ctx, stackUp)) return;
     const fixture = await createTwoTenantFixture();
     try {
@@ -92,8 +92,12 @@ describe("Story 13.2 notification data, producer, and personal RLS contracts", (
       expect((await user.from("notification_preferences").select("id").eq("tenant_id", fixture.tenantA.id)).data).toEqual([]);
       expect((await user.from("notification_preferences").insert({ tenant_id: fixture.tenantA.id, user_id: fixture.adminA.id, category: "quote.follow_up_due", channel: "in_app", enabled: true })).error).toBeNull();
       expect(await adminQuery<{ enabled: boolean }>("select enabled from public.notification_preferences where tenant_id=$1 and user_id=$2 and category='quote.follow_up_due' and channel='in_app'", [fixture.tenantA.id, fixture.adminA.id])).toEqual([{ enabled: true }]);
-      expect((await user.from("notification_preferences").insert({ tenant_id: fixture.tenantA.id, user_id: fixture.adminA.id, category: "quote.follow_up_due", channel: "email", enabled: true })).error?.code).toBe("23514");
+      expect((await user.from("notification_preferences").insert({ tenant_id: fixture.tenantA.id, user_id: fixture.adminA.id, category: "quote.follow_up_due", channel: "email", enabled: true })).error).toBeNull();
       expect((await user.from("notification_preferences").insert({ tenant_id: fixture.tenantA.id, user_id: fixture.adminA.id, category: "quote.follow_up_due", channel: "in_app", enabled: false })).error?.code).toBe("23514");
+      expect((await user.from("notification_preferences").upsert({ tenant_id: fixture.tenantA.id, user_id: fixture.adminA.id, category: "quote.follow_up_due", channel: "email", enabled: false }, { onConflict: "tenant_id,user_id,category,channel" })).error?.code).toBe("23514");
+      expect((await user.from("notification_preferences").insert({ tenant_id: fixture.tenantA.id, user_id: fixture.adminA.id, category: "quote.delivery", channel: "email", enabled: false })).error).toBeNull();
+      expect((await user.from("notification_preferences").upsert({ tenant_id: fixture.tenantA.id, user_id: fixture.adminA.id, category: "quote.delivery", channel: "email", enabled: true }, { onConflict: "tenant_id,user_id,category,channel" })).error).toBeNull();
+      expect(await adminQuery<{ enabled: boolean }>("select enabled from public.notification_preferences where tenant_id=$1 and user_id=$2 and category='quote.delivery' and channel='email'", [fixture.tenantA.id, fixture.adminA.id])).toEqual([{ enabled: true }]);
     } finally { await cleanupFixture(fixture); }
   });
 

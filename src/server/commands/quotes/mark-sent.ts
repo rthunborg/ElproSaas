@@ -216,6 +216,7 @@ export const markQuoteVersionSent = defineCommand<
           p_recipient_source_id: ctx.input.recipient_source_id,
           p_pdf_base64: Buffer.from(pdfBytes).toString("base64"),
           p_content_fingerprint: challenge.contentFingerprint,
+          p_pdf_checksum_sha256: challenge.checksumSha256,
         })
       : await rpc.rpc("mark_quote_version_sent", commonArgs);
     // Map the RPC's not-draft assertion (a race) → QUOTE_VERSION_LOCKED; other codes per the mapper.

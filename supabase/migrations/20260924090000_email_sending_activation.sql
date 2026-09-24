@@ -39,6 +39,9 @@ grant execute on function public.record_email_outbox_delivery(uuid,uuid,text,tex
 alter table public.notification_preferences drop constraint notification_preferences_channel_check;
 alter table public.notification_preferences add constraint notification_preferences_channel_check check (channel in ('in_app','email'));
 alter table public.notification_preferences drop constraint if exists notification_preferences_check;
+alter table public.notification_preferences drop constraint if exists notification_preferences_channel_check1;
+alter table public.notification_preferences drop constraint if exists notification_preferences_category_check;
+alter table public.notification_preferences add constraint notification_preferences_category_check check (category in ('quote.follow_up_due','quote.delivery'));
 
 create or replace function public.consume_email_unsubscribe_token(p_token_hash text, p_ip_hash text, p_reactivate boolean default false)
 returns text language plpgsql security definer set search_path = '' as $$
@@ -46,10 +49,10 @@ declare v_token public.email_unsubscribe_tokens%rowtype; v_window timestamptz :=
 begin
   select * into v_token from public.email_unsubscribe_tokens where token_hash=p_token_hash for update;
   if not found then return 'inactive'; end if;
+  if v_token.revoked_at is not null then return 'inactive'; end if;
   insert into public.email_unsubscribe_rate_limits(tenant_id,token_hash,ip_hash,window_started_at) values(v_token.tenant_id,p_token_hash,p_ip_hash,v_window)
   on conflict(tenant_id,token_hash,ip_hash,window_started_at) do update set attempts=public.email_unsubscribe_rate_limits.attempts+1 returning attempts into v_attempts;
   if v_attempts > 10 then return 'limited'; end if;
-  if v_token.revoked_at is not null then return 'inactive'; end if;
   if p_reactivate then delete from public.email_suppressions where tenant_id=v_token.tenant_id and recipient_hash=v_token.recipient_hash and category=v_token.category;
   else insert into public.email_suppressions(tenant_id,recipient_hash,category) values(v_token.tenant_id,v_token.recipient_hash,v_token.category) on conflict do nothing; end if;
   update public.email_unsubscribe_tokens set revoked_at=now() where id=v_token.id;

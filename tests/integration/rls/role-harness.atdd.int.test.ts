@@ -111,7 +111,7 @@ async function seedEveryTenantTable(tenantId: string, actorId: string): Promise<
     [tenantId],
   ))[0]?.id;
   const emailDeliveryArtifact = (await adminQuery<{ id: string }>(
-    "insert into public.email_delivery_artifacts (tenant_id, outbox_id, quote_version_id, content_fingerprint, pdf_bytes) values ($1, $2, $3, repeat('d', 64), decode('25504446', 'hex')) returning id",
+    "insert into public.email_delivery_artifacts (tenant_id, outbox_id, quote_version_id, content_fingerprint, pdf_checksum_sha256, pdf_bytes) values ($1, $2, $3, repeat('d', 64), encode(extensions.digest(decode('25504446', 'hex'), 'sha256'), 'hex'), decode('25504446', 'hex')) returning id",
     [tenantId, emailOutbox, quoteVersion],
   ))[0]?.id;
   const emailUnsubscribeToken = (await adminQuery<{ id: string }>("insert into public.email_unsubscribe_tokens (tenant_id, token_hash, recipient_hash, category) values ($1, encode(gen_random_bytes(32), 'hex'), repeat('e', 64), 'quote.delivery') returning id", [tenantId]))[0]?.id;

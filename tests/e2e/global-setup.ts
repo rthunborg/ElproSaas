@@ -149,12 +149,23 @@ export default async function globalSetup() {
     customer_id: companyId,
     name: `Huvudkontor ${token()}`,
   });
-  await adminInsertContact({
+  const companyContactId = await adminInsertContact({
     tenant_id: base.tenantA.id,
     customer_id: companyId,
     facility_id: facilityId,
     name: `Erik Kontakt ${token()}`,
   });
+  // Story 13.4: the quote send journey may select only an existing linked CRM
+  // address. Keep the existing shared customer fixture and add deterministic
+  // addresses instead of introducing a parallel quote/customer graph.
+  await adminQuery(
+    "update public.customers set email=$2 where id=$1",
+    [companyId, `quote-customer-${token()}@example.test`],
+  );
+  await adminQuery(
+    "update public.contacts set email=$2 where id=$1",
+    [companyContactId, `quote-contact-${token()}@example.test`],
+  );
 
   // Story 8.3: seed ONE own-tenant file linked to the COMPANY customer (owner_type='customer',
   // purpose='crm_document' — matching the customer detail page's primary EntityFilePanel) with a
@@ -849,6 +860,34 @@ export default async function globalSetup() {
   await insertOutbox(base.tenantA.id, "e2e_suppressed", outboxSubjects.suppressed, "suppressed", 0, null);
   await insertOutbox(base.tenantB.id, "e2e_other_tenant", outboxSubjects.otherTenant, "queued", 0, null);
 
+  // Story 13.4: browser-only authenticated preference and public-token fixtures.
+  // Tokens are plaintext only in the gitignored fixture file; the database stores
+  // SHA-256 hashes, matching the public route's production contract.
+  const unsubscribeToken = (label: string) => createHash("sha256").update(`${label}:${token()}`).digest("hex");
+  const activeUnsubscribeToken = unsubscribeToken("active");
+  const revokedUnsubscribeToken = unsubscribeToken("revoked");
+  const unknownUnsubscribeToken = unsubscribeToken("unknown");
+  const rateLimitedUnsubscribeToken = unsubscribeToken("limited");
+  const tokenHash = (value: string) => createHash("sha256").update(value).digest("hex");
+  const unsubscribeRecipientHash = createHash("sha256").update(`unsubscribe-recipient:${token()}`).digest("hex");
+  for (const [plaintext, revoked] of [[activeUnsubscribeToken, false], [revokedUnsubscribeToken, true], [rateLimitedUnsubscribeToken, false]] as const) {
+    await adminQuery(
+      "insert into public.email_unsubscribe_tokens (tenant_id,token_hash,recipient_hash,category,revoked_at) values ($1,$2,$3,'quote.delivery',case when $4 then now() else null end)",
+      [base.tenantA.id, tokenHash(plaintext), unsubscribeRecipientHash, revoked],
+    );
+  }
+  for (const sourceIp of ["unknown", "127.0.0.1", "::1", "::ffff:127.0.0.1"]) {
+    // A full browser suite can cross the UTC hour after global setup. Seed the
+    // current and immediately following limiter windows so this public test
+    // still exercises the 429 path without relying on execution order.
+    for (const hourOffset of [0, 1]) {
+      await adminQuery(
+        "insert into public.email_unsubscribe_rate_limits (tenant_id,token_hash,ip_hash,window_started_at,attempts) values ($1,$2,$3,date_trunc('hour', now()) + ($4 * interval '1 hour'),10)",
+        [base.tenantA.id, tokenHash(rateLimitedUnsubscribeToken), tokenHash(sourceIp), hourOffset],
+      );
+    }
+  }
+
   const fixture = {
     ...base,
     operator: base.adminB,
@@ -879,6 +918,17 @@ export default async function globalSetup() {
         failed: outboxReference("e2e_failed", outboxSubjects.failed),
         suppressed: outboxReference("e2e_suppressed", outboxSubjects.suppressed),
         otherTenant: outboxReference("e2e_other_tenant", outboxSubjects.otherTenant),
+      },
+    },
+    emailActivation: {
+      preferenceUser: base.adminA,
+      nonEssentialCategoryLabel: "Offertleverans",
+      essentialCategoryLabel: "Viktig uppföljning av offert",
+      unsubscribe: {
+        activeToken: activeUnsubscribeToken,
+        revokedToken: revokedUnsubscribeToken,
+        unknownToken: unknownUnsubscribeToken,
+        rateLimitedToken: rateLimitedUnsubscribeToken,
       },
     },
     adminUserManagement: {

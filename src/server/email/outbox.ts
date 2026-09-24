@@ -58,13 +58,15 @@ export async function recordSyntheticDeliveryOutcome(deps: OutboxDependencies, i
 async function loadClaimedDeliveryAttachment(deps: OutboxDependencies, input: { readonly id: string; readonly tenantId: string; readonly workerId: string; readonly now: string }): Promise<readonly { readonly filename: string; readonly bytes: Uint8Array; readonly contentType: string }[]> {
   const { data, error } = await deps.client.rpc("read_claimed_email_delivery_artifact", { p_outbox_id: input.id, p_tenant_id: input.tenantId, p_worker_id: input.workerId, p_now: input.now });
   if (error) throw new Error("Email delivery artifact read failed");
-  const row = (data as readonly { pdf_bytes?: string | Uint8Array; quote_version_id?: string; content_fingerprint?: string }[] | null)?.[0];
-  if (!row) return [];
-  const bytes = typeof row.pdf_bytes === "string" ? Uint8Array.from(Buffer.from(row.pdf_bytes, "base64")) : row.pdf_bytes;
-  if (!bytes || !row.quote_version_id) throw new Error("Email delivery artifact is invalid");
+  const row = (data as readonly { pdf_bytes?: string | Uint8Array; quote_version_id?: string; content_fingerprint?: string; pdf_checksum_sha256?: string }[] | null)?.[0];
+  if (!row) throw new Error("Email delivery artifact is required");
+  const bytes = typeof row.pdf_bytes === "string"
+    ? Uint8Array.from(row.pdf_bytes.startsWith("\\x") ? Buffer.from(row.pdf_bytes.slice(2), "hex") : Buffer.from(row.pdf_bytes, "base64"))
+    : row.pdf_bytes;
+  if (!bytes || !row.quote_version_id || !row.pdf_checksum_sha256) throw new Error("Email delivery artifact is invalid");
   const { data: current, error: currentError } = await deps.client.rpc("validate_claimed_quote_email_delivery", { p_outbox_id: input.id, p_tenant_id: input.tenantId, p_worker_id: input.workerId, p_now: input.now, p_content_fingerprint: row.content_fingerprint });
   if (currentError || current !== true) throw new Error("Quote delivery artifact is no longer eligible");
-  assertQuoteDeliveryArtifact({ outboxId: input.id, tenantId: input.tenantId, quoteVersionId: row.quote_version_id, contentFingerprint: row.content_fingerprint ?? "", bytes });
+  assertQuoteDeliveryArtifact({ outboxId: input.id, tenantId: input.tenantId, quoteVersionId: row.quote_version_id, contentFingerprint: row.content_fingerprint ?? "", pdfChecksumSha256: row.pdf_checksum_sha256, bytes });
   return [{ filename: `quote-${row.quote_version_id}.pdf`, bytes, contentType: "application/pdf" }];
 }
 

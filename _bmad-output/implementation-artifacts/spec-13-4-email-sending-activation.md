@@ -2,10 +2,10 @@
 title: 'Email Sending Activation'
 type: 'feature'
 created: '2026-09-24'
-status: 'in-progress'
-baseline_revision: '136ec78e26d5fb073494b54680ee84750e0afd21'
+status: 'done'
+baseline_revision: 'dd03e42e9ddf799a850f65a22f287333b355b91d'
 review_loop_iteration: 0
-followup_review_recommended: false
+followup_review_recommended: true
 context:
   - 'docs/decisions/ADR-B011-epic-13-email-release-and-quote-delivery.md'
   - '_bmad-output/planning-artifacts/architecture-phase-b.md'
@@ -83,10 +83,37 @@ deferred:
 
 ## Review Triage Log
 
+### 2026-09-24 — implementation and review-fix batches
+
+- intent_gap: 0
+- bad_spec: 0
+- patch: 7
+- defer: 0
+- reject: 0
+- addressed_findings:
+  - `[patch]` Required the outbox worker to have its private quote artifact before adapter submission, retaining the lease-bound recoverable failure path for an absent artifact.
+  - `[patch]` Made successful lease-bound sent persistence consume the matching prepared artifact in the same database transaction.
+  - `[patch]` Returned the uniform inactive result for revoked unsubscribe tokens before rate-limit accounting; active token/IP attempts still receive the legitimate limited result.
+  - `[patch]` Derived the public limiter input only from one validated `x-vercel-forwarded-for` address, with the fixed `unknown` fallback used by local browser coverage.
+  - `[patch]` Removed the rendered but nonfunctional reactivation control after unsubscribe, because the consumed token is revoked.
+  - `[patch]` Separated the PDF checksum from the quote-currentness fingerprint and activated executing artifact, preference, worker, token, and browser assertions.
+  - `[patch]` Repaired the onboarding organization-number seed and the accepted-record/job source fixtures so their valid lifecycle setup satisfies the activated recipient-selection contract.
+
+Review caveat: the bounded cross-model reviewer command exited `1` with no output. It is unavailable review evidence, not a clean external review result. Triage contains only production-reachable findings.
+
 ## Auto Run Result
 
-Status: in-progress
+Status: done
 
+Summary: Activated sandbox-only email delivery with a private quote-delivery artifact, immutable recipient evidence, server-authorized email preferences, and the narrow public unsubscribe capability. Real-recipient delivery remains disabled pending the separate ADR-B011 owner go-live record.
+
+Review findings: 7 production-reachable patches; 0 intent gaps, bad-spec loopbacks, deferrals, or rejected findings. The patch score is at least 10 under the workflow (three medium-equivalent or greater corrections plus supporting patches), so `followup_review_recommended: true`.
+
+Verification: clean local reset completed. Required serialized Vitest with `SUPABASE_TEST_REQUIRED=1` passed 119 files / 1 skipped file and 1,181 tests / 1 skipped test. `pnpm run typecheck` passed. `pnpm run lint` completed with 0 errors and 13 existing warnings. Unit tests passed 1,894 / 1 skipped. The E2E production build passed. Final Playwright passed 173 / 4 explicit skips / 0 failures (177 discovered).
+
+Integration skip: `tests/integration/ops/recovery-storage-immutability.int.test.ts` is explicitly skipped because `ISOLATED_RECOVERY_STORAGE_PROOF=1` and its separate recovery-stack URL, service key, fixture, and before-row inputs were not provided; it is a CI-only physical recovery-storage proof, not Story 13.4 coverage.
+
+Residual review caveat: the bounded cross-model reviewer command exited `1` with no output, so that review layer is unavailable. The provider evidence uses a synthetic sandbox adapter and does not prove an external provider or production sender configuration.
 ## Historical E2E Context Halt Evidence
 
 Status: blocked
@@ -137,15 +164,15 @@ Unsubscribe is a separate public capability: the URL carries the only plaintext 
 
 ## Suggested Review Order
 
-Author: implementation author.
-Refreshed against the current uncommitted working tree based on `136ec78e26d5fb073494b54680ee84750e0afd21`.
+Author: Story 13.4 implementation and fix author.
+Refreshed against the final reviewed Story 13.4 working tree before its sole final commit.
 
 ### Fail-closed delivery release control
 
 The adapter accepts only synthetic envelopes. The separate ADR-B011 owner go-live record remains outside this code, so every other release posture is closed before a claim can call the adapter.
 
 - `src/server/email/provider.ts:11` — `evaluateEmailReleaseControl`: only the sandbox posture is admitted.
-- `src/server/email/outbox.ts:91` — `processEmailOutbox`: applies suppression before release evaluation and records a lease-bound sent result.
+- `src/server/email/outbox.ts:93` — `processEmailOutbox`: applies suppression before release evaluation and records a lease-bound sent result.
 - `src/app/api/jobs/run/route.ts:91` — `notifications.email-outbox-delivery`: preserves the sole authenticated runner lane.
 - `supabase/migrations/20260924090000_email_sending_activation.sql:27` — `record_email_outbox_delivery`: requires the active worker claim before state becomes `sent`.
 
@@ -154,29 +181,35 @@ The adapter accepts only synthetic envelopes. The separate ADR-B011 owner go-liv
 The public route supplies only a token and IP-derived hash to the database function. The function returns generic inactive or rate-limit outcomes and never returns tenant, recipient, or token data.
 
 - `src/app/(public)/unsubscribe/[token]/route.ts:10` — `GET`: serves a standalone public form without an authenticated shell.
-- `src/server/email/unsubscribe.ts:25` — `handleUnsubscribeRequest`: hashes the plaintext token before the RPC boundary.
-- `supabase/migrations/20260924090000_email_sending_activation.sql:41` — `drop constraint if exists notification_preferences_check`: preserves clean migration replay when the legacy constraint is absent.
-- `supabase/migrations/20260924090000_email_sending_activation.sql:43` — `consume_email_unsubscribe_token`: scopes suppression to the resolved token record.
+- `src/server/email/unsubscribe.ts:27` — `handleUnsubscribeRequest`: hashes the plaintext token before the RPC boundary.
+- `src/server/email/unsubscribe-ip.ts:4` — `trustedUnsubscribeIp`: accepts one validated `x-vercel-forwarded-for` value and maps every absent or malformed value to `unknown`.
+- `src/app/(public)/unsubscribe/[token]/route.ts:17` — `POST`: never trusts arbitrary `x-forwarded-for`; the completed page has no dead reactivation control.
+- `supabase/migrations/20260924090000_email_sending_activation.sql:42` — `notification_preferences_channel_check1`: removes the inherited `channel <> 'email'` check that blocked the activated email preference write.
+- `supabase/migrations/20260924090000_email_sending_activation.sql:44` — `notification_preferences_category_check`: admits the active non-essential `quote.delivery` email preference.
+- `supabase/migrations/20260924090000_email_sending_activation.sql:46` — `consume_email_unsubscribe_token`: scopes suppression to the resolved token record.
+- `tests/e2e/global-setup.ts:879` — rate-limit fixture seeds the current and next UTC hour for every observed loopback/unknown IP representation, so the late public journey retains its intended 429 outcome when the full suite crosses an hour boundary.
 
 ### Quote attachment and reminder eligibility
 
 The quote delivery seam accepts bytes only from a caller that has already resolved the current authorized PDF. It rejects stale, invalid, and absent inputs before adapter submission; terminal reminder states are ineligible.
 
-- `src/server/email/outbox.ts:122` — `processQuoteDelivery`: validates the PDF before constructing a server-only attachment.
+- `src/server/email/outbox.ts:124` — `processQuoteDelivery`: validates the PDF before constructing a server-only attachment.
 - `tests/integration/email/quote-delivery-attachment.atdd.int.test.ts:9` — `[P0][13.4-INT-004]`: exercises current-PDF-only attachment behavior.
 
 ### Private quote delivery artifact
 
 ADR-B011 requires a delivery worker to receive an exact private copy, rather than original quote-file authority. The worker path therefore rejects a missing, changed, cross-tenant, or no-longer-current artifact before provider submission.
 
-- `src/server/email/quote-delivery.ts:20` — `normalizeQuoteDeliveryRecipient`: normalizes the selected linked recipient before it can be frozen in delivery state.
-- `src/server/email/quote-delivery.ts:28` — `assertQuoteDeliveryArtifact`: verifies the content-addressed artifact bytes.
-- `src/server/email/outbox.ts:137` — `Quote delivery artifact is required`: fails closed before the adapter is called.
+- `src/server/email/quote-delivery.ts:23` — `normalizeQuoteDeliveryRecipient`: normalizes the selected linked recipient before it can be frozen in delivery state.
+- `src/server/email/quote-delivery.ts:31` — `assertQuoteDeliveryArtifact`: verifies the artifact bytes against their distinct PDF checksum.
+- `src/server/email/outbox.ts:139` — `Quote delivery artifact is required`: fails closed before the adapter is called.
+- `src/server/email/outbox.ts:58` — `loadClaimedDeliveryAttachment`: treats a missing claimed artifact as a recoverable failure and decodes the database bytea representation before checksum verification.
+- `supabase/migrations/20260924110000_quote_email_delivery_artifacts.sql:41` — `record_email_outbox_delivery`: consumes only the prepared artifact bound to the active sent outbox transition.
 - `supabase/migrations/20260924110000_quote_email_delivery_artifacts.sql:2` — `email_delivery_artifacts`: stores the outbox-bound private artifact and revokes direct table access.
-- `supabase/migrations/20260924110000_quote_email_delivery_artifacts.sql:13` — `unique (id, tenant_id)`: makes the tenant-binding foreign key valid during clean migration replay.
-- `supabase/migrations/20260924110000_quote_email_delivery_artifacts.sql:42` — `read_claimed_email_delivery_artifact`: limits worker reads to its active claim.
+- `supabase/migrations/20260924110000_quote_email_delivery_artifacts.sql:14` — `unique (id, tenant_id)`: makes the tenant-binding foreign key valid during clean migration replay.
+- `supabase/migrations/20260924110000_quote_email_delivery_artifacts.sql:58` — `read_claimed_email_delivery_artifact`: limits worker reads to its active claim.
 - `src/server/commands/quotes/mark-sent.ts:213` — `finalize_quote_email_delivery`: atomically finalizes the quote and queues the prepared delivery.
-- `supabase/migrations/20260924110000_quote_email_delivery_artifacts.sql:55` — `validate_claimed_quote_email_delivery`: rechecks the claimed artifact against the current sent quote before submission.
+- `supabase/migrations/20260924110000_quote_email_delivery_artifacts.sql:71` — `validate_claimed_quote_email_delivery`: rechecks the claimed artifact against the current sent quote before submission.
 
 ### Confirmed CRM recipient and transaction boundary
 
@@ -185,12 +218,12 @@ The quote form loads only linked customer/contact candidates and requires a sele
 - `src/components/quotes/MarkSentButton.tsx:39` — `delivery-recipients`: loads the scoped candidate list for the draft version.
 - `src/components/quotes/MarkSentButton.tsx:81` — `recipient_source_type`: submits the selected source only, never a freeform recipient address.
 - `src/server/commands/quotes/mark-sent.ts:213` — `finalize_quote_email_delivery`: takes the atomic delivery path after ADR-B008 byte verification.
-- `supabase/migrations/20260924110000_quote_email_delivery_artifacts.sql:74` — `finalize_quote_email_delivery`: validates the linked address and commits artifact, finalization, and queue state.
+- `supabase/migrations/20260924110000_quote_email_delivery_artifacts.sql:90` — `finalize_quote_email_delivery`: validates the linked address, separate PDF checksum, and commits artifact, finalization, and queue state.
 - `tests/unit/server/commands/mark-quote-version-sent-validation.test.ts:69` — `[13.4]`: proves complete linked-recipient selections are shaped and partial selections are rejected.
 
 ### Evidence and limits
 
-AC1 closed-gate/sandbox adapter behavior → `tests/unit/server/email/provider.atdd.test.ts:9` and `:30`. Public-shell containment → `tests/unit/scripts/verify/email-delivery-containment.atdd.test.ts:9` and `:17`. The current private-artifact and terminal reminder invariants → `tests/integration/email/quote-delivery-attachment.atdd.int.test.ts:9`, `:29`, and `:38`.
+AC1 sandbox success, closed release, suppression, missing-artifact recovery, and consumed artifact state → `tests/integration/email/email-delivery-activation.atdd.int.test.ts:29`, `:46`, `:60`, and `:74`. Public unknown/revoked uniformity and active rate limits → `tests/integration/rls/email-unsubscribe.atdd.rls.test.ts:30`. The activated email preference false-to-true reversal and essential enabled-only invariant → `tests/integration/notifications/notifications.atdd.int.test.ts:87`, `:95`, `:97`, and `:99`. The updated lifecycle fixtures preserve their accepted-record and source-of-truth assertions while selecting a valid linked recipient → `tests/integration/commands/accepted-record-lock.int.test.ts:160` and `tests/integration/commands/job-source-of-truth.int.test.ts:123`.
 
-Evidence: `pnpm run typecheck` passed. `supabase db reset --local --yes` completed through `20260924110000_quote_email_delivery_artifacts.sql`. Required integration evidence passed with `SUPABASE_TEST_REQUIRED=1 pnpm exec vitest run --maxWorkers=1 --no-file-parallelism`: 117 files and 1,175 tests passed; 3 files and 6 tests were explicitly skipped. `node scripts/verify/check-review-order.mjs _bmad-output/implementation-artifacts/spec-13-4-email-sending-activation.md` passed.
-Limits: the integration run uses one worker to stay within the local Auth/Postgres connection capacity. Real-recipient delivery remains closed pending the ADR-B011 owner go-live record. The tested provider boundary is synthetic, so it does not prove production sender configuration or an external provider response.
+Evidence: clean local reset completed. The required serialized `SUPABASE_TEST_REQUIRED=1` Vitest run passed 119 files / 1 skipped file and 1,181 tests / 1 skipped test; the explicit skip is the separately configured CI-only recovery-storage proof. `pnpm run typecheck` passed; `pnpm run lint` had 0 errors and 13 existing warnings; unit tests passed 1,894 / 1 skipped; the E2E production build passed; final Playwright passed 173 / 4 explicit skips / 0 failures (177 discovered). Earlier focused evidence also passed: email/unsubscribe/preference integration 3 files / 12 tests, accepted-record/job-source fixtures 2 files / 35 tests, and the validated-Vercel-IP unit 1 test.
+Limits: real-recipient delivery remains closed pending the ADR-B011 owner go-live record. The provider boundary is synthetic, so it does not prove production sender configuration or an external provider response. The bounded cross-model reviewer command exited `1` with no output, leaving that layer unavailable rather than clean. `followup_review_recommended` is true because the review-fix batch crosses the workflow score threshold.

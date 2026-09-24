@@ -37,6 +37,7 @@ import {
   type TwoTenantFixture,
   type TestServerClient,
 } from "../../factories/tenants";
+import { adminQuery } from "../../factories/admin-sql";
 import { isLocalStackReachable } from "../../support/test-env";
 import { skipUnlessStack } from "../../support/stack-gate";
 import { establishCurrentQuotePdf } from "../../support/quote-pdf";
@@ -89,6 +90,10 @@ describe("7.3-INT-01: job detail reads from IMMUTABLE acceptance/version refs, n
       customer_type: "company",
       org_nr: "556000-0001",
     });
+    await adminQuery("update public.customers set email=$2 where id=$1", [
+      customerId,
+      `job-source-${crypto.randomUUID().slice(0, 8)}@example.test`,
+    ]);
     const calcId = await adminInsertCalculation({
       tenant_id: fx.tenantA.id,
       customer_id: customerId,
@@ -118,7 +123,11 @@ describe("7.3-INT-01: job detail reads from IMMUTABLE acceptance/version refs, n
       client: clientA as never,
       clock: fixedClock,
       correlationId: crypto.randomUUID(),
-      input: { quote_version_id: versionId },
+      input: {
+        quote_version_id: versionId,
+        recipient_source_type: "customer",
+        recipient_source_id: customerId,
+      },
     });
     expect(sent.ok).toBe(true);
     // Accept + create the job atomically via the REAL 7.2 transaction.
@@ -204,6 +213,10 @@ describe("7.3-INT-01: job detail reads from IMMUTABLE acceptance/version refs, n
       customer_type: "company",
       org_nr: "556000-0002",
     });
+    await adminQuery("update public.customers set email=$2 where id=$1", [
+      customerId,
+      `job-source-b-${crypto.randomUUID().slice(0, 8)}@example.test`,
+    ]);
     const calcId = await adminInsertCalculation({
       tenant_id: fx.tenantB.id,
       customer_id: customerId,
@@ -231,7 +244,11 @@ describe("7.3-INT-01: job detail reads from IMMUTABLE acceptance/version refs, n
       client: clientB as never,
       clock: fixedClock,
       correlationId: crypto.randomUUID(),
-      input: { quote_version_id: versionId },
+      input: {
+        quote_version_id: versionId,
+        recipient_source_type: "customer",
+        recipient_source_id: customerId,
+      },
     });
     expect(sent.ok).toBe(true);
     const accepted = await runCommand(acceptQuoteAndCreateJob, {

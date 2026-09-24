@@ -10,7 +10,7 @@ describe("Story 13.4 quote-email attachment authority (ATDD RED)", () => {
     const { processQuoteDelivery } = await loadOutbox();
     const submit = vi.fn().mockResolvedValue({ providerMessageId: "sandbox-quote-13-4" });
     const bytes = new Uint8Array([37, 80, 68, 70]);
-    const artifact = { outboxId: "33333333-3333-4333-8333-333333333333", tenantId: "11111111-1111-4111-8111-111111111111", quoteVersionId: "44444444-4444-4444-8444-444444444444", contentFingerprint: createHash("sha256").update(bytes).digest("hex"), bytes };
+    const artifact = { outboxId: "33333333-3333-4333-8333-333333333333", tenantId: "11111111-1111-4111-8111-111111111111", quoteVersionId: "44444444-4444-4444-8444-444444444444", contentFingerprint: "c".repeat(64), pdfChecksumSha256: createHash("sha256").update(bytes).digest("hex"), bytes };
     const loadCurrentAuthorizedPdf = vi.fn().mockResolvedValue({ bytes, snapshotId: "snapshot-current", artifact });
     await processQuoteDelivery({ releaseControl: { mode: "sandbox" }, loadCurrentAuthorizedPdf, revalidateQuoteDeliveryArtifact: async () => true, deliveryAdapter: { submit } }, { tenantId: "11111111-1111-4111-8111-111111111111", quoteId: "22222222-2222-4222-8222-222222222222" });
     expect(submit).toHaveBeenCalledWith(expect.objectContaining({ attachments: [expect.objectContaining({ bytes: new Uint8Array([37, 80, 68, 70]) })] }));
@@ -29,7 +29,7 @@ describe("Story 13.4 quote-email attachment authority (ATDD RED)", () => {
   test("[P0][13.4-INT-007] rejects an absent, altered, or no-longer-current delivery artifact before provider submission", async () => {
     const { processQuoteDelivery } = await loadOutbox();
     const bytes = new Uint8Array([37, 80, 68, 70]);
-    const artifact = { outboxId: "33333333-3333-4333-8333-333333333333", tenantId: "11111111-1111-4111-8111-111111111111", quoteVersionId: "44444444-4444-4444-8444-444444444444", contentFingerprint: "a".repeat(64), bytes };
+    const artifact = { outboxId: "33333333-3333-4333-8333-333333333333", tenantId: "11111111-1111-4111-8111-111111111111", quoteVersionId: "44444444-4444-4444-8444-444444444444", contentFingerprint: "a".repeat(64), pdfChecksumSha256: createHash("sha256").update(bytes).digest("hex"), bytes };
     const submit = vi.fn();
     await expect(processQuoteDelivery({ releaseControl: { mode: "sandbox" }, loadCurrentAuthorizedPdf: async () => ({ bytes, snapshotId: "current", artifact }), revalidateQuoteDeliveryArtifact: async () => false, deliveryAdapter: { submit } }, { tenantId: artifact.tenantId, quoteId: "22222222-2222-4222-8222-222222222222" })).rejects.toMatchObject({ code: "QUOTE_PDF_UNAVAILABLE" });
     expect(submit).not.toHaveBeenCalled();

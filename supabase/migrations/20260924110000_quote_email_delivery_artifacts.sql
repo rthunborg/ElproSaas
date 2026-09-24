@@ -5,6 +5,7 @@ create table public.email_delivery_artifacts (
   outbox_id uuid not null references public.email_outbox(id) on delete cascade,
   quote_version_id uuid not null,
   content_fingerprint text not null check (content_fingerprint ~ '^[0-9a-f]{64}$'),
+  pdf_checksum_sha256 text not null check (pdf_checksum_sha256 ~ '^[0-9a-f]{64}$'),
   pdf_bytes bytea not null check (octet_length(pdf_bytes) > 0),
   prepared_at timestamptz not null default now(),
   recovery_state text not null default 'prepared' check (recovery_state in ('prepared','orphaned','consumed','invalidated')),
@@ -34,15 +35,30 @@ alter table public.email_outbox add constraint email_outbox_quote_delivery_snaps
    and recipient_source_type is not null and recipient_source_id is not null)
 );
 
+-- Completing a lease-bound sent outcome consumes only its immutable artifact in
+-- the same transaction. A missing artifact is handled by the worker as a
+-- recoverable failure before any adapter call.
+create or replace function public.record_email_outbox_delivery(p_outbox_id uuid, p_tenant_id uuid, p_worker_id text, p_provider_message_id text, p_now timestamptz)
+returns void language plpgsql security definer set search_path = '' as $$
+begin
+  update public.email_outbox set state='sent', provider_message_id=p_provider_message_id, lease_owner=null, lease_expires_at=null, updated_at=p_now
+    where id=p_outbox_id and tenant_id=p_tenant_id and state='sending' and lease_owner=p_worker_id and lease_expires_at > p_now;
+  if not found then raise exception 'active email outbox claim not found' using errcode='P0002'; end if;
+  update public.email_delivery_artifacts set recovery_state='consumed'
+    where tenant_id=p_tenant_id and outbox_id=p_outbox_id and recovery_state='prepared';
+  insert into public.email_delivery_events(tenant_id,outbox_id,event_type) values(p_tenant_id,p_outbox_id,'sent');
+end;
+$$;
+
 revoke all on public.email_delivery_artifacts from public, anon, authenticated, service_role;
 alter table public.email_delivery_artifacts enable row level security;
 alter table public.email_delivery_artifacts force row level security;
 
 -- Only a lease owner can read one exact artifact. The worker cannot select quote files or a generic bucket.
 create or replace function public.read_claimed_email_delivery_artifact(p_tenant_id uuid, p_outbox_id uuid, p_worker_id text, p_now timestamptz)
-returns table(pdf_bytes bytea, quote_version_id uuid, content_fingerprint text)
+returns table(pdf_bytes bytea, quote_version_id uuid, content_fingerprint text, pdf_checksum_sha256 text)
 language sql security definer set search_path = '' as $$
-  select a.pdf_bytes, a.quote_version_id, a.content_fingerprint
+  select a.pdf_bytes, a.quote_version_id, a.content_fingerprint, a.pdf_checksum_sha256
   from public.email_delivery_artifacts a
   join public.email_outbox o on o.id=a.outbox_id and o.tenant_id=a.tenant_id
   where a.tenant_id=p_tenant_id and a.outbox_id=p_outbox_id
@@ -76,7 +92,7 @@ create or replace function public.finalize_quote_email_delivery(
   p_channel text, p_reference text, p_actor_user_id uuid, p_correlation_id uuid,
   p_attestation_key_id text, p_attestation_issued_at text, p_attestation_expires_at text,
   p_attestation_signature text, p_recipient_source_type text, p_recipient_source_id uuid,
-  p_pdf_base64 text, p_content_fingerprint text
+  p_pdf_base64 text, p_content_fingerprint text, p_pdf_checksum_sha256 text
 ) returns table(quote_version_id uuid, outbox_id uuid)
 language plpgsql security definer set search_path = '' as $$
 declare
@@ -84,11 +100,11 @@ declare
   v_bytes bytea; v_recipient_hash text;
 begin
   if p_recipient_source_type not in ('customer','contact') or p_pdf_base64 is null
-     or p_content_fingerprint !~ '^[0-9a-f]{64}$' then
+     or p_content_fingerprint !~ '^[0-9a-f]{64}$' or p_pdf_checksum_sha256 !~ '^[0-9a-f]{64}$' then
     raise exception 'invalid quote email delivery input' using errcode='23514';
   end if;
   v_bytes := decode(p_pdf_base64, 'base64');
-  if octet_length(v_bytes)=0 or encode(extensions.digest(v_bytes,'sha256'),'hex') <> p_content_fingerprint then
+  if octet_length(v_bytes)=0 or encode(extensions.digest(v_bytes,'sha256'),'hex') <> p_pdf_checksum_sha256 then
     raise exception 'quote delivery bytes do not match current fingerprint' using errcode='23514';
   end if;
   select qv.quote_id, q.customer_id into v_quote_id, v_customer_id
@@ -109,8 +125,8 @@ begin
   insert into public.email_outbox(tenant_id,recipient_hash,category,subject_type,subject_id,logical_period,template_key,template_version,template_params)
     values(p_tenant_id,v_recipient_hash,'quote.delivery','quote_version',p_quote_version_id,current_date,'quote-delivery',1,'{}'::jsonb)
     returning id into v_outbox_id;
-  insert into public.email_delivery_artifacts(tenant_id,outbox_id,quote_version_id,content_fingerprint,pdf_bytes)
-    values(p_tenant_id,v_outbox_id,p_quote_version_id,p_content_fingerprint,v_bytes) returning id into v_artifact_id;
+  insert into public.email_delivery_artifacts(tenant_id,outbox_id,quote_version_id,content_fingerprint,pdf_checksum_sha256,pdf_bytes)
+    values(p_tenant_id,v_outbox_id,p_quote_version_id,p_content_fingerprint,p_pdf_checksum_sha256,v_bytes) returning id into v_artifact_id;
   update public.email_outbox set quote_version_id=p_quote_version_id, delivery_artifact_id=v_artifact_id,
     recipient_normalized=v_recipient, recipient_source_type=p_recipient_source_type, recipient_source_id=p_recipient_source_id
     where id=v_outbox_id and tenant_id=p_tenant_id;
@@ -119,5 +135,5 @@ begin
   return query select p_quote_version_id,v_outbox_id;
 end;
 $$;
-revoke all on function public.finalize_quote_email_delivery(uuid,uuid,uuid,timestamptz,text,text,uuid,uuid,text,text,text,text,text,uuid,text,text) from public, anon;
-grant execute on function public.finalize_quote_email_delivery(uuid,uuid,uuid,timestamptz,text,text,uuid,uuid,text,text,text,text,text,uuid,text,text) to authenticated;
+revoke all on function public.finalize_quote_email_delivery(uuid,uuid,uuid,timestamptz,text,text,uuid,uuid,text,text,text,text,text,uuid,text,text,text) from public, anon;
+grant execute on function public.finalize_quote_email_delivery(uuid,uuid,uuid,timestamptz,text,text,uuid,uuid,text,text,text,text,text,uuid,text,text,text) to authenticated;
