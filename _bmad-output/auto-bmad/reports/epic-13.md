@@ -148,3 +148,48 @@ No epic-end deferred reconciliation or archive has run.
 1. Supply an authorized production-mode E2E server at 127.0.0.1:3100, run pnpm run test:e2e, then resume Story 13.4 Phase 5.
 
 **Next:** Run /auto-bmad epic --epic 13 after guarded E2E server is available. Human review: /bmad-checkpoint-preview epic/13-wave-b1a-notifications-and-email-infrastructure. Project context: run /bmad-project-context refresh after epic completion.
+
+## Report — 2026-09-24T18:55:15Z (final — caveated)
+
+**Epic:** `13` — 4 stories.
+**Branch:** `epic/13-wave-b1a-notifications-and-email-infrastructure` (HEAD `211bf68`).
+**Pipeline status:** Draft PR: Epic 13 trace gate FAILED at 23/26 P0 FULL; four landed stories remain in review and retrospective rejected completion.
+**Continues:** 2026-09-24T15:01:59Z (halted — needs-human)
+
+**Summary:** Owner decisions were recorded in ADR-B011 and the quote-delivery architecture. Stories 13.1-13.4 implemented the authenticated runner, in-app notifications, queued email outbox, and sandbox email activation. Required serialized integration/RLS, unit, and production-browser verification passed after Story 13.4 follow-up; real-recipient delivery remains disabled. Two trace remediation attempts could not close three missing P0 product branches.
+
+**Timing:** started 2026-09-23T10:29:03Z; completed in progress — elapsed 32h 26m (≈12h 14m AI-run, ≈20h 11m human/idle wait); resumed 4×.
+
+**Stories:**
+1. 13.1 authenticated runner and producer registry: build done, 1 follow-up pass, 1 deferred item, story trace not selected.
+2. 13.2 in-app notifications and preferences: build done, 1 follow-up pass, 1 deferred item, story trace not selected.
+3. 13.3 queued non-sending email outbox: build done, 1 follow-up pass, 1 deferred item, story trace not selected.
+4. 13.4 email sending activation: build done, 1 follow-up pass, 3 deferred items, story trace not selected; exact-head integration 1184 passed/1 skipped, unit 1894 passed/1 skipped, browser 173 passed/4 skipped.
+
+**Skipped:** (none)
+
+**Epic gate:** FAIL: 23/26 P0 FULL (88%); 13.4 AC6 pending-recipient cancellation/fresh authorization, AC7 claimed-send terminal reminder recheck, and AC8 durable recovery state/audit evidence remain partial after the two permitted TEA remediation attempts.
+
+**TEA:** TEA test review 87/100 (B), approve with comments. NFR CONCERNS/HIGH RISK, with reliability HIGH due to the three incomplete P0 branches. Two fully resolved older deferred items were archived; three Story 13.4 real-provider items remain open.
+
+**Retrospective:** Rejected; 5 open Epic 13 action items; _bmad-output/implementation-artifacts/epic-13-retro-2026-09-24.md.
+
+**Overrides:** none
+
+**Open questions:**
+1. Define the preference subject for external quote.delivery email and align the toggle/suppression identity, or remove the ineffective toggle.
+2. Confirm the ADR-B011 owner go-live record only after the required real-provider controls and evidence exist.
+
+**Deferred work:**
+1. Keep real-recipient delivery disabled until ADR-B011 owner go-live approval.
+2. Add idempotent provider submission before enabling real-recipient delivery.
+3. Include a scoped unsubscribe URL in every non-essential real-provider-rendered message.
+4. Approve and measure runner capacity, freshness, recovery, monitoring, and retention targets.
+2 fully resolved older items archived after conservative reconciliation.
+
+**⚠️ Needs human:**
+1. Implement and test 13.4 AC6 recipient correction/cancel/reissue, AC7 claimed-send terminal-state recheck, and AC8 durable recovery audit; rerun the epic trace gate.
+2. Review the rejected retrospective and its five Epic 13 action items before considering the draft PR ready.
+3. Define the external quote.delivery preference subject; real-recipient delivery stays disabled until separate ADR-B011 go-live approval.
+
+**Next:** Human review: /bmad-checkpoint-preview epic/13-wave-b1a-notifications-and-email-infrastructure. Project context: run /bmad-project-context refresh (recommended after an epic).
