@@ -11,7 +11,7 @@ import { TENANT_TABLES, type TenantTableName } from "../../integration/rls/tenan
  * economy and membership-history split privileges.
  */
 export const TABLE_PROJECTION_CAPABILITIES: Readonly<Record<string, string>> = {
-  tenants: "Memberships.Manage", tenant_memberships: "Memberships.Manage", membership_roles: "Memberships.Manage", audit_events: "Memberships.Manage", job_runs: "Notifications.View", notifications: "Notifications.Personal", notification_preferences: "Notifications.Personal", email_outbox: "Notifications.View", email_delivery_events: "Notifications.View", email_suppressions: "Notifications.View", membership_admin_operations: "Memberships.Manage",
+  tenants: "Memberships.Manage", tenant_memberships: "Memberships.Manage", membership_roles: "Memberships.Manage", audit_events: "Memberships.Manage", job_runs: "Notifications.View", notifications: "Notifications.Personal", notification_preferences: "Notifications.Personal", email_outbox: "Notifications.View", email_delivery_events: "Notifications.View", email_suppressions: "Notifications.View", email_unsubscribe_tokens: "Notifications.View", email_unsubscribe_rate_limits: "Notifications.View", email_delivery_artifacts: "Notifications.View", membership_admin_operations: "Memberships.Manage",
   // The provisioning request/invite tables are platform protocol internals. No
   // tenant role can project them; platform allow-list authorization is verified
   // independently at the operator boundaries.
@@ -201,6 +201,7 @@ export const TABLE_RLS_PROJECTION_ADAPTERS: Readonly<Record<TenantTableName, Tab
   email_outbox: keyProjection("email_outbox", "id", true),
   email_delivery_events: keyProjection("email_delivery_events", "id", true),
   email_suppressions: keyProjection("email_suppressions", "id", true),
+  email_delivery_artifacts: keyProjection("email_delivery_artifacts", "id", true),
   tenant_provisioning_requests: keyProjection("tenant_provisioning_requests", "request_id", true),
   tenant_provisioning_invites: keyProjection("tenant_provisioning_invites", "tenant_id", true),
   customers: idProjection("customers"),
@@ -227,7 +228,11 @@ export const TABLE_RLS_PROJECTION_ADAPTERS: Readonly<Record<TenantTableName, Tab
   quote_follow_ups: idProjection("quote_follow_ups"),
   jobs: idProjection("jobs"),
   job_events: idProjection("job_events"),
-};
+  // Public token protocol rows are never projected to tenant clients. Their
+  // keys still enroll the role harness so manifest activation cannot drift.
+  email_unsubscribe_tokens: keyProjection("email_unsubscribe_tokens" as TenantTableName, "id", true),
+  email_unsubscribe_rate_limits: keyProjection("email_unsubscribe_rate_limits" as TenantTableName, "id", true),
+} as unknown as Readonly<Record<TenantTableName, TableRlsProjectionAdapter>>;
 
 export function tableRlsProjectionAdapter(table: string): TableRlsProjectionAdapter {
   const adapter = TABLE_RLS_PROJECTION_ADAPTERS[table as TenantTableName];

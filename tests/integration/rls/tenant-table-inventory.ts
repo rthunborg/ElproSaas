@@ -108,6 +108,7 @@ export type TenantTableName =
   | "email_outbox"
   | "email_delivery_events"
   | "email_suppressions"
+  | "email_delivery_artifacts"
   // Story 12.1 platform command state is durable tenant-keyed data.
   | "tenant_provisioning_requests"
   | "tenant_provisioning_invites"
@@ -320,6 +321,7 @@ export function updateDenialKind(table: TenantTableName): MutationDenialKind {
     case "email_outbox":
     case "email_delivery_events":
     case "email_suppressions":
+    case "email_delivery_artifacts":
     case "tenant_provisioning_requests":
     case "tenant_provisioning_invites":
     case "quote_review_authorizations":
@@ -818,6 +820,8 @@ export function spoofedRowFor(
       return { column: "tenant_id", value: ctx.fixture.tenantB.id };
     case "membership_admin_operations":
       return { column: "tenant_id", value: ctx.fixture.tenantB.id };
+    case "email_delivery_artifacts":
+      return { column: "tenant_id", value: ctx.fixture.tenantB.id };
     case "membership_admin_operations":
       return { column: "tenant_id", value: ctx.fixture.tenantB.id };
     default:
@@ -1077,6 +1081,7 @@ export function tenantBFilter(
       };
     case "tenant_provisioning_requests":
     case "tenant_provisioning_invites":
+    case "email_delivery_artifacts":
       return { column: "tenant_id", value: ctx.fixture.tenantB.id };
     default:
       return assertNever(table);
@@ -1110,6 +1115,8 @@ export function hijackMutationFor(
       return { event_type: "sent" };
     case "email_suppressions":
       return { category: "other" };
+    case "email_delivery_artifacts":
+      return { recovery_state: "invalidated" };
     case "quote_review_authorizations":
       return { source_revision: { hijacked: true } };
     case "tenant_memberships":
@@ -1281,6 +1288,8 @@ export function rlsInvisibleLabelColumn(table: TenantTableName): string {
       return "event_type";
     case "email_suppressions":
       return "category";
+    case "email_delivery_artifacts":
+      return "recovery_state";
     // Story 10.3 quote_follow_ups is UPDATE-able ("rls-invisible"): `note` is the column the hijack
     // sets — re-read it to prove the seed value ("tenant-b-followup-seed") was NOT overwritten.
     case "quote_follow_ups":
@@ -1594,6 +1603,8 @@ export function anonRowFor(
       return {
         tenant_id: fixture.tenantA.id, membership_id: crypto.randomUUID(), token_hash: "c".repeat(64), normalized_email: "anon@example.se",
       };
+    case "email_delivery_artifacts":
+      return { id: crypto.randomUUID(), tenant_id: fixture.tenantA.id, outbox_id: crypto.randomUUID(), quote_version_id: crypto.randomUUID(), content_fingerprint: "a".repeat(64), pdf_bytes: "x" };
     default:
       return assertNever(table);
   }
@@ -1626,6 +1637,7 @@ export function anonFilterFor(
     case "email_outbox":
     case "email_delivery_events":
     case "email_suppressions":
+    case "email_delivery_artifacts":
     case "quote_review_authorizations":
     case "tenant_memberships":
     case "membership_roles":
@@ -1681,6 +1693,8 @@ export function anonMutationFor(
       return { event_type: "sent" };
     case "email_suppressions":
       return { category: "other" };
+    case "email_delivery_artifacts":
+      return { recovery_state: "invalidated" };
     case "quote_review_authorizations":
       return { source_revision: { hijacked: true } };
     case "tenant_memberships":

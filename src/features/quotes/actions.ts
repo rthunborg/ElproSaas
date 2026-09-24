@@ -249,6 +249,10 @@ export async function markQuoteVersionSentAction(
   const reference = optionalText(form, "reference");
   if (channel !== undefined) input.channel = channel;
   if (reference !== undefined) input.reference = reference;
+  const recipientSourceType = form.get("recipient_source_type");
+  const recipientSourceId = form.get("recipient_source_id");
+  if (typeof recipientSourceType === "string") input.recipient_source_type = recipientSourceType;
+  if (typeof recipientSourceId === "string") input.recipient_source_id = recipientSourceId;
 
   const client = (await createSupabaseServerClient()) as unknown as CommandDbClient;
   const result = await runCommand(markQuoteVersionSent, { client, input });

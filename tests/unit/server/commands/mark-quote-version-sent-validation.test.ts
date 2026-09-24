@@ -66,6 +66,17 @@ test("[6.4] accepts a send with both recorded channel + reference", () => {
   assert.equal(r.data.reference, "REF-123");
 });
 
+test("[13.4] accepts a complete linked recipient selection and rejects partial or unknown sources", () => {
+  const selected = validateMarkQuoteVersionSent({ quote_version_id: UUID_A, recipient_source_type: "contact", recipient_source_id: UUID_UPPER });
+  assert.equal(selected.ok, true);
+  if (selected.ok) assert.deepEqual(selected.data.recipient_source_type, "contact");
+  for (const raw of [
+    { quote_version_id: UUID_A, recipient_source_type: "contact" },
+    { quote_version_id: UUID_A, recipient_source_id: UUID_A },
+    { quote_version_id: UUID_A, recipient_source_type: "other", recipient_source_id: UUID_A },
+  ]) assert.equal(validateMarkQuoteVersionSent(raw).ok, false);
+});
+
 test("[6.4] accepts empty-string channel/reference (a coarse-bounded field, not a business rule)", () => {
   const r = validateMarkQuoteVersionSent({
     quote_version_id: UUID_A,

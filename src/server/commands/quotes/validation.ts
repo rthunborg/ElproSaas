@@ -245,6 +245,8 @@ export interface MarkQuoteVersionSentInput {
   readonly quote_version_id: string;
   readonly channel?: string | null;
   readonly reference?: string | null;
+  readonly recipient_source_type?: "customer" | "contact";
+  readonly recipient_source_id?: string;
 }
 
 export function validateMarkQuoteVersionSent(
@@ -254,14 +256,22 @@ export function validateMarkQuoteVersionSent(
   if (!isUuidLike(raw.quote_version_id)) return fail;
   if (!isOptionalShortText(raw.channel)) return fail;
   if (!isOptionalShortText(raw.reference)) return fail;
+  const hasRecipient = raw.recipient_source_type !== undefined || raw.recipient_source_id !== undefined;
+  if (hasRecipient && (raw.recipient_source_type !== "customer" && raw.recipient_source_type !== "contact" || !isUuidLike(raw.recipient_source_id))) return fail;
 
   const data: {
     quote_version_id: string;
     channel?: string | null;
     reference?: string | null;
+    recipient_source_type?: "customer" | "contact";
+    recipient_source_id?: string;
   } = { quote_version_id: raw.quote_version_id as string };
   if ("channel" in raw) data.channel = (raw.channel as string | null) ?? null;
   if ("reference" in raw) data.reference = (raw.reference as string | null) ?? null;
+  if (hasRecipient) {
+    data.recipient_source_type = raw.recipient_source_type as "customer" | "contact";
+    data.recipient_source_id = raw.recipient_source_id as string;
+  }
   return { ok: true, data };
 }
 

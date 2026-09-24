@@ -110,7 +110,7 @@ test("[P0] the authenticated route loads a persisted cursor and writes matching 
   assert.equal(inserts[1]?.row.actor_user_id, null);
 });
 
-test("[P0] default registered dark outbox producer reaches the scheduler suppression/evaluation seam", async () => {
+test("[P0] default registered outbox delivery producer reaches the scheduler suppression/evaluation seam", async () => {
   let suppressions = 0; let queueReads = 0;
   const client = {
     from(table: string) {
@@ -127,11 +127,11 @@ test("[P0] default registered dark outbox producer reaches the scheduler suppres
     authorize: () => true,
     createClient: () => client,
     run: async (dependencies, options) => {
-      const dark = (options?.producers ?? []).find((candidate) => candidate.id === "notifications.email-outbox-dark");
-      assert.ok(dark);
-      await dependencies.execute(dark, "tenant-a");
+      const delivery = (options?.producers ?? []).find((candidate) => candidate.id === "notifications.email-outbox-delivery");
+      assert.ok(delivery);
+      await dependencies.execute(delivery, "tenant-a");
       return { outcome: "completed" as const };
     },
   });
-  assert.equal(response.status, 200); assert.equal(suppressions, 1); assert.equal(queueReads, 1);
+  assert.equal(response.status, 200); assert.equal(suppressions, 1); assert.equal(queueReads, 0);
 });

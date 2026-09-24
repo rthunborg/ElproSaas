@@ -110,7 +110,11 @@ async function seedEveryTenantTable(tenantId: string, actorId: string): Promise<
     "insert into public.email_suppressions (tenant_id, recipient_hash, category) values ($1, repeat('b', 64), 'quote.follow_up_due') returning id",
     [tenantId],
   ))[0]?.id;
-  if (!emailDeliveryEvent || !emailSuppression) throw new Error("role harness seed: email support rows missing");
+  const emailDeliveryArtifact = (await adminQuery<{ id: string }>(
+    "insert into public.email_delivery_artifacts (tenant_id, outbox_id, quote_version_id, content_fingerprint, pdf_bytes) values ($1, $2, $3, repeat('d', 64), decode('25504446', 'hex')) returning id",
+    [tenantId, emailOutbox, quoteVersion],
+  ))[0]?.id;
+  if (!emailDeliveryEvent || !emailSuppression || !emailDeliveryArtifact) throw new Error("role harness seed: email support rows missing");
   const membership = (await adminQuery<{ id: string }>("select id from public.tenant_memberships where tenant_id = $1 and user_id = $2", [tenantId, actorId]))[0]?.id;
   if (!membership) throw new Error("role harness seed: actor membership missing");
   const membershipRole = (await adminQuery<{ id: string }>(
@@ -128,6 +132,7 @@ async function seedEveryTenantTable(tenantId: string, actorId: string): Promise<
     membership_admin_operations: membershipOperation, audit_events: auditEvent, job_runs: jobRun,
     notifications: notification, notification_preferences: notificationPreference,
     email_outbox: emailOutbox, email_delivery_events: emailDeliveryEvent, email_suppressions: emailSuppression,
+    email_delivery_artifacts: emailDeliveryArtifact,
     customers: customer, facilities: facility, contacts: contact, company_settings: companySettings,
     quote_terms: quoteTerms, work_roles: workRole, articles: article, calculations: calculation,
     calculation_sections: calculationSection, calculation_rows: calculationRow, files: file,

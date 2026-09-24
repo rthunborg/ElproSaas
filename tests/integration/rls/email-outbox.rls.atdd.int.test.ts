@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { createClient } from "@supabase/supabase-js";
 import { adminQuery, closeAdminPool } from "../../factories/admin-sql";

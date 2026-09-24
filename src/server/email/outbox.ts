@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { renderDarkTemplate, validateRecipientProjection, type EmailTemplate, type RecipientEntitlementProjection } from "./templates";
 import { createEmailDeliveryAdapter, evaluateEmailReleaseControl, type DeliveryAdapter, type EmailReleaseControl } from "./provider";
+import { assertQuoteDeliveryArtifact, type QuoteDeliveryArtifact } from "./quote-delivery";
 
 export const EMAIL_RETRY_MINUTES = [5, 10, 20] as const;
 export const EMAIL_LEASE_MINUTES = 15;
@@ -54,6 +55,19 @@ export async function recordSyntheticDeliveryOutcome(deps: OutboxDependencies, i
   if (error) throw new Error("Email outbox outcome failed");
 }
 
+async function loadClaimedDeliveryAttachment(deps: OutboxDependencies, input: { readonly id: string; readonly tenantId: string; readonly workerId: string; readonly now: string }): Promise<readonly { readonly filename: string; readonly bytes: Uint8Array; readonly contentType: string }[]> {
+  const { data, error } = await deps.client.rpc("read_claimed_email_delivery_artifact", { p_outbox_id: input.id, p_tenant_id: input.tenantId, p_worker_id: input.workerId, p_now: input.now });
+  if (error) throw new Error("Email delivery artifact read failed");
+  const row = (data as readonly { pdf_bytes?: string | Uint8Array; quote_version_id?: string; content_fingerprint?: string }[] | null)?.[0];
+  if (!row) return [];
+  const bytes = typeof row.pdf_bytes === "string" ? Uint8Array.from(Buffer.from(row.pdf_bytes, "base64")) : row.pdf_bytes;
+  if (!bytes || !row.quote_version_id) throw new Error("Email delivery artifact is invalid");
+  const { data: current, error: currentError } = await deps.client.rpc("validate_claimed_quote_email_delivery", { p_outbox_id: input.id, p_tenant_id: input.tenantId, p_worker_id: input.workerId, p_now: input.now, p_content_fingerprint: row.content_fingerprint });
+  if (currentError || current !== true) throw new Error("Quote delivery artifact is no longer eligible");
+  assertQuoteDeliveryArtifact({ outboxId: input.id, tenantId: input.tenantId, quoteVersionId: row.quote_version_id, contentFingerprint: row.content_fingerprint ?? "", bytes });
+  return [{ filename: `quote-${row.quote_version_id}.pdf`, bytes, contentType: "application/pdf" }];
+}
+
 /**
  * Production stays dark: suppression is evaluated before template rendering and
  * unsuppressed rows never transition out of queued state or invoke a transport.
@@ -86,9 +100,10 @@ export async function processEmailOutbox(
   let sent = 0;
   for (const claim of claims) {
     try {
-      const adapter = createEmailDeliveryAdapter({ mode: "sandbox", submit: deps.deliveryAdapter.submit });
-      const result = await adapter.deliver({ tenantId: input.tenantId, recipient: { kind: "synthetic", address: "sandbox-recipient@example.test" }, template: { key: "outbox", locale: "sv-SE", renderedBody: "" }, attachments: [] });
       const now = (deps.clock?.now ?? (() => new Date()))().toISOString();
+      const attachments = await loadClaimedDeliveryAttachment(deps, { id: claim.id, tenantId: input.tenantId, workerId: input.workerId, now });
+      const adapter = createEmailDeliveryAdapter({ mode: "sandbox", submit: deps.deliveryAdapter.submit });
+      const result = await adapter.deliver({ tenantId: input.tenantId, recipient: { kind: "synthetic", address: "sandbox-recipient@example.test" }, template: { key: "outbox", locale: "sv-SE", renderedBody: "" }, attachments });
       const { error } = await deps.client.rpc("record_email_outbox_delivery", { p_outbox_id: claim.id, p_tenant_id: input.tenantId, p_worker_id: input.workerId, p_provider_message_id: result.providerMessageId, p_now: now });
       if (error) throw new Error("Email delivery outcome failed");
       sent += 1;
@@ -108,7 +123,9 @@ export async function processQuoteDelivery(
   deps: {
     readonly releaseControl: EmailReleaseControl;
     readonly deliveryAdapter?: DeliveryAdapter;
-    readonly loadCurrentAuthorizedPdf?: () => Promise<{ readonly bytes: Uint8Array; readonly snapshotId: string; readonly current?: boolean; readonly valid?: boolean } | null>;
+    readonly loadCurrentAuthorizedPdf?: () => Promise<{ readonly bytes: Uint8Array; readonly snapshotId: string; readonly current?: boolean; readonly valid?: boolean; readonly artifact?: QuoteDeliveryArtifact } | null>;
+    /** Revalidates the durable artifact's quote version and fingerprint immediately before sending. */
+    readonly revalidateQuoteDeliveryArtifact?: (artifact: QuoteDeliveryArtifact) => Promise<boolean>;
   },
   input: { readonly tenantId: string; readonly quoteId: string; readonly kind?: "delivery" | "reminder"; readonly quoteStatus?: string },
 ): Promise<{ readonly outcome: "sent" | "not_eligible"; readonly providerMessageId?: string }> {
@@ -116,6 +133,15 @@ export async function processQuoteDelivery(
   if (!evaluateEmailReleaseControl(deps.releaseControl).allowed) return { outcome: "not_eligible" };
   const pdf = await deps.loadCurrentAuthorizedPdf?.();
   if (!pdf || pdf.bytes.byteLength === 0 || pdf.current === false || pdf.valid === false) throw new QuotePdfUnavailableError();
+  try {
+    if (!pdf.artifact) throw new Error("Quote delivery artifact is required");
+    assertQuoteDeliveryArtifact(pdf.artifact);
+    if (pdf.artifact.tenantId !== input.tenantId || !(await deps.revalidateQuoteDeliveryArtifact?.(pdf.artifact) ?? false)) {
+      throw new Error("Quote delivery artifact is no longer current");
+    }
+  } catch {
+    throw new QuotePdfUnavailableError();
+  }
   if (!deps.deliveryAdapter) throw new QuotePdfUnavailableError();
   const result = await createEmailDeliveryAdapter({ mode: "sandbox", submit: deps.deliveryAdapter.submit }).deliver({
     tenantId: input.tenantId,

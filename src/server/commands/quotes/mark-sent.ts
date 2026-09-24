@@ -195,7 +195,7 @@ export const markQuoteVersionSent = defineCommand<
       throw new Error("authorizeQuoteFinalSend: RPC returned no authorization id");
     }
 
-    const { error } = await rpc.rpc("mark_quote_version_sent", {
+    const commonArgs = {
       p_tenant_id: ctx.tenantContext.tenantId, // resolved tenant, never a client id
       p_quote_version_id: versionId,
       p_authorization_id: authorizationId,
@@ -208,7 +208,16 @@ export const markQuoteVersionSent = defineCommand<
       p_attestation_issued_at: challenge.issuedAt,
       p_attestation_expires_at: challenge.expiresAt,
       p_attestation_signature: signature,
-    });
+    };
+    const { error } = ctx.input.recipient_source_type && ctx.input.recipient_source_id
+      ? await rpc.rpc("finalize_quote_email_delivery", {
+          ...commonArgs,
+          p_recipient_source_type: ctx.input.recipient_source_type,
+          p_recipient_source_id: ctx.input.recipient_source_id,
+          p_pdf_base64: Buffer.from(pdfBytes).toString("base64"),
+          p_content_fingerprint: challenge.contentFingerprint,
+        })
+      : await rpc.rpc("mark_quote_version_sent", commonArgs);
     // Map the RPC's not-draft assertion (a race) → QUOTE_VERSION_LOCKED; other codes per the mapper.
     if (error) throwMappedQuoteWriteError(error);
 
