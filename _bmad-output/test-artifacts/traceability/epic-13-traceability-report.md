@@ -22,8 +22,8 @@ oracleSources:
   - '_bmad-output/implementation-artifacts/spec-13-4-email-sending-activation.md'
 externalPointerStatus: 'not_used'
 collectionStatus: 'COLLECTED'
-sourceSha: '9650f727c5ed06fc6047dfa19b8520f74c87e344'
-tempCoverageMatrixPath: 'C:\\tmp\\tea-trace-coverage-matrix-2026-09-24T18-15-14-904Z.json'
+sourceSha: '391624b58d5faae7708ed474840efff54345e287'
+tempCoverageMatrixPath: 'C:\\tmp\\tea-trace-coverage-matrix-2026-09-24T18-25-45-125Z.json'
 ---
 
 # Traceability Matrix & Gate Decision — Epic 13
@@ -42,7 +42,7 @@ tempCoverageMatrixPath: 'C:\\tmp\\tea-trace-coverage-matrix-2026-09-24T18-15-14-
 
 Create mode uses the four completed Epic 13 story specifications as the formal coverage oracle. Each specification is marked `done` and contains the final intent contract, acceptance criteria, implementation map, review history, and recorded verification evidence. The epic context, planning epic, ADR-B011, and epic test design supply scope, architecture, and risk priorities; they do not replace the final story acceptance wording.
 
-This is the first E8a re-gate after remediation commit `9650f727c5ed06fc6047dfa19b8520f74c87e344`. The oracle remains the same 26 final acceptance criteria; the re-gate refreshes only the evidence classification and deterministic decision.
+This is the final deterministic re-gate after E8a remediation iteration 2 at commit `391624b58d5faae7708ed474840efff54345e287`. Iteration 2 added no product or test changes because the three remaining branches require implementation. The oracle remains the same 26 final acceptance criteria; this run refreshes the evidence classification and gate decision against the current commit.
 
 The selected oracle is high confidence because the four final story specifications cover the full epic sequence: the authenticated background runner and producer registry, in-app notifications and preferences, the dark email outbox, and sandbox-only email activation with the narrow public unsubscribe surface. Formal requirements are therefore available and take precedence over contract inference or a synthetic source oracle.
 
@@ -53,6 +53,8 @@ The loaded TEA knowledge base defines P0–P3 priorities, risk and gate threshol
 ## Step 2 — Test Discovery and Catalogue
 
 Static discovery found Epic 13 evidence at unit/static, integration/API/RLS, and production-server browser levels. The containing evidence set now spans 32 files and 162 declared cases: 19 unit/static files with 104 declarations, nine integration/API/RLS files with 36 declarations, and four E2E files with 22 declarations. Several shared manifest and containment files include older-epic cases; only assertions that exercise an Epic 13 requirement are credited in the matrix.
+
+The iteration 2 delta from `9650f72` to `391624b` contains no `src/**`, `tests/**`, or `supabase/**` change. Static discovery and the mapped test inventory are therefore unchanged. The final automation record confirms that zero tests, fixtures, or helpers were generated and that the existing focused 13-test remediation lane remained green with zero skips.
 
 | Level | Primary Epic 13 evidence | Recorded execution evidence |
 | --- | --- | --- |
@@ -80,7 +82,7 @@ Static discovery found Epic 13 evidence at unit/static, integration/API/RLS, and
     "observed_at": "",
     "producer": "",
     "read_error": "",
-    "current_source_sha": "9650f727c5ed06fc6047dfa19b8520f74c87e344"
+    "current_source_sha": "391624b58d5faae7708ed474840efff54345e287"
   },
   "liveRecords": []
 }
@@ -133,11 +135,12 @@ Coverage is credited only when current committed evidence exercises the final ac
 - Twenty-three criteria are FULL and three P0 criteria are PARTIAL. No criterion is credited from live evidence.
 - Overlap between unit/static, database integration, and browser evidence is retained where the levels prove different boundaries: authority/state invariants, durable database effects, and user-visible isolation.
 - The remediation adds five terminal-state producer cases and two finalization-failure cases, but those cases deliberately expose the remaining implementation gaps instead of weakening the acceptance wording.
+- Iteration 2 adds no product or test evidence, so all 26 classifications remain unchanged at current HEAD `391624b58d5faae7708ed474840efff54345e287`.
 - The three partial criteria are not raised merely for lacking E2E. Each still omits a named P0 branch or failure boundary from the formal requirement.
 
 ## Step 4 — Coverage Gap Analysis
 
-The automatic execution mode resolved to subagent orchestration. Three independent workers classified gaps, checked heuristic/live-evidence blind spots, and recomputed coverage statistics; all completed before their results were merged into the Phase 1 coverage matrix at `C:\tmp\tea-trace-coverage-matrix-2026-09-24T18-15-14-904Z.json`.
+The automatic execution mode resolved to subagent orchestration. Three independent workers verified gap classification, heuristic/live-evidence blind spots, and coverage arithmetic at current HEAD `391624b58d5faae7708ed474840efff54345e287`; all completed before merge into the Phase 1 matrix at `C:\tmp\tea-trace-coverage-matrix-2026-09-24T18-25-45-125Z.json`.
 
 ### Coverage summary
 
@@ -149,20 +152,20 @@ The automatic execution mode resolved to subagent orchestration. Three independe
 | P3 | 0 | 0 | 0 | N/A |
 | **Overall** | **26** | **23** | **3** | **88%** |
 
-The workflow uses whole-number rounding, so 23/26 is reported as 88%. There are no `NONE`, `UNIT-ONLY`, or `INTEGRATION-ONLY` matrix statuses and no uncounted live records.
+The workflow uses whole-number rounding, so 23/26 is reported as 88%. There are no `NONE`, `UNIT-ONLY`, or `INTEGRATION-ONLY` matrix statuses and no uncounted live records. Iteration 2 changed no product or test file, so every classification and mapped test identity is unchanged from the first E8a re-gate.
 
 ### P0 partial coverage
 
 1. **13.4-AC6 — recipient cancellation and reauthorization.** Selection validation and snapshot freezing after a later CRM edit are covered. No command, RPC, route, state transition, or executing test changes a pending delivery's recipient, cancels the old delivery, and requires a fresh authorized delivery.
-2. **13.4-AC7 — final send-time terminal recheck.** Current/private artifact checks, the five-state processor seam, and independent real database/producer no-enqueue cases for accepted, rejected, lost/withdrawn, superseded, and expired are covered. The outbox worker has no reminder quote linkage or terminal-state recheck immediately before provider submission.
+2. **13.4-AC7 — final send-time terminal recheck.** Current/private artifact checks, the five-state processor seam, and independent real database/producer no-enqueue cases for accepted, rejected, lost/withdrawn, superseded, and expired are covered. The persisted reminder/outbox flow has no quote linkage or terminal-state recheck immediately before provider submission.
 3. **13.4-AC8 — durable recovery evidence.** Malformed preparation input is rejected before any write, and injected audit failure rolls the quote, outbox, artifact, and queued event back to draft/zero records. Neither failure path persists an orphaned/invalidated recovery state or durable recovery audit evidence.
 
 ### Heuristic findings
 
 - Endpoints without evidence: **0**.
 - Auth/authz negative-path gaps: **0**.
-- Happy-path/error-boundary gaps: **3** (`13.4-AC6`, `13.4-AC7`, `13.4-AC8`), now narrowed to the exact branches above.
-- Missing dedicated browser journeys: **1**, the quote-send journey spanning recipient selection through durable queued state (`13.4-AC6`, `13.4-AC8`). This UI gap is secondary to the named P0 command/database gaps.
+- Happy-path/error-boundary gaps: **3** (`13.4-AC6`, `13.4-AC7`, `13.4-AC8`).
+- Missing dedicated browser journeys: **1**, the quote-send journey spanning recipient selection through durable queued state (`13.4-AC6`, `13.4-AC8`). This UI gap is secondary to the named P0 implementation gaps.
 - Missing UI states: **0**.
 - Live evidence: absent and not required for this `contract_static` collection; zero live-only requirements and zero live blockers.
 
@@ -172,16 +175,17 @@ The workflow uses whole-number rounding, so 23/26 is reported as 88%. There are 
 2. Implement and test the final claimed-send terminal quote-state recheck for `13.4-AC7`.
 3. Implement and test durable orphaned/invalidated recovery state and durable recovery audit evidence for `13.4-AC8`.
 4. Add one production-server browser journey from linked recipient selection through truthful queued state after the P0 command/database branches close.
-5. Run `/bmad-testarch-test-review` for an independent quality review.
+5. Run `/bmad-testarch-test-review` for an independent quality review after implementation.
 
 ### Phase 1 evidence summary
 
 - Formal oracle: 26 final acceptance criteria in Stories 13.1–13.4, high confidence.
 - Requirements: 26 total, 23 FULL, three PARTIAL, zero NONE.
-- Focused remediation evidence: two integration files, 13 executed tests, 13 passed, zero skipped.
+- Iteration 2 delta: zero product changes and zero test changes.
+- Focused retained evidence: two integration files, 13 executed tests, 13 passed, zero skipped.
 - Static containing inventory: 32 files and 162 declarations.
 - Deduplicated mapped inventory: 36 active cases across 18 files; no mapped skip, fixme, or pending case.
-- Machine-readable Phase 1 matrix: `C:\tmp\tea-trace-coverage-matrix-2026-09-24T18-15-14-904Z.json`.
+- Machine-readable Phase 1 matrix: `C:\tmp\tea-trace-coverage-matrix-2026-09-24T18-25-45-125Z.json`.
 
 ## Phase 2 — Quality Gate Decision
 
@@ -205,17 +209,18 @@ The gate is eligible because `allow_gate=true` and collection status is `COLLECT
 
 ### Blocking partial requirements
 
-| Requirement | Evidence added by remediation commit `9650f72` | Remaining uncovered acceptance branch |
+| Requirement | Covered evidence | Remaining uncovered acceptance branch |
 | --- | --- | --- |
-| `13.4-AC6` | Existing linked-recipient validation and frozen recipient snapshot after a CRM edit remain green. | Changing a pending delivery's recipient must cancel the old delivery and require a fresh authorized delivery; no reachable implementation or executing test exists. |
-| `13.4-AC7` | Five independent database/producer cases now block reminder enqueue for accepted, rejected, lost/withdrawn, superseded, and expired states. | A claimed delivery/reminder is not rechecked against terminal quote state immediately before provider submission. |
-| `13.4-AC8` | Malformed bytes prove zero pre-finalization writes; forced audit failure proves atomic rollback with no false quote finalization, outbox, artifact, queued event, or sent result. | Failures do not persist durable orphaned/invalidated recovery state or durable recovery audit evidence. |
+| `13.4-AC6` | Linked-recipient validation and frozen recipient snapshot after later CRM edits. | Changing a pending delivery's recipient must cancel the old delivery and require a fresh authorized delivery; no reachable implementation or executing test exists. |
+| `13.4-AC7` | Current/private artifact checks plus five independent database/producer no-enqueue cases for accepted, rejected, lost/withdrawn, superseded, and expired. | A claimed delivery/reminder is not linked to and rechecked against terminal quote state immediately before provider submission. |
+| `13.4-AC8` | Malformed bytes prove zero pre-finalization writes; forced audit failure proves atomic rollback with no false finalization, outbox, artifact, event, or sent result. | Failures do not persist durable orphaned/invalidated recovery truth or durable recovery audit evidence. |
 
 ### Final evidence summary
 
-- First E8a re-gate source: `9650f727c5ed06fc6047dfa19b8520f74c87e344`.
+- Final E8a re-gate source: `391624b58d5faae7708ed474840efff54345e287`.
+- Iteration 2 added zero product files and zero test files.
 - Formal P0 oracle: 26 acceptance criteria; 23 FULL, three PARTIAL, zero NONE.
-- Focused remediation execution: 13 executed, 13 passed, zero skipped.
+- Retained focused execution: 13 passed, zero skipped.
 - Deduplicated mapped evidence: 36 active cases across 18 files.
 - Machine-readable outputs: `_bmad-output/test-artifacts/e2e-trace-summary.json` and `_bmad-output/test-artifacts/gate-decision.json`.
 
