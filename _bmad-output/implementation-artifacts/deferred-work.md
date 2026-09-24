@@ -413,3 +413,21 @@ existing AC, recorded so it is not re-triaged a third time.
 - source_spec: `spec-13-3-email-outbox-pipeline-queued-non-sending.md`
   summary: Story 13.4 owns the provider adapter, sandbox/mock queued-to-sent proof, release control, eligible live emitters, and all public unsubscribe capability. Real-recipient delivery remains separately owner-gated by ADR-B011.
   evidence: (no evidence recorded)
+
+## Deferred from: build-auto review of 13-4-email-sending-activation (2026-09-24)
+
+- source_spec: `spec-13-4-email-sending-activation.md`
+  summary: Keep real-recipient delivery disabled until the separate ADR-B011 owner go-live record is approved.
+  evidence: ADR-B011 requires the owner go-live record; Story 13.4 verifies only the synthetic sandbox adapter.
+  location: docs/decisions/ADR-B011-epic-13-email-release-and-quote-delivery.md
+  severity: high
+- source_spec: `spec-13-4-email-sending-activation.md`
+  summary: Add idempotent provider submission before enabling real-recipient delivery.
+  evidence: If a provider accepts submission and the following outcome persistence fails, a retry cannot prove the earlier delivery and could duplicate real-recipient mail.
+  location: src/server/email/outbox.ts
+  severity: medium
+- source_spec: `spec-13-4-email-sending-activation.md`
+  summary: Include a scoped unsubscribe URL in every non-essential real-provider-rendered message.
+  evidence: Sandbox delivery uses a synthetic body; a real provider template must issue and include the public token URL while preserving its narrow capability and privacy boundary.
+  location: src/server/email/templates.ts
+  severity: medium

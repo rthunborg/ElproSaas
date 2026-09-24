@@ -9,11 +9,11 @@ spec_folder: null
 story_id: null
 branch: epic/13-wave-b1a-notifications-and-email-infrastructure
 status: in-progress
-updated_at: "2026-09-24T17:02:42Z"
+updated_at: "2026-09-24T17:34:13Z"
 started_at: "2026-09-24T08:02:45Z"
 completed_at: null
-active_seconds: 12711
-timing_anchor: 1790269362
+active_seconds: 14368
+timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: true
 git_mode: remote
@@ -38,7 +38,7 @@ tea_selected: [atdd, automate]
 tea_rationale: "Provider side effects, release authorization, secrets, public unsubscribe tokens, PDF access, suppression and fail-closed delivery are high-risk."
 epic_story_count: 4
 stories_after_in_epic: 0
-completed_phases: [0, 1, 2, 3, 4, 5, 6]
+completed_phases: [0, 1, 2, 3, 4, 5, 6, 7]
 spec_path: "C:\\DEV\\ElproSaas\\_bmad-output\\implementation-artifacts\\spec-13-4-email-sending-activation.md"
 spec_approved: true
 build:
@@ -46,11 +46,11 @@ build:
   blocking_condition: null
   followup_review_recommended: true
   review_loop_iteration: 0
-  deferred_count: 1
+  deferred_count: 3
   warnings: [oversized]
-followup_passes: 0
-hitl_halt: null
-review_unverified: false
+followup_passes: 1
+hitl_halt: "auto-continued (epic â€” no halt)"
+review_unverified: true
 story_trace: null
 legacy_review_resume: false
 legacy_review_iteration: null
@@ -58,7 +58,7 @@ legacy_review_loop_done: false
 legacy_external_review_iterations: null
 legacy_convergence_unverified: false
 legacy_artifact_path: null
-commits: [502fd1e, f71ada9, 1fca11f, ecdfe7f, 71bb8f5, 488f0bc, acae7d7, 8c3b1c6, 04f90be, 0bd7828, d03a37a, 136ec78, "5367915", 91242ac, 9a55d1e]
+commits: [502fd1e, f71ada9, 1fca11f, ecdfe7f, 71bb8f5, 488f0bc, acae7d7, 8c3b1c6, 04f90be, 0bd7828, d03a37a, 136ec78, "5367915", 91242ac, 9a55d1e, 8ef4067, 04d7851, 3acf5af, 4f268ab]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -83,7 +83,10 @@ merge_commit: null
 branch_deleted: false
 open_questions:
   - "Cross-model reviewer command exited 1 without output during Story 13.4 build review; primary follow-up review remains required."
-deferred_work: []
+deferred_work:
+  - Keep real-recipient delivery disabled until the separate ADR-B011 owner go-live record is approved.
+  - Add idempotent provider submission before enabling real-recipient delivery.
+  - Include a scoped unsubscribe URL in every non-essential real-provider-rendered message.
 blockers: []
 overrides: {}
 constraints: []

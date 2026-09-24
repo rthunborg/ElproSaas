@@ -9,11 +9,11 @@ spec_folder: null
 story_id: null
 branch: epic/13-wave-b1a-notifications-and-email-infrastructure
 status: in-progress
-updated_at: "2026-09-24T17:02:42Z"
+updated_at: "2026-09-24T17:34:39Z"
 started_at: "2026-09-23T10:29:03Z"
 completed_at: null
-active_seconds: 37901
-timing_anchor: 1790269362
+active_seconds: 39558
+timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
 git_mode: remote
@@ -35,7 +35,7 @@ tea_selected: []
 tea_rationale: null
 epic_story_count: 4
 stories_after_in_epic: null
-completed_phases: [0, 1, 2]
+completed_phases: [0, 1, 2, 5]
 spec_path: null
 spec_approved: false
 build:
@@ -91,19 +91,24 @@ open_questions:
   - "[13-3-email-outbox-pipeline-queued-non-sending] Follow-up review still recommends another pass; the epic PR remains draft."
   - "[13-3-email-outbox-pipeline-queued-non-sending] Cross-model review command produced no output."
   - "[13-3-email-outbox-pipeline-queued-non-sending] Reviewer capacity required staged launches for five review lenses."
+  - "[13-4-email-sending-activation] Cross-model reviewer command exited 1 without output during build and follow-up reviews; primary follow-up still recommends another pass."
 deferred_work:
   - Real-recipient go-live requires the separate ADR-B011 owner decision.
   - "[13-1-authenticated-background-runner-and-producer-registry] Numeric runner SLA, batch-size, fairness, backlog-age, and freshness thresholds remain owner-pending NFR contracts."
   - "[13-2-in-app-notifications-bell-center-and-preferences] Numeric runner SLA, batch-size, fairness, backlog-age, and freshness thresholds remain owner-pending."
   - "[13-3-email-outbox-pipeline-queued-non-sending] Story 13.4 owns provider delivery, sandbox proof, release control, eligible emitters, public unsubscribe, and owner-gated real-recipient delivery."
+  - "[13-4-email-sending-activation] Keep real-recipient delivery disabled until the separate ADR-B011 owner go-live record is approved."
+  - "[13-4-email-sending-activation] Add idempotent provider submission before enabling real-recipient delivery."
+  - "[13-4-email-sending-activation] Include a scoped unsubscribe URL in every non-essential real-provider-rendered message."
 blockers: []
 overrides: {}
 constraints: []
 epic_slug: wave-b1a-notifications-and-email-infrastructure
-active_story: 13-4-email-sending-activation
+active_story: null
 stories_landed:
   - 13-1-authenticated-background-runner-and-producer-registry
   - 13-2-in-app-notifications-bell-center-and-preferences
   - 13-3-email-outbox-pipeline-queued-non-sending
+  - 13-4-email-sending-activation
 stories_skipped: []
 batch_flip_done: false
