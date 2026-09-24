@@ -108,6 +108,8 @@ export type TenantTableName =
   | "email_outbox"
   | "email_delivery_events"
   | "email_suppressions"
+  | "email_unsubscribe_tokens"
+  | "email_unsubscribe_rate_limits"
   | "email_delivery_artifacts"
   // Story 12.1 platform command state is durable tenant-keyed data.
   | "tenant_provisioning_requests"
@@ -321,6 +323,8 @@ export function updateDenialKind(table: TenantTableName): MutationDenialKind {
     case "email_outbox":
     case "email_delivery_events":
     case "email_suppressions":
+    case "email_unsubscribe_tokens":
+    case "email_unsubscribe_rate_limits":
     case "email_delivery_artifacts":
     case "tenant_provisioning_requests":
     case "tenant_provisioning_invites":
@@ -437,6 +441,12 @@ export function spoofedRowFor(
       return { id: crypto.randomUUID(), tenant_id: fixture.tenantB.id, outbox_id: crypto.randomUUID(), event_type: "queued" };
     case "email_suppressions":
       return { id: crypto.randomUUID(), tenant_id: fixture.tenantB.id, recipient_hash: "a".repeat(64), category: "quote.follow_up_due" };
+    case "email_unsubscribe_tokens":
+      return { id: crypto.randomUUID(), tenant_id: fixture.tenantB.id, token_hash: "b".repeat(64), recipient_hash: "c".repeat(64), category: "quote.delivery" };
+    case "email_unsubscribe_rate_limits":
+      return { id: crypto.randomUUID(), tenant_id: fixture.tenantB.id, token_hash: "d".repeat(64), ip_hash: "e".repeat(64), window_started_at: "2026-09-24T00:00:00.000Z" };
+    case "email_delivery_artifacts":
+      return { id: crypto.randomUUID(), tenant_id: fixture.tenantB.id, outbox_id: crypto.randomUUID(), quote_version_id: crypto.randomUUID(), content_fingerprint: "f".repeat(64), pdf_bytes: "x" };
     case "quote_review_authorizations":
       return {
         id: crypto.randomUUID(),
@@ -821,6 +831,8 @@ export function spoofedRowFor(
     case "membership_admin_operations":
       return { column: "tenant_id", value: ctx.fixture.tenantB.id };
     case "email_delivery_artifacts":
+    case "email_unsubscribe_tokens":
+    case "email_unsubscribe_rate_limits":
       return { column: "tenant_id", value: ctx.fixture.tenantB.id };
     case "membership_admin_operations":
       return { column: "tenant_id", value: ctx.fixture.tenantB.id };
@@ -1082,6 +1094,8 @@ export function tenantBFilter(
     case "tenant_provisioning_requests":
     case "tenant_provisioning_invites":
     case "email_delivery_artifacts":
+    case "email_unsubscribe_tokens":
+    case "email_unsubscribe_rate_limits":
       return { column: "tenant_id", value: ctx.fixture.tenantB.id };
     default:
       return assertNever(table);
@@ -1189,6 +1203,10 @@ export function hijackMutationFor(
       return { provisioning_state: "ready" };
     case "tenant_provisioning_invites":
       return { outcome: "failed" };
+    case "email_unsubscribe_tokens":
+      return { revoked_at: "2099-01-01T00:00:00.000Z" };
+    case "email_unsubscribe_rate_limits":
+      return { attempts: 2 };
     case "quote_follow_ups":
       // UPDATE-able ("rls-invisible"): the cross-tenant UPDATE matches ZERO rows under RLS USING —
       // the hijack sets `note` (a mutable free-text column) to a value DIFFERENT from the seed's
@@ -1288,6 +1306,10 @@ export function rlsInvisibleLabelColumn(table: TenantTableName): string {
       return "event_type";
     case "email_suppressions":
       return "category";
+    case "email_unsubscribe_tokens":
+      return "revoked_at";
+    case "email_unsubscribe_rate_limits":
+      return "attempts";
     case "email_delivery_artifacts":
       return "recovery_state";
     // Story 10.3 quote_follow_ups is UPDATE-able ("rls-invisible"): `note` is the column the hijack
@@ -1605,6 +1627,10 @@ export function anonRowFor(
       };
     case "email_delivery_artifacts":
       return { id: crypto.randomUUID(), tenant_id: fixture.tenantA.id, outbox_id: crypto.randomUUID(), quote_version_id: crypto.randomUUID(), content_fingerprint: "a".repeat(64), pdf_bytes: "x" };
+    case "email_unsubscribe_tokens":
+      return { id: crypto.randomUUID(), tenant_id: fixture.tenantA.id, token_hash: "b".repeat(64), recipient_hash: "c".repeat(64), category: "quote.delivery" };
+    case "email_unsubscribe_rate_limits":
+      return { id: crypto.randomUUID(), tenant_id: fixture.tenantA.id, token_hash: "d".repeat(64), ip_hash: "e".repeat(64), window_started_at: "2026-09-24T00:00:00.000Z" };
     default:
       return assertNever(table);
   }
@@ -1638,6 +1664,8 @@ export function anonFilterFor(
     case "email_delivery_events":
     case "email_suppressions":
     case "email_delivery_artifacts":
+    case "email_unsubscribe_tokens":
+    case "email_unsubscribe_rate_limits":
     case "quote_review_authorizations":
     case "tenant_memberships":
     case "membership_roles":
@@ -1695,6 +1723,10 @@ export function anonMutationFor(
       return { category: "other" };
     case "email_delivery_artifacts":
       return { recovery_state: "invalidated" };
+    case "email_unsubscribe_tokens":
+      return { revoked_at: "2099-01-01T00:00:00.000Z" };
+    case "email_unsubscribe_rate_limits":
+      return { attempts: 2 };
     case "quote_review_authorizations":
       return { source_revision: { hijacked: true } };
     case "tenant_memberships":

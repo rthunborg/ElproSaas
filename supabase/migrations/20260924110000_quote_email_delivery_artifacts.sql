@@ -9,7 +9,8 @@ create table public.email_delivery_artifacts (
   prepared_at timestamptz not null default now(),
   recovery_state text not null default 'prepared' check (recovery_state in ('prepared','orphaned','consumed','invalidated')),
   unique (outbox_id),
-  unique (tenant_id, outbox_id)
+  unique (tenant_id, outbox_id),
+  unique (id, tenant_id)
 );
 
 alter table public.email_outbox

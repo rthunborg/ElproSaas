@@ -481,6 +481,9 @@ describe("Cross-tenant RLS isolation — data-driven over the shared inventory (
     "email_outbox",
     "email_delivery_events",
     "email_suppressions",
+    "email_unsubscribe_tokens",
+    "email_unsubscribe_rate_limits",
+    "email_delivery_artifacts",
   ]);
 
   for (const table of TENANT_TABLES) {

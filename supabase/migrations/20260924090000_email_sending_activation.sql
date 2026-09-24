@@ -10,11 +10,12 @@ create table public.email_unsubscribe_tokens (
 );
 create table public.email_unsubscribe_rate_limits (
   id uuid primary key default gen_random_uuid(),
+  tenant_id uuid not null references public.tenants(id) on delete cascade,
   token_hash text not null check (token_hash ~ '^[0-9a-f]{64}$'),
   ip_hash text not null check (ip_hash ~ '^[0-9a-f]{64}$'),
   window_started_at timestamptz not null,
   attempts integer not null default 1 check (attempts between 1 and 100),
-  unique (token_hash, ip_hash, window_started_at)
+  unique (tenant_id, token_hash, ip_hash, window_started_at)
 );
 revoke all on public.email_unsubscribe_tokens, public.email_unsubscribe_rate_limits from public, anon, authenticated;
 grant select, insert, update on public.email_unsubscribe_tokens, public.email_unsubscribe_rate_limits to service_role;
@@ -37,17 +38,18 @@ grant execute on function public.record_email_outbox_delivery(uuid,uuid,text,tex
 
 alter table public.notification_preferences drop constraint notification_preferences_channel_check;
 alter table public.notification_preferences add constraint notification_preferences_channel_check check (channel in ('in_app','email'));
-alter table public.notification_preferences drop constraint notification_preferences_check;
+alter table public.notification_preferences drop constraint if exists notification_preferences_check;
 
 create or replace function public.consume_email_unsubscribe_token(p_token_hash text, p_ip_hash text, p_reactivate boolean default false)
 returns text language plpgsql security definer set search_path = '' as $$
 declare v_token public.email_unsubscribe_tokens%rowtype; v_window timestamptz := date_trunc('hour', now()); v_attempts integer;
 begin
-  insert into public.email_unsubscribe_rate_limits(token_hash,ip_hash,window_started_at) values(p_token_hash,p_ip_hash,v_window)
-  on conflict(token_hash,ip_hash,window_started_at) do update set attempts=public.email_unsubscribe_rate_limits.attempts+1 returning attempts into v_attempts;
-  if v_attempts > 10 then return 'limited'; end if;
-  select * into v_token from public.email_unsubscribe_tokens where token_hash=p_token_hash and revoked_at is null for update;
+  select * into v_token from public.email_unsubscribe_tokens where token_hash=p_token_hash for update;
   if not found then return 'inactive'; end if;
+  insert into public.email_unsubscribe_rate_limits(tenant_id,token_hash,ip_hash,window_started_at) values(v_token.tenant_id,p_token_hash,p_ip_hash,v_window)
+  on conflict(tenant_id,token_hash,ip_hash,window_started_at) do update set attempts=public.email_unsubscribe_rate_limits.attempts+1 returning attempts into v_attempts;
+  if v_attempts > 10 then return 'limited'; end if;
+  if v_token.revoked_at is not null then return 'inactive'; end if;
   if p_reactivate then delete from public.email_suppressions where tenant_id=v_token.tenant_id and recipient_hash=v_token.recipient_hash and category=v_token.category;
   else insert into public.email_suppressions(tenant_id,recipient_hash,category) values(v_token.tenant_id,v_token.recipient_hash,v_token.category) on conflict do nothing; end if;
   update public.email_unsubscribe_tokens set revoked_at=now() where id=v_token.id;

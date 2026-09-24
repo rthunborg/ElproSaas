@@ -114,7 +114,9 @@ async function seedEveryTenantTable(tenantId: string, actorId: string): Promise<
     "insert into public.email_delivery_artifacts (tenant_id, outbox_id, quote_version_id, content_fingerprint, pdf_bytes) values ($1, $2, $3, repeat('d', 64), decode('25504446', 'hex')) returning id",
     [tenantId, emailOutbox, quoteVersion],
   ))[0]?.id;
-  if (!emailDeliveryEvent || !emailSuppression || !emailDeliveryArtifact) throw new Error("role harness seed: email support rows missing");
+  const emailUnsubscribeToken = (await adminQuery<{ id: string }>("insert into public.email_unsubscribe_tokens (tenant_id, token_hash, recipient_hash, category) values ($1, encode(gen_random_bytes(32), 'hex'), repeat('e', 64), 'quote.delivery') returning id", [tenantId]))[0]?.id;
+  const emailUnsubscribeRateLimit = (await adminQuery<{ id: string }>("insert into public.email_unsubscribe_rate_limits (tenant_id, token_hash, ip_hash, window_started_at) values ($1, encode(gen_random_bytes(32), 'hex'), repeat('f', 64), now()) returning id", [tenantId]))[0]?.id;
+  if (!emailDeliveryEvent || !emailSuppression || !emailDeliveryArtifact || !emailUnsubscribeToken || !emailUnsubscribeRateLimit) throw new Error("role harness seed: email support rows missing");
   const membership = (await adminQuery<{ id: string }>("select id from public.tenant_memberships where tenant_id = $1 and user_id = $2", [tenantId, actorId]))[0]?.id;
   if (!membership) throw new Error("role harness seed: actor membership missing");
   const membershipRole = (await adminQuery<{ id: string }>(
@@ -132,7 +134,8 @@ async function seedEveryTenantTable(tenantId: string, actorId: string): Promise<
     membership_admin_operations: membershipOperation, audit_events: auditEvent, job_runs: jobRun,
     notifications: notification, notification_preferences: notificationPreference,
     email_outbox: emailOutbox, email_delivery_events: emailDeliveryEvent, email_suppressions: emailSuppression,
-    email_delivery_artifacts: emailDeliveryArtifact,
+    email_delivery_artifacts: emailDeliveryArtifact, email_unsubscribe_tokens: emailUnsubscribeToken,
+    email_unsubscribe_rate_limits: emailUnsubscribeRateLimit,
     customers: customer, facilities: facility, contacts: contact, company_settings: companySettings,
     quote_terms: quoteTerms, work_roles: workRole, articles: article, calculations: calculation,
     calculation_sections: calculationSection, calculation_rows: calculationRow, files: file,
