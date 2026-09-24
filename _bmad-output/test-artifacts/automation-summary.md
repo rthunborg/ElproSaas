@@ -1278,3 +1278,66 @@ The first validation attempt executed eight tests and exposed an invalid direct 
 - The trace gate should remain PARTIAL for the three specific branches that require product behavior: AC6 cancel/reissue authorization, AC7 send-time terminal recheck, and AC8 durable recovery evidence.
 
 **Recommended next workflow:** implement the three named product gaps under an approved story or ADR-backed task, add their executing tests, then rerun `bmad-testarch-trace` for Epic 13.
+
+---
+
+# Final E8a Test Automation Remediation — Epic 13 Story 13.4
+
+## Step 1 — Preflight and Re-Gate Context
+
+- **Mode and stack:** BMad-integrated Create mode for the full-stack Next.js application. Existing Node, Vitest, and Playwright configurations remain ready.
+- **Re-gate oracle:** the first E8a re-gate remains at 23/26 P0 FULL, with exactly `13.4-AC6`, `13.4-AC7`, and `13.4-AC8` PARTIAL. The earlier remediation's five terminal-state producer cases and two finalization-failure cases are already credited and must not be duplicated.
+- **Current-source check:** no pending-recipient cancellation/reissue transition, claimed-send terminal quote-state recheck, or durable artifact recovery/audit transition has appeared since the re-gate.
+- **Scope:** test and test-artifact work only. No story specification, migration, command, route, worker, or other product code is changed by this pass.
+
+## Step 2 — Final Automation Targets
+
+| Requirement | Exact remaining branch | Executable against current behavior? | Decision |
+| --- | --- | --- | --- |
+| `13.4-AC6` | Change a pending delivery recipient, cancel the old delivery, and require newly authorized delivery | No command, RPC, route, or state transition exists | Generate no red, skipped, placeholder, or weakened test. |
+| `13.4-AC7` | Recheck a claimed reminder's terminal quote state immediately before provider submission | The persisted reminder/outbox pipeline has no quote linkage or pre-adapter terminal recheck | Generate no seam-only duplicate and make no provider-boundary claim. |
+| `13.4-AC8` | Persist durable `orphaned`/`invalidated` recovery truth and recovery audit evidence after preparation/finalization failure | Artifact preparation remains inside the rolled-back finalization transaction; no recovery transition or audit writer exists | Preserve the green rollback tests and generate no artificial recovery proof. |
+
+The final plan contains no new API, browser, backend, contract, fixture, factory, or helper target. Product implementation is required before a passing test can prove any remaining branch.
+
+## Step 3 — Adaptive Generation and Aggregation
+
+- **Execution resolution:** `SUBAGENT` for the full-stack repository; API, E2E, and backend workers completed and returned valid structured outputs.
+- **API worker:** 0 tests. The linked-recipient endpoint is read-only candidate discovery, the job route only invokes existing producers, and no recovery endpoint exists.
+- **E2E worker:** 0 tests. No recipient-change, claimed-send eligibility, or recovery user journey is exposed.
+- **Backend worker:** 0 tests. The three exact acceptance branches remain absent from commands, database transitions, and the provider-bound outbox path.
+- **Generated files:** 0 test files; 0 fixtures; 0 helpers.
+- **Priority coverage added:** P0 0, P1 0, P2 0, P3 0.
+- **Playwright Utils deviations:** None. No Playwright artifact was generated.
+- **Pact.js Utils deviations:** N/A. No contract artifact or consumer-provider boundary is in scope.
+
+No repository test file was written during aggregation. This is the required fail-honest result: the workflow does not convert absent product behavior into nominal coverage.
+
+## Step 4 — Validation and Final Result
+
+### Validation evidence
+
+- `SUPABASE_TEST_REQUIRED=1 pnpm exec vitest run tests/integration/notifications/notifications.atdd.int.test.ts tests/integration/email/quote-delivery-finalization-failure.int.test.ts` — **PASS:** 2 files, 13 executed tests, 13 passed, 0 failed, 0 skipped.
+- `git diff --check` — **PASS.**
+
+### Final-pass result
+
+- **Tests generated:** 0.
+- **Tests modified:** 0.
+- **Tests executed for regression evidence:** 13 passed, 0 skipped.
+- **Product behavior preventing new passing coverage:**
+  - `13.4-AC6`: pending recipient replacement has no cancellation state transition or fresh-authorization operation.
+  - `13.4-AC7`: a claimed reminder is not linked and rechecked against terminal quote state at the final pre-provider boundary.
+  - `13.4-AC8`: failure cannot leave durable recovery truth because artifact preparation occurs inside the rolled-back transaction and no orphan/invalidated transition or recovery audit event is written.
+- **Coverage claim:** none added. The re-gate remains 23/26 P0 FULL, with these three criteria PARTIAL.
+- **Files updated by this final pass:** `_bmad-output/test-artifacts/automation-summary.md` only.
+
+### Definition of done
+
+- The final re-gate branches were mapped against current source and existing tests.
+- API, browser, and backend workers all confirmed there is no nonduplicative passing target.
+- No red, skipped, placeholder, seam-only, or weakened test was added.
+- No story specification or product code was modified.
+- The existing focused evidence remains green under required-stack execution with zero skips.
+
+**Next required action:** implement the three missing product branches under approved scope, add executing P0 tests, and rerun the Epic 13 trace gate for 26/26 P0 FULL coverage.

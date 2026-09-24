@@ -1,12 +1,12 @@
 {
   "schema_version": "0.2.0",
-  "snapshot_at": "2026-09-24T17:48:29.844Z",
+  "snapshot_at": "2026-09-24T18:17:30.001Z",
   "repo": "ElproSaas",
   "collection_mode": "contract_static",
   "collection_status": "COLLECTED",
   "inventory_basis": "acceptance_criteria",
   "gate_basis": "priority_thresholds",
-  "source_sha": "b5004cf00792e740af299af768035eee43af61c3",
+  "source_sha": "9650f727c5ed06fc6047dfa19b8520f74c87e344",
   "target": {
     "type": "epic",
     "id": "13",
@@ -34,23 +34,57 @@
       "pct": 88
     },
     "priority_breakdown": {
-      "P0": {"total": 26, "covered": 23, "pct": 88},
-      "P1": {"total": 0, "covered": 0, "pct": 100},
-      "P2": {"total": 0, "covered": 0, "pct": 100},
-      "P3": {"total": 0, "covered": 0, "pct": 100}
+      "P0": {
+        "total": 26,
+        "covered": 23,
+        "pct": 88
+      },
+      "P1": {
+        "total": 0,
+        "covered": 0,
+        "pct": 100
+      },
+      "P2": {
+        "total": 0,
+        "covered": 0,
+        "pct": 100
+      },
+      "P3": {
+        "total": 0,
+        "covered": 0,
+        "pct": 100
+      }
     },
     "by_level": {
-      "e2e": {"tests": 3, "criteria_covered": 3},
-      "api": {"tests": 20, "criteria_covered": 19},
-      "component": {"tests": 0, "criteria_covered": 0},
-      "unit": {"tests": 6, "criteria_covered": 6},
-      "live": {"tests": 0, "criteria_covered": 0},
-      "other": {"tests": 0, "criteria_covered": 0}
+      "e2e": {
+        "tests": 3,
+        "criteria_covered": 3
+      },
+      "api": {
+        "tests": 27,
+        "criteria_covered": 19
+      },
+      "component": {
+        "tests": 0,
+        "criteria_covered": 0
+      },
+      "unit": {
+        "tests": 6,
+        "criteria_covered": 6
+      },
+      "live": {
+        "tests": 0,
+        "criteria_covered": 0
+      },
+      "other": {
+        "tests": 0,
+        "criteria_covered": 0
+      }
     }
   },
   "tests": {
-    "files": 17,
-    "cases": 29,
+    "files": 18,
+    "cases": 36,
     "skipped_cases": 0,
     "fixme_cases": 0,
     "pending_cases": 0
@@ -73,7 +107,7 @@
     "results_file": "C:\\DEV\\ElproSaas\\_bmad-output\\test-artifacts\\live-verification-results.json",
     "freshness": "not_present",
     "recorded_source_sha": "",
-    "current_source_sha": "b5004cf00792e740af299af768035eee43af61c3",
+    "current_source_sha": "9650f727c5ed06fc6047dfa19b8520f74c87e344",
     "producer": "",
     "counted": 0,
     "stale": 0,
@@ -91,17 +125,40 @@
     {
       "priority": "MEDIUM",
       "action": "Complete coverage for 3 partially covered requirements",
-      "requirements": ["13.4-AC6", "13.4-AC7", "13.4-AC8"]
-    },
-    {
-      "priority": "MEDIUM",
-      "action": "Add error and edge tests for the 3 partially covered acceptance criteria",
-      "requirements": ["13.4-AC6", "13.4-AC7", "13.4-AC8"]
+      "requirements": [
+        "13.4-AC6",
+        "13.4-AC7",
+        "13.4-AC8"
+      ]
     },
     {
       "priority": "HIGH",
-      "action": "Add a quote-send browser journey from linked recipient selection through durable queued state",
-      "requirements": ["13.4-AC6", "13.4-AC8"]
+      "action": "Implement and test pending-recipient cancellation with a fresh authorized delivery",
+      "requirements": [
+        "13.4-AC6"
+      ]
+    },
+    {
+      "priority": "HIGH",
+      "action": "Implement and test the final claimed-send terminal quote-state recheck",
+      "requirements": [
+        "13.4-AC7"
+      ]
+    },
+    {
+      "priority": "HIGH",
+      "action": "Implement and test durable orphaned/invalidated recovery state and recovery audit evidence",
+      "requirements": [
+        "13.4-AC8"
+      ]
+    },
+    {
+      "priority": "HIGH",
+      "action": "Add a quote-send browser journey from linked recipient selection through durable queued state after the P0 command/database branches close",
+      "requirements": [
+        "13.4-AC6",
+        "13.4-AC8"
+      ]
     },
     {
       "priority": "LOW",

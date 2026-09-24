@@ -9,10 +9,10 @@ spec_folder: null
 story_id: null
 branch: epic/13-wave-b1a-notifications-and-email-infrastructure
 status: in-progress
-updated_at: "2026-09-24T18:09:01Z"
+updated_at: "2026-09-24T18:22:59Z"
 started_at: "2026-09-23T10:29:03Z"
 completed_at: null
-active_seconds: 41578
+active_seconds: 42382
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -65,7 +65,7 @@ phase8_steps:
   archive: null
   retro: null
 gate_decision: FAIL
-gate_iterations: 1
+gate_iterations: 2
 deferred_work_archived: 0
 retro:
   doc: null
