@@ -60,7 +60,7 @@
 # use the current Epic 10 statuses and approved corrective-story entries below.
 
 generated: 2026-06-12
-last_updated: 09-24-2026 10:22  # ADR-B009 connected-field course correction verified; governance Story 10.7 done, no PWA/offline functionality delivered.
+last_updated: 09-24-2026 10:34  # ADR-B009 connected-field course correction verified; governance Story 10.7 done, no PWA/offline functionality delivered.
 project: ElproSaas
 project_key: NOKEY
 tracking_system: file-system
@@ -235,7 +235,7 @@ development_status:
   # N-6 was answered 2026-07-26: Story 13.4 is schedulable for implementation
   # and sandbox proof. ADR-B011 keeps real-recipient delivery default-off until
   # a separate recorded owner go-live approval (epics doc, Story 13.4 banner).
-  13-4-email-sending-activation: ready-for-dev
+  13-4-email-sending-activation: in-progress
   epic-13-retrospective: optional
 
   # ---- B1a→B1b wave checkpoint happens HERE, before any B1b story is created.
