@@ -2,7 +2,7 @@
 title: 'Email Sending Activation'
 type: 'feature'
 created: '2026-09-24'
-status: 'blocked'
+status: 'in-progress'
 baseline_revision: '8c3b1c600e43584ffd1bf5f6d86ceccccb65f981'
 review_loop_iteration: 0
 followup_review_recommended: false
@@ -85,9 +85,15 @@ deferred:
 
 ## Auto Run Result
 
+Status: in-progress
+
+## Historical Migration Reset Halt Evidence
+
 Status: blocked
 
 Blocking condition: implementation verification failed — `supabase db reset --local --yes` stops at existing migration `20260919192439_provisioning_rpc_attestation_coherence.sql` with `ERROR: provisioning RPC attestation gate is absent (SQLSTATE P0001)`. The required local integration/RLS and browser verification cannot run against the migrated schema until that prior migration-chain failure is repaired.
+
+**Resolved 2026-09-24:** Historical provisioning migration replay is repaired and committed. A full reset now reaches Story 13.4 migration `20260924090000_email_sending_activation.sql`, then fails because `notification_preferences_check` is missing. This is an implementation bug for the build delegate to fix, not an owner decision; resume Phase 5 implementation.
 
 ## Historical Phase 5 Halt Evidence
 
