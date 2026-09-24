@@ -5,9 +5,9 @@ stepsCompleted:
   - 'step-03c-aggregate'
   - 'step-04-validate-and-summarize'
 lastStep: 'step-04-validate-and-summarize'
-lastSaved: '2026-09-23'
+lastSaved: '2026-09-24'
 workflowType: testarch-automate
-story: 10.6 Tax-Answer Reconciliation; 11.1 Role Storage and Permission-Matrix Mechanism; 11.2 Non-Admin Access to the Phase A Surface; 11.3 Admin User Management; 11.4 Roles Surface, Effective Permissions, and the Per-Role Test Harness; 12.1 Platform Operator Identity and the Provision-Tenant Command; 12.2 Operator Console; 12.3 First-Admin Onboarding Checklist; 13.2 In-App Notifications — Bell, Center, and Preferences; 13.3 Email Outbox Pipeline (Queued, Non-Sending) (latest)
+story: 10.6 Tax-Answer Reconciliation; 11.1 Role Storage and Permission-Matrix Mechanism; 11.2 Non-Admin Access to the Phase A Surface; 11.3 Admin User Management; 11.4 Roles Surface, Effective Permissions, and the Per-Role Test Harness; 12.1 Platform Operator Identity and the Provision-Tenant Command; 12.2 Operator Console; 12.3 First-Admin Onboarding Checklist; 13.2 In-App Notifications — Bell, Center, and Preferences; 13.3 Email Outbox Pipeline (Queued, Non-Sending); 13.4 Email Sending Activation (latest)
 detectedStack: fullstack
 executionMode: BMad-integrated (post-implementation risk-based coverage expansion)
 inputDocuments:
@@ -1130,3 +1130,59 @@ The test will introduce a small pure view-model module and consume it from the e
 - `_bmad-output/test-artifacts/automation-summary.md` — this completed workflow record.
 
 **Recommended next workflow:** `bmad-testarch-test-review` for an independent quality review, then `bmad-testarch-trace` if the Story 13.2 acceptance matrix needs refreshed evidence after the final required DB and browser lanes run.
+
+---
+
+# Test Automation Expansion — Story 13.4: Email Sending Activation
+
+## Step 1 — Preflight and Context
+
+- **Mode and stack:** BMad-integrated Create mode for a full-stack Next.js application. Node's test runner covers unit/static suites; Vitest covers required local-Supabase integration/RLS suites; Playwright covers browser journeys. `package.json`, `vitest.config.ts`, and `playwright.config.ts` confirm framework readiness.
+- **Inputs:** Story 13.4 specification, ADR-B011, Epic 13 test design, the completed Story 13.4 ATDD checklist, `_bmad/tea/config.yaml`, current source/migrations, and the existing email/provider/outbox/unsubscribe/quote tests.
+- **Automation settings:** Playwright utilities, Pact utilities, Pact MCP, and browser automation are configured. The application has browser tests, so the full UI/API utility profile applies. No Pact/OpenAPI or external consumer-provider contract exists; the sandbox adapter is a local injected seam, so CDC generation is inapplicable.
+- **Knowledge applied:** test-level selection, P0 prioritization for delivery and recipient integrity, fixture cleanup, selective execution, CI burn-in hygiene, and deterministic test-quality criteria.
+
+## Step 2 — Acceptance Mapping and Coverage Plan
+
+| Acceptance area | Existing ATDD/green coverage | Automation decision |
+| --- | --- | --- |
+| AC1 sandbox provider outcome | Provider unit contract and artifact-backed outbox integration | Covered; no duplicate API/E2E test. |
+| AC2 closed release posture | Unit release-control matrix and integration no-call assertion | Covered. |
+| AC3 claims, retries, dedupe, suppression | Existing outbox integration/RLS suites | Covered. |
+| AC4 preferences and unsubscribe scope | Preference browser journey plus unsubscribe RLS cases | Covered. |
+| AC5 uniform public token response and shell isolation | Public unsubscribe browser journey and containment test | Covered. |
+| AC6 quote delivery authority and recipient snapshot | Existing tests cover PDF/artifact authority and terminal reminder states; no test preserved the selected recipient after a later CRM edit | Add one P0 local-Supabase integration regression. |
+
+The coverage plan is selective. API generation found no separately hosted provider endpoint, OpenAPI document, or nonduplicative app route target. Browser generation found the existing authenticated preference and anonymous unsubscribe suites already own the relevant user journeys. The selected P0 test uses the real authenticated quote-send command and database boundary because recipient freezing and its persistence are transactional behavior.
+
+## Step 3 — Adaptive Generation and Aggregation
+
+- **Execution resolution:** configuration requested `auto`; capability probing found subagents available and no agent-team capability, so three subagents ran in parallel.
+- **API worker:** 0 tests; no external provider/API contract and current route coverage is sufficient.
+- **E2E worker:** 0 tests; existing preference and public-token suites cover all browser-suitable Story 13.4 paths.
+- **Backend worker:** 1 P0 integration test in `tests/integration/email/quote-delivery-recipient-snapshot.int.test.ts`.
+- **Fixtures/helpers:** 0 created. The test reuses the two-tenant fixture, authenticated server client, current-PDF helper, local-stack gate, and cleanup conventions.
+- **Generated regression:** after an authorized sender selects a customer and the command queues the quote delivery, a later CRM email update cannot change `recipient_normalized`, `recipient_hash`, or the selected customer source persisted on the outbox row.
+
+## Step 4 — Validation and Final Summary
+
+### Validation evidence
+
+- `SUPABASE_TEST_REQUIRED=1 pnpm exec vitest run tests/integration/email/quote-delivery-recipient-snapshot.int.test.ts` — **PASS:** 1 file, 1 executed test, 1 passed, 0 skipped.
+- `pnpm exec eslint tests/integration/email/quote-delivery-recipient-snapshot.int.test.ts` — **PASS.**
+- `pnpm run typecheck` — **PASS.**
+- `git diff --check` — **PASS.**
+
+### Definition of done
+
+- All six Story 13.4 acceptance criteria were mapped against the existing ATDD-derived green suite.
+- The new test closes the AC6 gap without duplicating the existing provider, release posture, RLS, PDF-authority, terminal-reminder, or browser evidence.
+- The test has a P0 tag, unique fixture data, real local-Supabase command/persistence boundaries, deterministic assertions, and cleanup in `finally`; it uses no external provider, hard wait, browser session, conditional UI flow, or shared state.
+- Pact/CDC is explicitly N/A because no external provider endpoint, provider contract, OpenAPI definition, or Pact configuration exists in this scope.
+
+### Files created or updated
+
+- `tests/integration/email/quote-delivery-recipient-snapshot.int.test.ts` — P0 AC6 recipient-snapshot immutability regression.
+- `_bmad-output/test-artifacts/automation-summary.md` — completed workflow record.
+
+**Recommended next workflow:** run `bmad-testarch-test-review` for an independent test-quality review, then refresh Story 13.4 traceability evidence with `bmad-testarch-trace`.
