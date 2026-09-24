@@ -78,3 +78,38 @@ No epic-end deferred reconciliation or archive has run.
 2. After the owner decision is recorded in an ADR amendment, rerun /auto-bmad epic --epic 13. Do not enable real-recipient delivery without the separate ADR-B011 go-live approval.
 
 **Next:** Record the owner architecture decision, then rerun /auto-bmad epic --epic 13. Human review of this local branch: /bmad-checkpoint-preview epic/13-wave-b1a-notifications-and-email-infrastructure. Project context: run /bmad-project-context refresh after epic completion.
+
+## Report — 2026-09-24T14:33:15Z (halted â€” needs-human)
+
+**Epic:** `13` — 4 stories.
+**Branch:** `epic/13-wave-b1a-notifications-and-email-infrastructure` (HEAD `04f90be`).
+**Pipeline status:** Halted at Story 13.4 Phase 5: local database reset fails in a prior provisioning migration, so required DB/RLS/browser evidence is pending.
+**Continues:** 2026-09-24T08:53:49Z (halted â€” needs-human)
+
+**Summary:** Owner-approved quote delivery decisions were recorded and Story 13.4 implementation resumed. Static/unit verification passed; local reset stopped before the required database and browser tests.
+
+**Timing:** started 2026-09-23T10:29:03Z; completed in progress — elapsed 28h 04m (≈8h 13m AI-run, ≈19h 51m human/idle wait); resumed 2×.
+
+**Stories:**
+1. 13.1â€“13.3: landed in earlier sessions; see prior report sections.
+2. 13.4: Phase 5 build blocked by existing provisioning migration chain; follow-up review not run.
+
+**Skipped:** (none)
+
+**Epic gate:** Not reached.
+
+**TEA:** Story 13.4 post-development automation and epic gates not reached.
+
+**Retrospective:** Not reached.
+
+**Overrides:** none
+
+**Open questions:** (none)
+
+**Deferred work:**
+1. Real-recipient delivery remains disabled pending a separate ADR-B011 owner go-live record.
+
+**⚠️ Needs human:**
+1. Repair prior migration 20260919192439_provisioning_rpc_attestation_coherence.sql so local reset succeeds, then rerun required DB/RLS/browser verification and resume Story 13.4.
+
+**Next:** Repair the migration-chain failure and rerun /auto-bmad epic --epic 13; then Human review: /bmad-checkpoint-preview epic/13-wave-b1a-notifications-and-email-infrastructure. Project context: run /bmad-project-context refresh after epic completion.

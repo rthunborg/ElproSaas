@@ -74,6 +74,7 @@ declare
   v_new text;
 begin
   select pg_get_functiondef('public.provision_tenant(text,jsonb)'::regprocedure) into v_definition;
+  v_definition := replace(v_definition, E'\r\n', E'\n');
 
   v_old := 'public.provisioning_attestation_payload(';
   v_new := 'public.provisioning_attestation_payload_v2(';
