@@ -71,6 +71,19 @@ describe("Story 13.4 activated email outbox delivery (ATDD RED)", () => {
     } finally { await cleanupFixture(fixture); }
   });
 
+  test("[P0][13.4-INT-009] sends a non-quote delivery without requiring a quote artifact", async (ctx) => {
+    if (skipUnlessStack(ctx, stackUp)) return;
+    const { processEmailOutbox } = await import(["@/server/email/outbox"].join(""));
+    const fixture = await createTwoTenantFixture();
+    const submit = vi.fn().mockResolvedValue({ providerMessageId: "sandbox-follow-up-13-4" });
+    try {
+      const row = (await adminQuery<{ id: string }>("insert into public.email_outbox (tenant_id,recipient_hash,category,subject_type,subject_id,logical_period,template_key,template_version,template_params,next_attempt_at) values ($1,repeat('e',64),'quote.follow_up_due','quote',gen_random_uuid(),'2026-09-24','quote-follow-up',1,'{}'::jsonb,now()-interval '1 minute') returning id", [fixture.tenantA.id]))[0]!;
+      await processEmailOutbox({ ...deps(), deliveryAdapter: { submit }, releaseControl: { mode: "sandbox" } }, { tenantId: fixture.tenantA.id, workerId: "worker-13-4" });
+      expect(submit).toHaveBeenCalledOnce();
+      expect(await adminQuery("select state, provider_message_id from public.email_outbox where id=$1", [row.id])).toEqual([{ state: "sent", provider_message_id: "sandbox-follow-up-13-4" }]);
+    } finally { await cleanupFixture(fixture); }
+  });
+
   test("[P0][13.4-INT-008] fails a claimed delivery without an artifact before provider submission and leaves recoverable queued state", async (ctx) => {
     if (skipUnlessStack(ctx, stackUp)) return;
     const { processEmailOutbox } = await import(["@/server/email/outbox"].join(""));

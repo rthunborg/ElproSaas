@@ -33,6 +33,9 @@ describe("Story 13.4 quote-email attachment authority (ATDD RED)", () => {
     const submit = vi.fn();
     await expect(processQuoteDelivery({ releaseControl: { mode: "sandbox" }, loadCurrentAuthorizedPdf: async () => ({ bytes, snapshotId: "current", artifact }), revalidateQuoteDeliveryArtifact: async () => false, deliveryAdapter: { submit } }, { tenantId: artifact.tenantId, quoteId: "22222222-2222-4222-8222-222222222222" })).rejects.toMatchObject({ code: "QUOTE_PDF_UNAVAILABLE" });
     expect(submit).not.toHaveBeenCalled();
+    const altered = { ...artifact, pdfChecksumSha256: "f".repeat(64) };
+    await expect(processQuoteDelivery({ releaseControl: { mode: "sandbox" }, loadCurrentAuthorizedPdf: async () => ({ bytes, snapshotId: "current", artifact: altered }), revalidateQuoteDeliveryArtifact: async () => true, deliveryAdapter: { submit } }, { tenantId: altered.tenantId, quoteId: "22222222-2222-4222-8222-222222222222" })).rejects.toMatchObject({ code: "QUOTE_PDF_UNAVAILABLE" });
+    expect(submit).not.toHaveBeenCalled();
   });
 
   test("[P1][13.4-INT-006] prevents every terminal quote reminder state from enqueueing or submitting a reminder", async () => {

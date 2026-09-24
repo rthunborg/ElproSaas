@@ -27,6 +27,19 @@ describe("Story 13.4 unsubscribe public capability and RLS", () => {
     } finally { await cleanupFixture(fixture); }
   });
 
+  test("[P0][13.4-RLS-003] an anonymous token cannot reactivate a suppression", async (ctx) => {
+    if (skipUnlessStack(ctx, stackUp)) return;
+    const fixture = await createTwoTenantFixture();
+    const tokenHash = hash(`no-reactivate-${crypto.randomUUID()}`);
+    try {
+      await adminQuery("insert into public.email_unsubscribe_tokens (tenant_id,token_hash,recipient_hash,category) values ($1,$2,repeat('d',64),'quote.delivery')", [fixture.tenantA.id, tokenHash]);
+      await adminQuery("insert into public.email_suppressions (tenant_id,recipient_hash,category) values ($1,repeat('d',64),'quote.delivery')", [fixture.tenantA.id]);
+      const anon = createClient(LOCAL_SUPABASE_URL, LOCAL_SUPABASE_ANON_KEY);
+      expect((await anon.rpc("consume_email_unsubscribe_token", { p_token_hash: tokenHash, p_ip_hash: hash("203.0.113.42"), p_reactivate: true })).data).toBe("unsubscribed");
+      expect(await adminQuery("select recipient_hash from public.email_suppressions where tenant_id=$1 and recipient_hash=repeat('d',64)", [fixture.tenantA.id])).toEqual([{ recipient_hash: "d".repeat(64) }]);
+    } finally { await cleanupFixture(fixture); }
+  });
+
   test("[P0][13.4-RLS-002] returns uniform inactive for unknown or revoked tokens while active token/IP limits return limited", async (ctx) => {
     if (skipUnlessStack(ctx, stackUp)) return;
     const fixture = await createTwoTenantFixture();

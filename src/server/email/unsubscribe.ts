@@ -24,11 +24,11 @@ export async function revokeUnsubscribeToken(token: string): Promise<void> {
   if (error) throw new Error("Could not revoke unsubscribe token");
 }
 
-export async function handleUnsubscribeRequest(input: { readonly token: string; readonly ip: string; readonly reactivate?: boolean }) {
+export async function handleUnsubscribeRequest(input: { readonly token: string; readonly ip: string }) {
   if (!/^[a-f0-9]{64}$/i.test(input.token)) return { status: 200, body: { state: "inactive" as const } };
   const client = await createSupabaseServerClient();
-  const { data, error } = await client.rpc("consume_email_unsubscribe_token", { p_token_hash: hash(input.token), p_ip_hash: hash(input.ip), p_reactivate: input.reactivate === true });
+  const { data, error } = await client.rpc("consume_email_unsubscribe_token", { p_token_hash: hash(input.token), p_ip_hash: hash(input.ip), p_reactivate: false });
   if (error || data === "inactive") return { status: 200, body: { state: "inactive" as const } };
   if (data === "limited") return { status: 429, headers: { "retry-after": "3600" }, body: { state: "limited" as const } };
-  return { status: 200, body: { state: data === "resubscribed" ? "resubscribed" as const : "unsubscribed" as const } };
+  return { status: 200, body: { state: "unsubscribed" as const } };
 }

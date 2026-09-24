@@ -101,9 +101,30 @@ deferred:
 
 Review caveat: the bounded cross-model reviewer command exited `1` with no output. It is unavailable review evidence, not a clean external review result. Triage contains only production-reachable findings.
 
+### 2026-09-24 — follow-up review pass
+
+- intent_gap: 0
+- bad_spec: 0
+- patch: 4 (high 3, low 1)
+- defer: 2 (medium 2)
+- reject: 5 (low 5)
+- addressed_findings:
+  - `[high] [patch]` Preserved non-quote email delivery by returning claim category and requiring a private artifact only for `quote.delivery`.
+  - `[high] [patch]` Made the sent transition lock and consume the exact prepared quote artifact before committing the `sent` event.
+  - `[high] [patch]` Removed anonymous token reactivation; the retained compatibility parameter always creates or preserves suppression.
+  - `[low] [patch]` Added an altered-checksum rejection assertion after successful quote-currentness validation.
+
+Deferred: provider idempotency after accepted submission but failed outcome persistence, and unsubscribe-link delivery in a real provider-rendered body. Both require the deferred real-provider contract; sandbox-only delivery remains the authorized Story 13.4 surface.
+
 ## Auto Run Result
 
 Status: done
+
+Follow-up review summary: Corrected quote-only artifact gating, atomic artifact consumption, anonymous unsubscribe reactivation, and checksum coverage.
+
+Follow-up review findings: 4 patches applied (3 high, 1 low; score 10), 2 deferred real-provider concerns, and 5 rejected findings. `followup_review_recommended: true`.
+
+Follow-up verification: `pnpm run typecheck` passed. `supabase db reset --local --yes` completed on the existing local test stack. `SUPABASE_TEST_REQUIRED=1 pnpm exec vitest run tests/integration/email/email-delivery-activation.atdd.int.test.ts tests/integration/rls/email-unsubscribe.atdd.rls.test.ts tests/integration/email/quote-delivery-attachment.atdd.int.test.ts` passed 3 files / 12 tests / 0 skips. The external cross-model review command printed no output, so that layer is unavailable evidence.
 
 Summary: Activated sandbox-only email delivery with a private quote-delivery artifact, immutable recipient evidence, server-authorized email preferences, and the narrow public unsubscribe capability. Real-recipient delivery remains disabled pending the separate ADR-B011 owner go-live record.
 
@@ -193,7 +214,7 @@ The public route supplies only a token and IP-derived hash to the database funct
 
 The quote delivery seam accepts bytes only from a caller that has already resolved the current authorized PDF. It rejects stale, invalid, and absent inputs before adapter submission; terminal reminder states are ineligible.
 
-- `src/server/email/outbox.ts:124` — `processQuoteDelivery`: validates the PDF before constructing a server-only attachment.
+- `src/server/email/outbox.ts:126` — `processQuoteDelivery`: validates the PDF before constructing a server-only attachment.
 - `tests/integration/email/quote-delivery-attachment.atdd.int.test.ts:9` — `[P0][13.4-INT-004]`: exercises current-PDF-only attachment behavior.
 
 ### Private quote delivery artifact
@@ -202,7 +223,7 @@ ADR-B011 requires a delivery worker to receive an exact private copy, rather tha
 
 - `src/server/email/quote-delivery.ts:23` — `normalizeQuoteDeliveryRecipient`: normalizes the selected linked recipient before it can be frozen in delivery state.
 - `src/server/email/quote-delivery.ts:31` — `assertQuoteDeliveryArtifact`: verifies the artifact bytes against their distinct PDF checksum.
-- `src/server/email/outbox.ts:139` — `Quote delivery artifact is required`: fails closed before the adapter is called.
+- `src/server/email/outbox.ts:141` — `Quote delivery artifact is required`: fails closed before the adapter is called.
 - `src/server/email/outbox.ts:58` — `loadClaimedDeliveryAttachment`: treats a missing claimed artifact as a recoverable failure and decodes the database bytea representation before checksum verification.
 - `supabase/migrations/20260924110000_quote_email_delivery_artifacts.sql:41` — `record_email_outbox_delivery`: consumes only the prepared artifact bound to the active sent outbox transition.
 - `supabase/migrations/20260924110000_quote_email_delivery_artifacts.sql:2` — `email_delivery_artifacts`: stores the outbox-bound private artifact and revokes direct table access.

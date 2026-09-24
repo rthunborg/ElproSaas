@@ -17,7 +17,7 @@ export type EnqueueEmailOutboxInput = {
   readonly recipient: RecipientEntitlementProjection;
   readonly template: EmailTemplate;
 };
-export type EmailOutboxRow = { readonly id: string; readonly state: EmailOutboxState; readonly leaseExpiresAt?: string | null; readonly attempts?: number };
+export type EmailOutboxRow = { readonly id: string; readonly state: EmailOutboxState; readonly category?: string; readonly leaseExpiresAt?: string | null; readonly attempts?: number };
 type Clock = { readonly now: () => Date };
 type OutboxClient = Pick<SupabaseClient, "from" | "rpc">;
 export type OutboxDependencies = { readonly client: OutboxClient; readonly clock?: Clock };
@@ -27,7 +27,7 @@ export function hashEmailRecipient(recipient: RecipientEntitlementProjection): s
 }
 
 function asRow(row: Record<string, unknown>): EmailOutboxRow {
-  return { id: String(row.id), state: row.state as EmailOutboxState, leaseExpiresAt: typeof row.lease_expires_at === "string" ? row.lease_expires_at : null, attempts: typeof row.attempts === "number" ? row.attempts : undefined };
+  return { id: String(row.id), state: row.state as EmailOutboxState, category: typeof row.category === "string" ? row.category : undefined, leaseExpiresAt: typeof row.lease_expires_at === "string" ? row.lease_expires_at : null, attempts: typeof row.attempts === "number" ? row.attempts : undefined };
 }
 
 export async function enqueueEmailOutbox(deps: OutboxDependencies, input: EnqueueEmailOutboxInput): Promise<EmailOutboxRow> {
@@ -103,7 +103,9 @@ export async function processEmailOutbox(
   for (const claim of claims) {
     try {
       const now = (deps.clock?.now ?? (() => new Date()))().toISOString();
-      const attachments = await loadClaimedDeliveryAttachment(deps, { id: claim.id, tenantId: input.tenantId, workerId: input.workerId, now });
+      const attachments = claim.category === "quote.delivery"
+        ? await loadClaimedDeliveryAttachment(deps, { id: claim.id, tenantId: input.tenantId, workerId: input.workerId, now })
+        : [];
       const adapter = createEmailDeliveryAdapter({ mode: "sandbox", submit: deps.deliveryAdapter.submit });
       const result = await adapter.deliver({ tenantId: input.tenantId, recipient: { kind: "synthetic", address: "sandbox-recipient@example.test" }, template: { key: "outbox", locale: "sv-SE", renderedBody: "" }, attachments });
       const { error } = await deps.client.rpc("record_email_outbox_delivery", { p_outbox_id: claim.id, p_tenant_id: input.tenantId, p_worker_id: input.workerId, p_provider_message_id: result.providerMessageId, p_now: now });
