@@ -21,6 +21,10 @@ export {
   type MarkQuoteVersionSentResult,
 } from "./mark-sent";
 export {
+  correctPendingQuoteDeliveryRecipient,
+  type CorrectPendingQuoteDeliveryRecipientResult,
+} from "./correct-delivery-recipient";
+export {
   createNewQuoteVersion,
   type CreateNewQuoteVersionResult,
 } from "./new-version";
@@ -58,6 +62,8 @@ export {
   type GenerateQuotePdfInput,
   validateMarkQuoteVersionSent,
   type MarkQuoteVersionSentInput,
+  validateCorrectPendingQuoteDeliveryRecipient,
+  type CorrectPendingQuoteDeliveryRecipientInput,
   validateCreateNewQuoteVersion,
   type CreateNewQuoteVersionInput,
   validateMarkQuoteVersionLifecycle,

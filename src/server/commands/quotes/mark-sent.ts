@@ -72,6 +72,33 @@ export interface MarkQuoteVersionSentResult {
   readonly targetId: string;
 }
 
+type QuoteDeliveryRecoveryStage = "artifact_preparation" | "finalization";
+
+async function recordQuoteDeliveryRecovery(
+  db: unknown,
+  input: {
+    readonly tenantId: string;
+    readonly quoteVersionId: string;
+    readonly actorUserId: string;
+    readonly correlationId: string;
+    readonly stage: QuoteDeliveryRecoveryStage;
+  },
+): Promise<void> {
+  const recoveryRpc = db as {
+    rpc(name: "record_quote_email_delivery_recovery", args: Record<string, unknown>): Promise<{
+      error: { message?: string; code?: string } | null;
+    }>;
+  };
+  const { error } = await recoveryRpc.rpc("record_quote_email_delivery_recovery", {
+    p_tenant_id: input.tenantId,
+    p_quote_version_id: input.quoteVersionId,
+    p_actor_user_id: input.actorUserId,
+    p_correlation_id: input.correlationId,
+    p_failure_stage: input.stage,
+  });
+  if (error) throw new Error("quote delivery recovery persistence failed");
+}
+
 export const markQuoteVersionSent = defineCommand<
   MarkQuoteVersionSentInput,
   MarkQuoteVersionSentResult
@@ -130,6 +157,11 @@ export const markQuoteVersionSent = defineCommand<
     // the Vault secret nor the resulting HMAC is review authority; the separate one-time
     // Story 10.8 authorization below remains the human-review decision.
     const rpc = asMarkSentRpcClient(db);
+    let recoveryStage: QuoteDeliveryRecoveryStage = "artifact_preparation";
+    try {
+    // Resolve the HMAC configuration inside the compensated section. A missing or
+    // malformed server secret is itself an artifact-preparation failure and must
+    // leave the same durable recovery record as a failed prepare/download step.
     const attestationConfig = quotePdfAttestationSecretFromEnv();
     const prepared = await rpc.rpc("prepare_quote_pdf_send_attestation", {
       p_tenant_id: ctx.tenantContext.tenantId,
@@ -182,6 +214,7 @@ export const markQuoteVersionSent = defineCommand<
 
     // Issue the distinct one-time reviewer authority only after byte verification,
     // then consume both proofs in the same database transaction as the commitment.
+    recoveryStage = "finalization";
     const authorityRpc = asQuoteReviewAuthorizationRpcClient(db);
     const authorization = await authorityRpc.rpc("authorize_quote_final_send", {
       p_tenant_id: ctx.tenantContext.tenantId,
@@ -195,7 +228,7 @@ export const markQuoteVersionSent = defineCommand<
       throw new Error("authorizeQuoteFinalSend: RPC returned no authorization id");
     }
 
-    const { error } = await rpc.rpc("mark_quote_version_sent", {
+    const commonArgs = {
       p_tenant_id: ctx.tenantContext.tenantId, // resolved tenant, never a client id
       p_quote_version_id: versionId,
       p_authorization_id: authorizationId,
@@ -208,11 +241,32 @@ export const markQuoteVersionSent = defineCommand<
       p_attestation_issued_at: challenge.issuedAt,
       p_attestation_expires_at: challenge.expiresAt,
       p_attestation_signature: signature,
+    };
+    // A final customer commitment is always paired with a frozen linked
+    // recipient and a durable delivery record. The validator guarantees this
+    // selection is complete before any PDF authority or lifecycle work begins.
+    const { error } = await rpc.rpc("finalize_quote_email_delivery", {
+      ...commonArgs,
+      p_recipient_source_type: ctx.input.recipient_source_type!,
+      p_recipient_source_id: ctx.input.recipient_source_id!,
+      p_pdf_base64: Buffer.from(pdfBytes).toString("base64"),
+      p_content_fingerprint: challenge.contentFingerprint,
+      p_pdf_checksum_sha256: challenge.checksumSha256,
     });
     // Map the RPC's not-draft assertion (a race) → QUOTE_VERSION_LOCKED; other codes per the mapper.
     if (error) throwMappedQuoteWriteError(error);
 
     return { targetId: versionId };
+    } catch (error) {
+      await recordQuoteDeliveryRecovery(db, {
+        tenantId: ctx.tenantContext.tenantId,
+        quoteVersionId: versionId,
+        actorUserId: ctx.tenantContext.userId,
+        correlationId: ctx.correlationId,
+        stage: recoveryStage,
+      });
+      throw error;
+    }
   },
   // Audit allow-list is `{ targetId }` ONLY — NO channel/reference/customer/money value.
 });

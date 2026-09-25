@@ -44,6 +44,7 @@ import { StatusBadge } from "./StatusBadge";
 import { quoteStatusLabel, lostOutcomeLabel, lostCategoryLabel } from "./status";
 import { DraftQuoteEditor } from "./DraftQuoteEditor";
 import { MarkSentButton } from "./MarkSentButton";
+import { CorrectQuoteDeliveryRecipient } from "./CorrectQuoteDeliveryRecipient";
 import { MarkLostButton } from "./MarkLostButton";
 import { CreateNewVersionButton } from "./CreateNewVersionButton";
 import { FollowUpChip } from "./FollowUpChip";
@@ -684,6 +685,9 @@ export function QuoteDetailView({
                   }))}
                   omittedPredecessorAttachmentCount={omittedCarryForwardAttachmentCount}
                 />
+              )}
+              {selected.status === "sent" && (
+                <CorrectQuoteDeliveryRecipient quoteId={header.id} quoteVersionId={selected.id} />
               )}
             </div>
           )}

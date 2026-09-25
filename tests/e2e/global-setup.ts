@@ -149,12 +149,23 @@ export default async function globalSetup() {
     customer_id: companyId,
     name: `Huvudkontor ${token()}`,
   });
-  await adminInsertContact({
+  const companyContactId = await adminInsertContact({
     tenant_id: base.tenantA.id,
     customer_id: companyId,
     facility_id: facilityId,
     name: `Erik Kontakt ${token()}`,
   });
+  // Story 13.4: the quote send journey may select only an existing linked CRM
+  // address. Keep the existing shared customer fixture and add deterministic
+  // addresses instead of introducing a parallel quote/customer graph.
+  await adminQuery(
+    "update public.customers set email=$2 where id=$1",
+    [companyId, `quote-customer-${token()}@example.test`],
+  );
+  await adminQuery(
+    "update public.contacts set email=$2 where id=$1",
+    [companyContactId, `quote-contact-${token()}@example.test`],
+  );
 
   // Story 8.3: seed ONE own-tenant file linked to the COMPANY customer (owner_type='customer',
   // purpose='crm_document' — matching the customer detail page's primary EntityFilePanel) with a
@@ -806,6 +817,77 @@ export default async function globalSetup() {
     quoteId,
   ]);
 
+  // Story 13.2: personal rows are deliberately seeded per recipient so browser
+  // checks exercise the RLS-scoped bell/center read rather than shared tenant data.
+  const notificationUsers = [
+    base.adminA,
+    roleAware.users.projektledare,
+    roleAware.users.saljare,
+    roleAware.users.montor,
+    roleAware.users.ekonomi,
+  ];
+  for (const user of notificationUsers) {
+    for (let index = 0; index < 10; index += 1) {
+      await adminQuery(
+        "insert into public.notifications (tenant_id,recipient_user_id,category,title,body,route,logical_subject_id,logical_period) values ($1,$2,'quote.follow_up_due',$3,'En offertuppföljning är förfallen.',$4,gen_random_uuid(),current_date)",
+        [base.tenantA.id, user.id, `Uppföljning behöver hanteras ${index + 1}`, `/quotes/${quoteId}`],
+      );
+    }
+  }
+  await adminQuery(
+    "insert into public.job_runs (tenant_id,producer,window_started_at,started_at,finished_at,outcome,correlation_id) values ($1,'quotes.follow-up-reminders',statement_timestamp() - interval '2 hours',statement_timestamp() - interval '2 hours',statement_timestamp() - interval '2 hours','completed',$2)",
+    [base.tenantA.id, crypto.randomUUID()],
+  );
+
+  // Story 13.3: keep the queue E2E fixtures tenant-scoped and dark. The rows are
+  // inserted directly by the trusted setup client; browser tests only inspect the
+  // redacted Admin projection and never invoke a delivery path.
+  const outboxPeriod = "2026-09-23";
+  const outboxSubjects = {
+    queued: crypto.randomUUID(), retry: crypto.randomUUID(), failed: crypto.randomUUID(),
+    suppressed: crypto.randomUUID(), otherTenant: crypto.randomUUID(),
+  };
+  const outboxReference = (type: string, id: string) => `${type}:${id}:${outboxPeriod}`;
+  const insertOutbox = async (tenantId: string, subjectType: string, subjectId: string, state: string, attempts: number, nextAttemptAt: string | null) => {
+    await adminQuery(
+      "insert into public.email_outbox (tenant_id,recipient_hash,category,subject_type,subject_id,logical_period,template_key,template_version,template_params,state,attempts,next_attempt_at) values ($1,repeat('e',64),'quote.follow_up_due',$2,$3,$4,'e2e-dark',1,'{\"recipientUserId\":\"fixture\",\"displayName\":\"Queue fixture\",\"locale\":\"sv-SE\"}'::jsonb,$5,$6,coalesce($7::timestamptz, now()))",
+      [tenantId, subjectType, subjectId, outboxPeriod, state, attempts, nextAttemptAt],
+    );
+  };
+  await insertOutbox(base.tenantA.id, "e2e_queued", outboxSubjects.queued, "queued", 0, null);
+  await insertOutbox(base.tenantA.id, "e2e_retry", outboxSubjects.retry, "queued", 1, "2026-09-23T12:05:00.000Z");
+  await insertOutbox(base.tenantA.id, "e2e_failed", outboxSubjects.failed, "failed", 3, null);
+  await insertOutbox(base.tenantA.id, "e2e_suppressed", outboxSubjects.suppressed, "suppressed", 0, null);
+  await insertOutbox(base.tenantB.id, "e2e_other_tenant", outboxSubjects.otherTenant, "queued", 0, null);
+
+  // Story 13.4: browser-only authenticated preference and public-token fixtures.
+  // Tokens are plaintext only in the gitignored fixture file; the database stores
+  // SHA-256 hashes, matching the public route's production contract.
+  const unsubscribeToken = (label: string) => createHash("sha256").update(`${label}:${token()}`).digest("hex");
+  const activeUnsubscribeToken = unsubscribeToken("active");
+  const revokedUnsubscribeToken = unsubscribeToken("revoked");
+  const unknownUnsubscribeToken = unsubscribeToken("unknown");
+  const rateLimitedUnsubscribeToken = unsubscribeToken("limited");
+  const tokenHash = (value: string) => createHash("sha256").update(value).digest("hex");
+  const unsubscribeRecipientHash = createHash("sha256").update(`unsubscribe-recipient:${token()}`).digest("hex");
+  for (const [plaintext, revoked] of [[activeUnsubscribeToken, false], [revokedUnsubscribeToken, true], [rateLimitedUnsubscribeToken, false]] as const) {
+    await adminQuery(
+      "insert into public.email_unsubscribe_tokens (tenant_id,token_hash,recipient_hash,category,revoked_at) values ($1,$2,$3,'quote.delivery',case when $4 then now() else null end)",
+      [base.tenantA.id, tokenHash(plaintext), unsubscribeRecipientHash, revoked],
+    );
+  }
+  for (const sourceIp of ["unknown", "127.0.0.1", "::1", "::ffff:127.0.0.1"]) {
+    // A full browser suite can cross the UTC hour after global setup. Seed the
+    // current and immediately following limiter windows so this public test
+    // still exercises the 429 path without relying on execution order.
+    for (const hourOffset of [0, 1]) {
+      await adminQuery(
+        "insert into public.email_unsubscribe_rate_limits (tenant_id,token_hash,ip_hash,window_started_at,attempts) values ($1,$2,$3,date_trunc('hour', now()) + ($4 * interval '1 hour'),10)",
+        [base.tenantA.id, tokenHash(rateLimitedUnsubscribeToken), tokenHash(sourceIp), hourOffset],
+      );
+    }
+  }
+
   const fixture = {
     ...base,
     operator: base.adminB,
@@ -816,6 +898,38 @@ export default async function globalSetup() {
     roleAware: {
       saljare: roleAware.users.saljare,
       montor: roleAware.users.montor,
+    },
+    notifications: {
+      administrator: base.adminA,
+      projectManager: roleAware.users.projektledare,
+      salesperson: roleAware.users.saljare,
+      installer: roleAware.users.montor,
+      finance: roleAware.users.ekonomi,
+      empty: base.adminB,
+      storedRoute: `/quotes/${quoteId}`,
+    },
+    emailOutbox: {
+      administrator: base.adminA,
+      nonAdmin: roleAware.users.montor,
+      otherTenantAdministrator: base.adminB,
+      queueReferences: {
+        queued: outboxReference("e2e_queued", outboxSubjects.queued),
+        retry: outboxReference("e2e_retry", outboxSubjects.retry),
+        failed: outboxReference("e2e_failed", outboxSubjects.failed),
+        suppressed: outboxReference("e2e_suppressed", outboxSubjects.suppressed),
+        otherTenant: outboxReference("e2e_other_tenant", outboxSubjects.otherTenant),
+      },
+    },
+    emailActivation: {
+      preferenceUser: base.adminA,
+      nonEssentialCategoryLabel: "Offertleverans",
+      essentialCategoryLabel: "Viktig uppföljning av offert",
+      unsubscribe: {
+        activeToken: activeUnsubscribeToken,
+        revokedToken: revokedUnsubscribeToken,
+        unknownToken: unknownUnsubscribeToken,
+        rateLimitedToken: rateLimitedUnsubscribeToken,
+      },
     },
     adminUserManagement: {
       tenantAdmin: base.adminA,

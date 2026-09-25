@@ -24,6 +24,10 @@ export const PERMISSION_MATRIX = {
   },
   foundation: { "Memberships.Manage": { roles: ["tenant_admin"] } },
   rbac: { "Memberships.Manage": { roles: ["tenant_admin"] } },
+  notifications: {
+    "Notifications.View": { roles: ["tenant_admin"] },
+    "Notifications.Personal": { roles: ["tenant_admin", "projektledare", "montor", "saljare", "ekonomi"] },
+  },
   dashboard: { "Dashboard.View": { roles: ["tenant_admin", "projektledare", "montor", "saljare", "ekonomi"] } },
   crm: {
     "Customers.View": { roles: ["tenant_admin", "projektledare", "saljare"] },

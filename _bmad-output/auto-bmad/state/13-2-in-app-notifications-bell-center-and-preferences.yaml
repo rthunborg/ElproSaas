@@ -1,0 +1,94 @@
+# auto-bmad per-story state — written by scripts/state_update.py (full stable schema;
+# see references/state-and-resume.md). Prose belongs in reports/{key}.md, not here.
+story_key: 13-2-in-app-notifications-bell-center-and-preferences
+epic_num: 13
+story_num: 2
+story_suffix: ""
+story_source: sprint
+spec_folder: null
+story_id: null
+branch: epic/13-wave-b1a-notifications-and-email-infrastructure
+status: done
+updated_at: "2026-09-24T18:57:34Z"
+started_at: "2026-09-23T14:26:19Z"
+completed_at: "2026-09-24T18:57:34Z"
+active_seconds: 10287
+timing_anchor: null
+is_first_in_epic: false
+is_last_in_epic: false
+git_mode: remote
+base_branch: main
+selected_phase: followup_review
+selected_role: primary-reviewer
+selected_profile: standard
+selected_model: gpt-5.6-terra
+selected_effort: high
+selected_host: codex
+selected_tier: subagents
+selected_route: subagent
+escalation_reason: null
+routing_ledger:
+  - "{\"effort\":\"high\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-terra\",\"phase\":\"build\",\"profile\":\"standard\",\"role\":\"build-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"high\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-terra\",\"phase\":\"tea_per_story\",\"profile\":\"standard\",\"role\":\"tea-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"high\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-terra\",\"phase\":\"build\",\"profile\":\"standard\",\"role\":\"build-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"high\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-terra\",\"phase\":\"tea_per_story\",\"profile\":\"standard\",\"role\":\"tea-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"high\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-terra\",\"phase\":\"followup_review\",\"profile\":\"standard\",\"role\":\"primary-reviewer\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+tea_risk: high
+tea_selected: [atdd, automate]
+tea_rationale: Schema and tenant-isolated RLS changes with stateful notification and preference flows.
+epic_story_count: 4
+stories_after_in_epic: 2
+completed_phases: [0, 1, 2, 3, 4, 5, 6, 7]
+spec_path: "C:\\DEV\\ElproSaas\\_bmad-output\\implementation-artifacts\\spec-13-2-in-app-notifications-bell-center-and-preferences.md"
+spec_approved: true
+build:
+  status: done
+  blocking_condition: null
+  followup_review_recommended: true
+  review_loop_iteration: 0
+  deferred_count: 1
+  warnings: [oversized]
+followup_passes: 1
+hitl_halt: "auto-continued (epic - no halt)"
+review_unverified: true
+story_trace: null
+legacy_review_resume: false
+legacy_review_iteration: null
+legacy_review_loop_done: false
+legacy_external_review_iterations: null
+legacy_convergence_unverified: false
+legacy_artifact_path: null
+commits: [227845b, af94f21, df5d8ad, 343245b, b072c40, 344f00e, 06fda53, e656ee2, 5265a89, 5fcc650, 95e8eeb, 86926c2]
+phase8_steps:
+  trace_gate: null
+  nfr: null
+  test_review: null
+  reconcile: null
+  archive: null
+  retro: null
+gate_decision: null
+gate_iterations: 0
+deferred_work_archived: 0
+retro:
+  doc: null
+  verdict: null
+  open_action_items: 0
+bmad_status_flipped_at: null
+pr_url: "https://github.com/rthunborg/ElproSaas/pull/75"
+ci_run_url: null
+ci_status: unknown
+pr_merged: false
+merge_method: null
+merge_commit: null
+branch_deleted: false
+open_questions:
+  - "Story 13.2 follow-up still recommends another review pass; the epic PR remains draft."
+  - The configured cross-model review command produced no output during follow-up review.
+  - "The full unit suite remains environment-blocked by background-runner configuration; focused notification units and required integration/RLS passed."
+  - Reviewer capacity required sequential reuse of two review agents to complete all five lenses.
+deferred_work:
+  - "Numeric runner SLA, batch-size, fairness, backlog-age, and freshness thresholds remain owner-pending; only honest elapsed-time/run-state information is shown."
+blockers: []
+overrides:
+  stop_after: Halt after planning.
+constraints: []

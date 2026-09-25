@@ -16,7 +16,7 @@
  * control has an accessible name + a visible focus ring; the sent state is conveyed as TEXT (the
  * existing text-not-color status badge → "Skickad"), never by color alone.
  */
-import { useActionState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { markQuoteVersionSentAction } from "@/features/quotes/actions";
 import {
   MARK_SENT_ACTION_INITIAL,
@@ -34,6 +34,10 @@ export function MarkSentButton({ quoteId, quoteVersionId }: MarkSentButtonProps)
     MARK_SENT_ACTION_INITIAL,
   );
   const retryable = isRetryableMarkSentError(state);
+  const [candidates, setCandidates] = useState<Array<{ sourceType: "customer" | "contact"; sourceId: string; label: string; email: string }>>([]);
+  const [recipient, setRecipient] = useState("");
+  useEffect(() => { void fetch(`/api/quotes/${quoteVersionId}/delivery-recipients`).then((r) => r.ok ? r.json() : { candidates: [] }).then((data) => setCandidates(data.candidates ?? [])).catch(() => setCandidates([])); }, [quoteVersionId]);
+  const selected = candidates.find((candidate) => `${candidate.sourceType}:${candidate.sourceId}` === recipient);
 
   return (
     <form
@@ -74,15 +78,24 @@ export function MarkSentButton({ quoteId, quoteVersionId }: MarkSentButtonProps)
 
       <input type="hidden" name="quote_id" value={quoteId} />
       <input type="hidden" name="quote_version_id" value={quoteVersionId} />
+      <input type="hidden" name="recipient_source_type" value={selected?.sourceType ?? ""} />
+      <input type="hidden" name="recipient_source_id" value={selected?.sourceId ?? ""} />
+      <label className="text-sm text-zinc-900">Mottagare
+        <select required value={recipient} onChange={(event) => setRecipient(event.target.value)} className="ml-2 rounded border p-1" aria-label="E-postmottagare">
+          <option value="">Välj kund eller kontakt</option>
+          {candidates.map((candidate) => <option key={`${candidate.sourceType}:${candidate.sourceId}`} value={`${candidate.sourceType}:${candidate.sourceId}`}>{candidate.label} — {candidate.email}</option>)}
+        </select>
+      </label>
+      {candidates.length === 0 && <p role="alert" className="text-sm text-red-800">Ingen giltig e-postadress finns på kunden eller kontakten.</p>}
 
       <div className="flex justify-end">
         <button
           type="submit"
-          disabled={pending}
+          disabled={pending || !selected}
           data-testid="mark-sent-button"
           className="rounded-md bg-blue-700 px-4 py-2 text-sm font-medium text-white hover:bg-blue-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 disabled:opacity-60"
         >
-          {pending ? "Skickar…" : "Markera som skickad"}
+          {pending ? "Skickar…" : "Skicka offert"}
         </button>
       </div>
     </form>

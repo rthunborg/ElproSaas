@@ -1,0 +1,92 @@
+# auto-bmad per-story state — written by scripts/state_update.py (full stable schema;
+# see references/state-and-resume.md). Prose belongs in reports/{key}.md, not here.
+story_key: 13-1-authenticated-background-runner-and-producer-registry
+epic_num: 13
+story_num: 1
+story_suffix: ""
+story_source: sprint
+spec_folder: null
+story_id: null
+branch: epic/13-wave-b1a-notifications-and-email-infrastructure
+status: done
+updated_at: "2026-09-24T18:57:34Z"
+started_at: "2026-09-23T10:56:19Z"
+completed_at: "2026-09-24T18:57:34Z"
+active_seconds: 6765
+timing_anchor: null
+is_first_in_epic: true
+is_last_in_epic: false
+git_mode: remote
+base_branch: main
+selected_phase: followup_review
+selected_role: primary-reviewer
+selected_profile: standard
+selected_model: gpt-5.6-terra
+selected_effort: high
+selected_host: codex
+selected_tier: subagents
+selected_route: subagent
+escalation_reason: null
+routing_ledger:
+  - "{\"effort\":\"high\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-terra\",\"phase\":\"build\",\"profile\":\"standard\",\"role\":\"build-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"high\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-terra\",\"phase\":\"tea_per_story\",\"profile\":\"standard\",\"role\":\"tea-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"high\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-terra\",\"phase\":\"build\",\"profile\":\"standard\",\"role\":\"build-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"high\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-terra\",\"phase\":\"tea_per_story\",\"profile\":\"standard\",\"role\":\"tea-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"high\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-terra\",\"phase\":\"followup_review\",\"profile\":\"standard\",\"role\":\"primary-reviewer\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+tea_risk: high
+tea_selected: [atdd, automate]
+tea_rationale: "Authentication, secrets, and runner authorization, plus concurrency and tenant-scoped data integrity."
+epic_story_count: 4
+stories_after_in_epic: 3
+completed_phases: [0, 1, 2, 3, 4, 5, 6, 7]
+spec_path: "C:\\DEV\\ElproSaas\\_bmad-output\\implementation-artifacts\\spec-13-1-authenticated-background-runner-and-producer-registry.md"
+spec_approved: true
+build:
+  status: done
+  blocking_condition: null
+  followup_review_recommended: true
+  review_loop_iteration: 0
+  deferred_count: 1
+  warnings: []
+followup_passes: 1
+hitl_halt: "auto-continued (epic â€” no halt)"
+review_unverified: true
+story_trace: null
+legacy_review_resume: false
+legacy_review_iteration: null
+legacy_review_loop_done: false
+legacy_external_review_iterations: null
+legacy_convergence_unverified: false
+legacy_artifact_path: null
+commits: [c12a562, 72d77e7, d2081e1, 9b077dc, c40e12c, 3d49a6e, f1ce5b7, e3cf34e, 132f71d, 0e32926, 6045afd, 898f3b6]
+phase8_steps:
+  trace_gate: null
+  nfr: null
+  test_review: null
+  reconcile: null
+  archive: null
+  retro: null
+gate_decision: null
+gate_iterations: 0
+deferred_work_archived: 0
+retro:
+  doc: null
+  verdict: null
+  open_action_items: 0
+bmad_status_flipped_at: null
+pr_url: "https://github.com/rthunborg/ElproSaas/pull/75"
+ci_run_url: null
+ci_status: unknown
+pr_merged: false
+merge_method: null
+merge_commit: null
+branch_deleted: false
+open_questions:
+  - "Local full typecheck/lint included ignored tmp worktree sources; the clean CI run must confirm repository-wide gates."
+  - "The Story 13.1 follow-up review still recommends another pass; the epic PR requires review before ready status."
+  - The configured cross-model review layer returned no output during the follow-up pass.
+deferred_work:
+  - "Numeric runner SLA, batch-size, fairness, backlog-age, and freshness thresholds remain owner-pending NFR contracts; this story proves deterministic budget/cursor behavior without claiming a production performance target."
+blockers: []
+overrides: {}
+constraints: []

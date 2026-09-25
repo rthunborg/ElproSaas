@@ -75,6 +75,7 @@ import {
   type FixtureTenant,
 } from "../../factories/tenants";
 import { adminSelectAuditEvents } from "../../factories/audit-events";
+import { adminQuery } from "../../factories/admin-sql";
 import { isLocalStackReachable } from "../../support/test-env";
 import { skipUnlessStack } from "../../support/stack-gate";
 import { establishCurrentQuotePdf } from "../../support/quote-pdf";
@@ -118,12 +119,16 @@ afterAll(async () => {
  */
 async function seedDraftVersionWithPdfLink(
   tenant: FixtureTenant,
-): Promise<{ versionId: string; fileId: string; linkId: string }> {
+): Promise<{ versionId: string; fileId: string; linkId: string; customerId: string }> {
   const customerId = await adminInsertCustomer({
     tenant_id: tenant.id,
     customer_type: "company",
     display_name: `lock-customer-${crypto.randomUUID().slice(0, 8)}`,
   });
+  await adminQuery("update public.customers set email=$2 where id=$1", [
+    customerId,
+    `lock-customer-${crypto.randomUUID().slice(0, 8)}@example.test`,
+  ]);
   const calcId = await adminInsertCalculation({
     tenant_id: tenant.id,
     customer_id: customerId,
@@ -150,7 +155,7 @@ async function seedDraftVersionWithPdfLink(
     owner_id: versionId,
     purpose: "quote_pdf",
   });
-  return { versionId, fileId, linkId };
+  return { versionId, fileId, linkId, customerId };
 }
 
 // ══════════════════════════════════════════════════════════════════════════════════════════════
@@ -172,7 +177,7 @@ describe("8.4-INT-01: the sent-version PDF link is LOCKED by construction at the
 
   it("[P0] 8.4-INT-01: after markQuoteVersionSent the quote_pdf link is is_locked=true / locked_at set and files.lifecycle_state='locked'", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
-    const { versionId, fileId: obsoletePdfFileId } = await seedDraftVersionWithPdfLink(fx.tenantA);
+    const { versionId, fileId: obsoletePdfFileId, customerId } = await seedDraftVersionWithPdfLink(fx.tenantA);
     const currentPdf = await establishCurrentQuotePdf({
       client: clientA,
       tenantId: fx.tenantA.id,
@@ -185,7 +190,7 @@ describe("8.4-INT-01: the sent-version PDF link is LOCKED by construction at the
       client: clientA as never,
       clock: fixedClock,
       correlationId: crypto.randomUUID(),
-      input: { quote_version_id: versionId },
+      input: { quote_version_id: versionId, recipient_source_type: "customer", recipient_source_id: customerId },
     });
     expect(sent.ok).toBe(true);
 
@@ -223,6 +228,10 @@ describe("8.4-INT-02: the acceptance-evidence link is LOCKED by construction onc
       customer_type: "company",
       display_name: `ev-customer-${crypto.randomUUID().slice(0, 8)}`,
     });
+    await adminQuery("update public.customers set email=$2 where id=$1", [
+      customerId,
+      `ev-customer-${crypto.randomUUID().slice(0, 8)}@example.test`,
+    ]);
     const calcId = await adminInsertCalculation({
       tenant_id: fx.tenantA.id,
       customer_id: customerId,
@@ -247,7 +256,7 @@ describe("8.4-INT-02: the acceptance-evidence link is LOCKED by construction onc
       client: clientA as never,
       clock: fixedClock,
       correlationId: crypto.randomUUID(),
-      input: { quote_version_id: versionId },
+      input: { quote_version_id: versionId, recipient_source_type: "customer", recipient_source_id: customerId },
     });
     expect(sent.ok).toBe(true);
     const evidenceFileId = await adminInsertFile({
@@ -288,7 +297,7 @@ describe("8.4-INT-02: the acceptance-evidence link is LOCKED by construction onc
 describe("8.4-INT-03: archive-only-delete of a locked file (never a hard delete) + one clean audit row (AC3, §15, R-813)", () => {
   it("[P0] 8.4-INT-03: archiveFile on a locked file SUCCEEDS (soft-delete: archived_at + lifecycle_state='archived', not a hard DELETE)", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
-    const { versionId } = await seedDraftVersionWithPdfLink(fx.tenantA);
+    const { versionId, customerId } = await seedDraftVersionWithPdfLink(fx.tenantA);
     const currentPdf = await establishCurrentQuotePdf({
       client: clientA,
       tenantId: fx.tenantA.id,
@@ -300,7 +309,7 @@ describe("8.4-INT-03: archive-only-delete of a locked file (never a hard delete)
       client: clientA as never,
       clock: fixedClock,
       correlationId: crypto.randomUUID(),
-      input: { quote_version_id: versionId },
+      input: { quote_version_id: versionId, recipient_source_type: "customer", recipient_source_id: customerId },
     });
     expect(sent.ok).toBe(true);
 
@@ -320,7 +329,7 @@ describe("8.4-INT-03: archive-only-delete of a locked file (never a hard delete)
 
   it("[P0] 8.4-INT-03: the archive writes EXACTLY ONE audit_events row with allow-listed metadata ONLY (no bucket/object path, no PII, no file contents)", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
-    const { versionId } = await seedDraftVersionWithPdfLink(fx.tenantA);
+    const { versionId, customerId } = await seedDraftVersionWithPdfLink(fx.tenantA);
     const currentPdf = await establishCurrentQuotePdf({
       client: clientA,
       tenantId: fx.tenantA.id,
@@ -332,7 +341,7 @@ describe("8.4-INT-03: archive-only-delete of a locked file (never a hard delete)
       client: clientA as never,
       clock: fixedClock,
       correlationId: crypto.randomUUID(),
-      input: { quote_version_id: versionId },
+      input: { quote_version_id: versionId, recipient_source_type: "customer", recipient_source_id: customerId },
     });
     expect(sent.ok).toBe(true);
     const correlationId = crypto.randomUUID();
@@ -360,7 +369,7 @@ describe("8.4-INT-03: archive-only-delete of a locked file (never a hard delete)
 describe("8.4-INT-04: a command-path mutation/re-point of a locked link ⇒ stable FILE_LINK_LOCKED (mapped from FL823, never SERVER_ERROR) (AC1/AC2)", () => {
   it("[P0] 8.4-INT-04: attempting a hard-delete of a locked file through the app path surfaces FILE_LINK_LOCKED (archive-only)", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
-    const { versionId } = await seedDraftVersionWithPdfLink(fx.tenantA);
+    const { versionId, customerId } = await seedDraftVersionWithPdfLink(fx.tenantA);
     const currentPdf = await establishCurrentQuotePdf({
       client: clientA,
       tenantId: fx.tenantA.id,
@@ -372,7 +381,7 @@ describe("8.4-INT-04: a command-path mutation/re-point of a locked link ⇒ stab
       client: clientA as never,
       clock: fixedClock,
       correlationId: crypto.randomUUID(),
-      input: { quote_version_id: versionId },
+      input: { quote_version_id: versionId, recipient_source_type: "customer", recipient_source_id: customerId },
     });
     expect(sent.ok).toBe(true);
 
@@ -402,7 +411,7 @@ describe("8.4-INT-04: a command-path mutation/re-point of a locked link ⇒ stab
 describe("8.4-RLS-01: cross-tenant locked-file archive/mutation ⇒ TENANT_ACCESS_DENIED (no existence disclosure); anon ⇒ UNAUTHENTICATED (AC5, R-809)", () => {
   it("[P0] 8.4-RLS-01: tenant A archiving a tenant B locked file ⇒ TENANT_ACCESS_DENIED (same generic shape as not-found)", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
-    const { versionId: bVersionId } = await seedDraftVersionWithPdfLink(fx.tenantB);
+    const { versionId: bVersionId, customerId: bCustomerId } = await seedDraftVersionWithPdfLink(fx.tenantB);
     const clientB = await makeAuthedServerClient(fx.adminB);
     const currentPdf = await establishCurrentQuotePdf({
       client: clientB,
@@ -415,7 +424,7 @@ describe("8.4-RLS-01: cross-tenant locked-file archive/mutation ⇒ TENANT_ACCES
       client: clientB as never,
       clock: fixedClock,
       correlationId: crypto.randomUUID(),
-      input: { quote_version_id: bVersionId },
+      input: { quote_version_id: bVersionId, recipient_source_type: "customer", recipient_source_id: bCustomerId },
     });
     expect(sentB.ok).toBe(true);
 
@@ -455,7 +464,7 @@ describe("8.4-RLS-01: cross-tenant locked-file archive/mutation ⇒ TENANT_ACCES
 describe("8.4-INT-05: partial-lock / archive-delete consistency — a mid-flow fault leaves a consistent, retryable state (AC4, R-813)", () => {
   it("[P0] 8.4-INT-05: a re-run of the archive on an ALREADY-archived locked file is a clean idempotent no-op (no double audit, no half state)", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
-    const { versionId } = await seedDraftVersionWithPdfLink(fx.tenantA);
+    const { versionId, customerId } = await seedDraftVersionWithPdfLink(fx.tenantA);
     const currentPdf = await establishCurrentQuotePdf({
       client: clientA,
       tenantId: fx.tenantA.id,
@@ -467,7 +476,7 @@ describe("8.4-INT-05: partial-lock / archive-delete consistency — a mid-flow f
       client: clientA as never,
       clock: fixedClock,
       correlationId: crypto.randomUUID(),
-      input: { quote_version_id: versionId },
+      input: { quote_version_id: versionId, recipient_source_type: "customer", recipient_source_id: customerId },
     });
     expect(sent.ok).toBe(true);
 
@@ -503,7 +512,7 @@ describe("8.4-INT-05: partial-lock / archive-delete consistency — a mid-flow f
     // write are one txn, so there is NO half-write to inject a fault into (the whole txn commits or
     // rolls back together). Hence no fault-injection path is fabricated here; the atomicity claim is
     // discharged by 8.4-RLS-04, and this test carries the orthogonal PRECISION guarantee.
-    const { versionId } = await seedDraftVersionWithPdfLink(fx.tenantA);
+    const { versionId, customerId } = await seedDraftVersionWithPdfLink(fx.tenantA);
     const currentPdf = await establishCurrentQuotePdf({
       client: clientA,
       tenantId: fx.tenantA.id,
@@ -516,7 +525,7 @@ describe("8.4-INT-05: partial-lock / archive-delete consistency — a mid-flow f
       client: clientA as never,
       clock: fixedClock,
       correlationId: crypto.randomUUID(),
-      input: { quote_version_id: versionId },
+      input: { quote_version_id: versionId, recipient_source_type: "customer", recipient_source_id: customerId },
     });
     expect(firstSend.ok).toBe(true);
     // Seed a SECOND, unrelated draft file NOT linked to any sent parent — it must stay unlocked

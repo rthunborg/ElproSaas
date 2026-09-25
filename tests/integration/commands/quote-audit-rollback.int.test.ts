@@ -90,12 +90,17 @@ async function seedSource(label: string): Promise<{
   calculationId: string;
   quoteId: string;
   versionId: string;
+  customerId: string;
 }> {
   const customerId = await adminInsertCustomer({
     tenant_id: fixture.tenantA.id,
     customer_type: "company",
     display_name: `${label}-customer`,
   });
+  await adminQuery("update public.customers set email=$2 where id=$1", [
+    customerId,
+    `audit-send-${crypto.randomUUID().slice(0, 8)}@example.test`,
+  ]);
   const calculationId = await adminInsertCalculation({
     tenant_id: fixture.tenantA.id,
     customer_id: customerId,
@@ -127,7 +132,7 @@ async function seedSource(label: string): Promise<{
     calculation_id: calculationId,
     company_name: `${label}-company`,
   });
-  return { calculationId, quoteId, versionId };
+  return { calculationId, quoteId, versionId, customerId };
 }
 
 async function quoteState(versionId: string): Promise<{
@@ -445,7 +450,11 @@ describe("Story 10.8 audit failure rolls back lifecycle transactions", () => {
     const result = await withForcedAuditFailure(correlationId, () =>
       runCommand(markQuoteVersionSent, {
         client: clientA as never,
-        input: { quote_version_id: draft.versionId },
+        input: {
+          quote_version_id: draft.versionId,
+          recipient_source_type: "customer",
+          recipient_source_id: draft.customerId,
+        },
         clock: fixedClock,
         correlationId,
       }),

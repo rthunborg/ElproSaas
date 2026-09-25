@@ -1,0 +1,17 @@
+{
+  "story": "13.3-email-outbox-pipeline-queued-non-sending",
+  "tdd_phase": "RED",
+  "total_tests": 20,
+  "unit_and_static_tests": 7,
+  "integration_and_rls_tests": 9,
+  "e2e_tests": 4,
+  "all_tests_skipped": true,
+  "expected_to_fail": true,
+  "fixtures_created": 0,
+  "subagent_execution": "SUBAGENT (API + E2E)",
+  "acceptance_criteria_covered": ["AC1", "AC2", "AC3", "AC4", "AC5", "AC6"],
+  "worker_outputs": [
+    "_bmad-output/test-artifacts/tmp/tea-atdd-api-tests-story-13-3.json",
+    "_bmad-output/test-artifacts/tmp/tea-atdd-e2e-tests-story-13-3.json"
+  ]
+}

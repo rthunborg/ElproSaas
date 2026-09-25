@@ -184,6 +184,82 @@ export function scanForServiceRoleLeak(rootDir) {
   return { violations };
 }
 
+/** Story 13.1 adds a narrower, fail-closed runner contract. */
+export function scanJobsContainment(rootDir) {
+  const violations = [];
+  const jobsRoot = join(rootDir, "src", "server", "jobs");
+  for (const file of walk(jobsRoot)) {
+    if (!shouldScanFile(file)) continue;
+    const rel = relative(rootDir, file).replace(/\\/g, "/");
+    const contents = readFileSync(file, "utf8");
+    if (/decodeJwt|verify_jwt\s*=\s*false|pg_cron|edge function/i.test(contents)) {
+      violations.push(`${rel}: forbidden alternate execution or unverified-JWT pattern in jobs runtime.`);
+    }
+  }
+  const jobsApiRoot = join(rootDir, "src", "app", "api", "jobs");
+  const sanctionedRoute = "src/app/api/jobs/run/route.ts";
+  for (const file of walk(jobsApiRoot)) {
+    if (!shouldScanFile(file)) continue;
+    const rel = relative(rootDir, file).replace(/\\/g, "/");
+    const contents = readFileSync(file, "utf8");
+    if (/decodeJwt|verify_jwt\s*=\s*false|pg_cron|edge function/i.test(contents)) {
+      violations.push(`${rel}: forbidden alternate execution or unverified-JWT pattern in jobs route.`);
+    }
+    if (rel !== sanctionedRoute && /@\/server\/jobs\/|runDueProducers|createJobsServiceClient/.test(contents)) {
+      violations.push(`${rel}: alternate jobs execution route is not permitted.`);
+    }
+  }
+  const sourceRoot = join(rootDir, "src");
+  for (const file of walk(sourceRoot)) {
+    if (!shouldScanFile(file)) continue;
+    const rel = relative(rootDir, file).replace(/\\/g, "/");
+    const contents = readFileSync(file, "utf8");
+    if (USE_CLIENT_RE.test(contents) && /(?:@\/server\/jobs\/service-client|server\/jobs\/service-client)/.test(contents)) {
+      violations.push(`${rel}: jobs service client is reachable from a "use client" module.`);
+    }
+  }
+  return { violations };
+}
+
+/** Story 13.4 permits one server-only adapter seam; all credentials remain prohibited. */
+export function scanEmailProviderContainment(rootDir) {
+  const violations = [];
+  const sourceRoot = join(rootDir, "src");
+  for (const file of walk(sourceRoot)) {
+    if (!shouldScanFile(file)) continue;
+    const rel = relative(rootDir, file).replace(/\\/g, "/");
+    const contents = readFileSync(file, "utf8");
+    if (/(?:from\s+["'](?:resend|nodemailer|postmark|sendgrid)|RESEND_API_KEY|SENDGRID_API_KEY|POSTMARK_API_TOKEN|SMTP_(?:HOST|PASSWORD|URL))/i.test(contents)) {
+      violations.push(`${rel}: provider import or credential is forbidden before Story 13.4.`);
+    }
+    if (/^src\/app\/api\/(?!jobs\/run\/route\.ts$).*email/i.test(rel) && /outbox|email/i.test(contents)) {
+      violations.push(`${rel}: alternate email API route is not permitted.`);
+    }
+    if (USE_CLIENT_RE.test(contents) && /server\/email\/outbox|@\/server\/email\/outbox/.test(contents)) {
+      violations.push(`${rel}: email outbox is reachable from a client module.`);
+    }
+  }
+  return { violations };
+}
+
+export async function verifyServiceRoleContainment({ root, allowlist = [] }) {
+  const allowed = new Set(allowlist);
+  const violations = scanEmailProviderContainment(root).violations.filter((entry) => ![...allowed].some((path) => entry.startsWith(path)));
+  return { violations, allowedUsages: [...allowed].filter((path) => { try { return readFileSync(join(root, path), "utf8").length > 0; } catch { return false; } }) };
+}
+
+export async function verifyPublicRouteImports({ root, route }) {
+  const imports = [];
+  const violations = [];
+  for (const file of walk(join(root, route))) {
+    if (!shouldScanFile(file)) continue;
+    const contents = readFileSync(file, "utf8");
+    imports.push(...(contents.match(/from\s+["']([^"']+)["']/g) ?? []));
+    if (/(tenant-context|resolve-tenant-context|app-shell|navigation|server\/email\/provider)/i.test(contents)) violations.push(`${relative(root, file)}: public unsubscribe imports a privileged shell dependency.`);
+  }
+  return { violations, imports };
+}
+
 // CLI behavior: when run directly (not imported by a test), scan the repo root and exit
 // non-zero on any violation. Compare normalized paths so Windows back/forward slashes and
 // drive-letter casing don't break the main-module check.
@@ -197,6 +273,8 @@ const invokedDirectly =
 if (invokedDirectly) {
   const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
   const { violations } = scanForServiceRoleLeak(repoRoot);
+  violations.push(...scanJobsContainment(repoRoot).violations);
+  violations.push(...scanEmailProviderContainment(repoRoot).violations);
   if (violations.length > 0) {
     console.error(
       `❌ Service-role containment guard failed (${violations.length} violation(s)):\n` +

@@ -60,7 +60,7 @@
 # use the current Epic 10 statuses and approved corrective-story entries below.
 
 generated: 2026-06-12
-last_updated: 09-21-2026 19:39  # ADR-B009 connected-field course correction verified; governance Story 10.7 done, no PWA/offline functionality delivered.
+last_updated: 09-24-2026 20:52  # ADR-B009 connected-field course correction verified; governance Story 10.7 done, no PWA/offline functionality delivered.
 project: ElproSaas
 project_key: NOKEY
 tracking_system: file-system
@@ -228,15 +228,15 @@ development_status:
   12-3-first-admin-onboarding-checklist: done
   epic-12-retrospective: done
 
-  epic-13: backlog
-  13-1-authenticated-background-runner-and-producer-registry: backlog
-  13-2-in-app-notifications-bell-center-and-preferences: backlog
-  13-3-email-outbox-pipeline-queued-non-sending: backlog
+  epic-13: in-progress
+  13-1-authenticated-background-runner-and-producer-registry: review
+  13-2-in-app-notifications-bell-center-and-preferences: review
+  13-3-email-outbox-pipeline-queued-non-sending: review
   # N-6 was answered 2026-07-26: Story 13.4 is schedulable for implementation
   # and sandbox proof. ADR-B011 keeps real-recipient delivery default-off until
   # a separate recorded owner go-live approval (epics doc, Story 13.4 banner).
-  13-4-email-sending-activation: backlog
-  epic-13-retrospective: optional
+  13-4-email-sending-activation: review
+  epic-13-retrospective: done
 
   # ---- B1a→B1b wave checkpoint happens HERE, before any B1b story is created.
 
@@ -466,3 +466,44 @@ action_items:
     owner: "QA + Architect/Product"
     status: in-progress
     ref: "C:\\DEV\\ElproSaas\\_bmad-output\\implementation-artifacts\\epic-12-retro-2026-09-21.md"
+  - id: "epic-13-retro-item-15-require-a-complete-linked-recipient-sele"
+    epic: 13
+    action: "Require a complete linked recipient selection in the mark-sent server
+      validator, remove the legacy no-recipient finalization fallback for Epic 13
+      quote delivery, and add a direct-action regression test."
+    owner: "Quote and email delivery owner"
+    status: open
+    ref: "C:\\DEV\\ElproSaas\\_bmad-output\\implementation-artifacts\\epic-13-retro-2026-09-24.md"
+  - id: "epic-13-retro-item-16-implement-a-tenant-scoped-pending-quote"
+    epic: 13
+    action: "Implement a tenant-scoped pending quote-delivery recipient-correction
+      command that cancels the prior delivery and requires fresh authorization, with
+      integration coverage."
+    owner: "Quote and email delivery owner"
+    status: open
+    ref: "C:\\DEV\\ElproSaas\\_bmad-output\\implementation-artifacts\\epic-13-retro-2026-09-24.md"
+  - id: "epic-13-retro-item-17-add-an-integration-regression-that-chang"
+    epic: 13
+    action: "Add an integration regression that changes a claimed quote delivery to
+      a terminal quote state before provider submission and proves no adapter call
+      occurs. Update the trace narrative to credit the existing implementation and
+      identify the test boundary accurately."
+    owner: "QA/test owner"
+    status: open
+    ref: "C:\\DEV\\ElproSaas\\_bmad-output\\implementation-artifacts\\epic-13-retro-2026-09-24.md"
+  - id: "epic-13-retro-item-18-implement-and-test-durable-orphaned-or-i"
+    epic: 13
+    action: "Implement and test durable orphaned or invalidated recovery state plus
+      a durable recovery audit record for quote-delivery preparation/finalization
+      failures."
+    owner: "Quote and email delivery owner"
+    status: open
+    ref: "C:\\DEV\\ElproSaas\\_bmad-output\\implementation-artifacts\\epic-13-retro-2026-09-24.md"
+  - id: "epic-13-retro-item-19-define-the-preference-subject-for-extern"
+    epic: 13
+    action: "Define the preference subject for external quote delivery and align the
+      UI and suppression comparison to that identity, or remove the in-app email toggle
+      for external-recipient quote delivery. Add a regression proof."
+    owner: "Notifications and email delivery owner"
+    status: open
+    ref: "C:\\DEV\\ElproSaas\\_bmad-output\\implementation-artifacts\\epic-13-retro-2026-09-24.md"

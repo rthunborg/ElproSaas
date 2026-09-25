@@ -5,9 +5,9 @@ stepsCompleted:
   - 'step-03c-aggregate'
   - 'step-04-validate-and-summarize'
 lastStep: 'step-04-validate-and-summarize'
-lastSaved: '2026-09-21'
+lastSaved: '2026-09-24'
 workflowType: testarch-automate
-story: 10.6 Tax-Answer Reconciliation; 11.1 Role Storage and Permission-Matrix Mechanism; 11.2 Non-Admin Access to the Phase A Surface; 11.3 Admin User Management; 11.4 Roles Surface, Effective Permissions, and the Per-Role Test Harness; 12.1 Platform Operator Identity and the Provision-Tenant Command; 12.2 Operator Console; 12.3 First-Admin Onboarding Checklist (latest)
+story: 10.6 Tax-Answer Reconciliation; 11.1 Role Storage and Permission-Matrix Mechanism; 11.2 Non-Admin Access to the Phase A Surface; 11.3 Admin User Management; 11.4 Roles Surface, Effective Permissions, and the Per-Role Test Harness; 12.1 Platform Operator Identity and the Provision-Tenant Command; 12.2 Operator Console; 12.3 First-Admin Onboarding Checklist; 13.2 In-App Notifications — Bell, Center, and Preferences; 13.3 Email Outbox Pipeline (Queued, Non-Sending); 13.4 Email Sending Activation (latest)
 detectedStack: fullstack
 executionMode: BMad-integrated (post-implementation risk-based coverage expansion)
 inputDocuments:
@@ -91,6 +91,26 @@ inputDocuments:
   - .agents/skills/bmad-testarch-automate/resources/knowledge/network-first.md
   - .agents/skills/bmad-testarch-automate/resources/knowledge/pactjs-utils-mandate.md
   - .agents/skills/bmad-testarch-automate/resources/knowledge/pact-mcp.md
+  - _bmad-output/implementation-artifacts/spec-13-2-in-app-notifications-bell-center-and-preferences.md
+  - _bmad-output/test-artifacts/atdd-checklist-13-2.md
+  - _bmad-output/implementation-artifacts/spec-13-3-email-outbox-pipeline-queued-non-sending.md
+  - _bmad-output/implementation-artifacts/epic-13-context.md
+  - _bmad-output/test-artifacts/atdd-checklist-13-3-email-outbox-pipeline-queued-non-sending.md
+  - _bmad-output/test-artifacts/tea-atdd-summary-spec-13-3-2026-09-23.json
+  - _bmad-output/test-artifacts/test-design-epic-13.md
+  - _bmad-output/implementation-artifacts/spec-13-4-email-sending-activation.md
+  - _bmad-output/test-artifacts/atdd-checklist-13-4.md
+  - _bmad-output/test-artifacts/traceability/epic-13-traceability-report.md
+  - _bmad/tea/config.yaml
+  - tests/unit/server/notifications/registry.test.ts
+  - tests/integration/notifications/notifications.atdd.int.test.ts
+  - tests/e2e/notifications/notifications.atdd.e2e.spec.ts
+  - src/server/notifications/registry.ts
+  - src/server/notifications/read-model.ts
+  - src/server/notifications/follow-up-producer.ts
+  - src/components/notifications/NotificationBell.tsx
+  - src/components/notifications/NotificationsCenter.tsx
+  - src/components/notifications/NotificationPreferences.tsx
 ---
 
 # Test Automation Expansion — Story 10.6 (Tax-Answer Reconciliation)
@@ -976,3 +996,348 @@ None. No consumer-provider contract artifact exists in this scope.
 
 **Recommended next workflow:** rerun `bmad-testarch-trace` for Epic 12 against this executed evidence and
 refresh the deterministic gate decision.
+
+---
+
+## Story 13.3 — Step 1: Preflight and context
+
+**Execution mode:** BMad-integrated, post-implementation coverage expansion.
+
+**Detected stack:** fullstack. The repository contains Next.js, a configured Playwright suite, and Vitest integration/RLS coverage; the separate Node test runner covers unit contracts. Both frontend and backend framework prerequisites are present.
+
+**Loaded inputs:** Story 13.3 specification; Epic 13 context; Epic 13 test design; the Story 13.3 ATDD checklist and API/E2E worker handoffs; `_bmad/tea/config.yaml`; `package.json`; `playwright.config.ts`; `vitest.config.ts`; existing Story 13.3 email/outbox, jobs, containment, RLS, manifest, and notifications tests; and the current server outbox, read model, producer, and queue component sources.
+
+**Automation configuration:** Playwright utilities are enabled, browser automation is `auto`, Pact utilities/MCP are configured, and stack detection is `auto`. Browser coverage exists, so the full UI+API Playwright-utils profile applies. Pact/provider-contract generation does not apply: Story 13.3 explicitly prohibits a provider boundary, and no provider endpoint exists.
+
+**Core knowledge applied:** test-level selection, risk priority, factory isolation, selective execution, CI burn-in, and quality criteria. The current ATDD output already maps all six acceptance criteria and created 20 red-phase tests. This expansion will inspect their implemented green coverage before adding only uncovered regression tests.
+
+## Story 13.3 — Step 2: Automation targets and coverage plan
+
+Browser exploration was skipped: `playwright-cli` is not installed, and no running local target may be adopted under the task constraints. Source analysis covers the existing authenticated `/notifications` route, the sole `/api/jobs/run` lane, migration/RPC boundary, server read model, and containment guard. No OpenAPI/Swagger document or provider endpoint exists. Pact generation is therefore inapplicable because Story 13.3 intentionally has no external provider contract.
+
+| Acceptance area | Existing green coverage | Expansion target | Level / priority |
+| --- | --- | --- | --- |
+| AC1 tenant-local dedupe | Unit + real PostgreSQL concurrent reconciliation | Template recipient must match the enqueue recipient, and the persisted RPC parameter must contain only the entitlement projection | Unit / P0 |
+| AC2 claims, lease, backoff | Unit + PostgreSQL `SKIP LOCKED`, stale lease, fixed retries | Covered; do not duplicate | — |
+| AC3 suppression scope | Unit + integration/RLS matching and non-matching scope | Covered; do not duplicate | — |
+| AC4 dark posture and containment | Unit/integration dark no-send plus source-graph bites | Verify projection normalization cannot persist Admin/raw source fields | Unit / P0 |
+| AC5 Admin queue isolation | RLS and four Playwright journeys | Covered; do not duplicate | — |
+| AC6 schema/manifest/H4 | RLS inventory and migration-reset evidence | Covered; do not duplicate | — |
+
+The plan is selective and regression-focused. One P0 unit scenario closes the only identified gap between the stated projection boundary and its persisted RPC input; database, browser, and static tests already cover the other acceptance outcomes at their appropriate levels.
+
+## Story 13.3 — Step 3: Generated coverage and aggregation
+
+Execution used the configured capability probe and the supported subagent path. API and E2E workers found no non-duplicative test target. The backend worker generated one P0 Node unit regression in `tests/unit/server/email/outbox.test.ts`; the aggregation wrote that test without creating fixtures.
+
+| Generated level | Tests | Files | Fixture needs |
+| --- | ---: | ---: | ---: |
+| API | 0 | 0 | none |
+| E2E | 0 | 0 | none |
+| Backend unit | 1 | 1 | none |
+
+**Added test:** `13.3-UNIT-PROJECTION-001` verifies that a mismatch between the recipient and template recipient stops before the outbox RPC, and that extra raw/Admin source fields are stripped from the persisted template parameters.
+
+Worker outputs and aggregated counts are recorded in `C:/tmp/tea-automate-*-2026-09-23T20-42-24-919.json`. The API and E2E workers correctly produced zero tests because the existing ATDD green suite already covers those surfaces.
+
+## Story 13.3 — Step 4: Validation and final summary
+
+**Validation checklist:** framework and test structure are present; BMad-integrated AC mapping and the existing ATDD outputs were reviewed; the generated Node unit test is isolated, deterministic, dependency-free, and has a P0/AC/test-ID label; no fixture or helper is required; no browser CLI session was opened; no CDC interaction applies. Existing project test conventions intentionally use the Node runner and focused in-memory stubs for this server boundary.
+
+**Executed evidence:**
+
+```powershell
+node --experimental-strip-types --import ./tests/support/register.mjs --test tests/unit/server/email/outbox.test.ts
+# 3 passed, 0 failed, 0 skipped
+
+pnpm typecheck
+# passed
+```
+
+**Coverage outcome:** Story 13.3 now has a regression check for AC1/AC4 recipient consistency and persistence allow-listing in addition to its existing ATDD-derived unit, real-PostgreSQL/RLS, containment, and browser coverage. No API, E2E, fixture, factory, or helper change was justified.
+
+**Files updated:** `tests/unit/server/email/outbox.test.ts`; this automation summary. The story specification was not modified.
+
+**Assumptions and residual risk:** the pre-13.4 provider prohibition makes external contract coverage inapplicable. Required PostgreSQL and browser suites were already present and were not rerun because this change is isolated to a Node unit boundary; their existing green evidence remains recorded in the Story 13.3 specification.
+
+**Recommended next workflow:** a targeted `bmad-testarch-test-review` or implementation review may use this updated automation evidence; no additional automation expansion is currently indicated.
+
+# Test Automation Expansion — Story 13.2 (In-App Notifications — Bell, Center, and Preferences)
+
+## Step 1 — Preflight & Context
+
+- **Stack:** fullstack. `package.json`, `vitest.config.ts`, and `playwright.config.ts` establish the existing Node unit, Vitest integration/RLS, and Playwright browser lanes; framework scaffolding is present.
+- **Mode:** BMad-integrated Create. The supplied Story 13.2 specification, its completed ATDD checklist, and Epic 13 test design were loaded with the notification implementation and existing tests.
+- **ATDD duplicate check:** the checklist and implementation already cover the primary emission, dedupe, all-role bell, read/retry, filtering/deep link, preferences, keyboard/focus, empty, never-run, and stale-state scenarios. The target audit will select only a materially unproven boundary.
+- **TEA configuration:** Playwright Utils, Pact.js Utils, Pact MCP, and browser automation are enabled in configuration. Browser tests exist, so the full UI+API utility profile was loaded. The project has no Pact indicators or consumer/provider boundary for this same-deployment story, the configured utility packages are absent, and SmartBear Pact tools are unavailable; no dependency or contract artifact will be invented.
+- **Resource posture:** this workflow will not start, stop, reset, or adopt local services. DB-backed evidence remains executable only where an already-running authorized local stack is available; an unavailable required lane is recorded as skipped or blocked rather than passed.
+
+## Step 2 — Identify Targets
+
+### Acceptance-criteria audit
+
+| Acceptance criterion | Existing ATDD/implementation evidence | Target decision |
+| --- | --- | --- |
+| AC1 entitled projection and stored route | `13.2-INT-001` exercises emitted recipient rows, safe content, unread state, and stored routes. | Covered; no duplicate. |
+| AC2 retry/concurrency dedupe and terminal suppression | `13.2-INT-002` runs six concurrent scans and checks an accepted terminal quote. | Covered; no duplicate. |
+| AC3 all-role bell and personal RLS | Integration covers own/foreign/anonymous/raw-write negatives; five P0 browser role journeys prove `9+` bell behavior and no nav entry. | Covered at appropriate levels. |
+| AC4 personal read, persisted route, filters, rollback | Integration proves idempotent acknowledgement; browser coverage owns deep-link, combined filters, one/all read, and injected rollback. | Covered at appropriate levels. |
+| AC5 preferences | Integration owns database constraints; browser coverage owns grouping, persisted allowed preference, required essential control, and inactive Swedish email copy. | Covered at appropriate levels. |
+| AC6 schema, accessibility, and honest states | Integration asserts forced RLS; browser coverage covers keyboard/focus plus empty, never-run, and stale copy. | Covered except for the planned pure view-model allocation below. |
+
+### Selected coverage target
+
+| Target | Level | Priority | Acceptance/risk link | Why this level |
+| --- | --- | --- | --- | --- |
+| `13.2-UNIT-002`: deterministic notification presentation helpers cap unread display at `9+`, order latest rows, apply module/category/read/date filters, and format hidden/never/failed/elapsed scan status. | Unit | P1 | AC3, AC4, AC6; R-1315 | The Epic 13 test design allocates these pure view-model facts to a unit lane. Existing browser tests validate the journey but do not make deterministic sorting, filtering, or copy branches cheap to diagnose. |
+
+The test will introduce a small pure view-model module and consume it from the existing bell and center components. It will not duplicate database authority, RLS, producer dedupe, route persistence, preference enforcement, or browser accessibility assertions. No API/provider contract exists: the application and Supabase persistence form one deployment boundary, there is no OpenAPI/Pact configuration, and no Pact test is selected.
+
+### Exploration and source analysis
+
+- `playwright-cli` is not installed. Following the configured fallback, browser discovery was skipped and selectors/contracts were read from the green ATDD Playwright suite rather than guessed.
+- Source analysis found Next route handlers for personal reads, read-all, preference GET/PUT, and the authenticated job runner. The producer remains server-contained; no external consumer/provider or message-queue contract belongs to this story.
+
+## Step 3 — Generate and Aggregate Tests
+
+- **Execution mode:** requested `auto`; capability probe enabled; runtime supports subagents but has no agent-team capability; resolved to **subagent**. The API, E2E, and backend workers were dispatched and all returned valid successful JSON outputs.
+- **API worker:** 0 tests. Existing route and integration coverage owns the API/RLS surface; no Pact consumer/provider boundary or provider endpoint map applies.
+- **E2E worker:** 0 tests. The 16 existing browser scenarios cover the full personal bell/center/preferences journey, including the required failure and accessibility paths. Playwright CLI was unavailable, so no browser was launched.
+- **Backend worker:** generated one unit file containing four P1 assertions for `13.2-UNIT-002`. The aggregate added the pure `src/components/notifications/notification-presentation.ts` helper and adopted it in the bell and center, then wrote `tests/unit/components/notifications/notification-presentation.test.ts`.
+- **Fixtures:** 0. The new helper is deterministic and I/O-free, so no DB, HTTP, browser, or shared fixture was created.
+- **Coverage added:** unread count/cap, non-mutating latest-first ordering, combined module/category/read/date filtering, and hidden/never/failed/elapsed Swedish scan-status copy. Integration/RLS, producer, preference, stored-route, and browser coverage remain in their existing suites.
+- **Priority distribution:** P0 0; P1 4; P2 0; P3 0. Total generated: 4 assertions in 1 unit file.
+
+## Step 4 — Validation and Final Summary
+
+### Validation evidence
+
+- `pnpm exec node --experimental-strip-types --import ./tests/support/register.mjs --test tests/unit/server/notifications/registry.test.ts tests/unit/components/notifications/notification-presentation.test.ts` — **PASS:** 6 tests, 0 failed, skipped, todo, or cancelled. This includes all four new `13.2-UNIT-002` assertions and the existing category-registry guard.
+- `pnpm exec eslint src/components/notifications/notification-presentation.ts src/components/notifications/NotificationBell.tsx src/components/notifications/NotificationsCenter.tsx tests/unit/components/notifications/notification-presentation.test.ts` — **PASS.**
+- `pnpm typecheck` — **PASS.**
+- `git diff --check` — **PASS.**
+
+### Quality and checklist result
+
+- Framework readiness, BMad-integrated inputs, acceptance mapping, existing ATDD review, level/priority selection, and duplicate-coverage avoidance are complete.
+- The generated unit suite is deterministic, isolated, I/O-free, priority-tagged, and has no hard waits, network dependency, conditional assertions, or shared state. No fixture/factory/helper infrastructure was needed beyond the pure presentation module.
+- API, CDC/Pact, and new E2E generation are **N/A** for the selected unit target. No CLI browser session was created; the temporary subagent JSON records and aggregate summary were removed after successful aggregation.
+- The test plan deliberately does not claim a local DB/RLS or Playwright run. Those existing acceptance suites require the authorized local Supabase and production-mode browser environment; no service was started, stopped, reset, or adopted.
+
+### Files created or updated
+
+- `src/components/notifications/notification-presentation.ts` — shared pure presentation helpers.
+- `src/components/notifications/NotificationBell.tsx` — uses deterministic unread formatting and latest-first ordering.
+- `src/components/notifications/NotificationsCenter.tsx` — uses shared sorting, combined filtering, and honest scan-status copy.
+- `tests/unit/components/notifications/notification-presentation.test.ts` — four P1 `13.2-UNIT-002` assertions.
+- `_bmad-output/test-artifacts/automation-summary.md` — this completed workflow record.
+
+**Recommended next workflow:** `bmad-testarch-test-review` for an independent quality review, then `bmad-testarch-trace` if the Story 13.2 acceptance matrix needs refreshed evidence after the final required DB and browser lanes run.
+
+---
+
+# Test Automation Expansion — Story 13.4: Email Sending Activation
+
+## Step 1 — Preflight and Context
+
+- **Mode and stack:** BMad-integrated Create mode for a full-stack Next.js application. Node's test runner covers unit/static suites; Vitest covers required local-Supabase integration/RLS suites; Playwright covers browser journeys. `package.json`, `vitest.config.ts`, and `playwright.config.ts` confirm framework readiness.
+- **Inputs:** Story 13.4 specification, ADR-B011, Epic 13 test design, the completed Story 13.4 ATDD checklist, `_bmad/tea/config.yaml`, current source/migrations, and the existing email/provider/outbox/unsubscribe/quote tests.
+- **Automation settings:** Playwright utilities, Pact utilities, Pact MCP, and browser automation are configured. The application has browser tests, so the full UI/API utility profile applies. No Pact/OpenAPI or external consumer-provider contract exists; the sandbox adapter is a local injected seam, so CDC generation is inapplicable.
+- **Knowledge applied:** test-level selection, P0 prioritization for delivery and recipient integrity, fixture cleanup, selective execution, CI burn-in hygiene, and deterministic test-quality criteria.
+
+## Step 2 — Acceptance Mapping and Coverage Plan
+
+| Acceptance area | Existing ATDD/green coverage | Automation decision |
+| --- | --- | --- |
+| AC1 sandbox provider outcome | Provider unit contract and artifact-backed outbox integration | Covered; no duplicate API/E2E test. |
+| AC2 closed release posture | Unit release-control matrix and integration no-call assertion | Covered. |
+| AC3 claims, retries, dedupe, suppression | Existing outbox integration/RLS suites | Covered. |
+| AC4 preferences and unsubscribe scope | Preference browser journey plus unsubscribe RLS cases | Covered. |
+| AC5 uniform public token response and shell isolation | Public unsubscribe browser journey and containment test | Covered. |
+| AC6 quote delivery authority and recipient snapshot | Existing tests cover PDF/artifact authority and terminal reminder states; no test preserved the selected recipient after a later CRM edit | Add one P0 local-Supabase integration regression. |
+
+The coverage plan is selective. API generation found no separately hosted provider endpoint, OpenAPI document, or nonduplicative app route target. Browser generation found the existing authenticated preference and anonymous unsubscribe suites already own the relevant user journeys. The selected P0 test uses the real authenticated quote-send command and database boundary because recipient freezing and its persistence are transactional behavior.
+
+## Step 3 — Adaptive Generation and Aggregation
+
+- **Execution resolution:** configuration requested `auto`; capability probing found subagents available and no agent-team capability, so three subagents ran in parallel.
+- **API worker:** 0 tests; no external provider/API contract and current route coverage is sufficient.
+- **E2E worker:** 0 tests; existing preference and public-token suites cover all browser-suitable Story 13.4 paths.
+- **Backend worker:** 1 P0 integration test in `tests/integration/email/quote-delivery-recipient-snapshot.int.test.ts`.
+- **Fixtures/helpers:** 0 created. The test reuses the two-tenant fixture, authenticated server client, current-PDF helper, local-stack gate, and cleanup conventions.
+- **Generated regression:** after an authorized sender selects a customer and the command queues the quote delivery, a later CRM email update cannot change `recipient_normalized`, `recipient_hash`, or the selected customer source persisted on the outbox row.
+
+## Step 4 — Validation and Final Summary
+
+### Validation evidence
+
+- `SUPABASE_TEST_REQUIRED=1 pnpm exec vitest run tests/integration/email/quote-delivery-recipient-snapshot.int.test.ts` — **PASS:** 1 file, 1 executed test, 1 passed, 0 skipped.
+- `pnpm exec eslint tests/integration/email/quote-delivery-recipient-snapshot.int.test.ts` — **PASS.**
+- `pnpm run typecheck` — **PASS.**
+- `git diff --check` — **PASS.**
+
+### Definition of done
+
+- All six Story 13.4 acceptance criteria were mapped against the existing ATDD-derived green suite.
+- The new test closes the AC6 gap without duplicating the existing provider, release posture, RLS, PDF-authority, terminal-reminder, or browser evidence.
+- The test has a P0 tag, unique fixture data, real local-Supabase command/persistence boundaries, deterministic assertions, and cleanup in `finally`; it uses no external provider, hard wait, browser session, conditional UI flow, or shared state.
+- Pact/CDC is explicitly N/A because no external provider endpoint, provider contract, OpenAPI definition, or Pact configuration exists in this scope.
+
+### Files created or updated
+
+- `tests/integration/email/quote-delivery-recipient-snapshot.int.test.ts` — P0 AC6 recipient-snapshot immutability regression.
+- `_bmad-output/test-artifacts/automation-summary.md` — completed workflow record.
+
+**Recommended next workflow:** run `bmad-testarch-test-review` for an independent test-quality review, then refresh Story 13.4 traceability evidence with `bmad-testarch-trace`.
+
+---
+
+# Test Automation Expansion — Epic 13 Trace-Gate Remediation for Story 13.4
+
+## Step 1 — Preflight and Context
+
+- **Mode and stack:** BMad-integrated Create mode for the full-stack Next.js application. The Node test runner, Vitest integration/RLS lane, and Playwright browser lane are configured and present.
+- **Remediation oracle:** the blocking Epic 13 trace report records 23/26 P0 requirements as FULL and identifies only `13.4-AC6`, `13.4-AC7`, and `13.4-AC8` as PARTIAL. This run targets their named executing branches without duplicating already credited recipient-freeze, artifact-currentness, provider-gate, suppression, or browser coverage.
+- **Inputs loaded:** Story 13.4 specification; Epic 13 test design; Story 13.4 ATDD checklist; Epic 13 traceability report; TEA configuration; test-runner configuration; current migrations/source; and existing quote-delivery, outbox, reminder, recovery, and transaction tests.
+- **Automation settings:** the full UI/API Playwright profile was reviewed because browser tests exist. The Playwright utilities flag is enabled but `@seontechnologies/playwright-utils` is not installed, so its mandate does not bind generated files. The selected gaps are database/producer transaction boundaries, so no new Playwright file is planned.
+- **Pact posture:** contract testing is not relevant to this same-deployment Supabase/Next.js boundary. SmartBear Pact MCP tools are not available (`pact_mcp_reachable: false`); no broker data or provider states are claimed.
+- **Quality posture:** all three gaps are P0 data-integrity/delivery-truth branches. Tests must execute against the real local database boundary, keep assertions falsifiable, preserve required-suite skips as missing evidence, and report any absent reachable implementation instead of weakening the acceptance criterion.
+
+## Step 2 — Automation Targets and Coverage Plan
+
+Browser exploration was skipped because `playwright-cli` is unavailable and the trace gaps are database/producer transaction boundaries with no selector uncertainty. Source and migration analysis found no OpenAPI/Pact boundary.
+
+| Requirement | Existing credited evidence | Selected P0 automation target | Reachability finding |
+| --- | --- | --- | --- |
+| `13.4-AC6` recipient change | Sender selection validation and immutable snapshot after later CRM edit | Exercise a pending-delivery recipient replacement that cancels the old delivery and creates a fresh authorized delivery | No cancel/reissue command, RPC, route, or state transition exists. A passing executing test cannot be authored without product behavior; no skipped or hollow test will be counted. |
+| `13.4-AC7` five reminder stops | Current/private PDF checks and a five-state in-memory processor seam | Expand the real database producer case from one terminal status to five independently visible statuses at enqueue; require a claimed-send database recheck before adapter submission | The due-follow-up producer can prove the enqueue boundary for stored states `accepted`, `rejected`, `lost` (withdrawal/lost), `superseded`, and `expired`. The activated email outbox processor has no reminder quote linkage or terminal-state recheck, so the provider-boundary half is unreachable. |
+| `13.4-AC8` preparation/finalization failures | Success path, artifact claim/consume, and missing-artifact retry | Inject malformed artifact preparation and forced audit failure inside finalization/enqueue; assert the quote remains draft and no outbox, artifact, queued/sent event, provider ID, or sent state survives | Database rollback is reachable. Artifact preparation currently occurs inside the same transaction and no code writes `orphaned`/`invalidated` recovery state or a recovery audit event, so the required durable recovery evidence is absent. |
+
+The scope is selective: modify the existing producer integration case rather than add duplicate reminder coverage, and add one focused email transaction-failure integration file. No API, browser, fixture-library, or contract test is justified. The run will preserve PARTIAL status wherever required product behavior is absent.
+
+## Step 3 — Adaptive Generation and Aggregation
+
+- **Execution resolution:** configuration requested `auto`; capability probing resolved to `SUBAGENT`. API, E2E, and backend workers were launched for the full-stack repository and their outputs were aggregated only after all completed.
+- **API worker:** 0 tests. The authenticated job route only dispatches the backend producers, and no endpoint can supply the missing transaction or provider-boundary evidence.
+- **E2E worker:** 0 tests. There is no recipient-reissue UI or browser journey for the database and provider-submission invariants.
+- **Backend worker:** 7 P0 branch cases across two files: five stored terminal states at the real follow-up producer boundary plus malformed-artifact and forced-audit-failure finalization cases.
+- **Fixtures/helpers:** 0 created. The generated coverage reuses the tenant factories, local-stack gate, authenticated server client, current-PDF helper, admin SQL helper, and the correlation-scoped forced-audit-failure control table.
+- **Mandate deviations:** none. No Playwright or Pact artifact was generated.
+
+### Generated coverage
+
+- `tests/integration/notifications/notifications.atdd.int.test.ts` now runs the existing deduplicating producer case independently against `accepted`, `rejected`, `lost`, `superseded`, and `expired` quote versions and asserts that each produces zero due-follow-up notifications.
+- `tests/integration/email/quote-delivery-finalization-failure.int.test.ts` rejects malformed delivery bytes before any write and injects an audit failure after finalization writes would begin, asserting rollback to draft with zero outbox rows, delivery artifacts, or delivery events.
+
+### Deliberately uncovered requirements
+
+- `13.4-AC6`: no reachable pending-delivery recipient cancellation/reissue transition or fresh-authorization workflow exists.
+- `13.4-AC7`: the current follow-up producer emits in-app notifications instead of reminder outbox rows, and the outbox worker has no claimed-send terminal quote-status recheck before provider submission.
+- `13.4-AC8`: artifact preparation is inside the finalization transaction; no implementation persists an `orphaned`/`invalidated` recovery state or durable recovery audit evidence after failure.
+
+## Step 4 — Validation and Final Summary
+
+### Validation evidence
+
+- `SUPABASE_TEST_REQUIRED=1 pnpm exec vitest run tests/integration/notifications/notifications.atdd.int.test.ts tests/integration/email/quote-delivery-finalization-failure.int.test.ts` — **PASS:** 2 files, 13 executed tests, 13 passed, 0 failed, 0 skipped.
+- `pnpm exec eslint tests/integration/notifications/notifications.atdd.int.test.ts tests/integration/email/quote-delivery-finalization-failure.int.test.ts` — **PASS.**
+- `pnpm run typecheck` — **PASS.**
+- `git diff --check` — **PASS.**
+
+The first validation attempt executed eight tests and exposed an invalid direct transition fixture for terminal versions with open follow-ups. The fixture was corrected to follow the database lifecycle: accepted/superseded transitions close their anchored follow-up, rejected/lost/expired transitions first complete it, and lost also receives its required companion reason row. The complete required lane then passed.
+
+### Coverage result
+
+| Requirement | Executing coverage added | Result after this run |
+| --- | --- | --- |
+| `13.4-AC6` | None; the existing recipient snapshot test remains the only reachable proof | **PARTIAL:** pending-delivery cancellation and fresh authorization cannot be exercised because the transition does not exist. |
+| `13.4-AC7` | Five independent P0 database/producer cases for `accepted`, `rejected`, `lost`, `superseded`, and `expired` | **PARTIAL:** enqueue prevention is now executable for all five stored states; claimed-send pre-provider recheck remains absent. |
+| `13.4-AC8` | Two P0 cases for malformed bytes and injected finalization/audit failure rollback | **PARTIAL:** rollback and no-false-state behavior are executable; durable orphan/recovery state and recovery audit evidence remain absent. |
+
+### Test and infrastructure summary
+
+- **Targeted P0 cases added/expanded:** 7 (five terminal-state producer cases and two transaction-failure cases).
+- **Test levels:** backend/database integration only. API: 0; E2E: 0; Pact/CDC: 0.
+- **Files:** one existing integration file updated and one integration file created.
+- **Fixtures/factories/helpers created:** 0. Existing self-cleaning tenant factories and database helpers were reused.
+- **Playwright Utils deviations:** None. No Playwright artifact was generated, and the configured utility package is not installed.
+- **Pact.js Utils deviations:** N/A. No consumer-provider contract boundary or contract artifact is in scope.
+- **CLI/browser cleanup:** N/A. No browser session was opened.
+
+### Files created or updated
+
+- `tests/integration/notifications/notifications.atdd.int.test.ts` — five independent terminal-state lifecycle and producer no-enqueue cases while preserving the existing concurrency/deduplication test.
+- `tests/integration/email/quote-delivery-finalization-failure.int.test.ts` — malformed artifact preparation and forced finalization/audit-failure rollback coverage.
+- `_bmad-output/test-artifacts/automation-summary.md` — completed BMad automate workflow record.
+
+### Definition of done and residual risks
+
+- Framework readiness, BMad-integrated inputs, trace-gap mapping, existing ATDD review, P0 priority selection, and duplicate-coverage avoidance are complete.
+- Generated tests use real local-Supabase boundaries, deterministic random identities, required-mode stack gating, existing cleanup, and no external provider or hard waits.
+- No failing, skipped, placeholder, or weakened test is counted as coverage. The required run reported zero skips.
+- The trace gate should remain PARTIAL for the three specific branches that require product behavior: AC6 cancel/reissue authorization, AC7 send-time terminal recheck, and AC8 durable recovery evidence.
+
+**Recommended next workflow:** implement the three named product gaps under an approved story or ADR-backed task, add their executing tests, then rerun `bmad-testarch-trace` for Epic 13.
+
+---
+
+# Final E8a Test Automation Remediation — Epic 13 Story 13.4
+
+## Step 1 — Preflight and Re-Gate Context
+
+- **Mode and stack:** BMad-integrated Create mode for the full-stack Next.js application. Existing Node, Vitest, and Playwright configurations remain ready.
+- **Re-gate oracle:** the first E8a re-gate remains at 23/26 P0 FULL, with exactly `13.4-AC6`, `13.4-AC7`, and `13.4-AC8` PARTIAL. The earlier remediation's five terminal-state producer cases and two finalization-failure cases are already credited and must not be duplicated.
+- **Current-source check:** no pending-recipient cancellation/reissue transition, claimed-send terminal quote-state recheck, or durable artifact recovery/audit transition has appeared since the re-gate.
+- **Scope:** test and test-artifact work only. No story specification, migration, command, route, worker, or other product code is changed by this pass.
+
+## Step 2 — Final Automation Targets
+
+| Requirement | Exact remaining branch | Executable against current behavior? | Decision |
+| --- | --- | --- | --- |
+| `13.4-AC6` | Change a pending delivery recipient, cancel the old delivery, and require newly authorized delivery | No command, RPC, route, or state transition exists | Generate no red, skipped, placeholder, or weakened test. |
+| `13.4-AC7` | Recheck a claimed reminder's terminal quote state immediately before provider submission | The persisted reminder/outbox pipeline has no quote linkage or pre-adapter terminal recheck | Generate no seam-only duplicate and make no provider-boundary claim. |
+| `13.4-AC8` | Persist durable `orphaned`/`invalidated` recovery truth and recovery audit evidence after preparation/finalization failure | Artifact preparation remains inside the rolled-back finalization transaction; no recovery transition or audit writer exists | Preserve the green rollback tests and generate no artificial recovery proof. |
+
+The final plan contains no new API, browser, backend, contract, fixture, factory, or helper target. Product implementation is required before a passing test can prove any remaining branch.
+
+## Step 3 — Adaptive Generation and Aggregation
+
+- **Execution resolution:** `SUBAGENT` for the full-stack repository; API, E2E, and backend workers completed and returned valid structured outputs.
+- **API worker:** 0 tests. The linked-recipient endpoint is read-only candidate discovery, the job route only invokes existing producers, and no recovery endpoint exists.
+- **E2E worker:** 0 tests. No recipient-change, claimed-send eligibility, or recovery user journey is exposed.
+- **Backend worker:** 0 tests. The three exact acceptance branches remain absent from commands, database transitions, and the provider-bound outbox path.
+- **Generated files:** 0 test files; 0 fixtures; 0 helpers.
+- **Priority coverage added:** P0 0, P1 0, P2 0, P3 0.
+- **Playwright Utils deviations:** None. No Playwright artifact was generated.
+- **Pact.js Utils deviations:** N/A. No contract artifact or consumer-provider boundary is in scope.
+
+No repository test file was written during aggregation. This is the required fail-honest result: the workflow does not convert absent product behavior into nominal coverage.
+
+## Step 4 — Validation and Final Result
+
+### Validation evidence
+
+- `SUPABASE_TEST_REQUIRED=1 pnpm exec vitest run tests/integration/notifications/notifications.atdd.int.test.ts tests/integration/email/quote-delivery-finalization-failure.int.test.ts` — **PASS:** 2 files, 13 executed tests, 13 passed, 0 failed, 0 skipped.
+- `git diff --check` — **PASS.**
+
+### Final-pass result
+
+- **Tests generated:** 0.
+- **Tests modified:** 0.
+- **Tests executed for regression evidence:** 13 passed, 0 skipped.
+- **Product behavior preventing new passing coverage:**
+  - `13.4-AC6`: pending recipient replacement has no cancellation state transition or fresh-authorization operation.
+  - `13.4-AC7`: a claimed reminder is not linked and rechecked against terminal quote state at the final pre-provider boundary.
+  - `13.4-AC8`: failure cannot leave durable recovery truth because artifact preparation occurs inside the rolled-back transaction and no orphan/invalidated transition or recovery audit event is written.
+- **Coverage claim:** none added. The re-gate remains 23/26 P0 FULL, with these three criteria PARTIAL.
+- **Files updated by this final pass:** `_bmad-output/test-artifacts/automation-summary.md` only.
+
+### Definition of done
+
+- The final re-gate branches were mapped against current source and existing tests.
+- API, browser, and backend workers all confirmed there is no nonduplicative passing target.
+- No red, skipped, placeholder, seam-only, or weakened test was added.
+- No story specification or product code was modified.
+- The existing focused evidence remains green under required-stack execution with zero skips.
+
+**Next required action:** implement the three missing product branches under approved scope, add executing P0 tests, and rerun the Epic 13 trace gate for 26/26 P0 FULL coverage.

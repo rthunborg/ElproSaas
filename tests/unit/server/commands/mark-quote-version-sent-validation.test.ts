@@ -40,17 +40,21 @@ const UUID_UPPER = "AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE";
 
 // ── Happy path ───────────────────────────────────────────────────────────────────────────────
 
-test("[6.4] accepts an id-only send (channel/reference optional) — neither field carried", () => {
-  const r = validateMarkQuoteVersionSent({ quote_version_id: UUID_A });
+test("[13.4] requires a complete linked recipient selection before final send", () => {
+  const r = validateMarkQuoteVersionSent({
+    quote_version_id: UUID_A,
+    recipient_source_type: "customer",
+    recipient_source_id: UUID_UPPER,
+  });
   assert.equal(r.ok, true);
   if (!r.ok) return;
   assert.equal(r.data.quote_version_id, UUID_A);
-  // No recorded field supplied → neither appears on the validated data (they stay "not recorded").
-  assert.deepEqual(Object.keys(r.data), ["quote_version_id"]);
+  // Recipient identity is always carried; recorded channel/reference remain absent.
+  assert.deepEqual(Object.keys(r.data).sort(), ["quote_version_id", "recipient_source_id", "recipient_source_type"]);
 });
 
 test("[6.4] accepts an UPPERCASE (case-insensitive) uuid quote_version_id", () => {
-  const r = validateMarkQuoteVersionSent({ quote_version_id: UUID_UPPER });
+  const r = validateMarkQuoteVersionSent({ quote_version_id: UUID_UPPER, recipient_source_type: "customer", recipient_source_id: UUID_A });
   assert.equal(r.ok, true, "the uuid check is case-insensitive");
 });
 
@@ -59,6 +63,8 @@ test("[6.4] accepts a send with both recorded channel + reference", () => {
     quote_version_id: UUID_A,
     channel: "email",
     reference: "REF-123",
+    recipient_source_type: "customer",
+    recipient_source_id: UUID_UPPER,
   });
   assert.equal(r.ok, true);
   if (!r.ok) return;
@@ -66,11 +72,25 @@ test("[6.4] accepts a send with both recorded channel + reference", () => {
   assert.equal(r.data.reference, "REF-123");
 });
 
+test("[13.4] accepts a complete linked recipient selection and rejects absent, partial, or unknown sources", () => {
+  const selected = validateMarkQuoteVersionSent({ quote_version_id: UUID_A, recipient_source_type: "contact", recipient_source_id: UUID_UPPER });
+  assert.equal(selected.ok, true);
+  if (selected.ok) assert.deepEqual(selected.data.recipient_source_type, "contact");
+  for (const raw of [
+    { quote_version_id: UUID_A },
+    { quote_version_id: UUID_A, recipient_source_type: "contact" },
+    { quote_version_id: UUID_A, recipient_source_id: UUID_A },
+    { quote_version_id: UUID_A, recipient_source_type: "other", recipient_source_id: UUID_A },
+  ]) assert.equal(validateMarkQuoteVersionSent(raw).ok, false);
+});
+
 test("[6.4] accepts empty-string channel/reference (a coarse-bounded field, not a business rule)", () => {
   const r = validateMarkQuoteVersionSent({
     quote_version_id: UUID_A,
     channel: "",
     reference: "",
+    recipient_source_type: "customer",
+    recipient_source_id: UUID_UPPER,
   });
   assert.equal(r.ok, true);
   if (!r.ok) return;
@@ -83,16 +103,22 @@ test("[6.4] channel/reference at EXACTLY the 200 bound is accepted; 201 is over 
     quote_version_id: UUID_A,
     channel: "x".repeat(200),
     reference: "y".repeat(200),
+    recipient_source_type: "customer",
+    recipient_source_id: UUID_UPPER,
   });
   assert.equal(at.ok, true, "200 is the inclusive bound");
   const overChannel = validateMarkQuoteVersionSent({
     quote_version_id: UUID_A,
     channel: "x".repeat(201),
+    recipient_source_type: "customer",
+    recipient_source_id: UUID_UPPER,
   });
   assert.equal(overChannel.ok, false, "201-char channel exceeds the field bound");
   const overReference = validateMarkQuoteVersionSent({
     quote_version_id: UUID_A,
     reference: "y".repeat(201),
+    recipient_source_type: "customer",
+    recipient_source_id: UUID_UPPER,
   });
   assert.equal(overReference.ok, false, "201-char reference exceeds the field bound");
 });
@@ -103,6 +129,8 @@ test("[6.4] a PRESENT null is carried through (explicit not-recorded); an ABSENT
   const r = validateMarkQuoteVersionSent({
     quote_version_id: UUID_A,
     channel: null,
+    recipient_source_type: "customer",
+    recipient_source_id: UUID_UPPER,
     // reference is ABSENT — must NOT appear on the validated data.
   });
   assert.equal(r.ok, true);
@@ -118,10 +146,12 @@ test("[6.4] validated field-presence mirrors the raw input exactly (no spurious 
   const r = validateMarkQuoteVersionSent({
     quote_version_id: UUID_A,
     reference: "endast-referens",
+    recipient_source_type: "customer",
+    recipient_source_id: UUID_UPPER,
   });
   assert.equal(r.ok, true);
   if (!r.ok) return;
-  assert.deepEqual(Object.keys(r.data).sort(), ["quote_version_id", "reference"]);
+  assert.deepEqual(Object.keys(r.data).sort(), ["quote_version_id", "recipient_source_id", "recipient_source_type", "reference"]);
 });
 
 // ── [VALIDATION_FAILED] negative paths ─────────────────────────────────────────────────────────
@@ -173,6 +203,8 @@ test("[6.4] a client-supplied tenant_id / status / sent_at / totals are STRIPPED
   const r = validateMarkQuoteVersionSent({
     quote_version_id: UUID_A,
     channel: "email",
+    recipient_source_type: "customer",
+    recipient_source_id: UUID_UPPER,
     // Smuggled fields the mark-sent path must NEVER accept — the tenant is the RESOLVED tenant,
     // the sent timestamp is the INJECTED command clock, and status/totals are server-owned.
     tenant_id: "99999999-9999-9999-9999-999999999999",
@@ -184,7 +216,7 @@ test("[6.4] a client-supplied tenant_id / status / sent_at / totals are STRIPPED
   assert.equal(r.ok, true);
   if (!r.ok) return;
   // ONLY the id + the supplied recorded field survive; every smuggled key is dropped.
-  assert.deepEqual(Object.keys(r.data).sort(), ["channel", "quote_version_id"]);
+  assert.deepEqual(Object.keys(r.data).sort(), ["channel", "quote_version_id", "recipient_source_id", "recipient_source_type"]);
   const asRecord = r.data as unknown as Record<string, unknown>;
   for (const smuggled of [
     "tenant_id",
