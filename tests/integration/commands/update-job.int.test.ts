@@ -50,6 +50,7 @@ import {
   type FixtureTenant,
 } from "../../factories/tenants";
 import { adminSelectAuditEvents } from "../../factories/audit-events";
+import { adminQuery } from "../../factories/admin-sql";
 import { isLocalStackReachable } from "../../support/test-env";
 import { skipUnlessStack } from "../../support/stack-gate";
 import { expectDatabaseOwnedTimestamp, readDatabaseNow } from "../../support/database-time";
@@ -98,6 +99,10 @@ describe("7.3-INT-02 + AC3: updateJob — allowed edits audited, immutable refs 
       customer_type: "company",
       org_nr: orgNr,
     });
+    await adminQuery("update public.customers set email=$2 where id=$1", [
+      customerId,
+      `job-customer-${crypto.randomUUID().slice(0, 8)}@example.test`,
+    ]);
     const calcId = await adminInsertCalculation({
       tenant_id: tenant.id,
       customer_id: customerId,
@@ -122,7 +127,11 @@ describe("7.3-INT-02 + AC3: updateJob — allowed edits audited, immutable refs 
       client: client as never,
       clock: fixedClock,
       correlationId: crypto.randomUUID(),
-      input: { quote_version_id: versionId },
+      input: {
+        quote_version_id: versionId,
+        recipient_source_type: "customer",
+        recipient_source_id: customerId,
+      },
     });
     expect(sent.ok).toBe(true);
     const accepted = await runCommand(acceptQuoteAndCreateJob, {

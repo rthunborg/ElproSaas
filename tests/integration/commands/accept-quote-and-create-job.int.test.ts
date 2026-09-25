@@ -74,6 +74,7 @@ import {
   type TestServerClient,
 } from "../../factories/tenants";
 import { adminSelectAuditEvents } from "../../factories/audit-events";
+import { adminQuery } from "../../factories/admin-sql";
 import { isLocalStackReachable } from "../../support/test-env";
 import { skipUnlessStack } from "../../support/stack-gate";
 import { establishCurrentQuotePdf } from "../../support/quote-pdf";
@@ -102,6 +103,14 @@ async function seedSentVersion(
     customer_type: "company",
     display_name: `acj-customer-${crypto.randomUUID().slice(0, 8)}`,
   });
+  // Story 13.4 requires a complete, linked CRM recipient before the real
+  // mark-sent path may create its durable quote-delivery record. Keep this
+  // historic acceptance/job fixture on that production path instead of
+  // bypassing the new delivery invariant.
+  await adminQuery("update public.customers set email=$2 where id=$1", [
+    customerId,
+    `acj-customer-${crypto.randomUUID().slice(0, 8)}@example.test`,
+  ]);
   const calcId = await adminInsertCalculation({
     tenant_id: tenantId,
     customer_id: customerId,
@@ -124,7 +133,11 @@ async function seedSentVersion(
   });
   const sent = await runCommand(markQuoteVersionSent, {
     client: client as never,
-    input: { quote_version_id: versionId },
+    input: {
+      quote_version_id: versionId,
+      recipient_source_type: "customer",
+      recipient_source_id: customerId,
+    },
     clock: fixedClock,
     correlationId: crypto.randomUUID(),
   });
