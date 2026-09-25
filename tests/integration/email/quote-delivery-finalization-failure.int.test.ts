@@ -65,12 +65,14 @@ async function finalizationState(quoteVersionId: string) {
     outbox_count: string;
     artifact_count: string;
     event_count: string;
+    recovery_count: string;
   }>(
     `select
        (select status from public.quote_versions where id=$1) as status,
        (select count(*)::text from public.email_outbox where quote_version_id=$1) as outbox_count,
        (select count(*)::text from public.email_delivery_artifacts where quote_version_id=$1) as artifact_count,
-       (select count(*)::text from public.email_delivery_events e join public.email_outbox o on o.id=e.outbox_id where o.quote_version_id=$1) as event_count`,
+       (select count(*)::text from public.email_delivery_events e join public.email_outbox o on o.id=e.outbox_id where o.quote_version_id=$1) as event_count,
+       (select count(*)::text from public.email_delivery_recoveries where quote_version_id=$1) as recovery_count`,
     [quoteVersionId],
   );
   return {
@@ -78,6 +80,7 @@ async function finalizationState(quoteVersionId: string) {
     outboxCount: Number(row!.outbox_count),
     artifactCount: Number(row!.artifact_count),
     eventCount: Number(row!.event_count),
+    recoveryCount: Number(row!.recovery_count),
   };
 }
 
@@ -116,13 +119,14 @@ describe("Story 13.4 quote delivery finalization failure atomicity", () => {
         outboxCount: 0,
         artifactCount: 0,
         eventCount: 0,
+        recoveryCount: 0,
       });
     } finally {
       await cleanupFixture(fixture);
     }
   });
 
-  test("[P0][AC8][13.4-INT-AC8-002] audit failure rolls back finalized state, outbox, artifact, and queued event", async (ctx) => {
+  test("[P0][AC8][13.4-INT-AC8-002] finalization audit failure rolls back queue state and records invalidated recovery evidence", async (ctx) => {
     if (skipUnlessStack(ctx, stackUp)) return;
     const fixture = await createTwoTenantFixture();
     try {
@@ -155,7 +159,115 @@ describe("Story 13.4 quote delivery finalization failure atomicity", () => {
         outboxCount: 0,
         artifactCount: 0,
         eventCount: 0,
+        recoveryCount: 1,
       });
+      expect(await adminQuery<{
+        failure_stage: string;
+        recovery_state: string;
+        correlation_id: string;
+        actor_user_id: string;
+      }>(
+        "select failure_stage, recovery_state, correlation_id, actor_user_id from public.email_delivery_recoveries where quote_version_id=$1",
+        [draft.quoteVersionId],
+      )).toEqual([{
+        failure_stage: "finalization",
+        recovery_state: "invalidated",
+        correlation_id: correlationId,
+        actor_user_id: fixture.adminA.id,
+      }]);
+    } finally {
+      await cleanupFixture(fixture);
+    }
+  });
+
+  test("[P0][AC8][13.4-INT-AC8-003] malformed HMAC configuration preserves the draft and records attributable orphaned recovery evidence", async (ctx) => {
+    if (skipUnlessStack(ctx, stackUp)) return;
+    const fixture = await createTwoTenantFixture();
+    try {
+      const client = await makeAuthedServerClient(fixture.adminA);
+      const draft = await seedDraft(fixture.tenantA.id);
+      await establishCurrentQuotePdf({
+        client,
+        tenantId: fixture.tenantA.id,
+        quoteVersionId: draft.quoteVersionId,
+        actorUserId: fixture.adminA.id,
+        occurredAt: clock.now().toISOString(),
+      });
+      const correlationId = crypto.randomUUID();
+      const previousKeyId = process.env.QUOTE_PDF_ATTESTATION_KEY_ID;
+      process.env.QUOTE_PDF_ATTESTATION_KEY_ID = "invalid key id!";
+      let result;
+      try {
+        result = await runCommand(markQuoteVersionSent, {
+          client: client as never,
+          clock,
+          correlationId,
+          input: {
+            quote_version_id: draft.quoteVersionId,
+            recipient_source_type: "customer",
+            recipient_source_id: draft.customerId,
+          },
+        });
+      } finally {
+        if (previousKeyId === undefined) delete process.env.QUOTE_PDF_ATTESTATION_KEY_ID;
+        else process.env.QUOTE_PDF_ATTESTATION_KEY_ID = previousKeyId;
+      }
+      expect(result.ok).toBe(false);
+      if (!result.ok) expect(result.code).toBe("SERVER_ERROR");
+      expect(await finalizationState(draft.quoteVersionId)).toEqual({
+        status: "draft",
+        outboxCount: 0,
+        artifactCount: 0,
+        eventCount: 0,
+        recoveryCount: 1,
+      });
+      expect(await adminQuery<{
+        failure_stage: string;
+        recovery_state: string;
+        correlation_id: string;
+        actor_user_id: string;
+      }>(
+        "select failure_stage, recovery_state, correlation_id, actor_user_id from public.email_delivery_recoveries where quote_version_id=$1",
+        [draft.quoteVersionId],
+      )).toEqual([{
+        failure_stage: "artifact_preparation",
+        recovery_state: "orphaned",
+        correlation_id: correlationId,
+        actor_user_id: fixture.adminA.id,
+      }]);
+    } finally {
+      await cleanupFixture(fixture);
+    }
+  });
+
+  test("[P0][AC8][13.4-INT-AC8-004] recovery RPC rejects cross-tenant and spoofed-actor writes", async (ctx) => {
+    if (skipUnlessStack(ctx, stackUp)) return;
+    const fixture = await createTwoTenantFixture();
+    try {
+      const client = await makeAuthedServerClient(fixture.adminA);
+      const draft = await seedDraft(fixture.tenantA.id);
+      const rpc = client as unknown as {
+        rpc: (name: string, args: Record<string, unknown>) => Promise<{ error: { code?: string } | null }>;
+      };
+
+      const actorMismatch = await rpc.rpc("record_quote_email_delivery_recovery", {
+        p_tenant_id: fixture.tenantA.id,
+        p_quote_version_id: draft.quoteVersionId,
+        p_actor_user_id: fixture.adminB.id,
+        p_correlation_id: crypto.randomUUID(),
+        p_failure_stage: "artifact_preparation",
+      });
+      expect(actorMismatch.error?.code).toBe("42501");
+
+      const crossTenant = await rpc.rpc("record_quote_email_delivery_recovery", {
+        p_tenant_id: fixture.tenantB.id,
+        p_quote_version_id: draft.quoteVersionId,
+        p_actor_user_id: fixture.adminA.id,
+        p_correlation_id: crypto.randomUUID(),
+        p_failure_stage: "artifact_preparation",
+      });
+      expect(crossTenant.error?.code).toBe("42501");
+      expect(await finalizationState(draft.quoteVersionId)).toMatchObject({ recoveryCount: 0 });
     } finally {
       await cleanupFixture(fixture);
     }

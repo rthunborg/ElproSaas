@@ -82,6 +82,7 @@ export const COMMAND_CAPABILITIES: Readonly<Record<string, CommandCapability>> =
   "quote.version.new": { module: "quotes", capability: "Quotes.Create" },
   "quote.version.update_draft": { module: "quotes", capability: "Quotes.Edit" },
   "quote.version.mark_sent": { module: "quotes", capability: "Quotes.Send" },
+  "quote.delivery.correct_recipient": { module: "quotes", capability: "Quotes.Send" },
   "quote.version.lifecycle": { module: "quotes", capability: "Quotes.Edit" },
   "quote.version.lost": { module: "quotes", capability: "Quotes.Edit" },
   "quote.acceptance.capture": { module: "quotes", capability: "Quotes.Approve" },

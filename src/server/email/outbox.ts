@@ -7,7 +7,7 @@ import { assertQuoteDeliveryArtifact, type QuoteDeliveryArtifact } from "./quote
 export const EMAIL_RETRY_MINUTES = [5, 10, 20] as const;
 export const EMAIL_LEASE_MINUTES = 15;
 export const DARK_RENDER_BATCH_SIZE = 50;
-export type EmailOutboxState = "queued" | "sending" | "sent" | "failed" | "suppressed";
+export type EmailOutboxState = "queued" | "sending" | "sent" | "failed" | "suppressed" | "cancelled";
 export type EnqueueEmailOutboxInput = {
   readonly tenantId: string;
   readonly category: string;

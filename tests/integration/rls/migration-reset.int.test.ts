@@ -282,6 +282,7 @@ describe("Migration reset green — tenant_foundation objects present (AC1 / R-0
       "customers.SELECT",
       "customers.UPDATE",
       "email_delivery_events.SELECT",
+      "email_delivery_recoveries.SELECT",
       "email_outbox.SELECT",
       "email_suppressions.SELECT",
       "facilities.INSERT",
@@ -390,6 +391,7 @@ describe("Migration reset green — tenant_foundation objects present (AC1 / R-0
       "platform_operators",
       "email_outbox",
       "email_delivery_events",
+      "email_delivery_recoveries",
       "email_suppressions",
     ];
     for (const t of selectOnly) {

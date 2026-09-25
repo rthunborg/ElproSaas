@@ -23,7 +23,7 @@ describe("Story 13.3 email outbox forced-RLS and authorization contracts", () =>
     try {
       const adminA = await makeAuthedServerClient(fixture.adminA); const outbox = await seedOutbox(fixture.tenantA.id);
       for (const table of ["email_outbox", "email_delivery_events", "email_suppressions"] as const) expect((await adminA.from(table).select("*")).error?.code).toBe("42501");
-      expect((await adminA.from("email_outbox").insert(forgedOutbox(fixture.tenantA.id))).error?.code).toBe("42501");
+      expect((await adminA.from("email_outbox").insert({ ...forgedOutbox(fixture.tenantA.id), delivery_sequence: 2 })).error?.code).toBe("42501");
       expect((await adminA.from("email_outbox").select("id").eq("tenant_id", fixture.tenantB.id)).data ?? []).toEqual([]);
       expect((await adminA.from("email_delivery_events").update({ event_type: "sent" }).eq("outbox_id", outbox.id)).error?.code).toBe("42501");
       const { readEmailOutboxQueue } = await loadEmailReadModel(); await expect(readEmailOutboxQueue({ roles: ["saljare"] }, { client: adminA as never })).resolves.toMatchObject({ error: { code: "FORBIDDEN" } });

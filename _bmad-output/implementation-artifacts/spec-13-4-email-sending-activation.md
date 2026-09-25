@@ -197,7 +197,7 @@ Unsubscribe is a separate public capability: the URL carries the only plaintext 
 ## Suggested Review Order
 
 Author: Story 13.4 implementation and fix author.
-Refreshed against the final reviewed Story 13.4 working tree before its sole final commit.
+Refreshed against the Epic 13 follow-up working tree after recipient correction, final claimed-send validation, and durable recovery evidence were added.
 
 ### Fail-closed delivery release control
 
@@ -227,6 +227,7 @@ The quote delivery seam accepts bytes only from a caller that has already resolv
 
 - `src/server/email/outbox.ts:126` — `processQuoteDelivery`: validates the PDF before constructing a server-only attachment.
 - `tests/integration/email/quote-delivery-attachment.atdd.int.test.ts:9` — `[P0][13.4-INT-004]`: exercises current-PDF-only attachment behavior.
+- `tests/integration/email/email-delivery-activation.atdd.int.test.ts:100` — `[P0][13.4-INT-010]`: changes a claimed delivery to a terminal quote state at the last validation boundary and proves no provider call occurs.
 
 ### Private quote delivery artifact
 
@@ -240,23 +241,37 @@ ADR-B011 requires a delivery worker to receive an exact private copy, rather tha
 - `supabase/migrations/20260924110000_quote_email_delivery_artifacts.sql:2` — `email_delivery_artifacts`: stores the outbox-bound private artifact and revokes direct table access.
 - `supabase/migrations/20260924110000_quote_email_delivery_artifacts.sql:14` — `unique (id, tenant_id)`: makes the tenant-binding foreign key valid during clean migration replay.
 - `supabase/migrations/20260924110000_quote_email_delivery_artifacts.sql:58` — `read_claimed_email_delivery_artifact`: limits worker reads to its active claim.
-- `src/server/commands/quotes/mark-sent.ts:213` — `finalize_quote_email_delivery`: atomically finalizes the quote and queues the prepared delivery.
+- `src/server/commands/quotes/mark-sent.ts:245` — `finalize_quote_email_delivery`: atomically finalizes the quote and queues the prepared delivery.
 - `supabase/migrations/20260924110000_quote_email_delivery_artifacts.sql:71` — `validate_claimed_quote_email_delivery`: rechecks the claimed artifact against the current sent quote before submission.
 - `supabase/migrations/20260924120000_email_delivery_followup_fixes.sql:26` — `claim_email_outbox`: returns the claimed category, letting the worker demand an artifact only for quote delivery.
 
-### Confirmed CRM recipient and transaction boundary
+### Confirmed CRM recipient, correction, and transaction boundary
 
 The quote form loads only linked customer/contact candidates and requires a selection before it can submit. The authenticated command passes the verified PDF bytes and selected source to one RPC, which validates the current linked address, freezes its normalized value, creates the artifact, and performs the lifecycle transition and queue insert together.
 
 - `src/components/quotes/MarkSentButton.tsx:39` — `delivery-recipients`: loads the scoped candidate list for the draft version.
 - `src/components/quotes/MarkSentButton.tsx:81` — `recipient_source_type`: submits the selected source only, never a freeform recipient address.
-- `src/server/commands/quotes/mark-sent.ts:213` — `finalize_quote_email_delivery`: takes the atomic delivery path after ADR-B008 byte verification.
+- `src/server/commands/quotes/validation.ts:252` — `validateMarkQuoteVersionSent`: rejects an absent, partial, or invalid recipient selection before any send authority is issued.
+- `src/server/commands/quotes/mark-sent.ts:245` — `finalize_quote_email_delivery`: has no legacy bare-finalization fallback after ADR-B008 byte verification.
 - `supabase/migrations/20260924110000_quote_email_delivery_artifacts.sql:90` — `finalize_quote_email_delivery`: validates the linked address, separate PDF checksum, and commits artifact, finalization, and queue state.
-- `tests/unit/server/commands/mark-quote-version-sent-validation.test.ts:69` — `[13.4]`: proves complete linked-recipient selections are shaped and partial selections are rejected.
+- `supabase/migrations/20260924130000_quote_delivery_recipient_correction.sql:71` — `correct_pending_quote_email_delivery`: locks only a queued delivery, cancels it, invalidates its old artifact, creates a fresh recipient snapshot, and records an atomic audit event.
+- `src/server/commands/quotes/correct-delivery-recipient.ts:21` — `correctPendingQuoteDeliveryRecipient`: keeps the correction behind the existing quote-send capability and tenant ownership envelope.
+- `src/components/quotes/CorrectQuoteDeliveryRecipient.tsx:17` — exposes correction only while the server reports an unclaimed pending delivery.
+- `tests/integration/email/quote-delivery-recipient-snapshot.int.test.ts:93` — `[P0][AC6]`: proves the cancelled original, fresh queued replacement, immutable artifact states, and audit evidence.
+- `tests/unit/server/commands/mark-quote-version-sent-validation.test.ts:75` — `[13.4]`: proves complete linked-recipient selections are required and partial selections are rejected.
+
+### Durable delivery recovery evidence
+
+Preparation or finalization failure records a tenant-scoped append-only recovery row after the failed transaction. It cannot change a quote or outbox record, and recovery persistence failure remains fail-closed.
+
+- `src/server/commands/quotes/mark-sent.ts:77` — `recordQuoteDeliveryRecovery`: records the recovery state after a failed artifact-preparation or finalization attempt.
+- `supabase/migrations/20260925100000_quote_email_delivery_recovery.sql:5` — `email_delivery_recoveries`: provides the isolated tenant-scoped recovery ledger.
+- `supabase/migrations/20260925100000_quote_email_delivery_recovery.sql:32` — `record_quote_email_delivery_recovery`: rechecks actor and tenant-admin authority before its idempotent append.
+- `tests/integration/email/quote-delivery-finalization-failure.int.test.ts:84` — validates rollback of the finalization transaction and durable recovery evidence.
 
 ### Evidence and limits
 
 AC1 sandbox success, closed release, suppression, missing-artifact recovery, and consumed artifact state → `tests/integration/email/email-delivery-activation.atdd.int.test.ts:29`, `:46`, `:60`, and `:74`. Public unknown/revoked uniformity and active rate limits → `tests/integration/rls/email-unsubscribe.atdd.rls.test.ts:30`. The activated email preference false-to-true reversal and essential enabled-only invariant → `tests/integration/notifications/notifications.atdd.int.test.ts:87`, `:95`, `:97`, and `:99`. The updated lifecycle fixtures preserve their accepted-record and source-of-truth assertions while selecting a valid linked recipient → `tests/integration/commands/accepted-record-lock.int.test.ts:160` and `tests/integration/commands/job-source-of-truth.int.test.ts:123`.
 
-Evidence: clean local reset completed. The required serialized `SUPABASE_TEST_REQUIRED=1` Vitest run passed 119 files / 1 skipped file and 1,181 tests / 1 skipped test; the explicit skip is the separately configured CI-only recovery-storage proof. `pnpm run typecheck` passed; `pnpm run lint` had 0 errors and 13 existing warnings; unit tests passed 1,894 / 1 skipped; the E2E production build passed; final Playwright passed 173 / 4 explicit skips / 0 failures (177 discovered). Earlier focused evidence also passed: email/unsubscribe/preference integration 3 files / 12 tests, accepted-record/job-source fixtures 2 files / 35 tests, and the validated-Vercel-IP unit 1 test.
-Limits: the deferred frontmatter records three harvestable follow-ups: ADR-B011 owner go-live approval, idempotent provider submission after an accepted submission whose outcome persistence fails, and a scoped unsubscribe URL in every non-essential real provider-rendered body. The provider boundary is synthetic, so it does not prove production sender configuration or an external provider response. The bounded cross-model reviewer command exited `1` with no output, leaving that layer unavailable rather than clean. `followup_review_recommended` is true because the review-fix batch crosses the workflow score threshold.
+Evidence: `SUPABASE_TEST_REQUIRED=1 pnpm run test:int -- tests/integration/commands/mark-quote-version-sent.int.test.ts tests/integration/email/quote-delivery-recipient-snapshot.int.test.ts tests/integration/email/quote-delivery-finalization-failure.int.test.ts tests/integration/email/email-delivery-activation.atdd.int.test.ts` passed 4 files / 28 tests / 0 skips after SQL-only application to the authorized loopback test database. The recipient-correction test itself passed 2 tests / 0 skips. `node --experimental-strip-types --import ./tests/support/register.mjs --test tests/unit/server/commands/mark-quote-version-sent-validation.test.ts` passed 12 tests. Typecheck and lint passed. The broader pre-follow-up evidence above remains historical context, not a claim about this uncommitted batch.
+Limits: the deferred frontmatter records three harvestable follow-ups: ADR-B011 owner go-live approval, idempotent provider submission after an accepted submission whose outcome persistence fails, and a scoped unsubscribe URL in every non-essential real provider-rendered body. The provider boundary is synthetic, so it does not prove production sender configuration or an external provider response.

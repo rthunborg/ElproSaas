@@ -111,6 +111,7 @@ export type TenantTableName =
   | "email_unsubscribe_tokens"
   | "email_unsubscribe_rate_limits"
   | "email_delivery_artifacts"
+  | "email_delivery_recoveries"
   // Story 12.1 platform command state is durable tenant-keyed data.
   | "tenant_provisioning_requests"
   | "tenant_provisioning_invites"
@@ -326,6 +327,7 @@ export function updateDenialKind(table: TenantTableName): MutationDenialKind {
     case "email_unsubscribe_tokens":
     case "email_unsubscribe_rate_limits":
     case "email_delivery_artifacts":
+    case "email_delivery_recoveries":
     case "tenant_provisioning_requests":
     case "tenant_provisioning_invites":
     case "quote_review_authorizations":
@@ -447,6 +449,8 @@ export function spoofedRowFor(
       return { id: crypto.randomUUID(), tenant_id: fixture.tenantB.id, token_hash: "d".repeat(64), ip_hash: "e".repeat(64), window_started_at: "2026-09-24T00:00:00.000Z" };
     case "email_delivery_artifacts":
       return { id: crypto.randomUUID(), tenant_id: fixture.tenantB.id, outbox_id: crypto.randomUUID(), quote_version_id: crypto.randomUUID(), content_fingerprint: "f".repeat(64), pdf_bytes: "x" };
+    case "email_delivery_recoveries":
+      return { id: crypto.randomUUID(), tenant_id: fixture.tenantB.id, quote_version_id: crypto.randomUUID(), correlation_id: crypto.randomUUID(), failure_stage: "artifact_preparation", recovery_state: "orphaned" };
     case "quote_review_authorizations":
       return {
         id: crypto.randomUUID(),
@@ -831,6 +835,7 @@ export function spoofedRowFor(
     case "membership_admin_operations":
       return { column: "tenant_id", value: ctx.fixture.tenantB.id };
     case "email_delivery_artifacts":
+    case "email_delivery_recoveries":
     case "email_unsubscribe_tokens":
     case "email_unsubscribe_rate_limits":
       return { column: "tenant_id", value: ctx.fixture.tenantB.id };
@@ -1094,6 +1099,7 @@ export function tenantBFilter(
     case "tenant_provisioning_requests":
     case "tenant_provisioning_invites":
     case "email_delivery_artifacts":
+    case "email_delivery_recoveries":
     case "email_unsubscribe_tokens":
     case "email_unsubscribe_rate_limits":
       return { column: "tenant_id", value: ctx.fixture.tenantB.id };
@@ -1130,6 +1136,8 @@ export function hijackMutationFor(
     case "email_suppressions":
       return { category: "other" };
     case "email_delivery_artifacts":
+      return { recovery_state: "invalidated" };
+    case "email_delivery_recoveries":
       return { recovery_state: "invalidated" };
     case "quote_review_authorizations":
       return { source_revision: { hijacked: true } };
@@ -1311,6 +1319,8 @@ export function rlsInvisibleLabelColumn(table: TenantTableName): string {
     case "email_unsubscribe_rate_limits":
       return "attempts";
     case "email_delivery_artifacts":
+      return "recovery_state";
+    case "email_delivery_recoveries":
       return "recovery_state";
     // Story 10.3 quote_follow_ups is UPDATE-able ("rls-invisible"): `note` is the column the hijack
     // sets — re-read it to prove the seed value ("tenant-b-followup-seed") was NOT overwritten.
@@ -1627,6 +1637,8 @@ export function anonRowFor(
       };
     case "email_delivery_artifacts":
       return { id: crypto.randomUUID(), tenant_id: fixture.tenantA.id, outbox_id: crypto.randomUUID(), quote_version_id: crypto.randomUUID(), content_fingerprint: "a".repeat(64), pdf_bytes: "x" };
+    case "email_delivery_recoveries":
+      return { id: crypto.randomUUID(), tenant_id: fixture.tenantA.id, quote_version_id: crypto.randomUUID(), correlation_id: crypto.randomUUID(), failure_stage: "artifact_preparation", recovery_state: "orphaned" };
     case "email_unsubscribe_tokens":
       return { id: crypto.randomUUID(), tenant_id: fixture.tenantA.id, token_hash: "b".repeat(64), recipient_hash: "c".repeat(64), category: "quote.delivery" };
     case "email_unsubscribe_rate_limits":
@@ -1664,6 +1676,7 @@ export function anonFilterFor(
     case "email_delivery_events":
     case "email_suppressions":
     case "email_delivery_artifacts":
+    case "email_delivery_recoveries":
     case "email_unsubscribe_tokens":
     case "email_unsubscribe_rate_limits":
     case "quote_review_authorizations":
@@ -1722,6 +1735,8 @@ export function anonMutationFor(
     case "email_suppressions":
       return { category: "other" };
     case "email_delivery_artifacts":
+      return { recovery_state: "invalidated" };
+    case "email_delivery_recoveries":
       return { recovery_state: "invalidated" };
     case "email_unsubscribe_tokens":
       return { revoked_at: "2099-01-01T00:00:00.000Z" };

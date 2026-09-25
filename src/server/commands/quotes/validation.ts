@@ -257,7 +257,7 @@ export function validateMarkQuoteVersionSent(
   if (!isOptionalShortText(raw.channel)) return fail;
   if (!isOptionalShortText(raw.reference)) return fail;
   const hasRecipient = raw.recipient_source_type !== undefined || raw.recipient_source_id !== undefined;
-  if (hasRecipient && (raw.recipient_source_type !== "customer" && raw.recipient_source_type !== "contact" || !isUuidLike(raw.recipient_source_id))) return fail;
+  if (!hasRecipient || (raw.recipient_source_type !== "customer" && raw.recipient_source_type !== "contact") || !isUuidLike(raw.recipient_source_id)) return fail;
 
   const data: {
     quote_version_id: string;
@@ -268,11 +268,34 @@ export function validateMarkQuoteVersionSent(
   } = { quote_version_id: raw.quote_version_id as string };
   if ("channel" in raw) data.channel = (raw.channel as string | null) ?? null;
   if ("reference" in raw) data.reference = (raw.reference as string | null) ?? null;
-  if (hasRecipient) {
-    data.recipient_source_type = raw.recipient_source_type as "customer" | "contact";
-    data.recipient_source_id = raw.recipient_source_id as string;
-  }
+  data.recipient_source_type = raw.recipient_source_type as "customer" | "contact";
+  data.recipient_source_id = raw.recipient_source_id as string;
   return { ok: true, data };
+}
+
+/** A pending quote-delivery recipient can only be replaced by a complete linked selection. */
+export interface CorrectPendingQuoteDeliveryRecipientInput {
+  readonly quote_version_id: string;
+  readonly recipient_source_type: "customer" | "contact";
+  readonly recipient_source_id: string;
+}
+
+export function validateCorrectPendingQuoteDeliveryRecipient(
+  raw: unknown,
+): ValidationResult<CorrectPendingQuoteDeliveryRecipientInput> {
+  if (!isRecord(raw) || !isUuidLike(raw.quote_version_id)) return fail;
+  if (
+    (raw.recipient_source_type !== "customer" && raw.recipient_source_type !== "contact") ||
+    !isUuidLike(raw.recipient_source_id)
+  ) return fail;
+  return {
+    ok: true,
+    data: {
+      quote_version_id: raw.quote_version_id,
+      recipient_source_type: raw.recipient_source_type,
+      recipient_source_id: raw.recipient_source_id,
+    },
+  };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

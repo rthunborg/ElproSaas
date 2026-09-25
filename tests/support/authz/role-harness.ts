@@ -11,7 +11,7 @@ import { TENANT_TABLES, type TenantTableName } from "../../integration/rls/tenan
  * economy and membership-history split privileges.
  */
 export const TABLE_PROJECTION_CAPABILITIES: Readonly<Record<string, string>> = {
-  tenants: "Memberships.Manage", tenant_memberships: "Memberships.Manage", membership_roles: "Memberships.Manage", audit_events: "Memberships.Manage", job_runs: "Notifications.View", notifications: "Notifications.Personal", notification_preferences: "Notifications.Personal", email_outbox: "Notifications.View", email_delivery_events: "Notifications.View", email_suppressions: "Notifications.View", email_unsubscribe_tokens: "Notifications.View", email_unsubscribe_rate_limits: "Notifications.View", email_delivery_artifacts: "Notifications.View", membership_admin_operations: "Memberships.Manage",
+  tenants: "Memberships.Manage", tenant_memberships: "Memberships.Manage", membership_roles: "Memberships.Manage", audit_events: "Memberships.Manage", job_runs: "Notifications.View", notifications: "Notifications.Personal", notification_preferences: "Notifications.Personal", email_outbox: "Notifications.View", email_delivery_events: "Notifications.View", email_suppressions: "Notifications.View", email_unsubscribe_tokens: "Notifications.View", email_unsubscribe_rate_limits: "Notifications.View", email_delivery_artifacts: "Notifications.View", email_delivery_recoveries: "Notifications.View", membership_admin_operations: "Memberships.Manage",
   // The provisioning request/invite tables are platform protocol internals. No
   // tenant role can project them; platform allow-list authorization is verified
   // independently at the operator boundaries.
@@ -37,6 +37,7 @@ export const TABLE_DIRECT_RLS_ALLOWED_ROLES: Readonly<Partial<Record<TenantTable
   email_outbox: [],
   email_delivery_events: [],
   email_suppressions: [],
+  email_delivery_recoveries: ["tenant_admin"],
   // 20260907171252: accepted totals are raw-table visible only to admin/project lead;
   // Economy.ViewContributionMargin is enforced by the server DTO for economy users.
   quote_acceptances: ["tenant_admin", "projektledare"],
@@ -202,6 +203,7 @@ export const TABLE_RLS_PROJECTION_ADAPTERS: Readonly<Record<TenantTableName, Tab
   email_delivery_events: keyProjection("email_delivery_events", "id", true),
   email_suppressions: keyProjection("email_suppressions", "id", true),
   email_delivery_artifacts: keyProjection("email_delivery_artifacts", "id", true),
+  email_delivery_recoveries: idProjection("email_delivery_recoveries"),
   tenant_provisioning_requests: keyProjection("tenant_provisioning_requests", "request_id", true),
   tenant_provisioning_invites: keyProjection("tenant_provisioning_invites", "tenant_id", true),
   customers: idProjection("customers"),

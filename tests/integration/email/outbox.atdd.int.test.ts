@@ -24,6 +24,35 @@ describe("Story 13.3 email outbox database and dark-processor contracts", () => 
     } finally { await cleanupFixture(fixture); }
   });
 
+  test("[P0] keeps ordinary producer identity idempotent after sent, failed, or suppressed outcomes", async (ctx) => {
+    if (skipUnlessStack(ctx, stackUp)) return;
+    const { enqueueEmailOutbox } = await loadOutbox();
+    const fixture = await createTwoTenantFixture();
+    try {
+      for (const terminalState of ["sent", "failed", "suppressed"] as const) {
+        const request = { ...outboxRequest(fixture.tenantA.id), subjectId: crypto.randomUUID() };
+        const first = await enqueueEmailOutbox(deps(), request);
+        if (terminalState === "suppressed") {
+          await adminQuery("update public.email_outbox set state='suppressed' where id=$1", [first.id]);
+        } else {
+          await adminQuery("update public.email_outbox set state='sending',lease_owner='terminal-idempotency',lease_expires_at=now()+interval '15 minutes' where id=$1", [first.id]);
+          await adminQuery(
+            terminalState === "sent"
+              ? "update public.email_outbox set state='sent',provider_message_id='terminal-idempotency',lease_owner=null,lease_expires_at=null where id=$1"
+              : "update public.email_outbox set state='failed',lease_owner=null,lease_expires_at=null where id=$1",
+            [first.id],
+          );
+        }
+        const replayed = await enqueueEmailOutbox(deps(), request);
+        expect(replayed.id).toBe(first.id);
+        expect(await adminQuery<{ count: number; delivery_sequence: number }>(
+          "select count(*) over ()::int as count,delivery_sequence from public.email_outbox where id=$1",
+          [first.id],
+        )).toEqual([{ count: 1, delivery_sequence: 1 }]);
+      }
+    } finally { await cleanupFixture(fixture); }
+  });
+
   test("[P0][AC2][13.3-INT-002] uses PostgreSQL FOR UPDATE SKIP LOCKED for disjoint tenant-explicit claims and recovers one stale lease", async (ctx) => {
     if (skipUnlessStack(ctx, stackUp)) return;
     const { claimEmailOutbox } = await loadOutbox();

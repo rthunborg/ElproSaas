@@ -583,6 +583,17 @@ export type MarkQuoteVersionSentRpcClient = {
       readonly p_pdf_base64: string; readonly p_content_fingerprint: string; readonly p_pdf_checksum_sha256: string;
     },
   ): Promise<{ data: unknown; error: { code?: string; message?: string } | null }>;
+  rpc(
+    fn: "correct_pending_quote_email_delivery",
+    args: {
+      readonly p_tenant_id: string;
+      readonly p_quote_version_id: string;
+      readonly p_recipient_source_type: "customer" | "contact";
+      readonly p_recipient_source_id: string;
+      readonly p_actor_user_id: string;
+      readonly p_correlation_id: string;
+    },
+  ): Promise<{ data: unknown; error: { code?: string; message?: string } | null }>;
 };
 
 /** Narrow the envelope client to the mark-sent RPC surface (single documented cast). */

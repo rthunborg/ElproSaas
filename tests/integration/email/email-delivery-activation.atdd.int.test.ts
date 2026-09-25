@@ -11,7 +11,7 @@ afterAll(async () => { await closeAdminPool(); });
 
 const deps = () => ({ client: createClient(LOCAL_SUPABASE_URL, LOCAL_SUPABASE_SERVICE_ROLE_KEY, { auth: { autoRefreshToken: false, persistSession: false } }) });
 
-async function seedDeliveryArtifact(tenantId: string): Promise<{ readonly outboxId: string }> {
+async function seedDeliveryArtifact(tenantId: string): Promise<{ readonly outboxId: string; readonly quoteVersionId: string }> {
   const customerId = await adminInsertCustomer({ tenant_id: tenantId, customer_type: "company", display_name: "Delivery fixture" });
   const quoteId = await adminInsertQuote({ tenant_id: tenantId, customer_id: customerId });
   const calculationId = await adminInsertCalculation({ tenant_id: tenantId, customer_id: customerId });
@@ -22,7 +22,7 @@ async function seedDeliveryArtifact(tenantId: string): Promise<{ readonly outbox
   const outbox = (await adminQuery<{ id: string }>("insert into public.email_outbox (tenant_id,recipient_hash,category,subject_type,subject_id,logical_period,template_key,template_version,template_params,next_attempt_at) values ($1,repeat('a',64),'quote.delivery','quote_version',$2,current_date,'quote-delivery',1,'{}'::jsonb,now()-interval '1 minute') returning id", [tenantId, quoteVersionId]))[0]!;
   const artifact = (await adminQuery<{ id: string }>("insert into public.email_delivery_artifacts (tenant_id,outbox_id,quote_version_id,content_fingerprint,pdf_checksum_sha256,pdf_bytes) values ($1,$2,$3,repeat('a',64),encode(extensions.digest(decode($4,'hex'),'sha256'),'hex'),decode($4,'hex')) returning id", [tenantId, outbox.id, quoteVersionId, bytes]))[0]!;
   await adminQuery("update public.email_outbox set quote_version_id=$2, delivery_artifact_id=$3, recipient_normalized='delivery@example.test', recipient_source_type='customer', recipient_source_id=$4 where id=$1", [outbox.id, quoteVersionId, artifact.id, customerId]);
-  return { outboxId: outbox.id };
+  return { outboxId: outbox.id, quoteVersionId };
 }
 
 describe("Story 13.4 activated email outbox delivery (ATDD RED)", () => {
@@ -94,6 +94,36 @@ describe("Story 13.4 activated email outbox delivery (ATDD RED)", () => {
       await processEmailOutbox({ ...deps(), deliveryAdapter: { submit }, releaseControl: { mode: "sandbox" } }, { tenantId: fixture.tenantA.id, workerId: "worker-13-4" });
       expect(submit).not.toHaveBeenCalled();
       expect(await adminQuery("select state, attempts from public.email_outbox where id=$1", [row.id])).toEqual([{ state: "queued", attempts: 1 }]);
+    } finally { await cleanupFixture(fixture); }
+  });
+
+  test("[P0][13.4-INT-010] rechecks a claimed quote delivery at the final provider boundary and blocks a newly terminal quote", async (ctx) => {
+    if (skipUnlessStack(ctx, stackUp)) return;
+    const { processEmailOutbox } = await import(["@/server/email/outbox"].join(""));
+    const fixture = await createTwoTenantFixture();
+    const submit = vi.fn();
+    try {
+      const row = await seedDeliveryArtifact(fixture.tenantA.id);
+      const baseClient = deps().client;
+      let transitionedAtValidation = false;
+      const client = {
+        from: baseClient.from.bind(baseClient),
+        rpc: async (fn: string, args?: Record<string, unknown>, options?: unknown) => {
+          if (fn === "validate_claimed_quote_email_delivery" && !transitionedAtValidation) {
+            transitionedAtValidation = true;
+            await adminUpdateQuoteVersionStatus(row.quoteVersionId, "rejected");
+          }
+          return (baseClient.rpc as unknown as (name: string, parameters?: Record<string, unknown>, requestOptions?: unknown) => PromiseLike<unknown>)(fn, args, options);
+        },
+      };
+
+      await processEmailOutbox({ client: client as never, deliveryAdapter: { submit }, releaseControl: { mode: "sandbox" } }, { tenantId: fixture.tenantA.id, workerId: "worker-13-4-terminal-race" });
+
+      expect(transitionedAtValidation).toBe(true);
+      expect(submit).not.toHaveBeenCalled();
+      expect(await adminQuery("select state, attempts from public.email_outbox where id=$1", [row.outboxId])).toEqual([{ state: "queued", attempts: 1 }]);
+      expect(await adminQuery("select status from public.quote_versions where id=$1", [row.quoteVersionId])).toEqual([{ status: "rejected" }]);
+      expect(await adminQuery("select recovery_state from public.email_delivery_artifacts where outbox_id=$1", [row.outboxId])).toEqual([{ recovery_state: "prepared" }]);
     } finally { await cleanupFixture(fixture); }
   });
 });
