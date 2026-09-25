@@ -33,6 +33,26 @@ alter table public.email_outbox
   add column if not exists delivery_sequence integer not null default 1
   check (delivery_sequence >= 1);
 
+-- Earlier review code temporarily used an active-state-only dedupe index. A
+-- deployed database can therefore already contain terminal historical rows
+-- with the same producer identity. Give those rows a deterministic immutable
+-- sequence before restoring the permanent identity key. The transition trigger
+-- is disabled only for this migration-owned metadata backfill; it is restored
+-- before the application can observe the new constraint.
+alter table public.email_outbox disable trigger email_outbox_transition_guard;
+with numbered as (
+  select id, row_number() over (
+    partition by tenant_id, category, subject_type, subject_id, logical_period
+    order by created_at, id
+  )::integer as delivery_sequence
+  from public.email_outbox
+)
+update public.email_outbox o
+   set delivery_sequence = numbered.delivery_sequence
+  from numbered
+ where o.id = numbered.id;
+alter table public.email_outbox enable trigger email_outbox_transition_guard;
+
 alter table public.email_outbox
   drop constraint if exists email_outbox_tenant_id_category_subject_type_subject_id_logical_period_key;
 alter table public.email_outbox
@@ -177,10 +197,10 @@ begin
 
   -- Keep the authorization and audit evidence inside the same transaction as
   -- cancellation/reissue; a failed audit rolls all of it back.
-  perform public.record_audit_event(
+  perform public.story_11_2_record_audit_event_internal(
     p_tenant_id, p_actor_user_id, 'quote.delivery.correct_recipient',
     'quote.delivery.recipient_corrected', 'quote_version', p_quote_version_id,
-    p_correlation_id, '{}'::jsonb, statement_timestamp()
+    p_correlation_id, '{}'::jsonb
   );
   return v_new_outbox_id;
 end;
