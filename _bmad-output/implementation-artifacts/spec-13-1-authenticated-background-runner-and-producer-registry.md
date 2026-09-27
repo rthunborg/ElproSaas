@@ -142,47 +142,34 @@ Residual risks: no active producer exists in 13.1, so overlap, producer schedule
   - `[medium] [patch]` Extended the containment guard and bite test to reject alternate jobs API runners and client-reachable service-client imports.
   - `[low] [patch]` Added database lifecycle constraints for terminal timestamps and the partial-cursor invariant, with integration-catalogue coverage.
 
+## Final Convergence Disposition
+
+The 2026-09-27 post-third-round convergence check was limited to scheduler authentication, rotation expiry, durable bounded resume, and manifest-derived producer enrollment. It found that the active follow-up producer still read every due follow-up and membership before chunking writes, while the route supplied no production deadline. A large tenant could therefore exhaust one invocation before persisting progress and delay later tenants. `f226415` adds an internal 45-second containment budget, query abort propagation, a durable per-producer cursor loaded from the latest authoritative outcome, a runner cursor that can resume at the tenant/producer tuple, and bounded nested follow-up/recipient pages. The independent fix check then found that a failed page superseded its prior checkpoint with a cursorless row. `46d9b67` retains that checkpoint on the authoritative failed row, so a retry resumes after completed work while later tenants continue; a later completed outcome still clears it. The current and previous credential boundaries remain deterministic under a fixed clock, and both HTTP methods still authenticate before privileged client construction. No consequential Story 13.1 defect remains subject to the exact-head CI receipt in the convergence artifact. Numeric production latency, throughput, backlog-age, freshness, and capacity targets remain the recorded owner-pending operating contract; the implementation bound is not an owner-approved SLO.
+
 ## Suggested Review Order
 
-Author: Story 13.1 implementation author.
-Refreshed against the current working tree (baseline `3d49a6e5d8070c9f72498e5ad0048300a799e7c0`).
+Author: Story 13.1 implementation and final-convergence fix author.
+Refreshed against code head `d770780` after the deterministic rotation-expiry repair, bounded same-tenant resume, and failure-checkpoint repair.
 
-### Scheduler authentication and bounded dispatch
+### Scheduler authentication
 
-GET and POST share the one authenticated scheduler front door. It authenticates before constructing the service client, resumes only the latest partial operational-log cursor, and keeps the registry empty until a later story activates a concrete category.
+- `src/app/api/jobs/run/route.ts:86` — `handleJobsRunRequest`: authenticates before registry lookup, service-client construction, cursor reads, or writes; GET and POST share this handler.
+- `src/server/jobs/auth.ts:8` — `isAuthorizedCronRequest`: accepts only a configured 32-byte current secret or an unexpired previous secret through timing-safe comparison.
+- `tests/unit/server/jobs/route-auth.test.ts:10` — freezes time, rejects malformed/currently expired credentials, and directly proves an expired previous secret is rejected.
+- `tests/unit/server/jobs/route-auth.test.ts:16` — proves current and relatively future rotation secrets remain accepted without a calendar expiry.
 
-- `src/app/api/jobs/run/route.ts:65` — `handleJobsRunRequest`: is the shared GET/POST boundary and rejects before any privileged side effect.
-- `src/app/api/jobs/run/route.ts:23` — `loadResumeCursor`: reads the latest terminal or partial runner log so only a current partial cursor resumes.
-- `src/app/api/jobs/run/route.ts:35` — `recordRun`: persists producer timestamps, bounded metadata, shared correlation ID, and matching null-actor audit records.
-- `src/server/jobs/auth.ts:8` — `isAuthorizedCronRequest`: timing-safe current and eligible previous-secret verification.
-- `src/server/jobs/runner.ts:38` — `runDueProducers`: resumes a deterministic tenant slice, records partial/terminal cursor state, completes safely with no tenants, and reports isolated failures truthfully.
-- `src/server/jobs/producers.ts:26` — `ACTIVE_PRODUCERS`: derives the currently empty active registry from the manifest.
+### Bounded runner and active registry
 
-### Scope and database enrollment
+- `src/app/api/jobs/run/route.ts:14` — `DEFAULT_RUN_BUDGET_MS`: supplies the internal invocation containment bound and abort signal without claiming a production SLO.
+- `src/server/jobs/runner.ts:56` — `runDueProducers`: resumes the exact tenant/producer tuple, loads durable producer progress, records partial producer work, continues later tenants, and retains failure isolation and bounded redaction.
+- `src/server/notifications/follow-up-producer.ts:99` — `emitDueFollowUpNotifications`: pages due follow-ups and recipients with a two-dimensional cursor, bounds status/preference/write work, and propagates the route abort signal.
+- `src/server/jobs/producers.ts:28` — `ACTIVE_PRODUCERS`: derives the active quote follow-up and operational email-delivery producers from the scope manifest.
+- `src/app/api/jobs/run/route.ts:96` — dispatches those producers only inside the one authenticated jobs lane, loads retry state only from the latest authoritative partial or failed producer row, and records correlated run/audit state.
+- `supabase/migrations/20260923160000_authenticated_job_runner.sql:5` — `job_runs`: retains forced RLS and the service-writer/tenant-admin-reader boundary.
+- `supabase/migrations/20260927140000_preserve_failed_job_checkpoints.sql:5` — permits a failed row to retain its input cursor while still requiring a cursor for partial and forbidding one for running/completed outcomes.
+- `tests/unit/server/jobs/route.test.ts`, `tests/unit/server/jobs/runner.test.ts`, and `tests/unit/server/notifications/follow-up-producer.test.ts` — cover generic 401/no side effects, deadline/abort propagation, latest-outcome cursor authority, exact tuple resume, failure-after-partial retry, later-tenant fairness, bounded nested queries and writes, convergence, failure continuation, and sanitized persistence.
+- `tests/unit/scripts/verify/jobs-service-role-containment.test.ts` — keeps the service context confined to the sanctioned jobs lane and unreachable from client modules.
 
-Notifications activation enrolls only the operational log. The migration forces RLS, limits write grants to the contained service context, and keeps the log append-only.
+### Evidence and limit
 
-- `src/scope/manifest.ts:231` — `id: "notifications"`: activates the module with only `job_runs`.
-- `supabase/migrations/20260923160000_authenticated_job_runner.sql:5` — `create table public.job_runs`: defines the bounded run-log contract.
-- `supabase/migrations/20260923160000_authenticated_job_runner.sql:33` — `force row level security`: preserves the forced-RLS database boundary.
-- `supabase/migrations/20260923161000_job_runs_authenticated_select_grant.sql:3` — `grant select`: repairs the matching authenticated privilege required for the tenant-admin RLS policy.
-- `supabase/migrations/20260923162000_job_runs_lifecycle_constraints.sql:4` — `job_runs_finished_after_started_check`: keeps terminal timestamps and partial cursors coherent for safe resume.
-
-### Evidence and containment
-
-AC credential negatives, registry activation, deterministic resume/fairness, sanitization, and forbidden runner patterns have executable unit coverage.
-
-- `tests/unit/server/jobs/route-auth.test.ts:9` — `rejects every invalid scheduler credential`: exercises malformed and forged credentials under an expired-previous configuration; it does not invoke the previous secret against that expired environment.
-- `tests/unit/server/jobs/route.test.ts:15` — `GET and POST reject`: proves generic 401 responses occur before client or runner side effects.
-- `tests/unit/server/jobs/route.test.ts:60` — `Vercel's GET delivery`: verifies the authenticated deployment entry point returns the shared no-op result for the intentionally empty registry.
-- `tests/unit/server/jobs/route.test.ts:73` — `authenticated route loads`: composes an injected active producer with cursor resume, tenant-scoped run/audit persistence, and correlation evidence.
-- `tests/unit/server/jobs/runner.test.ts:5` — `persists a cursor`: exercises bounded resume and tenant order.
-- `tests/unit/server/jobs/runner.test.ts:45` — `failed producer still`: proves a later scheduler call can resume after an isolated producer failure leaves work outstanding.
-- `tests/unit/server/jobs/runner.test.ts:56` — `isolates a producer failure`: exercises truthful failed outcome, continued execution, and bearer/JSON/query/DSN credential redaction.
-- `tests/unit/server/jobs/producer-registry.test.ts:5` — `derives a typed producer`: exercises active-module derivation and pending exclusion.
-- `tests/unit/scripts/verify/jobs-service-role-containment.test.ts:8` — `jobs containment rejects`: proves the scanner rejects forbidden runner patterns.
-- `tests/unit/scripts/verify/bundle-containment.test.ts:92` — `documented jobs service server chunk`: admits the environment-variable name only for the marked server artifact while browser and unmarked artifacts stay red.
-- `tests/integration/jobs/job-runs.int.test.ts:12` — `fresh schema`: inspects forced RLS, tenant-admin policy and SELECT grant, index presence, named lifecycle constraints, absent authenticated/anon mutation grants, and H4 enrollment. It does not reset the schema or assert constraint predicates.
-
-Evidence: the current targeted jobs and containment unit run passed 1,871/1,872 tests (one explicit skip); targeted lint and `pnpm verify:service-role-containment` passed; `SUPABASE_TEST_REQUIRED=1 pnpm test:int -- tests/integration/jobs` passed 1/1 after the lifecycle migration applied. The injected route test composes the otherwise empty registry with a test producer and proves cursor resume plus run/audit correlation persistence.
-Limits: the current required `SUPABASE_TEST_REQUIRED=1 pnpm test:int -- tests/integration/jobs tests/integration/rls` run reached 510 passes, 18 explicit skips, and one unrelated local Supabase connection-slot failure while RLS fixtures created Auth users. `pnpm typecheck` still fails on pre-existing `tmp/**` sibling-worktree sources outside Story 13.1. The shipped registry remains intentionally empty, so no category-specific producer is live.
+Base Epic 13 CI run `36339205329` passed 1,896 unit tests with zero skips, 1,205 required database tests with one separately executed recovery skip, and 172 browser tests with four explicit skips. On the final local source ending at `d770780`, the focused runner/route/follow-up/recovery set passed 32/32 with zero skips; the required job-runs integration passed 1/1 with zero skips after the incremental migration; changed-file ESLint, TypeScript, service-role containment, and diff checks passed. Exact-head CI status is recorded in `docs/quality/epic-13-convergence-review-2026-09-27.md`.

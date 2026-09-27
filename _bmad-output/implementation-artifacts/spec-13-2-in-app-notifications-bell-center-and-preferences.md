@@ -152,51 +152,38 @@ Residual risk: The required database-backed integration and browser suites were 
   - `[medium] [patch]` Hid producer freshness state when the administrator-only run lookup fails.
   - `[low] [patch]` Rendered sub-hour scan freshness without claiming that a scan is one hour old.
 
+## Final Convergence Disposition
+
+The 2026-09-27 convergence check was limited to the current tenant/recipient notification boundary and the final personal-preference model. `quote.delivery` remains active registry and outbox metadata, while its ineffective personal in-app and email controls are absent from the eligible API/UI projection and blocked for new direct database writes. Existing legacy rows are retained but ignored. Recipient-scoped public unsubscribe suppression remains a separate delivery boundary. No consequential Story 13.2 defect remains.
+
 ## Suggested Review Order
 
-Author: implementation author.
-Refreshed against the current working tree, based on `95e8eebf70193d8cacc933596453d524b8bbc879`, after final review hardening for preference enforcement, acknowledgement mutation authority, and retry-safe browser evidence.
+Author: Story 13.2 implementation and final-convergence fix author.
+Refreshed against code head `d770780` after the approved removal of the ineffective `quote.delivery` preference row and durable bounded follow-up delivery.
 
-### Personal notification entry and acknowledgement
+### Personal notification isolation and acknowledgement
 
-The shell loads a personal bell and the center consumes persisted routes. Read acknowledgements are optimistic only in the client and restore the prior state when the server rejects the write.
+- `src/components/app-shell/AppShell.tsx:276` and `src/components/notifications/NotificationBell.tsx:9` — mount the personal bell outside navigation and reconcile acknowledgement failure to server truth.
+- `src/app/api/notifications/[id]/read/route.ts:5` — scopes acknowledgement to the resolved tenant and recipient.
+- `supabase/migrations/20260923170000_in_app_notifications.sql:3` — gives each notification a tenant plus recipient identity, forced RLS, and subject-period deduplication.
+- `tests/integration/notifications/notifications.atdd.int.test.ts` — covers tenant/recipient isolation, direct-write denial, acknowledgement replay, follow-up dedupe, and terminal quote suppression.
+- `tests/e2e/notifications/notifications.atdd.e2e.spec.ts` — covers every valid role, capped unread count, stored route, filters, acknowledgement recovery, accessibility, and truthful freshness states.
 
-- `src/components/app-shell/AppShell.tsx:276` — `NotificationBell`: mounts the personal entry point outside navigation.
-- `src/components/notifications/NotificationBell.tsx:9` — `NotificationBell`: caps the unread presentation and reconciles failed mark-all/read requests.
-- `src/app/api/notifications/[id]/read/route.ts:5` — `POST`: scopes acknowledgement to the resolved tenant and recipient.
+### Supported preference authority
 
-### Stored data and producer boundary
+- `src/server/notifications/registry.ts:26` — `activeNotificationPreferenceCategories`: derives active categories and excludes `quote.delivery` from personal preferences while leaving the live category registered.
+- `src/app/api/notifications/preferences/route.ts:10` — filters reads to the resolved tenant/user and eligible category set; `:21` rejects ineligible writes before persistence.
+- `src/components/notifications/NotificationPreferences.tsx:6` — renders only the eligible preference projection, so the removed delivery row has neither an in-app nor email switch.
+- `supabase/migrations/20260927100000_remove_quote_delivery_preferences.sql:5` — rejects new authenticated inserts or updates for an ineligible category without deleting retained rows.
+- `tests/unit/server/notifications/registry.test.ts` and `tests/integration/notifications/notifications.atdd.int.test.ts:126` — prove registry eligibility, effective defaults, essential-state enforcement, and direct write rejection.
+- `tests/e2e/notifications/email-preferences-email-activation.atdd.e2e.spec.ts:13` — proves both `Offertleverans` controls are absent.
 
-The migration gives recipients select and acknowledgement authority only; the job service client remains the producer writer. The producer derives the latest quote state and emits the stored quote route only to recipients with `Quotes.View`; content carries no quote price or customer detail.
+### Producer boundary
 
-- `supabase/migrations/20260923170000_in_app_notifications.sql:3` — `create table public.notifications`: declares recipient isolation, read state, and subject-period de-duplication.
-- `src/server/notifications/follow-up-producer.ts:5` — `TERMINAL_QUOTE_STATUSES`: suppresses terminal follow-ups after resolving each quote's latest version.
-- `src/server/notifications/follow-up-producer.ts:14` — `resolveCapability`: prevents a notification from storing a quote route for an unentitled recipient.
-- `src/app/api/jobs/run/route.ts:88` — `emitDueFollowUpNotifications`: keeps the producer on Story 13.1's authenticated runner lane.
+- `src/server/notifications/follow-up-producer.ts:95` — projects only entitled recipients, stores safe route/content for due non-terminal quotes, and durably pages bounded follow-up and recipient batches.
+- `src/server/jobs/producers.ts:28` and `src/app/api/jobs/run/route.ts:96` — keep follow-up emission in the manifest-derived authenticated jobs lane.
+- `supabase/migrations/20260924120000_email_delivery_followup_fixes.sql:49` — keeps token-based unsubscribe suppression recipient/category scoped and independent of personal preference identity.
 
-### Browser acceptance coverage
+### Evidence and limit
 
-The Playwright fixture gives each seeded recipient ten distinct unread rows. This makes the capped-count and popover-list assertions personal and deterministic while leaving database authority to the integration/RLS suite.
-
-- `tests/e2e/global-setup.ts:811` — `notificationUsers`: seeds rows independently for each browser recipient.
-- `tests/e2e/global-setup.ts:819` — `index += 1`: supplies the unread cardinality required by AC3's capped `9+` presentation.
-- `tests/e2e/notifications/notifications.atdd.e2e.spec.ts:77` — `roleName`: exercises the all-valid-role personal bell and no-nav invariant from AC3.
-- `tests/e2e/notifications/notifications.atdd.e2e.spec.ts:97` — `stored notification link`: exercises AC4's persisted destination and acknowledgement journey.
-- `tests/e2e/notifications/notifications.atdd.e2e.spec.ts:108` — `filters together`: exercises AC4's category, read-state, and date narrowing.
-- `tests/e2e/notifications/notifications.atdd.e2e.spec.ts:141` — `Failed optimistic mark-read`: injects a failed acknowledgement to exercise AC4 rollback and retry presentation.
-- `tests/e2e/notifications/notifications.atdd.e2e.spec.ts:155` — `Profile preferences`: exercises AC5's category grouping and persisted in-app preference assertion.
-- `tests/e2e/notifications/notifications.atdd.e2e.spec.ts:183` — `keyboard activation`: exercises AC6's bell dialog semantics and focus-return expectation.
-- `tests/e2e/notifications/notifications.atdd.e2e.spec.ts:196` — `Empty and never-run states`: exercises AC6's truthful empty-state requirement without a real-time claim.
-- `tests/e2e/notifications/notifications.atdd.e2e.spec.ts:204` — `Stale producer state`: exercises AC6's elapsed-scan presentation without a current-delivery claim.
-
-### Category and preference authority
-
-The active quotes-owned category is the registry source for essential/default behavior. Preferences accept only the available in-app channel, and the UI states that email delivery remains unavailable.
-
-- `src/server/notifications/registry.ts:3` — `NOTIFICATION_CATEGORIES`: derives active categories from the manifest and declares the essential default.
-- `src/app/api/notifications/preferences/route.ts:15` — `PUT`: rejects email and essential-disable attempts before persistence.
-- `tests/unit/server/notifications/registry.test.ts:5` — `13.2 notification category registry derives`: exercises AC5's active/default/essential derivation.
-- `tests/unit/scope/manifest-derivations.test.ts:144` — `13.2-UNIT-DERIVE-05`: exercises the manifest-derived H4 table enrollment change.
-
-Evidence: `pnpm typecheck` and focused ESLint pass. Required notification integration evidence passes 1 file / 6 tests after applying the additive migration to the authorized local database; the required aggregate passed 43 files / 551 tests with no skips. The configured notification Playwright suite passed all 17 cases in two non-overlapping subsets after its acknowledgement and preference assertions were made state-stable.
-Limits: Numeric runner SLA, batch-size, fairness, backlog-age, and freshness thresholds remain owner-pending; the surface reports only truthful run state and elapsed time.
+Base Epic 13 CI run `36339205329` passed the final preference registry, required database/RLS, and browser absence cases as part of the recorded 1,896 unit, 1,205 database, and 172 browser passes. The final focused unit set passed 32/32 and includes bounded, failure-resumable follow-up/preference projection. Exact-head convergence status is recorded in `docs/quality/epic-13-convergence-review-2026-09-27.md`. Retained legacy `quote.delivery` preference rows remain inert and hidden; deletion still requires a separate retention decision.

@@ -200,86 +200,60 @@ Unsubscribe is a separate public capability: the URL carries the only plaintext 
 - `SUPABASE_TEST_REQUIRED=1 pnpm run test:integration` -- expected: migration, RLS, queue concurrency, token, and quote-PDF integration suites execute with no required skips or failures.
 - `pnpm run test:e2e` -- expected: authenticated preference/Admin visibility and public-shell flows pass where their configured browser coverage applies.
 
+## Final Convergence Disposition
+
+The 2026-09-27 convergence check was limited to the remediated Story 13.4 boundaries: personal preference eligibility, linked-recipient correction, terminal-state revalidation, PDF challenge authority, finalization recovery authority, recovery-evidence provenance, and Node/PostgreSQL HMAC parity. It found and fixed a recovery-role mismatch, direct same-tenant recovery forgery, uppercase UUID canonicalization mismatch, and a remaining PDF challenge/private-verifier mismatch that denied valid project-manager and salesperson send commands. `f226415` aligns only those two private send-attestation functions with the exact `Quotes.Send` role set and adds the existing server-only quote-PDF broker for roles without raw Storage access. Exact-head CI then showed the broker had become unconditional, making ordinary Administrator send paths depend on a service credential absent from the normal integration command context. `d770780` restores the request-bound exact-object read for actors who already have it and uses the broker only after a classified RLS denial on the database-issued path. The older reviewer/financial authority remains unchanged, and raw Säljare Storage access, arbitrary files, transient failures, corrupt bytes, and cross-tenant artifacts remain denied. Recovery still requires the short-lived server HMAC rooted in the existing quote-PDF Vault secret with exact actor, tenant, target, and role checks. No consequential Story 13.4 defect remains after those corrections, subject to the exact-head CI receipt recorded in the convergence artifact.
+
 ## Suggested Review Order
 
-Author: Story 13.4 implementation and fix author.
-Refreshed against the 2026-09-27 post-completion remediation working tree.
+Author: Story 13.4 implementation and final-convergence fix author.
+Refreshed against code head `d770780` after recovery-role alignment, recovery-evidence attestation, UUID canonicalization, exact `Quotes.Send` PDF-challenge alignment, request-bound/broker read repair, and durable runner checkpoint convergence.
 
-### Fail-closed delivery release control
+### Closed synthetic delivery and suppression
 
-The adapter accepts only synthetic envelopes. The separate ADR-B011 owner go-live record remains outside this code, so every other release posture is closed before a claim can call the adapter.
+- `src/server/email/provider.ts:11` — `evaluateEmailReleaseControl`: admits only the synthetic sandbox posture; real-recipient release still requires its separate ADR-B011 record.
+- `src/server/email/outbox.ts:93` — `processEmailOutbox`: applies suppression before release evaluation and any claim/provider work.
+- `src/app/api/jobs/run/route.ts:96` — keeps processing on the sole authenticated jobs lane with the normal release posture closed.
+- `supabase/migrations/20260924120000_email_delivery_followup_fixes.sql:49` — hashes/resolves public tokens into one-way recipient/category suppression.
+- `tests/integration/email/email-delivery-activation.atdd.int.test.ts` — proves sandbox success, closed release, suppression, artifact consumption, and final claimed-delivery terminal recheck.
 
-- `src/server/email/provider.ts:11` — `evaluateEmailReleaseControl`: only the sandbox posture is admitted.
-- `src/server/email/outbox.ts:93` — `processEmailOutbox`: applies suppression before release evaluation and records a lease-bound sent result.
-- `src/app/api/jobs/run/route.ts:91` — `notifications.email-outbox-delivery`: preserves the sole authenticated runner lane.
-- `supabase/migrations/20260924090000_email_sending_activation.sql:27` — `record_email_outbox_delivery`: requires the active worker claim before state becomes `sent`.
+### Personal preference eligibility
 
-### Personal-preference eligibility and recipient suppression
+- `src/server/notifications/registry.ts:26` — retains `quote.delivery` as live outbox metadata but excludes it from personal preferences because the frozen CRM recipient is not the authenticated user identity.
+- `src/app/api/notifications/preferences/route.ts:10` and `src/components/notifications/NotificationPreferences.tsx:6` — filter the API and UI to preference-eligible categories.
+- `supabase/migrations/20260927100000_remove_quote_delivery_preferences.sql:5` — rejects new direct inserts/updates for `quote.delivery` while leaving retained legacy rows inert.
+- `tests/integration/notifications/notifications.atdd.int.test.ts:126` and `tests/e2e/notifications/email-preferences-email-activation.atdd.e2e.spec.ts:13` — prove direct rejection and absence of both ineffective switches.
 
-Quote delivery stays an active outbox category, but it has no personal preference because the frozen CRM recipient is not the authenticated user identity. Existing inert rows remain untouched; the API hides them, the UI renders only eligible categories, and the database rejects new authenticated writes while token-based recipient suppression remains available.
+### Linked recipient, correction, and delivery identity
 
-- `src/server/notifications/registry.ts:26` — `activeNotificationPreferenceCategories`: keeps `quote.delivery` metadata active while excluding it from personal preferences.
-- `src/app/api/notifications/preferences/route.ts:10` — `eligibleCategories`: returns only preference-eligible rows and rejects `quote.delivery` writes through the same projection.
-- `src/components/notifications/NotificationPreferences.tsx:6` — `ACTIVE_CATEGORIES`: renders only the eligible preference projection.
-- `supabase/migrations/20260927100000_remove_quote_delivery_preferences.sql:5` — `notification_preferences_preference_eligibility_guard`: rejects direct inserts and updates without deleting legacy rows.
-- `src/app/(public)/unsubscribe/[token]/route.ts:10` — `GET`: serves a standalone public form without an authenticated shell.
-- `src/server/email/unsubscribe.ts:27` — `handleUnsubscribeRequest`: hashes the plaintext token before the RPC boundary.
-- `src/server/email/unsubscribe-ip.ts:4` — `trustedUnsubscribeIp`: accepts one validated `x-vercel-forwarded-for` value and maps every absent or malformed value to `unknown`.
-- `src/app/(public)/unsubscribe/[token]/route.ts:17` — `POST`: never trusts arbitrary `x-forwarded-for`; the completed page has no dead reactivation control.
-- `supabase/migrations/20260924120000_email_delivery_followup_fixes.sql:49` — `consume_email_unsubscribe_token`: preserves the public signature but always adds suppression, so a token cannot reactivate delivery.
-- `tests/e2e/global-setup.ts:923` — `emailActivation`: retains only the authenticated user and public-token fixture data needed after the removed preference controls.
+- `src/components/quotes/MarkSentButton.tsx` and `src/server/commands/quotes/validation.ts:252` — require one existing linked customer/contact source, never accept a freeform address, and canonicalize case-insensitive UUID input before signing.
+- `supabase/migrations/20260924110000_quote_email_delivery_artifacts.sql:90` — freezes the normalized linked recipient, private PDF artifact, quote finalization, and sequence-1 enqueue in one transaction.
+- `supabase/migrations/20260924130000_quote_delivery_recipient_correction.sql:96` — locks only a queued delivery, cancels it, invalidates the old artifact, and atomically creates an audited next-sequence delivery for the replacement source.
+- `tests/integration/email/quote-delivery-recipient-snapshot.int.test.ts` — proves uppercase UUID command success, CRM-edit immunity, tenant/source validation, queued-only cancellation/reissue, fresh sequence/artifact state, and project-manager/sales authority through `Quotes.Send`.
 
-### Quote attachment and reminder eligibility
+### Attachment and terminal revalidation
 
-The quote delivery seam accepts bytes only from a caller that has already resolved the current authorized PDF. It rejects stale, invalid, and absent inputs before adapter submission; terminal reminder states are ineligible.
+- `src/server/email/outbox.ts:58` — reads only the artifact bound to the active tenant/worker claim and verifies its bytes.
+- `src/server/commands/quotes/mark-sent.ts:197` — `prepare_quote_pdf_send_attestation`: prepares the exact current PDF challenge before the command prefers the caller's request-bound exact-object read, falls back to the existing server-only broker only for a classified RLS denial on that database-issued path, verifies downloaded bytes, and commits through the private verifier.
+- `supabase/migrations/20260927130000_quote_delivery_pdf_send_roles.sql:6` — aligns only the challenge and private verifier with `tenant_admin`, `projektledare`, and `saljare`; fixed search paths and restrictive grants remain, while the older reviewer/financial gate is untouched.
+- `supabase/migrations/20260924110000_quote_email_delivery_artifacts.sql:71` — `validate_claimed_quote_email_delivery`: rechecks current sent status, fingerprint, artifact, tenant, worker, and lease immediately before submission.
+- `tests/integration/email/quote-delivery-attachment.atdd.int.test.ts` — covers current/private/no-public-link and stale/missing/checksum rejection.
+- `tests/integration/email/email-delivery-activation.atdd.int.test.ts:100` — makes an already claimed quote terminal at the last validation boundary and proves no adapter call.
+- `tests/integration/notifications/notifications.atdd.int.test.ts:55` — independently covers accepted, rejected, lost/withdrawn, superseded, and expired reminder states.
 
-- `src/server/email/outbox.ts:126` — `processQuoteDelivery`: validates the PDF before constructing a server-only attachment.
-- `tests/integration/email/quote-delivery-attachment.atdd.int.test.ts:9` — `[P0][13.4-INT-004]`: exercises current-PDF-only attachment behavior.
-- `tests/integration/email/email-delivery-activation.atdd.int.test.ts:100` — `[P0][13.4-INT-010]`: changes a claimed delivery to a terminal quote state at the last validation boundary and proves no provider call occurs.
+### Durable, attributable recovery evidence
 
-### Private quote delivery artifact
-
-ADR-B011 requires a delivery worker to receive an exact private copy, rather than original quote-file authority. The worker path therefore rejects a missing, changed, cross-tenant, or no-longer-current artifact before provider submission.
-
-- `src/server/email/quote-delivery.ts:23` — `normalizeQuoteDeliveryRecipient`: normalizes the selected linked recipient before it can be frozen in delivery state.
-- `src/server/email/quote-delivery.ts:31` — `assertQuoteDeliveryArtifact`: verifies the artifact bytes against their distinct PDF checksum.
-- `src/server/email/outbox.ts:141` — `Quote delivery artifact is required`: fails closed before the adapter is called.
-- `src/server/email/outbox.ts:58` — `loadClaimedDeliveryAttachment`: treats a missing claimed artifact as a recoverable failure and decodes the database bytea representation before checksum verification.
-- `supabase/migrations/20260924120000_email_delivery_followup_fixes.sql:4` — `record_email_outbox_delivery`: locks the active claim and consumes its exact prepared artifact before committing `sent`.
-- `supabase/migrations/20260924110000_quote_email_delivery_artifacts.sql:2` — `email_delivery_artifacts`: stores the outbox-bound private artifact and revokes direct table access.
-- `supabase/migrations/20260924110000_quote_email_delivery_artifacts.sql:14` — `unique (id, tenant_id)`: makes the tenant-binding foreign key valid during clean migration replay.
-- `supabase/migrations/20260924110000_quote_email_delivery_artifacts.sql:58` — `read_claimed_email_delivery_artifact`: limits worker reads to its active claim.
-- `src/server/commands/quotes/mark-sent.ts:248` — `finalize_quote_email_delivery`: atomically finalizes the quote and queues the prepared delivery.
-- `supabase/migrations/20260924110000_quote_email_delivery_artifacts.sql:71` — `validate_claimed_quote_email_delivery`: rechecks the claimed artifact against the current sent quote before submission.
-- `supabase/migrations/20260924120000_email_delivery_followup_fixes.sql:26` — `claim_email_outbox`: returns the claimed category, letting the worker demand an artifact only for quote delivery.
-
-### Confirmed CRM recipient, correction, and transaction boundary
-
-The quote form loads only linked customer/contact candidates and requires a selection before it can submit. The authenticated command passes the verified PDF bytes and selected source to one RPC, which validates the current linked address, freezes its normalized value, creates the artifact, and performs the lifecycle transition and queue insert together.
-
-- `src/components/quotes/MarkSentButton.tsx:39` — `delivery-recipients`: loads the scoped candidate list for the draft version.
-- `src/components/quotes/MarkSentButton.tsx:81` — `recipient_source_type`: submits the selected source only, never a freeform recipient address.
-- `src/server/commands/quotes/validation.ts:252` — `validateMarkQuoteVersionSent`: rejects an absent, partial, or invalid recipient selection before any send authority is issued.
-- `src/server/commands/quotes/mark-sent.ts:248` — `finalize_quote_email_delivery`: has no legacy bare-finalization fallback after ADR-B008 byte verification.
-- `supabase/migrations/20260924110000_quote_email_delivery_artifacts.sql:90` — `finalize_quote_email_delivery`: validates the linked address, separate PDF checksum, and commits artifact, finalization, and queue state.
-- `supabase/migrations/20260924130000_quote_delivery_recipient_correction.sql:96` — `correct_pending_quote_email_delivery`: locks only a queued delivery, cancels it, invalidates its old artifact, creates a fresh recipient snapshot, and records an atomic audit event.
-- `src/server/commands/quotes/correct-delivery-recipient.ts:21` — `correctPendingQuoteDeliveryRecipient`: keeps the correction behind the existing quote-send capability and tenant ownership envelope.
-- `src/components/quotes/CorrectQuoteDeliveryRecipient.tsx:17` — exposes correction only while the server reports an unclaimed pending delivery.
-- `tests/integration/email/quote-delivery-recipient-snapshot.int.test.ts:95` — `[P0][AC6]`: proves the cancelled original, fresh queued replacement, immutable artifact states, and audit evidence.
-- `tests/unit/server/commands/mark-quote-version-sent-validation.test.ts:75` — `[13.4]`: proves complete linked-recipient selections are required and partial selections are rejected.
-
-### Durable delivery recovery evidence
-
-Preparation or finalization failure records a tenant-scoped append-only recovery row after the failed transaction. It cannot change a quote or outbox record, and recovery persistence failure remains fail-closed.
-
-- `src/server/commands/quotes/mark-sent.ts:77` — `recordQuoteDeliveryRecovery`: records the recovery state after a failed artifact-preparation or finalization attempt.
-- `supabase/migrations/20260925100000_quote_email_delivery_recovery.sql:5` — `email_delivery_recoveries`: provides the isolated tenant-scoped recovery ledger.
-- `supabase/migrations/20260925100000_quote_email_delivery_recovery.sql:36` — `record_quote_email_delivery_recovery`: rechecks actor and tenant-admin authority before its idempotent append.
-- `tests/integration/email/quote-delivery-finalization-failure.int.test.ts:84` — validates rollback of the finalization transaction and durable recovery evidence.
+- `src/server/commands/quotes/mark-sent.ts:79` — records recovery only after a command failure and preserves the originating error if evidence persistence also fails.
+- `src/server/email/recovery-attestation.ts` — binds tenant, actor, quote version, correlation, stage, root fingerprint, and five-minute window to a separate HMAC domain/subkey; it reuses the approved quote-PDF root and is server-only.
+- `supabase/migrations/20260925100000_quote_email_delivery_recovery.sql:5` — defines the isolated append-only tenant recovery ledger.
+- `supabase/migrations/20260927110000_quote_delivery_recovery_sender_roles.sql:4` — aligns the recorder with the exact `Quotes.Send` role set while retaining actor/tenant checks.
+- `supabase/migrations/20260927120000_attest_quote_delivery_recoveries.sql:6` — revokes and drops the forgeable five-argument endpoint; `:68` installs the attested signature with fixed search path, target scope, exact role set, time window, and server/Vault verification.
+- `tests/unit/server/email/recovery-attestation.test.ts` — proves every provenance field is signed and that malformed PDF key-id failure can still use the existing root.
+- `tests/integration/email/quote-delivery-finalization-failure.int.test.ts` — proves atomic rollback, orphaned/invalidated evidence, actor/cross-tenant/direct-forgery denial, and the real send-command recovery path for tenant admin, project manager, and sales actors.
+- `tests/integration/commands/quote-pdf-validity.int.test.ts` — proves a salesperson can generate only through the attested reserved-PDF path while raw list/download/sign, general files, direct hardened predicate calls, arbitrary uploads, and cross-tenant broker use stay denied.
 
 ### Evidence and limits
 
-AC1 sandbox success, closed release, suppression, missing-artifact recovery, and consumed artifact state → `tests/integration/email/email-delivery-activation.atdd.int.test.ts:29`, `:46`, `:60`, and `:74`. Public unknown/revoked uniformity and active rate limits → `tests/integration/rls/email-unsubscribe.atdd.rls.test.ts:30`. Personal preference eligibility plus the direct authenticated write boundary → `tests/unit/server/notifications/registry.test.ts:12` and `tests/integration/notifications/notifications.atdd.int.test.ts:126`. The browser journey proves both `Offertleverans` controls are absent → `tests/e2e/notifications/email-preferences-email-activation.atdd.e2e.spec.ts:13`.
+Base Epic 13 CI run `36339205329` passed 1,896 unit tests with zero skips, 1,205 required database tests with one separately executed recovery skip, and 172 browser tests with four explicit skips. On the final local source ending at `d770780`, focused unit coverage passed 32/32; the normal Administrator mark-sent dependent suite passed 14/14; the required recovery/finalization integration file passed 5/5 with zero skips; the focused salesperson reserved-PDF/raw-storage denial case passed; changed-file ESLint, TypeScript, service-role containment, and diff checks passed. Exact-head migration/reset and full CI evidence is recorded in `docs/quality/epic-13-convergence-review-2026-09-27.md`.
 
-Evidence: `node --experimental-strip-types --import ./tests/support/register.mjs --test tests/unit/server/notifications/registry.test.ts` passed 3 tests. `SUPABASE_TEST_REQUIRED=1 pnpm exec vitest run tests/integration/notifications/notifications.atdd.int.test.ts tests/integration/email/email-delivery-activation.atdd.int.test.ts` passed 2 files / 17 tests / 0 skips after SQL-only application of the remediation migration to the authorized loopback database. Changed-file ESLint passed. Browser assertions changed but were not rerun locally because no new server was started.
-Limits: existing inert personal-preference rows are retained and hidden from the eligible API result; future cleanup needs an explicit retention decision. The provider boundary remains synthetic and real-recipient delivery remains separately owner-gated.
+Real-recipient sending, production provider credentials/sender identity, provider-side idempotency after acceptance, and provider-rendered unsubscribe URLs remain separately gated or deferred. The attestation is not persisted or returned to the browser, and it grants no quote, artifact, or delivery authority.
