@@ -9,7 +9,7 @@ spec_folder: null
 story_id: null
 branch: epic/13-wave-b1a-notifications-and-email-infrastructure
 status: done
-updated_at: "2026-09-27T18:21:25Z"
+updated_at: "2026-09-27T19:25:13Z"
 started_at: "2026-09-23T10:29:03Z"
 completed_at: "2026-09-24T18:57:24Z"
 active_seconds: 44064
@@ -65,7 +65,7 @@ legacy_review_loop_done: false
 legacy_external_review_iterations: null
 legacy_convergence_unverified: false
 legacy_artifact_path: null
-commits: [cdbb68a, e996cde, 9650f72, 391624b, 211bf68, 24d0d19, e11d24a, 61f2394, 4024cbe, b75b155, 83da25f]
+commits: [cdbb68a, e996cde, 9650f72, 391624b, 211bf68, 24d0d19, e11d24a, 61f2394, 4024cbe, b75b155, 83da25f, 73407ac, b06c3ca, 2664d7b, 8a1eb8c, 2f374f9, f226415, 46d9b67, d770780, 0c28b14]
 phase8_steps:
   trace_gate: done
   nfr: done
@@ -82,22 +82,24 @@ retro:
   open_action_items: 2
 bmad_status_flipped_at: null
 pr_url: "https://github.com/rthunborg/ElproSaas/pull/75"
-ci_run_url: "https://github.com/rthunborg/ElproSaas/actions/runs/36339205329"
-ci_status: passed
+ci_run_url: "https://github.com/rthunborg/ElproSaas/actions/runs/36344025760"
+ci_status: unknown
 pr_merged: false
 merge_method: null
 merge_commit: null
 branch_deleted: false
 open_questions:
-  - "Historical independent cross-model review output is unavailable; current focused security review verifies only the 83da25f delta."
-  - "Numeric runner runtime, fairness, backlog, freshness, capacity, retention and recovery targets remain owner-pending operational contracts."
+  - "On resume inspect latest PR 75 CI; d770780 run 36344025760 was in progress at pause and may be superseded by the documentation checkpoint push. Author flags remain true until valid exact-code verification succeeds."
+  - Numeric operating targets remain owner-pending operational contracts.
 deferred_work:
-  - Real-recipient go-live requires a separate ADR-B011 owner decision and remains disabled.
-  - Add idempotent provider submission and scoped unsubscribe URLs in real-provider-rendered non-essential messages before real-recipient go-live.
-  - "Observe authenticated production cron after merge/deployment; active Pro and production-only CRON_SECRET are verified."
-  - Fix hard-coded previous-secret test expiry before 2026-10-01 as identified in the advisory test review.
+  - "Real-recipient delivery stays disabled pending separate ADR-B011 approval, provider idempotency and real rendered unsubscribe URLs."
+  - "Observe authenticated production cron after merge/deployment; Pro and production-only sensitive CRON_SECRET are verified."
+  - "Resume with exact-head CI check, authoritative story metadata/status updates, trace refresh and retrospective reconciliation."
 blockers: []
-overrides: {}
+overrides:
+  post_completion_remediation: true
+  pause_requested: true
+  pause_reason: Owner requested pause and development-environment restart on 2026-09-27
 constraints: []
 epic_slug: wave-b1a-notifications-and-email-infrastructure
 active_story: null

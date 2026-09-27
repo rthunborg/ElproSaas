@@ -193,3 +193,44 @@ No epic-end deferred reconciliation or archive has run.
 3. Define the external quote.delivery preference subject; real-recipient delivery stays disabled until separate ADR-B011 go-live approval.
 
 **Next:** Human review: /bmad-checkpoint-preview epic/13-wave-b1a-notifications-and-email-infrastructure. Project context: run /bmad-project-context refresh (recommended after an epic).
+
+## Report — 2026-09-27T19:24:44Z (halted â€” stopped)
+
+**Epic:** `13` — 4 stories.
+**Branch:** `epic/13-wave-b1a-notifications-and-email-infrastructure` (HEAD `0c28b14`).
+**Pipeline status:** Paused at owner request for development-environment restart; post-completion remediation is not finalized.
+**Continues:** Original caveated Epic 13 run and the 2026-09-27 remediation checkpoints.
+
+**Summary:** Decisions implemented and code pushed through d770780. Vercel Pro and production-only sensitive CRON_SECRET verified; quote preference row removed; recovery roles/provenance, UUIDs, bounded producer progress, failed checkpoint retention and request-scoped PDF reads repaired. Independent narrowed source review PASS; final CI/status/retro reconciliation paused.
+
+**Timing:** started 2026-09-23T10:29:03Z; completed 2026-09-24T18:57:24Z — elapsed 32h 28m (≈12h 14m AI-run, ≈20h 13m human/idle wait); resumed 5×.
+
+**Stories:**
+1. 13.1: bounded/resumable producer and failure cursor fixes; author and independent source review PASS, final CI pending.
+2. 13.2: quote-delivery personal preferences removed; recipient token suppression retained.
+3. 13.3: queued outbox retained; real-recipient gates remain separate.
+4. 13.4: recovery role/provenance and send-role PDF access corrected; author and independent source review PASS, final CI pending.
+
+**Skipped:** (none)
+
+**Epic gate:** PASS at last refreshed trace; final d770780 execution evidence pending.
+
+**TEA:** Last refreshed trace at 83da25f PASS 26/26 P0 FULL. Latest code-head CI d770780 still running at pause; no final exact-head trace execution claim.
+
+**Retrospective:** 2026-09-27 retrospective remains rejected while sprint stories stay review; five original actions resolved. Two later actions require final scripted closure after CI/status reconciliation.
+
+**Overrides:** Owner requested pause and restart. Do not resume workflow until instructed.
+
+**Open questions:**
+1. Clarify which development environment is to be restarted.
+2. Numeric operating targets remain owner-pending operational contracts.
+
+**Deferred work:**
+1. Real-recipient delivery remains disabled pending separate ADR-B011 approval and provider prerequisites.
+2. Production cron observation follows merge/deployment.
+Epic 13 ledger reconcile: zero fully resolved compound entries and zero archived.
+
+**⚠️ Needs human:**
+1. Resume the paused workflow after environment restart.
+
+**Next:** On resume: inspect PR 75 CI run 36344025760 at d770780; if green, finish author review flags, refresh trace, mark statuses through helpers, rerun retrospective and append final report. Keep PR draft and real-recipient delivery disabled until their gates are met.
