@@ -251,6 +251,12 @@ describe("Story 13.4 quote delivery finalization failure atomicity", () => {
       const rpc = client as unknown as {
         rpc: (name: string, args: Record<string, unknown>) => Promise<{ error: { code?: string } | null }>;
       };
+      const invalidAttestation = {
+        p_attestation_root_fingerprint: "a".repeat(64),
+        p_attestation_issued_at: new Date().toISOString(),
+        p_attestation_expires_at: new Date(Date.now() + 5 * 60_000).toISOString(),
+        p_attestation_signature: "b".repeat(64),
+      };
 
       const actorMismatch = await rpc.rpc("record_quote_email_delivery_recovery", {
         p_tenant_id: fixture.tenantA.id,
@@ -258,6 +264,7 @@ describe("Story 13.4 quote delivery finalization failure atomicity", () => {
         p_actor_user_id: fixture.adminB.id,
         p_correlation_id: crypto.randomUUID(),
         p_failure_stage: "artifact_preparation",
+        ...invalidAttestation,
       });
       expect(actorMismatch.error?.code).toBe("42501");
 
@@ -267,8 +274,19 @@ describe("Story 13.4 quote delivery finalization failure atomicity", () => {
         p_actor_user_id: fixture.adminA.id,
         p_correlation_id: crypto.randomUUID(),
         p_failure_stage: "artifact_preparation",
+        ...invalidAttestation,
       });
       expect(crossTenant.error?.code).toBe("42501");
+
+      const directForgery = await rpc.rpc("record_quote_email_delivery_recovery", {
+        p_tenant_id: fixture.tenantA.id,
+        p_quote_version_id: draft.quoteVersionId,
+        p_actor_user_id: fixture.adminA.id,
+        p_correlation_id: crypto.randomUUID(),
+        p_failure_stage: "artifact_preparation",
+        ...invalidAttestation,
+      });
+      expect(directForgery.error?.code).toBe("PFD10");
       expect(await finalizationState(draft.quoteVersionId)).toMatchObject({ recoveryCount: 0 });
     } finally {
       await cleanupFixture(fixture);
@@ -278,10 +296,8 @@ describe("Story 13.4 quote delivery finalization failure atomicity", () => {
   test("[P0][AC8][13.4-INT-AC8-005] every Quotes.Send role persists attributable recovery evidence", async (ctx) => {
     if (skipUnlessStack(ctx, stackUp)) return;
     const fixture = await createRoleAwarePhaseAFixture();
-    const previousKeyId = process.env.QUOTE_PDF_ATTESTATION_KEY_ID;
     try {
       const admin = await makeAuthedServerClient(fixture.base.adminA);
-      process.env.QUOTE_PDF_ATTESTATION_KEY_ID = "invalid key id!";
 
       for (const actor of [fixture.users.projektledare, fixture.users.saljare]) {
         const actorClient = await makeAuthedServerClient(actor);
@@ -294,16 +310,18 @@ describe("Story 13.4 quote delivery finalization failure atomicity", () => {
           occurredAt: clock.now().toISOString(),
         });
         const correlationId = crypto.randomUUID();
-        const result = await runCommand(markQuoteVersionSent, {
-          client: actorClient as never,
-          clock,
-          correlationId,
-          input: {
-            quote_version_id: draft.quoteVersionId,
-            recipient_source_type: "customer",
-            recipient_source_id: draft.customerId,
-          },
-        });
+        const result = await withForcedAuditFailure(correlationId, () =>
+          runCommand(markQuoteVersionSent, {
+            client: actorClient as never,
+            clock,
+            correlationId,
+            input: {
+              quote_version_id: draft.quoteVersionId,
+              recipient_source_type: "customer",
+              recipient_source_id: draft.customerId,
+            },
+          }),
+        );
 
         expect(result.ok).toBe(false);
         if (!result.ok) expect(result.code).toBe("SERVER_ERROR");
@@ -325,13 +343,11 @@ describe("Story 13.4 quote delivery finalization failure atomicity", () => {
         )).toEqual([{
           actor_user_id: actor.id,
           correlation_id: correlationId,
-          failure_stage: "artifact_preparation",
-          recovery_state: "orphaned",
+          failure_stage: "finalization",
+          recovery_state: "invalidated",
         }]);
       }
     } finally {
-      if (previousKeyId === undefined) delete process.env.QUOTE_PDF_ATTESTATION_KEY_ID;
-      else process.env.QUOTE_PDF_ATTESTATION_KEY_ID = previousKeyId;
       await cleanupRoleAwarePhaseAFixture(fixture);
     }
   });

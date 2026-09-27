@@ -57,6 +57,10 @@ import {
   validateMarkQuoteVersionSent,
   type MarkQuoteVersionSentInput,
 } from "./validation";
+import {
+  createQuoteDeliveryRecoveryAttestation,
+  type QuoteDeliveryRecoveryStage,
+} from "@/server/email/recovery-attestation";
 
 /**
  * Sending a commitment defaults to the real-customer track. Disposable demo deployments must
@@ -72,8 +76,6 @@ export interface MarkQuoteVersionSentResult {
   readonly targetId: string;
 }
 
-type QuoteDeliveryRecoveryStage = "artifact_preparation" | "finalization";
-
 async function recordQuoteDeliveryRecovery(
   db: unknown,
   input: {
@@ -82,6 +84,10 @@ async function recordQuoteDeliveryRecovery(
     readonly actorUserId: string;
     readonly correlationId: string;
     readonly stage: QuoteDeliveryRecoveryStage;
+    readonly rootFingerprint: string;
+    readonly issuedAt: string;
+    readonly expiresAt: string;
+    readonly signature: string;
   },
 ): Promise<void> {
   const recoveryRpc = db as {
@@ -95,6 +101,10 @@ async function recordQuoteDeliveryRecovery(
     p_actor_user_id: input.actorUserId,
     p_correlation_id: input.correlationId,
     p_failure_stage: input.stage,
+    p_attestation_root_fingerprint: input.rootFingerprint,
+    p_attestation_issued_at: input.issuedAt,
+    p_attestation_expires_at: input.expiresAt,
+    p_attestation_signature: input.signature,
   });
   if (error) throw new Error("quote delivery recovery persistence failed");
 }
@@ -258,13 +268,20 @@ export const markQuoteVersionSent = defineCommand<
 
     return { targetId: versionId };
     } catch (error) {
-      await recordQuoteDeliveryRecovery(db, {
-        tenantId: ctx.tenantContext.tenantId,
-        quoteVersionId: versionId,
-        actorUserId: ctx.tenantContext.userId,
-        correlationId: ctx.correlationId,
-        stage: recoveryStage,
-      });
+      try {
+        const recovery = createQuoteDeliveryRecoveryAttestation({
+          tenantId: ctx.tenantContext.tenantId,
+          quoteVersionId: versionId,
+          actorUserId: ctx.tenantContext.userId,
+          correlationId: ctx.correlationId,
+          stage: recoveryStage,
+        });
+        await recordQuoteDeliveryRecovery(db, recovery);
+      } catch {
+        // Recovery evidence is best-effort after the command has already failed.
+        // Preserve the originating failure instead of replacing it with a
+        // secondary persistence or attestation error.
+      }
       throw error;
     }
   },
