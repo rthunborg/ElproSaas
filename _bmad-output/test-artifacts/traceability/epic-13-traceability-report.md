@@ -1,7 +1,7 @@
 ---
 stepsCompleted: ['step-01-load-context', 'step-02-discover-tests', 'step-03-map-criteria', 'step-04-analyze-gaps', 'step-05-gate-decision']
 lastStep: 'step-05-gate-decision'
-lastSaved: '2026-09-25'
+lastSaved: '2026-09-27'
 workflowType: 'testarch-trace'
 inputDocuments:
   - '_bmad-output/implementation-artifacts/spec-13-1-authenticated-background-runner-and-producer-registry.md'
@@ -22,14 +22,14 @@ oracleSources:
   - '_bmad-output/implementation-artifacts/spec-13-4-email-sending-activation.md'
 externalPointerStatus: 'not_used'
 collectionStatus: 'COLLECTED'
-sourceSha: '4024cbe36d79d9d7e13b927c4ecb6689a31c9375'
+sourceSha: '83da25fde36a0f6fb44cd29e3c6812532650ff28'
 ---
 
 # Traceability Matrix & Gate Decision — Epic 13
 
 **Target:** Epic 13 — Notifications and Email Infrastructure
 
-**Date:** 2026-09-25
+**Date:** 2026-09-27
 
 **Evaluator:** Rasmus / BMad TEA
 
@@ -41,7 +41,7 @@ sourceSha: '4024cbe36d79d9d7e13b927c4ecb6689a31c9375'
 
 Create mode uses the four completed Epic 13 story specifications as the formal coverage oracle. Each specification is marked `done` and contains the final intent contract, acceptance criteria, implementation map, review history, and recorded verification evidence. The epic context, planning epic, ADR-B011, and epic test design supply scope, architecture, and risk priorities; they do not replace the final story acceptance wording.
 
-This is the final deterministic re-gate after the Epic 13 follow-up fixes at commit `4024cbe36d79d9d7e13b927c4ecb6689a31c9375`. The oracle remains the same 26 final acceptance criteria. This run reclassifies the previously partial Story 13.4 recipient-correction and durable-recovery branches and retains the already resolved claimed-send terminal recheck.
+This is the focused deterministic re-gate after the approved `quote.delivery` preference remediation at commit `83da25fde36a0f6fb44cd29e3c6812532650ff28`. The oracle remains the same 26 final acceptance criteria. The current delta updates only the Story 13.2 AC5 and Story 13.4 AC4 mappings: `quote.delivery` remains active outbox and recipient-suppression taxonomy, while ineffective personal preference controls and new preference writes are removed. The previously closed Story 13.4 AC6-AC8 branches remain FULL.
 
 The selected oracle is high confidence because the four final story specifications cover the full epic sequence: the authenticated background runner and producer registry, in-app notifications and preferences, the dark email outbox, and sandbox-only email activation with the narrow public unsubscribe surface. Formal requirements are therefore available and take precedence over contract inference or a synthetic source oracle.
 
@@ -51,15 +51,15 @@ The loaded TEA knowledge base defines P0–P3 priorities, risk and gate threshol
 
 ## Step 2 — Test Discovery and Catalogue
 
-Static discovery found Epic 13 evidence at unit/static, integration/API/RLS, and production-server browser levels. The containing evidence set now spans 32 files and 167 declared cases: 19 unit/static files with 104 declarations, nine integration/API/RLS files with 41 declarations, and four E2E files with 22 declarations. Several shared manifest and containment files include older-epic cases; only assertions that exercise an Epic 13 requirement are credited in the matrix.
+Static discovery found Epic 13 evidence at unit/static, integration/API/RLS, and production-server browser levels. The containing evidence set spans 32 files and 167 declared cases: 19 unit/static files with 105 declarations, nine integration/API/RLS files with 41 declarations, and four E2E files with 21 declarations. Several shared manifest and containment files include older-epic cases; only assertions that exercise an Epic 13 requirement are credited in the matrix.
 
-The delta from `391624b` to `4024cbe` adds the recipient-correction and durable-recovery implementation plus five mapped integration cases in existing Epic 13 evidence files. Follow-up fixture repairs supply the newly mandatory linked recipient to historical mark-sent callers without weakening the acceptance contract.
+The delta from `b75b155` to `83da25f` adds one focused registry case, changes the existing preference integration case from permitting an ineffective row to rejecting authenticated direct writes, and consolidates two email-preference browser cases into one absence case. The deduplicated mapped inventory therefore remains 41 cases across 18 files, with one case moving from E2E to unit/static.
 
 | Level | Primary Epic 13 evidence | Recorded execution evidence |
 | --- | --- | --- |
-| Unit/static | jobs auth/route/runner/registry, notification registry and presentation, email outbox/provider/unsubscribe, quote-recipient validation, manifest derivation/shape/coherence, and service/email containment bite tests | Fresh PR CI run `36144742778` at the exact source SHA records 1,895 passed, zero failed, and zero skipped; typecheck, lint, build, source containment, and built-bundle containment also pass. |
-| Integration/API/RLS | `job-runs.int.test.ts`, notification emission/dedupe/preferences/RLS, five terminal reminder states at the producer boundary, outbox concurrency/retry/suppression/RLS, activated delivery, quote artifact/currentness/recipient correction, finalization recovery, and public unsubscribe capability | The same run performs an empty-database migration reset with `SUPABASE_TEST_REQUIRED=1`, then records 1,205 passed, zero failed, and one explicit skip across 122 files. The skipped isolated recovery-storage case runs separately in the same workflow and passes 1/1; no Epic 13 criterion depends on that case. |
-| E2E | notification bell/center/preferences, dark Admin outbox, activated email preferences, and public unsubscribe | The production-server Playwright job records 173 passed, four explicit skips, and zero failures; the focused public unsubscribe and preference journeys are present in the suite. |
+| Unit/static | jobs auth/route/runner/registry, notification and preference-eligibility registry/presentation, email outbox/provider/unsubscribe, quote-recipient validation, manifest derivation/shape/coherence, and service/email containment bite tests | Fresh PR CI run [`36339205329`](https://github.com/rthunborg/ElproSaas/actions/runs/36339205329) at the exact source SHA records 1,896 passed, zero failed, and zero skipped; dependency audit, typecheck, lint, build, source containment, and built-bundle containment also pass. |
+| Integration/API/RLS | `job-runs.int.test.ts`, notification emission/dedupe/preference eligibility/RLS, five terminal reminder states at the producer boundary, outbox concurrency/retry/suppression/RLS, activated delivery, quote artifact/currentness/recipient correction, finalization recovery, and public unsubscribe capability | The same run performs an empty-database migration reset with `SUPABASE_TEST_REQUIRED=1`, then records 1,205 passed, zero failed, and one explicit skip across 122 files. The skipped isolated recovery-storage case runs separately in the same workflow and passes 1/1 with zero skip; no Epic 13 criterion depends on that case. |
+| E2E | notification bell/center/preferences, dark Admin outbox, removed quote-delivery preference controls, and public unsubscribe | The production-server Playwright job records 172 passed, four explicit skips, and zero failures; the focused public unsubscribe and preference-absence journeys are present in the suite. |
 | Component | None | Presentation helpers are unit tested and the user-visible journeys have browser coverage. |
 | Live | None | `live-verification-results.json` is absent. Static collection remains `COLLECTED`; no live-only coverage is claimed. |
 
@@ -81,7 +81,7 @@ The delta from `391624b` to `4024cbe` adds the recipient-correction and durable-
     "observed_at": "",
     "producer": "",
     "read_error": "",
-    "current_source_sha": "4024cbe36d79d9d7e13b927c4ecb6689a31c9375"
+    "current_source_sha": "83da25fde36a0f6fb44cd29e3c6812532650ff28"
   },
   "liveRecords": []
 }
@@ -89,10 +89,10 @@ The delta from `391624b` to `4024cbe` adds the recipient-correction and durable-
 
 ### Coverage heuristics inventory
 
-- **Endpoint/API:** `GET` and `POST /api/jobs/run` have direct route-level authentication and dispatch tests. Notification read/preference and acknowledgement behavior is covered through command/database integration plus browser journeys. The public unsubscribe route has browser coverage and direct token/RLS integration. Quote-delivery command behavior has validation and database integration evidence; there is no dedicated quote-send browser journey.
+- **Endpoint/API:** `GET` and `POST /api/jobs/run` have direct route-level authentication and dispatch tests. Notification read/preference and acknowledgement behavior is covered through registry, command/database, and browser evidence; the supported preference projection excludes legacy `quote.delivery` rows and rejects new writes. The public unsubscribe route has browser coverage and direct token/RLS integration. Quote-delivery command behavior has validation and database integration evidence; there is no dedicated quote-send browser journey.
 - **Authentication/authorization:** Missing, wrong, garbage, forged, unsigned, and `alg:none` scheduler credentials; current/previous rotation; service/client containment; personal notification RLS; Admin-only outbox projection; cross-tenant queue isolation; and public token isolation/rate limiting are covered.
-- **Error paths:** Deterministic deadline/chunk resume, producer failure sanitization, notification optimistic-read recovery, concurrent dedupe, stale-claim recovery, retry exhaustion, suppression, closed release posture, missing/changed/stale quote artifacts, five independently stored terminal reminder states before producer enqueue, pending-recipient cancellation and authorized reissue, claimed-send terminal recheck, malformed delivery bytes, forced finalization rollback, durable orphaned/invalidated recovery evidence, unknown/revoked/rate-limited tokens, and forbidden import/provider paths are represented.
-- **UI journeys:** The bell, center, filters, stored deep link, mark-one/all, preferences, failure recovery, Admin dark queue, activated email preference, and public unsubscribe journeys have E2E coverage. The sender's quote-recipient selection/finalization journey relies on unit and integration evidence rather than a dedicated Epic 13 browser test.
+- **Error paths:** Deterministic deadline/chunk resume, producer failure sanitization, notification optimistic-read recovery, concurrent dedupe, stale-claim recovery, retry exhaustion, suppression, closed release posture, rejected ineffective preference writes, missing/changed/stale quote artifacts, five independently stored terminal reminder states before producer enqueue, pending-recipient cancellation and authorized reissue, claimed-send terminal recheck, malformed delivery bytes, forced finalization rollback, durable orphaned/invalidated recovery evidence, unknown/revoked/rate-limited tokens, and forbidden import/provider paths are represented.
+- **UI journeys:** The bell, center, filters, stored deep link, mark-one/all, supported preferences, failure recovery, absent `quote.delivery` controls, Admin dark queue, and public unsubscribe journeys have E2E coverage. The sender's quote-recipient selection/finalization journey relies on unit and integration evidence rather than a dedicated Epic 13 browser test.
 - **UI states:** Empty, never-run, failed/stale freshness, unread/read, optimistic failure recovery, unavailable/required email preference, redacted Admin queue, public inactive-token, and rate-limit states are asserted.
 
 ## Step 3 — Requirements-to-Tests Matrix
@@ -111,7 +111,7 @@ Coverage is credited only when current committed evidence exercises the final ac
 | 13.2-AC2 Concurrent/retried due scans deduplicate and terminal work emits nothing | P0 | FULL | `13.2-INT-002` — `notifications.atdd.int.test.ts:44` runs six concurrent scans; the five database-backed terminal cases at `:55` independently prove accepted, rejected, lost/withdrawn, superseded, and expired work emits nothing. |
 | 13.2-AC3 Every tenant role gets its own capped bell; foreign user/tenant/anonymous/raw-write paths deny | P0 | FULL | `13.2-RLS-001` — `notifications.atdd.int.test.ts:98`; raw/cross-tenant/anon denial `:114`; all-role capped bell — `notifications.atdd.e2e.spec.ts:78` (runtime matrix over five roles); count helper — `tests/unit/components/notifications/notification-presentation.test.ts:25`. |
 | 13.2-AC4 Personal mark-one/all, stored links, combined filters, idempotency, and failure reconciliation | P0 | FULL | Popover/center `notifications.atdd.e2e.spec.ts:87`; link/read `:97`; filters `:108`; mark-one `:122`; mark-all/reload `:132`; injected failure recovery `:141`; replay-safe DB acknowledgement `notifications.atdd.int.test.ts:59`. |
-| 13.2-AC5 Active-category preferences resolve defaults, enforce essential state, and reflect deployment email availability | P0 | FULL | Server enforcement/default rows — `notifications.atdd.int.test.ts:126`; module grouping and essential UI — `notifications.atdd.e2e.spec.ts:155,165`; Story 13.4's superseding enabled-sandbox state — `tests/e2e/notifications/email-preferences-email-activation.atdd.e2e.spec.ts:13,26`. |
+| 13.2-AC5 Active-category preferences resolve defaults, enforce essential state, and reflect deployment email availability | P0 | FULL | Server enforcement/default rows plus authenticated rejection of ineffective `quote.delivery` writes — `notifications.atdd.int.test.ts:126`; preference-eligible active-category derivation — `tests/unit/server/notifications/registry.test.ts:12`; module grouping, essential UI, and absence of the ineligible row — `notifications.atdd.e2e.spec.ts:155,165,174` and `tests/e2e/notifications/email-preferences-email-activation.atdd.e2e.spec.ts:13`. |
 | 13.2-AC6 Fresh schema/manifest/H4 plus accessible empty/never-run/stale presentation remain truthful | P0 | FULL | Forced-RLS schema `notifications.atdd.int.test.ts:143`; keyboard/focus `notifications.atdd.e2e.spec.ts:184`; empty/never-run `:197`; elapsed stale state `:205`; manifest coherence suite supplies the active-surface guard. |
 | 13.3-AC1 Tenant-local enqueue persists one safe queued row/event and reconciles replay/concurrency | P0 | FULL | `13.3-UNIT-001` — `tests/unit/server/email/outbox.atdd.test.ts:5`; `13.3-INT-001` — `tests/integration/email/outbox.atdd.int.test.ts:14`; safe DTO mismatch rejection — `tests/unit/server/email/outbox.test.ts:32`. |
 | 13.3-AC2 SKIP LOCKED claims are disjoint; stale leases recover; fixed retries exhaust visibly with sanitized events | P0 | FULL | `13.3-UNIT-002` — `outbox.atdd.test.ts:12`; real Postgres `13.3-INT-002` — `outbox.atdd.int.test.ts:27`; retry/exhaustion `13.3-INT-003` — same file `:41`. |
@@ -122,7 +122,7 @@ Coverage is credited only when current committed evidence exercises the final ac
 | 13.4-AC1 Synthetic sandbox delivery records one server-only provider-backed sent outcome | P0 | FULL | `13.4-UNIT-001` — `tests/unit/server/email/provider.atdd.test.ts:10`; artifact-backed DB outcome `13.4-INT-001` — `tests/integration/email/email-delivery-activation.atdd.int.test.ts:29`; server-only adapter containment — `tests/unit/scripts/verify/email-delivery-containment.atdd.test.ts:10`. |
 | 13.4-AC2 Missing/malformed/preview/unapproved real-recipient states make no call and leave queued truth | P0 | FULL | `13.4-UNIT-002` — `provider.atdd.test.ts:31`; `13.4-INT-002` — `email-delivery-activation.atdd.int.test.ts:46`. |
 | 13.4-AC3 Activated processing preserves dedupe, disjoint claims, lease recovery, retries, and suppression-before-send | P0 | FULL | Existing real-Postgres invariants — `outbox.atdd.int.test.ts:14,27,41,61`; activated suppression/provider-zero-call proof — `email-delivery-activation.atdd.int.test.ts:60`. |
-| 13.4-AC4 Authorized email preference/unsubscribe suppresses future non-essential delivery without widening essential/tenant/category scope | P0 | FULL | Preference/essential DB matrix — `notifications.atdd.int.test.ts:126`; activated preference browser path — `email-preferences-email-activation.atdd.e2e.spec.ts:13,26`; scoped token and no-reactivation proofs — `tests/integration/rls/email-unsubscribe.atdd.rls.test.ts:15,30`; provider-zero-call suppression — `email-delivery-activation.atdd.int.test.ts:60`. |
+| 13.4-AC4 Authorized email preference/unsubscribe suppresses future non-essential delivery without widening essential/tenant/category scope | P0 | FULL | The preference-eligibility registry keeps `quote.delivery` active as outbox metadata while excluding it from personal preferences — `tests/unit/server/notifications/registry.test.ts:12`; direct authenticated insert/upsert rejection — `notifications.atdd.int.test.ts:126`; both ineffective controls absent — `email-preferences-email-activation.atdd.e2e.spec.ts:13`; scoped token and no-reactivation proofs — `tests/integration/rls/email-unsubscribe.atdd.rls.test.ts:15,30`; matching tenant/category/recipient suppression before provider work — `email-delivery-activation.atdd.int.test.ts:60`. |
 | 13.4-AC5 Unknown/revoked/rate-limited public tokens stay generic, narrow, and outside the authenticated shell | P0 | FULL | `13.4-RLS-002` — `email-unsubscribe.atdd.rls.test.ts:43`; route IP validation — `tests/unit/server/email/unsubscribe.test.ts:4`; public-shell containment — `email-delivery-containment.atdd.test.ts:17`; browser inactive/rate-limit states — `tests/e2e/notifications/public-unsubscribe-email-activation.atdd.e2e.spec.ts:19,32`. |
 | 13.4-AC6 Quote recipient is selected from linked records, normalized/frozen, immune to later CRM edits, and recipient changes cancel/re-authorize | P0 | FULL | Mandatory linked-recipient validation — `tests/unit/server/commands/mark-quote-version-sent-validation.test.ts:43,75`; freeze-after-CRM-edit — `tests/integration/email/quote-delivery-recipient-snapshot.int.test.ts:32`; tenant-scoped queued cancellation, old-artifact invalidation, new delivery sequence, fresh recipient snapshot, and correlated audit — same file `:95`; project-manager and sales-role authorization through the `Quotes.Send` boundary — same file `:248`. The test also rejects an unrelated linked record, a foreign tenant, and correction after the new delivery is claimed. |
 | 13.4-AC7 Current private PDF only, revalidated before submit, no public link, and all five terminal reminder conditions stop enqueue/send | P0 | FULL | Current/no-public-link `13.4-INT-004` — `tests/integration/email/quote-delivery-attachment.atdd.int.test.ts:9`; stale/missing/checksum/currentness rejection `:20,29`; real database reminder-producer cases for accepted, rejected, lost/withdrawn, superseded, and expired prevent enqueue — `tests/integration/notifications/notifications.atdd.int.test.ts:55`; no email reminder provider or outbox-claim path is registered. For the actual claimed provider path, `13.4-INT-010` — `tests/integration/email/email-delivery-activation.atdd.int.test.ts:100` changes an already claimed delivery to `rejected` at the `validate_claimed_quote_email_delivery` RPC boundary immediately before sandbox submission, then proves zero adapter calls and a recoverable queued retry. |
@@ -133,13 +133,13 @@ Coverage is credited only when current committed evidence exercises the final ac
 - All 26 final acceptance criteria have mapped current evidence and are FULL.
 - P0 FULL coverage is 26/26 (100%). No criterion is credited from live evidence.
 - Overlap between unit/static, database integration, and browser evidence is retained where the levels prove different boundaries: authority/state invariants, durable database effects, and user-visible isolation.
-- The follow-up remediation adds five mapped integration cases in existing evidence files: two recipient-correction cases, two durable-recovery cases, and one ordinary-producer identity regression around the new delivery sequence.
-- Fresh PR CI at current HEAD `4024cbe36d79d9d7e13b927c4ecb6689a31c9375` passes verification, empty-database reset, required integration/RLS, isolated recovery-loader, and production-server browser jobs.
+- The current remediation adds one mapped registry case and replaces two preference-toggle browser cases with one absence case. Mapped totals remain 41 cases across 18 files: 7 unit/static, 32 API/integration/RLS, and 2 E2E.
+- Fresh PR CI run [`36339205329`](https://github.com/rthunborg/ElproSaas/actions/runs/36339205329) at current HEAD `83da25fde36a0f6fb44cd29e3c6812532650ff28` passes verification, empty-database reset, required integration/RLS, isolated recovery-loader, and production-server browser jobs.
 - The absence of a dedicated quote-send browser journey is a low-priority confidence opportunity; command/database coverage exercises every named P0 branch, so it does not reduce acceptance coverage.
 
 ## Step 4 — Coverage Gap Analysis
 
-This focused edit-mode rerun verified the existing 26-criterion formal oracle against the current source and the complete fresh PR CI run at HEAD `4024cbe36d79d9d7e13b927c4ecb6689a31c9375`.
+This focused edit-mode rerun verified the existing 26-criterion formal oracle against the current source and complete fresh PR CI run [`36339205329`](https://github.com/rthunborg/ElproSaas/actions/runs/36339205329) at HEAD `83da25fde36a0f6fb44cd29e3c6812532650ff28`.
 
 ### Coverage summary
 
@@ -174,12 +174,20 @@ There are no `PARTIAL`, `NONE`, `UNIT-ONLY`, or `INTEGRATION-ONLY` matrix status
 2. Optionally add one production-server browser journey from linked recipient selection through truthful queued state.
 3. Keep real-recipient delivery disabled until ADR-B011's separate owner go-live record and provider-contract follow-ups are complete.
 
+### Merge-gate and advisory classification
+
+- **Sandbox implementation merge gate:** PASS at 26/26 P0 FULL with all four required exact-HEAD CI jobs green. The focused security review found no production-reachable defect in the preference-removal delta; its scope is only that delta and unresolved serious findings.
+- **Time-bounded test maintenance:** `tests/unit/server/jobs/route-auth.test.ts` still treats `2026-10-01` as a future previous-secret expiry while production reads the wall clock. Current CI passes; if the branch is still unmerged when that date is reached, the false failure becomes a merge blocker. The shared E2E `Date.now()`/random fixture identifiers remain non-blocking repeatability work.
+- **Historical review evidence:** the configured cross-model reviewer produced no output during earlier whole-story passes. The scoped preference security follow-up does not replace that unavailable whole-epic evidence. Retain this as a process-evidence concern, not an acceptance-coverage failure or a claimed whole-epic review pass.
+- **Operational advisory:** deterministic budget/chunk/cursor mechanics, tenant ordering, queue recovery, and the AC8 recovery ledger are implemented. Numeric runtime, batch-size, fairness, backlog-age, freshness, concurrency/capacity, retention/cleanup, stale-claim timing, alerting, RTO/RPO, and backup/restore targets remain owner-pending.
+- **Go-live gate:** the Vercel Pro plan and production `CRON_SECRET` prerequisites are recorded, but the deployed production revision still predates Epic 13 and has no cron definition. Post-merge scheduled-run evidence and the separate ADR-B011 real-recipient owner record remain required. See `docs/quality/epic-13-followup-gates-2026-09-27.md`.
+
 ### Phase 1 evidence summary
 
 - Formal oracle: 26 final acceptance criteria in Stories 13.1–13.4, high confidence.
 - Requirements: 26 total, 26 FULL, zero PARTIAL, zero NONE.
-- Remediation delta: five mapped integration cases in existing evidence files plus the recipient-correction and durable-recovery implementation.
-- Fresh CI run `36144742778`: 1,895 unit passed/0 skipped; 1,205 required integration/RLS passed/1 explicitly skipped after an empty reset with `SUPABASE_TEST_REQUIRED=1`; the separately isolated skipped recovery case passed 1/1; 173 E2E passed/4 explicitly skipped.
+- Current preference-remediation delta: one mapped registry case added; two mapped preference-toggle browser cases consolidated into one absence case; required database evidence now rejects new `quote.delivery` preference writes.
+- Fresh CI run [`36339205329`](https://github.com/rthunborg/ElproSaas/actions/runs/36339205329): 1,896 unit passed/0 skipped; 1,205 required integration/RLS passed/1 explicitly skipped after an empty reset with `SUPABASE_TEST_REQUIRED=1`; the separately isolated skipped recovery case passed 1/1 with zero skip; 172 E2E passed/4 explicitly skipped.
 - Static containing inventory: 32 files and 167 declarations.
 - Deduplicated mapped inventory: 41 active cases across 18 files; no mapped skip, fixme, or pending case.
 - Machine-readable outputs: `_bmad-output/test-artifacts/e2e-trace-summary.json` and `_bmad-output/test-artifacts/gate-decision.json`.
@@ -210,16 +218,16 @@ None.
 
 ### Final evidence summary
 
-- Final re-gate source: `4024cbe36d79d9d7e13b927c4ecb6689a31c9375`.
+- Final re-gate source: `83da25fde36a0f6fb44cd29e3c6812532650ff28`.
 - Formal P0 oracle: 26 acceptance criteria; 26 FULL, zero PARTIAL, zero NONE.
-- Fresh CI run `36144742778` is green across `verify`, `db`, `recovery-storage-loader`, and `e2e`.
-- Exact execution: 1,895 unit passed/0 skipped; 1,205 required integration/RLS passed/1 explicitly skipped; the isolated skipped recovery case passed 1/1; 173 E2E passed/4 explicitly skipped.
+- Fresh CI run [`36339205329`](https://github.com/rthunborg/ElproSaas/actions/runs/36339205329) is green across `verify`, `db`, `recovery-storage-loader`, and `e2e`; the Vercel preview also succeeded.
+- Exact execution: 1,896 unit passed/0 skipped; 1,205 required integration/RLS passed/1 explicitly skipped; the isolated skipped recovery case passed 1/1 with zero skip; 172 E2E passed/4 explicitly skipped.
 - Deduplicated mapped evidence: 41 active cases across 18 files.
 - Machine-readable outputs: `_bmad-output/test-artifacts/e2e-trace-summary.json` and `_bmad-output/test-artifacts/gate-decision.json`.
-- Limitation: this trace PASS neither clears the separate Vercel Hobby-plan cron deployment failure nor authorizes real-recipient delivery; ADR-B011's go-live gate remains closed.
+- Limitation: this trace PASS does not establish a post-merge production scheduled run or authorize real-recipient delivery; ADR-B011's separate go-live gate remains closed.
 
 ### Next actions
 
 1. Preserve the AC6–AC8 regression cases in required CI.
-2. Add the optional quote-send browser journey when prioritised.
-3. Resolve the separate deployment and ADR-B011 go-live gates before any real-recipient release.
+2. Replace the fixed previous-secret expiry clock before 2026-10-01; add the optional quote-send browser journey when prioritised.
+3. Record the post-merge production scheduler run, approve the owner-pending operating targets, and satisfy the separate ADR-B011 go-live record before any real-recipient release.

@@ -60,7 +60,7 @@
 # use the current Epic 10 statuses and approved corrective-story entries below.
 
 generated: 2026-06-12
-last_updated: 09-24-2026 20:52  # ADR-B009 connected-field course correction verified; governance Story 10.7 done, no PWA/offline functionality delivered.
+last_updated: 09-27-2026 20:20  # ADR-B009 connected-field course correction verified; governance Story 10.7 done, no PWA/offline functionality delivered.
 project: ElproSaas
 project_key: NOKEY
 tracking_system: file-system
@@ -472,7 +472,7 @@ action_items:
       validator, remove the legacy no-recipient finalization fallback for Epic 13
       quote delivery, and add a direct-action regression test."
     owner: "Quote and email delivery owner"
-    status: open
+    status: done
     ref: "C:\\DEV\\ElproSaas\\_bmad-output\\implementation-artifacts\\epic-13-retro-2026-09-24.md"
   - id: "epic-13-retro-item-16-implement-a-tenant-scoped-pending-quote"
     epic: 13
@@ -480,7 +480,7 @@ action_items:
       command that cancels the prior delivery and requires fresh authorization, with
       integration coverage."
     owner: "Quote and email delivery owner"
-    status: open
+    status: done
     ref: "C:\\DEV\\ElproSaas\\_bmad-output\\implementation-artifacts\\epic-13-retro-2026-09-24.md"
   - id: "epic-13-retro-item-17-add-an-integration-regression-that-chang"
     epic: 13
@@ -489,7 +489,7 @@ action_items:
       occurs. Update the trace narrative to credit the existing implementation and
       identify the test boundary accurately."
     owner: "QA/test owner"
-    status: open
+    status: done
     ref: "C:\\DEV\\ElproSaas\\_bmad-output\\implementation-artifacts\\epic-13-retro-2026-09-24.md"
   - id: "epic-13-retro-item-18-implement-and-test-durable-orphaned-or-i"
     epic: 13
@@ -497,7 +497,7 @@ action_items:
       a durable recovery audit record for quote-delivery preparation/finalization
       failures."
     owner: "Quote and email delivery owner"
-    status: open
+    status: done
     ref: "C:\\DEV\\ElproSaas\\_bmad-output\\implementation-artifacts\\epic-13-retro-2026-09-24.md"
   - id: "epic-13-retro-item-19-define-the-preference-subject-for-extern"
     epic: 13
@@ -505,5 +505,22 @@ action_items:
       UI and suppression comparison to that identity, or remove the in-app email toggle
       for external-recipient quote delivery. Add a regression proof."
     owner: "Notifications and email delivery owner"
-    status: open
+    status: done
     ref: "C:\\DEV\\ElproSaas\\_bmad-output\\implementation-artifacts\\epic-13-retro-2026-09-24.md"
+  - id: "epic-13-retro-item-20-stabilize-the-previous-cron-secret-posit"
+    epic: 13
+    action: "Stabilize the previous-CRON-secret positive test before 2026-10-01 by
+      controlling its clock or deriving a future expiry from controlled test time,
+      then rerun the affected CI evidence."
+    owner: "QA/test owner"
+    status: open
+    ref: "C:\\DEV\\ElproSaas\\_bmad-output\\implementation-artifacts\\epic-13-retro-2026-09-27.md"
+  - id: "epic-13-retro-item-21-complete-a-narrowed-independent-converge"
+    epic: 13
+    action: "Complete a narrowed independent convergence review at 83da25f for Stories
+      13.1–13.4, limited to the remediated cross-story boundaries and any unresolved
+      consequential findings; record reviewed scopes and dispositions before authorizing
+      their review to done transitions."
+    owner: "Epic 13 delivery owner"
+    status: open
+    ref: "C:\\DEV\\ElproSaas\\_bmad-output\\implementation-artifacts\\epic-13-retro-2026-09-27.md"
