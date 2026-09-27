@@ -49,13 +49,17 @@ test("[13.4] requires a complete linked recipient selection before final send", 
   assert.equal(r.ok, true);
   if (!r.ok) return;
   assert.equal(r.data.quote_version_id, UUID_A);
+  assert.equal(r.data.recipient_source_id, UUID_UPPER.toLowerCase());
   // Recipient identity is always carried; recorded channel/reference remain absent.
   assert.deepEqual(Object.keys(r.data).sort(), ["quote_version_id", "recipient_source_id", "recipient_source_type"]);
 });
 
-test("[6.4] accepts an UPPERCASE (case-insensitive) uuid quote_version_id", () => {
+test("[13.4] canonicalizes case-insensitive UUIDs before the PDF and recovery HMAC boundaries", () => {
   const r = validateMarkQuoteVersionSent({ quote_version_id: UUID_UPPER, recipient_source_type: "customer", recipient_source_id: UUID_A });
   assert.equal(r.ok, true, "the uuid check is case-insensitive");
+  if (!r.ok) return;
+  assert.equal(r.data.quote_version_id, UUID_UPPER.toLowerCase());
+  assert.equal(r.data.recipient_source_id, UUID_A);
 });
 
 test("[6.4] accepts a send with both recorded channel + reference", () => {

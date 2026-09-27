@@ -29,7 +29,7 @@ afterAll(async () => { await closeAdminPool(); });
 beforeAll(async () => { stackUp = await isLocalStackReachable(); });
 
 describe("Story 13.4 quote delivery recipient snapshot", () => {
-  test("[P0][AC6] freezes the selected customer address in the queued delivery when the CRM email later changes", async (ctx) => {
+  test("[P0][AC6] canonicalizes UUID input and freezes the selected address when CRM email changes", async (ctx) => {
     if (skipUnlessStack(ctx, stackUp)) return;
     const fixture = await createTwoTenantFixture();
     try {
@@ -62,9 +62,9 @@ describe("Story 13.4 quote delivery recipient snapshot", () => {
         clock,
         correlationId: crypto.randomUUID(),
         input: {
-          quote_version_id: quoteVersionId,
+          quote_version_id: quoteVersionId.toUpperCase(),
           recipient_source_type: "customer",
-          recipient_source_id: customerId,
+          recipient_source_id: customerId.toUpperCase(),
         },
       });
       expect(result.ok).toBe(true);

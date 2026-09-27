@@ -265,11 +265,11 @@ export function validateMarkQuoteVersionSent(
     reference?: string | null;
     recipient_source_type?: "customer" | "contact";
     recipient_source_id?: string;
-  } = { quote_version_id: raw.quote_version_id as string };
+  } = { quote_version_id: (raw.quote_version_id as string).toLowerCase() };
   if ("channel" in raw) data.channel = (raw.channel as string | null) ?? null;
   if ("reference" in raw) data.reference = (raw.reference as string | null) ?? null;
   data.recipient_source_type = raw.recipient_source_type as "customer" | "contact";
-  data.recipient_source_id = raw.recipient_source_id as string;
+  data.recipient_source_id = (raw.recipient_source_id as string).toLowerCase();
   return { ok: true, data };
 }
 
