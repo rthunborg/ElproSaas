@@ -1,9 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { activeNotificationCategories } from "@/server/notifications/registry";
+import { activeNotificationPreferenceCategories } from "@/server/notifications/registry";
 
-const ACTIVE_CATEGORIES = activeNotificationCategories();
+const ACTIVE_CATEGORIES = activeNotificationPreferenceCategories();
 
 export function NotificationPreferences() {
   const [enabled, setEnabled] = useState<Record<string, boolean>>({});
@@ -62,7 +62,7 @@ export function NotificationPreferences() {
           </thead>
           <tbody>
             {ACTIVE_CATEGORIES.map((category) => {
-              const label = category.category === "quote.delivery" ? "Offertleverans" : "Viktig uppföljning av offert";
+              const label = "Viktig uppföljning av offert";
               const value = enabled[`${category.category}:in_app`] ?? category.defaultEnabled;
               const emailValue = enabled[`${category.category}:email`] ?? category.defaultEnabled;
 

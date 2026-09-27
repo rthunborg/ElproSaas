@@ -922,8 +922,6 @@ export default async function globalSetup() {
     },
     emailActivation: {
       preferenceUser: base.adminA,
-      nonEssentialCategoryLabel: "Offertleverans",
-      essentialCategoryLabel: "Viktig uppföljning av offert",
       unsubscribe: {
         activeToken: activeUnsubscribeToken,
         revokedToken: revokedUnsubscribeToken,

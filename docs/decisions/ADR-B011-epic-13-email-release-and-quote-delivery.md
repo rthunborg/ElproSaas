@@ -1,6 +1,6 @@
 # ADR-B011: Epic 13 Email Release and Quote Delivery
 
-Status: decided for implementation — 2026-09-23; owner amendments recorded 2026-09-24. Real-recipient email go-live remains separately owner-gated.
+Status: decided for implementation — 2026-09-23; owner amendments recorded 2026-09-24 and 2026-09-27. Real-recipient email go-live remains separately owner-gated.
 
 Scope: Epic 13, especially Story 13.4. N-6's central sender identity, tenant Reply-To, flow priority, reminder-stop rules, and delivery logging remain in force. This decision reconciles the implementation sequence with Phase B's public-surface and customer online-acceptance exclusions.
 
@@ -22,11 +22,15 @@ The authorized sender selects and confirms an existing email address from the qu
 
 After the private delivery artifact is prepared, quote finalization and email enqueue occur in one database transaction. The Storage upload itself is not part of that transaction. Preparation or transaction failure must fail closed and leave a recoverable, auditable orphan/recovery path rather than claiming cross-system atomicity. The quote lifecycle records internal finalization; the outbox and delivery log exclusively record whether mail is queued, sent, failed, or suppressed. User-facing copy must not say that an email was sent until the provider has accepted it.
 
-The ADR-B004 unsubscribe route and its abuse tests may land with Story 13.4 as the sanctioned public email surface. The email preference control becomes actionable only where sending is enabled; otherwise it explains that delivery is unavailable. Queued mail must remain queued, not appear sent, while real delivery is disabled.
+The ADR-B004 unsubscribe route and its abuse tests may land with Story 13.4 as the sanctioned public email surface. Quote delivery has no personal in-app or email preference because its frozen CRM-recipient hash cannot match the authenticated user's UUID-derived preference hash. It remains an active outbox category, and recipient-scoped `email_suppressions` plus unsubscribe tokens remain its effective opt-out boundary. Existing inert personal-preference rows are retained; new direct or API-backed writes are rejected. Queued mail must remain queued, not appear sent, while real delivery is disabled.
 
 ## Go-live boundary
 
 The later go-live record must confirm domain authentication, the exact From and tenant Reply-To behavior, provider and secret rollout, enabled flow list, unsubscribe and suppression behavior, sandbox evidence, observed delivery and rollback/disable steps. It must separately authorize real-recipient delivery. The Epic 13 code review and Auto-BMAD completion are implementation evidence, not that authorization.
+
+### Owner operational record — 2026-09-27
+
+The owner reported that the Vercel team billing plan is Pro and active. A new production-only `CRON_SECRET` was provisioned as a 32-byte CSPRNG value and verified by name/type without exposing its value. No production redeploy occurred; deployed `main` remains `0b4e37e`, which predates the Epic 13 runner, and production cron definitions are empty. These are scheduler-readiness inputs only. Scheduled-run verification remains post-merge deployment evidence, and neither record authorizes real-recipient email.
 
 ## Engineering details still open
 

@@ -16,3 +16,17 @@ export function activeNotificationCategories() {
 export function notificationCategory(category: string) {
   return activeNotificationCategories().find((definition) => definition.category === category) ?? null;
 }
+
+/**
+ * Outbox categories are not automatically personal notification preferences.
+ * Quote delivery is addressed to the frozen CRM recipient, rather than the
+ * authenticated user's UUID-derived preference identity, so it is deliberately
+ * excluded until a future delivery model has an effective user preference.
+ */
+export function activeNotificationPreferenceCategories() {
+  return activeNotificationCategories().filter((definition) => definition.category !== "quote.delivery");
+}
+
+export function notificationPreferenceCategory(category: string) {
+  return activeNotificationPreferenceCategories().find((definition) => definition.category === category) ?? null;
+}

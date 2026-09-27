@@ -171,13 +171,14 @@ test.describe("Story 13.2 In-app-notiser — bell, center och inställningar (AT
     await expect(page.getByText(/obligatorisk notis/i)).toBeVisible();
   });
 
-  test("[P1] Non-essential email delivery preferences are active with the Swedish availability explanation", async ({ page }) => {
+  test("[P1] Quote delivery has no personal preference row while required notification controls remain visible", async ({ page }) => {
     await signIn(page, fixture().notifications.salesperson);
     await page.goto("/settings/notifications");
     const emailColumn = page.getByRole("columnheader", { name: "E-post" });
     await expect(emailColumn).toBeVisible();
     await expect(page.getByText(/e-postinställningar är tillgängliga när leverans är aktiverad på servern/i)).toBeVisible();
-    await expect(page.getByRole("switch", { name: "Offertleverans e-post", exact: true })).toBeEnabled();
+    await expect(page.getByRole("switch", { name: "Offertleverans i appen", exact: true })).toHaveCount(0);
+    await expect(page.getByRole("switch", { name: "Offertleverans e-post", exact: true })).toHaveCount(0);
     await expect(page.getByRole("switch", { name: "Viktig uppföljning av offert e-post", exact: true })).toBeDisabled();
   });
 
