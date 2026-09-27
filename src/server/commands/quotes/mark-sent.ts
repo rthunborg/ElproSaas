@@ -64,6 +64,23 @@ import {
 import { signValidatedQuotePdfForAccess } from "@/server/storage/quote-pdf-signer";
 import { validateSignedStorageUrl } from "@/server/storage/signed-access-attestation";
 
+type StorageReadError = {
+  readonly status?: number;
+  readonly statusCode?: number | string;
+  readonly code?: string;
+  readonly error?: string;
+};
+
+function isRequestBoundQuotePdfReadDenied(error: unknown): boolean {
+  if (typeof error !== "object" || error === null) return false;
+  const candidate = error as StorageReadError;
+  const rawStatus = candidate.statusCode ?? candidate.status;
+  const status = typeof rawStatus === "string" ? Number(rawStatus) : rawStatus;
+  if (status === 401 || status === 403 || status === 404) return true;
+  const code = (candidate.code ?? candidate.error ?? "").toLowerCase();
+  return code === "accessdenied" || code === "unauthorized" || code === "forbidden";
+}
+
 /**
  * Sending a commitment defaults to the real-customer track. Disposable demo deployments must
  * opt in explicitly; an absent or malformed environment value therefore cannot accidentally
@@ -164,8 +181,10 @@ export const markQuoteVersionSent = defineCommand<
     }
 
     // Obtain a short-lived, database-issued description of the exact current PDF. The
-    // server then uses the existing server-only quote-PDF broker for only that checked
-    // object path and independently checks the immutable size/SHA-256 metadata before signing. Neither
+    // server first uses the request-bound Storage client when that actor already has
+    // exact-object read authority. Quotes.Send roles without raw Storage access fall
+    // back to the existing server-only quote-PDF broker for only that checked path.
+    // Both paths independently check the immutable size/SHA-256 metadata before signing. Neither
     // the Vault secret nor the resulting HMAC is review authority; the separate one-time
     // Story 10.8 authorization below remains the human-review decision.
     const rpc = asMarkSentRpcClient(db);
@@ -192,23 +211,39 @@ export const markQuoteVersionSent = defineCommand<
     ) {
       throw new CommandError("VALIDATION_FAILED");
     }
-    const signedAccess = await signValidatedQuotePdfForAccess({
-      bucket: "tenant-files",
-      objectPath: challenge.objectPath,
-      nowIso: challenge.issuedAt,
-    });
-    if (signedAccess === null) {
+    const requestDownload = await rpc.storage
+      .from(challenge.bucketId)
+      .download(challenge.objectPath);
+    let pdfBytes: Uint8Array;
+    if (!requestDownload.error && requestDownload.data !== null) {
+      pdfBytes = new Uint8Array(await requestDownload.data.arrayBuffer());
+    } else if (requestDownload.error && isRequestBoundQuotePdfReadDenied(requestDownload.error)) {
+      // Storage conceals this role's RLS denial as a 404 even though the database
+      // challenge just proved that the exact current object exists. The broker uses
+      // only that returned path; a genuine deletion race still fails at signing.
+      const signedAccess = await signValidatedQuotePdfForAccess({
+        bucket: "tenant-files",
+        objectPath: challenge.objectPath,
+        nowIso: challenge.issuedAt,
+      });
+      if (signedAccess === null) {
+        throw new Error("quote PDF download failed before final send");
+      }
+      validateSignedStorageUrl(signedAccess.signedUrl, {
+        bucketId: challenge.bucketId,
+        objectPath: challenge.objectPath,
+        challengeIssuedAt: challenge.issuedAt,
+        computedExpiresAt: signedAccess.expiresAt,
+      });
+      const brokerDownload = await fetch(signedAccess.signedUrl);
+      if (!brokerDownload.ok) throw new Error("quote PDF download failed before final send");
+      pdfBytes = new Uint8Array(await brokerDownload.arrayBuffer());
+    } else {
+      // Missing data without a classified permission denial, corruption, and
+      // transient/network failures must stay visible rather than being retried with
+      // elevated storage authority.
       throw new Error("quote PDF download failed before final send");
     }
-    validateSignedStorageUrl(signedAccess.signedUrl, {
-      bucketId: challenge.bucketId,
-      objectPath: challenge.objectPath,
-      challengeIssuedAt: challenge.issuedAt,
-      computedExpiresAt: signedAccess.expiresAt,
-    });
-    const downloaded = await fetch(signedAccess.signedUrl);
-    if (!downloaded.ok) throw new Error("quote PDF download failed before final send");
-    const pdfBytes = new Uint8Array(await downloaded.arrayBuffer());
     if (
       pdfBytes.byteLength !== challenge.sizeBytes ||
       createHash("sha256").update(pdfBytes).digest("hex") !== challenge.checksumSha256
