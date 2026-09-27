@@ -6,6 +6,8 @@ import {
   adminInsertQuote,
   adminInsertQuoteVersion,
   cleanupFixture,
+  cleanupRoleAwarePhaseAFixture,
+  createRoleAwarePhaseAFixture,
   createTwoTenantFixture,
   makeAuthedServerClient,
 } from "../../factories/tenants";
@@ -270,6 +272,67 @@ describe("Story 13.4 quote delivery finalization failure atomicity", () => {
       expect(await finalizationState(draft.quoteVersionId)).toMatchObject({ recoveryCount: 0 });
     } finally {
       await cleanupFixture(fixture);
+    }
+  });
+
+  test("[P0][AC8][13.4-INT-AC8-005] every Quotes.Send role persists attributable recovery evidence", async (ctx) => {
+    if (skipUnlessStack(ctx, stackUp)) return;
+    const fixture = await createRoleAwarePhaseAFixture();
+    const previousKeyId = process.env.QUOTE_PDF_ATTESTATION_KEY_ID;
+    try {
+      const admin = await makeAuthedServerClient(fixture.base.adminA);
+      process.env.QUOTE_PDF_ATTESTATION_KEY_ID = "invalid key id!";
+
+      for (const actor of [fixture.users.projektledare, fixture.users.saljare]) {
+        const actorClient = await makeAuthedServerClient(actor);
+        const draft = await seedDraft(fixture.base.tenantA.id);
+        await establishCurrentQuotePdf({
+          client: admin,
+          tenantId: fixture.base.tenantA.id,
+          quoteVersionId: draft.quoteVersionId,
+          actorUserId: fixture.base.adminA.id,
+          occurredAt: clock.now().toISOString(),
+        });
+        const correlationId = crypto.randomUUID();
+        const result = await runCommand(markQuoteVersionSent, {
+          client: actorClient as never,
+          clock,
+          correlationId,
+          input: {
+            quote_version_id: draft.quoteVersionId,
+            recipient_source_type: "customer",
+            recipient_source_id: draft.customerId,
+          },
+        });
+
+        expect(result.ok).toBe(false);
+        if (!result.ok) expect(result.code).toBe("SERVER_ERROR");
+        expect(await finalizationState(draft.quoteVersionId)).toEqual({
+          status: "draft",
+          outboxCount: 0,
+          artifactCount: 0,
+          eventCount: 0,
+          recoveryCount: 1,
+        });
+        expect(await adminQuery<{
+          actor_user_id: string;
+          correlation_id: string;
+          failure_stage: string;
+          recovery_state: string;
+        }>(
+          "select actor_user_id, correlation_id, failure_stage, recovery_state from public.email_delivery_recoveries where quote_version_id=$1",
+          [draft.quoteVersionId],
+        )).toEqual([{
+          actor_user_id: actor.id,
+          correlation_id: correlationId,
+          failure_stage: "artifact_preparation",
+          recovery_state: "orphaned",
+        }]);
+      }
+    } finally {
+      if (previousKeyId === undefined) delete process.env.QUOTE_PDF_ATTESTATION_KEY_ID;
+      else process.env.QUOTE_PDF_ATTESTATION_KEY_ID = previousKeyId;
+      await cleanupRoleAwarePhaseAFixture(fixture);
     }
   });
 });
