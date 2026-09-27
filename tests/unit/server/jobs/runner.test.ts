@@ -99,6 +99,46 @@ test("[P0] producer checkpoints resume a large tenant while each invocation stil
   assert.equal(cursor, undefined);
 });
 
+test("[P0] a producer failure preserves its prior checkpoint while later tenants continue", async () => {
+  const writes: JobRunRecord[] = [];
+  const latest = new Map<string, JobRunRecord>();
+  const calls: string[] = [];
+  let tenantAFailed = false;
+  const deps = {
+    listTenantIds: async () => ["tenant-a", "tenant-b"],
+    loadProducerCursor: async (_producer: ProducerDeclaration, tenantId: string) => {
+      const record = latest.get(tenantId);
+      return (record?.outcome === "partial" || record?.outcome === "failed") ? record.cursor : undefined;
+    },
+    execute: async (_producer: ProducerDeclaration, tenantId: string, cursor?: string) => {
+      calls.push(`${tenantId}:${cursor ?? "start"}`);
+      if (tenantId !== "tenant-a") return;
+      if (!cursor) return { cursor: "after-page-1" };
+      if (!tenantAFailed) {
+        tenantAFailed = true;
+        throw new Error("later page aborted");
+      }
+    },
+    record: async (record: JobRunRecord) => {
+      writes.push(record);
+      if (record.producer === producer.id) latest.set(record.tenantId, record);
+    },
+  };
+
+  await runDueProducers(deps, { producers: [producer] });
+  await runDueProducers(deps, { producers: [producer] });
+  await runDueProducers(deps, { producers: [producer] });
+
+  assert.deepEqual(calls, [
+    "tenant-a:start", "tenant-b:start",
+    "tenant-a:after-page-1", "tenant-b:start",
+    "tenant-a:after-page-1", "tenant-b:start",
+  ]);
+  const failure = writes.find((record) => record.producer === producer.id && record.outcome === "failed");
+  assert.equal(failure?.cursor, "after-page-1");
+  assert.equal(failure?.errorSummary, "later page aborted");
+});
+
 test("[P0] a deadline between producers resumes at the next producer instead of replaying earlier work", async () => {
   const secondProducer = { ...producer, id: "notifications.second" };
   const calls: string[] = [];

@@ -38,7 +38,7 @@ async function loadProducerCursor(client: SupabaseClient, tenantId: string, prod
     .limit(1);
   if (error) throw new Error("Producer cursor lookup failed");
   const latest = data?.[0];
-  return latest?.outcome === "partial" && typeof latest.cursor === "string" ? latest.cursor : undefined;
+  return (latest?.outcome === "partial" || latest?.outcome === "failed") && typeof latest.cursor === "string" ? latest.cursor : undefined;
 }
 
 async function loadResumeCursor(client: SupabaseClient): Promise<string | undefined> {

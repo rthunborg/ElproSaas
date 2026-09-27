@@ -158,3 +158,37 @@ test("[P0] the production route supplies an internal request deadline to the bou
   });
   assert.equal(response.status, 200);
 });
+
+test("[P0] the latest failed producer row retains its retry checkpoint", async () => {
+  const client = {
+    from(table: string) {
+      assert.equal(table, "job_runs");
+      let selectedProducer = "";
+      const query = {
+        eq: (column: string, value: string) => {
+          if (column === "producer") selectedProducer = value;
+          return query;
+        },
+        order: () => query,
+        limit: async () => ({
+          data: selectedProducer === producer.id
+            ? [{ cursor: "after-page-1", outcome: "failed" }]
+            : [],
+          error: null,
+        }),
+      };
+      return { select: () => query };
+    },
+  } as unknown as SupabaseClient;
+
+  const response = await handleJobsRunRequest(request(current), {
+    authorize: () => true,
+    createClient: () => client,
+    producers: [producer],
+    run: async (dependencies) => {
+      assert.equal(await dependencies.loadProducerCursor?.(producer, "tenant-a"), "after-page-1");
+      return { outcome: "completed" };
+    },
+  });
+  assert.equal(response.status, 200);
+});

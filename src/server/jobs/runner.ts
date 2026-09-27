@@ -99,8 +99,9 @@ export async function runDueProducers(deps: RunnerDependencies, options: { reado
       }
       const producer = producers[producerIndex]!;
       const startedAt = now().toISOString();
+      let producerCursor: string | undefined;
       try {
-        const producerCursor = await deps.loadProducerCursor?.(producer, tenants[i]!);
+        producerCursor = await deps.loadProducerCursor?.(producer, tenants[i]!);
         const result = await deps.execute(producer, tenants[i]!, producerCursor);
         if (result?.cursor) {
           hadPartial = true;
@@ -110,7 +111,7 @@ export async function runDueProducers(deps: RunnerDependencies, options: { reado
         }
       } catch (error) {
         hadFailure = true;
-        await deps.record({ tenantId: tenants[i]!, producer: producer.id, outcome: "failed", windowStartedAt, startedAt, finishedAt: now().toISOString(), errorSummary: sanitizeJobError(error) });
+        await deps.record({ tenantId: tenants[i]!, producer: producer.id, outcome: "failed", cursor: producerCursor, windowStartedAt, startedAt, finishedAt: now().toISOString(), errorSummary: sanitizeJobError(error) });
       }
     }
     completed += 1;
