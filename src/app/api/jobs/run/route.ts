@@ -9,6 +9,9 @@ import { processEmailOutbox } from "@/server/email/outbox";
 
 const unauthorized = () => new Response("Unauthorized", { status: 401 });
 const CURSOR_PRODUCER = "jobs.runner";
+// Internal containment bound for one serverless invocation. This is deliberately
+// separate from the owner-pending production latency and backlog SLOs.
+export const DEFAULT_RUN_BUDGET_MS = 45_000;
 
 type JobsRouteDependencies = {
   readonly authorize?: (header: string | null) => boolean;
@@ -18,9 +21,25 @@ type JobsRouteDependencies = {
   readonly correlationId?: () => string;
   readonly now?: () => Date;
   readonly chunkSize?: number;
+  readonly runBudgetMs?: number;
+  readonly abortSignal?: AbortSignal;
   /** Test seam; production uses the registered producer implementation in a later story. */
   readonly execute?: RunnerDependencies["execute"];
 };
+
+async function loadProducerCursor(client: SupabaseClient, tenantId: string, producer: string): Promise<string | undefined> {
+  const { data, error } = await client
+    .from("job_runs")
+    .select("cursor,outcome")
+    .eq("tenant_id", tenantId)
+    .eq("producer", producer)
+    .order("created_at", { ascending: false })
+    .order("id", { ascending: false })
+    .limit(1);
+  if (error) throw new Error("Producer cursor lookup failed");
+  const latest = data?.[0];
+  return latest?.outcome === "partial" && typeof latest.cursor === "string" ? latest.cursor : undefined;
+}
 
 async function loadResumeCursor(client: SupabaseClient): Promise<string | undefined> {
   const { data, error } = await client
@@ -76,6 +95,11 @@ export async function handleJobsRunRequest(request: Request, dependencies: JobsR
   const client = (dependencies.createClient ?? createJobsServiceClient)();
   const run = dependencies.run ?? runDueProducers;
   const now = dependencies.now ?? (() => new Date());
+  const windowStartedAt = now();
+  const configuredBudget = dependencies.runBudgetMs ?? DEFAULT_RUN_BUDGET_MS;
+  const runBudgetMs = Number.isFinite(configuredBudget) ? Math.max(1, configuredBudget) : DEFAULT_RUN_BUDGET_MS;
+  const deadline = new Date(windowStartedAt.getTime() + runBudgetMs);
+  const abortSignal = dependencies.abortSignal ?? AbortSignal.timeout(runBudgetMs);
   const correlationId = (dependencies.correlationId ?? randomUUID)();
   const cursor = await loadResumeCursor(client);
   const result = await run({
@@ -84,9 +108,10 @@ export async function handleJobsRunRequest(request: Request, dependencies: JobsR
       if (error) throw new Error("Tenant enumeration failed");
       return (data ?? []).map((row) => row.id);
     },
-    execute: dependencies.execute ?? (async (producer, tenantId) => {
+    loadProducerCursor: async (producer, tenantId) => loadProducerCursor(client, tenantId, producer.id),
+    execute: dependencies.execute ?? (async (producer, tenantId, producerCursor) => {
       if (producer.id === "quotes.follow-up-reminders") {
-        await emitDueFollowUpNotifications(client, tenantId, now().toISOString().slice(0, 10));
+        return emitDueFollowUpNotifications(client, tenantId, now().toISOString().slice(0, 10), { cursor: producerCursor, signal: abortSignal });
       }
       if (producer.id === "notifications.email-outbox-delivery") {
         // ADR-B011 keeps the production release posture closed. A sandbox test
@@ -97,7 +122,7 @@ export async function handleJobsRunRequest(request: Request, dependencies: JobsR
     }),
     record: recordRun(client, correlationId),
     now,
-  }, { cursor, producers, chunkSize: dependencies.chunkSize, windowStartedAt: now() });
+  }, { cursor, producers, chunkSize: dependencies.chunkSize, deadline, windowStartedAt });
   return Response.json({ outcome: result.outcome, cursor: result.cursor ?? null });
 }
 

@@ -13,7 +13,12 @@ import {
 } from "../../factories/tenants";
 import { adminExec, adminQuery, closeAdminPool } from "../../factories/admin-sql";
 import { establishCurrentQuotePdf } from "../../support/quote-pdf";
-import { isLocalStackReachable } from "../../support/test-env";
+import {
+  isLocalStackReachable,
+  LOCAL_SUPABASE_ANON_KEY,
+  LOCAL_SUPABASE_SERVICE_ROLE_KEY,
+  LOCAL_SUPABASE_URL,
+} from "../../support/test-env";
 import { skipUnlessStack } from "../../support/stack-gate";
 import type { CommandClock } from "@/server/commands/clock";
 import { runCommand } from "@/server/commands/envelope";
@@ -22,8 +27,27 @@ import { markQuoteVersionSent } from "@/server/commands/quotes";
 const clock: CommandClock = { now: () => new Date("2026-09-24T18:20:00.000Z") };
 let stackUp = false;
 
-beforeAll(async () => { stackUp = await isLocalStackReachable(); });
-afterAll(async () => { await closeAdminPool(); });
+const originalBrokerEnv = {
+  url: process.env.NEXT_PUBLIC_SUPABASE_URL,
+  anonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+  serviceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY,
+};
+
+beforeAll(async () => {
+  process.env.NEXT_PUBLIC_SUPABASE_URL = LOCAL_SUPABASE_URL;
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = LOCAL_SUPABASE_ANON_KEY;
+  process.env.SUPABASE_SERVICE_ROLE_KEY = LOCAL_SUPABASE_SERVICE_ROLE_KEY;
+  stackUp = await isLocalStackReachable();
+});
+afterAll(async () => {
+  await closeAdminPool();
+  if (originalBrokerEnv.url === undefined) delete process.env.NEXT_PUBLIC_SUPABASE_URL;
+  else process.env.NEXT_PUBLIC_SUPABASE_URL = originalBrokerEnv.url;
+  if (originalBrokerEnv.anonKey === undefined) delete process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  else process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = originalBrokerEnv.anonKey;
+  if (originalBrokerEnv.serviceRoleKey === undefined) delete process.env.SUPABASE_SERVICE_ROLE_KEY;
+  else process.env.SUPABASE_SERVICE_ROLE_KEY = originalBrokerEnv.serviceRoleKey;
+});
 
 async function withForcedAuditFailure<T>(correlationId: string, run: () => Promise<T>): Promise<T> {
   await adminExec(
@@ -324,7 +348,7 @@ describe("Story 13.4 quote delivery finalization failure atomicity", () => {
         );
 
         expect(result.ok).toBe(false);
-        if (!result.ok) expect(result.code).toBe("SERVER_ERROR");
+        if (!result.ok) expect(result.code, actor.email).toBe("SERVER_ERROR");
         expect(await finalizationState(draft.quoteVersionId)).toEqual({
           status: "draft",
           outboxCount: 0,

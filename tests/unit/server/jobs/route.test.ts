@@ -135,3 +135,26 @@ test("[P0] default registered outbox delivery producer reaches the scheduler sup
   });
   assert.equal(response.status, 200); assert.equal(suppressions, 1); assert.equal(queueReads, 0);
 });
+
+test("[P0] the production route supplies an internal request deadline to the bounded runner", async () => {
+  const started = new Date("2030-01-01T00:00:00.000Z");
+  const cursorQuery = {
+    eq: () => cursorQuery,
+    order: () => cursorQuery,
+    limit: async () => ({ data: [], error: null }),
+  };
+  const client = { from: () => ({ select: () => cursorQuery }) } as unknown as SupabaseClient;
+  const response = await handleJobsRunRequest(request(current), {
+    authorize: () => true,
+    createClient: () => client,
+    producers: [producer],
+    now: () => started,
+    runBudgetMs: 1_234,
+    run: async (_dependencies, options) => {
+      assert.equal(options?.windowStartedAt?.toISOString(), started.toISOString());
+      assert.equal(options?.deadline?.toISOString(), "2030-01-01T00:00:01.234Z");
+      return { outcome: "completed" };
+    },
+  });
+  assert.equal(response.status, 200);
+});

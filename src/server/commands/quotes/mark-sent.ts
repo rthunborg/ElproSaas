@@ -61,6 +61,8 @@ import {
   createQuoteDeliveryRecoveryAttestation,
   type QuoteDeliveryRecoveryStage,
 } from "@/server/email/recovery-attestation";
+import { signValidatedQuotePdfForAccess } from "@/server/storage/quote-pdf-signer";
+import { validateSignedStorageUrl } from "@/server/storage/signed-access-attestation";
 
 /**
  * Sending a commitment defaults to the real-customer track. Disposable demo deployments must
@@ -162,8 +164,8 @@ export const markQuoteVersionSent = defineCommand<
     }
 
     // Obtain a short-lived, database-issued description of the exact current PDF. The
-    // server then downloads those bytes through the SAME request-bound RLS client and
-    // independently checks the immutable size/SHA-256 metadata before signing. Neither
+    // server then uses the existing server-only quote-PDF broker for only that checked
+    // object path and independently checks the immutable size/SHA-256 metadata before signing. Neither
     // the Vault secret nor the resulting HMAC is review authority; the separate one-time
     // Story 10.8 authorization below remains the human-review decision.
     const rpc = asMarkSentRpcClient(db);
@@ -190,13 +192,23 @@ export const markQuoteVersionSent = defineCommand<
     ) {
       throw new CommandError("VALIDATION_FAILED");
     }
-    const downloaded = await rpc.storage
-      .from(challenge.bucketId)
-      .download(challenge.objectPath);
-    if (downloaded.error || downloaded.data === null) {
+    const signedAccess = await signValidatedQuotePdfForAccess({
+      bucket: "tenant-files",
+      objectPath: challenge.objectPath,
+      nowIso: challenge.issuedAt,
+    });
+    if (signedAccess === null) {
       throw new Error("quote PDF download failed before final send");
     }
-    const pdfBytes = new Uint8Array(await downloaded.data.arrayBuffer());
+    validateSignedStorageUrl(signedAccess.signedUrl, {
+      bucketId: challenge.bucketId,
+      objectPath: challenge.objectPath,
+      challengeIssuedAt: challenge.issuedAt,
+      computedExpiresAt: signedAccess.expiresAt,
+    });
+    const downloaded = await fetch(signedAccess.signedUrl);
+    if (!downloaded.ok) throw new Error("quote PDF download failed before final send");
+    const pdfBytes = new Uint8Array(await downloaded.arrayBuffer());
     if (
       pdfBytes.byteLength !== challenge.sizeBytes ||
       createHash("sha256").update(pdfBytes).digest("hex") !== challenge.checksumSha256
