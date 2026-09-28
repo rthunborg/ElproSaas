@@ -5,7 +5,7 @@ created: '2026-09-23'
 status: 'done'
 baseline_revision: 'cb0fb4ae799fcb5b636a3f380aeff53bcdf5fd4f'
 review_loop_iteration: 0
-followup_review_recommended: true
+followup_review_recommended: false
 context:
   - '_bmad-output/project-context.md'
   - '_bmad-output/implementation-artifacts/epic-13-context.md'
@@ -135,7 +135,7 @@ Pass: follow-up
 
 ## Final Convergence Disposition
 
-The 2026-09-27 convergence check was limited to durable deduplication, suppression ordering, lease ownership, and the transition from the original dark queue to Story 13.4's synthetic delivery worker. Ordinary enqueue retries remain permanently deduplicated at delivery sequence 1; recipient correction is the only path that creates a later sequence. Suppression runs before release evaluation and before any claim/provider work. Queue authority remains tenant explicit and service-worker only, with an Administrator redacted projection. No consequential Story 13.3 defect remains.
+The 2026-09-27 convergence check was limited to durable deduplication, suppression ordering, lease ownership, and the transition from the original dark queue to Story 13.4's synthetic delivery worker. Ordinary enqueue retries remain permanently deduplicated at delivery sequence 1; recipient correction is the only path that creates a later sequence. Suppression runs before release evaluation and before any claim/provider work. Queue authority remains tenant explicit and service-worker only, with an Administrator redacted projection. The independent Luna/xhigh review records PASS at product code head `d770780`, and exact checkpoint CI run `36344284961` passed at documentation-only head `c1020e9`, whose product code is identical to `d770780`. **Final disposition: PASS; no further follow-up review is recommended.**
 
 ## Suggested Review Order
 
@@ -168,4 +168,4 @@ Refreshed against code head `d770780` after Story 13.4 activation, recipient cor
 
 ### Evidence and limit
 
-Base Epic 13 CI run `36339205329` passed the queue, RLS, activated suppression, and browser projection coverage within the recorded 1,896 unit, 1,205 database, and 172 browser passes. The final focused runner set passed with the email outbox producer still on the sole authenticated jobs lane. Exact-head convergence status is recorded in `docs/quality/epic-13-convergence-review-2026-09-27.md`. Real-recipient delivery, provider idempotency after acceptance, and provider-rendered unsubscribe URLs remain separately gated/deferred; the active adapter evidence is synthetic sandbox only.
+Base Epic 13 CI run `36339205329` passed the queue, RLS, activated suppression, and browser projection coverage within the recorded 1,896 unit, 1,205 database, and 172 browser passes. The final focused runner set passed with the email outbox producer still on the sole authenticated jobs lane. Exact checkpoint CI run `36344284961` at `c1020e9` passed all four jobs: 1,904 unit tests with zero skips, 1,206 required database tests with one explicit isolated recovery-storage skip, the isolated recovery proof 1/1 with zero skips, and 172 browser tests with four explicit skips; Vercel also succeeded. The checkpoint changes after `d770780` are documentation/state only. Full closure is recorded in `docs/quality/epic-13-convergence-review-2026-09-27.md`. Real-recipient delivery, provider idempotency after acceptance, and provider-rendered unsubscribe URLs remain separately gated/deferred; the active adapter evidence is synthetic sandbox only.

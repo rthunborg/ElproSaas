@@ -9,16 +9,16 @@ This is the owner-approved post-third-round convergence review. It is restricted
 - Story 13.3 enqueue deduplication, suppression ordering, lease ownership, and bounded runner dispatch;
 - Story 13.4 linked recipients, correction/reissue, terminal revalidation, exact send-role authority, immutable PDF access, UUID canonicalization, and durable recovery evidence.
 
-The reviewed code head is `d770780`. The final remediation chain is `e11d24a`, `61f2394`, `4024cbe`, `b75b155`, `83da25f`, `b06c3ca`, `2664d7b`, `8a1eb8c`, `2f374f9`, `f226415`, `46d9b67`, and `d770780`. This record does not claim that the unavailable historical whole-epic cross-model pass occurred.
+The reviewed product code head is `d770780`. The final remediation chain is `e11d24a`, `61f2394`, `4024cbe`, `b75b155`, `83da25f`, `b06c3ca`, `2664d7b`, `8a1eb8c`, `2f374f9`, `f226415`, `46d9b67`, and `d770780`. The exact CI checkpoint is documentation/state head `c1020e9`; `git diff d770780..c1020e9` contains no product code, schema, or test change. This record does not claim that the unavailable historical whole-epic cross-model pass occurred.
 
 ## Structured outcome
 
 | Story | Focused disposition | Current invariant |
 | --- | --- | --- |
-| 13.1 | PASS at source and focused-test level; exact-head CI pending | Both HTTP methods authenticate before privileged setup. Rotation expiry is clock deterministic. The route supplies an internal invocation deadline and abort signal. The runner resumes an exact tenant/producer tuple and each active follow-up invocation bounds due-follow-up, recipient, status, preference, and write work with a durable producer cursor. A failed page retains its input checkpoint and later tenants still progress. |
+| 13.1 | PASS | Both HTTP methods authenticate before privileged setup. Rotation expiry is clock deterministic. The route supplies an internal invocation deadline and abort signal. The runner resumes an exact tenant/producer tuple and each active follow-up invocation bounds due-follow-up, recipient, status, preference, and write work with a durable producer cursor. A failed page retains its input checkpoint and later tenants still progress. |
 | 13.2 | PASS | Notification reads and acknowledgements remain tenant plus recipient scoped. `quote.delivery` stays live registry/outbox metadata but is excluded from personal preference API/UI eligibility; supported API and direct database writes cannot recreate the ineffective setting, retained rows are ignored, and token suppression stays recipient/category scoped. |
 | 13.3 | PASS | Ordinary enqueue retry remains permanently deduplicated at delivery sequence 1; only queued recipient correction creates a later sequence. Suppression precedes release evaluation, claim, artifact access, render, and provider work. Queue mutation remains service-worker only, lease scoped, and tenant explicit. |
-| 13.4 | PASS at source and focused-test level; exact-head CI pending | The recipient is linked and frozen; correction is queued-only cancel plus a fresh sequence; claimed delivery rechecks terminal quote/fingerprint state. Validated UUIDs are canonical at both HMAC boundaries. PDF challenge/private verification and recovery evidence admit exactly `Quotes.Send`; immutable bytes use the request-bound exact-object read where authorized and the existing server-only exact-path broker only after a classified RLS denial, while raw salesperson Storage and general review/financial authority remain closed. |
+| 13.4 | PASS | The recipient is linked and frozen; correction is queued-only cancel plus a fresh sequence; claimed delivery rechecks terminal quote/fingerprint state. Validated UUIDs are canonical at both HMAC boundaries. PDF challenge/private verification and recovery evidence admit exactly `Quotes.Send`; immutable bytes use the request-bound exact-object read where authorized and the existing server-only exact-path broker only after a classified RLS denial, while raw salesperson Storage and general review/financial authority remain closed. |
 
 ## Consequential findings and resolutions
 
@@ -68,7 +68,7 @@ No other production-reachable correctness, security, tenant-isolation, data-inte
 
 ## Independent layer
 
-An independent Luna/xhigh leaf is rechecking only the final fixes and unresolved serious boundaries. Its evidence is persisted in `docs/quality/epic-13-independent-luna-convergence-2026-09-27.md`. The final metadata decision remains held until that record covers `d770780` and exact-head CI finishes.
+The independent Luna/xhigh leaf completed its narrow recheck of the final fixes and unresolved serious boundaries at product code head `d770780`. Its persisted evidence in `docs/quality/epic-13-independent-luna-convergence-2026-09-27.md` records PASS for all four stories and no remaining serious production-reachable defect in those boundaries. Exact checkpoint CI then completed successfully at documentation/state head `c1020e9`, whose product code is identical to `d770780`.
 
 ## Verification
 
@@ -95,7 +95,16 @@ At `2f374f9`, CI run `36341895859` passed verify, E2E, isolated recovery, clean 
 - `pnpm exec tsc --noEmit`: passed;
 - focused ESLint, service-role containment, and `git diff --check`: passed.
 
-Exact-head CI for `d770780` is pending. It is the remaining execution gate for clean migration replay and the complete required database/E2E suite.
+### Exact checkpoint closure — 2026-09-27
+
+CI run `36344284961` completed successfully at full checkpoint SHA `c1020e986813e5526151a3424d5c3a0dd2f0e577` (`c1020e9`). All four required jobs passed:
+
+- verify: 1,904 unit tests passed, zero failed/skipped, plus dependency audit, service-role containment, typecheck, lint, build, and built-bundle containment;
+- required database/RLS: clean migration reset plus 1,206 tests passed, zero failed, with one explicit `recovery-storage-immutability` skip delegated to its isolated job;
+- isolated recovery loader: 1 passed, zero failed/skipped;
+- production-server E2E: 172 passed, four explicit skips, zero failures.
+
+The PR's Vercel deployment and preview-comment checks also succeeded. The commits after reviewed code head `d770780` contain documentation/state only, so this run supplies the exact checkpoint migration, complete required database, isolated recovery, browser, and build receipt for the independently reviewed product source.
 
 ## Recorded limits
 
@@ -106,4 +115,4 @@ Exact-head CI for `d770780` is pending. It is the remaining execution gate for c
 
 ## Verdict
 
-**PAUSED CHECKPOINT — source and independent review PASS; exact-head `d770780` CI pending.** The user paused the workflow before the final CI receipt. Keep all four `followup_review_recommended` flags `true`; this checkpoint does not claim final convergence completion.
+**FINAL PASS — source review, independent Luna/xhigh review, and exact checkpoint CI are complete for all four Epic 13 stories.** Set all four `followup_review_recommended` flags to `false`; no review hold remains. External go-live authorization, production scheduler observation, and numeric operating targets remain separate disabled or owner/deployment-gated work and do not reopen these story review dispositions.

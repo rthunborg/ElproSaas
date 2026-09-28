@@ -6,7 +6,7 @@ status: 'done'
 baseline_revision: '344f00e01ebd02191ee5c116ff28be15d1c1c604'
 baseline_commit: '344f00e01ebd02191ee5c116ff28be15d1c1c604'
 review_loop_iteration: 0
-followup_review_recommended: true
+followup_review_recommended: false
 context:
   - '_bmad-output/project-context.md'
   - '_bmad-output/implementation-artifacts/epic-13-context.md'
@@ -154,7 +154,7 @@ Residual risk: The required database-backed integration and browser suites were 
 
 ## Final Convergence Disposition
 
-The 2026-09-27 convergence check was limited to the current tenant/recipient notification boundary and the final personal-preference model. `quote.delivery` remains active registry and outbox metadata, while its ineffective personal in-app and email controls are absent from the eligible API/UI projection and blocked for new direct database writes. Existing legacy rows are retained but ignored. Recipient-scoped public unsubscribe suppression remains a separate delivery boundary. No consequential Story 13.2 defect remains.
+The 2026-09-27 convergence check was limited to the current tenant/recipient notification boundary and the final personal-preference model. `quote.delivery` remains active registry and outbox metadata, while its ineffective personal in-app and email controls are absent from the eligible API/UI projection and blocked for new direct database writes. Existing legacy rows are retained but ignored. Recipient-scoped public unsubscribe suppression remains a separate delivery boundary. The independent Luna/xhigh review records PASS at product code head `d770780`, and exact checkpoint CI run `36344284961` passed at documentation-only head `c1020e9`, whose product code is identical to `d770780`. **Final disposition: PASS; no further follow-up review is recommended.**
 
 ## Suggested Review Order
 
@@ -186,4 +186,4 @@ Refreshed against code head `d770780` after the approved removal of the ineffect
 
 ### Evidence and limit
 
-Base Epic 13 CI run `36339205329` passed the final preference registry, required database/RLS, and browser absence cases as part of the recorded 1,896 unit, 1,205 database, and 172 browser passes. The final focused unit set passed 32/32 and includes bounded, failure-resumable follow-up/preference projection. Exact-head convergence status is recorded in `docs/quality/epic-13-convergence-review-2026-09-27.md`. Retained legacy `quote.delivery` preference rows remain inert and hidden; deletion still requires a separate retention decision.
+Base Epic 13 CI run `36339205329` passed the final preference registry, required database/RLS, and browser absence cases as part of the recorded 1,896 unit, 1,205 database, and 172 browser passes. The final focused unit set passed 32/32 and includes bounded, failure-resumable follow-up/preference projection. Exact checkpoint CI run `36344284961` at `c1020e9` passed all four jobs: 1,904 unit tests with zero skips, 1,206 required database tests with one explicit isolated recovery-storage skip, the isolated recovery proof 1/1 with zero skips, and 172 browser tests with four explicit skips; Vercel also succeeded. The checkpoint changes after `d770780` are documentation/state only. Full closure is recorded in `docs/quality/epic-13-convergence-review-2026-09-27.md`. Retained legacy `quote.delivery` preference rows remain inert and hidden; deletion still requires a separate retention decision.
