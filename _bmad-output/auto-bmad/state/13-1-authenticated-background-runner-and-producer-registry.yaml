@@ -9,7 +9,7 @@ spec_folder: null
 story_id: null
 branch: epic/13-wave-b1a-notifications-and-email-infrastructure
 status: done
-updated_at: "2026-09-28T08:38:36Z"
+updated_at: "2026-09-28T08:47:56Z"
 started_at: "2026-09-23T10:56:19Z"
 completed_at: "2026-09-24T18:57:34Z"
 active_seconds: 6765
@@ -50,7 +50,7 @@ build:
   warnings: []
 followup_passes: 2
 hitl_halt: "auto-continued (epic â€” no halt)"
-review_unverified: false
+review_unverified: true
 story_trace: null
 legacy_review_resume: false
 legacy_review_iteration: null
@@ -76,7 +76,7 @@ retro:
 bmad_status_flipped_at: 82
 pr_url: "https://github.com/rthunborg/ElproSaas/pull/75"
 ci_run_url: "https://github.com/rthunborg/ElproSaas/actions/runs/36397564158"
-ci_status: passed
+ci_status: unknown
 pr_merged: false
 merge_method: null
 merge_commit: null
