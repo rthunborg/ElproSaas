@@ -9,7 +9,7 @@ spec_folder: null
 story_id: null
 branch: epic/13-wave-b1a-notifications-and-email-infrastructure
 status: done
-updated_at: "2026-09-28T09:56:50Z"
+updated_at: "2026-09-28T11:26:11Z"
 started_at: "2026-09-23T10:56:19Z"
 completed_at: "2026-09-24T18:57:34Z"
 active_seconds: 6765
@@ -44,13 +44,13 @@ spec_approved: true
 build:
   status: done
   blocking_condition: null
-  followup_review_recommended: false
+  followup_review_recommended: true
   review_loop_iteration: 0
   deferred_count: 1
   warnings: []
-followup_passes: 4
+followup_passes: 5
 hitl_halt: "auto-continued (epic â€” no halt)"
-review_unverified: false
+review_unverified: true
 story_trace: null
 legacy_review_resume: false
 legacy_review_iteration: null
@@ -58,7 +58,7 @@ legacy_review_loop_done: false
 legacy_external_review_iterations: null
 legacy_convergence_unverified: false
 legacy_artifact_path: null
-commits: [c12a562, 72d77e7, d2081e1, 9b077dc, c40e12c, 3d49a6e, f1ce5b7, e3cf34e, 132f71d, 0e32926, 6045afd, 898f3b6, b8b0241, ed43933, 54181ab]
+commits: [c12a562, 72d77e7, d2081e1, 9b077dc, c40e12c, 3d49a6e, f1ce5b7, e3cf34e, 132f71d, 0e32926, 6045afd, 898f3b6, b8b0241, ed43933, 54181ab, 2a7444f, 783701a]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -76,7 +76,7 @@ retro:
 bmad_status_flipped_at: 82
 pr_url: "https://github.com/rthunborg/ElproSaas/pull/75"
 ci_run_url: "https://github.com/rthunborg/ElproSaas/actions/runs/36405566493"
-ci_status: passed
+ci_status: unknown
 pr_merged: false
 merge_method: null
 merge_commit: null
