@@ -371,11 +371,13 @@ describe("Story 13.4 quote delivery finalization failure atomicity", () => {
     }
   });
 
-  test("[P0][AC8][13.4-INT-AC8-005] every Quotes.Send role persists attributable recovery evidence", async (ctx) => {
+  test("[P0][AC8][13.4-INT-AC8-005] missing HMAC configuration records attributable orphaned recovery for each non-admin Quotes.Send role", async (ctx) => {
     if (skipUnlessStack(ctx, stackUp)) return;
     const fixture = await createRoleAwarePhaseAFixture();
+    const previousSecret = process.env.QUOTE_PDF_ATTESTATION_HMAC_SECRET;
     try {
       const admin = await makeAuthedServerClient(fixture.base.adminA);
+      delete process.env.QUOTE_PDF_ATTESTATION_HMAC_SECRET;
 
       for (const actor of [fixture.users.projektledare, fixture.users.saljare]) {
         const actorClient = await makeAuthedServerClient(actor);
@@ -388,18 +390,16 @@ describe("Story 13.4 quote delivery finalization failure atomicity", () => {
           occurredAt: clock.now().toISOString(),
         });
         const correlationId = crypto.randomUUID();
-        const result = await withForcedAuditFailure(correlationId, () =>
-          runCommand(markQuoteVersionSent, {
-            client: actorClient as never,
-            clock,
-            correlationId,
-            input: {
-              quote_version_id: draft.quoteVersionId,
-              recipient_source_type: "customer",
-              recipient_source_id: draft.customerId,
-            },
-          }),
-        );
+        const result = await runCommand(markQuoteVersionSent, {
+          client: actorClient as never,
+          clock,
+          correlationId,
+          input: {
+            quote_version_id: draft.quoteVersionId,
+            recipient_source_type: "customer",
+            recipient_source_id: draft.customerId,
+          },
+        });
 
         expect(result.ok).toBe(false);
         if (!result.ok) expect(result.code, actor.email).toBe("SERVER_ERROR");
@@ -421,11 +421,13 @@ describe("Story 13.4 quote delivery finalization failure atomicity", () => {
         )).toEqual([{
           actor_user_id: actor.id,
           correlation_id: correlationId,
-          failure_stage: "finalization",
-          recovery_state: "invalidated",
+          failure_stage: "artifact_preparation",
+          recovery_state: "orphaned",
         }]);
       }
     } finally {
+      if (previousSecret === undefined) delete process.env.QUOTE_PDF_ATTESTATION_HMAC_SECRET;
+      else process.env.QUOTE_PDF_ATTESTATION_HMAC_SECRET = previousSecret;
       await cleanupRoleAwarePhaseAFixture(fixture);
     }
   });

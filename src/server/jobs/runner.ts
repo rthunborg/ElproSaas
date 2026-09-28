@@ -35,6 +35,10 @@ type RunnerCursor = {
   readonly nextTenantId?: string;
   readonly producerIndex: number;
   readonly dueProducerIds: readonly string[];
+  /** Producers that had already started when a newer schedule restarted at tenant zero. */
+  readonly carriedProducerIds: readonly string[];
+  /** Stable boundary at which the carried producers may resume. */
+  readonly carriedNextTenantId?: string;
   readonly hasDueProducerSnapshot: boolean;
 };
 
@@ -73,11 +77,15 @@ export function isProducerDueAt(schedule: string, instant: Date): boolean {
 }
 
 function parseCursor(cursor?: string): RunnerCursor {
-  if (!cursor) return { nextIndex: 0, producerIndex: 0, dueProducerIds: [], hasDueProducerSnapshot: false };
+  if (!cursor) return { nextIndex: 0, producerIndex: 0, dueProducerIds: [], carriedProducerIds: [], hasDueProducerSnapshot: false };
   try {
     const value = JSON.parse(Buffer.from(cursor, "base64url").toString("utf8"));
     const hasDueProducerSnapshot = Array.isArray(value.dueProducerIds)
       && value.dueProducerIds.every((id: unknown) => typeof id === "string");
+    const carriedProducerIds = Array.isArray(value.carriedProducerIds)
+      && value.carriedProducerIds.every((id: unknown) => typeof id === "string")
+      ? value.carriedProducerIds
+      : [];
     return {
       nextIndex: Number.isSafeInteger(value.nextIndex) && value.nextIndex >= 0 ? value.nextIndex : 0,
       nextTenantId: typeof value.nextTenantId === "string" && value.nextTenantId.length > 0
@@ -85,10 +93,14 @@ function parseCursor(cursor?: string): RunnerCursor {
         : undefined,
       producerIndex: Number.isSafeInteger(value.producerIndex) && value.producerIndex >= 0 ? value.producerIndex : 0,
       dueProducerIds: hasDueProducerSnapshot ? value.dueProducerIds : [],
+      carriedProducerIds,
+      carriedNextTenantId: typeof value.carriedNextTenantId === "string" && value.carriedNextTenantId.length > 0
+        ? value.carriedNextTenantId
+        : undefined,
       hasDueProducerSnapshot,
     };
   } catch {
-    return { nextIndex: 0, producerIndex: 0, dueProducerIds: [], hasDueProducerSnapshot: false };
+    return { nextIndex: 0, producerIndex: 0, dueProducerIds: [], carriedProducerIds: [], hasDueProducerSnapshot: false };
   }
 }
 
@@ -97,12 +109,16 @@ export function encodeCursor(
   producerIndex = 0,
   dueProducerIds: readonly string[] = [],
   nextTenantId?: string,
+  carriedProducerIds: readonly string[] = [],
+  carriedNextTenantId?: string,
 ): string {
   const value = {
     nextIndex,
     ...(producerIndex === 0 ? {} : { producerIndex }),
     dueProducerIds,
     ...(nextTenantId ? { nextTenantId } : {}),
+    ...(carriedProducerIds.length > 0 ? { carriedProducerIds } : {}),
+    ...(carriedNextTenantId ? { carriedNextTenantId } : {}),
   };
   return Buffer.from(JSON.stringify(value), "utf8").toString("base64url");
 }
@@ -125,6 +141,13 @@ export async function runDueProducers(deps: RunnerDependencies, options: { reado
   const startsNewScheduledWindow = resume.hasDueProducerSnapshot
     && resume.dueProducerIds.length === 0
     && dueProducerIds.size > 0;
+  const resumedProducerIds = new Set(resume.dueProducerIds);
+  const newlyDueProducerIds = new Set([...dueProducerIds].filter((id) => !resumedProducerIds.has(id)));
+  // A carried continuation can meet a newer schedule before it reaches its
+  // saved tenant. Restart the new producer at tenant zero while retaining a
+  // stable boundary for the older producer; otherwise the new work would skip
+  // every tenant before the continuation cursor.
+  const restartsForNewProducer = resumedProducerIds.size > 0 && newlyDueProducerIds.size > 0;
   // Numeric cursors are retained only for records produced before the keyset
   // format. A current cursor resumes at its named tenant, or at the first
   // later tenant when that target was deleted between invocations.
@@ -132,18 +155,35 @@ export async function runDueProducers(deps: RunnerDependencies, options: { reado
     ? tenants.findIndex((tenantId) => tenantId >= resume.nextTenantId!)
     : -1;
   const resumesNamedTenant = keysetStart !== -1 && tenants[keysetStart] === resume.nextTenantId;
-  const start = startsNewScheduledWindow ? 0 : resume.nextTenantId
+  const normalStart = resume.nextTenantId
     ? (keysetStart === -1 ? tenants.length : keysetStart)
     : resume.nextIndex;
-  const resumedProducerIndex = startsNewScheduledWindow || (resume.nextTenantId && !resumesNamedTenant)
+  const carriedProducerIds = restartsForNewProducer
+    ? resumedProducerIds
+    : new Set(resume.carriedProducerIds);
+  const carriedNextTenantId = restartsForNewProducer
+    ? (resume.nextTenantId ?? tenants[Math.min(normalStart, tenants.length - 1)])
+    : resume.carriedNextTenantId;
+  const carriedStartCandidate = carriedNextTenantId
+    ? tenants.findIndex((tenantId) => tenantId >= carriedNextTenantId)
+    : 0;
+  const carriedStart = carriedStartCandidate === -1 ? tenants.length : carriedStartCandidate;
+  const start = startsNewScheduledWindow || restartsForNewProducer ? 0 : normalStart;
+  const resumedProducerIndex = startsNewScheduledWindow || restartsForNewProducer || (resume.nextTenantId && !resumesNamedTenant)
     ? 0
     : resume.producerIndex;
-  const resumedProducerIds = new Set(resume.dueProducerIds);
   const continuationProducerIds = new Set([...resumedProducerIds, ...dueProducerIds]);
   let hadFailure = false;
   let executedProducer = false;
   const cursorAt = (nextIndex: number, producerIndex = 0) =>
-    encodeCursor(nextIndex, producerIndex, [...continuationProducerIds], tenants[nextIndex]);
+    encodeCursor(
+      nextIndex,
+      producerIndex,
+      [...continuationProducerIds],
+      tenants[nextIndex],
+      [...carriedProducerIds],
+      carriedNextTenantId,
+    );
   const persistCursor = async (nextIndex: number, producerIndex = 0) => {
     const timestamp = now().toISOString();
     const cursor = cursorAt(nextIndex, producerIndex);
@@ -181,7 +221,9 @@ export async function runDueProducers(deps: RunnerDependencies, options: { reado
         && Boolean(options.cursor)
         && i === start
         && producerIndex === firstProducerIndex;
-      const hasKnownWork = dueProducerIds.has(producer.id) || resumesWindow || resumesLegacyTuple;
+      const beforeCarriedBoundary = carriedProducerIds.has(producer.id) && i < carriedStart;
+      const hasKnownWork = !beforeCarriedBoundary
+        && (dueProducerIds.has(producer.id) || resumesWindow || resumesLegacyTuple);
       if (completed >= max && hasKnownWork) {
         await persistCursor(i, producerIndex);
         return { outcome: "partial", cursor: cursorAt(i, producerIndex) };

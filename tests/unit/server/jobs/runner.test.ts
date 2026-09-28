@@ -427,6 +427,55 @@ test("[P0] a deadline during off-schedule global continuation retains the origin
   assert.equal(writes.filter((record) => record.producer === "jobs.runner" && record.outcome === "partial").length, 2);
 });
 
+test("[P0] a newly due five-minute producer starts at tenant zero while an hourly continuation keeps its keyset boundary across a deadline", async () => {
+  const hourly = { ...producer, id: "quotes.hourly", schedule: "0 * * * *" };
+  const fiveMinute = { ...producer, id: "notifications.five-minute", schedule: "*/5 * * * *" };
+  const tenants = ["tenant-a", "tenant-b", "tenant-c"];
+  const calls: string[] = [];
+  let clock = new Date("2026-09-27T12:00:00.000Z");
+  const deps = {
+    listTenantIds: async () => tenants,
+    execute: async (candidate: ProducerDeclaration, tenantId: string) => { calls.push(`${tenantId}:${candidate.id}`); },
+    record: async () => undefined,
+    now: () => clock,
+  };
+
+  const hourlyContinuation = await runDueProducers(deps, {
+    producers: [hourly],
+    chunkSize: 1,
+    windowStartedAt: clock,
+  });
+  assert.deepEqual(hourlyContinuation, { outcome: "partial", cursor: encodeCursor(1, 0, [hourly.id], "tenant-b") });
+
+  clock = new Date("2026-09-27T12:05:00.000Z");
+  const deadline = await runDueProducers(deps, {
+    producers: [hourly, fiveMinute],
+    cursor: hourlyContinuation.cursor,
+    deadline: clock,
+    windowStartedAt: clock,
+  });
+  assert.deepEqual(deadline, {
+    outcome: "partial",
+    cursor: encodeCursor(0, 0, [hourly.id, fiveMinute.id], "tenant-a", [hourly.id], "tenant-b"),
+  });
+
+  clock = new Date("2026-09-27T12:10:00.000Z");
+  const completed = await runDueProducers(deps, {
+    producers: [hourly, fiveMinute],
+    cursor: deadline.cursor,
+    windowStartedAt: clock,
+  });
+  assert.deepEqual(completed, { outcome: "completed" });
+  assert.deepEqual(calls, [
+    "tenant-a:quotes.hourly",
+    "tenant-a:notifications.five-minute",
+    "tenant-b:quotes.hourly",
+    "tenant-b:notifications.five-minute",
+    "tenant-c:quotes.hourly",
+    "tenant-c:notifications.five-minute",
+  ]);
+});
+
 test("[P0] an irrelevant cursor lookup cannot clear carried due work for a later tenant", async () => {
   const hourlyA = { ...producer, id: "quotes.hourly-a", schedule: "0 * * * *" };
   const hourlyB = { ...producer, id: "quotes.hourly-b", schedule: "0 * * * *" };
