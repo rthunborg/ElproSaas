@@ -29,23 +29,64 @@ export function sanitizeJobError(error: unknown): string {
     .replace(/([a-z][a-z0-9+.-]*:\/\/)[^\s/@:]+:[^@\s/]+@/gi, "$1[redacted]@")
     .slice(0, ERROR_LIMIT);
 }
-type RunnerCursor = { readonly nextIndex: number; readonly producerIndex: number };
+type RunnerCursor = { readonly nextIndex: number; readonly producerIndex: number; readonly dueProducerIds: readonly string[] };
+
+function parseCronField(field: string, value: number, maximum: number): boolean {
+  if (field === "*") return true;
+  const exact = /^(\d{1,2})$/.exec(field);
+  if (exact) {
+    const expected = Number(exact[1]);
+    if (expected > maximum) throw new RangeError("Unsupported producer schedule");
+    return value === expected;
+  }
+  const step = /^\*\/(\d{1,2})$/.exec(field);
+  if (step) {
+    const divisor = Number(step[1]);
+    if (divisor < 1 || divisor > maximum) throw new RangeError("Unsupported producer schedule");
+    return value % divisor === 0;
+  }
+  throw new RangeError("Unsupported producer schedule");
+}
+
+/**
+ * The jobs lane uses the same five-field UTC cron semantics as Vercel. The
+ * intentionally small grammar covers the registered forms and fails closed
+ * when a future declaration needs a richer schedule expression.
+ */
+export function isProducerDueAt(schedule: string, instant: Date): boolean {
+  if (!Number.isFinite(instant.getTime())) throw new RangeError("Invalid producer schedule instant");
+  const fields = schedule.trim().split(/\s+/);
+  if (fields.length !== 5) throw new RangeError("Unsupported producer schedule");
+  const [minute, hour, dayOfMonth, month, dayOfWeek] = fields;
+  return parseCronField(minute!, instant.getUTCMinutes(), 59)
+    && parseCronField(hour!, instant.getUTCHours(), 23)
+    && parseCronField(dayOfMonth!, instant.getUTCDate(), 31)
+    && parseCronField(month!, instant.getUTCMonth() + 1, 12)
+    && parseCronField(dayOfWeek!, instant.getUTCDay(), 6);
+}
 
 function parseCursor(cursor?: string): RunnerCursor {
-  if (!cursor) return { nextIndex: 0, producerIndex: 0 };
+  if (!cursor) return { nextIndex: 0, producerIndex: 0, dueProducerIds: [] };
   try {
     const value = JSON.parse(Buffer.from(cursor, "base64url").toString("utf8"));
     return {
       nextIndex: Number.isSafeInteger(value.nextIndex) && value.nextIndex >= 0 ? value.nextIndex : 0,
       producerIndex: Number.isSafeInteger(value.producerIndex) && value.producerIndex >= 0 ? value.producerIndex : 0,
+      dueProducerIds: Array.isArray(value.dueProducerIds) && value.dueProducerIds.every((id: unknown) => typeof id === "string")
+        ? value.dueProducerIds
+        : [],
     };
   } catch {
-    return { nextIndex: 0, producerIndex: 0 };
+    return { nextIndex: 0, producerIndex: 0, dueProducerIds: [] };
   }
 }
 
-export function encodeCursor(nextIndex: number, producerIndex = 0): string {
-  const value = producerIndex === 0 ? { nextIndex } : { nextIndex, producerIndex };
+export function encodeCursor(nextIndex: number, producerIndex = 0, dueProducerIds: readonly string[] = []): string {
+  const value = {
+    nextIndex,
+    ...(producerIndex === 0 ? {} : { producerIndex }),
+    ...(dueProducerIds.length === 0 ? {} : { dueProducerIds }),
+  };
   return Buffer.from(JSON.stringify(value), "utf8").toString("base64url");
 }
 export function decodeCursor(cursor?: string): number {
@@ -62,11 +103,16 @@ export async function runDueProducers(deps: RunnerDependencies, options: { reado
   const start = resume.nextIndex;
   const max = Math.max(1, options.chunkSize ?? 25);
   const now = deps.now ?? (() => new Date());
-  const windowStartedAt = (options.windowStartedAt ?? now()).toISOString();
+  const windowStart = options.windowStartedAt ?? now();
+  const windowStartedAt = windowStart.toISOString();
+  const dueProducerIds = new Set(producers.filter((producer) => isProducerDueAt(producer.schedule, windowStart)).map((producer) => producer.id));
+  const resumedProducerIds = new Set(resume.dueProducerIds);
+  const continuationProducerIds = new Set([...resumedProducerIds, ...dueProducerIds]);
   let hadFailure = false;
+  let executedProducer = false;
   const persistCursor = async (nextIndex: number, producerIndex = 0) => {
     const timestamp = now().toISOString();
-    const cursor = encodeCursor(nextIndex, producerIndex);
+    const cursor = encodeCursor(nextIndex, producerIndex, [...continuationProducerIds]);
     await deps.record({
       tenantId: tenants[Math.min(nextIndex, tenants.length - 1)]!,
       producer: "jobs.runner",
@@ -90,18 +136,27 @@ export async function runDueProducers(deps: RunnerDependencies, options: { reado
   };
   let completed = 0;
   let hadPartial = false;
-  for (let i = start; i < tenants.length && completed < max; i += 1) {
+  for (let i = start; i < tenants.length; i += 1) {
     const firstProducerIndex = i === start && resume.producerIndex < producers.length ? resume.producerIndex : 0;
+    let executedForTenant = false;
     for (let producerIndex = firstProducerIndex; producerIndex < producers.length; producerIndex += 1) {
-      if (options.deadline && now() >= options.deadline) {
-        await persistCursor(i, producerIndex);
-        return { outcome: "partial", cursor: encodeCursor(i, producerIndex) };
-      }
       const producer = producers[producerIndex]!;
       const startedAt = now().toISOString();
       let producerCursor: string | undefined;
       try {
         producerCursor = await deps.loadProducerCursor?.(producer, tenants[i]!);
+        const resumesWindow = continuationProducerIds.has(producer.id);
+        const resumesLegacyTuple = continuationProducerIds.size === 0
+          && Boolean(options.cursor)
+          && i === start
+          && producerIndex === firstProducerIndex;
+        if (!dueProducerIds.has(producer.id) && !resumesWindow && !resumesLegacyTuple && !producerCursor) continue;
+        if (completed >= max || (options.deadline && now() >= options.deadline)) {
+          await persistCursor(i, producerIndex);
+          return { outcome: "partial", cursor: encodeCursor(i, producerIndex, [...continuationProducerIds]) };
+        }
+        executedProducer = true;
+        executedForTenant = true;
         const result = await deps.execute(producer, tenants[i]!, producerCursor);
         if (result?.cursor) {
           hadPartial = true;
@@ -114,16 +169,12 @@ export async function runDueProducers(deps: RunnerDependencies, options: { reado
         await deps.record({ tenantId: tenants[i]!, producer: producer.id, outcome: "failed", cursor: producerCursor, windowStartedAt, startedAt, finishedAt: now().toISOString(), errorSummary: sanitizeJobError(error) });
       }
     }
-    completed += 1;
+    if (executedForTenant) completed += 1;
   }
-  const next = start + completed;
-  if (next < tenants.length) {
-    await persistCursor(next);
-    return { outcome: "partial", cursor: encodeCursor(next) };
-  }
+  if (!executedProducer) return { outcome: "completed" };
   if (hadPartial) {
     await persistCursor(0);
-    return { outcome: "partial", cursor: encodeCursor(0) };
+    return { outcome: "partial", cursor: encodeCursor(0, 0, [...continuationProducerIds]) };
   }
   const outcome = hadFailure ? "failed" : "completed";
   await persistTerminal(outcome);

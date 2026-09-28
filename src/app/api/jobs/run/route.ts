@@ -6,6 +6,7 @@ import { runDueProducers, type JobRunRecord, type RunnerDependencies } from "@/s
 import { isAuthorizedCronRequest } from "@/server/jobs/auth";
 import { emitDueFollowUpNotifications } from "@/server/notifications/follow-up-producer";
 import { processEmailOutbox } from "@/server/email/outbox";
+import { stockholmBusinessDate } from "@/lib/datetime/business-date";
 
 const unauthorized = () => new Response("Unauthorized", { status: 401 });
 const CURSOR_PRODUCER = "jobs.runner";
@@ -111,7 +112,7 @@ export async function handleJobsRunRequest(request: Request, dependencies: JobsR
     loadProducerCursor: async (producer, tenantId) => loadProducerCursor(client, tenantId, producer.id),
     execute: dependencies.execute ?? (async (producer, tenantId, producerCursor) => {
       if (producer.id === "quotes.follow-up-reminders") {
-        return emitDueFollowUpNotifications(client, tenantId, now().toISOString().slice(0, 10), { cursor: producerCursor, signal: abortSignal });
+        return emitDueFollowUpNotifications(client, tenantId, stockholmBusinessDate(now()), { cursor: producerCursor, signal: abortSignal });
       }
       if (producer.id === "notifications.email-outbox-delivery") {
         // ADR-B011 keeps the production release posture closed. A sandbox test

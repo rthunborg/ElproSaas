@@ -1,8 +1,11 @@
 import { timingSafeEqual } from "node:crypto";
 type CronEnvironment = { readonly CRON_SECRET?: string; readonly CRON_PREVIOUS_SECRET?: string; readonly CRON_PREVIOUS_SECRET_EXPIRES_AT?: string };
 function equalSecret(candidate: string, expected?: string): boolean {
-  if (!expected || expected.length < 32 || candidate.length !== expected.length) return false;
-  return timingSafeEqual(Buffer.from(candidate), Buffer.from(expected));
+  if (!expected || expected.length < 32) return false;
+  const candidateBytes = Buffer.from(candidate, "utf8");
+  const expectedBytes = Buffer.from(expected, "utf8");
+  if (candidateBytes.length !== expectedBytes.length) return false;
+  return timingSafeEqual(candidateBytes, expectedBytes);
 }
 /** Pure authentication boundary: no database or dispatch dependency may enter here. */
 export function isAuthorizedCronRequest(header: string | null, env: CronEnvironment = process.env as CronEnvironment): boolean {

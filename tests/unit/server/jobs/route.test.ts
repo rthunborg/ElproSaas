@@ -57,6 +57,27 @@ test("[P0] an expired previous CRON_SECRET is rejected before client or runner s
   assert.equal(runnerCalls, 0);
 });
 
+test("[P0] byte-length-mismatched bearer credentials always receive the generic 401 without side effects", async () => {
+  const candidate = "é".repeat(32);
+  for (const expiry of ["2020-01-01T00:00:00.000Z", "2030-01-01T00:00:00.000Z"]) {
+    let clientCalls = 0;
+    let runnerCalls = 0;
+    const response = await handleJobsRunRequest(request(candidate), {
+      authorize: (header) => isAuthorizedCronRequest(header, {
+        CRON_SECRET: current,
+        CRON_PREVIOUS_SECRET: "p".repeat(32),
+        CRON_PREVIOUS_SECRET_EXPIRES_AT: expiry,
+      }),
+      createClient: () => { clientCalls += 1; throw new Error("must not construct client"); },
+      run: async () => { runnerCalls += 1; return { outcome: "completed" as const }; },
+    });
+    assert.equal(response.status, 401);
+    assert.equal(await response.text(), "Unauthorized");
+    assert.equal(clientCalls, 0);
+    assert.equal(runnerCalls, 0);
+  }
+});
+
 test("[P0] Vercel's GET delivery accepts the current secret on the shared scheduler boundary", async () => {
   const previous = process.env.CRON_SECRET;
   process.env.CRON_SECRET = current;
@@ -134,6 +155,51 @@ test("[P0] default registered outbox delivery producer reaches the scheduler sup
     },
   });
   assert.equal(response.status, 200); assert.equal(suppressions, 1); assert.equal(queueReads, 0);
+});
+
+test("[P0] the default follow-up dispatcher uses the Stockholm business date across winter, summer, and DST", async () => {
+  const followUp = { id: "quotes.follow-up-reminders", module: "quotes", category: "quote.follow_up_due", schedule: "0 * * * *", essential: true };
+  for (const [instant, expectedPeriod] of [
+    ["2026-01-15T23:30:00.000Z", "2026-01-16"],
+    ["2026-08-04T22:00:00.000Z", "2026-08-05"],
+    ["2026-03-29T01:00:00.000Z", "2026-03-29"],
+  ]) {
+    let capturedPeriod: string | undefined;
+    const client = {
+      from(table: string) {
+        if (table === "job_runs") {
+          const query = { eq: () => query, order: () => query, limit: async () => ({ data: [], error: null }) };
+          return { select: () => query };
+        }
+        if (table === "quote_follow_ups") {
+          const query = {
+            select: () => query,
+            eq: () => query,
+            lte: (_column: string, value: string) => { capturedPeriod = value; return query; },
+            order: () => query,
+            limit: () => query,
+            abortSignal: async () => ({ data: [], error: null }),
+          };
+          return query;
+        }
+        throw new Error(`unexpected table ${table}`);
+      },
+    } as unknown as SupabaseClient;
+    const response = await handleJobsRunRequest(request(current), {
+      authorize: () => true,
+      createClient: () => client,
+      producers: [followUp],
+      now: () => new Date(instant),
+      run: async (dependencies, options) => {
+        const candidate = options?.producers?.[0];
+        assert.ok(candidate);
+        await dependencies.execute(candidate, "tenant-a");
+        return { outcome: "completed" as const };
+      },
+    });
+    assert.equal(response.status, 200);
+    assert.equal(capturedPeriod, expectedPeriod);
+  }
 });
 
 test("[P0] the production route supplies an internal request deadline to the bounded runner", async () => {

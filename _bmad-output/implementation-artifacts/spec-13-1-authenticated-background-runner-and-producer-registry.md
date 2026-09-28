@@ -5,7 +5,7 @@ created: '2026-09-23'
 status: 'done'
 baseline_revision: '3d49a6e5d8070c9f72498e5ad0048300a799e7c0'
 review_loop_iteration: 0
-followup_review_recommended: false
+followup_review_recommended: true
 context:
   - '_bmad-output/project-context.md'
   - '_bmad-output/implementation-artifacts/epic-13-context.md'
@@ -142,6 +142,29 @@ Residual risks: no active producer exists in 13.1, so overlap, producer schedule
   - `[medium] [patch]` Extended the containment guard and bite test to reject alternate jobs API runners and client-reachable service-client imports.
   - `[low] [patch]` Added database lifecycle constraints for terminal timestamps and the partial-cursor invariant, with integration-catalogue coverage.
 
+### 2026-09-28 — Targeted ReviewBot follow-up
+
+- intent_gap: 0
+- bad_spec: 0
+- patch: 4 (high 2, medium 2, low 0)
+- defer: 0
+- reject: 0
+- addressed_findings:
+  - `[high] [patch]` Replaced UTC date slicing in the follow-up route dispatch with the established Europe/Stockholm business-date authority, preserving the producer's `YYYY-MM-DD` period and deduplication contract.
+  - `[medium] [patch]` Made the runner select producers from the captured injected UTC cron window, avoid fresh off-schedule records, and carry the due-producer snapshot in runner cursors so deadline/global and persisted producer continuations cross later off-schedule ticks without starving tenants.
+  - `[high] [patch]` Compared UTF-8 byte lengths before `timingSafeEqual`, so a malformed multibyte bearer cannot turn the generic unauthenticated response into a 500.
+  - `[medium] [patch]` Preserved carried due-producer IDs when an off-schedule global continuation reaches another deadline before execution, preventing the next tick from losing the only resume authority.
+
+### ReviewBot follow-up evidence (2026-09-28)
+
+Scope: only the three owner-supplied ReviewBot findings, their fixes, and direct regressions from those fixes; no additional broad review was performed.
+
+Disposition: all three findings were confirmed production-reachable and patched. The date handoff now uses `stockholmBusinessDate`; the runner recognizes the active five-field UTC cron forms (`0 * * * *` and `*/5 * * * *`), fails closed for unsupported declarations, and preserves the union of scheduled and carried producer IDs in global cursors so repeated deadline boundaries cannot lose remaining hourly work; authentication now compares encoded-byte lengths before constant-time equality. The default fresh off-schedule path records neither producer nor runner work, so the route cannot emit a related audit record.
+
+Verification: `node --experimental-strip-types --import ./tests/support/register.mjs --test tests/unit/server/jobs/route-auth.test.ts tests/unit/server/jobs/route.test.ts tests/unit/server/jobs/runner.test.ts` passed 25/25 with 0 skipped. It covers winter, summer, and DST date handoff; current/expired/unexpired previous-secret byte-mismatch 401 behavior; exact-hour/off-schedule selection; global and partial/failed checkpoint continuation with later-tenant fairness; continuation across a second deadline; and invalid schedules. `pnpm typecheck` and changed-file ESLint passed. No database or browser service was launched; required database suites were not rerun because these changes are pure route/runner/auth behavior and add no schema or RLS surface.
+
+Residual risk: future producer declarations needing cron syntax beyond the validated five-field `*`, numeric, and `*/N` fields must extend this fail-closed parser with focused tests before activation. This is not an owner performance or freshness SLA.
+
 ## Final Convergence Disposition
 
 The 2026-09-27 post-third-round convergence check was limited to scheduler authentication, rotation expiry, durable bounded resume, and manifest-derived producer enrollment. It found that the active follow-up producer still read every due follow-up and membership before chunking writes, while the route supplied no production deadline. A large tenant could therefore exhaust one invocation before persisting progress and delay later tenants. `f226415` adds an internal 45-second containment budget, query abort propagation, a durable per-producer cursor loaded from the latest authoritative outcome, a runner cursor that can resume at the tenant/producer tuple, and bounded nested follow-up/recipient pages. The independent fix check then found that a failed page superseded its prior checkpoint with a cursorless row. `46d9b67` retains that checkpoint on the authoritative failed row, so a retry resumes after completed work while later tenants continue; a later completed outcome still clears it. The current and previous credential boundaries remain deterministic under a fixed clock, and both HTTP methods still authenticate before privileged client construction. The independent Luna/xhigh review records PASS at product code head `d770780`, and exact checkpoint CI run `36344284961` passed at documentation-only head `c1020e9`, whose product code is identical to `d770780`. **Final disposition: PASS; no further follow-up review is recommended.** Numeric production latency, throughput, backlog-age, freshness, and capacity targets remain the recorded owner-pending operating contract; the implementation bound is not an owner-approved SLO.
@@ -149,27 +172,29 @@ The 2026-09-27 post-third-round convergence check was limited to scheduler authe
 ## Suggested Review Order
 
 Author: Story 13.1 implementation and final-convergence fix author.
-Refreshed against code head `d770780` after the deterministic rotation-expiry repair, bounded same-tenant resume, and failure-checkpoint repair.
+Refreshed for the 2026-09-28 targeted ReviewBot fixes: Stockholm date handoff, due-window scheduling with continuation snapshots, and byte-safe cron-secret comparison.
 
-### Scheduler authentication
+### Authentication and business-date handoff
 
-- `src/app/api/jobs/run/route.ts:86` — `handleJobsRunRequest`: authenticates before registry lookup, service-client construction, cursor reads, or writes; GET and POST share this handler.
-- `src/server/jobs/auth.ts:8` — `isAuthorizedCronRequest`: accepts only a configured 32-byte current secret or an unexpired previous secret through timing-safe comparison.
-- `tests/unit/server/jobs/route-auth.test.ts:10` — freezes time, rejects malformed/currently expired credentials, and directly proves an expired previous secret is rejected.
-- `tests/unit/server/jobs/route-auth.test.ts:16` — proves current and relatively future rotation secrets remain accepted without a calendar expiry.
+The public scheduler entry authenticates before creating a privileged client. Its follow-up work receives the established Stockholm business date, preserving the domain's due-date and notification-period meaning.
 
-### Bounded runner and active registry
+- `src/app/api/jobs/run/route.ts:87` — `handleJobsRunRequest`: rejects unauthorized callers before any client or runner side effect.
+- `src/server/jobs/auth.ts:3` — `equalSecret`: encodes both values and rejects unequal byte lengths before `timingSafeEqual`.
+- `src/app/api/jobs/run/route.ts:115` — `stockholmBusinessDate`: supplies the follow-up producer's DST-aware period.
+- `tests/unit/server/jobs/route.test.ts:60` — `byte-length-mismatched bearer credentials always receive the generic 401 without side effects`: proves both rotation-expiry states keep the route response generic.
+- `tests/unit/server/jobs/route.test.ts:160` — `the default follow-up dispatcher uses the Stockholm business date across winter, summer, and DST`: exercises the default route dispatcher at its date handoff.
 
-- `src/app/api/jobs/run/route.ts:14` — `DEFAULT_RUN_BUDGET_MS`: supplies the internal invocation containment bound and abort signal without claiming a production SLO.
-- `src/server/jobs/runner.ts:56` — `runDueProducers`: resumes the exact tenant/producer tuple, loads durable producer progress, records partial producer work, continues later tenants, and retains failure isolation and bounded redaction.
-- `src/server/notifications/follow-up-producer.ts:99` — `emitDueFollowUpNotifications`: pages due follow-ups and recipients with a two-dimensional cursor, bounds status/preference/write work, and propagates the route abort signal.
-- `src/server/jobs/producers.ts:28` — `ACTIVE_PRODUCERS`: derives the active quote follow-up and operational email-delivery producers from the scope manifest.
-- `src/app/api/jobs/run/route.ts:96` — dispatches those producers only inside the one authenticated jobs lane, loads retry state only from the latest authoritative partial or failed producer row, and records correlated run/audit state.
-- `supabase/migrations/20260923160000_authenticated_job_runner.sql:5` — `job_runs`: retains forced RLS and the service-writer/tenant-admin-reader boundary.
-- `supabase/migrations/20260927140000_preserve_failed_job_checkpoints.sql:5` — permits a failed row to retain its input cursor while still requiring a cursor for partial and forbidding one for running/completed outcomes.
-- `tests/unit/server/jobs/route.test.ts`, `tests/unit/server/jobs/runner.test.ts`, and `tests/unit/server/notifications/follow-up-producer.test.ts` — cover generic 401/no side effects, deadline/abort propagation, latest-outcome cursor authority, exact tuple resume, failure-after-partial retry, later-tenant fairness, bounded nested queries and writes, convergence, failure continuation, and sanitized persistence.
-- `tests/unit/scripts/verify/jobs-service-role-containment.test.ts` — keeps the service context confined to the sanctioned jobs lane and unreachable from client modules.
+### Due scheduling and checkpoint continuation
 
-### Evidence and limit
+The runner evaluates producer schedules against one injected UTC window, records no fresh off-schedule execution, and carries the window's due producer IDs in a global cursor so later ticks finish scheduled work without losing tenant fairness.
 
-Base Epic 13 CI run `36339205329` passed 1,896 unit tests with zero skips, 1,205 required database tests with one separately executed recovery skip, and 172 browser tests with four explicit skips. On the final local source ending at `d770780`, the focused runner/route/follow-up/recovery set passed 32/32 with zero skips; the required job-runs integration passed 1/1 with zero skips after the incremental migration; changed-file ESLint, TypeScript, service-role containment, and diff checks passed. Exact checkpoint CI run `36344284961` at `c1020e9` passed all four jobs: 1,904 unit tests with zero skips, 1,206 required database tests with one explicit isolated recovery-storage skip, the isolated recovery proof 1/1 with zero skips, and 172 browser tests with four explicit skips; Vercel also succeeded. The checkpoint changes after `d770780` are documentation/state only. Full closure is recorded in `docs/quality/epic-13-convergence-review-2026-09-27.md`.
+- `src/server/jobs/runner.ts:56` — `isProducerDueAt`: validates the supported five-field UTC cron grammar and fails closed for unsupported declarations.
+- `src/server/jobs/runner.ts:97` — `runDueProducers`: combines captured due IDs with global and persisted producer checkpoints before consuming the tenant budget.
+- `tests/unit/server/jobs/runner.test.ts:178` — `runs only injected-clock due producers and creates no producer or runner record on a fresh off-schedule tick`: proves an hourly producer is silent at a five-minute tick and both declarations run at the exact hour.
+- `tests/unit/server/jobs/runner.test.ts:202` — `global and producer checkpoints resume hourly work across an off-schedule minute without starving later tenants`: proves the cursor carries remaining scheduled work over the clock boundary.
+- `tests/unit/server/jobs/runner.test.ts:233` — `a deadline during off-schedule global continuation retains the original due producer snapshot`: proves a second deadline cannot discard the global continuation authority.
+- `tests/unit/server/jobs/runner.test.ts:256` — `failed and partial hourly checkpoints both retry off-schedule while later tenants continue`: proves a retained failure cursor cannot block another tenant's continuation.
+
+### Evidence and limits
+
+The focused route/auth/runner command passed 25/25 with zero skips. `pnpm typecheck` and changed-file ESLint passed. Database and browser suites were not rerun because the patch has no migration, RLS, or browser-surface change; previous CI evidence remains historical only. The supported scheduler grammar is intentionally narrow; add explicit parsing and regression coverage before a future producer adopts a richer expression.

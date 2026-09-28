@@ -21,3 +21,18 @@ test("[P0] accepts only a current or unexpired previous secret of sufficient len
   assert.equal(isAuthorizedCronRequest("Bearer short", { CRON_SECRET: "short" }), false);
   assert.equal(isAuthorizedCronRequest(`Bearer ${previous}`, { CRON_PREVIOUS_SECRET: previous, CRON_PREVIOUS_SECRET_EXPIRES_AT: future }), false);
 });
+
+test("[P0] rejects equal-character UTF-8 byte mismatches without throwing for either rotation secret", (context) => {
+  context.mock.timers.enable({ apis: ["Date"], now: fixedNow });
+  const multibyteCandidate = "é".repeat(32);
+  assert.doesNotThrow(() => isAuthorizedCronRequest(`Bearer ${multibyteCandidate}`, {
+    CRON_SECRET: current,
+    CRON_PREVIOUS_SECRET: previous,
+    CRON_PREVIOUS_SECRET_EXPIRES_AT: relativeExpiry(60_000),
+  }));
+  assert.equal(isAuthorizedCronRequest(`Bearer ${multibyteCandidate}`, {
+    CRON_SECRET: current,
+    CRON_PREVIOUS_SECRET: previous,
+    CRON_PREVIOUS_SECRET_EXPIRES_AT: relativeExpiry(60_000),
+  }), false);
+});
