@@ -475,3 +475,44 @@ No ledger archive or new retrospective in this bounded follow-up; prior archived
 **⚠️ Needs human:** (none)
 
 **Next:** Changed-line convergence and fresh CI; then owner review of PR75. Project context refresh recommended.
+
+## Report — 2026-09-28T12:37:34Z (final — caveated)
+
+**Epic:** `13` — 4 stories.
+**Branch:** `epic/13-wave-b1a-notifications-and-email-infrastructure` (HEAD `68b55c0`).
+**Pipeline status:** Five additional ReviewBot defects and direct cursor regressions fixed; test-only CI fixture repair independently reviewed. Trace PASS; corrected checkpoint requires fresh fullCI. PR75 draft; original done transitions preserved.
+**Continues:** 2026-09-28T12:35:25Z (final — caveated)
+
+**Summary:** Stable tenant keysets; missing-HMAC recovery evidence; Bell one/all optimistic rollback; transactional run/audit writes; Stockholm date filters. Product source8b20933; corrected browser fixture88eadaf; author evidenceccd780d. Clean changed-line review verifies projectManager unread fixture and intact POST/reload failure assertions.
+
+**Timing:** started 2026-09-23T10:29:03Z; completed 2026-09-24T18:57:24Z — elapsed 32h 28m (≈12h 14m AI-run, ≈20h 13m human/idle wait); resumed 12×.
+
+**Stories:**
+1. 13.1 done;6 follow-up passes;1 deferred.
+2. 13.2 done;6 follow-up passes;1 deferred.
+3. 13.3 done;3 follow-up passes;1 deferred.
+4. 13.4 done;4 follow-up passes;3 deferred. All four specs followup false; review_unverified false.
+
+**Skipped:** (none)
+
+**Epic gate:** PASS26/26 FULL. Fresh execution gate required; CI failure not waived.
+
+**TEA:** Existing trace compatibility independently confirmed:73 mapped cases/20files;199 static declarations/34files; no declaration or mapping change in fixture repair. Primary37/37 and final runner23/23 passed; current checks lint/diff and13.2 review order7refs/0errors passed. PreviousCI36421169336 unit1923pass/0skip;DB1208pass/1explicit loader skip;loader1pass/0skip;E2E173pass/1fail/4skip;Vercelpass. Prior failed browser case is not coverage; freshCIpending.
+
+**Retrospective:** Accepted September28;0 open actions; original retrospective preserved.
+
+**Overrides:** Targeted post-completion repairs; narrowed post-third-round review. Failed Luna CLI transport retained honestly; native same-model review supplied evidence. Test-only CI correction reviewed without broad audit.
+
+**Open questions:**
+1. Numeric operating targets remain owner-pending.
+
+**Deferred work:**
+1. Local history mismatch remains; fresh CI DB schema proof passed in prior run.
+2. Real-recipient delivery disabled pending ADR-B011 approval, provider idempotency and rendered scoped unsubscribe URLs.
+3. Production cron observation follows merge/migration/deployment.
+No new ledger archive or retrospective; earlier dispositions retained.
+
+**⚠️ Needs human:**
+1. Optional owner merge after freshCIpasses; no approval received.
+
+**Next:** Human review: /bmad-checkpoint-preview https://github.com/rthunborg/ElproSaas/pull/75. Project context: /bmad-project-context refresh recommended after epic.
