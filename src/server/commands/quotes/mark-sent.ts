@@ -63,6 +63,7 @@ import {
 } from "@/server/email/recovery-attestation";
 import { signValidatedQuotePdfForAccess } from "@/server/storage/quote-pdf-signer";
 import { validateSignedStorageUrl } from "@/server/storage/signed-access-attestation";
+import { recordQuoteDeliveryConfigurationRecovery } from "@/server/email/configuration-recovery";
 
 type StorageReadError = {
   readonly status?: number;
@@ -316,14 +317,23 @@ export const markQuoteVersionSent = defineCommand<
     return { targetId: versionId };
     } catch (error) {
       try {
-        const recovery = createQuoteDeliveryRecoveryAttestation({
-          tenantId: ctx.tenantContext.tenantId,
-          quoteVersionId: versionId,
-          actorUserId: ctx.tenantContext.userId,
-          correlationId: ctx.correlationId,
-          stage: recoveryStage,
-        });
-        await recordQuoteDeliveryRecovery(db, recovery);
+        if (!process.env.QUOTE_PDF_ATTESTATION_HMAC_SECRET) {
+          await recordQuoteDeliveryConfigurationRecovery({
+            tenantId: ctx.tenantContext.tenantId,
+            quoteVersionId: versionId,
+            actorUserId: ctx.tenantContext.userId,
+            correlationId: ctx.correlationId,
+          });
+        } else {
+          const recovery = createQuoteDeliveryRecoveryAttestation({
+            tenantId: ctx.tenantContext.tenantId,
+            quoteVersionId: versionId,
+            actorUserId: ctx.tenantContext.userId,
+            correlationId: ctx.correlationId,
+            stage: recoveryStage,
+          });
+          await recordQuoteDeliveryRecovery(db, recovery);
+        }
       } catch {
         // Recovery evidence is best-effort after the command has already failed.
         // Preserve the originating failure instead of replacing it with a

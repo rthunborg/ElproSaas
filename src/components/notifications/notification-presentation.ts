@@ -1,3 +1,5 @@
+import { stockholmBusinessDate } from "@/lib/datetime/business-date";
+
 export type NotificationPresentationItem = {
   readonly id: string;
   readonly category: string;
@@ -34,10 +36,18 @@ export function filterNotificationItems<T extends NotificationPresentationItem>(
   { moduleOrCategory, readState, fromDate }: NotificationFilters,
 ): T[] {
   const categoryPrefix = moduleOrCategory === "quotes" ? "quote" : moduleOrCategory;
+  const isOnOrAfterFromDate = (createdAt: string) => {
+    if (!fromDate) return true;
+    try {
+      return stockholmBusinessDate(createdAt) >= fromDate;
+    } catch {
+      return false;
+    }
+  };
   return items.filter((item) =>
     (moduleOrCategory === "all" || item.category === categoryPrefix || item.category.startsWith(`${categoryPrefix}.`))
     && (readState === "all" || (readState === "unread" ? !item.readAt : !!item.readAt))
-    && (!fromDate || item.createdAt >= fromDate),
+    && isOnOrAfterFromDate(item.createdAt),
   );
 }
 

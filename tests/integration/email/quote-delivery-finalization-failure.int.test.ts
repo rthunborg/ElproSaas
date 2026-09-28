@@ -1,5 +1,6 @@
 /** Story 13.4 finalization failure atomicity coverage. */
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
+import { createClient } from "@supabase/supabase-js";
 import {
   adminInsertCalculation,
   adminInsertCustomer,
@@ -266,6 +267,37 @@ describe("Story 13.4 quote delivery finalization failure atomicity", () => {
     }
   });
 
+  test("[P0][AC8][13.4-INT-AC8-003b] absent HMAC configuration uses the service-only recovery writer", async (ctx) => {
+    if (skipUnlessStack(ctx, stackUp)) return;
+    const fixture = await createTwoTenantFixture();
+    try {
+      const client = await makeAuthedServerClient(fixture.adminA);
+      const draft = await seedDraft(fixture.tenantA.id);
+      await establishCurrentQuotePdf({ client, tenantId: fixture.tenantA.id, quoteVersionId: draft.quoteVersionId, actorUserId: fixture.adminA.id, occurredAt: clock.now().toISOString() });
+      const correlationId = crypto.randomUUID();
+      const previousSecret = process.env.QUOTE_PDF_ATTESTATION_HMAC_SECRET;
+      delete process.env.QUOTE_PDF_ATTESTATION_HMAC_SECRET;
+      let result;
+      try {
+        result = await runCommand(markQuoteVersionSent, {
+          client: client as never, clock, correlationId,
+          input: { quote_version_id: draft.quoteVersionId, recipient_source_type: "customer", recipient_source_id: draft.customerId },
+        });
+      } finally {
+        if (previousSecret === undefined) delete process.env.QUOTE_PDF_ATTESTATION_HMAC_SECRET;
+        else process.env.QUOTE_PDF_ATTESTATION_HMAC_SECRET = previousSecret;
+      }
+      expect(result.ok).toBe(false);
+      if (!result.ok) expect(result.code).toBe("SERVER_ERROR");
+      expect(await finalizationState(draft.quoteVersionId)).toMatchObject({ status: "draft", recoveryCount: 1 });
+      expect(await adminQuery<{ actor_user_id: string; failure_stage: string; recovery_state: string }>(
+        "select actor_user_id, failure_stage, recovery_state from public.email_delivery_recoveries where quote_version_id=$1", [draft.quoteVersionId],
+      )).toEqual([{ actor_user_id: fixture.adminA.id, failure_stage: "artifact_preparation", recovery_state: "orphaned" }]);
+    } finally {
+      await cleanupFixture(fixture);
+    }
+  });
+
   test("[P0][AC8][13.4-INT-AC8-004] recovery RPC rejects cross-tenant and spoofed-actor writes", async (ctx) => {
     if (skipUnlessStack(ctx, stackUp)) return;
     const fixture = await createTwoTenantFixture();
@@ -311,6 +343,28 @@ describe("Story 13.4 quote delivery finalization failure atomicity", () => {
         ...invalidAttestation,
       });
       expect(directForgery.error?.code).toBe("PFD10");
+      const configurationFallback = await rpc.rpc("record_quote_email_delivery_configuration_recovery", {
+        p_tenant_id: fixture.tenantA.id,
+        p_quote_version_id: draft.quoteVersionId,
+        p_actor_user_id: fixture.adminA.id,
+        p_correlation_id: crypto.randomUUID(),
+      });
+      expect(configurationFallback.error?.code).toBe("42501");
+      const serviceClient = createClient(LOCAL_SUPABASE_URL, LOCAL_SUPABASE_SERVICE_ROLE_KEY);
+      const serviceCrossTenant = await serviceClient.rpc("record_quote_email_delivery_configuration_recovery", {
+        p_tenant_id: fixture.tenantB.id,
+        p_quote_version_id: draft.quoteVersionId,
+        p_actor_user_id: fixture.adminA.id,
+        p_correlation_id: crypto.randomUUID(),
+      });
+      expect(serviceCrossTenant.error?.code).toBe("42501");
+      const serviceSpoofedActor = await serviceClient.rpc("record_quote_email_delivery_configuration_recovery", {
+        p_tenant_id: fixture.tenantA.id,
+        p_quote_version_id: draft.quoteVersionId,
+        p_actor_user_id: fixture.adminB.id,
+        p_correlation_id: crypto.randomUUID(),
+      });
+      expect(serviceSpoofedActor.error?.code).toBe("42501");
       expect(await finalizationState(draft.quoteVersionId)).toMatchObject({ recoveryCount: 0 });
     } finally {
       await cleanupFixture(fixture);

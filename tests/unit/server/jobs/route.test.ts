@@ -92,7 +92,7 @@ test("[P0] Vercel's GET delivery accepts the current secret on the shared schedu
 });
 
 test("[P0] the authenticated route loads a persisted cursor and writes matching run/audit records", async () => {
-  const inserts: Array<{ table: string; row: Record<string, unknown> }> = [];
+  const rpcCalls: Array<{ name: string; args: Record<string, unknown> }> = [];
   const client = {
     from(table: string) {
       if (table === "job_runs") {
@@ -104,12 +104,14 @@ test("[P0] the authenticated route loads a persisted cursor and writes matching 
         };
         return {
           select: () => cursorQuery,
-          insert: async (row: Record<string, unknown>) => { inserts.push({ table, row }); return { error: null }; },
         };
       }
-      if (table === "audit_events") return { insert: async (row: Record<string, unknown>) => { inserts.push({ table, row }); return { error: null }; } };
       if (table === "tenants") return { select: () => ({ order: async () => ({ data: [{ id: "tenant-a" }, { id: "tenant-b" }], error: null }) }) };
       throw new Error(`unexpected table ${table}`);
+    },
+    rpc: async (name: string, args: Record<string, unknown>) => {
+      rpcCalls.push({ name, args });
+      return { data: "00000000-0000-4000-8000-000000000002", error: null };
     },
   } as unknown as SupabaseClient;
   const response = await handleJobsRunRequest(request(current), {
@@ -122,13 +124,13 @@ test("[P0] the authenticated route loads a persisted cursor and writes matching 
   });
   assert.equal(response.status, 200);
   assert.deepEqual(await response.json(), { outcome: "completed", cursor: null });
-  assert.equal(inserts.length, 4);
-  assert.equal(inserts[0]?.row.tenant_id, "tenant-b");
-  assert.equal(inserts[0]?.row.window_started_at, "2026-09-23T12:00:00.000Z");
-  assert.equal(inserts[0]?.row.started_at, "2026-09-23T12:00:00.000Z");
-  assert.equal(inserts[0]?.row.finished_at, "2026-09-23T12:00:00.000Z");
-  assert.equal(inserts[0]?.row.correlation_id, inserts[1]?.row.correlation_id);
-  assert.equal(inserts[1]?.row.actor_user_id, null);
+  assert.equal(rpcCalls.length, 2);
+  assert.deepEqual(rpcCalls.map((call) => call.name), ["record_job_run_with_system_audit", "record_job_run_with_system_audit"]);
+  assert.equal(rpcCalls[0]?.args.p_tenant_id, "tenant-b");
+  assert.equal(rpcCalls[0]?.args.p_window_started_at, "2026-09-23T12:00:00.000Z");
+  assert.equal(rpcCalls[0]?.args.p_started_at, "2026-09-23T12:00:00.000Z");
+  assert.equal(rpcCalls[0]?.args.p_finished_at, "2026-09-23T12:00:00.000Z");
+  assert.equal(rpcCalls[0]?.args.p_correlation_id, "00000000-0000-4000-8000-000000000001");
 });
 
 test("[P0] default registered outbox delivery producer reaches the scheduler suppression/evaluation seam", async () => {

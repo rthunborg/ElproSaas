@@ -17,18 +17,21 @@ export function NotificationBell() {
   const count = formatUnreadNotificationCount(items);
   const accessibleName = unread === 0 ? "Notiser" : `Notiser, ${count} olästa notiser`;
 
-  const reload = useCallback(async () => {
-    await fetch("/api/notifications", { cache: "no-store" })
-      .then(async (response) => {
-        if (!response.ok) throw new Error("Could not load notifications");
-        return response.json();
-      })
-      .then((model) => setItems(model.items))
-      .catch(() => setError("Notiser kunde inte hämtas. Försök igen."));
+  const reload = useCallback(async (): Promise<boolean> => {
+    try {
+      const response = await fetch("/api/notifications", { cache: "no-store" });
+      if (!response.ok) throw new Error("Could not load notifications");
+      const model = await response.json();
+      setItems(model.items);
+      return true;
+    } catch {
+      setError("Notiser kunde inte hämtas. Försök igen.");
+      return false;
+    }
   }, []);
 
   useEffect(() => {
-    void reload();
+    queueMicrotask(() => { void reload(); });
   }, [reload]);
 
   useEffect(() => {
@@ -47,12 +50,13 @@ export function NotificationBell() {
     if (acknowledgementInFlight.current) return;
     acknowledgementInFlight.current = true;
     setError(null);
+    const previousItems = items;
     setItems((current) => current.map((item) => (item.readAt ? item : { ...item, readAt: new Date().toISOString() })));
     try {
       const response = await fetch("/api/notifications/read-all", { method: "POST" });
       if (!response.ok) throw new Error("Could not acknowledge notifications");
     } catch {
-      await reload();
+      if (!await reload()) setItems(previousItems);
       setError("Kunde inte markera notiser som lästa. Försök igen.");
     } finally {
       acknowledgementInFlight.current = false;
@@ -62,13 +66,14 @@ export function NotificationBell() {
     if (acknowledgementInFlight.current) return false;
     acknowledgementInFlight.current = true;
     setError(null);
+    const previousItems = items;
     setItems((current) => current.map((item) => (item.id === id && !item.readAt ? { ...item, readAt: new Date().toISOString() } : item)));
     try {
       const response = await fetch(`/api/notifications/${id}/read`, { method: "POST" });
       if (!response.ok) throw new Error("Could not acknowledge notification");
       return true;
     } catch {
-      await reload();
+      if (!await reload()) setItems(previousItems);
       setError("Kunde inte markera notisen som läst. Försök igen.");
       return false;
     } finally {

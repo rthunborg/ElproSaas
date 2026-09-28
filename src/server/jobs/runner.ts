@@ -31,6 +31,8 @@ export function sanitizeJobError(error: unknown): string {
 }
 type RunnerCursor = {
   readonly nextIndex: number;
+  /** Stable next tenant target for cursors written after the keyset migration. */
+  readonly nextTenantId?: string;
   readonly producerIndex: number;
   readonly dueProducerIds: readonly string[];
   readonly hasDueProducerSnapshot: boolean;
@@ -78,6 +80,9 @@ function parseCursor(cursor?: string): RunnerCursor {
       && value.dueProducerIds.every((id: unknown) => typeof id === "string");
     return {
       nextIndex: Number.isSafeInteger(value.nextIndex) && value.nextIndex >= 0 ? value.nextIndex : 0,
+      nextTenantId: typeof value.nextTenantId === "string" && value.nextTenantId.length > 0
+        ? value.nextTenantId
+        : undefined,
       producerIndex: Number.isSafeInteger(value.producerIndex) && value.producerIndex >= 0 ? value.producerIndex : 0,
       dueProducerIds: hasDueProducerSnapshot ? value.dueProducerIds : [],
       hasDueProducerSnapshot,
@@ -87,11 +92,17 @@ function parseCursor(cursor?: string): RunnerCursor {
   }
 }
 
-export function encodeCursor(nextIndex: number, producerIndex = 0, dueProducerIds: readonly string[] = []): string {
+export function encodeCursor(
+  nextIndex: number,
+  producerIndex = 0,
+  dueProducerIds: readonly string[] = [],
+  nextTenantId?: string,
+): string {
   const value = {
     nextIndex,
     ...(producerIndex === 0 ? {} : { producerIndex }),
     dueProducerIds,
+    ...(nextTenantId ? { nextTenantId } : {}),
   };
   return Buffer.from(JSON.stringify(value), "utf8").toString("base64url");
 }
@@ -114,15 +125,28 @@ export async function runDueProducers(deps: RunnerDependencies, options: { reado
   const startsNewScheduledWindow = resume.hasDueProducerSnapshot
     && resume.dueProducerIds.length === 0
     && dueProducerIds.size > 0;
-  const start = startsNewScheduledWindow ? 0 : resume.nextIndex;
-  const resumedProducerIndex = startsNewScheduledWindow ? 0 : resume.producerIndex;
+  // Numeric cursors are retained only for records produced before the keyset
+  // format. A current cursor resumes at its named tenant, or at the first
+  // later tenant when that target was deleted between invocations.
+  const keysetStart = resume.nextTenantId
+    ? tenants.findIndex((tenantId) => tenantId >= resume.nextTenantId!)
+    : -1;
+  const resumesNamedTenant = keysetStart !== -1 && tenants[keysetStart] === resume.nextTenantId;
+  const start = startsNewScheduledWindow ? 0 : resume.nextTenantId
+    ? (keysetStart === -1 ? tenants.length : keysetStart)
+    : resume.nextIndex;
+  const resumedProducerIndex = startsNewScheduledWindow || (resume.nextTenantId && !resumesNamedTenant)
+    ? 0
+    : resume.producerIndex;
   const resumedProducerIds = new Set(resume.dueProducerIds);
   const continuationProducerIds = new Set([...resumedProducerIds, ...dueProducerIds]);
   let hadFailure = false;
   let executedProducer = false;
+  const cursorAt = (nextIndex: number, producerIndex = 0) =>
+    encodeCursor(nextIndex, producerIndex, [...continuationProducerIds], tenants[nextIndex]);
   const persistCursor = async (nextIndex: number, producerIndex = 0) => {
     const timestamp = now().toISOString();
-    const cursor = encodeCursor(nextIndex, producerIndex, [...continuationProducerIds]);
+    const cursor = cursorAt(nextIndex, producerIndex);
     await deps.record({
       tenantId: tenants[Math.min(nextIndex, tenants.length - 1)]!,
       producer: "jobs.runner",
@@ -160,12 +184,12 @@ export async function runDueProducers(deps: RunnerDependencies, options: { reado
       const hasKnownWork = dueProducerIds.has(producer.id) || resumesWindow || resumesLegacyTuple;
       if (completed >= max && hasKnownWork) {
         await persistCursor(i, producerIndex);
-        return { outcome: "partial", cursor: encodeCursor(i, producerIndex, [...continuationProducerIds]) };
+        return { outcome: "partial", cursor: cursorAt(i, producerIndex) };
       }
       if (options.deadline && now() >= options.deadline) {
         if (!hasKnownWork && !options.cursor && !scannedTuple) return { outcome: "completed" };
         await persistCursor(i, producerIndex);
-        return { outcome: "partial", cursor: encodeCursor(i, producerIndex, [...continuationProducerIds]) };
+        return { outcome: "partial", cursor: cursorAt(i, producerIndex) };
       }
       const startedAt = now().toISOString();
       let producerCursor: string | undefined;
@@ -178,23 +202,23 @@ export async function runDueProducers(deps: RunnerDependencies, options: { reado
             const nextProducerIndex = producerIndex + 1;
             if (nextProducerIndex < producers.length) {
               await persistCursor(i, nextProducerIndex);
-              return { outcome: "partial", cursor: encodeCursor(i, nextProducerIndex, [...continuationProducerIds]) };
+              return { outcome: "partial", cursor: cursorAt(i, nextProducerIndex) };
             }
             if (i + 1 < tenants.length) {
               await persistCursor(i + 1);
-              return { outcome: "partial", cursor: encodeCursor(i + 1, 0, [...continuationProducerIds]) };
+              return { outcome: "partial", cursor: cursorAt(i + 1) };
             }
             if (options.cursor) await persistTerminal("completed");
             return { outcome: "completed" };
           } else {
             await persistCursor(i, producerIndex);
-            return { outcome: "partial", cursor: encodeCursor(i, producerIndex, [...continuationProducerIds]) };
+            return { outcome: "partial", cursor: cursorAt(i, producerIndex) };
           }
         }
         if (!hasWork) continue;
         if (completed >= max) {
           await persistCursor(i, producerIndex);
-          return { outcome: "partial", cursor: encodeCursor(i, producerIndex, [...continuationProducerIds]) };
+          return { outcome: "partial", cursor: cursorAt(i, producerIndex) };
         }
         executedProducer = true;
         executedForTenant = true;
@@ -218,7 +242,7 @@ export async function runDueProducers(deps: RunnerDependencies, options: { reado
   }
   if (hadPartial) {
     await persistCursor(0);
-    return { outcome: "partial", cursor: encodeCursor(0, 0, [...continuationProducerIds]) };
+    return { outcome: "partial", cursor: cursorAt(0) };
   }
   const outcome = hadFailure ? "failed" : "completed";
   await persistTerminal(outcome);

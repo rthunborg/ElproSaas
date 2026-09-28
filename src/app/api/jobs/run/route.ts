@@ -56,30 +56,18 @@ async function loadResumeCursor(client: SupabaseClient): Promise<string | undefi
 
 function recordRun(client: SupabaseClient, correlationId: string) {
   return async (record: JobRunRecord) => {
-    const { error: runError } = await client.from("job_runs").insert({
-      tenant_id: record.tenantId,
-      producer: record.producer,
-      window_started_at: record.windowStartedAt,
-      started_at: record.startedAt,
-      finished_at: record.finishedAt,
-      outcome: record.outcome,
-      cursor: record.cursor ?? null,
-      error_summary: record.errorSummary ?? null,
-      correlation_id: correlationId,
+    const { error } = await client.rpc("record_job_run_with_system_audit", {
+      p_tenant_id: record.tenantId,
+      p_producer: record.producer,
+      p_window_started_at: record.windowStartedAt,
+      p_started_at: record.startedAt,
+      p_finished_at: record.finishedAt,
+      p_outcome: record.outcome,
+      p_cursor: record.cursor ?? null,
+      p_error_summary: record.errorSummary ?? null,
+      p_correlation_id: correlationId,
     });
-    if (runError) throw new Error("Job run persistence failed");
-    const { error: auditError } = await client.from("audit_events").insert({
-      tenant_id: record.tenantId,
-      actor_user_id: null,
-      command: `jobs.${record.producer}`,
-      event_type: "job.producer.executed",
-      target_type: "job_run",
-      target_id: null,
-      correlation_id: correlationId,
-      metadata: { outcome: record.outcome, cursor: record.cursor ?? null },
-      created_at: record.finishedAt,
-    });
-    if (auditError) throw new Error("System audit persistence failed");
+    if (error) throw new Error("Job run persistence failed");
   };
 }
 

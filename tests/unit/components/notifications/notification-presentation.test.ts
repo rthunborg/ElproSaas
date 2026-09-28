@@ -55,6 +55,22 @@ test("[P1] 13.2-UNIT-002: module/category, read-state, and from-date filters com
   );
 });
 
+test("[P0] notification from-date uses Stockholm calendar days across midnight and DST", () => {
+  const rows = [
+    item({ id: "stockholm-midnight", createdAt: "2026-03-29T22:30:00.000Z" }),
+    item({ id: "before-stockholm-midnight", createdAt: "2026-03-29T21:30:00.000Z" }),
+    item({ id: "invalid", createdAt: "not-an-instant" }),
+  ];
+  assert.deepEqual(
+    filterNotificationItems(rows, { moduleOrCategory: "all", readState: "all", fromDate: "2026-03-30" }).map((row) => row.id),
+    ["stockholm-midnight"],
+  );
+  assert.deepEqual(
+    filterNotificationItems(rows, { moduleOrCategory: "all", readState: "all", fromDate: "" }).map((row) => row.id),
+    ["stockholm-midnight", "before-stockholm-midnight", "invalid"],
+  );
+});
+
 test("[P1] 13.2-UNIT-002: scan-status copy is truthful for hidden, never, failed, and elapsed states", () => {
   assert.equal(formatNotificationScanStatus({ kind: "hidden" }), null);
   assert.equal(formatNotificationScanStatus({ kind: "never" }), "Ingen tidigare skanning.");

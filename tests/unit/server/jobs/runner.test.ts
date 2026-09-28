@@ -22,13 +22,13 @@ test("[P0] an injected deadline persists cursor zero before the first tenant wor
     record: async (record: JobRunRecord) => { writes.push(record); },
     now: () => deadline,
   }, { producers: [producer], deadline });
-  assert.deepEqual(result, { outcome: "partial", cursor: encodeCursor(0, 0, [producer.id]) });
+  assert.deepEqual(result, { outcome: "partial", cursor: encodeCursor(0, 0, [producer.id], "tenant-a") });
   assert.equal(executeCalls, 0);
   assert.deepEqual(writes, [{
     tenantId: "tenant-a",
     producer: "jobs.runner",
     outcome: "partial",
-    cursor: encodeCursor(0, 0, [producer.id]),
+    cursor: encodeCursor(0, 0, [producer.id], "tenant-a"),
     windowStartedAt: "2026-09-23T12:00:00.000Z",
     startedAt: "2026-09-23T12:00:00.000Z",
     finishedAt: "2026-09-23T12:00:00.000Z",
@@ -236,8 +236,8 @@ test("[P0] budgeted off-schedule scans resume until they reach a later producer 
   const second = await run(first.cursor);
   const third = await run(second.cursor);
 
-  assert.deepEqual(first, { outcome: "partial", cursor: encodeCursor(1, 1) });
-  assert.deepEqual(second, { outcome: "partial", cursor: encodeCursor(3, 0) });
+  assert.deepEqual(first, { outcome: "partial", cursor: encodeCursor(1, 1, [], "tenant-1") });
+  assert.deepEqual(second, { outcome: "partial", cursor: encodeCursor(3, 0, [], "tenant-3") });
   assert.deepEqual(third, { outcome: "completed" });
   assert.equal(loads.length, 8);
   assert.deepEqual(calls, ["tenant-3:quotes.hourly-b:saved-page"]);
@@ -270,7 +270,7 @@ test("[P0] an off-schedule producer checkpoint found at the deadline resumes at 
     windowStartedAt: started,
     deadline: new Date(started.getTime() + 25),
   });
-  assert.deepEqual(first, { outcome: "partial", cursor: encodeCursor(1, 0) });
+  assert.deepEqual(first, { outcome: "partial", cursor: encodeCursor(1, 0, [], "tenant-b") });
   assert.deepEqual(calls, []);
   assert.equal(writes.at(-1)?.producer, "jobs.runner");
   assert.equal(writes.at(-1)?.outcome, "partial");
@@ -319,6 +319,58 @@ test("[P0] a legacy global cursor still authorizes only its exact off-schedule t
   });
   assert.deepEqual(result, { outcome: "completed" });
   assert.deepEqual(calls, ["tenant-b:start"]);
+});
+
+test("[P0] keyset runner cursors neither skip nor repeat tenants when the list changes", async () => {
+  let tenants = ["tenant-a", "tenant-b", "tenant-c"];
+  const calls: string[] = [];
+  const deps = {
+    listTenantIds: async () => tenants,
+    execute: async (_candidate: ProducerDeclaration, tenantId: string) => { calls.push(tenantId); },
+    record: async () => undefined,
+  };
+  const first = await runDueProducers(deps, { producers: [producer], chunkSize: 1, windowStartedAt: dueWindow });
+  tenants = ["tenant-aa", "tenant-b", "tenant-c"];
+  const second = await runDueProducers(deps, { producers: [producer], cursor: first.cursor, chunkSize: 2, windowStartedAt: dueWindow });
+  assert.deepEqual(calls, ["tenant-a", "tenant-b", "tenant-c"]);
+  assert.equal(second.outcome, "completed");
+});
+
+test("[P0] a deleted keyset target resumes at the next tenant", async () => {
+  const secondProducer = { ...producer, id: "notifications.second" };
+  let tenants = ["tenant-a", "tenant-b", "tenant-c"];
+  const calls: string[] = [];
+  const deps = {
+    listTenantIds: async () => tenants,
+    execute: async (candidate: ProducerDeclaration, tenantId: string) => { calls.push(`${tenantId}:${candidate.id}`); },
+    record: async () => undefined,
+    now: () => dueWindow,
+  };
+  const first = await runDueProducers(deps, {
+    producers: [producer, secondProducer],
+    deadline: new Date(dueWindow.getTime()),
+    windowStartedAt: dueWindow,
+  });
+  tenants = ["tenant-b", "tenant-c"];
+  const second = await runDueProducers(deps, { producers: [producer, secondProducer], cursor: first.cursor, windowStartedAt: dueWindow });
+  assert.equal(second.outcome, "completed");
+  assert.deepEqual(calls, ["tenant-b:notifications.reminder", "tenant-b:notifications.second", "tenant-c:notifications.reminder", "tenant-c:notifications.second"]);
+});
+
+test("[P0] deleting a mid-tenant keyset target restarts the replacement tenant at producer zero", async () => {
+  const secondProducer = { ...producer, id: "notifications.second" };
+  const calls: string[] = [];
+  const result = await runDueProducers({
+    listTenantIds: async () => ["tenant-b"],
+    execute: async (candidate: ProducerDeclaration, tenantId: string) => { calls.push(`${tenantId}:${candidate.id}`); },
+    record: async () => undefined,
+  }, {
+    producers: [producer, secondProducer],
+    cursor: encodeCursor(0, 1, [producer.id], "tenant-a"),
+    windowStartedAt: dueWindow,
+  });
+  assert.equal(result.outcome, "completed");
+  assert.deepEqual(calls, ["tenant-b:notifications.reminder", "tenant-b:notifications.second"]);
 });
 
 test("[P0] global and producer checkpoints resume hourly work across an off-schedule minute without starving later tenants", async () => {
@@ -394,11 +446,11 @@ test("[P0] an irrelevant cursor lookup cannot clear carried due work for a later
 
   const first = await runDueProducers(deps, {
     producers: [hourlyA, hourlyB],
-    cursor: encodeCursor(0, 0, [hourlyA.id]),
+    cursor: encodeCursor(0, 0, [hourlyA.id], "tenant-a"),
     windowStartedAt: clock,
     deadline: new Date(clock.getTime() + 25),
   });
-  assert.deepEqual(first, { outcome: "partial", cursor: encodeCursor(1, 0, [hourlyA.id]) });
+  assert.deepEqual(first, { outcome: "partial", cursor: encodeCursor(1, 0, [hourlyA.id], "tenant-b") });
   assert.deepEqual(calls, ["tenant-a:quotes.hourly-a"]);
 
   clock = new Date("2026-09-27T12:10:00.000Z");

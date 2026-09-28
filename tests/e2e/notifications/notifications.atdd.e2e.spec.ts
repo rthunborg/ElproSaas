@@ -152,6 +152,29 @@ test.describe("Story 13.2 In-app-notiser — bell, center och inställningar (AT
     await expect(row).toHaveAccessibleName(/oläst/i);
   });
 
+  test("[P0] Bell restores the known persisted unread state when one acknowledgement and reconciliation both fail", async ({ page }) => {
+    await signIn(page, fixture().notifications.administrator);
+    const popover = await openBell(page);
+    await page.route("**/api/notifications/*/read", (route) => route.fulfill({ status: 500, body: "{}" }));
+    await page.route("**/api/notifications", (route) => route.fulfill({ status: 500, body: "{}" }));
+    const notification = popover.getByRole("listitem", { name: "oläst", exact: true }).first();
+    await notification.getByRole("link").click();
+    await expect(popover.getByRole("alert")).toContainText(/kunde inte markera.*försök igen/i);
+    await expect(notification).toHaveAccessibleName("oläst");
+    await expect(page.getByRole("button", { name: /notiser/i })).toHaveAccessibleName(/olästa notiser/i);
+  });
+
+  test("[P0] Bell restores known persisted state when mark-all and reconciliation both fail", async ({ page }) => {
+    await signIn(page, fixture().notifications.finance);
+    const popover = await openBell(page);
+    await page.route("**/api/notifications/read-all", (route) => route.fulfill({ status: 500, body: "{}" }));
+    await page.route("**/api/notifications", (route) => route.fulfill({ status: 500, body: "{}" }));
+    await popover.getByRole("button", { name: "Markera alla som lästa" }).click();
+    await expect(popover.getByRole("alert")).toContainText(/kunde inte markera.*försök igen/i);
+    await expect(popover.getByRole("listitem", { name: "oläst", exact: true }).first()).toBeVisible();
+    await expect(page.getByRole("button", { name: /notiser/i })).toHaveAccessibleName(/olästa notiser/i);
+  });
+
   test("[P0] Profile preferences group the active category by module", async ({ page }) => {
     await signIn(page, fixture().notifications.projectManager);
     await page.getByRole("button", { name: /profil/i }).click();
