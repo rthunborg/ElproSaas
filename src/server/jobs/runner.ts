@@ -39,6 +39,8 @@ type RunnerCursor = {
   readonly carriedProducerIds: readonly string[];
   /** Stable boundary at which the carried producers may resume. */
   readonly carriedNextTenantId?: string;
+  /** The carried continuation was already beyond the tenant list. */
+  readonly carriedBoundaryExhausted: boolean;
   readonly hasDueProducerSnapshot: boolean;
 };
 
@@ -77,7 +79,7 @@ export function isProducerDueAt(schedule: string, instant: Date): boolean {
 }
 
 function parseCursor(cursor?: string): RunnerCursor {
-  if (!cursor) return { nextIndex: 0, producerIndex: 0, dueProducerIds: [], carriedProducerIds: [], hasDueProducerSnapshot: false };
+  if (!cursor) return { nextIndex: 0, producerIndex: 0, dueProducerIds: [], carriedProducerIds: [], carriedBoundaryExhausted: false, hasDueProducerSnapshot: false };
   try {
     const value = JSON.parse(Buffer.from(cursor, "base64url").toString("utf8"));
     const hasDueProducerSnapshot = Array.isArray(value.dueProducerIds)
@@ -97,10 +99,11 @@ function parseCursor(cursor?: string): RunnerCursor {
       carriedNextTenantId: typeof value.carriedNextTenantId === "string" && value.carriedNextTenantId.length > 0
         ? value.carriedNextTenantId
         : undefined,
+      carriedBoundaryExhausted: value.carriedBoundaryExhausted === true,
       hasDueProducerSnapshot,
     };
   } catch {
-    return { nextIndex: 0, producerIndex: 0, dueProducerIds: [], carriedProducerIds: [], hasDueProducerSnapshot: false };
+    return { nextIndex: 0, producerIndex: 0, dueProducerIds: [], carriedProducerIds: [], carriedBoundaryExhausted: false, hasDueProducerSnapshot: false };
   }
 }
 
@@ -111,6 +114,7 @@ export function encodeCursor(
   nextTenantId?: string,
   carriedProducerIds: readonly string[] = [],
   carriedNextTenantId?: string,
+  carriedBoundaryExhausted = false,
 ): string {
   const value = {
     nextIndex,
@@ -119,6 +123,7 @@ export function encodeCursor(
     ...(nextTenantId ? { nextTenantId } : {}),
     ...(carriedProducerIds.length > 0 ? { carriedProducerIds } : {}),
     ...(carriedNextTenantId ? { carriedNextTenantId } : {}),
+    ...(carriedBoundaryExhausted ? { carriedBoundaryExhausted: true } : {}),
   };
   return Buffer.from(JSON.stringify(value), "utf8").toString("base64url");
 }
@@ -161,13 +166,18 @@ export async function runDueProducers(deps: RunnerDependencies, options: { reado
   const carriedProducerIds = restartsForNewProducer
     ? resumedProducerIds
     : new Set(resume.carriedProducerIds);
-  const carriedNextTenantId = restartsForNewProducer
-    ? (resume.nextTenantId ?? tenants[Math.min(normalStart, tenants.length - 1)])
+  const carriedBoundaryExhausted = restartsForNewProducer
+    ? normalStart >= tenants.length
+    : resume.carriedBoundaryExhausted;
+  const carriedNextTenantId = restartsForNewProducer && !carriedBoundaryExhausted
+    ? (resume.nextTenantId ?? tenants[normalStart])
     : resume.carriedNextTenantId;
   const carriedStartCandidate = carriedNextTenantId
     ? tenants.findIndex((tenantId) => tenantId >= carriedNextTenantId)
     : 0;
-  const carriedStart = carriedStartCandidate === -1 ? tenants.length : carriedStartCandidate;
+  const carriedStart = carriedBoundaryExhausted || carriedStartCandidate === -1
+    ? tenants.length
+    : carriedStartCandidate;
   const start = startsNewScheduledWindow || restartsForNewProducer ? 0 : normalStart;
   const resumedProducerIndex = startsNewScheduledWindow || restartsForNewProducer || (resume.nextTenantId && !resumesNamedTenant)
     ? 0
@@ -183,6 +193,7 @@ export async function runDueProducers(deps: RunnerDependencies, options: { reado
       tenants[nextIndex],
       [...carriedProducerIds],
       carriedNextTenantId,
+      carriedBoundaryExhausted,
     );
   const persistCursor = async (nextIndex: number, producerIndex = 0) => {
     const timestamp = now().toISOString();

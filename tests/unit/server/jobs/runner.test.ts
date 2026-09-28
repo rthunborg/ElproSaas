@@ -476,6 +476,45 @@ test("[P0] a newly due hourly producer starts at tenant zero while a five-minute
   ]);
 });
 
+test("[P0] a deleted final legacy cursor target does not replay carried work when the hourly schedule becomes due", async () => {
+  const hourly = { ...producer, id: "quotes.hourly", schedule: "0 * * * *" };
+  const fiveMinute = { ...producer, id: "notifications.five-minute", schedule: "*/5 * * * *" };
+  const calls: string[] = [];
+  let clock = new Date("2026-09-27T13:00:00.000Z");
+  const deps = {
+    listTenantIds: async () => ["tenant-a", "tenant-b"],
+    execute: async (candidate: ProducerDeclaration, tenantId: string) => { calls.push(`${tenantId}:${candidate.id}`); },
+    record: async () => undefined,
+    now: () => clock,
+  };
+  // A pre-keyset cursor had reached the deleted third tenant while carrying
+  // five-minute work from its previous scheduled window.
+  const exhaustedLegacyCursor = encodeCursor(2, 0, [fiveMinute.id]);
+
+  const deadline = await runDueProducers(deps, {
+    producers: [hourly, fiveMinute],
+    cursor: exhaustedLegacyCursor,
+    deadline: clock,
+    windowStartedAt: clock,
+  });
+  assert.deepEqual(deadline, {
+    outcome: "partial",
+    cursor: encodeCursor(0, 0, [fiveMinute.id, hourly.id], "tenant-a", [fiveMinute.id], undefined, true),
+  });
+
+  clock = new Date("2026-09-27T13:05:00.000Z");
+  const completed = await runDueProducers(deps, {
+    producers: [hourly, fiveMinute],
+    cursor: deadline.cursor,
+    windowStartedAt: clock,
+  });
+  assert.deepEqual(completed, { outcome: "completed" });
+  assert.deepEqual(calls, [
+    "tenant-a:quotes.hourly",
+    "tenant-b:quotes.hourly",
+  ]);
+});
+
 test("[P0] an irrelevant cursor lookup cannot clear carried due work for a later tenant", async () => {
   const hourlyA = { ...producer, id: "quotes.hourly-a", schedule: "0 * * * *" };
   const hourlyB = { ...producer, id: "quotes.hourly-b", schedule: "0 * * * *" };
