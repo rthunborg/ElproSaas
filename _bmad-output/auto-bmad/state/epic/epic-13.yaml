@@ -9,7 +9,7 @@ spec_folder: null
 story_id: null
 branch: epic/13-wave-b1a-notifications-and-email-infrastructure
 status: done
-updated_at: "2026-09-28T12:30:44Z"
+updated_at: "2026-09-28T12:35:25Z"
 started_at: "2026-09-23T10:29:03Z"
 completed_at: "2026-09-24T18:57:24Z"
 active_seconds: 44064
@@ -18,15 +18,15 @@ is_first_in_epic: false
 is_last_in_epic: false
 git_mode: remote
 base_branch: main
-selected_phase: followup_review
-selected_role: primary-reviewer
-selected_profile: standard
-selected_model: gpt-5.6-terra
-selected_effort: high
+selected_phase: final_convergence
+selected_role: final-convergence
+selected_profile: critical
+selected_model: gpt-5.6-sol
+selected_effort: xhigh
 selected_host: codex
 selected_tier: subagents
 selected_route: subagent
-escalation_reason: "Current CI36421169336 failed only new mark-all Bell E2E at button locator; bounded diagnosis/fix and author evidence settlement, no broad review"
+escalation_reason: "Changed-lines-only inspection of test88eadaf after CI fixture contamination failure; preserve POST/reload failure assertions and validate isolated projectManager fixture, no broad pass"
 routing_ledger:
   - "{\"effort\":\"xhigh\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-sol\",\"phase\":\"tea_epic\",\"profile\":\"critical\",\"role\":\"tea-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
   - "{\"effort\":\"medium\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-luna\",\"phase\":\"tea_triage\",\"profile\":\"light\",\"role\":\"test-risk-triage\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
@@ -51,6 +51,7 @@ routing_ledger:
   - "{\"effort\":\"xhigh\",\"escalation_reason\":\"Meaningful current follow-up fixed five owner-supplied defects; three affected specs still recommend settlement. Resolve latest-patch cursor/recovery/audit/UI regressions and canonical review evidence only; no broad pass\",\"host\":\"codex\",\"model\":\"gpt-5.6-sol\",\"phase\":\"final_convergence\",\"profile\":\"critical\",\"role\":\"final-convergence\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
   - "{\"effort\":\"xhigh\",\"escalation_reason\":\"Bounded current-source trace metadata refresh after five ReviewBot fixes and direct cursor corrections at8b20933; final review closed at79e5550; fullCI follows publication\",\"host\":\"codex\",\"model\":\"gpt-5.6-sol\",\"phase\":\"tea_epic\",\"profile\":\"critical\",\"role\":\"tea-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
   - "{\"effort\":\"high\",\"escalation_reason\":\"Current CI36421169336 failed only new mark-all Bell E2E at button locator; bounded diagnosis/fix and author evidence settlement, no broad review\",\"host\":\"codex\",\"model\":\"gpt-5.6-terra\",\"phase\":\"followup_review\",\"profile\":\"standard\",\"role\":\"primary-reviewer\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"xhigh\",\"escalation_reason\":\"Changed-lines-only inspection of test88eadaf after CI fixture contamination failure; preserve POST/reload failure assertions and validate isolated projectManager fixture, no broad pass\",\"host\":\"codex\",\"model\":\"gpt-5.6-sol\",\"phase\":\"final_convergence\",\"profile\":\"critical\",\"role\":\"final-convergence\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
 tea_risk: null
 tea_selected: []
 tea_rationale: null
@@ -66,7 +67,7 @@ build:
   review_loop_iteration: 0
   deferred_count: 0
   warnings: []
-followup_passes: 6
+followup_passes: 7
 hitl_halt: null
 review_unverified: false
 story_trace: null
@@ -76,7 +77,7 @@ legacy_review_loop_done: false
 legacy_external_review_iterations: null
 legacy_convergence_unverified: false
 legacy_artifact_path: null
-commits: [cdbb68a, e996cde, 9650f72, 391624b, 211bf68, 24d0d19, e11d24a, 61f2394, 4024cbe, b75b155, 83da25f, 73407ac, b06c3ca, 2664d7b, 8a1eb8c, 2f374f9, f226415, 46d9b67, d770780, 0c28b14, c1020e9, b374437, 822a67d, 762c547, 71fa10a, 6d81c2a, b8b0241, a2d2d9a, ed43933, 54181ab, 5bd0dae, e65b985, 8ee25ef, a6c4825, 2a7444f, 783701a, b299024, 04d709b, 00ac840, 8b20933, 79e5550, cf73891, 5a529b4]
+commits: [cdbb68a, e996cde, 9650f72, 391624b, 211bf68, 24d0d19, e11d24a, 61f2394, 4024cbe, b75b155, 83da25f, 73407ac, b06c3ca, 2664d7b, 8a1eb8c, 2f374f9, f226415, 46d9b67, d770780, 0c28b14, c1020e9, b374437, 822a67d, 762c547, 71fa10a, 6d81c2a, b8b0241, a2d2d9a, ed43933, 54181ab, 5bd0dae, e65b985, 8ee25ef, a6c4825, 2a7444f, 783701a, b299024, 04d709b, 00ac840, 8b20933, 79e5550, cf73891, 5a529b4, bc54b11, 88eadaf, ccd780d]
 phase8_steps:
   trace_gate: done
   nfr: done
@@ -94,7 +95,7 @@ retro:
 bmad_status_flipped_at: 82
 pr_url: "https://github.com/rthunborg/ElproSaas/pull/75"
 ci_run_url: "https://github.com/rthunborg/ElproSaas/actions/runs/36421169336"
-ci_status: failed
+ci_status: unknown
 pr_merged: false
 merge_method: null
 merge_commit: null

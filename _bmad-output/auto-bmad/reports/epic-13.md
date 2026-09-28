@@ -437,3 +437,41 @@ No ledger archive or new retrospective in this bounded follow-up; prior archived
 **⚠️ Needs human:** (none)
 
 **Next:** Bounded E2E repair, then fresh CI. Human review: /bmad-checkpoint-preview https://github.com/rthunborg/ElproSaas/pull/75. Project context refresh recommended after epic.
+
+## Report — 2026-09-28T12:35:25Z (final — caveated)
+
+**Epic:** `13` — 4 stories.
+**Branch:** `epic/13-wave-b1a-notifications-and-email-infrastructure` (HEAD `ccd780d`).
+**Pipeline status:** CI fixture-state failure corrected in test88eadaf; changed-line verification and fresh CI remain required. Product source8b20933 unchanged; PR75 draft.
+**Continues:** 2026-09-28T12:30:44Z (final — caveated)
+
+**Summary:** Prior mark-all test consumed shared finance unread fixture, disabling action. Corrected test uses untouched projectManager and explicit unread/enabled preconditions; real POST/reconciliation failures and rollback assertions retained.
+
+**Timing:** started 2026-09-23T10:29:03Z; completed 2026-09-24T18:57:24Z — elapsed 32h 28m (≈12h 14m AI-run, ≈20h 13m human/idle wait); resumed 11×.
+
+**Stories:**
+1. 13.1 done;6 passes;1 deferred.
+2. 13.2 done;5 passes;1 deferred.
+3. 13.3 done;3 passes;1 deferred.
+4. 13.4 done;4 passes;3 deferred.
+
+**Skipped:** (none)
+
+**Epic gate:** PASS26/26; fresh full execution gate remains required.
+
+**TEA:** Prior CI36421169336:unit1923pass/0skip;DB1208pass/1explicit loader skip;isolatedloader1pass/0skip;E2E173pass/1fail/4skip;Vercelpass. Test-only patch lint and diff checks passed;13.2 review order7refs/0errors.
+
+**Retrospective:** Accepted September28;0 open actions.
+
+**Overrides:** Post-third-round narrowed CI repair only.
+
+**Open questions:**
+1. Numeric operating targets owner-pending.
+
+**Deferred work:**
+1. Real-recipient delivery disabled pending ADR-B011.
+2. Production cron proof follows merge/migration/deployment.
+
+**⚠️ Needs human:** (none)
+
+**Next:** Changed-line convergence and fresh CI; then owner review of PR75. Project context refresh recommended.
