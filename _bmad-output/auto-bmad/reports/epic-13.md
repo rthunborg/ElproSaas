@@ -398,3 +398,42 @@ No ledger archive or new retrospective in this bounded follow-up; prior archived
 1. Optional owner merge after current CI passes; no merge approval received.
 
 **Next:** Human review: /bmad-checkpoint-preview https://github.com/rthunborg/ElproSaas/pull/75. Project context: run /bmad-project-context refresh (recommended after an epic).
+
+## Report — 2026-09-28T12:30:44Z (final — caveated)
+
+**Epic:** `13` — 4 stories.
+**Branch:** `epic/13-wave-b1a-notifications-and-email-infrastructure` (HEAD `5a529b4`).
+**Pipeline status:** Five findings and cursor regressions fixed; current CI failed one new Bell E2E locator. PR75 remains draft while bounded repair proceeds; existing done status is preserved.
+**Continues:** 2026-09-28T12:20:02Z (final — caveated)
+
+**Summary:** Current CI36421169336 at5a529b4 passed verify, required DB/RLS, isolated loader and Vercel. Mark-all rollback E2E timed out locating its action button.
+
+**Timing:** started 2026-09-23T10:29:03Z; completed 2026-09-24T18:57:24Z — elapsed 32h 28m (≈12h 14m AI-run, ≈20h 13m human/idle wait); resumed 10×.
+
+**Stories:**
+1. 13.1 done;6 follow-up passes;1 deferred.
+2. 13.2 done;4 follow-up passes;1 deferred.
+3. 13.3 done;3 follow-up passes;1 deferred.
+4. 13.4 done;4 follow-up passes;3 deferred.
+
+**Skipped:** (none)
+
+**Epic gate:** Trace PASS26/26; full execution gate remains unwaived.
+
+**TEA:** Current CI:1,923 unit passed/0 skips;1,208 required DB/RLS passed/1 explicit loader skip;isolated loader1 passed/0 skips;E2E173 passed/1 failed/4 skips. DB skip separately executed in loader job. Current new mark-all E2E regression under bounded diagnosis.
+
+**Retrospective:** Accepted September28;0 open actions; historical completion retained.
+
+**Overrides:** Post-completion remediation; no broad fourth review; current E2E failure is not waived.
+
+**Open questions:**
+1. Numeric operating targets remain owner-pending.
+
+**Deferred work:**
+1. Real-recipient sending disabled pending ADR-B011 release approval.
+2. Production cron observation follows merge/migration/deployment.
+3. Existing local migration-history drift remains; fresh CI database proof passed.
+
+**⚠️ Needs human:** (none)
+
+**Next:** Bounded E2E repair, then fresh CI. Human review: /bmad-checkpoint-preview https://github.com/rthunborg/ElproSaas/pull/75. Project context refresh recommended after epic.
