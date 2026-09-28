@@ -516,3 +516,44 @@ No new ledger archive or retrospective; earlier dispositions retained.
 1. Optional owner merge after freshCIpasses; no approval received.
 
 **Next:** Human review: /bmad-checkpoint-preview https://github.com/rthunborg/ElproSaas/pull/75. Project context: /bmad-project-context refresh recommended after epic.
+
+## Report — 2026-09-28T12:52:50Z (final)
+
+**Epic:** `13` — 4 stories.
+**Branch:** `epic/13-wave-b1a-notifications-and-email-infrastructure` (HEAD `0a7afbe`).
+**Pipeline status:** Clean completion: five additional ReviewBot findings fixed and reviewed; trace PASS and current full CI passed. Epic13 and all four stories remain done. Owner merge is optional.
+**Continues:** 2026-09-28T12:37:34Z (final — caveated); fresh CI closes the corrected browser checkpoint.
+
+**Summary:** Stable tenant cursors; durable missing-HMAC recovery; Bell optimistic rollback; atomic run/audit writes; Stockholm date filtering. Direct cursor regressions and shared-fixture E2E failure were corrected. Product source8b20933; test88eadaf; reviewed docsccd780d; tested checkpoint0a7afbe.
+
+**Timing:** started 2026-09-23T10:29:03Z; completed 2026-09-24T18:57:24Z — elapsed 32h 28m (≈12h 14m AI-run, ≈20h 13m human/idle wait); resumed 13×.
+
+**Stories:**
+1. 13.1 done;6 follow-up passes;1 deferred.
+2. 13.2 done;6 follow-up passes;1 deferred.
+3. 13.3 done;3 follow-up passes;1 deferred.
+4. 13.4 done;4 follow-up passes;3 deferred. All four specs followup false; review_unverified false.
+
+**Skipped:** (none)
+
+**Epic gate:** PASS26/26 FULL (100%). Deterministic finalization: draft false, clean_completion true. Existing batch done flip retained.
+
+**TEA:** 73 mapped cases/20 files;199 static declarations/34 files. CI36423047278 on0a7afbe passed:unit1,923/0 skips;required DB/RLS1,208/1 explicit loader skip;isolated loader1/0 skips;E2E174/4 skips. DB skip separately covered by loader job; skips are not coverage. Corrected mark-all double-failure E2E passed. Vercel passed. Primary37/37 and final runner23/23 passed; typecheck, lint, containment and review-order checks passed. Final commit changes only evidence/state/report; its push may re-trigger CI without another wait.
+
+**Retrospective:** Accepted September28;zero open actions. Original completion dates and historical retrospective records retained.
+
+**Overrides:** Targeted post-completion remediation and narrowed reviews. Failed CLI transport retained honestly; native same-model evidence supplied. FailedCI36421169336 retained; fixture repair was not waived.
+
+**Open questions:**
+1. Numeric operating targets remain owner-pending.
+
+**Deferred work:**
+1. Local migration-history mismatch remains; initial local integration5pass/3fail/0skip is not a local PASS. Fresh CI schema proof passed.
+2. Real-recipient delivery stays disabled pending ADR-B011 approval, provider idempotency and rendered scoped unsubscribe URLs.
+3. Production cron observation follows merge, migrations and deployment.
+No new archive or retrospective; prior deferred dispositions preserved.
+
+**⚠️ Needs human:**
+1. Optional owner review/merge of PR75; no merge approval received.
+
+**Next:** Human review: /bmad-checkpoint-preview https://github.com/rthunborg/ElproSaas/pull/75. Project context: /bmad-project-context refresh (recommended after an epic).

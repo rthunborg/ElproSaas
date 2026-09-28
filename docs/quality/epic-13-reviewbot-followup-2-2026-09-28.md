@@ -18,13 +18,14 @@ Scope: the five supplied ReviewBot findings and direct regressions only. This bo
 - Changed-file ESLint — passed.
 - `node scripts/verify/check-service-role-containment.mjs` — passed.
 - Scoped cursor/UI post-fix review — PASS.
-- Current full CI `36421169336` at `5a529b4` passed verify (1,923 tests, 0 skips), DB (1,208 tests, 1 explicit loader skip), isolated loader (1 test, 0 skips), and Vercel; E2E had 173 passes, 1 failed fixture-state scenario, and 4 skips.
+- Prior failed full CI `36421169336` at `5a529b4` passed verify (1,923 tests, 0 skips), DB (1,208 tests, 1 explicit loader skip), isolated loader (1 test, 0 skips), and Vercel; E2E had 173 passes, 1 failed fixture-state scenario, and 4 skips.
 - `pnpm exec eslint tests/e2e/notifications/notifications.atdd.e2e.spec.ts` — passed after `88eadaf`; `git diff --check` — passed.
+- Fresh full CI `36423047278` at `0a7afbee954ca2e70e7a1f9039b4a547ff761851` — **PASS**: verify 1,923/1,923 with zero skips; required DB 1,208 passed with one explicit loader skip; isolated loader 1/1 with zero skips; E2E 174 passed with 4 explicit skips and zero failures; Vercel passed. The corrected mark-all rollback scenario passed in 836 ms at 12:44:42 UTC.
 - The external Luna CLI exited 1 with no review output. The authorised native Luna/xhigh fallback found the exhausted legacy-boundary replay; `8b209337` fixed it and the final focused runner suite verified the exact regression.
 
-## Required CI evidence and limitation
+## Required CI evidence and historical local limitation
 
-`SUPABASE_TEST_REQUIRED=1 pnpm exec vitest run tests/integration/jobs/job-runs.int.test.ts tests/integration/email/quote-delivery-finalization-failure.int.test.ts` executed locally: **8 total, 5 passed, 3 failed, 0 skipped**. The failures do not prove the new migrations because the existing local database lacks the new RPCs; `supabase db push --local --include-all` stopped at the older `email_outbox_delivery_identity_key` history inconsistency. No service was started, stopped, reset, or repaired. Fresh-schema migration/RLS verification remains required in full CI. The Bell fault-injection browser case also requires fresh CI after the fixture-isolation correction; its failed prior run is not coverage. The new non-admin missing-HMAC integration case was inspected but not rerun locally for that same reason.
+`SUPABASE_TEST_REQUIRED=1 pnpm exec vitest run tests/integration/jobs/job-runs.int.test.ts tests/integration/email/quote-delivery-finalization-failure.int.test.ts` initially executed locally: **8 total, 5 passed, 3 failed, 0 skipped**. Those failures did not prove the new migrations because the existing local database lacked the new RPCs; `supabase db push --local --include-all` stopped at the older `email_outbox_delivery_identity_key` history inconsistency. No service was started, stopped, reset, or repaired. Fresh CI `36423047278` supersedes that local limitation: the migrated required DB lane passed 1,208 tests with its one isolated loader skip covered separately 1/1, and the corrected Bell browser scenario passed within the 174-pass E2E lane. The failed prior CI `36421169336` remains recorded as the fixture-isolation diagnosis rather than coverage.
 
 ## Completed-pass coverage
 

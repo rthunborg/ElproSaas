@@ -4,9 +4,9 @@ Date: 2026-09-27; final closure refreshed 2026-09-28
 
 Product source: `8b2093374b73a1b419b51be1068a2263e0e11f2f`
 
-Metadata head: `79e5550322ec42696d2918674ee39ad042369ada` (Stories 13.1, 13.2, and 13.4 plus follow-up evidence only after the product source)
+Test-only head: `88eadaf9df5e26f753dfd1a3197f7124cb882208`; docs evidence head: `ccd780dc885faeba96e4e66d211dae40d3e202f4`
 
-Latest prior full CI checkpoint: `e65b985` via run `36405566493`; full CI for `8b209337` remains the later root gate.
+Fresh full CI checkpoint: `0a7afbee954ca2e70e7a1f9039b4a547ff761851` via run `36423047278`; product source remains `8b209337`, with test-only repair `88eadaf` and docs closure `ccd780d`.
 Purpose: reconcile the completed acceptance trace with the earlier advisory NFR and test-quality reports. This classification does not authorize real-recipient delivery.
 
 ## Current sandbox merge gate
@@ -21,15 +21,15 @@ Current-source focused verification at `8b209337` passed:
 - review-order validation for Stories 13.1/13.2/13.4: 11/5/8 references, 0 errors;
 - the native Luna/xhigh finding on exhausted legacy continuation was fixed; final changed-line Sol closure found no unresolved serious defect.
 
-Latest prior full CI run [36405566493](https://github.com/rthunborg/ElproSaas/actions/runs/36405566493) at `e65b985` passed the unchanged wider Epic 13 surface:
+Fresh full CI run [36423047278](https://github.com/rthunborg/ElproSaas/actions/runs/36423047278) at `0a7afbee` passed the complete current Epic 13 surface:
 
-- `verify`: 1,917 unit tests passed; typecheck, lint, build, dependency audit, source containment, and built-bundle containment passed.
-- `db`: 1,206 required integration/RLS tests passed; the one explicit skip is the separately isolated recovery-storage proof.
+- `verify`: 1,923 unit tests passed with zero failures or skips; typecheck, lint, build, dependency audit, source containment, and built-bundle containment passed.
+- `db`: 1,208 required integration/RLS tests passed under `SUPABASE_TEST_REQUIRED=1`; the one explicit skip is the separately isolated recovery-storage proof.
 - `recovery-storage-loader`: the isolated proof passed 1/1 with no skip.
-- `e2e`: 172 passed, 4 explicit skips, 0 failures. The Epic 13 preference journey now uses one absence case in place of two ineffective-toggle cases.
+- `e2e`: 174 passed, 4 explicit skips, 0 failures. The corrected mark-all POST-plus-reload rollback scenario passed in 836 ms at 12:44:42 UTC.
 - Vercel deployment and preview checks succeeded.
 
-This prior run is historical regression evidence. It is not represented as full CI at `8b209337`; that current-source CI run remains the separate root gate. The local required integration selection executed 8 tests with 5 passed, 3 failed, and 0 skipped because the new RPCs are absent; the pre-existing duplicate `email_outbox_delivery_identity_key` history mismatch prevented applying them. Atomic rollback, missing-secret tenant/actor denial and non-admin success, and the two Bell double-failure journeys remain mapped to current tests and pending CI.
+Earlier CI `36421169336` remains historical with 173 E2E passes, one shared-finance-fixture failure, and four skips; `88eadaf` repaired that test-only state leak. The initial local integration selection also remains historical at 8 tests, 5 passed, 3 failed, and 0 skipped because the RPCs were absent and the pre-existing `email_outbox_delivery_identity_key` history mismatch prevented applying them. Fresh CI `36423047278` now proves atomic rollback, missing-secret tenant/actor denial and non-admin success, both Bell double-failure journeys, and the complete unchanged matrix.
 
 No acceptance, tenant-isolation, security, data-integrity, or customer-output gap remains open for the authorized sandbox-only release surface.
 
@@ -41,7 +41,7 @@ Current story parsing reports all four stories and Epic 13 `done`. The accepted 
 | --- | --- | --- |
 | Story 13.4 recipient correction and fresh authorization | Resolved for the sandbox implementation | `13.4-AC6` has command/RPC and required database evidence for cancellation, reissue, actor authority, tenant scope, and frozen recipient state. |
 | Final terminal quote-state recheck before provider submission | Resolved for the sandbox implementation | `13.4-AC7` has the pre-provider validation-RPC test plus five producer-boundary terminal-state cases. |
-| Durable orphaned/invalidated recovery truth | Resolved for the sandbox implementation | `13.4-AC8` retains signed rollback/recovery evidence and adds the service-only missing-secret writer, exact `Quotes.Send` actors, and direct/cross-tenant/spoofed-actor denials. The new RPC cases are pending fresh-schema CI. |
+| Durable orphaned/invalidated recovery truth | Resolved for the sandbox implementation | `13.4-AC8` retains signed rollback/recovery evidence and adds the service-only missing-secret writer, exact `Quotes.Send` actors, and direct/cross-tenant/spoofed-actor denials. Fresh required-database CI passed. |
 | Ineffective personal `quote.delivery` preference | Resolved | Registry projection, UI/API exclusion, the database write guard, and recipient-scoped token suppression are covered by focused unit, required database, RLS, and browser evidence. |
 | Unbounded active follow-up traversal and lost failed-page checkpoint | Resolved | Route, runner, producer, and fresh-schema cases prove an internal deadline, bounded nested pages and writes, exact tenant/producer resume, retained failed cursor, later-tenant progress, and coherent partial/failed/completed cursor states. |
 | Recovery role mismatch and caller-forgeable recovery evidence | Resolved | Required command integration covers all three `Quotes.Send` roles; unit and database evidence bind recovery provenance to a short-lived server HMAC and deny spoofed actor, cross-tenant, and invalid-signature writes. |
@@ -57,14 +57,14 @@ These are test-quality concerns, not failures in the current 26/26 acceptance ga
 
 | Action | Classification | Why it remains |
 | --- | --- | --- |
-| Replace `Date.now()`, `Math.random()`, and `randomInt` shared browser-fixture identifiers with a replayable run UUID or injected seed | Advisory test repeatability | The prior E2E job is green; current-source CI is pending. The inputs still make failed fixture state harder to reproduce and can collide across interrupted or concurrent runs. |
+| Replace `Date.now()`, `Math.random()`, and `randomInt` shared browser-fixture identifiers with a replayable run UUID or injected seed | Advisory test repeatability | The current E2E job is green. The inputs still make failed fixture state harder to reproduce and can collide across interrupted or concurrent runs. |
 | Clean temporary containment scanner roots and decompose shared test-support hotspots when next touched | Advisory maintenance | The temporary roots are uniquely scoped and the broad fixtures currently pass, but the earlier test review's cleanup and maintainability findings remain open. |
 
 ## Historical review-evidence gap
 
 The configured external Luna CLI exited 1 without output and is not reclassified as a pass. The authorized native Luna/xhigh fallback reviewed only the latest follow-up boundaries and found the exhausted legacy-cursor replay; it was fixed in `8b209337`. The final changed-line Sol closure found no unresolved serious defect.
 
-No unavailable whole-epic review is invented. The deterministic trace gate rests on 26 mapped criteria, 73 mapped cases across 20 files, current-source focused evidence, and the prior complete CI evidence for unchanged surfaces. Full CI at `8b209337` remains the root's later gate.
+No unavailable whole-epic review is invented. The deterministic trace gate rests on 26 mapped criteria, 73 mapped cases across 20 files, current-source focused evidence, and fresh CI `36423047278`, which passed all required checks.
 
 ## Separate go-live and operational advisory
 

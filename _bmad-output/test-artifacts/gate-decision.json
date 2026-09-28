@@ -1,6 +1,6 @@
 {
   "schema_version": "0.1.0",
-  "evaluated_at": "2026-09-28T12:13:15.204Z",
+  "evaluated_at": "2026-09-28T12:47:41.456Z",
   "repo": "ElproSaas",
   "target": {
     "type": "epic",
@@ -10,7 +10,7 @@
   "collection_status": "COLLECTED",
   "gate_basis": "priority_thresholds",
   "gate_status": "PASS",
-  "rationale": "P0 coverage is 100% and overall coverage is 100% (minimum: 80%). No P1 requirements detected.",
+  "rationale": "P0 coverage is 100% and overall coverage is 100% (minimum: 80%). No P1 requirements detected. Fresh CI 36423047278 at 0a7afbee954ca2e70e7a1f9039b4a547ff761851 passed all required checks.",
   "p0_status": "MET",
   "p1_status": "MET",
   "overall_status": "MET",
