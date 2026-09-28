@@ -5,7 +5,7 @@ created: '2026-09-23'
 status: 'done'
 baseline_revision: '3d49a6e5d8070c9f72498e5ad0048300a799e7c0'
 review_loop_iteration: 0
-followup_review_recommended: true
+followup_review_recommended: false
 context:
   - '_bmad-output/project-context.md'
   - '_bmad-output/implementation-artifacts/epic-13-context.md'
@@ -114,6 +114,18 @@ Verification: `pnpm test:unit -- --test-name-pattern="jobs|service-role|manifest
 
 Residual risks: no active producer exists in 13.1, so overlap, producer schedule enforcement, and production deadline policy remain future producer concerns; the current empty registry intentionally performs no database work.
 
+### Final ReviewBot convergence (2026-09-28)
+
+Summary: resolved the one remaining budget uncertainty against reviewed source `a2d2d9afa5ab8395d85ed91b67259bc5097103bf`. The authenticated GET/POST route's `AbortSignal` reached the follow-up producer body but did not guard tenant or cursor discovery, and the runner skipped fresh off-schedule tuples before checking its deadline. A delayed or manual authorized request could therefore scan every tenant/producer cursor after the internal budget expired.
+
+Files changed: `src/server/jobs/runner.ts` now checks the cooperative deadline around cursor discovery, emits explicit empty due-ID snapshots for interrupted off-schedule scans, resumes those scans without treating them as legacy execution authority, preserves carried due work across irrelevant cursor lookups, and resets scan-only cursors to tenant zero when a new schedule window becomes due. `tests/unit/server/jobs/runner.test.ts` proves repeated budgeted scans reach a later failed/partial producer checkpoint, a checkpoint found at the boundary resumes at the same tuple, legacy cursors retain their exact-tuple compatibility, carried due work remains fair to later tenants, and newly due work does not skip early tenants. `tests/unit/server/jobs/route.test.ts` now identifies its persisted test cursor as a due-work snapshot.
+
+Review breakdown: the supplied budget uncertainty was confirmed and patched. The narrow fix review caught scan-position starvation and newly-due tenant skipping in intermediate revisions; both were repaired before the final narrowed review, which returned PASS with no consequential finding. No intent gap, bad-spec loopback, deferral, or rejected claim remains. Follow-up review recommendation: `false` after the required narrowed post-fix PASS.
+
+Verification: `node --experimental-strip-types --import ./tests/support/register.mjs --test tests/unit/server/jobs/route-auth.test.ts tests/unit/server/jobs/route.test.ts tests/unit/server/jobs/runner.test.ts` passed 30/30 with 0 failed and 0 skipped. `pnpm typecheck` passed. Changed-file ESLint passed for the runner and its route/runner tests. No database or browser service was launched; no database or browser suite was rerun because this patch changes only pure runner cursor/deadline behavior and test fixtures.
+
+Residual limit: the internal deadline is cooperative at cursor-query granularity; it stops further tuple scans before/after each lookup but does not claim an owner-approved latency SLO or introduce a new database-query cancellation contract. The unbounded multi-tuple bypass is closed.
+
 ## Review Triage Log
 
 ### 2026-09-23
@@ -165,14 +177,24 @@ Verification: `node --experimental-strip-types --import ./tests/support/register
 
 Residual risk: future producer declarations needing cron syntax beyond the validated five-field `*`, numeric, and `*/N` fields must extend this fail-closed parser with focused tests before activation. This is not an owner performance or freshness SLA.
 
+### 2026-09-28 — Review pass
+
+- intent_gap: 0
+- bad_spec: 0
+- patch: 0
+- defer: 0
+- reject: 0
+- addressed_findings:
+  - none
+
 ## Final Convergence Disposition
 
-The 2026-09-27 post-third-round convergence check was limited to scheduler authentication, rotation expiry, durable bounded resume, and manifest-derived producer enrollment. It found that the active follow-up producer still read every due follow-up and membership before chunking writes, while the route supplied no production deadline. A large tenant could therefore exhaust one invocation before persisting progress and delay later tenants. `f226415` adds an internal 45-second containment budget, query abort propagation, a durable per-producer cursor loaded from the latest authoritative outcome, a runner cursor that can resume at the tenant/producer tuple, and bounded nested follow-up/recipient pages. The independent fix check then found that a failed page superseded its prior checkpoint with a cursorless row. `46d9b67` retains that checkpoint on the authoritative failed row, so a retry resumes after completed work while later tenants continue; a later completed outcome still clears it. The current and previous credential boundaries remain deterministic under a fixed clock, and both HTTP methods still authenticate before privileged client construction. The independent Luna/xhigh review records PASS at product code head `d770780`, and exact checkpoint CI run `36344284961` passed at documentation-only head `c1020e9`, whose product code is identical to `d770780`. **Final disposition: PASS; no further follow-up review is recommended.** Numeric production latency, throughput, backlog-age, freshness, and capacity targets remain the recorded owner-pending operating contract; the implementation bound is not an owner-approved SLO.
+The final 2026-09-28 convergence pass was limited to the three resolved ReviewBot boundaries and one remaining cursor-scan budget uncertainty at reviewed source `a2d2d9afa5ab8395d85ed91b67259bc5097103bf`. The Stockholm business-date handoff, five-field UTC due-window continuation, UTF-8 byte-safe secret comparison, and second-deadline due-ID union from `b8b0241835a0836aa5bcbba047be23512faee723` remain confirmed. The budget uncertainty was production-reachable because tenant/producer cursor discovery was outside the follow-up producer's abort signal and skipped no-work tuples before the runner deadline check. Commit `ed43933` bounds those scans cooperatively, persists explicit scan-only cursor state without granting execution authority, preserves failed/partial and carried due work, and restarts newly due windows at tenant zero. Two direct intermediate cursor regressions were caught and repaired before the final narrow re-review returned PASS. **Final disposition: PASS; no further follow-up review is recommended.** Numeric production latency, throughput, backlog-age, freshness, and capacity targets remain owner-pending; the internal bound is not an owner-approved SLO.
 
 ## Suggested Review Order
 
 Author: Story 13.1 implementation and final-convergence fix author.
-Refreshed for the 2026-09-28 targeted ReviewBot fixes: Stockholm date handoff, due-window scheduling with continuation snapshots, and byte-safe cron-secret comparison.
+Refreshed for the final 2026-09-28 ReviewBot convergence: Stockholm date handoff, byte-safe cron-secret comparison, due-window continuation, and budgeted off-schedule cursor discovery.
 
 ### Authentication and business-date handoff
 
@@ -186,15 +208,16 @@ The public scheduler entry authenticates before creating a privileged client. It
 
 ### Due scheduling and checkpoint continuation
 
-The runner evaluates producer schedules against one injected UTC window, records no fresh off-schedule execution, and carries the window's due producer IDs in a global cursor so later ticks finish scheduled work without losing tenant fairness.
+The runner evaluates schedules against one injected UTC window and treats cursor discovery as budgeted work. Explicit empty due-ID snapshots retain scan progress without granting execution authority; a newly due window restarts at tenant zero, while non-empty carried snapshots and legacy cursors preserve their intended continuation semantics.
 
-- `src/server/jobs/runner.ts:56` — `isProducerDueAt`: validates the supported five-field UTC cron grammar and fails closed for unsupported declarations.
-- `src/server/jobs/runner.ts:97` — `runDueProducers`: combines captured due IDs with global and persisted producer checkpoints before consuming the tenant budget.
-- `tests/unit/server/jobs/runner.test.ts:178` — `runs only injected-clock due producers and creates no producer or runner record on a fresh off-schedule tick`: proves an hourly producer is silent at a five-minute tick and both declarations run at the exact hour.
-- `tests/unit/server/jobs/runner.test.ts:202` — `global and producer checkpoints resume hourly work across an off-schedule minute without starving later tenants`: proves the cursor carries remaining scheduled work over the clock boundary.
-- `tests/unit/server/jobs/runner.test.ts:233` — `a deadline during off-schedule global continuation retains the original due producer snapshot`: proves a second deadline cannot discard the global continuation authority.
-- `tests/unit/server/jobs/runner.test.ts:256` — `failed and partial hourly checkpoints both retry off-schedule while later tenants continue`: proves a retained failure cursor cannot block another tenant's continuation.
+- `src/server/jobs/runner.ts:61` — `isProducerDueAt`: validates the supported five-field UTC cron grammar and fails closed for unsupported declarations.
+- `src/server/jobs/runner.ts:114` — `startsNewScheduledWindow`: distinguishes scan-only snapshots from carried scheduled work so a new due window cannot skip early tenants.
+- `src/server/jobs/runner.ts:160` — `hasKnownWork`: checks the chunk/deadline before execution and checkpoints interrupted cursor discovery after each bounded lookup.
+- `tests/unit/server/jobs/runner.test.ts:178` — `runs only injected-clock due producers and creates no producer or runner record on a fresh off-schedule tick`: proves a completed no-work scan remains silent.
+- `tests/unit/server/jobs/runner.test.ts:202` — `budgeted off-schedule scans resume until they reach a later producer checkpoint`: proves repeated bounded scans retain progress and eventually resume saved work.
+- `tests/unit/server/jobs/runner.test.ts:289` — `a newly due window restarts ahead of an explicit empty scan cursor`: proves scan progress cannot suppress scheduled work for earlier tenants.
+- `tests/unit/server/jobs/runner.test.ts:378` — `an irrelevant cursor lookup cannot clear carried due work for a later tenant`: proves deadline handling retains the due snapshot and tenant fairness.
 
 ### Evidence and limits
 
-The focused route/auth/runner command passed 25/25 with zero skips. `pnpm typecheck` and changed-file ESLint passed. Database and browser suites were not rerun because the patch has no migration, RLS, or browser-surface change; previous CI evidence remains historical only. The supported scheduler grammar is intentionally narrow; add explicit parsing and regression coverage before a future producer adopts a richer expression.
+The focused route/auth/runner command passed 30/30 with zero failures and zero skips. `pnpm typecheck` and changed-file ESLint passed. The final narrow post-fix review returned PASS. Database and browser suites were not rerun because the patch has no migration, RLS, or browser-surface change; previous CI evidence remains historical only. The supported scheduler grammar is intentionally narrow, and the internal deadline remains a cooperative containment bound rather than an owner-approved latency SLO.
