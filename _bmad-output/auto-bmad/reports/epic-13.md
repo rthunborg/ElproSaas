@@ -357,3 +357,44 @@ No new archive in this follow-up; earlier two archived resolutions and remaining
 1. Optional owner merge of PR75; no merge approval received.
 
 **Next:** Human review: /bmad-checkpoint-preview https://github.com/rthunborg/ElproSaas/pull/75. Project context: run /bmad-project-context refresh (recommended after an epic).
+
+## Report — 2026-09-28T12:20:02Z (final — caveated)
+
+**Epic:** `13` — 4 stories.
+**Branch:** `epic/13-wave-b1a-notifications-and-email-infrastructure` (HEAD `cf73891`).
+**Pipeline status:** Five additional ReviewBot findings and direct cursor regressions are fixed and reviewed; trace PASS, fresh full CI pending. Epic and stories retain done status; PR75 remains draft for the current execution gate.
+**Continues:** 2026-09-28T09:56:51Z (final); this section records the second owner-supplied ReviewBot batch.
+
+**Summary:** Stable tenant keyset continuation; durable missing-HMAC recovery; notification one/all rollback after POST and reload failure; transactional run/audit writes; Stockholm date filtering. New-due scheduling and exhausted legacy boundaries were corrected during narrowed convergence. Source 8b20933; reviewed docs 79e5550.
+
+**Timing:** started 2026-09-23T10:29:03Z; completed 2026-09-24T18:57:24Z — elapsed 32h 28m (≈12h 14m AI-run, ≈20h 13m human/idle wait); resumed 9×.
+
+**Stories:**
+1. 13.1 done; follow-up passes 6; current triage all zero; followup false; deferred count1.
+2. 13.2 done; follow-up passes4; current triage all zero; followup false; deferred count1.
+3. 13.3 done; follow-up passes3; no critical-convergence review claim; followup false; deferred count1.
+4. 13.4 done; follow-up passes4; current triage all zero; followup false; deferred count3.
+
+**Skipped:** (none)
+
+**Epic gate:** PASS; trace refreshed and final review settled. Required execution proof remains unwaived for the new migration/RPC and Bell browser cases.
+
+**TEA:** PASS:26/26 total and P0 FULL100%;0 partial/uncovered.73 mapped cases20files:34 unit/static+35API/integration/RLS+4E2E.199 static declarations34files. Primary focused37/37 and final runner23/23 pass,0 failures/skips; current typecheck/changed-file ESLint pass. Service-role containment passed. Current-source fullCI pending.
+
+**Retrospective:** Accepted September28 retrospective;0 open action items. Historical retrospective documents and original done transitions preserved.
+
+**Overrides:** Targeted post-completion remediation only; post-third-round scope retained. Configured Luna CLI ended without evidence; same Luna/xhigh native review identified a real regression now fixed. No fabricated CLI PASS.
+
+**Open questions:**
+1. Numeric operating targets remain owner-pending operational contracts.
+
+**Deferred work:**
+1. Local required integration ran8:5 passed,3 failed,0 skipped because newRPCs are absent and pre-existing email_outbox_delivery_identity_key migration-history drift blocks application. Fresh CI will prove the isolated new schema; local stack was not started/stopped/reset or repaired.
+2. Real-recipient delivery stays disabled pending separate ADR-B011 approval, provider idempotency and rendered scoped unsubscribe URLs.
+3. Authenticated production cron observation follows merge, migration rollout and deployment.
+No ledger archive or new retrospective in this bounded follow-up; prior archived resolutions and compound release gates retain their disposition.
+
+**⚠️ Needs human:**
+1. Optional owner merge after current CI passes; no merge approval received.
+
+**Next:** Human review: /bmad-checkpoint-preview https://github.com/rthunborg/ElproSaas/pull/75. Project context: run /bmad-project-context refresh (recommended after an epic).
