@@ -277,3 +277,43 @@ Prior reconcile retained 5 not-fully-resolved ledger entries; archived 0 new ent
 **Next:** Human review: /bmad-checkpoint-preview https://github.com/rthunborg/ElproSaas/pull/75. Project context: run /bmad-project-context refresh (recommended after an epic).
 
 **Final CI closure (2026-09-28):** [CI 36397564158](https://github.com/rthunborg/ElproSaas/actions/runs/36397564158) passed all four jobs on completion-report head `762c547`; Vercel passed. Logs confirm 1,904 unit passed/0 skipped, 1,206 required DB passed/1 explicit skip, 1 isolated recovery passed/0 skipped, and 172 E2E passed/4 skipped. The deterministic final draft predicate is false. Epic and stories remain done; PR #75 is ready for human review, pending the owner's optional merge choice. A bookkeeping-only finalize push may re-trigger checks under the workflow's recorded CI-lag rule.
+
+## Report — 2026-09-28T09:45:49Z (final â€” caveated)
+
+**Epic:** `13` — 4 stories.
+**Branch:** `epic/13-wave-b1a-notifications-and-email-infrastructure` (HEAD `5bd0dae`).
+**Pipeline status:** ReviewBot remediation reviewed and acceptance trace PASS; fresh full CI pending. All four stories and the epic retain their completed status; PR75 is draft until this checkpoint passes.
+**Continues:** 2026-09-28T08:28:20Z (final) and its CI closure; this section records the owner-supplied ReviewBot follow-up.
+
+**Summary:** All three supplied findings are fixed: Stockholm reminder dates, schedule-aware producer dispatch, and byte-safe bearer comparison. Targeted convergence additionally repaired carried due-producer state across a second deadline and bounded off-schedule cursor scans. Product source ed43933; author closure 54181ab; trace checkpoint 5bd0dae.
+
+**Timing:** started 2026-09-23T10:29:03Z; completed 2026-09-24T18:57:24Z — elapsed 32h 28m (≈12h 14m AI-run, ≈20h 13m human/idle wait); resumed 7×.
+
+**Stories:**
+1. 13.1 done; follow-up passes 4; followup_review_recommended false; review_unverified false; deferred count 1.
+2. 13.2 done; follow-up passes 2; followup_review_recommended false; review_unverified false; deferred count 1.
+3. 13.3 done; follow-up passes 2; followup_review_recommended false; review_unverified false; deferred count 1.
+4. 13.4 done; follow-up passes 2; followup_review_recommended false; review_unverified false; deferred count 3.
+
+**Skipped:** (none)
+
+**Epic gate:** PASS; current-source acceptance mapping refreshed. The original threshold gate remains deterministic and unwaived.
+
+**TEA:** Trace refresh PASS: 26/26 P0 and overall FULL (100%), no partial or uncovered requirements; 63 mapped active cases across 20 files (28 unit/static, 33 API/integration/RLS, 2 E2E); 189 static declarations across 34 files. Source ed43933 evidence: 30 focused cases passed, 0 failed/skipped; typecheck, changed-file ESLint and 12-reference review-order validation passed. Full CI is pending for the published checkpoint.
+
+**Retrospective:** Accepted 2026-09-28 retrospective; zero open action items. Historical rejected retrospective documents retained.
+
+**Overrides:** Owner-supplied ReviewBot comments trigger targeted post-completion fixes and direct regression checks. Prior third-round limits retained; no new broad review.
+
+**Open questions:**
+1. Numeric operating targets remain owner-pending contracts; the runtime guard is not a production SLA.
+
+**Deferred work:**
+1. Real-recipient email stays disabled pending separate ADR-B011 owner approval, provider idempotency, and real rendered unsubscribe URLs.
+2. Authenticated production cron observation follows merge, migration and deployment; Vercel Pro and production-only sensitive CRON_SECRET were verified previously.
+No new ledger archive during this targeted follow-up; prior two archived resolutions and remaining compound gates retain their recorded disposition.
+
+**⚠️ Needs human:**
+1. Optional merge of PR75 remains an owner decision after current CI passes.
+
+**Next:** Human review: /bmad-checkpoint-preview https://github.com/rthunborg/ElproSaas/pull/75. Project context: run /bmad-project-context refresh (recommended after an epic).
