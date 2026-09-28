@@ -427,12 +427,12 @@ test("[P0] a deadline during off-schedule global continuation retains the origin
   assert.equal(writes.filter((record) => record.producer === "jobs.runner" && record.outcome === "partial").length, 2);
 });
 
-test("[P0] a newly due five-minute producer starts at tenant zero while an hourly continuation keeps its keyset boundary across a deadline", async () => {
+test("[P0] a newly due hourly producer starts at tenant zero while a five-minute continuation keeps its keyset boundary across a deadline", async () => {
   const hourly = { ...producer, id: "quotes.hourly", schedule: "0 * * * *" };
   const fiveMinute = { ...producer, id: "notifications.five-minute", schedule: "*/5 * * * *" };
   const tenants = ["tenant-a", "tenant-b", "tenant-c"];
   const calls: string[] = [];
-  let clock = new Date("2026-09-27T12:00:00.000Z");
+  let clock = new Date("2026-09-27T12:55:00.000Z");
   const deps = {
     listTenantIds: async () => tenants,
     execute: async (candidate: ProducerDeclaration, tenantId: string) => { calls.push(`${tenantId}:${candidate.id}`); },
@@ -440,26 +440,26 @@ test("[P0] a newly due five-minute producer starts at tenant zero while an hourl
     now: () => clock,
   };
 
-  const hourlyContinuation = await runDueProducers(deps, {
-    producers: [hourly],
+  const fiveMinuteContinuation = await runDueProducers(deps, {
+    producers: [hourly, fiveMinute],
     chunkSize: 1,
     windowStartedAt: clock,
   });
-  assert.deepEqual(hourlyContinuation, { outcome: "partial", cursor: encodeCursor(1, 0, [hourly.id], "tenant-b") });
+  assert.deepEqual(fiveMinuteContinuation, { outcome: "partial", cursor: encodeCursor(1, 1, [fiveMinute.id], "tenant-b") });
 
-  clock = new Date("2026-09-27T12:05:00.000Z");
+  clock = new Date("2026-09-27T13:00:00.000Z");
   const deadline = await runDueProducers(deps, {
     producers: [hourly, fiveMinute],
-    cursor: hourlyContinuation.cursor,
+    cursor: fiveMinuteContinuation.cursor,
     deadline: clock,
     windowStartedAt: clock,
   });
   assert.deepEqual(deadline, {
     outcome: "partial",
-    cursor: encodeCursor(0, 0, [hourly.id, fiveMinute.id], "tenant-a", [hourly.id], "tenant-b"),
+    cursor: encodeCursor(0, 0, [fiveMinute.id, hourly.id], "tenant-a", [fiveMinute.id], "tenant-b"),
   });
 
-  clock = new Date("2026-09-27T12:10:00.000Z");
+  clock = new Date("2026-09-27T13:05:00.000Z");
   const completed = await runDueProducers(deps, {
     producers: [hourly, fiveMinute],
     cursor: deadline.cursor,
@@ -467,8 +467,8 @@ test("[P0] a newly due five-minute producer starts at tenant zero while an hourl
   });
   assert.deepEqual(completed, { outcome: "completed" });
   assert.deepEqual(calls, [
-    "tenant-a:quotes.hourly",
     "tenant-a:notifications.five-minute",
+    "tenant-a:quotes.hourly",
     "tenant-b:quotes.hourly",
     "tenant-b:notifications.five-minute",
     "tenant-c:quotes.hourly",
