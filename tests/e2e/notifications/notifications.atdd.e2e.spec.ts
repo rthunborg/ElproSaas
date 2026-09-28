@@ -165,11 +165,16 @@ test.describe("Story 13.2 In-app-notiser — bell, center och inställningar (AT
   });
 
   test("[P0] Bell restores known persisted state when mark-all and reconciliation both fail", async ({ page }) => {
-    await signIn(page, fixture().notifications.finance);
+    // Finance consumed its shared unread fixture in the successful mark-all proof above.
+    // Project manager has not mutated notifications in this file, so this test starts
+    // from a known enabled mark-all control before injecting either failure.
+    await signIn(page, fixture().notifications.projectManager);
     const popover = await openBell(page);
+    const markAll = popover.getByRole("button", { name: "Markera alla som lästa" });
+    await expect(markAll).toBeEnabled();
     await page.route("**/api/notifications/read-all", (route) => route.fulfill({ status: 500, body: "{}" }));
     await page.route("**/api/notifications", (route) => route.fulfill({ status: 500, body: "{}" }));
-    await popover.getByRole("button", { name: "Markera alla som lästa" }).click();
+    await markAll.click();
     await expect(popover.getByRole("alert")).toContainText(/kunde inte markera.*försök igen/i);
     await expect(popover.getByRole("listitem", { name: "oläst", exact: true }).first()).toBeVisible();
     await expect(page.getByRole("button", { name: /notiser/i })).toHaveAccessibleName(/olästa notiser/i);
