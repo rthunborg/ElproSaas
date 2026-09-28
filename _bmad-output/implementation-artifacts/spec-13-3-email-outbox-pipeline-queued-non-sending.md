@@ -169,3 +169,23 @@ Refreshed against code head `d770780` after Story 13.4 activation, recipient cor
 ### Evidence and limit
 
 Base Epic 13 CI run `36339205329` passed the queue, RLS, activated suppression, and browser projection coverage within the recorded 1,896 unit, 1,205 database, and 172 browser passes. The final focused runner set passed with the email outbox producer still on the sole authenticated jobs lane. Exact checkpoint CI run `36344284961` at `c1020e9` passed all four jobs: 1,904 unit tests with zero skips, 1,206 required database tests with one explicit isolated recovery-storage skip, the isolated recovery proof 1/1 with zero skips, and 172 browser tests with four explicit skips; Vercel also succeeded. The checkpoint changes after `d770780` are documentation/state only. Full closure is recorded in `docs/quality/epic-13-convergence-review-2026-09-27.md`. Real-recipient delivery, provider idempotency after acceptance, and provider-rendered unsubscribe URLs remain separately gated/deferred; the active adapter evidence is synthetic sandbox only.
+
+### ReviewBot follow-up 2 — runner persistence seam
+
+Refreshed by the follow-up fix author against `2a7444fbbaa64948cbda46c3ebf0e9f8981a6a46`. The registered outbox producer remains on the sole jobs lane, whose run record and system audit now commit atomically. No outbox table, queue, worker lease, provider, or release-control behavior changed.
+
+- `src/app/api/jobs/run/route.ts:59` — the producer runtime persists through the one transactional run-plus-audit RPC.
+- `supabase/migrations/20260928110819_epic_13_reviewbot_followup_atomic_job_run_audit_and_config_recovery.sql:3` — limits that writer to service role and rolls back both rows on audit failure.
+- `tests/integration/jobs/job-runs.int.test.ts` — supplies the atomic rollback regression on a fresh migrated schema.
+
+No separate Story 13.3 production defect was found in this bounded pass; its follow-up recommendation remains `false`. Fresh-migration integration evidence is deferred to CI because the local migration history is inconsistent.
+
+### 2026-09-28 — Review pass
+
+- intent_gap: 0
+- bad_spec: 0
+- patch: 0
+- defer: 0
+- reject: 0
+- addressed_findings:
+  - none

@@ -5,7 +5,7 @@ created: '2026-09-23'
 status: 'done'
 baseline_revision: '3d49a6e5d8070c9f72498e5ad0048300a799e7c0'
 review_loop_iteration: 0
-followup_review_recommended: false
+followup_review_recommended: true
 context:
   - '_bmad-output/project-context.md'
   - '_bmad-output/implementation-artifacts/epic-13-context.md'
@@ -200,24 +200,47 @@ Refreshed for the final 2026-09-28 ReviewBot convergence: Stockholm date handoff
 
 The public scheduler entry authenticates before creating a privileged client. Its follow-up work receives the established Stockholm business date, preserving the domain's due-date and notification-period meaning.
 
-- `src/app/api/jobs/run/route.ts:87` — `handleJobsRunRequest`: rejects unauthorized callers before any client or runner side effect.
+- `src/app/api/jobs/run/route.ts:75` — `handleJobsRunRequest`: rejects unauthorized callers before any client or runner side effect.
 - `src/server/jobs/auth.ts:3` — `equalSecret`: encodes both values and rejects unequal byte lengths before `timingSafeEqual`.
-- `src/app/api/jobs/run/route.ts:115` — `stockholmBusinessDate`: supplies the follow-up producer's DST-aware period.
+- `src/app/api/jobs/run/route.ts:103` — `stockholmBusinessDate`: supplies the follow-up producer's DST-aware period.
 - `tests/unit/server/jobs/route.test.ts:60` — `byte-length-mismatched bearer credentials always receive the generic 401 without side effects`: proves both rotation-expiry states keep the route response generic.
-- `tests/unit/server/jobs/route.test.ts:160` — `the default follow-up dispatcher uses the Stockholm business date across winter, summer, and DST`: exercises the default route dispatcher at its date handoff.
+- `tests/unit/server/jobs/route.test.ts:162` — `the default follow-up dispatcher uses the Stockholm business date across winter, summer, and DST`: exercises the default route dispatcher at its date handoff.
 
 ### Due scheduling and checkpoint continuation
 
 The runner evaluates schedules against one injected UTC window and treats cursor discovery as budgeted work. Explicit empty due-ID snapshots retain scan progress without granting execution authority; a newly due window restarts at tenant zero, while non-empty carried snapshots and legacy cursors preserve their intended continuation semantics.
 
-- `src/server/jobs/runner.ts:61` — `isProducerDueAt`: validates the supported five-field UTC cron grammar and fails closed for unsupported declarations.
-- `src/server/jobs/runner.ts:114` — `startsNewScheduledWindow`: distinguishes scan-only snapshots from carried scheduled work so a new due window cannot skip early tenants.
-- `src/server/jobs/runner.ts:160` — `hasKnownWork`: checks the chunk/deadline before execution and checkpoints interrupted cursor discovery after each bounded lookup.
+- `src/server/jobs/runner.ts:63` — `isProducerDueAt`: validates the supported five-field UTC cron grammar and fails closed for unsupported declarations.
+- `src/server/jobs/runner.ts:125` — `startsNewScheduledWindow`: distinguishes scan-only snapshots from carried scheduled work so a new due window cannot skip early tenants.
+- `src/server/jobs/runner.ts:184` — `hasKnownWork`: checks the chunk/deadline before execution and checkpoints interrupted cursor discovery after each bounded lookup.
 - `tests/unit/server/jobs/runner.test.ts:178` — `runs only injected-clock due producers and creates no producer or runner record on a fresh off-schedule tick`: proves a completed no-work scan remains silent.
 - `tests/unit/server/jobs/runner.test.ts:202` — `budgeted off-schedule scans resume until they reach a later producer checkpoint`: proves repeated bounded scans retain progress and eventually resume saved work.
 - `tests/unit/server/jobs/runner.test.ts:289` — `a newly due window restarts ahead of an explicit empty scan cursor`: proves scan progress cannot suppress scheduled work for earlier tenants.
-- `tests/unit/server/jobs/runner.test.ts:378` — `an irrelevant cursor lookup cannot clear carried due work for a later tenant`: proves deadline handling retains the due snapshot and tenant fairness.
+- `tests/unit/server/jobs/runner.test.ts:430` — `an irrelevant cursor lookup cannot clear carried due work for a later tenant`: proves deadline handling retains the due snapshot and tenant fairness.
 
 ### Evidence and limits
 
 The focused route/auth/runner command passed 30/30 with zero failures and zero skips. `pnpm typecheck` and changed-file ESLint passed. The final narrow post-fix review returned PASS. Database and browser suites were not rerun because the patch has no migration, RLS, or browser-surface change; previous CI evidence remains historical only. The supported scheduler grammar is intentionally narrow, and the internal deadline remains a cooperative containment bound rather than an owner-approved latency SLO.
+
+### ReviewBot follow-up 2 — stable continuation and atomic observation
+
+Refreshed by the follow-up fix author against `2a7444fbbaa64948cbda46c3ebf0e9f8981a6a46`. New runner cursors name their next tenant and preserve the prior numeric format only for legacy records; a deleted named target resumes at the next lexical tenant and restarts that replacement tuple at producer zero. The scheduler now records each job run and its system audit through one service-role-only database transaction.
+
+- `src/server/jobs/runner.ts:131` — resolves current keyset cursors against the route's ordered tenant list and preserves legacy numeric continuation.
+- `src/app/api/jobs/run/route.ts:59` — calls the single atomic persistence RPC for every runner record.
+- `supabase/migrations/20260928110819_epic_13_reviewbot_followup_atomic_job_run_audit_and_config_recovery.sql:3` — creates the constrained transactional run-plus-audit writer.
+- `tests/unit/server/jobs/runner.test.ts` — covers insert/delete continuation, legacy compatibility, deleted mid-tuple restart, due snapshots, and fairness.
+- `tests/integration/jobs/job-runs.int.test.ts` — forces the system-audit insert to fail and asserts no job-run row commits on a fresh migrated schema.
+
+Focused unit evidence passed 37/37 with zero skips; typecheck, changed-file ESLint, and service-role containment passed. Required integration evidence is pending fresh-migration CI because the existing local database has inconsistent historical migration metadata; this follow-up adds a migration, so `followup_review_recommended: true`.
+
+### 2026-09-28 — Review pass
+
+- intent_gap: 0
+- bad_spec: 0
+- patch: 2 (high 2)
+- defer: 0
+- reject: 0
+- addressed_findings:
+  - `[high] [patch]` Replaced mutable numeric tenant positions with a named next-tenant cursor while retaining legacy cursor decoding and due-work fairness.
+  - `[high] [patch]` Moved job-run and system-audit writes into one service-role-only transactional RPC.

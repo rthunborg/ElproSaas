@@ -6,7 +6,7 @@ status: 'done'
 baseline_revision: '344f00e01ebd02191ee5c116ff28be15d1c1c604'
 baseline_commit: '344f00e01ebd02191ee5c116ff28be15d1c1c604'
 review_loop_iteration: 0
-followup_review_recommended: false
+followup_review_recommended: true
 context:
   - '_bmad-output/project-context.md'
   - '_bmad-output/implementation-artifacts/epic-13-context.md'
@@ -187,3 +187,25 @@ Refreshed against code head `d770780` after the approved removal of the ineffect
 ### Evidence and limit
 
 Base Epic 13 CI run `36339205329` passed the final preference registry, required database/RLS, and browser absence cases as part of the recorded 1,896 unit, 1,205 database, and 172 browser passes. The final focused unit set passed 32/32 and includes bounded, failure-resumable follow-up/preference projection. Exact checkpoint CI run `36344284961` at `c1020e9` passed all four jobs: 1,904 unit tests with zero skips, 1,206 required database tests with one explicit isolated recovery-storage skip, the isolated recovery proof 1/1 with zero skips, and 172 browser tests with four explicit skips; Vercel also succeeded. The checkpoint changes after `d770780` are documentation/state only. Full closure is recorded in `docs/quality/epic-13-convergence-review-2026-09-27.md`. Retained legacy `quote.delivery` preference rows remain inert and hidden; deletion still requires a separate retention decision.
+
+### ReviewBot follow-up 2 — truthful acknowledgement and Stockholm dates
+
+Refreshed by the follow-up fix author against `2a7444fbbaa64948cbda46c3ebf0e9f8981a6a46`. The bell retains its known server snapshot before an optimistic mark-one or mark-all update. A successful reload remains authoritative; if both mutation and reload fail, the snapshot is restored and retry copy stays visible. From-date filtering now compares Stockholm business days and excludes malformed timestamps only when a date filter is supplied.
+
+- `src/components/notifications/NotificationBell.tsx:49` — restores the prior snapshot after a failed acknowledgement and failed reconciliation.
+- `src/components/notifications/notification-presentation.ts:39` — applies the existing Europe/Stockholm business-date authority with safe invalid-input behavior.
+- `tests/e2e/notifications/notifications.atdd.e2e.spec.ts` — faults both mark and reload for single/all acknowledgement paths.
+- `tests/unit/components/notifications/notification-presentation.test.ts` — covers Stockholm midnight/DST and empty/invalid filter behavior.
+
+Focused unit evidence passed 37/37 with zero skips; typecheck and changed-file ESLint passed. Browser fault coverage awaits the configured full-CI browser lane, so `followup_review_recommended: true`.
+
+### 2026-09-28 — Review pass
+
+- intent_gap: 0
+- bad_spec: 0
+- patch: 2 (high 2)
+- defer: 0
+- reject: 0
+- addressed_findings:
+  - `[high] [patch]` Restored the known persisted notification state if mutation and reconciliation both fail.
+  - `[high] [patch]` Applied Stockholm business dates to notification from-date filtering.
