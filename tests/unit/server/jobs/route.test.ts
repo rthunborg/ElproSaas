@@ -100,7 +100,7 @@ test("[P0] the authenticated route loads a persisted cursor and writes matching 
           eq: () => cursorQuery,
           not: () => cursorQuery,
           order: () => cursorQuery,
-          limit: async () => ({ data: [{ cursor: encodeCursor(1), outcome: "partial" }], error: null }),
+          limit: async () => ({ data: [{ cursor: encodeCursor(1, 0, [producer.id]), outcome: "partial" }], error: null }),
         };
         return {
           select: () => cursorQuery,

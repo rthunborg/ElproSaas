@@ -199,6 +199,128 @@ test("[P0] runs only injected-clock due producers and creates no producer or run
   assert.deepEqual(calls, [hourly.id, fiveMinute.id]);
 });
 
+test("[P0] budgeted off-schedule scans resume until they reach a later producer checkpoint", async () => {
+  const hourlyA = { ...producer, id: "quotes.hourly-a", schedule: "0 * * * *" };
+  const hourlyB = { ...producer, id: "quotes.hourly-b", schedule: "0 * * * *" };
+  const tenants = Array.from({ length: 4 }, (_, index) => `tenant-${index}`);
+  const loads: string[] = [];
+  const writes: JobRunRecord[] = [];
+  const calls: string[] = [];
+  let invocationStart = new Date("2026-09-27T12:05:00.000Z");
+  let elapsedMs = 0;
+  const deps = {
+    listTenantIds: async () => tenants,
+    loadProducerCursor: async (candidate: ProducerDeclaration, tenantId: string) => {
+      loads.push(`${tenantId}:${candidate.id}`);
+      elapsedMs += 10;
+      return tenantId === "tenant-3" && candidate.id === hourlyB.id ? "saved-page" : undefined;
+    },
+    execute: async (candidate: ProducerDeclaration, tenantId: string, cursor?: string) => { calls.push(`${tenantId}:${candidate.id}:${cursor ?? "start"}`); },
+    record: async (record: JobRunRecord) => { writes.push(record); },
+    now: () => new Date(invocationStart.getTime() + elapsedMs),
+  };
+  const run = async (cursor?: string) => {
+    elapsedMs = 0;
+    const started = invocationStart;
+    const result = await runDueProducers(deps, {
+      producers: [hourlyA, hourlyB],
+      cursor,
+      windowStartedAt: started,
+      deadline: new Date(started.getTime() + 25),
+    });
+    invocationStart = new Date(invocationStart.getTime() + 5 * 60_000);
+    return result;
+  };
+
+  const first = await run();
+  const second = await run(first.cursor);
+  const third = await run(second.cursor);
+
+  assert.deepEqual(first, { outcome: "partial", cursor: encodeCursor(1, 1) });
+  assert.deepEqual(second, { outcome: "partial", cursor: encodeCursor(3, 0) });
+  assert.deepEqual(third, { outcome: "completed" });
+  assert.equal(loads.length, 8);
+  assert.deepEqual(calls, ["tenant-3:quotes.hourly-b:saved-page"]);
+  assert.deepEqual(writes.filter((record) => record.producer === "jobs.runner").map((record) => record.outcome), ["partial", "partial", "completed"]);
+});
+
+test("[P0] an off-schedule producer checkpoint found at the deadline resumes at the same tuple", async () => {
+  const hourlyA = { ...producer, id: "quotes.hourly-a", schedule: "0 * * * *" };
+  const hourlyB = { ...producer, id: "quotes.hourly-b", schedule: "0 * * * *" };
+  const tenants = ["tenant-a", "tenant-b", "tenant-c", "tenant-d"];
+  const writes: JobRunRecord[] = [];
+  const calls: string[] = [];
+  const started = new Date("2026-09-27T12:05:00.000Z");
+  let elapsedMs = 0;
+  const deps = {
+    listTenantIds: async () => tenants,
+    loadProducerCursor: async (candidate: ProducerDeclaration, tenantId: string) => {
+      elapsedMs += 10;
+      return tenantId === "tenant-b" && candidate.id === hourlyA.id ? "saved-page" : undefined;
+    },
+    execute: async (candidate: ProducerDeclaration, tenantId: string, cursor?: string) => {
+      calls.push(`${tenantId}:${candidate.id}:${cursor ?? "start"}`);
+    },
+    record: async (record: JobRunRecord) => { writes.push(record); },
+    now: () => new Date(started.getTime() + elapsedMs),
+  };
+
+  const first = await runDueProducers(deps, {
+    producers: [hourlyA, hourlyB],
+    windowStartedAt: started,
+    deadline: new Date(started.getTime() + 25),
+  });
+  assert.deepEqual(first, { outcome: "partial", cursor: encodeCursor(1, 0) });
+  assert.deepEqual(calls, []);
+  assert.equal(writes.at(-1)?.producer, "jobs.runner");
+  assert.equal(writes.at(-1)?.outcome, "partial");
+
+  const second = await runDueProducers(deps, {
+    producers: [hourlyA, hourlyB],
+    cursor: first.cursor,
+    windowStartedAt: new Date("2026-09-27T12:10:00.000Z"),
+  });
+  assert.deepEqual(second, { outcome: "completed" });
+  assert.deepEqual(calls, ["tenant-b:quotes.hourly-a:saved-page"]);
+  assert.equal(writes.at(-1)?.producer, "jobs.runner");
+  assert.equal(writes.at(-1)?.outcome, "completed");
+});
+
+test("[P0] a newly due window restarts ahead of an explicit empty scan cursor", async () => {
+  const hourly = { ...producer, id: "quotes.hourly", schedule: "0 * * * *" };
+  const calls: string[] = [];
+  const result = await runDueProducers({
+    listTenantIds: async () => ["tenant-a", "tenant-b", "tenant-c", "tenant-d"],
+    loadProducerCursor: async () => undefined,
+    execute: async (_candidate, tenantId) => { calls.push(tenantId); },
+    record: async () => undefined,
+  }, {
+    producers: [hourly],
+    cursor: encodeCursor(2),
+    windowStartedAt: new Date("2026-09-27T13:00:00.000Z"),
+  });
+  assert.deepEqual(result, { outcome: "completed" });
+  assert.deepEqual(calls, ["tenant-a", "tenant-b", "tenant-c", "tenant-d"]);
+});
+
+test("[P0] a legacy global cursor still authorizes only its exact off-schedule tuple", async () => {
+  const hourly = { ...producer, id: "quotes.hourly", schedule: "0 * * * *" };
+  const calls: string[] = [];
+  const legacyCursor = Buffer.from(JSON.stringify({ nextIndex: 1 }), "utf8").toString("base64url");
+  const result = await runDueProducers({
+    listTenantIds: async () => ["tenant-a", "tenant-b"],
+    loadProducerCursor: async () => undefined,
+    execute: async (_candidate, tenantId, cursor) => { calls.push(`${tenantId}:${cursor ?? "start"}`); },
+    record: async () => undefined,
+  }, {
+    producers: [hourly],
+    cursor: legacyCursor,
+    windowStartedAt: new Date("2026-09-27T12:05:00.000Z"),
+  });
+  assert.deepEqual(result, { outcome: "completed" });
+  assert.deepEqual(calls, ["tenant-b:start"]);
+});
+
 test("[P0] global and producer checkpoints resume hourly work across an off-schedule minute without starving later tenants", async () => {
   const hourly = { ...producer, id: "quotes.hourly", schedule: "0 * * * *" };
   const writes: JobRunRecord[] = [];
@@ -251,6 +373,43 @@ test("[P0] a deadline during off-schedule global continuation retains the origin
   assert.equal(third.outcome, "completed");
   assert.deepEqual(calls, [hourly.id]);
   assert.equal(writes.filter((record) => record.producer === "jobs.runner" && record.outcome === "partial").length, 2);
+});
+
+test("[P0] an irrelevant cursor lookup cannot clear carried due work for a later tenant", async () => {
+  const hourlyA = { ...producer, id: "quotes.hourly-a", schedule: "0 * * * *" };
+  const hourlyB = { ...producer, id: "quotes.hourly-b", schedule: "0 * * * *" };
+  const calls: string[] = [];
+  const writes: JobRunRecord[] = [];
+  let clock = new Date("2026-09-27T12:05:00.000Z");
+  const deps = {
+    listTenantIds: async () => ["tenant-a", "tenant-b"],
+    loadProducerCursor: async (candidate: ProducerDeclaration) => {
+      if (candidate.id === hourlyB.id) clock = new Date(clock.getTime() + 30);
+      return undefined;
+    },
+    execute: async (candidate: ProducerDeclaration, tenantId: string) => { calls.push(`${tenantId}:${candidate.id}`); },
+    record: async (record: JobRunRecord) => { writes.push(record); },
+    now: () => clock,
+  };
+
+  const first = await runDueProducers(deps, {
+    producers: [hourlyA, hourlyB],
+    cursor: encodeCursor(0, 0, [hourlyA.id]),
+    windowStartedAt: clock,
+    deadline: new Date(clock.getTime() + 25),
+  });
+  assert.deepEqual(first, { outcome: "partial", cursor: encodeCursor(1, 0, [hourlyA.id]) });
+  assert.deepEqual(calls, ["tenant-a:quotes.hourly-a"]);
+
+  clock = new Date("2026-09-27T12:10:00.000Z");
+  const second = await runDueProducers(deps, {
+    producers: [hourlyA, hourlyB],
+    cursor: first.cursor,
+    windowStartedAt: clock,
+  });
+  assert.deepEqual(second, { outcome: "completed" });
+  assert.deepEqual(calls, ["tenant-a:quotes.hourly-a", "tenant-b:quotes.hourly-a"]);
+  assert.equal(writes.at(-1)?.outcome, "completed");
 });
 
 test("[P0] failed and partial hourly checkpoints both retry off-schedule while later tenants continue", async () => {

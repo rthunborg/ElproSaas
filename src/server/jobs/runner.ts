@@ -29,7 +29,12 @@ export function sanitizeJobError(error: unknown): string {
     .replace(/([a-z][a-z0-9+.-]*:\/\/)[^\s/@:]+:[^@\s/]+@/gi, "$1[redacted]@")
     .slice(0, ERROR_LIMIT);
 }
-type RunnerCursor = { readonly nextIndex: number; readonly producerIndex: number; readonly dueProducerIds: readonly string[] };
+type RunnerCursor = {
+  readonly nextIndex: number;
+  readonly producerIndex: number;
+  readonly dueProducerIds: readonly string[];
+  readonly hasDueProducerSnapshot: boolean;
+};
 
 function parseCronField(field: string, value: number, maximum: number): boolean {
   if (field === "*") return true;
@@ -66,18 +71,19 @@ export function isProducerDueAt(schedule: string, instant: Date): boolean {
 }
 
 function parseCursor(cursor?: string): RunnerCursor {
-  if (!cursor) return { nextIndex: 0, producerIndex: 0, dueProducerIds: [] };
+  if (!cursor) return { nextIndex: 0, producerIndex: 0, dueProducerIds: [], hasDueProducerSnapshot: false };
   try {
     const value = JSON.parse(Buffer.from(cursor, "base64url").toString("utf8"));
+    const hasDueProducerSnapshot = Array.isArray(value.dueProducerIds)
+      && value.dueProducerIds.every((id: unknown) => typeof id === "string");
     return {
       nextIndex: Number.isSafeInteger(value.nextIndex) && value.nextIndex >= 0 ? value.nextIndex : 0,
       producerIndex: Number.isSafeInteger(value.producerIndex) && value.producerIndex >= 0 ? value.producerIndex : 0,
-      dueProducerIds: Array.isArray(value.dueProducerIds) && value.dueProducerIds.every((id: unknown) => typeof id === "string")
-        ? value.dueProducerIds
-        : [],
+      dueProducerIds: hasDueProducerSnapshot ? value.dueProducerIds : [],
+      hasDueProducerSnapshot,
     };
   } catch {
-    return { nextIndex: 0, producerIndex: 0, dueProducerIds: [] };
+    return { nextIndex: 0, producerIndex: 0, dueProducerIds: [], hasDueProducerSnapshot: false };
   }
 }
 
@@ -85,7 +91,7 @@ export function encodeCursor(nextIndex: number, producerIndex = 0, dueProducerId
   const value = {
     nextIndex,
     ...(producerIndex === 0 ? {} : { producerIndex }),
-    ...(dueProducerIds.length === 0 ? {} : { dueProducerIds }),
+    dueProducerIds,
   };
   return Buffer.from(JSON.stringify(value), "utf8").toString("base64url");
 }
@@ -100,12 +106,16 @@ export async function runDueProducers(deps: RunnerDependencies, options: { reado
   const tenants = await deps.listTenantIds();
   if (tenants.length === 0) return { outcome: "completed" };
   const resume = parseCursor(options.cursor);
-  const start = resume.nextIndex;
   const max = Math.max(1, options.chunkSize ?? 25);
   const now = deps.now ?? (() => new Date());
   const windowStart = options.windowStartedAt ?? now();
   const windowStartedAt = windowStart.toISOString();
   const dueProducerIds = new Set(producers.filter((producer) => isProducerDueAt(producer.schedule, windowStart)).map((producer) => producer.id));
+  const startsNewScheduledWindow = resume.hasDueProducerSnapshot
+    && resume.dueProducerIds.length === 0
+    && dueProducerIds.size > 0;
+  const start = startsNewScheduledWindow ? 0 : resume.nextIndex;
+  const resumedProducerIndex = startsNewScheduledWindow ? 0 : resume.producerIndex;
   const resumedProducerIds = new Set(resume.dueProducerIds);
   const continuationProducerIds = new Set([...resumedProducerIds, ...dueProducerIds]);
   let hadFailure = false;
@@ -136,22 +146,53 @@ export async function runDueProducers(deps: RunnerDependencies, options: { reado
   };
   let completed = 0;
   let hadPartial = false;
+  let scannedTuple = false;
   for (let i = start; i < tenants.length; i += 1) {
-    const firstProducerIndex = i === start && resume.producerIndex < producers.length ? resume.producerIndex : 0;
+    const firstProducerIndex = i === start && resumedProducerIndex < producers.length ? resumedProducerIndex : 0;
     let executedForTenant = false;
     for (let producerIndex = firstProducerIndex; producerIndex < producers.length; producerIndex += 1) {
       const producer = producers[producerIndex]!;
+      const resumesWindow = continuationProducerIds.has(producer.id);
+      const resumesLegacyTuple = !resume.hasDueProducerSnapshot
+        && Boolean(options.cursor)
+        && i === start
+        && producerIndex === firstProducerIndex;
+      const hasKnownWork = dueProducerIds.has(producer.id) || resumesWindow || resumesLegacyTuple;
+      if (completed >= max && hasKnownWork) {
+        await persistCursor(i, producerIndex);
+        return { outcome: "partial", cursor: encodeCursor(i, producerIndex, [...continuationProducerIds]) };
+      }
+      if (options.deadline && now() >= options.deadline) {
+        if (!hasKnownWork && !options.cursor && !scannedTuple) return { outcome: "completed" };
+        await persistCursor(i, producerIndex);
+        return { outcome: "partial", cursor: encodeCursor(i, producerIndex, [...continuationProducerIds]) };
+      }
       const startedAt = now().toISOString();
       let producerCursor: string | undefined;
       try {
         producerCursor = await deps.loadProducerCursor?.(producer, tenants[i]!);
-        const resumesWindow = continuationProducerIds.has(producer.id);
-        const resumesLegacyTuple = continuationProducerIds.size === 0
-          && Boolean(options.cursor)
-          && i === start
-          && producerIndex === firstProducerIndex;
-        if (!dueProducerIds.has(producer.id) && !resumesWindow && !resumesLegacyTuple && !producerCursor) continue;
-        if (completed >= max || (options.deadline && now() >= options.deadline)) {
+        scannedTuple = true;
+        const hasWork = hasKnownWork || Boolean(producerCursor);
+        if (options.deadline && now() >= options.deadline) {
+          if (!hasWork) {
+            const nextProducerIndex = producerIndex + 1;
+            if (nextProducerIndex < producers.length) {
+              await persistCursor(i, nextProducerIndex);
+              return { outcome: "partial", cursor: encodeCursor(i, nextProducerIndex, [...continuationProducerIds]) };
+            }
+            if (i + 1 < tenants.length) {
+              await persistCursor(i + 1);
+              return { outcome: "partial", cursor: encodeCursor(i + 1, 0, [...continuationProducerIds]) };
+            }
+            if (options.cursor) await persistTerminal("completed");
+            return { outcome: "completed" };
+          } else {
+            await persistCursor(i, producerIndex);
+            return { outcome: "partial", cursor: encodeCursor(i, producerIndex, [...continuationProducerIds]) };
+          }
+        }
+        if (!hasWork) continue;
+        if (completed >= max) {
           await persistCursor(i, producerIndex);
           return { outcome: "partial", cursor: encodeCursor(i, producerIndex, [...continuationProducerIds]) };
         }
@@ -171,7 +212,10 @@ export async function runDueProducers(deps: RunnerDependencies, options: { reado
     }
     if (executedForTenant) completed += 1;
   }
-  if (!executedProducer) return { outcome: "completed" };
+  if (!executedProducer) {
+    if (options.cursor) await persistTerminal("completed");
+    return { outcome: "completed" };
+  }
   if (hadPartial) {
     await persistCursor(0);
     return { outcome: "partial", cursor: encodeCursor(0, 0, [...continuationProducerIds]) };
