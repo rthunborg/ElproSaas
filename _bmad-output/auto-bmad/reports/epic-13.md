@@ -275,3 +275,5 @@ Prior reconcile retained 5 not-fully-resolved ledger entries; archived 0 new ent
 1. Optional merge decision for PR #75 after reviewing the completed result. Production email go-live is a separate future decision.
 
 **Next:** Human review: /bmad-checkpoint-preview https://github.com/rthunborg/ElproSaas/pull/75. Project context: run /bmad-project-context refresh (recommended after an epic).
+
+**Final CI closure (2026-09-28):** [CI 36397564158](https://github.com/rthunborg/ElproSaas/actions/runs/36397564158) passed all four jobs on completion-report head `762c547`; Vercel passed. Logs confirm 1,904 unit passed/0 skipped, 1,206 required DB passed/1 explicit skip, 1 isolated recovery passed/0 skipped, and 172 E2E passed/4 skipped. The deterministic final draft predicate is false. Epic and stories remain done; PR #75 is ready for human review, pending the owner's optional merge choice. A bookkeeping-only finalize push may re-trigger checks under the workflow's recorded CI-lag rule.
