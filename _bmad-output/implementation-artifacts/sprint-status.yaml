@@ -60,7 +60,7 @@
 # use the current Epic 10 statuses and approved corrective-story entries below.
 
 generated: 2026-06-12
-last_updated: 09-27-2026 20:20  # ADR-B009 connected-field course correction verified; governance Story 10.7 done, no PWA/offline functionality delivered.
+last_updated: 09-28-2026 12:00  # ADR-B009 connected-field course correction verified; governance Story 10.7 done, no PWA/offline functionality delivered.
 project: ElproSaas
 project_key: NOKEY
 tracking_system: file-system
@@ -228,14 +228,14 @@ development_status:
   12-3-first-admin-onboarding-checklist: done
   epic-12-retrospective: done
 
-  epic-13: in-progress
-  13-1-authenticated-background-runner-and-producer-registry: review
-  13-2-in-app-notifications-bell-center-and-preferences: review
-  13-3-email-outbox-pipeline-queued-non-sending: review
+  epic-13: done
+  13-1-authenticated-background-runner-and-producer-registry: done
+  13-2-in-app-notifications-bell-center-and-preferences: done
+  13-3-email-outbox-pipeline-queued-non-sending: done
   # N-6 was answered 2026-07-26: Story 13.4 is schedulable for implementation
   # and sandbox proof. ADR-B011 keeps real-recipient delivery default-off until
   # a separate recorded owner go-live approval (epics doc, Story 13.4 banner).
-  13-4-email-sending-activation: review
+  13-4-email-sending-activation: done
   epic-13-retrospective: done
 
   # ---- B1a→B1b wave checkpoint happens HERE, before any B1b story is created.
@@ -513,7 +513,7 @@ action_items:
       controlling its clock or deriving a future expiry from controlled test time,
       then rerun the affected CI evidence."
     owner: "QA/test owner"
-    status: open
+    status: done
     ref: "C:\\DEV\\ElproSaas\\_bmad-output\\implementation-artifacts\\epic-13-retro-2026-09-27.md"
   - id: "epic-13-retro-item-21-complete-a-narrowed-independent-converge"
     epic: 13
@@ -522,5 +522,5 @@ action_items:
       consequential findings; record reviewed scopes and dispositions before authorizing
       their review to done transitions."
     owner: "Epic 13 delivery owner"
-    status: open
+    status: done
     ref: "C:\\DEV\\ElproSaas\\_bmad-output\\implementation-artifacts\\epic-13-retro-2026-09-27.md"

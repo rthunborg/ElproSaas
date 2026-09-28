@@ -1,19 +1,23 @@
 # Epic 13 follow-up gate classification
 
-Date: 2026-09-27  
-Source: `83da25fde36a0f6fb44cd29e3c6812532650ff28`  
+Date: 2026-09-27; final closure refreshed 2026-09-28
+
+Product source: `d7707802d12a0180c540d7452f5484cbc071d630`
+
+CI checkpoint: `c1020e986813e5526151a3424d5c3a0dd2f0e577` (documentation/state only after the product source)
 Purpose: reconcile the completed acceptance trace with the earlier advisory NFR and test-quality reports. This classification does not authorize real-recipient delivery.
 
 ## Current sandbox merge gate
 
-The deterministic Epic 13 trace gate is **PASS** at 26/26 P0 acceptance criteria FULL. The approved `quote.delivery` preference remediation keeps the outbox category active, removes the ineffective personal controls, rejects new preference writes at API and database boundaries, and preserves recipient-scoped unsubscribe suppression.
+The deterministic Epic 13 trace gate is **PASS** at 26/26 P0 acceptance criteria FULL. The final source additionally closes bounded producer progress and retained failure checkpoints, recovery-HMAC provenance, UUID canonicalization, exact `Quotes.Send` recovery/PDF authority, and the request-bound PDF-read path with denial-only broker fallback. The mapped inventory is 50 executing cases across 20 files.
 
-Required CI run [36339205329](https://github.com/rthunborg/ElproSaas/actions/runs/36339205329) passed at the exact source SHA:
+Required checkpoint CI run [36344284961](https://github.com/rthunborg/ElproSaas/actions/runs/36344284961) passed over product-identical source:
 
-- `verify`: 1,896 unit tests passed, 0 failed, 0 skipped; typecheck, lint, build, dependency audit, source containment, and built-bundle containment passed.
-- `db`: 1,205 required integration/RLS tests passed; the one explicit skip is the separately isolated recovery-storage proof.
+- `verify`: 1,904 unit tests passed, 0 failed, 0 skipped; typecheck, lint, build, dependency audit, source containment, and built-bundle containment passed.
+- `db`: 1,206 required integration/RLS tests passed; the one explicit skip is the separately isolated recovery-storage proof.
 - `recovery-storage-loader`: the isolated proof passed 1/1 with no skip.
 - `e2e`: 172 passed, 4 explicit skips, 0 failures. The Epic 13 preference journey now uses one absence case in place of two ineffective-toggle cases.
+- Vercel deployment and preview checks succeeded.
 
 No acceptance, tenant-isolation, security, data-integrity, or customer-output gap remains open for the authorized sandbox-only release surface.
 
@@ -25,6 +29,11 @@ No acceptance, tenant-isolation, security, data-integrity, or customer-output ga
 | Final terminal quote-state recheck before provider submission | Resolved for the sandbox implementation | `13.4-AC7` has the pre-provider validation-RPC test plus five producer-boundary terminal-state cases. |
 | Durable orphaned/invalidated recovery truth | Resolved for the sandbox implementation | `13.4-AC8` has rollback, durable recovery-ledger, tenant, and actor evidence. |
 | Ineffective personal `quote.delivery` preference | Resolved | Registry projection, UI/API exclusion, the database write guard, and recipient-scoped token suppression are covered by focused unit, required database, RLS, and browser evidence. |
+| Unbounded active follow-up traversal and lost failed-page checkpoint | Resolved | Route, runner, producer, and fresh-schema cases prove an internal deadline, bounded nested pages and writes, exact tenant/producer resume, retained failed cursor, later-tenant progress, and coherent partial/failed/completed cursor states. |
+| Recovery role mismatch and caller-forgeable recovery evidence | Resolved | Required command integration covers all three `Quotes.Send` roles; unit and database evidence bind recovery provenance to a short-lived server HMAC and deny spoofed actor, cross-tenant, and invalid-signature writes. |
+| UUID text mismatch across Node/PostgreSQL HMAC inputs | Resolved | Validation and real-command integration canonicalize uppercase quote-version and recipient UUIDs before PDF/recovery signatures. |
+| PDF send-role and broker fallback regressions | Resolved | Exact send roles reach the command; the request-bound exact-object read remains primary, the server broker is limited to classified denial on the database-issued path, and raw/general/arbitrary/cross-tenant salesperson access stays denied. |
+| Fixed 2026-10-01 scheduler rotation clock | Resolved | The route-auth test freezes time and derives past/future expiry values relative to that clock; checkpoint CI passed after the repair. |
 | Vercel scheduler plan and production secret prerequisites | Partly resolved operationally | ADR-B011 records an active Pro plan and a provisioned production-only 32-byte `CRON_SECRET`. The deployed production revision still predates Epic 13 and has no cron definition, so post-merge deployment and scheduled-run verification remain outstanding. |
 
 ## Remaining test-maintenance actions
@@ -33,15 +42,14 @@ These are test-quality concerns, not failures in the current 26/26 acceptance ga
 
 | Action | Classification | Why it remains |
 | --- | --- | --- |
-| Replace the fixed `2026-10-01` previous-secret expiry in `route-auth.test.ts` with an injected or controlled clock | Time-bounded CI maintenance; complete before 2026-10-01 | The current exact-HEAD CI passes, but a later run will produce a false failure when the wall clock reaches the hard-coded date. If the branch is still unmerged then, this becomes a merge blocker. |
 | Replace `Date.now()`, `Math.random()`, and `randomInt` shared browser-fixture identifiers with a replayable run UUID or injected seed | Advisory test repeatability | The current E2E job is green. The inputs still make failed fixture state harder to reproduce and can collide across interrupted or concurrent runs. |
 | Clean temporary containment scanner roots and decompose shared test-support hotspots when next touched | Advisory maintenance | The temporary roots are uniquely scoped and the broad fixtures currently pass, but the earlier test review's cleanup and maintainability findings remain open. |
 
 ## Historical review-evidence gap
 
-The earlier Auto-BMAD story passes record that the configured cross-model reviewer returned no output. That remains an unavailable historical review layer. The 2026-09-27 independent security follow-up reviewed only the `83da25f` preference-removal delta and unresolved serious findings under the post-round-three rule; it does not retroactively validate the whole epic or replace the missing cross-model output.
+The earlier Auto-BMAD story passes record that configured cross-model reviewer attempts returned no output. That remains historical fact. It is superseded for the final convergence decision by the persisted independent Luna/xhigh review at `d770780`, which rechecked the final fixes and unresolved serious boundaries for all four stories and recorded PASS with no remaining serious production-reachable defect.
 
-This is a process-evidence concern rather than an acceptance-coverage failure. The deterministic trace gate rests on the 26 mapped criteria, exact-HEAD required CI, and the scoped security follow-up for the newest change. Keep the historical flag visible in the completion record; do not present it as either a whole-epic review pass or a newly discovered product defect.
+The missing historical output is not reclassified as a pass and no unavailable whole-epic review is invented. The deterministic trace gate rests on 26 mapped criteria, 50 executing mapped cases across 20 files, exact checkpoint CI, author convergence evidence, and the final independent convergence review.
 
 ## Separate go-live and operational advisory
 

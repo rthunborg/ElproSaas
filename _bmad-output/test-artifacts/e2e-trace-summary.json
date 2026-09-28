@@ -1,12 +1,12 @@
 {
   "schema_version": "0.2.0",
-  "snapshot_at": "2026-09-27T18:12:23.000Z",
+  "snapshot_at": "2026-09-28T08:17:55.336Z",
   "repo": "ElproSaas",
   "collection_mode": "contract_static",
   "collection_status": "COLLECTED",
   "inventory_basis": "acceptance_criteria",
   "gate_basis": "priority_thresholds",
-  "source_sha": "83da25fde36a0f6fb44cd29e3c6812532650ff28",
+  "source_sha": "d7707802d12a0180c540d7452f5484cbc071d630",
   "target": {
     "type": "epic",
     "id": "13",
@@ -61,7 +61,7 @@
         "criteria_covered": 3
       },
       "api": {
-        "tests": 32,
+        "tests": 33,
         "criteria_covered": 19
       },
       "component": {
@@ -69,7 +69,7 @@
         "criteria_covered": 0
       },
       "unit": {
-        "tests": 7,
+        "tests": 15,
         "criteria_covered": 7
       },
       "live": {
@@ -83,8 +83,8 @@
     }
   },
   "tests": {
-    "files": 18,
-    "cases": 41,
+    "files": 20,
+    "cases": 50,
     "skipped_cases": 0,
     "fixme_cases": 0,
     "pending_cases": 0
@@ -107,7 +107,7 @@
     "results_file": "C:\\DEV\\ElproSaas\\_bmad-output\\test-artifacts\\live-verification-results.json",
     "freshness": "not_present",
     "recorded_source_sha": "",
-    "current_source_sha": "83da25fde36a0f6fb44cd29e3c6812532650ff28",
+    "current_source_sha": "d7707802d12a0180c540d7452f5484cbc071d630",
     "producer": "",
     "counted": 0,
     "stale": 0,

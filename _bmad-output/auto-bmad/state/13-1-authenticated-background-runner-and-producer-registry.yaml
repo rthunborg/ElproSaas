@@ -9,7 +9,7 @@ spec_folder: null
 story_id: null
 branch: epic/13-wave-b1a-notifications-and-email-infrastructure
 status: done
-updated_at: "2026-09-24T18:57:34Z"
+updated_at: "2026-09-28T08:24:13Z"
 started_at: "2026-09-23T10:56:19Z"
 completed_at: "2026-09-24T18:57:34Z"
 active_seconds: 6765
@@ -44,13 +44,13 @@ spec_approved: true
 build:
   status: done
   blocking_condition: null
-  followup_review_recommended: true
+  followup_review_recommended: false
   review_loop_iteration: 0
   deferred_count: 1
   warnings: []
-followup_passes: 1
+followup_passes: 2
 hitl_halt: "auto-continued (epic â€” no halt)"
-review_unverified: true
+review_unverified: false
 story_trace: null
 legacy_review_resume: false
 legacy_review_iteration: null
@@ -73,18 +73,15 @@ retro:
   doc: null
   verdict: null
   open_action_items: 0
-bmad_status_flipped_at: null
+bmad_status_flipped_at: 82
 pr_url: "https://github.com/rthunborg/ElproSaas/pull/75"
-ci_run_url: null
-ci_status: unknown
+ci_run_url: "https://github.com/rthunborg/ElproSaas/actions/runs/36344284961"
+ci_status: passed
 pr_merged: false
 merge_method: null
 merge_commit: null
 branch_deleted: false
-open_questions:
-  - "Local full typecheck/lint included ignored tmp worktree sources; the clean CI run must confirm repository-wide gates."
-  - "The Story 13.1 follow-up review still recommends another pass; the epic PR requires review before ready status."
-  - The configured cross-model review layer returned no output during the follow-up pass.
+open_questions: []
 deferred_work:
   - "Numeric runner SLA, batch-size, fairness, backlog-age, and freshness thresholds remain owner-pending NFR contracts; this story proves deterministic budget/cursor behavior without claiming a production performance target."
 blockers: []
