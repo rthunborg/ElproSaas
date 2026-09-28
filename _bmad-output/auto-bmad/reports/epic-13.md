@@ -317,3 +317,43 @@ No new ledger archive during this targeted follow-up; prior two archived resolut
 1. Optional merge of PR75 remains an owner decision after current CI passes.
 
 **Next:** Human review: /bmad-checkpoint-preview https://github.com/rthunborg/ElproSaas/pull/75. Project context: run /bmad-project-context refresh (recommended after an epic).
+
+## Report — 2026-09-28T09:56:51Z (final)
+
+**Epic:** `13` — 4 stories.
+**Branch:** `epic/13-wave-b1a-notifications-and-email-infrastructure` (HEAD `e65b985`).
+**Pipeline status:** Clean completion: all four stories and Epic 13 done; ReviewBot remediation reviewed, trace PASS and full CI passed. Optional owner merge remains.
+**Continues:** 2026-09-28T09:45:49Z (final â€” caveated); fresh CI now closes that checkpoint.
+
+**Summary:** Fixed Stockholm reminder dates, due-schedule dispatch and UTF-8 bearer comparison, plus carried-ID and bounded cursor-scan regressions. Current product source ed43933; author closure 54181ab; tested checkpoint e65b985.
+
+**Timing:** started 2026-09-23T10:29:03Z; completed 2026-09-24T18:57:24Z — elapsed 32h 28m (≈12h 14m AI-run, ≈20h 13m human/idle wait); resumed 8×.
+
+**Stories:**
+1. 13.1 done; follow-up passes 4; deferred count 1.
+2. 13.2 done; follow-up passes 2; deferred count 1.
+3. 13.3 done; follow-up passes 2; deferred count 1.
+4. 13.4 done; follow-up passes 2; deferred count 3. All four specs recommend no further review; review_unverified false.
+
+**Skipped:** (none)
+
+**Epic gate:** PASS; deterministic finalization predicate: draft false, clean_completion true. Existing batch done flip retained; no redundant status transition.
+
+**TEA:** PASS: 26/26 P0 and overall FULL (100%); no partial/uncovered requirements. 63 mapped active cases across 20 files; 189 static declarations across 34 files. Focused tests 30/30, 0 skipped. CI36405566493 on e65b985 passed: unit 1,917/0 skipped; required DB/RLS 1,206/1 explicit loader skip; isolated loader 1/0 skipped; E2E 172/4 skipped. The explicit DB loader skip has separate executed 1/1 coverage. Vercel passed. Typecheck, ESLint and 12-reference review-order validation passed.
+
+**Retrospective:** Accepted September 28 retrospective; zero open action items.
+
+**Overrides:** Targeted owner-supplied ReviewBot fixes and direct regression checks; post-third-round scope retained.
+
+**Open questions:**
+1. Numeric operating targets remain owner-pending contracts.
+
+**Deferred work:**
+1. Real-recipient delivery remains disabled pending separate ADR-B011 approval, provider idempotency and rendered scoped unsubscribe URLs.
+2. Authenticated production cron observation follows merge, migrations and deployment.
+No new archive in this follow-up; earlier two archived resolutions and remaining compound go-live gates retain their disposition.
+
+**⚠️ Needs human:**
+1. Optional owner merge of PR75; no merge approval received.
+
+**Next:** Human review: /bmad-checkpoint-preview https://github.com/rthunborg/ElproSaas/pull/75. Project context: run /bmad-project-context refresh (recommended after an epic).
