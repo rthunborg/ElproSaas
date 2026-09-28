@@ -2,24 +2,37 @@
 
 Date: 2026-09-27; final closure refreshed 2026-09-28
 
-Product source: `d7707802d12a0180c540d7452f5484cbc071d630`
+Product source: `ed439335c585bcb80e97b808d35b2378e7525e6e`
 
-CI checkpoint: `c1020e986813e5526151a3424d5c3a0dd2f0e577` (documentation/state only after the product source)
+Metadata head: `54181ab7cf352b1255c61f57f859c9db9a19e977` (Story 13.1 specification and convergence evidence only after the product source)
+
+Latest prior full CI checkpoint: `71fa10a` via run `36398591011`; full CI for `ed43933` remains the later root gate.
 Purpose: reconcile the completed acceptance trace with the earlier advisory NFR and test-quality reports. This classification does not authorize real-recipient delivery.
 
 ## Current sandbox merge gate
 
-The deterministic Epic 13 trace gate is **PASS** at 26/26 P0 acceptance criteria FULL. The final source additionally closes bounded producer progress and retained failure checkpoints, recovery-HMAC provenance, UUID canonicalization, exact `Quotes.Send` recovery/PDF authority, and the request-bound PDF-read path with denial-only broker fallback. The mapped inventory is 50 executing cases across 20 files.
+The deterministic Epic 13 trace gate is **PASS** at 26/26 P0 acceptance criteria FULL. The final source additionally closes byte-unsafe cron-secret comparison, Stockholm business-date handoff, fresh due-schedule enforcement, carried due-work continuation, and the confirmed off-schedule cursor-scan budget bypass while preserving the earlier bounded producer progress, recovery-HMAC, UUID, exact-role, and request-bound PDF repairs. The mapped inventory is 63 executing cases across 20 files; the containing static inventory is 189 declarations across 34 files.
 
-Required checkpoint CI run [36344284961](https://github.com/rthunborg/ElproSaas/actions/runs/36344284961) passed over product-identical source:
+Current-source focused verification at `ed43933` passed:
 
-- `verify`: 1,904 unit tests passed, 0 failed, 0 skipped; typecheck, lint, build, dependency audit, source containment, and built-bundle containment passed.
+- route/auth/runner selection: 30 passed, 0 failed, 0 skipped;
+- typecheck and changed-file ESLint: passed;
+- Story 13.1 review-order validation: 12 references, 0 errors;
+- final narrowed post-fix review: PASS with no remaining consequential finding.
+
+Latest prior full CI run [36398591011](https://github.com/rthunborg/ElproSaas/actions/runs/36398591011) at `71fa10a` passed the unchanged wider Epic 13 surface:
+
+- `verify`: 1,904 unit tests passed; typecheck, lint, build, dependency audit, source containment, and built-bundle containment passed.
 - `db`: 1,206 required integration/RLS tests passed; the one explicit skip is the separately isolated recovery-storage proof.
 - `recovery-storage-loader`: the isolated proof passed 1/1 with no skip.
 - `e2e`: 172 passed, 4 explicit skips, 0 failures. The Epic 13 preference journey now uses one absence case in place of two ineffective-toggle cases.
 - Vercel deployment and preview checks succeeded.
 
+This prior run is historical regression evidence. It is not represented as full CI at `ed43933`; that current-source CI run remains the separate root gate.
+
 No acceptance, tenant-isolation, security, data-integrity, or customer-output gap remains open for the authorized sandbox-only release surface.
+
+Current story parsing reports all four stories and Epic 13 `done`. The accepted 2026-09-28 retrospective records zero new action items; its earlier source/count snapshot remains historical and does not override this final `ed43933` trace refresh.
 
 ## Earlier advisory items now resolved
 
@@ -34,6 +47,7 @@ No acceptance, tenant-isolation, security, data-integrity, or customer-output ga
 | UUID text mismatch across Node/PostgreSQL HMAC inputs | Resolved | Validation and real-command integration canonicalize uppercase quote-version and recipient UUIDs before PDF/recovery signatures. |
 | PDF send-role and broker fallback regressions | Resolved | Exact send roles reach the command; the request-bound exact-object read remains primary, the server broker is limited to classified denial on the database-issued path, and raw/general/arbitrary/cross-tenant salesperson access stays denied. |
 | Fixed 2026-10-01 scheduler rotation clock | Resolved | The route-auth test freezes time and derives past/future expiry values relative to that clock; checkpoint CI passed after the repair. |
+| Cron authentication byte mismatch, Stockholm date, due-window continuation, and off-schedule cursor-scan budget | Resolved | Current-source unit evidence covers UTF-8 byte-length mismatch at verifier and route boundaries, winter/summer/DST date handoff, exact UTC due selection, global/partial/failed continuation, repeated deadlines, budgeted scan progress, newly due tenant-zero restart, and later-tenant fairness. The final narrow review returned PASS. |
 | Vercel scheduler plan and production secret prerequisites | Partly resolved operationally | ADR-B011 records an active Pro plan and a provisioned production-only 32-byte `CRON_SECRET`. The deployed production revision still predates Epic 13 and has no cron definition, so post-merge deployment and scheduled-run verification remain outstanding. |
 
 ## Remaining test-maintenance actions
@@ -47,9 +61,9 @@ These are test-quality concerns, not failures in the current 26/26 acceptance ga
 
 ## Historical review-evidence gap
 
-The earlier Auto-BMAD story passes record that configured cross-model reviewer attempts returned no output. That remains historical fact. It is superseded for the final convergence decision by the persisted independent Luna/xhigh review at `d770780`, which rechecked the final fixes and unresolved serious boundaries for all four stories and recorded PASS with no remaining serious production-reachable defect.
+The earlier Auto-BMAD story passes record that configured cross-model reviewer attempts returned no output. That remains historical fact. The persisted independent Luna/xhigh review at `d770780` rechecked the then-final fixes and unresolved serious boundaries for all four stories. The 2026-09-28 bounded ReviewBot convergence then rechecked only the changed Story 13.1 authentication/date/schedule/budget boundaries and their direct regressions at `ed43933`; it recorded PASS with no remaining consequential defect.
 
-The missing historical output is not reclassified as a pass and no unavailable whole-epic review is invented. The deterministic trace gate rests on 26 mapped criteria, 50 executing mapped cases across 20 files, exact checkpoint CI, author convergence evidence, and the final independent convergence review.
+The missing historical output is not reclassified as a pass and no unavailable whole-epic review is invented. The deterministic trace gate rests on 26 mapped criteria, 63 executing mapped cases across 20 files, current-source focused convergence evidence, and the prior complete CI evidence for unchanged surfaces. Full CI at `ed43933` remains the root's later gate.
 
 ## Separate go-live and operational advisory
 

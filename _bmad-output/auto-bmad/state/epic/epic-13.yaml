@@ -9,7 +9,7 @@ spec_folder: null
 story_id: null
 branch: epic/13-wave-b1a-notifications-and-email-infrastructure
 status: done
-updated_at: "2026-09-28T09:13:50Z"
+updated_at: "2026-09-28T09:45:14Z"
 started_at: "2026-09-23T10:29:03Z"
 completed_at: "2026-09-24T18:57:24Z"
 active_seconds: 44064
@@ -18,15 +18,15 @@ is_first_in_epic: false
 is_last_in_epic: false
 git_mode: remote
 base_branch: main
-selected_phase: final_convergence
-selected_role: final-convergence
+selected_phase: tea_epic
+selected_role: tea-delegate
 selected_profile: critical
 selected_model: gpt-5.6-sol
 selected_effort: xhigh
 selected_host: codex
 selected_tier: subagents
 selected_route: subagent
-escalation_reason: "Resolve one remaining independent-review uncertainty: off-schedule continue path versus elapsed budget and downstream cancellation; targeted latest-fix convergence only"
+escalation_reason: "Refresh final 26of26 trace after reviewed ReviewBot fixes and budget/cursor convergence at 54181ab; 30 focused tests passed, full CI to follow"
 routing_ledger:
   - "{\"effort\":\"xhigh\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-sol\",\"phase\":\"tea_epic\",\"profile\":\"critical\",\"role\":\"tea-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
   - "{\"effort\":\"medium\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-luna\",\"phase\":\"tea_triage\",\"profile\":\"light\",\"role\":\"test-risk-triage\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
@@ -46,6 +46,7 @@ routing_ledger:
   - "{\"effort\":\"high\",\"escalation_reason\":\"Targeted post-third-round review-fix of the three owner-supplied ReviewBot findings at 71fa10a; no broad audit\",\"host\":\"codex\",\"model\":\"gpt-5.6-terra\",\"phase\":\"followup_review\",\"profile\":\"standard\",\"role\":\"primary-reviewer\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
   - "{\"effort\":\"xhigh\",\"escalation_reason\":\"Independent changed-line review of ReviewBot patches b8b0241 after bounded primary triage; preserve third-round scope limit\",\"host\":\"codex\",\"model\":\"gpt-5.6-luna\",\"phase\":\"cross_model_layer\",\"profile\":\"diverse_review\",\"role\":\"independent-reviewer\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
   - "{\"effort\":\"xhigh\",\"escalation_reason\":\"Resolve one remaining independent-review uncertainty: off-schedule continue path versus elapsed budget and downstream cancellation; targeted latest-fix convergence only\",\"host\":\"codex\",\"model\":\"gpt-5.6-sol\",\"phase\":\"final_convergence\",\"profile\":\"critical\",\"role\":\"final-convergence\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"xhigh\",\"escalation_reason\":\"Refresh final 26of26 trace after reviewed ReviewBot fixes and budget/cursor convergence at 54181ab; 30 focused tests passed, full CI to follow\",\"host\":\"codex\",\"model\":\"gpt-5.6-sol\",\"phase\":\"tea_epic\",\"profile\":\"critical\",\"role\":\"tea-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
 tea_risk: null
 tea_selected: []
 tea_rationale: null
@@ -61,9 +62,9 @@ build:
   review_loop_iteration: 0
   deferred_count: 0
   warnings: []
-followup_passes: 3
+followup_passes: 4
 hitl_halt: null
-review_unverified: true
+review_unverified: false
 story_trace: null
 legacy_review_resume: false
 legacy_review_iteration: null
@@ -71,7 +72,7 @@ legacy_review_loop_done: false
 legacy_external_review_iterations: null
 legacy_convergence_unverified: false
 legacy_artifact_path: null
-commits: [cdbb68a, e996cde, 9650f72, 391624b, 211bf68, 24d0d19, e11d24a, 61f2394, 4024cbe, b75b155, 83da25f, 73407ac, b06c3ca, 2664d7b, 8a1eb8c, 2f374f9, f226415, 46d9b67, d770780, 0c28b14, c1020e9, b374437, 822a67d, 762c547, 71fa10a, 6d81c2a, b8b0241]
+commits: [cdbb68a, e996cde, 9650f72, 391624b, 211bf68, 24d0d19, e11d24a, 61f2394, 4024cbe, b75b155, 83da25f, 73407ac, b06c3ca, 2664d7b, 8a1eb8c, 2f374f9, f226415, 46d9b67, d770780, 0c28b14, c1020e9, b374437, 822a67d, 762c547, 71fa10a, 6d81c2a, b8b0241, a2d2d9a, ed43933, 54181ab]
 phase8_steps:
   trace_gate: done
   nfr: done

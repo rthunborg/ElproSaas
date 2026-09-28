@@ -2,6 +2,7 @@
 stepsCompleted: ['step-01-load-context', 'step-02-discover-tests', 'step-03-map-criteria', 'step-04-analyze-gaps', 'step-05-gate-decision']
 lastStep: 'step-05-gate-decision'
 lastSaved: '2026-09-28'
+tempCoverageMatrixPath: 'C:\Users\Rasmus\AppData\Local\Temp\tea-trace-coverage-matrix-2026-09-28T09-40-49-285Z.json'
 workflowType: 'testarch-trace'
 inputDocuments:
   - '_bmad-output/implementation-artifacts/spec-13-1-authenticated-background-runner-and-producer-registry.md'
@@ -14,6 +15,8 @@ inputDocuments:
   - 'docs/decisions/ADR-B011-epic-13-email-release-and-quote-delivery.md'
   - 'docs/quality/epic-13-convergence-review-2026-09-27.md'
   - 'docs/quality/epic-13-independent-luna-convergence-2026-09-27.md'
+  - 'docs/quality/epic-13-reviewbot-convergence-2026-09-28.md'
+  - '_bmad-output/implementation-artifacts/epic-13-retro-2026-09-28.md'
 coverageBasis: 'acceptance_criteria'
 oracleConfidence: 'high'
 oracleResolutionMode: 'formal_requirements'
@@ -24,7 +27,7 @@ oracleSources:
   - '_bmad-output/implementation-artifacts/spec-13-4-email-sending-activation.md'
 externalPointerStatus: 'not_used'
 collectionStatus: 'COLLECTED'
-sourceSha: 'd7707802d12a0180c540d7452f5484cbc071d630'
+sourceSha: 'ed439335c585bcb80e97b808d35b2378e7525e6e'
 ---
 
 # Traceability Matrix & Gate Decision — Epic 13
@@ -43,7 +46,7 @@ sourceSha: 'd7707802d12a0180c540d7452f5484cbc071d630'
 
 Create mode uses the four completed Epic 13 story specifications as the formal coverage oracle. Each specification is marked `done` and contains the final intent contract, acceptance criteria, implementation map, review history, and recorded verification evidence. The epic context, planning epic, ADR-B011, and epic test design supply scope, architecture, and risk priorities; they do not replace the final story acceptance wording.
 
-This is the final deterministic re-gate after the approved `quote.delivery` preference remediation at `83da25f` and the bounded-runner, durable-failure-cursor, recovery-attestation, UUID-canonicalization, exact-send-role, and request-bound PDF-read repairs through product code head `d7707802d12a0180c540d7452f5484cbc071d630`. The oracle remains the same 26 final acceptance criteria. Final metadata head `b374437` and exact CI checkpoint `c1020e9` contain documentation/state changes only after `d770780`, so they do not change the product source under trace.
+This is the final deterministic re-gate after the approved `quote.delivery` preference remediation, the bounded-runner, durable-failure-cursor, recovery-attestation, UUID-canonicalization, exact-send-role, and request-bound PDF-read repairs, and the final ReviewBot authentication, business-date, schedule/continuation, and cursor-scan budget repairs through product code head `ed439335c585bcb80e97b808d35b2378e7525e6e`. The oracle remains the same 26 final acceptance criteria. Metadata head `54181ab7cf352b1255c61f57f859c9db9a19e977` adds only the refreshed Story 13.1 specification and convergence record after `ed43933`, so it does not change the product source under trace.
 
 The selected oracle is high confidence because the four final story specifications cover the full epic sequence: the authenticated background runner and producer registry, in-app notifications and preferences, the dark email outbox, and sandbox-only email activation with the narrow public unsubscribe surface. Formal requirements are therefore available and take precedence over contract inference or a synthetic source oracle.
 
@@ -53,15 +56,15 @@ The loaded TEA knowledge base defines P0–P3 priorities, risk and gate threshol
 
 ## Step 2 — Test Discovery and Catalogue
 
-Static discovery found Epic 13 evidence at unit/static, integration/API/RLS, and production-server browser levels. The containing evidence set spans 34 files and 176 declared cases: the prior 32-file/167-case inventory plus nine later executing cases in two new unit files. Several shared manifest and containment files include older-epic cases; only assertions that exercise an Epic 13 requirement are credited in the matrix.
+Static discovery found Epic 13 evidence at unit/static, integration/API/RLS, and production-server browser levels. The containing evidence set spans 34 files and 189 declared cases: the prior 34-file/176-case inventory plus 13 new executing cases in three existing Story 13.1 unit files. Several shared manifest and containment files include older-epic cases; only assertions that exercise an Epic 13 requirement are credited in the matrix.
 
-The final repair delta adds nine directly mapped cases: six unit cases for the route deadline, failed-cursor loading, cross-tenant/producer progress, retained failure checkpoints, producer-boundary resume, and bounded follow-up/recipient paging; two unit cases for recovery-HMAC provenance and malformed-key independence; and one required database case for attributable recovery across every `Quotes.Send` role. Two new test files carry three of those cases. The deduplicated mapped inventory is therefore 50 cases across 20 files: 15 unit/static, 33 API/integration/RLS, and two E2E.
+The final ReviewBot/convergence delta adds 13 directly mapped unit cases: UTF-8 byte-length authentication at the verifier and route boundary; Stockholm winter, summer, and DST business-date handoff; injected-clock due selection and invalid-schedule rejection; off-schedule partial/failed/legacy cursor authority; repeated budgeted scan progress; boundary checkpoint resume; newly due tenant-zero restart; carried due-ID retention across repeated deadlines and irrelevant lookups; and later-tenant fairness. No new test file is introduced. The deduplicated mapped inventory is therefore 63 cases across 20 files: 28 unit/static, 33 API/integration/RLS, and two E2E.
 
 | Level | Primary Epic 13 evidence | Recorded execution evidence |
 | --- | --- | --- |
-| Unit/static | jobs auth/route/runner/registry, bounded follow-up producer, notification and preference-eligibility registry/presentation, email outbox/provider/unsubscribe, quote-recipient validation and UUID canonicalization, recovery attestation, manifest derivation/shape/coherence, and service/email containment bite tests | Exact checkpoint CI run [`36344284961`](https://github.com/rthunborg/ElproSaas/actions/runs/36344284961) records 1,904 passed, zero failed/skipped; dependency audit, typecheck, lint, build, source containment, and built-bundle containment also pass. |
-| Integration/API/RLS | `job-runs.int.test.ts`, notification emission/dedupe/preference eligibility/RLS, five terminal reminder states at the producer boundary, outbox concurrency/retry/suppression/RLS, activated delivery, quote artifact/currentness/recipient correction, attested finalization recovery across exact send roles, and public unsubscribe capability | The same run performs an empty-database migration reset with `SUPABASE_TEST_REQUIRED=1`, then records 1,206 passed, zero failed, and one explicit skip across 122 files. The skipped isolated recovery-storage case runs separately in the same workflow and passes 1/1 with zero skip; no Epic 13 criterion depends on that case. |
-| E2E | notification bell/center/preferences, dark Admin outbox, removed quote-delivery preference controls, and public unsubscribe | The production-server Playwright job records 172 passed, four explicit skips, and zero failures; the focused public unsubscribe and preference-absence journeys are present in the suite. |
+| Unit/static | jobs auth/route/runner/registry, bounded follow-up producer, notification and preference-eligibility registry/presentation, email outbox/provider/unsubscribe, quote-recipient validation and UUID canonicalization, recovery attestation, manifest derivation/shape/coherence, and service/email containment bite tests | The exact Story 13.1 convergence selection at product source `ed43933` records 30 passed, zero failed/skipped; typecheck, changed-file ESLint, and the 12-reference review-order check also pass. The latest prior full CI run [`36398591011`](https://github.com/rthunborg/ElproSaas/actions/runs/36398591011) at `71fa10a` records 1,904 unit passes and green static/build checks for the unchanged wider surface. Full CI at `ed43933` is the later root gate and is not claimed here. |
+| Integration/API/RLS | `job-runs.int.test.ts`, notification emission/dedupe/preference eligibility/RLS, five terminal reminder states at the producer boundary, outbox concurrency/retry/suppression/RLS, activated delivery, quote artifact/currentness/recipient correction, attested finalization recovery across exact send roles, and public unsubscribe capability | Prior full CI run `36398591011` performs the required database/RLS lane and records 1,206 passed with one explicit loader skip; that isolated recovery-loader proof passes separately 1/1. The `ed43933` delta changes no schema, RLS, or database behavior. |
+| E2E | notification bell/center/preferences, dark Admin outbox, removed quote-delivery preference controls, and public unsubscribe | Prior run `36398591011` records 172 passed, four explicit skips, and zero failures. The focused public unsubscribe and preference-absence journeys are present in the suite; `ed43933` changes no browser surface. |
 | Component | None | Presentation helpers are unit tested and the user-visible journeys have browser coverage. |
 | Live | None | `live-verification-results.json` is absent. Static collection remains `COLLECTED`; no live-only coverage is claimed. |
 
@@ -83,7 +86,7 @@ The final repair delta adds nine directly mapped cases: six unit cases for the r
     "observed_at": "",
     "producer": "",
     "read_error": "",
-    "current_source_sha": "d7707802d12a0180c540d7452f5484cbc071d630"
+    "current_source_sha": "ed439335c585bcb80e97b808d35b2378e7525e6e"
   },
   "liveRecords": []
 }
@@ -93,7 +96,7 @@ The final repair delta adds nine directly mapped cases: six unit cases for the r
 
 - **Endpoint/API:** `GET` and `POST /api/jobs/run` have direct route-level authentication and dispatch tests. Notification read/preference and acknowledgement behavior is covered through registry, command/database, and browser evidence; the supported preference projection excludes legacy `quote.delivery` rows and rejects new writes. The public unsubscribe route has browser coverage and direct token/RLS integration. Quote-delivery command behavior has validation and database integration evidence; there is no dedicated quote-send browser journey.
 - **Authentication/authorization:** Missing, wrong, garbage, forged, unsigned, and `alg:none` scheduler credentials; current/previous rotation; service/client containment; personal notification RLS; Admin-only outbox projection; cross-tenant queue isolation; and public token isolation/rate limiting are covered.
-- **Error paths:** Deterministic deadline/chunk resume, bounded follow-up and recipient pages, retained checkpoints after producer failure, later-tenant progress, producer failure sanitization, notification optimistic-read recovery, concurrent dedupe, stale-claim recovery, retry exhaustion, suppression, closed release posture, rejected ineffective preference writes, missing/changed/stale quote artifacts, five independently stored terminal reminder states before producer enqueue, pending-recipient cancellation and authorized reissue, claimed-send terminal recheck, malformed delivery bytes, forced finalization rollback, HMAC-bound orphaned/invalidated recovery evidence, direct-forgery and wrong-role denial, UUID canonicalization, request-bound PDF reads with constrained broker fallback, unknown/revoked/rate-limited tokens, and forbidden import/provider paths are represented.
+- **Error paths:** Deterministic deadline/chunk resume, budgeted off-schedule cursor discovery, repeated-deadline due-ID retention, newly due tenant-zero restart, legacy/partial/failed cursor authority, bounded follow-up and recipient pages, retained checkpoints after producer failure, later-tenant progress, producer failure sanitization, notification optimistic-read recovery, concurrent dedupe, stale-claim recovery, retry exhaustion, suppression, closed release posture, rejected ineffective preference writes, missing/changed/stale quote artifacts, five independently stored terminal reminder states before producer enqueue, pending-recipient cancellation and authorized reissue, claimed-send terminal recheck, malformed delivery bytes, forced finalization rollback, HMAC-bound orphaned/invalidated recovery evidence, direct-forgery and wrong-role denial, UUID canonicalization, request-bound PDF reads with constrained broker fallback, unknown/revoked/rate-limited tokens, and forbidden import/provider paths are represented.
 - **UI journeys:** The bell, center, filters, stored deep link, mark-one/all, supported preferences, failure recovery, absent `quote.delivery` controls, Admin dark queue, and public unsubscribe journeys have E2E coverage. The sender's quote-recipient selection/finalization journey relies on unit and integration evidence rather than a dedicated Epic 13 browser test.
 - **UI states:** Empty, never-run, failed/stale freshness, unread/read, optimistic failure recovery, unavailable/required email preference, redacted Admin queue, public inactive-token, and rate-limit states are asserted.
 
@@ -103,11 +106,11 @@ Coverage is credited only when current committed evidence exercises the final ac
 
 | Requirement | Pri | Coverage | Primary mapped evidence and rationale |
 | --- | --- | --- | --- |
-| 13.1-AC1 Named invalid scheduler credentials return one generic 401 with zero side effects | P0 | FULL | `13.1-ROUTE-NEG` — `tests/unit/server/jobs/route.test.ts:15` (API/unit) rejects every named form before client/runner construction; `13.1-AUTH-NEG` — `tests/unit/server/jobs/route-auth.test.ts:9` covers the verifier set. |
-| 13.1-AC2 Current and eligible previous rotation secrets dispatch once; expired previous is denied | P0 | FULL | `13.1-AUTH-ROTATION` — `tests/unit/server/jobs/route-auth.test.ts:10,16` freezes the clock and proves an expired previous secret is rejected while current and relatively future credentials remain accepted; `13.1-ROUTE-CURRENT` — `tests/unit/server/jobs/route.test.ts:60` exercises the scheduler boundary; `13.1-ROUTE-EXPIRED` — same file `:34` proves pre-dispatch denial. The fixed clock removes the former 2026-10-01 false-failure deadline. |
-| 13.1-AC3 Registry contract derives only active-module producers and rejects pending/placeholder categories | P0 | FULL | `13.1-REGISTRY-ACTIVE` — `tests/unit/server/jobs/producer-registry.test.ts:5`; `13.1-REGISTRY-PLACEHOLDER` — same file `:9`; active category ownership is also pinned in `tests/unit/server/notifications/registry.test.ts:5`. |
-| 13.1-AC4 Tenant-explicit, bounded/resumable runs persist attributable sanitized run/audit state | P0 | FULL | Existing chunk/deadline/failure/sanitization evidence remains in `tests/unit/server/jobs/runner.test.ts:6,14,46,57` and composed persistence in `tests/unit/server/jobs/route.test.ts:73`. Final repairs add route deadline and authoritative failed-cursor loading at `route.test.ts:139,162`; large-tenant/later-tenant progress, retained failure checkpoint, and inter-producer resume at `runner.test.ts:67,102,142`; and convergent bounded follow-up/recipient/status/preference/write paging at `tests/unit/server/notifications/follow-up-producer.test.ts:10`. |
-| 13.1-AC5 Fresh `job_runs` schema has exact constraints/grants/RLS/manifest/H4 protections with required evidence | P0 | FULL | `13.1-JOB-RUNS-SCHEMA` — `tests/integration/jobs/job-runs.int.test.ts:12` checks the fresh catalog and now asserts that partial requires a cursor, failed may retain one, and running/completed forbid one; manifest/H4 pins remain in `manifest-shape.test.ts:158` and `manifest-derivations.test.ts:150`. Exact checkpoint required database evidence executes this case within 1,206 passes. |
+| 13.1-AC1 Named invalid scheduler credentials return one generic 401 with zero side effects | P0 | FULL | `13.1-ROUTE-NEG` — `tests/unit/server/jobs/route.test.ts:15` rejects every named form before client/runner construction; `13.1-AUTH-NEG` — `tests/unit/server/jobs/route-auth.test.ts:10` covers the verifier set. `13.1-AUTH-UTF8` at `route-auth.test.ts:25` and `route.test.ts:60` proves an equal-character/mismatched-byte multibyte bearer cannot throw and still receives the same side-effect-free 401 for current or previous-secret comparison. |
+| 13.1-AC2 Current and eligible previous rotation secrets dispatch once; expired previous is denied | P0 | FULL | `13.1-AUTH-ROTATION` — `tests/unit/server/jobs/route-auth.test.ts:16` freezes the clock and proves an expired previous secret is rejected while current and relatively future credentials remain accepted; `13.1-ROUTE-CURRENT` — `tests/unit/server/jobs/route.test.ts:81` exercises the scheduler boundary; `13.1-ROUTE-EXPIRED` — same file `:34` proves pre-dispatch denial. The byte-safe negative at `:60` covers both previous-secret expiry states. |
+| 13.1-AC3 Registry contract derives only active-module producers and rejects pending/placeholder categories | P0 | FULL | `13.1-REGISTRY-ACTIVE` — `tests/unit/server/jobs/producer-registry.test.ts:5`; `13.1-REGISTRY-PLACEHOLDER` — same file `:9`; active category ownership is also pinned in `tests/unit/server/notifications/registry.test.ts:5`. `13.1-SCHEDULE-DUE` and `13.1-SCHEDULE-INVALID` at `tests/unit/server/jobs/runner.test.ts:178,437` prove the registered five-field UTC schedules are evaluated against the injected clock and unsupported declarations fail before tenant work or misleading records. |
+| 13.1-AC4 Tenant-explicit, bounded/resumable runs persist attributable sanitized run/audit state | P0 | FULL | Existing chunk/deadline/failure/sanitization evidence remains at `tests/unit/server/jobs/runner.test.ts:7,15,47,58` and composed persistence at `tests/unit/server/jobs/route.test.ts:94`. Route deadline, failed-cursor loading, and Stockholm business-date handoff are covered at `route.test.ts:160,205,228`; large-tenant progress, retained failure checkpoints, and inter-producer resume remain at `runner.test.ts:68,103,143`; bounded off-schedule scan progress, boundary checkpoint resume, newly due restart, legacy authority, repeated-deadline due-ID retention, carried-work fairness, and failed/partial continuation are covered at `runner.test.ts:202,247,289,306,324,355,378,415`. Convergent bounded producer paging remains at `tests/unit/server/notifications/follow-up-producer.test.ts:10`. |
+| 13.1-AC5 Fresh `job_runs` schema has exact constraints/grants/RLS/manifest/H4 protections with required evidence | P0 | FULL | `13.1-JOB-RUNS-SCHEMA` — `tests/integration/jobs/job-runs.int.test.ts:12` checks the fresh catalog and now asserts that partial requires a cursor, failed may retain one, and running/completed forbid one; manifest/H4 pins remain in `manifest-shape.test.ts:158` and `manifest-derivations.test.ts:150`. Latest prior full CI required-database evidence executes this case within 1,206 passes. |
 | 13.1-AC6 Source and built-output containment rejects alternate lanes, unverified JWT patterns, and client-reachable jobs service context | P0 | FULL | `13.1-JOBS-CONTAINMENT` — `tests/unit/scripts/verify/jobs-service-role-containment.test.ts:8`; `13.1-BUNDLE-JOBS` — `tests/unit/scripts/verify/bundle-containment.test.ts:92`; the authoritative source and post-build scripts are recorded passing. |
 | 13.2-AC1 Entitlement-projected notification stores tenant/user/category/content/route/read state and clients use the stored destination | P0 | FULL | `13.2-INT-001` — `tests/integration/notifications/notifications.atdd.int.test.ts:29`; stored-link browser path — `tests/e2e/notifications/notifications.atdd.e2e.spec.ts:97`. |
 | 13.2-AC2 Concurrent/retried due scans deduplicate and terminal work emits nothing | P0 | FULL | `13.2-INT-002` — `notifications.atdd.int.test.ts:44` runs six concurrent scans; the five database-backed terminal cases at `:55` independently prove accepted, rejected, lost/withdrawn, superseded, and expired work emits nothing. |
@@ -135,13 +138,13 @@ Coverage is credited only when current committed evidence exercises the final ac
 - All 26 final acceptance criteria have mapped current evidence and are FULL.
 - P0 FULL coverage is 26/26 (100%). No criterion is credited from live evidence.
 - Overlap between unit/static, database integration, and browser evidence is retained where the levels prove different boundaries: authority/state invariants, durable database effects, and user-visible isolation.
-- The final repair delta contributes nine directly mapped executing cases in two new files. Mapped totals are 50 cases across 20 files: 15 unit/static, 33 API/integration/RLS, and two E2E.
-- Exact checkpoint CI run [`36344284961`](https://github.com/rthunborg/ElproSaas/actions/runs/36344284961) at `c1020e986813e5526151a3424d5c3a0dd2f0e577` passes verification, empty-database reset, required integration/RLS, isolated recovery-loader, production-server browser, and Vercel checks. The checkpoint is documentation/state only after product source `d770780`.
+- The final ReviewBot/convergence delta contributes 13 directly mapped executing unit cases in three existing files. Mapped totals are 63 cases across 20 files: 28 unit/static, 33 API/integration/RLS, and two E2E.
+- Exact focused Story 13.1 evidence at `ed43933` is 30/30 passed with zero failures/skips, plus passing typecheck, changed-file ESLint, and review-order validation. Latest prior full CI run [`36398591011`](https://github.com/rthunborg/ElproSaas/actions/runs/36398591011) at `71fa10a` remains green for the unchanged wider surface; current-source full CI is the later root gate and is not claimed here.
 - The absence of a dedicated quote-send browser journey is a low-priority confidence opportunity; command/database coverage exercises every named P0 branch, so it does not reduce acceptance coverage.
 
 ## Step 4 — Coverage Gap Analysis
 
-This focused edit-mode final re-gate verified the existing 26-criterion formal oracle against product source `d7707802d12a0180c540d7452f5484cbc071d630`, the persisted author and independent Luna/xhigh convergence reviews, and complete checkpoint CI run [`36344284961`](https://github.com/rthunborg/ElproSaas/actions/runs/36344284961) at documentation/state head `c1020e986813e5526151a3424d5c3a0dd2f0e577`.
+This final Create-mode re-gate verified the existing 26-criterion formal oracle against product source `ed439335c585bcb80e97b808d35b2378e7525e6e`, the persisted final ReviewBot convergence evidence, and the exact 30-case focused Story 13.1 execution at that source. Latest prior full CI run [`36398591011`](https://github.com/rthunborg/ElproSaas/actions/runs/36398591011) at `71fa10a` supplies broader historical regression evidence for the unchanged Epic 13 surface. Full CI at `ed43933` remains the later root gate and is not claimed as executed here.
 
 ### Coverage summary
 
@@ -157,7 +160,7 @@ There are no `PARTIAL`, `NONE`, `UNIT-ONLY`, or `INTEGRATION-ONLY` matrix status
 
 ### P0 closure evidence
 
-1. **13.1-AC4/AC5 — bounded, durable producer progress.** Route and runner cases prove an internal deadline, exact tenant/producer resume, bounded follow-up and recipient pages, later-tenant progress, retained input checkpoints on failed pages, and database lifecycle coherence for partial/failed/completed cursor states.
+1. **13.1-AC1/AC3/AC4/AC5 — byte-safe authentication and bounded, durable producer progress.** Route, auth, and runner cases prove generic side-effect-free 401 handling for multibyte mismatches, Stockholm business-date handoff, injected-clock schedule enforcement, an internal deadline around cursor discovery, exact scan and tenant/producer resume, due-ID retention across repeated deadlines, newly due tenant-zero restart, bounded follow-up and recipient pages, later-tenant fairness, retained input checkpoints on failed pages, and database lifecycle coherence for partial/failed/completed cursor states.
 2. **13.4-AC6 — recipient identity and correction.** The real command accepts uppercase UUID input only after canonicalization, freezes the linked recipient, and keeps tenant-scoped cancel/reissue plus both non-admin `Quotes.Send` roles covered.
 3. **13.4-AC7 — exact PDF read authority.** Current/private artifact and terminal-state checks remain current; focused evidence proves the request-bound exact-object path, the denial-only server broker fallback, and continued denial of raw/general/arbitrary/cross-tenant salesperson access.
 4. **13.4-AC8 — attested durable recovery evidence.** Recovery uses a five-minute domain-separated HMAC over exact provenance, direct forgery fails, and tenant administrator, project manager, and salesperson command failures each persist attributable evidence while finalization state rolls back.
@@ -179,9 +182,9 @@ There are no `PARTIAL`, `NONE`, `UNIT-ONLY`, or `INTEGRATION-ONLY` matrix status
 
 ### Merge-gate and advisory classification
 
-- **Sandbox implementation merge gate:** PASS at 26/26 P0 FULL with all four required checkpoint CI jobs green and Vercel successful.
+- **Sandbox implementation trace gate:** PASS at 26/26 P0 FULL. The changed Story 13.1 boundary has 30/30 focused current-source passes plus passing static checks; broader full CI evidence is historical and current-source full CI remains the root's later gate.
 - **Clock regression:** resolved. `route-auth.test.ts` now freezes time and derives expired/future values relative to that clock; the former 2026-10-01 false-failure deadline is closed. Shared E2E random fixture identifiers remain non-blocking repeatability work.
-- **Independent convergence evidence:** the missing-output result from earlier configured reviewer attempts remains historical, but it is superseded for this final convergence decision by the persisted Luna/xhigh re-review at `d770780`, which records PASS for all four story boundaries. This does not claim the unavailable historical whole-epic pass occurred.
+- **Convergence evidence:** the persisted Luna/xhigh re-review at `d770780` remains valid for unchanged story boundaries. The 2026-09-28 final ReviewBot convergence record covers only the changed Story 13.1 authentication/date/schedule/budget boundaries and reports PASS after the budget bypass and direct cursor regressions were repaired. This does not invent the unavailable historical whole-epic cross-model output.
 - **Operational advisory:** deterministic budget/chunk/cursor mechanics, tenant ordering, queue recovery, and the AC8 recovery ledger are implemented. Numeric runtime, batch-size, fairness, backlog-age, freshness, concurrency/capacity, retention/cleanup, stale-claim timing, alerting, RTO/RPO, and backup/restore targets remain owner-pending.
 - **Go-live gate:** the Vercel Pro plan and production `CRON_SECRET` prerequisites are recorded, but the deployed production revision still predates Epic 13 and has no cron definition. Post-merge scheduled-run evidence and the separate ADR-B011 real-recipient owner record remain required. See `docs/quality/epic-13-followup-gates-2026-09-27.md`.
 
@@ -189,10 +192,11 @@ There are no `PARTIAL`, `NONE`, `UNIT-ONLY`, or `INTEGRATION-ONLY` matrix status
 
 - Formal oracle: 26 final acceptance criteria in Stories 13.1–13.4, high confidence.
 - Requirements: 26 total, 26 FULL, zero PARTIAL, zero NONE.
-- Final repair delta: nine mapped executing cases add bounded producer progress/failure resume, recovery-HMAC provenance, and exact send-role recovery evidence while existing cases gain deterministic-clock, UUID-canonicalization, lifecycle-constraint, and PDF-read-path assertions.
-- Exact checkpoint CI run [`36344284961`](https://github.com/rthunborg/ElproSaas/actions/runs/36344284961): 1,904 unit passed/0 skipped; 1,206 required integration/RLS passed/1 explicitly skipped after an empty reset with `SUPABASE_TEST_REQUIRED=1`; the separately isolated skipped recovery case passed 1/1 with zero skip; 172 E2E passed/4 explicitly skipped; Vercel succeeded.
-- Static containing inventory: 34 files and 176 declarations.
-- Deduplicated mapped inventory: 50 active cases across 20 files; no mapped skip, fixme, or pending case.
+- Current story parsing reports all four stories and Epic 13 `done`; the accepted 2026-09-28 retrospective has zero new action items. Its older source/count snapshot is retained as historical evidence and is superseded here by the `ed43933` trace refresh.
+- Final ReviewBot/convergence delta: 13 mapped executing unit cases add byte-safe cron authentication, Stockholm business-date handoff, injected-clock schedule enforcement, bounded off-schedule cursor discovery, scan-position resume, carried due-ID retention, newly due restart, partial/failed continuation, and later-tenant fairness.
+- Current-source focused evidence at `ed43933`: 30 passed, zero failed/skipped; typecheck, changed-file ESLint, and review-order validation passed. Latest prior full CI run `36398591011` at `71fa10a` records 1,904 unit passes, 1,206 required integration/RLS passes plus one explicit recovery-loader skip separately covered 1/1, 172 E2E passes with four explicit skips, and successful Vercel checks. Current-source full CI is pending the root gate.
+- Static containing inventory: 34 files and 189 declarations.
+- Deduplicated mapped inventory: 63 active cases across 20 files; 28 unit/static, 33 API/integration/RLS, two E2E, with no mapped skip, fixme, or pending case.
 - Machine-readable outputs: `_bmad-output/test-artifacts/e2e-trace-summary.json` and `_bmad-output/test-artifacts/gate-decision.json`.
 
 ## Phase 2 — Quality Gate Decision
@@ -203,7 +207,7 @@ There are no `PARTIAL`, `NONE`, `UNIT-ONLY`, or `INTEGRATION-ONLY` matrix status
 
 ### GATE DECISION: PASS
 
-**Rationale:** P0 coverage is 100% (required: 100%), all deterministic coverage thresholds are met, and zero critical requirements are uncovered.
+**Rationale:** P0 coverage is 100% and overall coverage is 100% (minimum: 80%). No P1 requirements detected.
 
 ### Decision criteria
 
@@ -221,11 +225,11 @@ None.
 
 ### Final evidence summary
 
-- Final product source: `d7707802d12a0180c540d7452f5484cbc071d630`; later checkpoint and metadata commits are documentation/state only.
+- Final product source: `ed439335c585bcb80e97b808d35b2378e7525e6e`; metadata head `54181ab7cf352b1255c61f57f859c9db9a19e977` adds only the refreshed Story 13.1 spec and convergence record.
 - Formal P0 oracle: 26 acceptance criteria; 26 FULL, zero PARTIAL, zero NONE.
-- Exact checkpoint CI run [`36344284961`](https://github.com/rthunborg/ElproSaas/actions/runs/36344284961) is green across `verify`, `db`, `recovery-storage-loader`, and `e2e`; Vercel also succeeded.
-- Exact execution: 1,904 unit passed/0 skipped; 1,206 required integration/RLS passed/1 explicitly skipped; the isolated skipped recovery case passed 1/1 with zero skip; 172 E2E passed/4 explicitly skipped.
-- Deduplicated mapped evidence: 50 active cases across 20 files.
+- Current-source focused execution: 30 Story 13.1 route/auth/runner cases passed with zero failures/skips; typecheck, changed-file ESLint, and review-order validation also passed.
+- Latest prior full CI run [`36398591011`](https://github.com/rthunborg/ElproSaas/actions/runs/36398591011) at `71fa10a` is green across `verify`, `db`, `recovery-storage-loader`, `e2e`, and Vercel: 1,904 unit passed; 1,206 required integration/RLS passed plus one explicit recovery-loader skip separately covered 1/1; 172 E2E passed with four explicit skips. Full CI at `ed43933` is pending the root gate.
+- Deduplicated mapped evidence: 63 active cases across 20 files; static containing inventory is 189 declarations across 34 files.
 - Machine-readable outputs: `_bmad-output/test-artifacts/e2e-trace-summary.json` and `_bmad-output/test-artifacts/gate-decision.json`.
 - Limitation: this trace PASS does not establish a post-merge production scheduled run or authorize real-recipient delivery; ADR-B011's separate go-live gate remains closed.
 
@@ -234,3 +238,15 @@ None.
 1. Preserve the AC6–AC8 regression cases in required CI.
 2. Add the optional quote-send browser journey when prioritised.
 3. Record the post-merge production scheduler run, approve the owner-pending operating targets, and satisfy the separate ADR-B011 go-live record before any real-recipient release.
+
+## Workflow Completion Summary
+
+**Gate decision:** PASS
+
+**Coverage:** P0 26/26 FULL (100%); P1 has no criteria; overall 26/26 FULL (100%).
+
+**Inventory:** 63 active mapped cases across 20 files (28 unit/static, 33 API/integration/RLS, two E2E); static containing inventory is 189 declarations across 34 files.
+
+**Rationale:** P0 coverage is 100% and overall coverage is 100% (minimum: 80%). No P1 requirements detected.
+
+**Critical gaps:** 0. The one missing dedicated quote-send browser journey remains a low-priority confidence opportunity because its acceptance branches have unit and required-database evidence.
