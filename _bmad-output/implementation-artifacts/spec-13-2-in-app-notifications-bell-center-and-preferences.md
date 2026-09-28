@@ -178,6 +178,15 @@ Verification: the earlier focused follow-up command passed 37/37 with zero failu
 - reject: 0
 - addressed_findings:
   - none
+### 2026-09-28 — CI fixture-isolation correction
+
+- intent_gap: 0
+- bad_spec: 0
+- patch: 1 (test-only)
+- defer: 0
+- reject: 0
+- addressed_findings:
+  - `[high] [patch]` The new mark-all rollback E2E reused finance after the earlier successful mark-all test had exhausted its unread fixture, leaving its real action disabled. The scenario now uses the unmutated project-manager fixture and asserts an enabled action before injecting POST and reload failures; product source is unchanged.
 
 ## Final Convergence Disposition
 
@@ -187,21 +196,26 @@ The later owner-authorized five-finding settlement confirmed the Bell failure ro
 
 ## Suggested Review Order
 
-Author: Story 13.2 implementation and final-convergence fix author.
-Refreshed for final source `8b2093374b73a1b419b51be1068a2263e0e11f2f`; that final runner-only source correction does not change this story’s settled Bell acknowledgement or Stockholm-date behavior. Review the personal acknowledgement state before the date presentation selector.
+Author: Story 13.2 implementation and follow-up fix author.
+Refreshed against test-only source `88eadaf9df5e26f753dfd1a3197f7124cb882208`. The product Bell rollback and Stockholm-date source remain settled; review the acknowledgement state machine, then the fixture-independent browser proof.
 
-### Personal notification isolation and acknowledgement
+### Acknowledgement remains truthful on two failures
 
-- `src/components/app-shell/AppShell.tsx:276` and `src/components/notifications/NotificationBell.tsx:9` — mount the personal bell outside navigation and reconcile acknowledgement failure to server truth.
-- `src/components/notifications/NotificationBell.tsx:49` — retains the prior server snapshot during mark-all; the single-item path follows the same restore-on-failed-reload rule.
-- `src/app/api/notifications/[id]/read/route.ts:5` — scopes acknowledgement to the resolved tenant and recipient.
-- `tests/e2e/notifications/notifications.atdd.e2e.spec.ts` — faults mark-one/mark-all and reload independently, proving failed persistence never leaves a false read acknowledgement.
+- `src/components/notifications/NotificationBell.tsx:20` — `reload` returns false and retains failure state when reconciliation cannot load server truth.
+- `src/components/notifications/NotificationBell.tsx:49` — `markAll` optimistically updates only while it retains the prior server snapshot, restores it after failed POST plus failed reload, and keeps retry copy visible.
+- `src/components/notifications/NotificationBell.tsx:65` — the single acknowledgement path uses the same restore-on-failed-reload invariant.
 
-### Stockholm date presentation
+### Fixture-independent mark-all browser evidence
+
+The CI failure at run `36421169336` was not a locator or product failure: the prior successful mark-all case had consumed the shared finance fixture, so this later scenario resolved the button as disabled. The corrected scenario signs in with the unmutated project-manager fixture, proves the action is enabled before any route is faulted, then still causes the genuine mark-all POST and reconciliation GET to fail.
+
+- `tests/e2e/notifications/notifications.atdd.e2e.spec.ts:167` — selects the unmutated project-manager fixture for the mark-all double-failure scenario.
+- `tests/e2e/notifications/notifications.atdd.e2e.spec.ts:173` — scopes the real mark-all action inside the Bell dialog and asserts its known unread baseline with `toBeEnabled` before fault injection.
+- `tests/e2e/notifications/notifications.atdd.e2e.spec.ts:175` — keeps independent 500 responses for `read-all` POST and notification reload, then asserts retry copy and unread state restore.
+
+### Stockholm date presentation and evidence
 
 - `src/components/notifications/notification-presentation.ts:39` — compares a supplied from-date through `stockholmBusinessDate`, preserving empty filters and rejecting malformed timestamps only when filtering.
 - `tests/unit/components/notifications/notification-presentation.test.ts` — covers Stockholm midnight, DST, empty dates, and invalid input.
 
-### Evidence and limits
-
-Focused follow-up unit evidence passed 37/37 with zero skips; typecheck and changed-file ESLint passed. The browser fault cases remain for the configured full-CI browser lane. This bounded pass found no later direct regression in the Bell or date selector; the final status is settled.
+The current CI checkpoint at `5a529b4` passed verify (1,923 tests, 0 skips), DB (1,208 tests, 1 explicit loader skip), isolated loader (1 test, 0 skips), and Vercel; E2E had 173 passes, 1 fixture-state failure, and 4 skips. This fix executed `pnpm exec eslint tests/e2e/notifications/notifications.atdd.e2e.spec.ts` and `git diff --check` successfully. It does not claim fresh browser success; the existing Sol changed-lines inspection and fresh CI remain required.
