@@ -5,7 +5,7 @@ created: '2026-09-23'
 status: 'done'
 baseline_revision: '3d49a6e5d8070c9f72498e5ad0048300a799e7c0'
 review_loop_iteration: 0
-followup_review_recommended: true
+followup_review_recommended: false
 context:
   - '_bmad-output/project-context.md'
   - '_bmad-output/implementation-artifacts/epic-13-context.md'
@@ -126,6 +126,14 @@ Verification: `node --experimental-strip-types --import ./tests/support/register
 
 Residual limit: the internal deadline is cooperative at cursor-query granularity; it stops further tuple scans before/after each lookup but does not claim an owner-approved latency SLO or introduce a new database-query cancellation contract. The unbounded multi-tuple bypass is closed.
 
+### Final bounded settlement (2026-09-28)
+
+Summary: The owner-authorized settlement rechecked only the stable keyset continuation, atomic job-run/audit transaction, active multi-schedule continuation, and direct regressions in the latest fixes. Newly due work now starts at tenant zero without replaying the carried producer before its saved boundary. An exhausted legacy numeric boundary remains exhausted when its final target was deleted, so a newly due producer cannot cause old work to replay at the last surviving tenant.
+
+Source corrections: `04d709b938806d1991264cfd7b976130f3be5f36` added the carried producer boundary, `00ac840f27e5a43d9e48efd7c1ba3916faae5b4b` corrected the static-registry crossover proof, and `8b2093374b73a1b419b51be1068a2263e0e11f2f` preserved an exhausted legacy boundary across another deadline.
+
+Verification: the final focused runner command passed 23/23 with zero failures and zero skips. `pnpm typecheck` and changed-file ESLint passed at `8b209337`. The earlier focused follow-up command passed 37/37. Required local integration executed 8 tests with 5 passed, 3 failed, and 0 skipped because the existing local database lacks the new RPCs; the pre-existing duplicate `email_outbox_delivery_identity_key` migration-history conflict prevented applying them. Fresh-schema migration, database, and browser evidence remains for CI. The external Luna CLI exited 1 without review output; the authorized native Luna/xhigh fallback identified the exhausted-boundary replay, which was fixed and verified on the exact changed lines. Follow-up review recommendation: `false`.
+
 ## Review Triage Log
 
 ### 2026-09-23
@@ -177,6 +185,28 @@ Verification: `node --experimental-strip-types --import ./tests/support/register
 
 Residual risk: future producer declarations needing cron syntax beyond the validated five-field `*`, numeric, and `*/N` fields must extend this fail-closed parser with focused tests before activation. This is not an owner performance or freshness SLA.
 
+### 2026-09-28 — ReviewBot follow-up 2
+
+- intent_gap: 0
+- bad_spec: 0
+- patch: 2 (high 2)
+- defer: 0
+- reject: 0
+- addressed_findings:
+  - `[high] [patch]` Replaced mutable numeric tenant positions with a named next-tenant cursor while retaining legacy cursor decoding and due-work fairness.
+  - `[high] [patch]` Moved job-run and system-audit writes into one service-role-only transactional RPC.
+
+### 2026-09-28 — Final settlement corrections
+
+- intent_gap: 0
+- bad_spec: 0
+- patch: 2 (high 2)
+- defer: 0
+- reject: 0
+- addressed_findings:
+  - `[high] [patch]` Preserved the carried producer boundary when a newer schedule restarts at tenant zero, so newly due work covers every tenant without replaying prior work.
+  - `[high] [patch]` Preserved an exhausted legacy numeric boundary after its final target is deleted, preventing a later schedule crossover from replaying the carried producer at the last surviving tenant.
+
 ### 2026-09-28 — Review pass
 
 - intent_gap: 0
@@ -191,56 +221,32 @@ Residual risk: future producer declarations needing cron syntax beyond the valid
 
 The final 2026-09-28 convergence pass was limited to the three resolved ReviewBot boundaries and one remaining cursor-scan budget uncertainty at reviewed source `a2d2d9afa5ab8395d85ed91b67259bc5097103bf`. The Stockholm business-date handoff, five-field UTC due-window continuation, UTF-8 byte-safe secret comparison, and second-deadline due-ID union from `b8b0241835a0836aa5bcbba047be23512faee723` remain confirmed. The budget uncertainty was production-reachable because tenant/producer cursor discovery was outside the follow-up producer's abort signal and skipped no-work tuples before the runner deadline check. Commit `ed43933` bounds those scans cooperatively, persists explicit scan-only cursor state without granting execution authority, preserves failed/partial and carried due work, and restarts newly due windows at tenant zero. Two direct intermediate cursor regressions were caught and repaired before the final narrow re-review returned PASS. **Final disposition: PASS; no further follow-up review is recommended.** Numeric production latency, throughput, backlog-age, freshness, and capacity targets remain owner-pending; the internal bound is not an owner-approved SLO.
 
+The later owner-authorized five-finding settlement ended at source `8b2093374b73a1b419b51be1068a2263e0e11f2f`. It retained the keyset and transactional audit changes, fixed the newly due producer boundary and the exhausted legacy-boundary replay found by the native Luna/xhigh fallback, and finished with a zero-finding latest triage. **Final disposition remains PASS; no further follow-up review is recommended.**
+
 ## Suggested Review Order
 
 Author: Story 13.1 implementation and final-convergence fix author.
-Refreshed for the final 2026-09-28 ReviewBot convergence: Stockholm date handoff, byte-safe cron-secret comparison, due-window continuation, and budgeted off-schedule cursor discovery.
+Refreshed against final source `8b2093374b73a1b419b51be1068a2263e0e11f2f`. Review the cron-authenticated route first, then the stable keyset and carried-boundary cursor state, and finally the atomic run-plus-audit database writer. This is a bounded ReviewBot follow-up and its direct regressions only.
 
-### Authentication and business-date handoff
+### Authentication, period handoff, and atomic observation
 
-The public scheduler entry authenticates before creating a privileged client. Its follow-up work receives the established Stockholm business date, preserving the domain's due-date and notification-period meaning.
+- `src/app/api/jobs/run/route.ts:57` — `recordRun` calls the one service-role-only run-plus-system-audit RPC, so an audit rejection cannot leave an orphaned `job_runs` row.
+- `src/app/api/jobs/run/route.ts:103` — supplies the established Stockholm business date to the follow-up producer after route authentication.
+- `supabase/migrations/20260928110819_epic_13_reviewbot_followup_atomic_job_run_audit_and_config_recovery.sql:3` — inserts the run and audit record in one transaction; its grants retain the service-role boundary.
+- `tests/integration/jobs/job-runs.int.test.ts:48` — forces audit rejection and asserts transactional rollback on a fresh migrated schema.
 
-- `src/app/api/jobs/run/route.ts:75` — `handleJobsRunRequest`: rejects unauthorized callers before any client or runner side effect.
-- `src/server/jobs/auth.ts:3` — `equalSecret`: encodes both values and rejects unequal byte lengths before `timingSafeEqual`.
-- `src/app/api/jobs/run/route.ts:103` — `stockholmBusinessDate`: supplies the follow-up producer's DST-aware period.
-- `tests/unit/server/jobs/route.test.ts:60` — `byte-length-mismatched bearer credentials always receive the generic 401 without side effects`: proves both rotation-expiry states keep the route response generic.
-- `tests/unit/server/jobs/route.test.ts:162` — `the default follow-up dispatcher uses the Stockholm business date across winter, summer, and DST`: exercises the default route dispatcher at its date handoff.
+### Stable tenant continuation across schedule changes
 
-### Due scheduling and checkpoint continuation
+New cursors retain `nextTenantId`; legacy numeric cursors remain readable. When a static producer registry crosses from a carried `*/5` continuation into an hourly window, newly due hourly work restarts at tenant zero while five-minute work waits at its stable saved boundary. If a legacy continuation has already passed a final tenant that was deleted, the explicit exhausted boundary prevents replay at the last surviving tenant.
 
-The runner evaluates schedules against one injected UTC window and treats cursor discovery as budgeted work. Explicit empty due-ID snapshots retain scan progress without granting execution authority; a newly due window restarts at tenant zero, while non-empty carried snapshots and legacy cursors preserve their intended continuation semantics.
-
-- `src/server/jobs/runner.ts:63` — `isProducerDueAt`: validates the supported five-field UTC cron grammar and fails closed for unsupported declarations.
-- `src/server/jobs/runner.ts:125` — `startsNewScheduledWindow`: distinguishes scan-only snapshots from carried scheduled work so a new due window cannot skip early tenants.
-- `src/server/jobs/runner.ts:184` — `hasKnownWork`: checks the chunk/deadline before execution and checkpoints interrupted cursor discovery after each bounded lookup.
-- `tests/unit/server/jobs/runner.test.ts:178` — `runs only injected-clock due producers and creates no producer or runner record on a fresh off-schedule tick`: proves a completed no-work scan remains silent.
-- `tests/unit/server/jobs/runner.test.ts:202` — `budgeted off-schedule scans resume until they reach a later producer checkpoint`: proves repeated bounded scans retain progress and eventually resume saved work.
-- `tests/unit/server/jobs/runner.test.ts:289` — `a newly due window restarts ahead of an explicit empty scan cursor`: proves scan progress cannot suppress scheduled work for earlier tenants.
-- `tests/unit/server/jobs/runner.test.ts:430` — `an irrelevant cursor lookup cannot clear carried due work for a later tenant`: proves deadline handling retains the due snapshot and tenant fairness.
+- `src/server/jobs/runner.ts:155` — detects a producer newly due relative to the carried snapshot.
+- `src/server/jobs/runner.ts:166` — retains the carried producer IDs and their keyset boundary while the newly due producer starts at tenant zero.
+- `src/server/jobs/runner.ts:169` — persists an exhausted carried boundary when a numeric target no longer exists.
+- `src/server/jobs/runner.ts:236` — suppresses carried work before its named boundary or after an exhausted boundary without dropping newly due work.
+- `tests/unit/server/jobs/runner.test.ts:324` and `:360` — cover keyset list mutation, deleted named target, and producer-zero replacement restart.
+- `tests/unit/server/jobs/runner.test.ts:430` — covers a static hourly plus `*/5` registry across 12:55 → 13:00 deadline → 13:05 continuation; the five-minute producer is not replayed at tenant A and hourly covers it.
+- `tests/unit/server/jobs/runner.test.ts:479` — covers a deleted final legacy numeric target so only newly due hourly work runs from tenant zero.
 
 ### Evidence and limits
 
-The focused route/auth/runner command passed 30/30 with zero failures and zero skips. `pnpm typecheck` and changed-file ESLint passed. The final narrow post-fix review returned PASS. Database and browser suites were not rerun because the patch has no migration, RLS, or browser-surface change; previous CI evidence remains historical only. The supported scheduler grammar is intentionally narrow, and the internal deadline remains a cooperative containment bound rather than an owner-approved latency SLO.
-
-### ReviewBot follow-up 2 — stable continuation and atomic observation
-
-Refreshed by the follow-up fix author against `2a7444fbbaa64948cbda46c3ebf0e9f8981a6a46`. New runner cursors name their next tenant and preserve the prior numeric format only for legacy records; a deleted named target resumes at the next lexical tenant and restarts that replacement tuple at producer zero. The scheduler now records each job run and its system audit through one service-role-only database transaction.
-
-- `src/server/jobs/runner.ts:131` — resolves current keyset cursors against the route's ordered tenant list and preserves legacy numeric continuation.
-- `src/app/api/jobs/run/route.ts:59` — calls the single atomic persistence RPC for every runner record.
-- `supabase/migrations/20260928110819_epic_13_reviewbot_followup_atomic_job_run_audit_and_config_recovery.sql:3` — creates the constrained transactional run-plus-audit writer.
-- `tests/unit/server/jobs/runner.test.ts` — covers insert/delete continuation, legacy compatibility, deleted mid-tuple restart, due snapshots, and fairness.
-- `tests/integration/jobs/job-runs.int.test.ts` — forces the system-audit insert to fail and asserts no job-run row commits on a fresh migrated schema.
-
-Focused unit evidence passed 37/37 with zero skips; typecheck, changed-file ESLint, and service-role containment passed. Required integration evidence is pending fresh-migration CI because the existing local database has inconsistent historical migration metadata; this follow-up adds a migration, so `followup_review_recommended: true`.
-
-### 2026-09-28 — Review pass
-
-- intent_gap: 0
-- bad_spec: 0
-- patch: 2 (high 2)
-- defer: 0
-- reject: 0
-- addressed_findings:
-  - `[high] [patch]` Replaced mutable numeric tenant positions with a named next-tenant cursor while retaining legacy cursor decoding and due-work fairness.
-  - `[high] [patch]` Moved job-run and system-audit writes into one service-role-only transactional RPC.
+The final focused runner command, `node --experimental-strip-types --import ./tests/support/register.mjs --test tests/unit/server/jobs/runner.test.ts`, passed **23/23** with zero failures and zero skips. `pnpm typecheck` and changed-file ESLint passed. Required local integration executed 8 tests: 5 passed, 3 failed, and 0 skipped because the current local database lacks the new RPCs; its pre-existing `email_outbox_delivery_identity_key` history conflict prevents applying the migration. Fresh-schema migration, RLS, and browser CI remain required. The latest native Luna finding on the exhausted legacy boundary was fixed; no broad audit was repeated.

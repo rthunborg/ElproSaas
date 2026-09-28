@@ -6,7 +6,7 @@ status: 'done'
 baseline_revision: '344f00e01ebd02191ee5c116ff28be15d1c1c604'
 baseline_commit: '344f00e01ebd02191ee5c116ff28be15d1c1c604'
 review_loop_iteration: 0
-followup_review_recommended: true
+followup_review_recommended: false
 context:
   - '_bmad-output/project-context.md'
   - '_bmad-output/implementation-artifacts/epic-13-context.md'
@@ -123,6 +123,12 @@ Verification: `pnpm typecheck`, focused ESLint, and `git diff --check` passed. T
 
 Residual risk: The required database-backed integration and browser suites were not restarted in this follow-up; the existing recorded evidence remains the last execution evidence.
 
+### Final bounded settlement (2026-09-28)
+
+Summary: The owner-authorized settlement rechecked only the Bell rollback and Stockholm business-date filter from the supplied ReviewBot findings. Failed mark-one and mark-all mutations restore the captured persisted snapshot when their reconciliation reload also fails, and successful reload remains authoritative. The notification center compares `stockholmBusinessDate(createdAt)` with the date input across midnight and DST boundaries.
+
+Verification: the earlier focused follow-up command passed 37/37 with zero failures and zero skips, including the changed presentation/date units. The bounded final settlement found no direct Story 13.2 regression after the primary fixes. Fresh browser fault-injection and full CI remain the execution gate; no new full-CI claim is recorded here. Follow-up review recommendation: `false`.
+
 ## Review Triage Log
 
 ### 2026-09-23 — Review pass
@@ -152,54 +158,7 @@ Residual risk: The required database-backed integration and browser suites were 
   - `[medium] [patch]` Hid producer freshness state when the administrator-only run lookup fails.
   - `[low] [patch]` Rendered sub-hour scan freshness without claiming that a scan is one hour old.
 
-## Final Convergence Disposition
-
-The 2026-09-27 convergence check was limited to the current tenant/recipient notification boundary and the final personal-preference model. `quote.delivery` remains active registry and outbox metadata, while its ineffective personal in-app and email controls are absent from the eligible API/UI projection and blocked for new direct database writes. Existing legacy rows are retained but ignored. Recipient-scoped public unsubscribe suppression remains a separate delivery boundary. The independent Luna/xhigh review records PASS at product code head `d770780`, and exact checkpoint CI run `36344284961` passed at documentation-only head `c1020e9`, whose product code is identical to `d770780`. **Final disposition: PASS; no further follow-up review is recommended.**
-
-## Suggested Review Order
-
-Author: Story 13.2 implementation and final-convergence fix author.
-Refreshed against code head `d770780` after the approved removal of the ineffective `quote.delivery` preference row and durable bounded follow-up delivery.
-
-### Personal notification isolation and acknowledgement
-
-- `src/components/app-shell/AppShell.tsx:276` and `src/components/notifications/NotificationBell.tsx:9` — mount the personal bell outside navigation and reconcile acknowledgement failure to server truth.
-- `src/app/api/notifications/[id]/read/route.ts:5` — scopes acknowledgement to the resolved tenant and recipient.
-- `supabase/migrations/20260923170000_in_app_notifications.sql:3` — gives each notification a tenant plus recipient identity, forced RLS, and subject-period deduplication.
-- `tests/integration/notifications/notifications.atdd.int.test.ts` — covers tenant/recipient isolation, direct-write denial, acknowledgement replay, follow-up dedupe, and terminal quote suppression.
-- `tests/e2e/notifications/notifications.atdd.e2e.spec.ts` — covers every valid role, capped unread count, stored route, filters, acknowledgement recovery, accessibility, and truthful freshness states.
-
-### Supported preference authority
-
-- `src/server/notifications/registry.ts:26` — `activeNotificationPreferenceCategories`: derives active categories and excludes `quote.delivery` from personal preferences while leaving the live category registered.
-- `src/app/api/notifications/preferences/route.ts:10` — filters reads to the resolved tenant/user and eligible category set; `:21` rejects ineligible writes before persistence.
-- `src/components/notifications/NotificationPreferences.tsx:6` — renders only the eligible preference projection, so the removed delivery row has neither an in-app nor email switch.
-- `supabase/migrations/20260927100000_remove_quote_delivery_preferences.sql:5` — rejects new authenticated inserts or updates for an ineligible category without deleting retained rows.
-- `tests/unit/server/notifications/registry.test.ts` and `tests/integration/notifications/notifications.atdd.int.test.ts:126` — prove registry eligibility, effective defaults, essential-state enforcement, and direct write rejection.
-- `tests/e2e/notifications/email-preferences-email-activation.atdd.e2e.spec.ts:13` — proves both `Offertleverans` controls are absent.
-
-### Producer boundary
-
-- `src/server/notifications/follow-up-producer.ts:95` — projects only entitled recipients, stores safe route/content for due non-terminal quotes, and durably pages bounded follow-up and recipient batches.
-- `src/server/jobs/producers.ts:28` and `src/app/api/jobs/run/route.ts:96` — keep follow-up emission in the manifest-derived authenticated jobs lane.
-- `supabase/migrations/20260924120000_email_delivery_followup_fixes.sql:49` — keeps token-based unsubscribe suppression recipient/category scoped and independent of personal preference identity.
-
-### Evidence and limit
-
-Base Epic 13 CI run `36339205329` passed the final preference registry, required database/RLS, and browser absence cases as part of the recorded 1,896 unit, 1,205 database, and 172 browser passes. The final focused unit set passed 32/32 and includes bounded, failure-resumable follow-up/preference projection. Exact checkpoint CI run `36344284961` at `c1020e9` passed all four jobs: 1,904 unit tests with zero skips, 1,206 required database tests with one explicit isolated recovery-storage skip, the isolated recovery proof 1/1 with zero skips, and 172 browser tests with four explicit skips; Vercel also succeeded. The checkpoint changes after `d770780` are documentation/state only. Full closure is recorded in `docs/quality/epic-13-convergence-review-2026-09-27.md`. Retained legacy `quote.delivery` preference rows remain inert and hidden; deletion still requires a separate retention decision.
-
-### ReviewBot follow-up 2 — truthful acknowledgement and Stockholm dates
-
-Refreshed by the follow-up fix author against `2a7444fbbaa64948cbda46c3ebf0e9f8981a6a46`. The bell retains its known server snapshot before an optimistic mark-one or mark-all update. A successful reload remains authoritative; if both mutation and reload fail, the snapshot is restored and retry copy stays visible. From-date filtering now compares Stockholm business days and excludes malformed timestamps only when a date filter is supplied.
-
-- `src/components/notifications/NotificationBell.tsx:49` — restores the prior snapshot after a failed acknowledgement and failed reconciliation.
-- `src/components/notifications/notification-presentation.ts:39` — applies the existing Europe/Stockholm business-date authority with safe invalid-input behavior.
-- `tests/e2e/notifications/notifications.atdd.e2e.spec.ts` — faults both mark and reload for single/all acknowledgement paths.
-- `tests/unit/components/notifications/notification-presentation.test.ts` — covers Stockholm midnight/DST and empty/invalid filter behavior.
-
-Focused unit evidence passed 37/37 with zero skips; typecheck and changed-file ESLint passed. Browser fault coverage awaits the configured full-CI browser lane, so `followup_review_recommended: true`.
-
-### 2026-09-28 — Review pass
+### 2026-09-28 — ReviewBot follow-up 2
 
 - intent_gap: 0
 - bad_spec: 0
@@ -209,3 +168,40 @@ Focused unit evidence passed 37/37 with zero skips; typecheck and changed-file E
 - addressed_findings:
   - `[high] [patch]` Restored the known persisted notification state if mutation and reconciliation both fail.
   - `[high] [patch]` Applied Stockholm business dates to notification from-date filtering.
+
+### 2026-09-28 — Review pass
+
+- intent_gap: 0
+- bad_spec: 0
+- patch: 0
+- defer: 0
+- reject: 0
+- addressed_findings:
+  - none
+
+## Final Convergence Disposition
+
+The 2026-09-27 convergence check was limited to the current tenant/recipient notification boundary and the final personal-preference model. `quote.delivery` remains active registry and outbox metadata, while its ineffective personal in-app and email controls are absent from the eligible API/UI projection and blocked for new direct database writes. Existing legacy rows are retained but ignored. Recipient-scoped public unsubscribe suppression remains a separate delivery boundary. The independent Luna/xhigh review records PASS at product code head `d770780`, and exact checkpoint CI run `36344284961` passed at documentation-only head `c1020e9`, whose product code is identical to `d770780`. **Final disposition: PASS; no further follow-up review is recommended.**
+
+The later owner-authorized five-finding settlement confirmed the Bell failure rollback and Stockholm business-date filter without another Story 13.2 correction. Its latest canonical triage is zero and the final disposition remains PASS.
+
+## Suggested Review Order
+
+Author: Story 13.2 implementation and final-convergence fix author.
+Refreshed for final source `8b2093374b73a1b419b51be1068a2263e0e11f2f`; that final runner-only source correction does not change this story’s settled Bell acknowledgement or Stockholm-date behavior. Review the personal acknowledgement state before the date presentation selector.
+
+### Personal notification isolation and acknowledgement
+
+- `src/components/app-shell/AppShell.tsx:276` and `src/components/notifications/NotificationBell.tsx:9` — mount the personal bell outside navigation and reconcile acknowledgement failure to server truth.
+- `src/components/notifications/NotificationBell.tsx:49` — retains the prior server snapshot during mark-all; the single-item path follows the same restore-on-failed-reload rule.
+- `src/app/api/notifications/[id]/read/route.ts:5` — scopes acknowledgement to the resolved tenant and recipient.
+- `tests/e2e/notifications/notifications.atdd.e2e.spec.ts` — faults mark-one/mark-all and reload independently, proving failed persistence never leaves a false read acknowledgement.
+
+### Stockholm date presentation
+
+- `src/components/notifications/notification-presentation.ts:39` — compares a supplied from-date through `stockholmBusinessDate`, preserving empty filters and rejecting malformed timestamps only when filtering.
+- `tests/unit/components/notifications/notification-presentation.test.ts` — covers Stockholm midnight, DST, empty dates, and invalid input.
+
+### Evidence and limits
+
+Focused follow-up unit evidence passed 37/37 with zero skips; typecheck and changed-file ESLint passed. The browser fault cases remain for the configured full-CI browser lane. This bounded pass found no later direct regression in the Bell or date selector; the final status is settled.

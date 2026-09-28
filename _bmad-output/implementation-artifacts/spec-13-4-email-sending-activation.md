@@ -5,7 +5,7 @@ created: '2026-09-24'
 status: 'done'
 baseline_revision: 'dd03e42e9ddf799a850f65a22f287333b355b91d'
 review_loop_iteration: 0
-followup_review_recommended: true
+followup_review_recommended: false
 context:
   - 'docs/decisions/ADR-B011-epic-13-email-release-and-quote-delivery.md'
   - '_bmad-output/planning-artifacts/architecture-phase-b.md'
@@ -133,6 +133,36 @@ Review caveat: the bounded cross-model reviewer command exited `1` with no outpu
 
 Deferred: the frontmatter records the two medium findings from this pass: idempotent provider submission after accepted submission but failed outcome persistence, and a scoped unsubscribe URL in every non-essential real provider-rendered body. Both require the deferred real-provider contract; sandbox-only delivery remains the authorized Story 13.4 surface.
 
+### 2026-09-28 — ReviewBot follow-up 2
+
+- intent_gap: 0
+- bad_spec: 0
+- patch: 1 (high 1)
+- defer: 0
+- reject: 0
+- addressed_findings:
+  - `[high] [patch]` Preserved attributed orphaned recovery evidence when the quote-PDF HMAC is absent without weakening signed authenticated recovery authorization.
+
+### 2026-09-28 — Final settlement correction
+
+- intent_gap: 0
+- bad_spec: 0
+- patch: 1 (medium 1)
+- defer: 0
+- reject: 0
+- addressed_findings:
+  - `[medium] [patch]` Extended the absent-HMAC success proof to project-manager and salesperson actors who hold `Quotes.Send`, while retaining direct authenticated, cross-tenant, and spoofed-actor denial coverage.
+
+### 2026-09-28 — Review pass
+
+- intent_gap: 0
+- bad_spec: 0
+- patch: 0
+- defer: 0
+- reject: 0
+- addressed_findings:
+  - none
+
 ## Auto Run Result
 
 Status: done
@@ -152,6 +182,13 @@ Verification: clean local reset completed. Required serialized Vitest with `SUPA
 Integration skip: `tests/integration/ops/recovery-storage-immutability.int.test.ts` is explicitly skipped because `ISOLATED_RECOVERY_STORAGE_PROOF=1` and its separate recovery-stack URL, service key, fixture, and before-row inputs were not provided; it is a CI-only physical recovery-storage proof, not Story 13.4 coverage.
 
 Residual review caveat: the bounded cross-model reviewer command exited `1` with no output, so that review layer is unavailable. The provider evidence uses a synthetic sandbox adapter and does not prove an external provider or production sender configuration.
+
+### Final bounded settlement (2026-09-28)
+
+Summary: The owner-authorized settlement rechecked only missing-HMAC durable recovery and the changed authorization evidence. The separate server-only writer remains reachable only from the authenticated quote-send command's missing-secret branch, verifies active `Quotes.Send` membership and quote tenancy in the database, and leaves the signed recovery path unchanged. The successful missing-secret path now covers tenant administrator, project manager, and salesperson actors; direct authenticated invocation, cross-tenant attribution, and spoofed actors remain denied.
+
+Verification: the earlier focused follow-up command passed 37/37 with zero failures and zero skips. The final integration test change was inspected but not rerun because the existing local database lacks the new RPCs and the pre-existing duplicate `email_outbox_delivery_identity_key` history conflict prevents applying them. The required local command executed 8 tests with 5 passed, 3 failed, and 0 skipped. Fresh-schema database/RLS evidence remains for CI. Follow-up review recommendation: `false`.
+
 ## Historical E2E Context Halt Evidence
 
 Status: blocked
@@ -204,77 +241,29 @@ Unsubscribe is a separate public capability: the URL carries the only plaintext 
 
 The 2026-09-27 convergence check was limited to the remediated Story 13.4 boundaries: personal preference eligibility, linked-recipient correction, terminal-state revalidation, PDF challenge authority, finalization recovery authority, recovery-evidence provenance, and Node/PostgreSQL HMAC parity. It found and fixed a recovery-role mismatch, direct same-tenant recovery forgery, uppercase UUID canonicalization mismatch, and a remaining PDF challenge/private-verifier mismatch that denied valid project-manager and salesperson send commands. `f226415` aligns only those two private send-attestation functions with the exact `Quotes.Send` role set and adds the existing server-only quote-PDF broker for roles without raw Storage access. Exact-head CI then showed the broker had become unconditional, making ordinary Administrator send paths depend on a service credential absent from the normal integration command context. `d770780` restores the request-bound exact-object read for actors who already have it and uses the broker only after a classified RLS denial on the database-issued path. The older reviewer/financial authority remains unchanged, and raw Säljare Storage access, arbitrary files, transient failures, corrupt bytes, and cross-tenant artifacts remain denied. Recovery still requires the short-lived server HMAC rooted in the existing quote-PDF Vault secret with exact actor, tenant, target, and role checks. The independent Luna/xhigh review records PASS at product code head `d770780`, and exact checkpoint CI run `36344284961` passed at documentation-only head `c1020e9`, whose product code is identical to `d770780`. **Final disposition: PASS; no further follow-up review is recommended.**
 
+The later owner-authorized settlement retained that signed recovery authority and added only the separate configuration-failure writer plus its exact-role evidence. Its latest canonical triage is zero; fresh-schema CI remains the required database gate. **Final disposition remains PASS; no further follow-up review is recommended.**
+
 ## Suggested Review Order
 
 Author: Story 13.4 implementation and final-convergence fix author.
-Refreshed against code head `d770780` after recovery-role alignment, recovery-evidence attestation, UUID canonicalization, exact `Quotes.Send` PDF-challenge alignment, request-bound/broker read repair, and durable runner checkpoint convergence.
+Refreshed for final source `8b2093374b73a1b419b51be1068a2263e0e11f2f`; its runner-only final correction does not alter this story’s settled recovery implementation. Review the absent-HMAC branch, then the service-only database writer and its denial boundaries.
 
-### Closed synthetic delivery and suppression
+### Closed synthetic delivery and finalization
 
-- `src/server/email/provider.ts:11` — `evaluateEmailReleaseControl`: admits only the synthetic sandbox posture; real-recipient release still requires its separate ADR-B011 record.
-- `src/server/email/outbox.ts:93` — `processEmailOutbox`: applies suppression before release evaluation and any claim/provider work.
-- `src/app/api/jobs/run/route.ts:96` — keeps processing on the sole authenticated jobs lane with the normal release posture closed.
-- `supabase/migrations/20260924120000_email_delivery_followup_fixes.sql:49` — hashes/resolves public tokens into one-way recipient/category suppression.
-- `tests/integration/email/email-delivery-activation.atdd.int.test.ts` — proves sandbox success, closed release, suppression, artifact consumption, and final claimed-delivery terminal recheck.
+- `src/server/email/provider.ts:11` — keeps release control in the synthetic sandbox posture.
+- `src/server/commands/quotes/mark-sent.ts:197` — begins exact current-PDF preparation before finalization and keeps the existing signed recovery flow for genuine artifact/finalization failures.
+- `src/server/commands/quotes/mark-sent.ts:321` — invokes the configuration-only writer only when the process HMAC is absent.
 
-### Personal preference eligibility
+### Durable configuration-failure recovery
 
-- `src/server/notifications/registry.ts:26` — retains `quote.delivery` as live outbox metadata but excludes it from personal preferences because the frozen CRM recipient is not the authenticated user identity.
-- `src/app/api/notifications/preferences/route.ts:10` and `src/components/notifications/NotificationPreferences.tsx:6` — filter the API and UI to preference-eligible categories.
-- `supabase/migrations/20260927100000_remove_quote_delivery_preferences.sql:5` — rejects new direct inserts/updates for `quote.delivery` while leaving retained legacy rows inert.
-- `tests/integration/notifications/notifications.atdd.int.test.ts:126` and `tests/e2e/notifications/email-preferences-email-activation.atdd.e2e.spec.ts:13` — prove direct rejection and absence of both ineffective switches.
+The missing-secret branch writes attributable `artifact_preparation` / `orphaned` evidence without enabling a recipient or weakening the normal signed recovery authorization. It succeeds for every authorised `Quotes.Send` role: tenant administrator, project manager (`projektledare`), and salesperson (`saljare`). Browser-authenticated callers receive no EXECUTE access to the writer; database membership and target-tenant checks reject direct calls, cross-tenant attribution, and spoofed actors.
 
-### Linked recipient, correction, and delivery identity
-
-- `src/components/quotes/MarkSentButton.tsx` and `src/server/commands/quotes/validation.ts:252` — require one existing linked customer/contact source, never accept a freeform address, and canonicalize case-insensitive UUID input before signing.
-- `supabase/migrations/20260924110000_quote_email_delivery_artifacts.sql:90` — freezes the normalized linked recipient, private PDF artifact, quote finalization, and sequence-1 enqueue in one transaction.
-- `supabase/migrations/20260924130000_quote_delivery_recipient_correction.sql:96` — locks only a queued delivery, cancels it, invalidates the old artifact, and atomically creates an audited next-sequence delivery for the replacement source.
-- `tests/integration/email/quote-delivery-recipient-snapshot.int.test.ts` — proves uppercase UUID command success, CRM-edit immunity, tenant/source validation, queued-only cancellation/reissue, fresh sequence/artifact state, and project-manager/sales authority through `Quotes.Send`.
-
-### Attachment and terminal revalidation
-
-- `src/server/email/outbox.ts:58` — reads only the artifact bound to the active tenant/worker claim and verifies its bytes.
-- `src/server/commands/quotes/mark-sent.ts:198` — `prepare_quote_pdf_send_attestation`: prepares the exact current PDF challenge before the command prefers the caller's request-bound exact-object read, falls back to the existing server-only broker only for a classified RLS denial on that database-issued path, verifies downloaded bytes, and commits through the private verifier.
-- `supabase/migrations/20260927130000_quote_delivery_pdf_send_roles.sql:6` — aligns only the challenge and private verifier with `tenant_admin`, `projektledare`, and `saljare`; fixed search paths and restrictive grants remain, while the older reviewer/financial gate is untouched.
-- `supabase/migrations/20260924110000_quote_email_delivery_artifacts.sql:71` — `validate_claimed_quote_email_delivery`: rechecks current sent status, fingerprint, artifact, tenant, worker, and lease immediately before submission.
-- `tests/integration/email/quote-delivery-attachment.atdd.int.test.ts` — covers current/private/no-public-link and stale/missing/checksum rejection.
-- `tests/integration/email/email-delivery-activation.atdd.int.test.ts:100` — makes an already claimed quote terminal at the last validation boundary and proves no adapter call.
-- `tests/integration/notifications/notifications.atdd.int.test.ts:55` — independently covers accepted, rejected, lost/withdrawn, superseded, and expired reminder states.
-
-### Durable, attributable recovery evidence
-
-- `src/server/commands/quotes/mark-sent.ts:79` — records recovery only after a command failure and preserves the originating error if evidence persistence also fails.
-- `src/server/email/recovery-attestation.ts` — binds tenant, actor, quote version, correlation, stage, root fingerprint, and five-minute window to a separate HMAC domain/subkey; it reuses the approved quote-PDF root and is server-only.
-- `supabase/migrations/20260925100000_quote_email_delivery_recovery.sql:5` — defines the isolated append-only tenant recovery ledger.
-- `supabase/migrations/20260927110000_quote_delivery_recovery_sender_roles.sql:4` — aligns the recorder with the exact `Quotes.Send` role set while retaining actor/tenant checks.
-- `supabase/migrations/20260927120000_attest_quote_delivery_recoveries.sql:6` — revokes and drops the forgeable five-argument endpoint; `:68` installs the attested signature with fixed search path, target scope, exact role set, time window, and server/Vault verification.
-- `tests/unit/server/email/recovery-attestation.test.ts` — proves every provenance field is signed and that malformed PDF key-id failure can still use the existing root.
-- `tests/integration/email/quote-delivery-finalization-failure.int.test.ts` — proves atomic rollback, orphaned/invalidated evidence, actor/cross-tenant/direct-forgery denial, and the real send-command recovery path for tenant admin, project manager, and sales actors.
-- `tests/integration/commands/quote-pdf-validity.int.test.ts` — proves a salesperson can generate only through the attested reserved-PDF path while raw list/download/sign, general files, direct hardened predicate calls, arbitrary uploads, and cross-tenant broker use stay denied.
+- `src/server/email/configuration-recovery.ts:10` — confines the service credential to a server-only configuration-failure writer.
+- `supabase/migrations/20260928110819_epic_13_reviewbot_followup_atomic_job_run_audit_and_config_recovery.sql:55` — installs the service-role-only recovery RPC with actor membership and quote-tenant checks.
+- `supabase/migrations/20260928110819_epic_13_reviewbot_followup_atomic_job_run_audit_and_config_recovery.sql:107` — revokes public/authenticated access and grants EXECUTE only to `service_role`.
+- `tests/integration/email/quote-delivery-finalization-failure.int.test.ts:270` — covers the tenant-administrator missing-secret path.
+- `tests/integration/email/quote-delivery-finalization-failure.int.test.ts:374` — covers missing-secret recovery for project manager and salesperson; the same file covers direct authenticated, cross-tenant, and spoofed-actor denials.
 
 ### Evidence and limits
 
-Base Epic 13 CI run `36339205329` passed 1,896 unit tests with zero skips, 1,205 required database tests with one separately executed recovery skip, and 172 browser tests with four explicit skips. On the final local source ending at `d770780`, focused unit coverage passed 32/32; the normal Administrator mark-sent dependent suite passed 14/14; the required recovery/finalization integration file passed 5/5 with zero skips; the focused salesperson reserved-PDF/raw-storage denial case passed; changed-file ESLint, TypeScript, service-role containment, and diff checks passed. Exact checkpoint CI run `36344284961` at `c1020e9` passed all four jobs: 1,904 unit tests with zero skips, 1,206 required database tests with one explicit isolated recovery-storage skip, the isolated recovery proof 1/1 with zero skips, and 172 browser tests with four explicit skips; Vercel also succeeded. The checkpoint changes after `d770780` are documentation/state only. Full closure is recorded in `docs/quality/epic-13-convergence-review-2026-09-27.md`.
-
-Real-recipient sending, production provider credentials/sender identity, provider-side idempotency after acceptance, and provider-rendered unsubscribe URLs remain separately gated or deferred. The attestation is not persisted or returned to the browser, and it grants no quote, artifact, or delivery authority.
-
-### ReviewBot follow-up 2 — missing quote-PDF HMAC recovery
-
-Refreshed by the follow-up fix author against `2a7444fbbaa64948cbda46c3ebf0e9f8981a6a46`. Genuine artifact and finalization failures retain the existing attested authenticated recovery RPC. Only when the application process has no quote-PDF HMAC can the command use the separate server-only service-role writer; authenticated callers have no EXECUTE grant, and its database function verifies the recorded actor's active Quotes.Send membership and quote tenant before appending an orphaned artifact-preparation record.
-
-- `src/server/commands/quotes/mark-sent.ts:321` — selects the configuration-only recovery writer only for an absent process HMAC.
-- `src/server/email/configuration-recovery.ts:10` — keeps the service credential in a server-only module and supplies no caller-controlled authority.
-- `supabase/migrations/20260928110819_epic_13_reviewbot_followup_atomic_job_run_audit_and_config_recovery.sql:55` — scopes the writer to service role, verifies actor membership and target tenancy, and keeps the existing signed recovery RPC untouched.
-- `tests/integration/email/quote-delivery-finalization-failure.int.test.ts` — covers absent HMAC recovery, direct authenticated denial, service-role cross-tenant denial, and spoofed-actor denial.
-
-Focused unit evidence passed 37/37 with zero skips; typecheck, changed-file ESLint, and service-role containment passed. Required recovery/RLS integration evidence awaits fresh-migration CI because the local migration history is inconsistent, so `followup_review_recommended: true`.
-
-### 2026-09-28 — Review pass
-
-- intent_gap: 0
-- bad_spec: 0
-- patch: 1 (high 1)
-- defer: 0
-- reject: 0
-- addressed_findings:
-  - `[high] [patch]` Preserved attributed orphaned recovery evidence when the quote-PDF HMAC is absent without weakening signed authenticated recovery authorization.
+Focused follow-up unit evidence passed 37/37 with zero skips; typecheck, changed-file ESLint, and service-role containment passed. Required local integration executed 8 tests: 5 passed, 3 failed, and 0 skipped because the local database lacks the new RPCs and its historical `email_outbox_delivery_identity_key` conflict blocks migration application. The new non-admin integration assertions were inspected but not run locally. Fresh-schema migration/RLS and browser CI remain required; no real-recipient release is enabled.
