@@ -9,7 +9,7 @@ spec_folder: null
 story_id: null
 branch: epic/13-wave-b1a-notifications-and-email-infrastructure
 status: done
-updated_at: "2026-09-28T08:27:30Z"
+updated_at: "2026-09-28T08:28:20Z"
 started_at: "2026-09-23T10:29:03Z"
 completed_at: "2026-09-24T18:57:24Z"
 active_seconds: 44064
@@ -68,7 +68,7 @@ legacy_review_loop_done: false
 legacy_external_review_iterations: null
 legacy_convergence_unverified: false
 legacy_artifact_path: null
-commits: [cdbb68a, e996cde, 9650f72, 391624b, 211bf68, 24d0d19, e11d24a, 61f2394, 4024cbe, b75b155, 83da25f, 73407ac, b06c3ca, 2664d7b, 8a1eb8c, 2f374f9, f226415, 46d9b67, d770780, 0c28b14, c1020e9, b374437]
+commits: [cdbb68a, e996cde, 9650f72, 391624b, 211bf68, 24d0d19, e11d24a, 61f2394, 4024cbe, b75b155, 83da25f, 73407ac, b06c3ca, 2664d7b, 8a1eb8c, 2f374f9, f226415, 46d9b67, d770780, 0c28b14, c1020e9, b374437, 822a67d]
 phase8_steps:
   trace_gate: done
   nfr: done

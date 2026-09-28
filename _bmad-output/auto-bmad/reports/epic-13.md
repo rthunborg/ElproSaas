@@ -234,3 +234,44 @@ Epic 13 ledger reconcile: zero fully resolved compound entries and zero archived
 1. Resume the paused workflow after environment restart.
 
 **Next:** On resume: inspect PR 75 CI run 36344025760 at d770780; if green, finish author review flags, refresh trace, mark statuses through helpers, rerun retrospective and append final report. Keep PR draft and real-recipient delivery disabled until their gates are met.
+
+## Report — 2026-09-28T08:28:20Z (final)
+
+**Epic:** `13` — 4 stories.
+**Branch:** `epic/13-wave-b1a-notifications-and-email-infrastructure` (HEAD `822a67d`).
+**Pipeline status:** Clean completion: Epic 13 and all four stories are done; current source CI passed, all review flags cleared, final trace PASS, retrospective accepted.
+**Continues:** 2026-09-27T19:24:44Z (halted - stopped for owner-requested development-environment restart)
+
+**Summary:** Authenticated background jobs, in-app notifications and preferences, queued outbox, and sandbox quote email delivery completed with frozen linked-CRM recipients, actor-attributed recovery, bounded producer continuation and protected private-PDF reads. Owner-approved Vercel Pro and inert quote.delivery preference removal are documented. No product code changed during the September 28 reconciliation.
+
+**Timing:** started 2026-09-23T10:29:03Z; completed 2026-09-24T18:57:24Z — elapsed 32h 28m (≈12h 14m AI-run, ≈20h 13m human/idle wait); resumed 6×.
+
+**Stories:**
+1. 13.1: done; 2 follow-up passes; follow-up recommendation false; 1 deferred operating-target item; acceptance included in final epic PASS.
+2. 13.2: done; 2 follow-up passes; follow-up recommendation false; 1 deferred operating-target item; acceptance included in final epic PASS; oversized artifact warning retained.
+3. 13.3: done; 2 follow-up passes; follow-up recommendation false; 1 compound deferred delivery item retained while real-recipient go-live is outstanding; acceptance included in final epic PASS.
+4. 13.4: done; 2 follow-up passes; follow-up recommendation false; 3 deferred real-recipient release requirements; acceptance included in final epic PASS; oversized artifact warning retained.
+
+**Skipped:** (none)
+
+**Epic gate:** PASS: 26/26 P0 FULL (100%). Final mapped inventory: 50 cases across 20 files (15 unit, 33 API/integration, 2 E2E); static inventory: 176 declarations across 34 files. Product source d7707802d12a0180c540d7452f5484cbc071d630.
+
+**TEA:** Final trace refreshed on the configured Sol/xhigh route. CI 36344284961 at c1020e9 passed verify, db, recovery-storage-loader, e2e and Vercel: unit 1904 passed/0 skipped; required DB 1206 passed/1 explicit skip; isolated recovery 1 passed/0 skipped; E2E 172 passed/4 skipped. The explicit DB recovery skip has its separate isolated job. No tests rerun for metadata reconciliation. Optional production browser evidence, numeric NFR targets and advisory fixture repeatability remain separate.
+
+**Retrospective:** Accepted: _bmad-output/implementation-artifacts/epic-13-retro-2026-09-28.md; 0 open Epic 13 action items. Closed both September 27 actions (controlled-clock CI fix and independent convergence/status reconciliation); added 0. Historical September 24 and September 27 rejected retrospectives preserved.
+
+**Overrides:** Owner resumed after the development-environment restart; completed authorized post-completion remediation reconciliation and retained original run history.
+
+**Open questions:**
+1. Owner approval remains pending for numeric runtime, fairness, backlog, freshness, capacity, retention and recovery operating targets.
+
+**Deferred work:**
+1. Observe authenticated production cron after merge, migration rollout and deployment. Vercel Pro and production-only sensitive CRON_SECRET are verified; production main still predates Epic 13.
+2. Keep real-recipient delivery disabled until separate ADR-B011 owner approval, idempotent provider submission and scoped unsubscribe URLs in real-provider-rendered non-essential mail.
+3. Shared E2E fixture identifier/seed repeatability remains an advisory maintenance follow-up.
+Prior reconcile retained 5 not-fully-resolved ledger entries; archived 0 new entries. Original 2 archived entries remain recorded; compound items containing unapproved go-live work remain open.
+
+**⚠️ Needs human:**
+1. Optional merge decision for PR #75 after reviewing the completed result. Production email go-live is a separate future decision.
+
+**Next:** Human review: /bmad-checkpoint-preview https://github.com/rthunborg/ElproSaas/pull/75. Project context: run /bmad-project-context refresh (recommended after an epic).
