@@ -1,0 +1,53 @@
+{
+  "success": true,
+  "subagent": "atdd-e2e-tests",
+  "tests": [
+    {
+      "file": "tests/e2e/notifications/email-preferences-email-activation.atdd.e2e.spec.ts",
+      "content": "import { expect, test, type Locator, type Page } from '@playwright/test';\nimport { readFileSync } from 'node:fs';\nimport path from 'node:path';\n\ntype Credentials = { readonly email: string; readonly password: string };\ntype EmailActivationFixture = {\n  readonly emailActivation: {\n    readonly preferenceUser: Credentials;\n    readonly nonEssentialCategoryLabel: string;\n    readonly essentialCategoryLabel: string;\n  };\n};\n\nlet cachedFixture: EmailActivationFixture | undefined;\n\nfunction fixture(): EmailActivationFixture {\n  cachedFixture ??= JSON.parse(\n    readFileSync(path.join(process.cwd(), 'tests', 'e2e', '.auth', 'fixture.json'), 'utf8'),\n  ) as EmailActivationFixture;\n  return cachedFixture;\n}\n\nasync function waitForHydrated(locator: Locator): Promise<void> {\n  await locator.waitFor({ state: 'visible' });\n  await locator.evaluate((element) => new Promise<void>((resolve) => {\n    const tick = () => Object.keys(element).some((key) => key.startsWith('__react'))\n      ? resolve()\n      : requestAnimationFrame(tick);\n    tick();\n  }));\n}\n\nasync function signIn(page: Page, credentials: Credentials): Promise<void> {\n  await page.goto('/login');\n  const submit = page.getByRole('button', { name: 'Logga in' });\n  await waitForHydrated(submit);\n  await page.getByLabel('E-post').fill(credentials.email);\n  await page.getByLabel('Lösenord').fill(credentials.password);\n  await submit.click();\n  await expect(page).toHaveURL(/\\/dashboard$/);\n}\n\ntest.describe('Story 13.4 E-postinställningar — authenticated journey (ATDD RED)', () => {\n  test.skip('[P0] a user can persist a non-essential email opt-out after the server admits synthetic sandbox delivery', async ({ page }) => {\n    await signIn(page, fixture().emailActivation.preferenceUser);\n    await page.goto('/settings/notifications');\n\n    const category = fixture().emailActivation.nonEssentialCategoryLabel;\n    const emailPreference = page.getByRole('switch', { name: `${category} e-post`, exact: true });\n    await expect(emailPreference).toBeVisible();\n    await expect(emailPreference).toBeChecked();\n    await expect(emailPreference).toBeEnabled();\n\n    const saved = page.waitForResponse((response) =>\n      response.url().endsWith('/api/notifications/preferences')\n      && response.request().method() === 'PUT'\n      && response.ok(),\n    );\n    await emailPreference.uncheck();\n    await saved;\n\n    await expect(page.getByRole('status')).toContainText(/sparad/i);\n    await page.reload();\n    await expect(page.getByRole('switch', { name: `${category} e-post`, exact: true })).not.toBeChecked();\n  });\n\n  test.skip('[P1] an essential email category remains visibly required while a non-essential category is editable', async ({ page }) => {\n    await signIn(page, fixture().emailActivation.preferenceUser);\n    await page.goto('/settings/notifications');\n\n    const essential = page.getByRole('switch', {\n      name: `${fixture().emailActivation.essentialCategoryLabel} e-post`,\n      exact: true,\n    });\n    const nonEssential = page.getByRole('switch', {\n      name: `${fixture().emailActivation.nonEssentialCategoryLabel} e-post`,\n      exact: true,\n    });\n\n    await expect(essential).toBeChecked();\n    await expect(essential).toBeDisabled();\n    await expect(page.getByText(/obligatorisk notis/i)).toBeVisible();\n    await expect(nonEssential).toBeEnabled();\n  });\n});\n",
+      "description": "Skipped RED-phase browser coverage for server-authorized authenticated email preferences.",
+      "expected_to_fail": true,
+      "acceptance_criteria_covered": [
+        "A non-essential email preference changed through its authorized authenticated surface suppresses future matching delivery.",
+        "Essential categories remain unaffected by a non-essential preference change."
+      ],
+      "priority_coverage": {
+        "P0": 1,
+        "P1": 1,
+        "P2": 0,
+        "P3": 0
+      }
+    },
+    {
+      "file": "tests/e2e/notifications/public-unsubscribe-email-activation.atdd.e2e.spec.ts",
+      "content": "import { expect, test } from '@playwright/test';\nimport { readFileSync } from 'node:fs';\nimport path from 'node:path';\n\ntype UnsubscribeFixture = {\n  readonly emailActivation: {\n    readonly unsubscribe: {\n      readonly activeToken: string;\n      readonly revokedToken: string;\n      readonly unknownToken: string;\n      readonly rateLimitedToken: string;\n    };\n  };\n};\n\nlet cachedFixture: UnsubscribeFixture | undefined;\n\nfunction fixture(): UnsubscribeFixture {\n  cachedFixture ??= JSON.parse(\n    readFileSync(path.join(process.cwd(), 'tests', 'e2e', '.auth', 'fixture.json'), 'utf8'),\n  ) as UnsubscribeFixture;\n  return cachedFixture;\n}\n\ntest.describe('Story 13.4 Public unsubscribe capability (ATDD RED)', () => {\n  test.skip('[P0] an anonymous recipient can unsubscribe through a valid scoped token without loading the authenticated shell', async ({ page }) => {\n    await page.goto(`/unsubscribe/${fixture().emailActivation.unsubscribe.activeToken}`);\n\n    await expect(page.getByRole('heading', { name: /e-postinställningar/i })).toBeVisible();\n    await expect(page.getByRole('button', { name: /avregistrera/i })).toBeVisible();\n    await expect(page.getByRole('navigation', { name: 'Huvudnavigation' })).toHaveCount(0);\n    await expect(page.getByRole('link', { name: /logga in|dashboard|notiser/i })).toHaveCount(0);\n\n    const completed = page.waitForResponse((response) =>\n      response.url().includes('/unsubscribe/')\n      && response.request().method() === 'POST'\n      && response.ok(),\n    );\n    await page.getByRole('button', { name: /avregistrera/i }).click();\n    await completed;\n\n    await expect(page.getByRole('status')).toContainText(/avregistrerad/i);\n    await expect(page.getByRole('button', { name: /återaktivera|prenumerera igen/i })).toBeVisible();\n  });\n\n  test.skip('[P1] unknown and revoked public tokens receive one uniform inactive response with no tenant or recipient disclosure', async ({ page }) => {\n    for (const token of [\n      fixture().emailActivation.unsubscribe.unknownToken,\n      fixture().emailActivation.unsubscribe.revokedToken,\n    ]) {\n      await page.goto(`/unsubscribe/${token}`);\n      await expect(page.getByRole('heading', { name: /länken är inte längre aktiv/i })).toBeVisible();\n      await expect(page.getByText(/tenant|kund|mottagare|@/i)).toHaveCount(0);\n      await expect(page.getByRole('navigation', { name: 'Huvudnavigation' })).toHaveCount(0);\n    }\n  });\n\n  test.skip('[P1] a rate-limited anonymous token request gives retry guidance without exposing subscription data', async ({ page }) => {\n    await page.goto(`/unsubscribe/${fixture().emailActivation.unsubscribe.rateLimitedToken}`);\n\n    const limited = page.waitForResponse((response) =>\n      response.url().includes('/unsubscribe/')\n      && response.status() === 429,\n    );\n    await page.getByRole('button', { name: /avregistrera/i }).click();\n    await limited;\n\n    await expect(page.getByRole('alert')).toContainText(/för många försök.*försök igen senare/i);\n    await expect(page.getByText(/tenant|kund|mottagare|@/i)).toHaveCount(0);\n  });\n});\n",
+      "description": "Skipped RED-phase browser coverage for the anonymous unsubscribe and re-subscribe capability.",
+      "expected_to_fail": true,
+      "acceptance_criteria_covered": [
+        "A valid anonymous unsubscribe token changes only its allowed non-essential scope and offers a re-subscribe path.",
+        "Unknown and revoked tokens return the same minimal inactive response without tenant enumeration or authenticated-shell imports.",
+        "Rate-limited token requests return retry guidance without privileged capability or subscription disclosure."
+      ],
+      "priority_coverage": {
+        "P0": 1,
+        "P1": 2,
+        "P2": 0,
+        "P3": 0
+      }
+    }
+  ],
+  "fixture_needs": [
+    "A server-seeded synthetic-sandbox tenant user with an enabled non-essential email preference and an essential email category.",
+    "A release-control fixture that admits only synthetic sandbox delivery and never real recipients.",
+    "Public unsubscribe fixtures containing active, revoked, unknown, and pre-rate-limited opaque tokens; fixture setup must retain plaintext only in the browser fixture and persist SHA-256 hashes in storage.",
+    "A deterministic server-side delivery assertion fixture for the preference opt-out, covered by the integration suite rather than these browser tests."
+  ],
+  "knowledge_fragments_used": [
+    "fixture-architecture",
+    "network-first",
+    "selector-resilience"
+  ],
+  "test_count": 5,
+  "tdd_phase": "RED",
+  "summary": "Generated 5 intentionally skipped failing E2E tests for authenticated email-preference and anonymous unsubscribe journeys; all delivery fixtures are synthetic sandbox only."
+}

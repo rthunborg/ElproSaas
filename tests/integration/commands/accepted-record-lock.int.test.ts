@@ -134,6 +134,10 @@ async function seedAcceptedChain(
     customer_type: "company",
     display_name: `lock-customer-${crypto.randomUUID().slice(0, 8)}`,
   });
+  await adminQuery("update public.customers set email=$2 where id=$1", [
+    customerId,
+    `lock-customer-${crypto.randomUUID().slice(0, 8)}@example.test`,
+  ]);
   const calcId = await adminInsertCalculation({
     tenant_id: tenant.id,
     customer_id: customerId,
@@ -156,7 +160,11 @@ async function seedAcceptedChain(
     client: client as never,
     clock: fixedClock,
     correlationId: crypto.randomUUID(),
-    input: { quote_version_id: versionId },
+    input: {
+      quote_version_id: versionId,
+      recipient_source_type: "customer",
+      recipient_source_id: customerId,
+    },
   });
   if (!sent.ok) throw new Error(`seedAcceptedChain: mark-sent failed (${sent.code})`);
   const accepted = await runCommand(acceptQuoteAndCreateJob, {
@@ -197,6 +205,10 @@ async function seedAcceptedChainWithFacility(
     customer_type: "company",
     display_name: `lock-fac-customer-${crypto.randomUUID().slice(0, 8)}`,
   });
+  await adminQuery("update public.customers set email=$2 where id=$1", [
+    customerId,
+    `lock-fac-customer-${crypto.randomUUID().slice(0, 8)}@example.test`,
+  ]);
   const facilityId = await adminInsertFacility({
     tenant_id: tenant.id,
     customer_id: customerId,
@@ -235,7 +247,11 @@ async function seedAcceptedChainWithFacility(
     client: client as never,
     clock: fixedClock,
     correlationId: crypto.randomUUID(),
-    input: { quote_version_id: versionId },
+    input: {
+      quote_version_id: versionId,
+      recipient_source_type: "customer",
+      recipient_source_id: customerId,
+    },
   });
   if (!sent.ok) throw new Error(`seedAcceptedChainWithFacility: mark-sent failed (${sent.code})`);
   const accepted = await runCommand(acceptQuoteAndCreateJob, {

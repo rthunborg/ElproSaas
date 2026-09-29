@@ -1,0 +1,303 @@
+import { ACTIVE_PRODUCERS, type ProducerDeclaration } from "./producers";
+
+export type JobRunOutcome = "completed" | "partial" | "failed";
+export type JobRunRecord = {
+  readonly tenantId: string;
+  readonly producer: string;
+  readonly outcome: JobRunOutcome;
+  readonly windowStartedAt: string;
+  readonly startedAt: string;
+  readonly finishedAt: string;
+  readonly cursor?: string;
+  readonly errorSummary?: string;
+};
+export type RunnerDependencies = {
+  readonly listTenantIds: () => Promise<readonly string[]>;
+  readonly loadProducerCursor?: (producer: ProducerDeclaration, tenantId: string) => Promise<string | undefined>;
+  readonly execute: (producer: ProducerDeclaration, tenantId: string, cursor?: string) => Promise<void | { readonly cursor?: string }>;
+  readonly record: (record: JobRunRecord) => Promise<void>;
+  readonly now?: () => Date;
+};
+
+const ERROR_LIMIT = 256;
+export function sanitizeJobError(error: unknown): string {
+  const message = error instanceof Error ? error.message : "Background producer failed";
+  return message
+    .replace(/\bBearer\s+[^\s,;]+/gi, "Bearer [redacted]")
+    .replace(/(["']?(?:password|secret|token|authorization|api[_-]?key)["']?\s*[=:]\s*["']?)[^\s,;"'}\]]+/gi, "$1[redacted]")
+    .replace(/([?&](?:password|secret|token|authorization|api[_-]?key)=)[^&#\s]+/gi, "$1[redacted]")
+    .replace(/([a-z][a-z0-9+.-]*:\/\/)[^\s/@:]+:[^@\s/]+@/gi, "$1[redacted]@")
+    .slice(0, ERROR_LIMIT);
+}
+type RunnerCursor = {
+  readonly nextIndex: number;
+  /** Stable next tenant target for cursors written after the keyset migration. */
+  readonly nextTenantId?: string;
+  readonly producerIndex: number;
+  readonly dueProducerIds: readonly string[];
+  /** Producers that had already started when a newer schedule restarted at tenant zero. */
+  readonly carriedProducerIds: readonly string[];
+  /** Stable boundary at which the carried producers may resume. */
+  readonly carriedNextTenantId?: string;
+  /** The carried continuation was already beyond the tenant list. */
+  readonly carriedBoundaryExhausted: boolean;
+  readonly hasDueProducerSnapshot: boolean;
+};
+
+function parseCronField(field: string, value: number, maximum: number): boolean {
+  if (field === "*") return true;
+  const exact = /^(\d{1,2})$/.exec(field);
+  if (exact) {
+    const expected = Number(exact[1]);
+    if (expected > maximum) throw new RangeError("Unsupported producer schedule");
+    return value === expected;
+  }
+  const step = /^\*\/(\d{1,2})$/.exec(field);
+  if (step) {
+    const divisor = Number(step[1]);
+    if (divisor < 1 || divisor > maximum) throw new RangeError("Unsupported producer schedule");
+    return value % divisor === 0;
+  }
+  throw new RangeError("Unsupported producer schedule");
+}
+
+/**
+ * The jobs lane uses the same five-field UTC cron semantics as Vercel. The
+ * intentionally small grammar covers the registered forms and fails closed
+ * when a future declaration needs a richer schedule expression.
+ */
+export function isProducerDueAt(schedule: string, instant: Date): boolean {
+  if (!Number.isFinite(instant.getTime())) throw new RangeError("Invalid producer schedule instant");
+  const fields = schedule.trim().split(/\s+/);
+  if (fields.length !== 5) throw new RangeError("Unsupported producer schedule");
+  const [minute, hour, dayOfMonth, month, dayOfWeek] = fields;
+  return parseCronField(minute!, instant.getUTCMinutes(), 59)
+    && parseCronField(hour!, instant.getUTCHours(), 23)
+    && parseCronField(dayOfMonth!, instant.getUTCDate(), 31)
+    && parseCronField(month!, instant.getUTCMonth() + 1, 12)
+    && parseCronField(dayOfWeek!, instant.getUTCDay(), 6);
+}
+
+function parseCursor(cursor?: string): RunnerCursor {
+  if (!cursor) return { nextIndex: 0, producerIndex: 0, dueProducerIds: [], carriedProducerIds: [], carriedBoundaryExhausted: false, hasDueProducerSnapshot: false };
+  try {
+    const value = JSON.parse(Buffer.from(cursor, "base64url").toString("utf8"));
+    const hasDueProducerSnapshot = Array.isArray(value.dueProducerIds)
+      && value.dueProducerIds.every((id: unknown) => typeof id === "string");
+    const carriedProducerIds = Array.isArray(value.carriedProducerIds)
+      && value.carriedProducerIds.every((id: unknown) => typeof id === "string")
+      ? value.carriedProducerIds
+      : [];
+    return {
+      nextIndex: Number.isSafeInteger(value.nextIndex) && value.nextIndex >= 0 ? value.nextIndex : 0,
+      nextTenantId: typeof value.nextTenantId === "string" && value.nextTenantId.length > 0
+        ? value.nextTenantId
+        : undefined,
+      producerIndex: Number.isSafeInteger(value.producerIndex) && value.producerIndex >= 0 ? value.producerIndex : 0,
+      dueProducerIds: hasDueProducerSnapshot ? value.dueProducerIds : [],
+      carriedProducerIds,
+      carriedNextTenantId: typeof value.carriedNextTenantId === "string" && value.carriedNextTenantId.length > 0
+        ? value.carriedNextTenantId
+        : undefined,
+      carriedBoundaryExhausted: value.carriedBoundaryExhausted === true,
+      hasDueProducerSnapshot,
+    };
+  } catch {
+    return { nextIndex: 0, producerIndex: 0, dueProducerIds: [], carriedProducerIds: [], carriedBoundaryExhausted: false, hasDueProducerSnapshot: false };
+  }
+}
+
+export function encodeCursor(
+  nextIndex: number,
+  producerIndex = 0,
+  dueProducerIds: readonly string[] = [],
+  nextTenantId?: string,
+  carriedProducerIds: readonly string[] = [],
+  carriedNextTenantId?: string,
+  carriedBoundaryExhausted = false,
+): string {
+  const value = {
+    nextIndex,
+    ...(producerIndex === 0 ? {} : { producerIndex }),
+    dueProducerIds,
+    ...(nextTenantId ? { nextTenantId } : {}),
+    ...(carriedProducerIds.length > 0 ? { carriedProducerIds } : {}),
+    ...(carriedNextTenantId ? { carriedNextTenantId } : {}),
+    ...(carriedBoundaryExhausted ? { carriedBoundaryExhausted: true } : {}),
+  };
+  return Buffer.from(JSON.stringify(value), "utf8").toString("base64url");
+}
+export function decodeCursor(cursor?: string): number {
+  return parseCursor(cursor).nextIndex;
+}
+
+/** Executes a bounded round-robin tenant slice. Empty 13.1 registry performs no DB work. */
+export async function runDueProducers(deps: RunnerDependencies, options: { readonly cursor?: string; readonly chunkSize?: number; readonly deadline?: Date; readonly producers?: readonly ProducerDeclaration[]; readonly windowStartedAt?: Date } = {}): Promise<{ readonly outcome: JobRunOutcome; readonly cursor?: string }> {
+  const producers = options.producers ?? ACTIVE_PRODUCERS;
+  if (producers.length === 0) return { outcome: "completed" };
+  const tenants = await deps.listTenantIds();
+  if (tenants.length === 0) return { outcome: "completed" };
+  const resume = parseCursor(options.cursor);
+  const max = Math.max(1, options.chunkSize ?? 25);
+  const now = deps.now ?? (() => new Date());
+  const windowStart = options.windowStartedAt ?? now();
+  const windowStartedAt = windowStart.toISOString();
+  const dueProducerIds = new Set(producers.filter((producer) => isProducerDueAt(producer.schedule, windowStart)).map((producer) => producer.id));
+  const startsNewScheduledWindow = resume.hasDueProducerSnapshot
+    && resume.dueProducerIds.length === 0
+    && dueProducerIds.size > 0;
+  const resumedProducerIds = new Set(resume.dueProducerIds);
+  const newlyDueProducerIds = new Set([...dueProducerIds].filter((id) => !resumedProducerIds.has(id)));
+  // A carried continuation can meet a newer schedule before it reaches its
+  // saved tenant. Restart the new producer at tenant zero while retaining a
+  // stable boundary for the older producer; otherwise the new work would skip
+  // every tenant before the continuation cursor.
+  const restartsForNewProducer = resumedProducerIds.size > 0 && newlyDueProducerIds.size > 0;
+  // Numeric cursors are retained only for records produced before the keyset
+  // format. A current cursor resumes at its named tenant, or at the first
+  // later tenant when that target was deleted between invocations.
+  const keysetStart = resume.nextTenantId
+    ? tenants.findIndex((tenantId) => tenantId >= resume.nextTenantId!)
+    : -1;
+  const resumesNamedTenant = keysetStart !== -1 && tenants[keysetStart] === resume.nextTenantId;
+  const normalStart = resume.nextTenantId
+    ? (keysetStart === -1 ? tenants.length : keysetStart)
+    : resume.nextIndex;
+  const carriedProducerIds = restartsForNewProducer
+    ? resumedProducerIds
+    : new Set(resume.carriedProducerIds);
+  const carriedBoundaryExhausted = restartsForNewProducer
+    ? normalStart >= tenants.length
+    : resume.carriedBoundaryExhausted;
+  const carriedNextTenantId = restartsForNewProducer && !carriedBoundaryExhausted
+    ? (resume.nextTenantId ?? tenants[normalStart])
+    : resume.carriedNextTenantId;
+  const carriedStartCandidate = carriedNextTenantId
+    ? tenants.findIndex((tenantId) => tenantId >= carriedNextTenantId)
+    : 0;
+  const carriedStart = carriedBoundaryExhausted || carriedStartCandidate === -1
+    ? tenants.length
+    : carriedStartCandidate;
+  const start = startsNewScheduledWindow || restartsForNewProducer ? 0 : normalStart;
+  const resumedProducerIndex = startsNewScheduledWindow || restartsForNewProducer || (resume.nextTenantId && !resumesNamedTenant)
+    ? 0
+    : resume.producerIndex;
+  const continuationProducerIds = new Set([...resumedProducerIds, ...dueProducerIds]);
+  let hadFailure = false;
+  let executedProducer = false;
+  const cursorAt = (nextIndex: number, producerIndex = 0) =>
+    encodeCursor(
+      nextIndex,
+      producerIndex,
+      [...continuationProducerIds],
+      tenants[nextIndex],
+      [...carriedProducerIds],
+      carriedNextTenantId,
+      carriedBoundaryExhausted,
+    );
+  const persistCursor = async (nextIndex: number, producerIndex = 0) => {
+    const timestamp = now().toISOString();
+    const cursor = cursorAt(nextIndex, producerIndex);
+    await deps.record({
+      tenantId: tenants[Math.min(nextIndex, tenants.length - 1)]!,
+      producer: "jobs.runner",
+      outcome: "partial",
+      cursor,
+      windowStartedAt,
+      startedAt: timestamp,
+      finishedAt: timestamp,
+    });
+  };
+  const persistTerminal = async (outcome: "completed" | "failed") => {
+    const timestamp = now().toISOString();
+    await deps.record({
+      tenantId: tenants[tenants.length - 1]!,
+      producer: "jobs.runner",
+      outcome,
+      windowStartedAt,
+      startedAt: timestamp,
+      finishedAt: timestamp,
+    });
+  };
+  let completed = 0;
+  let hadPartial = false;
+  let scannedTuple = false;
+  for (let i = start; i < tenants.length; i += 1) {
+    const firstProducerIndex = i === start && resumedProducerIndex < producers.length ? resumedProducerIndex : 0;
+    let executedForTenant = false;
+    for (let producerIndex = firstProducerIndex; producerIndex < producers.length; producerIndex += 1) {
+      const producer = producers[producerIndex]!;
+      const resumesWindow = continuationProducerIds.has(producer.id);
+      const resumesLegacyTuple = !resume.hasDueProducerSnapshot
+        && Boolean(options.cursor)
+        && i === start
+        && producerIndex === firstProducerIndex;
+      const beforeCarriedBoundary = carriedProducerIds.has(producer.id) && i < carriedStart;
+      const hasKnownWork = !beforeCarriedBoundary
+        && (dueProducerIds.has(producer.id) || resumesWindow || resumesLegacyTuple);
+      if (completed >= max && hasKnownWork) {
+        await persistCursor(i, producerIndex);
+        return { outcome: "partial", cursor: cursorAt(i, producerIndex) };
+      }
+      if (options.deadline && now() >= options.deadline) {
+        if (!hasKnownWork && !options.cursor && !scannedTuple) return { outcome: "completed" };
+        await persistCursor(i, producerIndex);
+        return { outcome: "partial", cursor: cursorAt(i, producerIndex) };
+      }
+      const startedAt = now().toISOString();
+      let producerCursor: string | undefined;
+      try {
+        producerCursor = await deps.loadProducerCursor?.(producer, tenants[i]!);
+        scannedTuple = true;
+        const hasWork = hasKnownWork || Boolean(producerCursor);
+        if (options.deadline && now() >= options.deadline) {
+          if (!hasWork) {
+            const nextProducerIndex = producerIndex + 1;
+            if (nextProducerIndex < producers.length) {
+              await persistCursor(i, nextProducerIndex);
+              return { outcome: "partial", cursor: cursorAt(i, nextProducerIndex) };
+            }
+            if (i + 1 < tenants.length) {
+              await persistCursor(i + 1);
+              return { outcome: "partial", cursor: cursorAt(i + 1) };
+            }
+            if (options.cursor) await persistTerminal("completed");
+            return { outcome: "completed" };
+          } else {
+            await persistCursor(i, producerIndex);
+            return { outcome: "partial", cursor: cursorAt(i, producerIndex) };
+          }
+        }
+        if (!hasWork) continue;
+        if (completed >= max) {
+          await persistCursor(i, producerIndex);
+          return { outcome: "partial", cursor: cursorAt(i, producerIndex) };
+        }
+        executedProducer = true;
+        executedForTenant = true;
+        const result = await deps.execute(producer, tenants[i]!, producerCursor);
+        if (result?.cursor) {
+          hadPartial = true;
+          await deps.record({ tenantId: tenants[i]!, producer: producer.id, outcome: "partial", cursor: result.cursor, windowStartedAt, startedAt, finishedAt: now().toISOString() });
+        } else {
+          await deps.record({ tenantId: tenants[i]!, producer: producer.id, outcome: "completed", windowStartedAt, startedAt, finishedAt: now().toISOString() });
+        }
+      } catch (error) {
+        hadFailure = true;
+        await deps.record({ tenantId: tenants[i]!, producer: producer.id, outcome: "failed", cursor: producerCursor, windowStartedAt, startedAt, finishedAt: now().toISOString(), errorSummary: sanitizeJobError(error) });
+      }
+    }
+    if (executedForTenant) completed += 1;
+  }
+  if (!executedProducer) {
+    if (options.cursor) await persistTerminal("completed");
+    return { outcome: "completed" };
+  }
+  if (hadPartial) {
+    await persistCursor(0);
+    return { outcome: "partial", cursor: cursorAt(0) };
+  }
+  const outcome = hadFailure ? "failed" : "completed";
+  await persistTerminal(outcome);
+  return { outcome };
+}

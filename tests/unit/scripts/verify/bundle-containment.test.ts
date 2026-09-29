@@ -11,8 +11,9 @@
  *     authoritative catch the source guard misses);
  *   - FAILS LOUDLY (throws) when `.next` is absent — never a vacuous green.
  *
- * Today the app uses NO service-role key (anon + RLS), so the REAL `.next` scan
- * (the `verify:bundle-containment` CLI, after `pnpm build`) is clean.
+ * Documented server-only modules may retain the environment-variable name only in
+ * their exact server chunks; the real build scan proves all other emitted payloads
+ * remain clean.
  *
  * COVERAGE (test-design-epic-2.md R-002, P0).
  */
@@ -85,6 +86,15 @@ test("[P0] GREEN: the documented quote-PDF signer server chunk may retain only i
     );
     const { violations } = scanBuiltBundle(root);
     assert.deepEqual(violations, []);
+  });
+});
+
+test("[P0] GREEN: the documented jobs service server chunk may retain only its env-var name", () => {
+  withTempRoot((root) => {
+    mkdirSync(join(root, ".next", "server", "chunks"), { recursive: true });
+    writeFileSync(join(root, ".next", "server", "chunks", "jobs.js"),
+      'const k=process.env.SUPABASE_SERVICE_ROLE_KEY; throw Error("Background runner is not configured");\n');
+    assert.deepEqual(scanBuiltBundle(root).violations, []);
   });
 });
 
@@ -165,7 +175,7 @@ test("[P0/Review] STANDING: the project's REAL built `.next` bundle scans CLEAN 
   // this test is a clean no-op IN CI — it provides the in-repo bite signal only on a
   // locally-built tree. The AUTHORITATIVE post-build CI catch is the
   // `verify:bundle-containment` CLI, which runs after `build` in the `verify` job. The app
-  // uses NO service-role key (anon + RLS), so the real scan MUST be clean (zero violations).
+  // allows only exact documented server chunks, so the real scan MUST be clean (zero violations).
   if (!existsSync(join(REPO_ROOT, ".next"))) return;
   const { violations } = scanBuiltBundle(REPO_ROOT);
   assert.deepEqual(

@@ -1,7 +1,7 @@
 # ADR-B008: Quote Review Authority and Derived-Artifact Validity
 
 Status: decided — 2026-08-31
-Scope: **IN** Story 10.8 and Story 10.9; **DEFERRED** global file retention/reclamation (E31 / B2→B3).
+Scope: **IN** Story 10.8 and Story 10.9; **SEAM** authorized source authority for Story 13.4 quote delivery; **DEFERRED** global file retention/reclamation (E31 / B2→B3).
 
 ## Decision
 
@@ -14,6 +14,8 @@ A customer-visible draft change invalidates the current PDF. `start_quote_pdf_re
 PDF-byte activation additionally requires a separate server-only HMAC-SHA256 attestation. PostgreSQL verifies it with `pgcrypto` against the matching Supabase Vault secret `quote_pdf_attestation_<key-id>`; review authorization remains separate and non-HMAC. The short-lived attestation binds tenant, actor, quote version, render/file ID, current content fingerprint, bucket, path, checksum, size, MIME, correlation ID, key ID, and issuance/expiry window. It is never returned to a client, logged, or persisted, and any missing, expired, malformed, mismatched, or unverifiable value fails closed. No Edge Function, service-role/elevated Storage credential, or client bypass is introduced.
 
 Render start is correlation-idempotent with a bounded five-minute lease and recovery path. Completion response loss reconciles the committed current generated PDF and must not archive it. Activation and sending require the current fingerprint, reserved object identity, matching Storage metadata, and a valid byte attestation.
+
+ADR-B011 permits an authorized quote-send request to create a separate private durable delivery artifact after it has validated the current PDF through this boundary. That artifact is bound to the tenant, quote version, and delivery record and grants the worker no authority over the original quote PDF or generic quote files. The original attestation remains non-persistable. Before provider submission, delivery rechecks the current quote version, fingerprint, and eligibility. This is a narrowly bounded delivery seam, not an exception for service-role or elevated Storage access.
 
 Failed, invalidated, completed-but-unsent, and historical quote-PDF metadata stays protected rather than reverting to generic files. A superseded PDF reference is archived/unlinked; bytes remain and normal signed access refuses archived files. A successor initially selects all predecessor attachments that remain active and eligible under its current calculation; the user may change that selection. Eligible files are reused immutably without byte copying; ineligible or archived candidates are omitted with a warning.
 

@@ -111,12 +111,16 @@ afterAll(async () => {
 async function seedQuoteVersion(
   tenantId: string,
   status: string,
-): Promise<{ quoteId: string; versionId: string }> {
+): Promise<{ quoteId: string; versionId: string; customerId: string }> {
   const customerId = await adminInsertCustomer({
     tenant_id: tenantId,
     customer_type: "company",
     display_name: `lost-customer-${crypto.randomUUID().slice(0, 8)}`,
   });
+  await adminQuery("update public.customers set email=$2 where id=$1", [
+    customerId,
+    `lost-customer-${crypto.randomUUID().slice(0, 8)}@example.test`,
+  ]);
   const calcId = await adminInsertCalculation({
     tenant_id: tenantId,
     customer_id: customerId,
@@ -130,12 +134,12 @@ async function seedQuoteVersion(
     status,
     intro_text: "ursprunglig introtext",
   });
-  return { quoteId, versionId };
+  return { quoteId, versionId, customerId };
 }
 
 /** Mark a freshly-seeded draft SENT via the real command (the legal precondition for a lost flip). */
 async function seedSentVersion(tenantId: string): Promise<string> {
-  const { versionId } = await seedQuoteVersion(tenantId, "draft");
+  const { versionId, customerId } = await seedQuoteVersion(tenantId, "draft");
   await establishCurrentQuotePdf({
     client: a,
     tenantId,
@@ -145,7 +149,11 @@ async function seedSentVersion(tenantId: string): Promise<string> {
   });
   const sent = await runCommand(markQuoteVersionSent, {
     client: a as never,
-    input: { quote_version_id: versionId },
+    input: {
+      quote_version_id: versionId,
+      recipient_source_type: "customer",
+      recipient_source_id: customerId,
+    },
     clock: fixedClock,
     correlationId: crypto.randomUUID(),
   });

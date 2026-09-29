@@ -1,5 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "crons": [{ "path": "/api/jobs/run", "schedule": "*/5 * * * *" }],
   "git": {
     "deploymentEnabled": {
       "codex/story-11-3-invitation-identity-binding": false,

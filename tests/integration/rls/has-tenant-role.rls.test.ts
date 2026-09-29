@@ -20,7 +20,7 @@ beforeAll(async () => {
 
 afterAll(async () => {
   if (stackUp) {
-    await adminExec("drop schema if exists evil cascade;").catch(() => {});
+    await adminExec("drop schema if exists evil_has_tenant_role cascade;").catch(() => {});
     if (fixture) await cleanupFixture(fixture);
     await closeAdminPool();
   }
@@ -69,11 +69,11 @@ describe("11.1 has_tenant_role RLS helper", () => {
       const memberships = await query<{ id: string }>("select id from public.tenant_memberships where user_id = $1", [fixture.adminA.id]);
       const membershipId = memberships[0]?.id;
       if (!membershipId) throw new Error("fixture membership was not created");
-      await query("create schema if not exists evil;");
-      await query("drop table if exists evil.membership_roles;");
-      await query("create table evil.membership_roles (membership_id uuid, tenant_id uuid, role text);");
-      await query("insert into evil.membership_roles (membership_id, tenant_id, role) values ($1, $2, 'montor')", [membershipId, fixture.tenantA.id]);
-      await query("set search_path = evil, public;");
+      await query("create schema if not exists evil_has_tenant_role;");
+      await query("drop table if exists evil_has_tenant_role.membership_roles;");
+      await query("create table evil_has_tenant_role.membership_roles (membership_id uuid, tenant_id uuid, role text);");
+      await query("insert into evil_has_tenant_role.membership_roles (membership_id, tenant_id, role) values ($1, $2, 'montor')", [membershipId, fixture.tenantA.id]);
+      await query("set search_path = evil_has_tenant_role, public;");
       const rows = await query<{ ok: boolean }>(
         "select public.has_tenant_role($1::uuid, array['montor']::text[]) as ok", [fixture.tenantA.id],
       );

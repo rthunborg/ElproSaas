@@ -1,0 +1,21 @@
+{
+  "story": "13.1",
+  "storyKey": "spec-13-1-authenticated-background-runner-and-producer-registry",
+  "tdd_phase": "RED",
+  "total_tests": 13,
+  "route_unit_static_tests": 10,
+  "integration_tests": 3,
+  "e2e_tests": 0,
+  "all_tests_skipped": true,
+  "expected_to_fail_when_activated": true,
+  "fixtures_created": 0,
+  "fixture_requirements_recorded": 5,
+  "execution_mode": "SUBAGENT (API + E2E)",
+  "pact_tests": "not_applicable",
+  "validation": {
+    "targeted_node_runner": { "passed": 0, "failed": 0, "skipped": 10 },
+    "targeted_vitest_runner": { "passed": 0, "failed": 0, "skipped": 3 },
+    "required_mode_vitest_runner": { "passed": 0, "failed": 0, "skipped": 3, "coverage": "none; all cases are explicitly red-phase skipped" },
+    "typecheck": "blocked by pre-existing tmp/private and tmp/worktrees TypeScript errors unrelated to Story 13.1 scaffolds"
+  }
+}

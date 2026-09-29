@@ -26,6 +26,7 @@ let clients: Record<TenantRole, TestServerClient>;
 let ownTableIds: Record<TenantTableName, string>;
 let foreignTableIds: Record<TenantTableName, string>;
 let selfTableIds: Record<TenantRole, Pick<Record<TenantTableName, string>, "tenant_memberships" | "membership_roles">>;
+let personalTableIds: Record<TenantRole, Pick<Record<TenantTableName, string>, "notifications" | "notification_preferences">>;
 
 beforeAll(async () => {
   stackUp = await isLocalStackReachable();
@@ -49,6 +50,13 @@ beforeAll(async () => {
   }))) as Record<TenantRole, Pick<Record<TenantTableName, string>, "tenant_memberships" | "membership_roles">>;
   ownTableIds = await seedEveryTenantTable(fixture.base.tenantA.id, fixture.base.adminA.id);
   foreignTableIds = await seedEveryTenantTable(fixture.base.tenantB.id, fixture.base.adminB.id);
+  personalTableIds = Object.fromEntries(await Promise.all(TENANT_ROLES.map(async (role) => {
+    const userId = fixture.users[role].id;
+    const notification = (await adminQuery<{ id: string }>("insert into public.notifications (tenant_id, recipient_user_id, category, title, body, route, logical_subject_id, logical_period) values ($1, $2, 'quote.follow_up_due', 'Role harness', 'Personal notification', '/notifications', gen_random_uuid(), current_date) returning id", [fixture.base.tenantA.id, userId]))[0]?.id;
+    const preference = (await adminQuery<{ id: string }>("insert into public.notification_preferences (tenant_id, user_id, category, channel, enabled) values ($1, $2, 'quote.follow_up_due', 'in_app', true) on conflict (tenant_id,user_id,category,channel) do update set enabled = excluded.enabled returning id", [fixture.base.tenantA.id, userId]))[0]?.id;
+    if (!notification || !preference) throw new Error(`role harness seed: personal notification rows missing for ${role}`);
+    return [role, { notifications: notification, notification_preferences: preference }] as const;
+  }))) as Record<TenantRole, Pick<Record<TenantTableName, string>, "notifications" | "notification_preferences">>;
 });
 afterAll(async () => {
   if (stackUp && fixture) await cleanupRoleAwarePhaseAFixture(fixture);
@@ -84,6 +92,35 @@ async function seedEveryTenantTable(tenantId: string, actorId: string): Promise<
   const job = await adminInsertJob({ tenant_id: tenantId, quote_acceptance_id: quoteAcceptance, quote_version_id: quoteVersion, customer_id: customer, title: "Role harness job" });
   const jobEvent = await adminInsertJobEvent({ tenant_id: tenantId, job_id: job, event_type: "created" });
   const auditEvent = await adminInsertAuditEvent({ tenant_id: tenantId, actor_user_id: actorId, command: "role.harness.seed", event_type: "seeded", target_type: "tenant", target_id: tenantId, correlation_id: crypto.randomUUID(), metadata: {} });
+  const jobRun = (await adminQuery<{ id: string }>("insert into public.job_runs (tenant_id, producer, window_started_at, started_at, finished_at, outcome, correlation_id) values ($1, 'notifications.runner', now(), now(), now(), 'completed', gen_random_uuid()) returning id", [tenantId]))[0]?.id;
+  if (!jobRun) throw new Error("role harness seed: job run missing");
+  const notification = (await adminQuery<{ id: string }>("insert into public.notifications (tenant_id, recipient_user_id, category, title, body, route) values ($1, $2, 'quote.follow_up_due', 'Role harness', 'Notification seed', '/notifications') returning id", [tenantId, actorId]))[0]?.id;
+  const notificationPreference = (await adminQuery<{ id: string }>("insert into public.notification_preferences (tenant_id, user_id, category, channel, enabled) values ($1, $2, 'quote.follow_up_due', 'in_app', true) returning id", [tenantId, actorId]))[0]?.id;
+  if (!notification || !notificationPreference) throw new Error("role harness seed: notification rows missing");
+  const emailOutbox = (await adminQuery<{ id: string }>(
+    "insert into public.email_outbox (tenant_id, recipient_hash, category, subject_type, subject_id, logical_period, template_key, template_version, template_params) values ($1, repeat('a', 64), 'quote.follow_up_due', 'quote_follow_up', gen_random_uuid(), current_date, 'role-harness', 1, '{\"recipientUserId\":\"system\",\"displayName\":\"Role harness\",\"locale\":\"sv-SE\"}'::jsonb) returning id",
+    [tenantId],
+  ))[0]?.id;
+  if (!emailOutbox) throw new Error("role harness seed: email outbox row missing");
+  const emailDeliveryEvent = (await adminQuery<{ id: string }>(
+    "insert into public.email_delivery_events (tenant_id, outbox_id, event_type) values ($1, $2, 'queued') returning id",
+    [tenantId, emailOutbox],
+  ))[0]?.id;
+  const emailSuppression = (await adminQuery<{ id: string }>(
+    "insert into public.email_suppressions (tenant_id, recipient_hash, category) values ($1, repeat('b', 64), 'quote.follow_up_due') returning id",
+    [tenantId],
+  ))[0]?.id;
+  const emailDeliveryArtifact = (await adminQuery<{ id: string }>(
+    "insert into public.email_delivery_artifacts (tenant_id, outbox_id, quote_version_id, content_fingerprint, pdf_checksum_sha256, pdf_bytes) values ($1, $2, $3, repeat('d', 64), encode(extensions.digest(decode('25504446', 'hex'), 'sha256'), 'hex'), decode('25504446', 'hex')) returning id",
+    [tenantId, emailOutbox, quoteVersion],
+  ))[0]?.id;
+  const emailDeliveryRecovery = (await adminQuery<{ id: string }>(
+    "insert into public.email_delivery_recoveries (tenant_id, quote_version_id, correlation_id, failure_stage, recovery_state) values ($1, $2, gen_random_uuid(), 'artifact_preparation', 'orphaned') returning id",
+    [tenantId, quoteVersion],
+  ))[0]?.id;
+  const emailUnsubscribeToken = (await adminQuery<{ id: string }>("insert into public.email_unsubscribe_tokens (tenant_id, token_hash, recipient_hash, category) values ($1, encode(gen_random_bytes(32), 'hex'), repeat('e', 64), 'quote.delivery') returning id", [tenantId]))[0]?.id;
+  const emailUnsubscribeRateLimit = (await adminQuery<{ id: string }>("insert into public.email_unsubscribe_rate_limits (tenant_id, token_hash, ip_hash, window_started_at) values ($1, encode(gen_random_bytes(32), 'hex'), repeat('f', 64), now()) returning id", [tenantId]))[0]?.id;
+  if (!emailDeliveryEvent || !emailSuppression || !emailDeliveryArtifact || !emailDeliveryRecovery || !emailUnsubscribeToken || !emailUnsubscribeRateLimit) throw new Error("role harness seed: email support rows missing");
   const membership = (await adminQuery<{ id: string }>("select id from public.tenant_memberships where tenant_id = $1 and user_id = $2", [tenantId, actorId]))[0]?.id;
   if (!membership) throw new Error("role harness seed: actor membership missing");
   const membershipRole = (await adminQuery<{ id: string }>(
@@ -98,7 +135,11 @@ async function seedEveryTenantTable(tenantId: string, actorId: string): Promise<
   if (!provisioningRequest || !provisioningInvite) throw new Error("role harness seed: provisioning rows missing");
   return {
     tenants: tenantId, tenant_memberships: membership, membership_roles: membershipRole,
-    membership_admin_operations: membershipOperation, audit_events: auditEvent,
+    membership_admin_operations: membershipOperation, audit_events: auditEvent, job_runs: jobRun,
+    notifications: notification, notification_preferences: notificationPreference,
+    email_outbox: emailOutbox, email_delivery_events: emailDeliveryEvent, email_suppressions: emailSuppression,
+    email_delivery_artifacts: emailDeliveryArtifact, email_delivery_recoveries: emailDeliveryRecovery, email_unsubscribe_tokens: emailUnsubscribeToken,
+    email_unsubscribe_rate_limits: emailUnsubscribeRateLimit,
     customers: customer, facilities: facility, contacts: contact, company_settings: companySettings,
     quote_terms: quoteTerms, work_roles: workRole, articles: article, calculations: calculation,
     calculation_sections: calculationSection, calculation_rows: calculationRow, files: file,
@@ -130,6 +171,8 @@ describe("Story 11.4 role harness", () => {
       const adapter = tableRlsProjectionAdapter(table);
       const ownId = table === "tenant_memberships" || table === "membership_roles"
         ? selfTableIds[obligation.role][table]
+        : table === "notifications" || table === "notification_preferences"
+          ? personalTableIds[obligation.role][table]
         : ownTableIds[table];
       const own = await adapter.read(clients[obligation.role] as never, ownId);
       if (adapter.directReadDenied) {

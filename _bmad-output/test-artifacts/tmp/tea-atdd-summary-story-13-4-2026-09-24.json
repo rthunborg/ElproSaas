@@ -1,0 +1,12 @@
+{
+  "tdd_phase": "RED",
+  "total_tests": 17,
+  "api_tests": 12,
+  "e2e_tests": 5,
+  "all_tests_skipped": true,
+  "expected_to_fail": true,
+  "fixtures_created": 0,
+  "fixtures_reused": ["two-tenant factories", "admin SQL helpers", "required-stack gate", "Playwright authenticated fixture"],
+  "subagent_execution": "SUBAGENT (API + E2E)",
+  "performance_gain": "parallel generation completed before aggregation"
+}

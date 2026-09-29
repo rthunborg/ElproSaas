@@ -11,7 +11,7 @@ import { TENANT_TABLES, type TenantTableName } from "../../integration/rls/tenan
  * economy and membership-history split privileges.
  */
 export const TABLE_PROJECTION_CAPABILITIES: Readonly<Record<string, string>> = {
-  tenants: "Memberships.Manage", tenant_memberships: "Memberships.Manage", membership_roles: "Memberships.Manage", audit_events: "Memberships.Manage", membership_admin_operations: "Memberships.Manage",
+  tenants: "Memberships.Manage", tenant_memberships: "Memberships.Manage", membership_roles: "Memberships.Manage", audit_events: "Memberships.Manage", job_runs: "Notifications.View", notifications: "Notifications.Personal", notification_preferences: "Notifications.Personal", email_outbox: "Notifications.View", email_delivery_events: "Notifications.View", email_suppressions: "Notifications.View", email_unsubscribe_tokens: "Notifications.View", email_unsubscribe_rate_limits: "Notifications.View", email_delivery_artifacts: "Notifications.View", email_delivery_recoveries: "Notifications.View", membership_admin_operations: "Memberships.Manage",
   // The provisioning request/invite tables are platform protocol internals. No
   // tenant role can project them; platform allow-list authorization is verified
   // independently at the operator boundaries.
@@ -33,6 +33,11 @@ export const TABLE_DIRECT_RLS_ALLOWED_ROLES: Readonly<Partial<Record<TenantTable
   // 20260831124310: short-lived review-attestation payloads remain private to tenant admins.
   // Quotes.Approve still governs the business command; this is the deliberately narrower raw-table boundary.
   quote_review_authorizations: ["tenant_admin"],
+  // The dark queue is exposed only through the redacted server projection.
+  email_outbox: [],
+  email_delivery_events: [],
+  email_suppressions: [],
+  email_delivery_recoveries: ["tenant_admin"],
   // 20260907171252: accepted totals are raw-table visible only to admin/project lead;
   // Economy.ViewContributionMargin is enforced by the server DTO for economy users.
   quote_acceptances: ["tenant_admin", "projektledare"],
@@ -191,6 +196,14 @@ export const TABLE_RLS_PROJECTION_ADAPTERS: Readonly<Record<TenantTableName, Tab
   membership_roles: idProjection("membership_roles"),
   membership_admin_operations: idProjection("membership_admin_operations"),
   audit_events: idProjection("audit_events"),
+  job_runs: idProjection("job_runs"),
+  notifications: idProjection("notifications"),
+  notification_preferences: idProjection("notification_preferences"),
+  email_outbox: keyProjection("email_outbox", "id", true),
+  email_delivery_events: keyProjection("email_delivery_events", "id", true),
+  email_suppressions: keyProjection("email_suppressions", "id", true),
+  email_delivery_artifacts: keyProjection("email_delivery_artifacts", "id", true),
+  email_delivery_recoveries: idProjection("email_delivery_recoveries"),
   tenant_provisioning_requests: keyProjection("tenant_provisioning_requests", "request_id", true),
   tenant_provisioning_invites: keyProjection("tenant_provisioning_invites", "tenant_id", true),
   customers: idProjection("customers"),
@@ -217,7 +230,11 @@ export const TABLE_RLS_PROJECTION_ADAPTERS: Readonly<Record<TenantTableName, Tab
   quote_follow_ups: idProjection("quote_follow_ups"),
   jobs: idProjection("jobs"),
   job_events: idProjection("job_events"),
-};
+  // Public token protocol rows are never projected to tenant clients. Their
+  // keys still enroll the role harness so manifest activation cannot drift.
+  email_unsubscribe_tokens: keyProjection("email_unsubscribe_tokens" as TenantTableName, "id", true),
+  email_unsubscribe_rate_limits: keyProjection("email_unsubscribe_rate_limits" as TenantTableName, "id", true),
+} as unknown as Readonly<Record<TenantTableName, TableRlsProjectionAdapter>>;
 
 export function tableRlsProjectionAdapter(table: string): TableRlsProjectionAdapter {
   const adapter = TABLE_RLS_PROJECTION_ADAPTERS[table as TenantTableName];

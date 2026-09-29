@@ -57,6 +57,30 @@ import {
   validateMarkQuoteVersionSent,
   type MarkQuoteVersionSentInput,
 } from "./validation";
+import {
+  createQuoteDeliveryRecoveryAttestation,
+  type QuoteDeliveryRecoveryStage,
+} from "@/server/email/recovery-attestation";
+import { signValidatedQuotePdfForAccess } from "@/server/storage/quote-pdf-signer";
+import { validateSignedStorageUrl } from "@/server/storage/signed-access-attestation";
+import { recordQuoteDeliveryConfigurationRecovery } from "@/server/email/configuration-recovery";
+
+type StorageReadError = {
+  readonly status?: number;
+  readonly statusCode?: number | string;
+  readonly code?: string;
+  readonly error?: string;
+};
+
+function isRequestBoundQuotePdfReadDenied(error: unknown): boolean {
+  if (typeof error !== "object" || error === null) return false;
+  const candidate = error as StorageReadError;
+  const rawStatus = candidate.statusCode ?? candidate.status;
+  const status = typeof rawStatus === "string" ? Number(rawStatus) : rawStatus;
+  if (status === 401 || status === 403 || status === 404) return true;
+  const code = (candidate.code ?? candidate.error ?? "").toLowerCase();
+  return code === "accessdenied" || code === "unauthorized" || code === "forbidden";
+}
 
 /**
  * Sending a commitment defaults to the real-customer track. Disposable demo deployments must
@@ -70,6 +94,39 @@ function quoteSendCustomerDataTrack(): "demo" | "real_customer" {
 /** Result of the mark-sent command — the sent version id under `targetId`. */
 export interface MarkQuoteVersionSentResult {
   readonly targetId: string;
+}
+
+async function recordQuoteDeliveryRecovery(
+  db: unknown,
+  input: {
+    readonly tenantId: string;
+    readonly quoteVersionId: string;
+    readonly actorUserId: string;
+    readonly correlationId: string;
+    readonly stage: QuoteDeliveryRecoveryStage;
+    readonly rootFingerprint: string;
+    readonly issuedAt: string;
+    readonly expiresAt: string;
+    readonly signature: string;
+  },
+): Promise<void> {
+  const recoveryRpc = db as {
+    rpc(name: "record_quote_email_delivery_recovery", args: Record<string, unknown>): Promise<{
+      error: { message?: string; code?: string } | null;
+    }>;
+  };
+  const { error } = await recoveryRpc.rpc("record_quote_email_delivery_recovery", {
+    p_tenant_id: input.tenantId,
+    p_quote_version_id: input.quoteVersionId,
+    p_actor_user_id: input.actorUserId,
+    p_correlation_id: input.correlationId,
+    p_failure_stage: input.stage,
+    p_attestation_root_fingerprint: input.rootFingerprint,
+    p_attestation_issued_at: input.issuedAt,
+    p_attestation_expires_at: input.expiresAt,
+    p_attestation_signature: input.signature,
+  });
+  if (error) throw new Error("quote delivery recovery persistence failed");
 }
 
 export const markQuoteVersionSent = defineCommand<
@@ -125,11 +182,18 @@ export const markQuoteVersionSent = defineCommand<
     }
 
     // Obtain a short-lived, database-issued description of the exact current PDF. The
-    // server then downloads those bytes through the SAME request-bound RLS client and
-    // independently checks the immutable size/SHA-256 metadata before signing. Neither
+    // server first uses the request-bound Storage client when that actor already has
+    // exact-object read authority. Quotes.Send roles without raw Storage access fall
+    // back to the existing server-only quote-PDF broker for only that checked path.
+    // Both paths independently check the immutable size/SHA-256 metadata before signing. Neither
     // the Vault secret nor the resulting HMAC is review authority; the separate one-time
     // Story 10.8 authorization below remains the human-review decision.
     const rpc = asMarkSentRpcClient(db);
+    let recoveryStage: QuoteDeliveryRecoveryStage = "artifact_preparation";
+    try {
+    // Resolve the HMAC configuration inside the compensated section. A missing or
+    // malformed server secret is itself an artifact-preparation failure and must
+    // leave the same durable recovery record as a failed prepare/download step.
     const attestationConfig = quotePdfAttestationSecretFromEnv();
     const prepared = await rpc.rpc("prepare_quote_pdf_send_attestation", {
       p_tenant_id: ctx.tenantContext.tenantId,
@@ -148,13 +212,39 @@ export const markQuoteVersionSent = defineCommand<
     ) {
       throw new CommandError("VALIDATION_FAILED");
     }
-    const downloaded = await rpc.storage
+    const requestDownload = await rpc.storage
       .from(challenge.bucketId)
       .download(challenge.objectPath);
-    if (downloaded.error || downloaded.data === null) {
+    let pdfBytes: Uint8Array;
+    if (!requestDownload.error && requestDownload.data !== null) {
+      pdfBytes = new Uint8Array(await requestDownload.data.arrayBuffer());
+    } else if (requestDownload.error && isRequestBoundQuotePdfReadDenied(requestDownload.error)) {
+      // Storage conceals this role's RLS denial as a 404 even though the database
+      // challenge just proved that the exact current object exists. The broker uses
+      // only that returned path; a genuine deletion race still fails at signing.
+      const signedAccess = await signValidatedQuotePdfForAccess({
+        bucket: "tenant-files",
+        objectPath: challenge.objectPath,
+        nowIso: challenge.issuedAt,
+      });
+      if (signedAccess === null) {
+        throw new Error("quote PDF download failed before final send");
+      }
+      validateSignedStorageUrl(signedAccess.signedUrl, {
+        bucketId: challenge.bucketId,
+        objectPath: challenge.objectPath,
+        challengeIssuedAt: challenge.issuedAt,
+        computedExpiresAt: signedAccess.expiresAt,
+      });
+      const brokerDownload = await fetch(signedAccess.signedUrl);
+      if (!brokerDownload.ok) throw new Error("quote PDF download failed before final send");
+      pdfBytes = new Uint8Array(await brokerDownload.arrayBuffer());
+    } else {
+      // Missing data without a classified permission denial, corruption, and
+      // transient/network failures must stay visible rather than being retried with
+      // elevated storage authority.
       throw new Error("quote PDF download failed before final send");
     }
-    const pdfBytes = new Uint8Array(await downloaded.data.arrayBuffer());
     if (
       pdfBytes.byteLength !== challenge.sizeBytes ||
       createHash("sha256").update(pdfBytes).digest("hex") !== challenge.checksumSha256
@@ -182,6 +272,7 @@ export const markQuoteVersionSent = defineCommand<
 
     // Issue the distinct one-time reviewer authority only after byte verification,
     // then consume both proofs in the same database transaction as the commitment.
+    recoveryStage = "finalization";
     const authorityRpc = asQuoteReviewAuthorizationRpcClient(db);
     const authorization = await authorityRpc.rpc("authorize_quote_final_send", {
       p_tenant_id: ctx.tenantContext.tenantId,
@@ -195,7 +286,7 @@ export const markQuoteVersionSent = defineCommand<
       throw new Error("authorizeQuoteFinalSend: RPC returned no authorization id");
     }
 
-    const { error } = await rpc.rpc("mark_quote_version_sent", {
+    const commonArgs = {
       p_tenant_id: ctx.tenantContext.tenantId, // resolved tenant, never a client id
       p_quote_version_id: versionId,
       p_authorization_id: authorizationId,
@@ -208,11 +299,48 @@ export const markQuoteVersionSent = defineCommand<
       p_attestation_issued_at: challenge.issuedAt,
       p_attestation_expires_at: challenge.expiresAt,
       p_attestation_signature: signature,
+    };
+    // A final customer commitment is always paired with a frozen linked
+    // recipient and a durable delivery record. The validator guarantees this
+    // selection is complete before any PDF authority or lifecycle work begins.
+    const { error } = await rpc.rpc("finalize_quote_email_delivery", {
+      ...commonArgs,
+      p_recipient_source_type: ctx.input.recipient_source_type!,
+      p_recipient_source_id: ctx.input.recipient_source_id!,
+      p_pdf_base64: Buffer.from(pdfBytes).toString("base64"),
+      p_content_fingerprint: challenge.contentFingerprint,
+      p_pdf_checksum_sha256: challenge.checksumSha256,
     });
     // Map the RPC's not-draft assertion (a race) → QUOTE_VERSION_LOCKED; other codes per the mapper.
     if (error) throwMappedQuoteWriteError(error);
 
     return { targetId: versionId };
+    } catch (error) {
+      try {
+        if (!process.env.QUOTE_PDF_ATTESTATION_HMAC_SECRET) {
+          await recordQuoteDeliveryConfigurationRecovery({
+            tenantId: ctx.tenantContext.tenantId,
+            quoteVersionId: versionId,
+            actorUserId: ctx.tenantContext.userId,
+            correlationId: ctx.correlationId,
+          });
+        } else {
+          const recovery = createQuoteDeliveryRecoveryAttestation({
+            tenantId: ctx.tenantContext.tenantId,
+            quoteVersionId: versionId,
+            actorUserId: ctx.tenantContext.userId,
+            correlationId: ctx.correlationId,
+            stage: recoveryStage,
+          });
+          await recordQuoteDeliveryRecovery(db, recovery);
+        }
+      } catch {
+        // Recovery evidence is best-effort after the command has already failed.
+        // Preserve the originating failure instead of replacing it with a
+        // secondary persistence or attestation error.
+      }
+      throw error;
+    }
   },
   // Audit allow-list is `{ targetId }` ONLY — NO channel/reference/customer/money value.
 });

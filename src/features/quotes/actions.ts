@@ -25,6 +25,7 @@ import {
   acceptQuoteAndCreateJob,
   annotateQuoteFollowUp,
   completeQuoteFollowUp,
+  correctPendingQuoteDeliveryRecipient,
   createNewQuoteVersion,
   createQuoteVersionFromCalculation,
   createQuotePdfSignedAccess,
@@ -249,6 +250,10 @@ export async function markQuoteVersionSentAction(
   const reference = optionalText(form, "reference");
   if (channel !== undefined) input.channel = channel;
   if (reference !== undefined) input.reference = reference;
+  const recipientSourceType = form.get("recipient_source_type");
+  const recipientSourceId = form.get("recipient_source_id");
+  if (typeof recipientSourceType === "string") input.recipient_source_type = recipientSourceType;
+  if (typeof recipientSourceId === "string") input.recipient_source_id = recipientSourceId;
 
   const client = (await createSupabaseServerClient()) as unknown as CommandDbClient;
   const result = await runCommand(markQuoteVersionSent, { client, input });
@@ -268,6 +273,39 @@ export async function markQuoteVersionSentAction(
     };
   }
 
+  return {
+    ...MARK_SENT_ACTION_INITIAL,
+    status: "error",
+    code: result.code,
+    formError: result.message || COMMAND_MESSAGES[result.code],
+  };
+}
+
+/** Replaces one queued quote-delivery recipient with a newly authorized snapshot. */
+export async function correctPendingQuoteDeliveryRecipientAction(
+  _prev: MarkSentActionState,
+  form: FormData,
+): Promise<MarkSentActionState> {
+  const quoteVersionId = form.get("quote_version_id");
+  const quoteId = form.get("quote_id");
+  const client = (await createSupabaseServerClient()) as unknown as CommandDbClient;
+  const result = await runCommand(correctPendingQuoteDeliveryRecipient, {
+    client,
+    input: {
+      quote_version_id: quoteVersionId,
+      recipient_source_type: form.get("recipient_source_type"),
+      recipient_source_id: form.get("recipient_source_id"),
+    },
+  });
+  if (result.ok) {
+    if (typeof quoteId === "string" && quoteId.length > 0) {
+      revalidatePath(`/quotes/${quoteId}`);
+      if (typeof quoteVersionId === "string" && quoteVersionId.length > 0) {
+        revalidatePath(`/quotes/${quoteId}/versions/${quoteVersionId}`);
+      }
+    }
+    return { ...MARK_SENT_ACTION_INITIAL, status: "success", targetId: result.data.targetId };
+  }
   return {
     ...MARK_SENT_ACTION_INITIAL,
     status: "error",

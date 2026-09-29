@@ -104,7 +104,7 @@ async function seedQuoteVersion(
   status: string,
   warnings?: readonly { code: string; severity: string; message: string }[],
   acceptedPriceOre = 0,
-): Promise<{ quoteId: string; versionId: string }> {
+): Promise<{ quoteId: string; versionId: string; customerId: string }> {
   const customerId = await adminInsertCustomer({
     tenant_id: tenantId,
     customer_type: "company",
@@ -125,7 +125,11 @@ async function seedQuoteVersion(
     warnings_snapshot: warnings,
     accepted_price_ore: acceptedPriceOre,
   });
-  return { quoteId, versionId };
+  await adminQuery("update public.customers set email=$2 where id=$1", [
+    customerId,
+    `mark-sent-${crypto.randomUUID().slice(0, 8)}@example.test`,
+  ]);
+  return { quoteId, versionId, customerId };
 }
 
 /** Establish the authenticated Story 10.9 current-PDF proof required before final send. */
@@ -156,14 +160,14 @@ afterAll(async () => {
 describe("markQuoteVersionSent — mark-sent transition (AC1)", () => {
   it("[P0] 6.4-INT-01: DB-owns sent lifecycle/audit timestamps while preserving channel/reference, event, audit row, and status='sent'", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
-    const { versionId } = await seedQuoteVersion(fixture.tenantA.id, "draft");
+    const { versionId, customerId } = await seedQuoteVersion(fixture.tenantA.id, "draft");
     const correlationId = crypto.randomUUID();
     await establishCurrentPdf(versionId);
     const databaseBefore = await readDatabaseNow();
 
     const res = await runCommand(markQuoteVersionSent, {
       client: a as never,
-      input: { quote_version_id: versionId, channel: "email", reference: "REF-123" },
+      input: { quote_version_id: versionId, channel: "email", reference: "REF-123", recipient_source_type: "customer", recipient_source_id: customerId },
       clock: fixedClock,
       correlationId,
     });
@@ -200,7 +204,7 @@ describe("markQuoteVersionSent — mark-sent transition (AC1)", () => {
 
   it("[P0] 6.4-INT-01: the DB owns the sent timestamp and ignores the injected clock (channel/reference optional)", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
-    const { versionId } = await seedQuoteVersion(fixture.tenantA.id, "draft");
+    const { versionId, customerId } = await seedQuoteVersion(fixture.tenantA.id, "draft");
     await establishCurrentPdf(versionId);
     const correlationId = crypto.randomUUID();
     const databaseBefore = await readDatabaseNow();
@@ -208,7 +212,7 @@ describe("markQuoteVersionSent — mark-sent transition (AC1)", () => {
     // No channel/reference supplied — they are OPTIONAL recorded fields (null when absent).
     const res = await runCommand(markQuoteVersionSent, {
       client: a as never,
-      input: { quote_version_id: versionId },
+      input: { quote_version_id: versionId, recipient_source_type: "customer", recipient_source_id: customerId },
       clock: fixedClock,
       correlationId,
     });
@@ -230,11 +234,11 @@ describe("markQuoteVersionSent — command-layer immutability (AC2, R-605 layer 
   it("[P0] 6.4-INT-02: a re-send of an already-SENT version ⇒ QUOTE_VERSION_LOCKED (distinct from QUOTE_VERSION_NOT_DRAFT), row unchanged", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     // Mark a draft sent via the command (the real transition), then re-attempt the send.
-    const { versionId } = await seedQuoteVersion(fixture.tenantA.id, "draft");
+    const { versionId, customerId } = await seedQuoteVersion(fixture.tenantA.id, "draft");
     await establishCurrentPdf(versionId);
     const first = await runCommand(markQuoteVersionSent, {
       client: a as never,
-      input: { quote_version_id: versionId },
+      input: { quote_version_id: versionId, recipient_source_type: "customer", recipient_source_id: customerId },
       clock: fixedClock,
       correlationId: crypto.randomUUID(),
     });
@@ -243,7 +247,7 @@ describe("markQuoteVersionSent — command-layer immutability (AC2, R-605 layer 
 
     const res = await runCommand(markQuoteVersionSent, {
       client: a as never,
-      input: { quote_version_id: versionId },
+      input: { quote_version_id: versionId, recipient_source_type: "customer", recipient_source_id: customerId },
       clock: fixedClock,
       correlationId: crypto.randomUUID(),
     });
@@ -360,7 +364,7 @@ describe("markQuoteVersionSent — DB-layer immutability BELOW the command (AC2,
     if (skipUnlessStack(testCtx, stackUp)) return;
     // Seed a DRAFT version + its line (the child-lock allows writes to a draft parent), then flip
     // the parent to SENT via the command — the line is now frozen.
-    const { versionId } = await seedQuoteVersion(
+    const { versionId, customerId } = await seedQuoteVersion(
       fixture.tenantA.id,
       "draft",
       undefined,
@@ -370,7 +374,7 @@ describe("markQuoteVersionSent — DB-layer immutability BELOW the command (AC2,
     await establishCurrentPdf(versionId);
     const sent = await runCommand(markQuoteVersionSent, {
       client: a as never,
-      input: { quote_version_id: versionId },
+      input: { quote_version_id: versionId, recipient_source_type: "customer", recipient_source_id: customerId },
       clock: fixedClock,
       correlationId: crypto.randomUUID(),
     });
@@ -513,7 +517,7 @@ describe("markQuoteVersionSent — send gated by the 5.4 readiness classifier (A
     const previousTrack = process.env.ELPRO_QUOTE_SEND_TRACK;
     process.env.ELPRO_QUOTE_SEND_TRACK = "demo";
     try {
-      const { versionId } = await seedQuoteVersion(fixture.tenantA.id, "draft", [
+      const { versionId, customerId } = await seedQuoteVersion(fixture.tenantA.id, "draft", [
         { code: "TAX_SIGN_OFF_REQUIRED", severity: "warning", message: "…" },
         { code: "MISSING_FACILITY", severity: "warning", message: "…" },
       ]);
@@ -521,7 +525,7 @@ describe("markQuoteVersionSent — send gated by the 5.4 readiness classifier (A
 
       const res = await runCommand(markQuoteVersionSent, {
         client: a as never,
-        input: { quote_version_id: versionId },
+        input: { quote_version_id: versionId, recipient_source_type: "customer", recipient_source_id: customerId },
         clock: fixedClock,
         correlationId: crypto.randomUUID(),
       });
@@ -574,7 +578,7 @@ describe("markQuoteVersionSent — cross-tenant rejection (AC3)", () => {
 
     const res = await runCommand(markQuoteVersionSent, {
       client: a as never, // adminA acting on a Tenant-B version id
-      input: { quote_version_id: bVersionId },
+      input: { quote_version_id: bVersionId, recipient_source_type: "customer", recipient_source_id: bVersionId },
       clock: fixedClock,
       correlationId: crypto.randomUUID(),
     });

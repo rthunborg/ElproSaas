@@ -145,6 +145,10 @@ async function seedSentV2(
     customer_type: "company",
     display_name: `synthetic-v2-${label}`,
   });
+  await adminQuery("update public.customers set email=$2 where id=$1", [
+    customerId,
+    `synthetic-v2-${crypto.randomUUID().slice(0, 8)}@example.test`,
+  ]);
   const calculationId = await adminInsertCalculation({
     tenant_id: tenantId,
     customer_id: customerId,
@@ -207,7 +211,11 @@ async function seedSentV2(
   });
   const sent = await runCommand(markQuoteVersionSent, {
     client: client as never,
-    input: { quote_version_id: versionId },
+    input: {
+      quote_version_id: versionId,
+      recipient_source_type: "customer",
+      recipient_source_id: customerId,
+    },
     clock: fixedClock,
     correlationId: crypto.randomUUID(),
   });

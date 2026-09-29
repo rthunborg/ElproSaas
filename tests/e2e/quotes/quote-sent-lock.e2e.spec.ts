@@ -99,6 +99,10 @@ test.describe("Quote sent-lock + mark-sent UX (Story 6.4 E2E)", () => {
     const markSent = page.getByTestId("mark-sent-button");
     await expect(markSent).toBeVisible();
     await expect(markSent).toHaveAccessibleName(/skicka/i);
+    await expect(markSent).toBeDisabled();
+    const recipient = page.getByLabel("E-postmottagare");
+    await recipient.selectOption({ index: 1 });
+    await expect(markSent).toBeEnabled();
     // Keyboard-operable with a visible focus ring (event-driven focus per the preview-harness note).
     await markSent.focus();
     await expect(markSent).toBeFocused();
@@ -124,6 +128,9 @@ test.describe("Quote sent-lock + mark-sent UX (Story 6.4 E2E)", () => {
 
     const markSent = page.getByTestId("mark-sent-button");
     await waitForHydrated(markSent);
+    await expect(markSent).toBeDisabled();
+    await page.getByLabel("E-postmottagare").selectOption({ index: 1 });
+    await expect(markSent).toBeEnabled();
     await markSent.click();
 
     // After the send + revalidatePath on BOTH the detail + the version subroute (the 6.2/6.3

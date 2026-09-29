@@ -9,9 +9,9 @@
 // transitively-bundled server module, and any `*SERVICE_ROLE*` token that survived
 // minification. [architecture §9, §20; test-design-epic-2.md R-002]
 //
-// The app has two documented server-only exceptions: the quote-PDF signer and
-// the tenant-bound Admin-user Auth adapter. Neither may leak a key value or a
-// reference into a browser, route, or RSC payload.
+// The app has three documented server-only exceptions: the quote-PDF signer, the
+// tenant-bound Admin-user Auth adapter, and the authenticated jobs service client.
+// None may leak a key value or a reference into a browser, route, or RSC payload.
 // `src/server/storage/quote-pdf-signer.ts` uses the service-role key to sign the
 // exact target already bound by the checked database workflow. Its server chunk and
 // source map may retain the *environment-variable name*, never its value. Every
@@ -38,7 +38,7 @@ const BUILD_DIR = ".next";
 // 1. ANY `*SERVICE_ROLE*` token. Covers the canonical `SUPABASE_SERVICE_ROLE_KEY`,
 //    a `NEXT_PUBLIC_*SERVICE_ROLE*` name (browser-inlined), AND the Story 2.2
 //    re-export symbol `LOCAL_SUPABASE_SERVICE_ROLE_KEY` the source guard misses by
-//    symbol. The lone, path-and-content-bound quote-PDF server exception is checked
+//    symbol. The documented, path-and-content-bound server exceptions are checked
 //    by `isDocumentedQuotePdfSignerEnvironmentReference` below.
 const SERVICE_ROLE_TOKEN_RE = /[A-Z0-9_]*SERVICE_ROLE[A-Z0-9_]*/g;
 
@@ -47,11 +47,13 @@ const QUOTE_PDF_SIGNER_SOURCE_MARKER = "src/server/storage/quote-pdf-signer.ts";
 const QUOTE_PDF_SIGNER_RUNTIME_MARKER = "Quote PDF signing is not configured";
 const ADMIN_USER_SERVICE_SOURCE_MARKER = "src/server/auth/admin-user-service.ts";
 const ADMIN_USER_SERVICE_RUNTIME_MARKER = "admin user operation unavailable";
+const JOBS_SERVICE_SOURCE_MARKER = "src/server/jobs/service-client.ts";
+const JOBS_SERVICE_RUNTIME_MARKER = "Background runner is not configured";
 const QUOTE_PDF_SIGNER_SERVER_CHUNK_RE =
   /^\.next\/server\/chunks\/ssr\/[^/]+\.(?:js|map)$/;
 
 /**
- * The documented signer is the only application use of this environment variable.
+ * Each documented server-only module is an approved application use of this environment variable.
  * Next retains a source-map path in `.map` files and the fail-closed runtime message
  * in the matching server JS chunk, so accept the name only with one of those exact
  * markers and only below the SSR server-chunk directory. This is intentionally not
@@ -60,13 +62,19 @@ const QUOTE_PDF_SIGNER_SERVER_CHUNK_RE =
  */
 function isDocumentedServerEnvironmentReference(rel, contents, token) {
   if (token !== QUOTE_PDF_SIGNER_ENV_NAME) return false;
-  if (!QUOTE_PDF_SIGNER_SERVER_CHUNK_RE.test(rel)) return false;
-  return (
+  if (QUOTE_PDF_SIGNER_SERVER_CHUNK_RE.test(rel) && (
     contents.includes(QUOTE_PDF_SIGNER_SOURCE_MARKER) ||
     contents.includes(QUOTE_PDF_SIGNER_RUNTIME_MARKER) ||
     contents.includes(ADMIN_USER_SERVICE_SOURCE_MARKER) ||
     contents.includes(ADMIN_USER_SERVICE_RUNTIME_MARKER)
-  );
+  )) return true;
+  // The authenticated scheduler route is server-executed. Next emits its shared
+  // service module under .next/server/chunks (not a browser/RSC/route payload),
+  // where source maps retain this env-var name. Admit only this exact module marker
+  // or its unique runtime error; a hit in static chunks, server/app payloads, or
+  // an unmarked server chunk remains a failure.
+  return /^\.next\/server\/chunks\/[^/]+\.(?:js|map)$/.test(rel) &&
+    (contents.includes(JOBS_SERVICE_SOURCE_MARKER) || contents.includes(JOBS_SERVICE_RUNTIME_MARKER));
 }
 
 // Known-BENIGN vendor `*SERVICE_ROLE*` substrings — a tight, EXPLICITLY DOCUMENTED
@@ -101,7 +109,8 @@ const LOCAL_DEMO_SERVICE_ROLE_JWT =
 //    (and the demo token), but it is NOT authoritative. The AUTHORITATIVE catches are
 //    rule 1 (any `*SERVICE_ROLE*` token, incl. the env-var NAME Next never minifies)
 //    and rule 2 (the literal demo-JWT VALUE). No behavioural change is required: this
-//    app uses NO service-role key (anon + RLS), so there is no service-role surface.
+//    only documented server-only modules may retain the environment-variable name in
+//    their exact server chunks; browser, route, and RSC payloads have no such surface.
 const SERVICE_ROLE_JWT_RE =
   /eyJ[A-Za-z0-9_-]*InNlcnZpY2Vfcm9sZSI[A-Za-z0-9_-]*/g;
 

@@ -56,6 +56,9 @@ declare
       values(v_request_id,v_hash,v_tenant,v_actor,v_att->>'previewHash',v_baseline.content_hash,'pending_first_admin_invite',1,v_req);$body$;
 begin
   select pg_get_functiondef('public.provision_tenant(text,jsonb)'::regprocedure) into v_definition;
+  v_definition := replace(v_definition, E'\r\n', E'\n');
+  v_before := replace(v_before, E'\r\n', E'\n');
+  v_after := replace(v_after, E'\r\n', E'\n');
   if position(v_before in v_definition) = 0 then
     raise exception 'provision_tenant request persistence seam changed';
   end if;
