@@ -9,17 +9,17 @@ spec_folder: null
 story_id: null
 branch: epic/14-wave-b1b-resource-and-scheduling-foundation
 status: in-progress
-updated_at: "2026-09-29T08:58:50Z"
+updated_at: "2026-09-29T09:15:55Z"
 started_at: "2026-09-29T08:45:54Z"
 completed_at: null
-active_seconds: 774
-timing_anchor: 1790672330
+active_seconds: 1798
+timing_anchor: 1790673355
 is_first_in_epic: true
 is_last_in_epic: false
 git_mode: remote
 base_branch: main
-selected_phase: tea_per_story
-selected_role: tea-delegate
+selected_phase: build
+selected_role: build-delegate
 selected_profile: standard
 selected_model: gpt-5.6-terra
 selected_effort: high
@@ -30,12 +30,13 @@ escalation_reason: null
 routing_ledger:
   - "{\"effort\":\"high\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-terra\",\"phase\":\"build\",\"profile\":\"standard\",\"role\":\"build-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
   - "{\"effort\":\"high\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-terra\",\"phase\":\"tea_per_story\",\"profile\":\"standard\",\"role\":\"tea-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"high\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-terra\",\"phase\":\"build\",\"profile\":\"standard\",\"role\":\"build-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
 tea_risk: high
 tea_selected: [atdd, automate]
 tea_rationale: Scheduling behavior and schema/database migrations create concurrency and data-integrity risks.
 epic_story_count: 4
 stories_after_in_epic: 3
-completed_phases: [0, 1, 2, 3]
+completed_phases: [0, 1, 2, 3, 4]
 spec_path: "C:\\Users\\Rasmus\\.codex\\worktrees\\epic14-scheduling\\ElproSaas\\_bmad-output\\implementation-artifacts\\spec-14-1-scheduling-activation-person-profiles-and-work-hours.md"
 spec_approved: true
 build:
@@ -55,7 +56,7 @@ legacy_review_loop_done: false
 legacy_external_review_iterations: null
 legacy_convergence_unverified: false
 legacy_artifact_path: null
-commits: [b821e42]
+commits: [b821e42, 2fdca50]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -78,7 +79,8 @@ pr_merged: false
 merge_method: null
 merge_commit: null
 branch_deleted: false
-open_questions: []
+open_questions:
+  - "ATDD implementation handoff: reconcile command exports/input-result contracts and server-observable retry-failure seam before activating skipped scenarios; 14 scaffolds currently claim no acceptance evidence."
 deferred_work: []
 blockers: []
 overrides:
