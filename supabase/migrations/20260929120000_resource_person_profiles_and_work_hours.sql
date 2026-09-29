@@ -184,9 +184,17 @@ begin
    insert into public.person_profiles(tenant_id,membership_id,default_work_role_id,employment_percentage)
    values(p_tenant_id,p_membership_id,p_work_role_id,p_employment_percentage)
    returning id into v_id;
+   -- Copy shifts before breaks. The row trigger requires a containing profile
+   -- shift when a break is inserted, so one unordered INSERT ... SELECT could
+   -- reject a valid tenant template when the planner has added breaks.
    insert into public.person_work_hours(tenant_id,person_profile_id,entry_kind,weekday,starts_at,ends_at)
    select tenant_id,v_id,entry_kind,weekday,starts_at,ends_at
-   from public.person_work_hours where tenant_id=p_tenant_id and person_profile_id is null;
+   from public.person_work_hours
+   where tenant_id=p_tenant_id and person_profile_id is null and entry_kind='weekly_shift';
+   insert into public.person_work_hours(tenant_id,person_profile_id,entry_kind,weekday,starts_at,ends_at)
+   select tenant_id,v_id,entry_kind,weekday,starts_at,ends_at
+   from public.person_work_hours
+   where tenant_id=p_tenant_id and person_profile_id is null and entry_kind='weekly_break';
  else
    v_id := v_profile.id;
    update public.person_profiles set default_work_role_id=p_work_role_id,employment_percentage=p_employment_percentage,updated_at=statement_timestamp() where id=v_id;

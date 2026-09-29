@@ -9,11 +9,11 @@ spec_folder: null
 story_id: null
 branch: epic/14-wave-b1b-resource-and-scheduling-foundation
 status: in-progress
-updated_at: "2026-09-29T10:31:41Z"
+updated_at: "2026-09-29T10:52:02Z"
 started_at: "2026-09-29T08:23:21Z"
 completed_at: null
-active_seconds: 6520
-timing_anchor: 1790677901
+active_seconds: 7741
+timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
 git_mode: remote

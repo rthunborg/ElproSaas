@@ -6,10 +6,20 @@ services:
     image: supabase/postgres:17.6.1.136
     env_file: .env.test
     environment:
+      # The Supabase Postgres image runs its built-in schema migrations at first
+      # initialization through libpq variables as well as POSTGRES_* settings.
+      # This establishes auth and storage schemas before repository migrations.
+      POSTGRES_HOST: /var/run/postgresql
+      POSTGRES_PORT: "5432"
       POSTGRES_DB: postgres
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      PGDATABASE: postgres
+      PGPORT: "5432"
       JWT_EXP: "3600"
     command: ["postgres", "-D", "/etc/postgresql", "-c", "log_min_messages=fatal"]
     volumes:
+      - ./ops/test/roles.sql:/docker-entrypoint-initdb.d/init-scripts/99-roles.sql:ro
+      - ./ops/test/jwt.sql:/docker-entrypoint-initdb.d/init-scripts/99-jwt.sql:ro
       - test-db-data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -h 127.0.0.1"]
@@ -29,15 +39,22 @@ services:
       GOTRUE_API_PORT: "9999"
       GOTRUE_DB_DRIVER: postgres
       GOTRUE_DB_DATABASE_URL: postgres://supabase_auth_admin:${POSTGRES_PASSWORD}@db:5432/postgres
+      API_EXTERNAL_URL: http://127.0.0.1:55421
       GOTRUE_JWT_ADMIN_ROLES: service_role
       GOTRUE_JWT_AUD: authenticated
       GOTRUE_JWT_DEFAULT_GROUP_NAME: authenticated
       GOTRUE_JWT_EXP: "3600"
+      GOTRUE_JWT_SECRET: ${JWT_SECRET}
       GOTRUE_DISABLE_SIGNUP: "false"
       GOTRUE_EXTERNAL_EMAIL_ENABLED: "true"
       GOTRUE_MAILER_AUTOCONFIRM: "true"
       GOTRUE_SITE_URL: http://127.0.0.1:3100
       GOTRUE_URI_ALLOW_LIST: http://127.0.0.1:3000,http://127.0.0.1:3100
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9999/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 24
   rest:
     image: postgrest/postgrest:v14.17
     env_file: .env.test
@@ -50,6 +67,11 @@ services:
       PGRST_DB_ANON_ROLE: anon
       PGRST_JWT_SECRET: ${JWT_SECRET}
       PGRST_APP_SETTINGS_JWT_SECRET: ${JWT_SECRET}
+    healthcheck:
+      test: ["CMD", "postgrest", "--ready"]
+      interval: 5s
+      timeout: 5s
+      retries: 24
   storage:
     image: supabase/storage-api:v1.74.0
     env_file: .env.test
@@ -59,7 +81,11 @@ services:
       rest:
         condition: service_started
     environment:
+      ANON_KEY: ${ANON_KEY}
+      SERVICE_KEY: ${SERVICE_ROLE_KEY}
       POSTGREST_URL: http://rest:3000
+      AUTH_JWT_SECRET: ${JWT_SECRET}
+      DATABASE_URL: postgres://supabase_storage_admin:${POSTGRES_PASSWORD}@db:5432/postgres
       REQUEST_ALLOW_X_FORWARDED_PATH: "true"
       FILE_SIZE_LIMIT: "52428800"
       STORAGE_BACKEND: file
@@ -71,15 +97,21 @@ services:
       ENABLE_IMAGE_TRANSFORMATION: "false"
     volumes:
       - test-storage-data:/var/lib/storage
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://storage:5000/status"]
+      interval: 5s
+      timeout: 5s
+      retries: 24
+      start_period: 10s
   gateway:
     image: kong/kong:3.9.3
     depends_on:
       auth:
-        condition: service_started
+        condition: service_healthy
       rest:
-        condition: service_started
+        condition: service_healthy
       storage:
-        condition: service_started
+        condition: service_healthy
     environment:
       KONG_DATABASE: "off"
       KONG_DECLARATIVE_CONFIG: /usr/local/kong/declarative/kong.yml

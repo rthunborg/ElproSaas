@@ -2,7 +2,7 @@
 title: 'Story 14.1: Resource Activation — Person Profiles and Work Hours'
 type: 'feature'
 created: '2026-09-29'
-status: 'in-progress'
+status: 'blocked'
 baseline_revision: '93dbf8432d420ecf6fcd29e732be7ca136801534'
 review_loop_iteration: 0
 followup_review_recommended: false
@@ -89,11 +89,11 @@ deferred: []
 
 Status: blocked
 
-Blocking condition: isolated Compose test stack cannot apply historical migration chain: storage schema absent (`storage.buckets` does not exist).
+Blocking condition: guarded ComposeUp remains in `launching` / `backend-dispatch` without a verified operation outcome after the isolated official-bootstrap repair.
 
-Implementation result: The resumed run consolidated the admin form into one database RPC so profile, copied tenant-template rows, schedule replacement, exceptions, optional calendar input, and their audit entries share one transaction. It added tenant default templates as `person_work_hours` rows with no profile, persisted individual exceptions, expanded the form to seven weekdays, and corrected the profile update path so an existing membership does not attempt a duplicate insert.
+Implementation result: The resumed run retained the atomic admin form, copied template rows, persisted exceptions, seven-day inputs, and existing-profile correction. It additionally fixed copied template insertion order so shifts precede breaks, and supplied the minimum official image-based test bootstrap: Postgres migration inputs, existing-role password initialization, JWT settings, Storage database/auth settings, and dependency health checks. No synthetic Storage schema was added.
 
-Verification: `pnpm run typecheck` passed. `pnpm run lint` passed with 0 errors and 13 existing warnings. `pnpm run test:unit` passed 1,928 tests with 1 skipped. The isolated stack was admitted and reached active state, but `supabase db push` stopped at the historical file-storage migration with `relation "storage.buckets" does not exist`; no Story 14.1 migration, integration suite, or browser scenario ran. The owned resource received a Stop request without shutdown polling.
+Verification: `pnpm run typecheck` passed. `pnpm run lint` passed with 0 errors and 13 existing warnings. `pnpm run test:unit` passed 1,928 tests with 1 skipped. `docker compose --env-file .env.test -f compose.test.yaml config --quiet` and private-workdir Compose config validation passed. Three bounded guarded startup diagnostics identified and corrected missing official bootstrap inputs; the fourth guarded admission remains unverified in backend dispatch, so no migration, integration suite, or browser scenario ran.
 
 Limits: `SUPABASE_TEST_REQUIRED=1 pnpm run test:int` and browser execution remain unrun. Resource command/RLS scaffolds remain skipped and cannot satisfy the required evidence. `followup_review_recommended` remains false because the workflow stopped before review.
 
@@ -124,38 +124,36 @@ Limits: Resource command/RLS test scaffolds remain skipped, so they cannot satis
 ## Suggested Review Order
 
 Author: implementation author.
-Refreshed against the current working tree after the weekly-input and database-integrity corrections, typecheck, lint, and unit verification.
+Refreshed against the current working tree after the inherited-template copy ordering correction.
 
-### Resource activation and tenant-scoped storage
+### Admin maintenance entry point and transaction boundary
 
-The manifest activates only the nav-less resource foundation. The migration stores profiles, normalized time inputs, and calendar reductions with same-tenant relationships and forced RLS; scheduling stays pending.
+The protected admin-user detail form validates its complete payload before entering one request-bound envelope command. The database RPC persists the profile, copied/default or explicit schedule, exceptions, optional calendar input, and target-only audit events in its transaction.
 
-- `src/scope/manifest.ts:249` — `id: "resources"`: activates E14 with no navigation surface.
-- `supabase/migrations/20260929120000_resource_person_profiles_and_work_hours.sql:6` — `create table public.person_profiles`: enforces the one-profile-per-membership root record.
-- `supabase/migrations/20260929120000_resource_person_profiles_and_work_hours.sql:57` — `force row level security`: applies the storage isolation boundary.
-- `supabase/migrations/20260929120000_resource_person_profiles_and_work_hours.sql:77` — `validate_person_work_hour`: protects direct entitled table writes from overlapping shifts and invalid breaks.
-- `supabase/migrations/20260929120000_resource_person_profiles_and_work_hours.sql:117` — `save_person_schedule_with_audit`: validates the JSON schedule before deleting and replacing template rows.
+- `src/components/resources/PersonSchedulePanel.tsx:7` — `PersonSchedulePanel`: exposes the seven-day, exception, calendar, inactive-state, and retry controls inside the existing protected admin surface.
+- `src/features/resources/actions.ts:13` — `saveResourceProfileAction`: retains the submitted form on a transient server-action failure and validates hours and capacity input before command execution.
+- `src/server/commands/resources/profile-form.ts:21` — `saveResourceProfileForm`: binds maintenance to the envelope capability and resolved membership ownership.
+- `supabase/migrations/20260929120000_resource_person_profiles_and_work_hours.sql:222` — `save_resource_profile_form_with_audit`: commits the composite write through one checked RPC.
 
-### Capacity inputs and maintenance entry point
+### Resource activation and isolated schedule storage
 
-Actual shift rows and breaks determine availability; employment percentage is validated descriptive input. The admin-user detail panel hosts the initial connected maintenance form.
+The manifest activates only the nav-less resource foundation. The migration keeps person records, normalized weekly/exception inputs, and tenant calendar reductions tenant-scoped; `scheduling` retains its pending, surface-free state. New-profile template copy inserts shifts before breaks because the database row trigger requires a containing shift for each break.
 
-- `src/features/resources/work-hours.ts:11` — `validateWorkHoursInput`: rejects invalid ranges and overlapping same-day shifts.
-- `src/features/resources/capacity-inputs.ts:8` — `SWEDISH_HOLIDAY_RULE_SOURCE`: exposes an injected holiday-rule seam without hard-coded availability rules.
-- `src/server/commands/resources/person-profiles.ts:14` — `createOrUpdatePersonProfile`: resolves the tenant via the envelope and never accepts a tenant id.
-- `src/features/resources/actions.ts:13` — `saveResourceProfileAction`: validates the complete submitted weekly template and calendar reduction before the profile command runs.
-- `src/features/resources/read.ts:11` — `readResourceForMembership`: reads the RLS-visible profile, weekly shift/break rows, active work roles, and tenant calendar reductions for the protected detail route.
-- `src/components/resources/PersonSchedulePanel.tsx:7` — `PersonSchedulePanel`: renders all seven weekly shift and break inputs, persisted calendar input, inactive state, and retry control.
-- `compose.test.yaml:1` — isolated image-based Auth, PostgREST, Storage, and gateway definition uses only default Compose networking, named volumes, and configurable loopback ports.
+- `src/scope/manifest.ts:249` — `id: "resources"`: activates E14 without adding a resource navigation item.
+- `supabase/migrations/20260929120000_resource_person_profiles_and_work_hours.sql:6` — `create table public.person_profiles`: enforces one profile per membership and same-tenant membership/work-role references.
+- `supabase/migrations/20260929120000_resource_person_profiles_and_work_hours.sql:77` — `validate_person_work_hour`: rejects overlapping shifts, invalid breaks, and overlapping exceptions for direct entitled writes.
+- `supabase/migrations/20260929120000_resource_person_profiles_and_work_hours.sql:187` — `Copy shifts before breaks`: makes copied tenant templates satisfy the break-containment trigger deterministically.
+- `src/features/resources/work-hours.ts:11` — `validateWorkHoursInput`: treats employment percentage as descriptive and derives availability only from actual shifts and breaks.
+- `src/features/resources/capacity-inputs.ts:8` — `SWEDISH_HOLIDAY_RULE_SOURCE`: provides the holiday-rule input seam without hardcoded availability rules.
 
-### Evidence and current limits
+### Acceptance evidence and current limits
 
-ACs for resource activation, distinct 80-percent daily templates, invalid shift/break bounds, and invalid capacity inputs are exercised by the named unit tests below.
+The named tests exercise the manifest boundary, preserved 80-percent schedule shape, invalid time windows, and data-driven capacity inputs. Database/RLS and browser paths remain required evidence and are not credited by these pure tests.
 
 - `tests/unit/scope/resources-activation.atdd.test.ts:10` — `activates resources`: proves E14/E15 manifest separation.
 - `tests/unit/features/resources/work-hours.test.ts:7` — `preserves different daily availability`: proves schedule shape is not synthesized from employment percentage.
 - `tests/unit/features/resources/work-hours.test.ts:57` — `rejects overlapping breaks`: proves a break cannot be double-counted inside one actual shift.
 - `tests/unit/features/resources/capacity-inputs.test.ts:7` — `retains data-driven absences`: proves valid exception and calendar input acceptance.
 
-Evidence: `pnpm run typecheck` passed; `pnpm run lint` completed with 0 errors and 13 existing warnings; `pnpm run test:unit` passed 1,929 tests with 1 skipped. `pnpm exec playwright test tests/e2e/resources-person-profile.e2e.spec.ts --list` discovered three scenarios. `node scripts/verify/check-review-order.mjs` passes after this refresh. The browser seam uses `?resourceSaveFailure=once`: the first protected form submission receives a server-action error before persistence, and the rendered retry button submits the actual protected write path. The persistence/reload and retry scenarios are enabled but have not been browser-executed.
-Limits: required migration-reset/H4 enrollment and resource command/RLS negative integration coverage could not be credited. The available local database is a stale user-owned instance without these resource tables; it was not reset or adopted. The isolated Compose definition could not be launched because the subagent lifecycle context was unavailable, so migration application, `SUPABASE_TEST_REQUIRED=1 pnpm run test:int`, and protected-route Playwright execution could not begin. The deactivation scenario remains skipped because it asserts booking and reassignment affordances outside the active resource surface. The server action validates input before profile persistence, but separate successful profile, schedule, and calendar commands are still not one transaction. More materially, the current three-table schema has no tenant-default schedule storage and the panel does not submit individual person exceptions; the required copied inherited template and persisted exception flow remain incomplete.
+Evidence: in this refresh, `pnpm run typecheck` passed; `pnpm run test:unit -- --testNamePattern=resources` ran the unit suite and passed 1,928 tests with 1 skipped; `git diff --check` and `node scripts/verify/check-review-order.mjs` passed. Earlier recorded execution: lint completed with 0 errors and 13 existing warnings, and Playwright discovery found three resource scenarios.
+Limits: required migration-reset/H4 enrollment, resource command/RLS negative coverage, and enabled browser scenarios remain unexecuted. The prior isolated stack reached migration application but stopped at an existing historical storage migration because `storage.buckets` was absent; therefore no Story 14.1 migration, required `SUPABASE_TEST_REQUIRED=1 pnpm run test:int`, or browser execution can be credited. The deactivation browser scenario remains skipped because booking and reassignment behavior is outside this active resource surface.
