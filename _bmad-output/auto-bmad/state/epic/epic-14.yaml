@@ -9,32 +9,33 @@ spec_folder: null
 story_id: null
 branch: epic/14-wave-b1b-resource-and-scheduling-foundation
 status: in-progress
-updated_at: "2026-09-29T08:23:22Z"
+updated_at: "2026-09-29T08:44:20Z"
 started_at: "2026-09-29T08:23:21Z"
 completed_at: null
-active_seconds: 0
-timing_anchor: 1790670202
+active_seconds: 1257
+timing_anchor: 1790671460
 is_first_in_epic: false
 is_last_in_epic: false
 git_mode: remote
 base_branch: main
-selected_phase: tea_epic
-selected_role: tea-delegate
-selected_profile: critical
-selected_model: gpt-5.6-sol
-selected_effort: xhigh
+selected_phase: tea_triage
+selected_role: test-risk-triage
+selected_profile: light
+selected_model: gpt-5.6-luna
+selected_effort: medium
 selected_host: codex
 selected_tier: subagents
 selected_route: subagent
 escalation_reason: null
 routing_ledger:
   - "{\"effort\":\"xhigh\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-sol\",\"phase\":\"tea_epic\",\"profile\":\"critical\",\"role\":\"tea-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"medium\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-luna\",\"phase\":\"tea_triage\",\"profile\":\"light\",\"role\":\"test-risk-triage\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
 tea_risk: null
 tea_selected: []
 tea_rationale: null
 epic_story_count: 4
 stories_after_in_epic: null
-completed_phases: [0, 1]
+completed_phases: [0, 1, 2]
 spec_path: null
 spec_approved: false
 build:
@@ -54,7 +55,7 @@ legacy_review_loop_done: false
 legacy_external_review_iterations: null
 legacy_convergence_unverified: false
 legacy_artifact_path: null
-commits: []
+commits: [21ae8d7]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -77,7 +78,8 @@ pr_merged: false
 merge_method: null
 merge_commit: null
 branch_deleted: false
-open_questions: []
+open_questions:
+  - "Performance assessment: numeric latency targets and representative tenant/person/booking volumes remain to be established; test design claims no executed coverage."
 deferred_work: []
 blockers: []
 overrides:
@@ -91,7 +93,7 @@ constraints:
   - "Epic13 observation and release gates remain separate; no hosted migrations, deployment or flag changes during this implementation workflow."
   - "Preserve populated user-owned local data and existing processes; new persistent test resources require the actor's resource guard context."
 epic_slug: wave-b1b-resource-and-scheduling-foundation
-active_story: null
+active_story: 14-1-scheduling-activation-person-profiles-and-work-hours
 stories_landed: []
 stories_skipped: []
 batch_flip_done: false
