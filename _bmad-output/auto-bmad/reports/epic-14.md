@@ -109,3 +109,42 @@ No harvest or archive ran.
 2. AGENTS.md requires guarded managed starts and prohibits lifecycle administrative repairs from this agent session. Restore the supported guarded startup path before resuming.
 
 **Next:** After the guard worker is restored, set the blocked spec status to in-progress and run /auto-bmad epic --epic 14 (Continue can delegate that status preparation). Review preserved branch: /bmad-checkpoint-preview epic/14-wave-b1b-resource-and-scheduling-foundation. Project context refresh remains recommended after epic completion.
+
+## Report — 2026-09-29T11:25:27Z (halted — needs-human)
+
+**Epic:** `14` — 4 stories.
+**Branch:** `epic/14-wave-b1b-resource-and-scheduling-foundation` (HEAD `c7f43ea`).
+**Pipeline status:** Halted in E5 / Story 14.1 Phase 5: isolated test stack startup failed; implementation, required tests and reviews did not resume.
+**Continues:** 2026-09-29T10:58:57Z (halted — needs-human)
+
+**Summary:** This continuation passed resume preflight and reused the configured Terra/high build route. One fresh guard-managed readiness attempt was admitted, then reported terminal worker-failed / RETAINED_START_INCOMPLETE without a Docker project, service or exit code. No build-auto invocation, implementation, migration, test or review ran. Checkpoint c7f43ea preserves the original baseline and partial work; Phase 5 remains incomplete.
+
+**Timing:** started 2026-09-29T08:23:21Z; completed in progress — elapsed 3h 02m (≈2h 16m AI-run, ≈45m human/idle wait); resumed 3×.
+
+**Stories:**
+1. 14.1: blocked at Phase 5; no story landed, zero completed review rounds, zero deferred frontmatter items. Current continuation executed/passed/skipped unit, integration, RLS and browser tests: all zero.
+2. 14.2–14.4: not started; sequential epic progression remains blocked by 14.1.
+
+**Skipped:** (none)
+
+**Epic gate:** Not reached; trace, NFR and test-review gates remain pending.
+
+**TEA:** No TEA phase ran this continuation. Prior ATDD scaffolds and test-design artifacts remain planning evidence; required database and browser verification is unexecuted.
+
+**Retrospective:** Not reached.
+
+**Overrides:** Owner requested Continue; full unattended Epic 14 authorization retained. Used one bounded fresh readiness attempt with an early terminal failure, no administrative infrastructure repair. Real email, provisioning and hosted rollout gates remain unchanged.
+
+**Open questions:**
+1. Performance assessment still requires numerical latency targets and representative tenant/person/booking volumes.
+2. Prior ATDD command-contract and retry-failure seams remain unverified until scenarios can execute.
+
+**Deferred work:**
+No deferred harvest, reconciliation or archive ran.
+
+**⚠️ Needs human:**
+1. current guarded Compose readiness attempt was admitted (`nativeExitCode=0`, `ok=true`, `state=starting`, `verified=false`) for lifecycle resource `f730be1c-5836-43c0-8c53-1271984f4537`. Its bounded List result is terminal `start_uncertain`: `composeOperation.phase=uncertain`, `backendFailureCategory=worker-failed`, and `errorCode=RETAINED_START_INCOMPLETE`; `guardProject`, Compose exit code, and failing service are null, and `outcomeVerified=false`. The isolated test stack has no demonstrated service or schema readiness.
+2. The guard startup worker requires diagnosis and repair outside this agent workflow. Project instructions prohibit guard administrative recovery/activation commands; auto-bmad requires stopping when its required environment is blocked.
+3. Owned lifecycle Stop was accepted (ok=true, stop_requested, verified=false). This acknowledges the stop request; it does not establish shutdown.
+
+**Next:** Fix the guard startup cause using the spec Auto Run Result as evidence. After readiness is restored, prepare spec frontmatter status in-progress to resume implementation (or in-review only when implementation and verification are complete), then run /auto-bmad epic --epic 14. Human review: /bmad-checkpoint-preview epic/14-wave-b1b-resource-and-scheduling-foundation. Project context: /bmad-project-context refresh is recommended after epic completion.

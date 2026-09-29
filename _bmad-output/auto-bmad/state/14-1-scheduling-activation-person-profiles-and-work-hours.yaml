@@ -9,10 +9,10 @@ spec_folder: null
 story_id: null
 branch: epic/14-wave-b1b-resource-and-scheduling-foundation
 status: in-progress
-updated_at: "2026-09-29T11:25:03Z"
+updated_at: "2026-09-29T14:40:33Z"
 started_at: "2026-09-29T08:45:54Z"
 completed_at: null
-active_seconds: 6863
+active_seconds: 6940
 timing_anchor: null
 is_first_in_epic: true
 is_last_in_epic: false
@@ -41,7 +41,7 @@ spec_path: "C:\\Users\\Rasmus\\.codex\\worktrees\\epic14-scheduling\\ElproSaas\\
 spec_approved: true
 build:
   status: blocked
-  blocking_condition: "current guarded Compose readiness attempt was admitted (`nativeExitCode=0`, `ok=true`, `state=starting`, `verified=false`) for lifecycle resource `f730be1c-5836-43c0-8c53-1271984f4537`. Its bounded List result is terminal `start_uncertain`: `composeOperation.phase=uncertain`, `backendFailureCategory=worker-failed`, and `errorCode=RETAINED_START_INCOMPLETE`; `guardProject`, Compose exit code, and failing service are null, and `outcomeVerified=false`. The isolated test stack has no demonstrated service or schema readiness."
+  blocking_condition: "fresh root-owned guarded Compose admission for lifecycle resource `6dcd6e61-0fd5-4027-a67f-96355d2634ae` was accepted at `2026-09-29T14:31:38.7811353Z`, then reached terminal `start_uncertain` at `2026-09-29T14:31:39.6309505Z`. Its `composeOperation.phase=uncertain`, `dispatchCommitted=true`, `backendFailureCategory=worker-failed`, `operationProgress=worker-failed`, and `errorCode=RETAINED_START_INCOMPLETE`; `guardProject`, Compose exit code, and failing service are null, and `outcomeVerified=false`. The root-owned Stop request was accepted once (`nativeExitCode=0`, `ok=true`, `state=stop_requested`, `verified=false`) without shutdown polling. The isolated test stack has no demonstrated service or schema readiness. See `docs/process/epic-14-guard-startup-diagnosis-2026-09-29.md`."
   followup_review_recommended: false
   review_loop_iteration: 0
   deferred_count: 0
@@ -56,7 +56,7 @@ legacy_review_loop_done: false
 legacy_external_review_iterations: null
 legacy_convergence_unverified: false
 legacy_artifact_path: null
-commits: [b821e42, 2fdca50, 93dbf84, 4f4bfc4, e33efc3, 04f9799, b642076, 9eba0ea, 37904b9]
+commits: [b821e42, 2fdca50, 93dbf84, 4f4bfc4, e33efc3, 04f9799, b642076, 9eba0ea, 37904b9, c7f43ea]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -83,7 +83,7 @@ open_questions:
   - "ATDD implementation handoff: reconcile command exports/input-result contracts and server-observable retry-failure seam before activating skipped scenarios; 14 scaffolds currently claim no acceptance evidence."
 deferred_work: []
 blockers:
-  - "current guarded Compose readiness attempt was admitted (`nativeExitCode=0`, `ok=true`, `state=starting`, `verified=false`) for lifecycle resource `f730be1c-5836-43c0-8c53-1271984f4537`. Its bounded List result is terminal `start_uncertain`: `composeOperation.phase=uncertain`, `backendFailureCategory=worker-failed`, and `errorCode=RETAINED_START_INCOMPLETE`; `guardProject`, Compose exit code, and failing service are null, and `outcomeVerified=false`. The isolated test stack has no demonstrated service or schema readiness."
+  - "fresh root-owned guarded Compose admission for lifecycle resource `6dcd6e61-0fd5-4027-a67f-96355d2634ae` was accepted at `2026-09-29T14:31:38.7811353Z`, then reached terminal `start_uncertain` at `2026-09-29T14:31:39.6309505Z`. Its `composeOperation.phase=uncertain`, `dispatchCommitted=true`, `backendFailureCategory=worker-failed`, `operationProgress=worker-failed`, and `errorCode=RETAINED_START_INCOMPLETE`; `guardProject`, Compose exit code, and failing service are null, and `outcomeVerified=false`. The root-owned Stop request was accepted once (`nativeExitCode=0`, `ok=true`, `state=stop_requested`, `verified=false`) without shutdown polling. The isolated test stack has no demonstrated service or schema readiness. See `docs/process/epic-14-guard-startup-diagnosis-2026-09-29.md`."
 overrides:
   epic_start_authorized_by_owner: true
   unattended_run_confirmed_by_owner_request: true
@@ -96,6 +96,13 @@ overrides:
   bounded_bootstrap_repair_before_same_phase_retry: true
   bounded_readiness_observation_before_retry: true
   readiness_observation_budget_seconds: 600
+  root_compose_validation_passed: true
+  root_guard_resource_id: 6dcd6e61-0fd5-4027-a67f-96355d2634ae
+  local_guard_diagnostic_status: completed_no_supported_repair
+  owner_authorized_guard_repair_and_failure_diagnosis: true
+  root_guard_start_reproduced_failure: true
+  root_guard_stop_requested: true
+  isolated_service_and_schema_readiness_verified: false
 constraints:
   - "Phase B manifest-governed approved Story 14.1 only; resources activation belongs here and broader scheduling module remains pending for Epic 15."
   - "Preserve existing local data and user-owned processes; new persistent resources require this actor's trusted guard context."
