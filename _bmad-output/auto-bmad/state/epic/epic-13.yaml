@@ -9,10 +9,10 @@ spec_folder: null
 story_id: null
 branch: epic/13-wave-b1a-notifications-and-email-infrastructure
 status: done
-updated_at: "2026-09-29T11:07:42Z"
+updated_at: "2026-09-29T13:06:06Z"
 started_at: "2026-09-23T10:29:03Z"
 completed_at: "2026-09-24T18:57:24Z"
-active_seconds: 44350
+active_seconds: 44527
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -83,7 +83,7 @@ legacy_review_loop_done: false
 legacy_external_review_iterations: null
 legacy_convergence_unverified: false
 legacy_artifact_path: null
-commits: [cdbb68a, e996cde, 9650f72, 391624b, 211bf68, 24d0d19, e11d24a, 61f2394, 4024cbe, b75b155, 83da25f, 73407ac, b06c3ca, 2664d7b, 8a1eb8c, 2f374f9, f226415, 46d9b67, d770780, 0c28b14, c1020e9, b374437, 822a67d, 762c547, 71fa10a, 6d81c2a, b8b0241, a2d2d9a, ed43933, 54181ab, 5bd0dae, e65b985, 8ee25ef, a6c4825, 2a7444f, 783701a, b299024, 04d709b, 00ac840, 8b20933, 79e5550, cf73891, 5a529b4, bc54b11, 88eadaf, ccd780d, 68b55c0, 0a7afbe, 8780bc9, fc4f167, 20749ea, ffa2b41, 5c0e281]
+commits: [cdbb68a, e996cde, 9650f72, 391624b, 211bf68, 24d0d19, e11d24a, 61f2394, 4024cbe, b75b155, 83da25f, 73407ac, b06c3ca, 2664d7b, 8a1eb8c, 2f374f9, f226415, 46d9b67, d770780, 0c28b14, c1020e9, b374437, 822a67d, 762c547, 71fa10a, 6d81c2a, b8b0241, a2d2d9a, ed43933, 54181ab, 5bd0dae, e65b985, 8ee25ef, a6c4825, 2a7444f, 783701a, b299024, 04d709b, 00ac840, 8b20933, 79e5550, cf73891, 5a529b4, bc54b11, 88eadaf, ccd780d, 68b55c0, 0a7afbe, 8780bc9, fc4f167, 20749ea, ffa2b41, 5c0e281, 7e1d820]
 phase8_steps:
   trace_gate: done
   nfr: done
@@ -108,6 +108,7 @@ merge_commit: 78019af39d80627a14e11802ac5dafacd37ac9b5
 branch_deleted: false
 open_questions:
   - "Pilot company workspace, sender identity, initial recipients, operations owner and measured batch size remain pending."
+  - "Hosted observation: the 2026-09-29T12:50Z producer cursor lookup failure needs diagnostic review within one business day; later scheduled success was observed, but its underlying cause is unestablished."
 deferred_work:
   - "Complete at least 24h closed hosted observation from 2026-09-29T08:15:21.049Z and seven-day operating review due no earlier than 2026-10-06T08:15:21.049Z. Three hourly execution windows observed at 09:00, 10:00 and 11:00 UTC Sep29; 24h stability, due-notification freshness, loaded tenant continuation, full invocation duration and Stockholm calendar proof remain unverified."
   - "Real-recipient delivery stays disabled pending separate ADR-B011 approval, provider idempotency and real rendered unsubscribe URLs."
@@ -154,18 +155,25 @@ overrides:
   healthy_completed_run_count: 3
   healthy_paired_audit_count: 3
   healthy_unpaired_audit_count: 0
-  hosted_observation_last_checkpoint_utc: "2026-09-29T11:03:12.065668Z"
-  hosted_observation_completed_run_count: 108
-  hosted_observation_runner_completions: 34
-  hosted_observation_latest_success_utc: "2026-09-29T11:00:20.940Z"
-  hosted_observation_max_completion_gap_seconds: 302.245
+  hosted_observation_last_checkpoint_utc: "2026-09-29T13:01:21.629163Z"
+  hosted_observation_completed_run_count: 182
+  hosted_observation_runner_completions: 57
+  hosted_observation_latest_success_utc: "2026-09-29T13:00:29.103Z"
+  hosted_observation_max_completion_gap_seconds: 599.186
   hosted_observation_unpaired_run_count: 0
   hosted_observation_hourly_execution_observed_utc: "2026-09-29T09:00:18.982Z"
   hosted_observation_full_invocation_duration_verified: false
   hosted_observation_duplicate_audit_count: 0
-  hosted_observation_hourly_windows_observed: 3
-  hosted_observation_hourly_run_count: 6
+  hosted_observation_hourly_windows_observed: 5
+  hosted_observation_hourly_run_count: 10
   hosted_observation_off_hour_reminder_count: 0
+  hosted_observation_later_success_observed_utc: "2026-09-29T12:55:20.860Z"
+  hosted_observation_failure_category: Producer cursor lookup failed
+  hosted_observation_failure_diagnostic_review_status: pending
+  hosted_observation_failed_run_count: 2
+  hosted_observation_error_summary_count: 1
+  hosted_observation_total_run_count: 184
+  hosted_observation_failure_window_utc: "2026-09-29T12:50:17.589Z"
 constraints: []
 epic_slug: wave-b1a-notifications-and-email-infrastructure
 active_story: null
