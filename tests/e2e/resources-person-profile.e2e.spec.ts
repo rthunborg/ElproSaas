@@ -39,12 +39,15 @@ test("[P0] admin persists a same-tenant role and schedule inputs in the existing
   await page.getByTestId("resource-break-1-end").fill("12:30");
   await page.getByTestId("resource-exception-date").fill("2026-10-15");
   await page.getByTestId("resource-calendar-day-reduction").fill("50");
+  await page.getByTestId("resource-person-exception-date").fill("2026-10-16");
+  await page.getByLabel("Personligt undantag").selectOption("blocked_time");
   await page.getByTestId("resource-save").click();
 
   await expect(page.getByTestId("resource-save-status")).toHaveText(/sparats/i);
   await page.reload();
   await expect(page.getByTestId("resource-weekday-1-start")).toHaveValue("07:00");
   await expect(page.getByTestId("resource-calendar-day-reduction")).toHaveValue("50");
+  await expect(page.getByTestId("resource-person-exception-date")).toHaveValue("2026-10-16");
 });
 
 test.skip("[P1] admin sees a deactivated profile as Inaktiverad without booking or reassignment affordances", async ({ page }) => {

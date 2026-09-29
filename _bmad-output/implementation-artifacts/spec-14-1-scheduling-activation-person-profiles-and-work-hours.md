@@ -2,7 +2,7 @@
 title: 'Story 14.1: Resource Activation — Person Profiles and Work Hours'
 type: 'feature'
 created: '2026-09-29'
-status: 'in-progress'
+status: 'blocked'
 baseline_revision: '93dbf8432d420ecf6fcd29e732be7ca136801534'
 review_loop_iteration: 0
 followup_review_recommended: false
@@ -89,6 +89,18 @@ deferred: []
 
 Status: blocked
 
+Blocking condition: isolated Compose test stack cannot apply historical migration chain: storage schema absent (`storage.buckets` does not exist).
+
+Implementation result: The resumed run consolidated the admin form into one database RPC so profile, copied tenant-template rows, schedule replacement, exceptions, optional calendar input, and their audit entries share one transaction. It added tenant default templates as `person_work_hours` rows with no profile, persisted individual exceptions, expanded the form to seven weekdays, and corrected the profile update path so an existing membership does not attempt a duplicate insert.
+
+Verification: `pnpm run typecheck` passed. `pnpm run lint` passed with 0 errors and 13 existing warnings. `pnpm run test:unit` passed 1,928 tests with 1 skipped. The isolated stack was admitted and reached active state, but `supabase db push` stopped at the historical file-storage migration with `relation "storage.buckets" does not exist`; no Story 14.1 migration, integration suite, or browser scenario ran. The owned resource received a Stop request without shutdown polling.
+
+Limits: `SUPABASE_TEST_REQUIRED=1 pnpm run test:int` and browser execution remain unrun. Resource command/RLS scaffolds remain skipped and cannot satisfy the required evidence. `followup_review_recommended` remains false because the workflow stopped before review.
+
+## Historical Run Evidence
+
+Status: blocked
+
 Planning result: Resolved the activation correction from the manifest and current Epic 14 test-design authority: Story 14.1 activates `resources` with `person_profiles`, `person_work_hours`, and `tenant_calendar_days`; `scheduling` remains pending for Epic 15. The plan confines the maintenance surface to existing admin-user details and defers bookings, conflicts, views, recurrence, time reports, notifications, and public feeds.
 
 Blocking condition: HOOK_CONTEXT_UNAVAILABLE / The explicit subagent lifecycle context is not registered.
@@ -97,10 +109,22 @@ Implementation result: Activated the nav-less `resources` module; added the reso
 
 Verification: `pnpm run typecheck` passed. `pnpm run lint` passed with 0 errors and 13 existing warnings. `pnpm run test:unit` passed 1,927 tests with 1 unrelated skipped test. `pnpm exec playwright test tests/e2e/resources-person-profile.e2e.spec.ts --list` discovered 3 scenarios; the persistence/reload and retry scenarios are enabled, while the deactivation booking/reassignment scaffold remains skipped because that is outside the active resource surface. `docker compose --env-file .env.test -f compose.test.yaml config --quiet` passed. Required `SUPABASE_TEST_REQUIRED=1 pnpm run test:int` and browser execution did not receive clean-stack evidence: the stale user-owned local database lacks the migration and was not reset, while guarded ComposeUp was rejected before resource creation. No containers, lifecycle resource IDs, migrations, integration runs, browser runs, or Stop operations occurred on the proposed isolated stack.
 
+### Resumed run — 2026-09-29
+
+Status: blocked
+
+Blocking condition: isolated Compose test stack cannot apply historical migration chain: storage schema absent (`storage.buckets` does not exist).
+
+Implementation result: The resumed run consolidated the admin form into one database RPC so profile, copied tenant-template rows, schedule replacement, exceptions, optional calendar input, and their audit entries share one transaction. It added tenant default templates as `person_work_hours` rows with no profile, persisted individual exceptions, expanded the form to seven weekdays, and corrected the profile update path so an existing membership does not attempt a duplicate insert. The isolated stack was admitted and reached active state, but the historical migration chain stopped at the pre-existing file-storage migration because the Compose database lacks the required `storage` schema. The owned resource received a Stop request; no shutdown polling was used.
+
+Verification: `pnpm run typecheck` passed. `pnpm run lint` passed with 0 errors and 13 existing warnings. `pnpm run test:unit` passed 1,928 tests with 1 skipped. `SUPABASE_TEST_REQUIRED=1 pnpm run test:int` and enabled browser execution were not run because the isolated empty database could not complete migrations. The direct `supabase db push` attempt reached the historical file-storage migration and failed with `relation "storage.buckets" does not exist`; no Story 14.1 migration, integration suite, or browser scenario ran on that database.
+
+Limits: Resource command/RLS test scaffolds remain skipped, so they cannot satisfy the required evidence. The resume loop stopped before review because required integration and browser verification is unavailable.
+
 ## Suggested Review Order
 
 Author: implementation author.
-Refreshed against the current working tree after the browser retry implementation, typecheck, lint, and unit verification.
+Refreshed against the current working tree after the weekly-input and database-integrity corrections, typecheck, lint, and unit verification.
 
 ### Resource activation and tenant-scoped storage
 
@@ -108,8 +132,9 @@ The manifest activates only the nav-less resource foundation. The migration stor
 
 - `src/scope/manifest.ts:249` — `id: "resources"`: activates E14 with no navigation surface.
 - `supabase/migrations/20260929120000_resource_person_profiles_and_work_hours.sql:6` — `create table public.person_profiles`: enforces the one-profile-per-membership root record.
-- `supabase/migrations/20260929120000_resource_person_profiles_and_work_hours.sql:55` — `force row level security`: applies the storage isolation boundary.
-- `supabase/migrations/20260929120000_resource_person_profiles_and_work_hours.sql:73` — `save_person_schedule_with_audit`: locks the profile and replaces the multi-row weekly schedule inside one database function.
+- `supabase/migrations/20260929120000_resource_person_profiles_and_work_hours.sql:57` — `force row level security`: applies the storage isolation boundary.
+- `supabase/migrations/20260929120000_resource_person_profiles_and_work_hours.sql:77` — `validate_person_work_hour`: protects direct entitled table writes from overlapping shifts and invalid breaks.
+- `supabase/migrations/20260929120000_resource_person_profiles_and_work_hours.sql:117` — `save_person_schedule_with_audit`: validates the JSON schedule before deleting and replacing template rows.
 
 ### Capacity inputs and maintenance entry point
 
@@ -118,9 +143,9 @@ Actual shift rows and breaks determine availability; employment percentage is va
 - `src/features/resources/work-hours.ts:11` — `validateWorkHoursInput`: rejects invalid ranges and overlapping same-day shifts.
 - `src/features/resources/capacity-inputs.ts:8` — `SWEDISH_HOLIDAY_RULE_SOURCE`: exposes an injected holiday-rule seam without hard-coded availability rules.
 - `src/server/commands/resources/person-profiles.ts:14` — `createOrUpdatePersonProfile`: resolves the tenant via the envelope and never accepts a tenant id.
-- `src/features/resources/actions.ts:10` — `saveResourceProfileAction`: makes the initial, server-observable failure explicit before writes and accepts only the retry submission for the persistence path.
-- `src/features/resources/read.ts:9` — `readResourceForMembership`: reads the RLS-visible profile, weekly shift/break rows, active work roles, and tenant calendar reductions for the protected detail route.
-- `src/components/resources/PersonSchedulePanel.tsx:6` — `PersonSchedulePanel`: renders persisted Monday shift/break and reduced-calendar inputs, marks a disabled membership inactive, and exposes the real retry submit control after the server action fails.
+- `src/features/resources/actions.ts:13` — `saveResourceProfileAction`: validates the complete submitted weekly template and calendar reduction before the profile command runs.
+- `src/features/resources/read.ts:11` — `readResourceForMembership`: reads the RLS-visible profile, weekly shift/break rows, active work roles, and tenant calendar reductions for the protected detail route.
+- `src/components/resources/PersonSchedulePanel.tsx:7` — `PersonSchedulePanel`: renders all seven weekly shift and break inputs, persisted calendar input, inactive state, and retry control.
 - `compose.test.yaml:1` — isolated image-based Auth, PostgREST, Storage, and gateway definition uses only default Compose networking, named volumes, and configurable loopback ports.
 
 ### Evidence and current limits
@@ -129,7 +154,8 @@ ACs for resource activation, distinct 80-percent daily templates, invalid shift/
 
 - `tests/unit/scope/resources-activation.atdd.test.ts:10` — `activates resources`: proves E14/E15 manifest separation.
 - `tests/unit/features/resources/work-hours.test.ts:7` — `preserves different daily availability`: proves schedule shape is not synthesized from employment percentage.
+- `tests/unit/features/resources/work-hours.test.ts:57` — `rejects overlapping breaks`: proves a break cannot be double-counted inside one actual shift.
 - `tests/unit/features/resources/capacity-inputs.test.ts:7` — `retains data-driven absences`: proves valid exception and calendar input acceptance.
 
-Evidence: `pnpm run typecheck` passed; `pnpm run lint` completed with 0 errors and 13 pre-existing warnings; `pnpm run test:unit` passed 1,927 tests with 1 skipped. `docker compose --env-file .env.test -f compose.test.yaml config --quiet` passed. The browser seam uses `?resourceSaveFailure=once`: the first protected form submission receives a server-action error before persistence, and the rendered retry button submits the actual protected write path. `tests/e2e/resources-person-profile.e2e.spec.ts:30` now covers protected-route persistence and server-side hydration after reload; `tests/e2e/resources-person-profile.e2e.spec.ts:60` covers retry. Both are enabled but have not been browser-executed.
-Limits: required migration-reset/H4 enrollment and resource command/RLS negative integration coverage could not be credited. The available local database is a stale user-owned instance without these resource tables; it was not reset or adopted. The isolated Compose definition could not be launched: guarded `ComposeUp` returned `HOOK_CONTEXT_UNAVAILABLE` with `The explicit subagent lifecycle context is not registered.` No lifecycle resource or containers were created, so migration application, `SUPABASE_TEST_REQUIRED=1 pnpm run test:int`, and protected-route Playwright execution could not begin. The deactivation scaffold remains skipped because it asserts booking and reassignment affordances outside the active resource surface. The server action composes profile, schedule, and optional calendar writes, while the schedule rows themselves are atomically replaced by the database function; cross-domain form submission is therefore not one all-or-nothing transaction.
+Evidence: `pnpm run typecheck` passed; `pnpm run lint` completed with 0 errors and 13 existing warnings; `pnpm run test:unit` passed 1,929 tests with 1 skipped. `pnpm exec playwright test tests/e2e/resources-person-profile.e2e.spec.ts --list` discovered three scenarios. `node scripts/verify/check-review-order.mjs` passes after this refresh. The browser seam uses `?resourceSaveFailure=once`: the first protected form submission receives a server-action error before persistence, and the rendered retry button submits the actual protected write path. The persistence/reload and retry scenarios are enabled but have not been browser-executed.
+Limits: required migration-reset/H4 enrollment and resource command/RLS negative integration coverage could not be credited. The available local database is a stale user-owned instance without these resource tables; it was not reset or adopted. The isolated Compose definition could not be launched because the subagent lifecycle context was unavailable, so migration application, `SUPABASE_TEST_REQUIRED=1 pnpm run test:int`, and protected-route Playwright execution could not begin. The deactivation scenario remains skipped because it asserts booking and reassignment affordances outside the active resource surface. The server action validates input before profile persistence, but separate successful profile, schedule, and calendar commands are still not one transaction. More materially, the current three-table schema has no tenant-default schedule storage and the panel does not submit individual person exceptions; the required copied inherited template and persisted exception flow remain incomplete.

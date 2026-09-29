@@ -20,7 +20,7 @@ create table public.person_profiles (
 create table public.person_work_hours (
   id uuid primary key default gen_random_uuid(),
   tenant_id uuid not null references public.tenants(id) on delete cascade,
-  person_profile_id uuid not null,
+  person_profile_id uuid,
   entry_kind text not null check (entry_kind in ('weekly_shift','weekly_break','exception')),
   weekday smallint check (weekday between 1 and 7),
   local_date date,
@@ -31,10 +31,12 @@ create table public.person_work_hours (
   updated_at timestamptz not null default statement_timestamp(),
   unique (id, tenant_id),
   foreign key (person_profile_id, tenant_id) references public.person_profiles(id, tenant_id) on delete restrict,
-  check (starts_at is null or ends_at is null or starts_at < ends_at),
-  check ((entry_kind = 'weekly_shift' and weekday is not null and local_date is null and exception_kind is null)
-      or (entry_kind = 'weekly_break' and weekday is not null and local_date is null and exception_kind is null)
+  check ((starts_at is null and ends_at is null) or (starts_at is not null and ends_at is not null and starts_at < ends_at)),
+  check (
+    (person_profile_id is null and entry_kind in ('weekly_shift', 'weekly_break') and weekday is not null and local_date is null and exception_kind is null)
+    or (person_profile_id is not null and ((entry_kind in ('weekly_shift', 'weekly_break') and weekday is not null and local_date is null and exception_kind is null)
       or (entry_kind = 'exception' and weekday is null and local_date is not null and exception_kind is not null))
+  )
 );
 
 create table public.tenant_calendar_days (
@@ -69,12 +71,54 @@ create policy tenant_calendar_days_resource_read on public.tenant_calendar_days 
 create policy tenant_calendar_days_resource_insert on public.tenant_calendar_days for insert to authenticated with check (public.has_tenant_role(tenant_id, array['tenant_admin','projektledare']));
 create policy tenant_calendar_days_resource_update on public.tenant_calendar_days for update to authenticated using (public.has_tenant_role(tenant_id, array['tenant_admin','projektledare'])) with check (public.has_tenant_role(tenant_id, array['tenant_admin','projektledare']));
 
+-- Direct table writes remain RLS-gated for entitled maintainers, so integrity has
+-- to live in the database as well as the command validator. A break must be
+-- contained by one shift and neither shifts nor breaks may overlap on a weekday.
+create or replace function public.validate_person_work_hour() returns trigger
+language plpgsql set search_path = '' as $$
+begin
+  if new.entry_kind = 'weekly_shift' and exists (
+    select 1 from public.person_work_hours existing
+    where existing.id <> new.id and existing.tenant_id = new.tenant_id
+      and existing.person_profile_id is not distinct from new.person_profile_id
+      and existing.entry_kind = 'weekly_shift' and existing.weekday = new.weekday
+      and existing.starts_at < new.ends_at and new.starts_at < existing.ends_at
+  ) then raise exception 'overlapping weekly shifts' using errcode = '23514'; end if;
+  if new.entry_kind = 'weekly_break' and (
+    not exists (
+      select 1 from public.person_work_hours shift
+      where shift.tenant_id = new.tenant_id and shift.person_profile_id is not distinct from new.person_profile_id
+        and shift.entry_kind = 'weekly_shift' and shift.weekday = new.weekday
+        and shift.starts_at <= new.starts_at and shift.ends_at >= new.ends_at
+    ) or exists (
+      select 1 from public.person_work_hours existing
+      where existing.id <> new.id and existing.tenant_id = new.tenant_id
+        and existing.person_profile_id is not distinct from new.person_profile_id
+        and existing.entry_kind = 'weekly_break' and existing.weekday = new.weekday
+        and existing.starts_at < new.ends_at and new.starts_at < existing.ends_at
+    )
+  ) then raise exception 'invalid weekly break' using errcode = '23514'; end if;
+  if new.entry_kind = 'exception' and exists (
+    select 1 from public.person_work_hours existing
+    where existing.id <> new.id and existing.tenant_id = new.tenant_id
+      and existing.person_profile_id = new.person_profile_id and existing.entry_kind = 'exception'
+      and existing.local_date = new.local_date and (
+        existing.starts_at is null or new.starts_at is null
+        or (existing.starts_at < new.ends_at and new.starts_at < existing.ends_at)
+      )
+  ) then raise exception 'overlapping exceptions' using errcode = '23514'; end if;
+  return new;
+end $$;
+create trigger person_work_hours_validate
+  before insert or update on public.person_work_hours
+  for each row execute function public.validate_person_work_hour();
+
 -- The schedule replacement and its audit record commit in one checked transaction.
 create or replace function public.save_person_schedule_with_audit(
   p_tenant_id uuid, p_actor_user_id uuid, p_correlation_id uuid,
   p_person_profile_id uuid, p_schedule jsonb
 ) returns uuid language plpgsql security definer set search_path = '' as $$
-declare v_profile public.person_profiles; v_shift jsonb; v_break jsonb; v_first_id uuid;
+declare v_profile public.person_profiles; v_shift jsonb; v_break jsonb; v_other jsonb; v_first_id uuid;
 begin
   if auth.uid() is null or auth.uid() <> p_actor_user_id or not public.has_tenant_role(p_tenant_id, array['tenant_admin','projektledare']) then
     raise exception 'resource schedule denied' using errcode = '42501';
@@ -82,6 +126,32 @@ begin
   select * into v_profile from public.person_profiles where id = p_person_profile_id and tenant_id = p_tenant_id for update;
   if not found then raise exception 'resource schedule denied' using errcode = '42501'; end if;
   if jsonb_typeof(p_schedule) <> 'array' then raise exception 'resource schedule invalid' using errcode = '23514'; end if;
+  for v_shift in select value from jsonb_array_elements(p_schedule) loop
+    if jsonb_typeof(v_shift) <> 'object'
+      or (v_shift->>'weekday') !~ '^[1-7]$'
+      or (v_shift->>'start') !~ '^([01][0-9]|2[0-3]):[0-5][0-9]$'
+      or (v_shift->>'end') !~ '^([01][0-9]|2[0-3]):[0-5][0-9]$'
+      or (v_shift->>'start')::time >= (v_shift->>'end')::time
+      or jsonb_typeof(coalesce(v_shift->'breaks', '[]'::jsonb)) <> 'array'
+    then raise exception 'resource schedule invalid' using errcode = '23514'; end if;
+    for v_break in select value from jsonb_array_elements(coalesce(v_shift->'breaks', '[]'::jsonb)) loop
+      if jsonb_typeof(v_break) <> 'object'
+        or (v_break->>'start') !~ '^([01][0-9]|2[0-3]):[0-5][0-9]$'
+        or (v_break->>'end') !~ '^([01][0-9]|2[0-3]):[0-5][0-9]$'
+        or (v_break->>'start')::time >= (v_break->>'end')::time
+        or (v_break->>'start')::time < (v_shift->>'start')::time
+        or (v_break->>'end')::time > (v_shift->>'end')::time
+      then raise exception 'resource schedule invalid' using errcode = '23514'; end if;
+    end loop;
+    for v_other in select value from jsonb_array_elements(p_schedule) loop
+      if v_other <> v_shift and (v_other->>'weekday') = (v_shift->>'weekday')
+        and (v_other->>'start') ~ '^([01][0-9]|2[0-3]):[0-5][0-9]$'
+        and (v_other->>'end') ~ '^([01][0-9]|2[0-3]):[0-5][0-9]$'
+        and (v_other->>'start')::time < (v_shift->>'end')::time
+        and (v_shift->>'start')::time < (v_other->>'end')::time
+      then raise exception 'overlapping weekly shifts' using errcode = '23514'; end if;
+    end loop;
+  end loop;
   delete from public.person_work_hours where person_profile_id = p_person_profile_id and tenant_id = p_tenant_id and entry_kind in ('weekly_shift','weekly_break');
   for v_shift in select value from jsonb_array_elements(p_schedule) loop
     insert into public.person_work_hours(tenant_id, person_profile_id, entry_kind, weekday, starts_at, ends_at)
@@ -101,18 +171,26 @@ grant execute on function public.save_person_schedule_with_audit(uuid,uuid,uuid,
 
 create or replace function public.upsert_person_profile_with_audit(p_tenant_id uuid,p_actor_user_id uuid,p_correlation_id uuid,p_membership_id uuid,p_work_role_id uuid,p_employment_percentage smallint)
 returns uuid language plpgsql security definer set search_path = '' as $$
-declare v_profile public.person_profiles; v_member public.tenant_memberships; v_id uuid;
+declare v_profile public.person_profiles; v_member public.tenant_memberships; v_id uuid; v_is_new boolean;
 begin
  if auth.uid() is null or auth.uid() <> p_actor_user_id or not public.has_tenant_role(p_tenant_id,array['tenant_admin','projektledare']) then raise exception 'resource profile denied' using errcode='42501'; end if;
  select * into v_member from public.tenant_memberships where id=p_membership_id and tenant_id=p_tenant_id;
  if not found then raise exception 'resource profile denied' using errcode='42501'; end if;
  select * into v_profile from public.person_profiles where membership_id=p_membership_id and tenant_id=p_tenant_id for update;
+ v_is_new := not found;
  if not found and v_member.status <> 'active' then raise exception 'resource profile denied' using errcode='42501'; end if;
  if p_work_role_id is not null and not exists(select 1 from public.work_roles where id=p_work_role_id and tenant_id=p_tenant_id and is_active=true) then raise exception 'resource profile denied' using errcode='42501'; end if;
- insert into public.person_profiles(tenant_id,membership_id,default_work_role_id,employment_percentage)
- values(p_tenant_id,p_membership_id,p_work_role_id,p_employment_percentage)
- on conflict(membership_id) do update set default_work_role_id=excluded.default_work_role_id,employment_percentage=excluded.employment_percentage,updated_at=statement_timestamp()
- returning id into v_id;
+ if v_is_new then
+   insert into public.person_profiles(tenant_id,membership_id,default_work_role_id,employment_percentage)
+   values(p_tenant_id,p_membership_id,p_work_role_id,p_employment_percentage)
+   returning id into v_id;
+   insert into public.person_work_hours(tenant_id,person_profile_id,entry_kind,weekday,starts_at,ends_at)
+   select tenant_id,v_id,entry_kind,weekday,starts_at,ends_at
+   from public.person_work_hours where tenant_id=p_tenant_id and person_profile_id is null;
+ else
+   v_id := v_profile.id;
+   update public.person_profiles set default_work_role_id=p_work_role_id,employment_percentage=p_employment_percentage,updated_at=statement_timestamp() where id=v_id;
+ end if;
  perform public.story_11_2_record_audit_event_internal(p_tenant_id,auth.uid(),'resources.profile.save','resource_profile_saved','person_profile',v_id,p_correlation_id,jsonb_build_object('targetId',v_id));
  return v_id;
 end $$;
@@ -129,3 +207,40 @@ begin
 end $$;
 revoke execute on function public.upsert_tenant_calendar_day_with_audit(uuid,uuid,uuid,date,text,smallint) from public;
 grant execute on function public.upsert_tenant_calendar_day_with_audit(uuid,uuid,uuid,date,text,smallint) to authenticated;
+
+-- The UI form is deliberately one database transaction: profile creation (including
+-- copied template rows), explicit schedule replacement, exceptions, calendar input,
+-- and their audit records either all commit or all roll back together.
+create or replace function public.save_resource_profile_form_with_audit(
+  p_tenant_id uuid, p_actor_user_id uuid, p_correlation_id uuid, p_membership_id uuid,
+  p_work_role_id uuid, p_employment_percentage smallint, p_schedule jsonb,
+  p_exceptions jsonb, p_calendar_day jsonb
+) returns uuid language plpgsql security definer set search_path = '' as $$
+declare v_id uuid; v_exception jsonb; v_calendar_date date; v_calendar_variant text; v_calendar_reduction smallint;
+begin
+  if auth.uid() is null or auth.uid() <> p_actor_user_id or not public.has_tenant_role(p_tenant_id, array['tenant_admin','projektledare']) then raise exception 'resource profile denied' using errcode='42501'; end if;
+  if jsonb_typeof(p_schedule) <> 'array' or jsonb_typeof(p_exceptions) <> 'array' then raise exception 'resource form invalid' using errcode='23514'; end if;
+  for v_exception in select value from jsonb_array_elements(p_exceptions) loop
+    if jsonb_typeof(v_exception) <> 'object' or (v_exception->>'kind') not in ('absence','sick_leave','leave','training','blocked_time')
+      or (v_exception->>'date') !~ '^\\d{4}-\\d{2}-\\d{2}$'
+      or ((v_exception ? 'start') <> (v_exception ? 'end'))
+      or ((v_exception ? 'start') and ((v_exception->>'start') !~ '^([01][0-9]|2[0-3]):[0-5][0-9]$' or (v_exception->>'end') !~ '^([01][0-9]|2[0-3]):[0-5][0-9]$' or (v_exception->>'start')::time >= (v_exception->>'end')::time))
+    then raise exception 'resource exception invalid' using errcode='23514'; end if;
+  end loop;
+  if p_calendar_day is not null then
+    if jsonb_typeof(p_calendar_day) <> 'object' or (p_calendar_day->>'date') !~ '^\\d{4}-\\d{2}-\\d{2}$' or (p_calendar_day->>'variant') <> 'reduced_capacity' or (p_calendar_day->>'reductionPercent') !~ '^(100|[1-9][0-9]?)$' then raise exception 'resource calendar invalid' using errcode='23514'; end if;
+    v_calendar_date := (p_calendar_day->>'date')::date; v_calendar_variant := p_calendar_day->>'variant'; v_calendar_reduction := (p_calendar_day->>'reductionPercent')::smallint;
+  end if;
+  v_id := public.upsert_person_profile_with_audit(p_tenant_id,p_actor_user_id,p_correlation_id,p_membership_id,p_work_role_id,p_employment_percentage);
+  if jsonb_array_length(p_schedule) > 0 then perform public.save_person_schedule_with_audit(p_tenant_id,p_actor_user_id,p_correlation_id,v_id,p_schedule); end if;
+  delete from public.person_work_hours where tenant_id=p_tenant_id and person_profile_id=v_id and entry_kind='exception';
+  for v_exception in select value from jsonb_array_elements(p_exceptions) loop
+    insert into public.person_work_hours(tenant_id,person_profile_id,entry_kind,local_date,exception_kind,starts_at,ends_at)
+    values(p_tenant_id,v_id,'exception',(v_exception->>'date')::date,v_exception->>'kind',nullif(v_exception->>'start','')::time,nullif(v_exception->>'end','')::time);
+  end loop;
+  if jsonb_array_length(p_exceptions) > 0 then perform public.story_11_2_record_audit_event_internal(p_tenant_id,auth.uid(),'resources.exception.save','resource_exception_saved','person_profile',v_id,p_correlation_id,jsonb_build_object('targetId',v_id)); end if;
+  if p_calendar_day is not null then perform public.upsert_tenant_calendar_day_with_audit(p_tenant_id,p_actor_user_id,p_correlation_id,v_calendar_date,v_calendar_variant,v_calendar_reduction); end if;
+  return v_id;
+end $$;
+revoke execute on function public.save_resource_profile_form_with_audit(uuid,uuid,uuid,uuid,uuid,smallint,jsonb,jsonb,jsonb) from public;
+grant execute on function public.save_resource_profile_form_with_audit(uuid,uuid,uuid,uuid,uuid,smallint,jsonb,jsonb,jsonb) to authenticated;

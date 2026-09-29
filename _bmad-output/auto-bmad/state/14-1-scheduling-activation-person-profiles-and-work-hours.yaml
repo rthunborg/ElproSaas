@@ -9,11 +9,11 @@ spec_folder: null
 story_id: null
 branch: epic/14-wave-b1b-resource-and-scheduling-foundation
 status: in-progress
-updated_at: "2026-09-29T10:05:28Z"
+updated_at: "2026-09-29T10:31:00Z"
 started_at: "2026-09-29T08:45:54Z"
 completed_at: null
-active_seconds: 3640
-timing_anchor: 1790676328
+active_seconds: 5171
+timing_anchor: null
 is_first_in_epic: true
 is_last_in_epic: false
 git_mode: remote
@@ -41,7 +41,7 @@ spec_path: "C:\\Users\\Rasmus\\.codex\\worktrees\\epic14-scheduling\\ElproSaas\\
 spec_approved: true
 build:
   status: blocked
-  blocking_condition: HOOK_CONTEXT_UNAVAILABLE / The explicit subagent lifecycle context is not registered.
+  blocking_condition: "isolated Compose test stack cannot apply historical migration chain: storage schema absent (`storage.buckets` does not exist)."
   followup_review_recommended: false
   review_loop_iteration: 0
   deferred_count: 0
@@ -56,7 +56,7 @@ legacy_review_loop_done: false
 legacy_external_review_iterations: null
 legacy_convergence_unverified: false
 legacy_artifact_path: null
-commits: [b821e42, 2fdca50, 93dbf84, 4f4bfc4]
+commits: [b821e42, 2fdca50, 93dbf84, 4f4bfc4, e33efc3]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -83,7 +83,7 @@ open_questions:
   - "ATDD implementation handoff: reconcile command exports/input-result contracts and server-observable retry-failure seam before activating skipped scenarios; 14 scaffolds currently claim no acceptance evidence."
 deferred_work: []
 blockers:
-  - HOOK_CONTEXT_UNAVAILABLE / The explicit subagent lifecycle context is not registered.
+  - "isolated Compose test stack cannot apply historical migration chain: storage schema absent (`storage.buckets` does not exist)."
 overrides:
   epic_start_authorized_by_owner: true
   unattended_run_confirmed_by_owner_request: true
@@ -91,6 +91,8 @@ overrides:
   owner_requested_resume_on: 2026-09-29
   resume_preflight_passed: true
   root_guard_status_verified: true
+  prior_registration_blocker_resolved: true
+  routine_isolated_test_bootstrap_repair_authorized: true
 constraints:
   - "Phase B manifest-governed approved Story 14.1 only; resources activation belongs here and broader scheduling module remains pending for Epic 15."
   - "Preserve existing local data and user-owned processes; new persistent resources require this actor's trusted guard context."

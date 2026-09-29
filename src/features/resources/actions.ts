@@ -2,11 +2,14 @@
 import { revalidatePath } from "next/cache";
 import { createSupabaseServerClient } from "@/server/db/supabase-server-client";
 import { runCommand, type CommandDbClient } from "@/server/commands/envelope";
-import { createOrUpdatePersonProfile } from "@/server/commands/resources/person-profiles";
-import { savePersonWorkHours } from "@/server/commands/resources/work-hours";
-import { saveTenantCalendarDay } from "@/server/commands/resources/calendar-days";
+import { saveResourceProfileForm } from "@/server/commands/resources/profile-form";
+import { validateWorkHoursInput } from "@/features/resources/work-hours";
+import { validateCapacityInputs } from "@/features/resources/capacity-inputs";
 export type ResourceActionState = { readonly status: "idle" | "success" | "error"; readonly message: string };
 export const RESOURCE_INITIAL: ResourceActionState = { status: "idle", message: "" };
+function isPartiallyFilled(start: FormDataEntryValue | null, end: FormDataEntryValue | null): boolean {
+  return (typeof start === "string" && start.length > 0) !== (typeof end === "string" && end.length > 0);
+}
 export async function saveResourceProfileAction(_: ResourceActionState, form: FormData): Promise<ResourceActionState> {
   // Browser verification may request one deterministic, server-observable transient failure.
   // It is checked before any command so the retained form is never mistaken for persisted data.
@@ -14,14 +17,33 @@ export async function saveResourceProfileAction(_: ResourceActionState, form: Fo
     return { status: "error", message: "Kunde inte spara resurspersonen. Försök igen." };
   }
   const client = (await createSupabaseServerClient()) as unknown as CommandDbClient;
-  const start = form.get("mondayStart"); const end = form.get("mondayEnd"); const breakStart=form.get("mondayBreakStart"); const breakEnd=form.get("mondayBreakEnd");
-  const breaks = typeof breakStart === "string" && typeof breakEnd === "string" && breakStart && breakEnd ? [{start:breakStart,end:breakEnd}] : [];
-  const shift = typeof start === "string" && typeof end === "string" && start && end ? [{ weekday: 1, start, end, breaks }] : [];
-  const result = await runCommand(createOrUpdatePersonProfile, { client, input: { membershipId: form.get("membershipId"), defaultWorkRoleId: form.get("defaultWorkRoleId") || undefined, employmentPercentage: form.get("employmentPercentage") ? Number(form.get("employmentPercentage")) : undefined } });
-  if (!result.ok) return { status: "error", message: "Kunde inte spara resurspersonen. Försök igen." };
-  if (shift.length > 0) { const hours = await runCommand(savePersonWorkHours, { client, input: { personProfileId: result.data.targetId, schedule: { shifts: shift } } }); if (!hours.ok) return { status:"error", message:"Kunde inte spara schemat. Försök igen." }; }
+  let hasPartialWorkTime = false;
+  const shifts = Array.from({ length: 7 }, (_, offset) => {
+    const weekday = offset + 1;
+    const start = form.get(`weekday${weekday}Start`);
+    const end = form.get(`weekday${weekday}End`);
+    const breakStart = form.get(`weekday${weekday}BreakStart`);
+    const breakEnd = form.get(`weekday${weekday}BreakEnd`);
+    if (isPartiallyFilled(start, end) || isPartiallyFilled(breakStart, breakEnd)) hasPartialWorkTime = true;
+    if (typeof start !== "string" || typeof end !== "string" || !start || !end) return null;
+    const breaks = typeof breakStart === "string" && typeof breakEnd === "string" && breakStart && breakEnd
+      ? [{ start: breakStart, end: breakEnd }]
+      : [];
+    return { weekday, start, end, breaks };
+  }).filter((shift): shift is NonNullable<typeof shift> => shift !== null);
+  const schedule = { shifts };
   const reduction = form.get("calendarReduction"); const date = form.get("exceptionDate");
-  if (typeof reduction === "string" && reduction && typeof date === "string" && date) { const calendar=await runCommand(saveTenantCalendarDay,{client,input:{date,variant:"reduced_capacity",reductionPercent:Number(reduction)}}); if(!calendar.ok)return{status:"error",message:"Kunde inte spara kalenderdagen. Försök igen."}; }
+  const exceptionDate = form.get("personExceptionDate"); const exceptionKind = form.get("personExceptionKind"); const exceptionStart = form.get("personExceptionStart"); const exceptionEnd = form.get("personExceptionEnd");
+  const existingExceptions = typeof form.get("existingExceptions") === "string" ? (() => { try { const value = JSON.parse(String(form.get("existingExceptions"))); return Array.isArray(value) ? value : []; } catch { return []; } })() : [];
+  const exception = typeof exceptionDate === "string" && exceptionDate && typeof exceptionKind === "string" && exceptionKind ? { kind: exceptionKind, date: exceptionDate, ...(typeof exceptionStart === "string" && exceptionStart ? { start: exceptionStart } : {}), ...(typeof exceptionEnd === "string" && exceptionEnd ? { end: exceptionEnd } : {}) } : null;
+  const exceptions = exception ? [exception, ...existingExceptions.slice(1)] : existingExceptions;
+  const calendarDay = typeof reduction === "string" && reduction && typeof date === "string" && date ? { date, variant: "reduced_capacity" as const, reductionPercent: Number(reduction) } : undefined;
+  if (hasPartialWorkTime || !validateWorkHoursInput(schedule).ok ||
+      !validateCapacityInputs({ exceptions, ...(calendarDay ? { calendarDay } : {}) }).ok) {
+    return { status: "error", message: "Kontrollera arbetstider och kalenderunderlag och försök igen." };
+  }
+  const result = await runCommand(saveResourceProfileForm, { client, input: { membershipId: form.get("membershipId"), defaultWorkRoleId: form.get("defaultWorkRoleId") || undefined, employmentPercentage: form.get("employmentPercentage") ? Number(form.get("employmentPercentage")) : undefined, schedule, exceptions, ...(calendarDay ? { calendarDay } : {}) } });
+  if (!result.ok) return { status: "error", message: "Kunde inte spara resurspersonen. Försök igen." };
   revalidatePath(`/admin/users/${form.get("membershipId")}`);
   return { status: "success", message: "Resurspersonen har sparats." };
 }

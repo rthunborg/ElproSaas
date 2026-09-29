@@ -53,3 +53,19 @@ test("[P0] rejects overlapping or out-of-bound shifts and breaks without derivin
   assert.equal(overlappingShift?.ok, false);
   assert.equal(invalidBreak?.ok, false);
 });
+
+test("[P0] rejects overlapping breaks inside a single actual shift", async () => {
+  const resourceModule = await import(workHoursModulePath) as {
+    validateWorkHoursInput?: (input: unknown) => { ok: boolean };
+  };
+  const result = resourceModule.validateWorkHoursInput?.({
+    shifts: [{
+      weekday: 1,
+      start: "07:00",
+      end: "16:00",
+      breaks: [{ start: "10:00", end: "11:00" }, { start: "10:30", end: "11:30" }],
+    }],
+  });
+
+  assert.equal(result?.ok, false);
+});

@@ -15,7 +15,11 @@ export function validateWorkHoursInput(raw: unknown): WorkHoursValidation {
   const byDay = new Map<number, TimeRange[]>();
   for (const shift of input.shifts) {
     if (!Number.isInteger(shift.weekday) || shift.weekday < 1 || shift.weekday > 7 || !validRange(shift) || !Array.isArray(shift.breaks)) return { ok: false };
-    for (const pause of shift.breaks) if (!validRange(pause) || minutes(pause.start) < minutes(shift.start) || minutes(pause.end) > minutes(shift.end)) return { ok: false };
+    const breaks = [...shift.breaks].sort((a, b) => minutes(a.start) - minutes(b.start));
+    for (const [index, pause] of breaks.entries()) {
+      if (!validRange(pause) || minutes(pause.start) < minutes(shift.start) || minutes(pause.end) > minutes(shift.end)) return { ok: false };
+      if (index > 0 && minutes(pause.start) < minutes(breaks[index - 1]!.end)) return { ok: false };
+    }
     const all = [...(byDay.get(shift.weekday) ?? []), { start: shift.start, end: shift.end }].sort((a, b) => minutes(a.start) - minutes(b.start));
     if (all.some((range, index) => index > 0 && minutes(range.start) < minutes(all[index - 1]!.end))) return { ok: false };
     byDay.set(shift.weekday, all);
