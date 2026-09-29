@@ -70,3 +70,42 @@ No harvest or archive ran.
 **⚠️ Needs human:** (none)
 
 **Next:** Authorized prerequisite repair before retrying /auto-bmad epic --epic 14; no push or PR at this checkpoint.
+
+## Report — 2026-09-29T10:58:57Z (halted — needs-human)
+
+**Epic:** `14` — 4 stories.
+**Branch:** `epic/14-wave-b1b-resource-and-scheduling-foundation` (HEAD `37904b9`).
+**Pipeline status:** Epic 14 halted in Story 14.1 Phase 5: guard worker failed before isolated service readiness. No stories landed; no push or PR.
+**Continues:** 2026-09-29T10:31:40Z (halted — needs-human)
+
+**Summary:** Preserved atomic profile/schedule/calendar save corrections, inherited-template shift-before-break ordering, and the minimum isolated official Supabase bootstrap/environment-loading repairs. Implementation and setup still require executed acceptance evidence and review.
+
+**Timing:** started 2026-09-29T08:23:21Z; completed in progress — elapsed 2h 35m (≈2h 14m AI-run, ≈21m human/idle wait); resumed 2×.
+
+**Stories:**
+1. 14.1: frontmatter blocked; review iteration 0, follow-up passes 0, deferred frontmatter 0; required verification incomplete.
+2. 14.2–14.4: backlog; not started.
+
+**Skipped:** (none)
+
+**Epic gate:** Not run; Phase 5 remains incomplete.
+
+**TEA:** This continuation: typecheck passed; lint 0 errors/13 existing warnings; unit 1,928 passed/1 skipped; review-order checker 14 valid references. Integration/RLS and browser: 0 executed. No new tests ran in the final readiness-only attempt; no acceptance coverage claimed.
+
+**Retrospective:** Not run.
+
+**Overrides:** Owner Continue; bounded test bootstrap repair and further ten-minute maximum readiness observation. Existing user-owned local database preserved; no hosted migrations, deployments, email or provisioning activation.
+
+**Open questions:**
+1. Later performance assessment: numeric latency targets and representative tenant/person/booking volumes remain unresolved.
+2. ATDD command contracts and the server-observable failure/retry seam still require executed acceptance confirmation.
+
+**Deferred work:**
+1. Required historical migration-chain, integration/RLS and browser verification after guard readiness is restored.
+2. Configured code review, triage/fixes, final author review-trail evidence and the remaining Epic 14 story phases.
+
+**⚠️ Needs human:**
+1. Diagnose/restore the resource-guard startup worker: admitted ComposeUp settled at start_uncertain / worker-failed / RETAINED_START_INCOMPLETE. No deeper cause, guard project, Compose exit or failing service was exposed.
+2. AGENTS.md requires guarded managed starts and prohibits lifecycle administrative repairs from this agent session. Restore the supported guarded startup path before resuming.
+
+**Next:** After the guard worker is restored, set the blocked spec status to in-progress and run /auto-bmad epic --epic 14 (Continue can delegate that status preparation). Review preserved branch: /bmad-checkpoint-preview epic/14-wave-b1b-resource-and-scheduling-foundation. Project context refresh remains recommended after epic completion.
