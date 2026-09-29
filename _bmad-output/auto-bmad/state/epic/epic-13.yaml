@@ -9,7 +9,7 @@ spec_folder: null
 story_id: null
 branch: epic/13-wave-b1a-notifications-and-email-infrastructure
 status: done
-updated_at: "2026-09-28T12:48:16Z"
+updated_at: "2026-09-29T07:46:43Z"
 started_at: "2026-09-23T10:29:03Z"
 completed_at: "2026-09-24T18:57:24Z"
 active_seconds: 44064
@@ -18,15 +18,15 @@ is_first_in_epic: false
 is_last_in_epic: false
 git_mode: remote
 base_branch: main
-selected_phase: tea_epic
-selected_role: tea-delegate
+selected_phase: hosted_rollout
+selected_role: release-operator
 selected_profile: critical
 selected_model: gpt-5.6-sol
 selected_effort: xhigh
 selected_host: codex
 selected_tier: subagents
 selected_route: subagent
-escalation_reason: "Metadata-only execution-evidence closure after CI36423047278 passes corrected test88eadaf at0a7afbe; preserve trace counts and failed/local provenance, no retest or review"
+escalation_reason: "Owner-approved hosted migration/deployment and authenticated scheduler proof after merge78019af; preserve real-email and provisioning release gates, followed by24h observation"
 routing_ledger:
   - "{\"effort\":\"xhigh\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-sol\",\"phase\":\"tea_epic\",\"profile\":\"critical\",\"role\":\"tea-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
   - "{\"effort\":\"medium\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-luna\",\"phase\":\"tea_triage\",\"profile\":\"light\",\"role\":\"test-risk-triage\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
@@ -53,6 +53,8 @@ routing_ledger:
   - "{\"effort\":\"high\",\"escalation_reason\":\"Current CI36421169336 failed only new mark-all Bell E2E at button locator; bounded diagnosis/fix and author evidence settlement, no broad review\",\"host\":\"codex\",\"model\":\"gpt-5.6-terra\",\"phase\":\"followup_review\",\"profile\":\"standard\",\"role\":\"primary-reviewer\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
   - "{\"effort\":\"xhigh\",\"escalation_reason\":\"Changed-lines-only inspection of test88eadaf after CI fixture contamination failure; preserve POST/reload failure assertions and validate isolated projectManager fixture, no broad pass\",\"host\":\"codex\",\"model\":\"gpt-5.6-sol\",\"phase\":\"final_convergence\",\"profile\":\"critical\",\"role\":\"final-convergence\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
   - "{\"effort\":\"xhigh\",\"escalation_reason\":\"Metadata-only execution-evidence closure after CI36423047278 passes corrected test88eadaf at0a7afbe; preserve trace counts and failed/local provenance, no retest or review\",\"host\":\"codex\",\"model\":\"gpt-5.6-sol\",\"phase\":\"tea_epic\",\"profile\":\"critical\",\"role\":\"tea-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"medium\",\"escalation_reason\":\"Owner approved six release/operating decisions on2026-09-29; document governance and pilot preparation without source changes\",\"host\":\"codex\",\"model\":\"gpt-5.6-terra\",\"phase\":\"owner_decision_record\",\"profile\":\"default\",\"role\":\"decision-writer\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"xhigh\",\"escalation_reason\":\"Owner-approved hosted migration/deployment and authenticated scheduler proof after merge78019af; preserve real-email and provisioning release gates, followed by24h observation\",\"host\":\"codex\",\"model\":\"gpt-5.6-sol\",\"phase\":\"hosted_rollout\",\"profile\":\"critical\",\"role\":\"release-operator\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
 tea_risk: null
 tea_selected: []
 tea_rationale: null
@@ -97,12 +99,12 @@ bmad_status_flipped_at: 82
 pr_url: "https://github.com/rthunborg/ElproSaas/pull/75"
 ci_run_url: "https://github.com/rthunborg/ElproSaas/actions/runs/36423047278"
 ci_status: passed
-pr_merged: false
-merge_method: null
-merge_commit: null
+pr_merged: true
+merge_method: merge
+merge_commit: 78019af39d80627a14e11802ac5dafacd37ac9b5
 branch_deleted: false
 open_questions:
-  - Numeric operating targets remain owner-pending operational contracts.
+  - "Pilot company workspace, sender identity, initial recipients, volume forecast, operations owner and measured batch size remain pending."
 deferred_work:
   - "Real-recipient delivery stays disabled pending separate ADR-B011 approval, provider idempotency and real rendered unsubscribe URLs."
   - "Observe authenticated production cron after merge/deployment; Pro and production-only sensitive CRON_SECRET are verified."
@@ -114,6 +116,11 @@ overrides:
   resumed_on: 2026-09-28
   review_bot_followup: "2026-09-28: five additional owner-supplied findings at 8ee25ef; targeted fixes and direct regressions"
   independent_transport_fallback: "Configured Luna CLI exited1 with no output after bounded ten-minute wait; same Luna/xhigh review completed through native subagents; confirmed regression fixed"
+  real_email_activation_approved: false
+  pilot_targets_approved: true
+  owner_release_decisions_approved_on: 2026-09-29
+  controlled_hosted_rollout_approved: true
+  local_read_only_maintenance_task_created: true
 constraints: []
 epic_slug: wave-b1a-notifications-and-email-infrastructure
 active_story: null
