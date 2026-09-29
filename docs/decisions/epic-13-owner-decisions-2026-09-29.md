@@ -25,9 +25,9 @@ The owner adopted these internal targets for the future pilot. They are not meas
 | Tenant fairness | Meet the same freshness bounds; investigate sustained deferral. |
 | Future eligible live-email submission | Submit within 15 minutes, excluding retry and suppression time. |
 | Failure and recovery review | Review within one business day. |
-| Capacity | Test planned pilot workload and twice the forecast peak. |
+| Capacity | Test the accepted planning forecast of 5 app-generated quote emails/day and occasional 10/hour peak, plus the two-times-forecast benchmark of 10/day and 20/hour. |
 
-No volume forecast, batch size, or support owner has been approved. The observation and seven-day reassessment clocks start from a recorded healthy deployed pilot operation, not from story completion or merge.
+The accepted planning forecast is 5 app-generated quote emails/day with an occasional 10/hour peak. Its two-times-forecast capacity benchmark is 10/day and 20/hour. These are planning inputs only: they are not measured telemetry, a customer SLA, or approval to send real email. No batch size or support owner has been approved. The observation and seven-day reassessment clocks start from a recorded healthy deployed pilot operation, not from story completion or merge.
 
 ## One-tenant quote-email pilot preparation
 
@@ -36,8 +36,8 @@ Prepare a one-tenant quote-email pilot, but do not activate real-recipient deliv
 Before activation, record the following without committing credentials or customer addresses:
 
 - Exact central From identity and sender-domain evidence; tenant Reply-To remains policy.
-- Pilot tenant, approved recipients, expected email volume, and the named operations owner.
-- Rough average emails per day and a busy-hour burst estimate.
+- Pilot tenant, approved recipients, and the named operations owner.
+- Confirmation that the 5/day, occasional-10/hour planning forecast remains suitable, or a separately recorded revised forecast.
 - Provider and secret rollout evidence, enabled-flow list, suppression and unsubscribe behavior, sandbox evidence, disable or rollback steps, and operational contacts.
 
 Every quote sent to a distinct recipient, and every resend, counts as a separate email for the estimates and pilot controls.

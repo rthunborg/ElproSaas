@@ -9,7 +9,7 @@ spec_folder: null
 story_id: null
 branch: epic/13-wave-b1a-notifications-and-email-infrastructure
 status: done
-updated_at: "2026-09-29T08:01:34Z"
+updated_at: "2026-09-29T08:07:37Z"
 started_at: "2026-09-23T10:29:03Z"
 completed_at: "2026-09-24T18:57:24Z"
 active_seconds: 44064
@@ -18,15 +18,15 @@ is_first_in_epic: false
 is_last_in_epic: false
 git_mode: remote
 base_branch: main
-selected_phase: hosted_rollout
-selected_role: release-operator
-selected_profile: critical
-selected_model: gpt-5.6-sol
-selected_effort: xhigh
+selected_phase: owner_decision_record
+selected_role: decision-writer
+selected_profile: default
+selected_model: gpt-5.6-terra
+selected_effort: medium
 selected_host: codex
 selected_tier: subagents
 selected_route: subagent
-escalation_reason: "Owner-approved hosted migration/deployment and authenticated scheduler proof after merge78019af; preserve real-email and provisioning release gates, followed by24h observation"
+escalation_reason: "Owner accepted email pilot forecast of5 per day and occasional10 per hour on2026-09-29; record volume decision before resuming approved hosted rollout"
 routing_ledger:
   - "{\"effort\":\"xhigh\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-sol\",\"phase\":\"tea_epic\",\"profile\":\"critical\",\"role\":\"tea-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
   - "{\"effort\":\"medium\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-luna\",\"phase\":\"tea_triage\",\"profile\":\"light\",\"role\":\"test-risk-triage\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
@@ -55,6 +55,7 @@ routing_ledger:
   - "{\"effort\":\"xhigh\",\"escalation_reason\":\"Metadata-only execution-evidence closure after CI36423047278 passes corrected test88eadaf at0a7afbe; preserve trace counts and failed/local provenance, no retest or review\",\"host\":\"codex\",\"model\":\"gpt-5.6-sol\",\"phase\":\"tea_epic\",\"profile\":\"critical\",\"role\":\"tea-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
   - "{\"effort\":\"medium\",\"escalation_reason\":\"Owner approved six release/operating decisions on2026-09-29; document governance and pilot preparation without source changes\",\"host\":\"codex\",\"model\":\"gpt-5.6-terra\",\"phase\":\"owner_decision_record\",\"profile\":\"default\",\"role\":\"decision-writer\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
   - "{\"effort\":\"xhigh\",\"escalation_reason\":\"Owner-approved hosted migration/deployment and authenticated scheduler proof after merge78019af; preserve real-email and provisioning release gates, followed by24h observation\",\"host\":\"codex\",\"model\":\"gpt-5.6-sol\",\"phase\":\"hosted_rollout\",\"profile\":\"critical\",\"role\":\"release-operator\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"medium\",\"escalation_reason\":\"Owner accepted email pilot forecast of5 per day and occasional10 per hour on2026-09-29; record volume decision before resuming approved hosted rollout\",\"host\":\"codex\",\"model\":\"gpt-5.6-terra\",\"phase\":\"owner_decision_record\",\"profile\":\"default\",\"role\":\"decision-writer\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
 tea_risk: null
 tea_selected: []
 tea_rationale: null
@@ -80,7 +81,7 @@ legacy_review_loop_done: false
 legacy_external_review_iterations: null
 legacy_convergence_unverified: false
 legacy_artifact_path: null
-commits: [cdbb68a, e996cde, 9650f72, 391624b, 211bf68, 24d0d19, e11d24a, 61f2394, 4024cbe, b75b155, 83da25f, 73407ac, b06c3ca, 2664d7b, 8a1eb8c, 2f374f9, f226415, 46d9b67, d770780, 0c28b14, c1020e9, b374437, 822a67d, 762c547, 71fa10a, 6d81c2a, b8b0241, a2d2d9a, ed43933, 54181ab, 5bd0dae, e65b985, 8ee25ef, a6c4825, 2a7444f, 783701a, b299024, 04d709b, 00ac840, 8b20933, 79e5550, cf73891, 5a529b4, bc54b11, 88eadaf, ccd780d, 68b55c0, 0a7afbe, 8780bc9]
+commits: [cdbb68a, e996cde, 9650f72, 391624b, 211bf68, 24d0d19, e11d24a, 61f2394, 4024cbe, b75b155, 83da25f, 73407ac, b06c3ca, 2664d7b, 8a1eb8c, 2f374f9, f226415, 46d9b67, d770780, 0c28b14, c1020e9, b374437, 822a67d, 762c547, 71fa10a, 6d81c2a, b8b0241, a2d2d9a, ed43933, 54181ab, 5bd0dae, e65b985, 8ee25ef, a6c4825, 2a7444f, 783701a, b299024, 04d709b, 00ac840, 8b20933, 79e5550, cf73891, 5a529b4, bc54b11, 88eadaf, ccd780d, 68b55c0, 0a7afbe, 8780bc9, fc4f167]
 phase8_steps:
   trace_gate: done
   nfr: done
@@ -104,13 +105,12 @@ merge_method: merge
 merge_commit: 78019af39d80627a14e11802ac5dafacd37ac9b5
 branch_deleted: false
 open_questions:
-  - "Pilot company workspace, sender identity, initial recipients, volume forecast, operations owner and measured batch size remain pending."
+  - "Pilot company workspace, sender identity, initial recipients, operations owner and measured batch size remain pending."
 deferred_work:
   - "Real-recipient delivery stays disabled pending separate ADR-B011 approval, provider idempotency and real rendered unsubscribe URLs."
   - "At least24h hosted observation and7day operating review start only after verified healthy scheduler operation; prepared automations remain paused."
   - "Central retention-policy deferral is preserved; local migration-history repair remains a separate maintenance decision."
-blockers:
-  - "Hosted Epic13 migrations are blocked by HTTP403 at the Supabase CLI login-role-status endpoint. Restore authorized CLI database access for elprosaas-demo; cron remains paused."
+blockers: []
 overrides:
   post_completion_remediation: true
   pause_requested: false
@@ -123,7 +123,7 @@ overrides:
   owner_release_decisions_approved_on: 2026-09-29
   controlled_hosted_rollout_approved: true
   local_read_only_maintenance_task_created: true
-  hosted_rollout_status: blocked_cli_access
+  hosted_rollout_status: resuming_after_verified_cli_access
   hosted_cron_paused: true
   tenant_provisioning_disabled_verified: true
   hosted_deployment_id: dpl_2DAG69cR31WeAVT8CQvF7MFh1Kuj
@@ -137,6 +137,11 @@ overrides:
   local_read_only_maintenance_task_completed: true
   local_read_only_maintenance_thread_id: 01a0ec1e-37cf-7591-8e75-73637c275448
   owner_decisions_pr_url: "https://github.com/rthunborg/ElproSaas/pull/76"
+  pilot_forecast_approved_on: 2026-09-29
+  pilot_forecast_emails_per_day: 5
+  pilot_forecast_peak_emails_per_hour: 10
+  pilot_capacity_benchmark_emails_per_day: 10
+  pilot_capacity_benchmark_peak_emails_per_hour: 20
 constraints: []
 epic_slug: wave-b1a-notifications-and-email-infrastructure
 active_story: null
