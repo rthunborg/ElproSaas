@@ -9,11 +9,11 @@ spec_folder: null
 story_id: null
 branch: epic/14-wave-b1b-resource-and-scheduling-foundation
 status: in-progress
-updated_at: "2026-09-29T10:31:00Z"
+updated_at: "2026-09-29T10:31:41Z"
 started_at: "2026-09-29T08:45:54Z"
 completed_at: null
 active_seconds: 5171
-timing_anchor: null
+timing_anchor: 1790677900
 is_first_in_epic: true
 is_last_in_epic: false
 git_mode: remote
@@ -56,7 +56,7 @@ legacy_review_loop_done: false
 legacy_external_review_iterations: null
 legacy_convergence_unverified: false
 legacy_artifact_path: null
-commits: [b821e42, 2fdca50, 93dbf84, 4f4bfc4, e33efc3]
+commits: [b821e42, 2fdca50, 93dbf84, 4f4bfc4, e33efc3, 04f9799]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -93,6 +93,7 @@ overrides:
   root_guard_status_verified: true
   prior_registration_blocker_resolved: true
   routine_isolated_test_bootstrap_repair_authorized: true
+  bounded_bootstrap_repair_before_same_phase_retry: true
 constraints:
   - "Phase B manifest-governed approved Story 14.1 only; resources activation belongs here and broader scheduling module remains pending for Epic 15."
   - "Preserve existing local data and user-owned processes; new persistent resources require this actor's trusted guard context."
