@@ -137,6 +137,21 @@ At `2026-09-29T08:12:13.356Z`, a redacted Vercel API recheck established that pr
 - This first empty-workload success proves authenticated scheduling, deployment/schema alignment, completed producer execution, and atomic run/audit persistence. It does not yet prove 24-hour stability, hourly due-producer behavior, Stockholm business-date selection, a non-empty backlog, recovery handling, or bounded continuation across more eligible tenants. Those remain observation items and must not be manufactured with customer data.
 - No customer email, provider submission, new tenant, customer record, pilot recipient, or pilot workload was created. Real-recipient email remains disabled and tenant provisioning remains false.
 
+## Bounded observation checkpoint — 2026-09-29T09:50:27.68636Z
+
+All timestamps in this checkpoint are UTC. The healthy observation start remains `2026-09-29T08:15:21.049Z`; the 24-hour window cannot complete before `2026-09-30T08:15:21.049Z`, and the seven-day reassessment remains due `2026-10-06T08:15:21.049Z`. Both scheduled automations remain active.
+
+- Since 08:15, the hosted database records 62 durable `job_runs`, all completed, with zero errors, zero noncompleted rows, zero unpaired `job.producer.executed` audits, and zero duplicate audit pairs when grouped by `target_id=job_run.id`.
+- There are 20 completed `jobs.runner` rows. The latest completed at `09:50:19.565Z`; the current success gap at the snapshot is 8.12136 seconds. The maximum interval between runner completions is 302.245 seconds (about 5 minutes 2 seconds), below the 15-minute warning and 30-minute escalation targets.
+- `notifications.email-outbox-delivery` has 40 completed rows: 20 executions for each of two existing tenants. This is aggregate-only evidence with no identity recorded. It establishes balanced ordinary visits only; cursor rows are zero, so it does not prove bounded cursor continuation under large load.
+- `quotes.follow-up-reminders` has two completed rows from `09:00:18.982Z` through `09:00:20.863Z`, covering two existing tenants in one scheduled window. The run was at minute 0, and there has been no off-hour reminder dispatch since 08:15. This is the first observed authentic hourly producer execution. It does not prove due-notification freshness, Stockholm-midnight behavior, load behavior, or repeated hourly stability.
+- `email_outbox`, eligible backlog, active leases, and recovery rows are all zero. This leaves nonempty-workload, recovery, and capacity behavior unexercised; it is not loaded-throughput success.
+- Per-run producer duration has p95 0.76545 seconds and maximum 0.832 seconds. The `jobs.runner` summary start and finish timestamps are equal, so its recorded zero seconds does not measure full invocation duration. Request logs supplied no duration field. Full-invocation p95 below 30 seconds remains unverified; producer latency is not substituted for that target.
+- Official Vercel CLI/API evidence confirms production alias `dpl_2DAG69cR31WeAVT8CQvF7MFh1Kuj` remains `READY` on `78019af` / `main` for the unchanged target project. Bounded official runtime logs and connector aggregates both show 20 `GET /api/jobs/run` HTTP 200 responses since 08:15.
+- A Supabase repository CLI-profile authenticated query confirms 80 migrations through `20260928110819`. A read-only current single-variable Vercel API check confirms exactly one provisioning entry whose plaintext value compares exactly to `false`. Real-recipient email remains code-closed in the unchanged deployed `78019af` source; no activation occurred.
+
+This checkpoint does not complete the 24-hour observation or a Stockholm day-boundary check. It does not establish recovery, nonempty workload, large-tenant continuation, measured capacity, a customer SLA, or real-recipient email approval.
+
 ## Disable and rollback controls
 
 - Current containment: project Cron Jobs enabled only after verified schema alignment; tenant provisioning false; real-recipient email code-closed.

@@ -9,24 +9,24 @@ spec_folder: null
 story_id: null
 branch: epic/13-wave-b1a-notifications-and-email-infrastructure
 status: done
-updated_at: "2026-09-29T08:17:18Z"
+updated_at: "2026-09-29T09:55:50Z"
 started_at: "2026-09-23T10:29:03Z"
 completed_at: "2026-09-24T18:57:24Z"
-active_seconds: 44064
+active_seconds: 44180
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
 git_mode: remote
 base_branch: main
-selected_phase: hosted_rollout
-selected_role: release-operator
-selected_profile: critical
-selected_model: gpt-5.6-sol
-selected_effort: xhigh
+selected_phase: hosted_observation_record
+selected_role: observation-writer
+selected_profile: default
+selected_model: gpt-5.6-terra
+selected_effort: medium
 selected_host: codex
 selected_tier: subagents
 selected_route: subagent
-escalation_reason: "Supabase CLI database access restored and verified2026-09-29; continue owner-approved18 migrations and authenticated scheduler readiness with email/provisioning disabled, then24h observation"
+escalation_reason: "Owner-authorized read-only pilot heartbeat; document newly observed 09:00 hourly producer execution and bounded health evidence without changing release gates or historical completion."
 routing_ledger:
   - "{\"effort\":\"xhigh\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-sol\",\"phase\":\"tea_epic\",\"profile\":\"critical\",\"role\":\"tea-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
   - "{\"effort\":\"medium\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-luna\",\"phase\":\"tea_triage\",\"profile\":\"light\",\"role\":\"test-risk-triage\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
@@ -57,6 +57,7 @@ routing_ledger:
   - "{\"effort\":\"xhigh\",\"escalation_reason\":\"Owner-approved hosted migration/deployment and authenticated scheduler proof after merge78019af; preserve real-email and provisioning release gates, followed by24h observation\",\"host\":\"codex\",\"model\":\"gpt-5.6-sol\",\"phase\":\"hosted_rollout\",\"profile\":\"critical\",\"role\":\"release-operator\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
   - "{\"effort\":\"medium\",\"escalation_reason\":\"Owner accepted email pilot forecast of5 per day and occasional10 per hour on2026-09-29; record volume decision before resuming approved hosted rollout\",\"host\":\"codex\",\"model\":\"gpt-5.6-terra\",\"phase\":\"owner_decision_record\",\"profile\":\"default\",\"role\":\"decision-writer\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
   - "{\"effort\":\"xhigh\",\"escalation_reason\":\"Supabase CLI database access restored and verified2026-09-29; continue owner-approved18 migrations and authenticated scheduler readiness with email/provisioning disabled, then24h observation\",\"host\":\"codex\",\"model\":\"gpt-5.6-sol\",\"phase\":\"hosted_rollout\",\"profile\":\"critical\",\"role\":\"release-operator\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"medium\",\"escalation_reason\":\"Owner-authorized read-only pilot heartbeat; document newly observed 09:00 hourly producer execution and bounded health evidence without changing release gates or historical completion.\",\"host\":\"codex\",\"model\":\"gpt-5.6-terra\",\"phase\":\"hosted_observation_record\",\"profile\":\"default\",\"role\":\"observation-writer\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
 tea_risk: null
 tea_selected: []
 tea_rationale: null
@@ -82,7 +83,7 @@ legacy_review_loop_done: false
 legacy_external_review_iterations: null
 legacy_convergence_unverified: false
 legacy_artifact_path: null
-commits: [cdbb68a, e996cde, 9650f72, 391624b, 211bf68, 24d0d19, e11d24a, 61f2394, 4024cbe, b75b155, 83da25f, 73407ac, b06c3ca, 2664d7b, 8a1eb8c, 2f374f9, f226415, 46d9b67, d770780, 0c28b14, c1020e9, b374437, 822a67d, 762c547, 71fa10a, 6d81c2a, b8b0241, a2d2d9a, ed43933, 54181ab, 5bd0dae, e65b985, 8ee25ef, a6c4825, 2a7444f, 783701a, b299024, 04d709b, 00ac840, 8b20933, 79e5550, cf73891, 5a529b4, bc54b11, 88eadaf, ccd780d, 68b55c0, 0a7afbe, 8780bc9, fc4f167, 20749ea]
+commits: [cdbb68a, e996cde, 9650f72, 391624b, 211bf68, 24d0d19, e11d24a, 61f2394, 4024cbe, b75b155, 83da25f, 73407ac, b06c3ca, 2664d7b, 8a1eb8c, 2f374f9, f226415, 46d9b67, d770780, 0c28b14, c1020e9, b374437, 822a67d, 762c547, 71fa10a, 6d81c2a, b8b0241, a2d2d9a, ed43933, 54181ab, 5bd0dae, e65b985, 8ee25ef, a6c4825, 2a7444f, 783701a, b299024, 04d709b, 00ac840, 8b20933, 79e5550, cf73891, 5a529b4, bc54b11, 88eadaf, ccd780d, 68b55c0, 0a7afbe, 8780bc9, fc4f167, 20749ea, ffa2b41]
 phase8_steps:
   trace_gate: done
   nfr: done
@@ -108,7 +109,7 @@ branch_deleted: false
 open_questions:
   - "Pilot company workspace, sender identity, initial recipients, operations owner and measured batch size remain pending."
 deferred_work:
-  - "Complete at least24h closed hosted observation from2026-09-29T08:15:21.049Z and seven-day operating review due no earlier than2026-10-06T08:15:21.049Z; hourly reminders, tenant continuation and Stockholm calendar proof remain pending observed workload."
+  - "Complete at least 24h closed hosted observation from 2026-09-29T08:15:21.049Z and seven-day operating review due no earlier than 2026-10-06T08:15:21.049Z. First hourly execution observed at 09:00 UTC Sep29; due-notification freshness, repeated hourly stability, loaded tenant continuation, full invocation duration and Stockholm calendar proof remain unverified."
   - "Real-recipient delivery stays disabled pending separate ADR-B011 approval, provider idempotency and real rendered unsubscribe URLs."
   - "Central retention-policy deferral is preserved; local migration-history repair remains a separate maintenance decision."
 blockers: []
@@ -153,6 +154,14 @@ overrides:
   healthy_completed_run_count: 3
   healthy_paired_audit_count: 3
   healthy_unpaired_audit_count: 0
+  hosted_observation_last_checkpoint_utc: "2026-09-29T09:50:27.68636Z"
+  hosted_observation_completed_run_count: 62
+  hosted_observation_runner_completions: 20
+  hosted_observation_latest_success_utc: "2026-09-29T09:50:19.565Z"
+  hosted_observation_max_completion_gap_seconds: 302.245
+  hosted_observation_unpaired_run_count: 0
+  hosted_observation_hourly_execution_observed_utc: "2026-09-29T09:00:18.982Z"
+  hosted_observation_full_invocation_duration_verified: false
 constraints: []
 epic_slug: wave-b1a-notifications-and-email-infrastructure
 active_story: null
