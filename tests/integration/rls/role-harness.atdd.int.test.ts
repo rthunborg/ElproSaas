@@ -133,6 +133,10 @@ async function seedEveryTenantTable(tenantId: string, actorId: string): Promise<
   const provisioningRequest = (await adminQuery<{ request_id: string }>("insert into public.tenant_provisioning_requests (request_id, canonical_request_hash, tenant_id, actor_user_id, preview_hash) values (gen_random_uuid(), repeat('a',64), $1, $2, repeat('b',64)) returning request_id", [tenantId, actorId]))[0]?.request_id;
   const provisioningInvite = (await adminQuery<{ tenant_id: string }>("insert into public.tenant_provisioning_invites (tenant_id, membership_id, token_hash, normalized_email) values ($1, $2, repeat('c',64), 'role-harness@example.test') returning tenant_id", [tenantId, membership]))[0]?.tenant_id;
   if (!provisioningRequest || !provisioningInvite) throw new Error("role harness seed: provisioning rows missing");
+  const personProfile = (await adminQuery<{ id: string }>("insert into public.person_profiles (tenant_id, membership_id) values ($1, $2) returning id", [tenantId, membership]))[0]?.id;
+  const personWorkHours = personProfile && (await adminQuery<{ id: string }>("insert into public.person_work_hours (tenant_id, person_profile_id, entry_kind, weekday, starts_at, ends_at) values ($1, $2, 'weekly_shift', 1, '07:00', '16:00') returning id", [tenantId, personProfile]))[0]?.id;
+  const calendarDay = (await adminQuery<{ id: string }>("insert into public.tenant_calendar_days (tenant_id, local_date, variant) values ($1, '2099-01-01', 'closed') returning id", [tenantId]))[0]?.id;
+  if (!personProfile || !personWorkHours || !calendarDay) throw new Error("role harness seed: resource rows missing");
   return {
     tenants: tenantId, tenant_memberships: membership, membership_roles: membershipRole,
     membership_admin_operations: membershipOperation, audit_events: auditEvent, job_runs: jobRun,
@@ -149,6 +153,7 @@ async function seedEveryTenantTable(tenantId: string, actorId: string): Promise<
     quote_acceptances: quoteAcceptance, quote_lost_reasons: quoteLostReason,
     quote_follow_ups: quoteFollowUp, jobs: job, job_events: jobEvent,
     tenant_provisioning_requests: provisioningRequest, tenant_provisioning_invites: provisioningInvite,
+    person_profiles: personProfile, person_work_hours: personWorkHours, tenant_calendar_days: calendarDay,
   };
 }
 

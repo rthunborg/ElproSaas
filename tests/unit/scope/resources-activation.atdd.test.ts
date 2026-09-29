@@ -7,7 +7,7 @@ import { test } from "node:test";
 
 const manifestModulePath = "../../../src/scope/manifest";
 
-test.skip("[P0] activates resources with its three tenant tables and leaves scheduling surface-free", async () => {
+test("[P0] activates resources with its three tenant tables and leaves scheduling surface-free", async () => {
   const manifestModule = await import(manifestModulePath);
   const manifest = (manifestModule as { SCOPE_MANIFEST?: { modules?: readonly Record<string, unknown>[] } }).SCOPE_MANIFEST;
   const modules = manifest?.modules ?? [];

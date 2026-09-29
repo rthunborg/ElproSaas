@@ -22,6 +22,7 @@ export const TABLE_PROJECTION_CAPABILITIES: Readonly<Record<string, string>> = {
   files: "Files.View", file_links: "Files.View",
   tenant_counters: "Quotes.Create", quotes: "Quotes.View", quote_versions: "Quotes.View", quote_version_lines: "Quotes.View", quote_version_attachments: "Quotes.View", quote_events: "Quotes.View", quote_review_authorizations: "Quotes.Approve", quote_acceptances: "Economy.ViewContributionMargin", quote_lost_reasons: "Quotes.View", quote_follow_ups: "Quotes.View",
   jobs: "Jobs.ViewAll", job_events: "Jobs.ViewAll",
+  person_profiles: "Resources.View", person_work_hours: "Resources.View", tenant_calendar_days: "Resources.View",
 };
 
 /** Existing RLS self-context contract, intentionally broader than Memberships.Manage. */
@@ -230,6 +231,9 @@ export const TABLE_RLS_PROJECTION_ADAPTERS: Readonly<Record<TenantTableName, Tab
   quote_follow_ups: idProjection("quote_follow_ups"),
   jobs: idProjection("jobs"),
   job_events: idProjection("job_events"),
+  person_profiles: idProjection("person_profiles" as TenantTableName),
+  person_work_hours: idProjection("person_work_hours" as TenantTableName),
+  tenant_calendar_days: idProjection("tenant_calendar_days" as TenantTableName),
   // Public token protocol rows are never projected to tenant clients. Their
   // keys still enroll the role harness so manifest activation cannot drift.
   email_unsubscribe_tokens: keyProjection("email_unsubscribe_tokens" as TenantTableName, "id", true),

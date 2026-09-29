@@ -243,6 +243,24 @@ containers by `project_id` (no fixed `container_name`), uses named volumes for t
 Postgres data (no Windows-path bind mounts), and requires no global Docker/WSL
 changes beyond having Docker running.
 
+### Guard-owned disposable Compose test stack
+
+`compose.test.yaml` is an isolated image-based Auth, PostgREST, Storage, and
+gateway stack for agent-run integration evidence. It uses project-scoped named
+volumes, the default Compose network, and high loopback ports (`55421` API and
+`55422` Postgres). Copy `.env.test.example` to ignored `.env.test`, start it
+only through the resource guard, and inspect the guard's Compose operation before
+using it. Apply migrations to the owned database with the supported SQL-only path:
+
+```powershell
+supabase db push --db-url "postgresql://postgres:postgres@127.0.0.1:55422/postgres"
+```
+
+Set `SUPABASE_TEST_URL=http://127.0.0.1:55421` and
+`SUPABASE_TEST_DB_URL=postgresql://postgres:postgres@127.0.0.1:55422/postgres`
+when running test commands. Stop the lifecycle resource through the guard when
+finished; do not use raw Compose or Supabase lifecycle teardown.
+
 ## Lovable oracle policy
 
 The existing **Lovable app is a behavioral oracle and fixture source only —

@@ -27,7 +27,7 @@ async function logIn(page: import("@playwright/test").Page, credentials: RoleFix
   await expect(page).toHaveURL(/\/dashboard$/);
 }
 
-test.skip("[P0] admin persists a same-tenant role and schedule inputs in the existing user-detail route, then reloads server state", async ({ page }) => {
+test("[P0] admin persists a same-tenant role and schedule inputs in the existing user-detail route, then reloads server state", async ({ page }) => {
   const fixture = getFixture();
   await logIn(page, fixture.adminUserManagement.tenantAdmin);
   await page.goto(`/admin/users/${fixture.adminUserManagement.resourceProfileMembershipId}`);
@@ -57,7 +57,7 @@ test.skip("[P1] admin sees a deactivated profile as Inaktiverad without booking 
   await expect(page.getByTestId("resource-reassignment-action")).toHaveCount(0);
 });
 
-test.skip("[P0] at 360×640 a server-observable transient save failure retains unsent input and succeeds only after retry", async ({ page }) => {
+test("[P0] at 360×640 a server-observable transient save failure retains unsent input and succeeds only after retry", async ({ page }) => {
   const fixture = getFixture();
   await page.setViewportSize({ width: 360, height: 640 });
   await logIn(page, fixture.adminUserManagement.tenantAdmin);

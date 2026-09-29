@@ -311,6 +311,12 @@ describe("Migration reset green — tenant_foundation objects present (AC1 / R-0
       "notifications.SELECT",
       "notifications.UPDATE",
       "platform_operators.SELECT",
+      "person_profiles.INSERT",
+      "person_profiles.SELECT",
+      "person_profiles.UPDATE",
+      "person_work_hours.INSERT",
+      "person_work_hours.SELECT",
+      "person_work_hours.UPDATE",
       "quote_acceptances.INSERT",
       "quote_acceptances.SELECT",
       "quote_acceptances.UPDATE",
@@ -341,6 +347,9 @@ describe("Migration reset green — tenant_foundation objects present (AC1 / R-0
       "tenant_counters.INSERT",
       "tenant_counters.SELECT",
       "tenant_counters.UPDATE",
+      "tenant_calendar_days.INSERT",
+      "tenant_calendar_days.SELECT",
+      "tenant_calendar_days.UPDATE",
       "tenant_memberships.ALL",
       "tenant_memberships.SELECT",
       "tenant_memberships.UPDATE",
@@ -427,6 +436,9 @@ describe("Migration reset green — tenant_foundation objects present (AC1 / R-0
       "quote_acceptances",
       "jobs",
       "job_events",
+      "person_profiles",
+      "person_work_hours",
+      "tenant_calendar_days",
     ];
     for (const t of crmSettingsAndPricingTables) {
       expect((cmdsByTable.get(t) ?? []).sort()).toEqual([

@@ -10,6 +10,7 @@ lerna-debug.log*
 .env
 .env.*
 !.env.example
+!.env.test.example
 fixtures/raw-private/
 exports/raw-private/
 tmp/private/

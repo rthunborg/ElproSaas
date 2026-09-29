@@ -153,7 +153,10 @@ export type TenantTableName =
   // Story 10.3 follow-up workflow table (UPDATE-able: SELECT+INSERT+UPDATE grant/policy, NO DELETE →
   // cross-tenant UPDATE is RLS-invisible zero-rows, own-tenant DELETE is a privilege-layer denial;
   // no money/öre column). The load-bearing "rls-invisible" contrast with 10.2's insert-only table.
-  | "quote_follow_ups";
+  | "quote_follow_ups"
+  | "person_profiles"
+  | "person_work_hours"
+  | "tenant_calendar_days";
 
 /**
  * The enrolled tenant-owned tables — the H4 EXPECTED enrolment set. Story 10.1 (ADR-B003 §5.3
@@ -368,6 +371,7 @@ export function updateDenialKind(table: TenantTableName): MutationDenialKind {
     case "notification_preferences":
       return "rls-invisible"; // UPDATE granted; RLS USING hides foreign rows
     default:
+      if (table === "person_profiles" || table === "person_work_hours" || table === "tenant_calendar_days") return "rls-invisible";
       return assertNever(table);
   }
 }
@@ -387,7 +391,7 @@ export function updateDenialKind(table: TenantTableName): MutationDenialKind {
  * against a table that may not carry those columns (which would red/false-green for the
  * wrong reason). [iter-2 review Decision — human-chosen direction: FIX]
  */
-function assertNever(table: never): never {
+function assertNever(table: TenantTableName): never {
   throw new Error(
     `tenant-table-inventory: no metadata branch for enrolled table ` +
       `${JSON.stringify(table)} — add its spoof/filter/mutation/anon metadata in ` +
@@ -842,6 +846,9 @@ export function spoofedRowFor(
     case "membership_admin_operations":
       return { column: "tenant_id", value: ctx.fixture.tenantB.id };
     default:
+      if (table === "person_profiles") return { id: crypto.randomUUID(), tenant_id: fixture.tenantB.id, membership_id: crypto.randomUUID() };
+      if (table === "person_work_hours") return { id: crypto.randomUUID(), tenant_id: fixture.tenantB.id, person_profile_id: crypto.randomUUID(), entry_kind: "weekly_shift", weekday: 1, starts_at: "07:00", ends_at: "16:00" };
+      if (table === "tenant_calendar_days") return { id: crypto.randomUUID(), tenant_id: fixture.tenantB.id, local_date: futureStockholmDay(), variant: "closed" };
       return assertNever(table);
   }
 }
@@ -1104,6 +1111,7 @@ export function tenantBFilter(
     case "email_unsubscribe_rate_limits":
       return { column: "tenant_id", value: ctx.fixture.tenantB.id };
     default:
+      if (table === "person_profiles" || table === "person_work_hours" || table === "tenant_calendar_days") return { column: "tenant_id", value: ctx.fixture.tenantB.id };
       return assertNever(table);
   }
 }
@@ -1221,6 +1229,7 @@ export function hijackMutationFor(
       // ("tenant-b-followup-seed") so the unchanged re-read is meaningful.
       return { note: "hijacked-by-tenant-a" };
     default:
+      if (table === "person_profiles" || table === "person_work_hours" || table === "tenant_calendar_days") return { updated_at: "2099-01-01T00:00:00.000Z" };
       return assertNever(table);
   }
 }
@@ -1335,6 +1344,7 @@ export function rlsInvisibleLabelColumn(table: TenantTableName): string {
     case "tenant_provisioning_invites":
       return "outcome";
     default:
+      if (table === "person_profiles" || table === "person_work_hours" || table === "tenant_calendar_days") return "id";
       return assertNever(table);
   }
 }
@@ -1644,6 +1654,9 @@ export function anonRowFor(
     case "email_unsubscribe_rate_limits":
       return { id: crypto.randomUUID(), tenant_id: fixture.tenantA.id, token_hash: "d".repeat(64), ip_hash: "e".repeat(64), window_started_at: "2026-09-24T00:00:00.000Z" };
     default:
+      if (table === "person_profiles") return { id: crypto.randomUUID(), tenant_id: fixture.tenantA.id, membership_id: crypto.randomUUID() };
+      if (table === "person_work_hours") return { id: crypto.randomUUID(), tenant_id: fixture.tenantA.id, person_profile_id: crypto.randomUUID(), entry_kind: "weekly_shift", weekday: 1, starts_at: "07:00", ends_at: "16:00" };
+      if (table === "tenant_calendar_days") return { id: crypto.randomUUID(), tenant_id: fixture.tenantA.id, local_date: futureStockholmDay(), variant: "closed" };
       return assertNever(table);
   }
 }
@@ -1710,6 +1723,7 @@ export function anonFilterFor(
     case "quote_follow_ups":
       return { column: "tenant_id", value: ctx.fixture.tenantA.id };
     default:
+      if (table === "person_profiles" || table === "person_work_hours" || table === "tenant_calendar_days") return { column: "tenant_id", value: ctx.fixture.tenantA.id };
       return assertNever(table);
   }
 }
@@ -1799,6 +1813,7 @@ export function anonMutationFor(
     case "tenant_provisioning_invites":
       return { outcome: "failed" };
     default:
+      if (table === "person_profiles" || table === "person_work_hours" || table === "tenant_calendar_days") return { updated_at: "2099-01-01T00:00:00.000Z" };
       return assertNever(table);
   }
 }

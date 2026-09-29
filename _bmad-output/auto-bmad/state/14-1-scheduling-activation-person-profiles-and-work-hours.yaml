@@ -9,11 +9,11 @@ spec_folder: null
 story_id: null
 branch: epic/14-wave-b1b-resource-and-scheduling-foundation
 status: in-progress
-updated_at: "2026-09-29T09:15:55Z"
+updated_at: "2026-09-29T09:46:37Z"
 started_at: "2026-09-29T08:45:54Z"
 completed_at: null
-active_seconds: 1798
-timing_anchor: 1790673355
+active_seconds: 3640
+timing_anchor: null
 is_first_in_epic: true
 is_last_in_epic: false
 git_mode: remote
@@ -40,8 +40,8 @@ completed_phases: [0, 1, 2, 3, 4]
 spec_path: "C:\\Users\\Rasmus\\.codex\\worktrees\\epic14-scheduling\\ElproSaas\\_bmad-output\\implementation-artifacts\\spec-14-1-scheduling-activation-person-profiles-and-work-hours.md"
 spec_approved: true
 build:
-  status: ready-for-dev
-  blocking_condition: null
+  status: blocked
+  blocking_condition: HOOK_CONTEXT_UNAVAILABLE / The explicit subagent lifecycle context is not registered.
   followup_review_recommended: false
   review_loop_iteration: 0
   deferred_count: 0
@@ -56,7 +56,7 @@ legacy_review_loop_done: false
 legacy_external_review_iterations: null
 legacy_convergence_unverified: false
 legacy_artifact_path: null
-commits: [b821e42, 2fdca50]
+commits: [b821e42, 2fdca50, 93dbf84]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -82,7 +82,8 @@ branch_deleted: false
 open_questions:
   - "ATDD implementation handoff: reconcile command exports/input-result contracts and server-observable retry-failure seam before activating skipped scenarios; 14 scaffolds currently claim no acceptance evidence."
 deferred_work: []
-blockers: []
+blockers:
+  - HOOK_CONTEXT_UNAVAILABLE / The explicit subagent lifecycle context is not registered.
 overrides:
   epic_start_authorized_by_owner: true
   unattended_run_confirmed_by_owner_request: true

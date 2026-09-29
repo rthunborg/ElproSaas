@@ -98,6 +98,9 @@ export const COMMAND_CAPABILITIES: Readonly<Record<string, CommandCapability>> =
   "file.link.create": { module: "files", capability: "Files.Create" },
   "file.upload": { module: "files", capability: "Files.Create" },
   "file.archive": { module: "files", capability: "Files.Edit" },
+  "resource.person_profile.upsert": { module: "resources", capability: "Resources.Maintain" },
+  "resource.work_hours.save": { module: "resources", capability: "Resources.Maintain" },
+  "resource.calendar_day.save": { module: "resources", capability: "Resources.Maintain" },
 };
 
 /**

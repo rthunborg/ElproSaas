@@ -4,13 +4,13 @@ import { test } from "node:test";
 
 const workHoursModulePath = "../../../../src/features/resources/work-hours";
 
-test.skip("[P0] preserves different daily availability for four-full-day and five-short-day 80-percent templates", async () => {
-  const module = await import(workHoursModulePath) as {
+test("[P0] preserves different daily availability for four-full-day and five-short-day 80-percent templates", async () => {
+  const resourceModule = await import(workHoursModulePath) as {
     scheduledAvailabilityForTemplate?: (input: unknown) => readonly { weekday: number; scheduledMinutes: number }[];
   };
-  assert.ok(module.scheduledAvailabilityForTemplate);
+  assert.ok(resourceModule.scheduledAvailabilityForTemplate);
 
-  const fourFullDays = module.scheduledAvailabilityForTemplate?.({
+  const fourFullDays = resourceModule.scheduledAvailabilityForTemplate?.({
     employmentPercentage: 80,
     shifts: [
       { weekday: 1, start: "07:00", end: "16:00", breaks: [] },
@@ -19,7 +19,7 @@ test.skip("[P0] preserves different daily availability for four-full-day and fiv
       { weekday: 4, start: "07:00", end: "16:00", breaks: [] },
     ],
   });
-  const fiveShortDays = module.scheduledAvailabilityForTemplate?.({
+  const fiveShortDays = resourceModule.scheduledAvailabilityForTemplate?.({
     employmentPercentage: 80,
     shifts: [
       { weekday: 1, start: "07:00", end: "14:12", breaks: [] },
@@ -35,18 +35,18 @@ test.skip("[P0] preserves different daily availability for four-full-day and fiv
   assert.deepEqual(fiveShortDays?.map((day) => day.weekday), [1, 2, 3, 4, 5]);
 });
 
-test.skip("[P0] rejects overlapping or out-of-bound shifts and breaks without deriving hours from employment percentage", async () => {
-  const module = await import(workHoursModulePath) as {
+test("[P0] rejects overlapping or out-of-bound shifts and breaks without deriving hours from employment percentage", async () => {
+  const resourceModule = await import(workHoursModulePath) as {
     validateWorkHoursInput?: (input: unknown) => { ok: boolean };
   };
-  const overlappingShift = module.validateWorkHoursInput?.({
+  const overlappingShift = resourceModule.validateWorkHoursInput?.({
     employmentPercentage: 80,
     shifts: [
       { weekday: 1, start: "07:00", end: "12:00", breaks: [] },
       { weekday: 1, start: "11:30", end: "15:00", breaks: [] },
     ],
   });
-  const invalidBreak = module.validateWorkHoursInput?.({
+  const invalidBreak = resourceModule.validateWorkHoursInput?.({
     shifts: [{ weekday: 1, start: "07:00", end: "16:00", breaks: [{ start: "06:59", end: "07:30" }] }],
   });
 

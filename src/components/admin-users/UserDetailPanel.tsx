@@ -4,8 +4,10 @@ import { useActionState, useRef, useState, type RefObject } from "react";
 import { lifecycleAdminUserAction } from "@/features/admin-users/actions";
 import { ADMIN_USERS_INITIAL, operationIdForAdminUsersSubmit } from "@/features/admin-users/action-state";
 import type { AdminUserDetail } from "@/features/admin-users/read";
+import { PersonSchedulePanel } from "@/components/resources/PersonSchedulePanel";
+import type { ResourceReadResult } from "@/features/resources/read";
 
-export function UserDetailPanel({ detail }: { detail: AdminUserDetail }) {
+export function UserDetailPanel({ detail, resource }: { detail: AdminUserDetail; resource: ResourceReadResult }) {
   const [state, action, pending] = useActionState(lifecycleAdminUserAction, ADMIN_USERS_INITIAL);
   const [showPermissions, setShowPermissions] = useState(false);
   const lifecycleOperation = useRef<HTMLInputElement>(null);
@@ -27,5 +29,6 @@ export function UserDetailPanel({ detail }: { detail: AdminUserDetail }) {
     </form>
     {detail.status === "active" && <form action={submit} className="mt-3 flex flex-wrap gap-2"><input type="hidden" name="membershipId" value={detail.id}/><input ref={reRoleOperation} type="hidden" name="operationId"/><input type="hidden" name="action" value="re_role"/><label>Roller<select name="roles" multiple defaultValue={detail.roles} aria-label="Roller"><option value="tenant_admin">Företagsadmin</option><option value="projektledare">Projektledare</option><option value="montor">Montör</option><option value="saljare">Säljare</option><option value="ekonomi">Ekonomi</option></select></label><label>Orsak<input name="reason" required /></label><button onClick={() => prepareOperation(reRoleOperation, "re_role")} disabled={pending}>Ändra roller</button></form>}
     {state.status !== "idle" && <p role={state.status === "error" ? "alert" : "status"}>{state.message}</p>}
+    <PersonSchedulePanel membershipId={detail.id} inactive={detail.status === "disabled"} profile={resource.profile} workRoles={resource.workRoles}/>
     <ul className="mt-6 divide-y">{detail.events.map((event) => <li key={event.id} className="py-2">{event.eventType} · {event.createdAt}</li>)}</ul></section>;
 }
