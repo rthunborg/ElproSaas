@@ -1,6 +1,6 @@
 # Epic 13 Hosted Rollout — 2026-09-29
 
-Status: **CONTROLLED HOLD — code deployed, database schema not applied, scheduler disabled, observation clocks not started**.
+Status: **CONTROLLED ROLLOUT — code and schema aligned, scheduler enabled, healthy observation started at `2026-09-29T08:15:21.049Z`; 24-hour proof and seven-day reassessment remain pending**.
 
 This is the redacted operational record for the owner-approved closed Epic 13 rollout. It does not authorize real-recipient email, tenant provisioning, pilot activation, retention deletion, hosted integration tests, or manual migration-history repair.
 
@@ -10,12 +10,12 @@ This is the redacted operational record for the owner-approved closed Epic 13 ro
 | --- | --- |
 | Merged code | Complete. GitHub `main` is `78019af39d80627a14e11802ac5dafacd37ac9b5`, merged at `2026-09-29T07:37:01Z`. |
 | Deployed code | Complete. Production deployment `dpl_2DAG69cR31WeAVT8CQvF7MFh1Kuj` is `READY`, serves the production aliases, and was rebuilt from original deployment `dpl_DucLcfpDbC4YE7857XB4uSLuMCz6`. Vercel metadata identifies Git SHA `78019af39d80627a14e11802ac5dafacd37ac9b5` on `main`. |
-| Applied schema | **Blocked.** `elprosaas-demo` still has 62 migrations through `20260922121240_epic_12_function_execute_acl`; none of the 18 Epic 13 migrations is applied. |
-| Scheduled execution | **Paused.** The project-level Vercel Cron Jobs control is disabled. The `/api/jobs/run` definition remains registered at `*/5 * * * *` UTC but cannot run while the control is disabled. |
+| Applied schema | Complete. `elprosaas-demo` has all 80 repository migrations through `20260928110819_epic_13_reviewbot_followup_atomic_job_run_audit_and_config_recovery`; local and remote histories match with no local-only or remote-only versions. |
+| Scheduled execution | Enabled after schema verification. The project-level Vercel Cron Jobs control is enabled for `/api/jobs/run` at `*/5 * * * *` UTC. The first post-enable authentic scheduled request returned HTTP 200. |
 | Real-recipient email | Disabled. The deployed source has a fail-closed release evaluation and the production runner supplies a closed adapter; no real provider submission path is enabled. |
 | Tenant provisioning | Disabled after a bounded corrective change described below. No tenant was provisioned. |
-| Healthy observation | **Not started.** A `READY` deployment without the required schema and authentic successful cron evidence is not a healthy start. |
-| Seven-day reassessment | **Not started.** It begins only after the same recorded healthy operation as the 24-hour observation. |
+| Healthy observation | **Started at `2026-09-29T08:15:21.049Z`.** This is the end of the first successful scheduled database run window, supported by HTTP 200 plus complete durable run/audit evidence. The minimum 24-hour window ends no earlier than `2026-09-30T08:15:21.049Z`; completion is not yet proved. |
+| Seven-day reassessment | Pending. It is due `2026-10-06T08:15:21.049Z`, measured from the same healthy start. |
 
 ## Exact hosted targets
 
@@ -49,7 +49,9 @@ Redacted Vercel checks at `2026-09-29T07:59:41.812Z` established:
 
 Absence of a provider-named environment key is not the primary email control. The deployed `78019af` source is the authority: `evaluateEmailReleaseControl` always returns `allowed: false`, and the scheduled runner injects an adapter that throws if invoked. A future provider secret or passing sandbox evidence cannot open real delivery without a separately approved code/configuration release.
 
-## Database blocker and pending migrations
+## Initial database blocker and migration set
+
+This section records the initial hold before access was restored. The blocker and pending migration set were resolved by the bounded continuation below. Its 62-applied/18-pending state is historical evidence and must not be reused as the current expected state or as an instruction to rerun the pre-push gate. The current authority is the state-separation table above and the dated continuation, which record 80 matched migrations and an active observation window.
 
 Supabase CLI `2.115.0` was run from the clean main checkout with the repository's project-specific `supabase/cli-profile.yaml`. Both `migration list --linked` and `db push --dry-run --linked --skip-vault` stopped before database access with:
 
@@ -80,7 +82,7 @@ The exact pending repository files are:
 17. `20260927140000_preserve_failed_job_checkpoints.sql`
 18. `20260928110819_epic_13_reviewbot_followup_atomic_job_run_audit_and_config_recovery.sql`
 
-## Backlog, recovery, and observation evidence
+## Initial backlog, recovery, and observation evidence
 
 - No Epic 13 durable backlog can be measured because `email_outbox` does not yet exist on the hosted database.
 - No Epic 13 recovery row or job-run/system-audit evidence can be produced because the corresponding tables and RPC are absent.
@@ -90,7 +92,9 @@ The exact pending repository files are:
 
 This is an empty/unavailable backlog state caused by missing schema, not proof of zero eligible work or successful recovery.
 
-## Required continuation and resume gate
+## Initial required continuation and resume gate (completed)
+
+The following historical checklist governed the resume. Its bounded steps through the first healthy scheduled completion were completed without migration-history repair, a reset, customer data, or a manual substitute for scheduled proof. The commands and expected 62-applied/18-pending result below preserve the executed decision trail; they are not the current expected state and must not be rerun on that assumption. Current authority remains the 80-migration matched state and active observation recorded above and in the dated continuation.
 
 1. Refresh the isolated Supabase CLI credential using `supabase/cli-profile.yaml`, or privately supply the hosted database password to the CLI. The credential must be authorized for the exact `wmqmzznmwpheswjjozhq` project. Do not put a token or password in the repository, command output, or this record.
 2. Run `supabase migration list --linked --profile .\supabase\cli-profile.yaml` and confirm the remote remains at `20260922121240` before applying anything.
@@ -101,9 +105,41 @@ This is an empty/unavailable backlog state caused by missing schema, not proof o
 7. Re-enable only this Vercel project's Cron Jobs control. Observe an authentic scheduled invocation rather than manually substituting a request. Require HTTP success plus durable `job_runs` and paired system-audit evidence, due-producer selection, bounded continuation behavior, and the Stockholm business-date path.
 8. Record the first healthy scheduled completion timestamp. Only that timestamp starts the at-least-24-hour observation and seven-day reassessment clocks.
 
+## Continuation — 2026-09-29
+
+All timestamps are UTC.
+
+### Credential and migration execution
+
+- The user refreshed the isolated CLI credential with the repository profile and verified access using `supabase login --profile .\supabase\cli-profile.yaml --name elprosaas-release --agent no`, `supabase projects list --profile .\supabase\cli-profile.yaml`, and `supabase migration list --linked --profile .\supabase\cli-profile.yaml`.
+- The linked target remained exactly `wmqmzznmwpheswjjozhq`. The pre-push history contained 62 remote-applied migrations through `20260922121240` and exactly the 18 repository-only versions listed above; there were no remote-only versions.
+- `supabase db push --dry-run --linked --skip-vault --profile .\supabase\cli-profile.yaml` exited successfully and listed exactly those 18 original versions and names in order. It included no seed or role application.
+- `supabase db push --skip-vault --yes --linked --profile .\supabase\cli-profile.yaml` exited successfully and applied all 18 migrations in that order. Vault, seed data, roles, and existing migration-history rows were not changed separately.
+- The post-push migration list contains 80 matching local and remote versions through `20260928110819`, with no local-only or remote-only entry.
+
+### Bounded schema and release checks
+
+At `2026-09-29T08:11:23.127Z`, read-only hosted metadata established:
+
+- all ten expected tables exist: `job_runs`, `notifications`, `notification_preferences`, `email_outbox`, `email_delivery_events`, `email_suppressions`, `email_unsubscribe_tokens`, `email_unsubscribe_rate_limits`, `email_delivery_artifacts`, and `email_delivery_recoveries`;
+- RLS and forced RLS are enabled on all ten tables;
+- the critical runner/outbox/delivery RPCs exist as security-definer functions, deny anonymous execution, and retain the intended service-role execution grants; the authenticated grants on the two user-authorized application RPCs remain present;
+- the pre-enable hosted counts were zero job runs, zero job system audits, zero unpaired runs, zero outbox rows, and zero delivery-recovery rows.
+
+At `2026-09-29T08:12:13.356Z`, a redacted Vercel API recheck established that production deployment `dpl_2DAG69cR31WeAVT8CQvF7MFh1Kuj` remained `READY`, on `main`, at Git SHA `78019af39d80627a14e11802ac5dafacd37ac9b5`, and had exactly one production provisioning flag whose value compared to `false`. The matching deployed source retains the fail-closed real-recipient email control. No secret value was printed or recorded.
+
+### Scheduler resume and authentic healthy start
+
+- Only the `enhancior/elpro-saas` project Cron Jobs switch was enabled, at `2026-09-29T08:12:49.760Z`, after the schema and release-setting checks passed. The Vercel dashboard visibly confirmed `Enabled` and a successful project-specific change. The schedule remained `/api/jobs/run` at `*/5 * * * *` UTC.
+- The first post-enable authentic scheduled request was a production `GET /api/jobs/run` at `2026-09-29T08:15:17.082Z` on deployment `dpl_2DAG69cR31WeAVT8CQvF7MFh1Kuj`, branch `main`. Vercel recorded HTTP 200. No manual request was used as the success proof.
+- The corresponding hosted database run window was `2026-09-29T08:15:18.856Z` through `2026-09-29T08:15:21.049Z`. It produced three completed `job_runs`: one `jobs.runner` row and two `notifications.email-outbox-delivery` rows. All three had no error summary and each had its matching `job.producer.executed` system audit; paired audits were 3/3 and unpaired rows were zero.
+- The healthy observation therefore starts at the confirmed successful run-window completion, `2026-09-29T08:15:21.049Z`. The minimum 24-hour observation cannot complete before `2026-09-30T08:15:21.049Z`; the seven-day reassessment is due `2026-10-06T08:15:21.049Z`.
+- This first empty-workload success proves authenticated scheduling, deployment/schema alignment, completed producer execution, and atomic run/audit persistence. It does not yet prove 24-hour stability, hourly due-producer behavior, Stockholm business-date selection, a non-empty backlog, recovery handling, or bounded continuation across more eligible tenants. Those remain observation items and must not be manufactured with customer data.
+- No customer email, provider submission, new tenant, customer record, pilot recipient, or pilot workload was created. Real-recipient email remains disabled and tenant provisioning remains false.
+
 ## Disable and rollback controls
 
-- Current containment: project Cron Jobs disabled; tenant provisioning false; real-recipient email code-closed.
+- Current containment: project Cron Jobs enabled only after verified schema alignment; tenant provisioning false; real-recipient email code-closed.
 - Immediate scheduler disable: use the `enhancior/elpro-saas` Project Settings → Cron Jobs project switch and verify it reads `Disabled`.
 - If a migration fails, leave the scheduler disabled and investigate the failed migration. Do not reset the hosted database or repair history blindly.
 - Do not instant-rollback to a historical deployment without checking its embedded environment snapshot. The preceding `dpl_DucLcfpDbC4YE7857XB4uSLuMCz6` carried the unapproved provisioning-enabled value. Any rollback candidate must be rebuilt or independently proven with `TENANT_PROVISIONING_ENABLED=false` before receiving production aliases.
@@ -111,6 +147,6 @@ This is an empty/unavailable backlog state caused by missing schema, not proof o
 
 ## One-tenant pilot preparation and deferred work
 
-The approved one-tenant quote-email pilot remains preparation-only. Pilot tenant identity, recipient set, central From/domain evidence, provider configuration, expected daily volume, busy-hour burst, named operations owner, and operational contacts are still unresolved. No recipient address or credential belongs in this repository record, and no activation is authorized.
+The approved one-tenant quote-email pilot remains preparation-only. The approved planning forecast is 5 quote emails per day with an occasional burst of 10 per hour; the two-times capacity benchmark is 10 per day and 20 per hour. Pilot tenant identity, recipient set, central From/domain evidence, provider configuration, named operations owner, and operational contacts remain unresolved. No recipient address or credential belongs in this repository record, and no activation is authorized.
 
 Retention cleanup remains deferred to E31's central tenant-scoped, dry-run-first, legal-hold-aware, idempotent, audited workflow. No deletion was performed. The separate local infrastructure diagnosis is outside this hosted record.
