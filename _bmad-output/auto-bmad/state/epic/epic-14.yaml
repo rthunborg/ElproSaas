@@ -9,11 +9,11 @@ spec_folder: null
 story_id: null
 branch: epic/14-wave-b1b-resource-and-scheduling-foundation
 status: in-progress
-updated_at: "2026-09-29T09:46:37Z"
+updated_at: "2026-09-29T10:05:28Z"
 started_at: "2026-09-29T08:23:21Z"
 completed_at: null
 active_seconds: 4989
-timing_anchor: null
+timing_anchor: 1790676328
 is_first_in_epic: false
 is_last_in_epic: false
 git_mode: remote
@@ -91,6 +91,9 @@ overrides:
   isolated_managed_worktree: "C:\\Users\\Rasmus\\.codex\\worktrees\\epic14-scheduling\\ElproSaas"
   previous_epic_retro_verdict: accepted
   epic13_observation_continues: true
+  owner_requested_resume_on: 2026-09-29
+  resume_preflight_passed: true
+  root_guard_status_verified: true
 constraints:
   - "Phase B manifest-governed approved Epic14 stories only; maintain hard Phase C exclusions."
   - "Epic13 observation and release gates remain separate; no hosted migrations, deployment or flag changes during this implementation workflow."

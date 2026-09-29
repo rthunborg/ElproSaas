@@ -2,7 +2,7 @@
 title: 'Story 14.1: Resource Activation — Person Profiles and Work Hours'
 type: 'feature'
 created: '2026-09-29'
-status: 'blocked'
+status: 'in-progress'
 baseline_revision: '93dbf8432d420ecf6fcd29e732be7ca136801534'
 review_loop_iteration: 0
 followup_review_recommended: false
