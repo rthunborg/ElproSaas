@@ -9,7 +9,7 @@ spec_folder: null
 story_id: null
 branch: epic/13-wave-b1a-notifications-and-email-infrastructure
 status: done
-updated_at: "2026-09-29T14:38:58Z"
+updated_at: "2026-09-30T08:38:17Z"
 started_at: "2026-09-23T10:29:03Z"
 completed_at: "2026-09-24T18:57:24Z"
 active_seconds: 45145
@@ -18,15 +18,15 @@ is_first_in_epic: false
 is_last_in_epic: false
 git_mode: remote
 base_branch: main
-selected_phase: hosted_failure_diagnostic_record
-selected_role: diagnostic-writer
+selected_phase: hosted_observation_completion_record
+selected_role: observation-writer
 selected_profile: default
 selected_model: gpt-5.6-terra
 selected_effort: medium
 selected_host: codex
 selected_tier: subagents
 selected_route: subagent
-escalation_reason: "Document completed owner-authorized read-only diagnostic review: cursor query Data API504 confirmed, deeper root cause unestablished, no justified source fix or release mutation."
+escalation_reason: "Record completed owner-authorized 24-hour hosted observation with one persisted failure, observed Stockholm midnight scheduler cadence, and explicit unmeasured workload and latency limitations."
 routing_ledger:
   - "{\"effort\":\"xhigh\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-sol\",\"phase\":\"tea_epic\",\"profile\":\"critical\",\"role\":\"tea-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
   - "{\"effort\":\"medium\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-luna\",\"phase\":\"tea_triage\",\"profile\":\"light\",\"role\":\"test-risk-triage\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
@@ -60,6 +60,7 @@ routing_ledger:
   - "{\"effort\":\"medium\",\"escalation_reason\":\"Owner-authorized read-only pilot heartbeat; document newly observed 09:00 hourly producer execution and bounded health evidence without changing release gates or historical completion.\",\"host\":\"codex\",\"model\":\"gpt-5.6-terra\",\"phase\":\"hosted_observation_record\",\"profile\":\"default\",\"role\":\"observation-writer\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
   - "{\"effort\":\"high\",\"escalation_reason\":\"Owner explicitly approved bounded read-only diagnosis of the 12:50 UTC producer cursor lookup failure; source and aggregate hosted evidence only, no release mutation.\",\"host\":\"codex\",\"model\":\"gpt-5.6-terra\",\"phase\":\"hosted_failure_diagnosis\",\"profile\":\"standard\",\"role\":\"failure-diagnostician\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
   - "{\"effort\":\"medium\",\"escalation_reason\":\"Document completed owner-authorized read-only diagnostic review: cursor query Data API504 confirmed, deeper root cause unestablished, no justified source fix or release mutation.\",\"host\":\"codex\",\"model\":\"gpt-5.6-terra\",\"phase\":\"hosted_failure_diagnostic_record\",\"profile\":\"default\",\"role\":\"diagnostic-writer\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"medium\",\"escalation_reason\":\"Record completed owner-authorized 24-hour hosted observation with one persisted failure, observed Stockholm midnight scheduler cadence, and explicit unmeasured workload and latency limitations.\",\"host\":\"codex\",\"model\":\"gpt-5.6-terra\",\"phase\":\"hosted_observation_completion_record\",\"profile\":\"default\",\"role\":\"observation-writer\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
 tea_risk: null
 tea_selected: []
 tea_rationale: null
@@ -112,7 +113,7 @@ open_questions:
   - "Pilot company workspace, sender identity, initial recipients, operations owner and measured batch size remain pending."
   - "The 12:50 UTC cursor failure diagnostic review is complete: a Data API HTTP504 was confirmed; the deeper database/PostgREST/network root cause remains unestablished."
 deferred_work:
-  - "Complete at least 24h closed hosted observation from 2026-09-29T08:15:21.049Z and seven-day operating review due no earlier than 2026-10-06T08:15:21.049Z. Six hourly execution windows observed from09:00 through14:00 UTC Sep29; 24h stability, due-notification freshness, loaded tenant continuation, full invocation duration and Stockholm calendar proof remain unverified."
+  - "Seven-day operating review due no earlier than 2026-10-06T08:15:21.049Z. The 24-hour closed observation completed with one cursor failure and later ordinary successes; root cause, full invocation duration, due-work freshness, loaded tenant continuation, recovery and email capacity remain unverified."
   - "Real-recipient delivery stays disabled pending separate ADR-B011 approval, provider idempotency and real rendered unsubscribe URLs."
   - "Central retention-policy deferral is preserved; local migration-history repair remains a separate maintenance decision."
 blockers: []
@@ -128,7 +129,7 @@ overrides:
   owner_release_decisions_approved_on: 2026-09-29
   controlled_hosted_rollout_approved: true
   local_read_only_maintenance_task_created: true
-  hosted_rollout_status: observing_after_verified_healthy_start
+  hosted_rollout_status: observation_completed_with_recorded_failure_and_evidence_gaps
   hosted_cron_paused: false
   tenant_provisioning_disabled_verified: true
   hosted_deployment_id: dpl_2DAG69cR31WeAVT8CQvF7MFh1Kuj
@@ -138,7 +139,7 @@ overrides:
   observation_started: true
   observation_automation_id: epic-13-hosted-pilot-observation
   seven_day_review_automation_id: epic-13-seven-day-operating-review
-  observation_automations_paused: false
+  observation_automations_paused: true
   local_read_only_maintenance_task_completed: true
   local_read_only_maintenance_thread_id: 01a0ec1e-37cf-7591-8e75-73637c275448
   owner_decisions_pr_url: "https://github.com/rthunborg/ElproSaas/pull/76"
@@ -157,24 +158,24 @@ overrides:
   healthy_completed_run_count: 3
   healthy_paired_audit_count: 3
   healthy_unpaired_audit_count: 0
-  hosted_observation_last_checkpoint_utc: "2026-09-29T14:16:04.338493Z"
-  hosted_observation_completed_run_count: 229
-  hosted_observation_runner_completions: 72
-  hosted_observation_latest_success_utc: "2026-09-29T14:15:23.976Z"
+  hosted_observation_last_checkpoint_utc: "2026-09-30T08:32:44.763746Z"
+  hosted_observation_completed_run_count: 912
+  hosted_observation_runner_completions: 287
+  hosted_observation_latest_success_utc: "2026-09-30T08:10:21.287Z"
   hosted_observation_max_completion_gap_seconds: "599.186"
   hosted_observation_unpaired_run_count: 0
   hosted_observation_hourly_execution_observed_utc: "2026-09-29T09:00:18.982Z"
   hosted_observation_full_invocation_duration_verified: false
   hosted_observation_duplicate_audit_count: 0
-  hosted_observation_hourly_windows_observed: 6
-  hosted_observation_hourly_run_count: 12
+  hosted_observation_hourly_windows_observed: 24
+  hosted_observation_hourly_run_count: 48
   hosted_observation_off_hour_reminder_count: 0
   hosted_observation_later_success_observed_utc: "2026-09-29T12:55:20.860Z"
   hosted_observation_failure_category: Producer cursor lookup failed
   hosted_observation_failure_diagnostic_review_status: completed_root_cause_unestablished
   hosted_observation_failed_run_count: 2
   hosted_observation_error_summary_count: 1
-  hosted_observation_total_run_count: 231
+  hosted_observation_total_run_count: 914
   hosted_observation_failure_window_utc: "2026-09-29T12:50:17.589Z"
   owner_authorized_guard_repair_and_failure_diagnosis: true
   hosted_observation_failure_specific_code_fix_justified: false
@@ -182,6 +183,17 @@ overrides:
   hosted_observation_failure_upstream_status: 504
   hosted_observation_failure_upstream_origin_time_ms: 8035
   hosted_observation_failure_diagnostic_completed_at: "2026-09-29T14:34:00Z"
+  hosted_observation_loaded_continuation_verified: false
+  seven_day_review_automation_active: true
+  hosted_observation_email_capacity_measured: false
+  hosted_observation_clean_period_proved: false
+  hosted_observation_completed_at: "2026-09-30T08:32:44.763746Z"
+  hosted_observation_stockholm_due_date_behavior_verified: false
+  hosted_observation_stockholm_midnight_scheduler_cadence_observed: true
+  hosted_observation_recovery_count: 0
+  hosted_observation_minimum_cutoff_reached: true
+  hosted_observation_notification_count: 0
+  hosted_observation_outbox_count: 0
 constraints: []
 epic_slug: wave-b1a-notifications-and-email-infrastructure
 active_story: null
