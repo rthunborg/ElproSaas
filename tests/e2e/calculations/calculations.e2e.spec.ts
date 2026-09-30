@@ -172,8 +172,9 @@ test.describe("Calculation editor UX (Story 5.2 E2E)", () => {
     const editor = page.getByTestId("calculation-editor");
     await expect(editor).toBeVisible();
     // None of the deferred-workflow / supplier / AI / analytics vocabularies appear.
+    // Match AI as a whole label, not a generated customer/project token ending in "ai".
     await expect(
-      editor.getByText(/fältarbetare|projektplan|ÄTA|leverantör|supplier|fortnox|import|synk|AI\b|analys/i),
+      editor.getByText(/fältarbetare|projektplan|ÄTA|leverantör|supplier|fortnox|import|synk|\bAI\b|analys/i),
     ).toHaveCount(0);
     // NOTE: the pricing-SOURCE selection ("Prislista" / "Källa") is Story 5.3's IN-scope
     // affordance — it is now PRESENT in the editor (see calculation-source-selection.e2e.spec.ts,
