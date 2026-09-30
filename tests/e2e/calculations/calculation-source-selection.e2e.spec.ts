@@ -158,8 +158,9 @@ test.describe("Calculation row pricing-source selection (Story 5.3 E2E / AC6)", 
     await expect(
       editor.getByText(/leverantör|supplier|fortnox|import|synk|api\b|kreditiv|credential/i),
     ).toHaveCount(0);
+    // Match AI as a whole label, not a generated customer/project token ending in "ai".
     await expect(
-      editor.getByText(/fältarbetare|projektplan|ÄTA|AI\b/i),
+      editor.getByText(/fältarbetare|projektplan|ÄTA|\bAI\b/i),
     ).toHaveCount(0);
   });
 
