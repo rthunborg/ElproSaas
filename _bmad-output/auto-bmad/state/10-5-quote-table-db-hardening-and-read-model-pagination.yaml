@@ -9,11 +9,11 @@ spec_folder: null
 story_id: null
 branch: story/10-5-quote-table-db-hardening-and-read-model-pagination
 status: done
-updated_at: "2026-09-02T18:08:58Z"
+updated_at: "2026-09-03T05:51:32Z"
 started_at: "2026-09-02T09:44:31Z"
 completed_at: "2026-09-02T18:08:58Z"
-active_seconds: 7294
-timing_anchor: 1788370650
+active_seconds: 9223
+timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
 git_mode: remote
@@ -86,10 +86,10 @@ bmad_status_flipped_at: 9
 pr_url: "https://github.com/rthunborg/ElproSaas/pull/46"
 ci_run_url: "https://github.com/rthunborg/ElproSaas/actions/runs/33664298808"
 ci_status: passed
-pr_merged: false
-merge_method: null
-merge_commit: null
-branch_deleted: false
+pr_merged: true
+merge_method: merge
+merge_commit: 88d393fa64634ad115a7983eb487b7f6941d38ea
+branch_deleted: true
 open_questions: []
 deferred_work:
   - "Manifest EpicRef closed-union/range validation is governance polish, not quote-table or pagination work."

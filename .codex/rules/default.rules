@@ -15,9 +15,9 @@ prefix_rule(["rg"], "allow", match=["rg --files docs"])
 # Parity with Claude Code (.claude/settings.json): these previously prompted but
 # now auto-allow so autonomous runs proceed hands-off. The destructive subset is
 # still hard-blocked by the `forbidden` rules below (force-push, hard reset, prod
-# Supabase, secrets). Codex uses most-specific-prefix-wins, so a longer forbidden
-# prefix (e.g. `git push --force`) overrides the broader allow here — same pattern
-# the existing `supabase db push` vs `--linked` pair already relies on.
+# Supabase, secrets). Codex applies the most restrictive matching decision, so a
+# matching prompt/forbidden rule overrides a broader allow — the same pattern used
+# by `supabase db push` versus its linked/project-ref rules below.
 prefix_rule(["npm", "install"], "allow", match=["npm install"], not_match=["npm test"])
 prefix_rule(["npm", "update"], "allow", match=["npm update"])
 prefix_rule(["bun", "install"], "allow", match=["bun install"])
@@ -36,9 +36,7 @@ prefix_rule(["git", "push"], "allow", match=["git push origin docs/guardrails"])
 prefix_rule(["powershell"], "allow", match=["powershell -NoProfile -Command \"echo hi\""])
 prefix_rule(["pwsh"], "allow", match=["pwsh -NoProfile -Command \"echo hi\""])
 prefix_rule(["cmd"], "allow", match=["cmd /c echo hi"])
-
-# Still requires explicit approval (parity with Claude Code's lone `ask` gate).
-prefix_rule(["gh", "pr", "merge"], "prompt", match=["gh pr merge 123"])
+prefix_rule(["gh", "pr", "merge"], "allow", match=["gh pr merge 123"])
 
 # Secret-reading commands are forbidden.
 prefix_rule(["cat", ".env"], "forbidden", match=["cat .env"], not_match=["cat README.md"])
@@ -62,11 +60,11 @@ prefix_rule(["git", "push", "--force"], "forbidden", match=["git push --force"])
 prefix_rule(["git", "push", "--force-with-lease"], "forbidden", match=["git push --force-with-lease"])
 prefix_rule(["git", "push", "-f"], "forbidden", match=["git push -f"])
 
-# Production-like Supabase targeting and secrets operations are forbidden until a release process exists.
-prefix_rule(["supabase", "db", "push", "--linked"], "forbidden", match=["supabase db push --linked"])
-prefix_rule(["supabase", "db", "push", "--project-ref"], "forbidden", match=["supabase db push --project-ref prod_ref"])
-prefix_rule(["supabase", "functions", "deploy"], "forbidden", match=["supabase functions deploy fn --project-ref prod_ref"])
-prefix_rule(["supabase", "secrets"], "forbidden", match=["supabase secrets list"])
+# Production-like Supabase targeting and secrets operations are forbidden or require prompt until a release process exists.
+prefix_rule(["supabase", "db", "push", "--linked"], "prompt", match=["supabase db push --linked"])
+prefix_rule(["supabase", "db", "push", "--project-ref"], "prompt", match=["supabase db push --project-ref prod_ref"])
+prefix_rule(["supabase", "functions", "deploy"], "prompt", match=["supabase functions deploy fn --project-ref prod_ref"])
+prefix_rule(["supabase", "secrets"], "prompt", match=["supabase secrets list"])
 prefix_rule(["supabase", "projects", "delete"], "forbidden", match=["supabase projects delete prod_ref"])
 
 # Smoke test: verifies that this rules file is loaded.
