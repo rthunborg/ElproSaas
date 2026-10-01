@@ -9,10 +9,10 @@ spec_folder: null
 story_id: null
 branch: epic/14-wave-b1b-resource-and-scheduling-foundation
 status: in-progress
-updated_at: "2026-09-29T14:40:33Z"
+updated_at: "2026-10-01T13:00:26Z"
 started_at: "2026-09-29T08:23:21Z"
 completed_at: null
-active_seconds: 8288
+active_seconds: 8731
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -58,7 +58,7 @@ legacy_review_loop_done: false
 legacy_external_review_iterations: null
 legacy_convergence_unverified: false
 legacy_artifact_path: null
-commits: [21ae8d7, "7548809", b821e42, 2fdca50]
+commits: [21ae8d7, "7548809", b821e42, 2fdca50, a98153f, 8a260ae]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -91,12 +91,16 @@ overrides:
   isolated_managed_worktree: "C:\\Users\\Rasmus\\.codex\\worktrees\\epic14-scheduling\\ElproSaas"
   previous_epic_retro_verdict: accepted
   epic13_observation_continues: true
-  owner_requested_resume_on: 2026-09-29
+  owner_requested_resume_on: 2026-10-01
   resume_preflight_passed: true
   root_guard_status_verified: true
   owner_authorized_guard_repair_and_failure_diagnosis: true
-  local_guard_diagnostic_status: completed_no_supported_repair
+  local_guard_diagnostic_status: completed_retained_registration_refusal
   isolated_service_and_schema_readiness_verified: false
+  root_guard_stop_requested: true
+  owner_confirmed_guard_fix_deployed: true
+  root_guard_resource_id: 50e9273a-c10b-4f1c-9022-7d6d823ee043
+  owner_confirmed_all_prs_merged: true
 constraints:
   - "Phase B manifest-governed approved Epic14 stories only; maintain hard Phase C exclusions."
   - "Epic13 observation and release gates remain separate; no hosted migrations, deployment or flag changes during this implementation workflow."

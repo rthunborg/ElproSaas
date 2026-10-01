@@ -47,3 +47,18 @@ The failure reproduces before the guard exposes a Compose project, service-level
 ## Required continuation condition
 
 A host/runtime maintainer must expose the worker exception and repair the supported guard startup path. Before `/auto-bmad epic --epic 14` resumes, that repaired path must demonstrate that the isolated services and schema are ready. Until then, the Story 14.1 integration/RLS and browser evidence remains unexecuted, review round count remains zero, and Phase 5 is incomplete.
+
+## Recovery checkpoint — 2026-10-01
+
+The deployed guard `0.9.15` admitted a root-owned attempt for the same private Compose file and guard project (`rg-5d1e5b8fb28e4c7805b8217575533233ee377234`) as lifecycle resource `50e9273a-c10b-4f1c-9022-7d6d823ee043` at `2026-10-01T12:50:58.1615681Z`. It reached stopped at `2026-10-01T12:50:58.8405642Z`; the accepted Stop confirms that attempt closed, not that the prior retained registration was repaired.
+
+The authoritative `startOutcome` establishes the current blocker without attributing a Compose-service failure: `attemptDisposition=refused_before_backend`, `backendInvocation=not_attempted`, and `temporaryUsage=not_acquired`. The retained reference is `partial`, `retainedLiveState=unknown`, `diagnosticCode=RETAINED_START_INCOMPLETE`, and `recoveryRoute=new_registration_requires_choice`. The compose operation is `failed/prelaunch-failed/retained-restart` with `dispatchCommitted=true`. Consequently this attempt has no service or schema readiness result to use for Story 14.1.
+
+Read-only Docker evidence does not identify a faulty Compose configuration. The guarded private `compose.test.yaml` is byte-identical to the repository source and declares `db`, `auth`, `rest`, `storage`, and `gateway`, plus the two project-owned named volumes. The retained REST container logged a successful PostgreSQL connection and schema-cache growth from 5 to 33 relations and from 3 to 18 RPCs, with no captured fatal diagnostic and no Docker `State.Error`. Its later `255` exit is stop evidence, not the root cause. The retained database and storage volumes are still local-driver, project-scoped, and guard-managed; no volume content was inspected, reset, removed, or changed.
+
+### Recovery options
+
+1. **Recommended:** repair or explicitly reconcile the guard's retained registration while preserving the existing Compose identity and both named volumes. The available evidence supports no Compose-file or data correction.
+2. **Only if a clean-data run is intentionally selected:** use a guard-supported new registration with fresh project-scoped volumes, while preserving the existing volumes untouched. This option discards no data but cannot use the retained database as verified test state; migrations and service readiness must be demonstrated again before integration or browser execution.
+
+Do not change the Compose working directory, edit Compose configuration, remove containers or volumes, or infer runtime readiness from this checkpoint. A supported guard recovery or an explicit clean-data choice remains necessary before Phase 5 can resume.
