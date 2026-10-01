@@ -1,6 +1,6 @@
 # ADR-B011: Epic 13 Email Release and Quote Delivery
 
-Status: decided for implementation — 2026-09-23; owner amendments recorded 2026-09-24 and 2026-09-27. Real-recipient email go-live remains separately owner-gated.
+Status: decided for implementation — 2026-09-23; owner amendments recorded 2026-09-24, 2026-09-27, and 2026-09-29. Real-recipient email go-live remains separately owner-gated.
 
 Scope: Epic 13, especially Story 13.4. N-6's central sender identity, tenant Reply-To, flow priority, reminder-stop rules, and delivery logging remain in force. This decision reconciles the implementation sequence with Phase B's public-surface and customer online-acceptance exclusions.
 
@@ -31,6 +31,16 @@ The later go-live record must confirm domain authentication, the exact From and 
 ### Owner operational record — 2026-09-27
 
 The owner reported that the Vercel team billing plan is Pro and active. A new production-only `CRON_SECRET` was provisioned as a 32-byte CSPRNG value and verified by name/type without exposing its value. No production redeploy occurred; deployed `main` remains `0b4e37e`, which predates the Epic 13 runner, and production cron definitions are empty. These are scheduler-readiness inputs only. Scheduled-run verification remains post-merge deployment evidence, and neither record authorizes real-recipient email.
+
+### Owner release amendment — 2026-09-29
+
+The owner approved merge commit `78019af39d80627a14e11802ac5dafacd37ac9b5` (merged 2026-09-29T07:37:01Z; parents `0b4e37e` and `29880f1`) and a controlled hosted rollout with real-recipient email disabled. The rollout is to be observed for at least 24 hours. This is approval to merge and deploy the closed delivery implementation, not confirmation that deployment, migrations, or the 24-hour observation have completed.
+
+The owner adopted the following internal pilot operating targets. They are targets for operational assessment, not measured guarantees or a customer SLA: runner missing-success warning at 15 minutes and escalation at 30 minutes; 95% runtime below 30 seconds while retaining the existing approximate 45-second budget; five-minute producers with eligible-work freshness at most 15 minutes; hourly reminders at most 75 minutes; tenant fairness under the same freshness bounds, with sustained deferral investigated; future eligible live-email submission within 15 minutes excluding retry and suppression time; failure and recovery review within one business day; and capacity testing at the accepted planning forecast of five app-generated quote emails per day with an occasional peak of ten in an hour, plus the two-times-forecast benchmark of ten per day and twenty per hour. The forecast and benchmark are planning inputs only, not measured telemetry, a customer SLA, or real-email approval. The seven-day reassessment clock starts only when a healthy deployed pilot operation is recorded, not at story completion or merge.
+
+The owner approved preparation of a one-tenant quote-email pilot only. Real-recipient activation remains a separate approval. Before that approval, the record must identify the real recipient sender identity, tenant, recipients, and operations owner. The accepted planning forecast is five app-generated quote emails per day with an occasional peak of ten in an hour; do not infer a batch size from it. Central From with tenant Reply-To remains policy; the precise sender identity remains pending. Keep the existing Supabase Auth invitation and security-email path. A tenant is an electrical-contractor company workspace, never its end customers. Each quote sent to a distinct recipient, and each resend, counts as a separate email. Do not commit credentials or customer addresses.
+
+Global retention cleanup remains deferred to E31's central retention-policy workflow. No arbitrary deletion is authorized. The separately created local maintenance task begins with read-only diagnosis only.
 
 ## Engineering details still open
 

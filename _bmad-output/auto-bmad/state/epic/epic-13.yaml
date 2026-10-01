@@ -9,24 +9,24 @@ spec_folder: null
 story_id: null
 branch: epic/13-wave-b1a-notifications-and-email-infrastructure
 status: done
-updated_at: "2026-09-28T12:48:16Z"
+updated_at: "2026-09-30T08:38:17Z"
 started_at: "2026-09-23T10:29:03Z"
 completed_at: "2026-09-24T18:57:24Z"
-active_seconds: 44064
+active_seconds: 45145
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
 git_mode: remote
 base_branch: main
-selected_phase: tea_epic
-selected_role: tea-delegate
-selected_profile: critical
-selected_model: gpt-5.6-sol
-selected_effort: xhigh
+selected_phase: hosted_observation_completion_record
+selected_role: observation-writer
+selected_profile: default
+selected_model: gpt-5.6-terra
+selected_effort: medium
 selected_host: codex
 selected_tier: subagents
 selected_route: subagent
-escalation_reason: "Metadata-only execution-evidence closure after CI36423047278 passes corrected test88eadaf at0a7afbe; preserve trace counts and failed/local provenance, no retest or review"
+escalation_reason: "Record completed owner-authorized 24-hour hosted observation with one persisted failure, observed Stockholm midnight scheduler cadence, and explicit unmeasured workload and latency limitations."
 routing_ledger:
   - "{\"effort\":\"xhigh\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-sol\",\"phase\":\"tea_epic\",\"profile\":\"critical\",\"role\":\"tea-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
   - "{\"effort\":\"medium\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-luna\",\"phase\":\"tea_triage\",\"profile\":\"light\",\"role\":\"test-risk-triage\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
@@ -53,6 +53,14 @@ routing_ledger:
   - "{\"effort\":\"high\",\"escalation_reason\":\"Current CI36421169336 failed only new mark-all Bell E2E at button locator; bounded diagnosis/fix and author evidence settlement, no broad review\",\"host\":\"codex\",\"model\":\"gpt-5.6-terra\",\"phase\":\"followup_review\",\"profile\":\"standard\",\"role\":\"primary-reviewer\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
   - "{\"effort\":\"xhigh\",\"escalation_reason\":\"Changed-lines-only inspection of test88eadaf after CI fixture contamination failure; preserve POST/reload failure assertions and validate isolated projectManager fixture, no broad pass\",\"host\":\"codex\",\"model\":\"gpt-5.6-sol\",\"phase\":\"final_convergence\",\"profile\":\"critical\",\"role\":\"final-convergence\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
   - "{\"effort\":\"xhigh\",\"escalation_reason\":\"Metadata-only execution-evidence closure after CI36423047278 passes corrected test88eadaf at0a7afbe; preserve trace counts and failed/local provenance, no retest or review\",\"host\":\"codex\",\"model\":\"gpt-5.6-sol\",\"phase\":\"tea_epic\",\"profile\":\"critical\",\"role\":\"tea-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"medium\",\"escalation_reason\":\"Owner approved six release/operating decisions on2026-09-29; document governance and pilot preparation without source changes\",\"host\":\"codex\",\"model\":\"gpt-5.6-terra\",\"phase\":\"owner_decision_record\",\"profile\":\"default\",\"role\":\"decision-writer\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"xhigh\",\"escalation_reason\":\"Owner-approved hosted migration/deployment and authenticated scheduler proof after merge78019af; preserve real-email and provisioning release gates, followed by24h observation\",\"host\":\"codex\",\"model\":\"gpt-5.6-sol\",\"phase\":\"hosted_rollout\",\"profile\":\"critical\",\"role\":\"release-operator\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"medium\",\"escalation_reason\":\"Owner accepted email pilot forecast of5 per day and occasional10 per hour on2026-09-29; record volume decision before resuming approved hosted rollout\",\"host\":\"codex\",\"model\":\"gpt-5.6-terra\",\"phase\":\"owner_decision_record\",\"profile\":\"default\",\"role\":\"decision-writer\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"xhigh\",\"escalation_reason\":\"Supabase CLI database access restored and verified2026-09-29; continue owner-approved18 migrations and authenticated scheduler readiness with email/provisioning disabled, then24h observation\",\"host\":\"codex\",\"model\":\"gpt-5.6-sol\",\"phase\":\"hosted_rollout\",\"profile\":\"critical\",\"role\":\"release-operator\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"medium\",\"escalation_reason\":\"Owner-authorized read-only pilot heartbeat; document newly observed 09:00 hourly producer execution and bounded health evidence without changing release gates or historical completion.\",\"host\":\"codex\",\"model\":\"gpt-5.6-terra\",\"phase\":\"hosted_observation_record\",\"profile\":\"default\",\"role\":\"observation-writer\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"high\",\"escalation_reason\":\"Owner explicitly approved bounded read-only diagnosis of the 12:50 UTC producer cursor lookup failure; source and aggregate hosted evidence only, no release mutation.\",\"host\":\"codex\",\"model\":\"gpt-5.6-terra\",\"phase\":\"hosted_failure_diagnosis\",\"profile\":\"standard\",\"role\":\"failure-diagnostician\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"medium\",\"escalation_reason\":\"Document completed owner-authorized read-only diagnostic review: cursor query Data API504 confirmed, deeper root cause unestablished, no justified source fix or release mutation.\",\"host\":\"codex\",\"model\":\"gpt-5.6-terra\",\"phase\":\"hosted_failure_diagnostic_record\",\"profile\":\"default\",\"role\":\"diagnostic-writer\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"medium\",\"escalation_reason\":\"Record completed owner-authorized 24-hour hosted observation with one persisted failure, observed Stockholm midnight scheduler cadence, and explicit unmeasured workload and latency limitations.\",\"host\":\"codex\",\"model\":\"gpt-5.6-terra\",\"phase\":\"hosted_observation_completion_record\",\"profile\":\"default\",\"role\":\"observation-writer\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
 tea_risk: null
 tea_selected: []
 tea_rationale: null
@@ -78,7 +86,7 @@ legacy_review_loop_done: false
 legacy_external_review_iterations: null
 legacy_convergence_unverified: false
 legacy_artifact_path: null
-commits: [cdbb68a, e996cde, 9650f72, 391624b, 211bf68, 24d0d19, e11d24a, 61f2394, 4024cbe, b75b155, 83da25f, 73407ac, b06c3ca, 2664d7b, 8a1eb8c, 2f374f9, f226415, 46d9b67, d770780, 0c28b14, c1020e9, b374437, 822a67d, 762c547, 71fa10a, 6d81c2a, b8b0241, a2d2d9a, ed43933, 54181ab, 5bd0dae, e65b985, 8ee25ef, a6c4825, 2a7444f, 783701a, b299024, 04d709b, 00ac840, 8b20933, 79e5550, cf73891, 5a529b4, bc54b11, 88eadaf, ccd780d, 68b55c0, 0a7afbe]
+commits: [cdbb68a, e996cde, 9650f72, 391624b, 211bf68, 24d0d19, e11d24a, 61f2394, 4024cbe, b75b155, 83da25f, 73407ac, b06c3ca, 2664d7b, 8a1eb8c, 2f374f9, f226415, 46d9b67, d770780, 0c28b14, c1020e9, b374437, 822a67d, 762c547, 71fa10a, 6d81c2a, b8b0241, a2d2d9a, ed43933, 54181ab, 5bd0dae, e65b985, 8ee25ef, a6c4825, 2a7444f, 783701a, b299024, 04d709b, 00ac840, 8b20933, 79e5550, cf73891, 5a529b4, bc54b11, 88eadaf, ccd780d, 68b55c0, 0a7afbe, 8780bc9, fc4f167, 20749ea, ffa2b41, 5c0e281, 7e1d820, c7976ef]
 phase8_steps:
   trace_gate: done
   nfr: done
@@ -97,15 +105,17 @@ bmad_status_flipped_at: 82
 pr_url: "https://github.com/rthunborg/ElproSaas/pull/75"
 ci_run_url: "https://github.com/rthunborg/ElproSaas/actions/runs/36423047278"
 ci_status: passed
-pr_merged: false
-merge_method: null
-merge_commit: null
+pr_merged: true
+merge_method: merge
+merge_commit: 78019af39d80627a14e11802ac5dafacd37ac9b5
 branch_deleted: false
 open_questions:
-  - Numeric operating targets remain owner-pending operational contracts.
+  - "Pilot company workspace, sender identity, initial recipients, operations owner and measured batch size remain pending."
+  - "The 12:50 UTC cursor failure diagnostic review is complete: a Data API HTTP504 was confirmed; the deeper database/PostgREST/network root cause remains unestablished."
 deferred_work:
+  - "Seven-day operating review due no earlier than 2026-10-06T08:15:21.049Z. The 24-hour closed observation completed with one cursor failure and later ordinary successes; root cause, full invocation duration, due-work freshness, loaded tenant continuation, recovery and email capacity remain unverified."
   - "Real-recipient delivery stays disabled pending separate ADR-B011 approval, provider idempotency and real rendered unsubscribe URLs."
-  - "Observe authenticated production cron after merge/deployment; Pro and production-only sensitive CRON_SECRET are verified."
+  - "Central retention-policy deferral is preserved; local migration-history repair remains a separate maintenance decision."
 blockers: []
 overrides:
   post_completion_remediation: true
@@ -114,6 +124,76 @@ overrides:
   resumed_on: 2026-09-28
   review_bot_followup: "2026-09-28: five additional owner-supplied findings at 8ee25ef; targeted fixes and direct regressions"
   independent_transport_fallback: "Configured Luna CLI exited1 with no output after bounded ten-minute wait; same Luna/xhigh review completed through native subagents; confirmed regression fixed"
+  real_email_activation_approved: false
+  pilot_targets_approved: true
+  owner_release_decisions_approved_on: 2026-09-29
+  controlled_hosted_rollout_approved: true
+  local_read_only_maintenance_task_created: true
+  hosted_rollout_status: observation_completed_with_recorded_failure_and_evidence_gaps
+  hosted_cron_paused: false
+  tenant_provisioning_disabled_verified: true
+  hosted_deployment_id: dpl_2DAG69cR31WeAVT8CQvF7MFh1Kuj
+  hosted_deployment_source: 78019af39d80627a14e11802ac5dafacd37ac9b5
+  hosted_migration_count: 80
+  hosted_pending_epic13_migrations: 0
+  observation_started: true
+  observation_automation_id: epic-13-hosted-pilot-observation
+  seven_day_review_automation_id: epic-13-seven-day-operating-review
+  observation_automations_paused: true
+  local_read_only_maintenance_task_completed: true
+  local_read_only_maintenance_thread_id: 01a0ec1e-37cf-7591-8e75-73637c275448
+  owner_decisions_pr_url: "https://github.com/rthunborg/ElproSaas/pull/76"
+  pilot_forecast_approved_on: 2026-09-29
+  pilot_forecast_emails_per_day: 5
+  pilot_forecast_peak_emails_per_hour: 10
+  pilot_capacity_benchmark_emails_per_day: 10
+  pilot_capacity_benchmark_peak_emails_per_hour: 20
+  hosted_cron_enabled_at: "2026-09-29T08:12:49.760Z"
+  hosted_schema_readiness_verified_at: "2026-09-29T08:11:23.127Z"
+  observation_started_at: "2026-09-29T08:15:21.049Z"
+  observation_minimum_end_at: "2026-09-30T08:15:21.049Z"
+  seven_day_review_due_at: "2026-10-06T08:15:21.049Z"
+  healthy_scheduled_request_at: "2026-09-29T08:15:17.082Z"
+  healthy_scheduled_http_status: 200
+  healthy_completed_run_count: 3
+  healthy_paired_audit_count: 3
+  healthy_unpaired_audit_count: 0
+  hosted_observation_last_checkpoint_utc: "2026-09-30T08:32:44.763746Z"
+  hosted_observation_completed_run_count: 912
+  hosted_observation_runner_completions: 287
+  hosted_observation_latest_success_utc: "2026-09-30T08:10:21.287Z"
+  hosted_observation_max_completion_gap_seconds: "599.186"
+  hosted_observation_unpaired_run_count: 0
+  hosted_observation_hourly_execution_observed_utc: "2026-09-29T09:00:18.982Z"
+  hosted_observation_full_invocation_duration_verified: false
+  hosted_observation_duplicate_audit_count: 0
+  hosted_observation_hourly_windows_observed: 24
+  hosted_observation_hourly_run_count: 48
+  hosted_observation_off_hour_reminder_count: 0
+  hosted_observation_later_success_observed_utc: "2026-09-29T12:55:20.860Z"
+  hosted_observation_failure_category: Producer cursor lookup failed
+  hosted_observation_failure_diagnostic_review_status: completed_root_cause_unestablished
+  hosted_observation_failed_run_count: 2
+  hosted_observation_error_summary_count: 1
+  hosted_observation_total_run_count: 914
+  hosted_observation_failure_window_utc: "2026-09-29T12:50:17.589Z"
+  owner_authorized_guard_repair_and_failure_diagnosis: true
+  hosted_observation_failure_specific_code_fix_justified: false
+  hosted_observation_failure_upstream_utc: "2026-09-29T12:50:18.814Z"
+  hosted_observation_failure_upstream_status: 504
+  hosted_observation_failure_upstream_origin_time_ms: 8035
+  hosted_observation_failure_diagnostic_completed_at: "2026-09-29T14:34:00Z"
+  hosted_observation_loaded_continuation_verified: false
+  seven_day_review_automation_active: true
+  hosted_observation_email_capacity_measured: false
+  hosted_observation_clean_period_proved: false
+  hosted_observation_completed_at: "2026-09-30T08:32:44.763746Z"
+  hosted_observation_stockholm_due_date_behavior_verified: false
+  hosted_observation_stockholm_midnight_scheduler_cadence_observed: true
+  hosted_observation_recovery_count: 0
+  hosted_observation_minimum_cutoff_reached: true
+  hosted_observation_notification_count: 0
+  hosted_observation_outbox_count: 0
 constraints: []
 epic_slug: wave-b1a-notifications-and-email-infrastructure
 active_story: null
