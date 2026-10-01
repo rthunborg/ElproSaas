@@ -148,3 +148,39 @@ No deferred harvest, reconciliation or archive ran.
 3. Owned lifecycle Stop was accepted (ok=true, stop_requested, verified=false). This acknowledges the stop request; it does not establish shutdown.
 
 **Next:** Fix the guard startup cause using the spec Auto Run Result as evidence. After readiness is restored, prepare spec frontmatter status in-progress to resume implementation (or in-review only when implementation and verification are complete), then run /auto-bmad epic --epic 14. Human review: /bmad-checkpoint-preview epic/14-wave-b1b-resource-and-scheduling-foundation. Project context: /bmad-project-context refresh is recommended after epic completion.
+
+## Report — 2026-09-29T14:41:16Z (halted — needs-human)
+
+**Epic:** `14` — 4 stories.
+**Branch:** `epic/14-wave-b1b-resource-and-scheduling-foundation` (HEAD `b36bfab`).
+**Pipeline status:** Halted at Story 14.1 / Phase 5: guard startup remains blocked after owner-authorized diagnosis; no story landed.
+**Continues:** 2026-09-29T11:25:27Z (halted — needs-human)
+
+**Summary:** This continuation completed bounded guard diagnosis and a delegated author checkpoint (Terra/high, Codex/subagents). Docker and Compose configuration prerequisites passed; a fresh guarded attempt failed before service/schema readiness. No implementation or required verification ran.
+
+**Timing:** started 2026-09-29T08:23:21Z; completed in progress — elapsed 6h 17m (≈2h 18m AI-run, ≈3h 59m human/idle wait); resumed 4×.
+
+**Stories:** (none)
+
+**Skipped:** (none)
+
+**Epic gate:** Not reached.
+
+**TEA:** No TEA phase ran in this continuation. Required integration/RLS/browser executed: 0. Completed review rounds: 0.
+
+**Retrospective:** Not reached.
+
+**Overrides:** Owner authorized guard repair and hosted failure diagnosis. No specific supported guard repair was identified. Epic 13 diagnosis was separately documented in PR76; hosted observation remains active.
+
+**Open questions:**
+1. The guard public result does not expose the specific worker exception.
+2. Performance targets and representative tenant/person/booking volumes remain pending from prior planning.
+
+**Deferred work:**
+No deferred ledger reconciliation or archive ran.
+
+**⚠️ Needs human:**
+1. fresh root-owned guarded Compose admission for lifecycle resource `6dcd6e61-0fd5-4027-a67f-96355d2634ae` was accepted at `2026-09-29T14:31:38.7811353Z`, then reached terminal `start_uncertain` at `2026-09-29T14:31:39.6309505Z`. Its `composeOperation.phase=uncertain`, `dispatchCommitted=true`, `backendFailureCategory=worker-failed`, `operationProgress=worker-failed`, and `errorCode=RETAINED_START_INCOMPLETE`; `guardProject`, Compose exit code, and failing service are null, and `outcomeVerified=false`. The root-owned Stop request was accepted once (`nativeExitCode=0`, `ok=true`, `state=stop_requested`, `verified=false`) without shutdown polling. The isolated test stack has no demonstrated service or schema readiness. See `docs/process/epic-14-guard-startup-diagnosis-2026-09-29.md`.
+2. A host/runtime maintainer must expose the worker exception and repair the supported guard startup path. AGENTS.md requires guard-managed readiness and prohibits runtime staging/activation/rollback/uninstall and broad administration from this session. Required integration/RLS/browser verification and mandatory reviews remain pending.
+
+**Next:** After supported guard repair and isolated service/schema readiness, resume /auto-bmad epic --epic 14. Human review: /bmad-checkpoint-preview epic/14-wave-b1b-resource-and-scheduling-foundation. Project context: /bmad-project-context refresh is recommended after epic completion.
