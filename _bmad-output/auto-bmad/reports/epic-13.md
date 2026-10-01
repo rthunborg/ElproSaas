@@ -557,3 +557,127 @@ No new archive or retrospective; prior deferred dispositions preserved.
 1. Optional owner review/merge of PR75; no merge approval received.
 
 **Next:** Human review: /bmad-checkpoint-preview https://github.com/rthunborg/ElproSaas/pull/75. Project context: /bmad-project-context refresh (recommended after an epic).
+
+## Report — 2026-09-29T07:46:43Z (final — caveated)
+
+**Epic:** `13` — 4 stories.
+**Branch:** `epic/13-wave-b1a-notifications-and-email-infrastructure` (HEAD `78019af`).
+**Pipeline status:** Epic13 implementation complete and merged. Owner release decisions recorded; controlled hosted rollout and24h observation are next, with real email disabled.
+**Continues:** 2026-09-28T12:52:50Z (final)
+
+**Summary:** PR75 merged by owner as merge78019af on2026-09-29T07:37:01Z. Approved controlled rollout, internal pilot targets and7day review, email pilot preparation, central retention deferral and separate read-only local diagnosis.
+
+**Timing:** started 2026-09-23T10:29:03Z; completed 2026-09-24T18:57:24Z — elapsed 32h 28m (≈12h 14m AI-run, ≈20h 13m human/idle wait); resumed 14×.
+
+**Stories:**
+1. 13.1 done;6 passes;1 historical deferred item.
+2. 13.2 done;6 passes;1 historical deferred item.
+3. 13.3 done;3 passes;1 deferred.
+4. 13.4 done;4 passes;3 deferred.
+
+**Skipped:** (none)
+
+**Epic gate:** PASS26/26; original done transitions preserved.
+
+**TEA:** Existing full verified source proof retained; all checks on finalPRhead29880f1 are green. This governance-only phase adds no product/test changes.
+
+**Retrospective:** Accepted September28;0 open action items in Epic13 completion.
+
+**Overrides:** Owner-approved six decision package onSeptember29; deployment observation and7day review clocks start at verified healthy hosted operation. Real-email activation unapproved.
+
+**Open questions:**
+1. Pilot tenant, sender identity, approved recipients, rough daily/busy-hour volumes and operations owner.
+
+**Deferred work:**
+1. Real email remains disabled pending independent ADR-B011 go-live and provider/template prerequisites.
+2. Retention cleanup central-policy workflow unchanged.
+3. Local readonly diagnosis launched separately in task01a0ec1e-37cf-7591-8e75-73637c275448.
+
+**⚠️ Needs human:**
+1. Pilot details needed before later real-email go-live record.
+
+**Next:** Controlled hosted rollout and scheduled observation; answer owner pilot questions. No new epic started.
+
+## Report — 2026-09-29T08:02:09Z (halted — needs-human)
+
+**Epic:** `13` — 4 stories.
+**Branch:** `epic/13-wave-b1a-notifications-and-email-infrastructure` (HEAD `8780bc9`).
+**Pipeline status:** Epic13 implementation remains done and merged; hosted rollout is blocked on authorized Supabase CLI database access. Deployment corrected, cron paused, real email disabled; observation has not started.
+**Continues:** 2026-09-29T07:46:43Z (final — caveated)
+
+**Summary:** Owner-approved release safeguards were verified. Production deployment dpl_2DAG69cR31WeAVT8CQvF7MFh1Kuj is READY from merge78019af; the preexisting unapproved tenant-provisioning flag was disabled and the alias now denies operator access. Supabase remains at62 migrations with18 Epic13 migrations pending. Earlier cron attempts failed against missing job objects; cron is now paused. Prepared observation and7day review automations remain PAUSED.
+
+**Timing:** started 2026-09-23T10:29:03Z; completed 2026-09-24T18:57:24Z — elapsed 32h 28m (≈12h 14m AI-run, ≈20h 13m human/idle wait); resumed 15×.
+
+**Stories:**
+1. 13.1 remains done; no product changes in this release phase.
+2. 13.2 remains done; no product changes in this release phase.
+3. 13.3 remains done; real-recipient delivery disabled.
+4. 13.4 remains done under its existing sandbox/release-gate disposition; real-email activation unapproved.
+
+**Skipped:** (none)
+
+**Epic gate:** Existing PASS26/26 and original done transitions preserved; hosted readiness is not established.
+
+**TEA:** No new product changes or test/review pass. Previous full CI and source evidence retained. Prior governance checkpoint8780bc9 passed CI36538772500; operational checks are bounded readiness evidence, not a hosted test-suite run.
+
+**Retrospective:** Accepted September28;0 implementation action items retained. Rollout prerequisites remain separate.
+
+**Overrides:** Controlled hosted rollout approved; corrective disable/redeploy preserves ADR-B010 and ADR-B011 gates. Observation and7day clocks require verified healthy operation. Automation IDs: epic-13-hosted-pilot-observation; epic-13-seven-day-operating-review; both PAUSED.
+
+**Open questions:**
+1. Pilot workspace, sender and reply-to identity, controlled initial recipients, rough emails/day and peak-hour volume, operations owner and measured batch size.
+
+**Deferred work:**
+1. Apply the18 approved repo migrations after CLI access restoration, verify authenticated scheduler success, then resume observation for at least24h and schedule the7day review.
+2. Real email stays disabled pending separate owner approval and ADR-B011 prerequisites.
+3. Central retention-policy deferral preserved.
+4. Separate local read-only maintenance diagnosis completed in chat01a0ec1e-37cf-7591-8e75-73637c275448; populated data preserved, no repair/reset performed.
+No new deferred-work archive or retrospective. Existing implementation history retained.
+
+**⚠️ Needs human:**
+1. Restore CLI access using the account authorized for elprosaas-demo and the repository supabase/cli-profile.yaml; report whether migration list succeeds or returns403. Credentials remain private.
+
+**Next:** Resume the approved hosted rollout after database access is verified; then start the prepared observation automations. Governance review: /bmad-checkpoint-preview https://github.com/rthunborg/ElproSaas/pull/76. Project context: /bmad-project-context refresh recommended after the epic. No new epic started.
+
+## Report — 2026-09-29T08:18:27Z (final)
+
+**Epic:** `13` — 4 stories.
+**Branch:** `epic/13-wave-b1a-notifications-and-email-infrastructure` (HEAD `20749ea`).
+**Pipeline status:** Epic13 implementation remains done and merged. Controlled hosted rollout reached verified healthy scheduled operation; at-least24h observation and7day reassessment are active and incomplete. Real email and provisioning remain disabled.
+**Continues:** 2026-09-29T08:02:09Z (halted — needs-human)
+
+**Summary:** Restored CLI access verified, exact18 approved migrations applied without seeds/roles/Vault changes or history repair; all80 repo versions now match hosted history. READY deploymentdpl_2DAG69cR31WeAVT8CQvF7MFh1Kuj remainsmain78019af. Project cron re-enabled only after readiness. Authentic scheduledHTTP200 at08:15:17.082Z produced3 completed runs and3 paired system audits,0 errors/unpaired. Accepted email forecast5/day and occasional10/hour recorded;2xcapacity benchmark10/day20/hour remains unmeasured.
+
+**Timing:** started 2026-09-23T10:29:03Z; completed 2026-09-24T18:57:24Z — elapsed 32h 28m (≈12h 14m AI-run, ≈20h 13m human/idle wait); resumed 16×.
+
+**Stories:**
+1. 13.1 remains done; hosted first scheduled execution and run/audit coherence verified.
+2. 13.2 remains done; hourly reminder and Stockholm date behavior remain observation items.
+3. 13.3 remains done; real-recipient delivery disabled; no live-email capacity claim.
+4. 13.4 remains done under sandbox/release gates; separate email activation approval remains pending.
+
+**Skipped:** (none)
+
+**Epic gate:** Existing implementation PASS26/26 and original done transitions preserved. Healthy start is not completed24h/7day proof.
+
+**TEA:** No new product code or test/review pass. Existing merged-source CI proof retained. Bounded hosted checks verified original migration history, required RLS/FORCE RLS and service RPC metadata, serving deployment and authentic scheduled run/audit coherence; no generic hosted test suite.
+
+**Retrospective:** Accepted September28;0 implementation action items retained. No new retrospective.
+
+**Overrides:** Owner accepted5/day occasional10/hour planning forecast. Controlled hosted healthy completion2026-09-29T08:15:21.049Z starts observation; minimum end2026-09-30T08:15:21.049Z; seven-day review due2026-10-06T08:15:21.049Z. Both approved heartbeat automations ACTIVE. Email/provisioning activation remains unapproved.
+
+**Open questions:**
+1. Pilot workspace, sender/Reply-To identity and domain/provider evidence, controlled recipients, operations owner/contacts and measured batch size remain pending.
+
+**Deferred work:**
+1. At-least24h observation, including hourly and Stockholm boundary evidence, remains incomplete; do not equate unexercised continuation, recovery or loaded-capacity paths with passing coverage.
+2. Seven-day operating reassessment remains dueOctober6 at10:15:21 Stockholm time or later.
+3. Real email stays disabled pending separate owner approval and ADR-B011 prerequisites.
+4. Central retention-policy deferral and separate local maintenance boundary preserved.
+No new archive or retrospective; existing implementation history and prior failed scheduled/blocked access evidence preserved.
+
+**⚠️ Needs human:**
+1. Pilot identity and sender/recipient/operations details are needed before later real-email activation; current closed rollout has no blocker.
+
+**Next:** Continue the active hosted observation and seven-day review automations; complete later email-pilot preparation when owner supplies remaining details. Governance review: /bmad-checkpoint-preview https://github.com/rthunborg/ElproSaas/pull/76. Project context: /bmad-project-context refresh recommended after the epic. Epic14 remains planned/backlog and was not started.
