@@ -285,3 +285,39 @@ Detailed results and supported handoff:
 and `ELPRO-AGENT-HANDOFF.md` in that same directory. Optional generic 0.9.16
 partial-retry source and regression evidence are prepared but uninstalled;
 this approved route needs no guard upgrade or additional owner choice.
+
+## Report — 2026-10-02T10:05:00Z (halted — needs-human)
+
+**Epic:** `14` — 4 stories.
+**Branch:** `epic/14-wave-b1b-resource-and-scheduling-foundation` (HEAD `084bfe1`).
+**Pipeline status:** Halted at E5 / Story 14.1 Phase 5: required integration and guarded browser acceptance remain blocked.
+**Continues:** 2026-10-01 maintainer recovery checkpoint; resumes the saved Story 14.1 Phase 5.
+
+**Summary:** Normal guarded Compose reuse on installed 0.9.15 reached five healthy services; REST readiness and Auth/Storage HTTP 200 passed. The original migration syntax and missing fixtures were corrected; SQL-only migration/seed and the forward date-regex correction completed without reset or ledger editing. Local gateway CORS, form draft preservation and the private default-off failure seam were repaired. Final scoped resource command/RLS checks passed 6/6 with zero skips; policy inventory 11/11 and CDP units 2/2 passed. The earlier unit suite passed 1,928 with one skip; TypeScript, Next 16.3.6 build and Suggested Review Order (34 refs) passed. An earlier foreground browser run passed 3/3 before final review patches; it is not final guarded acceptance. Author/security/independent review fixes are recorded; follow-up remains recommended. Checkpoint 084bfe1e preserves 21 changed files. Owned app and Compose Stop requests returned native 0/ok=true, stop_requested/verified=false; shutdown is not claimed. Failed Chromium was recorded stopped/verified. Local saved state and unrelated/hosted environments were preserved.
+
+**Timing:** started 2026-09-29T08:23:21Z; completed in progress — elapsed 73h 41m (≈4h 13m AI-run, ≈69h 27m human/idle wait); resumed 6×.
+
+**Stories:** (none)
+
+**Skipped:** (none)
+
+**Epic gate:** Not reached; no story landed. Stories 14.2–14.4 remain unstarted.
+
+**TEA:** Existing high-risk ATDD evidence retained. Post-development automation and Epic gates await completion of Phase 5; no acceptance claimed from infrastructure readiness.
+
+**Retrospective:** Not reached.
+
+**Overrides:** Owner authorized corrected registration reuse and fresh test data previously; normal ComposeUp only, own trusted actor context, no retryRetainedProject or additional fresh database. Original Story baseline 93dbf8432d420ecf6fcd29e732be7ca136801534 retained. Current required failures supersede the resolved historical Compose blocker.
+
+**Open questions:**
+1. Previously recorded Epic performance planning: numeric latency targets and representative workload volumes remain to be established; not a new Story 14.1 decision.
+
+**Deferred work:**
+1. One author-recorded pre-Story quote-follow-up bootstrap privilege expectation issue: serial 9/11; requires separate ownership/full-gate triage. No downstream authorization bypass was asserted. Saved in the Story spec; Phase 7 ledger harvest has not run.
+No archive/reconcile performed.
+
+**⚠️ Needs human:**
+1. finalization is blocked by both the required full `SUPABASE_TEST_REQUIRED=1 pnpm run test:int` gate and final guard-owned browser admission. The last corrected-target integration sweep, before the final inventory and review patches, reported 1,081 passed, 156 failed, and 1 skipped across 124 files; serial diagnosis proved one reachability-affected file passes 12/12, the Story inventory ordering repair passes 11/11, and an unrelated `quote_follow_ups` grant test remains 9/11 because a pre-Story migration lacks bootstrap privilege revocations. The complete required gate was not rerun after final patches because no remaining Story correction addressed those inherited failures. The final guard-owned browser run is unexecuted because Chromium lifecycle `e2f5bdd8-7619-4fe3-97da-413fc2a5b445` returned `START_NOT_CREATED`, with its exact Job verified empty; the guard later recorded legacy `inspect_only` and no safe corrected input or retry route.
+2. Arrange separately scoped baseline integration/bootstrap triage and supported native Chromium launch diagnosis. Infrastructure recovery of the old registration or a guard upgrade is not required by current evidence. Final browser acceptance must run against the reviewed code after admission succeeds.
+
+**Next:** Review checkpoint: /bmad-checkpoint-preview epic/14-wave-b1b-resource-and-scheduling-foundation. Resolve both causes; have the Story author set status to in-progress for required verification, then run /auto-bmad epic --epic 14 to resume Phase 5. Project context: /bmad-project-context refresh after the Epic completes.

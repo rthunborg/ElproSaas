@@ -9,11 +9,11 @@ spec_folder: null
 story_id: null
 branch: epic/14-wave-b1b-resource-and-scheduling-foundation
 status: in-progress
-updated_at: "2026-10-02T10:03:37Z"
+updated_at: "2026-10-02T12:12:19Z"
 started_at: "2026-09-29T08:23:21Z"
 completed_at: null
 active_seconds: 15220
-timing_anchor: null
+timing_anchor: 1790942964
 is_first_in_epic: false
 is_last_in_epic: false
 git_mode: remote
@@ -58,7 +58,7 @@ legacy_review_loop_done: false
 legacy_external_review_iterations: null
 legacy_convergence_unverified: false
 legacy_artifact_path: null
-commits: [21ae8d7, "7548809", b821e42, 2fdca50, a98153f, 8a260ae, 741f4bf, ee9d17b]
+commits: [21ae8d7, "7548809", b821e42, 2fdca50, a98153f, 8a260ae, 741f4bf, ee9d17b, 084bfe1e]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -95,14 +95,14 @@ overrides:
   resume_preflight_passed: true
   root_guard_status_verified: true
   owner_authorized_guard_repair_and_failure_diagnosis: true
-  local_guard_diagnostic_status: stop_requested_saved_state_preserved
+  local_guard_diagnostic_status: prerequisite_corrected_registration_active_services_healthy
   isolated_service_and_schema_readiness_verified: true
-  root_guard_stop_requested: true
+  root_guard_stop_requested: false
   owner_confirmed_guard_fix_deployed: true
-  root_guard_resource_id: 06ea959a-53a1-41af-bc07-b817d80424fb
+  root_guard_resource_id: 534d6b00-e76a-4419-a624-9c0b10f7d407
   owner_confirmed_all_prs_merged: true
   root_guard_compose_file: compose.ready.test.yaml
-  root_guard_request_id: 0b349afa-7471-4258-83a1-e64b2c70ce2d
+  root_guard_request_id: b272dcfc-fabe-45a2-a565-7f5f4197b05b
   owner_authorized_corrected_stack_and_fresh_volumes: true
   root_guard_start_reproduced_failure: false
   guard_upgrade_not_required: true
@@ -131,6 +131,11 @@ overrides:
   schema_migration_seed_and_acceptance_pending: false
   current_story_build_status: blocked
   required_full_integration_gate_passed: false
+  resource_guard_browser_repair_owned_externally: true
+  prerequisite_integration_repair_owner_approved_on: 2026-10-02
+  prerequisite_integration_repair_active: true
+  prerequisite_integration_repair_adr: docs/decisions/ADR-B012-integration-gate-privilege-baseline-and-local-reliability.md
+  prerequisite_integration_repair_spec: "_bmad-output/implementation-artifacts/spec-prereq-integration-gate-privilege-and-reliability.md"
 constraints:
   - "Phase B manifest-governed approved Epic14 stories only; maintain hard Phase C exclusions."
   - "Epic13 observation and release gates remain separate; no hosted migrations, deployment or flag changes during this implementation workflow."

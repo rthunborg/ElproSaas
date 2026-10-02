@@ -9,11 +9,11 @@ spec_folder: null
 story_id: null
 branch: epic/14-wave-b1b-resource-and-scheduling-foundation
 status: in-progress
-updated_at: "2026-10-02T10:03:37Z"
+updated_at: "2026-10-02T12:12:19Z"
 started_at: "2026-09-29T08:45:54Z"
 completed_at: null
 active_seconds: 13872
-timing_anchor: null
+timing_anchor: 1790942963
 is_first_in_epic: true
 is_last_in_epic: false
 git_mode: remote
@@ -56,7 +56,7 @@ legacy_review_loop_done: false
 legacy_external_review_iterations: null
 legacy_convergence_unverified: false
 legacy_artifact_path: null
-commits: [b821e42, 2fdca50, 93dbf84, 4f4bfc4, e33efc3, 04f9799, b642076, 9eba0ea, 37904b9, c7f43ea, a98153f, 8a260ae, 741f4bf, ee9d17b]
+commits: [b821e42, 2fdca50, 93dbf84, 4f4bfc4, e33efc3, 04f9799, b642076, 9eba0ea, 37904b9, c7f43ea, a98153f, 8a260ae, 741f4bf, ee9d17b, 084bfe1e]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -96,16 +96,16 @@ overrides:
   bounded_readiness_observation_before_retry: true
   readiness_observation_budget_seconds: 600
   root_compose_validation_passed: true
-  root_guard_resource_id: 06ea959a-53a1-41af-bc07-b817d80424fb
-  local_guard_diagnostic_status: stop_requested_saved_state_preserved
+  root_guard_resource_id: 534d6b00-e76a-4419-a624-9c0b10f7d407
+  local_guard_diagnostic_status: prerequisite_corrected_registration_active_services_healthy
   owner_authorized_guard_repair_and_failure_diagnosis: true
   root_guard_start_reproduced_failure: false
-  root_guard_stop_requested: true
+  root_guard_stop_requested: false
   isolated_service_and_schema_readiness_verified: true
   owner_confirmed_guard_fix_deployed: true
   owner_confirmed_all_prs_merged: true
   root_guard_compose_file: compose.ready.test.yaml
-  root_guard_request_id: 0b349afa-7471-4258-83a1-e64b2c70ce2d
+  root_guard_request_id: b272dcfc-fabe-45a2-a565-7f5f4197b05b
   owner_authorized_corrected_stack_and_fresh_volumes: true
   guard_upgrade_not_required: true
   historical_registration_recovery_not_required: true
@@ -140,6 +140,11 @@ overrides:
   schema_policy_inventory_passed: 11
   current_story_build_status: blocked
   final_scoped_resource_command_rls_skipped: 0
+  resource_guard_browser_repair_owned_externally: true
+  prerequisite_integration_repair_owner_approved_on: 2026-10-02
+  prerequisite_integration_repair_active: true
+  prerequisite_integration_repair_adr: docs/decisions/ADR-B012-integration-gate-privilege-baseline-and-local-reliability.md
+  prerequisite_integration_repair_spec: "_bmad-output/implementation-artifacts/spec-prereq-integration-gate-privilege-and-reliability.md"
 constraints:
   - "Phase B manifest-governed approved Story 14.1 only; resources activation belongs here and broader scheduling module remains pending for Epic 15."
   - "Preserve existing local data and user-owned processes; new persistent resources require this actor's trusted guard context."
