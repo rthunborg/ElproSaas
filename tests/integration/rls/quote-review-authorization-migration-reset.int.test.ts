@@ -107,6 +107,23 @@ describe("Story 10.8 quote review authorization migration", () => {
       );
       expect(privilege[0]).toEqual({ authed: true, anon: false, public_role: false });
     }
+
+    const successorRevokes = await adminQuery<{ function_name: string; service: boolean }>(
+      `select p.proname as function_name,
+              has_function_privilege('service_role', p.oid, 'execute') as service
+         from pg_proc p
+         join pg_namespace n on n.oid = p.pronamespace
+        where n.nspname = 'public'
+          and p.oid in (
+            'public.create_quote_version_from_calculation(uuid,uuid,timestamptz,uuid,uuid)'::regprocedure,
+            'public.mark_quote_version_lifecycle(uuid,uuid,text,timestamptz,uuid,uuid)'::regprocedure
+          )
+        order by p.proname`,
+    );
+    expect(successorRevokes).toEqual([
+      { function_name: "create_quote_version_from_calculation", service: false },
+      { function_name: "mark_quote_version_lifecycle", service: false },
+    ]);
   });
 
   it("[P0] obsolete digest/full-payload overloads are absent and private internals are not executable", async (testCtx) => {

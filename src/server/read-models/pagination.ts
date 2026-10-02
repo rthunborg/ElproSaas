@@ -11,8 +11,8 @@
 /** Keep each request comfortably below the usual PostgREST max_rows ceiling. */
 export const RLS_PAGE_SIZE = 500;
 
-/** Keep `.in()` URLs and query-planner lists materially smaller than a read page. */
-export const RLS_ID_BATCH_SIZE = 100;
+/** Keep `.in()` URLs and query-planner lists below the observed 101-ID gateway failure boundary. */
+export const RLS_ID_BATCH_SIZE = 50;
 
 export interface PageResult<T> {
   readonly data: T[] | null;

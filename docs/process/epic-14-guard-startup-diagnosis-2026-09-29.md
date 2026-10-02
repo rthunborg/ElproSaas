@@ -196,3 +196,24 @@ Forward repairs removed inherited effective table access on the confirmed quote-
 The direct installed-Vitest required gate used verified --no-file-parallelism and a private persisted JSON report: 124 actual file results (112 passed, 12 failed) and 1,239 assertions (1,126 passed, 112 failed, 1 skipped). The one retained skip is the isolated recovery physical-loader proof gated by ISOLATED_RECOVERY_STORAGE_PROOF=1; it is not DB/RLS acceptance. Remaining observed inherited-PUBLIC expectations are mapped in the [ADR-B012 public-inheritance repair approval plan](../decisions/ADR-B012-public-inheritance-repair-approval-plan.md): 22 active tables and two RLS helpers. The plan is non-runnable documentation. Automatic approval rejected the inventory proposal as broad ACL revocation across nearly the entire tenant-table inventory and the follow-up as broad 22-table ACL migration submitted immediately after rejection without user approval. No rejected SQL was applied.
 
 This prerequisite does not waive Story 14.1's project-pinned browser acceptance. Later guard maintenance established a separate verified Chrome/CDP lifecycle, but did not execute the Story scenarios. Root requested Stop for Compose lifecycle 534d6b00-e76a-4419-a624-9c0b10f7d407 after final database checks; native 0 / ok=true / stop_requested / verified=false is an accepted request, not confirmed shutdown, and no polling was performed.
+
+## Integration prerequisite completion — 2026-10-02
+
+The owner-approved ACL and successor forward migrations were applied to the
+root-owned loopback stack with seed and without a reset or migration-ledger
+change. The successor scope revoked service-role execution for the two named
+quote wrappers, narrowed authenticated `tenant_memberships` UPDATE to the
+onboarding dismissal column, and reduced the shared RLS batch limit to 50.
+
+The required Auth readiness probe retains its two-second attempt cap and
+fail-closed mode. A timeout now receives one bounded retry after 50 ms, within
+a 4.25-second total budget. HTTP and authorization failures remain fail-closed;
+successful probes are worker-local cached and failed probes are not cached.
+The concurrent affected command suite passed 3 files and 42 tests. The final
+root-bound `SUPABASE_TEST_REQUIRED=1 pnpm run test:int` passed with native exit
+0: 124 passed and 1 intentionally skipped file; 1,242 passed and 1 intentionally
+skipped test. Private metadata confirms API 127.0.0.1:55421 and database
+127.0.0.1:55422 resolving to PostgreSQL 10.240.8.2:5432.
+
+This clears the integration/RLS prerequisite blocker. It does not supply or
+waive Story 14.1 browser acceptance evidence.

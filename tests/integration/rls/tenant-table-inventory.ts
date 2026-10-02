@@ -318,6 +318,7 @@ export type MutationDenialKind = "privilege" | "rls-invisible";
  */
 export function updateDenialKind(table: TenantTableName): MutationDenialKind {
   switch (table) {
+    case "tenant_memberships":
     case "membership_roles":
     case "audit_events":
     case "job_runs":
@@ -346,7 +347,6 @@ export function updateDenialKind(table: TenantTableName): MutationDenialKind {
     case "facilities":
     case "contacts":
     case "tenants":
-    case "tenant_memberships":
     case "membership_admin_operations":
     case "company_settings":
     case "quote_terms":

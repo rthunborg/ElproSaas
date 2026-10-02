@@ -74,10 +74,8 @@ describe("tenant_memberships self-grant / escalation denied (AC3 / R-005)", () =
       .update({ role: "tenant_admin" }) // even a no-op write must not be exposed
       .eq("user_id", fixture.adminA.id)
       .select();
-    // In this fixture RLS exposes no row for this protected-column write. This does
-    // not claim a general UPDATE denial: the ready-tenant onboarding policy is
-    // separately documented as allowing a direct own-membership update surface.
-    expect(error).toBeNull();
+    // The successor column grant admits only the onboarding presentation timestamp.
+    expect(error).toMatchObject({ code: "42501" });
     expect(affected ?? []).toEqual([]);
 
     // Independent BYPASSRLS re-read: the row is unchanged (still the seeded values).
@@ -96,7 +94,7 @@ describe("tenant_memberships self-grant / escalation denied (AC3 / R-005)", () =
       .update({ status: "active" })
       .eq("user_id", fixture.adminA.id)
       .select();
-    expect(error).toBeNull();
+    expect(error).toMatchObject({ code: "42501" });
     expect(affected ?? []).toEqual([]);
 
     // Independent BYPASSRLS re-read: status unchanged.
@@ -113,7 +111,7 @@ describe("tenant_memberships self-grant / escalation denied (AC3 / R-005)", () =
       .update({ tenant_id: fixture.tenantB.id })
       .eq("user_id", fixture.adminA.id)
       .select();
-    expect(error).toBeNull();
+    expect(error).toMatchObject({ code: "42501" });
     expect(affected ?? []).toEqual([]);
 
     // adminA still belongs to tenantA only (verified via the admin's own read).

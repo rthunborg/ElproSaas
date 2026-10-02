@@ -24,11 +24,21 @@
  * Returns `true` when the caller should stop (the test was skipped). When the stack
  * IS up it returns `false` and the test proceeds normally.
  */
-import { STACK_REQUIRED } from "./test-env";
+import {
+  getLastStackReachabilityDiagnostic,
+  getLastStorageReachabilityDiagnostic,
+  STACK_REQUIRED,
+  type ReachabilityDiagnostic,
+} from "./test-env";
 
 /** The Vitest dynamic-skip surface we rely on (a subset of `TestContext`). */
 export interface SkippableTestContext {
   skip: (note?: string) => void;
+}
+
+function formatDiagnostic(diagnostic: ReachabilityDiagnostic | undefined): string {
+  if (!diagnostic) return "";
+  return ` Reachability diagnostic: surface=${diagnostic.surface} method=${diagnostic.method} origin=${diagnostic.origin} status=${diagnostic.status ?? "none"} elapsed_ms=${diagnostic.elapsed_ms} reason=${diagnostic.reason} attempts=${diagnostic.attempts}.`;
 }
 
 /**
@@ -48,9 +58,9 @@ export function skipUnlessStack(
     // CI contract: a missing stack must be a HARD failure, never a skip — so the
     // security/RLS gates can never false-green. Mirrors tests/support/global-setup.ts.
     throw new Error(
-      "SUPABASE_TEST_REQUIRED=1 but the local Supabase stack is unreachable: this " +
+        "SUPABASE_TEST_REQUIRED=1 but the local Supabase stack is unreachable: this " +
         "DB-backed test MUST run, not skip. Start it first: `supabase start && " +
-        "supabase db reset`.",
+        "supabase db reset`." + formatDiagnostic(getLastStackReachabilityDiagnostic()),
     );
   }
 
@@ -80,9 +90,9 @@ export function skipUnlessStorage(
     // CI contract: a missing Storage service must be a HARD failure, never a skip — so
     // the storage-plane negative gate can never false-green.
     throw new Error(
-      "SUPABASE_TEST_REQUIRED=1 but the local Supabase STORAGE service is unreachable: " +
+        "SUPABASE_TEST_REQUIRED=1 but the local Supabase STORAGE service is unreachable: " +
         "this storage-plane test MUST run, not skip. Start the full stack first: " +
-        "`supabase start && supabase db reset`.",
+        "`supabase start && supabase db reset`." + formatDiagnostic(getLastStorageReachabilityDiagnostic()),
     );
   }
 

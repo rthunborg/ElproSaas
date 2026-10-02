@@ -49,7 +49,7 @@ describe("Story 12.3 onboarding dismissal RLS", () => {
     try {
       const caller = await makeAuthedServerClient(fixture.adminA);
       const { data, error } = await caller.from("tenant_memberships").update({ status: "disabled" }).eq("tenant_id", fixture.tenantA.id).eq("user_id", fixture.adminA.id).select("id");
-      expect(error).toBeNull();
+      expect(error).toMatchObject({ code: "42501" });
       expect(data ?? []).toEqual([]);
       const [row] = await adminQuery<{ status: string }>("select status from public.tenant_memberships where tenant_id=$1 and user_id=$2", [fixture.tenantA.id, fixture.adminA.id]);
       expect(row?.status).toBe("active");
@@ -79,10 +79,7 @@ describe("Story 12.3 onboarding dismissal RLS", () => {
         .eq("user_id", fixture.adminA.id)
         .select("id");
 
-      // Deliberately red until the successor grants UPDATE only on
-      // onboarding_checklist_dismissed_at. The current row policy permits this
-      // protected-column PATCH because its WITH CHECK is row-based.
-      expect(error).not.toBeNull();
+      expect(error).toMatchObject({ code: "42501" });
       expect(data ?? []).toEqual([]);
       const after = await adminQuery<{ disabled_at: string | null }>(
         "select disabled_at from public.tenant_memberships where tenant_id=$1 and user_id=$2",

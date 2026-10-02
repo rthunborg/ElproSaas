@@ -50,3 +50,31 @@ The approval excludes `membership_roles`, every unobserved table or helper,
 RLS-policy changes, replacement grant changes, reset/ledger operations, and
 hosted work. The forward migration must preserve the catalog-proven direct
 `authenticated` and `service_role` grants, including retained column grants.
+
+### Owner-approved successor completion — 2026-10-02
+
+The owner approved three additional, exact successor repairs: revoke
+`service_role` EXECUTE only for
+`create_quote_version_from_calculation(uuid, uuid, timestamptz, uuid, uuid)`
+and `mark_quote_version_lifecycle(uuid, uuid, text, timestamptz, uuid, uuid)`;
+replace authenticated table-wide `tenant_memberships` UPDATE with
+`UPDATE (onboarding_checklist_dismissed_at)` only; and reduce the shared RLS
+ID batch size from 100 to 50 for the demonstrated 101-ID pipeline and 501-ID
+list failures. The approved forward migration preserves SELECT, service-role
+table access, RLS, and checked wrappers.
+
+The local readiness repair retains each two-second health request cap and
+required-gate fail-closed behavior. It adds one timeout-only retry after a
+50 ms backoff, inside a 4.25-second total probe budget; successful probes are
+worker-local cached and failed probes are never cached. Diagnostics contain
+only surface, method, target origin, HTTP status, elapsed time, reason, and
+attempt count. It does not change Vitest file parallelism or test concurrency.
+
+On the verified root loopback stack, successor focused regressions and the
+concurrent readiness suite passed. The final
+`SUPABASE_TEST_REQUIRED=1 pnpm run test:int` completed with native exit 0:
+124 passed and one intentionally skipped file, with 1,242 passed and one
+intentionally skipped test. Private persisted metadata confirms API
+`127.0.0.1:55421`, database loopback `127.0.0.1:55422`, and PostgreSQL server
+`10.240.8.2:5432`. This resolves the integration/RLS prerequisite only; Story
+14.1 product acceptance and browser evidence remain unchanged.

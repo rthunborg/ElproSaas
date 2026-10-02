@@ -326,7 +326,7 @@ describe("10.4-INT-01: pipeline read-model isolation floor (RLS-client-only, cro
     const calculationId = await adminInsertCalculation({ tenant_id: tenantId, customer_id: customerId });
     const before = await readQuotePipeline(WINDOW, { roles: ["tenant_admin"] }, { client: a });
     const acceptedPriceOre = 10_000;
-    const batchCount = 101; // deliberately one more than RLS_ID_BATCH_SIZE
+    const batchCount = 101; // exceeds the observed gateway failure boundary and spans three 50-ID batches
 
     for (let index = 0; index < batchCount; index += 1) {
       const quoteId = await adminInsertQuote({ tenant_id: tenantId, customer_id: customerId });

@@ -92,6 +92,133 @@ export function assertLocalStack(): void {
   }
 }
 
+export type ReachabilitySurface = "auth" | "storage";
+export type ReachabilityReason = "ok" | "http_status" | "timeout" | "network";
+
+export interface ReachabilityDiagnostic {
+  readonly surface: ReachabilitySurface;
+  readonly method: "GET";
+  readonly origin: string;
+  readonly status: number | null;
+  readonly elapsed_ms: number;
+  readonly reason: ReachabilityReason;
+  readonly attempts: 1 | 2;
+}
+
+let lastStackReachabilityDiagnostic: ReachabilityDiagnostic | undefined;
+let lastStorageReachabilityDiagnostic: ReachabilityDiagnostic | undefined;
+let stackReachabilitySuccess: Promise<boolean> | undefined;
+let storageReachabilitySuccess: Promise<boolean> | undefined;
+
+const REACHABILITY_ATTEMPT_TIMEOUT_MS = 2_000;
+const REACHABILITY_TOTAL_BUDGET_MS = 4_250;
+const REACHABILITY_RETRY_BACKOFF_MS = 50;
+
+function safeOrigin(url: string): string {
+  try {
+    return new URL(url).origin;
+  } catch {
+    return "invalid-url";
+  }
+}
+
+function classifyReachabilityError(error: unknown): ReachabilityReason {
+  const name = error instanceof Error ? error.name : "";
+  return name === "AbortError" || name === "TimeoutError" ? "timeout" : "network";
+}
+
+async function probeReachabilityAttempt(input: {
+  surface: ReachabilitySurface;
+  url: string;
+  headers: HeadersInit;
+  timeoutMs: number;
+  attempts: 1 | 2;
+}): Promise<{ reachable: boolean; diagnostic: ReachabilityDiagnostic }> {
+  const started = performance.now();
+  try {
+    const response = await fetch(input.url, {
+      method: "GET",
+      headers: input.headers,
+      signal: AbortSignal.timeout(input.timeoutMs),
+    });
+    const diagnostic: ReachabilityDiagnostic = {
+      surface: input.surface,
+      method: "GET",
+      origin: safeOrigin(input.url),
+      status: response.status,
+      elapsed_ms: Math.round(performance.now() - started),
+      reason: response.ok ? "ok" : "http_status",
+      attempts: input.attempts,
+    };
+    return { reachable: response.ok, diagnostic };
+  } catch (error) {
+    const diagnostic: ReachabilityDiagnostic = {
+      surface: input.surface,
+      method: "GET",
+      origin: safeOrigin(input.url),
+      status: null,
+      elapsed_ms: Math.round(performance.now() - started),
+      reason: classifyReachabilityError(error),
+      attempts: input.attempts,
+    };
+    return { reachable: false, diagnostic };
+  }
+}
+
+async function probeReachability(input: {
+  surface: ReachabilitySurface;
+  url: string;
+  headers: HeadersInit;
+}): Promise<{ reachable: boolean; diagnostic: ReachabilityDiagnostic }> {
+  const started = performance.now();
+  let result = await probeReachabilityAttempt({
+    ...input,
+    timeoutMs: REACHABILITY_ATTEMPT_TIMEOUT_MS,
+    attempts: 1,
+  });
+
+  // A one-off local health timeout is observed under cross-file startup load. Retry
+  // only that transient category, keeping each request's two-second cap and a hard
+  // total deadline. HTTP failures stay fail-closed without generating extra load.
+  const remaining = REACHABILITY_TOTAL_BUDGET_MS - (performance.now() - started);
+  if (
+    !result.reachable &&
+    result.diagnostic.reason === "timeout" &&
+    remaining > REACHABILITY_RETRY_BACKOFF_MS
+  ) {
+    await new Promise<void>((resolve) => setTimeout(resolve, REACHABILITY_RETRY_BACKOFF_MS));
+    result = await probeReachabilityAttempt({
+      ...input,
+      timeoutMs: Math.min(
+        REACHABILITY_ATTEMPT_TIMEOUT_MS,
+        Math.floor(remaining - REACHABILITY_RETRY_BACKOFF_MS),
+      ),
+      attempts: 2,
+    });
+  }
+
+  return {
+    reachable: result.reachable,
+    diagnostic: { ...result.diagnostic, elapsed_ms: Math.round(performance.now() - started) },
+  };
+}
+
+export function getLastStackReachabilityDiagnostic(): ReachabilityDiagnostic | undefined {
+  return lastStackReachabilityDiagnostic;
+}
+
+export function getLastStorageReachabilityDiagnostic(): ReachabilityDiagnostic | undefined {
+  return lastStorageReachabilityDiagnostic;
+}
+
+/** Test-only state reset; transient failures deliberately never enter a cache. */
+export function resetReachabilityCachesForTest(): void {
+  stackReachabilitySuccess = undefined;
+  storageReachabilitySuccess = undefined;
+  lastStackReachabilityDiagnostic = undefined;
+  lastStorageReachabilityDiagnostic = undefined;
+}
+
 /**
  * Probe whether the local Supabase stack is reachable. The DB-backed suites call
  * this in a `beforeAll` and `skip` themselves when it returns false, so a developer
@@ -101,16 +228,15 @@ export function assertLocalStack(): void {
  * HARD failure instead of a silent skip (so the gate can never false-green).
  */
 export async function isLocalStackReachable(): Promise<boolean> {
-  try {
-    const res = await fetch(`${LOCAL_SUPABASE_URL}/auth/v1/health`, {
-      method: "GET",
-      headers: { apikey: LOCAL_SUPABASE_ANON_KEY },
-      signal: AbortSignal.timeout(2_000),
-    });
-    return res.ok;
-  } catch {
-    return false;
-  }
+  if (stackReachabilitySuccess) return stackReachabilitySuccess;
+  const result = await probeReachability({
+    surface: "auth",
+    url: `${LOCAL_SUPABASE_URL}/auth/v1/health`,
+    headers: { apikey: LOCAL_SUPABASE_ANON_KEY },
+  });
+  lastStackReachabilityDiagnostic = result.diagnostic;
+  if (result.reachable) stackReachabilitySuccess = Promise.resolve(true);
+  return result.reachable;
 }
 
 /**
@@ -123,19 +249,18 @@ export async function isLocalStackReachable(): Promise<boolean> {
  * `skipUnlessStorage`). Returns true only when the Storage service answers OK.
  */
 export async function isLocalStorageReachable(): Promise<boolean> {
-  try {
-    const res = await fetch(`${LOCAL_SUPABASE_URL}/storage/v1/bucket`, {
-      method: "GET",
-      headers: {
-        apikey: LOCAL_SUPABASE_SERVICE_ROLE_KEY,
-        Authorization: `Bearer ${LOCAL_SUPABASE_SERVICE_ROLE_KEY}`,
-      },
-      signal: AbortSignal.timeout(2_000),
-    });
-    return res.ok;
-  } catch {
-    return false;
-  }
+  if (storageReachabilitySuccess) return storageReachabilitySuccess;
+  const result = await probeReachability({
+    surface: "storage",
+    url: `${LOCAL_SUPABASE_URL}/storage/v1/bucket`,
+    headers: {
+      apikey: LOCAL_SUPABASE_SERVICE_ROLE_KEY,
+      Authorization: `Bearer ${LOCAL_SUPABASE_SERVICE_ROLE_KEY}`,
+    },
+  });
+  lastStorageReachabilityDiagnostic = result.diagnostic;
+  if (result.reachable) storageReachabilitySuccess = Promise.resolve(true);
+  return result.reachable;
 }
 
 /**
