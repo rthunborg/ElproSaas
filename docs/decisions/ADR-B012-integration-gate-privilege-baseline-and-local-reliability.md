@@ -40,3 +40,13 @@ The owner clarified that inherited privilege expectations and integration-test r
 ### Owner scope amendment — integration inventory — 2026-10-02
 
 The owner further confirmed that inherited baseline ACL expectations generally are in scope for this prerequisite. The author must derive the affected set from the documented active tenant-table inventory and its allowed anonymous/authenticated/service callers, then repair only demonstrated effective-grant or RLS mismatches with narrow forward migrations and effective-privilege tests. The 72 anon-path and 23 cross-tenant classifications require representative target, JWT, fixture, policy, wrapper, and downstream-validator checks before any conclusion of leakage or bypass. This does not authorize schema-wide revocation, changes to sanctioned anonymous surfaces, or unrelated product and financial behavior.
+### Owner approval — exact observed matrix — 2026-10-02
+
+The owner explicitly approved the exact SQL in
+`ADR-B012-public-inheritance-repair-approval-plan.md`: revoke table privileges
+from `PUBLIC` and `anon` for the 22 observed tables and revoke `EXECUTE` from
+those roles for `is_active_tenant_member(uuid)` and `is_tenant_admin(uuid)`.
+The approval excludes `membership_roles`, every unobserved table or helper,
+RLS-policy changes, replacement grant changes, reset/ledger operations, and
+hosted work. The forward migration must preserve the catalog-proven direct
+`authenticated` and `service_role` grants, including retained column grants.

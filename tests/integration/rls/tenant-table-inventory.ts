@@ -318,10 +318,7 @@ export type MutationDenialKind = "privilege" | "rls-invisible";
  */
 export function updateDenialKind(table: TenantTableName): MutationDenialKind {
   switch (table) {
-    case "tenants":
-    case "tenant_memberships":
     case "membership_roles":
-    case "membership_admin_operations":
     case "audit_events":
     case "job_runs":
     case "email_outbox":
@@ -348,6 +345,9 @@ export function updateDenialKind(table: TenantTableName): MutationDenialKind {
     case "customers":
     case "facilities":
     case "contacts":
+    case "tenants":
+    case "tenant_memberships":
+    case "membership_admin_operations":
     case "company_settings":
     case "quote_terms":
     case "work_roles":
@@ -373,6 +373,37 @@ export function updateDenialKind(table: TenantTableName): MutationDenialKind {
     default:
       if (table === "person_profiles" || table === "person_work_hours" || table === "tenant_calendar_days") return "rls-invisible";
       return assertNever(table);
+  }
+}
+
+/**
+ * The cross-tenant DELETE denial mechanism. Several retained authenticated
+ * DELETE grants are constrained by a missing own-tenant DELETE policy, so a
+ * foreign target is RLS-invisible. Their callers must prove both zero affected
+ * rows and an independent BYPASSRLS snapshot rather than require 42501.
+ */
+export function deleteDenialKind(table: TenantTableName): MutationDenialKind {
+  switch (table) {
+    case "tenants":
+    case "tenant_memberships":
+    case "company_settings":
+    case "quote_terms":
+    case "work_roles":
+    case "articles":
+    case "calculations":
+    case "calculation_sections":
+    case "calculation_rows":
+    case "jobs":
+    case "job_events":
+    case "files":
+    case "file_links":
+    case "membership_admin_operations":
+    case "person_profiles":
+    case "person_work_hours":
+    case "tenant_calendar_days":
+      return "rls-invisible";
+    default:
+      return "privilege";
   }
 }
 

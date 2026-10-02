@@ -2,7 +2,7 @@
 title: 'Prerequisite: Integration Gate Privilege Baseline and Local Reliability'
 type: 'bugfix'
 created: '2026-10-02'
-status: 'blocked'
+status: 'in-progress'
 review_loop_iteration: 0
 baseline_commit: '63f223614d3caa59fec0bb292d919f383b9a378d'
 context:
@@ -58,6 +58,7 @@ context:
 - [x] `tests/integration/rls/crm-tables-migration-reset.int.test.ts` and `tests/integration/commands/audit-anon-isolation.int.test.ts` — assert the complete effective table-privilege matrix with `has_table_privilege` for the confirmed CRM and audit paths.
 - [x] `vitest.config.ts` — retained file parallelism because the bounded serial required gate did not prove it resolves the observed failure category.
 - [x] `docs/decisions/ADR-B012-integration-gate-privilege-baseline-and-local-reliability.md` — records the exact applied repairs and evidence limits without changing Story 14.1 results.
+- [ ] `supabase/migrations/20261002141141_approved_inherited_public_acl_repair.sql` — apply only the owner-approved 22-table/two-helper `PUBLIC`/`anon` revoke matrix, preserving explicit retained grants, column grants, RLS, wrappers, and `membership_roles` exclusion.
 
 **Acceptance Criteria:**
 - Given a documented active tenant-table access contract and a confirmed inherited excess grant, when its forward migration applies, then only documented direct access remains and unauthorized anon/direct DML is denied while existing RLS, downstream validators, and wrappers continue to authorize intended commands.

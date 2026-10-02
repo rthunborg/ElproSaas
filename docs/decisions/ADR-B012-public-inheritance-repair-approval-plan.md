@@ -2,10 +2,7 @@
 
 ## Status
 
-This is an approval plan only. No migration file was created or applied for the
-repair described here. The automatic approval guard rejected the attempted
-forward migration because it revoked ACLs across a broad table set. The latest
-persisted direct Vitest report is the evidence source for the observed entries.
+The owner explicitly approved the exact 22-table/two-helper SQL below on 2026-10-02. Forward migration `20261002141141_approved_inherited_public_acl_repair.sql` was created through the installed Supabase CLI and is pending SQL-only loopback application and verification. The approval does not extend to `membership_roles`, unobserved tables, schema changes, RLS-policy changes, or grant changes. The latest persisted direct Vitest report is the evidence source for the observed entries.
 
 The report names 22 affected tables in failed assertions. `membership_roles` was
 the twenty-third table in the rejected candidate because it shares the foundation
