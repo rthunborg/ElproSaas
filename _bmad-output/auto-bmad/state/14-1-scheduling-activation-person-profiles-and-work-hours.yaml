@@ -9,11 +9,11 @@ spec_folder: null
 story_id: null
 branch: epic/14-wave-b1b-resource-and-scheduling-foundation
 status: in-progress
-updated_at: "2026-10-01T13:00:26Z"
+updated_at: "2026-10-02T08:17:52Z"
 started_at: "2026-09-29T08:45:54Z"
 completed_at: null
 active_seconds: 7383
-timing_anchor: null
+timing_anchor: 1790928928
 is_first_in_epic: true
 is_last_in_epic: false
 git_mode: remote
@@ -40,8 +40,8 @@ completed_phases: [0, 1, 2, 3, 4]
 spec_path: "C:\\Users\\Rasmus\\.codex\\worktrees\\epic14-scheduling\\ElproSaas\\_bmad-output\\implementation-artifacts\\spec-14-1-scheduling-activation-person-profiles-and-work-hours.md"
 spec_approved: true
 build:
-  status: blocked
-  blocking_condition: "the deployed guard `0.9.15` admitted root-owned lifecycle resource `50e9273a-c10b-4f1c-9022-7d6d823ee043` for the unchanged private Compose file at `2026-10-01T12:50:58.1615681Z`, then stopped it at `2026-10-01T12:50:58.8405642Z` before a backend invocation. `startOutcome.attemptDisposition=refused_before_backend`, `backendInvocation=not_attempted`, and `temporaryUsage=not_acquired` prove that no new Compose runtime started. The retained-registration record remains partial with `diagnosticCode=RETAINED_START_INCOMPLETE`, `recoveryRoute=new_registration_requires_choice`, `retainedLiveState=unknown`, and `evidenceSource=authenticated_completion`; its compose operation is `failed/prelaunch-failed/retained-restart` with `dispatchCommitted=true`. Stop confirmed this attempt closed, but does not repair the retained registration. The required integration/RLS and browser checks therefore remain blocked. See `docs/process/epic-14-guard-startup-diagnosis-2026-09-29.md`."
+  status: in-progress
+  blocking_condition: null
   followup_review_recommended: false
   review_loop_iteration: 0
   deferred_count: 0
@@ -56,7 +56,7 @@ legacy_review_loop_done: false
 legacy_external_review_iterations: null
 legacy_convergence_unverified: false
 legacy_artifact_path: null
-commits: [b821e42, 2fdca50, 93dbf84, 4f4bfc4, e33efc3, 04f9799, b642076, 9eba0ea, 37904b9, c7f43ea, a98153f, 8a260ae]
+commits: [b821e42, 2fdca50, 93dbf84, 4f4bfc4, e33efc3, 04f9799, b642076, 9eba0ea, 37904b9, c7f43ea, a98153f, 8a260ae, 741f4bf]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -88,7 +88,7 @@ overrides:
   epic_start_authorized_by_owner: true
   unattended_run_confirmed_by_owner_request: true
   epic13_observation_continues: true
-  owner_requested_resume_on: 2026-10-01
+  owner_requested_resume_on: 2026-10-02
   resume_preflight_passed: true
   root_guard_status_verified: true
   prior_registration_blocker_resolved: true
@@ -97,14 +97,23 @@ overrides:
   bounded_readiness_observation_before_retry: true
   readiness_observation_budget_seconds: 600
   root_compose_validation_passed: true
-  root_guard_resource_id: 50e9273a-c10b-4f1c-9022-7d6d823ee043
-  local_guard_diagnostic_status: completed_retained_registration_refusal
+  root_guard_resource_id: 54f6f04b-cc6d-47f3-9fa8-f5b373c8e851
+  local_guard_diagnostic_status: corrected_registration_active_services_healthy
   owner_authorized_guard_repair_and_failure_diagnosis: true
   root_guard_start_reproduced_failure: false
-  root_guard_stop_requested: true
+  root_guard_stop_requested: false
   isolated_service_and_schema_readiness_verified: false
   owner_confirmed_guard_fix_deployed: true
   owner_confirmed_all_prs_merged: true
+  root_guard_compose_file: compose.ready.test.yaml
+  root_guard_request_id: 6686ffd3-9b0e-4cd8-a205-52d16e2b5668
+  owner_authorized_corrected_stack_and_fresh_volumes: true
+  guard_upgrade_not_required: true
+  historical_registration_recovery_not_required: true
+  root_guard_service_readiness_verified: true
+  author_resume_preparation_completed: true
+  schema_migration_seed_and_acceptance_pending: true
+  owner_continuation_handoff: ELPRO-AGENT-HANDOFF.md 2026-10-01
 constraints:
   - "Phase B manifest-governed approved Story 14.1 only; resources activation belongs here and broader scheduling module remains pending for Epic 15."
   - "Preserve existing local data and user-owned processes; new persistent resources require this actor's trusted guard context."

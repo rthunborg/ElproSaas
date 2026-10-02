@@ -2,7 +2,7 @@
 title: 'Story 14.1: Resource Activation — Person Profiles and Work Hours'
 type: 'feature'
 created: '2026-09-29'
-status: 'blocked'
+status: 'in-progress'
 baseline_revision: '93dbf8432d420ecf6fcd29e732be7ca136801534'
 review_loop_iteration: 0
 followup_review_recommended: false
@@ -87,15 +87,13 @@ deferred: []
 
 ## Auto Run Result
 
-Status: blocked
+Status: in-progress
 
-Blocking condition: the deployed guard `0.9.15` admitted root-owned lifecycle resource `50e9273a-c10b-4f1c-9022-7d6d823ee043` for the unchanged private Compose file at `2026-10-01T12:50:58.1615681Z`, then stopped it at `2026-10-01T12:50:58.8405642Z` before a backend invocation. `startOutcome.attemptDisposition=refused_before_backend`, `backendInvocation=not_attempted`, and `temporaryUsage=not_acquired` prove that no new Compose runtime started. The retained-registration record remains partial with `diagnosticCode=RETAINED_START_INCOMPLETE`, `recoveryRoute=new_registration_requires_choice`, `retainedLiveState=unknown`, and `evidenceSource=authenticated_completion`; its compose operation is `failed/prelaunch-failed/retained-restart` with `dispatchCommitted=true`. Stop confirmed this attempt closed, but does not repair the retained registration. The required integration/RLS and browser checks therefore remain blocked. See `docs/process/epic-14-guard-startup-diagnosis-2026-09-29.md`.
+Resume evidence: the corrected private Compose configuration now has a verified active guard lifecycle `54f6f04b-cc6d-47f3-9fa8-f5b373c8e851` on project `rg-f58d95e0aa76f813445d407dfe410638d75a0041` (`outcomeVerified=true`, 2026-10-02T08:15:28.1412356Z). Independent checks confirmed all five services healthy, REST readiness exited 0, and the Auth and Storage gateways returned HTTP 200. This proves local test infrastructure readiness only; it supplies no Story 14.1 schema, seed, integration/RLS, browser, review, or Phase 5 acceptance credit.
 
-Implementation result: No implementation or verification command ran during this documentation-only continuation. Prior implementation and bootstrap evidence is retained below as historical evidence.
+Implementation result: No product source or verification command ran during this preparation. Prior implementation, blocked-run, and review evidence remains historical below.
 
-Verification: read-only inspection shows the admitted private Compose file is byte-identical to the repository `compose.test.yaml`, with five services (`db`, `auth`, `rest`, `storage`, `gateway`) and two project-owned named volumes. The retained REST container successfully connected to PostgreSQL and loaded schema caches through 33 relations, 27 relationships, and 18 RPCs; it has no Docker state error. Its historical exit code `255` is stop evidence, not a demonstrated startup/configuration failure: the captured log contains no fatal diagnostic and the container stopped with the other retained services. The database and storage volumes remain present, local-driver, project-scoped, and guard-managed; no contents were read or changed. This evidence rules out a proven Compose-file correction and does not prove current runtime readiness.
-
-Limits: `SUPABASE_TEST_REQUIRED=1 pnpm run test:int` and browser execution remain unrun. Resource command/RLS scaffolds remain skipped and cannot satisfy the required evidence. The recommended recovery is guard-side reconciliation or supported re-registration that retains the existing Compose identity and both named volumes; no Compose or data change is justified from the diagnostics. If the guard supports only a fresh registration, root must deliberately choose a clean-data registration with fresh project-scoped volumes while preserving the existing volumes untouched, then re-establish migration readiness. `followup_review_recommended` remains false because the workflow stopped before review.
+Remaining work: correct the un-applied Story 14 migration syntax at `supabase/migrations/20260929120000_resource_person_profiles_and_work_hours.sql:40` (`);` to `));`), then apply the remaining local SQL migrations and seed without resetting or editing migration history. Add the two missing `adminUserManagement` membership fixture fields for the focused browser scenarios, implement and enable the resource-specific command and RLS tests that are currently skipped scaffolds, and run the required integration/RLS and guarded production-app/browser acceptance. `followup_review_recommended` remains false until that required evidence and the workflow review phase are complete.
 
 ## Historical Run Evidence
 

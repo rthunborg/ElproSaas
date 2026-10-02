@@ -9,11 +9,11 @@ spec_folder: null
 story_id: null
 branch: epic/14-wave-b1b-resource-and-scheduling-foundation
 status: in-progress
-updated_at: "2026-10-01T13:00:26Z"
+updated_at: "2026-10-02T08:16:17Z"
 started_at: "2026-09-29T08:23:21Z"
 completed_at: null
 active_seconds: 8731
-timing_anchor: null
+timing_anchor: 1790928928
 is_first_in_epic: false
 is_last_in_epic: false
 git_mode: remote
@@ -58,7 +58,7 @@ legacy_review_loop_done: false
 legacy_external_review_iterations: null
 legacy_convergence_unverified: false
 legacy_artifact_path: null
-commits: [21ae8d7, "7548809", b821e42, 2fdca50, a98153f, 8a260ae]
+commits: [21ae8d7, "7548809", b821e42, 2fdca50, a98153f, 8a260ae, 741f4bf]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -91,16 +91,23 @@ overrides:
   isolated_managed_worktree: "C:\\Users\\Rasmus\\.codex\\worktrees\\epic14-scheduling\\ElproSaas"
   previous_epic_retro_verdict: accepted
   epic13_observation_continues: true
-  owner_requested_resume_on: 2026-10-01
+  owner_requested_resume_on: 2026-10-02
   resume_preflight_passed: true
   root_guard_status_verified: true
   owner_authorized_guard_repair_and_failure_diagnosis: true
-  local_guard_diagnostic_status: completed_retained_registration_refusal
+  local_guard_diagnostic_status: corrected_registration_active_services_healthy
   isolated_service_and_schema_readiness_verified: false
-  root_guard_stop_requested: true
+  root_guard_stop_requested: false
   owner_confirmed_guard_fix_deployed: true
-  root_guard_resource_id: 50e9273a-c10b-4f1c-9022-7d6d823ee043
+  root_guard_resource_id: 54f6f04b-cc6d-47f3-9fa8-f5b373c8e851
   owner_confirmed_all_prs_merged: true
+  root_guard_compose_file: compose.ready.test.yaml
+  root_guard_request_id: 6686ffd3-9b0e-4cd8-a205-52d16e2b5668
+  owner_authorized_corrected_stack_and_fresh_volumes: true
+  root_guard_start_reproduced_failure: false
+  guard_upgrade_not_required: true
+  historical_registration_recovery_not_required: true
+  root_guard_service_readiness_verified: true
 constraints:
   - "Phase B manifest-governed approved Epic14 stories only; maintain hard Phase C exclusions."
   - "Epic13 observation and release gates remain separate; no hosted migrations, deployment or flag changes during this implementation workflow."

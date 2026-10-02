@@ -184,3 +184,104 @@ No deferred ledger reconciliation or archive ran.
 2. A host/runtime maintainer must expose the worker exception and repair the supported guard startup path. AGENTS.md requires guard-managed readiness and prohibits runtime staging/activation/rollback/uninstall and broad administration from this session. Required integration/RLS/browser verification and mandatory reviews remain pending.
 
 **Next:** After supported guard repair and isolated service/schema readiness, resume /auto-bmad epic --epic 14. Human review: /bmad-checkpoint-preview epic/14-wave-b1b-resource-and-scheduling-foundation. Project context: /bmad-project-context refresh is recommended after epic completion.
+
+## Report — 2026-10-01T13:00:27Z (halted â€” needs-human)
+
+**Epic:** `14` — 4 stories.
+**Branch:** `epic/14-wave-b1b-resource-and-scheduling-foundation` (HEAD `741f4bf`).
+**Pipeline status:** Halted at E5 / Story 14.1 Phase 5: partial retained guard registration prevents the required isolated test stack from starting.
+**Continues:** 2026-09-29T14:41:16Z (halted â€” needs-human)
+
+**Summary:** Resumed the saved Epic 14 branch, preserved its previous report, merged origin/main including the approved security and release records, and passed full preflight. Guard 0.9.15 precisely refused reuse before backend work. Terra/high author checkpoint documented bounded read-only evidence; no story implementation resumed.
+
+**Timing:** started 2026-09-29T08:23:21Z; completed in progress — elapsed 52h 37m (≈2h 25m AI-run, ≈50h 11m human/idle wait); resumed 5×.
+
+**Stories:**
+1. 14.1: blocked at Phase 5; zero review rounds; required integration/RLS and browser tests executed this continuation: 0.
+2. 14.2â€“14.4: backlog; not started.
+
+**Skipped:** (none)
+
+**Epic gate:** Not reached.
+
+**TEA:** No TEA phase or tests ran this continuation. Required service/schema readiness remains unproved; prior scaffolds are not executed acceptance evidence.
+
+**Retrospective:** Not reached.
+
+**Overrides:** Owner confirmed all PRs merged and guard fix deployed, authorized unattended Epic 14 resume. Reused the existing worktree and unchanged Compose configuration; no hosted changes, real email, provisioning, or local administrative recovery.
+
+**Open questions:**
+1. Owner recovery choice pending: repair retained registration (recommended), or explicitly authorize a new isolated stack with fresh test data while preserving retained resources.
+2. Existing planning question: numeric performance targets and representative workload remain to be established.
+
+**Deferred work:**
+1. After guard recovery, verify service/schema readiness, then execute required integration/RLS and browser evidence.
+2. Complete the configured review phases and the remaining sequential Epic 14 stories.
+
+**⚠️ Needs human:**
+1. Lifecycle 50e9273a-c10b-4f1c-9022-7d6d823ee043 was refused_before_backend / not_attempted / not_acquired, with RETAINED_START_INCOMPLETE and recoveryRoute new_registration_requires_choice. Its owned Stop completed, but the older partial registration is preserved.
+2. The retained Compose file matches the repository; REST previously connected and loaded its schema. No concrete configuration startup defect was demonstrated. AGENTS lifecycle instructions prohibit changing directories merely to evade a refused registration. Select supported retained-registration repair or explicitly approve intentional fresh-data isolation.
+
+**Next:** After the selected guard recovery, resume /auto-bmad epic --epic 14 from Story 14.1. Human review: /bmad-checkpoint-preview epic/14-wave-b1b-resource-and-scheduling-foundation. Project context: /bmad-project-context refresh remains recommended after epic completion.
+
+
+## Maintainer live recovery evidence — 2026-10-01 18:29 UTC
+
+The owner explicitly approved a corrected fresh test stack and fresh volumes;
+deleting unused containers was not required. The retained registration was not
+reset or adopted. Further diagnosis established REST's missing admin-server
+port: `postgrest --ready` could not satisfy its configured health probe. The
+later exit 255 during Stop was not the startup cause.
+
+The approved two-line change in repository `compose.test.yaml` sets
+`PGRST_ADMIN_SERVER_PORT: "3001"` and `PGRST_ADMIN_SERVER_HOST: "127.0.0.1"`.
+The same private working directory now has byte-identical corrected
+`compose.ready.test.yaml`; the old private `compose.test.yaml` is unchanged.
+No additional host port, credentials, feature flags, product implementation,
+Docker Desktop setting or hosted environment changed.
+
+Installed guard **0.9.15** successfully started project
+`rg-f58d95e0aa76f813445d407dfe410638d75a0041` under the maintainer actor's own
+fresh context. Lifecycle `a465c621-0b7d-49f2-ae3a-3de7ab00b272` was accepted at
+18:17:53Z and active at 18:18:09Z. The original response envelope was lost to a
+local helper property-read error after dispatch; authoritative List recovered
+the exact request and active outcome without another launch. Separate probes
+proved all five services healthy, REST readiness exit 0, Auth/Storage gateway
+HTTP 200 and Storage schema availability.
+
+The SQL-only migration attempt then committed **80 of 81** repository migrations
+and failed SQLSTATE **42601** at `public.person_work_hours`. In
+`supabase/migrations/20260929120000_resource_person_profiles_and_work_hours.sql`
+line 40, `);` must become `));` to close the table declaration. The migration
+ledger ends at `20260928110819`; all three Story 14 tables are absent, and seed
+was not reached. This product correction belongs to the Story author and was
+not made by the guard investigation. Static review additionally found missing
+resource-profile membership fixture IDs in E2E global setup; resource-specific
+integration/RLS cases remain skipped scaffolds.
+
+Ordinary guarded reuse then admitted lifecycle
+`f7f5d0f2-f8e5-4021-917b-c3177234d97a` at 18:26:49Z with
+`ok=true/state=starting/verified=false`. Its List outcome became active and
+verified at 18:27:07Z. Independent checks found the same five healthy containers,
+the same network and volumes, and the identical 80-entry migration ledger after
+Stop/reuse. Both lifecycles received successful Stop acknowledgments. A separate
+18:29:16Z physical snapshot confirmed all five stopped with saved objects intact.
+The original project's five known stopped containers and both volumes also
+remained present. No deletion or registration recovery was performed.
+
+The guard/infrastructure blocker is cleared for the selected corrected route;
+application schema and required Story integration/RLS/browser acceptance are
+still incomplete. Zero Story acceptance or browser tests ran here; no review
+round or Phase 5 completion is claimed. Continue using the ElproSaas actor's own
+new trusted context and normal `ComposeUp`, existing private directory,
+`composeFiles=['compose.ready.test.yaml']`, `downTimeoutSeconds=10`, and a new
+logical requestId. Let the guard reuse the now-proven saved registration; do
+not request another fresh database, use the old partial file or replay the
+maintainer actor's identity. Fix the product migration/fixtures, finish schema
+and seed, then execute required verification and Stop owned lifecycles.
+
+Detailed results and supported handoff:
+`C:\Users\Rasmus\Documents\Codex\2026-08-31\investigate-and-design-a-machine-level\work\elpro-live-readiness-2026-10-01\RESULTS.md`
+and `ELPRO-AGENT-HANDOFF.md` in that same directory. Optional generic 0.9.16
+partial-retry source and regression evidence are prepared but uninstalled;
+this approved route needs no guard upgrade or additional owner choice.

@@ -62,3 +62,65 @@ Read-only Docker evidence does not identify a faulty Compose configuration. The 
 2. **Only if a clean-data run is intentionally selected:** use a guard-supported new registration with fresh project-scoped volumes, while preserving the existing volumes untouched. This option discards no data but cannot use the retained database as verified test state; migrations and service readiness must be demonstrated again before integration or browser execution.
 
 Do not change the Compose working directory, edit Compose configuration, remove containers or volumes, or infer runtime readiness from this checkpoint. A supported guard recovery or an explicit clean-data choice remains necessary before Phase 5 can resume.
+
+
+## Maintainer live recovery evidence — 2026-10-01 18:29 UTC
+
+The owner explicitly approved a corrected fresh test stack and fresh volumes;
+deleting unused containers was not required. The retained registration was not
+reset or adopted. Further diagnosis established REST's missing admin-server
+port: `postgrest --ready` could not satisfy its configured health probe. The
+later exit 255 during Stop was not the startup cause.
+
+The approved two-line change in repository `compose.test.yaml` sets
+`PGRST_ADMIN_SERVER_PORT: "3001"` and `PGRST_ADMIN_SERVER_HOST: "127.0.0.1"`.
+The same private working directory now has byte-identical corrected
+`compose.ready.test.yaml`; the old private `compose.test.yaml` is unchanged.
+No additional host port, credentials, feature flags, product implementation,
+Docker Desktop setting or hosted environment changed.
+
+Installed guard **0.9.15** successfully started project
+`rg-f58d95e0aa76f813445d407dfe410638d75a0041` under the maintainer actor's own
+fresh context. Lifecycle `a465c621-0b7d-49f2-ae3a-3de7ab00b272` was accepted at
+18:17:53Z and active at 18:18:09Z. The original response envelope was lost to a
+local helper property-read error after dispatch; authoritative List recovered
+the exact request and active outcome without another launch. Separate probes
+proved all five services healthy, REST readiness exit 0, Auth/Storage gateway
+HTTP 200 and Storage schema availability.
+
+The SQL-only migration attempt then committed **80 of 81** repository migrations
+and failed SQLSTATE **42601** at `public.person_work_hours`. In
+`supabase/migrations/20260929120000_resource_person_profiles_and_work_hours.sql`
+line 40, `);` must become `));` to close the table declaration. The migration
+ledger ends at `20260928110819`; all three Story 14 tables are absent, and seed
+was not reached. This product correction belongs to the Story author and was
+not made by the guard investigation. Static review additionally found missing
+resource-profile membership fixture IDs in E2E global setup; resource-specific
+integration/RLS cases remain skipped scaffolds.
+
+Ordinary guarded reuse then admitted lifecycle
+`f7f5d0f2-f8e5-4021-917b-c3177234d97a` at 18:26:49Z with
+`ok=true/state=starting/verified=false`. Its List outcome became active and
+verified at 18:27:07Z. Independent checks found the same five healthy containers,
+the same network and volumes, and the identical 80-entry migration ledger after
+Stop/reuse. Both lifecycles received successful Stop acknowledgments. A separate
+18:29:16Z physical snapshot confirmed all five stopped with saved objects intact.
+The original project's five known stopped containers and both volumes also
+remained present. No deletion or registration recovery was performed.
+
+The guard/infrastructure blocker is cleared for the selected corrected route;
+application schema and required Story integration/RLS/browser acceptance are
+still incomplete. Zero Story acceptance or browser tests ran here; no review
+round or Phase 5 completion is claimed. Continue using the ElproSaas actor's own
+new trusted context and normal `ComposeUp`, existing private directory,
+`composeFiles=['compose.ready.test.yaml']`, `downTimeoutSeconds=10`, and a new
+logical requestId. Let the guard reuse the now-proven saved registration; do
+not request another fresh database, use the old partial file or replay the
+maintainer actor's identity. Fix the product migration/fixtures, finish schema
+and seed, then execute required verification and Stop owned lifecycles.
+
+Detailed results and supported handoff:
+`C:\Users\Rasmus\Documents\Codex\2026-08-31\investigate-and-design-a-machine-level\work\elpro-live-readiness-2026-10-01\RESULTS.md`
+and `ELPRO-AGENT-HANDOFF.md` in that same directory. Optional generic 0.9.16
+partial-retry source and regression evidence are prepared but uninstalled;
+this approved route needs no guard upgrade or additional owner choice.
