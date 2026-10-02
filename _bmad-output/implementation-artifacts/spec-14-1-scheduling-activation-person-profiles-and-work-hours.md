@@ -2,7 +2,7 @@
 title: 'Story 14.1: Resource Activation — Person Profiles and Work Hours'
 type: 'feature'
 created: '2026-09-29'
-status: 'blocked'
+status: 'done'
 baseline_revision: '93dbf8432d420ecf6fcd29e732be7ca136801534'
 review_loop_iteration: 0
 followup_review_recommended: true
@@ -12,11 +12,7 @@ context:
   - '_bmad-output/test-artifacts/test-design-epic-14.md'
   - 'docs/process/review-order.md'
 warnings: []
-deferred:
-  - summary: 'The approved 22-table/two-helper PUBLIC/anon prerequisite is applied and its affected focused evidence is green; successor scope still requires explicit owner approval.'
-    evidence: 'With SUPABASE_TEST_REQUIRED=1, the applied matrix passed effective-ACL plus cross-tenant/anonymous coverage (3 files, 359 passed) and focused migration-reset coverage (4 files, 27 passed). Persisted root-bound seven-file reconciliation at C:\Users\Rasmus\AppData\Local\Temp\elpro-prereq-seven-reconciliation-20261002.json passed 6 files and 68 assertions, with one deliberate ready-tenant disabled_at regression failure. The required full gate remains red: two quote wrappers retain direct service_role EXECUTE, and 100-ID quote acceptance/version batches return HTTP 502 and cause empty pipeline/list fallbacks. No Story 14.1 status, SQL, or product change is authorized by this prerequisite.'
-    location: 'docs/decisions/ADR-B012-public-inheritance-repair-approval-plan.md'
-    severity: 'medium'
+deferred: []
 ---
 
 <intent-contract>
@@ -91,25 +87,24 @@ deferred:
 
 ## Auto Run Result
 
-Status: blocked
+Status: done
 
-Implementation result: activated the nav-less `resources` foundation, repaired the Story migration declaration and composite date-regex handling, and added forward migration `20261002113000_resource_profile_form_date_regex_fix.sql` for already-migrated databases. The protected admin-user panel persists profile, schedule, exception, and calendar input through the envelope-backed composite RPC. Browser fixtures now include active and deactivated profile histories; the retry seam is server-only/default-off and the guarded-CDP fixture attaches only to loopback endpoints.
+Implementation result: the nav-less `resources` foundation remains active and `scheduling` remains pending. The final Story repair set makes direct resource-table writes command-only, preserves non-rendered stored shifts and breaks when the compact panel edits its visible interval, rejects partial schedule/exception/calendar clears, handles read-model full-day exception nulls as omitted command fields, and avoids rendering an editable panel when the resource read model reports its controlled error. The composite RPC supports explicit schedule, rendered exception, and calendar clears with target-only audit events; no reset, ledger edit, hosted access, or unmanaged resource launch occurred.
 
-Schema and scoped acceptance: direct SQL-only loopback push with seed applied the Story migration and forward correction without a reset or ledger edit; migration list was local=remote. The approved prerequisite applied its 22-table/two-helper `PUBLIC`/`anon` matrix. Its focused effective-ACL/cross-tenant/anonymous coverage passed 359/359 and focused migration-reset coverage passed 27/27. The full normal prerequisite gate then completed with 125 files (114 passed, 10 failed, 1 skipped) and 1,242 assertions (1,226 passed, 15 failed, 1 skipped). The persisted root-bound reconciliation used API `http://127.0.0.1:55421`, database `127.0.0.1:55422`, and private JSON `C:\Users\Rasmus\AppData\Local\Temp\elpro-prereq-seven-reconciliation-20261002.json`; it passed 6 files and 68 assertions, with one deliberate ready-tenant `disabled_at` regression failure. A foreground existing-server browser run passed all 3 scenarios before the final guarded-CDP attachment patches, so it is diagnostic evidence only and is not final guarded-browser acceptance.
+Schema and focused acceptance: SQL-only loopback push applied `20261002171427_resource_command_only_write_acl.sql` and `20261002171855_resource_explicit_clear_form_inputs.sql`, including seed, to the retained local schema. The final required focused resource command/RLS run exited natively 0 with 4 files and 196 passed tests (0 skipped). Focused resource form units passed 7/7; `pnpm run typecheck` passed; `pnpm run lint` passed with 0 errors and 13 pre-existing warnings. The completed ADR-B012 prerequisite normal gate passed with `SUPABASE_TEST_REQUIRED=1`: 125 actual files, 124 passed and 1 intentional physical-loader skip; 1,243 assertions, 1,242 passed and 1 skipped. The earlier misbound attempt could not establish fixture cleanup on default 54321/54322; it was neither queried nor reset and is not current acceptance evidence.
 
-Review result: security and independent reviews completed. Their production-reachable seam, RPC/RLS negative-coverage, deactivated-history, retry-persistence, and guarded-CDP findings were patched; targeted security follow-up found no actionable regression. `Suggested Review Order` validates with 34 references. The review patch score is medium 4 and low 1 (13), so `followup_review_recommended` is true.
+Guarded browser acceptance: against root-owned production app `00a5286b-3e6a-4a93-a956-127ac44f74a6` on loopback 3100 and root-owned Chromium CDP loopback 59391, the project-pinned direct Playwright command exited natively 0 with 3/3 scenarios passed. The fixture attached only a dedicated context/page and closed those child objects; it did not launch or close the guard-owned browser. Evidence covers persisted role/schedule/calendar/exception state after reload, rejection of partial calendar and partial clear input, populated schedule/calendar/exception clear after reload, preserved deactivated history, and 360×640 server-observable failure/retry persistence.
 
-Blocking condition: the required full `SUPABASE_TEST_REQUIRED=1 pnpm run test:int` gate reached a terminal red result after the approved prerequisite matrix: 125 files (114 passed, 10 failed, 1 skipped) and 1,242 assertions (1,226 passed, 15 failed, 1 skipped). The persisted root-bound seven-file reconciliation then established 68 passed assertions and one intentionally red ready-tenant `disabled_at` regression. Further repair requires owner approval for three successor scopes: two exact quote-wrapper `service_role` EXECUTE revokes, the quote read-model 100-ID batch repair, and column-scoped `tenant_memberships` UPDATE for `onboarding_checklist_dismissed_at`. The reviewer supplied a direct `.cmd` command at approximately 17:13:29 CEST and declared 55421/55422 for its 59-pass/10-fail result, but lacked a durable report and resolved runtime binding; it is withdrawn and superseded by the persisted reconciliation. Final Story browser acceptance also remains unexecuted: later guard maintenance established a separate verified Chrome/CDP lifecycle, but did not execute the current project-pinned resource scenarios.
+Review result: all three configured review rounds are complete. Security findings for direct DML bypassing the audited resource command and missing anonymous RPC negatives were fixed by the command-only migration and command/RLS tests. Edge findings for blank schedule, calendar, and exception clears were fixed and browser-tested. The latest targeted security finding (same-tenant last-write-wins stale submissions) is dismissed as optional conflict-versioning: no Story AC introduces a revision invariant and the pre-existing composite replacement command has that same semantics. The latest independent findings were fixed for orphan breaks, partial exception input, controlled select clearing, read-model error gating, and preservation of non-rendered intervals. The planner-capability candidate is dismissed: `/admin/users` is intentionally guarded by `Memberships.Manage` and contains lifecycle/re-role controls; a separate resource-only route is a new surface, while no resource-command authorization bypass exists. Schema nullable-value hardening is deferred as defense in depth because command validation and the audited RPC enforce current customer writes after direct INSERT/UPDATE revocation. `followup_review_recommended` remains true for normal post-merge review of the security-sensitive command surface.
 
-Guarded-browser evidence: the lifecycle was later stopped after the verified-empty Job. No unmanaged-browser workaround was used. The installed Playwright 1.61.1 CDP implementation was inspected: a CDP-attached `browser.close()` closes its WebSocket transport, but the fixture no longer calls it and closes only its page and context, leaving root-owned Chromium lifecycle control with the guard. Root accepted Stop acknowledgments for app `8eb8ee65` and Compose `06ea959a` (`native=0`, `ok=true`, `stop_requested`, `verified=false`); no shutdown polling was performed.
-
+Blocking condition: none.
 ## Review Triage Log
 
-- **2026-10-02 — patched:** Security and independent review findings led to a server-only, default-off retry seam; actual command/RLS negative coverage; valid deactivated-profile history fixtures; reload-after-retry persistence proof; and a loopback-only optional CDP attachment fixture.
-- **2026-10-02 — patched:** Follow-up review removed `browser.close()` from the CDP-attached fixture and requires the runner retry-seam flag whenever CDP attachment is configured. Installed Playwright 1.61.1 source confirms the close path releases the CDP WebSocket transport; the final fixture avoids that path and retains guard lifecycle ownership.
-- **2026-10-02 — resolved and deferred:** The owner-approved 22-table/two-helper `PUBLIC`/`anon` matrix was applied and its focused evidence is green. The remaining successor scopes are named-role quote-wrapper grants, quote read-model batching, and ready-tenant membership column authorization; none is changed in this Story artifact.
-- **2026-10-02 — rejected as stale:** Earlier claims that the date-regex forward migration and focused resource coverage were unexecuted are superseded by the SQL-only application, aligned migration ledger, and current focused command/RLS, inventory, and unit evidence above. Final guard-owned browser acceptance remains unexecuted.
-
+- **2026-10-02 — patched:** Direct `INSERT`/`UPDATE` on resource tables bypassed the audited command and its membership/work-role validation. A forward migration revokes those grants, drops write policies, and focused same/cross-tenant direct-DML negatives assert `42501`; authenticated command RPCs remain the intended path.
+- **2026-10-02 — patched:** Explicit clears now reject orphan breaks and partial exception/calendar input, preserve non-rendered stored same-day intervals and later breaks, normalize only read-model `null` full-day times, and suppress an editable form on a controlled resource-read error. Browser evidence exercises populated clear/reload and partial rejection.
+- **2026-10-02 — dismissed:** Same-tenant stale-submission conflict detection would add a versioning feature beyond the Story contract; existing composite replacement semantics are last-write-wins.
+- **2026-10-02 — dismissed:** Planner access to the admin user-detail route would require a separate resource-only surface because the existing route intentionally exposes membership lifecycle and re-role controls under `Memberships.Manage`; no direct command authorization bypass exists.
+- **2026-10-02 — deferred:** Nullable temporal schema values are defense in depth after command-only writes; the current RPC and command validation reject malformed customer input. Future schema hardening should be separately reviewed against retained historical data.
 ## Historical Run Evidence
 
 Status: blocked
@@ -136,62 +131,44 @@ Limits: Resource command/RLS test scaffolds remain skipped, so they cannot satis
 
 ## Suggested Review Order
 
-Author: implementation author.
-Refreshed against the current working tree after the inherited-template copy ordering correction, migration CHECK and composite date-regex repairs, browser-fixture correction, deactivation-test enablement, browser server-action failure and draft-retention repairs, the private runtime gate plus authorization-negative test repairs, production-server fixture/reload acceptance repairs, and optional root-guard Chromium CDP attachment.
+Author: implementation author. Refreshed against the final Story 14.1 working tree after command-only resource writes, explicit clear semantics, stored-interval preservation, controlled form errors, and guarded-CDP acceptance.
 
-### Admin maintenance entry point and transaction boundary
+### Command authority and tenant boundary
 
-The protected admin-user detail form validates its complete payload before entering one request-bound envelope command. The database RPC persists the profile, copied/default or explicit schedule, exceptions, optional calendar input, and target-only audit events in its transaction.
+Review the forward ACL repair first. Authenticated callers retain read access and the audited `SECURITY DEFINER` command path, while direct resource-table `INSERT` and `UPDATE` no longer bypass membership/work-role checks, tenant checks, or target-only audit events. Confirm anonymous calls remain denied and cross-tenant writes leave the privileged snapshot unchanged.
 
-- `src/components/resources/PersonSchedulePanel.tsx:7` — `PersonSchedulePanel`: exposes the seven-day, exception, calendar, inactive-state, and retry controls inside the existing protected admin surface.
-- `src/features/resources/actions.ts:13` — `saveResourceProfileAction`: retains the submitted form on a transient server-action failure and validates hours and capacity input before command execution.
-- `src/server/commands/resources/profile-form.ts:21` — `saveResourceProfileForm`: binds maintenance to the envelope capability and resolved membership ownership.
-- `supabase/migrations/20260929120000_resource_person_profiles_and_work_hours.sql:222` — `save_resource_profile_form_with_audit`: commits the composite write through one checked RPC.
+- `supabase/migrations/20261002171427_resource_command_only_write_acl.sql:1` — revokes direct writes and removes resource-table write policies without changing the sanctioned command functions.
+- `src/server/commands/resources/profile-form.ts:12` — validates the composite form input before the envelope calls the audited RPC.
+- `tests/integration/rls/resources.rls.test.ts:10` — covers same/cross-tenant direct write denial and unchanged-resource snapshots.
+- `tests/integration/commands/resources.int.test.ts:99` — proves anonymous callers cannot invoke any resource mutation RPC.
 
-### Browser fixture and retry seam
+### Persisted form inputs and explicit clears
 
-The browser path selects the existing tokenized tenant work role instead of assuming an unseeded literal. The failure-once signal requires both the dynamic protected route query and a private server runtime flag; the action independently applies the same server-only predicate before returning a retryable error without constructing a database client or issuing a command. Playwright supplies that private flag only to its disposable production web server. The resource tests optionally attach through a loopback CDP endpoint to a root guard-owned Chromium only when the runner carries the same explicit private flag; they close only their own context and page and let the worker release its transport. The initial action state is client-local so the client does not import a runtime value from the server-action module.
+The panel renders only the first interval and break for each weekday. It sends the stored schedule as a hidden preservation baseline, merges edits into that visible interval, and treats an entirely blank rendered schedule as an intentional clear. Malformed hidden exception history is not normalized into valid data; only the read model’s `null` full-day time representation is converted to omitted fields for command validation. The action rejects a break without its shift and every partial exception/calendar form before the RPC receives it.
 
-- `tests/e2e/resources-person-profile.e2e.spec.ts:10` — `Fixture`: reads the seeded work-role display name and selects that exact tenant-local option.
-- `playwright.config.ts:83` — `E2E_RESOURCE_SAVE_FAILURE_ENABLED`: enables the retry seam only in the configured disposable production test server.
-- `tests/e2e/support/resource-cdp-attachment.ts:4` — `RESOURCE_E2E_CDP_ENDPOINT_ENV`: keeps optional guard-CDP attachment test-runner-only and absent by default.
-- `tests/e2e/support/resource-cdp-attachment.ts:20` — `requireResourceE2eFailureSeamForCdp`: fails fast when a CDP-attached runner lacks the explicit retry-seam opt-in required to align with the guarded server.
-- `tests/e2e/support/resource-cdp-attachment.ts:41` — `connectOverCDP`: attaches only to a validated loopback endpoint and creates a dedicated test context without closing the root-owned browser.
-- `tests/e2e/resources-person-profile.e2e.spec.ts:32` — `resourcePage`: routes all three resource scenarios through the optional attachment fixture without changing normal Playwright behavior.
-- `src/app/(app)/admin/users/[membershipId]/page.tsx:9` — `AdminUserDetail`: requires `resourceSaveFailure=once` and the private server flag before passing the test seam into the protected panel.
-- `src/server/resources/e2e-save-failure.ts:5` — `isResourceE2eSaveFailureEnabled`: defaults the server-only runtime flag to false unless it is exactly `true`.
-- `src/components/resources/PersonSchedulePanel.tsx:6` — `RESOURCE_INITIAL`: keeps the `useActionState` initial value in client code.
-- `src/components/resources/PersonSchedulePanel.tsx:13` — `retainDraft`: captures every editable form value and binds controls to that draft so a failed server action cannot clear unsent input.
-- `src/features/resources/actions.ts:16` — `shouldInjectResourceE2eSaveFailure`: independently rejects direct form/action attempts to enable the seam without the private server flag before any persistence path.
+- `src/components/resources/PersonSchedulePanel.tsx:21` — supplies stored schedule/exception/calendar baselines and records controlled select changes.
+- `src/features/resources/actions.ts:21` — rejects partial input and prepares the intentional-clear command payload.
+- `src/features/resources/schedule-form-merge.ts:20` — preserves non-rendered intervals and breaks while allowing a full clear.
+- `src/features/resources/resource-form-inputs.ts:7` — converts only authoritative full-day null time fields and retains malformed entries for rejection.
+- `src/features/resources/capacity-inputs.ts:15` — rejects malformed exception entries rather than throwing.
+- `supabase/migrations/20261002171855_resource_explicit_clear_form_inputs.sql:46` — implements schedule, exception, and calendar clear behavior atomically with target-only audit metadata.
+- `tests/unit/features/resources/schedule-form-merge.test.ts:5` — proves hidden intervals/breaks survive a visible edit and a blank schedule is an explicit clear.
+- `tests/unit/features/resources/resource-form-inputs.test.ts:6` — proves the read-model full-day shape is accepted and malformed history is rejected.
 
-### Resource activation and isolated schedule storage
+### Failure behavior and browser ownership
 
-The manifest activates only the nav-less resource foundation. The migration keeps person records, normalized weekly/exception inputs, and tenant calendar reductions tenant-scoped; `scheduling` retains its pending, surface-free state. New-profile template copy inserts shifts before breaks because the database row trigger requires a containing shift for each break.
+A resource read failure must not expose an editable blank form. The pinned test fixture connects to the root-owned guarded Chromium only with the explicit runner seam flag, creates a test context/page, and closes neither the root browser nor its lifecycle. Review the three browser scenarios after the source and migration paths.
 
-- `src/scope/manifest.ts:249` — `id: "resources"`: activates E14 without adding a resource navigation item.
-- `supabase/migrations/20260929120000_resource_person_profiles_and_work_hours.sql:6` — `create table public.person_profiles`: enforces one profile per membership and same-tenant membership/work-role references.
-- `supabase/migrations/20260929120000_resource_person_profiles_and_work_hours.sql:77` — `validate_person_work_hour`: rejects overlapping shifts, invalid breaks, and overlapping exceptions for direct entitled writes.
-- `supabase/migrations/20260929120000_resource_person_profiles_and_work_hours.sql:187` — `Copy shifts before breaks`: makes copied tenant templates satisfy the break-containment trigger deterministically.
-- `supabase/migrations/20261002113000_resource_profile_form_date_regex_fix.sql:4` — `save_resource_profile_form_with_audit`: forward-corrects the composite form RPC so ordinary ISO exception and calendar dates pass PostgreSQL regex validation on already-migrated databases.
-- `src/features/resources/work-hours.ts:11` — `validateWorkHoursInput`: treats employment percentage as descriptive and derives availability only from actual shifts and breaks.
-- `src/features/resources/capacity-inputs.ts:8` — `SWEDISH_HOLIDAY_RULE_SOURCE`: provides the holiday-rule input seam without hardcoded availability rules.
+- `src/components/admin-users/UserDetailPanel.tsx:32` — renders the controlled read error instead of a writable schedule panel.
+- `tests/e2e/support/resource-cdp-attachment.ts:41` — attaches a dedicated context/page over loopback CDP without closing the root browser.
+- `tests/e2e/resources-person-profile.e2e.spec.ts:32` — covers persistence/reload, populated clear/reload, and partial-input rejection.
+- `tests/e2e/resources-person-profile.e2e.spec.ts:89` — verifies preserved deactivated history without booking/reassignment affordances.
+- `tests/e2e/resources-person-profile.e2e.spec.ts:100` — proves server-observable transient failure retains draft input and persists only after retry.
 
-### Acceptance evidence and current limits
+### Final evidence
 
-The named tests exercise the manifest boundary, preserved 80-percent schedule shape, invalid time windows, and data-driven capacity inputs. Database/RLS and browser paths remain required evidence and are not credited by these pure tests.
-
-- `tests/unit/scope/resources-activation.atdd.test.ts:10` — `activates resources`: proves E14/E15 manifest separation.
-- `tests/unit/features/resources/work-hours.test.ts:7` — `preserves different daily availability`: proves schedule shape is not synthesized from employment percentage.
-- `tests/unit/features/resources/work-hours.test.ts:57` — `rejects overlapping breaks`: proves a break cannot be double-counted inside one actual shift.
-- `tests/unit/features/resources/capacity-inputs.test.ts:7` — `retains data-driven absences`: proves valid exception and calendar input acceptance.
-- `tests/integration/commands/resources.int.test.ts:33` — `saves the browser form's profile`: exercises the composite RPC with the browser's profile, schedule, full-day exception, and calendar input shape.
-- `tests/integration/commands/resources.int.test.ts:51` — `composite form RPC rejects foreign tenants`: asserts tenant-B and forged-actor calls fail with `42501` and leave profile, work-hour, and calendar tables unchanged.
-- `tests/integration/rls/resources.rls.test.ts:10` — `tenant B cannot read or mutate tenant A resource rows`: asserts cross-tenant profile, work-hour, and calendar updates leave stored values unchanged.
-- `tests/unit/server/resources/e2e-save-failure.test.ts:8` — `resource E2E failure seam requires`: proves a form request alone cannot enable the retry seam; only the exact private runtime opt-in can, and retry disables its one-time branch.
-- `tests/unit/e2e/resource-cdp-attachment.test.ts:15` — `guarded CDP attachment requires`: proves attached execution fails without the explicit runner retry-seam opt-in.
-- `tests/e2e/global-setup.ts:907` — `person_profiles`: seeds a real profile before its membership is disabled, preserving a historical schedule for the deactivation path.
-- `tests/e2e/resources-person-profile.e2e.spec.ts:55` — `admin sees a deactivated profile as Inaktiverad`: asserts the preserved historical weekday value as well as the absence of booking and reassignment affordances.
-- `tests/e2e/resources-person-profile.e2e.spec.ts:66` — `server-observable transient save failure`: reloads after retry success and asserts the 08:00 value came from server persistence.
-
-Evidence: in this refresh, the focused `node --experimental-strip-types --import ./tests/support/register.mjs --test tests/unit/e2e/resource-cdp-attachment.test.ts` run passed 2/2, the earlier focused retry-seam unit run passed 1/1, and `pnpm run typecheck` plus `git diff --check` passed after the CDP lifecycle and runner-alignment repair. The prerequisite's normal gate completed with 125 files (114 passed, 10 failed, 1 skipped) and 1,242 assertions (1,226 passed, 15 failed, 1 skipped). Its persisted root-bound seven-file reconciliation at `C:\Users\Rasmus\AppData\Local\Temp\elpro-prereq-seven-reconciliation-20261002.json` passed 6 files and 68 assertions, with one deliberate ready-tenant `disabled_at` regression failure. The reviewer supplied a direct `.cmd` command at approximately 17:13:29 CEST and declared 55421/55422 for its 59-pass/10-fail result, but lacked a durable report and resolved runtime binding; it is withdrawn and superseded by the persisted reconciliation. The earlier composite-RPC failure safely identified `23514` (`resource exception invalid`) before partial persistence and led to the forward corrective migration; the authorized direct loopback migration and focused database tests have since executed, as recorded by the workflow owner. Earlier evidence: `pnpm run test:unit -- --testNamePattern=resources` completed 1,929 tests: 1,928 passed and 1 skipped; the migration ledger was locally and remotely aligned; and the enabled focused Vitest command/RLS run passed 6/6 tests, covering profile/schedule persistence, overlap rollback, forged-tenant and invalid-calendar rejection, manifest/H4 enrollment, and direct tenant-B read/update denial. The migration's unclosed `person_work_hours` CHECK is corrected at line 39. Earlier lint completed with 0 errors and 13 existing warnings, and Playwright discovery found three resource scenarios.
-Limits: The optional attached-browser fixture is unit-verified but did not connect to a guard-owned Chromium: its required guard lifecycle failed closed with `START_NOT_CREATED`, a verified-empty Job, and no safe retry route. The clean-reset migration/H4 gates were deliberately not run because the retained-stack directive prohibits reset. The focused browser persistence, deactivation, and retry acceptance remain to run through the root guard-owned Chromium.
+- Focused required resource command/RLS coverage: 4 files, 196 passed, 0 skipped.
+- Focused resource form units: 7 passed.
+- TypeScript: passed. Lint: 0 errors and 13 existing warnings.
+- Guarded production browser acceptance: 3 passed, 0 failed, 0 skipped; root-owned app `00a5286b-3e6a-4a93-a956-127ac44f74a6`, root-owned Chromium CDP loopback 59391. The author did not own or stop either lifecycle.
+- ADR-B012 prerequisite normal required gate: 125 files, 124 passed, 1 intentional physical-loader skip; 1,243 assertions, 1,242 passed, 1 skipped.

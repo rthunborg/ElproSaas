@@ -50,6 +50,40 @@ test("[P0] admin persists a same-tenant role and schedule inputs in the existing
   await expect(page.getByTestId("resource-weekday-1-start")).toHaveValue("07:00");
   await expect(page.getByTestId("resource-calendar-day-reduction")).toHaveValue("50");
   await expect(page.getByTestId("resource-person-exception-date")).toHaveValue("2026-10-16");
+
+  await page.getByTestId("resource-weekday-1-start").fill("");
+  await page.getByTestId("resource-weekday-1-end").fill("");
+  await page.getByTestId("resource-save").click();
+  await expect(page.getByTestId("resource-save-error")).toHaveText(/kontrollera/i);
+  await page.getByTestId("resource-weekday-1-start").fill("07:00");
+  await page.getByTestId("resource-weekday-1-end").fill("16:00");
+
+  await page.getByTestId("resource-person-exception-date").fill("");
+  await page.getByTestId("resource-save").click();
+  await expect(page.getByTestId("resource-save-error")).toHaveText(/kontrollera/i);
+  await page.getByTestId("resource-person-exception-date").fill("2026-10-16");
+
+  await page.getByTestId("resource-calendar-day-reduction").fill("");
+  await page.getByTestId("resource-save").click();
+  await expect(page.getByTestId("resource-save-error")).toHaveText(/kontrollera/i);
+
+  await page.getByTestId("resource-calendar-day-reduction").fill("50");
+  await page.getByTestId("resource-weekday-1-start").fill("");
+  await page.getByTestId("resource-weekday-1-end").fill("");
+  await page.getByTestId("resource-break-1-start").fill("");
+  await page.getByTestId("resource-break-1-end").fill("");
+  await page.getByTestId("resource-exception-date").fill("");
+  await page.getByTestId("resource-calendar-day-reduction").fill("");
+  await page.locator('select[name="personExceptionKind"]').selectOption({ label: "Inget" });
+  await expect(page.locator('select[name="personExceptionKind"]')).toHaveValue("");
+  await page.getByTestId("resource-person-exception-date").fill("");
+  await page.getByTestId("resource-save").click();
+  await expect(page.getByTestId("resource-save-status")).toHaveText(/sparats/i);
+  await page.reload();
+  await expect(page.getByTestId("resource-weekday-1-start")).toHaveValue("");
+  await expect(page.getByTestId("resource-break-1-start")).toHaveValue("");
+  await expect(page.getByTestId("resource-calendar-day-reduction")).toHaveValue("");
+  await expect(page.getByTestId("resource-person-exception-date")).toHaveValue("");
 });
 
 test("[P1] admin sees a deactivated profile as Inaktiverad without booking or reassignment affordances", async ({ resourcePage: page }) => {
@@ -70,6 +104,7 @@ test("[P0] at 360×640 a server-observable transient save failure retains unsent
   await page.goto(`/admin/users/${fixture.adminUserManagement.resourceProfileMembershipId}?resourceSaveFailure=once`);
 
   await page.getByTestId("resource-weekday-1-start").fill("08:00");
+  await page.getByTestId("resource-weekday-1-end").fill("16:00");
   await page.getByTestId("resource-save").click();
   await expect(page.getByTestId("resource-save-error")).toHaveText(/försök igen/i);
   await expect(page.getByTestId("resource-save-status")).toHaveCount(0);

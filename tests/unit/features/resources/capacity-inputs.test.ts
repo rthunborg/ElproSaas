@@ -34,3 +34,11 @@ test("[P0] rejects invalid exception windows and invalid calendar reductions", a
   assert.equal(invalidWindow?.ok, false);
   assert.equal(invalidReduction?.ok, false);
 });
+
+test("[P0] rejects malformed persisted exception history without throwing", async () => {
+  const resourceModule = await import(capacityInputsModulePath) as {
+    validateCapacityInputs?: (input: unknown) => { ok: boolean };
+  };
+
+  assert.equal(resourceModule.validateCapacityInputs?.({ exceptions: [null] }).ok, false);
+});

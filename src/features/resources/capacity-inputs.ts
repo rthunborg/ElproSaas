@@ -14,6 +14,7 @@ export function validateCapacityInputs(raw: unknown): CapacityInputValidation {
   if (input.exceptions !== undefined) {
     if (!Array.isArray(input.exceptions)) return { ok: false };
     for (const exception of input.exceptions as { kind?: unknown; date?: unknown; start?: unknown; end?: unknown }[]) {
+      if (!exception || typeof exception !== "object") return { ok: false };
       if (!["absence", "sick_leave", "leave", "training", "blocked_time"].includes(String(exception.kind)) || typeof exception.date !== "string" || !DATE.test(exception.date)) return { ok: false };
       const timed = exception.start !== undefined || exception.end !== undefined;
       if (timed && (typeof exception.start !== "string" || typeof exception.end !== "string" || !TIME.test(exception.start) || !TIME.test(exception.end) || toMinutes(exception.start) >= toMinutes(exception.end))) return { ok: false };

@@ -33,17 +33,17 @@ const cdpEndpoint = readResourceE2eCdpEndpoint();
 requireResourceE2eFailureSeamForCdp(cdpEndpoint);
 
 const normalTest = base.extend<ResourcePageFixture>({
-  resourcePage: async ({ page }, use) => use(page),
+  resourcePage: async ({ page }, provide) => provide(page),
 });
 
 const attachedTest = base.extend<ResourcePageFixture>({
-  resourcePage: async ({}, use, testInfo) => {
+  resourcePage: async ({}, provide, testInfo) => {
     const browser = await chromium.connectOverCDP(cdpEndpoint!);
     const baseURL = testInfo.project.use.baseURL;
     const context = await browser.newContext(baseURL ? { baseURL } : {});
     const page = await context.newPage();
     try {
-      await use(page);
+      await provide(page);
     } finally {
       await page.close();
       await context.close();

@@ -1,5 +1,5 @@
 "use client";
-import { useActionState, useState, type FormEvent } from "react";
+import { useActionState, useState, type ChangeEvent, type FormEvent } from "react";
 import { saveResourceProfileAction, type ResourceActionState } from "@/features/resources/actions";
 function timeForInput(value: string | undefined): string | undefined { return value?.slice(0, 5); }
 const WEEKDAYS = ["Måndag", "Tisdag", "Onsdag", "Torsdag", "Fredag", "Lördag", "Söndag"] as const;
@@ -15,15 +15,19 @@ export function PersonSchedulePanel({ membershipId, inactive, profile, defaultSc
     for (const [name, value] of new FormData(event.currentTarget).entries()) if (typeof value === "string") values[name] = value;
     setDraft(values);
   };
+  const retainSelectDraft = (event: ChangeEvent<HTMLSelectElement>) => {
+    const { name, value } = event.currentTarget;
+    setDraft((current) => ({ ...current, [name]: value }));
+  };
   return <section className="mt-6 rounded border p-4" aria-labelledby="resource-schedule-heading">
     <h2 id="resource-schedule-heading" className="font-semibold">Arbetstid och kapacitet</h2>
     <p data-testid="resource-profile-status" className="mt-1 text-sm">{inactive ? "Inaktiverad" : "Aktiv"}</p>
     <p className="mt-1 text-sm text-zinc-600">Schemat är ett kapacitetsunderlag. Bokning och omfördelning tillkommer senare.</p>
-    <form action={action} onChange={retainDraft} className="mt-3 grid gap-3 sm:grid-cols-2"><input type="hidden" name="membershipId" value={membershipId}/><input type="hidden" name="existingExceptions" value={JSON.stringify(profile?.exceptions ?? [])}/><input type="hidden" name="resourceSaveFailureOnce" value={retryScenario ? "true" : "false"}/>
-      <label>Standardroll<select name="defaultWorkRoleId" data-testid="resource-default-work-role" value={draftValue("defaultWorkRoleId", profile?.defaultWorkRoleId)}><option value="">Ingen standardroll</option>{workRoles.map((role)=><option key={role.id} value={role.id}>{role.name}</option>)}</select></label>
+    <form action={action} onChange={retainDraft} className="mt-3 grid gap-3 sm:grid-cols-2"><input type="hidden" name="membershipId" value={membershipId}/><input type="hidden" name="existingSchedule" value={JSON.stringify(profile?.shifts ?? defaultSchedule)}/><input type="hidden" name="existingExceptions" value={JSON.stringify(profile?.exceptions ?? [])}/><input type="hidden" name="existingCalendarDate" value={calendarDay?.date ?? ""}/><input type="hidden" name="resourceSaveFailureOnce" value={retryScenario ? "true" : "false"}/>
+      <label>Standardroll<select name="defaultWorkRoleId" data-testid="resource-default-work-role" value={draftValue("defaultWorkRoleId", profile?.defaultWorkRoleId)} onChange={retainSelectDraft}><option value="">Ingen standardroll</option>{workRoles.map((role)=><option key={role.id} value={role.id}>{role.name}</option>)}</select></label>
       <label>Anställningsgrad<input name="employmentPercentage" type="number" min="1" max="100" value={draftValue("employmentPercentage", profile?.employmentPercentage)}/></label>
       {WEEKDAYS.map((label, offset) => { const weekday = offset + 1; const shift = (profile?.shifts ?? defaultSchedule).find((candidate) => candidate.weekday === weekday); const pause = shift?.breaks[0]; return <fieldset key={weekday} className="contents"><legend className="sr-only">{label}</legend><label>{label} start<input name={`weekday${weekday}Start`} type="time" data-testid={`resource-weekday-${weekday}-start`} value={draftValue(`weekday${weekday}Start`, timeForInput(shift?.start))}/></label><label>{label} slut<input name={`weekday${weekday}End`} type="time" data-testid={`resource-weekday-${weekday}-end`} value={draftValue(`weekday${weekday}End`, timeForInput(shift?.end))}/></label><label>{label} rast start<input name={`weekday${weekday}BreakStart`} type="time" data-testid={`resource-break-${weekday}-start`} value={draftValue(`weekday${weekday}BreakStart`, timeForInput(pause?.start))}/></label><label>{label} rast slut<input name={`weekday${weekday}BreakEnd`} type="time" data-testid={`resource-break-${weekday}-end`} value={draftValue(`weekday${weekday}BreakEnd`, timeForInput(pause?.end))}/></label></fieldset>; })}
-      <label>Personligt undantag<select name="personExceptionKind" value={draftValue("personExceptionKind", profile?.exceptions[0]?.kind)}><option value="">Inget</option><option value="absence">Frånvaro</option><option value="sick_leave">Sjukfrånvaro</option><option value="leave">Ledighet</option><option value="training">Utbildning</option><option value="blocked_time">Spärrad tid</option></select></label>
+      <label>Personligt undantag<select name="personExceptionKind" value={draftValue("personExceptionKind", profile?.exceptions[0]?.kind)} onChange={retainSelectDraft}><option value="">Inget</option><option value="absence">Frånvaro</option><option value="sick_leave">Sjukfrånvaro</option><option value="leave">Ledighet</option><option value="training">Utbildning</option><option value="blocked_time">Spärrad tid</option></select></label>
       <label>Datum för personligt undantag<input name="personExceptionDate" type="date" data-testid="resource-person-exception-date" value={draftValue("personExceptionDate", profile?.exceptions[0]?.date)}/></label>
       <label>Start för personligt undantag<input name="personExceptionStart" type="time" value={draftValue("personExceptionStart", timeForInput(profile?.exceptions[0]?.start ?? undefined))}/></label><label>Slut för personligt undantag<input name="personExceptionEnd" type="time" value={draftValue("personExceptionEnd", timeForInput(profile?.exceptions[0]?.end ?? undefined))}/></label>
       <label>Undantagsdatum<input name="exceptionDate" type="date" data-testid="resource-exception-date" value={draftValue("exceptionDate", calendarDay?.date)}/></label>

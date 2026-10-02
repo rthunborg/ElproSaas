@@ -370,8 +370,11 @@ export function updateDenialKind(table: TenantTableName): MutationDenialKind {
     case "notifications":
     case "notification_preferences":
       return "rls-invisible"; // UPDATE granted; RLS USING hides foreign rows
+    case "person_profiles":
+    case "person_work_hours":
+    case "tenant_calendar_days":
+      return "privilege"; // resource writes are command-only; authenticated has SELECT only
     default:
-      if (table === "person_profiles" || table === "person_work_hours" || table === "tenant_calendar_days") return "rls-invisible";
       return assertNever(table);
   }
 }
@@ -398,6 +401,9 @@ export function deleteDenialKind(table: TenantTableName): MutationDenialKind {
     case "files":
     case "file_links":
     case "membership_admin_operations":
+    // The Story command-only migration revoked direct INSERT/UPDATE. Existing
+    // DELETE remains grantable but has no DELETE policy, so foreign rows are
+    // RLS-invisible and the statement must affect zero rows.
     case "person_profiles":
     case "person_work_hours":
     case "tenant_calendar_days":

@@ -340,12 +340,8 @@ describe("Migration reset green — tenant_foundation objects present (AC1 / R-0
       "notification_preferences.UPDATE",
       "notifications.SELECT",
       "notifications.UPDATE",
-      "person_profiles.INSERT",
       "person_profiles.SELECT",
-      "person_profiles.UPDATE",
-      "person_work_hours.INSERT",
       "person_work_hours.SELECT",
-      "person_work_hours.UPDATE",
       "platform_operators.SELECT",
       "quote_acceptances.INSERT",
       "quote_acceptances.SELECT",
@@ -374,9 +370,7 @@ describe("Migration reset green — tenant_foundation objects present (AC1 / R-0
       "quotes.INSERT",
       "quotes.SELECT",
       "quotes.UPDATE",
-      "tenant_calendar_days.INSERT",
       "tenant_calendar_days.SELECT",
-      "tenant_calendar_days.UPDATE",
       "tenant_counters.INSERT",
       "tenant_counters.SELECT",
       "tenant_counters.UPDATE",
@@ -466,9 +460,6 @@ describe("Migration reset green — tenant_foundation objects present (AC1 / R-0
       "quote_acceptances",
       "jobs",
       "job_events",
-      "person_profiles",
-      "person_work_hours",
-      "tenant_calendar_days",
     ];
     for (const t of crmSettingsAndPricingTables) {
       expect((cmdsByTable.get(t) ?? []).sort()).toEqual([
@@ -477,6 +468,11 @@ describe("Migration reset green — tenant_foundation objects present (AC1 / R-0
         "UPDATE",
       ]);
     }
+    // Resource rows are read through RLS; audited commands are their only mutation surface.
+    for (const t of ["person_profiles", "person_work_hours", "tenant_calendar_days"]) {
+      expect((cmdsByTable.get(t) ?? []).sort()).toEqual(["SELECT"]);
+    }
+
     // Story 10.2 quote_lost_reasons is INSERT-ONLY — SELECT + INSERT policies, NO UPDATE, NO DELETE
     // (the insert-only + archive-over-delete discipline; the absent UPDATE grant/policy is the
     // load-bearing own-tenant-UPDATE-rejected enforcement).
