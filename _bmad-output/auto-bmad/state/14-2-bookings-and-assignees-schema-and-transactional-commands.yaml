@@ -9,11 +9,11 @@ spec_folder: null
 story_id: null
 branch: epic/14-wave-b1b-resource-and-scheduling-foundation
 status: in-progress
-updated_at: "2026-10-02T19:08:55Z"
+updated_at: "2026-10-02T19:22:05Z"
 started_at: "2026-10-02T19:08:54Z"
 completed_at: null
-active_seconds: 0
-timing_anchor: 1790968135
+active_seconds: 790
+timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
 git_mode: remote
@@ -36,11 +36,11 @@ tea_rationale: "Schema migrations, atomic transactional mutations, idempotency, 
 epic_story_count: 4
 stories_after_in_epic: 2
 completed_phases: [0, 1, 2]
-spec_path: null
+spec_path: "C:\\Users\\Rasmus\\.codex\\worktrees\\epic14-scheduling\\ElproSaas\\_bmad-output\\implementation-artifacts\\spec-14-2-bookings-and-assignees-schema-and-transactional-commands.md"
 spec_approved: false
 build:
-  status: null
-  blocking_condition: null
+  status: blocked
+  blocking_condition: intent gap
   followup_review_recommended: false
   review_loop_iteration: 0
   deferred_count: 0
@@ -55,7 +55,7 @@ legacy_review_loop_done: false
 legacy_external_review_iterations: null
 legacy_convergence_unverified: false
 legacy_artifact_path: null
-commits: []
+commits: [8db3b22]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -78,9 +78,11 @@ pr_merged: false
 merge_method: null
 merge_commit: null
 branch_deleted: false
-open_questions: []
+open_questions:
+  - "Choose: move engine into14.2 and narrow14.3; make14.3 a prerequisite if dependencies permit; or transfer engine-dependent conflict acceptance/test criteria to14.3 while keeping14.2 foundation and original order."
 deferred_work: []
-blockers: []
+blockers:
+  - "Story14.2 requires derived conflicts and authoritative save recheck, but Story14.3 owns the unimplemented shared engine; choose and record the sequencing/acceptance contract."
 overrides:
   epic_start_authorized_by_owner: true
   unattended_run_confirmed_by_owner_request: true
@@ -93,6 +95,13 @@ overrides:
   explicit_test_db_port: 55422
   no_hosted_changes: true
   no_data_reset: true
+  root_guard_stop_requested: true
+  root_guard_shutdown_verified: false
+  root_app_server_stop_requested: true
+  root_app_server_shutdown_verified: false
+  root_browser_stop_requested: true
+  root_browser_stopped_verified: false
+  guard_stop_acknowledgements_all_native_zero: true
 constraints:
   - "Approved Story 14.2 and Phase B manifest governance only; broader scheduling activation remains Epic15, retain hard Phase C exclusions."
   - "Use verified isolated 55421/55422 guarded local stack, SQL-only migrations, explicit test aliases, no reset or migration ledger edits."
