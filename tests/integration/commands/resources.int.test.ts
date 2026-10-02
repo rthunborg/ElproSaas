@@ -40,12 +40,17 @@ describe("Story 14.1 resource persistence commands", () => {
       const saved = await client.rpc("save_resource_profile_form_with_audit", {
         p_tenant_id: fixture.tenantA.id, p_actor_user_id: fixture.adminA.id, p_correlation_id: crypto.randomUUID(), p_membership_id: membership.id,
         p_work_role_id: null, p_employment_percentage: null,
-        p_schedule: [{ weekday: 1, start: "07:00", end: "16:00", breaks: [{ start: "12:00", end: "12:30" }] }],
-        p_exceptions: [{ kind: "blocked_time", date: "2026-10-16" }],
+        p_schedule: [{ weekday: 1, start: "07:00:30.123456", end: "16:00:30.123456", breaks: [{ start: "12:00:30.123456", end: "12:30:30.123456" }] }],
+        p_exceptions: [{ kind: "blocked_time", date: "2026-10-16", start: "09:00:30.123456", end: "10:00:30.123456" }],
         p_calendar_day: { date: "2026-10-15", variant: "reduced_capacity", reductionPercent: 50 },
       });
       expect(saved.error).toBeNull();
       expect(typeof saved.data).toBe("string");
+      expect(await adminQuery<{ entry_kind: string; starts_at: string }>("select entry_kind,starts_at::text from public.person_work_hours where person_profile_id=$1 order by entry_kind,starts_at", [saved.data])).toEqual([
+        { entry_kind: "exception", starts_at: "09:00:30.123456" },
+        { entry_kind: "weekly_break", starts_at: "12:00:30.123456" },
+        { entry_kind: "weekly_shift", starts_at: "07:00:30.123456" },
+      ]);
     } finally { await cleanupFixture(fixture); }
   });
   test("[P0] composite form explicitly clears schedule, rendered exception, and calendar input", async (ctx) => {

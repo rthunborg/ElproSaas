@@ -6,7 +6,7 @@ import { saveResourceProfileForm } from "@/server/commands/resources/profile-for
 import { validateWorkHoursInput } from "@/features/resources/work-hours";
 import { validateCapacityInputs } from "@/features/resources/capacity-inputs";
 import { mergeRenderedSchedule } from "@/features/resources/schedule-form-merge";
-import { normalizeStoredExceptions } from "@/features/resources/resource-form-inputs";
+import { mergeRenderedException, normalizeStoredExceptions } from "@/features/resources/resource-form-inputs";
 import { shouldInjectResourceE2eSaveFailure } from "@/server/resources/e2e-save-failure";
 export type ResourceActionState = { readonly status: "idle" | "success" | "error"; readonly message: string };
 function isPartiallyFilled(start: FormDataEntryValue | null, end: FormDataEntryValue | null): boolean {
@@ -38,8 +38,9 @@ export async function saveResourceProfileAction(_: ResourceActionState, form: Fo
       : [];
     return { weekday, start, end, breaks };
   }).filter((shift): shift is NonNullable<typeof shift> => shift !== null);
-  const rawExistingSchedule = typeof form.get("existingSchedule") === "string" ? (() => { try { return JSON.parse(String(form.get("existingSchedule"))); } catch { return []; } })() : [];
-  const schedule = { shifts: mergeRenderedSchedule(shifts, rawExistingSchedule) };
+  const rawExistingSchedule = typeof form.get("existingSchedule") === "string" ? (() => { try { return JSON.parse(String(form.get("existingSchedule"))); } catch { return null; } })() : null;
+  const mergedSchedule = mergeRenderedSchedule(shifts, rawExistingSchedule);
+  const schedule = { shifts: mergedSchedule ?? [] };
   const reduction = form.get("calendarReduction"); const date = form.get("exceptionDate"); const existingCalendarDate = form.get("existingCalendarDate");
   const exceptionDate = form.get("personExceptionDate"); const exceptionKind = form.get("personExceptionKind"); const exceptionStart = form.get("personExceptionStart"); const exceptionEnd = form.get("personExceptionEnd");
   const existingExceptions = typeof form.get("existingExceptions") === "string" ? (() => { try { return normalizeStoredExceptions(JSON.parse(String(form.get("existingExceptions")))); } catch { return []; } })() : [];
@@ -48,14 +49,14 @@ export async function saveResourceProfileAction(_: ResourceActionState, form: Fo
   const hasExceptionTime = (typeof exceptionStart === "string" && Boolean(exceptionStart)) || (typeof exceptionEnd === "string" && Boolean(exceptionEnd));
   const hasPartialException = hasExceptionKind !== hasExceptionDate || isPartiallyFilled(exceptionStart, exceptionEnd) || (hasExceptionTime && !(hasExceptionKind && hasExceptionDate));
   const exception = hasExceptionKind && hasExceptionDate ? { kind: exceptionKind, date: exceptionDate, ...(typeof exceptionStart === "string" && exceptionStart ? { start: exceptionStart } : {}), ...(typeof exceptionEnd === "string" && exceptionEnd ? { end: exceptionEnd } : {}) } : null;
-  const exceptions = exception ? [exception, ...existingExceptions.slice(1)] : existingExceptions.slice(1);
+  const exceptions = exception ? mergeRenderedException(exception, existingExceptions) : existingExceptions.slice(1);
   const hasPartialCalendar = isPartiallyFilled(date, reduction);
   const calendarDay = typeof reduction === "string" && reduction && typeof date === "string" && date
     ? { date, variant: "reduced_capacity" as const, reductionPercent: Number(reduction) }
     : typeof existingCalendarDate === "string" && existingCalendarDate && !date && !reduction
       ? { date: existingCalendarDate, variant: "clear" as const }
       : undefined;
-  if (hasPartialWorkTime || hasPartialException || hasPartialCalendar || !validateWorkHoursInput(schedule).ok ||
+  if (hasPartialWorkTime || hasPartialException || hasPartialCalendar || mergedSchedule === null || !validateWorkHoursInput(schedule).ok ||
       !validateCapacityInputs({ exceptions, ...(calendarDay?.variant === "reduced_capacity" ? { calendarDay } : {}) }).ok) {
     return { status: "error", message: "Kontrollera arbetstider och kalenderunderlag och försök igen." };
   }

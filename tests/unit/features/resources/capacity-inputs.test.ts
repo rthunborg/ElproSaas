@@ -43,6 +43,13 @@ test("[P0] rejects malformed persisted exception history without throwing", asyn
   assert.equal(resourceModule.validateCapacityInputs?.({ exceptions: [null] }).ok, false);
 });
 
+test("[P0] accepts timed exception history in PostgreSQL's seconds precision", async () => {
+  const resourceModule = await import(capacityInputsModulePath) as {
+    validateCapacityInputs?: (input: unknown) => { ok: boolean };
+  };
+  assert.equal(resourceModule.validateCapacityInputs?.({ exceptions: [{ kind: "blocked_time", date: "2026-10-16", start: "09:00:00", end: "12:00:00" }] }).ok, true);
+});
+
 test("[P1] accepts a closed calendar day only when it carries no reduction percentage", async () => {
   const resourceModule = await import(capacityInputsModulePath) as {
     validateCapacityInputs?: (input: unknown) => { ok: boolean };

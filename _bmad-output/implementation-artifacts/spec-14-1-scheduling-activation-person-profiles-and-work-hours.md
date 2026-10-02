@@ -2,7 +2,7 @@
 title: 'Story 14.1: Resource Activation — Person Profiles and Work Hours'
 type: 'feature'
 created: '2026-09-29'
-status: 'done'
+status: 'in-review'
 baseline_revision: '93dbf8432d420ecf6fcd29e732be7ca136801534'
 review_loop_iteration: 3
 followup_review_recommended: true
@@ -89,13 +89,15 @@ deferred: []
 
 Status: done
 
-Implementation result: the nav-less `resources` foundation remains active and `scheduling` remains pending. The final Story repair set makes direct resource-table writes command-only, preserves non-rendered stored shifts and breaks when the compact panel edits its visible interval, rejects partial schedule/exception/calendar clears, handles read-model full-day exception nulls as omitted command fields, and avoids rendering an editable panel when the resource read model reports its controlled error. The composite RPC supports explicit schedule, rendered exception, and calendar clears with target-only audit events; no reset, ledger edit, hosted access, or unmanaged resource launch occurred.
+Implementation result: the nav-less `resources` foundation remains active and `scheduling` remains pending. The final constrained repair preserves PostgreSQL `time` seconds and microseconds through the compact minute controls, the read model, the validated command payload, and both audited RPCs. It retains a hidden later same-day shift and its containing break when a rendered first interval is cleared during a partial edit, assigns split-shift breaks only to their containing shift, and fails closed on an invalid hidden preservation baseline. The exception selector now snapshots the current complete form so an explicit clear cannot resurrect a stale exception kind.
 
 Schema and focused acceptance: SQL-only loopback push applied `20261002171427_resource_command_only_write_acl.sql` and `20261002171855_resource_explicit_clear_form_inputs.sql`, including seed, to the retained local schema. The final required focused resource command/RLS run exited natively 0 with 4 files and 196 passed tests (0 skipped). Focused resource form units passed 7/7; `pnpm run typecheck` passed; `pnpm run lint` passed with 0 errors and 13 pre-existing warnings. The completed ADR-B012 prerequisite normal gate passed with `SUPABASE_TEST_REQUIRED=1`: 125 actual files, 124 passed and 1 intentional physical-loader skip; 1,243 assertions, 1,242 passed and 1 skipped. The earlier misbound attempt could not establish fixture cleanup on default 54321/54322; it was neither queried nor reset and is not current acceptance evidence.
 
-Guarded browser acceptance: against root-owned production app `00a5286b-3e6a-4a93-a956-127ac44f74a6` on loopback 3100 and root-owned Chromium CDP loopback 59391, the project-pinned direct Playwright command exited natively 0 with 3/3 scenarios passed. The fixture attached only a dedicated context/page and closed those child objects; it did not launch or close the guard-owned browser. Evidence covers persisted role/schedule/calendar/exception state after reload, rejection of partial calendar and partial clear input, populated schedule/calendar/exception clear after reload, preserved deactivated history, and 360×640 server-observable failure/retry persistence.
+Follow-up schema and focused acceptance: SQL-only loopback push applied `20261002190000_resource_time_precision_preservation.sql` to the retained 55422 schema after a native-zero dry run. Focused resource units passed 18/18; `pnpm typecheck` and `pnpm lint` passed. The required direct resource integration file ran with all local URL/key aliases bound explicitly and passed 6/6, including a `HH:MM:SS.ffffff` shift, break, and exception round trip. A mistaken wrapper command, `pnpm test:int -- tests/integration/commands/resources.int.test.ts`, ignored the target and exited 1 after 1,243 passes, one intentional skip, and one timeout in an unchanged role-harness test. Its bounded isolated reproduction passed 5/5 in 26.73 seconds; neither result establishes a full-gate pass, and the wrapper run is not acceptance evidence.
 
-Review result: all three configured review rounds are complete. Security findings for direct DML bypassing the audited resource command and missing anonymous RPC negatives were fixed by the command-only migration and command/RLS tests. Edge findings for blank schedule, calendar, and exception clears were fixed and browser-tested. The latest targeted security finding (same-tenant last-write-wins stale submissions) is dismissed as optional conflict-versioning: no Story AC introduces a revision invariant and the pre-existing composite replacement command has that same semantics. The latest independent findings were fixed for orphan breaks, partial exception input, controlled select clearing, read-model error gating, and preservation of non-rendered intervals. The planner-capability candidate is dismissed: `/admin/users` is intentionally guarded by `Memberships.Manage` and contains lifecycle/re-role controls; a separate resource-only route is a new surface, while no resource-command authorization bypass exists. Schema nullable-value hardening is deferred as defense in depth because command validation and the audited RPC enforce current customer writes after direct INSERT/UPDATE revocation. `followup_review_recommended` remains true for normal post-merge review of the security-sensitive command surface.
+Guarded browser acceptance: after root rebuilt the production bundle, the project-pinned command exited natively 0 with 4/4 scenarios passed against root-owned app `b95629c8-276b-4f5f-828c-ba3ec93c4362` on loopback 3100 and root-owned Chromium CDP loopback 59391. The fixture attached only a dedicated context/page and closed those child objects. Along with persistence/reload, explicit clears, deactivated history, and 360×640 server-observable failure/retry, the added regression seeds a first shift/break, a hidden later split shift/break, and a timed fractional-second exception; it saves an unrelated profile field, reloads, then clears only the rendered first interval while asserting exact retained database values.
+
+Review result: all three broad review rounds remain complete; this was the permitted constrained follow-up over latest fixes, Phase 6 coverage, and unresolved serious findings. Required independent Luna/xhigh external CLI review completed natively 0 after two failed/incomplete recovery attempts; the successful read-only pass confirmed the hidden-shift partial-edit loss. Supplemental Luna evidence and focused security review confirmed the PostgreSQL time-shape, split-break association, and timed-exception preservation defects; security found no additional reachable authorization issue. The canonical follow-up triage is patch 4, bad_spec 0, defer 0, dismissed 0. `review_loop_iteration` remains 3, `baseline_revision` remains `93dbf8432d420ecf6fcd29e732be7ca136801534`, and `followup_review_recommended` remains true.
 
 Blocking condition: none.
 ## Review Triage Log
@@ -127,6 +129,14 @@ Findings repaired: orphan-break and partial-exception validation, full-day read-
   - The planner route candidate requires a new resource-only surface because the existing route includes membership lifecycle and re-role controls under `Memberships.Manage`.
   - Nullable temporal schema hardening is defense in depth after command-only writes, with malformed current customer input rejected by the RPC and command validator.
   - Resource-table DELETE remains RLS-invisible under the retained grant/policy contract; the focused cross-tenant assertion verified zero affected foreign rows.
+
+### 2026-10-02 — Constrained follow-up after review cap
+
+- patch: 4
+- bad_spec: 0
+- defer: 0
+- dismissed: none
+- findings repaired: valid PostgreSQL `time` shapes (`HH:MM:SS` and up to microsecond precision) were rejected after read-model serialization; a compact partial edit dropped a hidden later same-day shift and its break; same-weekday breaks were attached to every split shift; and a timed exception was rewritten to minute precision on an unrelated save. The read model, form merge, exception merge, validators, forward RPC migration, unit/integration coverage, and guarded browser regression now preserve the stored values.
 ## Historical Run Evidence
 
 Status: blocked
@@ -153,7 +163,7 @@ Limits: Resource command/RLS test scaffolds remain skipped, so they cannot satis
 
 ## Suggested Review Order
 
-Author: implementation author. Refreshed against the final Story 14.1 working tree after command-only resource writes, explicit clear semantics, stored-interval preservation, controlled form errors, and guarded-CDP acceptance.
+Author: implementation author. Refreshed against the final constrained Story 14.1 repair after precision-preserving form merges, split-shift read-model shaping, controlled exception clear state, and guarded-CDP acceptance.
 
 ### Command authority and tenant boundary
 
@@ -177,6 +187,20 @@ The panel renders only the first interval and break for each weekday. It sends t
 - `tests/unit/features/resources/schedule-form-merge.test.ts:5` — proves hidden intervals/breaks survive a visible edit and a blank schedule is an explicit clear.
 - `tests/unit/features/resources/resource-form-inputs.test.ts:6` — proves the read-model full-day shape is accepted and malformed history is rejected.
 
+### Read-model precision and hidden split shifts
+
+The browser deliberately renders minute-granular native time controls. It retains the authoritative hidden read-model baseline when the rendered value is unchanged, so PostgreSQL seconds and microseconds are neither rejected nor truncated during an unrelated profile save. A partial edit that clears a rendered first interval preserves later same-day shifts and their own breaks; only a wholly blank schedule clears all weekly rows. The server rejects a malformed preservation baseline instead of turning it into a destructive replacement.
+
+- `src/components/resources/PersonSchedulePanel.tsx:6` — renders native minute values while retaining the full authoritative schedule and exception payload at line 28.
+- `src/features/resources/actions.ts:41` — treats an unreadable schedule baseline as an error and merges it before command validation.
+- `src/features/resources/schedule-form-merge.ts:30` — preserves precise unchanged values, hidden later shifts, and a safe explicit-clear distinction.
+- `src/features/resources/resource-form-inputs.ts:21` — preserves an unchanged timed exception’s exact read-model value.
+- `src/features/resources/schedule-read.ts:20` — assigns a break only to the split shift which contains it, in deterministic order.
+- `src/features/resources/work-hours.ts:6` and `src/features/resources/capacity-inputs.ts:18` — accept the supported PostgreSQL time shape consistently in schedule and exception validation.
+- `supabase/migrations/20261002190000_resource_time_precision_preservation.sql:4` — extends both audited RPC validators to the supported precision without weakening authorization or overlap checks.
+- `tests/integration/commands/resources.int.test.ts:40` — proves an actual fractional-second schedule, break, and exception RPC round trip.
+- `tests/e2e/resources-person-profile.e2e.spec.ts:119` — proves browser save/reload and partial-clear preservation of the hidden split shift, break, and timed exception.
+
 ### Failure behavior and browser ownership
 
 A resource read failure must not expose an editable blank form. The pinned test fixture connects to the root-owned guarded Chromium only with the explicit runner seam flag, creates a test context/page, and closes neither the root browser nor its lifecycle. Review the three browser scenarios after the source and migration paths.
@@ -190,7 +214,7 @@ A resource read failure must not expose an editable blank form. The pinned test 
 ### Final evidence
 
 - Focused required resource command/RLS coverage: 4 files, 196 passed, 0 skipped.
-- Focused resource form units: 7 passed.
+- Constrained preservation units: 18 passed, 0 skipped. Direct required resource integration: 6 passed, 0 skipped.
 - TypeScript: passed. Lint: 0 errors and 13 existing warnings.
-- Guarded production browser acceptance: 3 passed, 0 failed, 0 skipped; root-owned app `00a5286b-3e6a-4a93-a956-127ac44f74a6`, root-owned Chromium CDP loopback 59391. The author did not own or stop either lifecycle.
+- Guarded production browser acceptance: 4 passed, 0 failed, 0 skipped; root-owned app `b95629c8-276b-4f5f-828c-ba3ec93c4362`, root-owned Chromium CDP loopback 59391. The author did not own or stop either lifecycle.
 - ADR-B012 prerequisite normal required gate: 125 files, 124 passed, 1 intentional physical-loader skip; 1,243 assertions, 1,242 passed, 1 skipped.

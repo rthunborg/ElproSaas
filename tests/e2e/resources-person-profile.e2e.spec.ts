@@ -115,3 +115,61 @@ test("[P0] at 360×640 a server-observable transient save failure retains unsent
   await page.reload();
   await expect(page.getByTestId("resource-weekday-1-start")).toHaveValue("08:00");
 });
+
+test("[P0] compact form preserves precise read-model values and a hidden split shift during partial edits", async ({ resourcePage: page }) => {
+  const fixture = getFixture();
+  const { adminExec, adminQuery } = await import("../factories/admin-sql");
+  const [profile] = await adminQuery<{ id: string; tenant_id: string }>(
+    "select id,tenant_id from public.person_profiles where membership_id=$1",
+    [fixture.adminUserManagement.resourceProfileMembershipId],
+  );
+  if (!profile) throw new Error("resource profile fixture is unavailable");
+  await adminExec("delete from public.person_work_hours where person_profile_id=$1", [profile.id]);
+  await adminExec(
+    "insert into public.person_work_hours(tenant_id,person_profile_id,entry_kind,weekday,starts_at,ends_at,local_date,exception_kind) values ($1,$2,'weekly_shift',1,'07:00:30.123456','10:00:30.123456',null,null),($1,$2,'weekly_break',1,'08:00:30.123456','08:15:30.123456',null,null),($1,$2,'weekly_shift',1,'13:00:30.123456','16:00:30.123456',null,null),($1,$2,'weekly_break',1,'14:00:30.123456','14:15:30.123456',null,null),($1,$2,'exception',null,'09:00:30.123456','10:00:30.123456','2026-10-16','blocked_time')",
+    [profile.tenant_id, profile.id],
+  );
+
+  await logIn(page, fixture.adminUserManagement.tenantAdmin);
+  await page.goto(`/admin/users/${fixture.adminUserManagement.resourceProfileMembershipId}`);
+  await expect(page.getByTestId("resource-weekday-1-start")).toHaveValue("07:00");
+  await page.locator('input[name="employmentPercentage"]').fill("81");
+  await page.getByTestId("resource-save").click();
+  await expect(page.getByTestId("resource-save-status")).toHaveText(/sparats/i);
+  await page.reload();
+  await expect(page.getByTestId("resource-weekday-1-start")).toHaveValue("07:00");
+
+  const rowsAfterUnrelatedSave = await adminQuery<{ entry_kind: string; weekday: number | null; starts_at: string }>(
+    "select entry_kind,weekday,starts_at::text from public.person_work_hours where person_profile_id=$1 order by entry_kind,weekday nulls first,starts_at",
+    [profile.id],
+  );
+  expect(rowsAfterUnrelatedSave).toEqual([
+    { entry_kind: "exception", weekday: null, starts_at: "09:00:30.123456" },
+    { entry_kind: "weekly_break", weekday: 1, starts_at: "08:00:30.123456" },
+    { entry_kind: "weekly_break", weekday: 1, starts_at: "14:00:30.123456" },
+    { entry_kind: "weekly_shift", weekday: 1, starts_at: "07:00:30.123456" },
+    { entry_kind: "weekly_shift", weekday: 1, starts_at: "13:00:30.123456" },
+  ]);
+
+  await page.getByTestId("resource-weekday-1-start").fill("");
+  await page.getByTestId("resource-weekday-1-end").fill("");
+  await page.getByTestId("resource-break-1-start").fill("");
+  await page.getByTestId("resource-break-1-end").fill("");
+  await page.getByTestId("resource-weekday-2-start").fill("07:00");
+  await page.getByTestId("resource-weekday-2-end").fill("08:00");
+  await page.getByTestId("resource-save").click();
+  await expect(page.getByTestId("resource-save-status")).toHaveText(/sparats/i);
+  await page.reload();
+  await expect(page.getByTestId("resource-weekday-1-start")).toHaveValue("13:00");
+
+  const rowsAfterPartialClear = await adminQuery<{ entry_kind: string; weekday: number | null; starts_at: string }>(
+    "select entry_kind,weekday,starts_at::text from public.person_work_hours where person_profile_id=$1 order by entry_kind,weekday nulls first,starts_at",
+    [profile.id],
+  );
+  expect(rowsAfterPartialClear).toEqual([
+    { entry_kind: "exception", weekday: null, starts_at: "09:00:30.123456" },
+    { entry_kind: "weekly_break", weekday: 1, starts_at: "14:00:30.123456" },
+    { entry_kind: "weekly_shift", weekday: 1, starts_at: "13:00:30.123456" },
+    { entry_kind: "weekly_shift", weekday: 2, starts_at: "07:00:00" },
+  ]);
+});

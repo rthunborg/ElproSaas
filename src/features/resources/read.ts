@@ -1,5 +1,6 @@
 import { createSupabaseServerClient } from "@/server/db/supabase-server-client";
 import { resolveTenantContext } from "@/server/auth/resolve-tenant-context";
+import { buildScheduleReadShifts, type ScheduleReadRow } from "./schedule-read";
 
 type Shift = { readonly weekday: number; readonly start: string; readonly end: string; readonly breaks: readonly { readonly start: string; readonly end: string }[] };
 type Exception = { readonly kind: string; readonly date: string; readonly start: string | null; readonly end: string | null };
@@ -20,14 +21,8 @@ export async function readResourceForMembership(membershipId: string): Promise<R
     ]);
     if (profileError || templateError || rolesError || daysError) return { profile:null, defaultSchedule:[], workRoles:[], error:ERROR };
     const row = profile as { id?:unknown;default_work_role_id?:unknown;employment_percentage?:unknown;person_work_hours?:unknown } | null;
-    const entries = (row?.person_work_hours ?? []) as { weekday?: unknown; starts_at?: unknown; ends_at?: unknown; entry_kind?: unknown; local_date?: unknown; exception_kind?: unknown }[];
-    const asShifts = (source: readonly { weekday?: unknown; starts_at?: unknown; ends_at?: unknown; entry_kind?: unknown }[]): Shift[] => source.filter((entry) => entry.entry_kind === "weekly_shift" && typeof entry.weekday === "number" && typeof entry.starts_at === "string" && typeof entry.ends_at === "string").map((entry) => ({
-      weekday: entry.weekday as number,
-      start: entry.starts_at as string,
-      end: entry.ends_at as string,
-      breaks: source.filter((candidate) => candidate.entry_kind === "weekly_break" && candidate.weekday === entry.weekday && typeof candidate.starts_at === "string" && typeof candidate.ends_at === "string").map((candidate) => ({ start: candidate.starts_at as string, end: candidate.ends_at as string })),
-    }));
-    const shifts = asShifts(entries); const defaultSchedule = asShifts((template ?? []) as typeof entries);
+    const entries = (row?.person_work_hours ?? []) as (ScheduleReadRow & { readonly local_date?: unknown; readonly exception_kind?: unknown })[];
+    const shifts = buildScheduleReadShifts(entries); const defaultSchedule = buildScheduleReadShifts((template ?? []) as ScheduleReadRow[]);
     return { profile: row && typeof row.id === "string" ? { id:row.id, defaultWorkRoleId:typeof row.default_work_role_id === "string" ? row.default_work_role_id : null, employmentPercentage:typeof row.employment_percentage === "number" ? row.employment_percentage : null, shifts, exceptions: entries.filter((entry)=>entry.entry_kind==="exception").map((entry)=>({kind:String(entry.exception_kind),date:String(entry.local_date),start:typeof entry.starts_at==="string"?entry.starts_at:null,end:typeof entry.ends_at==="string"?entry.ends_at:null})), calendarDays:(days??[]).map((day:{local_date?:unknown;variant?:unknown;reduction_percent?:unknown})=>({date:String(day.local_date),variant:String(day.variant),reductionPercent:typeof day.reduction_percent==="number"?day.reduction_percent:null})) } : null, defaultSchedule, workRoles:(roles??[]).map((role:{id?:unknown;display_name?:unknown})=>({id:String(role.id),name:String(role.display_name)})), error:null };
   } catch { return { profile:null, defaultSchedule:[], workRoles:[], error:ERROR }; }
 }

@@ -69,3 +69,13 @@ test("[P0] rejects overlapping breaks inside a single actual shift", async () =>
 
   assert.equal(result?.ok, false);
 });
+
+test("[P0] accepts PostgreSQL time values with seconds and microseconds from the scheduling read model", async () => {
+  const resourceModule = await import(workHoursModulePath) as {
+    validateWorkHoursInput?: (input: unknown) => { ok: boolean };
+  };
+  const result = resourceModule.validateWorkHoursInput?.({
+    shifts: [{ weekday: 1, start: "07:00:30.123456", end: "16:00:30.123456", breaks: [{ start: "12:00:30.123456", end: "12:30:30.123456" }] }],
+  });
+  assert.equal(result?.ok, true);
+});

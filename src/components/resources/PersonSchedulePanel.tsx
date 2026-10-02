@@ -1,6 +1,8 @@
 "use client";
 import { useActionState, useState, type ChangeEvent, type FormEvent } from "react";
 import { saveResourceProfileAction, type ResourceActionState } from "@/features/resources/actions";
+// Native time controls are minute-granular. The full PostgreSQL value remains in
+// the hidden read-model payload and is retained by the server action when unchanged.
 function timeForInput(value: string | undefined): string | undefined { return value?.slice(0, 5); }
 const WEEKDAYS = ["Måndag", "Tisdag", "Onsdag", "Torsdag", "Fredag", "Lördag", "Söndag"] as const;
 const RESOURCE_INITIAL: ResourceActionState = { status: "idle", message: "" };
@@ -16,8 +18,11 @@ export function PersonSchedulePanel({ membershipId, inactive, profile, defaultSc
     setDraft(values);
   };
   const retainSelectDraft = (event: ChangeEvent<HTMLSelectElement>) => {
-    const { name, value } = event.currentTarget;
-    setDraft((current) => ({ ...current, [name]: value }));
+    const form = event.currentTarget.form;
+    if (!form) return;
+    const values: Record<string, string> = {};
+    for (const [name, value] of new FormData(form).entries()) if (typeof value === "string") values[name] = value;
+    setDraft(values);
   };
   return <section className="mt-6 rounded border p-4" aria-labelledby="resource-schedule-heading">
     <h2 id="resource-schedule-heading" className="font-semibold">Arbetstid och kapacitet</h2>
