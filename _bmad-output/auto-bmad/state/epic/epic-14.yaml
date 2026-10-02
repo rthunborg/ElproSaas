@@ -9,17 +9,17 @@ spec_folder: null
 story_id: null
 branch: epic/14-wave-b1b-resource-and-scheduling-foundation
 status: in-progress
-updated_at: "2026-10-02T16:50:01Z"
+updated_at: "2026-10-02T17:57:05Z"
 started_at: "2026-09-29T08:23:21Z"
 completed_at: null
-active_seconds: 23819
-timing_anchor: 1790955823
+active_seconds: 31820
+timing_anchor: 1790963825
 is_first_in_epic: false
 is_last_in_epic: false
 git_mode: remote
 base_branch: main
-selected_phase: build
-selected_role: build-delegate
+selected_phase: tea_per_story
+selected_role: tea-delegate
 selected_profile: standard
 selected_model: gpt-5.6-terra
 selected_effort: high
@@ -33,6 +33,7 @@ routing_ledger:
   - "{\"effort\":\"high\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-terra\",\"phase\":\"build\",\"profile\":\"standard\",\"role\":\"build-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
   - "{\"effort\":\"high\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-terra\",\"phase\":\"tea_per_story\",\"profile\":\"standard\",\"role\":\"tea-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
   - "{\"effort\":\"high\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-terra\",\"phase\":\"build\",\"profile\":\"standard\",\"role\":\"build-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"high\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-terra\",\"phase\":\"tea_per_story\",\"profile\":\"standard\",\"role\":\"tea-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
 tea_risk: null
 tea_selected: []
 tea_rationale: null
@@ -58,7 +59,7 @@ legacy_review_loop_done: false
 legacy_external_review_iterations: null
 legacy_convergence_unverified: false
 legacy_artifact_path: null
-commits: [21ae8d7, "7548809", b821e42, 2fdca50, a98153f, 8a260ae, 741f4bf, ee9d17b, 084bfe1e, 63f22361, e88ce5db, d53cb1dc, 1a077bd2, ceefd6f3, 5b46bdec, d856d313, 4c127848]
+commits: [21ae8d7, "7548809", b821e42, 2fdca50, a98153f, 8a260ae, 741f4bf, ee9d17b, 084bfe1e, 63f22361, e88ce5db, d53cb1dc, 1a077bd2, ceefd6f3, 5b46bdec, d856d313, 4c127848, d6b545f6, af283dbd, abbe0170]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -94,7 +95,7 @@ overrides:
   resume_preflight_passed: true
   root_guard_status_verified: true
   owner_authorized_guard_repair_and_failure_diagnosis: true
-  local_guard_diagnostic_status: prerequisite_complete_story_acceptance_ready
+  local_guard_diagnostic_status: story_acceptance_completed
   isolated_service_and_schema_readiness_verified: true
   root_guard_stop_requested: false
   owner_confirmed_guard_fix_deployed: true
@@ -109,7 +110,7 @@ overrides:
   root_guard_service_readiness_verified: true
   root_app_server_port: 3100
   root_app_server_guard_active_verified: true
-  root_app_server_resource_id: 96fad9c4-44d7-4add-8931-9f9d5aa8845e
+  root_app_server_resource_id: 00a5286b-3e6a-4a93-a956-127ac44f74a6
   root_app_server_physical_node_path_used: true
   root_app_server_stop_requested: false
   root_app_server_runtime_keys_mismatched: false
@@ -122,13 +123,13 @@ overrides:
   root_browser_diagnostic_code: installed_chrome_owned_cdp_verified
   root_browser_admission_failed: false
   root_browser_resource_id: d0ae81e5-33cc-4eee-8299-b601bb93ef69
-  final_guarded_browser_acceptance_executed: false
-  story_acceptance_complete: false
+  final_guarded_browser_acceptance_executed: true
+  story_acceptance_complete: true
   root_guard_shutdown_verified: false
   schema_migration_seed_completed: true
   root_app_server_shutdown_verified: false
   schema_migration_seed_and_acceptance_pending: false
-  current_story_build_status: blocked
+  current_story_build_status: done
   required_full_integration_gate_passed: true
   resource_guard_browser_repair_owned_externally: true
   prerequisite_integration_repair_owner_approved_on: 2026-10-02
@@ -147,7 +148,7 @@ overrides:
   prerequisite_last_full_gate_files: 125
   prerequisite_last_full_gate_skipped: 1
   prerequisite_storage_service_bucket_http_status: 200
-  prerequisite_last_full_gate_serialization_verified: true
+  prerequisite_last_full_gate_serialization_verified: false
   prerequisite_last_full_gate_passed: 1242
   prerequisite_storage_health_http_status: 200
   prerequisite_last_full_gate_failed: 0
@@ -186,7 +187,7 @@ overrides:
   prerequisite_successor_owner_approval_pending: false
   prerequisite_successor_proposal_applied: true
   prerequisite_successor_proposal: docs/decisions/ADR-B012-public-inheritance-repair-approval-plan.md
-  review_order_verified_refs: 34
+  review_order_verified_refs: 17
   prerequisite_successor_owner_approved_on: 2026-10-02
   prerequisite_successor_owner_approved_scope: "Membership UPDATE limited to onboarding_checklist_dismissed_at; exact service_role EXECUTE revokes on two checked quote wrappers; shared ID query batch size100to50 with existing boundary regressions."
   prerequisite_readiness_timeout_retry_verified: true
@@ -194,6 +195,14 @@ overrides:
   prerequisite_integration_repair_completed: true
   prerequisite_bound_test_api: "http://127.0.0.1:55421"
   prerequisite_bound_test_db_port: 55422
+  final_guarded_browser_acceptance_passed: 3
+  final_guarded_browser_acceptance_failed: 0
+  final_guarded_browser_acceptance_skipped: 0
+  final_scoped_resource_command_rls_passed: 196
+  final_scoped_resource_command_rls_failed: 0
+  final_scoped_resource_command_rls_skipped: 0
+  final_scoped_resource_command_rls_files: 4
+  default_stack_fixture_data_uncertain: true
 constraints:
   - "Phase B manifest-governed approved Epic14 stories only; maintain hard Phase C exclusions."
   - "Epic13 observation and release gates remain separate; no hosted migrations, deployment or flag changes during this implementation workflow."
