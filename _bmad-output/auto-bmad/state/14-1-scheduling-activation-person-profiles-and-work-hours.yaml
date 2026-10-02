@@ -9,7 +9,7 @@ spec_folder: null
 story_id: null
 branch: epic/14-wave-b1b-resource-and-scheduling-foundation
 status: in-progress
-updated_at: "2026-10-02T18:07:49Z"
+updated_at: "2026-10-02T18:13:03Z"
 started_at: "2026-09-29T08:45:54Z"
 completed_at: null
 active_seconds: 31117
@@ -58,7 +58,7 @@ legacy_review_loop_done: false
 legacy_external_review_iterations: null
 legacy_convergence_unverified: false
 legacy_artifact_path: null
-commits: [b821e42, 2fdca50, 93dbf84, 4f4bfc4, e33efc3, 04f9799, b642076, 9eba0ea, 37904b9, c7f43ea, a98153f, 8a260ae, 741f4bf, ee9d17b, 084bfe1e, 63f22361, e88ce5db, d53cb1dc, 1a077bd2, ceefd6f3, 5b46bdec, d856d313, 4c127848, d6b545f6, af283dbd, abbe0170, a957911]
+commits: [b821e42, 2fdca50, 93dbf84, 4f4bfc4, e33efc3, 04f9799, b642076, 9eba0ea, 37904b9, c7f43ea, a98153f, 8a260ae, 741f4bf, ee9d17b, 084bfe1e, 63f22361, e88ce5db, d53cb1dc, 1a077bd2, ceefd6f3, 5b46bdec, d856d313, 4c127848, d6b545f6, af283dbd, abbe0170, a957911, 4c8d0b6]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -213,6 +213,10 @@ overrides:
   post_dev_coverage_focused_passed: 4
   post_dev_coverage_focused_skipped: 0
   post_dev_coverage_summary: "_bmad-output/test-artifacts/automation-summary-14-1-scheduling-activation-person-profiles-and-work-hours.md"
+  followup_renderer_permission_failure_observed: true
+  followup_renderer_failed_attempt_review_ran: false
+  followup_renderer_read_with_required_permissions_verified: true
+  followup_renderer_escalated_retry_passed: true
 constraints:
   - "Phase B manifest-governed approved Story 14.1 only; resources activation belongs here and broader scheduling module remains pending for Epic 15."
   - "Preserve existing local data and user-owned processes; new persistent resources require this actor's trusted guard context."

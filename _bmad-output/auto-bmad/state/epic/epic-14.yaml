@@ -9,7 +9,7 @@ spec_folder: null
 story_id: null
 branch: epic/14-wave-b1b-resource-and-scheduling-foundation
 status: in-progress
-updated_at: "2026-10-02T18:07:49Z"
+updated_at: "2026-10-02T18:13:03Z"
 started_at: "2026-09-29T08:23:21Z"
 completed_at: null
 active_seconds: 32463
@@ -60,7 +60,7 @@ legacy_review_loop_done: false
 legacy_external_review_iterations: null
 legacy_convergence_unverified: false
 legacy_artifact_path: null
-commits: [21ae8d7, "7548809", b821e42, 2fdca50, a98153f, 8a260ae, 741f4bf, ee9d17b, 084bfe1e, 63f22361, e88ce5db, d53cb1dc, 1a077bd2, ceefd6f3, 5b46bdec, d856d313, 4c127848, d6b545f6, af283dbd, abbe0170, a957911]
+commits: [21ae8d7, "7548809", b821e42, 2fdca50, a98153f, 8a260ae, 741f4bf, ee9d17b, 084bfe1e, 63f22361, e88ce5db, d53cb1dc, 1a077bd2, ceefd6f3, 5b46bdec, d856d313, 4c127848, d6b545f6, af283dbd, abbe0170, a957911, 4c8d0b6]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -208,6 +208,10 @@ overrides:
   post_dev_coverage_focused_passed: 4
   post_dev_coverage_focused_skipped: 0
   post_dev_coverage_summary: "_bmad-output/test-artifacts/automation-summary-14-1-scheduling-activation-person-profiles-and-work-hours.md"
+  followup_renderer_permission_failure_observed: true
+  followup_renderer_failed_attempt_review_ran: false
+  followup_renderer_read_with_required_permissions_verified: true
+  followup_renderer_escalated_retry_passed: true
 constraints:
   - "Phase B manifest-governed approved Epic14 stories only; maintain hard Phase C exclusions."
   - "Epic13 observation and release gates remain separate; no hosted migrations, deployment or flag changes during this implementation workflow."
