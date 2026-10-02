@@ -78,6 +78,9 @@ export default defineConfig({
       TENANT_PROVISIONING_ATTESTATION_HMAC_SECRET: LOCAL_TEST_PROVISIONING_ATTESTATION_SECRET,
       // Explicit opt-in for the disposable LOCAL production-mode test server.
       TENANT_PROVISIONING_ENABLED: "true",
+      // Private server-only retry seam for the Story 14.1 browser test. It is
+      // deliberately absent from ordinary application environments.
+      E2E_RESOURCE_SAVE_FAILURE_ENABLED: "true",
     },
   },
 });

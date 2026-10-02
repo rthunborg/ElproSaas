@@ -36,7 +36,7 @@ create table public.person_work_hours (
     (person_profile_id is null and entry_kind in ('weekly_shift', 'weekly_break') and weekday is not null and local_date is null and exception_kind is null)
     or (person_profile_id is not null and ((entry_kind in ('weekly_shift', 'weekly_break') and weekday is not null and local_date is null and exception_kind is null)
       or (entry_kind = 'exception' and weekday is null and local_date is not null and exception_kind is not null))
-  )
+  ))
 );
 
 create table public.tenant_calendar_days (
@@ -230,13 +230,13 @@ begin
   if jsonb_typeof(p_schedule) <> 'array' or jsonb_typeof(p_exceptions) <> 'array' then raise exception 'resource form invalid' using errcode='23514'; end if;
   for v_exception in select value from jsonb_array_elements(p_exceptions) loop
     if jsonb_typeof(v_exception) <> 'object' or (v_exception->>'kind') not in ('absence','sick_leave','leave','training','blocked_time')
-      or (v_exception->>'date') !~ '^\\d{4}-\\d{2}-\\d{2}$'
+      or (v_exception->>'date') !~ '^\d{4}-\d{2}-\d{2}$'
       or ((v_exception ? 'start') <> (v_exception ? 'end'))
       or ((v_exception ? 'start') and ((v_exception->>'start') !~ '^([01][0-9]|2[0-3]):[0-5][0-9]$' or (v_exception->>'end') !~ '^([01][0-9]|2[0-3]):[0-5][0-9]$' or (v_exception->>'start')::time >= (v_exception->>'end')::time))
     then raise exception 'resource exception invalid' using errcode='23514'; end if;
   end loop;
   if p_calendar_day is not null then
-    if jsonb_typeof(p_calendar_day) <> 'object' or (p_calendar_day->>'date') !~ '^\\d{4}-\\d{2}-\\d{2}$' or (p_calendar_day->>'variant') <> 'reduced_capacity' or (p_calendar_day->>'reductionPercent') !~ '^(100|[1-9][0-9]?)$' then raise exception 'resource calendar invalid' using errcode='23514'; end if;
+    if jsonb_typeof(p_calendar_day) <> 'object' or (p_calendar_day->>'date') !~ '^\d{4}-\d{2}-\d{2}$' or (p_calendar_day->>'variant') <> 'reduced_capacity' or (p_calendar_day->>'reductionPercent') !~ '^(100|[1-9][0-9]?)$' then raise exception 'resource calendar invalid' using errcode='23514'; end if;
     v_calendar_date := (p_calendar_day->>'date')::date; v_calendar_variant := p_calendar_day->>'variant'; v_calendar_reduction := (p_calendar_day->>'reductionPercent')::smallint;
   end if;
   v_id := public.upsert_person_profile_with_audit(p_tenant_id,p_actor_user_id,p_correlation_id,p_membership_id,p_work_role_id,p_employment_percentage);

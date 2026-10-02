@@ -1,5 +1,16 @@
 _format_version: "3.0"
 _transform: true
+plugins:
+  - name: cors
+    config:
+      origins:
+        - http://127.0.0.1:3000
+        - http://127.0.0.1:3100
+      methods: [GET, POST, PUT, PATCH, DELETE, OPTIONS]
+      headers: [authorization, x-client-info, x-supabase-api-version, apikey, content-type]
+      exposed_headers: [content-range]
+      credentials: true
+      max_age: 3600
 services:
   - name: auth
     url: http://auth:9999/

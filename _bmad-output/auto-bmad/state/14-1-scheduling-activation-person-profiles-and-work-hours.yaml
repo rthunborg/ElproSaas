@@ -9,11 +9,11 @@ spec_folder: null
 story_id: null
 branch: epic/14-wave-b1b-resource-and-scheduling-foundation
 status: in-progress
-updated_at: "2026-10-02T08:17:52Z"
+updated_at: "2026-10-02T10:03:37Z"
 started_at: "2026-09-29T08:45:54Z"
 completed_at: null
-active_seconds: 7383
-timing_anchor: 1790928928
+active_seconds: 13872
+timing_anchor: null
 is_first_in_epic: true
 is_last_in_epic: false
 git_mode: remote
@@ -40,15 +40,15 @@ completed_phases: [0, 1, 2, 3, 4]
 spec_path: "C:\\Users\\Rasmus\\.codex\\worktrees\\epic14-scheduling\\ElproSaas\\_bmad-output\\implementation-artifacts\\spec-14-1-scheduling-activation-person-profiles-and-work-hours.md"
 spec_approved: true
 build:
-  status: in-progress
-  blocking_condition: null
-  followup_review_recommended: false
+  status: blocked
+  blocking_condition: "finalization is blocked by both the required full `SUPABASE_TEST_REQUIRED=1 pnpm run test:int` gate and final guard-owned browser admission. The last corrected-target integration sweep, before the final inventory and review patches, reported 1,081 passed, 156 failed, and 1 skipped across 124 files; serial diagnosis proved one reachability-affected file passes 12/12, the Story inventory ordering repair passes 11/11, and an unrelated `quote_follow_ups` grant test remains 9/11 because a pre-Story migration lacks bootstrap privilege revocations. The complete required gate was not rerun after final patches because no remaining Story correction addressed those inherited failures. The final guard-owned browser run is unexecuted because Chromium lifecycle `e2f5bdd8-7619-4fe3-97da-413fc2a5b445` returned `START_NOT_CREATED`, with its exact Job verified empty; the guard later recorded legacy `inspect_only` and no safe corrected input or retry route."
+  followup_review_recommended: true
   review_loop_iteration: 0
-  deferred_count: 0
+  deferred_count: 1
   warnings: []
 followup_passes: 0
 hitl_halt: null
-review_unverified: false
+review_unverified: true
 story_trace: null
 legacy_review_resume: false
 legacy_review_iteration: null
@@ -56,7 +56,7 @@ legacy_review_loop_done: false
 legacy_external_review_iterations: null
 legacy_convergence_unverified: false
 legacy_artifact_path: null
-commits: [b821e42, 2fdca50, 93dbf84, 4f4bfc4, e33efc3, 04f9799, b642076, 9eba0ea, 37904b9, c7f43ea, a98153f, 8a260ae, 741f4bf]
+commits: [b821e42, 2fdca50, 93dbf84, 4f4bfc4, e33efc3, 04f9799, b642076, 9eba0ea, 37904b9, c7f43ea, a98153f, 8a260ae, 741f4bf, ee9d17b]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -79,11 +79,10 @@ pr_merged: false
 merge_method: null
 merge_commit: null
 branch_deleted: false
-open_questions:
-  - "ATDD implementation handoff: reconcile command exports/input-result contracts and server-observable retry-failure seam before activating skipped scenarios; 14 scaffolds currently claim no acceptance evidence."
+open_questions: []
 deferred_work: []
 blockers:
-  - "the deployed guard `0.9.15` admitted root-owned lifecycle resource `50e9273a-c10b-4f1c-9022-7d6d823ee043` for the unchanged private Compose file at `2026-10-01T12:50:58.1615681Z`, then stopped it at `2026-10-01T12:50:58.8405642Z` before a backend invocation. `startOutcome.attemptDisposition=refused_before_backend`, `backendInvocation=not_attempted`, and `temporaryUsage=not_acquired` prove that no new Compose runtime started. The retained-registration record remains partial with `diagnosticCode=RETAINED_START_INCOMPLETE`, `recoveryRoute=new_registration_requires_choice`, `retainedLiveState=unknown`, and `evidenceSource=authenticated_completion`; its compose operation is `failed/prelaunch-failed/retained-restart` with `dispatchCommitted=true`. Stop confirmed this attempt closed, but does not repair the retained registration. The required integration/RLS and browser checks therefore remain blocked. See `docs/process/epic-14-guard-startup-diagnosis-2026-09-29.md`."
+  - "finalization is blocked by both the required full `SUPABASE_TEST_REQUIRED=1 pnpm run test:int` gate and final guard-owned browser admission. The last corrected-target integration sweep, before the final inventory and review patches, reported 1,081 passed, 156 failed, and 1 skipped across 124 files; serial diagnosis proved one reachability-affected file passes 12/12, the Story inventory ordering repair passes 11/11, and an unrelated `quote_follow_ups` grant test remains 9/11 because a pre-Story migration lacks bootstrap privilege revocations. The complete required gate was not rerun after final patches because no remaining Story correction addressed those inherited failures. The final guard-owned browser run is unexecuted because Chromium lifecycle `e2f5bdd8-7619-4fe3-97da-413fc2a5b445` returned `START_NOT_CREATED`, with its exact Job verified empty; the guard later recorded legacy `inspect_only` and no safe corrected input or retry route."
 overrides:
   epic_start_authorized_by_owner: true
   unattended_run_confirmed_by_owner_request: true
@@ -97,23 +96,50 @@ overrides:
   bounded_readiness_observation_before_retry: true
   readiness_observation_budget_seconds: 600
   root_compose_validation_passed: true
-  root_guard_resource_id: 54f6f04b-cc6d-47f3-9fa8-f5b373c8e851
-  local_guard_diagnostic_status: corrected_registration_active_services_healthy
+  root_guard_resource_id: 06ea959a-53a1-41af-bc07-b817d80424fb
+  local_guard_diagnostic_status: stop_requested_saved_state_preserved
   owner_authorized_guard_repair_and_failure_diagnosis: true
   root_guard_start_reproduced_failure: false
-  root_guard_stop_requested: false
-  isolated_service_and_schema_readiness_verified: false
+  root_guard_stop_requested: true
+  isolated_service_and_schema_readiness_verified: true
   owner_confirmed_guard_fix_deployed: true
   owner_confirmed_all_prs_merged: true
   root_guard_compose_file: compose.ready.test.yaml
-  root_guard_request_id: 6686ffd3-9b0e-4cd8-a205-52d16e2b5668
+  root_guard_request_id: 0b349afa-7471-4258-83a1-e64b2c70ce2d
   owner_authorized_corrected_stack_and_fresh_volumes: true
   guard_upgrade_not_required: true
   historical_registration_recovery_not_required: true
   root_guard_service_readiness_verified: true
   author_resume_preparation_completed: true
-  schema_migration_seed_and_acceptance_pending: true
+  schema_migration_seed_and_acceptance_pending: false
   owner_continuation_handoff: ELPRO-AGENT-HANDOFF.md 2026-10-01
+  root_app_server_port: 3100
+  root_app_server_guard_active_verified: false
+  root_app_server_resource_id: 8eb8ee65-7335-4d68-9228-c8cf86ce4403
+  root_app_server_physical_node_path_used: true
+  root_app_server_stop_requested: true
+  root_app_server_runtime_keys_mismatched: false
+  root_app_server_next_version: 16.3.6
+  browser_origin_mismatch_under_diagnosis: false
+  local_gateway_cors_reload_pending: false
+  root_app_server_e2e_failure_flag_private: true
+  root_browser_stop_requested: true
+  root_browser_stopped_verified: true
+  root_browser_diagnostic_code: START_NOT_CREATED
+  root_browser_admission_failed: true
+  root_browser_resource_id: e2f5bdd8-7619-4fe3-97da-413fc2a5b445
+  final_guarded_browser_acceptance_executed: false
+  story_acceptance_complete: false
+  root_guard_shutdown_verified: false
+  schema_migration_seed_completed: true
+  root_app_server_shutdown_verified: false
+  final_scoped_resource_command_rls_failed: 0
+  final_scoped_resource_command_rls_passed: 6
+  required_full_integration_gate_passed: false
+  review_order_verified_refs: 34
+  schema_policy_inventory_passed: 11
+  current_story_build_status: blocked
+  final_scoped_resource_command_rls_skipped: 0
 constraints:
   - "Phase B manifest-governed approved Story 14.1 only; resources activation belongs here and broader scheduling module remains pending for Epic 15."
   - "Preserve existing local data and user-owned processes; new persistent resources require this actor's trusted guard context."

@@ -2,17 +2,21 @@
 title: 'Story 14.1: Resource Activation — Person Profiles and Work Hours'
 type: 'feature'
 created: '2026-09-29'
-status: 'in-progress'
+status: 'blocked'
 baseline_revision: '93dbf8432d420ecf6fcd29e732be7ca136801534'
 review_loop_iteration: 0
-followup_review_recommended: false
+followup_review_recommended: true
 context:
   - '_bmad-output/project-context.md'
   - '_bmad-output/implementation-artifacts/epic-14-context.md'
   - '_bmad-output/test-artifacts/test-design-epic-14.md'
   - 'docs/process/review-order.md'
 warnings: []
-deferred: []
+deferred:
+  - summary: 'Quote-follow-up bootstrap privilege expectation remains unmet outside Story 14.1 scope.'
+    evidence: 'The corrected-target required integration sweep retained a serial 9/11 quote-follow-ups migration-reset failure: a pre-Story migration lacks bootstrap privilege revocations. Story 14.1 does not modify quote-follow-ups; no downstream bypass was asserted.'
+    location: 'supabase/migrations/20260719130000_quote_follow_ups.sql'
+    severity: 'medium'
 ---
 
 <intent-contract>
@@ -87,13 +91,24 @@ deferred: []
 
 ## Auto Run Result
 
-Status: in-progress
+Status: blocked
 
-Resume evidence: the corrected private Compose configuration now has a verified active guard lifecycle `54f6f04b-cc6d-47f3-9fa8-f5b373c8e851` on project `rg-f58d95e0aa76f813445d407dfe410638d75a0041` (`outcomeVerified=true`, 2026-10-02T08:15:28.1412356Z). Independent checks confirmed all five services healthy, REST readiness exited 0, and the Auth and Storage gateways returned HTTP 200. This proves local test infrastructure readiness only; it supplies no Story 14.1 schema, seed, integration/RLS, browser, review, or Phase 5 acceptance credit.
+Implementation result: activated the nav-less `resources` foundation, repaired the Story migration declaration and composite date-regex handling, and added forward migration `20261002113000_resource_profile_form_date_regex_fix.sql` for already-migrated databases. The protected admin-user panel persists profile, schedule, exception, and calendar input through the envelope-backed composite RPC. Browser fixtures now include active and deactivated profile histories; the retry seam is server-only/default-off and the guarded-CDP fixture attaches only to loopback endpoints.
 
-Implementation result: No product source or verification command ran during this preparation. Prior implementation, blocked-run, and review evidence remains historical below.
+Schema and scoped acceptance: direct SQL-only loopback push with seed applied the Story migration and forward correction without a reset or ledger edit; migration list was local=remote. Focused command/RLS integration passed 6/6 with `SUPABASE_TEST_REQUIRED=1`; the inventory policy test passed 11/11; focused seam/CDP units passed 2/2; full unit passed 1,928/1,929 with 1 existing skip; lint had 0 errors and 13 existing warnings; Next 16.3.6 production build and typecheck passed. A foreground existing-server browser run passed all 3 scenarios before the final guarded-CDP attachment patches, so it is diagnostic evidence only and is not final guarded-browser acceptance.
 
-Remaining work: correct the un-applied Story 14 migration syntax at `supabase/migrations/20260929120000_resource_person_profiles_and_work_hours.sql:40` (`);` to `));`), then apply the remaining local SQL migrations and seed without resetting or editing migration history. Add the two missing `adminUserManagement` membership fixture fields for the focused browser scenarios, implement and enable the resource-specific command and RLS tests that are currently skipped scaffolds, and run the required integration/RLS and guarded production-app/browser acceptance. `followup_review_recommended` remains false until that required evidence and the workflow review phase are complete.
+Review result: security and independent reviews completed. Their production-reachable seam, RPC/RLS negative-coverage, deactivated-history, retry-persistence, and guarded-CDP findings were patched; targeted security follow-up found no actionable regression. `Suggested Review Order` validates with 34 references. The review patch score is medium 4 and low 1 (13), so `followup_review_recommended` is true.
+
+Blocking condition: finalization is blocked by both the required full `SUPABASE_TEST_REQUIRED=1 pnpm run test:int` gate and final guard-owned browser admission. The last corrected-target integration sweep, before the final inventory and review patches, reported 1,081 passed, 156 failed, and 1 skipped across 124 files; serial diagnosis proved one reachability-affected file passes 12/12, the Story inventory ordering repair passes 11/11, and an unrelated `quote_follow_ups` grant test remains 9/11 because a pre-Story migration lacks bootstrap privilege revocations. The complete required gate was not rerun after final patches because no remaining Story correction addressed those inherited failures. The final guard-owned browser run is unexecuted because Chromium lifecycle `e2f5bdd8-7619-4fe3-97da-413fc2a5b445` returned `START_NOT_CREATED`, with its exact Job verified empty; the guard later recorded legacy `inspect_only` and no safe corrected input or retry route.
+
+Guarded-browser evidence: the lifecycle was later stopped after the verified-empty Job. No unmanaged-browser workaround was used. The installed Playwright 1.61.1 CDP implementation was inspected: a CDP-attached `browser.close()` closes its WebSocket transport, but the fixture no longer calls it and closes only its page and context, leaving root-owned Chromium lifecycle control with the guard. Root accepted Stop acknowledgments for app `8eb8ee65` and Compose `06ea959a` (`native=0`, `ok=true`, `stop_requested`, `verified=false`); no shutdown polling was performed.
+
+## Review Triage Log
+
+- **2026-10-02 — patched:** Security and independent review findings led to a server-only, default-off retry seam; actual command/RLS negative coverage; valid deactivated-profile history fixtures; reload-after-retry persistence proof; and a loopback-only optional CDP attachment fixture.
+- **2026-10-02 — patched:** Follow-up review removed `browser.close()` from the CDP-attached fixture and requires the runner retry-seam flag whenever CDP attachment is configured. Installed Playwright 1.61.1 source confirms the close path releases the CDP WebSocket transport; the final fixture avoids that path and retains guard lifecycle ownership.
+- **2026-10-02 — deferred:** The serial quote-follow-ups grant expectation failure is in pre-Story migration bootstrap provenance and remains outside the authorized Story 14.1 scope. It blocks the required full integration gate but was not repaired here.
+- **2026-10-02 — rejected as stale:** Earlier claims that the date-regex forward migration and focused resource coverage were unexecuted are superseded by the SQL-only application, aligned migration ledger, and current focused command/RLS, inventory, and unit evidence above. Final guard-owned browser acceptance remains unexecuted.
 
 ## Historical Run Evidence
 
@@ -122,7 +137,7 @@ Limits: Resource command/RLS test scaffolds remain skipped, so they cannot satis
 ## Suggested Review Order
 
 Author: implementation author.
-Refreshed against the current working tree after the inherited-template copy ordering correction.
+Refreshed against the current working tree after the inherited-template copy ordering correction, migration CHECK and composite date-regex repairs, browser-fixture correction, deactivation-test enablement, browser server-action failure and draft-retention repairs, the private runtime gate plus authorization-negative test repairs, production-server fixture/reload acceptance repairs, and optional root-guard Chromium CDP attachment.
 
 ### Admin maintenance entry point and transaction boundary
 
@@ -133,6 +148,22 @@ The protected admin-user detail form validates its complete payload before enter
 - `src/server/commands/resources/profile-form.ts:21` — `saveResourceProfileForm`: binds maintenance to the envelope capability and resolved membership ownership.
 - `supabase/migrations/20260929120000_resource_person_profiles_and_work_hours.sql:222` — `save_resource_profile_form_with_audit`: commits the composite write through one checked RPC.
 
+### Browser fixture and retry seam
+
+The browser path selects the existing tokenized tenant work role instead of assuming an unseeded literal. The failure-once signal requires both the dynamic protected route query and a private server runtime flag; the action independently applies the same server-only predicate before returning a retryable error without constructing a database client or issuing a command. Playwright supplies that private flag only to its disposable production web server. The resource tests optionally attach through a loopback CDP endpoint to a root guard-owned Chromium only when the runner carries the same explicit private flag; they close only their own context and page and let the worker release its transport. The initial action state is client-local so the client does not import a runtime value from the server-action module.
+
+- `tests/e2e/resources-person-profile.e2e.spec.ts:10` — `Fixture`: reads the seeded work-role display name and selects that exact tenant-local option.
+- `playwright.config.ts:83` — `E2E_RESOURCE_SAVE_FAILURE_ENABLED`: enables the retry seam only in the configured disposable production test server.
+- `tests/e2e/support/resource-cdp-attachment.ts:4` — `RESOURCE_E2E_CDP_ENDPOINT_ENV`: keeps optional guard-CDP attachment test-runner-only and absent by default.
+- `tests/e2e/support/resource-cdp-attachment.ts:20` — `requireResourceE2eFailureSeamForCdp`: fails fast when a CDP-attached runner lacks the explicit retry-seam opt-in required to align with the guarded server.
+- `tests/e2e/support/resource-cdp-attachment.ts:41` — `connectOverCDP`: attaches only to a validated loopback endpoint and creates a dedicated test context without closing the root-owned browser.
+- `tests/e2e/resources-person-profile.e2e.spec.ts:32` — `resourcePage`: routes all three resource scenarios through the optional attachment fixture without changing normal Playwright behavior.
+- `src/app/(app)/admin/users/[membershipId]/page.tsx:9` — `AdminUserDetail`: requires `resourceSaveFailure=once` and the private server flag before passing the test seam into the protected panel.
+- `src/server/resources/e2e-save-failure.ts:5` — `isResourceE2eSaveFailureEnabled`: defaults the server-only runtime flag to false unless it is exactly `true`.
+- `src/components/resources/PersonSchedulePanel.tsx:6` — `RESOURCE_INITIAL`: keeps the `useActionState` initial value in client code.
+- `src/components/resources/PersonSchedulePanel.tsx:13` — `retainDraft`: captures every editable form value and binds controls to that draft so a failed server action cannot clear unsent input.
+- `src/features/resources/actions.ts:16` — `shouldInjectResourceE2eSaveFailure`: independently rejects direct form/action attempts to enable the seam without the private server flag before any persistence path.
+
 ### Resource activation and isolated schedule storage
 
 The manifest activates only the nav-less resource foundation. The migration keeps person records, normalized weekly/exception inputs, and tenant calendar reductions tenant-scoped; `scheduling` retains its pending, surface-free state. New-profile template copy inserts shifts before breaks because the database row trigger requires a containing shift for each break.
@@ -141,6 +172,7 @@ The manifest activates only the nav-less resource foundation. The migration keep
 - `supabase/migrations/20260929120000_resource_person_profiles_and_work_hours.sql:6` — `create table public.person_profiles`: enforces one profile per membership and same-tenant membership/work-role references.
 - `supabase/migrations/20260929120000_resource_person_profiles_and_work_hours.sql:77` — `validate_person_work_hour`: rejects overlapping shifts, invalid breaks, and overlapping exceptions for direct entitled writes.
 - `supabase/migrations/20260929120000_resource_person_profiles_and_work_hours.sql:187` — `Copy shifts before breaks`: makes copied tenant templates satisfy the break-containment trigger deterministically.
+- `supabase/migrations/20261002113000_resource_profile_form_date_regex_fix.sql:4` — `save_resource_profile_form_with_audit`: forward-corrects the composite form RPC so ordinary ISO exception and calendar dates pass PostgreSQL regex validation on already-migrated databases.
 - `src/features/resources/work-hours.ts:11` — `validateWorkHoursInput`: treats employment percentage as descriptive and derives availability only from actual shifts and breaks.
 - `src/features/resources/capacity-inputs.ts:8` — `SWEDISH_HOLIDAY_RULE_SOURCE`: provides the holiday-rule input seam without hardcoded availability rules.
 
@@ -152,6 +184,14 @@ The named tests exercise the manifest boundary, preserved 80-percent schedule sh
 - `tests/unit/features/resources/work-hours.test.ts:7` — `preserves different daily availability`: proves schedule shape is not synthesized from employment percentage.
 - `tests/unit/features/resources/work-hours.test.ts:57` — `rejects overlapping breaks`: proves a break cannot be double-counted inside one actual shift.
 - `tests/unit/features/resources/capacity-inputs.test.ts:7` — `retains data-driven absences`: proves valid exception and calendar input acceptance.
+- `tests/integration/commands/resources.int.test.ts:33` — `saves the browser form's profile`: exercises the composite RPC with the browser's profile, schedule, full-day exception, and calendar input shape.
+- `tests/integration/commands/resources.int.test.ts:51` — `composite form RPC rejects foreign tenants`: asserts tenant-B and forged-actor calls fail with `42501` and leave profile, work-hour, and calendar tables unchanged.
+- `tests/integration/rls/resources.rls.test.ts:10` — `tenant B cannot read or mutate tenant A resource rows`: asserts cross-tenant profile, work-hour, and calendar updates leave stored values unchanged.
+- `tests/unit/server/resources/e2e-save-failure.test.ts:8` — `resource E2E failure seam requires`: proves a form request alone cannot enable the retry seam; only the exact private runtime opt-in can, and retry disables its one-time branch.
+- `tests/unit/e2e/resource-cdp-attachment.test.ts:15` — `guarded CDP attachment requires`: proves attached execution fails without the explicit runner retry-seam opt-in.
+- `tests/e2e/global-setup.ts:907` — `person_profiles`: seeds a real profile before its membership is disabled, preserving a historical schedule for the deactivation path.
+- `tests/e2e/resources-person-profile.e2e.spec.ts:55` — `admin sees a deactivated profile as Inaktiverad`: asserts the preserved historical weekday value as well as the absence of booking and reassignment affordances.
+- `tests/e2e/resources-person-profile.e2e.spec.ts:66` — `server-observable transient save failure`: reloads after retry success and asserts the 08:00 value came from server persistence.
 
-Evidence: in this refresh, `pnpm run typecheck` passed; `pnpm run test:unit -- --testNamePattern=resources` ran the unit suite and passed 1,928 tests with 1 skipped; `git diff --check` and `node scripts/verify/check-review-order.mjs` passed. Earlier recorded execution: lint completed with 0 errors and 13 existing warnings, and Playwright discovery found three resource scenarios.
-Limits: required migration-reset/H4 enrollment, resource command/RLS negative coverage, and enabled browser scenarios remain unexecuted. The prior isolated stack reached migration application but stopped at an existing historical storage migration because `storage.buckets` was absent; therefore no Story 14.1 migration, required `SUPABASE_TEST_REQUIRED=1 pnpm run test:int`, or browser execution can be credited. The deactivation browser scenario remains skipped because booking and reassignment behavior is outside this active resource surface.
+Evidence: in this refresh, the focused `node --experimental-strip-types --import ./tests/support/register.mjs --test tests/unit/e2e/resource-cdp-attachment.test.ts` run passed 2/2, the earlier focused retry-seam unit run passed 1/1, and `pnpm run typecheck` plus `git diff --check` passed after the CDP lifecycle and runner-alignment repair. The earlier composite-RPC failure safely identified `23514` (`resource exception invalid`) before partial persistence and led to the forward corrective migration; the authorized direct loopback migration and focused database tests have since executed, as recorded by the workflow owner. Earlier evidence: `pnpm run test:unit -- --testNamePattern=resources` completed 1,929 tests: 1,928 passed and 1 skipped; the migration ledger was locally and remotely aligned; and the enabled focused Vitest command/RLS run passed 6/6 tests, covering profile/schedule persistence, overlap rollback, forged-tenant and invalid-calendar rejection, manifest/H4 enrollment, and direct tenant-B read/update denial. The migration's unclosed `person_work_hours` CHECK is corrected at line 39. Earlier lint completed with 0 errors and 13 existing warnings, and Playwright discovery found three resource scenarios.
+Limits: The optional attached-browser fixture is unit-verified but did not connect to a guard-owned Chromium: its required guard lifecycle failed closed with `START_NOT_CREATED`, a verified-empty Job, and no safe retry route. The clean-reset migration/H4 gates were deliberately not run because the retained-stack directive prohibits reset. The focused browser persistence, deactivation, and retry acceptance remain to run through the root guard-owned Chromium.

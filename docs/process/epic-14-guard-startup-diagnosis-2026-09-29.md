@@ -124,3 +124,17 @@ Detailed results and supported handoff:
 and `ELPRO-AGENT-HANDOFF.md` in that same directory. Optional generic 0.9.16
 partial-retry source and regression evidence are prepared but uninstalled;
 this approved route needs no guard upgrade or additional owner choice.
+
+## Story 14.1 continuation — 2026-10-02
+
+The selected corrected route remained usable. Normal guarded Compose reuse admitted lifecycle `06ea959a-53a1-41af-bc07-b817d80424fb` on the same private registration and guard project, retaining the original five container IDs. The outcome was active and verified; all five services were healthy, REST readiness exited 0, and Auth and Storage returned HTTP 200. This resolved the earlier Compose admission/readiness failure without a reset, migration-ledger edit, volume deletion, registration recovery, or hosted access.
+
+The Story author corrected the `person_work_hours` declaration, used the authorized SQL-only loopback migration-and-seed path, and added/applied forward migration `20261002113000_resource_profile_form_date_regex_fix.sql` for the already-applied composite date-regex defect. The ledger then aligned locally and remotely. Focused required command/RLS evidence passed 6/6 with `SUPABASE_TEST_REQUIRED=1`; the exact inventory policy test passed 11/11; focused retry-seam/CDP units passed 2/2; the unit suite passed 1,928/1,929 with one existing skip. Typecheck and a Next 16.3.6 production build passed. No database reset or ledger repair was run.
+
+Bounded local application diagnosis used the physical Node executable after a symlinked Node path was refused as `PATH_UNSAFE`. The private production build was rebuilt with the verified local stack target. Narrow local gateway CORS corrections were made from observed preflight failures, including the required API-version request header; before/after preflight evidence and a foreground three-scenario browser diagnostic confirmed login and browser transport. That foreground run was before final review patches and was not accepted as final guarded-browser evidence. No hosted origin, broad CORS policy, or public runtime flag was added.
+
+Final guard-owned browser admission remains blocked. Guarded Chromium lifecycle `e2f5bdd8-7619-4fe3-97da-413fc2a5b445` failed closed as `START_NOT_CREATED`; the exact Job was verified empty, then the resource was stopped. The catalog reports legacy `inspect_only` and no evidenced safe input correction or retry route. No unmanaged browser was used. The optional CDP fixture closes only its own page and context and does not invoke `browser.close()`; root retains Chromium lifecycle ownership if guarded admission later succeeds.
+
+The required full corrected-target `SUPABASE_TEST_REQUIRED=1 pnpm run test:int` gate remains red: its final applicable sweep, before the later inventory/review patches, reported 1,081 passed, 156 failed, and one skip across 124 files. A serial reachability-affected file passed 12/12; a representative pre-Story quote-follow-ups grant expectation remained 9/11 and is outside Story 14.1. This is recorded as an inherited prerequisite, without asserting a downstream bypass. Do not waive or rerun the full gate without a concrete correction.
+
+Root later requested Stop for app `8eb8ee65` and Compose `06ea959a`; both returned native exit 0, `ok=true`, `stop_requested`, and `verified=false`. These are accepted Stop acknowledgments, not confirmed shutdown; no polling was performed. Preserved resources and data remain under the guard lifecycle.

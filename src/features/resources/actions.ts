@@ -5,15 +5,18 @@ import { runCommand, type CommandDbClient } from "@/server/commands/envelope";
 import { saveResourceProfileForm } from "@/server/commands/resources/profile-form";
 import { validateWorkHoursInput } from "@/features/resources/work-hours";
 import { validateCapacityInputs } from "@/features/resources/capacity-inputs";
+import { shouldInjectResourceE2eSaveFailure } from "@/server/resources/e2e-save-failure";
 export type ResourceActionState = { readonly status: "idle" | "success" | "error"; readonly message: string };
-export const RESOURCE_INITIAL: ResourceActionState = { status: "idle", message: "" };
 function isPartiallyFilled(start: FormDataEntryValue | null, end: FormDataEntryValue | null): boolean {
   return (typeof start === "string" && start.length > 0) !== (typeof end === "string" && end.length > 0);
 }
 export async function saveResourceProfileAction(_: ResourceActionState, form: FormData): Promise<ResourceActionState> {
   // Browser verification may request one deterministic, server-observable transient failure.
   // It is checked before any command so the retained form is never mistaken for persisted data.
-  if (form.get("resourceSaveFailureOnce") === "true" && form.get("resourceFailureAttempt") !== "retry") {
+  if (shouldInjectResourceE2eSaveFailure({
+    requested: form.get("resourceSaveFailureOnce"),
+    attempt: form.get("resourceFailureAttempt"),
+  })) {
     return { status: "error", message: "Kunde inte spara resurspersonen. Försök igen." };
   }
   const client = (await createSupabaseServerClient()) as unknown as CommandDbClient;

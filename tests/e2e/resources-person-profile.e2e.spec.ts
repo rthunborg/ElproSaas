@@ -2,16 +2,18 @@
  * Story 14.1 ATDD red-phase UI scaffold. Selectors are deliberate implementation
  * contracts because the nav-less resource maintenance panel does not exist yet.
  */
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./support/resource-cdp-attachment";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 
 type RoleFixture = { readonly email: string; readonly password: string };
 type Fixture = {
+  readonly workRole: { readonly displayName: string };
   readonly adminUserManagement: {
     readonly tenantAdmin: RoleFixture;
     readonly resourceProfileMembershipId: string;
     readonly deactivatedResourceProfileMembershipId: string;
+    readonly deactivatedResourceProfileWeekdayStart: string;
   };
 };
 
@@ -27,12 +29,12 @@ async function logIn(page: import("@playwright/test").Page, credentials: RoleFix
   await expect(page).toHaveURL(/\/dashboard$/);
 }
 
-test("[P0] admin persists a same-tenant role and schedule inputs in the existing user-detail route, then reloads server state", async ({ page }) => {
+test("[P0] admin persists a same-tenant role and schedule inputs in the existing user-detail route, then reloads server state", async ({ resourcePage: page }) => {
   const fixture = getFixture();
   await logIn(page, fixture.adminUserManagement.tenantAdmin);
   await page.goto(`/admin/users/${fixture.adminUserManagement.resourceProfileMembershipId}`);
 
-  await page.getByTestId("resource-default-work-role").selectOption({ label: "Elektriker" });
+  await page.getByTestId("resource-default-work-role").selectOption({ label: fixture.workRole.displayName });
   await page.getByTestId("resource-weekday-1-start").fill("07:00");
   await page.getByTestId("resource-weekday-1-end").fill("16:00");
   await page.getByTestId("resource-break-1-start").fill("12:00");
@@ -40,7 +42,7 @@ test("[P0] admin persists a same-tenant role and schedule inputs in the existing
   await page.getByTestId("resource-exception-date").fill("2026-10-15");
   await page.getByTestId("resource-calendar-day-reduction").fill("50");
   await page.getByTestId("resource-person-exception-date").fill("2026-10-16");
-  await page.getByLabel("Personligt undantag").selectOption("blocked_time");
+  await page.locator('select[name="personExceptionKind"]').selectOption("blocked_time");
   await page.getByTestId("resource-save").click();
 
   await expect(page.getByTestId("resource-save-status")).toHaveText(/sparats/i);
@@ -50,17 +52,18 @@ test("[P0] admin persists a same-tenant role and schedule inputs in the existing
   await expect(page.getByTestId("resource-person-exception-date")).toHaveValue("2026-10-16");
 });
 
-test.skip("[P1] admin sees a deactivated profile as Inaktiverad without booking or reassignment affordances", async ({ page }) => {
+test("[P1] admin sees a deactivated profile as Inaktiverad without booking or reassignment affordances", async ({ resourcePage: page }) => {
   const fixture = getFixture();
   await logIn(page, fixture.adminUserManagement.tenantAdmin);
   await page.goto(`/admin/users/${fixture.adminUserManagement.deactivatedResourceProfileMembershipId}`);
 
   await expect(page.getByTestId("resource-profile-status")).toHaveText("Inaktiverad");
+  await expect(page.getByTestId("resource-weekday-1-start")).toHaveValue(fixture.adminUserManagement.deactivatedResourceProfileWeekdayStart);
   await expect(page.getByTestId("resource-booking-action")).toHaveCount(0);
   await expect(page.getByTestId("resource-reassignment-action")).toHaveCount(0);
 });
 
-test("[P0] at 360×640 a server-observable transient save failure retains unsent input and succeeds only after retry", async ({ page }) => {
+test("[P0] at 360×640 a server-observable transient save failure retains unsent input and succeeds only after retry", async ({ resourcePage: page }) => {
   const fixture = getFixture();
   await page.setViewportSize({ width: 360, height: 640 });
   await logIn(page, fixture.adminUserManagement.tenantAdmin);
@@ -74,4 +77,6 @@ test("[P0] at 360×640 a server-observable transient save failure retains unsent
 
   await page.getByTestId("resource-retry-save").click();
   await expect(page.getByTestId("resource-save-status")).toHaveText(/sparats/i);
+  await page.reload();
+  await expect(page.getByTestId("resource-weekday-1-start")).toHaveValue("08:00");
 });
