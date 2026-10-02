@@ -9,17 +9,17 @@ spec_folder: null
 story_id: null
 branch: epic/14-wave-b1b-resource-and-scheduling-foundation
 status: in-progress
-updated_at: "2026-10-02T18:13:03Z"
+updated_at: "2026-10-02T19:08:55Z"
 started_at: "2026-09-29T08:23:21Z"
 completed_at: null
-active_seconds: 32463
-timing_anchor: 1790964469
+active_seconds: 36127
+timing_anchor: 1790968135
 is_first_in_epic: false
 is_last_in_epic: false
 git_mode: remote
 base_branch: main
-selected_phase: followup_review
-selected_role: primary-reviewer
+selected_phase: build
+selected_role: build-delegate
 selected_profile: standard
 selected_model: gpt-5.6-terra
 selected_effort: high
@@ -35,6 +35,8 @@ routing_ledger:
   - "{\"effort\":\"high\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-terra\",\"phase\":\"build\",\"profile\":\"standard\",\"role\":\"build-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
   - "{\"effort\":\"high\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-terra\",\"phase\":\"tea_per_story\",\"profile\":\"standard\",\"role\":\"tea-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
   - "{\"effort\":\"high\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-terra\",\"phase\":\"followup_review\",\"profile\":\"standard\",\"role\":\"primary-reviewer\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"medium\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-luna\",\"phase\":\"tea_triage\",\"profile\":\"light\",\"role\":\"test-risk-triage\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"high\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-terra\",\"phase\":\"build\",\"profile\":\"standard\",\"role\":\"build-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
 tea_risk: null
 tea_selected: []
 tea_rationale: null
@@ -52,7 +54,7 @@ build:
   warnings: []
 followup_passes: 0
 hitl_halt: null
-review_unverified: false
+review_unverified: true
 story_trace: null
 legacy_review_resume: false
 legacy_review_iteration: null
@@ -60,7 +62,7 @@ legacy_review_loop_done: false
 legacy_external_review_iterations: null
 legacy_convergence_unverified: false
 legacy_artifact_path: null
-commits: [21ae8d7, "7548809", b821e42, 2fdca50, a98153f, 8a260ae, 741f4bf, ee9d17b, 084bfe1e, 63f22361, e88ce5db, d53cb1dc, 1a077bd2, ceefd6f3, 5b46bdec, d856d313, 4c127848, d6b545f6, af283dbd, abbe0170, a957911, 4c8d0b6]
+commits: [21ae8d7, "7548809", b821e42, 2fdca50, a98153f, 8a260ae, 741f4bf, ee9d17b, 084bfe1e, 63f22361, e88ce5db, d53cb1dc, 1a077bd2, ceefd6f3, 5b46bdec, d856d313, 4c127848, d6b545f6, af283dbd, abbe0170, a957911, 4c8d0b6, 0eaa367, de5cfbe4, 1fce0b49]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -111,7 +113,7 @@ overrides:
   root_guard_service_readiness_verified: true
   root_app_server_port: 3100
   root_app_server_guard_active_verified: true
-  root_app_server_resource_id: 00a5286b-3e6a-4a93-a956-127ac44f74a6
+  root_app_server_resource_id: b95629c8-276b-4f5f-828c-ba3ec93c4362
   root_app_server_physical_node_path_used: true
   root_app_server_stop_requested: false
   root_app_server_runtime_keys_mismatched: false
@@ -125,13 +127,13 @@ overrides:
   root_browser_admission_failed: false
   root_browser_resource_id: d0ae81e5-33cc-4eee-8299-b601bb93ef69
   final_guarded_browser_acceptance_executed: true
-  story_acceptance_complete: true
+  story_acceptance_complete: false
   root_guard_shutdown_verified: false
   schema_migration_seed_completed: true
   root_app_server_shutdown_verified: false
   schema_migration_seed_and_acceptance_pending: false
-  current_story_build_status: done
-  required_full_integration_gate_passed: true
+  current_story_build_status: null
+  required_full_integration_gate_passed: false
   resource_guard_browser_repair_owned_externally: true
   prerequisite_integration_repair_owner_approved_on: 2026-10-02
   prerequisite_integration_repair_active: false
@@ -188,7 +190,7 @@ overrides:
   prerequisite_successor_owner_approval_pending: false
   prerequisite_successor_proposal_applied: true
   prerequisite_successor_proposal: docs/decisions/ADR-B012-public-inheritance-repair-approval-plan.md
-  review_order_verified_refs: 17
+  review_order_verified_refs: 27
   prerequisite_successor_owner_approved_on: 2026-10-02
   prerequisite_successor_owner_approved_scope: "Membership UPDATE limited to onboarding_checklist_dismissed_at; exact service_role EXECUTE revokes on two checked quote wrappers; shared ID query batch size100to50 with existing boundary regressions."
   prerequisite_readiness_timeout_retry_verified: true
@@ -196,7 +198,7 @@ overrides:
   prerequisite_integration_repair_completed: true
   prerequisite_bound_test_api: "http://127.0.0.1:55421"
   prerequisite_bound_test_db_port: 55422
-  final_guarded_browser_acceptance_passed: 3
+  final_guarded_browser_acceptance_passed: 4
   final_guarded_browser_acceptance_failed: 0
   final_guarded_browser_acceptance_skipped: 0
   final_scoped_resource_command_rls_passed: 196
@@ -212,12 +214,32 @@ overrides:
   followup_renderer_failed_attempt_review_ran: false
   followup_renderer_read_with_required_permissions_verified: true
   followup_renderer_escalated_retry_passed: true
+  followup_resource_units_passed: 18
+  followup_resource_integration_passed: 6
+  followup_resource_integration_skipped: 0
+  followup_role_timeout_isolated_passed: 5
+  followup_role_timeout_isolated_seconds: "26.73"
+  followup_latest_broad_run_passed: 1243
+  followup_latest_broad_run_failed: 1
+  followup_latest_broad_run_skipped: 1
+  followup_latest_broad_run_exit_code: 1
+  followup_time_precision_migration_applied: 20261002190000_resource_time_precision_preservation.sql
+  followup_external_cli_failed_attempts: 2
+  followup_external_cli_completed_exit_code: 0
+  followup_external_cli_skip_host_skill_discovery_used: true
+  followup_external_cli_model: gpt-5.6-luna
+  followup_external_cli_effort: xhigh
+  followup_review_completed: true
+  followup_confirmed_findings_patched: 4
+  last_accepted_story_key: 14-1-scheduling-activation-person-profiles-and-work-hours
+  last_accepted_story_browser_passed: 4
 constraints:
   - "Phase B manifest-governed approved Epic14 stories only; maintain hard Phase C exclusions."
   - "Epic13 observation and release gates remain separate; no hosted migrations, deployment or flag changes during this implementation workflow."
   - "Preserve populated user-owned local data and existing processes; new persistent test resources require the actor's resource guard context."
 epic_slug: wave-b1b-resource-and-scheduling-foundation
-active_story: 14-1-scheduling-activation-person-profiles-and-work-hours
-stories_landed: []
+active_story: 14-2-bookings-and-assignees-schema-and-transactional-commands
+stories_landed:
+  - 14-1-scheduling-activation-person-profiles-and-work-hours
 stories_skipped: []
 batch_flip_done: false
