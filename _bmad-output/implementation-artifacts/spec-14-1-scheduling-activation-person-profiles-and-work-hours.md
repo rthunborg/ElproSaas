@@ -4,7 +4,7 @@ type: 'feature'
 created: '2026-09-29'
 status: 'done'
 baseline_revision: '93dbf8432d420ecf6fcd29e732be7ca136801534'
-review_loop_iteration: 0
+review_loop_iteration: 3
 followup_review_recommended: true
 context:
   - '_bmad-output/project-context.md'
@@ -104,7 +104,29 @@ Blocking condition: none.
 - **2026-10-02 — patched:** Explicit clears now reject orphan breaks and partial exception/calendar input, preserve non-rendered stored same-day intervals and later breaks, normalize only read-model `null` full-day times, and suppress an editable form on a controlled resource-read error. Browser evidence exercises populated clear/reload and partial rejection.
 - **2026-10-02 — dismissed:** Same-tenant stale-submission conflict detection would add a versioning feature beyond the Story contract; existing composite replacement semantics are last-write-wins.
 - **2026-10-02 — dismissed:** Planner access to the admin user-detail route would require a separate resource-only surface because the existing route intentionally exposes membership lifecycle and re-role controls under `Memberships.Manage`; no direct command authorization bypass exists.
-- **2026-10-02 — deferred:** Nullable temporal schema values are defense in depth after command-only writes; the current RPC and command validation reject malformed customer input. Future schema hardening should be separately reviewed against retained historical data.
+- **2026-10-02 — dismissed:** Nullable temporal schema values are defense in depth after command-only writes; the current RPC and command validation reject malformed customer input. It is not deferred Story work or a release blocker.
+
+### 2026-10-02 — Review pass
+
+- patch: 2
+- dismissed: none
+- findings: direct resource-table DML bypassed audited command authority; anonymous resource mutation RPC calls lacked direct negatives. Both were repaired by the command-only forward migration and focused RLS/command coverage.
+
+### 2026-10-02 — Review pass
+
+- patch: 3
+- dismissed: none
+- findings: blank schedule, calendar, and personal-exception controls needed explicit clear semantics. The composite RPC and guarded browser coverage now prove clear/reload and partial-input rejection.
+
+### 2026-10-02 — Review pass
+
+- patch: 6
+Findings repaired: orphan-break and partial-exception validation, full-day read-model exception history, controlled select clearing, controlled resource-read errors, and non-rendered shift/break preservation. No intent gap or bad-spec finding remained.
+- dismissed:
+  - Same-tenant stale writes retain the pre-existing last-write-wins composite-command semantics; conflict versioning is outside the Story contract.
+  - The planner route candidate requires a new resource-only surface because the existing route includes membership lifecycle and re-role controls under `Memberships.Manage`.
+  - Nullable temporal schema hardening is defense in depth after command-only writes, with malformed current customer input rejected by the RPC and command validator.
+  - Resource-table DELETE remains RLS-invisible under the retained grant/policy contract; the focused cross-tenant assertion verified zero affected foreign rows.
 ## Historical Run Evidence
 
 Status: blocked
