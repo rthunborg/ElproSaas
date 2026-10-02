@@ -42,3 +42,18 @@ test("[P0] rejects malformed persisted exception history without throwing", asyn
 
   assert.equal(resourceModule.validateCapacityInputs?.({ exceptions: [null] }).ok, false);
 });
+
+test("[P1] accepts a closed calendar day only when it carries no reduction percentage", async () => {
+  const resourceModule = await import(capacityInputsModulePath) as {
+    validateCapacityInputs?: (input: unknown) => { ok: boolean };
+  };
+  const closedDay = resourceModule.validateCapacityInputs?.({
+    calendarDay: { date: "2026-12-25", variant: "closed" },
+  });
+  const closedDayWithReduction = resourceModule.validateCapacityInputs?.({
+    calendarDay: { date: "2026-12-25", variant: "closed", reductionPercent: 50 },
+  });
+
+  assert.equal(closedDay?.ok, true);
+  assert.equal(closedDayWithReduction?.ok, false);
+});
