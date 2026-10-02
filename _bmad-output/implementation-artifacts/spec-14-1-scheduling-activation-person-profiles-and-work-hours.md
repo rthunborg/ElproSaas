@@ -2,7 +2,7 @@
 title: 'Story 14.1: Resource Activation — Person Profiles and Work Hours'
 type: 'feature'
 created: '2026-09-29'
-status: 'in-review'
+status: 'done'
 baseline_revision: '93dbf8432d420ecf6fcd29e732be7ca136801534'
 review_loop_iteration: 3
 followup_review_recommended: true
@@ -130,12 +130,13 @@ Findings repaired: orphan-break and partial-exception validation, full-day read-
   - Nullable temporal schema hardening is defense in depth after command-only writes, with malformed current customer input rejected by the RPC and command validator.
   - Resource-table DELETE remains RLS-invisible under the retained grant/policy contract; the focused cross-tenant assertion verified zero affected foreign rows.
 
-### 2026-10-02 — Constrained follow-up after review cap
+### 2026-10-02 — Review pass
 
+- intent_gap: 0
 - patch: 4
 - bad_spec: 0
 - defer: 0
-- dismissed: none
+- dismissed: 0
 - findings repaired: valid PostgreSQL `time` shapes (`HH:MM:SS` and up to microsecond precision) were rejected after read-model serialization; a compact partial edit dropped a hidden later same-day shift and its break; same-weekday breaks were attached to every split shift; and a timed exception was rewritten to minute precision on an unrelated save. The read model, form merge, exception merge, validators, forward RPC migration, unit/integration coverage, and guarded browser regression now preserve the stored values.
 ## Historical Run Evidence
 
