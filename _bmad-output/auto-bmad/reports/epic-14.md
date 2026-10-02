@@ -358,3 +358,40 @@ No archive this session.
 1. Review docs/decisions/ADR-B012-public-inheritance-repair-approval-plan.md and answer the pending approval question. The proposed batch remains unapplied.
 
 **Next:** After approval, resume the prerequisite author/testing/review workflow, then Story 14.1 Phase 5 on the saved original baseline. Browser infrastructure success is not Story acceptance. Project context refresh remains recommended after epic completion.
+
+## Report — 2026-10-02T15:29:26Z (halted — needs-human)
+
+**Epic:** `14` — 4 stories.
+**Branch:** `epic/14-wave-b1b-resource-and-scheduling-foundation` (HEAD `5b46bde`).
+**Pipeline status:** Story 14.1 blocked at Phase 5 pending approval of three prerequisite successor repairs.
+**Continues:** 2026-10-02T13:14:55Z (halted — needs-human)
+
+**Summary:** Approved 22-table/two-helper ACL repair applied. Focused coverage: 359/359 and 27/27. Required full integration gate: 1,226 passed, 15 failed, 1 opt-in skip across 125 files. Subsequent persisted focused reconciliation: 68 passed, 1 intentionally red membership assertion. Security and independent review completed; earlier conflicting reviewer results were withdrawn after reconciliation. Typecheck and review-order checks passed. Guarded stack and installed Chrome readiness verified; all owned lifecycle Stop requests accepted, data retained.
+
+**Timing:** started 2026-09-29T08:23:21Z; completed in progress — elapsed 79h 06m (≈6h 36m AI-run, ≈72h 29m human/idle wait); resumed 8×.
+
+**Stories:**
+1. 14.1: blocked; membership regression reproduced; required full gate red; browser acceptance unexecuted.
+2. 14.2–14.4: unstarted; no stories landed.
+
+**Skipped:** (none)
+
+**Epic gate:** Not reached.
+
+**TEA:** No new TEA phase; prerequisite verification only.
+
+**Retrospective:** Not reached.
+
+**Overrides:** Owner approved the exact ACL matrix. Proposed successor changes remain unapplied. No hosted changes or email activation.
+
+**Open questions:**
+1. Approve membership column-scoped UPDATE, two exact quote-wrapper service_role EXECUTE revokes, and quote ID batching from 100 to 50?
+
+**Deferred work:**
+1. After approval: implement successor repairs, complete required integration/RLS gate and guarded Story 14.1 browser acceptance, then resume reviews.
+No archive this session.
+
+**⚠️ Needs human:**
+1. Review ADR-B012 successor proposal and answer the pending scoped approval question. AGENTS.md requires approved story or ADR-backed scope for additional product/database changes.
+
+**Next:** Approve the recommended successor bundle to resume the saved author/testing/review workflow. Project context refresh recommended after epic completion.

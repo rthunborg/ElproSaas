@@ -9,11 +9,11 @@ spec_folder: null
 story_id: null
 branch: epic/14-wave-b1b-resource-and-scheduling-foundation
 status: in-progress
-updated_at: "2026-10-02T15:28:27Z"
+updated_at: "2026-10-02T15:43:42Z"
 started_at: "2026-09-29T08:45:54Z"
 completed_at: null
 active_seconds: 22472
-timing_anchor: null
+timing_anchor: 1790955822
 is_first_in_epic: true
 is_last_in_epic: false
 git_mode: remote
@@ -56,7 +56,7 @@ legacy_review_loop_done: false
 legacy_external_review_iterations: null
 legacy_convergence_unverified: false
 legacy_artifact_path: null
-commits: [b821e42, 2fdca50, 93dbf84, 4f4bfc4, e33efc3, 04f9799, b642076, 9eba0ea, 37904b9, c7f43ea, a98153f, 8a260ae, 741f4bf, ee9d17b, 084bfe1e, 63f22361, e88ce5db, d53cb1dc, 1a077bd2, ceefd6f3]
+commits: [b821e42, 2fdca50, 93dbf84, 4f4bfc4, e33efc3, 04f9799, b642076, 9eba0ea, 37904b9, c7f43ea, a98153f, 8a260ae, 741f4bf, ee9d17b, 084bfe1e, 63f22361, e88ce5db, d53cb1dc, 1a077bd2, ceefd6f3, 5b46bdec]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -79,8 +79,7 @@ pr_merged: false
 merge_method: null
 merge_commit: null
 branch_deleted: false
-open_questions:
-  - "Approve the ADR-B012 successor scope: membership UPDATE limited to onboarding_checklist_dismissed_at, two exact quote-wrapper service_role EXECUTE revokes, and shared quote ID batching from 100 to 50."
+open_questions: []
 deferred_work: []
 blockers:
   - "the required full `SUPABASE_TEST_REQUIRED=1 pnpm run test:int` gate reached a terminal red result after the approved prerequisite matrix: 125 files (114 passed, 10 failed, 1 skipped) and 1,242 assertions (1,226 passed, 15 failed, 1 skipped). The persisted root-bound seven-file reconciliation then established 68 passed assertions and one intentionally red ready-tenant `disabled_at` regression. Further repair requires owner approval for three successor scopes: two exact quote-wrapper `service_role` EXECUTE revokes, the quote read-model 100-ID batch repair, and column-scoped `tenant_memberships` UPDATE for `onboarding_checklist_dismissed_at`. The reviewer supplied a direct `.cmd` command at approximately 17:13:29 CEST and declared 55421/55422 for its 59-pass/10-fail result, but lacked a durable report and resolved runtime binding; it is withdrawn and superseded by the persisted reconciliation. Final Story browser acceptance also remains unexecuted: later guard maintenance established a separate verified Chrome/CDP lifecycle, but did not execute the current project-pinned resource scenarios."
@@ -143,7 +142,7 @@ overrides:
   final_scoped_resource_command_rls_skipped: 0
   resource_guard_browser_repair_owned_externally: true
   prerequisite_integration_repair_owner_approved_on: 2026-10-02
-  prerequisite_integration_repair_active: false
+  prerequisite_integration_repair_active: true
   prerequisite_integration_repair_adr: docs/decisions/ADR-B012-integration-gate-privilege-baseline-and-local-reliability.md
   prerequisite_integration_repair_spec: "_bmad-output/implementation-artifacts/spec-prereq-integration-gate-privilege-and-reliability.md"
   prerequisite_quote_acl_migration_applied: 20261002121425_quote_follow_ups_privilege_baseline.sql
@@ -194,9 +193,11 @@ overrides:
   prerequisite_reconciliation_skipped: 0
   prerequisite_reconciliation_persisted: true
   prerequisite_review_contrary_result_superseded: true
-  prerequisite_successor_owner_approval_pending: true
+  prerequisite_successor_owner_approval_pending: false
   prerequisite_successor_proposal_applied: false
   prerequisite_successor_proposal: docs/decisions/ADR-B012-public-inheritance-repair-approval-plan.md
+  prerequisite_successor_owner_approved_on: 2026-10-02
+  prerequisite_successor_owner_approved_scope: "Membership UPDATE limited to onboarding_checklist_dismissed_at; exact service_role EXECUTE revokes on two checked quote wrappers; shared ID query batch size100to50 with existing boundary regressions."
 constraints:
   - "Phase B manifest-governed approved Story 14.1 only; resources activation belongs here and broader scheduling module remains pending for Epic 15."
   - "Preserve existing local data and user-owned processes; new persistent resources require this actor's trusted guard context."
