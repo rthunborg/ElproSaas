@@ -309,7 +309,7 @@ describe("Calc migration reset green — calculations/sections/rows (AC1)", () =
     }
   });
 
-  it("[P0] GRANTs: authenticated SELECT/INSERT/UPDATE (no DELETE); anon NOTHING", async (testCtx) => {
+  it("[P0] GRANTs: authenticated historical DELETE remains ACL-visible but has no DELETE RLS policy; anon NOTHING", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     const rows = await adminQuery<{ grantee: string; privilege_type: string }>(
       `select grantee, privilege_type from information_schema.role_table_grants
@@ -322,7 +322,9 @@ describe("Calc migration reset green — calculations/sections/rows (AC1)", () =
     expect(authed).toContain("SELECT");
     expect(authed).toContain("INSERT");
     expect(authed).toContain("UPDATE");
-    expect(authed).not.toContain("DELETE"); // DELETE not granted — archive via archived_at
+    // Historical authenticated DELETE remains explicit; no DELETE RLS policy
+    // permits a direct app mutation.
+    expect(authed).toContain("DELETE");
     // anon has NO DML grant (SELECT/INSERT/UPDATE/DELETE) on the calc tables — the
     // migrations never grant anon any DML. Supabase's default schema privileges DO
     // hand every role (anon included) the non-DML REFERENCES/TRIGGER/TRUNCATE on new

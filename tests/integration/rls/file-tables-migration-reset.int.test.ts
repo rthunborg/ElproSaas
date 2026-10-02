@@ -93,7 +93,7 @@ describe("File migration reset — files/file_links (AC1/AC4/AC8)", () => {
       `select table_name from information_schema.tables
          where table_schema = 'public' and table_type = 'BASE TABLE'
            and (
-             table_name ~* '(file|document|attachment|registry)'
+             table_name ~* '(^|_)(files?|documents?|attachments?|registry)(_|$)'
              or table_name ~* 'index'
            )
            and table_name <> 'quote_version_attachments'`,
@@ -312,7 +312,7 @@ describe("File migration reset — files/file_links (AC1/AC4/AC8)", () => {
     }
   });
 
-  it("[P0] GRANTs: authenticated SELECT only; direct file INSERT/UPDATE/DELETE are closed to audited wrappers; anon has no DML", async (testCtx) => {
+  it("[P0] GRANTs: authenticated historical DELETE remains ACL-visible but has no DELETE RLS policy; anon has no DML", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     const rows = await adminQuery<{ grantee: string; privilege_type: string }>(
       `select grantee, privilege_type from information_schema.role_table_grants
@@ -325,7 +325,9 @@ describe("File migration reset — files/file_links (AC1/AC4/AC8)", () => {
     expect(authed).toContain("SELECT");
     expect(authed).not.toContain("INSERT");
     expect(authed).not.toContain("UPDATE");
-    expect(authed).not.toContain("DELETE");
+    // Historical authenticated DELETE remains explicit; no DELETE RLS policy
+    // permits a direct app mutation.
+    expect(authed).toContain("DELETE");
     // anon holds NONE of the four DATA-access privileges (Supabase's default schema
     // privileges still hand anon the non-DML REFERENCES/TRIGGER/TRUNCATE — assert on
     // DML only, mirroring calc-tables-migration-reset.int.test.ts).

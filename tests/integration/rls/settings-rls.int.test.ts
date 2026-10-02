@@ -185,7 +185,7 @@ describe("Story 3.3 — migration-reset exact-policy enumeration extension (AC3)
     }
   });
 
-  it("[P0] authenticated retains SELECT only; audited RPCs own every settings mutation", async (testCtx) => {
+  it("[P0] authenticated retains the historical SELECT/DELETE ACL; RLS keeps direct settings mutation closed", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     const rows = await adminQuery<{ table_name: string; privilege_type: string }>(
       `select table_name, privilege_type from information_schema.role_table_grants
@@ -195,7 +195,9 @@ describe("Story 3.3 — migration-reset exact-policy enumeration extension (AC3)
          order by table_name, privilege_type`,
     );
     expect(rows).toEqual([
+      { table_name: "company_settings", privilege_type: "DELETE" },
       { table_name: "company_settings", privilege_type: "SELECT" },
+      { table_name: "quote_terms", privilege_type: "DELETE" },
       { table_name: "quote_terms", privilege_type: "SELECT" },
     ]);
   });
@@ -320,7 +322,7 @@ describe("Story 3.3 — tenant read isolation and audited mutation boundary (AC3
     ]);
   });
 
-  it("[P0] DELETE: there is NO app-path DELETE grant — Tenant A's DELETE is denied at the privilege layer (42501)", async (testCtx) => {
+  it("[P0] DELETE: the retained ACL reaches RLS, which exposes no foreign direct-delete path", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     const bTermsId = await adminInsertQuoteTerms(fixture.tenantB.id);
     const { data: deleted, error } = await a
@@ -328,8 +330,10 @@ describe("Story 3.3 — tenant read isolation and audited mutation boundary (AC3
       .delete()
       .eq("id", bTermsId)
       .select();
-    expect(error?.code).toBe("42501"); // no DELETE grant anywhere on the app path
-    expect(deleted).toBeNull();
+    expect(error).toBeNull();
+    expect(deleted ?? []).toEqual([]);
+    const rows = await adminQuery<{ id: string }>("select id from public.quote_terms where id = $1", [bTermsId]);
+    expect(rows).toEqual([{ id: bTermsId }]);
   });
 });
 

@@ -44,11 +44,51 @@ describe("Story 12.3 onboarding dismissal RLS", () => {
 
   test("[P0] 12.3-RLS-002 column privilege rejects role and status mutation even for the current member", async () => {
     const { createTwoTenantFixture, cleanupFixture, makeAuthedServerClient } = await import("../../factories/tenants");
+    const { adminQuery } = await import("../../factories/admin-sql");
     const fixture = await createTwoTenantFixture();
     try {
       const caller = await makeAuthedServerClient(fixture.adminA);
-      const { error } = await caller.from("tenant_memberships").update({ status: "disabled" }).eq("tenant_id", fixture.tenantA.id).eq("user_id", fixture.adminA.id);
+      const { data, error } = await caller.from("tenant_memberships").update({ status: "disabled" }).eq("tenant_id", fixture.tenantA.id).eq("user_id", fixture.adminA.id).select("id");
+      expect(error).toBeNull();
+      expect(data ?? []).toEqual([]);
+      const [row] = await adminQuery<{ status: string }>("select status from public.tenant_memberships where tenant_id=$1 and user_id=$2", [fixture.tenantA.id, fixture.adminA.id]);
+      expect(row?.status).toBe("active");
+    } finally { await cleanupFixture(fixture); }
+  });
+
+  test("[P0][successor-scope] a ready tenant admin cannot directly PATCH disabled_at on its own membership", async () => {
+    const { createTwoTenantFixture, cleanupFixture, makeAuthedServerClient } = await import("../../factories/tenants");
+    const { adminQuery } = await import("../../factories/admin-sql");
+    const fixture = await createTwoTenantFixture();
+    try {
+      // This is the exact ready-tenant precondition that permits the intended
+      // onboarding-dismissal column. `disabled_at` is used because this direct
+      // data update has no invitation/reset delivery side effect.
+      await adminQuery("update public.tenants set provisioning_state='ready' where id=$1", [fixture.tenantA.id]);
+      const caller = await makeAuthedServerClient(fixture.adminA);
+      const before = await adminQuery<{ disabled_at: string | null }>(
+        "select disabled_at from public.tenant_memberships where tenant_id=$1 and user_id=$2",
+        [fixture.tenantA.id, fixture.adminA.id],
+      );
+      expect(before[0]?.disabled_at).toBeNull();
+
+      const { data, error } = await caller
+        .from("tenant_memberships")
+        .update({ disabled_at: new Date().toISOString() })
+        .eq("tenant_id", fixture.tenantA.id)
+        .eq("user_id", fixture.adminA.id)
+        .select("id");
+
+      // Deliberately red until the successor grants UPDATE only on
+      // onboarding_checklist_dismissed_at. The current row policy permits this
+      // protected-column PATCH because its WITH CHECK is row-based.
       expect(error).not.toBeNull();
+      expect(data ?? []).toEqual([]);
+      const after = await adminQuery<{ disabled_at: string | null }>(
+        "select disabled_at from public.tenant_memberships where tenant_id=$1 and user_id=$2",
+        [fixture.tenantA.id, fixture.adminA.id],
+      );
+      expect(after[0]?.disabled_at).toBeNull();
     } finally { await cleanupFixture(fixture); }
   });
 

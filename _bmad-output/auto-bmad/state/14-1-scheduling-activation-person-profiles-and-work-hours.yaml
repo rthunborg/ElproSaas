@@ -9,11 +9,11 @@ spec_folder: null
 story_id: null
 branch: epic/14-wave-b1b-resource-and-scheduling-foundation
 status: in-progress
-updated_at: "2026-10-02T14:31:17Z"
+updated_at: "2026-10-02T15:28:27Z"
 started_at: "2026-09-29T08:45:54Z"
 completed_at: null
-active_seconds: 17722
-timing_anchor: 1790950157
+active_seconds: 22472
+timing_anchor: null
 is_first_in_epic: true
 is_last_in_epic: false
 git_mode: remote
@@ -41,7 +41,7 @@ spec_path: "C:\\Users\\Rasmus\\.codex\\worktrees\\epic14-scheduling\\ElproSaas\\
 spec_approved: true
 build:
   status: blocked
-  blocking_condition: "the required full `SUPABASE_TEST_REQUIRED=1 pnpm run test:int` gate remains red. A direct installed-Vitest run with verified `--no-file-parallelism` and persisted private JSON reported 124 actual file results (112 passed, 12 failed) and 1,239 assertions (1,126 passed, 112 failed, 1 skipped). Quote-follow-up, CRM, audit, Storage-focused, and stale audit-trigger categories are repaired; the remaining observed inherited-PUBLIC ACL set is mapped as 22 tables plus two helpers in `ADR-B012-public-inheritance-repair-approval-plan.md`. Automatic approval rejected both broad forward-batch proposals, so they remain unapplied documentation pending explicit owner approval. Final Story browser acceptance also remains unexecuted: later guard maintenance established a separate verified Chrome/CDP lifecycle, but did not execute the current project-pinned resource scenarios."
+  blocking_condition: "the required full `SUPABASE_TEST_REQUIRED=1 pnpm run test:int` gate reached a terminal red result after the approved prerequisite matrix: 125 files (114 passed, 10 failed, 1 skipped) and 1,242 assertions (1,226 passed, 15 failed, 1 skipped). The persisted root-bound seven-file reconciliation then established 68 passed assertions and one intentionally red ready-tenant `disabled_at` regression. Further repair requires owner approval for three successor scopes: two exact quote-wrapper `service_role` EXECUTE revokes, the quote read-model 100-ID batch repair, and column-scoped `tenant_memberships` UPDATE for `onboarding_checklist_dismissed_at`. The reviewer supplied a direct `.cmd` command at approximately 17:13:29 CEST and declared 55421/55422 for its 59-pass/10-fail result, but lacked a durable report and resolved runtime binding; it is withdrawn and superseded by the persisted reconciliation. Final Story browser acceptance also remains unexecuted: later guard maintenance established a separate verified Chrome/CDP lifecycle, but did not execute the current project-pinned resource scenarios."
   followup_review_recommended: true
   review_loop_iteration: 0
   deferred_count: 1
@@ -56,7 +56,7 @@ legacy_review_loop_done: false
 legacy_external_review_iterations: null
 legacy_convergence_unverified: false
 legacy_artifact_path: null
-commits: [b821e42, 2fdca50, 93dbf84, 4f4bfc4, e33efc3, 04f9799, b642076, 9eba0ea, 37904b9, c7f43ea, a98153f, 8a260ae, 741f4bf, ee9d17b, 084bfe1e, 63f22361, e88ce5db, d53cb1dc, 1a077bd2]
+commits: [b821e42, 2fdca50, 93dbf84, 4f4bfc4, e33efc3, 04f9799, b642076, 9eba0ea, 37904b9, c7f43ea, a98153f, 8a260ae, 741f4bf, ee9d17b, 084bfe1e, 63f22361, e88ce5db, d53cb1dc, 1a077bd2, ceefd6f3]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -80,10 +80,10 @@ merge_method: null
 merge_commit: null
 branch_deleted: false
 open_questions:
-  - Explicit owner approval of the documented 22-table/two-helper forward ACL repair is pending after automatic approval review rejected the broad batch.
+  - "Approve the ADR-B012 successor scope: membership UPDATE limited to onboarding_checklist_dismissed_at, two exact quote-wrapper service_role EXECUTE revokes, and shared quote ID batching from 100 to 50."
 deferred_work: []
 blockers:
-  - "the required full `SUPABASE_TEST_REQUIRED=1 pnpm run test:int` gate remains red. A direct installed-Vitest run with verified `--no-file-parallelism` and persisted private JSON reported 124 actual file results (112 passed, 12 failed) and 1,239 assertions (1,126 passed, 112 failed, 1 skipped). Quote-follow-up, CRM, audit, Storage-focused, and stale audit-trigger categories are repaired; the remaining observed inherited-PUBLIC ACL set is mapped as 22 tables plus two helpers in `ADR-B012-public-inheritance-repair-approval-plan.md`. Automatic approval rejected both broad forward-batch proposals, so they remain unapplied documentation pending explicit owner approval. Final Story browser acceptance also remains unexecuted: later guard maintenance established a separate verified Chrome/CDP lifecycle, but did not execute the current project-pinned resource scenarios."
+  - "the required full `SUPABASE_TEST_REQUIRED=1 pnpm run test:int` gate reached a terminal red result after the approved prerequisite matrix: 125 files (114 passed, 10 failed, 1 skipped) and 1,242 assertions (1,226 passed, 15 failed, 1 skipped). The persisted root-bound seven-file reconciliation then established 68 passed assertions and one intentionally red ready-tenant `disabled_at` regression. Further repair requires owner approval for three successor scopes: two exact quote-wrapper `service_role` EXECUTE revokes, the quote read-model 100-ID batch repair, and column-scoped `tenant_memberships` UPDATE for `onboarding_checklist_dismissed_at`. The reviewer supplied a direct `.cmd` command at approximately 17:13:29 CEST and declared 55421/55422 for its 59-pass/10-fail result, but lacked a durable report and resolved runtime binding; it is withdrawn and superseded by the persisted reconciliation. Final Story browser acceptance also remains unexecuted: later guard maintenance established a separate verified Chrome/CDP lifecycle, but did not execute the current project-pinned resource scenarios."
 overrides:
   epic_start_authorized_by_owner: true
   unattended_run_confirmed_by_owner_request: true
@@ -97,16 +97,16 @@ overrides:
   bounded_readiness_observation_before_retry: true
   readiness_observation_budget_seconds: 600
   root_compose_validation_passed: true
-  root_guard_resource_id: 6c31d305-70ee-46e2-bac1-d16098e203dd
-  local_guard_diagnostic_status: approved_prerequisite_reuse_active
+  root_guard_resource_id: eccb4798-4ab1-4ae3-8ae0-155b15174b77
+  local_guard_diagnostic_status: reconciled_prerequisite_usage_stop_requested
   owner_authorized_guard_repair_and_failure_diagnosis: true
   root_guard_start_reproduced_failure: false
-  root_guard_stop_requested: false
+  root_guard_stop_requested: true
   isolated_service_and_schema_readiness_verified: true
   owner_confirmed_guard_fix_deployed: true
   owner_confirmed_all_prs_merged: true
   root_guard_compose_file: compose.ready.test.yaml
-  root_guard_request_id: 0d838f06-b603-410e-ba8a-0f058e0f5d20
+  root_guard_request_id: b6e549c1-05be-4084-a743-3c267ee46708
   owner_authorized_corrected_stack_and_fresh_volumes: true
   guard_upgrade_not_required: true
   historical_registration_recovery_not_required: true
@@ -115,18 +115,18 @@ overrides:
   schema_migration_seed_and_acceptance_pending: false
   owner_continuation_handoff: ELPRO-AGENT-HANDOFF.md 2026-10-01
   root_app_server_port: 3100
-  root_app_server_guard_active_verified: true
+  root_app_server_guard_active_verified: false
   root_app_server_resource_id: 77bd0bb4-db6c-4d7c-be5a-a837ab89dbfd
   root_app_server_physical_node_path_used: true
-  root_app_server_stop_requested: false
+  root_app_server_stop_requested: true
   root_app_server_runtime_keys_mismatched: false
   root_app_server_next_version: 16.3.6
   browser_origin_mismatch_under_diagnosis: false
   local_gateway_cors_reload_pending: false
   root_app_server_e2e_failure_flag_private: true
-  root_browser_stop_requested: false
+  root_browser_stop_requested: true
   root_browser_stopped_verified: false
-  root_browser_diagnostic_code: START_NOT_CREATED
+  root_browser_diagnostic_code: installed_chrome_owned_cdp_verified_then_stop_requested
   root_browser_admission_failed: false
   root_browser_resource_id: e8cd7aca-c43e-4000-81f7-ce59af928e77
   final_guarded_browser_acceptance_executed: false
@@ -143,7 +143,7 @@ overrides:
   final_scoped_resource_command_rls_skipped: 0
   resource_guard_browser_repair_owned_externally: true
   prerequisite_integration_repair_owner_approved_on: 2026-10-02
-  prerequisite_integration_repair_active: true
+  prerequisite_integration_repair_active: false
   prerequisite_integration_repair_adr: docs/decisions/ADR-B012-integration-gate-privilege-baseline-and-local-reliability.md
   prerequisite_integration_repair_spec: "_bmad-output/implementation-artifacts/spec-prereq-integration-gate-privilege-and-reliability.md"
   prerequisite_quote_acl_migration_applied: 20261002121425_quote_follow_ups_privilege_baseline.sql
@@ -159,9 +159,9 @@ overrides:
   prerequisite_last_full_gate_skipped: 1
   prerequisite_storage_service_bucket_http_status: 200
   prerequisite_last_full_gate_serialization_verified: true
-  prerequisite_last_full_gate_passed: 1203
+  prerequisite_last_full_gate_passed: 1226
   prerequisite_storage_health_http_status: 200
-  prerequisite_last_full_gate_failed: 38
+  prerequisite_last_full_gate_failed: 15
   prerequisite_last_full_gate_tests: 1242
   prerequisite_broad_acl_owner_approval_pending: false
   prerequisite_broad_acl_proposal: docs/decisions/ADR-B012-public-inheritance-repair-approval-plan.md
@@ -176,15 +176,27 @@ overrides:
   prerequisite_broad_acl_owner_approved_on: 2026-10-02
   prerequisite_broad_acl_owner_approved_scope: 22 observed tables and two helpers exactly as ADR-B012 approval plan
   owner_confirmed_chrome_guard_path_fixed: true
-  prerequisite_normal_full_gate_pending: true
+  prerequisite_normal_full_gate_pending: false
   root_browser_cdp_endpoint: "http://127.0.0.1:59391"
   root_browser_owned_cdp_verified: true
   prerequisite_remaining_test_contract_diagnosis_authorized: true
   prerequisite_broad_acl_migration_applied: 20261002141141_approved_inherited_public_acl_repair.sql
-  prerequisite_normal_full_gate_aggregate_capture_complete: false
+  prerequisite_normal_full_gate_aggregate_capture_complete: true
   prerequisite_remaining_contract_failures: 15
   prerequisite_cross_tenant_focused_passed: 180
   prerequisite_normal_full_gate_executed: true
+  prerequisite_last_full_gate_file_passed: 114
+  prerequisite_last_full_gate_file_failed: 10
+  prerequisite_last_full_gate_file_skipped: 1
+  prerequisite_reconciliation_files: 7
+  prerequisite_reconciliation_passed: 68
+  prerequisite_reconciliation_failed: 1
+  prerequisite_reconciliation_skipped: 0
+  prerequisite_reconciliation_persisted: true
+  prerequisite_review_contrary_result_superseded: true
+  prerequisite_successor_owner_approval_pending: true
+  prerequisite_successor_proposal_applied: false
+  prerequisite_successor_proposal: docs/decisions/ADR-B012-public-inheritance-repair-approval-plan.md
 constraints:
   - "Phase B manifest-governed approved Story 14.1 only; resources activation belongs here and broader scheduling module remains pending for Epic 15."
   - "Preserve existing local data and user-owned processes; new persistent resources require this actor's trusted guard context."

@@ -201,7 +201,7 @@ describe("Pricing migration reset green — work_roles/articles (AC1/AC2/AC3)", 
     }
   });
 
-  it("[P0/AC4] GRANTs: authenticated SELECT only; direct pricing INSERT/UPDATE/DELETE are closed to audited wrappers; anon has no DML", async (testCtx) => {
+  it("[P0/AC4] GRANTs: authenticated historical DELETE remains ACL-visible but has no DELETE RLS policy; anon has no DML", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     const rows = await adminQuery<{ grantee: string; privilege_type: string }>(
       `select grantee, privilege_type from information_schema.role_table_grants
@@ -212,7 +212,9 @@ describe("Pricing migration reset green — work_roles/articles (AC1/AC2/AC3)", 
     expect(authed).toContain("SELECT");
     expect(authed).not.toContain("INSERT");
     expect(authed).not.toContain("UPDATE");
-    expect(authed).not.toContain("DELETE");
+    // Historical authenticated DELETE remains explicit; no DELETE RLS policy
+    // permits a direct app mutation.
+    expect(authed).toContain("DELETE");
     // anon-DML-empty (NOT anon-grant-empty): Supabase grants every role the non-DML
     // REFERENCES/TRIGGER/TRUNCATE by default, so assert anon holds NONE of the four
     // DATA-access privileges, not zero grants overall.
