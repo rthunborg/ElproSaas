@@ -321,3 +321,40 @@ No archive/reconcile performed.
 2. Arrange separately scoped baseline integration/bootstrap triage and supported native Chromium launch diagnosis. Infrastructure recovery of the old registration or a guard upgrade is not required by current evidence. Final browser acceptance must run against the reviewed code after admission succeeds.
 
 **Next:** Review checkpoint: /bmad-checkpoint-preview epic/14-wave-b1b-resource-and-scheduling-foundation. Resolve both causes; have the Story author set status to in-progress for required verification, then run /auto-bmad epic --epic 14 to resume Phase 5. Project context: /bmad-project-context refresh after the Epic completes.
+
+## Report — 2026-10-02T13:14:55Z (halted — needs-human)
+
+**Epic:** `14` — 4 stories.
+**Branch:** `epic/14-wave-b1b-resource-and-scheduling-foundation` (HEAD `e88ce5d`).
+**Pipeline status:** Story 14.1 remains blocked at build: broader ACL repair approval and product acceptance pending.
+**Continues:** 2026-10-02T10:05:00Z (halted — needs-human)
+
+**Summary:** Accepted quote-follow-up, CRM/audit and stale test-trigger repairs checkpointed. Final focused ACL checks: 24 passed; test-support checks: 13 passed. Typecheck and final prerequisite reviews passed. Serialized full integration gate: 1,126 passed, 112 failed, 1 existing opt-in skip across 124 files. Remaining inherited-PUBLIC grant mismatches have a documentation-only 22-table/two-helper proposal. No runner parallelism change. Compose Stop accepted; saved data retained.
+
+**Timing:** started 2026-09-29T08:23:21Z; completed in progress — elapsed 76h 51m (≈5h 17m AI-run, ≈71h 33m human/idle wait); resumed 7×.
+
+**Stories:**
+1. 14.1: blocked; outer follow-up review not reached; 1 deferred approval item; browser acceptance unexecuted.
+2. 14.2–14.4: unstarted; no stories landed.
+
+**Skipped:** (none)
+
+**Epic gate:** Not reached.
+
+**TEA:** No new TEA phase this session; prerequisite integration diagnosis and focused verification executed.
+
+**Retrospective:** Not reached.
+
+**Overrides:** Owner approved separate integration prerequisite; external guard maintainer verified installed Chrome infrastructure. No hosted changes or email activation.
+
+**Open questions:**
+1. Approve the exact 22-table/two-helper forward privilege repair? Automatic approval review rejected the broad batch; explicit owner approval is pending.
+
+**Deferred work:**
+1. Apply the documented repair only after approval, rerun required integration gate, then execute project-pinned guarded browser acceptance.
+No archive this session.
+
+**⚠️ Needs human:**
+1. Review docs/decisions/ADR-B012-public-inheritance-repair-approval-plan.md and answer the pending approval question. The proposed batch remains unapplied.
+
+**Next:** After approval, resume the prerequisite author/testing/review workflow, then Story 14.1 Phase 5 on the saved original baseline. Browser infrastructure success is not Story acceptance. Project context refresh remains recommended after epic completion.

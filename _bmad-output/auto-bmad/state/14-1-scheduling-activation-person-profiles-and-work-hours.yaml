@@ -9,11 +9,11 @@ spec_folder: null
 story_id: null
 branch: epic/14-wave-b1b-resource-and-scheduling-foundation
 status: in-progress
-updated_at: "2026-10-02T13:14:27Z"
+updated_at: "2026-10-02T14:09:17Z"
 started_at: "2026-09-29T08:45:54Z"
 completed_at: null
 active_seconds: 17722
-timing_anchor: null
+timing_anchor: 1790950157
 is_first_in_epic: true
 is_last_in_epic: false
 git_mode: remote
@@ -56,7 +56,7 @@ legacy_review_loop_done: false
 legacy_external_review_iterations: null
 legacy_convergence_unverified: false
 legacy_artifact_path: null
-commits: [b821e42, 2fdca50, 93dbf84, 4f4bfc4, e33efc3, 04f9799, b642076, 9eba0ea, 37904b9, c7f43ea, a98153f, 8a260ae, 741f4bf, ee9d17b, 084bfe1e, 63f22361]
+commits: [b821e42, 2fdca50, 93dbf84, 4f4bfc4, e33efc3, 04f9799, b642076, 9eba0ea, 37904b9, c7f43ea, a98153f, 8a260ae, 741f4bf, ee9d17b, 084bfe1e, 63f22361, e88ce5db]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -97,20 +97,20 @@ overrides:
   bounded_readiness_observation_before_retry: true
   readiness_observation_budget_seconds: 600
   root_compose_validation_passed: true
-  root_guard_resource_id: 534d6b00-e76a-4419-a624-9c0b10f7d407
-  local_guard_diagnostic_status: prerequisite_stop_requested_saved_data_retained
+  root_guard_resource_id: 6c31d305-70ee-46e2-bac1-d16098e203dd
+  local_guard_diagnostic_status: approved_prerequisite_reuse_starting
   owner_authorized_guard_repair_and_failure_diagnosis: true
   root_guard_start_reproduced_failure: false
-  root_guard_stop_requested: true
+  root_guard_stop_requested: false
   isolated_service_and_schema_readiness_verified: true
   owner_confirmed_guard_fix_deployed: true
   owner_confirmed_all_prs_merged: true
   root_guard_compose_file: compose.ready.test.yaml
-  root_guard_request_id: b272dcfc-fabe-45a2-a565-7f5f4197b05b
+  root_guard_request_id: 0d838f06-b603-410e-ba8a-0f058e0f5d20
   owner_authorized_corrected_stack_and_fresh_volumes: true
   guard_upgrade_not_required: true
   historical_registration_recovery_not_required: true
-  root_guard_service_readiness_verified: true
+  root_guard_service_readiness_verified: false
   author_resume_preparation_completed: true
   schema_migration_seed_and_acceptance_pending: false
   owner_continuation_handoff: ELPRO-AGENT-HANDOFF.md 2026-10-01
@@ -143,7 +143,7 @@ overrides:
   final_scoped_resource_command_rls_skipped: 0
   resource_guard_browser_repair_owned_externally: true
   prerequisite_integration_repair_owner_approved_on: 2026-10-02
-  prerequisite_integration_repair_active: false
+  prerequisite_integration_repair_active: true
   prerequisite_integration_repair_adr: docs/decisions/ADR-B012-integration-gate-privilege-baseline-and-local-reliability.md
   prerequisite_integration_repair_spec: "_bmad-output/implementation-artifacts/spec-prereq-integration-gate-privilege-and-reliability.md"
   prerequisite_quote_acl_migration_applied: 20261002121425_quote_follow_ups_privilege_baseline.sql
@@ -163,7 +163,7 @@ overrides:
   prerequisite_storage_health_http_status: 200
   prerequisite_last_full_gate_failed: 112
   prerequisite_last_full_gate_tests: 1239
-  prerequisite_broad_acl_owner_approval_pending: true
+  prerequisite_broad_acl_owner_approval_pending: false
   prerequisite_broad_acl_proposal: docs/decisions/ADR-B012-public-inheritance-repair-approval-plan.md
   prerequisite_broad_acl_proposal_applied: false
   prerequisite_final_acl_focused_passed: 24
@@ -173,6 +173,9 @@ overrides:
   prerequisite_test_support_focused_passed: 13
   resource_guard_external_browser_path_verified: true
   resource_guard_external_browser_evidence: "C:\\Users\\Rasmus\\Documents\\Codex\\2026-08-31\\investigate-and-design-a-machine-level\\work\\chromium-launch-2026-10-02\\ELPRO-AGENT-HANDOFF.md"
+  prerequisite_broad_acl_owner_approved_on: 2026-10-02
+  prerequisite_broad_acl_owner_approved_scope: 22 observed tables and two helpers exactly as ADR-B012 approval plan
+  owner_confirmed_chrome_guard_path_fixed: true
 constraints:
   - "Phase B manifest-governed approved Story 14.1 only; resources activation belongs here and broader scheduling module remains pending for Epic 15."
   - "Preserve existing local data and user-owned processes; new persistent resources require this actor's trusted guard context."
