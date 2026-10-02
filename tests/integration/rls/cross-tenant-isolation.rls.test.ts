@@ -72,7 +72,9 @@ import {
   tenantBFilter,
   hijackMutationFor,
   updateDenialKind,
+  deleteDenialKind,
   rlsInvisibleLabelColumn,
+  type TenantTableName,
   type InventoryContext,
 } from "./tenant-table-inventory";
 
@@ -416,6 +418,29 @@ beforeAll(async () => {
   if (!tenantBAdminOperationId) {
     throw new Error("cross-tenant operation seed produced no id — membership_admin_operations negatives would pass VACUOUSLY.");
   }
+  const membershipRows = await adminQuery<{ id: string }>(
+    "select id from public.tenant_memberships where tenant_id = $1 and user_id = $2",
+    [fixture.tenantB.id, fixture.adminB.id],
+  );
+  const membershipId = membershipRows[0]?.id;
+  if (!membershipId) throw new Error("cross-tenant resource seed needs Tenant B membership");
+  const profileRows = await adminQuery<{ id: string }>(
+    `insert into public.person_profiles (tenant_id, membership_id, employment_percentage)
+     values ($1, $2, 80)
+     on conflict (membership_id) do update set employment_percentage = excluded.employment_percentage
+     returning id`,
+    [fixture.tenantB.id, membershipId],
+  );
+  const profileId = profileRows[0]?.id;
+  if (!profileId) throw new Error("cross-tenant resource seed produced no profile");
+  await adminQuery(
+    "insert into public.person_work_hours (tenant_id, person_profile_id, entry_kind, weekday, starts_at, ends_at) values ($1, $2, 'weekly_shift', 1, '07:00', '16:00')",
+    [fixture.tenantB.id, profileId],
+  );
+  await adminQuery(
+    "insert into public.tenant_calendar_days (tenant_id, local_date, variant, reduction_percent) values ($1, '2098-12-24', 'reduced_capacity', 50)",
+    [fixture.tenantB.id],
+  );
   ctx = {
     fixture,
     tenantBAuditId,
@@ -517,6 +542,9 @@ describe("Cross-tenant RLS isolation — data-driven over the shared inventory (
       it(`[P0] UPDATE: Tenant A admin cannot UPDATE Tenant B's ${table} rows`, async (testCtx) => {
         if (skipUnlessStack(testCtx, stackUp)) return;
         const { column, value } = tenantBFilter(table, ctx);
+        const before = updateDenialKind(table) === "rls-invisible"
+          ? await snapshotForeignRows(table, column, value)
+          : null;
         const { data: affected, error } = await a
           .from(table)
           .update(hijackMutationFor(table))
@@ -551,6 +579,7 @@ describe("Cross-tenant RLS isolation — data-driven over the shared inventory (
           // rls-invisible calculation editing rows.
           expect(error).toBeNull();
           expect(affected).toEqual([]); // zero rows affected — the foreign row is hidden
+          expect(await snapshotForeignRows(table, column, value)).toEqual(before);
           // Independent re-read proves the row exists and its label is UNCHANGED (the
           // hijack value "hijacked-by-tenant-a" never landed). CRM and settings tables
           // use different readback helpers; the inventory names the label column.
@@ -645,6 +674,9 @@ describe("Cross-tenant RLS isolation — data-driven over the shared inventory (
               expect(row?.label).not.toBe("hijacked-by-tenant-a");
               expect(row?.label).toBe("tenant-b-job-seed");
             }
+          } else if (table === "person_profiles" || table === "person_work_hours" || table === "tenant_calendar_days" || table === "tenants" || table === "tenant_memberships" || table === "membership_admin_operations") {
+            // The generic privileged snapshot above proves the seeded Tenant B rows
+            // exist and were not changed; these tables have no CRM-style name field.
           } else {
             const crmTable = table as "customers" | "facilities" | "contacts";
             const row = await adminSelectCrmRowById(crmTable, value);
@@ -658,19 +690,23 @@ describe("Cross-tenant RLS isolation — data-driven over the shared inventory (
       it(`[P0] DELETE: Tenant A admin cannot DELETE Tenant B's ${table} rows`, async (testCtx) => {
         if (skipUnlessStack(testCtx, stackUp)) return;
         const { column, value } = tenantBFilter(table, ctx);
+        const before = deleteDenialKind(table) === "rls-invisible"
+          ? await snapshotForeignRows(table, column, value)
+          : null;
         const { data: deleted, error } = await a
           .from(table)
           .delete()
           .eq(column, value)
           .select();
-        // No DELETE grant for the app path → denied at the privilege layer (42501).
-        // Assert the mechanism (non-null error, the 42501 SQLSTATE, null data), not a
-        // vacuous empty set — matching the adjacent UPDATE/INSERT branches so a
-        // regression flipping the denial to an empty result set does not pass
-        // (review fix 2026-06-26; [Review][Patch][Med] 2026-06-29).
-        expect(error).not.toBeNull();
-        expect(error?.code).toBe("42501");
-        expect(deleted).toBeNull();
+        if (deleteDenialKind(table) === "privilege") {
+          expect(error).not.toBeNull();
+          expect(error?.code).toBe("42501");
+          expect(deleted).toBeNull();
+        } else {
+          expect(error).toBeNull();
+          expect(deleted).toEqual([]);
+          expect(await snapshotForeignRows(table, column, value)).toEqual(before);
+        }
       });
     });
   }
@@ -703,3 +739,16 @@ describe("Cross-tenant RLS isolation — data-driven over the shared inventory (
     expect(auditRows?.[0]?.metadata).toEqual({ reason: "tenant-b-seed" });
   });
 });
+
+async function snapshotForeignRows(table: TenantTableName, column: string, value: string): Promise<unknown> {
+  const rows = await adminQuery<{ snapshot: unknown }>(
+    `select coalesce(jsonb_agg(to_jsonb(row) order by row.id), '[]'::jsonb) as snapshot
+       from public.${table} as row
+      where row.${column} = $1`,
+    [value],
+  );
+  const snapshot = rows[0]?.snapshot;
+  expect(Array.isArray(snapshot)).toBe(true);
+  expect((snapshot as unknown[]).length).toBeGreaterThan(0);
+  return snapshot;
+}
