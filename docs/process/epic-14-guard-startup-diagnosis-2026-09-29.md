@@ -138,3 +138,61 @@ Final guard-owned browser admission remains blocked. Guarded Chromium lifecycle 
 The required full corrected-target `SUPABASE_TEST_REQUIRED=1 pnpm run test:int` gate remains red: its final applicable sweep, before the later inventory/review patches, reported 1,081 passed, 156 failed, and one skip across 124 files. A serial reachability-affected file passed 12/12; a representative pre-Story quote-follow-ups grant expectation remained 9/11 and is outside Story 14.1. This is recorded as an inherited prerequisite, without asserting a downstream bypass. Do not waive or rerun the full gate without a concrete correction.
 
 Root later requested Stop for app `8eb8ee65` and Compose `06ea959a`; both returned native exit 0, `ok=true`, `stop_requested`, and `verified=false`. These are accepted Stop acknowledgments, not confirmed shutdown; no polling was performed. Preserved resources and data remain under the guard lifecycle.
+
+## Guarded browser correction — 2026-10-02
+
+The browser launch blocker is resolved through a supported executable-path
+correction on installed guard **0.9.15**. Use
+`C:\Program Files\Google\Chrome\Application\chrome.exe` (verified installed
+version 154.0.8037.97) for guarded headless/CDP automation on this host. Keep
+the existing working directory, `resourceType='browser'`, loopback CDP and the
+guard-supplied private profile.
+
+Windows Application/SideBySide Event 33 at **09:47:32.5005805Z** identifies the
+original Chromium 1228 image and failure to resolve private assembly
+`149.0.7827.55`. A maintainer-owned guarded reproduction returned the same
+verified-empty `START_NOT_CREATED` and a second matching event at
+**12:12:30.2216208Z**. An independent read-only `CreateActCtxW` probe of the
+embedded executable manifest reproduced **14001
+(`ERROR_SXS_CANT_GEN_ACTCTX`)** without creating a child process; installed
+Chrome passed that probe. The guard's rollback handler discarded this native
+cause, explaining why its result only established Job emptiness. The exact
+packaging subdefect in the cached Playwright image remains unestablished and
+the cache was preserved.
+
+Using the maintainer actor's own trusted context, Chrome lifecycle
+`ebcac249-b2cb-46c9-8fee-04aae2a9d92a` became active/verified at **12:14:09Z**.
+Its ephemeral loopback CDP endpoint matched the exact authenticated profile and
+process identity. CDP version, isolated page/context, DOM interaction, rendered
+screenshot and test-context cleanup passed; the test did not close the browser.
+Stop at **12:19:47Z** returned native 0 / ok=true / stop_requested /
+verified=false. A single later independent snapshot at **12:20:54Z** found all
+seven recorded browser-process identities and the listener absent, with the
+profile and its retention marker unchanged. The original failed profile remains
+present. No process-name cleanup, user-browser adoption, profile deletion,
+runtime upgrade, database action or historical registration recovery ran.
+
+Evidence and supported continuation instructions:
+`C:\Users\Rasmus\Documents\Codex\2026-08-31\investigate-and-design-a-machine-level\work\chromium-launch-2026-10-02\RESULTS.md`
+and `ELPRO-AGENT-HANDOFF.md` in that directory. Continue with the ElproSaas
+actor's own new trusted context and its own newly verified CDP endpoint. Use
+the runner-only `E2E_GUARD_CHROMIUM_CDP_ENDPOINT` for the existing fixture,
+including its required `E2E_RESOURCE_SAVE_FAILURE_ENABLED=true` seam when
+applicable. The fixture closes only its page/context; the root requests guard
+Stop and preserves the profile. Port `0` can be discovered in `DevToolsActivePort`
+under the exact authenticated registration's retained profile. A chosen fixed
+port must first be available; do not stop an existing listener to claim it.
+
+Corrected Compose reuse still needs no further fresh database or recovery.
+This establishes browser infrastructure, not the project-pinned Playwright
+scenarios or Story 14.1 acceptance; the full integration prerequisite recorded
+above is not waived or rerun here.
+## Integration prerequisite continuation — 2026-10-02
+
+The corrected guarded Compose route remained usable for the approved local prerequisite. The same registered stack retained its five container IDs and passed healthy-service, REST-readiness, Auth, and Storage checks. The accepted work used SQL-only loopback migration-and-seed pushes with the existing data and ledger; no reset, ledger edit, volume deletion, hosted access, or native Supabase lifecycle operation occurred.
+
+Forward repairs removed inherited effective table access on the confirmed quote-follow-ups, CRM, and audit paths while preserving authenticated tenant reads, checked wrappers, RLS, and service paths. A seed-only correlation-scoped 	est_support.forced_audit_failures helper replaced an interrupted test-owned trigger; review verified that it has no anon, authenticated, or service-role effective schema/table/function privileges and cannot create a shipped failure-injection surface. Focused required evidence passed 10/10, 14/14, 13/13, and 24/24 after complete effective-privilege coverage was added. Typecheck, diff check, and the 12-reference review-order check passed.
+
+The direct installed-Vitest required gate used verified --no-file-parallelism and a private persisted JSON report: 124 actual file results (112 passed, 12 failed) and 1,239 assertions (1,126 passed, 112 failed, 1 skipped). The one retained skip is the isolated recovery physical-loader proof gated by ISOLATED_RECOVERY_STORAGE_PROOF=1; it is not DB/RLS acceptance. Remaining observed inherited-PUBLIC expectations are mapped in the [ADR-B012 public-inheritance repair approval plan](../decisions/ADR-B012-public-inheritance-repair-approval-plan.md): 22 active tables and two RLS helpers. The plan is non-runnable documentation. Automatic approval rejected the inventory proposal as broad ACL revocation across nearly the entire tenant-table inventory and the follow-up as broad 22-table ACL migration submitted immediately after rejection without user approval. No rejected SQL was applied.
+
+This prerequisite does not waive Story 14.1's project-pinned browser acceptance. Later guard maintenance established a separate verified Chrome/CDP lifecycle, but did not execute the Story scenarios. Root requested Stop for Compose lifecycle 534d6b00-e76a-4419-a624-9c0b10f7d407 after final database checks; native 0 / ok=true / stop_requested / verified=false is an accepted request, not confirmed shutdown, and no polling was performed.

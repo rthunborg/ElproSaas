@@ -49,27 +49,28 @@ describe("13.1 job_runs migration and system-audit contract", () => {
     if (skipUnlessStack(ctx, stackUp)) return;
     const tenant = await adminQuery<{ id: string }>("select id from public.tenants order by id limit 1");
     if (!tenant[0]) return;
-    const correlationId = "00000000-0000-4000-8000-000000000099";
-    await adminQuery(`
-      create or replace function public.test_reject_job_system_audit() returns trigger
-      language plpgsql as $$ begin
-        if new.command = 'jobs.jobs.runner' then raise exception 'forced system audit failure'; end if;
-        return new;
-      end $$;
-      create trigger test_reject_job_system_audit before insert on public.audit_events
-      for each row execute function public.test_reject_job_system_audit();
-    `);
+    const correlationId = crypto.randomUUID();
+    // The seed-installed correlation-scoped trigger avoids runtime DDL against
+    // audit_events, so an interrupted case cannot leave a shared trigger behind.
+    await adminQuery(
+      "insert into test_support.forced_audit_failures (correlation_id) values ($1::uuid)",
+      [correlationId],
+    );
     try {
       await expect(adminQuery(`
         select public.record_job_run_with_system_audit(
           $1, 'jobs.runner', statement_timestamp(), statement_timestamp(), statement_timestamp(),
           'completed', null, null, $2
-        )`, [tenant[0].id, correlationId])).rejects.toThrow("forced system audit failure");
+        )`, [tenant[0].id, correlationId])).rejects.toThrow("test-only forced audit failure");
       expect(await adminQuery<{ count: string }>(
         "select count(*)::text as count from public.job_runs where correlation_id=$1", [correlationId],
       )).toEqual([{ count: "0" }]);
     } finally {
-      await adminQuery("drop trigger if exists test_reject_job_system_audit on public.audit_events; drop function if exists public.test_reject_job_system_audit()");
+      const deleted = await adminQuery<{ correlation_id: string }>(
+        "delete from test_support.forced_audit_failures where correlation_id = $1::uuid returning correlation_id::text",
+        [correlationId],
+      );
+      expect(deleted).toEqual([{ correlation_id: correlationId }]);
     }
   });
 });

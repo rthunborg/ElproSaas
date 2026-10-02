@@ -9,11 +9,11 @@ spec_folder: null
 story_id: null
 branch: epic/14-wave-b1b-resource-and-scheduling-foundation
 status: in-progress
-updated_at: "2026-10-02T12:12:19Z"
+updated_at: "2026-10-02T13:14:27Z"
 started_at: "2026-09-29T08:23:21Z"
 completed_at: null
-active_seconds: 15220
-timing_anchor: 1790942964
+active_seconds: 19069
+timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
 git_mode: remote
@@ -58,7 +58,7 @@ legacy_review_loop_done: false
 legacy_external_review_iterations: null
 legacy_convergence_unverified: false
 legacy_artifact_path: null
-commits: [21ae8d7, "7548809", b821e42, 2fdca50, a98153f, 8a260ae, 741f4bf, ee9d17b, 084bfe1e]
+commits: [21ae8d7, "7548809", b821e42, 2fdca50, a98153f, 8a260ae, 741f4bf, ee9d17b, 084bfe1e, 63f22361]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -83,6 +83,7 @@ merge_commit: null
 branch_deleted: false
 open_questions:
   - "Performance assessment: numeric latency targets and representative tenant/person/booking volumes remain to be established; test design claims no executed coverage."
+  - Explicit owner approval of the documented 22-table/two-helper forward ACL repair is pending after automatic approval review rejected the broad batch.
 deferred_work: []
 blockers: []
 overrides:
@@ -95,9 +96,9 @@ overrides:
   resume_preflight_passed: true
   root_guard_status_verified: true
   owner_authorized_guard_repair_and_failure_diagnosis: true
-  local_guard_diagnostic_status: prerequisite_corrected_registration_active_services_healthy
+  local_guard_diagnostic_status: prerequisite_stop_requested_saved_data_retained
   isolated_service_and_schema_readiness_verified: true
-  root_guard_stop_requested: false
+  root_guard_stop_requested: true
   owner_confirmed_guard_fix_deployed: true
   root_guard_resource_id: 534d6b00-e76a-4419-a624-9c0b10f7d407
   owner_confirmed_all_prs_merged: true
@@ -133,9 +134,36 @@ overrides:
   required_full_integration_gate_passed: false
   resource_guard_browser_repair_owned_externally: true
   prerequisite_integration_repair_owner_approved_on: 2026-10-02
-  prerequisite_integration_repair_active: true
+  prerequisite_integration_repair_active: false
   prerequisite_integration_repair_adr: docs/decisions/ADR-B012-integration-gate-privilege-baseline-and-local-reliability.md
   prerequisite_integration_repair_spec: "_bmad-output/implementation-artifacts/spec-prereq-integration-gate-privilege-and-reliability.md"
+  prerequisite_quote_acl_migration_applied: 20261002121425_quote_follow_ups_privilege_baseline.sql
+  prerequisite_serial_full_gate_pending: false
+  prerequisite_quote_acl_focused_passed: 10
+  integration_existing_skip: "isolated physical-loader recovery proof requires ISOLATED_RECOVERY_STORAGE_PROOF=1"
+  integration_parallelism_change_justified: false
+  prerequisite_integration_scope_includes_confirmed_inherited_crm_audit_privileges: true
+  prerequisite_crm_audit_acl_focused_passed: 14
+  prerequisite_crm_audit_acl_migration_applied: 20261002122535_crm_and_audit_privilege_baseline.sql
+  prerequisite_typecheck_passed: true
+  prerequisite_last_full_gate_files: 124
+  prerequisite_last_full_gate_skipped: 1
+  prerequisite_storage_service_bucket_http_status: 200
+  prerequisite_last_full_gate_serialization_verified: true
+  prerequisite_last_full_gate_passed: 1126
+  prerequisite_storage_health_http_status: 200
+  prerequisite_last_full_gate_failed: 112
+  prerequisite_last_full_gate_tests: 1239
+  prerequisite_broad_acl_owner_approval_pending: true
+  prerequisite_broad_acl_proposal: docs/decisions/ADR-B012-public-inheritance-repair-approval-plan.md
+  prerequisite_broad_acl_proposal_applied: false
+  prerequisite_final_acl_focused_passed: 24
+  prerequisite_direct_helper_grant_bindings_verified: 4
+  prerequisite_direct_table_grant_bindings_verified: 44
+  prerequisite_final_review_findings: 0
+  prerequisite_test_support_focused_passed: 13
+  resource_guard_external_browser_path_verified: true
+  resource_guard_external_browser_evidence: "C:\\Users\\Rasmus\\Documents\\Codex\\2026-08-31\\investigate-and-design-a-machine-level\\work\\chromium-launch-2026-10-02\\ELPRO-AGENT-HANDOFF.md"
 constraints:
   - "Phase B manifest-governed approved Epic14 stories only; maintain hard Phase C exclusions."
   - "Epic13 observation and release gates remain separate; no hosted migrations, deployment or flag changes during this implementation workflow."

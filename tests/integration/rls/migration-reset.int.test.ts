@@ -104,6 +104,36 @@ describe("Migration reset green — tenant_foundation objects present (AC1 / R-0
       function_schema: "test_support",
       function_name: "fail_requested_audit_event",
     }]);
+
+    // `has_*_privilege` evaluates inherited PUBLIC grants too. Checking every
+    // runtime API role therefore proves that no application/API role can
+    // discover the seed-only control schema, write its correlation table, or
+    // call its SECURITY DEFINER trigger function.
+    const effectivePrivileges = await adminQuery<{
+      role_name: string;
+      schema_usage: boolean;
+      table_select: boolean;
+      table_insert: boolean;
+      table_update: boolean;
+      table_delete: boolean;
+      function_execute: boolean;
+    }>(
+      `select
+         role_name,
+         has_schema_privilege(role_name, 'test_support', 'USAGE') as schema_usage,
+         has_table_privilege(role_name, 'test_support.forced_audit_failures', 'SELECT') as table_select,
+         has_table_privilege(role_name, 'test_support.forced_audit_failures', 'INSERT') as table_insert,
+         has_table_privilege(role_name, 'test_support.forced_audit_failures', 'UPDATE') as table_update,
+         has_table_privilege(role_name, 'test_support.forced_audit_failures', 'DELETE') as table_delete,
+         has_function_privilege(role_name, 'test_support.fail_requested_audit_event()', 'EXECUTE') as function_execute
+       from unnest(array['anon', 'authenticated', 'service_role']::text[]) as roles(role_name)
+       order by role_name`,
+    );
+    expect(effectivePrivileges).toEqual([
+      { role_name: "anon", schema_usage: false, table_select: false, table_insert: false, table_update: false, table_delete: false, function_execute: false },
+      { role_name: "authenticated", schema_usage: false, table_select: false, table_insert: false, table_update: false, table_delete: false, function_execute: false },
+      { role_name: "service_role", schema_usage: false, table_select: false, table_insert: false, table_update: false, table_delete: false, function_execute: false },
+    ]);
   });
 
   it("[P0] helper functions `is_active_tenant_member(uuid)` and `is_tenant_admin(uuid)` exist", async (testCtx) => {

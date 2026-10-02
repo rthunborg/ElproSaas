@@ -299,3 +299,19 @@ needed and never paste sensitive records into docs or fixtures (see
   requirements and merge gates.
 - architecture.md §3 (repo/Docker conventions), §6 (Supabase/env), §18 (test
   strategy), §19 (CI gates).
+
+## Guarded browser on the current Windows host
+
+For guard-owned headless/CDP automation on Rasmus's Windows host, use installed
+`C:\Program Files\Google\Chrome\Application\chrome.exe` with normal guard
+`Start`, `resourceType='browser'`, the actual checkout as working directory,
+and the actor's own latest trusted hook context. The guard injects and retains
+its private profile. Keep headless mode and bind CDP to loopback; verify the
+returned lifecycle and exact endpoint ownership before attaching.
+
+The cached Playwright Chromium 1228 image currently fails Windows side-by-side
+activation (native error 14001). Installed Chrome passed guarded admission,
+CDP interaction and cleanup on guard 0.9.15. See the
+[October 2 diagnosis and continuation instructions](epic-14-guard-startup-diagnosis-2026-09-29.md#guarded-browser-correction--2026-10-02).
+This host-specific launch correction changes no project dependency or CI browser
+selection and does not waive integration or application E2E acceptance gates.
