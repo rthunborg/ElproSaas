@@ -9,11 +9,11 @@ spec_folder: null
 story_id: null
 branch: epic/14-wave-b1b-resource-and-scheduling-foundation
 status: in-progress
-updated_at: "2026-10-06T12:06:32Z"
+updated_at: "2026-10-06T12:08:52Z"
 started_at: "2026-09-29T08:23:21Z"
 completed_at: null
-active_seconds: 44938
-timing_anchor: 1791288392
+active_seconds: 45078
+timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
 git_mode: remote
@@ -69,7 +69,7 @@ legacy_review_loop_done: false
 legacy_external_review_iterations: null
 legacy_convergence_unverified: false
 legacy_artifact_path: null
-commits: [21ae8d7, "7548809", b821e42, 2fdca50, a98153f, 8a260ae, 741f4bf, ee9d17b, 084bfe1e, 63f22361, e88ce5db, d53cb1dc, 1a077bd2, ceefd6f3, 5b46bdec, d856d313, 4c127848, d6b545f6, af283dbd, abbe0170, a957911, 4c8d0b6, 0eaa367, de5cfbe4, 1fce0b49, 8db3b22, 7c434b04, cd0b677, 4d2f29a5, 4947dbb4, e1f2c7d6, 079e1053, afb4ef9d, dc2c0c89, 1f7bfcd8, c76f81d5, d0e9cc3e, ad4642a1]
+commits: [21ae8d7, "7548809", b821e42, 2fdca50, a98153f, 8a260ae, 741f4bf, ee9d17b, 084bfe1e, 63f22361, e88ce5db, d53cb1dc, 1a077bd2, ceefd6f3, 5b46bdec, d856d313, 4c127848, d6b545f6, af283dbd, abbe0170, a957911, 4c8d0b6, 0eaa367, de5cfbe4, 1fce0b49, 8db3b22, 7c434b04, cd0b677, 4d2f29a5, 4947dbb4, e1f2c7d6, 079e1053, afb4ef9d, dc2c0c89, 1f7bfcd8, c76f81d5, d0e9cc3e, ad4642a1, 0c4ab83f]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -107,7 +107,7 @@ overrides:
   owner_authorized_guard_repair_and_failure_diagnosis: true
   local_guard_diagnostic_status: story_acceptance_completed
   isolated_service_and_schema_readiness_verified: true
-  root_guard_stop_requested: false
+  root_guard_stop_requested: true
   owner_confirmed_guard_fix_deployed: true
   root_guard_resource_id: ebd5df87-f814-496f-94b9-c2371fc9e156
   owner_confirmed_all_prs_merged: true
@@ -247,10 +247,10 @@ overrides:
   acceptance_contract_c_document: docs/decisions/epic-14-story-ownership-contract-c-2026-10-06.md
   current_compose_resource_id: ebd5df87-f814-496f-94b9-c2371fc9e156
   current_compose_outcome_verified: true
-  current_compose_stop_requested: false
+  current_compose_stop_requested: true
   current_loopback_rest_auth_storage_http_200: true
   current_compose_healthy_services: 5
-  owned_guard_resources_stop_requested: false
+  owned_guard_resources_stop_requested: true
   historical_quote_send_time_failure_cause: unconfirmed
   acceptance_contract_c_all_four_equivalents_mandatory_before_14_4: true
   latest_full_integration_skipped: 1

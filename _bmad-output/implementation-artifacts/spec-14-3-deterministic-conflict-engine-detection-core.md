@@ -2,8 +2,8 @@
 title: 'Story 14.3: Deterministic Conflict Engine (Detection Core)'
 type: 'feature'
 created: '2026-10-06'
-status: 'ready-for-dev'
-baseline_revision: 'd0e9cc3e617966274cea30ba2929cc7b7e941696'
+status: 'blocked'
+baseline_revision: '0c4ab83f8b4578933c5297f30ee7138bbfa3ba94'
 review_loop_iteration: 0
 followup_review_recommended: false
 context:
@@ -149,9 +149,15 @@ Technical references checked for planning: [PostgreSQL transaction isolation](ht
 
 ## Auto Run Result
 
-Status: ready-for-dev
+Status: blocked
 
-Blocking condition: none
+Blocking condition: no subagents
+
+### Historical planning result 2026-10-06
+
+Historical status: ready-for-dev
+
+Historical blocking condition: none
 
 Canonical HALT: ready-for-dev. Invocation explicitly requires halt after planning; implementation Step 03 was not opened or executed. All nine tasks remain unchecked. Ready-for-development gate passed after one self-review repair and disk reread: actionable paths, dependency order, Given/When/Then outer command/durable-state acceptance, complete source-writer map, all 20 named check obligations and four mandatory transfers, no unresolved business intent or placeholder.
 
@@ -160,3 +166,17 @@ Planning decisions: one pure detector; dedicated server HMAC attested fact-equiv
 Effort route: gpt-6.1-sol High planning/build delegate and reused existing Sol 6.1 High transaction explorer. Initial new explorer spawn hit host thread capacity; root-approved synchronous reuse completed the required deep investigation within this turn. No independent implementation review is claimed by exploration.
 
 Verified Git HEAD: d0e9cc3e617966274cea30ba2929cc7b7e941696. Branch: epic/14-wave-b1b-resource-and-scheduling-foundation. Only this uncommitted specification changed; root owns commit, sprint and orchestration state. No resources were requested or stopped. No product verification, migration/ledger/reset, hosted action, secret installation or actual .env edit was performed.
+
+### Implementation attempt 2026-10-06
+
+Status: blocked
+
+Blocking condition: no subagents
+
+Canonical HALT: blocked. Mandatory Step 03 context-free implementation-author dispatch using gpt-6.1-sol High and fork_turns=none failed with the native host result `collab spawn failed: agent thread limit reached`. The orchestrator confirmed that no supported tool can close/release completed agent threads and directed this canonical halt; no inline, reused-context or external CLI implementation author was substituted. The installed workflow's Subagents rule requires this blocking condition when its mandatory subagent cannot be launched.
+
+Baseline revision captured directly from Git before this attempt: 0c4ab83f8b4578933c5297f30ee7138bbfa3ba94. The frozen intent contract and nine unchecked tasks remain intact. Only baseline/status metadata and this result evidence changed. No product implementation, functional verification, SQL migration/application, attestation configuration, resource request/stop, hosted operation or Git commit occurred.
+
+Verification counts for this implementation attempt: executed 0, failed 0, skipped 0; no acceptance coverage is claimed. The previously recorded ATDD collection and 14.2 results remain historical evidence. Review iterations completed: 0; triage counts: 0 patch, 0 defer, 0 reject. Required independent review and external read-only CLI review were not reached. Recommendation: resume this approved story only when a fresh context-free implementation author can be dispatched; no Story 14.4 work is authorized by this result.
+
+Completion-hook result: blocked/incomplete exit preserved without manufacturing a completed Suggested Review Order, following docs/process/review-order.md.
