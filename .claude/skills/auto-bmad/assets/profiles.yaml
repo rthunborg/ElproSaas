@@ -2,7 +2,7 @@
 # references/delegation.md is self-contained). Five purpose-specific profiles keep routing explicit:
 # `default` (unspecified/read-heavy), `light` (cheap repeatable triage), `standard` (primary build /
 # review/fix), `critical` (security/architecture/conflict/final convergence), and `diverse_review`
-# (independent leaf review on a different 5.6 variant). A profile is how
+# (independent context-free review; Low unless sensitive). A profile is how
 # the orchestrator picks the model for a phase's delegate subagent:
 #   - Claude Code -> Agent tool `model:` = claude.model (the Agent tool has no per-call effort: claude.effort is
 #                    used ONLY when a phase is routed to `claude -p` via delegation.cli_phases, or by the
@@ -16,8 +16,8 @@
 # the security / cross-model models from these profiles. You may add custom profiles (any name, same field set)
 # and point phase_profiles entries at them.
 #
-# These shipped Codex profiles deliberately stay within low | medium | high | xhigh; current 5.6 variants may
-# expose higher levels, but xhigh is the common review ceiling used here. Claude effort (CLI route only):
+# Project Codex profiles use gpt-6.1-sol at low | medium | high according to task risk.
+# See docs/process/agent-model-routing.md. Claude effort (CLI route only):
 # low | medium | high | xhigh | max. Model names are environment-specific — retune if your install differs.
 # opencode is multi-provider: `provider/model` strings; ships BLANK (inherit).
 profiles:
@@ -26,8 +26,8 @@ profiles:
       model: sonnet
       effort: medium
     codex:
-      model: gpt-5.6-terra
-      reasoning_effort: medium
+      model: gpt-6.1-sol
+      reasoning_effort: low
     opencode:
       model: ""
       variant: ""
@@ -36,8 +36,8 @@ profiles:
       model: sonnet
       effort: xhigh         # CLI route / cross-model layer only (in-tool Claude Code effort inherits the session)
     codex:
-      model: gpt-5.6-luna
-      reasoning_effort: medium
+      model: gpt-6.1-sol
+      reasoning_effort: low
     opencode:
       model: ""            # provider/model; BLANK => inherit (CLI route / cross-model layer only)
       variant: ""          # OPTIONAL, CLI route only: --variant high|max|minimal
@@ -46,8 +46,8 @@ profiles:
       model: opus
       effort: high
     codex:
-      model: gpt-5.6-terra
-      reasoning_effort: high
+      model: gpt-6.1-sol
+      reasoning_effort: low
     opencode:
       model: ""
       variant: ""
@@ -56,18 +56,18 @@ profiles:
       model: fable
       effort: high
     codex:
-      model: gpt-5.6-sol
-      reasoning_effort: xhigh
+      model: gpt-6.1-sol
+      reasoning_effort: high
     opencode:
       model: ""
       variant: ""
-  diverse_review:          # independent leaf reviewer: fast model diversity at full review depth
+  diverse_review:          # independent context-free reviewer; Low unless sensitive
     claude:
       model: sonnet
       effort: xhigh
     codex:
-      model: gpt-5.6-luna
-      reasoning_effort: xhigh
+      model: gpt-6.1-sol
+      reasoning_effort: low
     opencode:
       model: ""
       variant: ""
@@ -77,13 +77,13 @@ profiles:
 # at first run; retune there. delegation.cli_phases keys are exactly these keys.
 phase_profiles:
   build: standard                   # Phase 3 plan run + Phase 5 build run of bmad-build-auto (the coding step)
-  followup_review: standard         # Phase 7 primary/follow-up review + review-fix stays Terra/high
-  final_convergence: critical       # explicit conflict resolution / legacy adoption / final convergence only
-  security_layer: critical          # high-stakes security lens: Sol/xhigh on Codex; baked into auto-bmad-security (gated by code_review.security_layer)
-  cross_model_layer: diverse_review # independent read-only leaf reviewer: Luna/xhigh on Codex; external CLI tool is code_review.cross_model_layer
+  followup_review: standard         # Phase 7 primary/follow-up review + review-fix uses Low unless sensitive
+  final_convergence: standard       # final settling; High for sensitive scope or critical conflict
+  security_layer: critical          # high-stakes security lens: Sol 6.1/High on Codex; baked into auto-bmad-security (gated by code_review.security_layer)
+  cross_model_layer: diverse_review # independent read-only reviewer: Low unless sensitive on Codex; external CLI tool is code_review.cross_model_layer
   tea_triage: light                 # Phase 0 story-risk classification (cheap)
   tea_per_story: standard           # Phase 4 ATDD, Phase 6 automate, Phase 7 tail trace advisory
-  tea_epic: critical                # Phase 2 epic test design, Phase 8 blocking trace gate (+ its remediation)
+  tea_epic: standard                # Phase 2 epic test design, Phase 8 blocking trace gate (+ its remediation)
   tea_epic_audit: standard          # Phase 8 advisory gates (nfr + test-review) — one tier below the blocking trace gate
   retrospective: default            # Phase 8 headless retrospective (-H {e}); read-heavy synthesis
   deferred_reconcile: standard      # Phase 8 (epic-end, pre-archive): verify-against-code which unmarked/partial deferred items are now fully resolved and mark them

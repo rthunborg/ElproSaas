@@ -7,7 +7,9 @@ from __future__ import annotations
 
 import hashlib
 import importlib.util
+import json
 import re
+import sys
 import tempfile
 import tomllib
 import unittest
@@ -197,44 +199,47 @@ class RoutingAndMigrationTests(unittest.TestCase):
             snapshots.append((values, phases))
             def pair(name):
                 return values[name]["codex:model"], values[name]["codex:reasoning_effort"]
-            self.assertEqual(("gpt-5.6-terra", "medium"), pair("default"))
-            self.assertEqual(("gpt-5.6-luna", "medium"), pair("light"))
-            self.assertEqual(("gpt-5.6-terra", "high"), pair("standard"))
-            self.assertEqual(("gpt-5.6-sol", "xhigh"), pair("critical"))
-            self.assertEqual(("gpt-5.6-luna", "xhigh"), pair("diverse_review"))
+            self.assertEqual(("gpt-6.1-sol", "low"), pair("default"))
+            self.assertEqual(("gpt-6.1-sol", "low"), pair("light"))
+            self.assertEqual(("gpt-6.1-sol", "low"), pair("standard"))
+            self.assertEqual(("gpt-6.1-sol", "high"), pair("critical"))
+            self.assertEqual(("gpt-6.1-sol", "low"), pair("diverse_review"))
             self.assertEqual("standard", phases["followup_review"])
-            self.assertEqual("critical", phases["final_convergence"])
+            self.assertEqual("standard", phases["final_convergence"])
         self.assertEqual(snapshots[0], snapshots[1])
         codex = tomllib.loads((REPO / ".codex" / "config.toml").read_text(encoding="utf-8"))
         self.assertEqual({
             "max_threads": 4,
             "max_depth": 1,
-            "default_subagent_model": "gpt-5.6-terra",
-            "default_subagent_reasoning_effort": "medium",
-        }, codex["agents"])
+            "default_subagent_model": "gpt-6.1-sol",
+            "default_subagent_reasoning_effort": "low",
+        }, {k: v for k, v in codex["agents"].items() if not isinstance(v, dict)})
+        self.assertEqual("gpt-6.1-sol", codex["model"])
+        self.assertEqual("low", codex["model_reasoning_effort"])
         roles = {
             path.stem: tomllib.loads(path.read_text(encoding="utf-8"))
             for path in (REPO / ".codex" / "agents").glob("*.toml")
         }
         expected = {
-            "docs-writer": ("gpt-5.6-terra", "medium", "workspace-write"),
-            "legacy-oracle-explorer": ("gpt-5.6-terra", "medium", "read-only"),
-            "money-tax-reviewer": ("gpt-5.6-luna", "xhigh", "read-only"),
-            "phase-scope-reviewer": ("gpt-5.6-luna", "xhigh", "read-only"),
-            "pr-reviewer": ("gpt-5.6-sol", "xhigh", "read-only"),
-            "security-rls-reviewer": ("gpt-5.6-sol", "xhigh", "read-only"),
-            "test-gap-reviewer": ("gpt-5.6-luna", "xhigh", "read-only"),
+            "docs-writer": ("gpt-6.1-sol", "low", "workspace-write"),
+            "legacy-oracle-explorer": ("gpt-6.1-sol", "medium", "read-only"),
+            "money-tax-reviewer": ("gpt-6.1-sol", "high", "read-only"),
+            "phase-scope-reviewer": ("gpt-6.1-sol", "low", "read-only"),
+            "pr-reviewer": ("gpt-6.1-sol", "low", "read-only"),
+            "security-rls-reviewer": ("gpt-6.1-sol", "high", "read-only"),
+            "test-gap-reviewer": ("gpt-6.1-sol", "low", "read-only"),
         }
         self.assertEqual(set(expected), set(roles))
         for name, (model, effort, sandbox) in expected.items():
             self.assertEqual(name, roles[name]["name"])
+            self.assertEqual("agents/" + name + ".toml", codex["agents"][name]["config_file"])
             self.assertEqual(model, roles[name]["model"])
             self.assertEqual(effort, roles[name]["model_reasoning_effort"])
             self.assertEqual(sandbox, roles[name]["sandbox_mode"])
         for name in ("money-tax-reviewer", "phase-scope-reviewer", "test-gap-reviewer"):
             self.assertIn("leaf-only", roles[name]["developer_instructions"])
             self.assertIn("Never spawn", roles[name]["developer_instructions"])
-        self.assertIn("final-convergence", roles["pr-reviewer"]["developer_instructions"])
+        self.assertIn("High-effort", roles["pr-reviewer"]["developer_instructions"])
         self.assertIn("critical security", roles["security-rls-reviewer"]["developer_instructions"])
 
     def test_agents_and_claude_auto_bmad_installs_are_exact_mirrors(self):
@@ -323,31 +328,25 @@ class RoutingAndMigrationTests(unittest.TestCase):
             self.assertEqual("hard_stop", stale_flag["status"])
             self.assertIn("V1/legacy", stale_flag["detail"])
 
-    def test_route_persistence_stepwise_escalation_and_resume(self):
+    def test_route_persistence_and_resume(self):
         with tempfile.TemporaryDirectory() as td:
             state_file = Path(td) / "route.yaml"
             state_update.cmd_init(state_file, {"story_key": "5-2-route"})
             luna = {
                 "phase": "narrow_triage", "role": "triage", "profile": "light",
-                "model": "gpt-5.6-luna", "effort": "medium", "host": "codex",
+                "model": "gpt-6.1-sol", "effort": "low", "host": "codex",
                 "tier": "subagents", "route": "subagent", "escalation_reason": "",
             }
             state_update.cmd_route_select(state_file, luna)
-            with self.assertRaisesRegex(state_update.ContractError, "non-stepwise"):
-                state_update.cmd_route_select(state_file, {
-                    **luna, "role": "conflict-resolver", "profile": "critical",
-                    "model": "gpt-5.6-sol", "effort": "xhigh",
-                    "escalation_reason": "triage conflict",
-                })
             terra = {
                 **luna, "role": "primary-reviewer", "profile": "standard",
-                "model": "gpt-5.6-terra", "effort": "high",
+                "model": "gpt-6.1-sol", "effort": "medium",
                 "escalation_reason": "triage remained unresolved",
             }
             sol = {
                 **terra, "role": "conflict-resolver", "profile": "critical",
-                "model": "gpt-5.6-sol", "effort": "xhigh",
-                "escalation_reason": "Terra found a policy conflict",
+                "model": "gpt-6.1-sol", "effort": "high",
+                "escalation_reason": "Medium effort left a policy conflict",
             }
             state_update.cmd_route_select(state_file, terra)
             state_update.cmd_route_select(state_file, sol)
@@ -356,27 +355,27 @@ class RoutingAndMigrationTests(unittest.TestCase):
             self.assertTrue(replay["resumed"])
             self.assertFalse(replay["ledger_appended"])
             self.assertEqual(3, len(state["routing_ledger"]))
-            self.assertEqual("gpt-5.6-sol", state["selected_model"])
-            self.assertEqual("Terra found a policy conflict", state["escalation_reason"])
+            self.assertEqual("gpt-6.1-sol", state["selected_model"])
+            self.assertEqual("Medium effort left a policy conflict", state["escalation_reason"])
             capsule = state_plan.read_state_file(str(state_file))
-            self.assertEqual("gpt-5.6-sol", capsule["selected_model"])
-            self.assertEqual("xhigh", capsule["selected_effort"])
-            self.assertEqual("Terra found a policy conflict", capsule["escalation_reason"])
+            self.assertEqual("gpt-6.1-sol", capsule["selected_model"])
+            self.assertEqual("high", capsule["selected_effort"])
+            self.assertEqual("Medium effort left a policy conflict", capsule["escalation_reason"])
 
-    def test_final_convergence_is_critical_and_luna_cannot_own_it(self):
+    def test_security_review_requires_high(self):
         with tempfile.TemporaryDirectory() as td:
             state_file = Path(td) / "final.yaml"
             state_update.cmd_init(state_file, {"story_key": "5-3-final"})
             base = {
-                "phase": "final_convergence", "role": "final-convergence",
-                "profile": "critical", "model": "gpt-5.6-sol", "effort": "xhigh",
+                "phase": "security_layer", "role": "security-reviewer",
+                "profile": "critical", "model": "gpt-6.1-sol", "effort": "high",
                 "host": "codex", "tier": "subagents", "route": "subagent",
                 "escalation_reason": "legacy adoption requires final convergence",
             }
             state_update.cmd_route_select(state_file, base)
-            with self.assertRaisesRegex(state_update.ContractError, "governed Codex phase"):
+            with self.assertRaisesRegex(state_update.ContractError, "governed Codex phase|Codex routes require"):
                 state_update.cmd_route_select(state_file, {
-                    **base, "model": "gpt-5.6-luna", "effort": "medium",
+                    **base, "model": "gpt-6.1-sol", "effort": "low",
                 })
 
     def test_same_phase_critical_downgrade_is_rejected_without_state_change(self):
@@ -384,25 +383,25 @@ class RoutingAndMigrationTests(unittest.TestCase):
             state_file = Path(td) / "critical.yaml"
             state_update.cmd_init(state_file, {"story_key": "5-4-critical"})
             critical = {
-                "phase": "final_convergence", "role": "final-convergence",
-                "profile": "critical", "model": "gpt-5.6-sol", "effort": "xhigh",
+                "phase": "security_layer", "role": "security-reviewer",
+                "profile": "critical", "model": "gpt-6.1-sol", "effort": "high",
                 "host": "codex", "tier": "subagents", "route": "subagent",
                 "escalation_reason": "conflicting security evidence",
             }
             state_update.cmd_route_select(state_file, critical)
             before_bytes = state_file.read_bytes()
             before = state_update.full_state(state_update.load_state(state_file))
-            with self.assertRaisesRegex(state_update.ContractError, "governed Codex phase"):
+            with self.assertRaisesRegex(state_update.ContractError, "governed Codex phase|Codex routes require"):
                 state_update.cmd_route_select(state_file, {
                     **critical, "role": "primary-reviewer", "profile": "standard",
-                    "model": "gpt-5.6-terra", "effort": "high",
+                    "model": "gpt-6.1-sol", "effort": "medium",
                     "escalation_reason": "attempted downgrade",
                 })
             after = state_update.full_state(state_update.load_state(state_file))
             self.assertEqual(before_bytes, state_file.read_bytes())
             self.assertEqual(before["routing_ledger"], after["routing_ledger"])
-            self.assertEqual("gpt-5.6-sol", after["selected_model"])
-            self.assertEqual("xhigh", after["selected_effort"])
+            self.assertEqual("gpt-6.1-sol", after["selected_model"])
+            self.assertEqual("high", after["selected_effort"])
 
     def test_same_phase_unranked_codex_route_change_is_rejected(self):
         with tempfile.TemporaryDirectory() as td:
@@ -410,12 +409,12 @@ class RoutingAndMigrationTests(unittest.TestCase):
             state_update.cmd_init(state_file, {"story_key": "5-5-unranked"})
             initial = {
                 "phase": "repository_scan", "role": "explorer", "profile": "default",
-                "model": "gpt-5.6-terra", "effort": "medium", "host": "codex",
+                "model": "gpt-6.1-sol", "effort": "medium", "host": "codex",
                 "tier": "subagents", "route": "subagent", "escalation_reason": "",
             }
             state_update.cmd_route_select(state_file, initial)
             before = state_file.read_bytes()
-            with self.assertRaisesRegex(state_update.ContractError, "noncanonical Codex route change"):
+            with self.assertRaisesRegex(state_update.ContractError, "Codex routes require"):
                 state_update.cmd_route_select(state_file, {
                     **initial, "model": "project-custom-model", "effort": "high",
                     "escalation_reason": "scan became difficult",
@@ -441,18 +440,18 @@ class RoutingAndMigrationTests(unittest.TestCase):
                 "role": role + "-wrong",
                 "profile": profile + "-wrong",
                 "model": model + "-custom",
-                "effort": "medium" if effort != "medium" else "high",
+                "effort": "xhigh",
             }
             for field, value in bad_values.items():
                 with self.subTest(phase=phase, case=field):
                     with self.assertRaisesRegex(
-                            state_update.ContractError, "requires exact role/profile/model/effort"):
+                            state_update.ContractError, "requires exact role/profile/model/effort|Codex routes require"):
                         state_update._validate_route_selection({**payload, field: value})
 
     def test_cross_model_layer_has_static_posix_and_powershell_commands(self):
         root = "C:/work repo/O'Brien"
         prompt = "Review O'Brien's change"
-        args = ("codex", root, "gpt-5.6-luna", "xhigh", None, prompt)
+        args = ("codex", root, "gpt-6.1-sol", "high", None, prompt)
         posix = cli_delegate.build_layer_command(*args, platform="posix")
         windows = cli_delegate.build_layer_command(*args, platform="nt")
         self.assertIn('</dev/null >/dev/null 2>&1 && cat "<DIFF_FILE>.review"', posix)
@@ -466,7 +465,7 @@ class RoutingAndMigrationTests(unittest.TestCase):
         # parser treats the whole cmd payload (including <, > and &&) as one arg.
         self.assertEqual(
             'cd /d "C:/work repo/O\'\'Brien" && codex exec '
-            '-m "gpt-5.6-luna" -c model_reasoning_effort="xhigh" '
+            '-m "gpt-6.1-sol" -c model_reasoning_effort="high" '
             '-c approval_policy=never -s read-only -C "C:/work repo/O\'\'Brien" '
             '--ephemeral -o "<DIFF_FILE>.review" "Review O\'\'Brien\'\'s change" '
             '< NUL > NUL 2>&1 && type "<DIFF_FILE>.review"',
@@ -479,6 +478,123 @@ class RoutingAndMigrationTests(unittest.TestCase):
         self.assertNotIn("; cat", windows)
         self.assertNotIn("timeout", windows)
 
+    def test_task_effort_overrides_and_critical_floor(self):
+        for phase in state_update._TASK_EFFORT_PHASES:
+            role, profile, model, _ = state_update._GOVERNED_CODEX_ROUTES[phase]
+            for effort in ("low", "medium", "high"):
+                with self.subTest(phase=phase, effort=effort):
+                    selected = state_update._validate_route_selection({
+                        "phase": phase, "role": role, "profile": profile,
+                        "model": model, "effort": effort, "host": "codex",
+                        "tier": "subagents", "route": "subagent",
+                        "escalation_reason": "",
+                    })
+                    self.assertEqual(effort, selected["effort"])
+        for phase in ("architecture", "architecture_decision", "conflict_resolution"):
+            for effort in ("low", "medium"):
+                with self.subTest(phase=phase, effort=effort):
+                    with self.assertRaisesRegex(state_update.ContractError, "requires gpt-6.1-sol/high"):
+                        state_update._validate_route_selection({
+                            "phase": phase, "role": "decision-reviewer", "profile": "critical",
+                            "model": "gpt-6.1-sol", "effort": effort, "host": "codex",
+                            "tier": "subagents", "route": "subagent",
+                            "escalation_reason": "",
+                        })
+
+    def test_old_model_resume_migrates_with_reason_and_preserves_ledger(self):
+        with tempfile.TemporaryDirectory() as td:
+            state_file = Path(td) / "old-route.yaml"
+            state_update.cmd_init(state_file, {"story_key": "5-6-old-route"})
+            old = {
+                "phase": "build", "role": "build-delegate", "profile": "standard",
+                "model": "gpt-5.6-terra", "effort": "high", "host": "codex",
+                "tier": "subagents", "route": "subagent", "escalation_reason": "",
+            }
+            old_entry = json.dumps(old, sort_keys=True, separators=(",", ":"))
+            state_update.cmd_set(state_file, {
+                **{"selected_" + k: v for k, v in old.items() if k != "escalation_reason"},
+                "escalation_reason": None, "routing_ledger": [old_entry],
+            })
+            new = {**old, "model": "gpt-6.1-sol", "effort": "medium"}
+            before = state_file.read_bytes()
+            with self.assertRaisesRegex(state_update.ContractError, "requires escalation_reason"):
+                state_update.cmd_route_select(state_file, new)
+            self.assertEqual(before, state_file.read_bytes())
+            result = state_update.cmd_route_select(state_file, {
+                **new, "escalation_reason": "Owner model policy updated on 2026-10-06",
+            })
+            self.assertTrue(result["ledger_appended"])
+            ledger = state_update.full_state(state_update.load_state(state_file))["routing_ledger"]
+            self.assertEqual(old_entry, ledger[0])
+            self.assertEqual("gpt-6.1-sol", json.loads(ledger[1])["model"])
+
+    def test_primary_effort_profiles_and_managed_reviews_match_policy(self):
+        config = tomllib.loads((REPO / ".codex/config.toml").read_text(encoding="utf-8"))
+        self.assertNotIn("profiles", config)  # Project-local profiles are ignored by Codex.
+        self.assertEqual("low", config["model_reasoning_effort"])
+        custom = tomllib.loads((REPO / "_bmad/custom/bmad-build-auto.toml").read_text(encoding="utf-8"))
+        managed = [layer for layer in custom["workflow"]["review_layers"]
+                   if layer["id"].startswith("auto-bmad-")]
+        self.assertEqual(2, len(managed))
+        for layer in managed:
+            self.assertIn("gpt-6.1-sol", layer["instruction"])
+            self.assertNotIn("gpt-5.6-", layer["instruction"])
+
+    def test_ordinary_and_sensitive_task_effort_selection(self):
+        with mock.patch.object(sys, "path", [str(SCRIPTS), *sys.path]):
+            effort_policy = load_module("effort_policy")
+        for phase in ("build", "followup_review", "cross_model_layer", "tea_epic", "final_convergence"):
+            ordinary = effort_policy.select_effort(phase)
+            self.assertEqual("low", ordinary["effort"])
+            self.assertEqual(ordinary, state_update._validate_route_selection(ordinary))
+            for domain in effort_policy.SENSITIVE_DOMAINS:
+                with self.subTest(phase=phase, domain=domain):
+                    sensitive = effort_policy.select_effort(phase, [domain])
+                    self.assertEqual("high", sensitive["effort"])
+                    self.assertIn(domain, sensitive["escalation_reason"])
+                    self.assertEqual(sensitive, state_update._validate_route_selection(sensitive))
+        for phase in ("security_layer",):
+            self.assertEqual("high", effort_policy.select_effort(phase)["effort"])
+        self.assertEqual("medium", effort_policy.select_effort("build", retry=True)["effort"])
+        self.assertEqual("high", effort_policy.select_effort("build", current_effort="high")["effort"])
+        with self.assertRaisesRegex(ValueError, "unknown risk domains"):
+            effort_policy.select_effort("build", ["typo-security"])
+
+    def test_sensitive_discovery_escalates_low_to_high_without_checkpoint(self):
+        with mock.patch.object(sys, "path", [str(SCRIPTS), *sys.path]):
+            effort_policy = load_module("effort_policy")
+        with tempfile.TemporaryDirectory() as td:
+            state_file = Path(td) / "sensitive-review.yaml"
+            state_update.cmd_init(state_file, {"story_key": "5-7-sensitive-review"})
+            state_update.cmd_route_select(state_file, effort_policy.select_effort("followup_review"))
+            high = effort_policy.select_effort("followup_review", ["permissions"])
+            result = state_update.cmd_route_select(state_file, high)
+            self.assertTrue(result["ledger_appended"])
+            after = state_update.full_state(state_update.load_state(state_file))
+            self.assertEqual("high", after["selected_effort"])
+            self.assertEqual(2, len(after["routing_ledger"]))
+            self.assertEqual("low", json.loads(after["routing_ledger"][0])["effort"])
+            before = state_file.read_bytes()
+            with self.assertRaisesRegex(state_update.ContractError, "downgrade"):
+                state_update.cmd_route_select(state_file, effort_policy.select_effort("followup_review"))
+            self.assertEqual(before, state_file.read_bytes())
+
+    def test_cli_task_override_reaches_phase_and_review_commands(self):
+        config = (REPO / "_bmad-output/auto-bmad/config.yaml").read_text(encoding="utf-8")
+        routed_config = config.replace("cli_phases: {}", "cli_phases: { build: codex }")
+        phase = cli_delegate.resolve("build", routed_config, str(REPO), codex_effort="high")
+        self.assertEqual("high", phase["effort"])
+        self.assertIn("model_reasoning_effort=high", phase["argv"])
+        low = cli_delegate.resolve("build", routed_config, str(REPO))
+        self.assertEqual("low", low["effort"])
+        layer = cli_delegate.resolve_layer(config, str(REPO), codex_effort="high", timeout_bin="", platform="nt")
+        self.assertTrue(layer["ok"])
+        self.assertEqual("high", layer["effort"])
+        self.assertIn('model_reasoning_effort="high"', layer["command"])
+        bad = cli_delegate.resolve("build", routed_config, str(REPO), codex_effort="xhigh")
+        self.assertTrue(bad["errors"])
+        wrong_tool = cli_delegate.resolve_layer(config, str(REPO), tool="claude", codex_effort="high")
+        self.assertFalse(wrong_tool["ok"])
     def test_resolve_layer_can_pin_platform_for_deterministic_self_test_shapes(self):
         config = (
             "code_review:\n  cross_model_layer: codex\n"
@@ -610,7 +726,7 @@ class RoutingAndMigrationTests(unittest.TestCase):
             },
             "critical": {
                 "claude:model": "security-claude", "claude:effort": "max",
-                "codex:model": "gpt-5.6-sol", "codex:reasoning_effort": "xhigh",
+                "codex:model": "gpt-6.1-sol", "codex:reasoning_effort": "high",
                 "opencode:model": "secure/provider", "opencode:variant": "strict",
             },
             "diverse_review": {
