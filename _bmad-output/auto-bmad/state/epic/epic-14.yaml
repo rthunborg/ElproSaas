@@ -7,13 +7,13 @@ story_suffix: ""
 story_source: sprint
 spec_folder: null
 story_id: null
-branch: epic/14-wave-b1b-resource-and-scheduling-foundation
+branch: codex/epic14-resume
 status: in-progress
-updated_at: "2026-10-06T12:08:52Z"
+updated_at: "2026-10-06T12:18:47Z"
 started_at: "2026-09-29T08:23:21Z"
 completed_at: null
 active_seconds: 45078
-timing_anchor: null
+timing_anchor: 1791289127
 is_first_in_epic: false
 is_last_in_epic: false
 git_mode: remote
@@ -258,6 +258,9 @@ overrides:
   latest_full_integration_passed: 1304
   empty_chain_ci_executed: false
   latest_full_integration_failed: 0
+  resume_checkpoint: "74155122"
+  resume_workspace: "C:/DEV/ElproSaas"
+  restore_after_fresh_author_capacity: true
 constraints:
   - "Phase B manifest-governed approved Epic14 stories only; maintain hard Phase C exclusions."
   - "Epic13 observation and release gates remain separate; no hosted migrations, deployment or flag changes during this implementation workflow."

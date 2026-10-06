@@ -7,13 +7,13 @@ story_suffix: ""
 story_source: sprint
 spec_folder: null
 story_id: null
-branch: epic/14-wave-b1b-resource-and-scheduling-foundation
+branch: codex/epic14-resume
 status: in-progress
-updated_at: "2026-10-06T12:08:52Z"
+updated_at: "2026-10-06T12:18:47Z"
 started_at: "2026-10-06T11:47:14Z"
 completed_at: null
 active_seconds: 1295
-timing_anchor: null
+timing_anchor: 1791289127
 is_first_in_epic: false
 is_last_in_epic: false
 git_mode: remote
@@ -37,7 +37,7 @@ tea_rationale: Scheduling/DST boundaries and authoritative atomic conflict persi
 epic_story_count: 4
 stories_after_in_epic: 1
 completed_phases: [0, 1, 2, 3, 4]
-spec_path: "C:\\Users\\Rasmus\\.codex\\worktrees\\epic14-scheduling\\ElproSaas\\_bmad-output\\implementation-artifacts\\spec-14-3-deterministic-conflict-engine-detection-core.md"
+spec_path: "C:/DEV/ElproSaas/_bmad-output/implementation-artifacts/spec-14-3-deterministic-conflict-engine-detection-core.md"
 spec_approved: true
 build:
   status: blocked
@@ -109,6 +109,9 @@ overrides:
   implementation_executed: false
   implementation_author_dispatch_failed: agent thread limit reached
   root_guard_stop_requested: true
+  resume_checkpoint: "74155122"
+  resume_workspace: "C:/DEV/ElproSaas"
+  restore_after_fresh_author_capacity: true
 constraints:
   - "Approved Story14.3 scope and PhaseB manifest only; resources active, scheduling pending untilEpic15."
   - Allfour transferred conflict checks mandatory before14.4/EpicPR.
