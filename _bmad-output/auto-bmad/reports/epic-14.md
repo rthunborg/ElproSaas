@@ -511,3 +511,40 @@ No new deferred items harvested.
 2. Recommended C retains schema, RLS, authorization, idempotency, rollback and booking-assignee-audit atomicity in 14.2. Transfer the conflict portion of 14.2-INT-001, INT-002, INT-007 and INT-008 to 14.3 or equivalent IDs. No user-facing booking entry point before the shared detector is integrated into the transaction.
 
 **Next:** After the owner decision, delegate documentation and planning correction, then resume /auto-bmad epic --epic 14. Human review: /bmad-checkpoint-preview epic/14-wave-b1b-resource-and-scheduling-foundation. Run /bmad-project-context refresh after epic completion.
+
+## Report — 2026-10-06T13:04:26Z (halted — needs-human)
+
+**Epic:** `14` — 4 stories.
+**Branch:** `codex/epic14-resume` (HEAD `c8d0a88`).
+**Pipeline status:** Halted in Story 14.3 Phase 5: implementation verification failed; checkpoint c8d0a881.
+**Continues:** Checkpoint 74155122; prior report 2026-10-02T19:30:52Z.
+
+**Summary:** Fresh Sol 6.1 High author capacity confirmed before delegate restored 14.3. Conflict engine and transactional integration preserved; current full-suite INT004 failure remains unexplained.
+
+**Timing:** started 2026-09-29T08:23:21Z; completed in progress — elapsed 172h 41m (≈13h 14m AI-run, ≈159h 26m human/idle wait); resumed 12×.
+
+**Stories:**
+1. 14.1 and 14.2: previously landed; existing approvals retained.
+2. 14.3: blocked; review passes 0; deferred 0; independent review pending.
+3. 14.4: not started.
+
+**Skipped:** (none)
+
+**Epic gate:** Not reached; empty migration-chain CI pending.
+
+**TEA:** Current focused 73/73; representative parallel 146/146; units 1992 pass, 0 fail, 1 inherited skip. Current full integration 1353 pass, 1 fail, 1 intentional recovery-loader skip; native exit 1. Prior ledger records unchanged (92); final ledger 94.
+
+**Retrospective:** Not reached.
+
+**Overrides:** Resume from 74155122 on codex/epic14-resume; preserve approvals and Contract C; no reset or hosted changes. Root guarded resource Stop accepted; shutdown unverified, saved data retained.
+
+**Open questions:**
+1. Why did INT004 third peer CREATE return ok=false during full integration? Passing diagnostics did not establish the cause.
+
+**Deferred work:**
+1. Resolve current full-suite failure and canonical lint EPERM; finish independent review and empty-chain CI.
+
+**⚠️ Needs human:**
+1. Build workflow halted: implementation verification failed. Resolve INT004 through a build delegate, restore spec in-progress after diagnosis, then resume /auto-bmad epic --epic 14.
+
+**Next:** Human review: /bmad-checkpoint-preview codex/epic14-resume. Continue through build delegate after failure diagnosis; Story14.4 and PR gates remain closed. Run /bmad-project-context refresh after epic completion.
