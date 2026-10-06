@@ -1,0 +1,23 @@
+{
+  "nativeExit": 0,
+  "stderrBytes": 0,
+  "readOnly": true,
+  "writesExecuted": 0,
+  "pythonTextAppendOpen": {
+    "success": false,
+    "errno": 22,
+    "type": "OSError"
+  },
+  "pythonTextWriteOpen": {
+    "success": true
+  },
+  "rawAppendOpen": {
+    "success": true
+  },
+  "seekEnd": {
+    "success": false,
+    "errno": 22,
+    "type": "OSError"
+  },
+  "registrationsUnchanged": true
+}

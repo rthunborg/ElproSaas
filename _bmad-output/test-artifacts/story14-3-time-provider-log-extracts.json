@@ -1,0 +1,9 @@
+{
+  "scope": "Only last2MB of three newest existing Docker VM init logs, time-provider messages only; no raw full logs/env/processargs",
+  "files": [
+    "init.log",
+    "init.log.20261006-185235.643",
+    "init.log.20261006-185040.255"
+  ],
+  "extracts": []
+}

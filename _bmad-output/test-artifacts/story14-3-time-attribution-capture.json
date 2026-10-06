@@ -1,0 +1,537 @@
+{
+  "nativeExit": 0,
+  "stderrBytes": 0,
+  "lifecycle": "4c66cc2c-2c73-4332-b015-7e239dc94ca0",
+  "scope": "authorized one capture after demonstrated no-seek registry I/O correction; no clock/service/config writes",
+  "transport": {
+    "shell": false,
+    "sourceSha256": "9ed1a0bf8f04174cd8a88680f741d4265bbd50eded04d258a8833db2718a957b",
+    "definitionReconstructedFromExecutedSource": "p:story143_time_5284b8b5b2b24d7fbe8b3991b457ba70/adjust do_adjtimex modes=+0($arg1):u32 freq=+16($arg1):s64 tick=+88($arg1):s64",
+    "groupLength": 46,
+    "groupAsciiGrammar": true
+  },
+  "durationSeconds": 55,
+  "failure": null,
+  "ownTraceGroup": "story143_time_5284b8b5b2b24d7fbe8b3991b457ba70",
+  "rootStateBefore": {
+    "tracing_on": "1",
+    "current_tracer": "nop"
+  },
+  "rootStateAfter": {
+    "tracing_on": "1",
+    "current_tracer": "nop"
+  },
+  "rootStateUnchanged": true,
+  "priorProbeRegistrationsPreserved": true,
+  "ownProbeRegistrationsReleased": true,
+  "ownBufferReleased": true,
+  "cleanupErrors": [],
+  "unparsedLines": 0,
+  "truncated": false,
+  "records": [
+    {
+      "elapsedMs": 3994.89118,
+      "processName": "chronyd",
+      "pid": 241,
+      "event": "adjust",
+      "modes": 28,
+      "requestsAdjTick": false,
+      "requestsSetOffset": false
+    },
+    {
+      "elapsedMs": 3995.180724,
+      "processName": "chronyd",
+      "pid": 241,
+      "event": "adjust_result",
+      "result": 0
+    },
+    {
+      "elapsedMs": 3995.226322,
+      "processName": "chronyd",
+      "pid": 241,
+      "event": "adjust",
+      "modes": 16386,
+      "frequencyScaled": -1972417,
+      "tickUs": 10526,
+      "requestsAdjTick": true,
+      "requestsSetOffset": false
+    },
+    {
+      "elapsedMs": 3995.233947,
+      "processName": "chronyd",
+      "pid": 241,
+      "event": "adjust_result",
+      "result": 0
+    },
+    {
+      "elapsedMs": 3995.238266,
+      "processName": "chronyd",
+      "pid": 241,
+      "event": "adjust",
+      "modes": 16386,
+      "frequencyScaled": 900145,
+      "tickUs": 10532,
+      "requestsAdjTick": true,
+      "requestsSetOffset": false
+    },
+    {
+      "elapsedMs": 3995.24249,
+      "processName": "chronyd",
+      "pid": 241,
+      "event": "adjust_result",
+      "result": 0
+    },
+    {
+      "elapsedMs": 3995.245246,
+      "processName": "chronyd",
+      "pid": 241,
+      "event": "adjust",
+      "modes": 28,
+      "requestsAdjTick": false,
+      "requestsSetOffset": false
+    },
+    {
+      "elapsedMs": 3995.249014,
+      "processName": "chronyd",
+      "pid": 241,
+      "event": "adjust_result",
+      "result": 0
+    },
+    {
+      "elapsedMs": 12050.480929,
+      "processName": "chronyd",
+      "pid": 241,
+      "event": "adjust",
+      "modes": 28,
+      "requestsAdjTick": false,
+      "requestsSetOffset": false
+    },
+    {
+      "elapsedMs": 12050.500716,
+      "processName": "chronyd",
+      "pid": 241,
+      "event": "adjust_result",
+      "result": 0
+    },
+    {
+      "elapsedMs": 12050.505762,
+      "processName": "chronyd",
+      "pid": 241,
+      "event": "adjust",
+      "modes": 16386,
+      "frequencyScaled": 6345077,
+      "tickUs": 10532,
+      "requestsAdjTick": true,
+      "requestsSetOffset": false
+    },
+    {
+      "elapsedMs": 12050.510335,
+      "processName": "chronyd",
+      "pid": 241,
+      "event": "adjust_result",
+      "result": 0
+    },
+    {
+      "elapsedMs": 12050.51336,
+      "processName": "chronyd",
+      "pid": 241,
+      "event": "adjust",
+      "modes": 16386,
+      "frequencyScaled": -2742392,
+      "tickUs": 10546,
+      "requestsAdjTick": true,
+      "requestsSetOffset": false
+    },
+    {
+      "elapsedMs": 12050.516484,
+      "processName": "chronyd",
+      "pid": 241,
+      "event": "adjust_result",
+      "result": 0
+    },
+    {
+      "elapsedMs": 12050.518745,
+      "processName": "chronyd",
+      "pid": 241,
+      "event": "adjust",
+      "modes": 28,
+      "requestsAdjTick": false,
+      "requestsSetOffset": false
+    },
+    {
+      "elapsedMs": 12050.522296,
+      "processName": "chronyd",
+      "pid": 241,
+      "event": "adjust_result",
+      "result": 0
+    },
+    {
+      "elapsedMs": 20135.721743,
+      "processName": "chronyd",
+      "pid": 241,
+      "event": "adjust",
+      "modes": 28,
+      "requestsAdjTick": false,
+      "requestsSetOffset": false
+    },
+    {
+      "elapsedMs": 20135.747482,
+      "processName": "chronyd",
+      "pid": 241,
+      "event": "adjust_result",
+      "result": 0
+    },
+    {
+      "elapsedMs": 20135.753378,
+      "processName": "chronyd",
+      "pid": 241,
+      "event": "adjust",
+      "modes": 16386,
+      "frequencyScaled": -3124615,
+      "tickUs": 10539,
+      "requestsAdjTick": true,
+      "requestsSetOffset": false
+    },
+    {
+      "elapsedMs": 20135.758222,
+      "processName": "chronyd",
+      "pid": 241,
+      "event": "adjust_result",
+      "result": 0
+    },
+    {
+      "elapsedMs": 20135.761209,
+      "processName": "chronyd",
+      "pid": 241,
+      "event": "adjust",
+      "modes": 16386,
+      "frequencyScaled": -860837,
+      "tickUs": 10532,
+      "requestsAdjTick": true,
+      "requestsSetOffset": false
+    },
+    {
+      "elapsedMs": 20135.764828,
+      "processName": "chronyd",
+      "pid": 241,
+      "event": "adjust_result",
+      "result": 0
+    },
+    {
+      "elapsedMs": 20135.767094,
+      "processName": "chronyd",
+      "pid": 241,
+      "event": "adjust",
+      "modes": 28,
+      "requestsAdjTick": false,
+      "requestsSetOffset": false
+    },
+    {
+      "elapsedMs": 20135.771375,
+      "processName": "chronyd",
+      "pid": 241,
+      "event": "adjust_result",
+      "result": 0
+    },
+    {
+      "elapsedMs": 26409.096118,
+      "processName": "<...>",
+      "pid": 450,
+      "event": "wall_set"
+    },
+    {
+      "elapsedMs": 26522.034206,
+      "processName": "<...>",
+      "pid": 729,
+      "event": "adjust",
+      "modes": 8476,
+      "requestsAdjTick": false,
+      "requestsSetOffset": true
+    },
+    {
+      "elapsedMs": 26522.068662,
+      "processName": "systemd-timesyn",
+      "pid": 729,
+      "event": "adjust_result",
+      "result": 0
+    },
+    {
+      "elapsedMs": 29696.860697,
+      "processName": "chronyd",
+      "pid": 241,
+      "event": "adjust",
+      "modes": 28,
+      "requestsAdjTick": false,
+      "requestsSetOffset": false
+    },
+    {
+      "elapsedMs": 29696.894762,
+      "processName": "chronyd",
+      "pid": 241,
+      "event": "adjust_result",
+      "result": 0
+    },
+    {
+      "elapsedMs": 29696.901375,
+      "processName": "chronyd",
+      "pid": 241,
+      "event": "adjust",
+      "modes": 16386,
+      "frequencyScaled": -8263721,
+      "tickUs": 10532,
+      "requestsAdjTick": true,
+      "requestsSetOffset": false
+    },
+    {
+      "elapsedMs": 29696.90661,
+      "processName": "chronyd",
+      "pid": 241,
+      "event": "adjust_result",
+      "result": 0
+    },
+    {
+      "elapsedMs": 29696.910304,
+      "processName": "chronyd",
+      "pid": 241,
+      "event": "adjust",
+      "modes": 16386,
+      "frequencyScaled": 1358055,
+      "tickUs": 10525,
+      "requestsAdjTick": true,
+      "requestsSetOffset": false
+    },
+    {
+      "elapsedMs": 29696.914386,
+      "processName": "chronyd",
+      "pid": 241,
+      "event": "adjust_result",
+      "result": 0
+    },
+    {
+      "elapsedMs": 29696.91788,
+      "processName": "chronyd",
+      "pid": 241,
+      "event": "adjust",
+      "modes": 28,
+      "requestsAdjTick": false,
+      "requestsSetOffset": false
+    },
+    {
+      "elapsedMs": 29696.921534,
+      "processName": "chronyd",
+      "pid": 241,
+      "event": "adjust_result",
+      "result": 0
+    },
+    {
+      "elapsedMs": 37741.665299,
+      "processName": "chronyd",
+      "pid": 241,
+      "event": "adjust",
+      "modes": 28,
+      "requestsAdjTick": false,
+      "requestsSetOffset": false
+    },
+    {
+      "elapsedMs": 37741.687723,
+      "processName": "chronyd",
+      "pid": 241,
+      "event": "adjust_result",
+      "result": 0
+    },
+    {
+      "elapsedMs": 37741.692873,
+      "processName": "chronyd",
+      "pid": 241,
+      "event": "adjust",
+      "modes": 16386,
+      "frequencyScaled": -1442577,
+      "tickUs": 10529,
+      "requestsAdjTick": true,
+      "requestsSetOffset": false
+    },
+    {
+      "elapsedMs": 37741.697314,
+      "processName": "chronyd",
+      "pid": 241,
+      "event": "adjust_result",
+      "result": 0
+    },
+    {
+      "elapsedMs": 37741.700111,
+      "processName": "chronyd",
+      "pid": 241,
+      "event": "adjust",
+      "modes": 16386,
+      "frequencyScaled": 2216370,
+      "tickUs": 10542,
+      "requestsAdjTick": true,
+      "requestsSetOffset": false
+    },
+    {
+      "elapsedMs": 37741.703395,
+      "processName": "chronyd",
+      "pid": 241,
+      "event": "adjust_result",
+      "result": 0
+    },
+    {
+      "elapsedMs": 37741.705942,
+      "processName": "chronyd",
+      "pid": 241,
+      "event": "adjust",
+      "modes": 28,
+      "requestsAdjTick": false,
+      "requestsSetOffset": false
+    },
+    {
+      "elapsedMs": 37741.709601,
+      "processName": "chronyd",
+      "pid": 241,
+      "event": "adjust_result",
+      "result": 0
+    },
+    {
+      "elapsedMs": 45786.413098,
+      "processName": "chronyd",
+      "pid": 241,
+      "event": "adjust",
+      "modes": 28,
+      "requestsAdjTick": false,
+      "requestsSetOffset": false
+    },
+    {
+      "elapsedMs": 45786.4619,
+      "processName": "chronyd",
+      "pid": 241,
+      "event": "adjust_result",
+      "result": 0
+    },
+    {
+      "elapsedMs": 45786.468266,
+      "processName": "chronyd",
+      "pid": 241,
+      "event": "adjust",
+      "modes": 16386,
+      "frequencyScaled": 130549,
+      "tickUs": 10538,
+      "requestsAdjTick": true,
+      "requestsSetOffset": false
+    },
+    {
+      "elapsedMs": 45786.473294,
+      "processName": "chronyd",
+      "pid": 241,
+      "event": "adjust_result",
+      "result": 0
+    },
+    {
+      "elapsedMs": 45786.476262,
+      "processName": "chronyd",
+      "pid": 241,
+      "event": "adjust",
+      "modes": 16386,
+      "frequencyScaled": -2683634,
+      "tickUs": 10556,
+      "requestsAdjTick": true,
+      "requestsSetOffset": false
+    },
+    {
+      "elapsedMs": 45786.479734,
+      "processName": "chronyd",
+      "pid": 241,
+      "event": "adjust_result",
+      "result": 0
+    },
+    {
+      "elapsedMs": 45786.482012,
+      "processName": "chronyd",
+      "pid": 241,
+      "event": "adjust",
+      "modes": 28,
+      "requestsAdjTick": false,
+      "requestsSetOffset": false
+    },
+    {
+      "elapsedMs": 45786.485371,
+      "processName": "chronyd",
+      "pid": 241,
+      "event": "adjust_result",
+      "result": 0
+    },
+    {
+      "elapsedMs": 53850.193542,
+      "processName": "chronyd",
+      "pid": 241,
+      "event": "adjust",
+      "modes": 28,
+      "requestsAdjTick": false,
+      "requestsSetOffset": false
+    },
+    {
+      "elapsedMs": 53850.225892,
+      "processName": "chronyd",
+      "pid": 241,
+      "event": "adjust_result",
+      "result": 0
+    },
+    {
+      "elapsedMs": 53850.234239,
+      "processName": "chronyd",
+      "pid": 241,
+      "event": "adjust",
+      "modes": 16386,
+      "frequencyScaled": 2042974,
+      "tickUs": 10541,
+      "requestsAdjTick": true,
+      "requestsSetOffset": false
+    },
+    {
+      "elapsedMs": 53850.240442,
+      "processName": "chronyd",
+      "pid": 241,
+      "event": "adjust_result",
+      "result": 0
+    },
+    {
+      "elapsedMs": 53850.243433,
+      "processName": "chronyd",
+      "pid": 241,
+      "event": "adjust",
+      "modes": 16386,
+      "frequencyScaled": 322483,
+      "tickUs": 10525,
+      "requestsAdjTick": true,
+      "requestsSetOffset": false
+    },
+    {
+      "elapsedMs": 53850.262568,
+      "processName": "chronyd",
+      "pid": 241,
+      "event": "adjust_result",
+      "result": 0
+    },
+    {
+      "elapsedMs": 53850.265298,
+      "processName": "chronyd",
+      "pid": 241,
+      "event": "adjust",
+      "modes": 28,
+      "requestsAdjTick": false,
+      "requestsSetOffset": false
+    },
+    {
+      "elapsedMs": 53850.268908,
+      "processName": "chronyd",
+      "pid": 241,
+      "event": "adjust_result",
+      "result": 0
+    }
+  ],
+  "temporarySharedKernelProbes": true,
+  "clockServiceConfigChanges": false,
+  "clockWrites": false,
+  "unselectedTimexFieldsOmitted": true,
+  "omittedUnselectedFieldCount": 30,
+  "evidenceLimits": "Only mode-selected timex fields are initialized control values. Other captured field slots were omitted as irrelevant potentially uninitialized contents; wall_set direction/offset and unavailable process names are unknown. Source SHA describes executed harness before this output-filter correction; no repeat capture executed."
+}

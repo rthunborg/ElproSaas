@@ -1,0 +1,136 @@
+{
+  "status": "BLOCKED diagnostic needs-human; interactive root-console interface has no supported automated exec/guest containment; Story14.3 priorblocked gate unchanged",
+  "currentFull": {
+    "total": 1366,
+    "passed": 1362,
+    "failed": 3,
+    "skipped": 1,
+    "nativeExit": 1
+  },
+  "affectedFocused": {
+    "total": 143,
+    "passed": 143,
+    "failed": 0,
+    "skipped": 0,
+    "nativeExit": 0
+  },
+  "representativeRuns": [
+    {
+      "total": 102,
+      "passed": 101,
+      "failed": 1,
+      "skipped": 0,
+      "nativeExit": 1
+    },
+    {
+      "total": 102,
+      "passed": 101,
+      "failed": 1,
+      "skipped": 0,
+      "nativeExit": 1
+    }
+  ],
+  "proven": "Independent native Linux wall-clock regressions; raw/adjusted clock rate split; chronyd kernelPID241 fourteen successful ADJ_TICK requests",
+  "causeLimits": "Provider owner/reference and exact reversal origin unknown; no historical test-cause attribution or same-proof receipt; no demonstrated durable project-local clock repair",
+  "ownerProbe": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-3-time-admin-probe.ps1",
+  "ownerProbeSafeOutput": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-3-time-admin-probe-result.json",
+  "ownerProbeExecuted": true,
+  "uacLaunched": true,
+  "ownerProbeParserErrors": 0,
+  "guestServiceQueriesInOwnerProbe": false,
+  "lifecycle": "4c66cc2c-2c73-4332-b015-7e239dc94ca0",
+  "rootOwnsStop": true,
+  "authorChangedFiles": [
+    "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-3-time-admin-probe.ps1",
+    "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-3-time-attribution-capture.json",
+    "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-3-time-attribution-instrumented-result.json",
+    "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-3-time-attribution-kernel-schema.json",
+    "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-3-time-attribution-proposal.py",
+    "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-3-time-attribution-result.json",
+    "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-3-time-attribution-symbol-eligibility.json",
+    "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-3-time-attribution-zero-write-io.json",
+    "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-3-time-author-handoff.json",
+    "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-3-time-backend-log-extracts.json",
+    "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-3-time-backend-surface.cjs",
+    "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-3-time-backend-surface.json",
+    "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-3-time-diagnosis.md",
+    "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-3-time-docker-unit-logs.json",
+    "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-3-time-native-clock-samples.json",
+    "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-3-time-native-clock-validated.json",
+    "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-3-time-native-rate-analysis.json",
+    "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-3-time-provider-log-extracts.json",
+    "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-3-time-provider-provenance.cjs",
+    "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-3-time-provider-provenance.json",
+    "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-3-time-raw-clock-comparison.json",
+    "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-3-time-readiness.json",
+    "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-3-time-root-provider.cjs",
+    "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-3-time-root-provider.json",
+    "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-3-time-sampler-audit.json",
+    "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-3-time-system-provenance.cjs",
+    "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-3-time-system-provenance.json"
+  ],
+  "delegateOwnedFileExcluded": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-3-time-windows-ntp-offsets.json",
+  "safeAudit": {
+    "nativeExit": 0,
+    "scannedArtifacts": 29,
+    "jsonParsed": 22,
+    "secretAuthorityPiiPatternHits": 0,
+    "modeSelectedTimexFieldsOnly": true
+  },
+  "activity": {
+    "testsRunning": false,
+    "samplerRunning": false,
+    "tracerRunning": false,
+    "ownTraceProbesAndBufferReleased": true,
+    "rootAndPriorTraceStatePreserved": true,
+    "allOwnToolInvocationsCompleted": true,
+    "allOwnWindowsInvocationsCompleted": true,
+    "guestReaderCompletion": "UNKNOWN",
+    "guestExit": "UNKNOWN",
+    "existingSharedAgettyAdoptedOrStopped": false
+  },
+  "specOrProductChanged": false,
+  "clockServicePolicyChanged": false,
+  "ownerProbeSha256": "979ea23d32944609d793d4151fc2c7b1b65b217559df5ecabe98a21ef245bf4a",
+  "ownerProbeFrozen": false,
+  "executedOwnerProbeSha256": "a4030aa5a39b8be5850e27e292d94936d367944ab16ea6d4216012717d4fffda",
+  "uacLaunchOwner": "root with actual ownerconsent; author launched none",
+  "ownerProbeAutomationUnsupported": true,
+  "doNotRetryAutomatedWrapper": true,
+  "actualElevatedProbe": {
+    "administrator": true,
+    "existingVmProvenActive": true,
+    "nativeExit": null,
+    "failureStage": "bounded-root-read",
+    "failureType": "TimeoutException",
+    "elapsedMs": 10069,
+    "ownWindowsProcessesExited": true,
+    "ownHandlesClosed": true,
+    "readCompleted": false,
+    "retainedSafeLines": 0,
+    "partialStdoutDiscardedOnTimeout": true,
+    "guestReaderCompletion": "UNKNOWN",
+    "guestExit": "UNKNOWN"
+  },
+  "sourceProof": {
+    "installedTag": "2.7.12",
+    "client": "https://github.com/microsoft/WSL/blob/2.7.12/src/windows/common/WslClient.cpp#L1351-L1397",
+    "dispatch": "https://github.com/microsoft/WSL/blob/2.7.12/src/windows/common/WslClient.cpp#L1424-L1426",
+    "guestSupervisor": "https://github.com/microsoft/WSL/blob/2.7.12/src/linux/init/main.cpp#L1118-L1155",
+    "conclusion": "interactive existing agetty console, no trailingexec parsing or guestgroup termination guarantee from Windowsclient death"
+  },
+  "ownerManualRoute": {
+    "artifact": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-3-time-diagnosis.md",
+    "administratorInteractiveCommand": "wsl.exe --debug-shell",
+    "freshRunningVmRequired": true,
+    "existingGnuGuestTimeoutRequired": true,
+    "guestTimeoutAvailabilityVerified": false,
+    "completionMarkers": [
+      "SAFE|GUEST_READ_COMPLETE|true",
+      "SAFE|GUEST_JOB_STATUS|0"
+    ],
+    "priorGuestReaderExit": "UNKNOWN",
+    "ownerManualReadExecuted": false
+  },
+  "resourceState": "rootStop accepted,savedstate preserved,no moreDB use; confirmedshutdown not independently asserted"
+}

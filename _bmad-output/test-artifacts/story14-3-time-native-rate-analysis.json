@@ -1,0 +1,15 @@
+{
+  "readOnly": true,
+  "totalLinuxUptimeMs": 41650,
+  "hostMonotonicElapsedMs": 39506.3346,
+  "linuxUptimeToHostRatio": 1.054261308261182,
+  "nonStepNativeWallToHostRatio": 1.0540925613840169,
+  "kernelTickNominalUsAtUserHz100": 10000,
+  "observedTickUsMin": 10518,
+  "observedTickUsMax": 10566,
+  "observedFrequencyPpmMin": -29.50701904296875,
+  "observedFrequencyPpmMax": 75.94729614257812,
+  "expectedTickPlusFrequencyRateExcessPpmMin": 51776.85700988776,
+  "expectedTickPlusFrequencyRateExcessPpmMax": 56609.40946960448,
+  "limits": "Rate relation is observational; actual controller and why it altered global tick/frequency are not yet identified. Host comparison includes pipe delivery jitter; total interval reduces that noise."
+}

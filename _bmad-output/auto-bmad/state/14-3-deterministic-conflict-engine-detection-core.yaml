@@ -9,11 +9,11 @@ spec_folder: null
 story_id: null
 branch: codex/epic14-resume
 status: in-progress
-updated_at: "2026-10-06T16:44:50Z"
+updated_at: "2026-10-06T17:38:53Z"
 started_at: "2026-10-06T11:47:14Z"
 completed_at: null
-active_seconds: 8262
-timing_anchor: 1791305090
+active_seconds: 11461
+timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
 git_mode: remote
@@ -82,7 +82,7 @@ branch_deleted: false
 open_questions: []
 deferred_work: []
 blockers:
-  - "Current review-fixed full gate:1366 total,1362 passed,3 failed,1 intentional skip. Receipt diagnostic:102 total,101 passed,1 legitimate signed-proof control rejected as future-issued. Read-only sampler proved6 DB wall-clock backward steps,min -827.780ms over62.090ms positive monotonic time. Stable local DB timekeeping and refreshed patch verification required; historical full-failure causes not all established."
+  - "Patch verification remains failed:1362 passed,3 failed,1 intentional skip. Kernel trace attributes repeated ADJ_TICK to chronyd PID241 and a wall-time offset to systemd-timesyn PID729; owning environment unresolved. Actual Administrator debug-shell probe timed out; Windows cleanup verified, guest read completion unknown. Installed WSL2.7.12 debug-shell lacks contained automated exec. Owner-run guarded metadata read required before scoped clock intervention and verification rerun."
 overrides:
   empty_chain_ci_required: true
   unattended_run_confirmed_by_owner_request: true
@@ -108,7 +108,7 @@ overrides:
   root_guard_shutdown_verified: false
   implementation_executed: true
   implementation_author_dispatch_failed: null
-  root_guard_stop_requested: false
+  root_guard_stop_requested: true
   resume_checkpoint: db632f5b
   resume_workspace: "C:/DEV/ElproSaas"
   restore_after_fresh_author_capacity: true
@@ -136,6 +136,11 @@ overrides:
   db_clock_min_backward_delta_ms: "-827.78"
   canonical_lint_passed: true
   owner_authorized_clock_diagnosis: true
+  clock_provider_owner_read_required: true
+  administrator_probe_executed: true
+  administrator_probe_guest_completion_verified: false
+  automatic_debug_shell_retry_supported: false
+  clock_service_config_changed: false
 constraints:
   - "Approved Story14.3 scope and PhaseB manifest only; resources active, scheduling pending untilEpic15."
   - Allfour transferred conflict checks mandatory before14.4/EpicPR.

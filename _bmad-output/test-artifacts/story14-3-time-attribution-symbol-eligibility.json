@@ -1,0 +1,42 @@
+{
+  "readOnly": true,
+  "nativeExit": 0,
+  "stderrBytes": 0,
+  "blacklist": {
+    "do_adjtimex": false,
+    "do_settimeofday64": false,
+    "hv_set_host_time": false
+  },
+  "availableFilterFunctions": {
+    "do_adjtimex": true,
+    "do_settimeofday64": true,
+    "hv_set_host_time": true
+  },
+  "kallsyms": {
+    "do_adjtimex": true,
+    "do_settimeofday64": true,
+    "hv_set_host_time": true
+  },
+  "rangeAndArgumentApiReadback": {
+    "nativeExit": 0,
+    "stderrBytes": 0,
+    "targetSymbolAddressesNonzero": {
+      "do_adjtimex": true,
+      "do_settimeofday64": true,
+      "hv_set_host_time": true
+    },
+    "insideBlacklistRange": {
+      "do_adjtimex": false,
+      "do_settimeofday64": false,
+      "hv_set_host_time": false
+    },
+    "blacklistRangeCount": 728,
+    "config": {
+      "CONFIG_HAVE_FUNCTION_ARG_ACCESS_API": "CONFIG_HAVE_FUNCTION_ARG_ACCESS_API=y",
+      "CONFIG_KPROBE_EVENTS": "CONFIG_KPROBE_EVENTS=y",
+      "CONFIG_KPROBES": "CONFIG_KPROBES=y",
+      "CONFIG_PROBE_EVENTS_BTF_ARGS": "CONFIG_PROBE_EVENTS_BTF_ARGS=y",
+      "CONFIG_FPROBE_EVENTS": "absent"
+    }
+  }
+}

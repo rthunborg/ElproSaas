@@ -1,0 +1,13 @@
+{
+  "targetContainer": "3ebb91d97c8e7c101b7326973fb46cb12b68146ca4fe50567320f2b786db842f",
+  "readOnly": true,
+  "source": "BusyBox /sbin/adjtimex modes=0 native kernel CLOCK_REALTIME return; STA_NANO interpreted before integer-nanosecond arithmetic; /proc/uptime per sample; host process.hrtime.bigint and Date.now only for comparison",
+  "nativeExit": 0,
+  "sampleCount": 0,
+  "malformedOrStderrPresent": true,
+  "backwardNativeWallSamples": 0,
+  "minNativeWallStepMs": null,
+  "minLinuxUptimeStepMs": null,
+  "nativeReversals": [],
+  "samples": []
+}

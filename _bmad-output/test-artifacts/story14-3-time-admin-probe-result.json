@@ -1,0 +1,27 @@
+{
+    "readOnly":  true,
+    "administrator":  true,
+    "existingVmProvenActive":  true,
+    "commandBudgetMs":  10000,
+    "failureStage":  "bounded-root-read",
+    "failureType":  "TimeoutException",
+    "nativeExit":  null,
+    "safeLines":  [
+
+                  ],
+    "readCompleted":  false,
+    "stderrBytes":  0,
+    "administratorRequired":  false,
+    "disabledByPolicy":  false,
+    "explicitExitSent":  true,
+    "ownProcessIds":  [
+                          48144,
+                          45128,
+                          51412
+                      ],
+    "ownHandlesClosed":  true,
+    "ownWindowsProcessesExited":  true,
+    "timedOut":  true,
+    "clockServiceConfigChanges":  false,
+    "elapsedMs":  10069
+}

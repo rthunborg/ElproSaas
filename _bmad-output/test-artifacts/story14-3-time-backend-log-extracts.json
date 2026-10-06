@@ -1,0 +1,8 @@
+{
+  "scope": "Only last1.5MB of two newest existing Docker backend logs, redacted time-provider matches only",
+  "files": [
+    "com.docker.backend.exe.log",
+    "com.docker.backend.exe.log.20261006-182551.136"
+  ],
+  "extracts": []
+}

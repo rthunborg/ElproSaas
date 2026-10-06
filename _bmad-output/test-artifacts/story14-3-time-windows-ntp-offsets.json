@@ -1,0 +1,15 @@
+{
+  "readOnly": true,
+  "target": "public time.windows.com",
+  "nativeExit": 0,
+  "requestedSamples": 5,
+  "offsets": [
+    "-00.7984110s",
+    "-00.7972041s",
+    "-00.7998430s",
+    "-00.7962846s",
+    "-00.7975805s"
+  ],
+  "errorCodes": [],
+  "serviceStartOrResync": false
+}

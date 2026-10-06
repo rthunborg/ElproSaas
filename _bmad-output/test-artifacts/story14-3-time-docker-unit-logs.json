@@ -1,0 +1,9 @@
+{
+  "readOnly": true,
+  "nativeExit": 1,
+  "transportErrorCode": null,
+  "stderrBytes": 79,
+  "scope": "documented DockerDesktop exact time-unit filter,current boot,last10minutes; only keyword tags/numeric time deltas retained; no raw log/address",
+  "returnedLineCount": 0,
+  "safeExtracts": []
+}
