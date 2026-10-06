@@ -9,11 +9,11 @@ spec_folder: null
 story_id: null
 branch: epic/14-wave-b1b-resource-and-scheduling-foundation
 status: in-progress
-updated_at: "2026-10-06T11:23:47Z"
+updated_at: "2026-10-06T11:46:24Z"
 started_at: "2026-10-02T19:08:54Z"
 completed_at: null
-active_seconds: 6251
-timing_anchor: 1791285827
+active_seconds: 7607
+timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
 git_mode: remote
@@ -40,19 +40,19 @@ tea_selected: [atdd, automate]
 tea_rationale: "Schema migrations, atomic transactional mutations, idempotency, RLS authorization and cross-tenant isolation."
 epic_story_count: 4
 stories_after_in_epic: 2
-completed_phases: [0, 1, 2, 3, 4, 5, 6]
+completed_phases: [0, 1, 2, 3, 4, 5, 6, 7]
 spec_path: "C:\\Users\\Rasmus\\.codex\\worktrees\\epic14-scheduling\\ElproSaas\\_bmad-output\\implementation-artifacts\\spec-14-2-bookings-and-assignees-schema-and-transactional-commands.md"
 spec_approved: true
 build:
   status: done
   blocking_condition: null
   followup_review_recommended: true
-  review_loop_iteration: 1
+  review_loop_iteration: 0
   deferred_count: 0
   warnings: [oversized]
-followup_passes: 0
-hitl_halt: null
-review_unverified: false
+followup_passes: 1
+hitl_halt: "auto-continued (epic — no halt)"
+review_unverified: true
 story_trace: null
 legacy_review_resume: false
 legacy_review_iteration: null
@@ -60,7 +60,7 @@ legacy_review_loop_done: false
 legacy_external_review_iterations: null
 legacy_convergence_unverified: false
 legacy_artifact_path: null
-commits: [8db3b22, 7c434b04, 4d2f29a, cd0b677, 4947dbb4, e1f2c7d6, 079e1053, afb4ef9d]
+commits: [8db3b22, 7c434b04, 4d2f29a, cd0b677, 4947dbb4, e1f2c7d6, 079e1053, afb4ef9d, dc2c0c89, 1f7bfcd8, c76f81d5]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -127,7 +127,7 @@ overrides:
   unit_failed: 0
   unit_passed: 1962
   empty_chain_ci_executed: false
-  integration_passed: 1293
+  integration_passed: 1304
   integration_failed: 0
   integration_skipped: 1
   automate_failed: 0
@@ -136,6 +136,19 @@ overrides:
   automate_passed: 3
   automate_lint_native_exit: 0
   automate_typecheck_native_exit: 0
+  followup_low_patch_count: 1
+  followup_forward_migration: 20261006113212_booking_replay_current_authority.sql
+  followup_external_native_exit: 0
+  followup_sensitive_effort: high
+  prior_migration_ledger_records_unchanged: 91
+  followup_focused_booking_passed: 32
+  review_order_verified_refs: 27
+  integration_tests: 1305
+  followup_patch_count: 2
+  completed_review_rounds: 2
+  followup_independent_layers: 6
+  followup_high_patch_count: 1
+  followup_all_codex_model: gpt-6.1-sol
 constraints:
   - "Approved Story 14.2 and Phase B manifest governance only; broader scheduling activation remains Epic15, retain hard Phase C exclusions."
   - "Use verified isolated 55421/55422 guarded local stack, SQL-only migrations, explicit test aliases, no reset or migration ledger edits."

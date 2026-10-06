@@ -9,24 +9,24 @@ spec_folder: null
 story_id: null
 branch: epic/14-wave-b1b-resource-and-scheduling-foundation
 status: in-progress
-updated_at: "2026-10-06T11:23:47Z"
+updated_at: "2026-10-06T11:47:15Z"
 started_at: "2026-09-29T08:23:21Z"
 completed_at: null
-active_seconds: 42377
-timing_anchor: 1791285827
+active_seconds: 43783
+timing_anchor: 1791287235
 is_first_in_epic: false
 is_last_in_epic: false
 git_mode: remote
 base_branch: main
-selected_phase: followup_review
-selected_role: primary-reviewer
+selected_phase: build
+selected_role: build-delegate
 selected_profile: standard
 selected_model: gpt-6.1-sol
 selected_effort: high
 selected_host: codex
 selected_tier: subagents
 selected_route: subagent
-escalation_reason: "Automatic sensitive-task escalation: authorization, rls, transactional-integrity"
+escalation_reason: "Automatic sensitive-task escalation: rls, transactional-integrity"
 routing_ledger:
   - "{\"effort\":\"xhigh\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-sol\",\"phase\":\"tea_epic\",\"profile\":\"critical\",\"role\":\"tea-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
   - "{\"effort\":\"medium\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-luna\",\"phase\":\"tea_triage\",\"profile\":\"light\",\"role\":\"test-risk-triage\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
@@ -40,6 +40,8 @@ routing_ledger:
   - "{\"effort\":\"high\",\"escalation_reason\":\"Automatic sensitive-task escalation: rls, transactional-integrity\",\"host\":\"codex\",\"model\":\"gpt-6.1-sol\",\"phase\":\"build\",\"profile\":\"standard\",\"role\":\"build-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
   - "{\"effort\":\"high\",\"escalation_reason\":\"Automatic sensitive-task escalation: rls, transactional-integrity\",\"host\":\"codex\",\"model\":\"gpt-6.1-sol\",\"phase\":\"tea_per_story\",\"profile\":\"standard\",\"role\":\"tea-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
   - "{\"effort\":\"high\",\"escalation_reason\":\"Automatic sensitive-task escalation: authorization, rls, transactional-integrity\",\"host\":\"codex\",\"model\":\"gpt-6.1-sol\",\"phase\":\"followup_review\",\"profile\":\"standard\",\"role\":\"primary-reviewer\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"low\",\"escalation_reason\":\"Ordinary task uses Low effort\",\"host\":\"codex\",\"model\":\"gpt-6.1-sol\",\"phase\":\"tea_triage\",\"profile\":\"light\",\"role\":\"test-risk-triage\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"high\",\"escalation_reason\":\"Automatic sensitive-task escalation: rls, transactional-integrity\",\"host\":\"codex\",\"model\":\"gpt-6.1-sol\",\"phase\":\"build\",\"profile\":\"standard\",\"role\":\"build-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
 tea_risk: null
 tea_selected: []
 tea_rationale: null
@@ -65,7 +67,7 @@ legacy_review_loop_done: false
 legacy_external_review_iterations: null
 legacy_convergence_unverified: false
 legacy_artifact_path: null
-commits: [21ae8d7, "7548809", b821e42, 2fdca50, a98153f, 8a260ae, 741f4bf, ee9d17b, 084bfe1e, 63f22361, e88ce5db, d53cb1dc, 1a077bd2, ceefd6f3, 5b46bdec, d856d313, 4c127848, d6b545f6, af283dbd, abbe0170, a957911, 4c8d0b6, 0eaa367, de5cfbe4, 1fce0b49, 8db3b22, 7c434b04, cd0b677]
+commits: [21ae8d7, "7548809", b821e42, 2fdca50, a98153f, 8a260ae, 741f4bf, ee9d17b, 084bfe1e, 63f22361, e88ce5db, d53cb1dc, 1a077bd2, ceefd6f3, 5b46bdec, d856d313, 4c127848, d6b545f6, af283dbd, abbe0170, a957911, 4c8d0b6, 0eaa367, de5cfbe4, 1fce0b49, 8db3b22, 7c434b04, cd0b677, 4d2f29a5, 4947dbb4, e1f2c7d6, 079e1053, afb4ef9d, dc2c0c89, 1f7bfcd8, c76f81d5]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -103,9 +105,9 @@ overrides:
   owner_authorized_guard_repair_and_failure_diagnosis: true
   local_guard_diagnostic_status: story_acceptance_completed
   isolated_service_and_schema_readiness_verified: true
-  root_guard_stop_requested: true
+  root_guard_stop_requested: false
   owner_confirmed_guard_fix_deployed: true
-  root_guard_resource_id: e0fb5305-db36-4212-b26b-34f7648570ff
+  root_guard_resource_id: ebd5df87-f814-496f-94b9-c2371fc9e156
   owner_confirmed_all_prs_merged: true
   root_guard_compose_file: compose.ready.test.yaml
   root_guard_request_id: cd3dd0f0-ddba-4168-8f2c-cbea46bd911f
@@ -135,8 +137,8 @@ overrides:
   schema_migration_seed_completed: true
   root_app_server_shutdown_verified: false
   schema_migration_seed_and_acceptance_pending: false
-  current_story_build_status: draft
-  required_full_integration_gate_passed: false
+  current_story_build_status: done
+  required_full_integration_gate_passed: true
   resource_guard_browser_repair_owned_externally: true
   prerequisite_integration_repair_owner_approved_on: 2026-10-02
   prerequisite_integration_repair_active: false
@@ -234,7 +236,7 @@ overrides:
   followup_external_cli_effort: xhigh
   followup_review_completed: true
   followup_confirmed_findings_patched: 4
-  last_accepted_story_key: 14-1-scheduling-activation-person-profiles-and-work-hours
+  last_accepted_story_key: 14-2-bookings-and-assignees-schema-and-transactional-commands
   last_accepted_story_browser_passed: 4
   guard_stop_acknowledgements_all_native_zero: true
   acceptance_contract_c_approved_on: 2026-10-06
@@ -247,13 +249,21 @@ overrides:
   current_loopback_rest_auth_storage_http_200: true
   current_compose_healthy_services: 5
   owned_guard_resources_stop_requested: false
+  historical_quote_send_time_failure_cause: unconfirmed
+  acceptance_contract_c_all_four_equivalents_mandatory_before_14_4: true
+  latest_full_integration_skipped: 1
+  empty_chain_ci_required: true
+  latest_full_integration_passed: 1304
+  empty_chain_ci_executed: false
+  latest_full_integration_failed: 0
 constraints:
   - "Phase B manifest-governed approved Epic14 stories only; maintain hard Phase C exclusions."
   - "Epic13 observation and release gates remain separate; no hosted migrations, deployment or flag changes during this implementation workflow."
   - "Preserve populated user-owned local data and existing processes; new persistent test resources require the actor's resource guard context."
 epic_slug: wave-b1b-resource-and-scheduling-foundation
-active_story: 14-2-bookings-and-assignees-schema-and-transactional-commands
+active_story: 14-3-deterministic-conflict-engine-detection-core
 stories_landed:
   - 14-1-scheduling-activation-person-profiles-and-work-hours
+  - 14-2-bookings-and-assignees-schema-and-transactional-commands
 stories_skipped: []
 batch_flip_done: false
