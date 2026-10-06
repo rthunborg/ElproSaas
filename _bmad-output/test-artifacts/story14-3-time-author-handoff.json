@@ -1,5 +1,5 @@
 {
-  "status": "BLOCKED diagnostic needs-human; interactive root-console interface has no supported automated exec/guest containment; Story14.3 priorblocked gate unchanged",
+  "status": "diagnostic proposal ready; owner manual provenance completed; runtime service experiment requires explicit owner approval; Story14.3 remains priorblocked",
   "currentFull": {
     "total": 1366,
     "passed": 1362,
@@ -30,8 +30,8 @@
       "nativeExit": 1
     }
   ],
-  "proven": "Independent native Linux wall-clock regressions; raw/adjusted clock rate split; chronyd kernelPID241 fourteen successful ADJ_TICK requests",
-  "causeLimits": "Provider owner/reference and exact reversal origin unknown; no historical test-cause attribution or same-proof receipt; no demonstrated durable project-local clock repair",
+  "proven": "Independent native Linux wall-clock regressions; chronyd utilityVM PID241 PHC reference class and fourteen successful ADJ_TICK requests; global729 maps via729188156 to Ubuntu timesyncd PID156",
+  "causeLimits": "Exact PHC device/reference redacted; prior automatic guest completion/exit unknown; no particular historical test cause or exact backward-step origin proven; no durable repair or service mutation",
   "ownerProbe": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-3-time-admin-probe.ps1",
   "ownerProbeSafeOutput": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-3-time-admin-probe-result.json",
   "ownerProbeExecuted": true,
@@ -72,8 +72,8 @@
   "delegateOwnedFileExcluded": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-3-time-windows-ntp-offsets.json",
   "safeAudit": {
     "nativeExit": 0,
-    "scannedArtifacts": 29,
-    "jsonParsed": 22,
+    "scannedArtifacts": 30,
+    "jsonParsed": 23,
     "secretAuthorityPiiPatternHits": 0,
     "modeSelectedTimexFieldsOnly": true
   },
@@ -87,7 +87,9 @@
     "allOwnWindowsInvocationsCompleted": true,
     "guestReaderCompletion": "UNKNOWN",
     "guestExit": "UNKNOWN",
-    "existingSharedAgettyAdoptedOrStopped": false
+    "existingSharedAgettyAdoptedOrStopped": false,
+    "ownerManualGuestJobCompleted": true,
+    "ownerManualGuestJobStatus": 0
   },
   "specOrProductChanged": false,
   "clockServicePolicyChanged": false,
@@ -130,7 +132,23 @@
       "SAFE|GUEST_JOB_STATUS|0"
     ],
     "priorGuestReaderExit": "UNKNOWN",
-    "ownerManualReadExecuted": false
+    "ownerManualReadExecuted": true,
+    "currentGuestReadCompleted": true,
+    "currentGuestJobStatus": 0,
+    "receipt": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-3-time-owner-receipt.json"
   },
-  "resourceState": "rootStop accepted,savedstate preserved,no moreDB use; confirmedshutdown not independently asserted"
+  "resourceState": "rootStop accepted,savedstate preserved,no moreDB use; confirmedshutdown not independently asserted",
+  "interventionProposal": {
+    "artifact": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-3-time-diagnosis.md",
+    "ownerApprovalRequired": true,
+    "executed": false,
+    "scope": "temporary runtime stop/start Ubuntu-24.04 systemd-timesyncd.service only; all utilityVM PHC/chronyd/config/enablement unchanged",
+    "plannedStopWindowSeconds": 90,
+    "validationMaximumRawSeconds": 55,
+    "newSamplerOrHelperIntroduced": false,
+    "inactiveMainPidZeroRequiredBeforeAndAfter": true,
+    "rollback": "start exact unit and verify prior active/running state; cannot undo time history; start canstep clock",
+    "causeStatus": "primary-source supported controlled isolation experiment, not proven historicalcause or guaranteed immediate convergence",
+    "delegateOwnedExactCommandArtifact": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-3-time-owner-intervention-proposal.md"
+  }
 }

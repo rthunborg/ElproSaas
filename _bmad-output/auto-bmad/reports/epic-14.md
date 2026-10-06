@@ -585,3 +585,39 @@ No new deferred items harvested.
 1. Canonical auto-bmad halt: patch verification failed. Stable local DB timekeeping is required before successful re-verification; changing host time settings is outside this story workflow. Preserve two remaining broad review rounds; later review focuses fixes/regressions.
 
 **Next:** Review /bmad-checkpoint-preview codex/epic14-resume. After stable local timekeeping, restore14.3 through High build delegate and resume /auto-bmad epic --epic14. Story14.4 and PR gates remain closed; project-context refresh follows epic completion.
+
+## Report — 2026-10-06T17:40:16Z (halted â€” owner-run clock provider read required)
+
+**Epic:** `14` — 4 stories.
+**Branch:** `codex/epic14-resume` (HEAD `b11bc5c`).
+**Pipeline status:** Halted at Story14.3 patch verification; Epic14 incomplete.
+**Continues:** 2026-10-06T15:17:04Z (halted â€” patch verification failed)
+
+**Summary:** Clock diagnosis only this continuation (Sol6.1 High build delegate). Native Linux realtime reversals verified; trace identifies chronyd ADJ_TICK and systemd-timesyn ADJ_SETOFFSET. Exact provider ownership and reversal cause unresolved. Actual Administrator read timed out; owned Windows cleanup verified, guest completion unknown. Installed WSL interactive debug shell cannot provide contained automatic exec.
+
+**Timing:** started 2026-09-29T08:23:21Z; completed in progress — elapsed 177h 16m (≈15h 20m AI-run, ≈161h 56m human/idle wait); resumed 14×.
+
+**Stories:**
+1. 14.1 and14.2 previously landed; approvals retained.
+2. 14.3 remains blocked:1362 passed/3 failed/1 intentional skip;143 focused passes. One completed independent review round, all6 layers;9 accepted fixes preserved. No rerun or restoration this clock phase.
+
+**Skipped:**
+1. 14.4 not started:14.3 gate unresolved.
+
+**Epic gate:** Not reached; empty-chain CI required and unexecuted.
+
+**TEA:** No new TEA execution this continuation.
+
+**Retrospective:** Not reached.
+
+**Overrides:** Existing approvals retained; clock diagnosis authorized; no hosted/data-reset/clock/service changes. Guard Stop accepted native0; shutdown unverified; saved data retained.
+
+**Open questions:**
+1. Which environment owns chronyd PID241 and its clock reference? How does PID729 map to Ubuntu timesyncd?
+
+**Deferred work:** (none)
+
+**⚠️ Needs human:**
+1. Perform concrete owner-run Administrator metadata read in _bmad-output/test-artifacts/story14-3-time-diagnosis.md. Require existing GNU timeout and GUEST_READ_COMPLETE=true/GUEST_JOB_STATUS=0. No unsupported automatic retry.
+
+**Next:** Owner-run provider read, then concrete scoped clock intervention approval, stable-clock verification, delegate restoration and patch gate/follow-up. Human review: /bmad-checkpoint-preview codex/epic14-resume. Project context refresh recommended after epic completion.

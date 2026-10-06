@@ -1,0 +1,33 @@
+{
+  "source": "Owner-supplied manual Administrator WSL debug-console read; received through root",
+  "readOnly": true,
+  "guestReadCompleted": true,
+  "guestJobStatus": 0,
+  "priorAutomatedGuestCompletion": "UNKNOWN",
+  "records": [
+    "SAFE|TARGET_COMM|241|chronyd",
+    "SAFE|NSPID|NSpid:241",
+    "SAFE|PIDNS|pid:[4026531836]",
+    "SAFE|MNTNS|mnt:[4026531832]",
+    "SAFE|EXE|/usr/sbin/chronyd",
+    "SAFE|CGROUP|/",
+    "SAFE|CONTROL|makestep|1.0|3",
+    "SAFE|SOURCE|refclock|PHC|reference_redacted",
+    "SAFE|TARGET_COMM|729|systemd-timesyn",
+    "SAFE|NSPID|NSpid:729 188 156",
+    "SAFE|PIDNS|pid:[4026532394]",
+    "SAFE|MNTNS|mnt:[4026532398]",
+    "SAFE|EXE|/usr/lib/systemd/systemd-timesyncd",
+    "SAFE|CGROUP|/system.slice/systemd-timesyncd.service",
+    "SAFE|TARGET_COMM|450|initd",
+    "SAFE|METADATA_STOPPED_UNMATCHED_TARGET|450",
+    "SAFE|GUEST_READ_COMPLETE|true",
+    "SAFE|GUEST_JOB_STATUS|0"
+  ],
+  "reconciliation": {
+    "chronyd": "PID241 in initial utility-VM PID namespace4026531836 and mount namespace4026531832, root cgroup, configured PHC reference; previously captured successful ADJ_TICK calls attributable to this provider",
+    "timesyncd": "KernelPID729 maps through NSpid729/188/156 into prior Ubuntu PIDnamespace4026532394, localPID156 and systemd-timesyncd.service cgroup",
+    "pid450": "Current comm initd fails time-provider guard; no identity or causal inference beyond received metadata",
+    "limits": "This receipt completes only the owner manual job. PHC device/reference address redacted; exact origin of backward steps and historical test causes remain unknown. No service, clock or configuration changes made."
+  }
+}
