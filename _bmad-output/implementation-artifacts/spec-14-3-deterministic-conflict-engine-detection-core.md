@@ -3,7 +3,7 @@ title: 'Story 14.3: Deterministic Conflict Engine (Detection Core)'
 type: 'feature'
 created: '2026-10-06'
 status: 'in-progress'
-baseline_revision: '2a6c9e6d6859987590f2e875f695a75c16125af6'
+baseline_revision: 'a9e2838e80afbd9718c6d907c5518a152b286b1f'
 review_loop_iteration: 0
 followup_review_recommended: false
 context:
@@ -146,6 +146,7 @@ Technical references checked for planning: [PostgreSQL transaction isolation](ht
 ## Spec Change Log
 
 - 2026-10-06 implementation author: implemented the sole deterministic engine, real snapshot/sign/finalize save authority, complete derived peer refresh, and common first gates across consumed writers. Added two CLI-generated forward migrations, dedicated synthetic local/CI key bootstrap, real ATDD bindings, activated all 20 named checks, and retained all 32 booking cases. Invitation expiry after a wait now uses the current database instant. Frozen intent/acceptance and historical blocked attempts are preserved.
+- 2026-10-06 diagnostic continuation author: corrected reporter observability invocation-only and executed the complete current full integration gate (1,354 passed/0 failed/one intentional skip). No production defect/fix or historical failure cause is invented. Root-authorized `_bmad/render/**` ESLint global ignore addresses immutable generated Markdown/JSON cache EPERM while preserving all source/test coverage and the canonical lint command.
 
 ## Review Triage Log
 
@@ -160,6 +161,8 @@ Blocking condition: none for the owner-authorized diagnostic continuation; the h
 The owner explicitly authorized diagnostic, scope-bound fix, re-verification and independent-review continuation. The original fresh context-free gpt-6.1-sol High implementation/fix author confirmed availability before this restoration. Preserve all frozen intent, implementation, baseline history, prior native results and pending gates. Clean pre-restoration checkpoint captured directly from Git: `44247fc8d6a010497fd2d2787405010c8dd0bf4d`. The full unreviewed Story 14.3 implementation remains based on original implementation baseline `2a6c9e6d6859987590f2e875f695a75c16125af6`; later diagnostic baselines must not hide that implementation from its first independent review.
 
 Root has verified the retained isolated stack under new lifecycle `730ffa3c-8fe8-4b93-b5b8-4da0f9e61cee`, API 55421 and DB 55422. Root owns Stop; no subagent launch, original-stack use, reset, deletion or hosted action is authorized. The build delegate restored only this spec; root owns clean checkpoint, sprint and orchestration metadata. Testing waits for that clean checkpoint and service/ledger readiness, then captures current full-workload diagnostics with `STORY143_DIAGNOSTIC=1` before drawing conclusions about the prior INT-004 failure.
+
+Step03 diagnostic-resume baseline captured directly from Git after root clean checkpoint: `a9e2838e80afbd9718c6d907c5518a152b286b1f`. First independent review still covers the complete Story 14.3 change from original implementation baseline `2a6c9e6d6859987590f2e875f695a75c16125af6`; the canonical resume baseline does not limit that review scope.
 
 ### Historical resumed implementation verification HALT
 
@@ -214,7 +217,7 @@ Fresh context-free gpt-6.1-sol High implementation-author capacity was proven by
 
 Step03 implementation baseline captured directly from Git: 2a6c9e6d6859987590f2e875f695a75c16125af6. Original frozen planning baseline remains 0c4ab83f8b4578933c5297f30ee7138bbfa3ba94 as recorded above; Code Map anchors describe that original inspected baseline. Root confirmed the clean checkpoint before implementation.
 
-### Implementation author evidence 2026-10-06
+### Historical implementation author evidence 2026-10-06
 
 Tasks 1–8 are implemented. Task 9 is partially complete: author execution/evidence and the review trail exist; independent review and final reconciliation remain pending. Root directed canonical Step 03 `blocked: implementation verification failed`; the build delegate owns terminal HALT/status metadata. No story/epic gate advancement is claimed. See [author verification](../test-artifacts/story14-3-verification.md) for the exhaustive consumed-writer inventory, per-AC evidence, native exits, skips and limits.
 
@@ -222,10 +225,20 @@ The current 73/73 focused run executes all six integration IDs and all four tran
 
 Both immutable forward migrations were incrementally applied to root-owned isolated 55421/55422, preserving every prior 92 ledger record; final count 94. Root retains lifecycle `79338b7b-db58-4a1a-85a2-5d877d3d45e3` for review. Empty-chain CI, canonical lint under an actor able to read the generated snapshot, cumulative failure resolution and independent review remain outstanding. No UI/browser, hosted, performance or numeric-coverage readiness is claimed.
 
+### Diagnostic continuation author evidence 2026-10-06
+
+Verified root-owned new lifecycle `730ffa3c-8fe8-4b93-b5b8-4da0f9e61cee` readiness on isolated 55421/55422: Auth/REST/Storage HTTP 200, checked schema ready, ledger 94 with all prior 92 and both Story 14.3 records unchanged. Canonical resume baseline is `a9e2838e80afbd9718c6d907c5518a152b286b1f`; first independent review still covers the complete implementation from `2a6c9e6d6859987590f2e875f695a75c16125af6`, including `c8d0a881`.
+
+First resume full diagnostic (eight workers, file parallelism retained, required flag and safe diagnostics enabled) returned native 1: 1,355 total/1,353 passed/one retained INT-009 failure/one intentional recovery skip; all 49 conflicts passed. Peak 44 PostgreSQL clients does not explain the failed linked-job CREATE. JSON-only reporting suppressed console diagnostics. Correcting that invocation to default plus JSON reporters makes existing safe real-RPC codes observable without changing code/assertions/config/timeouts. The corrected complete full workload returned native 0: **1,355 total/1,354 passed/0 failed/one intentional recovery skip**, including all 49 conflicts, all 32 retained booking cases, migration/ACL and inventory tests.
+
+No production defect/fix or infrastructure cause is claimed; historical INT-004 and first-resume INT-009 causes remain unknown and their exact results are preserved. Current full integration is green; independent full-diff review/trail inspection remains pending. No filtered result or skip waiver substitutes for this full execution. Detailed evidence: [authorized continuation](../test-artifacts/story14-3-verification.md#authorized-diagnostic-continuation--2026-10-06). Root owns terminal metadata and lifecycle Stop.
+
+Canonical ESLint EPERM persisted under the build actor, which identified immutable generated cache files as Markdown/JSON rather than lintable source. Root authorized the narrow `_bmad/render/**` global ignore; the author applied only that pattern/comment, preserving all application/test coverage and the unmodified canonical lint command. The build actor then executed canonical `pnpm run lint`: **native 0, 0 errors / 13 inherited warnings**. No DB rerun is needed for this cache-only change. Independent first review includes this delta and specifically investigates possible intermittent CREATE fail-closed clock/HMAC/CAS/token-expiry/concurrent-fixture paths across the full implementation.
+
 ## Suggested Review Order
 
 Author: `/root/build_14_3/author_14_3`, the implementation/fix author; pure modules were implemented by its explicitly owned High worker.
-Refreshed against the uncommitted Story 14.3 working tree based on `2a6c9e6d6859987590f2e875f695a75c16125af6`; current verification limitations are retained below.
+Refreshed against the current diagnostic working tree at resume baseline `a9e2838e80afbd9718c6d907c5518a152b286b1f`; full review scope remains original implementation baseline `2a6c9e6d6859987590f2e875f695a75c16125af6`, including `c8d0a881`. Recorded historical failures and current limits are retained below.
 
 ### Actual saves preserve command and replay authority
 
@@ -265,13 +278,15 @@ Complete tenant refresh was chosen in the approved spec to avoid missing peer an
 
 ### Evidence and operational limits stay visible
 
-The transferred INT-003 P0, INT-004 P1, INT-005 P1 and INT-006 P0 all execute through actual commands and exact durable readbacks. Correlation-scoped owner-only faults exercise real rollback; synthetic fixtures and observer barriers do not replace SQL verification. Full counts, the unresolved current cumulative INT-004 failure, canonical-lint limitation, and inherited skips are recorded in the linked verification artifact (AC7–12).
+The transferred INT-003 P0, INT-004 P1, INT-005 P1 and INT-006 P0 all execute through actual commands and exact durable readbacks. Correlation-scoped owner-only faults exercise real rollback; synthetic fixtures and observer barriers do not replace SQL verification. Full current execution passes; historical failures, canonical-lint limitation, and inherited skips remain recorded without invented attribution (AC7–12).
 
-- `tests/integration/commands/booking-conflicts.int.test.ts:74` — `14.3-INT-003`: atomic real create result.
+Root authorized excluding only immutable generated BMAD Markdown/JSON cache after canonical lint hit EPERM under two actors; source/test coverage and the canonical command remain intact. This is a cache-read correction, with no production behavior or DB change.
+
+- `eslint.config.mjs:19` — `_bmad/render/**`: narrow generated-cache ignore for canonical lint.
 - `tests/integration/commands/booking-conflicts.int.test.ts:146` — `14.3-INT-005`: exact create/update rollback snapshots.
 - `tests/integration/commands/booking-conflicts.int.test.ts:166` — `14.3-INT-006`: stale actual save retries original identity.
 - `docs/process/local-setup.md:129` — `Booking conflict attestation`: private dedicated key and synthetic local bootstrap.
 
-Evidence: [author verification and AC mappings](../test-artifacts/story14-3-verification.md). Required focused current integration is 73 passed/0 failed/0 skipped; current bounded cumulative integration is 1,353 passed/1 failed/1 inherited recovery skip. Representative parallel diagnostics pass 146/146, including all 49 conflict cases, with peak 30 client connections. Unit execution is 1,992 passed/0 failed/1 inherited Windows xattr skip. `check-review-order.mjs` passes all 20 references; reviewer inspection remains pending.
+Evidence: [author verification and AC mappings](../test-artifacts/story14-3-verification.md). Current complete eight-worker parallel integration is native 0, 1,354 passed/0 failed/1 intentional recovery skip (1,355 total), including all 49 conflicts and all 32 retained booking cases. Build-actor canonical `pnpm run lint` is native 0, 0 errors/13 inherited warnings. Earlier focused/representative checks and failed complete workloads remain separately recorded. Unit execution is 1,992 passed/0 failed/1 inherited Windows xattr skip. `check-review-order.mjs` passes all 20 references; reviewer inspection remains pending.
 
-Limits: current cumulative failure requires diagnosis; isolated passing repetition is diagnostic only. Canonical lint, independent review/trail inspection and exact empty-chain Epic CI remain pending. Browser/editor/override belongs to 14.4; optional job-depth is unavailable in production. No hosted/external, numeric-coverage or performance claim is made.
+Limits: historical failures' causes remain unknown; the latest complete green run does not retroactively explain them. Independent full-diff review/trail inspection and exact empty-chain Epic CI remain pending. Browser/editor/override belongs to 14.4; optional job-depth is unavailable in production. No hosted/external, numeric-coverage or performance claim is made.

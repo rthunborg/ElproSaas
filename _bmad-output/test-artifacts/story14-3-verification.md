@@ -1,5 +1,7 @@
 # Story 14.3 author verification — 2026-10-06
 
+Current continuation: complete eight-worker required integration passes native 0, 1,355 total / 1,354 passed / 0 failed / 1 intentional recovery skip. Canonical lint passes native 0, 0 errors / 13 inherited warnings after the narrow generated-cache correction. Original failed runs below remain historical; their causes are unknown, and no production fix or infrastructure attribution is invented. Independent review remains pending. The latest evidence is detailed under Authorized diagnostic continuation.
+
 Implementation author: `/root/build_14_3/author_14_3`, gpt-6.1-sol High, selected for transactional integrity, critical conflicts, authentication/RLS and DST correctness. One authorized context-free gpt-6.1-sol High worker owned only the pure scheduling modules, fixtures and unit activation; High reason: transactional/DST conflict integrity. Independent review is pending and is not substituted by author checks.
 
 Tested state: uncommitted Story 14.3 working tree on `codex/epic14-resume`, based on `2a6c9e6d6859987590f2e875f695a75c16125af6`. No Git commit, branch, push, PR, hosted change, reset or resource deletion was performed by the author. The final code-only diagnostic changes add a typed command error-code assertion context and opt-in test-only actual-RPC error-code observation; no assertions or production behavior change. The representative run executes those diagnostics.
@@ -36,7 +38,7 @@ No original `54321/54322` mutation, business seed/reset or existing-data cleanup
 
 The final ledger contains 94 records; all 92 prior complete records retain SHA-256 `9a7fa3a7b1a5ece3fe93153197448b21c12b48e7bc17f72313acf6ad4c6e7338`. See [before](story14-3-ledger-before.json) and [final](story14-3-ledger-final.json). This proves incremental application, not an empty-chain reset. Empty DB → all migrations → seed → required integration remains mandatory in Epic CI before merge.
 
-## Executed checks
+## Historical executed checks before diagnostic continuation
 
 All integration runs set `SUPABASE_TEST_REQUIRED=1`. Counts below are tests, not assertions; filtered skips are never acceptance coverage.
 
@@ -74,16 +76,34 @@ The owned test fault harness was corrected by preinstalling owner-only triggers 
 | AC5 internal preview/save equivalence | INT-001, real commands and sole detector, exact normalized durable rows |
 | AC6 stale preview and actual retry | INT-002 and transferred INT-006 P0; zero stale-attempt mutations |
 | AC7 atomic actual CREATE | Transferred INT-003 P0; exact booking, assignments, conflicts, outcome and attributable target audit |
-| AC8 replacement/peer refresh/accepted-key preservation/cancellation | Transferred INT-004 P1; passed focused and isolated, unresolved failure in current full run |
+| AC8 replacement/peer refresh/accepted-key preservation/cancellation | Transferred INT-004 P1; current complete full workload passes; historical failure remains recorded with unknown cause |
 | AC9 post-conflict and audit rollback | Transferred INT-005 P1; create/update exact pre/post durable equality |
 | AC10 current facts and post-wait authority | Distinct-key booking race; eight individual schedule/profile/calendar/combined/work-role-upsert/work-role-active/membership/invitation races; create/update replay revocation; three-attempt retry; expiry-during-wait case |
 | AC11 proof/ACL/tenancy/read scope | 13-field proof tampering, missing/forged/malformed/expired/version proof, valid-signed malformed rows, direct/legacy/private denials, own-assignment reads, cross-language UTF-8/microsecond proof vector, exact 2 checked / 8 private ACL/search-path inventory |
 | AC12 permanent fixtures and scope | UNIT-014 six named regression cases; all 14 unit and 6 integration IDs executed; manifest/source/bundle gates retained |
 
-Each UNIT-001..014 has its own named test in the three scheduling unit files. All INT-001..006 are named actual-command cases. Transferred INT-003/004/005/006 P0/P1 all pass in current focused execution, but this does not waive the current cumulative INT-004 failure.
+Each UNIT-001..014 has its own named test in the three scheduling unit files. All INT-001..006 are named actual-command cases. Transferred INT-003/004/005/006 P0/P1 all pass in the latest complete full workload; earlier failed workloads and unknown causes remain recorded separately.
 
-## Remaining limits
+## Historical remaining limits at the prior HALT
 
 Root directed canonical Step 03 `blocked: implementation verification failed` after the unexplained owned INT-004 result. The build delegate owns the terminal HALT/status write; this author does not change terminal metadata or start another broad retry. Implementation and the 20-stop author trail are preserved for checkpointing. Root will request Stop for the shared lifecycle after return; this author does not stop another actor's resource.
 
 Independent security/transaction/code review and final review-trail inspection are pending. Current cumulative-suite INT-004 failure needs resolution or an evidence-backed diagnosis; isolated and representative green runs do not explain it. Author verification is blocked by that unresolved full-run failure; no waiver is inferred. Canonical lint under a readable generated-snapshot actor remains pending. Exact empty-chain proof remains Epic CI. No browser/UI coverage is claimed before 14.4; no external vendor/service or hosted secret deployment was tested. Functional fixture correctness does not establish unapproved performance/scalability thresholds or numeric code coverage. This evidence does not advance Story 14.4 or declare the story done.
+
+## Authorized diagnostic continuation — 2026-10-06
+
+The user explicitly authorized diagnostic/fix/reverification/independent-review continuation. Build restoration and root's clean gate are at `a9e2838e80afbd9718c6d907c5518a152b286b1f`; the first independent review must cover ALL Story 14.3 implementation from original baseline `2a6c9e6d6859987590f2e875f695a75c16125af6`, including implementation checkpoint `c8d0a881`, rather than only the resume delta. Existing spec context files and review conventions were reloaded and verified unchanged from the original implementation baseline. The approved intent is unchanged.
+
+Root's new lifecycle `730ffa3c-8fe8-4b93-b5b8-4da0f9e61cee` is active and verified on retained project `rg-f58d95e0aa76f813445d407dfe410638d75a0041`, isolated API 55421 and DB 55422. Root owns Stop; old lifecycle `79338b7b-db58-4a1a-85a2-5d877d3d45e3` is stopped. No child launch/stop/adoption, original-stack use, reset, deletion or hosted action occurred. [Readiness](story14-3-resume-readiness.json) proves Auth/REST/Storage each HTTP 200, checked schema ready, ledger count 94, all 92 prior and both Story 14.3 records unchanged.
+
+The owner-authorized current full workload ran with `SUPABASE_TEST_REQUIRED=1`, `STORY143_DIAGNOSTIC=1`, `--maxWorkers=8` and unchanged `fileParallelism=true`. The first JSON-only diagnostic returned native 1: 1,355 total / 1,353 passed / 1 failed / 1 intentional skip ([report](story14-3-resume-full-diagnostic.json)). All 49 conflict cases passed, including historical INT-004. The sole new failure was retained `14.2-INT-009`, linked basic-job CREATE at `bookings.int.test.ts:430`; its `ok=false` assertion lacked the underlying code. Aggregate sampling showed peak 51 total / 44 client PostgreSQL backends ([samples](story14-3-resume-full-connections.json)); this does not prove why that command failed.
+
+Concrete diagnostic-invocation defect: the JSON-only reporter suppressed the existing test-only safe console observer, making the failure code unavailable. A corrected invocation added the default reporter alongside JSON, with no production/test/config/assertion/timeout change: `pnpm run test:int --maxWorkers=8 --reporter=default --reporter=json --outputFile=_bmad-output/test-artifacts/story14-3-resume-full-visible-diagnostic.json`. The observer then exposed expected real fault/replay/permission codes (e.g. finalize `XX000`/`P0001` and replay `BK409`), confirming observability. It never logs facts, proof/secret/token bytes, SQL binds or mutable records.
+
+The corrected complete full workload returned native 0: **1,355 total / 1,354 passed / 0 failed / 1 intentional recovery-loader skip**, 128 files passed and 1 skipped, 80.04 seconds ([report](story14-3-resume-full-visible-diagnostic.json)). All 49 conflict cases, all 32 retained booking cases (16 foundation + 11 replay + 5 RLS), 12 migration/ACL cases and 4 inventory cases execute and pass. This is current full-workload evidence, not a filtered repetition, assertion weakening or skip waiver. No unexpected error code appeared and no scope-bound production defect was identified/fixed. The causes of historical INT-004 and first-resume retained INT-009 failures remain unknown; green execution does not retroactively explain them. No further broad retry is planned absent a new change or diagnosis.
+
+Current full integration is green. Canonical lint is green as recorded below; first independent review/trail inspection remains pending. Empty-chain Epic CI and all earlier external/browser/performance limits remain. Terminal status and advancement remain the build/root delegate's responsibility.
+
+### Authorized canonical lint cache correction
+
+Both author and build actors hit canonical ESLint `EPERM scandir` on an immutable generated `_bmad/render` snapshot. The build actor identified the cache as generated `outputs.md`/`manifest.json`, with no lintable application/test source. Root explicitly authorized the narrow global ignore `_bmad/render/**`; this author added only that pattern and its rationale comment at `eslint.config.mjs:19`. All source/tests coverage and the canonical unmodified `pnpm run lint` command remain intact. No concurrency/assertion/timeout or CI weakening was made. The build actor executed canonical `pnpm run lint` after the correction and reported **native 0, 0 errors / 13 inherited warnings**; the author records that actual delegated execution rather than claiming a separate author run. Another DB rerun is unnecessary for this cache-only change. First independent review includes this config delta as well as the complete original Story 14.3 implementation and the historical intermittent fail-closed paths. Final review-order reference checker passes exactly one section and all 20 stops/anchors; whitespace validation passes.
