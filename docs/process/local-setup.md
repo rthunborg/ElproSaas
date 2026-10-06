@@ -126,6 +126,21 @@ Rules (see [`docs/security/security-guardrails.md`](../security/security-guardra
 
 ## Local Supabase (wired)
 
+### Booking conflict attestation
+
+Fresh internal booking writes require non-public `BOOKING_CONFLICT_ATTESTATION_KEY_ID`
+and `BOOKING_CONFLICT_ATTESTATION_HMAC_SECRET`, with matching owner-only Vault secret
+`booking_conflict_attestation_<key-id>`. The database verifies the dedicated
+length-prefixed HMAC over current fact/candidate digests and exact derived output;
+validity is database-issued and limited to two minutes. Missing or unknown keys
+fail closed. Proofs and secrets are never browser data, audit metadata or logs.
+Completed authorized replay does not require new signing material.
+
+`supabase/seed.sql` installs an explicitly synthetic local/CI pair. Vitest sets the
+matching server variables from `tests/support/test-env.ts`; production has no fallback.
+Populated authorized local stacks may apply only that idempotent synthetic seed
+block without reset. Hosted key installation is outside Story 14.3.
+
 Supabase is the backend (Auth + Postgres + Storage, architecture §6). The
 local CLI stack is now wired: `supabase/config.toml`, the first migration
 (`supabase/migrations/*_tenant_foundation.sql`), and a minimal `supabase/seed.sql`

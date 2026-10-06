@@ -151,3 +151,50 @@ $$;
 -- Add only deterministic local/test fixtures or rows that every environment must
 -- have. No tenant/business data belongs here.
 -- ============================================================================
+-- Synthetic local/CI booking proof material only. No production runtime fallback.
+do $$
+declare v_secret_id uuid;
+begin
+ select id into v_secret_id from vault.secrets where name='booking_conflict_attestation_test_v1';
+ if v_secret_id is null then
+  perform vault.create_secret('local-test-only-booking-conflict-attestation-secret-v1','booking_conflict_attestation_test_v1','Story 14.3 synthetic local/CI HMAC fixture only');
+ else
+  perform vault.update_secret(v_secret_id,'local-test-only-booking-conflict-attestation-secret-v1','booking_conflict_attestation_test_v1','Story 14.3 synthetic local/CI HMAC fixture only');
+ end if;
+end $$;
+
+-- Story 14.3 preinstalls the owner-only, correlation-scoped fault fixtures.
+-- Test bodies only insert/remove their own marker; no concurrent trigger DDL.
+
+      create schema if not exists test_support;
+      create table if not exists test_support.forced_booking_failures(correlation_id uuid primary key,stage text not null);
+      revoke all on test_support.forced_booking_failures from public,anon,authenticated,service_role;
+      create or replace function test_support.fail_booking_write() returns trigger language plpgsql set search_path='' as $$
+      begin
+        if exists(select 1 from test_support.forced_booking_failures f
+          where f.correlation_id=nullif(current_setting('app.booking_correlation_id',true),'')::uuid and f.stage=TG_ARGV[0])
+        then raise exception 'forced booking write failure' using errcode='XX000'; end if;
+        return null;
+      end $$;
+      revoke all on function test_support.fail_booking_write() from public,anon,authenticated,service_role;
+      drop trigger if exists test_forced_booking_failure on public.bookings;
+      create trigger test_forced_booking_failure after insert or update on public.bookings
+        for each statement execute function test_support.fail_booking_write('after_booking');
+      drop trigger if exists test_forced_assignee_failure on public.booking_assignees;
+      create trigger test_forced_assignee_failure after insert on public.booking_assignees
+        for each statement execute function test_support.fail_booking_write('after_assignees');
+
+    create schema if not exists test_support;
+    create table if not exists test_support.forced_conflict_failures(correlation_id uuid primary key);
+    revoke all on test_support.forced_conflict_failures from public,anon,authenticated,service_role;
+    create or replace function test_support.fail_conflict_preparation() returns trigger language plpgsql set search_path='' as $$
+    begin
+      if exists(select 1 from test_support.forced_conflict_failures f
+        where f.correlation_id=nullif(current_setting('app.booking_correlation_id',true),'')::uuid)
+      then raise exception 'forced post conflict failure' using errcode='XX000'; end if;
+      return null;
+    end $$;
+    revoke all on function test_support.fail_conflict_preparation() from public,anon,authenticated,service_role;
+    drop trigger if exists test_forced_conflict_preparation on public.booking_conflicts;
+    create trigger test_forced_conflict_preparation after insert or update or delete on public.booking_conflicts
+      for each statement execute function test_support.fail_conflict_preparation();

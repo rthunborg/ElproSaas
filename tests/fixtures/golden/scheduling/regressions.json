@@ -366,6 +366,122 @@
         }
       },
       "expected": []
+    },
+    {
+      "name": "miss-pre-epoch-microsecond-local-day",
+      "input": {
+        "candidate": {
+          "id": "20000000-0000-4000-8000-000000000001",
+          "startsAt": "1969-12-31T22:59:59.999999Z",
+          "endsAt": "1969-12-31T23:00:00.000000Z",
+          "allDay": false,
+          "status": "planned",
+          "assigneeIds": [
+            "10000000-0000-4000-8000-000000000001"
+          ]
+        },
+        "existingBookings": [],
+        "people": [
+          {
+            "id": "10000000-0000-4000-8000-000000000001",
+            "employmentPercentage": 100,
+            "shifts": [],
+            "exceptions": []
+          }
+        ],
+        "calendarDays": [],
+        "jobInputs": null,
+        "rules": {
+          "version": "new-expected-v1",
+          "timeZone": "Europe/Stockholm",
+          "planningBufferMinutes": 0,
+          "acknowledgmentThresholdMinutes": 60,
+          "authorizedOvertime": []
+        }
+      },
+      "expected": [
+        {
+          "conflictType": "outside_work_hours",
+          "bookingIds": [
+            "20000000-0000-4000-8000-000000000001"
+          ],
+          "affectedPersonIds": [
+            "10000000-0000-4000-8000-000000000001"
+          ],
+          "startsAt": "1969-12-31T22:59:59.999999Z",
+          "endsAt": "1969-12-31T23:00:00.000000Z"
+        },
+        {
+          "conflictType": "over_capacity",
+          "bookingIds": [
+            "20000000-0000-4000-8000-000000000001"
+          ],
+          "affectedPersonIds": [
+            "10000000-0000-4000-8000-000000000001"
+          ],
+          "startsAt": "1969-12-30T23:00:00.000000Z",
+          "endsAt": "1969-12-31T23:00:00.000000Z"
+        }
+      ]
+    },
+    {
+      "name": "miss-submicrosecond-reduced-budget-overrun",
+      "input": {
+        "candidate": {
+          "id": "20000000-0000-4000-8000-000000000001",
+          "startsAt": "2026-10-12T06:00:00.000000Z",
+          "endsAt": "2026-10-12T06:00:00.000001Z",
+          "allDay": false,
+          "status": "planned",
+          "assigneeIds": [
+            "10000000-0000-4000-8000-000000000001"
+          ]
+        },
+        "existingBookings": [],
+        "people": [
+          {
+            "id": "10000000-0000-4000-8000-000000000001",
+            "employmentPercentage": 100,
+            "shifts": [
+              {
+                "weekday": 1,
+                "start": "08:00:00",
+                "end": "08:00:00.000001",
+                "breaks": []
+              }
+            ],
+            "exceptions": []
+          }
+        ],
+        "calendarDays": [
+          {
+            "date": "2026-10-12",
+            "variant": "reduced_capacity",
+            "reductionPercent": 50
+          }
+        ],
+        "jobInputs": null,
+        "rules": {
+          "version": "new-expected-v1",
+          "timeZone": "Europe/Stockholm",
+          "planningBufferMinutes": 0,
+          "acknowledgmentThresholdMinutes": 60,
+          "authorizedOvertime": []
+        }
+      },
+      "expected": [
+        {
+          "conflictType": "over_capacity",
+          "bookingIds": [
+            "20000000-0000-4000-8000-000000000001"
+          ],
+          "affectedPersonIds": [
+            "10000000-0000-4000-8000-000000000001"
+          ],
+          "startsAt": "2026-10-11T22:00:00.000000Z",
+          "endsAt": "2026-10-12T22:00:00.000000Z"
+        }
+      ]
     }
   ]
 }

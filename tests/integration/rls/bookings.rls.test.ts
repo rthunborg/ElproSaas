@@ -1,3 +1,4 @@
+import { authoritativeBookingRpc } from "../../support/booking-conflict-attestation";
 import { isLocalStackReachable } from "../../support/test-env";
 import { skipUnlessStack } from "../../support/stack-gate";
 import { beforeAll, describe, expect, test } from "vitest";
@@ -145,9 +146,9 @@ describe("Story 14.2 booking authority ATDD", () => {
       for (const [client, actor] of [[fx.adminClient, fx.base.adminA], [fx.plannerClient, fx.users.projektledare]] as const) {
         const input = bookingInput([fx.ownProfile.id]);
         const envelope = await bookingCommand("create", client, input); expect(envelope.ok).toBe(true); if (!envelope.ok) return;
-        const direct = await checkedBookingRpc("create", client, bookingInput([fx.coworkerProfile.id]), fx.base.tenantA.id, actor.id);
+        const direct = await authoritativeBookingRpc("create", client, bookingInput([fx.coworkerProfile.id]), fx.base.tenantA.id, actor.id);
         expect(direct.error).toBeNull(); expect(direct.data).toEqual({ bookingId: expect.any(String) });
-        expect((await checkedBookingRpc("update", client,
+        expect((await authoritativeBookingRpc("update", client,
           bookingInput([fx.ownProfile.id], { bookingId: envelope.data.bookingId }), fx.base.tenantA.id, actor.id)).error).toBeNull();
         for (const table of bookingTables) {
           const snapshot = await bookingSnapshot(fx.tenantIds);

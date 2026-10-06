@@ -2,8 +2,8 @@
 title: 'Story 14.3: Deterministic Conflict Engine (Detection Core)'
 type: 'feature'
 created: '2026-10-06'
-status: 'in-progress'
-baseline_revision: '0c4ab83f8b4578933c5297f30ee7138bbfa3ba94'
+status: 'blocked'
+baseline_revision: '2a6c9e6d6859987590f2e875f695a75c16125af6'
 review_loop_iteration: 0
 followup_review_recommended: false
 context:
@@ -69,14 +69,14 @@ Inspected at full baseline revision above. Existing anchors below are source evi
 
 **Execution (9 tasks, dependency order):**
 
-1. [ ] `src/features/scheduling/types.ts`, `conflicts.ts`, `capacity.ts`, `time-zone.ts`, `swedish-holidays.ts`, with existing `src/features/resources/work-hours.ts` and `schedule-read.ts` — define typed frozen fact/config/output contracts and implement one detector with pure helpers. Derive explicit capacity windows from local calendar/schedules, cover all five conflict types, preserve microseconds, exclude cancelled bookings and the candidate's prior state, normalize participants/windows/keys and sort output. Version rules; no fixed company schedule, ambient clock or runtime I/O.
-2. [ ] `tests/fixtures/golden/scheduling/conflicts.json`, `capacity.json`, `dst.json`, `regressions.json`, and `tests/unit/features/scheduling/conflicts.test.ts`, `capacity.golden.test.ts`, `dst.golden.test.ts` — implement all 14 named unit obligations and every I/O edge. Pin actual-weekly-schedule examples, all six capacity terms, layered/calendar overlap subtraction, split shifts/breaks, multi-day/all-day, cancellation, permutations, both DST boundary weeks, injected threshold/overtime inputs and optional job requirements. Label fixtures new-expected; do not fabricate Lovable values. Add immutable miss/phantom regression cases as defects are fixed.
-3. [ ] `supabase/migrations/*_booking_conflict_detection_integration.sql` — create a new forward migration through discovered `supabase migration new` CLI, without editing applied history. Add owner-only canonical bundle/proof helpers and checked snapshot/finalize RPCs; seal fresh foundation RPC paths. Use the shared tenant gate, post-wait current authority, content-digest verification, schema/tenant output validation, private atomic booking/assignee/conflict/outcome/audit persistence and safe stale result. No revision/challenge table or detection-rule SQL duplicate.
-4. [ ] `supabase/migrations/*_booking_conflict_detection_integration.sql` — replace the actual resource, work-role and invitation acceptance writers listed in Code Map to acquire the common gate before row locks. Preserve existing admin lock/guards, invitation verified-email binding, command-only ACLs, nested call safety and parent reference locks. Document the exhaustive consumed-fact writer inventory; do not introduce a late row-trigger lock or unrelated quote/job redesign.
-5. [ ] `src/server/bookings/conflict-attestation.ts`, `conflict-facts.ts`, `save-with-conflicts.ts`, `src/server/commands/bookings/booking-db.ts`, `create-booking.ts`, `update-booking.ts`, and `src/server/commands/command-errors.ts` — use the cookie-bound client for checked snapshot/finalize, run the sole engine, sign exact results and retry stale snapshots at most three attempts using the original command UUID. Map final contention to retryable SERVER_ERROR; preserve original target-only replay and SQL-owned audit. Caller input contains no proof/conflicts/accepted-state authority. Export an internal frozen-fact preview seam for 14.4 without an entry point.
-6. [ ] `.env.example`, `docs/process/local-setup.md`, `tests/support/test-env.ts`, `tests/support/booking-conflict-attestation.ts`, `supabase/seed.sql`, `playwright.config.ts`, and `.github/workflows/ci.yml` only where needed — document dedicated non-public booking key ID/secret names and missing-key fail-closed behavior; bootstrap matching explicitly synthetic local/CI signing/Vault material using existing test setup patterns. Never commit real keys, log proof/secret bytes, install hosted secrets or edit an actual .env in this planning run. Do not alter existing resource ownership/start/reset behavior or CI gates.
-7. [ ] `tests/unit/server/bookings/conflict-attestation.test.ts`, `tests/integration/commands/booking-conflicts.int.test.ts` — prove all six named integration obligations through actual commands and exact durable readbacks. Add deterministic different-key concurrent booking, snapshot/finalize schedule/profile/calendar/role/invitation changes, old/new assignee/window peer refresh, malformed/forged/cross-tenant/actor/expired/version proofs, no legacy fresh-write bypass, bounded stale retry and post-conflict/audit rollback cases. Any test signing seam stays off runtime imports and does not bypass the production verifier.
-8. [ ] `tests/integration/commands/bookings-replay-authority.int.test.ts`, existing booking/RLS tests, `tests/integration/rls/migration-reset.int.test.ts` and scope tests — retain all 32 booking cases and authority/ACL negatives. Change race barriers to the new lock order, add exact new RPC/private helper grants/search-path checks and per-consumed-writer races; do not weaken assertions, required flags, counts or exact inventory/policy checks.
+1. [x] `src/features/scheduling/types.ts`, `conflicts.ts`, `capacity.ts`, `time-zone.ts`, `swedish-holidays.ts`, with existing `src/features/resources/work-hours.ts` and `schedule-read.ts` — define typed frozen fact/config/output contracts and implement one detector with pure helpers. Derive explicit capacity windows from local calendar/schedules, cover all five conflict types, preserve microseconds, exclude cancelled bookings and the candidate's prior state, normalize participants/windows/keys and sort output. Version rules; no fixed company schedule, ambient clock or runtime I/O.
+2. [x] `tests/fixtures/golden/scheduling/conflicts.json`, `capacity.json`, `dst.json`, `regressions.json`, and `tests/unit/features/scheduling/conflicts.test.ts`, `capacity.golden.test.ts`, `dst.golden.test.ts` — implement all 14 named unit obligations and every I/O edge. Pin actual-weekly-schedule examples, all six capacity terms, layered/calendar overlap subtraction, split shifts/breaks, multi-day/all-day, cancellation, permutations, both DST boundary weeks, injected threshold/overtime inputs and optional job requirements. Label fixtures new-expected; do not fabricate Lovable values. Add immutable miss/phantom regression cases as defects are fixed.
+3. [x] `supabase/migrations/*_booking_conflict_detection_integration.sql` — create a new forward migration through discovered `supabase migration new` CLI, without editing applied history. Add owner-only canonical bundle/proof helpers and checked snapshot/finalize RPCs; seal fresh foundation RPC paths. Use the shared tenant gate, post-wait current authority, content-digest verification, schema/tenant output validation, private atomic booking/assignee/conflict/outcome/audit persistence and safe stale result. No revision/challenge table or detection-rule SQL duplicate.
+4. [x] `supabase/migrations/*_booking_conflict_detection_integration.sql` — replace the actual resource, work-role and invitation acceptance writers listed in Code Map to acquire the common gate before row locks. Preserve existing admin lock/guards, invitation verified-email binding, command-only ACLs, nested call safety and parent reference locks. Document the exhaustive consumed-fact writer inventory; do not introduce a late row-trigger lock or unrelated quote/job redesign.
+5. [x] `src/server/bookings/conflict-attestation.ts`, `conflict-facts.ts`, `save-with-conflicts.ts`, `src/server/commands/bookings/booking-db.ts`, `create-booking.ts`, `update-booking.ts`, and `src/server/commands/command-errors.ts` — use the cookie-bound client for checked snapshot/finalize, run the sole engine, sign exact results and retry stale snapshots at most three attempts using the original command UUID. Map final contention to retryable SERVER_ERROR; preserve original target-only replay and SQL-owned audit. Caller input contains no proof/conflicts/accepted-state authority. Export an internal frozen-fact preview seam for 14.4 without an entry point.
+6. [x] `.env.example`, `docs/process/local-setup.md`, `tests/support/test-env.ts`, `tests/support/booking-conflict-attestation.ts`, `supabase/seed.sql`, `playwright.config.ts`, and `.github/workflows/ci.yml` only where needed — document dedicated non-public booking key ID/secret names and missing-key fail-closed behavior; bootstrap matching explicitly synthetic local/CI signing/Vault material using existing test setup patterns. Never commit real keys, log proof/secret bytes, install hosted secrets or edit an actual .env in this planning run. Do not alter existing resource ownership/start/reset behavior or CI gates.
+7. [x] `tests/unit/server/bookings/conflict-attestation.test.ts`, `tests/integration/commands/booking-conflicts.int.test.ts` — prove all six named integration obligations through actual commands and exact durable readbacks. Add deterministic different-key concurrent booking, snapshot/finalize schedule/profile/calendar/role/invitation changes, old/new assignee/window peer refresh, malformed/forged/cross-tenant/actor/expired/version proofs, no legacy fresh-write bypass, bounded stale retry and post-conflict/audit rollback cases. Any test signing seam stays off runtime imports and does not bypass the production verifier.
+8. [x] `tests/integration/commands/bookings-replay-authority.int.test.ts`, existing booking/RLS tests, `tests/integration/rls/migration-reset.int.test.ts` and scope tests — retain all 32 booking cases and authority/ACL negatives. Change race barriers to the new lock order, add exact new RPC/private helper grants/search-path checks and per-consumed-writer races; do not weaken assertions, required flags, counts or exact inventory/policy checks.
 9. [ ] `_bmad-output/implementation-artifacts/spec-14-3-deterministic-conflict-engine-detection-core.md`, `_bmad-output/test-artifacts/test-design-progress-epic-14.md`, and `_bmad-output/test-artifacts/story14-3-verification.md` — record ATDD/automation/independent review and executed/failed/skipped evidence at the actual tested revision, map all checks and transfers, and author the final Suggested Review Order after implementation/fixes. Planning has no completed implementation trail or product-test claim.
 
 **Acceptance Criteria:**
@@ -145,11 +145,25 @@ Technical references checked for planning: [PostgreSQL transaction isolation](ht
 
 ## Spec Change Log
 
+- 2026-10-06 implementation author: implemented the sole deterministic engine, real snapshot/sign/finalize save authority, complete derived peer refresh, and common first gates across consumed writers. Added two CLI-generated forward migrations, dedicated synthetic local/CI key bootstrap, real ATDD bindings, activated all 20 named checks, and retained all 32 booking cases. Invitation expiry after a wait now uses the current database instant. Frozen intent/acceptance and historical blocked attempts are preserved.
+
 ## Review Triage Log
 
 ## Auto Run Result
 
 Status: blocked
+
+Blocking condition: implementation verification failed
+
+Canonical HALT for the authorized resumed build: blocked at Step 03. Current full required integration on the isolated local stack, with owner-authorized invocation-only `--maxWorkers=8` and file parallelism retained, returned native exit 1: 1,355 total, 1,353 passed, 1 failed, 1 intentional recovery-loader skip. The owned transferred INT-004 failed at its third real CREATE (coworker peer), returning `ok=false`; the original failing run did not capture its underlying typed error. The failure remains unexplained. Current focused 73/73 and representative parallel 146/146 with no failures/skips prove their own executions, but do not explain or waive the failed cumulative result. No further broad retry or independent review was performed after the root-directed hard stop.
+
+Fresh author capacity and scoped implementation are preserved. All four transfers execute in current focused evidence; no Story 14.4 or Epic PR gate is advanced by this result. Canonical lint, cumulative failure diagnosis, independent review and exact empty-chain Epic CI remain outstanding. `followup_review_recommended: false`; `review_loop_iteration: 0`; triage counts: 0 patch, 0 defer, 0 reject. The author-written 20-stop trail is retained with its stated evidence limits; reviewer inspection remains pending.
+
+Completion-hook result: blocked/incomplete exit preserved under docs/process/review-order.md. No completed trail was manufactured by the build delegate, no terminal status was rewritten by reconciliation, and no independent review is credited. Final implementation evidence describes the uncommitted working tree based on full canonical revision `2a6c9e6d6859987590f2e875f695a75c16125af6`. Root owns checkpointing and Stop for lifecycle `79338b7b-db58-4a1a-85a2-5d877d3d45e3`; this delegate acquired no managed resource and performed no Git commit, hosted change, reset or deletion.
+
+### Historical pre-resume terminal metadata
+
+Historical status: blocked
 
 Blocking condition: no subagents
 
@@ -185,3 +199,67 @@ Completion-hook result: blocked/incomplete exit preserved without manufacturing 
 Status: in-progress
 
 Fresh context-free gpt-6.1-sol High implementation-author capacity was proven by successful mandatory author dispatch before this restoration. The approved Contract C, frozen baseline, nine-task plan, existing ATDD artifacts and historical blocking evidence remain intact. This build delegate restored only this spec; root owns sprint and orchestration metadata. Historical no-subagents results above remain historical and are superseded for this authorized resume.
+
+Step03 implementation baseline captured directly from Git: 2a6c9e6d6859987590f2e875f695a75c16125af6. Original frozen planning baseline remains 0c4ab83f8b4578933c5297f30ee7138bbfa3ba94 as recorded above; Code Map anchors describe that original inspected baseline. Root confirmed the clean checkpoint before implementation.
+
+### Implementation author evidence 2026-10-06
+
+Tasks 1–8 are implemented. Task 9 is partially complete: author execution/evidence and the review trail exist; independent review and final reconciliation remain pending. Root directed canonical Step 03 `blocked: implementation verification failed`; the build delegate owns terminal HALT/status metadata. No story/epic gate advancement is claimed. See [author verification](../test-artifacts/story14-3-verification.md) for the exhaustive consumed-writer inventory, per-AC evidence, native exits, skips and limits.
+
+The current 73/73 focused run executes all six integration IDs and all four transferred P0/P1 obligations, including the expiry-during-wait correction. All 14 scheduling unit IDs pass under three host timezones; full unit has 1,992 passed/0 failed/one inherited Windows xattr skip. A prior bounded normal-parallel integration run passed 1,353/0 failed/one inherited recovery skip. The current full run after the expiry correction has 1,353 passed/one INT-004 failure/one inherited recovery skip. Isolated INT-004 and authorized representative parallel diagnostics pass (146/146, including all 49 conflicts; peak 30 client connections), which does not explain or waive the cumulative failure. Author verification remains blocked by that unresolved result. Default-worker capacity failures, generated-snapshot canonical-lint EPERM, and every skip remain separately recorded; no configuration/assertion/timeout was weakened.
+
+Both immutable forward migrations were incrementally applied to root-owned isolated 55421/55422, preserving every prior 92 ledger record; final count 94. Root retains lifecycle `79338b7b-db58-4a1a-85a2-5d877d3d45e3` for review. Empty-chain CI, canonical lint under an actor able to read the generated snapshot, cumulative failure resolution and independent review remain outstanding. No UI/browser, hosted, performance or numeric-coverage readiness is claimed.
+
+## Suggested Review Order
+
+Author: `/root/build_14_3/author_14_3`, the implementation/fix author; pure modules were implemented by its explicitly owned High worker.
+Refreshed against the uncommitted Story 14.3 working tree based on `2a6c9e6d6859987590f2e875f695a75c16125af6`; current verification limitations are retained below.
+
+### Actual saves preserve command and replay authority
+
+The existing create/update entries now call the internal snapshot/detect/finalize orchestration. The original command UUID and result projection remain stable; current-authorized replay is returned before fresh signing configuration is required, while three stale attempts exhaust through the existing retryable error envelope (AC6/10).
+
+- `src/server/commands/bookings/create-booking.ts:7` — `createBooking`: existing public command entry.
+- `src/server/commands/bookings/booking-db.ts:15` — `executeBooking`: preserves typed SQL failure mapping.
+- `src/server/bookings/save-with-conflicts.ts:19` — `saveWithConflicts`: bounded retry and cookie-bound authority.
+- `tests/integration/commands/booking-conflicts.int.test.ts:190` — `three real stale attempts`: zero partial writes on exhaustion.
+
+### Exact facts and signed bytes cross the SQL boundary
+
+The approved design uses fact-equivalence verification because PostgreSQL does not execute the TypeScript detector. One complete ordered bundle and exact output bytes bind actor, tenant, candidate, command, versions and database-issued validity; finalize compares fresh facts under the first gate before any business write (AC5/6/11).
+
+- `src/server/bookings/conflict-facts.ts:69` — `previewBookingConflicts`: sole engine over the post-command tenant set.
+- `supabase/migrations/20261006122441_booking_conflict_detection_integration.sql:179` — `finalize_booking_conflicts`: current authority, HMAC and full content CAS.
+- `tests/unit/server/bookings/conflict-attestation.test.ts:19` — `CONFLICT_CLAIM_FIELDS`: each claim tampering changes authority.
+- `tests/integration/commands/booking-conflicts.int.test.ts:511` — `Node/Postgres proof framing`: exact UTF-8/microsecond vector without proof logging.
+
+### Deterministic local windows and capacity remain pure
+
+The detector uses half-open exact UTC intervals and Stockholm calendar windows, with versioned injected rules. Capacity subtracts overlapping unavailability once and keeps numeric reductions separate from clock windows; optional unavailable job facts do not invent requirements (AC1–4/12).
+
+- `src/features/scheduling/conflicts.ts:10` — `detectConflicts`: sorted pair/person/window identities.
+- `src/features/scheduling/capacity.ts:73` — `dailyCapacity`: actual schedules and isolated capacity terms.
+- `src/features/scheduling/time-zone.ts:45` — `stockholmLocalToUtc`: first-valid gap and earlier fold.
+- `tests/unit/features/scheduling/capacity.golden.test.ts:35` — `14.3-UNIT-012`: six terms and layered subtraction.
+
+### Atomic peer refresh and first-gate writers preserve integrity
+
+Complete tenant refresh was chosen in the approved spec to avoid missing peer and aggregate-capacity dependencies. Exact natural keys retain accepted evidence; changed keys are open. Every consumed writer is gated before row locks, including invitation reload and current-instant expiry after a wait (AC7–10).
+
+- `supabase/migrations/20261006122441_booking_conflict_detection_integration.sql:238` — `booking_commit_conflicts_internal`: atomic derived persistence, outcome and target audit.
+- `supabase/migrations/20261006124954_booking_invitation_post_gate_expiry.sql:48` — `clock_timestamp`: expiry checked after the gate/row wait.
+- `tests/integration/commands/booking-conflicts.int.test.ts:103` — `14.3-INT-004`: exact peer refresh and acceptance-key preservation.
+- `tests/integration/commands/booking-conflicts.int.test.ts:240` — `holds first gate before row lock`: eight real writer race classes.
+
+### Evidence and operational limits stay visible
+
+The transferred INT-003 P0, INT-004 P1, INT-005 P1 and INT-006 P0 all execute through actual commands and exact durable readbacks. Correlation-scoped owner-only faults exercise real rollback; synthetic fixtures and observer barriers do not replace SQL verification. Full counts, the unresolved current cumulative INT-004 failure, canonical-lint limitation, and inherited skips are recorded in the linked verification artifact (AC7–12).
+
+- `tests/integration/commands/booking-conflicts.int.test.ts:74` — `14.3-INT-003`: atomic real create result.
+- `tests/integration/commands/booking-conflicts.int.test.ts:146` — `14.3-INT-005`: exact create/update rollback snapshots.
+- `tests/integration/commands/booking-conflicts.int.test.ts:166` — `14.3-INT-006`: stale actual save retries original identity.
+- `docs/process/local-setup.md:129` — `Booking conflict attestation`: private dedicated key and synthetic local bootstrap.
+
+Evidence: [author verification and AC mappings](../test-artifacts/story14-3-verification.md). Required focused current integration is 73 passed/0 failed/0 skipped; current bounded cumulative integration is 1,353 passed/1 failed/1 inherited recovery skip. Representative parallel diagnostics pass 146/146, including all 49 conflict cases, with peak 30 client connections. Unit execution is 1,992 passed/0 failed/1 inherited Windows xattr skip. `check-review-order.mjs` passes all 20 references; reviewer inspection remains pending.
+
+Limits: current cumulative failure requires diagnosis; isolated passing repetition is diagnostic only. Canonical lint, independent review/trail inspection and exact empty-chain Epic CI remain pending. Browser/editor/override belongs to 14.4; optional job-depth is unavailable in production. No hosted/external, numeric-coverage or performance claim is made.

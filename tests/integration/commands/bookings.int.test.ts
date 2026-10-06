@@ -1,3 +1,5 @@
+import { authoritativeBookingRpc } from "../../support/booking-conflict-attestation";
+import { loadConflictBindings } from "../../support/booking-conflicts-atdd";
 import { isLocalStackReachable } from "../../support/test-env";
 import { skipUnlessStack } from "../../support/stack-gate";
 import { beforeAll, describe, expect, test } from "vitest";
@@ -23,7 +25,7 @@ describe("Story 14.2 booking transaction foundation ATDD", () => {
         });
         const equivalent = { ...create, startsAt: `2026-10-12T08:00:00.${startFraction.padEnd(6, "0")}+02:00`, endsAt: `2026-10-12T16:00:00.${endFraction.padEnd(6, "0")}+02:00` };
         // Exercise both directions: checked RPC first for CREATE, envelope first for UPDATE.
-        const created = await checkedBookingRpc("create", fx.adminClient, create, fx.base.tenantA.id, fx.base.adminA.id);
+        const created = await authoritativeBookingRpc("create", fx.adminClient, create, fx.base.tenantA.id, fx.base.adminA.id);
         expect(created.error).toBeNull();
         const bookingId = (created.data as { bookingId: string }).bookingId;
         const beforeReplay = await bookingSnapshot(fx.tenantIds);
@@ -85,7 +87,13 @@ describe("Story 14.2 booking transaction foundation ATDD", () => {
         if (differing) expect(results.find((result) => !result.ok)).toMatchObject({ ok: false, code: "COMMAND_CONFLICT" });
         const winnerIndex = winners[0].index;
         const after = await bookingSnapshot(fx.tenantIds);
-        expect(after.bookings).toHaveLength(before.bookings.length); expect(after.conflicts).toEqual(before.conflicts);
+        expect(after.bookings).toHaveLength(before.bookings.length);
+        // Story 14.3 now rederives workflow rows. Assert the exact sole-engine
+        // result for the committed winner, including peer-owned rows.
+        const bindings = await loadConflictBindings();
+        const current = await bindings.snapshot(fx.adminClient, "update",
+          { ...inputs[winnerIndex], commandId: crypto.randomUUID() }, crypto.randomUUID());
+        expect(bindings.normalizedRows(after.conflicts)).toEqual(await bindings.detect(current));
         expect(after.audit).toHaveLength(before.audit.length + 1);
         const row = after.bookings.find((booking) => booking.id === created.data.bookingId)!;
         expect(row.description).toBe(inputs[winnerIndex].description);

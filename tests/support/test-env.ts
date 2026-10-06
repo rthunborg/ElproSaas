@@ -48,6 +48,10 @@ export const LOCAL_TEST_QUOTE_PDF_KEY_ID = "test_v1";
 export const LOCAL_TEST_QUOTE_PDF_SECRET =
   "local-test-only-quote-pdf-attestation-secret-v1";
 
+/** Story 14.3 synthetic local/CI booking proof pair; matches seed.sql, never runtime fallback. */
+export const LOCAL_TEST_BOOKING_CONFLICT_KEY_ID = "test_v1";
+export const LOCAL_TEST_BOOKING_CONFLICT_SECRET = "local-test-only-booking-conflict-attestation-secret-v1";
+
 /** Story 12.1 local-only provisioning attestation pair; matches seed.sql. */
 export const LOCAL_TEST_PROVISIONING_ATTESTATION_KEY_ID = "test_v1";
 export const LOCAL_TEST_PROVISIONING_ATTESTATION_SECRET =

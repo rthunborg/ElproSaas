@@ -1,5 +1,6 @@
+import { authoritativeBookingRpc } from "../../support/booking-conflict-attestation";
 import { beforeAll, describe, expect, test } from "vitest";
-import { setTimeout as pause } from "node:timers/promises";
+import { waitForBlocked } from "../../support/booking-conflicts-atdd";
 import { adminQuery, adminSession } from "../../factories/admin-sql";
 import { makeAuthedServerClient } from "../../factories/tenants";
 import { isLocalStackReachable } from "../../support/test-env";
@@ -86,9 +87,9 @@ describe("Story 14.2 completed UPDATE replay authority", () => {
   });
 });
 
-// The production admin RPC serializes all role/status changes on the membership
-// parent. Observe a blocked replay first, commit revocation, then release its
-// command lock. This proves post-wait authority rather than a timing guess.
+// Hold the membership parent, observe the real admin RPC holding the tenant gate
+// while waiting on that row, then observe replay waiting on its gate. Release
+// the row so revocation commits before replay's current-authority check.
 describe("Story 14.2 replay authority after serialization waits", () => {
   test.for([
     { operation: "create", revoke: "primary and secondary roles" },
@@ -114,13 +115,13 @@ describe("Story 14.2 replay authority after serialization waits", () => {
         expect((await manage("re_role", ["saljare", "projektledare"])).error).toBeNull();
       }
       const create = bookingInput([fx.ownProfile.id]);
-      const created = await checkedBookingRpc("create", client, create, fx.base.tenantA.id, actor.id);
+      const created = await authoritativeBookingRpc("create", client, create, fx.base.tenantA.id, actor.id);
       expect(created.error).toBeNull();
       const bookingId = (created.data as { bookingId: string }).bookingId;
       const input = scenario.operation === "create" ? create : bookingInput([fx.coworkerProfile.id], {
         bookingId, description: "Completed update before concurrent revocation",
       });
-      const successful = await checkedBookingRpc(scenario.operation, client, input, fx.base.tenantA.id, actor.id);
+      const successful = await authoritativeBookingRpc(scenario.operation, client, input, fx.base.tenantA.id, actor.id);
       expect(successful.error).toBeNull(); expect(successful.data).toEqual({ bookingId });
       const committed = await bookingSnapshot(fx.tenantIds);
       await adminSession(async ({ query }) => {
@@ -128,20 +129,13 @@ describe("Story 14.2 replay authority after serialization waits", () => {
         let pending: Promise<Awaited<typeof successful>> | undefined;
         try {
           const [blocker] = await query<{ pid: number }>("select pg_backend_pid() as pid");
-          if (scenario.operation === "create") {
-            await query("select pg_advisory_xact_lock(hashtextextended($1::text || ':' || $2::text,0))", [fx.base.tenantA.id, input.commandId]);
-          } else {
-            await query("select id from public.bookings where id=$1 for update", [bookingId]);
-          }
+          await query("select id from public.tenant_memberships where id=$1 for update", [membership.id]);
+          const revocation = Promise.resolve(manage(scenario.revoke === "disabled membership" ? "disable" : "re_role", ["saljare"]));
+          await waitForBlocked(blocker.pid, 1);
           pending = Promise.resolve(checkedBookingRpc(scenario.operation, client, input, fx.base.tenantA.id, actor.id));
-          let blocked = false;
-          for (let attempt = 0; attempt < 100 && !blocked; attempt++) {
-            const [waiting] = await query<{ blocked: boolean }>(
-              "select exists(select 1 from pg_stat_activity where $1=any(pg_blocking_pids(pid)) and wait_event_type='Lock') as blocked", [blocker.pid]);
-            blocked = waiting.blocked; if (!blocked) await pause(50);
-          }
-          expect(blocked).toBe(true);
-          const revoked = await manage(scenario.revoke === "disabled membership" ? "disable" : "re_role", ["saljare"]);
+          await waitForBlocked(blocker.pid, 2);
+          await query("commit");
+          const revoked = await revocation;
           expect(revoked.error).toBeNull();
           const [current] = await query<{ role: string; status: string; privileged_roles: number }>(
             `select m.role,m.status,(select count(*)::int from public.membership_roles r
@@ -170,7 +164,7 @@ describe("Story 14.2 checked SQL timestamp grammar", () => {
   test.for(["create", "update"] as const)("[P1] 14.2-INT-008 $0 checked RPC rejects out-of-range clock fields", async (operation, ctx) => {
     if (skipUnlessStack(ctx, stackUp)) return;
     await withBookingFixture(async (fx) => {
-      const seed = await checkedBookingRpc("create", fx.adminClient, bookingInput([fx.ownProfile.id]), fx.base.tenantA.id, fx.base.adminA.id);
+      const seed = await authoritativeBookingRpc("create", fx.adminClient, bookingInput([fx.ownProfile.id]), fx.base.tenantA.id, fx.base.adminA.id);
       expect(seed.error).toBeNull();
       const bookingId = (seed.data as { bookingId: string }).bookingId;
       const before = await bookingSnapshot(fx.tenantIds);

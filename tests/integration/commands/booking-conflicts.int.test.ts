@@ -1,9 +1,9 @@
 import { describe, expect, test } from "vitest";
 
 /** Provider: actual createBooking/updateBooking -> runCommand -> booking-db.
- * New snapshot/finalize/preview exports: TODO author binding in support contract.
+ * Snapshot/finalize/preview bindings call production exports directly.
  * Native Vitest command/RLS suite; no HTTP/UI/consumer-provider contract exists.
- * Every skipped body imports lazily. No services or synthetic keys start at collect.
+ * Fixtures import lazily; no services start during collection.
  * Transferred INT-003 P0 / 004 P1 / 005 P1 / 006 P0 ALL must execute before 14.4/PR.
  */
 async function harness() {
@@ -12,8 +12,8 @@ async function harness() {
   const sql = await import("../../factories/admin-sql");
   return { ...fixtures, ...bookings, ...sql };
 }
-function exactSuccess(result: { ok: boolean; data?: { bookingId: string } }): string {
-  expect(result.ok).toBe(true);
+function exactSuccess(result: { ok: boolean; data?: { bookingId: string }; code?: string }): string {
+  expect(result.ok, result.code ?? "Expected real command success").toBe(true);
   if (!result.ok || !result.data) throw new Error("Expected real command success");
   expect(Object.keys(result.data)).toEqual(["bookingId"]);
   return result.data.bookingId;
@@ -23,20 +23,14 @@ const authorityScenarios: { group: AuthorityGroup; title: string; run: () => Pro
 function registerAuthorityScenario(group: AuthorityGroup, title: string, run: () => Promise<void>) {
   authorityScenarios.push({ group, title, run });
 }
-async function runAuthorityScenarios(group: AuthorityGroup) {
-  for (const scenario of authorityScenarios.filter((row) => row.group === group)) {
-    try { await scenario.run(); }
-    catch (cause) { throw new Error(`Story 14.3 subcase failed: ${scenario.title}`, { cause }); }
-  }
-}
 function workflowOpen(rows: Record<string, unknown>[]) {
   for (const row of rows) expect(row).toMatchObject({ status: "open", acceptance_reason: null,
     accepted_by_membership_id: null, accepted_at: null, resolution_outcome: null,
     resolved_by_membership_id: null, resolved_at: null });
 }
 
-describe("Story 14.3 authoritative conflict persistence (RED scaffolds)", () => {
-  test.skip("[P1] 14.3-INT-001 frozen internal preview and real save use identical normalized conflicts", async () => {
+describe("Story 14.3 authoritative conflict persistence", () => {
+  test("[P1] 14.3-INT-001 frozen internal preview and real save use identical normalized conflicts", async () => {
     const h = await harness(); const b = await h.loadConflictBindings();
     await h.withConflictFixture(async (fx) => {
       const peerId = exactSuccess(await h.bookingCommand("create", fx.adminClient, h.bookingInput([fx.ownProfile.id])));
@@ -54,13 +48,14 @@ describe("Story 14.3 authoritative conflict persistence (RED scaffolds)", () => 
       });
       const bookingId = exactSuccess(observed.result);
       const after = await h.bookingSnapshot(fx.tenantIds);
+      expect(after.bookings.some((row) => row.id === bookingId)).toBe(true);
       expect(b.normalizedRows(after.conflicts.filter((row) => row.tenant_id === fx.base.tenantA.id))).toEqual(expected);
       expect(after.bookings.find((row) => row.id === peerId)).toEqual(before.bookings.find((row) => row.id === peerId));
       expect(h.foreignState(after, fx.base.tenantB.id)).toEqual(h.foreignState(before, fx.base.tenantB.id));
     });
   });
 
-  test.skip("[P1] 14.3-INT-002 a stale signed preview writes nothing after a peer booking commits", async () => {
+  test("[P1] 14.3-INT-002 a stale signed preview writes nothing after a peer booking commits", async () => {
     const h = await harness(); const b = await h.loadConflictBindings();
     await h.withConflictFixture(async (fx) => {
       const input = h.bookingInput([fx.ownProfile.id]); const correlation = crypto.randomUUID();
@@ -76,7 +71,7 @@ describe("Story 14.3 authoritative conflict persistence (RED scaffolds)", () => 
     });
   });
 
-  test.skip("[P0] 14.3-INT-003 fresh actual CREATE commits exact conflicts, assignments, outcome and one target audit", async () => {
+  test("[P0] 14.3-INT-003 fresh actual CREATE commits exact conflicts, assignments, outcome and one target audit", async () => {
     const h = await harness(); const b = await h.loadConflictBindings();
     await h.withConflictFixture(async (fx) => {
       exactSuccess(await h.bookingCommand("create", fx.adminClient, h.bookingInput([fx.ownProfile.id])));
@@ -102,10 +97,10 @@ describe("Story 14.3 authoritative conflict persistence (RED scaffolds)", () => 
       expect(Object.keys(metadata).filter((key) => key !== "targetId")).toEqual([]);
       expect(h.foreignState(after, fx.base.tenantB.id)).toEqual(h.foreignState(before, fx.base.tenantB.id));
     });
-    await runAuthorityScenarios("proof");
+
   });
 
-  test.skip("[P1] 14.3-INT-004 replace old/new assignees/windows, preserve accepted keys, refresh peers and cancellation", async () => {
+  test("[P1] 14.3-INT-004 replace old/new assignees/windows, preserve accepted keys, refresh peers and cancellation", async () => {
     const h = await harness(); const b = await h.loadConflictBindings();
     await h.withConflictFixture(async (fx) => {
       let oldPeer = exactSuccess(await h.bookingCommand("create", fx.adminClient, h.bookingInput([fx.ownProfile.id])));
@@ -148,7 +143,7 @@ describe("Story 14.3 authoritative conflict persistence (RED scaffolds)", () => 
     });
   });
 
-  test.skip("[P1] 14.3-INT-005 CREATE and UPDATE post-conflict/audit faults roll back every durable column", async () => {
+  test("[P1] 14.3-INT-005 CREATE and UPDATE post-conflict/audit faults roll back every durable column", async () => {
     const h = await harness(); await h.loadConflictBindings();
     await h.withConflictFixture(async (fx) => {
       exactSuccess(await h.bookingCommand("create", fx.adminClient, h.bookingInput([fx.ownProfile.id])));
@@ -168,7 +163,7 @@ describe("Story 14.3 authoritative conflict persistence (RED scaffolds)", () => 
     });
   });
 
-  test.skip("[P0] 14.3-INT-006 real save refreshes stale facts under the original command UUID", async () => {
+  test("[P0] 14.3-INT-006 real save refreshes stale facts under the original command UUID", async () => {
     const h = await harness(); const b = await h.loadConflictBindings();
     await h.withConflictFixture(async (fx) => {
       const input = h.bookingInput([fx.ownProfile.id]); const correlation = crypto.randomUUID();
@@ -189,7 +184,7 @@ describe("Story 14.3 authoritative conflict persistence (RED scaffolds)", () => 
       expect(after.conflicts.filter((row) => row.conflict_type === "double_booking")).toHaveLength(1);
       expect(b.normalizedRows(after.conflicts)).toEqual(await b.detect(observed.snapshots[1]));
     });
-    await runAuthorityScenarios("race");
+
   });
 
   registerAuthorityScenario("race", "[P0] AC10 three real stale attempts exhaust as retryable SERVER_ERROR without target/outcome/audit writes", async () => {
@@ -509,3 +504,57 @@ registerAuthorityScenario("proof", "[P0] AC11 own-assignment conflict read scope
 
 
 
+
+// Each authority row executes as its own test with a visible outcome.
+for (const scenario of authorityScenarios) test(scenario.title, scenario.run);
+
+test("[P0] AC11 Node/Postgres proof framing matches exact UTF-8 and microsecond claims", async () => {
+  const h = await harness(); const b = await h.loadConflictBindings();
+  const { canonicalConflictProofBytes, signConflictOutput } = await import("@/server/bookings/conflict-attestation");
+  const { LOCAL_TEST_BOOKING_CONFLICT_SECRET } = await import("../../support/test-env");
+  await h.withConflictFixture(async (fx) => {
+    const input = h.bookingInput([fx.ownProfile.id]);
+    const snapshot = await b.snapshot(fx.adminClient, "create", input, crypto.randomUUID());
+    const text = '[{"synthetic":"Å:🔌"}]';
+    const [vector] = await h.adminQuery<{ bytes: Buffer; signature: string }>(
+      "select public.booking_conflict_proof_bytes_internal($1::jsonb,$2) as bytes,encode(extensions.hmac(public.booking_conflict_proof_bytes_internal($1::jsonb,$2),convert_to($3,'UTF8'),'sha256'),'hex') as signature",
+      [snapshot, text, LOCAL_TEST_BOOKING_CONFLICT_SECRET]);
+    // Boolean assertions keep proof bytes out of assertion diagnostics.
+    expect(Buffer.from(canonicalConflictProofBytes(snapshot, text)).equals(vector.bytes)).toBe(true);
+    expect(signConflictOutput(snapshot, text, LOCAL_TEST_BOOKING_CONFLICT_SECRET) === vector.signature).toBe(true);
+    expect(snapshot.issuedAt).toMatch(/[.]\d{6}Z$/);
+    expect(snapshot.expiresAt).toMatch(/[.]\d{6}Z$/);
+  });
+});
+
+test("[P0] AC10 invitation expiry is checked after a gate/row wait at the current database instant", async () => {
+  const h = await harness(); const b = await h.loadConflictBindings();
+  const { setTimeout: pause } = await import("node:timers/promises");
+  await h.withConflictFixture(async (fx) => {
+    const writer = await b.prepareInvitationWriter(fx);
+    const membershipId = writer.lockParams[0];
+    await h.adminQuery("update public.tenant_memberships set invitation_expires_at=clock_timestamp()+interval '2 seconds' where id=$1", [membershipId]);
+    const before = await h.bookingSnapshot(fx.tenantIds);
+    await h.adminSession(async ({ query }) => {
+      await query("begin"); let accept: ReturnType<typeof writer.invoke> | undefined;
+      try {
+        const [owner] = await query<{ pid: number }>("select pg_backend_pid() as pid");
+        await query(writer.lockSql, writer.lockParams);
+        accept = writer.invoke(); await h.waitForBlocked(owner.pid, 1);
+        const [started] = await query<{ live_at_start: boolean }>(`select exists(select 1 from pg_stat_activity a,public.tenant_memberships m
+          where m.id=$1 and $2=any(pg_blocking_pids(a.pid)) and a.query_start<m.invitation_expires_at) as live_at_start`, [membershipId, owner.pid]);
+        expect(started.live_at_start).toBe(true);
+        let expired = false;
+        for (let attempt = 0; attempt < 100 && !expired; attempt++) {
+          const [clock] = await query<{ expired: boolean }>("select invitation_expires_at<=clock_timestamp() as expired from public.tenant_memberships where id=$1", [membershipId]);
+          expired = clock.expired; if (!expired) await pause(50);
+        }
+        expect(expired).toBe(true);
+        await query("commit"); expect(await accept).toMatchObject({ data: false, error: null });
+        const [member] = await h.adminQuery<{ status: string; user_id: string | null }>("select status,user_id from public.tenant_memberships where id=$1", [membershipId]);
+        expect(member).toEqual({ status: "expired", user_id: null });
+        expect(await h.bookingSnapshot(fx.tenantIds)).toEqual(before);
+      } finally { await query("rollback"); if (accept) await accept; }
+    });
+  });
+});

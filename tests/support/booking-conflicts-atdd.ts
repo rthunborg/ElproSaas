@@ -1,4 +1,4 @@
-/** Story 14.3 RED fixtures. Privileged SQL is local test-only, never a client bypass.
+/** Story 14.3 production-bound fixtures. Privileged SQL is local test-only, never a client bypass.
  * Provider source: actual create/update Booking commands + envelope, booking-db,
  * 20261006113212_booking_replay_current_authority.sql; see binding contract below.
  */
@@ -25,8 +25,8 @@ export type FinalizeResult =
   | { kind: "denied"; code: string };
 export type RpcResult = { data: unknown; error: { code?: string } | null };
 
-/** PROVISIONAL BINDING CONTRACT, NOT a guessed production export/RPC signature.
- * The author must bind checked snapshot/finalize to cookie-bound RPCs in
+/** Production binding contract; concrete exports/signatures live in booking-conflict-attestation.ts.
+ * Checked snapshot/finalize use cookie-bound RPCs in
  * src/server/bookings/conflict-facts.ts and save-with-conflicts.ts; preview and
  * detect must call the SOLE conflicts.ts detector; attest must use actual
  * conflict-attestation.ts + synthetic LOCAL key bootstrap, never a fake verifier.
@@ -38,8 +38,8 @@ export type RpcResult = { data: unknown; error: { code?: string } | null };
  * sql inventory lists every new helper/RPC regprocedure + exact actual arguments.
  * signedVariant re-signs intentional invalid authenticated fields with the real
  * signer, so shape/tenant/range/version checks are tested past valid HMAC verification.
- * The test loader FAILS until these exports are bound. No runtime imports of an
- * absent module exist during skipped-body collection; never add a test-only API.
+ * The proxy only observes the actual RPC boundary and never replaces results.
+ * Runtime imports never depend on test fixtures or a test-only application API.
  */
 export interface ConflictBindings {
   sourceEvidence: string[];
@@ -64,10 +64,10 @@ export interface ConflictBindings {
   prepareInvitationWriter(fx: BookingFixture): Promise<PreparedWriter>;
 }
 export async function loadConflictBindings(): Promise<ConflictBindings> {
-  throw new Error("ATDD_BINDING_REQUIRED: bind real Story 14.3 snapshot, sole detector, preview, signer, finalize, command barrier and SQL inventory; no mocks/stub detector permitted");
+  return (await import("./booking-conflict-attestation")).actualConflictBindings();
 }
 
-/** No network/environment work until a skipped body is activated. */
+/** Network work begins only when an executing test creates its isolated fixture. */
 export async function withConflictFixture(run: (fx: BookingFixture) => Promise<void>) {
   const { isLocalStackReachable } = await import("./test-env");
   if (!await isLocalStackReachable()) throw new Error("Story 14.3 requires authorized local stack; a skip is not acceptance evidence");
@@ -172,7 +172,21 @@ export async function withConflictFault<T>(correlationId: string, stage: "post_c
     const { withBookingFault } = await import("./bookings-atdd");
     return withBookingFault(correlationId, "audit", run);
   }
-  await adminQuery(`create schema if not exists test_support;
+  await installConflictFaults();
+  await adminQuery("insert into test_support.forced_conflict_failures values($1)", [correlationId]);
+  try { return await run(); }
+  finally { await adminQuery("delete from test_support.forced_conflict_failures where correlation_id=$1", [correlationId]); }
+}
+
+let conflictFaultInstallation: Promise<void> | undefined;
+function installConflictFaults(): Promise<void> {
+  return conflictFaultInstallation ??= (async () => {
+    const { adminQuery } = await import("../factories/admin-sql");
+    const [installed] = await adminQuery<{ ready: boolean }>(`select to_regclass('test_support.forced_conflict_failures') is not null
+      and exists(select 1 from pg_trigger where tgrelid='public.booking_conflicts'::regclass and tgname='test_forced_conflict_preparation') as ready`);
+    if (installed.ready) return;
+    await adminQuery(`select pg_advisory_xact_lock(14230001);
+    create schema if not exists test_support;
     create table if not exists test_support.forced_conflict_failures(correlation_id uuid primary key);
     revoke all on test_support.forced_conflict_failures from public,anon,authenticated,service_role;
     create or replace function test_support.fail_conflict_preparation() returns trigger language plpgsql set search_path='' as $$
@@ -186,8 +200,6 @@ export async function withConflictFault<T>(correlationId: string, stage: "post_c
     drop trigger if exists test_forced_conflict_preparation on public.booking_conflicts;
     create trigger test_forced_conflict_preparation after insert or update or delete on public.booking_conflicts
       for each statement execute function test_support.fail_conflict_preparation();`);
-  await adminQuery("insert into test_support.forced_conflict_failures values($1)", [correlationId]);
-  try { return await run(); }
-  finally { await adminQuery("delete from test_support.forced_conflict_failures where correlation_id=$1", [correlationId]); }
+  })();
 }
 

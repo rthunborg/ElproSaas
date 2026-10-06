@@ -30,9 +30,25 @@ export async function bookingCommand(operation: "create" | "update", client: Tes
   const command = operation === "create"
     ? (await import("@/server/commands/bookings/create-booking")).createBooking
     : (await import("@/server/commands/bookings/update-booking")).updateBooking;
-  return runCommand(command as Command<unknown, { bookingId: string }>, {
-    client: client as never, input, correlationId,
+  const diagnostic = process.env.STORY143_DIAGNOSTIC === "1";
+  const rpcErrors: { rpc: string; code: string }[] = [];
+  const observed = diagnostic ? new Proxy(client, {
+    get(target, property) {
+      if (property === "rpc") return async (name: string, args: Record<string, unknown>) => {
+        const reply = await target.rpc(name, args);
+        if (reply.error) rpcErrors.push({ rpc: name, code: reply.error.code });
+        return reply;
+      };
+      const value = Reflect.get(target, property, target);
+      return typeof value === "function" ? value.bind(target) : value;
+    },
+  }) : client;
+  const result = await runCommand(command as Command<unknown, { bookingId: string }>, {
+    client: observed as never, input, correlationId,
   });
+  // Opt-in bounded diagnostics never include facts, SQL arguments, proof or tokens.
+  if (diagnostic && !result.ok) console.error("Story14.3 command diagnostic", { operation, code: result.code, rpcErrors });
+  return result;
 }
 
 /** Calls the checked authenticated RPC with operation metadata outside the canonical payload. */
@@ -162,9 +178,14 @@ export async function seedBookingReadRows(tenantId: string, profileId: string) {
 let faultInstallation: Promise<void> | undefined;
 function installBookingFaults(): Promise<void> {
   return faultInstallation ??= (async () => {
-    await adminQuery(`create schema if not exists test_support;
+    const [installed] = await adminQuery<{ ready: boolean }>(`select to_regclass('test_support.forced_booking_failures') is not null
+      and exists(select 1 from pg_trigger where tgrelid='public.bookings'::regclass and tgname='test_forced_booking_failure')
+      and exists(select 1 from pg_trigger where tgrelid='public.booking_assignees'::regclass and tgname='test_forced_assignee_failure') as ready`);
+    if (installed.ready) return;
+    await adminQuery(`select pg_advisory_xact_lock(14230001);
+      create schema if not exists test_support;
       create table if not exists test_support.forced_booking_failures(correlation_id uuid primary key,stage text not null);
-      revoke all on test_support.forced_booking_failures from public,anon,authenticated;
+      revoke all on test_support.forced_booking_failures from public,anon,authenticated,service_role;
       create or replace function test_support.fail_booking_write() returns trigger language plpgsql set search_path='' as $$
       begin
         if exists(select 1 from test_support.forced_booking_failures f
@@ -172,7 +193,7 @@ function installBookingFaults(): Promise<void> {
         then raise exception 'forced booking write failure' using errcode='XX000'; end if;
         return null;
       end $$;
-      revoke all on function test_support.fail_booking_write() from public,anon,authenticated;
+      revoke all on function test_support.fail_booking_write() from public,anon,authenticated,service_role;
       drop trigger if exists test_forced_booking_failure on public.bookings;
       create trigger test_forced_booking_failure after insert or update on public.bookings
         for each statement execute function test_support.fail_booking_write('after_booking');

@@ -126,6 +126,78 @@
     {
       "date": "2026-10-12",
       "holiday": false
+    },
+    {
+      "date": "2026-01-01",
+      "holiday": true
+    },
+    {
+      "date": "2026-04-05",
+      "holiday": true
+    },
+    {
+      "date": "2026-05-01",
+      "holiday": true
+    },
+    {
+      "date": "2026-05-24",
+      "holiday": true
+    },
+    {
+      "date": "2026-10-31",
+      "holiday": true
+    },
+    {
+      "date": "2026-12-25",
+      "holiday": true
+    },
+    {
+      "date": "2026-12-26",
+      "holiday": true
+    },
+    {
+      "date": "2026-10-18",
+      "holiday": true
+    },
+    {
+      "date": "2026-06-19",
+      "holiday": false
+    },
+    {
+      "date": "2026-12-24",
+      "holiday": false
+    },
+    {
+      "date": "2026-12-31",
+      "holiday": false
+    },
+    {
+      "date": "2027-03-26",
+      "holiday": true
+    },
+    {
+      "date": "2027-03-29",
+      "holiday": true
+    },
+    {
+      "date": "2027-05-06",
+      "holiday": true
+    },
+    {
+      "date": "2027-06-26",
+      "holiday": true
+    },
+    {
+      "date": "2027-11-06",
+      "holiday": true
+    },
+    {
+      "date": "2027-06-25",
+      "holiday": false
+    },
+    {
+      "date": "2027-10-30",
+      "holiday": false
     }
   ]
 }

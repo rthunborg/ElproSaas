@@ -274,3 +274,14 @@ Assumptions: existing factories, RLS inventory, command/audit helpers, local sta
 - Evidence statement: this workflow executed no tests and claims no implemented coverage.
 - Completion customization resolver succeeded and returned an empty `workflow.on_complete`; no hook was run.
 - Workflow result: completed.
+
+## Story 14.3 implementation-author execution — 2026-10-06
+
+Historical design statements above describe their original run. Current implementation execution is recorded in [Story 14.3 author verification](story14-3-verification.md), at the uncommitted `codex/epic14-resume` working tree based on `2a6c9e6d6859987590f2e875f695a75c16125af6`.
+
+- Implemented sole pure engine and real cookie-bound snapshot/sign/finalize authority; all 14 named unit and six named integration obligations execute. Current focused run passes 73/73 with no skip, including transferred INT-003 P0, INT-004 P1, INT-005 P1 and INT-006 P0. Eight consumed-writer race classes, proof/ACL negatives, current-authority replay, exact peer refresh and rollback are actual SQL/command tests.
+- Pure units pass 14/14 under UTC, America/Los_Angeles and Asia/Tokyo. Full units pass 1,992/0 failed/one inherited Windows xattr skip. All 32 retained booking cases remain covered.
+- Prior authorized eight-worker normal-parallel full integration passed 1,353/0 failed/one opt-in recovery Storage skip. Current full integration after the invitation expiry correction returns native 1: 1,353 passed/one INT-004 failure/one recovery skip. Isolated INT-004 passes; authorized nine-suite representative parallel diagnostics pass 146/146 including all 49 conflicts, peak 30 PostgreSQL client connections. These diagnostic passes do not explain or waive the current full-run failure. Unlimited default-worker results and exact infrastructure errors are preserved in the verification record.
+- Author verification remains blocked by the unexplained current cumulative failure. Canonical lint hit generated-snapshot actor EPERM; complete source/test fallback lint and changed-file checks pass without configuration changes. Typecheck, lockfile/service-role/bundle guards, production build, high-level audit and local security advisors pass.
+- Two forward migrations applied to root-owned isolated 55421/55422; all 92 previous complete ledger records are unchanged, final count 94. No reset or original-stack mutation. Empty-chain CI remains required before Epic merge. Root retains lifecycle `79338b7b-db58-4a1a-85a2-5d877d3d45e3` for shared verification/review.
+- Exactly one author-written Suggested Review Order exists in the spec; 20 stops/anchors validate. Independent review and reviewer trail reconciliation remain pending. No Story 14.4/browser/override, hosted/external or performance/coverage readiness is claimed.

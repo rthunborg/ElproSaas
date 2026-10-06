@@ -1,29 +1,19 @@
-/** Provisional ATDD source contracts: align actual typed exports before activation.
- * Helpers contain data/fail-loud imports only, never detector implementations.
- * Preserve every expected domain assertion when changing provider bindings.
- */
+/** Actual engine contracts with mutable fixture builders, never test detectors. */
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
+import type { CapacityTerms, SchedulingBooking, SchedulingConflict, SchedulingFacts, SchedulingPerson } from "../../src/features/scheduling/types";
 export const PERSON = "10000000-0000-4000-8000-000000000001";
 export const OTHER = "10000000-0000-4000-8000-000000000002";
 export const THIRD = "10000000-0000-4000-8000-000000000003";
 export const BOOKING = "20000000-0000-4000-8000-000000000001";
 export const PEER = "20000000-0000-4000-8000-000000000002";
 export const ROLE = "30000000-0000-4000-8000-000000000001";
-export type Booking = { id: string; startsAt: string; endsAt: string; allDay: boolean;
-  status: "planned" | "cancelled"; assigneeIds: string[] };
-export type Person = { id: string; employmentPercentage: number;
-  shifts: { weekday: number; start: string; end: string; breaks: { start: string; end: string }[] }[];
-  exceptions: { kind: string; date: string; start?: string; end?: string }[]; workRoleIds?: string[] };
-export type Facts = { candidate: Booking; existingBookings: Booking[]; people: Person[];
-  calendarDays: { date: string; variant: string; reductionPercent?: number }[];
-  jobInputs: null | { accessWindows?: { startsAt: string; endsAt: string }[]; requiredWorkRoleIds?: string[] };
-  rules: { version: string; timeZone: "Europe/Stockholm"; planningBufferMinutes: number;
-    acknowledgmentThresholdMinutes: number; authorizedOvertime: { personId: string; startsAt: string; endsAt: string }[] } };
-export type Conflict = { naturalKey: string; conflictType: string; bookingIds: string[];
-  affectedPersonIds: string[]; startsAt: string; endsAt: string };
-export type Terms = { scheduledMinutes: number; holidayClosedMinutes: number; absenceMinutes: number;
-  existingBookingMinutes: number; blockedMinutes: number; bufferMinutes: number; availableMinutes: number };
+type Mutable<T> = T extends object ? { -readonly [Key in keyof T]: Mutable<T[Key]> } : T;
+export type Booking = Mutable<SchedulingBooking>;
+export type Person = Mutable<SchedulingPerson>;
+export type Facts = Mutable<SchedulingFacts>;
+export type Conflict = SchedulingConflict;
+export type Terms = CapacityTerms;
 export function candidate(patch: Partial<Booking> = {}): Booking {
   return { id: BOOKING, startsAt: "2026-10-12T08:00:00.000000Z", endsAt: "2026-10-12T09:00:00.000000Z",
     allDay: false, status: "planned", assigneeIds: [PERSON], ...patch };
@@ -48,19 +38,19 @@ export function domain(rows: readonly Conflict[]) {
 }
 export async function engine() {
   const path = new URL("../../src/features/scheduling/conflicts.ts", import.meta.url).href;
-  const module = await import(path) as { detectConflicts?: (input: Facts) => Conflict[] };
-  assert.equal(typeof module.detectConflicts, "function", "Bind sole actual detector export before activation");
-  return module.detectConflicts!;
+  const provider = await import(path) as { detectConflicts?: (input: Facts) => Conflict[] };
+  assert.equal(typeof provider.detectConflicts, "function", "Sole actual detector export exists");
+  return provider.detectConflicts!;
 }
 export async function capacity() {
   const path = new URL("../../src/features/scheduling/capacity.ts", import.meta.url).href;
-  const module = await import(path) as { calculateCapacity?: (input: Facts, personId: string, date: string) => Terms };
-  assert.equal(typeof module.calculateCapacity, "function", "Bind actual calendar helper before activation");
-  return module.calculateCapacity!;
+  const provider = await import(path) as { calculateCapacity?: (input: Facts, personId: string, date: string) => Terms };
+  assert.equal(typeof provider.calculateCapacity, "function", "Actual calendar helper export exists");
+  return provider.calculateCapacity!;
 }
 export async function localTime() {
   const path = new URL("../../src/features/scheduling/time-zone.ts", import.meta.url).href;
-  const module = await import(path) as { stockholmLocalToUtc?: (local: string) => string };
-  assert.equal(typeof module.stockholmLocalToUtc, "function", "Bind actual gap/fold helper before activation");
-  return module.stockholmLocalToUtc!;
+  const provider = await import(path) as { stockholmLocalToUtc?: (local: string) => string };
+  assert.equal(typeof provider.stockholmLocalToUtc, "function", "Actual gap/fold helper export exists");
+  return provider.stockholmLocalToUtc!;
 }

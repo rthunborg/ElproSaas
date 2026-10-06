@@ -19,6 +19,8 @@ import {
   isLocalStackReachable,
   LOCAL_TEST_QUOTE_PDF_KEY_ID,
   LOCAL_TEST_QUOTE_PDF_SECRET,
+  LOCAL_TEST_BOOKING_CONFLICT_KEY_ID,
+  LOCAL_TEST_BOOKING_CONFLICT_SECRET,
   STACK_REQUIRED,
   type ReachabilityDiagnostic,
 } from "./test-env";
@@ -45,6 +47,8 @@ export default async function globalSetup(): Promise<void> {
   // non-public attestation variable is absent.
   process.env.QUOTE_PDF_ATTESTATION_KEY_ID ??= LOCAL_TEST_QUOTE_PDF_KEY_ID;
   process.env.QUOTE_PDF_ATTESTATION_HMAC_SECRET ??= LOCAL_TEST_QUOTE_PDF_SECRET;
+  process.env.BOOKING_CONFLICT_ATTESTATION_KEY_ID ??= LOCAL_TEST_BOOKING_CONFLICT_KEY_ID;
+  process.env.BOOKING_CONFLICT_ATTESTATION_HMAC_SECRET ??= LOCAL_TEST_BOOKING_CONFLICT_SECRET;
   const reachable = await isLocalStackReachable();
 
   if (!reachable && STACK_REQUIRED) {

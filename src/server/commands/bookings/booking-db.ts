@@ -1,6 +1,8 @@
 import type { BookingFacts, BookingResult } from "@/features/resources/booking-types";
 import type { CommandDbClient } from "../envelope";
 import { CommandError } from "../command-errors";
+import { saveWithConflicts } from "@/server/bookings/save-with-conflicts";
+import type { BookingRpcClient } from "@/server/bookings/conflict-facts";
 
 type BookingRpcArgs = {
   readonly p_tenant_id: string;
@@ -10,20 +12,16 @@ type BookingRpcArgs = {
   readonly p_payload: BookingFacts;
   readonly p_booking_id?: string;
 };
-type BookingRpcClient = {
-  rpc(name: "create_booking" | "update_booking", args: BookingRpcArgs): Promise<{
-    readonly data: unknown;
-    readonly error: { readonly code?: string } | null;
-  }>;
-};
 export async function executeBooking(db: CommandDbClient, operation: "create_booking" | "update_booking", args: BookingRpcArgs): Promise<BookingResult> {
-  const { data, error } = await (db as unknown as BookingRpcClient).rpc(operation, args);
-  if (error) {
-    if (error.code === "BK409") throw new CommandError("COMMAND_CONFLICT");
-    if (error.code === "42501" || error.code === "23503") throw new CommandError("TENANT_ACCESS_DENIED");
-    if (["23514", "22P02", "22007", "22008"].includes(error.code ?? "")) throw new CommandError("VALIDATION_FAILED");
+  void operation;
+  try {
+    return await saveWithConflicts(db as unknown as BookingRpcClient, args);
+  } catch (error) {
+    if (error instanceof CommandError) throw error;
+    const code = (error as { code?: string } | null)?.code;
+    if (code === "BK409") throw new CommandError("COMMAND_CONFLICT");
+    if (code === "42501" || code === "23503") throw new CommandError("TENANT_ACCESS_DENIED");
+    if (["23514", "22P02", "22007", "22008"].includes(code ?? "")) throw new CommandError("VALIDATION_FAILED");
     throw new Error("booking write failed");
   }
-  if (!data || typeof data !== "object" || typeof (data as { bookingId?: unknown }).bookingId !== "string" || Object.keys(data).length !== 1) throw new Error("booking result invalid");
-  return data as BookingResult;
 }

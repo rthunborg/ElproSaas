@@ -18,6 +18,27 @@ beforeAll(async () => {
   stackUp = await isLocalStackReachable();
 });
 
+describe("Story 14.3 exact checked/private conflict authority inventory", () => {
+  it("[P0] snapshot/finalize are authenticated-only; every helper has empty search path and owner-only execution", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
+    const { actualConflictBindings } = await import("../../support/booking-conflict-attestation");
+    const inventory = (await actualConflictBindings()).sqlInventory;
+    expect(inventory.checked).toHaveLength(2); expect(inventory.private).toHaveLength(8);
+    for (const [kind, functions] of [["checked", inventory.checked], ["private", inventory.private]] as const) {
+      for (const fn of functions) {
+        const [row] = await adminQuery<{ anon: boolean; authenticated: boolean; service: boolean; public_execute: boolean; search_path: string[] }>(
+          `select has_function_privilege('anon',p.oid,'EXECUTE') as anon,
+            has_function_privilege('authenticated',p.oid,'EXECUTE') as authenticated,
+            has_function_privilege('service_role',p.oid,'EXECUTE') as service,
+            exists(select 1 from aclexplode(coalesce(p.proacl,acldefault('f',p.proowner))) a where a.grantee=0 and a.privilege_type='EXECUTE') as public_execute,
+            p.proconfig as search_path from pg_proc p where p.oid=$1::regprocedure`, [fn.signature]);
+        expect(row).toMatchObject({ anon: false, authenticated: kind === "checked", service: false, public_execute: false });
+        assertSearchPathExactlyEmpty(fn.name, row.search_path);
+      }
+    }
+  });
+});
+
 describe("Migration reset green — tenant_foundation objects present (AC1 / R-007)", () => {
   it("[P0] tables `tenants` and `tenant_memberships` exist after reset", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;

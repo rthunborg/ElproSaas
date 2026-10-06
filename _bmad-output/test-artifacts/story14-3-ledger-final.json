@@ -1,0 +1,23 @@
+{
+  "target": "127.0.0.1:55422/postgres",
+  "lifecycle": "79338b7b-db58-4a1a-85a2-5d877d3d45e3",
+  "count": 94,
+  "priorCount": 92,
+  "priorSha256": "9a7fa3a7b1a5ece3fe93153197448b21c12b48e7bc17f72313acf6ad4c6e7338",
+  "priorRecordsUnchanged": true,
+  "newVersions": [
+    "20261006122441",
+    "20261006124954"
+  ],
+  "newRecordSha256": [
+    {
+      "version": "20261006122441",
+      "sha256": "f430be8a23766e4a2e4fd7f11939930c4713b869ad91283964d5a72c1993972f"
+    },
+    {
+      "version": "20261006124954",
+      "sha256": "684fe9795ab6da67ee530be7d276d08700b0ba4785ac99f28d9c1802fb21e4b6"
+    }
+  ],
+  "emptyChainProven": false
+}
