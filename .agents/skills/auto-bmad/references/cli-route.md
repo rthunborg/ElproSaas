@@ -19,10 +19,10 @@ Routing `build` or `followup_review` = build-auto runs *inside* `codex exec` / `
 ```bash
 python3 {skill-root}/scripts/cli_delegate.py --phase <phase> \
   --config <output_folder>/auto-bmad/config.yaml --project-root <project_root> \
-  --story-key <story_key> --host <resolved-host: claude-code|codex|opencode> --mkdir [--label <label>]
+  --story-key <story_key> --host <resolved-host: claude-code|codex|opencode> --mkdir [--label <label>] [--codex-effort <selected-effort>]
 ```
 
-Pass the **resolved** host detected this run, not the literal config `auto` (any other value ⇒ the auth probe always runs). Use a distinct `--label` per repeated delegate of the same phase and story (e.g. `pass-2` for a second follow-up review pass, `rereview` for the external-change re-review) so `capture_log` / `exit_file` / `-o` paths don't collide.
+For a Codex route, pass the effort returned by `effort_policy.py` and persisted in the route capsule using `--codex-effort low|medium|high`; this overrides the profile default in the emitted command without changing permissions. Never ask permission for this owner-authorized effort selection. Pass the **resolved** host detected this run, not the literal config `auto` (any other value ⇒ the auth probe always runs). Use a distinct `--label` per repeated delegate of the same phase and story (e.g. `pass-2` for a second follow-up review pass, `rereview` for the external-change re-review) so `capture_log` / `exit_file` / `-o` paths don't collide.
 
 It prints one JSON object. `routed:false` ⇒ use the normal tier. Otherwise it gives:
 - `tool`, `profile`, `model`, `effort` — from the phase's profile's matching tool block (`claude.model`+`effort`, `codex.model`+`reasoning_effort`, `opencode.model`+`variant`).

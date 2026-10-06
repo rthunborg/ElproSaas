@@ -432,6 +432,7 @@ def resolve(
     project_root: str,
     story_key: str = "story",
     label: str | None = None,
+    codex_effort: str | None = None,
 ) -> dict:
     """Build the external-CLI plan for ``phase`` from the config text. Pure.
 
@@ -463,6 +464,11 @@ def resolve(
     if profile and tool in TOOL_BINARY:
         model, effort, errs = _model_effort(profiles, profile, tool)
         errors.extend(errs)
+    if codex_effort is not None:
+        if tool != "codex" or codex_effort not in ("low", "medium", "high"):
+            errors.append("codex_effort requires a Codex route and low, medium or high")
+        else:
+            effort = codex_effort
 
     root, _ = _portable_project_root(project_root)
     cap_dir = _capture_dir()
@@ -715,6 +721,7 @@ def resolve_layer(
     tool: str | None = None,
     timeout_bin: str | None = None,
     platform: str | None = None,
+    codex_effort: str | None = None,
 ) -> dict:
     """Build the auto-bmad-cross-model review layer's command from the runtime config. Pure.
 
@@ -752,6 +759,11 @@ def resolve_layer(
         model, effort, errs = _model_effort(parse_profiles(config_text), profile, tool_name)
         errors.extend(errs)
         out["model"], out["effort"] = model, effort
+    if codex_effort is not None:
+        if tool_name != "codex" or codex_effort not in ("low", "medium", "high"):
+            errors.append("codex_effort requires a Codex route and low, medium or high")
+        else:
+            out["effort"] = codex_effort
 
     root, root_is_absolute = _portable_project_root(project_root)
     if not root_is_absolute:
@@ -1830,6 +1842,7 @@ def main() -> int:
     parser.add_argument("--self-test", action="store_true", help="Run internal tests and exit.")
     parser.add_argument("--layer-argv", action="store_true", help="Build the auto-bmad-cross-model review layer's shell command (baked into _bmad/custom/bmad-build-auto.toml by build_auto_custom.py) from code_review.cross_model_layer + phase_profiles.cross_model_layer. Needs --config and --project-root; --tool overrides the config value.")
     parser.add_argument("--tool", help="--layer-argv only: force the external tool (codex|claude|opencode; '' = disabled) instead of reading code_review.cross_model_layer.")
+    parser.add_argument("--codex-effort", choices=("low", "medium", "high"), help="Owner-authorized effort override for a Codex phase or review layer; pass the persisted effort-policy selection.")
     parser.add_argument("--wait", action="store_true", help="Block until a detached routed delegate exits, then print a verdict JSON. MUST be launched BACKGROUNDED (a foreground wait hits the host's ~10-min shell cap). Prefer --once on a host that re-invokes you when a background task exits.")
     parser.add_argument("--once", action="store_true", help="Classify a delegate ONCE and exit immediately (no loop): exited / dead-no-sentinel / running. For notify-capable hosts — background the delegate itself, then call --once on wake.")
     parser.add_argument("--capture-log", help="Delegate capture-log path (from resolve()); required by --wait/--once.")
@@ -1886,11 +1899,11 @@ def main() -> int:
 
     if args.layer_argv:
         # abspath (not resolve): absolute as the user spelled it, symlinks untouched.
-        layer = resolve_layer(config_text, os.path.abspath(args.project_root), tool=args.tool)
+        layer = resolve_layer(config_text, os.path.abspath(args.project_root), tool=args.tool, codex_effort=args.codex_effort)
         print(json.dumps(layer, indent=2))
         return 0 if layer["ok"] else 2
 
-    plan = resolve(args.phase, config_text, args.project_root, args.story_key, args.label)
+    plan = resolve(args.phase, config_text, args.project_root, args.story_key, args.label, codex_effort=args.codex_effort)
     if not plan.get("routed"):
         print(json.dumps(plan, indent=2))
         return 0

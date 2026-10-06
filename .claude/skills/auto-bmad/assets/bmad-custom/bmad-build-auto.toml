@@ -41,7 +41,7 @@ Do not invoke any skill, and do not spawn subagents of your own — you are the 
 id = "auto-bmad-cross-model"
 name = "auto-bmad Cross-Model Reviewer (@@CROSS_MODEL_TOOL@@)"
 instruction = '''
-Run an external reviewer using the configured diverse-review model/profile. Do this yourself, in this order:
+Run an external reviewer using the configured diverse-review model/profile. On Codex, assess the actual review scope under docs/process/agent-model-routing.md before launching: ordinary review uses Low; tenant isolation, RBAC, permissions, auth, security/RLS, secrets/public-token boundaries, money/tax and transactional integrity use High. This is owner-authorized; never ask permission. For sensitive work, replace only the model_reasoning_effort value in the command below with high; preserve the model, read-only sandbox and every other argument. Do this yourself, in this order:
 
 @@VARIANT:diff_output@@
 1. Save the review content that follows the line `--- REVIEW CONTENT ---` at the end of this instruction VERBATIM to a NEW temporary file outside the repository (use your file-writing tool; a fresh path under the OS temp dir, e.g. /tmp/auto-bmad-cross-model-<random>.diff).

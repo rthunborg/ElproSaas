@@ -4,7 +4,7 @@
 
 - **Language** — Speak in `{{.communication_language}}`, tailored to `{{.user_skill_level}}`. Write files in `{{.document_output_language}}`.
 - No human interaction: do not ask questions or wait for approval in this step.
-- All review subagents must run at the same model capability as the current session.
+- Use gpt-6.1-sol for every Codex reviewer. Select Low for ordinary review and High for sensitive work under docs/process/agent-model-routing.md; explicit child effort may exceed the Low parent. Apply this owner-authorized routing without asking permission.
 
 ## INSTRUCTIONS
 

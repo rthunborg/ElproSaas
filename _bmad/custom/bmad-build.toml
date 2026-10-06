@@ -1,8 +1,11 @@
 # Project-owned; survives BMAD reinstall. See docs/process/review-order.md.
 [workflow]
-persistent_facts = ["file:{project-root}/docs/process/review-order.md"]
+activation_steps_append = ['''
+Read {project-root}/docs/process/agent-model-routing.md. Use gpt-6.1-sol Low for ordinary development and review. Assess the actual task/diff; tenant isolation, tenancy/provisioning, RBAC, permissions, auth, security/RLS, secrets/public-token boundaries, money/tax and transactional integrity require High. Effort selection/escalation is owner-authorized; never ask permission. If the current Low session cannot perform the selected higher-effort work, dispatch a generic context-free High delegate synchronously and use its result. Explicit effort overrides may exceed the Low parent; an already-routed delegate does not recursively re-delegate solely for effort. Preserve all unrelated authorization, sandbox, resource, test and review rules.
+''']
+persistent_facts = ["file:{project-root}/docs/process/review-order.md", "file:{project-root}/docs/process/agent-model-routing.md"]
 implementation_handoff = '''
-Launch a subagent with no prior conversation context, with this prompt:
+Launch a subagent with no prior conversation context using `gpt-6.1-sol` on Codex. Select Low by default for ordinary development and review, and automatically select High for tenant isolation, tenancy/provisioning, RBAC, permissions, auth, security/RLS, secrets/public-token boundaries, money/tax and transactional integrity; no permission question is needed, following docs/process/agent-model-routing.md. Carry that model/effort policy into every nested handoff. With this prompt:
 
 Read {spec_file} fully and implement it; the spec is the source of truth. Load every file in its context frontmatter before starting. Also read {project-root}/docs/process/review-order.md and {project-root}/_bmad/custom/review-order-template.md.
 You are the implementation author. Own and write exactly one Suggested Review Order after implementation and verification, before returning for review. Explain your recorded choices; verify repository-relative path:line stops and useful literal symbol anchors; map important ACs/invariants to tests and state evidence limits. Do not invent rationale. Refresh the same section after every review-fix batch or re-derivation, preserving frozen intent. Return what changed, verification, and anything incomplete or risky. Remain available for synchronous fix and final-trail reconciliation handoffs.
