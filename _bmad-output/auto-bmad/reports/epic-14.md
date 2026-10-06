@@ -548,3 +548,40 @@ No new deferred items harvested.
 1. Build workflow halted: implementation verification failed. Resolve INT004 through a build delegate, restore spec in-progress after diagnosis, then resume /auto-bmad epic --epic 14.
 
 **Next:** Human review: /bmad-checkpoint-preview codex/epic14-resume. Continue through build delegate after failure diagnosis; Story14.4 and PR gates remain closed. Run /bmad-project-context refresh after epic completion.
+
+## Report — 2026-10-06T15:17:04Z (halted — needs-human)
+
+**Epic:** `14` — 4 stories.
+**Branch:** `codex/epic14-resume` (HEAD `db632f5`).
+**Pipeline status:** Story14.3 blocked in review-fix verification: patch verification failed; checkpoint db632f5b.
+**Continues:** Checkpoint c8d0a881; report2026-10-06T13:04:26Z.
+
+**Summary:** Authorized diagnostic continuation completed current pre-review full gate and canonical lint. All six independent layers reviewed original whole implementation; nine accepted fixes implemented. Post-fix cumulative verification remains failed; workload sampling proved database wall-clock regressions.
+
+**Timing:** started 2026-09-29T08:23:21Z; completed in progress — elapsed 174h 53m (≈14h 27m AI-run, ≈160h 26m human/idle wait); resumed 13×.
+
+**Stories:**
+1. 14.1 and14.2 previously landed; approvals retained.
+2. 14.3 blocked; one broad independent round (six layers); nine patches implemented, zero deferred review findings, two rejected findings. Follow-up remains recommended.
+3. 14.4 not started.
+
+**Skipped:** (none)
+
+**Epic gate:** Not reached; exact empty migration-chain CI remains pending.
+
+**TEA:** Current review-fixed full:1366 total,1362 passed,3 failed,1 intentional recovery-loader skip,native1. Focused:143/143 executed/pass with zero skips; two formerly uncollected AC10 named cases now executed. Units:1992 passed,zero failed,one inherited Windows skip. Source/typecheck/canonical lint/build/bundle/security checks pass. Ledger95,all94 prior records unchanged. Final102-case diagnostic:101 passed,1 failed,zero skips;1210 clock samples show6 backward DB steps,min -827.780ms over62.090ms positive monotonic elapsed.
+
+**Retrospective:** Not reached.
+
+**Overrides:** Existing approvals and Contract C retained. Sol6.1 High actual authorization/RLS/integrity route. Native reviewers3then2 capacity batches plus externalHigh; exact CLI output retrieval repaired without review rerun. Genuine full-review facts produced readable canonical review snapshot; lint excludes generated cache only. No resets,hosted/global changes or guard weakening. Root lifecycle730ffa3c-8fe8-4b93-b5b8-4da0f9e61cee Stop accepted; shutdown unverified,saved state retained.
+
+**Open questions:**
+1. Database wall-clock regression is proven; precise host/runtime cause and all historical full-failure causes are not established. The failed direct proof path has no same-proof receipt observation.
+
+**Deferred work:**
+1. Diagnose and stabilize isolated database timekeeping; rerun required affected/full gates, then follow-up review/final trail and exact empty-chain CI.
+
+**⚠️ Needs human:**
+1. Canonical auto-bmad halt: patch verification failed. Stable local DB timekeeping is required before successful re-verification; changing host time settings is outside this story workflow. Preserve two remaining broad review rounds; later review focuses fixes/regressions.
+
+**Next:** Review /bmad-checkpoint-preview codex/epic14-resume. After stable local timekeeping, restore14.3 through High build delegate and resume /auto-bmad epic --epic14. Story14.4 and PR gates remain closed; project-context refresh follows epic completion.
