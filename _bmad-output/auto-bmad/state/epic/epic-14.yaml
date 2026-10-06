@@ -9,11 +9,11 @@ spec_folder: null
 story_id: null
 branch: epic/14-wave-b1b-resource-and-scheduling-foundation
 status: in-progress
-updated_at: "2026-10-06T10:01:39Z"
+updated_at: "2026-10-06T10:12:35Z"
 started_at: "2026-09-29T08:23:21Z"
 completed_at: null
-active_seconds: 37452
-timing_anchor: 1791280899
+active_seconds: 38107
+timing_anchor: 1791281555
 is_first_in_epic: false
 is_last_in_epic: false
 git_mode: remote
@@ -63,7 +63,7 @@ legacy_review_loop_done: false
 legacy_external_review_iterations: null
 legacy_convergence_unverified: false
 legacy_artifact_path: null
-commits: [21ae8d7, "7548809", b821e42, 2fdca50, a98153f, 8a260ae, 741f4bf, ee9d17b, 084bfe1e, 63f22361, e88ce5db, d53cb1dc, 1a077bd2, ceefd6f3, 5b46bdec, d856d313, 4c127848, d6b545f6, af283dbd, abbe0170, a957911, 4c8d0b6, 0eaa367, de5cfbe4, 1fce0b49, 8db3b22, 7c434b04]
+commits: [21ae8d7, "7548809", b821e42, 2fdca50, a98153f, 8a260ae, 741f4bf, ee9d17b, 084bfe1e, 63f22361, e88ce5db, d53cb1dc, 1a077bd2, ceefd6f3, 5b46bdec, d856d313, 4c127848, d6b545f6, af283dbd, abbe0170, a957911, 4c8d0b6, 0eaa367, de5cfbe4, 1fce0b49, 8db3b22, 7c434b04, cd0b677]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -239,6 +239,12 @@ overrides:
   acceptance_contract_c_owner_approved: true
   acceptance_contract_c: "14.2 retains schema/RLS/auth/idempotency/rollback/booking-assignee-audit atomicity. Conflict portion of INT-001, INT-002, INT-007, INT-008 moves to 14.3; mandatory equivalent P0 before 14.4 and epic PR; no user-facing booking entry before detector integration."
   acceptance_contract_c_document: docs/decisions/epic-14-story-ownership-contract-c-2026-10-06.md
+  current_compose_resource_id: ebd5df87-f814-496f-94b9-c2371fc9e156
+  current_compose_outcome_verified: true
+  current_compose_stop_requested: false
+  current_loopback_rest_auth_storage_http_200: true
+  current_compose_healthy_services: 5
+  owned_guard_resources_stop_requested: false
 constraints:
   - "Phase B manifest-governed approved Epic14 stories only; maintain hard Phase C exclusions."
   - "Epic13 observation and release gates remain separate; no hosted migrations, deployment or flag changes during this implementation workflow."
