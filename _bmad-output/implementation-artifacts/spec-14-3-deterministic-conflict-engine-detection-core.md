@@ -2,7 +2,7 @@
 title: 'Story 14.3: Deterministic Conflict Engine (Detection Core)'
 type: 'feature'
 created: '2026-10-06'
-status: 'blocked'
+status: 'in-progress'
 baseline_revision: '0c4ab83f8b4578933c5297f30ee7138bbfa3ba94'
 review_loop_iteration: 0
 followup_review_recommended: false
@@ -180,3 +180,8 @@ Baseline revision captured directly from Git before this attempt: 0c4ab83f8b4578
 Verification counts for this implementation attempt: executed 0, failed 0, skipped 0; no acceptance coverage is claimed. The previously recorded ATDD collection and 14.2 results remain historical evidence. Review iterations completed: 0; triage counts: 0 patch, 0 defer, 0 reject. Required independent review and external read-only CLI review were not reached. Recommendation: resume this approved story only when a fresh context-free implementation author can be dispatched; no Story 14.4 work is authorized by this result.
 
 Completion-hook result: blocked/incomplete exit preserved without manufacturing a completed Suggested Review Order, following docs/process/review-order.md.
+### Authorized implementation resume 2026-10-06
+
+Status: in-progress
+
+Fresh context-free gpt-6.1-sol High implementation-author capacity was proven by successful mandatory author dispatch before this restoration. The approved Contract C, frozen baseline, nine-task plan, existing ATDD artifacts and historical blocking evidence remain intact. This build delegate restored only this spec; root owns sprint and orchestration metadata. Historical no-subagents results above remain historical and are superseded for this authorized resume.
