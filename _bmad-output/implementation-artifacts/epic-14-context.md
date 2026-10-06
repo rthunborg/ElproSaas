@@ -1,6 +1,6 @@
 # Epic 14 Context: Resource and Scheduling Foundation
 
-<!-- Generated from planning artifacts. Regenerate with compile-epic-context if planning docs change. -->
+<!-- Generated from planning artifacts; minimally reconciled with owner-approved contract C on 2026-10-06. Regenerate with compile-epic-context if planning docs change. -->
 
 ## Goal
 
@@ -15,7 +15,7 @@ Establish the tenant-isolated scheduling foundation: people have practical weekl
 
 ## Requirements & Constraints
 
-- Activate the scheduling module through the scope manifest in the same change as its first schema or navigation surface. Add the required authorization-matrix entries and role-negative coverage with activation; no scheduling surface may be live while the module is pending.
+- Story 14.1 activates `resources` through the scope manifest with its first schema surface and required matrix/role-negative coverage. Epic 14 tables/capabilities belong to active `resources`; `scheduling` remains pending with empty live surfaces until Epic 15.
 - Model one person profile per tenant membership. Reuse the existing work-role catalogue for a person’s default scheduling role; do not introduce a separate employee or work-role model. Carry existing deactivated-user semantics into scheduling.
 - Availability must come from each person’s actual recurring weekly schedule, including shifts and breaks, rather than employment percentage. Support individual exceptions such as vacation, sick leave, leave, training, and blocked time; provide an inheritable tenant default schedule.
 - Calculate available capacity as scheduled working time less Swedish public holidays and tenant closed or reduced-capacity days, absences, existing bookings, blocked internal time, and any configured planning buffer. Overtime requires an authorized explicit decision. Overbooking remains possible but always warns.
@@ -39,9 +39,13 @@ Establish the tenant-isolated scheduling foundation: people have practical weekl
 - Recalculate and show a live inline conflict panel after assignee or time changes. Each violation explains the rule, affected people or bookings, and a small collision timeline. The editor offers an explicit `Boka ändå` action only after collecting the required reason.
 - Field interactions work as connected responsive web from 360×640. On a transient submission failure, retain suitable unsent form state, clearly show that nothing was saved, provide explicit retry, and show success only after server confirmation. Phase B has no offline queue, synchronization, or installable-app behavior.
 
+## Owner-approved Story Ownership — 2026-10-06
+
+[Contract C](../../docs/decisions/epic-14-story-ownership-contract-c-2026-10-06.md) preserves 14.1 → 14.2 → 14.3 → 14.4 and all Epic acceptance. Story 14.2 supplies schema/RLS/authorization/idempotency/rollback and booking-assignee-audit atomicity; conflict workflow schema remains there. Story 14.3 solely supplies the pure engine, authoritative current-row transaction integration, derived-conflict persistence/refresh, and transferred 14.3-INT-003/004/005/006 checks (from the conflict portions of 14.2-INT-001/002/007 and full 14.2-INT-008). All transferred checks, including mandatory P0 evidence, complete before any 14.4 work and the Epic PR. No user-facing booking entry before detector integration; no stub or duplicated rules. Story 14.2 foundation completion cannot claim conflict acceptance.
+
 ## Cross-Story Dependencies
 
-- RBAC and the permission-matrix foundation from Epic 11 must be available before scheduling activation and its role-scoped policies.
+- RBAC and the permission-matrix foundation from Epic 11 must be available before resource activation and its role-scoped policies.
 - Epic 13 provides the notification infrastructure later conflict resolution will use for affected-assignee booking-change notices.
 - Epic 15 adds scheduling projections, recurrence, and the resolver on top of this booking and conflict foundation; its recurrence expansion must use the same conflict rules and timezone policy.
 - Epic 16 deepens jobs after scheduling starts. This epic binds optionally to the existing basic job container and must preserve that connection as jobs evolve.

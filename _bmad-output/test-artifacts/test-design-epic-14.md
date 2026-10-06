@@ -6,7 +6,7 @@ epic: '14 — Resource and Scheduling Foundation'
 totalSteps: 5
 stepsCompleted: ['step-01-detect-mode', 'step-02-load-context', 'step-03-risk-and-testability', 'step-04-coverage-plan', 'step-05-generate-output']
 lastStep: 'step-05-generate-output'
-lastSaved: '2026-09-29'
+lastSaved: '2026-10-06'
 ---
 
 # Test Design: Epic 14 — Resource and Scheduling Foundation
@@ -18,19 +18,32 @@ lastSaved: '2026-09-29'
 
 ## Executive Summary
 
-This epic-level design covers person profiles and work hours, bookings and assignees, deterministic conflict detection, and the responsive booking editor with audited overrides. It plans 74 atomic scenarios: 7 P0, 64 P1, 2 P2, and 1 P3. The design does not claim executed coverage; Epic 14 implementation and its test suites do not yet exist.
+This epic-level design covers person profiles and work hours, bookings and assignees, deterministic conflict detection, and the responsive booking editor with audited overrides. It plans 77 named checks: 8 P0, 66 P1, 2 P2, and 1 P3. Owner-approved contract C splits three combined foundation/conflict scenarios for explicit story ownership while retaining every original acceptance obligation. This design does not claim executed coverage; implementation evidence is recorded separately in the story and progress artifacts.
 
 The assessment identifies 13 risks. Ten are high risks with scores of 6 or 9. The leading risks are missed or phantom conflicts, preview/save disagreement, partial transactional writes, and incorrect Europe/Stockholm or capacity calculations. Tenant isolation, audited overrides, manifest scope, and false-green skipped integration suites are also release-critical.
 
 The governing scope boundary is explicit: Story 14.1 activates the manifest module `resources` with its first Epic 14 schema surface. The separate `scheduling` manifest module belongs to Epic 15 and remains pending throughout Epic 14.
+
+## Owner-approved acceptance ownership — 2026-10-06
+
+[Contract C](../../docs/decisions/epic-14-story-ownership-contract-c-2026-10-06.md) preserves order 14.1 → 14.2 → 14.3 → 14.4. Story 14.2 retains schema, RLS, authorization, idempotency, rollback and booking-assignee-audit atomicity. Story 14.3 owns the sole pure engine, authoritative current-row transaction integration and derived-conflict persistence/refresh. No stub or duplicated conflict rules are permitted.
+
+| Original obligation | Foundation check in 14.2 | Engine-dependent check in 14.3 | Priority retained |
+| --- | --- | --- | --- |
+| 14.2-INT-001 | 14.2-INT-001 | 14.3-INT-003 | P0 |
+| 14.2-INT-002 | 14.2-INT-002 | 14.3-INT-004 | P1 |
+| 14.2-INT-007 | 14.2-INT-007 | 14.3-INT-005 | P1 |
+| 14.2-INT-008 | None; transferred in full | 14.3-INT-006 | P0 |
+
+All four transferred checks, including equivalent mandatory P0 evidence, must pass before any Story 14.4 work and before the Epic PR. No user-facing booking entry point is permitted before the detector is integrated into the authoritative transaction. Story 14.2 completion provides foundation evidence only; conflict evidence cannot be claimed until 14.3 executes it. Every existing Epic gate remains required.
 
 ## Scope
 
 ### In Scope
 
 - Story 14.1: one person profile per membership, default work-role reuse, weekly work templates and exceptions, tenant calendar days, capacity inputs, admin maintenance, deactivated-user semantics, and `resources` activation.
-- Story 14.2: standalone or optionally connected bookings, multi-assignees, composite same-tenant references, UTC instants, and transactional SECURITY INVOKER create/update commands.
-- Story 14.3: one pure, clock-free conflict engine shared by preview and authoritative save, covering double booking, over-capacity, outside-work-hours, access-window, and competence conflicts.
+- Story 14.2: standalone or optionally connected bookings, multi-assignees, composite same-tenant references, UTC instants, conflict-workflow schema, and transactional SECURITY INVOKER create/update foundation commands with RLS, authorization, idempotency, rollback and booking-assignee-audit atomicity; no user-facing booking entry.
+- Story 14.3: one pure, clock-free conflict engine shared by preview and authoritative save, integrated into the write transaction with current-row recheck and atomic conflict persistence/refresh, covering double booking, over-capacity, outside-work-hours, access-window, and competence conflicts.
 - Story 14.4: responsive booking editor, live warnings, explicit `Boka ändå`, required reason, persisted accepted/open conflicts, audit evidence, dirty-state protection, retained unsent state, explicit retry, and server-confirmed success.
 - Existing Phase B guardrails for tenant isolation, role/capability enforcement, audit, manifest coherence, H4 tenant-table enrollment, service-role exclusion, and cumulative regression.
 
@@ -54,8 +67,8 @@ Probability and impact use the TEA 1–3 scale. Score is probability × impact. 
 | Risk ID | Category | Risk | P | I | Score | Planned mitigation | Owner / timing |
 | --- | --- | --- | ---: | ---: | ---: | --- | --- |
 | R14-DATA-01 | DATA | The engine misses a real collision or reports a phantom collision across boundaries, multiple assignees, optional links, or rule combinations. | 3 | 3 | 9 | Table-driven and golden unit packs for every conflict type, boundary/permutation checks, and a permanent regression fixture for each discovered defect. | Dev + test owner / Story 14.3 before merge |
-| R14-DATA-02 | DATA | Live preview and authoritative save disagree because of duplicate rules, stale inputs, or a concurrent writer. | 3 | 3 | 9 | Import the same pure engine at both call sites and prove save re-runs it inside the transaction against current rows. | Dev + test owner / Stories 14.2–14.4 |
-| R14-DATA-03 | DATA | Create/update partially writes booking, assignees, conflicts, acceptance, idempotency, or audit data; retries or concurrency duplicate state. | 3 | 3 | 9 | Fault-boundary rollback, same-key replay, changed-payload conflict, concurrent races, exact post-state, and one-audit assertions. | Dev + test owner / Story 14.2, extended in 14.4 |
+| R14-DATA-02 | DATA | Live preview and authoritative save disagree because of duplicate rules, stale inputs, or a concurrent writer. | 3 | 3 | 9 | Import the same pure engine at both call sites and prove save re-runs it inside the transaction against current rows. | Dev + test owner / Story 14.3 authoritative integration before any 14.4 work; 14.4 editor proof |
+| R14-DATA-03 | DATA | Create/update partially writes booking, assignees, conflicts, acceptance, idempotency, or audit data; retries or concurrency duplicate state. | 3 | 3 | 9 | Fault-boundary rollback, same-key replay, changed-payload conflict, concurrent races, exact post-state, and one-audit assertions. | Dev + test owner / Story 14.2 foundation, 14.3 conflict integration, extended in 14.4 |
 | R14-DATA-04 | DATA | Europe/Stockholm conversion, DST, all-day bounds, actual-schedule capacity, holidays, absence, breaks, buffers, or overtime rules are wrong. | 3 | 3 | 9 | Golden N-9 packs, spring/fall fixtures, formula component isolation, calendar layering, and explicit overtime inputs. | Dev + test owner / Stories 14.1 and 14.3 |
 | R14-SEC-01 | SEC | A tenant or role reaches another tenant's person, hours, calendar, booking, assignee, or conflict data, or child rows mix tenants. | 2 | 3 | 6 | Enroll every table in `TENANT_TABLES`; cover cross-tenant CRUD, parent spoofing, anon, disabled membership, and same-tenant role negatives. | Dev + test owner / each migration PR |
 | R14-SEC-02 | SEC | Montör own-booking scope, capability, route, and command authorization diverge. | 2 | 3 | 6 | Per-role tests at DB/read/command/route layers; prove Montör sees only joined own-person bookings and cannot invoke planner/admin mutations. | Dev + test owner / Stories 14.1, 14.2, 14.4 |
@@ -101,7 +114,7 @@ All scores are pre-mitigation. Residual risk remains unassessed until the planne
 
 ## Entry Criteria
 
-- The implementing story is approved and its schema/command contract is final enough to derive fixtures.
+- The implementing story is approved and its schema/command contract is final enough to derive fixtures. Before any 14.4 work, 14.3 detector integration and transferred 14.3-INT-003/004/005/006 evidence must pass.
 - Story 14.1 changes `resources` from pending to active in the same PR as the first E14 schema surface; `scheduling` remains pending.
 - New tables and permission rows are declared in the manifest-derived inventories before integration evidence is accepted.
 - Existing tenant, membership, role, audit, and idempotency factories are extended with deterministic Epic 14 builders.
@@ -121,7 +134,7 @@ All scores are pre-mitigation. Residual risk remains unassessed until the planne
 
 Priorities describe release criticality, not execution timing. Every row is an atomic planned scenario. Parameterized tests must report each data row separately.
 
-### P0 — Critical (7 scenarios)
+### P0 — Critical (8 checks)
 
 **Criteria:** Critical security, data-integrity, scope, or business authority with no safe workaround. Risk score supports but does not determine priority.
 
@@ -130,12 +143,13 @@ Priorities describe release criticality, not execution timing. Every row is an a
 | 14.1-RLS-001 | Cross-tenant profile, hours, calendar CRUD and parent-spoof denial. | RLS integration | R14-SEC-01 | Covers all Story 14.1 tables. |
 | 14.1-GOV-001 | `resources` activates with E14 metadata/tables/permissions and derived guardrails agree. | Static/unit | R14-TECH-01 | Same PR as first schema surface. |
 | 14.1-GOV-002 | `scheduling` remains pending with empty live surfaces. | Static/unit | R14-TECH-01 | Exact E14/E15 boundary. |
-| 14.2-INT-001 | Create commits one booking, assignees, derived conflicts, and one audit event. | Command integration | R14-DATA-03 | Exact post-state. |
-| 14.2-INT-008 | Conflict committed after preview is detected inside save. | Command integration | R14-DATA-02 | Client preview is not authority. |
+| 14.2-INT-001 | Create atomically commits one booking, assignees, idempotency outcome and one audit event. | Command integration | R14-DATA-03 | Foundation exact post-state; derived-conflict portion is 14.3-INT-003. |
+| 14.3-INT-003 | Create atomically commits server-derived conflicts with booking, assignees, idempotency outcome and one audit event. | Command integration | R14-DATA-03 | Transferred P0 conflict portion of 14.2-INT-001; exact post-state. |
+| 14.3-INT-006 | Conflict committed after preview is detected inside authoritative save against current rows. | Command integration | R14-DATA-02 | Transferred P0 14.2-INT-008; client preview is not authority. |
 | 14.2-RLS-001 | Cross-tenant booking, assignee, and conflict reads/writes fail. | RLS integration | R14-SEC-01 | Direct and command paths. |
 | 14.4-INT-002 | Nonblank `Boka ändå` atomically commits accepted conflicts, actor/reason, and audit. | Command integration | R14-BUS-01 | Transactional override. |
 
-### P1 — High (64 scenarios)
+### P1 — High (66 checks)
 
 **Criteria:** Core, frequent, or complex behavior with material user reach and a limited workaround. Risk score supports but does not determine priority.
 
@@ -172,10 +186,12 @@ Priorities describe release criticality, not execution timing. Every row is an a
 | 14.2-DB-003 | End after start is enforced; zero/negative windows write nothing. | DB integration | R14-DATA-05 | Constraint evidence. |
 | 14.2-DB-004 | Timed and all-day bookings store UTC and preserve approved local display interval. | DB integration | R14-DATA-04 | Europe/Stockholm. |
 | 14.2-DB-005 | Duplicate assignee or foreign-tenant person fails. | DB integration | R14-DATA-05 | Composite same-tenant reference. |
-| 14.2-INT-002 | Update atomically replaces mutable fields/assignees and re-derives conflicts. | Command integration | R14-DATA-02/03 | No stale rows. |
+| 14.2-INT-002 | Update atomically replaces mutable booking fields/assignees with idempotency and audit state. | Command integration | R14-DATA-03 | Foundation update; conflict re-derivation is 14.3-INT-004. |
+| 14.3-INT-004 | Update re-derives conflicts and replaces stale derived rows atomically with booking/assignees/idempotency/audit. | Command integration | R14-DATA-02/03 | Transferred conflict portion of 14.2-INT-002. |
 | 14.2-INT-004 | Reusing a command key with changed canonical content returns stable conflict and no change. | Command integration | R14-DATA-03 | Negative idempotency. |
 | 14.2-INT-006 | Failure after booking insert rolls back all business/idempotency/audit state. | Command integration | R14-DATA-03 | Fault injection. |
-| 14.2-INT-007 | Failure after assignee/conflict preparation leaves zero partial state. | Command integration | R14-DATA-03 | Fault injection. |
+| 14.2-INT-007 | Failure after assignee preparation leaves zero partial business/idempotency/audit state. | Command integration | R14-DATA-03 | Foundation fault injection; conflict fault is 14.3-INT-005. |
+| 14.3-INT-005 | Failure after conflict preparation rolls back booking/assignee/conflict/idempotency/audit state. | Command integration | R14-DATA-03 | Transferred conflict portion of 14.2-INT-007; exact fault post-state. |
 | 14.2-RLS-003 | Montör cannot invoke planner/admin create or update unless final matrix grants it. | RLS integration | R14-SEC-02 | Direct command attempt. |
 | 14.2-RLS-004 | Entitled planner/admin succeeds within tenant; direct routes/commands still authorize. | RLS integration | R14-SEC-02 | UI absence irrelevant. |
 | 14.2-INT-009 | Booking binds to an existing Phase A basic job and preserves its ID. | Command integration | FR84 | Forward-compatible binding. |
@@ -227,11 +243,11 @@ Priorities describe release criticality, not execution timing. Every row is an a
 
 | Priority | Count | Focus |
 | --- | ---: | --- |
-| P0 | 7 | Scope activation, tenant isolation, authoritative save, atomic create, and audited override. |
-| P1 | 64 | Full conflict/capacity and command matrix, schema/role negatives, UI reliability, accessibility, and deactivation semantics. |
+| P0 | 8 | Scope activation, tenant isolation, authoritative save, atomic create, and audited override. |
+| P1 | 66 | Full conflict/capacity and command matrix, schema/role negatives, UI reliability, accessibility, and deactivation semantics. |
 | P2 | 2 | Approved-target performance and supplementary manual accessibility. |
 | P3 | 1 | Cross-rule exploratory charter. |
-| **Total** | **74** | Planned atomic scenarios; none executed by this design workflow. |
+| **Total** | **77** | Planned checks preserving the original 74 scenario obligations; none executed by this design workflow. |
 
 ## Execution Strategy
 
@@ -296,8 +312,8 @@ Factories must generate unique values per run, create only through approved tena
 | Risk ID | Mitigation action | Owner | Due | Status | Verification |
 | --- | --- | --- | --- | --- | --- |
 | R14-DATA-01 | Implement complete table/golden conflict packs and permanent miss/phantom regression fixtures. | Story 14.3 dev + test owner | Before 14.3 merge | Planned | 14.3 unit/golden report; named fixture review. |
-| R14-DATA-02 | Share one engine and re-evaluate current rows inside save transaction. | Stories 14.2–14.4 dev + test owner | Before 14.4 exit | Planned | 14.2-INT-008, 14.3-INT-001/002, 14.4-COMP-003. |
-| R14-DATA-03 | Add rollback, replay, changed-payload, and concurrent-race coverage with exact row/audit counts. | Story 14.2 dev + test owner | Before 14.2 merge; extend in 14.4 | Planned | 14.2-INT-001..007 and 14.4-E2E-005. |
+| R14-DATA-02 | Share one engine and re-evaluate current rows inside save transaction. | Story 14.3 dev + test owner; 14.4 editor owner | Integration/transferred checks before any 14.4 work and Epic PR; editor proof at 14.4 exit | Planned | 14.3-INT-001/002/004/006, 14.4-COMP-003. |
+| R14-DATA-03 | Add rollback, replay, changed-payload, and concurrent-race coverage with exact row/audit counts. | Story 14.2 foundation and 14.3 integration dev + test owners | Foundation at 14.2 exit; conflict checks before any 14.4 work and Epic PR; extend in 14.4 | Planned | 14.2-INT-001..007, 14.3-INT-003/004/005 and 14.4-E2E-005. |
 | R14-DATA-04 | Freeze DST and N-9 capacity packs and prove each formula component independently. | Stories 14.1/14.3 dev + test owner | Before 14.3 merge | Planned | 14.1-UNIT-001..007; 14.3-UNIT-009/010/012. |
 | R14-SEC-01 | Enroll every table in H4/exact-policy inventory and run cross-tenant/anon/parent-spoof negatives. | Migration author + security test owner | Each schema PR | Planned | 14.1-RLS-001/003, 14.1-GOV-003, 14.2-RLS-001. |
 | R14-SEC-02 | Assert the final role matrix across DB, command, route, and direct URL boundaries. | Story authors + security test owner | Stories 14.1, 14.2, 14.4 | Planned | 14.1-RLS-002 and 14.2-RLS-002..004. |
@@ -308,7 +324,7 @@ Factories must generate unique values per run, create only through approved tena
 
 ## Quality Gates
 
-- P0 pass rate: 100%. No implicit waiver.
+- P0 pass rate: 100%. No implicit waiver. Transferred 14.3-INT-003/004/005/006 checks are mandatory before any 14.4 work and the Epic PR; no user-facing booking entry before authoritative detector integration.
 - P1 pass rate: at least 95%, with every failure triaged and owned.
 - P2/P3 pass rate: at least 90% when applicable; failures remain informational only after triage.
 - High risks: all score-9 and score-6 mitigations implemented and evidenced; no open high risk at epic exit.
@@ -334,8 +350,8 @@ Factories must generate unique values per run, create only through approved tena
 ### Dependencies
 
 1. Existing membership/tenant-role, work-role, job/customer/facility/contact, audit, and idempotency foundations remain stable.
-2. Story 14.1 schema and factories precede booking command evidence; Story 14.2 transactional commands precede authoritative Story 14.4 override E2E.
-3. Story 14.3 engine and golden packs are shared by both live preview and server save.
+2. Story 14.1 schema and factories precede Story 14.2 foundation command evidence; 14.2 schema/transactions precede 14.3 detector integration. The original story order is retained.
+3. Story 14.3 engine and golden packs are shared by preview and server save; authoritative integration and transferred checks must pass before any 14.4 work, user-facing booking entry, and the Epic PR.
 4. Owner-approved latency and scale targets are required before performance/scalability can exit UNKNOWN.
 
 ### Risks to the Plan
@@ -368,6 +384,7 @@ Factories must generate unique values per run, create only through approved tena
 | --- | --- | --- | --- |
 | Test design author | Rasmus / TEA workflow | Draft complete | 2026-09-29 |
 | Product/architecture owner | TBD | Pending implementation-phase review of latency/scale targets and any matrix changes | — |
+| Acceptance ownership owner | Rasmus | Contract C approved; no waiver of Epic acceptance or remaining gates | 2026-10-06 |
 | Story reviewers | TBD | Pending per-story implementation and evidence | — |
 
 ## References

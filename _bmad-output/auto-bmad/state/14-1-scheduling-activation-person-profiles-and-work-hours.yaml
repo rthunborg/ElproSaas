@@ -9,7 +9,7 @@ spec_folder: null
 story_id: null
 branch: epic/14-wave-b1b-resource-and-scheduling-foundation
 status: in-progress
-updated_at: "2026-10-02T19:22:05Z"
+updated_at: "2026-10-02T19:30:21Z"
 started_at: "2026-09-29T08:45:54Z"
 completed_at: null
 active_seconds: 34653
@@ -49,7 +49,7 @@ build:
   deferred_count: 0
   warnings: []
 followup_passes: 1
-hitl_halt: "auto-continued (epic â€” no halt)"
+hitl_halt: "auto-continued (epic — no halt)"
 review_unverified: true
 story_trace: null
 legacy_review_resume: false

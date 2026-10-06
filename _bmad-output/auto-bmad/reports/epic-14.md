@@ -395,3 +395,119 @@ No archive this session.
 1. Review ADR-B012 successor proposal and answer the pending scoped approval question. AGENTS.md requires approved story or ADR-backed scope for additional product/database changes.
 
 **Next:** Approve the recommended successor bundle to resume the saved author/testing/review workflow. Project context refresh recommended after epic completion.
+
+## Report — 2026-10-02T19:24:10Z (halted â€” needs-human)
+
+**Epic:** `14` — 4 stories.
+**Branch:** `epic/14-wave-b1b-resource-and-scheduling-foundation` (HEAD `7c434b0`).
+**Pipeline status:** Halted at Story14.2 Phase3: intent gap requires a sequencing decision. Story14.1 is landed with a retained review recommendation; Epic14 is not complete.
+**Continues:** 2026-10-02T15:29:26Z (halted â€” needs-human)
+
+**Summary:** Completed Story14.1 acceptance, post-development automation and constrained follow-up; repaired four preservation/form defects. Started high-risk Story14.2 planning, which identified an unresolved14.2/14.3 conflict-engine dependency. Saved checkpoint7c434b04; no Story14.2 implementation or PR.
+
+**Timing:** started 2026-09-29T08:23:21Z; completed in progress — elapsed 83h 00m (≈10h 15m AI-run, ≈72h 45m human/idle wait); resumed 9×.
+
+**Stories:**
+1. 14.1: build done; follow-up passes1; patched4; deferred0; trace advisory not selected; review recommendation remains true. Final targeted evidence:18 unit tests,6 database tests,4 guarded browser scenarios; no skips in these sets.
+2. 14.2: planning blocked (intent gap); no ATDD or implementation.14.3/14.4 not started.
+
+**Skipped:** (none)
+
+**Epic gate:** Not run â€” halted in story loop before epic-end gates.
+
+**TEA:** 14.1 post-development automation completed; required external Luna/xhigh review native0 after two failed attempts. Mistaken broad wrapper native1:1243 passed,1 intentional skip,1 unchanged role-harness timeout; isolated role rerun5/5 in26.73s.14.2 high risk selects ATDD and automate, neither executed yet.
+
+**Retrospective:** Not run â€” epic unfinished.
+
+**Overrides:** Owner-approved prerequisite repairs and autonomous Epic14 continuation; preserve PhaseB scope, scheduling pending, SQL-only isolated local stack, no reset, no hosted/email changes. All three owned lifecycles accepted Stop:stop_requested/verifiedfalse; no verified shutdown claim.
+
+**Open questions:**
+1. Choose the14.2/14.3 contract. Recommended C: retain14.2 schema/RLS/authorization/idempotency/rollback/booking-assignee-audit atomicity; transfer engine-dependent conflict refresh and authoritative recheck criteria/tests to14.3.
+2. A: move shared engine into14.2 and narrow14.3. B: make14.3 prerequisite, requiring schema/transaction scope transfer because its acceptance depends on14.2.
+
+**Deferred work:**
+No new deferred items harvested; epic-end reconciliation/archive not reached.
+
+**⚠️ Needs human:**
+1. Auto-bmad build-auto halted with blocking condition:intent gap.14.2 requires derived conflicts and current-row recheck, while14.3 owns the only unimplemented detector. Evidence:epics-phase-b.md:1536;test-design-epic-14.md:133-134,175,299.
+2. C retains all Epic P0 gates: transfer14.2-INT-001 conflict portion,INT-002 re-derivation,INT-007 conflict-preparation fault,INT-008 to14.3/equivalent IDs; require completion before14.4 work and the epic PR. No user-facing booking entry point before detector integration; no placeholder or duplicate rules.
+3. The saved14.2 spec remains blocked. Record owner decision, delegate authority/spec correction and set draft for re-planning, then resume /auto-bmad epic --epic14.
+
+**Next:** Owner chooses contract; agent documents it and resumes /auto-bmad epic --epic14. Human review:/bmad-checkpoint-preview epic/14-wave-b1b-resource-and-scheduling-foundation. Project context:run /bmad-project-context refresh after epic completion.
+
+## Report — 2026-10-02T19:25:37Z (halted â€” needs-human)
+
+**Epic:** `14` — 4 stories.
+**Branch:** `epic/14-wave-b1b-resource-and-scheduling-foundation` (HEAD `7c434b0`).
+**Pipeline status:** Awaiting the Story 14.2/14.3 sequencing decision; Epic 14 is incomplete.
+**Continues:** 2026-10-02T19:24:10Z (halted â€” needs-human)
+
+**Summary:** Checkpoint unchanged at 7c434b04. This section clarifies the decision options and exact resume command; no additional phase or test ran.
+
+**Timing:** started 2026-09-29T08:23:21Z; completed in progress — elapsed 83h 02m (≈10h 15m AI-run, ≈72h 46m human/idle wait); resumed 10×.
+
+**Stories:**
+1. 14.1: implementation and one follow-up complete; four fixes; no deferred items; further-review recommendation retained.
+2. 14.2: planning blocked with intent gap. Stories 14.3 and 14.4 have not started.
+
+**Skipped:** (none)
+
+**Epic gate:** Not reached.
+
+**TEA:** Previously verified 14.1 follow-up: 18 unit tests, 6 integration tests and 4 guarded browser scenarios passed. Accidental full run failed: 1,243 passed, 1 skipped, 1 role-test timeout; isolated role rerun passed 5/5. Story 14.2 selects ATDD and automation; neither ran.
+
+**Retrospective:** Not reached.
+
+**Overrides:** Continue approved Epic 14 scope. No hosted changes or email activation. App, browser and Compose Stop requests accepted; verified shutdown not claimed; saved state preserved.
+
+**Open questions:**
+1. C (recommended): keep the story order. Transfer engine-dependent conflict acceptance checks from 14.2 to 14.3, retaining equivalent mandatory P0 gates before 14.4 and the epic PR.
+2. A: move the engine into 14.2 and narrow 14.3.
+3. B: run 14.3 first, which also requires moving its prerequisite 14.2 schema and transaction foundation.
+
+**Deferred work:**
+No new deferred items harvested.
+
+**⚠️ Needs human:**
+1. Choose the acceptance/sequencing contract. Auto-bmad stopped because build-auto returned blocked: intent gap.
+2. Recommended C keeps 14.2 schema, RLS, authorization, idempotency, rollback and booking-assignee-audit atomicity. No user-facing booking entry point before 14.3 integrates the shared detector.
+
+**Next:** After the owner decision, the agent documents the contract and resets the blocked planning spec to draft for re-planning. Resume: /auto-bmad epic --epic 14. Human review: /bmad-checkpoint-preview epic/14-wave-b1b-resource-and-scheduling-foundation. Project context refresh is recommended after epic completion.
+
+## Report — 2026-10-02T19:30:52Z (halted — needs-human)
+
+**Epic:** `14` — 4 stories.
+**Branch:** `epic/14-wave-b1b-resource-and-scheduling-foundation` (HEAD `7c434b0`).
+**Pipeline status:** Epic 14 is incomplete; awaiting an owner decision about Story 14.2/14.3 acceptance ownership.
+**Continues:** 2026-10-02T19:25:37Z (halted - needs-human)
+
+**Summary:** Checkpoint 7c434b04 is saved. Story 14.1 fixes and focused acceptance completed. Story 14.2 planning found a dependency gap. This clarification also repairs a continuation-marker encoding issue; no additional product phase or test ran.
+
+**Timing:** started 2026-09-29T08:23:21Z; completed in progress — elapsed 83h 07m (≈10h 15m AI-run, ≈72h 52m human/idle wait); resumed 11×.
+
+**Stories:**
+1. 14.1: implementation and one review follow-up completed; four fixes, no deferred items. Further-review recommendation retained; sprint status remains review.
+2. 14.2: planning blocked (intent gap); phases 0-2 complete, phase 3 incomplete. Stories 14.3 and 14.4 have not started.
+
+**Skipped:** (none)
+
+**Epic gate:** Not reached.
+
+**TEA:** 14.1 follow-up: 18 unit tests, 6 integration tests and 4 guarded browser scenarios passed. An accidental broad run failed: 1,243 passed, 1 skipped, 1 role-test timeout; isolated role rerun passed 5/5. Story 14.2 ATDD and automation were selected but have not run.
+
+**Retrospective:** Not reached.
+
+**Overrides:** Approved Epic 14 scope; hosted environments unchanged, email disabled. App, Chrome and Compose Stop requests accepted; shutdown was not independently verified. Containers, data and browser profiles preserved.
+
+**Open questions:**
+1. C (recommended): keep story order; move engine-dependent conflict acceptance from 14.2 to 14.3, preserving mandatory P0 gates before 14.4 and the epic PR.
+2. A: move the shared conflict engine into 14.2 and narrow 14.3, increasing 14.2 scope.
+3. B: run 14.3 first; this also requires transferring its prerequisite schema and transaction foundation from 14.2.
+
+**Deferred work:** (none)
+
+**⚠️ Needs human:**
+1. Choose the acceptance ownership contract. The auto-bmad skill requires a halt when build-auto returns blocked: intent gap. Existing approvals do not specify this story-boundary change.
+2. Recommended C retains schema, RLS, authorization, idempotency, rollback and booking-assignee-audit atomicity in 14.2. Transfer the conflict portion of 14.2-INT-001, INT-002, INT-007 and INT-008 to 14.3 or equivalent IDs. No user-facing booking entry point before the shared detector is integrated into the transaction.
+
+**Next:** After the owner decision, delegate documentation and planning correction, then resume /auto-bmad epic --epic 14. Human review: /bmad-checkpoint-preview epic/14-wave-b1b-resource-and-scheduling-foundation. Run /bmad-project-context refresh after epic completion.

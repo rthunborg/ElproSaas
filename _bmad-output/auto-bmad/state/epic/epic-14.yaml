@@ -9,11 +9,11 @@ spec_folder: null
 story_id: null
 branch: epic/14-wave-b1b-resource-and-scheduling-foundation
 status: in-progress
-updated_at: "2026-10-02T19:22:05Z"
+updated_at: "2026-10-06T09:54:29Z"
 started_at: "2026-09-29T08:23:21Z"
 completed_at: null
 active_seconds: 36917
-timing_anchor: null
+timing_anchor: 1791280363
 is_first_in_epic: false
 is_last_in_epic: false
 git_mode: remote
@@ -21,12 +21,12 @@ base_branch: main
 selected_phase: build
 selected_role: build-delegate
 selected_profile: standard
-selected_model: gpt-5.6-terra
+selected_model: gpt-6.1-sol
 selected_effort: high
 selected_host: codex
 selected_tier: subagents
 selected_route: subagent
-escalation_reason: null
+escalation_reason: "Automatic sensitive-task escalation: rls, transactional-integrity"
 routing_ledger:
   - "{\"effort\":\"xhigh\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-sol\",\"phase\":\"tea_epic\",\"profile\":\"critical\",\"role\":\"tea-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
   - "{\"effort\":\"medium\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-luna\",\"phase\":\"tea_triage\",\"profile\":\"light\",\"role\":\"test-risk-triage\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
@@ -37,6 +37,7 @@ routing_ledger:
   - "{\"effort\":\"high\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-terra\",\"phase\":\"followup_review\",\"profile\":\"standard\",\"role\":\"primary-reviewer\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
   - "{\"effort\":\"medium\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-luna\",\"phase\":\"tea_triage\",\"profile\":\"light\",\"role\":\"test-risk-triage\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
   - "{\"effort\":\"high\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-terra\",\"phase\":\"build\",\"profile\":\"standard\",\"role\":\"build-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"high\",\"escalation_reason\":\"Automatic sensitive-task escalation: rls, transactional-integrity\",\"host\":\"codex\",\"model\":\"gpt-6.1-sol\",\"phase\":\"build\",\"profile\":\"standard\",\"role\":\"build-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
 tea_risk: null
 tea_selected: []
 tea_rationale: null
@@ -46,8 +47,8 @@ completed_phases: [0, 1, 2]
 spec_path: null
 spec_approved: false
 build:
-  status: blocked
-  blocking_condition: intent gap
+  status: draft
+  blocking_condition: null
   followup_review_recommended: false
   review_loop_iteration: 0
   deferred_count: 0
@@ -62,7 +63,7 @@ legacy_review_loop_done: false
 legacy_external_review_iterations: null
 legacy_convergence_unverified: false
 legacy_artifact_path: null
-commits: [21ae8d7, "7548809", b821e42, 2fdca50, a98153f, 8a260ae, 741f4bf, ee9d17b, 084bfe1e, 63f22361, e88ce5db, d53cb1dc, 1a077bd2, ceefd6f3, 5b46bdec, d856d313, 4c127848, d6b545f6, af283dbd, abbe0170, a957911, 4c8d0b6, 0eaa367, de5cfbe4, 1fce0b49, 8db3b22]
+commits: [21ae8d7, "7548809", b821e42, 2fdca50, a98153f, 8a260ae, 741f4bf, ee9d17b, 084bfe1e, 63f22361, e88ce5db, d53cb1dc, 1a077bd2, ceefd6f3, 5b46bdec, d856d313, 4c127848, d6b545f6, af283dbd, abbe0170, a957911, 4c8d0b6, 0eaa367, de5cfbe4, 1fce0b49, 8db3b22, 7c434b04]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -85,11 +86,9 @@ pr_merged: false
 merge_method: null
 merge_commit: null
 branch_deleted: false
-open_questions:
-  - "[14-2] Choose: move engine into14.2 and narrow14.3; make14.3 a prerequisite if dependencies permit; or transfer engine-dependent conflict acceptance/test criteria to14.3 while keeping14.2 foundation and original order."
+open_questions: []
 deferred_work: []
-blockers:
-  - "[14-2] Story14.2 requires derived conflicts and authoritative save recheck, but Story14.3 owns the unimplemented shared engine; choose and record the sequencing/acceptance contract."
+blockers: []
 overrides:
   epic_start_authorized_by_owner: true
   unattended_run_confirmed_by_owner_request: true
@@ -134,7 +133,7 @@ overrides:
   schema_migration_seed_completed: true
   root_app_server_shutdown_verified: false
   schema_migration_seed_and_acceptance_pending: false
-  current_story_build_status: null
+  current_story_build_status: draft
   required_full_integration_gate_passed: false
   resource_guard_browser_repair_owned_externally: true
   prerequisite_integration_repair_owner_approved_on: 2026-10-02
@@ -236,6 +235,10 @@ overrides:
   last_accepted_story_key: 14-1-scheduling-activation-person-profiles-and-work-hours
   last_accepted_story_browser_passed: 4
   guard_stop_acknowledgements_all_native_zero: true
+  acceptance_contract_c_approved_on: 2026-10-06
+  acceptance_contract_c_owner_approved: true
+  acceptance_contract_c: "14.2 retains schema/RLS/auth/idempotency/rollback/booking-assignee-audit atomicity. Conflict portion of INT-001, INT-002, INT-007, INT-008 moves to 14.3; mandatory equivalent P0 before 14.4 and epic PR; no user-facing booking entry before detector integration."
+  acceptance_contract_c_document: docs/decisions/epic-14-story-ownership-contract-c-2026-10-06.md
 constraints:
   - "Phase B manifest-governed approved Epic14 stories only; maintain hard Phase C exclusions."
   - "Epic13 observation and release gates remain separate; no hosted migrations, deployment or flag changes during this implementation workflow."
