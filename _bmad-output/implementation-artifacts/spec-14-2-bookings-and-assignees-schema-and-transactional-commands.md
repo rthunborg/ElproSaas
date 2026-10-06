@@ -1,8 +1,8 @@
 ---
 title: 'Story 14.2: Bookings and Assignees — Schema and Transactional Commands'
 type: 'feature'
-created: '2026-10-02'
-status: 'draft'
+created: '2026-10-06'
+status: 'ready-for-dev'
 review_loop_iteration: 0
 followup_review_recommended: false
 context:
@@ -11,7 +11,7 @@ context:
   - '_bmad-output/implementation-artifacts/epic-14-context.md'
   - '_bmad-output/test-artifacts/test-design-epic-14.md'
   - 'docs/process/review-order.md'
-warnings: []
+warnings: [oversized]
 deferred: []
 ---
 
@@ -45,49 +45,114 @@ deferred: []
 
 ## Code Map
 
-- `src/scope/manifest.ts:249` — active `resources` is the owner for the three new tables; `scheduling` at line 262 remains E15/pending and empty.
-- `src/server/authz/permission-matrix.ts:31` and `src/server/commands/envelope.ts:51` — add resource-owned booking view/manage capabilities and closed command-capability enrollment; preserve the admin/planner mutation and Montör own-read boundary.
-- `supabase/migrations/20260929120000_resource_person_profiles_and_work_hours.sql:15` — reuse person-profile composite same-tenant FK and deactivation conventions; `20260709120000_acceptance_to_job_model.sql:193` is the existing job composite-FK precedent.
-- `supabase/migrations/20260710120000_accept_quote_and_create_job.sql:75` and `:117` — transactional RPC, fault-injection, hardened SQL, and grant/revoke precedent; do not copy quote-specific authorization or lifecycle semantics.
-- `tests/integration/rls/tenant-table-inventory.ts:120` and `tests/support/authz/role-harness.ts:13` — exhaustive active-table, cross-tenant, anonymous, and per-role enrollment must grow with the manifest tables.
-- `_bmad-output/test-artifacts/test-design-epic-14.md:133` and `:170` — authoritative booking atomicity, current-row recheck, idempotency, fault, parent-link, time, assignment, and RLS evidence matrix.
-- `_bmad-output/implementation-artifacts/spec-14-1-scheduling-activation-person-profiles-and-work-hours.md:209` — completed resource behavior retains deactivated historical profiles; this story adds the first assignment rejection without destructive cleanup.
+Source inspection at `4d2f29a5b3b084c2f25895b753cc2a0e43f6a1e1`; these are existing anchors, not proposed implementation line numbers.
+
+- `src/scope/manifest.ts:249`, `:256`, `:263` — active resources owns the three tables; scheduling remains pending with empty live arrays.
+- `src/server/authz/permission-matrix.ts:31`, `:103`; `src/server/commands/envelope.ts:51`, `:207`, `:295` — closed capabilities, resolved actor/tenant and caller-visible ownership. Capability permission alone does not establish own-row scope.
+- `src/server/commands/envelope-core.ts:253`; `src/server/commands/resources/profile-form.ts:27` — normal envelope audit follows execution; use `auditable:false` when the checked SQL transaction owns atomic audit.
+- `supabase/migrations/20260710120000_accept_quote_and_create_job.sql:118`; `20260831124310_story_10_8_quote_review_authorization.sql:486`, `:502`; `20260907171252_role_aware_phase_a_policy_evolution.sql:1002`, `:1017`, `:1030`, `:1036` — private INVOKER payload beneath authenticated checked DEFINER wrapper, explicit authority and fresh-only transaction-local audit.
+- `supabase/migrations/20260907171252_role_aware_phase_a_policy_evolution.sql:270`, `:308` — owner-only `story_11_2_record_audit_event_internal`; never grant client execution.
+- `supabase/migrations/20260929120000_resource_person_profiles_and_work_hours.sql:6`, `:15`, `:117`, `:172`; `20261002171427_resource_command_only_write_acl.sql:3` — reuse membership/profile/work-role composites, checked resource writes and disabled-history semantics. Existing profile RLS excludes Montor, so a caller-RLS profile join cannot prove own-booking access.
+- `supabase/migrations/20260630120000_crm_data_model.sql:136`, `:172`; `20260709120000_acceptance_to_job_model.sql:169`, `:195`, `:218` — nullable CRM/job connections and same-tenant composite parents; tenancy alone does not guarantee coherent supplied parent combinations.
+- `src/server/commands/quotes/validation.ts:268`; `src/server/commands/provisioning/validation.ts:139`; `supabase/migrations/20260910165124_admin_user_management.sql:101`, `:105`, `:125` — UUID normalization, canonical identity, transaction locks and durable replay precedents. No generic envelope idempotency exists.
+- `src/server/commands/crm/crm-db.ts:84`, `:99`; `src/server/commands/command-errors.ts:119` — typed RPC adapter and stable existing `COMMAND_CONFLICT` mapping.
+- `tests/integration/rls/tenant-table-inventory.ts:157`, `:319`, `:388`, `:447`, `:917`, `:1164`, `:1399`, `:1706`, `:1769` — exhaustive table enrollment and cross-tenant/anon metadata; writes are privilege-denied, public-column reads remain RLS-scoped.
+- `tests/integration/rls/cross-tenant-isolation.rls.test.ts:519`; `tests/support/authz/role-harness.ts:13`, `:29`, `:184`; `tests/integration/rls/role-harness.atdd.int.test.ts:51`, `:67`, `:136`, `:177`; `tests/integration/rls/migration-reset.int.test.ts:224`, `:343`, `:472` — extend public-column projection, actual per-role assignment fixtures, and exact SELECT-only policies/ACL assertions.
+- `_bmad-output/planning-artifacts/architecture-phase-b.md:702`, `:741`, `:749`, `:751`, `:763`; `_bmad-output/test-artifacts/test-design-epic-14.md:146`, `:184`; `docs/decisions/epic-14-story-ownership-contract-c-2026-10-06.md` — booking/time/workflow facts and retained/transferred acceptance. Story 14.1 continuity: retain existing work-role catalogue and historical deactivated profiles; no duplicate employee model.
 
 ## Tasks & Acceptance
 
-**Execution:**
-- `src/scope/manifest.ts`, `src/server/authz/permission-matrix.ts`, `src/server/commands/envelope.ts`, `tests/unit/scope/manifest-{coherence,derivations,shape}.test.ts`, and `tests/unit/scope/resources-activation.atdd.test.ts` — enroll the three E14 tables and resource-owned booking capabilities while pinning the active-resources/pending-scheduling boundary.
-- `supabase/migrations/20261002*_bookings_and_assignees.sql` — add `bookings`, `booking_assignees`, and `booking_conflicts` with UTC/all-day/status/forward-compatible series-linkage facts, nullable composite optional connections, uniqueness and time constraints, active-profile assignment checks, conflict workflow fields, indexes, explicit grants, FORCE RLS, role-plus-own-assignment read policy, command-only writes, and hardened `SECURITY INVOKER` create/update RPCs.
-- `src/server/commands/bookings/{validation,booking-db,create-booking,update-booking}.ts` and `src/server/commands/command-errors.ts` — validate canonical request data, map stable DB outcomes, invoke the RPCs through the envelope, and provide the internal transaction foundation for Story 14.3 detector integration without a stub, empty-conflict success claim, duplicated rules, or client-supplied conflict authority. No booking route, UI, or user-facing action is exposed in this story. Canonical-key replay must be race-safe; changed content under a reused key must change nothing.
-- `tests/integration/commands/bookings.int.test.ts`, `tests/integration/rls/bookings.rls.test.ts`, `tests/integration/rls/tenant-table-inventory.ts`, `tests/support/authz/role-harness.ts`, and relevant manifest/authz units — prove standalone and same-tenant links, UTC boundaries, duplicate/deactivated assignment rejection, exact atomic post-state, rollback after booking/assignee preparation, idempotent/concurrent create, atomic update replacement, direct/command cross-tenant and anon denial, Montör own-row visibility, and admin/planner success.
+**Execution (dependency order):**
+
+- `src/scope/manifest.ts`, `src/server/authz/permission-matrix.ts`, `src/server/commands/envelope.ts` — enroll `bookings`, `booking_assignees`, `booking_conflicts` only in resources. Add resource-owned `Bookings.View` for tenant_admin/projektledare/montor and `Bookings.Manage` for tenant_admin/projektledare; enroll `createBooking`/`updateBooking` in the closed command map. Preserve existing resource-profile permissions and pending scheduling.
+- `supabase/migrations/*_bookings_and_assignees.sql` — create one additive migration via `supabase migration new bookings_and_assignees`, following current CLI help. Implement the schema and authority below; extend missing parent composite uniqueness additively. Pin every function search path, qualify relations, enforce same-tenant and mutable-field invariants, and add tenant/range/assignee query indexes. No dependency or environment change is required.
+- `src/features/resources/booking-types.ts`, `src/server/commands/bookings/validation.ts` — define pure shared booking types and explicit public read columns; validate the I/O matrix, normalized UUIDs, positive UTC ranges, Stockholm all-day boundaries, one or more distinct assignees, nullable connections, bounded text according to existing validator conventions, status and standalone series seams. Canonicalize equivalent instants, omitted/null connections and assignee order; never trust actor/tenant, digest, derived conflicts or workflow acceptance from caller input.
+- `src/server/commands/bookings/booking-db.ts`, `create-booking.ts`, `update-booking.ts` — use typed adapters and `defineCommand`, resolved actor/tenant/correlation, update ownership and SQL-owned audit (`auditable:false`). Invoke only checked outer RPCs. Return the stored target-only result and stable generic error codes; unexpected faults become retryable `SERVER_ERROR`, reused changed-content keys become `COMMAND_CONFLICT`. Do not create a route, server action or UI caller. Supply the private transaction foundation for 14.3 without detector callback/stub or detection-success fields.
+- `tests/unit/server/commands/bookings-validation.test.ts`, `tests/unit/server/authz/permission-matrix.test.ts`, `tests/unit/server/authz/role-harness.test.ts`, `tests/unit/scope/resources-activation.atdd.test.ts`, and existing `tests/unit/scope/manifest-coherence.test.ts`, `manifest-derivations.test.ts`, `manifest-shape.test.ts` — pin matrix/manifest scope and every I/O matrix validation/canonicalization edge, including UUID case duplicates, permutation/equivalent-time replay identity, DST all-day boundaries and rejection of fabricated series/conflict authority.
+- `tests/integration/rls/tenant-table-inventory.ts`, `tests/integration/rls/cross-tenant-isolation.rls.test.ts`, `tests/support/authz/role-harness.ts`, `tests/integration/rls/role-harness.atdd.int.test.ts`, `tests/integration/rls/migration-reset.int.test.ts` — enroll all exhaustive metadata seams and exact read policies. Add table-specific public read projection for bookings instead of SELECT *, while retaining successful empty cross-tenant reads; separately prove private outcome-column denial. Seed Montor-own, shared-assignee and coworker-only bookings using actual per-role profiles; do not widen existing profile access or weaken exact policy/H4 gates. Seed concrete foreign rows for all three tables and exercise existing anon/cross-tenant suites.
+- `tests/integration/commands/bookings.int.test.ts`, `tests/integration/rls/bookings.rls.test.ts` — implement every retained named check below through actual envelope/checked-RPC entry and exact privileged durable-state readbacks. Test INSERT/UPDATE/DELETE denial even for own-tenant admin, private primitive execution denial, forged/missing actors, role revocation, disabled/invited/nonmember/anon states, foreign parent/child links, private outcome visibility, replay after later update/deactivation, membership-deactivation races and audit failure rollback. Use unique fixture IDs and deterministic faults after booking and assignee preparation; do not leave acceptance cases skipped.
+
+**Retained check inventory:** P0: `14.2-INT-001`, `14.2-RLS-001`. P1: `14.2-DB-001`, `14.2-DB-002`, `14.2-DB-003`, `14.2-DB-004`, `14.2-DB-005`; `14.2-INT-002`, `14.2-INT-003`, `14.2-INT-004`, `14.2-INT-005`, `14.2-INT-006`, `14.2-INT-007`, `14.2-INT-009`, `14.2-INT-010`; `14.2-RLS-002`, `14.2-RLS-003`, `14.2-RLS-004`.
 
 **Acceptance Criteria:**
-- Given the Story 14.2 migration, when manifest derivations and the live schema are checked, then all three booking tables are owned by active `resources`, are H4/exact-policy enrolled, and `scheduling` remains pending with no live surface.
-- Given an entitled admin or planner creates or updates a booking, when all supplied parents and assignees are active and same-tenant, then the UTC booking, replacement assignees, idempotency state, and exactly one audit event commit atomically. Current server-derived conflict persistence/refresh is accepted in 14.3 after detector integration.
-- Given a standalone booking or a booking bound to an existing Phase A job, when it persists and reloads, then every optional connection remains nullable or preserves the existing job ID; a foreign or mismatched parent cannot be attached.
-- Given duplicate, foreign, deactivated, zero-length, or reversed assignment/time input, when a command or direct table path receives it, then no partial durable state exists and a safe typed failure is returned.
-- Given a replay or concurrent create with the same key and canonical request, when it completes, then one durable booking/audit result exists; changed canonical content under that key is rejected without mutation.
-- Given a Montör, cross-tenant caller, anonymous caller, or nonmember, when it reads or mutates booking data, then RLS permits only the Montör's own assigned booking read and otherwise returns no data or mutation; planner/admin commands remain server-authorized.
+
+1. Given migrated resources schema, when the manifest/H4/exact-policy/matrix gates inspect it, then exactly the three new resource-owned tables are enrolled, caller direct writes and private primitive execution are denied, and scheduling has no live surface.
+2. Given an entitled admin/planner invokes the actual create command, when validation succeeds, then one booking, the exact distinct assignee set, durable command outcome and exactly one attributable target-only audit event commit together (14.2-INT-001, P0).
+3. Given an existing same-tenant booking, when a fresh authorized update completes, then identity/create history is preserved and mutable fields, exact replacement assignments, one update outcome and one new audit event change atomically (14.2-INT-002, P1).
+4. Given a completed command, when replayed with equivalent canonical input or raced concurrently, then the original target-only outcome is returned with unchanged row/audit counts, including after later update or deactivation; changed canonical content under the same scoped key returns COMMAND_CONFLICT and changes nothing (14.2-INT-003/004/005, P1).
+5. Given fresh create or update, when a booking/assignee preparation fault or audit-write fault occurs, then booking, assignments, command outcomes and audit return exactly to the pre-command snapshot; no durable partial state exists (14.2-INT-006/007, P1).
+6. Given standalone or linked input, when persisted/reloaded, then independently nullable parents remain valid and coherent supplied same-tenant relationships and existing jobs.id are preserved; foreign/mismatched parents, duplicate/foreign assignees, nonpositive time and invalid all-day bounds fail atomically (14.2-DB-001/002/003/004/005 and INT-009, P1). UTC storage round-trips the intended Stockholm interval across both DST boundaries.
+7. Given a deactivated profile, when it is newly added, then assignment is denied; when previously assigned history is read or unchanged assignment retained, then it survives without cascade (14.2-INT-010, P1).
+8. Given cross-tenant callers, when they read or directly/indirectly mutate any booking table, then no foreign rows or existence details are exposed and no business/outcome/audit state changes (14.2-RLS-001, P0).
+9. Given an active Montor, when reading own/shared/coworker-only bookings and children or attempting mutation, then only assigned bookings, own assignment rows and own-participation conflicts on visible bookings are readable, and mutation is denied; admin/planner succeeds within tenant while every direct callable wrapper independently rechecks authority (14.2-RLS-002/003/004, P1).
+10. Given completion of 14.2, when scope and evidence are inspected, then it provides foundation acceptance only, exposes no booking entry point and preserves the mandatory 14.3 detector integration gate before any 14.4 work and the Epic PR.
 
 ## Design Notes
 
-`booking_conflicts` schema remains in 14.2 as workflow persistence infrastructure. This draft must be re-planned under owner-approved contract C: 14.2 proves foundation atomicity only; 14.3 solely implements the pure detector, current-row authoritative transaction integration and atomic conflict persistence/refresh. No placeholder detector or duplicated rules may fill the gap. Internal foundation commands have no user-facing booking entry before 14.3 integration.
+### Schema decisions within the approved story
 
-Retain 14.2-INT-001 foundation atomicity, 14.2-INT-002 booking/assignee replacement, and 14.2-INT-007 assignee fault rollback. The conflict portions transfer respectively to 14.3-INT-003/004/005; 14.2-INT-008 transfers in full to 14.3-INT-006. All transferred checks, including equivalent mandatory P0 checks, complete before any 14.4 work and the Epic PR. No acceptance is waived.
+`bookings` carries stable UUID/tenant identity; starts_at/ends_at timestamptz; all_day; nullable work_role_id, job_id, customer_id, facility_id, contact_id; description; status initially `planned|cancelled` (default planned); created_at/updated_at; nullable series_id/occurrence_index and is_exception false. Status is booking planning state, not job completion. Only the listed business facts and assignments are mutable. Commands require at least one assignee. Standalone commands require series_id/occurrence_index null and is_exception false; these reserved columns provide storage compatibility only, with no booking_series table or fabricated recurrence. Future E15 widens the seam additively.
+
+All connections remain independently nullable. Composite FKs prove tenant identity; inside the transaction, supplied customer/facility/contact combinations must agree with each referenced parent's customer and with supplied job-owned links when those links exist. Do not infer or force absent links, change jobs, or require a connection. Work roles reuse the existing active catalogue. Validate newly added assignments against active profile and membership while locking affected memberships in deterministic order; retain unchanged historical disabled assignments instead of delete/reinsert rejection. Assignees are unique `(booking_id,person_profile_id)` with composite same-tenant booking/profile parents.
+
+Timed commands accept explicit UTC instants; validation never uses the host timezone. All-day ranges must be exclusive local-midnight calendar bounds in Europe/Stockholm and may span 23/25-hour UTC days. Pin spring/fall storage round-trips. Local nonexistent/ambiguous-time policy stays first-valid/earlier as architecture specifies; this story does not implement conflict/capacity or recurrence time interpretation.
+
+`booking_conflicts` stores tenant, booking, nullable related_booking and affected profile composite references, type (`double_booking|over_capacity|outside_work_hours|outside_access_window|competence_missing`), positive UTC window, stable natural_key, status (`open|accepted|resolved`), acceptance reason/actor/time and resolution outcome/actor/time. Actor references use same-tenant membership identity resolved from auth.uid; metadata pairs are coherent, accepted requires nonblank reason plus actor/time, resolved requires nonblank outcome plus actor/time. Unique tenant+natural_key separates workflow identity from detection; no acceptance can apply to a different key. 14.2 creates constraints and fixture-readable infrastructure, with no production conflict producer or acceptance/resolution command. 14.3 computes identity/derived rows; 14.4 supplies explicit override.
+
+### Checked transaction and read authority
+
+Use authenticated checked outer create_booking/update_booking wrappers, SECURITY DEFINER with empty search_path, calling private owner-only SECURITY INVOKER transaction primitives and the existing private audit writer. This composes the current quote/resource pattern: standalone INVOKER writes cannot work after caller DML revocation, while regranting DML would bypass the required atomic audit boundary. Recheck nonnull auth.uid, actor equality using IS DISTINCT FROM, active admin/planner role and explicit tenant/target predicates before replay or mutation; no service-role or client-granted private helper. FORCE RLS remains required, and definer code must enforce tenant predicates independently of RLS.
+
+Authenticated has SELECT only on declared public booking columns; keep command keys/digests/results/outcome history owner-only. Anon has no DML. Use a narrow stable hardened boolean ownership helper joining assignment/profile/active membership to auth.uid; do not grant Montor general profile reads or make booking and assignee policies recursively depend on each other. Admin/planner reads same-tenant rows, Montor reads assigned bookings and own assignment rows. Conflict reads for Montor require own affected profile plus own visible booking; never expose unrelated coworker-only rows or unrestricted participant/profile reads. Verify the actual public projection in generated role and cross-tenant probes.
+
+### Durable idempotency without a fourth table
+
+CREATE scope is `(tenant,command UUID)`; UPDATE scope is `(tenant,booking UUID,command UUID)`. Store immutable create_command_id, create_payload_digest and original target-only create result on bookings, with unique tenant+create_command_id. Store append-only update outcomes in private JSONB keyed by normalized UUID, each with canonical digest and original target-only result. Keep all outcomes; no eviction/retention horizon is introduced. Growing history is a documented storage tradeoff.
+
+Acquire a transaction advisory lock for the canonical tenant/create key, or booking FOR UPDATE for updates. Authorize first, inspect/replay existing outcomes next, and only then validate mutable current parent/profile state and prepare new writes. Rebuild canonical identity in SQL from validated typed fields, including operation/target, normalized UUIDs/UTC values, normalized nulls and sorted assignees; never trust a supplied fingerprint. Equal replay returns stored result, unequal replay returns COMMAND_CONFLICT before mutation. New outcomes and a single target-only audit are part of the same transaction; suppress the envelope's additional audit. Rollback covers outcome history and audit as well as business rows.
+
+### Detector handoff and sequencing
+
+14.3 exclusively owns pure `src/features/scheduling/conflicts.ts` and a real authoritative integration mechanism that re-reads current facts and writes conflicts in the same transaction. A PostgreSQL foundation alone does not execute that TypeScript engine. Preserve private transaction extensibility and avoid claiming preview/save equivalence, derived refresh or authoritative detection now. No hardcoded empty-conflict success, stub detector, duplicated rules or client detection authority is allowed.
+
+Mandatory transferred checks: 14.3-INT-003 (P0, derived create atomicity), 14.3-INT-004 (P1, update refresh/stale-row replacement), 14.3-INT-005 (P1, post-conflict rollback), 14.3-INT-006 (P0, collision committed after preview detected at save). These preserve the conflict portions of 14.2-INT-001/002/007 and all original 14.2-INT-008. Every transferred check passes before any 14.4 work and the Epic PR. Retain ATDD, independent review, automation, cumulative regression and all Epic gates. There is no acceptance waiver.
+
+Planning concerns for the future author trail: checked command entry/SQL authority; normalized replay and transaction rollback; row-scoped reads/composite relationships; retained and transferred evidence. The implementation author writes the final Suggested Review Order only after implementation/verification; planning does not manufacture verified implementation stops.
+
+## Verification
+
+Planning used rendered installed Build Auto Step 2 and read-only source inspection at `4d2f29a5b3b084c2f25895b753cc2a0e43f6a1e1`. No product verification is claimed by planning.
+
+**Required implementation commands:**
+
+- `pnpm run typecheck`, `pnpm run lint`, `pnpm run test:unit` — expected: strict schema/capability/inventory types and pure validation/manifest/canonicalization evidence pass.
+- With a verified authorized local stack and `$env:SUPABASE_TEST_REQUIRED='1'`, `pnpm exec vitest run tests/integration/commands/bookings.int.test.ts tests/integration/rls/bookings.rls.test.ts tests/integration/rls/role-harness.atdd.int.test.ts tests/integration/rls/migration-reset.int.test.ts tests/integration/rls/rls-inventory-gate.int.test.ts tests/integration/rls/cross-tenant-isolation.rls.test.ts tests/integration/rls/anon-path-isolation.rls.test.ts` — expected: all 18 named obligations, exact durable snapshots, direct RPC/DML negatives, grants/private-column protection and inventory execute without acceptance skips. Use pnpm exec vitest for targeting; do not rely on the previously ineffective pnpm script filter.
+- Under the same required local-stack setting, `pnpm run test:int` — expected: full required integration/RLS plus cumulative resource command/RLS regression executes; report executed/failed/skipped counts and explain every skip. Explicitly skipped acceptance is missing evidence.
+- Follow `.github/workflows/ci.yml` and `docs/process/local-setup.md` for empty-schema migration application, lockfile/source containment, build then built-bundle containment, and remaining required gates. Guard-managed infrastructure and tests stay local. Record SQL-only reset versus complete stack rebuild truthfully; do not launch infrastructure in this planning run.
+
+**Readiness checks:** every task has an implementation path and action; dependency order is explicit; ACs observe the checked command and durable/read surfaces in Given/When/Then form; all retained/transferred obligations are mapped; no unresolved business intent, TODO or stub remains. Compare the intent contract byte-for-byte with the committed draft and verify only this spec changed.
 
 ## Spec Change Log
 
 - 2026-10-06: Owner-approved contract C resolves the prior sequencing intent gap. Restored this existing spec to `draft` for Step 2 re-planning; aligned acceptance ownership and preserved the original blocked result below as historical evidence. This preparation does not mark the story ready for development, run ATDD/build/review, or satisfy implementation gates.
 
-## Verification
-
-**Commands:**
-- `pnpm run typecheck` — expected: strict command, manifest, and inventory types pass.
-- `pnpm run lint` — expected: no new lint errors.
-- `pnpm run test:unit` — expected: manifest, validation, canonicalization, and capability units pass.
-- `SUPABASE_TEST_REQUIRED=1 pnpm run test:int` — expected: migration-reset, booking command/rollback/idempotency, H4, exact-policy, cross-tenant, anonymous, and role-negative suites execute with no unexplained skips.
+- 2026-10-06: Step 2 re-planning at 4d2f29a5b3b084c2f25895b753cc2a0e43f6a1e1 resolved technical command authority, private durable replay storage, own-assignment fixtures/projections and concrete schema semantics. Preserve the intent contract and all historical blocker/recovery evidence; retain all 18 foundation checks and four mandatory transfers. This is planning only.
 
 ## Auto Run Result
+
+### Canonical planning halt — 2026-10-06
+
+Status: ready-for-dev
+
+Blocking condition: none
+
+HALT: invocation explicitly required halt after planning. Step 2 readiness gate passed after re-reading the rendered workflow and repaired spec from disk: actionable file-scoped tasks, dependency order, Given/When/Then outer-surface acceptance, complete retained/transferred check inventory and coherent technical boundaries. The intent contract matches the committed draft byte-for-byte; historical blocker/recovery records remain preserved. Oversized warning records the necessary cross-layer planning detail.
+
+Planning evidence: installed renderer completed successfully; two synchronous Sol 6.1 High read-only exploration delegates supplied source maps and acceptance traceability at 4d2f29a5b3b084c2f25895b753cc2a0e43f6a1e1. Only this spec is modified. git diff --check passed. No implementation, product test execution, infrastructure launch, hosted action or Git commit/branch/push/PR occurred. No performance or volume acceptance number is invented; scale remains unmeasured advisory evidence.
+
+On Complete: docs/process/review-order.md Completion-hook protocol preserves this planning result; completed implementation trail reconciliation is inapplicable. No Suggested Review Order was manufactured. Continue through the root-owned ATDD/build/review gates when dispatched.
+
+## Historical Auto Run Results
 
 ### Historical planning halt — 2026-10-02
 
