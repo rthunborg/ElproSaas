@@ -1,0 +1,13 @@
+{
+  "success": true,
+  "subagent": "e2e-tests",
+  "tests": [],
+  "fixture_needs": [],
+  "knowledge_fragments_used": [
+    "playwright-utils-mandate",
+    "library-integration-mandate"
+  ],
+  "playwright_utils_deviations": [],
+  "test_count": 0,
+  "summary": "E2E not applicable to approved Story 14.2. The completed spec and Contract C authorize only internal booking envelope/checked-RPC foundation and explicitly prohibit booking routes, server actions, UI callers and user-facing booking entry until Story 14.3 detector integration. There is no approved user journey, page, selector or HTTP endpoint to exercise. The frontend Next.js framework does not create an E2E target. No tests, fixtures, browser sessions or resources were generated or executed. tea_use_playwright_utils is true, but @seontechnologies/playwright-utils is absent from package.json and no Playwright artifact is emitted; the mandate relevance gates therefore do not bind this output. For future in-scope Playwright journeys, use the framework workflow to install and wire the intended utilities. Pact is not applicable: this internal foundation has no consumer/provider contract target; the parent records unavailable broker tools. Authorization, RLS and transactional acceptance remain the separate High integration worker responsibility; this output makes no security or transactional judgment."
+}

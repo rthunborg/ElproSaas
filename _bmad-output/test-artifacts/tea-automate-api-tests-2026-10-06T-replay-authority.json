@@ -1,0 +1,51 @@
+{
+  "success": true,
+  "subagent": "api-tests",
+  "tests": [
+    {
+      "file": "tests/integration/commands/bookings-replay-authority.int.test.ts",
+      "content": "import { beforeAll, describe, expect, test } from \"vitest\";\nimport { adminQuery } from \"../../factories/admin-sql\";\nimport { makeAuthedServerClient } from \"../../factories/tenants\";\nimport { isLocalStackReachable } from \"../../support/test-env\";\nimport { skipUnlessStack } from \"../../support/stack-gate\";\nimport {\n  bookingCommand, bookingInput, bookingSnapshot, checkedBookingRpc, withBookingFixture,\n} from \"../../support/bookings-atdd\";\n\nlet stackUp = false;\nbeforeAll(async () => { stackUp = await isLocalStackReachable(); });\n\n/* Provider source: envelope.ts maps updateBooking to resources/Bookings.Manage;\n * envelope-core.ts checks current capability before ownership and execute.\n * resolve-tenant-context-core.ts rejects invited/disabled membership.\n * 20261006101609_bookings_and_assignees.sql checks current actor/roles in\n * update_booking and booking_write_internal before returning update_outcomes.\n * Public success is { bookingId }; checked RPC authority failures use 42501.\n */\ndescribe(\"Story 14.2 completed UPDATE replay authority\", () => {\n  test.for([\n    { name: \"role downgraded and secondary roles removed\", role: \"saljare\", status: \"active\", code: \"PERMISSION_DENIED\" },\n    { name: \"membership invited\", role: \"tenant_admin\", status: \"invited\", code: \"TENANT_MEMBERSHIP_REQUIRED\" },\n    { name: \"membership disabled\", role: \"tenant_admin\", status: \"disabled\", code: \"TENANT_MEMBERSHIP_REQUIRED\" },\n  ] as const)(\"[P1] 14.2-INT-003 UPDATE replay rejects stale caller after $name\", async (scenario, ctx) => {\n    if (skipUnlessStack(ctx, stackUp)) return;\n    await withBookingFixture(async (fx) => {\n      // The union actor has a scalar admin role and real secondary planner/sales\n      // grants. Reuse this authenticated client after changing database authority.\n      const actor = fx.roleUnionUser;\n      const client = await makeAuthedServerClient(actor);\n      const [membership] = await adminQuery<{ id: string; role: string; status: string }>(\n        \"select id,role,status from public.tenant_memberships where tenant_id=$1 and user_id=$2\",\n        [fx.base.tenantA.id, actor.id]);\n      expect(membership).toBeDefined();\n      const secondaryRoles = await adminQuery<{\n        id: string; tenant_id: string; membership_id: string; role: string; created_at: string;\n      }>(\"select id,tenant_id,membership_id,role,created_at from public.membership_roles where membership_id=$1 order by id\", [membership.id]);\n      expect(secondaryRoles.map((row) => row.role).sort()).toEqual([\"projektledare\", \"saljare\"]);\n\n      const create = bookingInput([fx.ownProfile.id]);\n      const created = await bookingCommand(\"create\", client, create);\n      expect(created.ok).toBe(true); if (!created.ok) return;\n      const update = bookingInput([fx.coworkerProfile.id], {\n        bookingId: created.data.bookingId, description: \"Completed update before authority revocation\",\n      });\n      const updated = await bookingCommand(\"update\", client, update);\n      expect(updated).toEqual({ ok: true, data: { bookingId: created.data.bookingId } });\n      const committed = await bookingSnapshot(fx.tenantIds);\n      expect(committed.bookings.find((row) => row.id === created.data.bookingId)?.update_outcomes).toEqual({\n        [update.commandId]: { digest: expect.any(String), result: { bookingId: created.data.bookingId } },\n      });\n      // Positive controls prove this exact completed key/payload is replayable\n      // through both entry points, without a second outcome or audit event.\n      expect(await bookingCommand(\"update\", client, update)).toEqual(updated);\n      expect(await bookingSnapshot(fx.tenantIds)).toEqual(committed);\n      const allowed = await checkedBookingRpc(\"update\", client, update, fx.base.tenantA.id, actor.id);\n      expect(allowed.error).toBeNull(); expect(allowed.data).toEqual({ bookingId: created.data.bookingId });\n      expect(await bookingSnapshot(fx.tenantIds)).toEqual(committed);\n\n      try {\n        await adminQuery(\"update public.tenant_memberships set role=$2,status=$3 where id=$1\",\n          [membership.id, scenario.role, scenario.status]);\n        if (scenario.status === \"active\") {\n          await adminQuery(\"delete from public.membership_roles where membership_id=$1\", [membership.id]);\n        }\n        expect(await bookingCommand(\"update\", client, update)).toMatchObject({ ok: false, code: scenario.code });\n        expect(await bookingSnapshot(fx.tenantIds)).toEqual(committed);\n        const denied = await checkedBookingRpc(\"update\", client, update, fx.base.tenantA.id, actor.id);\n        expect(denied.error?.code).toBe(\"42501\"); expect(denied.data).toBeNull();\n        expect(await bookingSnapshot(fx.tenantIds)).toEqual(committed);\n      } finally {\n        // Restore actor state even on assertion failure, before fixture cleanup.\n        await adminQuery(\"update public.tenant_memberships set role=$2,status=$3 where id=$1\",\n          [membership.id, membership.role, membership.status]);\n        if (scenario.status === \"active\") {\n          for (const row of secondaryRoles) {\n            await adminQuery(\"insert into public.membership_roles(id,tenant_id,membership_id,role,created_at) values($1,$2,$3,$4,$5)\",\n              [row.id, row.tenant_id, row.membership_id, row.role, row.created_at]);\n          }\n        }\n      }\n    });\n  });\n});",
+      "description": "Three isolated completed UPDATE replay cases reauthorize the stale authenticated caller after role downgrade with all secondary grants removed, invited membership, or disabled membership; each includes envelope/RPC positive controls and exact unchanged durable snapshots.",
+      "priority_coverage": {
+        "P0": 0,
+        "P1": 3,
+        "P2": 0,
+        "P3": 0
+      }
+    }
+  ],
+  "fixture_needs": [
+    "Existing withBookingFixture (UUID-isolated tenants and automatic cleanup)",
+    "Existing bookingInput / bookingCommand / checkedBookingRpc / bookingSnapshot",
+    "Existing makeAuthedServerClient / adminQuery / stack-gate; no new fixtures"
+  ],
+  "knowledge_fragments_used": [
+    "data-factories",
+    "api-testing-patterns",
+    "playwright-utils-mandate",
+    "pactjs-utils-mandate"
+  ],
+  "playwright_utils_deviations": [],
+  "pactjs_utils_deviations": [],
+  "provider_scrutiny": "completed",
+  "provider_files_read": [
+    "src/server/commands/envelope.ts",
+    "src/server/commands/envelope-core.ts",
+    "src/server/auth/resolve-tenant-context.ts",
+    "src/server/auth/resolve-tenant-context-core.ts",
+    "src/server/commands/bookings/create-booking.ts",
+    "src/server/commands/bookings/update-booking.ts",
+    "src/server/commands/bookings/booking-db.ts",
+    "src/server/commands/bookings/validation.ts",
+    "src/features/resources/booking-types.ts",
+    "supabase/migrations/20261006101609_bookings_and_assignees.sql",
+    "supabase/migrations/20261006104143_booking_invariant_corrections.sql",
+    "supabase/migrations/20260904120000_role_storage_and_permission_matrix.sql",
+    "tests/support/bookings-atdd.ts",
+    "tests/factories/tenants/core.ts",
+    "tests/integration/commands/bookings.int.test.ts",
+    "tests/integration/rls/bookings.rls.test.ts"
+  ],
+  "test_count": 3,
+  "summary": "Confirmed AC4+9 completed UPDATE replay gap: INT-003 denies disabled CREATE replay only; RLS-004 denies fresh keys. Generated three separately reported P1 Vitest integration scenarios, no duplicate CREATE replay test. Actor role/status and removed secondary grants restore in finally before fixture cleanup. No tests run, source files written, dependencies or resources created. Playwright mandate inapplicable (Vitest internal command/checked RPC, no Playwright artifacts/package); Pact mandate inapplicable (no independent consumer-provider boundary or Pact artifacts). Pact reachable=false provided by parent; provider-source fallback used without another probe. Exact snapshots cover both isolated tenants, private outcomes, assignees, existing conflicts and audit; no detector coverage claim. Aggregation validation corrected test.each to the existing project test.for context signature; all scenario assertions preserved."
+}
