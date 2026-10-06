@@ -29,6 +29,17 @@ function workflowOpen(rows: Record<string, unknown>[]) {
     resolved_by_membership_id: null, resolved_at: null });
 }
 
+/** Private fixture signing only: database-relative bounds isolate each validity rule. */
+async function proofWindow(kind: "expired" | "future" | "oversized") {
+  const { adminQuery } = await import("../../factories/admin-sql");
+  const offsets = kind === "expired" ? ["-3 seconds", "-2 seconds"]
+    : kind === "future" ? ["30 seconds", "60 seconds"] : ["-1 second", "180 seconds"];
+  const [window] = await adminQuery<{ issuedAt: string; expiresAt: string }>(`select
+    to_char((clock_timestamp()+$1::interval) at time zone 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US"Z"') as "issuedAt",
+    to_char((clock_timestamp()+$2::interval) at time zone 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US"Z"') as "expiresAt"`, offsets);
+  return window;
+}
+
 describe("Story 14.3 authoritative conflict persistence", () => {
   test("[P1] 14.3-INT-001 frozen internal preview and real save use identical normalized conflicts", async () => {
     const h = await harness(); const b = await h.loadConflictBindings();
@@ -187,7 +198,7 @@ describe("Story 14.3 authoritative conflict persistence", () => {
 
   });
 
-  registerAuthorityScenario("race", "[P0] AC10 three real stale attempts exhaust as retryable SERVER_ERROR without target/outcome/audit writes", async () => {
+  test("[P0] AC10 three real stale attempts exhaust as retryable SERVER_ERROR without target/outcome/audit writes", async () => {
     const h = await harness(); const b = await h.loadConflictBindings();
     await h.withConflictFixture(async (fx) => {
       const input = h.bookingInput([fx.ownProfile.id]); const correlation = crypto.randomUUID();
@@ -196,7 +207,9 @@ describe("Story 14.3 authoritative conflict persistence", () => {
         exactSuccess(await h.bookingCommand("create", fx.plannerClient, h.bookingInput([fx.ownProfile.id], { description: `Concurrent peer ${index}` })));
         committedPeers = await h.bookingSnapshot(fx.tenantIds);
       });
-      expect(observed.result).toMatchObject({ ok: false, code: "SERVER_ERROR", retryable: true });
+      expect(observed.result).toMatchObject({ ok: false, code: "SERVER_ERROR" });
+      // Retry is represented by SERVER_ERROR, not an invented public wire field.
+      expect(Object.keys(observed.result).sort()).toEqual(["code", "message", "ok"]);
       expect(observed.snapshots).toHaveLength(3);
       expect(observed.snapshots.map((row) => row.commandId)).toEqual([input.commandId, input.commandId, input.commandId]);
       expect(observed.finalizations).toEqual([{ kind: "stale" }, { kind: "stale" }, { kind: "stale" }]);
@@ -206,7 +219,7 @@ describe("Story 14.3 authoritative conflict persistence", () => {
     });
   });
 
-  registerAuthorityScenario("race", "[P0] AC10 distinct-key concurrent bookings cannot commit a conflict-free write skew", async () => {
+  test("[P0] AC10 distinct-key concurrent bookings cannot commit a conflict-free write skew", async () => {
     const h = await harness(); const b = await h.loadConflictBindings();
     await h.withConflictFixture(async (fx) => {
       const inputs = [h.bookingInput([fx.ownProfile.id]), h.bookingInput([fx.ownProfile.id])];
@@ -558,3 +571,203 @@ test("[P0] AC10 invitation expiry is checked after a gate/row wait at the curren
     });
   });
 });
+
+test("[P0] AC10 invitation expiry is checked after the operation-row lock wait before activation", async () => {
+  const h = await harness(); const b = await h.loadConflictBindings();
+  const { setTimeout: pause } = await import("node:timers/promises");
+  await h.withConflictFixture(async (fx) => {
+    const writer = await b.prepareInvitationWriter(fx); const membershipId = writer.lockParams[0];
+    await h.adminQuery("update public.tenant_memberships set invitation_expires_at=clock_timestamp()+interval '2 seconds' where id=$1", [membershipId]);
+    const before = await h.bookingSnapshot(fx.tenantIds);
+    await h.adminSession(async ({ query }) => {
+      await query("begin"); let accept: ReturnType<typeof writer.invoke> | undefined;
+      try {
+        const [owner] = await query<{ pid: number }>("select pg_backend_pid() as pid");
+        await query("select id from public.membership_admin_operations where membership_id=$1 and superseded_at is null for update", [membershipId]);
+        accept = writer.invoke(); await h.waitForBlocked(owner.pid, 1);
+        const [started] = await query<{ live_at_start: boolean }>(`select exists(select 1 from pg_stat_activity a,public.tenant_memberships m
+          where m.id=$1 and $2=any(pg_blocking_pids(a.pid)) and a.query_start<m.invitation_expires_at) as live_at_start`, [membershipId, owner.pid]);
+        expect(started.live_at_start).toBe(true);
+        let expired = false;
+        for (let attempt = 0; attempt < 100 && !expired; attempt++) {
+          const [clock] = await query<{ expired: boolean }>("select invitation_expires_at<=clock_timestamp() as expired from public.tenant_memberships where id=$1", [membershipId]);
+          expired = clock.expired; if (!expired) await pause(50);
+        }
+        expect(expired).toBe(true); await query("commit");
+        expect(await accept).toMatchObject({ data: false, error: null });
+        expect(await h.adminQuery("select status,user_id from public.tenant_memberships where id=$1", [membershipId]))
+          .toEqual([{ status: "expired", user_id: null }]);
+        expect(await h.bookingSnapshot(fx.tenantIds)).toEqual(before);
+      } finally { await query("rollback"); if (accept) await accept; }
+    });
+  });
+});
+
+test("[P0] AC8 every participant in four-booking daily capacity is retrievable and refreshed independently", async () => {
+  const h = await harness();
+  await h.withConflictFixture(async (fx) => {
+    const schedule = await fx.adminClient.rpc("save_person_schedule_with_audit", {
+      p_tenant_id: fx.base.tenantA.id, p_actor_user_id: fx.base.adminA.id, p_correlation_id: crypto.randomUUID(),
+      p_person_profile_id: fx.ownProfile.id, p_schedule: [{ weekday: 1, start: "08:00", end: "10:00", breaks: [] }],
+    });
+    expect(schedule.error).toBeNull();
+    const inputs = [6, 7, 8, 9].map((hour) => h.bookingInput([fx.ownProfile.id], {
+      startsAt: `2026-10-12T${String(hour).padStart(2, "0")}:00:00Z`,
+      endsAt: `2026-10-12T${String(hour + 1).padStart(2, "0")}:00:00Z`,
+    }));
+    const ids: string[] = [];
+    for (const input of inputs) ids.push(exactSuccess(await h.bookingCommand("create", fx.adminClient, input)));
+    const before = await h.bookingSnapshot(fx.tenantIds);
+    const capacity = before.conflicts.filter((row) => row.conflict_type === "over_capacity");
+    expect(capacity).toHaveLength(3); // one first-pair association plus each remaining participant
+    expect([...new Set(capacity.flatMap((row) => [row.booking_id, row.related_booking_id]))].sort()).toEqual([...ids].sort());
+    for (const id of ids) {
+      const read = await fx.montorClient.from("booking_conflicts").select("booking_id,related_booking_id,starts_at,ends_at,affected_person_profile_id")
+        .eq("conflict_type", "over_capacity").or(`booking_id.eq.${id},related_booking_id.eq.${id}`);
+      expect(read.error).toBeNull(); expect(read.data?.length).toBeGreaterThan(0);
+      for (const row of read.data ?? []) expect(row).toMatchObject({
+        affected_person_profile_id: fx.ownProfile.id, starts_at: "2026-10-11T22:00:00+00:00", ends_at: "2026-10-12T22:00:00+00:00",
+      });
+    }
+    const anchor = capacity.find((row) => String(row.natural_key).startsWith("v1:"))!;
+    await h.seedAcceptedConflict(String(anchor.id), fx.adminProfile.membershipId);
+    const accepted = (await h.bookingSnapshot(fx.tenantIds)).conflicts;
+    exactSuccess(await h.bookingCommand("update", fx.adminClient, { ...inputs[0], commandId: crypto.randomUUID(), bookingId: ids[0], description: "Same capacity identity" }));
+    expect((await h.bookingSnapshot(fx.tenantIds)).conflicts).toEqual(accepted);
+    const third = [...ids].sort()[2]; const index = ids.indexOf(third);
+    exactSuccess(await h.bookingCommand("update", fx.adminClient, { ...inputs[index], commandId: crypto.randomUUID(), bookingId: third, status: "cancelled" }));
+    const refreshed = (await h.bookingSnapshot(fx.tenantIds)).conflicts.filter((row) => row.conflict_type === "over_capacity");
+    expect(refreshed).toHaveLength(2);
+    expect([...new Set(refreshed.flatMap((row) => [row.booking_id, row.related_booking_id]))].sort()).toEqual(ids.filter((id) => id !== third).sort());
+    expect(refreshed.every((row) => !capacity.some((old) => old.natural_key === row.natural_key))).toBe(true);
+    workflowOpen(refreshed);
+    const removed = await fx.montorClient.from("booking_conflicts").select("id").eq("conflict_type", "over_capacity")
+      .or(`booking_id.eq.${third},related_booking_id.eq.${third}`);
+    expect(removed.error).toBeNull(); expect(removed.data).toEqual([]);
+  });
+});
+
+test("[P0] AC2 persisted dated absence and blocked time produce independent literal UTC warnings", async () => {
+  const h = await harness();
+  await h.withConflictFixture(async (fx) => {
+    const [person] = await h.adminQuery<{ membership_id: string }>("select membership_id from public.person_profiles where id=$1", [fx.ownProfile.id]);
+    const saved = await fx.adminClient.rpc("save_resource_profile_form_with_audit", {
+      p_tenant_id: fx.base.tenantA.id, p_actor_user_id: fx.base.adminA.id, p_correlation_id: crypto.randomUUID(),
+      p_membership_id: person.membership_id, p_work_role_id: null, p_employment_percentage: null,
+      p_schedule: [{ weekday: 1, start: "08:00", end: "16:00", breaks: [] }],
+      p_exceptions: [{ kind: "absence", date: "2026-10-12", start: "10:00", end: "11:00" },
+        { kind: "blocked_time", date: "2026-10-12", start: "13:00", end: "14:00" }], p_calendar_day: null,
+    });
+    expect(saved.error).toBeNull();
+    expect(await h.adminQuery("select exception_kind,local_date::text,starts_at::text,ends_at::text from public.person_work_hours where person_profile_id=$1 and entry_kind='exception' order by starts_at", [fx.ownProfile.id]))
+      .toEqual([{ exception_kind: "absence", local_date: "2026-10-12", starts_at: "10:00:00", ends_at: "11:00:00" },
+        { exception_kind: "blocked_time", local_date: "2026-10-12", starts_at: "13:00:00", ends_at: "14:00:00" }]);
+    const id = exactSuccess(await h.bookingCommand("create", fx.adminClient, h.bookingInput([fx.ownProfile.id])));
+    const warnings = (await h.bookingSnapshot(fx.tenantIds)).conflicts.map((row) => ({ type: row.conflict_type, start: row.starts_at, end: row.ends_at }));
+    expect(warnings.sort((a, b) => String(a.start).localeCompare(String(b.start)))).toEqual([
+      { type: "over_capacity", start: "2026-10-11T22:00:00+00:00", end: "2026-10-12T22:00:00+00:00" },
+      { type: "outside_work_hours", start: "2026-10-12T08:00:00+00:00", end: "2026-10-12T09:00:00+00:00" },
+      { type: "outside_work_hours", start: "2026-10-12T11:00:00+00:00", end: "2026-10-12T12:00:00+00:00" },
+    ]);
+    expect((await h.bookingSnapshot(fx.tenantIds)).conflicts.every((row) => row.booking_id === id && row.affected_person_profile_id === fx.ownProfile.id)).toBe(true);
+  });
+});
+
+for (const windowKind of ["expired", "future", "oversized"] as const) {
+  test(`[P0] AC11 correctly signed otherwise valid ${windowKind} proof isolates database clock and maximum lifetime`, async () => {
+    const h = await harness(); const b = await h.loadConflictBindings();
+    await h.withConflictFixture(async (fx) => {
+      const input = h.bookingInput([fx.ownProfile.id]);
+      const snapshot = await b.snapshot(fx.adminClient, "create", input, crypto.randomUUID());
+      const valid = await b.attest(snapshot, await b.detect(snapshot));
+      const timed = await b.signedVariant(valid, await proofWindow(windowKind));
+      const before = await h.bookingSnapshot(fx.tenantIds);
+      expect(await b.finalize(fx.adminClient, input, timed)).toMatchObject({ kind: windowKind === "expired" ? "stale" : "denied" });
+      expect(await h.bookingSnapshot(fx.tenantIds)).toEqual(before);
+      expect(await b.finalize(fx.adminClient, input, valid)).toEqual({ kind: "committed", bookingId: snapshot.bookingId });
+    });
+  });
+}
+
+test("[P0] AC11 previous incomplete normalization version cannot authorize a fresh commit", async () => {
+  const h = await harness(); const b = await h.loadConflictBindings();
+  await h.withConflictFixture(async (fx) => {
+    const input = h.bookingInput([fx.ownProfile.id]); const snapshot = await b.snapshot(fx.adminClient, "create", input, crypto.randomUUID());
+    const valid = await b.attest(snapshot, await b.detect(snapshot));
+    const previous = await b.signedVariant(valid, { engineVersion: "booking-conflicts-v1" });
+    const before = await h.bookingSnapshot(fx.tenantIds);
+    expect(await b.finalize(fx.adminClient, input, previous)).toMatchObject({ kind: "denied" });
+    expect(await h.bookingSnapshot(fx.tenantIds)).toEqual(before);
+    expect(await b.finalize(fx.adminClient, input, valid)).toEqual({ kind: "committed", bookingId: snapshot.bookingId });
+  });
+});
+
+for (const expiredAttempts of [1, 3] as const) {
+  test(`[P0] AC10 actual save refreshes ${expiredAttempts} genuine signed expiries during gate waits under the same command UUID`, async () => {
+    const h = await harness(); const b = await h.loadConflictBindings();
+    const { parseDetectionSnapshot, conflictClaims } = await import("@/server/bookings/conflict-facts");
+    const { setTimeout: pause } = await import("node:timers/promises");
+    await h.withConflictFixture(async (fx) => {
+      const input = h.bookingInput([fx.ownProfile.id]); const correlation = crypto.randomUUID();
+      const before = await h.bookingSnapshot(fx.tenantIds);
+      const commandIds: string[] = []; const kinds: string[] = [];
+      let snapshot: ReturnType<typeof parseDetectionSnapshot> | undefined; let finalizations = 0;
+      const client = new Proxy(fx.adminClient, { get(target, property) {
+        if (property === "rpc") return async (name: string, args: Record<string, unknown>) => {
+          if (name === "finalize_booking_conflicts") {
+            finalizations++; expect(args.p_command_id).toBe(input.commandId);
+            if (finalizations <= expiredAttempts) {
+              if (!snapshot || snapshot.kind !== "snapshot") throw new Error("Actual save snapshot required");
+              // Private test signer shortens the real DB-issued proof to two seconds;
+              // actual SQL HMAC and validity verification are never bypassed.
+              const [window] = await h.adminQuery<{ expiresAt: string }>("select to_char(($1::timestamptz+interval '2 seconds') at time zone 'UTC','YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') as \"expiresAt\"", [snapshot.issuedAt]);
+              const signed = await b.signedVariant({ snapshot, outputText: String(args.p_output), signature: String(args.p_signature) }, window);
+              return h.adminSession(async ({ query }) => {
+                await query("begin"); let pending: ReturnType<typeof Promise.resolve<Awaited<ReturnType<typeof target.rpc>>>> | undefined;
+                try {
+                  const [owner] = await query<{ pid: number }>("select pg_backend_pid() as pid");
+                  await query("select pg_advisory_xact_lock(hashtextextended($1::text,0))", [fx.base.tenantA.id]);
+                  pending = Promise.resolve(target.rpc(name, { ...args, p_claims: conflictClaims(signed.snapshot), p_signature: signed.signature }));
+                  await h.waitForBlocked(owner.pid, 1);
+                  let expired = false;
+                  for (let attempt = 0; attempt < 100 && !expired; attempt++) {
+                    const [clock] = await query<{ expired: boolean }>("select $1::timestamptz<=clock_timestamp() as expired", [window.expiresAt]);
+                    expired = clock.expired; if (!expired) await pause(50);
+                  }
+                  expect(expired).toBe(true); await query("commit");
+                  const reply = await pending; expect(reply.error).toBeNull();
+                  expect(reply.data).toEqual({ kind: "stale" }); kinds.push("stale");
+                  expect(await h.bookingSnapshot(fx.tenantIds)).toEqual(before);
+                  return reply;
+                } finally { await query("rollback"); if (pending) await pending; }
+              });
+            }
+          }
+          const reply = await target.rpc(name, args);
+          if (name === "snapshot_booking_conflicts" && !reply.error) {
+            snapshot = parseDetectionSnapshot(reply.data);
+            if (snapshot.kind === "snapshot") commandIds.push(snapshot.commandId);
+          }
+          if (name === "finalize_booking_conflicts" && !reply.error) kinds.push((reply.data as { kind: string }).kind);
+          return reply;
+        };
+        const value = Reflect.get(target, property, target);
+        return typeof value === "function" ? value.bind(target) : value;
+      } });
+      const result = await h.bookingCommand("create", client, input, correlation);
+      expect(commandIds).toEqual(Array(expiredAttempts === 1 ? 2 : 3).fill(input.commandId));
+      if (expiredAttempts === 3) {
+        expect(result).toMatchObject({ ok: false, code: "SERVER_ERROR" });
+        expect(Object.keys(result).sort()).toEqual(["code", "message", "ok"]);
+        expect(kinds).toEqual(["stale", "stale", "stale"]);
+        expect(await h.bookingSnapshot(fx.tenantIds)).toEqual(before);
+      } else {
+        const id = exactSuccess(result); expect(kinds).toEqual(["stale", "committed"]);
+        const after = await h.bookingSnapshot(fx.tenantIds);
+        expect(after.bookings).toHaveLength(before.bookings.length + 1);
+        expect(after.bookings.find((row) => row.id === id)?.create_command_id).toBe(input.commandId);
+        expect(after.audit.filter((row) => row.correlation_id === correlation)).toEqual([expect.objectContaining({ target_id: id })]);
+      }
+    });
+  });
+}

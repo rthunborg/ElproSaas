@@ -30,6 +30,6 @@ export async function saveWithConflicts(client: BookingRpcClient, args: BookingR
       signature: signConflictOutput(conflictClaims(snapshot), outputText, key.secret) });
     if (result.kind === "committed") return { bookingId: result.bookingId };
   }
-  // The envelope marks SERVER_ERROR retryable, retaining the original command UUID.
+  // SERVER_ERROR is the existing retryable code contract; no extra wire field.
   throw new CommandError("SERVER_ERROR");
 }

@@ -2,10 +2,10 @@
 title: 'Story 14.3: Deterministic Conflict Engine (Detection Core)'
 type: 'feature'
 created: '2026-10-06'
-status: 'in-progress'
+status: 'blocked'
 baseline_revision: 'a9e2838e80afbd9718c6d907c5518a152b286b1f'
 review_loop_iteration: 0
-followup_review_recommended: false
+followup_review_recommended: true
 context:
   - 'docs/decisions/epic-14-story-ownership-contract-c-2026-10-06.md'
   - '_bmad-output/project-context.md'
@@ -145,16 +145,55 @@ Technical references checked for planning: [PostgreSQL transaction isolation](ht
 
 ## Spec Change Log
 
+- 2026-10-06 R1 author: repaired aggregate association/version binding, valid expiry refresh and final-lock invitation expiry; registered both missing AC10 tests, preserved the public result contract and added independent persisted-fact/valid signed-window regressions. Prior reports did not execute the two extra cases; old claims are withdrawn. Current patch verification remains failed; exact diagnostics and observed DB wall-clock regression are preserved without guard/system changes or historical attribution.
+
 - 2026-10-06 implementation author: implemented the sole deterministic engine, real snapshot/sign/finalize save authority, complete derived peer refresh, and common first gates across consumed writers. Added two CLI-generated forward migrations, dedicated synthetic local/CI key bootstrap, real ATDD bindings, activated all 20 named checks, and retained all 32 booking cases. Invitation expiry after a wait now uses the current database instant. Frozen intent/acceptance and historical blocked attempts are preserved.
 - 2026-10-06 diagnostic continuation author: corrected reporter observability invocation-only and executed the complete current full integration gate (1,354 passed/0 failed/one intentional skip). No production defect/fix or historical failure cause is invented. Root-authorized `_bmad/render/**` ESLint global ignore addresses immutable generated Markdown/JSON cache EPERM while preserving all source/test coverage and the canonical lint command.
 
 ## Review Triage Log
 
+### 2026-10-06 — First independent review dispatch
+
+Routing: all five native reviewer layers and the external Codex reviewer use context-free gpt-6.1-sol High for the actual authorization/RLS/transactional-integrity change. Review covers the complete change from original implementation baseline `2a6c9e6d6859987590f2e875f695a75c16125af6`, including checkpointed implementation and resumed changes. Required focus includes intermittent booking CREATE clock/HMAC/CAS/token-expiry/concurrent-fixture paths; historical unknown causes remain explicit. Root-approved platform capacity batching is three then two native reviewers (five active slots include root/build); every layer remains independent, and no triage or patch occurs until all five native layers and external CLI return. Initial Step03 audit matched seven matrix rows, all 14 named units and all six named integration IDs against the then-current complete report (1,354 passed/0 failed/one intentional recovery skip); it incorrectly credited two uncollected AC10 subcases. R1 discovered that registration gap, and current evidence below corrects the unsupported execution claim. Canonical lint at dispatch had 0 errors/13 inherited warnings.
+
+### 2026-10-06 — Review pass R1
+- intent_gap: 0
+- bad_spec: 0
+- patch: 9: (high 3, medium 5, low 1)
+- defer: 0
+- reject: 2
+- addressed_findings:
+  - `[high]` `[patch]` Register both AC10 stale-exhaustion and distinct-key write-skew cases as actual Vitest tests; current named-case reports prove execution.
+  - `[medium]` `[patch]` Assert the established retryable SERVER_ERROR contract without inventing a public Result field.
+  - `[high]` `[patch]` Persist stable associations for every aggregate-capacity participant, preserve canonical acceptance identity, and version fresh authority as engine v2.
+  - `[high]` `[patch]` Forward-replace invitation acceptance to recheck expiry after the operation-row lock before activation; retain all authority and audit guards.
+  - `[medium]` `[patch]` Refresh otherwise-valid HMAC-authorized expired proofs through the bounded same-command stale path; retain strict invalid/future/oversized proof rejection.
+  - `[medium]` `[patch]` Add independent actual-command assertions for stored dated absence/blocked exceptions and exact UTC warning output.
+  - `[medium]` `[patch]` Add correctly signed, otherwise-valid expired/future/oversized-window controls with exact durable no-op assertions.
+  - `[medium]` `[patch]` Correct historical false execution evidence and the authored trail using actual registered named-case results; preserve failed results and limits.
+  - `[low]` `[patch]` Correct the clerical matrix count from eight to seven outside the frozen intent.
+
+All five native layers and the external Codex layer completed before triage or fixes; the external wrapper's forward-slash `type` retrieval failure was separately retained and its already-written reviewer output recovered with a bounded native-path read. The duplicate aggregate-participant finding was merged. R1 is one completed broad round; two broad rounds remain under the project cap. No additional review round or post-fix independent approval is credited. The same High implementation/fix author implemented all nine corrections, but cumulative patch verification remains blocked. Recommendation is true: three high patches; medium/low score `3 × 5 + 1 = 16`. `review_loop_iteration` remains 0 because no bad-spec re-derivation occurred.
+
 ## Auto Run Result
 
-Status: in-progress
+Status: blocked
 
-Blocking condition: none for the owner-authorized diagnostic continuation; the historical cumulative verification failure below remains unresolved until new evidence establishes its cause and satisfies the gate.
+Blocking condition: patch verification failed
+
+### Canonical R1 correction verification HALT — 2026-10-06
+
+Canonical HALT: **blocked — patch verification failed**. The sole deterministic engine and checked snapshot/detect/attested-finalize implementation are preserved, including all nine R1 corrections, current replay authority, aggregate-participant retrieval, operation-lock invitation expiry, bounded genuine-expiry refresh and honest named-case evidence. No Story 14.4 or Epic gate advances from this result.
+
+Current complete required integration returned native 1: **1,366 total / 1,362 passed / 3 failed / 1 intentional recovery-loader skip**. Failures were the owned AC11 missing-proof valid control, retained 14.2-INT-003 update replay setup, and 7.4-INT-02 quote-acceptance fixture mark-sent setup. Both subsequent bounded 102-case diagnostics returned native 1: **102 total / 101 passed / 1 failed / 0 skipped**; a newly registered exhaustion case and a keyId-tampering valid control respectively failed. They do not replace the full gate. Current affected ten-suite focus passed **143/143 with no skips**, including both formerly uncollected AC10 cases and all nine new regressions. All four transferred INT-003/004/005/006 named cases passed in the current full report; passing those cases does not waive the failed cumulative gate.
+
+The final diagnostic's valid signed control was denied with SQL 42501 (`booking proof denied`). Postfailure readback showed identity/version/config/HMAC/candidate/facts/output/lifetime guards true, expiry still valid, and issuance 772.641 ms ahead of database clock. Its concurrent read-only sampler recorded **six database wall-clock reversals across 1,210 samples**, largest **−827.780 ms while monotonic time advanced 62.090 ms**. This proves clock regression during that diagnostic workload. The failed direct binding lacks an issuance receipt observer: no same-proof before/after claim is made, and historical/full-run failures are not all assigned this cause. Deployed-function and same-call samples ruled out issuance integer casting/serialization advancement; earlier unexplained failures remain historical unknowns. No security guard, time bound, assertion, timeout or system configuration was weakened.
+
+Current typecheck and canonical lint pass (native 0; 0 errors/13 inherited warnings). Unit execution is native 0: **1,993 total / 1,992 passed / 0 failed / 1 inherited Windows xattr skip**; all fourteen named pure cases pass in UTC, America/Los_Angeles and Asia/Tokyo. Lockfiles, service-role containment, build, bundle containment, audit-high (two moderate/zero high) and local security advisors pass. Forward migration `20261006144057` was applied incrementally: 95 ledger records, all 94 prior complete records unchanged; no applied history was edited. Exact empty-chain Epic CI remains pending before merge.
+
+Changed files and per-AC execution evidence are recorded in [author verification](../test-artifacts/story14-3-verification.md), the refreshed author trail below, and the twelve R1 JSON artifacts. Scoped post-fix independent follow-up remains required after stable database-time verification. `followup_review_recommended: true`; `review_loop_iteration: 0`; triage: 9 patches (high 3/medium 5/low 1), 0 defer, 2 reject. All patches are implemented, not cumulatively verified or independently approved after correction.
+
+Tests and the read-only sampler have ceased. Final author and delegate audits found no real secrets, raw proofs/auth tokens or PII in the persistent evidence: fifteen changed/new Markdown/JSON files had zero targeted sensitive-data matches, all twelve new JSON files parse, YAML frontmatter parses as blocked/iteration 0/followup true/deferred empty, and Git whitespace checks pass. The reference checker validates all twenty authored stops; final post-fix reviewer inspection remains pending. Root requested guarded Stop for lifecycle `730ffa3c-8fe8-4b93-b5b8-4da0f9e61cee` (native 0, ok true, stop_requested, verified false), preserving saved state; this delegate acquired/stopped no resource. This delegate made no hosted/global change, reset, deletion, feature commit, branch, push or PR. No more DB use is permitted. Root owns the blocked-leftover checkpoint and orchestration state. Completion hook preserves this blocked/incomplete exit; the existing author-written trail was refreshed and its 20 references validated, but no completed trail or final reviewer approval is manufactured.
 
 ### Authorized diagnostic continuation 2026-10-06
 
@@ -235,58 +274,66 @@ No production defect/fix or infrastructure cause is claimed; historical INT-004 
 
 Canonical ESLint EPERM persisted under the build actor, which identified immutable generated cache files as Markdown/JSON rather than lintable source. Root authorized the narrow `_bmad/render/**` global ignore; the author applied only that pattern/comment, preserving all application/test coverage and the unmodified canonical lint command. The build actor then executed canonical `pnpm run lint`: **native 0, 0 errors / 13 inherited warnings**. No DB rerun is needed for this cache-only change. Independent first review includes this delta and specifically investigates possible intermittent CREATE fail-closed clock/HMAC/CAS/token-expiry/concurrent-fixture paths across the full implementation.
 
+### R1 fix-author evidence — 2026-10-06
+
+First independent full-implementation review completed before this scoped patch batch. Historical49-case reports lacked both additional AC10 tests (exhaustion and distinct-key concurrent writes): these were unregistered, not skipped; prior claims that they executed are withdrawn. The new60-case suite collects both actual tests and nine new regression cases. All14 named unit IDs, all six integration IDs, all four transferred P0/P1 cases and the eight consumed-writer classes retain their original obligations.
+
+CLI-generated immutable forward migration `20261006144057` was applied incrementally; all94 prior complete ledger records are unchanged, final95. v2 proof binding blocks old incomplete fresh aggregate authority while authorized historical replay remains intact. Existing first-pair conflict identities retain accepted workflow metadata; supplemental stable rows associate every additional capacity participant. New/changed full identities remain open. Genuine correctly signed otherwise valid expired authority returns stale and uses at most three real same-UUID attempts, preserving the normalized public code/message result. Forged, missing, cross-actor, future, oversized and malformed proofs stay denied. Invitation confirmed identity/expiry is checked after the final blocking operation-row lock. Independent literal persisted absence/blocked windows and four-participant capacity readback now exercise actual writers/commands.
+
+Affected10-suite diagnostic passes native0:143/143,0failed/skipped. Current full required eight-worker integration fails native1:1366total/1362passed/3failed/1intentional recovery skip; all four transfers and both corrected AC10 names pass in that report. A bounded three-suite diagnostic later fails native1:102total/101passed/1failed/0skipped, capturing genuine future-issued proof at exhaustion. The final authorized receipt workload also fails native1:102/101passed/1failed/0skipped at an original valid signed proof control. Its read-only sampler proves six database wall-clock reversals; same-proof receipt for that direct path remains unavailable. No filtered or later green diagnostic waives the full gate. Canonical source/unit/build/containment/audit/advisor checks pass with counts and exact safe failure diagnostics in [R1 evidence](../test-artifacts/story14-3-verification.md#r1-integrity-fixes-and-current-verification--2026-10-06). No security guard/time bound, timeout/assertion/CI, host time-sync or unrelated quote product behavior was weakened or changed. Root owns terminal status/lifecycle Stop; author result remains incomplete pending failed-gate diagnosis and follow-up inspection.
+
 ## Suggested Review Order
 
-Author: `/root/build_14_3/author_14_3`, the implementation/fix author; pure modules were implemented by its explicitly owned High worker.
-Refreshed against the current diagnostic working tree at resume baseline `a9e2838e80afbd9718c6d907c5518a152b286b1f`; full review scope remains original implementation baseline `2a6c9e6d6859987590f2e875f695a75c16125af6`, including `c8d0a881`. Recorded historical failures and current limits are retained below.
+Author: `/root/build_14_3/author_14_3`, implementation/fix author; its explicitly owned High worker implemented the pure modules.
+Refreshed against uncommitted R1 fixes at HEAD `5d61f44c30bbd6eb9e659966b50b69c4dd377d7d`. Full implementation review scope remains baseline `2a6c9e6d6859987590f2e875f695a75c16125af6`, including checkpoint `c8d0a881`; first independent review completed and scoped high fixes require follow-up inspection.
 
 ### Actual saves preserve command and replay authority
 
-The existing create/update entries now call the internal snapshot/detect/finalize orchestration. The original command UUID and result projection remain stable; current-authorized replay is returned before fresh signing configuration is required, while three stale attempts exhaust through the existing retryable error envelope (AC6/10).
+Existing create/update entries use internal snapshot/detect/finalize orchestration with the original UUID and closed result contract. Genuine valid expiry refreshes through the same three-attempt stale path; exhaustion uses the existing retryable SERVER_ERROR code, without adding a wire field (AC6/10).
 
 - `src/server/commands/bookings/create-booking.ts:7` — `createBooking`: existing public command entry.
 - `src/server/commands/bookings/booking-db.ts:15` — `executeBooking`: preserves typed SQL failure mapping.
-- `src/server/bookings/save-with-conflicts.ts:19` — `saveWithConflicts`: bounded retry and cookie-bound authority.
-- `tests/integration/commands/booking-conflicts.int.test.ts:190` — `three real stale attempts`: zero partial writes on exhaustion.
+- `src/server/bookings/save-with-conflicts.ts:19` — `saveWithConflicts`: bounded same-UUID retry and cookie-bound authority.
+- `tests/integration/commands/booking-conflicts.int.test.ts:201` — `three real stale attempts`: actually registered exhaustion with exact durable no-op.
 
-### Exact facts and signed bytes cross the SQL boundary
+### Exact facts and signed validity cross the SQL boundary
 
-The approved design uses fact-equivalence verification because PostgreSQL does not execute the TypeScript detector. One complete ordered bundle and exact output bytes bind actor, tenant, candidate, command, versions and database-issued validity; finalize compares fresh facts under the first gate before any business write (AC5/6/11).
+Fact-equivalence verification remains the approved bridge between the sole TypeScript detector and SQL. The forward fix returns stale only for genuine otherwise valid expiry after HMAC/current-facts/output checks; strict future/oversized/invalid authority stays denied, and engine v2 binds complete participant associations (AC5/6/11).
 
-- `src/server/bookings/conflict-facts.ts:69` — `previewBookingConflicts`: sole engine over the post-command tenant set.
-- `supabase/migrations/20261006122441_booking_conflict_detection_integration.sql:179` — `finalize_booking_conflicts`: current authority, HMAC and full content CAS.
+- `supabase/migrations/20261006144057_booking_conflict_review_integrity_fixes.sql:25` — `finalize_booking_conflicts`: bound authority, full CAS and verified-expiry refresh.
+- `src/server/bookings/conflict-attestation.ts:6` — `BOOKING_CONFLICT_ENGINE_VERSION`: refuses older incomplete fresh authority.
 - `tests/unit/server/bookings/conflict-attestation.test.ts:19` — `CONFLICT_CLAIM_FIELDS`: each claim tampering changes authority.
-- `tests/integration/commands/booking-conflicts.int.test.ts:511` — `Node/Postgres proof framing`: exact UTF-8/microsecond vector without proof logging.
+- `tests/integration/commands/booking-conflicts.int.test.ts:677` — `correctly signed otherwise valid`: isolated database-relative clock/lifetime guards and controls.
 
 ### Deterministic local windows and capacity remain pure
 
-The detector uses half-open exact UTC intervals and Stockholm calendar windows, with versioned injected rules. Capacity subtracts overlapping unavailability once and keeps numeric reductions separate from clock windows; optional unavailable job facts do not invent requirements (AC1–4/12).
+Half-open UTC microseconds and explicit Stockholm local windows preserve gap/fold policy and layered capacity arithmetic. Independent literal assertions now test persisted dated absence/blocked adapter behavior through actual resource and booking commands, supplementing the pure engine fixtures (AC1–4/12).
 
-- `src/features/scheduling/conflicts.ts:10` — `detectConflicts`: sorted pair/person/window identities.
-- `src/features/scheduling/capacity.ts:73` — `dailyCapacity`: actual schedules and isolated capacity terms.
+- `src/features/scheduling/conflicts.ts:10` — `detectConflicts`: sorted participant/person/window identities.
+- `src/features/scheduling/capacity.ts:73` — `dailyCapacity`: actual schedules and separate capacity terms.
 - `src/features/scheduling/time-zone.ts:45` — `stockholmLocalToUtc`: first-valid gap and earlier fold.
-- `tests/unit/features/scheduling/capacity.golden.test.ts:35` — `14.3-UNIT-012`: six terms and layered subtraction.
+- `tests/integration/commands/booking-conflicts.int.test.ts:650` — `persisted dated absence`: independent literal UTC warnings from persisted facts.
 
-### Atomic peer refresh and first-gate writers preserve integrity
+### Complete associations and final-lock expiry preserve integrity
 
-Complete tenant refresh was chosen in the approved spec to avoid missing peer and aggregate-capacity dependencies. Exact natural keys retain accepted evidence; changed keys are open. Every consumed writer is gated before row locks, including invitation reload and current-instant expiry after a wait (AC7–10).
+Full tenant refresh remains necessary for peer and aggregate dependencies. The established first-pair row/key remains stable for unchanged accepted evidence; one supplemental stable row per remaining participant makes every booking retrievable, while changed full identities reopen. Confirmed invitation identity and actual expiry are rechecked after all blocking locks (AC7–10).
 
-- `supabase/migrations/20261006122441_booking_conflict_detection_integration.sql:238` — `booking_commit_conflicts_internal`: atomic derived persistence, outcome and target audit.
-- `supabase/migrations/20261006124954_booking_invitation_post_gate_expiry.sql:48` — `clock_timestamp`: expiry checked after the gate/row wait.
-- `tests/integration/commands/booking-conflicts.int.test.ts:103` — `14.3-INT-004`: exact peer refresh and acceptance-key preservation.
-- `tests/integration/commands/booking-conflicts.int.test.ts:240` — `holds first gate before row lock`: eight real writer race classes.
+- `src/server/bookings/conflict-facts.ts:113` — `bookingIds.slice(2)`: associates every remaining capacity participant.
+- `tests/integration/commands/booking-conflicts.int.test.ts:606` — `every participant in four-booking`: literal retrieval, accepted-key preservation and changed-identity refresh.
+- `supabase/migrations/20261006144057_booking_conflict_review_integrity_fixes.sql:132` — `clock_timestamp`: actual expiry after the operation-row lock.
+- `tests/integration/commands/booking-conflicts.int.test.ts:253` — `holds first gate before row lock`: all eight actual consumed-writer race classes.
 
-### Evidence and operational limits stay visible
+### Execution evidence and remaining blockers stay visible
 
-The transferred INT-003 P0, INT-004 P1, INT-005 P1 and INT-006 P0 all execute through actual commands and exact durable readbacks. Correlation-scoped owner-only faults exercise real rollback; synthetic fixtures and observer barriers do not replace SQL verification. Full current execution passes; historical failures, canonical-lint limitation, and inherited skips remain recorded without invented attribution (AC7–12).
+All four transferred P0/P1 obligations use actual commands and exact durable readbacks. The registration audit withdraws historical exhaustion/distinct-key execution claims; current reports distinguish executed failures from filtered diagnostics. Safe observers retain actual RPC responses and emit only guard booleans/time deltas; current full verification remains failed, so focused passes do not imply completion (AC7–12).
 
-Root authorized excluding only immutable generated BMAD Markdown/JSON cache after canonical lint hit EPERM under two actors; source/test coverage and the canonical command remain intact. This is a cache-read correction, with no production behavior or DB change.
+Root authorized only immutable generated BMAD Markdown/JSON cache exclusion for canonical lint EPERM; application/test coverage remains intact. Applied migrations stay immutable and the new forward record preserves all94 prior ledger entries.
 
-- `eslint.config.mjs:19` — `_bmad/render/**`: narrow generated-cache ignore for canonical lint.
-- `tests/integration/commands/booking-conflicts.int.test.ts:146` — `14.3-INT-005`: exact create/update rollback snapshots.
-- `tests/integration/commands/booking-conflicts.int.test.ts:166` — `14.3-INT-006`: stale actual save retries original identity.
-- `docs/process/local-setup.md:129` — `Booking conflict attestation`: private dedicated key and synthetic local bootstrap.
+- `eslint.config.mjs:19` — `_bmad/render/**`: narrow generated-cache ignore.
+- `tests/integration/commands/booking-conflicts.int.test.ts:157` — `14.3-INT-005`: exact CREATE/UPDATE rollback snapshots.
+- `tests/integration/commands/booking-conflicts.int.test.ts:177` — `14.3-INT-006`: actual stale save keeps original identity.
+- `docs/process/local-setup.md:129` — `Booking conflict attestation`: dedicated private key and synthetic local bootstrap.
 
-Evidence: [author verification and AC mappings](../test-artifacts/story14-3-verification.md). Current complete eight-worker parallel integration is native 0, 1,354 passed/0 failed/1 intentional recovery skip (1,355 total), including all 49 conflicts and all 32 retained booking cases. Build-actor canonical `pnpm run lint` is native 0, 0 errors/13 inherited warnings. Earlier focused/representative checks and failed complete workloads remain separately recorded. Unit execution is 1,992 passed/0 failed/1 inherited Windows xattr skip. `check-review-order.mjs` passes all 20 references; reviewer inspection remains pending.
+Evidence: [author verification/AC mapping](../test-artifacts/story14-3-verification.md) and [registration audit](../test-artifacts/story14-3-r1-case-registration-audit.json). Current full8-worker parallel run is native1:1366total/1362passed/3failed/1intentional recovery skip. Focused10-suite diagnostic is native0:143/143,0failed/skipped; both later three-suite diagnostics are native1:102/101passed/1failed/0skipped; the final1210-sample read-only diagnostic observes six DB wall-clock reversals. Canonical lint is native0 with0errors/13inherited warnings; full units1993total/1992passed/0failed/1inherited Windows xattr skip; all14 named scheduling cases repeat under three host timezones. Historical failure evidence remains unchanged and unknown.
 
-Limits: historical failures' causes remain unknown; the latest complete green run does not retroactively explain them. Independent full-diff review/trail inspection and exact empty-chain Epic CI remain pending. Browser/editor/override belongs to 14.4; optional job-depth is unavailable in production. No hosted/external, numeric-coverage or performance claim is made.
+Limits: failed cumulative verification remains unwaived. Database wall-clock regression is observed in the final workload; the direct failed proof lacks same-proof receipt and earlier causes remain unknown. Readbacks are postfailure, not the original rejection snapshot. Scoped follow-up review/trail inspection and exact empty-chain Epic CI remain required. No14.4 browser/editor/override, hosted/external, numeric coverage or performance/scalability claim is made.

@@ -1,0 +1,659 @@
+{
+  "historicalCorrection": "The two extra AC10 cases were unregistered, not skipped, in all pre-R1 49-case reports. Historical execution claims for those cases are withdrawn; other names retain their actual report status.",
+  "reports": [
+    {
+      "file": "story14-3-focused-final.json",
+      "registeredConflictCases": 49,
+      "probes": [
+        {
+          "id": "AC10-exhaustion",
+          "registered": false,
+          "statuses": []
+        },
+        {
+          "id": "AC10-distinct-key",
+          "registered": false,
+          "statuses": []
+        }
+      ],
+      "transfers": [
+        {
+          "id": "14.3-INT-003",
+          "statuses": [
+            "passed"
+          ]
+        },
+        {
+          "id": "14.3-INT-004",
+          "statuses": [
+            "passed"
+          ]
+        },
+        {
+          "id": "14.3-INT-005",
+          "statuses": [
+            "passed"
+          ]
+        },
+        {
+          "id": "14.3-INT-006",
+          "statuses": [
+            "passed"
+          ]
+        }
+      ]
+    },
+    {
+      "file": "story14-3-focused-first.json",
+      "registeredConflictCases": 47,
+      "probes": [
+        {
+          "id": "AC10-exhaustion",
+          "registered": false,
+          "statuses": []
+        },
+        {
+          "id": "AC10-distinct-key",
+          "registered": false,
+          "statuses": []
+        }
+      ],
+      "transfers": [
+        {
+          "id": "14.3-INT-003",
+          "statuses": [
+            "passed"
+          ]
+        },
+        {
+          "id": "14.3-INT-004",
+          "statuses": [
+            "passed"
+          ]
+        },
+        {
+          "id": "14.3-INT-005",
+          "statuses": [
+            "passed"
+          ]
+        },
+        {
+          "id": "14.3-INT-006",
+          "statuses": [
+            "passed"
+          ]
+        }
+      ]
+    },
+    {
+      "file": "story14-3-full-integration-bounded.json",
+      "registeredConflictCases": 48,
+      "probes": [
+        {
+          "id": "AC10-exhaustion",
+          "registered": false,
+          "statuses": []
+        },
+        {
+          "id": "AC10-distinct-key",
+          "registered": false,
+          "statuses": []
+        }
+      ],
+      "transfers": [
+        {
+          "id": "14.3-INT-003",
+          "statuses": [
+            "passed"
+          ]
+        },
+        {
+          "id": "14.3-INT-004",
+          "statuses": [
+            "passed"
+          ]
+        },
+        {
+          "id": "14.3-INT-005",
+          "statuses": [
+            "passed"
+          ]
+        },
+        {
+          "id": "14.3-INT-006",
+          "statuses": [
+            "passed"
+          ]
+        }
+      ]
+    },
+    {
+      "file": "story14-3-full-integration-current.json",
+      "registeredConflictCases": 49,
+      "probes": [
+        {
+          "id": "AC10-exhaustion",
+          "registered": false,
+          "statuses": []
+        },
+        {
+          "id": "AC10-distinct-key",
+          "registered": false,
+          "statuses": []
+        }
+      ],
+      "transfers": [
+        {
+          "id": "14.3-INT-003",
+          "statuses": [
+            "passed"
+          ]
+        },
+        {
+          "id": "14.3-INT-004",
+          "statuses": [
+            "failed"
+          ]
+        },
+        {
+          "id": "14.3-INT-005",
+          "statuses": [
+            "passed"
+          ]
+        },
+        {
+          "id": "14.3-INT-006",
+          "statuses": [
+            "passed"
+          ]
+        }
+      ]
+    },
+    {
+      "file": "story14-3-full-integration-final.json",
+      "registeredConflictCases": 48,
+      "probes": [
+        {
+          "id": "AC10-exhaustion",
+          "registered": false,
+          "statuses": []
+        },
+        {
+          "id": "AC10-distinct-key",
+          "registered": false,
+          "statuses": []
+        }
+      ],
+      "transfers": [
+        {
+          "id": "14.3-INT-003",
+          "statuses": [
+            "passed"
+          ]
+        },
+        {
+          "id": "14.3-INT-004",
+          "statuses": [
+            "passed"
+          ]
+        },
+        {
+          "id": "14.3-INT-005",
+          "statuses": [
+            "failed"
+          ]
+        },
+        {
+          "id": "14.3-INT-006",
+          "statuses": [
+            "failed"
+          ]
+        }
+      ]
+    },
+    {
+      "file": "story14-3-r1-focused-diagnostic.json",
+      "registeredConflictCases": 60,
+      "probes": [
+        {
+          "id": "AC10-exhaustion",
+          "registered": true,
+          "statuses": [
+            "passed"
+          ]
+        },
+        {
+          "id": "AC10-distinct-key",
+          "registered": true,
+          "statuses": [
+            "passed"
+          ]
+        }
+      ],
+      "transfers": [
+        {
+          "id": "14.3-INT-003",
+          "statuses": [
+            "passed"
+          ]
+        },
+        {
+          "id": "14.3-INT-004",
+          "statuses": [
+            "passed"
+          ]
+        },
+        {
+          "id": "14.3-INT-005",
+          "statuses": [
+            "passed"
+          ]
+        },
+        {
+          "id": "14.3-INT-006",
+          "statuses": [
+            "passed"
+          ]
+        }
+      ]
+    },
+    {
+      "file": "story14-3-r1-focused.json",
+      "registeredConflictCases": 60,
+      "probes": [
+        {
+          "id": "AC10-exhaustion",
+          "registered": true,
+          "statuses": [
+            "passed"
+          ]
+        },
+        {
+          "id": "AC10-distinct-key",
+          "registered": true,
+          "statuses": [
+            "passed"
+          ]
+        }
+      ],
+      "transfers": [
+        {
+          "id": "14.3-INT-003",
+          "statuses": [
+            "passed"
+          ]
+        },
+        {
+          "id": "14.3-INT-004",
+          "statuses": [
+            "passed"
+          ]
+        },
+        {
+          "id": "14.3-INT-005",
+          "statuses": [
+            "passed"
+          ]
+        },
+        {
+          "id": "14.3-INT-006",
+          "statuses": [
+            "passed"
+          ]
+        }
+      ]
+    },
+    {
+      "file": "story14-3-r1-full.json",
+      "registeredConflictCases": 60,
+      "probes": [
+        {
+          "id": "AC10-exhaustion",
+          "registered": true,
+          "statuses": [
+            "passed"
+          ]
+        },
+        {
+          "id": "AC10-distinct-key",
+          "registered": true,
+          "statuses": [
+            "passed"
+          ]
+        }
+      ],
+      "transfers": [
+        {
+          "id": "14.3-INT-003",
+          "statuses": [
+            "passed"
+          ]
+        },
+        {
+          "id": "14.3-INT-004",
+          "statuses": [
+            "passed"
+          ]
+        },
+        {
+          "id": "14.3-INT-005",
+          "statuses": [
+            "passed"
+          ]
+        },
+        {
+          "id": "14.3-INT-006",
+          "statuses": [
+            "passed"
+          ]
+        }
+      ]
+    },
+    {
+      "file": "story14-3-r1-issuance-path-diagnostic.json",
+      "registeredConflictCases": 60,
+      "probes": [
+        {
+          "id": "AC10-exhaustion",
+          "registered": true,
+          "statuses": [
+            "passed"
+          ]
+        },
+        {
+          "id": "AC10-distinct-key",
+          "registered": true,
+          "statuses": [
+            "skipped"
+          ]
+        }
+      ],
+      "transfers": [
+        {
+          "id": "14.3-INT-003",
+          "statuses": [
+            "skipped"
+          ]
+        },
+        {
+          "id": "14.3-INT-004",
+          "statuses": [
+            "skipped"
+          ]
+        },
+        {
+          "id": "14.3-INT-005",
+          "statuses": [
+            "skipped"
+          ]
+        },
+        {
+          "id": "14.3-INT-006",
+          "statuses": [
+            "skipped"
+          ]
+        }
+      ]
+    },
+    {
+      "file": "story14-3-r1-three-path-diagnostic.json",
+      "registeredConflictCases": 60,
+      "probes": [
+        {
+          "id": "AC10-exhaustion",
+          "registered": true,
+          "statuses": [
+            "failed"
+          ]
+        },
+        {
+          "id": "AC10-distinct-key",
+          "registered": true,
+          "statuses": [
+            "passed"
+          ]
+        }
+      ],
+      "transfers": [
+        {
+          "id": "14.3-INT-003",
+          "statuses": [
+            "passed"
+          ]
+        },
+        {
+          "id": "14.3-INT-004",
+          "statuses": [
+            "passed"
+          ]
+        },
+        {
+          "id": "14.3-INT-005",
+          "statuses": [
+            "passed"
+          ]
+        },
+        {
+          "id": "14.3-INT-006",
+          "statuses": [
+            "passed"
+          ]
+        }
+      ]
+    },
+    {
+      "file": "story14-3-representative-diagnostic.json",
+      "registeredConflictCases": 49,
+      "probes": [
+        {
+          "id": "AC10-exhaustion",
+          "registered": false,
+          "statuses": []
+        },
+        {
+          "id": "AC10-distinct-key",
+          "registered": false,
+          "statuses": []
+        }
+      ],
+      "transfers": [
+        {
+          "id": "14.3-INT-003",
+          "statuses": [
+            "passed"
+          ]
+        },
+        {
+          "id": "14.3-INT-004",
+          "statuses": [
+            "passed"
+          ]
+        },
+        {
+          "id": "14.3-INT-005",
+          "statuses": [
+            "passed"
+          ]
+        },
+        {
+          "id": "14.3-INT-006",
+          "statuses": [
+            "passed"
+          ]
+        }
+      ]
+    },
+    {
+      "file": "story14-3-resume-full-diagnostic.json",
+      "registeredConflictCases": 49,
+      "probes": [
+        {
+          "id": "AC10-exhaustion",
+          "registered": false,
+          "statuses": []
+        },
+        {
+          "id": "AC10-distinct-key",
+          "registered": false,
+          "statuses": []
+        }
+      ],
+      "transfers": [
+        {
+          "id": "14.3-INT-003",
+          "statuses": [
+            "passed"
+          ]
+        },
+        {
+          "id": "14.3-INT-004",
+          "statuses": [
+            "passed"
+          ]
+        },
+        {
+          "id": "14.3-INT-005",
+          "statuses": [
+            "passed"
+          ]
+        },
+        {
+          "id": "14.3-INT-006",
+          "statuses": [
+            "passed"
+          ]
+        }
+      ]
+    },
+    {
+      "file": "story14-3-resume-full-visible-diagnostic.json",
+      "registeredConflictCases": 49,
+      "probes": [
+        {
+          "id": "AC10-exhaustion",
+          "registered": false,
+          "statuses": []
+        },
+        {
+          "id": "AC10-distinct-key",
+          "registered": false,
+          "statuses": []
+        }
+      ],
+      "transfers": [
+        {
+          "id": "14.3-INT-003",
+          "statuses": [
+            "passed"
+          ]
+        },
+        {
+          "id": "14.3-INT-004",
+          "statuses": [
+            "passed"
+          ]
+        },
+        {
+          "id": "14.3-INT-005",
+          "statuses": [
+            "passed"
+          ]
+        },
+        {
+          "id": "14.3-INT-006",
+          "statuses": [
+            "passed"
+          ]
+        }
+      ]
+    },
+    {
+      "file": "story14-3-transfer004-diagnostic.json",
+      "registeredConflictCases": 49,
+      "probes": [
+        {
+          "id": "AC10-exhaustion",
+          "registered": false,
+          "statuses": []
+        },
+        {
+          "id": "AC10-distinct-key",
+          "registered": false,
+          "statuses": []
+        }
+      ],
+      "transfers": [
+        {
+          "id": "14.3-INT-003",
+          "statuses": [
+            "skipped"
+          ]
+        },
+        {
+          "id": "14.3-INT-004",
+          "statuses": [
+            "passed"
+          ]
+        },
+        {
+          "id": "14.3-INT-005",
+          "statuses": [
+            "skipped"
+          ]
+        },
+        {
+          "id": "14.3-INT-006",
+          "statuses": [
+            "skipped"
+          ]
+        }
+      ]
+    },
+    {
+      "file": "story14-3-r1-receipt-workload.json",
+      "registeredConflictCases": 60,
+      "probes": [
+        {
+          "id": "AC10-exhaustion",
+          "registered": true,
+          "statuses": [
+            "passed"
+          ]
+        },
+        {
+          "id": "AC10-distinct-key",
+          "registered": true,
+          "statuses": [
+            "passed"
+          ]
+        }
+      ],
+      "transfers": [
+        {
+          "id": "14.3-INT-003",
+          "statuses": [
+            "passed"
+          ]
+        },
+        {
+          "id": "14.3-INT-004",
+          "statuses": [
+            "passed"
+          ]
+        },
+        {
+          "id": "14.3-INT-005",
+          "statuses": [
+            "passed"
+          ]
+        },
+        {
+          "id": "14.3-INT-006",
+          "statuses": [
+            "passed"
+          ]
+        }
+      ]
+    }
+  ]
+}

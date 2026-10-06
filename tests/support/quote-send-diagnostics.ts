@@ -7,7 +7,10 @@ export type QuoteSendDiagnostic = {
   readonly code: string;
   readonly message: string;
   readonly guards?: Record<string, boolean | null>;
-  readonly timing?: { issued_delta_ms: number | null; expiry_delta_ms: number | null; prepared_to_finalization_ms: number | null };
+  readonly timing?: { issued_delta_ms: number | null; expiry_delta_ms: number | null; prepared_to_finalization_ms: number | null;
+    issued_clock_delta_ms: number | null; issued_transaction_delta_ms: number | null;
+    db_statement_age_ms: number | null; db_transaction_age_ms: number | null;
+    node_before_issued_delta_ms: number | null; node_after_issued_delta_ms: number | null };
 };
 const SEND_RPCS = new Set([
   "prepare_quote_pdf_send_attestation", "authorize_quote_final_send",
@@ -75,6 +78,7 @@ function createObserver(
             try {
               // Parameters remain in memory/DB only. The result contains no identifier,
               // timestamp, key, signature or canonical payload, only boolean witnesses.
+              const nodeBefore = Date.now();
               const [guards] = await adminQuery<Record<string, boolean | number | null>>(`
                 select qv.status='draft' as draft, qv.pdf_status='generated' as generated,
                   qv.pdf_content_fingerprint=public.quote_version_content_fingerprint(qv.id) as fingerprint_matches,
@@ -88,6 +92,10 @@ function createObserver(
                   $7::timestamptz=$6::timestamptz+interval '5 minutes' as exact_window,
                   $6::timestamptz<=statement_timestamp() and $7::timestamptz>statement_timestamp() as time_current,
                   (extract(epoch from (statement_timestamp()-$6::timestamptz))*1000)::double precision as issued_delta_ms,
+                  (extract(epoch from (clock_timestamp()-$6::timestamptz))*1000)::double precision as issued_clock_delta_ms,
+                  (extract(epoch from (transaction_timestamp()-$6::timestamptz))*1000)::double precision as issued_transaction_delta_ms,
+                  (extract(epoch from (clock_timestamp()-statement_timestamp()))*1000)::double precision as db_statement_age_ms,
+                  (extract(epoch from (clock_timestamp()-transaction_timestamp()))*1000)::double precision as db_transaction_age_ms,
                   (extract(epoch from ($7::timestamptz-statement_timestamp()))*1000)::double precision as expiry_delta_ms,
                   $6::text=$10::text as issued_matches_prepared,
                   $6::timestamptz<=statement_timestamp() as issued_not_future,
@@ -107,13 +115,22 @@ function createObserver(
                   args.p_attestation_expires_at ?? null, args.p_attestation_signature ?? null,
                   prepared.get(args.p_correlation_id)?.generation_started_at ?? null,
                   prepared.get(args.p_correlation_id)?.attestation_issued_at ?? null,
-                ]);
+              ]);
+              const nodeAfter = Date.now();
               if (guards) {
-                const { issued_delta_ms, expiry_delta_ms, ...booleanGuards } = guards;
+                const { issued_delta_ms, expiry_delta_ms, issued_clock_delta_ms, issued_transaction_delta_ms,
+                  db_statement_age_ms, db_transaction_age_ms, ...booleanGuards } = guards;
+                const issued = typeof args.p_attestation_issued_at === "string" ? Date.parse(args.p_attestation_issued_at) : NaN;
                 diagnostics.push({ ...diagnostic,
                   guards: booleanGuards as Record<string, boolean | null>,
                   timing: { issued_delta_ms: issued_delta_ms as number | null,
-                    expiry_delta_ms: expiry_delta_ms as number | null, prepared_to_finalization_ms: elapsed },
+                    expiry_delta_ms: expiry_delta_ms as number | null, prepared_to_finalization_ms: elapsed,
+                    issued_clock_delta_ms: issued_clock_delta_ms as number | null,
+                    issued_transaction_delta_ms: issued_transaction_delta_ms as number | null,
+                    db_statement_age_ms: db_statement_age_ms as number | null,
+                    db_transaction_age_ms: db_transaction_age_ms as number | null,
+                    node_before_issued_delta_ms: Number.isFinite(issued) ? nodeBefore - issued : null,
+                    node_after_issued_delta_ms: Number.isFinite(issued) ? nodeAfter - issued : null },
                 });
               } else diagnostics.push({ ...diagnostic, guards: { row_present: false } });
             } catch { diagnostics.push({ ...diagnostic, guards: { readback_available: false } }); }

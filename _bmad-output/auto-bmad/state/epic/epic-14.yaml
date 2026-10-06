@@ -9,11 +9,11 @@ spec_folder: null
 story_id: null
 branch: codex/epic14-resume
 status: in-progress
-updated_at: "2026-10-06T14:04:03Z"
+updated_at: "2026-10-06T15:16:28Z"
 started_at: "2026-09-29T08:23:21Z"
 completed_at: null
-active_seconds: 47699
-timing_anchor: 1791295443
+active_seconds: 52044
+timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
 git_mode: remote

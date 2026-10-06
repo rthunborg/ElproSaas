@@ -8,7 +8,7 @@ import { parseDetectionSnapshot, snapshotBookingConflicts, previewBookingConflic
 import { signConflictOutput } from "@/server/bookings/conflict-attestation";
 import { validateCreateBooking, validateUpdateBooking, bookingPayload } from "@/server/commands/bookings/validation";
 import { LOCAL_TEST_BOOKING_CONFLICT_KEY_ID, LOCAL_TEST_BOOKING_CONFLICT_SECRET, assertLocalStack } from "./test-env";
-import { bookingCommand, type BookingInput, type DurableRow } from "./bookings-atdd";
+import { bookingCommand, bookingRpcDiagnostic, type BookingInput, type DurableRow } from "./bookings-atdd";
 import type { ConflictBindings, DetectionSnapshot, AttestedAttempt, DerivedConflict, Operation, FinalizeResult } from "./booking-conflicts-atdd";
 import type { TestServerClient } from "../factories/tenants";
 
@@ -29,6 +29,12 @@ const normalizedRows = (rows: DurableRow[]): DerivedConflict[] => rows.map((row)
   affected_person_profile_id: row.affected_person_profile_id === null ? null : String(row.affected_person_profile_id),
   conflict_type: String(row.conflict_type), starts_at: canonicalInstant(String(row.starts_at)), ends_at: canonicalInstant(String(row.ends_at)), natural_key: String(row.natural_key),
 })).sort((a, b) => a.natural_key < b.natural_key ? -1 : a.natural_key > b.natural_key ? 1 : 0);
+async function observedRpc(client: TestServerClient, name: string, rpcArgs: Record<string, unknown>) {
+  const reply = await client.rpc(name, rpcArgs);
+  if (process.env.STORY143_DIAGNOSTIC === "1" && reply.error)
+    console.error("Story14.3 checked RPC diagnostic", JSON.stringify(await bookingRpcDiagnostic(name, rpcArgs, reply.error)));
+  return reply;
+}
 function canonicalInstant(value: string): string {
   const micros = (value.match(/[.](\d{1,6})/)?.[1] ?? "").padEnd(6, "0");
   return new Date(value).toISOString().replace(/[.]\d{3}Z$/, `.${micros}Z`);
@@ -50,7 +56,7 @@ export async function authoritativeBookingRpc(op: Operation, client: TestServerC
   if (parsed.kind === "replay") return { data: parsed.result, error: null };
   const outputText = JSON.stringify(previewBookingConflicts(parsed));
   const signature = signConflictOutput(conflictClaims(parsed), outputText, LOCAL_TEST_BOOKING_CONFLICT_SECRET);
-  const finalized = await client.rpc("finalize_booking_conflicts", { ...rpcArgs, p_claims: conflictClaims(parsed), p_output: outputText, p_signature: signature });
+  const finalized = await observedRpc(client, "finalize_booking_conflicts", { ...rpcArgs, p_claims: conflictClaims(parsed), p_output: outputText, p_signature: signature });
   if (finalized.error) return finalized;
   const result = finalized.data as { kind: string; bookingId: string };
   return result.kind === "committed" ? { data: { bookingId: result.bookingId }, error: null }
@@ -99,13 +105,13 @@ export async function actualConflictBindings(): Promise<ConflictBindings> {
     async finalize(client, input, attempt) {
       if (!attempt) {
         const actor = await identity(client);
-        const denied = await client.rpc("finalize_booking_conflicts", { p_tenant_id: actor.tenantId, p_actor_id: actor.actorId,
+        const denied = await observedRpc(client, "finalize_booking_conflicts", { p_tenant_id: actor.tenantId, p_actor_id: actor.actorId,
           p_correlation_id: crypto.randomUUID(), p_command_id: input.commandId, p_booking_id: input.bookingId ?? null,
           p_payload: payload(input.bookingId ? "update" : "create", input), p_claims: null, p_output: null, p_signature: null });
         if (denied.error) return { kind: "denied", code: denied.error.code ?? "SERVER_ERROR" };
         throw new Error("Missing proof unexpectedly accepted");
       }
-      const { data, error } = await client.rpc("finalize_booking_conflicts", { ...args(attempt.snapshot, input), p_booking_id: input.bookingId ?? null,
+      const { data, error } = await observedRpc(client, "finalize_booking_conflicts", { ...args(attempt.snapshot, input), p_booking_id: input.bookingId ?? null,
         p_claims: conflictClaims(attempt.snapshot), p_output: attempt.outputText, p_signature: attempt.signature });
       return error ? { kind: "denied", code: error.code ?? "SERVER_ERROR" } : data as FinalizeResult;
     },

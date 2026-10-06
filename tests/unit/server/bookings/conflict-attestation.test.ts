@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { canonicalConflictProofBytes, CONFLICT_CLAIM_FIELDS, signConflictOutput, verifyConflictOutput,
-  bookingConflictKeyFromEnv, type ConflictClaims } from "@/server/bookings/conflict-attestation";
+  bookingConflictKeyFromEnv, BOOKING_CONFLICT_ENGINE_VERSION, type ConflictClaims } from "@/server/bookings/conflict-attestation";
 
 const claims: ConflictClaims = { tenantId: "tenant", actorId: "actor", operation: "create", commandId: "command",
-  bookingId: "booking", candidateDigest: "a".repeat(64), factDigest: "b".repeat(64), engineVersion: "booking-conflicts-v1",
+  bookingId: "booking", candidateDigest: "a".repeat(64), factDigest: "b".repeat(64), engineVersion: BOOKING_CONFLICT_ENGINE_VERSION,
   configVersion: "stockholm-capacity-v1", correlationId: "correlation", keyId: "synthetic",
   issuedAt: "2026-10-06T08:00:00.123456Z", expiresAt: "2026-10-06T08:02:00.123456Z" };
 const output = '[{"note":"Å:🔌"}]';

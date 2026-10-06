@@ -52,7 +52,7 @@ export interface ConflictBindings {
   finalize(client: TestServerClient, input: BookingInput, attempt: AttestedAttempt | null): Promise<FinalizeResult>;
   observeCommand(client: TestServerClient, op: Operation, input: BookingInput, correlationId: string,
     afterSnapshot: (attempt: AttestedAttempt, index: number) => Promise<void>): Promise<{
-      result: { ok: true; data: { bookingId: string } } | { ok: false; code: string; retryable?: boolean };
+      result: { ok: true; data: { bookingId: string } } | { ok: false; code: string; message: string };
       snapshots: DetectionSnapshot[]; finalizations: FinalizeResult[];
     }>;
   normalizedRows(rows: DurableRow[]): DerivedConflict[];

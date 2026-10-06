@@ -107,6 +107,14 @@ export function previewBookingConflicts(snapshot: DetectionSnapshot): DerivedCon
           affected_person_profile_id: personId, conflict_type: conflict.conflictType,
           starts_at: conflict.startsAt, ends_at: conflict.endsAt, natural_key: naturalKey };
         unique.set(naturalKey, row);
+        // Preserve the established first-pair row/key, then expose every remaining
+        // aggregate participant through an existing-schema association row. Each
+        // key still binds the complete participant set, person, type and window.
+        for (const bookingId of conflict.bookingIds.slice(2)) {
+          const participantKey = `v2:${createHash("sha256").update(JSON.stringify([conflict.naturalKey, personId, bookingId])).digest("hex")}`;
+          unique.set(participantKey, { ...row, booking_id: bookingId,
+            related_booking_id: conflict.bookingIds[0]!, natural_key: participantKey });
+        }
       }
     }
   }

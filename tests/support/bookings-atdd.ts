@@ -24,6 +24,53 @@ export function bookingInput(assignees: string[], patch: Partial<BookingInput> =
     workRoleId: null, jobId: null, customerId: null, facilityId: null, contactId: null, ...patch };
 }
 
+export async function bookingRpcDiagnostic(name: string, args: Record<string, unknown>, error: { code: string; message: string }) {
+  const reason = error.message === "booking proof denied" ? "proof"
+    : error.message === "booking denied" ? "booking" : "other";
+  let guards: Record<string, unknown> | undefined;
+  if (reason === "proof" && name === "finalize_booking_conflicts") {
+    // Readback after the failed RPC, not the original rejection snapshot.
+    // Only non-secret booleans/time deltas leave this private fixture path.
+    try {
+      const { BOOKING_CONFLICT_ENGINE_VERSION } = await import("@/server/bookings/conflict-attestation");
+      const nodeBefore = Date.now();
+      const [row] = await adminQuery<Record<string, unknown>>(`select
+        $1::jsonb->>'tenantId'=$4::uuid::text as tenant_matches,
+        $1::jsonb->>'actorId'=$8::uuid::text as actor_matches,
+        $1::jsonb->>'commandId'=$9::uuid::text as command_matches,
+        $1::jsonb->>'correlationId'=$10::uuid::text as correlation_matches,
+        $1::jsonb->>'operation'=case when $5::uuid is null then 'create' else 'update' end as operation_matches,
+        $1::jsonb->>'engineVersion'=$7::text as engine_matches,
+        $1::jsonb->>'configVersion'='stockholm-capacity-v1' as config_matches,
+        ($1::jsonb->>'issuedAt')::timestamptz<=clock_timestamp() as issued_not_future,
+        ($1::jsonb->>'expiresAt')::timestamptz>clock_timestamp() as expiry_not_past,
+        ($1::jsonb->>'expiresAt')::timestamptz>($1::jsonb->>'issuedAt')::timestamptz
+          and ($1::jsonb->>'expiresAt')::timestamptz<=($1::jsonb->>'issuedAt')::timestamptz+interval '2 minutes' as lifetime_valid,
+        extract(epoch from clock_timestamp()-($1::jsonb->>'issuedAt')::timestamptz)*1000 as issued_db_delta_ms,
+        extract(epoch from statement_timestamp()-($1::jsonb->>'issuedAt')::timestamptz)*1000 as issued_statement_delta_ms,
+        extract(epoch from transaction_timestamp()-($1::jsonb->>'issuedAt')::timestamptz)*1000 as issued_transaction_delta_ms,
+        extract(epoch from clock_timestamp()-statement_timestamp())*1000 as db_statement_age_ms,
+        extract(epoch from clock_timestamp()-transaction_timestamp())*1000 as db_transaction_age_ms,
+        encode(extensions.hmac(public.booking_conflict_proof_bytes_internal($1::jsonb,$2::text),
+          convert_to(public.booking_conflict_key_internal($1::jsonb->>'keyId'),'UTF8'),'sha256'),'hex')=$3::text as hmac_matches,
+        $1::jsonb->>'candidateDigest'=public.booking_detection_digest_internal(
+          case when $5::uuid is null then 'create' else 'update' end,$5::uuid,public.booking_payload_internal($6::jsonb)) as candidate_matches,
+        $1::jsonb->>'factDigest'=encode(extensions.digest(public.booking_detection_facts_internal($4::uuid)::text,'sha256'),'hex') as facts_match`,
+      [args.p_claims, args.p_output, args.p_signature, args.p_tenant_id, args.p_booking_id, args.p_payload, BOOKING_CONFLICT_ENGINE_VERSION,
+        args.p_actor_id, args.p_command_id, args.p_correlation_id]);
+      guards = { readback_after_failure: true, ...row,
+        issued_node_before_delta_ms: nodeBefore - new Date(String((args.p_claims as { issuedAt: string }).issuedAt)).getTime(),
+        issued_node_delta_ms: Date.now() - new Date(String((args.p_claims as { issuedAt: string }).issuedAt)).getTime() };
+      try {
+        await adminQuery("select public.booking_conflict_output_internal($1::uuid,$2::uuid,public.booking_payload_internal($3::jsonb),$4::text)",
+          [args.p_tenant_id, (args.p_claims as { bookingId: string }).bookingId, args.p_payload, args.p_output]);
+        guards.output_shape_valid = true;
+      } catch { guards.output_shape_valid = false; }
+    } catch { guards = { readback_available: false }; }
+  }
+  return { rpc: name, code: error.code, reason, claims_present: args.p_claims != null, ...(guards ? { guards } : {}) };
+}
+
 /** Imports and executes the actual production command. */
 export async function bookingCommand(operation: "create" | "update", client: TestServerClient,
   input: BookingInput, correlationId = crypto.randomUUID()) {
@@ -31,12 +78,43 @@ export async function bookingCommand(operation: "create" | "update", client: Tes
     ? (await import("@/server/commands/bookings/create-booking")).createBooking
     : (await import("@/server/commands/bookings/update-booking")).updateBooking;
   const diagnostic = process.env.STORY143_DIAGNOSTIC === "1";
-  const rpcErrors: { rpc: string; code: string }[] = [];
+  const rpcErrors: Awaited<ReturnType<typeof bookingRpcDiagnostic>>[] = [];
+  let issuanceObservation: { receipt_clock_delta_ms: number; receipt_statement_delta_ms: number;
+    receipt_transaction_delta_ms: number; receipt_node_delta_ms: number; receipt_monotonic_ms: number;
+    receipt_issued_not_future: boolean; receipt_expiry_not_past: boolean; receipt_lifetime_valid: boolean;
+    issuedAt: string } | undefined;
   const observed = diagnostic ? new Proxy(client, {
     get(target, property) {
       if (property === "rpc") return async (name: string, args: Record<string, unknown>) => {
         const reply = await target.rpc(name, args);
-        if (reply.error) rpcErrors.push({ rpc: name, code: reply.error.code });
+        if (name === "snapshot_booking_conflicts" && !reply.error && reply.data?.kind === "snapshot") {
+          const receiptMonotonic = performance.now();
+          const receiptNode = Date.now();
+          try {
+            const [sample] = await adminQuery<{ receipt_clock_delta_ms: number; receipt_statement_delta_ms: number;
+              receipt_transaction_delta_ms: number; receipt_issued_not_future: boolean;
+              receipt_expiry_not_past: boolean; receipt_lifetime_valid: boolean }>(`select
+              (extract(epoch from clock_timestamp()-$1::timestamptz)*1000)::double precision as receipt_clock_delta_ms,
+              (extract(epoch from statement_timestamp()-$1::timestamptz)*1000)::double precision as receipt_statement_delta_ms,
+              (extract(epoch from transaction_timestamp()-$1::timestamptz)*1000)::double precision as receipt_transaction_delta_ms,
+              $1::timestamptz<=clock_timestamp() as receipt_issued_not_future,
+              $2::timestamptz>clock_timestamp() as receipt_expiry_not_past,
+              $2::timestamptz>$1::timestamptz and $2::timestamptz<=$1::timestamptz+interval '2 minutes' as receipt_lifetime_valid`,
+            [reply.data.issuedAt, reply.data.expiresAt]);
+            issuanceObservation = { ...sample, receipt_node_delta_ms: receiptNode - Date.parse(reply.data.issuedAt),
+              receipt_monotonic_ms: receiptMonotonic, issuedAt: reply.data.issuedAt };
+          } catch { issuanceObservation = undefined; }
+        }
+        if (reply.error) {
+          const failure = await bookingRpcDiagnostic(name, args, reply.error);
+          if (issuanceObservation && name === "finalize_booking_conflicts") {
+            const { receipt_monotonic_ms, issuedAt, ...receiptDeltas } = issuanceObservation;
+            failure.guards = { ...failure.guards, ...receiptDeltas,
+              receipt_claim_issuance_matches: (args.p_claims as { issuedAt?: string } | undefined)?.issuedAt === issuedAt,
+              receipt_to_failure_monotonic_ms: performance.now() - receipt_monotonic_ms };
+          }
+          rpcErrors.push(failure);
+        }
         return reply;
       };
       const value = Reflect.get(target, property, target);
@@ -47,7 +125,7 @@ export async function bookingCommand(operation: "create" | "update", client: Tes
     client: observed as never, input, correlationId,
   });
   // Opt-in bounded diagnostics never include facts, SQL arguments, proof or tokens.
-  if (diagnostic && !result.ok) console.error("Story14.3 command diagnostic", { operation, code: result.code, rpcErrors });
+  if (diagnostic && !result.ok) console.error("Story14.3 command diagnostic", JSON.stringify({ operation, code: result.code, rpcErrors }));
   return result;
 }
 
