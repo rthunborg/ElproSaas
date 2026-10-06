@@ -291,6 +291,9 @@ describe("Migration reset green — tenant_foundation objects present (AC1 / R-0
       "articles.UPDATE",
       "audit_events.ALL",
       "audit_events.SELECT",
+      "booking_assignees.SELECT",
+      "booking_conflicts.SELECT",
+      "bookings.SELECT",
       "calculation_rows.INSERT",
       "calculation_rows.SELECT",
       "calculation_rows.UPDATE",
@@ -469,7 +472,7 @@ describe("Migration reset green — tenant_foundation objects present (AC1 / R-0
       ]);
     }
     // Resource rows are read through RLS; audited commands are their only mutation surface.
-    for (const t of ["person_profiles", "person_work_hours", "tenant_calendar_days"]) {
+    for (const t of ["person_profiles", "person_work_hours", "tenant_calendar_days", "bookings", "booking_assignees", "booking_conflicts"]) {
       expect((cmdsByTable.get(t) ?? []).sort()).toEqual(["SELECT"]);
     }
 

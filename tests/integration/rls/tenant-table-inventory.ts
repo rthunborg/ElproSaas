@@ -156,7 +156,10 @@ export type TenantTableName =
   | "quote_follow_ups"
   | "person_profiles"
   | "person_work_hours"
-  | "tenant_calendar_days";
+  | "tenant_calendar_days"
+  | "bookings"
+  | "booking_assignees"
+  | "booking_conflicts";
 
 /**
  * The enrolled tenant-owned tables — the H4 EXPECTED enrolment set. Story 10.1 (ADR-B003 §5.3
@@ -370,6 +373,9 @@ export function updateDenialKind(table: TenantTableName): MutationDenialKind {
     case "notifications":
     case "notification_preferences":
       return "rls-invisible"; // UPDATE granted; RLS USING hides foreign rows
+    case "bookings":
+    case "booking_assignees":
+    case "booking_conflicts":
     case "person_profiles":
     case "person_work_hours":
     case "tenant_calendar_days":
@@ -883,6 +889,9 @@ export function spoofedRowFor(
     case "membership_admin_operations":
       return { column: "tenant_id", value: ctx.fixture.tenantB.id };
     default:
+      if (table === "bookings") return { id: crypto.randomUUID(), tenant_id: fixture.tenantB.id, starts_at: "2026-10-12T06:00:00Z", ends_at: "2026-10-12T14:00:00Z" };
+      if (table === "booking_assignees") return { id: crypto.randomUUID(), tenant_id: fixture.tenantB.id, booking_id: crypto.randomUUID(), person_profile_id: crypto.randomUUID() };
+      if (table === "booking_conflicts") return { id: crypto.randomUUID(), tenant_id: fixture.tenantB.id, booking_id: crypto.randomUUID(), conflict_type: "outside_work_hours", starts_at: "2026-10-12T06:00:00Z", ends_at: "2026-10-12T07:00:00Z", natural_key: crypto.randomUUID() };
       if (table === "person_profiles") return { id: crypto.randomUUID(), tenant_id: fixture.tenantB.id, membership_id: crypto.randomUUID() };
       if (table === "person_work_hours") return { id: crypto.randomUUID(), tenant_id: fixture.tenantB.id, person_profile_id: crypto.randomUUID(), entry_kind: "weekly_shift", weekday: 1, starts_at: "07:00", ends_at: "16:00" };
       if (table === "tenant_calendar_days") return { id: crypto.randomUUID(), tenant_id: fixture.tenantB.id, local_date: futureStockholmDay(), variant: "closed" };
@@ -1148,7 +1157,7 @@ export function tenantBFilter(
     case "email_unsubscribe_rate_limits":
       return { column: "tenant_id", value: ctx.fixture.tenantB.id };
     default:
-      if (table === "person_profiles" || table === "person_work_hours" || table === "tenant_calendar_days") return { column: "tenant_id", value: ctx.fixture.tenantB.id };
+      if (table === "bookings" || table === "booking_assignees" || table === "booking_conflicts" || table === "person_profiles" || table === "person_work_hours" || table === "tenant_calendar_days") return { column: "tenant_id", value: ctx.fixture.tenantB.id };
       return assertNever(table);
   }
 }
@@ -1266,7 +1275,8 @@ export function hijackMutationFor(
       // ("tenant-b-followup-seed") so the unchanged re-read is meaningful.
       return { note: "hijacked-by-tenant-a" };
     default:
-      if (table === "person_profiles" || table === "person_work_hours" || table === "tenant_calendar_days") return { updated_at: "2099-01-01T00:00:00.000Z" };
+      if (table === "booking_assignees") return { person_profile_id: crypto.randomUUID() };
+      if (table === "bookings" || table === "booking_conflicts" || table === "person_profiles" || table === "person_work_hours" || table === "tenant_calendar_days") return { updated_at: "2099-01-01T00:00:00.000Z" };
       return assertNever(table);
   }
 }
@@ -1381,7 +1391,7 @@ export function rlsInvisibleLabelColumn(table: TenantTableName): string {
     case "tenant_provisioning_invites":
       return "outcome";
     default:
-      if (table === "person_profiles" || table === "person_work_hours" || table === "tenant_calendar_days") return "id";
+      if (table === "bookings" || table === "booking_assignees" || table === "booking_conflicts" || table === "person_profiles" || table === "person_work_hours" || table === "tenant_calendar_days") return "id";
       return assertNever(table);
   }
 }
@@ -1691,6 +1701,9 @@ export function anonRowFor(
     case "email_unsubscribe_rate_limits":
       return { id: crypto.randomUUID(), tenant_id: fixture.tenantA.id, token_hash: "d".repeat(64), ip_hash: "e".repeat(64), window_started_at: "2026-09-24T00:00:00.000Z" };
     default:
+      if (table === "bookings") return { id: crypto.randomUUID(), tenant_id: fixture.tenantA.id, starts_at: "2026-10-12T06:00:00Z", ends_at: "2026-10-12T14:00:00Z" };
+      if (table === "booking_assignees") return { id: crypto.randomUUID(), tenant_id: fixture.tenantA.id, booking_id: crypto.randomUUID(), person_profile_id: crypto.randomUUID() };
+      if (table === "booking_conflicts") return { id: crypto.randomUUID(), tenant_id: fixture.tenantA.id, booking_id: crypto.randomUUID(), conflict_type: "outside_work_hours", starts_at: "2026-10-12T06:00:00Z", ends_at: "2026-10-12T07:00:00Z", natural_key: crypto.randomUUID() };
       if (table === "person_profiles") return { id: crypto.randomUUID(), tenant_id: fixture.tenantA.id, membership_id: crypto.randomUUID() };
       if (table === "person_work_hours") return { id: crypto.randomUUID(), tenant_id: fixture.tenantA.id, person_profile_id: crypto.randomUUID(), entry_kind: "weekly_shift", weekday: 1, starts_at: "07:00", ends_at: "16:00" };
       if (table === "tenant_calendar_days") return { id: crypto.randomUUID(), tenant_id: fixture.tenantA.id, local_date: futureStockholmDay(), variant: "closed" };
@@ -1760,7 +1773,7 @@ export function anonFilterFor(
     case "quote_follow_ups":
       return { column: "tenant_id", value: ctx.fixture.tenantA.id };
     default:
-      if (table === "person_profiles" || table === "person_work_hours" || table === "tenant_calendar_days") return { column: "tenant_id", value: ctx.fixture.tenantA.id };
+      if (table === "bookings" || table === "booking_assignees" || table === "booking_conflicts" || table === "person_profiles" || table === "person_work_hours" || table === "tenant_calendar_days") return { column: "tenant_id", value: ctx.fixture.tenantA.id };
       return assertNever(table);
   }
 }
@@ -1850,7 +1863,8 @@ export function anonMutationFor(
     case "tenant_provisioning_invites":
       return { outcome: "failed" };
     default:
-      if (table === "person_profiles" || table === "person_work_hours" || table === "tenant_calendar_days") return { updated_at: "2099-01-01T00:00:00.000Z" };
+      if (table === "booking_assignees") return { person_profile_id: crypto.randomUUID() };
+      if (table === "bookings" || table === "booking_conflicts" || table === "person_profiles" || table === "person_work_hours" || table === "tenant_calendar_days") return { updated_at: "2099-01-01T00:00:00.000Z" };
       return assertNever(table);
   }
 }

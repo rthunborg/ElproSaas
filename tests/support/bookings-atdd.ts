@@ -1,10 +1,4 @@
-/**
- * Story 14.2 ATDD adapters. No booking behavior is implemented here.
- * All callers remain test.skip until the implementation author binds these seams.
- * Provisional bindings: createBooking/updateBooking exports, snake_case input,
- * create_result/update_outcomes storage, and checked RPC p_input named argument.
- * Align with actual implementation without replacing real runCommand/RPC execution.
- */
+/** Story 14.2 real envelope/checked-RPC adapters and privileged durable fixtures. */
 import type { Command } from "@/server/commands/envelope";
 import { runCommand } from "@/server/commands/envelope";
 import { adminQuery } from "../factories/admin-sql";
@@ -18,39 +12,38 @@ export const bookingTables = ["bookings", "booking_assignees", "booking_conflict
 export const bookingPublicColumns = "id,tenant_id,starts_at,ends_at,all_day,work_role_id,job_id,customer_id,facility_id,contact_id,description,status,series_id,occurrence_index,is_exception,created_at,updated_at";
 export const bookingPrivateColumns = ["create_command_id", "create_payload_digest", "create_result", "update_outcomes"] as const;
 export type BookingInput = {
-  command_id: string; booking_id?: string; starts_at: string; ends_at: string;
-  all_day: boolean; description: string; status: "planned" | "cancelled";
-  assignee_ids: string[]; work_role_id: string | null; job_id: string | null;
-  customer_id: string | null; facility_id: string | null; contact_id: string | null;
+  commandId: string; bookingId?: string; startsAt: string; endsAt: string;
+  allDay: boolean; description: string; status: "planned" | "cancelled";
+  assigneeIds: string[]; workRoleId: string | null; jobId: string | null;
+  customerId: string | null; facilityId: string | null; contactId: string | null;
 };
 export function bookingInput(assignees: string[], patch: Partial<BookingInput> = {}): BookingInput {
-  return { command_id: crypto.randomUUID(), starts_at: "2026-10-12T06:00:00.000Z",
-    ends_at: "2026-10-12T14:00:00.000Z", all_day: false,
-    description: "Install lighting at workshop", status: "planned", assignee_ids: assignees,
-    work_role_id: null, job_id: null, customer_id: null, facility_id: null, contact_id: null, ...patch };
+  return { commandId: crypto.randomUUID(), startsAt: "2026-10-12T06:00:00.000Z",
+    endsAt: "2026-10-12T14:00:00.000Z", allDay: false,
+    description: "Install lighting at workshop", status: "planned", assigneeIds: assignees,
+    workRoleId: null, jobId: null, customerId: null, facilityId: null, contactId: null, ...patch };
 }
 
-/** Dynamic import avoids a static unresolved import before production commands exist. */
+/** Imports and executes the actual production command. */
 export async function bookingCommand(operation: "create" | "update", client: TestServerClient,
   input: BookingInput, correlationId = crypto.randomUUID()) {
-  const modulePath = operation === "create"
-    ? "@/server/commands/bookings/create-booking" : "@/server/commands/bookings/update-booking";
-  const module = await import(/* @vite-ignore */ modulePath) as Record<string, Command<unknown, { targetId: string }>>;
-  return runCommand(module[operation === "create" ? "createBooking" : "updateBooking"], {
+  const command = operation === "create"
+    ? (await import("@/server/commands/bookings/create-booking")).createBooking
+    : (await import("@/server/commands/bookings/update-booking")).updateBooking;
+  return runCommand(command as Command<unknown, { bookingId: string }>, {
     client: client as never, input, correlationId,
   });
 }
 
-/** Provider endpoint: NEW internal checked create_booking/update_booking RPCs.
- * Names are approved; final SQL argument lists are an implementation binding need.
- * Do not add HTTP routes, use private primitives, or substitute a detector here.
- */
+/** Calls the checked authenticated RPC with operation metadata outside the canonical payload. */
 export function checkedBookingRpc(operation: "create" | "update", client: TestServerClient,
   input: BookingInput, tenantId: string, actorId: string | null,
   correlationId = crypto.randomUUID()) {
+  const { commandId, bookingId, ...payload } = input;
   return client.rpc(operation === "create" ? "create_booking" : "update_booking", {
-    p_tenant_id: tenantId, p_actor_user_id: actorId, p_correlation_id: correlationId,
-    p_input: input,
+    p_tenant_id: tenantId, p_actor_id: actorId, p_correlation_id: correlationId,
+    p_command_id: commandId, p_payload: payload,
+    ...(operation === "update" ? { p_booking_id: bookingId } : {}),
   });
 }
 
@@ -115,13 +108,11 @@ export async function seedBookingParents(tenantId: string) {
   return { customerId, otherCustomerId, facilityId, contactId, wrongFacilityId, wrongContactId, workRoleId: role.id, createJob };
 }
 
-/** Only fixture conflict-workflow rows: these are NOT server-derived detection output.
- * Provisional conflict window/actor names require binding to the author migration.
- */
+/** Fixture workflow rows for read/constraint tests; no derived detector output. */
 export async function seedReadFixtures(fx: BookingFixture) {
   const seed = async (tenantId: string, profiles: string[]) => {
     const id = crypto.randomUUID();
-    await adminQuery("insert into public.bookings(id,tenant_id,starts_at,ends_at,description) values($1,$2,'2026-10-12T06:00:00Z','2026-10-12T14:00:00Z','Read fixture')", [id, tenantId]);
+    await adminQuery("insert into public.bookings(id,tenant_id,starts_at,ends_at,description,create_command_id,create_payload_digest,create_result) values($1,$2,'2026-10-12T06:00:00Z','2026-10-12T14:00:00Z','Read fixture',$3,repeat('a',64),jsonb_build_object('bookingId',$1::uuid::text))", [id, tenantId, crypto.randomUUID()]);
     for (const profileId of profiles) await adminQuery(
       "insert into public.booking_assignees(tenant_id,booking_id,person_profile_id) values($1,$2,$3)", [tenantId, id, profileId]);
     return id;
@@ -133,7 +124,7 @@ export async function seedReadFixtures(fx: BookingFixture) {
   const conflict = async (tenantId: string, bookingId: string, profileId: string) => {
     const id = crypto.randomUUID();
     await adminQuery(`insert into public.booking_conflicts
-      (id,tenant_id,booking_id,person_profile_id,type,starts_at,ends_at,natural_key,status)
+      (id,tenant_id,booking_id,affected_person_profile_id,conflict_type,starts_at,ends_at,natural_key,status)
       values($1,$2,$3,$4,'outside_work_hours','2026-10-12T06:00:00Z','2026-10-12T07:00:00Z',$5,'open')`,
     [id, tenantId, bookingId, profileId, `atdd-fixture:${id}`]);
     return id;
@@ -146,13 +137,10 @@ export async function seedReadFixtures(fx: BookingFixture) {
     foreignConflict: await conflict(fx.base.tenantB.id, foreign, fx.foreignProfile.id) };
 }
 
-/** Implementation-local test seed seam, never a callable production fault switch.
- * Author must add correlation-scoped private control rows and seed-only trigger
- * faults after real booking/assignee preparation. No grants to anon/authenticated.
- * Audit stage reuses the established seed-installed forced_audit_failures trigger.
- */
+/** Owner-only correlation-scoped trigger faults test atomic preparation and audit rollback. */
 export async function withBookingFault<T>(correlationId: string,
   stage: "after_booking" | "after_assignees" | "audit", run: () => Promise<T>): Promise<T> {
+  await installBookingFaults();
   if (stage === "audit") {
     await adminQuery("insert into test_support.forced_audit_failures(correlation_id) values($1)", [correlationId]);
     try { return await run(); }
@@ -161,4 +149,35 @@ export async function withBookingFault<T>(correlationId: string,
   await adminQuery("insert into test_support.forced_booking_failures(correlation_id,stage) values($1,$2)", [correlationId, stage]);
   try { return await run(); }
   finally { await adminQuery("delete from test_support.forced_booking_failures where correlation_id=$1", [correlationId]); }
+}
+
+export async function seedBookingReadRows(tenantId: string, profileId: string) {
+  const bookingId = crypto.randomUUID();
+  await adminQuery("insert into public.bookings(id,tenant_id,starts_at,ends_at,description,create_command_id,create_payload_digest,create_result) values($1,$2,'2026-10-12T06:00:00Z','2026-10-12T14:00:00Z','Read fixture',$3,repeat('a',64),jsonb_build_object('bookingId',$1::uuid::text))", [bookingId, tenantId, crypto.randomUUID()]);
+  const [assignee] = await adminQuery<{id:string}>("insert into public.booking_assignees(tenant_id,booking_id,person_profile_id) values($1,$2,$3) returning id", [tenantId, bookingId, profileId]);
+  const [conflict] = await adminQuery<{id:string}>("insert into public.booking_conflicts(tenant_id,booking_id,affected_person_profile_id,conflict_type,starts_at,ends_at,natural_key) values($1,$2,$3,'outside_work_hours','2026-10-12T06:00:00Z','2026-10-12T07:00:00Z',$4) returning id", [tenantId, bookingId, profileId, crypto.randomUUID()]);
+  return { bookings: bookingId, booking_assignees: assignee.id, booking_conflicts: conflict.id };
+}
+
+let faultInstallation: Promise<void> | undefined;
+function installBookingFaults(): Promise<void> {
+  return faultInstallation ??= (async () => {
+    await adminQuery(`create schema if not exists test_support;
+      create table if not exists test_support.forced_booking_failures(correlation_id uuid primary key,stage text not null);
+      revoke all on test_support.forced_booking_failures from public,anon,authenticated;
+      create or replace function test_support.fail_booking_write() returns trigger language plpgsql set search_path='' as $$
+      begin
+        if exists(select 1 from test_support.forced_booking_failures f
+          where f.correlation_id=nullif(current_setting('app.booking_correlation_id',true),'')::uuid and f.stage=TG_ARGV[0])
+        then raise exception 'forced booking write failure' using errcode='XX000'; end if;
+        return null;
+      end $$;
+      revoke all on function test_support.fail_booking_write() from public,anon,authenticated;
+      drop trigger if exists test_forced_booking_failure on public.bookings;
+      create trigger test_forced_booking_failure after insert or update on public.bookings
+        for each statement execute function test_support.fail_booking_write('after_booking');
+      drop trigger if exists test_forced_assignee_failure on public.booking_assignees;
+      create trigger test_forced_assignee_failure after insert on public.booking_assignees
+        for each statement execute function test_support.fail_booking_write('after_assignees');`);
+  })();
 }

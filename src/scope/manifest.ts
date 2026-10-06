@@ -253,7 +253,7 @@ export const SCOPE_MANIFEST: ScopeManifest = {
       epic: "E14",
       activatedAt: "2026-09-29",
       navItems: [],
-      tenantTables: ["person_profiles", "person_work_hours", "tenant_calendar_days"],
+      tenantTables: ["person_profiles", "person_work_hours", "tenant_calendar_days", "bookings", "booking_assignees", "booking_conflicts"],
       widgets: [],
       notificationCategories: [],
       publicSurfaces: [],

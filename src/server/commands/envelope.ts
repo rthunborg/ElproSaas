@@ -102,6 +102,8 @@ export const COMMAND_CAPABILITIES: Readonly<Record<string, CommandCapability>> =
   "resource.work_hours.save": { module: "resources", capability: "Resources.Maintain" },
   "resource.calendar_day.save": { module: "resources", capability: "Resources.Maintain" },
   "resource.profile_form.save": { module: "resources", capability: "Resources.Maintain" },
+  createBooking: { module: "resources", capability: "Bookings.Manage" },
+  updateBooking: { module: "resources", capability: "Bookings.Manage" },
 };
 
 /**

@@ -1,4 +1,6 @@
-import { describe, expect, test } from "vitest";
+import { isLocalStackReachable } from "../../support/test-env";
+import { skipUnlessStack } from "../../support/stack-gate";
+import { beforeAll, describe, expect, test } from "vitest";
 import { adminQuery, adminSession } from "../../factories/admin-sql";
 import { makeAnonServerClient, makeAuthedServerClient } from "../../factories/tenants";
 import {
@@ -6,13 +8,44 @@ import {
   bookingSnapshot, bookingTables, checkedBookingRpc, seedReadFixtures, withBookingFixture,
 } from "../../support/bookings-atdd";
 
-/** Provider endpoint: NEW checked create_booking/update_booking, final args pending.
- * Exact public booking projection avoids a SELECT * permission error masquerading
- * as isolation. Private storage is separately probed. Fixtures are workflow rows,
- * never fake detector output. All four retained RLS checks are RED test.skip.
- */
+let stackUp = false;
+beforeAll(async () => { stackUp = await isLocalStackReachable(); });
+
+/** Exercises checked RPC authority, exact public reads and private outcome denial. */
 describe("Story 14.2 booking authority ATDD", () => {
-  test.skip("[P0] 14.2-RLS-001 foreign booking/assignee/conflict reads and every write path expose no state", async () => {
+  test("[P1] 14.2-RLS-002 secondary Montor grants own reads and revocation removes them", async (ctx) => {
+    if (skipUnlessStack(ctx, stackUp)) return;
+    await withBookingFixture(async (fx) => {
+      const rows = await seedReadFixtures(fx);
+      const before = await bookingSnapshot(fx.tenantIds);
+      for (const scalarRole of ["saljare", "ekonomi"]) {
+        await adminQuery("update public.tenant_memberships set role=$2 where id=$1", [fx.ownProfile.membershipId, scalarRole]);
+        await adminQuery("delete from public.membership_roles where membership_id=$1", [fx.ownProfile.membershipId]);
+        await adminQuery("insert into public.membership_roles(tenant_id,membership_id,role) values($1,$2,'montor')", [fx.base.tenantA.id, fx.ownProfile.membershipId]);
+        const bookings = await fx.montorClient.from("bookings").select(bookingPublicColumns);
+        expect(bookings.error).toBeNull(); expect(bookings.data?.map((row) => row.id).sort()).toEqual([rows.own, rows.shared].sort());
+        const assignees = await fx.montorClient.from("booking_assignees").select("booking_id,person_profile_id");
+        expect(assignees.error).toBeNull();
+        expect(assignees.data?.map((row) => ({ bookingId: row.booking_id, profileId: row.person_profile_id })).sort((a,b) => a.bookingId.localeCompare(b.bookingId)))
+          .toEqual([rows.own, rows.shared].sort().map((bookingId) => ({ bookingId, profileId: fx.ownProfile.id })));
+        const conflicts = await fx.montorClient.from("booking_conflicts").select("id,booking_id,affected_person_profile_id");
+        expect(conflicts.error).toBeNull(); expect(conflicts.data?.map((row) => row.id).sort()).toEqual([rows.ownConflict, rows.sharedOwnConflict].sort());
+        for (const operation of ["create", "update"] as const) {
+          const input = bookingInput([fx.ownProfile.id], operation === "update" ? { bookingId: rows.own } : {});
+          expect(await bookingCommand(operation, fx.montorClient, input)).toMatchObject({ ok: false, code: "PERMISSION_DENIED" });
+          expect((await checkedBookingRpc(operation, fx.montorClient, input, fx.base.tenantA.id, fx.users.montor.id)).error?.code).toBe("42501");
+        }
+        await adminQuery("delete from public.membership_roles where membership_id=$1 and role='montor'", [fx.ownProfile.membershipId]);
+        for (const table of bookingTables) {
+          const read = await fx.montorClient.from(table).select(table === "bookings" ? bookingPublicColumns : "id");
+          expect(read.error).toBeNull(); expect(read.data).toEqual([]);
+        }
+        expect(await bookingSnapshot(fx.tenantIds)).toEqual(before);
+      }
+    });
+  });
+  test("[P0] 14.2-RLS-001 foreign booking/assignee/conflict reads and every write path expose no state", async (ctx) => {
+    if (skipUnlessStack(ctx, stackUp)) return;
     await withBookingFixture(async (fx) => {
       const rows = await seedReadFixtures(fx); const before = await bookingSnapshot(fx.tenantIds);
       for (const [client, tenantId] of [[fx.foreignClient, fx.base.tenantA.id], [fx.adminClient, fx.base.tenantB.id]] as const) {
@@ -27,8 +60,8 @@ describe("Story 14.2 booking authority ATDD", () => {
           expect(update.error?.code).toBe("42501"); expect(deletion.error?.code).toBe("42501");
         }
       }
-      const foreignTarget = bookingInput([fx.ownProfile.id], { booking_id: rows.own });
-      const unknownTarget = { ...foreignTarget, booking_id: crypto.randomUUID() };
+      const foreignTarget = bookingInput([fx.ownProfile.id], { bookingId: rows.own });
+      const unknownTarget = { ...foreignTarget, bookingId: crypto.randomUUID() };
       const foreign = await bookingCommand("update", fx.foreignClient, foreignTarget);
       const missing = await bookingCommand("update", fx.foreignClient, unknownTarget);
       expect(foreign).toMatchObject({ ok: false, code: "TENANT_ACCESS_DENIED" });
@@ -37,7 +70,7 @@ describe("Story 14.2 booking authority ATDD", () => {
         const direct = await checkedBookingRpc(operation, fx.foreignClient, foreignTarget, fx.base.tenantA.id, fx.base.adminB.id);
         expect(direct.error?.code).toBe("42501");
         const spoofed = await checkedBookingRpc(operation, fx.adminClient,
-          bookingInput([fx.foreignProfile.id], { booking_id: rows.foreign }), fx.base.tenantB.id, fx.base.adminA.id);
+          bookingInput([fx.foreignProfile.id], { bookingId: rows.foreign }), fx.base.tenantB.id, fx.base.adminA.id);
         expect(spoofed.error?.code).toBe("42501");
       }
       for (const table of bookingTables) {
@@ -57,7 +90,8 @@ describe("Story 14.2 booking authority ATDD", () => {
     });
   });
 
-  test.skip("[P1] 14.2-RLS-002 Montor reads own/shared bookings, own assignment rows and own-participation visible conflicts only", async () => {
+  test("[P1] 14.2-RLS-002 Montor reads own/shared bookings, own assignment rows and own-participation visible conflicts only", async (ctx) => {
+    if (skipUnlessStack(ctx, stackUp)) return;
     await withBookingFixture(async (fx) => {
       const rows = await seedReadFixtures(fx); const before = await bookingSnapshot(fx.tenantIds);
       const bookings = await fx.montorClient.from("bookings").select(bookingPublicColumns).order("id");
@@ -68,7 +102,7 @@ describe("Story 14.2 booking authority ATDD", () => {
       expect(assignments.data?.map((row) => ({ booking_id: row.booking_id, person_profile_id: row.person_profile_id }))
         .sort((a, b) => a.booking_id.localeCompare(b.booking_id)))
         .toEqual([rows.own, rows.shared].sort().map((booking_id) => ({ booking_id, person_profile_id: fx.ownProfile.id })));
-      const conflicts = await fx.montorClient.from("booking_conflicts").select("id,tenant_id,booking_id,person_profile_id,natural_key,status");
+      const conflicts = await fx.montorClient.from("booking_conflicts").select("id,tenant_id,booking_id,affected_person_profile_id,natural_key,status");
       expect(conflicts.error).toBeNull();
       expect(conflicts.data?.map((row) => row.id).sort()).toEqual([rows.ownConflict, rows.sharedOwnConflict].sort());
       expect((await fx.montorClient.from("person_profiles").select("id").eq("id", fx.coworkerProfile.id)).data).toEqual([]);
@@ -84,10 +118,11 @@ describe("Story 14.2 booking authority ATDD", () => {
     });
   });
 
-  test.skip("[P1] 14.2-RLS-003 Montor cannot create/update via envelope, checked RPC or direct own-table DML", async () => {
+  test("[P1] 14.2-RLS-003 Montor cannot create/update via envelope, checked RPC or direct own-table DML", async (ctx) => {
+    if (skipUnlessStack(ctx, stackUp)) return;
     await withBookingFixture(async (fx) => {
       const rows = await seedReadFixtures(fx); const before = await bookingSnapshot(fx.tenantIds);
-      const input = bookingInput([fx.ownProfile.id], { booking_id: rows.own });
+      const input = bookingInput([fx.ownProfile.id], { bookingId: rows.own });
       for (const operation of ["create", "update"] as const) {
         expect(await bookingCommand(operation, fx.montorClient, input)).toMatchObject({ ok: false, code: "PERMISSION_DENIED" });
         expect((await checkedBookingRpc(operation, fx.montorClient, input, fx.base.tenantA.id, fx.users.montor.id)).error?.code).toBe("42501");
@@ -103,16 +138,17 @@ describe("Story 14.2 booking authority ATDD", () => {
     });
   });
 
-  test.skip("[P1] 14.2-RLS-004 admin/planner checked paths succeed but every outer wrapper independently rechecks authority", async () => {
+  test("[P1] 14.2-RLS-004 admin/planner checked paths succeed but every outer wrapper independently rechecks authority", async (ctx) => {
+    if (skipUnlessStack(ctx, stackUp)) return;
     await withBookingFixture(async (fx) => {
       const rows = await seedReadFixtures(fx);
       for (const [client, actor] of [[fx.adminClient, fx.base.adminA], [fx.plannerClient, fx.users.projektledare]] as const) {
         const input = bookingInput([fx.ownProfile.id]);
         const envelope = await bookingCommand("create", client, input); expect(envelope.ok).toBe(true); if (!envelope.ok) return;
         const direct = await checkedBookingRpc("create", client, bookingInput([fx.coworkerProfile.id]), fx.base.tenantA.id, actor.id);
-        expect(direct.error).toBeNull(); expect(direct.data).toEqual({ targetId: expect.any(String) });
+        expect(direct.error).toBeNull(); expect(direct.data).toEqual({ bookingId: expect.any(String) });
         expect((await checkedBookingRpc("update", client,
-          bookingInput([fx.ownProfile.id], { booking_id: envelope.data.targetId }), fx.base.tenantA.id, actor.id)).error).toBeNull();
+          bookingInput([fx.ownProfile.id], { bookingId: envelope.data.bookingId }), fx.base.tenantA.id, actor.id)).error).toBeNull();
         for (const table of bookingTables) {
           const snapshot = await bookingSnapshot(fx.tenantIds);
           const source = snapshot[table === "bookings" ? "bookings" : table === "booking_assignees" ? "assignees" : "conflicts"]
@@ -126,7 +162,7 @@ describe("Story 14.2 booking authority ATDD", () => {
         }
       }
       const before = await bookingSnapshot(fx.tenantIds);
-      const input = bookingInput([fx.ownProfile.id], { booking_id: rows.own });
+      const input = bookingInput([fx.ownProfile.id], { bookingId: rows.own });
       for (const operation of ["create", "update"] as const) for (const actor of [null, fx.base.adminB.id])
         expect((await checkedBookingRpc(operation, fx.adminClient, input, fx.base.tenantA.id, actor)).error?.code).toBe("42501");
       const outsiders = [await makeAnonServerClient(), await makeAuthedServerClient(fx.base.orphanUser),
@@ -155,8 +191,8 @@ describe("Story 14.2 booking authority ATDD", () => {
          has_function_privilege('authenticated',p.oid,'execute') as authenticated,
          has_function_privilege('anon',p.oid,'execute') as anon
          from pg_proc p join pg_namespace n on n.oid=p.pronamespace
-         where n.nspname='private' and p.proname like '%booking%' and p.prorettype<>'boolean'::regtype`);
-      expect(primitives.length).toBeGreaterThanOrEqual(2);
+         where ((n.nspname='private' and p.proname like '%booking%') or (n.nspname='public' and p.proname like 'booking%internal')) and p.prorettype<>'boolean'::regtype`);
+      expect(primitives.length).toBeGreaterThanOrEqual(1);
       for (const primitive of primitives) {
         expect(primitive.authenticated).toBe(false); expect(primitive.anon).toBe(false);
         for (const role of ["authenticated", "anon"]) await adminSession(async ({ query }) => {

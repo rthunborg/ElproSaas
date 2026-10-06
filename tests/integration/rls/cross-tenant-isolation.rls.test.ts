@@ -22,6 +22,7 @@
  *
  * Runs against the LOCAL Supabase stack only; skips when unreachable.
  */
+import { bookingPublicColumns, seedBookingReadRows } from "../../support/bookings-atdd";
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import {
   createTwoTenantFixture,
@@ -441,6 +442,7 @@ beforeAll(async () => {
     "insert into public.tenant_calendar_days (tenant_id, local_date, variant, reduction_percent) values ($1, '2098-12-24', 'reduced_capacity', 50)",
     [fixture.tenantB.id],
   );
+  await seedBookingReadRows(fixture.tenantB.id, profileId);
   ctx = {
     fixture,
     tenantBAuditId,
@@ -516,7 +518,7 @@ describe("Cross-tenant RLS isolation — data-driven over the shared inventory (
       it(`[P0] SELECT: Tenant A admin reads ZERO ${table} rows belonging to Tenant B (no error leak)`, async (testCtx) => {
         if (skipUnlessStack(testCtx, stackUp)) return;
         const { column, value } = tenantBFilter(table, ctx);
-        const { data, error } = await a.from(table).select("*").eq(column, value);
+        const { data, error } = await a.from(table).select(table === "bookings" ? bookingPublicColumns : "*").eq(column, value);
         if (directReadRevokedTables.has(table)) {
           expect(error?.code).toBe("42501");
           expect(data).toBeNull();

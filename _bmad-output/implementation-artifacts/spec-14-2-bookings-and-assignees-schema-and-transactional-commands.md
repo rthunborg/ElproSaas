@@ -2,9 +2,10 @@
 title: 'Story 14.2: Bookings and Assignees — Schema and Transactional Commands'
 type: 'feature'
 created: '2026-10-06'
-status: 'ready-for-dev'
-review_loop_iteration: 0
-followup_review_recommended: false
+status: 'done'
+baseline_revision: '4947dbb44089c0462619c63443f3107712dc4cc7'
+review_loop_iteration: 1
+followup_review_recommended: true
 context:
   - 'docs/decisions/epic-14-story-ownership-contract-c-2026-10-06.md'
   - '_bmad-output/project-context.md'
@@ -128,7 +129,7 @@ Planning used rendered installed Build Auto Step 2 and read-only source inspecti
 - `pnpm run typecheck`, `pnpm run lint`, `pnpm run test:unit` — expected: strict schema/capability/inventory types and pure validation/manifest/canonicalization evidence pass.
 - With a verified authorized local stack and `$env:SUPABASE_TEST_REQUIRED='1'`, `pnpm exec vitest run tests/integration/commands/bookings.int.test.ts tests/integration/rls/bookings.rls.test.ts tests/integration/rls/role-harness.atdd.int.test.ts tests/integration/rls/migration-reset.int.test.ts tests/integration/rls/rls-inventory-gate.int.test.ts tests/integration/rls/cross-tenant-isolation.rls.test.ts tests/integration/rls/anon-path-isolation.rls.test.ts` — expected: all 18 named obligations, exact durable snapshots, direct RPC/DML negatives, grants/private-column protection and inventory execute without acceptance skips. Use pnpm exec vitest for targeting; do not rely on the previously ineffective pnpm script filter.
 - Under the same required local-stack setting, `pnpm run test:int` — expected: full required integration/RLS plus cumulative resource command/RLS regression executes; report executed/failed/skipped counts and explain every skip. Explicitly skipped acceptance is missing evidence.
-- Follow `.github/workflows/ci.yml` and `docs/process/local-setup.md` for empty-schema migration application, lockfile/source containment, build then built-bundle containment, and remaining required gates. Guard-managed infrastructure and tests stay local. Record SQL-only reset versus complete stack rebuild truthfully; do not launch infrastructure in this planning run.
+- Run local lockfile/source containment, build then built-bundle containment, and the required local integration commands above. Per `docs/quality/ci.md` and `.github/workflows/ci.yml`, stage 6 empty DB → all migrations → seed and stage 8 required integration form the separate CI `db` job; that exact chain remains MANDATORY for Epic finalization and before merge. A new local empty-schema replay is not required for each story. Record actual local incremental SQL application separately; do not claim empty-schema or complete stack-rebuild evidence from schema inspection, or launch/reset infrastructure without its applicable authorization.
 
 **Readiness checks:** every task has an implementation path and action; dependency order is explicit; ACs observe the checked command and durable/read surfaces in Given/When/Then form; all retained/transferred obligations are mapped; no unresolved business intent, TODO or stub remains. Compare the intent contract byte-for-byte with the committed draft and verify only this spec changed.
 
@@ -140,7 +141,79 @@ Planning used rendered installed Build Auto Step 2 and read-only source inspecti
 
 ## Auto Run Result
 
-### Canonical planning halt — 2026-10-06
+Status: done
+
+Blocking condition: none
+
+Review loop iterations: 1
+
+Follow-up review recommended: true
+
+Canonical HALT: done. The approved internal booking foundation is implemented and every required local gate is native zero. All 18 retained Story 14.2 acceptance obligations and three added regressions execute; resources owns the new tables and scheduling remains pending. No detector or booking browser surface is claimed.
+
+Files changed:
+
+| File | Change |
+| --- | --- |
+| `_bmad-output/implementation-artifacts/spec-14-2-bookings-and-assignees-schema-and-transactional-commands.md` | Records completed scope, gate history, decisions and the author review trail. |
+| `_bmad-output/test-artifacts/story14-2-build-routing.md` | Records model/effort choices before implementation and independent review. |
+| `_bmad-output/test-artifacts/story14-2-empty-chain-proposal.md` | Preserves the unexecuted contingency without claiming empty replay. |
+| `_bmad-output/test-artifacts/story14-2-full-integration-results.json` | Captures the final native-zero normal-parallel integration result. |
+| `_bmad-output/test-artifacts/story14-2-independent-review-evidence.md` | Records independent findings, triage, narrow reviews and final local gates. |
+| `pnpm-workspace.yaml` | Pins scoped compatible dependency replacements and the exact Next plugin patch. |
+| `pnpm-lock.yaml` | Locks the reviewed dependency resolutions and patch hash. |
+| `patches/@next__eslint-plugin-next@16.3.6.patch` | Preserves direct directory-root glob semantics for the affected plugin. |
+| `src/features/resources/booking-types.ts` | Defines internal booking contracts and the safe public projection. |
+| `src/scope/manifest.ts` | Enrolls booking tables in resources while scheduling stays pending. |
+| `src/server/authz/permission-matrix.ts` | Defines booking view/manage capabilities and closed role grants. |
+| `src/server/commands/envelope.ts` | Enrolls actual create/update booking commands in the capability map. |
+| `src/server/commands/bookings/booking-db.ts` | Maps checked SQL results and safe deterministic booking failures. |
+| `src/server/commands/bookings/create-booking.ts` | Executes audited transactional create through the command envelope. |
+| `src/server/commands/bookings/update-booking.ts` | Executes ownership-checked transactional update through the envelope. |
+| `src/server/commands/bookings/validation.ts` | Normalizes payload identity while retaining six-digit instant precision. |
+| `supabase/migrations/20261006101609_bookings_and_assignees.sql` | Contains recovered applied schema, authority, replay and atomic write statements. |
+| `supabase/migrations/20261006104143_booking_invariant_corrections.sql` | Records forward role-ownership, strict instant and series-coherence corrections. |
+| `tests/factories/tenants/core.ts` | Installs safe shared final-send diagnostics on authenticated fixture clients. |
+| `tests/integration/commands/bookings.int.test.ts` | Executes retained write/replay/rollback/DST and concurrent-update acceptance. |
+| `tests/integration/commands/quote-pdf-validity.int.test.ts` | Retains exact send-precondition failures with safe stage diagnostics. |
+| `tests/integration/commands/update-job.int.test.ts` | Retains safe RPC witnesses when its real final-send fixture fails. |
+| `tests/integration/rls/bookings.rls.test.ts` | Executes booking reads, direct-write/private ACL and secondary-role revocation. |
+| `tests/integration/rls/cross-tenant-isolation.rls.test.ts` | Includes safe booking projections in the parameterized isolation proof. |
+| `tests/integration/rls/migration-reset.int.test.ts` | Checks booking FORCE RLS and exact live policies in current schema. |
+| `tests/integration/rls/role-harness.atdd.int.test.ts` | Retains every generated command check in separate bounded role cases. |
+| `tests/integration/rls/tenant-table-inventory.ts` | Enrolls all three tables and their safe fixture/read projections. |
+| `tests/support/authz/role-harness.ts` | Adds booking facts for generated role-boundary probes. |
+| `tests/support/bookings-atdd.ts` | Provides exact booking snapshots, fault fixtures and actor facts. |
+| `tests/support/quote-send-diagnostics.ts` | Observes send failures without changing builders, authority or results. |
+| `tests/unit/admin-users/read-pagination.test.ts` | Aligns bounded role-batch fixtures with the approved 50-ID limit. |
+| `tests/unit/dependencies/next-lint-root-globs.test.ts` | Tests the installed patched glob helper and actual Next anchor rule. |
+| `tests/unit/quote-send-diagnostics.test.ts` | Tests lazy/fluent identity, untouched unrelated RPCs and redaction. |
+| `tests/unit/scope/manifest-derivations.test.ts` | Updates manifest-derived table expectations. |
+| `tests/unit/scope/manifest-shape.test.ts` | Updates the exact resource table inventory contract. |
+| `tests/unit/scope/resources-activation.atdd.test.ts` | Retains active resources and pending empty scheduling surfaces. |
+| `tests/unit/server/authz/permission-matrix.test.ts` | Tests exact booking capability grants. |
+| `tests/unit/server/authz/role-harness.test.ts` | Tests generated booking command capability enrollment. |
+| `tests/unit/server/commands/bookings-validation.test.ts` | Tests canonical timestamps, assignment identity and invalid inputs. |
+| `tests/unit/support/test-env.test.ts` | Derives expected origin independently while preserving exact diagnostics. |
+
+Final required evidence in this reviewed working tree:
+
+- Full normal-parallel integration: native 0; 127 files, 1,294 cases, 1,293 passed, zero failed, one explicitly skipped separate isolated recovery-Storage-loader proof. Required mode uses explicit local API/database overrides 55421/55422. The inspected JSON is `../test-artifacts/story14-2-full-integration-results.json`.
+- Full unit: native 0; 98 suites, 1,963 cases, 1,962 passed, zero failed, one Linux-xattr skip on Windows, zero todo. The diagnostic-origin fixtures independently derive expectation from controlled environment input and retain all exact status/timeout/privacy assertions.
+- Typecheck and full lint: native 0; lint has zero errors and 13 existing warnings. Production build, frozen install, lockfile/source containment and post-build bundle containment pass. Unchanged-threshold dependency audit: native 0, zero high/critical and two moderate advisories; no waiver or threshold change.
+- Independent review: all six initial layers executed before triage. Round 1 applied four patches, deferred zero items and rejected one candidate; intent_gap=0 and bad_spec=0. Patched counts: high=0, medium=3, low=1; score `3 × 3 + 1 × 1 = 10` retains follow-up recommendation true. Later independent reviews were narrow fix/dependency/security/diagnostic/trail checks. Evidence: `../test-artifacts/story14-2-independent-review-evidence.md`.
+- Exactly one author-written Suggested Review Order has 23 verified stops and zero checker errors. Frozen intent is unchanged against baseline `4947dbb44089c0462619c63443f3107712dc4cc7`.
+
+Applied migrations: `20261006101609` and forward `20261006104143`. The original source was recovered from 32 retained ledger statements with normalized separators/line endings: statement-equivalent recovery, not byte-identical original layout. The forward migration durably records six corrections. No ledger edit, reset or new database occurred.
+
+Remaining boundaries: the exact empty DB → all migrations → seed → required integration GitHub CI database chain remains MANDATORY for Epic finalization/before merge and is not claimed as executed locally. All earlier varying final-send failures and the `time_current=false` post-failure witness remain recorded; mechanism and direction are unconfirmed, and the green cumulative result does not prove a clock fix. No production guard, TTL or machine clock changed. The four transferred Story 14.3 detector checks remain mandatory before 14.4 and the Epic PR; performance/volume remains unmeasured.
+
+Local checkpoint: the parent authorized local author commits for only the reviewed Story 14.2, prerequisite, dependency and evidence files after its evidence-ready handoff. The prerequisite fixture repair is committed separately; remaining reviewed content is committed with this terminal author spec. No push, PR, hosted operation or root orchestration-state edit is authorized. The completion hook reconciles this same trail after committing and reports the actual revision/status through the parent contract.
+
+## Historical Auto Run Results
+
+
+### Historical canonical planning halt — 2026-10-06
 
 Status: ready-for-dev
 
@@ -152,7 +225,6 @@ Planning evidence: installed renderer completed successfully; two synchronous So
 
 On Complete: docs/process/review-order.md Completion-hook protocol preserves this planning result; completed implementation trail reconciliation is inapplicable. No Suggested Review Order was manufactured. Continue through the root-owned ATDD/build/review gates when dispatched.
 
-## Historical Auto Run Results
 
 ### Historical planning halt — 2026-10-02
 
@@ -173,3 +245,119 @@ Status: draft (re-planning input)
 Resolved blocking condition: the owner explicitly selected contract C in `docs/decisions/epic-14-story-ownership-contract-c-2026-10-06.md`; the authoritative Epic sketches, test design, and cached context now record the revised acceptance ownership. The historical unanswered decision above is superseded by that approval.
 
 The installed `bmad-build-auto` Step 1 routes an explicitly supplied `draft` spec to Step 2 planning and rejects a `blocked` spec. Reuse this same file; do not treat this recovery as ready-for-dev or as implementation evidence. The root must first commit the preparation and satisfy its clean-tree gate, then resume normal re-planning and remaining quality gates. No build workflow, product code, tests, migrations, local resources, or hosted actions were executed in this preparation.
+
+## Implementation Author Evidence — 2026-10-06
+
+Implemented the internal booking foundation in the final uncommitted working tree based on `4947dbb44089c0462619c63443f3107712dc4cc7`. The implementation author was dispatched as gpt-6.1-sol / High for authorization, tenant isolation and transactional integrity. Before nested test-author dispatch, gpt-6.1-sol / High was selected for actual RLS, authority and transactional rollback assertions. No managed-resource launch, hosted operation, Git commit, push or PR was performed by this implementation author; the nested test author performed no resource launch.
+
+The new migration was created with `supabase migration new bookings_and_assignees` after reading CLI help. The additive SQL was applied only to the parent-verified local database at loopback port 55422 with `supabase db push --db-url <explicit-local-url> --skip-vault --yes`; the password was supplied privately through the child environment. Subsequent owner-only local function/constraint corrections aligned strict instant validation, multi-role Montor ownership and the series pair with the final migration. Existing CRM/job composite uniqueness is reused in the final schema. The initial applied source was subsequently recovered from its 32 original ledger statements with normalized line endings and statement separators; this is statement-equivalent recovery, not a claim of byte-identical original layout. Forward migration `20261006104143_booking_invariant_corrections.sql`, created by CLI and applied to loopback 55422, durably records all effective local corrections in six statements without editing the first ledger entry. Both versions are present; live schema inspection confirms the nonnull series pair, secondary-role ownership and strict hour validation. This is incremental application and local schema inspection, not an empty-schema SQL reset or complete stack rebuild.
+
+Initial author verification (before the accepted review fixes):
+
+- `pnpm run typecheck`: passed; final targeted ESLint passed. Full `pnpm run lint`: zero errors, 13 warnings in pre-existing unrelated files.
+- `pnpm run test:unit`: 1,958 tests; 1,957 passed, zero failed, one explicitly skipped Linux-xattr recovery test on Windows. Booking validation includes normalized UUID/equivalent instant/assignee permutations, invalid authority/recurrence input, invalid dates and positive ranges, and both Stockholm DST all-day transitions.
+- `node node_modules/vitest/vitest.mjs run` with the seven required booking, booking-RLS, role-harness, migration-inspection, H4, cross-tenant and anon files: 418 passed, zero failed, zero skipped across seven files, with `SUPABASE_TEST_REQUIRED=1` and explicit API/database port overrides 55421/55422. The same Vitest runner was used after a sandbox pnpm store-lock denial. All 18 retained named Story 14.2 checks executed.
+- `pnpm run build`, `verify:lockfiles`, `verify:service-role-containment`, and post-build `verify:bundle-containment`: passed.
+- `pnpm audit --audit-level=high`: failed on two high and two moderate transitive advisories. The parent is handling authorized compatible remediation; no audit waiver or story dependency mutation is claimed here.
+- Parent full normal-parallel integration first run: 1,287 total, 1,285 passed, one failed, one pending. The sole failure was the cumulative generated command-role monolith at 30,017ms against the existing 30-second test budget. The author split that loop into five parameterized role cases while retaining every generated command probe, result/code assertion and before/after audit count. The timeout and normal parallel configuration are unchanged. Final typecheck and targeted harness lint passed; the full resulting integration gate remains pending parent execution.
+- Independent review remains parent-owned at this author handoff.
+
+The first full unit run exposed two stale prerequisite pagination fixtures. Exact committed baseline files at `4947dbb44089c0462619c63443f3107712dc4cc7`, extracted to a temporary directory and executed in isolation, reproduced two passes/two failures. `tests/unit/admin-users/read-pagination.test.ts` now derives bounded-role fixture/assertions from the approved 50-ID batch limit. It still proves complete root pagination, every bounded role batch and fail-closed output after a later role-batch failure. Valid 50-member batches with five roles cannot reach the 500-row next-page boundary. No pagination product code or authority invariant changed; the repaired file passes four tests and the full unit gate is green.
+
+
+## Review Fix Log — Round 1
+
+All six required independent review layers executed. Triage: three Medium patches, one Low accepted finding, one rejected candidate; intent_gap=0, bad_spec=0, deferred=0. Score 10 sets `followup_review_recommended: true`. Subsequent review is restricted to these fixes, introduced regressions and unresolved consequential findings; the three-round cap remains.
+
+- Medium: align public command and checked RPC precision. The validator now accepts 1–6 fractional digits, preserves all six during UTC normalization, compares canonical instants without millisecond truncation, and rejects nonzero fractional all-day boundaries. Actual cross-RPC/envelope create and update replay covers every supported precision and exact durable timestamps/results.
+- Medium: add deterministic concurrent UPDATE evidence. A held booking row lock and observed blocking dependency chain prove overlapping same-key calls. Identical inputs commit one outcome/audit; different inputs produce one winner and a stable COMMAND_CONFLICT loser with exact business/outcome/audit readbacks. Production row locking is retained.
+- Medium: prove actual secondary Montor RLS. Scalar saljare and ekonomi memberships with a child Montor role see own/shared booking rows, own assignments and own-participation conflicts. Child-role revocation removes those reads; mutation remains denied.
+- Low: preserve a real optional-stack context. The prior snapshot's `test.each` callback was already corrected to `test.for`; actual unreachable-loopback execution proves the role-harness metadata case passes and all eight DB/context cases visibly skip. Required mode fails during global setup. Booking tests also use explicit optional/required stack gates; these skips are not acceptance evidence.
+- Rejected: adding a new invariant that forever prevents a later CRM contact move. The approved contract validates same-tenant composites and coherent supplied parent facts during booking writes; it does not add permanent CRM immutability or a new parent-mutation guard.
+
+The owner separately authorized bounded prerequisite dependency security repair. `source-map-js` is pinned to 1.2.2. Only `@next/eslint-plugin-next@16.3.6` replaces its fast-glob dependency with pinned tinyglobby 0.2.17, paired with a version-scoped pnpm patch retaining directory-only matches, disabling nested directory expansion and preserving relative/absolute root behavior. Installed patched-helper tests cover physical nested roots, relative/absolute patterns, arrays, braces and missing paths; the actual Next `no-html-link-for-pages` rule still reports an internal `<a>` fixture. No global fast-glob alias, Next upgrade, audit ignore or threshold change was introduced.
+
+Fix-batch evidence: `pnpm install --frozen-lockfile`, typecheck, full lint (zero errors/13 pre-existing warnings), build, lockfile/source containment and post-build bundle containment all passed. Full unit: 1,961 tests, 1,960 passed, zero failed, one Linux-xattr skip on Windows. `pnpm audit --audit-level=high` passed with zero high/critical and two moderate advisories. Booking integration: 21 passed, zero failed/skipped across two files under required local mode, including the 18 retained obligations plus the three new regression cases. Six booking validator tests and two installed dependency regression tests passed. The parent owns the resulting normal-parallel full integration and narrow independent follow-up review; no final cumulative result is manufactured here.
+
+Verification scheduling correction: `docs/quality/ci.md` explicitly assigns empty DB → all migrations → seed → required integration to the separate CI `db` job. Neither the frozen intent nor the ACs requires a new local database per story. The ambiguous Verification scheduling was corrected outside the intent contract: exact empty-chain CI remains MANDATORY at Epic finalization/before merge, while this local run truthfully records incremental migration/function/constraint application. No new database/reset was authorized or executed, and the proposed scratch-database replay remains an unexecuted contingency. Applied-version reconciliation preserves `20261006101609` through statement-equivalent recovery from its read-only ledger snapshot, while `20261006104143` records the forward corrections. Review precision changes require no additional SQL mutation beyond that reconciliation.
+
+### Cumulative PDF-send investigation
+
+The resulting parent full normal-parallel run executed 1,294 tests: 1,292 passed, one failed and one explicitly skipped isolated recovery-loader proof. All booking and generated role-harness cases passed. The failure was the existing sent-quote PDF-regeneration precondition: `sendDraft` returned PFD10 in 766ms. The source path prepares a current-PDF challenge, verifies/signs downloaded bytes and then sends; no shared Vault mutation was found. The cause remains **unconfirmed**, and no baseline/flakiness or resolved product-defect claim is made.
+
+The author added test-only diagnostics retaining only the prepare/send stage and generic SQL code/message. Attestation signatures, payloads and secrets are neither returned nor logged; production code and attestation/immutability guards are unchanged. A bounded focused retry executed that one required-mode case successfully with 26 other cases deselected; this does not substitute for the full gate. Final typecheck, targeted quote-test lint and diff check passed. The subsequent normal-parallel retry again executed 1,294 tests: 1,292 passed, one failed and one skipped. The PDF suite passed, while an existing update-job fixture's production `markQuoteVersionSent` prerequisite returned a false command result in 755ms. The failures are not asserted to share a cause. A test-only RPC observer now retains only failed function/code, allowlisted generic error text and boolean witnesses for current PDF/fingerprint/file/link/Storage, canonical issuance/expiry, exact window, generation time and HMAC agreement. Signing material remains only in the in-memory request and parameterized owner readback; no signature, key, timestamp, identifier or payload is emitted. Production functions, guards, parallelism and timeouts remain unchanged.
+
+A bounded joint retry of the two implicated files passed all 37 cases with zero skips. Installed Vitest source confirms the default isolated fork pool; environment mutations found in failure tests are restored in their isolated workers, and no shared Vault mutation was identified. A subsequent full normal-parallel run again executed 1,294 cases: 1,292 passed, one failed and one skipped. The two previously implicated files passed, while `accept-quote-and-create-job` INT-07 failed its production final-send prerequisite with `VALIDATION_FAILED` in 1,565ms. Those earlier failures have no captured common cause.
+
+The authenticated fixture factory now installs one shared observer for the four prepare/authorize/finalize/legacy-send RPCs. It preserves the actual lazy Postgrest builder, fluent methods, response identity and rejection identity; unrelated RPCs are untouched. Two executed unit cases verify those properties and generic-message redaction. An independent focused High security review reported no findings. Readbacks occur only after failure, so their boolean/time witnesses describe subsequent state rather than the exact locked verifier instant. No proof, secret, identifier, absolute timestamp or payload is emitted; the owner additionally authorized relative numeric time deltas.
+
+An explicit three-run focused cap used the three implicated files with `SUPABASE_TEST_REQUIRED=1`, unchanged normal file parallelism and timeouts: run 1 passed 51/51, run 2 passed 50/51 with one failure, and run 3 passed 51/51; all had zero skips. Run 2 reproduced an update-job fixture failure at `finalize_quote_email_delivery`, PFD10, with the allowlisted invalid-attestation message. The subsequent readback had canonical issued/expiry, exact five-minute window, generation, HMAC, current fingerprint, active file/link and matching Storage all true; `time_current` alone was false. This narrows that reproduced failure to the time boundary but does not identify its direction or establish that the earlier incidents share its cause. The third run included separate future-issued/expired witnesses but did not reproduce an unexpected failure. Bounded read-only sampling found zero backward movements in 200 sequential single-backend statement timestamps, 400 sequential statements alternating eight backends, and 100,000 single-statement clock samples; occasional clock movement is not excluded. Further diagnosis and a native-zero full cumulative gate remain required. Typecheck and targeted observer/factory lint pass; no production guard or machine-clock adjustment was made.
+
+A parent-dispatched independent High time/provenance expert reported that current local definitions match the recorded versions and that 27,028 synthetic microsecond inputs floor to milliseconds, never become future instants, and retain an exact five-minute window. This is separately reported expert evidence; the author did not execute that synthetic probe. The expert found no justified production correction. The owner then authorized a fresh maximum-three focused cap with separate issued/expiry predicates, relative numeric clock deltas and private-correlation `performance.now()` elapsed time from prepare response receipt to finalization completion. All three normal-parallel runs passed 51/51 with zero failures/skips; the cap ended and no automatic further run started. The expected forged-HMAC negative exercised the new timing output while preserving its rejection and authority assertions. No unexpected failure captured a split time predicate, so the original reproduction's time direction and causal mechanism remain unconfirmed. Final observer typecheck/lint and both SDK/redaction unit cases pass. These focused passes do not satisfy the still-required resulting full cumulative gate.
+
+The resulting parent full normal-parallel integration run subsequently exited native zero: 127 files, 1,294 cases, 1,293 passed, zero failed, one explicitly skipped isolated recovery-Storage-loader proof. The JSON report was inspected and confirms these case counts and success. All prior failed runs and the unconfirmed time mechanism above remain historical evidence; this passing cumulative gate does not establish a clock cause or justify changing production guards.
+
+The subsequent parent full unit run with explicit API 55421/database 55422 reported 1,963 cases: 1,960 passed, two failed and one Linux-only skip. Both failures were stale hardcoded diagnostic-origin expectations in `tests/unit/support/test-env.test.ts`. The authorized bounded fixture repair derives the exact expected origin independently from the controlled `process.env.SUPABASE_TEST_URL` input and documented literal local fallback, preserving allowlisted-only output, HTTP status, timeout reason, retry counts and fail-closed assertions. The file executes five passes under the same explicit local overrides and targeted lint passes; no reachability product code or port defaults changed. An intermediate parent full-unit rerun passed 1,962/1,963 with zero failures and one Linux-only skip. The expected-origin fixture was then refined to derive independently from environment input rather than the implementation export; the five targeted cases still pass. The resulting final parent full-unit run exited native zero: 98 suites, 1,963 cases, 1,962 passed, zero failed, one Linux-xattr skip on Windows and zero todo. Full lint exited native zero with zero errors and 13 existing warnings.
+
+
+
+## Suggested Review Order
+
+Author: Story 14.2 implementation/fix author, with a nested test implementation author.
+Refreshed after review round 1 against the final reviewed content based on `4947dbb44089c0462619c63443f3107712dc4cc7`.
+
+### Checked internal booking entry
+
+The commands reuse resolved envelope authority and suppress its second audit because SQL owns atomic audit. [Contract C](../../docs/decisions/epic-14-story-ownership-contract-c-2026-10-06.md) gates user-facing entry on Story 14.3. The review fix preserves up to six fractional digits across command/RPC identity and validates sub-millisecond positive ranges without Date truncation.
+
+- `src/server/commands/bookings/create-booking.ts:7` — `export const createBooking`: enters the actual envelope with SQL-owned audit.
+- `src/server/commands/bookings/update-booking.ts:6` — `export const updateBooking`: checks target ownership before the RPC.
+- `src/server/commands/bookings/validation.ts:12` — `function normalizedInstant`: normalizes UTC without losing PostgreSQL microseconds.
+- `supabase/migrations/20261006101609_bookings_and_assignees.sql:258` — `create function public.create_booking`: independently rechecks actor and live role.
+
+### Durable replay and indivisible persistence
+
+SQL reconstructs canonical identity, serializes create/update scope, and returns stored outcomes before checking mutable assignment state. The original private INVOKER primitive retains unchanged history, replaces the exact assignment set and records one target-only audit in the transaction. Append-only update outcomes have unbounded growth, the approved replay contract's documented storage tradeoff.
+
+- `supabase/migrations/20261006104143_booking_invariant_corrections.sql:26` — `create or replace function public.booking_payload_internal`: rebuilds normalized SQL identity.
+- `supabase/migrations/20261006101609_bookings_and_assignees.sql:169` — `create function public.booking_write_internal`: contains business, outcome and audit writes.
+- `tests/integration/commands/bookings.int.test.ts:17` — `six-digit timestamp replay`: AC4 preserves command/RPC results and exact timestamps.
+- `tests/integration/commands/bookings.int.test.ts:51` — `overlapping same-key updates`: AC4 proves identical and changed-payload UPDATE races.
+
+### Tenant relationships and assigned-worker visibility
+
+The three tables belong to active resources. Composite references and checked coherent supplied links preserve independently nullable parents and existing job IDs. The forward correction migration retains the final nonrecursive ownership helper, which privately reads profile/membership facts, preserving existing profile access and scoping Montor children to actual own participation; review adds child-role and revocation evidence.
+
+- `supabase/migrations/20261006104143_booking_invariant_corrections.sql:13` — `create or replace function public.booking_owned_by_current_user`: joins assignment and active scalar/secondary Montor roles.
+- `supabase/migrations/20261006101609_bookings_and_assignees.sql:104` — `revoke all on public.bookings`: removes direct writes and private outcome visibility.
+- `src/features/resources/booking-types.ts:2` — `BOOKING_PUBLIC_COLUMNS`: declares the safe read projection.
+- `tests/integration/rls/bookings.rls.test.ts:16` — `secondary Montor grants`: AC9 proves own reads and child-role revocation.
+
+### Scoped prerequisite dependency repair
+
+The owner authorized compatible remediation for the two high transitive advisories. The Next plugin's sole glob consumer requires a version-specific adaptation as well as the scoped dependency replacement. The physical-root and actual-rule regressions test the installed patched package; they preserve the real lint boundary without altering the application Next version.
+
+- `pnpm-workspace.yaml:7` — `'@next/eslint-plugin-next@16.3.6>fast-glob'`: scopes the replacement to the affected plugin version.
+- `patches/@next__eslint-plugin-next@16.3.6.patch:11` — `expandDirectories: false`: preserves direct directory roots.
+- `tests/unit/dependencies/next-lint-root-globs.test.ts:34` — `installed Next lint helper preserves`: proves physical roots, arrays, braces and missing paths.
+- `tests/unit/dependencies/next-lint-root-globs.test.ts:50` — `patched Next no-html-link-for-pages`: proves real internal-anchor lint reporting.
+
+### Retained evidence and the detector gate
+
+Actual envelope tests prove AC2/3 exact booking/assignment/outcome/audit state; INT-003/004/005 and their new regressions prove AC4 replay, changed-payload refusal and overlapping create/update writes; INT-006/007 prove AC5 exact rollback. DB-001/002/003/004/005 plus INT-009 cover AC6 standalone/coherent parents, constraints, job continuity and DST; INT-010 covers AC7 history and membership-deactivation races. RLS-001/002/003/004 and exact-policy/H4/cross-tenant/anon probes exercise AC1/8/9. The generated envelope probes retain every role assertion in five bounded tests with the existing 30-second budget and normal parallel configuration.
+
+- `tests/integration/commands/bookings.int.test.ts:114` — `14.2-INT-001 actual envelope`: AC2 proves atomic create success.
+- `tests/integration/commands/bookings.int.test.ts:248` — `14.2-INT-006 booking preparation`: AC5 proves booking and audit fault rollback.
+- `tests/integration/commands/bookings.int.test.ts:358` — `14.2-DB-004 UTC`: AC6 round-trips Stockholm 23/25-hour days.
+- `tests/unit/scope/resources-activation.atdd.test.ts:7` — `activates resources`: AC1/10 preserves pending scheduling with empty surfaces.
+
+### Shared final-send diagnosis boundary
+
+The cumulative gate exposed existing quote-send fixture failures, so the test factory installs a shared failure observer instead of relying on case-local diagnostics. Its fixed output contains generic stages, guard booleans and authorized relative clock deltas; readback timing remains an explicit evidence limit. The original query/results and production attestation/review authority remain intact.
+
+- `tests/factories/tenants/core.ts:354` — `return observeQuoteSendRpcs`: binds diagnostics for every authenticated fixture client.
+- `tests/support/quote-send-diagnostics.ts:29` — `export function observeQuoteSendRpcs`: reuses one observer while preserving request builders.
+- `tests/unit/quote-send-diagnostics.test.ts:21` — `send observer preserves lazy fluent query`: checks SDK identity and generic redaction.
+
+Evidence: see Initial Author Evidence, Review Fix Log and Cumulative PDF-send Investigation above for executed counts, prerequisite repairs, the unconfirmed final-send incidents and remaining CI/detector gates. Optional-unavailable skip probes validate runner behavior only, and do not count toward the 18 required booking obligations.
+Limits: fixtures and privileged readbacks/fault triggers are test-only. There is no booking browser flow in this story. Earlier cumulative final-send causes remain unconfirmed; one focused reproduction isolates a failed time witness without proving a shared cause. Focused/joint success is not full-gate evidence. Local evidence comes from incremental SQL application; the exact empty-schema migration/seed/required-integration CI chain remains MANDATORY before Epic finalization/merge and is not claimed as executed here. Performance and volume are unmeasured. No derived detector, refresh or override acceptance is claimed; 14.3-INT-003/004/005/006 remain mandatory before 14.4 and the Epic PR.

@@ -1,13 +1,10 @@
-/**
- * Story 14.1 ATDD red-phase scaffold. Remove `test.skip` only with the resources
- * activation change; the scheduling module must remain fully pending.
- */
+/** Resource schema foundation is live; scheduling remains entirely pending. */
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
 const manifestModulePath = "../../../src/scope/manifest";
 
-test("[P0] activates resources with its three tenant tables and leaves scheduling surface-free", async () => {
+test("[P0] activates resources with its six tenant tables and leaves scheduling surface-free", async () => {
   const manifestModule = await import(manifestModulePath);
   const manifest = (manifestModule as { SCOPE_MANIFEST?: { modules?: readonly Record<string, unknown>[] } }).SCOPE_MANIFEST;
   const modules = manifest?.modules ?? [];
@@ -19,7 +16,7 @@ test("[P0] activates resources with its three tenant tables and leaves schedulin
   assert.deepEqual(resources?.tenantTables, [
     "person_profiles",
     "person_work_hours",
-    "tenant_calendar_days",
+    "tenant_calendar_days", "bookings", "booking_assignees", "booking_conflicts",
   ]);
   assert.equal(scheduling?.status, "pending");
   assert.deepEqual(scheduling?.navItems, []);
