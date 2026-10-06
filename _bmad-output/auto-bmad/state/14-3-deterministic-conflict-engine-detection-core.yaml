@@ -9,7 +9,7 @@ spec_folder: null
 story_id: null
 branch: codex/epic14-resume
 status: in-progress
-updated_at: "2026-10-06T14:04:02Z"
+updated_at: "2026-10-06T14:05:34Z"
 started_at: "2026-10-06T11:47:14Z"
 completed_at: null
 active_seconds: 3916
@@ -40,8 +40,8 @@ completed_phases: [0, 1, 2, 3, 4]
 spec_path: "C:/DEV/ElproSaas/_bmad-output/implementation-artifacts/spec-14-3-deterministic-conflict-engine-detection-core.md"
 spec_approved: true
 build:
-  status: blocked
-  blocking_condition: implementation verification failed
+  status: in-progress
+  blocking_condition: null
   followup_review_recommended: false
   review_loop_iteration: 0
   deferred_count: 0
@@ -56,7 +56,7 @@ legacy_review_loop_done: false
 legacy_external_review_iterations: null
 legacy_convergence_unverified: false
 legacy_artifact_path: null
-commits: [d0e9cc3e, ad4642a1, 0c4ab83f, 007fe3cc, 2a6c9e6d]
+commits: [d0e9cc3e, ad4642a1, 0c4ab83f, 007fe3cc, 2a6c9e6d, c8d0a881, 44247fc8]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -120,6 +120,7 @@ overrides:
   representative_diagnostic_failed: 0
   independent_review_executed: false
   owner_authorized_failure_diagnosis: true
+  diagnostic_resume_author_capacity_confirmed: true
 constraints:
   - "Approved Story14.3 scope and PhaseB manifest only; resources active, scheduling pending untilEpic15."
   - Allfour transferred conflict checks mandatory before14.4/EpicPR.

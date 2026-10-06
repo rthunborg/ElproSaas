@@ -2,7 +2,7 @@
 title: 'Story 14.3: Deterministic Conflict Engine (Detection Core)'
 type: 'feature'
 created: '2026-10-06'
-status: 'blocked'
+status: 'in-progress'
 baseline_revision: '2a6c9e6d6859987590f2e875f695a75c16125af6'
 review_loop_iteration: 0
 followup_review_recommended: false
@@ -150,6 +150,18 @@ Technical references checked for planning: [PostgreSQL transaction isolation](ht
 ## Review Triage Log
 
 ## Auto Run Result
+
+Status: in-progress
+
+Blocking condition: none for the owner-authorized diagnostic continuation; the historical cumulative verification failure below remains unresolved until new evidence establishes its cause and satisfies the gate.
+
+### Authorized diagnostic continuation 2026-10-06
+
+The owner explicitly authorized diagnostic, scope-bound fix, re-verification and independent-review continuation. The original fresh context-free gpt-6.1-sol High implementation/fix author confirmed availability before this restoration. Preserve all frozen intent, implementation, baseline history, prior native results and pending gates. Clean pre-restoration checkpoint captured directly from Git: `44247fc8d6a010497fd2d2787405010c8dd0bf4d`. The full unreviewed Story 14.3 implementation remains based on original implementation baseline `2a6c9e6d6859987590f2e875f695a75c16125af6`; later diagnostic baselines must not hide that implementation from its first independent review.
+
+Root has verified the retained isolated stack under new lifecycle `730ffa3c-8fe8-4b93-b5b8-4da0f9e61cee`, API 55421 and DB 55422. Root owns Stop; no subagent launch, original-stack use, reset, deletion or hosted action is authorized. The build delegate restored only this spec; root owns clean checkpoint, sprint and orchestration metadata. Testing waits for that clean checkpoint and service/ledger readiness, then captures current full-workload diagnostics with `STORY143_DIAGNOSTIC=1` before drawing conclusions about the prior INT-004 failure.
+
+### Historical resumed implementation verification HALT
 
 Status: blocked
 
