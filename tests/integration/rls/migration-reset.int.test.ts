@@ -140,7 +140,7 @@ describe("Migration reset green — tenant_foundation objects present (AC1 / R-0
     if (skipUnlessStack(testCtx, stackUp)) return;
     const rows = await adminQuery<{ proname: string }>(
       `select proname from pg_proc
-         where proname in ('is_active_tenant_member', 'is_tenant_admin')`,
+         where oid in ('public.is_active_tenant_member(uuid)'::regprocedure, 'public.is_tenant_admin(uuid)'::regprocedure)`,
     );
     expect(rows.map((r) => r.proname).sort()).toEqual([
       "is_active_tenant_member",
@@ -156,7 +156,7 @@ describe("Migration reset green — tenant_foundation objects present (AC1 / R-0
       proconfig: string[] | null;
     }>(
       `select proname, prosecdef, proconfig from pg_proc
-         where proname in ('is_active_tenant_member', 'is_tenant_admin')`,
+         where oid in ('public.is_active_tenant_member(uuid)'::regprocedure, 'public.is_tenant_admin(uuid)'::regprocedure)`,
     );
     expect(rows).toHaveLength(2);
     for (const fn of rows) {

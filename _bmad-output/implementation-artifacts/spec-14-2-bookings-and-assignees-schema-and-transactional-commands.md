@@ -4,7 +4,7 @@ type: 'feature'
 created: '2026-10-06'
 status: 'done'
 baseline_revision: '4947dbb44089c0462619c63443f3107712dc4cc7'
-review_loop_iteration: 1
+review_loop_iteration: 0
 followup_review_recommended: true
 context:
   - 'docs/decisions/epic-14-story-ownership-contract-c-2026-10-06.md'
@@ -145,10 +145,34 @@ Status: done
 
 Blocking condition: none
 
-Review loop iterations: 1
+Review loop iterations: 0 (this follow-up invocation; completed review rounds: 2)
 
 Follow-up review recommended: true
 
+### Round 2 canonical completion — 2026-10-06
+
+Canonical HALT: done. All six fresh independent layers completed against one frozen cumulative diff before triage, including the actual external Sol 6.1 High read-only CLI (native 0, `No findings.`). Round 2 patches: high 1, medium 0, low 1; intent_gap=0, bad_spec=0, defer=0, reject=0. High replay-authority correction and the direct checked-RPC clock grammar regression are implemented. Follow-up review recommended: true due to the High patch; weighted medium/low score is 1. Two completed broad rounds are recorded; one further broad round remains available under the three-round cap.
+
+New forward migration `20261006113212_booking_replay_current_authority.sql` rechecks current actor authority under the actor lock after CREATE advisory / UPDATE booking-row serialization, before replay result return. Existing sorted fresh-write locking, historical assignee replay and private ACLs remain. The author reproduced all six waiting-call races before application: native 1, 11 cases, five passed, six failed, zero skipped. After explicit local CLI push, required focused booking verification exited native 0: 32/32 passed, zero failed/skipped. All 91 prior serialized ledger records are unchanged, including 01609/04143; exactly one forward version was added. No reset, new database or hosted action occurred.
+
+The resulting normal-parallel required integration gate exited native 0: 128 files, 1,305 cases; 1,304 passed, zero failed, one explicitly skipped isolated recovery-Storage-loader proof. All 32 booking cases executed. Result: `../test-artifacts/story14-2-followup-round2-completed-integration-results.json`. The preceding two native-1 full reports are preserved separately: 1,303 pass/one failure/one skip, then 1,302 pass/two failures/one skip. Those concrete prerequisite failures led to approved author repairs: recipient readback orders by authoritative delivery_sequence with every snapshot/audit assertion retained; helper metadata queries select exact public UUID signatures, retaining exactly-two-row/SECURITY DEFINER/exact-empty checks and the parallel adversarial test. Required affected evidence: recipient 3/3 and helper/adversarial 15/15 passed with zero skips. No clock tie, reversal, helper defect or historical PFD cause is claimed.
+
+Typecheck and targeted lint exited native 0; full lint native 0 with zero errors and 13 existing warnings. Security advisors exited 0 with no issues. Existing full unit (1,962 passed, zero failed, one Windows Linux-xattr skip), production build/install/audit/containment evidence below is retained from the prior verified revision; no unchanged broad gate was rerun solely for this trail. The final narrow independent fix/trail review reported `No findings.`; checker native 0, exactly one author-written section, 27 references/no errors, actual UTF-8 replacement count zero. Frozen intent remains unchanged against the baseline at repository line endings.
+
+Additional changed files in this follow-up:
+
+| File | Change |
+| --- | --- |
+| `supabase/migrations/20261006113212_booking_replay_current_authority.sql` | Adds post-serialization current-actor replay checks without rewriting applied migrations. |
+| `tests/integration/commands/bookings-replay-authority.int.test.ts` | Retains three sequential cases and adds six deterministic waits plus two direct SQL clock cases. |
+| `tests/integration/email/quote-delivery-recipient-snapshot.int.test.ts` | Orders exact recipient snapshot readback by authoritative delivery sequence. |
+| `tests/integration/rls/migration-reset.int.test.ts` | Identifies exact public UUID helper signatures in two metadata queries. |
+| `_bmad-output/test-artifacts/story14-2-followup-round2-review.md` | Preserves independent layers, triage, reproduced failures, fixes and limits. |
+| `_bmad-output/test-artifacts/story14-2-followup-round2-integration-results.json` | Preserves the first resulting full native-1 report. |
+| `_bmad-output/test-artifacts/story14-2-followup-round2-final-integration-results.json` | Preserves the second resulting full native-1 report. |
+| `_bmad-output/test-artifacts/story14-2-followup-round2-completed-integration-results.json` | Records the final resulting full native-zero report. |
+
+Remaining gates: exact empty-schema migrations → seed → required-integration CI remains mandatory at Epic finalization/before merge; all four transferred 14.3 detector checks remain mandatory before 14.4 and the Epic PR. This story exposes no detector, UI or live scheduling surface. Historical quote-send cause remains unconfirmed. Completion-hook reconciliation re-engages the actual fix author after the local commit; no push or root orchestration-state edit is authorized.
 Canonical HALT: done. The approved internal booking foundation is implemented and every required local gate is native zero. All 18 retained Story 14.2 acceptance obligations and three added regressions execute; resources owns the new tables and scheduling remains pending. No detector or booking browser surface is claimed.
 
 Files changed:
@@ -196,7 +220,7 @@ Files changed:
 | `tests/unit/server/commands/bookings-validation.test.ts` | Tests canonical timestamps, assignment identity and invalid inputs. |
 | `tests/unit/support/test-env.test.ts` | Derives expected origin independently while preserving exact diagnostics. |
 
-Final required evidence in this reviewed working tree:
+Previously recorded required evidence before this follow-up (retained history, not re-executed where stated):
 
 - Full normal-parallel integration: native 0; 127 files, 1,294 cases, 1,293 passed, zero failed, one explicitly skipped separate isolated recovery-Storage-loader proof. Required mode uses explicit local API/database overrides 55421/55422. The inspected JSON is `../test-artifacts/story14-2-full-integration-results.json`.
 - Full unit: native 0; 98 suites, 1,963 cases, 1,962 passed, zero failed, one Linux-xattr skip on Windows, zero todo. The diagnostic-origin fixtures independently derive expectation from controlled environment input and retain all exact status/timeout/privacy assertions.
@@ -210,6 +234,19 @@ Remaining boundaries: the exact empty DB → all migrations → seed → require
 
 Local checkpoint: the parent authorized local author commits for only the reviewed Story 14.2, prerequisite, dependency and evidence files after its evidence-ready handoff. The prerequisite fixture repair is committed separately; remaining reviewed content is committed with this terminal author spec. No push, PR, hosted operation or root orchestration-state edit is authorized. The completion hook reconciles this same trail after committing and reports the actual revision/status through the parent contract.
 
+## Review Triage Log
+
+### 2026-10-06 — Review pass (completed round 2)
+- intent_gap: 0
+- bad_spec: 0
+- patch: 2: (high 1, medium 0, low 1)
+- defer: 0
+- reject: 0
+- addressed_findings:
+  - `[high]` `[patch]` Completed CREATE/UPDATE replay could return after a serialization wait despite intervening actor revocation. Added forward-only actor SHARE/current-role rechecks and six deterministic production-revocation races; all reproduce before correction and pass after it.
+  - `[low]` `[patch]` Strict SQL clock grammar had no authorized direct-RPC negative. Added create/update hour/minute/second boundary rejection and exact unchanged durable-state assertions.
+
+All six required independent layers executed before this triage. Intent and prior round 1 history remain unchanged. Narrow convergence corrected author-trail encoding and separately authorized prerequisite fixtures exposed by actual resulting gates; these do not constitute another broad review round. No rejected or deferred finding requires a dismissal rationale.
 ## Historical Auto Run Results
 
 
@@ -301,10 +338,39 @@ The subsequent parent full unit run with explicit API 55421/database 55422 repor
 
 
 
+## Round 2 Fix Author Evidence — 2026-10-06
+
+The round 2 fix author was dispatched as gpt-6.1-sol / High for current authorization and transactional integrity, against parent HEAD `dc2c0c897a9d3639fff8672b95d3898773126f46` and baseline `4947dbb44089c0462619c63443f3107712dc4cc7`. This author changed the new forward booking migration, booking replay/timestamp regression file and this evidence/review trail; the parent later explicitly added ownership of the scoped recipient-snapshot readback-order and exact public helper metadata-selector fixture repairs. The parent owns final cumulative gates, review disposition and commits.
+
+The corrected reachable path is completed CREATE replay after an advisory-lock wait and completed UPDATE replay after a booking-row wait. Both previously returned a stored outcome after a pre-wait role check, even when another authorized administrator committed a membership revocation during the wait. Forward migration `20261006113212_booking_replay_current_authority.sql` takes a SHARE lock on the actor membership and rechecks the current active scalar/secondary authority inside each replay branch, before digest comparison or outcome return. Replay locks only the actor; fresh writes retain the existing combined sorted actor/assignee locking, avoiding an actor-first change to fresh-write lock ordering. Replay still returns historical outcomes before validating mutable assignment state. The legitimate `admin_manage_membership` path locks the same membership parent before role/status changes, including child-role replacement.
+
+The six deterministic regressions first prove a successful stored CREATE/UPDATE and positive replay, hold the actual command advisory lock or booking row lock, observe `pg_blocking_pids`, commit an authenticated administrator's production membership RPC, and only then release serialization. Both operations cover primary-plus-secondary role removal, secondary-only planner removal and membership disablement. Each requires SQLSTATE `42501`, null result and exact unchanged post-revocation booking/assignment/conflict/outcome/audit snapshots. The one legitimate revocation audit is independently counted before lock release. The three prior sequential envelope/checked-RPC cases remain, including invited and disabled memberships; the production admin lifecycle has no active-to-invited transition to use for a legitimate wait-race case.
+
+The timestamp regression directly calls both authenticated checked RPCs with entitled actors, bypassing TypeScript. It supplies `2026-10-12T24:00:00Z`, invalid minute 60 and second 60 in both start/end positions, with otherwise positive interval endpoints, and requires `23514`, null result and exact unchanged snapshots. This protects the strict SQL clock grammar already recorded in `20261006104143`; no timestamp production correction was needed.
+
+Executed evidence in this fix working tree:
+
+- Before applying the new migration, required replay/timestamp suite: native exit 1; 11 total, five passed, six failed, zero skipped. All six lock-wait authority cases reached the expected final assertion and reproduced stale successful replay; three sequential and two timestamp cases passed. Applied migrations were not rewritten for the red proof.
+- CLI `supabase migration new booking_replay_current_authority` generated the new version after help discovery. Explicit loopback 55422 `supabase db push --db-url <private-local-url-with-sslmode=disable> --dry-run --skip-vault --yes` previewed only this version; the corresponding actual push exited native zero and recorded `20261006113212`. An initial non-TLS-unspecified preview failed before migration application because this local database does not support SSL; the explicit local non-TLS preview/push succeeded. No uncertain application retry occurred.
+- Privileged local readback compared all 91 prior ledger `version/name/statements` records with the pre-push snapshot and found them unchanged; exactly one new version is present. This is serialized-record equality, not physical ledger-byte identity. `20261006101609` and `20261006104143` source and ledger records remain immutable. The replaced primitive remains SECURITY INVOKER with empty search path and no authenticated/anon/service-role EXECUTE grant.
+- Required `pnpm exec vitest run tests/integration/commands/bookings.int.test.ts tests/integration/commands/bookings-replay-authority.int.test.ts tests/integration/rls/bookings.rls.test.ts`: native exit zero; 32 total, 32 passed, zero failed/skipped across three normally parallel files, with explicit API 55421/database 55422 and `SUPABASE_TEST_REQUIRED=1`. Counts are 16 command foundation, five RLS and 11 replay/timestamp cases. This includes all 21 previously retained booking cases, the three sequential cases and eight new cases; authorized historical replay after assignee deactivation remains green.
+- Read-only `supabase db advisors --db-url <private-local-url-with-sslmode=disable> --type security --output-format json --fail-on error`: native zero, no issues found on the assigned local database.
+- `pnpm typecheck` and targeted ESLint for `tests/integration/commands/bookings-replay-authority.int.test.ts`: native zero. The author corrected an initial PromiseLike typing error before these final passing checks. No timeouts, test parallelism, production validators or authority contracts were weakened.
+
+The parent resulting required full normal-parallel integration gate then exited native 1: 128 files, 1,305 cases, 1,303 passed, one failed and one intentional pending recovery-Storage-loader case. Its sole failure was `quote-delivery-recipient-snapshot.int.test.ts:211`: the completed initial/corrected deliveries were read with `ORDER BY created_at`, but the exact row-array assertion expects delivery sequence 1 followed by 2. Source inspection confirms the correction creates the next delivery sequence and the database enforces scoped sequence uniqueness; it does not establish an actual timestamp tie, backward clock movement or the earlier PFD failure cause.
+
+The parent explicitly authorized a scoped prerequisite fixture repair, retaining this author's High effort for the recipient/audit invariant. The only test change is `tests/integration/email/quote-delivery-recipient-snapshot.int.test.ts:208`, ordering that privileged readback by `o.delivery_sequence`. The exact recipient/source ID, cancellation/queued state, artifact recovery, sequence and correction-audit assertions remain intact. Required execution of this one affected file on API 55421/database 55422 exited native zero: three passed, zero failed/skipped; targeted ESLint exited native zero. The original failed cumulative artifact is retained; the parent owns the resulting full normal-parallel rerun, which is pending at this author handoff. Product timestamps, attestation/authority guards, parallelism and clock configuration were not changed.
+
+The parent's second resulting required full normal-parallel run also exited native 1: 128 files, 1,305 cases, 1,302 passed, two failed and one intentional pending recovery-Storage-loader case. Both failures were migration-inspection helper assertions: the global `pg_proc.proname` selector returned three rows while the tests require the two production helpers. The existing adversarial search-path suite deliberately creates `evil_audit.is_active_tenant_member(uuid)`; that separate schema function matches the old name-only predicate. This is a metadata-fixture selector defect and does not demonstrate a production helper or security-guard defect. Booking tests remained green in that parent run.
+
+The parent explicitly authorized correcting only the two helper metadata selectors in `tests/integration/rls/migration-reset.int.test.ts:143` and `:159` to exact regprocedure OIDs for `public.is_active_tenant_member(uuid)` and `public.is_tenant_admin(uuid)`. A missing target fails the cast/query. The exact two names/count, SECURITY DEFINER and exactly empty search-path assertions remain unchanged; the adversarial helper test is unchanged. Required execution of both files together with normal parallelism and explicit API 55421/database 55422 exited native zero: 15 passed, zero failed/skipped (11 migration inspection and four audit search-path cases). Targeted metadata-file ESLint and `pnpm typecheck` exited native zero. No product/helper/migration, ledger, timeout, skip or parallelism change was made. Both failed cumulative JSON artifacts remain retained. The parent owns the single resulting full normal-parallel gate after this correction, pending at this author handoff.
+
+Limits: this is an incrementally migrated existing local database, not the mandatory empty-schema migration/seed/required-integration CI chain. The parent must record its resulting cumulative gate separately. Prior quote-send investigation and its unconfirmed time cause remain unchanged historical evidence; these focused booking tests do not establish that cause. There is no booking browser flow or new detector acceptance here. The existing mandatory Story 14.3 detector gate remains.
+
 ## Suggested Review Order
 
-Author: Story 14.2 implementation/fix author, with a nested test implementation author.
-Refreshed after review round 1 against the final reviewed content based on `4947dbb44089c0462619c63443f3107712dc4cc7`.
+Author: Story 14.2 implementation/fix author, with a nested test implementation author; round 2 booking fixes and trail refreshed by the round 2 fix author.
+Refreshed after round 2 fixes against the working tree based on `dc2c0c897a9d3639fff8672b95d3898773126f46`, retaining baseline `4947dbb44089c0462619c63443f3107712dc4cc7`.
 
 ### Checked internal booking entry
 
@@ -317,12 +383,12 @@ The commands reuse resolved envelope authority and suppress its second audit bec
 
 ### Durable replay and indivisible persistence
 
-SQL reconstructs canonical identity, serializes create/update scope, and returns stored outcomes before checking mutable assignment state. The original private INVOKER primitive retains unchanged history, replaces the exact assignment set and records one target-only audit in the transaction. Append-only update outcomes have unbounded growth, the approved replay contract's documented storage tradeoff.
+SQL reconstructs canonical identity and serializes create/update scope. The round 2 correction locks and rechecks the current actor after serialization waits before returning stored outcomes; mutable assignment state remains irrelevant to replay. Fresh writes retain sorted combined membership locks, unchanged history, exact assignment replacement and one target-only transactional audit. Append-only update outcomes have unbounded growth, the approved replay contract's documented storage tradeoff.
 
 - `supabase/migrations/20261006104143_booking_invariant_corrections.sql:26` — `create or replace function public.booking_payload_internal`: rebuilds normalized SQL identity.
-- `supabase/migrations/20261006101609_bookings_and_assignees.sql:169` — `create function public.booking_write_internal`: contains business, outcome and audit writes.
-- `tests/integration/commands/bookings.int.test.ts:17` — `six-digit timestamp replay`: AC4 preserves command/RPC results and exact timestamps.
-- `tests/integration/commands/bookings.int.test.ts:51` — `overlapping same-key updates`: AC4 proves identical and changed-payload UPDATE races.
+- `supabase/migrations/20261006113212_booking_replay_current_authority.sql:23` — `has_tenant_role`: rechecks CREATE replay authority under the actor lock.
+- `supabase/migrations/20261006113212_booking_replay_current_authority.sql:36` — `has_tenant_role`: rechecks UPDATE replay authority after the booking row lock.
+- `tests/integration/commands/bookings-replay-authority.int.test.ts:100` — `revoked during lock wait`: AC4 refuses stale replay after observed blocking and admin revocation.
 
 ### Tenant relationships and assigned-worker visibility
 
@@ -344,20 +410,29 @@ The owner authorized compatible remediation for the two high transitive advisori
 
 ### Retained evidence and the detector gate
 
-Actual envelope tests prove AC2/3 exact booking/assignment/outcome/audit state; INT-003/004/005 and their new regressions prove AC4 replay, changed-payload refusal and overlapping create/update writes; INT-006/007 prove AC5 exact rollback. DB-001/002/003/004/005 plus INT-009 cover AC6 standalone/coherent parents, constraints, job continuity and DST; INT-010 covers AC7 history and membership-deactivation races. RLS-001/002/003/004 and exact-policy/H4/cross-tenant/anon probes exercise AC1/8/9. The generated envelope probes retain every role assertion in five bounded tests with the existing 30-second budget and normal parallel configuration.
+Actual envelope tests prove AC2/3 exact booking/assignment/outcome/audit state; INT-003/004/005 and their new regressions prove AC4 replay, changed-payload refusal and overlapping create/update writes; INT-006/007 prove AC5 exact rollback. DB-001/002/003/004/005 plus INT-009 cover AC6 standalone/coherent parents, constraints, job continuity and DST; INT-010 covers AC7 history and membership-deactivation races. RLS-001/002/003/004 and exact-policy/H4/cross-tenant/anon probes exercise AC1/8/9. The generated envelope probes retain every role assertion in five bounded tests with the existing 30-second budget and normal parallel configuration. Round 2 direct checked-RPC tests protect strict clock grammar for both operations and exact no-write/no-audit refusal; sequential and observed-wait replay tests cover current active scalar and secondary actor authority.
 
-- `tests/integration/commands/bookings.int.test.ts:114` — `14.2-INT-001 actual envelope`: AC2 proves atomic create success.
+- `tests/integration/commands/bookings.int.test.ts:17` — `six-digit timestamp replay`: AC4 preserves command/RPC results and exact timestamps.
+- `tests/integration/commands/bookings.int.test.ts:51` — `overlapping same-key updates`: AC4 proves identical and changed-payload UPDATE races.
 - `tests/integration/commands/bookings.int.test.ts:248` — `14.2-INT-006 booking preparation`: AC5 proves booking and audit fault rollback.
-- `tests/integration/commands/bookings.int.test.ts:358` — `14.2-DB-004 UTC`: AC6 round-trips Stockholm 23/25-hour days.
-- `tests/unit/scope/resources-activation.atdd.test.ts:7` — `activates resources`: AC1/10 preserves pending scheduling with empty surfaces.
+- `tests/integration/commands/bookings-replay-authority.int.test.ts:170` — `out-of-range clock fields`: AC6 bypasses TypeScript and verifies SQL refusal snapshots.
 
 ### Shared final-send diagnosis boundary
 
-The cumulative gate exposed existing quote-send fixture failures, so the test factory installs a shared failure observer instead of relying on case-local diagnostics. Its fixed output contains generic stages, guard booleans and authorized relative clock deltas; readback timing remains an explicit evidence limit. The original query/results and production attestation/review authority remain intact.
+The cumulative gate exposed existing quote-send fixture failures, so the test factory installs a shared failure observer instead of relying on case-local diagnostics. Its fixed output contains generic stages, guard booleans and authorized relative clock deltas; readback timing remains an explicit evidence limit. The observer retains its original query/results and production attestation/review authority. A later authorized prerequisite fixture repair orders the initial/corrected recipient readback by its asserted delivery sequence while retaining exact recipient, recovery, sequence and correction-audit checks.
 
 - `tests/factories/tenants/core.ts:354` — `return observeQuoteSendRpcs`: binds diagnostics for every authenticated fixture client.
 - `tests/support/quote-send-diagnostics.ts:29` — `export function observeQuoteSendRpcs`: reuses one observer while preserving request builders.
 - `tests/unit/quote-send-diagnostics.test.ts:21` — `send observer preserves lazy fluent query`: checks SDK identity and generic redaction.
+- `tests/integration/email/quote-delivery-recipient-snapshot.int.test.ts:208` — `order by o.delivery_sequence`: matches the exact initial/corrected delivery sequence assertion.
 
-Evidence: see Initial Author Evidence, Review Fix Log and Cumulative PDF-send Investigation above for executed counts, prerequisite repairs, the unconfirmed final-send incidents and remaining CI/detector gates. Optional-unavailable skip probes validate runner behavior only, and do not count toward the 18 required booking obligations.
+### Exact production helper inspection under parallel adversarial tests
+
+The prerequisite metadata fixture now selects both production helpers by schema-qualified UUID regprocedure identity. It retains exact existence/count, SECURITY DEFINER and empty search-path assertions while the unchanged adversarial suite creates and exercises a separate hostile helper; missing production signatures fail the selector cast.
+
+- `tests/integration/rls/migration-reset.int.test.ts:143` — `public.is_active_tenant_member(uuid)`: selects exact production signatures for the existence assertion.
+- `tests/integration/rls/migration-reset.int.test.ts:159` — `public.is_tenant_admin(uuid)`: scopes exact count and function-security metadata checks.
+- `tests/integration/commands/record-audit-event-search-path.int.test.ts:77` — `evil_audit.is_active_tenant_member(uuid)`: retains the hostile-shadow runtime proof.
+
+Evidence: see Implementation Author Evidence, Review Fix Log, Round 2 Fix Author Evidence and Cumulative PDF-send Investigation above for executed counts, prerequisite repairs, the unconfirmed final-send incidents and remaining CI/detector gates. Optional-unavailable skip probes validate runner behavior only, and do not count toward the 18 required booking obligations.
 Limits: fixtures and privileged readbacks/fault triggers are test-only. There is no booking browser flow in this story. Earlier cumulative final-send causes remain unconfirmed; one focused reproduction isolates a failed time witness without proving a shared cause. Focused/joint success is not full-gate evidence. Local evidence comes from incremental SQL application; the exact empty-schema migration/seed/required-integration CI chain remains MANDATORY before Epic finalization/merge and is not claimed as executed here. Performance and volume are unmeasured. No derived detector, refresh or override acceptance is claimed; 14.3-INT-003/004/005/006 remain mandatory before 14.4 and the Epic PR.
