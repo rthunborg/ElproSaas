@@ -1,0 +1,106 @@
+TAP version 13
+# (node:45464) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/Rasmus/.codex/worktrees/epic14-scheduling/ElproSaas/tests/unit/features/scheduling/capacity.golden.test.ts is not specified and it doesn't parse as CommonJS.
+# Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+# To eliminate this warning, add "type": "module" to C:\\Users\\Rasmus\\.codex\\worktrees\\epic14-scheduling\\ElproSaas\\package.json.
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: [P0] 14.3-UNIT-004 every positive overrun warns regardless of injected threshold
+ok 1 - [P0] 14.3-UNIT-004 every positive overrun warns regardless of injected threshold # SKIP
+  ---
+  duration_ms: 0.393
+  type: 'test'
+  ...
+# Subtest: [P0] 14.3-UNIT-012 six formula terms isolate each change and layered subtraction once
+ok 2 - [P0] 14.3-UNIT-012 six formula terms isolate each change and layered subtraction once # SKIP
+  ---
+  duration_ms: 0.0661
+  type: 'test'
+  ...
+# Subtest: [P1] 14.3-UNIT-013 overtime is explicitly injected data and never default capacity
+ok 3 - [P1] 14.3-UNIT-013 overtime is explicitly injected data and never default capacity # SKIP
+  ---
+  duration_ms: 0.0418
+  type: 'test'
+  ...
+# (node:26612) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/Rasmus/.codex/worktrees/epic14-scheduling/ElproSaas/tests/unit/features/scheduling/conflicts.test.ts is not specified and it doesn't parse as CommonJS.
+# Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+# To eliminate this warning, add "type": "module" to C:\\Users\\Rasmus\\.codex\\worktrees\\epic14-scheduling\\ElproSaas\\package.json.
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: [P0] 14.3-UNIT-001 shared assignee emits exact stable pair/person/window
+ok 4 - [P0] 14.3-UNIT-001 shared assignee emits exact stable pair/person/window # SKIP
+  ---
+  duration_ms: 0.4851
+  type: 'test'
+  ...
+# Subtest: [P1] 14.3-UNIT-002 adjacent half-open intervals clear, microsecond overlap real
+ok 5 - [P1] 14.3-UNIT-002 adjacent half-open intervals clear, microsecond overlap real # SKIP
+  ---
+  duration_ms: 0.0925
+  type: 'test'
+  ...
+# Subtest: [P1] 14.3-UNIT-003 only colliding people appear, permutations have identical bytes
+ok 6 - [P1] 14.3-UNIT-003 only colliding people appear, permutations have identical bytes # SKIP
+  ---
+  duration_ms: 0.0423
+  type: 'test'
+  ...
+# Subtest: [P1] 14.3-UNIT-005 outside actual shifts retains partial/whole violating windows
+ok 7 - [P1] 14.3-UNIT-005 outside actual shifts retains partial/whole violating windows # SKIP
+  ---
+  duration_ms: 0.0328
+  type: 'test'
+  ...
+# Subtest: [P1] 14.3-UNIT-006 split shifts, break and overlapping absence/blocked emit one identity
+ok 8 - [P1] 14.3-UNIT-006 split shifts, break and overlapping absence/blocked emit one identity # SKIP
+  ---
+  duration_ms: 0.4774
+  type: 'test'
+  ...
+# Subtest: [P1] 14.3-UNIT-007 only supplied access window emits exact warning
+ok 9 - [P1] 14.3-UNIT-007 only supplied access window emits exact warning # SKIP
+  ---
+  duration_ms: 0.0345
+  type: 'test'
+  ...
+# Subtest: [P1] 14.3-UNIT-008 explicit missing required role warns, matching role clears it
+ok 10 - [P1] 14.3-UNIT-008 explicit missing required role warns, matching role clears it # SKIP
+  ---
+  duration_ms: 0.0668
+  type: 'test'
+  ...
+# Subtest: [P1] 14.3-UNIT-011 frozen inputs yield sorted byte-identical output without clock/I/O
+ok 11 - [P1] 14.3-UNIT-011 frozen inputs yield sorted byte-identical output without clock/I/O # SKIP
+  ---
+  duration_ms: 0.0285
+  type: 'test'
+  ...
+# Subtest: [P1] 14.3-UNIT-014 named immutable miss/phantom packs protect every corrected defect
+ok 12 - [P1] 14.3-UNIT-014 named immutable miss/phantom packs protect every corrected defect # SKIP
+  ---
+  duration_ms: 0.1153
+  type: 'test'
+  ...
+# (node:51392) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/Rasmus/.codex/worktrees/epic14-scheduling/ElproSaas/tests/unit/features/scheduling/dst.golden.test.ts is not specified and it doesn't parse as CommonJS.
+# Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+# To eliminate this warning, add "type": "module" to C:\\Users\\Rasmus\\.codex\\worktrees\\epic14-scheduling\\ElproSaas\\package.json.
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: [P1] 14.3-UNIT-009 spring gap uses first valid instant across all-day/multi-day
+ok 13 - [P1] 14.3-UNIT-009 spring gap uses first valid instant across all-day/multi-day # SKIP
+  ---
+  duration_ms: 0.4568
+  type: 'test'
+  ...
+# Subtest: [P1] 14.3-UNIT-010 fall fold uses earlier instant and retains exact microseconds
+ok 14 - [P1] 14.3-UNIT-010 fall fold uses earlier instant and retains exact microseconds # SKIP
+  ---
+  duration_ms: 0.0637
+  type: 'test'
+  ...
+1..14
+# tests 14
+# suites 0
+# pass 0
+# fail 0
+# cancelled 0
+# skipped 14
+# todo 0
+# duration_ms 167.3571

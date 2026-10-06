@@ -1,0 +1,128 @@
+{
+  "story_id": "14.3",
+  "tdd_phase": "RED scaffolds",
+  "total_named_scaffolds": 20,
+  "unit_scaffolds": 14,
+  "integration_scaffolds": 6,
+  "e2e_scaffolds": 0,
+  "all_tests_skipped": true,
+  "executed_acceptance": 0,
+  "generated_test_files": [
+    "tests/integration/commands/booking-conflicts.int.test.ts",
+    "tests/unit/features/scheduling/conflicts.test.ts",
+    "tests/unit/features/scheduling/capacity.golden.test.ts",
+    "tests/unit/features/scheduling/dst.golden.test.ts"
+  ],
+  "ids": [
+    "14.3-INT-001",
+    "14.3-INT-002",
+    "14.3-INT-003",
+    "14.3-INT-004",
+    "14.3-INT-005",
+    "14.3-INT-006",
+    "14.3-UNIT-001",
+    "14.3-UNIT-002",
+    "14.3-UNIT-003",
+    "14.3-UNIT-004",
+    "14.3-UNIT-005",
+    "14.3-UNIT-006",
+    "14.3-UNIT-007",
+    "14.3-UNIT-008",
+    "14.3-UNIT-009",
+    "14.3-UNIT-010",
+    "14.3-UNIT-011",
+    "14.3-UNIT-012",
+    "14.3-UNIT-013",
+    "14.3-UNIT-014"
+  ],
+  "transferred_required": [
+    "14.3-INT-003",
+    "14.3-INT-004",
+    "14.3-INT-005",
+    "14.3-INT-006"
+  ],
+  "model": "gpt-6.1-sol",
+  "effort": "high",
+  "execution_mode": "subagent API + sequential unit/E2E after host second-child refusal",
+  "performance_gain": "not measured",
+  "collection": {
+    "unit": {
+      "native_exit": 0,
+      "collected": 14,
+      "executed_acceptance": 0,
+      "passed": 0,
+      "failed": 0,
+      "skipped": 14,
+      "output": "_bmad-output\\test-artifacts\\atdd-story14-3-unit-collection-results.tap"
+    },
+    "integration": {
+      "native_exit": 0,
+      "collected": 6,
+      "executed_acceptance": 0,
+      "passed": 0,
+      "failed": 0,
+      "pending": 6,
+      "api_port": 55421,
+      "db_port": 55422,
+      "required": true,
+      "output": "_bmad-output\\test-artifacts\\atdd-story14-3-integration-collection-results.json"
+    }
+  },
+  "acceptance_execution": "not executed",
+  "fixture_needs": [
+    "Bind loadConflictBindings to actual checked snapshot/finalize RPCs, sole detector, internal preview and dedicated actual signing exports",
+    "Bind real command observer using narrow after-snapshot barrier without replacing actual provider behavior",
+    "Bind actual new SQL signatures/arguments; checked snapshot adapter preserves provider error code",
+    "Bind existing verified-email invitation fixture and real admin_accept_membership_invitation writer row barrier",
+    "Bootstrap synthetic LOCAL/CI key/Vault through authorized existing fixture mechanism before activating; no .env read/edit performed",
+    "scheduling-atdd data contracts",
+    "four new-expected golden packs"
+  ],
+  "outcome": "complete scaffold/checklist handoff; implementation and acceptance execution pending",
+  "tested_head": "ad4642a1317251be2f7ba32a22908d5e656bf4fc",
+  "named_scaffold_priorities": {
+    "P0": 5,
+    "P1": 15
+  },
+  "typecheck": {
+    "initial_native_exit": 2,
+    "initial_errors": 3,
+    "repair": "Use Promise<Awaited<RPC>> for eagerly started post-wait replay; preserve all assertions",
+    "final_native_exit": 0,
+    "output": "_bmad-output\\test-artifacts\\atdd-story14-3-typecheck-results.txt",
+    "initial_output": "_bmad-output\\test-artifacts\\atdd-story14-3-typecheck-initial-errors.txt"
+  },
+  "executed_red": false,
+  "executed_green": false,
+  "files_changed_absolute": [
+    "C:\\Users\\Rasmus\\.codex\\worktrees\\epic14-scheduling\\ElproSaas\\_bmad-output\\test-artifacts\\atdd-checklist-spec-14-3-deterministic-conflict-engine-detection-core.md",
+    "C:\\Users\\Rasmus\\.codex\\worktrees\\epic14-scheduling\\ElproSaas\\_bmad-output\\test-artifacts\\atdd-story14-3-integration-collection-results.json",
+    "C:\\Users\\Rasmus\\.codex\\worktrees\\epic14-scheduling\\ElproSaas\\_bmad-output\\test-artifacts\\atdd-story14-3-typecheck-initial-errors.txt",
+    "C:\\Users\\Rasmus\\.codex\\worktrees\\epic14-scheduling\\ElproSaas\\_bmad-output\\test-artifacts\\atdd-story14-3-typecheck-results.txt",
+    "C:\\Users\\Rasmus\\.codex\\worktrees\\epic14-scheduling\\ElproSaas\\_bmad-output\\test-artifacts\\atdd-story14-3-unit-collection-results.tap",
+    "C:\\Users\\Rasmus\\.codex\\worktrees\\epic14-scheduling\\ElproSaas\\_bmad-output\\test-artifacts\\tea-atdd-api-tests-story14-3-2026-10-06.json",
+    "C:\\Users\\Rasmus\\.codex\\worktrees\\epic14-scheduling\\ElproSaas\\_bmad-output\\test-artifacts\\tea-atdd-e2e-tests-story14-3-2026-10-06.json",
+    "C:\\Users\\Rasmus\\.codex\\worktrees\\epic14-scheduling\\ElproSaas\\_bmad-output\\test-artifacts\\tea-atdd-summary-story14-3-2026-10-06.json",
+    "C:\\Users\\Rasmus\\.codex\\worktrees\\epic14-scheduling\\ElproSaas\\_bmad-output\\test-artifacts\\tea-atdd-unit-tests-story14-3-2026-10-06.json",
+    "C:\\Users\\Rasmus\\.codex\\worktrees\\epic14-scheduling\\ElproSaas\\tests\\fixtures\\golden\\scheduling\\capacity.json",
+    "C:\\Users\\Rasmus\\.codex\\worktrees\\epic14-scheduling\\ElproSaas\\tests\\fixtures\\golden\\scheduling\\conflicts.json",
+    "C:\\Users\\Rasmus\\.codex\\worktrees\\epic14-scheduling\\ElproSaas\\tests\\fixtures\\golden\\scheduling\\dst.json",
+    "C:\\Users\\Rasmus\\.codex\\worktrees\\epic14-scheduling\\ElproSaas\\tests\\fixtures\\golden\\scheduling\\regressions.json",
+    "C:\\Users\\Rasmus\\.codex\\worktrees\\epic14-scheduling\\ElproSaas\\tests\\integration\\commands\\booking-conflicts.int.test.ts",
+    "C:\\Users\\Rasmus\\.codex\\worktrees\\epic14-scheduling\\ElproSaas\\tests\\support\\booking-conflicts-atdd.ts",
+    "C:\\Users\\Rasmus\\.codex\\worktrees\\epic14-scheduling\\ElproSaas\\tests\\support\\scheduling-atdd.ts",
+    "C:\\Users\\Rasmus\\.codex\\worktrees\\epic14-scheduling\\ElproSaas\\tests\\unit\\features\\scheduling\\capacity.golden.test.ts",
+    "C:\\Users\\Rasmus\\.codex\\worktrees\\epic14-scheduling\\ElproSaas\\tests\\unit\\features\\scheduling\\conflicts.test.ts",
+    "C:\\Users\\Rasmus\\.codex\\worktrees\\epic14-scheduling\\ElproSaas\\tests\\unit\\features\\scheduling\\dst.golden.test.ts"
+  ],
+  "open_questions": [],
+  "blockers": [],
+  "nested_integration_subcases": {
+    "AC10": 14,
+    "AC11": 29,
+    "executed": 0
+  },
+  "spec_unchanged": true,
+  "resources_started": false,
+  "git_mutations": false
+}

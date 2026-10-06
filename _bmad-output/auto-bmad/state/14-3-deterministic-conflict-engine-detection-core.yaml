@@ -9,33 +9,34 @@ spec_folder: null
 story_id: null
 branch: epic/14-wave-b1b-resource-and-scheduling-foundation
 status: in-progress
-updated_at: "2026-10-06T11:55:33Z"
+updated_at: "2026-10-06T12:06:32Z"
 started_at: "2026-10-06T11:47:14Z"
 completed_at: null
-active_seconds: 497
-timing_anchor: 1791287733
+active_seconds: 1155
+timing_anchor: 1791288392
 is_first_in_epic: false
 is_last_in_epic: false
 git_mode: remote
 base_branch: main
-selected_phase: tea_per_story
-selected_role: tea-delegate
+selected_phase: build
+selected_role: build-delegate
 selected_profile: standard
 selected_model: gpt-6.1-sol
 selected_effort: high
 selected_host: codex
 selected_tier: subagents
 selected_route: subagent
-escalation_reason: "Automatic sensitive-task escalation: rls, transactional-integrity"
+escalation_reason: "Automatic sensitive-task escalation: authorization, rls, transactional-integrity"
 routing_ledger:
   - "{\"effort\":\"high\",\"escalation_reason\":\"Automatic sensitive-task escalation: rls, transactional-integrity\",\"host\":\"codex\",\"model\":\"gpt-6.1-sol\",\"phase\":\"build\",\"profile\":\"standard\",\"role\":\"build-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
   - "{\"effort\":\"high\",\"escalation_reason\":\"Automatic sensitive-task escalation: rls, transactional-integrity\",\"host\":\"codex\",\"model\":\"gpt-6.1-sol\",\"phase\":\"tea_per_story\",\"profile\":\"standard\",\"role\":\"tea-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"high\",\"escalation_reason\":\"Automatic sensitive-task escalation: authorization, rls, transactional-integrity\",\"host\":\"codex\",\"model\":\"gpt-6.1-sol\",\"phase\":\"build\",\"profile\":\"standard\",\"role\":\"build-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
 tea_risk: high
 tea_selected: [atdd, automate]
 tea_rationale: Scheduling/DST boundaries and authoritative atomic conflict persistence.
 epic_story_count: 4
 stories_after_in_epic: 1
-completed_phases: [0, 1, 2, 3]
+completed_phases: [0, 1, 2, 3, 4]
 spec_path: "C:\\Users\\Rasmus\\.codex\\worktrees\\epic14-scheduling\\ElproSaas\\_bmad-output\\implementation-artifacts\\spec-14-3-deterministic-conflict-engine-detection-core.md"
 spec_approved: true
 build:
@@ -55,7 +56,7 @@ legacy_review_loop_done: false
 legacy_external_review_iterations: null
 legacy_convergence_unverified: false
 legacy_artifact_path: null
-commits: [d0e9cc3e]
+commits: [d0e9cc3e, ad4642a1]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -92,6 +93,15 @@ overrides:
   explicit_test_api_port: 55421
   acceptance_contract_c_owner_approved: true
   no_hosted_changes: true
+  atdd_unit_collected: 14
+  atdd_collected: 20
+  atdd_typecheck_native_exit: 0
+  atdd_sequential_fallback: "Host thread capacity; API High child, unit/E2E owner High sequential"
+  atdd_integration_collected: 6
+  atdd_e2e_applicability: N/A foundation no UI
+  atdd_native_exit: 0
+  atdd_skipped: 20
+  atdd_executed: 0
 constraints:
   - "Approved Story14.3 scope and PhaseB manifest only; resources active, scheduling pending untilEpic15."
   - Allfour transferred conflict checks mandatory before14.4/EpicPR.
