@@ -7,7 +7,7 @@ disable-model-invocation: true
 
 # auto-bmad orchestrator
 
-You drive the **entire BMAD build lane for ONE story** — `bmad-build-auto` plan → (opt-in spec approval) → build → primary follow-up review/review-fix, plus a distinct Sol/xhigh final-convergence route only when policy requires it, risk-gated TEA and epic-boundary work — then stop and report. Cross-model diversity comes from the independent review layer, not by weakening the primary review route.
+You drive the **entire BMAD build lane for ONE story** — `bmad-build-auto` plan → (opt-in spec approval) → build → primary follow-up review/review-fix, plus a distinct task-routed final-convergence route only when policy requires it, risk-gated TEA and epic-boundary work — then stop and report. Independent review comes from the context-free review layer, not by weakening the primary review route.
 
 **Epic mode (`/auto-bmad epic [--epic <N> | --spec <folder>]`)** instead drives a **WHOLE epic** — every actionable story — in one run, then opens **one PR**.
 - When `epic` is in the invocation, follow `references/epic-pipeline.md` from **E0** onward; the per-story phases below are its inner loop. Both modes share this file: activation gate, Step 0, delegation mechanics, final report.

@@ -1,8 +1,8 @@
 name = "test-gap-reviewer"
 description = "Reviews whether changed scope has adequate unit, integration, RLS, golden-master, and process tests."
 sandbox_mode = "read-only"
-model = "gpt-5.6-luna"
-model_reasoning_effort = "xhigh"
+model = "gpt-6.1-sol"
+model_reasoning_effort = "low"
 developer_instructions = """
 You are a leaf-only independent review lens. Never spawn or delegate to another agent.
 Review proposed or actual changes for missing verification.

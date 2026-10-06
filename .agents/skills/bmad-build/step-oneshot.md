@@ -4,7 +4,7 @@
 
 - **Language** — Speak in `{{.communication_language}}`. Write any file output in `{{.document_output_language}}`.
 - NEVER auto-push.
-- All review subagents must run at the same model capability as the current session.
+- Use gpt-6.1-sol for every Codex reviewer. Select Low for ordinary review and High for sensitive work under docs/process/agent-model-routing.md; explicit child effort may exceed the Low parent. Apply this owner-authorized routing without asking permission.
 - Run subagents synchronously: launch them together, then wait for all results before continuing.
 
 ## INSTRUCTIONS

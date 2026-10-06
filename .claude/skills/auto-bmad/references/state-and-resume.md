@@ -47,16 +47,16 @@ build:
   spec_approval: false              # opt-in per-story HITL halt between Phase 3 (plan) and Phase 4/5 (constant default; a run can also
                                     #   ask for it in its instructions; never in epic mode)
 profiles:                           # copied VERBATIM (block style) from assets/profiles.yaml at first run — model/effort ONLY, no persona
-  default: {…}                      # Codex shipped pair: gpt-5.6-terra/medium (unspecified, read-heavy exploration/docs/repo mapping)
+  default: {…}                      # Codex shipped pair: gpt-6.1-sol/low (unspecified, read-heavy exploration/docs/repo mapping)
   light:                            #   strings. Shown flow-style here for brevity:
     claude: {model: sonnet, effort: high}              # claude.model = the Agent tool's per-call model; claude.effort is used ONLY by the
                                                        #   cli_phases route / cross-model layer (`claude -p --effort`)
-    codex: {model: gpt-5.6-luna, reasoning_effort: medium}  # both are per-call knobs of Codex's spawn_agent (and `codex exec`)
+    codex: {model: gpt-6.1-sol, reasoning_effort: low}  # both are per-call knobs of Codex's spawn_agent (and `codex exec`)
     opencode: {model: "", variant: ""}                 # BOTH used ONLY by the cli_phases route / cross-model layer (`opencode run -m/--variant`);
                                                        #   in-tool opencode subagents inherit the user's default model; ships BLANK (inherit)
-  standard: {…}                     # Codex shipped pair: gpt-5.6-terra/high
-  critical: {…}                     # Codex shipped pair: gpt-5.6-sol/xhigh
-  diverse_review: {…}               # Codex shipped pair: gpt-5.6-luna/xhigh (leaf reviewer; not a nesting parent)
+  standard: {…}                     # Codex shipped pair: gpt-6.1-sol/low
+  critical: {…}                     # Codex shipped pair: gpt-6.1-sol/high
+  diverse_review: {…}               # Codex shipped pair: gpt-6.1-sol/low (High for sensitive scope; independent reviewer; not a nesting parent)
                                     # + any CUSTOM profile (any name, same field set) — phase_profiles may name shipped or custom profiles
 phase_profiles: {…}                 # build, followup_review, final_convergence, security_layer, cross_model_layer, tea_triage, tea_per_story, tea_epic,
                                     #   tea_epic_audit, retrospective, deferred_reconcile — the SINGLE phase->profile binding
@@ -99,14 +99,14 @@ base_branch: main
 selected_phase: followup_review     # exact persisted dispatch capsule; route-select writes all nine selection fields before launch
 selected_role: primary-reviewer     # explicit role (critical roles are never inferred)
 selected_profile: standard
-selected_model: gpt-5.6-terra
-selected_effort: high
+selected_model: gpt-6.1-sol
+selected_effort: low
 selected_host: codex
 selected_tier: subagents
 selected_route: subagent            # subagent | inline | cli:claude | cli:codex | cli:opencode
-escalation_reason: null             # required when changing an in-flight phase's route; stepwise Luna/medium -> Terra/high -> Sol/xhigh
+escalation_reason: null             # required when changing an in-flight phase's route; automatic Low -> High allowed for sensitive work; no permission checkpoint
 routing_ledger:                     # append-only canonical JSON selections; the flat fields above are the resume capsule
-  - '{"effort":"high","escalation_reason":"","host":"codex","model":"gpt-5.6-terra","phase":"followup_review","profile":"standard","role":"primary-reviewer","route":"subagent","tier":"subagents"}'
+  - '{"effort":"low","escalation_reason":"Ordinary task uses Low effort","host":"codex","model":"gpt-6.1-sol","phase":"followup_review","profile":"standard","role":"primary-reviewer","route":"subagent","tier":"subagents"}'
 tea_risk: high                   # low|med|high from Phase 0 triage (input: the epics doc entry); gates per-story TEA + the trace advisory
 tea_selected: [atdd, automate]   # from triage; [] if trivial or TEA off; may also include trace-advisory (long-epic high-risk)
 tea_rationale: "touches auth -> High risk"
@@ -235,8 +235,8 @@ python3 {skill-root}/scripts/state_plan.py --state-dir {output_folder}/auto-bmad
 ```
 - `resume: true` (file exists, `status != done`) → **resume**:
   - Skip phases already in `completed_phases`.
-  - Reuse the persisted `selected_*` route capsule when resuming the same in-flight phase. Re-run `state_update.py route-select` with that exact selection: it returns `resumed: true` and does not append the ledger. Governed Codex phases validate the exact role/profile/model/effort tuple listed in `delegation-runtime.md`; aliases and mislabeled critical roles are rejected. A route change requires a non-empty `escalation_reason`; known Codex escalation for ungoverned/custom work is stepwise only (`Luna/medium → Terra/high → Sol/xhigh`), never a downgrade or direct Luna→Sol jump. A newly entered critical phase starts directly at Sol/xhigh.
-  - **Pre-v0.30 legacy story/state:** `state_update.py` preserves old review counters in `legacy_*` evidence and sets `legacy_review_resume: true`; it never maps the old count into current passes. If `story_plan.py --find-spec` returns `artifact_format: legacy-story`, do not dispatch it to build-auto. Run the explicit adoption helper read-only first, using a confirmed historical baseline and created date: `python3 {skill-root}/scripts/story_plan.py --adopt-legacy-spec --impl-dir <impl> --story-key <key> --state-file <state> --baseline-revision <rev> --created <YYYY-MM-DD>`. Inspect the plan, then repeat with `--write`. For Story 10.6 the confirmed baseline is `e90ec0e`. The helper preserves the body as `legacy-v024-<key>.md`, creates the one recognized `spec-<key>.md`, verifies current parser output, records `overrides.legacy_adoption: v0.24-to-v0.31` + `start_phase: 7`, and resumes through the explicit `final_convergence` Sol/xhigh phase. If both legacy and modern files exist, content differs, or baseline/evidence is missing, hard-stop; never guess or restart.
+  - Reuse a current persisted route capsule on resume; `route-select` is idempotent. Ordinary development and review default Low, sensitive domains select High via `effort_policy.py`, and unresolved non-sensitive work can use Medium. Role/profile/model remain validated. Increasing effort is already owner-authorized, including direct Low-to-High, but records a reason. Do not downgrade the same in-flight task. For a pre-policy model capsule, migrate with a recorded owner-policy reason and retain its old ledger entry. Security and critical architecture/conflict phases start High; final settling is Low unless its actual scope is sensitive.
+  - **Pre-v0.30 legacy story/state:** `state_update.py` preserves old review counters in `legacy_*` evidence and sets `legacy_review_resume: true`; it never maps the old count into current passes. If `story_plan.py --find-spec` returns `artifact_format: legacy-story`, do not dispatch it to build-auto. Run the explicit adoption helper read-only first, using a confirmed historical baseline and created date: `python3 {skill-root}/scripts/story_plan.py --adopt-legacy-spec --impl-dir <impl> --story-key <key> --state-file <state> --baseline-revision <rev> --created <YYYY-MM-DD>`. Inspect the plan, then repeat with `--write`. For Story 10.6 the confirmed baseline is `e90ec0e`. The helper preserves the body as `legacy-v024-<key>.md`, creates the one recognized `spec-<key>.md`, verifies current parser output, records `overrides.legacy_adoption: v0.24-to-v0.31` + `start_phase: 7`, and resumes through the explicit `final_convergence` task-routed phase. If both legacy and modern files exist, content differs, or baseline/evidence is missing, hard-stop; never guess or restart.
   - Phase 3: the resume matrix in `pipeline.md` P3.2.
   - Spec-approval halt: re-opened before Phase 4/5 per `pipeline.md` Phase 3 step 6.
   - Phase 5 re-invokes build-auto with the spec path — build-auto routes by the spec's own status (`ready-for-dev` / `in-progress` / `in-review`); a `blocked` spec ⇒ needs-human (recovery text: `pipeline.md` Phase 5).

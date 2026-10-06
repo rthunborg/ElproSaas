@@ -10,7 +10,7 @@ failed_layers: '' # set at runtime: comma-separated list of layers that failed o
 - The Blind Hunter subagent receives NO project context — diff only.
 - The Edge Case Hunter subagent receives diff and project read access.
 - The Acceptance Auditor subagent receives diff, spec, and context docs.
-- All review subagents must run at the same model capability as the current session.
+- Use gpt-6.1-sol for every Codex reviewer. Select Low for ordinary review and High for sensitive work under docs/process/agent-model-routing.md; explicit child effort may exceed the Low parent. Apply this owner-authorized routing without asking permission.
 
 ## INSTRUCTIONS
 

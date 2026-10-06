@@ -1,3 +1,6 @@
+model = "gpt-6.1-sol"
+model_reasoning_effort = "low"
+
 approval_policy = "on-request"
 sandbox_mode = "workspace-write"
 
@@ -13,5 +16,33 @@ network_access = true
 [agents]
 max_threads = 4
 max_depth = 1
-default_subagent_model = "gpt-5.6-terra"
-default_subagent_reasoning_effort = "medium"
+default_subagent_model = "gpt-6.1-sol"
+default_subagent_reasoning_effort = "low"
+
+[agents.docs-writer]
+description = "Creates and updates project documentation."
+config_file = "agents/docs-writer.toml"
+
+[agents.legacy-oracle-explorer]
+description = "Explores the legacy app as a behavior oracle."
+config_file = "agents/legacy-oracle-explorer.toml"
+
+[agents.money-tax-reviewer]
+description = "Reviews money, tax, pricing, and quote correctness."
+config_file = "agents/money-tax-reviewer.toml"
+
+[agents.phase-scope-reviewer]
+description = "Reviews manifest-governed Phase B scope."
+config_file = "agents/phase-scope-reviewer.toml"
+
+[agents.pr-reviewer]
+description = "Performs final PR review and convergence."
+config_file = "agents/pr-reviewer.toml"
+
+[agents.security-rls-reviewer]
+description = "Reviews authentication, tenant isolation, and RLS."
+config_file = "agents/security-rls-reviewer.toml"
+
+[agents.test-gap-reviewer]
+description = "Reviews test coverage and verification gaps."
+config_file = "agents/test-gap-reviewer.toml"

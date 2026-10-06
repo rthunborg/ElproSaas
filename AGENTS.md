@@ -26,6 +26,29 @@ Mandatory rules:
 - Use the deeper docs in `docs/process`, `docs/quality`, `docs/security`, and `_bmad-output/project-context.md`.
 - A live demo deployment exists (Vercel `enhancior/elpro-saas` + Supabase `elprosaas-demo`): see [docs/process/demo-environment.md](docs/process/demo-environment.md). Migrations flow repo→demo via `supabase db push` after merge; CI and tests never target the demo project.
 
+## Agent Model and Effort
+
+Use `gpt-6.1-sol` for every Codex primary agent, generic subagent, named role,
+and external Codex review in this project. Use `low` by default for ordinary
+BMAD development AND review, including implementation, documentation, planning
+and follow-up review; `high` for tenant isolation, tenancy/provisioning, RBAC,
+permissions, authentication/authorization, security/RLS, secrets/public tokens,
+money/tax, transactional integrity and critical conflict resolution. Use Medium
+only when a non-sensitive Low attempt needs additional reasoning. This owner
+decision supersedes the installed BMAD instructions' older model preferences.
+
+Apply the policy to every nested handoff as well as the orchestrator. Record
+BMAD route choices before dispatch, retain independent review, and escalate an
+in-flight task's effort with a recorded reason instead of changing models.
+Effort selection and escalation are already authorized: never ask permission
+for them. A Low orchestrator explicitly spawns a High delegate for sensitive
+work; every nested implementation/review handoff does the same. Select from
+the actual task/diff, not the mere presence of tenancy boilerplate in this
+multi-tenant project. Do not inherit Low for a sensitive task or claim the
+running primary session was reconfigured when only a delegate was changed.
+See [the routing policy](docs/process/agent-model-routing.md) for settings,
+phase defaults, task-specific overrides and session reload limits.
+
 ## Code Review Rules
 
 - Future completed implementation stories must contain one author-written `## Suggested Review Order`, following [the project convention](docs/process/review-order.md). The implementation/fix author refreshes rationale, verified stops and evidence after fixes; reviewers check it against the final change. Use the project BMAD hooks and section scaffold; do not backfill historical stories. The auto-bmad root delegates this work and never authors story code or spec content.

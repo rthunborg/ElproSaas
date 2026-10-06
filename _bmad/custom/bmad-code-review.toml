@@ -1,5 +1,8 @@
 [workflow]
-persistent_facts = ["file:{project-root}/docs/process/review-order.md"]
+activation_steps_append = ['''
+Read {project-root}/docs/process/agent-model-routing.md. Use gpt-6.1-sol Low for ordinary development and review. Assess the actual task/diff; tenant isolation, tenancy/provisioning, RBAC, permissions, auth, security/RLS, secrets/public-token boundaries, money/tax and transactional integrity require High. Effort selection/escalation is owner-authorized; never ask permission. If the current Low session cannot perform the selected higher-effort work, dispatch a generic context-free High delegate synchronously and use its result. Explicit effort overrides may exceed the Low parent; an already-routed delegate does not recursively re-delegate solely for effort. Preserve all unrelated authorization, sandbox, resource, test and review rules.
+''']
+persistent_facts = ["file:{project-root}/docs/process/review-order.md", "file:{project-root}/docs/process/agent-model-routing.md"]
 on_complete = '''
 For an implementation story reviewed in this run, verify its Suggested Review Order matches the final diff and evidence under {project-root}/docs/process/review-order.md. If this run applied fixes, send the final trail refresh to the implementation/fix author and follow that document's Completion-hook protocol before returning. A read-only reviewer reports mismatches but does not invent or write author rationale. Do not backfill completed historical stories or add an owner-confirmation checkpoint.
 '''
