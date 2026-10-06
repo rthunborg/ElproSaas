@@ -10,6 +10,11 @@ import {
 } from "../../support/test-env";
 
 const originalFetch = globalThis.fetch;
+// Expected authority comes from the controlled test input, independently of
+// the implementation's configured-URL export.
+const configuredOrigin = new URL(
+  process.env.SUPABASE_TEST_URL ?? "http://127.0.0.1:54321",
+).origin;
 
 afterEach(() => {
   globalThis.fetch = originalFetch;
@@ -33,7 +38,7 @@ test("records only allowlisted details for an Auth HTTP failure", async () => {
     {
       surface: "auth",
       method: "GET",
-      origin: "http://127.0.0.1:54321",
+      origin: configuredOrigin,
       status: 503,
       reason: "http_status",
       attempts: 1,
@@ -61,7 +66,7 @@ test("records a timeout reason without retaining an error payload", async () => 
     {
       surface: "storage",
       method: "GET",
-      origin: "http://127.0.0.1:54321",
+      origin: configuredOrigin,
       status: null,
       reason: "timeout",
       attempts: 2,
