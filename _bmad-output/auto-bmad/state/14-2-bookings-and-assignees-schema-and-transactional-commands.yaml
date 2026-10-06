@@ -9,43 +9,44 @@ spec_folder: null
 story_id: null
 branch: epic/14-wave-b1b-resource-and-scheduling-foundation
 status: in-progress
-updated_at: "2026-10-06T10:12:35Z"
+updated_at: "2026-10-06T11:17:10Z"
 started_at: "2026-10-02T19:08:54Z"
 completed_at: null
-active_seconds: 1981
-timing_anchor: 1791281555
+active_seconds: 5855
+timing_anchor: 1791285430
 is_first_in_epic: false
 is_last_in_epic: false
 git_mode: remote
 base_branch: main
-selected_phase: build
-selected_role: build-delegate
+selected_phase: tea_per_story
+selected_role: tea-delegate
 selected_profile: standard
 selected_model: gpt-6.1-sol
 selected_effort: high
 selected_host: codex
 selected_tier: subagents
 selected_route: subagent
-escalation_reason: "Automatic sensitive-task escalation: authorization, rls, transactional-integrity"
+escalation_reason: "Automatic sensitive-task escalation: rls, transactional-integrity"
 routing_ledger:
   - "{\"effort\":\"medium\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-luna\",\"phase\":\"tea_triage\",\"profile\":\"light\",\"role\":\"test-risk-triage\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
   - "{\"effort\":\"high\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-terra\",\"phase\":\"build\",\"profile\":\"standard\",\"role\":\"build-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
   - "{\"effort\":\"high\",\"escalation_reason\":\"Automatic sensitive-task escalation: rls, transactional-integrity\",\"host\":\"codex\",\"model\":\"gpt-6.1-sol\",\"phase\":\"build\",\"profile\":\"standard\",\"role\":\"build-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
   - "{\"effort\":\"high\",\"escalation_reason\":\"Automatic sensitive-task escalation: rls, transactional-integrity\",\"host\":\"codex\",\"model\":\"gpt-6.1-sol\",\"phase\":\"tea_per_story\",\"profile\":\"standard\",\"role\":\"tea-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
   - "{\"effort\":\"high\",\"escalation_reason\":\"Automatic sensitive-task escalation: authorization, rls, transactional-integrity\",\"host\":\"codex\",\"model\":\"gpt-6.1-sol\",\"phase\":\"build\",\"profile\":\"standard\",\"role\":\"build-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"high\",\"escalation_reason\":\"Automatic sensitive-task escalation: rls, transactional-integrity\",\"host\":\"codex\",\"model\":\"gpt-6.1-sol\",\"phase\":\"tea_per_story\",\"profile\":\"standard\",\"role\":\"tea-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
 tea_risk: high
 tea_selected: [atdd, automate]
 tea_rationale: "Schema migrations, atomic transactional mutations, idempotency, RLS authorization and cross-tenant isolation."
 epic_story_count: 4
 stories_after_in_epic: 2
-completed_phases: [0, 1, 2, 3, 4]
+completed_phases: [0, 1, 2, 3, 4, 5]
 spec_path: "C:\\Users\\Rasmus\\.codex\\worktrees\\epic14-scheduling\\ElproSaas\\_bmad-output\\implementation-artifacts\\spec-14-2-bookings-and-assignees-schema-and-transactional-commands.md"
 spec_approved: true
 build:
-  status: ready-for-dev
+  status: done
   blocking_condition: null
-  followup_review_recommended: false
-  review_loop_iteration: 0
+  followup_review_recommended: true
+  review_loop_iteration: 1
   deferred_count: 0
   warnings: [oversized]
 followup_passes: 0
@@ -58,7 +59,7 @@ legacy_review_loop_done: false
 legacy_external_review_iterations: null
 legacy_convergence_unverified: false
 legacy_artifact_path: null
-commits: [8db3b22, 7c434b04, 4d2f29a, cd0b677]
+commits: [8db3b22, 7c434b04, 4d2f29a, cd0b677, 4947dbb4, e1f2c7d6, 079e1053]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -88,7 +89,7 @@ overrides:
   epic_start_authorized_by_owner: true
   unattended_run_confirmed_by_owner_request: true
   owner_requested_resume_on: 2026-10-02
-  root_guard_resource_id: e0fb5305-db36-4212-b26b-34f7648570ff
+  root_guard_resource_id: ebd5df87-f814-496f-94b9-c2371fc9e156
   root_app_server_resource_id: b95629c8-276b-4f5f-828c-ba3ec93c4362
   root_browser_resource_id: d0ae81e5-33cc-4eee-8299-b601bb93ef69
   root_browser_cdp_endpoint: "http://127.0.0.1:59391"
@@ -96,7 +97,7 @@ overrides:
   explicit_test_db_port: 55422
   no_hosted_changes: true
   no_data_reset: true
-  root_guard_stop_requested: true
+  root_guard_stop_requested: false
   root_guard_shutdown_verified: false
   root_app_server_stop_requested: true
   root_app_server_shutdown_verified: false
@@ -107,13 +108,27 @@ overrides:
   acceptance_contract_c_owner_approved: true
   acceptance_contract_c: "14.2 retains schema/RLS/auth/idempotency/rollback/booking-assignee-audit atomicity. Conflict portion of INT-001, INT-002, INT-007, INT-008 moves to 14.3; mandatory equivalent P0 before 14.4 and epic PR; no user-facing booking entry before detector integration."
   acceptance_contract_c_document: docs/decisions/epic-14-story-ownership-contract-c-2026-10-06.md
-  current_story_build_status: draft
+  current_story_build_status: done
   atdd_skipped: 18
   atdd_executed: 0
   atdd_collected: 18
   atdd_native_exit: 0
   atdd_typecheck_native_exit: 0
   atdd_e2e_applicability: N/A foundation has no UI
+  acceptance_skipped: 0
+  unit_skipped: 1
+  empty_chain_ci_required: true
+  high_critical_audit_count: 0
+  moderate_audit_count: 2
+  retained_acceptance_executed: 18
+  historical_quote_send_time_failure_cause: unconfirmed
+  regression_acceptance_executed: 3
+  unit_failed: 0
+  unit_passed: 1962
+  empty_chain_ci_executed: false
+  integration_passed: 1293
+  integration_failed: 0
+  integration_skipped: 1
 constraints:
   - "Approved Story 14.2 and Phase B manifest governance only; broader scheduling activation remains Epic15, retain hard Phase C exclusions."
   - "Use verified isolated 55421/55422 guarded local stack, SQL-only migrations, explicit test aliases, no reset or migration ledger edits."

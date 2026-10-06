@@ -60,7 +60,7 @@
 # use the current Epic 10 statuses and approved corrective-story entries below.
 
 generated: 2026-06-12
-last_updated: 10-06-2026 12:12  # ADR-B009 connected-field course correction verified; governance Story 10.7 done, no PWA/offline functionality delivered.
+last_updated: 10-06-2026 13:17  # ADR-B009 connected-field course correction verified; governance Story 10.7 done, no PWA/offline functionality delivered.
 project: ElproSaas
 project_key: NOKEY
 tracking_system: file-system
@@ -246,7 +246,7 @@ development_status:
   # technical prerequisite). N-9 is answered; conflict/capacity fixtures can harden.
   epic-14: in-progress
   14-1-scheduling-activation-person-profiles-and-work-hours: review
-  14-2-bookings-and-assignees-schema-and-transactional-commands: in-progress
+  14-2-bookings-and-assignees-schema-and-transactional-commands: review
   14-3-deterministic-conflict-engine-detection-core: backlog
   14-4-booking-editor-with-live-conflict-warnings-and-audited-override: backlog
   epic-14-retrospective: optional
