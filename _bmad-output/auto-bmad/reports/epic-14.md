@@ -657,3 +657,39 @@ No new deferred items harvested.
 1. Approval pending for owner-run temporary Ubuntu timesyncd stop, bounded observation and start rollback; exact commands in story14-3-time-owner-intervention-proposal.md.
 
 **Next:** Approve/run bounded owner experiment and return tagged readings. Then assess supported durable repair and rerun mandatory verification before delegate restoration. Human review: /bmad-checkpoint-preview codex/epic14-resume. Project context refresh recommended after epic completion.
+
+## Report — 2026-10-07T09:47:19Z (halted â€” Ubuntu time-sync owner change required)
+
+**Epic:** `14` — 4 stories.
+**Branch:** `codex/epic14-resume` (HEAD `60339ed`).
+**Pipeline status:** Story14.3 remains blocked on patch verification; current clock unstable.
+**Continues:** 2026-10-06T17:53:31Z (halted â€” owner clock experiment approval pending)
+
+**Summary:** Approved owner runtime experiment receipt saved:2733samples/0backwardsteps/near1 adjusted-raw rate with Ubuntu timesyncd stopped, then restored enabled/active. One Sol6.1 High delegated read afterrestart:native0/2811samples/55s/3backwardsteps/min-1985.813ms/adjusted-raw1.0716874713. SameunitPID2457active/enabled beforeafter. Mixed PowerShell/WSL sampler instructions corrected. Evidence supports Canonical-recommended disabling Ubuntu24.04 timesyncd while retaining host sync; durable repair and historical failure causes unproven.
+
+**Timing:** started 2026-09-29T08:23:21Z; completed in progress — elapsed 193h 23m (≈15h 24m AI-run, ≈177h 59m human/idle wait); resumed 16×.
+
+**Stories:**
+1. 14.1/14.2 previously landed; existing approvals valid.
+2. 14.3 unchanged:1362 passed,3 failed,1 intentional skip;143 focused passes; one completed independent review round,9 fixes preserved.
+
+**Skipped:**
+1. 14.4 remains gated by14.3.
+
+**Epic gate:** Not reached; empty-chain CI unexecuted.
+
+**TEA:** No new TEA execution.
+
+**Retrospective:** Not reached.
+
+**Overrides:** Similar WSL operations authorized; ordinary bounded reads executed using sandbox escalation. Trusted resource rule forbids agent stopping user-owned service. No agent service/config mutation, DB use, resource launch or spec restoration.
+
+**Open questions:**
+1. Will Canonical-supported persistent configuration yield stable clocks and passing gates?
+
+**Deferred work:** (none)
+
+**⚠️ Needs human:**
+1. Owner-run Ubuntu24.04 systemctl disable --now systemd-timesyncd.service then readback disabled/inactive/dead/MainPID0. Exact commands/rollback in story14-3-time-owner-intervention-proposal.md. This is not an auto-review or UAC refusal.
+
+**Next:** Return service readback; agent runs bounded clock verification then, if stable, guarded DB readiness and delegate restoration/patch verification/follow-up. Human review: /bmad-checkpoint-preview codex/epic14-resume. Project context refresh recommended after epic completion.

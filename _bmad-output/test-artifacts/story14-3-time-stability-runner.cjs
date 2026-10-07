@@ -2,8 +2,9 @@
 const fs = require('node:fs');
 const cp = require('node:child_process');
 const prefix = ['--distribution', 'Ubuntu-24.04', '--user', 'root', '--exec'];
-const result = { readOnly: true, serviceClockMutations: false, samplerRuns: 0 };
-const outputPath = 'C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-3-time-after-rollback-stability.json';
+const disabledMode = process.argv[2] === 'disabled';
+const result = { readOnly: true, serviceClockMutations: false, samplerRuns: 0, expectedUnitMode: disabledMode ? 'disabled' : 'active' };
+const outputPath = `C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-3-time-after-${disabledMode ? 'disable' : 'rollback'}-stability.json`;
 function run(args, options = {}) {
   return cp.spawnSync('wsl.exe', args, { encoding: 'utf8', timeout: 8000, maxBuffer: 65536, ...options });
 }
@@ -19,6 +20,13 @@ function unitState() {
   }
   return { nativeExit: p.status, stderrBytes: Buffer.byteLength(p.stderr || ''), values };
 }
+function expectedState(state) {
+  const v = state.values;
+  return state.nativeExit === 0 && v.Id === 'systemd-timesyncd.service' && v.LoadState === 'loaded' &&
+    v.FragmentPath === '/usr/lib/systemd/system/systemd-timesyncd.service' &&
+    (disabledMode ? v.ActiveState === 'inactive' && v.SubState === 'dead' && v.MainPID === '0' && v.UnitFileState === 'disabled'
+      : v.ActiveState === 'active' && v.SubState === 'running' && Number(v.MainPID) > 0 && v.UnitFileState === 'enabled');
+}
 try {
   const list = run(['--list', '--verbose'], { encoding: 'utf16le', timeout: 5000 });
   result.runningGuardNativeExit = list.status;
@@ -28,12 +36,10 @@ try {
   result.gnuTimeoutVerified = version.status === 0 && /GNU coreutils/.test(version.stdout || '');
   if (!result.gnuTimeoutVerified) throw new Error('existing-gnu-timeout');
   result.before = unitState();
-  if (result.before.nativeExit !== 0 || result.before.values.Id !== 'systemd-timesyncd.service' ||
-      result.before.values.LoadState !== 'loaded' || result.before.values.ActiveState !== 'active' ||
-      result.before.values.SubState !== 'running') throw new Error('restored-unit-state');
+  if (!expectedState(result.before)) throw new Error('expected-unit-state-before');
   const source = fs.readFileSync('C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-3-time-stability-sampler.py', 'utf8');
   result.samplerRuns = 1;
-  console.log('Read-only after-rollback sampler started; raw deadline55s; GNU timeout59s+1s KILL bound.');
+  console.log(`Read-only ${result.expectedUnitMode}-unit sampler started; raw deadline55s; GNU timeout59s+1s KILL bound.`);
   const p = run([...prefix, 'timeout', '--signal=TERM', '--kill-after=1s', '59s', 'python3', '-'],
     { input: source, timeout: 65000 });
   result.samplerNativeExit = p.status;
@@ -42,6 +48,7 @@ try {
   try { result.metrics = JSON.parse((p.stdout || '').trim()); }
   catch { result.samplerJsonAvailable = false; }
   result.after = unitState();
+  if (!expectedState(result.after)) throw new Error('expected-unit-state-after');
 } catch (e) {
   result.failure = e.message;
 } finally {

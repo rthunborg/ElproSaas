@@ -9,11 +9,11 @@ spec_folder: null
 story_id: null
 branch: codex/epic14-resume
 status: in-progress
-updated_at: "2026-10-07T09:42:57Z"
+updated_at: "2026-10-07T09:55:37Z"
 started_at: "2026-10-06T11:47:14Z"
 completed_at: null
 active_seconds: 11691
-timing_anchor: null
+timing_anchor: 1791366513
 is_first_in_epic: false
 is_last_in_epic: false
 git_mode: remote
@@ -81,15 +81,14 @@ merge_commit: null
 branch_deleted: false
 open_questions: []
 deferred_work: []
-blockers:
-  - "Owner stopped-timesyncd window:2733samples/55s/0backwardsteps/adjusted-raw0.999998. Single agent afterrollback window:native0/2811samples/55s/3backwardsteps/min-1985.812987ms/adjusted-raw1.071687471289135; service active/running/enabled PID2457 before/after. Clock unstable; verification and spec restoration blocked. Canonical Ubuntu24.04 recommends disabling conflicting timesyncd when WSL host synchronization is chosen. Trusted resource rule forbids agent stopping user-owned applications; exact owner disable--now/readback required."
+blockers: []
 overrides:
   empty_chain_ci_required: true
   unattended_run_confirmed_by_owner_request: true
   explicit_test_db_port: 55422
   all_four_transferred_checks_mandatory_before_14_4_and_pr: true
   acceptance_contract_c_document: docs/decisions/epic-14-story-ownership-contract-c-2026-10-06.md
-  root_guard_resource_id: 4c66cc2c-2c73-4332-b015-7e239dc94ca0
+  root_guard_resource_id: 48fc14f8-3810-46f8-ab4f-8c416abc7d57
   no_data_reset: true
   explicit_test_api_port: 55421
   acceptance_contract_c_owner_approved: true
@@ -108,8 +107,8 @@ overrides:
   root_guard_shutdown_verified: false
   implementation_executed: true
   implementation_author_dispatch_failed: null
-  root_guard_stop_requested: true
-  resume_checkpoint: db632f5b
+  root_guard_stop_requested: false
+  resume_checkpoint: 60339ed8
   resume_workspace: "C:/DEV/ElproSaas"
   restore_after_fresh_author_capacity: true
   fresh_author_capacity_confirmed: true
@@ -145,18 +144,34 @@ overrides:
   clock_provider_owner_read_status: 0
   clock_provider_vm_chronyd_phc_confirmed: true
   clock_provider_ubuntu_timesyncd_confirmed: true
-  clock_intervention_owner_execution_required: true
+  clock_intervention_owner_execution_required: false
   owner_clock_experiment_approved: true
   owner_clock_experiment_executed: true
   owner_clock_experiment_runtime_rollback_complete: true
   owner_authorized_similar_wsl_operations: true
-  current_clock_stable: false
+  current_clock_stable: true
   after_rollback_clock_samples: 2811
   after_rollback_clock_backward_steps: 3
   after_rollback_clock_min_delta_ms: "-1985.812987"
   after_rollback_adjusted_raw_ratio: "1.071687471289135"
   after_rollback_sampler_native_exit: 0
   clock_service_config_changed_by_agent: false
+  owner_persistent_timesyncd_disable_confirmed: true
+  clock_stability_observation_seconds: 55
+  disabled_clock_samples: 2734
+  disabled_clock_backward_steps: 0
+  disabled_clock_adjusted_raw_ratio: "1.0001272306764746"
+  disabled_clock_sampler_native_exit: 0
+  root_guard_request_id: 369297fb-24fa-4f9e-bf52-4118cc19ed7a
+  root_guard_service_readiness_verified: true
+  current_compose_resource_id: 48fc14f8-3810-46f8-ab4f-8c416abc7d57
+  current_compose_outcome_verified: true
+  current_compose_stop_requested: false
+  isolated_service_and_schema_readiness_verified: true
+  current_migration_ledger_count: 95
+  prior_94_migration_ledger_hash_unchanged: true
+  current_db_clock_backward_steps: 0
+  current_loopback_rest_auth_storage_http_200: true
 constraints:
   - "Approved Story14.3 scope and PhaseB manifest only; resources active, scheduling pending untilEpic15."
   - Allfour transferred conflict checks mandatory before14.4/EpicPR.
