@@ -111,29 +111,6 @@ Official resumed Step 02 inspected the current files at root-verified full basel
 
 ## Review Triage Log
 
-**Round 2 of 3**
-
-Independent follow-up review started through the official Build Auto workflow. Actual authorization, encrypted review receipts and atomic conflict acceptance require `gpt-6.1-sol` High for every configured layer. Full change baseline: `b94be3d33b7161e31ff4e01da79dd36c5474fd73`; clean incoming revision: `edb628465ec1ac5356721b8ccb617d8ab11cf5eb`. All six layers are required; capacity refusals are recovered with synchronous foreground batches before triage.
-
-### 2026-10-07 — Review pass, Round 2
-- intent_gap: 0
-- bad_spec: 0
-- patch: 9: (high 1, medium 8, low 0)
-- defer: 0
-- reject: 5
-- addressed_findings:
-  - `[medium]` `[patch]` Issued reviews now fit explicit 4 MiB action transport and 3 MiB preflight bounds; genuine 1,120,245-byte HTTP save passes.
-  - `[medium]` `[patch]` Archived current work role is visible as a current-only option and can be deliberately cleared.
-  - `[medium]` `[patch]` Current-authorized options can retry in-sheet while retaining the mounted draft and renewing preview.
-  - `[medium]` `[patch]` Customer-level contact preserves a compatible facility-only connection.
-  - `[medium]` `[patch]` Same-customer facility change retains a compatible customer-level contact.
-  - `[medium]` `[patch]` Modal focus remains confined through pending/success; semantic disabled controls are excluded and first-field focus is explicit.
-  - `[medium]` `[patch]` Fresh preview rejects newly ineligible profiles/memberships using current checked facts, preserving existing assignment exceptions.
-  - `[medium]` `[patch]` Safe full booking references distinguish same-prefix collision identities.
-  - `[high]` `[patch]` An authorization-denied retry preserves the exact unresolved attempted command until its outcome can be determined.
-
-All six configured layers are terminal; exact external CLI native 0. Independent final narrow source/trail/evidence checks pass: one author section, 20 verified stops, all 53 current hashes matched, frozen intent byte-identical to this run's entry snapshot, and all four migration files matched their applied hashes. New retained artifacts passed a bounded credential/cookie/proof scan with zero findings; no values were printed. These checks do not constitute another broad review round. Follow-up recommendation: true, high 1/medium 8/low 0, score 24. The epic workflow completes this automatic follow-up without automatically starting Round 3; the recommendation remains reported for release/orchestration handling.
-
 **Round 1 of 3**
 
 ### 2026-10-07 — Review pass
@@ -157,6 +134,29 @@ All six configured layers are terminal; exact external CLI native 0. Independent
 All six configured layers completed independently at `gpt-6.1-sol` High against the complete 68-file artifact (SHA256 `2C05C6E096CDC39236B5C6FA1EE6D112CE6D497C3901B8A4F64474D25FFA1A04`). This is completed broad round 1 of 3; all ten patches were applied by the original implementation author in one synchronous batch. Security returned `No findings.` Capacity refusals were recovered in batches. The external CLI genuinely completed; its first CMD stdout read failed on forward-slash path formatting, its native-path read recovered the exact result, and the already-started exact native-path retry completed with exit 0. Both runs retain one external-layer/round identity, with the original transport failure preserved. Full provenance and independent classification are retained at `C:/Users/Rasmus/AppData/Local/Temp/story14-4-r1-review-provenance-triage.md`; parent owns durable final reporting. No intent/spec loopback or destructive revert is needed.
 
 Final narrow fix/trail check passed against source/test fingerprint `624e4347d9fd7ded2ec26164a7ec5655706ac597c20711b7aeeb395dde440fc8` (all 48 recorded file hashes matched) and production build `TGBWaTwRYVJLLfZUysZQV`. Required full integration: 1456 registered/1455 passed/0 failed/1 existing recovery skip; affected actual API/RLS/schema 169/0/0. Final corrected-build browser 15/0/0/0 flaky, native 0; unit 2033 registered/2032 passed/0 failed/1 existing xattr skip; final component/read 25/0/0. Full integration preceded the final focus-only UI correction; command/SQL/input files remained unchanged, with affected components and final-build browser rerun afterward. The earlier 13-pass/2-fail diagnostic and zero-body preflight remain preserved. The single original-author Suggested Review Order has 20 verified stops; independent narrow source/test/evidence inspection also passed. This narrow check supplies no broad Round 2 or Phase 7 credit. Follow-up recommendation: true; patched high 4/medium 6/low 0, score 18. Empty-DB Epic CI and transferred Story 15.1 calendar checks remain pending.
+
+**Round 2 of 3**
+
+Independent follow-up review started through the official Build Auto workflow. Actual authorization, encrypted review receipts and atomic conflict acceptance require `gpt-6.1-sol` High for every configured layer. Full change baseline: `b94be3d33b7161e31ff4e01da79dd36c5474fd73`; clean incoming revision: `edb628465ec1ac5356721b8ccb617d8ab11cf5eb`. All six layers are required; capacity refusals are recovered with synchronous foreground batches before triage.
+
+### 2026-10-07 — Review pass
+- intent_gap: 0
+- bad_spec: 0
+- patch: 9: (high 1, medium 8, low 0)
+- defer: 0
+- reject: 5
+- addressed_findings:
+  - `[medium]` `[patch]` Issued reviews now fit explicit 4 MiB action transport and 3 MiB preflight bounds; genuine 1,120,245-byte HTTP save passes.
+  - `[medium]` `[patch]` Archived current work role is visible as a current-only option and can be deliberately cleared.
+  - `[medium]` `[patch]` Current-authorized options can retry in-sheet while retaining the mounted draft and renewing preview.
+  - `[medium]` `[patch]` Customer-level contact preserves a compatible facility-only connection.
+  - `[medium]` `[patch]` Same-customer facility change retains a compatible customer-level contact.
+  - `[medium]` `[patch]` Modal focus remains confined through pending/success; semantic disabled controls are excluded and first-field focus is explicit.
+  - `[medium]` `[patch]` Fresh preview rejects newly ineligible profiles/memberships using current checked facts, preserving existing assignment exceptions.
+  - `[medium]` `[patch]` Safe full booking references distinguish same-prefix collision identities.
+  - `[high]` `[patch]` An authorization-denied retry preserves the exact unresolved attempted command until its outcome can be determined.
+
+All six configured layers are terminal; exact external CLI native 0. Independent final narrow source/trail/evidence checks pass: one author section, 20 verified stops, all 53 current hashes matched, frozen intent byte-identical to this run's entry snapshot, and all four migration files matched their applied hashes. New retained artifacts passed a bounded credential/cookie/proof scan with zero findings; no values were printed. These checks do not constitute another broad review round. Follow-up recommendation: true, high 1/medium 8/low 0, score 24. The epic workflow completes this automatic follow-up without automatically starting Round 3; the recommendation remains reported for release/orchestration handling.
 
 ## Design Notes
 
