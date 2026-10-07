@@ -1,0 +1,153 @@
+{
+  "success": true,
+  "subagent": "api-tests",
+  "story": "14.3 Deterministic Conflict Engine (Detection Core)",
+  "mode": "coverage-audit-and-gap-only-generation",
+  "tests": [],
+  "fixture_needs": [],
+  "knowledge_fragments_used": [
+    "library-integration-mandate",
+    "playwright-utils-mandate",
+    "api-testing-patterns",
+    "data-factories"
+  ],
+  "playwright_utils_deviations": [],
+  "pactjs_utils_deviations": [],
+  "provider_scrutiny": "not-applicable-no-contract-artifacts",
+  "provider_files_read": [
+    "src/server/bookings/save-with-conflicts.ts",
+    "src/server/bookings/conflict-facts.ts"
+  ],
+  "test_files_inspected": [
+    "tests/integration/commands/booking-conflicts.int.test.ts",
+    "tests/integration/commands/bookings-replay-authority.int.test.ts",
+    "tests/integration/commands/bookings.int.test.ts",
+    "tests/integration/rls/bookings.rls.test.ts",
+    "tests/support/booking-conflicts-atdd.ts",
+    "tests/support/booking-conflict-attestation.ts",
+    "tests/support/bookings-atdd.ts"
+  ],
+  "test_count": 0,
+  "new_test_candidates": [],
+  "remaining_acceptance_gaps": [],
+  "routing": {
+    "model": "gpt-6.1-sol",
+    "effort": "high",
+    "reason": "Actual coverage concerns transactional integrity, tenant/actor proof enforcement and current authorization after serialization waits.",
+    "recursive_delegation": false
+  },
+  "library_applicability": {
+    "playwright_utils_flag": true,
+    "playwright_utils_installed": false,
+    "existing_api_runner": "Vitest real Postgres command/RLS integration",
+    "playwright_utils_binding": false,
+    "pactjs_utils_flag": true,
+    "pactjs_utils_installed": false,
+    "pact_artifacts_in_scope": false,
+    "pact_mcp_reachable": false,
+    "pact_fallback_source": "provider-source",
+    "reason": "Both utility dependencies are absent from package.json. The Playwright mandate also requires the Playwright runner; these existing suites use Vitest. The internal same-repository command/SQL boundary has no relevant independently deployed consumer/provider contract. No broker reprobe, package installation or fabricated HTTP endpoint is needed. Framework setup is the appropriate separate workflow if future Playwright/Pact adoption is desired."
+  },
+  "coverage_mapping": [
+    {
+      "ac": 5,
+      "checks": ["14.3-INT-001"],
+      "priority": "P1",
+      "assertions": "Frozen internal preview equals normalized real-save persistence; literal person and microsecond collision window assertions; peer booking and foreign tenant state unchanged.",
+      "status": "covered-executed-passed"
+    },
+    {
+      "ac": 6,
+      "checks": ["14.3-INT-002", "14.3-INT-006"],
+      "priority": "P1/P0",
+      "assertions": "A signed stale snapshot writes no durable state after a peer commits; actual command performs stale then committed finalization, retains the original command UUID and persists refreshed collision output.",
+      "status": "covered-executed-passed"
+    },
+    {
+      "ac": 7,
+      "checks": ["14.3-INT-003"],
+      "priority": "P0",
+      "assertions": "Actual create persists exactly one booking, exact assignees/conflicts, command digest/result and one attributable target-only audit atomically; other assignments, audits and foreign state remain unchanged.",
+      "status": "covered-executed-passed"
+    },
+    {
+      "ac": 8,
+      "checks": ["14.3-INT-004", "every participant in four-booking"],
+      "priority": "P1/P0",
+      "assertions": "Replacement changes old/new people and windows, removes explicitly peer-owned stale collisions, preserves exact accepted-key evidence on unchanged identity, leaves changed identities open and clears cancellation rows. Every four-booking aggregate participant is independently retrievable; cancellation refresh removes the participant and opens changed identities.",
+      "status": "covered-executed-passed"
+    },
+    {
+      "ac": 9,
+      "checks": ["14.3-INT-005"],
+      "priority": "P1",
+      "assertions": "Both create and update at both post-conflict and audit fault stages compare complete booking/assignment/conflict/audit snapshots, including durable private outcomes, against pre-command state; retry proves one successful audit.",
+      "status": "covered-executed-passed"
+    },
+    {
+      "ac": 10,
+      "checks": [
+        "three real stale attempts",
+        "distinct-key concurrent bookings",
+        "schedule/profile/calendar/combined_form/work_role_upsert/work_role_active/membership/invitation_acceptance first-gate races",
+        "create/update post-wait revocation and historical canonical replay",
+        "invitation expiry after membership and operation-row waits",
+        "operation-row wait: confirmation revoked",
+        "operation-row wait: confirmed email changed",
+        "one/three genuine signed expiries during actual-save gate waits"
+      ],
+      "priority": "P0/P1",
+      "assertions": "Registered tests exercise actual commands, writer RPCs and observed pg_blocking_pids barriers. Three stale attempts return SERVER_ERROR with no target/outcome/audit writes; concurrent distinct keys require one refresh and persist the real collision. All eight enrolled writer classes use the first gate before held rows and recheck coherent digests. Replay denies revoked authority and returns authorized historical results without writes. R2 isolates current Auth confirmation/email changes while an operation-row wait is observed and the invitation remains valid for more than 30 minutes, then asserts false result, identical complete membership state, zero added activation audit and exact Auth restoration.",
+      "status": "covered-executed-passed"
+    },
+    {
+      "ac": 11,
+      "checks": [
+        "17 altered/missing proof cases with valid controls",
+        "nine correctly signed malformed output/claims cases",
+        "checked snapshot/finalize Montor and cross-tenant/actor denial",
+        "legacy/private/direct-DML bypass denial and exact ACL/search-path checks",
+        "own-assignment conflict read scope",
+        "Node/Postgres UTF-8 and microsecond framing",
+        "otherwise valid signed expired/future/oversized windows",
+        "previous incomplete normalization version rejection",
+        "retained booking RLS authority matrices"
+      ],
+      "priority": "P0/P1",
+      "assertions": "Invalid and correctly signed malformed attempts leave exact durable state unchanged and use valid positive controls. Separate valid timing controls isolate expiration, future issuance and maximum lifetime beyond HMAC rejection. Authenticated/anonymous private calls and direct DML cannot bypass detection; current own-assignment reads and composite tenant/actor authorization remain tested through the Data API and command envelope.",
+      "status": "covered-executed-passed"
+    }
+  ],
+  "evidence": {
+    "source": "Existing R2 executed evidence inspected; this worker executed no tests.",
+    "tested_head": "3e8e337a8e7933b2c6af1930476690801a469477",
+    "reports": [
+      "_bmad-output/test-artifacts/story14-3-r2-named-audit.json",
+      "_bmad-output/test-artifacts/story14-3-r2-check-summary.json",
+      "_bmad-output/test-artifacts/story14-3-r2-full.json"
+    ],
+    "required_full": { "native_exit": 0, "total": 1368, "passed": 1367, "failed": 0, "skipped": 1 },
+    "affected": { "native_exit": 0, "total": 145, "passed": 145, "failed": 0, "skipped": 0 },
+    "raw_full_booking_suites": [
+      { "file": "booking-conflicts.int.test.ts", "total": 62, "passed": 62, "failed": 0, "skipped": 0 },
+      { "file": "bookings-replay-authority.int.test.ts", "total": 11, "passed": 11, "failed": 0, "skipped": 0 },
+      { "file": "bookings.int.test.ts", "total": 16, "passed": 16, "failed": 0, "skipped": 0 },
+      { "file": "bookings.rls.test.ts", "total": 5, "passed": 5, "failed": 0, "skipped": 0 }
+    ],
+    "named_integration_ids": { "required": 6, "executed_passed": 6 },
+    "transferred_checks": { "required": 4, "executed_passed": 4, "ids": ["14.3-INT-003", "14.3-INT-004", "14.3-INT-005", "14.3-INT-006"] },
+    "named_integration_anchors": { "required": 31, "passed": 31 },
+    "io_matrix_rows": { "required": 7, "passed": 7 },
+    "unit_ids": { "required": 14, "passed": 14 },
+    "timezone_runs": { "zones": ["UTC", "America/Los_Angeles", "Asia/Tokyo"], "each_total": 14, "each_passed": 14, "each_failed": 0, "each_skipped": 0, "each_native_exit": 0 },
+    "identity_filtered": { "total": 62, "executed_passed": 2, "failed": 0, "filtered_not_coverage": 60 },
+    "intentional_full_skip": "ops/recovery-storage-immutability.int.test.ts isolated recovery Storage physical-loader proof; unrelated to Story 14.3 acceptance",
+    "historical_evidence": "Historical skipped ATDD scaffolds, older 49-case registration gaps and failing reports remain history; they are not current execution coverage or silently waived."
+  },
+  "limitations": [
+    "This is scoped acceptance coverage inspection, not another broad code review or a fresh test run.",
+    "The existing evidence does not measure numeric code coverage, performance or scalability.",
+    "The check summary retains empty-chain migration CI as an Epic finalization gate; populated target success is not empty-chain evidence. This is not an unfilled API acceptance test candidate."
+  ],
+  "summary": "Independently inspected current AC5-11, the coverage plan, historical ATDD checklist, actual production-bound integration assertions and R2 raw/summary evidence. No genuine unfilled API acceptance gap remains. Existing 62 conflict cases and 32 retained booking/replay/RLS cases pass unskipped in the raw full report; all six named integration IDs, all four transferred checks, all 31 anchors, all seven scenario rows and all 14 unit IDs pass. Generated zero tests and no fixtures to avoid duplication. No source/tests/spec/config/dependencies/migrations/Git/resources/environment edits or test execution occurred; only this structured worker output was written."
+}

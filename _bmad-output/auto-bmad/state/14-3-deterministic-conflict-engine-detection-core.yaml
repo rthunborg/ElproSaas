@@ -9,34 +9,35 @@ spec_folder: null
 story_id: null
 branch: codex/epic14-resume
 status: in-progress
-updated_at: "2026-10-07T10:51:43Z"
+updated_at: "2026-10-07T11:00:22Z"
 started_at: "2026-10-06T11:47:14Z"
 completed_at: null
-active_seconds: 15480
+active_seconds: 15977
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
 git_mode: remote
 base_branch: main
-selected_phase: build
-selected_role: build-delegate
+selected_phase: tea_per_story
+selected_role: tea-delegate
 selected_profile: standard
 selected_model: gpt-6.1-sol
 selected_effort: high
 selected_host: codex
 selected_tier: subagents
 selected_route: subagent
-escalation_reason: "Automatic sensitive-task escalation: authorization, rls, transactional-integrity"
+escalation_reason: "Sensitive Story14.3 authorization, identity-wait regressions and transactional integrity coverage"
 routing_ledger:
   - "{\"effort\":\"high\",\"escalation_reason\":\"Automatic sensitive-task escalation: rls, transactional-integrity\",\"host\":\"codex\",\"model\":\"gpt-6.1-sol\",\"phase\":\"build\",\"profile\":\"standard\",\"role\":\"build-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
   - "{\"effort\":\"high\",\"escalation_reason\":\"Automatic sensitive-task escalation: rls, transactional-integrity\",\"host\":\"codex\",\"model\":\"gpt-6.1-sol\",\"phase\":\"tea_per_story\",\"profile\":\"standard\",\"role\":\"tea-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
   - "{\"effort\":\"high\",\"escalation_reason\":\"Automatic sensitive-task escalation: authorization, rls, transactional-integrity\",\"host\":\"codex\",\"model\":\"gpt-6.1-sol\",\"phase\":\"build\",\"profile\":\"standard\",\"role\":\"build-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"high\",\"escalation_reason\":\"Sensitive Story14.3 authorization, identity-wait regressions and transactional integrity coverage\",\"host\":\"codex\",\"model\":\"gpt-6.1-sol\",\"phase\":\"tea_per_story\",\"profile\":\"standard\",\"role\":\"tea-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
 tea_risk: high
 tea_selected: [atdd, automate]
 tea_rationale: Scheduling/DST boundaries and authoritative atomic conflict persistence.
 epic_story_count: 4
 stories_after_in_epic: 1
-completed_phases: [0, 1, 2, 3, 4, 5]
+completed_phases: [0, 1, 2, 3, 4, 5, 6]
 spec_path: "C:/DEV/ElproSaas/_bmad-output/implementation-artifacts/spec-14-3-deterministic-conflict-engine-detection-core.md"
 spec_approved: true
 build:
@@ -56,7 +57,7 @@ legacy_review_loop_done: false
 legacy_external_review_iterations: null
 legacy_convergence_unverified: false
 legacy_artifact_path: null
-commits: [d0e9cc3e, ad4642a1, 0c4ab83f, 007fe3cc, 2a6c9e6d, c8d0a881, 44247fc8, a9e2838e, 5d61f44c, 3e8e337a, f20ea393, 7f6c691d]
+commits: [d0e9cc3e, ad4642a1, 0c4ab83f, 007fe3cc, 2a6c9e6d, c8d0a881, 44247fc8, a9e2838e, 5d61f44c, 3e8e337a, f20ea393, 7f6c691d, 526c54b4]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -182,6 +183,11 @@ overrides:
   review_round_2_deferred: 0
   review_round_2_score: 3
   current_full_integration_total: 1368
+  post_dev_coverage_complete: true
+  post_dev_coverage_new_tests: 0
+  post_dev_coverage_new_fixtures: 0
+  post_dev_coverage_summary: "_bmad-output/test-artifacts/automation-summary-14-3-deterministic-conflict-engine-detection-core.md"
+  post_dev_coverage_remaining_story_gaps: 0
 constraints:
   - "Approved Story14.3 scope and PhaseB manifest only; resources active, scheduling pending untilEpic15."
   - Allfour transferred conflict checks mandatory before14.4/EpicPR.

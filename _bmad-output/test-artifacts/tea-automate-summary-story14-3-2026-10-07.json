@@ -1,0 +1,190 @@
+{
+  "success": true,
+  "workflow": "testarch-automate",
+  "story": "14.3",
+  "mode": "Create, BMad-integrated",
+  "detected_stack": "frontend",
+  "execution": {
+    "requested": "auto",
+    "probe_enabled": true,
+    "supports_subagent": true,
+    "supports_agent_team": false,
+    "resolved": "subagent",
+    "foreground_workers_completed": 2,
+    "performance_gain": "not measured"
+  },
+  "total_tests": 0,
+  "api_tests": 0,
+  "e2e_tests": 0,
+  "backend_tests": 0,
+  "unit_tests": 0,
+  "fixtures_created": 0,
+  "api_test_files": 0,
+  "e2e_test_files": 0,
+  "backend_test_files": 0,
+  "priority_coverage": {
+    "P0": 0,
+    "P1": 0,
+    "P2": 0,
+    "P3": 0
+  },
+  "existingCoverage": {
+    "acRows": 12,
+    "namedIntegrationAnchors": 31,
+    "scenarioRows": 7,
+    "transferredChecks": 4,
+    "namedUnitIds": 14,
+    "conflictSuite": {
+      "total": 62,
+      "passed": 62,
+      "failed": 0,
+      "skipped": 0,
+      "priorityCounts": {
+        "P1": 6,
+        "P0": 56
+      }
+    },
+    "retainedBookingReplayRls": {
+      "total": 32,
+      "passed": 32,
+      "failed": 0,
+      "skipped": 0
+    },
+    "full": {
+      "nativeExit": 0,
+      "total": 1368,
+      "passed": 1367,
+      "failed": 0,
+      "skipped": 1,
+      "success": true,
+      "durationSeconds": 119.68,
+      "required": true,
+      "diagnostic": true,
+      "workers": 8,
+      "fileParallelism": true
+    },
+    "focused": {
+      "nativeExit": 0,
+      "total": 145,
+      "passed": 145,
+      "failed": 0,
+      "skipped": 0,
+      "success": true,
+      "durationSeconds": 91.61
+    },
+    "unit": {
+      "nativeExit": 0,
+      "total": 1993,
+      "passed": 1992,
+      "failed": 0,
+      "skipped": 1,
+      "durationMs": 18975.9883,
+      "skip": "inherited Windows xattr; Linux CI required"
+    },
+    "timezones": [
+      {
+        "zone": "UTC",
+        "nativeExit": 0,
+        "total": 14,
+        "passed": 14,
+        "failed": 0,
+        "skipped": 0,
+        "unitIds": [
+          "14.3-UNIT-001",
+          "14.3-UNIT-002",
+          "14.3-UNIT-003",
+          "14.3-UNIT-004",
+          "14.3-UNIT-005",
+          "14.3-UNIT-006",
+          "14.3-UNIT-007",
+          "14.3-UNIT-008",
+          "14.3-UNIT-009",
+          "14.3-UNIT-010",
+          "14.3-UNIT-011",
+          "14.3-UNIT-012",
+          "14.3-UNIT-013",
+          "14.3-UNIT-014"
+        ],
+        "nativeExitEvidence": "trusted exec_command completion"
+      },
+      {
+        "zone": "America/Los_Angeles",
+        "nativeExit": 0,
+        "total": 14,
+        "passed": 14,
+        "failed": 0,
+        "skipped": 0,
+        "unitIds": [
+          "14.3-UNIT-001",
+          "14.3-UNIT-002",
+          "14.3-UNIT-003",
+          "14.3-UNIT-004",
+          "14.3-UNIT-005",
+          "14.3-UNIT-006",
+          "14.3-UNIT-007",
+          "14.3-UNIT-008",
+          "14.3-UNIT-009",
+          "14.3-UNIT-010",
+          "14.3-UNIT-011",
+          "14.3-UNIT-012",
+          "14.3-UNIT-013",
+          "14.3-UNIT-014"
+        ],
+        "nativeExitEvidence": "trusted exec_command completion"
+      },
+      {
+        "zone": "Asia/Tokyo",
+        "nativeExit": 0,
+        "total": 14,
+        "passed": 14,
+        "failed": 0,
+        "skipped": 0,
+        "unitIds": [
+          "14.3-UNIT-001",
+          "14.3-UNIT-002",
+          "14.3-UNIT-003",
+          "14.3-UNIT-004",
+          "14.3-UNIT-005",
+          "14.3-UNIT-006",
+          "14.3-UNIT-007",
+          "14.3-UNIT-008",
+          "14.3-UNIT-009",
+          "14.3-UNIT-010",
+          "14.3-UNIT-011",
+          "14.3-UNIT-012",
+          "14.3-UNIT-013",
+          "14.3-UNIT-014"
+        ],
+        "nativeExitEvidence": "trusted exec_command completion"
+      }
+    ]
+  },
+  "tests_executed_this_run": 0,
+  "product_tests_rerun": false,
+  "evidence_audit_native_exit": 0,
+  "source_and_test_delta_since_author_commit": "none: git diff f20ea393..526c54b4 for src/tests/supabase/packages/config returned no paths",
+  "new_acceptance_gaps": [],
+  "playwright_utils_deviations": [],
+  "pactjs_utils_deviations": [],
+  "workers": [
+    "_bmad-output\\test-artifacts\\tea-automate-api-tests-story14-3-2026-10-07.json",
+    "_bmad-output\\test-artifacts\\tea-automate-e2e-tests-story14-3-2026-10-07.json"
+  ],
+  "knowledge_fragments_used": [
+    "api-testing-patterns",
+    "ci-burn-in",
+    "data-factories",
+    "fixture-architecture",
+    "library-integration-mandate",
+    "network-first",
+    "pact-mcp",
+    "pactjs-utils-mandate",
+    "playwright-utils-mandate",
+    "selective-testing",
+    "selector-resilience",
+    "test-levels-framework",
+    "test-priorities-matrix",
+    "test-quality"
+  ],
+  "summary": "Complete coverage audit: no new meaningful automated acceptance gap, zero new tests; original executed evidence audited without duplicate or implementation-mirroring tests. No code, dependencies, configuration, spec or root bookkeeping changed."
+}
